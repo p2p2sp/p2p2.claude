@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>superdev — propozycja struktury (poglądowo)</title>
+<style>
+  :root{
+    --bg:#0b0f16; --panel:#121823; --panel2:#0f141d; --line:#243044;
+    --ink:#e6edf3; --mut:#93a1b5; --dim:#6b7a90;
+    --mem:#34d399; --dev:#60a5fa; --ui:#a78bfa; --gh:#fbbf24; --sys:#f472b6;
+    --ok:#3fb950; --warn:#f0883e;
+    --mono:"SFMono-Regular",ui-monospace,"JetBrains Mono",Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#16203010,transparent),var(--bg);
+    color:var(--ink);font-family:var(--sans);line-height:1.6;font-size:15px}
+  a{color:var(--dev);text-decoration:none}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+  code,kbd,.mono{font-family:var(--mono);font-size:.88em}
+
+  /* hero */
+  header.hero{padding:64px 0 36px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#10182610,transparent)}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
+  h1{font-size:46px;line-height:1.05;margin:14px 0 8px;letter-spacing:-.02em}
+  h1 .accent{background:linear-gradient(90deg,var(--mem),var(--dev),var(--ui),var(--gh));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--mut);font-size:18px;max-width:760px}
+  .tagrow{margin-top:20px;display:flex;gap:8px;flex-wrap:wrap}
+  .pill{font-family:var(--mono);font-size:12px;padding:5px 11px;border:1px solid var(--line);
+    border-radius:999px;color:var(--mut);background:var(--panel2)}
+  .note{margin-top:22px;font-size:13px;color:var(--dim);border-left:2px solid var(--line);padding-left:12px}
+
+  /* stat band */
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin:34px 0}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .stat .big{font-size:30px;font-weight:700;letter-spacing:-.01em}
+  .stat .lbl{font-size:12px;color:var(--mut);margin-top:2px}
+  .stat .was{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:6px}
+  .arrowi{color:var(--ok)}
+
+  section{padding:46px 0;border-bottom:1px solid var(--line)}
+  h2{font-size:13px;font-family:var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--dev);margin:0 0 6px}
+  .h2sub{font-size:26px;letter-spacing:-.01em;margin:0 0 20px;font-weight:650}
+  h3{font-size:17px;margin:26px 0 10px}
+  p{color:var(--ink)}
+  .lead{color:var(--mut)}
+
+  /* cards grid */
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .card h4{margin:0 0 8px;font-size:15px;display:flex;align-items:center;gap:8px}
+  .card p{margin:0;font-size:14px;color:var(--mut)}
+  .ic{width:22px;height:22px;border-radius:6px;display:inline-grid;place-items:center;font-size:12px;font-weight:700;color:#0b0f16}
+
+  /* prefix badges */
+  .pb{font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;color:#0b0f16;white-space:nowrap}
+  .pb.mem{background:var(--mem)} .pb.dev{background:var(--dev)} .pb.ui{background:var(--ui)}
+  .pb.gh{background:var(--gh)} .pb.sys{background:var(--sys)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 8px}
+  .legend span{font-size:13px;color:var(--mut);display:flex;align-items:center;gap:7px}
+
+  /* tables */
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);font-weight:600}
+  tbody tr:hover{background:#1622300d}
+  td .nm{font-family:var(--mono);font-weight:600}
+  td .old{font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .chip{display:inline-block;font-family:var(--mono);font-size:11px;padding:1px 7px;border-radius:5px;border:1px solid var(--line);color:var(--mut);margin:1px 2px 1px 0}
+  .chip.fork{border-color:#2f5f4a;color:#6fd0a6}
+  .chip.opus{border-color:#3a4a6b;color:#8fb4ff}
+  .chip.sonnet{border-color:#4a3a6b;color:#c4a6ff}
+  .chip.haiku{border-color:#6b5a2a;color:#f0c86a}
+  .chip.ref{border-color:#3a3a3a;color:#9aa}
+  .chip.ui{border-color:#5a3a6b;color:#cbb0ff}
+  .yes{color:var(--ok);font-weight:700}
+  .no{color:var(--dim)}
+
+  /* tree */
+  pre.tree{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:20px 22px;
+    overflow:auto;font-family:var(--mono);font-size:12.6px;line-height:1.7;color:var(--mut)}
+  pre.tree b{color:var(--ink);font-weight:600}
+  pre.tree .c{color:var(--dim)}
+  pre.tree .m{color:var(--mem)} pre.tree .d{color:var(--dev)} pre.tree .u{color:var(--ui)} pre.tree .g{color:var(--gh)} pre.tree .s{color:var(--sys)}
+
+  /* flow diagram */
+  .flow{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:22px;overflow:auto}
+  .lane{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}
+  .lane .tag{font-family:var(--mono);font-size:11px;color:var(--dim);width:118px;flex:none}
+  .node{font-family:var(--mono);font-size:12.5px;padding:6px 11px;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel);color:var(--ink);white-space:nowrap}
+  .node.mem{border-color:#2f5f4a}.node.dev{border-color:#2c456e}.node.ui{border-color:#4a3a6b}.node.gh{border-color:#6b5a2a}.node.sys{border-color:#6b3a55;background:#1a1320}
+  .ar{color:var(--dim);font-family:var(--mono)}
+  .ar.cross{color:var(--gh)}
+  .loopbox{border:1px dashed #2c456e;border-radius:10px;padding:8px 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .loopbox .ttl{font-family:var(--mono);font-size:10px;color:var(--dev);width:100%;margin-bottom:2px}
+
+  /* capability list */
+  .cap{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+  .cap:last-child{border-bottom:0}
+  .cap .n{font-family:var(--mono);color:var(--dev);font-weight:700;width:30px;flex:none}
+  .cap .body{flex:1}
+  .cap h4{margin:0 0 3px;font-size:14.5px}
+  .cap p{margin:0;font-size:13.5px;color:var(--mut)}
+  .dims{display:flex;gap:6px;margin-top:6px}
+  .dim{font-family:var(--mono);font-size:10.5px;padding:2px 7px;border-radius:5px;border:1px solid var(--line);color:var(--dim)}
+  .dim.t{border-color:#2f5f4a;color:#6fd0a6}
+  .dim.s{border-color:#3a4a6b;color:#8fb4ff}
+  .dim.e{border-color:#6b5a2a;color:#f0c86a}
+
+  .callout{background:linear-gradient(180deg,#12233010,transparent);border:1px solid var(--line);
+    border-left:3px solid var(--gh);border-radius:10px;padding:16px 18px;margin:16px 0}
+  .callout b{color:var(--gh)}
+  .ok-callout{border-left-color:var(--ok)} .ok-callout b{color:var(--ok)}
+
+  footer{padding:40px 0 70px;color:var(--dim);font-size:13px}
+  .decisions li{margin:8px 0;color:var(--mut)}
+  .decisions b{color:var(--ink)}
+  @media(max-width:880px){.stats{grid-template-columns:repeat(2,1fr)}.g2,.g3{grid-template-columns:1fr}h1{font-size:34px}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">p2p2 · propozycja refaktoryzacji · dokument poglądowy</div>
+    <h1>Jeden plugin <span class="accent">superdev</span></h1>
+    <p class="sub">Konsolidacja czterech pluginów (<code>core</code>, <code>developer</code>, <code>designer</code>, <code>github</code>)
+      w jeden spójny ekosystem, sterowany <b>jednym wstrzykiwanym manifestem-dyspozytorem</b> w stylu
+      <code>using-superpowers</code>. Pierwowzory zachowane (port 1:1, z dwoma wąskimi wyjątkami), pogrupowane krótkim przedrostkiem,
+      zaprojektowane pod możliwości harnesu Claude Code (skill-chaining, fork, model/effort-tiering,
+      file-handoff, preload) — pod kątem szybkości, skuteczności i zużycia tokenów.</p>
+    <div class="tagrow">
+      <span class="pill">port 1:1 — 0 scaleń</span>
+      <span class="pill">mem- / dev- / ui- / gh-</span>
+      <span class="pill">1 manifest = 1 router</span>
+      <span class="pill">CSO + natural chains</span>
+      <span class="pill">13× context: fork</span>
+    </div>
+    <div class="note">Status: <b>szkic koncepcyjny</b>. Nie tworzy ani nie modyfikuje żadnych plików pluginu —
+      przedstawia docelową strukturę do akceptacji. Nazwy plików i drzewo katalogów są propozycją.</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat"><div class="big">4 <span class="arrowi">→</span> 1</div><div class="lbl">pluginy</div><div class="was">4× plugin.json → 1</div></div>
+    <div class="stat"><div class="big">3 <span class="arrowi">→</span> 1</div><div class="lbl">wstrzykiwane manifesty</div><div class="was">3 hooki SessionStart → 1</div></div>
+    <div class="stat"><div class="big">29</div><div class="lbl">skile</div><div class="was">25 → +split +smoke +commit-exec +plan-audit</div></div>
+    <div class="stat"><div class="big">4</div><div class="lbl">grupy-przedrostki</div><div class="was">mem dev ui gh</div></div>
+    <div class="stat"><div class="big">0</div><div class="lbl">krawędzi zależności</div><div class="was">3× →core → samowystarczalny</div></div>
+  </div>
+
+  <!-- WHY -->
+  <section>
+    <h2>Diagnoza</h2>
+    <div class="h2sub">Co dziś rozprasza ekosystem</div>
+    <p class="lead">Obecnie cztery pluginy łączy reguła „gwiazdy" wokół <code>core</code>: każdy zależy od <code>core</code>,
+      żaden rdzeń nie może odwołać się do rodzeństwa. To utrzymuje porządek, ale rodzi koszt:</p>
+    <div class="grid g3" style="margin-top:14px">
+      <div class="card"><h4><span class="ic" style="background:var(--sys)">3</span>Trzy manifesty sesji</h4>
+        <p><code>core</code>, <code>developer</code> i <code>designer</code> — każdy ma własny hook <code>SessionStart</code>
+          i wstrzykuje własny blok kontekstu + własny baner. Trzy nakładające się „dyspozytory", trzy razy ten sam koszt kontekstu.</p></div>
+      <div class="card"><h4><span class="ic" style="background:var(--warn)">×</span>Zakaz chainów między domenami</h4>
+        <p>Reguła gwiazdy zabrania <code>developer</code>→<code>github</code> czy <code>designer</code>→<code>developer</code>.
+          Naturalne łańcuchy (spec→issue, plan→PR, design→implementacja) są niemożliwe do zapisania wprost.</p></div>
+      <div class="card"><h4><span class="ic" style="background:var(--dim)">≈</span>Zdublowane wykonawcy</h4>
+        <p><code>developer:committer</code> i <code>github:commit</code> to dwa forki Haiku do commitów; format
+          Conventional Commits żyje w dwóch miejscach. Spójne, ale powielone.</p></div>
+    </div>
+    <div class="callout ok-callout" style="margin-top:18px">
+      <b>Rozstrzygnięcie projektowe.</b> Bazą jest <b>wierny port 1:1</b> — wszystkie 25 pierwowzorów przetrwa (łącznie z oboma
+      wykonawcami commitów i <code>adr-analyzer</code>) — z <b>dwoma świadomymi, wąskimi wyjątkami</b>:
+      (1) <code>dev-review</code> rozdzielony na <code>dev-task-review</code> + <code>dev-final-review</code> (rozdzielenie bez utraty zachowania);
+      (2) nowy <code>dev-smoke</code> dający ostatecznej bramie wymiar runtime. Konsolidacja systemowa bez zmian —
+      jeden plugin, jeden wstrzykiwany manifest, jeden zestaw hooków, jeden baner — a skille, żyjąc w jednym pluginie,
+      tworzą wreszcie łańcuchy między domenami.
+    </div>
+  </section>
+
+  <!-- THE MANIFEST -->
+  <section>
+    <h2>Rdzeń architektury</h2>
+    <div class="h2sub">Jeden wstrzykiwany manifest: <code>using-superdev</code></div>
+    <p class="lead">Plugin <code>developer</code> ma już dziś manifest w stylu superpowers (<code>hooks/content/manifest.md</code>:
+      priorytet instrukcji, reguła „1%", tabela red-flags). Redesign <b>wynosi ten wzorzec ponad cały ekosystem</b> —
+      jeden router dla pamięci, planowania, implementacji, designu i GitHub.</p>
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card">
+        <h4><span class="pb sys">manifest</span> Co zawiera</h4>
+        <p style="margin-bottom:8px">Force-injected <b>raz na sesję</b> przez jeden hook <code>SessionStart</code>
+          (no-op przy <code>resume</code>, fail-open):</p>
+        <ul style="margin:0;padding-left:18px;color:var(--mut);font-size:13.5px">
+          <li><b>Priorytet instrukcji</b> — user &gt; skille superdev &gt; domyślny system.</li>
+          <li><b>Reguła 1%</b> — jeśli skill może pasować choćby w 1%, MUSISZ go wywołać.</li>
+          <li><b>Decision flow</b> — pierwsze trafienie wygrywa, w poprzek wszystkich domen.</li>
+          <li><b>Katalog skili</b> — pogrupowany przedrostkiem, każdy z jednolinijkowym „użyj gdy".</li>
+          <li><b>Natural chains</b> — udokumentowane łańcuchy (w tym między domenami).</li>
+          <li><b>Tabela red-flags</b> — wzorce racjonalizacji = STOP.</li>
+          <li><b>Wywiad = proza, nie formularz</b> — <i>„Use plain prose, not the <code>AskUserQuestion</code> tool — the interview is a conversation, not a form. Form-style pickers flatten the trade-off discussion you are trying to have."</i></li>
+          <li><b>Niezależność od trybu</b> — pipeline planowania działa tak samo skutecznie w <b>plan mode</b> i <b>accept-edits mode</b>.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4><span class="pb sys">dispatch</span> Jak rozsyła</h4>
+        <p style="margin-bottom:8px">Brak osobnej „wyszukiwarki" — dyscyplina <i>najpierw sprawdź skill</i>:</p>
+        <ul style="margin:0;padding-left:18px;color:var(--mut);font-size:13.5px">
+          <li>Skille włączają się przez <b>CSO</b> — własny <code>description:</code> jest triggerem (w każdym języku).</li>
+          <li>Manifest jedynie <b>wzmacnia</b> wybór i opisuje łańcuchy — nie zastępuje CSO.</li>
+          <li>Wywołanie zawsze przez natywne narzędzie <code>Skill</code> (chaining), nie przez ręczne czytanie plików.</li>
+          <li>Skille proceduralne (<code>dev-interview</code>, <code>dev-orchestrate</code>) wymagają jawnego wskazania;
+            referencyjne i intent-owe wyzwalają się kontekstowo.</li>
+          <li><b>Wzmocnienia ponad CSO:</b> skill może <b>jawnie wyliczyć następne kroki</b> łańcucha i poprosić usera o decyzję w punkcie rozgałęzienia. <b>Wywiad</b> (<code>dev-interview</code>) prowadzi to <b>prozą</b>; <code>AskUserQuestion</code> rezerwujemy dla dyskretnych wyborów „A czy B".</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout">
+      <b>Odblokowanie „spójnego ekosystemu".</b> W jednym pluginie reguła gwiazdy znika. Manifest może zapisać wprost
+      łańcuchy między domenami, dotąd zakazane: <code>dev-spec → gh-issue</code>, <code>dev-orchestrate → gh-pr</code>,
+      <code>ui-extract → ui-mockup → ui-guardian → dev-orchestrate</code>, <code>dev-improve → mem-rules</code>.
+      To jest właściwy zysk konsolidacji — nie mniej skili, lecz <b>jeden sterujący mózg nad wszystkimi</b>.
+    </div>
+  </section>
+
+  <!-- CATALOG -->
+  <section>
+    <h2>Pełna proponowana struktura</h2>
+    <div class="h2sub">Katalog 25 skili — port 1:1 z przedrostkami</div>
+    <div class="legend">
+      <span><span class="pb mem">mem-</span> pamięć projektu</span>
+      <span><span class="pb dev">dev-</span> pipeline deweloperski</span>
+      <span><span class="pb ui">ui-</span> design / frontend</span>
+      <span><span class="pb gh">gh-</span> GitHub</span>
+      <span><span class="chip fork">fork</span> izolowany kontekst</span>
+      <span><span class="chip ref">ref</span> skill referencyjny</span>
+    </div>
+
+    <h3><span class="pb mem">mem-</span> &nbsp;Pamięć projektu &nbsp;<span class="old">(← core)</span></h3>
+    <table>
+      <thead><tr><th>Skill</th><th>Pierwowzór</th><th>Profil</th><th>Użyj gdy</th></tr></thead>
+      <tbody>
+        <tr><td class="nm">mem-init</td><td class="old">memory-init</td>
+          <td><span class="chip">user-invocable</span></td>
+          <td>Bootstrap kaskady <code>CLAUDE.md</code> (ogólne→szczegółowe), discovery-first; nie nadpisuje <code>/init</code>.</td></tr>
+        <tr><td class="nm">mem-rules</td><td class="old">memory-rules</td>
+          <td><span class="chip opus">opus</span><span class="chip">medium</span><span class="chip">plan-mode</span></td>
+          <td>Warstwa <code>.claude/rules/</code> — kanoniczny kontrakt pliku reguł; bootstrap od zera (przez <code>EnterPlanMode</code>).</td></tr>
+      </tbody>
+    </table>
+
+    <h3><span class="pb dev">dev-</span> &nbsp;Pipeline deweloperski &nbsp;<span class="old">(← developer)</span></h3>
+    <table>
+      <thead><tr><th>Skill</th><th>Pierwowzór</th><th>Profil</th><th>Użyj gdy / rola</th></tr></thead>
+      <tbody>
+        <tr><td class="nm">dev-interview</td><td class="old">interview</td>
+          <td><span class="chip opus">opus</span><span class="chip">xhigh</span><span class="chip">proza</span></td>
+          <td>Rozmowa rozpoznawcza przed planem (skala-first) — <b>czysta proza, nie <code>AskUserQuestion</code></b> (formularz spłaszcza dyskusję o trade-offach). Brak forka — wymaga dialogu z userem.</td></tr>
+        <tr><td class="nm">dev-plan</td><td class="old">extraplan</td>
+          <td><span class="chip opus">opus</span><span class="chip">xhigh</span></td>
+          <td>Hartowanie planu (extra-rigor) w trybie plan-mode; pre-plan context.</td></tr>
+        <tr><td class="nm">dev-plan-review</td><td class="old">plan-reviewer</td>
+          <td><span class="chip opus">opus</span><span class="chip">xhigh</span><span class="chip fork">fork</span></td>
+          <td>Niezależny przegląd planu; bramkuje <code>ExitPlanMode</code> (hook) — STATUS + kubełki severity.</td></tr>
+        <tr><td class="nm">dev-orchestrate</td><td class="old">orchestrator</td>
+          <td><span class="chip opus">opus</span><span class="chip">low</span><span class="chip">Task*</span></td>
+          <td>Cienki dyspozytor pipeline'u; zero ocen kodu — deleguje do forków, przekazując <b>wyłącznie ścieżki plików</b> (plik zadania + parametry-ścieżki: feedback/retry, raporty). Widget postępu (Task tools).</td></tr>
+        <tr><td class="nm">dev-adr</td><td class="old">adr-analyzer</td>
+          <td><span class="chip opus">opus</span><span class="chip">medium</span><span class="chip fork">fork·RO</span></td>
+          <td>Sędzia „ADR-worthiness" na zatwierdzonym planie przed dekompozycją (read-only).</td></tr>
+        <tr><td class="nm">dev-decompose</td><td class="old">decomposer</td>
+          <td><span class="chip opus">opus</span><span class="chip">xhigh</span><span class="chip fork">fork</span></td>
+          <td>Tnie plan na pliki zadań <code>tasks/&lt;N&gt;.md</code> (z <b>tytułem zadania = subject commita</b>, w formie Conventional Commits) + <code>status.yml</code> (jednorazowo, idempotentnie).</td></tr>
+        <tr><td class="nm">dev-code</td><td class="old">coder</td>
+          <td><span class="chip opus">opus</span><span class="chip">xhigh</span><span class="chip fork">fork</span></td>
+          <td>Pisze kod jednego zadania; tryb routowany (tdd / code-first / e2e-first / tests-none). Wejście = ścieżka pliku zadania (+ ścieżka feedbacku/retry od <code>dev-task-review</code>) wstrzyknięte przez dynamic context.</td></tr>
+        <tr><td class="nm">dev-run</td><td class="old">runner</td>
+          <td><span class="chip haiku">haiku</span><span class="chip fork">fork</span></td>
+          <td>Wykonawca build/test/lint; preload komendy build przez <code>!command</code>. W pętli zadania uruchamia <b>tylko testy danego zadania</b>; w <code>dev-final-review</code> — <b>cały zestaw</b>. Tryby: task-scoped / full / legacy.</td></tr>
+        <tr><td class="nm">dev-smoke</td><td class="old">nowy</td>
+          <td><span class="chip haiku">haiku</span><span class="chip fork">fork</span></td>
+          <td>Brama RUNTIME — startuje aplikację, sprawdza liveness (proces żyje / health / stdout), teardown. Komenda startu + sygnał liveness z pamięci hosta (stack-agnostic). Uruchamiana <b>tylko na koniec</b>, przez <code>dev-final-review</code>.</td></tr>
+        <tr><td class="nm">dev-task-review</td><td class="old">task-reviewer · Task mode</td>
+          <td><span class="chip opus">opus</span><span class="chip">xhigh</span><span class="chip fork">fork</span></td>
+          <td>Brama ZADANIA — weryfikuje Deliverable + testy + konwencje jednego zadania względem working tree; wyzwala retry.</td></tr>
+        <tr><td class="nm">dev-final-review</td><td class="old">task-reviewer · Plan mode</td>
+          <td><span class="chip opus">opus</span><span class="chip">xhigh</span><span class="chip fork">fork</span><span class="chip">sub-pipeline</span></td>
+          <td>Brama CAŁOŚCI — <b>własny wewnętrzny pipeline (forki):</b> <code>dev-plan-audit</code> (wszystkie zadania vs plan) → <code>dev-run</code> (cały zestaw testów) → <code>dev-smoke</code> (boot) → <b>synteza</b> → werdykt go/no-go (zwracany wprost).</td></tr>
+        <tr><td class="nm">dev-plan-audit</td><td class="old">nowy (z task-reviewer · Plan mode)</td>
+          <td><span class="chip opus">opus</span><span class="chip">xhigh</span><span class="chip fork">fork</span></td>
+          <td>Audyt kompletności — weryfikuje wykonanie <b>wszystkich zadań względem całego planu</b> (pokrycie Deliverable). Wołany przez <code>dev-final-review</code>. Wspólny rubryk z <code>dev-task-review</code> w <code>references/</code>.</td></tr>
+        <tr><td class="nm">dev-improve</td><td class="old">improver</td>
+          <td><span class="chip sonnet">sonnet</span><span class="chip">medium</span><span class="chip fork">fork</span></td>
+          <td>Promuje wnioski z review do <code>.claude/rules/</code>; respektuje zamrożone pliki <code>_</code>.</td></tr>
+        <tr><td class="nm">dev-committer</td><td class="old">committer</td>
+          <td><span class="chip haiku">haiku</span><span class="chip fork">fork</span><span class="chip">! script</span></td>
+          <td>Najcieńszy egzekutor, <b>wyłącznie</b> dla <code>dev-orchestrate</code>. Argument = ścieżka pliku zadania; <code>!</code> dynamic-context wczytuje <b>tytuł zadania</b> (autorstwa <code>dev-decompose</code>) i wykonuje <code>git add -A</code> + commit. Zero analizy diffu, zero syntezy subjectu.</td></tr>
+        <tr><td class="nm">dev-tdd</td><td class="old">tdd</td>
+          <td><span class="chip ref">ref</span></td>
+          <td>Dyscyplina TDD (deep modules, interface design, mocking, refactoring) — referencja.</td></tr>
+        <tr><td class="nm">dev-debug</td><td class="old">debugger</td>
+          <td><span class="chip">CSO-intent</span></td>
+          <td>Dyscyplina debugowania — trace całego przepływu krok po kroku, zero założeń.</td></tr>
+        <tr><td class="nm">dev-spec</td><td class="old">to-spec</td>
+          <td><span class="chip opus">opus</span><span class="chip">xhigh</span></td>
+          <td>Spec / PRD — working-backwards, historyjki INVEST, deklaratywne AC, zero TBD.</td></tr>
+      </tbody>
+    </table>
+
+    <h3><span class="pb ui">ui-</span> &nbsp;Design / frontend &nbsp;<span class="old">(← designer)</span></h3>
+    <table>
+      <thead><tr><th>Skill</th><th>Pierwowzór</th><th>Profil</th><th>Użyj gdy / rola</th></tr></thead>
+      <tbody>
+        <tr><td class="nm">ui-extract</td><td class="old">system-design-extractor</td>
+          <td><span class="chip ui">scripts</span></td>
+          <td>Odtwarza design system (tokeny DTCG, motyw Tailwind v4 / shadcn, katalog komponentów) ze zrzutów / URL.
+            Skrypty: <code>sample_colors</code>, <code>tokens_to_tailwind</code>, <code>validate_tokens</code>.</td></tr>
+        <tr><td class="nm">ui-mockup</td><td class="old">mockup-generator</td>
+          <td><span class="chip ui">scripts</span></td>
+          <td>Generuje samodzielne, zero-build statyczne HTML preview z istniejącego design systemu (<code>build_site.py</code>).</td></tr>
+        <tr><td class="nm">ui-guardian</td><td class="old">design-system-guardian</td>
+          <td><span class="chip">context-primer</span></td>
+          <td>Brief dyscypliny — wiąże pracę nad UI z udokumentowanymi tokenami/komponentami przed każdym Edit/Write na markup/CSS.</td></tr>
+      </tbody>
+    </table>
+
+    <h3><span class="pb gh">gh-</span> &nbsp;GitHub &nbsp;<span class="old">(← github)</span></h3>
+    <table>
+      <thead><tr><th>Skill</th><th>Pierwowzór</th><th>Profil</th><th>Użyj gdy / rola</th></tr></thead>
+      <tbody>
+        <tr><td class="nm">gh-cli</td><td class="old">cli</td>
+          <td><span class="chip ref">ref</span></td>
+          <td>Doktryna wyboru warstwy API (native <code>gh</code> → REST → GraphQL) + biblioteka snippetów <code>references/</code>.</td></tr>
+        <tr><td class="nm">gh-cli-exec</td><td class="old">cli-executor</td>
+          <td><span class="chip sonnet">sonnet</span><span class="chip fork">fork</span></td>
+          <td>Wykonuje JEDNĄ w pełni-zadaną operację gh/REST/GraphQL poza głównym kontekstem; zwraca jedną otagowaną linię.</td></tr>
+        <tr><td class="nm">gh-commit</td><td class="old">commit</td>
+          <td><span class="chip">router · main ctx</span><span class="chip">user-invocable</span></td>
+          <td><b>Router</b> commitów — czyta kontekst sesji + diff, wybiera tryb (session / all / staged), autoruje temat Conventional Commits, deleguje do <code>gh-commit-exec</code>. Każda ścieżka rozpisana w <code>references/</code> (lazy-load).</td></tr>
+        <tr><td class="nm">gh-commit-exec</td><td class="old">nowy</td>
+          <td><span class="chip haiku">haiku</span><span class="chip fork">fork</span></td>
+          <td>Wykonawca commitu (fork) — stażuje wg instrukcji i commituje <b>dosłownie</b> dostarczony temat; preload staged-diff przez <code>!</code>; zwraca jedną linię <code>✓ &lt;hash&gt; &lt;subject&gt;</code>.</td></tr>
+        <tr><td class="nm">gh-commit-format</td><td class="old">conventional-commits</td>
+          <td><span class="chip ref">ref</span></td>
+          <td>Referencja formatu Conventional Commits + nazewnictwo gałęzi + format commitów zadaniowych <code>T{N}:</code>.</td></tr>
+        <tr><td class="nm">gh-issue</td><td class="old">create-issue</td>
+          <td><span class="chip">user-invocable</span><span class="chip">medium</span></td>
+          <td>Interaktywne, szablonowe tworzenie issue; auto-fill z kontekstu sesji; może delegować PATCH typu do <code>gh-cli-exec</code>.</td></tr>
+        <tr><td class="nm">gh-pr</td><td class="old">create-pr</td>
+          <td><span class="chip">user-invocable</span><span class="chip">medium</span></td>
+          <td>Interaktywne, szablonowe tworzenie draft-PR; auto-fill z diffu + logu commitów; routing gałęzi docelowej.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- CHAINS -->
+  <section>
+    <h2>Skill-chaining</h2>
+    <div class="h2sub">Naturalne łańcuchy — wewnątrz i między domenami</div>
+    <p class="lead">Skille komponują się przez CSO i natywne narzędzie <code>Skill</code>; manifest opisuje przepływy.
+      Czerwone strzałki (<span style="color:var(--gh)">→</span>) to <b>łańcuchy między domenami</b>, dotąd zakazane regułą gwiazdy.</p>
+    <div class="flow">
+      <div class="lane"><span class="tag">wejście</span>
+        <span class="node sys">using-superdev (manifest)</span><span class="ar">→</span>
+        <span class="node dev">dev-interview</span><span class="ar">→</span>
+        <span class="node dev">dev-plan</span><span class="ar">→</span>
+        <span class="node dev">dev-plan-review</span><span class="ar">→</span>
+        <span class="node dev">brama planu ✓ (oba tryby)</span><span class="ar">→</span>
+        <span class="node dev">dev-orchestrate</span>
+      </div>
+      <div class="lane"><span class="tag">pipeline (orchestrate)</span>
+        <span class="node dev">dev-adr</span><span class="ar">→</span>
+        <span class="node dev">dev-decompose</span><span class="ar">→</span>
+        <div class="loopbox">
+          <span class="ttl">per zadanie ×N — forki</span>
+          <span class="node dev">dev-code</span><span class="ar">→</span>
+          <span class="node dev">dev-run · testy zadania</span><span class="ar">→</span>
+          <span class="node dev">dev-task-review</span><span class="ar">→</span>
+          <span class="node dev">dev-improve</span><span class="ar">→</span>
+          <span class="node dev">dev-committer</span>
+        </div>
+      </div>
+      <div class="lane"><span class="tag">domknięcie (gate)</span>
+        <div class="loopbox" style="border-color:#6b3a55">
+          <span class="ttl" style="color:#f472b6">dev-final-review — własny pipeline (forki)</span>
+          <span class="node dev">dev-plan-audit</span><span class="ar">→</span>
+          <span class="node dev">dev-run · wszystkie testy</span><span class="ar">→</span>
+          <span class="node dev">dev-smoke · boot</span><span class="ar">→</span>
+          <span class="node dev">synteza</span>
+        </div>
+      </div>
+      <div class="lane"><span class="tag"></span>
+        <span class="ar">→</span>
+        <span class="node dev">werdykt go/no-go</span><span class="ar cross">→</span>
+        <span class="node gh">gh-pr</span><span class="ar cross">→</span>
+        <span class="node gh">gh-cli-exec</span>
+      </div>
+      <div class="lane"><span class="tag">design → impl.</span>
+        <span class="node ui">ui-extract</span><span class="ar">→</span>
+        <span class="node ui">ui-mockup</span><span class="ar">→</span>
+        <span class="node ui">ui-guardian</span><span class="ar cross">→</span>
+        <span class="node dev">dev-orchestrate</span>
+      </div>
+      <div class="lane"><span class="tag">spec → issue</span>
+        <span class="node dev">dev-spec</span><span class="ar cross">→</span>
+        <span class="node gh">gh-issue</span><span class="ar cross">→</span>
+        <span class="node gh">gh-cli-exec</span>
+      </div>
+      <div class="lane"><span class="tag">pamięć / nauka</span>
+        <span class="node mem">mem-init</span><span class="ar" style="opacity:.4">·</span>
+        <span class="node mem">mem-rules</span><span class="ar cross">←</span>
+        <span class="node dev">dev-improve</span>
+        <span style="color:var(--dim);font-family:var(--mono);font-size:11px">(wnioski → reguły)</span>
+      </div>
+    </div>
+    <p style="font-size:12.5px;color:var(--dim);margin-top:14px;font-family:var(--mono);line-height:1.7">
+      ▸ <b style="color:var(--mut)">Dispatch oparty na plikach.</b> Orchestrator zleca agentom, przekazując w argumencie <b style="color:var(--mut)">wyłącznie ścieżki</b> — plik zadania + parametry-ścieżki (feedback/retry od reviewera, raporty <code>dev-run</code>). Agent dostaje treść <b style="color:var(--mut)">wstrzykniętą przez dynamic context <code>!</code></b> (bez <code>Read</code>); odpowiada 3-liniowym stdout <code>STATUS / Report / Summary</code>.
+    </p>
+    <p style="font-size:12.5px;color:var(--dim);margin-top:14px;font-family:var(--mono);line-height:1.7">
+      ★ <b style="color:var(--mut)">Trzy bramy review na trzech wysokościach:</b>
+      <b style="color:var(--mut)">dev-plan-review</b> (plan, przed ExitPlanMode) ·
+      <b style="color:var(--mut)">dev-task-review</b> (zadanie, w pętli, retry) ·
+      <b style="color:var(--mut)">dev-final-review</b> (całość, terminalna). Rozdzielenie pierwowzoru <code>task-reviewer</code> (2 tryby) na dwa skille usuwa też kolizję słowa „plan".
+      <br><b style="color:var(--mut)">dev-smoke</b> — brama runtime („czy appka w ogóle startuje"): uruchamiana <b style="color:var(--mut)">tylko na koniec</b>, przez <code>dev-final-review</code> (per-zadanie aplikacji nie startujemy). Stack-agnostic — komendę startu + sygnał liveness czyta z pamięci hosta.
+    </p>
+  </section>
+
+  <!-- CAPABILITIES -->
+  <section>
+    <h2>Warstwa optymalizacji</h2>
+    <div class="h2sub">Możliwości harnesu w służbie szybkości / skuteczności / tokenów</div>
+    <p class="lead">Dla każdej zdolności: do czego ją wprzęgamy i którą oś optymalizuje
+      (<span class="dim t">tokeny</span> <span class="dim s">szybkość</span> <span class="dim e">skuteczność</span>).</p>
+
+    <div style="margin-top:10px">
+      <div class="cap"><div class="n">01</div><div class="body">
+        <h4>Jeden wstrzykiwany manifest (SessionStart)</h4>
+        <p>Z 3 hooków/manifestów (core+developer+designer) → 1. Jeden router, jeden baner, jeden koszt kontekstu na sesję; no-op przy <code>resume</code>, fail-open.</p>
+        <div class="dims"><span class="dim t">tokeny</span><span class="dim e">skuteczność</span></div>
+      </div></div>
+      <div class="cap"><div class="n">02</div><div class="body">
+        <h4>CSO — <code>description:</code> jako trigger</h4>
+        <p>Każdy skill włącza się sam z opisu frontmattera (w dowolnym języku); manifest wzmacnia wybór. Ponad CSO działa <b>warstwa wzmocnień</b>: skille <b>jawnie wymieniają kolejne kroki łańcucha</b> i w punktach decyzyjnych proszą usera o decyzję. Z rozmysłem: <b>wywiad prowadzony jest prozą</b> (nie <code>AskUserQuestion</code> — formularz spłaszcza dyskusję o trade-offach); <code>AskUserQuestion</code> tylko dla dyskretnych wyborów „A czy B".</p>
+        <div class="dims"><span class="dim e">skuteczność</span></div>
+      </div></div>
+      <div class="cap"><div class="n">03</div><div class="body">
+        <h4><code>context: fork</code> — izolacja kontekstu (13 z 29 skili)</h4>
+        <p>Cały „bloat" (build/test, diffy, dance API, dekompozycja, review) ląduje w forku i nie zalega w głównym wątku. Forki są też zrównoleglalne.</p>
+        <div class="dims"><span class="dim t">tokeny</span><span class="dim s">szybkość</span></div>
+      </div></div>
+      <div class="cap"><div class="n">04</div><div class="body">
+        <h4>Model-tiering — opus / sonnet / haiku</h4>
+        <p>Rozumowanie (plan, code, review, spec) na <b>opus</b>; promocja reguł na <b>sonnet</b>; mechanika (run, commit) na <b>haiku</b>. Właściwy model do właściwej pracy.</p>
+        <div class="dims"><span class="dim s">szybkość</span><span class="dim t">tokeny</span></div>
+      </div></div>
+      <div class="cap"><div class="n">05</div><div class="body">
+        <h4>Effort-tiering — low / medium / xhigh</h4>
+        <p>Dyspozytor (<code>dev-orchestrate</code>) na <b>low</b> (zero ocen kodu); skille rozumujące na <b>xhigh</b>. Wysiłek tam, gdzie się zwraca.</p>
+        <div class="dims"><span class="dim s">szybkość</span><span class="dim t">tokeny</span></div>
+      </div></div>
+      <div class="cap"><div class="n">06</div><div class="body">
+        <h4>Dispatch oparty na plikach — ścieżki w argumencie, treść przez dynamic context</h4>
+        <p>Orchestrator zleca agentom przekazując <b>wyłącznie ścieżki plików</b> (plik zadania + parametry-ścieżki: feedback/retry od reviewera, raporty). Agent dostaje ich treść <b>wstrzykniętą przez dynamic context <code>!</code></b> — bez round-tripu <code>Read</code>. Z powrotem: 3-liniowy stdout <code>STATUS / Report / Summary</code>. Duże raporty nie przechodzą przez kontekst.</p>
+        <div class="dims"><span class="dim t">tokeny</span><span class="dim s">szybkość</span></div>
+      </div></div>
+      <div class="cap"><div class="n">07</div><div class="body">
+        <h4>Preload / egzekucja przez <code>!command</code> (dynamic context)</h4>
+        <p><code>dev-committer</code> to skrajny przypadek: <code>!</code>-skrypt wczytuje tytuł z pliku zadania i wykonuje <code>git add -A</code> + commit — agent niemal nie rozumuje, egzekucja jest skryptowa. <code>dev-run</code> wstrzykuje komendę build przed startem. Mniej rund-trip tool-call, mniej tokenów.</p>
+        <div class="dims"><span class="dim s">szybkość</span><span class="dim t">tokeny</span></div>
+      </div></div>
+      <div class="cap"><div class="n">08</div><div class="body">
+        <h4>Separacja warstwy referencyjnej</h4>
+        <p>Doktryna żyje raz w skillach referencyjnych (<code>gh-cli</code>, <code>gh-commit-format</code>, <code>dev-tdd</code>); wykonawcy kopiują snippety. Reference omija <code>allowed-tools</code> (zero rozszerzania uprawnień). <b>Wariant skill-router</b> (<code>gh-commit</code>): każda ścieżka w osobnym <code>references/</code>, router czyta tylko wybraną — lazy-load zamiast monolitu w ciele.</p>
+        <div class="dims"><span class="dim t">tokeny</span><span class="dim e">skuteczność</span></div>
+      </div></div>
+      <div class="cap"><div class="n">09</div><div class="body">
+        <h4>Offload do skryptów (Python)</h4>
+        <p><code>ui-extract</code> / <code>ui-mockup</code> robią deterministyczną robotę (próbkowanie kolorów, tokeny→Tailwind, walidacja, build HTML) poza LLM — taniej i dokładniej.</p>
+        <div class="dims"><span class="dim t">tokeny</span><span class="dim e">skuteczność</span></div>
+      </div></div>
+      <div class="cap"><div class="n">10</div><div class="body">
+        <h4>Brama planu niezależna od trybu</h4>
+        <p>W <b>plan mode</b> hook <code>PreToolUse</code> na <code>ExitPlanMode</code> nie wypuszcza, dopóki <code>dev-plan-review</code> nie zwróci <code>STATUS: PASS</code>. W <b>accept-edits mode</b> (brak <code>ExitPlanMode</code>) tę samą dyscyplinę wymusza łańcuch z manifestu + precondycja <code>dev-orchestrate</code> (nie startuje pipeline'u bez passed plan-review). Jakość planu wymuszona w obu trybach.</p>
+        <div class="dims"><span class="dim e">skuteczność</span></div>
+      </div></div>
+      <div class="cap"><div class="n">11</div><div class="body">
+        <h4>Dynamiczna brama runtime — <code>dev-smoke</code></h4>
+        <p>Ostateczny gate nie jest już czysto statyczny: <code>dev-final-review</code> faktycznie startuje aplikację i sprawdza, że wstaje. Łapie klasę „zielone testy, martwa appka" (DI, wiring configu, cykle importów, padnięte migracje), której testy strukturalnie nie widzą.</p>
+        <div class="dims"><span class="dim e">skuteczność</span></div>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- TREE -->
+  <section>
+    <h2>Proponowane drzewo</h2>
+    <div class="h2sub">Układ katalogów pluginu <code>superdev</code></div>
+<pre class="tree">
+<b>superdev/</b>
+├── <b>.claude-plugin/</b>
+│   └── plugin.json              <span class="c"># name: superdev · brak version · brak dependencies (samowystarczalny)</span>
+├── CLAUDE.md                    <span class="c"># pamięć pluginu (orientacja + mapa)</span>
+├── README.md
+├── <b>hooks/</b>
+│   ├── hooks.json               <span class="c"># SessionStart(inject) + PreToolUse(ExitPlanMode gate) — fail-open</span>
+│   ├── content/
+│   │   └── manifest.md          <span class="s"># ★ JEDEN wstrzykiwany dyspozytor (using-superdev)</span>
+│   └── scripts/
+│       ├── session-start.sh     <span class="c"># inject manifest + 1 baner „superdev loaded &lt;ver&gt;"</span>
+│       └── review-plan.sh       <span class="c"># gate → wymaga dev-plan-review STATUS: PASS</span>
+└── <b>skills/</b>
+    │   <span class="c">— pamięć —</span>
+    ├── <span class="m">mem-init/</span>            ├── <span class="m">mem-rules/</span>
+    │   <span class="c">— pipeline deweloperski —</span>
+    ├── <span class="d">dev-interview/</span>       ├── <span class="d">dev-plan/</span>          ├── <span class="d">dev-plan-review/</span>
+    ├── <span class="d">dev-orchestrate/</span>     │   ├── references/      │   └── templates/
+    ├── <span class="d">dev-adr/</span>             ├── <span class="d">dev-decompose/</span>     ├── <span class="d">dev-code/</span>
+    │                       │                   │   └── references/mode-*.md
+    ├── <span class="d">dev-run/</span>             ├── <span class="d">dev-smoke/</span>         ├── <span class="d">dev-improve/</span>
+    ├── <span class="d">dev-task-review/</span>     ├── <span class="d">dev-plan-audit/</span>    <span class="c"># wspólny rubryk Deliverable w references/</span>
+    ├── <span class="d">dev-final-review/</span>   <span class="c"># sub-orchestrator: plan-audit → run(full) → smoke → synteza</span>
+    ├── <span class="d">dev-committer/</span>       ├── <span class="d">dev-tdd/</span>           ├── <span class="d">dev-debug/</span>
+    ├── <span class="d">dev-spec/</span>
+    │   <span class="c">— design / frontend —</span>
+    ├── <span class="u">ui-extract/</span>          ├── <span class="u">ui-mockup/</span>        ├── <span class="u">ui-guardian/</span>
+    │   ├── references/      │   ├── references/
+    │   ├── assets/          │   └── scripts/build_site.py
+    │   └── scripts/*.py
+    │   <span class="c">— GitHub —</span>
+    ├── <span class="g">gh-cli/</span>              ├── <span class="g">gh-cli-exec/</span>      ├── <span class="g">gh-commit-format/</span>
+    │   └── references/
+    ├── <span class="g">gh-commit/</span>  <span class="s"># ROUTER (main ctx)</span>      ├── <span class="g">gh-commit-exec/</span>  <span class="c"># fork · haiku · verbatim</span>
+    │   └── references/  <span class="c"># mode-session · mode-all · mode-staged · message-format</span>
+    ├── <span class="g">gh-issue/</span>            └── <span class="g">gh-pr/</span>
+    │   └── references/          └── references/
+</pre>
+    <div class="callout" style="margin-top:16px">
+      <b>Stan przepływu pipeline'u</b> w większości bez zmian: <code>.temp/.workflows/&lt;slug&gt;/</code> z <code>tasks/</code>,
+      <code>status.yml</code> i raportami pod <code>orchestration/task-&lt;N&gt;/</code>. <b>Zmiana:</b> brak persystowanego
+      <code>final-review.md</code> — <code>dev-final-review</code> zwraca werdykt go/no-go wprost.
+    </div>
+  </section>
+
+  <!-- BEFORE/AFTER -->
+  <section>
+    <h2>Bilans</h2>
+    <div class="h2sub">Przed → po</div>
+    <table>
+      <thead><tr><th>Wymiar</th><th>Dziś (4 pluginy)</th><th>superdev</th><th>Efekt</th></tr></thead>
+      <tbody>
+        <tr><td>Pluginy / <code>plugin.json</code></td><td>4</td><td class="yes">1</td><td>jedna instalacja, jedno źródło</td></tr>
+        <tr><td>Krawędzie zależności</td><td>3 × →core</td><td class="yes">0</td><td>samowystarczalny, brak rozwiązywania zależności</td></tr>
+        <tr><td>Hooki SessionStart</td><td>3</td><td class="yes">1</td><td>mniej powielonego kontekstu / sesję</td></tr>
+        <tr><td>Wstrzykiwane manifesty</td><td>3</td><td class="yes">1</td><td>jeden router nad całością</td></tr>
+        <tr><td>Bramki PreToolUse</td><td>1</td><td>1</td><td>bez zmian (plan-review gate)</td></tr>
+        <tr><td>Banery startowe</td><td>3</td><td class="yes">1</td><td>czystszy start sesji</td></tr>
+        <tr><td>Skille</td><td>25</td><td class="yes">29</td><td>port 1:1 + split reviewera + <code>dev-smoke</code> + <code>gh-commit-exec</code> + <code>dev-plan-audit</code></td></tr>
+        <tr><td>Bramy jakości</td><td>plan-review + task/final (1 skill, 2 tryby) · 0 runtime</td><td class="yes">3 osobne bramy + dev-smoke</td><td>statyczny gate → statyczny <b>+ dynamiczny</b></td></tr>
+        <tr><td>Łańcuchy między domenami</td><td class="no">zakazane</td><td class="yes">udokumentowane</td><td>spec→issue, plan→PR, design→impl.</td></tr>
+        <tr><td>Grupy-przedrostki</td><td class="no">—</td><td class="yes">4</td><td>mem- / dev- / ui- / gh-</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- DECISIONS -->
+  <section style="border-bottom:0">
+    <h2>Do rozstrzygnięcia w fazie realizacji</h2>
+    <div class="h2sub">Otwarte punkty (poza zakresem szkicu)</div>
+    <ul class="decisions">
+      <li><b>Manifest jako skill vs treść hooka.</b> superpowers trzyma dyspozytor jako <code>using-superpowers/SKILL.md</code>;
+        ten repo force-injectuje treść z <code>hooks/content/manifest.md</code>. Propozycja: zostać przy force-inject (sprawdzone tu),
+        opcjonalnie zdublować jako referencyjny skill <code>using-superdev</code> dla czytelności.</li>
+      <li><b><code>dev-committer</code> skryptowy + przesunięcie autorstwa subjectu.</b>
+        <b>Wyłącznie</b> dla <code>dev-orchestrate</code>: orchestrator przekazuje <b>jedynie ścieżkę pliku zadania</b>; subject commita to <b>tytuł zadania</b>
+        wczytywany przez <code>!</code> dynamic-context, po czym <code>git add -A</code> + commit (zero analizy). Prefix <code>T&lt;N&gt;:</code> dokleja skrypt z nazwy pliku.
+        Autorstwo subjectu przechodzi z orchestratora → do <code>dev-decompose</code> (tytuł w formie Conventional Commits). <b>Zmiana zachowania</b> względem pierwowzoru — w zamian skrajnie cienki, tani, deterministyczny commit.</li>
+      <li><b>Dwa cienkie forki-committery, różne mechanizmy.</b> <code>dev-committer</code> (pipeline — <code>!</code>-skrypt z pliku zadania, <code>git add -A</code>)
+        i <code>gh-commit-exec</code> (standalone — verbatim subject od routera <code>gh-commit</code>) trzymane osobno: różni wołający, różny kontrakt wejścia. Świadoma, ale niepełna redundancja.</li>
+      <li><b><code>dev-adr</code> a polityka repo.</b> Korzeniowy <code>CLAUDE.md</code> mówi „DO NOT USE ADR capture for this project".
+        Skill jako artefakt zostaje (port 1:1); domyślna postawa ADR pozostaje wyłączona przez zamrożoną regułę <code>_adr-process.md</code> hosta.</li>
+      <li><b>Nazwy skrócone vs wierne.</b> Przyjęto styl zwięzły (<code>dev-code</code>, <code>dev-run</code>, <code>dev-task-review</code>);
+        tabela „Pierwowzór" utrzymuje pełną śledzalność.</li>
+      <li><b>Split reviewera: <code>dev-review</code> → <code>dev-task-review</code> + <code>dev-final-review</code>.</b>
+        Dwa tryby pierwowzoru <code>task-reviewer</code> mają rozłączne kontrakty wejścia, punkty wywołania, zachowanie (retry vs terminalny) i wyjście —
+        czyste rozdzielenie bez utraty zachowania. Wspólny rubryk oceny w <code>references/</code> (zero dryfu). Usuwa też kolizję słowa „plan".</li>
+      <li><b>Nowa brama runtime <code>dev-smoke</code>.</b> Ostateczny gate zyskuje wymiar dynamiczny — „czy aplikacja startuje".
+        Stack-agnostic (komenda startu + liveness z pamięci hosta), uruchamiana <b>tylko na koniec</b> przez <code>dev-final-review</code> (per-zadanie aplikacji nie startujemy).
+        Jedna z kilku świadomych zmian zachowania ponad bazowy port 1:1.</li>
+      <li><b><code>dev-final-review</code> jako sub-orchestrator + nowy <code>dev-plan-audit</code>.</b>
+        Ostateczna brama dostaje <b>własny pipeline forków</b>: <code>dev-plan-audit</code> (wszystkie zadania vs cały plan) → <code>dev-run</code> w trybie <b>full</b> (cały zestaw testów + kod) → <code>dev-smoke</code> (boot) → <b>synteza</b> i zwrot werdyktu. Dawny „przegląd Deliverable całego planu" (<code>task-reviewer · Plan mode</code>) wydzielony do osobnego forka <code>dev-plan-audit</code> (wspólny rubryk z <code>dev-task-review</code>).</li>
+      <li><b><code>dev-run</code> task-scoped w pętli, full na końcu.</b> W pętli zadania rusza <b>tylko testy danego zadania</b> (szybciej, taniej); pełny zestaw testów uruchamia się raz, w wewnętrznym pipeline <code>dev-final-review</code>.</li>
+      <li><b>Usunięty artefakt <code>final-review.md</code>.</b> Skoro <code>dev-final-review</code> zwraca decydujący werdykt go/no-go (przegląd + smoke),
+        osobny persystowany plik raportu jest zbędny — werdykt trafia wprost do następnego kroku (<code>PASS</code> → PR / <code>FAIL</code> → eskalacja do usera). Mniej stanu na dysku, jedno źródło decyzji.</li>
+      <li><b>Split commitu standalone: <code>gh-commit</code> (router) + <code>gh-commit-exec</code> (fork).</b>
+        Fork nie widzi kontekstu sesji, więc autorstwo trafnego subjectu musi zostać w <b>main context</b>: <code>gh-commit</code> czyta kontekst + diff,
+        wybiera tryb (session / all / staged) i syntetyzuje temat Conventional Commits, po czym deleguje <b>w pełni zadany</b> commit do forka
+        <code>gh-commit-exec</code>, który commituje go <b>dosłownie</b>. Wzorzec lustrzany do <code>gh-cli</code>/<code>gh-cli-exec</code> oraz
+        <code>dev-orchestrate</code>→<code>dev-committer</code>.
+        Router zoptymalizowany: <b>każda ścieżka w osobnym <code>references/</code></b> (lazy-load, ciało skilla pozostaje szczupłe).</li>
+      <li><b>Planowanie niezależne od trybu (plan mode ≡ accept-edits).</b> Dyscyplina <code>dev-interview</code> → <code>dev-plan</code> → <code>dev-plan-review</code> → <code>dev-orchestrate</code>
+        nie może zależeć <b>wyłącznie</b> od hooka na <code>ExitPlanMode</code> (ten istnieje tylko w plan mode). Wymuszają ją <b>łańcuch z manifestu (CSO)</b> + <b>precondycja w <code>dev-orchestrate</code></b>
+        (brak passed plan-review → nie startuje); hook na <code>ExitPlanMode</code> to dodatkowa bramka tam, gdzie plan mode jest aktywny. Efekt: ta sama skuteczność w obu trybach.</li>
+      <li><b>Wywiad prozą, nie formularzem.</b> <code>dev-interview</code> prowadzi rozmowę <b>czystą prozą</b>, nie <code>AskUserQuestion</code> — pickery spłaszczają dyskusję o trade-offach.
+        <code>AskUserQuestion</code> zostaje dla dyskretnych wyborów „A czy B" poza wywiadem. (Pogodzenie z warstwą wzmocnień CSO.)</li>
+      <li><b>Walidacja schematów.</b> Przed implementacją: zgodność każdego frontmattera z <code>authoring-reference</code>
+        (pola <code>context: fork</code>, <code>model</code>, <code>effort</code>, <code>allowed-tools</code>, <code>user-invocable</code>).</li>
+    </ul>
+  </section>
+
+  <footer>
+    <div>Dokument poglądowy · wygenerowano dla refaktoryzacji p2p2 → <b>superdev</b> · 2026-06-19</div>
+    <div style="margin-top:6px;color:var(--dim)">Brak zmian w plikach pluginu. Następny krok: akceptacja struktury → plan implementacji (port 1:1, skill po skillu).</div>
+  </footer>
+
+</div>
+</body>
+</html>

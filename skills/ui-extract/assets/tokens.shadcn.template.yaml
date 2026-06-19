@@ -1,0 +1,52 @@
+$description: "Design tokens (DTCG) authored for shadcn/ui — Tailwind v4"
+
+# Primitives stay as the source of truth; shadcn semantic tokens alias into them.
+color:
+  $type: color
+  # --- primitives ---
+  neutral:
+    "0":   { $value: { colorSpace: srgb, components: [1, 1, 1],          hex: "#ffffff" } }
+    "950": { $value: { colorSpace: srgb, components: [0.09, 0.09, 0.11], hex: "#17171c" } }
+    "500": { $value: { colorSpace: srgb, components: [0.45, 0.45, 0.50], hex: "#737380" } }
+    "200": { $value: { colorSpace: srgb, components: [0.90, 0.90, 0.92], hex: "#e5e5ea" } }
+    "100": { $value: { colorSpace: srgb, components: [0.96, 0.96, 0.97], hex: "#f4f4f5" } }
+  brand:
+    "500": { $value: { colorSpace: srgb, components: [0.20, 0.40, 0.95], hex: "#3366f2" } }
+  red:
+    "500": { $value: { colorSpace: srgb, components: [0.86, 0.15, 0.15], hex: "#dc2626" } }
+
+  # --- shadcn semantic tokens (leaf name == shadcn token name) ---
+  background:            { $value: "{color.neutral.0}" }
+  foreground:            { $value: "{color.neutral.950}" }
+  card:                  { $value: "{color.neutral.0}" }
+  card-foreground:       { $value: "{color.neutral.950}" }
+  popover:               { $value: "{color.neutral.0}" }
+  popover-foreground:    { $value: "{color.neutral.950}" }
+  primary:               { $value: "{color.brand.500}" }
+  primary-foreground:    { $value: "{color.neutral.0}" }
+  secondary:             { $value: "{color.neutral.100}" }
+  secondary-foreground:  { $value: "{color.neutral.950}" }
+  muted:                 { $value: "{color.neutral.100}" }
+  muted-foreground:      { $value: "{color.neutral.500}" }
+  accent:                { $value: "{color.neutral.100}" }
+  accent-foreground:     { $value: "{color.neutral.950}" }
+  destructive:           { $value: "{color.red.500}" }
+  border:                { $value: "{color.neutral.200}" }
+  input:                 { $value: "{color.neutral.200}" }
+  ring:                  { $value: "{color.brand.500}" }
+  # sidebar group (optional): name them sidebar / sidebar-foreground / ...
+  sidebar:               { $value: "{color.neutral.0}" }
+  sidebar-foreground:    { $value: "{color.neutral.950}" }
+  sidebar-primary:       { $value: "{color.brand.500}" }
+  sidebar-primary-foreground: { $value: "{color.neutral.0}" }
+  sidebar-accent:        { $value: "{color.neutral.100}" }
+  sidebar-accent-foreground:  { $value: "{color.neutral.950}" }
+  sidebar-border:        { $value: "{color.neutral.200}" }
+  sidebar-ring:          { $value: "{color.brand.500}" }
+
+radius:
+  $type: dimension
+  # the base radius shadcn derives its scale from
+  base:
+    $value: { value: 0.625, unit: rem }
+    $extensions: { org.shadcn: { token: radius } }

@@ -1,0 +1,86 @@
+name: "✨ Feature Request"
+description: "[feat] Zaproponuj nową funkcję lub zmianę istniejącej funkcji"
+type: "Feature"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Zaproponuj nową funkcję lub zmianę istniejącej funkcji
+        
+        > [!TIP]
+        > Potrzebujesz pomocy? Przewiń na sam dół - tam są podpowiedzi jak opisać zgłoszenie.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 🎯 Opis biznesowy - problem do rozwiązania
+      description: |
+        Opisz jaki problem biznesowy rozwiązuje ta funkcjonalność oraz wyjaśnij,
+        dlaczego ta zmiana jest potrzebna.
+      placeholder: |
+        W celu zwiększenia poziomu bezpieczeństwa systemu oraz spełnienia wymagań klientów B2B (compliance, audyty),
+        system powinien umożliwiać wymuszenie MFA (Multi-Factor Authentication) dla użytkowników.
+
+        - Hasło jako jedyny mechanizm uwierzytelniania jest niewystarczające.
+        - Brak MFA zwiększa ryzyko przejęcia kont oraz blokuje możliwość sprzedaży produktu klientom enterprise.
+    validations:
+      required: true
+      
+  - type: textarea
+    id: solution
+    attributes:
+      label: 💡 Proponowane rozwiązanie
+      description: |
+        Na wysokim poziomie opisz, jak funkcja powinna działać (bez szczegółów technicznych czy sugestii implementacyjnych).
+      placeholder: |
+        - dodanie obsługi MFA w oparciu o TOTP
+        - możliwość włączenia MFA przez użytkownika
+        - możliwość wymuszenia MFA na poziomie organizacji
+        - MFA wymagane przy logowaniu i wrażliwych operacjach
+    validations:
+      required: true
+      
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: ✅ Kryteria akceptacji
+      description: Jednoznaczne warunki, które muszą być spełnione, aby uznać feature za poprawnie ukończony.
+      placeholder: |
+        - użytkownik może włączyć MFA dla swojego konta
+        - administrator może wymusić MFA dla całej organizacji
+        - logowanie bez MFA jest blokowane, gdy MFA jest wymagane
+        - dostępne są kody odzyskiwania
+        - zdarzenia MFA są rejestrowane w audit logu
+    validations:
+      required: true
+      
+  - type: textarea
+    id: note
+    attributes:
+      label: 🧩 Uwagi, dodatkowy kontekst, co poza zakresem, załączniki
+      description: Dodatkowe informacje pomocne podczas akceptacji i implementacji
+      placeholder: |
+        Możesz wymienić na przykład:
+        - istotne wymagania niefunkcjonalne związane z bezpieczeństwem
+        - opisać potencjalne ryzyka techniczne, biznesowe lub UX
+        - wskazać, czego TEN feature nie obejmuje, aby uniknąć zbyt znacznego rozrostu zakresu zadania
+
+  - type: markdown
+    attributes:
+      value: |
+        **ℹ️ Jak skutecznie opisać pomysł? – Szybkie wskazówki do dobrego PRD**
+        
+        **Skup się na „Po co?”, a nie „Jak?”**  
+        Nie musisz znać się na technologii. Opisz problem, z którym mierzy się klient, i jaki efekt chce osiągnąć.
+       
+        **Pisz językiem korzyści**  
+        Wyjaśnij, jaki problem rozwiązuje klientowi, a może nam pomoże zwiększyć atrakcyjność systemu podczas sprzedaży.
+        
+        **Kryteria akceptacji to Twoja „lista zakupów”**  
+        Wypunktuj proste zdania typu: „Użytkownik widzi przycisk X”, „Po kliknięciu dzieje się Y”. To pozwoli testerom sprawdzić, czy funkcja działa tak, jak chciałeś.
+        
+        **Określ granice**  
+        Jeśli pomysł jest duży, zaznacz, co jest absolutnym priorytetem („must-have”), a co można dodać później.
+        
+        **Dodaj kontekst**  
+        Jeśli klient przysłał zrzut ekranu lub link do podobnego rozwiązania u konkurencji, koniecznie wklej go w sekcji „Uwagi”.
