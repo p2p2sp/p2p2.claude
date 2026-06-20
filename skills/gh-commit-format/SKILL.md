@@ -42,8 +42,6 @@ Conventional Commits v1.0 recognises additional footer tokens — most commonly 
 - This skill neither mandates nor forbids them — usage is **opt-in per project**.
 - They reach a commit **only when the caller writes them explicitly** (the `Refs:` / `Closes:` / `Fixes:` footers, or any other footer, inlined by the caller). Auto-synthesised subjects MUST emit the subject alone — no body, no footers.
 - Examples (where the host project opts in):
-  - `Co-Authored-By: Alice <alice@example.com>` — pair-programming attribution.
-  - `Signed-off-by: Alice <alice@example.com>` — Developer Certificate of Origin.
   - `BREAKING CHANGE: <description>` — semver-major signal.
 
 ### Task-Based Commits (Orchestrator)

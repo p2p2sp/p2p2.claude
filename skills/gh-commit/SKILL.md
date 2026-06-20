@@ -15,6 +15,7 @@ description: >-
 allowed-tools: Read, Bash(git status:*), Bash(git diff:*), Bash(git rev-parse:*), Bash(git diff-tree:*), Skill
 user-invocable: true
 argument-hint: "[all|staged]"
+effort: low
 ---
 
 # Commit router

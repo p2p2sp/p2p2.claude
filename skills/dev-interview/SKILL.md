@@ -18,7 +18,7 @@ The interview models the work as a **design tree** — a graph where each decisi
 
 ## Run the interview
 - Walk the design tree branch by branch, resolving dependencies one decision at a time — early answers reshape later branches, so do not batch.
-- Ask ONE question per turn so the user can pause, push back, or revisit any earlier choice without losing the thread. 
+- Ask ONE question per turn so the user can pause, push back, or revisit any earlier choice without losing the thread.
 - When two questions feel tightly coupled, pick the one whose answer constrains the other and ask that first — the second often dissolves or reshapes once the first is answered.
 - For each decision, propose 2–3 approaches with trade-offs, lead with your recommendation, and explain why it wins.
 - Number the options (`1`, `2`, `3`, and sub-options `1.1`, `1.2` when the choice branches) so the user can point to an answer without re-typing it.
@@ -35,7 +35,7 @@ The interview models the work as a **design tree** — a graph where each decisi
 > 2.2. `localStorage` — simpler, but readable from any script on the page.
 > 2.3 In-memory only — safest, but logs the user out on every reload.
 >
-> Which you choose (2.1 / 2.2 / 2.3)?
+> Choose (2.1 / 2.2 / 2.3)?
 
 ## Discipline
 - "This is too simple to need a design" is an anti-pattern. If the user came here, the scope is non-trivial; honor that.
