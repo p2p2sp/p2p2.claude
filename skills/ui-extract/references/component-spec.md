@@ -4,6 +4,10 @@ How to classify every detected component into a tier, and how to document each
 one as a precise spec. Pair this with `component-patterns.md` (which gives
 *detection cues* per common component); this file gives the *output shape*.
 
+> This is the **canonical, framework-agnostic** component-spec template — the
+> shared canon also consumed by **ui-component-creator** when authoring net-new
+> components. Keep it framework-neutral so both producers stay in sync.
+
 ## Contents
 - [Never invent details](#never-invent-details)
 - [The three tiers](#the-three-tiers)

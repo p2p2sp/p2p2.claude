@@ -1,15 +1,16 @@
 ---
 name: ui-extract
-description: Use when the user provides a folder of UI screenshots or a website URL and wants to reverse-engineer a design system from it. Triggers: "extract a design system", "build design tokens from these screens", "document the components in this UI", "turn this site into a design system", "reverse-engineer this UI/website", a filesystem path to a screenshots directory, or a URL to take inspiration from. Produces DTCG design tokens (YAML), a foundations document, a Tailwind v4 (and optional shadcn/ui) theme, and a tiered component catalog — layout, composite, and atomic — each with a detailed spec covering variants, states, anatomy, Figma properties, usage rules, and accessibility. Does not build HTML mockups; that is the separate ui-mockup skill.
+description: Use when the user provides a folder of UI screenshots or a website URL and wants to reverse-engineer a framework-agnostic design system from it. Triggers: "extract a design system", "build design tokens from these screens", "document the components in this UI", "turn this site into a design system", "reverse-engineer this UI/website", a filesystem path to a screenshots directory, or a URL to take inspiration from. Source-only: produces DTCG design tokens (YAML), a foundations document, a pure-CSS tokens.css (no framework coupling), and a tiered component catalog — layout, composite, and atomic — each with a detailed spec covering variants, states, anatomy, Figma properties, usage rules, and accessibility. Does not target any UI framework or build HTML mockups; per-target adaptation is the separate ui-adapt skill, web preview is ui-web-preview.
 ---
 
 # System Design Extractor
 
 Turn a source UI — a folder of screenshots or a website URL — into a detailed,
-self-contained **design system**: DTCG design tokens, a foundations document, a
-machine-readable theme (Tailwind v4, optionally shadcn/ui), and a **tiered
-catalog of components**, each documented with a full spec. Run manually: the
-user names the source in the prompt.
+self-contained, **framework-agnostic design system**: DTCG design tokens, a
+foundations document, a pure-CSS `tokens.css`, and a **tiered catalog of
+components**, each documented with a full spec. This is the L1 core: it
+reverse-engineers the *source* into one neutral system that downstream skills
+adapt per target. Run manually: the user names the source in the prompt.
 
 ## Operating principles
 
@@ -25,9 +26,11 @@ These shape every step.
 - **Ask when ambiguous, never assume.** If the source is unclear, the canonical
   screen for a shared component is uncertain, or an element is cropped/occluded,
   ask before proceeding.
-- **Scope = the design system, not mockups.** This skill ends at the documented
-  system. Building live HTML examples is the separate **ui-mockup** skill;
-  offer it as the next step (see Related skills).
+- **Scope = the agnostic design system, not a framework target or mockups.** This
+  skill ends at the documented, framework-neutral system. Adapting it to a target
+  (`pure-css` / `tailwind` / `react-shadcn` / `react-mui` / `flutter`) is the
+  separate **ui-adapt** skill; building live HTML previews is **ui-web-preview**.
+  Offer the next step (see Related skills) — do not bake framework knowledge here.
 
 ## Source intake — directory or URL
 
@@ -59,7 +62,7 @@ Write everything under `.docs/layout/design-system/` (default; the user may over
 |------|------------|
 | `design-tokens.yaml` | DTCG tokens — primitive + semantic (+ sparse component), serialized as YAML |
 | `foundations.md` | The extracted foundations: principles, token tiers, visual foundations, theming, consistency rules, accessibility |
-| `theme.css` | Tailwind v4 entry CSS with the generated `@theme` block (or `globals.css` for shadcn) |
+| `tokens.css` | Pure-CSS custom properties — semantic token names as `:root` (light) + `.dark` (dark) declarations; no framework, no build step |
 | `components/inventory.md` | The tiered component catalog (layout → composite → atomic) — the list shown to the user |
 | `components/<tier>/<name>.md` | One detailed spec per identified component |
 
@@ -111,26 +114,37 @@ foundations summary, the theming approach, the cross-component consistency rules
 and the system-wide accessibility notes. Reference tokens by name; state any
 assumptions and unresolved values explicitly.
 
-### Phase 3 — Generate the theme
+### Phase 3 — Emit `tokens.css` (pure CSS, framework-agnostic)
 
-Read `references/tailwind-v4-mapping.md` (DTCG→v4 namespace mapping). Generate
-deterministically:
+Write `tokens.css` — the agnostic theming artifact — as plain CSS custom
+properties keyed by **semantic token name**, no framework syntax and no build
+step. Each semantic token becomes one `--<token-name>` declaration; light values
+go in `:root`, the dark parallel set in `.dark`. Reference primitives only behind
+the semantic names so a target adapter can map them cleanly later.
 
-```bash
-python scripts/tokens_to_tailwind.py \
-  .docs/layout/design-system/design-tokens.yaml \
-  -o .docs/layout/design-system/theme.css
+```css
+:root {
+  --color-surface-base: #ffffff;
+  --color-text-primary: #111827;
+  --radius-control: 8px;
+  /* …one line per semantic token… */
+}
+.dark {
+  --color-surface-base: #0b0f17;
+  --color-text-primary: #f4f6fb;
+  /* …parallel values, same names… */
+}
 ```
 
 **Theming.** A theme swaps token *values* behind stable semantic *names* (light
 in `:root`, dark in `.dark`); a dark theme is a parallel value set aliasing
 different primitives, not a rename. **Never fabricate** an alternate palette — if
-only light screens were given, leave the dark scaffold as TODO and tell the user.
+only light screens were given, leave the `.dark` block as a TODO scaffold and
+tell the user.
 
-**shadcn/ui target.** If the user targets shadcn, read
-`references/shadcn-mapping.md` and generate with `--shadcn` to
-`globals.css` instead (shadcn semantic names, `:root`/`.dark` + `@theme inline`,
-OKLCH). Author tokens with shadcn names — see `assets/tokens.shadcn.template.yaml`.
+**Targets are downstream.** Do **not** generate Tailwind, shadcn, MUI, Flutter,
+or any other framework theme here. `tokens.css` is the single neutral source the
+**ui-adapt** skill consumes to produce each per-target theme artifact.
 
 ### Phase 4 — Identify components in three tiers
 
@@ -172,7 +186,7 @@ components document a "Composed of" list; atoms document related/paired atoms).
 ## Presenting results
 
 Use `present_files` with `design-tokens.yaml` first, then `foundations.md`,
-`theme.css`, `components/inventory.md`, and the specs. Keep the message short:
+`tokens.css`, `components/inventory.md`, and the specs. Keep the message short:
 what you extracted, the tiered component count, and any assumptions or unresolved
 values to confirm. Then offer the natural next step (see Related skills).
 
@@ -184,14 +198,11 @@ values to confirm. Then offer the natural next step (see Related skills).
   phase 1.**
 - `references/dtcg-token-format.md` — DTCG 2025.10 YAML schema: token shape,
   types, sRGB color object, composites, aliasing. **Read before phase 1.**
-- `references/tailwind-v4-mapping.md` — DTCG→Tailwind v4 namespace mapping.
-  **Read before phase 3.**
-- `references/shadcn-mapping.md` — shadcn/ui token names + structure. **Phase 3,
-  only if targeting shadcn.**
 - `references/component-patterns.md` — detection catalog (cues, anatomy, states,
   tokens, a11y) + the visual-consistency checklist. **Read before phase 4.**
 - `references/component-spec.md` — the three-tier taxonomy and the per-component
-  spec template + section guidance. **Read before phases 4 and 6.**
+  spec template + section guidance (the shared canon also consumed by
+  **ui-component-creator**). **Read before phases 4 and 6.**
 
 ## Scripts
 
@@ -202,13 +213,23 @@ Plain Python (stdlib + `pyyaml`, `Pillow`, `numpy`). Install if missing:
   palette / exact color sampling for **image** sources. (For URL sources read
   colors from CSS via `web_fetch` instead.)
 - `scripts/validate_tokens.py TOKENS.yaml` — DTCG conformance + alias resolution.
-- `scripts/tokens_to_tailwind.py TOKENS.yaml [-o OUT.css] [--theme-only]
-  [--shadcn] [--color-format oklch|hex]` — deterministic tokens → Tailwind v4
-  `@theme` / shadcn `globals.css`.
+
+`tokens.css` is written by hand from the validated tokens (Phase 3) — there is no
+framework generator in L1. Deterministic per-target generators live downstream in
+**ui-adapt**.
 
 ## Related skills
 
-- **ui-mockup** — generates live HTML example pages from the design system
-  this skill produces (tokens + specs), showing the components in action. This is
-  the natural next step *after* the system is documented. Do not build mockups
-  here; mention this skill when you finish. (Reference by name; load on demand.)
+This skill is L1 — the framework-agnostic core. Everything framework- or
+preview-specific lives downstream; mention the relevant next step when you finish
+(reference by name; load on demand).
+
+- **ui-adapt** — adapts this agnostic system to **one** chosen target
+  (`pure-css` / `tailwind` / `react-shadcn` / `react-mui` / `flutter`),
+  generating the per-target theme artifact and component mapping. The natural
+  next step *after* the system is documented.
+- **ui-web-preview** — renders live HTML preview pages for the web targets once
+  ui-adapt has produced a target.
+- **ui-component-creator** — interactive authoring of a **net-new** component
+  directly into this L1 system (reuses the canonical `component-spec.md`); use it
+  when a component is missing rather than extracted from a source.

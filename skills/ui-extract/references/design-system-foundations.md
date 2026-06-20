@@ -67,28 +67,46 @@ These are the foundation categories a complete system defines. Phase 1 already
 extracts most; treat this as the "did I miss one?" list. Each is a `dimension`,
 `color`, or composite token unless noted.
 
-- **Color** — surfaces/backgrounds, text (primary/secondary/disabled), borders,
-  brand/accent, state colors (success/warning/error/info), focus ring, overlay.
-  Group into a per-hue ramp where the design clearly has one.
-- **Typography** — font families, the size scale, weights, line-heights,
-  letter-spacing; named text styles as `typography` composite tokens.
-- **Spacing** — the spacing scale (snap to a base step only if the design uses
-  one); padding and gap rhythm.
-- **Grid / layout** — column structure, container/content max-widths, gutters,
-  the fixed region widths of the app shell.
-- **Elevation** — how depth is shown: shadow ramp (`shadow` composite) *and/or*
-  surface-color steps. Record which mechanism the design uses (some systems use
-  color for elevation, not shadows) — this is a principle worth noting.
-- **Radius** — corner-radius scale, including any "full" radius for pills/avatars.
-- **Border** — widths and the border composite (width + style + color).
-- **Iconography** — the icon size step(s) and stroke style; whether icons share
-  one grid.
-- **Sizing** — control heights (button/input/row), avatar sizes, min target size.
-- **Opacity** — disabled / loading / scrim opacities as `number` tokens.
-- **Motion** — durations + easing (`duration` + `cubicBezier`) where animation
-  is visible or implied by a state (collapse, modal open).
-- **Breakpoints** — target viewport widths if more than one screen size is given.
-- **Z-index** — layering order (`number`) for sticky bars, overlays, modals.
+Each category is tagged **[universal]** or **[web-only]**. Universal foundations
+belong to the agnostic L1 system and translate to *any* target including mobile
+(Flutter); web-only foundations are meaningful only on the web platform and a
+mobile adapter ignores or remaps them. The web-only set is `hover`,
+`focus-ring`, `breakpoints`, and `z-index`; everything else is universal.
+
+- **Color** — [universal] surfaces/backgrounds, text (primary/secondary/disabled),
+  borders, brand/accent, state colors (success/warning/error/info), overlay.
+  Group into a per-hue ramp where the design clearly has one. The **focus ring**
+  color is **[web-only]** (it pairs with the web focus-visible state below).
+- **Typography** — [universal] font families, the size scale, weights,
+  line-heights, letter-spacing; named text styles as `typography` composite
+  tokens.
+- **Spacing** — [universal] the spacing scale (snap to a base step only if the
+  design uses one); padding and gap rhythm.
+- **Grid / layout** — [universal] column structure, container/content max-widths,
+  gutters, the fixed region widths of the app shell.
+- **Elevation** — [universal] how depth is shown: shadow ramp (`shadow`
+  composite) *and/or* surface-color steps. Record which mechanism the design uses
+  (some systems use color for elevation, not shadows) — this is a principle worth
+  noting.
+- **Radius** — [universal] corner-radius scale, including any "full" radius for
+  pills/avatars.
+- **Border** — [universal] widths and the border composite (width + style + color).
+- **Iconography** — [universal] the icon size step(s) and stroke style; whether
+  icons share one grid.
+- **Sizing** — [universal] control heights (button/input/row), avatar sizes, min
+  target size.
+- **Opacity** — [universal] disabled / loading / scrim opacities as `number`
+  tokens.
+- **Motion** — [universal] durations + easing (`duration` + `cubicBezier`) where
+  animation is visible or implied by a state (collapse, modal open).
+- **Hover** — [web-only] hover affordances (color / elevation / cursor shifts on
+  pointer over); pointer-only, no equivalent on touch-first mobile.
+- **Focus ring** — [web-only] the visible keyboard focus-visible indicator and
+  its `color.focus` / `shadow.focus` token (a web-platform a11y affordance).
+- **Breakpoints** — [web-only] target viewport widths if more than one screen
+  size is given.
+- **Z-index** — [web-only] layering order (`number`) for sticky bars, overlays,
+  modals.
 
 ## 4. Theming
 
@@ -103,12 +121,14 @@ How this maps to the skill's outputs:
   aliases differs per theme.
 - A dark theme is a **parallel set of values** mirroring the light tokens but
   referencing different primitives — not a rename.
-- This is exactly what the Tailwind/shadcn generators expect: light values in
-  `:root`, dark in `.dark`, semantic names identical across both (see
-  `tailwind-v4-mapping.md` and `shadcn-mapping.md`).
+- L1 expresses theming as **pure CSS** in `tokens.css`: light values as
+  `--<token-name>` declarations under `:root`, the dark parallel set under
+  `.dark`, with semantic names identical across both. No framework syntax —
+  per-target theme artifacts are produced **downstream by ui-adapt** from this
+  neutral source.
 - **Never fabricate** the dark (or alternate) palette. If only a light screen was
-  provided, leave the dark values as a TODO scaffold and tell the user, rather
-  than inventing them. (The `--shadcn` converter already does this.)
+  provided, leave the `.dark` values as a TODO scaffold and tell the user, rather
+  than inventing them.
 
 ## 5. Component library
 
@@ -166,7 +186,7 @@ checks. Note findings in `foundations.md` and honour them in every spec.
 | 1 Principles / single source of truth | 1–2 | `foundations.md` notes; token structure |
 | 2 Token tiers (primitive/semantic/component) | 1 | `design-tokens.yaml` |
 | 3 Visual foundations | 1 | `design-tokens.yaml` |
-| 4 Theming | 1, 3 | tokens (parallel values) → `theme.css` / `globals.css` |
+| 4 Theming | 1, 3 | tokens (parallel values) → pure-CSS `tokens.css` (`:root`/`.dark`); per-target theme artifacts produced downstream by **ui-adapt** |
 | 5 Component library | 4, 6 | `components/inventory.md` + per-component specs |
 | 6 Patterns / consistency rules | 2, 4 | `foundations.md`; inventory |
 | 7 Accessibility | 2, 6 | `foundations.md` notes; per-component specs |

@@ -33,7 +33,7 @@ Rules that matter:
 - Allowed token metadata: `$description`, `$extensions`, `$deprecated`.
 - A **group** is any object without `$value`. Groups may set a group-wide
   `$type`. Groups are organizational only — do not encode meaning a tool must
-  rely on (we use a small, explicit convention for Tailwind; see below).
+  rely on (we use a small, explicit **role** convention; see below).
 
 ## Aliases (references)
 
@@ -63,8 +63,8 @@ $value:
   alpha: 1                 # 0..1, optional (default 1)
   hex: "#3366f2"           # optional; include for sRGB to ease CSS output
 ```
-Always include `hex` for sRGB colors — `sample_colors.py` emits it and the
-Tailwind converter prefers it for readable output.
+Always include `hex` for sRGB colors — `sample_colors.py` emits it and it gives
+the most readable output when a downstream target adapter writes CSS / theme code.
 
 ### dimension
 A number plus a unit. Use for spacing, sizes, radii, border widths, font sizes,
@@ -168,12 +168,14 @@ $value:
   delay: { value: 0, unit: ms }
 ```
 
-## Tailwind role convention (our extension)
+## Role convention (our extension)
 
-DTCG says tools should not infer purpose from group names. The Tailwind
-converter therefore needs to know a dimension token's **role** (is `16px`
-spacing, a radius, or a font size?). Provide it explicitly with `$extensions`,
-falling back to a top-level-group convention:
+DTCG says tools should not infer purpose from group names. A downstream target
+adapter, however, needs to know a dimension token's **role** (is `16px` spacing,
+a radius, or a font size?) to map it correctly. Capture the role at the agnostic
+L1 layer — by **top-level-group convention** (the group name *is* the role) and,
+when a token lives outside its conventional group, by an explicit `$extensions`
+override:
 
 ```yaml
 spacing:           # convention: group name == role
@@ -184,14 +186,15 @@ radius:
     $type: dimension
     $value: { value: 8, unit: px }
     $extensions:
-      org.tailwindcss: { namespace: radius }   # explicit override wins
+      role: radius   # explicit role override wins over the group name
 ```
 
-Recognized roles → Tailwind namespaces: `color→color`, `spacing→spacing`,
-`radius→radius`, `font-size`/`text→text`, `font-family→font`,
-`font-weight→font-weight`, `breakpoint→breakpoint`, `shadow→shadow`,
-`ease→ease`. Anything unmapped is emitted as a plain `--<group>-<name>` custom
-property with a comment. See `tailwind-v4-mapping.md`.
+Recognized roles: `color`, `spacing`, `radius`, `font-size` (`text`),
+`font-family`, `font-weight`, `breakpoint`, `shadow`, `ease`. These roles are
+neutral — how each one maps to a concrete target namespace (a CSS variable
+prefix, a framework theme key, …) is **target-specific** and documented
+downstream by the **ui-adapt** skill, not here. Anything unmapped is carried
+through as a plain `--<group>-<name>` custom property.
 
 ## Recommended file skeleton
 
