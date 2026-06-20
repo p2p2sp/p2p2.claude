@@ -4,7 +4,7 @@ description: "GitHub CLI executor (fork) — runs ONE fully-specified, non-inter
 context: fork
 model: sonnet
 user-invocable: false
-allowed-tools: Read, Bash(gh --version), Bash(gh auth status), Bash(gh:*)
+allowed-tools: Read, Bash(gh --version), Bash(gh auth status), Bash(gh:*), Skill
 ---
 
 # GitHub CLI executor (fork)
