@@ -5,13 +5,13 @@ model: opus
 effort: xhigh
 ---
 
+**CRITIAL**: If plan mode is not already active when extraplan is invoked, your first action MUST be to call `EnterPlanMode` before reading files or drafting anything. Do NOT call it again if plan mode is already on (the system reminder `Plan mode is active` signals this). Producing the plan inside plan mode is what makes the downstream `dev-plan-review` → `ExitPlanMode` gate apply.
+
 # ExtraPlan
 
 A discipline for producing plans that survive contact with implementation.
 
 Default Claude Code plan mode is read-only and structured, but the plan content itself can drift: missing files, hidden assumptions, no rollback story. ExtraPlan closes that gap with a strict template and mandatory pre-plan behavior before the plan is presented.
-
-This skill dictates the *shape and rigor* of the plan that comes out — and a plan is always produced **inside** plan mode. **If plan mode is not already active when extraplan is invoked, your first action MUST be to call `EnterPlanMode`** before reading files or drafting anything. Do NOT call it again if plan mode is already on (the system reminder `Plan mode is active` signals this). Producing the plan inside plan mode is what makes the downstream `dev-plan-review` → `ExitPlanMode` gate apply.
 
 **Scope boundary — what ExtraPlan focuses on.** A plan answers *what changes and why*; *how to execute it* (task boundaries, per-task working mode, test naming/ordering/framework) is the `decomposer`'s job, which reads the approved plan (any markdown — ExtraPlan-shape or looser) and writes one focused task file per task under `.temp/.workflows/<slug>/tasks/`. The full **testing-direction-is-a-floor / decomposer-owns-execution / no-ADR-here** doctrine — what the plan MAY carry vs. what it must leave to the decomposer, the binding-floor contract, and where architectural reasoning lands — is stated canonically in §2 "Pre-plan context" and the §8 template section ("Recommended testing approach & edge cases"). Read those; this paragraph only fixes the boundary, it does not restate the doctrine.
 
