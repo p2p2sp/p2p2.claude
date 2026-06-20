@@ -51,6 +51,6 @@ The interview models the work as a **design tree** — a graph where each decisi
 - Close the interview when every **load-bearing** branch has a confirmed answer. A branch is load-bearing if a different answer would change which files are touched, which library or pattern is chosen, the data shape, or a contract between components. Branches whose answer only affects local style or naming are NOT load-bearing — do not gate the handoff on them.
 - Present the synthesis as ~3–5 bullets capturing the chosen approach, key constraints, and explicit out-of-scope items. Wait for the user's confirmation before
 handing off.
-- Then ask: plain plan-mode or `superdev:dev-plan`?
+- Then ask: plain plan-mode or `superdev:dev-extraplan`?
   - Plain plan-mode → call the `EnterPlanMode` tool and continue.
-  - Extraplan → invoke the `superdev:dev-plan` skill and continue.
+  - Extraplan → invoke the `superdev:dev-extraplan` skill and continue.

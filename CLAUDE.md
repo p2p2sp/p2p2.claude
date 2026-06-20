@@ -54,7 +54,7 @@ manifest (`hooks/content/manifest.md`).
   see the Self-documentation invariant.
 - **`mem-`** — project memory: `mem-init` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer).
 - **`dev-`** — the agentic-development pipeline + diagnostics/specs (17 skills): planning
-  (`dev-interview`, `dev-plan`, `dev-plan-review`), the orchestrated implementation pipeline
+  (`dev-interview`, `dev-extraplan`, `dev-plan-review`), the orchestrated implementation pipeline
   (`dev-orchestrate` → `dev-adr` → `dev-decompose` → per task `dev-code` / `dev-run` /
   `dev-task-review` / `dev-improve` / `dev-committer` → `dev-final-review`), the final-gate sub-skills
   (`dev-plan-audit`, `dev-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`.

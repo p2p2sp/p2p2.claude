@@ -1,5 +1,5 @@
 ---
-name: dev-plan
+name: dev-extraplan
 description: Plan refinement and hardening expert. Use this skill when the user explicitly asks for extraplan, plan refinement, plan hardening, or a more rigorous plan (any language, descriptive phrasing also counts). Enforces a strict plan template (intent, model, files, assumptions, options, risk, out-of-scope) and forbids silent assumptions before the plan is presented. Implementation decisions are NOT part of the plan. Do NOT auto-trigger inside plan mode — explicit user request only. Do NOT use for initial spec/PRD writing — use the `dev-spec` skill instead.
 model: opus
 effort: xhigh

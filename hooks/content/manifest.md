@@ -43,7 +43,7 @@ Iron, universal, always-on. Not overridden by convenience or brevity; only an ex
 
 **dev- — development pipeline**
 - `superdev:dev-interview` — conversational discovery before planning (scale-first). Prose only.
-- `superdev:dev-plan` — harden / refine the plan (extra-rigor) in plan mode.
+- `superdev:dev-extraplan` — harden / refine the plan (extra-rigor) in plan mode.
 - `superdev:dev-plan-review` — independent plan review; gates the plan (STATUS + severity).
 - `superdev:dev-orchestrate` — thin dispatcher that drives the implementation pipeline.
 - `superdev:dev-adr` — ADR-worthiness judge on the approved plan (read-only).
@@ -85,8 +85,8 @@ Apply in order. First match wins.
 
 Follow the chosen chain end-to-end.
 
-- **feature-from-scratch**: `dev-interview` → `dev-plan` → plan gate (`dev-plan-review` PASS) → `dev-orchestrate`.
-- **bug-fix**: small → direct edit · larger → `dev-plan` → `dev-orchestrate`.
+- **feature-from-scratch**: `dev-interview` → `dev-extraplan` → plan gate (`dev-plan-review` PASS) → `dev-orchestrate`.
+- **bug-fix**: small → direct edit · larger → `dev-extraplan` → `dev-orchestrate`.
 - **implementation pipeline** (inside `dev-orchestrate`): `dev-adr` → `dev-decompose` → per task (`dev-code` → `dev-run` → `dev-task-review` → `dev-improve` → `dev-committer`) → `dev-final-review` (own sub-pipeline: `dev-plan-audit` → `dev-run` full → `dev-smoke` → synthesis → go/no-go).
 - **design → implementation**: `ui-extract` → `ui-mockup` → `ui-guardian` → `dev-orchestrate`.
 - **spec → issue**: `dev-spec` → `gh-issue`.
