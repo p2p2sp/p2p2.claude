@@ -1,17 +1,6 @@
 ---
 name: ui-mockup
-description: 'Use when a design system already exists (from ui-extract
-  or an equivalent: design tokens, a theme.css/globals.css, and component specs)
-  and the user wants live HTML pages to preview, verify, or present it. Triggers:
-  "generate mockups", "build mockup pages", "preview the design system", "show the
-  components in HTML", "make a component showcase", "build login/signup/404 pages
-  from the design system", "present the design system to the team", or a path to a
-  design-system folder. Produces self-contained, zero-build static HTML (Tailwind
-  v4 browser CDN) in a chosen directory: an index page, layout pages, app pages
-  (login, signup, password reset, 404/500), and one showcase page per component
-  with every variant and state, plus a dark/light toggle. Does not extract or
-  author the design system itself; that is the separate ui-extract
-  skill.'
+description: Use when a design system already exists (from ui-extract or an equivalent: design tokens, a theme.css/globals.css, and component specs) and the user wants live HTML pages to preview, verify, or present it. Triggers: "generate mockups", "build mockup pages", "preview the design system", "show the components in HTML", "make a component showcase", "build login/signup/404 pages from the design system", "present the design system to the team", or a path to a design-system folder. Produces self-contained, zero-build static HTML (Tailwind v4 browser CDN) in a chosen directory: an index page, layout pages, app pages (login, signup, password reset, 404/500), and one showcase page per component with every variant and state, plus a dark/light toggle. Does not extract or author the design system itself; that is the separate ui-extract skill.
 ---
 
 # Mockup Generator
