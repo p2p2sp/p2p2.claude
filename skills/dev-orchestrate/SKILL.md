@@ -85,7 +85,8 @@ decompose_plan_path = plan-path                      # default: hand the origina
 if Glob(".temp/.workflows/<slug>/tasks/*.md") returns ≥1 path:
     skip to "Decompose the plan into per-task files"   # decompose_plan_path stays = plan-path
 
-adr_out = Skill(skill="superdev:dev-adr", args="Plan: <plan-path>")
+# dev-adr injects the plan CONTENT via dynamic context (`cat $ARGUMENTS`), so pass the BARE ABSOLUTE path.
+adr_out = Skill(skill="superdev:dev-adr", args="<abspath(plan-path)>")
 if first_status_line(adr_out) == "STATUS: ADR":
     # Splice the ADR into a COPY — never modify the user's plan file.
     augmented = read(plan-path)
