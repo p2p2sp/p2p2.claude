@@ -25,17 +25,53 @@ VENDOR_TAG = '<script src="{prefix}assets/tailwindcss-browser.js"></script>'
 # single import is authoritative and not duplicated.
 _IMPORT_RE = re.compile(r'^\s*@import\s+["\']tailwindcss["\'][^;]*;\s*$', re.MULTILINE)
 
+# Per-target injection contract. Each web target resolves its theme artifact
+# from `targets/<target>/` and selects a delivery branch:
+#   "tailwind"  -> Tailwind v4 browser CDN + <style type="text/tailwindcss"> block
+#   "plain"     -> ordinary <style> with the artifact's CSS verbatim, NO CDN
+# `candidates` is the ordered filename set read_theme() tries in that target dir.
+TARGETS = {
+    "pure-css":     {"branch": "plain",    "candidates": ("styles.css",)},
+    "tailwind":     {"branch": "tailwind", "candidates": ("theme.css",)},
+    "react-shadcn": {"branch": "tailwind", "candidates": ("globals.css",)},
+}
+
+# Targets that exist in the pipeline but have no faithful zero-build static-HTML
+# preview: refuse cleanly and point at the native tooling.
+NON_WEB_TARGETS = {
+    "react-mui": "Storybook (or a Vite/CRA sandbox) renders the real MUI "
+                 "components against the generated theme.ts",
+    "flutter":   "DartPad (or a local `flutter run`) renders the widgets "
+                 "against the generated theme.dart",
+}
+
+
+def target_dir(ds_dir, target):
+    """The targets/<target>/ directory under the design-system root."""
+    return os.path.join(ds_dir, "targets", target)
+
+
+def resolve_target(target):
+    """Return the web-target config, or sys.exit with guidance for non-web /
+    unknown targets. Web targets only — react-mui / flutter are out of scope."""
+    if target in TARGETS:
+        return TARGETS[target]
+    if target in NON_WEB_TARGETS:
+        sys.exit(
+            f"ERROR: target {target!r} has no zero-build static-HTML preview. "
+            f"Use its native tooling instead: {NON_WEB_TARGETS[target]}. "
+            "For a static appearance check, adapt a web target "
+            "(pure-css / tailwind) as an approximation.")
+    sys.exit(f"ERROR: unknown target {target!r}. "
+             f"Web targets: {', '.join(sorted(TARGETS))}.")
+
 PAGE_TEMPLATE = """<!doctype html>
 <html lang="en"{HTML_ATTR}>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{TITLE}</title>
-{TAILWIND}
-<style type="text/tailwindcss">
-@import "tailwindcss";
-{THEME}
-</style>
+{THEME_HEAD}
 <link rel="stylesheet" href="{PREFIX}assets/mockup.css">
 </head>
 <body class="mk-body">
@@ -181,16 +217,43 @@ INDEX_TEMPLATE = """<!doctype html>
 """
 
 
-def read_theme(ds_dir):
-    """Return the design-system theme CSS with its own tailwindcss @import stripped."""
-    for name in ("theme.css", "globals.css"):
-        p = os.path.join(ds_dir, name)
+def read_theme(theme_dir, candidates):
+    """Resolve the theme artifact from `theme_dir` over the caller-supplied
+    `candidates` filename set; return (css, filename) with the artifact's own
+    `@import "tailwindcss";` stripped (harmless for plain CSS, required for the
+    Tailwind branches so the shell's single import is authoritative).
+
+    The directory and candidate set are passed by the caller (which derives them
+    from the active target via TARGETS) — no path or filename is hardcoded here.
+    A missing directory or a missing artifact is a hard error, not a silent
+    unstyled build."""
+    if not os.path.isdir(theme_dir):
+        sys.exit(f"ERROR: target directory not found: {theme_dir!r}. "
+                 "Run ui-adapt for this target first, or pass the correct "
+                 "--design-system / --target.")
+    for name in candidates:
+        p = os.path.join(theme_dir, name)
         if os.path.isfile(p):
             with open(p, encoding="utf-8") as f:
                 css = f.read()
             return _IMPORT_RE.sub("", css).strip(), name
-    sys.exit(f"ERROR: no theme.css or globals.css found in {ds_dir!r}. "
-             "Run ui-extract first, or pass the correct --design-system.")
+    wanted = " or ".join(candidates)
+    sys.exit(f"ERROR: no theme artifact ({wanted}) found in {theme_dir!r}. "
+             "Run ui-adapt for this target first.")
+
+
+def theme_head(branch, theme, tw_tag):
+    """Build the per-branch <head> theme delivery.
+
+    plain    -> ordinary <style> with the artifact's CSS verbatim; no CDN,
+                no type="text/tailwindcss" block.
+    tailwind -> the Tailwind v4 browser CDN/vendor <script> + a
+                <style type="text/tailwindcss"> block (byte-for-byte the prior
+                behavior) so @theme/@layer resolve in-page."""
+    if branch == "plain":
+        return f"<style>\n{theme}\n</style>"
+    return (f'{tw_tag}\n<style type="text/tailwindcss">\n'
+            f'@import "tailwindcss";\n{theme}\n</style>')
 
 
 def asset_prefix(rel_path):
@@ -201,6 +264,7 @@ def asset_prefix(rel_path):
 
 def cmd_init(args):
     out = args.out
+    cfg = resolve_target(args.target)  # web target or sys.exit with guidance
     for d in ("layouts", "pages", "components", "assets",
               "content/layouts", "content/pages", "content/components"):
         os.makedirs(os.path.join(out, d), exist_ok=True)
@@ -208,14 +272,19 @@ def cmd_init(args):
         f.write(MOCKUP_JS)
     with open(os.path.join(out, "assets", "mockup.css"), "w", encoding="utf-8") as f:
         f.write(MOCKUP_CSS)
-    # validate the theme is present now, so failures surface early
-    _, name = read_theme(args.design_system)
+    # validate the target's theme artifact is present now, so failures surface early
+    _, name = read_theme(target_dir(args.design_system, args.target),
+                         cfg["candidates"])
     vendored = False
-    if args.vendor_tailwind:
+    if cfg["branch"] == "tailwind" and args.vendor_tailwind:
         vendored = _try_vendor(out)
     print(f"init: scaffolded {out}")
-    print(f"  theme source: {name}")
-    print(f"  tailwind: {'vendored (assets/tailwindcss-browser.js)' if vendored else 'CDN'}")
+    print(f"  target: {args.target}")
+    print(f"  theme source: targets/{args.target}/{name}")
+    if cfg["branch"] == "plain":
+        print("  tailwind: n/a (pure-css emits plain CSS, no CDN)")
+    else:
+        print(f"  tailwind: {'vendored (assets/tailwindcss-browser.js)' if vendored else 'CDN'}")
     print("  authored fragments go under content/{layouts,pages,components}/")
 
 
@@ -263,10 +332,15 @@ def render_groups(pages):
 
 def cmd_build(args):
     out = args.out
+    cfg = resolve_target(args.target)  # web target or sys.exit with guidance
+    branch = cfg["branch"]
     with open(args.manifest, encoding="utf-8") as f:
         manifest = json.load(f)
-    theme, theme_name = read_theme(args.design_system)
-    vendored = os.path.isfile(os.path.join(out, "assets", "tailwindcss-browser.js"))
+    theme, theme_name = read_theme(target_dir(args.design_system, args.target),
+                                   cfg["candidates"])
+    vendored = (branch == "tailwind"
+                and os.path.isfile(os.path.join(out, "assets",
+                                                 "tailwindcss-browser.js")))
 
     pages = manifest.get("pages", [])
     written = 0
@@ -283,8 +357,7 @@ def cmd_build(args):
         html = (PAGE_TEMPLATE
                 .replace("{HTML_ATTR}", "")
                 .replace("{TITLE}", p["title"])
-                .replace("{TAILWIND}", tw)
-                .replace("{THEME}", theme)
+                .replace("{THEME_HEAD}", theme_head(branch, theme, tw))
                 .replace("{PREFIX}", prefix)
                 .replace("{MAIN_CLASS}", MAIN_CLASS.get(layout, MAIN_CLASS["showcase"]))
                 .replace("{CONTENT}", content))
@@ -295,8 +368,10 @@ def cmd_build(args):
         written += 1
 
     title = manifest.get("title", "Design System \u2014 Mockups")
-    sub = (f"{written} pages \u00b7 theme: {theme_name} \u00b7 "
-           "Tailwind v4 browser build. Open any page; use \u25d0 Theme to toggle dark mode.")
+    delivery = ("plain CSS, no build" if branch == "plain"
+                else "Tailwind v4 browser build")
+    sub = (f"{written} pages \u00b7 target: {args.target} \u00b7 theme: {theme_name} \u00b7 "
+           f"{delivery}. Open any page; use \u25d0 Theme to toggle dark mode.")
     index = (INDEX_TEMPLATE
              .replace("{TITLE}", title)
              .replace("{SUB}", sub)
@@ -304,7 +379,11 @@ def cmd_build(args):
     with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:
         f.write(index)
     print(f"build: wrote {written} pages + index.html to {out}")
-    print(f"  theme injected from {theme_name}; tailwind via {'vendored file' if vendored else 'CDN'}")
+    if branch == "plain":
+        print(f"  target {args.target}; theme injected from {theme_name} as plain CSS (no CDN)")
+    else:
+        print(f"  target {args.target}; theme injected from {theme_name}; "
+              f"tailwind via {'vendored file' if vendored else 'CDN'}")
 
 
 def main():
@@ -312,8 +391,11 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="mode", required=True)
 
+    web = ", ".join(sorted(TARGETS))
     i = sub.add_parser("init", help="scaffold folders + shared assets")
     i.add_argument("--design-system", required=True, help="design-system directory")
+    i.add_argument("--target", required=True,
+                   help=f"active web target (one of: {web})")
     i.add_argument("--out", required=True, help="output mockups directory")
     i.add_argument("--vendor-tailwind", action="store_true",
                    help="vendor @tailwindcss/browser locally for offline use (needs npm registry)")
@@ -321,6 +403,8 @@ def main():
 
     b = sub.add_parser("build", help="wrap fragments + generate index from a manifest")
     b.add_argument("--design-system", required=True, help="design-system directory")
+    b.add_argument("--target", required=True,
+                   help=f"active web target (one of: {web})")
     b.add_argument("--out", required=True, help="output mockups directory")
     b.add_argument("--manifest", required=True, help="manifest.json describing the pages")
     b.set_defaults(func=cmd_build)
