@@ -72,9 +72,8 @@ Iron, universal, always-on. Not overridden by convenience or brevity; only an ex
 **gh- — GitHub**
 - `superdev:gh-cli` — `gh` API layer reference (native → REST → GraphQL).
 - `superdev:gh-cli-exec` — run ONE fully-specified gh/REST/GraphQL op in a fork.
-- `superdev:gh-commit` — commit router (picks mode, authors subject, delegates).
-- `superdev:gh-commit-exec` — verbatim commit executor (fork).
-- `superdev:gh-commit-format` — Conventional Commits format reference.
+- `superdev:gh-commit-context` — commit context resolver (picks mode, resolves which files, delegates).
+- `superdev:gh-committer` — commit executor fork (stages, authors the subject from the diff, commits).
 - `superdev:gh-issue` — interactive, template-driven issue creation.
 - `superdev:gh-pr` — interactive, template-driven draft-PR creation.
 
@@ -107,7 +106,7 @@ Follow the chosen chain end-to-end.
 - **design → implementation**: `ui-extract` (or `ui-component-creator`) → `ui-adapt` → `ui-web-preview` → `ui-guardian` → `dev-orchestrate`.
 - **spec → issue**: `dev-spec` → `gh-issue`.
 - **ship → PR**: `dev-final-review` go → `gh-pr`.
-- **GitHub ops**: `gh-cli` (layer reference) → `gh-cli-exec` (fork executor); `gh-commit` (router) → `gh-commit-exec` (fork).
+- **GitHub ops**: `gh-cli` (layer reference) → `gh-cli-exec` (fork executor); `gh-commit-context` (entry) → `gh-committer` (fork).
 - **memory / learning**: `mem-init` / `mem-rules` / `mem-doc`; `dev-improve` promotes convention learnings into the `mem-rules` contract.
 - **documentation**: `mem-doc` authors `.docs/documentation/` (interactive writer + contract owner). In-pipeline, `dev-improve` syncs each task's `## Docs` target per the `mem-doc` contract (Option C — no extra loop step); `dev-final-review` then runs `mem-guardian` as the terminal doc↔code audit gate (4th sub-gate: did docs move with the code?).
 

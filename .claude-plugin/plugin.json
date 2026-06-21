@@ -35,9 +35,8 @@
     "./skills/ui-guardian/",
     "./skills/gh-cli/",
     "./skills/gh-cli-exec/",
-    "./skills/gh-commit/",
-    "./skills/gh-commit-exec/",
-    "./skills/gh-commit-format/",
+    "./skills/gh-commit-context/",
+    "./skills/gh-committer/",
     "./skills/gh-issue/",
     "./skills/gh-pr/"
   ]

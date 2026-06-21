@@ -76,8 +76,8 @@ manifest (`hooks/content/manifest.md`).
   L1 system to ONE concrete L2 target: pure-css / tailwind / react-shadcn / react-mui / flutter),
   `ui-web-preview` (render zero-build static HTML previews of a chosen web target), `ui-guardian` (bind UI
   work to documented tokens / components before edits).
-- **`gh-`** — GitHub: `gh-cli` (+ `gh-cli-exec`), `gh-commit` (router) + `gh-commit-exec`,
-  `gh-commit-format`, `gh-issue`, `gh-pr`.
+- **`gh-`** — GitHub: `gh-cli` (+ `gh-cli-exec`), `gh-commit-context` (entry) + `gh-committer`,
+  `gh-issue`, `gh-pr`.
 
 ## Architecture invariants
 

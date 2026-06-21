@@ -25,7 +25,7 @@ the single injected manifest routes every request to the right skill / chain.
 | `mem-` | Project memory | `mem-init` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer) |
 | `dev-` | Development pipeline + diagnostics/specs | `dev-interview`, `dev-extraplan`, `dev-plan-review`, `dev-orchestrate`, `dev-adr`, `dev-decompose`, `dev-code`, `dev-run`, `dev-task-review`, `dev-final-review`, `dev-plan-audit`, `dev-smoke`, `dev-improve`, `dev-committer`, `dev-tdd`, `dev-debug`, `dev-spec` |
 | `ui-` | Design / frontend | `ui-extract`, `ui-component-creator`, `ui-adapt`, `ui-web-preview`, `ui-guardian` |
-| `gh-` | GitHub | `gh-cli`, `gh-cli-exec`, `gh-commit`, `gh-commit-exec`, `gh-commit-format`, `gh-issue`, `gh-pr` |
+| `gh-` | GitHub | `gh-cli`, `gh-cli-exec`, `gh-commit-context`, `gh-committer`, `gh-issue`, `gh-pr` |
 
 ## How it works
 
