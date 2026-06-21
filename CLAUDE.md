@@ -7,9 +7,11 @@ root also carries a one-entry **marketplace catalog** (`.claude-plugin/marketpla
 itself (`source: "./"`), so the repo is simultaneously the plugin and the catalog that ships it. End-user
 help lives in `README.md`; this file is orientation for the assistant.
 
-It ships no application code — the artefacts are markdown (skills) + JSON (manifests) + two hook scripts.
-**Editing markdown / JSON IS shipping** — there is no build / test / lint at any level. Contracts between
-files are enforced by humans reading carefully.
+It ships no application code — the artefacts are markdown (skills) + JSON (manifests) + the two hook scripts
+under `hooks/scripts/`, plus a handful of deterministic helper scripts bundled under individual skills'
+`scripts/` dirs (the `ui-*` preview scripts and the pipeline scripts `dev-orchestrator/scripts/commit-task.sh`
++ `mem-guardian/scripts/audit-docs.py`). **Editing markdown / JSON IS shipping** — there is no build / test /
+lint at any level. Contracts between files are enforced by humans reading carefully.
 
 The plugin is **stack-agnostic on purpose**: skills read project-specific knowledge (test framework, build
 tool, naming, how to launch the app) from the **host** project's `CLAUDE.md` + `.claude/rules/`, never from
@@ -31,11 +33,13 @@ manifest documents the chains, including across domains (`dev-spec → gh-issue`
 .claude-plugin/
   marketplace.json   Marketplace catalog — lists the single plugin superdev by source "./" (the repo root)
   plugin.json        The plugin manifest — skills[] is the catalog of record
-hooks/               One injected dispatcher manifest + two hook scripts
+hooks/               One injected dispatcher manifest + the two hook scripts
   hooks.json         SessionStart (inject manifest) + PreToolUse on ExitPlanMode (plan gate)
   content/manifest.md  The injected `using-superdev` dispatcher
   scripts/           session-start.sh, review-plan.sh
-skills/              Skills grouped by prefix (mem- / dev- / ui- / gh- / cc-)
+skills/              Skills grouped by prefix (mem- / dev- / ui- / gh- / cc-); some skills bundle a
+                     deterministic helper under their own scripts/ dir (ui-* preview scripts,
+                     dev-orchestrator/scripts/commit-task.sh, mem-guardian/scripts/audit-docs.py)
 README.md            User-facing help (install + how it works)
 .claude/rules/       Development-only conventions for this repo
 ```
@@ -69,10 +73,10 @@ manifest (`hooks/content/manifest.md`).
   and `dev-documenter` syncs each task's `## Docs` target into layer 5 per the `mem-doc` contract — two separate,
   independently config-gated steps (`rules_improver` / `documentation`) — and `dev-final-reviewer` runs
   `mem-guardian` as a terminal sub-gate (skipped when the `documentation` switch is off).
-- **`dev-`** — the agentic-development pipeline + diagnostics/specs (18 skills): planning
+- **`dev-`** — the agentic-development pipeline + diagnostics/specs (17 skills): planning
   (`dev-interview`, `dev-extraplan`, `dev-plan-reviewer`), the orchestrated implementation pipeline
   (`dev-orchestrator` → `dev-adr-analyzer` → `dev-decomposer` → per task `dev-coder` / `dev-runner` /
-  `dev-task-reviewer` / `dev-improver` / `dev-documenter` / `dev-committer` → `dev-final-reviewer`), the
+  `dev-task-reviewer` / `dev-improver` / `dev-documenter` → scripted commit (`commit-task.sh`) → `dev-final-reviewer`), the
   final-gate sub-skills (`dev-plan-auditor`, `dev-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`.
 - **`ui-`** — design / frontend (5 skills): `ui-extract` (reverse-engineer the framework-agnostic L1
   system), `ui-component-creator` (author a net-new component into the L1 system), `ui-adapt` (adapt the
@@ -110,6 +114,13 @@ manifest (`hooks/content/manifest.md`).
   like feedback/retry, reports); agents receive content **injected via dynamic context `!`**, not via `Read`.
   Pipeline state lives under `.temp/.workflows/<slug>/`; agents reply with a 3-line `STATUS / Report / Summary`
   stdout.
+- **Script vs. fork.** A pipeline step collapses to a deterministic bundled script (under the owning skill's
+  `scripts/` dir) when it operates on a known, fixed tool / format — git, a basename, paths, globs (e.g.
+  `dev-orchestrator/scripts/commit-task.sh` for the per-task commit, `mem-guardian/scripts/audit-docs.py` for the
+  `source:`-glob ∩ diff facts). It stays an LLM fork when it must interpret heterogeneous, stack-specific tool
+  output (e.g. `dev-runner` reading arbitrary build / test output). A self-verifying script carries its I/O
+  contract in its header comment and is trusted by its caller — so the caller does NOT re-verify or retry the
+  script's result (the verify-before-claim guarantee lives in the script, not a fork-era re-check guard).
 - **Self-documentation.** Any skill add / remove / rename MUST update `plugin.json` `skills[]`, the injected
   manifest (`hooks/content/manifest.md`), and this file — they must stay in sync. **Exception:** a user-only
   one-time command (`disable-model-invocation: true`, e.g. `setup`) does not participate in routing, so it is

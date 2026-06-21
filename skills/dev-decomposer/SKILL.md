@@ -286,7 +286,7 @@ Idempotency: when Step 0 short-circuits (task files already exist), do NOT touch
 
 For each task `N` from 1 to `K`, `Write` the file `.temp/.workflows/<PlanSlug>/tasks/<N>.md` with this exact structure.
 
-**The first line MUST be a Conventional-Commits-form commit subject H1** — `# <type>(<scope>): <imperative summary>` (e.g. `# feat(auth): add token refresh`, `# docs(adr): record ADR-0007`). This H1 is the contract consumed by `dev-committer`, which extracts it verbatim as the commit subject (`T<N>: <subject>`). `<type>` is a Conventional-Commits type (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`, `style`); `<scope>` is the affected module / area; the summary is a short imperative phrase, no trailing period. Derive it from the task's verb-phrase + `## Touches`. Do NOT write the legacy `# Task <N> — <verb-phrase>` heading; the `Task <N> of <K>` orientation now lives only in the `>` line below.
+**The first line MUST be a Conventional-Commits-form commit subject H1** — `# <type>(<scope>): <imperative summary>` (e.g. `# feat(auth): add token refresh`, `# docs(adr): record ADR-0007`). This H1 is the contract consumed by the scripted commit (`commit-task.sh`), which extracts it verbatim as the commit subject (`T<N>: <subject>`). `<type>` is a Conventional-Commits type (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`, `style`); `<scope>` is the affected module / area; the summary is a short imperative phrase, no trailing period. Derive it from the task's verb-phrase + `## Touches`. Do NOT write the legacy `# Task <N> — <verb-phrase>` heading; the `Task <N> of <K>` orientation now lives only in the `>` line below.
 
 ```markdown
 # <type>(<scope>): <imperative summary>
@@ -346,7 +346,7 @@ As you write each task file, keep a `(N, verb-phrase, path)` triple in memory �
 
 **Cutting rules:**
 
-- `# <type>(<scope>): <imperative summary>` (the H1) — a Conventional-Commits-form commit subject; this is the line `dev-committer` extracts verbatim as the commit subject. It MUST be present and well-formed on every task file. No legacy `# Task <N> — …` heading.
+- `# <type>(<scope>): <imperative summary>` (the H1) — a Conventional-Commits-form commit subject; this is the line the scripted commit (`commit-task.sh`) extracts verbatim as the commit subject. It MUST be present and well-formed on every task file. No legacy `# Task <N> — …` heading.
 - `## Plan context` — synthesise from the plan's outcome intent + mental-model paragraph; never paraphrase the plan's headline sentence to the point of losing its substance.
 - `## Deliverable` — a clear restatement of the observable outcome. For `Mode: tdd` logic tasks, name every decision branch / failure mode explicitly (the 1:1 anchor for Step 4c and the dev-task-reviewer's CRITICAL-FAIL check). Do NOT copy a §6 task line verbatim — there is no longer a binding §6.
 - `## Mode` + `**Why:**` — single source of truth for how this task is executed. No separate "TDD discipline" bullet. The `**Why:**` line states why the task left (or stayed on) the `tdd` baseline: the carve-out that fired, the imperative/floor directive, or `tdd baseline — no carve-out matched`.
@@ -359,7 +359,7 @@ As you write each task file, keep a `(N, verb-phrase, path)` triple in memory �
 Before returning:
 
 - Every generated file exists and has the eight body sections in order: `## Plan context`, `## Deliverable`, `## Touches`, `## Mode`, `## Tests`, `## Depends on`, `## Docs`, `## Task gate`. (The first line is the commit-subject H1 `# <type>(<scope>): <summary>`; the `>` orientation lines follow it.)
-- Every task file's first line is a Conventional-Commits-form commit subject `# <type>(<scope>): <imperative summary>` — `<type>` from the allowed set, a non-empty `<scope>`, a short imperative summary, no trailing period. A malformed or missing H1 is a self-fail (dev-committer extracts this verbatim as the commit subject); repair before returning.
+- Every task file's first line is a Conventional-Commits-form commit subject `# <type>(<scope>): <imperative summary>` — `<type>` from the allowed set, a non-empty `<scope>`, a short imperative summary, no trailing period. A malformed or missing H1 is a self-fail (the scripted commit `commit-task.sh` extracts this verbatim as the commit subject); repair before returning.
 - `Mode` value is exactly one of `tdd`, `code-first-then-tests`, `e2e-first`, `tests-none`.
 - For `Mode: tests-none`, `## Tests` body is the single line `- none — …` and `## Task gate` body is the single line `- Tests: none`.
 - For every other `Mode`, `## Tests` has ≥1 entry and `## Task gate` has a `- Build: green` line plus a `- Tests: …` line referencing intents/identifiers that match the `## Tests` entries.

@@ -69,7 +69,6 @@ Several areas are **opt-in**, governed by `.superdev/config.yml` (created by `/s
 <!--SUPERDEV:AREA documentation-->
 - `superdev:dev-documenter` — sync feature-behaviour changes into `.superdev/documentation/` (per-task doc sync).
 <!--/SUPERDEV:AREA documentation-->
-- `superdev:dev-committer` — scripted per-task commit (orchestrate-only).
 - `superdev:dev-tdd` — TDD discipline reference.
 - `superdev:dev-debug` — trace-the-flow debugging discipline.
 - `superdev:dev-spec` — spec / PRD authoring (working-backwards, INVEST, no TBD).
@@ -121,7 +120,7 @@ Follow the chosen chain end-to-end.
 
 - **feature-from-scratch**: `dev-interview` → `dev-extraplan` → plan gate (`dev-plan-reviewer` PASS) → `dev-orchestrator`.
 - **bug-fix**: small → direct edit · larger → `dev-extraplan` → `dev-orchestrator`.
-- **implementation pipeline** (inside `dev-orchestrator`): `dev-adr-analyzer` → `dev-decomposer` → per task (`dev-coder` → `dev-runner` → `dev-task-reviewer` → `dev-improver` → `dev-documenter` → `dev-committer`) → `dev-final-reviewer` (own sub-pipeline: `dev-plan-auditor` → `dev-runner` full → `dev-smoke` → `mem-guardian` → synthesis → go/no-go). The `dev-adr-analyzer`, `dev-improver`, `dev-documenter`, and `mem-guardian` steps are gated by `.superdev/config.yml` — the orchestrator skips a step (with one terse line) when its switch is off.
+- **implementation pipeline** (inside `dev-orchestrator`): `dev-adr-analyzer` → `dev-decomposer` → per task (`dev-coder` → `dev-runner` → `dev-task-reviewer` → `dev-improver` → `dev-documenter` → scripted commit (`commit-task.sh`)) → `dev-final-reviewer` (own sub-pipeline: `dev-plan-auditor` → `dev-runner` full → `dev-smoke` → `mem-guardian` → synthesis → go/no-go). The `dev-adr-analyzer`, `dev-improver`, `dev-documenter`, and `mem-guardian` steps are gated by `.superdev/config.yml` — the orchestrator skips a step (with one terse line) when its switch is off.
 <!--SUPERDEV:AREA ui-->
 - **design → implementation**: `ui-extract` (or `ui-component-creator`) → `ui-adapt` → `ui-web-preview` → `ui-guardian` → `dev-orchestrator`.
 <!--/SUPERDEV:AREA ui-->
