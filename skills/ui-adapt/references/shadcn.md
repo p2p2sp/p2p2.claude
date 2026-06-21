@@ -1,10 +1,15 @@
 # shadcn/ui compatibility mode
 
+> **Layers on `tailwind.md`.** shadcn is Tailwind v4 underneath, so read
+> `references/tailwind.md` first — the `@theme` namespace map, the v4 CSS-first
+> model, and the DTCG → CSS-variable conversion all apply here. This file only
+> adds the shadcn-specific semantic-token layer on top.
+
 shadcn/ui is built on **Tailwind CSS** (utilities) + **Radix** (behavior). It is
 not an installed component library — you copy components into your project and
 they read their colors from a fixed set of **semantic CSS variables**. If the
 extracted tokens use shadcn's names and structure, the generated theme drops
-straight into a shadcn project and the prototypes can use shadcn components.
+straight into a shadcn project and the previews can use shadcn components.
 
 Use this mode when the user targets shadcn, mentions shadcn components, or wants
 the theme to populate a shadcn `globals.css`.
@@ -25,10 +30,13 @@ Color tokens: `background`, `foreground`, `card` / `card-foreground`,
 
 Plus a base radius token `--radius`, from which a `radius-sm…2xl` scale is derived.
 
-(Source: ui.shadcn.com/docs/theming. The component-pattern names in
-`component-patterns.md` map cleanly onto these: sidebar→`sidebar-*`,
-modal/popover→`popover-*` / `card-*`, primary button→`primary*`, hover/selected
-rows→`accent*`, focus ring→`ring`, inputs→`input`/`ring`.)
+(Source: ui.shadcn.com/docs/theming, verified against the current Tailwind v4 /
+OKLCH theming docs. The components in the L1 output — `components/inventory.md`
+and each `components/<tier>/<name>.md` spec — map cleanly onto these roles:
+sidebar→`sidebar-*`, modal/popover→`popover-*` / `card-*`, primary
+button→`primary*`, hover/selected rows→`accent*`, focus ring→`ring`,
+inputs→`input`/`ring`. Read the spec's token list and bind each named token to
+the matching shadcn role.)
 
 ## How to author the tokens
 
@@ -65,7 +73,10 @@ color:
         dark: { colorSpace: srgb, components: [0.09,0.09,0.11], hex: "#17171c" }
 ```
 
-Start from `assets/tokens.shadcn.template.yaml`.
+Author these directly in the L1 `design-tokens.yaml` (primitives as the source of
+truth, shadcn semantic tokens as aliases per the two patterns above) — the
+shadcn token-authoring guidance lives in this reference; there is no separate
+template asset.
 
 ## Generate
 

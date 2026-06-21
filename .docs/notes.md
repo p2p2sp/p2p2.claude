@@ -1,0 +1,1 @@
+- ui-* skills should allow to create by ai based on prompt

@@ -72,8 +72,9 @@ and emits dark overrides inside `@layer base { .dark { --color-…: …; } }` fr
 
 ## Consuming the theme
 
-The generated `theme.css` / `globals.css` is the machine-readable output of the
-design system — the bridge from the tokens to any implementation. Building live
-HTML example pages from it (Play CDN single-file mockups, the app shell wired to
-the documented components) is the job of the separate **ui-mockup** skill,
-not this one.
+The generated `theme.css` (for the `tailwind` target) / `globals.css` (for
+`react-shadcn`) is the machine-readable output of the design system — the bridge
+from the agnostic L1 tokens to a Tailwind implementation. Building live HTML
+example pages from it (Play CDN single-file previews, the app shell wired to the
+documented components) is the job of the separate **ui-web-preview** skill, not
+this one.
