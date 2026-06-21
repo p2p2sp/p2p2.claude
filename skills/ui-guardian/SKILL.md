@@ -1,6 +1,6 @@
 ---
 name: ui-guardian
-description: Use when a design system exists on disk (default .docs/layout/design-system/) and the user intent touches UI implementation — building a component, editing a page, restyling, theming, or fixing a layout. Triggers - "build a component", "edit this page", "add a form", "restyle the header", "implement the UI", a path under .docs/layout/design-system/, a reference to design tokens, theme.css, globals.css, or a component spec, or any Edit/Write target with extension .tsx/.jsx/.vue/.svelte/.html/.css. Fires before any Edit/Write touching UI so the agent is bound to documented tokens, components, foundations rules, and the three-path gap policy. Distinct from ui-extract (which authors the system) and ui-mockup (which renders HTML previews).
+description: Use when a design system has been adapted to a target (a targets/<chosen>/ directory produced by ui-adapt) and the user intent touches UI implementation — building a component, editing a page, restyling, theming, or fixing a layout. Triggers - "build a component", "edit this page", "add a form", "restyle the header", "implement the UI", a path under .docs/layout/design-system/, a reference to design tokens, a target.md, a theme artifact, or a component spec, or any Edit/Write target whose extension matches the active target's idiom. Fires before any Edit/Write touching UI so the agent is bound to documented tokens, components, foundations rules, and the three-path gap policy. Distinct from ui-extract (which authors the agnostic system), ui-adapt (which adapts it to a target), and ui-web-preview (which renders HTML previews).
 ---
 
 # Design System Guardian
@@ -34,11 +34,12 @@ Do NOT trigger for pure-logic frontend — hooks, reducers, validators, tests. N
 | Tokens | `design-tokens.yaml` semantic tier | Names only; absent ⇒ primitives via `{THEMING_NOTE}`. |
 | Foundations | `foundations.md` → `## 6. Patterns & usage / consistency rules` | Body ⇒ `{PATTERNS_AND_CONSISTENCY_VERBATIM}`. |
 | Inventory | `components/inventory.md` | ⇒ `{INVENTORY}`. |
-| Flavor | `theme.css` / `globals.css` | `theme.css` ⇒ Tailwind v4; `globals.css` ⇒ shadcn; both ⇒ ask. |
+| Target | `targets/<chosen>/target.md` | The active-target manifest names the target + its theme-artifact filename ⇒ `{TARGET}`; absent ⇒ system not adapted, send to ui-adapt; many ⇒ ask which is active. No per-stack knowledge baked here — the manifest is the only source. |
+| Mapping | `targets/<chosen>/components.md` | The per-target component realization (markup/import) ⇒ `{COMPONENT_MAPPING}`. |
 
 ## The Process
 
-Resolve root → read tokens, `foundations.md` §6, inventory → detect flavor → fill Brief → emit → exit. Out of scope: extraction, mockups, token proposal.
+Resolve root → read tokens, `foundations.md` §6, inventory → resolve the active target from `targets/<chosen>/target.md` (+ its `components.md`) → fill Brief → emit → exit. Out of scope: extraction, target adaptation, previews, token proposal.
 
 ## The Brief Template
 
@@ -46,16 +47,16 @@ Resolve root → read tokens, `foundations.md` §6, inventory → detect flavor 
 # Design System Discipline Brief
 
 Source: {PATH}
-Flavor: {FLAVOR}
+Active target: {TARGET}
 
 ## Semantic tokens
 {TOKEN_NAMES}
 
-## Utility class hints
-{UTILITY_CLASS_HINTS}
-
 ## Component inventory
 {INVENTORY}
+
+## Target component mapping
+{COMPONENT_MAPPING}
 
 ## Foundations — patterns & consistency rules (verbatim)
 {PATTERNS_AND_CONSISTENCY_VERBATIM}
@@ -110,5 +111,6 @@ Can't check every box? You skipped the discipline. Start over.
 
 ## Related skills
 
-- **ui-extract** — authors the system; for Extend or creation.
-- **ui-mockup** — renders the system as HTML.
+- **ui-extract** — authors the agnostic L1 system; for Extend or creation.
+- **ui-adapt** — adapts the agnostic system to the active target; produces the `targets/<chosen>/` contract this skill reads. Run it first if no `target.md` exists.
+- **ui-web-preview** — renders the active target as HTML.
