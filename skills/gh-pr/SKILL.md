@@ -60,6 +60,8 @@ Then check for an already-open PR from this branch:
 
 - `Bash(gh pr list --head <current> --base <base> --state open --json url --jq '.[0].url // ""')` — non-empty → STOP with `A PR from \`<current>\` to \`<base>\` already exists: <URL>. Use \`gh pr edit\` to modify it.` (Edge D)
 
+**Branch naming.** Feature branches follow `feature/{slug}` / `fix/{slug}` / `refactor/{slug}`; the primary branch is `main`. This is the convention the routing rules above and the Step 3 branch-regex parse expect — it is a host-project default the skill never assumes blindly (see Safety rules).
+
 ## Step 3 — Resolve issue number (4-priority cascade)
 
 Try each source in order. The first one that yields a number wins; later sources are not consulted.
