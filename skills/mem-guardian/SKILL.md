@@ -5,7 +5,7 @@ model: opus
 effort: xhigh
 context: fork
 user-invocable: false
-allowed-tools: Read, Glob, Grep
+allowed-tools: Read, Glob, Grep, Bash(python:*)
 ---
 
 # Doc↔code audit gate (fork)
@@ -50,41 +50,52 @@ naming the malformed-input fault, then stop.
 
 # How to work
 
-You have **no Bash tool** — read the diff statically with `Glob`, `Grep` (with `-A`/`-B`/`-C` context), and
-`Read`. The `Diff range:` is `<base_sha>..HEAD`; treat the union of every committed task as the body under
-audit.
+The doc↔diff intersection FACTS — which documented feature's `source:` glob intersects the cumulative diff and
+whether that doc itself moved — are computed deterministically by a bundled helper, `scripts/audit-docs.py`,
+which you invoke through the single narrowly-scoped `Bash(python:*)` entry in `allowed-tools`. That script is
+the **only** thing you run; it is read-only (stdlib only, no git, no writes) and emits a facts table. You keep
+the **policy** — the Step 4 decision table and the Step 5 verdict — in this prose; the script never decides
+PASS/FAIL. Beyond the script, use `Glob`, `Grep` (with `-A`/`-B`/`-C` context), and `Read` only to spot-check a
+fact (e.g. confirm a flagged doc / source path). The `Diff range:` is `<base_sha>..HEAD`; treat the union of
+every committed task as the body under audit.
 
-## Step 1 — Build the documentation map
+## Step 1 — Derive the slug
 
-`Read` `.superdev/documentation/index.md`. It is the feature registry: one row per feature mapping
-`feature → <domain>/<feature>.md → source: glob`. If the index is absent or the `documentation/` subtree does
-not exist, there is no documentation layer to guard — reply `STATUS: PASS` with a one-line note that the
-documentation layer is not yet bootstrapped (a repo that has never run `mem-doc bootstrap` has no docs to fall
-out of sync; this is a gap, not a FAIL). Stop.
+`<slug>` is the `Plan:` filename's basename without `.md` (`…/crystalline-dazzling-eich.md` → `crystalline-dazzling-eich`).
+The script reads the per-task `## Touches` globs from `.temp/.workflows/<slug>/tasks/*.md`, so the slug must be
+correct.
 
-Otherwise `Glob '.superdev/documentation/**/*.md'` and `Read` each feature doc. For each, extract its `feature:`
-name, its `source:` glob(s), and the set of `[concept-slug]` bullets. Record:
+## Step 2 — Run the fact computer
 
-- Docs **with** a `source:` glob — these are auditable.
-- Docs **without** a `source:` glob — record each as a **gap** (a doc that cannot be guarded), never a FAIL.
+Invoke the bundled helper with the slug:
 
-## Step 2 — Determine which files the cumulative diff touched
+```
+python "${CLAUDE_PLUGIN_ROOT}/skills/mem-guardian/scripts/audit-docs.py" <slug>
+```
 
-Establish the set of production files changed across `<base_sha>..HEAD`. With no Bash tool, derive it from the
-plan and the task files: `Glob '.temp/.workflows/<slug>/tasks/*.md'`, `Read` each, and union every path/glob
-under each task's `## Touches`. Cross-check by `Read`ing the changed files the plan and task files name to
-confirm the production code actually moved. This union is your **changed-file set**.
+The script reads `.superdev/documentation/index.md` (the presence gate), every `.superdev/documentation/**/*.md`
+feature doc's `feature:` + `source:` frontmatter, and the union of every `## Touches` glob across
+`.temp/.workflows/<slug>/tasks/*.md` (its **changed-file set** — no git is invoked). It prints to stdout one of:
 
-## Step 3 — Intersect each `source:` glob with the changed-file set
+- `bootstrap: none` — `.superdev/documentation/index.md` is absent, so the documentation layer is not yet
+  bootstrapped. There is nothing to guard — reply `STATUS: PASS` with a one-line note that the documentation
+  layer is not yet bootstrapped (a repo that has never run `mem-doc bootstrap` has no docs to fall out of sync;
+  this is a gap, not a FAIL). Stop.
+- a facts table — a header line `feature | source-glob | source∩diff? | doc-in-diff?` followed by one row per
+  documented feature carrying a `source:` glob, then a final `gaps: …` line.
 
-For every auditable doc (those with a `source:` glob from Step 1):
+## Step 3 — Read the facts table
 
-- Decide whether its `source:` glob(s) intersect the changed-file set from Step 2. A glob like `skills/dev-*/**`
-  intersects when any changed path matches it. Match the glob semantics literally — a `source:` of `src/auth/**`
-  is touched only by changes under `src/auth/`.
-- If it intersects, the feature's **behaviour may have changed** and the doc MUST have been touched in the same
-  diff. Check whether the doc file itself (`.superdev/documentation/<domain>/<feature>.md`) is in the changed-file
-  set. A doc is "touched" when the doc file appears in the cumulative diff.
+Each table row has the shape `<feature> (<domain>/<feature>.md) | <source glob(s)> | source∩diff? <yes|no> | doc-in-diff? <yes|no>`:
+
+- `source∩diff? yes` means the doc's `source:` glob(s) intersect the changed-file set — the feature's
+  **behaviour may have changed**.
+- `doc-in-diff? yes` means the doc file itself is in the changed-file set — the doc moved in the same diff.
+
+The trailing `gaps: <comma-list | none>` line names every doc carrying **no** `source:` glob — each is a **gap**
+(a doc that cannot be guarded), never a FAIL. Docs are matched symmetrically (either a `source:` glob or a
+`## Touches` entry may itself be a glob), so trust the script's intersection — do not re-derive it by hand.
+Reach for `Read`/`Grep` only to spot-check a specific row before flagging it.
 
 ## Step 4 — Classify each feature
 
@@ -163,10 +174,13 @@ nothing at all when no `Report path:` was given).
   body to the file and return only the 3-line shape; inline markdown breaks the parser.
 - **Auditing slug quality / present-tense discipline / changelog rules.** Those are the doc-file contract that
   `mem-doc` enforces at authoring time. Your audit is narrow: did the `source:`-matched doc move with the code?
-- **Re-running or attempting to run tests / builds.** You have no Bash tool; build and test execution is
-  `dev-runner`'s separate job in the final gate. Your input is the static diff and the docs on disk.
-- **Reading the entire codebase.** Limit reads to `index.md`, the feature docs, the plan, the task files, and
-  the changed files the diff names.
+- **Re-running or attempting to run tests / builds, or running any Bash command other than the bundled
+  `scripts/audit-docs.py`.** Your single `Bash(python:*)` entry exists only to invoke that one read-only
+  fact computer; build and test execution is `dev-runner`'s separate job in the final gate. Never reach for
+  raw git, a build tool, or any other shell command — your input is the script's facts table and the docs on
+  disk.
+- **Reading the entire codebase.** Limit reads to the facts table from `scripts/audit-docs.py` and spot-check
+  `Read`/`Grep` of a flagged doc or source path; do not page through the whole tree.
 - **Restating the `why` of a decision or suggesting doc improvements not required by a source-match.** That is
   scope creep — your verdict is purely the source↔diff intersection.
 
