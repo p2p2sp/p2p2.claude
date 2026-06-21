@@ -1,8 +1,4 @@
-### 0. Instruction for orchestrator use
-<orchestrator>
-To implement this plan you MUST USE the `superdev:dev-orchestrate` skill. Invoke it first.
-</orchestrator>
-<!-- Do not edit the <orchestrator> block — insert it verbatim from the template. -->
+> First thing you MUST od is USE the `superdev:dev-orchestrate` skill to implement this plan.
 
 ## ExtraPlan: <one-line task name>
 
