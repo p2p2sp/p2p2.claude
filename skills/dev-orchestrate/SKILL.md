@@ -39,7 +39,7 @@ Roles in one line each:
 - **coder** — writes production code for ONE task; also handles unblock passes when `Feedback` starts with `BLOCKED:`.
 - **runner** — runs the task's build/test/lint command; emits `PASS` / `FAIL` / `ERROR` / `TIMEOUT` / `BLOCKED`.
 - **dev-task-review (Task mode)** — verifies the task Deliverable + tests + conventions against the working tree; emits `PASS` / `FAIL` / `BLOCKED`.
-- **improver** — promotes dev-task-review learnings into `.claude/rules/`; always `PASS` (no failure mode).
+- **improver** — propagates the committed task into both memory sinks: dev-task-review learnings into `.claude/rules/` and feature-behaviour changes into `.docs/documentation/` (the per-task doc-sync site, Option C); always `PASS` (no failure mode).
 - **committer** (fork skill) — commits the task; receives the **task file path** and itself derives the commit subject (the task file's `# ` H1) and the `T<N>:` prefix (the dispatcher synthesizes no subject); emits a tagged single line, parsed by `parse_commit_tag`. A tagged `sha` is **not** proof of a commit — the dispatcher verifies HEAD advanced (and the tree is clean) before trusting it, re-invoking the committer up to 3× on a phantom commit.
 - **dev-final-review (sub-orchestrator)** — one-shot terminal gate after the last task is committed; internally runs `dev-plan-audit` → `dev-run` (Scope: full) → `dev-smoke` → synthesis and returns a single go/no-go verdict on stdout (no file written).
 
@@ -119,7 +119,7 @@ Decomposer is idempotent: if `.temp/.workflows/<slug>/tasks/*.md` already exists
 
 Print one line: `Plan decomposed into <K> task file(s).`
 
-For every downstream `coder` / `dev-task-review` invocation in the per-task pipeline, the dispatcher passes a single `Task file: <task_files[N]>` line (not the plan path + a task number). Each pipeline-bound implementation skill (`coder` / `dev-task-review` Task mode / `improver`) — and the `runner` skill in the runner pass — additionally receives a `Report path:` line dictated by the dispatcher and writes its full markdown report to that path itself; the on-stdout response is the three-line minimal shape (`STATUS:` / `Report:` / `Summary:`). The `dev-task-review` Task-mode prompt additionally carries a `Task base: <task_base_sha>` line (the SHA the dispatcher already holds from the attempt-1 `task-base.sha` write) so the dev-task-review can skip re-reading `.temp/.workflows/<slug>/task-base.sha`; the file read stays its fallback when the line is absent — see the dev-task-review's Step 0. The `Feedback:` line carried by `coder` becomes an absolute path to the upstream agent's on-disk report (dev-task-review-report path for retries / unblock; runner-report path is not forwarded directly — the dev-task-review's report is the unblock entry point in the dev-task-review pass). The improver pass still gets `Plan: <plan-path>` because its work is project-wide, not task-scoped, and receives `Task-reviewer report: <path>` instead of an inline dev-task-review body. The commit step (committer skill) is unaffected. Inter-agent files live under the per-task audit directory `.temp/.workflows/<slug>/orchestration/task-<N>/<role>-<attempt>.md` — see the per-task pipeline below for the exact filename slots.
+For every downstream `coder` / `dev-task-review` invocation in the per-task pipeline, the dispatcher passes a single `Task file: <task_files[N]>` line (not the plan path + a task number). Each pipeline-bound implementation skill (`coder` / `dev-task-review` Task mode / `improver`) — and the `runner` skill in the runner pass — additionally receives a `Report path:` line dictated by the dispatcher and writes its full markdown report to that path itself; the on-stdout response is the three-line minimal shape (`STATUS:` / `Report:` / `Summary:`). The `dev-task-review` Task-mode prompt additionally carries a `Task base: <task_base_sha>` line (the SHA the dispatcher already holds from the attempt-1 `task-base.sha` write) so the dev-task-review can skip re-reading `.temp/.workflows/<slug>/task-base.sha`; the file read stays its fallback when the line is absent — see the dev-task-review's Step 0. The `Feedback:` line carried by `coder` becomes an absolute path to the upstream agent's on-disk report (dev-task-review-report path for retries / unblock; runner-report path is not forwarded directly — the dev-task-review's report is the unblock entry point in the dev-task-review pass). The improver pass still gets `Plan: <plan-path>` because its work is project-wide, not task-scoped, and receives `Task-reviewer report: <path>` instead of an inline dev-task-review body; it additionally carries `Task file: <task_files[N]>` + `Task base: <task_base_sha>` so its Option-C doc-sync step can read the task's `## Docs` targets and compute the task diff (`git diff <task_base_sha>`) without a re-derivation. The commit step (committer skill) is unaffected. Inter-agent files live under the per-task audit directory `.temp/.workflows/<slug>/orchestration/task-<N>/<role>-<attempt>.md` — see the per-task pipeline below for the exact filename slots.
 
 Decomposer's `## Notes` section is informational only — the orchestrator does not gate on it. Any material decision worth flagging will resurface in the final whole-plan dev-task-review against the cumulative diff, where the user can act on it with full evidence rather than on a pre-implementation hypothesis.
 
@@ -394,11 +394,17 @@ loop:
         continue
     last_pass_verdict["dev-task-review"] = "PASS"
 
-    # invoke improver (always; never blocks)
+    # invoke improver (always; never blocks). Propagates this task into BOTH memory sinks:
+    # convention learnings → `.claude/rules/` AND feature-behaviour changes → `.docs/documentation/`
+    # (Option C — the improver is the per-task doc-sync site; no separate loop step). It needs the
+    # task file (for the `## Docs` targets + `## Deliverable`) and the task baseline SHA (to compute
+    # the task diff for the doc-sync decision); both are values the dispatcher already holds.
     improver_report_path = f"{orch_dir}/improver-{attempt}.md"
     imp_prompt = (
         f"Plan: <plan-path>\n"
         f"Task-reviewer report: {reviewer_report_path}\n"
+        f"Task file: <task_files[N]>\n"
+        f"Task base: {task_base_sha}\n"
         f"Report path: {improver_report_path}"
     )
     imp_out = Skill(skill="superdev:dev-improve", args=imp_prompt)

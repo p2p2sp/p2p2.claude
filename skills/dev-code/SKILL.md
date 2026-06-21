@@ -55,6 +55,7 @@ The `Report path:` value is dictated by the dispatcher; the coder MUST write its
 - `## Mode` — one of `tdd`, `code-first-then-tests`, `e2e-first`, `tests-none`. Its literal value selects which `references/mode-<x>.md` work-order file you load in Step 2. Followed by `**Why:**` line citing the decomposer's reasoning (built-in matrix / rule file path / verbatim imperative quote / `low confidence`). Use the `Why:` line as a hint when picking patterns to mirror.
 - `## Tests` — list of test intents in the form `<Kind: unit|integration|e2e> — <intent> — suggested location: <dir-or-glob>; naming per <rule path or sibling pattern>`. The decomposer does NOT pre-name the tests; dispatch the precise filename and method name using project conventions.
 - `## Depends on` — task numbers + reasons; orientation only (the dispatcher has already committed those tasks by the time this agent runs).
+- `## Docs` — the `.docs/documentation/<domain>/<feature>.md` file(s) whose `source:` glob intersects this task's `## Touches`, or `- none`. Orientation only: these are the functional docs the improver will sync after the commit; the coder reads them to conform to documented behaviour and NEVER writes them (see Step 3/4). The read side of the Option-C per-task doc-sync flow.
 - `## Task gate` — what the runner will run. Either `- Build: green` + `- Tests: …` (runnable) or the single line `- Tests: none` (docs-only).
 
 ## Step 2 — Read `## Mode` and load its work order
@@ -78,6 +79,7 @@ Project-specific decisions (test framework, build tool, naming, module layout, l
 2. From the pre-injected `# Project rules / skills listing` block at the top of this skill, take the `.claude/rules/**/*.md` paths and `Read` files whose path or top heading matches the directories in `## Touches` or the topical words in `## Deliverable` / `## Tests`. Fallback: if that block is empty/absent, `Glob '.claude/rules/**/*.md'` first to recover the listing.
 3. From the same pre-injected block, take the `.claude/skills/**/SKILL.md` paths and `Read` any skill whose name matches the `## Mode` or whose description matches a topical word from the task (e.g. for `Mode: tdd` Read the `superdev:dev-tdd` skill; for a task about backend testing Read any `*-testing` skill). Fallback: if the block is empty/absent, `Glob '.claude/skills/**/SKILL.md'` first to recover the listing.
 4. `Glob` for an existing sibling test or production file in the same module. `Read` it and mirror its structure, naming, and imports.
+5. When the task file's `## Docs` lists one or more `.docs/documentation/` files (not `- none`), `Read` each and conform the code to the documented behaviour for the concept-slugs the change touches; if the documented behaviour conflicts with what `## Deliverable` requires, implement the Deliverable and flag the conflict in the report's `## Notes` (the improver syncs the doc after the commit — the coder never writes docs).
 
 When `Feedback:` is a non-empty path, `Read` it from your input. It contains the verbatim upstream agent's markdown report (dev-task-review or runner). Treat its `## Issues` / `## Blockers` / `## Failures` / `## Out-of-scope` entries as authoritative and address every concrete issue named before writing anything new. (Mode-dispatch: see input contract — `Mode: normal` prioritises `## Issues` / `## Failures`; `Mode: unblock` prioritises `## Blockers` / `## Out-of-scope`.)
 
@@ -97,8 +99,8 @@ Implement per the work order in the `references/mode-<x>.md` you loaded in Step 
 
 ### All modes
 
-- Honor every contract surface present in the project (CLAUDE.md, `.claude/rules/**`, sibling files) — same name, same parameters, same return type, same error shape — used verbatim where applicable.
-- Touch only files in `## Touches` (modulo unblock mode below).
+- Honor every contract surface present in the project (CLAUDE.md, `.claude/rules/**`, sibling files, the `## Docs` files from Step 3) — same name, same parameters, same return type, same error shape — used verbatim where applicable.
+- Touch only files in `## Touches` (modulo unblock mode below). Never write a `.docs/documentation/` file — `## Docs` is read-only orientation here; syncing those docs is the improver's job after the commit (the `mem-doc` contract).
 
 ## Step 4.5 — Unblock mode (only when `Mode: unblock`)
 
