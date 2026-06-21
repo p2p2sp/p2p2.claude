@@ -28,7 +28,7 @@ Trzy rzeczy ustawiają każdą integrację:
    Artefakty **muszą być opcjonalne i degradować się łagodnie** (lokalny plik = fallback). To dokładnie
    filozofia „fail-open" hooków w tym repo.
 2. **Publikacja jest main-session / interaktywna** — nie pasuje do skilli forkowanych ani do 3-liniowego
-   kontraktu `STATUS / Report / Summary`. Logika publikacji musi siedzieć w sesji głównej (jak `gh-commit`
+   kontraktu `STATUS / Report / Summary`. Logika publikacji musi siedzieć w sesji głównej (jak `gh-commit-context`
    router czy `dev-plan-review`), nie w forkach.
 3. **Republish-in-place** rozwiązuje spam zgód w pętli orchestratora: publikujesz **jeden** artefakt
    na starcie, aktualizujesz go po każdym tasku.

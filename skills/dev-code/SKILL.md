@@ -184,7 +184,7 @@ The on-disk markdown report (the file written to `Report path:`) has this exact 
 - ...
 
 ## Out-of-scope fixes
-- `path/to/UnrelatedFile.ext` — scope: `<gh-commit-format-scope>` — <one-line rationale tying the edit to the original blocker>
+- `path/to/UnrelatedFile.ext` — scope: `<conventional-commits-scope>` — <one-line rationale tying the edit to the original blocker>
 - ...
 
 ## Rationale
@@ -194,7 +194,7 @@ The on-disk markdown report (the file written to `Report path:`) has this exact 
 One short line per piece of context the next pipeline step (runner / dev-task-review) should know. Omit if nothing.
 ```
 
-The `## Out-of-scope fixes` section sits between `## Files` and `## Rationale`. It MUST be omitted entirely when no out-of-scope file was touched (mirrors the empty-section idiom used by `dev-task-review`'s `## Learnings`). It MUST NOT appear when `Mode: normal`. Every entry MUST carry the explicit `scope:` token — the value is a gh-commit-format scope (nearest module name from `CLAUDE.md` or the existing sibling files, e.g. `<module>`, `<area>`, `<layer>`, `.claude/skills`). The dispatcher does not heuristically derive scope; an entry without `scope:` is malformed. When edits span multiple distinct scopes, each entry carries its own scope and the dispatcher creates one `oosfix` commit per scope.
+The `## Out-of-scope fixes` section sits between `## Files` and `## Rationale`. It MUST be omitted entirely when no out-of-scope file was touched (mirrors the empty-section idiom used by `dev-task-review`'s `## Learnings`). It MUST NOT appear when `Mode: normal`. Every entry MUST carry the explicit `scope:` token — the value is a Conventional Commits scope (nearest module name from `CLAUDE.md` or the existing sibling files, e.g. `<module>`, `<area>`, `<layer>`, `.claude/skills`). The dispatcher does not heuristically derive scope; an entry without `scope:` is malformed. When edits span multiple distinct scopes, each entry carries its own scope and the dispatcher creates one `oosfix` commit per scope.
 
 Total on-disk report body under 100 lines. The three-line stdout response is invariant — never deviate from it.
 
