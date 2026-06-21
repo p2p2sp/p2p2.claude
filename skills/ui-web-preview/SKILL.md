@@ -37,7 +37,7 @@ Carried from the upstream system. They shape every step.
 
 ## Inputs — the per-target contract
 
-Point the skill at a design-system root (default `.docs/layout/design-system/`)
+Point the skill at a design-system root (default `.superdev/layout/design-system/`)
 that has at least one adapted **web** target under `targets/<target>/`. The
 target manifest (`target.md`) is the entry point: it names the target and its
 theme-artifact filename. Read these before generating; if the target directory or
@@ -100,7 +100,7 @@ target (`pure-css` / `tailwind`) as an approximation.
 
 ## Outputs
 
-Write under the user-specified directory (default `.docs/layout/preview/`):
+Write under the user-specified directory (default `.superdev/layout/preview/`):
 
 ```
 index.html              # index of every generated page, styled with the design system
@@ -137,11 +137,11 @@ target's theme directly, and dropping every relative `assets/…` link:
 
 ```bash
 python scripts/build_site.py standalone \
-  --design-system .docs/layout/design-system \
+  --design-system .superdev/layout/design-system \
   --target <chosen> \
-  --out .docs/layout/preview \
+  --out .superdev/layout/preview \
   --manifest manifest.json \
-  --dest .docs/layout/preview/standalone.html
+  --dest .superdev/layout/preview/standalone.html
 # add --page "<manifest path or title>" to emit one page;
 # default is the combined showcase of every manifest page.
 ```
@@ -195,9 +195,9 @@ Read `references/page-anatomy.md`, then scaffold the site and shared assets:
 
 ```bash
 python scripts/build_site.py init \
-  --design-system .docs/layout/design-system \
+  --design-system .superdev/layout/design-system \
   --target <chosen> \
-  --out .docs/layout/preview
+  --out .superdev/layout/preview
 ```
 
 This creates the folders, writes `assets/preview.js` and `assets/preview.css`,
@@ -231,9 +231,9 @@ then build the whole site and the auto-generated `index.html` in one pass:
 
 ```bash
 python scripts/build_site.py build \
-  --design-system .docs/layout/design-system \
+  --design-system .superdev/layout/design-system \
   --target <chosen> \
-  --out .docs/layout/preview \
+  --out .superdev/layout/preview \
   --manifest manifest.json
 ```
 

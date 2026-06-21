@@ -1,6 +1,6 @@
 ---
 name: dev-adr-analyzer
-description: "ADR Analyzer — read-only judge of whether an approved plan carries an ADR-worthy architecture/infrastructure decision (the *why* behind a structural / contract / boundary choice — NOT functional/behavioural description, which belongs in `.docs/documentation/`). Invoked by the `superdev:dev-orchestrator` skill before `decomposer`; honors the project's ADR posture, drafts a lean, brief ADR + deferred-write directive on a real decision, otherwise returns NO-ADR. Never writes to disk. Pipeline-bound — invoked ONLY by the orchestrator skill; never call directly from the main session. Input/output contract: this skill's `# Input contract` / `# Output format`."
+description: "ADR Analyzer — read-only judge of whether an approved plan carries an ADR-worthy architecture/infrastructure decision (the *why* behind a structural / contract / boundary choice — NOT functional/behavioural description, which belongs in `.superdev/documentation/`). Invoked by the `superdev:dev-orchestrator` skill before `decomposer`; honors the project's ADR posture, drafts a lean, brief ADR + deferred-write directive on a real decision, otherwise returns NO-ADR. Never writes to disk. Pipeline-bound — invoked ONLY by the orchestrator skill; never call directly from the main session. Input/output contract: this skill's `# Input contract` / `# Output format`."
 model: opus
 effort: medium
 context: fork
@@ -30,7 +30,7 @@ __ADR_PLAN_ARGS__
 
 - Read the approved plan from the **## Approved plan (pre-injected)** block above (no `Read` needed).
 - **Ground the judgment in the actual code:** `Read` / `Grep` the files the plan names in its Files-to-change list (and any `## Touches`-style paths) so the architectural-significance call reflects the real codebase, not just the plan's prose. At this point (pre-decompose) the code is in its **pre-change** state — judge whether the *planned* change against the current code is architectural, not a realized diff.
-- Self-discover project context: `CLAUDE.md` (root cascade), `.claude/rules/*.md`, `.docs/ADR.md` (the ADR index) + `.docs/adr/*.md` (existing records).
+- Self-discover project context: `CLAUDE.md` (root cascade), `.claude/rules/*.md`, `.superdev/ADR.md` (the ADR index) + `.superdev/adr/*.md` (existing records).
 - Determine the project's **ADR posture** first (Step 0). An explicit opt-out short-circuits to `NO-ADR` — never override a project that has said it does not keep ADRs.
 - Judge whether the planned changes carry a genuine **architectural** decision (Step 1) — structure, contracts, boundaries, cross-cutting policy — and NOT routine feature development.
 - On a real architectural decision: resolve the next ADR number from the index (read-only) and draft a complete ADR in the lean format (Step 2).
@@ -67,12 +67,12 @@ From the working directory:
 
 - `Glob "CLAUDE.md"` + `Glob "**/CLAUDE.md"` — `Read` the root and any cascaded file whose directory matches a path the plan touches.
 - `Glob ".claude/rules/*.md"` — `Read` any rule file whose name or top heading mentions `adr`, `architecture`, or a path the plan touches.
-- `Read ".docs/ADR.md"` (if present); `Glob ".docs/adr/*.md"`.
+- `Read ".superdev/ADR.md"` (if present); `Glob ".superdev/adr/*.md"`.
 
 Classify the posture:
 
 - **Opt-out** — an explicit directive in `CLAUDE.md` / a rule that says the project does NOT keep ADRs (e.g. *"DO NOT USE ADR capture for this project"*, *"no ADR"*, *"do not write ADRs"*). → return `STATUS: NO-ADR` immediately with the directive quoted as the reason. Do not proceed to Step 1.
-- **Opt-in** — `.claude/rules/_adr-process.md` is present, or `.docs/adr/` already holds records. → proceed to Step 1 (ADR discipline is active).
+- **Opt-in** — `.claude/rules/_adr-process.md` is present, or `.superdev/adr/` already holds records. → proceed to Step 1 (ADR discipline is active).
 - **No signal** — neither opt-out nor opt-in evidence. → proceed to Step 1 (default on), but stay subordinate to any opt-out found.
 
 ## Step 1 — Judge architectural significance
@@ -86,15 +86,15 @@ Read the pre-injected plan, and read the files it touches (Files-to-change / `##
 - Component responsibility — what knows about what.
 - A cross-cutting policy (telemetry, observability, error handling, caching, concurrency).
 
-**Exclude — these are NOT architectural:** routine feature development (the plan simply implements agreed functionality), ordinary refactors, bug fixes, library / API / framework selection that does not change the structure or a contract, and **functional/behavioural description (belongs in `.docs/documentation/`, not an ADR — an ADR records the *why* behind a decision, never *what a feature does today*)**. When in doubt, lean toward `NO-ADR` — a noisy ADR log is worse than a missing one for a non-decision.
+**Exclude — these are NOT architectural:** routine feature development (the plan simply implements agreed functionality), ordinary refactors, bug fixes, library / API / framework selection that does not change the structure or a contract, and **functional/behavioural description (belongs in `.superdev/documentation/`, not an ADR — an ADR records the *why* behind a decision, never *what a feature does today*)**. When in doubt, lean toward `NO-ADR` — a noisy ADR log is worse than a missing one for a non-decision.
 
 If nothing clearly architectural is present → `STATUS: NO-ADR` with a one-line reason. Several distinct architectural decisions in one plan → draft one ADR per decision (Step 2), numbered sequentially.
 
-**Brevity directive.** An ADR captures the decision tersely — a brief *what* + *why* (the forces and the chosen option), never lengthy functional prose. Describing how the feature behaves day-to-day is the job of `.docs/documentation/`; keep the ADR narrow and short, and link out rather than restate.
+**Brevity directive.** An ADR captures the decision tersely — a brief *what* + *why* (the forces and the chosen option), never lengthy functional prose. Describing how the feature behaves day-to-day is the job of `.superdev/documentation/`; keep the ADR narrow and short, and link out rather than restate.
 
 ## Step 2 — Resolve the number and draft the ADR
 
-- **Number (read-only).** From `.docs/ADR.md`, the next number = highest existing + 1, 4-digit zero-padded (`ADR-0001`, `ADR-0002`, …). If the index / `.docs/adr/` is absent, the number is `0001` and the deferred-write directive must note that implementation creates `.docs/adr/` and seeds `.docs/ADR.md`. Create nothing now.
+- **Number (read-only).** From `.superdev/ADR.md`, the next number = highest existing + 1, 4-digit zero-padded (`ADR-0001`, `ADR-0002`, …). If the index / `.superdev/adr/` is absent, the number is `0001` and the deferred-write directive must note that implementation creates `.superdev/adr/` and seeds `.superdev/ADR.md`. Create nothing now.
 - **Filename.** `ADR-NNNN-short-kebab-case-title.md` — the title names the *decision*, not the problem (good: `event-sourcing-for-orders`; bad: `how-to-store-orders`).
 - **Date.** Stamp the current date (`YYYY-MM-DD`) you know from this session's context into the `# ([date]) [Title]` line. If you cannot determine it, leave the literal `YYYY-MM-DD` and have the deferred-write directive instruct the coder to stamp the write date.
 - **Body.** Draft the ADR body in the lean format defined in [references/shapes.md](references/shapes.md) — fill every section, no placeholders.

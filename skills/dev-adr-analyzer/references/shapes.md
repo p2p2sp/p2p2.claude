@@ -59,10 +59,10 @@ STATUS: ADR
 
 ## Deferred-write directive
 During plan implementation, write `ADR-NNNN` as a `tests-none` task with these steps, verbatim:
-- create `.docs/adr/` and seed `.docs/ADR.md` if missing (header `# Architecture Decision Records` + table `| ADR | Title | Date |`);
-- save the ADR body above to `.docs/adr/ADR-NNNN-<slug>.md`;
-- add one index row to `.docs/ADR.md`, sorted by number ascending: `| [ADR-NNNN](adr/ADR-NNNN-<slug>.md) | <title> | <YYYY-MM-DD> |`.
-- `## Touches` for that task: `.docs/adr/ADR-NNNN-<slug>.md` (docs) + `.docs/ADR.md` (docs).
+- create `.superdev/adr/` and seed `.superdev/ADR.md` if missing (header `# Architecture Decision Records` + table `| ADR | Title | Date |`);
+- save the ADR body above to `.superdev/adr/ADR-NNNN-<slug>.md`;
+- add one index row to `.superdev/ADR.md`, sorted by number ascending: `| [ADR-NNNN](adr/ADR-NNNN-<slug>.md) | <title> | <YYYY-MM-DD> |`.
+- `## Touches` for that task: `.superdev/adr/ADR-NNNN-<slug>.md` (docs) + `.superdev/ADR.md` (docs).
 ```
 
 For multiple decisions, emit one `## ADR-NNNN — <title>` block (with its own fenced body) plus one matching `## Deferred-write directive` per decision.

@@ -56,7 +56,7 @@ are consistent.
 
 ## Outputs
 
-Write everything under `.docs/layout/design-system/` (default; the user may override):
+Write everything under `.superdev/layout/design-system/` (default; the user may override):
 
 | File | What it is |
 |------|------------|
@@ -103,7 +103,7 @@ full foundations coverage checklist so no category is missed.
 Write `design-tokens.yaml`, then validate and fix every error:
 
 ```bash
-python scripts/validate_tokens.py .docs/layout/design-system/design-tokens.yaml
+python scripts/validate_tokens.py .superdev/layout/design-system/design-tokens.yaml
 ```
 
 ### Phase 2 — Write the foundations document

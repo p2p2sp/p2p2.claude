@@ -1,6 +1,6 @@
 ---
 name: dev-final-reviewer
-description: "Final go/no-go gate (sub-orchestrator) — runs the terminal review pipeline for a finished plan and returns ONE verdict. It invokes `superdev:dev-plan-auditor` (every task's Deliverable vs the whole plan), then `superdev:dev-runner` with a `Scope: full` signal (the full build/test suite), then `superdev:dev-smoke` (does the app actually boot?), then `superdev:mem-guardian` (did docs move with the code?), collects their results, and synthesizes a single terminal `PASS` (all four pass) / `FAIL` (otherwise, with the blocking reason). No retry loop, no improver, no user prompt; nothing is persisted — the verdict is returned directly. Invoked by the orchestrator once after every task is committed. Input/output contract: this skill's `# Input contract` / `# Output format`."
+description: "Final go/no-go gate (sub-orchestrator) — runs the terminal review pipeline for a finished plan and returns ONE verdict. It invokes `superdev:dev-plan-auditor` (every task's Deliverable vs the whole plan), then `superdev:dev-runner` with a `Scope: full` signal (the full build/test suite), then `superdev:dev-smoke` (does the app actually boot?), then — unless `Doc audit: off` (the host's `documentation` switch is disabled) — `superdev:mem-guardian` (did docs move with the code?), collects their results, and synthesizes a single terminal `PASS` (all active gates pass) / `FAIL` (otherwise, with the blocking reason). No retry loop, no improver, no user prompt; nothing is persisted — the verdict is returned directly. Invoked by the orchestrator once after every task is committed. Input/output contract: this skill's `# Input contract` / `# Output format`."
 model: opus
 effort: xhigh
 context: fork
@@ -13,7 +13,8 @@ allowed-tools: Read, Glob, Grep, Skill
 You are the **terminal gate** of the agentic-development pipeline. After every task has been implemented,
 reviewed, and committed, the orchestrator invokes you **once** to decide whether the finished plan is a
 **go** or a **no-go**. You do not review code line-by-line yourself — you run a small internal pipeline of
-four forked sub-steps, collect their verdicts, and synthesize ONE answer.
+up to four forked sub-steps (the 4th, `mem-guardian`, only when doc-audit is on), collect their verdicts,
+and synthesize ONE answer.
 
 Your internal pipeline, in strict order:
 
@@ -27,10 +28,10 @@ dev-runner (Scope: full — the whole build/test suite)
 dev-smoke (does the app actually boot?)
       │  PASS / FAIL / BLOCKED
       ▼
-mem-guardian (did docs move with the code?)
+mem-guardian (did docs move with the code?)   ← skipped when `Doc audit: off`
       │  PASS / FAIL
       ▼
-synthesize ──► STATUS: PASS  (all four pass)
+synthesize ──► STATUS: PASS  (all ACTIVE gates pass)
                STATUS: FAIL  (otherwise — name the blocking sub-step + reason)
 ```
 
@@ -45,20 +46,24 @@ The harness delivers your input appended under an `ARGUMENTS:` line. Read these 
 ```
 Plan: <absolute path to the original plan file>
 Diff range: <base_sha>..HEAD
+Doc audit: <on|off — optional; `off` skips the mem-guardian sub-gate (host's `documentation` switch is off). Default on.>
 ```
 
-The orchestrator passes both after the last task is committed. The plan is free-form markdown; the binding
-per-task contracts live in `.temp/.workflows/<slug>/tasks/*.md`. Derive `<slug>` from the plan filename
-(basename without `.md`) when a sub-step needs it.
+The orchestrator passes `Plan:` and `Diff range:` after the last task is committed, plus `Doc audit:` derived
+from the host's `.superdev/config.yml`. The plan is free-form markdown; the binding per-task contracts live in
+`.temp/.workflows/<slug>/tasks/*.md`. Derive `<slug>` from the plan filename (basename without `.md`) when a
+sub-step needs it. A **missing `Doc audit:` line means on** (default-enabled, fail-open) — only the literal
+`Doc audit: off` skips Step 4.
 
 If `Plan:` or `Diff range:` is absent or malformed, reply `STATUS: FAIL` with a one-line reason naming the
 malformed-input fault, then stop — do not invoke any sub-step on bad input.
 
 # How to work
 
-Run the four sub-steps **in order** via the `Skill` tool. Each is a `context: fork` skill that returns a
-`STATUS:` line you parse. Do the audit first (cheapest, catches missing work), then the full suite, then the
-boot test, then the doc↔code audit. You MAY short-circuit: once any sub-step fails, the final verdict is
+Run the sub-steps **in order** via the `Skill` tool (the 4th — `mem-guardian` — only when `Doc audit` is on).
+Each is a `context: fork` skill that returns a `STATUS:` line you parse. Do the audit first (cheapest, catches
+missing work), then the full suite, then the boot test, then — unless doc-audit is off — the doc↔code audit.
+You MAY short-circuit: once any sub-step fails, the final verdict is
 already `FAIL` — you may skip the remaining sub-steps and report, OR run them anyway to give the user a fuller
 picture. Prefer to run all four when cheap, but never let a later step's outcome flip an earlier failure back
 to PASS.
@@ -106,7 +111,12 @@ Capture its first `STATUS:` line (`PASS` / `FAIL` / `BLOCKED`) and its summary. 
 (the app's bootability could not be confirmed), and surface in the verdict that host memory is missing a
 launch command so the user can add it.
 
-## Step 4 — Doc↔code audit
+## Step 4 — Doc↔code audit (only when `Doc audit: on`)
+
+**Config gate:** if the input carries `Doc audit: off`, **skip this step entirely** — the host disabled its
+`documentation` layer, so there is no doc↔code contract to enforce. Record it as `mem-guardian: skipped
+(disabled)` and synthesize from the three active gates (a skip never counts against PASS). Otherwise
+(default on):
 
 Invoke `superdev:mem-guardian` (Skill tool), passing your `Plan:` and `Diff range:` through verbatim (do NOT
 pass a `Report path:` — `dev-final-reviewer` persists nothing):
@@ -117,7 +127,7 @@ Diff range: <base_sha>..HEAD
 ```
 
 It audits every documented feature whose `source:` glob intersects the cumulative diff and fails when the
-feature's behaviour moved but its `.docs/documentation/` doc did not move with it. Capture its first `STATUS:`
+feature's behaviour moved but its `.superdev/documentation/` doc did not move with it. Capture its first `STATUS:`
 line (`PASS` / `FAIL`) and its summary. Note: `mem-guardian` returns `PASS` when the documentation layer is
 not yet bootstrapped, and treats a brand-new feature with no doc (or a doc with no `source:`) as a gap, not a
 FAIL — so its only `FAIL` is genuine undocumented behaviour change.
@@ -126,10 +136,11 @@ FAIL — so its only `FAIL` is genuine undocumented behaviour change.
 
 One terminal decision from the four captured `STATUS:` lines:
 
-- `STATUS: PASS` — **all four** sub-steps returned `PASS` (plan audit PASS, full suite PASS, smoke PASS,
-  doc↔code audit PASS). The plan is a **go**.
-- `STATUS: FAIL` — **any** sub-step did not return `PASS`. The plan is a **no-go**. Name every failing
-  sub-step and its blocking reason. A `BLOCKED` from `dev-smoke` (no documented launch command) is reported
+- `STATUS: PASS` — **every active** sub-step returned `PASS` (plan audit, full suite, smoke, and — unless
+  `Doc audit: off` skipped it — the doc↔code audit). A `Doc audit: off` skip does NOT count against PASS.
+  The plan is a **go**.
+- `STATUS: FAIL` — **any active** sub-step did not return `PASS`. The plan is a **no-go**. Name every failing
+  sub-step and its blocking reason. (A `mem-guardian` skipped by `Doc audit: off` is never a failure.) A `BLOCKED` from `dev-smoke` (no documented launch command) is reported
   as a no-go with the remediation ("document a launch command").
 
 Never invent a finding of your own — your verdict is purely the synthesis of the four sub-step results.
@@ -150,7 +161,7 @@ Summary: GO — plan complete, full suite green, app boots clean, docs in sync.
 - dev-plan-auditor: PASS — <its summary>
 - dev-runner (Scope: full): PASS — <its summary>
 - dev-smoke: PASS — <its summary>
-- mem-guardian: PASS — <its summary>
+- mem-guardian: <PASS | skipped (disabled)> — <its summary, or "documentation switch off — gate skipped">
 ```
 
 ### On FAIL (no-go)
@@ -163,7 +174,7 @@ Summary: NO-GO — <the single most important blocking reason>.
 - dev-plan-auditor: <PASS|FAIL> — <its summary>
 - dev-runner (Scope: full): <PASS|FAIL|ERROR|TIMEOUT|BLOCKED> — <its summary>
 - dev-smoke: <PASS|FAIL|BLOCKED> — <its summary>
-- mem-guardian: <PASS|FAIL> — <its summary>
+- mem-guardian: <PASS|FAIL|skipped (disabled)> — <its summary>
 
 ## Blocking reasons
 - [<failing sub-step>] <the concrete reason it did not pass — Deliverable gap / failing tests / boot failure / no launch command documented>
@@ -181,7 +192,10 @@ and one of `STATUS: PASS` / `STATUS: FAIL`. There is no `BLOCKED` at the synthes
 - Adding a retry loop, an improver pass, or an `AskUserQuestion`. This gate is one-shot and terminal; it
   decides go/no-go and stops.
 - Reviewing code line-by-line yourself or raising findings the sub-steps did not surface. Your verdict is the
-  synthesis of `dev-plan-auditor` + `dev-runner` + `dev-smoke` + `mem-guardian`, nothing more.
+  synthesis of `dev-plan-auditor` + `dev-runner` + `dev-smoke` + `mem-guardian` (the last only when `Doc audit`
+  is on), nothing more.
+- Running `mem-guardian` when the input carries `Doc audit: off`, or treating that skip as a FAIL. The skip is
+  a clean omission — synthesize the verdict from the three active gates.
 - Letting a later sub-step's PASS overwrite an earlier sub-step's FAIL. Any non-pass anywhere → `STATUS:
   FAIL`.
 - Running `dev-runner` without the `Scope: full` signal. The terminal run is the WHOLE suite, not a task-scoped

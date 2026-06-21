@@ -1,6 +1,6 @@
 ---
 name: ui-adapt
-description: Use when a framework-agnostic design system already exists on disk (default .docs/layout/design-system/, produced by ui-extract or ui-component-creator) and the user wants to adapt it to ONE concrete UI target. Triggers: "adapt the design system to <target>", "generate the Tailwind theme", "make a shadcn globals.css from the tokens", "create an MUI theme from the design system", "turn this into a Flutter ThemeData", "wire the tokens into pure CSS / SSR", or a target name (pure-css / tailwind / react-shadcn / react-mui / flutter). Reads the L1 agnostic system (tokens.css + components/inventory.md + specs), the user picks ONE target, then writes targets/<target>/{target.md, <theme-artifact>, components.md} under the design-system root. Per-target theme artifact: theme.css | globals.css | _variables.scss | theme.ts | theme.dart | styles.css. Never invents components absent from the L1 inventory. Incremental and idempotent — re-adapt one component, not the whole system. Distinct from ui-extract (authors the agnostic system) and ui-web-preview (renders HTML previews of a chosen target).
+description: Use when a framework-agnostic design system already exists on disk (default .superdev/layout/design-system/, produced by ui-extract or ui-component-creator) and the user wants to adapt it to ONE concrete UI target. Triggers: "adapt the design system to <target>", "generate the Tailwind theme", "make a shadcn globals.css from the tokens", "create an MUI theme from the design system", "turn this into a Flutter ThemeData", "wire the tokens into pure CSS / SSR", or a target name (pure-css / tailwind / react-shadcn / react-mui / flutter). Reads the L1 agnostic system (tokens.css + components/inventory.md + specs), the user picks ONE target, then writes targets/<target>/{target.md, <theme-artifact>, components.md} under the design-system root. Per-target theme artifact: theme.css | globals.css | _variables.scss | theme.ts | theme.dart | styles.css. Never invents components absent from the L1 inventory. Incremental and idempotent — re-adapt one component, not the whole system. Distinct from ui-extract (authors the agnostic system) and ui-web-preview (renders HTML previews of a chosen target).
 ---
 
 # Per-target Design System Adapter
@@ -18,7 +18,7 @@ HTML/SSR, Tailwind, React component libraries, and Flutter.
 These shape every step.
 
 - **The L1 system is the source of truth.** Read tokens, foundations, the
-  component inventory, and each spec from `.docs/layout/design-system/`; never
+  component inventory, and each spec from `.superdev/layout/design-system/`; never
   re-derive values from a source image or a URL — that is L1's job. This skill
   *maps* the existing neutral system onto a target, it does not re-extract.
 - **Never invent a component absent from the L1 inventory.** `components.md`
@@ -41,7 +41,7 @@ These shape every step.
 
 ## Inputs — the L1 agnostic system
 
-Read these from `.docs/layout/design-system/` (default; the user may point at
+Read these from `.superdev/layout/design-system/` (default; the user may point at
 another root):
 
 | Input | What it gives this skill |
@@ -77,7 +77,7 @@ target slot (see Out-of-scope); no reference ships for it yet.
 
 ## Outputs — the per-target contract
 
-Write under `.docs/layout/design-system/targets/<target>/`:
+Write under `.superdev/layout/design-system/targets/<target>/`:
 
 | File | What it is |
 |------|------|

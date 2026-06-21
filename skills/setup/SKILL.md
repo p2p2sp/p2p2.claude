@@ -1,22 +1,21 @@
 ---
 name: setup
 description: Setup superdev environment.
-allowed-tools: ExitPlanMode, Read, Glob, Grep, Bash, Skill
-model: haiku
-context: fork
+allowed-tools: Read, Glob, Grep, Bash, Write, AskUserQuestion
 user-invocable: true
 disable-model-invocation: true
 ---
 
 ## Setup
 
-The block below runs at skill load (working dir = the project root) and is idempotent —
+Runs in the **main session** (NOT a fork) so it can ask the user about the opt-in switches via
+`AskUserQuestion`. The block below runs at skill load (working dir = the project root) and is idempotent —
 re-running `/setup` never overwrites anything that already exists. It:
 
-- creates `.temp/` and `.docs/` when they are missing,
-- flags a legacy `docs/` directory (if present) so you can recommend migrating it,
-- seeds `.gitignore` from the bundled template when the project has none.
-- seeds `settings.json` from the bundled template when the project has none.
+- creates `.superdev/` and `.temp/` when they are missing,
+- seeds `.gitignore` from the bundled template when the project has none,
+- seeds `.claude/settings.json` from the bundled template when the project has none,
+- reports whether `.superdev/config.yml` already exists (and its current switches if so).
 
 ```!
 src_gitignore="${CLAUDE_SKILL_DIR}/assets/gitignore.txt"
@@ -25,12 +24,8 @@ if [ -d ".temp" ]; then
   echo ".temp: already present"; else mkdir -p ".temp" && echo ".temp: created";
 fi
 
-if [ -d ".docs" ]; then
-  echo ".docs: already present"; else mkdir -p ".docs" && echo ".docs: created";
-fi
-
-if [ -d "docs" ]; then
-  echo "docs: legacy 'docs/' directory found — RECOMMEND the user move its contents into '.docs/'"
+if [ -d ".superdev" ]; then
+  echo ".superdev: already present"; else mkdir -p ".superdev" && echo ".superdev: created";
 fi
 
 if [ -f ".gitignore" ]; then
@@ -47,29 +42,65 @@ else
   echo "settings.json: already present";
 fi
 
+if [ -f ".superdev/config.yml" ]; then
+  echo "config.yml: already present (left untouched) — current switches:"
+  grep -E '^[[:space:]]*(adr|artifacts|rules_improver|documentation|ui)[[:space:]]*:' .superdev/config.yml
+else
+  echo "config.yml: MISSING — ask the user about the 5 switches, then write it (see 'Configure the opt-in switches')"
+fi
 ```
 
-## Output — your final message (returned to the main agent)
+## Configure the opt-in switches
 
-You run in a **fork** (`context: fork`): the main agent never sees the setup block above — your final
-message is the ONLY thing it receives, and it relays that message to the user. So you MUST emit a complete,
-self-contained recommendation here; never assume the caller can see the script output.
+Read the `config.yml:` line the block above printed.
 
-Read the result lines the setup block printed above, then emit exactly one message in this shape:
+**If `config.yml` already exists** — do **NOT** overwrite it; it is the user's choice record. Report its
+current switch values (printed above) and note that they can change them by editing `.superdev/config.yml` by
+hand (or deleting it and re-running `/setup`). Skip straight to **Output**.
+
+**If `config.yml` is MISSING** — ask the user which optional areas to enable, then write the file:
+
+1. Call `AskUserQuestion` **once** with two `multiSelect` questions. The user **checks the areas to ENABLE**;
+   anything left unchecked is disabled. Every area defaults to enabled — recommend keeping them on unless the
+   project clearly does not need them (e.g. leave `ui` off for a no-UI backend, `adr` off for a constantly
+   refactored repo).
+   - **Q1 — "Which superdev areas to enable? (unchecked = disabled)"** options:
+     - `adr` — ADR capture (records the architectural *why* of structural decisions).
+     - `artifacts` — Claude Code Artifacts (publish previews / plans as shareable claude.ai links).
+     - `rules_improver` — auto-promote per-task review learnings into `.claude/rules/`.
+   - **Q2 — "...and these? (unchecked = disabled)"** options:
+     - `documentation` — functional docs layer `.superdev/documentation/` (mem-doc / dev-documenter / mem-guardian).
+     - `ui` — UI/design layer (the `ui-*` skills).
+2. Map each area to `true` when the user selected it, else `false`.
+3. `Write` `.superdev/config.yml` with this exact shape, substituting each `<true|false>` with the mapped value:
+
+   ```
+   # .superdev/config.yml — superdev opt-in switches (managed by /superdev:setup)
+   # A missing file or key = enabled (fail-open). Flip a value to `false` to disable that area.
+   adr:            <true|false>   # ADR capture — orchestrator runs dev-adr-analyzer
+   artifacts:      <true|false>   # Claude Code Artifacts — cc-artifact publisher
+   rules_improver: <true|false>   # auto-promote review learnings → .claude/rules/ (dev-improver step)
+   documentation:  <true|false>   # functional docs layer → .superdev/documentation/ (dev-documenter + mem-doc/mem-guardian)
+   ui:             <true|false>   # UI/design layer — ui-* skills
+   ```
+
+## Output
+
+Emit exactly one message to the user in this shape:
 
 ```
 ## superdev setup complete
 
-<one line per setup result — e.g. ".temp/ created", ".docs/ already present", ".gitignore seeded from template", "settings.json already present">
+<one line per setup-block result — e.g. ".superdev/ created", ".temp/ already present", ".gitignore seeded from template", "settings.json already present">
+<config line — e.g. "config.yml written: adr=on, artifacts=on, rules_improver=on, documentation=off, ui=off" OR "config.yml already present (left untouched): <current values>">
 
 ### Recommended next steps
 - Run `/superdev:mem-init` — bootstrap the CLAUDE.md project-memory cascade (general → specific).
 - Run `/superdev:mem-rules` — author the `.claude/rules/` conventions layer.
-<only when the setup block flagged a legacy `docs/` directory:>
-- Migrate the contents of the legacy `docs/` directory into `.docs/`, then remove `docs/`.
 ```
 
 Rules:
-- Include the `docs/` migration bullet ONLY when the setup block printed the legacy-`docs/` warning; omit it otherwise.
 - Report the actual results from the block above — do not invent or assume them.
-- Do NOT invoke `mem-init` / `mem-rules` (or any other skill) yourself — they are interactive and the user decides when to run them. Your job is to recommend, not to chain.
+- **Never overwrite an existing `.superdev/config.yml`** — it records the user's choices.
+- Do NOT invoke `mem-init` / `mem-rules` (or any other skill) yourself — they are interactive and the user
+  decides when to run them. Your job is to bootstrap the environment + recommend, not to chain.

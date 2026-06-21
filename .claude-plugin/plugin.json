@@ -24,6 +24,7 @@
     "./skills/dev-plan-auditor/",
     "./skills/dev-smoke/",
     "./skills/dev-improver/",
+    "./skills/dev-documenter/",
     "./skills/dev-committer/",
     "./skills/dev-tdd/",
     "./skills/dev-debug/",

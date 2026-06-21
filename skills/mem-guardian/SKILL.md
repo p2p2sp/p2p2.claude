@@ -1,6 +1,6 @@
 ---
 name: mem-guardian
-description: "Read-only doc↔code audit gate — verifies that every feature whose `.docs/documentation/` `source:` glob intersects the cumulative diff has its functional doc updated in the SAME diff. The `dev-plan-auditor` analogue for the documentation layer and the verifier half of the `mem-doc`(writer)↔`mem-guardian`(read-only binder) split. Read-only; returns a 3-line `STATUS: PASS|FAIL`. FAILs go/no-go only on undocumented behaviour change (`source:` matched AND doc not touched); a feature with no doc yet, or a doc with no `source:`, is reported as a gap — never a hard FAIL on first introduction. Invoked by `dev-final-reviewer` as a terminal sub-gate; not a per-task gate. Never writes. Input/output contract: this skill's `# Input contract` / `# Output format`."
+description: "Read-only doc↔code audit gate — verifies that every feature whose `.superdev/documentation/` `source:` glob intersects the cumulative diff has its functional doc updated in the SAME diff. The `dev-plan-auditor` analogue for the documentation layer and the verifier half of the `mem-doc`(writer)↔`mem-guardian`(read-only binder) split. Read-only; returns a 3-line `STATUS: PASS|FAIL`. FAILs go/no-go only on undocumented behaviour change (`source:` matched AND doc not touched); a feature with no doc yet, or a doc with no `source:`, is reported as a gap — never a hard FAIL on first introduction. Invoked by `dev-final-reviewer` as a terminal sub-gate; not a per-task gate. Never writes. Input/output contract: this skill's `# Input contract` / `# Output format`."
 model: opus
 effort: xhigh
 context: fork
@@ -13,12 +13,12 @@ allowed-tools: Read, Glob, Grep
 Forked, read-only documentation auditor for the final go/no-go gate. You are the **verifier half** of the
 documentation split: `mem-doc` is the interactive **writer** + owner of the doc-file contract; you are the
 read-only **binder** that fails the gate when production behaviour moved and the matching
-`.docs/documentation/` doc did not move with it. You are to the documentation layer exactly what
+`.superdev/documentation/` doc did not move with it. You are to the documentation layer exactly what
 `dev-plan-auditor` is to plan completeness — a terminal audit, never a fixer, never a writer.
 
 The contract you key on is owned by `mem-doc` (`skills/mem-doc/SKILL.md`). Every doc lives at
-`.docs/documentation/<domain>/<feature>.md`, carries `feature:` + `source:` frontmatter, and is registered in
-`.docs/documentation/index.md`. The **`source:` glob is the load-bearing key**: it names the production code
+`.superdev/documentation/<domain>/<feature>.md`, carries `feature:` + `source:` frontmatter, and is registered in
+`.superdev/documentation/index.md`. The **`source:` glob is the load-bearing key**: it names the production code
 that implements the feature, and it is the single signal you use to decide that a code change touched a
 documented feature. Your entire audit is: for each documented feature, does its `source:` glob intersect the
 cumulative diff, and if so, was the doc itself touched in that same diff?
@@ -56,13 +56,13 @@ audit.
 
 ## Step 1 — Build the documentation map
 
-`Read` `.docs/documentation/index.md`. It is the feature registry: one row per feature mapping
+`Read` `.superdev/documentation/index.md`. It is the feature registry: one row per feature mapping
 `feature → <domain>/<feature>.md → source: glob`. If the index is absent or the `documentation/` subtree does
 not exist, there is no documentation layer to guard — reply `STATUS: PASS` with a one-line note that the
 documentation layer is not yet bootstrapped (a repo that has never run `mem-doc bootstrap` has no docs to fall
 out of sync; this is a gap, not a FAIL). Stop.
 
-Otherwise `Glob '.docs/documentation/**/*.md'` and `Read` each feature doc. For each, extract its `feature:`
+Otherwise `Glob '.superdev/documentation/**/*.md'` and `Read` each feature doc. For each, extract its `feature:`
 name, its `source:` glob(s), and the set of `[concept-slug]` bullets. Record:
 
 - Docs **with** a `source:` glob — these are auditable.
@@ -83,7 +83,7 @@ For every auditable doc (those with a `source:` glob from Step 1):
   intersects when any changed path matches it. Match the glob semantics literally — a `source:` of `src/auth/**`
   is touched only by changes under `src/auth/`.
 - If it intersects, the feature's **behaviour may have changed** and the doc MUST have been touched in the same
-  diff. Check whether the doc file itself (`.docs/documentation/<domain>/<feature>.md`) is in the changed-file
+  diff. Check whether the doc file itself (`.superdev/documentation/<domain>/<feature>.md`) is in the changed-file
   set. A doc is "touched" when the doc file appears in the cumulative diff.
 
 ## Step 4 — Classify each feature
@@ -173,5 +173,5 @@ nothing at all when no `Report path:` was given).
 # Constraint — technology-agnostic
 
 Operates in any language and any framework. The features, their `source:` globs, and the domain groupings are
-read from the project's own `.docs/documentation/` set (authored by `mem-doc`) — never assumed from an
+read from the project's own `.superdev/documentation/` set (authored by `mem-doc`) — never assumed from an
 ecosystem default. Never default to a stack from file extensions or directory names.

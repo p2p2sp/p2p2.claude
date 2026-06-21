@@ -1,6 +1,6 @@
 <EXTREMELY-IMPORTANT>
 
-You have the `superdev` plugin. Below is the routing manifest — it governs which skill to use across every domain (project memory, planning, the implementation pipeline, UI/design, GitHub). Before acting on any request, consult it and pick the right skill / chain. For trivial requests (greetings, thanks, typo / single-line edits) do nothing.
+You have the `superdev` plugin. Below is the routing manifest — it governs which skill to use. Before acting on any request, you MUST consult it and pick the right skill / chain. For trivial requests (greetings, thanks, typo / single-line edits) do nothing.
 
 If you think there is even a 1% chance a skill might apply to what you are doing, you ABSOLUTELY MUST invoke the skill.
 
@@ -33,22 +33,29 @@ Iron, universal, always-on. Not overridden by convenience or brevity; only an ex
 
 - Skills auto-engage through **CSO** — each skill's own frontmatter `description:` is the trigger (it matches your intent in any language; translate internally). This manifest **reinforces** selection and documents the chains; it does not replace CSO.
 - Always invoke a skill through the native **`Skill` tool** (this is how chaining works) — never by reading a `SKILL.md` by hand.
-- A skill may **explicitly enumerate the next steps** of its chain and **ask you to decide** at a branch point. Use plain prose for discovery conversations; reserve `AskUserQuestion` for discrete "A vs B" picks (see Planning discipline).
+
+## Active configuration (opt-in switches)
+
+Several areas are **opt-in**, governed by `.superdev/config.yml` (created by `/superdev:setup`; a **missing file means everything is enabled** — superdev runs in full). When an area is disabled there, a one-line **OFF** directive appears in place of that area's catalog entry / chain below — **obey it**: do not route to the named skills, and the orchestrator skips the matching pipeline step (one terse line, no explanation). Switchable areas: `ui`, `artifacts` (cc-artifact), `adr`, `rules_improver` (dev-improver), `documentation` (mem-doc / dev-documenter / mem-guardian).
 
 ## Skill catalog (by prefix)
 
 **mem- — project memory**
 - `superdev:mem-init` — bootstrap the CLAUDE.md cascade (general → specific) for a repo.
 - `superdev:mem-rules` — author the `.claude/rules/` layer (canonical rule-file contract).
-- `superdev:mem-doc` — author the `.docs/documentation/` layer: current functional truth, by concept-slug (writer + contract owner).
+<!--SUPERDEV:AREA documentation-->
+- `superdev:mem-doc` — author the `.superdev/documentation/` layer: current functional truth, by concept-slug (writer + contract owner).
 - `superdev:mem-guardian` — read-only doc↔code audit gate; fails go/no-go on undocumented behaviour change (NOT a token binder).
+<!--/SUPERDEV:AREA documentation-->
 
 **dev- — development pipeline**
 - `superdev:dev-interview` — conversational discovery before planning (scale-first). Prose only.
 - `superdev:dev-extraplan` — harden / refine the plan (extra-rigor) in plan mode.
 - `superdev:dev-plan-reviewer` — independent plan review; gates the plan (STATUS + severity).
 - `superdev:dev-orchestrator` — thin dispatcher that drives the implementation pipeline.
+<!--SUPERDEV:AREA adr-->
 - `superdev:dev-adr-analyzer` — ADR-worthiness judge on the approved plan (read-only).
+<!--/SUPERDEV:AREA adr-->
 - `superdev:dev-decomposer` — slice the plan into per-task files (title = commit subject).
 - `superdev:dev-coder` — write code for ONE task (mode-routed).
 - `superdev:dev-runner` — build/test/lint executor (task-scoped in the loop, full at the end).
@@ -56,18 +63,25 @@ Iron, universal, always-on. Not overridden by convenience or brevity; only an ex
 - `superdev:dev-final-reviewer` — terminal whole-plan gate (own sub-pipeline → go/no-go).
 - `superdev:dev-plan-auditor` — audit all tasks vs the whole plan (Deliverable coverage).
 - `superdev:dev-smoke` — runtime gate: does the app actually start? (boot + liveness).
-- `superdev:dev-improver` — promote review learnings into `.claude/rules/`.
+<!--SUPERDEV:AREA rules_improver-->
+- `superdev:dev-improver` — promote review learnings into `.claude/rules/` (per-task rules sync).
+<!--/SUPERDEV:AREA rules_improver-->
+<!--SUPERDEV:AREA documentation-->
+- `superdev:dev-documenter` — sync feature-behaviour changes into `.superdev/documentation/` (per-task doc sync).
+<!--/SUPERDEV:AREA documentation-->
 - `superdev:dev-committer` — scripted per-task commit (orchestrate-only).
 - `superdev:dev-tdd` — TDD discipline reference.
 - `superdev:dev-debug` — trace-the-flow debugging discipline.
 - `superdev:dev-spec` — spec / PRD authoring (working-backwards, INVEST, no TBD).
 
+<!--SUPERDEV:AREA ui-->
 **ui- — design / frontend**
 - `superdev:ui-extract` — reverse-engineer a framework-agnostic (L1) design system from screenshots / URL.
 - `superdev:ui-component-creator` — author a net-new component into the agnostic (L1) system.
 - `superdev:ui-adapt` — adapt the agnostic system to ONE concrete target (L2: pure-css / tailwind / react-shadcn / react-mui / flutter).
 - `superdev:ui-web-preview` — render zero-build static HTML previews of a chosen web target.
 - `superdev:ui-guardian` — bind UI work to documented tokens / components before edits.
+<!--/SUPERDEV:AREA ui-->
 
 **gh- — GitHub**
 - `superdev:gh-cli` — `gh` API layer reference (native → REST → GraphQL).
@@ -77,8 +91,10 @@ Iron, universal, always-on. Not overridden by convenience or brevity; only an ex
 - `superdev:gh-issue` — interactive, template-driven issue creation.
 - `superdev:gh-pr` — interactive, template-driven draft-PR creation.
 
+<!--SUPERDEV:AREA artifacts-->
 **cc- — Claude Code platform**
 - `superdev:cc-artifact` — opt-in, main-session publisher of ONE self-contained file (`.html`/`.htm`/`.md`) as a shareable Claude Code Artifact; validates single-file / no-external-ref / size, asks first, falls back to the local path (fail-open). Never forked, never in the 3-line pipeline.
+<!--/SUPERDEV:AREA artifacts-->
 
 ## Memory layer division
 
@@ -89,8 +105,8 @@ Project memory is split across five **non-overlapping** layers — pick by *what
 | 1 | General-rules manifest (this file) | Always-on behavioural rules, force-injected per session | hook (`session-start.sh`) |
 | 2 | `CLAUDE.md` cascade | Terse agent-facing orientation (general → specific) | `mem-init` |
 | 3 | `.claude/rules/*` | Path-scoped convention rules | `mem-rules` (`dev-improver` applies in-pipeline) |
-| 4 | `.docs/adr/`, `.docs/layout/` | Architectural decisions (*why*) + the design system | `dev-adr-analyzer`, `ui-extract` |
-| 5 | `.docs/documentation/*` | Current functional/behavioural truth (*what each feature does today*), by concept-slug | `mem-doc` (writer) + `mem-guardian` (audit) |
+| 4 | `.superdev/adr/`, `.superdev/layout/` | Architectural decisions (*why*) + the design system | `dev-adr-analyzer`, `ui-extract` |
+| 5 | `.superdev/documentation/*` | Current functional/behavioural truth (*what each feature does today*), by concept-slug | `mem-doc` (writer) + `dev-documenter` (in-pipeline sync) + `mem-guardian` (audit) |
 
 ## Decision flow
 
@@ -105,14 +121,20 @@ Follow the chosen chain end-to-end.
 
 - **feature-from-scratch**: `dev-interview` → `dev-extraplan` → plan gate (`dev-plan-reviewer` PASS) → `dev-orchestrator`.
 - **bug-fix**: small → direct edit · larger → `dev-extraplan` → `dev-orchestrator`.
-- **implementation pipeline** (inside `dev-orchestrator`): `dev-adr-analyzer` → `dev-decomposer` → per task (`dev-coder` → `dev-runner` → `dev-task-reviewer` → `dev-improver` → `dev-committer`) → `dev-final-reviewer` (own sub-pipeline: `dev-plan-auditor` → `dev-runner` full → `dev-smoke` → `mem-guardian` → synthesis → go/no-go).
+- **implementation pipeline** (inside `dev-orchestrator`): `dev-adr-analyzer` → `dev-decomposer` → per task (`dev-coder` → `dev-runner` → `dev-task-reviewer` → `dev-improver` → `dev-documenter` → `dev-committer`) → `dev-final-reviewer` (own sub-pipeline: `dev-plan-auditor` → `dev-runner` full → `dev-smoke` → `mem-guardian` → synthesis → go/no-go). The `dev-adr-analyzer`, `dev-improver`, `dev-documenter`, and `mem-guardian` steps are gated by `.superdev/config.yml` — the orchestrator skips a step (with one terse line) when its switch is off.
+<!--SUPERDEV:AREA ui-->
 - **design → implementation**: `ui-extract` (or `ui-component-creator`) → `ui-adapt` → `ui-web-preview` → `ui-guardian` → `dev-orchestrator`.
+<!--/SUPERDEV:AREA ui-->
 - **spec → issue**: `dev-spec` → `gh-issue`.
 - **ship → PR**: `dev-final-reviewer` go → `gh-pr`.
 - **GitHub ops**: `gh-cli` (layer reference) → `gh-cli-executor` (fork executor); `gh-commit-context` (entry) → `gh-committer` (fork).
+<!--SUPERDEV:AREA artifacts-->
 - **share as artifact**: `ui-web-preview → cc-artifact` (publish a generated web preview as a shareable link); `dev-plan-reviewer PASS → cc-artifact` (publish an approved plan as a shareable page). Opt-in, main-session, fail-open to the local path.
+<!--/SUPERDEV:AREA artifacts-->
 - **memory / learning**: `mem-init` / `mem-rules` / `mem-doc`; `dev-improver` promotes convention learnings into the `mem-rules` contract.
-- **documentation**: `mem-doc` authors `.docs/documentation/` (interactive writer + contract owner). In-pipeline, `dev-improver` syncs each task's `## Docs` target per the `mem-doc` contract (Option C — no extra loop step); `dev-final-reviewer` then runs `mem-guardian` as the terminal doc↔code audit gate (4th sub-gate: did docs move with the code?).
+<!--SUPERDEV:AREA documentation-->
+- **documentation**: `mem-doc` authors `.superdev/documentation/` (interactive writer + contract owner). In-pipeline, `dev-documenter` syncs each task's `## Docs` target per the `mem-doc` contract; `dev-final-reviewer` then runs `mem-guardian` as the terminal doc↔code audit gate (did docs move with the code?).
+<!--/SUPERDEV:AREA documentation-->
 
 ## Planning discipline
 

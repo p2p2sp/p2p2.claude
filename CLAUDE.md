@@ -22,7 +22,7 @@ DO NOT USE ADR capture for this project. The plugin is constantly refactored.
 superdev keeps every skill — memory, development, design, GitHub — in a single plugin so cross-domain
 composition is first-class. Skills compose through CSO (frontmatter `description:`) and the single injected
 manifest documents the chains, including across domains (`dev-spec → gh-issue`, `dev-final-reviewer → gh-pr`,
-`ui-guardian → dev-orchestrator`, `dev-improver → mem-rules`). It is **self-contained**: `plugin.json` declares
+`ui-guardian → dev-orchestrator`, `dev-improver → mem-rules`, `dev-documenter → mem-doc`). It is **self-contained**: `plugin.json` declares
 **no `dependencies`** — installing it gives the whole ecosystem.
 
 ## Repository layout
@@ -48,29 +48,32 @@ No `version` is declared in `plugin.json` — every commit on `main` is treated 
 Skills are grouped by a short prefix; the catalog of record is `plugin.json` `skills[]` and the injected
 manifest (`hooks/content/manifest.md`).
 
-- **(no prefix)** — `setup`: one-time, user-only environment bootstrap (`/setup`). Seeds `.temp/` + `.docs/`,
-  copies the bundled `.gitignore` / `.claude/settings.json` templates, flags a legacy `docs/`. It is
-  `disable-model-invocation` (Claude never auto-routes to it) so it is **deliberately absent from the manifest** —
-  see the Self-documentation invariant.
+- **(no prefix)** — `setup`: one-time, user-only environment bootstrap (`/setup`). Seeds `.temp/` + `.superdev/`,
+  copies the bundled `.gitignore` / `.claude/settings.json` templates, and **interactively asks the 5 opt-in
+  switches → writes `.superdev/config.yml`** (never overwriting an existing one). Runs in the **main session**
+  (not a fork) so it can prompt via `AskUserQuestion`. It is `disable-model-invocation` (Claude never auto-routes
+  to it) so it is **deliberately absent from the manifest** — see the Self-documentation invariant.
 - **`mem-`** — project memory (4 skills): `mem-init` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer),
-  `mem-doc` (the `.docs/documentation/` layer — current functional truth, by concept-slug; interactive writer +
+  `mem-doc` (the `.superdev/documentation/` layer — current functional truth, by concept-slug; interactive writer +
   doc-file contract owner), `mem-guardian` (read-only doc↔code audit gate — fails go/no-go on undocumented
   behaviour change; the `dev-plan-auditor` analogue for docs, NOT a token binder).
 
   **Memory layer division.** Project memory splits current truth across five non-overlapping layers, picked by
   *kind of truth*: (1) the general-rules manifest (this `hooks/content/manifest.md`, force-injected per session);
   (2) the `CLAUDE.md` cascade (terse agent orientation; `mem-init`); (3) `.claude/rules/*` (path-scoped
-  conventions; `mem-rules`, applied in-pipeline by `dev-improver`); (4) `.docs/adr/` + `.docs/layout/`
-  (architectural *why* + design system; `dev-adr-analyzer` / `ui-extract`); (5) `.docs/documentation/*` (current
-  functional/behavioural *what each feature does today*; `mem-doc` writer + `mem-guardian` audit). Behavioural
-  description belongs in layer 5 only — never restated in a rule, an ADR, or a spec. In the dev pipeline,
-  `dev-improver` syncs each task's `## Docs` target per the `mem-doc` contract (Option C), and `dev-final-reviewer`
-  runs `mem-guardian` as its 4th terminal sub-gate.
-- **`dev-`** — the agentic-development pipeline + diagnostics/specs (17 skills): planning
+  conventions; `mem-rules`, applied in-pipeline by `dev-improver`); (4) `.superdev/adr/` + `.superdev/layout/`
+  (architectural *why* + design system; `dev-adr-analyzer` / `ui-extract`); (5) `.superdev/documentation/*` (current
+  functional/behavioural *what each feature does today*; `mem-doc` writer + `dev-documenter` in-pipeline sync +
+  `mem-guardian` audit). Behavioural description belongs in layer 5 only — never restated in a rule, an ADR, or a
+  spec. In the dev pipeline, `dev-improver` promotes each task's review learnings into layer 3 (`.claude/rules/`)
+  and `dev-documenter` syncs each task's `## Docs` target into layer 5 per the `mem-doc` contract — two separate,
+  independently config-gated steps (`rules_improver` / `documentation`) — and `dev-final-reviewer` runs
+  `mem-guardian` as a terminal sub-gate (skipped when the `documentation` switch is off).
+- **`dev-`** — the agentic-development pipeline + diagnostics/specs (18 skills): planning
   (`dev-interview`, `dev-extraplan`, `dev-plan-reviewer`), the orchestrated implementation pipeline
   (`dev-orchestrator` → `dev-adr-analyzer` → `dev-decomposer` → per task `dev-coder` / `dev-runner` /
-  `dev-task-reviewer` / `dev-improver` / `dev-committer` → `dev-final-reviewer`), the final-gate sub-skills
-  (`dev-plan-auditor`, `dev-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`.
+  `dev-task-reviewer` / `dev-improver` / `dev-documenter` / `dev-committer` → `dev-final-reviewer`), the
+  final-gate sub-skills (`dev-plan-auditor`, `dev-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`.
 - **`ui-`** — design / frontend (5 skills): `ui-extract` (reverse-engineer the framework-agnostic L1
   system), `ui-component-creator` (author a net-new component into the L1 system), `ui-adapt` (adapt the
   L1 system to ONE concrete L2 target: pure-css / tailwind / react-shadcn / react-mui / flutter),
@@ -85,8 +88,18 @@ manifest (`hooks/content/manifest.md`).
 
 ## Architecture invariants
 
-- **One injected manifest.** A single `SessionStart` hook force-injects `hooks/content/manifest.md`
-  (the `using-superdev` dispatcher) once per session; `source == "resume"` is a no-op; fail-open.
+- **One injected manifest, config-aware.** A single `SessionStart` hook force-injects `hooks/content/manifest.md`
+  (the `using-superdev` dispatcher) once per session; `source == "resume"` is excluded by the matcher; fail-open.
+  The hook **renders** the manifest from `.superdev/config.yml`: each switchable area is wrapped in
+  `<!--SUPERDEV:AREA x-->` sentinels, and a disabled area's block is replaced by a one-line OFF directive (the
+  sentinel markers are always stripped). A missing/unreadable config = everything enabled.
+- **Opt-in switches (`.superdev/config.yml`).** Five booleans — `adr`, `artifacts`, `rules_improver`,
+  `documentation`, `ui` — all **default-enabled** (a missing file/key = `true`, fail-open; a repo that never ran
+  `/setup` behaves exactly as before). `setup` writes the file; the `SessionStart` hook gates main-session routing
+  (OFF directives in the manifest); `dev-orchestrator` reads the config and skips the `dev-adr-analyzer` /
+  `dev-improver` / `dev-documenter` steps (and passes `Doc audit: off` to `dev-final-reviewer`, which then skips
+  `mem-guardian`) — each skip is **one terse line, never a paragraph**. Config readers are only the hook,
+  `dev-orchestrator`, and `setup` (writer).
 - **One plan gate, mode-independent.** A `PreToolUse` hook on `ExitPlanMode` (`review-plan.sh`) denies
   until `dev-plan-reviewer` returns `STATUS: PASS` — but that gate exists only in plan mode. In accept-edits
   mode the **same precondition is enforced inside `dev-orchestrator`** (it will not start the pipeline without

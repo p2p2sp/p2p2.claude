@@ -15,7 +15,7 @@ Forked independent plan reviewer. Your input is the `Plan file:` field defined i
 # Behaviour
 
 - Read the plan: parse the `Plan file:` path from your input and `Read` it.
-- Self-discover project context: `CLAUDE.md` (root cascade), `.claude/rules/*.md`, `.docs/ADR.md` (the ADR index) + `.docs/adr/*.md` (the ADR records), files explicitly referenced in the plan.
+- Self-discover project context: `CLAUDE.md` (root cascade), `.claude/rules/*.md`, `.superdev/ADR.md` (the ADR index) + `.superdev/adr/*.md` (the ADR records), files explicitly referenced in the plan.
 - Verify every file the plan claims it will touch — exists, is created-by-plan, or missing.
 - Apply the universal review checklist (see `# Universal review checklist`).
 - Emit exactly one report in the format defined by `# Output format`.
@@ -63,7 +63,7 @@ and stop.
    - `Glob "CLAUDE.md"` — root CLAUDE.md (if present, `Read` it).
    - `Glob "**/CLAUDE.md"` — cascaded CLAUDE.md files; `Read` only those whose directory matches a path mentioned in the plan.
    - `Glob ".claude/rules/*.md"` — every rule file; `Read` all that match.
-   - `Read ".docs/ADR.md"` — the ADR index (if present); `GLOB ".docs/adr/*.md"` — every adr record file; `Read` all that match.
+   - `Read ".superdev/ADR.md"` — the ADR index (if present); `GLOB ".superdev/adr/*.md"` — every adr record file; `Read` all that match.
    - If none of the above exist, proceed — the project may not have a `CLAUDE.md` / rules cascade. Note this in `## Notes` only if a 🔴 / 🟡 finding hinges on a missing rule reference.
 
 3. **Extract the file list from the plan.** Look for sections named "Files to change", "Critical files", "Files", "Files affected", or any equivalent. For each referenced file path, verify existence via `Glob` / `Read`:

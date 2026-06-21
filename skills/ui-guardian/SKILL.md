@@ -1,6 +1,6 @@
 ---
 name: ui-guardian
-description: Use when a design system has been adapted to a target (a targets/<chosen>/ directory produced by ui-adapt) and the user intent touches UI implementation — building a component, editing a page, restyling, theming, or fixing a layout. Triggers - "build a component", "edit this page", "add a form", "restyle the header", "implement the UI", a path under .docs/layout/design-system/, a reference to design tokens, a target.md, a theme artifact, or a component spec, or any Edit/Write target whose extension matches the active target's idiom. Fires before any Edit/Write touching UI so the agent is bound to documented tokens, components, foundations rules, and the three-path gap policy. Distinct from ui-extract (which authors the agnostic system), ui-adapt (which adapts it to a target), and ui-web-preview (which renders HTML previews).
+description: Use when a design system has been adapted to a target (a targets/<chosen>/ directory produced by ui-adapt) and the user intent touches UI implementation — building a component, editing a page, restyling, theming, or fixing a layout. Triggers - "build a component", "edit this page", "add a form", "restyle the header", "implement the UI", a path under .superdev/layout/design-system/, a reference to design tokens, a target.md, a theme artifact, or a component spec, or any Edit/Write target whose extension matches the active target's idiom. Fires before any Edit/Write touching UI so the agent is bound to documented tokens, components, foundations rules, and the three-path gap policy. Distinct from ui-extract (which authors the agnostic system), ui-adapt (which adapts it to a target), and ui-web-preview (which renders HTML previews).
 ---
 
 # Design System Guardian
@@ -29,7 +29,7 @@ Do NOT trigger for pure-logic frontend — hooks, reducers, validators, tests. N
 
 | Source | Default | Behavior |
 |--------|---------|----------|
-| Root | `.docs/layout/design-system/` | Prompt overrides. |
+| Root | `.superdev/layout/design-system/` | Prompt overrides. |
 | Monorepo | — | Default absent ⇒ `Glob **/design-system/foundations.md`; nearest; many ⇒ ask. |
 | Tokens | `design-tokens.yaml` semantic tier | Names only; absent ⇒ primitives via `{THEMING_NOTE}`. |
 | Foundations | `foundations.md` → `## 6. Patterns & usage / consistency rules` | Body ⇒ `{PATTERNS_AND_CONSISTENCY_VERBATIM}`. |
