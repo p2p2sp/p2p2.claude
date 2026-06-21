@@ -61,8 +61,10 @@ Iron, universal, always-on. Not overridden by convenience or brevity; only an ex
 - `superdev:dev-spec` — spec / PRD authoring (working-backwards, INVEST, no TBD).
 
 **ui- — design / frontend**
-- `superdev:ui-extract` — reverse-engineer a design system from screenshots / URL.
-- `superdev:ui-mockup` — generate zero-build static HTML mockups from a design system.
+- `superdev:ui-extract` — reverse-engineer a framework-agnostic (L1) design system from screenshots / URL.
+- `superdev:ui-component-creator` — author a net-new component into the agnostic (L1) system.
+- `superdev:ui-adapt` — adapt the agnostic system to ONE concrete target (L2: pure-css / tailwind / react-shadcn / react-mui / flutter).
+- `superdev:ui-web-preview` — render zero-build static HTML previews of a chosen web target.
 - `superdev:ui-guardian` — bind UI work to documented tokens / components before edits.
 
 **gh- — GitHub**
@@ -88,7 +90,7 @@ Follow the chosen chain end-to-end.
 - **feature-from-scratch**: `dev-interview` → `dev-extraplan` → plan gate (`dev-plan-review` PASS) → `dev-orchestrate`.
 - **bug-fix**: small → direct edit · larger → `dev-extraplan` → `dev-orchestrate`.
 - **implementation pipeline** (inside `dev-orchestrate`): `dev-adr` → `dev-decompose` → per task (`dev-code` → `dev-run` → `dev-task-review` → `dev-improve` → `dev-committer`) → `dev-final-review` (own sub-pipeline: `dev-plan-audit` → `dev-run` full → `dev-smoke` → synthesis → go/no-go).
-- **design → implementation**: `ui-extract` → `ui-mockup` → `ui-guardian` → `dev-orchestrate`.
+- **design → implementation**: `ui-extract` (or `ui-component-creator`) → `ui-adapt` → `ui-web-preview` → `ui-guardian` → `dev-orchestrate`.
 - **spec → issue**: `dev-spec` → `gh-issue`.
 - **ship → PR**: `dev-final-review` go → `gh-pr`.
 - **GitHub ops**: `gh-cli` (layer reference) → `gh-cli-exec` (fork executor); `gh-commit` (router) → `gh-commit-exec` (fork).

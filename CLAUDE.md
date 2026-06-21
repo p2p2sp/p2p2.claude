@@ -58,7 +58,11 @@ manifest (`hooks/content/manifest.md`).
   (`dev-orchestrate` → `dev-adr` → `dev-decompose` → per task `dev-code` / `dev-run` /
   `dev-task-review` / `dev-improve` / `dev-committer` → `dev-final-review`), the final-gate sub-skills
   (`dev-plan-audit`, `dev-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`.
-- **`ui-`** — design / frontend: `ui-extract`, `ui-mockup`, `ui-guardian`.
+- **`ui-`** — design / frontend (5 skills): `ui-extract` (reverse-engineer the framework-agnostic L1
+  system), `ui-component-creator` (author a net-new component into the L1 system), `ui-adapt` (adapt the
+  L1 system to ONE concrete L2 target: pure-css / tailwind / react-shadcn / react-mui / flutter),
+  `ui-web-preview` (render zero-build static HTML previews of a chosen web target), `ui-guardian` (bind UI
+  work to documented tokens / components before edits).
 - **`gh-`** — GitHub: `gh-cli` (+ `gh-cli-exec`), `gh-commit` (router) + `gh-commit-exec`,
   `gh-commit-format`, `gh-issue`, `gh-pr`.
 
