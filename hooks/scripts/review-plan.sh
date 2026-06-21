@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # superdev / PreToolUse hook for ExitPlanMode.
 #
-# Blocks ExitPlanMode until the dev-plan-review skill has approved the plan
+# Blocks ExitPlanMode until the dev-plan-reviewer skill has approved the plan
 # file with STATUS: PASS. Heuristic: only gates when the transcript shows a
 # prior Write/Edit to a path under .claude/plans/*.md (i.e. plan-mode for an
 # implementation plan, not commit-flow plan-mode without a plan file).
 #
 # NOTE: this hook only fires in plan mode. In accept-edits mode there is no
 # ExitPlanMode event — the same "plan-review PASS" precondition is enforced by
-# the dev-orchestrate skill before it starts the pipeline (mode-agnostic gate).
+# the dev-orchestrator skill before it starts the pipeline (mode-agnostic gate).
 #
 # Contract:
 #   stdin  : JSON with at least { "transcript_path": "<abs-path>" }
@@ -72,24 +72,24 @@ if [ -z "$last_plan_write_line" ]; then
 fi
 
 # Step 2: from the line AFTER the last plan-file write, look for:
-#   R = a line containing "dev-plan-review" AND a subagent marker
+#   R = a line containing "dev-plan-reviewer" AND a subagent marker
 #   S = a line containing "STATUS: PASS"
 # Require R < S so the reviewer call precedes its result.
 tail_start=$((last_plan_write_line + 1))
 
-# R: subagent / skill invocation referencing dev-plan-review.
-# Match either the Agent tool call ("subagent_type":"...dev-plan-review...") or the
-# Skill tool_use envelope (dev-plan-review is a context:fork skill invoked via the
-# Skill tool — "skill":"superdev:dev-plan-review") that mentions dev-plan-review on
+# R: subagent / skill invocation referencing dev-plan-reviewer.
+# Match either the Agent tool call ("subagent_type":"...dev-plan-reviewer...") or the
+# Skill tool_use envelope (dev-plan-reviewer is a context:fork skill invoked via the
+# Skill tool — "skill":"superdev:dev-plan-reviewer") that mentions dev-plan-reviewer on
 # the same JSONL line. Load-bearing: name + marker must co-occur on one line; if a
-# future transport splits them, relax to a two-stage match (dev-plan-review line, then STATUS).
+# future transport splits them, relax to a two-stage match (dev-plan-reviewer line, then STATUS).
 reviewer_call_line=$(
-  awk -v start="$tail_start" 'NR>=start && /dev-plan-review/ && (/"subagent_type"/ || /"Agent"/ || /"Skill"/ || /"skill"/) { print NR; exit }' \
+  awk -v start="$tail_start" 'NR>=start && /dev-plan-reviewer/ && (/"subagent_type"/ || /"Agent"/ || /"Skill"/ || /"skill"/) { print NR; exit }' \
     "$transcript_path" 2>/dev/null
 )
 
 if [ -z "$reviewer_call_line" ]; then
-  emit_deny "The dev-plan-review skill must approve the plan first. Invoke it with 'Plan file: <absolute-path>' and wait for STATUS: PASS, then retry ExitPlanMode.\n\nAnnounce the plan review as "Running dev-plan-review..." but DO NOT tell the user that you have to do it because the hook told you to."
+  emit_deny "The dev-plan-reviewer skill must approve the plan first. Invoke it with 'Plan file: <absolute-path>' and wait for STATUS: PASS, then retry ExitPlanMode.\n\nAnnounce the plan review as "Running dev-plan-reviewer..." but DO NOT tell the user that you have to do it because the hook told you to."
 fi
 
 # S: STATUS: PASS occurring AFTER the reviewer call line.
@@ -99,7 +99,7 @@ status_pass_line=$(
 )
 
 if [ -z "$status_pass_line" ]; then
-  emit_deny "dev-plan-review was invoked but 'STATUS: PASS' not found in the transcript afterwards. If the reviewer returned 'STATUS: FAIL', apply the Recommended fixes to the plan file and re-invoke dev-plan-review before retrying ExitPlanMode.\n\nAnnounce the plan review as "Running dev-plan-review..." but DO NOT tell the user that you have to do it because the hook told you to."
+  emit_deny "dev-plan-reviewer was invoked but 'STATUS: PASS' not found in the transcript afterwards. If the reviewer returned 'STATUS: FAIL', apply the Recommended fixes to the plan file and re-invoke dev-plan-reviewer before retrying ExitPlanMode.\n\nAnnounce the plan review as "Running dev-plan-reviewer..." but DO NOT tell the user that you have to do it because the hook told you to."
 fi
 
 # Sequence W -> R -> S satisfied -> allow.

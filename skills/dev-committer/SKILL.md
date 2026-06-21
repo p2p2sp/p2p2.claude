@@ -1,7 +1,7 @@
 ---
 name: dev-committer
 description: >-
-  Committer (fork) — orchestrator-only git executor. Receives the per-task FILE PATH from the superdev:dev-orchestrate commit step, derives the task number and commit subject from that file, and runs `git commit` near-deterministically — no diff analysis, no subject synthesis, no dialogue. Replies with ONE tagged line. Invoked ONLY by superdev:dev-orchestrate; never from the main session or any other skill.
+  Committer (fork) — orchestrator-only git executor. Receives the per-task FILE PATH from the superdev:dev-orchestrator commit step, derives the task number and commit subject from that file, and runs `git commit` near-deterministically — no diff analysis, no subject synthesis, no dialogue. Replies with ONE tagged line. Invoked ONLY by superdev:dev-orchestrator; never from the main session or any other skill.
 context: fork
 user-invocable: false
 model: haiku
@@ -18,7 +18,7 @@ You are executor for the orchestrator's per-task commit step. You are handed the
 The orchestrator passes the **per-task file path** as this skill's single argument (`$task_file` / `$ARGUMENTS` / the trailing `ARGUMENTS:` block). The file lives at `.temp/.workflows/<slug>/tasks/<N>.md`. Two values are derived from it, mechanically — no judgement:
 
 - **`N`** — the task number, from the filename: the `<N>` in `<N>.md` (`basename "$task_file" .md`).
-- **`<subject>`** — the first `# ` H1 line of the task file (with the leading `# ` stripped). By contract this H1 is already a Conventional-Commits-form subject (e.g. `feat(auth): add token refresh`), authored by superdev:dev-decompose. Use it **verbatim** — do not reword, re-scope, or re-derive it.
+- **`<subject>`** — the first `# ` H1 line of the task file (with the leading `# ` stripped). By contract this H1 is already a Conventional-Commits-form subject (e.g. `feat(auth): add token refresh`), authored by superdev:dev-decomposer. Use it **verbatim** — do not reword, re-scope, or re-derive it.
 
 The final commit subject is `T<N>: <subject>`.
 

@@ -29,7 +29,7 @@ Trzy rzeczy ustawiają każdą integrację:
    filozofia „fail-open" hooków w tym repo.
 2. **Publikacja jest main-session / interaktywna** — nie pasuje do skilli forkowanych ani do 3-liniowego
    kontraktu `STATUS / Report / Summary`. Logika publikacji musi siedzieć w sesji głównej (jak `gh-commit-context`
-   router czy `dev-plan-review`), nie w forkach.
+   router czy `dev-plan-reviewer`), nie w forkach.
 3. **Republish-in-place** rozwiązuje spam zgód w pętli orchestratora: publikujesz **jeden** artefakt
    na starcie, aktualizujesz go po każdym tasku.
 
@@ -47,15 +47,15 @@ Praktycznie zerowa zmiana koncepcyjna, plus synergia z `ui-extract`.
 - **Wartość:** lokalne podglądy stają się współdzielonymi powierzchniami review.
 - **Ryzyko:** bramki dostępności — degraduje do lokalnego pliku (= dzisiejsze zachowanie, idealny fallback).
 
-### B — Dashboard go/no-go z `dev-final-review`
-Bramka finalna syntetyzuje `dev-plan-audit` + pełny `dev-run` + `dev-smoke` w jeden werdykt (dziś 3 linie
+### B — Dashboard go/no-go z `dev-final-reviewer`
+Bramka finalna syntetyzuje `dev-plan-auditor` + pełny `dev-runner` + `dev-smoke` w jeden werdykt (dziś 3 linie
 STATUS). Podręcznikowy „dashboard z danych sesji": macierz pass/fail per task, pokrycie Deliverable, wynik
 build/test/lint, wynik smoke, powód blokady — jako współdzielona strona gotowości do release'u.
 
 - **Wartość:** werdykt go/no-go staje się przeglądalny dla nie-terminalowych interesariuszy; trwały zapis decyzji.
 - **Ryzyko:** koszt tokenów na każdym zakończeniu pipeline'u → opt-in. Dane produkują forki, publikuje sesja główna.
 
-### C — Żywy checklist postępu w `dev-orchestrate`
+### C — Żywy checklist postępu w `dev-orchestrator`
 Docs wprost: „checklist artifact, odhaczaj w trakcie". Jeden artefakt publikowany na starcie pipeline'u,
 **republish in-place po każdym tasku**: lista tasków + status, bieżący task, commity, werdykty review.
 
@@ -71,7 +71,7 @@ anotowany diff + intencja planu + mapowanie per-task + werdykt final-review, lin
 
 ### E — Plan / spec jako artefakt (`dev-extraplan` / `dev-spec`)
 Render planu: intent, model, pliki, opcje obok siebie, ryzyka, out-of-scope + anotacja werdyktu
-`dev-plan-review`. Wzorzec „compare alternatives" pasuje do opcji w planie.
+`dev-plan-reviewer`. Wzorzec „compare alternatives" pasuje do opcji w planie.
 
 - **Wartość:** sign-off interesariuszy bez czytania surowego markdownu; opcje wyłożone wizualnie.
 - **Ryzyko:** artefakt to widok równoległy, nie źródło prawdy — nie może mylić bramki w `.claude/plans/`.

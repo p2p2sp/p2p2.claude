@@ -21,8 +21,8 @@ DO NOT USE ADR capture for this project. The plugin is constantly refactored.
 
 superdev keeps every skill — memory, development, design, GitHub — in a single plugin so cross-domain
 composition is first-class. Skills compose through CSO (frontmatter `description:`) and the single injected
-manifest documents the chains, including across domains (`dev-spec → gh-issue`, `dev-final-review → gh-pr`,
-`ui-guardian → dev-orchestrate`, `dev-improve → mem-rules`). It is **self-contained**: `plugin.json` declares
+manifest documents the chains, including across domains (`dev-spec → gh-issue`, `dev-final-reviewer → gh-pr`,
+`ui-guardian → dev-orchestrator`, `dev-improver → mem-rules`). It is **self-contained**: `plugin.json` declares
 **no `dependencies`** — installing it gives the whole ecosystem.
 
 ## Repository layout
@@ -55,41 +55,41 @@ manifest (`hooks/content/manifest.md`).
 - **`mem-`** — project memory (4 skills): `mem-init` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer),
   `mem-doc` (the `.docs/documentation/` layer — current functional truth, by concept-slug; interactive writer +
   doc-file contract owner), `mem-guardian` (read-only doc↔code audit gate — fails go/no-go on undocumented
-  behaviour change; the `dev-plan-audit` analogue for docs, NOT a token binder).
+  behaviour change; the `dev-plan-auditor` analogue for docs, NOT a token binder).
 
   **Memory layer division.** Project memory splits current truth across five non-overlapping layers, picked by
   *kind of truth*: (1) the general-rules manifest (this `hooks/content/manifest.md`, force-injected per session);
   (2) the `CLAUDE.md` cascade (terse agent orientation; `mem-init`); (3) `.claude/rules/*` (path-scoped
-  conventions; `mem-rules`, applied in-pipeline by `dev-improve`); (4) `.docs/adr/` + `.docs/layout/`
-  (architectural *why* + design system; `dev-adr` / `ui-extract`); (5) `.docs/documentation/*` (current
+  conventions; `mem-rules`, applied in-pipeline by `dev-improver`); (4) `.docs/adr/` + `.docs/layout/`
+  (architectural *why* + design system; `dev-adr-analyzer` / `ui-extract`); (5) `.docs/documentation/*` (current
   functional/behavioural *what each feature does today*; `mem-doc` writer + `mem-guardian` audit). Behavioural
   description belongs in layer 5 only — never restated in a rule, an ADR, or a spec. In the dev pipeline,
-  `dev-improve` syncs each task's `## Docs` target per the `mem-doc` contract (Option C), and `dev-final-review`
+  `dev-improver` syncs each task's `## Docs` target per the `mem-doc` contract (Option C), and `dev-final-reviewer`
   runs `mem-guardian` as its 4th terminal sub-gate.
 - **`dev-`** — the agentic-development pipeline + diagnostics/specs (17 skills): planning
-  (`dev-interview`, `dev-extraplan`, `dev-plan-review`), the orchestrated implementation pipeline
-  (`dev-orchestrate` → `dev-adr` → `dev-decompose` → per task `dev-code` / `dev-run` /
-  `dev-task-review` / `dev-improve` / `dev-committer` → `dev-final-review`), the final-gate sub-skills
-  (`dev-plan-audit`, `dev-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`.
+  (`dev-interview`, `dev-extraplan`, `dev-plan-reviewer`), the orchestrated implementation pipeline
+  (`dev-orchestrator` → `dev-adr-analyzer` → `dev-decomposer` → per task `dev-coder` / `dev-runner` /
+  `dev-task-reviewer` / `dev-improver` / `dev-committer` → `dev-final-reviewer`), the final-gate sub-skills
+  (`dev-plan-auditor`, `dev-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`.
 - **`ui-`** — design / frontend (5 skills): `ui-extract` (reverse-engineer the framework-agnostic L1
   system), `ui-component-creator` (author a net-new component into the L1 system), `ui-adapt` (adapt the
   L1 system to ONE concrete L2 target: pure-css / tailwind / react-shadcn / react-mui / flutter),
   `ui-web-preview` (render zero-build static HTML previews of a chosen web target), `ui-guardian` (bind UI
   work to documented tokens / components before edits).
-- **`gh-`** — GitHub: `gh-cli` (+ `gh-cli-exec`), `gh-commit-context` (entry) + `gh-committer`,
+- **`gh-`** — GitHub: `gh-cli` (+ `gh-cli-executor`), `gh-commit-context` (entry) + `gh-committer`,
   `gh-issue`, `gh-pr`.
 - **`cc-`** — Claude Code platform (1 skill): `cc-artifact` (opt-in, main-session publisher of ONE
   self-contained `.html`/`.htm`/`.md` file as a shareable Claude Code Artifact; validates single-file /
   no-external-ref / size, asks first, falls back to the local path — fail-open). Never forked, never part of
-  the 3-line orchestrator pipeline. Chains: `ui-web-preview → cc-artifact`, `dev-plan-review PASS → cc-artifact`.
+  the 3-line orchestrator pipeline. Chains: `ui-web-preview → cc-artifact`, `dev-plan-reviewer PASS → cc-artifact`.
 
 ## Architecture invariants
 
 - **One injected manifest.** A single `SessionStart` hook force-injects `hooks/content/manifest.md`
   (the `using-superdev` dispatcher) once per session; `source == "resume"` is a no-op; fail-open.
 - **One plan gate, mode-independent.** A `PreToolUse` hook on `ExitPlanMode` (`review-plan.sh`) denies
-  until `dev-plan-review` returns `STATUS: PASS` — but that gate exists only in plan mode. In accept-edits
-  mode the **same precondition is enforced inside `dev-orchestrate`** (it will not start the pipeline without
+  until `dev-plan-reviewer` returns `STATUS: PASS` — but that gate exists only in plan mode. In accept-edits
+  mode the **same precondition is enforced inside `dev-orchestrator`** (it will not start the pipeline without
   a passed plan-review). Keep both paths in sync.
 - **No `"hooks"` field in `plugin.json`.** Claude Code auto-loads `hooks/hooks.json` from that path; adding a
   `hooks` field to `plugin.json` is a hard install error.

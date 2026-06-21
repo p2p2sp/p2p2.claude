@@ -175,7 +175,7 @@ The edit loop is unbounded — user may edit any number of fields before saving.
    ```
    gh api -X PATCH repos/{owner}/{repo}/issues/{N} -f type="<frontmatter.type>"
    ```
-   On success: continue to Step 9. On error whose stderr/response contains any of `not enabled`, `not found`, `issue types`, `Validation Failed: Type`, `403`, `404` → print a single-line warning that the type was dropped and continue to Step 9 (the issue already exists; do not roll back). Propagate any other error. The `cli` skill is the source of truth for why this is a REST PATCH (issue type is not a `gh issue create --type` flag) — see its decision table. Optionally, this fully-specified PATCH MAY be delegated to the `gh-cli-exec` skill to run out of the main context; the inline logic and flow above stay the default.
+   On success: continue to Step 9. On error whose stderr/response contains any of `not enabled`, `not found`, `issue types`, `Validation Failed: Type`, `403`, `404` → print a single-line warning that the type was dropped and continue to Step 9 (the issue already exists; do not roll back). Propagate any other error. The `cli` skill is the source of truth for why this is a REST PATCH (issue type is not a `gh issue create --type` flag) — see its decision table. Optionally, this fully-specified PATCH MAY be delegated to the `gh-cli-executor` skill to run out of the main context; the inline logic and flow above stay the default.
 
 ## Step 9 — Output
 

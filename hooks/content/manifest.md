@@ -46,17 +46,17 @@ Iron, universal, always-on. Not overridden by convenience or brevity; only an ex
 **dev- — development pipeline**
 - `superdev:dev-interview` — conversational discovery before planning (scale-first). Prose only.
 - `superdev:dev-extraplan` — harden / refine the plan (extra-rigor) in plan mode.
-- `superdev:dev-plan-review` — independent plan review; gates the plan (STATUS + severity).
-- `superdev:dev-orchestrate` — thin dispatcher that drives the implementation pipeline.
-- `superdev:dev-adr` — ADR-worthiness judge on the approved plan (read-only).
-- `superdev:dev-decompose` — slice the plan into per-task files (title = commit subject).
-- `superdev:dev-code` — write code for ONE task (mode-routed).
-- `superdev:dev-run` — build/test/lint executor (task-scoped in the loop, full at the end).
-- `superdev:dev-task-review` — verify one task's Deliverable (retry gate).
-- `superdev:dev-final-review` — terminal whole-plan gate (own sub-pipeline → go/no-go).
-- `superdev:dev-plan-audit` — audit all tasks vs the whole plan (Deliverable coverage).
+- `superdev:dev-plan-reviewer` — independent plan review; gates the plan (STATUS + severity).
+- `superdev:dev-orchestrator` — thin dispatcher that drives the implementation pipeline.
+- `superdev:dev-adr-analyzer` — ADR-worthiness judge on the approved plan (read-only).
+- `superdev:dev-decomposer` — slice the plan into per-task files (title = commit subject).
+- `superdev:dev-coder` — write code for ONE task (mode-routed).
+- `superdev:dev-runner` — build/test/lint executor (task-scoped in the loop, full at the end).
+- `superdev:dev-task-reviewer` — verify one task's Deliverable (retry gate).
+- `superdev:dev-final-reviewer` — terminal whole-plan gate (own sub-pipeline → go/no-go).
+- `superdev:dev-plan-auditor` — audit all tasks vs the whole plan (Deliverable coverage).
 - `superdev:dev-smoke` — runtime gate: does the app actually start? (boot + liveness).
-- `superdev:dev-improve` — promote review learnings into `.claude/rules/`.
+- `superdev:dev-improver` — promote review learnings into `.claude/rules/`.
 - `superdev:dev-committer` — scripted per-task commit (orchestrate-only).
 - `superdev:dev-tdd` — TDD discipline reference.
 - `superdev:dev-debug` — trace-the-flow debugging discipline.
@@ -71,7 +71,7 @@ Iron, universal, always-on. Not overridden by convenience or brevity; only an ex
 
 **gh- — GitHub**
 - `superdev:gh-cli` — `gh` API layer reference (native → REST → GraphQL).
-- `superdev:gh-cli-exec` — run ONE fully-specified gh/REST/GraphQL op in a fork.
+- `superdev:gh-cli-executor` — run ONE fully-specified gh/REST/GraphQL op in a fork.
 - `superdev:gh-commit-context` — commit context resolver (picks mode, resolves which files, delegates).
 - `superdev:gh-committer` — commit executor fork (stages, authors the subject from the diff, commits).
 - `superdev:gh-issue` — interactive, template-driven issue creation.
@@ -88,8 +88,8 @@ Project memory is split across five **non-overlapping** layers — pick by *what
 |---|-------|----------|-------------|
 | 1 | General-rules manifest (this file) | Always-on behavioural rules, force-injected per session | hook (`session-start.sh`) |
 | 2 | `CLAUDE.md` cascade | Terse agent-facing orientation (general → specific) | `mem-init` |
-| 3 | `.claude/rules/*` | Path-scoped convention rules | `mem-rules` (`dev-improve` applies in-pipeline) |
-| 4 | `.docs/adr/`, `.docs/layout/` | Architectural decisions (*why*) + the design system | `dev-adr`, `ui-extract` |
+| 3 | `.claude/rules/*` | Path-scoped convention rules | `mem-rules` (`dev-improver` applies in-pipeline) |
+| 4 | `.docs/adr/`, `.docs/layout/` | Architectural decisions (*why*) + the design system | `dev-adr-analyzer`, `ui-extract` |
 | 5 | `.docs/documentation/*` | Current functional/behavioural truth (*what each feature does today*), by concept-slug | `mem-doc` (writer) + `mem-guardian` (audit) |
 
 ## Decision flow
@@ -103,20 +103,20 @@ Apply in order. First match wins.
 
 Follow the chosen chain end-to-end.
 
-- **feature-from-scratch**: `dev-interview` → `dev-extraplan` → plan gate (`dev-plan-review` PASS) → `dev-orchestrate`.
-- **bug-fix**: small → direct edit · larger → `dev-extraplan` → `dev-orchestrate`.
-- **implementation pipeline** (inside `dev-orchestrate`): `dev-adr` → `dev-decompose` → per task (`dev-code` → `dev-run` → `dev-task-review` → `dev-improve` → `dev-committer`) → `dev-final-review` (own sub-pipeline: `dev-plan-audit` → `dev-run` full → `dev-smoke` → `mem-guardian` → synthesis → go/no-go).
-- **design → implementation**: `ui-extract` (or `ui-component-creator`) → `ui-adapt` → `ui-web-preview` → `ui-guardian` → `dev-orchestrate`.
+- **feature-from-scratch**: `dev-interview` → `dev-extraplan` → plan gate (`dev-plan-reviewer` PASS) → `dev-orchestrator`.
+- **bug-fix**: small → direct edit · larger → `dev-extraplan` → `dev-orchestrator`.
+- **implementation pipeline** (inside `dev-orchestrator`): `dev-adr-analyzer` → `dev-decomposer` → per task (`dev-coder` → `dev-runner` → `dev-task-reviewer` → `dev-improver` → `dev-committer`) → `dev-final-reviewer` (own sub-pipeline: `dev-plan-auditor` → `dev-runner` full → `dev-smoke` → `mem-guardian` → synthesis → go/no-go).
+- **design → implementation**: `ui-extract` (or `ui-component-creator`) → `ui-adapt` → `ui-web-preview` → `ui-guardian` → `dev-orchestrator`.
 - **spec → issue**: `dev-spec` → `gh-issue`.
-- **ship → PR**: `dev-final-review` go → `gh-pr`.
-- **GitHub ops**: `gh-cli` (layer reference) → `gh-cli-exec` (fork executor); `gh-commit-context` (entry) → `gh-committer` (fork).
-- **share as artifact**: `ui-web-preview → cc-artifact` (publish a generated web preview as a shareable link); `dev-plan-review PASS → cc-artifact` (publish an approved plan as a shareable page). Opt-in, main-session, fail-open to the local path.
-- **memory / learning**: `mem-init` / `mem-rules` / `mem-doc`; `dev-improve` promotes convention learnings into the `mem-rules` contract.
-- **documentation**: `mem-doc` authors `.docs/documentation/` (interactive writer + contract owner). In-pipeline, `dev-improve` syncs each task's `## Docs` target per the `mem-doc` contract (Option C — no extra loop step); `dev-final-review` then runs `mem-guardian` as the terminal doc↔code audit gate (4th sub-gate: did docs move with the code?).
+- **ship → PR**: `dev-final-reviewer` go → `gh-pr`.
+- **GitHub ops**: `gh-cli` (layer reference) → `gh-cli-executor` (fork executor); `gh-commit-context` (entry) → `gh-committer` (fork).
+- **share as artifact**: `ui-web-preview → cc-artifact` (publish a generated web preview as a shareable link); `dev-plan-reviewer PASS → cc-artifact` (publish an approved plan as a shareable page). Opt-in, main-session, fail-open to the local path.
+- **memory / learning**: `mem-init` / `mem-rules` / `mem-doc`; `dev-improver` promotes convention learnings into the `mem-rules` contract.
+- **documentation**: `mem-doc` authors `.docs/documentation/` (interactive writer + contract owner). In-pipeline, `dev-improver` syncs each task's `## Docs` target per the `mem-doc` contract (Option C — no extra loop step); `dev-final-reviewer` then runs `mem-guardian` as the terminal doc↔code audit gate (4th sub-gate: did docs move with the code?).
 
 ## Planning discipline
 
-- **Mode independence.** The planning pipeline works **the same in plan mode and in accept-edits mode**. The plan-review gate is not enforced solely by the `ExitPlanMode` hook (which exists only in plan mode) — `dev-orchestrate` refuses to start the pipeline without a passed `dev-plan-review`.
+- **Mode independence.** The planning pipeline works **the same in plan mode and in accept-edits mode**. The plan-review gate is not enforced solely by the `ExitPlanMode` hook (which exists only in plan mode) — `dev-orchestrator` refuses to start the pipeline without a passed `dev-plan-reviewer`.
 - **The interview is a conversation, not a form.** Use plain prose, not the `AskUserQuestion` tool — the interview is a conversation, not a form. Form-style pickers flatten the trade-off discussion you are trying to have. Reserve `AskUserQuestion` for discrete "A vs B" picks outside the interview.
 
 ## Red Flags

@@ -1,6 +1,6 @@
 ---
 name: dev-smoke
-description: "Runtime boot / liveness gate — answers the single question \"does the application actually start?\". Discovers HOW to launch the app and what counts as alive from the HOST project's `CLAUDE.md` / `.claude/rules/` (a documented launch command + a liveness signal), starts the app, probes liveness, tears the process down, and returns `STATUS: PASS|FAIL|BLOCKED`. Stack-agnostic — never assumes an ecosystem. Invoked by `dev-final-review` as the last sub-step of the final go/no-go gate; the app is launched ONLY here, never per task. Input/output contract: this skill's `# Input contract` / `# Output format`."
+description: "Runtime boot / liveness gate — answers the single question \"does the application actually start?\". Discovers HOW to launch the app and what counts as alive from the HOST project's `CLAUDE.md` / `.claude/rules/` (a documented launch command + a liveness signal), starts the app, probes liveness, tears the process down, and returns `STATUS: PASS|FAIL|BLOCKED`. Stack-agnostic — never assumes an ecosystem. Invoked by `dev-final-reviewer` as the last sub-step of the final go/no-go gate; the app is launched ONLY here, never per task. Input/output contract: this skill's `# Input contract` / `# Output format`."
 model: haiku
 effort: medium
 context: fork
@@ -15,8 +15,8 @@ start?** Build-green and tests-green do not prove the binary boots — a missing
 broken migration only surface at runtime. This is the one place in the pipeline the app is launched for real;
 no per-task step ever boots it. Start it, confirm it is alive, tear it down, report.
 
-`dev-final-review` invokes this skill as the **last** sub-step of the final go/no-go gate (after
-`dev-plan-audit` and a full `dev-run`), then synthesizes a single verdict. A `FAIL` here is a no-go even when
+`dev-final-reviewer` invokes this skill as the **last** sub-step of the final go/no-go gate (after
+`dev-plan-auditor` and a full `dev-runner`), then synthesizes a single verdict. A `FAIL` here is a no-go even when
 the plan audit and the test suite are green.
 
 **Stack-agnostic.** You do NOT know the launch command or the liveness signal — you read them from the host
@@ -143,7 +143,7 @@ Summary: no launch command documented in host memory — cannot smoke-test
 - Document how to launch the app in `CLAUDE.md` (or `.claude/rules/<file>.md`): the exact launch command, and a liveness signal (process stays up N seconds / a health endpoint that returns success / an expected stdout ready-line / a `--help`/`--version` that exits 0).
 ```
 
-The `STATUS:` line is the contract `dev-final-review` parses — it must be the literal first line and one of
+The `STATUS:` line is the contract `dev-final-reviewer` parses — it must be the literal first line and one of
 `STATUS: PASS` / `STATUS: FAIL` / `STATUS: BLOCKED`. Do not write any persisted artifact; this gate is text
 output only (a temp log under `.temp/` for capturing process output is fine and is cleaned up implicitly).
 

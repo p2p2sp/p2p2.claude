@@ -1,6 +1,6 @@
 ---
 name: mem-guardian
-description: "Read-only doc↔code audit gate — verifies that every feature whose `.docs/documentation/` `source:` glob intersects the cumulative diff has its functional doc updated in the SAME diff. The `dev-plan-audit` analogue for the documentation layer and the verifier half of the `mem-doc`(writer)↔`mem-guardian`(read-only binder) split. Read-only; returns a 3-line `STATUS: PASS|FAIL`. FAILs go/no-go only on undocumented behaviour change (`source:` matched AND doc not touched); a feature with no doc yet, or a doc with no `source:`, is reported as a gap — never a hard FAIL on first introduction. Invoked by `dev-final-review` as a terminal sub-gate; not a per-task gate. Never writes. Input/output contract: this skill's `# Input contract` / `# Output format`."
+description: "Read-only doc↔code audit gate — verifies that every feature whose `.docs/documentation/` `source:` glob intersects the cumulative diff has its functional doc updated in the SAME diff. The `dev-plan-auditor` analogue for the documentation layer and the verifier half of the `mem-doc`(writer)↔`mem-guardian`(read-only binder) split. Read-only; returns a 3-line `STATUS: PASS|FAIL`. FAILs go/no-go only on undocumented behaviour change (`source:` matched AND doc not touched); a feature with no doc yet, or a doc with no `source:`, is reported as a gap — never a hard FAIL on first introduction. Invoked by `dev-final-reviewer` as a terminal sub-gate; not a per-task gate. Never writes. Input/output contract: this skill's `# Input contract` / `# Output format`."
 model: opus
 effort: xhigh
 context: fork
@@ -14,7 +14,7 @@ Forked, read-only documentation auditor for the final go/no-go gate. You are the
 documentation split: `mem-doc` is the interactive **writer** + owner of the doc-file contract; you are the
 read-only **binder** that fails the gate when production behaviour moved and the matching
 `.docs/documentation/` doc did not move with it. You are to the documentation layer exactly what
-`dev-plan-audit` is to plan completeness — a terminal audit, never a fixer, never a writer.
+`dev-plan-auditor` is to plan completeness — a terminal audit, never a fixer, never a writer.
 
 The contract you key on is owned by `mem-doc` (`skills/mem-doc/SKILL.md`). Every doc lives at
 `.docs/documentation/<domain>/<feature>.md`, carries `feature:` + `source:` frontmatter, and is registered in
@@ -23,7 +23,7 @@ that implements the feature, and it is the single signal you use to decide that 
 documented feature. Your entire audit is: for each documented feature, does its `source:` glob intersect the
 cumulative diff, and if so, was the doc itself touched in that same diff?
 
-`dev-final-review` invokes you as a terminal sub-gate (alongside `dev-plan-audit`, `dev-run`, `dev-smoke`).
+`dev-final-reviewer` invokes you as a terminal sub-gate (alongside `dev-plan-auditor`, `dev-runner`, `dev-smoke`).
 You run once, read-only, and return a single verdict. There is **no retry loop, no fixing, no writing**.
 
 # Input contract
@@ -37,7 +37,7 @@ Report path: <optional — absolute path to write the full report to; present on
 ```
 
 `Plan:` and `Diff range:` are mandatory; `Report path:` is optional. When `Report path:` is **absent** (the
-default for `dev-final-review` today, which persists nothing), the verdict is returned **on stdout only** and
+default for `dev-final-reviewer` today, which persists nothing), the verdict is returned **on stdout only** and
 nothing is written. When `Report path:` **is** present, write the full markdown report to exactly that path
 and still return the 3-line minimal shape on stdout — never inline the full report on stdout.
 
@@ -102,7 +102,7 @@ hard FAIL. This is the discipline the plan calls out: do not fail go/no-go on a 
 
 ## Step 5 — Build the verdict
 
-Two-way decision (this gate never emits `BLOCKED` — it is a terminal audit, like `dev-plan-audit`):
+Two-way decision (this gate never emits `BLOCKED` — it is a terminal audit, like `dev-plan-auditor`):
 
 - `STATUS: PASS` — no CRITICAL from Step 4: every doc whose `source:` intersected the diff was itself updated
   in that diff (gaps are allowed; they do not block).
@@ -147,7 +147,7 @@ STATUS: <PASS | FAIL>
 - One short line per informational item. Omit if nothing.
 ```
 
-The `STATUS:` line is the contract `dev-final-review` parses — it must be the literal first line of stdout and
+The `STATUS:` line is the contract `dev-final-reviewer` parses — it must be the literal first line of stdout and
 one of `STATUS: PASS` / `STATUS: FAIL`. Never write any file other than the one at `Report path:` (and write
 nothing at all when no `Report path:` was given).
 
@@ -157,14 +157,14 @@ nothing at all when no `Report path:` was given).
   docs, no fixing a missing `source:`, no authoring a missing doc. That is `mem-doc`'s job; you only report it.
 - **Failing on a feature's first introduction.** A brand-new feature with no doc, or a doc with no `source:`,
   is a **gap**, not a FAIL — Step 4. The only FAIL is behaviour-changed-AND-doc-not-updated.
-- **Emitting `STATUS: BLOCKED`.** This gate is two-way (PASS / FAIL), like `dev-plan-audit`; there is no
+- **Emitting `STATUS: BLOCKED`.** This gate is two-way (PASS / FAIL), like `dev-plan-auditor`; there is no
   upstream pipeline state to block on at the terminal audit.
 - **Inlining the full report on stdout when a `Report path:` was given.** When a path is dictated, write the
   body to the file and return only the 3-line shape; inline markdown breaks the parser.
 - **Auditing slug quality / present-tense discipline / changelog rules.** Those are the doc-file contract that
   `mem-doc` enforces at authoring time. Your audit is narrow: did the `source:`-matched doc move with the code?
 - **Re-running or attempting to run tests / builds.** You have no Bash tool; build and test execution is
-  `dev-run`'s separate job in the final gate. Your input is the static diff and the docs on disk.
+  `dev-runner`'s separate job in the final gate. Your input is the static diff and the docs on disk.
 - **Reading the entire codebase.** Limit reads to `index.md`, the feature docs, the plan, the task files, and
   the changed files the diff names.
 - **Restating the `why` of a decision or suggesting doc improvements not required by a source-match.** That is

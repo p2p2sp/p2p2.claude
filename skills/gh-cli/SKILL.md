@@ -53,4 +53,4 @@ This skill is **reference-only** — it owns the *what to call* / *which layer* 
 
 Don't hand a skill a `gh` command from memory without checking the matching reference here — GitHub's surface evolves (issue types are REST-supported, not a `gh issue create` flag; sub-issues are REST-supported with no native `gh` subcommand; PR thread resolve stays GraphQL-only); what "needs GraphQL" may already be REST, and vice versa.
 
-For interactive issue creation see the **gh-issue** skill, for commits the **commit** skill, for PR creation the **gh-pr** skill. To execute a fully-specified gh/REST/GraphQL operation out of the main context, hand it to the **gh-cli-exec** skill.
+For interactive issue creation see the **gh-issue** skill, for commits the **commit** skill, for PR creation the **gh-pr** skill. To execute a fully-specified gh/REST/GraphQL operation out of the main context, hand it to the **gh-cli-executor** skill.

@@ -128,5 +128,5 @@ not the artifact landed.
 - **ui-web-preview** — generates the self-contained web preview HTML this skill publishes; its
   standalone single-file emit is built to pass the validation above. The natural chain is
   `ui-web-preview → cc-artifact` (preview the design system, then share it as a live link).
-- A passed plan markdown (e.g. after `dev-plan-review` returns `PASS`) is the other natural source:
-  `dev-plan-review PASS → cc-artifact` (publish the approved plan as a shareable page).
+- A passed plan markdown (e.g. after `dev-plan-reviewer` returns `PASS`) is the other natural source:
+  `dev-plan-reviewer PASS → cc-artifact` (publish the approved plan as a shareable page).

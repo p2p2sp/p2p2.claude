@@ -23,9 +23,9 @@ the single injected manifest routes every request to the right skill / chain.
 | --- | --- | --- |
 | — | Environment bootstrap (user-only) | `setup` — run `/setup` once to seed `.temp/` + `.docs/`, copy the `.gitignore` / `.claude/settings.json` templates, and flag a legacy `docs/` |
 | `mem-` | Project memory | `mem-init` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer) |
-| `dev-` | Development pipeline + diagnostics/specs | `dev-interview`, `dev-extraplan`, `dev-plan-review`, `dev-orchestrate`, `dev-adr`, `dev-decompose`, `dev-code`, `dev-run`, `dev-task-review`, `dev-final-review`, `dev-plan-audit`, `dev-smoke`, `dev-improve`, `dev-committer`, `dev-tdd`, `dev-debug`, `dev-spec` |
+| `dev-` | Development pipeline + diagnostics/specs | `dev-interview`, `dev-extraplan`, `dev-plan-reviewer`, `dev-orchestrator`, `dev-adr-analyzer`, `dev-decomposer`, `dev-coder`, `dev-runner`, `dev-task-reviewer`, `dev-final-reviewer`, `dev-plan-auditor`, `dev-smoke`, `dev-improver`, `dev-committer`, `dev-tdd`, `dev-debug`, `dev-spec` |
 | `ui-` | Design / frontend | `ui-extract`, `ui-component-creator`, `ui-adapt`, `ui-web-preview`, `ui-guardian` |
-| `gh-` | GitHub | `gh-cli`, `gh-cli-exec`, `gh-commit-context`, `gh-committer`, `gh-issue`, `gh-pr` |
+| `gh-` | GitHub | `gh-cli`, `gh-cli-executor`, `gh-commit-context`, `gh-committer`, `gh-issue`, `gh-pr` |
 | `cc-` | Claude Code platform | `cc-artifact` — opt-in, main-session publisher of one self-contained `.html`/`.htm`/`.md` file as a shareable Claude Code Artifact; validates single-file / no-external-ref / size, asks first, falls back to the local path (fail-open) |
 
 ## How it works
@@ -34,7 +34,7 @@ the single injected manifest routes every request to the right skill / chain.
   across all domains (instruction priority, the 1% rule, decision flow, the skill catalog, the natural
   chains, and red flags).
 - **Skills auto-engage via CSO** — each skill's `description:` is its trigger, in any language.
-- **The implementation pipeline is file-based**: `dev-orchestrate` dispatches forked executors that hand
+- **The implementation pipeline is file-based**: `dev-orchestrator` dispatches forked executors that hand
   state through files and reply with a 3-line status, keeping the main context lean.
 - **The planning pipeline works the same in plan mode and accept-edits mode.**
 
