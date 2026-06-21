@@ -52,7 +52,20 @@ manifest (`hooks/content/manifest.md`).
   copies the bundled `.gitignore` / `.claude/settings.json` templates, flags a legacy `docs/`. It is
   `disable-model-invocation` (Claude never auto-routes to it) so it is **deliberately absent from the manifest** —
   see the Self-documentation invariant.
-- **`mem-`** — project memory: `mem-init` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer).
+- **`mem-`** — project memory (4 skills): `mem-init` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer),
+  `mem-doc` (the `.docs/documentation/` layer — current functional truth, by concept-slug; interactive writer +
+  doc-file contract owner), `mem-guardian` (read-only doc↔code audit gate — fails go/no-go on undocumented
+  behaviour change; the `dev-plan-audit` analogue for docs, NOT a token binder).
+
+  **Memory layer division.** Project memory splits current truth across five non-overlapping layers, picked by
+  *kind of truth*: (1) the general-rules manifest (this `hooks/content/manifest.md`, force-injected per session);
+  (2) the `CLAUDE.md` cascade (terse agent orientation; `mem-init`); (3) `.claude/rules/*` (path-scoped
+  conventions; `mem-rules`, applied in-pipeline by `dev-improve`); (4) `.docs/adr/` + `.docs/layout/`
+  (architectural *why* + design system; `dev-adr` / `ui-extract`); (5) `.docs/documentation/*` (current
+  functional/behavioural *what each feature does today*; `mem-doc` writer + `mem-guardian` audit). Behavioural
+  description belongs in layer 5 only — never restated in a rule, an ADR, or a spec. In the dev pipeline,
+  `dev-improve` syncs each task's `## Docs` target per the `mem-doc` contract (Option C), and `dev-final-review`
+  runs `mem-guardian` as its 4th terminal sub-gate.
 - **`dev-`** — the agentic-development pipeline + diagnostics/specs (17 skills): planning
   (`dev-interview`, `dev-extraplan`, `dev-plan-review`), the orchestrated implementation pipeline
   (`dev-orchestrate` → `dev-adr` → `dev-decompose` → per task `dev-code` / `dev-run` /

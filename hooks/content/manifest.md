@@ -40,6 +40,8 @@ Iron, universal, always-on. Not overridden by convenience or brevity; only an ex
 **mem- — project memory**
 - `superdev:mem-init` — bootstrap the CLAUDE.md cascade (general → specific) for a repo.
 - `superdev:mem-rules` — author the `.claude/rules/` layer (canonical rule-file contract).
+- `superdev:mem-doc` — author the `.docs/documentation/` layer: current functional truth, by concept-slug (writer + contract owner).
+- `superdev:mem-guardian` — read-only doc↔code audit gate; fails go/no-go on undocumented behaviour change (NOT a token binder).
 
 **dev- — development pipeline**
 - `superdev:dev-interview` — conversational discovery before planning (scale-first). Prose only.
@@ -76,6 +78,18 @@ Iron, universal, always-on. Not overridden by convenience or brevity; only an ex
 - `superdev:gh-issue` — interactive, template-driven issue creation.
 - `superdev:gh-pr` — interactive, template-driven draft-PR creation.
 
+## Memory layer division
+
+Project memory is split across five **non-overlapping** layers — pick by *what kind of truth* you are recording, never by convenience. Behavioural/functional description belongs in layer 5, never in a rule, an ADR, or a spec.
+
+| # | Layer | Captures | Owner skill |
+|---|-------|----------|-------------|
+| 1 | General-rules manifest (this file) | Always-on behavioural rules, force-injected per session | hook (`session-start.sh`) |
+| 2 | `CLAUDE.md` cascade | Terse agent-facing orientation (general → specific) | `mem-init` |
+| 3 | `.claude/rules/*` | Path-scoped convention rules | `mem-rules` (`dev-improve` applies in-pipeline) |
+| 4 | `.docs/adr/`, `.docs/layout/` | Architectural decisions (*why*) + the design system | `dev-adr`, `ui-extract` |
+| 5 | `.docs/documentation/*` | Current functional/behavioural truth (*what each feature does today*), by concept-slug | `mem-doc` (writer) + `mem-guardian` (audit) |
+
 ## Decision flow
 
 Apply in order. First match wins.
@@ -89,12 +103,13 @@ Follow the chosen chain end-to-end.
 
 - **feature-from-scratch**: `dev-interview` → `dev-extraplan` → plan gate (`dev-plan-review` PASS) → `dev-orchestrate`.
 - **bug-fix**: small → direct edit · larger → `dev-extraplan` → `dev-orchestrate`.
-- **implementation pipeline** (inside `dev-orchestrate`): `dev-adr` → `dev-decompose` → per task (`dev-code` → `dev-run` → `dev-task-review` → `dev-improve` → `dev-committer`) → `dev-final-review` (own sub-pipeline: `dev-plan-audit` → `dev-run` full → `dev-smoke` → synthesis → go/no-go).
+- **implementation pipeline** (inside `dev-orchestrate`): `dev-adr` → `dev-decompose` → per task (`dev-code` → `dev-run` → `dev-task-review` → `dev-improve` → `dev-committer`) → `dev-final-review` (own sub-pipeline: `dev-plan-audit` → `dev-run` full → `dev-smoke` → `mem-guardian` → synthesis → go/no-go).
 - **design → implementation**: `ui-extract` (or `ui-component-creator`) → `ui-adapt` → `ui-web-preview` → `ui-guardian` → `dev-orchestrate`.
 - **spec → issue**: `dev-spec` → `gh-issue`.
 - **ship → PR**: `dev-final-review` go → `gh-pr`.
 - **GitHub ops**: `gh-cli` (layer reference) → `gh-cli-exec` (fork executor); `gh-commit` (router) → `gh-commit-exec` (fork).
-- **memory / learning**: `mem-init` / `mem-rules`; `dev-improve` promotes learnings into the `mem-rules` contract.
+- **memory / learning**: `mem-init` / `mem-rules` / `mem-doc`; `dev-improve` promotes convention learnings into the `mem-rules` contract.
+- **documentation**: `mem-doc` authors `.docs/documentation/` (interactive writer + contract owner). In-pipeline, `dev-improve` syncs each task's `## Docs` target per the `mem-doc` contract (Option C — no extra loop step); `dev-final-review` then runs `mem-guardian` as the terminal doc↔code audit gate (4th sub-gate: did docs move with the code?).
 
 ## Planning discipline
 

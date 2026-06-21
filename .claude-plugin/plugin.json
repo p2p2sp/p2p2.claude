@@ -9,6 +9,8 @@
     "./skills/setup/",
     "./skills/mem-init/",
     "./skills/mem-rules/",
+    "./skills/mem-doc/",
+    "./skills/mem-guardian/",
     "./skills/dev-interview/",
     "./skills/dev-extraplan/",
     "./skills/dev-plan-review/",
