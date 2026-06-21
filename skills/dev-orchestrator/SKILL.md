@@ -43,10 +43,10 @@ Roles in one line each:
 - **dev-task-reviewer (Task mode)** — verifies the task Deliverable + tests + conventions against the working tree; emits `PASS` / `FAIL` / `BLOCKED`.
 - **improver** — promotes the committed task's dev-task-reviewer learnings into `.claude/rules/`; always `PASS` (no failure mode). Gated by the `rules_improver` switch (skipped when off).
 - **documenter** — syncs the committed task's feature-behaviour changes into `.superdev/documentation/` per the `mem-doc` contract; always `PASS` (no failure mode). Gated by the `documentation` switch (skipped when off).
-- **committer** (fork skill) — commits the task; receives the **task file path** and itself derives the commit subject (the task file's `# ` H1) and the `T<N>:` prefix (the dispatcher synthesizes no subject); emits a tagged single line, parsed by `parse_commit_tag`. A tagged `sha` is **not** proof of a commit — the dispatcher verifies HEAD advanced (and the tree is clean) before trusting it, re-invoking the committer up to 3× on a phantom commit.
+- **committer** (`scripts/commit-task.sh`) — commits the task; the dispatcher runs `bash "${CLAUDE_PLUGIN_ROOT}/skills/dev-orchestrator/scripts/commit-task.sh" "<task_file>"` inline. The script derives the commit subject (the task file's `# ` H1) and the `T<N>:` prefix itself (the dispatcher synthesizes no subject), and emits a tagged single line parsed by `parse_commit_tag`. Being deterministic, the script cannot fabricate its tag — it emits a `sha` **only** after itself verifying HEAD advanced and the tree is clean, so the dispatcher trusts the tag directly (no re-verification, no retry loop).
 - **dev-final-reviewer (sub-orchestrator)** — one-shot terminal gate after the last task is committed; internally runs `dev-plan-auditor` → `dev-runner` (Scope: full) → `dev-smoke` → synthesis and returns a single go/no-go verdict on stdout (no file written).
 
-Each pipeline-bound skill (`decomposer`/`coder`/`dev-task-reviewer`/`improver`) carries the full input/output contract in its own `SKILL.md`'s `# Input contract` + `# Output format` sections. The committer skill's tagged output shape lives in its `# Output format` section. The runner's verdict shape lives in `skills/runner/SKILL.md` `# Output format`. The dispatcher pseudocode in the per-task pipeline below uses those contracts verbatim — when a contract changes, update the skill file, then the helpers in `references/status-parsing.md`.
+Each pipeline-bound skill (`decomposer`/`coder`/`dev-task-reviewer`/`improver`) carries the full input/output contract in its own `SKILL.md`'s `# Input contract` + `# Output format` sections. The committer's tagged output shape lives in the header comment of `scripts/commit-task.sh`. The runner's verdict shape lives in `skills/runner/SKILL.md` `# Output format`. The dispatcher pseudocode in the per-task pipeline below uses those contracts verbatim — when a contract changes, update the skill file, then the helpers in `references/status-parsing.md`.
 
 ## Locate the plan
 
@@ -137,7 +137,7 @@ Decomposer is idempotent: if `.temp/.workflows/<slug>/tasks/*.md` already exists
 
 Print one line: `Plan decomposed into <K> task file(s).`
 
-For every downstream `coder` / `dev-task-reviewer` invocation in the per-task pipeline, the dispatcher passes a single `Task file: <task_files[N]>` line (not the plan path + a task number). Each pipeline-bound implementation skill (`coder` / `dev-task-reviewer` Task mode / `improver` / `documenter`) — and the `runner` skill in the runner pass — additionally receives a `Report path:` line dictated by the dispatcher and writes its full markdown report to that path itself; the on-stdout response is the three-line minimal shape (`STATUS:` / `Report:` / `Summary:`). The `dev-task-reviewer` Task-mode prompt additionally carries a `Task base: <task_base_sha>` line (the SHA the dispatcher already holds from the attempt-1 `task-base.sha` write) so the dev-task-reviewer can skip re-reading `.temp/.workflows/<slug>/task-base.sha`; the file read stays its fallback when the line is absent — see the dev-task-reviewer's Step 0. The `Feedback:` line carried by `coder` becomes an absolute path to the upstream agent's on-disk report (dev-task-reviewer-report path for retries / unblock; runner-report path is not forwarded directly — the dev-task-reviewer's report is the unblock entry point in the dev-task-reviewer pass). The improver pass receives only `Task-reviewer report: <path>` (its rules-learnings source) instead of an inline dev-task-reviewer body. The documenter pass receives `Task file: <task_files[N]>` + `Task base: <task_base_sha>` so it can read the task's `## Docs` targets and compute the task diff (`git diff <task_base_sha>`) for the doc-sync decision. Both are config-gated (`rules_improver` / `documentation`) and skipped with one terse line when off. The commit step (committer skill) is unaffected. Inter-agent files live under the per-task audit directory `.temp/.workflows/<slug>/orchestration/task-<N>/<role>-<attempt>.md` — see the per-task pipeline below for the exact filename slots.
+For every downstream `coder` / `dev-task-reviewer` invocation in the per-task pipeline, the dispatcher passes a single `Task file: <task_files[N]>` line (not the plan path + a task number). Each pipeline-bound implementation skill (`coder` / `dev-task-reviewer` Task mode / `improver` / `documenter`) — and the `runner` skill in the runner pass — additionally receives a `Report path:` line dictated by the dispatcher and writes its full markdown report to that path itself; the on-stdout response is the three-line minimal shape (`STATUS:` / `Report:` / `Summary:`). The `dev-task-reviewer` Task-mode prompt additionally carries a `Task base: <task_base_sha>` line (the SHA the dispatcher already holds from the attempt-1 `task-base.sha` write) so the dev-task-reviewer can skip re-reading `.temp/.workflows/<slug>/task-base.sha`; the file read stays its fallback when the line is absent — see the dev-task-reviewer's Step 0. The `Feedback:` line carried by `coder` becomes an absolute path to the upstream agent's on-disk report (dev-task-reviewer-report path for retries / unblock; runner-report path is not forwarded directly — the dev-task-reviewer's report is the unblock entry point in the dev-task-reviewer pass). The improver pass receives only `Task-reviewer report: <path>` (its rules-learnings source) instead of an inline dev-task-reviewer body. The documenter pass receives `Task file: <task_files[N]>` + `Task base: <task_base_sha>` so it can read the task's `## Docs` targets and compute the task diff (`git diff <task_base_sha>`) for the doc-sync decision. Both are config-gated (`rules_improver` / `documentation`) and skipped with one terse line when off. The commit step (the `scripts/commit-task.sh` run) is unaffected. Inter-agent files live under the per-task audit directory `.temp/.workflows/<slug>/orchestration/task-<N>/<role>-<attempt>.md` — see the per-task pipeline below for the exact filename slots.
 
 Decomposer's `## Notes` section is informational only — the orchestrator does not gate on it. Any material decision worth flagging will resurface in the final whole-plan dev-task-reviewer against the cumulative diff, where the user can act on it with full evidence rather than on a pre-implementation hypothesis.
 
@@ -446,68 +446,47 @@ loop:
         doc_verdict = "PASS" if first_status_line(doc_out) == "STATUS: PASS" else "FAIL"
         print(f"[{N}/{max}] dev-documenter: {doc_verdict}")
 
-    # commit step (committer skill, context: fork). The committer self-checks the worktree, but a
-    # tagged `sha` is NOT proof the commit landed: the Haiku fork can hallucinate the tool result —
-    # narrate the `git commit`, invent a SHA, and leave the tree dirty with HEAD unmoved. So wrap the
-    # committer in a bounded retry loop (≤3) that VERIFIES HEAD actually advanced (and the tree is
-    # clean) before trusting the tag. Source of truth for the reported sha is `git rev-parse --short
-    # HEAD` AFTER that check — never commit_result[1] (may be fabricated even on a real commit).
-    # See references/status-parsing.md (parse_commit_tag note).
-    pre_commit_head = bash("git rev-parse HEAD").strip()
-    # The dispatcher authors NO commit subject. Subject authoring lives entirely in dev-decomposer (which
-    # writes each task file's `# ` H1 as a Conventional-Commits-form subject) + dev-committer (which reads
-    # that H1 and prefixes `T<N>:`). The dispatcher just hands the committer the TASK FILE PATH; the
-    # committer derives `N` from the filename and `<subject>` from the file's H1 and runs `git commit`
-    # verbatim (no diff analysis, no subject synthesis). See skills/dev-committer/SKILL.md (`# Input contract`).
+    # commit step (deterministic script `scripts/commit-task.sh`, run inline). The script is the
+    # committer: it stages everything, commits `T<N>: <subject>`, and — being deterministic — emits a
+    # `sha` tag ONLY after itself verifying HEAD advanced past the pre-commit HEAD and the tree is clean
+    # (a non-zero commit / unmoved HEAD / dirty tree all yield an `error` tag, never a fabricated `sha`).
+    # That self-verification is why the old phantom-commit re-verify + 3× retry loop is gone: a script
+    # cannot hallucinate its tool result the way the Haiku committer fork could, so the dispatcher trusts
+    # the tag directly. The reported sha is taken from the tag (the script itself read it via
+    # `git rev-parse --short HEAD` after proving the move). See scripts/commit-task.sh (header contract)
+    # and references/status-parsing.md (parse_commit_tag).
+    # The dispatcher authors NO commit subject. Subject authoring lives in dev-decomposer (which writes
+    # each task file's `# ` H1 as a Conventional-Commits-form subject) + commit-task.sh (which reads that
+    # H1 and prefixes `T<N>:`). The dispatcher just hands the script the TASK FILE PATH; the script
+    # derives `N` from the filename and `<subject>` from the file's H1 and runs `git commit` verbatim.
     task_file_path = f".temp/.workflows/{slug}/tasks/{N}.md"   # == task_files[N]
-    commit_tries = 0
-    commit_loop:
-        commit_tries += 1
-        # Pass the TASK FILE PATH as the committer's argument; on a phantom-commit retry pass the SAME
-        # path (idempotent — the file and its derived subject are stable across tries).
-        commit_out = Skill(skill="superdev:dev-committer", args=task_file_path)
-        commit_result = parse_commit_tag(commit_out)   # see Helpers and pattern reference — returns one of: ("sha", "<hex>", N, subject) | ("no-changes",) | ("error", stderr) | ("malformed", raw)
-        if commit_result[0] == "sha":
-            # A `sha` tag is NOT proof — verify the commit really landed before trusting it.
-            post_commit_head = bash("git rev-parse HEAD").strip()
-            dirty = bash("git status --porcelain").strip() != ""
-            if post_commit_head == pre_commit_head or dirty:
-                # Phantom commit: committer reported a `sha` but HEAD did not move (and/or the tree is
-                # still dirty) — the fabricated-SHA failure. Re-invoke the committer; changes are still
-                # staged and the fork re-runs `git add -A`, so the retry is safe and idempotent.
-                print(f"[{N}/{max}] commit: UNVERIFIED (HEAD unchanged) — retrying committer")
-                if commit_tries >= 3:
-                    # Terminal: 3 committer invocations all failed to land. Task widget stays at
-                    # `in_progress` (no `failed` state) — the visually-stuck row mirrors the halted
-                    # pipeline. Do NOT hand-commit from the dispatcher; hard-stop instead.
-                    report "[{N}/{max}] commit FAILED: committer reported a commit that did not land (HEAD unchanged after 3 tries)" and stop
-                continue commit_loop
-            # Real commit confirmed — TRUST GIT, not the reported sha.
-            short_sha = bash("git rev-parse --short HEAD").strip()
-            print(f"[{N}/{max}] commit: {short_sha}")
-            # Persist base.sha after the first successful commit (see the final review). Parent is HEAD^
-            # now that HEAD points at the new commit — derived from git, never from commit_result[1].
-            if N == 1:
-                parent_sha = bash("git rev-parse \"HEAD^\"").strip()
-                Write(".temp/.workflows/<slug>/base.sha", parent_sha + "\n")
-            # Progress widget: flip task widget to completed with the commit sha.
-            safe_task_call(TaskUpdate, taskId=task_widgets[N], status="completed",
-                           description=f"Committed {short_sha}.")
-            break commit_loop   # commit landed — proceed to the status.yml update
-        elif commit_result[0] == "no-changes":
-            print(f"[{N}/{max}] commit: no-op ({commit_result[0]})")
-            # Progress widget: task still counts as done — flip to completed with a note.
-            safe_task_call(TaskUpdate, taskId=task_widgets[N], status="completed",
-                           description=f"No-op ({commit_result[0]}).")
-            break commit_loop
-        elif commit_result[0] == "error":
-            # Task widget stays at `in_progress` (no `failed` state) — the visually-stuck
-            # widget mirrors the halted pipeline. surface error and abort the run —
-            # committer failed cleanly, no point retrying via coder.
-            report f"[{N}/{max}] commit FAILED: {commit_result[1]}" and stop
-        else:
-            # Same handling as the error branch — task widget stays at `in_progress`.
-            report f"[{N}/{max}] commit MALFORMED: {commit_result[1]}" and stop
+    commit_out = bash(f'bash "${{CLAUDE_PLUGIN_ROOT}}/skills/dev-orchestrator/scripts/commit-task.sh" "{task_file_path}"').stdout
+    commit_result = parse_commit_tag(commit_out)   # see Helpers and pattern reference — returns one of: ("sha", "<hex>", files, subject) | ("no-changes",) | ("error", stderr) | ("malformed", raw)
+    if commit_result[0] == "sha":
+        # Trust the tag — the script proved the commit landed before emitting it.
+        short_sha = commit_result[1]
+        print(f"[{N}/{max}] commit: {short_sha}")
+        # Persist base.sha after the first successful commit (see the final review). Parent is HEAD^
+        # now that HEAD points at the new commit — derived from git.
+        if N == 1:
+            parent_sha = bash("git rev-parse \"HEAD^\"").strip()
+            Write(".temp/.workflows/<slug>/base.sha", parent_sha + "\n")
+        # Progress widget: flip task widget to completed with the commit sha.
+        safe_task_call(TaskUpdate, taskId=task_widgets[N], status="completed",
+                       description=f"Committed {short_sha}.")
+    elif commit_result[0] == "no-changes":
+        print(f"[{N}/{max}] commit: no-op ({commit_result[0]})")
+        # Progress widget: task still counts as done — flip to completed with a note.
+        safe_task_call(TaskUpdate, taskId=task_widgets[N], status="completed",
+                       description=f"No-op ({commit_result[0]}).")
+    elif commit_result[0] == "error":
+        # Task widget stays at `in_progress` (no `failed` state) — the visually-stuck
+        # widget mirrors the halted pipeline. surface error and abort the run —
+        # the script failed cleanly, no point retrying via coder.
+        report f"[{N}/{max}] commit FAILED: {commit_result[1]}" and stop
+    else:
+        # Same handling as the error branch — task widget stays at `in_progress`.
+        report f"[{N}/{max}] commit MALFORMED: {commit_result[1]}" and stop
 
     # Update status.yml — authoritative task tracker (see the starting-task resolution order).
     # After commit of task N, the next task to execute is N+1. After commit of the
@@ -593,7 +572,7 @@ Then stop. Do not call any further tool.
 - Adding retries beyond the documented `3` + `3` cap, or offering a "skip task" option to the user (intentionally absent). Also forbidden: a separate retry budget for `BLOCKED` — the unblock branch shares the same cap, with successful unblock passes free of attempt-counter increment.
 - Writing any state file other than (a) the authoritative task tracker `.temp/.workflows/<slug>/status.yml` (the commit step — orchestrator updates after each successful commit), (b) the persisted `.temp/.workflows/<slug>/base.sha` written once after the Task 1 commit (the commit step), and (c) the per-task baseline `.temp/.workflows/<slug>/task-base.sha` (re)written at the start of every task's attempt 1 (the per-task pipeline, before the coder pass). The final review writes **no** file — `dev-final-reviewer` returns its go/no-go verdict on stdout and the dispatcher surfaces it directly. Plan + task files + git + those three small state files are the only sources of truth — **except** for everything else under `.temp/.workflows/<slug>/orchestration/<task-N>/` (the `coder-K.md`, `dev-task-reviewer-K.md`, `improver-K.md`, `documenter-K.md`, `unblock-coder-K.md`, and `runner-K.md` reports the implementation / tool skills write themselves to their dispatcher-dictated `Report path:`), which is an **ephemeral audit/transport layer**, NOT state of truth: resume logic relies only on `status.yml` + `task-base.sha` + `base.sha`, and a crash recovery overwrites any prior attempt's report at the same numeric slot.
 - Editing, updating, creating any file yourself — including "quick fixes" for pre-existing issues surfaced by runner. Out-of-scope blockers are handled by routing the `BLOCKED` verdict through an unblock `coder` pass (see the runner pass / dev-task-reviewer pass). The dispatcher never touches source files directly.
-- Treating the committer's tagged `sha` as proof the commit landed. The Haiku committer fork can hallucinate the tool result — narrate the `git commit`, invent a SHA, and leave the tree dirty with HEAD unmoved. After a `sha` tag the dispatcher MUST verify `git rev-parse HEAD` advanced past the pre-commit HEAD **and** `git status --porcelain` is empty, re-invoking the committer (changes are still staged) up to 3× before a hard-stop; the reported sha is taken from `git rev-parse --short HEAD`, never `commit_result[1]`. Never hand-commit from the dispatcher to paper over a phantom commit.
+- Re-verifying or retrying the commit step. The committer is now the deterministic `scripts/commit-task.sh`, not a Haiku fork — it emits a `sha` tag ONLY after itself proving HEAD advanced past the pre-commit HEAD **and** `git status --porcelain` is empty (a non-zero commit / unmoved HEAD / dirty tree all yield an `error` tag, never a fabricated `sha`). A script cannot hallucinate its tool result, so the dispatcher trusts the tag directly: do NOT re-run `git rev-parse HEAD` to re-check the move, do NOT wrap the call in a phantom-commit retry loop, and take the reported sha straight from the tag (`commit_result[1]`). On an `error` / `malformed` tag, hard-stop — never hand-commit from the dispatcher to paper over a failed commit.
 - Pasting the plan body into a sub-agent prompt — the sub-agent reads the plan (or task file) itself from the supplied path.
 - Inlining any pipeline-bound skill's reply (coder / dev-task-reviewer / improver / documenter / runner) into a downstream skill's prompt — verbatim, summarised, filtered, or otherwise. The on-stdout reply of those agents is the three-line minimal shape (`STATUS:` / `Report:` / `Summary:`); the full markdown lives at the dispatcher-dictated `Report path:`, and downstream prompts carry **paths only** (`Feedback: …`, `Runner report: …`, `Task-reviewer report: …`, `Previous coder report: …`). The runner follows the same discipline when invoked with `Report path:` (pipeline mode): it writes its own markdown to that path and replies on stdout with the 3-line block — the dispatcher MUST NOT re-`Write` the runner report from its own context, and MUST NOT page the full markdown into the dispatcher prompt.
 - Forwarding more than one failure to the next coder run. Only the most recent failure's report path goes in `Feedback`.
