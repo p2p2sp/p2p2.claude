@@ -4,7 +4,7 @@ How to turn a component spec into a faithful showcase page, which app pages and
 layouts to generate, and how to keep everything traceable to the design system.
 
 ## Contents
-- [The rule that prevents broken mockups](#the-rule-that-prevents-broken-mockups)
+- [The rule that prevents broken previews](#the-rule-that-prevents-broken-previews)
 - [Component showcase: spec → page](#component-showcase-spec--page)
 - [Rendering states (the forced-state convention)](#rendering-states-the-forced-state-convention)
 - [Surfacing gaps](#surfacing-gaps)
@@ -12,15 +12,19 @@ layouts to generate, and how to keep everything traceable to the design system.
 - [The standard page set](#the-standard-page-set)
 - [Layouts](#layouts)
 
-## The rule that prevents broken mockups
+## The rule that prevents broken previews
 
-A utility class only works if a matching variable exists in the injected
-`theme.css`. **Resolve every class against `theme.css`, not against the token
-dot-paths in the spec.** A spec lists `color.surface.accent`; the generated
-utility is whatever the converter produced for it (commonly a short semantic
-name like `bg-surface` / `bg-accent`). Grep the theme for the variable, use the
-real utility. A class with no backing variable renders unstyled — that is the
-single most common defect, and it is on you, not the design system.
+A class only works if the active target's theme artifact actually defines it.
+**Resolve every class against the active target's theme artifact (and its
+`components.md` markup pattern), not against the token dot-paths in the spec.**
+The theme artifact is whichever file the chosen target produced —
+`targets/<target>/styles.css` for `pure-css`, `theme.css` for `tailwind`,
+`globals.css` for `react-shadcn`. A spec lists `color.surface.accent`; the
+realized class is whatever `ui-adapt` produced for it (commonly a short semantic
+name like `bg-surface` / `bg-accent` for the Tailwind targets, or the plain
+class `styles.css` defines for `pure-css`). Grep the theme artifact for the rule
+or variable, use the real class. A class with no backing rule renders unstyled —
+that is the single most common defect, and it is on you, not the design system.
 
 ## Component showcase: spec → page
 
@@ -41,7 +45,7 @@ four parts, in order:
    component depends on.
 
 Use the component's real semantic HTML element (a `button` for Button, `input`
-for Input, `dialog`/role for modal) so the mockup also sanity-checks the
+for Input, `dialog`/role for modal) so the preview also sanity-checks the
 accessibility intent in the spec.
 
 Variants and states are different axes — never collapse them. A *variant* is an
@@ -72,7 +76,7 @@ its appearance.
 
 ## Surfacing gaps
 
-The mockups exist to reveal what is incomplete. When a spec section is missing
+The previews exist to reveal what is incomplete. When a spec section is missing
 or marked `⚠️ Needs input: <x>`:
 
 - Render a visible, chrome-styled placeholder card containing the exact note,
@@ -90,7 +94,7 @@ worse than a flagged one, because it passes review while being unverified.
 - **Composite** — showcase the assembled block (form, modal, table, dropdown)
   and its whole-pattern states: empty, loading, error/validation, populated.
   Build it from the atomic markup you already authored, not from scratch, so the
-  mockup also tests that the atoms compose cleanly.
+  preview also tests that the atoms compose cleanly.
 - **Layout / structural** — these become `layouts/` pages, not component cards.
   Show the region (sidebar, header, content) at its documented sizes, and its
   variants (sidebar collapsed/expanded, panel open/closed) as separate samples
