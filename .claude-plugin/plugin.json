@@ -38,6 +38,7 @@
     "./skills/gh-commit-context/",
     "./skills/gh-committer/",
     "./skills/gh-issue/",
-    "./skills/gh-pr/"
+    "./skills/gh-pr/",
+    "./skills/cc-artifact/"
   ]
 }

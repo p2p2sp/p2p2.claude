@@ -26,6 +26,7 @@ the single injected manifest routes every request to the right skill / chain.
 | `dev-` | Development pipeline + diagnostics/specs | `dev-interview`, `dev-extraplan`, `dev-plan-review`, `dev-orchestrate`, `dev-adr`, `dev-decompose`, `dev-code`, `dev-run`, `dev-task-review`, `dev-final-review`, `dev-plan-audit`, `dev-smoke`, `dev-improve`, `dev-committer`, `dev-tdd`, `dev-debug`, `dev-spec` |
 | `ui-` | Design / frontend | `ui-extract`, `ui-component-creator`, `ui-adapt`, `ui-web-preview`, `ui-guardian` |
 | `gh-` | GitHub | `gh-cli`, `gh-cli-exec`, `gh-commit-context`, `gh-committer`, `gh-issue`, `gh-pr` |
+| `cc-` | Claude Code platform | `cc-artifact` — opt-in, main-session publisher of one self-contained `.html`/`.htm`/`.md` file as a shareable Claude Code Artifact; validates single-file / no-external-ref / size, asks first, falls back to the local path (fail-open) |
 
 ## How it works
 
@@ -44,7 +45,7 @@ the single injected manifest routes every request to the right skill / chain.
   marketplace.json   Marketplace catalog (lists superdev by source "./")
   plugin.json        Plugin manifest (skills[])
 hooks/               One injected manifest + two hook scripts
-skills/              Skills grouped by prefix (mem- / dev- / ui- / gh-)
+skills/              Skills grouped by prefix (mem- / dev- / ui- / gh- / cc-)
 .claude/rules/       Development-only conventions for this repo
 ```
 

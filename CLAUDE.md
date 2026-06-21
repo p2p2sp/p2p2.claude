@@ -35,7 +35,7 @@ hooks/               One injected dispatcher manifest + two hook scripts
   hooks.json         SessionStart (inject manifest) + PreToolUse on ExitPlanMode (plan gate)
   content/manifest.md  The injected `using-superdev` dispatcher
   scripts/           session-start.sh, review-plan.sh
-skills/              Skills grouped by prefix (mem- / dev- / ui- / gh-)
+skills/              Skills grouped by prefix (mem- / dev- / ui- / gh- / cc-)
 README.md            User-facing help (install + how it works)
 .claude/rules/       Development-only conventions for this repo
 ```
@@ -78,6 +78,10 @@ manifest (`hooks/content/manifest.md`).
   work to documented tokens / components before edits).
 - **`gh-`** — GitHub: `gh-cli` (+ `gh-cli-exec`), `gh-commit-context` (entry) + `gh-committer`,
   `gh-issue`, `gh-pr`.
+- **`cc-`** — Claude Code platform (1 skill): `cc-artifact` (opt-in, main-session publisher of ONE
+  self-contained `.html`/`.htm`/`.md` file as a shareable Claude Code Artifact; validates single-file /
+  no-external-ref / size, asks first, falls back to the local path — fail-open). Never forked, never part of
+  the 3-line orchestrator pipeline. Chains: `ui-web-preview → cc-artifact`, `dev-plan-review PASS → cc-artifact`.
 
 ## Architecture invariants
 

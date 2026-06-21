@@ -77,6 +77,9 @@ Iron, universal, always-on. Not overridden by convenience or brevity; only an ex
 - `superdev:gh-issue` — interactive, template-driven issue creation.
 - `superdev:gh-pr` — interactive, template-driven draft-PR creation.
 
+**cc- — Claude Code platform**
+- `superdev:cc-artifact` — opt-in, main-session publisher of ONE self-contained file (`.html`/`.htm`/`.md`) as a shareable Claude Code Artifact; validates single-file / no-external-ref / size, asks first, falls back to the local path (fail-open). Never forked, never in the 3-line pipeline.
+
 ## Memory layer division
 
 Project memory is split across five **non-overlapping** layers — pick by *what kind of truth* you are recording, never by convenience. Behavioural/functional description belongs in layer 5, never in a rule, an ADR, or a spec.
@@ -107,6 +110,7 @@ Follow the chosen chain end-to-end.
 - **spec → issue**: `dev-spec` → `gh-issue`.
 - **ship → PR**: `dev-final-review` go → `gh-pr`.
 - **GitHub ops**: `gh-cli` (layer reference) → `gh-cli-exec` (fork executor); `gh-commit-context` (entry) → `gh-committer` (fork).
+- **share as artifact**: `ui-web-preview → cc-artifact` (publish a generated web preview as a shareable link); `dev-plan-review PASS → cc-artifact` (publish an approved plan as a shareable page). Opt-in, main-session, fail-open to the local path.
 - **memory / learning**: `mem-init` / `mem-rules` / `mem-doc`; `dev-improve` promotes convention learnings into the `mem-rules` contract.
 - **documentation**: `mem-doc` authors `.docs/documentation/` (interactive writer + contract owner). In-pipeline, `dev-improve` syncs each task's `## Docs` target per the `mem-doc` contract (Option C — no extra loop step); `dev-final-review` then runs `mem-guardian` as the terminal doc↔code audit gate (4th sub-gate: did docs move with the code?).
 
