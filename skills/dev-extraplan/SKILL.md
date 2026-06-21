@@ -155,6 +155,39 @@ See `templates/plan.md`. Copy it verbatim and fill each section.
 
 ---
 
-## 8. One-line summary
+## 8. Publish the approved plan as an artifact (optional)
+
+When the user wants to **share** the approved plan as a live link (not a
+`.claude/plans/<slug>.md` path), hand it to the `cc-artifact` skill. This is
+opt-in and runs in the main session only — never as part of any fork or the
+orchestrator pipeline. It is also entirely separate from the implementation flow:
+publishing the plan does not gate, replace, or feed `decomposer` / `orchestrator`.
+
+Assemble ONE `.md` file, then invoke `cc-artifact` with that file and a title:
+
+1. **Prepend a `## Review verdict` block** to the plan body. Take the verdict
+   from the `dev-plan-review` output **already present in this session** — the
+   `STATUS:` line (`PASS` / `FAIL`) plus the 🔴 / 🟡 / 🟢 severity markers it
+   emitted. Do **not** re-run `dev-plan-review`, and do **not** parse the raw
+   transcript to reconstruct it — use the verdict the reviewer already returned in
+   this session. The block sits above the plan body so a reader sees the review
+   outcome first; the plan body follows verbatim.
+2. **Write the assembled `.md`** (verdict block + plan body) to a file on disk.
+3. **Invoke `cc-artifact`** with that file path and a short title (e.g. the
+   plan's §1 Scope sentence). `cc-artifact` validates it is a single, size-bounded,
+   external-reference-free `.md`, asks before publishing, and either publishes it
+   as a private shareable page or falls back to reporting the local path.
+
+**Fallback — verdict no longer available.** If no `dev-plan-review` verdict is
+present in this session (e.g. the plan was approved in an earlier session, or
+review was skipped), do **not** fabricate one and do **not** parse the transcript.
+Either publish the plan body **without** the `## Review verdict` block, or offer to
+re-run `dev-plan-review` first and prepend the fresh verdict — let the user choose.
+A published plan with no verdict block is valid; a published plan with an invented
+verdict is not.
+
+---
+
+## 9. One-line summary
 
 A plan is only good if a careful reader, with no extra context, could approve or reject it in under three minutes and predict 90% of the resulting diff. ExtraPlan enforces exactly that bar — for *what changes and why*. *How to execute* is the next step, owned by `decomposer`.

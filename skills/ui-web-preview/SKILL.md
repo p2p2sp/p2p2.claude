@@ -127,6 +127,52 @@ utilities resolve in the browser with no build step. Exact `head` templates per
 branch, theme-injection mechanics, the OKLCH case, dark-mode + state-toggle JS,
 and offline vendoring for the Tailwind branches: `references/page-anatomy.md`.
 
+## Share a preview as an artifact (standalone single-file emit)
+
+The multi-file site above is the default. When the user wants to **share** a
+preview as a live link (not a `file://` path), emit a single self-contained file
+and hand it to the `cc-artifact` skill. The builder's `standalone` command writes
+ONE network-free HTML page by inlining the showcase CSS/JS and the active
+target's theme directly, and dropping every relative `assets/…` link:
+
+```bash
+python scripts/build_site.py standalone \
+  --design-system .docs/layout/design-system \
+  --target <chosen> \
+  --out .docs/layout/preview \
+  --manifest manifest.json \
+  --dest .docs/layout/preview/standalone.html
+# add --page "<manifest path or title>" to emit one page;
+# default is the combined showcase of every manifest page.
+```
+
+It produces a file built to satisfy the Claude Code Artifact CSP (one file, no
+external requests, in-page anchors only), so `cc-artifact` will validate and
+publish it without edits. The natural chain is **`ui-web-preview → cc-artifact`**:
+emit the standalone file here, then invoke `cc-artifact` with that `--dest` path
+and a title to publish it as a private, shareable page (or fall back to the local
+path when artifacts are unavailable). Run the multi-file `build` for local review;
+run `standalone` only when producing a shareable link.
+
+**Caveats — size & Tailwind vendoring:**
+
+- **`pure-css` is cleanest.** Its theme is plain CSS, so `standalone` inlines it
+  verbatim and the page is fully offline by construction — nothing to vendor.
+- **`tailwind` / `react-shadcn` need the vendored build.** Inlining the CDN
+  `<script>` tag is not enough — an artifact cannot fetch the CDN, so `standalone`
+  inlines the **vendored** browser build instead. Run `init --vendor-tailwind`
+  first; without `assets/tailwindcss-browser.js` the `standalone` command refuses
+  (non-zero exit) rather than emit a page that fetches at runtime.
+- **Size.** Inlining the vendored Tailwind build plus every page into one file
+  makes the Tailwind-branch standalone file large; an artifact is a single
+  page (CSP cap ~16 MiB). Prefer `--page` to emit one page, or use `pure-css`,
+  when the combined showcase grows too big to publish.
+
+If the active theme/fragment carries an external `url()` / `http(s)://` / `//host`
+reference (which the artifact CSP forbids), `standalone` refuses with the
+offending reference named — inline or remove it at the source, then re-emit. →
+the standalone single-file inlining contract in `references/page-anatomy.md`.
+
 ## Workflow
 
 Phases in order. The builder script handles all boilerplate; author judgment
@@ -238,10 +284,13 @@ the design system.
 
 ## Scripts
 Plain Python 3 (stdlib only — no install needed).
-- `scripts/build_site.py init|build …` — scaffolds the site + shared assets,
-  injects the active target's theme artifact into every page (selecting the
-  delivery branch from `target.md`), and generates `index.html` from the
-  manifest. Run `python scripts/build_site.py --help`.
+- `scripts/build_site.py init|build|standalone …` — `init`/`build` scaffold the
+  multi-file site + shared assets, inject the active target's theme artifact into
+  every page (selecting the delivery branch from `target.md`), and generate
+  `index.html` from the manifest. `standalone` emits ONE self-contained,
+  network-free HTML file (Claude Code Artifact) by inlining the CSS/JS + theme and
+  dropping relative `assets/…` links — the input to `cc-artifact` (see "Share a
+  preview as an artifact" above). Run `python scripts/build_site.py --help`.
 
 ## Related skills
 - **ui-adapt** — adapts the agnostic L1 system to one concrete target, producing
@@ -251,3 +300,7 @@ Plain Python 3 (stdlib only — no install needed).
 - **ui-extract** — produces the framework-agnostic L1 system (`tokens.css`,
   `components/inventory.md` + specs) that `ui-adapt` reads. Run it first if no
   design system exists at all.
+- **cc-artifact** — publishes the `standalone` single-file emit as a private,
+  shareable Claude Code Artifact (a live link instead of a `file://` path). The
+  downstream chain `ui-web-preview → cc-artifact` — emit the standalone file here,
+  then publish it there. (Reference by name; load on demand.)

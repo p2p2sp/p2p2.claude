@@ -15,6 +15,7 @@ rely on.
 - [Showcase chrome vs design-system surface](#showcase-chrome-vs-design-system-surface)
 - [The manifest](#the-manifest)
 - [Offline vendoring (optional, Tailwind branches)](#offline-vendoring-optional-tailwind-branches)
+- [The standalone single-file emit (artifact-conformant)](#the-standalone-single-file-emit-artifact-conformant)
 
 ## The page shell
 
@@ -227,3 +228,49 @@ Pass `--vendor-tailwind` to `init` to have the builder attempt this and rewrite
 the shell `<script>` to the local copy. If the registry is unreachable, the
 builder leaves the CDN tag and warns. Default is the CDN tag. (No effect on a
 `pure-css` target — that branch emits no `<script>` to rewrite.)
+
+## The standalone single-file emit (artifact-conformant)
+
+The multi-file `build` above writes a site whose pages reference shared
+`assets/…` files (and, on a Tailwind branch, the CDN). That is correct for local
+`file://` review but **not** publishable as a Claude Code Artifact: an artifact is
+exactly **one** self-contained file under a strict CSP — no external requests, no
+relative-link resolution, one page. `build_site.py standalone` emits that
+conformant file; `cc-artifact` then validates and publishes it.
+
+**What gets inlined.** `standalone` composes ONE page by inlining everything the
+multi-file shell links out to:
+
+- The showcase CSS and the dark-mode / state-toggle JS go **inline** in a
+  `<style>` and a `<script>` block (no `assets/preview.css` / `assets/preview.js`
+  `<link>`/`<src>`).
+- The active target's theme artifact is injected per its branch (above): the
+  `pure-css` `styles.css` as a plain `<style>`; the `tailwind` / `react-shadcn`
+  theme inside a `text/tailwindcss` block — but the Tailwind browser build is
+  inlined from the **vendored** `assets/tailwindcss-browser.js`, never the CDN
+  `<script>` tag (an artifact cannot reach the CDN).
+- The body is either one named page (`--page <manifest path or title>`) or the
+  **combined showcase** — every manifest page stacked under one `<main>` with
+  in-page `#anchor` links and a table of contents (the default).
+
+The result is written to `--dest`; every relative `assets/…` link is dropped.
+
+**The no-external-reference invariant.** A published artifact's CSP forbids any
+off-page request, so `standalone` refuses (non-zero exit, with the offending
+reference named) rather than emit a page that would fetch at runtime:
+
+- An `http(s)://` or protocol-relative `//host` reference anywhere in the theme or
+  a fragment (in a `url(...)`, `href`, `src`, `@import`, …) → refused. `data:`
+  URIs and bare in-page `#anchor` fragments are **not** external and are allowed.
+- A `tailwind` / `react-shadcn` target with no vendored build at
+  `assets/tailwindcss-browser.js` → refused (inlining the CDN tag would leave a
+  live fetch). Run `init --vendor-tailwind` first, or use `pure-css` for a
+  fully-offline page by construction.
+
+These are the same three guarantees `cc-artifact` re-checks before publishing
+(single file / no external references / size-bounded), so a `standalone` emit
+passes that validation by construction — the chain is `standalone → cc-artifact`.
+The `pure-css` branch is the cleanest source (plain CSS inlined verbatim, nothing
+to vendor); the Tailwind branches inline the vendored build, which makes the file
+larger — prefer `--page` or `pure-css` if the combined showcase grows past the
+single-page size budget.
