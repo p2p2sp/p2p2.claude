@@ -386,6 +386,176 @@ def cmd_build(args):
               f"tailwind via {'vendored file' if vendored else 'CDN'}")
 
 
+# --- standalone (single-file, network-free) -------------------------------
+#
+# Claude Code Artifacts publish exactly ONE self-contained file under a strict
+# CSP: no external requests, no relative-link resolution, one page, <=16 MiB.
+# `standalone` emits that conformant file by inlining MOCKUP_CSS + MOCKUP_JS and
+# the theme directly into the page and dropping every relative assets/ link.
+
+STANDALONE_TEMPLATE = """<!doctype html>
+<html lang="en"{HTML_ATTR}>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{TITLE}</title>
+{THEME_HEAD}
+<style>
+{MOCKUP_CSS}
+</style>
+</head>
+<body class="mk-body">
+<header class="mk-bar">
+  <span class="mk-bar__title">{TITLE}</span>
+  <button class="mk-bar__toggle" type="button" data-theme-toggle aria-label="Toggle dark mode">◐ Theme</button>
+</header>
+{BODY}
+<script>
+{MOCKUP_JS}
+</script>
+</body>
+</html>
+"""
+
+# An external reference forbidden inside a published artifact: an http(s):// URL
+# or a protocol-relative (//host) URL, in a `url(...)` or anywhere in the text.
+# `data:` URIs and bare `#anchor` refs are NOT external and are left alone — the
+# negative lookbehind for `:` keeps a `data:.../...//...` payload from matching.
+_EXTERNAL_REF_RE = re.compile(
+    r"https?://"            # http://… or https://…
+    r"|(?<![a-z0-9:])//",   # protocol-relative //host (not preceded by scheme/word)
+    re.IGNORECASE)
+
+
+def find_external_refs(text):
+    """Return the external/protocol-relative references in `text`.
+
+    Catches `http(s)://` and protocol-relative `//host` (the references a
+    published-artifact CSP forbids); `data:` URIs and `#anchor` refs are allowed.
+    Empty list means the text is safe to inline into a standalone file."""
+    return _EXTERNAL_REF_RE.findall(text)
+
+
+def _refuse_external(label, text):
+    """sys.exit with guidance if `text` carries any external reference."""
+    bad = find_external_refs(text)
+    if bad:
+        sys.exit(
+            f"ERROR: {label} carries external reference(s) {sorted(set(bad))} "
+            "that a published artifact's CSP forbids. Remove or inline the "
+            "external resource (url()/http(s)/// ) before emitting a standalone "
+            "file.")
+
+
+def _slugify(text):
+    """A stable in-page anchor id from a page title."""
+    s = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+    return s or "page"
+
+
+def cmd_standalone(args):
+    """Emit ONE self-contained, network-free HTML file (Claude Code Artifact).
+
+    Inlines MOCKUP_CSS + MOCKUP_JS and the active target's theme; drops every
+    relative assets/ link. Refuses (non-zero exit) rather than emit a page that
+    would make an external request: a Tailwind branch with no vendored build, or
+    a theme/fragment carrying an external url()/http(s)///  reference."""
+    cfg = resolve_target(args.target)  # web target or sys.exit with guidance
+    branch = cfg["branch"]
+    with open(args.manifest, encoding="utf-8") as f:
+        manifest = json.load(f)
+    theme, theme_name = read_theme(target_dir(args.design_system, args.target),
+                                   cfg["candidates"])
+
+    # An external reference in the theme cannot be inlined without violating the
+    # artifact CSP — refuse instead of shipping a page that fetches at runtime.
+    _refuse_external(f"theme artifact {theme_name!r}", theme)
+
+    if branch == "plain":
+        theme_head_html = f"<style>\n{theme}\n</style>"
+    else:
+        # Tailwind branch: inline the vendored browser build so the page makes no
+        # CDN request (the artifact CSP forbids it). With only the CDN tag and no
+        # vendored build, refuse rather than emit a page that fetches at runtime.
+        vendored = os.path.join(args.out, "assets", "tailwindcss-browser.js")
+        if not os.path.isfile(vendored):
+            sys.exit(
+                f"ERROR: target {args.target!r} needs Tailwind, but no vendored "
+                "build was found at assets/tailwindcss-browser.js. A published "
+                "artifact cannot fetch the CDN. Run `init --vendor-tailwind` to "
+                "vendor the browser build, or use the pure-css target for a "
+                "fully-offline page.")
+        with open(vendored, encoding="utf-8") as f:
+            tw_js = f.read()
+        theme_head_html = (
+            f'<script>\n{tw_js}\n</script>\n'
+            f'<style type="text/tailwindcss">\n@import "tailwindcss";\n'
+            f'{theme}\n</style>')
+
+    pages = manifest.get("pages", [])
+    title = manifest.get("title", "Design System — Mockups")
+    only = getattr(args, "page", None)
+    body = _standalone_body(args.out, pages, only)
+
+    html = (STANDALONE_TEMPLATE
+            .replace("{HTML_ATTR}", "")
+            .replace("{TITLE}", title)
+            .replace("{THEME_HEAD}", theme_head_html)
+            .replace("{MOCKUP_CSS}", MOCKUP_CSS)
+            .replace("{MOCKUP_JS}", MOCKUP_JS)
+            .replace("{BODY}", body))
+
+    dest = args.dest
+    os.makedirs(os.path.dirname(os.path.abspath(dest)), exist_ok=True)
+    with open(dest, "w", encoding="utf-8") as f:
+        f.write(html)
+    scope = f"page {only!r}" if only else f"{len(pages)} pages (combined showcase)"
+    print(f"standalone: wrote {dest} ({scope}; target {args.target}, "
+          f"theme {theme_name}, fully inline, no external requests)")
+
+
+def _read_fragment(out, page):
+    """Read one manifest page's fragment, refusing on an external reference."""
+    frag_path = os.path.join(out, page["fragment"])
+    if not os.path.isfile(frag_path):
+        sys.exit(f"ERROR: fragment not found: {frag_path}")
+    with open(frag_path, encoding="utf-8") as f:
+        content = f.read()
+    _refuse_external(f"fragment {page['fragment']!r}", content)
+    return content
+
+
+def _standalone_body(out, pages, only):
+    """Compose the <main> body: a single named page, or the combined showcase
+    (every manifest page stacked under one <main> with in-page anchors + TOC)."""
+    if only is not None:
+        match = next((p for p in pages if p["path"] == only
+                      or p.get("title") == only), None)
+        if match is None:
+            sys.exit(f"ERROR: page {only!r} not found in manifest. "
+                     f"Known paths: {', '.join(p['path'] for p in pages)}.")
+        content = _read_fragment(out, match)
+        cls = MAIN_CLASS.get(match.get("layout", "showcase"),
+                             MAIN_CLASS["showcase"])
+        return f'<main class="{cls}">\n{content}\n</main>'
+
+    # Combined showcase: a TOC plus every page stacked under one showcase <main>,
+    # each behind a generated in-page anchor so the TOC links resolve in-page.
+    sections, toc = [], []
+    for p in pages:
+        anchor = _slugify(p.get("title", p["path"]))
+        toc.append(f'    <li><a href="#{anchor}">{p["title"]}</a></li>')
+        content = _read_fragment(out, p)
+        sections.append(
+            f'<section id="{anchor}" class="mk-section">\n'
+            f'<h2 class="mk-section__title">{p["title"]}</h2>\n'
+            f'{content}\n</section>')
+    toc_html = ('<nav class="mk-toc">\n  <ul>\n' + "\n".join(toc)
+                + '\n  </ul>\n</nav>')
+    return (f'<main class="{MAIN_CLASS["showcase"]}">\n{toc_html}\n'
+            + "\n".join(sections) + "\n</main>")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -408,6 +578,21 @@ def main():
     b.add_argument("--out", required=True, help="output mockups directory")
     b.add_argument("--manifest", required=True, help="manifest.json describing the pages")
     b.set_defaults(func=cmd_build)
+
+    s = sub.add_parser("standalone",
+                       help="emit ONE self-contained, network-free HTML file "
+                            "(Claude Code Artifact) by inlining CSS/JS + theme")
+    s.add_argument("--design-system", required=True, help="design-system directory")
+    s.add_argument("--target", required=True,
+                   help=f"active web target (one of: {web})")
+    s.add_argument("--out", required=True,
+                   help="mockups directory (holds content/ + any vendored assets/)")
+    s.add_argument("--manifest", required=True, help="manifest.json describing the pages")
+    s.add_argument("--dest", required=True, help="output single-file HTML path")
+    s.add_argument("--page", default=None,
+                   help="emit only this page (its manifest path or title); "
+                        "default is the combined showcase of all pages")
+    s.set_defaults(func=cmd_standalone)
 
     args = ap.parse_args()
     args.func(args)
