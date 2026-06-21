@@ -21,6 +21,8 @@ The project memory system has three layers, each loaded differently:
 
 **This skill owns layer 3 only.** It does not touch layers 1–2 (CLAUDE.md → the `mem-init` skill; the manifest → the SessionStart hook).
 
+**Boundary with `.docs/documentation/` (no overlap).** `.claude/rules/` holds **conventions** — how to write code in an area (naming, error shape, the path-scoped *should/must* a future edit follows). Behavioural/functional description — *what a feature does today* — belongs in `.docs/documentation/` (the `mem-doc` layer), **never** in a rule. If a candidate reads like "feature X behaves like Y," it is documentation, not a rule; route it to `mem-doc`. Rules stay **NARROW** (narrowest `paths:` glob, §B), **TARGETED** (one area per file, §C), and **IMPORTANT-ONLY** (passes the §G worth-recording filter) — describing behaviour would blow all three.
+
 ## Mode gate — decide this first
 
 - **Bootstrap (full reset)** — you were invoked to initialize / regenerate / reset the whole rules library → run the **Bootstrap procedure** below (it enters plan mode).
