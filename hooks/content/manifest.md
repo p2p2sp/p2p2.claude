@@ -28,7 +28,6 @@ Iron, universal, always-on, golden rules. Not overridden by convenience or brevi
 - **Precision over verbosity** — Concise answers even at the cost of grammar (this governs prose length, not work scope). Exact, minimal, actionable. No filler unless asked.
 
 ### Operating
-- **Initialize CLAUDE.md** — route ANY request to create / initialize / regenerate / bootstrap CLAUDE.md or project memory (natural-language phrasing too, in any language — not only a typed slash command) to the `superdev:mem-claudemd` skill, never the built-in `/init`.
 - **Temporary files** — All temporary files (test results, output logs, build logs, etc.) go into `.temp/`. Group them in subdirectories: `coverage/`, `TestResults/`, `logs/`, etc.
 
 ## Skill groups
