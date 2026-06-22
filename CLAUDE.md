@@ -79,7 +79,7 @@ the injected manifest (`hooks/content/manifest.md`) documents the prefix **group
 not individual skills.
 
 - **(no prefix)** — `setup`: one-time, user-only environment bootstrap (`/setup`). Seeds `.temp/` + `.superdev/`,
-  copies the bundled `.gitignore` / `.claude/settings.json` templates, and **interactively asks the 5 opt-in
+  copies the bundled `.gitignore` / `.claude/settings.json` templates, and **interactively asks the 2 opt-in
   switches → writes `.superdev/config.yml`** (never overwriting an existing one). Runs in the **main session**
   (not a fork) so it can prompt via `AskUserQuestion`. It is `disable-model-invocation` (Claude never auto-routes
   to it) so it is **deliberately absent from the manifest** — see the Self-documentation invariant.
@@ -95,8 +95,8 @@ not individual skills.
   promotes each task's review learnings into layer 3 (`.claude/rules/`), a config-gated step (`rules_improver`).
   The product's **end-user** help documentation is a distinct, non-agent layer owned by the `doc-` group below
   (NOT agent memory).
-- **`doc-`** — end-user documentation (1 skill): `doc-help` (the end-user product-help layer → `.superdev/help/`,
-  config-gated by `help`). Authors the human-facing help that ships to the people who use the built app — distinct
+- **`doc-`** — end-user documentation (1 skill): `doc-help` (the end-user product-help layer → `.superdev/help/`).
+  Authors the human-facing help that ships to the people who use the built app — distinct
   from the agent-facing `mem-` layers above; faces the end user, not Claude.
 - **`dev-`** — the agentic-development pipeline + diagnostics/specs (16 skills): planning
   (`dev-interview`, `dev-extraplan`, `dev-plan-reviewer`), the orchestrated implementation pipeline
@@ -117,17 +117,16 @@ not individual skills.
 
 ## Architecture invariants
 
-- **One injected manifest, config-aware.** A single `SessionStart` hook force-injects `hooks/content/manifest.md`
-  (the `using-superdev` dispatcher) once per session; `source == "resume"` is excluded by the matcher; fail-open.
-  The hook **renders** the manifest from `.superdev/config.yml`: each switchable area is wrapped in
-  `<!--SUPERDEV:AREA x-->` sentinels, and a disabled area's block is replaced by a one-line OFF directive (the
-  sentinel markers are always stripped). A missing/unreadable config = everything enabled.
-- **Opt-in switches (`.superdev/config.yml`).** Five booleans — `adr`, `artifacts`, `help`, `rules_improver`,
-  `ui` — all **default-enabled** (a missing file/key = `true`, fail-open; a repo that never ran
-  `/setup` behaves exactly as before). `setup` writes the file; the `SessionStart` hook gates main-session routing
-  (OFF directives in the manifest — `artifacts`, `ui`, and `help` are gated here); `dev-orchestrator` reads the
-  config and skips the `dev-adr-analyzer` / `dev-improver` steps — each skip is **one terse line, never a
-  paragraph**. Config readers are only the hook, `dev-orchestrator`, and `setup` (writer).
+- **One injected manifest.** A single `SessionStart` hook force-injects `hooks/content/manifest.md`
+  (the `using-superdev` dispatcher) **verbatim** once per session; `source == "resume"` is excluded by the
+  matcher; fail-open (an unreadable manifest = banner only, no `additionalContext`). The hook does no
+  per-project rendering — the manifest is injected as-is, identically for every project.
+- **Opt-in switches (`.superdev/config.yml`).** Two booleans — `adr`, `rules_improver` — both
+  **default-enabled** (a missing file/key = `true`, fail-open; a repo that never ran `/setup` behaves exactly
+  as before). `setup` writes the file; `dev-orchestrator` reads the config and skips the `dev-adr-analyzer` /
+  `dev-improver` steps — each skip is **one terse line, never a paragraph**. Config readers are
+  `dev-orchestrator` and `setup` (writer); the `SessionStart` hook does not read config (the manifest is
+  injected verbatim, the same for every project).
 - **Plan gate, plan-mode-enforced.** Planning always happens in plan mode, enforced by **two** `PreToolUse`
   hooks: `require-plan-mode.sh` (matcher `Write|Edit`) denies writing a plan file (`.claude/plans/*.md`) unless
   `permission_mode == "plan"` — forcing `EnterPlanMode` regardless of the starting mode — and `review-plan.sh`

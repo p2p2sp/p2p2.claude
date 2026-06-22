@@ -57,25 +57,15 @@ Follow the chosen chain end-to-end.
 - **feature-from-scratch**: `dev-interview` → `dev-extraplan` → plan gate (`dev-plan-reviewer` PASS) → `dev-orchestrator`.
 - **bug-fix**: small → direct edit · larger → `dev-extraplan` → `dev-orchestrator`.
 - **implementation pipeline** (inside `dev-orchestrator`): `dev-adr-analyzer` → `dev-decomposer` → per task (`dev-coder` → `dev-runner` → `dev-task-reviewer` → `dev-improver` → scripted commit (`commit-task.sh`)) → `dev-final-reviewer` (own sub-pipeline: `dev-plan-auditor` → `dev-runner` full → `dev-smoke` → synthesis → go/no-go). Two of its steps are config-gated — the orchestrator skips each (one terse line) when its switch is off:
-<!--SUPERDEV:AREA adr-->
 - ADR capture is active — `dev-adr-analyzer` judges the approved plan for an ADR-worthy decision before decomposition.
-<!--/SUPERDEV:AREA adr-->
-<!--SUPERDEV:AREA rules_improver-->
 - Rules auto-learning is active — `dev-improver` promotes each task's review learnings into `.claude/rules/`.
-<!--/SUPERDEV:AREA rules_improver-->
-<!--SUPERDEV:AREA ui-->
 - **design → implementation**: `ui-extract` (or `ui-component-creator`) → `ui-adapt` → `ui-web-preview` → `ui-guardian` → `dev-orchestrator`.
-<!--/SUPERDEV:AREA ui-->
 - **spec → issue**: `dev-spec` → `gh-issue`.
 - **ship → PR**: `dev-final-reviewer` go → `gh-pr`.
 - **GitHub ops**: `gh-cli` (layer reference) → `gh-cli-executor` (fork executor); `gh-commit-context` (entry) → `gh-committer` (fork).
-<!--SUPERDEV:AREA artifacts-->
 - **share as artifact**: `ui-web-preview → cc-artifact` (publish a generated web preview as a shareable link); `dev-plan-reviewer PASS → cc-artifact` (publish an approved plan as a shareable page). Opt-in, main-session, fail-open to the local path.
-<!--/SUPERDEV:AREA artifacts-->
 - **memory / learning**: `mem-claudemd` / `mem-rules`; `dev-improver` promotes convention learnings into the `mem-rules` contract.
-<!--SUPERDEV:AREA help-->
 - **end-user help**: `doc-help` authors / maintains the application's end-user help documentation under `.superdev/help/` — the human-facing product docs, distinct from agent memory. Platform-agnostic on file syntax — pair with a generator/platform skill for the mechanics.
-<!--/SUPERDEV:AREA help-->
 
 
 ## Planning discipline

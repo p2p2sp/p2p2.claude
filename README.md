@@ -35,9 +35,10 @@ the single injected manifest routes every request to the right skill / chain.
   across all domains (instruction priority, the 1% rule, decision flow, the skill catalog, the natural
   chains, and red flags).
 - **Skills auto-engage via CSO** — each skill's `description:` is its trigger, in any language.
-- **Opt-in per project** — `/setup` writes `.superdev/config.yml` (five switches: `adr`, `artifacts`,
-  `help`, `rules_improver`, `ui`). A disabled area is dropped from the injected manifest and skipped by
-  the pipeline; a missing config means everything is enabled, so superdev works fully out of the box.
+- **Opt-in per project** — `/setup` writes `.superdev/config.yml` (two switches: `adr`, `rules_improver`).
+  The routing manifest is always injected as-is; a disabled switch only skips its `dev-orchestrator` pipeline
+  step (`dev-adr-analyzer` / `dev-improver`); a missing config means everything is enabled, so superdev works
+  fully out of the box.
 - **The implementation pipeline is file-based**: `dev-orchestrator` dispatches forked executors that hand
   state through files and reply with a 3-line status, keeping the main context lean.
 - **Planning always happens in plan mode.** Whatever mode you start in, superdev enters plan mode before

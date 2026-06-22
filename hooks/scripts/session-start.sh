@@ -7,35 +7,24 @@
 # obra/superpowers `session-start` pattern (inline the whole manifest verbatim),
 # minus its multi-platform (Cursor/Copilot) and legacy-warning branches.
 #
-# Config-aware injection: the manifest wraps each opt-in area in sentinel pairs
-#   <!--SUPERDEV:AREA <name>--> ... <!--/SUPERDEV:AREA <name>-->
-# This hook reads the host project's `.superdev/config.yml` and, for every area
-# whose switch is `false`, replaces that area's block(s) with ONE short OFF
-# directive (printed once, at the area's first block). Enabled areas keep their
-# content; the sentinel marker lines are always stripped from what is injected.
-# A missing / unreadable config means EVERYTHING is enabled (fail-open) — a
-# project that never ran `/superdev:setup` behaves exactly as before this hook.
-#
 # Contract:
 #   stdin  : JSON with at least { "source": "startup"|"resume"|"clear"|"compact" }
 #   stdout : { "systemMessage": "superdev loaded <version>",
 #              "hookSpecificOutput": { "hookEventName": "SessionStart",
-#                                      "additionalContext": "<rendered manifest>" } }
+#                                      "additionalContext": "<manifest>" } }
 #            OR (manifest unreadable) only the systemMessage / hookEventName,
 #            without additionalContext.
 #   exit 0 : always (fail-open; decisions are conveyed in stdout, not exit code).
 #
-# Wrapping discipline: this script injects the manifest VERBATIM (modulo the
-# config-driven area swap above). Any wrapping markers (e.g. <EXTREMELY_IMPORTANT>)
-# live in `hooks/content/manifest.md` itself, NOT here. Same for any preamble.
+# Wrapping discipline: this script injects the manifest VERBATIM. Any wrapping
+# markers (e.g. <EXTREMELY_IMPORTANT>) live in `hooks/content/manifest.md`
+# itself, NOT here. Same for any preamble.
 #
 # Policy:
 #   - source == "resume"  -> excluded by the matcher in hooks.json (the prior
 #                            injection reloads with the transcript), so this
 #                            script does not fire on resume.
 #   - manifest unreadable -> skip additionalContext (banner still fires).
-#   - config unreadable / awk failure -> inject the manifest with all areas
-#                            enabled (fail-open).
 #   - any error           -> exit 0 (never wedge the harness).
 #
 # SessionStart fires for the main session only (sub-agents use SubagentStart/
@@ -74,49 +63,6 @@ cat >/dev/null 2>&1
 # --- read the manifest verbatim ------------------------------------------
 manifest=""
 [ -n "$manifest_file" ] && manifest="$(cat "$manifest_file" 2>/dev/null)"
-
-# --- render the opt-in areas from .superdev/config.yml -------------------
-# Pure-bash switch read (no jq dependency): a key is OFF only when its value is
-# literally `false`; a missing key, missing file, or unreadable file => ON.
-cfg="${CLAUDE_PROJECT_DIR:-$PWD}/.superdev/config.yml"
-
-read_switch() {
-  # $1 = key. Echoes "false" only when explicitly disabled, else "true".
-  local key="$1" line val
-  [ -f "$cfg" ] || { printf 'true'; return; }
-  line="$(grep -E "^[[:space:]]*${key}[[:space:]]*:" "$cfg" 2>/dev/null | head -n1)"
-  [ -z "$line" ] && { printf 'true'; return; }
-  val="$(printf '%s' "$line" | sed -E "s/^[[:space:]]*${key}[[:space:]]*:[[:space:]]*//; s/[[:space:]]*(#.*)?$//" | tr '[:upper:]' '[:lower:]')"
-  if [ "$val" = "false" ]; then printf 'false'; else printf 'true'; fi
-}
-
-if [ -n "$manifest" ]; then
-  off_areas=""
-  for key in ui artifacts adr rules_improver help; do
-    [ "$(read_switch "$key")" = "false" ] && off_areas="$off_areas $key"
-  done
-
-  # awk transform: strip sentinel markers (always); for an OFF area, replace its
-  # block(s) with a single OFF directive (printed once). Runs in this real bash
-  # script, so awk is fine here (the `!`-exec-shell awk caveat does not apply).
-  rendered="$(printf '%s' "$manifest" | awk -v off="$off_areas" '
-    BEGIN{
-      n=split(off,arr," "); for(i=1;i<=n;i++) if(arr[i]!="") offmap[arr[i]]=1;
-      dir["ui"]="> **UI/design layer is OFF** (user disabled it) — never route to any `ui-*` skill.";
-      dir["artifacts"]="> **Claude Code Artifacts are OFF** (user disabled it) — never route to `cc-artifact`.";
-      dir["adr"]="> **ADR capture is OFF** (user disabled it) — never propose or record ADRs; the orchestrator skips `dev-adr-analyzer`.";
-      dir["rules_improver"]="> **Rules auto-learning is OFF** (user disabled it) — the orchestrator skips the `dev-improver` step.";
-      dir["help"]="> **End-user help layer is OFF** (user disabled it) — never route to `doc-help`.";
-    }
-    /^<!--SUPERDEV:AREA /{ a=$2; sub(/-->.*$/,"",a); inreg=1; supp=0;
-      if(a in offmap){ if(!shown[a]){ print dir[a]; shown[a]=1 } supp=1 } next }
-    /^<!--\/SUPERDEV:AREA /{ inreg=0; supp=0; next }
-    { if(inreg && supp) next; print }
-  ' 2>/dev/null)"
-
-  # Fail-open: only adopt the rendered manifest if the transform produced output.
-  [ -n "$rendered" ] && manifest="$rendered"
-fi
 
 # --- version banner (user-facing, NOT injected into the model) -----------
 # `systemMessage` surfaces in the user's terminal but is NOT added to the

@@ -87,7 +87,7 @@ The host project may disable optional pipeline steps via `config` (preloaded abo
 - `adr: false` → skip the ADR-analysis step below.
 - `rules_improver: false` → skip the per-task `dev-improver` step.
 
-When a config-gated step is skipped, print **one terse line** in the normal progress channel (`ADR: skipped (disabled)`, `[N/max] dev-improver: skipped (disabled)`) — never a paragraph explaining what the step does or why it is off. The remaining switches (`artifacts`, `ui`, `help`) are main-session routing concerns handled by the injected manifest, not this dispatcher.
+When a config-gated step is skipped, print **one terse line** in the normal progress channel (`ADR: skipped (disabled)`, `[N/max] dev-improver: skipped (disabled)`) — never a paragraph explaining what the step does or why it is off.
 
 ## ADR analysis (before decompose)
 
