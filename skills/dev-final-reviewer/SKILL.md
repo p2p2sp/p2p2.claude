@@ -1,6 +1,6 @@
 ---
 name: dev-final-reviewer
-description: "Final go/no-go gate (sub-orchestrator) — runs the terminal review pipeline for a finished plan and returns ONE verdict. It invokes `superdev:dev-plan-auditor` (every task's Deliverable vs the whole plan), then `superdev:dev-runner` with a `Scope: full` signal (the full build/test suite), then `superdev:dev-smoke` (does the app actually boot?), collects their results, and synthesizes a single terminal `PASS` (all gates pass) / `FAIL` (otherwise, with the blocking reason). No retry loop, no improver, no user prompt; nothing is persisted — the verdict is returned directly. Invoked by the orchestrator once after every task is committed. Input/output contract: this skill's `# Input contract` / `# Output format`."
+description: "Final go/no-go gate (sub-orchestrator) — runs the terminal review pipeline for a finished plan and returns ONE verdict. It invokes `superdev:dev-plan-auditor` (every task's Deliverable vs the whole plan), then `superdev:dev-runner` with a `Scope: full` signal (the full build/test suite), then `superdev:dev-smoke` (does the app actually boot?), collects their results, and synthesizes a single terminal `PASS` (plan-auditor PASS and each runtime gate PASS or non-blocking `N/A`) / `FAIL` (otherwise, with the blocking reason). No retry loop, no improver, no user prompt; nothing is persisted — the verdict is returned directly. Invoked by the orchestrator once after every task is committed. Input/output contract: this skill's `# Input contract` / `# Output format`."
 model: opus
 effort: xhigh
 context: fork
@@ -22,12 +22,12 @@ dev-plan-auditor (every task's Deliverable vs the whole plan)
       │  PASS / FAIL
       ▼
 dev-runner (Scope: full — the whole build/test suite)
-      │  PASS / FAIL / …
+      │  PASS / FAIL / ERROR / TIMEOUT / N/A
       ▼
 dev-smoke (does the app actually boot?)
-      │  PASS / FAIL / BLOCKED
+      │  PASS / FAIL / N/A
       ▼
-synthesize ──► STATUS: PASS  (all gates pass)
+synthesize ──► STATUS: PASS  (auditor PASS and each runtime gate ∈ {PASS, N/A})
                STATUS: FAIL  (otherwise — name the blocking sub-step + reason)
 ```
 
@@ -85,8 +85,10 @@ Scope: full
 ```
 
 The `Scope: full` line is the signal that this is the terminal whole-suite run, not a per-task gate. Capture
-the runner's first `STATUS:` line — treat anything other than `PASS` (`FAIL` / `ERROR` / `TIMEOUT` /
-`BLOCKED`) as a non-pass for synthesis — and its summary.
+the runner's first `STATUS:` line and its summary. In full scope the runner may return `N/A — <reason>` (its
+full-scope-only token: the host's `CLAUDE.md` documents no build/test/lint suite at all — nothing to run);
+treat `N/A` as **PASS-eligible** (non-blocking) in synthesis, and treat any other non-`PASS` (`FAIL` /
+`ERROR` / `TIMEOUT`) as a non-pass. Carry the `N/A — <reason>` text through so Step 4 can surface it.
 
 ## Step 3 — Boot / liveness smoke test
 
@@ -97,22 +99,29 @@ boots the app, probes that it is alive, and tears it down:
 (no arguments required — dev-smoke reads the launch command and liveness signal from host CLAUDE.md / .claude/rules/)
 ```
 
-Capture its first `STATUS:` line (`PASS` / `FAIL` / `BLOCKED`) and its summary. Note: `dev-smoke` returns
-`BLOCKED` when the host documented no launch command — for the final verdict treat `BLOCKED` as a non-pass
-(the app's bootability could not be confirmed), and surface in the verdict that host memory is missing a
-launch command so the user can add it.
+Capture its first `STATUS:` line (`PASS` / `FAIL` / `N/A`) and its summary. Note: `dev-smoke` returns
+`N/A — <reason>` when the host documented no launch command (it cannot distinguish "no app" from
+"undocumented app", so this one reason-carrying state covers both) — for the final verdict treat `N/A` as
+**PASS-eligible** (non-blocking), and surface its reason in the verdict body so the user can add a launch
+command if one was simply missing. Only an actual `FAIL` (the app tried to boot and crashed / never went
+live) is a non-pass.
 
 ## Step 4 — Synthesize the verdict
 
-One terminal decision from the three captured `STATUS:` lines:
+One terminal decision from the three captured `STATUS:` lines. `N/A` from the two runtime gates is
+**non-blocking** (PASS-eligible) — it means there is genuinely nothing to run / launch, not that something
+broke:
 
-- `STATUS: PASS` — **every** sub-step returned `PASS` (plan audit, full suite, smoke). The plan is a **go**.
-- `STATUS: FAIL` — **any** sub-step did not return `PASS`. The plan is a **no-go**. Name every failing
-  sub-step and its blocking reason. A `BLOCKED` from `dev-smoke` (no documented launch command) is reported
-  as a no-go with the remediation ("document a launch command").
+- `STATUS: PASS` — `dev-plan-auditor = PASS` **and** `dev-runner ∈ {PASS, N/A}` **and**
+  `dev-smoke ∈ {PASS, N/A}`. The plan is a **go**. When a runtime gate returned `N/A`, surface its
+  `N/A — <reason>` text in the verdict body so a no-runtime repo's clean pass stays visible (and a
+  *real-but-undocumented* suite reads as a visible `N/A`, never a silent green).
+- `STATUS: FAIL` — otherwise: `dev-plan-auditor` did not PASS, **or** any runtime gate returned a
+  non-pass-and-non-`N/A` token (`dev-runner` `FAIL` / `ERROR` / `TIMEOUT`, or `dev-smoke` `FAIL`). The plan is
+  a **no-go**. Name every failing sub-step and its blocking reason.
 
 Never invent a finding of your own — your verdict is purely the synthesis of the three sub-step results.
-Never flip a sub-step's verdict; relay it.
+Never flip a sub-step's verdict; relay it. The synthesized verdict is always `PASS` or `FAIL` — never `N/A`.
 
 # Output format
 
@@ -131,6 +140,22 @@ Summary: GO — plan complete, full suite green, app boots clean.
 - dev-smoke: PASS — <its summary>
 ```
 
+### On PASS (go — no-runtime repo)
+
+When the host has no build/test/lint suite and no launchable app (e.g. a docs/config/plugin-source repo),
+both runtime gates report `N/A` and the plan still passes on plan-completeness alone. Surface each
+`N/A — <reason>` so the green is visible, not silent:
+
+```
+STATUS: PASS
+Summary: GO — plan complete; no runnable suite and no launchable app in this repo (both runtime gates N/A).
+
+## Sub-step results
+- dev-plan-auditor: PASS — <its summary>
+- dev-runner (Scope: full): N/A — <reason, e.g. "CLAUDE.md documents no build/test/lint suite">
+- dev-smoke: N/A — <reason, e.g. "no launch command documented in host memory">
+```
+
 ### On FAIL (no-go)
 
 ```
@@ -139,17 +164,18 @@ Summary: NO-GO — <the single most important blocking reason>.
 
 ## Sub-step results
 - dev-plan-auditor: <PASS|FAIL> — <its summary>
-- dev-runner (Scope: full): <PASS|FAIL|ERROR|TIMEOUT|BLOCKED> — <its summary>
-- dev-smoke: <PASS|FAIL|BLOCKED> — <its summary>
+- dev-runner (Scope: full): <PASS|FAIL|ERROR|TIMEOUT|N/A> — <its summary>
+- dev-smoke: <PASS|FAIL|N/A> — <its summary>
 
 ## Blocking reasons
-- [<failing sub-step>] <the concrete reason it did not pass — Deliverable gap / failing tests / boot failure / no launch command documented>
-- … (one per failing sub-step)
+- [<failing sub-step>] <the concrete reason it did not pass — Deliverable gap / failing tests / boot failure>
+- … (one per failing sub-step; an `N/A` runtime gate is non-blocking and never listed here)
 ```
 
 The `STATUS:` line is the contract the orchestrator surfaces to the user — it must be the literal first line
-and one of `STATUS: PASS` / `STATUS: FAIL`. There is no `BLOCKED` at the synthesized level: a sub-step's
-`BLOCKED` rolls up into `FAIL` with its remediation noted.
+and one of `STATUS: PASS` / `STATUS: FAIL`. There is no `BLOCKED` and no `N/A` at the synthesized level: a
+runtime sub-step's `N/A — <reason>` is **non-blocking** — it does not roll up into `FAIL`; it is PASS-eligible
+and its reason is surfaced in the verdict body.
 
 # Anti-patterns (forbidden)
 
@@ -159,14 +185,16 @@ and one of `STATUS: PASS` / `STATUS: FAIL`. There is no `BLOCKED` at the synthes
   decides go/no-go and stops.
 - Reviewing code line-by-line yourself or raising findings the sub-steps did not surface. Your verdict is the
   synthesis of `dev-plan-auditor` + `dev-runner` + `dev-smoke`, nothing more.
-- Letting a later sub-step's PASS overwrite an earlier sub-step's FAIL. Any non-pass anywhere → `STATUS:
-  FAIL`.
+- Letting a later sub-step's PASS overwrite an earlier sub-step's FAIL. Any non-pass-and-non-`N/A` anywhere →
+  `STATUS: FAIL` (a runtime gate's `N/A` is non-blocking and PASS-eligible — never treat it as a failure).
 - Running `dev-runner` without the `Scope: full` signal. The terminal run is the WHOLE suite, not a task-scoped
   subset.
 - Skipping `dev-smoke` "because tests are green". Build-green / tests-green do not prove the app boots — the
   smoke step is the point of this gate.
-- Emitting `STATUS: BLOCKED` at the synthesized level. A sub-step `BLOCKED` (e.g. `dev-smoke` with no
-  documented launch command) rolls up into `FAIL` with the remediation noted in `## Blocking reasons`.
+- Emitting `STATUS: BLOCKED` or `STATUS: N/A` at the synthesized level. The synthesized verdict is always
+  `PASS` / `FAIL`. A runtime sub-step's `N/A — <reason>` (e.g. `dev-smoke` with no documented launch command,
+  or `dev-runner` with no suite) is **non-blocking** — it does NOT roll up into `FAIL`; it is PASS-eligible
+  and its reason is surfaced in the verdict body.
 - Invoking the sub-steps out of order, or invoking any of them more than once.
 
 # Constraint — technology-agnostic
