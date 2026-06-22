@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# release.sh — tag-driven version bump for the superdev plugin.
+# release.sh — tag-driven version bump for the superdev + superui plugins.
 #
 # Computes the next MAJOR.MINOR.PATCH version (no "v" prefix) from the highest
-# existing git tag, syncs it into .claude-plugin/plugin.json (.version), commits
-# with [skip ci], creates the tag, and pushes the commit + tag to the branch.
+# existing git tag, syncs it into BOTH subdir plugin manifests' .version
+# (superdev/.claude-plugin/plugin.json and superui/.claude-plugin/plugin.json —
+# shared version, one tag namespace), commits with [skip ci], creates the tag,
+# and pushes the commit + tag to the branch.
 #
 # Usage:    .github/scripts/release.sh <major|minor|patch>
 # Source of truth: highest tag matching ^[0-9]+\.[0-9]+\.[0-9]+$ ; none => seed 0.1.0
@@ -14,7 +16,7 @@
 set -euo pipefail
 
 part="${1:?usage: release.sh <major|minor|patch>}"
-manifest=".claude-plugin/plugin.json"
+manifests=(superdev/.claude-plugin/plugin.json superui/.claude-plugin/plugin.json)
 seed="0.1.0"
 
 current="$(git tag --list --sort=-v:refname \
@@ -39,16 +41,19 @@ fi
 git config user.name  "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-# 1. Write the new version into the plugin manifest.
-tmp="$(mktemp)"
-jq --arg v "$new" '.version = $v' "$manifest" >"$tmp"
-mv "$tmp" "$manifest"
+# 1. Write the new version into BOTH plugin manifests (shared version).
+for manifest in "${manifests[@]}"; do
+  tmp="$(mktemp)"
+  jq --arg v "$new" '.version = $v' "$manifest" >"$tmp"
+  mv "$tmp" "$manifest"
+done
 
 # 2. Commit the bump FIRST — this commit is what the release tag points at.
 #    The no-diff branch is recovery only: a prior run already committed this exact
 #    version but failed before tagging, so re-tag that commit instead of fabricating
-#    an empty one (rerun-safe).
-git add "$manifest"
+#    an empty one (rerun-safe). A diff in EITHER manifest counts as a change, so the
+#    re-tag path fires only when NEITHER manifest changed.
+git add "${manifests[@]}"
 if git diff --cached --quiet; then
   echo "release.sh: $new already committed; re-tagging existing release commit" >&2
 else
