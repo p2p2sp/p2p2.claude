@@ -1,6 +1,6 @@
 ---
 name: dev-smoke
-description: "Runtime boot / liveness gate — answers the single question \"does the application actually start?\". Discovers HOW to launch the app and what counts as alive from the HOST project's `CLAUDE.md` / `.claude/rules/` (a documented launch command + a liveness signal), starts the app, probes liveness, tears the process down, and returns `STATUS: PASS|FAIL|BLOCKED`. Stack-agnostic — never assumes an ecosystem. Invoked by `dev-final-reviewer` as the last sub-step of the final go/no-go gate; the app is launched ONLY here, never per task. Input/output contract: this skill's `# Input contract` / `# Output format`."
+description: "Runtime boot / liveness gate — answers the single question \"does the application actually start?\". Discovers HOW to launch the app and what counts as alive from the HOST project's `CLAUDE.md` / `.claude/rules/` (a documented launch command + a liveness signal), starts the app, probes liveness, tears the process down, and returns `STATUS: PASS|FAIL|N/A`. Stack-agnostic — never assumes an ecosystem. Invoked by `dev-final-reviewer` as the last sub-step of the final go/no-go gate; the app is launched ONLY here, never per task. Input/output contract: this skill's `# Input contract` / `# Output format`."
 model: haiku
 effort: medium
 context: fork
@@ -21,7 +21,7 @@ the plan audit and the test suite are green.
 
 **Stack-agnostic.** You do NOT know the launch command or the liveness signal — you read them from the host
 project's own memory. Never default to an ecosystem assumption (no "looks like Node, so `npm start`"); if the
-host did not document how to launch, that is `BLOCKED`, not a guess.
+host did not document how to launch, that is `N/A — <reason>`, not a guess.
 
 # Input contract
 
@@ -55,7 +55,7 @@ a service-local memory near the app's entrypoint. You are looking for two things
      version).
 
 If **no launch command** is documented anywhere in host memory, do not guess and do not scan the source tree
-for a probable entrypoint — emit `STATUS: BLOCKED` (Step 4) naming exactly what the host should add.
+for a probable entrypoint — emit `STATUS: N/A — <reason>` (Step 4) naming exactly what the host should add.
 
 If a launch command is documented but **no liveness signal** is, default to the **process-stays-up** check
 (launch, wait N seconds, confirm the process is still running) and note in the report that the host did not
@@ -104,7 +104,7 @@ Then build the verdict:
 - `STATUS: PASS` — the app launched AND the liveness signal confirmed it is alive, and teardown succeeded.
 - `STATUS: FAIL` — the app failed to launch, crashed, or never satisfied the liveness signal before timeout.
   Capture the smoking gun: the exit code + the relevant tail of stdout/stderr or the failed health response.
-- `STATUS: BLOCKED` — no launch command is documented in host memory. This is not an app fault; the host
+- `STATUS: N/A — <reason>` — no launch command is documented in host memory. This is not an app fault; the host
   memory is incomplete. Say exactly what to add.
 
 # Output format
@@ -133,10 +133,10 @@ Summary: <one line — e.g. "app crashed on boot: missing DATABASE_URL">
   \`\`\`
 ```
 
-### On BLOCKED
+### On N/A
 
 ```
-STATUS: BLOCKED
+STATUS: N/A — <reason>
 Summary: no launch command documented in host memory — cannot smoke-test
 
 ## What to add
@@ -144,13 +144,13 @@ Summary: no launch command documented in host memory — cannot smoke-test
 ```
 
 The `STATUS:` line is the contract `dev-final-reviewer` parses — it must be the literal first line and one of
-`STATUS: PASS` / `STATUS: FAIL` / `STATUS: BLOCKED`. Do not write any persisted artifact; this gate is text
+`STATUS: PASS` / `STATUS: FAIL` / `STATUS: N/A — <reason>` (always written `N/A — <reason>`). Do not write any persisted artifact; this gate is text
 output only (a temp log under `.temp/` for capturing process output is fine and is cleaned up implicitly).
 
 # Anti-patterns (forbidden)
 
 - Guessing a launch command from the source tree when host memory documents none. No launch command → emit
-  `BLOCKED` and name what to add. Never default to an ecosystem assumption.
+  `N/A — <reason>` and name what to add. Never default to an ecosystem assumption.
 - Reporting `PASS` on a green build / green tests without actually launching the app. Build-green ≠
   boot-green; this gate exists precisely because tests do not exercise startup wiring.
 - Leaving the launched process running. ALWAYS tear it down in Step 4, on every verdict path — an orphan
