@@ -1,6 +1,6 @@
 # superdev — Claude Code plugin (root-level) + marketplace catalog
 
-> **For the assistant — these are the plugin's SOURCE files, not the live plugin.** This repo is the source
+> **These are the plugin's SOURCE files, not the live plugin.** This repo is the source
 > of the `superdev` plugin that is *also installed* in this session. Editing files here (skills, manifest,
 > hooks, `plugin.json`) does **NOT** change the behavior of the currently loaded plugin — the routing
 > manifest and skill instructions active in this session were loaded at install/session start and stay
@@ -8,6 +8,15 @@
 > push to the marketplace source, then `/plugin update`). So: do not expect an edit to alter how skills
 > route or behave in the current session, and do not "test" a change by trying to trigger the edited skill
 > here — it will run the old, installed version.
+>
+> **Likewise, this repo's own `CLAUDE.md` and `.claude/rules/` are NOT plugin inputs.** They are dev-time
+> orientation for editing the source (and conventions for working *in this repo*) — they never reach the
+> skills, manifest, or hooks as runtime data. The plugin is stack-agnostic and reads host-project memory
+> from the **consuming** repo's `CLAUDE.md` + `.claude/rules/` only when it runs there, and every host has
+> different ones. So when reasoning about how any skill / manifest / hook behaves, do NOT factor in this
+> repo's `CLAUDE.md` or rules as though they shaped that behavior — they don't ship, they don't travel, and
+> the plugin will execute against entirely different memory files elsewhere. Treat them strictly as guidance
+> for working on the source, never as a runtime signal the plugin consumes.
 
 ## What this repo is
 

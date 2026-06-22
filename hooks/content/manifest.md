@@ -1,6 +1,6 @@
 <superdev:manifest>
 
-**EXTREMELY-IMPORTANT**
+**EXTREMELY IMPORTANT**
 
 The `superdev` plugin gives you the mandatory routing manifest below — it maps each request to the right skill or chain. Apply it before acting:
 
@@ -33,43 +33,14 @@ Iron, universal, always-on, golden rules. Not overridden by convenience or brevi
 ## Skill groups
 
 Every skill's own `description:` is already in your context — match intent against those
-descriptions (translate to English first). This section is orientation only: what each prefix
-family is for and when to reach into it. When a request spans more than one skill, follow the
-**Chains** below.
+descriptions (translate to English first). This is a static map of the prefix families; routing
+on/off state and multi-skill composition both live in the **Chains** below.
 
-- **mem- — project memory.** Bootstrap and maintain the memory layers: the `CLAUDE.md` cascade
-  and the `.claude/rules/` convention layer. Reach here to initialize / regenerate project memory
-  or capture a convention (see *Memory layer division*).
-- **dev- — planning + the agentic-development pipeline.** The spine of non-trivial work:
-  discovery (`dev-interview`), plan hardening and the plan-review gate, the orchestrated
-  implementation pipeline driven by `dev-orchestrator`, and the standalone disciplines
-  `dev-tdd` / `dev-debug` / `dev-spec`. The pipeline-bound skills run ONLY under
-  `dev-orchestrator` — never call them from the main session (see the *implementation pipeline* chain).
-
-<!--SUPERDEV:AREA adr-->
-- ADR capture is active — `dev-adr-analyzer` judges the approved plan for an ADR-worthy decision before decomposition.
-<!--/SUPERDEV:AREA adr-->
-<!--SUPERDEV:AREA rules_improver-->
-- Rules auto-learning is active — `dev-improver` promotes each task's review learnings into `.claude/rules/`.
-<!--/SUPERDEV:AREA rules_improver-->
-
-<!--SUPERDEV:AREA ui-->
-- **ui- — design / frontend.** Reverse-engineer the framework-agnostic (L1) design system, author
-  components into it, adapt it to ONE concrete target (pure-css / tailwind / react-shadcn /
-  react-mui / flutter), preview it, and bind UI edits to documented tokens. Reach here for any
-  design-system or frontend-styling work (see the *design → implementation* chain).
-<!--/SUPERDEV:AREA ui-->
-
-- **gh- — GitHub.** The `gh` layer reference + fork executor, the commit context resolver +
-  committer, and template-driven issue / PR creation. Reach here to commit, open issues / PRs, or
-  run any `gh` operation — never run `git commit` / `gh` directly from Bash (see *GitHub ops* /
-  *spec → issue* / *ship → PR* chains).
-
-<!--SUPERDEV:AREA artifacts-->
-- **cc- — Claude Code platform.** `cc-artifact` publishes ONE already-written self-contained file
-  (`.html` / `.htm` / `.md`) as a shareable Claude Code Artifact — opt-in, main-session, fail-open.
-  Reach here only to share a rendered output as a link (see *share as artifact* chain).
-<!--/SUPERDEV:AREA artifacts-->
+- **mem-** — project memory: the `CLAUDE.md` cascade + the `.claude/rules/` convention layer (see *Memory layer division*).
+- **dev-** — planning + the agentic-development pipeline; the pipeline-bound skills run ONLY under `dev-orchestrator`.
+- **ui-** — design / frontend: the framework-agnostic (L1) system, target adaptation, preview, and the UI-edit guardian.
+- **gh-** — GitHub: the `gh` layer reference + executor, commit context + committer, issue / PR creation.
+- **cc-** — Claude Code platform: `cc-artifact` publishes a self-contained file as a shareable artifact.
 
 ## Decision flow
 
@@ -84,7 +55,13 @@ Follow the chosen chain end-to-end.
 
 - **feature-from-scratch**: `dev-interview` → `dev-extraplan` → plan gate (`dev-plan-reviewer` PASS) → `dev-orchestrator`.
 - **bug-fix**: small → direct edit · larger → `dev-extraplan` → `dev-orchestrator`.
-- **implementation pipeline** (inside `dev-orchestrator`): `dev-adr-analyzer` → `dev-decomposer` → per task (`dev-coder` → `dev-runner` → `dev-task-reviewer` → `dev-improver` → scripted commit (`commit-task.sh`)) → `dev-final-reviewer` (own sub-pipeline: `dev-plan-auditor` → `dev-runner` full → `dev-smoke` → synthesis → go/no-go). The `dev-adr-analyzer` and `dev-improver` steps are gated by `.superdev/config.yml` — the orchestrator skips a step (with one terse line) when its switch is off.
+- **implementation pipeline** (inside `dev-orchestrator`): `dev-adr-analyzer` → `dev-decomposer` → per task (`dev-coder` → `dev-runner` → `dev-task-reviewer` → `dev-improver` → scripted commit (`commit-task.sh`)) → `dev-final-reviewer` (own sub-pipeline: `dev-plan-auditor` → `dev-runner` full → `dev-smoke` → synthesis → go/no-go). Two of its steps are config-gated — the orchestrator skips each (one terse line) when its switch is off:
+<!--SUPERDEV:AREA adr-->
+- ADR capture is active — `dev-adr-analyzer` judges the approved plan for an ADR-worthy decision before decomposition.
+<!--/SUPERDEV:AREA adr-->
+<!--SUPERDEV:AREA rules_improver-->
+- Rules auto-learning is active — `dev-improver` promotes each task's review learnings into `.claude/rules/`.
+<!--/SUPERDEV:AREA rules_improver-->
 <!--SUPERDEV:AREA ui-->
 - **design → implementation**: `ui-extract` (or `ui-component-creator`) → `ui-adapt` → `ui-web-preview` → `ui-guardian` → `dev-orchestrator`.
 <!--/SUPERDEV:AREA ui-->
