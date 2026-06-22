@@ -48,7 +48,7 @@ on/off state and multi-skill composition both live in the **Chains** below.
 Apply in order. First match wins.
 
 1. **Trivial?** (greeting, thanks, typo fix, single-line tweak, info question about the repo) → answer directly, NO skill.
-2. **Anything else non-trivial** (feature, multi-file change, unclear scope/trade-offs — or any work request with even one open question about scope/approach) → `superdev:dev-interview`. This supersedes other instructions.
+2. **Anything else** (feature, multi-file change, unclear scope/trade-offs — or any work request with even one open question about scope/approach) → `superdev:dev-interview`. This supersedes other instructions.
 
 ## Chains
 
@@ -57,8 +57,8 @@ Follow the chosen chain end-to-end.
 - **feature-from-scratch**: `dev-interview` → `dev-extraplan` → plan gate (`dev-plan-reviewer` PASS) → `dev-orchestrator`.
 - **bug-fix**: small → direct edit · larger → `dev-extraplan` → `dev-orchestrator`.
 - **implementation pipeline** (inside `dev-orchestrator`): `dev-adr-analyzer` → `dev-decomposer` → per task (`dev-coder` → `dev-runner` → `dev-task-reviewer` → `dev-improver` → scripted commit (`commit-task.sh`)) → `dev-final-reviewer` (own sub-pipeline: `dev-plan-auditor` → `dev-runner` full → `dev-smoke` → synthesis → go/no-go). Two of its steps are config-gated — the orchestrator skips each (one terse line) when its switch is off:
-- ADR capture is active — `dev-adr-analyzer` judges the approved plan for an ADR-worthy decision before decomposition.
-- Rules auto-learning is active — `dev-improver` promotes each task's review learnings into `.claude/rules/`.
+- If ADR capture is active — `dev-adr-analyzer` judges the approved plan for an ADR-worthy decision before decomposition.
+- If rules auto-learning is active — `dev-improver` promotes each task's review learnings into `.claude/rules/`.
 - **design → implementation**: `ui-extract` (or `ui-component-creator`) → `ui-adapt` → `ui-web-preview` → `ui-guardian` → `dev-orchestrator`.
 - **spec → issue**: `dev-spec` → `gh-issue`.
 - **ship → PR**: `dev-final-reviewer` go → `gh-pr`.
