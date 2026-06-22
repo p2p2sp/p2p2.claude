@@ -66,5 +66,5 @@ Fill any gap directly or ask the user. Do NOT proceed to publication while any r
 2. Render the spec into the template — produce final `<title>` and `<body>`.
 3. Return the Issue URL. MUST Stop — do not implement anything.
 
-## 8: Spec → doc ship-time handoff (boundary)
-A spec is **future intent**, not live documentation. After the feature ships, its *realized behaviour* promotes into `.superdev/documentation/` — the current-functional-truth layer — via the dev pipeline (`dev-improver` syncs each task's `## Docs`) or an interactive `superdev:mem-doc` run. The spec itself is then **archived, not kept as live docs**: do not treat this issue as the standing description of what the feature does today. Keep the spec lean and forward-looking; the "what it does now" lives in `.superdev/documentation/`.
+## 8: Spec → ship-time boundary
+A spec is **future intent**, not live documentation. After the feature ships, the spec is **archived, not kept as live docs**: do not treat this issue as the standing description of what the feature does today. Keep the spec lean and forward-looking.

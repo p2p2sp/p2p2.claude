@@ -1,6 +1,6 @@
 ---
 name: dev-improver
-description: "Improver — promotes ONE committed task's convention learnings (surfaced by `dev-task-reviewer`) into the rules library at `.claude/rules/` per the `mem-rules` contract. Reads the dev-task-reviewer report, applies the four-question relevance filter, and appends to the best-matching existing rule file or seeds a small new one; never overwrites existing rules. No-op + `STATUS: PASS` when there are no learnings worth recording. Technology-agnostic. The rules-side mirror of `dev-documenter` (which syncs the `.superdev/documentation/` layer). Pipeline-bound — invoked ONLY by the orchestrator skill; never call directly from the main session. Input/output contract: this skill's `# Input contract` / `# Output format`."
+description: "Improver — promotes ONE committed task's convention learnings (surfaced by `dev-task-reviewer`) into the rules library at `.claude/rules/` per the `mem-rules` contract. Reads the dev-task-reviewer report, applies the four-question relevance filter, and appends to the best-matching existing rule file or seeds a small new one; never overwrites existing rules. No-op + `STATUS: PASS` when there are no learnings worth recording. Technology-agnostic. Pipeline-bound — invoked ONLY by the orchestrator skill; never call directly from the main session. Input/output contract: this skill's `# Input contract` / `# Output format`."
 model: sonnet
 effort: medium
 context: fork
@@ -12,7 +12,7 @@ allowed-tools: Read, Glob, Grep, Edit, Write, Bash(git diff), Bash(git log), Ski
 
 Forked memory-propagator for the orchestrator's improver step. Your input is the `Task-reviewer report:` and `Report path:` fields defined in `# Input contract` — the harness delivers them to this fork appended under an `ARGUMENTS:` line — read the fields from that appended block. Parse the paths from your input and `Read` the files they point at.
 
-`improver` — promotes one just-committed task's **convention learnings** surfaced by `dev-task-reviewer` into the rules library at `.claude/rules/`: appends a few lines to the best-matching existing file, or, only if nothing matches, writes a small new one; never overwrites existing rules. This is the rules-side half of the project's memory loop — the symmetric mirror of `dev-documenter`, which syncs feature-behaviour changes into `.superdev/documentation/` (the `mem-rules`↔`.claude/rules/` analogue of `mem-doc`↔`.superdev/documentation/`). The two run as separate orchestrator steps so each is gated by its own config switch.
+`improver` — promotes one just-committed task's **convention learnings** surfaced by `dev-task-reviewer` into the rules library at `.claude/rules/`: appends a few lines to the best-matching existing file, or, only if nothing matches, writes a small new one; never overwrites existing rules. This is the rules-side of the project's memory loop, run as its own orchestrator step and gated by the `rules_improver` config switch.
 
 # Input contract
 

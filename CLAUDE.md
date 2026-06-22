@@ -9,8 +9,8 @@ help lives in `README.md`; this file is orientation for the assistant.
 
 It ships no application code — the artefacts are markdown (skills) + JSON (manifests) + the two hook scripts
 under `hooks/scripts/`, plus a handful of deterministic helper scripts bundled under individual skills'
-`scripts/` dirs (the `ui-*` preview scripts, the pipeline scripts `dev-orchestrator/scripts/commit-task.sh`
-+ `mem-guardian/scripts/audit-docs.py`, and the one-time `setup/scripts/bootstrap.sh`).
+`scripts/` dirs (the `ui-*` preview scripts, the pipeline script `dev-orchestrator/scripts/commit-task.sh`,
+and the one-time `setup/scripts/bootstrap.sh`).
 **Editing markdown / JSON IS shipping** — there is no build / test /
 lint at any level. Contracts between files are enforced by humans reading carefully.
 
@@ -25,7 +25,7 @@ DO NOT USE ADR capture for this project. The plugin is constantly refactored.
 superdev keeps every skill — memory, development, design, GitHub — in a single plugin so cross-domain
 composition is first-class. Skills compose through CSO (frontmatter `description:`) and the single injected
 manifest documents the chains, including across domains (`dev-spec → gh-issue`, `dev-final-reviewer → gh-pr`,
-`ui-guardian → dev-orchestrator`, `dev-improver → mem-rules`, `dev-documenter → mem-doc`). It is **self-contained**: `plugin.json` declares
+`ui-guardian → dev-orchestrator`, `dev-improver → mem-rules`). It is **self-contained**: `plugin.json` declares
 **no `dependencies`** — installing it gives the whole ecosystem.
 
 ## Repository layout
@@ -40,8 +40,7 @@ hooks/               One injected dispatcher manifest + the two hook scripts
   scripts/           session-start.sh, review-plan.sh
 skills/              Skills grouped by prefix (mem- / dev- / ui- / gh- / cc-); some skills bundle a
                      deterministic helper under their own scripts/ dir (ui-* preview scripts,
-                     dev-orchestrator/scripts/commit-task.sh, mem-guardian/scripts/audit-docs.py,
-                     setup/scripts/bootstrap.sh)
+                     dev-orchestrator/scripts/commit-task.sh, setup/scripts/bootstrap.sh)
 README.md            User-facing help (install + how it works)
 .claude/rules/       Development-only conventions for this repo
 ```
@@ -59,26 +58,18 @@ manifest (`hooks/content/manifest.md`).
   switches → writes `.superdev/config.yml`** (never overwriting an existing one). Runs in the **main session**
   (not a fork) so it can prompt via `AskUserQuestion`. It is `disable-model-invocation` (Claude never auto-routes
   to it) so it is **deliberately absent from the manifest** — see the Self-documentation invariant.
-- **`mem-`** — project memory (4 skills): `mem-init` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer),
-  `mem-doc` (the `.superdev/documentation/` layer — current functional truth, by concept-slug; interactive writer +
-  doc-file contract owner), `mem-guardian` (read-only doc↔code audit gate — fails go/no-go on undocumented
-  behaviour change; the `dev-plan-auditor` analogue for docs, NOT a token binder).
+- **`mem-`** — project memory (2 skills): `mem-claudemd` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer).
 
-  **Memory layer division.** Project memory splits current truth across five non-overlapping layers, picked by
+  **Memory layer division.** Project memory splits current truth across four non-overlapping layers, picked by
   *kind of truth*: (1) the general-rules manifest (this `hooks/content/manifest.md`, force-injected per session);
-  (2) the `CLAUDE.md` cascade (terse agent orientation; `mem-init`); (3) `.claude/rules/*` (path-scoped
+  (2) the `CLAUDE.md` cascade (terse agent orientation; `mem-claudemd`); (3) `.claude/rules/*` (path-scoped
   conventions; `mem-rules`, applied in-pipeline by `dev-improver`); (4) `.superdev/adr/` + `.superdev/layout/`
-  (architectural *why* + design system; `dev-adr-analyzer` / `ui-extract`); (5) `.superdev/documentation/*` (current
-  functional/behavioural *what each feature does today*; `mem-doc` writer + `dev-documenter` in-pipeline sync +
-  `mem-guardian` audit). Behavioural description belongs in layer 5 only — never restated in a rule, an ADR, or a
-  spec. In the dev pipeline, `dev-improver` promotes each task's review learnings into layer 3 (`.claude/rules/`)
-  and `dev-documenter` syncs each task's `## Docs` target into layer 5 per the `mem-doc` contract — two separate,
-  independently config-gated steps (`rules_improver` / `documentation`) — and `dev-final-reviewer` runs
-  `mem-guardian` as a terminal sub-gate (skipped when the `documentation` switch is off).
-- **`dev-`** — the agentic-development pipeline + diagnostics/specs (17 skills): planning
+  (architectural *why* + design system; `dev-adr-analyzer` / `ui-extract`). In the dev pipeline, `dev-improver`
+  promotes each task's review learnings into layer 3 (`.claude/rules/`), a config-gated step (`rules_improver`).
+- **`dev-`** — the agentic-development pipeline + diagnostics/specs (16 skills): planning
   (`dev-interview`, `dev-extraplan`, `dev-plan-reviewer`), the orchestrated implementation pipeline
   (`dev-orchestrator` → `dev-adr-analyzer` → `dev-decomposer` → per task `dev-coder` / `dev-runner` /
-  `dev-task-reviewer` / `dev-improver` / `dev-documenter` → scripted commit (`commit-task.sh`) → `dev-final-reviewer`), the
+  `dev-task-reviewer` / `dev-improver` → scripted commit (`commit-task.sh`) → `dev-final-reviewer`), the
   final-gate sub-skills (`dev-plan-auditor`, `dev-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`.
 - **`ui-`** — design / frontend (5 skills): `ui-extract` (reverse-engineer the framework-agnostic L1
   system), `ui-component-creator` (author a net-new component into the L1 system), `ui-adapt` (adapt the
@@ -99,12 +90,11 @@ manifest (`hooks/content/manifest.md`).
   The hook **renders** the manifest from `.superdev/config.yml`: each switchable area is wrapped in
   `<!--SUPERDEV:AREA x-->` sentinels, and a disabled area's block is replaced by a one-line OFF directive (the
   sentinel markers are always stripped). A missing/unreadable config = everything enabled.
-- **Opt-in switches (`.superdev/config.yml`).** Five booleans — `adr`, `artifacts`, `rules_improver`,
-  `documentation`, `ui` — all **default-enabled** (a missing file/key = `true`, fail-open; a repo that never ran
+- **Opt-in switches (`.superdev/config.yml`).** Four booleans — `adr`, `artifacts`, `rules_improver`,
+  `ui` — all **default-enabled** (a missing file/key = `true`, fail-open; a repo that never ran
   `/setup` behaves exactly as before). `setup` writes the file; the `SessionStart` hook gates main-session routing
   (OFF directives in the manifest); `dev-orchestrator` reads the config and skips the `dev-adr-analyzer` /
-  `dev-improver` / `dev-documenter` steps (and passes `Doc audit: off` to `dev-final-reviewer`, which then skips
-  `mem-guardian`) — each skip is **one terse line, never a paragraph**. Config readers are only the hook,
+  `dev-improver` steps — each skip is **one terse line, never a paragraph**. Config readers are only the hook,
   `dev-orchestrator`, and `setup` (writer).
 - **One plan gate, mode-independent.** A `PreToolUse` hook on `ExitPlanMode` (`review-plan.sh`) denies
   until `dev-plan-reviewer` returns `STATUS: PASS` — but that gate exists only in plan mode. In accept-edits
@@ -118,8 +108,7 @@ manifest (`hooks/content/manifest.md`).
   stdout.
 - **Script vs. fork.** A pipeline step collapses to a deterministic bundled script (under the owning skill's
   `scripts/` dir) when it operates on a known, fixed tool / format — git, a basename, paths, globs (e.g.
-  `dev-orchestrator/scripts/commit-task.sh` for the per-task commit, `mem-guardian/scripts/audit-docs.py` for the
-  `source:`-glob ∩ diff facts). It stays an LLM fork when it must interpret heterogeneous, stack-specific tool
+  `dev-orchestrator/scripts/commit-task.sh` for the per-task commit). It stays an LLM fork when it must interpret heterogeneous, stack-specific tool
   output (e.g. `dev-runner` reading arbitrary build / test output). A self-verifying script carries its I/O
   contract in its header comment and is trusted by its caller — so the caller does NOT re-verify or retry the
   script's result (the verify-before-claim guarantee lives in the script, not a fork-era re-check guard).

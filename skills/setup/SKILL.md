@@ -34,16 +34,14 @@ hand (or deleting it and re-running `/setup`). Skip straight to **Output**.
 
 **If `config.yml` is MISSING** — ask the user which optional areas to enable, then write the file:
 
-1. Call `AskUserQuestion` **once** with two `multiSelect` questions. The user **checks the areas to ENABLE**;
+1. Call `AskUserQuestion` **once** with a single `multiSelect` question. The user **checks the areas to ENABLE**;
    anything left unchecked is disabled. Every area defaults to enabled — recommend keeping them on unless the
    project clearly does not need them (e.g. leave `ui` off for a no-UI backend, `adr` off for a constantly
    refactored repo).
-   - **Q1 — "Which superdev areas to enable? (unchecked = disabled)"** options:
+   - **"Which superdev areas to enable? (unchecked = disabled)"** options:
      - `adr` — ADR capture (records the architectural *why* of structural decisions).
      - `artifacts` — Claude Code Artifacts (publish previews / plans as shareable claude.ai links).
      - `rules_improver` — auto-promote per-task review learnings into `.claude/rules/`.
-   - **Q2 — "...and these? (unchecked = disabled)"** options:
-     - `documentation` — functional docs layer `.superdev/documentation/` (mem-doc / dev-documenter / mem-guardian).
      - `ui` — UI/design layer (the `ui-*` skills).
 2. Map each area to `true` when the user selected it, else `false`.
 3. `Write` `.superdev/config.yml` with this exact shape, substituting each `<true|false>` with the mapped value:
@@ -54,7 +52,6 @@ hand (or deleting it and re-running `/setup`). Skip straight to **Output**.
    adr:            <true|false>   # ADR capture — orchestrator runs dev-adr-analyzer
    artifacts:      <true|false>   # Claude Code Artifacts — cc-artifact publisher
    rules_improver: <true|false>   # auto-promote review learnings → .claude/rules/ (dev-improver step)
-   documentation:  <true|false>   # functional docs layer → .superdev/documentation/ (dev-documenter + mem-doc/mem-guardian)
    ui:             <true|false>   # UI/design layer — ui-* skills
    ```
 
@@ -66,15 +63,15 @@ Emit exactly one message to the user in this shape:
 ## superdev setup complete
 
 <one line per setup-block result — e.g. ".superdev/ created", ".temp/ already present", ".gitignore seeded from template", "settings.json already present">
-<config line — e.g. "config.yml written: adr=on, artifacts=on, rules_improver=on, documentation=off, ui=off" OR "config.yml already present (left untouched): <current values>">
+<config line — e.g. "config.yml written: adr=on, artifacts=on, rules_improver=on, ui=off" OR "config.yml already present (left untouched): <current values>">
 
 ### Recommended next steps
-- Run `/superdev:mem-init` — bootstrap the CLAUDE.md project-memory cascade (general → specific).
+- Run `/superdev:mem-claudemd` — bootstrap the CLAUDE.md project-memory cascade (general → specific).
 - Run `/superdev:mem-rules` — author the `.claude/rules/` conventions layer.
 ```
 
 Rules:
 - Report the actual results from the block above — do not invent or assume them.
 - **Never overwrite an existing `.superdev/config.yml`** — it records the user's choices.
-- Do NOT invoke `mem-init` / `mem-rules` (or any other skill) yourself — they are interactive and the user
+- Do NOT invoke `mem-claudemd` / `mem-rules` (or any other skill) yourself — they are interactive and the user
   decides when to run them. Your job is to bootstrap the environment + recommend, not to chain.

@@ -1,6 +1,6 @@
 ---
 name: dev-adr-analyzer
-description: "ADR Analyzer — read-only judge of whether an approved plan carries an ADR-worthy architecture/infrastructure decision (the *why* behind a structural / contract / boundary choice — NOT functional/behavioural description, which belongs in `.superdev/documentation/`). Invoked by the `superdev:dev-orchestrator` skill before `decomposer`; honors the project's ADR posture, drafts a lean, brief ADR + deferred-write directive on a real decision, otherwise returns NO-ADR. Never writes to disk. Pipeline-bound — invoked ONLY by the orchestrator skill; never call directly from the main session. Input/output contract: this skill's `# Input contract` / `# Output format`."
+description: "ADR Analyzer — read-only judge of whether an approved plan carries an ADR-worthy architecture/infrastructure decision (the *why* behind a structural / contract / boundary choice — NOT functional/behavioural description). Invoked by the `superdev:dev-orchestrator` skill before `decomposer`; honors the project's ADR posture, drafts a lean, brief ADR + deferred-write directive on a real decision, otherwise returns NO-ADR. Never writes to disk. Pipeline-bound — invoked ONLY by the orchestrator skill; never call directly from the main session. Input/output contract: this skill's `# Input contract` / `# Output format`."
 model: opus
 effort: medium
 context: fork
@@ -86,11 +86,11 @@ Read the pre-injected plan, and read the files it touches (Files-to-change / `##
 - Component responsibility — what knows about what.
 - A cross-cutting policy (telemetry, observability, error handling, caching, concurrency).
 
-**Exclude — these are NOT architectural:** routine feature development (the plan simply implements agreed functionality), ordinary refactors, bug fixes, library / API / framework selection that does not change the structure or a contract, and **functional/behavioural description (belongs in `.superdev/documentation/`, not an ADR — an ADR records the *why* behind a decision, never *what a feature does today*)**. When in doubt, lean toward `NO-ADR` — a noisy ADR log is worse than a missing one for a non-decision.
+**Exclude — these are NOT architectural:** routine feature development (the plan simply implements agreed functionality), ordinary refactors, bug fixes, library / API / framework selection that does not change the structure or a contract, and **functional/behavioural description (an ADR records the *why* behind a decision, never *what a feature does today*)**. When in doubt, lean toward `NO-ADR` — a noisy ADR log is worse than a missing one for a non-decision.
 
 If nothing clearly architectural is present → `STATUS: NO-ADR` with a one-line reason. Several distinct architectural decisions in one plan → draft one ADR per decision (Step 2), numbered sequentially.
 
-**Brevity directive.** An ADR captures the decision tersely — a brief *what* + *why* (the forces and the chosen option), never lengthy functional prose. Describing how the feature behaves day-to-day is the job of `.superdev/documentation/`; keep the ADR narrow and short, and link out rather than restate.
+**Brevity directive.** An ADR captures the decision tersely — a brief *what* + *why* (the forces and the chosen option), never lengthy functional prose. Describing how the feature behaves day-to-day is not an ADR's job; keep the ADR narrow and short, and link out rather than restate.
 
 ## Step 2 — Resolve the number and draft the ADR
 

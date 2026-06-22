@@ -1,12 +1,12 @@
 ---
-name: mem-init
+name: mem-claudemd
 description: Use ALWAYS when the user wants to create, initialize, regenerate or bootstrap CLAUDE.md project-memory files for a repository (e.g. "create CLAUDE.md", "initialize project memory", "bootstrap Claude context"). Generates a general-to-specific CASCADE of CLAUDE.md files, not a single root file.
 user-invocable: true
 ---
 
-# mem-init — generate a CLAUDE.md CASCADE (general → specific)
+# mem-claudemd — generate a CLAUDE.md CASCADE (general → specific)
 
-This skill ships in the `core` plugin and is invoked as `/superdev:mem-init` or auto-triggered from natural language ("create CLAUDE.md", "initialize project memory"). As a plugin skill it is namespaced — it does **not** override Claude Code's built-in `/init`; a bare `/init` still resolves to the built-in.
+This skill ships in the `superdev` plugin and is invoked as `/superdev:mem-claudemd` or auto-triggered from natural language ("create CLAUDE.md", "initialize project memory"). As a plugin skill it is namespaced — it does **not** override Claude Code's built-in `/init`; a bare `/init` still resolves to the built-in.
 
 Do **not** produce a single root `CLAUDE.md`. Produce a **hierarchical cascade** of `CLAUDE.md` files: one general root file plus progressively more specific files in subdirectories that are genuine architectural units.
 

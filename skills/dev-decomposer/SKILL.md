@@ -220,16 +220,6 @@ Derive from two sources, in this order:
 
 Result is a comma-separated ascending list of task numbers strictly less than N, or `—` when empty. For each dependency, store a one-line reason for the `Depends on` field.
 
-### 4f — `Docs` (functional-documentation targets)
-
-Resolve the `.superdev/documentation/` file(s) this task's code change must keep in sync — the read side of the Option-C per-task doc-sync flow (the improver writes them; the decomposer marks the path). This is the documentation-layer mirror of the `## Touches`↔`.claude/rules/` relationship.
-
-- `Glob '.superdev/documentation/index.md'`. If it is absent (no functional-documentation layer bootstrapped yet via `mem-doc`), set this task's `## Docs` body to the single line `- none` and skip the rest of 4f.
-- If `index.md` exists, `Read` it once (cache for the whole run). It registers each feature as `feature → <domain>/<feature>.md → source: <glob>` (the `mem-doc` contract §G). For each registry row, test whether its `source:` glob **intersects** this task's final `## Touches` set by structural inclusion (same rule as the `Touches`-intersection test in 4e — e.g. a doc `source: skills/dev-*/**` intersects a task touching `skills/dev-improver/SKILL.md`).
-- List every intersecting doc as a `` `.superdev/documentation/<domain>/<feature>.md` — <feature name> `` bullet. When none intersect, the body is the single line `- none`.
-- **Docs-only-task exception:** if this task's own `## Deliverable` ships a `.superdev/documentation/` file (the task authors / regenerates a feature doc), its `## Docs` body lists that authored doc and may NOT be `- none` — a docs-authoring task that points its own `## Docs` at `none` is a self-fail (Step 8).
-- `## Docs` is orientation for the coder (read-and-conform) and a target list for the improver (sync-on-commit); it never adds a dependency or changes the Mode. Do NOT add doc files to `## Touches` on its account — the coder never writes docs (the improver does, per the `mem-doc` contract).
-
 ### Tie-breakers (when no dependency forces order)
 
 When two tasks are genuinely independent and both could start first:
@@ -327,13 +317,6 @@ For each task `N` from 1 to `K`, `Write` the file `.temp/.workflows/<PlanSlug>/t
 
 <!-- When there are no dependencies, the section body is the single line `—`. -->
 
-## Docs
-
-- `.superdev/documentation/<domain>/<feature>.md` — <feature name> (its `source:` glob intersects this task's `## Touches`)
-- <…>
-
-<!-- The doc file(s) whose `source:` frontmatter glob intersects this task's `## Touches`, resolved via `.superdev/documentation/index.md` (see Step 4f). When no doc's `source:` intersects (and the task is not itself authoring a feature doc), the section body is the single line `- none`. A docs-only task — one whose `## Deliverable` ships a `.superdev/documentation/` file — may NOT be `- none`: it lists the doc it authors. -->
-
 ## Task gate
 
 - Build: green
@@ -351,14 +334,13 @@ As you write each task file, keep a `(N, verb-phrase, path)` triple in memory �
 - `## Deliverable` — a clear restatement of the observable outcome. For `Mode: tdd` logic tasks, name every decision branch / failure mode explicitly (the 1:1 anchor for Step 4c and the dev-task-reviewer's CRITICAL-FAIL check). Do NOT copy a §6 task line verbatim — there is no longer a binding §6.
 - `## Mode` + `**Why:**` — single source of truth for how this task is executed. No separate "TDD discipline" bullet. The `**Why:**` line states why the task left (or stayed on) the `tdd` baseline: the carve-out that fired, the imperative/floor directive, or `tdd baseline — no carve-out matched`.
 - `## Tests` — intent + suggested location; the coder dispatches the precise filename and method name.
-- `## Docs` — the `.superdev/documentation/` file(s) whose `source:` glob intersects this task's `## Touches` (Step 4f), or `- none`. Read side of the Option-C doc-sync flow; never adds a dependency or a `## Touches` entry.
 - `## Task gate` — what the runner will be told to run. Either runnable shape or `Tests: none`.
 
 ## Step 8 — Self-check
 
 Before returning:
 
-- Every generated file exists and has the eight body sections in order: `## Plan context`, `## Deliverable`, `## Touches`, `## Mode`, `## Tests`, `## Depends on`, `## Docs`, `## Task gate`. (The first line is the commit-subject H1 `# <type>(<scope>): <summary>`; the `>` orientation lines follow it.)
+- Every generated file exists and has the seven body sections in order: `## Plan context`, `## Deliverable`, `## Touches`, `## Mode`, `## Tests`, `## Depends on`, `## Task gate`. (The first line is the commit-subject H1 `# <type>(<scope>): <summary>`; the `>` orientation lines follow it.)
 - Every task file's first line is a Conventional-Commits-form commit subject `# <type>(<scope>): <imperative summary>` — `<type>` from the allowed set, a non-empty `<scope>`, a short imperative summary, no trailing period. A malformed or missing H1 is a self-fail (the scripted commit `commit-task.sh` extracts this verbatim as the commit subject); repair before returning.
 - `Mode` value is exactly one of `tdd`, `code-first-then-tests`, `e2e-first`, `tests-none`.
 - For `Mode: tests-none`, `## Tests` body is the single line `- none — …` and `## Task gate` body is the single line `- Tests: none`.
@@ -369,7 +351,6 @@ Before returning:
 - The forcing functions (Step 3) were applied: no task carries two competing Modes (one-concern-one-Mode); entangled logic was extracted into its own `tdd` task (extract-pure-testable-helper); a port-dependent logic task was split from its adapter task unless the trivial-CRUD guard applied (port-seam split).
 - `Depends on` references only task numbers `< N`. No forward or self-references. No cycles.
 - Task 1 has `Depends on: —`.
-- Every task has a `## Docs` section (Step 4f): either `- none` or one or more `` `.superdev/documentation/<domain>/<feature>.md` `` bullets whose `source:` glob intersects the task's `## Touches`. A task whose `## Deliverable` ships a `.superdev/documentation/` file MUST NOT be `- none` (it lists the doc it authors) — that is a self-fail; repair before returning. When `.superdev/documentation/index.md` is absent, every `## Docs` body is `- none`.
 - Every imperative directive recorded in Step 2 has been honored in at least one of `Mode` / `Tests` / `Depends on` of the relevant task, and `**Why:**` cites the verbatim quote.
 - No file was written outside `.temp/.workflows/<PlanSlug>/`.
 - `plan.md` exists at `.temp/.workflows/<PlanSlug>/plan.md` and matches the source plan byte-for-byte.
@@ -395,7 +376,6 @@ STATUS: PASS
 - <one short bullet per material assumption / low-confidence decision / unmatched project rule>
 - <one bullet per task that has `**Why:** low confidence — …`>
 - <one bullet per imperative directive honored (cite verbatim quote and task number)>
-- <one bullet when `.superdev/documentation/index.md` is absent (every task's `## Docs` is `- none` — no functional-documentation layer to keep in sync), or when a `## Docs` `source:`-glob intersection was low-confidence>
 - <…>
 ```
 

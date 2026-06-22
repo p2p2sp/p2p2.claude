@@ -2,9 +2,9 @@
 
 Detail reference for parsing sub-agent verdicts and the helpers used by the per-task pipeline. Used by the per-task pipeline and the final review.
 
-> **Authoritative source for every contract below:** each skill's own `# Output format` section — the pipeline fork-skills `skills/{decomposer,coder,dev-task-reviewer,improver,documenter,runner}/SKILL.md` and the committer skill's `# Output format` at `skills/committer/SKILL.md`. This file is a quick-reference cheatsheet for the dispatcher — when the two disagree, the skill file wins.
+> **Authoritative source for every contract below:** each skill's own `# Output format` section — the pipeline fork-skills `skills/{decomposer,coder,dev-task-reviewer,improver,runner}/SKILL.md` and the committer skill's `# Output format` at `skills/committer/SKILL.md`. This file is a quick-reference cheatsheet for the dispatcher — when the two disagree, the skill file wins.
 
-## Sub-agent STATUS (coder / improver / documenter / decomposer)
+## Sub-agent STATUS (coder / improver / decomposer)
 
 The first non-empty line MUST match exact regex:
 

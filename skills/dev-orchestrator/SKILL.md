@@ -1,7 +1,7 @@
 ---
 name: dev-orchestrator
 description: >-
-  Use ONLY when the approved plan's body contains the word "orchestrator" (e.g. an "Execution: orchestrator" line). Drives the `coder` → `runner` → `dev-task-reviewer` → `improver` → `documenter` → `committer` pipeline task by task (the `improver`/`documenter` steps are gated by `.superdev/config.yml`), then invokes the `dev-final-reviewer` sub-orchestrator once and surfaces its go/no-go verdict. Do NOT auto-trigger on generic intents like "implement", "build", "code", "execute", "carry out" — explicit "orchestrator" mention required (any language). Do NOT invoke the implementation skills (decomposer/coder/dev-task-reviewer/improver/documenter) directly outside this dispatcher — each pipeline-bound skill's own frontmatter description carries the do-not-call-directly notice, and each skill's own `# Output format` section is the authoritative source for its STATUS contract.
+  Use ONLY when the approved plan's body contains the word "orchestrator" (e.g. an "Execution: orchestrator" line). Drives the `coder` → `runner` → `dev-task-reviewer` → `improver` → `committer` pipeline task by task (the `improver` step is gated by `.superdev/config.yml`), then invokes the `dev-final-reviewer` sub-orchestrator once and surfaces its go/no-go verdict. Do NOT auto-trigger on generic intents like "implement", "build", "code", "execute", "carry out" — explicit "orchestrator" mention required (any language). Do NOT invoke the implementation skills (decomposer/coder/dev-task-reviewer/improver) directly outside this dispatcher — each pipeline-bound skill's own frontmatter description carries the do-not-call-directly notice, and each skill's own `# Output format` section is the authoritative source for its STATUS contract.
 allowed-tools: Read, Bash, Write, Grep, Glob, Skill, AskUserQuestion, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop
 user-invocable: false
 model: opus
@@ -15,7 +15,7 @@ effort: low
 
 Drives the implementation of an already-approved plan, task by task. A **thin dispatcher** — every code touch, test run, review judgment, learning capture, and commit goes through a sub-agent with fresh context. Makes no judgment about the code itself.
 
-CRITICAL: Never place two pipeline calls in the same message — the coder/runner/dev-task-reviewer/improver/documenter/committer `Skill` calls each depend on the previous one's result, so dispatch exactly one per turn and await it before the next, overriding any general "batch independent calls" guidance.
+CRITICAL: Never place two pipeline calls in the same message — the coder/runner/dev-task-reviewer/improver/committer `Skill` calls each depend on the previous one's result, so dispatch exactly one per turn and await it before the next, overriding any general "batch independent calls" guidance.
 
 ## Pipeline graph
 
@@ -26,10 +26,10 @@ plan.md
 decomposer  ──►  .temp/.workflows/<slug>/tasks/<N>.md  +  status.yml
    │  (per task N = start..max)
    ▼
-coder  ──►  runner  ──►  dev-task-reviewer (Task mode)  ──►  improver  ──►  documenter  ──►  committer
-                │                          │                  (rules)        (docs)
+coder  ──►  runner  ──►  dev-task-reviewer (Task mode)  ──►  improver  ──►  committer
+                │                          │                  (rules)
                 └─ BLOCKED ─────────────────┴── BLOCKED ──► unblock-coder pass clears the blocker
-                                                  improver / documenter are config-gated (skipped when their switch is off)
+                                                  improver is config-gated (skipped when its switch is off)
    │  (after last task, once)
    ▼
 dev-final-reviewer (sub-orchestrator)  ──►  go/no-go verdict on stdout
@@ -42,7 +42,6 @@ Roles in one line each:
 - **runner** — runs the task's build/test/lint command; emits `PASS` / `FAIL` / `ERROR` / `TIMEOUT` / `BLOCKED`.
 - **dev-task-reviewer (Task mode)** — verifies the task Deliverable + tests + conventions against the working tree; emits `PASS` / `FAIL` / `BLOCKED`.
 - **improver** — promotes the committed task's dev-task-reviewer learnings into `.claude/rules/`; always `PASS` (no failure mode). Gated by the `rules_improver` switch (skipped when off).
-- **documenter** — syncs the committed task's feature-behaviour changes into `.superdev/documentation/` per the `mem-doc` contract; always `PASS` (no failure mode). Gated by the `documentation` switch (skipped when off).
 - **committer** (`scripts/commit-task.sh`) — commits the task; the dispatcher runs `bash "${CLAUDE_PLUGIN_ROOT}/skills/dev-orchestrator/scripts/commit-task.sh" "<task_file>"` inline. The script derives the commit subject (the task file's `# ` H1) and the `T<N>:` prefix itself (the dispatcher synthesizes no subject), and emits a tagged single line parsed by `parse_commit_tag`. Being deterministic, the script cannot fabricate its tag — it emits a `sha` **only** after itself verifying HEAD advanced and the tree is clean, so the dispatcher trusts the tag directly (no re-verification, no retry loop).
 - **dev-final-reviewer (sub-orchestrator)** — one-shot terminal gate after the last task is committed; internally runs `dev-plan-auditor` → `dev-runner` (Scope: full) → `dev-smoke` → synthesis and returns a single go/no-go verdict on stdout (no file written).
 
@@ -82,9 +81,8 @@ The host project may disable optional pipeline steps via `.superdev/config.yml` 
 
 - `adr: false` → skip the ADR-analysis step below.
 - `rules_improver: false` → skip the per-task `dev-improver` step.
-- `documentation: false` → skip the per-task `dev-documenter` step, **and** pass `Doc audit: off` to `dev-final-reviewer`.
 
-When a config-gated step is skipped, print **one terse line** in the normal progress channel (`ADR: skipped (disabled)`, `[N/max] dev-improver: skipped (disabled)`, `[N/max] dev-documenter: skipped (disabled)`) — never a paragraph explaining what the step does or why it is off. The remaining switches (`artifacts`, `ui`) are main-session routing concerns handled by the injected manifest, not this dispatcher.
+When a config-gated step is skipped, print **one terse line** in the normal progress channel (`ADR: skipped (disabled)`, `[N/max] dev-improver: skipped (disabled)`) — never a paragraph explaining what the step does or why it is off. The remaining switches (`artifacts`, `ui`) are main-session routing concerns handled by the injected manifest, not this dispatcher.
 
 ## ADR analysis (before decompose)
 
@@ -137,7 +135,7 @@ Decomposer is idempotent: if `.temp/.workflows/<slug>/tasks/*.md` already exists
 
 Print one line: `Plan decomposed into <K> task file(s).`
 
-For every downstream `coder` / `dev-task-reviewer` invocation in the per-task pipeline, the dispatcher passes a single `Task file: <task_files[N]>` line (not the plan path + a task number). Each pipeline-bound implementation skill (`coder` / `dev-task-reviewer` Task mode / `improver` / `documenter`) — and the `runner` skill in the runner pass — additionally receives a `Report path:` line dictated by the dispatcher and writes its full markdown report to that path itself; the on-stdout response is the three-line minimal shape (`STATUS:` / `Report:` / `Summary:`). The `dev-task-reviewer` Task-mode prompt additionally carries a `Task base: <task_base_sha>` line (the SHA the dispatcher already holds from the attempt-1 `task-base.sha` write) so the dev-task-reviewer can skip re-reading `.temp/.workflows/<slug>/task-base.sha`; the file read stays its fallback when the line is absent — see the dev-task-reviewer's Step 0. The `Feedback:` line carried by `coder` becomes an absolute path to the upstream agent's on-disk report (dev-task-reviewer-report path for retries / unblock; runner-report path is not forwarded directly — the dev-task-reviewer's report is the unblock entry point in the dev-task-reviewer pass). The improver pass receives only `Task-reviewer report: <path>` (its rules-learnings source) instead of an inline dev-task-reviewer body. The documenter pass receives `Task file: <task_files[N]>` + `Task base: <task_base_sha>` so it can read the task's `## Docs` targets and compute the task diff (`git diff <task_base_sha>`) for the doc-sync decision. Both are config-gated (`rules_improver` / `documentation`) and skipped with one terse line when off. The commit step (the `scripts/commit-task.sh` run) is unaffected. Inter-agent files live under the per-task audit directory `.temp/.workflows/<slug>/orchestration/task-<N>/<role>-<attempt>.md` — see the per-task pipeline below for the exact filename slots.
+For every downstream `coder` / `dev-task-reviewer` invocation in the per-task pipeline, the dispatcher passes a single `Task file: <task_files[N]>` line (not the plan path + a task number). Each pipeline-bound implementation skill (`coder` / `dev-task-reviewer` Task mode / `improver`) — and the `runner` skill in the runner pass — additionally receives a `Report path:` line dictated by the dispatcher and writes its full markdown report to that path itself; the on-stdout response is the three-line minimal shape (`STATUS:` / `Report:` / `Summary:`). The `dev-task-reviewer` Task-mode prompt additionally carries a `Task base: <task_base_sha>` line (the SHA the dispatcher already holds from the attempt-1 `task-base.sha` write) so the dev-task-reviewer can skip re-reading `.temp/.workflows/<slug>/task-base.sha`; the file read stays its fallback when the line is absent — see the dev-task-reviewer's Step 0. The `Feedback:` line carried by `coder` becomes an absolute path to the upstream agent's on-disk report (dev-task-reviewer-report path for retries / unblock; runner-report path is not forwarded directly — the dev-task-reviewer's report is the unblock entry point in the dev-task-reviewer pass). The improver pass receives only `Task-reviewer report: <path>` (its rules-learnings source) instead of an inline dev-task-reviewer body. It is config-gated (`rules_improver`) and skipped with one terse line when off. The commit step (the `scripts/commit-task.sh` run) is unaffected. Inter-agent files live under the per-task audit directory `.temp/.workflows/<slug>/orchestration/task-<N>/<role>-<attempt>.md` — see the per-task pipeline below for the exact filename slots.
 
 Decomposer's `## Notes` section is informational only — the orchestrator does not gate on it. Any material decision worth flagging will resurface in the final whole-plan dev-task-reviewer against the cumulative diff, where the user can act on it with full evidence rather than on a pre-implementation hypothesis.
 
@@ -412,11 +410,10 @@ loop:
         continue
     last_pass_verdict["dev-task-reviewer"] = "PASS"
 
-    # invoke improver (rules sink) then documenter (docs sink) — two independent, config-gated
-    # steps. Neither ever blocks. Both run BEFORE the commit so their writes to `.claude/rules/`
-    # and `.superdev/documentation/` land in this task's commit. Each is skipped with ONE terse
-    # line when its switch is off (`.superdev/config.yml`, default-enabled); the dispatcher already
-    # holds every value each needs — no extra plumbing.
+    # invoke improver (rules sink) — a config-gated step that never blocks. It runs BEFORE the
+    # commit so its writes to `.claude/rules/` land in this task's commit. It is skipped with ONE
+    # terse line when its switch is off (`.superdev/config.yml`, default-enabled); the dispatcher
+    # already holds every value it needs — no extra plumbing.
 
     # improver (rules) — gated by `rules_improver`. Needs only the dev-task-reviewer report.
     if config switch `rules_improver` is false:
@@ -430,21 +427,6 @@ loop:
         imp_out = Skill(skill="superdev:dev-improver", args=imp_prompt)
         imp_verdict = "PASS" if first_status_line(imp_out) == "STATUS: PASS" else "FAIL"
         print(f"[{N}/{max}] dev-improver: {imp_verdict}")
-
-    # documenter (docs) — gated by `documentation`. Needs the task file (`## Docs` + `## Deliverable`)
-    # and the task baseline SHA (to compute `git diff <Task base>` for the doc-sync decision).
-    if config switch `documentation` is false:
-        print(f"[{N}/{max}] dev-documenter: skipped (disabled)")
-    else:
-        documenter_report_path = f"{orch_dir}/documenter-{attempt}.md"
-        doc_prompt = (
-            f"Task file: <task_files[N]>\n"
-            f"Task base: {task_base_sha}\n"
-            f"Report path: {documenter_report_path}"
-        )
-        doc_out = Skill(skill="superdev:dev-documenter", args=doc_prompt)
-        doc_verdict = "PASS" if first_status_line(doc_out) == "STATUS: PASS" else "FAIL"
-        print(f"[{N}/{max}] dev-documenter: {doc_verdict}")
 
     # commit step (deterministic script `scripts/commit-task.sh`, run inline). The script is the
     # committer: it stages everything, commits `T<N>: <subject>`, and — being deterministic — emits a
@@ -513,7 +495,7 @@ escalation:
 ### Notes on the loop
 
 - Retry cap, BLOCKED branch mechanics, infinite-loop guard, live-progress format, and escalation rules: see `references/retry-policy.md`.
-- Implementation agents (`coder` / `dev-task-reviewer` Task mode / `improver` / `documenter`) reply on stdout with only `STATUS:` / `Report:` / `Summary:`. The dispatcher parses `STATUS:` via `first_status_line` (regex unchanged — see `references/status-parsing.md`) and may surface the agent's one-line `Summary:` alongside the live-progress `[<N>/<max>] <agent>: <VERDICT>` line for context; the `Report:` path is what gets forwarded into downstream prompts.
+- Implementation agents (`coder` / `dev-task-reviewer` Task mode / `improver`) reply on stdout with only `STATUS:` / `Report:` / `Summary:`. The dispatcher parses `STATUS:` via `first_status_line` (regex unchanged — see `references/status-parsing.md`) and may surface the agent's one-line `Summary:` alongside the live-progress `[<N>/<max>] <agent>: <VERDICT>` line for context; the `Report:` path is what gets forwarded into downstream prompts.
 - The per-task loop iterates zero times when `status.yml`'s `current_task` exceeds `max` — the user re-ran orchestrator after the whole plan was committed. The starting-task resolution sets `start = current_task`, the progress-widget seed marks every task already `completed`, the per-task loop is empty, and control flows into the final whole-plan review.
 - Progress widget updates (`TaskUpdate` on task entry / commit success / no-op commit) live alongside the `print` lines and never replace them — see the "Progress tree (TaskCreate)" section in `references/retry-policy.md`.
 
@@ -526,10 +508,7 @@ Runs **once**, after the per-task pipeline has reached the end of the task list 
 # then head_sha = git rev-parse HEAD. dev-final-reviewer takes the diff range as a `Diff range:` line.
 final_prompt = (
     "Plan: <plan-path>\n"
-    "Diff range: " + base_sha + ".." + head_sha + "\n"
-    # Doc-audit gate: `off` when `documentation: false` in .superdev/config.yml, so dev-final-reviewer
-    # skips its mem-guardian sub-gate; default `on` (a missing switch means on).
-    "Doc audit: " + ("off" if config switch `documentation` is false else "on")
+    "Diff range: " + base_sha + ".." + head_sha
 )
 final_out = Skill(skill="superdev:dev-final-reviewer", args=final_prompt)
 final_status = first_status_line(final_out)                         # one of STATUS: PASS / STATUS: FAIL
@@ -570,11 +549,11 @@ Then stop. Do not call any further tool.
 - Pre-flight environment probes via `Bash` between pipeline steps (checking runtimes, services, container state, tool versions, network reachability, etc.) — even when project conventions tell a normal session to verify them before running tests. Those conventions target sessions that run tests directly; the dispatcher delegates the run to `runner`, which surfaces any environment failure as `FAIL` / `ERROR` and the standard 3 + 3 loop handles it. The dispatcher's `Bash` budget is reserved for the git queries in the final review.
 - Skipping the `dev-task-reviewer` step "to save time" on a small task.
 - Adding retries beyond the documented `3` + `3` cap, or offering a "skip task" option to the user (intentionally absent). Also forbidden: a separate retry budget for `BLOCKED` — the unblock branch shares the same cap, with successful unblock passes free of attempt-counter increment.
-- Writing any state file other than (a) the authoritative task tracker `.temp/.workflows/<slug>/status.yml` (the commit step — orchestrator updates after each successful commit), (b) the persisted `.temp/.workflows/<slug>/base.sha` written once after the Task 1 commit (the commit step), and (c) the per-task baseline `.temp/.workflows/<slug>/task-base.sha` (re)written at the start of every task's attempt 1 (the per-task pipeline, before the coder pass). The final review writes **no** file — `dev-final-reviewer` returns its go/no-go verdict on stdout and the dispatcher surfaces it directly. Plan + task files + git + those three small state files are the only sources of truth — **except** for everything else under `.temp/.workflows/<slug>/orchestration/<task-N>/` (the `coder-K.md`, `dev-task-reviewer-K.md`, `improver-K.md`, `documenter-K.md`, `unblock-coder-K.md`, and `runner-K.md` reports the implementation / tool skills write themselves to their dispatcher-dictated `Report path:`), which is an **ephemeral audit/transport layer**, NOT state of truth: resume logic relies only on `status.yml` + `task-base.sha` + `base.sha`, and a crash recovery overwrites any prior attempt's report at the same numeric slot.
+- Writing any state file other than (a) the authoritative task tracker `.temp/.workflows/<slug>/status.yml` (the commit step — orchestrator updates after each successful commit), (b) the persisted `.temp/.workflows/<slug>/base.sha` written once after the Task 1 commit (the commit step), and (c) the per-task baseline `.temp/.workflows/<slug>/task-base.sha` (re)written at the start of every task's attempt 1 (the per-task pipeline, before the coder pass). The final review writes **no** file — `dev-final-reviewer` returns its go/no-go verdict on stdout and the dispatcher surfaces it directly. Plan + task files + git + those three small state files are the only sources of truth — **except** for everything else under `.temp/.workflows/<slug>/orchestration/<task-N>/` (the `coder-K.md`, `dev-task-reviewer-K.md`, `improver-K.md`, `unblock-coder-K.md`, and `runner-K.md` reports the implementation / tool skills write themselves to their dispatcher-dictated `Report path:`), which is an **ephemeral audit/transport layer**, NOT state of truth: resume logic relies only on `status.yml` + `task-base.sha` + `base.sha`, and a crash recovery overwrites any prior attempt's report at the same numeric slot.
 - Editing, updating, creating any file yourself — including "quick fixes" for pre-existing issues surfaced by runner. Out-of-scope blockers are handled by routing the `BLOCKED` verdict through an unblock `coder` pass (see the runner pass / dev-task-reviewer pass). The dispatcher never touches source files directly.
 - Re-verifying or retrying the commit step. The committer is now the deterministic `scripts/commit-task.sh`, not a Haiku fork — it emits a `sha` tag ONLY after itself proving HEAD advanced past the pre-commit HEAD **and** `git status --porcelain` is empty (a non-zero commit / unmoved HEAD / dirty tree all yield an `error` tag, never a fabricated `sha`). A script cannot hallucinate its tool result, so the dispatcher trusts the tag directly: do NOT re-run `git rev-parse HEAD` to re-check the move, do NOT wrap the call in a phantom-commit retry loop, and take the reported sha straight from the tag (`commit_result[1]`). On an `error` / `malformed` tag, hard-stop — never hand-commit from the dispatcher to paper over a failed commit.
 - Pasting the plan body into a sub-agent prompt — the sub-agent reads the plan (or task file) itself from the supplied path.
-- Inlining any pipeline-bound skill's reply (coder / dev-task-reviewer / improver / documenter / runner) into a downstream skill's prompt — verbatim, summarised, filtered, or otherwise. The on-stdout reply of those agents is the three-line minimal shape (`STATUS:` / `Report:` / `Summary:`); the full markdown lives at the dispatcher-dictated `Report path:`, and downstream prompts carry **paths only** (`Feedback: …`, `Runner report: …`, `Task-reviewer report: …`, `Previous coder report: …`). The runner follows the same discipline when invoked with `Report path:` (pipeline mode): it writes its own markdown to that path and replies on stdout with the 3-line block — the dispatcher MUST NOT re-`Write` the runner report from its own context, and MUST NOT page the full markdown into the dispatcher prompt.
+- Inlining any pipeline-bound skill's reply (coder / dev-task-reviewer / improver / runner) into a downstream skill's prompt — verbatim, summarised, filtered, or otherwise. The on-stdout reply of those agents is the three-line minimal shape (`STATUS:` / `Report:` / `Summary:`); the full markdown lives at the dispatcher-dictated `Report path:`, and downstream prompts carry **paths only** (`Feedback: …`, `Runner report: …`, `Task-reviewer report: …`, `Previous coder report: …`). The runner follows the same discipline when invoked with `Report path:` (pipeline mode): it writes its own markdown to that path and replies on stdout with the 3-line block — the dispatcher MUST NOT re-`Write` the runner report from its own context, and MUST NOT page the full markdown into the dispatcher prompt.
 - Forwarding more than one failure to the next coder run. Only the most recent failure's report path goes in `Feedback`.
 - Telling `dev-task-reviewer` it is a retry attempt. Each review must be a fresh judgment.
 - Skipping the `Scope hints:` block when invoking runner inside this pipeline. Without it the runner cannot emit `BLOCKED` and the whole runner unblock path becomes unreachable.

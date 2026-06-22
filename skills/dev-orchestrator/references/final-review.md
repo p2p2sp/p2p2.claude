@@ -61,7 +61,7 @@ Surface `final_out` (the verdict line plus the sub-step breakdown) to the user v
 
 - Skipping the final review when the run started with `task=N>1`. The final review covers the whole plan, and `base_sha` resolution works cross-session.
 - Looping `dev-final-reviewer` after a non-`PASS` verdict. The final review is one-shot; the user reads the relayed verdict and decides whether to re-plan or fix manually.
-- Invoking `improver` or `documenter` after the final review. Final-review learnings are not promoted to `.claude/rules/` and no docs are synced here; the per-task `improver` / `documenter` passes are the only learnings / doc-sync channels.
+- Invoking `improver` after the final review. Final-review learnings are not promoted to `.claude/rules/`; the per-task `improver` pass is the only learnings channel.
 - Wiring `coder` into the final-review failure path. Plan-level `FAIL` indicates a project-level issue — it belongs in a fresh `interview` / re-plan cycle, not in a cosmetic coder pass. Always escalate to the user.
 - Writing a `final-review.md` (or any file) at this stage. The verdict is returned on stdout by `dev-final-reviewer` and relayed verbatim — there is no on-disk artifact.
 - Running any of `dev-final-reviewer`'s sub-steps (`dev-plan-auditor` / `dev-runner` / `dev-smoke`) directly from the orchestrator, or invoking `dev-task-reviewer` for the whole-plan review. The whole-plan gate is `dev-final-reviewer`, invoked once; it owns its internal pipeline.
