@@ -1,23 +1,31 @@
-# superdev
+# superdev + superui
 
-A single, self-contained Claude Code plugin: one cohesive agentic-development ecosystem driven by one
-injected dispatcher manifest. Skills are grouped by a short prefix and compose through CSO + documented
-natural chains (including across domains).
+Two independent, self-contained Claude Code plugins, each a cohesive ecosystem driven by its own injected
+dispatcher manifest. Skills are grouped by a short prefix and compose through CSO + documented natural chains.
 
-This repository is **both the plugin and its marketplace catalog**: the plugin lives at the repo root, and
-`.claude-plugin/marketplace.json` lists it by `source: "./"`.
+- **superdev** (`./superdev`) — the agentic-development ecosystem: project memory, planning, the
+  implementation pipeline, and GitHub skills.
+- **superui** (`./superui`) — the design / frontend ecosystem: the framework-agnostic design system, target
+  adaptation, web preview, the UI-edit guardian, and a shareable-artifact publisher.
+
+This repository is the **marketplace catalog** for both: each plugin lives in its own subdirectory, and the
+root `.claude-plugin/marketplace.json` co-lists them by `source: "./superdev"` and `source: "./superui"`.
+Each plugin injects its own manifest and is **independently installable** — install one, the other, or both;
+neither declares the other as a dependency.
 
 ## Install
 
 ```
 /plugin marketplace add https://github.com/p2p2sp/p2p2.claude
 /plugin install superdev
+/plugin install superui
 ```
 
-`superdev` is self-contained — it declares no dependencies. Installing it gives you the whole ecosystem:
-the single injected manifest routes every request to the right skill / chain.
+Both plugins are self-contained — neither declares any dependencies. Installing one gives you that whole
+ecosystem: its single injected manifest routes every request to the right skill / chain. Install only the
+one(s) you need.
 
-## Skill groups
+## superdev skill groups
 
 | Prefix | Domain | Skills |
 | --- | --- | --- |
@@ -25,47 +33,58 @@ the single injected manifest routes every request to the right skill / chain.
 | `mem-` | Project memory (agent-facing) | `mem-claudemd` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer) |
 | `doc-` | End-user documentation | `doc-help` (end-user product help → `.superdev/help/`) |
 | `dev-` | Development pipeline + diagnostics/specs | `dev-interview`, `dev-extraplan`, `dev-plan-reviewer`, `dev-orchestrator`, `dev-adr-analyzer`, `dev-decomposer`, `dev-coder`, `dev-runner`, `dev-task-reviewer`, `dev-final-reviewer`, `dev-plan-auditor`, `dev-smoke`, `dev-improver`, `dev-tdd`, `dev-debug`, `dev-spec` |
-| `ui-` | Design / frontend | `ui-extract`, `ui-component-creator`, `ui-adapt`, `ui-web-preview`, `ui-guardian` |
 | `gh-` | GitHub | `gh-cli`, `gh-cli-executor`, `gh-commit-context`, `gh-committer`, `gh-issue`, `gh-pr` |
-| `cc-` | Claude Code platform | `cc-artifact` — opt-in, main-session publisher of one self-contained `.html`/`.htm`/`.md` file as a shareable Claude Code Artifact; validates single-file / no-external-ref / size, asks first, falls back to the local path (fail-open) |
+
+## superui skill groups
+
+| Prefix | Domain |
+| --- | --- |
+| `ui-` | Design / frontend — reverse-engineer the framework-agnostic L1 design system, author net-new components into it, adapt it to one concrete target (pure-css / tailwind / react-shadcn / react-mui / flutter), render zero-build static HTML previews, and bind UI edits to documented tokens / components |
+| `cc-` | Claude Code platform — opt-in, main-session publisher of one self-contained `.html`/`.htm`/`.md` file as a shareable Claude Code Artifact; validates single-file / no-external-ref / size, asks first, falls back to the local path (fail-open) |
 
 ## How it works
 
-- **One injected manifest** (`hooks/content/manifest.md`) is force-injected once per session and routes
-  across all domains (instruction priority, the 1% rule, decision flow, the skill catalog, the natural
-  chains, and red flags).
+- **Each plugin injects its own manifest** (`<plugin>/hooks/content/manifest.md`) once per session and routes
+  across that plugin's domains (instruction priority, the 1% rule, decision flow, the skill catalog, the
+  natural chains, and red flags). Install both and both manifests coexist.
 - **Skills auto-engage via CSO** — each skill's `description:` is its trigger, in any language.
-- **Opt-in per project** — `/setup` writes `.superdev/config.yml` (two switches: `adr`, `rules_improver`).
-  The routing manifest is always injected as-is; a disabled switch only skips its `dev-orchestrator` pipeline
-  step (`dev-adr-analyzer` / `dev-improver`); a missing config means everything is enabled, so superdev works
-  fully out of the box.
-- **The implementation pipeline is file-based**: `dev-orchestrator` dispatches forked executors that hand
-  state through files and reply with a 3-line status, keeping the main context lean.
-- **Planning always happens in plan mode.** Whatever mode you start in, superdev enters plan mode before
-  drafting a plan (a hook denies writing a plan file outside plan mode), so the plan-review gate runs every
-  time — the planning pipeline behaves the same regardless of the mode you started in.
+- **Opt-in per project (superdev)** — `/setup` writes `.superdev/config.yml` (two switches: `adr`,
+  `rules_improver`). The routing manifest is always injected as-is; a disabled switch only skips its
+  `dev-orchestrator` pipeline step (`dev-adr-analyzer` / `dev-improver`); a missing config means everything is
+  enabled, so superdev works fully out of the box.
+- **The implementation pipeline is file-based (superdev)**: `dev-orchestrator` dispatches forked executors
+  that hand state through files and reply with a 3-line status, keeping the main context lean.
+- **Planning always happens in plan mode (superdev).** Whatever mode you start in, superdev enters plan mode
+  before drafting a plan (a hook denies writing a plan file outside plan mode), so the plan-review gate runs
+  every time — the planning pipeline behaves the same regardless of the mode you started in.
 
 ## Repository layout
 
 ```
 .claude-plugin/
-  marketplace.json   Marketplace catalog (lists superdev by source "./")
-  plugin.json        Plugin manifest (skills[])
-hooks/               One injected manifest + two hook scripts
-skills/              Skills grouped by prefix (mem- / doc- / dev- / ui- / gh- / cc-)
-.github/             CI workflows + the shared release.sh version-bump script
+  marketplace.json   Marketplace catalog (co-lists superdev by "./superdev" + superui by "./superui")
+superdev/            The superdev plugin
+  .claude-plugin/plugin.json   Plugin manifest (skills[])
+  hooks/             Injected manifest + SessionStart + two PreToolUse plan-gate hooks
+  skills/            Skills grouped by prefix (mem- / doc- / dev- / gh-)
+superui/             The superui plugin
+  .claude-plugin/plugin.json   Plugin manifest (skills[])
+  hooks/             Injected manifest + SessionStart (no plan gate)
+  skills/            Skills grouped by prefix (ui- / cc-)
+.github/             CI workflows + the shared release.sh version-bump script (syncs both manifests)
 .claude/rules/       Development-only conventions for this repo
 ```
 
 ## Versioning
 
 Versions are git tags in `MAJOR.MINOR.PATCH` form (no `v` prefix), starting at `0.1.0`. The highest tag
-is the source of truth; CI mirrors it into `plugin.json`'s `version` field, so `/plugin update` ships a
-new version on each bump:
+is the source of truth; both plugins share one version namespace. CI mirrors the tag into each plugin's
+`plugin.json` `version` field (`superdev/` and `superui/`), so `/plugin update` ships a new version on each
+bump:
 
 - **Automatic** — every push to `main` runs **Auto patch version**
-  (`.github/workflows/auto-version.yml`), which bumps the **patch** number, syncs it into `plugin.json`,
-  commits (`chore(release): … [skip ci]`), and pushes the matching tag.
+  (`.github/workflows/auto-version.yml`), which bumps the **patch** number, syncs it into both `plugin.json`
+  files, commits (`chore(release): … [skip ci]`), and pushes the matching tag.
 - **Manual** — run **Manual version bump** (`.github/workflows/release-version.yml`) from the **Actions**
   tab and pick `major`, `minor`, or `patch` to cut a larger release on demand.
 

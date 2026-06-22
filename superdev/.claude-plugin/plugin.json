@@ -1,7 +1,7 @@
 {
   "name": "superdev",
   "version": "0.1.7",
-  "description": "Unified agentic-development ecosystem for Claude Code — one injected dispatcher manifest routing memory, planning, an implementation pipeline, UI/design, and GitHub skills, grouped by prefix (mem- / doc- / dev- / ui- / gh- / cc-). Self-contained: no dependencies.",
+  "description": "Unified agentic-development ecosystem for Claude Code — one injected dispatcher manifest routing memory, planning, an implementation pipeline, and GitHub skills, grouped by prefix (mem- / doc- / dev- / gh-). Self-contained: no dependencies.",
   "author": {
     "name": "Dariusz Lenartowicz",
     "email": "dariusz.lenartowicz@p2p2.com.pl"
@@ -27,17 +27,11 @@
     "./skills/dev-tdd/",
     "./skills/dev-debug/",
     "./skills/dev-spec/",
-    "./skills/ui-extract/",
-    "./skills/ui-component-creator/",
-    "./skills/ui-adapt/",
-    "./skills/ui-web-preview/",
-    "./skills/ui-guardian/",
     "./skills/gh-cli/",
     "./skills/gh-cli-executor/",
     "./skills/gh-commit-context/",
     "./skills/gh-committer/",
     "./skills/gh-issue/",
-    "./skills/gh-pr/",
-    "./skills/cc-artifact/"
+    "./skills/gh-pr/"
   ]
 }

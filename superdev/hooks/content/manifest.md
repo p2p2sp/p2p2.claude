@@ -43,9 +43,7 @@ descriptions (translate to English first). This is a static map of the prefix fa
 - **mem-** — project memory (agent-facing): the `CLAUDE.md` cascade and `.claude/rules/` convention layer.
 - **doc-** — end-user documentation: the `doc-help` end-user-documentation layer written under `.superdev/help/` — human-facing product docs, distinct from agent memory.
 - **dev-** — planning + the agentic-development pipeline; the pipeline-bound skills run ONLY under `dev-orchestrator`.
-- **ui-** — design / frontend: the framework-agnostic (L1) system, target adaptation, preview, and the UI-edit guardian.
 - **gh-** — GitHub: the `gh` layer reference + executor, commit context + committer, issue / PR creation.
-- **cc-** — Claude Code platform: `cc-artifact` publishes a self-contained file as a shareable artifact.
 
 ## Decision flow
 

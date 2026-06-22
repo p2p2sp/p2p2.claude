@@ -158,12 +158,14 @@ See `templates/plan.md`. Copy it verbatim and fill each section.
 ## 8. Publish the approved plan as an artifact (optional)
 
 When the user wants to **share** the approved plan as a live link (not a
-`.claude/plans/<slug>.md` path), hand it to the `cc-artifact` skill. This is
-opt-in and runs in the main session only — never as part of any fork or the
-orchestrator pipeline. It is also entirely separate from the implementation flow:
-publishing the plan does not gate, replace, or feed `decomposer` / `orchestrator`.
+`.claude/plans/<slug>.md` path), and an artifact-publishing skill is available,
+hand it the assembled `.md`. This is opt-in and runs in the main session only —
+never as part of any fork or the orchestrator pipeline. It is also entirely
+separate from the implementation flow: publishing the plan does not gate, replace,
+or feed `decomposer` / `orchestrator`. If no such publishing skill is available,
+skip this section — the `.claude/plans/<slug>.md` path is itself a valid handoff.
 
-Assemble ONE `.md` file, then invoke `cc-artifact` with that file and a title:
+Assemble ONE `.md` file, then hand it to the publishing skill with a title:
 
 1. **Prepend a `## Review verdict` block** to the plan body. Take the verdict
    from the `dev-plan-reviewer` output **already present in this session** — the
@@ -173,10 +175,11 @@ Assemble ONE `.md` file, then invoke `cc-artifact` with that file and a title:
    this session. The block sits above the plan body so a reader sees the review
    outcome first; the plan body follows verbatim.
 2. **Write the assembled `.md`** (verdict block + plan body) to a file on disk.
-3. **Invoke `cc-artifact`** with that file path and a short title (e.g. the
-   plan's §1 Scope sentence). `cc-artifact` validates it is a single, size-bounded,
-   external-reference-free `.md`, asks before publishing, and either publishes it
-   as a private shareable page or falls back to reporting the local path.
+3. **Hand the file** to the artifact-publishing skill with its path and a short
+   title (e.g. the plan's §1 Scope sentence). That skill is responsible for
+   validating the file is a single, size-bounded, external-reference-free `.md`,
+   asking before publishing, and either publishing it as a private shareable page
+   or falling back to reporting the local path.
 
 **Fallback — verdict no longer available.** If no `dev-plan-reviewer` verdict is
 present in this session (e.g. the plan was approved in an earlier session, or
