@@ -17,7 +17,6 @@ Do not assume you "already know how". When in doubt, invoke the skill — defaul
 - **Precision over verbosity** — Concise answers even at the cost of grammar (this governs prose length, not work scope). Exact, minimal, actionable. No filler unless asked by the user.
 
 ### Operating
-- **Temporary files** — All temporary files (preview output, logs, etc.) go into `.temp/`. Group them in subdirectories: `logs/`, `previews/`, etc.
 - **Design artifacts** — The framework-agnostic design system and its target adaptations live under `.superui/layout/`.
 
 ## Instruction Priority
