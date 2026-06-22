@@ -36,7 +36,8 @@ Every skill's own `description:` is already in your context — match intent aga
 descriptions (translate to English first). This is a static map of the prefix families; routing
 on/off state and multi-skill composition both live in the **Chains** below.
 
-- **mem-** — project memory + end-user help: the `CLAUDE.md` cascade and `.claude/rules/` convention layer (agent memory), plus the `mem-help` end-user-documentation layer written under `.superdev/help/` (help routing on/off lives in **Chains**).
+- **mem-** — project memory (agent-facing): the `CLAUDE.md` cascade and `.claude/rules/` convention layer.
+- **doc-** — end-user documentation: the `doc-help` end-user-documentation layer written under `.superdev/help/` — human-facing product docs, distinct from agent memory (help routing on/off lives in **Chains**).
 - **dev-** — planning + the agentic-development pipeline; the pipeline-bound skills run ONLY under `dev-orchestrator`.
 - **ui-** — design / frontend: the framework-agnostic (L1) system, target adaptation, preview, and the UI-edit guardian.
 - **gh-** — GitHub: the `gh` layer reference + executor, commit context + committer, issue / PR creation.
@@ -73,7 +74,7 @@ Follow the chosen chain end-to-end.
 <!--/SUPERDEV:AREA artifacts-->
 - **memory / learning**: `mem-claudemd` / `mem-rules`; `dev-improver` promotes convention learnings into the `mem-rules` contract.
 <!--SUPERDEV:AREA help-->
-- **end-user help**: `mem-help` authors / maintains the application's end-user help documentation under `.superdev/help/` — the human-facing product docs, distinct from agent memory. Platform-agnostic on file syntax — pair with a generator/platform skill for the mechanics.
+- **end-user help**: `doc-help` authors / maintains the application's end-user help documentation under `.superdev/help/` — the human-facing product docs, distinct from agent memory. Platform-agnostic on file syntax — pair with a generator/platform skill for the mechanics.
 <!--/SUPERDEV:AREA help-->
 
 

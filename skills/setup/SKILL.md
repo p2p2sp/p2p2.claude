@@ -45,7 +45,7 @@ hand (or deleting it and re-running `/setup`). Skip straight to **Output**.
    - **"Which main-session areas to enable? (unchecked = disabled)"** — switches the injected manifest honors:
      - `artifacts` — Claude Code Artifacts (publish previews / plans as shareable claude.ai links).
      - `ui` — UI/design layer (the `ui-*` skills).
-     - `help` — end-user help layer (`mem-help` writes the product's user documentation under `.superdev/help/`).
+     - `help` — end-user help layer (`doc-help` writes the product's user documentation under `.superdev/help/`).
 2. Map each area to `true` when the user selected it, else `false`.
 3. `Write` `.superdev/config.yml` with this exact shape, substituting each `<true|false>` with the mapped value:
 
@@ -54,7 +54,7 @@ hand (or deleting it and re-running `/setup`). Skip straight to **Output**.
    # A missing file or key = enabled (fail-open). Flip a value to `false` to disable that area.
    adr:            <true|false>   # ADR capture — orchestrator runs dev-adr-analyzer
    artifacts:      <true|false>   # Claude Code Artifacts — cc-artifact publisher
-   help:           <true|false>   # end-user help layer — mem-help writes .superdev/help/
+   help:           <true|false>   # end-user help layer — doc-help writes .superdev/help/
    rules_improver: <true|false>   # auto-promote review learnings → .claude/rules/ (dev-improver step)
    ui:             <true|false>   # UI/design layer — ui-* skills
    ```

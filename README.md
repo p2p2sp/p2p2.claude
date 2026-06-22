@@ -22,7 +22,8 @@ the single injected manifest routes every request to the right skill / chain.
 | Prefix | Domain | Skills |
 | --- | --- | --- |
 | — | Environment bootstrap (user-only) | `setup` — run `/setup` once to seed `.temp/` + `.superdev/`, copy the `.gitignore` / `.claude/settings.json` templates, and choose the opt-in switches written to `.superdev/config.yml` |
-| `mem-` | Project memory + end-user help | `mem-claudemd` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer), `mem-help` (end-user product help → `.superdev/help/`) |
+| `mem-` | Project memory (agent-facing) | `mem-claudemd` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer) |
+| `doc-` | End-user documentation | `doc-help` (end-user product help → `.superdev/help/`) |
 | `dev-` | Development pipeline + diagnostics/specs | `dev-interview`, `dev-extraplan`, `dev-plan-reviewer`, `dev-orchestrator`, `dev-adr-analyzer`, `dev-decomposer`, `dev-coder`, `dev-runner`, `dev-task-reviewer`, `dev-final-reviewer`, `dev-plan-auditor`, `dev-smoke`, `dev-improver`, `dev-tdd`, `dev-debug`, `dev-spec` |
 | `ui-` | Design / frontend | `ui-extract`, `ui-component-creator`, `ui-adapt`, `ui-web-preview`, `ui-guardian` |
 | `gh-` | GitHub | `gh-cli`, `gh-cli-executor`, `gh-commit-context`, `gh-committer`, `gh-issue`, `gh-pr` |
@@ -48,7 +49,7 @@ the single injected manifest routes every request to the right skill / chain.
   marketplace.json   Marketplace catalog (lists superdev by source "./")
   plugin.json        Plugin manifest (skills[])
 hooks/               One injected manifest + two hook scripts
-skills/              Skills grouped by prefix (mem- / dev- / ui- / gh- / cc-)
+skills/              Skills grouped by prefix (mem- / doc- / dev- / ui- / gh- / cc-)
 .github/             CI workflows + the shared release.sh version-bump script
 .claude/rules/       Development-only conventions for this repo
 ```

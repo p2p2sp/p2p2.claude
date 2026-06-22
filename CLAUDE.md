@@ -56,7 +56,7 @@ hooks/               One injected dispatcher manifest + the two hook scripts
   hooks.json         SessionStart (inject manifest) + PreToolUse on ExitPlanMode (plan gate)
   content/manifest.md  The injected `using-superdev` dispatcher
   scripts/           session-start.sh, review-plan.sh
-skills/              Skills grouped by prefix (mem- / dev- / ui- / gh- / cc-); some skills bundle a
+skills/              Skills grouped by prefix (mem- / doc- / dev- / ui- / gh- / cc-); some skills bundle a
                      deterministic helper under their own scripts/ dir (ui-* preview scripts,
                      dev-orchestrator/scripts/commit-task.sh, setup/scripts/bootstrap.sh)
 README.md            User-facing help (install + how it works)
@@ -83,18 +83,21 @@ not individual skills.
   switches → writes `.superdev/config.yml`** (never overwriting an existing one). Runs in the **main session**
   (not a fork) so it can prompt via `AskUserQuestion`. It is `disable-model-invocation` (Claude never auto-routes
   to it) so it is **deliberately absent from the manifest** — see the Self-documentation invariant.
-- **`mem-`** — project memory + end-user help (3 skills): `mem-claudemd` (CLAUDE.md cascade), `mem-rules`
-  (`.claude/rules/` layer), `mem-help` (the end-user product-help layer → `.superdev/help/`, config-gated by `help`).
+- **`mem-`** — project memory (agent-facing) (2 skills): `mem-claudemd` (CLAUDE.md cascade), `mem-rules`
+  (`.claude/rules/` layer).
 
-  **Memory layer division.** Project knowledge splits current truth across five non-overlapping layers, picked by
-  *kind of truth* — layers 1–4 face the **agent**, layer 5 faces the product's **end users**: (1) the general-rules
+  **Memory layer division.** Agent-facing project knowledge splits current truth across four non-overlapping
+  layers, picked by *kind of truth* — all four face the **agent**: (1) the general-rules
   manifest (this `hooks/content/manifest.md`, force-injected per session);
   (2) the `CLAUDE.md` cascade (terse agent orientation; `mem-claudemd`); (3) `.claude/rules/*` (path-scoped
   conventions; `mem-rules`, applied in-pipeline by `dev-improver`); (4) `.superdev/adr/` + `.superdev/layout/`
-  (architectural *why* + design system; `dev-adr-analyzer` / `ui-extract`); (5) `.superdev/help/` (the application's
-  end-user help documentation — human-facing product docs for the people who use the built app, NOT agent memory;
-  `mem-help`, config-gated by `help`). In the dev pipeline, `dev-improver`
+  (architectural *why* + design system; `dev-adr-analyzer` / `ui-extract`). In the dev pipeline, `dev-improver`
   promotes each task's review learnings into layer 3 (`.claude/rules/`), a config-gated step (`rules_improver`).
+  The product's **end-user** help documentation is a distinct, non-agent layer owned by the `doc-` group below
+  (NOT agent memory).
+- **`doc-`** — end-user documentation (1 skill): `doc-help` (the end-user product-help layer → `.superdev/help/`,
+  config-gated by `help`). Authors the human-facing help that ships to the people who use the built app — distinct
+  from the agent-facing `mem-` layers above; faces the end user, not Claude.
 - **`dev-`** — the agentic-development pipeline + diagnostics/specs (16 skills): planning
   (`dev-interview`, `dev-extraplan`, `dev-plan-reviewer`), the orchestrated implementation pipeline
   (`dev-orchestrator` → `dev-adr-analyzer` → `dev-decomposer` → per task `dev-coder` / `dev-runner` /
