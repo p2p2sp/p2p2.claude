@@ -1,6 +1,6 @@
 ---
 name: ui-component-creator
-description: Use when a framework-agnostic design system already exists on disk (default .superdev/layout/design-system/, produced by ui-extract) and the user wants to author a NET-NEW component into it — describe a component that the source UI never had, draft its spec, preview it, and add it to the catalog. Triggers: "add a new component to the design system", "create a <component> spec", "author a stepper / toast / command-palette we don't have yet", "design a new component", "add a component to the inventory", or describing a component the extracted inventory is missing. Interactive L1 loop: help describe → draft an agnostic spec against the canonical component-spec.md (never-fabricate / reconcile discipline reused from ui-extract, no duplicated method) → render its own minimal pure-CSS single-component preview from tokens.css (variants/states labeled) → iterate visually → on convergence write components/<tier>/<name>.md, add the entry to inventory.md, and reconcile tokens via validate_tokens.py. Strictly L1: MUST NOT depend on ui-web-preview (L1 does not reach downstream). Distinct from ui-extract (reverse-engineers a whole system from a source) and ui-adapt (maps the system onto a target).
+description: Use when a framework-agnostic design system already exists on disk (default .superui/layout/design-system/, produced by ui-extract) and the user wants to author a NET-NEW component into it — describe a component that the source UI never had, draft its spec, preview it, and add it to the catalog. Triggers: "add a new component to the design system", "create a <component> spec", "author a stepper / toast / command-palette we don't have yet", "design a new component", "add a component to the inventory", or describing a component the extracted inventory is missing. Interactive L1 loop: help describe → draft an agnostic spec against the canonical component-spec.md (never-fabricate / reconcile discipline reused from ui-extract, no duplicated method) → render its own minimal pure-CSS single-component preview from tokens.css (variants/states labeled) → iterate visually → on convergence write components/<tier>/<name>.md, add the entry to inventory.md, and reconcile tokens via validate_tokens.py. Strictly L1: MUST NOT depend on ui-web-preview (L1 does not reach downstream). Distinct from ui-extract (reverse-engineers a whole system from a source) and ui-adapt (maps the system onto a target).
 ---
 
 # Net-new Component Author
@@ -47,7 +47,7 @@ truth / reconcile discipline `ui-extract` runs — reused, not re-invented.
 
 ## Inputs — the L1 agnostic system
 
-Read these from `.superdev/layout/design-system/` (default; the user may point at
+Read these from `.superui/layout/design-system/` (default; the user may point at
 another root). If the root is missing or has no `tokens.css`, stop and tell the
 user to run `ui-extract` first — this skill **adds to** an existing system, it
 does not create one.
@@ -76,7 +76,7 @@ sync.
 ## Outputs
 
 On convergence, write under the design-system root (default
-`.superdev/layout/design-system/`):
+`.superui/layout/design-system/`):
 
 | File | What happens |
 |------|------|
@@ -85,7 +85,7 @@ On convergence, write under the design-system root (default
 | `design-tokens.yaml` | **Edited only if** the component needs a value no token provides (Phase 4 reconcile), then re-validated. |
 
 The preview HTML (Phase 3) is a throwaway working artifact — write it under a
-scratch path the user can open (e.g. `.superdev/layout/design-system/.preview/<name>.html`)
+scratch path the user can open (e.g. `.superui/layout/design-system/.preview/<name>.html`)
 and do not catalog it.
 
 ## Workflow
@@ -136,9 +136,9 @@ Render it with the bundled preview script — a single self-contained pure-CSS
 
 ```bash
 python ${CLAUDE_SKILL_DIR}/scripts/preview_component.py \
-  --design-system .superdev/layout/design-system \
+  --design-system .superui/layout/design-system \
   --fragment <scratch>/<name>.fragment.html \
-  --out .superdev/layout/design-system/.preview/<name>.html \
+  --out .superui/layout/design-system/.preview/<name>.html \
   --title "<Component> preview"
 ```
 
@@ -157,7 +157,7 @@ duplicated raw value), then re-validate and fix every error before continuing:
 
 ```bash
 python ${CLAUDE_PLUGIN_ROOT}/skills/ui-extract/scripts/validate_tokens.py \
-  .superdev/layout/design-system/design-tokens.yaml
+  .superui/layout/design-system/design-tokens.yaml
 ```
 
 If you added or changed a token, also update `tokens.css` to keep the neutral

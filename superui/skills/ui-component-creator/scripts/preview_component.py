@@ -84,7 +84,7 @@ def main():
     )
     ap.add_argument(
         "--design-system", required=True,
-        help="design-system directory containing tokens.css (e.g. .superdev/layout/design-system)",
+        help="design-system directory containing tokens.css (e.g. .superui/layout/design-system)",
     )
     ap.add_argument(
         "--fragment", required=True,
@@ -92,7 +92,7 @@ def main():
     )
     ap.add_argument(
         "--out", required=True,
-        help="output HTML file to open from file:// (e.g. .superdev/layout/design-system/.preview/button.html)",
+        help="output HTML file to open from file:// (e.g. .superui/layout/design-system/.preview/button.html)",
     )
     ap.add_argument(
         "--title", default="Component preview",

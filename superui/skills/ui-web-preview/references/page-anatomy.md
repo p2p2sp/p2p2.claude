@@ -194,7 +194,7 @@ fine. The chrome also stays readable in both light and dark.
 ```json
 {
   "title": "Acme Design System — Preview",
-  "design_system": ".superdev/layout/design-system",
+  "design_system": ".superui/layout/design-system",
   "target": "tailwind",
   "pages": [
     { "path": "layouts/layout_base.html",     "fragment": "content/layouts/layout_base.html",     "title": "Base layout (app shell)", "group": "Layouts",    "layout": "bare" },
