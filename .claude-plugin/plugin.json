@@ -9,6 +9,7 @@
   "skills": [
     "./skills/setup/",
     "./skills/mem-claudemd/",
+    "./skills/mem-help/",
     "./skills/mem-rules/",
     "./skills/dev-interview/",
     "./skills/dev-extraplan/",

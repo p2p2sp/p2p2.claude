@@ -60,9 +60,9 @@ fi
 
 if [ -f ".superdev/config.yml" ]; then
   echo "config.yml: already present (left untouched) — current switches:"
-  grep -E '^[[:space:]]*(adr|artifacts|rules_improver|ui)[[:space:]]*:' .superdev/config.yml
+  grep -E '^[[:space:]]*(adr|artifacts|help|rules_improver|ui)[[:space:]]*:' .superdev/config.yml
 else
-  echo "config.yml: MISSING — ask the user about the 4 switches, then write it (see 'Configure the opt-in switches')"
+  echo "config.yml: MISSING — ask the user about the 5 switches, then write it (see 'Configure the opt-in switches')"
 fi
 
 exit 0

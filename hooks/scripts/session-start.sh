@@ -92,7 +92,7 @@ read_switch() {
 
 if [ -n "$manifest" ]; then
   off_areas=""
-  for key in ui artifacts adr rules_improver; do
+  for key in ui artifacts adr rules_improver help; do
     [ "$(read_switch "$key")" = "false" ] && off_areas="$off_areas $key"
   done
 
@@ -106,6 +106,7 @@ if [ -n "$manifest" ]; then
       dir["artifacts"]="> **Claude Code Artifacts are OFF** (user disabled it) — never route to `cc-artifact`.";
       dir["adr"]="> **ADR capture is OFF** (user disabled it) — never propose or record ADRs; the orchestrator skips `dev-adr-analyzer`.";
       dir["rules_improver"]="> **Rules auto-learning is OFF** (user disabled it) — the orchestrator skips the `dev-improver` step.";
+      dir["help"]="> **End-user help layer is OFF** (user disabled it) — never route to `mem-help`.";
     }
     /^<!--SUPERDEV:AREA /{ a=$2; sub(/-->.*$/,"",a); inreg=1; supp=0;
       if(a in offmap){ if(!shown[a]){ print dir[a]; shown[a]=1 } supp=1 } next }

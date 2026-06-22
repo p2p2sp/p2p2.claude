@@ -83,13 +83,17 @@ not individual skills.
   switches → writes `.superdev/config.yml`** (never overwriting an existing one). Runs in the **main session**
   (not a fork) so it can prompt via `AskUserQuestion`. It is `disable-model-invocation` (Claude never auto-routes
   to it) so it is **deliberately absent from the manifest** — see the Self-documentation invariant.
-- **`mem-`** — project memory (2 skills): `mem-claudemd` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer).
+- **`mem-`** — project memory + end-user help (3 skills): `mem-claudemd` (CLAUDE.md cascade), `mem-rules`
+  (`.claude/rules/` layer), `mem-help` (the end-user product-help layer → `.superdev/help/`, config-gated by `help`).
 
-  **Memory layer division.** Project memory splits current truth across four non-overlapping layers, picked by
-  *kind of truth*: (1) the general-rules manifest (this `hooks/content/manifest.md`, force-injected per session);
+  **Memory layer division.** Project knowledge splits current truth across five non-overlapping layers, picked by
+  *kind of truth* — layers 1–4 face the **agent**, layer 5 faces the product's **end users**: (1) the general-rules
+  manifest (this `hooks/content/manifest.md`, force-injected per session);
   (2) the `CLAUDE.md` cascade (terse agent orientation; `mem-claudemd`); (3) `.claude/rules/*` (path-scoped
   conventions; `mem-rules`, applied in-pipeline by `dev-improver`); (4) `.superdev/adr/` + `.superdev/layout/`
-  (architectural *why* + design system; `dev-adr-analyzer` / `ui-extract`). In the dev pipeline, `dev-improver`
+  (architectural *why* + design system; `dev-adr-analyzer` / `ui-extract`); (5) `.superdev/help/` (the application's
+  end-user help documentation — human-facing product docs for the people who use the built app, NOT agent memory;
+  `mem-help`, config-gated by `help`). In the dev pipeline, `dev-improver`
   promotes each task's review learnings into layer 3 (`.claude/rules/`), a config-gated step (`rules_improver`).
 - **`dev-`** — the agentic-development pipeline + diagnostics/specs (16 skills): planning
   (`dev-interview`, `dev-extraplan`, `dev-plan-reviewer`), the orchestrated implementation pipeline
@@ -115,12 +119,12 @@ not individual skills.
   The hook **renders** the manifest from `.superdev/config.yml`: each switchable area is wrapped in
   `<!--SUPERDEV:AREA x-->` sentinels, and a disabled area's block is replaced by a one-line OFF directive (the
   sentinel markers are always stripped). A missing/unreadable config = everything enabled.
-- **Opt-in switches (`.superdev/config.yml`).** Four booleans — `adr`, `artifacts`, `rules_improver`,
+- **Opt-in switches (`.superdev/config.yml`).** Five booleans — `adr`, `artifacts`, `help`, `rules_improver`,
   `ui` — all **default-enabled** (a missing file/key = `true`, fail-open; a repo that never ran
   `/setup` behaves exactly as before). `setup` writes the file; the `SessionStart` hook gates main-session routing
-  (OFF directives in the manifest); `dev-orchestrator` reads the config and skips the `dev-adr-analyzer` /
-  `dev-improver` steps — each skip is **one terse line, never a paragraph**. Config readers are only the hook,
-  `dev-orchestrator`, and `setup` (writer).
+  (OFF directives in the manifest — `artifacts`, `ui`, and `help` are gated here); `dev-orchestrator` reads the
+  config and skips the `dev-adr-analyzer` / `dev-improver` steps — each skip is **one terse line, never a
+  paragraph**. Config readers are only the hook, `dev-orchestrator`, and `setup` (writer).
 - **One plan gate, mode-independent.** A `PreToolUse` hook on `ExitPlanMode` (`review-plan.sh`) denies
   until `dev-plan-reviewer` returns `STATUS: PASS` — but that gate exists only in plan mode. In accept-edits
   mode the **same precondition is enforced inside `dev-orchestrator`** (it will not start the pipeline without

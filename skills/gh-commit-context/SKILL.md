@@ -54,3 +54,4 @@ No argument at all → default to **session**.
 - This skill is git-only — it never touches the GitHub API. For gh / REST / GraphQL operations the `gh-cli` skill is the layer reference (informational see-also, not a functional dependency).
 - One route, one delegation, one report. Never re-run "to confirm".
 - Never question or analyze user intent to commit `all` or `staged` files.
+- If mode is `all` or `staged`, never propose or start a new branch.

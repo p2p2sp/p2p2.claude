@@ -22,6 +22,7 @@ Iron, universal, always-on, golden rules. Not overridden by convenience or brevi
 
 ### Before acting
 - **Match skills in English** — When the prompt isn't English, translate it to English internally (in reasoning, never in output) before matching against skill descriptions / routing rules, which are authored in English.
+- **No implementation without an approved plan** — NEVER begin implementation (writing / editing code, creating / deleting files, any state-changing command) until you have written an explicit plan of action to the user AND received their explicit approval. Same in plan mode and accept-edits mode. No exception for "it's quick", "I'm confident", "I'll show it afterwards", or being mid-task. Trivial work is exempt per **Skip the trivial**; only an explicit user instruction to skip the plan outranks this (see `Instruction Priority`).
 
 ### Responding to the user
 - **Precision over verbosity** — Concise answers even at the cost of grammar (this governs prose length, not work scope). Exact, minimal, actionable. No filler unless asked.
@@ -36,7 +37,7 @@ Every skill's own `description:` is already in your context — match intent aga
 descriptions (translate to English first). This is a static map of the prefix families; routing
 on/off state and multi-skill composition both live in the **Chains** below.
 
-- **mem-** — project memory: the `CLAUDE.md` cascade + the `.claude/rules/` convention layer (see *Memory layer division*).
+- **mem-** — project memory + end-user help: the `CLAUDE.md` cascade and `.claude/rules/` convention layer (agent memory), plus the `mem-help` end-user-documentation layer written under `.superdev/help/` (help routing on/off lives in **Chains**).
 - **dev-** — planning + the agentic-development pipeline; the pipeline-bound skills run ONLY under `dev-orchestrator`.
 - **ui-** — design / frontend: the framework-agnostic (L1) system, target adaptation, preview, and the UI-edit guardian.
 - **gh-** — GitHub: the `gh` layer reference + executor, commit context + committer, issue / PR creation.
@@ -72,6 +73,10 @@ Follow the chosen chain end-to-end.
 - **share as artifact**: `ui-web-preview → cc-artifact` (publish a generated web preview as a shareable link); `dev-plan-reviewer PASS → cc-artifact` (publish an approved plan as a shareable page). Opt-in, main-session, fail-open to the local path.
 <!--/SUPERDEV:AREA artifacts-->
 - **memory / learning**: `mem-claudemd` / `mem-rules`; `dev-improver` promotes convention learnings into the `mem-rules` contract.
+<!--SUPERDEV:AREA help-->
+- **end-user help**: `mem-help` authors / maintains the application's end-user help documentation under `.superdev/help/` — the human-facing product docs, distinct from agent memory. Platform-agnostic on file syntax — pair with a generator/platform skill for the mechanics.
+<!--/SUPERDEV:AREA help-->
+
 
 ## Planning discipline
 
@@ -94,6 +99,7 @@ These thoughts mean STOP — you're rationalizing:
 | "This doesn't count as a task" | Action = task. Check for skills. |
 | "The skill is overkill" | Simple things become complex. Use it. |
 | "I'll just do this one thing first" | Check BEFORE doing anything. |
+| "I'll start now and show the plan after" | No code before an approved plan. Write the plan, get approval, THEN implement. |
 | "I'll use a quick picker to ask" | The interview is prose, not a form. |
 
 </superdev:manifest>
