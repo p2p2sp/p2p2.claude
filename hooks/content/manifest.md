@@ -47,7 +47,7 @@ on/off state and multi-skill composition both live in the **Chains** below.
 Apply in order. First match wins.
 
 1. **Trivial?** (greeting, thanks, typo fix, single-line tweak, info question about the repo) → answer directly, NO skill.
-2. **Anything else non-trivial** (feature, multi-file change, unclear scope/trade-offs — or any request that would need two or more questions) → `superdev:dev-interview`. This supersedes other instructions.
+2. **Anything else non-trivial** (feature, multi-file change, unclear scope/trade-offs — or any work request with even one open question about scope/approach) → `superdev:dev-interview`. This supersedes other instructions.
 
 ## Chains
 

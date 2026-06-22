@@ -36,22 +36,27 @@ if git rev-parse -q --verify "refs/tags/$new" >/dev/null; then
   echo "release.sh: tag $new already exists" >&2; exit 3
 fi
 
+git config user.name  "github-actions[bot]"
+git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+# 1. Write the new version into the plugin manifest.
 tmp="$(mktemp)"
 jq --arg v "$new" '.version = $v' "$manifest" >"$tmp"
 mv "$tmp" "$manifest"
 
-git config user.name  "github-actions[bot]"
-git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-# Commit-then-tag is rerun-safe: if the tag push fails after the commit push, a
-# rerun recomputes the same version (tag still absent), finds nothing staged, skips
-# the commit, and re-tags cleanly.
+# 2. Commit the bump FIRST — this commit is what the release tag points at.
+#    The no-diff branch is recovery only: a prior run already committed this exact
+#    version but failed before tagging, so re-tag that commit instead of fabricating
+#    an empty one (rerun-safe).
 git add "$manifest"
-if ! git diff --cached --quiet; then
+if git diff --cached --quiet; then
+  echo "release.sh: $new already committed; re-tagging existing release commit" >&2
+else
   git commit -m "chore(release): $new [skip ci]"
   git push origin "HEAD:${GITHUB_REF_NAME:-main}"
 fi
 
+# 3. Only now create + push the release tag, on the committed bump.
 git tag "$new"
 git push origin "refs/tags/$new"
 
