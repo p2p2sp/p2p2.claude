@@ -40,6 +40,8 @@ The five-value enum mirrors the runner's `## Verdict` token 1:1 — `BLOCKED` / 
 
 `BLOCKED` still requires a `Scope hints:` block in the runner prompt — without it the runner cannot emit `BLOCKED` and the whole runner unblock path becomes unreachable.
 
+> **`N/A` is full-scope only.** In `Scope: full` runs the runner may also return `N/A` (the host documents no build/test/lint suite). That token is consumed by `dev-final-reviewer` (where `N/A` is non-blocking / PASS-eligible), **not** by the orchestrator's per-task pipeline — the per-task task-scope `STATUS:` regex above stays `(PASS|FAIL|BLOCKED|ERROR|TIMEOUT)` and never matches `N/A`.
+
 **Legacy mode** (no `Report path:`, main session / ad-hoc callers) — the runner returns the full markdown on stdout instead; the verdict is read from the `## Verdict` heading by `runner_verdict(out)` rather than from a `STATUS:` first line. The dispatcher does NOT use legacy mode.
 
 ## `committer` skill output (commit step)

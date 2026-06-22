@@ -47,7 +47,7 @@ print(f"[final] dev-final-reviewer: {final_verdict}")
 report final_out and stop the skill
 ```
 
-Surface `final_out` (the verdict line plus the sub-step breakdown) to the user verbatim as the terminal result. The widget at this point shows every task widget as `completed` (or, on a halted run, the in-flight task still at `in_progress`); no plan-level flip is needed.
+Surface `final_out` (the verdict line plus the sub-step breakdown) to the user verbatim as the terminal result. The relayed sub-step breakdown may show `N/A` for a runtime gate (`dev-runner` / `dev-smoke` when the host documents no suite / launch command) — `N/A` is **non-blocking** (PASS-eligible) in `dev-final-reviewer`'s synthesis, so a relayed `N/A` does not imply a no-go. The orchestrator still parses only the synthesized `PASS`/`FAIL` first line (unchanged); it never parses or branches on a sub-step's `N/A`. The widget at this point shows every task widget as `completed` (or, on a halted run, the in-flight task still at `in_progress`); no plan-level flip is needed.
 
 ## Notes
 
