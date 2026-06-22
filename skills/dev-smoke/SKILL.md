@@ -5,7 +5,7 @@ model: haiku
 effort: medium
 context: fork
 user-invocable: false
-allowed-tools: Read, Glob, Grep, Bash
+allowed-tools: Read, Glob, Grep, Bash, Skill
 ---
 
 # Boot / liveness gate (fork)

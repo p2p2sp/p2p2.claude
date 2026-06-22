@@ -5,7 +5,7 @@ model: opus
 effort: xhigh
 context: fork
 user-invocable: false
-allowed-tools: Read, Glob, Grep
+allowed-tools: Read, Glob, Grep, Skill
 ---
 
 # Whole-plan completeness auditor (fork)

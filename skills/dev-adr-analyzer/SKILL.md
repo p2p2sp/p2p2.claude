@@ -5,7 +5,7 @@ model: opus
 effort: medium
 context: fork
 user-invocable: false
-allowed-tools: Read, Glob, Grep, Bash(cat:*), Bash(echo:*)
+allowed-tools: Read, Glob, Grep, Bash(cat:*), Bash(echo:*), Skill
 ---
 
 # ADR Analyzer (fork)

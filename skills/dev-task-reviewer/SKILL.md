@@ -5,7 +5,7 @@ model: opus
 effort: xhigh
 context: fork
 user-invocable: false
-allowed-tools: Read, Glob, Grep, Write, Bash(git *)
+allowed-tools: Read, Glob, Grep, Write, Bash(git *), Skill
 ---
 
 # Single-task review gate (fork)
