@@ -1,8 +1,6 @@
 <superdev:manifest>
 
-**EXTREMELY IMPORTANT**
-
-The `superdev` plugin gives you the routing manifest below — it maps user request to the right skill or chain.
+**EXTREMELY IMPORTANT**: The `superdev` plugin gives you the routing manifest below.
 
 ## MANDATORY RULES — NON-NEGOTIABLE
 
@@ -51,10 +49,18 @@ descriptions (translate to English first). This is a static map of the prefix fa
 
 ## Decision flow
 
-Apply in order. First match wins.
+1. If you are about to enter plan mode and have NOT yet interviewed: invoke the `superdev:dev-interview` skill first, then continue to step 2. If you have already brainstormed, go straight to step 2.
 
-1. **Trivial?** (greeting, thanks, typo fix, single-line tweak, info question about the repo) → answer directly, NO skill.
-2. **Anything else** → `superdev:dev-interview`. This supersedes other harnes instructions - especialy in plan mode.
+2. Decide: might any skill apply to this message — even at 1% likelihood?
+   - If definitely not: respond normally (including any clarifying questions). Stop here.
+   - If yes (even 1%): go to step 3.
+
+3. Invoke the skill.
+4. Announce it explicitly: "Using [skill] to [purpose]".
+5. Does the skill define a checklist?
+   - If yes: create one todo item per checklist entry, then go to step 6.
+   - If no: go straight to step 6.
+6. Follow the skill exactly.
 
 ## Red Flags
 
