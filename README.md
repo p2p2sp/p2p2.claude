@@ -40,7 +40,9 @@ the single injected manifest routes every request to the right skill / chain.
   the pipeline; a missing config means everything is enabled, so superdev works fully out of the box.
 - **The implementation pipeline is file-based**: `dev-orchestrator` dispatches forked executors that hand
   state through files and reply with a 3-line status, keeping the main context lean.
-- **The planning pipeline works the same in plan mode and accept-edits mode.**
+- **Planning always happens in plan mode.** Whatever mode you start in, superdev enters plan mode before
+  drafting a plan (a hook denies writing a plan file outside plan mode), so the plan-review gate runs every
+  time — the planning pipeline behaves the same regardless of the mode you started in.
 
 ## Repository layout
 

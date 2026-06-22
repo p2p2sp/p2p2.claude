@@ -25,7 +25,7 @@ root also carries a one-entry **marketplace catalog** (`.claude-plugin/marketpla
 itself (`source: "./"`), so the repo is simultaneously the plugin and the catalog that ships it. End-user
 help lives in `README.md`; this file is orientation for the assistant.
 
-It ships no application code — the artefacts are markdown (skills) + JSON (manifests) + the two hook scripts
+It ships no application code — the artefacts are markdown (skills) + JSON (manifests) + the three hook scripts
 under `hooks/scripts/`, plus a handful of deterministic helper scripts bundled under individual skills'
 `scripts/` dirs (the `ui-*` preview scripts, the pipeline script `dev-orchestrator/scripts/commit-task.sh`,
 and the one-time `setup/scripts/bootstrap.sh`).
@@ -52,10 +52,10 @@ manifest documents the chains, including across domains (`dev-spec → gh-issue`
 .claude-plugin/
   marketplace.json   Marketplace catalog — lists the single plugin superdev by source "./" (the repo root)
   plugin.json        The plugin manifest — skills[] is the catalog of record
-hooks/               One injected dispatcher manifest + the two hook scripts
-  hooks.json         SessionStart (inject manifest) + PreToolUse on ExitPlanMode (plan gate)
+hooks/               One injected dispatcher manifest + the three hook scripts
+  hooks.json         SessionStart (inject manifest) + PreToolUse: ExitPlanMode (plan-review gate) + Write|Edit (plan-mode guard)
   content/manifest.md  The injected `using-superdev` dispatcher
-  scripts/           session-start.sh, review-plan.sh
+  scripts/           session-start.sh, review-plan.sh, require-plan-mode.sh
 skills/              Skills grouped by prefix (mem- / doc- / dev- / ui- / gh- / cc-); some skills bundle a
                      deterministic helper under their own scripts/ dir (ui-* preview scripts,
                      dev-orchestrator/scripts/commit-task.sh, setup/scripts/bootstrap.sh)
@@ -128,10 +128,13 @@ not individual skills.
   (OFF directives in the manifest — `artifacts`, `ui`, and `help` are gated here); `dev-orchestrator` reads the
   config and skips the `dev-adr-analyzer` / `dev-improver` steps — each skip is **one terse line, never a
   paragraph**. Config readers are only the hook, `dev-orchestrator`, and `setup` (writer).
-- **One plan gate, mode-independent.** A `PreToolUse` hook on `ExitPlanMode` (`review-plan.sh`) denies
-  until `dev-plan-reviewer` returns `STATUS: PASS` — but that gate exists only in plan mode. In accept-edits
-  mode the **same precondition is enforced inside `dev-orchestrator`** (it will not start the pipeline without
-  a passed plan-review). Keep both paths in sync.
+- **Plan gate, plan-mode-enforced.** Planning always happens in plan mode, enforced by **two** `PreToolUse`
+  hooks: `require-plan-mode.sh` (matcher `Write|Edit`) denies writing a plan file (`.claude/plans/*.md`) unless
+  `permission_mode == "plan"` — forcing `EnterPlanMode` regardless of the starting mode — and `review-plan.sh`
+  (matcher `ExitPlanMode`) denies the plan's approval until `dev-plan-reviewer` returns `STATUS: PASS`. The
+  ExitPlanMode hook is the primary gate in every mode; `dev-orchestrator` keeps a **defense-in-depth** plan-review
+  self-check before starting the pipeline (in case plan mode was bypassed — note a `PreToolUse` deny is only
+  best-effort in the permission-relaxed modes `bypassPermissions`/`dontAsk`/`auto`). Keep all paths in sync.
 - **No `"hooks"` field in `plugin.json`.** Claude Code auto-loads `hooks/hooks.json` from that path; adding a
   `hooks` field to `plugin.json` is a hard install error.
 - **File-based dispatch.** The orchestrator dispatches by passing **file paths** (task file + path params

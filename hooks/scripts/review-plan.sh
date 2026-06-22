@@ -6,9 +6,12 @@
 # prior Write/Edit to a path under .claude/plans/*.md (i.e. plan-mode for an
 # implementation plan, not commit-flow plan-mode without a plan file).
 #
-# NOTE: this hook only fires in plan mode. In accept-edits mode there is no
-# ExitPlanMode event — the same "plan-review PASS" precondition is enforced by
-# the dev-orchestrator skill before it starts the pipeline (mode-agnostic gate).
+# NOTE: this hook only fires when the model calls ExitPlanMode, i.e. in plan
+# mode. The companion guard require-plan-mode.sh denies plan-file writes outside
+# plan mode, so planning always happens in plan mode and this ExitPlanMode gate
+# fires for every plan-driven flow regardless of the mode the session started in.
+# dev-orchestrator additionally keeps a defense-in-depth "plan-review PASS"
+# self-check before it starts the pipeline, in case plan mode was bypassed.
 #
 # Contract:
 #   stdin  : JSON with at least { "transcript_path": "<abs-path>" }

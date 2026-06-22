@@ -22,7 +22,7 @@ Iron, universal, always-on, golden rules. Not overridden by convenience or brevi
 
 ### Before acting
 - **Match skills in English** — When the prompt isn't English, translate it to English internally (in reasoning, never in output) before matching against skill descriptions / routing rules, which are authored in English.
-- **No implementation without an approved plan** — NEVER begin implementation (writing / editing code, creating / deleting files, any state-changing command) until you have written an explicit plan of action to the user AND received their explicit approval. Same in plan mode and accept-edits mode. No exception for "it's quick", "I'm confident", "I'll show it afterwards", or being mid-task. Trivial work is exempt per **Skip the trivial**; only an explicit user instruction to skip the plan outranks this (see `Instruction Priority`).
+- **No implementation without an approved plan** — NEVER begin implementation (writing / editing code, creating / deleting files, any state-changing command) until you have written an explicit plan of action to the user AND received their explicit approval. This holds in every mode; the plan itself is always drafted in plan mode (see **Planning discipline**). No exception for "it's quick", "I'm confident", "I'll show it afterwards", or being mid-task. Trivial work is exempt per **Skip the trivial**; only an explicit user instruction to skip the plan outranks this (see `Instruction Priority`).
 
 ### Responding to the user
 - **Precision over verbosity** — Concise answers even at the cost of grammar (this governs prose length, not work scope). Exact, minimal, actionable. No filler unless asked.
@@ -80,7 +80,7 @@ Follow the chosen chain end-to-end.
 
 ## Planning discipline
 
-- **The planning pipeline works the same in plan mode and in accept-edits mode**.
+- **Plans are always drafted in plan mode.** Before writing or refining any plan, if plan mode is not already active (no `Plan mode is active` system reminder), call `EnterPlanMode` first — regardless of the current mode (default / accept-edits). This holds in every planning path (the interview handoff, extraplan, a direct plan for a larger fix). A `PreToolUse` guard enforces it: writing a `.claude/plans/*.md` file outside plan mode is denied. Producing the plan in plan mode is what makes the `dev-plan-reviewer` → `ExitPlanMode` gate apply uniformly, so the planning pipeline behaves the same whichever mode you started in.
 - **The interview is a conversation, not a form.** Use plain prose, not the `AskUserQuestion` tool — the interview is a conversation, not a form. Form-style pickers flatten the trade-off discussion you are trying to have. Reserve `AskUserQuestion` for discrete "A vs B" picks outside the interview.
 
 ## Red Flags

@@ -5,7 +5,7 @@ model: opus
 effort: xhigh
 ---
 
-**CRITIAL**: If plan mode is not already active when extraplan is invoked, your first action MUST be to call `EnterPlanMode` before reading files or drafting anything. Do NOT call it again if plan mode is already on (the system reminder `Plan mode is active` signals this). Producing the plan inside plan mode is what makes the downstream `dev-plan-reviewer` → `ExitPlanMode` gate apply.
+**CRITIAL**: If plan mode is not already active when extraplan is invoked, your first action MUST be to call `EnterPlanMode` before reading files or drafting anything — **regardless of the current mode** (default / accept-edits). Do NOT call it again if plan mode is already on (the system reminder `Plan mode is active` signals this). Producing the plan inside plan mode is what makes the downstream `dev-plan-reviewer` → `ExitPlanMode` gate apply. This is also enforced by a `PreToolUse` guard: writing a `.claude/plans/*.md` file outside plan mode is denied, so drafting the plan without first entering plan mode will be blocked anyway.
 
 # ExtraPlan
 

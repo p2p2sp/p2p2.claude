@@ -56,10 +56,10 @@ Once resolved, `Read` the plan briefly for orientation. The plan can be any mark
 
 ## Precondition: plan-review PASS (mode-agnostic)
 
-**Before dispatching any pipeline stage** (ADR analysis, decompose, the per-task loop), confirm THIS plan was approved by `superdev:dev-plan-reviewer` with `STATUS: PASS`. The planning discipline must hold equally in plan mode and accept-edits mode:
+**Before dispatching any pipeline stage** (ADR analysis, decompose, the per-task loop), confirm THIS plan was approved by `superdev:dev-plan-reviewer` with `STATUS: PASS`. The planning discipline must hold equally whatever mode the session started in:
 
-- In **plan mode** the `ExitPlanMode` `PreToolUse` hook (`review-plan.sh`) already enforces this — it denies the plan's approval until `dev-plan-reviewer` returned `STATUS: PASS`. So if the plan reached this dispatcher via an `ExitPlanMode` approval in this session, the gate is already satisfied; do not re-run it.
-- In **accept-edits mode** there is **no `ExitPlanMode` event**, so no hook fires — the dispatcher itself MUST enforce the gate.
+- Planning now always happens **in plan mode** — a `PreToolUse` guard (`require-plan-mode.sh`) denies plan-file writes outside plan mode, so the plan was drafted in plan mode and the `ExitPlanMode` `PreToolUse` hook (`review-plan.sh`) is the **primary gate** in every mode: it denies the plan's approval until `dev-plan-reviewer` returned `STATUS: PASS`. So if the plan reached this dispatcher via an `ExitPlanMode` approval in this session, the gate is already satisfied; do not re-run it.
+- The self-check below is **defense-in-depth**: if no `ExitPlanMode` approval evidence exists (e.g. plan mode was somehow bypassed, or the plan came from an earlier session), the dispatcher enforces the gate itself rather than trusting an un-reviewed plan.
 
 ```
 # Look for evidence in THIS session of a passed dev-plan-reviewer for the current plan:

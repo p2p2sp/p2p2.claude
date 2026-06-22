@@ -7,7 +7,7 @@ effort: xhigh
 
 # Interview
 
-Goal: reach a shared understanding of WHAT the user wants and HOW it should be built, before any plan or code is drafted.
+Goal: reach a shared understanding of WHAT the user wants and HOW it should be built, before any plan or code is drafted. Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval. Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
 
 The interview models the work as a **design tree** — a graph where each decision narrows the next branch (a data-shape choice constrains the API; an API choice constrains the UI). Resolving branches in dependency order is what keeps the conversation from looping back on itself.
 
@@ -51,6 +51,6 @@ The interview models the work as a **design tree** — a graph where each decisi
 - Close the interview when every **load-bearing** branch has a confirmed answer. A branch is load-bearing if a different answer would change which files are touched, which library or pattern is chosen, the data shape, or a contract between components. Branches whose answer only affects local style or naming are NOT load-bearing — do not gate the handoff on them.
 - Present the synthesis as ~3–5 bullets capturing the chosen approach, key constraints, and explicit out-of-scope items. Wait for the user's confirmation before
 handing off.
-- Then ask: plain plan-mode or `superdev:dev-extraplan`?
-  - "Plain plan-mode" → call the `EnterPlanMode` tool and continue.
-  - "Extraplan" → invoke the `superdev:dev-extraplan` skill and continue.
+- Then ask: plain plan-mode or `superdev:dev-extraplan`? Both branches produce the plan **inside plan mode**, regardless of the mode this session started in (default / accept-edits):
+  - "Plain plan-mode" → if plan mode is not already active (no `Plan mode is active` system reminder), call the `EnterPlanMode` tool first, then continue.
+  - "Extraplan" → invoke the `superdev:dev-extraplan` skill and continue (its preamble enters plan mode if not already active).
