@@ -49,11 +49,21 @@ the single injected manifest routes every request to the right skill / chain.
   plugin.json        Plugin manifest (skills[])
 hooks/               One injected manifest + two hook scripts
 skills/              Skills grouped by prefix (mem- / dev- / ui- / gh- / cc-)
+.github/             CI workflows + the shared release.sh version-bump script
 .claude/rules/       Development-only conventions for this repo
 ```
 
-No `version` is declared in `plugin.json` — per the
-[official Claude Code guidance](https://code.claude.com/docs/en/plugin-marketplaces)
-this is the recommended setup for actively-developed plugins on git-based sources:
-every new commit on `main` is treated as a new version, so `/plugin update` always
-fetches the latest without manual bumps.
+## Versioning
+
+Versions are git tags in `MAJOR.MINOR.PATCH` form (no `v` prefix), starting at `0.1.0`. The highest tag
+is the source of truth; CI mirrors it into `plugin.json`'s `version` field, so `/plugin update` ships a
+new version on each bump:
+
+- **Automatic** — every push to `main` runs **Auto patch version**
+  (`.github/workflows/auto-version.yml`), which bumps the **patch** number, syncs it into `plugin.json`,
+  commits (`chore(release): … [skip ci]`), and pushes the matching tag.
+- **Manual** — run **Manual version bump** (`.github/workflows/release-version.yml`) from the **Actions**
+  tab and pick `major`, `minor`, or `patch` to cut a larger release on demand.
+
+Both delegate to `.github/scripts/release.sh`, which computes the next version from the tags and performs
+the sync + tag + push.

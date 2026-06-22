@@ -48,7 +48,7 @@ Manifest is optional; if present, only `name` is required. Components in default
 }
 ```
 
-- **`version`**: set it → users only update when you bump it. **Omit it** → the git commit SHA is used, so every commit ships as latest (this repo's convention). `plugin.json` wins over the marketplace entry.
+- **`version`**: set it → users only update when you bump it. **Omit it** → the git commit SHA is used, so every commit ships as latest. `plugin.json` wins over the marketplace entry. (This repo sets `version` and keeps it in sync with git tags via CI — see `.github/scripts/release.sh`.)
 - Unrecognized top-level fields are ignored (warnings under `--strict`); wrong-typed fields fail. Validate: `claude plugin validate ./my-plugin [--strict]`.
 
 ### Component path-field merge rules

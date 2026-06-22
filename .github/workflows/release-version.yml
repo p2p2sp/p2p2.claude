@@ -1,0 +1,30 @@
+name: Manual version bump
+on:
+  workflow_dispatch:
+    inputs:
+      part:
+        description: Which version part to bump
+        type: choice
+        required: true
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+permissions:
+  contents: write
+concurrency:
+  group: versioning
+  cancel-in-progress: false
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Bump version + tag
+        env:
+          PART: ${{ inputs.part }}
+        run: bash .github/scripts/release.sh "$PART"

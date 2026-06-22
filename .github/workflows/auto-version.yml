@@ -1,0 +1,20 @@
+name: Auto patch version
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+concurrency:
+  group: versioning
+  cancel-in-progress: false
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Bump patch + tag
+        run: bash .github/scripts/release.sh patch

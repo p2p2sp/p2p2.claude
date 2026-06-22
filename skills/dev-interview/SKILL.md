@@ -52,5 +52,5 @@ The interview models the work as a **design tree** — a graph where each decisi
 - Present the synthesis as ~3–5 bullets capturing the chosen approach, key constraints, and explicit out-of-scope items. Wait for the user's confirmation before
 handing off.
 - Then ask: plain plan-mode or `superdev:dev-extraplan`?
-  - Plain plan-mode → call the `EnterPlanMode` tool and continue.
-  - Extraplan → invoke the `superdev:dev-extraplan` skill and continue.
+  - "Plain plan-mode" → call the `EnterPlanMode` tool and continue.
+  - "Extraplan" → invoke the `superdev:dev-extraplan` skill and continue.

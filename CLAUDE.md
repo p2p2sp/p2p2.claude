@@ -60,11 +60,17 @@ skills/              Skills grouped by prefix (mem- / dev- / ui- / gh- / cc-); s
                      deterministic helper under their own scripts/ dir (ui-* preview scripts,
                      dev-orchestrator/scripts/commit-task.sh, setup/scripts/bootstrap.sh)
 README.md            User-facing help (install + how it works)
+.github/             CI: scripts/release.sh + workflows/ (auto-version.yml, release-version.yml)
 .claude/rules/       Development-only conventions for this repo
 ```
 
-No `version` is declared in `plugin.json` — every commit on `main` is treated as a new version, so
-`/plugin update` always fetches the latest.
+Versioning is tag-driven. CI keeps `plugin.json`'s `version` in sync with the highest `MAJOR.MINOR.PATCH`
+git tag (no `v` prefix, seed `0.1.0`): `.github/workflows/auto-version.yml` patch-bumps on every push to
+`main`, and `.github/workflows/release-version.yml` is a manual `workflow_dispatch` that bumps a chosen
+part (major/minor/patch). The shared `.github/scripts/release.sh` computes the next version from the tags,
+writes it into `plugin.json`, commits `[skip ci]`, and pushes the commit + tag. The tag is the source of
+truth; `plugin.json.version` is derived. Because `plugin.json` now carries a `version`, `/plugin update`
+ships a new version on each bump.
 
 ## Skill taxonomy (prefix = functional group)
 
