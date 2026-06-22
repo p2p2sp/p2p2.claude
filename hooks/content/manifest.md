@@ -2,11 +2,32 @@
 
 **EXTREMELY IMPORTANT**
 
-The `superdev` plugin gives you the mandatory routing manifest below — it maps each request to the right skill or chain. Apply it before acting:
+The `superdev` plugin gives you the routing manifest below — it maps user request to the right skill or chain.
 
-- **Route first** — on any non-trivial request, consult the manifest and invoke the matching skill through the `Skill` tool before doing the work yourself.
-- **Skip the trivial** — greetings, thanks, info questions, typo / single-line edits → answer directly, no skill.
-- **If a skill applies, you MUST use it — this is not negotiable.** Under-triggering (doing the work yourself when a skill owns it) is the most common failure here, so resolve doubt toward the skill: when there's a real chance one applies to non-trivial work, must invoke it rather than hand-rolling.
+## MANDATORY RULES — NON-NEGOTIABLE
+
+Iron, universal, always-on, golden rules. Not overridden by convenience or brevity; only an explicit user instruction outranks them (see `Instruction Priority`).
+
+### Skill invocation
+Before you do anything else — before launching any tool, asking the user a question, writing code, creating a file, running a command, or composing a response — you MUST first check whether a skill applies to the task.
+
+If there is even a 1% chance that a skill is relevant, you are REQUIRED to invoke it. "Maybe relevant" means relevant. "Probably don't need it" means you invoke it anyway.
+
+If a skill applies, you have no choice and no discretion. You MUST use it. Skipping it is not an available option.
+
+This rule is:
+- NOT negotiable — no exceptions, no edge cases, no "this once."
+- NOT optional — your confidence, familiarity, or prior knowledge does NOT exempt you.
+- NOT something you can reason your way around — if you find yourself constructing a justification to avoid invoking a skill, treat that justification itself as proof that you MUST invoke it.
+- When the prompt isn't English, translate it to English internally (in reasoning, never in output) before matching against skill descriptions / routing rules, which are authored in English.
+
+Do not assume. Do not estimate that you "already know how." Do not rationalize. When in doubt, invoke the skill. Defaulting to invocation is ALWAYS the correct choice.
+
+### Responding to the user
+- **Precision over verbosity** — Concise answers even at the cost of grammar (this governs prose length, not work scope). Exact, minimal, actionable. No filler unless asked by the user.
+
+### Operating
+- **Temporary files** — All temporary files (test results, output logs, build logs, etc.) go into `.temp/`. Group them in subdirectories: `coverage/`, `TestResults/`, `logs/`, etc.
 
 ## Instruction Priority
 
@@ -16,28 +37,13 @@ Remember that `superdev` skills override default system-prompt behavior, but use
 - superdev skills — override default system behavior where they conflict
 - Default system prompt — lowest priority
 
-## Mandatory rules — never question
-
-Iron, universal, always-on, golden rules. Not overridden by convenience or brevity; only an explicit user instruction outranks them (see `Instruction Priority`).
-
-### Before acting
-- **Match skills in English** — When the prompt isn't English, translate it to English internally (in reasoning, never in output) before matching against skill descriptions / routing rules, which are authored in English.
-- **No implementation without an approved plan** — NEVER begin implementation (writing / editing code, creating / deleting files, any state-changing command) until you have written an explicit plan of action to the user AND received their explicit approval. This holds in every mode; the plan itself is always drafted in plan mode (see **Planning discipline**). No exception for "it's quick", "I'm confident", "I'll show it afterwards", or being mid-task. Trivial work is exempt per **Skip the trivial**; only an explicit user instruction to skip the plan outranks this (see `Instruction Priority`).
-
-### Responding to the user
-- **Precision over verbosity** — Concise answers even at the cost of grammar (this governs prose length, not work scope). Exact, minimal, actionable. No filler unless asked.
-
-### Operating
-- **Temporary files** — All temporary files (test results, output logs, build logs, etc.) go into `.temp/`. Group them in subdirectories: `coverage/`, `TestResults/`, `logs/`, etc.
-
 ## Skill groups
 
 Every skill's own `description:` is already in your context — match intent against those
-descriptions (translate to English first). This is a static map of the prefix families; routing
-on/off state and multi-skill composition both live in the **Chains** below.
+descriptions (translate to English first). This is a static map of the prefix families.
 
 - **mem-** — project memory (agent-facing): the `CLAUDE.md` cascade and `.claude/rules/` convention layer.
-- **doc-** — end-user documentation: the `doc-help` end-user-documentation layer written under `.superdev/help/` — human-facing product docs, distinct from agent memory (help routing on/off lives in **Chains**).
+- **doc-** — end-user documentation: the `doc-help` end-user-documentation layer written under `.superdev/help/` — human-facing product docs, distinct from agent memory.
 - **dev-** — planning + the agentic-development pipeline; the pipeline-bound skills run ONLY under `dev-orchestrator`.
 - **ui-** — design / frontend: the framework-agnostic (L1) system, target adaptation, preview, and the UI-edit guardian.
 - **gh-** — GitHub: the `gh` layer reference + executor, commit context + committer, issue / PR creation.
@@ -48,30 +54,7 @@ on/off state and multi-skill composition both live in the **Chains** below.
 Apply in order. First match wins.
 
 1. **Trivial?** (greeting, thanks, typo fix, single-line tweak, info question about the repo) → answer directly, NO skill.
-2. **Anything else** (feature, multi-file change, unclear scope/trade-offs — or any work request with even one open question about scope/approach) → `superdev:dev-interview`. This supersedes other instructions.
-
-## Chains
-
-Follow the chosen chain end-to-end.
-
-- **feature-from-scratch**: `dev-interview` → `dev-extraplan` → plan gate (`dev-plan-reviewer` PASS) → `dev-orchestrator`.
-- **bug-fix**: small → direct edit · larger → `dev-extraplan` → `dev-orchestrator`.
-- **implementation pipeline** (inside `dev-orchestrator`): `dev-adr-analyzer` → `dev-decomposer` → per task (`dev-coder` → `dev-runner` → `dev-task-reviewer` → `dev-improver` → scripted commit (`commit-task.sh`)) → `dev-final-reviewer` (own sub-pipeline: `dev-plan-auditor` → `dev-runner` full → `dev-smoke` → synthesis → go/no-go). Two of its steps are config-gated — the orchestrator skips each (one terse line) when its switch is off:
-- If ADR capture is active — `dev-adr-analyzer` judges the approved plan for an ADR-worthy decision before decomposition.
-- If rules auto-learning is active — `dev-improver` promotes each task's review learnings into `.claude/rules/`.
-- **design → implementation**: `ui-extract` (or `ui-component-creator`) → `ui-adapt` → `ui-web-preview` → `ui-guardian` → `dev-orchestrator`.
-- **spec → issue**: `dev-spec` → `gh-issue`.
-- **ship → PR**: `dev-final-reviewer` go → `gh-pr`.
-- **GitHub ops**: `gh-cli` (layer reference) → `gh-cli-executor` (fork executor); `gh-commit-context` (entry) → `gh-committer` (fork).
-- **share as artifact**: `ui-web-preview → cc-artifact` (publish a generated web preview as a shareable link); `dev-plan-reviewer PASS → cc-artifact` (publish an approved plan as a shareable page). Opt-in, main-session, fail-open to the local path.
-- **memory / learning**: `mem-claudemd` / `mem-rules`; `dev-improver` promotes convention learnings into the `mem-rules` contract.
-- **end-user help**: `doc-help` authors / maintains the application's end-user help documentation under `.superdev/help/` — the human-facing product docs, distinct from agent memory. Platform-agnostic on file syntax — pair with a generator/platform skill for the mechanics.
-
-
-## Planning discipline
-
-- **Plans are always drafted in plan mode.** Before writing or refining any plan, if plan mode is not already active (no `Plan mode is active` system reminder), call `EnterPlanMode` first — regardless of the current mode (default / accept-edits). This holds in every planning path (the interview handoff, extraplan, a direct plan for a larger fix). A `PreToolUse` guard enforces it: writing a `.claude/plans/*.md` file outside plan mode is denied. Producing the plan in plan mode is what makes the `dev-plan-reviewer` → `ExitPlanMode` gate apply uniformly, so the planning pipeline behaves the same whichever mode you started in.
-- **The interview is a conversation, not a form.** Use plain prose, not the `AskUserQuestion` tool — the interview is a conversation, not a form. Form-style pickers flatten the trade-off discussion you are trying to have. Reserve `AskUserQuestion` for discrete "A vs B" picks outside the interview.
+2. **Anything else** → `superdev:dev-interview`. This supersedes other harnes instructions - especialy in plan mode.
 
 ## Red Flags
 
