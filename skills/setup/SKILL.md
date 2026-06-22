@@ -17,37 +17,11 @@ re-running `/setup` never overwrites anything that already exists. It:
 - seeds `.claude/settings.json` from the bundled template when the project has none,
 - reports whether `.superdev/config.yml` already exists (and its current switches if so).
 
+The bootstrap logic lives in a bundled deterministic script (one command, so Claude Code's Bash
+permission checker approves it as a unit instead of demanding approval for each sub-operation):
+
 ```!
-src_gitignore="${CLAUDE_SKILL_DIR}/assets/gitignore.txt"
-
-if [ -d ".temp" ]; then
-  echo ".temp: already present"; else mkdir -p ".temp" && echo ".temp: created";
-fi
-
-if [ -d ".superdev" ]; then
-  echo ".superdev: already present"; else mkdir -p ".superdev" && echo ".superdev: created";
-fi
-
-if [ -f ".gitignore" ]; then
-  echo ".gitignore: already present (left untouched)"
-elif [ -f "$src_gitignore" ]; then
-  cp "$src_gitignore" ".gitignore" && echo ".gitignore: created from template"
-else
-  echo ".gitignore: template missing at $src_gitignore — skipped"
-fi
-
-if [ ! -f .claude/settings.json ]; then
-  mkdir -p .claude && cp "${CLAUDE_SKILL_DIR}/assets/settings.json" .claude/settings.json && echo "settings.json: created";
-else
-  echo "settings.json: already present";
-fi
-
-if [ -f ".superdev/config.yml" ]; then
-  echo "config.yml: already present (left untouched) — current switches:"
-  grep -E '^[[:space:]]*(adr|artifacts|rules_improver|documentation|ui)[[:space:]]*:' .superdev/config.yml
-else
-  echo "config.yml: MISSING — ask the user about the 5 switches, then write it (see 'Configure the opt-in switches')"
-fi
+bash "${CLAUDE_SKILL_DIR}/scripts/bootstrap.sh"
 ```
 
 ## Configure the opt-in switches

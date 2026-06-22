@@ -9,8 +9,9 @@ help lives in `README.md`; this file is orientation for the assistant.
 
 It ships no application code — the artefacts are markdown (skills) + JSON (manifests) + the two hook scripts
 under `hooks/scripts/`, plus a handful of deterministic helper scripts bundled under individual skills'
-`scripts/` dirs (the `ui-*` preview scripts and the pipeline scripts `dev-orchestrator/scripts/commit-task.sh`
-+ `mem-guardian/scripts/audit-docs.py`). **Editing markdown / JSON IS shipping** — there is no build / test /
+`scripts/` dirs (the `ui-*` preview scripts, the pipeline scripts `dev-orchestrator/scripts/commit-task.sh`
++ `mem-guardian/scripts/audit-docs.py`, and the one-time `setup/scripts/bootstrap.sh`).
+**Editing markdown / JSON IS shipping** — there is no build / test /
 lint at any level. Contracts between files are enforced by humans reading carefully.
 
 The plugin is **stack-agnostic on purpose**: skills read project-specific knowledge (test framework, build
@@ -39,7 +40,8 @@ hooks/               One injected dispatcher manifest + the two hook scripts
   scripts/           session-start.sh, review-plan.sh
 skills/              Skills grouped by prefix (mem- / dev- / ui- / gh- / cc-); some skills bundle a
                      deterministic helper under their own scripts/ dir (ui-* preview scripts,
-                     dev-orchestrator/scripts/commit-task.sh, mem-guardian/scripts/audit-docs.py)
+                     dev-orchestrator/scripts/commit-task.sh, mem-guardian/scripts/audit-docs.py,
+                     setup/scripts/bootstrap.sh)
 README.md            User-facing help (install + how it works)
 .claude/rules/       Development-only conventions for this repo
 ```
