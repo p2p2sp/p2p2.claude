@@ -9,7 +9,6 @@ effort: low
 ---
 
 !`mkdir -p .temp/.workflows 2>/dev/null || true`
-!`cat .superdev/config.yml 2>/dev/null || true`
 
 # Orchestrator — Task Pipeline Dispatcher
 
@@ -75,9 +74,15 @@ if no such evidence exists:
 
 This precondition gates the whole orchestration: no decompose, no coder, no commit happens until the plan carries a `dev-plan-reviewer` `STATUS: PASS` for this plan. It never auto-fixes the plan — on a non-PASS it stops and leaves re-planning to the user.
 
-## Config switches (`.superdev/config.yml`)
+## Config switches
 
-The host project may disable optional pipeline steps via `.superdev/config.yml` (preloaded at the top of this skill). Read each switch as a boolean — a key is **off only when its value is literally `false`**; a missing key, missing file, or unreadable file means **on** (fail-open, default-enabled, so a project that never ran `/superdev:setup` runs the full pipeline). The switches this dispatcher honors:
+<config>
+
+!`cat .superdev/config.yml 2>/dev/null || true`
+
+</config>
+
+The host project may disable optional pipeline steps via `config` (preloaded above). Read each switch as a boolean — a key is **off only when its value is literally `false`**; a missing key, missing file, or unreadable file means **on** (fail-open, default-enabled, so a project that never ran `/superdev:setup` runs the full pipeline). The switches this dispatcher honors:
 
 - `adr: false` → skip the ADR-analysis step below.
 - `rules_improver: false` → skip the per-task `dev-improver` step.
