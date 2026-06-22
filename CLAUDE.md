@@ -1,5 +1,14 @@
 # superdev — Claude Code plugin (root-level) + marketplace catalog
 
+> **For the assistant — these are the plugin's SOURCE files, not the live plugin.** This repo is the source
+> of the `superdev` plugin that is *also installed* in this session. Editing files here (skills, manifest,
+> hooks, `plugin.json`) does **NOT** change the behavior of the currently loaded plugin — the routing
+> manifest and skill instructions active in this session were loaded at install/session start and stay
+> frozen regardless of edits. Your changes take effect only after the **user publishes** them (commit +
+> push to the marketplace source, then `/plugin update`). So: do not expect an edit to alter how skills
+> route or behave in the current session, and do not "test" a change by trying to trigger the edited skill
+> here — it will run the old, installed version.
+
 ## What this repo is
 
 A **single, self-contained Claude Code plugin — `superdev` — that lives at the repository root**. The same
@@ -50,8 +59,9 @@ No `version` is declared in `plugin.json` — every commit on `main` is treated 
 
 ## Skill taxonomy (prefix = functional group)
 
-Skills are grouped by a short prefix; the catalog of record is `plugin.json` `skills[]` and the injected
-manifest (`hooks/content/manifest.md`).
+Skills are grouped by a short prefix. The **per-skill** catalog of record is `plugin.json` `skills[]`;
+the injected manifest (`hooks/content/manifest.md`) documents the prefix **groups + cross-skill chains**,
+not individual skills.
 
 - **(no prefix)** — `setup`: one-time, user-only environment bootstrap (`/setup`). Seeds `.temp/` + `.superdev/`,
   copies the bundled `.gitignore` / `.claude/settings.json` templates, and **interactively asks the 5 opt-in
@@ -112,10 +122,12 @@ manifest (`hooks/content/manifest.md`).
   output (e.g. `dev-runner` reading arbitrary build / test output). A self-verifying script carries its I/O
   contract in its header comment and is trusted by its caller — so the caller does NOT re-verify or retry the
   script's result (the verify-before-claim guarantee lives in the script, not a fork-era re-check guard).
-- **Self-documentation.** Any skill add / remove / rename MUST update `plugin.json` `skills[]`, the injected
-  manifest (`hooks/content/manifest.md`), and this file — they must stay in sync. **Exception:** a user-only
-  one-time command (`disable-model-invocation: true`, e.g. `setup`) does not participate in routing, so it is
-  registered in `plugin.json` + this file but **intentionally omitted from the manifest** — do not "fix" that gap.
+- **Self-documentation.** Any skill add / remove / rename MUST update `plugin.json` `skills[]` and this file —
+  they must stay in sync. The injected manifest (`hooks/content/manifest.md`) lists prefix **groups + chains**,
+  not individual skills, so update it only when a change adds/removes a group, shifts a group's scope, or alters
+  a documented chain or config-gated area — not for every per-skill change. **Exception:** a user-only one-time
+  command (`disable-model-invocation: true`, e.g. `setup`) does not participate in routing and stays out of the
+  manifest entirely — do not "fix" that gap.
 
 ## Where contracts live
 

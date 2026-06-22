@@ -1,10 +1,12 @@
-<EXTREMELY-IMPORTANT>
+<superdev:manifest>
 
-You have the `superdev` plugin. Below is the routing manifest — it governs which skill to use. Before acting on any request, you MUST consult it and pick the right skill / chain. For trivial requests (greetings, thanks, typo / single-line edits) do nothing.
+**EXTREMELY-IMPORTANT**
 
-If you think there is even a 1% chance a skill might apply to what you are doing, you ABSOLUTELY MUST invoke the skill.
+The `superdev` plugin gives you the mandatory routing manifest below — it maps each request to the right skill or chain. Apply it before acting:
 
-IF A SKILL APPLIES TO YOUR TASK, YOU MUST USE IT. This is not negotiable.
+- **Route first** — on any non-trivial request, consult the manifest and invoke the matching skill through the `Skill` tool before doing the work yourself.
+- **Skip the trivial** — greetings, thanks, info questions, typo / single-line edits → answer directly, no skill.
+- **If a skill applies, you MUST use it — this is not negotiable.** Under-triggering (doing the work yourself when a skill owns it) is the most common failure here, so resolve doubt toward the skill: when there's a real chance one applies to non-trivial work, must invoke it rather than hand-rolling.
 
 ## Instruction Priority
 
@@ -16,86 +18,58 @@ Remember that `superdev` skills override default system-prompt behavior, but use
 
 ## Mandatory rules — never question
 
-Iron, universal, always-on. Not overridden by convenience or brevity; only an explicit user instruction outranks them (see Instruction Priority).
+Iron, universal, always-on, golden rules. Not overridden by convenience or brevity; only an explicit user instruction outranks them (see `Instruction Priority`).
 
 ### Before acting
 - **Match skills in English** — When the prompt isn't English, translate it to English internally (in reasoning, never in output) before matching against skill descriptions / routing rules, which are authored in English.
 
-### While working / output
+### Responding to the user
 - **Precision over verbosity** — Concise answers even at the cost of grammar (this governs prose length, not work scope). Exact, minimal, actionable. No filler unless asked.
+
+### Operating
+- **Initialize CLAUDE.md** — route ANY request to create / initialize / regenerate / bootstrap CLAUDE.md or project memory (natural-language phrasing too, in any language — not only a typed slash command) to the `superdev:mem-claudemd` skill, never the built-in `/init`.
 - **Temporary files** — All temporary files (test results, output logs, build logs, etc.) go into `.temp/`. Group them in subdirectories: `coverage/`, `TestResults/`, `logs/`, etc.
 
-### Preparing
-- **Initialize CLAUDE.md** — route ANY request to create / initialize / regenerate / bootstrap CLAUDE.md or project memory (natural-language phrasing too, in any language — not only a typed slash command) to the `superdev:mem-claudemd` skill, never the built-in `/init`.
+## Skill groups
 
-## How skills engage
+Every skill's own `description:` is already in your context — match intent against those
+descriptions (translate to English first). This section is orientation only: what each prefix
+family is for and when to reach into it. When a request spans more than one skill, follow the
+**Chains** below.
 
-- Skills auto-engage through **CSO** — each skill's own frontmatter `description:` is the trigger (it matches your intent in any language; translate internally). This manifest **reinforces** selection and documents the chains; it does not replace CSO.
+- **mem- — project memory.** Bootstrap and maintain the memory layers: the `CLAUDE.md` cascade
+  and the `.claude/rules/` convention layer. Reach here to initialize / regenerate project memory
+  or capture a convention (see *Memory layer division*).
+- **dev- — planning + the agentic-development pipeline.** The spine of non-trivial work:
+  discovery (`dev-interview`), plan hardening and the plan-review gate, the orchestrated
+  implementation pipeline driven by `dev-orchestrator`, and the standalone disciplines
+  `dev-tdd` / `dev-debug` / `dev-spec`. The pipeline-bound skills run ONLY under
+  `dev-orchestrator` — never call them from the main session (see the *implementation pipeline* chain).
 
-## Active configuration (opt-in switches)
-
-Several areas are **opt-in**, governed by `.superdev/config.yml` (created by `/superdev:setup`; a **missing file means everything is enabled** — superdev runs in full). When an area is disabled there, a one-line **OFF** directive appears in place of that area's catalog entry / chain below — **obey it**: do not route to the named skills, and the orchestrator skips the matching pipeline step (one terse line, no explanation). Switchable areas: `ui`, `artifacts` (cc-artifact), `adr`, `rules_improver` (dev-improver).
-
-## Skill catalog (by prefix)
-
-**mem- — project memory**
-- `superdev:mem-claudemd` — bootstrap the CLAUDE.md cascade (general → specific) for a repo.
-- `superdev:mem-rules` — author the `.claude/rules/` layer (canonical rule-file contract).
-
-**dev- — development pipeline**
-- `superdev:dev-interview` — conversational discovery before planning (scale-first). Prose only.
-- `superdev:dev-extraplan` — harden / refine the plan (extra-rigor) in plan mode.
-- `superdev:dev-plan-reviewer` — independent plan review; gates the plan (STATUS + severity).
-- `superdev:dev-orchestrator` — thin dispatcher that drives the implementation pipeline.
 <!--SUPERDEV:AREA adr-->
-- `superdev:dev-adr-analyzer` — ADR-worthiness judge on the approved plan (read-only).
+- ADR capture is active — `dev-adr-analyzer` judges the approved plan for an ADR-worthy decision before decomposition.
 <!--/SUPERDEV:AREA adr-->
-- `superdev:dev-decomposer` — slice the plan into per-task files (title = commit subject).
-- `superdev:dev-coder` — write code for ONE task (mode-routed).
-- `superdev:dev-runner` — build/test/lint executor (task-scoped in the loop, full at the end).
-- `superdev:dev-task-reviewer` — verify one task's Deliverable (retry gate).
-- `superdev:dev-final-reviewer` — terminal whole-plan gate (own sub-pipeline → go/no-go).
-- `superdev:dev-plan-auditor` — audit all tasks vs the whole plan (Deliverable coverage).
-- `superdev:dev-smoke` — runtime gate: does the app actually start? (boot + liveness).
 <!--SUPERDEV:AREA rules_improver-->
-- `superdev:dev-improver` — promote review learnings into `.claude/rules/` (per-task rules sync).
+- Rules auto-learning is active — `dev-improver` promotes each task's review learnings into `.claude/rules/`.
 <!--/SUPERDEV:AREA rules_improver-->
-- `superdev:dev-tdd` — TDD discipline reference.
-- `superdev:dev-debug` — trace-the-flow debugging discipline.
-- `superdev:dev-spec` — spec / PRD authoring (working-backwards, INVEST, no TBD).
 
 <!--SUPERDEV:AREA ui-->
-**ui- — design / frontend**
-- `superdev:ui-extract` — reverse-engineer a framework-agnostic (L1) design system from screenshots / URL.
-- `superdev:ui-component-creator` — author a net-new component into the agnostic (L1) system.
-- `superdev:ui-adapt` — adapt the agnostic system to ONE concrete target (L2: pure-css / tailwind / react-shadcn / react-mui / flutter).
-- `superdev:ui-web-preview` — render zero-build static HTML previews of a chosen web target.
-- `superdev:ui-guardian` — bind UI work to documented tokens / components before edits.
+- **ui- — design / frontend.** Reverse-engineer the framework-agnostic (L1) design system, author
+  components into it, adapt it to ONE concrete target (pure-css / tailwind / react-shadcn /
+  react-mui / flutter), preview it, and bind UI edits to documented tokens. Reach here for any
+  design-system or frontend-styling work (see the *design → implementation* chain).
 <!--/SUPERDEV:AREA ui-->
 
-**gh- — GitHub**
-- `superdev:gh-cli` — `gh` API layer reference (native → REST → GraphQL).
-- `superdev:gh-cli-executor` — run ONE fully-specified gh/REST/GraphQL op in a fork.
-- `superdev:gh-commit-context` — commit context resolver (picks mode, resolves which files, delegates).
-- `superdev:gh-committer` — commit executor fork (stages, authors the subject from the diff, commits).
-- `superdev:gh-issue` — interactive, template-driven issue creation.
-- `superdev:gh-pr` — interactive, template-driven draft-PR creation.
+- **gh- — GitHub.** The `gh` layer reference + fork executor, the commit context resolver +
+  committer, and template-driven issue / PR creation. Reach here to commit, open issues / PRs, or
+  run any `gh` operation — never run `git commit` / `gh` directly from Bash (see *GitHub ops* /
+  *spec → issue* / *ship → PR* chains).
 
 <!--SUPERDEV:AREA artifacts-->
-**cc- — Claude Code platform**
-- `superdev:cc-artifact` — opt-in, main-session publisher of ONE self-contained file (`.html`/`.htm`/`.md`) as a shareable Claude Code Artifact; validates single-file / no-external-ref / size, asks first, falls back to the local path (fail-open). Never forked, never in the 3-line pipeline.
+- **cc- — Claude Code platform.** `cc-artifact` publishes ONE already-written self-contained file
+  (`.html` / `.htm` / `.md`) as a shareable Claude Code Artifact — opt-in, main-session, fail-open.
+  Reach here only to share a rendered output as a link (see *share as artifact* chain).
 <!--/SUPERDEV:AREA artifacts-->
-
-## Memory layer division
-
-Project memory is split across four **non-overlapping** layers — pick by *what kind of truth* you are recording, never by convenience.
-
-| # | Layer | Captures | Owner skill |
-|---|-------|----------|-------------|
-| 1 | General-rules manifest (this file) | Always-on behavioural rules, force-injected per session | hook (`session-start.sh`) |
-| 2 | `CLAUDE.md` cascade | Terse agent-facing orientation (general → specific) | `mem-claudemd` |
-| 3 | `.claude/rules/*` | Path-scoped convention rules | `mem-rules` (`dev-improver` applies in-pipeline) |
-| 4 | `.superdev/adr/`, `.superdev/layout/` | Architectural decisions (*why*) + the design system | `dev-adr-analyzer`, `ui-extract` |
 
 ## Decision flow
 
@@ -124,7 +98,7 @@ Follow the chosen chain end-to-end.
 
 ## Planning discipline
 
-- **Mode independence.** The planning pipeline works **the same in plan mode and in accept-edits mode**. The plan-review gate is not enforced solely by the `ExitPlanMode` hook (which exists only in plan mode) — `dev-orchestrator` refuses to start the pipeline without a passed `dev-plan-reviewer`.
+- **The planning pipeline works the same in plan mode and in accept-edits mode**.
 - **The interview is a conversation, not a form.** Use plain prose, not the `AskUserQuestion` tool — the interview is a conversation, not a form. Form-style pickers flatten the trade-off discussion you are trying to have. Reserve `AskUserQuestion` for discrete "A vs B" picks outside the interview.
 
 ## Red Flags
@@ -145,4 +119,4 @@ These thoughts mean STOP — you're rationalizing:
 | "I'll just do this one thing first" | Check BEFORE doing anything. |
 | "I'll use a quick picker to ask" | The interview is prose, not a form. |
 
-</EXTREMELY-IMPORTANT>
+</superdev:manifest>
