@@ -62,12 +62,12 @@ Emit exactly one message to the user in this shape:
 <config line — e.g. "config.yml written: adr=on, rules_improver=off" OR "config.yml already present (left untouched): <current values>">
 
 ### Recommended next steps
-- Run `/superdev:mem-claudemd` — bootstrap the CLAUDE.md project-memory cascade (general → specific).
+- Run `/superdev:mem-layers` — bootstrap the CLAUDE.md project-memory cascade (general → specific).
 - Run `/superdev:mem-rules` — author the `.claude/rules/` conventions layer.
 ```
 
 Rules:
 - Report the actual results from the block above — do not invent or assume them.
 - **Never overwrite an existing `.superdev/config.yml`** — it records the user's choices.
-- Do NOT invoke `mem-claudemd` / `mem-rules` (or any other skill) yourself — they are interactive and the user
+- Do NOT invoke `mem-layers` / `mem-rules` (or any other skill) yourself — they are interactive and the user
   decides when to run them. Your job is to bootstrap the environment + recommend, not to chain.

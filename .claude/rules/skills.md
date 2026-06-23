@@ -1,6 +1,6 @@
 ---
 paths:
-  - "skills/**/*.md"
+  - "skills/**"
 ---
 
 ## Write for Retrieval, Not for Completeness
@@ -23,3 +23,11 @@ Set a recurring reminder to review your skill files the same way you’d review 
 - Repeated information across multiple files
 
 Remove mercilessly. Everything in a skill file has a cost.
+
+## Use Scripts
+
+For tasks requiring determinism like parsing JSON, sorting data, compiling code, API calls, or math calculations.
+
+Why You Should Use Deterministic Scripts:
+- Repeatable Output: Code runs the same way every time, eliminating unpredictable decision-making branches.
+- Speed & Cost: Executing code is significantly cheaper and faster than generating tokens for LLM reasoning.

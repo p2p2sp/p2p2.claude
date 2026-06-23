@@ -8,7 +8,7 @@
   },
   "skills": [
     "./skills/setup/",
-    "./skills/mem-claudemd/",
+    "./skills/mem-layers/",
     "./skills/doc-help/",
     "./skills/mem-rules/",
     "./skills/dev-interview/",

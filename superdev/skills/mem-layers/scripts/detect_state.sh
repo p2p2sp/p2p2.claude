@@ -7,6 +7,10 @@ set -e
 
 TARGET_PATH="${1:-.}"
 
+# shared directory-exclusion filters, derived from the project .gitignore
+source "$(dirname "${BASH_SOURCE[0]}")/lib_find_excludes.sh"
+load_find_excludes "$TARGET_PATH" || true
+
 ROOT_FILE=""
 HAS_Memory_SECTION=false
 CHILD_NODES=()
@@ -26,7 +30,7 @@ fi
 # Find child CLAUDE.md files
 while IFS= read -r file; do
     CHILD_NODES+=("$file")
-done < <(find "$TARGET_PATH" -name "CLAUDE.md" -not -path "$TARGET_PATH/CLAUDE.md" -not -path "*/node_modules/*" 2>/dev/null)
+done < <(find "$TARGET_PATH" -name "CLAUDE.md" -not -path "$TARGET_PATH/CLAUDE.md" "${FIND_EXCLUDES[@]}" 2>/dev/null)
 
 # Output state
 echo "=== Memory Layer State ==="

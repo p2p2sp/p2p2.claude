@@ -110,13 +110,13 @@ directly. Their frontmatter already encodes this (`context: fork` + `user-invoca
   switches → writes `.superdev/config.yml`** (never overwriting an existing one). Runs in the **main session**
   (not a fork) so it can prompt via `AskUserQuestion`. It is `disable-model-invocation` (Claude never auto-routes
   to it) so it is **deliberately absent from the manifest** — see the Self-documentation invariant.
-- **`mem-`** — project memory (agent-facing) (2 skills): `mem-claudemd` (CLAUDE.md cascade), `mem-rules`
+- **`mem-`** — project memory (agent-facing) (2 skills): `mem-layers` (CLAUDE.md cascade), `mem-rules`
   (`.claude/rules/` layer).
 
   **Memory layer division.** Agent-facing project knowledge splits current truth across four non-overlapping
   layers, picked by *kind of truth* — all four face the **agent**: (1) the general-rules
   manifest (superdev's `hooks/content/manifest.md`, force-injected per session);
-  (2) the `CLAUDE.md` cascade (terse agent orientation; `mem-claudemd`); (3) `.claude/rules/*` (path-scoped
+  (2) the `CLAUDE.md` cascade (terse agent orientation; `mem-layers`); (3) `.claude/rules/*` (path-scoped
   conventions; `mem-rules`, applied in-pipeline by `dev-agent-improver`); (4) `.superdev/adr/`
   (architectural *why*; written in-pipeline by `dev-agent-adr-recorder`). In the dev pipeline,
   `dev-agent-adr-recorder` records any architectural decision into layer 4 before decompose (config-gated

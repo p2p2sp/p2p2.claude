@@ -1,6 +1,6 @@
 ---
 name: doc-help
-description: "Authoring layer for the END-USER help / product documentation of the application being built — the human-facing knowledge that ships to the app's users, stored under `.superdev/help/`. Covers information architecture and page hierarchy, task-oriented structure, plain-language writing, when to use steps / callouts / tabs / diagrams, multilingual translation discipline, and a pre-publication checklist. Use this skill WHENEVER the user wants to write, plan, review, restructure, or generate user-facing documentation, help articles, onboarding / getting-started guides, knowledge-base content, a help-site navigation tree, or \"docs for the users\" of the product — even if they don't say \"best practices\" or \"help\". Output is written under `.superdev/help/` (default Markdown); the craft itself is platform-agnostic, so pair it with a generator/platform skill for the exact file syntax. Do NOT use for agent-facing project memory — CLAUDE.md is the `mem-claudemd` skill, `.claude/rules/` conventions are `mem-rules`. Trigger applies in any language and to descriptive phrasing too."
+description: "Authoring layer for the END-USER help / product documentation of the application being built — the human-facing knowledge that ships to the app's users, stored under `.superdev/help/`. Covers information architecture and page hierarchy, task-oriented structure, plain-language writing, when to use steps / callouts / tabs / diagrams, multilingual translation discipline, and a pre-publication checklist. Use this skill WHENEVER the user wants to write, plan, review, restructure, or generate user-facing documentation, help articles, onboarding / getting-started guides, knowledge-base content, a help-site navigation tree, or \"docs for the users\" of the product — even if they don't say \"best practices\" or \"help\". Output is written under `.superdev/help/` (default Markdown); the craft itself is platform-agnostic, so pair it with a generator/platform skill for the exact file syntax. Do NOT use for agent-facing project memory — CLAUDE.md is the `mem-layers` skill, `.claude/rules/` conventions are `mem-rules`. Trigger applies in any language and to descriptive phrasing too."
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, AskUserQuestion, Skill
 model: opus
 user-invocable: true
@@ -11,7 +11,7 @@ user-invocable: true
 This skill is superdev's **end-user documentation layer**: it authors and maintains the help that ships to
 the *people who use the application being built* — written by the agent as it builds the product, for that
 product's human users. It is **not** memory for the agent. CLAUDE.md and `.claude/rules/` are agent memory,
-owned by `mem-claudemd` / `mem-rules`; this layer faces the end user, not Claude.
+owned by `mem-layers` / `mem-rules`; this layer faces the end user, not Claude.
 
 The skill captures the *craft* of help that people can actually use: documentation that answers a real
 question fast, reads cleanly, and reflects the product truthfully. The craft is deliberately

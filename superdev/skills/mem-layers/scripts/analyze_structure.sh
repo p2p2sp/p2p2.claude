@@ -6,34 +6,28 @@ set -e
 
 TARGET_PATH="${1:-.}"
 
+# shared directory-exclusion filters, derived from the project .gitignore
+source "$(dirname "${BASH_SOURCE[0]}")/lib_find_excludes.sh"
+load_find_excludes "$TARGET_PATH" || true
+
 echo "=== Memory Layer Structure Analysis ==="
 echo "Target: $TARGET_PATH"
 echo ""
 
 echo "## Directory Structure (depth 3)"
 find "$TARGET_PATH" -type d -maxdepth 3 \
-  -not -path "*/node_modules/*" \
-  -not -path "*/.claude/*" \
-  -not -path "*/.git/*" \
-  -not -path "*/dist/*" \
-  -not -path "*/.next/*" \
-  -not -path "*/build/*" \
-  -not -path "*/__pycache__/*" \
+  "${FIND_EXCLUDES[@]}" \
   | head -50
 
 echo ""
 echo "## Existing Memory Nodes"
-find "$TARGET_PATH" -name "CLAUDE.md" -o -name "CLAUDE.md" 2>/dev/null | head -20
+find "$TARGET_PATH" -name "CLAUDE.md" 2>/dev/null | head -20
 
 echo ""
 echo "## Large Directories (potential boundaries)"
 echo "(Directories with >20 files)"
 find "$TARGET_PATH" -type d \
-  -not -path "*/node_modules/*" \
-  -not -path "*/.claude/*" \
-  -not -path "*/.git/*" \
-  -not -path "*/dist/*" \
-  -not -path "*/.next/*" \
+  "${FIND_EXCLUDES[@]}" \
   -exec sh -c 'count=$(find "$1" -maxdepth 1 -type f | wc -l); [ $count -gt 20 ] && echo "$count files: $1"' _ {} \; 2>/dev/null \
   | sort -rn | head -15
 
@@ -41,7 +35,7 @@ echo ""
 echo "## Package/Config Files (semantic boundaries)"
 find "$TARGET_PATH" -maxdepth 4 \
   \( -name "package.json" -o -name "Cargo.toml" -o -name "go.mod" -o -name "pyproject.toml" \) \
-  -not -path "*/node_modules/*" 2>/dev/null | head -20
+  "${FIND_EXCLUDES[@]}" 2>/dev/null | head -20
 
 echo ""
 echo "## Suggested Memory Node Locations"

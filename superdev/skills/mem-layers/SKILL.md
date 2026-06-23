@@ -1,7 +1,7 @@
 ---
-name: mem-layer
-description: >
-  Set up hierarchical layer (CLAUDE.md files) for codebases. Use when initializing a new project, adding context infrastructure to an existing repo, user asks to set up CLAUDE.md, add memory layer, make CLAUDE understand the codebase.
+name: mem-layers
+description: Use ALWAYS when the user wants to create, initialize, regenerate, bootstrap, or maintain CLAUDE.md project-memory for a repository — set up project memory, add a memory layer, or make Claude understand the codebase. Triggers include "create CLAUDE.md", "initialize project memory", "bootstrap Claude context", "set up CLAUDE.md", "add memory layer". Generates a hierarchical CASCADE of CLAUDE.md files (one general root plus progressively more specific child nodes in genuine architectural units), not a single root file, and offers a maintenance mode to audit existing nodes and find new candidates.
+user-invocable: true
 ---
 
 # Memory Layer
@@ -10,7 +10,7 @@ Hierarchical CLAUDE.md infrastructure so CLAUDE navigate codebases like senior e
 
 ## Core Principle
 
-**Only ONE root context file.** CLAUDE.md and CLAUDE.md should NOT coexist at project root. Child CLAUDE.md in subdirectories are encouraged for complex subsystems.
+**Keep exactly ONE root context file** (`CLAUDE.md`) at the project root — do not split root-level memory across competing files. Child `CLAUDE.md` files in subdirectories are encouraged for complex subsystems.
 
 ## Workflow
 

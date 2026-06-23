@@ -1,6 +1,6 @@
 ---
 name: mem-rules
-description: Project memory — the `.claude/rules/` layer. Discovers existing codebase conventions and generates `.claude/rules/*` from scratch (full reset), and owns the canonical contract for any single rules file. Use this skill whenever the user wants to initialize project conventions, regenerate `.claude/rules/`, discover coding/naming/testing conventions for a codebase, reset the project's rule library, or set up project memory rules. Triggers include "init rules", "memory rules", "initialize conventions", "regenerate `.claude/rules`", "discover conventions", "reset project rules". Also defines the canonical contract for authoring or editing a single `.claude/rules/` file — its `paths:` narrowest-glob scoping, size cap, single-topic targeting, frozen `_` convention, append-only edit discipline, and the relevance filter for deciding what is worth a rule — for any tool that promotes learnings into the rules library. Do NOT write `.claude/rules/*` files by hand — use this skill first; it enforces discovery-from-code and the path-scoping discipline rather than memory. Do NOT use for generating CLAUDE.md project-memory files — use the `mem-claudemd` skill. Trigger applies in any language and to descriptive phrasing too.
+description: Project memory — the `.claude/rules/` layer. Discovers existing codebase conventions and generates `.claude/rules/*` from scratch (full reset), and owns the canonical contract for any single rules file. Use this skill whenever the user wants to initialize project conventions, regenerate `.claude/rules/`, discover coding/naming/testing conventions for a codebase, reset the project's rule library, or set up project memory rules. Triggers include "init rules", "memory rules", "initialize conventions", "regenerate `.claude/rules`", "discover conventions", "reset project rules". Also defines the canonical contract for authoring or editing a single `.claude/rules/` file — its `paths:` narrowest-glob scoping, size cap, single-topic targeting, frozen `_` convention, append-only edit discipline, and the relevance filter for deciding what is worth a rule — for any tool that promotes learnings into the rules library. Do NOT write `.claude/rules/*` files by hand — use this skill first; it enforces discovery-from-code and the path-scoping discipline rather than memory. Do NOT use for generating CLAUDE.md project-memory files — use the `mem-layers` skill. Trigger applies in any language and to descriptive phrasing too.
 allowed-tools: EnterPlanMode, Read, Glob, Grep, Bash(ls), Bash(git log), Skill
 model: opus
 effort: medium
@@ -16,10 +16,10 @@ This skill owns **layer 3** of the project memory system and is the **single sou
 The project memory system has three layers, each loaded differently:
 
 1. **General-rules manifest** — force-injected every session by a SessionStart hook (behavioural rules).
-2. **CLAUDE.md cascade** — hierarchical project memory; owned by the `mem-claudemd` skill (root loads always, deeper files on demand).
+2. **CLAUDE.md cascade** — hierarchical project memory; owned by the `mem-layers` skill (root loads always, deeper files on demand).
 3. **`.claude/rules/*`** — path-scoped convention rules, loaded by the native loader **only when the files you touch match a rule's `paths:` globs**.
 
-**This skill owns layer 3 only.** It does not touch layers 1–2 (CLAUDE.md → the `mem-claudemd` skill; the manifest → the SessionStart hook).
+**This skill owns layer 3 only.** It does not touch layers 1–2 (CLAUDE.md → the `mem-layers` skill; the manifest → the SessionStart hook).
 
 **Conventions, not behaviour.** `.claude/rules/` holds **conventions** — how to write code in an area (naming, error shape, the path-scoped *should/must* a future edit follows). Behavioural/functional description — *what a feature does today* — does **not** belong in a rule. If a candidate reads like "feature X behaves like Y," it is not a rule; drop it. Rules stay **NARROW** (narrowest `paths:` glob, §B), **TARGETED** (one area per file, §C), and **IMPORTANT-ONLY** (passes the §G worth-recording filter) — describing behaviour would blow all three.
 
