@@ -32,8 +32,8 @@ Each plugin is independently installable; neither declares the other as a depend
 
 They ship no application code — the artefacts are markdown (skills) + JSON (manifests) + the per-plugin hook
 scripts under `<plugin>/hooks/scripts/`, plus a handful of deterministic helper scripts bundled under
-individual skills' `scripts/` dirs (the `superui` `ui-*` preview scripts, the superdev pipeline script
-`dev-orchestrator/scripts/commit-task.sh`, and the one-time `setup/scripts/bootstrap.sh`).
+individual skills' `scripts/` dirs (the `superui` `ui-*` preview scripts, the superdev pipeline commit scripts
+`dev-orchestrator/scripts/commit-task.sh` + `dev-orchestrator/scripts/commit-adr.sh`, and the one-time `setup/scripts/bootstrap.sh`).
 **Editing markdown / JSON IS shipping** — there is no build / test /
 lint at any level. Contracts between files are enforced by humans reading carefully.
 
@@ -65,7 +65,7 @@ superdev/            The superdev plugin
     scripts/         session-start.sh, review-plan.sh, require-plan-mode.sh
   skills/            Skills grouped by prefix (mem- / doc- / dev- / gh-); some skills bundle a
                      deterministic helper under their own scripts/ dir
-                     (dev-orchestrator/scripts/commit-task.sh, setup/scripts/bootstrap.sh)
+                     (dev-orchestrator/scripts/commit-task.sh + commit-adr.sh, setup/scripts/bootstrap.sh)
 superui/             The superui plugin
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
   hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
@@ -95,7 +95,7 @@ individual skills.
 
 **Naming sub-convention (`-agent-` infix).** A forked, pipeline-bound executor that is invoked **only by a
 superordinate skill via the `Skill` tool** (never the user, never auto-routed) carries an `-agent-` infix after
-its domain prefix: `dev-agent-*` (the implementation/review pipeline workers — `dev-agent-adr-analyzer`,
+its domain prefix: `dev-agent-*` (the implementation/review pipeline workers — `dev-agent-adr-recorder`,
 `dev-agent-decomposer`, `dev-agent-coder`, `dev-agent-runner`, `dev-agent-task-reviewer`, `dev-agent-improver`,
 `dev-agent-final-reviewer`, `dev-agent-plan-auditor`, `dev-agent-smoke`) and `gh-agent-committer`. The **inline
 dispatchers** that drive them (`dev-orchestrator`, `gh-commit-context`) and every user-facing / auto-routed
@@ -118,8 +118,10 @@ directly. Their frontmatter already encodes this (`context: fork` + `user-invoca
   manifest (superdev's `hooks/content/manifest.md`, force-injected per session);
   (2) the `CLAUDE.md` cascade (terse agent orientation; `mem-claudemd`); (3) `.claude/rules/*` (path-scoped
   conventions; `mem-rules`, applied in-pipeline by `dev-agent-improver`); (4) `.superdev/adr/`
-  (architectural *why*; `dev-agent-adr-analyzer`). In the dev pipeline, `dev-agent-improver`
-  promotes each task's review learnings into layer 3 (`.claude/rules/`), a config-gated step (`rules_improver`).
+  (architectural *why*; written in-pipeline by `dev-agent-adr-recorder`). In the dev pipeline,
+  `dev-agent-adr-recorder` records any architectural decision into layer 4 before decompose (config-gated
+  `adr`), and `dev-agent-improver` promotes each task's review learnings into layer 3 (`.claude/rules/`),
+  a config-gated step (`rules_improver`).
   The product's **end-user** help documentation is a distinct, non-agent layer owned by the `doc-` group below
   (NOT agent memory).
 - **`doc-`** — end-user documentation (1 skill): `doc-help` (the end-user product-help layer → `.superdev/help/`).
@@ -127,7 +129,7 @@ directly. Their frontmatter already encodes this (`context: fork` + `user-invoca
   from the agent-facing `mem-` layers above; faces the end user, not Claude.
 - **`dev-`** — the agentic-development pipeline + diagnostics/specs (16 skills): planning
   (`dev-interview`, `dev-extraplan`, `dev-plan-reviewer`), the orchestrated implementation pipeline
-  (`dev-orchestrator` → `dev-agent-adr-analyzer` → `dev-agent-decomposer` → per task `dev-agent-coder` / `dev-agent-runner` /
+  (`dev-orchestrator` → `dev-agent-adr-recorder` → `dev-agent-decomposer` → per task `dev-agent-coder` / `dev-agent-runner` /
   `dev-agent-task-reviewer` / `dev-agent-improver` → scripted commit (`commit-task.sh`) → `dev-agent-final-reviewer`), the
   final-gate sub-skills (`dev-agent-plan-auditor`, `dev-agent-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`.
 - **`gh-`** — GitHub: `gh-cli` (+ `gh-cli-executor`), `gh-commit-context` (entry) + `gh-agent-committer`,
@@ -141,7 +143,7 @@ directly. Their frontmatter already encodes this (`context: fork` + `user-invoca
   per-project rendering — the manifest is injected as-is, identically for every project.
 - **Opt-in switches (`.superdev/config.yml`).** Two booleans — `adr`, `rules_improver` — both
   **default-enabled** (a missing file/key = `true`, fail-open; a repo that never ran `/setup` behaves exactly
-  as before). `setup` writes the file; `dev-orchestrator` reads the config and skips the `dev-agent-adr-analyzer` /
+  as before). `setup` writes the file; `dev-orchestrator` reads the config and skips the `dev-agent-adr-recorder` /
   `dev-agent-improver` steps — each skip is **one terse line, never a paragraph**. Config readers are
   `dev-orchestrator` and `setup` (writer); the `SessionStart` hook does not read config (the manifest is
   injected verbatim, the same for every project).
@@ -160,7 +162,7 @@ directly. Their frontmatter already encodes this (`context: fork` + `user-invoca
   stdout.
 - **Script vs. fork.** A pipeline step collapses to a deterministic bundled script (under the owning skill's
   `scripts/` dir) when it operates on a known, fixed tool / format — git, a basename, paths, globs (e.g.
-  `dev-orchestrator/scripts/commit-task.sh` for the per-task commit). It stays an LLM fork when it must interpret heterogeneous, stack-specific tool
+  `dev-orchestrator/scripts/commit-task.sh` for the per-task commit, `commit-adr.sh` for the ADR commit). It stays an LLM fork when it must interpret heterogeneous, stack-specific tool
   output (e.g. `dev-agent-runner` reading arbitrary build / test output). A self-verifying script carries its I/O
   contract in its header comment and is trusted by its caller — so the caller does NOT re-verify or retry the
   script's result (the verify-before-claim guarantee lives in the script, not a fork-era re-check guard).

@@ -55,7 +55,7 @@ their **responses** stay inside it.
 ### In this repo
 
 The whole `developer` pipeline is built from forked executors: `coder`, `runner`, `task-reviewer`,
-`decomposer`, `improver`, `committer`, `adr-analyzer`, `plan-reviewer`. `github` adds `cli-executor` and
+`decomposer`, `improver`, `committer`, `adr-recorder`, `plan-reviewer`. `github` adds `cli-executor` and
 `commit`. The point of each is exactly Layer 1: run a noisy job (build output, a full diff, a git operation) in
 a fork and return one condensed verdict so the orchestrator's context never sees the raw output.
 

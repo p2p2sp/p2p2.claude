@@ -20,6 +20,9 @@ CRITICAL: Never place two pipeline calls in the same message — the coder/runne
 
 ```
 plan.md
+   │  (once, before decompose — config-gated by `adr`, idempotent via adr.done)
+   ▼
+adr-recorder  ──►  writes .superdev/adr/<ADR>.md + .superdev/ADR.md  ──►  commit-adr.sh commits them
    │  (once, before the loop)
    ▼
 decomposer  ──►  .temp/.workflows/<slug>/tasks/<N>.md  +  status.yml
@@ -36,6 +39,7 @@ dev-agent-final-reviewer (sub-orchestrator)  ──►  go/no-go verdict on stdo
 
 Roles in one line each:
 
+- **adr-recorder** (`dev-agent-adr-recorder`) — judges the approved plan and, on a real architectural decision, writes the ADR file(s) + `.superdev/ADR.md` index itself; runs once before decompose, config-gated by `adr`, committed by `commit-adr.sh`. Never touches the plan or the decomposer.
 - **decomposer** — slices the source plan into per-task files; runs once, idempotent.
 - **coder** — writes production code for ONE task; also handles unblock passes when `Feedback` starts with `BLOCKED:`.
 - **runner** — runs the task's build/test/lint command; emits `PASS` / `FAIL` / `ERROR` / `TIMEOUT` / `BLOCKED`.
@@ -67,48 +71,69 @@ Once resolved, `Read` the plan briefly for orientation. The plan can be any mark
 
 The host project may disable optional pipeline steps via `config` (preloaded above). Read each switch as a boolean — a key is **off only when its value is literally `false`**; a missing key, missing file, or unreadable file means **on** (fail-open, default-enabled, so a project that never ran `/superdev:setup` runs the full pipeline). The switches this dispatcher honors:
 
-- `adr: false` → skip the ADR-analysis step below.
+- `adr: false` → skip the ADR-recording step below.
 - `rules_improver: false` → skip the per-task `dev-agent-improver` step.
 
 When a config-gated step is skipped, print **one terse line** in the normal progress channel (`ADR: skipped (disabled)`, `[N/max] dev-agent-improver: skipped (disabled)`) — never a paragraph explaining what the step does or why it is off.
 
-## ADR analysis (before decompose)
+## ADR recording (before decompose)
 
-Judge whether the approved plan carries an architectural decision worth recording as an ADR. This is the **only** ADR step in the whole flow — plan mode no longer does it. Run it **once per pipeline run, only when decomposition will actually happen**; skip entirely on a resumed run where task files already exist (the decomposer would no-op, and the ADR was already materialized).
+Record any architectural decision the approved plan carries as an ADR. The `dev-agent-adr-recorder` fork **judges and writes the ADR file(s) + the `.superdev/ADR.md` index itself**; the dispatcher then commits those files with `commit-adr.sh`. The **plan is never modified or copied** — the decomposer always receives the ORIGINAL plan and learns nothing about ADRs. This is the **only** ADR step in the whole flow (plan mode no longer does it). Run it **once per pipeline run**; the `adr.done` marker (and existing task files) make it idempotent on resume.
 
 ```
 slug = basename(plan-path) without trailing ".md"   # always the ORIGINAL plan filename
-decompose_plan_path = plan-path                      # default: hand the original plan to the decomposer
+decompose_plan_path = plan-path                      # ALWAYS the original plan — never augmented or copied
 
-# Config gate: ADR capture disabled (`adr: false` in .superdev/config.yml) → skip entirely.
+# Idempotency gate: this run already did the ADR step (marker), or task files exist (resume past decompose).
+if exists(".temp/.workflows/<slug>/adr.done") OR Glob(".temp/.workflows/<slug>/tasks/*.md") returns ≥1 path:
+    skip to "Decompose the plan into per-task files"
+
+# Config gate: ADR capture disabled (`adr: false`) → skip, and mark done so a later resume stays consistent.
 if config switch `adr` is false:
     print("ADR: skipped (disabled)")
-    skip to "Decompose the plan into per-task files"   # decompose_plan_path stays = plan-path
+    Write(".temp/.workflows/<slug>/adr.done", "skipped\n")
+    skip to "Decompose the plan into per-task files"
 
-# Idempotency gate: skip ADR analysis on resume.
-if Glob(".temp/.workflows/<slug>/tasks/*.md") returns ≥1 path:
-    skip to "Decompose the plan into per-task files"   # decompose_plan_path stays = plan-path
+# Clean-tree guard for the ADR commit. SEPARATE from, and STRICTLY EARLIER than, the per-task pre-flight
+# (which runs inside the loop, after decompose). The recorder's writes must land on a clean tree so the
+# scoped ADR commit captures only the ADR files. Hard-abort on dirty WIP — do NOT merge with the pre-flight.
+porcelain = bash("git status --porcelain").stdout
+if porcelain.strip() != "":
+    print("Working tree is not clean — orchestrator cannot run with uncommitted changes.")
+    print("Uncommitted paths:")
+    print(porcelain)
+    print("Resolve manually (commit, stash, or discard) and re-run orchestrator.")
+    stop the skill
 
-# dev-agent-adr-analyzer injects the plan CONTENT via dynamic context (`cat $ARGUMENTS`), so pass the BARE ABSOLUTE path.
-adr_out = Skill(skill="superdev:dev-agent-adr-analyzer", args="<abspath(plan-path)>")
+# dev-agent-adr-recorder injects the plan CONTENT via dynamic context (`cat $ARGUMENTS`), so pass the BARE
+# ABSOLUTE path. The fork WRITES the ADR file(s) + index itself and returns only a verdict + commit subject.
+adr_out = Skill(skill="superdev:dev-agent-adr-recorder", args="<abspath(plan-path)>")
 if first_status_line(adr_out) == "STATUS: ADR":
-    # Splice the ADR into a COPY — never modify the user's plan file.
-    augmented = read(plan-path)
-        + "\n\n## Architectural decisions (ADR)\n\n"
-        + every "## ADR-NNNN — <title>" block and its matching "## Deferred-write directive", verbatim from adr_out
-    Write(".temp/.workflows/<slug>/plan.adr-augmented.md", augmented)
-    decompose_plan_path = ".temp/.workflows/<slug>/plan.adr-augmented.md"
-# STATUS: NO-ADR (or malformed) → leave decompose_plan_path = plan-path; decompose the plan unchanged
+    subject = the text after "Commit-subject: " in adr_out (single line)
+    commit_out = bash(f'bash "${{CLAUDE_PLUGIN_ROOT}}/skills/dev-orchestrator/scripts/commit-adr.sh" "{subject}"').stdout
+    commit_result = parse_commit_tag(commit_out)   # same tag shapes as commit-task.sh
+    if commit_result[0] == "sha":
+        print(f"ADR: recorded ({commit_result[1]})")
+    elif commit_result[0] == "no-changes":
+        # Anomaly: recorder said ADR but wrote nothing committable. Warn and proceed (no ADR landed).
+        print("ADR: recorder reported ADR but no files to commit — continuing without ADR.")
+    else:   # error / malformed
+        report f"ADR commit FAILED: {commit_result[1] if len(commit_result) > 1 else commit_out}" and stop
+else:
+    # STATUS: NO-ADR (or malformed) → nothing was written; nothing to commit.
+    print("ADR: none")
+
+Write(".temp/.workflows/<slug>/adr.done", "done\n")   # mark the ADR step done for idempotent resume
 ```
 
-The `decomposer` recognizes the appended `## Architectural decisions (ADR)` section and materializes it as a dedicated `tests-none` task (ADR body written verbatim, seeding `.superdev/adr/` + `.superdev/ADR.md`) — see its Step 2/3. The `slug` stays derived from the **original** plan filename, so `.temp/.workflows/<slug>/` is unchanged; only the plan *content* handed to the decomposer differs. The augmented copy also becomes the decomposer's `plan.md` side-artefact (Step 7.0), so the on-disk audit trail includes the ADR.
+The ADR commit lands **before** the per-task loop, so it is the parent of the Task 1 commit; `base.sha` (= `HEAD^` after Task 1) points at it and the final-review diff excludes it — correct, since an ADR is documentation, not plan functionality to verify. The `slug` is derived from the **original** plan filename and the plan content handed to the decomposer is byte-identical to the user's approved plan.
 
 ## Decompose the plan into per-task files
 
 Invoke `decomposer` exactly once per pipeline run, **before** the per-task loop:
 
 ```
-# slug + decompose_plan_path were resolved in "ADR analysis (before decompose)" above
+# slug + decompose_plan_path (always = plan-path) were resolved in "ADR recording (before decompose)" above
 decomp_prompt = "Plan: <decompose_plan_path>\nPlanSlug: <slug>"
 decomp_out = Skill(skill="superdev:dev-agent-decomposer", args=decomp_prompt)
 if first_status_line(decomp_out) != "STATUS: PASS":
@@ -537,9 +562,9 @@ Then stop. Do not call any further tool.
 - Pre-flight environment probes via `Bash` between pipeline steps (checking runtimes, services, container state, tool versions, network reachability, etc.) — even when project conventions tell a normal session to verify them before running tests. Those conventions target sessions that run tests directly; the dispatcher delegates the run to `runner`, which surfaces any environment failure as `FAIL` / `ERROR` and the standard 3 + 3 loop handles it. The dispatcher's `Bash` budget is reserved for the git queries in the final review.
 - Skipping the `dev-agent-task-reviewer` step "to save time" on a small task.
 - Adding retries beyond the documented `3` + `3` cap, or offering a "skip task" option to the user (intentionally absent). Also forbidden: a separate retry budget for `BLOCKED` — the unblock branch shares the same cap, with successful unblock passes free of attempt-counter increment.
-- Writing any state file other than (a) the authoritative task tracker `.temp/.workflows/<slug>/status.yml` (the commit step — orchestrator updates after each successful commit), (b) the persisted `.temp/.workflows/<slug>/base.sha` written once after the Task 1 commit (the commit step), and (c) the per-task baseline `.temp/.workflows/<slug>/task-base.sha` (re)written at the start of every task's attempt 1 (the per-task pipeline, before the coder pass). The final review writes **no** file — `dev-agent-final-reviewer` returns its go/no-go verdict on stdout and the dispatcher surfaces it directly. Plan + task files + git + those three small state files are the only sources of truth — **except** for everything else under `.temp/.workflows/<slug>/orchestration/<task-N>/` (the `coder-K.md`, `dev-agent-task-reviewer-K.md`, `improver-K.md`, `unblock-coder-K.md`, and `runner-K.md` reports the implementation / tool skills write themselves to their dispatcher-dictated `Report path:`), which is an **ephemeral audit/transport layer**, NOT state of truth: resume logic relies only on `status.yml` + `task-base.sha` + `base.sha`, and a crash recovery overwrites any prior attempt's report at the same numeric slot.
+- Writing any state file other than (a) the authoritative task tracker `.temp/.workflows/<slug>/status.yml` (the commit step — orchestrator updates after each successful commit), (b) the persisted `.temp/.workflows/<slug>/base.sha` written once after the Task 1 commit (the commit step), (c) the per-task baseline `.temp/.workflows/<slug>/task-base.sha` (re)written at the start of every task's attempt 1 (the per-task pipeline, before the coder pass), and (d) the `.temp/.workflows/<slug>/adr.done` marker written once after the ADR-recording step (its idempotency guard on resume). The final review writes **no** file — `dev-agent-final-reviewer` returns its go/no-go verdict on stdout and the dispatcher surfaces it directly. Plan + task files + git + those four small state files are the only sources of truth — **except** for everything else under `.temp/.workflows/<slug>/orchestration/<task-N>/` (the `coder-K.md`, `dev-agent-task-reviewer-K.md`, `improver-K.md`, `unblock-coder-K.md`, and `runner-K.md` reports the implementation / tool skills write themselves to their dispatcher-dictated `Report path:`), which is an **ephemeral audit/transport layer**, NOT state of truth: resume logic relies only on `status.yml` + `task-base.sha` + `base.sha`, and a crash recovery overwrites any prior attempt's report at the same numeric slot.
 - Editing, updating, creating any file yourself — including "quick fixes" for pre-existing issues surfaced by runner. Out-of-scope blockers are handled by routing the `BLOCKED` verdict through an unblock `coder` pass (see the runner pass / dev-agent-task-reviewer pass). The dispatcher never touches source files directly.
-- Re-verifying or retrying the commit step. The committer is now the deterministic `scripts/commit-task.sh`, not a Haiku fork — it emits a `sha` tag ONLY after itself proving HEAD advanced past the pre-commit HEAD **and** `git status --porcelain` is empty (a non-zero commit / unmoved HEAD / dirty tree all yield an `error` tag, never a fabricated `sha`). A script cannot hallucinate its tool result, so the dispatcher trusts the tag directly: do NOT re-run `git rev-parse HEAD` to re-check the move, do NOT wrap the call in a phantom-commit retry loop, and take the reported sha straight from the tag (`commit_result[1]`). On an `error` / `malformed` tag, hard-stop — never hand-commit from the dispatcher to paper over a failed commit.
+- Re-verifying or retrying either commit step. Both committers — the per-task `scripts/commit-task.sh` and the ADR `scripts/commit-adr.sh` — are deterministic scripts, not Haiku forks: each emits a `sha` tag ONLY after itself proving HEAD advanced past the pre-commit HEAD **and** `git status --porcelain` is empty (a non-zero commit / unmoved HEAD / dirty tree all yield an `error` tag, never a fabricated `sha`). A script cannot hallucinate its tool result, so the dispatcher trusts the tag directly: do NOT re-run `git rev-parse HEAD` to re-check the move, do NOT wrap the call in a phantom-commit retry loop, and take the reported sha straight from the tag (`commit_result[1]`). On an `error` / `malformed` tag, hard-stop — never hand-commit from the dispatcher to paper over a failed commit.
 - Pasting the plan body into a sub-agent prompt — the sub-agent reads the plan (or task file) itself from the supplied path.
 - Inlining any pipeline-bound skill's reply (coder / dev-agent-task-reviewer / improver / runner) into a downstream skill's prompt — verbatim, summarised, filtered, or otherwise. The on-stdout reply of those agents is the three-line minimal shape (`STATUS:` / `Report:` / `Summary:`); the full markdown lives at the dispatcher-dictated `Report path:`, and downstream prompts carry **paths only** (`Feedback: …`, `Runner report: …`, `Task-reviewer report: …`, `Previous coder report: …`). The runner follows the same discipline when invoked with `Report path:` (pipeline mode): it writes its own markdown to that path and replies on stdout with the 3-line block — the dispatcher MUST NOT re-`Write` the runner report from its own context, and MUST NOT page the full markdown into the dispatcher prompt.
 - Forwarding more than one failure to the next coder run. Only the most recent failure's report path goes in `Feedback`.

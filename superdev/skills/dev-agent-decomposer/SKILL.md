@@ -80,7 +80,6 @@ Read the plan as plain markdown. Extract three things; the rest is orientation:
    - Numbered task lists / `Task graph` sections → grouping suggestions (not binding — see Step 3).
    - `TDD discipline per task` style tables → opinion of the planner about Mode (not binding — see Step 4a). (The "task" in such a host table is the planner's own wording — read it as a Mode hint, not a reference to this pipeline's task files.)
    - `Tests to add` lists → seed material for per-task `Tests`.
-   - An `Architectural decisions (ADR)` section / a `Write ADR-NNNN` directive carrying a complete ADR body + deferred-write steps → a dedicated `tests-none` ADR-write task (see Step 3); the ADR body is written verbatim, not re-derived.
    - Risks / Out-of-scope sections → orientation; flag any out-of-scope item if a task would touch it.
 
 If no executable intent can be extracted (the plan is pure vision, an empty template, or unrelated prose) → `STATUS: FAIL` with `## Notes` line: `no executable intent found — plan describes no concrete change`.
@@ -115,7 +114,6 @@ Heuristics for splitting:
 - Contract introduction (API, interface, message) before its consumers.
 - One layer at a time when layers can be split (e.g. backend service before frontend integration).
 - Pure documentation / configuration changes as their own task (so reviewers can use Mode `tests-none`).
-- An **ADR write directive** in the plan (an `Architectural decisions (ADR)` section, or any `Write ADR-NNNN` instruction, carrying a complete ADR body + a deferred-write directive) → its **own** `tests-none` task; never fold it into a code task. `Touches` = the ADR file `.superdev/adr/ADR-NNNN-<slug>.md` + the index `.superdev/ADR.md`. The task writes the ADR body **verbatim** (no re-derivation), seeds `.superdev/ADR.md` if missing, and adds the index row. The ADR reaches disk only here, during implementation.
 
 Heuristics for *not* splitting:
 
@@ -276,7 +274,7 @@ Idempotency: when Step 0 short-circuits (task files already exist), do NOT touch
 
 For each task `N` from 1 to `K`, `Write` the file `.temp/.workflows/<PlanSlug>/tasks/<N>.md` with this exact structure.
 
-**The first line MUST be a Conventional-Commits-form commit subject H1** — `# <type>(<scope>): <imperative summary>` (e.g. `# feat(auth): add token refresh`, `# docs(adr): record ADR-0007`). This H1 is the contract consumed by the scripted commit (`commit-task.sh`), which extracts it verbatim as the commit subject (`T<N>: <subject>`). `<type>` is a Conventional-Commits type (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`, `style`); `<scope>` is the affected module / area; the summary is a short imperative phrase, no trailing period. Derive it from the task's verb-phrase + `## Touches`. Do NOT write a `# Task <N> — <verb-phrase>` heading; the `Task <N> of <K>` orientation now lives only in the `>` line below.
+**The first line MUST be a Conventional-Commits-form commit subject H1** — `# <type>(<scope>): <imperative summary>` (e.g. `# feat(auth): add token refresh`, `# docs(readme): document setup steps`). This H1 is the contract consumed by the scripted commit (`commit-task.sh`), which extracts it verbatim as the commit subject (`T<N>: <subject>`). `<type>` is a Conventional-Commits type (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`, `style`); `<scope>` is the affected module / area; the summary is a short imperative phrase, no trailing period. Derive it from the task's verb-phrase + `## Touches`. Do NOT write a `# Task <N> — <verb-phrase>` heading; the `Task <N> of <K>` orientation now lives only in the `>` line below.
 
 ```markdown
 # <type>(<scope>): <imperative summary>

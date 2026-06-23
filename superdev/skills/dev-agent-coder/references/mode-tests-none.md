@@ -2,7 +2,7 @@
 
 Single source of truth for the `tests-none` work-order mode — `coder` SKILL.md Step 2/4 points here. The coder reads this file ONLY when the task file's `## Mode` is literally `tests-none`; the other `references/mode-*.md` do not apply.
 
-Raw mode: production / artefact code only (docs, config, `.claude/**` rules, an ADR file, etc.). No test files.
+Raw mode: production / artefact code only (docs, config, `.claude/**` rules, a README / help doc, etc.). No test files.
 
 ## Work order
 

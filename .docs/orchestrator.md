@@ -6,10 +6,11 @@ A. Faza wstępna (raz, przed pętlą)
   zrecenzowany przez bramkę hooka (review-plan.sh → dev-plan-reviewer STATUS: PASS) — dispatcher go nie re-recenzuje.
   2. Wczytaj config (.superdev/config.yml, preloaded przez !cat). Klucz jest off tylko gdy literalnie false; brak = on (fail-open).
   Honoruje adr i rules_improver.
-  3. Analiza ADR (tylko gdy adr≠false i task files jeszcze nie istnieją):
-    - → Skill(superdev:dev-agent-adr-analyzer, "<abspath(planu)>")
-    - STATUS: ADR → splice ADR do kopii planu (.temp/.workflows/<slug>/plan.adr-augmented.md), ta kopia idzie do decompose; STATUS: NO-ADR
-  → plan bez zmian.
+  3. Rejestracja ADR (gdy adr≠false; idempotentna przez marker adr.done lub istniejące task files):
+    - guard czystego drzewa — OSOBNY i WCZEŚNIEJSZY niż per-task pre-flight; brudne drzewo → twardy stop.
+    - → Skill(superdev:dev-agent-adr-recorder, "<abspath(planu)>") — fork SAM zapisuje pliki .superdev/adr/*.md + indeks .superdev/ADR.md, nie dotyka gita.
+    - STATUS: ADR → commit przez bash commit-adr.sh "<Commit-subject>" (verify-before-claim, ten sam słownik tagów co commit-task.sh); STATUS: NO-ADR → nic nie zapisane.
+    - plan NIGDY nie jest modyfikowany ani kopiowany — decompose zawsze dostaje oryginał; decomposer nic nie wie o ADR. Na koniec: Write adr.done.
   4. Dekompozycja (raz, idempotentna):
     - → Skill(superdev:dev-agent-decomposer, "Plan: <ścieżka>\nPlanSlug: <slug>")
     - zwrotka STATUS: PASS + sekcja ## Task files (linie - <N> — <verb> — <path>). Parsuje → task_files, task_titles, max. Nie-PASS →
