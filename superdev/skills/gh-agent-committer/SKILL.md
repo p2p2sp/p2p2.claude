@@ -1,6 +1,6 @@
 ---
-name: gh-committer
-description: "Committer (fork) — invoked by the `gh-commit-context` entry skill, NOT by the user."
+name: gh-agent-committer
+description: "Invoked only by `superdev:gh-commit-context` via the Skill tool, never the user."
 context: fork
 model: haiku
 user-invocable: false

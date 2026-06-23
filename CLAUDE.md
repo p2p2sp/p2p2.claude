@@ -48,7 +48,7 @@ DO NOT USE ADR capture for this project. The plugins are constantly refactored.
 Each plugin keeps its domain's skills together so a consumer can install just the development ecosystem
 (`superdev`) **or** just the design ecosystem (`superui`). Within a plugin, skills compose through CSO
 (frontmatter `description:`) and that plugin's single injected manifest documents the chains
-(`dev-spec → gh-issue`, `dev-final-reviewer → gh-pr`, `dev-improver → mem-rules` in superdev). Each is
+(`dev-spec → gh-issue`, `dev-agent-final-reviewer → gh-pr`, `dev-agent-improver → mem-rules` in superdev). Each is
 **self-contained**: its `plugin.json` declares **no `dependencies`** — installing it gives that whole
 ecosystem.
 
@@ -93,6 +93,18 @@ its own `<plugin>/.claude-plugin/plugin.json` `skills[]`; the injected manifest
 (`<plugin>/hooks/content/manifest.md`) documents that plugin's prefix **groups + cross-skill chains**, not
 individual skills.
 
+**Naming sub-convention (`-agent-` infix).** A forked, pipeline-bound executor that is invoked **only by a
+superordinate skill via the `Skill` tool** (never the user, never auto-routed) carries an `-agent-` infix after
+its domain prefix: `dev-agent-*` (the implementation/review pipeline workers — `dev-agent-adr-analyzer`,
+`dev-agent-decomposer`, `dev-agent-coder`, `dev-agent-runner`, `dev-agent-task-reviewer`, `dev-agent-improver`,
+`dev-agent-final-reviewer`, `dev-agent-plan-auditor`, `dev-agent-smoke`) and `gh-agent-committer`. The **inline
+dispatchers** that drive them (`dev-orchestrator`, `gh-commit-context`) and every user-facing / auto-routed
+skill keep a plain prefix; so do forks still reachable from the main session (`dev-plan-reviewer`,
+`gh-cli-executor`). The infix is **taxonomy only** — these stay skills (not `agents/<name>.md` subagent
+definitions); it just signals their agent-like, fork-only nature so a reader never expects to invoke them
+directly. Their frontmatter already encodes this (`context: fork` + `user-invocable: false` + a one-line
+"pipeline-bound; invoked only by …" guard `description`).
+
 - **(no prefix)** — `setup`: one-time, user-only environment bootstrap (`/setup`). Seeds `.temp/` + `.superdev/`,
   copies the bundled `.gitignore` / `.claude/settings.json` templates, and **interactively asks the 2 opt-in
   switches → writes `.superdev/config.yml`** (never overwriting an existing one). Runs in the **main session**
@@ -105,8 +117,8 @@ individual skills.
   layers, picked by *kind of truth* — all four face the **agent**: (1) the general-rules
   manifest (superdev's `hooks/content/manifest.md`, force-injected per session);
   (2) the `CLAUDE.md` cascade (terse agent orientation; `mem-claudemd`); (3) `.claude/rules/*` (path-scoped
-  conventions; `mem-rules`, applied in-pipeline by `dev-improver`); (4) `.superdev/adr/`
-  (architectural *why*; `dev-adr-analyzer`). In the dev pipeline, `dev-improver`
+  conventions; `mem-rules`, applied in-pipeline by `dev-agent-improver`); (4) `.superdev/adr/`
+  (architectural *why*; `dev-agent-adr-analyzer`). In the dev pipeline, `dev-agent-improver`
   promotes each task's review learnings into layer 3 (`.claude/rules/`), a config-gated step (`rules_improver`).
   The product's **end-user** help documentation is a distinct, non-agent layer owned by the `doc-` group below
   (NOT agent memory).
@@ -115,10 +127,10 @@ individual skills.
   from the agent-facing `mem-` layers above; faces the end user, not Claude.
 - **`dev-`** — the agentic-development pipeline + diagnostics/specs (16 skills): planning
   (`dev-interview`, `dev-extraplan`, `dev-plan-reviewer`), the orchestrated implementation pipeline
-  (`dev-orchestrator` → `dev-adr-analyzer` → `dev-decomposer` → per task `dev-coder` / `dev-runner` /
-  `dev-task-reviewer` / `dev-improver` → scripted commit (`commit-task.sh`) → `dev-final-reviewer`), the
-  final-gate sub-skills (`dev-plan-auditor`, `dev-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`.
-- **`gh-`** — GitHub: `gh-cli` (+ `gh-cli-executor`), `gh-commit-context` (entry) + `gh-committer`,
+  (`dev-orchestrator` → `dev-agent-adr-analyzer` → `dev-agent-decomposer` → per task `dev-agent-coder` / `dev-agent-runner` /
+  `dev-agent-task-reviewer` / `dev-agent-improver` → scripted commit (`commit-task.sh`) → `dev-agent-final-reviewer`), the
+  final-gate sub-skills (`dev-agent-plan-auditor`, `dev-agent-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`.
+- **`gh-`** — GitHub: `gh-cli` (+ `gh-cli-executor`), `gh-commit-context` (entry) + `gh-agent-committer`,
   `gh-issue`, `gh-pr`.
 
 ## Architecture invariants
@@ -129,8 +141,8 @@ individual skills.
   per-project rendering — the manifest is injected as-is, identically for every project.
 - **Opt-in switches (`.superdev/config.yml`).** Two booleans — `adr`, `rules_improver` — both
   **default-enabled** (a missing file/key = `true`, fail-open; a repo that never ran `/setup` behaves exactly
-  as before). `setup` writes the file; `dev-orchestrator` reads the config and skips the `dev-adr-analyzer` /
-  `dev-improver` steps — each skip is **one terse line, never a paragraph**. Config readers are
+  as before). `setup` writes the file; `dev-orchestrator` reads the config and skips the `dev-agent-adr-analyzer` /
+  `dev-agent-improver` steps — each skip is **one terse line, never a paragraph**. Config readers are
   `dev-orchestrator` and `setup` (writer); the `SessionStart` hook does not read config (the manifest is
   injected verbatim, the same for every project).
 - **Plan gate, plan-mode-enforced.** Planning always happens in plan mode, enforced by **two** `PreToolUse`
@@ -149,7 +161,7 @@ individual skills.
 - **Script vs. fork.** A pipeline step collapses to a deterministic bundled script (under the owning skill's
   `scripts/` dir) when it operates on a known, fixed tool / format — git, a basename, paths, globs (e.g.
   `dev-orchestrator/scripts/commit-task.sh` for the per-task commit). It stays an LLM fork when it must interpret heterogeneous, stack-specific tool
-  output (e.g. `dev-runner` reading arbitrary build / test output). A self-verifying script carries its I/O
+  output (e.g. `dev-agent-runner` reading arbitrary build / test output). A self-verifying script carries its I/O
   contract in its header comment and is trusted by its caller — so the caller does NOT re-verify or retry the
   script's result (the verify-before-claim guarantee lives in the script, not a fork-era re-check guard).
 - **Self-documentation.** Any skill add / remove / rename MUST update the **owning plugin's**

@@ -41,6 +41,7 @@ The interview models the work as a **design tree** — a graph where each decisi
 - The reverse is also an anti-pattern: if Explore plus one clarifying question fully resolve the request, close the interview and hand off.
 - Do not invent branches to justify a longer conversation — the goal is shared understanding, not ritual.
 - Stay inside the task. Adjacent cleanups, refactors, or improvements are out of scope unless the user explicitly asks for them.
+- Never answer a question yourself - you must have to ask the user.
 
 ## Output Guidance
 - Keep outputs concise - Prefer short sections, brief bullets, and only enough detail to support the next decision.

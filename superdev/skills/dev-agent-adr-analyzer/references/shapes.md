@@ -1,4 +1,4 @@
-# dev-adr-analyzer — output shapes
+# dev-agent-adr-analyzer — output shapes
 
 The reply shapes this fork-skill emits, plus the lean ADR body format they embed. This is the single source of truth for those templates; the skill body reads it once at invocation and fills the matching shape verbatim. For the stdout contract (`^STATUS: (ADR|NO-ADR)$`, inline return — no `Report path:` handoff), see the skill's `# Output format`.
 

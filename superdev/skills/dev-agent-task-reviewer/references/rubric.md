@@ -1,7 +1,7 @@
 # Deliverable-verification rubric
 
-The shared verification rubric for the agentic-development pipeline's review gates. `dev-task-reviewer`
-applies it to ONE task against that task's diff; `dev-plan-auditor` applies it to EVERY task against the
+The shared verification rubric for the agentic-development pipeline's review gates. `dev-agent-task-reviewer`
+applies it to ONE task against that task's diff; `dev-agent-plan-auditor` applies it to EVERY task against the
 cumulative whole-plan diff. The rules below are diff-agnostic — wherever they say "the diff", the caller
 substitutes its own diff (the per-task `task_diff`, or the cumulative `<base>..HEAD` range).
 

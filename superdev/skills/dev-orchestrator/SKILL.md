@@ -1,7 +1,7 @@
 ---
 name: dev-orchestrator
 description: >-
-  Use ONLY when the approved plan's body contains the word "orchestrator" (e.g. an "Execution: orchestrator" line). Drives the `coder` → `runner` → `dev-task-reviewer` → `improver` → `committer` pipeline task by task (the `improver` step is gated by `.superdev/config.yml`), then invokes the `dev-final-reviewer` sub-orchestrator once and surfaces its go/no-go verdict. Do NOT auto-trigger on generic intents like "implement", "build", "code", "execute", "carry out" — explicit "orchestrator" mention required (any language). Do NOT invoke the implementation skills (decomposer/coder/dev-task-reviewer/improver) directly outside this dispatcher — each pipeline-bound skill's own frontmatter description carries the do-not-call-directly notice, and each skill's own `# Output format` section is the authoritative source for its STATUS contract.
+  Use ONLY when the approved plan's body contains the word "orchestrator" (e.g. an "Execution: orchestrator" line). Drives the `coder` → `runner` → `dev-agent-task-reviewer` → `improver` → `committer` pipeline task by task (the `improver` step is gated by `.superdev/config.yml`), then invokes the `dev-agent-final-reviewer` sub-orchestrator once and surfaces its go/no-go verdict. Do NOT auto-trigger on generic intents like "implement", "build", "code", "execute", "carry out" — explicit "orchestrator" mention required (any language). Do NOT invoke the implementation skills (decomposer/coder/dev-agent-task-reviewer/improver) directly outside this dispatcher — each pipeline-bound skill's own frontmatter description carries the do-not-call-directly notice, and each skill's own `# Output format` section is the authoritative source for its STATUS contract.
 allowed-tools: Read, Bash, Write, Grep, Glob, Skill, AskUserQuestion, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop
 user-invocable: false
 model: opus
@@ -14,7 +14,7 @@ effort: low
 
 Drives the implementation of an already-approved plan, task by task. A **thin dispatcher** — every code touch, test run, review judgment, learning capture, and commit goes through a sub-agent with fresh context. Makes no judgment about the code itself.
 
-CRITICAL: Never place two pipeline calls in the same message — the coder/runner/dev-task-reviewer/improver/committer `Skill` calls each depend on the previous one's result, so dispatch exactly one per turn and await it before the next, overriding any general "batch independent calls" guidance.
+CRITICAL: Never place two pipeline calls in the same message — the coder/runner/dev-agent-task-reviewer/improver/committer `Skill` calls each depend on the previous one's result, so dispatch exactly one per turn and await it before the next, overriding any general "batch independent calls" guidance.
 
 ## Pipeline graph
 
@@ -25,13 +25,13 @@ plan.md
 decomposer  ──►  .temp/.workflows/<slug>/tasks/<N>.md  +  status.yml
    │  (per task N = start..max)
    ▼
-coder  ──►  runner  ──►  dev-task-reviewer (Task mode)  ──►  improver  ──►  committer
+coder  ──►  runner  ──►  dev-agent-task-reviewer (Task mode)  ──►  improver  ──►  committer
                 │                          │                  (rules)
                 └─ BLOCKED ─────────────────┴── BLOCKED ──► unblock-coder pass clears the blocker
                                                   improver is config-gated (skipped when its switch is off)
    │  (after last task, once)
    ▼
-dev-final-reviewer (sub-orchestrator)  ──►  go/no-go verdict on stdout
+dev-agent-final-reviewer (sub-orchestrator)  ──►  go/no-go verdict on stdout
 ```
 
 Roles in one line each:
@@ -39,12 +39,12 @@ Roles in one line each:
 - **decomposer** — slices the source plan into per-task files; runs once, idempotent.
 - **coder** — writes production code for ONE task; also handles unblock passes when `Feedback` starts with `BLOCKED:`.
 - **runner** — runs the task's build/test/lint command; emits `PASS` / `FAIL` / `ERROR` / `TIMEOUT` / `BLOCKED`.
-- **dev-task-reviewer (Task mode)** — verifies the task Deliverable + tests + conventions against the working tree; emits `PASS` / `FAIL` / `BLOCKED`.
-- **improver** — promotes the committed task's dev-task-reviewer learnings into `.claude/rules/`; always `PASS` (no failure mode). Gated by the `rules_improver` switch (skipped when off).
+- **dev-agent-task-reviewer (Task mode)** — verifies the task Deliverable + tests + conventions against the working tree; emits `PASS` / `FAIL` / `BLOCKED`.
+- **improver** — promotes the committed task's dev-agent-task-reviewer learnings into `.claude/rules/`; always `PASS` (no failure mode). Gated by the `rules_improver` switch (skipped when off).
 - **committer** (`scripts/commit-task.sh`) — commits the task; the dispatcher runs `bash "${CLAUDE_PLUGIN_ROOT}/skills/dev-orchestrator/scripts/commit-task.sh" "<task_file>"` inline. The script derives the commit subject (the task file's `# ` H1) and the `T<N>:` prefix itself (the dispatcher synthesizes no subject), and emits a tagged single line parsed by `parse_commit_tag`. Being deterministic, the script cannot fabricate its tag — it emits a `sha` **only** after itself verifying HEAD advanced and the tree is clean, so the dispatcher trusts the tag directly (no re-verification, no retry loop).
-- **dev-final-reviewer (sub-orchestrator)** — one-shot terminal gate after the last task is committed; internally runs `dev-plan-auditor` → `dev-runner` (Scope: full) → `dev-smoke` → synthesis and returns a single go/no-go verdict on stdout (no file written).
+- **dev-agent-final-reviewer (sub-orchestrator)** — one-shot terminal gate after the last task is committed; internally runs `dev-agent-plan-auditor` → `dev-agent-runner` (Scope: full) → `dev-agent-smoke` → synthesis and returns a single go/no-go verdict on stdout (no file written).
 
-Each pipeline-bound skill (`decomposer`/`coder`/`dev-task-reviewer`/`improver`) carries the full input/output contract in its own `SKILL.md`'s `# Input contract` + `# Output format` sections. The committer's tagged output shape lives in the header comment of `scripts/commit-task.sh`. The runner's verdict shape lives in `skills/runner/SKILL.md` `# Output format`. The dispatcher pseudocode in the per-task pipeline below uses those contracts verbatim — when a contract changes, update the skill file, then the helpers in `references/status-parsing.md`.
+Each pipeline-bound skill (`decomposer`/`coder`/`dev-agent-task-reviewer`/`improver`) carries the full input/output contract in its own `SKILL.md`'s `# Input contract` + `# Output format` sections. The committer's tagged output shape lives in the header comment of `scripts/commit-task.sh`. The runner's verdict shape lives in `skills/runner/SKILL.md` `# Output format`. The dispatcher pseudocode in the per-task pipeline below uses those contracts verbatim — when a contract changes, update the skill file, then the helpers in `references/status-parsing.md`.
 
 ## Locate the plan
 
@@ -85,9 +85,9 @@ This precondition gates the whole orchestration: no decompose, no coder, no comm
 The host project may disable optional pipeline steps via `config` (preloaded above). Read each switch as a boolean — a key is **off only when its value is literally `false`**; a missing key, missing file, or unreadable file means **on** (fail-open, default-enabled, so a project that never ran `/superdev:setup` runs the full pipeline). The switches this dispatcher honors:
 
 - `adr: false` → skip the ADR-analysis step below.
-- `rules_improver: false` → skip the per-task `dev-improver` step.
+- `rules_improver: false` → skip the per-task `dev-agent-improver` step.
 
-When a config-gated step is skipped, print **one terse line** in the normal progress channel (`ADR: skipped (disabled)`, `[N/max] dev-improver: skipped (disabled)`) — never a paragraph explaining what the step does or why it is off.
+When a config-gated step is skipped, print **one terse line** in the normal progress channel (`ADR: skipped (disabled)`, `[N/max] dev-agent-improver: skipped (disabled)`) — never a paragraph explaining what the step does or why it is off.
 
 ## ADR analysis (before decompose)
 
@@ -106,8 +106,8 @@ if config switch `adr` is false:
 if Glob(".temp/.workflows/<slug>/tasks/*.md") returns ≥1 path:
     skip to "Decompose the plan into per-task files"   # decompose_plan_path stays = plan-path
 
-# dev-adr-analyzer injects the plan CONTENT via dynamic context (`cat $ARGUMENTS`), so pass the BARE ABSOLUTE path.
-adr_out = Skill(skill="superdev:dev-adr-analyzer", args="<abspath(plan-path)>")
+# dev-agent-adr-analyzer injects the plan CONTENT via dynamic context (`cat $ARGUMENTS`), so pass the BARE ABSOLUTE path.
+adr_out = Skill(skill="superdev:dev-agent-adr-analyzer", args="<abspath(plan-path)>")
 if first_status_line(adr_out) == "STATUS: ADR":
     # Splice the ADR into a COPY — never modify the user's plan file.
     augmented = read(plan-path)
@@ -127,7 +127,7 @@ Invoke `decomposer` exactly once per pipeline run, **before** the per-task loop:
 ```
 # slug + decompose_plan_path were resolved in "ADR analysis (before decompose)" above
 decomp_prompt = "Plan: <decompose_plan_path>\nPlanSlug: <slug>"
-decomp_out = Skill(skill="superdev:dev-decomposer", args=decomp_prompt)
+decomp_out = Skill(skill="superdev:dev-agent-decomposer", args=decomp_prompt)
 if first_status_line(decomp_out) != "STATUS: PASS":
     escalate to user via AskUserQuestion ("Decomposer failed. Retry or Abort?") and stop on Abort
 parse "## Task files" → task_files: dict[N → absolute path to <N>.md], task_titles: dict[N → verb-phrase]
@@ -140,9 +140,9 @@ Decomposer is idempotent: if `.temp/.workflows/<slug>/tasks/*.md` already exists
 
 Print one line: `Plan decomposed into <K> task file(s).`
 
-For every downstream `coder` / `dev-task-reviewer` invocation in the per-task pipeline, the dispatcher passes a single `Task file: <task_files[N]>` line (not the plan path + a task number). Each pipeline-bound implementation skill (`coder` / `dev-task-reviewer` Task mode / `improver`) — and the `runner` skill in the runner pass — additionally receives a `Report path:` line dictated by the dispatcher and writes its full markdown report to that path itself; the on-stdout response is the three-line minimal shape (`STATUS:` / `Report:` / `Summary:`). The `dev-task-reviewer` Task-mode prompt additionally carries a `Task base: <task_base_sha>` line (the SHA the dispatcher already holds from the attempt-1 `task-base.sha` write) so the dev-task-reviewer can skip re-reading `.temp/.workflows/<slug>/task-base.sha`; the file read stays its fallback when the line is absent — see the dev-task-reviewer's Step 0. The `Feedback:` line carried by `coder` becomes an absolute path to the upstream agent's on-disk report (dev-task-reviewer-report path for retries / unblock; runner-report path is not forwarded directly — the dev-task-reviewer's report is the unblock entry point in the dev-task-reviewer pass). The improver pass receives only `Task-reviewer report: <path>` (its rules-learnings source) instead of an inline dev-task-reviewer body. It is config-gated (`rules_improver`) and skipped with one terse line when off. The commit step (the `scripts/commit-task.sh` run) is unaffected. Inter-agent files live under the per-task audit directory `.temp/.workflows/<slug>/orchestration/task-<N>/<role>-<attempt>.md` — see the per-task pipeline below for the exact filename slots.
+For every downstream `coder` / `dev-agent-task-reviewer` invocation in the per-task pipeline, the dispatcher passes a single `Task file: <task_files[N]>` line (not the plan path + a task number). Each pipeline-bound implementation skill (`coder` / `dev-agent-task-reviewer` Task mode / `improver`) — and the `runner` skill in the runner pass — additionally receives a `Report path:` line dictated by the dispatcher and writes its full markdown report to that path itself; the on-stdout response is the three-line minimal shape (`STATUS:` / `Report:` / `Summary:`). The `dev-agent-task-reviewer` Task-mode prompt additionally carries a `Task base: <task_base_sha>` line (the SHA the dispatcher already holds from the attempt-1 `task-base.sha` write) so the dev-agent-task-reviewer can skip re-reading `.temp/.workflows/<slug>/task-base.sha`; the file read stays its fallback when the line is absent — see the dev-agent-task-reviewer's Step 0. The `Feedback:` line carried by `coder` becomes an absolute path to the upstream agent's on-disk report (dev-agent-task-reviewer-report path for retries / unblock; runner-report path is not forwarded directly — the dev-agent-task-reviewer's report is the unblock entry point in the dev-agent-task-reviewer pass). The improver pass receives only `Task-reviewer report: <path>` (its rules-learnings source) instead of an inline dev-agent-task-reviewer body. It is config-gated (`rules_improver`) and skipped with one terse line when off. The commit step (the `scripts/commit-task.sh` run) is unaffected. Inter-agent files live under the per-task audit directory `.temp/.workflows/<slug>/orchestration/task-<N>/<role>-<attempt>.md` — see the per-task pipeline below for the exact filename slots.
 
-Decomposer's `## Notes` section is informational only — the orchestrator does not gate on it. Any material decision worth flagging will resurface in the final whole-plan dev-task-reviewer against the cumulative diff, where the user can act on it with full evidence rather than on a pre-implementation hypothesis.
+Decomposer's `## Notes` section is informational only — the orchestrator does not gate on it. Any material decision worth flagging will resurface in the final whole-plan dev-agent-task-reviewer against the cumulative diff, where the user can act on it with full evidence rather than on a pre-implementation hypothesis.
 
 ## Resolve the starting task
 
@@ -229,14 +229,14 @@ Before entering the per-task loop, check the working tree **once** — fires onl
 
 ```
 # Carve-out: sentinel branch (pipeline already complete) — the starting-task resolution
-# set start = max + 1 so no coder/dev-task-reviewer will run. The final review is read-only. Skip pre-flight.
+# set start = max + 1 so no coder/dev-agent-task-reviewer will run. The final review is read-only. Skip pre-flight.
 if start > max:
     pass    # proceed to the final review only
 else:
     porcelain = bash("git status --porcelain").stdout
     if porcelain.strip() != "":
         # Hard-abort. The dispatcher refuses to run with uncommitted WIP — the per-task
-        # diff scoping (Step 0 in the dev-task-reviewer skill, "verify before revert" in the coder
+        # diff scoping (Step 0 in the dev-agent-task-reviewer skill, "verify before revert" in the coder
         # agent) relies on `task-base.sha = HEAD at attempt 1 start`, and dirty WIP
         # poisons that baseline by conflating user changes with coder edits.
         print("Working tree is not clean — orchestrator cannot run with uncommitted changes.")
@@ -258,7 +258,7 @@ safe_task_call(TaskUpdate, taskId=task_widgets[N], status="in_progress")
 
 attempt = 0
 last_failure_path = ""            # absolute path to the most recent upstream agent's report on disk (reviewer-K.md / runner-K.md / unblock-coder-K.md); "" on attempt 1
-last_pass_verdict = {}            # tracks the previous BLOCKED verdict for the runner / dev-task-reviewer passes — used by the infinite-loop guard
+last_pass_verdict = {}            # tracks the previous BLOCKED verdict for the runner / dev-agent-task-reviewer passes — used by the infinite-loop guard
 last_coder_report_path = ""       # carries previous-attempt coder report path forward to the next reviewer invocation (Previous coder report: …)
 
 # Per-task audit/transport directory. The dispatcher dictates every report path inside it.
@@ -268,9 +268,9 @@ orch_dir = f".temp/.workflows/<slug>/orchestration/task-{N}"
 loop:
     attempt += 1
 
-    # Persist task-base.sha at start of attempt 1 only. This is the SHA every dev-task-reviewer/coder
+    # Persist task-base.sha at start of attempt 1 only. This is the SHA every dev-agent-task-reviewer/coder
     # invocation in this task will use to compute the task diff. Retries on the same task
-    # MUST NOT overwrite it — the baseline is stable for the whole task. The dev-task-reviewer skill's
+    # MUST NOT overwrite it — the baseline is stable for the whole task. The dev-agent-task-reviewer skill's
     # Step 0 and the coder skill's "verify before revert" both read this file.
     if attempt == 1:
         task_base_sha = bash("git rev-parse HEAD").strip()
@@ -284,7 +284,7 @@ loop:
         f"Mode: normal\n"
         f"Feedback: {last_failure_path or '—'}"
     )
-    impl_out = Skill(skill="superdev:dev-coder", args=impl_prompt)
+    impl_out = Skill(skill="superdev:dev-agent-coder", args=impl_prompt)
     impl_status = first_status_line(impl_out)                # "STATUS: PASS" / "STATUS: FAIL" / malformed
     verdict = "PASS" if impl_status == "STATUS: PASS" else "FAIL"
     suffix = "" if verdict == "PASS" and attempt == 1 else f" (attempt {attempt}/3)"
@@ -295,8 +295,8 @@ loop:
         if attempt >= 3: goto escalation
         continue
     # PASS: if a prior attempt FAILed (last_failure_path != "") and this coder pass returned PASS,
-    # forward the coder report path to the next dev-task-reviewer invocation as `Previous coder report:`.
-    # See references/retry-policy.md and the dev-task-reviewer skill's Task-mode input contract.
+    # forward the coder report path to the next dev-agent-task-reviewer invocation as `Previous coder report:`.
+    # See references/retry-policy.md and the dev-agent-task-reviewer skill's Task-mode input contract.
     last_coder_report_path = coder_report_path if last_failure_path != "" else ""
 
     # invoke runner (skipped on pure `Tests: none`)
@@ -310,22 +310,22 @@ loop:
         # see skills/runner/SKILL.md). The 3-line stdout reply (STATUS / Report / Summary) is parsed below.
         # The path slot is overwritten on crash recovery (same attempt slot).
         runner_report_path = f"{orch_dir}/runner-{attempt}.md"
-        # TASK-SCOPED run: pass only this task's `Scope hints:` and NEVER `Scope: full`. dev-runner is
+        # TASK-SCOPED run: pass only this task's `Scope hints:` and NEVER `Scope: full`. dev-agent-runner is
         # task-scoped by default (only the current task's tests); the full suite runs once at the end,
-        # inside dev-final-reviewer (which supplies `Scope: full` itself). The per-task loop must never
+        # inside dev-agent-final-reviewer (which supplies `Scope: full` itself). The per-task loop must never
         # trigger the whole suite.
         runner_prompt = (
             cmd + "\n\n"
             f"Report path: {runner_report_path}\n\n"
             "Scope hints:\n  paths:\n    - <each scope_paths entry>\n  test names:\n    - <each scope_tests entry>"
         )
-        runner_out = Skill(skill="superdev:dev-runner", args=runner_prompt)
+        runner_out = Skill(skill="superdev:dev-agent-runner", args=runner_prompt)
         runner_status = first_status_line(runner_out)                  # "STATUS: PASS|FAIL|BLOCKED|ERROR|TIMEOUT" or malformed
         v = runner_status.removeprefix("STATUS: ") if runner_status.startswith("STATUS: ") else "FAIL"
         print(f"[{N}/{max}] runner: {v}")                  # v ∈ {PASS, FAIL, ERROR, TIMEOUT, BLOCKED}
 
         # Unblock-branch narration (shared by both BLOCKED branches — runner pass below and
-        # dev-task-reviewer pass further down). A `BLOCKED` verdict means every failure is out-of-scope:
+        # dev-agent-task-reviewer pass further down). A `BLOCKED` verdict means every failure is out-of-scope:
         # route it through a `Mode: unblock` coder pass (Feedback = the BLOCKING agent's report on
         # disk) that clears the blocker, then restart that same pass — without incrementing `attempt`,
         # since only a *successful* unblock is free. Infinite-loop guard: `last_pass_verdict[<pass>]`
@@ -346,7 +346,7 @@ loop:
                 f"Mode: unblock\n"
                 f"Feedback: {runner_report_path}"
             )
-            unblock_out = Skill(skill="superdev:dev-coder", args=unblock_prompt)
+            unblock_out = Skill(skill="superdev:dev-agent-coder", args=unblock_prompt)
             unblock_verdict = "PASS" if first_status_line(unblock_out) == "STATUS: PASS" else "FAIL"
             print(f"[{N}/{max}] coder (unblock): {unblock_verdict}")
             if first_status_line(unblock_out) != "STATUS: PASS":
@@ -361,19 +361,19 @@ loop:
         last_pass_verdict["runner"] = "PASS"
     # else: pure `Tests: none` and no `Build: green` — skip runner entirely
 
-    # invoke dev-task-reviewer
+    # invoke dev-agent-task-reviewer
     # The dispatcher passes path-based handles only. The runner report on disk supplies the
     # execution evidence; the previous coder report (when present) carries the verify-before-revert
     # rationale. Task-reviewer Reads both files itself — see its Task-mode input contract.
-    reviewer_report_path = f"{orch_dir}/dev-task-reviewer-{attempt}.md"
+    reviewer_report_path = f"{orch_dir}/dev-agent-task-reviewer-{attempt}.md"
     if runner_ran_this_attempt:        # true iff the runner pass was entered AND its final verdict was PASS
         runner_report_line = runner_report_path
     else:
-        # Pure `Tests: none` (no `Build: green`) — runner was not invoked; dev-task-reviewer skips runner verification.
+        # Pure `Tests: none` (no `Build: green`) — runner was not invoked; dev-agent-task-reviewer skips runner verification.
         runner_report_line = "none"
     # `task_base_sha` was resolved at attempt-1 start (the `task-base.sha` write above). Passing it
-    # spares the dev-task-reviewer one `Read` of `.temp/.workflows/<slug>/task-base.sha`; the file stays on disk
-    # and the dev-task-reviewer falls back to reading it if this line is ever absent — see its Step 0.
+    # spares the dev-agent-task-reviewer one `Read` of `.temp/.workflows/<slug>/task-base.sha`; the file stays on disk
+    # and the dev-agent-task-reviewer falls back to reading it if this line is ever absent — see its Step 0.
     rev_prompt = (
         f"Task file: <task_files[N]>\n"
         f"Runner report: {runner_report_line}\n"
@@ -382,18 +382,18 @@ loop:
     )
     if last_coder_report_path != "":   # see "Capture coder report path" above + references/retry-policy.md
         rev_prompt += f"\nPrevious coder report: {last_coder_report_path}"
-    rev_out = Skill(skill="superdev:dev-task-reviewer", args=rev_prompt)
+    rev_out = Skill(skill="superdev:dev-agent-task-reviewer", args=rev_prompt)
     rev_status = first_status_line(rev_out)   # one of PASS / FAIL / BLOCKED (see the final review)
     rev_verdict = rev_status.removeprefix("STATUS: ") if rev_status.startswith("STATUS: ") else "FAIL"
-    print(f"[{N}/{max}] dev-task-reviewer: {rev_verdict}")
+    print(f"[{N}/{max}] dev-agent-task-reviewer: {rev_verdict}")
 
     # Same unblock-branch narration as the runner pass above (feedback-path / guard-key / restart-target differ).
     if rev_status == "STATUS: BLOCKED":
-        if last_pass_verdict.get("dev-task-reviewer") == "BLOCKED":   # guard (narration above)
+        if last_pass_verdict.get("dev-agent-task-reviewer") == "BLOCKED":   # guard (narration above)
             last_failure_path = reviewer_report_path
             if attempt >= 3: goto escalation
             continue
-        last_pass_verdict["dev-task-reviewer"] = "BLOCKED"
+        last_pass_verdict["dev-agent-task-reviewer"] = "BLOCKED"
         unblock_report_path = f"{orch_dir}/unblock-coder-{attempt}.md"
         unblock_prompt = (
             f"Task file: <task_files[N]>\n"
@@ -401,37 +401,37 @@ loop:
             f"Mode: unblock\n"
             f"Feedback: {reviewer_report_path}"
         )
-        unblock_out = Skill(skill="superdev:dev-coder", args=unblock_prompt)
+        unblock_out = Skill(skill="superdev:dev-agent-coder", args=unblock_prompt)
         unblock_verdict = "PASS" if first_status_line(unblock_out) == "STATUS: PASS" else "FAIL"
         print(f"[{N}/{max}] coder (unblock): {unblock_verdict}")
         if first_status_line(unblock_out) != "STATUS: PASS":
             last_failure_path = unblock_report_path
             if attempt >= 3: goto escalation
             continue
-        restart dev-task-reviewer pass   # successful unblock — no attempt increment (narration above)
+        restart dev-agent-task-reviewer pass   # successful unblock — no attempt increment (narration above)
     elif rev_status != "STATUS: PASS":
         last_failure_path = reviewer_report_path
         if attempt >= 3: goto escalation
         continue
-    last_pass_verdict["dev-task-reviewer"] = "PASS"
+    last_pass_verdict["dev-agent-task-reviewer"] = "PASS"
 
     # invoke improver (rules sink) — a config-gated step that never blocks. It runs BEFORE the
     # commit so its writes to `.claude/rules/` land in this task's commit. It is skipped with ONE
     # terse line when its switch is off (`.superdev/config.yml`, default-enabled); the dispatcher
     # already holds every value it needs — no extra plumbing.
 
-    # improver (rules) — gated by `rules_improver`. Needs only the dev-task-reviewer report.
+    # improver (rules) — gated by `rules_improver`. Needs only the dev-agent-task-reviewer report.
     if config switch `rules_improver` is false:
-        print(f"[{N}/{max}] dev-improver: skipped (disabled)")
+        print(f"[{N}/{max}] dev-agent-improver: skipped (disabled)")
     else:
         improver_report_path = f"{orch_dir}/improver-{attempt}.md"
         imp_prompt = (
             f"Task-reviewer report: {reviewer_report_path}\n"
             f"Report path: {improver_report_path}"
         )
-        imp_out = Skill(skill="superdev:dev-improver", args=imp_prompt)
+        imp_out = Skill(skill="superdev:dev-agent-improver", args=imp_prompt)
         imp_verdict = "PASS" if first_status_line(imp_out) == "STATUS: PASS" else "FAIL"
-        print(f"[{N}/{max}] dev-improver: {imp_verdict}")
+        print(f"[{N}/{max}] dev-agent-improver: {imp_verdict}")
 
     # commit step (deterministic script `scripts/commit-task.sh`, run inline). The script is the
     # committer: it stages everything, commits `T<N>: <subject>`, and — being deterministic — emits a
@@ -442,7 +442,7 @@ loop:
     # the tag directly. The reported sha is taken from the tag (the script itself read it via
     # `git rev-parse --short HEAD` after proving the move). See scripts/commit-task.sh (header contract)
     # and references/status-parsing.md (parse_commit_tag).
-    # The dispatcher authors NO commit subject. Subject authoring lives in dev-decomposer (which writes
+    # The dispatcher authors NO commit subject. Subject authoring lives in dev-agent-decomposer (which writes
     # each task file's `# ` H1 as a Conventional-Commits-form subject) + commit-task.sh (which reads that
     # H1 and prefixes `T<N>:`). The dispatcher just hands the script the TASK FILE PATH; the script
     # derives `N` from the filename and `<subject>` from the file's H1 and runs `git commit` verbatim.
@@ -500,30 +500,30 @@ escalation:
 ### Notes on the loop
 
 - Retry cap, BLOCKED branch mechanics, infinite-loop guard, live-progress format, and escalation rules: see `references/retry-policy.md`.
-- Implementation agents (`coder` / `dev-task-reviewer` Task mode / `improver`) reply on stdout with only `STATUS:` / `Report:` / `Summary:`. The dispatcher parses `STATUS:` via `first_status_line` (regex unchanged — see `references/status-parsing.md`) and may surface the agent's one-line `Summary:` alongside the live-progress `[<N>/<max>] <agent>: <VERDICT>` line for context; the `Report:` path is what gets forwarded into downstream prompts.
+- Implementation agents (`coder` / `dev-agent-task-reviewer` Task mode / `improver`) reply on stdout with only `STATUS:` / `Report:` / `Summary:`. The dispatcher parses `STATUS:` via `first_status_line` (regex unchanged — see `references/status-parsing.md`) and may surface the agent's one-line `Summary:` alongside the live-progress `[<N>/<max>] <agent>: <VERDICT>` line for context; the `Report:` path is what gets forwarded into downstream prompts.
 - The per-task loop iterates zero times when `status.yml`'s `current_task` exceeds `max` — the user re-ran orchestrator after the whole plan was committed. The starting-task resolution sets `start = current_task`, the progress-widget seed marks every task already `completed`, the per-task loop is empty, and control flows into the final whole-plan review.
 - Progress widget updates (`TaskUpdate` on task entry / commit success / no-op commit) live alongside the `print` lines and never replace them — see the "Progress tree (TaskCreate)" section in `references/retry-policy.md`.
 
 ## Final whole-plan review
 
-Runs **once**, after the per-task pipeline has reached the end of the task list with a successful commit on the last task (or when the starting-task resolution's `current_task > max` sentinel jumps here directly). Delegated wholesale to the `superdev:dev-final-reviewer` sub-orchestrator, which internally runs `dev-plan-auditor` → `dev-runner` (Scope: full) → `dev-smoke` → synthesis and **returns a single go/no-go verdict on stdout**. It writes no file.
+Runs **once**, after the per-task pipeline has reached the end of the task list with a successful commit on the last task (or when the starting-task resolution's `current_task > max` sentinel jumps here directly). Delegated wholesale to the `superdev:dev-agent-final-reviewer` sub-orchestrator, which internally runs `dev-agent-plan-auditor` → `dev-agent-runner` (Scope: full) → `dev-agent-smoke` → synthesis and **returns a single go/no-go verdict on stdout**. It writes no file.
 
 ```
 # Resolve base_sha (priority: persisted .temp/.workflows/<slug>/base.sha → git log --grep="^T1: " → git merge-base HEAD main),
-# then head_sha = git rev-parse HEAD. dev-final-reviewer takes the diff range as a `Diff range:` line.
+# then head_sha = git rev-parse HEAD. dev-agent-final-reviewer takes the diff range as a `Diff range:` line.
 final_prompt = (
     "Plan: <plan-path>\n"
     "Diff range: " + base_sha + ".." + head_sha
 )
-final_out = Skill(skill="superdev:dev-final-reviewer", args=final_prompt)
+final_out = Skill(skill="superdev:dev-agent-final-reviewer", args=final_prompt)
 final_status = first_status_line(final_out)                         # one of STATUS: PASS / STATUS: FAIL
 final_verdict = final_status.removeprefix("STATUS: ") if final_status.startswith("STATUS: ") else "FAIL"
-print(f"[final] dev-final-reviewer: {final_verdict}")
+print(f"[final] dev-agent-final-reviewer: {final_verdict}")
 # Surface the returned verdict to the user as the terminal result — no file is written or persisted.
 report final_out and stop the skill
 ```
 
-The dispatcher does **not** write a `final-review.md` — that artifact no longer exists. The verdict (`STATUS: PASS` go / `STATUS: FAIL` no-go) plus the sub-step breakdown that `dev-final-reviewer` returns on stdout IS the terminal result; surface it verbatim to the user. The widget at this point shows every task widget as `completed` (or, on a halted run, the in-flight task still at `in_progress`); no plan-level flip is needed. `FAIL` is advisory, not retry-triggering.
+The dispatcher does **not** write a `final-review.md` — that artifact no longer exists. The verdict (`STATUS: PASS` go / `STATUS: FAIL` no-go) plus the sub-step breakdown that `dev-agent-final-reviewer` returns on stdout IS the terminal result; surface it verbatim to the user. The widget at this point shows every task widget as `completed` (or, on a halted run, the in-flight task still at `in_progress`); no plan-level flip is needed. `FAIL` is advisory, not retry-triggering.
 
 **One-shot and terminal.** No retry loop, no `AskUserQuestion`, no `improver` invocation at this stage. Full pseudocode, `base_sha` resolution priority rationale, and final-review-specific anti-patterns: see `references/final-review.md`.
 
@@ -552,18 +552,18 @@ Then stop. Do not call any further tool.
 - Inspecting, reading, or modifying source code yourself. Every code touch is the `coder`'s job.
 - Running build / test commands yourself. Every test invocation goes through `runner`.
 - Pre-flight environment probes via `Bash` between pipeline steps (checking runtimes, services, container state, tool versions, network reachability, etc.) — even when project conventions tell a normal session to verify them before running tests. Those conventions target sessions that run tests directly; the dispatcher delegates the run to `runner`, which surfaces any environment failure as `FAIL` / `ERROR` and the standard 3 + 3 loop handles it. The dispatcher's `Bash` budget is reserved for the git queries in the final review.
-- Skipping the `dev-task-reviewer` step "to save time" on a small task.
+- Skipping the `dev-agent-task-reviewer` step "to save time" on a small task.
 - Adding retries beyond the documented `3` + `3` cap, or offering a "skip task" option to the user (intentionally absent). Also forbidden: a separate retry budget for `BLOCKED` — the unblock branch shares the same cap, with successful unblock passes free of attempt-counter increment.
-- Writing any state file other than (a) the authoritative task tracker `.temp/.workflows/<slug>/status.yml` (the commit step — orchestrator updates after each successful commit), (b) the persisted `.temp/.workflows/<slug>/base.sha` written once after the Task 1 commit (the commit step), and (c) the per-task baseline `.temp/.workflows/<slug>/task-base.sha` (re)written at the start of every task's attempt 1 (the per-task pipeline, before the coder pass). The final review writes **no** file — `dev-final-reviewer` returns its go/no-go verdict on stdout and the dispatcher surfaces it directly. Plan + task files + git + those three small state files are the only sources of truth — **except** for everything else under `.temp/.workflows/<slug>/orchestration/<task-N>/` (the `coder-K.md`, `dev-task-reviewer-K.md`, `improver-K.md`, `unblock-coder-K.md`, and `runner-K.md` reports the implementation / tool skills write themselves to their dispatcher-dictated `Report path:`), which is an **ephemeral audit/transport layer**, NOT state of truth: resume logic relies only on `status.yml` + `task-base.sha` + `base.sha`, and a crash recovery overwrites any prior attempt's report at the same numeric slot.
-- Editing, updating, creating any file yourself — including "quick fixes" for pre-existing issues surfaced by runner. Out-of-scope blockers are handled by routing the `BLOCKED` verdict through an unblock `coder` pass (see the runner pass / dev-task-reviewer pass). The dispatcher never touches source files directly.
+- Writing any state file other than (a) the authoritative task tracker `.temp/.workflows/<slug>/status.yml` (the commit step — orchestrator updates after each successful commit), (b) the persisted `.temp/.workflows/<slug>/base.sha` written once after the Task 1 commit (the commit step), and (c) the per-task baseline `.temp/.workflows/<slug>/task-base.sha` (re)written at the start of every task's attempt 1 (the per-task pipeline, before the coder pass). The final review writes **no** file — `dev-agent-final-reviewer` returns its go/no-go verdict on stdout and the dispatcher surfaces it directly. Plan + task files + git + those three small state files are the only sources of truth — **except** for everything else under `.temp/.workflows/<slug>/orchestration/<task-N>/` (the `coder-K.md`, `dev-agent-task-reviewer-K.md`, `improver-K.md`, `unblock-coder-K.md`, and `runner-K.md` reports the implementation / tool skills write themselves to their dispatcher-dictated `Report path:`), which is an **ephemeral audit/transport layer**, NOT state of truth: resume logic relies only on `status.yml` + `task-base.sha` + `base.sha`, and a crash recovery overwrites any prior attempt's report at the same numeric slot.
+- Editing, updating, creating any file yourself — including "quick fixes" for pre-existing issues surfaced by runner. Out-of-scope blockers are handled by routing the `BLOCKED` verdict through an unblock `coder` pass (see the runner pass / dev-agent-task-reviewer pass). The dispatcher never touches source files directly.
 - Re-verifying or retrying the commit step. The committer is now the deterministic `scripts/commit-task.sh`, not a Haiku fork — it emits a `sha` tag ONLY after itself proving HEAD advanced past the pre-commit HEAD **and** `git status --porcelain` is empty (a non-zero commit / unmoved HEAD / dirty tree all yield an `error` tag, never a fabricated `sha`). A script cannot hallucinate its tool result, so the dispatcher trusts the tag directly: do NOT re-run `git rev-parse HEAD` to re-check the move, do NOT wrap the call in a phantom-commit retry loop, and take the reported sha straight from the tag (`commit_result[1]`). On an `error` / `malformed` tag, hard-stop — never hand-commit from the dispatcher to paper over a failed commit.
 - Pasting the plan body into a sub-agent prompt — the sub-agent reads the plan (or task file) itself from the supplied path.
-- Inlining any pipeline-bound skill's reply (coder / dev-task-reviewer / improver / runner) into a downstream skill's prompt — verbatim, summarised, filtered, or otherwise. The on-stdout reply of those agents is the three-line minimal shape (`STATUS:` / `Report:` / `Summary:`); the full markdown lives at the dispatcher-dictated `Report path:`, and downstream prompts carry **paths only** (`Feedback: …`, `Runner report: …`, `Task-reviewer report: …`, `Previous coder report: …`). The runner follows the same discipline when invoked with `Report path:` (pipeline mode): it writes its own markdown to that path and replies on stdout with the 3-line block — the dispatcher MUST NOT re-`Write` the runner report from its own context, and MUST NOT page the full markdown into the dispatcher prompt.
+- Inlining any pipeline-bound skill's reply (coder / dev-agent-task-reviewer / improver / runner) into a downstream skill's prompt — verbatim, summarised, filtered, or otherwise. The on-stdout reply of those agents is the three-line minimal shape (`STATUS:` / `Report:` / `Summary:`); the full markdown lives at the dispatcher-dictated `Report path:`, and downstream prompts carry **paths only** (`Feedback: …`, `Runner report: …`, `Task-reviewer report: …`, `Previous coder report: …`). The runner follows the same discipline when invoked with `Report path:` (pipeline mode): it writes its own markdown to that path and replies on stdout with the 3-line block — the dispatcher MUST NOT re-`Write` the runner report from its own context, and MUST NOT page the full markdown into the dispatcher prompt.
 - Forwarding more than one failure to the next coder run. Only the most recent failure's report path goes in `Feedback`.
-- Telling `dev-task-reviewer` it is a retry attempt. Each review must be a fresh judgment.
+- Telling `dev-agent-task-reviewer` it is a retry attempt. Each review must be a fresh judgment.
 - Skipping the `Scope hints:` block when invoking runner inside this pipeline. Without it the runner cannot emit `BLOCKED` and the whole runner unblock path becomes unreachable.
 - Aggregating per-agent progress lines into a single summary line, or skipping them "to save tokens". The minimal format `[<N>/<max>] <agent-name>: <VERDICT>` is already at the lower bound; further compression breaks the live-signal contract with the user.
-- Gating on decomposer's `## Notes` section between decomposition and the per-task pipeline. The orchestrator never prompts the user about notes — any material decision will resurface in the final whole-plan dev-task-reviewer against the cumulative diff, where the user can act on real evidence rather than a hypothesis.
+- Gating on decomposer's `## Notes` section between decomposition and the per-task pipeline. The orchestrator never prompts the user about notes — any material decision will resurface in the final whole-plan dev-agent-task-reviewer against the cumulative diff, where the user can act on real evidence rather than a hypothesis.
 - Auto-triggering on generic "implement / build / code / execute / carry out" intents without the literal word "orchestrator" appearing either in the user's message or in the plan body. The trigger contract is explicit-mention-only; treating descriptive paraphrases as a trigger violates the skill's frontmatter `description` and surprises the user with a heavy pipeline they did not request.
 - Replacing the `print` live-progress lines with `TaskCreate` / `TaskUpdate` "because the widget is enough". The `print` lines are the **sole live-signal contract** (see `references/retry-policy.md` — "Live-progress lines"); the progress widget is a **second, independent channel**, never a substitute. Both must emit on every transition.
 - Hard-failing the pipeline on a `TaskCreate` / `TaskUpdate` error. The widget is a UI overlay, not state of truth (state of truth = `status.yml`, the task files, `base.sha`, `task-base.sha`, and git history). All widget calls go through `safe_task_call`; a UI error prints one warning and the pipeline continues.

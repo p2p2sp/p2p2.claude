@@ -6,44 +6,44 @@ Detail reference for the retry / unblock mechanics used by the per-task pipeline
 
 - [Retry cap](#retry-cap)
 - [Infinite-loop guard](#infinite-loop-guard)
-- [Previous-coder-report forwarding (dev-task-reviewer pass)](#previous-coder-report-forwarding-dev-task-reviewer-pass)
+- [Previous-coder-report forwarding (dev-agent-task-reviewer pass)](#previous-coder-report-forwarding-dev-agent-task-reviewer-pass)
 - [BLOCKED branch (runner pass)](#blocked-branch-runner-pass)
-- [BLOCKED branch (dev-task-reviewer pass)](#blocked-branch-dev-task-reviewer-pass)
+- [BLOCKED branch (dev-agent-task-reviewer pass)](#blocked-branch-dev-agent-task-reviewer-pass)
 - [Live-progress lines](#live-progress-lines)
 - [Progress widget (TaskCreate / TaskUpdate)](#progress-widget-taskcreate--taskupdate)
 - [Escalation](#escalation)
 
 ## Retry cap
 
-- The `attempt` counter is **shared** across coder / runner / dev-task-reviewer / unblock-coder failures **within one task**.
+- The `attempt` counter is **shared** across coder / runner / dev-agent-task-reviewer / unblock-coder failures **within one task**.
 - Cap: `3` + (optional, on user request) `3` more after the first escalation. Total maximum: 6 attempts per task, with user gate in between.
 - Only a **successful** unblock pass is free (does not increment `attempt`). A failed unblock counts like any other FAIL.
 - There is **no separate budget** for `BLOCKED`. The unblock branch shares the same cap.
 
 ## Infinite-loop guard
 
-`last_pass_verdict["runner"]` and `last_pass_verdict["dev-task-reviewer"]` track whether a given runner / dev-task-reviewer pass already returned `BLOCKED` in the previous iteration of the loop.
+`last_pass_verdict["runner"]` and `last_pass_verdict["dev-agent-task-reviewer"]` track whether a given runner / dev-agent-task-reviewer pass already returned `BLOCKED` in the previous iteration of the loop.
 
 - If the same pass returns `BLOCKED` twice in a row, the second occurrence is forcibly converted to `FAIL` and increments `attempt`.
 - Catches "the unblock didn't actually unblock" without an unbounded loop.
 
-## Previous-coder-report forwarding (dev-task-reviewer pass)
+## Previous-coder-report forwarding (dev-agent-task-reviewer pass)
 
-The task-base diff scoping protocol (`dev-task-reviewer` Step 0 + `coder` "verify before revert") can produce a `dev-task-reviewer FAIL → coder PASS` handshake that looks like a no-op retry but is actually a contested-feedback exchange:
+The task-base diff scoping protocol (`dev-agent-task-reviewer` Step 0 + `coder` "verify before revert") can produce a `dev-agent-task-reviewer FAIL → coder PASS` handshake that looks like a no-op retry but is actually a contested-feedback exchange:
 
-1. Task-reviewer attempt K returns `STATUS: FAIL` citing lines the coder believes are pre-existing. The dev-task-reviewer's full report (with `## Issues`, file:line citations, …) lives at `.temp/.workflows/<slug>/orchestration/task-<N>/dev-task-reviewer-K.md`.
-2. Coder attempt K+1 is invoked with `Feedback: .../dev-task-reviewer-K.md`, `Mode: normal`, and `Report path: .../coder-(K+1).md`. It reads the dev-task-reviewer report, reads `task-base.sha`, confirms the flagged lines are NOT in `git diff <task_base_sha> -- <path>`, and returns `STATUS: PASS` after writing its full report (including a `## Rationale` defending the no-op) to `coder-(K+1).md`.
+1. Task-reviewer attempt K returns `STATUS: FAIL` citing lines the coder believes are pre-existing. The dev-agent-task-reviewer's full report (with `## Issues`, file:line citations, …) lives at `.temp/.workflows/<slug>/orchestration/task-<N>/dev-agent-task-reviewer-K.md`.
+2. Coder attempt K+1 is invoked with `Feedback: .../dev-agent-task-reviewer-K.md`, `Mode: normal`, and `Report path: .../coder-(K+1).md`. It reads the dev-agent-task-reviewer report, reads `task-base.sha`, confirms the flagged lines are NOT in `git diff <task_base_sha> -- <path>`, and returns `STATUS: PASS` after writing its full report (including a `## Rationale` defending the no-op) to `coder-(K+1).md`.
 3. Task-reviewer attempt K+1 MUST receive the path to that coder report so it can `Read` the `## Rationale` and confirm or refute with file:line evidence from `task_diff`.
 
-The dispatcher sets `last_coder_report_path = coder_report_path` immediately after every coder PASS that follows a prior FAIL (i.e. `last_failure_path != ""` at the moment of capture). It then forwards the path to the next `dev-task-reviewer` invocation by appending a single line to the dev-task-reviewer prompt:
+The dispatcher sets `last_coder_report_path = coder_report_path` immediately after every coder PASS that follows a prior FAIL (i.e. `last_failure_path != ""` at the moment of capture). It then forwards the path to the next `dev-agent-task-reviewer` invocation by appending a single line to the dev-agent-task-reviewer prompt:
 
 ```
 Previous coder report: <absolute path to coder-(K+1).md>
 ```
 
-The line goes after the `Report path:` line; it is OMITTED when `last_coder_report_path == ""`. See the dev-task-reviewer skill's Task mode input contract for receiver-side parsing (the dev-task-reviewer Reads the file, extracts `## Rationale`, and must explicitly engage with it in this review's verdict) and the explicit-engagement requirement.
+The line goes after the `Report path:` line; it is OMITTED when `last_coder_report_path == ""`. See the dev-agent-task-reviewer skill's Task mode input contract for receiver-side parsing (the dev-agent-task-reviewer Reads the file, extracts `## Rationale`, and must explicitly engage with it in this review's verdict) and the explicit-engagement requirement.
 
-The forwarding rule is unconditional on `last_failure_path != ""` — the dispatcher does not try to detect the verify-before-revert path heuristically. If the coder's PASS had a normal rationale (real edits were made), forwarding the path as `Previous coder report:` is still safe — the dev-task-reviewer is allowed to confirm the edits address the feedback, the engagement is the same shape.
+The forwarding rule is unconditional on `last_failure_path != ""` — the dispatcher does not try to detect the verify-before-revert path heuristically. If the coder's PASS had a normal rationale (real edits were made), forwarding the path as `Previous coder report:` is still safe — the dev-agent-task-reviewer is allowed to confirm the edits address the feedback, the engagement is the same shape.
 
 `last_coder_report_path` resets to `""` on any coder FAIL (the report of a failed run is not authoritative as rationale) and is also `""` on attempt 1 of a task (no prior FAIL exists).
 
@@ -63,7 +63,7 @@ if v == "BLOCKED":
         f"Mode: unblock\n"
         f"Feedback: {runner_report_path}"
     )
-    unblock_out = Skill(skill="superdev:dev-coder", args=unblock_prompt)
+    unblock_out = Skill(skill="superdev:dev-agent-coder", args=unblock_prompt)
     if first_status_line(unblock_out) != "STATUS: PASS":
         last_failure_path = unblock_report_path
         if attempt >= 3: goto escalation
@@ -74,9 +74,9 @@ if v == "BLOCKED":
 
 The runner writes its full markdown report to `runner_report_path` itself (pipeline mode — the dispatcher dictates the path via `Report path:` in the runner prompt and never re-`Write`s the reply from its own context). The file is therefore on disk by the time the runner returns — and certainly by the time this BLOCKED snippet runs — so the path is always real when forwarded as `Feedback:` to unblock-coder.
 
-## BLOCKED branch (dev-task-reviewer pass)
+## BLOCKED branch (dev-agent-task-reviewer pass)
 
-Symmetric to the runner pass — uses `last_pass_verdict["dev-task-reviewer"]`, dictates `Mode: unblock`, and passes `Feedback: <reviewer_report_path>` (the dev-task-reviewer's full BLOCKED report on disk) plus a fresh `Report path: .../unblock-coder-<attempt>.md`. On successful unblock, restarts the dev-task-reviewer pass (re-review the same task) without incrementing `attempt`.
+Symmetric to the runner pass — uses `last_pass_verdict["dev-agent-task-reviewer"]`, dictates `Mode: unblock`, and passes `Feedback: <reviewer_report_path>` (the dev-agent-task-reviewer's full BLOCKED report on disk) plus a fresh `Report path: .../unblock-coder-<attempt>.md`. On successful unblock, restarts the dev-agent-task-reviewer pass (re-review the same task) without incrementing `attempt`.
 
 ## Live-progress lines
 

@@ -47,8 +47,8 @@ hand (or deleting it and re-running `/setup`). Skip straight to **Output**.
    ```
    # .superdev/config.yml — superdev opt-in switches (managed by /superdev:setup)
    # A missing file or key = enabled (fail-open). Flip a value to `false` to disable that area.
-   adr:            <true|false>   # ADR capture — orchestrator runs dev-adr-analyzer
-   rules_improver: <true|false>   # auto-promote review learnings → .claude/rules/ (dev-improver step)
+   adr:            <true|false>   # ADR capture — orchestrator runs dev-agent-adr-analyzer
+   rules_improver: <true|false>   # auto-promote review learnings → .claude/rules/ (dev-agent-improver step)
    ```
 
 ## Output

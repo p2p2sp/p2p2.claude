@@ -12,7 +12,7 @@ Investigate by tracing, not guessing. Pattern-matching a symptom to a "likely" c
 
 Trace the entire code flow, step by step — no assumptions, no shortcuts. The bug sits at the first point where actual behavior diverges from what you assumed; the only way to find that point is to walk every step, because the step you skip is the one where you'd have stopped guessing and started seeing. ALWAYS find root cause before attempting fixes. Symptom fixes are failure.
 
-Any fix MUST be consulted with the user. Conduct a quick interview with him to get confirmation of the solution.
+Any fix MUST be consulted with the user - conduct a quick interview with him to get confirmation of the solution.
 
 ## The Process
 1. Locate the exact entry point that triggers the behavior — the call, request, or event.

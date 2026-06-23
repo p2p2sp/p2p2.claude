@@ -9,4 +9,4 @@ The resolver runs in the main context, so it can actually see the session: which
 3. If the resulting set is **empty** → this is a no-op: report `no changes from context to commit` and stop. Do **not** fall back to staging the whole tree — silence is safer than a surprise commit.
 4. The staging instruction to hand the committer is: **stage exactly these paths and nothing else** — `git add -- <path>…` for the resolved set. List the paths verbatim in the handoff.
 
-Hand off to `gh-committer` with that staging instruction, the explicit path list, and an optional one-line intent hint (what the change does, plus any `#N` / close-intent from the session). The committer reads the staged diff and authors the subject itself.
+Hand off to `gh-agent-committer` with that staging instruction, the explicit path list, and an optional one-line intent hint (what the change does, plus any `#N` / close-intent from the session). The committer reads the staged diff and authors the subject itself.

@@ -1,6 +1,6 @@
 ---
-name: dev-decomposer
-description: "Decomposer — slices an approved free-form plan into self-contained per-task files under `.temp/.workflows/<slug>/tasks/`, deciding each task's boundary, working `## Mode`, `## Tests`, `## Touches`, and `## Depends on`. Uses a `tdd` baseline with enumerated carve-outs; honors imperative directives and the plan's recommended testing direction (binding floor — may raise rigor, never lower). Idempotent — no-op when task files already exist for the slug. Pipeline-bound — invoked ONLY by the orchestrator skill; never call directly from the main session. Contract + method: this skill's `# Input contract` / `# How to work` / `# Output format`."
+name: dev-agent-decomposer
+description: "Pipeline-bound; invoked only by `superdev:dev-orchestrator` via the Skill tool, never directly."
 model: opus
 effort: xhigh
 context: fork
@@ -12,11 +12,11 @@ allowed-tools: Read, Grep, Glob, Write, Skill
 
 Forked implementation-planner for the orchestrator's decompose step. Your input is the `Plan:` and `PlanSlug:` fields defined in `# Input contract` — the harness delivers them appended under an `ARGUMENTS:` line — read them from that appended block. Parse the `Plan:` path from that input block and `Read` it; reach for additional `Read`s only if something it references is missing.
 
-`decomposer` — the **implementation planner** of the pipeline. The upstream plan describes *what* and *why*; this skill decides *how to execute it* — task boundaries, per-task working mode, what to test, and ordering — and writes one focused, self-contained Markdown file per task, so that downstream pipeline skills (`coder`, `dev-task-reviewer`) work with a tight context.
+`decomposer` — the **implementation planner** of the pipeline. The upstream plan describes *what* and *why*; this skill decides *how to execute it* — task boundaries, per-task working mode, what to test, and ordering — and writes one focused, self-contained Markdown file per task, so that downstream pipeline skills (`coder`, `dev-agent-task-reviewer`) work with a tight context.
 
 Writes nothing outside `.temp/`. Never modifies the source plan.
 
-Project/stack-agnostic. The plan can be any markdown — no fixed structure required. Project-specific knowledge (test frameworks, naming, layering) comes from the project's `CLAUDE.md`, `.claude/rules/**`, and `.claude/skills/**` discovered on disk; downstream skills (`coder`, `dev-task-reviewer`) re-read those rules when they touch the relevant files. **Mark the path**; downstream skills walk it.
+Project/stack-agnostic. The plan can be any markdown — no fixed structure required. Project-specific knowledge (test frameworks, naming, layering) comes from the project's `CLAUDE.md`, `.claude/rules/**`, and `.claude/skills/**` discovered on disk; downstream skills (`coder`, `dev-agent-task-reviewer`) re-read those rules when they touch the relevant files. **Mark the path**; downstream skills walk it.
 
 # Project rules / skills listing (pre-injected)
 ```!
@@ -192,7 +192,7 @@ For all other modes, list 1–N test intents. Each entry is:
 Notes:
 
 - **Kind** is the test category that the task's `Mode` calls for: `tdd` → at least one `unit`; `code-first-then-tests` → category appropriate to the wiring (often `integration`); `e2e-first` → at least one `e2e` (may be supplemented by `integration` / `unit` if rules demand).
-- **Branch-driven 1:1 coverage (`tdd` tasks).** For a `tdd` task, emit **one `unit` test intent per decision branch / failure mode named in `## Deliverable`** — a 1:1 mapping from the named branches/failure modes to test intents. If `## Deliverable` names three branches (e.g. valid input, boundary, rejected input), `## Tests` carries three `unit` entries, one per branch. This is a structural rule, not a new heading: the coverage lives inside the existing `## Tests` bullets. The dev-task-reviewer enforces the inverse — a branch / failure mode named in `## Deliverable` with no corresponding `## Tests` entry in the diff is a CRITICAL FAIL — so the decomposer must make the mapping complete here. (The slow `integration` / `e2e` companions of a port-seam adapter task are not subject to this 1:1 rule — they run once at the adapter task's gate.)
+- **Branch-driven 1:1 coverage (`tdd` tasks).** For a `tdd` task, emit **one `unit` test intent per decision branch / failure mode named in `## Deliverable`** — a 1:1 mapping from the named branches/failure modes to test intents. If `## Deliverable` names three branches (e.g. valid input, boundary, rejected input), `## Tests` carries three `unit` entries, one per branch. This is a structural rule, not a new heading: the coverage lives inside the existing `## Tests` bullets. The dev-agent-task-reviewer enforces the inverse — a branch / failure mode named in `## Deliverable` with no corresponding `## Tests` entry in the diff is a CRITICAL FAIL — so the decomposer must make the mapping complete here. (The slow `integration` / `e2e` companions of a port-seam adapter task are not subject to this 1:1 rule — they run once at the adapter task's gate.)
 - **Intent** is what behavior must be asserted (not implementation details). Examples: `rejects status transition from terminal back to open`, `endpoint POST /<resource> returns 201 with payload`, `UI flow: user can submit a <form> from the portal`.
 - **Suggested location** is a directory or glob discovered by reading project rules or by `Glob`-ing the test tree (e.g. `<backend>/Tests/<Module>/**`, `<frontend>/src/**/__tests__/*`). With multiple candidates, list the most specific.
 - **Naming** points at the rule file that documents the convention, or names the sibling pattern to mirror. The coder dispatches the final filename and method name in context.
@@ -204,7 +204,7 @@ Do NOT invent fully-qualified test names. The decomposer's contract is *intent +
 Start with the plan's hints (file paths it explicitly mentions for this task intent). Augment with:
 
 - `Glob`-derived paths when the intent unambiguously identifies a module (e.g. intent "add <Feature> service" + project has `<module-root>/**/<Feature>*` → include the glob `<module-root>/**/<Feature>*` if the precise files are not yet known).
-- Test directory globs for the task's `Tests` (so the dev-task-reviewer can locate the new test files).
+- Test directory globs for the task's `Tests` (so the dev-agent-task-reviewer can locate the new test files).
 
 Each entry in `Touches` is a `path-or-glob — role` line. Roles are short ("production", "test", "config", "migration", "docs"). Do NOT `Read` the file contents — paths and globs are enough.
 
@@ -242,7 +242,7 @@ For each task, emit the `Task gate` block:
 - **`Build: green`** — always present except in `tests-none` tasks whose `Touches` is entirely non-runnable (in which case the gate is the literal single line `- Tests: none`).
 - **`Tests:`** — list the exact test identifiers (or, when identifiers are not yet known, the intent shorthand) that must run green. Pull from this task's `Tests` list (Step 4c). When the coder will dispatch the final identifier, use the intent in backticks (e.g. `` `unit: rejects status transition closed→open` ``); the runner matches the identifier on first run.
 
-Both task gate shapes the coder/dev-task-reviewer understand:
+Both task gate shapes the coder/dev-agent-task-reviewer understand:
 
 - **Runnable task:**
   ```
@@ -290,7 +290,7 @@ For each task `N` from 1 to `K`, `Write` the file `.temp/.workflows/<PlanSlug>/t
 
 ## Deliverable
 
-<1–3 sentences. What is observably true after this task that was not true before. Use the imperative voice: "Endpoint X accepts payload Y and returns 201", "Migration adds column Z to table T", "User can submit a <form> from the portal". For a logic task (`Mode: tdd`), the Deliverable MUST explicitly name each decision branch / failure mode the logic handles — e.g. "rejects a transition from a terminal state, allows it from an open state, and raises on an unknown state" — because Step 4c emits one `unit` test intent per named branch (1:1) and the dev-task-reviewer FAILs a named branch with no matching test in the diff. Do not leave branches implicit.>
+<1–3 sentences. What is observably true after this task that was not true before. Use the imperative voice: "Endpoint X accepts payload Y and returns 201", "Migration adds column Z to table T", "User can submit a <form> from the portal". For a logic task (`Mode: tdd`), the Deliverable MUST explicitly name each decision branch / failure mode the logic handles — e.g. "rejects a transition from a terminal state, allows it from an open state, and raises on an unknown state" — because Step 4c emits one `unit` test intent per named branch (1:1) and the dev-agent-task-reviewer FAILs a named branch with no matching test in the diff. Do not leave branches implicit.>
 
 ## Touches
 
@@ -331,7 +331,7 @@ As you write each task file, keep a `(N, verb-phrase, path)` triple in memory �
 
 - `# <type>(<scope>): <imperative summary>` (the H1) — a Conventional-Commits-form commit subject; this is the line the scripted commit (`commit-task.sh`) extracts verbatim as the commit subject. It MUST be present and well-formed on every task file. No legacy `# Task <N> — …` heading.
 - `## Plan context` — synthesise from the plan's outcome intent + mental-model paragraph; never paraphrase the plan's headline sentence to the point of losing its substance.
-- `## Deliverable` — a clear restatement of the observable outcome. For `Mode: tdd` logic tasks, name every decision branch / failure mode explicitly (the 1:1 anchor for Step 4c and the dev-task-reviewer's CRITICAL-FAIL check). Do NOT copy a §6 task line verbatim — there is no longer a binding §6.
+- `## Deliverable` — a clear restatement of the observable outcome. For `Mode: tdd` logic tasks, name every decision branch / failure mode explicitly (the 1:1 anchor for Step 4c and the dev-agent-task-reviewer's CRITICAL-FAIL check). Do NOT copy a §6 task line verbatim — there is no longer a binding §6.
 - `## Mode` + `**Why:**` — single source of truth for how this task is executed. No separate "TDD discipline" bullet. The `**Why:**` line states why the task left (or stayed on) the `tdd` baseline: the carve-out that fired, the imperative/floor directive, or `tdd baseline — no carve-out matched`.
 - `## Tests` — intent + suggested location; the coder dispatches the precise filename and method name.
 - `## Task gate` — what the runner will be told to run. Either runnable shape or `Tests: none`.
@@ -396,7 +396,7 @@ Total reply under 80 lines.
 - Letting a rigor-lowering plan directive ("no tests here") drop a logic task below the `tdd` baseline — violates the asymmetric **binding floor** (Step 4a); rigor-lowering directives cannot pierce the baseline unless `Touches` independently qualifies for `tests-none`.
 - Burying a `tdd`-worthy branch inside an untestable wiring task instead of applying the extract-pure-testable-helper rule, or introducing a port seam for a trivial-CRUD passthrough (the guard forbids it).
 - Inventing fully-qualified test identifiers (`path/to/Test.ext::TestName`). Your `Tests` are intent + suggested location; the coder dispatches the identifier.
-- Reading file contents from the codebase to fill `Touches`. Paths and globs from the plan + `Glob` of the project tree are enough. Reading is a coder/dev-task-reviewer concern.
+- Reading file contents from the codebase to fill `Touches`. Paths and globs from the plan + `Glob` of the project tree are enough. Reading is a coder/dev-agent-task-reviewer concern.
 - Reading every file under `.claude/rules/` and `.claude/skills/` indiscriminately. Glob the lists once; Read only entries whose paths or names match task keywords.
 - Emitting a `**TDD discipline:**` bullet, a `Layer` token (`Backend` / `Frontend` / `Infra` / `Migrate` / `Shared`), a `Task gate` shape-(A)/shape-(B) distinction, or a `Relevant technical design` section. These belong to the old contract and are removed.
 - Falling back to `STATUS: FAIL` because the plan is "incomplete". Failure is reserved for: empty/unreadable file, no executable intent, contradictory requirements, cyclic dependencies, no standalone-buildable Task 1. Everything else is best-effort + `## Notes`.

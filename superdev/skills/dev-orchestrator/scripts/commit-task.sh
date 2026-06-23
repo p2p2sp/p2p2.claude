@@ -13,7 +13,7 @@
 #   argv : $1 = path to the per-task file (.temp/.workflows/<slug>/tasks/<N>.md).
 #          N      = basename "$1" .md
 #          subject= first `# ` H1 line of "$1", leading "# " stripped (verbatim
-#                   Conventional-Commits subject authored by dev-decomposer).
+#                   Conventional-Commits subject authored by dev-agent-decomposer).
 #          The committed message is "T<N>: <subject>" — nothing is re-authored.
 #   cwd  : the repository whose staged tree is to be committed (caller's cwd;
 #          the orchestrator runs this at the repo root). `git add -A` stages

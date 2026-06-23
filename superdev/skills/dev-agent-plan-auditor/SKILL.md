@@ -1,6 +1,6 @@
 ---
-name: dev-plan-auditor
-description: "Whole-plan completeness auditor — verifies that EVERY task's `## Deliverable` across a finished plan is actually delivered in the cumulative diff, that every `## Tests` intent exists and asserts on its Deliverable, that the union of tasks realizes the plan's stated outcome, and that no documented convention is violated. Read-only; returns `STATUS: PASS|FAIL`. Invoked by `dev-final-reviewer` as the first sub-step of the final go/no-go gate; not a per-task gate (that is `dev-task-reviewer`). Input/output contract: this skill's `# Input contract` / `# Output format`."
+name: dev-agent-plan-auditor
+description: "Pipeline-bound; invoked only by `superdev:dev-agent-final-reviewer` via the Skill tool, never directly."
 model: opus
 effort: xhigh
 context: fork
@@ -10,19 +10,19 @@ allowed-tools: Read, Glob, Grep, Skill
 
 # Whole-plan completeness auditor (fork)
 
-Forked completeness auditor for the final gate. Where `dev-task-reviewer` judges ONE task against that task's
+Forked completeness auditor for the final gate. Where `dev-agent-task-reviewer` judges ONE task against that task's
 diff, you judge the **whole plan** against the **cumulative diff** of every committed task: every task's
 `## Deliverable` must be delivered, every `## Tests` intent must exist and assert on its Deliverable, the
 union of the tasks must realize the plan's stated outcome, and no documented convention may be violated.
 Read-only and one-shot — no fixing, no commits, no retries.
 
-`dev-final-reviewer` invokes this skill as the **first** sub-step of the final go/no-go gate, then runs
-`dev-runner` (full suite) and `dev-smoke` (does the app boot?) and synthesizes a single verdict. Your job here
+`dev-agent-final-reviewer` invokes this skill as the **first** sub-step of the final go/no-go gate, then runs
+`dev-agent-runner` (full suite) and `dev-agent-smoke` (does the app boot?) and synthesizes a single verdict. Your job here
 is purely the **coverage audit**: did the implementation, taken as a whole, deliver the plan?
 
 The shared **Deliverable-verification rubric** — how to read a `## Deliverable`, the per-`## Mode` test
 rules, the convention checks, the severity buckets, and the PASS/FAIL criteria — lives in the sibling skill
-at [../dev-task-reviewer/references/rubric.md](../dev-task-reviewer/references/rubric.md). Read it once at
+at [../dev-agent-task-reviewer/references/rubric.md](../dev-agent-task-reviewer/references/rubric.md). Read it once at
 invocation and apply it with "the reviewed diff" = the **cumulative** `<base_sha>..HEAD` range. If that file
 cannot be read after install (cache-copy path issues), fall back to the criteria restated inline in the steps
 below — they are sufficient on their own.
@@ -36,7 +36,7 @@ Plan: <absolute path to the original plan file>
 Diff range: <base_sha>..HEAD
 ```
 
-`dev-final-reviewer` passes both fields. The plan is free-form markdown (per `dev-decomposer` — no `§6 Task
+`dev-agent-final-reviewer` passes both fields. The plan is free-form markdown (per `dev-agent-decomposer` — no `§6 Task
 graph` or `§7 Test impact` is required); the binding per-task contracts live in
 `.temp/.workflows/<slug>/tasks/*.md`. By the time this skill runs, every per-task pipeline has reached PASS
 and every task has been committed — there is no runner output to consult here; this is a static read of the
@@ -95,7 +95,7 @@ rubric rules against the cumulative diff:
 
 Do NOT attempt to re-run any test — you have no Bash tool and the per-task runners already accepted them at
 their gates. This step verifies **presence and assertion quality** in the committed code, not execution.
-(Execution of the full suite at the end is `dev-runner`'s job, invoked separately by `dev-final-reviewer`.)
+(Execution of the full suite at the end is `dev-agent-runner`'s job, invoked separately by `dev-agent-final-reviewer`.)
 
 ## Step 5 — Verify conventions across all touched directories
 
@@ -148,15 +148,15 @@ Summary: <one line naming the blocking gap — e.g. "T4 Deliverable not delivere
 - Optional. One short line per informational item (e.g. pre-existing modifications out of scope). Omit if nothing.
 ```
 
-The `STATUS:` line is the contract `dev-final-reviewer` parses — it must be the literal first line and one of
+The `STATUS:` line is the contract `dev-agent-final-reviewer` parses — it must be the literal first line and one of
 `STATUS: PASS` / `STATUS: FAIL`. Do not write any file; this audit is text output only.
 
 # Anti-patterns (forbidden)
 
-- Judging ONE task against one task's diff. That is `dev-task-reviewer`. This skill audits the WHOLE plan
+- Judging ONE task against one task's diff. That is `dev-agent-task-reviewer`. This skill audits the WHOLE plan
   against the cumulative diff.
 - Re-running or attempting to run tests / builds. You have no Bash tool; the per-task runners already passed
-  and the full-suite execution is `dev-runner`'s separate job in the final gate.
+  and the full-suite execution is `dev-agent-runner`'s separate job in the final gate.
 - Emitting `STATUS: BLOCKED`. This auditor is two-way (PASS / FAIL) — there is no upstream pipeline state to
   block on at the terminal completeness check.
 - Passing because each task looks individually delivered while the plan's stated outcome is not realized —

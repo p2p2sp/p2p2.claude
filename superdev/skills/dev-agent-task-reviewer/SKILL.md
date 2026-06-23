@@ -1,6 +1,6 @@
 ---
-name: dev-task-reviewer
-description: "Single-task review gate — verifies that the code just written for ONE plan task actually delivers what the task promised. Checks the task's `## Deliverable` is delivered, every `## Tests` intent exists and asserts on it per `## Mode`, and no documented convention is violated — all against this task's diff only. Returns `PASS|FAIL|BLOCKED` and is the retry gate inside the orchestrator's per-task loop. Pipeline-bound — invoked ONLY by the orchestrator (dispatcher); never call directly from the main session. Whole-plan completeness auditing is NOT this skill — that is `dev-plan-auditor`. Input/output contract: this skill's `# Input contract` / `# Output format`."
+name: dev-agent-task-reviewer
+description: "Pipeline-bound; invoked only by `superdev:dev-orchestrator` via the Skill tool, never directly."
 model: opus
 effort: xhigh
 context: fork
@@ -23,7 +23,7 @@ needs a fresh read (the resolved `.temp/.workflows/<slug>/task-base.sha` as the 
 The shared **Deliverable-verification rubric** — how to read a `## Deliverable`, the per-`## Mode` test
 rules, the convention checks, the severity buckets, and the PASS/FAIL/BLOCKED criteria — lives in
 [references/rubric.md](references/rubric.md). The steps below apply that rubric to this task's diff;
-`dev-plan-auditor` reuses the same rubric against the whole-plan diff. Read the rubric once at invocation.
+`dev-agent-plan-auditor` reuses the same rubric against the whole-plan diff. Read the rubric once at invocation.
 
 # Input contract
 
@@ -35,7 +35,7 @@ Report path: <absolute path this skill MUST write its own full markdown report t
 Previous coder report: <absolute path to the previous attempt's coder report on disk, present when the dispatcher's previous iteration on this task went FAIL → coder PASS+Rationale; OMITTED otherwise>
 ```
 
-The task file is a self-contained slice produced by `dev-decomposer`. Its body has these flat sections in
+The task file is a self-contained slice produced by `dev-agent-decomposer`. Its body has these flat sections in
 order: `## Plan context`, `## Deliverable`, `## Touches`, `## Mode`, `## Tests`, `## Depends on`,
 `## Task gate`. Treat it as the authoritative spec for this review — the verbatim Deliverable, the working
 mode, the test intents, and the gate live in there. Do not `Read` the original source plan unless the task
@@ -52,7 +52,7 @@ results. When the value is the literal string `none`, the runner was not invoked
 
 The `Previous coder report:` line, when present, points at the on-disk markdown report the coder wrote in
 the previous iteration when it returned PASS in response to a prior FAIL (the "verify-before-revert" path in
-`dev-coder` Step 3). `Read` that file and look for its `## Rationale` section — it carries the coder's defense
+`dev-agent-coder` Step 3). `Read` that file and look for its `## Rationale` section — it carries the coder's defense
 of the no-op. When the line is present, you MUST explicitly address it in this review:
 
 - Re-verify the coder's claim using `task_diff` (Step 0). For each flagged line in the previous review's
@@ -72,7 +72,7 @@ The `Report path:` value is dictated by the dispatcher; this skill MUST write it
 exactly that path via `Write`, and the response on stdout MUST be only the three-line minimal shape defined
 under `# Output format` below.
 
-If `Task file:` is absent (malformed input — e.g. a caller that meant to reach `dev-plan-auditor`), reply on
+If `Task file:` is absent (malformed input — e.g. a caller that meant to reach `dev-agent-plan-auditor`), reply on
 stdout with `STATUS: FAIL` plus a `Summary:` line naming the malformed-input fault; the on-disk report write
 is best-effort — write to `Report path:` if it parses as a path, otherwise skip. Stop.
 
@@ -101,7 +101,7 @@ Validate the resolved value the same way regardless of which source produced it:
   exist, is empty, or its contents are not a 7+ hex-char SHA (likewise a present-but-malformed `Task base:`
   value that is not a 7+ hex-char SHA) — write an on-disk report at `Report path:` whose body is a single
   `## Blockers` entry `[pipeline state] cannot resolve task base — orchestrator must pass `Task base:` or
-  persist .temp/.workflows/<slug>/task-base.sha before invoking dev-task-reviewer`, respond on stdout with
+  persist .temp/.workflows/<slug>/task-base.sha before invoking dev-agent-task-reviewer`, respond on stdout with
   `STATUS: BLOCKED` / `Report: <path>` / `Summary: pipeline state — task base missing or malformed`, and
   stop. This is a pipeline-protocol failure, not a code problem — `BLOCKED` is correct because the issue is
   upstream of the diff.
@@ -289,7 +289,7 @@ it.
 - Re-reading the full source plan to gather context that is already condensed in the task file's
   `## Plan context` / `## Deliverable` / `## Mode`. The task file is the spec for this review.
 - Auditing the WHOLE plan here. This skill judges ONE task against `task_diff`; cumulative whole-plan
-  completeness auditing is `dev-plan-auditor`'s job.
+  completeness auditing is `dev-agent-plan-auditor`'s job.
 - Looking for sections from the old contract that no longer exist in task files (`## Phase` block,
   `## Relevant technical design`, `## Plan context (summary)`, `**TDD discipline:**` bullet, `Unit:` /
   `Integration:` / `E2E:` per-line gate format). The current contract is flat 7-section with `## Mode` and

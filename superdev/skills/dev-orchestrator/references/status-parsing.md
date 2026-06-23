@@ -2,7 +2,7 @@
 
 Detail reference for parsing sub-agent verdicts and the helpers used by the per-task pipeline. Used by the per-task pipeline and the final review.
 
-> **Authoritative source for every contract below:** each skill's own `# Output format` section — the pipeline fork-skills `skills/{decomposer,coder,dev-task-reviewer,improver,runner}/SKILL.md` and the committer skill's `# Output format` at `skills/committer/SKILL.md`. This file is a quick-reference cheatsheet for the dispatcher — when the two disagree, the skill file wins.
+> **Authoritative source for every contract below:** each skill's own `# Output format` section — the pipeline fork-skills `skills/{decomposer,coder,dev-agent-task-reviewer,improver,runner}/SKILL.md` and the committer skill's `# Output format` at `skills/committer/SKILL.md`. This file is a quick-reference cheatsheet for the dispatcher — when the two disagree, the skill file wins.
 
 ## Sub-agent STATUS (coder / improver / decomposer)
 
@@ -18,7 +18,7 @@ Anything else is treated as `FAIL` with:
 last_failure = "Malformed agent output — first line: <line>\n\n<full reply>"
 ```
 
-## Sub-agent STATUS (dev-task-reviewer)
+## Sub-agent STATUS (dev-agent-task-reviewer)
 
 The first non-empty line MUST match exact regex:
 
@@ -26,7 +26,7 @@ The first non-empty line MUST match exact regex:
 ^STATUS: (PASS|FAIL|BLOCKED)$
 ```
 
-The widened regex is necessary so that `STATUS: BLOCKED` is **not coerced to FAIL** before reaching the dev-task-reviewer-pass BLOCKED branch. Anything else is `FAIL` with the same malformed-output handling.
+The widened regex is necessary so that `STATUS: BLOCKED` is **not coerced to FAIL** before reaching the dev-agent-task-reviewer-pass BLOCKED branch. Anything else is `FAIL` with the same malformed-output handling.
 
 ## Sub-agent STATUS (runner — pipeline mode)
 
@@ -40,7 +40,7 @@ The five-value enum mirrors the runner's `## Verdict` token 1:1 — `BLOCKED` / 
 
 `BLOCKED` still requires a `Scope hints:` block in the runner prompt — without it the runner cannot emit `BLOCKED` and the whole runner unblock path becomes unreachable.
 
-> **`N/A` is full-scope only.** In `Scope: full` runs the runner may also return `N/A` (the host documents no build/test/lint suite). That token is consumed by `dev-final-reviewer` (where `N/A` is non-blocking / PASS-eligible), **not** by the orchestrator's per-task pipeline — the per-task task-scope `STATUS:` regex above stays `(PASS|FAIL|BLOCKED|ERROR|TIMEOUT)` and never matches `N/A`.
+> **`N/A` is full-scope only.** In `Scope: full` runs the runner may also return `N/A` (the host documents no build/test/lint suite). That token is consumed by `dev-agent-final-reviewer` (where `N/A` is non-blocking / PASS-eligible), **not** by the orchestrator's per-task pipeline — the per-task task-scope `STATUS:` regex above stays `(PASS|FAIL|BLOCKED|ERROR|TIMEOUT)` and never matches `N/A`.
 
 **Legacy mode** (no `Report path:`, main session / ad-hoc callers) — the runner returns the full markdown on stdout instead; the verdict is read from the `## Verdict` heading by `runner_verdict(out)` rather than from a `STATUS:` first line. The dispatcher does NOT use legacy mode.
 
@@ -63,7 +63,7 @@ Subject content rule: `</commit>` inside `subject` is escaped as `<\/commit>` by
 
 The five-value verdict enum is the same across both runner modes — only the surface differs:
 
-- **Pipeline mode** (dispatcher path): the verdict is the token after `STATUS:` on the first stdout line (see the runner STATUS section above). The full `## Verdict` heading lives in the markdown file the runner writes to its `Report path:` — the dev-task-reviewer / unblock-coder `Read` that file directly.
+- **Pipeline mode** (dispatcher path): the verdict is the token after `STATUS:` on the first stdout line (see the runner STATUS section above). The full `## Verdict` heading lives in the markdown file the runner writes to its `Report path:` — the dev-agent-task-reviewer / unblock-coder `Read` that file directly.
 - **Legacy mode** (main session / ad-hoc callers): the verdict lives on stdout under the `## Verdict` heading, first list item, as one of `` `PASS` `` / `` `FAIL` `` / `` `ERROR` `` / `` `TIMEOUT` `` / `` `BLOCKED` ``.
 
 Routing in either mode is identical:
@@ -76,7 +76,7 @@ Routing in either mode is identical:
 
 ## Helpers referenced by the pseudocode
 
-- `first_status_line(out)` — returns the first non-empty line of `out`. Used for every pipeline-bound skill's reply, including the runner in pipeline mode (the dispatcher then strips the `STATUS: ` prefix to get the verdict token, same pattern as the dev-task-reviewer).
+- `first_status_line(out)` — returns the first non-empty line of `out`. Used for every pipeline-bound skill's reply, including the runner in pipeline mode (the dispatcher then strips the `STATUS: ` prefix to get the verdict token, same pattern as the dev-agent-task-reviewer).
 - `runner_verdict(out)` — **legacy helper, used only for runner replies emitted in legacy mode** (full markdown on stdout, no `Report path:` supplied). Parses the first item of `## Verdict` and returns one of `PASS` / `FAIL` / `ERROR` / `TIMEOUT` / `BLOCKED`. The orchestrator pseudocode no longer calls it — pipeline mode reads `STATUS:` from stdout via `first_status_line`. Retained for any ad-hoc caller that consumes a legacy runner reply.
 - `parse_status_yml(path)` — return `None` when the file is missing or unreadable. Otherwise `Read` the file and match the first non-empty line against `^current_task:\s*(\d+)\s*$`. Return `int(match.group(1))` on success, `None` on any parse error.
 - `parse_arg_task($ARGUMENTS)` — return integer `N` for the first match of `task=(\d+)` in the argument string, else `None`.
@@ -84,7 +84,7 @@ Routing in either mode is identical:
 - `extract_task_gate(N)` — the lines under the task file's `## Task gate` heading (flat section, not nested).
 - `extract_scope_paths(N)` — the glob/path bullets from the task file's `## Touches` heading (flat section).
 - `extract_scope_test_names(N)` — identifier or intent-shorthand patterns derived from the task's `## Task gate` `Tests:` line. When the entry is a backticked intent shorthand (e.g. `` `unit: rejects status transition closed→open` ``) the patterns are the literal intent strings; the runner matches them as substrings against discovered test identifiers. Returns `[]` when `Task gate` is `Tests: none`.
-- `extract_section(out, heading)` — returns the body lines under the first occurrence of `heading` (e.g. `## Rationale`), until the next `^## ` line or EOF. Returns `""` if the heading is absent. Retained for ad-hoc parsing of agent reports; the per-task pipeline itself no longer extracts `## Rationale` (the dev-task-reviewer Reads the previous coder report directly — see `retry-policy.md` "Previous-coder-report forwarding").
+- `extract_section(out, heading)` — returns the body lines under the first occurrence of `heading` (e.g. `## Rationale`), until the next `^## ` line or EOF. Returns `""` if the heading is absent. Retained for ad-hoc parsing of agent reports; the per-task pipeline itself no longer extracts `## Rationale` (the dev-agent-task-reviewer Reads the previous coder report directly — see `retry-policy.md` "Previous-coder-report forwarding").
 - `build_test_command_or_build_command(gate, project_CLAUDE.md)` — constructs the runner command from the task's `## Task gate` line plus project conventions (test runner, build tool, etc.) sourced from the host project's `CLAUDE.md` and `.claude/rules/`.
 - `safe_task_call(tool_fn, **kwargs)` — wraps a single `TaskCreate` / `TaskUpdate` invocation in a try-catch. On success, returns the tool's return value (e.g. the new task id). On any error, prints `TaskCreate/TaskUpdate failed: <error> — continuing` once and returns `None`. **All progress-widget calls go through this wrapper.** The progress tree is a UI overlay, never a source of truth — a UI failure must not halt the pipeline.
 

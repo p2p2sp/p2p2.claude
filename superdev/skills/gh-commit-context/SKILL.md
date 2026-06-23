@@ -3,7 +3,7 @@ name: gh-commit-context
 description: >-
   Commit context resolver — runs in the MAIN context so it can read this session's conversation,
   picks the commit MODE, resolves WHICH files to commit, then delegates the staging + commit (and
-  the subject authoring) to the `superdev:gh-committer` fork. Use this skill whenever the user wants
+  the subject authoring) to the `superdev:gh-agent-committer` fork. Use this skill whenever the user wants
   to commit changes, save work to git, create a commit, or "wrap up" edits — even if they don't say
   the exact word "commit". Three modes via argument: (no arg) gather the files changed in THIS session
   from conversation context and commit only those; `all` → stage every new/modified/deleted file
@@ -19,7 +19,7 @@ effort: low
 
 # Commit context resolver
 
-Pick the right files to commit, then hand the staging + commit off to the `superdev:gh-committer` fork. This skill runs in the **main context on purpose** — it needs to read THIS session's conversation to know which files we touched and to pass a compact intent hint reflecting what the work actually did; a fork cannot see that context. The resolver never runs `git add` / `git commit` itself, and never reads the diff to author a subject — staging, diff-reading, and subject authoring are the committer's job.
+Pick the right files to commit, then hand the staging + commit off to the `superdev:gh-agent-committer` fork. This skill runs in the **main context on purpose** — it needs to read THIS session's conversation to know which files we touched and to pass a compact intent hint reflecting what the work actually did; a fork cannot see that context. The resolver never runs `git add` / `git commit` itself, and never reads the diff to author a subject — staging, diff-reading, and subject authoring are the committer's job.
 
 If you cannot determine a safe set of files to commit, prefer a **no-op** (report "nothing to commit") over guessing — an unwanted commit is far more costly to undo than a no-op is to re-run.
 
@@ -40,7 +40,7 @@ No argument at all → default to **session**.
 1. Resolve the mode from the argument (table above).
 2. **Read only the chosen path's reference** — do not load the other two. It tells you how to compute the file set (session mode) and what staging instruction to hand the committer.
 3. If the path reference's no-op gate fires (session mode: empty file set), report its no-op line and stop — do not invoke the committer. (`all` / `staged` let the committer own the no-op gate.)
-4. Otherwise **delegate to `superdev:gh-committer`** via the Skill tool with a fully-specified handoff containing:
+4. Otherwise **delegate to `superdev:gh-agent-committer`** via the Skill tool with a fully-specified handoff containing:
    - the **staging instruction** from the path reference — one of: "stage exactly these paths: `<path>…`" / "`git add -A`" / "do not stage — commit the index as-is";
    - the **explicit path list** (session mode only) — the concrete paths the committer must stage;
    - an optional **one-line intent hint** — a short statement of what this change does, carrying any `#N` / close-intent ("closes #42", "fixes #17") you can read from the session. It is a hint, not a subject — the committer authors the subject itself from the staged diff.

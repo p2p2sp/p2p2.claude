@@ -1,6 +1,6 @@
 ---
-name: dev-adr-analyzer
-description: "ADR Analyzer — read-only judge of whether an approved plan carries an ADR-worthy architecture/infrastructure decision (the *why* behind a structural / contract / boundary choice — NOT functional/behavioural description). Invoked by the `superdev:dev-orchestrator` skill before `decomposer`; honors the project's ADR posture, drafts a lean, brief ADR + deferred-write directive on a real decision, otherwise returns NO-ADR. Never writes to disk. Pipeline-bound — invoked ONLY by the orchestrator skill; never call directly from the main session. Input/output contract: this skill's `# Input contract` / `# Output format`."
+name: dev-agent-adr-analyzer
+description: "Pipeline-bound; invoked only by `superdev:dev-orchestrator` via the Skill tool, never directly."
 model: opus
 effort: medium
 context: fork
