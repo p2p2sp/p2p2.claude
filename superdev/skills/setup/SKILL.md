@@ -8,17 +8,15 @@ disable-model-invocation: true
 
 ## Setup
 
-Runs in the **main session** (NOT a fork) so it can ask the user about the opt-in switches via
-`AskUserQuestion`. The block below runs at skill load (working dir = the project root) and is idempotent —
-re-running `/setup` never overwrites anything that already exists. It:
+The block below runs at skill load (working dir = the project root) and is idempotent — re-running `/setup` never overwrites anything that already exists.
 
+It:
 - creates `.superdev/` and `.temp/` when they are missing,
 - seeds `.gitignore` from the bundled template when the project has none,
 - seeds `.claude/settings.json` from the bundled template when the project has none,
 - reports whether `.superdev/config.yml` already exists (and its current switches if so).
 
-The bootstrap logic lives in a bundled deterministic script (one command, so Claude Code's Bash
-permission checker approves it as a unit instead of demanding approval for each sub-operation):
+The bootstrap logic lives in a bundled deterministic script (one command, so Claude Code's Bash permission checker approves it as a unit instead of demanding approval for each sub-operation):
 
 ```!
 bash "${CLAUDE_SKILL_DIR}/scripts/bootstrap.sh"
@@ -28,16 +26,11 @@ bash "${CLAUDE_SKILL_DIR}/scripts/bootstrap.sh"
 
 Read the `config.yml:` line the block above printed.
 
-**If `config.yml` already exists** — do **NOT** overwrite it; it is the user's choice record. Report its
-current switch values (printed above) and note that they can change them by editing `.superdev/config.yml` by
-hand (or deleting it and re-running `/setup`). Skip straight to **Output**.
+**If `config.yml` already exists** — do **NOT** overwrite it; it is the user's choice record. Report its current switch values (printed above) and note that they can change them by editing `.superdev/config.yml` by hand (or deleting it and re-running `/setup`). Skip straight to **Output**.
 
 **If `config.yml` is MISSING** — ask the user which optional areas to enable, then write the file:
 
-1. Call `AskUserQuestion` **once** with a single `multiSelect` question. The user **checks the areas to
-   ENABLE**; anything left unchecked is disabled. Both areas default to enabled — recommend keeping them on
-   unless the project clearly does not need it (e.g. leave `adr` off for a constantly refactored repo,
-   `rules_improver` off when you don't want per-task review learnings promoted into `.claude/rules/`).
+1. Call `AskUserQuestion` **once** with a single `multiSelect` question. The user **checks the areas to ENABLE**; anything left unchecked is disabled. Both areas default to enabled — recommend keeping them on unless the project clearly does not need it (e.g. leave `adr` off for a constantly refactored repo, `rules_improver` off when you don't want per-task review learnings promoted into `.claude/rules/`).
    - **"Which pipeline areas to enable? (unchecked = disabled)"** — switches the orchestrator honors:
      - `adr` — ADR capture (records the architectural *why* of structural decisions).
      - `rules_improver` — auto-promote per-task review learnings into `.claude/rules/`.
