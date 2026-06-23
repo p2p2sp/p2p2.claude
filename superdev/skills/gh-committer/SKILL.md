@@ -1,6 +1,6 @@
 ---
 name: gh-committer
-description: "Committer (fork) — invoked by the `gh-commit-context` entry skill, NOT by the user. Receives a staging instruction, an optional explicit path list, and an optional one-line intent hint (with any `#N` / close-intent), then carries the commit out end-to-end: stages per the instruction, reads the staged diff (`git diff --cached`), authors the Conventional Commits subject grounded in that diff plus the hint, derives the issue footer, and commits. Owns subject synthesis so the diff never reaches the main context; never prompts (a fork cannot ask the user). Runs on haiku out of the main context. Input/output contract: this skill's `# Input contract` / `# Output format`."
+description: "Committer (fork) — invoked by the `gh-commit-context` entry skill, NOT by the user."
 context: fork
 model: haiku
 user-invocable: false
