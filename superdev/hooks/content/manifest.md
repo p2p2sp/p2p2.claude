@@ -1,6 +1,6 @@
 <superdev:manifest>
 
-**EXTREMELY IMPORTANT**: The `superdev` plugin gives you the routing manifest below.
+The `superdev` plugin gives you the routing manifest below.
 
 ## MANDATORY RULES — NON-NEGOTIABLE
 
@@ -25,7 +25,7 @@ Do not assume. Do not estimate that you "already know how." Do not rationalize. 
 - **Precision over verbosity** — Concise answers even at the cost of grammar (this governs prose length, not work scope). Exact, minimal, actionable. No filler unless asked by the user.
 
 ### Operating
-- **Temporary files** — All temporary files (test results, output logs, build logs, etc.) go into `.temp/`. Group them in subdirectories: `coverage/`, `TestResults/`, `logs/`, etc.
+- **Temporary files** — All temporary files (test results, output logs, build logs, etc.) go into `.temp/`. Group them in subdirectories: `playwright/`, `coverage/`, `TestResults/`, `logs/`, etc.
 
 ## Instruction Priority
 
@@ -48,11 +48,9 @@ descriptions (translate to English first). This is a static map of the prefix fa
 ## Decision flow
 
 1. If you are about to enter plan mode and have NOT yet interviewed: invoke the `superdev:dev-interview` skill first, then continue to step 2. If you have already brainstormed, go straight to step 2.
-
 2. Decide: might any skill apply to this message — even at 1% likelihood?
    - If definitely not: respond normally (including any clarifying questions). Stop here.
    - If yes (even 1%): go to step 3.
-
 3. Invoke the skill.
 4. Announce it explicitly: "Using [skill] to [purpose]".
 5. Does the skill define a checklist?

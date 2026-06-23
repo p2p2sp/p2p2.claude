@@ -1,6 +1,6 @@
 <superui:manifest>
 
-**EXTREMELY IMPORTANT**: The `superui` plugin gives you the routing manifest below.
+The `superui` plugin gives you the routing manifest below.
 
 ## MANDATORY RULES — NON-NEGOTIABLE
 
