@@ -1,15 +1,25 @@
 ---
 paths:
-  - "skills/**"
+  - "skills/**/*.md"
 ---
 
-To create or edit, refactor, change, optymize you MUST use your available skills during planning phase:
-- skill-creator
-- skill-chaining
-- authoring-reference
+## Write for Retrieval, Not for Completeness
 
-When a skill documents a cross-skill chain (e.g. `skill-A → skill-B`), verify claimed flags, behaviors, and guarantees against the referenced skill's own SKILL.md — not just for prose presence but for factual accuracy.
+The instinct when writing skill documentation is to be thorough. Cover every parameter. Note every edge case. Document every default behavior. Resist this. Agent doesn’t need a manual. It needs the delta — the things that differ from sensible defaults. If the right behavior is what a competent developer would do anyway, you don’t need to document it.
 
-When a skill's prose quotes a bundled helper's stdout contract (marker strings, header line, row shape), treat those literals as a load-bearing cross-artefact contract — verify them character-for-character against the script's render/emit code, not merely for presence.
+## Use Clear Structure and Headings
 
-When replacing an LLM-fork pipeline step with a deterministic bundled script, delete the dispatcher-side "tag is not proof, re-verify + retry" guard rather than porting it — a script that self-verifies before emitting its success tag makes the re-check redundant, so the verify-before-claim guarantee moves into the script's own header contract.
+Content at the top of a file and under clear headings gets more reliable attention than content buried in the middle of dense paragraphs. Structure your skill files so that the most critical, most frequently relevant instructions are first and clearly marked.
+
+Use short, declarative sentences. Avoid prose explanations where a bullet point will do - this is EXTREMELY IMPORTANT. The model doesn’t need narrative context — it needs clear, parseable instructions.
+
+## Audit for Contradictions and Redundancy
+
+Set a recurring reminder to review your skill files the same way you’d review any codebase. Look for:
+
+- Instructions that contradict each other
+- Guidance that was added for a specific situation but was never scoped to that situation
+- Documentation for tools or patterns your project no longer uses
+- Repeated information across multiple files
+
+Remove mercilessly. Everything in a skill file has a cost.

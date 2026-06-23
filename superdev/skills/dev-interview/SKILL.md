@@ -1,6 +1,6 @@
 ---
 name: dev-interview
-description: Interview the user to map the dependency graph of decisions before drafting any plan or code. You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation. Do NOT run for pure information/repo questions (answer those directly), well-specified single-file edits with nothing left to ask, or casual clarification follow-ups.
+description: Interview the user to map the dependency graph of decisions before drafting any plan or code. You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation. Do NOT run for pure information/repo questions (answer those directly) or casual clarification follow-ups. The well-specified-edit exception is NARROW — single file AND zero open design/scope/approach decisions; if you'd ask the user ANY question (a picker counts) or touch multiple files, the exception does NOT apply and you MUST interview.
 model: opus
 effort: xhigh
 ---
@@ -38,6 +38,7 @@ The interview models the work as a **design tree** — a graph where each decisi
 
 ## Discipline
 - "This is too simple to need a design" is an anti-pattern. If the user came here, the scope is non-trivial; honor that.
+- "It's well-specified, I'll skip the interview" is the same anti-pattern in disguise — if you caught yourself reaching for AskUserQuestion to settle scope or approach, that proves a decision was open and the interview was required.
 - The reverse is also an anti-pattern: if Explore plus one clarifying question fully resolve the request, close the interview and hand off.
 - Do not invent branches to justify a longer conversation — the goal is shared understanding, not ritual.
 - Stay inside the task. Adjacent cleanups, refactors, or improvements are out of scope unless the user explicitly asks for them.
@@ -51,6 +52,6 @@ The interview models the work as a **design tree** — a graph where each decisi
 - Close the interview when every **load-bearing** branch has a confirmed answer. A branch is load-bearing if a different answer would change which files are touched, which library or pattern is chosen, the data shape, or a contract between components. Branches whose answer only affects local style or naming are NOT load-bearing — do not gate the handoff on them.
 - Present the synthesis as ~3–5 bullets capturing the chosen approach, key constraints, and explicit out-of-scope items. Wait for the user's confirmation before
 handing off.
-- Then ask: plain plan-mode or `superdev:dev-extraplan`? Both branches produce the plan **inside plan mode**, regardless of the mode this session started in (default / accept-edits):
+- Then ask: plain plan-mode or `superdev:dev-extraplan`? Both branches produce the plan inside plan mode, regardless of the mode this session started in (default / accept-edits / plan):
   - "Plain plan-mode" → if plan mode is not already active (no `Plan mode is active` system reminder), call the `EnterPlanMode` tool first, then continue.
   - "Extraplan" → invoke the `superdev:dev-extraplan` skill and continue (its preamble enters plan mode if not already active).

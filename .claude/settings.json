@@ -141,5 +141,8 @@
       "Edit(./secrets/**)"
     ],
     "defaultMode": "acceptEdits"
+  },
+  "enabledPlugins": {
+    "plugin-dev@claude-plugins-official": true
   }
 }
