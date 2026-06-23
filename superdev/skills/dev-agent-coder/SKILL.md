@@ -83,12 +83,10 @@ When `Feedback:` is a non-empty path, `Read` it from your input. It contains the
 
 **Verify before revert.** When `Mode: normal` AND `Feedback:` is a non-empty path to a dev-agent-task-reviewer report file whose `## Issues` section is non-empty, verify each `## Issues` entry against the task diff before treating it as actionable:
 
-1. Derive `<slug>` from the task file path (`.temp/.workflows/<slug>/tasks/<N>.md` → directory two levels up). `Read` `.temp/.workflows/<slug>/task-base.sha` (single git SHA, trailing newline optional).
+1. Derive `<slug>` from the task file path (`.temp/.workflows/<slug>/tasks/<N>.md` → directory two levels up). `Read` `.temp/.workflows/<slug>/task-base.sha` (single git SHA, trailing newline optional). The orchestrator persists this file at attempt-1 start, before every coder invocation, so it is always present; if it is ever missing or unreadable the pipeline state is broken — do NOT silently treat the feedback as valid: return `STATUS: FAIL` with a `## Rationale` naming the missing `.temp/.workflows/<slug>/task-base.sha`.
 2. For every `## Issues` entry in the `Feedback:` file that cites a `path:LINE`, run `git diff <task_base_sha> -- <path>` and check whether the cited line appears in that diff.
 3. If **every** cited line is absent from `git diff <task_base_sha> -- <path>` (i.e. the dev-agent-task-reviewer flagged pre-existing modifications outside the task's baseline), DO NOT revert anything. Write a report whose `## Rationale` names each file, each flagged line, the `task_base_sha`, and explicitly states `line not in git diff <task_base_sha> -- <path>`; respond on stdout with `STATUS: PASS`. The dispatcher will forward the rationale to the next dev-agent-task-reviewer invocation as `<previous-coder-rationale>`.
 4. If **some** cited lines are in `git diff <task_base_sha>` and others are not, address only the in-scope ones; mention the out-of-scope ones in `## Rationale` for the next dev-agent-task-reviewer's adjudication.
-5. If `.temp/.workflows/<slug>/task-base.sha` is missing or unreadable, fall back to legacy behavior — treat the feedback at face value and do not block. The orchestrator owns persistence of that file; in its absence the coder has no grounds to prove the dev-agent-task-reviewer wrong.
-
 This is **defense in depth** — the dev-agent-task-reviewer's Step 0 already scopes to `task_diff`, but if a malformed dev-agent-task-reviewer reply slips through, this check prevents the coder from reverting unrelated WIP.
 
 ## Step 4 — Implement

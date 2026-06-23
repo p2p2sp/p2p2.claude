@@ -17,8 +17,7 @@ count is unknown; never soften the judgment based on any assumption about iterat
 Your input fields — `Task file:` + `Runner report:` + `Task base:` + `Report path:` (+ `Previous coder report:`)
 — are delivered by the harness appended under an `ARGUMENTS:` line. Read the fields from that appended block,
 parse the paths, and `Read` the files they point at. Reach for additional `Read`s only when a step explicitly
-needs a fresh read (the resolved `.temp/.workflows/<slug>/task-base.sha` as the Step 0 fallback when the
-`Task base:` line is absent).
+needs a fresh read.
 
 The shared **Deliverable-verification rubric** — how to read a `## Deliverable`, the per-`## Mode` test
 rules, the convention checks, the severity buckets, and the PASS/FAIL/BLOCKED criteria — lives in
@@ -30,7 +29,7 @@ rules, the convention checks, the severity buckets, and the PASS/FAIL/BLOCKED cr
 ```
 Task file: <absolute path to the task file the dispatcher prepared — usually `.temp/.workflows/<slug>/tasks/<N>.md`; in single-task plans this points at the original plan file>
 Runner report: <absolute path to the runner's markdown report on disk, OR the literal string `none` when the task gate is `- Tests: none` (docs-only tasks — runner was not invoked)>
-Task base: <the task-base git SHA the dispatcher already holds — Step 0 uses it directly instead of reading `.temp/.workflows/<slug>/task-base.sha`; the dispatcher always emits it, but it MAY be absent (legacy / non-dispatcher caller), in which case Step 0 falls back to the file read>
+Task base: <the task-base git SHA the dispatcher already holds — REQUIRED; the orchestrator always emits it, and Step 0 uses it directly>
 Report path: <absolute path this skill MUST write its own full markdown report to>
 Previous coder report: <absolute path to the previous attempt's coder report on disk, present when the dispatcher's previous iteration on this task went FAIL → coder PASS+Rationale; OMITTED otherwise>
 ```
@@ -85,23 +84,16 @@ before invoking the coder on attempt 1, and passes that same SHA on the `Task ba
 the **authoritative baseline** for what this task has changed — every line in `git diff <task_base_sha>` is
 in-scope for review; every line outside is pre-existing and OUT OF SCOPE for this review.
 
-Resolve `task_base_sha` in this order:
+Resolve `task_base_sha` from the **`Task base:` line** — trim its value and use it directly (no file read).
+The orchestrator always emits it, so it is the single source of truth here; the
+`.temp/.workflows/<slug>/task-base.sha` file stays on disk for the coder, but this skill does not read it.
 
-1. **`Task base:` line present** — trim its value and use it directly. No file read. This is the normal
-   dispatcher path: the orchestrator already holds the SHA, so reading `.temp/.workflows/<slug>/task-base.sha`
-   would be a redundant `Read`.
-2. **`Task base:` line absent** (legacy / non-dispatcher caller) — derive `<slug>` from the task file path
-   (`.temp/.workflows/<slug>/tasks/<N>.md` → `<slug>` is the directory two levels up from the task file) and
-   `Read` `.temp/.workflows/<slug>/task-base.sha`. The file contains a single git SHA (trailing newline
-   optional).
+Validate the resolved value:
 
-Validate the resolved value the same way regardless of which source produced it:
-
-- If `task_base_sha` cannot be resolved — the `Task base:` line is absent **and** the fallback file does not
-  exist, is empty, or its contents are not a 7+ hex-char SHA (likewise a present-but-malformed `Task base:`
-  value that is not a 7+ hex-char SHA) — write an on-disk report at `Report path:` whose body is a single
-  `## Blockers` entry `[pipeline state] cannot resolve task base — orchestrator must pass `Task base:` or
-  persist .temp/.workflows/<slug>/task-base.sha before invoking dev-agent-task-reviewer`, respond on stdout with
+- If `task_base_sha` cannot be resolved — the `Task base:` line is absent, empty, or its value is not a 7+
+  hex-char SHA — write an on-disk report at `Report path:` whose body is a single
+  `## Blockers` entry `[pipeline state] cannot resolve task base — orchestrator must pass a valid `Task base:`
+  line before invoking dev-agent-task-reviewer`, respond on stdout with
   `STATUS: BLOCKED` / `Report: <path>` / `Summary: pipeline state — task base missing or malformed`, and
   stop. This is a pipeline-protocol failure, not a code problem — `BLOCKED` is correct because the issue is
   upstream of the diff.
@@ -109,7 +101,7 @@ Validate the resolved value the same way regardless of which source produced it:
 Once resolved, compute the **task diff** for every later step:
 
 ```
-task_base_sha = resolved above (Task base: line, else trimmed contents of .temp/.workflows/<slug>/task-base.sha)
+task_base_sha = resolved above (trimmed value of the `Task base:` line)
 task_files    = git diff --name-only <task_base_sha>     # files changed since task start
 task_diff     = git diff <task_base_sha>                  # the diff under review
 ```

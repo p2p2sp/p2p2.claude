@@ -93,10 +93,10 @@ Refs: #42
 ```
 
 **Example 3 — subject + Closes footer (explicit close intent)**
-Input: staged diff removes a deprecated flag; the hint says "closes #17".
+Input: staged diff removes a deprecated retry flag; the hint says "closes #17".
 Output:
 ```
-refactor(config): drop deprecated legacy flag
+refactor(config): drop deprecated retry flag
 
 Closes: #17
 ```

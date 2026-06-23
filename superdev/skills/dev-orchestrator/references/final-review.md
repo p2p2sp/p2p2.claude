@@ -13,21 +13,15 @@ The verdict that `dev-agent-final-reviewer` returns covers the implementation as
 
 The orchestrator resolves the diff range and hands it to `dev-agent-final-reviewer` as a `Diff range:` line. Priority order — **first applicable wins**:
 
-1. **Persisted `.temp/.workflows/<slug>/base.sha`** — written after the Task 1 commit. Authoritative for any run that started fresh from Task 1 in this slug. Cross-session safe.
-2. **`git log --grep="^T1: "`** — legacy fallback. Vulnerable to collisions with older T1 commits from unrelated plans; the persisted `base.sha` avoids this entirely.
-3. **`git merge-base HEAD main`** — last-resort fallback for runs that started with `task=N>1` in a fresh repo with no T1 commit reachable.
+1. **Persisted `.temp/.workflows/<slug>/base.sha`** — written after the Task 1 commit. Authoritative for any run that started fresh from Task 1 in this slug. Cross-session safe (it survives on disk across sessions).
+2. **`git merge-base HEAD main`** — last-resort fallback for runs that never persisted `base.sha` (e.g. an unusual run that started at `task=N>1` in a fresh repo with no Task 1 commit). The diff range may then include unrelated commits since the branch diverged.
 
 ```
 persisted_base_path = ".temp/.workflows/<slug>/base.sha"
 if exists(persisted_base_path):
     base_sha = Read(persisted_base_path).strip()
 else:
-    first_T1_sha = first match of:
-        git log --grep="^T1: " --reverse --format=%H
-    if first_T1_sha is non-empty:
-        base_sha = git rev-parse "${first_T1_sha}^"   # parent of T1 = state BEFORE Task 1
-    else:
-        base_sha = git merge-base HEAD main           # fallback
+    base_sha = git merge-base HEAD main   # last resort: base.sha was never persisted
 head_sha = git rev-parse HEAD
 ```
 
@@ -53,8 +47,8 @@ Surface `final_out` (the verdict line plus the sub-step breakdown) to the user v
 
 - The final review is **one-shot and terminal**. `dev-agent-final-reviewer` is invoked exactly once; its synthesized verdict (`PASS` go / `FAIL` no-go) is surfaced and the orchestrator stops. There is **no retry loop**, no `AskUserQuestion`, no improver invocation at this stage — the per-task improver pass already promoted task-level learnings. Project-level follow-ups belong in a new `interview` cycle started by the user after reading the verdict.
 - `dev-agent-final-reviewer` owns the retry-free internal pipeline (`dev-agent-plan-auditor` → full-suite `dev-agent-runner` → `dev-agent-smoke`); the orchestrator only resolves `base_sha`, invokes it, and relays the result. Do not duplicate any of those sub-steps here.
-- `base_sha` resolution searches the entire git history for the first `T1: ` commit, not only the current session. This is intentional: a plan may have been executed across several sessions (via `task=N` resume), and the final review covers the plan **as a whole**.
-- The fallback `git merge-base HEAD main` is used only when no `T1: ` commit exists in history (e.g. an unusual run that started at `task=2` in a fresh repo). In that case the diff range will include any unrelated commits since the branch diverged — flag this to the user in the relayed verdict if detectable.
+- `base_sha` comes from the persisted `.temp/.workflows/<slug>/base.sha`, which survives on disk across sessions. This is intentional: a plan may have been executed across several sessions (via `task=N` resume), and the final review covers the plan **as a whole**.
+- The fallback `git merge-base HEAD main` is used only when `base.sha` was never persisted (e.g. an unusual run that started at `task=2` in a fresh repo with no Task 1 commit). In that case the diff range will include any unrelated commits since the branch diverged — flag this to the user in the relayed verdict if detectable.
 - **No file is written.** `dev-agent-final-reviewer` returns its verdict directly on stdout; there is no `final-review.md` (or any other artifact) anymore. The user reads the relayed verdict to decide whether to ship, fix, or re-plan.
 
 ## Anti-patterns specific to the final review

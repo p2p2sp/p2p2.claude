@@ -44,10 +44,10 @@ The `Plan:` path points to an existing markdown file describing *what* should be
 
 - Do NOT read the plan.
 - Do NOT write any task files.
-- If `.temp/.workflows/<PlanSlug>/status.yml` is missing (pre-refactor legacy directory created by the previous `status.txt`-based pipeline), `Write` it with the exact content `current_task: 1\n` and continue. Otherwise leave it untouched — the orchestrator owns updates after the first commit, and the existing file is the authoritative task tracker.
+- If `.temp/.workflows/<PlanSlug>/status.yml` is missing (it may be absent if a prior run wrote the task files but did not reach the status seed), `Write` it with the exact content `current_task: 1\n` and continue. Otherwise leave it untouched — the orchestrator owns updates after the first commit, and the existing file is the authoritative task tracker.
 - Parse the numeric `N` from each filename `<N>.md`, sort ascending.
-- For each existing task file, `Read` its first non-empty line and match it against the commit-subject H1 regex `^# (.+)$`. Capture group 1 is the `<verb-phrase>` (the commit subject) for that task. If the H1 is missing (legacy file with no `# ` heading), use the literal placeholder `<no title>` for that `<N>` and add a `## Notes` bullet naming the offending file.
-- Return immediately with `STATUS: PASS`, `## Task files` listing the existing paths in numeric order in the standard `- <N> — <verb-phrase> — <path>` shape (see `# Output format`), and `## Notes` containing the literal text `existing task files detected — decomposition skipped` (plus any per-file legacy-H1 bullets from the previous step).
+- For each existing task file, `Read` its first non-empty line and match it against the commit-subject H1 regex `^# (.+)$`. Capture group 1 is the `<verb-phrase>` (the commit subject) for that task. If the H1 is missing (a task file with no `# ` heading), use the literal placeholder `<no title>` for that `<N>` and add a `## Notes` bullet naming the offending file.
+- Return immediately with `STATUS: PASS`, `## Task files` listing the existing paths in numeric order in the standard `- <N> — <verb-phrase> — <path>` shape (see `# Output format`), and `## Notes` containing the literal text `existing task files detected — decomposition skipped` (plus any per-file missing-H1 bullets from the previous step).
 
 If the glob returns zero paths, proceed to Step 1. The idempotency check is **hard no-op for task files** — content / freshness of existing task files is NOT verified; the user must manually delete `.temp/.workflows/<PlanSlug>/` to force regeneration.
 
@@ -270,13 +270,13 @@ current_task: 1
 
 The orchestrator reads this file when resolving the starting task; the orchestrator updates `current_task` after each successful per-task commit. The total task count `K` is derived by the orchestrator from `len(task_files)`, not stored in `status.yml`. You only seed the file — never read it back during the same decomposer run.
 
-Idempotency: when Step 0 short-circuits (task files already exist), do NOT touch `status.yml` from this step — Step 0 itself owns the legacy-directory seed for that case. The orchestrator owns all updates after the first commit; a stale `status.yml` from a previous run is the intended source of truth.
+Idempotency: when Step 0 short-circuits (task files already exist), do NOT touch `status.yml` from this step — Step 0 itself owns the status.yml seed for that case. The orchestrator owns all updates after the first commit; a stale `status.yml` from a previous run is the intended source of truth.
 
 ### Step 7.1 — Write each task file
 
 For each task `N` from 1 to `K`, `Write` the file `.temp/.workflows/<PlanSlug>/tasks/<N>.md` with this exact structure.
 
-**The first line MUST be a Conventional-Commits-form commit subject H1** — `# <type>(<scope>): <imperative summary>` (e.g. `# feat(auth): add token refresh`, `# docs(adr): record ADR-0007`). This H1 is the contract consumed by the scripted commit (`commit-task.sh`), which extracts it verbatim as the commit subject (`T<N>: <subject>`). `<type>` is a Conventional-Commits type (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`, `style`); `<scope>` is the affected module / area; the summary is a short imperative phrase, no trailing period. Derive it from the task's verb-phrase + `## Touches`. Do NOT write the legacy `# Task <N> — <verb-phrase>` heading; the `Task <N> of <K>` orientation now lives only in the `>` line below.
+**The first line MUST be a Conventional-Commits-form commit subject H1** — `# <type>(<scope>): <imperative summary>` (e.g. `# feat(auth): add token refresh`, `# docs(adr): record ADR-0007`). This H1 is the contract consumed by the scripted commit (`commit-task.sh`), which extracts it verbatim as the commit subject (`T<N>: <subject>`). `<type>` is a Conventional-Commits type (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`, `style`); `<scope>` is the affected module / area; the summary is a short imperative phrase, no trailing period. Derive it from the task's verb-phrase + `## Touches`. Do NOT write a `# Task <N> — <verb-phrase>` heading; the `Task <N> of <K>` orientation now lives only in the `>` line below.
 
 ```markdown
 # <type>(<scope>): <imperative summary>
@@ -329,7 +329,7 @@ As you write each task file, keep a `(N, verb-phrase, path)` triple in memory �
 
 **Cutting rules:**
 
-- `# <type>(<scope>): <imperative summary>` (the H1) — a Conventional-Commits-form commit subject; this is the line the scripted commit (`commit-task.sh`) extracts verbatim as the commit subject. It MUST be present and well-formed on every task file. No legacy `# Task <N> — …` heading.
+- `# <type>(<scope>): <imperative summary>` (the H1) — a Conventional-Commits-form commit subject; this is the line the scripted commit (`commit-task.sh`) extracts verbatim as the commit subject. It MUST be present and well-formed on every task file. No `# Task <N> — …` heading.
 - `## Plan context` — synthesise from the plan's outcome intent + mental-model paragraph; never paraphrase the plan's headline sentence to the point of losing its substance.
 - `## Deliverable` — a clear restatement of the observable outcome. For `Mode: tdd` logic tasks, name every decision branch / failure mode explicitly (the 1:1 anchor for Step 4c and the dev-agent-task-reviewer's CRITICAL-FAIL check). Do NOT copy a §6 task line verbatim — there is no longer a binding §6.
 - `## Mode` + `**Why:**` — single source of truth for how this task is executed. No separate "TDD discipline" bullet. The `**Why:**` line states why the task left (or stayed on) the `tdd` baseline: the carve-out that fired, the imperative/floor directive, or `tdd baseline — no carve-out matched`.
@@ -402,7 +402,7 @@ Total reply under 80 lines.
 - Falling back to `STATUS: FAIL` because the plan is "incomplete". Failure is reserved for: empty/unreadable file, no executable intent, contradictory requirements, cyclic dependencies, no standalone-buildable Task 1. Everything else is best-effort + `## Notes`.
 - Allowing `Depends on` to reference tasks ≥ current task number (forward dependency).
 - Re-running decomposition when task files already exist (Step 0 must short-circuit with no-op).
-- Emitting `## Task files` in the legacy two-element shape `- <N> — <path>` (verb-phrase omitted). The orchestrator seeds its progress widget from this list — dropping the verb-phrase forces the dispatcher to re-`Read` every task file just to recover the H1, which defeats the whole point of returning the listing.
+- Emitting `## Task files` in the two-element shape `- <N> — <path>` (verb-phrase omitted). The orchestrator seeds its progress widget from this list — dropping the verb-phrase forces the dispatcher to re-`Read` every task file just to recover the H1, which defeats the whole point of returning the listing.
 - Reading or invoking any other agent. Decomposer is a self-contained reasoning + grouping step.
 
 # Constraint — technology-agnostic

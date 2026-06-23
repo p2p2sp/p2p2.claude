@@ -123,7 +123,7 @@ Decomposer is idempotent: if `.temp/.workflows/<slug>/tasks/*.md` already exists
 
 Print one line: `Plan decomposed into <K> task file(s).`
 
-For every downstream `coder` / `dev-agent-task-reviewer` invocation in the per-task pipeline, the dispatcher passes a single `Task file: <task_files[N]>` line (not the plan path + a task number). Each pipeline-bound implementation skill (`coder` / `dev-agent-task-reviewer` Task mode / `improver`) — and the `runner` skill in the runner pass — additionally receives a `Report path:` line dictated by the dispatcher and writes its full markdown report to that path itself; the on-stdout response is the three-line minimal shape (`STATUS:` / `Report:` / `Summary:`). The `dev-agent-task-reviewer` Task-mode prompt additionally carries a `Task base: <task_base_sha>` line (the SHA the dispatcher already holds from the attempt-1 `task-base.sha` write) so the dev-agent-task-reviewer can skip re-reading `.temp/.workflows/<slug>/task-base.sha`; the file read stays its fallback when the line is absent — see the dev-agent-task-reviewer's Step 0. The `Feedback:` line carried by `coder` becomes an absolute path to the upstream agent's on-disk report (dev-agent-task-reviewer-report path for retries / unblock; runner-report path is not forwarded directly — the dev-agent-task-reviewer's report is the unblock entry point in the dev-agent-task-reviewer pass). The improver pass receives only `Task-reviewer report: <path>` (its rules-learnings source) instead of an inline dev-agent-task-reviewer body. It is config-gated (`rules_improver`) and skipped with one terse line when off. The commit step (the `scripts/commit-task.sh` run) is unaffected. Inter-agent files live under the per-task audit directory `.temp/.workflows/<slug>/orchestration/task-<N>/<role>-<attempt>.md` — see the per-task pipeline below for the exact filename slots.
+For every downstream `coder` / `dev-agent-task-reviewer` invocation in the per-task pipeline, the dispatcher passes a single `Task file: <task_files[N]>` line (not the plan path + a task number). Each pipeline-bound implementation skill (`coder` / `dev-agent-task-reviewer` Task mode / `improver`) — and the `runner` skill in the runner pass — additionally receives a `Report path:` line dictated by the dispatcher and writes its full markdown report to that path itself; the on-stdout response is the three-line minimal shape (`STATUS:` / `Report:` / `Summary:`). The `dev-agent-task-reviewer` Task-mode prompt additionally carries a `Task base: <task_base_sha>` line (the SHA the dispatcher already holds from the attempt-1 `task-base.sha` write) so the dev-agent-task-reviewer uses it directly (no file read); `Task base:` is required — the dev-agent-task-reviewer BLOCKs if the line is ever absent (see its Step 0). The `Feedback:` line carried by `coder` becomes an absolute path to the upstream agent's on-disk report (dev-agent-task-reviewer-report path for retries / unblock; runner-report path is not forwarded directly — the dev-agent-task-reviewer's report is the unblock entry point in the dev-agent-task-reviewer pass). The improver pass receives only `Task-reviewer report: <path>` (its rules-learnings source) instead of an inline dev-agent-task-reviewer body. It is config-gated (`rules_improver`) and skipped with one terse line when off. The commit step (the `scripts/commit-task.sh` run) is unaffected. Inter-agent files live under the per-task audit directory `.temp/.workflows/<slug>/orchestration/task-<N>/<role>-<attempt>.md` — see the per-task pipeline below for the exact filename slots.
 
 Decomposer's `## Notes` section is informational only — the orchestrator does not gate on it. Any material decision worth flagging will resurface in the final whole-plan dev-agent-task-reviewer against the cumulative diff, where the user can act on it with full evidence rather than on a pre-implementation hypothesis.
 
@@ -253,8 +253,8 @@ loop:
 
     # Persist task-base.sha at start of attempt 1 only. This is the SHA every dev-agent-task-reviewer/coder
     # invocation in this task will use to compute the task diff. Retries on the same task
-    # MUST NOT overwrite it — the baseline is stable for the whole task. The dev-agent-task-reviewer skill's
-    # Step 0 and the coder skill's "verify before revert" both read this file.
+    # MUST NOT overwrite it — the baseline is stable for the whole task. The coder skill's "verify before
+    # revert" reads this file; the dev-agent-task-reviewer gets the same SHA on its `Task base:` line.
     if attempt == 1:
         task_base_sha = bash("git rev-parse HEAD").strip()
         Write(".temp/.workflows/<slug>/task-base.sha", task_base_sha + "\n")
@@ -356,7 +356,7 @@ loop:
         runner_report_line = "none"
     # `task_base_sha` was resolved at attempt-1 start (the `task-base.sha` write above). Passing it
     # spares the dev-agent-task-reviewer one `Read` of `.temp/.workflows/<slug>/task-base.sha`; the file stays on disk
-    # and the dev-agent-task-reviewer falls back to reading it if this line is ever absent — see its Step 0.
+    # (the coder reads it), but `Task base:` is required — the dev-agent-task-reviewer BLOCKs if it is ever absent (see its Step 0).
     rev_prompt = (
         f"Task file: <task_files[N]>\n"
         f"Runner report: {runner_report_line}\n"
@@ -492,7 +492,7 @@ escalation:
 Runs **once**, after the per-task pipeline has reached the end of the task list with a successful commit on the last task (or when the starting-task resolution's `current_task > max` sentinel jumps here directly). Delegated wholesale to the `superdev:dev-agent-final-reviewer` sub-orchestrator, which internally runs `dev-agent-plan-auditor` → `dev-agent-runner` (Scope: full) → `dev-agent-smoke` → synthesis and **returns a single go/no-go verdict on stdout**. It writes no file.
 
 ```
-# Resolve base_sha (priority: persisted .temp/.workflows/<slug>/base.sha → git log --grep="^T1: " → git merge-base HEAD main),
+# Resolve base_sha (priority: persisted .temp/.workflows/<slug>/base.sha → git merge-base HEAD main),
 # then head_sha = git rev-parse HEAD. dev-agent-final-reviewer takes the diff range as a `Diff range:` line.
 final_prompt = (
     "Plan: <plan-path>\n"
