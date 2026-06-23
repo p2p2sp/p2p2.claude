@@ -149,9 +149,9 @@ directly. Their frontmatter already encodes this (`context: fork` + `user-invoca
   hooks: `require-plan-mode.sh` (matcher `Write|Edit`) denies writing a plan file (`.claude/plans/*.md`) unless
   `permission_mode == "plan"` — forcing `EnterPlanMode` regardless of the starting mode — and `review-plan.sh`
   (matcher `ExitPlanMode`) denies the plan's approval until `dev-plan-reviewer` returns `STATUS: PASS`. The
-  ExitPlanMode hook is the primary gate in every mode; `dev-orchestrator` keeps a **defense-in-depth** plan-review
-  self-check before starting the pipeline (in case plan mode was bypassed — note a `PreToolUse` deny is only
-  best-effort in the permission-relaxed modes `bypassPermissions`/`dontAsk`/`auto`). Keep all paths in sync.
+  ExitPlanMode hook is the **single** gate in every mode, and `dev-orchestrator` trusts it — it does **not**
+  re-review the plan. (Residual: a `PreToolUse` deny is only best-effort in the permission-relaxed modes
+  `bypassPermissions`/`dontAsk`/`auto`, so in those modes the gate itself is best-effort.) Keep all paths in sync.
 - **No `"hooks"` field in `plugin.json`.** Claude Code auto-loads `hooks/hooks.json` from that path; adding a
   `hooks` field to `plugin.json` is a hard install error.
 - **File-based dispatch.** The orchestrator dispatches by passing **file paths** (task file + path params

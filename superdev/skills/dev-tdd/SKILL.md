@@ -35,7 +35,7 @@ Execute the cycle in this exact order for each delivered behavior. **VERIFY RED*
 
 ### VERIFY RED — run it and watch it fail correctly (mandatory)
 
-- **Actually run the test — never simulate it mentally.** Inside the `superdev:dev-agent-coder` skill, run it by invoking the `superdev:dev-agent-runner` skill (legacy mode — command only, never `Report path:`) with the **unit-scope command for just this test** (single test or single file — not the full `## Task gate`); outside the coder (main session, ad-hoc), run it directly or via the `superdev:dev-agent-runner` skill. The point of VERIFY RED is the observation, not the prediction.
+- **Actually run the test — never simulate it mentally.** Inside the `superdev:dev-agent-coder` skill, run it by invoking the `superdev:dev-agent-runner` skill (inline mode — command only, never `Report path:`) with the **unit-scope command for just this test** (single test or single file — not the full `## Task gate`); outside the coder (main session, ad-hoc), run it directly or via the `superdev:dev-agent-runner` skill. The point of VERIFY RED is the observation, not the prediction.
 - The test MUST fail, and fail because the behavior is missing — not from a syntax error, missing import, typo in the test, harness misconfig, or wrong fixture path.
 - Passes immediately? It tested something already true (or tested nothing). Restart RED with a sharper assertion that exercises the not-yet-implemented behavior.
 - Without watching it fail for the right reason, the test's actual coverage is unknown.

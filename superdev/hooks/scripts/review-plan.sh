@@ -10,8 +10,8 @@
 # mode. The companion guard require-plan-mode.sh denies plan-file writes outside
 # plan mode, so planning always happens in plan mode and this ExitPlanMode gate
 # fires for every plan-driven flow regardless of the mode the session started in.
-# dev-orchestrator additionally keeps a defense-in-depth "plan-review PASS"
-# self-check before it starts the pipeline, in case plan mode was bypassed.
+# dev-orchestrator trusts this gate as the single plan-review checkpoint and does
+# not re-review the plan itself.
 #
 # Contract:
 #   stdin  : JSON with at least { "transcript_path": "<abs-path>" }

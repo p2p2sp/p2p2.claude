@@ -2,7 +2,7 @@
 
 Detail reference for parsing sub-agent verdicts and the helpers used by the per-task pipeline. Used by the per-task pipeline and the final review.
 
-> **Authoritative source for every contract below:** each skill's own `# Output format` section — the pipeline fork-skills `skills/{decomposer,coder,dev-agent-task-reviewer,improver,runner}/SKILL.md` and the committer skill's `# Output format` at `skills/committer/SKILL.md`. This file is a quick-reference cheatsheet for the dispatcher — when the two disagree, the skill file wins.
+> **Authoritative source for every contract below:** each skill's own `# Output format` section — the pipeline fork-skills `skills/{decomposer,coder,dev-agent-task-reviewer,improver,runner}/SKILL.md` and the deterministic committer script's header contract at `skills/dev-orchestrator/scripts/commit-task.sh`. This file is a quick-reference cheatsheet for the dispatcher — when the two disagree, the skill file wins.
 
 ## Sub-agent STATUS (coder / improver / decomposer)
 
@@ -42,11 +42,11 @@ The five-value enum mirrors the runner's `## Verdict` token 1:1 — `BLOCKED` / 
 
 > **`N/A` is full-scope only.** In `Scope: full` runs the runner may also return `N/A` (the host documents no build/test/lint suite). That token is consumed by `dev-agent-final-reviewer` (where `N/A` is non-blocking / PASS-eligible), **not** by the orchestrator's per-task pipeline — the per-task task-scope `STATUS:` regex above stays `(PASS|FAIL|BLOCKED|ERROR|TIMEOUT)` and never matches `N/A`.
 
-**Legacy mode** (no `Report path:`, main session / ad-hoc callers) — the runner returns the full markdown on stdout instead; the verdict is read from the `## Verdict` heading by `runner_verdict(out)` rather than from a `STATUS:` first line. The dispatcher does NOT use legacy mode.
+**Inline mode** (no `Report path:`, main session / ad-hoc callers) — the runner returns the full markdown on stdout instead; the verdict is read from the `## Verdict` heading by `runner_verdict(out)` rather than from a `STATUS:` first line. The dispatcher does NOT use inline mode.
 
-## `committer` skill output (commit step)
+## `committer` script output (commit step)
 
-The committer skill (a `context: fork` skill) returns one tagged line as the fork's summary. The commit step passes it the **task file path** (`.temp/.workflows/<slug>/tasks/<N>.md`); the committer derives the subject itself — `N` from the filename and `<subject>` from the task file's `# ` H1 — and commits `T<N>: <subject>` verbatim (the dispatcher authors no subject — see the commit step in `skills/dev-orchestrator/SKILL.md`). The `subject` echoed in the success tag is that derived message. The dispatcher does NOT apply STATUS regex here; it parses one of these exact shapes via `parse_commit_tag(commit_out)`:
+The deterministic committer script (`scripts/commit-task.sh`, run inline — not a fork) emits one tagged line on stdout. The commit step passes it the **task file path** (`.temp/.workflows/<slug>/tasks/<N>.md`); the committer derives the subject itself — `N` from the filename and `<subject>` from the task file's `# ` H1 — and commits `T<N>: <subject>` verbatim (the dispatcher authors no subject — see the commit step in `skills/dev-orchestrator/SKILL.md`). The `subject` echoed in the success tag is that derived message. The dispatcher does NOT apply STATUS regex here; it parses one of these exact shapes via `parse_commit_tag(commit_out)`:
 
 | Pattern | Returns | Handling |
 |---|---|---|
@@ -57,14 +57,14 @@ The committer skill (a `context: fork` skill) returns one tagged line as the for
 
 Subject content rule: `</commit>` inside `subject` is escaped as `<\/commit>` by the committer; the dispatcher does NOT need to unescape unless surfacing the subject to the user.
 
-> **A `sha` tag is NOT proof of a commit.** `parse_commit_tag` validates only the tag *shape* — a syntactically valid `("sha", …)` result does **not** mean a commit landed. The committer fork (Haiku) can hallucinate the tool result: narrate the `git commit`, fabricate a SHA, and leave the tree dirty with HEAD unmoved. So after a `("sha", …)` result the dispatcher MUST verify the move itself: `git rev-parse HEAD` advanced past the pre-commit HEAD **and** `git status --porcelain` is empty. On a phantom commit (HEAD unchanged and/or dirty) it re-invokes the committer (≤3, changes are still staged) then hard-stops. The sha surfaced to the user comes from `git rev-parse --short HEAD` after that check — never `commit_result[1]`. See the commit step in `skills/orchestrator/SKILL.md`.
+> **The script self-verifies before emitting a `sha` tag, so the dispatcher trusts the tag directly.** `parse_commit_tag` validates only the tag *shape*, but the shape is enough here: `commit-task.sh` is deterministic and emits a `sha` tag **only** after itself confirming, with git, that HEAD advanced past the pre-commit HEAD **and** `git status --porcelain` is empty — a non-zero `git commit`, an unmoved HEAD, or a still-dirty tree all yield an `error` tag, never a fabricated `sha` (see the script's "Verify-before-claim" header contract). A script cannot hallucinate its tool result the way the old Haiku committer fork could, so the verify-before-claim guarantee now lives in the script, not the dispatcher. The dispatcher therefore does **not** re-run `git rev-parse HEAD` to re-check the move, does **not** wrap the call in a phantom-commit retry loop, and takes the surfaced sha straight from the tag (`commit_result[1]`). On an `error` / `malformed` tag it hard-stops. See the commit step in `skills/dev-orchestrator/SKILL.md`.
 
 ## Runner verdict
 
 The five-value verdict enum is the same across both runner modes — only the surface differs:
 
 - **Pipeline mode** (dispatcher path): the verdict is the token after `STATUS:` on the first stdout line (see the runner STATUS section above). The full `## Verdict` heading lives in the markdown file the runner writes to its `Report path:` — the dev-agent-task-reviewer / unblock-coder `Read` that file directly.
-- **Legacy mode** (main session / ad-hoc callers): the verdict lives on stdout under the `## Verdict` heading, first list item, as one of `` `PASS` `` / `` `FAIL` `` / `` `ERROR` `` / `` `TIMEOUT` `` / `` `BLOCKED` ``.
+- **Inline mode** (main session / ad-hoc callers): the verdict lives on stdout under the `## Verdict` heading, first list item, as one of `` `PASS` `` / `` `FAIL` `` / `` `ERROR` `` / `` `TIMEOUT` `` / `` `BLOCKED` ``.
 
 Routing in either mode is identical:
 
@@ -77,7 +77,7 @@ Routing in either mode is identical:
 ## Helpers referenced by the pseudocode
 
 - `first_status_line(out)` — returns the first non-empty line of `out`. Used for every pipeline-bound skill's reply, including the runner in pipeline mode (the dispatcher then strips the `STATUS: ` prefix to get the verdict token, same pattern as the dev-agent-task-reviewer).
-- `runner_verdict(out)` — **legacy helper, used only for runner replies emitted in legacy mode** (full markdown on stdout, no `Report path:` supplied). Parses the first item of `## Verdict` and returns one of `PASS` / `FAIL` / `ERROR` / `TIMEOUT` / `BLOCKED`. The orchestrator pseudocode no longer calls it — pipeline mode reads `STATUS:` from stdout via `first_status_line`. Retained for any ad-hoc caller that consumes a legacy runner reply.
+- `runner_verdict(out)` — **inline-mode helper, used only for runner replies emitted in inline mode** (full markdown on stdout, no `Report path:` supplied). Parses the first item of `## Verdict` and returns one of `PASS` / `FAIL` / `ERROR` / `TIMEOUT` / `BLOCKED`. The orchestrator pseudocode no longer calls it — pipeline mode reads `STATUS:` from stdout via `first_status_line`. Retained for any ad-hoc caller that consumes an inline-mode runner reply.
 - `parse_status_yml(path)` — return `None` when the file is missing or unreadable. Otherwise `Read` the file and match the first non-empty line against `^current_task:\s*(\d+)\s*$`. Return `int(match.group(1))` on success, `None` on any parse error.
 - `parse_arg_task($ARGUMENTS)` — return integer `N` for the first match of `task=(\d+)` in the argument string, else `None`.
 - `parse_commit_tag(out)` — applies the table above to the committer's output.

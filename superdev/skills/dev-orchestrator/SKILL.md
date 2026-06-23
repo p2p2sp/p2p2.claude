@@ -1,7 +1,7 @@
 ---
 name: dev-orchestrator
 description: >-
-  Use ONLY when the approved plan's body contains the word "orchestrator" (e.g. an "Execution: orchestrator" line). Drives the `coder` → `runner` → `dev-agent-task-reviewer` → `improver` → `committer` pipeline task by task (the `improver` step is gated by `.superdev/config.yml`), then invokes the `dev-agent-final-reviewer` sub-orchestrator once and surfaces its go/no-go verdict. Do NOT auto-trigger on generic intents like "implement", "build", "code", "execute", "carry out" — explicit "orchestrator" mention required (any language). Do NOT invoke the implementation skills (decomposer/coder/dev-agent-task-reviewer/improver) directly outside this dispatcher — each pipeline-bound skill's own frontmatter description carries the do-not-call-directly notice, and each skill's own `# Output format` section is the authoritative source for its STATUS contract.
+  Use ONLY when the approved plan's body contains the word "orchestrator". Do NOT auto-trigger on generic intents like "implement", "build", "code", "execute", "carry out" — explicit "orchestrator" mention required (any language).
 allowed-tools: Read, Bash, Write, Grep, Glob, Skill, AskUserQuestion, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop
 user-invocable: false
 model: opus
@@ -48,31 +48,14 @@ Each pipeline-bound skill (`decomposer`/`coder`/`dev-agent-task-reviewer`/`impro
 
 ## Locate the plan
 
-Find the most recent plan path mentioned in the conversation (the just-approved plan from `ExitPlanMode`, or any line matching `\.claude[/\\]plans[/\\][^\s]+\.md`).
+Resolve the plan file path **deterministically** — first match wins:
 
-If no path is found in the conversation (e.g., after `/clear` or in a fresh session), call `AskUserQuestion` asking the user to paste the plan path. Single question, single option "Other" answer.
+1. **Explicit argument** — `$ARGUMENTS` carries a `Plan: <path>` line (or a bare `.claude/plans/…md` path token). Use it as-is.
+2. **Harness approval signal** — the most recent `ExitPlanMode` approval in this session injects the literal line `Your plan has been saved to: <absolute-path>`; that path is the authoritative handle for the just-approved plan. Anchor on it.
+3. **Conversation scan** — otherwise take the most recent path matching `\.claude[/\\]plans[/\\][^\s]+\.md` mentioned in the conversation.
+4. **None resolved** (e.g. a fresh session after `/clear` with no `Plan:` argument) — **stop** with one line: `No plan path resolved — re-run with 'Plan: <absolute-path>'.` Do not prompt interactively.
 
 Once resolved, `Read` the plan briefly for orientation. The plan can be any markdown — ExtraPlan-shape (with §1 Scope, §2 Context, §3 Mental model, §4 Files to change, §5 Assumptions, …) or looser free-form prose. The dispatcher does not parse it; the `decomposer` handles all interpretation and derives per-task deliverables, modes, tests, and ordering. `max` (total task count) is derived from the `task_files` map returned by decomposer.
-
-## Precondition: plan-review PASS (mode-agnostic)
-
-**Before dispatching any pipeline stage** (ADR analysis, decompose, the per-task loop), confirm THIS plan was approved by `superdev:dev-plan-reviewer` with `STATUS: PASS`. The planning discipline must hold equally whatever mode the session started in:
-
-- Planning now always happens **in plan mode** — a `PreToolUse` guard (`require-plan-mode.sh`) denies plan-file writes outside plan mode, so the plan was drafted in plan mode and the `ExitPlanMode` `PreToolUse` hook (`review-plan.sh`) is the **primary gate** in every mode: it denies the plan's approval until `dev-plan-reviewer` returned `STATUS: PASS`. So if the plan reached this dispatcher via an `ExitPlanMode` approval in this session, the gate is already satisfied; do not re-run it.
-- The self-check below is **defense-in-depth**: if no `ExitPlanMode` approval evidence exists (e.g. plan mode was somehow bypassed, or the plan came from an earlier session), the dispatcher enforces the gate itself rather than trusting an un-reviewed plan.
-
-```
-# Look for evidence in THIS session of a passed dev-plan-reviewer for the current plan:
-#   - the plan arrived via an ExitPlanMode approval (plan mode — hook already gated it), OR
-#   - a prior `superdev:dev-plan-reviewer` call for THIS plan path returned `STATUS: PASS`.
-if no such evidence exists:
-    pr_out = Skill(skill="superdev:dev-plan-reviewer", args="Plan: <plan-path>")
-    if first_status_line(pr_out) != "STATUS: PASS":
-        report "Plan has not passed dev-plan-reviewer — refusing to start the pipeline." and stop the skill
-    # STATUS: PASS → gate satisfied; proceed.
-```
-
-This precondition gates the whole orchestration: no decompose, no coder, no commit happens until the plan carries a `dev-plan-reviewer` `STATUS: PASS` for this plan. It never auto-fixes the plan — on a non-PASS it stops and leaves re-planning to the user.
 
 ## Config switches
 

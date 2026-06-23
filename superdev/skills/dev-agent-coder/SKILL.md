@@ -128,7 +128,7 @@ Scope hints:
     - <if the project's test framework prints type-qualified test names — omit otherwise>
 ```
 
-Never pass `Report path:` — the coder invokes `superdev:dev-agent-runner` in **legacy mode** (the fork's summary IS the verdict transport; a `Report path:` flips the runner into pipeline mode and the summary collapses to a 3-line block with no on-disk consumer — pipeline-mode runner invocations belong to the orchestrator, not the coder).
+Never pass `Report path:` — the coder invokes `superdev:dev-agent-runner` in **inline mode** (the fork's summary IS the verdict transport; a `Report path:` flips the runner into pipeline mode and the summary collapses to a 3-line block with no on-disk consumer — pipeline-mode runner invocations belong to the orchestrator, not the coder).
 
 **Interpret the verdict** returned in the fork's summary:
 
@@ -213,10 +213,10 @@ Total on-disk report body under 100 lines. The three-line stdout response is inv
 - Hardcoding ecosystem-specific command names anywhere in the code or in this reply. Project-specific build / test commands live in the project's `CLAUDE.md`.
 - Skipping the convention reads — see Step 3 (never skip them to "save time").
 - Adding `TODO` / `FIXME` / "implement later" markers — see Step 6 (either it ships, or return `STATUS: FAIL`).
-- Running build / test / lint / type-check / formatter / script execution through raw `Bash`. Those commands go **only** through the `superdev:dev-agent-runner` skill (invoked in **legacy mode** via the Skill tool — command + `Scope hints:`, never `Report path:`). Raw `Bash` stays reserved for `git diff <task_base_sha>`, file inspection, and similar read-only auxiliary work (see Step 3). Mixing the two paths burns context on raw tool output that the runner is specifically designed to condense.
+- Running build / test / lint / type-check / formatter / script execution through raw `Bash`. Those commands go **only** through the `superdev:dev-agent-runner` skill (invoked in **inline mode** via the Skill tool — command + `Scope hints:`, never `Report path:`). Raw `Bash` stays reserved for `git diff <task_base_sha>`, file inspection, and similar read-only auxiliary work (see Step 3). Mixing the two paths burns context on raw tool output that the runner is specifically designed to condense.
 - Iterating past the 3-call cap on the pre-`PASS` `superdev:dev-agent-runner` invocations — see Step 5 (a 4th call after the 3rd `FAIL` is a discipline violation).
 - Counting VERIFY-RED / VERIFY-GREEN invocations against the pre-`PASS` 3-cap — see Step 5 (the two budgets are independent; the cap covers only the Step 5 pre-`PASS` gate fix-loop).
-- Passing `Report path:` in the `args` to the `superdev:dev-agent-runner` skill from the coder. The coder invokes the runner in **legacy mode**; passing `Report path:` flips it into pipeline mode and the verdict collapses to a 3-line block with no on-disk consumer (pipeline-mode runner invocations belong to the orchestrator).
+- Passing `Report path:` in the `args` to the `superdev:dev-agent-runner` skill from the coder. The coder invokes the runner in **inline mode**; passing `Report path:` flips it into pipeline mode and the verdict collapses to a 3-line block with no on-disk consumer (pipeline-mode runner invocations belong to the orchestrator).
 - Returning `STATUS: PASS` without first running the pre-`PASS` `superdev:dev-agent-runner` invocation (the only legitimate skip is `## Task gate` reading `- Tests: none`) — see Step 5. A `PASS` without a green / blocked task gate is the failure mode this whole machinery exists to prevent.
 
 # Constraint — technology-agnostic
