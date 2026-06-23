@@ -1,6 +1,6 @@
 ---
 name: dev-debug
-description: Use when the user reports a bug, error, crash, regression, or unexpected behavior, or asks to fix, investigate, debug, diagnose, trace a value, or verify that code works correctly. Triggers include "debug this", "why does X happen", "investigate the bug", "find the root cause", "check if it works", "is this correct". Fires before diagnosing — enforces tracing the entire code flow step by step instead of guessing the cause. Trigger applies in any language and to descriptive phrasing too.
+description: Use when the user reports a bug, error, crash, regression, or unexpected behavior, or asks to fix, investigate, debug, diagnose, trace a value, or verify that code works correctly. Fires before diagnosing — enforces tracing the entire code flow step by step instead of guessing the cause.
 ---
 
 # Debugger
@@ -10,7 +10,9 @@ Investigate by tracing, not guessing. Pattern-matching a symptom to a "likely" c
 
 ## The Iron Law
 
-Trace the entire code flow, step by step — no assumptions, no shortcuts. The bug sits at the first point where actual behavior diverges from what you assumed; the only way to find that point is to walk every step, because the step you skip is the one where you'd have stopped guessing and started seeing.
+Trace the entire code flow, step by step — no assumptions, no shortcuts. The bug sits at the first point where actual behavior diverges from what you assumed; the only way to find that point is to walk every step, because the step you skip is the one where you'd have stopped guessing and started seeing. ALWAYS find root cause before attempting fixes. Symptom fixes are failure.
+
+Any fix MUST be consulted with the user. Conduct a quick interview with him to get confirmation of the solution.
 
 ## The Process
 1. Locate the exact entry point that triggers the behavior — the call, request, or event.
@@ -23,3 +25,5 @@ Trace the entire code flow, step by step — no assumptions, no shortcuts. The b
 - Proposing a fix before reaching the diverging line.
 - Saying "should", "probably", or "likely" about runtime behavior.
 - Reading only the function named in the error, not its callers and callees.
+- Random fixes waste time and create new bugs. Quick patches mask underlying issues.
+- Issue seems simple (simple bugs have root causes too).

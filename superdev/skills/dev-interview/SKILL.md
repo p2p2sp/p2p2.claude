@@ -1,6 +1,6 @@
 ---
 name: dev-interview
-description: Interview the user to map the dependency graph of decisions before drafting any plan or code. Use whenever resolving a work request leaves even ONE open question about scope, approach, requirements, or trade-offs — e.g. a new feature, architectural decision, multi-file change, choice between approaches, or unclear scope. The trigger is the presence of an open question, not its count: ≥1 genuine open question about what or how to build → this skill, and even a single targeted question that would close the gap opens the interview rather than being asked ad hoc. Do NOT run for pure information/repo questions (answer those directly), trivial fixes, well-specified single-file edits with nothing left to ask, or casual clarification follow-ups.
+description: Interview the user to map the dependency graph of decisions before drafting any plan or code. You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation. Do NOT run for pure information/repo questions (answer those directly), well-specified single-file edits with nothing left to ask, or casual clarification follow-ups.
 model: opus
 effort: xhigh
 ---
