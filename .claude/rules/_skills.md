@@ -26,7 +26,7 @@ Remove mercilessly. Everything in a skill file has a cost.
 
 ## Use Scripts
 
-For tasks requiring determinism like parsing JSON, sorting data, compiling code, API calls, or math calculations.
+For tasks requiring determinism like parsing JSON, sorting data, compiling code, determistic searching, API calls, or math calculations.
 
 Why You Should Use Deterministic Scripts:
 - Repeatable Output: Code runs the same way every time, eliminating unpredictable decision-making branches.
