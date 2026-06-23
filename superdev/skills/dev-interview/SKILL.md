@@ -19,7 +19,6 @@ The interview models the work as a **design tree** — a graph where each decisi
 ## Run the interview
 - Walk the design tree branch by branch, resolving dependencies one decision at a time — early answers reshape later branches, so do not batch.
 - Ask ONE question per turn so the user can pause, push back, or revisit any earlier choice without losing the thread.
-- When two questions feel tightly coupled, pick the one whose answer constrains the other and ask that first — the second often dissolves or reshapes once the first is answered.
 - For each decision, propose 2–3 approaches with trade-offs, lead with your recommendation, and explain why it wins.
 - Number the options (`1`, `2`, `3`, and sub-options `1.1`, `1.2` when the choice branches) so the user can point to an answer without re-typing it.
 - Treat answers as living. If a later answer invalidates an earlier branch, surface it and re-open that decision instead of pressing forward.
