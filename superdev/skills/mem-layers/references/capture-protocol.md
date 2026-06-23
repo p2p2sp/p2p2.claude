@@ -22,6 +22,11 @@ Work leaf-first, clarity-first:
 - "Where does code execution typically start in this area?"
 - "What are the main APIs/interfaces other code uses?"
 
+### Commands
+
+- "How do you build, test, lint, and run this area? Where are those commands defined?"
+- "Does this subtree have its own toolchain, or does it inherit the repo's?"
+
 ### Contracts & Invariants
 
 - "What must always be true here? What would break if violated?"
@@ -60,6 +65,7 @@ Before finalizing a node:
 - [ ] Anti-patterns from real experience, not hypothetical
 - [ ] Downlinks use relative paths
 - [ ] No duplication with ancestor nodes
+- [ ] Commands (if any) discovered from host config, not invented; placed at the node owning the toolchain
 
 ## Example Capture
 
@@ -76,4 +82,11 @@ A: "Every payment mutation needs an idempotency key. We had an incident where
    a retry created duplicate charges."
 
 → Contracts: Idempotency keys required for all mutations (enforced by ProcessorClient type)
+
+Q: "How do you test and run this area, and where are those commands defined?"
+A: "It's its own package. Scripts live in services/payment/package.json -
+   pnpm --filter payment test, pnpm --filter payment dev."
+
+→ Commands (discovered from services/payment/package.json):
+  Test: pnpm --filter payment test · Run: pnpm --filter payment dev
 ```

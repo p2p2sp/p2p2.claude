@@ -16,6 +16,14 @@ Add to CLAUDE.md at project root:
 
 - [Invariant that applies across all areas]
 - [Another global invariant]
+
+### Commands
+
+<!-- Repo-wide commands ONLY if the whole project shares one toolchain. In a
+     polyglot/monorepo omit here and put commands in each subproject's node.
+     Discover from the host project's config (e.g. package.json, Makefile, a CI
+     workflow) — never hardcode. -->
+- Build / Test / Lint / Run: `<discovered ...>`
 ```
 
 ## Child Node Template
@@ -31,6 +39,17 @@ Each CLAUDE.md in subdirectories:
 ## Entry Points
 - `main_api.ts` - Primary API surface
 - `cli.ts` - CLI commands
+
+## Commands
+
+<!-- ONLY if this subtree has its own toolchain. Discover from the host project's
+     config (e.g. package.json scripts, Makefile/justfile, pyproject.toml,
+     composer.json, a CI workflow) — never invent. Omit the section when commands
+     are inherited from an ancestor node. -->
+- Build: `<discovered build command>`
+- Test: `<discovered test command>`
+- Lint: `<discovered lint/format command>`
+- Run: `<discovered dev/run command>`
 
 ## Contracts & Invariants
 - All DB calls go through `./db/client.ts`

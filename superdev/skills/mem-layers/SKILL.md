@@ -51,6 +51,7 @@ Hierarchical CLAUDE.md infrastructure so CLAUDE navigate codebases like senior e
 | Responsibility shift | Create CLAUDE.md |
 | Hidden contracts/invariants | Document in nearest ancestor |
 | Cross-cutting concern | Place at LCA |
+| Distinct toolchain (own build/test config) | Create CLAUDE.md |
 
 Do NOT create for: every directory, simple utilities, test folders (unless complex) and folders which name begin with dot (eg.: .claude).
 
@@ -61,6 +62,7 @@ When documenting existing code, ask:
 2. What invariants must never be violated?
 3. What repeatedly confuses new engineers?
 4. What patterns should always be followed?
+5. How is this area built / tested / run, and where are those commands defined?
 
 ## Resources
 
