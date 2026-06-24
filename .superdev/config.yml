@@ -1,0 +1,4 @@
+# .superdev/config.yml — superdev opt-in switches (managed by /superdev:setup)
+# A missing file or key = enabled (fail-open). Flip a value to `false` to disable that area.
+adr:            false   # ADR capture — orchestrator runs dev-agent-adr-recorder
+rules_improver: false   # auto-promote review learnings → .claude/rules/ (dev-agent-improver step)
