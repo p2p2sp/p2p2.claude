@@ -13,6 +13,10 @@
 //   taskFile           : absolute path to .temp/.workflows/<slug>/tasks/<N>.md         (required)
 //   reportDir          : absolute path to .temp/.workflows/<slug>/orchestration/task-<N> (required)
 //   taskBaseSha        : the task-base git SHA the orchestrator captured at attempt 1   (required)
+//   recipePath         : absolute path to the slug-scoped .temp/.workflows/<slug>/recipe.sh
+//                        the dev-agent-recipe generator authored at run start. Spliced into
+//                        the coder prompt and the runner-wrapper prompt so each downstream
+//                        fork sources its build/test/launch verbs from that one artifact.    (optional)
 //   taskGateRunnable   : true iff the task's `## Task gate` is runnable (Build: green / Tests: <non-none>);
 //                        false on a pure `Tests: none` task (runner pass skipped).      (default true)
 //   rulesImprover      : false → skip the improver step; anything else → run it.        (default true)
@@ -72,6 +76,7 @@ const taskGateRunnable = input.taskGateRunnable !== false // default true; only 
 const runImprover = input.rulesImprover !== false // default-enabled; only `=== false` skips the improver
 const cap = input.retryMaxAttempts ?? 3 // missing key → 3
 const feedbackPath = input.feedbackPath || '' // escalation seed for the first coder call
+const recipePath = input.recipePath || '' // slug-scoped recipe.sh; threaded into the coder + runner prompts
 const stub = input.stub || null
 
 // ── the agent() port seam ────────────────────────────────────────────────────
@@ -122,6 +127,7 @@ function coder(attempt, mode, feedback) {
     `Task file: ${taskFile}\n` +
     `Report path: ${reportPath}\n` +
     `Mode: ${mode}\n` +
+    `Recipe: ${recipePath || '—'}\n` +
     `Feedback: ${feedback || '—'}`
   // Same real agentType for both modes (the coder agent runs `Mode: unblock` itself); the stub
   // role differs (`unblockCoder`) so a dry-run can queue normal vs. unblock verdicts unambiguously.
@@ -137,6 +143,7 @@ function runner(attempt) {
   const prompt =
     `Task file: ${taskFile}\n` +
     `Report path: ${reportPath}\n` +
+    `Recipe: ${recipePath || '—'}\n` +
     `Run the task gate via Skill(superdev:dev-agent-runner) in pipeline mode and return the structured verdict.`
   return dispatch('runner', prompt, { model: 'haiku' }, reportPath)
 }
