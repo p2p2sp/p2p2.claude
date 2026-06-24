@@ -34,4 +34,6 @@ For tasks requiring determinism like parsing JSON, sorting data, compiling code,
 
 Why You Should Use Deterministic Scripts:
 - Repeatable Output: Code runs the same way every time, eliminating unpredictable decision-making branches.
-- Speed & Cost: Executing code is significantly cheaper and faster than generating tokens for LLM reasoning.
+- Speed & Cost: Executing code is significantly cheaper and faster than generating tokens for agent reasoning.
+
+If You can automate something and instead of agent reasoning replace by deterministic script - do it without any doubt.
