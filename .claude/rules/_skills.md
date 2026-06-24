@@ -31,13 +31,11 @@ Remove mercilessly. Everything in a skill file has a cost.
 
 ## Use Scripts
 
-For tasks requiring determinism like parsing JSON, sorting data, compiling code, determistic searching, API calls, or math calculations.
+If You can automate something and instead of LLM reasoning replace by deterministic script - do it without any doubt. Especialy for tasks requiring determinism like parsing JSON, sorting data, compiling code, determistic searching, API calls, or math calculations.
 
 Why You SHOULD use deterministic scripts:
 - Repeatable Output: Code runs the same way every time, eliminating unpredictable decision-making branches.
 - Speed & Cost: Executing code is significantly cheaper and faster than generating tokens for agent reasoning.
-
-If You can automate something and instead of LLM reasoning replace by deterministic script - do it without any doubt.
 
 ## Gotchas
 - Shortening the text cannot mean less precise instructions.
