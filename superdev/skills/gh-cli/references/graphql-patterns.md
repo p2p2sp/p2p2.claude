@@ -59,13 +59,14 @@ gh api graphql -f query='{ __type(name: "Issue") { fields { name type { name kin
 
 ## Error handling — errors ride inside `200 OK`
 
-`gh api graphql` returns HTTP 200 even for GraphQL errors. The exit code is 0, but the response body contains an `errors` array. Always select enough of the response to detect failure, and when scripting pipe through a guard:
+`gh api graphql` returns HTTP 200 even for GraphQL errors. The exit code is 0, but the response body contains an `errors` array. Always select enough of the response to detect failure, and when scripting capture the errors through `gh`'s built-in jq engine (no system `jq` needed):
 
 ```bash
-gh api graphql -f query='...' | jq -e '.errors // empty | length == 0'
+err="$(gh api graphql -f query='...' --jq '.errors // empty')"
+[ -n "$err" ] && { echo "GraphQL failed: $err" >&2; exit 1; }
 ```
 
-If `.errors` is non-empty, `jq -e` exits non-zero — that becomes your real success signal.
+A non-empty `$err` is your real failure signal — `gh --jq` does NOT propagate `jq -e`'s exit code, so test the captured output, not the exit status.
 
 For mutations that return an object, always select at least one field of the return type. An empty selection compiles but returns nothing useful for downstream parsing.
 

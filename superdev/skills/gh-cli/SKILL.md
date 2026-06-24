@@ -37,7 +37,7 @@ Try **native `gh` → REST via `gh api` → GraphQL via `gh api graphql`**. Esca
 ## Operational must-knows
 
 - **`gh issue create` has no `--type` flag.** Setting issue type requires REST — see `references/issues.md`. A skill that "sets the type" via `--type` is silently a no-op.
-- **GraphQL errors ride inside HTTP 200.** `gh api graphql` exits 0 on a failed mutation. Select enough of the response to detect failure and guard every mutation with a `jq -e` errors check — see `references/graphql-patterns.md`.
+- **GraphQL errors ride inside HTTP 200.** `gh api graphql` exits 0 on a failed mutation. Select enough of the response to detect failure and guard every mutation by capturing `--jq '.errors'` (treat non-empty as failure) — see `references/graphql-patterns.md`.
 - **`--paginate` only works when the query is written for it.** Needs `$endCursor` + `pageInfo { hasNextPage endCursor }` + `after: $endCursor` on every paginated connection — see `references/graphql-patterns.md`.
 - **Mutating GraphQL needs node IDs.** Every `*Id` input requires a preceding discovery query; the mutation snippets in `references/*.md` are paired with theirs — copy both.
 - **Projects v2 needs the `project` token scope.** Issue-type org mutations need `admin:org` (classic PAT) or the fine-grained `Issue types` permission — see `references/auth-and-scopes.md`.

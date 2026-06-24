@@ -87,8 +87,12 @@ gh api graphql -F threadId="$PRRT_ID" -f body='…' -f query='
 ## Bulk-resolve outdated threads — common script shape
 
 ```bash
-# 1. Page through threads; filter outdated + unresolved client-side.
-gh api graphql --paginate --slurp -F owner="$O" -F name="$R" -F num=123 -f query='
+# 1. Page through threads; filter outdated + unresolved with gh's built-in jq (no system jq).
+gh api graphql --paginate --slurp -F owner="$O" -F name="$R" -F num=123 \
+  --jq '.[].data.repository.pullRequest.reviewThreads.nodes[]
+        | select(.isOutdated and (.isResolved | not))
+        | .id' \
+  -f query='
   query($owner: String!, $name: String!, $num: Int!, $endCursor: String) {
     repository(owner: $owner, name: $name) {
       pullRequest(number: $num) {
@@ -99,9 +103,6 @@ gh api graphql --paginate --slurp -F owner="$O" -F name="$R" -F num=123 -f query
       }
     }
   }' \
-  | jq -r '.[].data.repository.pullRequest.reviewThreads.nodes[]
-           | select(.isOutdated and (.isResolved | not))
-           | .id' \
   | while read -r THREAD_ID; do
       gh api graphql -F threadId="$THREAD_ID" -f query='
         mutation($threadId: ID!) {

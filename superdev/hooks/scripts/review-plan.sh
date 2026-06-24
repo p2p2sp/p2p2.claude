@@ -20,9 +20,9 @@
 #             "permissionDecisionReason": "..." } }
 #   exit 0 : always (decisions are conveyed in JSON, fail-open on errors).
 #
-# Failure policy: any parse error, missing tool, missing transcript -> allow
-# (fail-open). We prefer letting ExitPlanMode through over wrongly blocking
-# the user when the hook itself is broken.
+# Failure policy: any parse miss / missing transcript -> allow (fail-open). We
+# prefer letting ExitPlanMode through over wrongly blocking the user when the hook
+# itself is broken. JSON is parsed with pure POSIX grep/sed (no jq).
 
 set -u
 # NB: no `set -e` -- fail-open requires us to swallow non-zero exits.
@@ -46,12 +46,20 @@ emit_deny() {
 input="$(cat)"
 [ -z "$input" ] && emit_allow
 
-# Extract transcript_path. Require jq; if missing, fail-open.
-if ! command -v jq >/dev/null 2>&1; then
-  emit_allow
-fi
-
-transcript_path="$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)"
+# Extract transcript_path from the JSON payload, pure POSIX (no jq). Matches the
+# first  "transcript_path": "value"  occurrence and prints the unquoted value; a
+# parse miss yields "" and fails open via the guard below. The key appears once and
+# the value is a filesystem path with no literal '"', so [^"]* is a safe class.
+# Second sed JSON-unescapes backslashes so a Windows transcript path "C:\\Users\\..."
+# resolves to a real path for the -f test below (jq did this); standalone single-quoted
+# sed on purpose — bash 3.2 mangles ${//} backslash substitution. No-op for forward slashes.
+transcript_path="$(
+  printf '%s' "$input" \
+    | grep -oE '"transcript_path"[[:space:]]*:[[:space:]]*"[^"]*"' \
+    | head -n1 \
+    | sed -E 's/^"transcript_path"[[:space:]]*:[[:space:]]*"(.*)"$/\1/' \
+    | sed 's/\\\\/\\/g'
+)"
 [ -z "$transcript_path" ] && emit_allow
 [ -f "$transcript_path" ] || emit_allow
 

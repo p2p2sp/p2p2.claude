@@ -28,13 +28,13 @@ The input is the spec. Do NOT redesign it, batch in extra operations, or "while 
 1. **Preconditions (fail-fast).** Run `gh --version` then `gh auth status`. If either fails, stop immediately and reply `STATUS: FAILED <one-line cause>` (e.g. `STATUS: FAILED gh not authenticated`). Do not attempt the operation.
 2. **Pick the layer.** Decide native `gh` → REST via `gh api` → GraphQL via `gh api graphql` per the `cli` reference's decision table. When a detail is needed, `Read` the matching companion file at `${CLAUDE_PLUGIN_ROOT}/skills/cli/references/<topic>.md` (e.g. `issues.md`, `sub-issues.md`, `pr-review-threads.md`, `discussions.md`, `projects-v2.md`, `pull-requests.md`, `graphql-patterns.md`, `auth-and-scopes.md`). Escalate to the next layer only when the lower one cannot express the operation or does not return the IDs you need.
 3. **Discovery → mutation.** Every GraphQL mutation that takes a `*Id` input needs a preceding discovery query to resolve that node-ID; run the discovery query first, capture the IDs, then run the mutation. Use `-f query=…` for the query body and `-F` for typed variables.
-4. **Guard every GraphQL mutation.** GraphQL errors ride inside HTTP 200 — `gh api graphql` exits 0 on a failed mutation. Select enough of the response to detect failure and pipe every mutation through an errors check:
+4. **Guard every GraphQL mutation.** GraphQL errors ride inside HTTP 200 — `gh api graphql` exits 0 on a failed mutation. Select enough of the response to detect failure and capture the errors via `gh`'s built-in jq engine (no system `jq`):
 
    ```bash
-   gh api graphql -f query='…' | jq -e '.errors // empty | length == 0'
+   err="$(gh api graphql -f query='…' --jq '.errors // empty')"
    ```
 
-   If `jq -e` exits non-zero, the mutation failed — reply `STATUS: FAILED <one-line cause>` quoting the GraphQL error message, never `STATUS: DONE`.
+   If `$err` is non-empty, the mutation failed — reply `STATUS: FAILED <one-line cause>` quoting the GraphQL error message, never `STATUS: DONE`. (`gh --jq` does NOT propagate `jq -e`'s exit code; test the captured output, not the exit status.)
 5. **Extract the artefact.** On success, pull the single proof of the end-state — a URL, a number, or a node-ID — from the response and put it in the `DONE` line. Nothing else.
 
 # Output format
@@ -54,7 +54,7 @@ Emit one line and stop. Never dump the response body, never add a confirmation s
 # Safety
 
 - **Read-resolve before mutate.** A mutation that needs a node-ID always runs its discovery query first; never invent or guess an ID.
-- **Guard the silent-200.** Never report `STATUS: DONE` on a GraphQL mutation whose response carries a non-empty `.errors` array — the `jq -e` check is mandatory on every mutation.
+- **Guard the silent-200.** Never report `STATUS: DONE` on a GraphQL mutation whose response carries a non-empty `.errors` array — the `--jq '.errors'` capture check (step 4) is mandatory on every mutation.
 - **One operation, one line.** Run exactly the operation the input describes; never batch, never add tangential calls, never re-run after a successful result.
 - **Never ask the user.** A fork cannot prompt — under-specified input is a `STATUS: FAILED` fail-fast, not a question.
 - **No destructive escalation.** Do not delete repositories, force-push, or run any operation beyond the one specified; stay within the `Bash(gh:*)` sandbox and the single described end-state.
