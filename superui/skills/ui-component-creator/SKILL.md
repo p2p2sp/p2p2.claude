@@ -1,19 +1,19 @@
 ---
 name: ui-component-creator
-description: Use when a framework-agnostic design system already exists on disk (default .superui/layout/design-system/, produced by ui-extract) and the user wants to author a NET-NEW component into it — describe a component that the source UI never had, draft its spec, preview it, and add it to the catalog. Triggers: "add a new component to the design system", "create a <component> spec", "author a stepper / toast / command-palette we don't have yet", "design a new component", "add a component to the inventory", or describing a component the extracted inventory is missing. Interactive L1 loop: help describe → draft an agnostic spec against the canonical component-spec.md (never-fabricate / reconcile discipline reused from ui-extract, no duplicated method) → render its own minimal pure-CSS single-component preview from tokens.css (variants/states labeled) → iterate visually → on convergence write components/<tier>/<name>.md, add the entry to inventory.md, and reconcile tokens via validate_tokens.py. Strictly L1: MUST NOT depend on ui-web-preview (L1 does not reach downstream). Distinct from ui-extract (reverse-engineers a whole system from a source) and ui-adapt (maps the system onto a target).
+description: Use when a framework-agnostic design system already exists on disk (default .superui/layout/design-system/, produced by ui-extract-system-design) and the user wants to author a NET-NEW component into it — describe a component that the source UI never had, draft its spec, preview it, and add it to the catalog. Triggers: "add a new component to the design system", "create a <component> spec", "author a stepper / toast / command-palette we don't have yet", "design a new component", "add a component to the inventory", or describing a component the extracted inventory is missing. Interactive L1 loop: help describe → draft an agnostic spec against the canonical component-spec.md (never-fabricate / reconcile discipline reused from ui-extract-system-design, no duplicated method) → render its own minimal pure-CSS single-component preview from tokens.css (variants/states labeled) → iterate visually → on convergence write components/<tier>/<name>.md, add the entry to inventory.md, and reconcile tokens via validate_tokens.py. Strictly L1: MUST NOT depend on ui-web-preview (L1 does not reach downstream). Distinct from ui-extract-system-design (reverse-engineers a whole system from a source) and ui-adapt (maps the system onto a target).
 ---
 
 # Net-new Component Author
 
 Author a **brand-new** component directly into the **framework-agnostic** design
-system that L1 (`ui-extract`) produced — a component the source UI never had, so
+system that L1 (`ui-extract-system-design`) produced — a component the source UI never had, so
 there is nothing to reverse-engineer. This is an interactive L1 loop: help the
 user describe the component, draft an agnostic spec, render its own minimal
 pure-CSS preview, iterate visually, and on convergence write the spec into the
 catalog and reconcile tokens. Run manually: the user names the design-system root
 and describes the component.
 
-This skill is **strictly L1**. It writes into the same neutral system `ui-extract`
+This skill is **strictly L1**. It writes into the same neutral system `ui-extract-system-design`
 owns, using the same canon and discipline. It **MUST NOT** depend on
 `ui-web-preview` or any other downstream skill — L1 never reaches downstream. Its
 preview is its own tiny, self-contained pure-CSS page, not the multi-page
@@ -22,7 +22,7 @@ per-target mockup builder.
 ## Operating principles
 
 These shape every step. They are the **same** never-fabricate / one-source-of-
-truth / reconcile discipline `ui-extract` runs — reused, not re-invented.
+truth / reconcile discipline `ui-extract-system-design` runs — reused, not re-invented.
 
 - **Never invent details.** A spec is only useful if it is true. Do not fabricate
   variants, states, anatomy parts, or accessibility behaviours the user has not
@@ -35,7 +35,7 @@ truth / reconcile discipline `ui-extract` runs — reused, not re-invented.
   token provides, that is a reconcile gap — add the token first (Phase 4), do not
   hardcode it.
 - **Reuse the canon, don't duplicate it.** The tier taxonomy and the spec
-  template live **once**, in `ui-extract`'s `references/component-spec.md`. Read
+  template live **once**, in `ui-extract-system-design`'s `references/component-spec.md`. Read
   it cross-skill (path below) and follow it verbatim — never paste a second copy
   of the template into this skill or into the output.
 - **Ask when ambiguous, never assume.** If the design-system root is missing, the
@@ -49,7 +49,7 @@ truth / reconcile discipline `ui-extract` runs — reused, not re-invented.
 
 Read these from `.superui/layout/design-system/` (default; the user may point at
 another root). If the root is missing or has no `tokens.css`, stop and tell the
-user to run `ui-extract` first — this skill **adds to** an existing system, it
+user to run `ui-extract-system-design` first — this skill **adds to** an existing system, it
 does not create one.
 
 | Input | What it gives this skill |
@@ -63,13 +63,13 @@ does not create one.
 **The canonical spec template (cross-skill, read-only):**
 
 ```
-${CLAUDE_PLUGIN_ROOT}/skills/ui-extract/references/component-spec.md
+${CLAUDE_PLUGIN_ROOT}/skills/ui-extract-system-design/references/component-spec.md
 ```
 
 This is the **single** canonical, framework-agnostic three-tier taxonomy + spec
-template, shared with `ui-extract`. **Read it** before drafting and follow its
+template, shared with `ui-extract-system-design`. **Read it** before drafting and follow its
 structure and section guidance exactly. The filled-in depth reference is
-`${CLAUDE_PLUGIN_ROOT}/skills/ui-extract/assets/example-component-spec.md`.
+`${CLAUDE_PLUGIN_ROOT}/skills/ui-extract-system-design/assets/example-component-spec.md`.
 Never duplicate the template — reuse it in place so the two producers stay in
 sync.
 
@@ -98,7 +98,7 @@ land the result.
 1. Resolve the design-system root (ask if not given). `view` it; confirm
    `tokens.css` and `components/` exist. A prompt naming a system does not
    guarantee it is present — check. If `tokens.css` is absent, stop and point the
-   user to `ui-extract`.
+   user to `ui-extract-system-design`.
 2. Read `tokens.css`, skim `foundations.md`, and read `components/inventory.md`
    so you know the available tokens, the system's rules, and the existing tiers.
 3. Read the canonical `component-spec.md` (path above) and skim a sibling spec
@@ -156,13 +156,13 @@ needed value has no token (a new focus-ring color, a component-scoped radius),
 duplicated raw value), then re-validate and fix every error before continuing:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/skills/ui-extract/scripts/validate_tokens.py \
+python ${CLAUDE_PLUGIN_ROOT}/skills/ui-extract-system-design/scripts/validate_tokens.py \
   .superui/layout/design-system/design-tokens.yaml
 ```
 
 If you added or changed a token, also update `tokens.css` to keep the neutral
 theming artifact in sync (the same `:root` / `.dark` parallel-value discipline
-`ui-extract` uses) and re-run the preview so it reflects the new token.
+`ui-extract-system-design` uses) and re-run the preview so it reflects the new token.
 
 ### Phase 5 — Converge: write into the catalog
 
@@ -185,15 +185,15 @@ Then offer the natural next step (see Related skills).
 
 ## Reference files
 
-This skill reuses `ui-extract`'s canon rather than carrying its own — read these
+This skill reuses `ui-extract-system-design`'s canon rather than carrying its own — read these
 cross-skill (load on demand):
 
-- `${CLAUDE_PLUGIN_ROOT}/skills/ui-extract/references/component-spec.md` — the
+- `${CLAUDE_PLUGIN_ROOT}/skills/ui-extract-system-design/references/component-spec.md` — the
   **canonical** three-tier taxonomy + spec template + section guidance (the
   shared canon). **Read before Phases 1–2 and 5.**
-- `${CLAUDE_PLUGIN_ROOT}/skills/ui-extract/assets/example-component-spec.md` —
+- `${CLAUDE_PLUGIN_ROOT}/skills/ui-extract-system-design/assets/example-component-spec.md` —
   a complete, filled-in Button spec at the expected depth. **Skim for depth.**
-- `${CLAUDE_PLUGIN_ROOT}/skills/ui-extract/references/dtcg-token-format.md` —
+- `${CLAUDE_PLUGIN_ROOT}/skills/ui-extract-system-design/references/dtcg-token-format.md` —
   DTCG YAML schema. **Read only if Phase 4 adds a token.**
 
 ## Scripts
@@ -207,8 +207,8 @@ Plain Python 3 (stdlib only — no install needed).
   from `ui-web-preview`'s `build_site.py`. Run
   `python scripts/preview_component.py --help`.
 
-Token validation reuses `ui-extract`'s
-`${CLAUDE_PLUGIN_ROOT}/skills/ui-extract/scripts/validate_tokens.py` (needs
+Token validation reuses `ui-extract-system-design`'s
+`${CLAUDE_PLUGIN_ROOT}/skills/ui-extract-system-design/scripts/validate_tokens.py` (needs
 `pyyaml`: `pip install pyyaml --break-system-packages`). There is no separate
 validator here.
 
@@ -219,7 +219,7 @@ framework- or preview-specific is downstream; mention the next step when you
 finish (reference by name; load on demand). **Do not depend on any of these from
 within this skill** — L1 never reaches downstream.
 
-- **ui-extract** — the L1 core that produces the system this skill adds to, and
+- **ui-extract-system-design** — the L1 core that produces the system this skill adds to, and
   the owner of the canonical `component-spec.md` this skill reuses. Run it first
   if no design system exists yet.
 - **ui-adapt** — adapts the agnostic system (including the component you just

@@ -1,11 +1,11 @@
 ---
 name: ui-adapt
-description: Use when a framework-agnostic design system already exists on disk (default .superui/layout/design-system/, produced by ui-extract or ui-component-creator) and the user wants to adapt it to ONE concrete UI target. Triggers: "adapt the design system to <target>", "generate the Tailwind theme", "make a shadcn globals.css from the tokens", "create an MUI theme from the design system", "turn this into a Flutter ThemeData", "wire the tokens into pure CSS / SSR", or a target name (pure-css / tailwind / react-shadcn / react-mui / flutter). Reads the L1 agnostic system (tokens.css + components/inventory.md + specs), the user picks ONE target, then writes targets/<target>/{target.md, <theme-artifact>, components.md} under the design-system root. Per-target theme artifact: theme.css | globals.css | _variables.scss | theme.ts | theme.dart | styles.css. Never invents components absent from the L1 inventory. Incremental and idempotent — re-adapt one component, not the whole system. Distinct from ui-extract (authors the agnostic system) and ui-web-preview (renders HTML previews of a chosen target).
+description: Use when a framework-agnostic design system already exists on disk (default .superui/layout/design-system/, produced by ui-extract-system-design or ui-component-creator) and the user wants to adapt it to ONE concrete UI target. Triggers: "adapt the design system to <target>", "generate the Tailwind theme", "make a shadcn globals.css from the tokens", "create an MUI theme from the design system", "turn this into a Flutter ThemeData", "wire the tokens into pure CSS / SSR", or a target name (pure-css / tailwind / react-shadcn / react-mui / flutter). Reads the L1 agnostic system (tokens.css + components/inventory.md + specs), the user picks ONE target, then writes targets/<target>/{target.md, <theme-artifact>, components.md} under the design-system root. Per-target theme artifact: theme.css | globals.css | _variables.scss | theme.ts | theme.dart | styles.css. Never invents components absent from the L1 inventory. Incremental and idempotent — re-adapt one component, not the whole system. Distinct from ui-extract-system-design (authors the agnostic system) and ui-web-preview (renders HTML previews of a chosen target).
 ---
 
 # Per-target Design System Adapter
 
-Take the **framework-agnostic** design system that L1 (`ui-extract`) produced and
+Take the **framework-agnostic** design system that L1 (`ui-extract-system-design`) produced and
 adapt it to **exactly one** concrete UI target. This is the L2 layer: all
 framework knowledge lives here, backed by per-target references composed from
 current official docs. L1 stays neutral; this skill produces the target-specific
@@ -91,7 +91,7 @@ Write under `.superui/layout/design-system/targets/<target>/`:
 
 Read `tokens.css`, `foundations.md`, and `components/inventory.md`. Skim the
 specs you will map. If the design-system root is missing or has no `tokens.css`,
-stop and tell the user to run `ui-extract` first — this skill adapts an existing
+stop and tell the user to run `ui-extract-system-design` first — this skill adapts an existing
 system, it does not create one.
 
 ### Step 1 — Pick the target
@@ -190,7 +190,7 @@ Plain Python (stdlib + `pyyaml`). Install if missing:
 
 ## Related skills
 
-- **ui-extract** — the L1 core that produces the agnostic system this skill
+- **ui-extract-system-design** — the L1 core that produces the agnostic system this skill
   reads. Run it (or `ui-component-creator`) first.
 - **ui-component-creator** — authors a net-new component into the L1 system;
   re-run this skill afterward to map the new component into a target.

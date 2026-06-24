@@ -1,5 +1,5 @@
 ---
-name: ui-extract
+name: ui-extract-system-design
 description: Use when the user provides a folder of UI screenshots or a website URL and wants to reverse-engineer a framework-agnostic design system from it. Triggers: "extract a design system", "build design tokens from these screens", "document the components in this UI", "turn this site into a design system", "reverse-engineer this UI/website", a filesystem path to a screenshots directory, or a URL to take inspiration from. Source-only: produces DTCG design tokens (YAML), a foundations document, a pure-CSS tokens.css (no framework coupling), and a tiered component catalog — layout, composite, and atomic — each with a detailed spec covering variants, states, anatomy, Figma properties, usage rules, and accessibility. Does not target any UI framework or build HTML mockups; per-target adaptation is the separate ui-adapt skill, web preview is ui-web-preview.
 ---
 

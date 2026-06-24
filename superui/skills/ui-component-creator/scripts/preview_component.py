@@ -70,7 +70,7 @@ def read_tokens(ds_dir):
     p = os.path.join(ds_dir, "tokens.css")
     if not os.path.isfile(p):
         sys.exit(
-            f"ERROR: no tokens.css found in {ds_dir!r}. Run ui-extract first "
+            f"ERROR: no tokens.css found in {ds_dir!r}. Run ui-extract-system-design first "
             "(or point --design-system at the directory that holds tokens.css)."
         )
     with open(p, encoding="utf-8") as f:

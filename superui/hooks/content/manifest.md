@@ -20,7 +20,7 @@ Iron, universal, always-on, golden rules.
 
 ## Chains
 
-- **Design pipeline.** `ui-extract` (or `ui-component-creator` for a net-new component) → `ui-adapt` (pick ONE target) → `ui-web-preview` (render the static preview) → `ui-guardian` (bind subsequent UI edits to the documented system), then hand the token-bound UI off to your implementation workflow.
+- **Design pipeline.** `ui-extract-system-design` (or `ui-component-creator` for a net-new component) → `ui-adapt` (pick ONE target) → `ui-web-preview` (render the static preview) → `ui-guardian` (bind subsequent UI edits to the documented system), then hand the token-bound UI off to your implementation workflow.
 - **Share a preview.** `ui-web-preview → cc-artifact` — publish the generated preview HTML as a shareable artifact.
 
 ## ui-guardian gate
