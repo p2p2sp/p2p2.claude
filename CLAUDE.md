@@ -33,7 +33,8 @@ Each plugin is independently installable; neither declares the other as a depend
 They ship no application code — the artefacts are markdown (skills) + JSON (manifests) + the per-plugin hook
 scripts under `<plugin>/hooks/scripts/`, plus a handful of deterministic helper scripts bundled under
 individual skills' `scripts/` dirs (the `superui` `ui-*` preview scripts, the superdev pipeline commit scripts
-`dev-orchestrator/scripts/commit-task.sh` + `dev-orchestrator/scripts/commit-adr.sh`, and the one-time `setup/scripts/bootstrap.sh`).
+`dev-orchestrator/scripts/commit-task.sh` + `dev-orchestrator/scripts/commit-adr.sh`, the `mem-rules` discovery
+scripts `mem-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), and the one-time `setup/scripts/bootstrap.sh`).
 **Editing markdown / JSON IS shipping** — there is no build / test /
 lint at any level. Contracts between files are enforced by humans reading carefully.
 
@@ -106,10 +107,12 @@ directly. Their frontmatter already encodes this (`context: fork` + `user-invoca
 "pipeline-bound; invoked only by …" guard `description`).
 
 - **(no prefix)** — `setup`: one-time, user-only environment bootstrap (`/setup`). Seeds `.temp/` + `.superdev/`,
-  copies the bundled `.gitignore` / `.claude/settings.json` templates, and **interactively asks the 2 opt-in
-  switches → writes `.superdev/config.yml`** (never overwriting an existing one). Runs in the **main session**
-  (not a fork) so it can prompt via `AskUserQuestion`. It is `disable-model-invocation` (Claude never auto-routes
-  to it) so it is **deliberately absent from the manifest** — see the Self-documentation invariant.
+  copies the bundled `.gitignore` / `.claude/settings.json` templates, and **seeds `.superdev/config.yml` from a
+  bundled asset** (`setup/scripts/bootstrap.sh` copies `assets/config.yml`, both switches `true`, never
+  overwriting an existing one), then **interactively asks the 2 opt-in switches** and `Edit`s the freshly-seeded
+  file to flip the unselected ones off. Runs in the **main session** (not a fork) so it can prompt via
+  `AskUserQuestion`. It is `disable-model-invocation` (Claude never auto-routes to it) so it is **deliberately
+  absent from the manifest** — see the Self-documentation invariant.
 - **`mem-`** — project memory (agent-facing) (2 skills): `mem-layers` (CLAUDE.md cascade), `mem-rules`
   (`.claude/rules/` layer).
 
@@ -117,11 +120,13 @@ directly. Their frontmatter already encodes this (`context: fork` + `user-invoca
   layers, picked by *kind of truth* — all four face the **agent**: (1) the general-rules
   manifest (superdev's `hooks/content/manifest.md`, force-injected per session);
   (2) the `CLAUDE.md` cascade (terse agent orientation; `mem-layers`); (3) `.claude/rules/*` (path-scoped
-  conventions; `mem-rules`, applied in-pipeline by `dev-agent-improver`); (4) `.superdev/adr/`
-  (architectural *why*; written in-pipeline by `dev-agent-adr-recorder`). In the dev pipeline,
-  `dev-agent-adr-recorder` records any architectural decision into layer 4 before decompose (config-gated
-  `adr`), and `dev-agent-improver` promotes each task's review learnings into layer 3 (`.claude/rules/`),
-  a config-gated step (`rules_improver`).
+  conventions; `mem-rules`, which has **3 modes** — A uninitialized bootstrap, B initialized gap-fill, C
+  improver-driven authoring; in-pipeline the `dev-agent-improver` judges value, `mem-rules` (Mode C) authors);
+  (4) `.superdev/adr/` (architectural *why*; written in-pipeline by `dev-agent-adr-recorder`). In the dev
+  pipeline, `dev-agent-adr-recorder` records any architectural decision into layer 4 before decompose
+  (config-gated `adr`), and `dev-agent-improver` promotes each task's review learnings into layer 3
+  (`.claude/rules/`) — judging which learnings are worth keeping and delegating the authoring to `mem-rules`
+  Mode C, the sole writer of `.claude/rules/` — a config-gated step (`rules_improver`).
   The product's **end-user** help documentation is a distinct, non-agent layer owned by the `doc-` group below
   (NOT agent memory).
 - **`doc-`** — end-user documentation (1 skill): `doc-help` (the end-user product-help layer → `.superdev/help/`).
@@ -143,10 +148,15 @@ directly. Their frontmatter already encodes this (`context: fork` + `user-invoca
   per-project rendering — the manifest is injected as-is, identically for every project.
 - **Opt-in switches (`.superdev/config.yml`).** Two booleans — `adr`, `rules_improver` — both
   **default-enabled** (a missing file/key = `true`, fail-open; a repo that never ran `/setup` behaves exactly
-  as before). `setup` writes the file; `dev-orchestrator` reads the config and skips the `dev-agent-adr-recorder` /
-  `dev-agent-improver` steps — each skip is **one terse line, never a paragraph**. Config readers are
-  `dev-orchestrator` and `setup` (writer); the `SessionStart` hook does not read config (the manifest is
-  injected verbatim, the same for every project).
+  as before). `setup` writes the file (seeding it from a bundled asset — see below); `dev-orchestrator` reads
+  the config and skips the `dev-agent-adr-recorder` / `dev-agent-improver` steps — each skip is **one terse
+  line, never a paragraph**. A third, non-boolean key, `rule_extensions:` (a list of source-type globs), is
+  written **once** by `mem-rules` — in Mode A/B it discovers and **appends** `rule_extensions:` when the key is
+  absent (never overwriting an existing one), creating the file if missing — and is **read** by `mem-rules`
+  (all modes) and by `dev-agent-improver` (as a fail-open `paths:`-scoping hint). Config readers are
+  `dev-orchestrator`, `setup` (writer), `mem-rules` (reader + one-time `rule_extensions` writer), and
+  `dev-agent-improver` (reader); the `SessionStart` hook does not read config (the manifest is injected
+  verbatim, the same for every project).
 - **Plan gate, plan-mode-enforced.** Planning always happens in plan mode, enforced by **two** `PreToolUse`
   hooks: `require-plan-mode.sh` (matcher `Write|Edit`) denies writing a plan file (`.claude/plans/*.md`) unless
   `permission_mode == "plan"` — forcing `EnterPlanMode` regardless of the starting mode — and `review-plan.sh`
