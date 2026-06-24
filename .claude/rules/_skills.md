@@ -3,6 +3,10 @@ paths:
   - "skills/**"
 ---
 
+## Agent is your audience
+
+Remember, you're writing a skill for an agent, not a human. An agent needs short, on-point instructions (preferably bullet points). An agent doesn't need long sentences (prose) surrounded by context.
+
 ## Write for Retrieval, Not for Completeness
 
 The instinct when writing skill documentation is to be thorough. Cover every parameter. Note every edge case. Document every default behavior. Resist this. Agent doesn’t need a manual. It needs the delta — the things that differ from sensible defaults. If the right behavior is what a competent developer would do anyway, you don’t need to document it.
