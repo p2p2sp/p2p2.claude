@@ -38,3 +38,6 @@ Why You Should Use Deterministic Scripts:
 - Speed & Cost: Executing code is significantly cheaper and faster than generating tokens for agent reasoning.
 
 If You can automate something and instead of agent reasoning replace by deterministic script - do it without any doubt.
+
+## Gotchas
+- Shortening the text cannot mean less precise instructions.
