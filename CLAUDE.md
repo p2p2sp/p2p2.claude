@@ -35,7 +35,7 @@ scripts under `<plugin>/hooks/scripts/`, plus a handful of deterministic helper 
 individual skills' `scripts/` dirs (the `superui` `ui-*` preview scripts, the superdev pipeline commit scripts
 `dev-orchestrator/scripts/commit-task.sh` + `dev-orchestrator/scripts/commit-adr.sh`, the fixed recipe harness
 `dev-agent-recipe/scripts/recipe.template.sh`, the `gh-commit-context` mode router
-`gh-commit-context/scripts/route.sh`, the `mem-rules` discovery
+`gh-commit-context/scripts/route.sh`, the `mem-rules` mode router `mem-rules/scripts/route.sh` + its discovery
 scripts `mem-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), and the one-time `setup/scripts/bootstrap.sh`).
 **Editing markdown / JSON IS shipping** — there is no build / test /
 lint at any level. Contracts between files are enforced by humans reading carefully.
@@ -71,7 +71,7 @@ superdev/            The superdev plugin
   skills/            Skills grouped by prefix (mem- / doc- / dev- / gh-); some skills bundle a
                      deterministic helper under their own scripts/ dir (dev-orchestrator/scripts/commit-task.sh
                      + commit-adr.sh + task-pipeline.workflow.js, dev-agent-recipe/scripts/recipe.template.sh,
-                     gh-commit-context/scripts/route.sh, setup/scripts/bootstrap.sh)
+                     gh-commit-context/scripts/route.sh, mem-rules/scripts/route.sh, setup/scripts/bootstrap.sh)
 superui/             The superui plugin
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
   hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
