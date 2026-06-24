@@ -4,9 +4,13 @@ Commit **only what we touched in this conversation** — not unrelated changes t
 
 The resolver runs in the main context, so it can actually see the session: which files were created/edited while helping the user. A fork could not — that is the whole reason this path lives in the resolver, not the committer.
 
+**Do this:**
+
 1. From the conversation context, build the set of file paths created or modified during this session (the files written/edited while helping the user).
 2. `git status --short` — keep only the paths from step 1 that actually show a change; drop the rest.
-3. If the resulting set is **empty** → this is a no-op: report `no changes from context to commit` and stop. Do **not** fall back to staging the whole tree — silence is safer than a surprise commit.
-4. The staging instruction to hand the committer is: **stage exactly these paths and nothing else** — `git add -- <path>…` for the resolved set. List the paths verbatim in the handoff.
-
-Hand off to `gh-agent-committer` with that staging instruction, the explicit path list, and an optional one-line intent hint (what the change does, plus any `#N` / close-intent from the session). The committer reads the staged diff and authors the subject itself.
+3. **No-op gate (resolver-owned):** if the resulting set is **empty** → report `no changes from context to commit` and **stop**. Do **not** invoke the committer, and do **not** fall back to staging the whole tree — silence is safer than a surprise commit.
+4. Otherwise **delegate to `superdev:gh-agent-committer`** via the **Skill** tool with a fully-specified handoff:
+   - **staging instruction:** stage **exactly these paths and nothing else** — `git add -- <path>…` for the resolved set.
+   - **explicit path list:** the concrete paths from step 2, verbatim — the committer stages only these.
+   - optional **one-line intent hint** — what this change does, carrying any `#N` / close-intent ("closes #42", "fixes #17") you can read from this session. It is a hint, not a subject — the committer authors the subject itself from the staged diff.
+5. **Relay the committer's single-line result back to the user verbatim.**
