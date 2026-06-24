@@ -55,8 +55,8 @@ Surface `final_out` (the verdict line plus the sub-step breakdown) to the user v
 
 - Skipping the final review when the run started with `task=N>1`. The final review covers the whole plan, and `base_sha` resolution works cross-session.
 - Looping `dev-agent-final-reviewer` after a non-`PASS` verdict. The final review is one-shot; the user reads the relayed verdict and decides whether to re-plan or fix manually.
-- Invoking `improver` after the final review. Final-review learnings are not promoted to `.claude/rules/`; the per-task `improver` pass is the only learnings channel.
-- Wiring `coder` into the final-review failure path. Plan-level `FAIL` indicates a project-level issue — it belongs in a fresh `interview` / re-plan cycle, not in a cosmetic coder pass. Always escalate to the user.
+- Invoking the `dev-improver` agent after the final review. Final-review learnings are not promoted to `.claude/rules/`; the per-task improver pass (inside the workflow) is the only learnings channel.
+- Wiring the `dev-coder` agent into the final-review failure path. Plan-level `FAIL` indicates a project-level issue — it belongs in a fresh `interview` / re-plan cycle, not in a cosmetic coder pass. Always escalate to the user.
 - Writing a `final-review.md` (or any file) at this stage. The verdict is returned on stdout by `dev-agent-final-reviewer` and relayed verbatim — there is no on-disk artifact.
-- Running any of `dev-agent-final-reviewer`'s sub-steps (`dev-agent-plan-auditor` / `dev-agent-runner` / `dev-agent-smoke`) directly from the orchestrator, or invoking `dev-agent-task-reviewer` for the whole-plan review. The whole-plan gate is `dev-agent-final-reviewer`, invoked once; it owns its internal pipeline.
+- Running any of `dev-agent-final-reviewer`'s sub-steps (`dev-agent-plan-auditor` / `dev-agent-runner` / `dev-agent-smoke`) directly from the orchestrator, or invoking the per-task `dev-task-reviewer` agent for the whole-plan review. The whole-plan gate is `dev-agent-final-reviewer` (a skill), invoked once; it owns its internal pipeline.
 - Passing the cumulative diff inline, or expecting `dev-agent-final-reviewer` to inspect the working tree. After per-task commits the working tree is clean — hand it the `base_sha..HEAD` range only.

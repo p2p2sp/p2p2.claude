@@ -1,92 +1,60 @@
 # STATUS parsing and helpers
 
-Detail reference for parsing sub-agent verdicts and the helpers used by the per-task pipeline. Used by the per-task pipeline and the final review.
+Detail reference for the **dispatcher-only** parsing helpers used by `SKILL.md`. The per-agent worker
+`STATUS:` parsing and the scope/command construction now live inside `scripts/task-pipeline.workflow.js`
+(and its runner wrapper agent), not the dispatcher — they are intentionally absent here.
 
-> **Authoritative source for every contract below:** each skill's own `# Output format` section — the pipeline fork-skills `skills/{decomposer,coder,dev-agent-task-reviewer,improver,runner}/SKILL.md` and the deterministic committer script's header contract at `skills/dev-orchestrator/scripts/commit-task.sh`. This file is a quick-reference cheatsheet for the dispatcher — when the two disagree, the skill file wins.
+> **Authoritative source for every contract below:** the deterministic committer script's header
+> contract at `skills/dev-orchestrator/scripts/commit-task.sh`, the workflow's header contract at
+> `skills/dev-orchestrator/scripts/task-pipeline.workflow.js`, and each worker agent's own `# Output
+> format` (`agents/dev-coder.md`, `agents/dev-task-reviewer.md`, `agents/dev-improver.md`) /
+> `skills/dev-agent-{decomposer,runner}/SKILL.md`. This file is a quick-reference cheatsheet for the
+> dispatcher — when the two disagree, the source file wins.
 
-## Sub-agent STATUS (coder / improver / decomposer)
+## What the dispatcher still parses
 
-The first non-empty line MUST match exact regex:
+The dispatcher (`SKILL.md`) reads only three things from sub-processes:
 
-```
-^STATUS: (PASS|FAIL)$
-```
+1. The **decomposer / adr-recorder / final-reviewer** replies — via `first_status_line` (`STATUS: …` first line).
+2. The **workflow's structured return** `{status: 'PASS'|'FAIL', attempts, lastFailureReportPath}` — read directly off the `Workflow` result, no regex.
+3. The **committer's tagged line** — via `parse_commit_tag` (table below).
 
-Anything else is treated as `FAIL` with:
+Everything else (the coder / runner / task-reviewer / improver per-agent verdicts, the runner's five-value enum, the task-gate command construction, the scope-hint extraction) is internal to the workflow.
 
-```
-last_failure = "Malformed agent output — first line: <line>\n\n<full reply>"
-```
+## Sub-process STATUS (decomposer / adr-recorder / final-reviewer)
 
-## Sub-agent STATUS (dev-agent-task-reviewer)
-
-The first non-empty line MUST match exact regex:
-
-```
-^STATUS: (PASS|FAIL|BLOCKED)$
-```
-
-The widened regex is necessary so that `STATUS: BLOCKED` is **not coerced to FAIL** before reaching the dev-agent-task-reviewer-pass BLOCKED branch. Anything else is `FAIL` with the same malformed-output handling.
-
-## Sub-agent STATUS (runner — pipeline mode)
-
-In **pipeline mode** (the dispatcher passes `Report path:`), the runner replies on stdout with exactly three lines (`STATUS:` / `Report:` / `Summary:`) and writes the full markdown to the dictated path itself. The first non-empty line MUST match exact regex:
+The first non-empty line of these dispatcher-direct `Skill` replies MUST match:
 
 ```
-^STATUS: (PASS|FAIL|BLOCKED|ERROR|TIMEOUT)$
+^STATUS: (PASS|FAIL|ADR|NO-ADR|BLOCKED)$
 ```
 
-The five-value enum mirrors the runner's `## Verdict` token 1:1 — `BLOCKED` / `ERROR` / `TIMEOUT` are **NOT coerced to FAIL** before reaching the runner-pass branches (BLOCKED routes through unblock-coder, ERROR / TIMEOUT fall through to the standard failure path). Anything else is `FAIL` with the same malformed-output handling.
-
-`BLOCKED` still requires a `Scope hints:` block in the runner prompt — without it the runner cannot emit `BLOCKED` and the whole runner unblock path becomes unreachable.
-
-> **`N/A` is full-scope only.** In `Scope: full` runs the runner may also return `N/A` (the host documents no build/test/lint suite). That token is consumed by `dev-agent-final-reviewer` (where `N/A` is non-blocking / PASS-eligible), **not** by the orchestrator's per-task pipeline — the per-task task-scope `STATUS:` regex above stays `(PASS|FAIL|BLOCKED|ERROR|TIMEOUT)` and never matches `N/A`.
-
-**Inline mode** (no `Report path:`, main session / ad-hoc callers) — the runner returns the full markdown on stdout instead; the verdict is read from the `## Verdict` heading by `runner_verdict(out)` rather than from a `STATUS:` first line. The dispatcher does NOT use inline mode.
+(`ADR` / `NO-ADR` only from `dev-agent-adr-recorder`; `PASS` / `FAIL` from decomposer and final-reviewer.) Anything else is treated as `FAIL`/malformed with the same malformed-output handling the caller documents. `first_status_line(out)` returns the first non-empty line; the caller strips the `STATUS: ` prefix to get the token.
 
 ## `committer` script output (commit step)
 
-The deterministic committer script (`scripts/commit-task.sh`, run inline — not a fork) emits one tagged line on stdout. The commit step passes it the **task file path** (`.temp/.workflows/<slug>/tasks/<N>.md`); the committer derives the subject itself — `N` from the filename and `<subject>` from the task file's `# ` H1 — and commits `T<N>: <subject>` verbatim (the dispatcher authors no subject — see the commit step in `skills/dev-orchestrator/SKILL.md`). The `subject` echoed in the success tag is that derived message. The dispatcher does NOT apply STATUS regex here; it parses one of these exact shapes via `parse_commit_tag(commit_out)`:
+The deterministic committer script (`scripts/commit-task.sh`, run inline — not a fork) emits one tagged line on stdout. The commit step passes it the **task file path** (`.temp/.workflows/<slug>/tasks/<N>.md`); the committer derives the subject itself — `N` from the filename and `<subject>` from the task file's `# ` H1 — and commits `T<N>: <subject>` verbatim (the dispatcher authors no subject). The `subject` echoed in the success tag is that derived message. The dispatcher parses one of these exact shapes via `parse_commit_tag(commit_out)`:
 
 | Pattern | Returns | Handling |
 |---|---|---|
 | `<commit sha="(?P<sha>[0-9a-f]{7,40})" files="(?P<files>\d+)">(?P<subject>.*)</commit>` | `("sha", sha, files, subject)` | Continue pipeline; print `[<N>/<max>] commit: <sha>` |
 | `<commit status="no-changes"/>` | `("no-changes",)` | Terminal OK for this task (coder produced no diff). Print `[<N>/<max>] commit: no-op (no-changes)` and continue |
-| `<commit status="error">(?P<stderr>.*)</commit>` | `("error", stderr)` | Surface stderr and **stop the skill** — committer failure is not retried via coder |
+| `<commit status="error">(?P<stderr>.*)</commit>` | `("error", stderr)` | Surface stderr and **stop the skill** — committer failure is not retried |
 | anything else | `("malformed", raw)` | Stop the skill and surface raw output for debugging |
 
 Subject content rule: `</commit>` inside `subject` is escaped as `<\/commit>` by the committer; the dispatcher does NOT need to unescape unless surfacing the subject to the user.
 
-> **The script self-verifies before emitting a `sha` tag, so the dispatcher trusts the tag directly.** `parse_commit_tag` validates only the tag *shape*, but the shape is enough here: `commit-task.sh` is deterministic and emits a `sha` tag **only** after itself confirming, with git, that HEAD advanced past the pre-commit HEAD **and** `git status --porcelain` is empty — a non-zero `git commit`, an unmoved HEAD, or a still-dirty tree all yield an `error` tag, never a fabricated `sha` (see the script's "Verify-before-claim" header contract). A script cannot hallucinate its tool result the way the old Haiku committer fork could, so the verify-before-claim guarantee now lives in the script, not the dispatcher. The dispatcher therefore does **not** re-run `git rev-parse HEAD` to re-check the move, does **not** wrap the call in a phantom-commit retry loop, and takes the surfaced sha straight from the tag (`commit_result[1]`). On an `error` / `malformed` tag it hard-stops. See the commit step in `skills/dev-orchestrator/SKILL.md`.
-
-## Runner verdict
-
-The five-value verdict enum is the same across both runner modes — only the surface differs:
-
-- **Pipeline mode** (dispatcher path): the verdict is the token after `STATUS:` on the first stdout line (see the runner STATUS section above). The full `## Verdict` heading lives in the markdown file the runner writes to its `Report path:` — the dev-agent-task-reviewer / unblock-coder `Read` that file directly.
-- **Inline mode** (main session / ad-hoc callers): the verdict lives on stdout under the `## Verdict` heading, first list item, as one of `` `PASS` `` / `` `FAIL` `` / `` `ERROR` `` / `` `TIMEOUT` `` / `` `BLOCKED` ``.
-
-Routing in either mode is identical:
-
-- `` `PASS` `` — continues the pipeline
-- `` `BLOCKED` `` — enters the runner unblock branch (see `retry-policy.md`)
-- `` `FAIL` `` / `` `ERROR` `` / `` `TIMEOUT` `` — failure
-
-`BLOCKED` requires a `Scope hints:` block in the runner prompt — without it the runner cannot emit `BLOCKED` and the whole runner unblock path becomes unreachable.
+> **The script self-verifies before emitting a `sha` tag, so the dispatcher trusts the tag directly.** `parse_commit_tag` validates only the tag *shape*, but the shape is enough here: `commit-task.sh` is deterministic and emits a `sha` tag **only** after itself confirming, with git, that HEAD advanced past the pre-commit HEAD **and** `git status --porcelain` is empty — a non-zero `git commit`, an unmoved HEAD, or a still-dirty tree all yield an `error` tag, never a fabricated `sha` (see the script's "Verify-before-claim" header contract). A script cannot hallucinate its tool result, so the verify-before-claim guarantee lives in the script, not the dispatcher. The dispatcher therefore does **not** re-run `git rev-parse HEAD` to re-check the move, does **not** wrap the call in a phantom-commit retry loop, and takes the surfaced sha straight from the tag (`commit_result[1]`). On an `error` / `malformed` tag it hard-stops.
 
 ## Helpers referenced by the pseudocode
 
-- `first_status_line(out)` — returns the first non-empty line of `out`. Used for every pipeline-bound skill's reply, including the runner in pipeline mode (the dispatcher then strips the `STATUS: ` prefix to get the verdict token, same pattern as the dev-agent-task-reviewer).
-- `runner_verdict(out)` — **inline-mode helper, used only for runner replies emitted in inline mode** (full markdown on stdout, no `Report path:` supplied). Parses the first item of `## Verdict` and returns one of `PASS` / `FAIL` / `ERROR` / `TIMEOUT` / `BLOCKED`. The orchestrator pseudocode no longer calls it — pipeline mode reads `STATUS:` from stdout via `first_status_line`. Retained for any ad-hoc caller that consumes an inline-mode runner reply.
+- `first_status_line(out)` — returns the first non-empty line of `out`. Used for the dispatcher-direct `Skill` replies (decomposer / adr-recorder / final-reviewer); the dispatcher then strips the `STATUS: ` prefix to get the token.
 - `parse_status_yml(path)` — return `None` when the file is missing or unreadable. Otherwise `Read` the file and match the first non-empty line against `^current_task:\s*(\d+)\s*$`. Return `int(match.group(1))` on success, `None` on any parse error.
 - `parse_arg_task($ARGUMENTS)` — return integer `N` for the first match of `task=(\d+)` in the argument string, else `None`.
-- `parse_commit_tag(out)` — applies the table above to the committer's output.
-- `extract_task_gate(N)` — the lines under the task file's `## Task gate` heading (flat section, not nested).
-- `extract_scope_paths(N)` — the glob/path bullets from the task file's `## Touches` heading (flat section).
-- `extract_scope_test_names(N)` — identifier or intent-shorthand patterns derived from the task's `## Task gate` `Tests:` line. When the entry is a backticked intent shorthand (e.g. `` `unit: rejects status transition closed→open` ``) the patterns are the literal intent strings; the runner matches them as substrings against discovered test identifiers. Returns `[]` when `Task gate` is `Tests: none`.
-- `extract_section(out, heading)` — returns the body lines under the first occurrence of `heading` (e.g. `## Rationale`), until the next `^## ` line or EOF. Returns `""` if the heading is absent. Retained for ad-hoc parsing of agent reports; the per-task pipeline itself no longer extracts `## Rationale` (the dev-agent-task-reviewer Reads the previous coder report directly — see `retry-policy.md` "Previous-coder-report forwarding").
-- `build_test_command_or_build_command(gate, project_CLAUDE.md)` — constructs the runner command from the task's `## Task gate` line plus project conventions (test runner, build tool, etc.) sourced from the host project's `CLAUDE.md` and `.claude/rules/`.
-- `safe_task_call(tool_fn, **kwargs)` — wraps a single `TaskCreate` / `TaskUpdate` invocation in a try-catch. On success, returns the tool's return value (e.g. the new task id). On any error, prints `TaskCreate/TaskUpdate failed: <error> — continuing` once and returns `None`. **All progress-widget calls go through this wrapper.** The progress tree is a UI overlay, never a source of truth — a UI failure must not halt the pipeline.
+- `parse_int_config(key, default=3)` — read an **integer** config value from the preloaded `.superdev/config.yml`. Match the first line `^<key>:\s*(\d+)\s*$`; return `int(group(1))` on success, else `default` (missing key, missing/unreadable file, or non-integer value all fail-open to `default`). Used for `retry_max_attempts` and `retry_escalation_attempts` (both default `3`).
+- `parse_commit_tag(out)` — applies the committer table above.
+- `extract_task_gate(N)` — the lines under the task file's `## Task gate` heading (flat section). The dispatcher uses this **only** to compute the boolean `taskGateRunnable` flag it forwards to the workflow (`true` iff the gate has a `- Tests:` line with a non-`none` value or a `- Build: green` line). The workflow's runner wrapper agent does the actual command construction.
+- `safe_task_call(tool_fn, **kwargs)` — wraps a single `TaskCreate` / `TaskUpdate` invocation in a try-catch. On success, returns the tool's return value (e.g. the new task id). On any error, prints `TaskCreate/TaskUpdate failed: <error> — continuing` once and returns `None`. **All progress-widget calls go through this wrapper.** The progress widget is a UI overlay, never a source of truth — a UI failure must not halt the pipeline.
 
 ## Progress widget — TaskCreate / TaskUpdate constraints
 
