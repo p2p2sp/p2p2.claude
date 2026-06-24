@@ -35,7 +35,7 @@ Execute the cycle in this exact order for each delivered behavior. **VERIFY RED*
 
 ### VERIFY RED — run it and watch it fail correctly (mandatory)
 
-- **Actually run the test — never simulate it mentally.** Inside the `superdev:dev-agent-coder` skill, run it by invoking the `superdev:dev-agent-runner` skill (inline mode — command only, never `Report path:`) with the **unit-scope command for just this test** (single test or single file — not the full `## Task gate`); outside the coder (main session, ad-hoc), run it directly or via the `superdev:dev-agent-runner` skill. The point of VERIFY RED is the observation, not the prediction.
+- **Actually run the test — never simulate it mentally.** Inside the `superdev:dev-coder` agent, run it by invoking the `superdev:dev-agent-runner` skill (inline mode — command only, never `Report path:`) with the **unit-scope command for just this test** (single test or single file — not the full `## Task gate`); outside the `dev-coder` agent (main session, ad-hoc), run it directly or via the `superdev:dev-agent-runner` skill. The point of VERIFY RED is the observation, not the prediction.
 - The test MUST fail, and fail because the behavior is missing — not from a syntax error, missing import, typo in the test, harness misconfig, or wrong fixture path.
 - Passes immediately? It tested something already true (or tested nothing). Restart RED with a sharper assertion that exercises the not-yet-implemented behavior.
 - Without watching it fail for the right reason, the test's actual coverage is unknown.
@@ -47,7 +47,7 @@ Execute the cycle in this exact order for each delivered behavior. **VERIFY RED*
 
 ### VERIFY GREEN — confirm all tests pass, output pristine (mandatory)
 
-- **Actually run the test — never simulate it mentally.** Inside the `superdev:dev-agent-coder` skill, re-invoke the `superdev:dev-agent-runner` skill with the same unit-scope command used in VERIFY RED; outside the coder, run it directly or via the `superdev:dev-agent-runner` skill.
+- **Actually run the test — never simulate it mentally.** Inside the `superdev:dev-coder` agent, re-invoke the `superdev:dev-agent-runner` skill with the same unit-scope command used in VERIFY RED; outside the `dev-coder` agent, run it directly or via the `superdev:dev-agent-runner` skill.
 - The target test passes; every previously-passing test still passes — no regressions.
 - Output is pristine: no new warnings, no new lint errors, no stray prints, no flaky failures hidden behind retries.
 - Not pristine? Something broke — fix it before the next cycle. A "small" regression is still a regression.

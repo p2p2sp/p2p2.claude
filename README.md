@@ -32,7 +32,7 @@ one(s) you need.
 | — | Environment bootstrap (user-only) | `setup` — run `/setup` once to seed `.temp/` + `.superdev/`, copy the `.gitignore` / `.claude/settings.json` templates, and choose the opt-in switches written to `.superdev/config.yml` |
 | `mem-` | Project memory (agent-facing) | `mem-layers` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer) |
 | `doc-` | End-user documentation | `doc-help` (end-user product help → `.superdev/help/`) |
-| `dev-` | Development pipeline + diagnostics/specs | `dev-interview`, `dev-extraplan`, `dev-plan-reviewer`, `dev-orchestrator`, `dev-agent-adr-recorder`, `dev-agent-decomposer`, `dev-agent-coder`, `dev-agent-runner`, `dev-agent-task-reviewer`, `dev-agent-final-reviewer`, `dev-agent-plan-auditor`, `dev-agent-smoke`, `dev-agent-improver`, `dev-tdd`, `dev-debug`, `dev-spec` |
+| `dev-` | Development pipeline + diagnostics/specs | Skills: `dev-interview`, `dev-extraplan`, `dev-plan-reviewer`, `dev-orchestrator`, `dev-agent-adr-recorder`, `dev-agent-decomposer`, `dev-agent-runner`, `dev-agent-final-reviewer`, `dev-agent-plan-auditor`, `dev-agent-smoke`, `dev-tdd`, `dev-debug`, `dev-spec`. Plugin agents (per-task pipeline workers): `dev-coder`, `dev-task-reviewer`, `dev-improver` |
 | `gh-` | GitHub | `gh-cli`, `gh-cli-executor`, `gh-commit-context`, `gh-agent-committer`, `gh-issue`, `gh-pr` |
 
 ## superui skill groups
@@ -50,7 +50,7 @@ one(s) you need.
 - **Skills auto-engage via CSO** — each skill's `description:` is its trigger, in any language.
 - **Opt-in per project (superdev)** — `/setup` writes `.superdev/config.yml` (two switches: `adr`,
   `rules_improver`). The routing manifest is always injected as-is; a disabled switch only skips its
-  `dev-orchestrator` pipeline step (`dev-agent-adr-recorder` / `dev-agent-improver`); a missing config means everything is
+  `dev-orchestrator` pipeline step (`dev-agent-adr-recorder` / the `dev-improver` agent); a missing config means everything is
   enabled, so superdev works fully out of the box.
 - **The implementation pipeline is file-based (superdev)**: `dev-orchestrator` dispatches forked executors
   that hand state through files and reply with a 3-line status, keeping the main context lean.

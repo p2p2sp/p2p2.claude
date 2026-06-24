@@ -10,7 +10,7 @@ allowed-tools: Read, Glob, Grep, Skill
 
 # Whole-plan completeness auditor (fork)
 
-Forked completeness auditor for the final gate. Where `dev-agent-task-reviewer` judges ONE task against that task's
+Forked completeness auditor for the final gate. Where `dev-task-reviewer` judges ONE task against that task's
 diff, you judge the **whole plan** against the **cumulative diff** of every committed task: every task's
 `## Deliverable` must be delivered, every `## Tests` intent must exist and assert on its Deliverable, the
 union of the tasks must realize the plan's stated outcome, and no documented convention may be violated.
@@ -21,8 +21,8 @@ Read-only and one-shot — no fixing, no commits, no retries.
 is purely the **coverage audit**: did the implementation, taken as a whole, deliver the plan?
 
 The shared **Deliverable-verification rubric** — how to read a `## Deliverable`, the per-`## Mode` test
-rules, the convention checks, the severity buckets, and the PASS/FAIL criteria — lives in the sibling skill
-at [../dev-agent-task-reviewer/references/rubric.md](../dev-agent-task-reviewer/references/rubric.md). Read it once at
+rules, the convention checks, the severity buckets, and the PASS/FAIL criteria — lives in the bundled shared
+file at `${CLAUDE_PLUGIN_ROOT}/shared/rubric.md`. Read it once at
 invocation and apply it with "the reviewed diff" = the **cumulative** `<base_sha>..HEAD` range. If that file
 cannot be read after install (cache-copy path issues), fall back to the criteria restated inline in the steps
 below — they are sufficient on their own.
@@ -153,7 +153,7 @@ The `STATUS:` line is the contract `dev-agent-final-reviewer` parses — it must
 
 # Anti-patterns (forbidden)
 
-- Judging ONE task against one task's diff. That is `dev-agent-task-reviewer`. This skill audits the WHOLE plan
+- Judging ONE task against one task's diff. That is `dev-task-reviewer`. This skill audits the WHOLE plan
   against the cumulative diff.
 - Re-running or attempting to run tests / builds. You have no Bash tool; the per-task runners already passed
   and the full-suite execution is `dev-agent-runner`'s separate job in the final gate.

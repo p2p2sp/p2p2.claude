@@ -23,41 +23,40 @@ A. Faza wstępna (raz, przed pętlą)
 
   B. Pętla per-task (dla N = start..max)
 
-  Widget N → in_progress. attempt=0. Zawsze jedno wywołanie Skill na turę — każde zależy od poprzedniego.
+  Cała wewnętrzna pętla per-task (coder → runner → task-reviewer → improver wraz z całą mechaniką
+  retry / BLOCKED-unblock / guard nieskończonej pętli / forwardowania raportów) jest napędzana przez
+  JEDNO wywołanie narzędzia Workflow na task. Dispatcher robi per task tylko cztery klamry: flip widgetu,
+  zapis task-base.sha, wywołanie workflow, oraz (na PASS) commit + zapis stanu / (na FAIL) prompt eskalacji.
 
-  Na początku attempt==1: zapis task-base.sha = git rev-parse HEAD (stała baza diffa dla całego taska).
-
-  1. coder → Skill(superdev:dev-agent-coder, "Task file: …\nReport path: …/coder-<a>.md\nMode: normal\nFeedback:
-  <ścieżka-raportu-poprzedniej-porażki lub —>")
-    - zwrotka 3-liniowa: STATUS: PASS|FAIL / Report: / Summary:.
-    - FAIL → last_failure_path = coder-<a>.md; attempt≥3? eskalacja : continue.
-    - PASS po wcześniejszym FAIL → zapamiętaj last_coder_report_path (forward do reviewera).
-  2. runner (pomijany przy czystym Tests: none bez Build: green) → Skill(superdev:dev-agent-runner, "<cmd>\n\nReport path:
-  …/runner-<a>.md\n\nScope hints:\n  paths: …\n  test names: …")
-    - task-scoped — nigdy Scope: full.
-    - zwrotka: STATUS: PASS|FAIL|BLOCKED|ERROR|TIMEOUT.
-    - BLOCKED → gałąź unblock (patrz niżej); FAIL/ERROR/TIMEOUT → last_failure_path = runner-<a>.md, retry; PASS → dalej.
-  3. dev-agent-task-reviewer → Skill(superdev:dev-agent-task-reviewer, "Task file: …\nRunner report: <ścieżka|none>\nTask base:
-  <sha>\nReport path: …/...-<a>.md" (+ \nPrevious coder report: … gdy był FAIL→PASS handshake))
-    - zwrotka: STATUS: PASS|FAIL|BLOCKED.
-    - BLOCKED → gałąź unblock; FAIL → retry; PASS → dalej.
-  4. improver (gated rules_improver; off → jedna linia skipped (disabled)) → Skill(superdev:dev-agent-improver, "Task-reviewer report:
-  …\nReport path: …/improver-<a>.md")
-    - zwrotka: zawsze STATUS: PASS (brak trybu porażki). Wołany przed commitem, by wpisy do .claude/rules/ weszły w commit taska.
-  5. committer (deterministyczny skrypt, nie fork) → bash "${CLAUDE_PLUGIN_ROOT}/skills/dev-orchestrator/scripts/commit-task.sh"
-  "<task_file>"
-    - skrypt sam: git add -A, git commit -m "T<N>: <H1-subject>", weryfikuje że HEAD ruszył i drzewo czyste, dopiero wtedy emituje tag.
-    - zwrotka (jedna linia, parse_commit_tag): sha → print [N/max] commit: <sha>, widget completed; no-changes → no-op; error/malformed →
-  twardy stop. Brak re-weryfikacji i retry — tagowi się ufa.
+  1. Widget N → in_progress (safe_task_call, soft-fail).
+  2. Zapis task-base.sha = git rev-parse HEAD — RAZ, PRZED workflow (stała baza diffa dla całego taska;
+     re-invoke eskalacji jej nie nadpisuje).
+  3. task_gate_runnable = (## Task gate ma `- Tests:` ≠ none) LUB (`- Build: green`) — flaga dla workflow.
+  4. Wywołanie workflow (RAZ; eskalacja re-invoke z feedbackPath):
+     Workflow(
+       scriptPath="${CLAUDE_PLUGIN_ROOT}/skills/dev-orchestrator/scripts/task-pipeline.workflow.js",
+       args={taskFile, reportDir: …/orchestration/task-<N>, taskBaseSha, taskGateRunnable,
+             rulesImprover, retryMaxAttempts: cap, feedbackPath?})
+     - workflow SAM dispatchuje agenty per-task przez agentType:
+       • coder  → agentType:'superdev:dev-coder'  (model opus; ten sam agent prowadzi Mode: normal i Mode: unblock)
+       • runner → 'superdev:dev-agent-runner' (skill; task-scoped, nigdy Scope: full)
+       • task-reviewer → agentType:'superdev:dev-task-reviewer' (model opus)
+       • improver → agentType:'superdev:dev-improver' (model sonnet; gated rulesImprover — off ⇒ skip)
+     - workflow zwraca strukturę {status: PASS|FAIL, attempts, lastFailureReportPath}.
+     - print: [N/max] task-pipeline: <status> (attempts <K>/<cap>).
+  5. PASS → committer (deterministyczny skrypt, nie fork) → bash
+     "${CLAUDE_PLUGIN_ROOT}/skills/dev-orchestrator/scripts/commit-task.sh" "<task_file>"
+     - skrypt sam: git add -A, git commit -m "T<N>: <H1-subject>", weryfikuje że HEAD ruszył i drzewo czyste, dopiero wtedy emituje tag.
+     - zwrotka (jedna linia, parse_commit_tag): sha → print [N/max] commit: <sha>, widget completed; no-changes → no-op; error/malformed → twardy stop. Brak re-weryfikacji i retry — tagowi się ufa.
   6. Zapis stanu — po commicie: status.yml ← current_task: N+1; po Tasku 1: base.sha ← HEAD^. break do następnego taska.
 
-  Gałąź BLOCKED (unblock) — wspólna dla runnera i reviewera:
-  - → Skill(superdev:dev-agent-coder, "… Mode: unblock\nFeedback: <raport-blokującego-agenta>")
-  - PASS → restart tego samego passu bez inkrementu attempt (udany unblock jest „darmowy"). FAIL → liczy się jak zwykły FAIL.
-  - Guard nieskończonej pętli: BLOCKED dwa razy z rzędu na tym samym passie → wymuszony FAIL (+attempt).
-
-  Retry/eskalacja — attempt współdzielony przez coder/runner/reviewer/unblock; cap 3, potem AskUserQuestion (Retry 3 more / Abort), max
-  3+3. Brak opcji „skip task".
+  Retry / BLOCKED-unblock / guard nieskończonej pętli — WEWNĄTRZ workflow (już nie w dispatcherze):
+  - BLOCKED (runner lub task-reviewer) → workflow odpala pass unblock przez tego samego dev-coder agenta
+    (Mode: unblock, Feedback: raport blokującego). PASS → restart passu bez inkrementu attempt (darmowy);
+    FAIL → liczy się jak zwykły FAIL. Guard: BLOCKED dwa razy z rzędu na tym samym passie → wymuszony FAIL.
+  - Eskalacja (poziom dispatchera): FAIL z workflow (cap wyczerpany) → AskUserQuestion
+    (Retry <retry_escalation_attempts> more / Abort). Retry → re-invoke workflow z cap=retry_escalation_attempts
+    i feedbackPath = lastFailureReportPath (task_base_sha NIE jest przeliczany). Brak opcji „skip task".
 
   C. Final review (raz, po commicie ostatniego taska)
 

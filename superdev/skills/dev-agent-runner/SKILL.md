@@ -1,6 +1,6 @@
 ---
 name: dev-agent-runner
-description: "Pipeline-bound; invoked only by `superdev:dev-orchestrator` / `dev-agent-final-reviewer` / `dev-agent-coder` via the Skill tool, never directly."
+description: "Pipeline-bound; invoked only by `superdev:dev-orchestrator` / `dev-agent-final-reviewer` / the `dev-coder` agent via the Skill tool, never directly."
 model: haiku
 context: fork
 user-invocable: false
@@ -9,7 +9,7 @@ allowed-tools: Bash, Read, Write, Skill
 
 # Runner (fork)
 
-A focused build / test / lint / type-check executor: it runs the exact command handed over, captures the result, and reports a verdict with just enough detail to act on a failure — so the caller (Opus / Sonnet) need not spend context paging raw output. Two callers, two modes: the **orchestrator** (pipeline — passes `Report path:`) and the **coder / tdd / main session** (inline — no `Report path:`).
+A focused build / test / lint / type-check executor: it runs the exact command handed over, captures the result, and reports a verdict with just enough detail to act on a failure — so the caller (Opus / Sonnet) need not spend context paging raw output. Two callers, two modes: the **orchestrator** (pipeline — passes `Report path:`) and the **`dev-coder` agent / tdd / main session** (inline — no `Report path:`).
 
 # Iron law — run and report, NEVER fix
 
@@ -120,4 +120,4 @@ Report: <abs-path verbatim from the input's Report path:>
 Summary: <one-line ≤ ~120 chars — same verbatim aggregate that headlines ## Summary>
 ```
 
-`STATUS:` mirrors `## Verdict` 1:1 (same enum, same `BLOCKED`-requires-`Scope hints:` rule, same `N/A`-requires-`Scope: full` rule — `N/A` is always written `STATUS: N/A — <reason>`); `Report:` echoes the supplied path verbatim. Skipping the `Write`, or emitting the full markdown on stdout instead of these 3 lines, strands the orchestrator's downstream consumers (dev-agent-task-reviewer / unblock-coder `Read` the file).
+`STATUS:` mirrors `## Verdict` 1:1 (same enum, same `BLOCKED`-requires-`Scope hints:` rule, same `N/A`-requires-`Scope: full` rule — `N/A` is always written `STATUS: N/A — <reason>`); `Report:` echoes the supplied path verbatim. Skipping the `Write`, or emitting the full markdown on stdout instead of these 3 lines, strands the orchestrator's downstream consumers (the `dev-task-reviewer` agent / unblock `dev-coder` pass `Read` the file).

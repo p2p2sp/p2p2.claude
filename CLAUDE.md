@@ -49,7 +49,7 @@ DO NOT USE ADR capture for this project. The plugins are constantly refactored.
 Each plugin keeps its domain's skills together so a consumer can install just the development ecosystem
 (`superdev`) **or** just the design ecosystem (`superui`). Within a plugin, skills compose through CSO
 (frontmatter `description:`) and that plugin's single injected manifest documents the chains
-(`dev-spec → gh-issue`, `dev-agent-final-reviewer → gh-pr`, `dev-agent-improver → mem-rules` in superdev). Each is
+(`dev-spec → gh-issue`, `dev-agent-final-reviewer → gh-pr`, `dev-improver → mem-rules` in superdev). Each is
 **self-contained**: its `plugin.json` declares **no `dependencies`** — installing it gives that whole
 ecosystem.
 
@@ -59,14 +59,16 @@ ecosystem.
 .claude-plugin/
   marketplace.json   Marketplace catalog — co-lists superdev by source "./superdev" and superui by "./superui"
 superdev/            The superdev plugin
-  .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
+  .claude-plugin/plugin.json   The plugin manifest — skills[] + agents[] are the catalog of record
   hooks/             One injected dispatcher manifest + the three hook scripts
     hooks.json       SessionStart (inject manifest) + PreToolUse: ExitPlanMode (plan-review gate) + Write|Edit (plan-mode guard)
     content/manifest.md  The injected `using-superdev` dispatcher
     scripts/         session-start.sh, review-plan.sh, require-plan-mode.sh
+  agents/            The 3 per-task pipeline plugin agents (dev-coder.md, dev-task-reviewer.md, dev-improver.md)
+  shared/            Bundled assets shared across the pipeline (rubric.md; coder-modes/ work-order files)
   skills/            Skills grouped by prefix (mem- / doc- / dev- / gh-); some skills bundle a
-                     deterministic helper under their own scripts/ dir
-                     (dev-orchestrator/scripts/commit-task.sh + commit-adr.sh, setup/scripts/bootstrap.sh)
+                     deterministic helper under their own scripts/ dir (dev-orchestrator/scripts/commit-task.sh
+                     + commit-adr.sh + task-pipeline.workflow.js, setup/scripts/bootstrap.sh)
 superui/             The superui plugin
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
   hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
@@ -94,17 +96,18 @@ its own `<plugin>/.claude-plugin/plugin.json` `skills[]`; the injected manifest
 (`<plugin>/hooks/content/manifest.md`) documents that plugin's prefix **groups + cross-skill chains**, not
 individual skills.
 
-**Naming sub-convention (`-agent-` infix).** A forked, pipeline-bound executor that is invoked **only by a
-superordinate skill via the `Skill` tool** (never the user, never auto-routed) carries an `-agent-` infix after
-its domain prefix: `dev-agent-*` (the implementation/review pipeline workers — `dev-agent-adr-recorder`,
-`dev-agent-decomposer`, `dev-agent-coder`, `dev-agent-runner`, `dev-agent-task-reviewer`, `dev-agent-improver`,
-`dev-agent-final-reviewer`, `dev-agent-plan-auditor`, `dev-agent-smoke`) and `gh-agent-committer`. The **inline
-dispatchers** that drive them (`dev-orchestrator`, `gh-commit-context`) and every user-facing / auto-routed
-skill keep a plain prefix; so do forks still reachable from the main session (`dev-plan-reviewer`,
-`gh-cli-executor`). The infix is **taxonomy only** — these stay skills (not `agents/<name>.md` subagent
-definitions); it just signals their agent-like, fork-only nature so a reader never expects to invoke them
-directly. Their frontmatter already encodes this (`context: fork` + `user-invocable: false` + a one-line
-"pipeline-bound; invoked only by …" guard `description`).
+**Naming sub-convention (`-agent-` infix).** The `-agent-` infix marks a forked, fork-only **skill** worker —
+invoked **only by a superordinate skill via the `Skill` tool** (never the user, never auto-routed): `dev-agent-*`
+(the remaining pipeline skill-workers — `dev-agent-adr-recorder`, `dev-agent-decomposer`, `dev-agent-runner`,
+`dev-agent-final-reviewer`, `dev-agent-plan-auditor`, `dev-agent-smoke`) and `gh-agent-committer`. These stay
+**skills** (not `agents/<name>.md` definitions); the infix is taxonomy only — it signals their agent-like,
+fork-only nature, and their frontmatter already encodes it (`context: fork` + `user-invocable: false` + a
+one-line "pipeline-bound; invoked only by …" guard `description`). The three per-task pipeline workers are NOT
+in this group: `dev-coder`, `dev-task-reviewer`, `dev-improver` are real **plugin agents** (`superdev/agents/*.md`,
+listed in `plugin.json` `agents[]`, dispatched by the `task-pipeline.workflow.js` via `agentType:'superdev:dev-*'`)
+— renamed without the infix precisely because they are genuine agents, not fork-skills. The **inline dispatchers**
+that drive the pipeline (`dev-orchestrator`, `gh-commit-context`) and every user-facing / auto-routed skill keep a
+plain prefix; so do forks still reachable from the main session (`dev-plan-reviewer`, `gh-cli-executor`).
 
 - **(no prefix)** — `setup`: one-time, user-only environment bootstrap (`/setup`). Seeds `.temp/` + `.superdev/`,
   copies the bundled `.gitignore` / `.claude/settings.json` templates, and **seeds `.superdev/config.yml` from a
@@ -121,10 +124,10 @@ directly. Their frontmatter already encodes this (`context: fork` + `user-invoca
   manifest (superdev's `hooks/content/manifest.md`, force-injected per session);
   (2) the `CLAUDE.md` cascade (terse agent orientation; `mem-layers`); (3) `.claude/rules/*` (path-scoped
   conventions; `mem-rules`, which has **3 modes** — A uninitialized bootstrap, B initialized gap-fill, C
-  improver-driven authoring; in-pipeline the `dev-agent-improver` judges value, `mem-rules` (Mode C) authors);
+  improver-driven authoring; in-pipeline the `dev-improver` agent judges value, `mem-rules` (Mode C) authors);
   (4) `.superdev/adr/` (architectural *why*; written in-pipeline by `dev-agent-adr-recorder`). In the dev
   pipeline, `dev-agent-adr-recorder` records any architectural decision into layer 4 before decompose
-  (config-gated `adr`), and `dev-agent-improver` promotes each task's review learnings into layer 3
+  (config-gated `adr`), and the `dev-improver` agent promotes each task's review learnings into layer 3
   (`.claude/rules/`) — judging which learnings are worth keeping and delegating the authoring to `mem-rules`
   Mode C, the sole writer of `.claude/rules/` — a config-gated step (`rules_improver`).
   The product's **end-user** help documentation is a distinct, non-agent layer owned by the `doc-` group below
@@ -132,11 +135,14 @@ directly. Their frontmatter already encodes this (`context: fork` + `user-invoca
 - **`doc-`** — end-user documentation (1 skill): `doc-help` (the end-user product-help layer → `.superdev/help/`).
   Authors the human-facing help that ships to the people who use the built app — distinct
   from the agent-facing `mem-` layers above; faces the end user, not Claude.
-- **`dev-`** — the agentic-development pipeline + diagnostics/specs (16 skills): planning
+- **`dev-`** — the agentic-development pipeline + diagnostics/specs (13 skills + 3 plugin agents): planning
   (`dev-interview`, `dev-extraplan`, `dev-plan-reviewer`), the orchestrated implementation pipeline
-  (`dev-orchestrator` → `dev-agent-adr-recorder` → `dev-agent-decomposer` → per task `dev-agent-coder` / `dev-agent-runner` /
-  `dev-agent-task-reviewer` / `dev-agent-improver` → scripted commit (`commit-task.sh`) → `dev-agent-final-reviewer`), the
-  final-gate sub-skills (`dev-agent-plan-auditor`, `dev-agent-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`.
+  (`dev-orchestrator` → `dev-agent-adr-recorder` → `dev-agent-decomposer` → per task **one `Workflow`** call to
+  `task-pipeline.workflow.js` driving `dev-coder` → `dev-agent-runner` → `dev-task-reviewer` → `dev-improver` →
+  scripted commit (`commit-task.sh`) → `dev-agent-final-reviewer`), the final-gate sub-skills
+  (`dev-agent-plan-auditor`, `dev-agent-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`. The three per-task
+  workers `dev-coder` / `dev-task-reviewer` / `dev-improver` are **plugin agents** (`superdev/agents/*.md`), not
+  skills — dispatched by the workflow via `agentType:'superdev:dev-*'`.
 - **`gh-`** — GitHub: `gh-cli` (+ `gh-cli-executor`), `gh-commit-context` (entry) + `gh-agent-committer`,
   `gh-issue`, `gh-pr`.
 
@@ -148,15 +154,19 @@ directly. Their frontmatter already encodes this (`context: fork` + `user-invoca
   per-project rendering — the manifest is injected as-is, identically for every project.
 - **Opt-in switches (`.superdev/config.yml`).** Two booleans — `adr`, `rules_improver` — both
   **default-enabled** (a missing file/key = `true`, fail-open; a repo that never ran `/setup` behaves exactly
-  as before). `setup` writes the file (seeding it from a bundled asset — see below); `dev-orchestrator` reads
-  the config and skips the `dev-agent-adr-recorder` / `dev-agent-improver` steps — each skip is **one terse
-  line, never a paragraph**. A third, non-boolean key, `rule_extensions:` (a list of source-type globs), is
-  written **once** by `mem-rules` — in Mode A/B it discovers and **appends** `rule_extensions:` when the key is
-  absent (never overwriting an existing one), creating the file if missing — and is **read** by `mem-rules`
-  (all modes) and by `dev-agent-improver` (as a fail-open `paths:`-scoping hint). Config readers are
-  `dev-orchestrator`, `setup` (writer), `mem-rules` (reader + one-time `rule_extensions` writer), and
-  `dev-agent-improver` (reader); the `SessionStart` hook does not read config (the manifest is injected
-  verbatim, the same for every project).
+  as before), plus two integer retry keys — `retry_max_attempts`, `retry_escalation_attempts` — both
+  **fail-open to `3`** (a missing file/key = `3`). `setup` writes the file (seeding it from a bundled asset —
+  see below); `dev-orchestrator` reads the config: it skips the `dev-agent-adr-recorder` / `dev-improver` steps
+  when their switch is off — each skip is **one terse line, never a paragraph** — and forwards the two retry
+  integers as the `task-pipeline.workflow.js` cap: `retry_max_attempts` becomes the `retryMaxAttempts` arg on
+  the first `Workflow` invocation, and `retry_escalation_attempts` becomes a fresh `retryMaxAttempts` cap on the
+  escalation Retry re-invocation. A fifth, non-boolean key, `rule_extensions:` (a
+  list of source-type globs), is written **once** by `mem-rules` — in Mode A/B it discovers and **appends**
+  `rule_extensions:` when the key is absent (never overwriting an existing one), creating the file if missing —
+  and is **read** by `mem-rules` (all modes) and by the `dev-improver` agent (as a fail-open `paths:`-scoping
+  hint). Config readers are `dev-orchestrator` (reads the booleans + the retry integers), `setup` (writer),
+  `mem-rules` (reader + one-time `rule_extensions` writer), and the `dev-improver` agent (reader); the
+  `SessionStart` hook does not read config (the manifest is injected verbatim, the same for every project).
 - **Plan gate, plan-mode-enforced.** Planning always happens in plan mode, enforced by **two** `PreToolUse`
   hooks: `require-plan-mode.sh` (matcher `Write|Edit`) denies writing a plan file (`.claude/plans/*.md`) unless
   `permission_mode == "plan"` — forcing `EnterPlanMode` regardless of the starting mode — and `review-plan.sh`
@@ -178,7 +188,9 @@ directly. Their frontmatter already encodes this (`context: fork` + `user-invoca
   script's result (the verify-before-claim guarantee lives in the script, not a fork-era re-check guard).
 - **Self-documentation.** Any skill add / remove / rename MUST update the **owning plugin's**
   `<plugin>/.claude-plugin/plugin.json` `skills[]` (superdev's for a `mem-`/`doc-`/`dev-`/`gh-` skill, superui's
-  for a `ui-`/`cc-` skill) and this file — they must stay in sync, and a skill must never appear in both catalogs.
+  for a `ui-`/`cc-` skill); any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
+  (superdev's `dev-coder` / `dev-task-reviewer` / `dev-improver` live there, not in `skills[]`) — and this file
+  in either case. They must stay in sync, and a worker must never appear in both `skills[]` and `agents[]`.
   Each plugin's injected manifest (`<plugin>/hooks/content/manifest.md`) lists that plugin's prefix
   **groups + chains**, not individual skills, so update it only when a change adds/removes a group, shifts a
   group's scope, or alters a documented chain or config-gated area — not for every per-skill change.
