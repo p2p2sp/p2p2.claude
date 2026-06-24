@@ -5,8 +5,9 @@
 // IS the source of truth for that logic now; retry-policy.md documents the behaviour.
 //
 // Runs ONE already-decomposed task through coder → runner → task-reviewer → improver
-// with the existing retry / BLOCKED-unblock / infinite-loop-guard / report-forwarding
-// rules. Invoked once per task by dev-orchestrator/SKILL.md via the Workflow tool.
+// → commit (haiku dev-commiter passthrough) with the existing retry / BLOCKED-unblock /
+// infinite-loop-guard / report-forwarding rules. Invoked once per task by
+// dev-orchestrator/SKILL.md via the Workflow tool.
 //
 // ── I/O contract ───────────────────────────────────────────────────────────
 // args (Workflow({scriptPath, args})):
@@ -30,10 +31,17 @@
 //                        Shape: { coder:[v,…], unblockCoder:[v,…], runner:[v,…],
 //                                 taskReviewer:[v,…], improver:[v,…] } where each v is a
 //                                 status string ("PASS"|"FAIL"|"BLOCKED"|…) or {status,summary}.
+//                                 The `committer` role is special: its queue holds RAW committer
+//                                 tag LINES (e.g. '<commit sha="abc1234" files="3">T1: …</commit>'),
+//                                 not verdicts — parseCommitTag() turns each into a `commit` object.
 //
-// return { status: 'PASS'|'FAIL', attempts: <int>, lastFailureReportPath: <string> }
-//   ('PASS' once the task cleared coder+runner+task-reviewer (+improver); 'FAIL' once the
-//    attempt cap is exhausted or a BLOCKED guard converts to FAIL. In stub mode an extra
+// return { status: 'PASS'|'FAIL', attempts: <int>, lastFailureReportPath: <string>, commit?: {...} }
+//   ('PASS' once the task cleared coder+runner+task-reviewer (+improver) AND the commit stage ran;
+//    'FAIL' once the attempt cap is exhausted or a BLOCKED guard converts to FAIL — no commit on FAIL,
+//    so `commit` is absent. `status:'PASS'` reflects the PIPELINE only; the commit verdict travels
+//    SEPARATELY in `commit` (one of {kind:'sha',sha,files,subject} | {kind:'no-changes'} |
+//    {kind:'error',reason} | {kind:'malformed',raw}) — a failed commit does NOT flip status to FAIL,
+//    the dispatcher reads `commit.kind` and hard-stops on error/malformed. In stub mode an extra
 //    `trace` array records each agent call's role + forwarded paths for dry-run assertions.)
 //
 // Determinism: no Bash, no filesystem, no Date.now()/Math.random()/argless new Date().
@@ -49,6 +57,7 @@ export const meta = {
     { title: 'Coder', detail: 'write production code for the task (Mode: normal / unblock)' },
     { title: 'Runner', detail: 'run the task gate (skipped on Tests: none)' },
     { title: 'Review', detail: 'single-task review gate + config-gated rules improver' },
+    { title: 'Commit', detail: 'commit the passed task via the dev-commiter passthrough (T<N>: <subject>)' },
   ],
 }
 
@@ -118,6 +127,23 @@ async function dispatch(role, prompt, opts, reportPath) {
   }
 }
 
+// Parse the single tag line the committer relays from commit-task.sh (script header = the contract).
+// Tolerates leading/trailing prose by searching the whole reply for the tag. Returns a `commit` object.
+function parseCommitTag(line) {
+  const raw = (line || '').trim()
+  let m
+  if ((m = raw.match(/<commit sha="([0-9a-f]{7,40})" files="(\d+)">(.*)<\/commit>/))) {
+    return { kind: 'sha', sha: m[1], files: Number(m[2]), subject: m[3] }
+  }
+  if (/<commit status="no-changes"\/>/.test(raw)) {
+    return { kind: 'no-changes' }
+  }
+  if ((m = raw.match(/<commit status="error">(.*)<\/commit>/))) {
+    return { kind: 'error', reason: m[1] }
+  }
+  return { kind: 'malformed', raw }
+}
+
 // ── per-role prompt builders + dispatchers ───────────────────────────────────
 const r = name => `${reportDir}/${name}` // report path under the per-task audit dir
 
@@ -163,6 +189,26 @@ function improver(attempt, reviewerReportPath) {
   const reportPath = r(`improver-${attempt}.md`)
   const prompt = `Task-reviewer report: ${reviewerReportPath}\n` + `Report path: ${reportPath}`
   return dispatch('improver', prompt, { agentType: 'superdev:dev-improver', model: 'sonnet' }, reportPath)
+}
+
+// The commit stage is a haiku passthrough agent (superdev:dev-commiter) that runs the bundled
+// commit-task.sh against the task file and relays its single tag line verbatim; this script parses
+// that line deterministically. It BYPASSES dispatch()/VERDICT — the committer returns a raw tag line
+// (not a {status} verdict), so it calls agent() WITHOUT a schema (raw string return) and we parse it.
+// The committer agent sources the script path itself via ${CLAUDE_PLUGIN_ROOT} (like dev-coder reads
+// ${CLAUDE_PLUGIN_ROOT}/shared/coder-modes/…), so the workflow forwards only the task file path.
+async function committer() {
+  if (stub) {
+    const queue = (stub && stub.committer) || []
+    const line = queue.length ? queue.shift() : '' // empty queue → empty line → malformed (test-fixture bug)
+    trace.push({ role: 'committer', line })
+    return parseCommitTag(line)
+  }
+  const prompt =
+    `Task file: ${taskFile}\n` +
+    `Run the bundled commit-task.sh against this task file and return its single stdout line verbatim.`
+  const line = await agent(prompt, { agentType: 'superdev:dev-commiter', model: 'haiku' })
+  return parseCommitTag(line)
 }
 
 // ── main control flow ────────────────────────────────────────────────────────
@@ -278,8 +324,14 @@ while (attempt < cap) {
     await improver(attempt, reviewerReportPath)
   }
 
-  // task cleared coder + runner + task-reviewer (+ improver)
-  return { status: 'PASS', attempts: attempt, lastFailureReportPath, ...(stub ? { trace } : {}) }
+  // ── commit (haiku dev-commiter passthrough → commit-task.sh) ──────────────
+  // Reached ONLY on a passing task; the commit verdict travels separately in `commit` and does NOT
+  // affect `status` — the dispatcher reads `commit.kind` to drive state/widgets and to hard-stop on error.
+  if (typeof phase === 'function') phase('Commit')
+  const commit = await committer()
+
+  // task cleared coder + runner + task-reviewer (+ improver) and the commit stage ran
+  return { status: 'PASS', attempts: attempt, lastFailureReportPath, commit, ...(stub ? { trace } : {}) }
 }
 
 // cap exhausted with no PASS

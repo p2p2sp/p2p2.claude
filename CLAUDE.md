@@ -65,7 +65,7 @@ superdev/            The superdev plugin
     hooks.json       SessionStart (inject manifest) + PreToolUse: ExitPlanMode (plan-review gate) + Write|Edit (plan-mode guard)
     content/manifest.md  The injected `using-superdev` dispatcher
     scripts/         session-start.sh, review-plan.sh, require-plan-mode.sh
-  agents/            The 3 per-task pipeline plugin agents (dev-coder.md, dev-task-reviewer.md, dev-improver.md)
+  agents/            The 4 per-task pipeline plugin agents (dev-coder.md, dev-task-reviewer.md, dev-improver.md, dev-commiter.md)
   shared/            Bundled assets shared across the pipeline (rubric.md; coder-modes/ work-order files)
   skills/            Skills grouped by prefix (mem- / doc- / dev- / gh-); some skills bundle a
                      deterministic helper under their own scripts/ dir (dev-orchestrator/scripts/commit-task.sh
@@ -109,10 +109,12 @@ invoked **only by a superordinate skill via the `Skill` tool** (never the user, 
 `gh-agent-committer`. These stay
 **skills** (not `agents/<name>.md` definitions); the infix is taxonomy only — it signals their agent-like,
 fork-only nature, and their frontmatter already encodes it (`context: fork` + `user-invocable: false` + a
-one-line "pipeline-bound; invoked only by …" guard `description`). The three per-task pipeline workers are NOT
-in this group: `dev-coder`, `dev-task-reviewer`, `dev-improver` are real **plugin agents** (`superdev/agents/*.md`,
-listed in `plugin.json` `agents[]`, dispatched by the `task-pipeline.workflow.js` via `agentType:'superdev:dev-*'`)
-— renamed without the infix precisely because they are genuine agents, not fork-skills. The **inline dispatchers**
+one-line "pipeline-bound; invoked only by …" guard `description`). The four per-task pipeline workers are NOT
+in this group: `dev-coder`, `dev-task-reviewer`, `dev-improver`, `dev-commiter` are real **plugin agents**
+(`superdev/agents/*.md`, listed in `plugin.json` `agents[]`, dispatched by the `task-pipeline.workflow.js` via
+`agentType:'superdev:dev-*'`) — named without the infix precisely because they are genuine agents, not
+fork-skills. (`dev-commiter` is a thin haiku passthrough — it only runs `commit-task.sh` and relays its tag —
+but it is still a workflow-dispatched plugin agent, so it follows the no-infix rule like the other three.) The **inline dispatchers**
 that drive the pipeline (`dev-orchestrator`, `gh-commit-context`) and every user-facing / auto-routed skill keep a
 plain prefix; so do forks still reachable from the main session (`dev-plan-reviewer`, `gh-cli-executor`).
 
@@ -142,16 +144,16 @@ plain prefix; so do forks still reachable from the main session (`dev-plan-revie
 - **`doc-`** — end-user documentation (1 skill): `doc-help` (the end-user product-help layer → `.superdev/help/`).
   Authors the human-facing help that ships to the people who use the built app — distinct
   from the agent-facing `mem-` layers above; faces the end user, not Claude.
-- **`dev-`** — the agentic-development pipeline + diagnostics/specs (14 skills + 3 plugin agents): planning
+- **`dev-`** — the agentic-development pipeline + diagnostics/specs (14 skills + 4 plugin agents): planning
   (`dev-interview`, `dev-extraplan`, `dev-plan-reviewer`), the orchestrated implementation pipeline
   (`dev-orchestrator` → **mandatory first step** `dev-agent-recipe` (derives the host toolchain once →
   `recipe.sh` + `profile.md`; owns the clean-tree guard; FAIL = hard halt) → `dev-agent-adr-recorder` →
   `dev-agent-decomposer` → per task **one `Workflow`** call to `task-pipeline.workflow.js` driving `dev-coder` →
-  `dev-agent-runner` → `dev-task-reviewer` → `dev-improver` → scripted commit (`commit-task.sh`) →
-  `dev-agent-final-reviewer`), the final-gate sub-skills
-  (`dev-agent-plan-auditor`, `dev-agent-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`. The three per-task
-  workers `dev-coder` / `dev-task-reviewer` / `dev-improver` are **plugin agents** (`superdev/agents/*.md`), not
-  skills — dispatched by the workflow via `agentType:'superdev:dev-*'`.
+  `dev-agent-runner` → `dev-task-reviewer` → `dev-improver` → commit (the `dev-commiter` agent runs
+  `commit-task.sh` as the workflow's final stage, only on PASS) → `dev-agent-final-reviewer`), the final-gate
+  sub-skills (`dev-agent-plan-auditor`, `dev-agent-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`. The four
+  per-task workers `dev-coder` / `dev-task-reviewer` / `dev-improver` / `dev-commiter` are **plugin agents**
+  (`superdev/agents/*.md`), not skills — dispatched by the workflow via `agentType:'superdev:dev-*'`.
 - **`gh-`** — GitHub: `gh-cli` (+ `gh-cli-executor`), `gh-commit-context` (entry) + `gh-agent-committer`,
   `gh-issue`, `gh-pr`.
 
@@ -205,10 +207,14 @@ plain prefix; so do forks still reachable from the main session (`dev-plan-revie
   output (e.g. `dev-agent-runner` reading arbitrary build / test output). A self-verifying script carries its I/O
   contract in its header comment and is trusted by its caller — so the caller does NOT re-verify or retry the
   script's result (the verify-before-claim guarantee lives in the script, not a fork-era re-check guard).
+  A script may still be *invoked through* a thin fork without losing this property: `commit-task.sh` is run by
+  the haiku `dev-commiter` agent (so the commit lives inside the per-task `Workflow`, not the orchestrator), but
+  the agent only relays the script's tag verbatim — the self-verification stays in the script, so its caller
+  (the workflow, then the dispatcher reading `wf_out.commit`) still trusts the result without re-checking.
 - **Self-documentation.** Any skill add / remove / rename MUST update the **owning plugin's**
   `<plugin>/.claude-plugin/plugin.json` `skills[]` (superdev's for a `mem-`/`doc-`/`dev-`/`gh-` skill, superui's
   for a `ui-`/`cc-` skill); any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
-  (superdev's `dev-coder` / `dev-task-reviewer` / `dev-improver` live there, not in `skills[]`) — and this file
+  (superdev's `dev-coder` / `dev-task-reviewer` / `dev-improver` / `dev-commiter` live there, not in `skills[]`) — and this file
   in either case. They must stay in sync, and a worker must never appear in both `skills[]` and `agents[]`.
   Each plugin's injected manifest (`<plugin>/hooks/content/manifest.md`) lists that plugin's prefix
   **groups + chains**, not individual skills, so update it only when a change adds/removes a group, shifts a

@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # superdev / dev-orchestrator — deterministic per-task git committer.
 #
-# Replaces the per-task Haiku committer FORK (skills/dev-committer) with a
-# deterministic POSIX-sh script the orchestrator trusts: being deterministic, it
-# cannot fabricate its `sha` tag (the failure mode the old fork's phantom-commit
-# retry loop existed to catch). Ports skills/dev-committer/SKILL.md behavior
-# verbatim — same derivation (N from filename, subject from the first `# ` H1),
-# same `git add -A && git commit -m "T<N>: <subject>"`, same emitted `<commit …>`
-# tag vocabulary so the orchestrator's `parse_commit_tag` is unchanged.
+# Deterministic POSIX-sh committer that CANNOT fabricate its `sha` tag (being a
+# script, it emits a `sha` only after itself verifying the commit landed — the
+# failure mode the long-gone phantom-commit retry loop existed to catch). It is
+# invoked by the haiku `dev-commiter` passthrough agent inside the per-task
+# Workflow, which relays this line verbatim; the workflow parses it with its own
+# `parseCommitTag` into `wf_out.commit`. (The ADR sibling `commit-adr.sh` shares
+# this exact tag vocabulary and is parsed by the dispatcher's `parse_commit_tag`.)
+# Derivation: N from filename, subject from the first `# ` H1; commit message
+# `git add -A && git commit -m "T<N>: <subject>"`.
 #
 # Contract:
 #   argv : $1 = path to the per-task file (.temp/.workflows/<slug>/tasks/<N>.md).
@@ -43,7 +45,8 @@ set -u
 
 # --- one-line tag emitters -------------------------------------------------
 # Collapse any newline/CR so the emitted tag is always a single line (the
-# orchestrator's parse_commit_tag is line-oriented). Escape inner </commit>.
+# consumer's tag parser — the workflow's parseCommitTag — is line-oriented).
+# Escape inner </commit>.
 sanitize() {
   # $1 = arbitrary text -> single-line, </commit>-escaped, on stdout (no newline)
   printf '%s' "$1" | tr '\n\r' '  ' | sed 's#</commit>#<\\/commit>#g'

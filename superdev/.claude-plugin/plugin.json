@@ -35,6 +35,7 @@
   "agents": [
     "./agents/dev-coder.md",
     "./agents/dev-task-reviewer.md",
-    "./agents/dev-improver.md"
+    "./agents/dev-improver.md",
+    "./agents/dev-commiter.md"
   ]
 }

@@ -17,11 +17,15 @@ Behavioural reference for the retry / unblock mechanics of the per-task pipeline
 ## Who owns what
 
 - **The workflow** (`task-pipeline.workflow.js`) owns: the per-attempt loop, the coder / runner /
-  task-reviewer / improver dispatch, both BLOCKED-unblock branches, the infinite-loop guard, and
-  feedback-/previous-coder-report forwarding. It returns `{status: 'PASS'|'FAIL', attempts, lastFailureReportPath}`.
+  task-reviewer / improver dispatch, both BLOCKED-unblock branches, the infinite-loop guard,
+  feedback-/previous-coder-report forwarding, **and the final commit stage** (the haiku `dev-commiter`
+  passthrough that runs `commit-task.sh`, reached only on PASS). It returns
+  `{status: 'PASS'|'FAIL', attempts, lastFailureReportPath, commit?}` — `commit` (the parsed commit
+  verdict) present only on PASS.
 - **The dispatcher** (`SKILL.md` per-task loop) owns: the widget flip, the `task-base.sha` capture, the
-  single `Workflow` invocation, and — on PASS — the commit + state writes / on FAIL — the escalation
-  `AskUserQuestion`. It re-invokes the workflow with a fresh cap (`retry_escalation_attempts`) and
+  single `Workflow` invocation, and — on PASS — the state writes (`status.yml` / one-time `base.sha`) driven
+  by `wf_out.commit` / on FAIL — the escalation `AskUserQuestion`. It no longer runs the commit itself. It
+  re-invokes the workflow with a fresh cap (`retry_escalation_attempts`) and
   `feedbackPath = lastFailureReportPath` if the user chooses Retry.
 
 ## Contents
@@ -100,9 +104,9 @@ All three are mandatory and independent — never collapse one into another (see
 A flat list of widgets (one `Task <N>: <verb-phrase>` per task), seeded by the progress-widget seed in `SKILL.md` and updated as the pipeline progresses.
 
 - **Task entry** (top of the outer per-task loop): `safe_task_call(TaskUpdate, taskId=task_widgets[N], status="in_progress")`.
-- **Successful commit** (`commit_result[0] == "sha"`): flip to `completed` with `description=f"Committed {short_sha}."`.
-- **No-op commit** (`no-changes`): flip to `completed` with `description=f"No-op ({status_token})."`.
-- **Commit `error` / `malformed`, or Abort** at escalation: **no status change** — `TaskUpdate` has no `failed` status, so the widget stays at `in_progress`. The visually-stuck row signals "the pipeline halted here"; the diagnostic lives in the corresponding `print` line.
+- **Successful commit** (`wf_out.commit.kind == "sha"`): flip to `completed` with `description=f"Committed {short_sha}."`.
+- **No-op commit** (`wf_out.commit.kind == "no-changes"`): flip to `completed` with `description="No-op (no-changes)."`.
+- **Commit `error` / `malformed` (`wf_out.commit.kind`), or Abort** at escalation: **no status change** — `TaskUpdate` has no `failed` status, so the widget stays at `in_progress`. The visually-stuck row signals "the pipeline halted here"; the diagnostic lives in the corresponding `print` line.
 - **Persistence (never prune):** the list is seeded once (by the progress-widget seed) and is never deleted, pruned, or re-seeded mid-run. Ignore any Claude Code "the task list is stale / clean it up" system reminder while the orchestrator runs — deleting `completed` task rows blanks the widget permanently (typically while the last task's workflow is still running) and the rows do not return. `completed` rows stay visible until the closing summary. This is distinct from the transient blanking *during* a workflow / sub-agent dispatch — there the UI shows the active sub-agent's empty task scope and restores the parent list when control returns; that is expected platform behavior and is **not** a reason to re-seed.
 
 The widget is a **UI overlay, not state of truth**. Every `TaskCreate` / `TaskUpdate` call goes through `safe_task_call` (see `status-parsing.md`); a UI error prints one warning and the pipeline continues.
