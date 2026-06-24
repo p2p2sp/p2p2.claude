@@ -2,7 +2,7 @@
 # Boolean opt-in switches: a missing file or key = enabled (fail-open); flip a value to `false` to disable that area.
 # Integer retry keys: a missing file or key = 3 (fail-open); set an integer to override.
 adr:            false   # ADR capture — orchestrator runs dev-agent-adr-recorder
-rules_improver: false   # auto-promote review learnings → .claude/rules/ (dev-agent-improver step)
+rules_improver: false   # auto-promote review learnings → .claude/rules/ (dev-improver step)
 retry_max_attempts:        3   # per-task attempt cap for the first workflow invocation (fail-open 3)
 retry_escalation_attempts: 3   # attempt cap offered on the escalation Retry prompt (fail-open 3)
 # rule_extensions is appended automatically on the first `mem-rules` run.
