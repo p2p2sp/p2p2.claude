@@ -160,10 +160,17 @@ branch-coverage CRITICAL FAIL and the `tests-none` consistency check — and the
 ## Step 5 — Verify conventions
 
 Apply the **"How to verify conventions"** rules from
-[`${CLAUDE_PLUGIN_ROOT}/shared/rubric.md`](${CLAUDE_PLUGIN_ROOT}/shared/rubric.md): `Glob`
-`CLAUDE.md` from the repo root and the relevant `.claude/rules/**/*.md`, read those touching the diff's
+[`${CLAUDE_PLUGIN_ROOT}/shared/rubric.md`](${CLAUDE_PLUGIN_ROOT}/shared/rubric.md): consume
+`.temp/.workflows/<slug>/profile.md` (derive `<slug>` from the `Task file:` path,
+`.temp/.workflows/<slug>/tasks/<N>.md`) for the derived framework / test-naming / test-layout facts, then
+`Glob` `CLAUDE.md` from the repo root and the relevant `.claude/rules/**/*.md`, read those touching the diff's
 directories, and raise documented-rule violations and introduced placeholder markers as CRITICAL (stylistic
 divergence → `## Notes`).
+
+**Fail-closed on a missing profile.** If `.temp/.workflows/<slug>/profile.md` is absent, the recipe step did
+not run — pipeline state is broken. Return `STATUS: FAIL` with a `## Issues` entry
+`[pipeline state] profile.md absent at .temp/.workflows/<slug>/profile.md — recipe step did not run`. Do NOT
+re-derive the framework from `CLAUDE.md` to paper over the gap.
 
 If the task's most recent coder pass ran in **unblock mode**, the diff observed in Step 2 will contain a
 `## Out-of-scope fixes` block of edits in addition to the in-scope ones. Treat those out-of-scope edits as

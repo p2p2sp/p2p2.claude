@@ -63,8 +63,9 @@ If the file is empty, unreadable, or contains no prose at all → `STATUS: FAIL`
 
 These reads inform the `Mode` decisions and per-task test suggestions. They are project-driven — treat their contents as authoritative, but never assume any particular file exists.
 
+- `Read .temp/.workflows/<PlanSlug>/profile.md` — the recipe agent already derived the host **framework**, **test naming**, and **test layout** there; consume it for the `Mode` decisions and the per-task `Tests` suggestions instead of re-deriving them. Being a no-Bash fork, you `Read` it directly. **Fail-closed:** if `profile.md` is absent, the recipe step did not run — return `STATUS: FAIL` with `## Notes` line `profile.md absent at .temp/.workflows/<PlanSlug>/profile.md — recipe step did not run`, and do NOT fall back to inferring the framework from `CLAUDE.md`.
 - `Read CLAUDE.md` at the repository root if it exists. Ignore silently if absent.
-- Take the `.claude/rules/**/*.md` paths from the pre-injected `# Project rules / skills listing` block at the top of this skill → keep the full list of rule files (paths only) in memory for selective reads later. Fallback: if that block is empty/absent, `Glob '.claude/rules/**/*.md'` to recover the listing.
+- Take the `.claude/rules/**/*.md` paths from the pre-injected `# Project rules / skills listing` block at the top of this skill → keep the full list of rule files (paths only) in memory for selective reads later. Fallback: if that block is empty/absent, `Glob '.claude/rules/**/*.md'` to recover the listing. (The profile carries pointers only — it never inlines rule bodies, so this path-scoped read still happens.)
 - Take the `.claude/skills/**/SKILL.md` paths from the same pre-injected block → keep the full list of skill files (paths only) in memory for selective reads later. Fallback: if the block is empty/absent, `Glob '.claude/skills/**/SKILL.md'` to recover the listing.
 
 Record the findings. Read individual entries from these lists only when a task's keywords match them (Step 4b).
@@ -397,7 +398,7 @@ Total reply under 80 lines.
 - Reading file contents from the codebase to fill `Touches`. Paths and globs from the plan + `Glob` of the project tree are enough. Reading is a `dev-coder`/`dev-task-reviewer` concern.
 - Reading every file under `.claude/rules/` and `.claude/skills/` indiscriminately. Glob the lists once; Read only entries whose paths or names match task keywords.
 - Emitting a `**TDD discipline:**` bullet, a `Layer` token (`Backend` / `Frontend` / `Infra` / `Migrate` / `Shared`), a `Task gate` shape-(A)/shape-(B) distinction, or a `Relevant technical design` section. These belong to the old contract and are removed.
-- Falling back to `STATUS: FAIL` because the plan is "incomplete". Failure is reserved for: empty/unreadable file, no executable intent, contradictory requirements, cyclic dependencies, no standalone-buildable Task 1. Everything else is best-effort + `## Notes`.
+- Falling back to `STATUS: FAIL` because the plan is "incomplete". Failure is reserved for: empty/unreadable file, no executable intent, contradictory requirements, cyclic dependencies, no standalone-buildable Task 1, a missing `.temp/.workflows/<PlanSlug>/profile.md` (recipe step did not run — Step 1b fail-closed). Everything else is best-effort + `## Notes`.
 - Allowing `Depends on` to reference tasks ≥ current task number (forward dependency).
 - Re-running decomposition when task files already exist (Step 0 must short-circuit with no-op).
 - Emitting `## Task files` in the two-element shape `- <N> — <path>` (verb-phrase omitted). The orchestrator seeds its progress widget from this list — dropping the verb-phrase forces the dispatcher to re-`Read` every task file just to recover the H1, which defeats the whole point of returning the listing.

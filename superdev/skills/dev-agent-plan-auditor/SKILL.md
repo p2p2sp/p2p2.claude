@@ -99,9 +99,14 @@ their gates. This step verifies **presence and assertion quality** in the commit
 
 ## Step 5 — Verify conventions across all touched directories
 
-Apply the **"How to verify conventions"** rubric rules across every directory the cumulative diff touches:
-`Glob` `CLAUDE.md` from the repository root and `Read` the ones for touched directories; `Glob
-.claude/rules/**/*.md` and read those whose path or top heading matches any touched module / layer.
+Apply the **"How to verify conventions"** rubric rules across every directory the cumulative diff touches.
+First `Read .temp/.workflows/<slug>/profile.md` (the slug derived in Step 1) for the derived framework /
+test-naming / test-layout facts — being a no-Bash fork, you `Read` it directly. **Fail-closed:** if
+`profile.md` is absent, reply `STATUS: FAIL` with the line `profile.md absent at
+.temp/.workflows/<slug>/profile.md — recipe step did not run` and stop; do NOT re-derive the framework from
+`CLAUDE.md`. Then `Glob` `CLAUDE.md` from the repository root and `Read` the ones for touched directories;
+`Glob .claude/rules/**/*.md` and read those whose path or top heading matches any touched module / layer (the
+profile carries pointers only — never inlines rule bodies, so the path-scoped rule read still happens).
 Documented-rule violations → CRITICAL. Stylistic divergence → a Note, not CRITICAL.
 
 ## Step 6 — Build the verdict

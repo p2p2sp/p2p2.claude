@@ -109,6 +109,12 @@ inline exemption comment, stays a finding.
 
 ## How to verify conventions
 
+Consume `.temp/.workflows/<slug>/profile.md` for the derived framework / test-naming / test-layout facts —
+the recipe agent already derived them once, so do NOT re-derive them per review (the profile is the single
+source of truth for those derived facts). `Read` the profile and use its **Framework** / **Test naming** /
+**Test layout** bullets directly. The profile carries **pointers only** to `.claude/rules/**`; it never
+inlines rule bodies — so still read the path-scoped rules below to get the actual convention text.
+
 `Glob` for `CLAUDE.md` from the repository root and `Read` the ones for directories the diff touched.
 `Glob .claude/rules/**/*.md` and read those whose path or top heading matches the touched directories
 or topical words in `## Deliverable` / `## Tests`.
