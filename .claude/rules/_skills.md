@@ -6,7 +6,7 @@ paths:
 
 ## LLM is your audience
 
-Remember, you're writing a skill or agent for an LLM, not a human. An LLM needs short, on-point instructions (preferably bullet points). An LLM doesn't need long sentences (prose) surrounded by context. Too much information means chaos and misleading decisions.
+Remember, you're writing a skill or agent for an LLM, not a human. An LLM needs short, on-point instructions, highly preferable bullet points - it should probably be more like code instructions than plain prose. An LLM doesn't need long sentences (prose) surrounded by context. Too much information means chaos and misleading decisions.
 
 ## Write for Retrieval, Not for Completeness
 
