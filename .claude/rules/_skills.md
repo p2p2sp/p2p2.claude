@@ -1,11 +1,12 @@
 ---
 paths:
-  - "skills/**"
+  - "**/skills/**"
+  - "**/agents/**"
 ---
 
 ## Agent is your audience
 
-Remember, you're writing a skill for an agent, not a human. An agent needs short, on-point instructions (preferably bullet points). An agent doesn't need long sentences (prose) surrounded by context.
+Remember, you're writing a skill for an agent, not a human. An agent needs short, on-point instructions (preferably bullet points). An agent doesn't need long sentences (prose) surrounded by context. Too much information means chaos and misleading decisions.
 
 ## Write for Retrieval, Not for Completeness
 
