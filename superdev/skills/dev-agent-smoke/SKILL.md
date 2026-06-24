@@ -19,34 +19,40 @@ no per-task step ever boots it. Start it, confirm it is alive, tear it down, rep
 `dev-agent-plan-auditor` and a full `dev-agent-runner`), then synthesizes a single verdict. A `FAIL` here is a no-go even when
 the plan audit and the test suite are green.
 
-**Stack-agnostic.** You do NOT know the launch command or the liveness signal — you read them from the host
-project's own memory. Never default to an ecosystem assumption (no "looks like Node, so `npm start`"); if the
-host did not document how to launch, that is `N/A — <reason>`, not a guess.
+**Stack-agnostic.** You do NOT hardcode the launch command or the liveness signal — you launch via the
+recipe's `launch` verb and read the liveness signal from the slug-scoped `profile.md`. Never default to an
+ecosystem assumption (no "looks like Node, so `npm start`"); if the host documented no launchable app (the
+recipe's `launch` verb is the `N/A` sentinel and `profile.md` records no liveness signal), that is
+`N/A — <reason>`, not a guess.
 
 # Input contract
 
-The harness delivers your input appended under an `ARGUMENTS:` line; the fields are optional:
+The harness delivers your input appended under an `ARGUMENTS:` line. `dev-agent-final-reviewer` passes the
+slug-scoped recipe path so you launch via its `launch` verb:
 
 ```
-Launch command: <optional — the exact command to start the app, if the caller already knows it>
-Liveness signal: <optional — how to tell it is alive, if the caller already knows it>
+Recipe: <absolute path to the slug-scoped .temp/.workflows/<slug>/recipe.sh — launch the app via `bash <recipePath> launch`; its sibling profile.md carries the liveness signal>
 ```
 
-When a field is provided, trust it and skip discovery for that field. When absent (the normal case),
-discover it from host memory in Step 1.
+When `Recipe:` is provided (the normal case), launch via `bash <recipePath> launch` and read the liveness
+signal from the sibling `profile.md`. When it is absent, discover the recipe path from the `<slug>` the caller
+named (or `Glob '.temp/.workflows/*/recipe.sh'`).
 
 # How to work
 
-## Step 1 — Discover the launch command and the liveness signal from host memory
+## Step 1 — Resolve the launch verb and the liveness signal
 
-`Read` the host project's root `CLAUDE.md`, then `Glob .claude/rules/**/*.md` and `Read` the ones whose path
-or top heading concerns running / launching / serving / smoke / health. Also check `Glob '**/CLAUDE.md'` for
-a service-local memory near the app's entrypoint. You are looking for two things:
+The launch command is the recipe's `launch` verb — you never re-discover it from `CLAUDE.md`. The liveness
+signal comes from the recipe's sibling `profile.md`:
 
-1. **Launch command** — the documented way to start the app (e.g. a `## Running` / `## How to launch`
-   section, a `make run`, a server start line, a CLI entrypoint).
-2. **Liveness signal** — the documented way to know it is alive. Accept any one of these forms the host
-   documents:
+1. **Launch command** — `bash <recipePath> launch` (sourced from the `Recipe:` path in your input). The verb
+   body already encodes the host's documented start command. If the verb body is the `N/A` sentinel (the host
+   documents no launchable app), `bash <recipePath> launch` exits 0 having run nothing — treat that as
+   "no launch command documented" and emit `STATUS: N/A — <reason>` (Step 4); do not scan the source tree for
+   a probable entrypoint.
+2. **Liveness signal** — `Read` the sibling `profile.md` (`.temp/.workflows/<slug>/profile.md`, or
+   `bash <recipePath> profile` prints its path) and take its **Liveness signal** line. Accept any one of these
+   forms it records:
    - **Process stays up** — the process is still running N seconds after launch (no immediate crash / exit).
    - **Health endpoint** — an HTTP(S) URL that returns a success status (e.g. `GET /healthz` → 200).
    - **Expected stdout** — a known ready-line the app prints (e.g. `Listening on :8080`, `Started in …`).
@@ -54,16 +60,13 @@ a service-local memory near the app's entrypoint. You are looking for two things
      proves the binary loads (e.g. `<app> --help` exits 0 and prints usage, or `<app> --version` prints a
      version).
 
-If **no launch command** is documented anywhere in host memory, do not guess and do not scan the source tree
-for a probable entrypoint — emit `STATUS: N/A — <reason>` (Step 4) naming exactly what the host should add.
-
-If a launch command is documented but **no liveness signal** is, default to the **process-stays-up** check
-(launch, wait N seconds, confirm the process is still running) and note in the report that the host did not
-document an explicit signal.
+If `profile.md` records the launch verb as live but its **Liveness signal** is `N/A` / absent, default to the
+**process-stays-up** check (launch, wait N seconds, confirm the process is still running) and note in the
+report that the profile documented no explicit signal.
 
 ## Step 2 — Start the app
 
-Run the discovered launch command via `Bash`.
+Run `bash <recipePath> launch` via `Bash`.
 
 - **Long-running process** (server / daemon / TUI / anything that does not return on its own): start it in
   the **background** so the `Bash` call returns, capturing stdout/stderr to a log file you can read back
@@ -104,8 +107,8 @@ Then build the verdict:
 - `STATUS: PASS` — the app launched AND the liveness signal confirmed it is alive, and teardown succeeded.
 - `STATUS: FAIL` — the app failed to launch, crashed, or never satisfied the liveness signal before timeout.
   Capture the smoking gun: the exit code + the relevant tail of stdout/stderr or the failed health response.
-- `STATUS: N/A — <reason>` — no launch command is documented in host memory. This is not an app fault; the host
-  memory is incomplete. Say exactly what to add.
+- `STATUS: N/A — <reason>` — the recipe's `launch` verb is the `N/A` sentinel (the host documents no launchable
+  app). This is not an app fault; the host memory is incomplete. Say exactly what to add.
 
 # Output format
 
@@ -137,10 +140,10 @@ Summary: <one line — e.g. "app crashed on boot: missing DATABASE_URL">
 
 ```
 STATUS: N/A — <reason>
-Summary: no launch command documented in host memory — cannot smoke-test
+Summary: recipe `launch` verb is N/A (no launchable app documented) — cannot smoke-test
 
 ## What to add
-- Document how to launch the app in `CLAUDE.md` (or `.claude/rules/<file>.md`): the exact launch command, and a liveness signal (process stays up N seconds / a health endpoint that returns success / an expected stdout ready-line / a `--help`/`--version` that exits 0).
+- Document how to launch the app in `CLAUDE.md` (or `.claude/rules/<file>.md`) so the recipe step fills the `launch` verb: the exact launch command, and a liveness signal (process stays up N seconds / a health endpoint that returns success / an expected stdout ready-line / a `--help`/`--version` that exits 0).
 ```
 
 The `STATUS:` line is the contract `dev-agent-final-reviewer` parses — it must be the literal first line and one of
@@ -149,8 +152,9 @@ output only (a temp log under `.temp/` for capturing process output is fine and 
 
 # Anti-patterns (forbidden)
 
-- Guessing a launch command from the source tree when host memory documents none. No launch command → emit
-  `N/A — <reason>` and name what to add. Never default to an ecosystem assumption.
+- Guessing a launch command from the source tree, or re-deriving it from `CLAUDE.md`, instead of running the
+  recipe's `launch` verb. A `launch` verb that is the `N/A` sentinel → emit `N/A — <reason>` and name what to
+  add. Never default to an ecosystem assumption.
 - Reporting `PASS` on a green build / green tests without actually launching the app. Build-green ≠
   boot-green; this gate exists precisely because tests do not exercise startup wiring.
 - Leaving the launched process running. ALWAYS tear it down in Step 4, on every verdict path — an orphan
@@ -163,6 +167,6 @@ output only (a temp log under `.temp/` for capturing process output is fine and 
 
 # Constraint — technology-agnostic
 
-Operates in any language and any framework. The launch command and liveness signal come exclusively from the
-host project's documented memory (`CLAUDE.md` / `.claude/rules/`) or the caller's explicit input — never from
-an ecosystem default.
+Operates in any language and any framework. The launch command comes exclusively from the recipe's `launch`
+verb and the liveness signal from its sibling `profile.md` (both derived once by the recipe step from the
+host's documented memory) — never from an ecosystem default.

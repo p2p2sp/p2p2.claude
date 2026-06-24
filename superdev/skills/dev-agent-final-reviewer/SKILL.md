@@ -74,33 +74,40 @@ and asserts on its Deliverable, checks the plan outcome is realized, and checks 
 
 ## Step 2 — Full build/test suite
 
-Invoke `superdev:dev-agent-runner` (Skill tool) with a **`Scope: full`** signal so the runner executes the project's
-**whole** build + test suite (not a task-scoped subset). Pass the host's documented full-suite command if you
-can read it from `CLAUDE.md`; otherwise let the runner discover it from host memory:
+Invoke `superdev:dev-agent-runner` (Skill tool) with the recipe's full-scope verbs and a **`Scope: full`**
+signal so the runner executes the project's **whole** build + test suite (not a task-scoped subset). The
+commands are the recipe's verbs, not a command you read from `CLAUDE.md`; pass the recipe path so the runner
+sources and `verify`s them:
 
 ```
-<the project's full build + test command, OR omit and let the runner read it from CLAUDE.md>
+bash <recipePath> build
+bash <recipePath> test-all
+bash <recipePath> lint
+
+Recipe: .temp/.workflows/<slug>/recipe.sh
 
 Scope: full
 ```
 
-The `Scope: full` line is the signal that this is the terminal whole-suite run, not a per-task gate. Capture
-the runner's first `STATUS:` line and its summary. In full scope the runner may return `N/A — <reason>` (its
-full-scope-only token: the host's `CLAUDE.md` documents no build/test/lint suite at all — nothing to run);
-treat `N/A` as **PASS-eligible** (non-blocking) in synthesis, and treat any other non-`PASS` (`FAIL` /
-`ERROR` / `TIMEOUT`) as a non-pass. Carry the `N/A — <reason>` text through so Step 4 can surface it.
+The `Scope: full` line is the signal that this is the terminal whole-suite run, not a per-task gate; the
+`Recipe:` path lets the runner run its `verify` gate and source each verb. Capture the runner's first
+`STATUS:` line and its summary. In full scope the runner may return `N/A — <reason>` (its full-scope-only
+token: a recipe verb body is the documented-no-suite sentinel — nothing to run); treat `N/A` as
+**PASS-eligible** (non-blocking) in synthesis, and treat any other non-`PASS` (`FAIL` / `ERROR` / `TIMEOUT`)
+as a non-pass. Carry the `N/A — <reason>` text through so Step 4 can surface it.
 
 ## Step 3 — Boot / liveness smoke test
 
-Invoke `superdev:dev-agent-smoke` (Skill tool). It discovers the launch command + liveness signal from host memory,
-boots the app, probes that it is alive, and tears it down:
+Invoke `superdev:dev-agent-smoke` (Skill tool), passing the recipe path so it launches via the recipe's
+`launch` verb and reads the liveness signal from the sibling `profile.md`; it boots the app, probes that it is
+alive, and tears it down:
 
 ```
-(no arguments required — dev-agent-smoke reads the launch command and liveness signal from host CLAUDE.md / .claude/rules/)
+Recipe: .temp/.workflows/<slug>/recipe.sh
 ```
 
 Capture its first `STATUS:` line (`PASS` / `FAIL` / `N/A`) and its summary. Note: `dev-agent-smoke` returns
-`N/A — <reason>` when the host documented no launch command (it cannot distinguish "no app" from
+`N/A — <reason>` when the recipe's `launch` verb is the `N/A` sentinel (it cannot distinguish "no app" from
 "undocumented app", so this one reason-carrying state covers both) — for the final verdict treat `N/A` as
 **PASS-eligible** (non-blocking), and surface its reason in the verdict body so the user can add a launch
 command if one was simply missing. Only an actual `FAIL` (the app tried to boot and crashed / never went
@@ -189,6 +196,9 @@ and its reason is surfaced in the verdict body.
   `STATUS: FAIL` (a runtime gate's `N/A` is non-blocking and PASS-eligible — never treat it as a failure).
 - Running `dev-agent-runner` without the `Scope: full` signal. The terminal run is the WHOLE suite, not a task-scoped
   subset.
+- Invoking `dev-agent-runner` / `dev-agent-smoke` without the `Recipe:` line, or handing them a raw command read from
+  `CLAUDE.md`. Both sub-steps source every command from the recipe's verbs (`build` / `test-all` / `lint` /
+  `launch`) and run its `verify` gate; pass the slug-scoped `recipe.sh` path, never a re-derived command.
 - Skipping `dev-agent-smoke` "because tests are green". Build-green / tests-green do not prove the app boots — the
   smoke step is the point of this gate.
 - Emitting `STATUS: BLOCKED` or `STATUS: N/A` at the synthesized level. The synthesized verdict is always
@@ -200,5 +210,6 @@ and its reason is surfaced in the verdict body.
 # Constraint — technology-agnostic
 
 Operates in any language and any framework. Every project-specific fact (the full-suite command, how to
-launch the app, the liveness signal) is read by the sub-steps from the host project's documented memory —
-never assumed from an ecosystem default here.
+launch the app, the liveness signal) is sourced by the sub-steps from the slug-scoped recipe (`recipe.sh`
+verbs + its sibling `profile.md`), derived once by the recipe step from the host's documented memory — never
+assumed from an ecosystem default here.
