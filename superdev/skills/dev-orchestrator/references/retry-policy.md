@@ -1,6 +1,15 @@
 # Retry policy and BLOCKED branch
 
-Detail reference for the retry / unblock mechanics used by the per-task pipeline in `SKILL.md`.
+Detail reference for the retry / unblock mechanics used by the per-task pipeline.
+
+> **Executable source of truth:** this control flow is encoded as a deterministic dynamic-Workflow
+> script — `scripts/task-pipeline.workflow.js` — which the orchestrator invokes once per task. The
+> script (not this prose) is what actually runs the loop; this file documents the behaviour it
+> implements. The script's `agent()` boundary is a test seam: passing `args.stub` (canned per-role
+> `{status}` verdicts) drives the same branches with no real forks, which is how the mandatory
+> stubbed-agent dry-run validates each decision branch. The attempt cap is `args.retryMaxAttempts ?? 3`;
+> a successful unblock pass restarts its pass without incrementing the attempt counter; a second
+> BLOCKED in a row on the same pass converts to FAIL (the infinite-loop guard).
 
 ## Contents
 
