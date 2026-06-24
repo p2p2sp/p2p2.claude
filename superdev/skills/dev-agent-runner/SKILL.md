@@ -25,7 +25,9 @@ A red test, a broken build, a lint error IS the result: report it, never repair 
 # Input contract
 
 ```
-<verbatim command line>
+<verbatim command line — a `bash <recipePath> <verb> [arg]` invocation>
+
+Recipe: <absolute path to the slug-scoped .temp/.workflows/<slug>/recipe.sh>
 
 [Report path: <absolute path to write the full markdown reply to>]
 
@@ -39,12 +41,20 @@ A red test, a broken build, a lint error IS the result: report it, never repair 
 ]
 ```
 
-- **Command** (first line / block) — always present.
+- **Command** (first line / block) — always present; it is a recipe-verb invocation (`bash <recipePath> build` / `test-all` / `test-filtered <pat>` / `lint`).
+- `Recipe:` — the slug-scoped `recipe.sh` the `dev-agent-recipe` step authored. It is the **single source of build/test/lint/launch commands** — see `# Command sourcing`.
 - `Report path:` — optional; its presence (and only its presence) activates **pipeline mode**.
 - `Scope: full` — optional; its presence selects **full-suite scope** (the whole-plan check used by superdev:dev-agent-final-reviewer). It is mutually exclusive with `Scope hints:` — see `# Test scope`.
 - `Scope hints:` — optional, mode-independent; both sub-lists may be empty. Its presence selects **task scope** and unlocks the `BLOCKED` verdict; its absence falls back to the 4-value enum.
 
-The command (first line / block) is normally handed over verbatim — in pipeline mode the orchestrator always passes it, and the coder's inline invocation carries the task gate's command. Run it as given; do NOT `Read` `CLAUDE.md` to confirm it. ONLY when the command is missing or unclear (e.g. a caller asked for "the build" / "the tests" without a concrete line) do you `Read` the **target project's own `CLAUDE.md`** as the source of truth to identify the test / build command — never default to an ecosystem assumption (this plugin is stack-agnostic).
+# Command sourcing — recipe verbs only, fail-closed
+
+The command is sourced from the recipe artefact, never re-discovered from `CLAUDE.md`:
+
+- Run the handed-over `bash <recipePath> <verb> [arg]` line **as given** — task scope maps to `test-filtered <pat>` (the caller has already substituted the pattern), full scope to `test-all` (+ `build` / `lint`).
+- **`verify` gate (mandatory, before any verb run):** run `bash <recipePath> verify` first. A non-zero exit (`STALE` ⇒ exit 3, `missing-tool` ⇒ exit 4, an unfilled marker ⇒ exit 5, or the file missing ⇒ a bash error) means the recipe is stale / missing → return `STATUS: FAIL` with the verify stderr as the env-anomaly; do NOT run the verb and do NOT fall back to anything.
+- **Never `Read CLAUDE.md` (or `Glob`) to recover or confirm a command** — there is no discovery fallback. A missing or stale recipe is a `FAIL`, not a prompt to re-derive. (Stack-agnostic: the recipe already encodes the host toolchain.)
+- **Recipe `N/A` mapping (full scope only):** if a verb body is the documented-no-suite sentinel the recipe exits 0 having run nothing. In **full scope** this maps to the existing `STATUS: N/A — <reason>` (no suite to run). It never occurs in task scope (a task-scope run always has a concrete `test-filtered` body to execute).
 
 # Modes
 
@@ -57,17 +67,18 @@ The command (first line / block) is normally handed over verbatim — in pipelin
 
 Two scopes, selected by the input, decide **how much** of the suite the run covers. They do NOT change the iron law (run + report, never fix) or the output contract — only what the command and verdict cover.
 
-- **Task scope (default — the per-task pipeline run).** This is the normal pipeline invocation: the orchestrator runs each task's gate with `Scope hints:` present. Run ONLY the tests relevant to the **current task** — the ones identified by the task's `Scope hints:` (its `paths:` / `test names:`) and the task's changed files. The command the caller hands over is already narrowed to the task; run it as given and apply the **Scope classification** below so an out-of-scope failure resolves to `BLOCKED` rather than `FAIL`. Do NOT expand to the whole suite in task scope.
-- **Full scope (the whole-plan check).** Selected by a `Scope: full` signal in the input. This is the cross-cutting gate used by **superdev:dev-agent-final-reviewer** after all per-task commits: run the **ENTIRE** build / test / lint / type-check suite for the project, not a task-narrowed subset. The caller normally hands over the full-suite command verbatim; run it as given. Only if the command is missing/unclear do you `Read` the target project's `CLAUDE.md` to recover the full build+test+lint command (never assume an ecosystem). In full scope there is no per-task narrowing: a `Scope: full` run never carries `Scope hints:` (the two are mutually exclusive), so the `BLOCKED` verdict does not apply — every failure is in scope and the verdict is `PASS` / `FAIL` / `ERROR` / `TIMEOUT` / `N/A`. The `N/A` verdict is **full-scope only**: when the command is missing/unclear AND the target project's `CLAUDE.md` documents that the project has **no build/test/lint suite at all** (e.g. a docs/config/plugin-source repo), there is nothing to run — report `STATUS: N/A — <reason>` (always written `N/A — <reason>`) rather than the `no <kind> command discoverable` ERROR-env-anomaly. `N/A` never occurs in task scope: a task-scope run always has a concrete task gate command to execute, so its enum stays `PASS / FAIL / BLOCKED / ERROR / TIMEOUT`, unchanged. `N/A` is a *report* that there is no suite — never a skip-to-green; the iron law (run + report, never fix) is untouched.
+- **Task scope (default — the per-task pipeline run).** This is the normal pipeline invocation: the orchestrator runs each task's gate with `Scope hints:` present. Run ONLY the tests relevant to the **current task** — the ones identified by the task's `Scope hints:` (its `paths:` / `test names:`) and the task's changed files. The command the caller hands over is the recipe's `test-filtered <pat>` verb, already narrowed to the task; run it as given (after the `verify` gate) and apply the **Scope classification** below so an out-of-scope failure resolves to `BLOCKED` rather than `FAIL`. Do NOT expand to the whole suite in task scope.
+- **Full scope (the whole-plan check).** Selected by a `Scope: full` signal in the input. This is the cross-cutting gate used by **superdev:dev-agent-final-reviewer** after all per-task commits: run the **ENTIRE** build / test / lint / type-check suite for the project via the recipe's full-scope verbs (`bash <recipePath> build` / `test-all` / `lint`), not a task-narrowed subset. The caller hands over those verbs verbatim; run them as given (after the `verify` gate). In full scope there is no per-task narrowing: a `Scope: full` run never carries `Scope hints:` (the two are mutually exclusive), so the `BLOCKED` verdict does not apply — every failure is in scope and the verdict is `PASS` / `FAIL` / `ERROR` / `TIMEOUT` / `N/A`. The `N/A` verdict is **full-scope only**: when a recipe verb body is the documented-no-suite sentinel (the recipe exits 0 having run nothing — e.g. a docs/config/plugin-source repo with no build/test/lint suite), there is nothing to run — report `STATUS: N/A — <reason>` (always written `N/A — <reason>`). `N/A` never occurs in task scope: a task-scope run always has a concrete `test-filtered` body to execute, so its enum stays `PASS / FAIL / BLOCKED / ERROR / TIMEOUT`, unchanged. `N/A` is a *report* that there is no suite — never a skip-to-green; the iron law (run + report, never fix) is untouched.
 
 If neither `Scope: full` nor `Scope hints:` is present (a bare inline call), run exactly the command handed over and report it with the 4-value enum — no narrowing, no `BLOCKED`.
 
 # How to work
 
-1. Re-read the request: which command, what cwd, `Report path:` present?, `Scope: full` present?, `Scope hints:` present?
-2. Run the command once; wait for it to finish.
-3. If it failed AND `Scope hints:` was provided, classify each failure (below) before picking the verdict.
-4. Build the markdown reply (`# Output format`), then emit it per the active mode.
+1. Re-read the request: which verb command, the `Recipe:` path, what cwd, `Report path:` present?, `Scope: full` present?, `Scope hints:` present?
+2. Run `bash <recipePath> verify` first. Non-zero ⇒ recipe stale/missing ⇒ `STATUS: FAIL` with the verify stderr as env-anomaly; stop (do NOT run the verb, do NOT re-derive from `CLAUDE.md`).
+3. Run the handed-over recipe verb once; wait for it to finish. A `0`-exit on a documented-no-suite verb body (`N/A` sentinel) in full scope ⇒ `STATUS: N/A — <reason>`.
+4. If it failed AND `Scope hints:` was provided, classify each failure (below) before picking the verdict.
+5. Build the markdown reply (`# Output format`), then emit it per the active mode.
 
 ## Scope classification (only when `Scope hints:` is provided)
 
@@ -107,7 +118,7 @@ A single Markdown document with EXACTLY these sections (omit any with no content
 ```
 
 - **`## Summary`**: one bullet per tool that actually ran (for a chain `a && b && c`, one per link that ran — omit links that never started). Each bullet is that tool's OWN aggregate line, verbatim (e.g. `42 passed, 3 failed`, `build succeeded`, `0 problems (0 errors, 0 warnings)`); if a tool printed none, take its last meaningful stdout line. Never merge across tools, paraphrase, or restate failure detail (that lives in `## Failures`).
-- **`<env-anomaly>`** suffix in `## Verdict` is optional — one verbatim note from the allow-list: `command not found: <X>` / `output truncated by tool` / `working directory missing: <X>` / `no <kind> command discoverable — caller must specify the exact command`. When a build is asked for but no build command exists, set `## Verdict` to `ERROR` with that last note and stop. **Exception (full scope only):** if `Scope: full` is set AND the target project's `CLAUDE.md` documents no build/test/lint suite at all (nothing to run — distinct from a present-but-missing tool binary, which keeps the `command not found: <X>` env-anomaly), set `## Verdict` to `N/A — <reason>` instead and stop. Only "no suite to run at all" maps to `N/A`; every genuine tool-missing case keeps its env-anomaly note.
+- **`<env-anomaly>`** suffix in `## Verdict` is optional — one verbatim note from the allow-list: `command not found: <X>` / `output truncated by tool` / `working directory missing: <X>` / `recipe stale/missing: <verify stderr>`. A non-zero `bash <recipePath> verify` (recipe `STALE` / `missing-tool` / unfilled marker / the file absent) ⇒ set `## Verdict` to `FAIL` with the `recipe stale/missing: <verify stderr>` note and stop — do NOT run the verb and do NOT re-derive a command. **Exception (full scope only):** if `Scope: full` is set AND the recipe verb body is the documented-no-suite sentinel (`N/A` — the recipe exits 0 having run nothing), set `## Verdict` to `N/A — <reason>` instead and stop. Only "no suite to run at all" maps to `N/A`; a genuine tool-missing case surfaces through `verify` as `recipe stale/missing: missing-tool: <X>`.
 - **`## Out-of-scope`** is REQUIRED iff `## Verdict` is `BLOCKED`, listing every out-of-scope entry verbatim (prefix `path:` for a path token, `test:` for a type-qualified test name); omit it for any other verdict. `## Failures` keeps its shape for `FAIL` (including mixed) — never split mixed failures across the two sections.
 
 ## Pipeline-mode stdout (exactly 3 lines)
