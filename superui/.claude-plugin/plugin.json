@@ -1,6 +1,6 @@
 {
   "name": "superui",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Design / frontend ecosystem for Claude Code — one injected dispatcher manifest routing the framework-agnostic (L1) design system, target adaptation, web preview, the UI-edit guardian, and a shareable-artifact publisher, grouped by prefix (ui- / cc-). Self-contained: no dependencies.",
   "author": {
     "name": "Dariusz Lenartowicz",
