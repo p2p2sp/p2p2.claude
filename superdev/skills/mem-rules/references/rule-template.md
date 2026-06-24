@@ -18,6 +18,8 @@ paths:
 - <Anti-pattern bullet — what NOT to do here, with the real reason.>
 ```
 
+Rules may live **flat** (`.claude/rules/<topic>.md`) or in **nested per-domain directories** (`.claude/rules/<domain>/<topic>.md`, e.g. `frontend/styling.md`, `api/errors.md`) — nested rules are first-class (the loader and `detect_state.sh` walk the tree at any depth). Prefer a `<domain>/<topic>.md` layout that mirrors the codebase's real architectural units (§A).
+
 Frontmatter rules:
 - `paths:` is a YAML list of globs. Set it to the **narrowest** glob that covers the topic's files. `paths: ["**"]` is forbidden except for a genuine global-posture rule (e.g. a repo-wide commit convention).
 - A leading-underscore basename (`_<topic>.md`) marks a **frozen** rule: the loader still injects it, but self-learning tools must never read, score, edit, or create it. Reserve it for hand-authored / meta rules.
@@ -52,6 +54,7 @@ Do not rewrite, reorder, or delete existing bullets when appending. If no existi
 
 ## Quick checklist before writing
 
+- Place the file flat (`<topic>.md`) or nested under its domain (`<domain>/<topic>.md`, §A) — pick the layout that mirrors the codebase's real architectural units.
 - `paths:` is the narrowest glob (§B) — not `**` unless genuinely global-posture.
 - Content fits the size budget — under 15 lines seeded, 10–25 lines for a discovered rule (§C).
 - One area per file; split if it spans two (§C).
