@@ -4,6 +4,8 @@ paths:
   - "**/agents/**"
 ---
 
+# Hwo to write perfect skills or agents
+
 ## LLM is your audience
 
 Remember, you're writing a skill or agent for an LLM, not a human. An LLM needs short, on-point instructions, highly preferable bullet points - it should probably be more like code instructions than plain prose. An LLM doesn't need long sentences (prose) surrounded by context. Too much information means chaos and misleading decisions.
@@ -31,7 +33,7 @@ Remove mercilessly. Everything in a skill file has a cost.
 
 ## Use Scripts
 
-If You can automate something and instead of LLM reasoning replace by deterministic script - do it without any doubt. Especialy for tasks requiring determinism like parsing JSON, sorting data, compiling code, determistic searching, API calls, or math calculations.
+If skill or agent can automate something and instead of LLM reasoning replace by deterministic script - do it without any doubt. Especialy for tasks requiring determinism like parsing JSON, sorting data, compiling code, determistic searching, API calls, or math calculations.
 
 Why You SHOULD use deterministic scripts:
 - Repeatable Output: Code runs the same way every time, eliminating unpredictable decision-making branches.
