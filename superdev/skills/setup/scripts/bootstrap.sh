@@ -14,7 +14,8 @@
 #   - creates .temp/ and .superdev/ when missing,
 #   - seeds .gitignore from the bundled template when the project has none,
 #   - seeds .claude/settings.json from the bundled template when none,
-#   - reports whether .superdev/config.yml exists (and its switches if so).
+#   - seeds .superdev/config.yml from the bundled template when none,
+#   - never overwrites an existing config.yml (reports its current switches).
 #
 # Contract:
 #   argv : none.
@@ -22,8 +23,10 @@
 #   env  : none required — the skill dir (for assets/) is derived from $0.
 #   stdout: one human-readable line per result; the SKILL.md "Output" step and
 #           the config-switch step read these lines verbatim. The config line is
-#           either "config.yml: already present ... — current switches:" followed
-#           by the grep'd switch lines, or "config.yml: MISSING — ...".
+#           either "config.yml: seeded from template — defaults: adr=true,
+#           rules_improver=true" (fresh seed) or "config.yml: already present
+#           (left untouched) — current switches:" followed by the grep'd switch
+#           lines (limited to the two documented keys: adr, rules_improver).
 #   exit : always 0 (fail-soft; missing templates are reported, not fatal).
 
 set -u
@@ -31,6 +34,7 @@ set -u
 skill_dir="$(cd "$(dirname "$0")/.." && pwd)"
 src_gitignore="${skill_dir}/assets/gitignore.txt"
 src_settings="${skill_dir}/assets/settings.json"
+src_config="${skill_dir}/assets/config.yml"
 
 if [ -d ".temp" ]; then
   echo ".temp: already present"
@@ -60,9 +64,12 @@ fi
 
 if [ -f ".superdev/config.yml" ]; then
   echo "config.yml: already present (left untouched) — current switches:"
-  grep -E '^[[:space:]]*(adr|artifacts|help|rules_improver|ui)[[:space:]]*:' .superdev/config.yml
+  grep -E '^[[:space:]]*(adr|rules_improver)[[:space:]]*:' .superdev/config.yml
+elif [ -f "$src_config" ]; then
+  mkdir -p .superdev && cp "$src_config" .superdev/config.yml \
+    && echo "config.yml: seeded from template — defaults: adr=true, rules_improver=true"
 else
-  echo "config.yml: MISSING — ask the user about the 5 switches, then write it (see 'Configure the opt-in switches')"
+  echo "config.yml: template missing at $src_config — skipped"
 fi
 
 exit 0
