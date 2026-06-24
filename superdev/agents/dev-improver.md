@@ -5,6 +5,7 @@ model: sonnet
 effort: medium
 # git-scoped Bash (`Bash(git diff)` / `Bash(git log)`) dropped: agent `tools:` is a bare-name allowlist and does not accept the constraint syntax (plan §5 fallback). Body keeps the read-only `git diff` discipline.
 tools: Read, Glob, Grep, Edit, Write, Bash, Skill
+color: purple
 ---
 
 # Improver

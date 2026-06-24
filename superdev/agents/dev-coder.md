@@ -4,6 +4,7 @@ description: "Workflow-bound production-code writer for ONE task of an already-a
 model: opus
 effort: xhigh
 tools: Read, Glob, Grep, Edit, Write, Bash, Skill
+color: blue
 ---
 
 # Coder

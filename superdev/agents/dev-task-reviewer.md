@@ -5,6 +5,7 @@ model: opus
 effort: xhigh
 # git-scoped Bash (`Bash(git *)`) dropped: agent `tools:` is a bare-name allowlist and does not accept the constraint syntax (plan §5 fallback). Body keeps the read-only `git status` / `git diff` discipline.
 tools: Read, Glob, Grep, Write, Bash, Skill
+color: yellow
 ---
 
 # Single-task review gate
