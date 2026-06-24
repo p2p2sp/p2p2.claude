@@ -1,5 +1,5 @@
 ---
-name: gh-commit-context
+name: gh-commit
 description: >-
   Commit context resolver — runs in the MAIN context so it can read this session's conversation, picks the commit MODE, resolves WHICH files to commit, then delegates the staging + commit (and the subject authoring) to the `superdev:gh-agent-committer` fork. Use this skill whenever the user wants
   to commit changes, save work to git, create a commit, or "wrap up" edits — even if they don't say
@@ -26,7 +26,7 @@ If you cannot determine a safe set of files to commit, prefer a **no-op** (repor
 The mode comes from the skill argument (`all` / `staged` / empty→`session`). The matching playbook is injected below for **your** argument — follow it exactly: it tells you how to resolve the file set and how to delegate to `superdev:gh-agent-committer`. Do not consider the other two modes.
 
 --- playbook ---
-!`"${CLAUDE_PLUGIN_ROOT}/skills/gh-commit-context/scripts/route.sh" "$ARGUMENTS"`
+!`"${CLAUDE_PLUGIN_ROOT}/skills/gh-commit/scripts/route.sh" "$ARGUMENTS"`
 --- playbook ---
 
 ## Safety rules

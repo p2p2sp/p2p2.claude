@@ -33,7 +33,7 @@ one(s) you need.
 | `mem-` | Project memory (agent-facing) | `mem-layers` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer) |
 | `doc-` | End-user documentation | `doc-help` (end-user product help → `.superdev/help/`) |
 | `dev-` | Development pipeline + diagnostics/specs | Skills: `dev-interview`, `dev-extraplan`, `dev-plan-reviewer`, `dev-orchestrator`, `dev-agent-adr-recorder`, `dev-agent-decomposer`, `dev-agent-runner`, `dev-agent-final-reviewer`, `dev-agent-plan-auditor`, `dev-agent-smoke`, `dev-tdd`, `dev-debug`, `dev-spec`. Plugin agents (per-task pipeline workers): `dev-coder`, `dev-task-reviewer`, `dev-improver` |
-| `gh-` | GitHub | `gh-cli`, `gh-cli-executor`, `gh-commit-context`, `gh-agent-committer`, `gh-issue`, `gh-pr` |
+| `gh-` | GitHub | `gh-cli`, `gh-cli-executor`, `gh-commit`, `gh-agent-committer`, `gh-issue`, `gh-pr` |
 
 ## superui skill groups
 

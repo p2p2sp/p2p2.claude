@@ -1,6 +1,6 @@
 ---
 name: gh-agent-committer
-description: "Invoked only by `superdev:gh-commit-context` via the Skill tool, never the user."
+description: "Invoked only by `superdev:gh-commit` via the Skill tool, never the user."
 context: fork
 model: haiku
 user-invocable: false
@@ -9,7 +9,7 @@ allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git diff:*), Bash(git d
 
 # Committer (fork)
 
-A self-contained executor for ONE commit. The `gh-commit-context` entry — running in the main context, where it can read the session — chose WHAT to commit and may pass a compact intent hint. This fork **stages per the instruction, reads the staged diff, authors the Conventional Commits subject from the diff plus the hint, and commits**. Authoring the subject here keeps the full diff out of the main context. It never prompts (a fork cannot ask the user).
+A self-contained executor for ONE commit. The `gh-commit` entry — running in the main context, where it can read the session — chose WHAT to commit and may pass a compact intent hint. This fork **stages per the instruction, reads the staged diff, authors the Conventional Commits subject from the diff plus the hint, and commits**. Authoring the subject here keeps the full diff out of the main context. It never prompts (a fork cannot ask the user).
 
 ## Staged diff (preloaded)
 --- stat ---

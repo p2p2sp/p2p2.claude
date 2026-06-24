@@ -27,7 +27,7 @@
     "./skills/dev-spec/",
     "./skills/gh-cli/",
     "./skills/gh-cli-executor/",
-    "./skills/gh-commit-context/",
+    "./skills/gh-commit/",
     "./skills/gh-agent-committer/",
     "./skills/gh-issue/",
     "./skills/gh-pr/"

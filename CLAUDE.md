@@ -34,8 +34,8 @@ They ship no application code — the artefacts are markdown (skills) + JSON (ma
 scripts under `<plugin>/hooks/scripts/`, plus a handful of deterministic helper scripts bundled under
 individual skills' `scripts/` dirs (the `superui` `ui-*` preview scripts, the superdev pipeline commit scripts
 `dev-orchestrator/scripts/commit-task.sh` + `dev-orchestrator/scripts/commit-adr.sh`, the fixed recipe harness
-`dev-agent-recipe/scripts/recipe.template.sh`, the `gh-commit-context` mode router
-`gh-commit-context/scripts/route.sh`, the `mem-rules` mode router `mem-rules/scripts/route.sh` + its discovery
+`dev-agent-recipe/scripts/recipe.template.sh`, the `gh-commit` mode router
+`gh-commit/scripts/route.sh`, the `mem-rules` mode router `mem-rules/scripts/route.sh` + its discovery
 scripts `mem-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), and the one-time `setup/scripts/bootstrap.sh`).
 **Editing markdown / JSON IS shipping** — there is no build / test /
 lint at any level. Contracts between files are enforced by humans reading carefully.
@@ -71,7 +71,7 @@ superdev/            The superdev plugin
   skills/            Skills grouped by prefix (mem- / doc- / dev- / gh-); some skills bundle a
                      deterministic helper under their own scripts/ dir (dev-orchestrator/scripts/commit-task.sh
                      + commit-adr.sh + task-pipeline.workflow.js, dev-agent-recipe/scripts/recipe.template.sh,
-                     gh-commit-context/scripts/route.sh, mem-rules/scripts/route.sh, setup/scripts/bootstrap.sh)
+                     gh-commit/scripts/route.sh, mem-rules/scripts/route.sh, setup/scripts/bootstrap.sh)
 superui/             The superui plugin
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
   hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
@@ -116,7 +116,7 @@ in this group: `dev-coder`, `dev-task-reviewer`, `dev-improver`, `dev-commiter` 
 `agentType:'superdev:dev-*'`) — named without the infix precisely because they are genuine agents, not
 fork-skills. (`dev-commiter` is a thin haiku passthrough — it only runs `commit-task.sh` and relays its tag —
 but it is still a workflow-dispatched plugin agent, so it follows the no-infix rule like the other three.) The **inline dispatchers**
-that drive the pipeline (`dev-orchestrator`, `gh-commit-context`) and every user-facing / auto-routed skill keep a
+that drive the pipeline (`dev-orchestrator`, `gh-commit`) and every user-facing / auto-routed skill keep a
 plain prefix; so do forks still reachable from the main session (`dev-plan-reviewer`, `gh-cli-executor`).
 
 - **(no prefix)** — `setup`: one-time, user-only environment bootstrap (`/setup`). Seeds `.temp/` + `.superdev/`,
@@ -155,7 +155,7 @@ plain prefix; so do forks still reachable from the main session (`dev-plan-revie
   sub-skills (`dev-agent-plan-auditor`, `dev-agent-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`. The four
   per-task workers `dev-coder` / `dev-task-reviewer` / `dev-improver` / `dev-commiter` are **plugin agents**
   (`superdev/agents/*.md`), not skills — dispatched by the workflow via `agentType:'superdev:dev-*'`.
-- **`gh-`** — GitHub: `gh-cli` (+ `gh-cli-executor`), `gh-commit-context` (entry) + `gh-agent-committer`,
+- **`gh-`** — GitHub: `gh-cli` (+ `gh-cli-executor`), `gh-commit` (entry) + `gh-agent-committer`,
   `gh-issue`, `gh-pr`.
 
 ## Architecture invariants
