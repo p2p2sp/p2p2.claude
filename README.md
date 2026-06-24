@@ -84,9 +84,11 @@ bump:
 
 - **Automatic** — every push to `main` runs **Auto patch version**
   (`.github/workflows/auto-version.yml`), which bumps the **patch** number, syncs it into both `plugin.json`
-  files, commits (`chore(release): … [skip ci]`), and pushes the matching tag.
+  files, commits (`chore(bump): …`), and pushes the matching tag. The job guards against its own bump commit
+  (`if: !startsWith(head_commit.message, 'chore(bump)')`) so the push does not loop.
 - **Manual** — run **Manual version bump** (`.github/workflows/release-version.yml`) from the **Actions**
   tab and pick `major`, `minor`, or `patch` to cut a larger release on demand.
 
 Both delegate to `.github/scripts/release.sh`, which computes the next version from the tags and performs
-the sync + tag + push.
+the sync + tag + push, then publishes a **GitHub Release** whose notes are built from the commits since the
+previous tag (grouped by conventional type) with GitHub's auto-generated notes appended.

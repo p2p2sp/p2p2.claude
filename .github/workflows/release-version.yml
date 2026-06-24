@@ -24,7 +24,8 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-      - name: Bump version + tag
+      - name: Bump version + create release
         env:
           PART: ${{ inputs.part }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash .github/scripts/release.sh "$PART"

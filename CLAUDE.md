@@ -84,9 +84,13 @@ Versioning is tag-driven and shared across both plugins (one version namespace).
 git tag (no `v` prefix, seed `0.1.0`): `.github/workflows/auto-version.yml` patch-bumps on every push to
 `main`, and `.github/workflows/release-version.yml` is a manual `workflow_dispatch` that bumps a chosen
 part (major/minor/patch). The shared `.github/scripts/release.sh` computes the next version from the tags,
-writes it into both manifests, commits `[skip ci]`, and pushes the commit + tag. The tag is the source of
-truth; each `plugin.json.version` is derived. Because each `plugin.json` carries a `version`, `/plugin update`
-ships a new version on each bump.
+writes it into both manifests, commits the bump (`chore(bump): …`, no `[skip ci]`), pushes the commit + tag,
+and then publishes a **GitHub Release** whose notes are built from the commits since the previous tag (grouped
+by conventional type) with GitHub's auto-generated notes appended. The bump commit carries no `[skip ci]`
+token; the loop is instead broken by an `auto-version.yml` job guard
+(`if: !startsWith(github.event.head_commit.message, 'chore(bump)')`) — keep that `chore(bump)` prefix in sync
+with the script. The tag is the source of truth; each `plugin.json.version` is derived. Because each
+`plugin.json` carries a `version`, `/plugin update` ships a new version on each bump.
 
 ## superdev skill taxonomy (prefix = functional group)
 
