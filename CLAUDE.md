@@ -33,7 +33,8 @@ Each plugin is independently installable; neither declares the other as a depend
 They ship no application code — the artefacts are markdown (skills) + JSON (manifests) + the per-plugin hook
 scripts under `<plugin>/hooks/scripts/`, plus a handful of deterministic helper scripts bundled under
 individual skills' `scripts/` dirs (the `superui` `ui-*` preview scripts, the superdev pipeline commit scripts
-`dev-orchestrator/scripts/commit-task.sh` + `dev-orchestrator/scripts/commit-adr.sh`, the `mem-rules` discovery
+`dev-orchestrator/scripts/commit-task.sh` + `dev-orchestrator/scripts/commit-adr.sh`, the fixed recipe harness
+`dev-agent-recipe/scripts/recipe.template.sh`, the `mem-rules` discovery
 scripts `mem-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), and the one-time `setup/scripts/bootstrap.sh`).
 **Editing markdown / JSON IS shipping** — there is no build / test /
 lint at any level. Contracts between files are enforced by humans reading carefully.
@@ -68,7 +69,8 @@ superdev/            The superdev plugin
   shared/            Bundled assets shared across the pipeline (rubric.md; coder-modes/ work-order files)
   skills/            Skills grouped by prefix (mem- / doc- / dev- / gh-); some skills bundle a
                      deterministic helper under their own scripts/ dir (dev-orchestrator/scripts/commit-task.sh
-                     + commit-adr.sh + task-pipeline.workflow.js, setup/scripts/bootstrap.sh)
+                     + commit-adr.sh + task-pipeline.workflow.js, dev-agent-recipe/scripts/recipe.template.sh,
+                     setup/scripts/bootstrap.sh)
 superui/             The superui plugin
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
   hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
@@ -102,8 +104,9 @@ individual skills.
 
 **Naming sub-convention (`-agent-` infix).** The `-agent-` infix marks a forked, fork-only **skill** worker —
 invoked **only by a superordinate skill via the `Skill` tool** (never the user, never auto-routed): `dev-agent-*`
-(the remaining pipeline skill-workers — `dev-agent-adr-recorder`, `dev-agent-decomposer`, `dev-agent-runner`,
-`dev-agent-final-reviewer`, `dev-agent-plan-auditor`, `dev-agent-smoke`) and `gh-agent-committer`. These stay
+(the remaining pipeline skill-workers — `dev-agent-recipe`, `dev-agent-adr-recorder`, `dev-agent-decomposer`,
+`dev-agent-runner`, `dev-agent-final-reviewer`, `dev-agent-plan-auditor`, `dev-agent-smoke`) and
+`gh-agent-committer`. These stay
 **skills** (not `agents/<name>.md` definitions); the infix is taxonomy only — it signals their agent-like,
 fork-only nature, and their frontmatter already encodes it (`context: fork` + `user-invocable: false` + a
 one-line "pipeline-bound; invoked only by …" guard `description`). The three per-task pipeline workers are NOT
@@ -139,11 +142,13 @@ plain prefix; so do forks still reachable from the main session (`dev-plan-revie
 - **`doc-`** — end-user documentation (1 skill): `doc-help` (the end-user product-help layer → `.superdev/help/`).
   Authors the human-facing help that ships to the people who use the built app — distinct
   from the agent-facing `mem-` layers above; faces the end user, not Claude.
-- **`dev-`** — the agentic-development pipeline + diagnostics/specs (13 skills + 3 plugin agents): planning
+- **`dev-`** — the agentic-development pipeline + diagnostics/specs (14 skills + 3 plugin agents): planning
   (`dev-interview`, `dev-extraplan`, `dev-plan-reviewer`), the orchestrated implementation pipeline
-  (`dev-orchestrator` → `dev-agent-adr-recorder` → `dev-agent-decomposer` → per task **one `Workflow`** call to
-  `task-pipeline.workflow.js` driving `dev-coder` → `dev-agent-runner` → `dev-task-reviewer` → `dev-improver` →
-  scripted commit (`commit-task.sh`) → `dev-agent-final-reviewer`), the final-gate sub-skills
+  (`dev-orchestrator` → **mandatory first step** `dev-agent-recipe` (derives the host toolchain once →
+  `recipe.sh` + `profile.md`; owns the clean-tree guard; FAIL = hard halt) → `dev-agent-adr-recorder` →
+  `dev-agent-decomposer` → per task **one `Workflow`** call to `task-pipeline.workflow.js` driving `dev-coder` →
+  `dev-agent-runner` → `dev-task-reviewer` → `dev-improver` → scripted commit (`commit-task.sh`) →
+  `dev-agent-final-reviewer`), the final-gate sub-skills
   (`dev-agent-plan-auditor`, `dev-agent-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`. The three per-task
   workers `dev-coder` / `dev-task-reviewer` / `dev-improver` are **plugin agents** (`superdev/agents/*.md`), not
   skills — dispatched by the workflow via `agentType:'superdev:dev-*'`.
@@ -184,6 +189,16 @@ plain prefix; so do forks still reachable from the main session (`dev-plan-revie
   like feedback/retry, reports); agents receive content **injected via dynamic context `!`**, not via `Read`.
   Pipeline state lives under `.temp/.workflows/<slug>/`; agents reply with a 3-line `STATUS / Report / Summary`
   stdout.
+- **Recipe — mandatory first step (fail-closed) + sole clean-tree guard.** `dev-orchestrator` invokes
+  `dev-agent-recipe` as the FIRST step on **every** entry (before ADR); it derives the host
+  build/test/lint/launch verbs once and materializes `.temp/.workflows/<slug>/recipe.sh` + `profile.md`, the
+  single artifact every downstream fork (`dev-agent-runner`, `dev-coder`, `dev-task-reviewer`,
+  `dev-agent-decomposer`, `dev-agent-plan-auditor`, `dev-agent-smoke`) consumes instead of re-deriving the
+  toolchain. It is **fail-closed**: a recipe `STATUS: FAIL` is a hard halt (like a decomposer fail), and the
+  recipe agent's Step 0 (`git status --porcelain`) is now the **single** clean-tree guard for the whole run —
+  the orchestrator's former ADR-step and pre-task-loop `git status` guards are gone. `recipePath` is threaded
+  into every per-task `Workflow` invocation so each fork sources its verbs from the one artifact; the recipe
+  self-skips regeneration when its own `recipe.sh verify` passes.
 - **Script vs. fork.** A pipeline step collapses to a deterministic bundled script (under the owning skill's
   `scripts/` dir) when it operates on a known, fixed tool / format — git, a basename, paths, globs (e.g.
   `dev-orchestrator/scripts/commit-task.sh` for the per-task commit, `commit-adr.sh` for the ADR commit). It stays an LLM fork when it must interpret heterogeneous, stack-specific tool

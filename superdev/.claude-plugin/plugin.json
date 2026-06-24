@@ -15,6 +15,7 @@
     "./skills/dev-extraplan/",
     "./skills/dev-plan-reviewer/",
     "./skills/dev-orchestrator/",
+    "./skills/dev-agent-recipe/",
     "./skills/dev-agent-adr-recorder/",
     "./skills/dev-agent-decomposer/",
     "./skills/dev-agent-runner/",
