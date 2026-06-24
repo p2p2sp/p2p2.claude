@@ -4,7 +4,7 @@ description: "Pipeline-bound; invoked only by `superdev:dev-orchestrator` / `dev
 model: haiku
 context: fork
 user-invocable: false
-allowed-tools: Bash, Read, Write, Skill
+allowed-tools: Bash, Read, Write, Skill, Workflow
 ---
 
 # Runner (fork)

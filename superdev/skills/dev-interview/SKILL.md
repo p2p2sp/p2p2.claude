@@ -24,7 +24,7 @@ The interview models the work as a **design tree** — a graph where each decisi
 - Treat answers as living. If a later answer invalidates an earlier branch, surface it and re-open that decision instead of pressing forward.
 - Use plain prose, not the `AskUserQuestion` tool — the interview is a conversation, not a form. Form-style pickers flatten the trade-off discussion you are trying to have.
 
-**Example of one turn:**
+**Example of one question:**
 
 > **Decision 2: where does the session token live?**
 >

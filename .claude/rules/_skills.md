@@ -16,7 +16,7 @@ The instinct when writing skill or agent documentation is to be thorough. Cover 
 
 Content at the top of a file and under clear headings gets more reliable attention than content buried in the middle of dense paragraphs. Structure your skill or agent files so that the most critical, most frequently relevant instructions are first and clearly marked.
 
-Use short, declarative sentences. Avoid prose explanations where a bullet point will do - this is EXTREMELY IMPORTANT. The LLM doesn’t need narrative context — it needs short, clear, parseable, bulletproof instructions.
+Use short, declarative sentences. EXTREMELY IMPORTANT is to avoid prose explanations where a bullet point will do. The LLM doesn’t need narrative context — it needs short, clear, parseable, bulletproof instructions.
 
 ## Audit for Contradictions and Redundancy
 
