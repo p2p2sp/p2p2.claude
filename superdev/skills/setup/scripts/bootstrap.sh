@@ -23,8 +23,8 @@
 #   env  : none required — the skill dir (for assets/) is derived from $0.
 #   stdout: one human-readable line per result; the SKILL.md "Output" step and
 #           the config-switch step read these lines verbatim. The config line is
-#           either "config.yml: seeded from template — defaults: adr=true,
-#           rules_improver=true" (fresh seed) or "config.yml: already present
+#           either "config.yml: seeded from template — defaults: adr=false,
+#           rules_improver=false" (fresh seed) or "config.yml: already present
 #           (left untouched) — current switches:" followed by the grep'd switch
 #           lines (limited to the two documented keys: adr, rules_improver).
 #   exit : always 0 (fail-soft; missing templates are reported, not fatal).
@@ -67,7 +67,7 @@ if [ -f ".superdev/config.yml" ]; then
   grep -E '^[[:space:]]*(adr|rules_improver)[[:space:]]*:' .superdev/config.yml
 elif [ -f "$src_config" ]; then
   mkdir -p .superdev && cp "$src_config" .superdev/config.yml \
-    && echo "config.yml: seeded from template — defaults: adr=true, rules_improver=true"
+    && echo "config.yml: seeded from template — defaults: adr=false, rules_improver=false"
 else
   echo "config.yml: template missing at $src_config — skipped"
 fi

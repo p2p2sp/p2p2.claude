@@ -1,5 +1,5 @@
 # .superdev/config.yml — superdev settings (managed by /superdev:setup)
-# Boolean opt-in switches: a missing file or key = enabled (fail-open); flip a value to `false` to disable that area.
+# Boolean opt-in switches: a missing file or key = disabled (fail-closed); set a value to `true` to enable that area.
 # Integer retry keys: a missing file or key = 3 (fail-open); set an integer to override.
 adr:            false   # ADR capture — orchestrator runs dev-agent-adr-recorder
 rules_improver: false   # auto-promote review learnings → .claude/rules/ (dev-improver step)

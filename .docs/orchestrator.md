@@ -4,9 +4,9 @@ A. Faza wstępna (raz, przed pętlą)
   `Your plan has been saved to: <ścieżka>` z aprobaty ExitPlanMode → skan rozmowy .claude/plans/*.md → brak →
   twardy stop „No plan path resolved…" (bez AskUserQuestion). Potem Read planu (orientacyjnie). Plan jest już
   zrecenzowany przez bramkę hooka (review-plan.sh → dev-plan-reviewer STATUS: PASS) — dispatcher go nie re-recenzuje.
-  2. Wczytaj config (.superdev/config.yml, preloaded przez !cat). Klucz jest off tylko gdy literalnie false; brak = on (fail-open).
+  2. Wczytaj config (.superdev/config.yml, preloaded przez !cat). Klucz jest on tylko gdy literalnie true; brak = off (fail-closed).
   Honoruje adr i rules_improver.
-  3. Rejestracja ADR (gdy adr≠false; idempotentna przez marker adr.done lub istniejące task files):
+  3. Rejestracja ADR (gdy adr literalnie true; idempotentna przez marker adr.done lub istniejące task files):
     - guard czystego drzewa — OSOBNY i WCZEŚNIEJSZY niż per-task pre-flight; brudne drzewo → twardy stop.
     - → Skill(superdev:dev-agent-adr-recorder, "<abspath(planu)>") — fork SAM zapisuje pliki .superdev/adr/*.md + indeks .superdev/ADR.md, nie dotyka gita.
     - STATUS: ADR → commit przez bash commit-adr.sh "<Commit-subject>" (verify-before-claim, ten sam słownik tagów co commit-task.sh); STATUS: NO-ADR → nic nie zapisane.

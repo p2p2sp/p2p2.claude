@@ -162,8 +162,8 @@ plain prefix; so do forks still reachable from the main session (`dev-plan-revie
   matcher; fail-open (an unreadable manifest = banner only, no `additionalContext`). The hook does no
   per-project rendering — the manifest is injected as-is, identically for every project.
 - **Opt-in switches (`.superdev/config.yml`).** Two booleans — `adr`, `rules_improver` — both
-  **default-enabled** (a missing file/key = `true`, fail-open; a repo that never ran `/setup` behaves exactly
-  as before), plus two integer retry keys — `retry_max_attempts`, `retry_escalation_attempts` — both
+  **default-disabled** (a missing file/key = `false`, fail-closed; a repo that never ran `/setup` skips both
+  optional steps until it opts in), plus two integer retry keys — `retry_max_attempts`, `retry_escalation_attempts` — both
   **fail-open to `3`** (a missing file/key = `3`). `setup` writes the file (seeding it from a bundled asset —
   see below); `dev-orchestrator` reads the config: it skips the `dev-agent-adr-recorder` / `dev-improver` steps
   when their switch is off — each skip is **one terse line, never a paragraph** — and forwards the two retry

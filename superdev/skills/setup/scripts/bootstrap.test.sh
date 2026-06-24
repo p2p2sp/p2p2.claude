@@ -14,8 +14,8 @@
 #            "ALL PASS (N/N)" line. On any mismatch it prints "FAIL: <case>" with
 #            the expected vs actual detail and exits non-zero.
 #   cases  : (1) seed-when-absent: no .superdev/config.yml -> bootstrap copies the
-#                asset, prints the "seeded from template — defaults: adr=true,
-#                rules_improver=true" line, exit 0;
+#                asset, prints the "seeded from template — defaults: adr=false,
+#                rules_improver=false" line, exit 0;
 #            (2) never-overwrite-when-present: a pre-existing config.yml (flipped
 #                switch) is byte-unchanged, prints "already present (left
 #                untouched) — current switches:", exit 0;
@@ -51,7 +51,7 @@ if [ "$rc" -ne 0 ]; then
     fail "seed when absent" "exit code $rc (expected 0)"
 elif [ ! -f "$T1/.superdev/config.yml" ]; then
     fail "seed when absent" ".superdev/config.yml was not created"
-elif ! printf '%s\n' "$out" | grep -qF "config.yml: seeded from template — defaults: adr=true, rules_improver=true"; then
+elif ! printf '%s\n' "$out" | grep -qF "config.yml: seeded from template — defaults: adr=false, rules_improver=false"; then
     fail "seed when absent" "missing seeded report line; got: $(printf '%s\n' "$out" | grep -i config.yml)"
 elif ! cmp -s "$ASSET" "$T1/.superdev/config.yml"; then
     fail "seed when absent" "seeded config.yml differs from the asset"

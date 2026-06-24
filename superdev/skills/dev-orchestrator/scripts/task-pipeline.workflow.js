@@ -19,7 +19,7 @@
 //                        fork sources its build/test/launch verbs from that one artifact.    (optional)
 //   taskGateRunnable   : true iff the task's `## Task gate` is runnable (Build: green / Tests: <non-none>);
 //                        false on a pure `Tests: none` task (runner pass skipped).      (default true)
-//   rulesImprover      : false → skip the improver step; anything else → run it.        (default true)
+//   rulesImprover      : false → skip the improver step; anything else → run it.        (default true standalone; orchestrator forwards explicit)
 //   retryMaxAttempts   : attempt-cap for this invocation (escalation passes a fresh cap).(default 3)
 //   feedbackPath       : on an escalation re-invoke, the prior run's lastFailureReportPath —
 //                        forwarded as the FIRST coder call's Feedback.                   (optional)
@@ -73,7 +73,7 @@ if (!taskFile || !reportDir || !taskBaseSha) {
   )
 }
 const taskGateRunnable = input.taskGateRunnable !== false // default true; only an explicit false skips the runner pass
-const runImprover = input.rulesImprover !== false // default-enabled; only `=== false` skips the improver
+const runImprover = input.rulesImprover !== false // honors the explicit boolean the orchestrator forwards; standalone fallback (arg absent) = run
 const cap = input.retryMaxAttempts ?? 3 // missing key → 3
 const feedbackPath = input.feedbackPath || '' // escalation seed for the first coder call
 const recipePath = input.recipePath || '' // slug-scoped recipe.sh; threaded into the coder + runner prompts

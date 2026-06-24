@@ -94,10 +94,10 @@ The recipe FAIL is the **only** clean-tree gate now (the former ADR-step and pre
 
 </config>
 
-The host project may disable optional pipeline steps via `config` (preloaded above). Read each switch as a boolean — a key is **off only when its value is literally `false`**; a missing key, missing file, or unreadable file means **on** (fail-open, default-enabled, so a project that never ran `/superdev:setup` runs the full pipeline). The boolean switches this dispatcher honors:
+The host project may disable optional pipeline steps via `config` (preloaded above). Read each switch as a boolean — a key is **on only when its value is literally `true`**; a missing key, missing file, or unreadable file means **off** (fail-closed, default-disabled, so a project that never ran `/superdev:setup` skips these optional steps until it opts in). The boolean switches this dispatcher honors:
 
-- `adr: false` → skip the ADR-recording step below.
-- `rules_improver: false` → skip the per-task `dev-improver` step. The dispatcher forwards this as the workflow's `rulesImprover` arg (the workflow runs/skips the improver pass itself).
+- `adr` → run the ADR-recording step below **only when literally `true`**; otherwise skip.
+- `rules_improver` → run the per-task `dev-improver` step **only when literally `true`**; otherwise skip. The dispatcher forwards the computed boolean as the workflow's `rulesImprover` arg (the workflow runs/skips the improver pass itself).
 
 Two non-boolean **integer** keys tune the retry budget; both are read fail-open with a default of `3` (a missing key / file / unreadable file = `3`, a non-integer value = `3`):
 
@@ -118,8 +118,8 @@ decompose_plan_path = plan-path                      # ALWAYS the original plan 
 if exists(".temp/.workflows/<slug>/adr.done") OR Glob(".temp/.workflows/<slug>/tasks/*.md") returns ≥1 path:
     skip to "Decompose the plan into per-task files"
 
-# Config gate: ADR capture disabled (`adr: false`) → skip, and mark done so a later resume stays consistent.
-if config switch `adr` is false:
+# Config gate: ADR capture not enabled (`adr` ≠ literally `true`) → skip, and mark done so a later resume stays consistent.
+if config switch `adr` is not literally `true`:
     print("ADR: skipped (disabled)")
     Write(".temp/.workflows/<slug>/adr.done", "skipped\n")
     skip to "Decompose the plan into per-task files"
@@ -260,7 +260,7 @@ Read the retry-budget config values once (fail-open, default `3`):
 ```
 retry_max_attempts        = parse_int_config("retry_max_attempts", default=3)        # missing/file-absent/non-int → 3
 retry_escalation_attempts = parse_int_config("retry_escalation_attempts", default=3) # missing/file-absent/non-int → 3
-rules_improver_on         = config switch `rules_improver` is not literally false     # default-enabled
+rules_improver_on         = config switch `rules_improver` is literally true          # default-disabled
 ```
 
 For each task `N` from `start` to `max`, run this loop. The per-task inner pipeline (coder → runner → task-reviewer → improver, with all retry / BLOCKED-unblock / infinite-loop-guard / report-forwarding mechanics) is driven by **one** `Workflow` invocation against `task-pipeline.workflow.js`; the dispatcher's own job per task is the four bookends: widget flip, `task-base.sha` capture, the workflow call, and (on PASS) the commit + state writes (on FAIL) the escalation prompt.
