@@ -17,13 +17,10 @@
     "./skills/dev-orchestrator/",
     "./skills/dev-agent-adr-recorder/",
     "./skills/dev-agent-decomposer/",
-    "./skills/dev-agent-coder/",
     "./skills/dev-agent-runner/",
-    "./skills/dev-agent-task-reviewer/",
     "./skills/dev-agent-final-reviewer/",
     "./skills/dev-agent-plan-auditor/",
     "./skills/dev-agent-smoke/",
-    "./skills/dev-agent-improver/",
     "./skills/dev-tdd/",
     "./skills/dev-debug/",
     "./skills/dev-spec/",
@@ -33,5 +30,10 @@
     "./skills/gh-agent-committer/",
     "./skills/gh-issue/",
     "./skills/gh-pr/"
+  ],
+  "agents": [
+    "./agents/dev-coder.md",
+    "./agents/dev-task-reviewer.md",
+    "./agents/dev-improver.md"
   ]
 }
