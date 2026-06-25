@@ -5,7 +5,7 @@ model: opus
 effort: xhigh
 ---
 
-**CRITIAL**: If plan mode is not already active when superplan is invoked, your first action MUST be to call `EnterPlanMode` before reading files or drafting anything — **regardless of the current mode** (default / accept-edits). Do NOT call it again if plan mode is already on (the system reminder `Plan mode is active` signals this). Producing the plan inside plan mode is what makes the downstream `dev-plan-reviewer` → `ExitPlanMode` gate apply. This is also enforced by a `PreToolUse` guard: writing a `.claude/plans/*.md` file outside plan mode is denied, so drafting the plan without first entering plan mode will be blocked anyway.
+**CRITIAL**: If plan mode is not already active when superplan is invoked, your first action MUST be to call `EnterPlanMode` before reading files or drafting anything — **regardless of the current mode** (default / accept-edits). Do NOT call it again if plan mode is already on (the system reminder `Plan mode is active` signals this). Producing the plan inside plan mode is what makes the downstream `dev-superplan-reviewer` → `ExitPlanMode` gate apply.
 
 **Silent default — do NOT announce this skill.** SuperPlan is the automatic planning discipline; the plugin's presence is reason enough. Do not emit a "Using dev-superplan" line and do not offer the user a plain-plan alternative. Just enter plan mode and produce the plan.
 
@@ -34,9 +34,9 @@ Work with whatever context is already available in the current session. SuperPla
 Apply these passive disciplines while drafting:
 
 1. **Read before writing.** Open every file the plan will touch — at minimum the call sites, the type definitions, and one neighbor that uses the same pattern. Do not propose changes to a file not read in this session.
-2. **State the model of the system in one paragraph** at the start of the plan (§3 Mental model in the template). If the user corrects it later during `dev-plan-reviewer`, the plan is wrong and must be redone — that correction is cheaper now than after implementation.
+2. **State the model of the system in one paragraph** at the start of the plan (§3 Mental model in the template). If the user corrects it later during `dev-superplan-reviewer`, the plan is wrong and must be redone — that correction is cheaper now than after implementation.
 3. **Check for a simpler approach.** If a 10-line fix exists, say so before proposing a 100-line one. Recommend the simpler path unless the session has already ruled it out.
-4. **No silent assumptions.** Every claim about behavior, data, environment, or intent that is NOT directly derivable from files read in step 1 and NOT explicitly stated in the session goes into §5 Assumptions, **marked `[load-bearing]` if the plan breaks when it's wrong**. The user reviews §5 during `dev-plan-reviewer` and corrects any incorrect items there.
+4. **No silent assumptions.** Every claim about behavior, data, environment, or intent that is NOT directly derivable from files read in step 1 and NOT explicitly stated in the session goes into §5 Assumptions, **marked `[load-bearing]` if the plan breaks when it's wrong**. The user reviews §5 during `dev-superplan-reviewer` and corrects any incorrect items there.
 
    A candidate assumption with no defensible default becomes an `Option` in §6, not a silent guess in §5.
 
@@ -44,7 +44,7 @@ Apply these passive disciplines while drafting:
 
 **Architectural-decision reasoning (captured in prose — no ADR here).** Your job is to make the *reasoning* behind any architectural decision the change locks in legible in the plan prose: the trade-off, the rejected alternatives, and why this direction (§3 Mental model, §6 Options if present, §7 Risk & rollback). The implementation-time recorder reads the approved plan and the code it touches to judge ADR-worthiness and write the record itself, so the richer the reasoning here, the better the ADR it can record. Never write an ADR file from this skill.
 
-Loose-coupling invariant with interview: `dev-interview` now always hands off to SuperPlan silently at the end of discovery — use whatever rich context it produced. But SuperPlan must also work when invoked directly without any prior interview; in that case just run `superdev:dev-interview` Skill.
+Loose-coupling invariant with interview: `superdev` now always hands off to SuperPlan silently at the end of discovery — use whatever rich context it produced. But SuperPlan must also work when invoked directly without any prior interview; in that case just run `superdev:superdev` Skill.
 
 ---
 
@@ -87,7 +87,7 @@ Or a loose table:
 ```
 
 ### 5. Assumptions
-Bulleted, explicit. Every claim that is NOT directly derivable from files read in §3 and NOT explicitly stated in the session goes here. **Mark each item `[load-bearing]` if the plan breaks when it's wrong**, so the user can re-verify at a glance during `dev-plan-reviewer`. The contract is: dev-plan-reviewer pass + the user's review of this section catches incorrect assumptions — SuperPlan does not chase confirmations interactively (that is the `interview` skill's job).
+Bulleted, explicit. Every claim that is NOT directly derivable from files read in §3 and NOT explicitly stated in the session goes here. **Mark each item `[load-bearing]` if the plan breaks when it's wrong**, so the user can re-verify at a glance during `dev-superplan-reviewer`. The contract is: dev-superplan-reviewer pass + the user's review of this section catches incorrect assumptions — SuperPlan does not chase confirmations interactively (that is the `interview` skill's job).
 
 ### 6. Options (only if >1 approach is defensible)
 For each option:
@@ -130,7 +130,7 @@ Explicit list of things adjacent to this work that this plan does NOT do. This p
 - **Quote line numbers, not paraphrases**, when referencing existing code in the plan.
 - **No "we'll see during implementation".** That phrase is a code smell. Either resolve it now as an open question, or accept the risk explicitly in §8.
 - **Time estimates are forbidden** unless the user asked for them. They will be wrong.
-- **No silent assumptions.** Every item in §5 must be explicit. If reaching for a default that has not been stated in the session, surface it as `[load-bearing]` in §5 so `dev-plan-reviewer` and the user catch it. Never bury a guess in narrative.
+- **No silent assumptions.** Every item in §5 must be explicit. If reaching for a default that has not been stated in the session, surface it as `[load-bearing]` in §5 so `dev-superplan-reviewer` and the user catch it. Never bury a guess in narrative.
 
 ---
 
@@ -176,9 +176,9 @@ skip this section — the `.claude/plans/<slug>.md` path is itself a valid hando
 Assemble ONE `.md` file, then hand it to the publishing skill with a title:
 
 1. **Prepend a `## Review verdict` block** to the plan body. Take the verdict
-   from the `dev-plan-reviewer` output **already present in this session** — the
+   from the `dev-superplan-reviewer` output **already present in this session** — the
    `STATUS:` line (`PASS` / `FAIL`) plus the 🔴 / 🟡 / 🟢 severity markers it
-   emitted. Do **not** re-run `dev-plan-reviewer`, and do **not** parse the raw
+   emitted. Do **not** re-run `dev-superplan-reviewer`, and do **not** parse the raw
    transcript to reconstruct it — use the verdict the reviewer already returned in
    this session. The block sits above the plan body so a reader sees the review
    outcome first; the plan body follows verbatim.
@@ -189,11 +189,11 @@ Assemble ONE `.md` file, then hand it to the publishing skill with a title:
    asking before publishing, and either publishing it as a private shareable page
    or falling back to reporting the local path.
 
-**Fallback — verdict no longer available.** If no `dev-plan-reviewer` verdict is
+**Fallback — verdict no longer available.** If no `dev-superplan-reviewer` verdict is
 present in this session (e.g. the plan was approved in an earlier session, or
 review was skipped), do **not** fabricate one and do **not** parse the transcript.
 Either publish the plan body **without** the `## Review verdict` block, or offer to
-re-run `dev-plan-reviewer` first and prepend the fresh verdict — let the user choose.
+re-run `dev-superplan-reviewer` first and prepend the fresh verdict — let the user choose.
 A published plan with no verdict block is valid; a published plan with an invented
 verdict is not.
 

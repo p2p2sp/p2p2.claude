@@ -1,6 +1,6 @@
 ---
 name: verifiability-risk-reviewer
-description: "Pipeline-bound; invoked only by `superdev:dev-plan-reviewer`, never directly."
+description: "Pipeline-bound; invoked only by `superdev:dev-superplan-reviewer`, never directly."
 tools: Read, Grep, Glob
 model: opus
 user-invocable: false

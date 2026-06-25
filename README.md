@@ -29,10 +29,10 @@ one(s) you need.
 
 | Prefix | Domain | Skills |
 | --- | --- | --- |
-| — | Environment bootstrap (user-only) | `setup` — run `/setup` once to seed `.temp/` + `.superdev/`, copy the `.gitignore` / `.claude/settings.json` templates, and choose the opt-in switches written to `.superdev/config.yml` |
+| — | Entry interview & environment | `superdev` — the always-on entry skill named after the plugin; interviews you to map the design before any plan/code, then hands off to planning. `setup` — run `/setup` once to seed `.temp/` + `.superdev/`, copy the `.gitignore` / `.claude/settings.json` templates, and choose the opt-in switches written to `.superdev/config.yml` |
 | `mem-` | Project memory (agent-facing) | `mem-layers` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer) |
 | `doc-` | End-user documentation | `doc-help` (end-user product help → `.superdev/help/`) |
-| `dev-` | Development pipeline + diagnostics/specs | Skills: `dev-interview`, `dev-superplan`, `dev-plan-reviewer`, `dev-orchestrator`, `dev-agent-adr-recorder`, `dev-agent-decomposer`, `dev-agent-runner`, `dev-agent-final-reviewer`, `dev-agent-plan-auditor`, `dev-agent-smoke`, `dev-tdd`, `dev-debug`, `dev-spec`. Plugin agents (per-task pipeline workers): `dev-coder`, `dev-task-reviewer`, `dev-improver` |
+| `dev-` | Development pipeline + diagnostics/specs | Skills: `dev-superplan`, `dev-superplan-reviewer`, `dev-orchestrator`, `dev-agent-adr-recorder`, `dev-agent-decomposer`, `dev-agent-runner`, `dev-agent-final-reviewer`, `dev-agent-plan-auditor`, `dev-agent-smoke`, `dev-tdd`, `dev-debug`, `dev-spec`. Plugin agents (per-task pipeline workers): `dev-coder`, `dev-task-reviewer`, `dev-improver` |
 | `gh-` | GitHub | `gh-cli`, `gh-cli-executor`, `gh-commit`, `gh-agent-committer`, `gh-issue`, `gh-pr` |
 
 ## superui skill groups
@@ -54,8 +54,8 @@ one(s) you need.
   fail-closed), so these two optional steps run only once you enable them via `/setup`.
 - **The implementation pipeline is file-based (superdev)**: `dev-orchestrator` dispatches forked executors
   that hand state through files and reply with a 3-line status, keeping the main context lean.
-- **Planning always happens in plan mode (superdev).** Whatever mode you start in, superdev enters plan mode
-  before drafting a plan (a hook denies writing a plan file outside plan mode), so the plan-review gate runs
+- **Planning always happens in plan mode (superdev).** Whatever mode you start in, superdev's planning skill
+  enters plan mode before drafting a plan, so the plan-review gate runs
   every time — the planning pipeline behaves the same regardless of the mode you started in.
 
 ## Repository layout

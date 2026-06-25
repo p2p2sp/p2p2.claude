@@ -1,5 +1,5 @@
 {
-  "description": "superdev hooks: force-injects the single using-superdev manifest at session start; gates ExitPlanMode on dev-plan-reviewer STATUS: PASS; denies plan-file writes outside plan mode so planning always happens in plan mode.",
+  "description": "superdev hooks: force-injects the single using-superdev manifest at session start; gates ExitPlanMode on dev-superplan-reviewer STATUS: PASS.",
   "hooks": {
     "PreToolUse": [
       {
@@ -8,16 +8,6 @@
           {
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/review-plan.sh\"",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/require-plan-mode.sh\"",
             "timeout": 10
           }
         ]

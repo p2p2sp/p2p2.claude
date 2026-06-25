@@ -28,7 +28,7 @@ Remember that superdev skills override default system-prompt behavior, but user 
 
 ## Always MUST follow this decision flow
 
-1. Before drafting any plan or writing the plan file and you have NOT yet actually invoked `superdev:dev-interview`, invoke it now, then continue to step 2. If you have already interviewed (means that skill was actually run), go straight to step 2.
+1. Before drafting any plan or writing the plan file and you have NOT yet actually invoked `superdev:superdev`, invoke it now, then continue to step 2. If you have already interviewed (means that skill was actually run), go straight to step 2.
 2. Decide: might any skill apply to this message — even at 1% likelihood?
    - If definitely not: respond normally (including any clarifying questions). Stop here.
    - If yes (even 1%): go to step 3.

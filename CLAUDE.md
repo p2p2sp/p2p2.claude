@@ -65,10 +65,10 @@ ecosystem.
   marketplace.json   Marketplace catalog — co-lists superdev by source "./superdev" and superui by "./superui"
 superdev/            The superdev plugin
   .claude-plugin/plugin.json   The plugin manifest — skills[] + agents[] are the catalog of record
-  hooks/             One injected dispatcher manifest + the three hook scripts
-    hooks.json       SessionStart (inject manifest) + PreToolUse: ExitPlanMode (plan-review gate) + Write|Edit (plan-mode guard)
+  hooks/             One injected dispatcher manifest + the two hook scripts
+    hooks.json       SessionStart (inject manifest) + PreToolUse: ExitPlanMode (plan-review gate)
     content/manifest.md  The injected `using-superdev` dispatcher
-    scripts/         session-start.sh, review-plan.sh, require-plan-mode.sh
+    scripts/         session-start.sh, review-plan.sh
   shared/            Plugin-level shared assets + scripts (rubric.md; coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the mem-layers / mem-rules scans)
   skills/            Skills grouped by prefix (mem- / doc- / dev- / gh-); some skills bundle a
                      deterministic helper under their own scripts/ dir (dev-orchestrator/scripts/commit-task.sh
@@ -122,9 +122,14 @@ in this group: `dev-coder`, `dev-task-reviewer`, `dev-improver`, `dev-commiter` 
 fork-skills. (`dev-commiter` is a thin haiku passthrough — it only runs `commit-task.sh` and relays its tag —
 but it is still a workflow-dispatched plugin agent, so it follows the no-infix rule like the other three.) The **inline dispatchers**
 that drive the pipeline (`dev-orchestrator`, `gh-commit`) and every user-facing / auto-routed skill keep a
-plain prefix; so do forks still reachable from the main session (`dev-plan-reviewer`, `gh-cli-executor`).
+plain prefix; so do forks still reachable from the main session (`dev-superplan-reviewer`, `gh-cli-executor`).
 
-- **(no prefix)** — `setup`: one-time, user-only environment bootstrap (`/setup`). Seeds `.temp/` + `.superdev/`,
+- **(no prefix)** — two top-level skills named outside the prefix groups:
+  - `superdev`: the always-on **entry skill** (the renamed former `dev-interview`), named after the plugin
+    itself because it is the heart of the ecosystem — every session's creative work starts here. It interviews
+    the user to map the design tree before any plan/code, then hands off silently to `dev-superplan`. It is
+    model-invocable and is the skill the manifest's decision flow forces first (step 1), unlike `setup`.
+  - `setup`: one-time, user-only environment bootstrap (`/setup`). Seeds `.temp/` + `.superdev/`,
   copies the bundled `.gitignore` / `.claude/settings.json` templates, and **seeds `.superdev/config.yml` from a
   bundled asset** (`setup/scripts/bootstrap.sh` copies `assets/config.yml`, both switches `true`, never
   overwriting an existing one), then **interactively asks the 2 opt-in switches** and `Edit`s the freshly-seeded
@@ -150,8 +155,9 @@ plain prefix; so do forks still reachable from the main session (`dev-plan-revie
 - **`doc-`** — end-user documentation (1 skill): `doc-help` (the end-user product-help layer → `.superdev/help/`).
   Authors the human-facing help that ships to the people who use the built app — distinct
   from the agent-facing `mem-` layers above; faces the end user, not Claude.
-- **`dev-`** — the agentic-development pipeline + diagnostics/specs (14 skills + 4 plugin agents): planning
-  (`dev-interview`, `dev-superplan`, `dev-plan-reviewer`), the orchestrated implementation pipeline
+- **`dev-`** — the agentic-development pipeline + diagnostics/specs (13 skills + 4 plugin agents): planning
+  (`dev-superplan`, `dev-superplan-reviewer`; the interview entry point now lives in the no-prefix `superdev`
+  skill above), the orchestrated implementation pipeline
   (`dev-orchestrator` → **mandatory first step** `dev-agent-recipe` (derives the host toolchain once →
   `recipe.sh` + `profile.md`; owns the clean-tree guard; FAIL = hard halt) → `dev-agent-adr-recorder` →
   `dev-agent-decomposer` → per task **one `Workflow`** call to `task-pipeline.workflow.js` driving `dev-coder` →
@@ -184,13 +190,13 @@ plain prefix; so do forks still reachable from the main session (`dev-plan-revie
   hint). Config readers are `dev-orchestrator` (reads the booleans + the retry integers), `setup` (writer),
   `mem-rules` (reader + one-time `rule_extensions` writer), and the `dev-improver` agent (reader); the
   `SessionStart` hook does not read config (the manifest is injected verbatim, the same for every project).
-- **Plan gate, plan-mode-enforced.** Planning always happens in plan mode, enforced by **two** `PreToolUse`
-  hooks: `require-plan-mode.sh` (matcher `Write|Edit`) denies writing a plan file (`.claude/plans/*.md`) unless
-  `permission_mode == "plan"` — forcing `EnterPlanMode` regardless of the starting mode — and `review-plan.sh`
-  (matcher `ExitPlanMode`) denies the plan's approval until `dev-plan-reviewer` returns `STATUS: PASS`. The
-  ExitPlanMode hook is the **single** gate in every mode, and `dev-orchestrator` trusts it — it does **not**
-  re-review the plan. (Residual: a `PreToolUse` deny is only best-effort in the permission-relaxed modes
-  `bypassPermissions`/`dontAsk`/`auto`, so in those modes the gate itself is best-effort.) Keep all paths in sync.
+- **Plan gate.** Planning happens in plan mode — entering plan mode before drafting a plan is driven by the
+  `dev-superplan` skill instruction (Layer-A), not a deterministic hook. The plan's approval is gated by a
+  single `PreToolUse` hook: `review-plan.sh` (matcher `ExitPlanMode`) denies the plan's approval until
+  `dev-superplan-reviewer` returns `STATUS: PASS`. This ExitPlanMode hook is the **single** gate in every mode,
+  and `dev-orchestrator` trusts it — it does **not** re-review the plan. (Residual: a `PreToolUse` deny is only
+  best-effort in the permission-relaxed modes `bypassPermissions`/`dontAsk`/`auto`, so in those modes the gate
+  itself is best-effort.) Keep all paths in sync.
 - **No `"hooks"` field in `plugin.json`.** Claude Code auto-loads `hooks/hooks.json` from that path; adding a
   `hooks` field to `plugin.json` is a hard install error.
 - **File-based dispatch.** The orchestrator dispatches by passing **file paths** (task file + path params

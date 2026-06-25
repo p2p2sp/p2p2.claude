@@ -1,5 +1,5 @@
 ---
-name: dev-plan-reviewer
+name: dev-superplan-reviewer
 description: "Invoked only by `superdev:dev-superplan`, never directly."
 model: opus
 effort: xhigh

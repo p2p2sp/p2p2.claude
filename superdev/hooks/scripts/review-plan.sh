@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # superdev / PreToolUse hook for ExitPlanMode.
 #
-# Blocks ExitPlanMode until the dev-plan-reviewer skill has approved the plan
+# Blocks ExitPlanMode until the dev-superplan-reviewer skill has approved the plan
 # file with STATUS: PASS. Heuristic: only gates when the transcript shows a
 # prior Write/Edit to a path under .claude/plans/*.md (i.e. plan-mode for an
 # implementation plan, not commit-flow plan-mode without a plan file).
 #
 # NOTE: this hook only fires when the model calls ExitPlanMode, i.e. in plan
-# mode. The companion guard require-plan-mode.sh denies plan-file writes outside
-# plan mode, so planning always happens in plan mode and this ExitPlanMode gate
-# fires for every plan-driven flow regardless of the mode the session started in.
+# mode. Entering plan mode before drafting a plan is driven by the dev-superplan
+# skill instruction, so this ExitPlanMode gate fires for every plan-driven flow
+# regardless of the mode the session started in.
 # dev-orchestrator trusts this gate as the single plan-review checkpoint and does
 # not re-review the plan itself.
 #
@@ -83,24 +83,24 @@ if [ -z "$last_plan_write_line" ]; then
 fi
 
 # Step 2: from the line AFTER the last plan-file write, look for:
-#   R = a line containing "dev-plan-reviewer" AND a subagent marker
+#   R = a line containing "dev-superplan-reviewer" AND a subagent marker
 #   S = a line containing "STATUS: PASS"
 # Require R < S so the reviewer call precedes its result.
 tail_start=$((last_plan_write_line + 1))
 
-# R: subagent / skill invocation referencing dev-plan-reviewer.
-# Match either the Agent tool call ("subagent_type":"...dev-plan-reviewer...") or the
-# Skill tool_use envelope (dev-plan-reviewer is a context:fork skill invoked via the
-# Skill tool — "skill":"superdev:dev-plan-reviewer") that mentions dev-plan-reviewer on
+# R: subagent / skill invocation referencing dev-superplan-reviewer.
+# Match either the Agent tool call ("subagent_type":"...dev-superplan-reviewer...") or the
+# Skill tool_use envelope (dev-superplan-reviewer is a context:fork skill invoked via the
+# Skill tool — "skill":"superdev:dev-superplan-reviewer") that mentions dev-superplan-reviewer on
 # the same JSONL line. Load-bearing: name + marker must co-occur on one line; if a
-# future transport splits them, relax to a two-stage match (dev-plan-reviewer line, then STATUS).
+# future transport splits them, relax to a two-stage match (dev-superplan-reviewer line, then STATUS).
 reviewer_call_line=$(
-  awk -v start="$tail_start" 'NR>=start && /dev-plan-reviewer/ && (/"subagent_type"/ || /"Agent"/ || /"Skill"/ || /"skill"/) { print NR; exit }' \
+  awk -v start="$tail_start" 'NR>=start && /dev-superplan-reviewer/ && (/"subagent_type"/ || /"Agent"/ || /"Skill"/ || /"skill"/) { print NR; exit }' \
     "$transcript_path" 2>/dev/null
 )
 
 if [ -z "$reviewer_call_line" ]; then
-  emit_deny "The dev-plan-reviewer skill must approve the plan first. Invoke it with 'Plan file: <absolute-path>' and wait for STATUS: PASS, then retry ExitPlanMode.\n\nAnnounce the plan review as "Running dev-plan-reviewer..." but DO NOT tell the user that you have to do it because the hook told you to."
+  emit_deny "The dev-superplan-reviewer skill must approve the plan first. Invoke it with 'Plan file: <absolute-path>' and wait for STATUS: PASS, then retry ExitPlanMode.\n\nAnnounce the plan review as "Running dev-superplan-reviewer..." but DO NOT tell the user that you have to do it because the hook told you to."
 fi
 
 # S: STATUS: PASS occurring AFTER the reviewer call line.
@@ -110,7 +110,7 @@ status_pass_line=$(
 )
 
 if [ -z "$status_pass_line" ]; then
-  emit_deny "dev-plan-reviewer was invoked but 'STATUS: PASS' not found in the transcript afterwards. If the reviewer returned 'STATUS: FAIL', apply the Recommended fixes to the plan file and re-invoke dev-plan-reviewer before retrying ExitPlanMode.\n\nAnnounce the plan review as "Running dev-plan-reviewer..." but DO NOT tell the user that you have to do it because the hook told you to."
+  emit_deny "dev-superplan-reviewer was invoked but 'STATUS: PASS' not found in the transcript afterwards. If the reviewer returned 'STATUS: FAIL', apply the Recommended fixes to the plan file and re-invoke dev-superplan-reviewer before retrying ExitPlanMode.\n\nAnnounce the plan review as "Running dev-superplan-reviewer..." but DO NOT tell the user that you have to do it because the hook told you to."
 fi
 
 # Sequence W -> R -> S satisfied -> allow.

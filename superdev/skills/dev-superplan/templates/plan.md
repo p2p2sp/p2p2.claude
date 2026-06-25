@@ -35,7 +35,7 @@ Implementation: self
 -->
 
 ### 5. Assumptions
-<!-- Every claim about behavior/data/environment/intent that is NOT derivable from files read in §3 and NOT explicitly stated in the session goes here. This skill does NOT interview to confirm them — mark an item [load-bearing] when the plan breaks if it is wrong, so dev-plan-reviewer and the user can re-verify at a glance. A candidate with no defensible default belongs in §6 Options, not here. -->
+<!-- Every claim about behavior/data/environment/intent that is NOT derivable from files read in §3 and NOT explicitly stated in the session goes here. This skill does NOT interview to confirm them — mark an item [load-bearing] when the plan breaks if it is wrong, so dev-superplan-reviewer and the user can re-verify at a glance. A candidate with no defensible default belongs in §6 Options, not here. -->
 - ...
 - ... [load-bearing]
 
