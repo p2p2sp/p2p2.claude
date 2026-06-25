@@ -33,9 +33,9 @@
     "./skills/gh-pr/"
   ],
   "agents": [
-    "./agents/dev-coder.md",
-    "./agents/dev-task-reviewer.md",
-    "./agents/dev-improver.md",
-    "./agents/dev-commiter.md"
+    "./skills/dev-orchestrator/agents/dev-coder.md",
+    "./skills/dev-orchestrator/agents/dev-task-reviewer.md",
+    "./skills/dev-orchestrator/agents/dev-improver.md",
+    "./skills/dev-orchestrator/agents/dev-commiter.md"
   ]
 }

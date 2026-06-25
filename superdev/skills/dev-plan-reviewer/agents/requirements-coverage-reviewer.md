@@ -1,10 +1,10 @@
 ---
 name: requirements-coverage-reviewer
-description: Read-only plan reviewer that checks whether an implementation plan covers exactly what the user asked for — no missing requirements, no scope creep. Use proactively during plan review, invoked by the plan-review orchestrator.
+description: "Pipeline-bound; invoked only by `superdev:dev-plan-reviewer`, never directly."
 tools: Read, Grep, Glob
 model: sonnet
-# model rationale: requirement→task mapping needs solid comprehension but no deep
-# code reasoning. Sonnet is the cost/quality sweet spot; drop to haiku for tiny plans.
+user-invocable: false
+context: fork
 ---
 
 You are a Requirements-Coverage reviewer. You operate read-only and in a fresh

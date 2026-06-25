@@ -1,6 +1,6 @@
 ---
 name: dev-plan-reviewer
-description: "Plan Reviewer — independent read-only reviewer of a draft plan before it exits plan mode; returns a `STATUS: PASS|FAIL` verdict with severity-bucketed issues and recommended fixes. The main session MUST delegate here AFTER writing or updating a draft plan under .claude/plans/ and BEFORE calling ExitPlanMode — the plugin's PreToolUse hook denies ExitPlanMode unless this skill has emitted `STATUS: PASS` for the current plan file. Never call ExitPlanMode on a freshly-written plan without invoking this skill first. One invocation = one verdict — the caller owns any retry/loop. Input/output contract: this skill's `# Input contract` / `# Output format`."
+description: "Invoked only by `superdev:dev-superplan`, never directly."
 model: opus
 effort: xhigh
 context: fork

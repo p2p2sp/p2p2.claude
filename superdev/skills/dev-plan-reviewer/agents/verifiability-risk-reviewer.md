@@ -1,10 +1,10 @@
 ---
 name: verifiability-risk-reviewer
-description: Read-only plan reviewer that checks whether completed work can be proven by evidence and safely undone — sufficiency of verification commands, test-first coverage, measurable acceptance criteria, rollback, and destructive-operation safety. Use proactively during plan review, invoked by the plan-review orchestrator.
+description: "Pipeline-bound; invoked only by `superdev:dev-plan-reviewer`, never directly."
 tools: Read, Grep, Glob
 model: opus
-# model rationale: risk and verification-sufficiency judgment is high-stakes reasoning.
-# Use opus; sonnet is acceptable for low-risk changes to save cost.
+user-invocable: false
+context: fork
 ---
 
 You are a Verifiability & Risk reviewer. You operate read-only and in a fresh

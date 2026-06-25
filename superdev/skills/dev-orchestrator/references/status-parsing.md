@@ -7,7 +7,7 @@ Detail reference for the **dispatcher-only** parsing helpers used by `SKILL.md`.
 > **Authoritative source for every contract below:** the deterministic committer script's header
 > contract at `skills/dev-orchestrator/scripts/commit-task.sh`, the workflow's header contract at
 > `skills/dev-orchestrator/scripts/task-pipeline.workflow.js`, and each worker agent's own `# Output
-> format` (`agents/dev-coder.md`, `agents/dev-task-reviewer.md`, `agents/dev-improver.md`) /
+> format` (`skills/dev-orchestrator/agents/dev-coder.md`, `skills/dev-orchestrator/agents/dev-task-reviewer.md`, `skills/dev-orchestrator/agents/dev-improver.md`) /
 > `skills/dev-agent-{decomposer,runner}/SKILL.md`. This file is a quick-reference cheatsheet for the
 > dispatcher — when the two disagree, the source file wins.
 

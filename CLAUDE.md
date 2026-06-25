@@ -69,12 +69,13 @@ superdev/            The superdev plugin
     hooks.json       SessionStart (inject manifest) + PreToolUse: ExitPlanMode (plan-review gate) + Write|Edit (plan-mode guard)
     content/manifest.md  The injected `using-superdev` dispatcher
     scripts/         session-start.sh, review-plan.sh, require-plan-mode.sh
-  agents/            The 4 per-task pipeline plugin agents (dev-coder.md, dev-task-reviewer.md, dev-improver.md, dev-commiter.md)
   shared/            Plugin-level shared assets + scripts (rubric.md; coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the mem-layers / mem-rules scans)
   skills/            Skills grouped by prefix (mem- / doc- / dev- / gh-); some skills bundle a
                      deterministic helper under their own scripts/ dir (dev-orchestrator/scripts/commit-task.sh
                      + commit-adr.sh + task-pipeline.workflow.js, dev-agent-recipe/scripts/recipe.template.sh,
-                     gh-commit/scripts/route.sh, mem-rules/scripts/route.sh, setup/scripts/bootstrap.sh)
+                     gh-commit/scripts/route.sh, mem-rules/scripts/route.sh, setup/scripts/bootstrap.sh);
+                     dev-orchestrator also bundles the 4 per-task pipeline plugin agents under its agents/ subdir
+                     (dev-coder.md, dev-task-reviewer.md, dev-improver.md, dev-commiter.md)
 superui/             The superui plugin
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
   hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
@@ -116,7 +117,7 @@ invoked **only by a superordinate skill via the `Skill` tool** (never the user, 
 fork-only nature, and their frontmatter already encodes it (`context: fork` + `user-invocable: false` + a
 one-line "pipeline-bound; invoked only by …" guard `description`). The four per-task pipeline workers are NOT
 in this group: `dev-coder`, `dev-task-reviewer`, `dev-improver`, `dev-commiter` are real **plugin agents**
-(`superdev/agents/*.md`, listed in `plugin.json` `agents[]`, dispatched by the `task-pipeline.workflow.js` via
+(`superdev/skills/dev-orchestrator/agents/*.md`, listed in `plugin.json` `agents[]`, dispatched by the `task-pipeline.workflow.js` via
 `agentType:'superdev:dev-*'`) — named without the infix precisely because they are genuine agents, not
 fork-skills. (`dev-commiter` is a thin haiku passthrough — it only runs `commit-task.sh` and relays its tag —
 but it is still a workflow-dispatched plugin agent, so it follows the no-infix rule like the other three.) The **inline dispatchers**
@@ -158,7 +159,7 @@ plain prefix; so do forks still reachable from the main session (`dev-plan-revie
   `commit-task.sh` as the workflow's final stage, only on PASS) → `dev-agent-final-reviewer`), the final-gate
   sub-skills (`dev-agent-plan-auditor`, `dev-agent-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`. The four
   per-task workers `dev-coder` / `dev-task-reviewer` / `dev-improver` / `dev-commiter` are **plugin agents**
-  (`superdev/agents/*.md`), not skills — dispatched by the workflow via `agentType:'superdev:dev-*'`.
+  (`superdev/skills/dev-orchestrator/agents/*.md`), not skills — dispatched by the workflow via `agentType:'superdev:dev-*'`.
 - **`gh-`** — GitHub: `gh-cli` (+ `gh-cli-executor`), `gh-commit` (entry) + `gh-agent-committer`,
   `gh-issue`, `gh-pr`.
 

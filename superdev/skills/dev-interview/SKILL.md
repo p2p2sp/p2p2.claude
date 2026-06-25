@@ -28,10 +28,10 @@ The interview models the work as a **design tree** — a graph where each decisi
 
 > **Decision 2: where does the session token live?**
 >
-> [Recommended]: **2.1. HttpOnly cookie** — survives reload, immune to XSS exfiltration, no client-side wiring. Trade-off: needs a CSRF strategy.
+> [Recommended]: **2.1 HttpOnly cookie** — survives reload, immune to XSS exfiltration, no client-side wiring. Trade-off: needs a CSRF strategy.
 >
 > Alternatives:
-> 2.2. `localStorage` — simpler, but readable from any script on the page.
+> 2.2 `localStorage` — simpler, but readable from any script on the page.
 > 2.3 In-memory only — safest, but logs the user out on every reload.
 >
 > Choose (2.1 / 2.2 / 2.3)?
