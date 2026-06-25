@@ -1,4 +1,4 @@
-name: Manual version bump
+name: Release
 on:
   workflow_dispatch:
     inputs:
@@ -17,10 +17,10 @@ concurrency:
   group: versioning
   cancel-in-progress: false
 jobs:
-  bump:
+  Release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           fetch-tags: true
