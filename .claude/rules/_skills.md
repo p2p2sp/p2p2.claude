@@ -10,6 +10,8 @@ paths:
 
 Remember, you're writing a skill or agent for an LLM, not a human. An LLM needs short, on-point instructions, highly preferable bullet points - it should probably be more like code instructions than plain prose. An LLM doesn't need long sentences (prose) surrounded by context. Too much information means chaos and misleading decisions.
 
+Do not use excesive formating. Do not use italics, tables - clean text, bullets is enough.
+
 ## Write for Retrieval, Not for Completeness
 
 The instinct when writing skill or agent documentation is to be thorough. Cover every parameter. Note every edge case. Document every default behavior. Resist this. LLM doesn’t need a manual. It needs the delta — the things that differ from sensible defaults. If the right behavior is what a competent developer would do anyway, you don’t need to document it.
@@ -44,3 +46,44 @@ Advantages of using deterministic scripts:
 - Shortening the text cannot mean less precise instructions.
 - Agent also can have references and LLM can just read it - even if the documentation says nothing about it.
 - Use only clean bash - no other tools like `jq` or `bc`.
+
+## Examples
+
+**BAD**
+```
+# CSV to JSON Conversion Skill
+
+This skill helps you convert CSV files into JSON format. CSV (Comma-Separated
+Values) is a common format for tabular data, while JSON (JavaScript Object
+Notation) is widely used in web apps and APIs.
+
+When a user uploads a CSV, first read the file carefully to understand its
+structure. Look at the header row (usually the first line) to determine the
+column names. Then go through each row one by one and map every value to its
+column, building a JSON object per row. Remember JSON uses double quotes for
+keys and string values by default.
+
+You can use `jq` to format the output nicely. If a field looks like a number,
+try to detect whether it is an integer or a float. Edge cases such as empty
+cells, quoted commas, and trailing newlines should be handled appropriately.
+```
+
+**GOOD**
+```
+# csv-to-json
+
+## When
+- User wants a .csv converted to .json.
+
+## Run
+- `python scripts/csv2json.py <input.csv> <output.json>`
+- Return the output path. Do not parse rows yourself.
+
+## Rules (deltas only)
+- Empty cell -> null, not "".
+- Numeric-looking values stay strings unless user asks to coerce.
+- Duplicate header names -> suffix _2, _3.
+
+## On failure
+- Print stderr verbatim. Do not fall back to hand-parsing.
+```
