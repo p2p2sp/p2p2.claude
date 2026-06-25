@@ -1,4 +1,4 @@
-# Mode: session (default)
+**Mode: session**
 
 Commit **only what we touched in this conversation** — not unrelated changes that happen to sit in the working tree. This is the default when the argument is empty.
 

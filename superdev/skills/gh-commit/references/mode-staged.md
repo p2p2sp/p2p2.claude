@@ -1,6 +1,6 @@
-# Mode: staged
+**Mode: staged**
 
-Commit what the user **already staged**, as-is — no staging, no branch question.
+Commit what the user **already staged**, as-is — no staging, no branch question. Just do instructions below.
 
 **Do this:**
 

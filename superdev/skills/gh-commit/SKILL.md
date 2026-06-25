@@ -8,13 +8,7 @@ argument-hint: "[all|staged]"
 effort: low
 ---
 
-# Commit context resolver
-
-Pick the right files to commit, then hand the staging + commit off to the `superdev:gh-agent-committer` fork. This skill runs in the **main context on purpose** — it needs to read THIS session's conversation to know which files we touched and to pass a compact intent hint reflecting what the work actually did; a fork cannot see that context. The resolver never runs `git add` / `git commit` itself, and never reads the diff to author a subject — staging, diff-reading, and subject authoring are the committer's job.
-
-If you cannot determine a safe set of files to commit, prefer a **no-op** (report "nothing to commit") over guessing — an unwanted commit is far more costly to undo than a no-op is to re-run.
-
-## Playbook
+## Commit mode selection
 
 The mode comes from the skill argument (`all` / `staged` / empty→`session`). The matching playbook is injected below for **your** argument — follow it exactly: it tells you how to resolve the file set and how to delegate to `superdev:gh-agent-committer`. Do not consider the other two modes.
 
@@ -24,6 +18,7 @@ The mode comes from the skill argument (`all` / `staged` / empty→`session`). T
 
 ## Safety rules
 
+- If you cannot determine a safe set of files to commit, prefer a **no-op** (report "nothing to commit") over guessing — an unwanted commit is far more costly to undo than a no-op is to re-run.
 - The resolver is **read-only on git** — it inspects with `git status` / `git rev-parse` only. All staging, diff-reading, and committing happens in the committer fork.
 - Never push, merge, rebase, amend, cherry-pick, or use `--force` / `--no-verify`; never instruct the committer to.
 - Never edit source files, test files, or git config — this skill only inspects, routes, and passes a hint.

@@ -1,6 +1,6 @@
-# Mode: all
+**Mode: all**
 
-The user asked to commit **everything** in the working tree — no per-file analysis, no branch question.
+The user asked to commit **everything** in the working tree — no per-file analysis, no branch question. Just do instructions below.
 
 **Do this:**
 
