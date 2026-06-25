@@ -1,6 +1,6 @@
 {
   "name": "superdev",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Unified agentic-development ecosystem for Claude Code — one injected dispatcher manifest routing memory, planning, an implementation pipeline, and GitHub skills, grouped by prefix (mem- / doc- / dev- / gh-). Self-contained: no dependencies.",
   "author": {
     "name": "Dariusz Lenartowicz",
