@@ -31,13 +31,14 @@ Set a recurring reminder to review your skill or agent files the same way you’
 
 Remove mercilessly. Everything in a skill file has a cost.
 
-## Use Scripts
+## Use Scripts whenever possible
 
 If skill or agent can automate something and instead of LLM reasoning replace by deterministic script - do it without any doubt. Especialy for tasks requiring determinism like parsing JSON, sorting data, compiling code, determistic searching, API calls, or math calculations.
 
-Why You SHOULD use deterministic scripts:
+Advantages of using deterministic scripts:
 - Repeatable Output: Code runs the same way every time, eliminating unpredictable decision-making branches.
 - Speed & Cost: Executing code is significantly cheaper and faster than generating tokens for agent reasoning.
+- Performance: Written script is optimised and tested - run faster than executed one by one Bash command by agent.
 
 ## Gotchas
 - Shortening the text cannot mean less precise instructions.
