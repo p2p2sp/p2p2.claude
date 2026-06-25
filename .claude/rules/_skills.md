@@ -42,3 +42,4 @@ Why You SHOULD use deterministic scripts:
 ## Gotchas
 - Shortening the text cannot mean less precise instructions.
 - Agent also can have references and LLM can just read it - even if the documentation says nothing about it.
+- Use only clean bash - no other tools like `jq` or `bc`.

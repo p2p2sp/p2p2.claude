@@ -53,9 +53,9 @@ FILE_COUNT=$(find "$TARGET_PATH" -type f \
 
 # Format tokens
 if [ "$TOKENS" -ge 1000000 ]; then
-    FORMATTED=$(echo "scale=1; $TOKENS/1000000" | bc)M
+    FORMATTED="$((TOKENS / 1000000)).$(( (TOKENS % 1000000) / 100000 ))M"
 elif [ "$TOKENS" -ge 1000 ]; then
-    FORMATTED=$(echo "scale=1; $TOKENS/1000" | bc)k
+    FORMATTED="$((TOKENS / 1000)).$(( (TOKENS % 1000) / 100 ))k"
 else
     FORMATTED=$TOKENS
 fi
