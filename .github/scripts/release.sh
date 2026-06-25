@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# release.sh — tag-driven version bump for the superdev + superui plugins.
+# release.sh — tag-driven version bump for the superdev + superui + supergh plugins.
 #
 # Computes the next MAJOR.MINOR.PATCH version (no "v" prefix) from the highest
-# existing git tag, syncs it into BOTH subdir plugin manifests' .version
-# (superdev/.claude-plugin/plugin.json and superui/.claude-plugin/plugin.json —
-# shared version, one tag namespace), commits the bump (`chore(bump): …`, no
+# existing git tag, syncs it into ALL THREE subdir plugin manifests' .version
+# (superdev/, superui/, supergh/ .claude-plugin/plugin.json — shared version,
+# one tag namespace), commits the bump (`chore(bump): …`, no
 # [skip ci]), creates + pushes the tag, then publishes a GitHub Release whose
 # notes are built from the commits since the previous tag (grouped by conventional
 # type) with GitHub's auto-generated notes appended.
@@ -23,7 +23,7 @@
 set -euo pipefail
 
 part="${1:?usage: release.sh <major|minor|patch>}"
-manifests=(superdev/.claude-plugin/plugin.json superui/.claude-plugin/plugin.json)
+manifests=(superdev/.claude-plugin/plugin.json superui/.claude-plugin/plugin.json supergh/.claude-plugin/plugin.json)
 seed="0.1.0"
 
 current="$(git tag --list --sort=-v:refname \
@@ -48,7 +48,7 @@ fi
 git config user.name  "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-# 1. Write the new version into BOTH plugin manifests (shared version).
+# 1. Write the new version into ALL plugin manifests (shared version).
 for manifest in "${manifests[@]}"; do
   tmp="$(mktemp)"
   jq --arg v "$new" '.version = $v' "$manifest" >"$tmp"
@@ -58,8 +58,8 @@ done
 # 2. Commit the bump FIRST — this commit is what the release tag points at.
 #    The no-diff branch is recovery only: a prior run already committed this exact
 #    version but failed before tagging, so re-tag that commit instead of fabricating
-#    an empty one (rerun-safe). A diff in EITHER manifest counts as a change, so the
-#    re-tag path fires only when NEITHER manifest changed.
+#    an empty one (rerun-safe). A diff in ANY manifest counts as a change, so the
+#    re-tag path fires only when NO manifest changed.
 git add "${manifests[@]}"
 if git diff --cached --quiet; then
   echo "release.sh: $new already committed; re-tagging existing release commit" >&2

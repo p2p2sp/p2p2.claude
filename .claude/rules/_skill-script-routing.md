@@ -4,7 +4,7 @@ paths:
 ---
 # Skill script routing & dynamic-context injection
 
-How a skill preloads state or picks one playbook with a deterministic script instead of LLM branching. Precedent: `superdev/skills/gh-commit` + its `scripts/route.sh`.
+How a skill preloads state or picks one playbook with a deterministic script instead of LLM branching. Precedent: `supergh/skills/commit` + its `scripts/route.sh`.
 
 ## `!`-injection (dynamic context)
 
