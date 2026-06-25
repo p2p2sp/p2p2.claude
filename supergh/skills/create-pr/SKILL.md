@@ -1,5 +1,5 @@
 ---
-name: gh-pr
+name: create-pr
 description: GitHub pull request creation expert driving an interactive, template-driven flow. Use this skill whenever the user wants to create a PR, open a pull request, submit changes for review, or raise a draft PR. Triggers include "create PR", "new PR", "open PR", "create pull request", "open pull request", "raise PR", "draft PR", "submit for review". Reads `.github/pull_request_template.md`, resolves the linked issue from branch name (`task.N` / `issue.N`), command argument, or session context, and creates a draft PR via `gh pr create`. Do NOT call `gh pr create` directly via Bash — use this skill first; it enforces template usage, draft mode, GitFlow branch routing, and issue-driven title format `[#N] {issue-title}`. Do NOT use for editing existing PRs, posting reviews, or merging — that is separate tooling. Trigger applies in any language and to descriptive phrasing too.
 allowed-tools: Read, Glob, Write, AskUserQuestion, Bash(gh --version), Bash(gh auth status), Bash(gh pr create:*), Bash(gh pr list:*), Bash(gh issue view:*), Bash(git rev-parse:*), Bash(git branch:*), Bash(git log:*)
 user-invocable: true
@@ -147,17 +147,17 @@ Then `AskUserQuestion` with three options:
 
 - `Save` — proceed to Step 8.
 - `Edit field` — second `AskUserQuestion` lists every editable field: `Title`, `Base`, then each parsed section by its heading (verbatim, with leading `###`/`##` stripped for display). **`Draft` is not editable** — the skill always creates draft PRs. User picks one → conversational prompt with the previous value as default / starting point → re-run Step 6 auto-fill for non-edited sections only (keep user-edited content), re-render preview → **return to Step 7**. If a section was marked `skip=true` in Step 6 (untestable change → Plan testów omitted), list it in the Edit-field options with a `(pominięto — przywróć?)` suffix so the user can opt back in; selecting it flips `skip=false` and triggers a conversational prompt for the section content.
-- `Cancel` — print `Anulowano. Nie utworzono PR.` (language-appropriate) and STOP. Any tempfile under `.temp/gh-pr/` stays — `.temp/` is in `.gitignore`, debug-friendly.
+- `Cancel` — print `Anulowano. Nie utworzono PR.` (language-appropriate) and STOP. Any tempfile under `.temp/create-pr/` stays — `.temp/` is in `.gitignore`, debug-friendly.
 
 The edit loop is unbounded — user may edit any number of fields before saving.
 
 ## Step 8 — Persist & create
 
-1. **Compute a unique body path** (so parallel `gh-pr` runs do not clobber each other):
+1. **Compute a unique body path** (so parallel `create-pr` runs do not clobber each other):
    ```
    ts   = Bash("date +%Y%m%d-%H%M%S")          # e.g. 20260522-143045
    slug = slugify(<title>)                      # see "Slugify" below
-   body_path = ".temp/gh-pr/" + ts + "-" + slug + ".md"
+   body_path = ".temp/create-pr/" + ts + "-" + slug + ".md"
    ```
    **Slugify** — apply in order to the PR title:
    1. Lowercase.
@@ -210,7 +210,7 @@ Rules:
 - Heading line preserved **verbatim** from the template — same level (`##` or `###`), same casing, emojis, accents, punctuation, language.
 - Single blank line between heading and content; single blank line between content and the next heading.
 - HTML comments from the template — **omitted** entirely from the final body (they were hints for the author).
-- Empty section (no auto-fill applied, user did not edit, original placeholders were stripped) → `_No response_` (single-line italic) under the heading. Match `gh-issue` semantics.
+- Empty section (no auto-fill applied, user did not edit, original placeholders were stripped) → `_No response_` (single-line italic) under the heading. Match `create-issue` semantics.
 - Checkbox lines (`- [ ] ...`, `- [x] ...`) preserved as-is when retained from the template or set by the user via Edit field.
 - No trailing whitespace on lines; file ends with a single newline.
 
@@ -219,7 +219,7 @@ Rules:
 - NEVER call `gh pr create` directly via Bash from the main session for the same flow — use this skill so template parsing, draft enforcement, routing, and issue-driven title generation all happen.
 - NEVER cache the parsed template between runs — re-read `.github/pull_request_template.md` on every invocation. The template may have changed.
 - NEVER use `gh pr create --body "<inline>"` — body markdown contains newlines, quotes, dollar signs, backticks; inline escaping under bash is a footgun. Always `--body-file "<body_path>"` where `<body_path>` is the per-run unique file computed in Step 8.1.
-- NEVER omit `--draft` — every PR this skill creates is a draft. Conversion to ready-for-review is an explicit follow-up step the user can do via `gh pr ready` or the GitHub UI. For the API-level draft↔ready conversion and for resolving PR review threads — both GraphQL-only operations — the `cli` skill is the source of truth on which layer applies (see its `references/pr-review-threads.md`); hand the fully-specified operation to the `gh-cli-executor` skill to run it out of the main context.
+- NEVER omit `--draft` — every PR this skill creates is a draft. Conversion to ready-for-review is an explicit follow-up step the user can do via `gh pr ready` or the GitHub UI. For the API-level draft↔ready conversion and for resolving PR review threads — both GraphQL-only operations — the `cli` skill is the source of truth on which layer applies (see its `references/pr-review-threads.md`); hand the fully-specified operation to the `cli-executor` skill to run it out of the main context.
 - NEVER widen the sandbox — `git push`, `gh label list`, `gh api repos`, `gh pr edit`, `gh pr ready`, `gh pr view --web` are intentionally out of scope. Each was a deliberate "no" during this skill's design (no auto-push of branches, no labels/reviewers/assignees collection, no in-skill conversion of draft to ready).
 - NEVER hardcode `develop` as the silent fallback when it does not exist on origin — fallback path is the `AskUserQuestion` with a `git branch -r` list (Edge A). The user must see and pick.
 - NEVER auto-push an unpushed branch — Edge C STOPs with an instruction. The user pushes manually so they own that side-effect.

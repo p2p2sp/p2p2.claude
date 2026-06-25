@@ -1,5 +1,5 @@
 #!/bin/sh
-# route.sh — gh-commit mode router.
+# route.sh — commit mode router.
 # IN : $1 = raw skill argument ($ARGUMENTS). First whitespace token, lowercased, selects the mode:
 #      all → mode-all.md | staged → mode-staged.md | empty/anything else → mode-session.md
 # OUT: the chosen references/mode-*.md verbatim on stdout (the playbook injected into the skill body).

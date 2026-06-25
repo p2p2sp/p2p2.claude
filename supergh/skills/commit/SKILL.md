@@ -1,5 +1,5 @@
 ---
-name: gh-commit
+name: commit
 description: >-
   Commit context resolver — runs in the MAIN context so it can read this session's conversation. Use this skill whenever the user wants to commit changes, save work to git, create a commit, or "wrap up" edits — even if they don't say the exact word "commit". Three modes via argument: (no arg) gather the files changed in THIS session from conversation context and commit only those; `all` → stage every new/modified/deleted file (`git add -A`) and commit; `staged` → commit whatever is already staged. Triggers include "commit", "make a commit", "git commit", "commit all", "commit staged", "save my changes". Do NOT run `git add` / `git commit` directly via Bash — use this skill.
 allowed-tools: Bash(git status:*), Bash(git rev-parse:*), Bash(sh:*), Skill
@@ -10,10 +10,10 @@ effort: low
 
 ## Commit mode selection
 
-The mode comes from the skill argument (`all` / `staged` / empty→`session`). The matching playbook is injected below for **your** argument — follow it exactly: it tells you how to resolve the file set and how to delegate to `superdev:gh-agent-committer`. Do not consider the other two modes.
+The mode comes from the skill argument (`all` / `staged` / empty→`session`). The matching playbook is injected below for **your** argument — follow it exactly: it tells you how to resolve the file set and how to delegate to `supergh:agent-committer`. Do not consider the other two modes.
 
 --- playbook ---
-!`"${CLAUDE_PLUGIN_ROOT}/skills/gh-commit/scripts/route.sh" "$ARGUMENTS"`
+!`"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/route.sh" "$ARGUMENTS"`
 --- playbook ---
 
 ## Safety rules

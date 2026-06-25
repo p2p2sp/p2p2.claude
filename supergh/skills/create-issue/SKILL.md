@@ -1,5 +1,5 @@
 ---
-name: gh-issue
+name: create-issue
 description: GitHub issue creation expert driving an interactive, template-driven flow. Use this skill whenever the user wants to create a GitHub issue, report a bug, file a feature request, open a ticket, or submit a structured issue using the project's issue templates. Triggers include "create issue", "new issue", "open issue", "report bug", "file a bug", "feature request". Reads `.github/ISSUE_TEMPLATE/` fresh on every run, auto-fills fields from session context, shows a preview, and creates the issue via `gh issue create`. Do NOT write issue markdown by hand or call `gh issue create` directly via Bash — use this skill first; it parses the template, enforces required fields, and respects frontmatter labels/type/assignees. Do NOT use for editing or commenting on existing issues — that is separate tooling. Trigger applies in any language and to descriptive phrasing too.
 allowed-tools: Read, Glob, Write, AskUserQuestion, Bash(gh --version), Bash(gh auth status), Bash(gh issue create:*), Bash(gh issue view:*), Bash(gh api:*)
 user-invocable: true
@@ -139,17 +139,17 @@ Then `AskUserQuestion` with three options:
 
 - `Save` — proceed to Step 8.
 - `Edit field` — second `AskUserQuestion` lists every editable field: the title, then each body field by its `attributes.label` (skipping `markdown` types). User picks one → re-run the matching prompt from Step 4 (title) or Step 5 (body field), passing the previous value as the default / starting point → re-render Step 6 → **return to Step 7**.
-- `Cancel` — print "Cancelled. Nothing saved." (language-appropriate) and STOP. Any tempfile under `.temp/gh-issue/` (if already written) stays — `.temp/` is in `.gitignore`, debug-friendly.
+- `Cancel` — print "Cancelled. Nothing saved." (language-appropriate) and STOP. Any tempfile under `.temp/create-issue/` (if already written) stays — `.temp/` is in `.gitignore`, debug-friendly.
 
 The edit loop is unbounded — user may edit any number of fields before saving.
 
 ## Step 8 — Persist & create
 
-1. **Compute a unique body path** (so parallel `gh-issue` runs do not clobber each other):
+1. **Compute a unique body path** (so parallel `create-issue` runs do not clobber each other):
    ```
    ts   = Bash("date +%Y%m%d-%H%M%S")          # e.g. 20260522-143045
    slug = slugify(<title>)                      # see "Slugify" below
-   body_path = ".temp/gh-issue/" + ts + "-" + slug + ".md"
+   body_path = ".temp/create-issue/" + ts + "-" + slug + ".md"
    ```
    **Slugify** — apply in order to the issue title:
    1. Lowercase.
@@ -175,7 +175,7 @@ The edit loop is unbounded — user may edit any number of fields before saving.
    ```
    gh api -X PATCH repos/{owner}/{repo}/issues/{N} -f type="<frontmatter.type>"
    ```
-   On success: continue to Step 9. On error whose stderr/response contains any of `not enabled`, `not found`, `issue types`, `Validation Failed: Type`, `403`, `404` → print a single-line warning that the type was dropped and continue to Step 9 (the issue already exists; do not roll back). Propagate any other error. The `cli` skill is the source of truth for why this is a REST PATCH (issue type is not a `gh issue create --type` flag) — see its decision table. Optionally, this fully-specified PATCH MAY be delegated to the `gh-cli-executor` skill to run out of the main context; the inline logic and flow above stay the default.
+   On success: continue to Step 9. On error whose stderr/response contains any of `not enabled`, `not found`, `issue types`, `Validation Failed: Type`, `403`, `404` → print a single-line warning that the type was dropped and continue to Step 9 (the issue already exists; do not roll back). Propagate any other error. The `cli` skill is the source of truth for why this is a REST PATCH (issue type is not a `gh issue create --type` flag) — see its decision table. Optionally, this fully-specified PATCH MAY be delegated to the `cli-executor` skill to run out of the main context; the inline logic and flow above stay the default.
 
 ## Step 9 — Output
 

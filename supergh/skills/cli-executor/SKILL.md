@@ -1,6 +1,6 @@
 ---
-name: gh-cli-executor
-description: "GitHub CLI executor (fork) — runs ONE fully-specified, non-interactive gh / REST / GraphQL operation out of the main context and returns a single tagged line, so the caller never absorbs the raw JSON. Picks the right layer per the `cli` reference, runs discovery → mutation, and guards every GraphQL mutation against the silent-200 error case. UNLIKE the pipeline-bound committer / runner, this skill MAY be invoked from the main session and from consumer skills (gh-issue, gh-pr) — it is the delegation target for heavy GitHub API dances (node-ID discovery → mutation → error guard). The caller resolves all ambiguity before invoking; a fork cannot ask the user. Input/output contract: this skill's `# Input contract` / `# Output format`."
+name: cli-executor
+description: "GitHub CLI executor (fork) — runs ONE fully-specified, non-interactive gh / REST / GraphQL operation out of the main context and returns a single tagged line, so the caller never absorbs the raw JSON. Picks the right layer per the `cli` reference, runs discovery → mutation, and guards every GraphQL mutation against the silent-200 error case. UNLIKE the pipeline-bound committer / runner, this skill MAY be invoked from the main session and from consumer skills (create-issue, create-pr) — it is the delegation target for heavy GitHub API dances (node-ID discovery → mutation → error guard). The caller resolves all ambiguity before invoking; a fork cannot ask the user. Input/output contract: this skill's `# Input contract` / `# Output format`."
 context: fork
 model: sonnet
 user-invocable: false

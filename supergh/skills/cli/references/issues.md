@@ -57,7 +57,7 @@ gh issue create --title '...' --body-file body.md --label bug --assignee @me
 gh api -X PATCH repos/{owner}/{repo}/issues/{N} -f type=Bug
 ```
 
-This is the right pattern when an existing skill already builds a `gh issue create` invocation and we just need to bolt on the type. Used by the `gh-issue` skill in this plugin.
+This is the right pattern when an existing skill already builds a `gh issue create` invocation and we just need to bolt on the type. Used by the `create-issue` skill in this plugin.
 
 ### Path C — GraphQL (needed only if you already hold a node ID, not a number)
 

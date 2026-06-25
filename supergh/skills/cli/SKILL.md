@@ -1,6 +1,6 @@
 ---
-name: gh-cli
-description: GitHub CLI (gh) reference — when to use native `gh` subcommands, when `gh api` (REST), and when `gh api graphql`. Covers auth & scopes, issue types (REST, not CLI — `gh issue create` has no `--type`), Projects v2, sub-issues, GitHub Discussions, PR review threads, pagination, error handling. Must use this skill whenever an agent or skill needs to call `gh`, `gh api`, or `gh api graphql` — before writing a command from memory, check here which layer (CLI / REST / GraphQL) is correct and whether the field/mutation exists. Triggers include "sub-issue", "review thread", "discussion API", "createDiscussion", "addSubIssue", "resolveReviewThread", "gh pr create". Do NOT execute gh commands directly from this skill — this is a reference skill; execution belongs to consumer skills (gh-issue, commit, gh-pr, …). Trigger applies in any language and to descriptive phrasing too.
+name: cli
+description: GitHub CLI (gh) reference — when to use native `gh` subcommands, when `gh api` (REST), and when `gh api graphql`. Covers auth & scopes, issue types (REST, not CLI — `gh issue create` has no `--type`), Projects v2, sub-issues, GitHub Discussions, PR review threads, pagination, error handling. Must use this skill whenever an agent or skill needs to call `gh`, `gh api`, or `gh api graphql` — before writing a command from memory, check here which layer (CLI / REST / GraphQL) is correct and whether the field/mutation exists. Triggers include "sub-issue", "review thread", "discussion API", "createDiscussion", "addSubIssue", "resolveReviewThread", "gh pr create". Do NOT execute gh commands directly from this skill — this is a reference skill; execution belongs to consumer skills (create-issue, commit, create-pr, …). Trigger applies in any language and to descriptive phrasing too.
 user-invocable: false
 ---
 
@@ -53,4 +53,4 @@ This skill is **reference-only** — it owns the *what to call* / *which layer* 
 
 Don't hand a skill a `gh` command from memory without checking the matching reference here — GitHub's surface evolves (issue types are REST-supported, not a `gh issue create` flag; sub-issues are REST-supported with no native `gh` subcommand; PR thread resolve stays GraphQL-only); what "needs GraphQL" may already be REST, and vice versa.
 
-For interactive issue creation see the **gh-issue** skill, for commits the **commit** skill, for PR creation the **gh-pr** skill. To execute a fully-specified gh/REST/GraphQL operation out of the main context, hand it to the **gh-cli-executor** skill.
+For interactive issue creation see the **create-issue** skill, for commits the **commit** skill, for PR creation the **create-pr** skill. To execute a fully-specified gh/REST/GraphQL operation out of the main context, hand it to the **cli-executor** skill.
