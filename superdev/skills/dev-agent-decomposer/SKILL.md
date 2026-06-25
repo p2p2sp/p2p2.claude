@@ -34,7 +34,7 @@ Plan: <absolute path to plan file>
 PlanSlug: <kebab-case slug — usually the plan filename without `.md`>
 ```
 
-The `Plan:` path points to an existing markdown file describing *what* should be done. The file may be tightly structured (e.g. ExtraPlan-shape with numbered sections), partially structured (headings + a file list), or pure prose. Parse what is present — no structural section is mandatory. The dispatcher resolves the slug from the plan filename; use it verbatim as the directory name under `.temp/.workflows/`.
+The `Plan:` path points to an existing markdown file describing *what* should be done. The file may be tightly structured (e.g. SuperPlan-shape with numbered sections), partially structured (headings + a file list), or pure prose. Parse what is present — no structural section is mandatory. The dispatcher resolves the slug from the plan filename; use it verbatim as the directory name under `.temp/.workflows/`.
 
 # How to work
 
@@ -160,7 +160,7 @@ If no carve-out clearly matches, the Mode is `tdd`. Do not reach for a carve-out
 
 **Imperative override + binding floor:** if the plan contains an imperative directive (Step 2) targeting this task's scope, it interacts with the baseline per the binding-floor rule below — cite the verbatim quote in `Why`.
 
-**Binding floor (recommended testing direction):** when the plan carries a recommended testing direction for a task's scope — an explicit "this needs TDD", a named edge case / failure mode to cover, or a port seam to test (the kind of content the `extraplan` "Recommended testing approach & edge cases" section now allows) — treat it as a **floor on rigor**: it may **raise** the Mode toward more testing (e.g. push a borderline `code-first-then-tests` task to `tdd`, or add a named branch to `## Tests`) but it may **never lower** it below the `tdd` baseline or below what the carve-out table + classify-by-logic already demand. A plan directive that says "skip tests here" is honoured only when `Touches` independently qualifies for `tests-none`; otherwise the floor holds and the task stays at its computed Mode (note the tension in `Why`). The floor is an extension of the imperative-override mechanism — same detection (Step 2), but asymmetric: rigor-raising directives bind, rigor-lowering ones cannot pierce the baseline.
+**Binding floor (recommended testing direction):** when the plan carries a recommended testing direction for a task's scope — an explicit "this needs TDD", a named edge case / failure mode to cover, or a port seam to test (the kind of content the `superplan` "Recommended testing approach & edge cases" section now allows) — treat it as a **floor on rigor**: it may **raise** the Mode toward more testing (e.g. push a borderline `code-first-then-tests` task to `tdd`, or add a named branch to `## Tests`) but it may **never lower** it below the `tdd` baseline or below what the carve-out table + classify-by-logic already demand. A plan directive that says "skip tests here" is honoured only when `Touches` independently qualifies for `tests-none`; otherwise the floor holds and the task stays at its computed Mode (note the tension in `Why`). The floor is an extension of the imperative-override mechanism — same detection (Step 2), but asymmetric: rigor-raising directives bind, rigor-lowering ones cannot pierce the baseline.
 
 **Project-rule modulation:** see Step 4b — a rule may raise the bar further (e.g. "every API endpoint needs an integration test" adds an `integration` entry to a `tdd` task that ships an endpoint).
 

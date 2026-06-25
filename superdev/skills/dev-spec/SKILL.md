@@ -1,6 +1,6 @@
 ---
 name: dev-spec
-description: Specification and PRD writing expert with spec-driven-development practices. Use this skill whenever the user asks for a Spec, Specification, PRD, requirements document, feature spec, or user-story breakdown. Triggers include "spec", "specification", "PRD", "requirements doc", "feature spec", "user story", "acceptance criteria". Enforces working-backwards framing, declarative outcome-statement AC, INVEST stories, explicit anti-patterns, no TBD. Do NOT write specs ad-hoc — use this skill first; it forbids TBD and forces working-backwards framing. Do NOT use for implementation plans — use the `extraplan` skill instead. Trigger applies in any language and to descriptive phrasing too.
+description: Specification and PRD writing expert with spec-driven-development practices. Use this skill whenever the user asks for a Spec, Specification, PRD, requirements document, feature spec, or user-story breakdown. Triggers include "spec", "specification", "PRD", "requirements doc", "feature spec", "user story", "acceptance criteria". Enforces working-backwards framing, declarative outcome-statement AC, INVEST stories, explicit anti-patterns, no TBD. Do NOT write specs ad-hoc — use this skill first; it forbids TBD and forces working-backwards framing. Do NOT use for implementation plans — use the `superplan` skill instead. Trigger applies in any language and to descriptive phrasing too.
 model: opus
 effort: xhigh
 user-invocable: false

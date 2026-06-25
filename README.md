@@ -32,7 +32,7 @@ one(s) you need.
 | — | Environment bootstrap (user-only) | `setup` — run `/setup` once to seed `.temp/` + `.superdev/`, copy the `.gitignore` / `.claude/settings.json` templates, and choose the opt-in switches written to `.superdev/config.yml` |
 | `mem-` | Project memory (agent-facing) | `mem-layers` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer) |
 | `doc-` | End-user documentation | `doc-help` (end-user product help → `.superdev/help/`) |
-| `dev-` | Development pipeline + diagnostics/specs | Skills: `dev-interview`, `dev-extraplan`, `dev-plan-reviewer`, `dev-orchestrator`, `dev-agent-adr-recorder`, `dev-agent-decomposer`, `dev-agent-runner`, `dev-agent-final-reviewer`, `dev-agent-plan-auditor`, `dev-agent-smoke`, `dev-tdd`, `dev-debug`, `dev-spec`. Plugin agents (per-task pipeline workers): `dev-coder`, `dev-task-reviewer`, `dev-improver` |
+| `dev-` | Development pipeline + diagnostics/specs | Skills: `dev-interview`, `dev-superplan`, `dev-plan-reviewer`, `dev-orchestrator`, `dev-agent-adr-recorder`, `dev-agent-decomposer`, `dev-agent-runner`, `dev-agent-final-reviewer`, `dev-agent-plan-auditor`, `dev-agent-smoke`, `dev-tdd`, `dev-debug`, `dev-spec`. Plugin agents (per-task pipeline workers): `dev-coder`, `dev-task-reviewer`, `dev-improver` |
 | `gh-` | GitHub | `gh-cli`, `gh-cli-executor`, `gh-commit`, `gh-agent-committer`, `gh-issue`, `gh-pr` |
 
 ## superui skill groups

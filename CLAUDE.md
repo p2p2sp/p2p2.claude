@@ -150,7 +150,7 @@ plain prefix; so do forks still reachable from the main session (`dev-plan-revie
   Authors the human-facing help that ships to the people who use the built app — distinct
   from the agent-facing `mem-` layers above; faces the end user, not Claude.
 - **`dev-`** — the agentic-development pipeline + diagnostics/specs (14 skills + 4 plugin agents): planning
-  (`dev-interview`, `dev-extraplan`, `dev-plan-reviewer`), the orchestrated implementation pipeline
+  (`dev-interview`, `dev-superplan`, `dev-plan-reviewer`), the orchestrated implementation pipeline
   (`dev-orchestrator` → **mandatory first step** `dev-agent-recipe` (derives the host toolchain once →
   `recipe.sh` + `profile.md`; owns the clean-tree guard; FAIL = hard halt) → `dev-agent-adr-recorder` →
   `dev-agent-decomposer` → per task **one `Workflow`** call to `task-pipeline.workflow.js` driving `dev-coder` →

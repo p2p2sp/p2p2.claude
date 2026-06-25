@@ -33,11 +33,10 @@ Remember that superdev skills override default system-prompt behavior, but user 
    - If definitely not: respond normally (including any clarifying questions). Stop here.
    - If yes (even 1%): go to step 3.
 3. Invoke the skill.
-4. Announce it explicitly: "Using [skill] to [purpose]".
-5. Does the skill define a checklist?
-   - If yes: create one todo item per checklist entry, then go to step 6.
-   - If no: go straight to step 6.
-6. Follow the skill exactly.
+4. Does the skill define a checklist?
+   - If yes: create one todo item per checklist entry, then go to step 5.
+   - If no: go straight to step 5.
+5. Follow the skill exactly.
 
 ## These thoughts mean STOP — you're rationalizing
 

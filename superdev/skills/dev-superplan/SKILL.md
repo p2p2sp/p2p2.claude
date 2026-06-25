@@ -1,33 +1,35 @@
 ---
-name: dev-extraplan
-description: Plan refinement and hardening expert — the default planning discipline for any non-trivial implementation/change plan. Use it (1) whenever the user explicitly asks for extraplan, plan refinement, plan hardening, or a more rigorous plan, and (2) proactively whenever a plan is being drafted in plan mode and the change is non-trivial — 3+ files, a schema / migration / API-contract change, security-adjacent work, more than one defensible approach, or anything costly to undo (full criteria in references/when-to-use.md); reach for it by default instead of producing a loose plain plan. Enforces a strict plan template (intent, model, files, assumptions, options, risk, out-of-scope) and forbids silent assumptions before the plan is presented. Implementation decisions are NOT part of the plan. Skip it only for trivial plans (one-sentence diff, single-file typo / rename, pure read-only research / Q&A) or when the user has explicitly chosen a plain plan-mode draft, and do NOT hijack mem-rules / mem-layers rules-bootstrap plan mode. Do NOT use for initial spec / PRD writing — use the `dev-spec` skill instead. Trigger applies in any language and to descriptive phrasing too.
+name: dev-superplan
+description: Plan refinement and hardening expert — the always-on default planning discipline for ANY plan that gets drafted. Use it whenever a plan is being drafted in plan mode: it is the silent default, engaged automatically (the plugin's presence is reason enough — do NOT ask the user plain-vs-super, and do NOT announce it with a "Using…" line). Enforces a strict plan template (intent, model, files, assumptions, options, risk, out-of-scope) and forbids silent assumptions before the plan is presented. Asks exactly one question at plan finalization — implement via the orchestrator pipeline or implement directly (self / vanilla) — and records the choice as the §0 implementation-mode marker. Implementation decisions beyond that marker are NOT part of the plan. Skip planning entirely (no plan at all — never a looser plan) only for trivial work: one-sentence diff, single-file typo / rename, pure read-only research / Q&A. Do NOT hijack mem-rules / mem-layers rules-bootstrap plan mode. Do NOT use for initial spec / PRD writing — use the `dev-spec` skill instead. Trigger applies in any language and to descriptive phrasing too.
 model: opus
 effort: xhigh
 ---
 
-**CRITIAL**: If plan mode is not already active when extraplan is invoked, your first action MUST be to call `EnterPlanMode` before reading files or drafting anything — **regardless of the current mode** (default / accept-edits). Do NOT call it again if plan mode is already on (the system reminder `Plan mode is active` signals this). Producing the plan inside plan mode is what makes the downstream `dev-plan-reviewer` → `ExitPlanMode` gate apply. This is also enforced by a `PreToolUse` guard: writing a `.claude/plans/*.md` file outside plan mode is denied, so drafting the plan without first entering plan mode will be blocked anyway.
+**CRITIAL**: If plan mode is not already active when superplan is invoked, your first action MUST be to call `EnterPlanMode` before reading files or drafting anything — **regardless of the current mode** (default / accept-edits). Do NOT call it again if plan mode is already on (the system reminder `Plan mode is active` signals this). Producing the plan inside plan mode is what makes the downstream `dev-plan-reviewer` → `ExitPlanMode` gate apply. This is also enforced by a `PreToolUse` guard: writing a `.claude/plans/*.md` file outside plan mode is denied, so drafting the plan without first entering plan mode will be blocked anyway.
 
-# ExtraPlan
+**Silent default — do NOT announce this skill.** SuperPlan is the automatic planning discipline; the plugin's presence is reason enough. Do not emit a "Using dev-superplan" line and do not offer the user a plain-plan alternative. Just enter plan mode and produce the plan.
+
+# SuperPlan
 
 A discipline for producing plans that survive contact with implementation.
 
-Default Claude Code plan mode is read-only and structured, but the plan content itself can drift: missing files, hidden assumptions, no rollback story. ExtraPlan closes that gap with a strict template and mandatory pre-plan behavior before the plan is presented.
+Default Claude Code plan mode is read-only and structured, but the plan content itself can drift: missing files, hidden assumptions, no rollback story. SuperPlan closes that gap with a strict template and mandatory pre-plan behavior before the plan is presented.
 
-**Scope boundary — what ExtraPlan focuses on.** A plan answers *what changes and why*; *how to execute it* (task boundaries, per-task working mode, test naming/ordering/framework) is the `decomposer`'s job, which reads the approved plan (any markdown — ExtraPlan-shape or looser) and writes one focused task file per task under `.temp/.workflows/<slug>/tasks/`. The full **testing-direction-is-a-floor / decomposer-owns-execution / no-ADR-here** doctrine — what the plan MAY carry vs. what it must leave to the decomposer, the binding-floor contract, and where architectural reasoning lands — is stated canonically in §2 "Pre-plan context" and the §8 template section ("Recommended testing approach & edge cases"). Read those; this paragraph only fixes the boundary, it does not restate the doctrine.
+**Scope boundary — what SuperPlan focuses on.** A plan answers *what changes and why*; *how to execute it* (task boundaries, per-task working mode, test naming/ordering/framework) is the `decomposer`'s job, which reads the approved plan (any markdown — SuperPlan-shape or looser) and writes one focused task file per task under `.temp/.workflows/<slug>/tasks/`. The full **testing-direction-is-a-floor / decomposer-owns-execution / no-ADR-here** doctrine — what the plan MAY carry vs. what it must leave to the decomposer, the binding-floor contract, and where architectural reasoning lands — is stated canonically in §2 "Pre-plan context" and the §8 template section ("Recommended testing approach & edge cases"). Read those; this paragraph only fixes the boundary, it does not restate the doctrine.
 
 ---
 
-## 1. When to use ExtraPlan
+## 1. When to use SuperPlan
 
-The canonical "Use when / Skip when" criteria live in `references/when-to-use.md` — that file is the single source of truth. Read it to decide whether a change warrants ExtraPlan over a plain plan.
+SuperPlan is the always-on default: whenever a plan is being drafted, it **is** the plan discipline — there is no plain-plan alternative to choose. The only open question is whether the work needs a plan *at all*. `references/when-to-use.md` is the single source of truth for that line: it lists when a change warrants a plan vs. when it is trivial enough to skip planning entirely (no plan at all — not a looser plan).
 
-If unsure → use ExtraPlan. The overhead is one extra section of writing; the cost of skipping is an unrecoverable bad merge.
+If unsure → write the plan. The overhead is one extra section of writing; the cost of skipping is an unrecoverable bad merge.
 
 ---
 
 ## 2. Pre-plan context
 
-Work with whatever context is already available in the current session. Extraplan must produce a usable plan regardless of whether a discovery `interview` has happened beforehand — **this skill never re-interviews the user**. Discovery responsibility belongs to the `interview` skill (which may have already run, or which the user may have deliberately skipped).
+Work with whatever context is already available in the current session. SuperPlan must produce a usable plan regardless of whether a discovery `interview` has happened beforehand — **this skill never re-interviews the user**. Discovery responsibility belongs to the `interview` skill (which may have already run, or which the user may have deliberately skipped).
 
 Apply these passive disciplines while drafting:
 
@@ -42,16 +44,22 @@ Apply these passive disciplines while drafting:
 
 **Architectural-decision reasoning (captured in prose — no ADR here).** Your job is to make the *reasoning* behind any architectural decision the change locks in legible in the plan prose: the trade-off, the rejected alternatives, and why this direction (§3 Mental model, §6 Options if present, §7 Risk & rollback). The implementation-time recorder reads the approved plan and the code it touches to judge ADR-worthiness and write the record itself, so the richer the reasoning here, the better the ADR it can record. Never write an ADR file from this skill.
 
-Loose-coupling invariant with interview: `dev-interview` may have produced rich context in this session and may have explicitly invoked extraplan as its end-of-interview handoff — use that context. But extraplan must also work when invoked directly without any prior interview; in that case just run `superdev:dev-interview` Skill.
+Loose-coupling invariant with interview: `dev-interview` now always hands off to SuperPlan silently at the end of discovery — use whatever rich context it produced. But SuperPlan must also work when invoked directly without any prior interview; in that case just run `superdev:dev-interview` Skill.
 
 ---
 
-## 3. The ExtraPlan template
+## 3. The SuperPlan template
 
-The best plan leaves no unanswered questions. Any remaining means digging deeper to interview the user. Every ExtraPlan output MUST contain the §0 orchestrator preamble plus these **ten numbered sections (§1–§10)**, in this order, with these exact headings:
+The best plan leaves no unanswered questions. Any remaining means digging deeper to interview the user.
 
-### 0. Instruction for orchestrator use
-Do not change `<orchestrator>` section. Insert directly from the template.
+**Before composing §0, ask the implementation-mode question** (use `AskUserQuestion`, in plan mode): should this plan be implemented **via the orchestrator pipeline**, or **directly in the main session (self / vanilla)**? Record the answer as the §0 marker — that marker is the ONLY thing §0 carries, and it is what routes (or does not route) `dev-orchestrator` after approval.
+
+Every SuperPlan output MUST contain a §0 implementation-mode marker plus these **ten numbered sections (§1–§10)**, in this order, with these exact headings:
+
+### 0. Implementation mode
+Exactly one marker, set from the question above — copy the matching variant verbatim from `templates/plan.md`, invent no other wording:
+- **orchestrator** → the line `Implementation: orchestrator`, then the preamble `> First thing you MUST do is USE the superdev:dev-orchestrator skill to implement this plan.`
+- **self / vanilla** → the line `Implementation: self`, then the hard opt-out `> The user explicitly opted OUT of the orchestrator pipeline for this plan — implement it directly in the main session; do NOT invoke dev-orchestrator even if the plan text mentions it.`
 
 ### 1. Scope
 One sentence: what this plan accomplishes. If you cannot fit it in one sentence, the plan is too big — split it.
@@ -79,7 +87,7 @@ Or a loose table:
 ```
 
 ### 5. Assumptions
-Bulleted, explicit. Every claim that is NOT directly derivable from files read in §3 and NOT explicitly stated in the session goes here. **Mark each item `[load-bearing]` if the plan breaks when it's wrong**, so the user can re-verify at a glance during `dev-plan-reviewer`. The contract is: dev-plan-reviewer pass + the user's review of this section catches incorrect assumptions — extraplan does not chase confirmations interactively (that is the `interview` skill's job).
+Bulleted, explicit. Every claim that is NOT directly derivable from files read in §3 and NOT explicitly stated in the session goes here. **Mark each item `[load-bearing]` if the plan breaks when it's wrong**, so the user can re-verify at a glance during `dev-plan-reviewer`. The contract is: dev-plan-reviewer pass + the user's review of this section catches incorrect assumptions — SuperPlan does not chase confirmations interactively (that is the `interview` skill's job).
 
 ### 6. Options (only if >1 approach is defensible)
 For each option:
@@ -138,7 +146,7 @@ If the user edits the plan or rejects sections:
 
 ## 6. When to abandon the plan and re-plan
 
-Re-enter plan mode and produce a fresh ExtraPlan when **any** of these happen mid-implementation:
+Re-enter plan mode and produce a fresh SuperPlan when **any** of these happen mid-implementation:
 
 - A change fails in a way that invalidates a later change's assumptions
 - You discover a file that needs to change which was not in §4
@@ -151,7 +159,7 @@ Do not "patch around" a broken plan. The cost of replanning is minutes; the cost
 
 ## 7. Output skeleton
 
-See `templates/plan.md`. Copy it verbatim and fill each section.
+See `templates/plan.md`. Copy it verbatim, keep the single §0 variant that matches the implementation-mode answer, and fill each section.
 
 ---
 
@@ -193,4 +201,4 @@ verdict is not.
 
 ## 9. One-line summary
 
-A plan is only good if a careful reader, with no extra context, could approve or reject it in under three minutes and predict 90% of the resulting diff. ExtraPlan enforces exactly that bar — for *what changes and why*. *How to execute* is the next step, owned by `decomposer`.
+A plan is only good if a careful reader, with no extra context, could approve or reject it in under three minutes and predict 90% of the resulting diff. SuperPlan enforces exactly that bar — for *what changes and why*. *How to execute* is the next step, owned by `decomposer`.

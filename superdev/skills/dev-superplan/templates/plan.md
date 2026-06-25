@@ -1,6 +1,17 @@
-> First thing you MUST od is USE the `superdev:dev-orchestrator` skill to implement this plan.
+## SuperPlan: <one-line task name>
 
-## ExtraPlan: <one-line task name>
+### 0. Implementation mode
+<!-- Keep EXACTLY ONE of the two variants below — the one matching the implementation-mode answer. Delete the other (and this comment + the variant labels). -->
+
+<!-- VARIANT A — orchestrator pipeline:
+Implementation: orchestrator
+> First thing you MUST do is USE the `superdev:dev-orchestrator` skill to implement this plan.
+-->
+
+<!-- VARIANT B — self / vanilla (agent implements directly):
+Implementation: self
+> The user explicitly opted OUT of the orchestrator pipeline for this plan — implement it directly in the main session; do NOT invoke `dev-orchestrator` even if the plan text mentions it.
+-->
 
 ### 1. Scope
 <one sentence: what this plan accomplishes. If it doesn't fit in one sentence, the plan is too big — split it.>
