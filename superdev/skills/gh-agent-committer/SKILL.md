@@ -11,10 +11,21 @@ allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git diff:*), Bash(git d
 
 A self-contained executor for ONE commit. The `gh-commit` entry — running in the main context, where it can read the session — chose WHAT to commit and may pass a compact intent hint. This fork **stages per the instruction, reads the staged diff, authors the Conventional Commits subject from the diff plus the hint, and commits**. Authoring the subject here keeps the full diff out of the main context. It never prompts (a fork cannot ask the user).
 
+## Staged No-op
+<diff-no-op>
+
+!`git diff --cached --name-only`
+
+</diff-no-op>
+
+If empty, nothing is staged to commit: reply the no-op line (Output format) and stop. Never create an empty commit.
+
 ## Staged diff (preloaded)
---- stat ---
+<stat>
+
 !`git diff --cached --stat`
---- stat ---
+
+</stat>
 
 The stat above reflects the index **at fork start**. If the staging instruction is "commit the index as-is", this is already what will be committed; for the other instructions you still run the staging step below first, then re-read the staged diff.
 
@@ -37,14 +48,13 @@ The input is the spec for WHAT to stage. Stage nothing beyond what the instructi
    - stage these paths → `git add -- <path>…` for exactly the listed paths;
    - `git add -A` → run it;
    - commit the index as-is → run no `git add`.
-2. **No-op gate.** `git diff --cached --name-only` — if empty, nothing is staged to commit: reply the no-op line (Output format) and stop. Never create an empty commit.
-3. **Read the staged diff.** `git diff --cached` — this is the ground truth for the subject. Read the actual diff, not just file names.
-4. **Author the subject** from the staged diff plus the hint, following the Conventional Commits rules below.
-5. **Derive the footer** (optional) following the issue-footer rules below; for the branch-name fallback use `git rev-parse --abbrev-ref HEAD`.
-6. **Commit.**
+2. **Read the staged diff.** `git diff --cached` — this is the ground truth for the subject. Read the actual diff, not just file names.
+3. **Author the subject** from the staged diff plus the hint, following the Conventional Commits rules below.
+4. **Derive the footer** (optional) following the issue-footer rules below; for the branch-name fallback use `git rev-parse --abbrev-ref HEAD`.
+5. **Commit.**
    - subject only → `git commit -m "<subject>"`;
    - subject + footer → `git commit -m "<subject>" -m "<footer>"` (the second `-m` becomes the body, one blank line below the subject).
-7. **Gather proof.** `git rev-parse --short HEAD` → `<hash>`; `git diff-tree --no-commit-id --name-only -r HEAD` → count the lines for `<N>` (the commit's file count).
+6. **Gather proof.** `git rev-parse --short HEAD` → `<hash>`; `git diff-tree --no-commit-id --name-only -r HEAD` → count the lines for `<N>` (the commit's file count).
 
 # Authoring the subject — Conventional Commits
 
