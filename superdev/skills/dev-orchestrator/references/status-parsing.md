@@ -16,7 +16,7 @@ Detail reference for the **dispatcher-only** parsing helpers used by `SKILL.md`.
 The dispatcher (`SKILL.md`) reads only three things from sub-processes:
 
 1. The **decomposer / adr-recorder / final-reviewer** replies — via `first_status_line` (`STATUS: …` first line).
-2. The **workflow's structured return** `{status: 'PASS'|'FAIL', attempts, lastFailureReportPath, commit?}` — read directly off the `Workflow` result, no regex. The `commit` field (present only on PASS) is the **per-task** commit verdict, already parsed inside the workflow (table below); the dispatcher reads `commit.kind` and never parses the per-task tag line itself.
+2. The **workflow's structured return** `{status: 'PASS'|'FAIL', attempts, lastFailureReportPath, outputTokens, commit?}` — read directly off the `Workflow` result, no regex. The `commit` field (present only on PASS) is the **per-task** commit verdict, already parsed inside the workflow (table below); the dispatcher reads `commit.kind` and never parses the per-task tag line itself. `outputTokens` (a `budget.spent()` delta — output-only, `null` when unavailable) is summed across invocations for the closing token report.
 3. The **ADR committer's tag** (`commit-adr.sh`, still run inline by the dispatcher) — via `parse_commit_tag` (table below). This is the one commit tag the dispatcher still parses directly.
 
 Everything else (the coder / runner / task-reviewer / improver per-agent verdicts, the runner's five-value enum, the task-gate command construction, the scope-hint extraction, **and the per-task committer's tag line**) is internal to the workflow.

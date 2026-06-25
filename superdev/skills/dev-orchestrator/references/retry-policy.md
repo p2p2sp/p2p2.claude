@@ -20,8 +20,10 @@ Behavioural reference for the retry / unblock mechanics of the per-task pipeline
   task-reviewer / improver dispatch, both BLOCKED-unblock branches, the infinite-loop guard,
   feedback-/previous-coder-report forwarding, **and the final commit stage** (the haiku `dev-commiter`
   passthrough that runs `commit-task.sh`, reached only on PASS). It returns
-  `{status: 'PASS'|'FAIL', attempts, lastFailureReportPath, commit?}` — `commit` (the parsed commit
-  verdict) present only on PASS.
+  `{status: 'PASS'|'FAIL', attempts, lastFailureReportPath, outputTokens, commit?}` — `commit` (the parsed
+  commit verdict) present only on PASS; `outputTokens` is the output tokens this run consumed, measured as a
+  `budget.spent()` delta (output-only, `null` when the budget API is unavailable; the dispatcher sums it
+  across invocations for the closing token report).
 - **The dispatcher** (`SKILL.md` per-task loop) owns: the widget flip, the `task-base.sha` capture, the
   single `Workflow` invocation, and — on PASS — the state writes (`status.yml` / one-time `base.sha`) driven
   by `wf_out.commit` / on FAIL — the escalation `AskUserQuestion`. It no longer runs the commit itself. It

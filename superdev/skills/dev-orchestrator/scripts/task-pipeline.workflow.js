@@ -35,13 +35,16 @@
 //                                 tag LINES (e.g. '<commit sha="abc1234" files="3">T1: …</commit>'),
 //                                 not verdicts — parseCommitTag() turns each into a `commit` object.
 //
-// return { status: 'PASS'|'FAIL', attempts: <int>, lastFailureReportPath: <string>, commit?: {...} }
+// return { status: 'PASS'|'FAIL', attempts: <int>, lastFailureReportPath: <string>, outputTokens: <int|null>, commit?: {...} }
 //   ('PASS' once the task cleared coder+runner+task-reviewer (+improver) AND the commit stage ran;
 //    'FAIL' once the attempt cap is exhausted or a BLOCKED guard converts to FAIL — no commit on FAIL,
 //    so `commit` is absent. `status:'PASS'` reflects the PIPELINE only; the commit verdict travels
 //    SEPARATELY in `commit` (one of {kind:'sha',sha,files,subject} | {kind:'no-changes'} |
 //    {kind:'error',reason} | {kind:'malformed',raw}) — a failed commit does NOT flip status to FAIL,
-//    the dispatcher reads `commit.kind` and hard-stops on error/malformed. In stub mode an extra
+//    the dispatcher reads `commit.kind` and hard-stops on error/malformed. `outputTokens` is the output
+//    tokens THIS workflow run consumed, measured as a `budget.spent()` delta (output-only; `null` when the
+//    budget API is absent or in stub mode) — the dispatcher sums it across all per-task workflow runs for
+//    the closing token report. In stub mode an extra
 //    `trace` array records each agent call's role + forwarded paths for dry-run assertions.)
 //
 // Determinism: no Bash, no filesystem, no Date.now()/Math.random()/argless new Date().
@@ -87,6 +90,23 @@ const cap = input.retryMaxAttempts ?? 3 // missing key → 3
 const feedbackPath = input.feedbackPath || '' // escalation seed for the first coder call
 const recipePath = input.recipePath || '' // slug-scoped recipe.sh; threaded into the coder + runner prompts
 const stub = input.stub || null
+
+// ── output-token metering (budget.spent() delta) ─────────────────────────────
+// `budget.spent()` (Workflow tool contract) returns output tokens spent this turn across the main loop
+// AND all workflows — and `agent()` calls draw from that same pool. The orchestrator awaits each per-task
+// workflow serially, so the start→end delta within this run ≈ the output tokens this task's agents
+// consumed. Guarded like `typeof phase` / `stub`: when `budget` is absent (or in stub mode) the delta is
+// `null` (fail-open) and the dispatcher degrades the token report to "unavailable" — never throws.
+const tokensBefore =
+  typeof budget !== 'undefined' && budget && typeof budget.spent === 'function' ? budget.spent() : null
+function tokensDelta() {
+  if (tokensBefore == null) return null
+  try {
+    return Math.max(0, budget.spent() - tokensBefore)
+  } catch {
+    return null
+  }
+}
 
 // ── the agent() port seam ────────────────────────────────────────────────────
 // In production each role is a single fork (the three converted plugin agents, plus a
@@ -218,7 +238,7 @@ let lastCoderReportPath = '' // forwarded to the next task-reviewer as `Previous
 const lastBlocked = {} // {runner|taskReviewer -> 'BLOCKED'} infinite-loop guard
 
 function fail() {
-  return { status: 'FAIL', attempts: attempt, lastFailureReportPath, ...(stub ? { trace } : {}) }
+  return { status: 'FAIL', attempts: attempt, lastFailureReportPath, outputTokens: tokensDelta(), ...(stub ? { trace } : {}) }
 }
 
 if (typeof phase === 'function') phase('Coder')
@@ -331,7 +351,7 @@ while (attempt < cap) {
   const commit = await committer()
 
   // task cleared coder + runner + task-reviewer (+ improver) and the commit stage ran
-  return { status: 'PASS', attempts: attempt, lastFailureReportPath, commit, ...(stub ? { trace } : {}) }
+  return { status: 'PASS', attempts: attempt, lastFailureReportPath, outputTokens: tokensDelta(), commit, ...(stub ? { trace } : {}) }
 }
 
 // cap exhausted with no PASS

@@ -10,163 +10,101 @@ allowed-tools: Read, Glob, Grep, Bash, Skill
 
 # Boot / liveness gate (fork)
 
-Forked smoke-test for the final gate. You answer exactly one question: **does the application actually
-start?** Build-green and tests-green do not prove the binary boots — a missing env var, a bad DI wiring, a
-broken migration only surface at runtime. This is the one place in the pipeline the app is launched for real;
-no per-task step ever boots it. Start it, confirm it is alive, tear it down, report.
-
-`dev-agent-final-reviewer` invokes this skill as the **last** sub-step of the final go/no-go gate (after
-`dev-agent-plan-auditor` and a full `dev-agent-runner`), then synthesizes a single verdict. A `FAIL` here is a no-go even when
-the plan audit and the test suite are green.
-
-**Stack-agnostic.** You do NOT hardcode the launch command or the liveness signal — you launch via the
-recipe's `launch` verb and read the liveness signal from the slug-scoped `profile.md`. Never default to an
-ecosystem assumption (no "looks like Node, so `npm start`"); if the host documented no launchable app (the
-recipe's `launch` verb is the `N/A` sentinel and `profile.md` records no liveness signal), that is
-`N/A — <reason>`, not a guess.
+You answer ONE question: **does the app actually start?** Build-green and tests-green do not prove the
+binary boots — a missing env var, bad DI wiring, or a broken migration only surface at runtime. Start it,
+confirm it is alive, tear it down, report. This is the only place in the pipeline the app is launched for real.
 
 # Input contract
 
-The harness delivers your input appended under an `ARGUMENTS:` line. `dev-agent-final-reviewer` passes the
-slug-scoped recipe path so you launch via its `launch` verb:
+Input is appended under an `ARGUMENTS:` line:
 
 ```
-Recipe: <absolute path to the slug-scoped .temp/.workflows/<slug>/recipe.sh — launch the app via `bash <recipePath> launch`; its sibling profile.md carries the liveness signal>
+Recipe: <absolute path to .temp/.workflows/<slug>/recipe.sh>
 ```
 
-When `Recipe:` is provided (the normal case), launch via `bash <recipePath> launch` and read the liveness
-signal from the sibling `profile.md`. When it is absent, discover the recipe path from the `<slug>` the caller
-named (or `Glob '.temp/.workflows/*/recipe.sh'`).
+- Launch via `bash <recipePath> launch`; read the liveness signal from its sibling `profile.md`
+  (`bash <recipePath> profile` prints its path).
+- `Recipe:` absent (rare) → discover from the named `<slug>`, else `Glob '.temp/.workflows/*/recipe.sh'`.
 
-# How to work
+# Liveness signals
 
-## Step 1 — Resolve the launch verb and the liveness signal
+The launch verb and the signal come ONLY from the recipe / profile — never re-derived from `CLAUDE.md`,
+never an ecosystem default (no "looks like Node → `npm start`"). The profile records ONE signal kind; probe
+it per this table:
 
-The launch command is the recipe's `launch` verb — you never re-discover it from `CLAUDE.md`. The liveness
-signal comes from the recipe's sibling `profile.md`:
+| Signal | Profile records | Probe → PASS | FAIL evidence |
+|---|---|---|---|
+| Process stays up | (default) nothing crashes for N s | `kill -0 <pid>` alive after N s | exited → captured log |
+| Health endpoint | an HTTP(S) URL + success status | poll URL (retry to timeout) → documented status | never reachable / wrong status |
+| Expected stdout | a ready-line (`Listening on :8080`) | line appears in the captured log | absent before timeout → log tail |
+| CLI liveness | a `--help` / `--version` invocation | exits 0 (+ expected usage/version) | non-zero exit → stderr |
 
-1. **Launch command** — `bash <recipePath> launch` (sourced from the `Recipe:` path in your input). The verb
-   body already encodes the host's documented start command. If the verb body is the `N/A` sentinel (the host
-   documents no launchable app), `bash <recipePath> launch` exits 0 having run nothing — treat that as
-   "no launch command documented" and emit `STATUS: N/A — <reason>` (Step 4); do not scan the source tree for
-   a probable entrypoint.
-2. **Liveness signal** — `Read` the sibling `profile.md` (`.temp/.workflows/<slug>/profile.md`, or
-   `bash <recipePath> profile` prints its path) and take its **Liveness signal** line. Accept any one of these
-   forms it records:
-   - **Process stays up** — the process is still running N seconds after launch (no immediate crash / exit).
-   - **Health endpoint** — an HTTP(S) URL that returns a success status (e.g. `GET /healthz` → 200).
-   - **Expected stdout** — a known ready-line the app prints (e.g. `Listening on :8080`, `Started in …`).
-   - **CLI liveness** — for a CLI/library with no long-running process, the documented invocation that
-     proves the binary loads (e.g. `<app> --help` exits 0 and prints usage, or `<app> --version` prints a
-     version).
+- Profile marks launch live but the signal is `N/A` / absent → default to **process-stays-up**; note the
+  missing signal in the report.
+- `launch` verb is the `N/A` sentinel (host documents no launchable app) → `bash <recipePath> launch` exits 0
+  having run nothing → emit `STATUS: N/A — <reason>`; do NOT scan the tree for a probable entrypoint.
 
-If `profile.md` records the launch verb as live but its **Liveness signal** is `N/A` / absent, default to the
-**process-stays-up** check (launch, wait N seconds, confirm the process is still running) and note in the
-report that the profile documented no explicit signal.
+# Procedure
 
-## Step 2 — Start the app
-
-Run `bash <recipePath> launch` via `Bash`.
-
-- **Long-running process** (server / daemon / TUI / anything that does not return on its own): start it in
-  the **background** so the `Bash` call returns, capturing stdout/stderr to a log file you can read back
-  (e.g. redirect to a temp log under `.temp/`). Record its PID so Step 3 can probe it and Step 4 can tear it
-  down.
-- **CLI / one-shot** (the liveness signal is a `--help` / `--version` style invocation): run it in the
-  foreground with a bounded timeout and capture the exit code and output directly.
-
-Pick a sensible default timeout (a few seconds for `--help`; up to ~15–30s for a server to reach its
-ready-line) unless host memory documents one. Never block indefinitely.
-
-## Step 3 — Probe liveness
-
-Apply the signal resolved in Step 1:
-
-- **Process stays up** — after waiting the configured N seconds, check the PID is still alive (e.g.
-  `kill -0 <pid>`). Still running → alive. Exited → read the captured log and treat the exit as the failure
-  evidence.
-- **Health endpoint** — poll the documented URL (a short retry loop up to the timeout) and check for the
-  documented success status. Success → alive. Never reachable / wrong status before timeout → fail, capture
-  the last response/error.
-- **Expected stdout** — read the captured log and confirm the documented ready-line appears. Present →
-  alive. Absent before timeout → fail, capture the tail of the log.
-- **CLI liveness** — confirm the documented invocation exited 0 (and printed the expected usage/version when
-  the host specifies one). Non-zero exit → fail, capture stderr.
-
-## Step 4 — Tear down
-
-ALWAYS tear down what you started, on every path (PASS or FAIL):
-
-- Kill the launched process and any children (e.g. `kill <pid>`; escalate to the process group / `kill -9`
-  if it ignores the signal). Confirm it is gone.
-- A one-shot CLI invocation that already exited needs no teardown.
-- Leaving an orphaned process holding a port would poison later runs — never skip this step.
-
-Then build the verdict:
-
-- `STATUS: PASS` — the app launched AND the liveness signal confirmed it is alive, and teardown succeeded.
-- `STATUS: FAIL` — the app failed to launch, crashed, or never satisfied the liveness signal before timeout.
-  Capture the smoking gun: the exit code + the relevant tail of stdout/stderr or the failed health response.
-- `STATUS: N/A — <reason>` — the recipe's `launch` verb is the `N/A` sentinel (the host documents no launchable
-  app). This is not an app fault; the host memory is incomplete. Say exactly what to add.
+1. **Resolve** the launch verb + signal (above).
+2. **Start** — `bash <recipePath> launch`:
+   - Long-running (server / daemon / TUI) → run in the **background**, redirect stdout/stderr to a `.temp/`
+     log, record the PID.
+   - One-shot CLI (`--help` / `--version` signal) → foreground, bounded timeout, capture exit code + output.
+   - Timeout: a few seconds for `--help`; ~15–30 s for a server ready-line unless host memory documents one.
+     Never block indefinitely.
+3. **Probe** the signal (table above).
+4. **Tear down — ALWAYS, on every path (PASS / FAIL):** `kill <pid>` + children (escalate to the process
+   group / `kill -9` if it ignores the signal); confirm it is gone. An already-exited one-shot needs none.
+   An orphan holding a port poisons later runs — never skip this.
 
 # Output format
 
-Reply on stdout. The first line is the verdict; keep the whole reply lean (well under ~60 lines).
+stdout only; the first line is the verdict; keep the whole reply under ~60 lines. No persisted artifact (a
+`.temp/` capture log is fine, cleaned up implicitly). The `STATUS:` line is the contract the caller parses —
+the literal first line, exactly one of `STATUS: PASS` / `STATUS: FAIL` / `STATUS: N/A — <reason>` (N/A always
+written `N/A — <reason>`).
 
-### On PASS
+### PASS
 
 ```
 STATUS: PASS
-Summary: app booted and passed liveness (<signal kind>) — <one detail, e.g. "200 from /healthz in 1.2s" / "ready-line 'Listening on :8080' seen" / "process alive after 10s">
+Summary: app booted and passed liveness (<signal kind>) — <one detail, e.g. "200 from /healthz in 1.2s">
 ```
 
-### On FAIL
+### FAIL
 
-```
+````
 STATUS: FAIL
 Summary: <one line — e.g. "app crashed on boot: missing DATABASE_URL">
 
 ## Evidence
 - Launch command: `<command run>`
-- Liveness signal: <signal kind + what was expected>
+- Liveness signal: <kind + what was expected>
 - Failure: <exit code / wrong status / timeout>
-  \`\`\`
+  ```
   <relevant tail of stdout/stderr or the failed response — verbatim, trimmed>
-  \`\`\`
-```
+  ```
+````
 
-### On N/A
+### N/A
 
 ```
 STATUS: N/A — <reason>
 Summary: recipe `launch` verb is N/A (no launchable app documented) — cannot smoke-test
 
 ## What to add
-- Document how to launch the app in `CLAUDE.md` (or `.claude/rules/<file>.md`) so the recipe step fills the `launch` verb: the exact launch command, and a liveness signal (process stays up N seconds / a health endpoint that returns success / an expected stdout ready-line / a `--help`/`--version` that exits 0).
+- Document the launch in `CLAUDE.md` (or `.claude/rules/<file>.md`) so the recipe fills the `launch` verb: the exact command + a liveness signal (process stays up N s / health endpoint returns success / stdout ready-line / `--help`/`--version` exits 0).
 ```
-
-The `STATUS:` line is the contract `dev-agent-final-reviewer` parses — it must be the literal first line and one of
-`STATUS: PASS` / `STATUS: FAIL` / `STATUS: N/A — <reason>` (always written `N/A — <reason>`). Do not write any persisted artifact; this gate is text
-output only (a temp log under `.temp/` for capturing process output is fine and is cleaned up implicitly).
 
 # Anti-patterns (forbidden)
 
-- Guessing a launch command from the source tree, or re-deriving it from `CLAUDE.md`, instead of running the
-  recipe's `launch` verb. A `launch` verb that is the `N/A` sentinel → emit `N/A — <reason>` and name what to
-  add. Never default to an ecosystem assumption.
-- Reporting `PASS` on a green build / green tests without actually launching the app. Build-green ≠
-  boot-green; this gate exists precisely because tests do not exercise startup wiring.
-- Leaving the launched process running. ALWAYS tear it down in Step 4, on every verdict path — an orphan
-  holding a port poisons later runs.
-- Blocking indefinitely waiting for a ready-line. Always bound the wait with a timeout and fail on timeout
-  with the captured log tail.
-- Trying to FIX a boot failure. This is a gate, not a repair step — report the failure with evidence and let
-  the caller act.
-- Launching the app per task. The app is started ONLY here, at the end of the pipeline.
-
-# Constraint — technology-agnostic
-
-Operates in any language and any framework. The launch command comes exclusively from the recipe's `launch`
-verb and the liveness signal from its sibling `profile.md` (both derived once by the recipe step from the
-host's documented memory) — never from an ecosystem default.
+- Guessing the launch command from the source tree, re-deriving it from `CLAUDE.md`, or defaulting to an
+  ecosystem assumption — always the recipe's `launch` verb.
+- `PASS` on a green build / green tests without launching. Build-green ≠ boot-green — this gate exists
+  precisely for startup wiring tests do not exercise.
+- Leaving the launched process running — tear down on every verdict path.
+- Blocking indefinitely for a ready-line — always bound the wait with a timeout; fail on timeout with the
+  log tail.
+- Trying to FIX a boot failure — this is a gate, not a repair step. Report with evidence; let the caller act.
+- Launching the app per task — the app boots ONLY here, at the end of the pipeline.

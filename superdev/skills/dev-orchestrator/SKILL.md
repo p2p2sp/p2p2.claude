@@ -33,7 +33,7 @@ decomposer  ──►  .temp/.workflows/<slug>/tasks/<N>.md  +  status.yml
    ▼
 task-pipeline.workflow.js  ──►  dev-coder ─► runner ─► dev-task-reviewer ─► dev-improver ─► dev-commiter
    │   (the .js owns retry / BLOCKED-unblock / infinite-loop-guard / report-forwarding;       (rules)
-   │    dev-commiter runs commit-task.sh on PASS; returns {status, attempts, lastFailureReportPath, commit?})
+   │    dev-commiter runs commit-task.sh on PASS; returns {status, attempts, lastFailureReportPath, outputTokens, commit?})
    ├─ PASS ──►  read wf_out.commit  ──►  status.yml / base.sha  ──►  widget completed
    └─ FAIL ──►  AskUserQuestion (Retry retry_escalation_attempts more / Abort)
    │  (after last task, once)
@@ -46,7 +46,7 @@ Roles in one line each:
 - **recipe** (`dev-agent-recipe`) — the mandatory first step on every entry; derives the host build/test/lint/launch verbs once and writes `.temp/.workflows/<slug>/recipe.sh` + `profile.md`, the single artifact every downstream fork consumes. Owns the run's clean-tree guard (its fail-closed Step 0); a `STATUS: FAIL` is a hard halt. Self-skips regeneration when its own `recipe.sh verify` passes.
 - **adr-recorder** (`dev-agent-adr-recorder`) — judges the approved plan and, on a real architectural decision, writes the ADR file(s) + `.superdev/ADR.md` index itself; runs once before decompose, config-gated by `adr`, committed by `commit-adr.sh`. Never touches the plan or the decomposer.
 - **decomposer** (`dev-agent-decomposer`) — slices the source plan into per-task files; runs once, idempotent.
-- **task-pipeline** (`scripts/task-pipeline.workflow.js`) — the deterministic per-task inner loop, invoked once per task via the `Workflow` tool. It owns the retry / BLOCKED-unblock / infinite-loop-guard / report-forwarding logic (formerly model-interpreted), dispatches the worker agents below, and runs the commit stage as its final step on PASS; it returns `{status: PASS|FAIL, attempts, lastFailureReportPath, commit?}` (`commit` present only on PASS). Behaviour documented in `references/retry-policy.md`.
+- **task-pipeline** (`scripts/task-pipeline.workflow.js`) — the deterministic per-task inner loop, invoked once per task via the `Workflow` tool. It owns the retry / BLOCKED-unblock / infinite-loop-guard / report-forwarding logic (formerly model-interpreted), dispatches the worker agents below, and runs the commit stage as its final step on PASS; it returns `{status: PASS|FAIL, attempts, lastFailureReportPath, outputTokens, commit?}` (`commit` present only on PASS; `outputTokens` is the run's `budget.spent()` delta — output-only, `null` when unavailable). Behaviour documented in `references/retry-policy.md`.
 - **dev-coder** (the `dev-coder` plugin agent) — writes production code for ONE task; the workflow drives both its `Mode: normal` and `Mode: unblock` (blocker-clearing) passes.
 - **runner** (`dev-agent-runner`, a skill — invoked by the workflow's runner wrapper agent in pipeline mode) — runs the task's build/test/lint command; emits `PASS` / `FAIL` / `ERROR` / `TIMEOUT` / `BLOCKED`.
 - **dev-task-reviewer** (the `dev-task-reviewer` plugin agent, Task mode) — verifies the task Deliverable + tests + conventions against the working tree; emits `PASS` / `FAIL` / `BLOCKED`.
@@ -54,7 +54,7 @@ Roles in one line each:
 - **dev-commiter** (the `dev-commiter` plugin agent → `scripts/commit-task.sh`) — commits the task as the workflow's **final stage**, reached only on PASS. The haiku agent runs `bash "${CLAUDE_PLUGIN_ROOT}/skills/dev-orchestrator/scripts/commit-task.sh" "<task_file>"` and relays its single tag line verbatim; the workflow parses it (`parseCommitTag`) and returns it as `wf_out.commit`. The dispatcher never runs the commit itself. The script derives the commit subject (the task file's `# ` H1) and the `T<N>:` prefix itself (no one synthesizes a subject). Being deterministic, the script cannot fabricate its tag — it emits a `sha` **only** after itself verifying HEAD advanced and the tree is clean, and the agent only relays it, so the dispatcher trusts `wf_out.commit` directly (no re-verification, no retry loop).
 - **dev-agent-final-reviewer (sub-orchestrator)** — one-shot terminal gate after the last task is committed; internally runs `dev-agent-plan-auditor` → `dev-agent-runner` (Scope: full) → `dev-agent-smoke` → synthesis and returns a single go/no-go verdict on stdout (no file written).
 
-The worker agents the workflow dispatches (`dev-coder` / `dev-task-reviewer` / `dev-improver` / `dev-commiter`) each carry their full input/output contract in their own `agents/<name>.md` `# Input contract` + `# Output format` sections; the decomposer / runner keep theirs in their `SKILL.md`. The committer's tagged output shape lives in the header comment of `scripts/commit-task.sh`; the workflow's args / return contract lives in the header comment of `scripts/task-pipeline.workflow.js`. The dispatcher itself reads only the workflow's `{status, attempts, lastFailureReportPath, commit}` return (the per-task commit verdict arrives pre-parsed in `commit`) and the **ADR** committer's tag (via `parse_commit_tag`) — the per-agent STATUS parsing now lives inside the `.js`. When the workflow's arg/return contract changes, update the `.js` header, then this graph and `references/retry-policy.md`.
+The worker agents the workflow dispatches (`dev-coder` / `dev-task-reviewer` / `dev-improver` / `dev-commiter`) each carry their full input/output contract in their own `agents/<name>.md` `# Input contract` + `# Output format` sections; the decomposer / runner keep theirs in their `SKILL.md`. The committer's tagged output shape lives in the header comment of `scripts/commit-task.sh`; the workflow's args / return contract lives in the header comment of `scripts/task-pipeline.workflow.js`. The dispatcher itself reads only the workflow's `{status, attempts, lastFailureReportPath, outputTokens, commit}` return (the per-task commit verdict arrives pre-parsed in `commit`; `outputTokens` feeds the closing token report) and the **ADR** committer's tag (via `parse_commit_tag`) — the per-agent STATUS parsing now lives inside the `.js`. When the workflow's arg/return contract changes, update the `.js` header, then this graph and `references/retry-policy.md`.
 
 ## Locate the plan
 
@@ -261,6 +261,13 @@ Read the retry-budget config values once (fail-open, default `3`):
 retry_max_attempts        = parse_int_config("retry_max_attempts", default=3)        # missing/file-absent/non-int → 3
 retry_escalation_attempts = parse_int_config("retry_escalation_attempts", default=3) # missing/file-absent/non-int → 3
 rules_improver_on         = config switch `rules_improver` is literally true          # default-disabled
+
+# Output-token accounting for the closing report. Each per-task Workflow returns `outputTokens` (a
+# budget.spent() delta — output-only, `null` when the budget API is unavailable). Accumulate every
+# invocation's value (closing summary §Closing summary). State of run truth stays in git/status.yml —
+# these are display-only counters.
+plan_output_tokens = 0            # Σ outputTokens across ALL workflow invocations this run
+task_output_tokens = {}           # N -> Σ outputTokens for task N (across its attempts/escalations)
 ```
 
 For each task `N` from `start` to `max`, run this loop. The per-task inner pipeline (coder → runner → task-reviewer → improver, with all retry / BLOCKED-unblock / infinite-loop-guard / report-forwarding mechanics) is driven by **one** `Workflow` invocation against `task-pipeline.workflow.js`; the dispatcher's own job per task is the four bookends: widget flip, `task-base.sha` capture, the workflow call, and (on PASS) the commit + state writes (on FAIL) the escalation prompt.
@@ -289,7 +296,7 @@ gate = extract_task_gate(N)   # the lines under "## Task gate" in the task file
 task_gate_runnable = (gate contains "^\s*- Tests:" with non-`none` value) OR (gate contains "^\s*- Build: green")
 
 # Invoke the deterministic per-task pipeline ONCE. It owns the whole inner loop, commits on PASS, and
-# returns {status, attempts, lastFailureReportPath, commit?}. Escalation re-invokes pass feedbackPath.
+# returns {status, attempts, lastFailureReportPath, outputTokens, commit?}. Escalation re-invokes pass feedbackPath.
 feedback_path = ""           # "" on the first invocation of this task; set on an escalation Retry below
 cap = retry_max_attempts     # first invocation uses the base cap; escalation uses retry_escalation_attempts
 
@@ -307,9 +314,14 @@ escalation_loop:   # dispatcher-level loop (NOT the per-attempt loop — that li
             **({"feedbackPath": feedback_path} if feedback_path != "" else {}),
         },
     )
-    # wf_out is the workflow's structured return: {status, attempts, lastFailureReportPath, commit}.
+    # wf_out is the workflow's structured return: {status, attempts, lastFailureReportPath, outputTokens, commit}.
     # `commit` is present ONLY on a PASS (the commit stage runs inside the workflow); absent on FAIL.
     print(f"[{N}/{max}] task-pipeline: {wf_out.status} (attempts {wf_out.attempts}/{cap})")  # coarse per-task signal
+    # Output-token accounting: sum EVERY invocation's outputTokens (initial + retry/escalation, PASS or
+    # FAIL — retried work is real consumption). null / missing field → skip (fail-open, no display impact).
+    if isinstance(wf_out.outputTokens, int):
+        plan_output_tokens += wf_out.outputTokens
+        task_output_tokens[N] = task_output_tokens.get(N, 0) + wf_out.outputTokens
     if wf_out.status == "PASS":
         break escalation_loop    # the commit already ran inside the workflow; fall through to read wf_out.commit
     # FAIL: the workflow exhausted its cap (or a BLOCKED guard converted to FAIL). Escalate to the user.
@@ -375,7 +387,7 @@ Write(".temp/.workflows/<slug>/status.yml", f"current_task: {N + 1}\n")
 
 ### Notes on the loop
 
-- Retry cap, BLOCKED branch mechanics, infinite-loop guard, report-forwarding, and the final commit stage: now owned by `scripts/task-pipeline.workflow.js` and documented (behaviourally) in `references/retry-policy.md`. The dispatcher does NOT re-implement any of it — it invokes the workflow once per task and reads its `{status, attempts, lastFailureReportPath, commit?}` return.
+- Retry cap, BLOCKED branch mechanics, infinite-loop guard, report-forwarding, and the final commit stage: now owned by `scripts/task-pipeline.workflow.js` and documented (behaviourally) in `references/retry-policy.md`. The dispatcher does NOT re-implement any of it — it invokes the workflow once per task and reads its `{status, attempts, lastFailureReportPath, outputTokens, commit?}` return.
 - The dispatcher does not parse per-agent `STATUS:` lines any more — that happens inside the workflow's `agent()` boundary. The dispatcher reads only the workflow's structured return (including its `commit` field; the committer's tag line is parsed inside the workflow, never by the dispatcher). Its live-progress channel per task is the single coarse line `[<N>/<max>] task-pipeline: <PASS|FAIL> (attempts <K>/<cap>)` plus the `commit` line; the per-agent `[<N>/<max>] <agent>: <VERDICT>` granularity now lives in the workflow's own `phase`/`log` channel.
 - The per-task loop iterates zero times when `status.yml`'s `current_task` exceeds `max` — the user re-ran orchestrator after the whole plan was committed. The starting-task resolution sets `start = current_task`, the progress-widget seed marks every task already `completed`, the per-task loop is empty, and control flows into the final whole-plan review.
 - Progress widget updates (`TaskUpdate` on task entry / commit success / no-op commit) live alongside the `print` lines and never replace them — see the "Progress tree (TaskCreate)" section in `references/retry-policy.md`.
@@ -409,17 +421,34 @@ The commit tag shape table, the progress-widget constraints used by the progress
 
 ## Closing summary
 
-After the final task commits, print one line per completed task:
+After the final task commits, print one line per completed task, then one aggregate token line.
+
+Decide once whether the run produced usable token metrics: `metered = plan_output_tokens > 0` (any positive total means at least one workflow returned a real `budget.spent()` delta). When `metered` is false — every invocation returned `null`/`0` because the budget API was absent or flat — **suppress all per-task `~… tok` annotations and the `~<n>` total** (a `~0` would misrepresent a broken metric as a real reading).
+
+Per completed task:
 
 ```
-Task <N>: <verb-phrase> — committed (<short-sha>) [attempts: <K>]
+Task <N>: <verb-phrase> — committed (<short-sha>) [attempts: <K>, ~<task_output_tokens[N]> output tok]
 ```
 
 For tasks that resolved to `no-changes` (`wf_out.commit.kind == "no-changes"`, see the commit-result handling), substitute the sha slot with the literal status token:
 
 ```
-Task <N>: <verb-phrase> — no-op (no-changes) [attempts: <K>]
+Task <N>: <verb-phrase> — no-op (no-changes) [attempts: <K>, ~<task_output_tokens[N]> output tok]
 ```
+
+When `metered` is false, drop the `, ~<…> output tok` fragment from every per-task line (keep `[attempts: <K>]`).
+
+Then one aggregate line:
+
+- `metered` true:
+  ```
+  Total: ~<plan_output_tokens> output tokens across <max> task workflow(s) (this run; output-only, per-task pipeline — excludes setup/review forks).
+  ```
+- `metered` false (fail-open — never a misleading `~0`, never an exception):
+  ```
+  Total: output-token metering unavailable this run.
+  ```
 
 Then stop. Do not call any further tool.
 
@@ -427,7 +456,7 @@ Then stop. Do not call any further tool.
 
 - Inspecting, reading, or modifying source code yourself. Every code touch is the `dev-coder` agent's job (inside the workflow).
 - Running build / test commands yourself. Every test invocation goes through `runner` (driven by the workflow's runner wrapper agent).
-- Re-implementing the per-task inner loop in the dispatcher (per-agent coder/runner/task-reviewer/improver dispatch, the BLOCKED-unblock branches, the infinite-loop guard, report-forwarding). That logic lives ENTIRELY in `scripts/task-pipeline.workflow.js`; the dispatcher invokes the workflow once per task and reads only its `{status, attempts, lastFailureReportPath, commit}` return. Do NOT call `dev-coder` / `dev-task-reviewer` / `dev-improver` / `dev-commiter` / `dev-agent-runner` directly from the dispatcher — every one of them is dispatched only by the workflow.
+- Re-implementing the per-task inner loop in the dispatcher (per-agent coder/runner/task-reviewer/improver dispatch, the BLOCKED-unblock branches, the infinite-loop guard, report-forwarding). That logic lives ENTIRELY in `scripts/task-pipeline.workflow.js`; the dispatcher invokes the workflow once per task and reads only its `{status, attempts, lastFailureReportPath, outputTokens, commit}` return. Do NOT call `dev-coder` / `dev-task-reviewer` / `dev-improver` / `dev-commiter` / `dev-agent-runner` directly from the dispatcher — every one of them is dispatched only by the workflow.
 - Pre-flight environment probes via `Bash` between pipeline steps (checking runtimes, services, container state, tool versions, network reachability, etc.) — even when project conventions tell a normal session to verify them before running tests. Those conventions target sessions that run tests directly; the workflow delegates the run to `runner`, which surfaces any environment failure as `FAIL` / `ERROR` and the standard retry loop handles it. The dispatcher's `Bash` budget is reserved for the `task-base.sha` capture, the `base.sha` parent capture after the Task-1 commit (`git rev-parse HEAD^`, read-only), and the git queries in the final review — the commit itself is no longer a dispatcher `Bash` op (it runs inside the workflow via `dev-commiter`).
 - Skipping the task-pipeline `Workflow` invocation "to save time" on a small task — every task goes through it.
 - Re-deriving or overriding the workflow's retry cap. The base cap comes from `retry_max_attempts` (fail-open `3`), the escalation cap from `retry_escalation_attempts` (fail-open `3`); both are forwarded as `retryMaxAttempts`. Do NOT offer a "skip task" option to the user (intentionally absent), and do NOT recompute `task_base_sha` on the escalation re-invoke — the baseline is stable for the whole task.
