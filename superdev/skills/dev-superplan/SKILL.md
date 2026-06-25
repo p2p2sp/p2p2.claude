@@ -177,11 +177,11 @@ Assemble ONE `.md` file, then hand it to the publishing skill with a title:
 
 1. **Prepend a `## Review verdict` block** to the plan body. Take the verdict
    from the `dev-superplan-reviewer` output **already present in this session** — the
-   `STATUS:` line (`PASS` / `FAIL`) plus the 🔴 / 🟡 / 🟢 severity markers it
-   emitted. Do **not** re-run `dev-superplan-reviewer`, and do **not** parse the raw
-   transcript to reconstruct it — use the verdict the reviewer already returned in
-   this session. The block sits above the plan body so a reader sees the review
-   outcome first; the plan body follows verbatim.
+   `Overall Verdict:` line (`PASS` / `FIX` / `BLOCK`) plus the consolidated fix list
+   (Critical / Major / Minor) it emitted. Do **not** re-run `dev-superplan-reviewer`, and
+   do **not** parse the raw transcript to reconstruct it — use the verdict the reviewer
+   already returned in this session. The block sits above the plan body so a reader sees
+   the review outcome first; the plan body follows verbatim.
 2. **Write the assembled `.md`** (verdict block + plan body) to a file on disk.
 3. **Hand the file** to the artifact-publishing skill with its path and a short
    title (e.g. the plan's §1 Scope sentence). That skill is responsible for

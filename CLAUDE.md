@@ -166,8 +166,11 @@ plain prefix; so do forks still reachable from the main session (`dev-superplan-
 - **`doc-`** — end-user documentation (1 skill): `doc-help` (the end-user product-help layer → `.superdev/help/`).
   Authors the human-facing help that ships to the people who use the built app — distinct
   from the agent-facing `mem-` layers above; faces the end user, not Claude.
-- **`dev-`** — the agentic-development pipeline + diagnostics/specs (13 skills + 4 plugin agents): planning
-  (`dev-superplan`, `dev-superplan-reviewer`; the interview entry point now lives in the no-prefix `superdev`
+- **`dev-`** — the agentic-development pipeline + diagnostics/specs (18 skills + 4 plugin agents): planning
+  (`dev-superplan`, `dev-superplan-reviewer` plus its five fork-only lens sub-skills
+  `dev-superplan-reviewer-{requirements-coverage,completeness-executability,codebase-fit-architecture,verifiability-risk,security-domain}`
+  — invoked only by `dev-superplan-reviewer` via the Skill tool, each receiving the bare plan path as `$ARGUMENTS`;
+  the interview entry point now lives in the no-prefix `superdev`
   skill above), the orchestrated implementation pipeline
   (`dev-orchestrator` → **mandatory first step** `dev-agent-recipe` (derives the host toolchain once →
   `recipe.sh` + `profile.md`; owns the clean-tree guard; FAIL = hard halt) → `dev-agent-adr-recorder` →
@@ -224,7 +227,7 @@ session. Soft cross-plugin chains into superdev: `superdev:dev-spec → supergh:
 - **Plan gate.** Planning happens in plan mode — entering plan mode before drafting a plan is driven by the
   `dev-superplan` skill instruction (Layer-A), not a deterministic hook. The plan's approval is gated by a
   single `PreToolUse` hook: `review-plan.sh` (matcher `ExitPlanMode`) denies the plan's approval until
-  `dev-superplan-reviewer` returns `STATUS: PASS`. This ExitPlanMode hook is the **single** gate in every mode,
+  `dev-superplan-reviewer` returns `Overall Verdict: PASS`. This ExitPlanMode hook is the **single** gate in every mode,
   and `dev-orchestrator` trusts it — it does **not** re-review the plan. (Residual: a `PreToolUse` deny is only
   best-effort in the permission-relaxed modes `bypassPermissions`/`dontAsk`/`auto`, so in those modes the gate
   itself is best-effort.) Keep all paths in sync.

@@ -1,8 +1,8 @@
 ---
-name: verifiability-risk-reviewer
-description: "Pipeline-bound; invoked only by `superdev:dev-superplan-reviewer`, never directly."
-tools: Read, Grep, Glob
+name: dev-superplan-reviewer-verifiability-risk
+description: "Pipeline-bound; invoked only by `superdev:dev-superplan-reviewer` via the Skill tool, never directly."
 model: opus
+allowed-tools: Read, Grep, Glob
 user-invocable: false
 context: fork
 ---
@@ -16,9 +16,8 @@ After execution, can we PROVE the work is correct from evidence — and safely u
 if it is not?
 
 ## Inputs you receive
-1. The path to the plan file (read it).
-2. The original user request (for reference).
-3. Read-only access to confirm that referenced test paths, scripts, and commands
+1. The absolute path to the plan file, passed verbatim as `$ARGUMENTS` (a bare path, no prefix). Read it.
+2. Read-only access to confirm that referenced test paths, scripts, and commands
    actually exist — confirm by READING files (package.json scripts, Makefile,
    pyproject, CI config, test directories). Do NOT execute tests or any command.
 
@@ -36,7 +35,7 @@ if it is not?
    accidental changes beyond the task?
 
 ## What you do NOT check (other reviewers own these)
-- Coverage of the user request, placeholders/consistency, or codebase fit.
+- Coverage of the plan's stated scope, placeholders/consistency, or codebase fit.
 - You assume the verification FIELD is present; you judge whether it is SUFFICIENT.
 
 ## Severity rubric

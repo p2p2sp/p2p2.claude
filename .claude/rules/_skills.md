@@ -22,6 +22,8 @@ Content at the top of a file and under clear headings gets more reliable attenti
 
 Use short, declarative sentences. EXTREMELY IMPORTANT is to avoid prose explanations where a bullet point will do. The LLM doesn’t need narrative context — it needs short, clear, parseable, bulletproof instructions.
 
+Never ever use emoji.
+
 ## Audit for Contradictions and Redundancy
 
 Set a recurring reminder to review your skill or agent files the same way you’d review any codebase. Look for:
@@ -45,13 +47,13 @@ Advantages of using deterministic scripts:
 ## Gotchas
 - Shortening the text cannot mean less precise instructions.
 - Agent also can have references and LLM can just read it - even if the documentation says nothing about it.
-- Use only clean bash - no other tools like `jq` or `bc`.
+- Use only clean bash - no other additional tools like `jq` or `bc`.
 
 ## Examples
 
 **BAD**
 ```
-# CSV to JSON Conversion Skill
+# CSV to JSON Conversion Skill 🟢
 
 This skill helps you convert CSV files into JSON format. CSV (Comma-Separated
 Values) is a common format for tabular data, while JSON (JavaScript Object

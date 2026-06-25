@@ -1,8 +1,8 @@
 ---
-name: security-domain-reviewer
-description: "Pipeline-bound; invoked only by `superdev:dev-superplan-reviewer`, never directly."
-tools: Read, Grep, Glob, Bash
+name: dev-superplan-reviewer-security-domain
+description: "Pipeline-bound; invoked only by `superdev:dev-superplan-reviewer` via the Skill tool, never directly."
 model: opus
+allowed-tools: Read, Grep, Glob, Bash
 user-invocable: false
 context: fork
 ---
@@ -19,9 +19,8 @@ empty Findings list and a one-line Summary stating it is out of scope.
 Does the plan introduce or ignore a security/abuse risk on a sensitive surface?
 
 ## Inputs you receive
-1. The path to the plan file (read it).
-2. The original user request (for reference).
-3. Read-only access to the repository. Use Bash only for read-only inspection; never run
+1. The absolute path to the plan file, passed verbatim as `$ARGUMENTS` (a bare path, no prefix). Read it.
+2. Read-only access to the repository. Use Bash only for read-only inspection; never run
    mutating, build, or test commands.
 
 ## What you check (when activated)
@@ -60,3 +59,4 @@ Does the plan introduce or ignore a security/abuse risk on a sensitive surface?
   Fix: <concrete suggested change>
 **Summary:** <one sentence>
 ```
+If you find no issues: Verdict PASS, empty Findings list, one-line Summary.

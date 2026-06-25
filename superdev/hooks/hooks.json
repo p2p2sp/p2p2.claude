@@ -1,5 +1,5 @@
 {
-  "description": "superdev hooks: force-injects the single using-superdev manifest at session start; gates ExitPlanMode on dev-superplan-reviewer STATUS: PASS.",
+  "description": "superdev hooks: force-injects the single using-superdev manifest at session start; gates ExitPlanMode on dev-superplan-reviewer Overall Verdict: PASS.",
   "hooks": {
     "PreToolUse": [
       {
