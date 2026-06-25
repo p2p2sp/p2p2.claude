@@ -1,6 +1,6 @@
 ---
 name: dev-task-reviewer
-description: "Workflow-bound single-task review gate. Verifies that the code written for ONE plan task delivers its `## Deliverable` against that task's diff only, applying the shared rubric, and writes a markdown report with a PASS / FAIL / BLOCKED verdict. Delegated to by the per-task pipeline workflow."
+description: "Pipeline-bound; invoked only by `superdev:dev-orchestrator`, never directly."
 model: opus
 effort: xhigh
 # git-scoped Bash (`Bash(git *)`) dropped: agent `tools:` is a bare-name allowlist and does not accept the constraint syntax (plan §5 fallback). Body keeps the read-only `git status` / `git diff` discipline.

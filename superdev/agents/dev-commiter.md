@@ -1,6 +1,6 @@
 ---
 name: dev-commiter
-description: "Workflow-bound git-commit passthrough for ONE just-passed task. Runs the bundled commit-task.sh against the task file and relays its single output line verbatim — no diff analysis, no subject authoring, no dialogue. Delegated to by the per-task pipeline workflow."
+description: "Pipeline-bound; invoked only by `superdev:dev-orchestrator`, never directly."
 model: haiku
 effort: low
 tools: Bash

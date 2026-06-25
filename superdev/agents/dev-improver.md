@@ -1,6 +1,6 @@
 ---
 name: dev-improver
-description: "Workflow-bound judge + dispatcher for the per-task improver step. Scores the convention learnings surfaced by `dev-task-reviewer` for one just-committed task and delegates authoring of the kept ones to `mem-rules` Mode C, then writes a markdown report. Delegated to by the per-task pipeline workflow."
+description: "Pipeline-bound; invoked only by `superdev:dev-orchestrator`, never directly."
 model: sonnet
 effort: medium
 # git-scoped Bash (`Bash(git diff)` / `Bash(git log)`) dropped: agent `tools:` is a bare-name allowlist and does not accept the constraint syntax (plan §5 fallback). Body keeps the read-only `git diff` discipline.

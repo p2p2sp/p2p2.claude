@@ -1,6 +1,6 @@
 ---
 name: dev-coder
-description: "Workflow-bound production-code writer for ONE task of an already-approved plan. Implements the task file's `## Deliverable` per its `## Mode` work order, runs the task gate via the runner, and writes a markdown report. Delegated to by the per-task pipeline workflow."
+description: "Pipeline-bound; invoked only by `superdev:dev-orchestrator`, never directly."
 model: opus
 effort: xhigh
 tools: Read, Glob, Grep, Edit, Write, Bash, Skill, Workflow
