@@ -1,6 +1,7 @@
 ---
 name: ui-web-preview
 description: Use when a design system has already been adapted to a web target (a targets/<target>/ directory produced by ui-adapt with a target.md + a theme artifact + components.md) and the user wants live HTML pages to preview, verify, or present it. Triggers: "preview the design system", "generate web preview pages", "build mockup/preview pages", "show the components in HTML", "make a component showcase", "build login/signup/404 pages from the design system", "present the design system to the team", or a path to a targets/<target>/ folder. Web targets only — pure-css (plain CSS), tailwind (Tailwind v4 browser CDN), and react-shadcn (Tailwind CDN, OKLCH theme); produces self-contained, zero-build static HTML in a chosen directory: an index page, layout pages, app pages (login, signup, password reset, 404/500), and one showcase page per component with every variant and state, plus a dark/light toggle. N/A for react-mui / flutter — those are previewed with their own tooling (Storybook / DartPad). Does not extract the agnostic system (ui-extract-system-design) or adapt it to a target (ui-adapt).
+allowed-tools: Bash(sh:*)
 ---
 
 # Web Preview Generator
@@ -12,6 +13,15 @@ can open them in a browser, confirm the system is coherent and matches intent,
 spot components that need correction, and present it to a team. Run manually: the
 user names the design-system root and the output directory; the skill resolves
 the active web target from the on-disk `targets/<target>/` contract.
+
+## Python preflight
+
+!`"${CLAUDE_PLUGIN_ROOT}/shared/scripts/check_python.sh"`
+
+The line above runs this skill's Python check at load. If it reads `PYTHON_MISSING`,
+tell the user this skill's `*.py` steps need **Python 3** (install it; on Windows make
+sure `python` or `py` is on `PATH`) and **stop before any `python …` step**. If it reads
+`PYTHON_OK <cmd>`, use `<cmd>` in place of `python` in every `python …` command below.
 
 ## Operating principles
 

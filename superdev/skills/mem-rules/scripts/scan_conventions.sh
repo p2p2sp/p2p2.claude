@@ -53,7 +53,7 @@ for arg in "$@"; do
 done
 
 # shared directory-exclusion filters, derived from the project .gitignore
-source "$(dirname "${BASH_SOURCE[0]}")/lib_find_excludes.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../../../shared/scripts/lib_find_excludes.sh"
 load_find_excludes "$TARGET_PATH" || true
 
 # --- passed signal files (existence-guarded) -------------------------------

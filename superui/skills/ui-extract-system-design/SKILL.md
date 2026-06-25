@@ -1,6 +1,7 @@
 ---
 name: ui-extract-system-design
 description: Use when the user provides a folder of UI screenshots or a website URL and wants to reverse-engineer a framework-agnostic design system from it. Triggers: "extract a design system", "build design tokens from these screens", "document the components in this UI", "turn this site into a design system", "reverse-engineer this UI/website", a filesystem path to a screenshots directory, or a URL to take inspiration from. Source-only: produces DTCG design tokens (YAML), a foundations document, a pure-CSS tokens.css (no framework coupling), and a tiered component catalog — layout, composite, and atomic — each with a detailed spec covering variants, states, anatomy, Figma properties, usage rules, and accessibility. Does not target any UI framework or build HTML mockups; per-target adaptation is the separate ui-adapt skill, web preview is ui-web-preview.
+allowed-tools: Bash(sh:*)
 ---
 
 # System Design Extractor
@@ -11,6 +12,15 @@ foundations document, a pure-CSS `tokens.css`, and a **tiered catalog of
 components**, each documented with a full spec. This is the L1 core: it
 reverse-engineers the *source* into one neutral system that downstream skills
 adapt per target. Run manually: the user names the source in the prompt.
+
+## Python preflight
+
+!`"${CLAUDE_PLUGIN_ROOT}/shared/scripts/check_python.sh"`
+
+The line above runs this skill's Python check at load. If it reads `PYTHON_MISSING`,
+tell the user this skill's `*.py` steps need **Python 3** (install it; on Windows make
+sure `python` or `py` is on `PATH`) and **stop before any `python …` step**. If it reads
+`PYTHON_OK <cmd>`, use `<cmd>` in place of `python` in every `python …` command below.
 
 ## Operating principles
 

@@ -22,7 +22,6 @@ The mode comes from the skill argument (`all` / `staged` / empty→`session`). T
 - The resolver is **read-only on git** — it inspects with `git status` / `git rev-parse` only. All staging, diff-reading, and committing happens in the committer fork.
 - Never push, merge, rebase, amend, cherry-pick, or use `--force` / `--no-verify`; never instruct the committer to.
 - Never edit source files, test files, or git config — this skill only inspects, routes, and passes a hint.
-- This skill is git-only — it never touches the GitHub API. For gh / REST / GraphQL operations the `gh-cli` skill is the layer reference (informational see-also, not a functional dependency).
 - One route, one delegation, one report. Never re-run "to confirm".
 - Never question or analyze user intent to commit `all` or `staged` files.
 - If mode is `all` or `staged`, never propose or start a new branch.

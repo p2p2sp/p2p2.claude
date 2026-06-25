@@ -1,6 +1,7 @@
 ---
 name: ui-adapt
 description: Use when a framework-agnostic design system already exists on disk (default .superui/layout/design-system/, produced by ui-extract-system-design or ui-component-creator) and the user wants to adapt it to ONE concrete UI target. Triggers: "adapt the design system to <target>", "generate the Tailwind theme", "make a shadcn globals.css from the tokens", "create an MUI theme from the design system", "turn this into a Flutter ThemeData", "wire the tokens into pure CSS / SSR", or a target name (pure-css / tailwind / react-shadcn / react-mui / flutter). Reads the L1 agnostic system (tokens.css + components/inventory.md + specs), the user picks ONE target, then writes targets/<target>/{target.md, <theme-artifact>, components.md} under the design-system root. Per-target theme artifact: theme.css | globals.css | _variables.scss | theme.ts | theme.dart | styles.css. Never invents components absent from the L1 inventory. Incremental and idempotent — re-adapt one component, not the whole system. Distinct from ui-extract-system-design (authors the agnostic system) and ui-web-preview (renders HTML previews of a chosen target).
+allowed-tools: Bash(sh:*)
 ---
 
 # Per-target Design System Adapter
@@ -12,6 +13,16 @@ current official docs. L1 stays neutral; this skill produces the target-specific
 theme artifact + a component mapping, written under
 `targets/<target>/` so the same neutral system can serve hand-written
 HTML/SSR, Tailwind, React component libraries, and Flutter.
+
+## Python preflight
+
+!`"${CLAUDE_PLUGIN_ROOT}/shared/scripts/check_python.sh"`
+
+The line above runs this skill's Python check at load. If it reads `PYTHON_MISSING`,
+tell the user this skill's `*.py` steps need **Python 3** (install it; on Windows make
+sure `python` or `py` is on `PATH`) and **stop before any `python …` step**. If it reads
+`PYTHON_OK <cmd>`, use `<cmd>` in place of `python` in any `python …` command this skill
+runs (e.g. the `tokens_to_tailwind.py` step for the shadcn target, in `references/shadcn.md`).
 
 ## Operating principles
 

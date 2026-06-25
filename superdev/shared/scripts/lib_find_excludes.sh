@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
-# superdev / mem-layers — lib_find_excludes.sh
+# superdev / shared — lib_find_excludes.sh
 #
 # Builds a global FIND_EXCLUDES=( -not -path ... ) array for `find`, derived from
 # the project's .gitignore (root located by walking up from a start path), with a
-# fallback to the bundled ../../setup/assets/gitignore.txt template.
+# fallback to the bundled ../../skills/setup/assets/gitignore.txt template.
+#
+# Plugin-level shared helper (consumed by mem-layers and mem-rules scripts). It is
+# the single copy — do not re-duplicate it under a skill's own scripts/ dir.
 #
 # Contract:
 #   input  : $1 = start path (default: CWD). The project root is the nearest
 #            ancestor containing .gitignore (preferred) or a .git/ directory.
 #   output : sets the GLOBAL array FIND_EXCLUDES (always non-empty — safety floor).
 #            Always returns 0 (fail-soft). Diagnostics go to stderr, never stdout.
-#   usage  : source "$(dirname "${BASH_SOURCE[0]}")/lib_find_excludes.sh"
+#   usage  : source "$(dirname "${BASH_SOURCE[0]}")/../../../shared/scripts/lib_find_excludes.sh"
 #            load_find_excludes "$TARGET_PATH"
 #            find "$TARGET_PATH" -type d "${FIND_EXCLUDES[@]}"
 #   note   : self-contained; does NOT enable set -e/-u, and every internal command
@@ -93,7 +96,7 @@ load_find_excludes() {
   if [ -z "$gi" ]; then
     local lib_dir fb
     lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    fb="$lib_dir/../../setup/assets/gitignore.txt"
+    fb="$lib_dir/../../skills/setup/assets/gitignore.txt"
     if [ -f "$fb" ]; then
       gi="$fb"
     else

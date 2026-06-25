@@ -27,7 +27,7 @@ RULES_DIR="$TARGET_PATH/.claude/rules"
 
 # shared directory-exclusion filters, derived from the project .gitignore —
 # required because this is a recursive tree scan (see note above).
-source "$(dirname "${BASH_SOURCE[0]}")/lib_find_excludes.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../../../shared/scripts/lib_find_excludes.sh"
 load_find_excludes "$TARGET_PATH" || true
 
 RULE_COUNT=0

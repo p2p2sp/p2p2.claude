@@ -2,8 +2,6 @@
 
 Commit **only what we touched in this conversation** — not unrelated changes that happen to sit in the working tree. This is the default when the argument is empty.
 
-The resolver runs in the main context, so it can actually see the session: which files were created/edited while helping the user. A fork could not — that is the whole reason this path lives in the resolver, not the committer.
-
 **Do this:**
 
 1. From the conversation context, build the set of file paths created or modified during this session (the files written/edited while helping the user).

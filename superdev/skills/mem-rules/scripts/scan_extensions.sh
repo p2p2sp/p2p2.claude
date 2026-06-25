@@ -33,7 +33,7 @@ list_files() {
     if git -C "$TARGET_PATH" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         git -C "$TARGET_PATH" ls-files 2>/dev/null
     else
-        source "$(dirname "${BASH_SOURCE[0]}")/lib_find_excludes.sh"
+        source "$(dirname "${BASH_SOURCE[0]}")/../../../shared/scripts/lib_find_excludes.sh"
         load_find_excludes "$TARGET_PATH" || true
         find "$TARGET_PATH" -type f "${FIND_EXCLUDES[@]}" 2>/dev/null
     fi

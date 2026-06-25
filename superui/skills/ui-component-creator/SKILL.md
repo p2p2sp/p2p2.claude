@@ -1,6 +1,7 @@
 ---
 name: ui-component-creator
 description: Use when a framework-agnostic design system already exists on disk (default .superui/layout/design-system/, produced by ui-extract-system-design) and the user wants to author a NET-NEW component into it — describe a component that the source UI never had, draft its spec, preview it, and add it to the catalog. Triggers: "add a new component to the design system", "create a <component> spec", "author a stepper / toast / command-palette we don't have yet", "design a new component", "add a component to the inventory", or describing a component the extracted inventory is missing. Interactive L1 loop: help describe → draft an agnostic spec against the canonical component-spec.md (never-fabricate / reconcile discipline reused from ui-extract-system-design, no duplicated method) → render its own minimal pure-CSS single-component preview from tokens.css (variants/states labeled) → iterate visually → on convergence write components/<tier>/<name>.md, add the entry to inventory.md, and reconcile tokens via validate_tokens.py. Strictly L1: MUST NOT depend on ui-web-preview (L1 does not reach downstream). Distinct from ui-extract-system-design (reverse-engineers a whole system from a source) and ui-adapt (maps the system onto a target).
+allowed-tools: Bash(sh:*)
 ---
 
 # Net-new Component Author
@@ -18,6 +19,15 @@ owns, using the same canon and discipline. It **MUST NOT** depend on
 `ui-web-preview` or any other downstream skill — L1 never reaches downstream. Its
 preview is its own tiny, self-contained pure-CSS page, not the multi-page
 per-target mockup builder.
+
+## Python preflight
+
+!`"${CLAUDE_PLUGIN_ROOT}/shared/scripts/check_python.sh"`
+
+The line above runs this skill's Python check at load. If it reads `PYTHON_MISSING`,
+tell the user this skill's `*.py` steps need **Python 3** (install it; on Windows make
+sure `python` or `py` is on `PATH`) and **stop before any `python …` step**. If it reads
+`PYTHON_OK <cmd>`, use `<cmd>` in place of `python` in every `python …` command below.
 
 ## Operating principles
 

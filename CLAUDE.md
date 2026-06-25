@@ -37,6 +37,9 @@ individual skills' `scripts/` dirs (the `superui` `ui-*` preview scripts, the su
 `dev-agent-recipe/scripts/recipe.template.sh`, the `gh-commit` mode router
 `gh-commit/scripts/route.sh`, the `mem-rules` mode router `mem-rules/scripts/route.sh` + its discovery
 scripts `mem-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), and the one-time `setup/scripts/bootstrap.sh`).
+Two helpers instead live at **plugin-level** `<plugin>/shared/scripts/` (one copy shared across a plugin's
+skills): `superdev/shared/scripts/lib_find_excludes.sh` (sourced by the `mem-layers` / `mem-rules` scan scripts)
+and `superui/shared/scripts/check_python.sh` (the `ui-*` Python preflight, `!`-injected by each `ui-*` SKILL.md).
 **Editing markdown / JSON IS shipping** — there is no build / test /
 lint at any level. Contracts between files are enforced by humans reading carefully.
 
@@ -67,7 +70,7 @@ superdev/            The superdev plugin
     content/manifest.md  The injected `using-superdev` dispatcher
     scripts/         session-start.sh, review-plan.sh, require-plan-mode.sh
   agents/            The 4 per-task pipeline plugin agents (dev-coder.md, dev-task-reviewer.md, dev-improver.md, dev-commiter.md)
-  shared/            Bundled assets shared across the pipeline (rubric.md; coder-modes/ work-order files)
+  shared/            Plugin-level shared assets + scripts (rubric.md; coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the mem-layers / mem-rules scans)
   skills/            Skills grouped by prefix (mem- / doc- / dev- / gh-); some skills bundle a
                      deterministic helper under their own scripts/ dir (dev-orchestrator/scripts/commit-task.sh
                      + commit-adr.sh + task-pipeline.workflow.js, dev-agent-recipe/scripts/recipe.template.sh,
@@ -76,6 +79,7 @@ superui/             The superui plugin
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
   hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
     content/manifest.md  The injected `using-superui` dispatcher
+  shared/            Plugin-level shared scripts (scripts/check_python.sh — the ui-* Python preflight)
   skills/            Skills grouped by prefix (ui- / cc-); the ui-* skills bundle preview scripts
 README.md            User-facing help (install + how it works)
 .github/             CI: scripts/release.sh + workflows/ (auto-version.yml, release-version.yml)
