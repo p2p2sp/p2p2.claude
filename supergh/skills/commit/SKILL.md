@@ -8,6 +8,17 @@ argument-hint: "[all|staged]"
 effort: low
 ---
 
+## No-op gate
+<worktree-status>
+
+!`git status --porcelain`
+
+</worktree-status>
+
+Empty block above → the working tree is clean: nothing to commit in any mode. Reply `nothing to commit` and stop — do NOT run the routed playbook, do NOT delegate to the committer.
+
+## Routed playbook
+
 !`"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/route.sh" "$ARGUMENTS"`
 
 - Never question or analyze user intent to commit `all` or `staged` files.

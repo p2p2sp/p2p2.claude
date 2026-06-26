@@ -1,5 +1,3 @@
-## Use exact instructions below
-
 The user asked to commit **everything** in the working tree — no per-file analysis, no branch question. Just do instructions below.
 
 1. **Delegate to `supergh:agent-committer`** via the **Skill** tool with a fully-specified handoff:

@@ -32,6 +32,7 @@ Set a recurring reminder to review your skill or agent files the same way you’
 - Guidance that was added for a specific situation but was never scoped to that situation
 - Documentation for tools or patterns your project no longer uses
 - Repeated information across multiple files
+- Explanation who is using the skill or agent, especially forked skill.
 
 Remove mercilessly. Everything in a skill file has a cost.
 
