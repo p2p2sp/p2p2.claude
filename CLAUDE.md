@@ -35,12 +35,12 @@ Each plugin is independently installable; none declares another as a dependency.
 They ship no application code — the artefacts are markdown (skills) + JSON (manifests) + the per-plugin hook
 scripts under `<plugin>/hooks/scripts/`, plus a handful of deterministic helper scripts bundled under
 individual skills' `scripts/` dirs (the `superui` `ui-*` preview scripts, the superdev pipeline commit scripts
-`dev-orchestrator/scripts/commit-task.sh` + `dev-orchestrator/scripts/commit-adr.sh`, the fixed recipe harness
-`dev-agent-recipe/scripts/recipe.template.sh`, the `supergh` `commit` mode router
-`commit/scripts/route.sh`, the `mem-rules` mode router `mem-rules/scripts/route.sh` + its discovery
-scripts `mem-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), and the one-time `setup/scripts/bootstrap.sh`).
+`orchestrator/scripts/commit-task.sh` + `orchestrator/scripts/commit-adr.sh`, the fixed recipe harness
+`agent-recipe/scripts/recipe.template.sh`, the `supergh` `commit` mode router
+`commit/scripts/route.sh`, the `memory-rules` mode router `memory-rules/scripts/route.sh` + its discovery
+scripts `memory-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), and the one-time `setup/scripts/bootstrap.sh`).
 Two helpers instead live at **plugin-level** `<plugin>/shared/scripts/` (one copy shared across a plugin's
-skills): `superdev/shared/scripts/lib_find_excludes.sh` (sourced by the `mem-layers` / `mem-rules` scan scripts)
+skills): `superdev/shared/scripts/lib_find_excludes.sh` (sourced by the `memory-layers` / `memory-rules` scan scripts)
 and `superui/shared/scripts/check_python.sh` (the `ui-*` Python preflight, `!`-injected by each `ui-*` SKILL.md).
 **Editing markdown / JSON IS shipping** — there is no build / test /
 lint at any level. Contracts between files are enforced by humans reading carefully.
@@ -56,10 +56,10 @@ DO NOT USE ADR capture for this project. The plugins are constantly refactored.
 Each plugin keeps its domain's skills together so a consumer can install just the development ecosystem
 (`superdev`), just the design ecosystem (`superui`), or just the GitHub ecosystem (`supergh`). Within a plugin,
 skills compose through CSO (frontmatter `description:`) and that plugin's single injected manifest documents the
-in-plugin chains (e.g. `dev-improver → mem-rules` in superdev). Each is
+in-plugin chains (e.g. `improver → memory-rules` in superdev). Each is
 **self-contained**: its `plugin.json` declares **no `dependencies`** — installing it gives that whole
-ecosystem. Cross-plugin chains are **soft and optional**: superdev's `dev-spec → supergh:create-issue` and
-`dev-agent-final-reviewer → supergh:create-pr` are CSO compositions that fire only when `supergh` is also
+ecosystem. Cross-plugin chains are **soft and optional**: superdev's `spec-writer → supergh:create-issue` and
+`agent-final-reviewer → supergh:create-pr` are CSO compositions that fire only when `supergh` is also
 installed; absent it they simply do not engage (no declared dependency, graceful degradation).
 
 ## Repository layout
@@ -73,14 +73,14 @@ superdev/            The superdev plugin
     hooks.json       SessionStart (inject manifest) + PreToolUse: ExitPlanMode (plan-review gate)
     content/manifest.md  The injected `using-superdev` dispatcher
     scripts/         session-start.sh, review-plan.sh
-  shared/            Plugin-level shared assets + scripts (rubric.md; coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the mem-layers / mem-rules scans)
-  skills/            Skills grouped by prefix (mem- / doc- / dev-); some skills bundle a
-                     deterministic helper under their own scripts/ dir (dev-orchestrator/scripts/commit-task.sh
-                     + commit-adr.sh + task-pipeline.workflow.js, dev-agent-recipe/scripts/recipe.template.sh,
-                     mem-rules/scripts/route.sh, setup/scripts/bootstrap.sh);
-                     dev-orchestrator also bundles the 4 per-task pipeline plugin agents under its agents/ subdir
-                     (dev-coder.md, dev-task-reviewer.md, dev-improver.md, dev-commiter.md), plus a bundled
-                     reference asset agents/rubric-task-review.md (dev-task-reviewer's own task-review rubric —
+  shared/            Plugin-level shared assets + scripts (rubric.md; coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the memory-layers / memory-rules scans)
+  skills/            Skills (bare-named by functional role; `agent-` marks fork-only workers); some skills bundle a
+                     deterministic helper under their own scripts/ dir (orchestrator/scripts/commit-task.sh
+                     + commit-adr.sh + task-pipeline.workflow.js, agent-recipe/scripts/recipe.template.sh,
+                     memory-rules/scripts/route.sh, setup/scripts/bootstrap.sh);
+                     orchestrator also bundles the 4 per-task pipeline plugin agents under its agents/ subdir
+                     (coder.md, task-reviewer.md, improver.md, commiter.md), plus a bundled
+                     reference asset agents/rubric-task-review.md (task-reviewer's own task-review rubric —
                      a reference file, NOT a registered agent)
 superui/             The superui plugin
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
@@ -113,34 +113,35 @@ token; the loop is instead broken by an `auto-version.yml` job guard
 with the script. The tag is the source of truth; each `plugin.json.version` is derived. Because each
 `plugin.json` carries a `version`, `/plugin update` ships a new version on each bump.
 
-## superdev skill taxonomy (prefix = functional group)
+## superdev skill taxonomy (functional roles, not name prefixes)
 
-The groups below are **superdev's**. `superui`'s `ui-` / `cc-` groups and `supergh`'s flat-named skills live in
-those plugins and are documented in their own `<plugin>/hooks/content/manifest.md` + `README.md` (see also the
-**supergh plugin** section below). For each plugin, the **per-skill** catalog of record is
-its own `<plugin>/.claude-plugin/plugin.json` `skills[]`; the injected manifest
-(`<plugin>/hooks/content/manifest.md`) documents that plugin's prefix **groups + cross-skill chains**, not
-individual skills.
+The roles below are **superdev's** — its skills are now bare-named (the `dev-`/`mem-`/`doc-` group prefixes are
+gone), save the `agent-` fork-only marker; the functional roles below are how they group. `superui`'s `ui-` /
+`cc-` groups and `supergh`'s flat-named skills live in those plugins and are documented in their own
+`<plugin>/hooks/content/manifest.md` + `README.md` (see also the **supergh plugin** section below). For each
+plugin, the **per-skill** catalog of record is its own `<plugin>/.claude-plugin/plugin.json` `skills[]`; the
+injected manifest (`<plugin>/hooks/content/manifest.md`) documents that plugin's groups/roles + cross-skill
+chains, not individual skills.
 
-**Naming sub-convention (`-agent-` infix).** The `-agent-` infix marks a forked, fork-only **skill** worker —
-invoked **only by a superordinate skill via the `Skill` tool** (never the user, never auto-routed): `dev-agent-*`
-(the remaining pipeline skill-workers — `dev-agent-recipe`, `dev-agent-adr-recorder`, `dev-agent-decomposer`,
-`dev-agent-runner`, `dev-agent-final-reviewer`, `dev-agent-plan-auditor`, `dev-agent-smoke`). These stay
-**skills** (not `agents/<name>.md` definitions); the infix is taxonomy only — it signals their agent-like,
-fork-only nature, and their frontmatter already encodes it (`context: fork` + `user-invocable: false` + a
-one-line "pipeline-bound; invoked only by …" guard `description`). The four per-task pipeline workers are NOT
-in this group: `dev-coder`, `dev-task-reviewer`, `dev-improver`, `dev-commiter` are real **plugin agents**
-(`superdev/skills/dev-orchestrator/agents/*.md`, listed in `plugin.json` `agents[]`, dispatched by the `task-pipeline.workflow.js` via
-`agentType:'superdev:dev-*'`) — named without the infix precisely because they are genuine agents, not
-fork-skills. (`dev-commiter` is a thin haiku passthrough — it only runs `commit-task.sh` and relays its tag —
-but it is still a workflow-dispatched plugin agent, so it follows the no-infix rule like the other three.) The **inline dispatcher**
-that drives the pipeline (`dev-orchestrator`) and every user-facing / auto-routed skill keep a
-plain prefix; so do forks still reachable from the main session (`dev-superplan-reviewer`).
+**Naming sub-convention (`agent-` prefix).** The `agent-` prefix marks a forked, fork-only **skill** worker —
+invoked **only by a superordinate skill via the `Skill` tool** (never the user, never auto-routed):
+`agent-recipe`, `agent-adr-recorder`, `agent-decomposer`, `agent-runner`, `agent-final-reviewer`,
+`agent-plan-auditor`, `agent-smoke`. These stay **skills** (not `agents/<name>.md` definitions); the prefix is
+taxonomy only — it signals their agent-like, fork-only nature, and their frontmatter already encodes it
+(`context: fork` + `user-invocable: false` + a one-line "pipeline-bound; invoked only by …" guard
+`description`). The four per-task pipeline workers do NOT take the prefix: `coder`, `task-reviewer`, `improver`,
+`commiter` are real **plugin agents** (`superdev/skills/orchestrator/agents/*.md`, listed in `plugin.json`
+`agents[]`, dispatched by the `task-pipeline.workflow.js` via `agentType:'superdev:<name>'`) — bare-named
+precisely because they are genuine agents, not fork-skills. (`commiter` is a thin haiku passthrough — it only
+runs `commit-task.sh` and relays its tag — but it is still a workflow-dispatched plugin agent, so it stays
+bare-named like the other three.) The **inline dispatcher** that drives the pipeline (`orchestrator`) and every
+user-facing / auto-routed skill are bare-named too; so are forks still reachable from the main session
+(`superplan-reviewer`).
 
-- **(no prefix)** — two top-level skills named outside the prefix groups:
+- **Entry & environment** — two top-level skills:
   - `superdev`: the always-on **entry skill** (the renamed former `dev-interview`), named after the plugin
     itself because it is the heart of the ecosystem — every session's creative work starts here. It interviews
-    the user to map the design tree before any plan/code, then hands off silently to `dev-superplan`. It is
+    the user to map the design tree before any plan/code, then hands off silently to `superplan`. It is
     model-invocable and is the skill the manifest's decision flow forces first (step 1), unlike `setup`.
   - `setup`: one-time, user-only environment bootstrap (`/setup`). Seeds `.temp/` + `.superdev/`,
   copies the bundled `.gitignore` / `.claude/settings.json` templates, and **seeds `.superdev/config.yml` from a
@@ -149,41 +150,41 @@ plain prefix; so do forks still reachable from the main session (`dev-superplan-
   file to flip the unselected ones off. Runs in the **main session** (not a fork) so it can prompt via
   `AskUserQuestion`. It is `disable-model-invocation` (Claude never auto-routes to it) so it is **deliberately
   absent from the manifest** — see the Self-documentation invariant.
-- **`mem-`** — project memory (agent-facing) (2 skills): `mem-layers` (CLAUDE.md cascade), `mem-rules`
+- **Project memory (agent-facing)** (2 skills): `memory-layers` (CLAUDE.md cascade), `memory-rules`
   (`.claude/rules/` layer).
 
   **Memory layer division.** Agent-facing project knowledge splits current truth across four non-overlapping
   layers, picked by *kind of truth* — all four face the **agent**: (1) the general-rules
   manifest (superdev's `hooks/content/manifest.md`, force-injected per session);
-  (2) the `CLAUDE.md` cascade (terse agent orientation; `mem-layers`); (3) `.claude/rules/*` (path-scoped
-  conventions; `mem-rules`, which has **3 modes** — A uninitialized bootstrap, B initialized gap-fill, C
-  improver-driven authoring; in-pipeline the `dev-improver` agent judges value, `mem-rules` (Mode C) authors);
-  (4) `.superdev/adr/` (architectural *why*; written in-pipeline by `dev-agent-adr-recorder`). In the dev
-  pipeline, `dev-agent-adr-recorder` records any architectural decision into layer 4 before decompose
-  (config-gated `adr`), and the `dev-improver` agent promotes each task's review learnings into layer 3
-  (`.claude/rules/`) — judging which learnings are worth keeping and delegating the authoring to `mem-rules`
+  (2) the `CLAUDE.md` cascade (terse agent orientation; `memory-layers`); (3) `.claude/rules/*` (path-scoped
+  conventions; `memory-rules`, which has **3 modes** — A uninitialized bootstrap, B initialized gap-fill, C
+  improver-driven authoring; in-pipeline the `improver` agent judges value, `memory-rules` (Mode C) authors);
+  (4) `.superdev/adr/` (architectural *why*; written in-pipeline by `agent-adr-recorder`). In the dev
+  pipeline, `agent-adr-recorder` records any architectural decision into layer 4 before decompose
+  (config-gated `adr`), and the `improver` agent promotes each task's review learnings into layer 3
+  (`.claude/rules/`) — judging which learnings are worth keeping and delegating the authoring to `memory-rules`
   Mode C, the sole writer of `.claude/rules/` — a config-gated step (`rules_improver`).
-  The product's **end-user** help documentation is a distinct, non-agent layer owned by the `doc-` group below
-  (NOT agent memory).
-- **`doc-`** — end-user documentation (1 skill): `doc-help` (the end-user product-help layer → `.superdev/help/`).
+  The product's **end-user** help documentation is a distinct, non-agent layer owned by the end-user
+  documentation role below (NOT agent memory).
+- **End-user documentation** (1 skill): `help-writer` (the end-user product-help layer → `.superdev/help/`).
   Authors the human-facing help that ships to the people who use the built app — distinct
-  from the agent-facing `mem-` layers above; faces the end user, not Claude.
-- **`dev-`** — the agentic-development pipeline + diagnostics/specs (15 skills + 4 plugin agents): planning
-  (`dev-superplan`, `dev-superplan-reviewer` plus its two fork-only lens sub-skills
-  `dev-superplan-reviewer-{plan-integrity,codebase-risk}`
-  — invoked only by `dev-superplan-reviewer` via the Skill tool; each receives the plan path as `$ARGUMENTS`,
+  from the agent-facing memory layers above; faces the end user, not Claude.
+- **Agentic-development pipeline + diagnostics/specs** (15 skills + 4 plugin agents): planning
+  (`superplan`, `superplan-reviewer` plus its two fork-only lens sub-skills
+  `superplan-reviewer-{plan-integrity,codebase-risk}`
+  — invoked only by `superplan-reviewer` via the Skill tool; each receives the plan path as `$ARGUMENTS`,
   optionally followed by ` ||| <prior Consolidated fixes, single-line>` on a re-review (first-run = bare path);
   `-codebase-risk` folds in the security activation gate and a no-runnable relaxation (driven by the plan's §9 DoD);
   the interview entry point now lives in the no-prefix `superdev`
   skill above), the orchestrated implementation pipeline
-  (`dev-orchestrator` → **mandatory first step** `dev-agent-recipe` (derives the host toolchain once →
-  `recipe.sh` + `profile.md`; owns the clean-tree guard; FAIL = hard halt) → `dev-agent-adr-recorder` →
-  `dev-agent-decomposer` → per task **one `Workflow`** call to `task-pipeline.workflow.js` driving `dev-coder` →
-  `dev-agent-runner` → `dev-task-reviewer` → `dev-improver` → commit (the `dev-commiter` agent runs
-  `commit-task.sh` as the workflow's final stage, only on PASS) → `dev-agent-final-reviewer`), the final-gate
-  sub-skills (`dev-agent-plan-auditor`, `dev-agent-smoke`), plus `dev-tdd` / `dev-debug` / `dev-spec`. The four
-  per-task workers `dev-coder` / `dev-task-reviewer` / `dev-improver` / `dev-commiter` are **plugin agents**
-  (`superdev/skills/dev-orchestrator/agents/*.md`), not skills — dispatched by the workflow via `agentType:'superdev:dev-*'`.
+  (`orchestrator` → **mandatory first step** `agent-recipe` (derives the host toolchain once →
+  `recipe.sh` + `profile.md`; owns the clean-tree guard; FAIL = hard halt) → `agent-adr-recorder` →
+  `agent-decomposer` → per task **one `Workflow`** call to `task-pipeline.workflow.js` driving `coder` →
+  `agent-runner` → `task-reviewer` → `improver` → commit (the `commiter` agent runs
+  `commit-task.sh` as the workflow's final stage, only on PASS) → `agent-final-reviewer`), the final-gate
+  sub-skills (`agent-plan-auditor`, `agent-smoke`), plus `tdd` / `debug` / `spec-writer`. The four
+  per-task workers `coder` / `task-reviewer` / `improver` / `commiter` are **plugin agents**
+  (`superdev/skills/orchestrator/agents/*.md`), not skills — dispatched by the workflow via `agentType:'superdev:<name>'`.
 
 ## supergh plugin (GitHub / git — flat-named skills)
 
@@ -204,8 +205,8 @@ Six skills, qualified as `supergh:<name>`:
 
 Fork-only discipline carries through the rename: `agent-committer` (invoked only by `commit`) keeps the
 `agent-` lead token as its fork-only signal, while `cli-executor` is a fork still reachable from the main
-session. Soft cross-plugin chains into superdev: `superdev:dev-spec → supergh:create-issue`,
-`superdev:dev-agent-final-reviewer → supergh:create-pr` (CSO only, engage only when both plugins installed).
+session. Soft cross-plugin chains into superdev: `superdev:spec-writer → supergh:create-issue`,
+`superdev:agent-final-reviewer → supergh:create-pr` (CSO only, engage only when both plugins installed).
 
 ## Architecture invariants
 
@@ -217,22 +218,22 @@ session. Soft cross-plugin chains into superdev: `superdev:dev-spec → supergh:
   **default-disabled** (a missing file/key = `false`, fail-closed; a repo that never ran `/setup` skips both
   optional steps until it opts in), plus two integer retry keys — `retry_max_attempts`, `retry_escalation_attempts` — both
   **fail-open to `3`** (a missing file/key = `3`). `setup` writes the file (seeding it from a bundled asset —
-  see below); `dev-orchestrator` reads the config: it skips the `dev-agent-adr-recorder` / `dev-improver` steps
+  see below); `orchestrator` reads the config: it skips the `agent-adr-recorder` / `improver` steps
   when their switch is off — each skip is **one terse line, never a paragraph** — and forwards the two retry
   integers as the `task-pipeline.workflow.js` cap: `retry_max_attempts` becomes the `retryMaxAttempts` arg on
   the first `Workflow` invocation, and `retry_escalation_attempts` becomes a fresh `retryMaxAttempts` cap on the
   escalation Retry re-invocation. A fifth, non-boolean key, `rule_extensions:` (a
-  list of source-type globs), is written **once** by `mem-rules` — in Mode A/B it discovers and **appends**
+  list of source-type globs), is written **once** by `memory-rules` — in Mode A/B it discovers and **appends**
   `rule_extensions:` when the key is absent (never overwriting an existing one), creating the file if missing —
-  and is **read** by `mem-rules` (all modes) and by the `dev-improver` agent (as a fail-open `paths:`-scoping
-  hint). Config readers are `dev-orchestrator` (reads the booleans + the retry integers), `setup` (writer),
-  `mem-rules` (reader + one-time `rule_extensions` writer), and the `dev-improver` agent (reader); the
+  and is **read** by `memory-rules` (all modes) and by the `improver` agent (as a fail-open `paths:`-scoping
+  hint). Config readers are `orchestrator` (reads the booleans + the retry integers), `setup` (writer),
+  `memory-rules` (reader + one-time `rule_extensions` writer), and the `improver` agent (reader); the
   `SessionStart` hook does not read config (the manifest is injected verbatim, the same for every project).
 - **Plan gate.** Planning happens in plan mode — entering plan mode before drafting a plan is driven by the
-  `dev-superplan` skill instruction (Layer-A), not a deterministic hook. The plan's approval is gated by a
+  `superplan` skill instruction (Layer-A), not a deterministic hook. The plan's approval is gated by a
   single `PreToolUse` hook: `review-plan.sh` (matcher `ExitPlanMode`) denies the plan's approval until
-  `dev-superplan-reviewer` returns `Overall Verdict: PASS`. This ExitPlanMode hook is the **single** gate in every mode,
-  and `dev-orchestrator` trusts it — it does **not** re-review the plan. (Residual: a `PreToolUse` deny is only
+  `superplan-reviewer` returns `Overall Verdict: PASS`. This ExitPlanMode hook is the **single** gate in every mode,
+  and `orchestrator` trusts it — it does **not** re-review the plan. (Residual: a `PreToolUse` deny is only
   best-effort in the permission-relaxed modes `bypassPermissions`/`dontAsk`/`auto`, so in those modes the gate
   itself is best-effort.) Keep all paths in sync.
 - **No `"hooks"` field in `plugin.json`.** Claude Code auto-loads `hooks/hooks.json` from that path; adding a
@@ -241,11 +242,11 @@ session. Soft cross-plugin chains into superdev: `superdev:dev-spec → supergh:
   like feedback/retry, reports); agents receive content **injected via dynamic context `!`**, not via `Read`.
   Pipeline state lives under `.temp/.workflows/<slug>/`; agents reply with a 3-line `STATUS / Report / Summary`
   stdout.
-- **Recipe — mandatory first step (fail-closed) + sole clean-tree guard.** `dev-orchestrator` invokes
-  `dev-agent-recipe` as the FIRST step on **every** entry (before ADR); it derives the host
+- **Recipe — mandatory first step (fail-closed) + sole clean-tree guard.** `orchestrator` invokes
+  `agent-recipe` as the FIRST step on **every** entry (before ADR); it derives the host
   build/test/lint/launch verbs once and materializes `.temp/.workflows/<slug>/recipe.sh` + `profile.md`, the
-  single artifact every downstream fork (`dev-agent-runner`, `dev-coder`, `dev-task-reviewer`,
-  `dev-agent-decomposer`, `dev-agent-plan-auditor`, `dev-agent-smoke`) consumes instead of re-deriving the
+  single artifact every downstream fork (`agent-runner`, `coder`, `task-reviewer`,
+  `agent-decomposer`, `agent-plan-auditor`, `agent-smoke`) consumes instead of re-deriving the
   toolchain. It is **fail-closed**: a recipe `STATUS: FAIL` is a hard halt (like a decomposer fail), and the
   recipe agent's Step 0 (`git status --porcelain`) is now the **single** clean-tree guard for the whole run —
   the orchestrator's former ADR-step and pre-task-loop `git status` guards are gone. `recipePath` is threaded
@@ -253,22 +254,22 @@ session. Soft cross-plugin chains into superdev: `superdev:dev-spec → supergh:
   self-skips regeneration when its own `recipe.sh verify` passes.
 - **Script vs. fork.** A pipeline step collapses to a deterministic bundled script (under the owning skill's
   `scripts/` dir) when it operates on a known, fixed tool / format — git, a basename, paths, globs (e.g.
-  `dev-orchestrator/scripts/commit-task.sh` for the per-task commit, `commit-adr.sh` for the ADR commit). It stays an LLM fork when it must interpret heterogeneous, stack-specific tool
-  output (e.g. `dev-agent-runner` reading arbitrary build / test output). A self-verifying script carries its I/O
+  `orchestrator/scripts/commit-task.sh` for the per-task commit, `commit-adr.sh` for the ADR commit). It stays an LLM fork when it must interpret heterogeneous, stack-specific tool
+  output (e.g. `agent-runner` reading arbitrary build / test output). A self-verifying script carries its I/O
   contract in its header comment and is trusted by its caller — so the caller does NOT re-verify or retry the
   script's result (the verify-before-claim guarantee lives in the script, not a fork-era re-check guard).
   A script may still be *invoked through* a thin fork without losing this property: `commit-task.sh` is run by
-  the haiku `dev-commiter` agent (so the commit lives inside the per-task `Workflow`, not the orchestrator), but
+  the haiku `commiter` agent (so the commit lives inside the per-task `Workflow`, not the orchestrator), but
   the agent only relays the script's tag verbatim — the self-verification stays in the script, so its caller
   (the workflow, then the dispatcher reading `wf_out.commit`) still trusts the result without re-checking.
 - **Self-documentation.** Any skill add / remove / rename MUST update the **owning plugin's**
-  `<plugin>/.claude-plugin/plugin.json` `skills[]` (superdev's for a `mem-`/`doc-`/`dev-` skill, superui's
+  `<plugin>/.claude-plugin/plugin.json` `skills[]` (superdev's for any of its skills, superui's
   for a `ui-`/`cc-` skill, supergh's for a `cli`/`cli-executor`/`commit`/`agent-committer`/`create-issue`/`create-pr` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
-  (superdev's `dev-coder` / `dev-task-reviewer` / `dev-improver` / `dev-commiter` live there, not in `skills[]`) — and this file
+  (superdev's `coder` / `task-reviewer` / `improver` / `commiter` live there, not in `skills[]`) — and this file
   in either case. They must stay in sync, and a worker must never appear in both `skills[]` and `agents[]`.
-  Each plugin's injected manifest (`<plugin>/hooks/content/manifest.md`) lists that plugin's prefix
-  **groups + chains**, not individual skills, so update it only when a change adds/removes a group, shifts a
+  Each plugin's injected manifest (`<plugin>/hooks/content/manifest.md`) lists that plugin's
+  **groups/roles + chains**, not individual skills, so update it only when a change adds/removes a group, shifts a
   group's scope, or alters a documented chain or config-gated area — not for every per-skill change.
   **Exception:** a user-only one-time command (`disable-model-invocation: true`, e.g. `setup`) does not
   participate in routing and stays out of the manifest entirely — do not "fix" that gap.

@@ -44,9 +44,9 @@ Emit exactly one message:
 <config line — e.g. "config.yml seeded from template, then enabled: adr (rules_improver left off)" OR "config.yml already present (left untouched): <current values>">
 
 ### Recommended next steps
-- Run `/superdev:mem-layers` — bootstrap the CLAUDE.md project-memory cascade (general → specific).
-- Run `/superdev:mem-rules` — author the `.claude/rules/` conventions layer.
+- Run `/superdev:memory-layers` — bootstrap the CLAUDE.md project-memory cascade (general → specific).
+- Run `/superdev:memory-rules` — author the `.claude/rules/` conventions layer.
 ```
 
-Report the actual results — never invent them. Do NOT invoke `mem-layers` / `mem-rules` (or any
+Report the actual results — never invent them. Do NOT invoke `memory-layers` / `memory-rules` (or any
 skill) yourself; they are interactive and the user chooses when to run them.

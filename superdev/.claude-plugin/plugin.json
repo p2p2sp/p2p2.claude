@@ -1,7 +1,7 @@
 {
   "name": "superdev",
   "version": "0.6.0",
-  "description": "Unified agentic-development ecosystem for Claude Code — one injected dispatcher manifest routing memory, planning, and an implementation pipeline, grouped by prefix (mem- / doc- / dev-). Self-contained: no dependencies.",
+  "description": "Super Developer ecosystem for Claude Code.",
   "author": {
     "name": "Dariusz Lenartowicz",
     "email": "dariusz.lenartowicz@p2p2.com.pl"
@@ -9,29 +9,29 @@
   "skills": [
     "./skills/setup/",
     "./skills/superdev/",
-    "./skills/mem-layers/",
-    "./skills/doc-help/",
-    "./skills/mem-rules/",
-    "./skills/dev-superplan/",
-    "./skills/dev-superplan-reviewer/",
-    "./skills/dev-superplan-reviewer-plan-integrity/",
-    "./skills/dev-superplan-reviewer-codebase-risk/",
-    "./skills/dev-orchestrator/",
-    "./skills/dev-agent-recipe/",
-    "./skills/dev-agent-adr-recorder/",
-    "./skills/dev-agent-decomposer/",
-    "./skills/dev-agent-runner/",
-    "./skills/dev-agent-final-reviewer/",
-    "./skills/dev-agent-plan-auditor/",
-    "./skills/dev-agent-smoke/",
-    "./skills/dev-tdd/",
-    "./skills/dev-debug/",
-    "./skills/dev-spec/"
+    "./skills/memory-layers/",
+    "./skills/help-writer/",
+    "./skills/memory-rules/",
+    "./skills/superplan/",
+    "./skills/superplan-reviewer/",
+    "./skills/superplan-reviewer-plan-integrity/",
+    "./skills/superplan-reviewer-codebase-risk/",
+    "./skills/orchestrator/",
+    "./skills/agent-recipe/",
+    "./skills/agent-adr-recorder/",
+    "./skills/agent-decomposer/",
+    "./skills/agent-runner/",
+    "./skills/agent-final-reviewer/",
+    "./skills/agent-plan-auditor/",
+    "./skills/agent-smoke/",
+    "./skills/tdd/",
+    "./skills/debug/",
+    "./skills/spec-writer/"
   ],
   "agents": [
-    "./skills/dev-orchestrator/agents/dev-coder.md",
-    "./skills/dev-orchestrator/agents/dev-task-reviewer.md",
-    "./skills/dev-orchestrator/agents/dev-improver.md",
-    "./skills/dev-orchestrator/agents/dev-commiter.md"
+    "./skills/orchestrator/agents/coder.md",
+    "./skills/orchestrator/agents/task-reviewer.md",
+    "./skills/orchestrator/agents/improver.md",
+    "./skills/orchestrator/agents/commiter.md"
   ]
 }

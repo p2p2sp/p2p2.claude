@@ -28,14 +28,14 @@ Every plugin is self-contained — none declares any dependencies. Installing on
 ecosystem: its single injected manifest routes every request to the right skill / chain. Install only the
 one(s) you need.
 
-## superdev skill groups
+## superdev skills
 
-| Prefix | Domain | Skills |
-| --- | --- | --- |
-| — | Entry interview & environment | `superdev` — the always-on entry skill named after the plugin; interviews you to map the design before any plan/code, then hands off to planning. `setup` — run `/setup` once to seed `.temp/` + `.superdev/`, copy the `.gitignore` / `.claude/settings.json` templates, and choose the opt-in switches written to `.superdev/config.yml` |
-| `mem-` | Project memory (agent-facing) | `mem-layers` (CLAUDE.md cascade), `mem-rules` (`.claude/rules/` layer) |
-| `doc-` | End-user documentation | `doc-help` (end-user product help → `.superdev/help/`) |
-| `dev-` | Development pipeline + diagnostics/specs | Skills: `dev-superplan`, `dev-superplan-reviewer`, `dev-orchestrator`, `dev-agent-adr-recorder`, `dev-agent-decomposer`, `dev-agent-runner`, `dev-agent-final-reviewer`, `dev-agent-plan-auditor`, `dev-agent-smoke`, `dev-tdd`, `dev-debug`, `dev-spec`. Plugin agents (per-task pipeline workers): `dev-coder`, `dev-task-reviewer`, `dev-improver` |
+| Area | Skills |
+| --- | --- |
+| Entry interview & environment | `superdev` — the always-on entry skill named after the plugin; interviews you to map the design before any plan/code, then hands off to planning. `setup` — run `/setup` once to seed `.temp/` + `.superdev/`, copy the `.gitignore` / `.claude/settings.json` templates, and choose the opt-in switches written to `.superdev/config.yml` |
+| Project memory (agent-facing) | `memory-layers` (CLAUDE.md cascade), `memory-rules` (`.claude/rules/` layer) |
+| End-user documentation | `help-writer` (end-user product help → `.superdev/help/`) |
+| Development pipeline + diagnostics/specs | Skills: `superplan`, `superplan-reviewer`, `orchestrator`, `agent-adr-recorder`, `agent-decomposer`, `agent-runner`, `agent-final-reviewer`, `agent-plan-auditor`, `agent-smoke`, `tdd`, `debug`, `spec-writer`. Plugin agents (per-task pipeline workers): `coder`, `task-reviewer`, `improver` |
 
 ## supergh skills
 
@@ -65,9 +65,9 @@ Flat-named (single-domain plugin, no group prefix):
 - **Skills auto-engage via CSO** — each skill's `description:` is its trigger, in any language.
 - **Opt-in per project (superdev)** — `/setup` writes `.superdev/config.yml` (two switches: `adr`,
   `rules_improver`). The routing manifest is always injected as-is; a disabled switch only skips its
-  `dev-orchestrator` pipeline step (`dev-agent-adr-recorder` / the `dev-improver` agent); both switches default off (a missing config = both off,
+  `orchestrator` pipeline step (`agent-adr-recorder` / the `improver` agent); both switches default off (a missing config = both off,
   fail-closed), so these two optional steps run only once you enable them via `/setup`.
-- **The implementation pipeline is file-based (superdev)**: `dev-orchestrator` dispatches forked executors
+- **The implementation pipeline is file-based (superdev)**: `orchestrator` dispatches forked executors
   that hand state through files and reply with a 3-line status, keeping the main context lean.
 - **Planning always happens in plan mode (superdev).** Whatever mode you start in, superdev's planning skill
   enters plan mode before drafting a plan, so the plan-review gate runs
@@ -81,7 +81,7 @@ Flat-named (single-domain plugin, no group prefix):
 superdev/            The superdev plugin
   .claude-plugin/plugin.json   Plugin manifest (skills[])
   hooks/             Injected manifest + SessionStart + two PreToolUse plan-gate hooks
-  skills/            Skills grouped by prefix (mem- / doc- / dev-)
+  skills/            Skills (bare-named by functional role; `agent-` = fork-only worker)
 superui/             The superui plugin
   .claude-plugin/plugin.json   Plugin manifest (skills[])
   hooks/             Injected manifest + SessionStart (no plan gate)

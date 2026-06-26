@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # superdev / PreToolUse hook for ExitPlanMode.
 #
-# Blocks ExitPlanMode until the dev-superplan-reviewer skill has approved the plan
+# Blocks ExitPlanMode until the superplan-reviewer skill has approved the plan
 # file with "Overall Verdict: PASS". Heuristic: only gates when the transcript shows a
 # prior Write/Edit to a path under .claude/plans/*.md (i.e. plan-mode for an
 # implementation plan, not commit-flow plan-mode without a plan file).
 #
 # NOTE: this hook only fires when the model calls ExitPlanMode, i.e. in plan
-# mode. Entering plan mode before drafting a plan is driven by the dev-superplan
+# mode. Entering plan mode before drafting a plan is driven by the superplan
 # skill instruction, so this ExitPlanMode gate fires for every plan-driven flow
 # regardless of the mode the session started in.
-# dev-orchestrator trusts this gate as the single plan-review checkpoint and does
+# orchestrator trusts this gate as the single plan-review checkpoint and does
 # not re-review the plan itself.
 #
 # Contract:
@@ -87,24 +87,24 @@ if [ -z "$last_plan_write_line" ]; then
 fi
 
 # Step 2: from the line AFTER the last plan-file write, look for:
-#   R = a line containing "dev-superplan-reviewer" AND a subagent marker
+#   R = a line containing "superplan-reviewer" AND a subagent marker
 #   S = a line containing "Overall Verdict: PASS"
 # Require R < S so the reviewer call precedes its result.
 tail_start=$((last_plan_write_line + 1))
 
-# R: subagent / skill invocation referencing dev-superplan-reviewer.
-# Match either the Agent tool call ("subagent_type":"...dev-superplan-reviewer...") or the
-# Skill tool_use envelope (dev-superplan-reviewer is a context:fork skill invoked via the
-# Skill tool — "skill":"superdev:dev-superplan-reviewer") that mentions dev-superplan-reviewer on
+# R: subagent / skill invocation referencing superplan-reviewer.
+# Match either the Agent tool call ("subagent_type":"...superplan-reviewer...") or the
+# Skill tool_use envelope (superplan-reviewer is a context:fork skill invoked via the
+# Skill tool — "skill":"superdev:superplan-reviewer") that mentions superplan-reviewer on
 # the same JSONL line. Load-bearing: name + marker must co-occur on one line; if a
-# future transport splits them, relax to a two-stage match (dev-superplan-reviewer line, then the verdict).
+# future transport splits them, relax to a two-stage match (superplan-reviewer line, then the verdict).
 reviewer_call_line=$(
-  awk -v start="$tail_start" 'NR>=start && /dev-superplan-reviewer/ && (/"subagent_type"/ || /"Agent"/ || /"Skill"/ || /"skill"/) { print NR; exit }' \
+  awk -v start="$tail_start" 'NR>=start && /superplan-reviewer/ && (/"subagent_type"/ || /"Agent"/ || /"Skill"/ || /"skill"/) { print NR; exit }' \
     "$transcript_path" 2>/dev/null
 )
 
 if [ -z "$reviewer_call_line" ]; then
-  emit_deny "The dev-superplan-reviewer skill must approve the plan first. Invoke it with the absolute plan file path as the bare argument and wait for 'Overall Verdict: PASS', then retry ExitPlanMode.\n\nAnnounce the plan review as "Running dev-superplan-reviewer..." but DO NOT tell the user that you have to do it because the hook told you to."
+  emit_deny "The superplan-reviewer skill must approve the plan first. Invoke it with the absolute plan file path as the bare argument and wait for 'Overall Verdict: PASS', then retry ExitPlanMode.\n\nAnnounce the plan review as "Running superplan-reviewer..." but DO NOT tell the user that you have to do it because the hook told you to."
 fi
 
 # S: "Overall Verdict: PASS" occurring AFTER the reviewer call line.
@@ -114,7 +114,7 @@ status_pass_line=$(
 )
 
 if [ -z "$status_pass_line" ]; then
-  emit_deny "dev-superplan-reviewer was invoked but 'Overall Verdict: PASS' not found in the transcript afterwards. If the reviewer returned 'Overall Verdict: FIX' or 'Overall Verdict: BLOCK', apply the Consolidated fixes to the plan file and re-invoke dev-superplan-reviewer before retrying ExitPlanMode.\n\nAnnounce the plan review as "Running dev-superplan-reviewer..." but DO NOT tell the user that you have to do it because the hook told you to."
+  emit_deny "superplan-reviewer was invoked but 'Overall Verdict: PASS' not found in the transcript afterwards. If the reviewer returned 'Overall Verdict: FIX' or 'Overall Verdict: BLOCK', apply the Consolidated fixes to the plan file and re-invoke superplan-reviewer before retrying ExitPlanMode.\n\nAnnounce the plan review as "Running superplan-reviewer..." but DO NOT tell the user that you have to do it because the hook told you to."
 fi
 
 # Sequence W -> R -> S satisfied -> allow.
