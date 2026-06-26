@@ -1,6 +1,6 @@
 ---
 paths:
-  - "**/skills/**/SKILL.md"
+  - "**/skills/**"
 ---
 
 # Forked-skill dispatch

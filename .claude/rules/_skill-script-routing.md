@@ -4,9 +4,9 @@ paths:
 ---
 # Skill script routing & dynamic-context injection
 
-How a skill preloads state or picks one playbook with a deterministic script instead of LLM branching. Precedent: `supergh/skills/commit` + its `scripts/route.sh`.
+How a skill (not agents) preloads state or picks one playbook with a deterministic script instead of LLM branching. Precedent: `supergh/skills/commit` + its `scripts/route.sh`.
 
-## `!`-injection (dynamic context)
+## `!`-injection (dynamic context) in skills
 
 - A line `` !`command` `` in a SKILL.md body runs the command **at skill-load time** and pastes its stdout **verbatim** into the skill text the LLM reads. It is not a tool call the model decides to make — it fires on load.
 - Use it to **preload state** (`!`cat .superdev/config.yml 2>/dev/null || true``, `!`git diff --cached --stat``, `!`mkdir -p .temp/.workflows`) or to **inject exactly one chosen playbook** (the mode-router case below).
