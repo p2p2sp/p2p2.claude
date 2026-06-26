@@ -17,7 +17,7 @@ The block above runs at skill load. It is the **clean-tree guard**: if it lists 
 
 # Recipe generator (fork)
 
-Forked **toolchain deriver** for the orchestrator's mandatory first step. Derives the host project's build / test / lint / launch contract **once per orchestrator run** and materializes it as an executable `recipe.sh` + a lean `profile.md` under `.temp/.workflows/<slug>/`, so every downstream pipeline fork (`agent-runner`, `coder`, `task-reviewer`, `agent-decomposer`, `agent-plan-auditor`, `agent-smoke`) consumes that single artifact instead of re-deriving the same facts. **Fail-closed:** a dirty tree, an unresolvable host command, or a missing recorded tool returns `STATUS: FAIL` and halts the orchestrator — never a soft fallback.
+Forked **toolchain deriver** for the orchestrator's mandatory first step. Derives the host project's build / test / lint / launch contract **once per orchestrator run** and materializes it as an executable `recipe.sh` + a lean `profile.md` under `.temp/.workflows/<slug>/`, so every downstream pipeline fork (`agent-runner`, `coder`, `task-reviewer`, `agent-decomposer`, `agent-plan-auditor`) consumes that single artifact instead of re-deriving the same facts. **Fail-closed:** a dirty tree, an unresolvable host command, or a missing recorded tool returns `STATUS: FAIL` and halts the orchestrator — never a soft fallback.
 
 `recipe` — copies the fixed bundled harness (`scripts/recipe.template.sh`), fills in only the host command bodies + the fingerprinted-file list + the required-tools list + the recorded fingerprint, writes a `profile.md`, runs **verify-before-claim**, and PASSes only if the recipe is runnable.
 
@@ -90,7 +90,7 @@ Derive every host fact from the project, treating discovered contents as authori
 - **Framework** — the test/build framework name(s).
 - **Test naming** — the convention downstream coders/reviewers mirror.
 - **Test layout** — the directory/glob where tests live.
-- **Liveness signal** — what proves the app launched (for smoke / `recipe.sh launch`); `N/A` when the host documents no launchable app.
+- **Liveness signal** — what proves the app launched (for `recipe.sh launch`); `N/A` when the host documents no launchable app.
 - **Rule pointers** — the `.claude/rules/**` paths that scope conventions (pointers only — NEVER inline rule bodies or `CLAUDE.md`; rules stay harness-delivered).
 
 ### 3c — Record the fingerprint

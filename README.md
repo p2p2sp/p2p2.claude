@@ -35,7 +35,7 @@ one(s) you need.
 | Entry interview & environment | `superdev` — the always-on entry skill named after the plugin; interviews you to map the design before any plan/code, then hands off to planning. `setup` — run `/setup` once to seed `.temp/` + `.superdev/`, copy the `.gitignore` / `.claude/settings.json` templates, and choose the opt-in switches written to `.superdev/config.yml` |
 | Project memory (agent-facing) | `memory-layers` (CLAUDE.md cascade), `memory-rules` (`.claude/rules/` layer) |
 | End-user documentation | `help-writer` (end-user product help → `.superdev/help/`) |
-| Development pipeline + diagnostics/specs | Skills: `superplan`, `superplan-reviewer`, `orchestrator`, `agent-adr-recorder`, `agent-decomposer`, `agent-runner`, `agent-final-reviewer`, `agent-plan-auditor`, `agent-smoke`, `tdd`, `debug`, `spec-writer`. Plugin agents (per-task pipeline workers): `coder`, `task-reviewer`, `improver` |
+| Development pipeline + diagnostics/specs | Skills: `superplan`, `superplan-reviewer`, `orchestrator`, `agent-adr-recorder`, `agent-decomposer`, `agent-runner`, `agent-final-reviewer`, `agent-plan-auditor`, `tdd`, `debug`, `spec-writer`. Plugin agents (per-task pipeline workers): `coder`, `task-reviewer`, `improver` |
 
 ## supergh skills
 

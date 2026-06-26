@@ -126,7 +126,7 @@ chains, not individual skills.
 **Naming sub-convention (`agent-` prefix).** The `agent-` prefix marks a forked, fork-only **skill** worker —
 invoked **only by a superordinate skill via the `Skill` tool** (never the user, never auto-routed):
 `agent-recipe`, `agent-adr-recorder`, `agent-decomposer`, `agent-runner`, `agent-final-reviewer`,
-`agent-plan-auditor`, `agent-smoke`. These stay **skills** (not `agents/<name>.md` definitions); the prefix is
+`agent-plan-auditor`. These stay **skills** (not `agents/<name>.md` definitions); the prefix is
 taxonomy only — it signals their agent-like, fork-only nature, and their frontmatter already encodes it
 (`context: fork` + `user-invocable: false` + a one-line "pipeline-bound; invoked only by …" guard
 `description`). The four per-task pipeline workers do NOT take the prefix: `coder`, `task-reviewer`, `improver`,
@@ -169,7 +169,7 @@ user-facing / auto-routed skill are bare-named too; so are forks still reachable
 - **End-user documentation** (1 skill): `help-writer` (the end-user product-help layer → `.superdev/help/`).
   Authors the human-facing help that ships to the people who use the built app — distinct
   from the agent-facing memory layers above; faces the end user, not Claude.
-- **Agentic-development pipeline + diagnostics/specs** (15 skills + 4 plugin agents): planning
+- **Agentic-development pipeline + diagnostics/specs** (14 skills + 4 plugin agents): planning
   (`superplan`, `superplan-reviewer` plus its two fork-only lens sub-skills
   `superplan-reviewer-{integrity,codebase}`
   — invoked only by `superplan-reviewer` via the Skill tool; each receives the plan path as `$ARGUMENTS`,
@@ -182,7 +182,7 @@ user-facing / auto-routed skill are bare-named too; so are forks still reachable
   `agent-decomposer` → per task **one `Workflow`** call to `task-pipeline.workflow.js` driving `coder` →
   `agent-runner` → `task-reviewer` → `improver` → commit (the `commiter` agent runs
   `commit-task.sh` as the workflow's final stage, only on PASS) → `agent-final-reviewer`), the final-gate
-  sub-skills (`agent-plan-auditor`, `agent-smoke`), plus `tdd` / `debug` / `spec-writer`. The four
+  sub-skill (`agent-plan-auditor`), plus `tdd` / `debug` / `spec-writer`. The four
   per-task workers `coder` / `task-reviewer` / `improver` / `commiter` are **plugin agents**
   (`superdev/skills/orchestrator/agents/*.md`), not skills — dispatched by the workflow via `agentType:'superdev:<name>'`.
 
@@ -246,7 +246,7 @@ session. Soft cross-plugin chains into superdev: `superdev:spec-writer → super
   `agent-recipe` as the FIRST step on **every** entry (before ADR); it derives the host
   build/test/lint/launch verbs once and materializes `.temp/.workflows/<slug>/recipe.sh` + `profile.md`, the
   single artifact every downstream fork (`agent-runner`, `coder`, `task-reviewer`,
-  `agent-decomposer`, `agent-plan-auditor`, `agent-smoke`) consumes instead of re-deriving the
+  `agent-decomposer`, `agent-plan-auditor`) consumes instead of re-deriving the
   toolchain. It is **fail-closed**: a recipe `STATUS: FAIL` is a hard halt (like a decomposer fail), and the
   recipe agent's Step 0 (`git status --porcelain`) is now the **single** clean-tree guard for the whole run —
   the orchestrator's former ADR-step and pre-task-loop `git status` guards are gone. `recipePath` is threaded

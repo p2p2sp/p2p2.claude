@@ -23,7 +23,6 @@
     "./skills/agent-runner/",
     "./skills/agent-final-reviewer/",
     "./skills/agent-plan-auditor/",
-    "./skills/agent-smoke/",
     "./skills/tdd/",
     "./skills/debug/",
     "./skills/spec-writer/"

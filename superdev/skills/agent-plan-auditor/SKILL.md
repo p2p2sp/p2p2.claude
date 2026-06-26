@@ -17,7 +17,7 @@ union of the tasks must realize the plan's stated outcome, and no documented con
 Read-only and one-shot — no fixing, no commits, no retries.
 
 `agent-final-reviewer` invokes this skill as the **first** sub-step of the final go/no-go gate, then runs
-`agent-runner` (full suite) and `agent-smoke` (does the app boot?) and synthesizes a single verdict. Your job here
+`agent-runner` (full suite) and synthesizes a single verdict. Your job here
 is purely the **coverage audit**: did the implementation, taken as a whole, deliver the plan?
 
 The shared **Deliverable-verification rubric** — how to read a `## Deliverable`, the per-`## Mode` test

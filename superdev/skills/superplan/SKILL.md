@@ -145,11 +145,13 @@ Do not patch around a broken plan. Replanning costs minutes; a partially-migrate
 
 See `templates/plan.md`. Copy it verbatim, keep the single §0 variant matching the implementation-mode answer, and fill each section.
 
+The plan file's location is the harness's to own — never name or pick a save path. Write the plan into the path plan mode designates (its own default, under the home `~/.claude/plans/`) and let `ExitPlanMode` save it. Do NOT also write a repo-relative `.claude/plans/<slug>.md` copy — that leaves an orphan beside the plan the gate and `orchestrator` actually read.
+
 ---
 
 ## 8. Publish the approved plan as an artifact (optional)
 
-When the user wants to **share** the approved plan as a live link (not a `.claude/plans/<slug>.md` path) and an artifact-publishing skill is available, hand it the assembled `.md`. Opt-in, main session only — never in a fork or the orchestrator pipeline. It does not gate, replace, or feed `decomposer` / `orchestrator`. If no publishing skill is available, skip this — the `.claude/plans/<slug>.md` path is itself a valid handoff.
+When the user wants to **share** the approved plan as a live link (not just the harness-saved plan file) and an artifact-publishing skill is available, hand it the assembled `.md`. Opt-in, main session only — never in a fork or the orchestrator pipeline. It does not gate, replace, or feed `decomposer` / `orchestrator`. If no publishing skill is available, skip this — the harness-saved plan file is itself a valid handoff.
 
 Assemble ONE `.md`, then hand it over with a title:
 1. **Prepend a `## Review verdict` block** to the plan body — the `Overall Verdict:` line (PASS / FIX / BLOCK) plus the consolidated fix list (Critical / Major / Minor) from the `superplan-reviewer` output already present in this session. Do NOT re-run the reviewer and do NOT parse the transcript — use the verdict it already returned. The block sits above the plan body; the body follows verbatim.
