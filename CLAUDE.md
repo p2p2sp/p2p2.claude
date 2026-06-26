@@ -159,13 +159,14 @@ user-facing / auto-routed skill are bare-named too; so are forks still reachable
   layers, picked by *kind of truth* — all four face the **agent**: (1) the general-rules
   manifest (superdev's `hooks/content/manifest.md`, force-injected per session);
   (2) the `CLAUDE.md` cascade (terse agent orientation; `memory-layers`); (3) `.claude/rules/*` (path-scoped
-  conventions; `memory-rules`, which has **3 modes** — A uninitialized bootstrap, B initialized gap-fill, C
-  improver-driven authoring; in-pipeline the `improver` agent judges value, `memory-rules` (Mode C) authors);
+  conventions; `memory-rules`, which has **4 modes** — A uninitialized bootstrap, B initialized gap-fill, C
+  improver-driven authoring (fork), D user-driven authoring (main context; user dictates a rule to append); in-pipeline
+  the `improver` agent judges value, `memory-rules` (Mode C) authors);
   (4) `.superdev/adr/` (architectural *why*; written in-pipeline by `agent-adr-recorder`). In the dev
   pipeline, `agent-adr-recorder` records any architectural decision into layer 4 before decompose
   (config-gated `adr`), and the `improver` agent promotes each task's review learnings into layer 3
   (`.claude/rules/`) — judging which learnings are worth keeping and delegating the authoring to `memory-rules`
-  Mode C, the sole writer of `.claude/rules/` — a config-gated step (`rules_improver`).
+  Mode C, the in-pipeline writer into `.claude/rules/` — a config-gated step (`rules_improver`).
   The product's **end-user** help documentation is a distinct, non-agent layer owned by the end-user
   documentation role below (NOT agent memory).
 - **End-user documentation** (1 skill): `help-writer` (the end-user product-help layer → `.superdev/help/`).

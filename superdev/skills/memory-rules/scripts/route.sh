@@ -2,12 +2,13 @@
 # route.sh — memory-rules mode router.
 # IN : $1 = raw skill argument ($ARGUMENTS).
 #      - text containing a line "Mode: improver"  → Mode C (improver fork).
+#      - text containing a line "Mode: user"      → Mode D (user-driven authoring).
 #      - otherwise it is a bootstrap call: first whitespace token is the target
 #        path (default "."); detect_state.sh on it gives "none" → Mode A,
 #        "has-rules" → Mode B.
 # OUT: a "resolved" header (MODE / project-path / state) then the chosen
-#      references/mode-{a,b,c}.md verbatim on stdout — the single playbook
-#      injected into the skill body. The other two modes never enter context.
+#      references/mode-{a,b,c,d}.md verbatim on stdout — the single playbook
+#      injected into the skill body. The other three modes never enter context.
 # Self-locating via $0 (POSIX) — references resolved relative to this script's
 # own dir, not the host CWD. Fail-open: any detect failure routes to Mode A.
 # Self-verifying — the caller injects this output and does NOT re-route.
@@ -20,6 +21,13 @@ args=${1:-}
 if printf '%s\n' "$args" | grep -q '^Mode: improver'; then
   printf 'MODE: C\nsource: improver-fork\n\n'
   cat "$ref/mode-c.md"
+  exit 0
+fi
+
+# Mode D — user-driven authoring. Keyed only on the leading "Mode: user" marker.
+if printf '%s\n' "$args" | grep -q '^Mode: user'; then
+  printf 'MODE: D\nsource: user-request\n\n'
+  cat "$ref/mode-d.md"
   exit 0
 fi
 

@@ -14,9 +14,11 @@
 #   cases  : (1) "Mode: improver" arg -> first line "MODE: C", body from mode-c;
 #            (2) scratch w/o .claude/rules -> "MODE: A" + "state: none", mode-a;
 #            (3) scratch w/ a rule        -> "MODE: B" + "state: has-rules", mode-b;
-#            (4) empty arg from a rules-less CWD -> "MODE: A" (fail-open default).
-#   note   : routing keys only on the leading "Mode: improver" marker and on
-#            detect_state.sh's state; the scratch dir is removed on exit (trap).
+#            (4) empty arg from a rules-less CWD -> "MODE: A" (fail-open default);
+#            (5) "Mode: user" arg -> first line "MODE: D", body from mode-d.
+#   note   : routing keys only on the leading "Mode: improver" / "Mode: user"
+#            markers and on detect_state.sh's state; the scratch dir is removed
+#            on exit (trap).
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -66,6 +68,11 @@ assert_line "Mode B body is mode-b.md"            "$OUT3" "# Mode B — initiali
 T4="$SCRATCH/case4"; mkdir -p "$T4"
 OUT4="$(cd "$T4" && sh "$SUT" "")"
 assert_line "empty arg -> MODE: A"                "$OUT4" "MODE: A"
+
+# Case 5 — user marker routes to Mode D (body comes from mode-d.md).
+OUT5="$(sh "$SUT" "Mode: user")"
+assert_line "user marker -> MODE: D"              "$OUT5" "MODE: D"
+assert_line "Mode D body is mode-d.md"            "$OUT5" "# Mode D — user-driven authoring (main context, preview-then-write)"
 
 echo ""
 if [ "$FAILED" -ne 0 ]; then

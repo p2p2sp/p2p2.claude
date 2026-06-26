@@ -1,7 +1,7 @@
 ---
 name: memory-rules
-description: Project memory — the `.claude/rules/` layer. Discovers existing codebase conventions and generates `.claude/rules/*` from scratch (full reset), and owns the canonical contract for any single rules file. Use this skill whenever the user wants to initialize project conventions, regenerate `.claude/rules/`, discover coding/naming/testing conventions for a codebase, reset the project's rule library, or set up project memory rules. Triggers include "init rules", "memory rules", "initialize conventions", "regenerate `.claude/rules`", "discover conventions", "reset project rules". Also defines the canonical contract for authoring or editing a single `.claude/rules/` file — its `paths:` narrowest-glob scoping, size cap, single-topic targeting, frozen `_` convention, append-only edit discipline, and the relevance filter for deciding what is worth a rule — and is the sole authoring engine that promotes learnings into the rules library. Do NOT write `.claude/rules/*` files by hand — use this skill first; it enforces discovery-from-code and the path-scoping discipline rather than memory. Do NOT use for generating CLAUDE.md project-memory files — use the `memory-layers` skill. Trigger applies in any language and to descriptive phrasing too.
-allowed-tools: EnterPlanMode, Read, Glob, Grep, Bash, Write, Edit, Skill
+description: Project memory — the `.claude/rules/` layer. Discovers existing codebase conventions and generates `.claude/rules/*` from scratch (full reset), and owns the canonical contract for any single rules file. Use this skill whenever the user wants to initialize project conventions, regenerate `.claude/rules/`, discover coding/naming/testing conventions for a codebase, reset the project's rule library, set up project memory rules, or explicitly dictate a specific rule/convention to add or append from their own prompt. Triggers include "init rules", "memory rules", "initialize conventions", "regenerate `.claude/rules`", "discover conventions", "reset project rules", "add a rule", "append a rule", "dopisz regułę", "remember this convention". Also defines the canonical contract for authoring or editing a single `.claude/rules/` file — its `paths:` narrowest-glob scoping, size cap, single-topic targeting, frozen `_` convention, append-only edit discipline, and the relevance filter for deciding what is worth a rule — and is the sole authoring engine that promotes learnings into the rules library. When the user dictates a specific rule to add or append from their prompt, invoke with the bare marker `Mode: user` and read the rule text from the conversation — never splice the rule text into the arguments. Do NOT write `.claude/rules/*` files by hand — use this skill first; it enforces discovery-from-code and the path-scoping discipline rather than memory. Do NOT use for generating CLAUDE.md project-memory files — use the `memory-layers` skill. Trigger applies in any language and to descriptive phrasing too.
+allowed-tools: EnterPlanMode, Read, Glob, Grep, Bash, Write, Edit, Skill, AskUserQuestion
 model: opus
 effort: medium
 user-invocable: true
@@ -35,7 +35,7 @@ A `.claude/rules/` file is a small, path-scoped unit of project convention. Ever
 
 ## Mode gate
 
-This skill has three modes — **A** (uninitialized bootstrap), **B** (initialized gap-fill), **C** (improver-driven authoring fork). The mode is decided **deterministically** by the router below from your `$ARGUMENTS` (the `Mode: improver` marker → C; otherwise `detect_state.sh` on the target path → `none`=A / `has-rules`=B). It injects the **one** matching playbook — follow it exactly and ignore the other two modes. The `MODE:` / `state:` header is already-resolved context: do **not** re-run `detect_state.sh`.
+This skill has four modes — **A** (uninitialized bootstrap), **B** (initialized gap-fill), **C** (improver-driven authoring fork), **D** (user-driven authoring, main context). The mode is decided **deterministically** by the router below from your `$ARGUMENTS` (the `Mode: improver` marker → C; the `Mode: user` marker → D; otherwise `detect_state.sh` on the target path → `none`=A / `has-rules`=B). It injects the **one** matching playbook — follow it exactly and ignore the other three modes. The `MODE:` / `state:` header is already-resolved context: do **not** re-run `detect_state.sh`.
 
 --- playbook ---
 !`"${CLAUDE_PLUGIN_ROOT}/skills/memory-rules/scripts/route.sh" "$ARGUMENTS"`
@@ -50,5 +50,5 @@ This skill has three modes — **A** (uninitialized bootstrap), **B** (initializ
 - `scripts/scan_conventions.sh` — stack-agnostic convention scanner (signal files + git history + CLAUDE.md inventory + directory tree; `-- <ext-globs>` adds per-extension file listings).
 
 **References:**
-- `references/mode-{a,b,c}.md` — the per-mode playbooks (injected by `route.sh`, not read directly).
+- `references/mode-{a,b,c,d}.md` — the per-mode playbooks (injected by `route.sh`, not read directly).
 - `references/rule-template.md` — seed-rule template + worked examples + pre-write checklist.
