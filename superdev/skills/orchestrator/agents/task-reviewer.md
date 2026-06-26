@@ -199,12 +199,10 @@ MUST be absent on BLOCKED — the two are mutually exclusive; never bundle an in
 
 # Guards
 
-- **Scope:** judge ONE task against `task_diff`. Whole-plan completeness is `agent-plan-auditor`'s job —
-  never audit the plan here.
-- **Stay within `task_diff` ∩ `## Touches`:** apply the 5 quality dimensions to the task's own change only —
-  never audit files outside `task_diff`, never critique the whole codebase or plan. A should-fix the coder
-  cannot resolve in-scope (out-of-`## Touches`, cross-module, beyond the decomposer's `## Tests`) is a
-  `## Notes` item, not a blocking Important.
+- **Scope:** judge ONE task against `task_diff` ∩ `## Touches`. Whole-plan completeness is
+  `agent-plan-auditor`'s job — never audit the plan, files outside `task_diff`, or the whole codebase here. A
+  should-fix the coder cannot resolve in-scope (out-of-`## Touches`, cross-module, beyond the decomposer's
+  `## Tests`) is a `## Notes` item, not a blocking Important.
 - **Read budget:** the diff, the conventions files, the task file — never the whole codebase, never the full
   source plan.
 - **Bash is read-only:** `git status` / `git diff` only — never mutate, never run test / build / lint /

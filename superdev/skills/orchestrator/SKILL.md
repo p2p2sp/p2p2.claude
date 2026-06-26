@@ -12,15 +12,15 @@ effort: low
 
 # Orchestrator — Task Pipeline Dispatcher
 
-Drives the implementation of an already-approved plan, task by task. A **thin dispatcher** — every code touch, test run, review judgment, learning capture, and commit goes through a sub-agent with fresh context. Makes no judgment about the code itself.
+Drives an already-approved plan, task by task. A **thin dispatcher**: every code touch, test run, review, learning capture, and commit runs in a sub-agent with fresh context. Makes no judgment about the code itself.
 
-CRITICAL: The per-task inner loop (coder → runner → task-reviewer → improver, with its retry / BLOCKED-unblock / infinite-loop-guard rules) is **not** model-driven any more — it runs inside the deterministic `Workflow` script `scripts/task-pipeline.workflow.js`, invoked **once per task** (see the per-task pipeline). The dispatcher's own remaining `Skill` calls (decomposer, adr-recorder, final-reviewer) and the per-task `Workflow` invocation each depend on the previous one's result, so dispatch exactly one per turn and await it before the next, overriding any general "batch independent calls" guidance.
+The per-task inner loop (coder → runner → task-reviewer → improver, with retry / BLOCKED-unblock / loop-guard) is NOT model-driven — it runs inside `scripts/task-pipeline.workflow.js`, invoked **once per task**. The dispatcher's `Skill` calls (decomposer, adr-recorder, final-reviewer) and each per-task `Workflow` call each depend on the previous result: **dispatch exactly one per turn and await it**, overriding any "batch independent calls" guidance.
 
 ## Pipeline graph
 
 ```
 plan.md
-   │  (MANDATORY first step on every entry — owns the clean-tree guard; FAIL = hard halt)
+   │  (MANDATORY first step every entry — owns the clean-tree guard; FAIL = hard halt)
    ▼
 recipe  ──►  writes .temp/.workflows/<slug>/recipe.sh + profile.md  ──►  recipePath threaded into every Workflow
    │  (once, before decompose — config-gated by `adr`, idempotent via adr.done)
@@ -29,11 +29,11 @@ adr-recorder  ──►  writes .superdev/adr/<ADR>.md + .superdev/ADR.md  ─�
    │  (once, before the loop)
    ▼
 decomposer  ──►  .temp/.workflows/<slug>/tasks/<N>.md  +  status.yml
-   │  (per task N = start..max — ONE Workflow invocation drives the whole inner loop)
+   │  (per task N — ONE Workflow invocation drives the whole inner loop)
    ▼
 task-pipeline.workflow.js  ──►  coder ─► runner ─► task-reviewer ─► improver ─► commiter
-   │   (the .js owns retry / BLOCKED-unblock / infinite-loop-guard / report-forwarding;       (rules)
-   │    commiter runs commit-task.sh on PASS; returns {status, attempts, lastFailureReportPath, outputTokens, commit?})
+   │   (.js owns retry / BLOCKED-unblock / loop-guard / report-forwarding; commiter runs commit-task.sh on PASS;
+   │    returns {status, attempts, lastFailureReportPath, outputTokens, commit?})
    ├─ PASS ──►  read wf_out.commit  ──►  status.yml / base.sha  ──►  widget completed
    └─ FAIL ──►  AskUserQuestion (Retry retry_escalation_attempts more / Abort)
    │  (after last task, once)
@@ -41,50 +41,50 @@ task-pipeline.workflow.js  ──►  coder ─► runner ─► task-reviewer �
 agent-final-reviewer (sub-orchestrator)  ──►  fans out 6 parallel lenses  ──►  go/no-go verdict on stdout + writes final-review.md
 ```
 
-Roles in one line each:
+Roles (one line each):
 
-- **recipe** (`agent-recipe`) — the mandatory first step on every entry; derives the host build/test/lint/launch verbs once and writes `.temp/.workflows/<slug>/recipe.sh` + `profile.md`, the single artifact every downstream fork consumes. Owns the run's clean-tree guard (its fail-closed Step 0); a `STATUS: FAIL` is a hard halt. Self-skips regeneration when its own `recipe.sh verify` passes.
-- **adr-recorder** (`agent-adr-recorder`) — judges the approved plan and, on a real architectural decision, writes the ADR file(s) + `.superdev/ADR.md` index itself; runs once before decompose, config-gated by `adr`, committed by `commit-adr.sh`. Never touches the plan or the decomposer.
-- **decomposer** (`agent-decomposer`) — slices the source plan into per-task files; runs once, idempotent.
-- **task-pipeline** (`scripts/task-pipeline.workflow.js`) — the deterministic per-task inner loop, invoked once per task via the `Workflow` tool. It owns the retry / BLOCKED-unblock / infinite-loop-guard / report-forwarding logic (formerly model-interpreted), dispatches the worker agents below, and runs the commit stage as its final step on PASS; it returns `{status: PASS|FAIL, attempts, lastFailureReportPath, outputTokens, commit?}` (`commit` present only on PASS; `outputTokens` is the run's `budget.spent()` delta — output-only, `null` when unavailable). Behaviour documented in `references/retry-policy.md`.
-- **coder** (the `coder` plugin agent) — writes production code for ONE task; the workflow drives both its `Mode: normal` and `Mode: unblock` (blocker-clearing) passes.
-- **runner** (`agent-runner`, a skill — invoked by the workflow's runner wrapper agent in pipeline mode) — runs the task's build/test/lint command; emits `PASS` / `FAIL` / `ERROR` / `TIMEOUT` / `BLOCKED`.
-- **task-reviewer** (the `task-reviewer` plugin agent, Task mode) — verifies the task Deliverable + tests + conventions against the working tree; emits `PASS` / `FAIL` / `BLOCKED`.
-- **improver** (the `improver` plugin agent) — promotes the committed task's review learnings into `.claude/rules/` (delegating the authoring to the `memory-rules` skill); always `PASS` (no failure mode). Gated by the `rules_improver` switch (skipped when off).
-- **commiter** (the `commiter` plugin agent → `scripts/commit-task.sh`) — commits the task as the workflow's **final stage**, reached only on PASS. The haiku agent runs `bash "${CLAUDE_PLUGIN_ROOT}/skills/orchestrator/scripts/commit-task.sh" "<task_file>"` and relays its single tag line verbatim; the workflow parses it (`parseCommitTag`) and returns it as `wf_out.commit`. The dispatcher never runs the commit itself. The script derives the commit subject (the task file's `# ` H1) and the `T<N>:` prefix itself (no one synthesizes a subject). Being deterministic, the script cannot fabricate its tag — it emits a `sha` **only** after itself verifying HEAD advanced and the tree is clean, and the agent only relays it, so the dispatcher trusts `wf_out.commit` directly (no re-verification, no retry loop).
-- **agent-final-reviewer (sub-orchestrator)** — one-shot terminal gate after the last task is committed; fans out **six parallel lenses** via the Skill tool (`agent-plan-auditor` + the four `agent-*-auditor` code-quality lenses + `agent-runner` Scope: full), synthesizes one go/no-go verdict on stdout, and **writes** `.temp/.workflows/<slug>/final-review.md` (a prioritized "what to fix" report). The dispatcher materializes the cumulative patch `plan.diff` and passes `Report path:` + `Diff file:`.
+- **recipe** (`agent-recipe`) — mandatory first step; derives host build/test/lint/launch verbs once → `recipe.sh` + `profile.md` (the single artifact every downstream fork consumes). Owns the run's clean-tree guard (its fail-closed Step 0); `STATUS: FAIL` = hard halt. Self-skips when its own `recipe.sh verify` passes.
+- **adr-recorder** (`agent-adr-recorder`) — judges the plan and, on a real architectural decision, writes the ADR file(s) + `.superdev/ADR.md` index. Once, before decompose, config-gated by `adr`, committed by `commit-adr.sh`. Never touches the plan or decomposer.
+- **decomposer** (`agent-decomposer`) — slices the plan into per-task files; once, idempotent.
+- **task-pipeline** (`scripts/task-pipeline.workflow.js`) — the deterministic per-task inner loop, one `Workflow` call per task. Owns retry / BLOCKED-unblock / loop-guard / report-forwarding, dispatches the workers below, and runs the commit stage on PASS. Returns `{status: PASS|FAIL, attempts, lastFailureReportPath, outputTokens, commit?}` (`commit` only on PASS; `outputTokens` = run's `budget.spent()` delta, output-only, `null` when unavailable). Behaviour: `references/retry-policy.md`.
+- **coder** (`coder` agent) — production code for ONE task; the workflow drives its `Mode: normal` and `Mode: unblock` passes.
+- **runner** (`agent-runner` skill, via the workflow's runner wrapper agent) — runs the task gate; emits `PASS`/`FAIL`/`ERROR`/`TIMEOUT`/`BLOCKED`.
+- **task-reviewer** (`task-reviewer` agent) — verifies Deliverable + tests + conventions against the working tree; emits `PASS`/`FAIL`/`BLOCKED`.
+- **improver** (`improver` agent) — promotes the task's review learnings into `.claude/rules/` (delegating authoring to `memory-rules`); always `PASS`. Gated by `rules_improver`.
+- **commiter** (`commiter` agent → `scripts/commit-task.sh`) — commits the task as the workflow's **final stage**, only on PASS. The script self-verifies (HEAD advanced + clean tree) before emitting a `sha`; the agent only relays its tag; the workflow parses it into `wf_out.commit`. The dispatcher never runs the commit and trusts `wf_out.commit` directly.
+- **agent-final-reviewer (sub-orchestrator)** — one-shot terminal gate after the last commit; fans out six parallel lenses via Skill (`agent-plan-auditor` + four `agent-*-auditor` code-quality lenses + `agent-runner` Scope: full), synthesizes one go/no-go verdict on stdout, and **writes** `.temp/.workflows/<slug>/final-review.md`. The dispatcher materializes `plan.diff` and passes `Report path:` + `Diff file:`.
 
-The worker agents the workflow dispatches (`coder` / `task-reviewer` / `improver` / `commiter`) each carry their full input/output contract in their own `agents/<name>.md` `# Input contract` + `# Output format` sections; the decomposer / runner keep theirs in their `SKILL.md`. The committer's tagged output shape lives in the header comment of `scripts/commit-task.sh`; the workflow's args / return contract lives in the header comment of `scripts/task-pipeline.workflow.js`. The dispatcher itself reads only the workflow's `{status, attempts, lastFailureReportPath, outputTokens, commit}` return (the per-task commit verdict arrives pre-parsed in `commit`; `outputTokens` feeds the closing token report) and the **ADR** committer's tag (via `parse_commit_tag`) — the per-agent STATUS parsing now lives inside the `.js`. When the workflow's arg/return contract changes, update the `.js` header, then this graph and `references/retry-policy.md`.
+Each worker carries its own input/output contract: the workflow's agents in `agents/<name>.md`; decomposer/runner in their `SKILL.md`; the committer tag in `scripts/commit-task.sh`'s header; the workflow's args/return in `scripts/task-pipeline.workflow.js`'s header. The dispatcher reads only the workflow's `{status, attempts, lastFailureReportPath, outputTokens, commit}` return and the **ADR** committer's tag (`parse_commit_tag`). When the workflow's contract changes, update the `.js` header, then this graph and `references/retry-policy.md`.
 
 ## Locate the plan
 
-Resolve the plan file path **deterministically** — first match wins:
+Resolve the plan path **deterministically** — first match wins:
 
-1. **Explicit argument** — `$ARGUMENTS` carries a `Plan: <path>` line (or a bare `.claude/plans/…md` path token). Use it as-is.
-2. **Harness approval signal** — the most recent `ExitPlanMode` approval in this session injects the literal line `Your plan has been saved to: <absolute-path>`; that path is the authoritative handle for the just-approved plan. Anchor on it.
-3. **Conversation scan** — otherwise take the most recent path matching `\.claude[/\\]plans[/\\][^\s]+\.md` mentioned in the conversation.
-4. **None resolved** (e.g. a fresh session after `/clear` with no `Plan:` argument) — **stop** with one line: `No plan path resolved — re-run with 'Plan: <absolute-path>'.` Do not prompt interactively.
+1. **Explicit argument** — `$ARGUMENTS` carries a `Plan: <path>` line (or a bare `.claude/plans/…md` token). Use as-is.
+2. **Harness approval signal** — the most recent `ExitPlanMode` approval injects `Your plan has been saved to: <absolute-path>`; anchor on it.
+3. **Conversation scan** — else the most recent path matching `\.claude[/\\]plans[/\\][^\s]+\.md`.
+4. **None resolved** — stop with one line: `No plan path resolved — re-run with 'Plan: <absolute-path>'.` Do not prompt.
 
-Once resolved, `Read` the plan briefly for orientation. The plan can be any markdown — SuperPlan-shape (with §1 Scope, §2 Context, §3 Mental model, §4 Files to change, §5 Assumptions, …) or looser free-form prose. The dispatcher does not parse it; the `decomposer` handles all interpretation and derives per-task deliverables, modes, tests, and ordering. `max` (total task count) is derived from the `task_files` map returned by decomposer.
+Once resolved, `Read` the plan briefly for orientation. The plan can be any markdown (SuperPlan-shape or free-form prose). The dispatcher does not parse it — `decomposer` derives per-task deliverables, modes, tests, ordering. `max` (task count) comes from decomposer's `task_files` map.
 
 ## Recipe — mandatory first step (clean-tree guard owner)
 
-The **FIRST** step on **every** entry, before ADR / decompose / the loop. `agent-recipe` derives the host toolchain (build / test / lint / launch verbs) once per run and materializes `.temp/.workflows/<slug>/recipe.sh` + `profile.md`, the single artifact every downstream fork consumes. It also **owns the clean-tree guard** (its own fail-closed Step 0) — that is why the dispatcher no longer checks `git status --porcelain` itself anywhere. No marker-skip: the agent self-skips regeneration when its own `recipe.sh verify` passes, so the dispatcher invokes it unconditionally.
+The **FIRST** step every entry, before ADR / decompose / loop. `agent-recipe` derives the host toolchain once → `recipe.sh` + `profile.md`. It **owns the clean-tree guard** (its fail-closed Step 0) — so the dispatcher never checks `git status --porcelain` itself anywhere. The agent self-skips regeneration when `recipe.sh verify` passes, so invoke it unconditionally.
 
 ```
 slug = basename(plan-path) without trailing ".md"   # ORIGINAL plan filename — same slug ADR/decompose re-derive
 recipe_path = ".temp/.workflows/<slug>/recipe.sh"    # forwarded to each per-task Workflow as `recipePath`
 
-# Inject the plan CONTENT via dynamic context — pass the BARE ABSOLUTE plan path + the slug (two positional args).
+# Inject the plan CONTENT via dynamic context — pass the BARE ABSOLUTE plan path + the slug.
 recipe_out = Skill(skill="superdev:agent-recipe", args="<abspath(plan-path)> <slug>")
 if first_status_line(recipe_out) != "STATUS: PASS":
-    # Hard halt (same shape as a decomposer FAIL). A recipe FAIL = dirty tree / unresolvable verb / missing tool;
-    # the recipe agent already named the cause on stdout — surface it verbatim and stop. No clean-tree retry here.
+    # Hard halt (= decomposer FAIL). FAIL = dirty tree / unresolvable verb / missing tool; the agent named
+    # the cause on stdout — surface it verbatim and stop. No clean-tree retry.
     report recipe_out and stop the skill
 print("Recipe: ready")
 ```
 
-The recipe FAIL is the **only** clean-tree gate now (the former ADR-step and pre-task-loop `git status --porcelain` guards are gone — the recipe agent's Step 0 covers both). `recipe_path` is threaded into every per-task `Workflow` invocation as the `recipePath` arg (the workflow splices it into the coder + runner-wrapper prompts so each fork sources its verbs from the one artifact).
+The recipe FAIL is the **only** clean-tree gate. `recipe_path` is threaded into every per-task `Workflow` as `recipePath` (the workflow splices it into the coder + runner-wrapper prompts).
 
 ## Config switches
 
@@ -94,41 +94,39 @@ The recipe FAIL is the **only** clean-tree gate now (the former ADR-step and pre
 
 </config>
 
-The host project may disable optional pipeline steps via `config` (preloaded above). Read each switch as a boolean — a key is **on only when its value is literally `true`**; a missing key, missing file, or unreadable file means **off** (fail-closed, default-disabled, so a project that never ran `/superdev:setup` skips these optional steps until it opts in). The boolean switches this dispatcher honors:
+Read each boolean as **on only when its value is literally `true`**; a missing key/file/unreadable file = **off** (fail-closed; a project that never ran `/superdev:setup` skips these until it opts in):
 
-- `adr` → run the ADR-recording step below **only when literally `true`**; otherwise skip.
-- `rules_improver` → run the per-task `improver` step **only when literally `true`**; otherwise skip. The dispatcher forwards the computed boolean as the workflow's `rulesImprover` arg (the workflow runs/skips the improver pass itself).
+- `adr` → run the ADR step below.
+- `rules_improver` → run the per-task `improver` step. Forwarded as the workflow's `rulesImprover` arg.
 
-Two non-boolean **integer** keys tune the retry budget; both are read fail-open with a default of `3` (a missing key / file / unreadable file = `3`, a non-integer value = `3`):
+Two **integer** keys tune the retry budget, fail-open to `3` (missing key/file or non-integer → `3`):
 
-- `retry_max_attempts: <int>` → the per-task attempt cap for the first workflow invocation. Forwarded as the workflow's `retryMaxAttempts` arg.
-- `retry_escalation_attempts: <int>` → the cap offered on the escalation `AskUserQuestion` ("Retry `<retry_escalation_attempts>` more"); on Retry it is forwarded as `retryMaxAttempts` for the re-invocation.
+- `retry_max_attempts` → per-task cap for the first workflow invocation. Forwarded as `retryMaxAttempts`.
+- `retry_escalation_attempts` → cap offered on the escalation `AskUserQuestion`; on Retry, forwarded as `retryMaxAttempts`.
 
-When a config-gated step is skipped, print **one terse line** in the normal progress channel (`ADR: skipped (disabled)`, `[N/max] improver: skipped (disabled)`) — never a paragraph explaining what the step does or why it is off.
+A skipped config-gated step prints **one terse line** (`ADR: skipped (disabled)`, `[N/max] improver: skipped (disabled)`) — never a paragraph.
 
 ## ADR recording (before decompose)
 
-Record any architectural decision the approved plan carries as an ADR. The `agent-adr-recorder` fork **judges and writes the ADR file(s) + the `.superdev/ADR.md` index itself**; the dispatcher then commits those files with `commit-adr.sh`. The **plan is never modified or copied** — the decomposer always receives the ORIGINAL plan and learns nothing about ADRs. This is the **only** ADR step in the whole flow (plan mode no longer does it). Run it **once per pipeline run**; the `adr.done` marker (and existing task files) make it idempotent on resume.
+`agent-adr-recorder` judges the plan and, on a real architectural decision, **writes the ADR file(s) + `.superdev/ADR.md` itself**; the dispatcher then commits them with `commit-adr.sh`. The **plan is never modified or copied** — the decomposer always gets the ORIGINAL plan and learns nothing about ADRs. The **only** ADR step in the flow. Once per run; the `adr.done` marker (and existing task files) make it idempotent on resume.
 
 ```
 slug = basename(plan-path) without trailing ".md"   # always the ORIGINAL plan filename
 decompose_plan_path = plan-path                      # ALWAYS the original plan — never augmented or copied
 
-# Idempotency gate: this run already did the ADR step (marker), or task files exist (resume past decompose).
+# Idempotency gate: ADR step already done, or task files exist (resume past decompose).
 if exists(".temp/.workflows/<slug>/adr.done") OR Glob(".temp/.workflows/<slug>/tasks/*.md") returns ≥1 path:
     skip to "Decompose the plan into per-task files"
 
-# Config gate: ADR capture not enabled (`adr` ≠ literally `true`) → skip, and mark done so a later resume stays consistent.
+# Config gate: `adr` ≠ literally `true` → skip, mark done so a later resume stays consistent.
 if config switch `adr` is not literally `true`:
     print("ADR: skipped (disabled)")
     Write(".temp/.workflows/<slug>/adr.done", "skipped\n")
     skip to "Decompose the plan into per-task files"
 
-# Clean tree is already guaranteed by the recipe step's fail-closed Step 0 (the dispatcher no longer
-# re-checks `git status --porcelain` here — the recipe agent owns the single clean-tree guard for the run).
-
-# agent-adr-recorder injects the plan CONTENT via dynamic context (`cat $ARGUMENTS`), so pass the BARE
-# ABSOLUTE path. The fork WRITES the ADR file(s) + index itself and returns only a verdict + commit subject.
+# Clean tree already guaranteed by the recipe step's Step 0 — no git status re-check here.
+# agent-adr-recorder injects the plan CONTENT via `cat $ARGUMENTS` → pass the BARE ABSOLUTE path. The fork
+# WRITES the ADR file(s) + index itself and returns only a verdict + commit subject.
 adr_out = Skill(skill="superdev:agent-adr-recorder", args="<abspath(plan-path)>")
 if first_status_line(adr_out) == "STATUS: ADR":
     subject = the text after "Commit-subject: " in adr_out (single line)
@@ -137,71 +135,62 @@ if first_status_line(adr_out) == "STATUS: ADR":
     if commit_result[0] == "sha":
         print(f"ADR: recorded ({commit_result[1]})")
     elif commit_result[0] == "no-changes":
-        # Anomaly: recorder said ADR but wrote nothing committable. Warn and proceed (no ADR landed).
         print("ADR: recorder reported ADR but no files to commit — continuing without ADR.")
     else:   # error / malformed
         report f"ADR commit FAILED: {commit_result[1] if len(commit_result) > 1 else commit_out}" and stop
 else:
-    # STATUS: NO-ADR (or malformed) → nothing was written; nothing to commit.
+    # STATUS: NO-ADR (or malformed) → nothing written, nothing to commit.
     print("ADR: none")
 
-Write(".temp/.workflows/<slug>/adr.done", "done\n")   # mark the ADR step done for idempotent resume
+Write(".temp/.workflows/<slug>/adr.done", "done\n")   # mark done for idempotent resume
 ```
 
-The ADR commit lands **before** the per-task loop, so it is the parent of the Task 1 commit; `base.sha` (= `HEAD^` after Task 1) points at it and the final-review diff excludes it — correct, since an ADR is documentation, not plan functionality to verify. The `slug` is derived from the **original** plan filename and the plan content handed to the decomposer is byte-identical to the user's approved plan.
+The ADR commit lands **before** the per-task loop, so it parents the Task 1 commit; `base.sha` (= `HEAD^` after Task 1) points at it and the final-review diff excludes it — correct, since an ADR is documentation, not plan functionality.
 
 ## Decompose the plan into per-task files
 
-Invoke `decomposer` exactly once per pipeline run, **before** the per-task loop:
+Invoke `decomposer` exactly once per run, **before** the loop:
 
 ```
-# slug + decompose_plan_path (always = plan-path) were resolved in "ADR recording (before decompose)" above
+# slug + decompose_plan_path (= plan-path) resolved in "ADR recording" above
 decomp_prompt = "Plan: <decompose_plan_path>\nPlanSlug: <slug>"
 decomp_out = Skill(skill="superdev:agent-decomposer", args=decomp_prompt)
 if first_status_line(decomp_out) != "STATUS: PASS":
-    escalate to user via AskUserQuestion ("Decomposer failed. Retry or Abort?") and stop on Abort
+    escalate via AskUserQuestion ("Decomposer failed. Retry or Abort?") and stop on Abort
 parse "## Task files" → task_files: dict[N → absolute path to <N>.md], task_titles: dict[N → verb-phrase]
 max = len(task_files)
 ```
 
-Each `## Task files` line is in the shape `- <N> — <verb-phrase> — <path>`; parse with the regex `^- (\d+) — (.+) — (.+\.md)$` (group 2 is the verb-phrase, group 3 is the path — `.md` suffix and the absence of spaces in the dispatcher's `.temp/.workflows/<slug>/tasks/<N>.md` convention make the split unambiguous). `task_titles` is consumed by the progress-widget seed below — without it the dispatcher would have to `Read` every task file just to recover the H1 the decomposer already knows.
+Each `## Task files` line is `- <N> — <verb-phrase> — <path>`; parse with `^- (\d+) — (.+) — (.+\.md)$` (group 2 = verb-phrase, group 3 = path). `task_titles` seeds the progress widget without re-reading task files.
 
-Decomposer is idempotent: if `.temp/.workflows/<slug>/tasks/*.md` already exists from a prior run, it returns the existing paths with `STATUS: PASS` and `## Notes: existing task files detected — decomposition skipped`. To force regeneration, delete the directory manually.
+Decomposer is idempotent: existing `.temp/.workflows/<slug>/tasks/*.md` → `STATUS: PASS` + `## Notes: existing task files detected — decomposition skipped`. To force regeneration, delete the directory.
 
-Print one line: `Plan decomposed into <K> task file(s).`
+Print `Plan decomposed into <K> task file(s).`
 
-The dispatcher hands the per-task work order to the `task-pipeline.workflow.js` script (one `Workflow` invocation per task), not to the worker agents directly — the workflow builds every worker prompt (`Task file:`, `Report path:`, `Mode:`, `Feedback:`, `Task base:`, `Runner report:`, `Previous coder report:`, `Task-reviewer report:`) itself and owns the report-path slots under `.temp/.workflows/<slug>/orchestration/task-<N>/<role>-<attempt>.md`. The dispatcher passes the workflow only the coarse handles: `taskFile`, `reportDir`, `taskBaseSha`, `recipePath` (the slug-scoped `recipe.sh` from the recipe step), `taskGateRunnable`, `rulesImprover`, `retryMaxAttempts`, and (on an escalation re-invoke) `feedbackPath`. The commit step (the `scripts/commit-task.sh` run) is unaffected and stays in the dispatcher, after the workflow returns PASS. The exact worker-prompt shapes and the report filename slots are documented in the workflow's header comment + `references/retry-policy.md`.
+The dispatcher hands per-task work to `task-pipeline.workflow.js` (one `Workflow` per task), not to workers directly — the workflow builds every worker prompt and owns the report paths under `.temp/.workflows/<slug>/orchestration/task-<N>/<role>-<attempt>.md`. The dispatcher passes only the coarse handles: `taskFile`, `reportDir`, `taskBaseSha`, `recipePath`, `taskGateRunnable`, `rulesImprover`, `retryMaxAttempts`, and (on escalation) `feedbackPath`. The commit stays inside the workflow. Exact prompt shapes + report slots: the workflow's header + `references/retry-policy.md`.
 
-Decomposer's `## Notes` section is informational only — the orchestrator does not gate on it. Any material decision worth flagging will resurface in the final whole-plan `agent-final-reviewer` against the cumulative diff, where the user can act on it with full evidence rather than on a pre-implementation hypothesis.
+Decomposer's `## Notes` is informational — the orchestrator does not gate on it. Material decisions resurface in the final whole-plan review against the cumulative diff.
 
 ## Resolve the starting task
 
-Resolution order (first applicable wins):
+First applicable wins:
 
 ```
 status_path = ".temp/.workflows/<slug>/status.yml"
-current_task = parse_status_yml(status_path)   # None if file missing or malformed
-
-arg_task = parse_arg_task($ARGUMENTS)   # integer N if `task=<N>` present, else None
+current_task = parse_status_yml(status_path)   # None if missing or malformed
+arg_task = parse_arg_task($ARGUMENTS)          # integer N if `task=<N>` present, else None
 
 if current_task is not None and current_task > max:
-    # Sentinel: every task was already committed in a prior session.
-    # Set `start = current_task` so the progress-widget seed marks every task
-    # already completed (resume loop covers 1..start-1 = 1..max). The per-task
-    # loop is naturally empty for `start > max`, so control falls through
-    # to the final review. No explicit `goto` needed.
+    # Sentinel: every task already committed in a prior session. Set start = current_task so the widget seed
+    # marks all completed; the per-task loop is naturally empty for start > max → control falls to final review.
     print(f"Plan {slug} already fully implemented (current_task={current_task}, total={max}); running final review only.")
     start = current_task
 elif current_task is not None and current_task <= max:
     status_start = current_task
     if arg_task is not None and arg_task != status_start:
-        # The two sources disagree — let the user resolve, with preview of each option.
         answer = AskUserQuestion(
             question=f"status.yml says start at Task {status_start}; arguments say Task {arg_task}. Which?",
-            options=[
-                f"Task {status_start} (from status.yml)",
-                f"Task {arg_task} (from arguments)",
-            ]
+            options=[f"Task {status_start} (from status.yml)", f"Task {arg_task} (from arguments)"]
         )
         start = status_start if answer.startswith(f"Task {status_start}") else arg_task
     else:
@@ -212,197 +201,140 @@ else:
     start = 1
 ```
 
-Helpers:
+Helpers: `parse_status_yml`, `parse_arg_task` — see `references/status-parsing.md`.
 
-- `parse_status_yml(path)` — return `None` when the file is missing or unreadable. Otherwise `Read` the file and match the first non-empty line against the regex `^current_task:\s*(\d+)\s*$`. Return `int(match.group(1))` on success, `None` on any parse error (missing key, non-integer value, unexpected extra content).
-- `parse_arg_task($ARGUMENTS)` — return integer `N` for the first match of `task=(\d+)` in the argument string, else `None`.
-
-Print a single line to the user: `Implementing <plan-slug> from Task <start> of <max>.`
+Print one line: `Implementing <plan-slug> from Task <start> of <max>.`
 
 ## Seed the progress widget
 
-A parallel visual channel (next to the dispatcher's coarse per-task `print` line and the workflow's own `log` channel — see the two-tier signal in `# Anti-patterns`). Renders the whole task list once, then per-task `TaskUpdate` calls flip each task between `pending` / `in_progress` / `completed` as the pipeline progresses. Soft-fail: every UI call goes through `safe_task_call` (see `references/status-parsing.md`); a UI error never halts the pipeline.
+A parallel visual channel (next to the dispatcher's coarse `print` line and the workflow's `log` channel — see the two-tier signal in `# Anti-patterns`). Renders the whole task list once, then per-task `TaskUpdate` flips each between `pending`/`in_progress`/`completed`. Every UI call goes through `safe_task_call` (see `references/status-parsing.md`) — a UI error never halts the pipeline.
 
-Run **after** the starting-task resolution has resolved `start` and **before** the per-task loop. The `current_task > max` sentinel sets `start = current_task` (max + 1) — the progress-widget seed still runs in that branch, so a fully-replayed plan shows the widget with every task already marked `completed`.
+Run **after** `start` is resolved, **before** the loop. The `current_task > max` sentinel sets `start = max + 1`, so a fully-replayed plan shows every task `completed`.
 
 ```
-# One task per task (flat — TaskCreate has no parent field).
-task_widgets: dict[int, str] = {}      # N -> taskId
+task_widgets: dict[int, str] = {}      # N -> taskId (flat — TaskCreate has no parent field)
 for N in 1..max:
-    verb = task_titles[N]              # parsed from the decomposer's `## Task files` listing — no file read
+    verb = task_titles[N]              # from decomposer's listing — no file read
     task_widgets[N] = safe_task_call(TaskCreate,
         subject=f"Task {N}: {verb}",
         description=f"Pipeline pass for task file `.temp/.workflows/{slug}/tasks/{N}.md`.",
-        activeForm=f"Implementing Task {N}: {verb}",
-    )
+        activeForm=f"Implementing Task {N}: {verb}")
 
-# Resume: every task below `start` is already committed — flip its task to completed
-# so the widget reflects git history. The task at `start` (if any) flips to in_progress
-# on entry to the per-task pipeline (no special-case here). The "all-replayed" sentinel
-# sets `start = max + 1`, so this loop marks every task completed; the per-task loop
-# then iterates zero times and control flows naturally into the final review.
+# Resume: every task below `start` is already committed → mark completed.
 for N in 1..(start - 1):
     safe_task_call(TaskUpdate, taskId=task_widgets[N], status="completed")
 ```
 
-**Notes on the widget.**
-
-- Flat list — `TaskCreate` exposes no `parent` field. The widget renders one row per task.
-- `TaskUpdate` accepts only `pending` / `in_progress` / `completed` / `deleted`. There is no `failed` state — a terminal task failure leaves the task at `in_progress`, signalling visually that the pipeline halted on it. The accompanying `print` line carries the diagnostic.
-- All `TaskCreate` / `TaskUpdate` calls go through `safe_task_call`. The widget is a **UI overlay, not state of truth**: the source of truth for run state remains `status.yml`, the per-task task files, `base.sha`, and `task-base.sha` (see `# Anti-patterns`).
+The widget is a **UI overlay, not state of truth** (truth = `status.yml`, task files, `base.sha`, `task-base.sha`, git). `TaskUpdate` has no `failed` state — a terminal failure leaves the task at `in_progress` (the visually-stuck row IS the "halted here" signal); the `print` line carries the diagnostic. Constraints: `references/status-parsing.md`.
 
 ## Per-task pipeline
 
-The clean tree is already guaranteed before this point: the recipe step's fail-closed Step 0 is the single clean-tree guard for the whole run (the dispatcher no longer runs its own pre-loop `git status --porcelain` check). A clean tree at recipe time is what makes `task-base.sha` meaningful; from there the committer keeps the tree clean by construction between tasks.
-
-Read the retry-budget config values once (fail-open, default `3`):
+Clean tree is already guaranteed (recipe Step 0). Read the retry-budget config once (fail-open, default `3`):
 
 ```
-retry_max_attempts        = parse_int_config("retry_max_attempts", default=3)        # missing/file-absent/non-int → 3
-retry_escalation_attempts = parse_int_config("retry_escalation_attempts", default=3) # missing/file-absent/non-int → 3
-rules_improver_on         = config switch `rules_improver` is literally true          # default-disabled
+retry_max_attempts        = parse_int_config("retry_max_attempts", default=3)
+retry_escalation_attempts = parse_int_config("retry_escalation_attempts", default=3)
+rules_improver_on         = config switch `rules_improver` is literally true   # default-disabled
 
-# Output-token accounting for the closing report. Each per-task Workflow returns `outputTokens` (a
-# budget.spent() delta — output-only, `null` when the budget API is unavailable). Accumulate every
-# invocation's value (closing summary §Closing summary). State of run truth stays in git/status.yml —
-# these are display-only counters.
-plan_output_tokens = 0            # Σ outputTokens across ALL workflow invocations this run
-task_output_tokens = {}           # N -> Σ outputTokens for task N (across its attempts/escalations)
+# Output-token accounting (display-only; truth stays in git/status.yml). Each Workflow returns `outputTokens`
+# (a budget.spent() delta, output-only, `null` when unavailable). Accumulate every invocation's value.
+plan_output_tokens = 0            # Σ across ALL workflow invocations this run
+task_output_tokens = {}           # N -> Σ for task N (across attempts/escalations)
 ```
 
-For each task `N` from `start` to `max`, run this loop. The per-task inner pipeline (coder → runner → task-reviewer → improver, with all retry / BLOCKED-unblock / infinite-loop-guard / report-forwarding mechanics) is driven by **one** `Workflow` invocation against `task-pipeline.workflow.js`; the dispatcher's own job per task is the four bookends: widget flip, `task-base.sha` capture, the workflow call, and (on PASS) the commit + state writes (on FAIL) the escalation prompt.
+For each task `N` from `start` to `max`, the dispatcher's job is four bookends: widget flip, `task-base.sha` capture, the workflow call, and (on PASS) commit + state writes / (on FAIL) the escalation prompt. The inner pipeline is **one** `Workflow` call.
 
 ```
-# Progress widget: flip this task's widget from `pending` (seeded by the progress-widget seed) to
-# `in_progress`. The current task is the only one in_progress at any given time.
-# UI overlay — `safe_task_call` soft-fails.
-safe_task_call(TaskUpdate, taskId=task_widgets[N], status="in_progress")
+safe_task_call(TaskUpdate, taskId=task_widgets[N], status="in_progress")   # only this task is in_progress
 
-# Per-task audit/transport directory. The workflow dictates every report path inside it.
-# Ephemeral — NOT state of truth (see Anti-patterns + the state-files list).
+# Per-task audit/transport dir (ephemeral, NOT truth). The workflow dictates every report path inside it.
 orch_dir = f".temp/.workflows/<slug>/orchestration/task-{N}"
 
-# Persist task-base.sha BEFORE the workflow runs (this is the dispatcher's attempt-1 capture). It is the
-# SHA every task-reviewer/coder invocation inside the workflow uses to compute the task diff; the
-# coder agent's "verify before revert" reads this file, and the workflow forwards the same SHA on the
-# task-reviewer's `Task base:` line. The baseline is stable for the whole task — escalation re-invokes
-# MUST NOT overwrite it, so this write happens once per task, before the first workflow call.
+# Persist task-base.sha BEFORE the workflow (attempt-1 capture). The SHA every task-reviewer/coder uses for the
+# task diff; stable for the whole task — escalation re-invokes MUST NOT overwrite it. Written once per task.
 task_base_sha = bash("git rev-parse HEAD").strip()
 Write(".temp/.workflows/<slug>/task-base.sha", task_base_sha + "\n")
 
-# Is the task gate runnable? (Build: green / Tests: <non-none>) — the workflow needs this as a flag so
-# it knows whether to run the runner pass. A pure `Tests: none` task → taskGateRunnable=false.
-gate = extract_task_gate(N)   # the lines under "## Task gate" in the task file
-task_gate_runnable = (gate contains "^\s*- Tests:" with non-`none` value) OR (gate contains "^\s*- Build: green")
+# Is the gate runnable? Pure `Tests: none` → false (runner pass skipped).
+gate = extract_task_gate(N)
+task_gate_runnable = (gate has "^\s*- Tests:" with non-`none` value) OR (gate has "^\s*- Build: green")
 
-# Invoke the deterministic per-task pipeline ONCE. It owns the whole inner loop, commits on PASS, and
-# returns {status, attempts, lastFailureReportPath, outputTokens, commit?}. Escalation re-invokes pass feedbackPath.
-feedback_path = ""           # "" on the first invocation of this task; set on an escalation Retry below
-cap = retry_max_attempts     # first invocation uses the base cap; escalation uses retry_escalation_attempts
+feedback_path = ""           # "" on first invocation; set on escalation Retry
+cap = retry_max_attempts     # first invocation; escalation uses retry_escalation_attempts
 
-escalation_loop:   # dispatcher-level loop (NOT the per-attempt loop — that lives inside the workflow)
+escalation_loop:   # dispatcher-level (NOT the per-attempt loop — that lives inside the workflow)
     wf_out = Workflow(
         scriptPath="${CLAUDE_PLUGIN_ROOT}/skills/orchestrator/scripts/task-pipeline.workflow.js",
         args={
             "taskFile":         task_files[N],
             "reportDir":        orch_dir,
             "taskBaseSha":      task_base_sha,
-            "recipePath":       recipe_path,          # slug-scoped recipe.sh from the recipe step (run start)
+            "recipePath":       recipe_path,
             "taskGateRunnable": task_gate_runnable,
             "rulesImprover":    rules_improver_on,
             "retryMaxAttempts": cap,
             **({"feedbackPath": feedback_path} if feedback_path != "" else {}),
         },
     )
-    # wf_out is the workflow's structured return: {status, attempts, lastFailureReportPath, outputTokens, commit}.
-    # `commit` is present ONLY on a PASS (the commit stage runs inside the workflow); absent on FAIL.
-    print(f"[{N}/{max}] task-pipeline: {wf_out.status} (attempts {wf_out.attempts}/{cap})")  # coarse per-task signal
-    # Output-token accounting: sum EVERY invocation's outputTokens (initial + retry/escalation, PASS or
-    # FAIL — retried work is real consumption). null / missing field → skip (fail-open, no display impact).
-    if isinstance(wf_out.outputTokens, int):
+    # wf_out = {status, attempts, lastFailureReportPath, outputTokens, commit}. `commit` only on PASS.
+    print(f"[{N}/{max}] task-pipeline: {wf_out.status} (attempts {wf_out.attempts}/{cap})")   # coarse signal
+    if isinstance(wf_out.outputTokens, int):     # sum EVERY invocation (retried work is real consumption)
         plan_output_tokens += wf_out.outputTokens
         task_output_tokens[N] = task_output_tokens.get(N, 0) + wf_out.outputTokens
     if wf_out.status == "PASS":
-        break escalation_loop    # the commit already ran inside the workflow; fall through to read wf_out.commit
-    # FAIL: the workflow exhausted its cap (or a BLOCKED guard converted to FAIL). Escalate to the user.
+        break escalation_loop    # commit already ran inside the workflow; fall through to read wf_out.commit
+    # FAIL: cap exhausted (or a BLOCKED guard converted to FAIL). Escalate.
     answer = AskUserQuestion(
         question=f"Task {N} failed after {wf_out.attempts} attempts. Latest failure: {wf_out.lastFailureReportPath}. Choose:",
         options=[f"Retry {retry_escalation_attempts} more times", "Abort"]
     )
     if answer starts with "Retry":
-        # Re-invoke with a fresh cap (retry_escalation_attempts) and seed the first coder pass with the
-        # last failure's report as Feedback. task_base_sha is NOT recomputed — the baseline is stable.
         cap = retry_escalation_attempts
-        feedback_path = wf_out.lastFailureReportPath
+        feedback_path = wf_out.lastFailureReportPath   # seed the first coder pass; task_base_sha NOT recomputed
         continue escalation_loop
     else:
-        # Task widget stays at `in_progress` (no `failed` state). The visually-stuck
-        # task + the abort message are the user's terminal signal.
-        report f"Aborted at Task {N} after {wf_out.attempts} attempts." and stop the skill
+        report f"Aborted at Task {N} after {wf_out.attempts} attempts." and stop the skill   # widget stays in_progress
 
-# commit-result handling — the commit itself ran INSIDE the workflow (its final stage, only on PASS),
-# performed by the haiku passthrough agent `superdev:commiter` which runs the deterministic
-# `scripts/commit-task.sh` against the task file and relays its one tag line; the workflow parses that
-# line and hands it back as `wf_out.commit`. The dispatcher NEVER runs `git commit` itself — it only
-# consumes the verdict here to drive state + widgets. `wf_out.commit` is one of:
-#   {kind:"sha", sha, files, subject} | {kind:"no-changes"} | {kind:"error", reason} | {kind:"malformed", raw}
-# Trust the verdict — commit-task.sh self-verifies (HEAD advanced past pre-commit HEAD + clean tree)
-# before it ever emits a `sha`, and the committer agent only relays that line. Do NOT re-run git to
-# re-check the move, do NOT retry, do NOT hand-commit. Subject authoring still lives entirely in
-# agent-decomposer (task file `# ` H1) + commit-task.sh (`T<N>:` prefix) — never the dispatcher.
+# Commit ran INSIDE the workflow (final stage, only on PASS) via commiter → commit-task.sh; the workflow parsed
+# its tag into wf_out.commit. Trust it directly (the script self-verifies HEAD advanced + clean tree before any
+# `sha`). Subject authoring lives in agent-decomposer (task `# ` H1) + commit-task.sh (`T<N>:`), never here.
+#   commit.kind ∈ {sha,sha,files,subject} | {no-changes} | {error,reason} | {malformed,raw}
 commit = wf_out.commit
 if commit.kind == "sha":
     short_sha = commit.sha
     print(f"[{N}/{max}] commit: {short_sha}")
-    # Persist base.sha after the first successful commit (see the final review). Parent is HEAD^
-    # now that HEAD points at the new commit — a read-only git query, not a commit.
-    if N == 1:
+    if N == 1:    # persist base.sha after the first commit (parent is now HEAD^ — read-only query)
         parent_sha = bash("git rev-parse \"HEAD^\"").strip()
         Write(".temp/.workflows/<slug>/base.sha", parent_sha + "\n")
-    # Progress widget: flip task widget to completed with the commit sha.
-    safe_task_call(TaskUpdate, taskId=task_widgets[N], status="completed",
-                   description=f"Committed {short_sha}.")
+    safe_task_call(TaskUpdate, taskId=task_widgets[N], status="completed", description=f"Committed {short_sha}.")
 elif commit.kind == "no-changes":
     print(f"[{N}/{max}] commit: no-op (no-changes)")
-    # Progress widget: task still counts as done — flip to completed with a note.
-    safe_task_call(TaskUpdate, taskId=task_widgets[N], status="completed",
-                   description="No-op (no-changes).")
+    safe_task_call(TaskUpdate, taskId=task_widgets[N], status="completed", description="No-op (no-changes).")
 elif commit.kind == "error":
-    # Task widget stays at `in_progress` (no `failed` state) — the visually-stuck
-    # widget mirrors the halted pipeline. Surface error and abort the run —
-    # the commit failed cleanly, no point retrying via coder.
-    report f"[{N}/{max}] commit FAILED: {commit.reason}" and stop
+    report f"[{N}/{max}] commit FAILED: {commit.reason}" and stop    # widget stays in_progress
 else:
-    # malformed tag — same handling as the error branch — task widget stays at `in_progress`.
-    report f"[{N}/{max}] commit MALFORMED: {commit.raw}" and stop
+    report f"[{N}/{max}] commit MALFORMED: {commit.raw}" and stop    # widget stays in_progress
 
-# Update status.yml — authoritative task tracker (see the starting-task resolution order).
-# After commit of task N, the next task to execute is N+1. After commit of the
-# last task N=max, this writes `current_task: max+1` — the "all done" sentinel
-# that the starting-task resolution detects if the user re-runs orchestrator in a new session.
+# status.yml — authoritative task tracker. After task N, next is N+1. After N=max → `current_task: max+1`
+# (the "all done" sentinel the starting-task resolution detects on a re-run).
 Write(".temp/.workflows/<slug>/status.yml", f"current_task: {N + 1}\n")
-
-# continue to next task N
 ```
 
 ### Notes on the loop
 
-- Retry cap, BLOCKED branch mechanics, infinite-loop guard, report-forwarding, and the final commit stage: now owned by `scripts/task-pipeline.workflow.js` and documented (behaviourally) in `references/retry-policy.md`. The dispatcher does NOT re-implement any of it — it invokes the workflow once per task and reads its `{status, attempts, lastFailureReportPath, outputTokens, commit?}` return.
-- The dispatcher does not parse per-agent `STATUS:` lines any more — that happens inside the workflow's `agent()` boundary. The dispatcher reads only the workflow's structured return (including its `commit` field; the committer's tag line is parsed inside the workflow, never by the dispatcher). Its live-progress channel per task is the single coarse line `[<N>/<max>] task-pipeline: <PASS|FAIL> (attempts <K>/<cap>)` plus the `commit` line; the per-agent `[<N>/<max>] <agent>: <VERDICT>` granularity now lives in the workflow's own `phase`/`log` channel.
-- The per-task loop iterates zero times when `status.yml`'s `current_task` exceeds `max` — the user re-ran orchestrator after the whole plan was committed. The starting-task resolution sets `start = current_task`, the progress-widget seed marks every task already `completed`, the per-task loop is empty, and control flows into the final whole-plan review.
-- Progress widget updates (`TaskUpdate` on task entry / commit success / no-op commit) live alongside the `print` lines and never replace them — see the "Progress tree (TaskCreate)" section in `references/retry-policy.md`.
+- Retry cap, BLOCKED branch, loop-guard, report-forwarding, the commit stage: owned by the workflow (`references/retry-policy.md`). The dispatcher invokes it once per task and reads only its structured return.
+- The dispatcher does not parse per-agent `STATUS:` lines — that happens inside the workflow. Its per-task signal is `[<N>/<max>] task-pipeline: <PASS|FAIL> (attempts <K>/<cap>)` + the `commit` line; per-agent granularity lives in the workflow's `phase`/`log` channel.
+- The loop iterates zero times when `current_task > max` (whole plan already committed) — control flows into the final review.
 
 ## Final whole-plan review
 
-Runs **once**, after the per-task pipeline has reached the end of the task list with a successful commit on the last task (or when the starting-task resolution's `current_task > max` sentinel jumps here directly). Delegated wholesale to the `superdev:agent-final-reviewer` sub-orchestrator, which fans out **six parallel lenses** (`agent-plan-auditor` + the four `agent-*-auditor` code-quality lenses + `agent-runner` Scope: full) → synthesis, **returns a single go/no-go verdict on stdout**, and **writes** the report to the `Report path:` you hand it. The dispatcher materializes the cumulative patch the four quality lenses need (they have no `Bash` to compute it) and passes its path.
+Runs **once**, after the last task commits (or when the `current_task > max` sentinel jumps here). Delegated wholesale to `superdev:agent-final-reviewer`, which fans out six parallel lenses → synthesis, **returns one go/no-go verdict on stdout**, and **writes** the report to the `Report path:` you hand it. The dispatcher materializes the cumulative patch the four quality lenses need (they have no `Bash`).
 
 ```
-# Resolve base_sha (priority: persisted .temp/.workflows/<slug>/base.sha → git merge-base HEAD main),
-# then head_sha = git rev-parse HEAD. Materialize the cumulative patch for the code-quality lenses, then
-# hand agent-final-reviewer the diff range, the patch path, and the report path.
-diff_path   = ".temp/.workflows/<slug>/plan.diff"      # ephemeral transport artifact, NOT state of truth
+# base_sha priority: persisted .temp/.workflows/<slug>/base.sha → git merge-base HEAD main. Then head_sha = HEAD.
+diff_path   = ".temp/.workflows/<slug>/plan.diff"      # ephemeral transport, NOT truth
 report_path = ".temp/.workflows/<slug>/final-review.md"
-bash(f'git diff {base_sha}..{head_sha} > "{diff_path}"')   # the only extra Bash op vs. the old gate
+bash(f'git diff {base_sha}..{head_sha} > "{diff_path}"')
 final_prompt = (
     "Plan: <plan-path>\n"
     "Diff range: " + base_sha + ".." + head_sha + "\n"
@@ -410,26 +342,25 @@ final_prompt = (
     "Report path: " + report_path
 )
 final_out = Skill(skill="superdev:agent-final-reviewer", args=final_prompt)
-final_status = first_status_line(final_out)                         # one of STATUS: PASS / STATUS: FAIL
+final_status = first_status_line(final_out)                         # STATUS: PASS / STATUS: FAIL
 final_verdict = final_status.removeprefix("STATUS: ") if final_status.startswith("STATUS: ") else "FAIL"
 print(f"[final] agent-final-reviewer: {final_verdict} (report: {report_path})")
-# Surface the returned verdict to the user as the terminal result, and point them at the written report.
 report final_out and stop the skill
 ```
 
-The `final-review.md` report is written by the `agent-final-reviewer` **fork**, not the dispatcher — the dispatcher only materializes `plan.diff`, passes `Report path:` + `Diff file:`, and surfaces the verdict; it never writes the report itself. The verdict (`STATUS: PASS` go / `STATUS: FAIL` no-go) plus the sub-step breakdown that `agent-final-reviewer` returns on stdout IS the terminal result; surface it verbatim and point the user at the report path. The widget at this point shows every task widget as `completed` (or, on a halted run, the in-flight task still at `in_progress`); no plan-level flip is needed. `FAIL` is advisory, not retry-triggering.
+`final-review.md` is written by the **fork**, not the dispatcher — the dispatcher only materializes `plan.diff`, passes `Report path:` + `Diff file:`, and surfaces the verdict. The verdict + sub-step breakdown on stdout IS the terminal result; surface verbatim and point the user at the report. `FAIL` is advisory, not retry-triggering.
 
-**One-shot and terminal.** No retry loop, no `AskUserQuestion`, no `improver` invocation at this stage. Full pseudocode, `base_sha` resolution priority rationale, and final-review-specific anti-patterns: see `references/final-review.md`.
+**One-shot and terminal.** No retry loop, no `AskUserQuestion`, no `improver` here. Full pseudocode + `base_sha` rationale + anti-patterns: `references/final-review.md`.
 
 ## Helpers and pattern reference
 
-The commit tag shape table, the progress-widget constraints used by the progress-widget seed, and the dispatcher-only named helpers still referenced by the pseudocode above (`first_status_line` — for the decomposer / adr-recorder / final-reviewer replies; `parse_status_yml`, `parse_arg_task`, `parse_int_config`, `parse_commit_tag` — now used by the dispatcher only for the **ADR** commit (`commit-adr.sh`); `safe_task_call`): see `references/status-parsing.md`. The per-task committer tag is parsed by the workflow's own `parseCommitTag` and surfaced as `wf_out.commit` — the dispatcher does not parse it. The former worker-`STATUS:` regexes, the runner verdict tokens, and the scope/command-construction helpers (`extract_scope_paths`, `extract_scope_test_names`, `build_test_command_or_build_command`) now live inside `scripts/task-pipeline.workflow.js` (and its runner wrapper agent), not the dispatcher; `extract_task_gate` is used by the dispatcher only to compute the boolean `taskGateRunnable` flag it forwards to the workflow.
+Dispatcher-only helpers (`first_status_line`, `parse_status_yml`, `parse_arg_task`, `parse_int_config`, `parse_commit_tag` — used only for the **ADR** commit, `safe_task_call`), the commit tag table, and the widget constraints: `references/status-parsing.md`. The per-task committer tag is parsed by the workflow (`parseCommitTag`) and surfaced as `wf_out.commit` — never by the dispatcher. The worker-`STATUS:` regexes, runner verdict tokens, and scope/command helpers live inside the workflow; `extract_task_gate` is used by the dispatcher only to compute `taskGateRunnable`.
 
 ## Closing summary
 
 After the final task commits, print one line per completed task, then one aggregate token line.
 
-Decide once whether the run produced usable token metrics: `metered = plan_output_tokens > 0` (any positive total means at least one workflow returned a real `budget.spent()` delta). When `metered` is false — every invocation returned `null`/`0` because the budget API was absent or flat — **suppress all per-task `~… tok` annotations and the `~<n>` total** (a `~0` would misrepresent a broken metric as a real reading).
+`metered = plan_output_tokens > 0` (any positive total = at least one real `budget.spent()` delta). When `metered` is false — every invocation returned `null`/`0` — **suppress all `~… tok` annotations and the `~<n>` total** (a `~0` would misrepresent a broken metric).
 
 Per completed task:
 
@@ -437,13 +368,13 @@ Per completed task:
 Task <N>: <verb-phrase> — committed (<short-sha>) [attempts: <K>, ~<task_output_tokens[N]> output tok]
 ```
 
-For tasks that resolved to `no-changes` (`wf_out.commit.kind == "no-changes"`, see the commit-result handling), substitute the sha slot with the literal status token:
+For `no-changes` tasks, substitute the sha slot with the status token:
 
 ```
 Task <N>: <verb-phrase> — no-op (no-changes) [attempts: <K>, ~<task_output_tokens[N]> output tok]
 ```
 
-When `metered` is false, drop the `, ~<…> output tok` fragment from every per-task line (keep `[attempts: <K>]`).
+When `metered` is false, drop the `, ~<…> output tok` fragment (keep `[attempts: <K>]`).
 
 Then one aggregate line:
 
@@ -451,7 +382,7 @@ Then one aggregate line:
   ```
   Total: ~<plan_output_tokens> output tokens across <max> task workflow(s) (this run; output-only, per-task pipeline — excludes setup/review forks).
   ```
-- `metered` false (fail-open — never a misleading `~0`, never an exception):
+- `metered` false:
   ```
   Total: output-token metering unavailable this run.
   ```
@@ -460,23 +391,21 @@ Then stop. Do not call any further tool.
 
 # Anti-patterns (forbidden)
 
-- Inspecting, reading, or modifying source code yourself. Every code touch is the `coder` agent's job (inside the workflow).
-- Running build / test commands yourself. Every test invocation goes through `runner` (driven by the workflow's runner wrapper agent).
-- Re-implementing the per-task inner loop in the dispatcher (per-agent coder/runner/task-reviewer/improver dispatch, the BLOCKED-unblock branches, the infinite-loop guard, report-forwarding). That logic lives ENTIRELY in `scripts/task-pipeline.workflow.js`; the dispatcher invokes the workflow once per task and reads only its `{status, attempts, lastFailureReportPath, outputTokens, commit}` return. Do NOT call `coder` / `task-reviewer` / `improver` / `commiter` / `agent-runner` directly from the dispatcher — every one of them is dispatched only by the workflow.
-- Pre-flight environment probes via `Bash` between pipeline steps (checking runtimes, services, container state, tool versions, network reachability, etc.) — even when project conventions tell a normal session to verify them before running tests. Those conventions target sessions that run tests directly; the workflow delegates the run to `runner`, which surfaces any environment failure as `FAIL` / `ERROR` and the standard retry loop handles it. The dispatcher's `Bash` budget is reserved for the `task-base.sha` capture, the `base.sha` parent capture after the Task-1 commit (`git rev-parse HEAD^`, read-only), and the git queries + the `plan.diff` materialization (`git diff base..head > plan.diff`) in the final review — the commit itself is no longer a dispatcher `Bash` op (it runs inside the workflow via `commiter`).
-- Skipping the task-pipeline `Workflow` invocation "to save time" on a small task — every task goes through it.
-- Re-deriving or overriding the workflow's retry cap. The base cap comes from `retry_max_attempts` (fail-open `3`), the escalation cap from `retry_escalation_attempts` (fail-open `3`); both are forwarded as `retryMaxAttempts`. Do NOT offer a "skip task" option to the user (intentionally absent), and do NOT recompute `task_base_sha` on the escalation re-invoke — the baseline is stable for the whole task.
-- Writing any state file other than (a) the authoritative task tracker `.temp/.workflows/<slug>/status.yml` (the commit-result handling — orchestrator updates it after reading each successful `wf_out.commit`), (b) the persisted `.temp/.workflows/<slug>/base.sha` written once after the Task 1 commit (the commit-result handling), (c) the per-task baseline `.temp/.workflows/<slug>/task-base.sha` written once per task before the workflow call (the per-task pipeline), and (d) the `.temp/.workflows/<slug>/adr.done` marker written once after the ADR-recording step (its idempotency guard on resume). The final review's `final-review.md` is written by the `agent-final-reviewer` **fork**, not the dispatcher — the dispatcher only materializes the ephemeral cumulative patch `.temp/.workflows/<slug>/plan.diff` (a transport artifact, NOT state of truth, like the `orchestration/` reports) and passes `Report path:` + `Diff file:`; it never writes the report itself. The recipe step's `.temp/.workflows/<slug>/recipe.sh` + `profile.md` are written by the `agent-recipe` **fork**, not the dispatcher — the dispatcher only forwards their path as `recipePath`, never writes them. Plan + task files + git + those four small state files are the only sources of truth — **except** for the fork-authored recipe artifacts above and everything else under `.temp/.workflows/<slug>/orchestration/<task-N>/` (the `coder-K.md`, `task-reviewer-K.md`, `improver-K.md`, `unblock-coder-K.md`, and `runner-K.md` reports the workflow's agents write themselves to their workflow-dictated `Report path:`), which is an **ephemeral audit/transport layer**, NOT state of truth: resume logic relies only on `status.yml` + `task-base.sha` + `base.sha`, and a crash recovery overwrites any prior attempt's report at the same numeric slot.
-- Editing, updating, creating any source file yourself — including "quick fixes" for pre-existing issues. Out-of-scope blockers are handled inside the workflow by routing a `BLOCKED` verdict through an unblock `coder` pass. The dispatcher never touches source files directly.
-- Re-verifying or retrying either commit. Neither commit is a dispatcher op any more: the per-task commit runs INSIDE the workflow (the haiku `commiter` passthrough runs `scripts/commit-task.sh` and the workflow parses its tag into `wf_out.commit`), and the ADR commit runs via `scripts/commit-adr.sh`. Both rest on the same self-verifying script: `commit-task.sh` emits a `sha` tag ONLY after itself proving HEAD advanced past the pre-commit HEAD **and** `git status --porcelain` is empty (a non-zero commit / unmoved HEAD / dirty tree all yield an `error` tag, never a fabricated `sha`). The committer agent only RELAYS that line verbatim (its prompt forbids inventing a tag), so even though a Haiku fork now wraps the script, the verify-before-claim guarantee still lives in the script, not the fork. The dispatcher therefore trusts `wf_out.commit` directly: do NOT re-run `git rev-parse HEAD` to re-check the move, do NOT wrap it in a phantom-commit retry loop, and take the reported sha straight from `wf_out.commit.sha`. On an `error` / `malformed` `commit.kind`, hard-stop — never hand-commit from the dispatcher to paper over a failed commit. (The residual risk that the relayed line is not the script's true output is accepted by design.)
-- Pasting the plan body into a sub-agent prompt — the sub-agent reads the plan (or task file) itself from the supplied path. The dispatcher hands the workflow only the `taskFile` path, never task content.
-- Paging any worker report (`coder-K.md`, `task-reviewer-K.md`, `improver-K.md`, `unblock-coder-K.md`, `runner-K.md`) into the dispatcher's own context. Those reports are written by the workflow's agents to their workflow-dictated `Report path:`; the dispatcher reads none of them — only the workflow's structured return and (for escalation) its `lastFailureReportPath`, which it forwards back as the next `feedbackPath` without reading the file.
-- Re-implementing inside the dispatcher anything the workflow already owns: feedback-forwarding (only the most recent failure's path is forwarded — the workflow enforces this), task-reviewer retry-freshness, the runner `Scope hints:` block, or the unblock branches. The dispatcher's only forwarded failure handle is the escalation `feedbackPath`.
-- Gating on decomposer's `## Notes` section between decomposition and the per-task pipeline. The orchestrator never prompts the user about notes — any material decision will resurface in the final whole-plan review against the cumulative diff, where the user can act on real evidence rather than a hypothesis.
-- Auto-triggering on generic "implement / build / code / execute / carry out" intents, or on a bare mention of the word "orchestrator" in the user's message or plan prose, without the §0 marker line `Implementation: orchestrator` present in the approved plan body. The trigger contract is marker-only; treating descriptive paraphrases or a stray "orchestrator" mention as a trigger violates the skill's frontmatter `description` and surprises the user with a heavy pipeline they did not request (a SuperPlan that chose self / vanilla carries `Implementation: self` plus an explicit opt-out — never route it to the pipeline).
-- Collapsing the **two-tier live signal** into one channel. Per-task progress now has two tiers: (tier 1) the workflow's own `phase` / `log` channel emits the fine-grained per-agent signal (`Coder` / `Runner` / `Review` phases, per-attempt lines) from inside the `Workflow` invocation; (tier 2) the dispatcher emits the coarse per-task line `[<N>/<max>] task-pipeline: <PASS|FAIL> (attempts <K>/<cap>)` plus the `commit` line, and the progress-widget (`TaskCreate` / `TaskUpdate`) renders a third, parallel visual channel. Do NOT suppress the dispatcher's coarse line "because the workflow already logged it", and do NOT replace the dispatcher's `print` line or the widget with each other — they are independent channels and both must emit on every per-task transition.
-- Hard-failing the pipeline on a `TaskCreate` / `TaskUpdate` error. The widget is a UI overlay, not state of truth (state of truth = `status.yml`, the task files, `base.sha`, `task-base.sha`, and git history). All widget calls go through `safe_task_call`; a UI error prints one warning and the pipeline continues.
-- Adding sub-tasks under a task widget (per-agent invocations, retry attempts, BLOCKED nodes, …). `TaskCreate` has no `parent` field — the widget is intentionally a flat list of `Task <N>: <verb-phrase>` rows. Per-agent verdicts and retry counters live in the workflow's `log` channel + the dispatcher's coarse `print` line, never in the widget.
-- Mutating a task widget's `subject` mid-run (e.g. appending `attempt 2/3`, `BLOCKED`, or a short sha to the label). The subject is stable for the lifetime of the run; transient diagnostics belong in `print`. Terminal context (commit sha, `no-op` reason, abort cause) goes into the widget's `description` exactly once — at the same moment the status flips to `completed` (or, for terminal failures, the description is left as the seed text since the status stays at `in_progress`).
-- Using `completed` to mark a terminally-failed task (Abort, commit `error` / `malformed`, killed run). `TaskUpdate` has no `failed` status; a green-checked `completed` row would lie. The orchestrator leaves the in-flight task widget at `in_progress` — the visually-stuck row is the truthful "the pipeline halted here" signal. Diagnostic detail lives in the corresponding `print` line.
-- Deleting, pruning, re-seeding, or otherwise "cleaning up" the task widget list at any point during a run — **including in response to a Claude Code system reminder that the task list is *stale* and should be *cleaned up***. That reminder fires precisely when the dispatcher has not touched `Task*` tools for a while (it has been busy awaiting the per-task `Workflow` invocation) and most tasks are already `completed` — i.e. typically while the **last** task's workflow is mid-run — so obeying it blanks the widget exactly when the user is watching the final task, and the deleted `completed` rows do **not** come back. The flat list is seeded **once** by the progress-widget seed and MUST persist verbatim until the skill ends at the closing summary; `completed` rows stay visible (checked) for the whole run. Never call `TaskUpdate(status="deleted")`, never re-`TaskCreate` an existing task, and ignore any stale-list cleanup prompt while the orchestrator is running. (Distinct, expected, and NOT a cue to re-seed: the widget legitimately appears empty *during* a workflow / sub-agent dispatch — the UI shows the active agent's own empty task scope — and the parent list reappears when control returns. That transient blanking is platform behavior; re-seeding "to fix it" is the bug, not the blanking.)
+- Inspecting / reading / modifying source code yourself — every code touch is the `coder` agent's job (inside the workflow). Includes "quick fixes" for pre-existing issues; out-of-scope blockers route through a `BLOCKED` → unblock `coder` pass inside the workflow.
+- Running build / test commands yourself — every test goes through `runner` (driven by the workflow).
+- Pre-flight environment probes via `Bash` between steps (runtimes, services, container state, versions, network) — even when project conventions tell a normal session to. The workflow delegates the run to `runner`, which surfaces env failures as `FAIL`/`ERROR` and the retry loop handles them. The dispatcher's `Bash` budget is only: the `task-base.sha` capture, the `base.sha` parent capture after Task 1 (`git rev-parse HEAD^`, read-only), and the git queries + `plan.diff` materialization in the final review. The commit is not a dispatcher `Bash` op (it runs inside the workflow).
+- Re-implementing anything the workflow owns: the per-task inner loop (per-agent dispatch, BLOCKED-unblock branches, loop-guard), feedback-forwarding (only the most recent failure's path), task-reviewer retry-freshness, the runner `Scope hints:` block. Do NOT call `coder` / `task-reviewer` / `improver` / `commiter` / `agent-runner` directly — each is dispatched only by the workflow. The dispatcher's only forwarded failure handle is the escalation `feedbackPath` (forwarded without reading the file).
+- Skipping the task-pipeline `Workflow` "to save time" on a small task — every task goes through it.
+- Re-deriving or overriding the workflow's retry cap. Base cap = `retry_max_attempts` (fail-open `3`), escalation = `retry_escalation_attempts` (fail-open `3`); both forwarded as `retryMaxAttempts`. Do NOT offer a "skip task" option (intentionally absent), and do NOT recompute `task_base_sha` on escalation — the baseline is stable.
+- Writing any state file other than: (a) `status.yml` (after each PASS), (b) `base.sha` (once, after Task 1), (c) `task-base.sha` (once per task, before the workflow), (d) `adr.done` (once, after the ADR step). The dispatcher also materializes the ephemeral `plan.diff` (transport, NOT truth) for the final review. The recipe artifacts (`recipe.sh`, `profile.md`), `final-review.md`, and everything under `orchestration/task-<N>/` are written by the forks/workflow, not the dispatcher — they are ephemeral audit/transport, NOT truth (resume relies only on `status.yml` + `task-base.sha` + `base.sha`).
+- Re-verifying or retrying either commit. Both rest on the self-verifying scripts: `commit-task.sh` / `commit-adr.sh` emit a `sha` ONLY after proving HEAD advanced past pre-commit HEAD AND `git status --porcelain` is empty (else an `error` tag, never a fabricated `sha`). The committer agent only RELAYS the line. Trust `wf_out.commit` directly: do NOT re-run `git rev-parse HEAD`, do NOT wrap in a phantom-commit retry loop, take the sha straight from `wf_out.commit.sha`. On `error`/`malformed`, hard-stop — never hand-commit.
+- Pasting the plan body (or task content) into a sub-agent prompt — the sub-agent reads it itself from the supplied path. The dispatcher hands the workflow only the `taskFile` path.
+- Paging any worker report (`coder-K.md`, `task-reviewer-K.md`, `improver-K.md`, `unblock-coder-K.md`, `runner-K.md`) into the dispatcher's context. The dispatcher reads only the workflow's structured return and (for escalation) forwards `lastFailureReportPath` as the next `feedbackPath` without reading it.
+- Gating on decomposer's `## Notes` between decomposition and the loop. Material decisions resurface in the final whole-plan review against the cumulative diff.
+- Auto-triggering on generic "implement / build / code / execute / carry out" intents, or a bare "orchestrator" mention, without the §0 marker line `Implementation: orchestrator` in the approved plan body. The trigger is marker-only (a SuperPlan that chose self / vanilla carries `Implementation: self` — never route it to the pipeline).
+- Collapsing the **two-tier live signal** into one channel. Tier 1 = the workflow's `phase`/`log` (per-agent signal from inside the `Workflow`). Tier 2 = the dispatcher's coarse `[<N>/<max>] task-pipeline: …` + `commit` line. The widget (`TaskCreate`/`TaskUpdate`) is a third, parallel channel. All independent and mandatory — do NOT suppress the dispatcher's coarse line "because the workflow logged it", and do NOT replace the `print` line or widget with each other.
+- Hard-failing the pipeline on a `TaskCreate`/`TaskUpdate` error. The widget is a UI overlay; all calls go through `safe_task_call` (one warning, pipeline continues).
+- Adding sub-tasks under a task widget (`TaskCreate` has no `parent` field — intentionally a flat list). Per-agent verdicts and retry counters live in the workflow's `log` + the coarse `print` line.
+- Mutating a task widget's `subject` mid-run (appending `attempt 2/3`, `BLOCKED`, a sha). The subject is stable; terminal context (commit sha, `no-op` reason) goes into `description` exactly once, at the `completed` flip. Transient diagnostics belong in `print`.
+- Using `completed` for a terminally-failed task (Abort, commit `error`/`malformed`, killed run). There is no `failed` status; leave the in-flight widget at `in_progress` — the stuck row is the truthful "halted here" signal.
+- Deleting, pruning, re-seeding, or "cleaning up" the widget list mid-run — **including in response to a Claude Code system reminder that the task list is stale**. That reminder fires precisely when the dispatcher has been busy awaiting a `Workflow` (typically while the **last** task runs) and most tasks are `completed`; obeying it blanks the widget permanently and the deleted rows do NOT return. The list is seeded once and MUST persist verbatim until the closing summary. Never `TaskUpdate(status="deleted")`, never re-`TaskCreate`. (Distinct and expected: the widget legitimately appears empty *during* a sub-agent dispatch — the UI shows the active agent's own empty scope — and reappears when control returns. Re-seeding "to fix it" is the bug, not the blanking.)

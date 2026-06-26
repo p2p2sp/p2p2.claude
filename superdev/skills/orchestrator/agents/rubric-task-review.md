@@ -9,8 +9,6 @@ THIRD COPY: the "What to check (the 5 dimensions)" + 3-bucket severity below are
 in `superdev/shared/rubric-code-review.md` (the four `agent-final-reviewer` quality lenses) — this file is the
 PRIMARY sync source for those; if the dimensions / severity buckets change here, re-sync that copy too. -->
 
-
-The verification rubric for `task-reviewer` — applied to ONE task against that task's `task_diff`.
 Wherever a copied rule says "the diff", substitute `task_diff` (the per-task `git diff <task_base>` range).
 
 ## How to read a `## Deliverable`
