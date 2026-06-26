@@ -45,6 +45,10 @@ Advantages of using deterministic scripts:
 - Speed & Cost: Executing code is significantly cheaper and faster than generating tokens for agent reasoning.
 - Performance: Written script is optimised and tested - run faster than executed one by one Bash command by agent.
 
+## Narrow responsibility
+
+The best skills have narrow responsibilities, allowing the agent to focus on a specific activity. Too much responsibility can lead to noise and drift. In such cases, always propose dividing the responsibilities into smaller, more focused skills.
+
 ## Gotchas
 - Shortening the text cannot mean less precise instructions.
 - Agent also can have references and LLM can just read it - even if the documentation says nothing about it.
