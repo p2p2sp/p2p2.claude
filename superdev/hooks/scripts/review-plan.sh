@@ -63,16 +63,20 @@ transcript_path="$(
 [ -z "$transcript_path" ] && emit_allow
 [ -f "$transcript_path" ] || emit_allow
 
-# Step 1: locate the LAST JSONL line that simultaneously contains
-#   - ".claude/plans/"  (any path style: forward slashes are how Claude Code
-#     records them in JSONL even on Windows)
-#   - ".md"
-#   - "\"tool_name\":\"Write\""  OR  "\"tool_name\":\"Edit\""
+# Step 1: locate the LAST JSONL line recording a plan-file WRITE — an assistant
+# tool_use whose file_path points under .claude/plans/*.md. Anchor on the
+# "file_path":"..." key, NOT arbitrary line text, so a Write whose *content* merely
+# mentions a .claude/plans/<slug>.md path does not false-match.
+# Robustness across Claude Code builds / OSes:
+#   - path separators: match both "/" and "\" — Windows records file_path with
+#     escaped backslashes ("C:\\Users\\..\\.claude\\plans\\.."), mac/linux use "/".
+#   - tool key: accept both "name":"Write|Edit" (current tool_use schema) and the
+#     legacy "tool_name":"Write|Edit"; that filter also excludes a Read of a plan
+#     file (file_path present, but not a write).
 # This is the most-recent plan-file write in the transcript.
 last_plan_write_line=$(
-  grep -n '\.claude/plans/' "$transcript_path" 2>/dev/null \
-    | grep '\.md' \
-    | grep -E '"tool_name":"(Write|Edit)"' \
+  grep -nE '"file_path":"[^"]*\.claude[\\/]+plans[\\/]+[^"]*\.md"' "$transcript_path" 2>/dev/null \
+    | grep -E '"(tool_name|name)":"(Write|Edit)"' \
     | tail -n 1 \
     | cut -d: -f1
 )
