@@ -1,6 +1,6 @@
 ---
 name: agent-committer
-description: "Invoked only by `supergh:commit` via the Skill tool, never the user."
+description: "Invoked only by `supergh:commit`, never the user."
 context: fork
 model: haiku
 user-invocable: false
