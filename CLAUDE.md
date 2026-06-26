@@ -79,7 +79,9 @@ superdev/            The superdev plugin
                      + commit-adr.sh + task-pipeline.workflow.js, dev-agent-recipe/scripts/recipe.template.sh,
                      mem-rules/scripts/route.sh, setup/scripts/bootstrap.sh);
                      dev-orchestrator also bundles the 4 per-task pipeline plugin agents under its agents/ subdir
-                     (dev-coder.md, dev-task-reviewer.md, dev-improver.md, dev-commiter.md)
+                     (dev-coder.md, dev-task-reviewer.md, dev-improver.md, dev-commiter.md), plus a bundled
+                     reference asset agents/rubric-task-review.md (dev-task-reviewer's own task-review rubric —
+                     a reference file, NOT a registered agent)
 superui/             The superui plugin
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
   hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
