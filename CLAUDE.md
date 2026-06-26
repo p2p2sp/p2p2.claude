@@ -32,7 +32,7 @@ Each plugin is independently installable; none declares another as a dependency.
 - **supergh** — the GitHub / git ecosystem (the `gh` CLI/REST/GraphQL reference, a fully-specified operation
   executor, Conventional-Commits commits, and template-driven issue / PR creation).
 - **superfix** — prioritized multi-agent codebase investigation (one user-invoked skill, no hooks/manifest):
-  the `investigator` skill sweeps a repo, scores Impact × Opportunity, and dispatches `scout` (cheap triage) /
+  the `audit` skill sweeps a repo, scores Impact × Opportunity, and dispatches `scout` (cheap triage) /
   `detective` (deep) plugin agents.
 
 They ship no application code — the artefacts are markdown (skills) + JSON (manifests) + the per-plugin hook
@@ -42,7 +42,7 @@ individual skills' `scripts/` dirs (the `superui` preview scripts, the superdev 
 `agent-recipe/scripts/recipe.template.sh`, the `supergh` `commit` mode router
 `commit/scripts/route.sh`, the `memory-rules` mode router `memory-rules/scripts/route.sh` + its discovery
 scripts `memory-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), the one-time `setup/scripts/bootstrap.sh`,
-and the `superfix` investigation scripts `investigator/scripts/collect_signals.sh` (deterministic signal sweep) + `rank.py` (the gate/rank step)).
+and the `superfix` investigation scripts `audit/scripts/collect_signals.sh` (deterministic signal sweep) + `rank.py` (the gate/rank step)).
 Three helpers instead live at **plugin-level** `<plugin>/shared/scripts/` (one copy shared across a plugin's
 skills): `superdev/shared/scripts/lib_find_excludes.sh` (sourced by the `memory-layers` / `memory-rules` scan scripts),
 `superdev/shared/scripts/inject_review_input.sh` (`!`-injected by the `superplan-reviewer-integrity` / `superplan-reviewer-codebase`
@@ -105,7 +105,7 @@ supergh/             The supergh plugin
                      the commit skill bundles scripts/route.sh (mode router)
 superfix/            The superfix plugin (NO hooks, NO manifest — single user-only skill)
   .claude-plugin/plugin.json   The plugin manifest — skills[] + agents[] are the catalog of record
-  skills/            One user-invoked skill investigator/ (disable-model-invocation); bundles
+  skills/            One user-invoked skill audit/ (disable-model-invocation); bundles
                      references/ (jobs.md, scoring.md, synthesis.md) + scripts/ (collect_signals.sh, rank.py)
   agents/            Two plugin agents: scout.md (cheap haiku triage) + detective.md (frontier opus deep-dive)
 README.md            User-facing help (install + how it works)
@@ -231,14 +231,14 @@ session. Soft cross-plugin chains into superdev: `superdev:spec-writer → super
 
 ## superfix plugin (codebase investigation — no hooks, no manifest)
 
-`superfix` is the only plugin with **no `hooks/` and no injected manifest**. Its single skill `investigator`
-is `disable-model-invocation: true` (user-only, invoked solely via `/superfix:investigator`), so there is
+`superfix` is the only plugin with **no `hooks/` and no injected manifest**. Its single skill `audit`
+is `disable-model-invocation: true` (user-only, invoked solely via `/superfix:audit`), so there is
 nothing to auto-route — a dispatcher manifest would be dead weight, and the manifest is what the `SessionStart`
 hook injects, so dropping the manifest drops the hook too. This is the plugin-scale analogue of superdev's
 `setup`: a user-only command that is deliberately outside any routing manifest (see the Self-documentation
 invariant exception). Components, qualified `superfix:<name>`:
 
-- `investigator` (skill, main context, user-only) — prioritized multi-agent codebase investigation on the
+- `audit` (skill, main context, user-only) — prioritized multi-agent codebase investigation on the
   `score = Impact × Opportunity` law: a deterministic sweep (`scripts/collect_signals.sh`) → cheap `scout`
   scoring fan-out → deterministic gate/rank (`scripts/rank.py`) → frontier `detective` dispatch into the
   hotspots only → verified, severity-ranked synthesis. State lives under a `.io/<run-id>/` workspace, not the
@@ -309,7 +309,7 @@ invariant exception). Components, qualified `superfix:<name>`:
 - **Self-documentation.** Any skill add / remove / rename MUST update the **owning plugin's**
   `<plugin>/.claude-plugin/plugin.json` `skills[]` (superdev's for any of its skills, superui's
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`agent-committer`/`create-issue`/`create-pr` skill,
-  superfix's for the `investigator` skill);
+  superfix's for the `audit` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
   (superdev's `coder` / `task-reviewer` / `improver` / `commiter` and superfix's `scout` / `detective` live there, not in `skills[]`) — and this file
   in either case. They must stay in sync, and a worker must never appear in both `skills[]` and `agents[]`.

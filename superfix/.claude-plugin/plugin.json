@@ -7,7 +7,7 @@
     "email": "dariusz.lenartowicz@p2p2.com.pl"
   },
   "skills": [
-    "./skills/investigator/"
+    "./skills/audit/"
   ],
   "agents": [
     "./agents/scout.md",

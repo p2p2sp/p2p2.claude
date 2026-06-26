@@ -49,6 +49,7 @@ Advantages of using deterministic scripts:
 - Shortening the text cannot mean less precise instructions.
 - Agent also can have references and LLM can just read it - even if the documentation says nothing about it.
 - Use only clean bash - no other additional tools like `jq` or `bc`.
+- DO NOT chop paragraphs into multiline text.
 
 ## Examples
 
