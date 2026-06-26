@@ -16,9 +16,12 @@ diff, you judge the **whole plan** against the **cumulative diff** of every comm
 union of the tasks must realize the plan's stated outcome, and no documented convention may be violated.
 Read-only and one-shot — no fixing, no commits, no retries.
 
-`agent-final-reviewer` invokes this skill as the **first** sub-step of the final go/no-go gate, then runs
-`agent-runner` (full suite) and synthesizes a single verdict. Your job here
-is purely the **coverage audit**: did the implementation, taken as a whole, deliver the plan?
+`agent-final-reviewer` invokes this skill as **one of six parallel lenses** of the final go/no-go gate — it
+runs concurrently with the four code-quality lenses (`agent-code-quality-auditor` / `-architecture-` /
+`-testing-` / `-production-readiness-auditor`) and `agent-runner` (full suite), and the reviewer synthesizes
+all six into a single verdict. Your lens here is purely the **coverage audit**: did the implementation, taken
+as a whole, deliver the plan? Leave code quality, architecture, testing, and production readiness to the other
+lenses.
 
 The shared **Deliverable-verification rubric** — how to read a `## Deliverable`, the per-`## Mode` test
 rules, the convention checks, the severity buckets, and the PASS/FAIL criteria — lives in the bundled shared

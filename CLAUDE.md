@@ -128,7 +128,8 @@ chains, not individual skills.
 **Naming sub-convention (`agent-` prefix).** The `agent-` prefix marks a forked, fork-only **skill** worker —
 invoked **only by a superordinate skill via the `Skill` tool** (never the user, never auto-routed):
 `agent-recipe`, `agent-adr-recorder`, `agent-decomposer`, `agent-runner`, `agent-final-reviewer`,
-`agent-plan-auditor`. These stay **skills** (not `agents/<name>.md` definitions); the prefix is
+`agent-plan-auditor`, `agent-code-quality-auditor`, `agent-architecture-auditor`, `agent-testing-auditor`,
+`agent-production-readiness-auditor`. These stay **skills** (not `agents/<name>.md` definitions); the prefix is
 taxonomy only — it signals their agent-like, fork-only nature, and their frontmatter already encodes it
 (`context: fork` + `user-invocable: false` + a one-line "pipeline-bound; invoked only by …" guard
 `description`). The four per-task pipeline workers do NOT take the prefix: `coder`, `task-reviewer`, `improver`,
@@ -172,7 +173,7 @@ user-facing / auto-routed skill are bare-named too; so are forks still reachable
 - **End-user documentation** (1 skill): `help-writer` (the end-user product-help layer → `.superdev/help/`).
   Authors the human-facing help that ships to the people who use the built app — distinct
   from the agent-facing memory layers above; faces the end user, not Claude.
-- **Agentic-development pipeline + diagnostics/specs** (14 skills + 4 plugin agents): planning
+- **Agentic-development pipeline + diagnostics/specs** (18 skills + 4 plugin agents): planning
   (`superplan`, `superplan-reviewer` plus its two fork-only lens sub-skills
   `superplan-reviewer-{integrity,codebase}`
   — invoked only by `superplan-reviewer` via the Skill tool; each receives the plan path as `$ARGUMENTS`,
@@ -185,7 +186,13 @@ user-facing / auto-routed skill are bare-named too; so are forks still reachable
   `agent-decomposer` → per task **one `Workflow`** call to `task-pipeline.workflow.js` driving `coder` →
   `agent-runner` → `task-reviewer` → `improver` → commit (the `commiter` agent runs
   `commit-task.sh` as the workflow's final stage, only on PASS) → `agent-final-reviewer`), the final-gate
-  sub-skill (`agent-plan-auditor`), plus `tdd` / `debug` / `spec-writer`. The four
+  lenses `agent-final-reviewer` fans out in parallel via the Skill tool (`agent-plan-auditor` Plan-alignment +
+  the four code-quality lenses `agent-code-quality-auditor` / `agent-architecture-auditor` /
+  `agent-testing-auditor` / `agent-production-readiness-auditor` + `agent-runner` Scope: full; the reviewer
+  synthesizes one go/no-go verdict and writes `.temp/.workflows/<slug>/final-review.md`, the orchestrator first
+  materializing the cumulative `plan.diff` patch the no-Bash quality lenses read), plus `tdd` / `debug` /
+  `spec-writer`. The four quality lenses share `shared/rubric-code-review.md` (mirrors the 5-dimension +
+  3-bucket-severity content of `orchestrator/agents/rubric-task-review.md` at whole-plan scope). The four
   per-task workers `coder` / `task-reviewer` / `improver` / `commiter` are **plugin agents**
   (`superdev/skills/orchestrator/agents/*.md`), not skills — dispatched by the workflow via `agentType:'superdev:<name>'`.
 

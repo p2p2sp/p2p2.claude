@@ -23,6 +23,10 @@
     "./skills/agent-runner/",
     "./skills/agent-final-reviewer/",
     "./skills/agent-plan-auditor/",
+    "./skills/agent-code-quality-auditor/",
+    "./skills/agent-architecture-auditor/",
+    "./skills/agent-testing-auditor/",
+    "./skills/agent-production-readiness-auditor/",
     "./skills/tdd/",
     "./skills/debug/",
     "./skills/spec-writer/"
