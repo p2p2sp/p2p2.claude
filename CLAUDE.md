@@ -168,10 +168,12 @@ plain prefix; so do forks still reachable from the main session (`dev-superplan-
 - **`doc-`** — end-user documentation (1 skill): `doc-help` (the end-user product-help layer → `.superdev/help/`).
   Authors the human-facing help that ships to the people who use the built app — distinct
   from the agent-facing `mem-` layers above; faces the end user, not Claude.
-- **`dev-`** — the agentic-development pipeline + diagnostics/specs (18 skills + 4 plugin agents): planning
-  (`dev-superplan`, `dev-superplan-reviewer` plus its five fork-only lens sub-skills
-  `dev-superplan-reviewer-{requirements-coverage,completeness-executability,codebase-fit-architecture,verifiability-risk,security-domain}`
-  — invoked only by `dev-superplan-reviewer` via the Skill tool, each receiving the bare plan path as `$ARGUMENTS`;
+- **`dev-`** — the agentic-development pipeline + diagnostics/specs (15 skills + 4 plugin agents): planning
+  (`dev-superplan`, `dev-superplan-reviewer` plus its two fork-only lens sub-skills
+  `dev-superplan-reviewer-{plan-integrity,codebase-risk}`
+  — invoked only by `dev-superplan-reviewer` via the Skill tool; each receives the plan path as `$ARGUMENTS`,
+  optionally followed by ` ||| <prior Consolidated fixes, single-line>` on a re-review (first-run = bare path);
+  `-codebase-risk` folds in the security activation gate and a no-runnable relaxation (driven by the plan's §9 DoD);
   the interview entry point now lives in the no-prefix `superdev`
   skill above), the orchestrated implementation pipeline
   (`dev-orchestrator` → **mandatory first step** `dev-agent-recipe` (derives the host toolchain once →
