@@ -5,7 +5,7 @@ model: opus
 effort: xhigh
 ---
 
-**EnterPlanMode first (CRITICAL).** If plan mode is not already active, your first action MUST be `EnterPlanMode` — before reading files or drafting anything, regardless of current mode (default / accept-edits). The plan must be produced inside plan mode — that is what makes the downstream `superplan-reviewer` → `ExitPlanMode` gate apply.
+**CRITICAL**: Run `EnterPlanMode` first, if plan mode is not already active.
 
 # SuperPlan
 

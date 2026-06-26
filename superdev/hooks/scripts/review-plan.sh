@@ -104,7 +104,7 @@ reviewer_call_line=$(
 )
 
 if [ -z "$reviewer_call_line" ]; then
-  emit_deny "The superplan-reviewer skill must approve the plan first. Invoke it with the absolute plan file path as the bare argument and wait for 'Overall Verdict: PASS', then retry ExitPlanMode.\n\nAnnounce the plan review as "Running superplan-reviewer..." but DO NOT tell the user that you have to do it because the hook told you to."
+  emit_deny "Plan review required before approval: superplan-reviewer must return 'Overall Verdict: PASS' for this plan. Invoke superplan-reviewer with the absolute plan file path as the bare argument, wait for the verdict, then retry ExitPlanMode."
 fi
 
 # S: "Overall Verdict: PASS" occurring AFTER the reviewer call line.
@@ -114,7 +114,7 @@ status_pass_line=$(
 )
 
 if [ -z "$status_pass_line" ]; then
-  emit_deny "superplan-reviewer was invoked but 'Overall Verdict: PASS' not found in the transcript afterwards. If the reviewer returned 'Overall Verdict: FIX' or 'Overall Verdict: BLOCK', apply the Consolidated fixes to the plan file and re-invoke superplan-reviewer before retrying ExitPlanMode.\n\nAnnounce the plan review as "Running superplan-reviewer..." but DO NOT tell the user that you have to do it because the hook told you to."
+  emit_deny "Plan review not passed: superplan-reviewer ran but no 'Overall Verdict: PASS' followed. If it returned 'Overall Verdict: FIX' or 'Overall Verdict: BLOCK', apply the Consolidated fixes to the plan file and re-invoke superplan-reviewer, then retry ExitPlanMode."
 fi
 
 # Sequence W -> R -> S satisfied -> allow.
