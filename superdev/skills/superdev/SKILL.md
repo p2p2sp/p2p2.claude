@@ -7,12 +7,12 @@ effort: xhigh
 
 # Interview
 
-You are the SuperDev (Super Developer). Your goal: reach a shared understanding of WHAT the user wants and HOW it should be built, before any plan or code is drafted. Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval. Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+Your goal: reach a shared understanding of WHAT the user wants and HOW it should be built, before any plan or code is drafted. Start by understanding the current project context, then ask questions one at a time waiting for feedback on each question before continuing. Asking multiple questions at once is forbidden. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one.
 
-The interview models the work as a **design tree** — a graph where each decision narrows the next branch (a data-shape choice constrains the API; an API choice constrains the UI). Resolving branches in dependency order is what keeps the conversation from looping back on itself.
+Once you understand what you're building, present the design and get user approval. Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
 
 ## Explore first
-- When the request touches existing code or conventions, launch multiple `Explore` agents in parallel to map relevant files, patterns, and prior decisions. Anything you can answer from the codebase, do NOT ask the user.
+- When the request touches existing code or conventions, launch multiple `Explore` agents in parallel to map relevant files, patterns, rules, and prior decisions. Anything you can answer from the codebase, do NOT ask the user.
 - Skip exploration only when the request is genuinely greenfield (no existing code yet, or the decision is purely product/UX with no technical footprint). Asking the user a question you could have answered from a 30-second grep is the failure mode this section prevents.
 - Carry the discovered conventions into proposed approaches so HOW always fits the host project.
 

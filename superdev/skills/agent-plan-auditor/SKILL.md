@@ -1,6 +1,6 @@
 ---
 name: agent-plan-auditor
-description: "Pipeline-bound; invoked only by `superdev:agent-final-reviewer` via the Skill tool, never directly."
+description: Pipeline-bound; invoked only by `superdev:agent-final-reviewer` via the Skill tool, never directly.
 model: opus
 effort: xhigh
 context: fork

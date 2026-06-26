@@ -1,6 +1,6 @@
 ---
 name: agent-recipe
-description: "Pipeline-bound; invoked only by `superdev:orchestrator` via the Skill tool, never directly."
+description: Pipeline-bound; invoked only by `superdev:orchestrator` via the Skill tool, never directly.
 model: opus
 effort: high
 context: fork

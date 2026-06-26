@@ -1,6 +1,6 @@
 ---
 name: agent-smoke
-description: "Pipeline-bound; invoked only by `superdev:agent-final-reviewer` via the Skill tool, never directly."
+description: Pipeline-bound; invoked only by `superdev:agent-final-reviewer` via the Skill tool, never directly.
 model: haiku
 effort: medium
 context: fork

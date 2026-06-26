@@ -1,6 +1,6 @@
 ---
 name: agent-decomposer
-description: "Pipeline-bound; invoked only by `superdev:orchestrator` via the Skill tool, never directly."
+description: Pipeline-bound; invoked only by `superdev:orchestrator` via the Skill tool, never directly.
 model: opus
 effort: xhigh
 context: fork

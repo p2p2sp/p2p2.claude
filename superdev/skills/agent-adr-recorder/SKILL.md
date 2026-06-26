@@ -1,6 +1,6 @@
 ---
 name: agent-adr-recorder
-description: "Pipeline-bound; invoked only by `superdev:orchestrator` via the Skill tool, never directly."
+description: Pipeline-bound; invoked only by `superdev:orchestrator` via the Skill tool, never directly.
 model: opus
 effort: medium
 context: fork

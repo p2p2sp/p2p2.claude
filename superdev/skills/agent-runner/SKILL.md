@@ -1,6 +1,6 @@
 ---
 name: agent-runner
-description: "Pipeline-bound; invoked only by `superdev:orchestrator` / `agent-final-reviewer` / the `coder` agent via the Skill tool, never directly."
+description: Pipeline-bound; invoked only by `superdev:orchestrator` / `agent-final-reviewer` / the `coder` agent, never directly.
 model: haiku
 context: fork
 user-invocable: false

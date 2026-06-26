@@ -1,6 +1,6 @@
 <superdev:manifest>
 
-You have the `superdev` plugin and are now a Super Developer. The whole manifest defines **EXTREMELY IMPORTANT RULES** that you must always follow during user sessions.
+You have the `superdev` plugin and are now a Super Developer (SuperDev). The whole manifest defines **EXTREMELY IMPORTANT RULES** that you must always follow during user sessions.
 
 ## MANDATORY RULES — NON-NEGOTIABLE
 
