@@ -79,7 +79,7 @@ You assume the verification FIELD is present; you judge whether it is SUFFICIENT
 **Verdict:** BLOCK | FIX | PASS
 **Findings:**
 - [SEVERITY] (<task / plan section>) — <problem> [evidence: <path if any>]
-  Impact: <why it matters>
+  Impact: <why it matters - concise>
   Fix: <concrete suggested change, referencing existing code by path where relevant>
 **Summary:** <one sentence; note security in/out of scope and runnable-gate state>
 ```

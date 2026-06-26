@@ -58,8 +58,8 @@ Do not comment on wording, formatting, or preference. Only coverage and executab
 **Verdict:** BLOCK | FIX | PASS
 **Findings:**
 - [SEVERITY] (<task / plan section>) — <problem>
-  Impact: <why it matters>
-  Fix: <concrete suggested change>
+  Impact: <why it matters - concise>
+  Fix: <concise concrete suggested change>
 **Summary:** <one sentence>
 ```
 If you find no issues: Verdict PASS, empty Findings list, one-line Summary.

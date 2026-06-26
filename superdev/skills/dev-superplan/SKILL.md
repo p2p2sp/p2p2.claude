@@ -5,15 +5,11 @@ model: opus
 effort: xhigh
 ---
 
-**EnterPlanMode first (CRITICAL).** If plan mode is not already active, your first action MUST be `EnterPlanMode` — before reading files or drafting anything, regardless of current mode (default / accept-edits). Do NOT call it again if plan mode is already on (the `Plan mode is active` reminder signals this). The plan must be produced inside plan mode — that is what makes the downstream `dev-superplan-reviewer` → `ExitPlanMode` gate apply.
-
-**Silent default — never announce.** SuperPlan is the automatic planning discipline; the plugin's presence is reason enough. No "Using dev-superplan" line. Never offer a plain-plan alternative. Just enter plan mode and produce the plan.
+**EnterPlanMode first (CRITICAL).** If plan mode is not already active, your first action MUST be `EnterPlanMode` — before reading files or drafting anything, regardless of current mode (default / accept-edits). The plan must be produced inside plan mode — that is what makes the downstream `dev-superplan-reviewer` → `ExitPlanMode` gate apply.
 
 # SuperPlan
 
 Produce plans that survive contact with implementation. Default plan mode is read-only and structured, but plan content drifts: missing files, hidden assumptions, no rollback story. SuperPlan closes that gap with a strict template plus mandatory pre-plan behavior before the plan is presented.
-
-**Scope boundary.** A plan answers *what changes and why*. *How to execute it* (task boundaries, per-task working mode, test naming / ordering / framework) is the `decomposer`'s job — it reads the approved plan (any markdown, SuperPlan-shape or looser) and writes one focused task file per task under `.temp/.workflows/<slug>/tasks/`. Full doctrine (testing-floor / decomposer-owns-execution / no-ADR-here): §2 and the §8 template section.
 
 ---
 
