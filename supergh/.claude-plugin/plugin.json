@@ -1,6 +1,6 @@
 {
   "name": "supergh",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "GitHub / git ecosystem for Claude Code — one injected dispatcher manifest routing the gh CLI/REST/GraphQL reference, a fully-specified operation executor, Conventional-Commits commits, and template-driven issue / PR creation. Self-contained: no dependencies.",
   "author": {
     "name": "Dariusz Lenartowicz",
