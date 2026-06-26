@@ -2,6 +2,7 @@
 name: dev-superplan-reviewer-requirements-coverage
 description: "Invoked only by `superdev:dev-superplan-reviewer`, never directly."
 model: sonnet
+effort: high
 allowed-tools: Read, Grep, Glob
 user-invocable: false
 context: fork

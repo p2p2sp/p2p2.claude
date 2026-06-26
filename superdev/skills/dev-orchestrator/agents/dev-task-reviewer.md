@@ -172,7 +172,7 @@ MUST be absent on BLOCKED — the two are mutually exclusive; never bundle an in
 - **Scope:** judge ONE task against `task_diff`. Whole-plan completeness is `dev-agent-plan-auditor`'s job —
   never audit the plan here.
 - **No scope creep:** raise only what the plan or a documented convention requires; suggested-but-unrequired
-  improvements stay out.
+  - improvements stay out.
 - **Read budget:** the diff, the conventions files, the task file — never the whole codebase, never the full
   source plan.
 - **Bash is read-only:** `git status` / `git diff` only — never mutate, never run test / build / lint /

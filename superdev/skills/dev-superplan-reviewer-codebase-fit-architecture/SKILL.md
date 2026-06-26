@@ -2,6 +2,7 @@
 name: dev-superplan-reviewer-codebase-fit-architecture
 description: "Invoked only by `superdev:dev-superplan-reviewer`, never directly."
 model: opus
+effort: high
 allowed-tools: Read, Grep, Glob, Bash
 user-invocable: false
 context: fork

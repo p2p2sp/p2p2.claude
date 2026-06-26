@@ -1,6 +1,6 @@
 # When to use SuperPlan
 
-SuperPlan is the always-on planning discipline — when a plan is drafted, it **is** the plan (there is no plain-plan alternative). These lists decide only one thing: whether the work needs a plan at all, or is trivial enough to skip planning entirely. This file is the single source of truth — `SKILL.md` §1 points here. Edit the lists here, never duplicate them.
+These lists decide one thing: whether the work needs a plan at all, or is trivial enough to skip planning entirely (no plan at all — never a looser plan). Single source of truth — `SKILL.md` §1 points here. Edit the lists here, never duplicate them.
 
 Write a plan (SuperPlan) when **any** of the following is true:
 

@@ -24,7 +24,7 @@ The absolute path to the plan file, passed verbatim as `$ARGUMENTS` (a bare path
 Read the plan. Decide whether it touches a sensitive surface (auth, authorization, payments, PII/sensitive data, external input, infrastructure, secrets, permissions). If yes, include `superdev:dev-superplan-reviewer-security-domain` in the dispatch set.
 
 ### Step 2 — Dispatch reviewers concurrently
-Invoke these reviewer skills via the Skill tool **in a single batch (all in one turn) so they run concurrently** — they are independent, so do not chain them. Pass each just the plan file path as the argument (`$ARGUMENTS`):
+Invoke these reviewer skills via the Skill tool **in a single batch (all in one turn) so they run concurrently** — they are independent, so DO NOT CHAIN them. Pass each just the plan file path as the argument (`$ARGUMENTS`):
 - `superdev:dev-superplan-reviewer-requirements-coverage`
 - `superdev:dev-superplan-reviewer-completeness-executability`
 - `superdev:dev-superplan-reviewer-codebase-fit-architecture`
