@@ -9,17 +9,17 @@
     {
       "name": "superdev",
       "source": "./superdev",
-      "description": "Unified agentic-development ecosystem for Claude Code."
+      "description": "Super Developer ecosystem for Claude Code."
     },
     {
       "name": "superui",
       "source": "./superui",
-      "description": "Design / frontend ecosystem for Claude Code."
+      "description": "Super UI Designer ecosystem for Claude Code."
     },
     {
       "name": "supergh",
       "source": "./supergh",
-      "description": "GitHub / git ecosystem for Claude Code."
+      "description": "Super GitHub ecosystem for Claude Code."
     }
   ]
 }
