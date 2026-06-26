@@ -118,21 +118,3 @@ superfix/            The superfix plugin (no hooks, no manifest)
 .github/             CI workflows + the shared release.sh version-bump script (syncs all four manifests)
 .claude/rules/       Development-only conventions for this repo
 ```
-
-## Versioning
-
-Versions are git tags in `MAJOR.MINOR.PATCH` form (no `v` prefix), starting at `0.1.0`. The highest tag
-is the source of truth; all four plugins share one version namespace. CI mirrors the tag into each plugin's
-`plugin.json` `version` field (`superdev/`, `superui/`, `supergh/`, and `superfix/`), so `/plugin update` ships
-a new version on each bump:
-
-- **Automatic** — every push to `main` runs **Auto patch version**
-  (`.github/workflows/auto-version.yml`), which bumps the **patch** number, syncs it into all four
-  `plugin.json` files, commits (`chore(bump): …`), and pushes the matching tag. The job guards against its own bump commit
-  (`if: !startsWith(head_commit.message, 'chore(bump)')`) so the push does not loop.
-- **Manual** — run **Manual version bump** (`.github/workflows/release-version.yml`) from the **Actions**
-  tab and pick `major`, `minor`, or `patch` to cut a larger release on demand.
-
-Both delegate to `.github/scripts/release.sh`, which computes the next version from the tags and performs
-the sync + tag + push, then publishes a **GitHub Release** whose notes are built from the commits since the
-previous tag (grouped by conventional type) with GitHub's auto-generated notes appended.
