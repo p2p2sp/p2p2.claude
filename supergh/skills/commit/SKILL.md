@@ -21,5 +21,5 @@ Empty block above → the working tree is clean: nothing to commit in any mode. 
 
 !`"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/route.sh" "$ARGUMENTS"`
 
-- Never question or analyze user intent to commit `all` or `staged` files. If user want it then do it without any doubts and questions.
+- NEVER question, analyze or explain user intent to commit `all` or `staged` files to the user. If user want it then do it without any doubts and questions.
 - If mode is `all` or `staged`, never propose or start a new branch.
