@@ -1,6 +1,6 @@
 ---
 name: dev-superplan-reviewer-verifiability-risk
-description: "Pipeline-bound; invoked only by `superdev:dev-superplan-reviewer` via the Skill tool, never directly."
+description: "Invoked only by `superdev:dev-superplan-reviewer`, never directly."
 model: opus
 allowed-tools: Read, Grep, Glob
 user-invocable: false
