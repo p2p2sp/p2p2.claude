@@ -4,9 +4,7 @@ You have the `supergh` plugin and it defines EXTREMELY IMPORTANT RULES that you 
 
 ## MANDATORY RULES — NON-NEGOTIABLE
 
-Iron, universal, always-on, golden rules.
-
-Before you act on any GitHub or git task — committing, creating an issue, opening a pull request, or calling `gh` / `gh api` / `gh api graphql` — you MUST first check whether a `supergh` skill applies. If there is even a 1% chance a skill is relevant, invoke it. Do NOT hand-write commit subjects, issue/PR markdown, or `gh` commands from memory.
+Always before you act on any GitHub or git task — committing, creating an issue, opening a pull request, or calling `gh` / `gh api` / `gh api graphql` — you MUST first check whether a `supergh` skill applies. If there is even a 1% chance a skill is relevant, invoke it. Do NOT hand-write commit subjects, issue/PR markdown, or `gh` commands from memory.
 
 ## Operating
 
