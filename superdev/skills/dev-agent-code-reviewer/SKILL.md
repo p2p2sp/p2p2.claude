@@ -8,11 +8,11 @@ Provide a code review against the implemented plan. To do this, follow these ste
 
 2. Use Haiku agent to give you a list of file paths to (but not the contents of) any relevant CLAUDE.md files from the codebase: the root CLAUDE.md file (if one exists), as well as any CLAUDE.md files in the subdirectories.
 
-3. Use a Haiku agent to view the pull request, and ask the agent to return a summary of the change
+3. Use a Haiku agent to view the plan, and ask the agent to return a summary of the change
 
 4. Then, launch 5 parallel Sonnet agents to independently code review the change. The agents should do the following, then return a list of issues and the reason each issue was flagged (eg. CLAUDE.md adherence, bug, historical git context, etc.):
    a. Agent #1: Audit the changes to make sure they compily with the CLAUDE.md. Note that CLAUDE.md is guidance for Claude as it writes code, so not all instructions will be applicable during code review.
-   b. Agent #2: Read the file changes in the pull request, then do a shallow scan for obvious bugs. Avoid reading extra context beyond the changes, focusing just on the changes themselves. Focus on large bugs, and avoid small issues and nitpicks. Ignore likely false positives.
+   b. Agent #2: Read the file changes in the plan, then do a shallow scan for obvious bugs. Avoid reading extra context beyond the changes, focusing just on the changes themselves. Focus on large bugs, and avoid small issues and nitpicks. Ignore likely false positives.
    c. Agent #3: Read the git blame and history of the code modified, to identify any bugs in light of that historical context
    d. Agent #4: Read previous pull requests that touched these files, and check for any comments on those pull requests that may also apply to the current pull request.
    e. Agent #5: Read code comments in the modified files, and make sure the changes in the pull request comply with any guidance in the comments.
@@ -25,13 +25,6 @@ Provide a code review against the implemented plan. To do this, follow these ste
    e. 100: Absolutely certain. The agent double checked the issue, and confirmed that it is definitely a real issue, that will happen frequently in practice. The evidence directly confirms this.
 
 6. Filter out any issues with a score less than 80. If there are no issues that meet this criteria, do not proceed.
-
-7. Use a Haiku agent to repeat the eligibility check from #1, to make sure that the pull request is still eligible for code review.
-
-8. Finally, use the gh bash command to comment back on the pull request with the result. When writing your comment, keep in mind to:
-   a. Keep your output brief
-   b. Avoid emojis
-   c. Link and cite relevant code, files, and URLs
 
 Examples of false positives, for steps 4 and 5:
 

@@ -39,8 +39,10 @@ individual skills' `scripts/` dirs (the `superui` preview scripts, the superdev 
 `agent-recipe/scripts/recipe.template.sh`, the `supergh` `commit` mode router
 `commit/scripts/route.sh`, the `memory-rules` mode router `memory-rules/scripts/route.sh` + its discovery
 scripts `memory-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), and the one-time `setup/scripts/bootstrap.sh`).
-Two helpers instead live at **plugin-level** `<plugin>/shared/scripts/` (one copy shared across a plugin's
-skills): `superdev/shared/scripts/lib_find_excludes.sh` (sourced by the `memory-layers` / `memory-rules` scan scripts)
+Three helpers instead live at **plugin-level** `<plugin>/shared/scripts/` (one copy shared across a plugin's
+skills): `superdev/shared/scripts/lib_find_excludes.sh` (sourced by the `memory-layers` / `memory-rules` scan scripts),
+`superdev/shared/scripts/inject_review_input.sh` (`!`-injected by the `superplan-reviewer-integrity` / `superplan-reviewer-codebase`
+lens reviewers to splice the plan text + any re-review fixes from the passed path, so neither fork re-reads the plan or parses `$ARGUMENTS`),
 and `superui/shared/scripts/check_python.sh` (the Python preflight, `!`-injected by each `superui` skill that runs a Python step).
 **Editing markdown / JSON IS shipping** — there is no build / test /
 lint at any level. Contracts between files are enforced by humans reading carefully.
@@ -73,7 +75,7 @@ superdev/            The superdev plugin
     hooks.json       SessionStart (inject manifest) + PreToolUse: ExitPlanMode (plan-review gate)
     content/manifest.md  The injected `using-superdev` dispatcher
     scripts/         session-start.sh, review-plan.sh
-  shared/            Plugin-level shared assets + scripts (rubric.md; coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the memory-layers / memory-rules scans)
+  shared/            Plugin-level shared assets + scripts (rubric.md; coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the memory-layers / memory-rules scans; scripts/inject_review_input.sh — `!`-injected by the superplan-reviewer lens skills to splice plan text + re-review fixes)
   skills/            Skills (bare-named by functional role; `agent-` marks fork-only workers); some skills bundle a
                      deterministic helper under their own scripts/ dir (orchestrator/scripts/commit-task.sh
                      + commit-adr.sh + task-pipeline.workflow.js, agent-recipe/scripts/recipe.template.sh,

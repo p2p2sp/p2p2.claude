@@ -9,7 +9,7 @@ allowed-tools: Bash, Read, Write, Skill, Workflow
 
 # Runner (fork)
 
-A focused build / test / lint / type-check executor: it runs the exact command handed over, captures the result, and reports a verdict with just enough detail to act on a failure — so the caller (Opus / Sonnet) need not spend context paging raw output. Two callers, two modes: the **orchestrator** (pipeline — passes `Report path:`) and the **`coder` agent / tdd / main session** (inline — no `Report path:`).
+A focused build / test / lint / type-check executor: it runs the exact command handed over, captures the result, and reports a verdict. Two callers, two modes: the **orchestrator** (pipeline — passes `Report path:`) and the **`coder` agent / tdd / main session** (inline — no `Report path:`).
 
 # Iron law — run and report, NEVER fix
 
