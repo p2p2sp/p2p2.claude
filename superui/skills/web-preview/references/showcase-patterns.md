@@ -20,7 +20,7 @@ A class only works if the active target's theme artifact actually defines it.
 The theme artifact is whichever file the chosen target produced —
 `targets/<target>/styles.css` for `pure-css`, `theme.css` for `tailwind`,
 `globals.css` for `react-shadcn`. A spec lists `color.surface.accent`; the
-realized class is whatever `ui-adapt` produced for it (commonly a short semantic
+realized class is whatever `adapt-target` produced for it (commonly a short semantic
 name like `bg-surface` / `bg-accent` for the Tailwind targets, or the plain
 class `styles.css` defines for `pure-css`). Grep the theme artifact for the rule
 or variable, use the real class. A class with no backing rule renders unstyled —

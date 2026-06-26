@@ -229,7 +229,7 @@ def read_theme(theme_dir, candidates):
     unstyled build."""
     if not os.path.isdir(theme_dir):
         sys.exit(f"ERROR: target directory not found: {theme_dir!r}. "
-                 "Run ui-adapt for this target first, or pass the correct "
+                 "Run adapt-target for this target first, or pass the correct "
                  "--design-system / --target.")
     for name in candidates:
         p = os.path.join(theme_dir, name)
@@ -239,7 +239,7 @@ def read_theme(theme_dir, candidates):
             return _IMPORT_RE.sub("", css).strip(), name
     wanted = " or ".join(candidates)
     sys.exit(f"ERROR: no theme artifact ({wanted}) found in {theme_dir!r}. "
-             "Run ui-adapt for this target first.")
+             "Run adapt-target for this target first.")
 
 
 def theme_head(branch, theme, tw_tag):

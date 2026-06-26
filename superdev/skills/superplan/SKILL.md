@@ -23,7 +23,7 @@ Produce plans that survive contact with implementation. Default plan mode is rea
 
 ## 2. Pre-plan context
 
-- SuperPlan never re-interviews the user — discovery belongs to the `superdev` interview skill (which may have run, or the user may have skipped). Use whatever context the session already holds; if invoked directly with no prior interview, run the `superdev:superdev` Skill.
+- SuperPlan never re-interviews the user — discovery belongs to the superdev interview skill (which may have run, or the user may have skipped). Use whatever context the session already holds; if invoked directly with no prior interview, run the `superdev:superdev` Skill.
 
 Apply these passive disciplines while drafting:
 

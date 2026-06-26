@@ -4,9 +4,9 @@ self-contained, pure-CSS HTML page that opens from file://.
 
 Intentionally tiny. This is the L1 net-new-authoring preview: one component,
 no manifest, no index, no per-target injection, no Tailwind CDN. It exists only
-so ui-component-creator can render a just-drafted spec against the design
+so create-component can render a just-drafted spec against the design
 system's own tokens.css and iterate visually. The full multi-page, per-target
-mockup builder is the downstream ui-web-preview/build_site.py — do not grow this
+mockup builder is the downstream web-preview/build_site.py — do not grow this
 into that.
 
 The fragment is plain HTML that styles itself from the design-system tokens via
@@ -70,7 +70,7 @@ def read_tokens(ds_dir):
     p = os.path.join(ds_dir, "tokens.css")
     if not os.path.isfile(p):
         sys.exit(
-            f"ERROR: no tokens.css found in {ds_dir!r}. Run ui-extract-system-design first "
+            f"ERROR: no tokens.css found in {ds_dir!r}. Run extract-design-system first "
             "(or point --design-system at the directory that holds tokens.css)."
         )
     with open(p, encoding="utf-8") as f:

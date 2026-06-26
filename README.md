@@ -50,12 +50,18 @@ Flat-named (single-domain plugin, no group prefix):
 | `create-issue` | Interactive, template-driven GitHub issue creation (`gh issue create`) |
 | `create-pr` | Interactive, template-driven draft pull-request creation (`gh pr create --draft`) |
 
-## superui skill groups
+## superui skills
 
-| Prefix | Domain |
+Flat-named (single-domain plugin, no group prefix):
+
+| Skill | Role |
 | --- | --- |
-| `ui-` | Design / frontend — reverse-engineer the framework-agnostic L1 design system, author net-new components into it, adapt it to one concrete target (pure-css / tailwind / react-shadcn / react-mui / flutter), render zero-build static HTML previews, and bind UI edits to documented tokens / components |
-| `cc-` | Claude Code platform — opt-in, main-session publisher of one self-contained `.html`/`.htm`/`.md` file as a shareable Claude Code Artifact; validates single-file / no-external-ref / size, asks first, falls back to the local path (fail-open) |
+| `extract-design-system` | Reverse-engineer a framework-agnostic L1 design system from screenshots / a URL — DTCG tokens, foundations, pure-CSS `tokens.css`, tiered component catalog |
+| `create-component` | Author a net-new component into the existing L1 system — interactive draft → pure-CSS preview → write spec into the catalog |
+| `adapt-target` | Adapt the agnostic L1 system to ONE concrete UI target (pure-css / tailwind / react-shadcn / react-mui / flutter) — per-target theme + component mapping |
+| `web-preview` | Render zero-build, self-contained static HTML preview pages for a web target |
+| `design-guardian` | Bind UI edits to the documented tokens / components / foundations (auto-triggered before UI implementation work) |
+| `cc-artifact` | Claude Code platform — opt-in, main-session publisher of one self-contained `.html`/`.htm`/`.md` file as a shareable Claude Code Artifact; validates single-file / no-external-ref / size, asks first, falls back to the local path (fail-open) |
 
 ## How it works
 
@@ -85,7 +91,7 @@ superdev/            The superdev plugin
 superui/             The superui plugin
   .claude-plugin/plugin.json   Plugin manifest (skills[])
   hooks/             Injected manifest + SessionStart (no plan gate)
-  skills/            Skills grouped by prefix (ui- / cc-)
+  skills/            Flat-named skills (extract-design-system, create-component, adapt-target, web-preview, design-guardian, cc-artifact)
 supergh/             The supergh plugin
   .claude-plugin/plugin.json   Plugin manifest (skills[])
   hooks/             Injected manifest + SessionStart (no plan gate)

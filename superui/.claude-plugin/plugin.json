@@ -7,11 +7,11 @@
     "email": "dariusz.lenartowicz@p2p2.com.pl"
   },
   "skills": [
-    "./skills/ui-extract-system-design/",
-    "./skills/ui-component-creator/",
-    "./skills/ui-adapt/",
-    "./skills/ui-web-preview/",
-    "./skills/ui-guardian/",
+    "./skills/extract-design-system/",
+    "./skills/create-component/",
+    "./skills/adapt-target/",
+    "./skills/web-preview/",
+    "./skills/design-guardian/",
     "./skills/cc-artifact/"
   ]
 }

@@ -18,8 +18,8 @@ Iron, universal, always-on, golden rules.
 | "The skill is overkill" | Simple things become complex. Use it. |
 | "I'll just do this one thing first" | Check BEFORE doing anything. |
 
-## ui-guardian gate
+## design-guardian gate
 
-Before any `Edit` / `Write` touching UI in a project whose design system has already been adapted to a target, bind to the documented tokens / components / foundations first — MUST invoke `ui-guardian` so the edit is grounded in the documented system, not improvised.
+Before any `Edit` / `Write` touching UI in a project whose design system has already been adapted to a target, bind to the documented tokens / components / foundations first — MUST invoke `design-guardian` so the edit is grounded in the documented system, not improvised.
 
 </superui:manifest>

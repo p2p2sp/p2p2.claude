@@ -63,7 +63,7 @@ and the theme-artifact filename for every page it emits.
 ## The pure-css branch (plain CSS, no build)
 
 For a `pure-css` target the theme artifact (`styles.css`) is **already final
-CSS** — a class/utility layer plus per-component rules that `ui-adapt` derived
+CSS** — a class/utility layer plus per-component rules that `adapt-target` derived
 from `tokens.css`. There is no compiler in the loop, so the builder injects it as
 ordinary CSS:
 

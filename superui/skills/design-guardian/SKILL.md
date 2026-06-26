@@ -1,6 +1,6 @@
 ---
-name: ui-guardian
-description: Use when a design system has been adapted to a target (a targets/<chosen>/ directory produced by ui-adapt) and the user intent touches UI implementation — building a component, editing a page, restyling, theming, or fixing a layout. Triggers - "build a component", "edit this page", "add a form", "restyle the header", "implement the UI", a path under .superui/layout/design-system/, a reference to design tokens, a target.md, a theme artifact, or a component spec, or any Edit/Write target whose extension matches the active target's idiom. Fires before any Edit/Write touching UI so the agent is bound to documented tokens, components, foundations rules, and the three-path gap policy. Distinct from ui-extract-system-design (which authors the agnostic system), ui-adapt (which adapts it to a target), and ui-web-preview (which renders HTML previews).
+name: design-guardian
+description: Use when a design system has been adapted to a target (a targets/<chosen>/ directory produced by adapt-target) and the user intent touches UI implementation — building a component, editing a page, restyling, theming, or fixing a layout. Triggers - "build a component", "edit this page", "add a form", "restyle the header", "implement the UI", a path under .superui/layout/design-system/, a reference to design tokens, a target.md, a theme artifact, or a component spec, or any Edit/Write target whose extension matches the active target's idiom. Fires before any Edit/Write touching UI so the agent is bound to documented tokens, components, foundations rules, and the three-path gap policy. Distinct from extract-design-system (which authors the agnostic system), adapt-target (which adapts it to a target), and web-preview (which renders HTML previews).
 ---
 
 # Design System Guardian
@@ -34,7 +34,7 @@ Do NOT trigger for pure-logic frontend — hooks, reducers, validators, tests. N
 | Tokens | `design-tokens.yaml` semantic tier | Names only; absent ⇒ primitives via `{THEMING_NOTE}`. |
 | Foundations | `foundations.md` → `## 6. Patterns & usage / consistency rules` | Body ⇒ `{PATTERNS_AND_CONSISTENCY_VERBATIM}`. |
 | Inventory | `components/inventory.md` | ⇒ `{INVENTORY}`. |
-| Target | `targets/<chosen>/target.md` | The active-target manifest names the target + its theme-artifact filename ⇒ `{TARGET}`; absent ⇒ system not adapted, send to ui-adapt; many ⇒ ask which is active. No per-stack knowledge baked here — the manifest is the only source. |
+| Target | `targets/<chosen>/target.md` | The active-target manifest names the target + its theme-artifact filename ⇒ `{TARGET}`; absent ⇒ system not adapted, send to adapt-target; many ⇒ ask which is active. No per-stack knowledge baked here — the manifest is the only source. |
 | Mapping | `targets/<chosen>/components.md` | The per-target component realization (markup/import) ⇒ `{COMPONENT_MAPPING}`. |
 
 ## The Process
@@ -72,7 +72,7 @@ Active target: {TARGET}
 ## Three-path gap policy
 Missing value/variant/component ⇒ pick one, announce:
 1. **Reuse** — bend to existing (default).
-2. **Extend** — stop; propose via ui-extract-system-design.
+2. **Extend** — stop; propose via extract-design-system.
 3. **Document** — `Needs design-system input: <what is missing>`.
 Silent invention IS drift.
 ```
@@ -111,6 +111,6 @@ Can't check every box? You skipped the discipline. Start over.
 
 ## Related skills
 
-- **ui-extract-system-design** — authors the agnostic L1 system; for Extend or creation.
-- **ui-adapt** — adapts the agnostic system to the active target; produces the `targets/<chosen>/` contract this skill reads. Run it first if no `target.md` exists.
-- **ui-web-preview** — renders the active target as HTML.
+- **extract-design-system** — authors the agnostic L1 system; for Extend or creation.
+- **adapt-target** — adapts the agnostic system to the active target; produces the `targets/<chosen>/` contract this skill reads. Run it first if no `target.md` exists.
+- **web-preview** — renders the active target as HTML.

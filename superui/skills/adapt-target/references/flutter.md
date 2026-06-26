@@ -114,5 +114,5 @@ avatar → `CircleAvatar`; alert/snackbar → `SnackBar` / `Banner`; tooltip →
 **Gap policy:** if a built-in widget does not exist for an L1 entry, compose it
 from primitives (`Container`, `Row`/`Column`, `Material`, `InkWell`) and say so;
 otherwise write `> ⚠️ Needs input: …`. Never invent a widget the API does not
-document. (Note: `ui-web-preview` cannot render Flutter — direct the user to
+document. (Note: `web-preview` cannot render Flutter — direct the user to
 DartPad / a Flutter run for visual preview.)

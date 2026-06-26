@@ -193,7 +193,7 @@ Recognized roles: `color`, `spacing`, `radius`, `font-size` (`text`),
 `font-family`, `font-weight`, `breakpoint`, `shadow`, `ease`. These roles are
 neutral — how each one maps to a concrete target namespace (a CSS variable
 prefix, a framework theme key, …) is **target-specific** and documented
-downstream by the **ui-adapt** skill, not here. Anything unmapped is carried
+downstream by the **adapt-target** skill, not here. Anything unmapped is carried
 through as a plain `--<group>-<name>` custom property.
 
 ## Recommended file skeleton

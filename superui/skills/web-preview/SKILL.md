@@ -1,6 +1,6 @@
 ---
-name: ui-web-preview
-description: Use when a design system has already been adapted to a web target (a targets/<target>/ directory produced by ui-adapt with a target.md + a theme artifact + components.md) and the user wants live HTML pages to preview, verify, or present it. Triggers: "preview the design system", "generate web preview pages", "build mockup/preview pages", "show the components in HTML", "make a component showcase", "build login/signup/404 pages from the design system", "present the design system to the team", or a path to a targets/<target>/ folder. Web targets only — pure-css (plain CSS), tailwind (Tailwind v4 browser CDN), and react-shadcn (Tailwind CDN, OKLCH theme); produces self-contained, zero-build static HTML in a chosen directory: an index page, layout pages, app pages (login, signup, password reset, 404/500), and one showcase page per component with every variant and state, plus a dark/light toggle. N/A for react-mui / flutter — those are previewed with their own tooling (Storybook / DartPad). Does not extract the agnostic system (ui-extract-system-design) or adapt it to a target (ui-adapt).
+name: web-preview
+description: Use when a design system has already been adapted to a web target (a targets/<target>/ directory produced by adapt-target with a target.md + a theme artifact + components.md) and the user wants live HTML pages to preview, verify, or present it. Triggers: "preview the design system", "generate web preview pages", "build mockup/preview pages", "show the components in HTML", "make a component showcase", "build login/signup/404 pages from the design system", "present the design system to the team", or a path to a targets/<target>/ folder. Web targets only — pure-css (plain CSS), tailwind (Tailwind v4 browser CDN), and react-shadcn (Tailwind CDN, OKLCH theme); produces self-contained, zero-build static HTML in a chosen directory: an index page, layout pages, app pages (login, signup, password reset, 404/500), and one showcase page per component with every variant and state, plus a dark/light toggle. N/A for react-mui / flutter — those are previewed with their own tooling (Storybook / DartPad). Does not extract the agnostic system (extract-design-system) or adapt it to a target (adapt-target).
 allowed-tools: Bash(sh:*)
 ---
 
@@ -51,7 +51,7 @@ Point the skill at a design-system root (default `.superui/layout/design-system/
 that has at least one adapted **web** target under `targets/<target>/`. The
 target manifest (`target.md`) is the entry point: it names the target and its
 theme-artifact filename. Read these before generating; if the target directory or
-its theme artifact is absent, stop and ask (and direct the user to `ui-adapt`).
+its theme artifact is absent, stop and ask (and direct the user to `adapt-target`).
 
 | File | Used for |
 |------|----------|
@@ -158,7 +158,7 @@ python scripts/build_site.py standalone \
 
 It produces a file built to satisfy the Claude Code Artifact CSP (one file, no
 external requests, in-page anchors only), so `cc-artifact` will validate and
-publish it without edits. The natural chain is **`ui-web-preview → cc-artifact`**:
+publish it without edits. The natural chain is **`web-preview → cc-artifact`**:
 emit the standalone file here, then invoke `cc-artifact` with that `--dest` path
 and a title to publish it as a private, shareable page (or fall back to the local
 path when artifacts are unavailable). Run the multi-file `build` for local review;
@@ -303,14 +303,14 @@ Plain Python 3 (stdlib only — no install needed).
   preview as an artifact" above). Run `python scripts/build_site.py --help`.
 
 ## Related skills
-- **ui-adapt** — adapts the agnostic L1 system to one concrete target, producing
+- **adapt-target** — adapts the agnostic L1 system to one concrete target, producing
   the `targets/<target>/` contract this skill consumes. It is the **required
   upstream** for web targets: run it (and pick a web target) first if no
   `targets/<target>/` exists yet. (Reference by name; load on demand.)
-- **ui-extract-system-design** — produces the framework-agnostic L1 system (`tokens.css`,
-  `components/inventory.md` + specs) that `ui-adapt` reads. Run it first if no
+- **extract-design-system** — produces the framework-agnostic L1 system (`tokens.css`,
+  `components/inventory.md` + specs) that `adapt-target` reads. Run it first if no
   design system exists at all.
 - **cc-artifact** — publishes the `standalone` single-file emit as a private,
   shareable Claude Code Artifact (a live link instead of a `file://` path). The
-  downstream chain `ui-web-preview → cc-artifact` — emit the standalone file here,
+  downstream chain `web-preview → cc-artifact` — emit the standalone file here,
   then publish it there. (Reference by name; load on demand.)

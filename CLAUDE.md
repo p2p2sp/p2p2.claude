@@ -34,14 +34,14 @@ Each plugin is independently installable; none declares another as a dependency.
 
 They ship no application code — the artefacts are markdown (skills) + JSON (manifests) + the per-plugin hook
 scripts under `<plugin>/hooks/scripts/`, plus a handful of deterministic helper scripts bundled under
-individual skills' `scripts/` dirs (the `superui` `ui-*` preview scripts, the superdev pipeline commit scripts
+individual skills' `scripts/` dirs (the `superui` preview scripts, the superdev pipeline commit scripts
 `orchestrator/scripts/commit-task.sh` + `orchestrator/scripts/commit-adr.sh`, the fixed recipe harness
 `agent-recipe/scripts/recipe.template.sh`, the `supergh` `commit` mode router
 `commit/scripts/route.sh`, the `memory-rules` mode router `memory-rules/scripts/route.sh` + its discovery
 scripts `memory-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), and the one-time `setup/scripts/bootstrap.sh`).
 Two helpers instead live at **plugin-level** `<plugin>/shared/scripts/` (one copy shared across a plugin's
 skills): `superdev/shared/scripts/lib_find_excludes.sh` (sourced by the `memory-layers` / `memory-rules` scan scripts)
-and `superui/shared/scripts/check_python.sh` (the `ui-*` Python preflight, `!`-injected by each `ui-*` SKILL.md).
+and `superui/shared/scripts/check_python.sh` (the Python preflight, `!`-injected by each `superui` skill that runs a Python step).
 **Editing markdown / JSON IS shipping** — there is no build / test /
 lint at any level. Contracts between files are enforced by humans reading carefully.
 
@@ -86,8 +86,8 @@ superui/             The superui plugin
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
   hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
     content/manifest.md  The injected `using-superui` dispatcher
-  shared/            Plugin-level shared scripts (scripts/check_python.sh — the ui-* Python preflight)
-  skills/            Skills grouped by prefix (ui- / cc-); the ui-* skills bundle preview scripts
+  shared/            Plugin-level shared scripts (scripts/check_python.sh — the Python preflight)
+  skills/            Flat-named skills (single-domain plugin); some bundle preview scripts
 supergh/             The supergh plugin
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
   hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
@@ -116,8 +116,8 @@ with the script. The tag is the source of truth; each `plugin.json.version` is d
 ## superdev skill taxonomy (functional roles, not name prefixes)
 
 The roles below are **superdev's** — its skills are now bare-named (the `dev-`/`mem-`/`doc-` group prefixes are
-gone), save the `agent-` fork-only marker; the functional roles below are how they group. `superui`'s `ui-` /
-`cc-` groups and `supergh`'s flat-named skills live in those plugins and are documented in their own
+gone), save the `agent-` fork-only marker; the functional roles below are how they group. `superui`'s
+flat-named skills (single-domain plugin; `cc-artifact` is the distinct Claude-Code-platform publisher) and `supergh`'s flat-named skills live in those plugins and are documented in their own
 `<plugin>/hooks/content/manifest.md` + `README.md` (see also the **supergh plugin** section below). For each
 plugin, the **per-skill** catalog of record is its own `<plugin>/.claude-plugin/plugin.json` `skills[]`; the
 injected manifest (`<plugin>/hooks/content/manifest.md`) documents that plugin's groups/roles + cross-skill
@@ -171,10 +171,10 @@ user-facing / auto-routed skill are bare-named too; so are forks still reachable
   from the agent-facing memory layers above; faces the end user, not Claude.
 - **Agentic-development pipeline + diagnostics/specs** (15 skills + 4 plugin agents): planning
   (`superplan`, `superplan-reviewer` plus its two fork-only lens sub-skills
-  `superplan-reviewer-{plan-integrity,codebase-risk}`
+  `superplan-reviewer-{integrity,codebase}`
   — invoked only by `superplan-reviewer` via the Skill tool; each receives the plan path as `$ARGUMENTS`,
   optionally followed by ` ||| <prior Consolidated fixes, single-line>` on a re-review (first-run = bare path);
-  `-codebase-risk` folds in the security activation gate and a no-runnable relaxation (driven by the plan's §9 DoD);
+  `-codebase` folds in the security activation gate and a no-runnable relaxation (driven by the plan's §9 DoD);
   the interview entry point now lives in the no-prefix `superdev`
   skill above), the orchestrated implementation pipeline
   (`orchestrator` → **mandatory first step** `agent-recipe` (derives the host toolchain once →
@@ -264,7 +264,7 @@ session. Soft cross-plugin chains into superdev: `superdev:spec-writer → super
   (the workflow, then the dispatcher reading `wf_out.commit`) still trusts the result without re-checking.
 - **Self-documentation.** Any skill add / remove / rename MUST update the **owning plugin's**
   `<plugin>/.claude-plugin/plugin.json` `skills[]` (superdev's for any of its skills, superui's
-  for a `ui-`/`cc-` skill, supergh's for a `cli`/`cli-executor`/`commit`/`agent-committer`/`create-issue`/`create-pr` skill);
+  for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`agent-committer`/`create-issue`/`create-pr` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
   (superdev's `coder` / `task-reviewer` / `improver` / `commiter` live there, not in `skills[]`) — and this file
   in either case. They must stay in sync, and a worker must never appear in both `skills[]` and `agents[]`.

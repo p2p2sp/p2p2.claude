@@ -1,6 +1,6 @@
 ---
-name: ui-extract-system-design
-description: Use when the user provides a folder of UI screenshots or a website URL and wants to reverse-engineer a framework-agnostic design system from it. Triggers: "extract a design system", "build design tokens from these screens", "document the components in this UI", "turn this site into a design system", "reverse-engineer this UI/website", a filesystem path to a screenshots directory, or a URL to take inspiration from. Source-only: produces DTCG design tokens (YAML), a foundations document, a pure-CSS tokens.css (no framework coupling), and a tiered component catalog — layout, composite, and atomic — each with a detailed spec covering variants, states, anatomy, Figma properties, usage rules, and accessibility. Does not target any UI framework or build HTML mockups; per-target adaptation is the separate ui-adapt skill, web preview is ui-web-preview.
+name: extract-design-system
+description: Use when the user provides a folder of UI screenshots or a website URL and wants to reverse-engineer a framework-agnostic design system from it. Triggers: "extract a design system", "build design tokens from these screens", "document the components in this UI", "turn this site into a design system", "reverse-engineer this UI/website", a filesystem path to a screenshots directory, or a URL to take inspiration from. Source-only: produces DTCG design tokens (YAML), a foundations document, a pure-CSS tokens.css (no framework coupling), and a tiered component catalog — layout, composite, and atomic — each with a detailed spec covering variants, states, anatomy, Figma properties, usage rules, and accessibility. Does not target any UI framework or build HTML mockups; per-target adaptation is the separate adapt-target skill, web preview is web-preview.
 allowed-tools: Bash(sh:*)
 ---
 
@@ -39,7 +39,7 @@ These shape every step.
 - **Scope = the agnostic design system, not a framework target or mockups.** This
   skill ends at the documented, framework-neutral system. Adapting it to a target
   (`pure-css` / `tailwind` / `react-shadcn` / `react-mui` / `flutter`) is the
-  separate **ui-adapt** skill; building live HTML previews is **ui-web-preview**.
+  separate **adapt-target** skill; building live HTML previews is **web-preview**.
   Offer the next step (see Related skills) — do not bake framework knowledge here.
 
 ## Source intake — directory or URL
@@ -154,7 +154,7 @@ tell the user.
 
 **Targets are downstream.** Do **not** generate Tailwind, shadcn, MUI, Flutter,
 or any other framework theme here. `tokens.css` is the single neutral source the
-**ui-adapt** skill consumes to produce each per-target theme artifact.
+**adapt-target** skill consumes to produce each per-target theme artifact.
 
 ### Phase 4 — Identify components in three tiers
 
@@ -212,7 +212,7 @@ values to confirm. Then offer the natural next step (see Related skills).
   tokens, a11y) + the visual-consistency checklist. **Read before phase 4.**
 - `references/component-spec.md` — the three-tier taxonomy and the per-component
   spec template + section guidance (the shared canon also consumed by
-  **ui-component-creator**). **Read before phases 4 and 6.**
+  **create-component**). **Read before phases 4 and 6.**
 
 ## Scripts
 
@@ -226,7 +226,7 @@ Plain Python (stdlib + `pyyaml`, `Pillow`, `numpy`). Install if missing:
 
 `tokens.css` is written by hand from the validated tokens (Phase 3) — there is no
 framework generator in L1. Deterministic per-target generators live downstream in
-**ui-adapt**.
+**adapt-target**.
 
 ## Related skills
 
@@ -234,12 +234,12 @@ This skill is L1 — the framework-agnostic core. Everything framework- or
 preview-specific lives downstream; mention the relevant next step when you finish
 (reference by name; load on demand).
 
-- **ui-adapt** — adapts this agnostic system to **one** chosen target
+- **adapt-target** — adapts this agnostic system to **one** chosen target
   (`pure-css` / `tailwind` / `react-shadcn` / `react-mui` / `flutter`),
   generating the per-target theme artifact and component mapping. The natural
   next step *after* the system is documented.
-- **ui-web-preview** — renders live HTML preview pages for the web targets once
-  ui-adapt has produced a target.
-- **ui-component-creator** — interactive authoring of a **net-new** component
+- **web-preview** — renders live HTML preview pages for the web targets once
+  adapt-target has produced a target.
+- **create-component** — interactive authoring of a **net-new** component
   directly into this L1 system (reuses the canonical `component-spec.md`); use it
   when a component is missing rather than extracted from a source.

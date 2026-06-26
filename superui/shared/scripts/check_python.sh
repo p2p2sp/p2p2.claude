@@ -1,6 +1,6 @@
 #!/bin/sh
 # superui — shared/scripts/check_python.sh
-# Plugin-level Python interpreter preflight, shared by every ui-* skill that runs a
+# Plugin-level Python interpreter preflight, shared by every superui skill that runs a
 # bundled .py step. Resolves the first WORKING interpreter so the skill can substitute
 # it (or halt with a clear message) before any `python …` step — instead of the agent
 # hitting a raw `python: command not found` (common on Windows: absent / Store stub; on

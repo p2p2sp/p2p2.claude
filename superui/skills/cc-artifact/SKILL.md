@@ -1,6 +1,6 @@
 ---
 name: cc-artifact
-description: Publish ONE already-written shareable file (a self-contained `.html` / `.htm` / `.md`) as a Claude Code Artifact — a private, shareable page on claude.ai — when the user wants to share, present, or hand off a rendered output (an HTML preview, a plan, a report) as a live link instead of a local file. Triggers - "publish this as an artifact", "make an artifact", "share this preview/page as a link", "turn this HTML/markdown into a shareable page", "give me a link to share", or arriving here from ui-web-preview (a generated preview HTML) or from a passed plan markdown. Opt-in and main-session only - asks before publishing, validates the file is single-file / size-bounded / free of external references first, and falls back to reporting the local path when artifacts are unavailable, disabled, or the user declines (fail-open). Owns title + emoji and update-in-place (republish to the same URL). Does NOT generate the file (that is the upstream producer, e.g. ui-web-preview) and is never invoked from a fork or as part of an automated pipeline.
+description: Publish ONE already-written shareable file (a self-contained `.html` / `.htm` / `.md`) as a Claude Code Artifact — a private, shareable page on claude.ai — when the user wants to share, present, or hand off a rendered output (an HTML preview, a plan, a report) as a live link instead of a local file. Triggers - "publish this as an artifact", "make an artifact", "share this preview/page as a link", "turn this HTML/markdown into a shareable page", "give me a link to share", or arriving here from web-preview (a generated preview HTML) or from a passed plan markdown. Opt-in and main-session only - asks before publishing, validates the file is single-file / size-bounded / free of external references first, and falls back to reporting the local path when artifacts are unavailable, disabled, or the user declines (fail-open). Owns title + emoji and update-in-place (republish to the same URL). Does NOT generate the file (that is the upstream producer, e.g. web-preview) and is never invoked from a fork or as part of an automated pipeline.
 ---
 
 # Artifact Publisher
@@ -8,7 +8,7 @@ description: Publish ONE already-written shareable file (a self-contained `.html
 Turn ONE already-written, self-contained file into a **Claude Code Artifact** — a private,
 shareable page on `claude.ai` reachable by URL — so the user can present or hand off a rendered
 output as a live link instead of a `file://` path. This is a **thin publisher**: it does not
-author content. The upstream producer (e.g. `ui-web-preview` for an HTML preview, or a plan author
+author content. The upstream producer (e.g. `web-preview` for an HTML preview, or a plan author
 for a plan markdown) writes the file; this skill validates it, asks, and publishes — or falls back
 to the local path.
 
@@ -63,7 +63,7 @@ and stop (do not publish a broken or leaky page); the user/upstream fixes the so
    dump. If it is implausibly large (well beyond a normal preview/report), surface it and confirm
    before publishing rather than shipping a page that will not load.
 
-A web preview produced by `ui-web-preview`'s standalone single-file emit is built to pass all three
+A web preview produced by `web-preview`'s standalone single-file emit is built to pass all three
 by construction; an arbitrary HTML file the user hands over might not — that is exactly why the
 check runs every time.
 
@@ -125,8 +125,8 @@ not the artifact landed.
 
 ## Related skills
 
-- **ui-web-preview** — generates the self-contained web preview HTML this skill publishes; its
+- **web-preview** — generates the self-contained web preview HTML this skill publishes; its
   standalone single-file emit is built to pass the validation above. The natural chain is
-  `ui-web-preview → cc-artifact` (preview the design system, then share it as a live link).
+  `web-preview → cc-artifact` (preview the design system, then share it as a live link).
 - A passed/approved plan markdown is the other natural source: an approved plan → cc-artifact
   (publish the approved plan as a shareable page).

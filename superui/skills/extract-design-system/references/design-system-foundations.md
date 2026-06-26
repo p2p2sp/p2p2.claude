@@ -124,7 +124,7 @@ How this maps to the skill's outputs:
 - L1 expresses theming as **pure CSS** in `tokens.css`: light values as
   `--<token-name>` declarations under `:root`, the dark parallel set under
   `.dark`, with semantic names identical across both. No framework syntax —
-  per-target theme artifacts are produced **downstream by ui-adapt** from this
+  per-target theme artifacts are produced **downstream by adapt-target** from this
   neutral source.
 - **Never fabricate** the dark (or alternate) palette. If only a light screen was
   provided, leave the `.dark` values as a TODO scaffold and tell the user, rather
@@ -186,7 +186,7 @@ checks. Note findings in `foundations.md` and honour them in every spec.
 | 1 Principles / single source of truth | 1–2 | `foundations.md` notes; token structure |
 | 2 Token tiers (primitive/semantic/component) | 1 | `design-tokens.yaml` |
 | 3 Visual foundations | 1 | `design-tokens.yaml` |
-| 4 Theming | 1, 3 | tokens (parallel values) → pure-CSS `tokens.css` (`:root`/`.dark`); per-target theme artifacts produced downstream by **ui-adapt** |
+| 4 Theming | 1, 3 | tokens (parallel values) → pure-CSS `tokens.css` (`:root`/`.dark`); per-target theme artifacts produced downstream by **adapt-target** |
 | 5 Component library | 4, 6 | `components/inventory.md` + per-component specs |
 | 6 Patterns / consistency rules | 2, 4 | `foundations.md`; inventory |
 | 7 Accessibility | 2, 6 | `foundations.md` notes; per-component specs |

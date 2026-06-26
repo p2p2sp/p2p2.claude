@@ -87,5 +87,5 @@ its tokens, and the state hooks (`:hover`, `:focus-visible`, `[aria-disabled]`,
 visual the inventory lacks is needed, compose it from documented primitives and
 say so, or write `> ⚠️ Needs input: …`. Never invent a component or a token.
 
-This is a **web** target — `ui-web-preview` can render its static appearance from
+This is a **web** target — `web-preview` can render its static appearance from
 `styles.css` (plain `<link>`/inline `<style>`, no CDN, no Tailwind block).
