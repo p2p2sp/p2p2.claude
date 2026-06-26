@@ -1,0 +1,16 @@
+{
+  "name": "superfix",
+  "version": "0.6.1",
+  "description": "Super Fix ecosystem for Claude Code.",
+  "author": {
+    "name": "Dariusz Lenartowicz",
+    "email": "dariusz.lenartowicz@p2p2.com.pl"
+  },
+  "skills": [
+    "./skills/investigator/"
+  ],
+  "agents": [
+    "./agents/scout.md",
+    "./agents/detective.md"
+  ]
+}

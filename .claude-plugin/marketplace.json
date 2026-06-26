@@ -1,6 +1,6 @@
 {
   "name": "p2p2",
-  "version": "3.2.1",
+  "version": "3.3.0",
   "owner": {
     "name": "P2P2",
     "email": "dariusz.lenartowicz@p2p2.com.pl"
@@ -20,6 +20,11 @@
       "name": "supergh",
       "source": "./supergh",
       "description": "Super GitHub ecosystem for Claude Code."
+    },
+    {
+      "name": "superfix",
+      "source": "./superfix",
+      "description": "Super Fix ecosystem for Claude Code."
     }
   ]
 }

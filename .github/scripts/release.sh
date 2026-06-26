@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# release.sh — tag-driven version bump for the superdev + superui + supergh plugins.
+# release.sh — tag-driven version bump for the superdev + superui + supergh + superfix plugins.
 #
 # Computes the next MAJOR.MINOR.PATCH version (no "v" prefix) from the highest
-# existing git tag, syncs it into ALL THREE subdir plugin manifests' .version
-# (superdev/, superui/, supergh/ .claude-plugin/plugin.json — shared version,
+# existing git tag, syncs it into ALL FOUR subdir plugin manifests' .version
+# (superdev/, superui/, supergh/, superfix/ .claude-plugin/plugin.json — shared version,
 # one tag namespace), commits the bump (`chore(bump): …`, no
 # [skip ci]), creates + pushes the tag, then publishes a GitHub Release whose
 # notes are built from the commits since the previous tag (grouped by conventional
@@ -23,7 +23,7 @@
 set -euo pipefail
 
 part="${1:?usage: release.sh <major|minor|patch>}"
-manifests=(superdev/.claude-plugin/plugin.json superui/.claude-plugin/plugin.json supergh/.claude-plugin/plugin.json)
+manifests=(superdev/.claude-plugin/plugin.json superui/.claude-plugin/plugin.json supergh/.claude-plugin/plugin.json superfix/.claude-plugin/plugin.json)
 seed="0.1.0"
 
 current="$(git tag --list --sort=-v:refname \

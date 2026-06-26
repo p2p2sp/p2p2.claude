@@ -1,7 +1,8 @@
-# superdev + superui + supergh
+# superdev + superui + supergh + superfix
 
-Three independent, self-contained Claude Code plugins, each a cohesive ecosystem driven by its own injected
-dispatcher manifest. Skills are grouped by a short prefix and compose through CSO + documented natural chains.
+Four independent, self-contained Claude Code plugins. The first three are cohesive ecosystems, each driven by
+its own injected dispatcher manifest; `superfix` is a single user-invoked skill with no manifest and no hooks.
+Skills compose through CSO + documented natural chains.
 
 - **superdev** (`./superdev`) — the agentic-development ecosystem: project memory, planning, and the
   implementation pipeline.
@@ -9,11 +10,14 @@ dispatcher manifest. Skills are grouped by a short prefix and compose through CS
   adaptation, web preview, the UI-edit guardian, and a shareable-artifact publisher.
 - **supergh** (`./supergh`) — the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a
   fully-specified operation executor, Conventional-Commits commits, and template-driven issue / PR creation.
+- **superfix** (`./superfix`) — prioritized multi-agent codebase investigation: the `/superfix:investigator`
+  command sweeps a repo with cheap `scout` agents, scores Impact × Opportunity, and sends frontier `detective`
+  agents only into the hotspots. No manifest, no hooks — one user-invoked skill.
 
-This repository is the **marketplace catalog** for all three: each plugin lives in its own subdirectory, and
+This repository is the **marketplace catalog** for all four: each plugin lives in its own subdirectory, and
 the root `.claude-plugin/marketplace.json` co-lists them by `source: "./superdev"`, `source: "./superui"`,
-and `source: "./supergh"`. Each plugin injects its own manifest and is **independently installable** —
-install any subset; none declares another as a dependency.
+`source: "./supergh"`, and `source: "./superfix"`. Each is **independently installable** — install any subset;
+none declares another as a dependency.
 
 ## Install
 
@@ -22,6 +26,7 @@ install any subset; none declares another as a dependency.
 /plugin install superdev
 /plugin install superui
 /plugin install supergh
+/plugin install superfix
 ```
 
 Every plugin is self-contained — none declares any dependencies. Installing one gives you that whole
@@ -63,6 +68,16 @@ Flat-named (single-domain plugin, no group prefix):
 | `design-guardian` | Bind UI edits to the documented tokens / components / foundations (auto-triggered before UI implementation work) |
 | `cc-artifact` | Claude Code platform — opt-in, main-session publisher of one self-contained `.html`/`.htm`/`.md` file as a shareable Claude Code Artifact; validates single-file / no-external-ref / size, asks first, falls back to the local path (fail-open) |
 
+## superfix skills
+
+Single user-invoked skill (no manifest, no hooks); runs only via `/superfix:investigator`:
+
+| Component | Role |
+| --- | --- |
+| `investigator` (skill) | Prioritized multi-agent codebase investigation — sweep every file, score Impact × Opportunity, gate to the hotspots, dispatch deep investigators, synthesize a verified, severity-ranked hotlist. User-only (`disable-model-invocation`) |
+| `scout` (agent) | Cheap, fast triage scorer — rates one file (or a small batch) for Impact and Opportunity 1-5; spawn many in parallel during the sweep |
+| `detective` (agent) | Frontier-model deep investigator — hunts the actual issue in one hotspot, verifies it on a clean checkout, writes a structured finding; spawn few |
+
 ## How it works
 
 - **Each plugin injects its own manifest** (`<plugin>/hooks/content/manifest.md`) once per session and routes
@@ -83,7 +98,7 @@ Flat-named (single-domain plugin, no group prefix):
 
 ```
 .claude-plugin/
-  marketplace.json   Marketplace catalog (co-lists superdev "./superdev" + superui "./superui" + supergh "./supergh")
+  marketplace.json   Marketplace catalog (co-lists superdev "./superdev" + superui "./superui" + supergh "./supergh" + superfix "./superfix")
 superdev/            The superdev plugin
   .claude-plugin/plugin.json   Plugin manifest (skills[])
   hooks/             Injected manifest + SessionStart + two PreToolUse plan-gate hooks
@@ -96,19 +111,23 @@ supergh/             The supergh plugin
   .claude-plugin/plugin.json   Plugin manifest (skills[])
   hooks/             Injected manifest + SessionStart (no plan gate)
   skills/            Flat-named skills (cli, cli-executor, commit, agent-committer, create-issue, create-pr)
-.github/             CI workflows + the shared release.sh version-bump script (syncs all three manifests)
+superfix/            The superfix plugin (no hooks, no manifest)
+  .claude-plugin/plugin.json   Plugin manifest (skills[] + agents[])
+  skills/            Single user-invoked skill (investigator) + references/ + scripts/
+  agents/            scout (cheap triage) + detective (deep investigator)
+.github/             CI workflows + the shared release.sh version-bump script (syncs all four manifests)
 .claude/rules/       Development-only conventions for this repo
 ```
 
 ## Versioning
 
 Versions are git tags in `MAJOR.MINOR.PATCH` form (no `v` prefix), starting at `0.1.0`. The highest tag
-is the source of truth; all three plugins share one version namespace. CI mirrors the tag into each plugin's
-`plugin.json` `version` field (`superdev/`, `superui/`, and `supergh/`), so `/plugin update` ships a new
-version on each bump:
+is the source of truth; all four plugins share one version namespace. CI mirrors the tag into each plugin's
+`plugin.json` `version` field (`superdev/`, `superui/`, `supergh/`, and `superfix/`), so `/plugin update` ships
+a new version on each bump:
 
 - **Automatic** — every push to `main` runs **Auto patch version**
-  (`.github/workflows/auto-version.yml`), which bumps the **patch** number, syncs it into all three
+  (`.github/workflows/auto-version.yml`), which bumps the **patch** number, syncs it into all four
   `plugin.json` files, commits (`chore(bump): …`), and pushes the matching tag. The job guards against its own bump commit
   (`if: !startsWith(head_commit.message, 'chore(bump)')`) so the push does not loop.
 - **Manual** — run **Manual version bump** (`.github/workflows/release-version.yml`) from the **Actions**
