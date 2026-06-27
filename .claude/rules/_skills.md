@@ -45,9 +45,32 @@ Advantages of using deterministic scripts:
 - Speed & Cost: Executing code is significantly cheaper and faster than generating tokens for agent reasoning.
 - Performance: Written script is optimised and tested - run faster than executed one by one Bash command by agent.
 
-## Narrow responsibility
+## Single or (if impossible) narrow responsibility
 
-The best skills have narrow responsibilities, allowing the agent to focus on a specific activity. Too much responsibility can lead to noise and drift. In such cases, always propose dividing the responsibilities into smaller, more focused skills.
+- One skill = one responsibility. Push every other responsibility into a separate skill — preferably a fork, out of the main context.
+- Carry more than one responsibility ONLY when a split is genuinely impossible — then keep the count as low as possible.
+- Excess responsibility -> noise and drift. When a skill grows a second concern, propose the split before adding to it.
+
+### Non-overlapping branches MUST be split
+
+A skill whose body spells out N branches/modes whose instructions do NOT overlap holds N responsibilities. Never leave all branches inline — only the branch actually taken should reach the LLM. Split one of two ways:
+
+- Fork sub-workers — one `context: fork` sub-skill per branch; the entry resolves which branch applies and dispatches only that one via the `Skill` tool. See `skill-fork-dispatch.md`.
+- Mode-router script — a deterministic script parses the input parameter and `!`-injects only the chosen branch's playbook; the other branches never enter context. See `_skill-script-routing.md` (mode-router).
+
+Choose the script when a parsable input parameter selects the branch; choose fork sub-workers when each branch is heavy work that also benefits from running out of context.
+
+### Split an interactive skill: question-asker (main) + fork worker
+
+Specific case of the rule above.
+
+A skill that BOTH asks the user (`AskUserQuestion`, interactive preview-then-confirm) AND does heavy work holds two responsibilities. `AskUserQuestion` runs only in the main session — a fork cannot ask the user — so the whole body stays pinned to the main context and burns tokens for the entire session. Split it in two:
+
+- Entry skill on main context — asks every question, resolves all ambiguity, then hands the answers off. Keep it small: this body is what lingers in context.
+- Fork worker (`context: fork` + `user-invocable: false`) — gets the resolved inputs and does the heavy work out of context; it never asks the user, because the entry already resolved everything.
+- Hand off by the arg convention: short fields inline, large/multiline content as a PATH the fork injects (see `_skill-script-routing.md`).
+- Two payoffs: narrow responsibility AND token economy — the heavy body leaves the main context.
+- Precedent: `supergh:commit` (resolves WHAT to commit) -> `agent-committer` (reads the staged diff in a fork, authors the message). Fork-invocation mechanics: `skill-fork-dispatch.md`.
 
 ## Gotchas
 - Shortening the text cannot mean less precise instructions.

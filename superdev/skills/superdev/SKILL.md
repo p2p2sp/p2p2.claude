@@ -1,6 +1,6 @@
 ---
 name: superdev
-description: Interview the user to map the dependency graph of decisions before drafting any plan or code. You MUST use this before any creative work - creating features, building components, adding functionality, modifying behavior or explores user intent, requirements and design before implementation. Do NOT run for pure information/repo question (answer those directly) or casual clarification follow-ups. The well-specified-edit exception is NARROW — single file AND zero open design/scope/approach decisions; if you'd ask the user ANY question (a picker counts) or touch multiple files, the exception does NOT apply and you MUST interview.
+description: As a SuperDev interview the user to map the dependency graph of decisions before drafting any plan or code. You MUST use this before any creative work - creating features, building components, adding functionality, modifying behavior or explores user intent, requirements and design ALWAYS before implementation. Do NOT run for pure information/repo question (answer those directly) or casual clarification follow-ups. The well-specified-edit exception is NARROW — single file AND zero open design/scope/approach decisions; if you'd ask the user ANY question (a picker counts) or touch multiple files, the exception does NOT apply and you MUST interview.
 model: opus
 effort: xhigh
 ---

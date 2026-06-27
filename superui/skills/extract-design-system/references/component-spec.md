@@ -130,6 +130,11 @@ change is traceable to the components it affects.>
 - **Variants vs. States** — keep distinct. A *variant* is an author-time
   configuration (primary vs. secondary button); a *state* is a runtime condition
   (hover, disabled). Never list "primary" as a state or "hover" as a variant.
+- **State treatment = form + color** — for each state document both its FORM
+  (left bar, filled pill, underline, ring, tint, …) and its MEASURED color read
+  from pixels/CSS; map the color to the token that actually matches (often
+  `text.primary`/ink, not the chromatic accent). Never infer a state's appearance
+  from a "typical" pattern.
 - **Anatomy** — use the names from the design file / codebase so designers and
   engineers share vocabulary; reuse source layer names verbatim where present.
 - **Figma properties** — the component property / variant axes (Variant, Boolean,
@@ -152,7 +157,12 @@ The template fits all tiers; adapt these sections:
   collapsed/expanded, panel open/closed). "Figma properties" is often N/A — mark
   `⚠️ Needs input` or omit. "Composition" lists the regions/composites it
   arranges, with their layout (flex/grid, gaps, alignment, fixed widths, sticky
-  vs. scroll).
+  vs. scroll). MANDATORY for every layout component, per region: (a) the surface
+  token, measured by sampling + luminance rank, never assumed; (b) which region
+  owns the divider/border and on which edge; (c) corner radii on large
+  regions/panels/shell (with a token) and whether content is FLUSH vs
+  INSET/FLOATING. When authoring net-new with no source to measure, state each
+  field deliberately or mark `⚠️ Needs input` — never silently omit.
 - **Composite / patterns:** focus "Anatomy" on the sub-blocks and the flow
   (e.g. a login form: fields, validation, submit, error summary, secondary
   links). "Composition" lists the atoms used. Document empty/loading/error states

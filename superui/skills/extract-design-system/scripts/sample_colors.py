@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """Extract exact colors from a layout image.
 
-Two modes (combinable):
+Three modes (combinable):
   - palette: k-means dominant colors over the whole image (or a crop)
   - points:  exact color at specific x,y pixel coordinates
+  - regions: background color of named rectangles, ranked by WCAG luminance
+             (darkest first = surface.base, lighter = raised/muted) so the
+             surface/elevation order is MEASURED, not assumed
 
 Usage:
   python sample_colors.py IMAGE [--k 8] [--points 12,40 300,18 ...]
                           [--crop x,y,w,h] [--json]
+                          [--regions sidebar=0,0,240,900 content=240,64,1040,836 ...]
 
 Output: human-readable table by default, or DTCG-ready JSON with --json.
 Each color is reported as hex, sRGB 0..1 components, and a coverage % (palette).
@@ -89,12 +93,52 @@ def points(img, pts):
     return out
 
 
+def _relative_luminance(rgb255):
+    """WCAG relative luminance from an 8-bit sRGB triple (gamma-expanded)."""
+    def _lin(c):
+        c = c / 255.0
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = (_lin(v) for v in rgb255[:3])
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def regions(img, specs, k):
+    """Background color per named rectangle, ranked by luminance.
+
+    specs: list of (name, x, y, w, h). The region background is the
+    highest-coverage k-means cluster of its crop. Valid regions are returned
+    sorted ascending by luminance (rank 0 = darkest = surface.base); ties keep
+    input order (stable sort). Out-of-bounds rects yield an error entry, kept
+    after the ranked ones and unranked.
+    """
+    rgb_img = img.convert("RGB")
+    w, h = rgb_img.size
+    valid, errs = [], []
+    for (name, x, y, rw, rh) in specs:
+        if rw <= 0 or rh <= 0 or x < 0 or y < 0 or x + rw > w or y + rh > h:
+            errs.append({"region": name, "rect": [x, y, rw, rh],
+                         "error": "out of bounds"})
+            continue
+        crop = rgb_img.crop((x, y, x + rw, y + rh))
+        bg = palette(crop, k)[0]  # highest-coverage cluster = the background
+        rec = {"region": name, "rect": [x, y, rw, rh]}
+        rec.update(bg)
+        rec["luminance"] = round(_relative_luminance(bg["rgb255"]), 4)
+        valid.append(rec)
+    valid.sort(key=lambda r: r["luminance"])  # stable, ascending: darkest first
+    for i, rec in enumerate(valid):
+        rec["rank"] = i  # 0 = darkest = surface.base, ascending toward raised
+    return valid + errs
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("image")
     ap.add_argument("--k", type=int, default=8, help="number of palette colors")
     ap.add_argument("--points", nargs="*", default=[], help="x,y coords to sample")
     ap.add_argument("--crop", help="x,y,w,h crop before palette extraction")
+    ap.add_argument("--regions", nargs="*", default=[],
+                    help="name=x,y,w,h rects; ranks region backgrounds by luminance")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
@@ -111,6 +155,14 @@ def main():
     if args.points:
         pts = [tuple(int(v) for v in p.split(",")) for p in args.points]
         result["points"] = points(img, pts)
+    if args.regions:
+        rk = args.k if args.k > 0 else 5
+        specs = []
+        for r in args.regions:
+            name, _, rect = r.partition("=")
+            x, y, w, h = (int(v) for v in rect.split(","))
+            specs.append((name, x, y, w, h))
+        result["regions"] = regions(img, specs, rk)
 
     if args.json:
         print(json.dumps(result, indent=2))
@@ -129,6 +181,14 @@ def main():
                 print(f"  {c['point']}: {c['error']}")
             else:
                 print(f"  {tuple(c['point'])}: {c['hex']}  srgb={c['components']}")
+    if "regions" in result:
+        print("\nRegions (by luminance, darkest first = surface.base):")
+        for c in result["regions"]:
+            if "error" in c:
+                print(f"  {c['region']}: {c['error']}  rect={c['rect']}")
+            else:
+                print(f"  #{c['rank']} {c['region']:<14} {c['hex']}  "
+                      f"lum={c['luminance']:.4f}  cov={c['coverage']*100:5.1f}%")
 
 
 if __name__ == "__main__":

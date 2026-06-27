@@ -87,7 +87,14 @@ mobile adapter ignores or remaps them. The web-only set is `hover`,
 - **Elevation** — [universal] how depth is shown: shadow ramp (`shadow`
   composite) *and/or* surface-color steps. Record which mechanism the design uses
   (some systems use color for elevation, not shadows) — this is a principle worth
-  noting.
+  noting. Surface order is MEASURED, never assumed: sample the background of every
+  major region (page/canvas, sidebar, content panel, topbar, cards, menus) with
+  `sample_colors.py --regions` and adopt the printed luminance order — darkest =
+  `surface.base`, lighter = `surface.raised` / `surface.muted` / `surface.overlay`.
+  Do not assign by convention (e.g. "sidebar = raised"); that guess inverted a real
+  extraction. Record the resulting order explicitly in `foundations.md`
+  (e.g. "base(sidebar) < panel < card < menu"); when two adjacent regions differ,
+  state which is raised relative to the other.
 - **Radius** — [universal] corner-radius scale, including any "full" radius for
   pills/avatars.
 - **Border** — [universal] widths and the border composite (width + style + color).
@@ -150,6 +157,16 @@ relevant specs):
 - **Visual-consistency rules** observed across the UI: one corner-radius scale,
   one elevation system, a single icon size, consistent control height, a shared
   spacing rhythm. (See the consistency checklist in `component-patterns.md`.)
+- **Accent discipline** — from the Phase-1 accent-usage inventory, list every
+  location the chromatic accent/highlight is allowed (e.g. "accent = selection /
+  calendar only, never nav"). The accent appears only there; any spec that reaches
+  for it elsewhere is a Phase-5 reconcile failure to resolve against the source.
+- **State treatment = form + color** — for every interactive state (hover, focus,
+  active, selected, disabled) document both its FORM (left bar, filled pill,
+  underline, ring, tint, …) and its MEASURED color, each read from pixels/CSS.
+  Never infer a state's appearance from a "typical" pattern; map the measured
+  color to whatever semantic token actually matches (often `text.primary`/ink, not
+  the chromatic accent).
 - **Usage notes** where the design shows them: when a variant is used vs.
   another (e.g. primary vs. secondary button), composition patterns (page
   header + content + side panel), empty/loading patterns. Document only what the

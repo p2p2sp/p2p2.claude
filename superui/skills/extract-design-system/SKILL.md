@@ -30,6 +30,11 @@ These shape every step.
   (images) or CSS (URL) — not from memory of "typical" systems. If a value
   cannot be determined, record `null` with a `$description` saying why; in a spec
   write `> ⚠️ Needs input: <what's missing>`. Never fabricate.
+- **References say what to LOOK FOR, never what to ASSUME.** Any "typical" value,
+  color role, or state treatment named in a reference is a detection hint, not a
+  default. Every assigned value — including the FORM and COLOR of state treatments
+  and the surface/elevation order of regions — comes from a re-sample or CSS, not
+  from the hint.
 - **One source of truth.** Each raw value lives once as a primitive token;
   semantic tokens, the theme CSS, and every component spec reference it by name —
   never restate a hex or px.
@@ -79,7 +84,7 @@ Write everything under `.superui/layout/design-system/` (default; the user may o
 ## Workflow
 
 Phases in order. 1–3 build the system core; 4 catalogs components; 5 reconciles;
-6 writes the specs.
+6 writes the specs; 7 verifies fidelity against the source.
 
 ### Phase 0 — Intake
 
@@ -97,6 +102,11 @@ full foundations coverage checklist so no category is missed.
 1. **Colors** — exact palette (sampled pixels or CSS); deduplicate near-identical
    colors into one primitive; build a per-hue ramp where the design clearly has
    one. Cover surfaces, text, borders, brand/accent, states, focus ring, overlay.
+   **Surface/elevation order is measured, not assumed:** sample the background of
+   every major region (page/canvas, sidebar, content panel, topbar, cards, menus)
+   with `scripts/sample_colors.py --regions` and assign `surface.base / raised /
+   muted / overlay` by the printed luminance order (darkest = base); record that
+   order in `foundations.md`. Never assign surfaces by convention.
 2. **Typography** — families (by shape if unlabeled — say so), size scale,
    weights, line-heights, letter-spacing; named text styles as `typography`
    composites.
@@ -115,6 +125,11 @@ Write `design-tokens.yaml`, then validate and fix every error:
 ```bash
 python scripts/validate_tokens.py .superui/layout/design-system/design-tokens.yaml
 ```
+
+**Accent-usage inventory.** Before moving on, enumerate every location the
+chromatic accent/highlight color appears in the source (e.g. "accent.500 appears
+only on the selected calendar-day ring"). This list becomes the foundations
+"accent discipline" rule (Phase 2) and the cross-check baseline (Phase 5).
 
 ### Phase 2 — Write the foundations document
 
@@ -183,6 +198,13 @@ Cross-check tokens ↔ components. If a component reveals a value not yet tokeni
 `validate_tokens.py`. Every distinct visual value a component uses must exist as
 a token before it is specced.
 
+Then cross-check each component's token **assignments** against the foundations
+consistency rules — not just token existence: accent discipline (no spec uses the
+accent outside its allowed locations), the radius role set, and the measured
+elevation order. Any contradiction (e.g. a nav spec using `color.accent.*`, or a
+sidebar marked `raised` against the sampled order) is flagged and resolved against
+the source before specs are finalized.
+
 ### Phase 6 — Write detailed component specs
 
 Read `assets/example-component-spec.md` for the expected depth, then write one
@@ -192,6 +214,25 @@ design-system tokens by name (not raw values) and ties anatomy/states to them.
 Apply the never-invent rule: ask or use the `⚠️ Needs input` placeholder for any
 section the source does not support. Adapt the template per tier (layout/composite
 components document a "Composed of" list; atoms document related/paired atoms).
+
+### Phase 7 — Fidelity verification
+
+Mandatory before presenting. Re-sample the source and confirm the written specs
+match it — this catches the assumption-driven defects (inverted surfaces, lost
+geometry, misused accent) that pass token validation but contradict the source.
+
+For each layout component and each key atomic state, RE-SAMPLE the corresponding
+region/element in the source image (`scripts/sample_colors.py --regions` /
+`--points`) and check:
+
+- Surface/elevation order matches the spec and the recorded foundations order?
+- Large-region / panel corner radii captured (with a token)?
+- Divider/border ownership + edge correct per region?
+- Every accent use is within the accent-discipline rule?
+- Every state's color AND form match a re-sample (not a "typical" pattern)?
+
+Fix any mismatch and re-run the checklist; loop until it is clean. Record residual
+uncertainties as `> ⚠️ Needs input: <what's missing>`, never as silent guesses.
 
 ## Presenting results
 
@@ -209,7 +250,7 @@ values to confirm. Then offer the natural next step (see Related skills).
 - `references/dtcg-token-format.md` — DTCG 2025.10 YAML schema: token shape,
   types, sRGB color object, composites, aliasing. **Read before phase 1.**
 - `references/component-patterns.md` — detection catalog (cues, anatomy, states,
-  tokens, a11y) + the visual-consistency checklist. **Read before phase 4.**
+  tokens, a11y) + the visual-consistency checklist. **Read before phases 4 and 7.**
 - `references/component-spec.md` — the three-tier taxonomy and the per-component
   spec template + section guidance (the shared canon also consumed by
   **create-component**). **Read before phases 4 and 6.**
@@ -219,9 +260,11 @@ values to confirm. Then offer the natural next step (see Related skills).
 Plain Python (stdlib + `pyyaml`, `Pillow`, `numpy`). Install if missing:
 `pip install pyyaml pillow numpy --break-system-packages`.
 
-- `scripts/sample_colors.py IMAGE [--k N] [--points x,y …] [--json]` — k-means
-  palette / exact color sampling for **image** sources. (For URL sources read
-  colors from CSS via `web_fetch` instead.)
+- `scripts/sample_colors.py IMAGE [--k N] [--points x,y …] [--regions name=x,y,w,h …] [--json]`
+  — k-means palette / exact color sampling for **image** sources; `--regions`
+  ranks named region backgrounds by luminance to derive the measured
+  surface/elevation order (Phases 1 and 7). (For URL sources read colors from CSS
+  via `web_fetch` instead.)
 - `scripts/validate_tokens.py TOKENS.yaml` — DTCG conformance + alias resolution.
 
 `tokens.css` is written by hand from the validated tokens (Phase 3) — there is no

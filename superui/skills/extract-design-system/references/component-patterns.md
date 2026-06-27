@@ -23,8 +23,23 @@ Modal / dialog · Content area with header · List with search · Right side pan
   optional right panel. Regions stay fixed while content scrolls.
 - **Anatomy:** sidebar · top bar/header · main content · (right side panel) ·
   (footer/status bar).
+- **Geometry & surface (measure each region, never assume):** sample every
+  region's background and assign its `color.surface.*` token AS MEASURED — run
+  `sample_colors.py --regions` and adopt the printed luminance order; if two
+  adjacent regions differ, state which is raised relative to the other. For each
+  region also capture: which region owns the divider/border and on which edge,
+  corner radii on large panels/shell (with a token), and whether content is FLUSH
+  vs an INSET/FLOATING panel.
 - **States:** sidebar expanded vs. collapsed; with/without right panel.
-- **Tokens:** layout widths (`dimension`), `color.surface.*`, `border`, `zindex`.
+- **Tokens:** layout widths (`dimension`); per-region `color.surface.*` by the
+  measured order above (not a flat bucket); `border`/divider with its owner+edge;
+  large-region `radius.*`; `zindex`.
+- **Worked example (regression):** an HR-style shell — sidebar on the canvas
+  (`surface.base`, grayer); content a RAISED white panel (`surface.raised`) INSET
+  from the sidebar by a hairline divider the content owns on its left edge, with a
+  captured top-left `radius.panel`; the active nav item a thin INK bar
+  (`color.text.primary`), not the accent. Measuring — not assuming "sidebar =
+  raised, nav-active = accent" — is what gets this right.
 
 ## Sidebar / nav rail with collapsible icon rail
 - **Cues:** Vertical strip of nav items, each an icon + label; a toggle
@@ -33,9 +48,15 @@ Modal / dialog · Content area with header · List with search · Right side pan
   badge/caret) · collapse toggle · footer (user menu).
 - **States:** expanded / collapsed; item default / hover / active / focus;
   group expanded / collapsed; item with submenu (flyout when collapsed).
-- **Tokens:** `spacing.*` (item padding, gap), icon size (`dimension`),
-  `color.surface.sidebar`, `color.text.*`, `color.accent.*` (active),
-  `radius.*`, control height, `motion.*` (collapse transition).
+- **Active item (measure form + color, do not assume):** read the active
+  treatment from pixels — its FORM (left bar / filled pill / underline / tint)
+  AND its color — and map the color to the semantic token that actually matches
+  (often `color.text.primary`/ink, not the chromatic accent). Do not default the
+  active indicator to `color.accent.*`.
+- **Tokens:** `spacing.*` (item padding, gap), icon size (`dimension`), the
+  sidebar surface assigned by the measured region order (see App shell),
+  `color.text.*`, the measured active-indicator token (per above), `radius.*`,
+  control height, `motion.*` (collapse transition).
 - **A11y:** `nav` landmark; icon-only items need `aria-label`/tooltip;
   toggle has `aria-expanded`; active item `aria-current="page"`.
 
@@ -123,8 +144,10 @@ Modal / dialog · Content area with header · List with search · Right side pan
 
 Record these as system-wide rules in `foundations.md` — every spec must honor them:
 
-- **Radius:** how many distinct corner radii exist? Map each to a role
-  (control, card, modal, pill/full). Reuse, don't introduce new ones.
+- **Radius:** how many distinct corner radii exist? Map each to a role —
+  control, card, modal, pill/full, AND large-surface / panel / shell (a rounded
+  panel corner or inset content region). Sample radii on big regions too, not only
+  on small controls. Reuse, don't introduce new ones.
 - **Elevation:** count the distinct shadow levels; they form the elevation
   scale. Each surface picks a level, not an ad-hoc shadow.
 - **Spacing rhythm:** is there a base step (4 / 8 px)? Do paddings/gaps land on
