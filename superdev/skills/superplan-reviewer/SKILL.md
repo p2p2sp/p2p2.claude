@@ -74,7 +74,7 @@ Reviewers run: Plan-Integrity, Codebase-Risk
 If the verdict is FIX or BLOCK: apply the Consolidated fixes to the plan, then re-invoke superplan-reviewer in RE-REVIEW mode so each reviewer confirms the fixes closed and still runs a full fresh pass.
 Construct the argument as ONE line: `<plan-path> ||| <Consolidated fixes flattened to one line>` — join fix items with ` ;; ` and replace any newline inside a fix with a space. Omit the ` ||| ...` part for a first-run.
 Example: `C:\...\plans\my-plan.md ||| 1. [MAJOR] (§4) — add X ;; 2. [MINOR] (§7) — tighten Y`
-This re-review context is best-effort: nothing enforces it (the ExitPlanMode hook only checks for `Overall Verdict: PASS`); omitting the ` ||| ...` part simply degrades to a clean first-run.
+This re-review context is best-effort: nothing enforces it (the ExitPlanMode hook only checks for a PASS verdict); omitting the ` ||| ...` part simply degrades to a clean first-run.
 
 ## Per-reviewer raw verdicts
 - Plan-Integrity: <verdict>

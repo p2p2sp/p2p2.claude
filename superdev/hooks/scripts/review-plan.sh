@@ -88,7 +88,7 @@ fi
 
 # Step 2: from the line AFTER the last plan-file write, look for:
 #   R = a line containing "superplan-reviewer" AND a subagent marker
-#   S = a line containing "Overall Verdict: PASS"
+#   S = a line carrying the actual verdict "Overall Verdict: PASS"
 # Require R < S so the reviewer call precedes its result.
 tail_start=$((last_plan_write_line + 1))
 
@@ -107,9 +107,16 @@ if [ -z "$reviewer_call_line" ]; then
   emit_deny "Plan review required before approval: superplan-reviewer must return 'Overall Verdict: PASS' for this plan. Invoke superplan-reviewer with the absolute plan file path as the bare argument, wait for the verdict, then retry ExitPlanMode."
 fi
 
-# S: "Overall Verdict: PASS" occurring AFTER the reviewer call line.
+# S: the ACTUAL "Overall Verdict: PASS" verdict line occurring AFTER the reviewer
+# call line. Anchor on the escaped newline (\n in the JSONL) that precedes it: the
+# real verdict always starts its own markdown line, so it appears as `\nOverall
+# Verdict: PASS` in the transcript. This excludes prose/back-ticked mentions of the
+# literal (e.g. guidance text "...checks for `Overall Verdict: PASS`...") that ride
+# inline and would otherwise match for a BLOCK/FIX report — turning the gate into a
+# no-op. The `\\n` matches the two literal chars backslash-n that JSON uses to escape
+# the newline.
 status_pass_line=$(
-  awk -v start="$reviewer_call_line" 'NR>start && /Overall Verdict: PASS/ { print NR; exit }' \
+  awk -v start="$reviewer_call_line" 'NR>start && /\\nOverall Verdict: PASS/ { print NR; exit }' \
     "$transcript_path" 2>/dev/null
 )
 
