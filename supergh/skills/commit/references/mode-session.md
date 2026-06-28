@@ -1,20 +1,17 @@
-Commit **only what we touched in this conversation** — not unrelated changes that happen to sit in the working tree. This is the default when the argument is empty.
+Commit **only what we touched in this conversation** — not unrelated changes that happen to sit in the working tree. This is the default when the argument is empty. You author the message inline (you already know these changes — you made them) and commit via `commit.sh`; there is NO fork.
 
 1. From the conversation context, build the set of file paths created or modified during this session (the files written/edited while helping the user).
 2. `git status --short` — keep only the paths from step 1 that actually show a change; drop the rest.
-3. **No-op gate (resolver-owned):** if the resulting set is **empty** → report `no changes from context to commit` and **stop**. Do **not** invoke the committer, and do **not** fall back to staging the whole tree — silence is safer than a surprise commit.
-4. Otherwise **delegate to `supergh:agent-committer`** via the **Skill** tool with a fully-specified handoff:
-   - **staging instruction:** stage **exactly these paths and nothing else** — `git add -- <path>…` for the resolved set.
-   - **explicit path list:** the concrete paths from step 2, verbatim — the committer stages only these.
-   - optional **one-line intent hint** — what this change does, carrying any `#N` / close-intent ("closes #42", "fixes #17") you can read from this session. It is a hint, not a subject — the committer authors the subject itself from the staged diff.
-5. **Relay the committer's single-line result back to the user verbatim.**
+3. **No-op gate (resolver-owned):** if the resulting set is **empty** → report `no changes from context to commit` and **stop**. Do **not** call `commit.sh`, and do **not** fall back to committing the whole tree — silence is safer than a surprise commit.
+4. **Author the subject (+ optional footer) inline** for exactly this path set, per the authoring rules appended below. Read the diff if you need to (`git diff -- <paths>`); you may already have the content from this session.
+5. **Commit via the script** — `sh "${CLAUDE_PLUGIN_ROOT}/shared/scripts/commit.sh" paths "<subject>" "<footer-or-empty>" <path>…` with the resolved paths verbatim. The script stages ONLY those paths, commits, and verifies HEAD advanced before emitting its line.
+6. **Relay the script's single stdout line verbatim** — it is the user-facing result. Do not re-run, re-verify, or summarize.
 
 ## Safety rules
 
 - If you cannot determine a safe set of files to commit, prefer a **no-op** (report "nothing to commit") over guessing — an unwanted commit is far more costly to undo than a no-op is to re-run.
-- The resolver is **read-only on git** — it inspects with `git status` / `git rev-parse` only. All staging, diff-reading, and committing happens in the committer fork.
-- Never push, merge, rebase, amend, cherry-pick, or use `--force` / `--no-verify`; never instruct the committer to.
-- Never edit source files, test files, or git config — this skill only inspects, routes, and passes a hint.
-- One route, one delegation, one report. Never re-run "to confirm".
-- Never question or analyze user intent to commit `all` or `staged` files.
-- If mode is `all` or `staged`, never propose or start a new branch.
+- Pass `commit.sh` exactly the resolved paths and nothing else — it stages only those; other working-tree changes stay untouched.
+- One resolve, one `commit.sh` call, one report. Never re-run "to confirm" — the script self-verifies.
+- Never push, merge, rebase, amend, cherry-pick, or use `--force` / `--no-verify`; the script never does either.
+- Never edit source files, test files, or git config — this mode only resolves paths, authors a message, and calls the script.
+- Never start a new branch.

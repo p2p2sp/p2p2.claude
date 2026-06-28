@@ -53,9 +53,11 @@ lens reviewers to splice the plan text + any re-review fixes from the passed pat
 `superdev/shared/scripts/auditor-contract.sh` (router-style assembler `!`-injected by the four `agent-*-auditor` final-review lenses;
 takes the lens name and cat-concatenates `shared/references/_input.md` + `lens-<lens>.md` + `_output.md` — placeholder-free, so no `${CLAUDE_PLUGIN_ROOT}` survives into the fork),
 `superui/shared/scripts/check_python.sh` (the Python preflight, `!`-injected by each `superui` skill that runs a Python step),
-and the two `supergh/shared/scripts/` helpers `preflight.sh` (`!`-injected read-only auth+git fact block, shared by
+and the three `supergh/shared/scripts/` helpers `preflight.sh` (`!`-injected read-only auth+git fact block, shared by
 `create-issue` / `create-pr` / `cli-executor`) + `body-path.sh` (deterministic timestamp+slugify body-path builder
-called by `create-issue` / `create-pr` in their Step 8).
+called by `create-issue` / `create-pr` in their Step 8) + `commit.sh` (the self-verifying stage+commit+verify
+committer — the single git-mutation point of the commit chain, called by the `commit` resolver in `context` mode and
+by the `agent-committer` fork in `all`/`staged`; it cannot fabricate its `✓ <sha>` line, mirroring `commit-task.sh`).
 **Editing markdown / JSON IS shipping** — there is no build / test /
 lint at any level. Contracts between files are enforced by humans reading carefully.
 
@@ -108,10 +110,12 @@ superui/             The superui plugin
   skills/            Flat-named skills (single-domain plugin); some bundle preview scripts
 supergh/             The supergh plugin (NO hooks, NO manifest — skills route purely via CSO descriptions)
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
-  shared/            Plugin-level shared scripts (scripts/preflight.sh — `!`-injected auth+git fact block;
-                     scripts/body-path.sh — deterministic timestamp+slugify body-path builder)
+  shared/            Plugin-level shared scripts + references (scripts/preflight.sh — `!`-injected auth+git fact block;
+                     scripts/body-path.sh — deterministic timestamp+slugify body-path builder; scripts/commit.sh —
+                     self-verifying stage+commit+verify committer; references/commit-conventions.md — single source of
+                     the Conventional-Commits subject/footer rules, read by agent-committer + commit's context mode)
   skills/            Flat-named skills (cli, cli-executor, commit, agent-committer, create-issue, create-pr);
-                     the commit skill bundles scripts/route.sh (mode router)
+                     the commit skill bundles scripts/route.sh (mode router) + references/{mode-fork,mode-session}.md
 superfix/            The superfix plugin (NO hooks, NO manifest — single user-only skill)
   .claude-plugin/plugin.json   The plugin manifest — skills[] + agents[] are the catalog of record
   skills/            One user-invoked skill code-auditor/ (disable-model-invocation); bundles
@@ -237,10 +241,13 @@ user-facing / auto-routed skill are bare-named too; so are forks still reachable
 `supergh` is a single-domain plugin, so its skills carry **no group prefix** (the plugin name is the group).
 It ships **no `hooks/` and no injected manifest** — unlike `superdev` / `superui`, its skills route purely via
 their CSO `description:` (the always-on guardrail formerly carried by the manifest now lives in each skill's
-"Do NOT call gh… directly" description clause). Two plugin-level helpers live under `shared/scripts/`:
-`preflight.sh` (`!`-injected read-only auth+git fact block, replacing the old per-skill 2–5 `gh`/`git` probes)
-and `body-path.sh` (deterministic timestamp+slugify body-path builder, ending the slugify-prose duplication
-between `create-issue` and `create-pr`). Six skills, qualified as `supergh:<name>`:
+"Do NOT call gh… directly" description clause). Three plugin-level helpers live under `shared/scripts/`:
+`preflight.sh` (`!`-injected read-only auth+git fact block, replacing the old per-skill 2–5 `gh`/`git` probes),
+`body-path.sh` (deterministic timestamp+slugify body-path builder, ending the slugify-prose duplication
+between `create-issue` and `create-pr`), and `commit.sh` (self-verifying stage+commit+verify — the single
+git-mutation point of the commit chain, which CANNOT fabricate its `✓ <sha>` line, mirroring `commit-task.sh`);
+plus one shared reference `shared/references/commit-conventions.md` (the single source of the Conventional-Commits
+subject/footer authoring rules, read by both `agent-committer` and `commit`'s `context` mode). Six skills, qualified as `supergh:<name>`:
 
 - `cli` — GitHub CLI **reference** (which layer — `gh` subcommand / `gh api` REST / `gh api graphql` — a given
   operation needs); reference-only, never executes.
@@ -248,9 +255,13 @@ between `create-issue` and `create-pr`). Six skills, qualified as `supergh:<name
   fully-specified gh/REST/GraphQL operation out of context and returns a single tagged line; guards every
   GraphQL mutation against the silent-200 error case.
 - `commit` (entry, main context) + `agent-committer` (its **fork**) — `commit` resolves WHAT to commit
-  (session / `all` / `staged`, via its `scripts/route.sh` mode router) and delegates staging + Conventional-Commits
-  authoring to `agent-committer`, which reads the staged diff out of the main context. `agent-committer` is
-  fork-only (`context: fork` + `user-invocable: false`), invoked only by `commit`.
+  (session / `all` / `staged`, via its `scripts/route.sh` mode router). For `all`/`staged` it delegates
+  Conventional-Commits authoring to `agent-committer`, which reads the diff out of the main context; for `context`
+  it authors inline (it already knows the session's changes — no redundant fork). In BOTH paths the actual
+  staging+commit+verify is done by the shared `shared/scripts/commit.sh`, never by an LLM `git commit` — closing the
+  verify-before-claim gap (a fork could assert a `✓` for a commit that never landed; the script proves HEAD moved
+  first). `agent-committer` is fork-only (`context: fork` + `user-invocable: false`), invoked only by `commit`, and
+  runs no `git add`/`git commit` of its own.
 - `create-issue` / `create-pr` — interactive, template-driven creators (`gh issue create` / `gh pr create
   --draft`); each MAY delegate a fully-specified API call to `cli-executor`.
 
