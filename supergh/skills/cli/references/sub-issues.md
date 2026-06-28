@@ -89,7 +89,4 @@ Remove uses `removeSubIssue(input: { issueId, subIssueId })`; reorder uses `repr
 ## Sources
 
 - REST — Sub-issues: <https://docs.github.com/en/rest/issues/sub-issues>
-- Sub-issues feature guide: <https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/adding-sub-issues>
 - GraphQL — addSubIssue: <https://docs.github.com/en/graphql/reference/mutations#addsubissue>
-- Community extension — yahsan2/gh-sub-issue: <https://github.com/yahsan2/gh-sub-issue>
-- Tracking issue for native `gh` support: <https://github.com/cli/cli/issues/10298>

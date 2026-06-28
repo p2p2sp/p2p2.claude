@@ -4,7 +4,7 @@ description: "GitHub CLI executor (fork) — runs ONE fully-specified, non-inter
 context: fork
 model: sonnet
 user-invocable: false
-allowed-tools: Read, Bash(gh --version), Bash(gh auth status), Bash(gh:*), Skill
+allowed-tools: Read, Bash(sh:*), Bash(gh --version), Bash(gh auth status), Bash(gh:*), Skill
 ---
 
 # GitHub CLI executor (fork)
@@ -25,7 +25,11 @@ The input is the spec. Do NOT redesign it, batch in extra operations, or "while 
 
 # How to work
 
-1. **Preconditions (fail-fast).** Run `gh --version` then `gh auth status`. If either fails, stop immediately and reply `STATUS: FAILED <one-line cause>` (e.g. `STATUS: FAILED gh not authenticated`). Do not attempt the operation.
+1. **Preconditions (fail-fast).** The block below is injected at load — read it instead of re-running probes:
+
+   !`"${CLAUDE_PLUGIN_ROOT}/shared/scripts/preflight.sh"`
+
+   `GH_PRESENT=0` or `GH_AUTH=fail` → stop immediately and reply `STATUS: FAILED <one-line cause>` (e.g. `STATUS: FAILED gh not authenticated`). Do not attempt the operation.
 2. **Pick the layer.** Decide native `gh` → REST via `gh api` → GraphQL via `gh api graphql` per the `cli` reference's decision table. When a detail is needed, `Read` the matching companion file at `${CLAUDE_PLUGIN_ROOT}/skills/cli/references/<topic>.md` (e.g. `issues.md`, `sub-issues.md`, `pr-review-threads.md`, `discussions.md`, `projects-v2.md`, `pull-requests.md`, `graphql-patterns.md`, `auth-and-scopes.md`). Escalate to the next layer only when the lower one cannot express the operation or does not return the IDs you need.
 3. **Discovery → mutation.** Every GraphQL mutation that takes a `*Id` input needs a preceding discovery query to resolve that node-ID; run the discovery query first, capture the IDs, then run the mutation. Use `-f query=…` for the query body and `-F` for typed variables.
 4. **Guard every GraphQL mutation.** GraphQL errors ride inside HTTP 200 — `gh api graphql` exits 0 on a failed mutation. Select enough of the response to detect failure and capture the errors via `gh`'s built-in jq engine (no system `jq`):

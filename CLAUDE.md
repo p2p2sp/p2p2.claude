@@ -30,24 +30,30 @@ Each plugin is independently installable; none declares another as a dependency.
 - **superui** — the design / frontend ecosystem (the framework-agnostic L1 system, target adaptation, web
   preview, the UI-edit guardian, and a shareable-artifact publisher).
 - **supergh** — the GitHub / git ecosystem (the `gh` CLI/REST/GraphQL reference, a fully-specified operation
-  executor, Conventional-Commits commits, and template-driven issue / PR creation).
+  executor, Conventional-Commits commits, and template-driven issue / PR creation). Ships **no hooks and no
+  manifest** — its skills route purely via CSO `description:` (unlike `superfix`, supergh's skills are still
+  model-routable, not user-only).
 - **superfix** — prioritized multi-agent codebase investigation (one user-invoked skill, no hooks/manifest):
   the `audit` skill sweeps a repo, scores Impact × Opportunity, and dispatches `scout` (cheap triage) /
   `detective` (deep) plugin agents.
 
 They ship no application code — the artefacts are markdown (skills) + JSON (manifests) + the per-plugin hook
-scripts under `<plugin>/hooks/scripts/`, plus a handful of deterministic helper scripts bundled under
+scripts under `<plugin>/hooks/scripts/` (only `superdev` / `superui` have hooks; `supergh` / `superfix` ship
+none), plus a handful of deterministic helper scripts bundled under
 individual skills' `scripts/` dirs (the `superui` preview scripts, the superdev pipeline commit scripts
 `orchestrator/scripts/commit-task.sh` + `orchestrator/scripts/commit-adr.sh`, the fixed recipe harness
 `agent-recipe/scripts/recipe.template.sh`, the `supergh` `commit` mode router
 `commit/scripts/route.sh`, the `memory-rules` mode router `memory-rules/scripts/route.sh` + its discovery
 scripts `memory-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), the one-time `setup/scripts/bootstrap.sh`,
 and the `superfix` investigation scripts `audit/scripts/collect_signals.sh` (deterministic signal sweep) + `rank.py` (the gate/rank step)).
-Three helpers instead live at **plugin-level** `<plugin>/shared/scripts/` (one copy shared across a plugin's
+Five helpers instead live at **plugin-level** `<plugin>/shared/scripts/` (one copy shared across a plugin's
 skills): `superdev/shared/scripts/lib_find_excludes.sh` (sourced by the `memory-layers` / `memory-rules` scan scripts),
 `superdev/shared/scripts/inject_review_input.sh` (`!`-injected by the `superplan-reviewer-integrity` / `superplan-reviewer-codebase`
 lens reviewers to splice the plan text + any re-review fixes from the passed path, so neither fork re-reads the plan or parses `$ARGUMENTS`),
-and `superui/shared/scripts/check_python.sh` (the Python preflight, `!`-injected by each `superui` skill that runs a Python step).
+`superui/shared/scripts/check_python.sh` (the Python preflight, `!`-injected by each `superui` skill that runs a Python step),
+and the two `supergh/shared/scripts/` helpers `preflight.sh` (`!`-injected read-only auth+git fact block, shared by
+`create-issue` / `create-pr` / `cli-executor`) + `body-path.sh` (deterministic timestamp+slugify body-path builder
+called by `create-issue` / `create-pr` in their Step 8).
 **Editing markdown / JSON IS shipping** — there is no build / test /
 lint at any level. Contracts between files are enforced by humans reading carefully.
 
@@ -62,9 +68,10 @@ DO NOT USE ADR capture for this project. The plugins are constantly refactored.
 Each plugin keeps its domain's skills together so a consumer can install just the development ecosystem
 (`superdev`), just the design ecosystem (`superui`), just the GitHub ecosystem (`supergh`), or just the
 codebase-investigation tool (`superfix`). Within a plugin, skills compose through CSO (frontmatter
-`description:`) and — for the three manifest-bearing plugins — that plugin's single injected manifest documents
-the in-plugin chains (e.g. `improver → memory-rules` in superdev); `superfix` ships no manifest because its
-sole skill is user-only (see its section below). Each is
+`description:`) and — for the two manifest-bearing plugins (`superdev`, `superui`) — that plugin's single
+injected manifest documents the in-plugin chains (e.g. `improver → memory-rules` in superdev); `supergh` and
+`superfix` ship no manifest (superfix's sole skill is user-only; supergh routes purely via CSO descriptions —
+see their sections below). Each is
 **self-contained**: its `plugin.json` declares **no `dependencies`** — installing it gives that whole
 ecosystem. Cross-plugin chains are **soft and optional**: superdev's `spec-writer → supergh:create-issue` and
 `agent-final-reviewer → supergh:create-pr` are CSO compositions that fire only when `supergh` is also
@@ -96,11 +103,10 @@ superui/             The superui plugin
     content/manifest.md  The injected `using-superui` dispatcher
   shared/            Plugin-level shared scripts (scripts/check_python.sh — the Python preflight)
   skills/            Flat-named skills (single-domain plugin); some bundle preview scripts
-supergh/             The supergh plugin
+supergh/             The supergh plugin (NO hooks, NO manifest — skills route purely via CSO descriptions)
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
-  hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
-    content/manifest.md  The injected `using-supergh` dispatcher
-    scripts/         session-start.sh
+  shared/            Plugin-level shared scripts (scripts/preflight.sh — `!`-injected auth+git fact block;
+                     scripts/body-path.sh — deterministic timestamp+slugify body-path builder)
   skills/            Flat-named skills (cli, cli-executor, commit, agent-committer, create-issue, create-pr);
                      the commit skill bundles scripts/route.sh (mode router)
 superfix/            The superfix plugin (NO hooks, NO manifest — single user-only skill)
@@ -130,9 +136,11 @@ with the script. The tag is the source of truth; each `plugin.json.version` is d
 
 The roles below are **superdev's** — its skills are now bare-named (the `dev-`/`mem-`/`doc-` group prefixes are
 gone), save the `agent-` fork-only marker; the functional roles below are how they group. `superui`'s
-flat-named skills (single-domain plugin; `cc-artifact` is the distinct Claude-Code-platform publisher) and `supergh`'s flat-named skills live in those plugins and are documented in their own
-`<plugin>/hooks/content/manifest.md` + `README.md` (see also the **supergh plugin** section below). For each
-plugin, the **per-skill** catalog of record is its own `<plugin>/.claude-plugin/plugin.json` `skills[]`; the
+flat-named skills (single-domain plugin; `cc-artifact` is the distinct Claude-Code-platform publisher) live in
+that plugin and are documented in its own `<plugin>/hooks/content/manifest.md` + `README.md`; `supergh`'s
+flat-named skills (see the **supergh plugin** section below) ship **no manifest** — they self-document via their
+own `description:` + `README.md`. For each plugin, the **per-skill** catalog of record is its own
+`<plugin>/.claude-plugin/plugin.json` `skills[]`; for the manifest-bearing plugins (`superdev`, `superui`) the
 injected manifest (`<plugin>/hooks/content/manifest.md`) documents that plugin's groups/roles + cross-skill
 chains, not individual skills.
 
@@ -210,7 +218,12 @@ user-facing / auto-routed skill are bare-named too; so are forks still reachable
 ## supergh plugin (GitHub / git — flat-named skills)
 
 `supergh` is a single-domain plugin, so its skills carry **no group prefix** (the plugin name is the group).
-Six skills, qualified as `supergh:<name>`:
+It ships **no `hooks/` and no injected manifest** — unlike `superdev` / `superui`, its skills route purely via
+their CSO `description:` (the always-on guardrail formerly carried by the manifest now lives in each skill's
+"Do NOT call gh… directly" description clause). Two plugin-level helpers live under `shared/scripts/`:
+`preflight.sh` (`!`-injected read-only auth+git fact block, replacing the old per-skill 2–5 `gh`/`git` probes)
+and `body-path.sh` (deterministic timestamp+slugify body-path builder, ending the slugify-prose duplication
+between `create-issue` and `create-pr`). Six skills, qualified as `supergh:<name>`:
 
 - `cli` — GitHub CLI **reference** (which layer — `gh` subcommand / `gh api` REST / `gh api graphql` — a given
   operation needs); reference-only, never executes.
@@ -256,8 +269,11 @@ invariant exception). Components, qualified `superfix:<name>`:
   `hooks/content/manifest.md` (the `using-superdev` dispatcher) **verbatim** once per session; `source == "resume"`
   is excluded by the matcher; fail-open (an unreadable manifest = banner only, no `additionalContext`). The hook
   does no per-project rendering — the manifest is injected as-is, identically for every project. This holds for
-  `superdev` / `superui` / `supergh`; **`superfix` is the exception** — it ships no `hooks/` and no manifest at
-  all, because its sole skill is user-only (`disable-model-invocation`) with nothing to auto-route.
+  `superdev` / `superui`; **`supergh` and `superfix` are the exceptions** — they ship no `hooks/` and no manifest
+  at all. `superfix`'s sole skill is user-only (`disable-model-invocation`) with nothing to auto-route; `supergh`
+  deliberately dropped its manifest (its skills stay model-routable via CSO `description:`, with the 1%-rule
+  guardrail folded into each skill's "Do NOT … directly" description clause). A manifest-less plugin is valid
+  whenever a `SessionStart`-injected dispatcher would add no routing value over the skill descriptions.
 - **Opt-in switches (`.superdev/config.yml`).** Two booleans — `adr`, `rules_improver` — both
   **default-disabled** (a missing file/key = `false`, fail-closed; a repo that never ran `/setup` skips both
   optional steps until it opts in), plus two integer retry keys — `retry_max_attempts`, `retry_escalation_attempts` — both
@@ -313,9 +329,10 @@ invariant exception). Components, qualified `superfix:<name>`:
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
   (superdev's `coder` / `task-reviewer` / `improver` / `commiter` and superfix's `scout` / `detective` live there, not in `skills[]`) — and this file
   in either case. They must stay in sync, and a worker must never appear in both `skills[]` and `agents[]`.
-  Each plugin's injected manifest (`<plugin>/hooks/content/manifest.md`) lists that plugin's
-  **groups/roles + chains**, not individual skills, so update it only when a change adds/removes a group, shifts a
-  group's scope, or alters a documented chain or config-gated area — not for every per-skill change.
+  For the manifest-bearing plugins (`superdev`, `superui`), that plugin's injected manifest
+  (`<plugin>/hooks/content/manifest.md`) lists its **groups/roles + chains**, not individual skills, so update it
+  only when a change adds/removes a group, shifts a group's scope, or alters a documented chain or config-gated
+  area — not for every per-skill change. `supergh` / `superfix` have no manifest, so nothing of the sort to sync.
   **Exception:** a user-only one-time command (`disable-model-invocation: true`, e.g. `setup`) does not
   participate in routing and stays out of the manifest entirely — do not "fix" that gap.
 

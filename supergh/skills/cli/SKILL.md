@@ -1,7 +1,8 @@
 ---
 name: cli
-description: GitHub CLI (gh) reference — when to use native `gh` subcommands, when `gh api` (REST), and when `gh api graphql`. Covers auth & scopes, issue types (REST, not CLI — `gh issue create` has no `--type`), Projects v2, sub-issues, GitHub Discussions, PR review threads, pagination, error handling. Must use this skill whenever an agent or skill needs to call `gh`, `gh api`, or `gh api graphql` — before writing a command from memory, check here which layer (CLI / REST / GraphQL) is correct and whether the field/mutation exists. Triggers include "sub-issue", "review thread", "discussion API", "createDiscussion", "addSubIssue", "resolveReviewThread", "gh pr create". Do NOT execute gh commands directly from this skill — this is a reference skill; execution belongs to consumer skills (create-issue, commit, create-pr, …). Trigger applies in any language and to descriptive phrasing too.
+description: GitHub CLI (gh) reference — which layer (native `gh` / `gh api` REST / `gh api graphql`) a GitHub operation needs. Covers auth & scopes, issue types (REST — `gh issue create` has no `--type`), Projects v2, sub-issues, Discussions, PR review threads, pagination, error handling. Use whenever a skill needs to call `gh`/`gh api`/`gh api graphql` — check here which layer is correct and whether the field/mutation exists before writing from memory. Triggers include "sub-issue", "review thread", "discussion API", "addSubIssue", "resolveReviewThread", "gh pr create". Do NOT execute gh commands from this skill — it is reference-only; execution belongs to consumer skills (create-issue, commit, create-pr, cli-executor).
 user-invocable: false
+effort: low
 ---
 
 # GitHub CLI reference

@@ -101,5 +101,3 @@ REST and GraphQL have separate buckets. GraphQL is metered by query cost (points
 
 - gh manual — api: <https://cli.github.com/manual/gh_api>
 - GraphQL reference: <https://docs.github.com/en/graphql/reference>
-- Forming calls with GraphQL: <https://docs.github.com/en/graphql/guides/forming-calls-with-graphql>
-- Migrating from REST to GraphQL: <https://docs.github.com/en/graphql/guides/migrating-from-rest-to-graphql>

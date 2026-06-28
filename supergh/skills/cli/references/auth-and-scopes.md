@@ -95,8 +95,4 @@ The `X-OAuth-Scopes` response header is the source of truth — it shows what Gi
 ## Sources
 
 - gh manual — auth: <https://cli.github.com/manual/gh_auth>
-- gh manual — auth login: <https://cli.github.com/manual/gh_auth_login>
-- gh manual — auth refresh: <https://cli.github.com/manual/gh_auth_refresh>
 - OAuth scopes reference: <https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps>
-- Fine-grained token permissions: <https://docs.github.com/en/rest/overview/permissions-required-for-fine-grained-personal-access-tokens>
-- Automatic auth in Actions: <https://docs.github.com/en/actions/security-guides/automatic-token-authentication>

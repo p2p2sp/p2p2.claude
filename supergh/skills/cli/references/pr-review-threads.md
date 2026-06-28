@@ -113,8 +113,5 @@ gh api graphql --paginate --slurp -F owner="$O" -F name="$R" -F num=123 \
 
 ## Sources
 
-- REST — Pull request review comments: <https://docs.github.com/en/rest/pulls/comments>
-- GraphQL — PullRequestReviewThread: <https://docs.github.com/en/graphql/reference/objects#pullrequestreviewthread>
 - GraphQL — resolveReviewThread: <https://docs.github.com/en/graphql/reference/mutations#resolvereviewthread>
-- GraphQL — addPullRequestReviewThreadReply: <https://docs.github.com/en/graphql/reference/mutations#addpullrequestreviewthreadreply>
-- Tracking issue for native `gh` support: <https://github.com/cli/cli/issues/12419>
+- REST — Pull request review comments: <https://docs.github.com/en/rest/pulls/comments>

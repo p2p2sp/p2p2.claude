@@ -1,7 +1,7 @@
 ---
 name: create-pr
-description: GitHub pull request creation expert driving an interactive, template-driven flow. Use this skill whenever the user wants to create a PR, open a pull request, submit changes for review, or raise a draft PR. Triggers include "create PR", "new PR", "open PR", "create pull request", "open pull request", "raise PR", "draft PR", "submit for review". Reads `.github/pull_request_template.md`, resolves the linked issue from branch name (`task.N` / `issue.N`), command argument, or session context, and creates a draft PR via `gh pr create`. Do NOT call `gh pr create` directly via Bash — use this skill first; it enforces template usage, draft mode, GitFlow branch routing, and issue-driven title format `[#N] {issue-title}`. Do NOT use for editing existing PRs, posting reviews, or merging — that is separate tooling. Trigger applies in any language and to descriptive phrasing too.
-allowed-tools: Read, Glob, Write, AskUserQuestion, Bash(gh --version), Bash(gh auth status), Bash(gh pr create:*), Bash(gh pr list:*), Bash(gh issue view:*), Bash(git rev-parse:*), Bash(git branch:*), Bash(git log:*)
+description: GitHub pull request creation expert — interactive, template-driven flow. Use whenever the user wants to create a PR, open a pull request, submit changes for review, or raise a draft PR. Triggers include "create PR", "open PR", "pull request", "draft PR", "submit for review". Reads `.github/pull_request_template.md`, resolves the linked issue from branch name (`task.N`/`issue.N`), argument, or session context, and creates a draft PR via `gh pr create`. Do NOT call `gh pr create` directly via Bash — use this skill (it enforces template usage, draft mode, GitFlow branch routing, issue-driven title `[#N] {issue-title}`). Do NOT use for editing existing PRs, posting reviews, or merging.
+allowed-tools: Read, Glob, Write, AskUserQuestion, Bash(sh:*), Bash(gh --version), Bash(gh auth status), Bash(gh pr create:*), Bash(gh pr list:*), Bash(gh issue view:*), Bash(git rev-parse:*), Bash(git branch:*), Bash(git log:*)
 user-invocable: true
 effort: medium
 argument-hint: "[issue-number]"
@@ -11,34 +11,25 @@ argument-hint: "[issue-number]"
 
 Interactive, template-driven draft-PR creator. Reads `.github/pull_request_template.md` on every run (no caching), resolves the linked issue from the branch name (`task.N` / `issue.N`), command argument, or session context, fetches the issue title via `gh issue view`, formats the PR title as `[#<N>] <issue-title>`, routes the target branch via hardcoded GitFlow (`hotfix/*` → `main`, `feature/*` → `develop`, else → ask), agressively pre-fills the body, and lets the user iterate through an Edit / Save / Cancel preview loop before calling `gh pr create --draft`. Meta-prompts match the user's conversation language; section headings are kept verbatim from the template (template authority).
 
-## Contents
-
-- [Argument shape](#argument-shape)
-- [Step 1 — Preconditions (fail-fast)](#step-1--preconditions-fail-fast)
-- [Step 2 — Resolve target branch (routing)](#step-2--resolve-target-branch-routing)
-- [Step 3 — Resolve issue number (4-priority cascade)](#step-3--resolve-issue-number-4-priority-cascade)
-- [Step 4 — Resolve title](#step-4--resolve-title)
-- [Step 5 — Load PR template](#step-5--load-pr-template)
-- [Step 6 — Auto-fill body (aggressive pre-fill, preview-first)](#step-6--auto-fill-body-aggressive-pre-fill-preview-first)
-- [Step 7 — Preview & edit loop](#step-7--preview--edit-loop)
-- [Step 8 — Persist & create](#step-8--persist--create)
-- [Step 9 — Output](#step-9--output)
-- [Body format](#body-format)
-- [Safety rules](#safety-rules)
-
 ## Argument shape
 
 `[issue-number]` — optional. When provided and matching `^\d+$`, the skill **skips branch-regex parsing and session-context scanning** (Step 3 priorities 2 and 3) and uses this number directly. Anything else (non-numeric, multiple tokens) → emit a one-line warning ("ignoring invalid argument: <arg>") and fall through to the regular resolution cascade.
 
+## Preflight
+
+!`"${CLAUDE_PLUGIN_ROOT}/shared/scripts/preflight.sh"`
+
+The `KEY=VALUE` block above is injected at load (read-only facts; STOP logic stays here). Read it — do NOT re-run `gh`/`git` probes. `BRANCH` is the current branch (`current`); `UPSTREAM` is its tracking ref. On any STOP: print a short, actionable message in the user's conversation language and halt — do not proceed, do not write, do not ask further questions.
+
+- `GH_PRESENT=0` → STOP: GitHub CLI is missing, link to https://cli.github.com/.
+- `GH_AUTH=fail` → STOP: not authenticated, instruct `gh auth login`.
+
 ## Step 1 — Preconditions (fail-fast)
 
-Run these in order. On any failure: print a short, actionable message in the user's conversation language and STOP — do not proceed, do not write anything, do not ask further questions.
+`current` = `BRANCH` from Preflight. Same STOP discipline:
 
-1. `Bash(gh --version)` — exit code ≠ 0 → message: GitHub CLI is missing, link to https://cli.github.com/.
-2. `Bash(gh auth status)` — exit code ≠ 0 → message: not authenticated, instruct `gh auth login`.
-3. `Bash(git rev-parse --abbrev-ref HEAD)` → `current` branch name.
-4. Reject **current branch is a known base**: if `current ∈ {main, master, develop}` → STOP with `Cannot open a PR from \`<current>\`. Switch to a feature branch first.` (Edge B)
-5. `Bash(git rev-parse --abbrev-ref @{u})` — non-zero exit or empty → STOP with `Branch \`<current>\` is not pushed. Run \`git push -u origin <current>\` first.` (Edge C) Do NOT auto-push; sandbox intentionally excludes `git push`.
+1. Reject **current branch is a known base**: if `current ∈ {main, master, develop}` → STOP with `Cannot open a PR from \`<current>\`. Switch to a feature branch first.` (Edge B)
+2. `UPSTREAM` empty → STOP with `Branch \`<current>\` is not pushed. Run \`git push -u origin <current>\` first.` (Edge C) Do NOT auto-push; sandbox intentionally excludes `git push`.
 
 ## Step 2 — Resolve target branch (routing)
 
@@ -153,21 +144,11 @@ The edit loop is unbounded — user may edit any number of fields before saving.
 
 ## Step 8 — Persist & create
 
-1. **Compute a unique body path** (so parallel `create-pr` runs do not clobber each other):
+1. **Compute the body path** — deterministic; the script timestamps, slugifies the title (with Polish transliteration), creates `.temp/create-pr/`, and prints the ready path. Trust its single output line:
    ```
-   ts   = Bash("date +%Y%m%d-%H%M%S")          # e.g. 20260522-143045
-   slug = slugify(<title>)                      # see "Slugify" below
-   body_path = ".temp/create-pr/" + ts + "-" + slug + ".md"
+   body_path = Bash("\"${CLAUDE_PLUGIN_ROOT}/shared/scripts/body-path.sh\" create-pr \"<title>\"")
    ```
-   **Slugify** — apply in order to the PR title:
-   1. Lowercase.
-   2. Transliterate Polish diacritics: `ą→a, ć→c, ę→e, ł→l, ń→n, ó→o, ś→s, ź→z, ż→z`.
-   3. Replace every char outside `[a-z0-9]` with `-`.
-   4. Collapse runs of `-` into a single `-`.
-   5. Trim leading/trailing `-`.
-   6. Truncate to 40 chars; if the cut lands inside a word, back off to the last `-` before the limit.
-   7. If the result is empty, use `untitled`.
-2. `Write` the rendered body markdown to `<body_path>` (create the directory if missing).
+2. `Write` the rendered body markdown to `<body_path>`.
 3. Construct and execute:
    ```
    gh pr create \
@@ -216,15 +197,12 @@ Rules:
 
 ## Safety rules
 
-- NEVER call `gh pr create` directly via Bash from the main session for the same flow — use this skill so template parsing, draft enforcement, routing, and issue-driven title generation all happen.
-- NEVER cache the parsed template between runs — re-read `.github/pull_request_template.md` on every invocation. The template may have changed.
-- NEVER use `gh pr create --body "<inline>"` — body markdown contains newlines, quotes, dollar signs, backticks; inline escaping under bash is a footgun. Always `--body-file "<body_path>"` where `<body_path>` is the per-run unique file computed in Step 8.1.
-- NEVER omit `--draft` — every PR this skill creates is a draft. Conversion to ready-for-review is an explicit follow-up step the user can do via `gh pr ready` or the GitHub UI. For the API-level draft↔ready conversion and for resolving PR review threads — both GraphQL-only operations — the `cli` skill is the source of truth on which layer applies (see its `references/pr-review-threads.md`); hand the fully-specified operation to the `cli-executor` skill to run it out of the main context.
-- NEVER widen the sandbox — `git push`, `gh label list`, `gh api repos`, `gh pr edit`, `gh pr ready`, `gh pr view --web` are intentionally out of scope. Each was a deliberate "no" during this skill's design (no auto-push of branches, no labels/reviewers/assignees collection, no in-skill conversion of draft to ready).
-- NEVER hardcode `develop` as the silent fallback when it does not exist on origin — fallback path is the `AskUserQuestion` with a `git branch -r` list (Edge A). The user must see and pick.
-- NEVER auto-push an unpushed branch — Edge C STOPs with an instruction. The user pushes manually so they own that side-effect.
-- NEVER assume the template, the branch naming, or the routing reality look like the current repo's — this skill ships in a stack-agnostic plugin. The routing rules (`hotfix/*→main`, `feature/*→develop`) are a deliberate opinionated default; the always-confirm prompt and the not-exists fallback (Edge A) make sure the user always retains control. Behavior must derive entirely from `.github/pull_request_template.md`, the actual branch name, `git log`, `git branch -r`, and `gh issue view` at runtime.
-- NEVER render the PR template's literal test-section placeholder lines (`- [ ] Test 1`, `- [ ] Test 2`, `- [ ] foo`, etc.) — they are example content, not contract. Either replace with concrete steps derived from session context (Step 6 + the **Test-section auto-fill** rules in `references/auto-fill.md`) or skip the entire section when the change is untestable (docs / assets / dotfiles only).
-- NEVER fabricate specific function / endpoint / file / module names in auto-generated test bullets or Summary bullets — the conservativeness rule applies to both **Test-section auto-fill** and **Summary auto-fill** (`references/auto-fill.md`). When session context is sparse, fall back as defined there, never invent specifics.
-- NEVER carry `#`-prefixed numeric references through the "Podsumowanie zmian" section — Summary auto-fill strips `#(\d+)` → `\1` so squash-merge subjects like `feat: foo (#123)` do not become noisy cross-reference renders in the PR body. The `#` is preserved only in the "Powiązane zadania" section, where GitHub keyword-linking (`closes #N`) requires it.
-- NEVER render "Podsumowanie zmian" as a raw `git log` dump — that section is a **description of changes**, not a commit list. Apply Summary auto-fill: in-context reasoning to produce a short prose-style list (grouped by area when large), with commit-log fallback reserved for the case where both transcript and commit messages are too sparse to summarize.
+(Deltas only — invariants already stated in the steps/description are not repeated here.)
+
+- NEVER use `gh pr create --body "<inline>"` — body markdown carries newlines, quotes, dollar signs, backticks; inline escaping under bash is a footgun. Always `--body-file "<body_path>"` (the per-run file from Step 8.1).
+- NEVER omit `--draft`. Conversion to ready-for-review is a follow-up the user does via `gh pr ready` or the UI. The API-level draft↔ready conversion and resolving PR review threads are GraphQL-only — the `cli` skill owns which layer applies (`references/pr-review-threads.md`); hand the fully-specified operation to `cli-executor` to run out of the main context.
+- NEVER widen the sandbox — `git push`, `gh label list`, `gh api repos`, `gh pr edit`, `gh pr ready`, `gh pr view --web` are intentionally out of scope (deliberate "no"s: no auto-push, no labels/reviewers/assignees collection, no in-skill draft→ready). The only non-gh/git tool is `Bash(sh:*)` for the bundled preflight/body-path scripts.
+- NEVER assume the template, branch naming, or routing reality look like the current repo's — this skill ships stack-agnostic. The routing rules (`hotfix/*→main`, `feature/*→develop`) are an opinionated default; the always-confirm prompt and Edge-A fallback keep the user in control. Behavior derives entirely from `.github/pull_request_template.md`, the actual branch name, `git log`, `git branch -r`, and `gh issue view` at runtime.
+- NEVER render the template's literal test-section placeholders (`- [ ] Test 1`, etc.) — example content, not contract. Replace with concrete steps from session context (Step 6 + **Test-section auto-fill** in `references/auto-fill.md`) or skip the section when the change is untestable (docs / assets / dotfiles only).
+- NEVER fabricate specific function / endpoint / file / module names in auto-generated test or Summary bullets — conservativeness applies to both **Test-section auto-fill** and **Summary auto-fill** (`references/auto-fill.md`). On sparse context, fall back as defined there, never invent specifics.
+- NEVER carry `#`-prefixed numeric references through the "Podsumowanie zmian" section — Summary auto-fill strips `#(\d+)` → `\1` so squash-merge subjects like `feat: foo (#123)` don't become noisy cross-reference renders. `#` is preserved only in "Powiązane zadania", where GitHub keyword-linking (`closes #N`) needs it.

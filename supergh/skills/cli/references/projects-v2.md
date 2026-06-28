@@ -95,7 +95,4 @@ See `auth-and-scopes.md` for the full scope matrix and CI guidance.
 ## Sources
 
 - gh manual — project: <https://cli.github.com/manual/gh_project>
-- gh manual — project item-edit: <https://cli.github.com/manual/gh_project_item-edit>
 - Projects v2 GraphQL guide: <https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/using-the-api-to-manage-projects>
-- GraphQL — ProjectV2 object: <https://docs.github.com/en/graphql/reference/objects#projectv2>
-- GraphQL — updateProjectV2ItemFieldValue: <https://docs.github.com/en/graphql/reference/mutations#updateprojectv2itemfieldvalue>

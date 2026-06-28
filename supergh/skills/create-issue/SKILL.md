@@ -1,7 +1,7 @@
 ---
 name: create-issue
-description: GitHub issue creation expert driving an interactive, template-driven flow. Use this skill whenever the user wants to create a GitHub issue, report a bug, file a feature request, open a ticket, or submit a structured issue using the project's issue templates. Triggers include "create issue", "new issue", "open issue", "report bug", "file a bug", "feature request". Reads `.github/ISSUE_TEMPLATE/` fresh on every run, auto-fills fields from session context, shows a preview, and creates the issue via `gh issue create`. Do NOT write issue markdown by hand or call `gh issue create` directly via Bash — use this skill first; it parses the template, enforces required fields, and respects frontmatter labels/type/assignees. Do NOT use for editing or commenting on existing issues — that is separate tooling. Trigger applies in any language and to descriptive phrasing too.
-allowed-tools: Read, Glob, Write, AskUserQuestion, Bash(gh --version), Bash(gh auth status), Bash(gh issue create:*), Bash(gh issue view:*), Bash(gh api:*)
+description: GitHub issue creation expert — interactive, template-driven flow. Use whenever the user wants to create a GitHub issue, report a bug, file a feature request, or open a ticket. Triggers include "create issue", "new issue", "report bug", "feature request". Reads `.github/ISSUE_TEMPLATE/` fresh per run, auto-fills from session context, previews, then creates via `gh issue create`. Do NOT write issue markdown by hand or call `gh issue create` directly via Bash — use this skill (it parses the template, enforces required fields, respects frontmatter labels/type/assignees). Do NOT use for editing or commenting on existing issues.
+allowed-tools: Read, Glob, Write, AskUserQuestion, Bash(sh:*), Bash(gh --version), Bash(gh auth status), Bash(gh issue create:*), Bash(gh issue view:*), Bash(gh api:*)
 user-invocable: true
 effort: medium
 argument-hint: "[template-slug]"
@@ -11,33 +11,24 @@ argument-hint: "[template-slug]"
 
 Interactive, template-driven creator of GitHub issues. Reads `.github/ISSUE_TEMPLATE/` of the current repo on every run (no caching). **Context-aware**: before per-field prompting, auto-fills `body[]` entries from the current session transcript (prior interview, exploration, plan files quoted in-session, sub-agent results) and asks the user only about fields the context cannot unambiguously answer. Shows a preview with an edit loop, then calls `gh issue create` with body via tempfile. Meta-prompts match the user's conversation language; field labels are kept verbatim from the template (template authority). Hallucination is strictly forbidden — any uncertainty falls through to the existing per-field prompt.
 
-## Contents
-
-- [Argument shape](#argument-shape)
-- [Step 1 — Preconditions (fail-fast)](#step-1--preconditions-fail-fast)
-- [Step 2 — Load templates](#step-2--load-templates)
-- [Step 3 — Select template type](#step-3--select-template-type)
-- [Step 4 — Collect title](#step-4--collect-title)
-- [Step 4.5 — Auto-fill body fields from session context](#step-45--auto-fill-body-fields-from-session-context)
-- [Step 5 — Collect body fields](#step-5--collect-body-fields)
-- [Step 6 — Render body markdown](#step-6--render-body-markdown)
-- [Step 7 — Summary & confirm loop](#step-7--summary--confirm-loop)
-- [Step 8 — Persist & create](#step-8--persist--create)
-- [Step 9 — Output](#step-9--output)
-- [Body format](#body-format)
-- [Safety rules](#safety-rules)
-
 ## Argument shape
 
 `[template-slug]` — optional. When provided, skill matches it against template files in `.github/ISSUE_TEMPLATE/` after stripping the leading `[0-9]+-` numeric prefix and the `.yml`/`.yaml` extension (e.g. `feature-request` matches `02-feature-request.yml`). On a **unique** match → skip Step 3 type-selection and load that template directly. On **zero** or **multiple** matches → emit a one-line warning ("template not found" / "ambiguous") and fall back to interactive selection in Step 3.
 
+## Preflight
+
+!`"${CLAUDE_PLUGIN_ROOT}/shared/scripts/preflight.sh"`
+
+The `KEY=VALUE` block above is injected at load (read-only facts; STOP logic stays here). Read it — do NOT re-run `gh`/`git` probes. On any STOP: print a short, actionable message in the user's conversation language and halt — do not proceed, do not write anything, do not ask further questions.
+
+- `GH_PRESENT=0` → STOP: GitHub CLI is missing, link to https://cli.github.com/.
+- `GH_AUTH=fail` → STOP: not authenticated, instruct `gh auth login`.
+
 ## Step 1 — Preconditions (fail-fast)
 
-Run these three checks in order. On any failure: print a short, actionable message in the user's conversation language and STOP — do not proceed to later steps, do not write anything, do not ask further questions.
+Preflight already covered `gh` + auth. One template check remains (same STOP discipline):
 
-1. `Bash(gh --version)` — exit code ≠ 0 → message: GitHub CLI is missing, link to https://cli.github.com/.
-2. `Bash(gh auth status)` — exit code ≠ 0 → message: not authenticated, instruct `gh auth login`.
-3. `Glob(".github/ISSUE_TEMPLATE/*.yml")` ∪ `Glob(".github/ISSUE_TEMPLATE/*.yaml")` — empty → message: no issue templates in `.github/ISSUE_TEMPLATE/`, instruct to add one.
+1. `Glob(".github/ISSUE_TEMPLATE/*.yml")` ∪ `Glob(".github/ISSUE_TEMPLATE/*.yaml")` — empty → STOP: no issue templates in `.github/ISSUE_TEMPLATE/`, instruct to add one.
 
 ## Step 2 — Load templates
 
@@ -145,21 +136,11 @@ The edit loop is unbounded — user may edit any number of fields before saving.
 
 ## Step 8 — Persist & create
 
-1. **Compute a unique body path** (so parallel `create-issue` runs do not clobber each other):
+1. **Compute the body path** — deterministic; the script timestamps, slugifies the title (with Polish transliteration), creates `.temp/create-issue/`, and prints the ready path. Trust its single output line:
    ```
-   ts   = Bash("date +%Y%m%d-%H%M%S")          # e.g. 20260522-143045
-   slug = slugify(<title>)                      # see "Slugify" below
-   body_path = ".temp/create-issue/" + ts + "-" + slug + ".md"
+   body_path = Bash("\"${CLAUDE_PLUGIN_ROOT}/shared/scripts/body-path.sh\" create-issue \"<title>\"")
    ```
-   **Slugify** — apply in order to the issue title:
-   1. Lowercase.
-   2. Transliterate Polish diacritics: `ą→a, ć→c, ę→e, ł→l, ń→n, ó→o, ś→s, ź→z, ż→z`.
-   3. Replace every char outside `[a-z0-9]` with `-`.
-   4. Collapse runs of `-` into a single `-`.
-   5. Trim leading/trailing `-`.
-   6. Truncate to 40 chars; if the cut lands inside a word, back off to the last `-` before the limit.
-   7. If the result is empty, use `untitled`.
-2. `Write` the rendered body to `<body_path>` (create the directory if missing).
+2. `Write` the rendered body to `<body_path>`.
 3. Construct the `gh issue create` invocation:
    ```
    gh issue create \
@@ -215,15 +196,10 @@ Rules:
 
 ## Safety rules
 
-- NEVER call `gh issue create` outside this skill from the main session for the same flow — use this skill so template parsing and required-field validation happen.
-- NEVER cache parsed templates between runs — re-read `.github/ISSUE_TEMPLATE/` on every invocation. Templates may have changed.
-- NEVER skip required-field validation. If `validations.required: true`, an empty answer means re-prompt, not "carry on".
-- NEVER use `gh issue create --body "<inline>"` — body markdown contains newlines, quotes, dollar signs, backticks; inline escaping under bash is a footgun. Always `--body-file "<body_path>"` where `<body_path>` is the per-run unique file computed in Step 8.1.
-- NEVER pass `--type` to `gh issue create` — the flag does not exist. Issue type is set via REST PATCH (`gh api -X PATCH repos/{o}/{r}/issues/{n} -f type=...`) in Step 8.5. The `cli` skill is the source of truth for the issue-type / labels / milestones layer rules (which operations are native `gh` flags vs. REST) — consult it rather than re-deriving the layer here.
-- NEVER widen the sandbox to general `Bash` or general `Bash(gh:*)` — the allowed-tools list is intentionally narrow (only `gh --version`, `gh auth status`, `gh issue create:*`, `gh issue view:*`, `gh api:*`).
-- NEVER assume the template set looks like the current repo's — this skill ships in a stack-agnostic plugin; behavior must derive entirely from what's present in `.github/ISSUE_TEMPLATE/` at runtime.
-- NEVER fabricate field content during Step 4.5 auto-fill — any uncertainty, missing context, or conflicting signals → MISSING. Re-asking is strictly better than hallucination.
-- NEVER auto-fill a value into a `dropdown` or `checkboxes` field that is not an exact member of `attributes.options[]` — context implying an out-of-set value → MISSING (do not partially select for `checkboxes`).
-- NEVER auto-skip a required field without a confirmed value reaching Step 7 — required-field discipline (Step 5) applies regardless of whether the value came from auto-fill or the user.
+(Deltas only — invariants already stated in the steps/description are not repeated here.)
+
+- NEVER use `gh issue create --body "<inline>"` — body markdown carries newlines, quotes, dollar signs, backticks; inline escaping under bash is a footgun. Always `--body-file "<body_path>"` (the per-run file from Step 8.1).
+- NEVER widen the sandbox to general `Bash` or `Bash(gh:*)` — allowed-tools is intentionally narrow: only `Bash(sh:*)` (bundled preflight/body-path scripts), `gh --version`, `gh auth status`, `gh issue create:*`, `gh issue view:*`, `gh api:*`.
+- NEVER assume the template set looks like the current repo's — this skill ships stack-agnostic; behavior derives entirely from what's present in `.github/ISSUE_TEMPLATE/` at runtime.
+- NEVER auto-fill a value into a `dropdown` or `checkboxes` field that is not an exact member of `attributes.options[]` — context implying an out-of-set value → MISSING (never partially select for `checkboxes`).
 - NEVER bypass the Step 7 preview / confirmation — auto-fill ratio is irrelevant; the user always sees the preview and the Save / Edit field / Cancel triad.
-- NEVER scan the filesystem or project tree for field content during auto-fill — Step 4.5's source set is limited to the current session transcript and plan files already opened or quoted in-session. No new `Read`, `Glob`, or `Grep` calls for this purpose.

@@ -125,10 +125,4 @@ Attach an existing milestone to an issue via `gh issue create -m "Q2 2026"` or `
 ## Sources
 
 - gh manual — issue: <https://cli.github.com/manual/gh_issue>
-- gh manual — issue create: <https://cli.github.com/manual/gh_issue_create>
 - REST — Issues (with `type` field): <https://docs.github.com/en/rest/issues/issues>
-- REST — Org issue types: <https://docs.github.com/en/rest/orgs/issue-types>
-- REST — Labels: <https://docs.github.com/en/rest/issues/labels>
-- REST — Milestones: <https://docs.github.com/en/rest/issues/milestones>
-- GraphQL — updateIssueIssueType: <https://docs.github.com/en/graphql/reference/mutations#updateissueissuetype>
-- Changelog — REST support for issue types: <https://github.blog/changelog/2025-03-18-github-issues-projects-rest-api-support-for-issue-types/>

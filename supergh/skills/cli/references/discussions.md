@@ -87,5 +87,3 @@ Repo Discussions need the same scope as repo content access (`repo` for private 
 
 - Discussions GraphQL guide: <https://docs.github.com/en/graphql/guides/using-the-graphql-api-for-discussions>
 - GraphQL — createDiscussion: <https://docs.github.com/en/graphql/reference/mutations#creatediscussion>
-- GraphQL — addDiscussionComment: <https://docs.github.com/en/graphql/reference/mutations#adddiscussioncomment>
-- GraphQL — markDiscussionCommentAsAnswer: <https://docs.github.com/en/graphql/reference/mutations#markdiscussioncommentasanswer>

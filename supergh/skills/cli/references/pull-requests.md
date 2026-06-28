@@ -104,9 +104,4 @@ gh pr merge <num> --subject '…' --body '…'   # override commit message
 ## Sources
 
 - gh manual — pr: <https://cli.github.com/manual/gh_pr>
-- gh manual — pr create: <https://cli.github.com/manual/gh_pr_create>
-- gh manual — pr edit: <https://cli.github.com/manual/gh_pr_edit>
-- gh manual — pr review: <https://cli.github.com/manual/gh_pr_review>
-- gh manual — pr merge: <https://cli.github.com/manual/gh_pr_merge>
 - REST — Pulls: <https://docs.github.com/en/rest/pulls/pulls>
-- GraphQL — PullRequest object: <https://docs.github.com/en/graphql/reference/objects#pullrequest>

@@ -1,7 +1,8 @@
 # superdev + superui + supergh + superfix
 
-Four independent, self-contained Claude Code plugins. The first three are cohesive ecosystems, each driven by
-its own injected dispatcher manifest; `superfix` is a single user-invoked skill with no manifest and no hooks.
+Four independent, self-contained Claude Code plugins. `superdev` and `superui` are cohesive ecosystems, each
+driven by its own injected dispatcher manifest; `supergh` and `superfix` ship no manifest and no hooks
+(`supergh` routes its GitHub skills purely via CSO descriptions; `superfix` is a single user-invoked skill).
 Skills compose through CSO + documented natural chains.
 
 - **superdev** (`./superdev`) — the agentic-development ecosystem: project memory, planning, and the
@@ -10,6 +11,7 @@ Skills compose through CSO + documented natural chains.
   adaptation, web preview, the UI-edit guardian, and a shareable-artifact publisher.
 - **supergh** (`./supergh`) — the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a
   fully-specified operation executor, Conventional-Commits commits, and template-driven issue / PR creation.
+  No manifest, no hooks — skills route via their CSO descriptions.
 - **superfix** (`./superfix`) — prioritized multi-agent codebase investigation: the `/superfix:audit`
   command sweeps a repo with cheap `scout` agents, scores Impact × Opportunity, and sends frontier `detective`
   agents only into the hotspots. No manifest, no hooks — one user-invoked skill.
@@ -30,8 +32,8 @@ none declares another as a dependency.
 ```
 
 Every plugin is self-contained — none declares any dependencies. Installing one gives you that whole
-ecosystem: its single injected manifest routes every request to the right skill / chain. Install only the
-one(s) you need.
+ecosystem: `superdev` / `superui` route every request through their injected manifest, while `supergh` /
+`superfix` route purely via skill descriptions. Install only the one(s) you need.
 
 ## superdev skills
 
@@ -44,7 +46,7 @@ one(s) you need.
 
 ## supergh skills
 
-Flat-named (single-domain plugin, no group prefix):
+Flat-named (single-domain plugin, no group prefix). No manifest, no hooks — skills route via their CSO `description:`:
 
 | Skill | Role |
 | --- | --- |
@@ -80,9 +82,10 @@ Single user-invoked skill (no manifest, no hooks); runs only via `/superfix:audi
 
 ## How it works
 
-- **Each plugin injects its own manifest** (`<plugin>/hooks/content/manifest.md`) once per session and routes
-  across that plugin's domains (instruction priority, the 1% rule, decision flow, the skill catalog, the
-  natural chains, and red flags). Install several and their manifests coexist.
+- **The manifest-bearing plugins (`superdev`, `superui`) inject their manifest** (`<plugin>/hooks/content/manifest.md`)
+  once per session and route across that plugin's domains (instruction priority, the 1% rule, decision flow, the
+  skill catalog, the natural chains, and red flags). `supergh` / `superfix` ship no manifest and route purely via
+  CSO descriptions. Install several and their manifests coexist.
 - **Skills auto-engage via CSO** — each skill's `description:` is its trigger, in any language.
 - **Opt-in per project (superdev)** — `/setup` writes `.superdev/config.yml` (two switches: `adr`,
   `rules_improver`). The routing manifest is always injected as-is; a disabled switch only skips its
@@ -107,9 +110,9 @@ superui/             The superui plugin
   .claude-plugin/plugin.json   Plugin manifest (skills[])
   hooks/             Injected manifest + SessionStart (no plan gate)
   skills/            Flat-named skills (extract-design-system, create-component, adapt-target, web-preview, design-guardian, cc-artifact)
-supergh/             The supergh plugin
+supergh/             The supergh plugin (no hooks, no manifest)
   .claude-plugin/plugin.json   Plugin manifest (skills[])
-  hooks/             Injected manifest + SessionStart (no plan gate)
+  shared/            Plugin-level shared scripts (preflight.sh, body-path.sh)
   skills/            Flat-named skills (cli, cli-executor, commit, agent-committer, create-issue, create-pr)
 superfix/            The superfix plugin (no hooks, no manifest)
   .claude-plugin/plugin.json   Plugin manifest (skills[] + agents[])
