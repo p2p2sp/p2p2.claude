@@ -104,7 +104,7 @@ reviewer_call_line=$(
 )
 
 if [ -z "$reviewer_call_line" ]; then
-  emit_deny "Plan review required before approval: superplan-reviewer must return 'Overall Verdict: PASS' for this plan. Invoke superplan-reviewer with the absolute plan file path as the bare argument, wait for the verdict, then retry ExitPlanMode."
+  emit_deny "Next step: plan review. Run superplan-reviewer with the absolute plan file path as the bare argument, wait for 'Overall Verdict: PASS', then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
 # S: the ACTUAL "Overall Verdict: PASS" verdict line occurring AFTER the reviewer
@@ -121,7 +121,7 @@ status_pass_line=$(
 )
 
 if [ -z "$status_pass_line" ]; then
-  emit_deny "Plan review not passed: superplan-reviewer ran but no 'Overall Verdict: PASS' followed. If it returned 'Overall Verdict: FIX' or 'Overall Verdict: BLOCK', apply the Consolidated fixes to the plan file and re-invoke superplan-reviewer, then retry ExitPlanMode."
+  emit_deny "Next step: address the review. superplan-reviewer ran but did not return 'Overall Verdict: PASS' — apply its Consolidated fixes to the plan file, re-run superplan-reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
 # Sequence W -> R -> S satisfied -> allow.
