@@ -12,7 +12,7 @@ Skills compose through CSO + documented natural chains.
 - **supergh** (`./supergh`) — the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a
   fully-specified operation executor, Conventional-Commits commits, and template-driven issue / PR creation.
   No manifest, no hooks — skills route via their CSO descriptions.
-- **superfix** (`./superfix`) — prioritized multi-agent codebase investigation: the `/superfix:audit`
+- **superfix** (`./superfix`) — prioritized multi-agent codebase investigation: the `/superfix:code-auditor`
   command sweeps a repo with cheap `scout` agents, scores Impact × Opportunity, and sends frontier `detective`
   agents only into the hotspots. No manifest, no hooks — one user-invoked skill.
 
@@ -72,11 +72,11 @@ Flat-named (single-domain plugin, no group prefix):
 
 ## superfix skills
 
-Single user-invoked skill (no manifest, no hooks); runs only via `/superfix:audit`:
+Single user-invoked skill (no manifest, no hooks); runs only via `/superfix:code-auditor`:
 
 | Component | Role |
 | --- | --- |
-| `audit` (skill) | Prioritized multi-agent codebase investigation — sweep every file, score Impact × Opportunity, gate to the hotspots, dispatch deep investigators, synthesize a verified, severity-ranked hotlist. User-only (`disable-model-invocation`) |
+| `code-auditor` (skill) | Prioritized multi-agent codebase investigation — sweep every file, score Impact × Opportunity, gate to the hotspots, dispatch deep investigators, synthesize a verified, severity-ranked hotlist. User-only (`disable-model-invocation`) |
 | `scout` (agent) | Cheap, fast triage scorer — rates one file (or a small batch) for Impact and Opportunity 1-5; spawn many in parallel during the sweep |
 | `detective` (agent) | Frontier-model deep investigator — hunts the actual issue in one hotspot, verifies it on a clean checkout, writes a structured finding; spawn few |
 
@@ -116,7 +116,7 @@ supergh/             The supergh plugin (no hooks, no manifest)
   skills/            Flat-named skills (cli, cli-executor, commit, agent-committer, create-issue, create-pr)
 superfix/            The superfix plugin (no hooks, no manifest)
   .claude-plugin/plugin.json   Plugin manifest (skills[] + agents[])
-  skills/            Single user-invoked skill (audit) + references/ + scripts/
+  skills/            Single user-invoked skill (code-auditor) + references/ + scripts/
   agents/            scout (cheap triage) + detective (deep investigator)
 .github/             CI workflows + the shared release.sh version-bump script (syncs all four manifests)
 .claude/rules/       Development-only conventions for this repo

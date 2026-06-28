@@ -1,7 +1,7 @@
 ---
 name: scout
 description: >-
-  Cheap, fast triage scout for the impact-opportunity workflow. Scores a single file (or a small batch) for Impact and Opportunity on a 1-5 scale against the run's job rubric and returns one compact line of JSON. Breadth over depth — spawn many of these in parallel during the sweep. Does NOT hunt for the actual bug; it only rates whether a place is worth a closer look.
+  Cheap, fast triage scout for the Code Auditor workflow. Scores a single file (or a small batch) for Impact and Opportunity on a 1-5 scale against the run's job rubric and returns one compact line of JSON. Breadth over depth — spawn many of these in parallel during the sweep. Does NOT hunt for the actual bug; it only rates whether a place is worth a closer look.
 model: haiku
 tools: Read, Write, Grep, Glob, Bash
 ---

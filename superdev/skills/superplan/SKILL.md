@@ -35,13 +35,13 @@ Apply these passive disciplines while drafting:
 4. **No silent assumptions.** Every claim about behavior / data / environment / intent NOT derivable from files read in (1) and NOT stated in the session goes into §5, marked `[load-bearing]` if the plan breaks when it's wrong. A candidate with no defensible default becomes an §6 Option, not a silent §5 guess.
 
 **Testing direction is a floor (canonical).**
-- Do NOT interview about execution-style decisions — test framework, test-first vs test-after ordering, per-task test naming, task boundaries, edit order. `decomposer` derives those from plan + project rules + project skills.
+- Do NOT interview about execution-style decisions.
 - DO capture the testing *solution direction* the session surfaced — which areas need TDD and why, the edge cases / failure modes that matter, the port seams worth isolating — into §8. That is *what to test and why*, not *how to execute it*.
-- Fold any explicit session directive verbatim (e.g. "validation layer needs TDD"). `decomposer` reads §8 as a binding floor: it may raise rigor (push a borderline area to TDD, add an edge case) but never lower it below the TDD baseline. A volunteered execution directive ("ship the migration first") is captured verbatim and read as a binding override.
+- Fold any explicit session directive verbatim (e.g. "validation layer needs TDD"). Agent during implementation reads §8 as a binding floor.
 
 **Architectural reasoning (prose only — no ADR here).**
 - Make the reasoning behind any architectural decision the change locks in legible in plan prose: the trade-off, the rejected alternatives, why this direction (§3, §6 if present, §7).
-- The implementation-time recorder reads the approved plan + the code it touches to judge ADR-worthiness and writes the record itself — richer reasoning here yields a better ADR. Never write an ADR file from this skill.
+- Never write an ADR file from this skill.
 
 ---
 
