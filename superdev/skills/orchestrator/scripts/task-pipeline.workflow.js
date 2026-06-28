@@ -235,7 +235,7 @@ async function committer() {
 let attempt = 0
 let lastFailureReportPath = '' // most recent upstream report on disk → next coder Feedback
 let lastCoderReportPath = '' // forwarded to the next task-reviewer as `Previous coder report:`
-const lastBlocked = {} // {runner|taskReviewer -> 'BLOCKED'} infinite-loop guard
+const lastBlocked = {} // {runner|taskReviewer -> 'BLOCKED'} per-attempt unblock guard (reset each outer iteration)
 
 function fail() {
   return { status: 'FAIL', attempts: attempt, lastFailureReportPath, outputTokens: tokensDelta(), ...(stub ? { trace } : {}) }
@@ -246,6 +246,10 @@ if (typeof phase === 'function') phase('Coder')
 while (attempt < cap) {
   attempt += 1
   if (typeof log === 'function') log(`Task pipeline: attempt ${attempt}/${cap}`)
+  // Reset the unblock guard per attempt — the "BLOCKED twice in a row" rule is per-pass, not global.
+  // A fresh coder pass may have changed the code, so each attempt earns its own unblock chance.
+  delete lastBlocked.runner
+  delete lastBlocked.taskReviewer
 
   // ── coder (Mode: normal) ──────────────────────────────────────────────────
   // The first attempt seeds Feedback from feedbackPath (escalation re-invoke) when present;
