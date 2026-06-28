@@ -1,9 +1,11 @@
 #!/bin/sh
 # route.sh — commit mode router.
-# IN : $1 = raw skill argument ($ARGUMENTS). First whitespace token, lowercased, selects:
+# IN : $1 = raw skill argument ($ARGUMENTS). Scanned token-by-token (lowercased) for the
+#      first exact word `all` or `staged` — so a model-forwarded phrase like "commit all"
+#      still selects `all` (not the leading verb). Exact-word match: `install` ≠ `all`.
 #      all    → fork handoff, staging mode `all`   (agent-committer → commit.sh git add -A)
 #      staged → fork handoff, staging mode `index` (agent-committer → commit.sh, no add)
-#      empty/anything else → `context` mode: inline authoring in main + commit.sh paths
+#      empty/no keyword → `context` mode: inline authoring in main + commit.sh paths
 # OUT: the chosen playbook on stdout, injected into the skill body:
 #      all/staged → a one-line "staging mode:" prefix + references/mode-fork.md (shared).
 #      context    → references/mode-session.md + the shared commit-conventions.md (so the
@@ -14,7 +16,13 @@ set -eu
 dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 ref="$dir/../references"
 shared_ref="$dir/../../../shared/references"
-token=$(printf '%s' "${1:-}" | awk '{print tolower($1)}')
+token=context
+for w in $(printf '%s' "${1:-}" | tr 'A-Z' 'a-z'); do
+  case "$w" in
+    all)    token=all;    break ;;
+    staged) token=staged; break ;;
+  esac
+done
 case "$token" in
   all)
     printf 'staging mode: **all**\n\n'
