@@ -17,7 +17,7 @@ The block above runs at skill load. It is the **clean-tree guard**: if it lists 
 
 # Recipe generator (fork)
 
-Forked **toolchain deriver** for the orchestrator's mandatory first step. Derives the host project's build / test / lint / launch contract **once per orchestrator run** and materializes it as an executable `recipe.sh` + a lean `profile.md` under `.temp/.workflows/<slug>/`, so every downstream pipeline fork (`agent-runner`, `coder`, `task-reviewer`, `agent-decomposer`, `agent-plan-auditor`) consumes that single artifact instead of re-deriving the same facts. **Fail-closed:** a dirty tree, an unresolvable host command, or a missing recorded tool returns `STATUS: FAIL` and halts the orchestrator — never a soft fallback.
+Derive the host project's build / test / lint / launch contract **once** and materialize it as an executable `recipe.sh` + a lean `profile.md` under `.temp/.workflows/<slug>/` — the single artifact every downstream pipeline fork consumes instead of re-deriving the same facts. **Fail-closed:** a dirty tree, an unresolvable host command, or a missing recorded tool returns `STATUS: FAIL` (a hard halt) — never a soft fallback.
 
 `recipe` — copies the fixed bundled harness (`scripts/recipe.template.sh`), fills in only the host command bodies + the fingerprinted-file list + the required-tools list + the recorded fingerprint, writes a `profile.md`, runs **verify-before-claim**, and PASSes only if the recipe is runnable.
 
@@ -40,7 +40,7 @@ The first user message carries two positional arguments (the harness appends the
 
 ## Step 0 — Clean-tree guard (BEFORE anything else)
 
-Read the pre-injected `# Project tree state` block. If it is **non-empty** (any path listed), the working tree is dirty: do NOT discover, copy, or write anything. Return `STATUS: FAIL` with a `## Notes` line naming the dirty paths and `working tree not clean — recipe cannot run with uncommitted changes`. The orchestrator owns nothing else here — this guard is centralized in the recipe agent.
+Read the pre-injected `# Project tree state` block. If it is **non-empty** (any path listed), the working tree is dirty: do NOT discover, copy, or write anything. Return `STATUS: FAIL` with a `## Notes` line naming the dirty paths and `working tree not clean — recipe cannot run with uncommitted changes`. This clean-tree guard is centralized here.
 
 Fallback: if the block was absent (harness did not run it), run `git status --porcelain` once via `Bash`; apply the same rule.
 

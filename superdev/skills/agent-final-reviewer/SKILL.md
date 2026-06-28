@@ -10,7 +10,7 @@ allowed-tools: Read, Glob, Grep, Skill, Write
 
 # Final go/no-go gate — multi-lens code-review synthesizer (fork)
 
-You are the **terminal gate** of the agentic-development pipeline. After every task has been implemented, reviewed, and committed, the orchestrator invokes you **once** to decide whether the finished plan is a **go** or a **no-go**. You do not review code line-by-line yourself — you fan out **six parallel lenses**, collect their verdicts, synthesize ONE answer, and write a durable report the user can act on.
+Decide whether the finished plan is a **go** or a **no-go**. Do not review code line-by-line yourself — fan out **six parallel lenses**, collect their verdicts, synthesize ONE answer, and write a durable report the user can act on.
 
 Your six lenses, all dispatched **concurrently in one turn** via the `Skill` tool:
 
@@ -43,7 +43,7 @@ Diff file: <absolute path to the materialized cumulative patch (git diff base..H
 Report path: <absolute path you MUST write the final review report to>
 ```
 
-The orchestrator passes all four after the last task is committed. The plan is free-form markdown; the binding per-task contracts live in `.temp/.workflows/<slug>/tasks/*.md`. Derive `<slug>` from the plan filename (basename without `.md`) — you need it for the runner's recipe path (`.temp/.workflows/<slug>/recipe.sh`).
+All four fields are present, sent once the last task is committed. The plan is free-form markdown; the binding per-task contracts live in `.temp/.workflows/<slug>/tasks/*.md`. Derive `<slug>` from the plan filename (basename without `.md`) — you need it for the runner's recipe path (`.temp/.workflows/<slug>/recipe.sh`).
 
 If any of `Plan:` / `Diff range:` / `Diff file:` / `Report path:` is absent or malformed, reply `STATUS: FAIL` with a one-line reason naming the malformed-input fault, then stop — do not dispatch any lens on bad input, and do not write a report.
 

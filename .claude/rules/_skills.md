@@ -16,6 +16,16 @@ Do not use excesive formating. Do not use italics, tables - clean text, bullets 
 
 The instinct when writing skill or agent documentation is to be thorough. Cover every parameter. Note every edge case. Document every default behavior. Resist this. LLM doesn’t need a manual. It needs the delta — the things that differ from sensible defaults. If the right behavior is what a competent developer would do anyway, you don’t need to document it.
 
+## A skill does not narrate its caller
+
+Write every skill as `input -> work -> output`. It does NOT need to know WHO invokes it or WHY — a fork least of all. It receives an input, does its job, returns its output. Strip the surrounding-world story from the body.
+
+- Keep the routing guard in frontmatter `description:` only (e.g. "invoked only by X, never directly") — that single line is a real signal that stops the wrong caller. The BODY needs none of it.
+- In the body, cut: the caller's name, the caller's surrounding flow ("after every task the orchestrator…", "one of six lenses the reviewer fans out…", "you are the terminal gate of the pipeline"), and the rationale for the call. None of it changes what the skill does with its input.
+- Keep behaviour the INPUT drives, but frame it on the input, never the caller: "if `Report path:` present -> write the report there", NOT "the orchestrator passes `Report path:`, so…".
+- Keep a genuine scope boundary even when it names siblings ("you own ONLY dimension X; Y and Z are out of scope") — that is a behavioural constraint, not caller narrative.
+- Litmus: would the sentence still be true and useful if a different caller sent the same input? Keep it. Does it only describe the current caller's world? Cut it.
+
 ## Use Clear Structure and Headings
 
 Content at the top of a file and under clear headings gets more reliable attention than content buried in the middle of dense paragraphs. Structure your skill or agent files so that the most critical, most frequently relevant instructions are first and clearly marked.
@@ -32,7 +42,7 @@ Set a recurring reminder to review your skill or agent files the same way you’
 - Guidance that was added for a specific situation but was never scoped to that situation
 - Documentation for tools or patterns your project no longer uses
 - Repeated information across multiple files
-- Explanation who is using the skill or agent, especially forked skill.
+- Caller narrative in the body — who invokes the skill and why, especially in a fork. See "A skill does not narrate its caller"; cut it on sight.
 
 Remove mercilessly. Everything in a skill file has a cost.
 

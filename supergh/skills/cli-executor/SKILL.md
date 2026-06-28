@@ -9,9 +9,9 @@ allowed-tools: Read, Bash(sh:*), Bash(gh --version), Bash(gh auth status), Bash(
 
 # GitHub CLI executor (fork)
 
-A focused executor for ONE fully-specified GitHub operation. The caller hands over a non-interactive operation in prose; this fork picks the right layer (`gh` subcommand / `gh api` REST / `gh api graphql`), runs any discovery query the mutation needs, executes it, guards the result, and replies with EXACTLY ONE tagged line — so the caller (main session or a consumer skill) never pages the raw JSON.
+A focused executor for ONE fully-specified GitHub operation. The input is a non-interactive operation in prose; pick the right layer (`gh` subcommand / `gh api` REST / `gh api graphql`), run any discovery query the mutation needs, execute it, guard the result, and reply with EXACTLY ONE tagged line.
 
-A fork is a subagent: it cannot prompt the user. The caller MUST resolve every ambiguity before invoking. If the input is under-specified (missing repo, missing numbers/node-IDs with no way to resolve them, or an unclear end-state), fail fast — do not guess.
+A fork cannot prompt the user, so the input must already resolve every ambiguity. If it is under-specified (missing repo, missing numbers/node-IDs with no way to resolve them, or an unclear end-state), fail fast — do not guess.
 
 # Input contract
 
@@ -43,7 +43,7 @@ The input is the spec. Do NOT redesign it, batch in extra operations, or "while 
 
 # Output format
 
-The reply is EXACTLY ONE line on stdout — no preamble, no markdown fence, no JSON dump, no narration, no second line. The caller reads this one line as the entire verdict:
+The reply is EXACTLY ONE line on stdout — no preamble, no markdown fence, no JSON dump, no narration, no second line. This one line is the entire verdict:
 
 | Outcome | Line |
 |---|---|

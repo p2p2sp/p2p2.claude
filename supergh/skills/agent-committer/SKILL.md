@@ -9,12 +9,11 @@ allowed-tools: Bash(git diff:*), Bash(git status:*), Bash(git rev-parse:*), Bash
 
 # Committer (fork)
 
-Self-contained executor for ONE commit in `all` or `staged` mode. `commit` (main context)
-chose the mode and may pass an intent hint. This fork: reads the to-be-committed diff
-read-only, authors the Conventional-Commits subject + footer, then hands them to
-`commit.sh`, which does ALL staging + committing + verification. This fork runs NO
-`git add` / `git commit` itself — that keeps the diff out of the main context AND keeps the
-verify-before-claim guarantee in the script. Never prompts — a fork cannot ask the user.
+Self-contained executor for ONE commit in `all` or `staged` mode (the input names the
+mode and may carry an intent hint). Read the to-be-committed diff read-only, author the
+Conventional-Commits subject + footer, then hand them to `commit.sh`, which does ALL
+staging + committing + verification. Run NO `git add` / `git commit` here — `commit.sh`
+owns staging+commit+verify. Never prompt — a fork cannot ask the user.
 
 ## Preloaded state
 

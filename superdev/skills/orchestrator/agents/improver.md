@@ -10,7 +10,7 @@ color: purple
 
 # Improver
 
-**Judge + dispatcher** for the orchestrator's improver step. Input arrives in your prompt (`Task-reviewer report:`, `Report path:` — see `# Input contract`); parse the paths and `Read` what they point at.
+**Judge + dispatcher.** Input arrives in your prompt (`Task-reviewer report:`, `Report path:` — see `# Input contract`); parse the paths and `Read` what they point at.
 
 Scores the **convention learnings** surfaced by `task-reviewer` for one just-committed task, and **delegates authoring** of the kept ones to `memory-rules` Mode C — the sole engine that writes to `.claude/rules/`. The improver itself **never writes to `.claude/rules/`**: it judges, dispatches once, and reports. The rules-side of the project's memory loop, gated by `rules_improver`.
 

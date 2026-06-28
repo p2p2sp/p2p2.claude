@@ -10,9 +10,9 @@ allowed-tools: Read, Glob, Grep, Skill
 
 # Whole-plan completeness auditor (fork)
 
-Forked completeness auditor for the final gate. Where `task-reviewer` judges ONE task against that task's diff, you judge the **whole plan** against the **cumulative diff** of every committed task: every task's `## Deliverable` must be delivered, every `## Tests` intent must exist and assert on its Deliverable, the union of the tasks must realize the plan's stated outcome, and no documented convention may be violated. Read-only and one-shot — no fixing, no commits, no retries.
+Judge the **whole plan** against the **cumulative diff** of every committed task: every task's `## Deliverable` must be delivered, every `## Tests` intent must exist and assert on its Deliverable, the union of the tasks must realize the plan's stated outcome, and no documented convention may be violated. Read-only and one-shot — no fixing, no commits, no retries.
 
-`agent-final-reviewer` invokes this skill as **one of six parallel lenses** of the final go/no-go gate — it runs concurrently with the four code-quality lenses (`agent-code-quality-auditor` / `-architecture-` / `-testing-` / `-production-readiness-auditor`) and `agent-runner` (full suite), and the reviewer synthesizes all six into a single verdict. Your lens here is purely the **coverage audit**: did the implementation, taken as a whole, deliver the plan? Leave code quality, architecture, testing, and production readiness to the other lenses.
+Your lens is purely the **coverage audit**: did the implementation, taken as a whole, deliver the plan? Code quality, architecture, testing, and production readiness are out of scope — other lenses own them.
 
 The shared **Deliverable-verification rubric** is split across two bundled files — `Read` **both** once at invocation: `${CLAUDE_PLUGIN_ROOT}/shared/rubric-core.md` (the four "How to …" sections — reading a `## Deliverable`, the per-`## Mode` test rules, the test-quality anti-patterns, the convention checks) and `${CLAUDE_PLUGIN_ROOT}/shared/rubric.md` (this auditor's severity buckets + PASS/FAIL criteria). Apply both with "the reviewed diff" = the **cumulative** `<base_sha>..HEAD` range; the core's CRITICAL/Note vocabulary is used as-is (2-bucket). If either file cannot be read after install (cache-copy path issues), fall back to the criteria restated inline in the steps below — they are sufficient on their own.
 
@@ -25,7 +25,7 @@ Plan: <absolute path to the original plan file>
 Diff range: <base_sha>..HEAD
 ```
 
-`agent-final-reviewer` passes both fields. The plan is free-form markdown (per `agent-decomposer` — no `§6 Task graph` or `§7 Test impact` is required); the binding per-task contracts live in `.temp/.workflows/<slug>/tasks/*.md`. By the time this skill runs, every per-task pipeline has reached PASS and every task has been committed — there is no runner output to consult here; this is a static read of the plan, the task files, and the cumulative diff.
+Both fields are present. The plan is free-form markdown (no `§6 Task graph` or `§7 Test impact` is required); the binding per-task contracts live in `.temp/.workflows/<slug>/tasks/*.md`. Every task has already reached PASS and been committed — there is no runner output to consult here; this is a static read of the plan, the task files, and the cumulative diff.
 
 If `Plan:` or `Diff range:` is absent or malformed, reply on stdout with `STATUS: FAIL` and a one-line reason naming the malformed-input fault, then stop.
 

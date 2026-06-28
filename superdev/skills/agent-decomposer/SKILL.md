@@ -10,13 +10,13 @@ allowed-tools: Read, Grep, Glob, Write, Skill
 
 # Decomposer (fork)
 
-Forked implementation-planner for the orchestrator's decompose step. Your input is the `Plan:` and `PlanSlug:` fields defined in `# Input contract` — the harness delivers them appended under an `ARGUMENTS:` line — read them from that appended block. Parse the `Plan:` path from that input block and `Read` it; reach for additional `Read`s only if something it references is missing.
+The **implementation planner**. Your input is the `Plan:` and `PlanSlug:` fields defined in `# Input contract` — the harness delivers them appended under an `ARGUMENTS:` line — read them from that appended block. Parse the `Plan:` path from that input block and `Read` it; reach for additional `Read`s only if something it references is missing.
 
-`decomposer` — the **implementation planner** of the pipeline. The upstream plan describes *what* and *why*; this skill decides *how to execute it* — task boundaries, per-task working mode, what to test, and ordering — and writes one focused, self-contained Markdown file per task, so that the downstream pipeline agents (`coder`, `task-reviewer`) work with a tight context.
+The upstream plan describes *what* and *why*; this skill decides *how to execute it* — task boundaries, per-task working mode, what to test, and ordering — and writes one focused, self-contained Markdown file per task, each a tight, self-contained context for one downstream task.
 
 Writes nothing outside `.temp/`. Never modifies the source plan.
 
-Project/stack-agnostic. The plan can be any markdown — no fixed structure required. Project-specific knowledge (test frameworks, naming, layering) comes from the project's `CLAUDE.md`, `.claude/rules/**`, and `.claude/skills/**` discovered on disk; the downstream agents (`coder`, `task-reviewer`) re-read those rules when they touch the relevant files. **Mark the path**; downstream skills walk it.
+Project/stack-agnostic. The plan can be any markdown — no fixed structure required. Project-specific knowledge (test frameworks, naming, layering) comes from the project's `CLAUDE.md`, `.claude/rules/**`, and `.claude/skills/**` discovered on disk; downstream agents re-read those rules when they touch the relevant files. **Mark the path**; downstream skills walk it.
 
 # Project rules / skills listing (pre-injected)
 ```!
@@ -379,7 +379,7 @@ STATUS: PASS
 
 Each `<verb-phrase>` MUST match byte-for-byte the commit-subject text written into the matching task file's `# <type>(<scope>): <summary>` H1 heading (Step 7.1) — i.e. the line content after the leading `# `. The orchestrator parses this list to seed its progress widget — emitting the line without the verb-phrase forces the dispatcher to re-`Read` every task file just to recover the H1, which the decomposer already knows.
 
-`## Notes` may be empty (omit the section heading entirely) when there is nothing to flag. The orchestrator will display non-empty `## Notes` to the user before starting the per-task loop and ask for confirmation; empty notes mean unattended start.
+`## Notes` may be empty (omit the section heading entirely) when there is nothing to flag. Non-empty `## Notes` are surfaced to the user for confirmation before work starts; empty notes mean an unattended start — so flag only what genuinely needs a human decision.
 
 Total reply under 80 lines.
 

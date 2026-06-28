@@ -16,7 +16,7 @@ You do two things: **judge** whether the plan carries an architectural decision,
 
 ## Approved plan (pre-injected)
 
-The orchestrator passes the plan's **absolute path** as this fork's argument; the block below splices the plan's full text in **before** you run — read the plan from here, do not `Read` the path again. If it shows `__NO_PLAN__` (or is empty), the path was missing/unreadable — follow the malformed-input branch in `# Input contract`.
+The input is the plan's **absolute path**; the block below splices the plan's full text in **before** you run — read the plan from here, do not `Read` the path again. If it shows `__NO_PLAN__` (or is empty), the path was missing/unreadable — follow the malformed-input branch in `# Input contract`.
 
 <plan>
 ```!
@@ -123,7 +123,7 @@ Write ONLY under `.superdev/adr/**` and `.superdev/ADR.md`. Touch nothing else.
 
 Reply with a single Markdown document. The first non-empty line MUST be `STATUS: ADR` or `STATUS: NO-ADR` (regex: `^STATUS: (ADR|NO-ADR)$`). The verdict is returned **inline** on stdout.
 
-Emit exactly one of the reply shapes defined in [references/shapes.md](references/shapes.md) (the **No-ADR shape** or the **ADR shape**). **Read it once at invocation** and fill the matching shape verbatim. For an ADR, the reply lists the file(s) you wrote and carries a single `Commit-subject:` line the orchestrator passes verbatim to `commit-adr.sh` — for multiple ADRs name each number (e.g. `Commit-subject: docs(adr): record ADR-0007, ADR-0008`).
+Emit exactly one of the reply shapes defined in [references/shapes.md](references/shapes.md) (the **No-ADR shape** or the **ADR shape**). **Read it once at invocation** and fill the matching shape verbatim. For an ADR, the reply lists the file(s) you wrote and carries a single `Commit-subject:` line, consumed verbatim by `commit-adr.sh` — for multiple ADRs name each number (e.g. `Commit-subject: docs(adr): record ADR-0007, ADR-0008`).
 
 # Anti-patterns (forbidden)
 

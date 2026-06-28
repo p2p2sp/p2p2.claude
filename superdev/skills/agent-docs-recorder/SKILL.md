@@ -18,7 +18,7 @@ You do two things: **judge** whether this run changed behaviour worth recording,
 
 ## Inputs (pre-injected)
 
-The orchestrator passes four ` ||| `-separated fields: plan path, `plan.diff` path, `final-review.md` path, final-review verdict. The block below splices the first three files' text + the verdict. `__NO_PLAN__` / `__NO_DIFF__` (or empty) means the path was missing/unreadable — follow the malformed-input branch in `# Input contract`.
+The input carries four ` ||| `-separated fields: plan path, `plan.diff` path, `final-review.md` path, final-review verdict. The block below splices the first three files' text + the verdict. `__NO_PLAN__` / `__NO_DIFF__` (or empty) means the path was missing/unreadable — follow the malformed-input branch in `# Input contract`.
 
 <inputs>
 ```!
@@ -108,7 +108,7 @@ If `<final-verdict>` is `FAIL` (or the final-review block names a FAIL/no-go ver
 
 Reply with a single Markdown document. The first non-empty line MUST be `STATUS: DOCS` or `STATUS: NO-DOCS` (regex: `^STATUS: (DOCS|NO-DOCS)$`). The verdict is returned inline on stdout.
 
-Emit exactly one of the reply shapes in [references/shapes.md](references/shapes.md). For `DOCS`, list every written file under `## Written` and carry a single `Commit-subject:` line the orchestrator passes verbatim to `commit-docs.sh`.
+Emit exactly one of the reply shapes in [references/shapes.md](references/shapes.md). For `DOCS`, list every written file under `## Written` and carry a single `Commit-subject:` line, consumed verbatim by `commit-docs.sh`.
 
 # Anti-patterns (forbidden)
 
