@@ -337,25 +337,24 @@ As you write each task file, keep a `(N, verb-phrase, path)` triple in memory �
 
 ## Step 8 — Self-check
 
-Before returning:
+Run the checklist before returning — each item is verified in full at the cited step:
 
-- Every generated file exists and has the seven body sections in order: `## Plan context`, `## Deliverable`, `## Touches`, `## Mode`, `## Tests`, `## Depends on`, `## Task gate`. (The first line is the commit-subject H1 `# <type>(<scope>): <summary>`; the `>` orientation lines follow it.)
-- Every task file's first line is a Conventional-Commits-form commit subject `# <type>(<scope>): <imperative summary>` — `<type>` from the allowed set, a non-empty `<scope>`, a short imperative summary, no trailing period. A malformed or missing H1 is a self-fail (the scripted commit `commit-task.sh` extracts this verbatim as the commit subject); repair before returning.
-- `Mode` value is exactly one of `tdd`, `code-first-then-tests`, `e2e-first`, `tests-none`.
-- For `Mode: tests-none`, `## Tests` body is the single line `- none — …` and `## Task gate` body is the single line `- Tests: none`.
-- For every other `Mode`, `## Tests` has ≥1 entry and `## Task gate` has a `- Build: green` line plus a `- Tests: …` line referencing intents/identifiers that match the `## Tests` entries.
-- For `Mode: tdd`, `## Tests` contains at least one entry whose `Kind` is `unit`, AND there is one `unit` entry per decision branch / failure mode named in `## Deliverable` (Step 4c branch-driven 1:1 coverage) — a named branch with no matching `unit` intent is a self-fail; repair before returning.
-- For `Mode: e2e-first`, `## Tests` contains at least one entry whose `Kind` is `e2e`.
-- The Mode honors the **tdd-baseline / ambiguity→tdd / binding-floor** doctrine stated canonically in Step 4a: a Mode other than `tdd` is justified in `**Why:**` by the carve-out that fired or an imperative directive; any uncertain call resolved to `tdd` (the Step 4a hard tie-breaker); no rigor-lowering plan directive pierced the baseline.
-- The forcing functions (Step 3) were applied: no task carries two competing Modes (one-concern-one-Mode); entangled logic was extracted into its own `tdd` task (extract-pure-testable-helper); a port-dependent logic task was split from its adapter task unless the trivial-CRUD guard applied (port-seam split).
-- `Depends on` references only task numbers `< N`. No forward or self-references. No cycles.
-- Task 1 has `Depends on: —`.
-- Every imperative directive recorded in Step 2 has been honored in at least one of `Mode` / `Tests` / `Depends on` of the relevant task, and `**Why:**` cites the verbatim quote.
-- No file was written outside `.temp/.workflows/<PlanSlug>/`.
-- `plan.md` exists at `.temp/.workflows/<PlanSlug>/plan.md` and matches the source plan byte-for-byte.
-- `status.yml` exists at `.temp/.workflows/<PlanSlug>/status.yml` with the single key `current_task: 1` exactly (or unmodified if Step 0 short-circuited and the file already existed).
-- Every `## Task files` line in the stdout reply carries the `<verb-phrase>` that matches the commit-subject H1 of the file the line points to (the text after `# ` in `# <type>(<scope>): <summary>`). The two MUST agree byte-for-byte.
-- The source plan was not modified.
+- Every file has the seven body sections in order, after the commit-subject H1 + `>` orientation lines (Step 7.1).
+- Every task file's first line is a well-formed Conventional-Commits H1 `# <type>(<scope>): <summary>` (Step 7.1).
+- `Mode` value is exactly one of the four-element enum (Step 4a).
+- `Mode: tests-none` → `## Tests` body and `## Task gate` body are each the single prescribed line (Step 4c / 6).
+- Every other `Mode` → `## Tests` ≥1 entry and `## Task gate` has `- Build: green` + a matching `- Tests:` line (Step 4c / 6).
+- `Mode: tdd` → ≥1 `unit` entry, one per decision branch / failure mode named in `## Deliverable` (branch-driven 1:1) (Step 4c).
+- `Mode: e2e-first` → ≥1 `e2e` entry (Step 4c).
+- Mode honors the tdd-baseline / ambiguity→tdd / binding-floor doctrine; `**Why:**` justifies any non-`tdd` Mode (Step 4a).
+- The forcing functions were applied (one-concern-one-Mode, extract-pure-testable-helper, port-seam split) (Step 3).
+- `Depends on` references only task numbers `< N`; no forward/self-references, no cycles (Step 4e / 5).
+- Task 1 has `Depends on: —` (Step 5).
+- Every Step 2 imperative directive honored in `Mode` / `Tests` / `Depends on`, with `**Why:**` citing the verbatim quote (Step 2 / 4a).
+- No file written outside `.temp/.workflows/<PlanSlug>/`; source plan unmodified (header).
+- `plan.md` exists and matches the source plan byte-for-byte (Step 7.0).
+- `status.yml` exists with `current_task: 1` (or unmodified on the Step 0 short-circuit) (Step 7.0b).
+- Every `## Task files` line carries the `<verb-phrase>` matching its file's H1 byte-for-byte (Step 7.1 / Output format).
 
 If any check fails, repair the offending file and re-check before returning. If a check cannot be repaired (a structural impossibility in the plan), return `STATUS: FAIL` and name the offending file / task / check.
 
@@ -386,22 +385,10 @@ Total reply under 80 lines.
 
 # Anti-patterns (forbidden)
 
-- Modifying the source plan in any way.
-- Writing anywhere outside `.temp/.workflows/<PlanSlug>/`.
-- Requiring the plan to have a specific structure (§1 / §3 / §6 / §7 / Layer enum / TDD-discipline-per-task). Any markdown is acceptable input; missing sections are not a failure.
-- Mapping a plan's own listed items 1:1 to tasks without independent reasoning about boundaries. Task boundaries are the decomposer's decision; plan numbering is a hint.
-- Treating descriptive hints (tables, lists, opinions) as binding. Only imperative directives (Step 2) and the plan's recommended testing direction (binding floor — rigor-raising only) are binding overrides.
-- Reaching for a carve-out Mode (`code-first-then-tests` / `e2e-first`) on an uncertain call — violates the **ambiguity→tdd** hard tie-breaker (Step 4a). Classifying by the task's surface description instead of the logic inside `## Touches` is the canonical under-application bug.
-- Letting a rigor-lowering plan directive ("no tests here") drop a logic task below the `tdd` baseline — violates the asymmetric **binding floor** (Step 4a); rigor-lowering directives cannot pierce the baseline unless `Touches` independently qualifies for `tests-none`.
-- Burying a `tdd`-worthy branch inside an untestable wiring task instead of applying the extract-pure-testable-helper rule, or introducing a port seam for a trivial-CRUD passthrough (the guard forbids it).
-- Inventing fully-qualified test identifiers (`path/to/Test.ext::TestName`). Your `Tests` are intent + suggested location; the `coder` agent dispatches the identifier.
-- Reading file contents from the codebase to fill `Touches`. Paths and globs from the plan + `Glob` of the project tree are enough. Reading is a `coder`/`task-reviewer` concern.
-- Reading every file under `.claude/rules/` and `.claude/skills/` indiscriminately. Glob the lists once; Read only entries whose paths or names match task keywords.
+Traps with no positive-step home (every other rule lives in its step; the Step 8 checklist points there):
+
+- Falling back to `STATUS: FAIL` because the plan is "incomplete" or lacks a specific structure (§1 / §3 / §6 / §7 / Layer enum / TDD-discipline-per-task). Any markdown is acceptable input; missing sections are never a failure. Failure is reserved for: empty/unreadable file, no executable intent, contradictory requirements, cyclic dependencies, no standalone-buildable Task 1, a missing `.temp/.workflows/<PlanSlug>/profile.md` (recipe step did not run — Step 1b fail-closed). Everything else is best-effort + `## Notes`.
 - Emitting a `**TDD discipline:**` bullet, a `Layer` token (`Backend` / `Frontend` / `Infra` / `Migrate` / `Shared`), a `Task gate` shape-(A)/shape-(B) distinction, or a `Relevant technical design` section. These belong to the old contract and are removed.
-- Falling back to `STATUS: FAIL` because the plan is "incomplete". Failure is reserved for: empty/unreadable file, no executable intent, contradictory requirements, cyclic dependencies, no standalone-buildable Task 1, a missing `.temp/.workflows/<PlanSlug>/profile.md` (recipe step did not run — Step 1b fail-closed). Everything else is best-effort + `## Notes`.
-- Allowing `Depends on` to reference tasks ≥ current task number (forward dependency).
-- Re-running decomposition when task files already exist (Step 0 must short-circuit with no-op).
-- Emitting `## Task files` in the two-element shape `- <N> — <path>` (verb-phrase omitted). The orchestrator seeds its progress widget from this list — dropping the verb-phrase forces the dispatcher to re-`Read` every task file just to recover the H1, which defeats the whole point of returning the listing.
 - Reading or invoking any other agent. Decomposer is a self-contained reasoning + grouping step.
 
 # Constraint — technology-agnostic
