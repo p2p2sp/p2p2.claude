@@ -44,8 +44,12 @@ list_files() {
 list_files | while IFS= read -r f; do
     [ -n "$f" ] || continue
     base="${f##*/}"
-    # no dot in the basename -> no extension -> skip (never a bogus entry).
-    case "$base" in
+    # Strip a single leading dot first so dotfiles (.gitignore, .env, .npmrc)
+    # are NOT mistaken for an extension: `*` matches the empty string before the
+    # leading dot, so a raw `*.*` test would emit "gitignore"/"env" as bogus exts.
+    stem="${base#.}"
+    # no dot in the (dot-stripped) basename -> no extension -> skip.
+    case "$stem" in
         *.*) : ;;
         *)   continue ;;
     esac
