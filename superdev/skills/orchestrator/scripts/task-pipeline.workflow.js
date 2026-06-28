@@ -86,7 +86,7 @@ if (!taskFile || !reportDir || !taskBaseSha) {
 }
 const taskGateRunnable = input.taskGateRunnable !== false // default true; only an explicit false skips the runner pass
 const runImprover = input.rulesImprover !== false // honors the explicit boolean the orchestrator forwards; standalone fallback (arg absent) = run
-const cap = input.retryMaxAttempts ?? 3 // missing key → 3
+const cap = Math.max(1, input.retryMaxAttempts ?? 3) // missing key → 3; floor at 1 so an explicit 0 never no-op-FAILs
 const feedbackPath = input.feedbackPath || '' // escalation seed for the first coder call
 const recipePath = input.recipePath || '' // slug-scoped recipe.sh; threaded into the coder + runner prompts
 const stub = input.stub || null

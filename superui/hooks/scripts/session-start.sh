@@ -71,6 +71,7 @@ manifest=""
 # `cache/<marketplace>/<plugin>/<version-or-commit-sha>/`, so this matches
 # whatever the host considers the installed version.
 version="${CLAUDE_PLUGIN_ROOT:-}"
+version="${version//\\//}" # normalize Windows backslashes so the basename strip works there too
 version="${version##*/}"
 [ -z "$version" ] && version="dev"
 banner="superui loaded ${version}"
