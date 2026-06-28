@@ -9,11 +9,12 @@ variant supplies over the core:
 - The core uses the 2-bucket **CRITICAL / Note** vocabulary; in this 3-bucket variant read core **Note** as
   **Minor** and core **CRITICAL** as **Critical**.
 
-<!-- SECOND MIRROR (Lustro B, intentional, NOT verbatim): the "What to check (the 5 dimensions)" + 3-bucket
-severity below are also adapted, whole-plan, in `superdev/shared/rubric-code-review.md` (the four
-`agent-final-reviewer` quality lenses — 4 dimensions, hunk-only, false-positive discipline). This file is the
-PRIMARY sync source for those; if the dimensions / severity buckets below change, re-sync that copy too.
-No lint catches the drift. -->
+<!-- SECOND MIRROR (Lustro B, intentional, NOT verbatim): the "What to check (the 5 dimensions)" below are
+also adapted, whole-plan, into `superdev/shared/references/lens-*.md` (one fragment per `agent-final-reviewer`
+quality lens — 4 dimensions, hunk-only, false-positive discipline), and the 3-bucket severity model into
+`superdev/shared/rubric-code-review.md`. This file is the PRIMARY sync source for both; if the dimensions
+below change, re-sync the `lens-*.md` fragments; if the severity buckets change, re-sync
+`rubric-code-review.md`. No lint catches the drift. -->
 
 ## What to check (the 5 dimensions — each scoped to `task_diff` ∩ the task's `## Touches`)
 

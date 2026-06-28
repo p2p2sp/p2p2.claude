@@ -1,7 +1,8 @@
-<!-- MIRROR: the 4 "What to check" dimensions + the 3-bucket Critical/Important/Minor severity
-model below are a whole-plan adaptation of `superdev/skills/orchestrator/agents/rubric-task-review.md`
-(its "What to check (the 5 dimensions)" + "Severity buckets" sections) — that file is the
-PRIMARY sync source: if its dimension criteria or severity buckets change, re-sync them here. No lint catches
+<!-- MIRROR: the 3-bucket Critical/Important/Minor severity model below is a whole-plan adaptation of
+`superdev/skills/orchestrator/agents/rubric-task-review.md` (its "Severity buckets" section) — that file is
+the PRIMARY sync source: if its severity buckets change, re-sync them here. The per-dimension criteria and
+their severity mapping live in `superdev/shared/references/lens-*.md` (one fragment per lens, injected by
+`shared/scripts/auditor-contract.sh`), NOT in this file — re-sync any dimension change there. No lint catches
 drift. `superdev/shared/rubric.md` is RELATED but NOT an equal sibling — it is the Deliverable-completeness
 rubric for `agent-plan-auditor`, a 2-bucket CRITICAL/Note model with no "dimensions" section; do not sync
 against it. -->
@@ -10,8 +11,8 @@ against it. -->
 
 The shared rubric for the four whole-plan quality lenses invoked in parallel by `agent-final-reviewer`:
 `agent-code-quality-auditor`, `agent-architecture-auditor`, `agent-testing-auditor`,
-`agent-production-readiness-auditor`. Each lens applies EXACTLY ONE dimension below to the cumulative plan
-diff; it does not touch the other three. `agent-plan-auditor` (Plan alignment) and `agent-runner` (full
+`agent-production-readiness-auditor`. Each lens applies EXACTLY ONE dimension — defined in its injected
+`lens-*.md` fragment — to the cumulative plan diff; it does not touch the other three. `agent-plan-auditor` (Plan alignment) and `agent-runner` (full
 suite) are separate lenses with their own contracts — not covered here.
 
 ## Reviewed scope — the changed hunks only
@@ -63,34 +64,6 @@ A cross-module / out-of-patch concern, however valid, is a `## Notes` item — n
 `agent-plan-auditor` FAILs, or `agent-runner` ∈ {FAIL, ERROR, TIMEOUT}, or any quality lens returns FAIL (≥1
 Critical). Important + Minor findings always reach the written report (the `## What to fix` list) but never
 flip the headline.
-
-## What to check — the four dimensions (each lens owns ONE)
-
-Apply only your own dimension to the patch's hunks.
-
-1. **Code quality** (`agent-code-quality-auditor`) — separation of concerns, error handling, type safety
-   where the language supports it, DRY without premature abstraction, edge cases in the changed logic.
-   → Critical (real in-hunk bug / unhandled error that loses or corrupts data) · Important (in-hunk gap: an
-   unhandled edge case / error path the change should cover) · Minor → `## Notes` (style, micro-optimization).
-2. **Architecture** (`agent-architecture-auditor`) — sound design of the introduced structure, reasonable
-   scalability / performance, security of the change, clean integration with the surrounding code it touches.
-   → Critical (in-hunk security hole / data-loss design / a seam that breaks the surrounding contract) ·
-   Important (in-scope design gap that should be reshaped) · `## Notes` (cross-module integration concern
-   outside the patch).
-3. **Testing** (`agent-testing-auditor`) — the change's tests verify real observable behavior (not the mock),
-   cover the edge cases / failure modes the changed logic introduces, include integration coverage where the
-   change crosses a real seam, and avoid the test anti-patterns (tautological / no-assertion / self-mocking SUT
-   / conditional test logic / asserting on logs / order dependence). Do NOT re-run tests — `agent-runner` owns
-   execution; this lens judges test PRESENCE + QUALITY in the patch.
-   → Critical (a gate test that asserts nothing real or cannot be trusted; a changed branch / failure mode with
-   no test) · Important (an in-hunk test-quality issue worth fixing) · `## Notes` (a coverage gap beyond what
-   the change introduced).
-4. **Production readiness** (`agent-production-readiness-auditor`) — migration / backward-compatibility when
-   the change alters a schema / contract / public surface, documentation for what the change introduces, and
-   the absence of obvious shipping bugs in the changed code.
-   → Critical (an obvious shipping bug / a breaking change with no migration or back-compat path) · Important
-   (in-scope readiness gap: missing migration note, undocumented new surface) · `## Notes` (broader,
-   out-of-patch readiness observation).
 
 ## Per-lens output (each lens returns this)
 

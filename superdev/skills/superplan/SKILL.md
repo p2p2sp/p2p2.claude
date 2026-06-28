@@ -9,7 +9,9 @@ effort: xhigh
 
 # SuperPlan
 
-Produce plans that survive contact with implementation. Default plan mode is read-only and structured, but plan content drifts: missing files, hidden assumptions, no rollback story. SuperPlan closes that gap with a strict template plus mandatory pre-plan behavior before the plan is presented.
+Produce plans that survive contact with implementation.
+- Default plan mode is read-only and structured, but plan content drifts: missing files, hidden assumptions, no rollback story.
+- SuperPlan closes that gap with a strict template plus mandatory pre-plan behavior before the plan is presented.
 
 ---
 
@@ -141,9 +143,9 @@ Do not patch around a broken plan. Replanning costs minutes; a partially-migrate
 
 ## 7. Output skeleton
 
-See `templates/plan.md`. Copy it verbatim, keep the single §0 variant matching the implementation-mode answer, and fill each section.
-
-The plan file's location is the harness's to own — never name or pick a save path. Write the plan into the path plan mode designates (its own default, under the home `~/.claude/plans/`) and let `ExitPlanMode` save it. Do NOT also write a repo-relative `.claude/plans/<slug>.md` copy — that leaves an orphan beside the plan the gate and `orchestrator` actually read.
+- See `templates/plan.md`. Copy it verbatim, keep the single §0 variant matching the implementation-mode answer, and fill each section.
+- The plan file's location is the harness's to own — never name or pick a save path. Write the plan into the path plan mode designates (its own default, under the home `~/.claude/plans/`) and let `ExitPlanMode` save it.
+- Do NOT also write a repo-relative `.claude/plans/<slug>.md` copy — that leaves an orphan beside the plan the gate and `orchestrator` actually read.
 
 ---
 
@@ -162,4 +164,5 @@ Assemble ONE `.md`, then hand it over with a title:
 
 ## 9. One-line summary
 
-A plan is only good if a careful reader, with no extra context, could approve or reject it in under three minutes and predict 90% of the resulting diff. SuperPlan enforces exactly that bar — for *what changes and why*. *How to execute* is the next step, owned by `decomposer`.
+- A plan is only good if a careful reader, with no extra context, could approve or reject it in under three minutes and predict 90% of the resulting diff.
+- SuperPlan enforces exactly that bar — for what changes and why. How to execute is the next step, owned by `decomposer`.

@@ -213,8 +213,10 @@ user-facing / auto-routed skill are bare-named too; so are forks still reachable
   `agent-testing-auditor` / `agent-production-readiness-auditor` + `agent-runner` Scope: full; the reviewer
   synthesizes one go/no-go verdict and writes `.temp/.workflows/<slug>/final-review.md`, the orchestrator first
   materializing the cumulative `plan.diff` patch the no-Bash quality lenses read), plus `tdd` / `debug` /
-  `spec-writer`. The four quality lenses share `shared/rubric-code-review.md` (mirrors the 5-dimension +
-  3-bucket-severity content of `orchestrator/agents/rubric-task-review.md` at whole-plan scope). Separately,
+  `spec-writer`. The four quality lenses share `shared/rubric-code-review.md` (the dimension-agnostic scope /
+  false-positive / 3-bucket-severity rules, mirroring `orchestrator/agents/rubric-task-review.md` at whole-plan
+  scope); each lens's per-dimension criteria live in its own `shared/references/lens-*.md` fragment, injected by
+  `shared/scripts/auditor-contract.sh`. Separately,
   `shared/rubric.md` (agent-plan-auditor) and `orchestrator/agents/rubric-task-review.md` (task-reviewer) no
   longer duplicate their four stable "How to …" sections — those live once in `shared/rubric-core.md`, read
   alongside each variant; the two variants carry only their own severity buckets + PASS/FAIL(/BLOCKED) mapping.

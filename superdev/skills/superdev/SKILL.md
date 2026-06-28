@@ -7,9 +7,11 @@ effort: xhigh
 
 # Interview
 
-Your goal: reach a shared understanding of WHAT the user wants and HOW it should be built, before any plan or code is drafted. Start by understanding the current project context, then ask questions one at a time waiting for feedback on each question before continuing. Asking multiple questions at once is forbidden. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one.
-
-Once you understand what you're building, present the design and get user approval. Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+Goal: reach a shared understanding of WHAT the user wants and HOW to build it, before any plan or code is drafted.
+- Start from the current project context; ask questions one at a time, waiting for feedback before the next — asking multiple questions at once is forbidden.
+- Walk each branch of the design tree, resolving dependencies between decisions one-by-one.
+- Once you understand what you're building, present the design and get user approval before acting.
+- Do NOT invoke any implementation skill, write code, scaffold a project, or take any implementation action until the user has approved a presented design — EVERY project, regardless of perceived simplicity.
 
 ## Explore first
 - When the request touches existing code or conventions, launch multiple `Explore` agents in parallel to map relevant files, patterns, rules, and prior decisions. Anything you can answer from the codebase, do NOT ask the user.

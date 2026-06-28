@@ -73,9 +73,9 @@ Identify what you're documenting and pin down the facts before writing:
 
 ### 2. Place it in the hierarchy
 
-Before drafting, decide where the page lives under `.superdev/help/` and how it relates to its neighbors.
-Good information architecture is what makes a help set navigable; realize that structure as the directory
-layout. See `references/information-architecture.md`.
+- Before drafting, decide where the page lives under `.superdev/help/` and how it relates to its neighbors.
+- Good information architecture makes a help set navigable; realize that structure as the directory layout.
+- See `references/information-architecture.md`.
 
 ### 3. Draft the content
 
@@ -85,18 +85,15 @@ patterns for procedures, audience adaptation, onboarding pages, and the pre-publ
 
 ### 4. Structure and format for scanning
 
-Apply formatting deliberately: clear heading hierarchy, lists where they help, and richer
-constructs (callouts, steps, tabs, diagrams) only where they earn their place. Overusing
-emphasis destroys it. See `references/formatting.md` for when each construct fits — and note
-that the *exact syntax* for these constructs depends on your publishing platform, not this
-skill.
+- Apply formatting deliberately: clear heading hierarchy, lists where they help, richer constructs (callouts, steps, tabs, diagrams) only where they earn their place. Overusing emphasis destroys it.
+- The exact syntax for these constructs depends on your publishing platform, not this skill.
+- See `references/formatting.md` for when each construct fits.
 
 ### 5. Handle multiple languages (if applicable)
 
-Designate **one source language** and treat every other language as a faithful translation of
-it: same structure, same information, nothing added or dropped. Translate UI element names to
-match the product's UI in that language, and use correct orthography for each language. Details
-in `references/formatting.md` ("Multilingual content").
+- Designate **one source language**; treat every other language as a faithful translation of it — same structure, same information, nothing added or dropped.
+- Translate UI element names to match the product's UI in that language, and use correct orthography for each language.
+- Details in `references/formatting.md` ("Multilingual content").
 
 ### 6. Review before publishing
 
