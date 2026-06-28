@@ -17,10 +17,12 @@ owns staging+commit+verify. Never prompt — a fork cannot ask the user.
 
 ## Preloaded state
 
-Worktree at fork start — `git status --short` (the full change picture for both modes):
+Worktree at fork start — `git status --short --untracked-files=all` (the full change
+picture for both modes; `--untracked-files=all` expands untracked DIRECTORIES into their
+individual files, so a fresh `.docs/audit/` shows every file, not one collapsed `?? dir/`):
 <status>
 
-!`git status --short`
+!`git status --short --untracked-files=all`
 
 </status>
 
@@ -50,11 +52,16 @@ Request arrives as prose in a trailing `ARGUMENTS:` block carrying:
 
 # How to work
 
-1. **Read the to-be-committed diff (read-only — never stage).**
-   - `all` → `git diff HEAD` for tracked edits; note any untracked files from the preloaded
-     `<status>` (`??`) since `git diff` does not show them.
-   - `index` → `git diff --cached` (the already-staged content).
-   Empty change set → emit `nothing to commit` and stop.
+1. **Read the to-be-committed change set (read-only — never stage).**
+   - `all` → `git diff HEAD` for tracked edits, PLUS every untracked file (`??`) listed in
+     the preloaded `<status>` — `git diff` does NOT show untracked files, so the new files
+     under a path like `.docs/audit/` live in `<status>` ONLY. Treat the union as the change
+     set. Do NOT pre-judge this empty and stop: in `all` mode the authoritative no-op gate is
+     deterministic and lives in `commit.sh` (it runs `git add -A` THEN `git diff --cached
+     --quiet`). Whenever `<status>` is non-empty you author a subject and call the script;
+     only a genuinely empty `<status>` (no tracked diff AND no `??` entries) is a stop.
+   - `index` → `git diff --cached` (the already-staged content). Empty staged set → emit
+     `nothing to commit` and stop (nothing is staged, so the script would no-op anyway).
 2. **Author the subject** (+ optional footer) from that diff + hint, per `<conventions>`.
 3. **Commit via the script** — run, with `<mode>` = `all` or `index`:
    `sh "${CLAUDE_PLUGIN_ROOT}/shared/scripts/commit.sh" <mode> "<subject>" "<footer-or-empty>"`
