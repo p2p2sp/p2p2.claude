@@ -46,10 +46,12 @@ individual skills' `scripts/` dirs (the `superui` preview scripts, the superdev 
 `commit/scripts/route.sh`, the `memory-rules` mode router `memory-rules/scripts/route.sh` + its discovery
 scripts `memory-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), the one-time `setup/scripts/bootstrap.sh`,
 and the `superfix` investigation scripts `audit/scripts/collect_signals.sh` (deterministic signal sweep) + `rank.py` (the gate/rank step)).
-Five helpers instead live at **plugin-level** `<plugin>/shared/scripts/` (one copy shared across a plugin's
+Six helpers instead live at **plugin-level** `<plugin>/shared/scripts/` (one copy shared across a plugin's
 skills): `superdev/shared/scripts/lib_find_excludes.sh` (sourced by the `memory-layers` / `memory-rules` scan scripts),
 `superdev/shared/scripts/inject_review_input.sh` (`!`-injected by the `superplan-reviewer-integrity` / `superplan-reviewer-codebase`
 lens reviewers to splice the plan text + any re-review fixes from the passed path, so neither fork re-reads the plan or parses `$ARGUMENTS`),
+`superdev/shared/scripts/auditor-contract.sh` (router-style assembler `!`-injected by the four `agent-*-auditor` final-review lenses;
+takes the lens name and cat-concatenates `shared/references/_input.md` + `lens-<lens>.md` + `_output.md` — placeholder-free, so no `${CLAUDE_PLUGIN_ROOT}` survives into the fork),
 `superui/shared/scripts/check_python.sh` (the Python preflight, `!`-injected by each `superui` skill that runs a Python step),
 and the two `supergh/shared/scripts/` helpers `preflight.sh` (`!`-injected read-only auth+git fact block, shared by
 `create-issue` / `create-pr` / `cli-executor`) + `body-path.sh` (deterministic timestamp+slugify body-path builder
@@ -88,7 +90,7 @@ superdev/            The superdev plugin
     hooks.json       SessionStart (inject manifest) + PreToolUse: ExitPlanMode (plan-review gate)
     content/manifest.md  The injected `using-superdev` dispatcher
     scripts/         session-start.sh, review-plan.sh
-  shared/            Plugin-level shared assets + scripts (rubric.md; rubric-core.md — the shared 4-section "How to …" review-rubric core, read by both rubric.md and orchestrator/agents/rubric-task-review.md; coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the memory-layers / memory-rules scans; scripts/inject_review_input.sh — `!`-injected by the superplan-reviewer lens skills to splice plan text + re-review fixes)
+  shared/            Plugin-level shared assets + scripts (rubric.md; rubric-core.md — the shared 4-section "How to …" review-rubric core, read by both rubric.md and orchestrator/agents/rubric-task-review.md; plan-injection-contract.md — the shared "Plan (pre-injected)" notes `!`-injected by both superplan-reviewer lens skills; references/ — auditor-contract.sh fragments (_input.md, _output.md, lens-{architecture,code-quality,production-readiness,testing}.md); coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the memory-layers / memory-rules scans; scripts/inject_review_input.sh — `!`-injected by the superplan-reviewer lens skills to splice plan text + re-review fixes; scripts/auditor-contract.sh — router-style body assembler `!`-injected by the four agent-*-auditor lenses)
   skills/            Skills (bare-named by functional role; `agent-` marks fork-only workers); some skills bundle a
                      deterministic helper under their own scripts/ dir (orchestrator/scripts/commit-task.sh
                      + commit-adr.sh + task-pipeline.workflow.js, agent-recipe/scripts/recipe.template.sh,

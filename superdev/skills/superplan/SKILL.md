@@ -52,9 +52,7 @@ The best plan leaves no unanswered questions; any remaining means digging deeper
 Every SuperPlan output MUST contain the §0 marker plus these ten numbered sections (§1–§10), in this order, with these exact headings:
 
 ### 0. Implementation mode
-Exactly one marker, set from the question above — copy the matching variant verbatim from `templates/plan.md`, invent no other wording:
-- **orchestrator** → the line `Implementation: orchestrator`, then the preamble `> First thing you MUST do is USE the superdev:orchestrator skill to implement this plan.`
-- **self / vanilla** → the line `Implementation: self`, then the hard opt-out `> The user explicitly opted OUT of the orchestrator pipeline for this plan — implement it directly in the main session; do NOT invoke orchestrator even if the plan text mentions it.`
+Exactly one marker, set from the question above — copy the matching VARIANT verbatim from `templates/plan.md` (VARIANT A = orchestrator, VARIANT B = self / vanilla), invent no other wording.
 
 ### 1. Scope
 One sentence: what this plan accomplishes. If it doesn't fit in one sentence, the plan is too big — split it.

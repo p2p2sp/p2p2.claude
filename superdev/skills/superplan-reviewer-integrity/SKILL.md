@@ -14,8 +14,6 @@ You are a Plan-Integrity reviewer. You judge the plan against ITSELF — both wh
 Do the plan's tasks fully realize its own stated scope (nothing missing, nothing extra) AND is it internally complete and self-consistent enough to execute literally without guessing?
 
 ## Plan (pre-injected — do NOT call Read, do NOT parse $ARGUMENTS)
-The block below splices the plan's full text into your context before you run. Review THAT text.
-
 ```!
 ARGS=$(cat <<'__REVIEW_ARGS__'
 $ARGUMENTS
@@ -24,9 +22,8 @@ __REVIEW_ARGS__
 "${CLAUDE_PLUGIN_ROOT}/shared/scripts/inject_review_input.sh" "$ARGS"
 ```
 
-- The `<plan>` block is the plan — review it. If it shows `__NO_PLAN__` or is empty, the path was missing/unreadable: emit a malformed-input verdict (BLOCK, one finding naming the unreadable plan) and stop.
-- A `<prior-fixes mode="re-review">` block, when present, marks a RE-REVIEW; absent → first-run with clean eyes.
-- Never call Read on the plan path; never reconstruct or split `$ARGUMENTS` yourself — the script already did.
+!`cat "${CLAUDE_PLUGIN_ROOT}/shared/plan-injection-contract.md"`
+
 - Re-review is ADDITIVE: (1) confirm every prior fix in YOUR lane (coverage / executability) is resolved in the current plan, re-reporting any still open with its severity, AND (2) still run the full fresh review below for new problems. Never shorten the fresh pass.
 
 ## What you check

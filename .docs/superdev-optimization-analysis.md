@@ -60,31 +60,9 @@ Najbardziej kosztowny wzorzec w pluginie. W `coder.md` (2757 słów), `agent-dec
 
 ---
 
-## 4. Dostrojenie modeli i `effort` (szybkość + koszt)
-
-| Worker | Teraz | Propozycja | Uzasadnienie |
-|---|---|---|---|
-| `agent-architecture-auditor` | opus / high | rozważyć sonnet | Robi ten sam bounded-diff review co production/testing-auditor, które **już** są na sonnet. Niespójność. |
-| `agent-code-quality-auditor` | opus / high | rozważyć sonnet | jw. — review patcha o ograniczonym zakresie, nie głębokie rozumowanie |
-| `agent-final-reviewer` | opus / high | rozważyć sonnet/high | Rola to **synteza** 6 werdyktów + reguły severity — mechaniczna; patrz §5.1 |
-| `agent-production-readiness-auditor`, `agent-testing-auditor` | sonnet / high | rozważyć effort: medium | Tylko zmienione hunki; równoległe; medium przyspieszy |
-| skille bez `model:` (`tdd`, `debug`, `memory-layers`, `spec-writer`) | brak | dodać jawnie `model`/`effort` | brak = dziedziczenie sesji (często opus); jawny tańszy model dla mechanicznych skili |
-
-Uwaga: zmiany modelu w audytorach to hipoteza do zwalidowania na realnym diffie — nie zmieniać „w ciemno" wszystkich naraz.
-
----
-
 ## 5. Wykorzystanie możliwości harnesu, których plugin jeszcze nie używa
 
-### 5.1. Final-review jako `Workflow` (najsilniejsza propozycja, spójna z istniejącym wzorcem)
-Per-task loop został już przeniesiony z interpretacji LLM do `task-pipeline.workflow.js` — i to był słuszny ruch. **Final-review ma tę samą charakterystykę**: `agent-final-reviewer` (fork na opus) ręcznie fan-outuje 6 lensów przez `Skill`, zbiera werdykty i stosuje reguły severity. To orkiestracja deterministyczna przebrana za rozumowanie LLM.
-
-**Propozycja:** `final-review.workflow.js` analogiczny do task-pipeline:
-- `parallel()` 6 lensów zamiast forka-orkiestratora na opus → eliminuje koszt rozumowania samego `agent-final-reviewer`;
-- per-lens `model`/`effort`/`schema` (jak `VERDICT` w task-pipeline);
-- deterministyczna synteza severity w JS.
-
-Usuwa cały opusowy fork-orkiestrator i czyni dispatch przewidywalnym. Najlepszy stosunek zysk/ryzyko — idzie po już zaakceptowanym w repo wzorcu.
+### 5.1. Final-review jako `Workflow` (najsilniejsza propozycja, spójna z istniejącym wzorcem) - nie robić.
 
 ### 5.2. `superplan-reviewer` jako `Workflow`
 Ten sam kształt (dispatch 2 lensów + synteza), mniejszy payoff (2 zamiast 6). Drugi kandydat, jeśli §5.1 się sprawdzi.
@@ -94,7 +72,6 @@ Cztery audytory czytają **całą** `rubric-code-review.md` i same wybierają sw
 
 ### 5.4. Drobne
 - `memory-rules` — opis we frontmatterze ~1400 znaków z podwójnym „Do NOT use…"; skrócić do ~400.
-- `spec-writer`, `tdd`, `memory-layers` — brak `context: fork` mimo samodzielnej, niezanieczyszczającej pracy; dodać dla izolacji kontekstu.
 - Proza→bullety (reguła `_skills.md`) w `superdev/SKILL.md`, `help-writer` (sekcja Workflow), `superplan`.
 
 ---
