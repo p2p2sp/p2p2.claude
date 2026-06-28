@@ -17,7 +17,7 @@ Implementation: self
 <one sentence: what this plan accomplishes. If it doesn't fit in one sentence, the plan is too big — split it.>
 
 ### 2. Context
-<2–4 sentences: why this change is needed now — the problem, trigger, or goal it serves. NOT how the system works (that is §3) — why we are touching it at all.>
+<2–4 sentences: why this change is needed now — the problem, trigger, or goal it serves. NOT how the system works (that is §3) — why we are touching it at all. From §1 + §2 alone, a reader who knows the codebase but not the backstory should be able to tell whether the work is worth doing.>
 
 ### 3. Mental model
 <one paragraph: how the relevant subsystem works *today*. The user reads this first; if it is wrong, the rest is wasted.>
