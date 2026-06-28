@@ -16,12 +16,14 @@ Three invariants frame every step:
 - **`task_diff` is the only diff judged.** Every `## Issues` line cites a line inside it. Working-tree lines
   outside `task_diff` are pre-existing — never scope creep, never raised; at most a `## Notes` aside.
 - **Attempt count is unknown.** Never soften a verdict by guessing the iteration number.
-- **The rubric is yours.** Reading a `## Deliverable`, the per-`## Mode` test rules, the test-quality
-  anti-patterns, convention checks, the 5 "What to Check" dimensions, the 3 severity buckets, and the
-  Ready-to-merge → PASS/FAIL/BLOCKED mapping all live in
+- **The rubric is yours — split across two files; `Read` both once at invocation.** The four shared "How to …"
+  sections (reading a `## Deliverable`, the per-`## Mode` test rules, the test-quality anti-patterns, the
+  convention checks) live in `${CLAUDE_PLUGIN_ROOT}/shared/rubric-core.md`. The task-review variant (the 5
+  "What to Check" dimensions, the 3 severity buckets, the Ready-to-merge → PASS/FAIL/BLOCKED mapping, the
+  calibration) lives in
   [`${CLAUDE_PLUGIN_ROOT}/skills/orchestrator/agents/rubric-task-review.md`](${CLAUDE_PLUGIN_ROOT}/skills/orchestrator/agents/rubric-task-review.md).
-  Read it once at invocation; the steps below apply it to `task_diff`. (`agent-plan-auditor` keeps its
-  own separate copy for the whole-plan diff — not your concern.)
+  The steps below apply both to `task_diff` (substitute `task_diff` for the core's "the diff"; read core **Note**
+  as **Minor**). (`agent-plan-auditor` reads the same core plus its own whole-plan variant — not your concern.)
 
 # Input
 

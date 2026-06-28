@@ -88,15 +88,16 @@ superdev/            The superdev plugin
     hooks.json       SessionStart (inject manifest) + PreToolUse: ExitPlanMode (plan-review gate)
     content/manifest.md  The injected `using-superdev` dispatcher
     scripts/         session-start.sh, review-plan.sh
-  shared/            Plugin-level shared assets + scripts (rubric.md; coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the memory-layers / memory-rules scans; scripts/inject_review_input.sh — `!`-injected by the superplan-reviewer lens skills to splice plan text + re-review fixes)
+  shared/            Plugin-level shared assets + scripts (rubric.md; rubric-core.md — the shared 4-section "How to …" review-rubric core, read by both rubric.md and orchestrator/agents/rubric-task-review.md; coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the memory-layers / memory-rules scans; scripts/inject_review_input.sh — `!`-injected by the superplan-reviewer lens skills to splice plan text + re-review fixes)
   skills/            Skills (bare-named by functional role; `agent-` marks fork-only workers); some skills bundle a
                      deterministic helper under their own scripts/ dir (orchestrator/scripts/commit-task.sh
                      + commit-adr.sh + task-pipeline.workflow.js, agent-recipe/scripts/recipe.template.sh,
                      memory-rules/scripts/route.sh, setup/scripts/bootstrap.sh);
                      orchestrator also bundles the 4 per-task pipeline plugin agents under its agents/ subdir
                      (coder.md, task-reviewer.md, improver.md, commiter.md), plus a bundled
-                     reference asset agents/rubric-task-review.md (task-reviewer's own task-review rubric —
-                     a reference file, NOT a registered agent)
+                     reference asset agents/rubric-task-review.md (task-reviewer's own task-review variant —
+                     the 5 dimensions / 3-bucket severity / PASS-FAIL mapping only; the four shared "How to …"
+                     sections live once in shared/rubric-core.md — a reference file, NOT a registered agent)
 superui/             The superui plugin
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
   hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
@@ -211,7 +212,11 @@ user-facing / auto-routed skill are bare-named too; so are forks still reachable
   synthesizes one go/no-go verdict and writes `.temp/.workflows/<slug>/final-review.md`, the orchestrator first
   materializing the cumulative `plan.diff` patch the no-Bash quality lenses read), plus `tdd` / `debug` /
   `spec-writer`. The four quality lenses share `shared/rubric-code-review.md` (mirrors the 5-dimension +
-  3-bucket-severity content of `orchestrator/agents/rubric-task-review.md` at whole-plan scope). The four
+  3-bucket-severity content of `orchestrator/agents/rubric-task-review.md` at whole-plan scope). Separately,
+  `shared/rubric.md` (agent-plan-auditor) and `orchestrator/agents/rubric-task-review.md` (task-reviewer) no
+  longer duplicate their four stable "How to …" sections — those live once in `shared/rubric-core.md`, read
+  alongside each variant; the two variants carry only their own severity buckets + PASS/FAIL(/BLOCKED) mapping.
+  The four
   per-task workers `coder` / `task-reviewer` / `improver` / `commiter` are **plugin agents**
   (`superdev/skills/orchestrator/agents/*.md`), not skills — dispatched by the workflow via `agentType:'superdev:<name>'`.
 

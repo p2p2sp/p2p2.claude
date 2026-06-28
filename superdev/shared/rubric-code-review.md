@@ -1,6 +1,6 @@
 <!-- MIRROR: the 4 "What to check" dimensions + the 3-bucket Critical/Important/Minor severity
 model below are a whole-plan adaptation of `superdev/skills/orchestrator/agents/rubric-task-review.md`
-(its "What to check (the 5 dimensions)" + "Severity buckets" sections, ~lines 133-167) — that file is the
+(its "What to check (the 5 dimensions)" + "Severity buckets" sections) — that file is the
 PRIMARY sync source: if its dimension criteria or severity buckets change, re-sync them here. No lint catches
 drift. `superdev/shared/rubric.md` is RELATED but NOT an equal sibling — it is the Deliverable-completeness
 rubric for `agent-plan-auditor`, a 2-bucket CRITICAL/Note model with no "dimensions" section; do not sync
