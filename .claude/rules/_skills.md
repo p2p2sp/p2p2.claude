@@ -70,7 +70,14 @@ A skill that BOTH asks the user (`AskUserQuestion`, interactive preview-then-con
 - Fork worker (`context: fork` + `user-invocable: false`) — gets the resolved inputs and does the heavy work out of context; it never asks the user, because the entry already resolved everything.
 - Hand off by the arg convention: short fields inline, large/multiline content as a PATH the fork injects (see `_skill-script-routing.md`).
 - Two payoffs: narrow responsibility AND token economy — the heavy body leaves the main context.
-- Precedent: `supergh:commit` (resolves WHAT to commit) -> `agent-committer` (reads the staged diff in a fork, authors the message). Fork-invocation mechanics: `skill-fork-dispatch.md`.
+
+## Fan-out cheap workers to locate change sites
+
+When the work is "find every place to change, then change it" over an unknown/large set, do NOT scan the whole repo in the main context. Split discovery from action:
+
+- Fan out many cheap-tier forks in parallel, each scoring/locating one file or shard — breadth, not depth. They return a compact tagged line (path + verdict), never raw file dumps into the main context.
+- Gate/rank the hits deterministically (script), then dispatch expensive frontier workers only into the located shards.
+- Main context keeps the conclusion (the shard list), not the search. Token cost stays flat as the repo grows.
 
 ## Gotchas
 - Shortening the text cannot mean less precise instructions.

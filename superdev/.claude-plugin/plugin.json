@@ -19,6 +19,7 @@
     "./skills/orchestrator/",
     "./skills/agent-recipe/",
     "./skills/agent-adr-recorder/",
+    "./skills/agent-docs-recorder/",
     "./skills/agent-decomposer/",
     "./skills/agent-runner/",
     "./skills/agent-final-reviewer/",

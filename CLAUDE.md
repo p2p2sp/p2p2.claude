@@ -41,7 +41,7 @@ They ship no application code — the artefacts are markdown (skills) + JSON (ma
 scripts under `<plugin>/hooks/scripts/` (only `superdev` / `superui` have hooks; `supergh` / `superfix` ship
 none), plus a handful of deterministic helper scripts bundled under
 individual skills' `scripts/` dirs (the `superui` preview scripts, the superdev pipeline commit scripts
-`orchestrator/scripts/commit-task.sh` + `orchestrator/scripts/commit-adr.sh`, the fixed recipe harness
+`orchestrator/scripts/commit-task.sh` + `orchestrator/scripts/commit-adr.sh` + `orchestrator/scripts/commit-docs.sh`, the fixed recipe harness
 `agent-recipe/scripts/recipe.template.sh`, the `supergh` `commit` mode router
 `commit/scripts/route.sh`, the `memory-rules` mode router `memory-rules/scripts/route.sh` + its discovery
 scripts `memory-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), the one-time `setup/scripts/bootstrap.sh`,
@@ -93,7 +93,7 @@ superdev/            The superdev plugin
   shared/            Plugin-level shared assets + scripts (rubric.md; rubric-core.md — the shared 4-section "How to …" review-rubric core, read by both rubric.md and orchestrator/agents/rubric-task-review.md; plan-injection-contract.md — the shared "Plan (pre-injected)" notes `!`-injected by both superplan-reviewer lens skills; references/ — auditor-contract.sh fragments (_input.md, _output.md, lens-{architecture,code-quality,production-readiness,testing}.md); coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the memory-layers / memory-rules scans; scripts/inject_review_input.sh — `!`-injected by the superplan-reviewer lens skills to splice plan text + re-review fixes; scripts/auditor-contract.sh — router-style body assembler `!`-injected by the four agent-*-auditor lenses)
   skills/            Skills (bare-named by functional role; `agent-` marks fork-only workers); some skills bundle a
                      deterministic helper under their own scripts/ dir (orchestrator/scripts/commit-task.sh
-                     + commit-adr.sh + task-pipeline.workflow.js, agent-recipe/scripts/recipe.template.sh,
+                     + commit-adr.sh + commit-docs.sh + task-pipeline.workflow.js, agent-recipe/scripts/recipe.template.sh,
                      memory-rules/scripts/route.sh, setup/scripts/bootstrap.sh);
                      orchestrator also bundles the 4 per-task pipeline plugin agents under its agents/ subdir
                      (coder.md, task-reviewer.md, improver.md, commiter.md), plus a bundled
@@ -149,7 +149,7 @@ chains, not individual skills.
 
 **Naming sub-convention (`agent-` prefix).** The `agent-` prefix marks a forked, fork-only **skill** worker —
 invoked **only by a superordinate skill via the `Skill` tool** (never the user, never auto-routed):
-`agent-recipe`, `agent-adr-recorder`, `agent-decomposer`, `agent-runner`, `agent-final-reviewer`,
+`agent-recipe`, `agent-adr-recorder`, `agent-docs-recorder`, `agent-decomposer`, `agent-runner`, `agent-final-reviewer`,
 `agent-plan-auditor`, `agent-code-quality-auditor`, `agent-architecture-auditor`, `agent-testing-auditor`,
 `agent-production-readiness-auditor`. These stay **skills** (not `agents/<name>.md` definitions); the prefix is
 taxonomy only — it signals their agent-like, fork-only nature, and their frontmatter already encodes it
@@ -170,32 +170,37 @@ user-facing / auto-routed skill are bare-named too; so are forks still reachable
     model-invocable and is the skill the manifest's decision flow forces first (step 1), unlike `setup`.
   - `setup`: one-time, user-only environment bootstrap (`/setup`). Seeds `.temp/` + `.superdev/`,
   copies the bundled `.gitignore` / `.claude/settings.json` templates, and **seeds `.superdev/config.yml` from a
-  bundled asset** (`setup/scripts/bootstrap.sh` copies `assets/config.yml`, both switches `true`, never
-  overwriting an existing one), then **interactively asks the 2 opt-in switches** and `Edit`s the freshly-seeded
-  file to flip the unselected ones off. Runs in the **main session** (not a fork) so it can prompt via
+  bundled asset** (`setup/scripts/bootstrap.sh` copies `assets/config.yml`, all switches seeded `false`, never
+  overwriting an existing one), then **interactively asks the 3 opt-in switches** and `Edit`s the freshly-seeded
+  file to flip the selected ones on. Runs in the **main session** (not a fork) so it can prompt via
   `AskUserQuestion`. It is `disable-model-invocation` (Claude never auto-routes to it) so it is **deliberately
   absent from the manifest** — see the Self-documentation invariant.
 - **Project memory (agent-facing)** (2 skills): `memory-layers` (CLAUDE.md cascade), `memory-rules`
   (`.claude/rules/` layer).
 
-  **Memory layer division.** Agent-facing project knowledge splits current truth across four non-overlapping
-  layers, picked by *kind of truth* — all four face the **agent**: (1) the general-rules
+  **Memory layer division.** Agent-facing project knowledge splits current truth across five non-overlapping
+  layers, picked by *kind of truth* — all five face the **agent**: (1) the general-rules
   manifest (superdev's `hooks/content/manifest.md`, force-injected per session);
   (2) the `CLAUDE.md` cascade (terse agent orientation; `memory-layers`); (3) `.claude/rules/*` (path-scoped
   conventions; `memory-rules`, which has **4 modes** — A uninitialized bootstrap, B initialized gap-fill, C
   improver-driven authoring (fork), D user-driven authoring (main context; user dictates a rule to append); in-pipeline
   the `improver` agent judges value, `memory-rules` (Mode C) authors);
-  (4) `.superdev/adr/` (architectural *why*; written in-pipeline by `agent-adr-recorder`). In the dev
+  (4) `.superdev/adr/` (architectural *why*; written in-pipeline by `agent-adr-recorder`);
+  (5) `.superdev/docs/` (as-built behavioural **what** — what the app does today: an `index.md` slice map plus
+  per-slice shards of capabilities / acceptance criteria / contracts / code+test anchors; written in-pipeline by
+  `agent-docs-recorder` as the **last** pipeline step, config-gated `docs`). In the dev
   pipeline, `agent-adr-recorder` records any architectural decision into layer 4 before decompose
-  (config-gated `adr`), and the `improver` agent promotes each task's review learnings into layer 3
+  (config-gated `adr`), the `improver` agent promotes each task's review learnings into layer 3
   (`.claude/rules/`) — judging which learnings are worth keeping and delegating the authoring to `memory-rules`
-  Mode C, the in-pipeline writer into `.claude/rules/` — a config-gated step (`rules_improver`).
+  Mode C, the in-pipeline writer into `.claude/rules/` — a config-gated step (`rules_improver`), and after the
+  final review `agent-docs-recorder` reconciles layer 5 incrementally against the cumulative `plan.diff`
+  (config-gated `docs`).
   The product's **end-user** help documentation is a distinct, non-agent layer owned by the end-user
-  documentation role below (NOT agent memory).
+  documentation role below (NOT agent memory) — same **what** as layer 5 but faced at the end user, not the agent.
 - **End-user documentation** (1 skill): `help-writer` (the end-user product-help layer → `.superdev/help/`).
   Authors the human-facing help that ships to the people who use the built app — distinct
   from the agent-facing memory layers above; faces the end user, not Claude.
-- **Agentic-development pipeline + diagnostics/specs** (18 skills + 4 plugin agents): planning
+- **Agentic-development pipeline + diagnostics/specs** (19 skills + 4 plugin agents): planning
   (`superplan`, `superplan-reviewer` plus its two fork-only lens sub-skills
   `superplan-reviewer-{integrity,codebase}`
   — invoked only by `superplan-reviewer` via the Skill tool; each receives the plan path as `$ARGUMENTS`,
@@ -207,12 +212,15 @@ user-facing / auto-routed skill are bare-named too; so are forks still reachable
   `recipe.sh` + `profile.md`; owns the clean-tree guard; FAIL = hard halt) → `agent-adr-recorder` →
   `agent-decomposer` → per task **one `Workflow`** call to `task-pipeline.workflow.js` driving `coder` →
   `agent-runner` → `task-reviewer` → `improver` → commit (the `commiter` agent runs
-  `commit-task.sh` as the workflow's final stage, only on PASS) → `agent-final-reviewer`), the final-gate
+  `commit-task.sh` as the workflow's final stage, only on PASS) → `agent-final-reviewer` → `agent-docs-recorder`), the final-gate
   lenses `agent-final-reviewer` fans out in parallel via the Skill tool (`agent-plan-auditor` Plan-alignment +
   the four code-quality lenses `agent-code-quality-auditor` / `agent-architecture-auditor` /
   `agent-testing-auditor` / `agent-production-readiness-auditor` + `agent-runner` Scope: full; the reviewer
   synthesizes one go/no-go verdict and writes `.temp/.workflows/<slug>/final-review.md`, the orchestrator first
-  materializing the cumulative `plan.diff` patch the no-Bash quality lenses read), plus `tdd` / `debug` /
+  materializing the cumulative `plan.diff` patch the no-Bash quality lenses read); the **last** pipeline step
+  `agent-docs-recorder` then reconciles the as-built docs layer (`.superdev/docs/` index + shards) incrementally
+  against that same `plan.diff` and is committed by `commit-docs.sh` (config-gated `docs`, runs on any final
+  verdict since the work is already committed, a mirror of the ADR step). Plus `tdd` / `debug` /
   `spec-writer`. The four quality lenses share `shared/rubric-code-review.md` (the dimension-agnostic scope /
   false-positive / 3-bucket-severity rules, mirroring `orchestrator/agents/rubric-task-review.md` at whole-plan
   scope); each lens's per-dimension criteria live in its own `shared/references/lens-*.md` fragment, injected by
@@ -283,15 +291,15 @@ invariant exception). Components, qualified `superfix:<name>`:
   deliberately dropped its manifest (its skills stay model-routable via CSO `description:`, with the 1%-rule
   guardrail folded into each skill's "Do NOT … directly" description clause). A manifest-less plugin is valid
   whenever a `SessionStart`-injected dispatcher would add no routing value over the skill descriptions.
-- **Opt-in switches (`.superdev/config.yml`).** Two booleans — `adr`, `rules_improver` — both
-  **default-disabled** (a missing file/key = `false`, fail-closed; a repo that never ran `/setup` skips both
+- **Opt-in switches (`.superdev/config.yml`).** Three booleans — `adr`, `rules_improver`, `docs` — all
+  **default-disabled** (a missing file/key = `false`, fail-closed; a repo that never ran `/setup` skips these
   optional steps until it opts in), plus two integer retry keys — `retry_max_attempts`, `retry_escalation_attempts` — both
   **fail-open to `3`** (a missing file/key = `3`). `setup` writes the file (seeding it from a bundled asset —
-  see below); `orchestrator` reads the config: it skips the `agent-adr-recorder` / `improver` steps
+  see below); `orchestrator` reads the config: it skips the `agent-adr-recorder` / `improver` / `agent-docs-recorder` steps
   when their switch is off — each skip is **one terse line, never a paragraph** — and forwards the two retry
   integers as the `task-pipeline.workflow.js` cap: `retry_max_attempts` becomes the `retryMaxAttempts` arg on
   the first `Workflow` invocation, and `retry_escalation_attempts` becomes a fresh `retryMaxAttempts` cap on the
-  escalation Retry re-invocation. A fifth, non-boolean key, `rule_extensions:` (a
+  escalation Retry re-invocation. A sixth, non-boolean key, `rule_extensions:` (a
   list of source-type globs), is written **once** by `memory-rules` — in Mode A/B it discovers and **appends**
   `rule_extensions:` when the key is absent (never overwriting an existing one), creating the file if missing —
   and is **read** by `memory-rules` (all modes) and by the `improver` agent (as a fail-open `paths:`-scoping

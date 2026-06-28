@@ -24,9 +24,9 @@
 #   stdout: one human-readable line per result; the SKILL.md "Output" step and
 #           the config-switch step read these lines verbatim. The config line is
 #           either "config.yml: seeded from template — defaults: adr=false,
-#           rules_improver=false" (fresh seed) or "config.yml: already present
-#           (left untouched) — current switches:" followed by the grep'd switch
-#           lines (limited to the two documented keys: adr, rules_improver).
+#           rules_improver=false, docs=false" (fresh seed) or "config.yml: already
+#           present (left untouched) — current switches:" followed by the grep'd
+#           switch lines (limited to the documented keys: adr, rules_improver, docs).
 #   exit : always 0 (fail-soft; missing templates are reported, not fatal).
 
 set -u
@@ -64,10 +64,10 @@ fi
 
 if [ -f ".superdev/config.yml" ]; then
   echo "config.yml: already present (left untouched) — current switches:"
-  grep -E '^[[:space:]]*(adr|rules_improver)[[:space:]]*:' .superdev/config.yml
+  grep -E '^[[:space:]]*(adr|rules_improver|docs)[[:space:]]*:' .superdev/config.yml
 elif [ -f "$src_config" ]; then
   mkdir -p .superdev && cp "$src_config" .superdev/config.yml \
-    && echo "config.yml: seeded from template — defaults: adr=false, rules_improver=false"
+    && echo "config.yml: seeded from template — defaults: adr=false, rules_improver=false, docs=false"
 else
   echo "config.yml: template missing at $src_config — skipped"
 fi

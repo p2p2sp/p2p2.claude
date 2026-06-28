@@ -39,6 +39,9 @@ task-pipeline.workflow.js  ──►  coder ─► runner ─► task-reviewer �
    │  (after last task, once)
    ▼
 agent-final-reviewer (sub-orchestrator)  ──►  fans out 6 parallel lenses  ──►  go/no-go verdict on stdout + writes final-review.md
+   │  (last step — config-gated by `docs`, idempotent via docs.done; runs on ANY verdict)
+   ▼
+docs-recorder  ──►  reconciles .superdev/docs/index.md + shards  ──►  commit-docs.sh commits them
 ```
 
 Roles (one line each):
@@ -53,8 +56,9 @@ Roles (one line each):
 - **improver** (`improver` agent) — promotes the task's review learnings into `.claude/rules/` (delegating authoring to `memory-rules`); always `PASS`. Gated by `rules_improver`.
 - **commiter** (`commiter` agent → `scripts/commit-task.sh`) — commits the task as the workflow's **final stage**, only on PASS. The script self-verifies (HEAD advanced + clean tree) before emitting a `sha`; the agent only relays its tag; the workflow parses it into `wf_out.commit`. The dispatcher never runs the commit and trusts `wf_out.commit` directly.
 - **agent-final-reviewer (sub-orchestrator)** — one-shot terminal gate after the last commit; fans out six parallel lenses via Skill (`agent-plan-auditor` + four `agent-*-auditor` code-quality lenses + `agent-runner` Scope: full), synthesizes one go/no-go verdict on stdout, and **writes** `.temp/.workflows/<slug>/final-review.md`. The dispatcher materializes `plan.diff` and passes `Report path:` + `Diff file:`.
+- **docs-recorder** (`agent-docs-recorder`) — the **last** step; reconciles the agent-facing as-built docs in `.superdev/docs/` (index + shards) against the cumulative `plan.diff`. Once, after final review, config-gated by `docs`, runs on ANY final verdict (changes are already committed), committed by `commit-docs.sh`. Reuses the `plan.diff` + `final-review.md` already materialized; never touches source or the plan.
 
-Each worker carries its own input/output contract: the workflow's agents in `agents/<name>.md`; decomposer/runner in their `SKILL.md`; the committer tag in `scripts/commit-task.sh`'s header; the workflow's args/return in `scripts/task-pipeline.workflow.js`'s header. The dispatcher reads only the workflow's `{status, attempts, lastFailureReportPath, outputTokens, commit}` return and the **ADR** committer's tag (`parse_commit_tag`). When the workflow's contract changes, update the `.js` header, then this graph and `references/retry-policy.md`.
+Each worker carries its own input/output contract: the workflow's agents in `agents/<name>.md`; decomposer/runner in their `SKILL.md`; the committer tag in `scripts/commit-task.sh`'s header; the workflow's args/return in `scripts/task-pipeline.workflow.js`'s header. The dispatcher reads only the workflow's `{status, attempts, lastFailureReportPath, outputTokens, commit}` return and the **ADR** / **docs** committers' tags (`parse_commit_tag`). When the workflow's contract changes, update the `.js` header, then this graph and `references/retry-policy.md`.
 
 ## Locate the plan
 
@@ -98,13 +102,14 @@ Read each boolean as **on only when its value is literally `true`**; a missing k
 
 - `adr` → run the ADR step below.
 - `rules_improver` → run the per-task `improver` step. Forwarded as the workflow's `rulesImprover` arg.
+- `docs` → run the as-built docs step after the final review.
 
 Two **integer** keys tune the retry budget, fail-open to `3` (missing key/file or non-integer → `3`):
 
 - `retry_max_attempts` → per-task cap for the first workflow invocation. Forwarded as `retryMaxAttempts`.
 - `retry_escalation_attempts` → cap offered on the escalation `AskUserQuestion`; on Retry, forwarded as `retryMaxAttempts`.
 
-A skipped config-gated step prints **one terse line** (`ADR: skipped (disabled)`, `[N/max] improver: skipped (disabled)`) — never a paragraph.
+A skipped config-gated step prints **one terse line** (`ADR: skipped (disabled)`, `[N/max] improver: skipped (disabled)`, `Docs: skipped (disabled)`) — never a paragraph.
 
 ## ADR recording (before decompose)
 
@@ -345,16 +350,57 @@ final_out = Skill(skill="superdev:agent-final-reviewer", args=final_prompt)
 final_status = first_status_line(final_out)                         # STATUS: PASS / STATUS: FAIL
 final_verdict = final_status.removeprefix("STATUS: ") if final_status.startswith("STATUS: ") else "FAIL"
 print(f"[final] agent-final-reviewer: {final_verdict} (report: {report_path})")
-report final_out and stop the skill
+# Surface final_out (verdict + sub-step breakdown) verbatim, then fall through to the as-built docs step
+# below — that is the true last step. Do NOT stop here. plan-path + diff_path + report_path + final_verdict feed it.
+surface final_out verbatim
 ```
 
-`final-review.md` is written by the **fork**, not the dispatcher — the dispatcher only materializes `plan.diff`, passes `Report path:` + `Diff file:`, and surfaces the verdict. The verdict + sub-step breakdown on stdout IS the terminal result; surface verbatim and point the user at the report. `FAIL` is advisory, not retry-triggering.
+`final-review.md` is written by the **fork**, not the dispatcher — the dispatcher only materializes `plan.diff`, passes `Report path:` + `Diff file:`, and surfaces the verdict. The verdict + sub-step breakdown on stdout is surfaced verbatim; point the user at the report. `FAIL` is advisory, not retry-triggering — and does **not** skip the docs step (the work is already committed; see below).
 
-**One-shot and terminal.** No retry loop, no `AskUserQuestion`, no `improver` here. Full pseudocode + `base_sha` rationale + anti-patterns: `references/final-review.md`.
+**One-shot.** No retry loop, no `AskUserQuestion`, no `improver` here. Full pseudocode + `base_sha` rationale + anti-patterns: `references/final-review.md`. The as-built docs step below is the only step after this one.
+
+## As-built docs recording (after final review)
+
+The **last** step. `agent-docs-recorder` reconciles `.superdev/docs/` (index + shards) against the cumulative `plan.diff` and **writes the files itself**; the dispatcher then commits them with `commit-docs.sh`. Runs on ANY final verdict — the per-task commits already landed, so docs must mirror the committed tree even when the final review FAILed (the fork stamps a provisional marker on a FAIL). Config-gated by `docs`; the `docs.done` marker makes it idempotent on resume. Reuses the `diff_path` (`plan.diff`) + `report_path` (`final-review.md`) + `final_verdict` from the final-review step — nothing is re-materialized.
+
+```
+# Idempotency gate: docs step already done this run.
+if exists(".temp/.workflows/<slug>/docs.done"):
+    stop the skill
+
+# Config gate: `docs` ≠ literally `true` → skip, mark done, stop.
+if config switch `docs` is not literally `true`:
+    print("Docs: skipped (disabled)")
+    Write(".temp/.workflows/<slug>/docs.done", "skipped\n")
+    stop the skill
+
+# agent-docs-recorder injects plan + plan.diff + final-review CONTENT via `cat` of the four ` ||| `-separated
+# paths/fields. The fork WRITES the index + shard(s) itself and returns only a verdict + commit subject.
+docs_args = f"{abspath(plan-path)} ||| {abspath(diff_path)} ||| {abspath(report_path)} ||| {final_verdict}"
+docs_out = Skill(skill="superdev:agent-docs-recorder", args=docs_args)
+if first_status_line(docs_out) == "STATUS: DOCS":
+    subject = the text after "Commit-subject: " in docs_out (single line)
+    commit_out = bash(f'bash "${{CLAUDE_PLUGIN_ROOT}}/skills/orchestrator/scripts/commit-docs.sh" "{subject}"').stdout
+    commit_result = parse_commit_tag(commit_out)   # same tag shapes as commit-adr.sh / commit-task.sh
+    if commit_result[0] == "sha":
+        print(f"Docs: recorded ({commit_result[1]})")
+    elif commit_result[0] == "no-changes":
+        print("Docs: recorder reported DOCS but no files to commit — continuing without docs.")
+    else:   # error / malformed
+        report f"Docs commit FAILED: {commit_result[1] if len(commit_result) > 1 else commit_out}" and stop
+else:
+    # STATUS: NO-DOCS (or malformed) → nothing written, nothing to commit.
+    print("Docs: none")
+
+Write(".temp/.workflows/<slug>/docs.done", "done\n")   # mark done for idempotent resume
+stop the skill
+```
+
+The docs commit is separate from any code/ADR commit (its own `docs(spec): …`); it lands after the final review, so it is excluded from the plan diff that review already consumed — correct, since docs are documentation, not plan functionality. A `Docs commit FAILED` is the only hard stop here; `NO-DOCS` / `no-changes` are benign.
 
 ## Helpers and pattern reference
 
-Dispatcher-only helpers (`first_status_line`, `parse_status_yml`, `parse_arg_task`, `parse_int_config`, `parse_commit_tag` — used only for the **ADR** commit, `safe_task_call`), the commit tag table, and the widget constraints: `references/status-parsing.md`. The per-task committer tag is parsed by the workflow (`parseCommitTag`) and surfaced as `wf_out.commit` — never by the dispatcher. The worker-`STATUS:` regexes, runner verdict tokens, and scope/command helpers live inside the workflow; `extract_task_gate` is used by the dispatcher only to compute `taskGateRunnable`.
+Dispatcher-only helpers (`first_status_line`, `parse_status_yml`, `parse_arg_task`, `parse_int_config`, `parse_commit_tag` — used only for the **ADR** and **docs** commits, `safe_task_call`), the commit tag table, and the widget constraints: `references/status-parsing.md`. The per-task committer tag is parsed by the workflow (`parseCommitTag`) and surfaced as `wf_out.commit` — never by the dispatcher. The worker-`STATUS:` regexes, runner verdict tokens, and scope/command helpers live inside the workflow; `extract_task_gate` is used by the dispatcher only to compute `taskGateRunnable`.
 
 ## Closing summary
 
@@ -397,8 +443,8 @@ Then stop. Do not call any further tool.
 - Re-implementing anything the workflow owns: the per-task inner loop (per-agent dispatch, BLOCKED-unblock branches, loop-guard), feedback-forwarding (only the most recent failure's path), task-reviewer retry-freshness, the runner `Scope hints:` block. Do NOT call `coder` / `task-reviewer` / `improver` / `commiter` / `agent-runner` directly — each is dispatched only by the workflow. The dispatcher's only forwarded failure handle is the escalation `feedbackPath` (forwarded without reading the file).
 - Skipping the task-pipeline `Workflow` "to save time" on a small task — every task goes through it.
 - Re-deriving or overriding the workflow's retry cap. Base cap = `retry_max_attempts` (fail-open `3`), escalation = `retry_escalation_attempts` (fail-open `3`); both forwarded as `retryMaxAttempts`. Do NOT offer a "skip task" option (intentionally absent), and do NOT recompute `task_base_sha` on escalation — the baseline is stable.
-- Writing any state file other than: (a) `status.yml` (after each PASS), (b) `base.sha` (once, after Task 1), (c) `task-base.sha` (once per task, before the workflow), (d) `adr.done` (once, after the ADR step). The dispatcher also materializes the ephemeral `plan.diff` (transport, NOT truth) for the final review. The recipe artifacts (`recipe.sh`, `profile.md`), `final-review.md`, and everything under `orchestration/task-<N>/` are written by the forks/workflow, not the dispatcher — they are ephemeral audit/transport, NOT truth (resume relies only on `status.yml` + `task-base.sha` + `base.sha`).
-- Re-verifying or retrying either commit. Both rest on the self-verifying scripts: `commit-task.sh` / `commit-adr.sh` emit a `sha` ONLY after proving HEAD advanced past pre-commit HEAD AND `git status --porcelain` is empty (else an `error` tag, never a fabricated `sha`). The committer agent only RELAYS the line. Trust `wf_out.commit` directly: do NOT re-run `git rev-parse HEAD`, do NOT wrap in a phantom-commit retry loop, take the sha straight from `wf_out.commit.sha`. On `error`/`malformed`, hard-stop — never hand-commit.
+- Writing any state file other than: (a) `status.yml` (after each PASS), (b) `base.sha` (once, after Task 1), (c) `task-base.sha` (once per task, before the workflow), (d) `adr.done` (once, after the ADR step), (e) `docs.done` (once, after the docs step). The dispatcher also materializes the ephemeral `plan.diff` (transport, NOT truth) for the final review. The recipe artifacts (`recipe.sh`, `profile.md`), `final-review.md`, and everything under `orchestration/task-<N>/` are written by the forks/workflow, not the dispatcher — they are ephemeral audit/transport, NOT truth (resume relies only on `status.yml` + `task-base.sha` + `base.sha`).
+- Re-verifying or retrying any commit. All rest on the self-verifying scripts: `commit-task.sh` / `commit-adr.sh` / `commit-docs.sh` emit a `sha` ONLY after proving HEAD advanced past pre-commit HEAD AND `git status --porcelain` is empty (else an `error` tag, never a fabricated `sha`). The committer agent only RELAYS the line. Trust `wf_out.commit` (and the ADR/docs commit tags) directly: do NOT re-run `git rev-parse HEAD`, do NOT wrap in a phantom-commit retry loop, take the sha straight from the tag. On `error`/`malformed`, hard-stop — never hand-commit.
 - Pasting the plan body (or task content) into a sub-agent prompt — the sub-agent reads it itself from the supplied path. The dispatcher hands the workflow only the `taskFile` path.
 - Paging any worker report (`coder-K.md`, `task-reviewer-K.md`, `improver-K.md`, `unblock-coder-K.md`, `runner-K.md`) into the dispatcher's context. The dispatcher reads only the workflow's structured return and (for escalation) forwards `lastFailureReportPath` as the next `feedbackPath` without reading it.
 - Gating on decomposer's `## Notes` between decomposition and the loop. Material decisions resurface in the final whole-plan review against the cumulative diff.
