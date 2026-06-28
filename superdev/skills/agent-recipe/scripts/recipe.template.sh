@@ -144,12 +144,31 @@ _hash() {
 # <pat>) are forwarded to the body as its positional parameters.
 run_body() {
   local fn="$1"; shift
-  # Detect the N/A sentinel by inspecting the body (the generator emits a body
-  # whose single statement is the literal "N/A").
-  if declare -f "$fn" 2>/dev/null | grep -qE '(^|[^[:alnum:]_])N/A([^[:alnum:]_]|$)'; then
+  if _body_is_na "$fn"; then
     exit 0
   fi
   "$fn" "$@"
+}
+
+# _body_is_na <fn> — true iff the verb body is EXACTLY the sentinel "N/A".
+# Compares the trimmed body for equality, NOT a substring match: a real host
+# command that merely contains the token "N/A" (e.g. a URL path .../N/A/... or a
+# filter expr Category!=N/A) must run, not be skipped as documented-no-suite.
+# `declare -f` normalizes to "<name> ()\n{\n    <body…>\n}"; drop the signature,
+# the lone braces, and blanks — what remains must be a single line equal to "N/A".
+_body_is_na() {
+  local def line trimmed seen=0
+  def="$(declare -f "$1" 2>/dev/null)" || return 1
+  while IFS= read -r line; do
+    trimmed="${line#"${line%%[![:space:]]*}"}"        # ltrim
+    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"  # rtrim
+    case "$trimmed" in
+      ''|'{'|'}'|"$1 ()") continue ;;
+    esac
+    seen=$((seen + 1))
+    [ "$trimmed" = "N/A" ] || return 1
+  done <<< "$def"
+  [ "$seen" -eq 1 ]
 }
 
 # --- verb dispatch ----------------------------------------------------------

@@ -51,5 +51,5 @@ list_files | while IFS= read -r f; do
     esac
     ext="${base##*.}"
     [ -n "$ext" ] || continue          # trailing-dot guard ("foo." -> empty ext)
-    printf '%s\n' "$ext"
+    printf '%s\n' "$ext" | tr 'A-Z' 'a-z'   # lowercase per contract (README.MD/Notes.Md -> md)
 done | sort | uniq -c | sort -rn

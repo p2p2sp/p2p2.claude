@@ -108,7 +108,7 @@ fi
 
 # --- success: sha + file count taken verbatim from git, never composed ------
 sha="$(git rev-parse --short HEAD 2>/dev/null)"
-files="$(git diff-tree --no-commit-id --name-only -r HEAD 2>/dev/null | grep -c .)"
+files="$(git diff-tree --no-commit-id --name-only -r --root HEAD 2>/dev/null | grep -c .)"
 printf '<commit sha="%s" files="%s">T%s: %s</commit>\n' \
   "$sha" "$files" "$N" "$(sanitize "$subject")"
 exit 0
