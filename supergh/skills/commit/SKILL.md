@@ -17,6 +17,15 @@ effort: low
 
 Empty block above → the working tree is clean: nothing to commit in any mode. Reply `nothing to commit` and stop — do NOT run the routed playbook, do NOT delegate to the committer.
 
+## Pre-commit HEAD
+<head-before>
+
+!`git rev-parse --verify --quiet HEAD 2>/dev/null || echo NONE`
+
+</head-before>
+
+HEAD frozen before any commit. The fork path (`all`/`staged`) verifies the commit landed against this value — do NOT re-read it.
+
 ## Routed playbook
 
 !`"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/route.sh" "$ARGUMENTS"`

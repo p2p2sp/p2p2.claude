@@ -96,6 +96,8 @@ if ! git diff --cached --quiet 2>/dev/null; then
 fi
 
 # --- success: sha + file count taken verbatim from git, never composed ------
+# KEEP THIS RECIPE IN SYNC WITH skills/commit/scripts/verify-landed.sh (the
+# main-context backstop reconstructs the same ✓ line; no build/lint catches desync).
 sha="$(git rev-parse --short HEAD 2>/dev/null)"
 files="$(git diff-tree --no-commit-id --name-only -r --root HEAD 2>/dev/null | grep -c .)"
 printf '\xe2\x9c\x93 %s %s (%s files)\n' "$sha" "$subject" "$files"

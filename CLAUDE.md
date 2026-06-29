@@ -43,7 +43,7 @@ none), plus a handful of deterministic helper scripts bundled under
 individual skills' `scripts/` dirs (the `superui` preview scripts, the superdev pipeline commit scripts
 `orchestrator/scripts/commit-task.sh` + `orchestrator/scripts/commit-adr.sh` + `orchestrator/scripts/commit-docs.sh`, the fixed recipe harness
 `agent-recipe/scripts/recipe.template.sh`, the `supergh` `commit` mode router
-`commit/scripts/route.sh`, the `memory-rules` mode router `memory-rules/scripts/route.sh` + its discovery
+`commit/scripts/route.sh` + its fork-path git-truth backstop `commit/scripts/verify-landed.sh`, the `memory-rules` mode router `memory-rules/scripts/route.sh` + its discovery
 scripts `memory-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), the one-time `setup/scripts/bootstrap.sh`,
 and the `superfix` investigation scripts `code-auditor/scripts/collect_signals.sh` (deterministic signal sweep) + `rank.py` (the gate/rank step)).
 Six helpers instead live at **plugin-level** `<plugin>/shared/scripts/` (one copy shared across a plugin's
@@ -115,7 +115,7 @@ supergh/             The supergh plugin (NO hooks, NO manifest — skills route 
                      self-verifying stage+commit+verify committer; references/commit-conventions.md — single source of
                      the Conventional-Commits subject/footer rules, read by agent-committer + commit's context mode)
   skills/            Flat-named skills (cli, cli-executor, commit, agent-committer, create-issue, create-pr);
-                     the commit skill bundles scripts/route.sh (mode router) + references/{mode-fork,mode-session}.md
+                     the commit skill bundles scripts/route.sh (mode router) + scripts/verify-landed.sh (fork-path git-truth backstop) + references/{mode-fork,mode-session}.md
 superfix/            The superfix plugin (NO hooks, NO manifest — single user-only skill)
   .claude-plugin/plugin.json   The plugin manifest — skills[] + agents[] are the catalog of record
   skills/            One user-invoked skill code-auditor/ (disable-model-invocation); bundles
@@ -352,6 +352,14 @@ invariant exception). Components, qualified `superfix:<name>`:
   the haiku `commiter` agent (so the commit lives inside the per-task `Workflow`, not the orchestrator), but
   the agent only relays the script's tag verbatim — the self-verification stays in the script, so its caller
   (the workflow, then the dispatcher reading `wf_out.commit`) still trusts the result without re-checking.
+  **Exception — supergh `commit` fork path.** The trust-the-relayed-tag property holds only when the relay is a
+  deterministic consumer (the superdev `commit-task.sh` → `Workflow` → dispatcher chain above). It does NOT hold
+  across an **LLM** relay hop: an LLM fork can skip the script entirely and FABRICATE a plausible `✓ <sha>` line
+  the script never emitted (the supergh `commit` `all`/`staged` path, where the haiku `agent-committer` relays
+  `commit.sh`). So there the main-context `commit` resolver does NOT trust the relayed line — it freezes HEAD
+  before delegating and re-derives the verdict from git (HEAD before/after) via `skills/commit/scripts/verify-landed.sh`,
+  retrying the fork once before reporting a hard error. The script-side guarantee protects the script; this
+  backstop protects the LLM hop above it. (The superdev pipeline's identical twin pattern is not yet hardened.)
 - **Self-documentation.** Any skill add / remove / rename MUST update the **owning plugin's**
   `<plugin>/.claude-plugin/plugin.json` `skills[]` (superdev's for any of its skills, superui's
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`agent-committer`/`create-issue`/`create-pr` skill,
