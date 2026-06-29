@@ -8,7 +8,7 @@ Implementation: superbuild
 > First thing you MUST do is USE the `superdev:superbuild` skill to implement this plan.
 -->
 
-<!-- VARIANT B — self / vanilla (agent implements directly):
+<!-- VARIANT B — self (agent implements directly):
 Implementation: self
 > The user explicitly opted OUT of the superbuild pipeline for this plan — implement it directly in the main session; do NOT invoke `superbuild` even if the plan text mentions it.
 -->
