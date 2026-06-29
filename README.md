@@ -74,6 +74,12 @@ Single user-invoked skill (no manifest, no hooks); runs only via `/superfix:code
 
 - **The manifest-bearing plugins (`superdev`, `superui`) inject their manifest** (`<plugin>/hooks/content/manifest.md`) once per session and route across that plugin's domains (instruction priority, the 1% rule, decision flow, the skill catalog, the natural chains, and red flags). `supergh` / `superfix` ship no manifest and route purely via CSO descriptions. Install several and their manifests coexist.
 - **Skills auto-engage via CSO** — each skill's `description:` is its trigger, in any language.
-- **Opt-in per project (superdev)** — `/setup` writes `.superdev/config.yml` (two switches: `adr`, `rules_improver`). The routing manifest is always injected as-is; a disabled switch only skips its `superbuild` pipeline step (`superbuild-adr` / the `improver` agent); both switches default off (a missing config = both off, fail-closed), so these two optional steps run only once you enable them via `/setup`.
-- **The implementation pipeline is file-based (superdev)**: `superbuild` dispatches forked executors that hand state through files and reply with a 3-line status, keeping the main context lean.
-- **Planning always happens in plan mode (superdev).** Whatever mode you start in, superdev's planning skill enters plan mode before drafting a plan, so the plan-review gate runs every time — the planning pipeline behaves the same regardless of the mode you started in.
+- **Opt-in per project (superdev)** — `/setup` writes `.superdev/config.yml` (two switches: `adr`,
+  `rules_improver`). The routing manifest is always injected as-is; a disabled switch only skips its
+  `orchestrator` pipeline step (`agent-adr-recorder` / the `improver` agent); both switches default off (a missing config = both off,
+  fail-closed), so these two optional steps run only once you enable them via `/setup`.
+- **The implementation pipeline is file-based (superdev)**: `orchestrator` dispatches forked executors
+  that hand state through files and reply with a 3-line status, keeping the main context lean.
+- **Planning always happens in plan mode (superdev).** Whatever mode you start in, superdev's planning skill
+  enters plan mode before drafting a plan, so the plan-review gate runs
+  every time — the planning pipeline behaves the same regardless of the mode you started in.
