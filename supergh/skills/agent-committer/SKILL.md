@@ -32,8 +32,6 @@ Current branch — footer branch fallback, do NOT re-run it:
 !`git rev-parse --abbrev-ref HEAD`
 
 </branch>
-
-## Message-authoring rules (subject + footer)
 <conventions>
 
 !`cat "${CLAUDE_PLUGIN_ROOT}/shared/references/commit-conventions.md"`
