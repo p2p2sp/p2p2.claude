@@ -27,11 +27,11 @@ You are the Plan-Review Orchestrator. Obtain independent specialized reviews of 
 
 ### Step 1 — Dispatch multiple reviewers concurrently
 - Read `resources/checklist.md`.
-- Decide which checklist groups (A–E) are relevant to this plan and project; drop the rest. Engage Group E (Security) only if the plan touches its areas.
-- Dispatch ONE `general-purpose` agent (sonnet model) per relevant group. Put EVERY agent call in a SINGLE message so they run concurrently in the foreground. Do NOT set `run_in_background` (it detaches and wakes you per finishing agent → partial narration), and do NOT dispatch one group per turn (that serializes them). Give each agent ONLY:
+- Decide which checklist groups (A–E) are relevant to this plan and project; drop the rest. Engage Group E (Security) only if the plan touches its areas. On a RE-REVIEW, also include every group named in a prior fix's `{...}` tag, so no prior fix goes unverified.
+- Dispatch ONE `general-purpose` agent (sonnet model) per relevant group. Put EVERY agent call in a SINGLE message so they run concurrently in the foreground. Do NOT dispatch one group per turn (that serializes them). Give each agent ONLY:
   - the plan path (left of ` ||| ` in `$ARGUMENTS`);
   - that group's checklist points, verbatim;
-  - on a RE-REVIEW (` ||| ` present): the prior Consolidated fixes — instruct it to confirm each is closed AND still run a full fresh pass;
+  - on a RE-REVIEW (` ||| ` present): from the prior Consolidated fixes, ONLY the items whose `{...}` group tag contains THIS group's letter (write `none` if none belong to it) — instruct it to confirm each is closed AND still run a full fresh pass;
   - the return contract below.
 - Each agent MUST return EXACTLY these three parts:
   - `Verdict:` one of BLOCK | FIX | PASS — any Critical finding → BLOCK; else any Major → FIX; else PASS.
@@ -72,15 +72,15 @@ Overall Verdict: BLOCK | FIX | PASS
 Reviewers run: <the dispatched checklist groups, e.g. A — Codebase fit, B — Verifiability, C — Coverage, D — Executability, E — Security>
 
 ## Consolidated fixes (apply in order)
-1. [SEVERITY] (<plan location>) — <the change to make>
-   Source: <which reviewer(s)>; <one-line arbitration note if any>
+1. [SEVERITY] {group letter(s), e.g. A or A,B} (<plan location>) — <the change to make>
+   Source: <group letter(s) of the reviewer(s)>; <one-line arbitration note if any>
 2. ...
 (If verdict is PASS: state "No blocking or major fixes required" and list any Minor suggestions.)
 
 ## Re-review guidance for the main session
 If the verdict is FIX or BLOCK: apply the Consolidated fixes to the plan, then re-invoke superplan-reviewer in RE-REVIEW mode so each reviewer confirms the fixes closed and still runs a full fresh pass.
-Construct the argument as ONE line: `<plan-path> ||| <Consolidated fixes flattened to one line>` — join fix items with ` ;; ` and replace any newline inside a fix with a space. Omit the ` ||| ...` part for a first-run.
-Example: `C:\...\plans\my-plan.md ||| 1. [MAJOR] (§4) — add X ;; 2. [MINOR] (§7) — tighten Y`
+Construct the argument as ONE line: `<plan-path> ||| <Consolidated fixes flattened to one line>`. Flatten each fix to `N. [SEVERITY] {GROUPS} (<plan location>) — <change>`, keeping the `{GROUPS}` group-letter tag so the re-review routes each fix to the group(s) that raised it. Join fix items with ` ;; ` and replace any newline inside a fix with a space. Omit the ` ||| ...` part for a first-run.
+Example: `C:\...\plans\my-plan.md ||| 1. [MAJOR] {A} (§4) — add X ;; 2. [MINOR] {C} (§7) — tighten Y`
 This re-review context is best-effort: nothing enforces it (the ExitPlanMode hook only checks for a PASS verdict); omitting the ` ||| ...` part simply degrades to a clean first-run.
 
 ## Per-reviewer raw verdicts
