@@ -24,22 +24,24 @@ __REVIEW_ARGS__
 
 !`cat "${CLAUDE_PLUGIN_ROOT}/shared/plan-injection-contract.md"`
 
-- Re-review is ADDITIVE: (1) confirm every prior fix in YOUR lane (coverage / executability) is resolved in the current plan, re-reporting any still open with its severity, AND (2) still run the full fresh review below for new problems. Never shorten the fresh pass.
+Re-review is ADDITIVE
+- Confirm every prior fix in YOUR lane (coverage / executability) is resolved in the current plan, re-reporting any still open with its severity.
+- Still run the full fresh review below for new problems. Never shorten the fresh pass.
 
 ## What you check
 
-Group A — Coverage (does it realize its own scope?)
+### Group A — Coverage (does it realize its own scope?)
 1. Coverage: map every deliverable implied by §1 Scope, §2 Context, and §9 Definition of done to a concrete change in §4 Files to change. List anything with no owning change.
-2. Edge cases: are the edge cases / inputs / states named in §8 actually addressed by a file/change in §4?
+2. Edge cases: are the edge cases, inputs, states, or scenarios named in §8 each addressed by a change in §4?
 3. Scope creep: flag changes in §4 that go beyond §1 Scope without justification — especially anything that contradicts §10 Out-of-scope.
 4. Internal fidelity: does §1 Scope + §2 Context describe a coherent goal that §4 actually serves, or a reframed/easier version of it?
 
-Group B — Executability (can it be run literally?)
-5. Placeholder scan: flag red flags such as "write tests for the above" with no test content, "similar to Task N" instead of actual content, steps that say WHAT without HOW, or "TODO/TBD" left in.
-6. Internal consistency: function names, method signatures, type names, and file paths used in later tasks must match what earlier tasks define (e.g. `clearLayers()` in one task, `clearFullLayers()` in another).
-7. Dependency ordering & parallelism: tasks ordered so prerequisites come first (models before services before endpoints). Any `[P]` (parallel) marker must point to genuinely independent tasks.
-8. Per-task completeness: each task has a clear goal, target files, an approach, an acceptance criterion, and a verification command field present.
-9. Dangling references: no references to types, functions, or methods defined neither in any task nor (per the plan) in existing code.
+### Group B — Executability (can it be run literally?)
+5. Placeholder scan: flag content a step needs but does not contain — "same as above", "similar to Task N", "TODO/TBD" left in, or any step stating WHAT without HOW.
+6. Internal consistency: every name, identifier, signature, path, or term a later task reuses must match what an earlier task defines — no drift (e.g. `clearLayers` in one task vs `clearFullLayers` in another).
+7. Dependency ordering & parallelism: prerequisites come before the tasks that build on them (a thing is defined before it is used). Any `[P]` (parallel) marker must point to genuinely independent tasks.
+8. Per-task completeness: each task states a clear goal, its targets, an approach, an acceptance criterion, and a verification field.
+9. Dangling references: no task references an artifact (identifier, section, file, resource) defined neither in any task nor (per the plan) in existing material.
 
 ## What you do NOT check (the Codebase-Risk reviewer owns these)
 - Fit with the existing codebase, reuse of existing utilities, architecture.
@@ -47,7 +49,7 @@ Group B — Executability (can it be run literally?)
 You check that a verification command FIELD is PRESENT and internally consistent — not whether it actually proves the work.
 Stay in your lane. If you notice something outside it, ignore it.
 
-## Severity rubric
+## Severity
 - Critical (BLOCK): a stated deliverable (§1 / §9) has no corresponding change at all, OR a task is unexecutable as written (missing content a step needs, contradictory definitions across tasks, broken dependency order).
 - Major (FIX): a named edge case is unaddressed; material scope creep; placeholder content; a missing acceptance criterion; an inconsistent name/signature; or an invalid `[P]` marker.
 - Minor: small ambiguity, nice-to-have clarification, or a cosmetic gap that does not block execution.
