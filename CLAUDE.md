@@ -48,8 +48,6 @@ scripts `memory-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_co
 and the `superfix` investigation scripts `code-auditor/scripts/collect_signals.sh` (deterministic signal sweep) + `rank.py` (the gate/rank step)).
 Six helpers instead live at **plugin-level** `<plugin>/shared/scripts/` (one copy shared across a plugin's
 skills): `superdev/shared/scripts/lib_find_excludes.sh` (sourced by the `memory-layers` / `memory-rules` scan scripts),
-`superdev/shared/scripts/inject_review_input.sh` (`!`-injected by the `superplan-reviewer-integrity` / `superplan-reviewer-codebase`
-lens reviewers to splice the plan text + any re-review fixes from the passed path, so neither fork re-reads the plan or parses `$ARGUMENTS`),
 `superdev/shared/scripts/auditor-contract.sh` (router-style assembler `!`-injected by the four `superbuild-reviewer-{quality,architecture,testing,readiness}` final-review lenses;
 takes the lens name and cat-concatenates `shared/references/_input.md` + `lens-<lens>.md` + `_output.md` — placeholder-free, so no `${CLAUDE_PLUGIN_ROOT}` survives into the fork),
 `superui/shared/scripts/check_python.sh` (the Python preflight, `!`-injected by each `superui` skill that runs a Python step),
@@ -92,7 +90,7 @@ superdev/            The superdev plugin
     hooks.json       SessionStart (inject manifest) + PreToolUse: ExitPlanMode (plan-review gate)
     content/manifest.md  The injected `using-superdev` dispatcher
     scripts/         session-start.sh, review-plan.sh
-  shared/            Plugin-level shared assets + scripts (rubric.md; rubric-core.md — the shared 4-section "How to …" review-rubric core, read by both rubric.md and superbuild/agents/rubric-task-review.md; plan-injection-contract.md — the shared "Plan (pre-injected)" notes `!`-injected by both superplan-reviewer lens skills; references/ — auditor-contract.sh fragments (_input.md, _output.md, lens-{architecture,code-quality,production-readiness,testing}.md); coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the memory-layers / memory-rules scans; scripts/inject_review_input.sh — `!`-injected by the superplan-reviewer lens skills to splice plan text + re-review fixes; scripts/auditor-contract.sh — router-style body assembler `!`-injected by the four superbuild-reviewer-{quality,architecture,testing,readiness} lenses)
+  shared/            Plugin-level shared assets + scripts (rubric.md; rubric-core.md — the shared 4-section "How to …" review-rubric core, read by both rubric.md and superbuild/agents/rubric-task-review.md; references/ — auditor-contract.sh fragments (_input.md, _output.md, lens-{architecture,code-quality,production-readiness,testing}.md); coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the memory-layers / memory-rules scans; scripts/auditor-contract.sh — router-style body assembler `!`-injected by the four superbuild-reviewer-{quality,architecture,testing,readiness} lenses)
   skills/            Skills (bare-named by functional role; the implementation-pipeline forks share the `superbuild-*` family prefix); some skills bundle a
                      deterministic helper under their own scripts/ dir (superbuild/scripts/commit-task.sh
                      + commit-adr.sh + commit-docs.sh + task-pipeline.workflow.js, superbuild-recipe/scripts/recipe.template.sh,
@@ -206,13 +204,12 @@ own plugin — that convention is local to supergh.)
 - **End-user documentation** (1 skill): `help-writer` (the end-user product-help layer → `.superdev/help/`).
   Authors the human-facing help that ships to the people who use the built app — distinct
   from the agent-facing memory layers above; faces the end user, not Claude.
-- **Agentic-development pipeline + diagnostics/specs** (19 skills + 4 plugin agents): planning
-  (`superplan`, `superplan-reviewer` plus its two fork-only lens sub-skills
-  `superplan-reviewer-{integrity,codebase}`
-  — invoked only by `superplan-reviewer` via the Skill tool; each receives the plan path as `$ARGUMENTS`,
-  optionally followed by ` ||| <prior Consolidated fixes, single-line>` on a re-review (first-run = bare path);
-  `-codebase` folds in the security activation gate and a no-runnable relaxation (driven by the plan's §9 DoD);
-  the interview entry point now lives in the no-prefix `superdev`
+- **Agentic-development pipeline + diagnostics/specs** (17 skills + 4 plugin agents): planning
+  (`superplan`, `superplan-reviewer` — reads `resources/checklist.md`, picks the relevant groups (A–E) and
+  dispatches one `general-purpose` reviewer agent per group via the `Agent` tool, then synthesizes one verdict;
+  receives the plan path as `$ARGUMENTS`, optionally followed by ` ||| <prior Consolidated fixes, single-line>`
+  on a re-review (first-run = bare path); the security gate is now checklist Group E, engaged only when the plan
+  touches its areas; the interview entry point now lives in the no-prefix `superdev`
   skill above), the orchestrated implementation pipeline
   (`superbuild` → **mandatory first step** `superbuild-recipe` (derives the host toolchain once →
   `recipe.sh` + `profile.md`; owns the clean-tree guard; FAIL = hard halt) → `superbuild-adr` →
