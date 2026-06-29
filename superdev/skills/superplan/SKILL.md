@@ -57,6 +57,11 @@ Reach this step only after the pre-plan context and behavioral disciplines above
 - **Load `templates/plan.md` now** — it carries the full contract: the §0 marker variants plus the ten numbered sections §1–§10 (exact headings, in order), each with its inline filling guidance. Copy it verbatim, keep the single §0 variant matching the answer, delete the other, and fill every section per its inline note.
 - The plan file's location is the harness's to own — never name or pick a save path. Write the plan into the path plan mode designates (its own default, under the home `~/.claude/plans/`) and let `ExitPlanMode` save it.
 - Do NOT also write a repo-relative `.claude/plans/<slug>.md` copy — that leaves an orphan beside the plan the gate and `orchestrator` actually read.
+- **Self-run the review before `ExitPlanMode` (proactive gate).**
+  - After the plan file is written and BEFORE calling `ExitPlanMode`, invoke the `superdev:superplan-reviewer` Skill — bare argument = the plan file's absolute path.
+  - On `Overall Verdict: FIX` or `BLOCK`: apply the Consolidated fixes to the plan file, then re-invoke in re-review mode as one line `<plan-path> ||| <fixes joined with " ;; ", newlines flattened to spaces>`.
+  - Call `ExitPlanMode` only after `Overall Verdict: PASS`.
+  - This is the soft gate; the `ExitPlanMode` hook is the deterministic backstop that still blocks if this step is skipped. Running the review here keeps the happy path clean — no deny.
 
 ## 5. When the user pushes back
 

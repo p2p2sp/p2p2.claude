@@ -320,7 +320,9 @@ invariant exception). Components, qualified `superfix:<name>`:
 - **Plan gate.** Planning happens in plan mode — entering plan mode before drafting a plan is driven by the
   `superplan` skill instruction (Layer-A), not a deterministic hook. The plan's approval is gated by a
   single `PreToolUse` hook: `review-plan.sh` (matcher `ExitPlanMode`) denies the plan's approval until
-  `superplan-reviewer` returns `Overall Verdict: PASS`. This ExitPlanMode hook is the **single** gate in every mode,
+  `superplan-reviewer` returns `Overall Verdict: PASS`. The `superplan` skill invokes `superplan-reviewer`
+  **proactively** before `ExitPlanMode` (Layer-A soft gate), so in the happy path the gate simply allows — the deny
+  is a backstop for a skipped review, not the normal trigger. This ExitPlanMode hook is the **single** gate in every mode,
   and `orchestrator` trusts it — it does **not** re-review the plan. (Residual: a `PreToolUse` deny is only
   best-effort in the permission-relaxed modes `bypassPermissions`/`dontAsk`/`auto`, so in those modes the gate
   itself is best-effort.) Keep all paths in sync.
