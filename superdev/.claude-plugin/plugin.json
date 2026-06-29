@@ -14,8 +14,6 @@
     "./skills/memory-rules/",
     "./skills/superplan/",
     "./skills/superplan-reviewer/",
-    "./skills/superplan-reviewer-integrity/",
-    "./skills/superplan-reviewer-codebase/",
     "./skills/superbuild/",
     "./skills/superbuild-recipe/",
     "./skills/superbuild-adr/",
