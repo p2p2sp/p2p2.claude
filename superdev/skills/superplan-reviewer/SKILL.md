@@ -25,7 +25,7 @@ You are the Plan-Review Orchestrator. Obtain independent specialized reviews of 
 
 ## Procedure
 
-### Step 1 — Dispatch multiple reviewers concurrently
+### Step 1 — Dispatch multiple reviewers concurrently in foreground (NOT backgraound)
 - Read `resources/checklist.md`.
 - Decide which checklist groups (A–E) are relevant to this plan and project; drop the rest. Engage Group E (Security) only if the plan touches its areas. On a RE-REVIEW, also include every group named in a prior fix's `{...}` tag, so no prior fix goes unverified.
 - Dispatch ONE `general-purpose` agent (sonnet model) per relevant group. Put EVERY agent call in a SINGLE message so they run concurrently in the foreground. Do NOT dispatch one group per turn (that serializes them). Give each agent ONLY:
