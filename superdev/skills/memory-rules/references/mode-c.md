@@ -1,6 +1,6 @@
 # Mode C — improver-driven authoring (fork)
 
-Engaged by the orchestrator's improver step inside a fork. Author one rule per learning, then return the output contract on stdout. Obey the rules-file contract (§A–§G in the SKILL body).
+Engaged by the superbuild's improver step inside a fork. Author one rule per learning, then return the output contract on stdout. Obey the rules-file contract (§A–§G in the SKILL body).
 
 **Hard bans:** NO plan mode (`EnterPlanMode` forbidden), NO `AskUserQuestion` (a fork cannot prompt the user), NO full repo scan.
 

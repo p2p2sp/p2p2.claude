@@ -1,24 +1,24 @@
 <!-- MIRROR: the 3-bucket Critical/Important/Minor severity model below is a whole-plan adaptation of
-`superdev/skills/orchestrator/agents/rubric-task-review.md` (its "Severity buckets" section) — that file is
+`superdev/skills/superbuild/agents/rubric-task-review.md` (its "Severity buckets" section) — that file is
 the PRIMARY sync source: if its severity buckets change, re-sync them here. The per-dimension criteria and
 their severity mapping live in `superdev/shared/references/lens-*.md` (one fragment per lens, injected by
 `shared/scripts/auditor-contract.sh`), NOT in this file — re-sync any dimension change there. No lint catches
 drift. `superdev/shared/rubric.md` is RELATED but NOT an equal sibling — it is the Deliverable-completeness
-rubric for `agent-plan-auditor`, a 2-bucket CRITICAL/Note model with no "dimensions" section; do not sync
+rubric for `superbuild-reviewer-plan`, a 2-bucket CRITICAL/Note model with no "dimensions" section; do not sync
 against it. -->
 
 # Code-review rubric (whole-plan quality lenses)
 
-The shared rubric for the four whole-plan quality lenses invoked in parallel by `agent-final-reviewer`:
-`agent-code-quality-auditor`, `agent-architecture-auditor`, `agent-testing-auditor`,
-`agent-production-readiness-auditor`. Each lens applies EXACTLY ONE dimension — defined in its injected
-`lens-*.md` fragment — to the cumulative plan diff; it does not touch the other three. `agent-plan-auditor` (Plan alignment) and `agent-runner` (full
+The shared rubric for the four whole-plan quality lenses invoked in parallel by `superbuild-reviewer`:
+`superbuild-reviewer-quality`, `superbuild-reviewer-architecture`, `superbuild-reviewer-testing`,
+`superbuild-reviewer-readiness`. Each lens applies EXACTLY ONE dimension — defined in its injected
+`lens-*.md` fragment — to the cumulative plan diff; it does not touch the other three. `superbuild-reviewer-plan` (Plan alignment) and `superbuild-runner` (full
 suite) are separate lenses with their own contracts — not covered here.
 
 ## Reviewed scope — the changed hunks only
 
 - The reviewed change is the `Diff file:` patch (`git diff <base>..HEAD` for the whole plan), materialized by
-  the orchestrator. `Read` it: every `+`/`-` hunk is the plan's work; the surrounding code is pre-existing
+  the superbuild. `Read` it: every `+`/`-` hunk is the plan's work; the surrounding code is pre-existing
   CONTEXT, not under review.
 - Raise findings ONLY on lines inside the patch's hunks. A problem on an unchanged line is pre-existing — at
   most a `## Notes` aside, never a blocking finding.
@@ -32,7 +32,7 @@ suite) are separate lenses with their own contracts — not covered here.
 - Something that looks like a bug but is not (verify the control flow before flagging).
 - Pedantic nitpicks a senior engineer would not raise.
 - Anything a linter / type-checker / compiler / formatter would catch (missing imports, type errors, style,
-  newlines) — assume CI runs them; `agent-runner` is the execution gate.
+  newlines) — assume CI runs them; `superbuild-runner` is the execution gate.
 - A documented convention the code explicitly silences with a rule-sanctioned marker (e.g. a lint-ignore the
   project's rules permit) — honor the rule.
 - A change that is plausibly the intended behavior of this plan, even if it alters prior behavior.
@@ -60,8 +60,8 @@ A cross-module / out-of-patch concern, however valid, is a `## Notes` item — n
 - `STATUS: PASS` — no Critical (Important and/or Minor may still be present and ARE reported; they do not flip
   the lens to FAIL).
 
-`agent-final-reviewer` synthesizes the six lens verdicts: the plan is a no-go (`STATUS: FAIL`) when
-`agent-plan-auditor` FAILs, or `agent-runner` ∈ {FAIL, ERROR, TIMEOUT}, or any quality lens returns FAIL (≥1
+`superbuild-reviewer` synthesizes the six lens verdicts: the plan is a no-go (`STATUS: FAIL`) when
+`superbuild-reviewer-plan` FAILs, or `superbuild-runner` ∈ {FAIL, ERROR, TIMEOUT}, or any quality lens returns FAIL (≥1
 Critical). Important + Minor findings always reach the written report (the `## What to fix` list) but never
 flip the headline.
 

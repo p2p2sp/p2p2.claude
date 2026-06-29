@@ -1,7 +1,7 @@
 # Shared review-rubric core
 
 The four stable "How to …" sections shared **verbatim** by the two derived rubrics
-(`shared/rubric.md` for `agent-plan-auditor`, `skills/orchestrator/agents/rubric-task-review.md` for
+(`shared/rubric.md` for `superbuild-reviewer-plan`, `skills/superbuild/agents/rubric-task-review.md` for
 `task-reviewer`). This file is the **single source** for them — edit here, never re-copy into a derived file.
 The derived rubrics that do NOT need these sections (`shared/rubric-code-review.md`) ignore this file.
 

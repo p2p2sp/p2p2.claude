@@ -3,14 +3,14 @@
 ### 0. Implementation mode
 <!-- Keep EXACTLY ONE of the two variants below — the one matching the implementation-mode answer. Delete the other (and this comment + the variant labels). -->
 
-<!-- VARIANT A — orchestrator pipeline:
-Implementation: orchestrator
-> First thing you MUST do is USE the `superdev:orchestrator` skill to implement this plan.
+<!-- VARIANT A — superbuild pipeline:
+Implementation: superbuild
+> First thing you MUST do is USE the `superdev:superbuild` skill to implement this plan.
 -->
 
 <!-- VARIANT B — self / vanilla (agent implements directly):
 Implementation: self
-> The user explicitly opted OUT of the orchestrator pipeline for this plan — implement it directly in the main session; do NOT invoke `orchestrator` even if the plan text mentions it.
+> The user explicitly opted OUT of the superbuild pipeline for this plan — implement it directly in the main session; do NOT invoke `superbuild` even if the plan text mentions it.
 -->
 
 ### 1. Scope

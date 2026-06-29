@@ -4,7 +4,7 @@
 # MUTATION point of the supergh commit chain: both callers (the `commit` skill in
 # `context` mode, and the `agent-committer` fork in `all`/`staged` mode) author the
 # subject/footer themselves, then hand them here — they run NO `git add` / `git commit`
-# of their own. Like the orchestrator's `commit-task.sh`, this script CANNOT fabricate
+# of their own. Like the superbuild's `commit-task.sh`, this script CANNOT fabricate
 # its success line: it emits a `✓ <sha>` only AFTER itself proving, with git, that HEAD
 # advanced and the staged set landed — the failure mode an LLM relay could not catch.
 #

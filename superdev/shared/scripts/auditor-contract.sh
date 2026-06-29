@@ -5,7 +5,7 @@
 #        ../references/_input.md   (common Input contract)
 #        ../references/lens-<lens>.md  (the chosen lens's How-to-work, 1-6)
 #        ../references/_output.md  (common Output format + Constraint)
-#      The four agent-*-auditor SKILL.md bodies !-inject this AFTER their own
+#      The four superbuild-reviewer-{quality,architecture,testing,readiness} SKILL.md bodies !-inject this AFTER their own
 #      inline per-lens header (title / intro / rubric reference). Only the
 #      chosen lens fragment enters context.
 # Every emitted fragment is PLACEHOLDER-FREE — no ${CLAUDE_PLUGIN_ROOT}: the

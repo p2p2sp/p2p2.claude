@@ -1,9 +1,9 @@
 # .superdev/config.yml — superdev settings (managed by /superdev:setup)
 # Boolean opt-in switches: a missing file or key = disabled (fail-closed); set a value to `true` to enable that area.
 # Integer retry keys: a missing file or key = 3 (fail-open); set an integer to override.
-adr:            false   # ADR capture — orchestrator runs agent-adr-recorder
+adr:            false   # ADR capture — superbuild runs superbuild-adr
 rules_improver: false   # auto-promote review learnings → .claude/rules/ (improver step)
-docs:           false   # as-built docs — orchestrator runs agent-docs-recorder after final review
+docs:           false   # as-built docs — superbuild runs superbuild-docs after final review
 retry_max_attempts:        3   # per-task attempt cap for the first workflow invocation (fail-open 3)
 retry_escalation_attempts: 3   # attempt cap offered on the escalation Retry prompt (fail-open 3)
 # rule_extensions is appended automatically on the first `memory-rules` run.

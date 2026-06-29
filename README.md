@@ -42,7 +42,7 @@ ecosystem: `superdev` / `superui` route every request through their injected man
 | Entry interview & environment | `superdev` — the always-on entry skill named after the plugin; interviews you to map the design before any plan/code, then hands off to planning. `setup` — run `/setup` once to seed `.temp/` + `.superdev/`, copy the `.gitignore` / `.claude/settings.json` templates, and choose the opt-in switches written to `.superdev/config.yml` |
 | Project memory (agent-facing) | `memory-layers` (CLAUDE.md cascade), `memory-rules` (`.claude/rules/` layer) |
 | End-user documentation | `help-writer` (end-user product help → `.superdev/help/`) |
-| Development pipeline + diagnostics/specs | Skills: `superplan`, `superplan-reviewer`, `orchestrator`, `agent-adr-recorder`, `agent-decomposer`, `agent-runner`, `agent-final-reviewer`, `agent-plan-auditor`, `tdd`, `debug`, `spec-writer`. Plugin agents (per-task pipeline workers): `coder`, `task-reviewer`, `improver` |
+| Development pipeline + diagnostics/specs | Skills: `superplan`, `superplan-reviewer`, `superbuild`, `superbuild-adr`, `superbuild-decomposer`, `superbuild-runner`, `superbuild-reviewer`, `superbuild-reviewer-plan`, `tdd`, `debug`, `spec-writer`. Plugin agents (per-task pipeline workers): `coder`, `task-reviewer`, `improver` |
 
 ## supergh skills
 
@@ -89,9 +89,9 @@ Single user-invoked skill (no manifest, no hooks); runs only via `/superfix:code
 - **Skills auto-engage via CSO** — each skill's `description:` is its trigger, in any language.
 - **Opt-in per project (superdev)** — `/setup` writes `.superdev/config.yml` (two switches: `adr`,
   `rules_improver`). The routing manifest is always injected as-is; a disabled switch only skips its
-  `orchestrator` pipeline step (`agent-adr-recorder` / the `improver` agent); both switches default off (a missing config = both off,
+  `superbuild` pipeline step (`superbuild-adr` / the `improver` agent); both switches default off (a missing config = both off,
   fail-closed), so these two optional steps run only once you enable them via `/setup`.
-- **The implementation pipeline is file-based (superdev)**: `orchestrator` dispatches forked executors
+- **The implementation pipeline is file-based (superdev)**: `superbuild` dispatches forked executors
   that hand state through files and reply with a 3-line status, keeping the main context lean.
 - **Planning always happens in plan mode (superdev).** Whatever mode you start in, superdev's planning skill
   enters plan mode before drafting a plan, so the plan-review gate runs
@@ -105,7 +105,7 @@ Single user-invoked skill (no manifest, no hooks); runs only via `/superfix:code
 superdev/            The superdev plugin
   .claude-plugin/plugin.json   Plugin manifest (skills[])
   hooks/             Injected manifest + SessionStart + two PreToolUse plan-gate hooks
-  skills/            Skills (bare-named by functional role; `agent-` = fork-only worker)
+  skills/            Skills (bare-named by functional role; pipeline forks use the `superbuild-*` family)
 superui/             The superui plugin
   .claude-plugin/plugin.json   Plugin manifest (skills[])
   hooks/             Injected manifest + SessionStart (no plan gate)

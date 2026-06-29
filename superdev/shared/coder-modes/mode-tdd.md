@@ -8,9 +8,9 @@ The Red-Green-Refactor **inner loop** runs on `unit`-Kind entries in `## Tests` 
 
 ## Inner loop — per `unit`-Kind test in `## Tests`, in the order they appear
 
-1. Dispatch the precise test filename and method name from the entry's `suggested location` + `naming per …` hint and the sibling test found in Step 3. Write the failing test. Mirror the structure and assertions of the sibling. Honor the `superdev:tdd` skill's VERIFY-RED checkpoint — invoke `superdev:agent-runner` with the unit-scope command for just this test (single test or single file, not the full `## Task gate`) and confirm the verdict is `FAIL` for the expected reason. If it greens unexpectedly, the test is mis-written.
-2. Write the minimum production code to turn the test green. Honor the `superdev:tdd` skill's VERIFY-GREEN checkpoint — re-invoke `superdev:agent-runner` with the same unit-scope command and confirm the verdict is `PASS`.
-3. Refactor only when duplication is real, then re-verify via `superdev:agent-runner` (same unit-scope command) to confirm still green.
+1. Dispatch the precise test filename and method name from the entry's `suggested location` + `naming per …` hint and the sibling test found in Step 3. Write the failing test. Mirror the structure and assertions of the sibling. Honor the `superdev:tdd` skill's VERIFY-RED checkpoint — invoke `superdev:superbuild-runner` with the unit-scope command for just this test (single test or single file, not the full `## Task gate`) and confirm the verdict is `FAIL` for the expected reason. If it greens unexpectedly, the test is mis-written.
+2. Write the minimum production code to turn the test green. Honor the `superdev:tdd` skill's VERIFY-GREEN checkpoint — re-invoke `superdev:superbuild-runner` with the same unit-scope command and confirm the verdict is `PASS`.
+3. Refactor only when duplication is real, then re-verify via `superdev:superbuild-runner` (same unit-scope command) to confirm still green.
 
 After every `unit` test is green:
 

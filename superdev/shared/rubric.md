@@ -1,6 +1,6 @@
 # Deliverable-verification rubric
 
-The verification rubric for `agent-plan-auditor`'s whole-plan review gate — applied to EVERY task against
+The verification rubric for `superbuild-reviewer-plan`'s whole-plan review gate — applied to EVERY task against
 the cumulative `<base>..HEAD` diff. The four stable "How to …" sections (How to read a `## Deliverable`,
 How to verify `## Tests` per `## Mode`, Test-quality anti-patterns, How to verify conventions) live in
 `shared/rubric-core.md` — **read it first**. Wherever a core rule says "the diff", substitute the cumulative

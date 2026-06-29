@@ -21,8 +21,8 @@ The instinct when writing skill or agent documentation is to be thorough. Cover 
 Write every skill as `input -> work -> output`. It does NOT need to know WHO invokes it or WHY — a fork least of all. It receives an input, does its job, returns its output. Strip the surrounding-world story from the body.
 
 - Keep the routing guard in frontmatter `description:` only (e.g. "invoked only by X, never directly") — that single line is a real signal that stops the wrong caller. The BODY needs none of it.
-- In the body, cut: the caller's name, the caller's surrounding flow ("after every task the orchestrator…", "one of six lenses the reviewer fans out…", "you are the terminal gate of the pipeline"), and the rationale for the call. None of it changes what the skill does with its input.
-- Keep behaviour the INPUT drives, but frame it on the input, never the caller: "if `Report path:` present -> write the report there", NOT "the orchestrator passes `Report path:`, so…".
+- In the body, cut: the caller's name, the caller's surrounding flow ("after every task the superbuild…", "one of six lenses the reviewer fans out…", "you are the terminal gate of the pipeline"), and the rationale for the call. None of it changes what the skill does with its input.
+- Keep behaviour the INPUT drives, but frame it on the input, never the caller: "if `Report path:` present -> write the report there", NOT "the superbuild passes `Report path:`, so…".
 - Keep a genuine scope boundary even when it names siblings ("you own ONLY dimension X; Y and Z are out of scope") — that is a behavioural constraint, not caller narrative.
 - Litmus: would the sentence still be true and useful if a different caller sent the same input? Keep it. Does it only describe the current caller's world? Cut it.
 

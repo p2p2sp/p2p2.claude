@@ -10,7 +10,7 @@
 # mode. Entering plan mode before drafting a plan is driven by the superplan
 # skill instruction, so this ExitPlanMode gate fires for every plan-driven flow
 # regardless of the mode the session started in.
-# orchestrator trusts this gate as the single plan-review checkpoint and does
+# superbuild trusts this gate as the single plan-review checkpoint and does
 # not re-review the plan itself.
 #
 # Contract:

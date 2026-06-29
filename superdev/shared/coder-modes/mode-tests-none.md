@@ -7,7 +7,7 @@ Raw mode: production / artefact code only (docs, config, `.claude/**` rules, a R
 ## Work order
 
 1. Write the production / artefact code for the `## Deliverable`, editing only files in `## Touches`.
-2. No test files. The `## Task gate` is `- Tests: none` — there is no runnable gate, so Step 5's `superdev:agent-runner` invocation is skipped entirely for this task.
+2. No test files. The `## Task gate` is `- Tests: none` — there is no runnable gate, so Step 5's `superdev:superbuild-runner` invocation is skipped entirely for this task.
 
 ## Malformed-gate guard
 
