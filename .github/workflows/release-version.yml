@@ -25,7 +25,10 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
       - name: Bump version + create release
+        id: bump
         env:
           PART: ${{ inputs.part }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash .github/scripts/release.sh "$PART"
+      - name: Job summary
+        run: echo "${{ steps.bump.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
