@@ -26,6 +26,13 @@ Implementation: self
 ## 4. Test strategy (maps to spec acceptance criteria)
 - <criterion> → <unit|integration|component|e2e> @ <location>
 
+Testing direction (binding floor for decomposer — may raise rigor, never lower it):
+- TDD areas: <which logic / invariants / calculations / state transitions warrant test-first, and why>
+- Edge cases / failure modes: <boundary inputs, rejected inputs, error paths — named concretely>
+- Port seams to isolate: <external resource reached through a port/interface → test against an in-memory fake>
+
+<!-- No decision logic (pure docs / config / trivial CRUD): say so in one line instead of leaving it blank, e.g. "no logic branches — covered by wiring tests at the task gate". -->
+
 ## 5. Risks & assumptions
 - <risk/assumption> → <handling>
 

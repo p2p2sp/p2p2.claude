@@ -1,14 +1,7 @@
 ---
 name: superplan
 description: >
-  Use this skill in plan-mode to turn an accepted feature spec into a single,
-  approvable implementation plan (the HOW) and hand it off via ExitPlanMode.
-  Trigger whenever the user is in plan-mode on a spec, asks to "plan the
-  implementation", "write the plan" — or whenever a spec already exists and the next step
-  is implementation strategy rather than code. This produces the strategy layer
-  that sits BETWEEN the spec (WHAT/contract) and the decomposer (atomic tasks):
-  it is NOT a granular task breakdown and NOT code. Use it even if the user only
-  says "let's plan" without naming a plan explicitly.
+  Use this skill in plan-mode to turn an accepted feature spec into a single, approvable implementation plan (the HOW) and hand it off via ExitPlanMode. Trigger whenever the user is in plan-mode on a spec, asks to "plan the implementation", "write the plan" — or whenever a spec already exists and the next step is implementation strategy rather than code. This produces the strategy layer that sits BETWEEN the spec (WHAT/contract) and the decomposer (atomic tasks): it is NOT a granular task breakdown and NOT code. Use it even if the user only says "let's plan" without naming a plan explicitly.
 model: opus
 effort: xhigh
 ---
@@ -55,8 +48,8 @@ These are the components that are absent from the spec yet too coarse for the de
 3. **Open decisions not locked by the spec.** Resolve every choice the spec left open so downstream layers don't re-decide and diverge: where validation lives, the optimistic-update mechanism, the rollback strategy, how each error surfaces in the UI, test layout.
    `<decision → chosen option → why>`
 
-4. **Acceptance-criteria → test strategy mapping.** For each criterion in the spec, name *where and how* it is verified (unit / integration / component / e2e).
-   `<criterion → test type → location>`
+4. **Acceptance-criteria → test strategy mapping + testing direction.** For each spec criterion, name *where and how* it is verified (unit / integration / component / e2e). Then state the **testing direction** the decomposer treats as a binding floor (it may raise rigor, never lower it): which logic warrants test-first (TDD areas + why), the key edge cases / failure modes named concretely, and any port seams worth isolating against an in-memory fake. For a change with no decision logic (pure docs / config / trivial CRUD), say so in one line.
+   `<criterion → test type → location>` + `<TDD areas · edge cases/failure modes · port seams>`
 
 5. **Risks, unknowns, assumptions.** Anything ambiguous or implementation-only that lives in neither the spec nor the decomposer. Catching these is the plan's highest-leverage job.
    <!-- Example: spec says the client never sets `id` AND requires an optimistic
@@ -82,6 +75,15 @@ The plan is read later by the decomposer/orchestrator, in a fresh context. Make 
 ## Output template
 
 ALWAYS write the plan in the shape from `templates/plan.md` so the decomposer can parse it.
+
+## Implementation mode (before handoff)
+
+Set §0 from the user's choice — never assume it. Unless the user already explicitly picked the mode this session, call `AskUserQuestion` once with two options:
+
+- **Use superbuild pipeline** — the orchestrated agentic pipeline (decompose → per-task coder / runner / reviewer / commit). → §0 VARIANT A, marker line `Implementation: superbuild`.
+- **Implement directly (self)** — the agent implements in the main session, no pipeline. → §0 VARIANT B, marker line `Implementation: self`.
+
+Then write §0 as the single matching variant (delete the other variant and the template comment). That marker line is the sole trigger `superbuild` reads, so it MUST match the user's answer.
 
 ## Review (immediately before handoff)
 
