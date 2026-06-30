@@ -57,6 +57,17 @@ Save date (yyyyMMdd):
 1. Detect language, load template (Polish → `templates/specification.pl.md`, English or unclear → `templates/specification.en.md`). Do not translate the template.
 2. Render into the template and save it in `.temp/.workflows/<date>-<slug>.md` (where `<date>` is the yyyyMMdd value above and `<slug>` is a short title as slug).
 
+## Review gate
+Immediately after saving — and BEFORE any handoff — run the reviewer and act on its verdict. Never hand off a spec that has not returned `REVIEW: PASS`.
+
+1. Run the `superdev:superspec-reviewer` Skill, passing the saved spec filepath.
+2. Read the first line of its output: `REVIEW: PASS` or `REVIEW: FAIL`.
+3. `REVIEW: PASS` → proceed to **Handoff**.
+4. `REVIEW: FAIL`:
+   - **Fixable-in-draft blockers** → apply the returned corrections to the saved file, then go back to step 1 and re-run the reviewer.
+   - **Needs-discovery blockers** → STOP looping. Run the `superdev:superdev` Skill (or ask the user) to obtain the missing decision, update the spec, then go back to step 1.
+- Do not advance to Handoff until the reviewer returns `REVIEW: PASS`.
+
 ## Handoff
 Let the user choose the next step:
 - "Handoff to superplan" - run `superdev:superplan` skill and pass the specification filepath.

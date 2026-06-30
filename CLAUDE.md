@@ -205,12 +205,12 @@ own plugin — that convention is local to supergh.)
   Authors the human-facing help that ships to the people who use the built app — distinct
   from the agent-facing memory layers above; faces the end user, not Claude.
 - **Agentic-development pipeline + diagnostics/specs** (17 skills + 4 plugin agents): planning
-  (`superplan`, `superplan-reviewer` — reads `resources/checklist.md`, picks the relevant groups (A–E) and
-  dispatches one `general-purpose` reviewer agent per group via the `Agent` tool, then synthesizes one verdict;
-  receives the plan path as `$ARGUMENTS`, optionally followed by ` ||| <prior Consolidated fixes, single-line>`
-  on a re-review (first-run = bare path); the security gate is now checklist Group E, engaged only when the plan
-  touches its areas; the interview entry point now lives in the no-prefix `superdev`
-  skill above), the orchestrated implementation pipeline
+  (`superplan`, `superplan-reviewer` — a read-only fork that reviews the plan draft inline against the spec and
+  superplan's required components/boundaries across six dimensions (spec coverage, decomposer-readiness, codebase
+  fit, verifiability/risk, boundary discipline, and a conditional security dimension engaged only when the plan
+  touches sensitive surfaces), then returns a `Verdict: BLOCK | FIX | PASS` plus an ordered fix list to the main
+  session; it never edits the plan or calls `ExitPlanMode`; the interview entry point now lives in the no-prefix
+  `superdev` skill above), the orchestrated implementation pipeline
   (`superbuild` → **mandatory first step** `superbuild-recipe` (derives the host toolchain once →
   `recipe.sh` + `profile.md`; owns the clean-tree guard; FAIL = hard halt) → `superbuild-adr` →
   `superbuild-decomposer` → per task **one `Workflow`** call to `task-pipeline.workflow.js` driving `coder` →
@@ -319,7 +319,7 @@ invariant exception). Components, qualified `superfix:<name>`:
 - **Plan gate.** Planning happens in plan mode — entering plan mode before drafting a plan is driven by the
   `superplan` skill instruction (Layer-A), not a deterministic hook. The plan's approval is gated by a
   single `PreToolUse` hook: `review-plan.sh` (matcher `ExitPlanMode`) denies the plan's approval until
-  `superplan-reviewer` returns `Overall Verdict: PASS`. The `superplan` skill invokes `superplan-reviewer`
+  `superplan-reviewer` returns `Verdict: PASS`. The `superplan` skill invokes `superplan-reviewer`
   **proactively** before `ExitPlanMode` (Layer-A soft gate), so in the happy path the gate simply allows — the deny
   is a backstop for a skipped review, not the normal trigger. This ExitPlanMode hook is the **single** gate in every mode,
   and `superbuild` trusts it — it does **not** re-review the plan. (Residual: a `PreToolUse` deny is only

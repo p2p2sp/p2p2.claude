@@ -1,16 +1,6 @@
 ---
 name: superplan-reviewer
-description: >
-  Use this skill in plan-mode to review an implementation plan produced by the
-  `superplan` skill, immediately BEFORE `ExitPlanMode`. It checks the plan
-  against the spec and against superplan's required components and boundaries,
-  then returns a verdict (BLOCK | FIX | PASS) and an ordered fix list to the
-  main session. It is read-only: it NEVER calls `ExitPlanMode`, never edits the
-  plan or any file, and never asks the user for approval — the main session
-  applies the fixes and handles approval. Trigger it automatically right before
-  any superplan plan is handed off, whenever a plan draft exists and is about to
-  be presented, or when the user says "review the plan" / "check the plan before
-  approval". Do not skip it before handoff.
+description: Invoked only by `superdev:superplan`, never directly.
 model: opus
 effort: xhigh
 context: fork

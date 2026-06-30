@@ -88,7 +88,7 @@ Before calling `ExitPlanMode`, run the `superdev:superplan-reviewer` skill on th
 
 Apply any fixes it returns, re-run it if the changes were substantive, and proceed to handoff only once it reports no blocking issues. This gate exists so the human approves a plan that has already cleared the reviewer, not a raw first draft.
 
-You must call `ExitPlanMode` only after `Overall Verdict: PASS`.
+You must call `ExitPlanMode` only after `Verdict: PASS`.
 
 ## Handoff
 1. Write the final plan (do not edit anything else).

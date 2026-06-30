@@ -2,7 +2,7 @@
 # superdev / PreToolUse hook for ExitPlanMode.
 #
 # Blocks ExitPlanMode until the superplan-reviewer skill has approved the plan
-# file with "Overall Verdict: PASS". Heuristic: only gates when the transcript shows a
+# file with "Verdict: PASS". Heuristic: only gates when the transcript shows a
 # prior Write/Edit to a path under .claude/plans/*.md (i.e. plan-mode for an
 # implementation plan, not commit-flow plan-mode without a plan file).
 #
@@ -88,7 +88,7 @@ fi
 
 # Step 2: from the line AFTER the last plan-file write, look for:
 #   R = a line containing "superplan-reviewer" AND a subagent marker
-#   S = a line carrying the actual verdict "Overall Verdict: PASS"
+#   S = a line carrying the actual verdict "Verdict: PASS"
 # Require R < S so the reviewer call precedes its result.
 tail_start=$((last_plan_write_line + 1))
 
@@ -104,24 +104,24 @@ reviewer_call_line=$(
 )
 
 if [ -z "$reviewer_call_line" ]; then
-  emit_deny "Next step: plan review. Run superplan-reviewer with the absolute plan file path as the bare argument, wait for 'Overall Verdict: PASS', then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+  emit_deny "Next step: plan review. Run superplan-reviewer with the absolute plan file path as the bare argument, wait for 'Verdict: PASS', then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
-# S: the ACTUAL "Overall Verdict: PASS" verdict line occurring AFTER the reviewer
+# S: the ACTUAL "Verdict: PASS" verdict line occurring AFTER the reviewer
 # call line. Anchor on the escaped newline (\n in the JSONL) that precedes it: the
-# real verdict always starts its own markdown line, so it appears as `\nOverall
-# Verdict: PASS` in the transcript. This excludes prose/back-ticked mentions of the
-# literal (e.g. guidance text "...checks for `Overall Verdict: PASS`...") that ride
-# inline and would otherwise match for a BLOCK/FIX report — turning the gate into a
-# no-op. The `\\n` matches the two literal chars backslash-n that JSON uses to escape
-# the newline.
+# real verdict always starts its own markdown line, so it appears as `\n**Verdict:**
+# PASS` in the transcript (the `(\*\*)?` makes the bold markers optional). This excludes
+# prose/back-ticked mentions of the literal (e.g. guidance text "...checks for `Verdict:
+# PASS`...") that ride inline and would otherwise match for a BLOCK/FIX report — turning
+# the gate into a no-op. The `\\n` matches the two literal chars backslash-n that JSON
+# uses to escape the newline.
 status_pass_line=$(
-  awk -v start="$reviewer_call_line" 'NR>start && /\\nOverall Verdict: PASS/ { print NR; exit }' \
+  awk -v start="$reviewer_call_line" 'NR>start && /\\n(\*\*)?Verdict:(\*\*)? PASS/ { print NR; exit }' \
     "$transcript_path" 2>/dev/null
 )
 
 if [ -z "$status_pass_line" ]; then
-  emit_deny "Next step: address the review. superplan-reviewer ran but did not return 'Overall Verdict: PASS' — apply its Consolidated fixes to the plan file, re-run superplan-reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+  emit_deny "Next step: address the review. superplan-reviewer ran but did not return 'Verdict: PASS' — apply its Fix list to the plan file, re-run superplan-reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
 # Sequence W -> R -> S satisfied -> allow.
