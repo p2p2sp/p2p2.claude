@@ -39,6 +39,7 @@ The `Plan:` path points to an existing markdown file describing *what* should be
 # How to work
 
 ## Step 0 — Idempotency check (BEFORE reading the plan)
+<!-- note: replace check by injected dynamic command -->
 
 `Glob '.temp/.workflows/<PlanSlug>/tasks/*.md'`. If the glob returns ≥1 path:
 
@@ -52,6 +53,7 @@ The `Plan:` path points to an existing markdown file describing *what* should be
 If the glob returns zero paths, proceed to Step 1. The idempotency check is **hard no-op for task files** — content / freshness of existing task files is NOT verified; the user must manually delete `.temp/.workflows/<PlanSlug>/` to force regeneration.
 
 ## Step 1 — Read the plan and discover project rules
+<!-- note: reading plan is not enough - now can be also a spec -->
 
 ### 1a — Read the plan
 
@@ -60,6 +62,7 @@ If the glob returns zero paths, proceed to Step 1. The idempotency check is **ha
 If the file is empty, unreadable, or contains no prose at all → `STATUS: FAIL` with `## Notes` line: `plan file empty or unreadable: <path>`. Do not write any task files.
 
 ### 1b — Discover project conventions (one-time, before any per-task work)
+<!-- note: this can be done by subagent which returns the findings? Need help -->
 
 These reads inform the `Mode` decisions and per-task test suggestions. They are project-driven — treat their contents as authoritative, but never assume any particular file exists.
 
@@ -71,6 +74,7 @@ These reads inform the `Mode` decisions and per-task test suggestions. They are 
 Record the findings. Read individual entries from these lists only when a task's keywords match them (Step 4b).
 
 ## Step 2 — Extract intent from the plan
+<!-- note: each plan is superplan - do we need this? -->
 
 Read the plan as plain markdown. Extract three things; the rest is orientation:
 
@@ -86,12 +90,13 @@ Read the plan as plain markdown. Extract three things; the rest is orientation:
 If no executable intent can be extracted (the plan is pure vision, an empty template, or unrelated prose) → `STATUS: FAIL` with `## Notes` line: `no executable intent found — plan describes no concrete change`.
 
 ### Imperative-directive detection (cross-cutting)
+<!-- note: each plan is superplan - do we need this? if we do then use subagent for detection -->
 
-While reading, mark any sentence written in *imperative* tone that constrains implementation decisions. Imperatives are binding overrides; descriptive hints are not. Recognise both Polish and English forms:
+While reading, mark any sentence written in *imperative* tone that constrains implementation decisions. Imperatives are binding overrides; descriptive hints are not. Recognise imperative forms in whatever language the plan uses:
 
-- **Mode overrides** — phrases like `musi mieć testy TDD`, `bezwzględnie TDD`, `no tests needed`, `tylko dokumentacja`, `wymaga e2e`, `requires integration test`, `tests are mandatory here`, `skip tests for this`, `pure docs change`.
-- **Ordering overrides** — phrases like `X przed Y`, `najpierw X potem Y`, `X must precede Y`, `do Y last`, `Y depends on X` (when stated as a hard constraint, not just observation).
-- **Test specifics** — phrases like `must cover edge case Z`, `bezwzględnie sprawdź negatywny scenariusz`, `assertion na X jest wymagana`.
+- **Mode overrides** — phrases like `must have TDD tests`, `TDD is mandatory`, `no tests needed`, `docs only`, `requires e2e`, `requires integration test`, `tests are mandatory here`, `skip tests for this`, `pure docs change`.
+- **Ordering overrides** — phrases like `X before Y`, `first X then Y`, `X must precede Y`, `do Y last`, `Y depends on X` (when stated as a hard constraint, not just observation).
+- **Test specifics** — phrases like `must cover edge case Z`, `must check the negative scenario`, `an assertion on X is required`.
 
 Record each imperative with its verbatim quote and its target (which intent / file / task candidate it constrains). Cite it in the relevant task's `Why` line.
 
@@ -101,7 +106,7 @@ If two passages in the plan demand mutually exclusive things (e.g. `add column X
 
 ## Step 3 — Infer task boundaries
 
-The decomposer — not the planner — decides how the work breaks into tasks. The plan's own numbering or task lists are a *hint*, never a contract.
+The decomposer decides how the work breaks into tasks. The plan's own numbering or task lists are a *hint*, never a contract.
 
 Aim for tasks that each satisfy:
 
@@ -172,6 +177,7 @@ From the lists globbed in Step 1b, derive keywords from this task's intent and `
 - Topical words from the intent (e.g. `endpoint`, `migration`, `validator`, `auth`, `e2e`, `test`, `tdd`, `cors`).
 - Mode-related words: when considering `tdd` always Read any rule/skill whose path or name contains `tdd`, `test`, `testing`.
 
+<!-- note: why skills by name - not CSO? -->
 `Read` ONLY rule files (`.claude/rules/**/*.md`) and skill files (`.claude/skills/**/SKILL.md`) whose path or filename matches at least one keyword.
 
 If nothing matches, record in `Why`: `no project-specific rule matched; applied built-in heuristic`.
@@ -215,7 +221,7 @@ Derive from two sources, in this order:
 
 1. **Logical precedence from intent** — task N depends on task M < N when the intent of N consumes an artefact produced by M (e.g. M introduces a schema column that N's code reads; M defines an endpoint that N's frontend calls). Reason over the intent paragraphs.
 2. **`Touches` intersection** — task N depends on task M < N when `Touches[N] ∩ Touches[M] ≠ ∅` (same file edited in both). Compute on path globs by structural inclusion (e.g. `<module>/**/<Feature>*` intersects `<module>/<Feature>/<FeatureService>.<ext>`).
-3. **Imperative ordering directive** — overrides both above when present (e.g. plan says `endpoint przed UI` → frontend task depends on backend task explicitly).
+3. **Imperative ordering directive** — overrides both above when present (e.g. plan says `endpoint before UI` → frontend task depends on backend task explicitly).
 
 Result is a comma-separated ascending list of task numbers strictly less than N, or `—` when empty. For each dependency, store a one-line reason for the `Depends on` field.
 
@@ -336,7 +342,7 @@ As you write each task file, keep a `(N, verb-phrase, path)` triple in memory �
 - `## Task gate` — what the runner will be told to run. Either runnable shape or `Tests: none`.
 
 ## Step 8 — Self-check
-
+<!-- note: need to run subagent for every file review -->
 Run the checklist before returning — each item is verified in full at the cited step:
 
 - Every file has the seven body sections in order, after the commit-subject H1 + `>` orientation lines (Step 7.1).
