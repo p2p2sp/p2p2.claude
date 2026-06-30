@@ -1,28 +1,26 @@
 ---
 name: superplan
-description: Always-on default planning discipline for ANY plan drafted in plan mode — the silent default, engaged automatically (plugin presence is reason enough. Enforces a strict plan template (intent, model, files, assumptions, options, risk, out-of-scope) and forbids silent assumptions before the plan is presented. Asks exactly one question at finalization — implement via the superbuild pipeline or directly (self / vanilla) — recorded as the §0 implementation-mode marker; implementation decisions beyond that marker are NOT part of the plan. Skip planning entirely (no plan at all — never a looser one) only for trivial work: one-sentence diff, single-file typo / rename, pure read-only research / Q&A. Do NOT hijack memory-rules / memory-layers rules-bootstrap plan mode. Do NOT use for initial spec / PRD writing — use the `superspec` skill instead.
-model: opus
-effort: xhigh
+description: >
+  Use this skill in plan-mode to turn an accepted feature spec into a single,
+  approvable implementation plan (the HOW) and hand it off via ExitPlanMode.
+  Trigger whenever the user is in plan-mode on a spec, asks to "plan the
+  implementation", "write the plan" — or whenever a spec already exists and the next step
+  is implementation strategy rather than code. This produces the strategy layer
+  that sits BETWEEN the spec (WHAT/contract) and the decomposer (atomic tasks):
+  it is NOT a granular task breakdown and NOT code. Use it even if the user only
+  says "let's plan" without naming a plan explicitly.
 ---
 
 **CRITICAL**: Run `EnterPlanMode` first, if plan mode is not already active.
 
-# SuperPlan
+# Superplan
 
 Produce plans that survive contact with implementation. Default plan mode content drifts: missing files, hidden assumptions, no rollback story. SuperPlan closes that gap with a strict template plus mandatory pre-plan behavior before the plan is presented.
 
-## 1. Pre-plan context
+## Pre-plan context
+Do not re-interview the user — discovery belongs to the superdev skill (which may have run, or the user may have skipped). Use whatever context the session already holds; if invoked directly with no prior interview, MUST run the `superdev:superdev` Skill.
 
-- Do not re-interview the user — discovery belongs to the superdev skill (which may have run, or the user may have skipped). Use whatever context the session already holds; if invoked directly with no prior interview, run the `superdev:superdev` Skill.
-
-Apply these passive disciplines while drafting:
-
-- **Read before writing.** Open every file the plan will touch — at minimum the call sites, the type definitions, and one neighbor using the same pattern. Never propose changes to a file not read this session.
-- **State the system model in one paragraph** (§3 Mental model). If the user corrects it later during `superplan-reviewer`, the plan is wrong and must be redone — cheaper now than after implementation.
-- **Check for a simpler approach.** If a 10-line fix exists, say so before proposing a 100-line one. Recommend the simpler path unless the session already ruled it out.
-- **No silent assumptions.** Every claim about behavior / data / environment / intent NOT derivable from files read in (1) and NOT stated in the session goes into §5, marked `[load-bearing]` if the plan breaks when it's wrong. A candidate with no defensible default becomes an §6 Option, not a silent §5 guess.
-
-## 2. Behavioral rules during planning
+## Behavioral rules during planning
 
 - **Never invent file paths.** Do not list a file not yet read — use search/glob to confirm first.
 - **Never invent function or symbol names.** If one "should exist", check; if it doesn't, say so as part of the §4 change description.
@@ -31,31 +29,67 @@ Apply these passive disciplines while drafting:
 - **Time estimates are forbidden** unless the user asked — they will be wrong.
 - **No silent assumptions.** Every §5 item explicit; surface an unstated default as `[load-bearing]` in §5 so `superplan-reviewer` and the user catch it. Never bury a guess in narrative.
 
-## 3. Compose the plan
+## Where this sits in the pipeline
 
-Reach this step only after the pre-plan context and behavioral disciplines above — the section-by-section contract lives in the template, loaded here, not earlier.
+<!-- Keep these boundaries sharp. Each layer answers a different question and
+     re-deciding another layer's job is the most common failure mode. -->
 
-- The best plan leaves no unanswered questions; any remaining means digging deeper and needs interview again.
-- **Ask the implementation-mode question first** (`AskUserQuestion`, in plan mode): implement via the `superbuild` pipeline, or directly in the main session (`self`)? The answer becomes the §0 marker — the ONLY thing §0 carries, and what routes (or does not route) `superbuild` after approval. Implementation decisions beyond that marker are NOT part of the plan.
-- **Load `templates/plan.md` now** — it carries the full contract: the §0 marker variants plus the ten numbered sections §1–§10 (exact headings, in order), each with its inline filling guidance. Copy it verbatim, keep the single §0 variant matching the answer, delete the other, and fill every section per its inline note.
-- The plan file's location is the harness's to own — never name or pick a save path. Write the plan into the path plan mode designates (its own default, under the home `~/.claude/plans/`) and let `ExitPlanMode` save it.
-- Do NOT also write a repo-relative `.claude/plans/<slug>.md` copy — that leaves an orphan beside the plan the gate and `superbuild` actually read.
-- **Self-run the review before `ExitPlanMode`.**
-  - After the plan file is written (or after re-edition) and BEFORE calling `ExitPlanMode`, must invoke the `superdev:superplan-reviewer` Skill — bare argument = the plan file's absolute path.
-  - On `Overall Verdict: FIX` or `BLOCK`: apply the Consolidated fixes to the plan file, then re-invoke in re-review mode as one line `<plan-path> ||| <fixes joined with " ;; ", newlines flattened to spaces>`.
-  - Call `ExitPlanMode` only after `Overall Verdict: PASS`.
+- **Spec = WHAT** — external contract, scope, locked decisions, acceptance criteria. Input. Do not restate it; reference its sections.
+- **Superplan = HOW** — the implementation strategy. This is the *approvable unit*. Output of this skill.
+- **Decomposer = atoms** — turns the approved plan into small task files. Runs later.
+- **Orchestrator = execution** — runs the atoms.
 
-## 4. When the user pushes back
+The plan is not a pass-through. `ExitPlanMode` is an approval gate; if the plan carried no decisions, there would be nothing to approve. The plan exists to make the approach reviewable before any code or task file is written.
 
-- Treat the edit as authoritative. Do not silently re-add removed items.
-- If an edit makes the plan internally inconsistent (e.g. removed a file another change depends on), surface the conflict and ask — do not patch silently.
-- If asked to skip a section, comply, but note which section was skipped so the trade-off is visible.
+## What the plan MUST contain
 
-## 5. When to abandon the plan and re-plan
+These are the components that are absent from the spec yet too coarse for the decomposer. Fill each with project specifics; omit a section only with an explicit one-line reason.
 
-Do not patch around a broken plan. Replanning costs minutes; a partially-migrated codebase costs hours. Propose creating a prompt which will be contains converstion summary and conclusions for the new session.
+1. **Touch list (file-level change map).** Every file to create or modify, with code paths. The spec names modules to reuse but not the implementation surface — this is it.
+   `<list: path → create|modify → one-line purpose>`
 
-## 6. One-line summary
+2. **Sequencing & dependency order.** The ordered phases and what blocks what (e.g. migration → data layer → handler → frontend). The decomposer makes atoms; the *order of phases* is decided here.
+   `<phase 1 → phase 2 → ... with blockers>`
 
-- A plan is only good if a careful reader, with no extra context, could approve or reject it in under three minutes and predict 90% of the resulting diff.
-- SuperPlan enforces exactly that bar — for what changes and why not how to execute.
+3. **Open decisions not locked by the spec.** Resolve every choice the spec left open so downstream layers don't re-decide and diverge: where validation lives, the optimistic-update mechanism, the rollback strategy, how each error surfaces in the UI, test layout.
+   `<decision → chosen option → why>`
+
+4. **Acceptance-criteria → test strategy mapping.** For each criterion in the spec, name *where and how* it is verified (unit / integration / component / e2e).
+   `<criterion → test type → location>`
+
+5. **Risks, unknowns, assumptions.** Anything ambiguous or implementation-only that lives in neither the spec nor the decomposer. Catching these is the plan's highest-leverage job.
+   <!-- Example: spec says the client never sets `id` AND requires an optimistic
+        insert. So the row must render before the server-generated uuid exists →
+        plan a temp-id → swap-on-201 reconciliation and a rollback path for
+        400/401. Neither the spec nor an atomic task surfaces this on its own. -->
+   `<risk/assumption → decided handling>`
+
+6. **Migration / data plan (when applicable).** Schema/migration steps and how they apply in dev, test, and CI.
+   `<migration steps + apply path>`
+
+## What the plan MUST NOT contain
+
+- No atomic task files or micro-steps — that is the decomposer's job.
+- No line-by-line code. Reference code paths, don't write the implementation.
+- No re-deciding what the spec already locked (schema, response shapes) — reference it.
+- No file edits. Plan-mode is read-only; only the plan file itself is written.
+
+## Self-containment (handoff requirement)
+
+The plan is read later by the decomposer/orchestrator, possibly in a fresh context after compaction. Make it self-sufficient relative to what the decomposer needs — decisions, sequence, and touch list — rather than relying on reasoning that only exists in this session's context.
+
+## Output template
+
+ALWAYS write the plan in the shape from `templates/plan.md` so the decomposer can parse it.
+
+## Review (immediately before handoff)
+
+Before calling `ExitPlanMode`, run the `superdev:superplan-reviewer` skill on the plan draft. It checks the plan against the known failure modes and returns its findings to this (main) session — it does not call `ExitPlanMode` itself.
+
+Apply any fixes it returns, re-run it if the changes were substantive, and proceed to handoff only once it reports no blocking issues. This gate exists so the human approves a plan that has already cleared the reviewer, not a raw first draft.
+
+You must call `ExitPlanMode` only after `Overall Verdict: PASS`.
+
+## Handoff
+1. Write the final plan (do not edit anything else).
+2. Call `ExitPlanMode` to request approval.
