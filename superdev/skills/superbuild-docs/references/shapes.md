@@ -32,7 +32,7 @@ One file per slice. Fill every section from the actual delta + code; no placehol
 - <outcome statement — what the app does, present tense, user/behaviour level>
 
 ## Acceptance criteria
-- <declarative outcome the behaviour guarantees — observable, checkable; style as in spec-writer>
+- <declarative outcome the behaviour guarantees — observable, checkable; style as in superspec>
 
 ## Contracts
 - <key data shape / API endpoint / message / invariant the slice exposes or upholds>

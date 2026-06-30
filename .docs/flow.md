@@ -3,9 +3,9 @@
 <outside-plan-mode>
 
 1. superdev
-    - skip spec -> superplan
-    - spec
-2. spec-writer
+    - handoff to superspec (Step 2)
+    - handoff to superplan (Step 3)
+2. superspec
     - save to file (optional save as github issue)
 
 </outside-plan-mode>
@@ -22,6 +22,6 @@
 
 <outside-plan-mode>
 
-4. self or superbuild implementation
+4. self or superbuild implementation phase
 
 </outside-plan-mode>

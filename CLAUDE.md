@@ -75,7 +75,7 @@ injected manifest documents the in-plugin chains (e.g. `improver → memory-rule
 `superfix` ship no manifest (superfix's sole skill is user-only; supergh routes purely via CSO descriptions —
 see their sections below). Each is
 **self-contained**: its `plugin.json` declares **no `dependencies`** — installing it gives that whole
-ecosystem. Cross-plugin chains are **soft and optional**: superdev's `spec-writer → supergh:create-issue` and
+ecosystem. Cross-plugin chains are **soft and optional**: superdev's `superspec → supergh:create-issue` and
 `superbuild-reviewer → supergh:create-pr` are CSO compositions that fire only when `supergh` is also
 installed; absent it they simply do not engage (no declared dependency, graceful degradation).
 
@@ -224,7 +224,7 @@ own plugin — that convention is local to supergh.)
   `superbuild-docs` then reconciles the as-built docs layer (`.superdev/docs/` index + shards) incrementally
   against that same `plan.diff` and is committed by `commit-docs.sh` (config-gated `docs`, runs on any final
   verdict since the work is already committed, a mirror of the ADR step). Plus `tdd` / `debug` /
-  `spec-writer`. The four quality lenses share `shared/rubric-code-review.md` (the dimension-agnostic scope /
+  `superspec`. The four quality lenses share `shared/rubric-code-review.md` (the dimension-agnostic scope /
   false-positive / 3-bucket-severity rules, mirroring `superbuild/agents/rubric-task-review.md` at whole-plan
   scope); each lens's per-dimension criteria live in its own `shared/references/lens-*.md` fragment, injected by
   `shared/scripts/auditor-contract.sh`. Separately,
@@ -266,7 +266,7 @@ subject/footer authoring rules, read by both `agent-committer` and `commit`'s `c
 
 Fork-only discipline carries through the rename: `agent-committer` (invoked only by `commit`) keeps the
 `agent-` lead token as its fork-only signal, while `cli-executor` is a fork still reachable from the main
-session. Soft cross-plugin chains into superdev: `superdev:spec-writer → supergh:create-issue`,
+session. Soft cross-plugin chains into superdev: `superdev:superspec → supergh:create-issue`,
 `superdev:superbuild-reviewer → supergh:create-pr` (CSO only, engage only when both plugins installed).
 
 ## superfix plugin (codebase investigation — no hooks, no manifest)

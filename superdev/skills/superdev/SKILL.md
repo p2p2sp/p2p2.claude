@@ -50,8 +50,12 @@ Goal: reach a shared understanding of WHAT the user wants and HOW to build it, b
 - Keep outputs concise - Prefer short sections, brief bullets, and only enough detail to support the next decision.
 - Use repo-relative paths - When referencing files, use paths relative to the repo root (e.g., src/models/user.cs), never absolute paths. Absolute paths make documents non-portable across machines and teammates.
 
-## Synthesis and handoff
+## Synthesis
 - Close the interview when every **load-bearing** branch has a confirmed answer. A branch is load-bearing if a different answer would change which files are touched, which library or pattern is chosen, the data shape, or a contract between components. Branches whose answer only affects local style or naming are NOT load-bearing — do not gate the handoff on them.
 - Present the synthesis as ~3–5 bullets capturing the chosen approach, key constraints, and explicit out-of-scope items. Wait for the user's confirmation before
 handing off.
-- Then hand off to `superdev:superplan` — the always-on default planning discipline. Do NOT offer a plain-plan alternative and do NOT announce the handoff: invoke the skill silently and continue (its preamble enters plan mode if not already active, regardless of the mode this session started in — default / accept-edits / plan). The implementation-mode choice (superbuild vs self / vanilla) is asked by `superplan`, not here.
+
+## Handoff
+Let the user choose the next step:
+- save conclusions as the specification - run `superdev:superspec` skill
+- hand off to superplan - run `superdev:superplan` skill
