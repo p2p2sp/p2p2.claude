@@ -9,6 +9,8 @@ description: >
   that sits BETWEEN the spec (WHAT/contract) and the decomposer (atomic tasks):
   it is NOT a granular task breakdown and NOT code. Use it even if the user only
   says "let's plan" without naming a plan explicitly.
+model: opus
+effort: xhigh
 ---
 
 **CRITICAL**: Run `EnterPlanMode` first, if plan mode is not already active.
@@ -30,9 +32,7 @@ Do not re-interview the user — discovery belongs to the superdev skill (which 
 - **No silent assumptions.** Every §5 item explicit; surface an unstated default as `[load-bearing]` in §5 so `superplan-reviewer` and the user catch it. Never bury a guess in narrative.
 
 ## Where this sits in the pipeline
-
-<!-- Keep these boundaries sharp. Each layer answers a different question and
-     re-deciding another layer's job is the most common failure mode. -->
+Keep these boundaries sharp. Each layer answers a different question and re-deciding another layer's job is the most common failure mode.
 
 - **Spec = WHAT** — external contract, scope, locked decisions, acceptance criteria. Input. Do not restate it; reference its sections.
 - **Superplan = HOW** — the implementation strategy. This is the *approvable unit*. Output of this skill.
@@ -76,7 +76,7 @@ These are the components that are absent from the spec yet too coarse for the de
 
 ## Self-containment (handoff requirement)
 
-The plan is read later by the decomposer/orchestrator, possibly in a fresh context after compaction. Make it self-sufficient relative to what the decomposer needs — decisions, sequence, and touch list — rather than relying on reasoning that only exists in this session's context.
+The plan is read later by the decomposer/orchestrator, in a fresh context after compaction. Make it self-sufficient relative to what the decomposer needs — decisions, sequence, and touch list — rather than relying on reasoning that only exists in this session's context.
 
 ## Output template
 
