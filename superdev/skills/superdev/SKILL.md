@@ -5,6 +5,8 @@ model: opus
 effort: xhigh
 ---
 
+**CRITICAL**: Run `ExitPlanMode` first, if plan mode is active.
+
 # Interview
 
 Goal: reach a shared understanding of WHAT the user wants and HOW to build it, before any plan or code is drafted.
@@ -57,5 +59,5 @@ handing off.
 
 ## Handoff
 Let the user choose the next step:
-- save conclusions as the specification - run `superdev:superspec` skill
-- hand off to superplan - run `superdev:superplan` skill
+- Save conclusions as the specification - run `superdev:superspec` skill
+- Handoff to superplan - run `superdev:superplan` skill

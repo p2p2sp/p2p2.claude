@@ -1,9 +1,8 @@
 ---
 name: superspec
-description: Specification writing expert with spec-driven-development practices. Use this skill whenever the user asks for a Spec, Specification, PRD, requirements document, feature spec, or user-story breakdown. Triggers include "spec", "specification", "prd", "requirements doc", "feature spec", "user story", "acceptance criteria". Do NOT write specs ad-hoc — use `superdev` skill first; it forbids TBD and forces working-backwards framing. Do NOT use for implementation plans — use the `superplan` skill instead.
+description: Specification writing expert with spec-driven-development practices. Use this skill whenever the user asks for a Spec, Specification, PRD, requirements document, feature spec, or user-story breakdown. Triggers include "spec", "specification", "prd", "requirements doc", "feature spec", "user story", "acceptance criteria". Do NOT write specs ad-hoc — use this skill first; it forbids TBD and forces working-backwards framing. Do NOT use for implementation plans — use the `superplan` skill instead.
 model: opus
 effort: xhigh
-user-invocable: false
 ---
 
 **CRITICAL**: Run `ExitPlanMode` first, if plan mode is active - you need to save the spec to the file.
@@ -13,7 +12,7 @@ user-invocable: false
 Do not re-interview the user — discovery belongs to the superdev skill (which may have run, or the user may have skipped). Use whatever context the session already holds; if invoked directly with no prior interview, run the `superdev:superdev` Skill.
 
 ## SuperSpec Checklist
-Write specification document using superspec template. Use gathered infomration during interview. A good specification is short enough for a human to read in one sitting, yet precise enough to implement without guessing. It should be:
+Write a specification document using the superspec template. Leverage the information gathered during the interview. A good specification is short enough that anyone can read it in one sitting, yet precise enough to be implemented without guesswork. It should be:
 
 - **Outcome-driven** — states the observable result ("user can add a task, it persists"), not the feature name.
 - **Scoped on both sides** — lists what's in scope and explicitly what's out of scope.
@@ -22,12 +21,12 @@ Write specification document using superspec template. Use gathered infomration 
 - **Behaviorally precise** — defines inputs/outputs, error shapes, pre/postconditions, and state changes.
 - **Verifiable** — gives concrete acceptance criteria ("400 with this exact JSON"), not "does it work".
 - **Example-first** — one real code or output snippet beats three paragraphs of description.
-- **Cleanly structured** — consistent Markdown headings the everyone can scan.
+- **Cleanly structured** — consistent Markdown headings that everyone can scan.
 - **Right-sized** — detail matched to complexity; never over-specs a trivial task or under-specs a hard one.
 - **The single source of truth** — spec is future intent, not live doc — after the feature ships it is archived, never kept as the standing description of what the feature does today.
 
 ## Smell test
-- Is any ambiguous or conflicts with the codebase → STOP and run `superdev:superdev` Skill - do not invent scope.
+- Is anything ambiguous or conflicting with the codebase → STOP and run `superdev:superdev` Skill - do not invent scope.
 - Is any scope decision left open? → the agent will fill it in for you, usually wrong - run `superdev:superdev` Skill.
 - Could an agent build the wrong thing and still satisfy the spec? → tighten the **outcome** and **acceptance criteria**.
 - Are you describing style in prose? → replace with one **example**.
@@ -53,6 +52,12 @@ Write specification document using superspec template. Use gathered infomration 
 - Resolve every open point before handing the spec off — a spec for an agent must contain answers, not questions.
 
 ## Publish
+Save date (yyyyMMdd):
+!`date +%Y%m%d`
 1. Detect language, load template (Polish → `templates/specification.pl.md`, English or unclear → `templates/specification.en.md`). Do not translate the template.
-2. Render into the template → final `<title>` + `<body>`.
-3. Return the Issue URL. Stop — implement nothing.
+2. Render into the template and save it in `.temp/.workflows/<date>-<slug>.md` (where `<date>` is the yyyyMMdd value above and `<slug>` is a short title as slug).
+
+## Handoff
+Let the user choose the next step:
+- "Handoff to superplan" - run `superdev:superplan` skill and pass the specification filepath.
+- "Done" - just stop.
