@@ -18,11 +18,11 @@ Read the plan draft, judge it against the spec and against the bar `superplan` s
 - **Cite the code.** Every claim about the codebase (a path is wrong, a convention is violated, a module already exists) must carry a `path` (and line where possible). No evidence → downgrade to a question, don't assert.
 - **No guessing.** If the plan or spec is genuinely ambiguous, report it as a finding for the main session to resolve; do not resolve it yourself.
 
-## Inputs you receive (from the main session)
+## Input
 
-1. The **plan draft** — as presented inline in the session, or a path to the plan file.
-2. The path to the **spec** (source of truth for WHAT).
-3. The **original user request**, verbatim.
+- A path to the **plan file** (the bare argument) — Read it in full before judging.
+- Resolve the **spec** from the plan's `> Spec:` header and Read it — source of truth for the spec-coverage (dim. 1) and AC-mapping (dim. 4) checks.
+- No spec (header absent or an unfilled `<...>` placeholder → the plan came straight from the interview, no superspec): skip the spec-derived checks (dim. 1, and dim. 4's AC mapping) and judge the plan against the codebase and its own internal consistency. Say so in the summary.
 
 ## Review dimensions
 

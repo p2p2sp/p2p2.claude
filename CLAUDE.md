@@ -205,7 +205,7 @@ own plugin — that convention is local to supergh.)
   Authors the human-facing help that ships to the people who use the built app — distinct
   from the agent-facing memory layers above; faces the end user, not Claude.
 - **Agentic-development pipeline + diagnostics/specs** (18 skills + 4 plugin agents): planning
-  (`superplan`, `superplan-reviewer` — a read-only fork that reviews the plan draft inline against the spec and
+  (`superplan`, `superplan-reviewer` — a read-only fork that reviews the plan against the spec and
   superplan's required components/boundaries across six dimensions (spec coverage, decomposer-readiness, codebase
   fit, verifiability/risk, boundary discipline, and a conditional security dimension engaged only when the plan
   touches sensitive surfaces), then returns a `Verdict: BLOCK | FIX | PASS` plus an ordered fix list to the main

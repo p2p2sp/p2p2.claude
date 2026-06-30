@@ -21,7 +21,7 @@ Produce plans that survive contact with implementation. Default plan mode conten
 
 ## Pre-plan context
 Do not re-interview the user — discovery belongs to the superdev skill (which may have run, or the user may have skipped). Use whatever context the session already holds; if invoked directly with no prior interview, MUST run the `superdev:superdev` Skill.
-- If a spec filepath was passed (handoff from `superspec`), `Read` it first — it is the source of truth for WHAT and the spec input `superplan-reviewer` requires. Reference its sections; do not restate it.
+- If a spec filepath was passed (handoff from `superspec`), `Read` it first — it is the source of truth for WHAT; record its path in the plan's `> Spec:` header (that is how `superplan-reviewer` resolves it). Reference its sections; do not restate it.
 
 ## Behavioral rules during planning
 
@@ -85,9 +85,9 @@ ALWAYS write the plan in the shape from `templates/plan.md` so the decomposer ca
 
 ## Review (immediately before handoff)
 
-Before calling `ExitPlanMode`, run the `superdev:superplan-reviewer` skill, passing it three inputs: the plan draft (inline or the plan file path), the spec filepath, and the original user request verbatim. It checks the plan against the known failure modes and returns its findings to this (main) session — it does not call `ExitPlanMode` itself.
+Before calling `ExitPlanMode`, run the `superdev:superplan-reviewer` skill, passing the plan file path as the bare argument. It reads the plan (and the spec the plan's `> Spec:` header points to), checks it against the known failure modes, and returns its findings to this (main) session — it does not call `ExitPlanMode` itself.
 
-Apply any fixes it returns, re-run it if the changes were substantive, and proceed to handoff only once it reports no blocking issues. This gate exists so the human approves a plan that has already cleared the reviewer, not a raw first draft.
+Apply any fixes it returns, re-run it if the changes were substantive, and proceed to handoff only after `Verdict: PASS`. This gate exists so the human approves a plan that has already cleared the reviewer, not a raw first draft.
 
 You must call `ExitPlanMode` only after `Verdict: PASS`.
 
