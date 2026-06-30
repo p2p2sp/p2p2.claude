@@ -13,15 +13,26 @@ effort: xhigh
 Produce plans that survive contact with implementation. Default plan mode content drifts: missing files, hidden assumptions, no rollback story. SuperPlan closes that gap with a strict template plus mandatory pre-plan behavior before the plan is presented.
 
 ## Pre-plan context
-Do not re-interview the user — discovery belongs to the superdev skill (which may have run, or the user may have skipped). Use whatever context the session already holds; if invoked directly with no prior interview, MUST run the `superdev:superdev` Skill.
+Do not re-interview the user — discovery of *intent* belongs to the superdev skill (which may have run, or the user may have skipped). If invoked directly with no prior interview, MUST run the `superdev:superdev` Skill. The session supplies intent and requirements; the codebase facts the plan depends on are verified fresh (see "Explore the plan's open questions" below), never assumed from session memory.
 - If a spec filepath was passed (handoff from `superspec`), `Read` it first — it is the source of truth for WHAT; record its path in the plan's `> Spec:` header (that is how `superplan-reviewer` resolves it). Reference its sections; do not restate it.
 
+## Explore the plan's open questions
+
+Run this gate BEFORE drafting — discover the codebase facts the plan needs instead of assuming them.
+
+- Enumerate the codebase facts each plan component needs: §1 real paths + symbol names, §2 integration / sequencing points, §3 codebase-dependent open decisions (where validation lives, the error-signalling pattern, test layout), §4 test locations + port seams.
+- Subtract facts already confirmed this session (from the interview's exploration or files read here). Explore only the delta — do NOT re-run the interview's broad sweep.
+- For each remaining unknown, dispatch a scoped `Explore` agent via the `Agent` tool (read-only), each with a narrow brief = the single open decision it must resolve. Batch independent ones in parallel (one message, up to 3 agents).
+- Draft only from confirmed facts. An unknown that Explore could not resolve becomes a §5 `[load-bearing]` item or a plan option — never a silent guess.
+
 ## Behavioral rules during planning
+
+The explore gate above is the primary mechanism (discover before you decide); these rules are the backstop for facts that surface only mid-draft, which the gate did not anticipate. A quick single path/symbol confirm may stay inline; broad or multi-question exploration goes through the gate.
 
 - **Never invent file paths.** Do not list a file not yet read — use search/glob to confirm first.
 - **Never invent function or symbol names.** If one "should exist", check; if it doesn't, say so as part of the §4 change description.
 - **Quote line numbers, not paraphrases**, when referencing existing code.
-- **No "we'll see during implementation"** — a code smell. Resolve it now as an open question, or accept the risk explicitly in §8.
+- **No "we'll see during implementation"** — a code smell. Resolve it now as an open question, or accept the risk explicitly in §5.
 - **Time estimates are forbidden** unless the user asked — they will be wrong.
 - **No silent assumptions.** Every §5 item explicit; surface an unstated default as `[load-bearing]` in §5 so `superplan-reviewer` and the user catch it. Never bury a guess in narrative.
 
