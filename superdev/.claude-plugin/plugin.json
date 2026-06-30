@@ -28,7 +28,8 @@
     "./skills/superbuild-reviewer-readiness/",
     "./skills/tdd/",
     "./skills/debug/",
-    "./skills/superspec/"
+    "./skills/superspec/",
+    "./skills/superspec-reviewer/"
   ],
   "agents": [
     "./skills/superbuild/agents/coder.md",

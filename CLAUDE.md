@@ -204,7 +204,7 @@ own plugin — that convention is local to supergh.)
 - **End-user documentation** (1 skill): `help-writer` (the end-user product-help layer → `.superdev/help/`).
   Authors the human-facing help that ships to the people who use the built app — distinct
   from the agent-facing memory layers above; faces the end user, not Claude.
-- **Agentic-development pipeline + diagnostics/specs** (17 skills + 4 plugin agents): planning
+- **Agentic-development pipeline + diagnostics/specs** (18 skills + 4 plugin agents): planning
   (`superplan`, `superplan-reviewer` — a read-only fork that reviews the plan draft inline against the spec and
   superplan's required components/boundaries across six dimensions (spec coverage, decomposer-readiness, codebase
   fit, verifiability/risk, boundary discipline, and a conditional security dimension engaged only when the plan
@@ -224,7 +224,9 @@ own plugin — that convention is local to supergh.)
   `superbuild-docs` then reconciles the as-built docs layer (`.superdev/docs/` index + shards) incrementally
   against that same `plan.diff` and is committed by `commit-docs.sh` (config-gated `docs`, runs on any final
   verdict since the work is already committed, a mirror of the ADR step). Plus `tdd` / `debug` /
-  `superspec`. The four quality lenses share `shared/rubric-code-review.md` (the dimension-agnostic scope /
+  `superspec` (with its `REVIEW: PASS`-gated quality fork `superspec-reviewer`, the spec-side mirror of
+  `superplan-reviewer`: a read-only fork that checks the saved spec against the superspec hard rules and returns
+  `REVIEW: PASS | FAIL`, never editing the spec or handing off). The four quality lenses share `shared/rubric-code-review.md` (the dimension-agnostic scope /
   false-positive / 3-bucket-severity rules, mirroring `superbuild/agents/rubric-task-review.md` at whole-plan
   scope); each lens's per-dimension criteria live in its own `shared/references/lens-*.md` fragment, injected by
   `shared/scripts/auditor-contract.sh`. Separately,
