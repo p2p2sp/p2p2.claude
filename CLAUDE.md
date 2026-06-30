@@ -42,7 +42,8 @@ scripts under `<plugin>/hooks/scripts/` (only `superdev` / `superui` have hooks;
 none), plus a handful of deterministic helper scripts bundled under
 individual skills' `scripts/` dirs (the `superui` preview scripts, the superdev pipeline commit scripts
 `superbuild/scripts/commit-task.sh` + `superbuild/scripts/commit-adr.sh` + `superbuild/scripts/commit-docs.sh`, the fixed recipe harness
-`superbuild-recipe/scripts/recipe.template.sh`, the `supergh` `commit` mode router
+`superbuild-recipe/scripts/recipe.template.sh`, the `superbuild-decomposer` deterministic edges
+`superbuild-decomposer/scripts/precheck.sh` (Step 0 idempotency, `!`-injected) + `copy_plan.sh` (Step 7.0 byte-exact plan copy + status reset) + `validate_tasks.py` (Step 8 structural validator) + their sourced `slug-guard.sh` helper, each with a committed `*.test.sh` harness (`precheck.test.sh`, `copy_plan.test.sh`, `validate_tasks.test.sh`) plus `skill_contract.test.sh` (grep-asserts the rewritten SKILL.md) and `scripts/fixtures/handtrace-{plan,expected,transcript}.md`, the `supergh` `commit` mode router
 `commit/scripts/route.sh` + its fork-path git-truth backstop `commit/scripts/verify-landed.sh`, the `memory-rules` mode router `memory-rules/scripts/route.sh` + its discovery
 scripts `memory-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), the one-time `setup/scripts/bootstrap.sh`,
 and the `superfix` investigation scripts `code-auditor/scripts/collect_signals.sh` (deterministic signal sweep) + `rank.py` (the gate/rank step)).

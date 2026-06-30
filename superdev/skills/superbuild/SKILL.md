@@ -69,7 +69,7 @@ Resolve the plan path **deterministically** — first match wins:
 3. **Conversation scan** — else the most recent path matching `\.claude[/\\]plans[/\\][^\s]+\.md`.
 4. **None resolved** — stop with one line: `No plan path resolved — re-run with 'Plan: <absolute-path>'.` Do not prompt.
 
-Once resolved, `Read` the plan briefly for orientation. The plan can be any markdown (SuperPlan-shape or free-form prose). The dispatcher does not parse it — `decomposer` derives per-task deliverables, modes, tests, ordering. `max` (task count) comes from decomposer's `task_files` map.
+Once resolved, `Read` the plan briefly for orientation. The plan is expected to be SuperPlan-shape (§0–§6); free-form prose is a thin fallback the decomposer degrades to, never required. The dispatcher does not parse it — `decomposer` derives per-task deliverables, modes, tests, ordering. `max` (task count) comes from decomposer's `task_files` map.
 
 ## Recipe — mandatory first step (clean-tree guard owner)
 

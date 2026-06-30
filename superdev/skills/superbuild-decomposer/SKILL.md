@@ -5,7 +5,7 @@ model: opus
 effort: xhigh
 context: fork
 user-invocable: false
-allowed-tools: Read, Grep, Glob, Write, Skill
+allowed-tools: Read, Grep, Glob, Write, Bash(bash:*), Bash(python3:*)
 ---
 
 # Decomposer (fork)
@@ -16,14 +16,25 @@ The upstream plan describes *what* and *why*; this skill decides *how to execute
 
 Writes nothing outside `.temp/`. Never modifies the source plan.
 
-Project/stack-agnostic. The plan can be any markdown — no fixed structure required. Project-specific knowledge (test frameworks, naming, layering) comes from the project's `CLAUDE.md`, `.claude/rules/**`, and `.claude/skills/**` discovered on disk; downstream agents re-read those rules when they touch the relevant files. **Mark the path**; downstream skills walk it.
+Project/stack-agnostic. The plan is expected to be a superplan with sections §0–§6 (source template: `## 0. Implementation mode` … `## 6. Migration / data`); free-form prose is a thin fallback, never a failure. Project-specific knowledge (test frameworks, naming, layering) comes from the project's `CLAUDE.md` and `.claude/rules/**` discovered on disk; downstream agents re-read those rules when they touch the relevant files. **Mark the path**; downstream skills walk it.
 
-# Project rules / skills listing (pre-injected)
+# Idempotency precheck (pre-injected)
+
 ```!
-find .claude/rules -name '*.md' 2>/dev/null; find .claude/skills -name 'SKILL.md' 2>/dev/null
+bash "${CLAUDE_PLUGIN_ROOT}/skills/superbuild-decomposer/scripts/precheck.sh" <<'__DECOMP_ARGS__'
+$ARGUMENTS
+__DECOMP_ARGS__
 ```
 
-The block above runs at skill load and lists the project's `.claude/rules/**/*.md` and `.claude/skills/**/SKILL.md` paths so Step 1b can keep the listing in memory without a `Glob` round-trip. If the block is empty or absent (the harness did not execute it, or `find` is unavailable), fall back to the `Glob` listing documented in Step 1b.
+The block above runs `precheck.sh` at skill load over the raw `$ARGUMENTS` (delivered on stdin via a quoted here-doc; the script extracts `PlanSlug:` with builtins). Its stdout is exactly one of: the literal `FRESH` (no prior task files — proceed normally) or a full short-circuit block (`STATUS: PASS` + `## Task files` + `## Notes`) when a prior decomposition already exists. Step 0 consumes this output.
+
+# Project rules listing (pre-injected)
+
+```!
+find .claude/rules -name '*.md' 2>/dev/null
+```
+
+The block above runs at skill load and lists the project's `.claude/rules/**/*.md` paths so Step 1b can keep the listing in memory without a `Glob` round-trip. If the block is empty or absent (the harness did not execute it, or `find` is unavailable), fall back to the `Glob` listing documented in Step 1b.
 
 # Input contract
 
@@ -34,79 +45,61 @@ Plan: <absolute path to plan file>
 PlanSlug: <kebab-case slug — usually the plan filename without `.md`>
 ```
 
-The `Plan:` path points to an existing markdown file describing *what* should be done. The file may be tightly structured (e.g. SuperPlan-shape with numbered sections), partially structured (headings + a file list), or pure prose. Parse what is present — no structural section is mandatory. The dispatcher resolves the slug from the plan filename; use it verbatim as the directory name under `.temp/.workflows/`.
+The `Plan:` path points to an existing markdown file describing *what* should be done. It is expected to be a superplan with the §0–§6 sections of the source template, optionally carrying a `> Spec:` reference on its second line. Parse the structural sections (Step 2); a missing section degrades to a thin prose fallback, never a failure. The dispatcher resolves the slug from the plan filename; use it verbatim as the directory name under `.temp/.workflows/`.
 
 # How to work
 
 ## Step 0 — Idempotency check (BEFORE reading the plan)
-<!-- note: replace check by injected dynamic command -->
 
-`Glob '.temp/.workflows/<PlanSlug>/tasks/*.md'`. If the glob returns ≥1 path:
+Read the **# Idempotency precheck (pre-injected)** output:
 
-- Do NOT read the plan.
-- Do NOT write any task files.
-- If `.temp/.workflows/<PlanSlug>/status.yml` is missing (it may be absent if a prior run wrote the task files but did not reach the status seed), `Write` it with the exact content `current_task: 1\n` and continue. Otherwise leave it untouched — the superbuild owns updates after the first commit, and the existing file is the authoritative task tracker.
-- Parse the numeric `N` from each filename `<N>.md`, sort ascending.
-- For each existing task file, `Read` its first non-empty line and match it against the commit-subject H1 regex `^# (.+)$`. Capture group 1 is the `<verb-phrase>` (the commit subject) for that task. If the H1 is missing (a task file with no `# ` heading), use the literal placeholder `<no title>` for that `<N>` and add a `## Notes` bullet naming the offending file.
-- Return immediately with `STATUS: PASS`, `## Task files` listing the existing paths in numeric order in the standard `- <N> — <verb-phrase> — <path>` shape (see `# Output format`), and `## Notes` containing the literal text `existing task files detected — decomposition skipped` (plus any per-file missing-H1 bullets from the previous step).
+- If it is exactly `FRESH` → proceed to Step 1.
+- Otherwise it is the full short-circuit block (a prior decomposition exists) → return that block **verbatim** as your entire reply and stop. Do NOT read the plan, do NOT write any task files.
 
-If the glob returns zero paths, proceed to Step 1. The idempotency check is **hard no-op for task files** — content / freshness of existing task files is NOT verified; the user must manually delete `.temp/.workflows/<PlanSlug>/` to force regeneration.
+The idempotency check is **hard no-op for task files** — content / freshness of existing task files is NOT verified; the user must manually delete `.temp/.workflows/<PlanSlug>/` to force regeneration. (`precheck.sh` seeds a missing `status.yml` itself; the superbuild owns it after the first commit.)
 
 ## Step 1 — Read the plan and discover project rules
-<!-- note: reading plan is not enough - now can be also a spec -->
 
-### 1a — Read the plan
+### 1a — Read the plan and its spec
 
-`Read` the `Plan:` path from your input — that is the plan content. Note its absolute path — referenced as `Source plan:` in each generated file (path relative to the repository root when convenient, otherwise absolute). (Step 7.0 `Read`s the source plan again for a byte-exact verbatim copy.)
+`Read` the `Plan:` path from your input — that is the plan content. Note its absolute path — referenced as `Source plan:` in each generated file (path relative to the repository root when convenient, otherwise absolute).
 
-If the file is empty, unreadable, or contains no prose at all → `STATUS: FAIL` with `## Notes` line: `plan file empty or unreadable: <path>`. Do not write any task files.
+Parse the `> Spec:` reference from the plan's header (present only when a `superspec` handoff produced the plan; absent otherwise). When present, `Read` the spec — **fail-open**: if the spec path is missing or unreadable, continue without it. Spec consumption points: §4 Behavior Contract + §5 Acceptance Criteria feed the deliverable-branch naming in `## Deliverable` (Step 2 / Step 4c) and the 1:1 `## Tests` mapping (Step 4c). Without these consumption points the spec read is a no-op — so use it only there.
+
+If the plan file is empty or unreadable → `STATUS: FAIL` with `## Notes` line: `plan file empty or unreadable: <path>`. Do not write any task files.
 
 ### 1b — Discover project conventions (one-time, before any per-task work)
-<!-- note: this can be done by subagent which returns the findings? Need help -->
 
 These reads inform the `Mode` decisions and per-task test suggestions. They are project-driven — treat their contents as authoritative, but never assume any particular file exists.
 
-- `Read .temp/.workflows/<PlanSlug>/profile.md` — the recipe agent already derived the host **framework**, **test naming**, and **test layout** there; consume it for the `Mode` decisions and the per-task `Tests` suggestions instead of re-deriving them. Being a no-Bash fork, you `Read` it directly. **Fail-closed:** if `profile.md` is absent, the recipe step did not run — return `STATUS: FAIL` with `## Notes` line `profile.md absent at .temp/.workflows/<PlanSlug>/profile.md — recipe step did not run`, and do NOT fall back to inferring the framework from `CLAUDE.md`.
+- `Read .temp/.workflows/<PlanSlug>/profile.md` — the recipe agent already derived the host **framework**, **test naming**, and **test layout** there; consume it for the `Mode` decisions and the per-task `Tests` suggestions instead of re-deriving them. Being a fork, you `Read` it directly. **Fail-closed:** if `profile.md` is absent, the recipe step did not run — return `STATUS: FAIL` with `## Notes` line `profile.md absent at .temp/.workflows/<PlanSlug>/profile.md — recipe step did not run`, and do NOT fall back to inferring the framework from `CLAUDE.md`.
 - `Read CLAUDE.md` at the repository root if it exists. Ignore silently if absent.
-- Take the `.claude/rules/**/*.md` paths from the pre-injected `# Project rules / skills listing` block at the top of this skill → keep the full list of rule files (paths only) in memory for selective reads later. Fallback: if that block is empty/absent, `Glob '.claude/rules/**/*.md'` to recover the listing. (The profile carries pointers only — it never inlines rule bodies, so this path-scoped read still happens.)
-- Take the `.claude/skills/**/SKILL.md` paths from the same pre-injected block → keep the full list of skill files (paths only) in memory for selective reads later. Fallback: if the block is empty/absent, `Glob '.claude/skills/**/SKILL.md'` to recover the listing.
+- Take the `.claude/rules/**/*.md` paths from the pre-injected **# Project rules listing** block → keep the full list of rule files (paths only) in memory for selective reads later. Fallback: if that block is empty/absent, `Glob '.claude/rules/**/*.md'` to recover the listing. (The profile carries pointers only — it never inlines rule bodies, so this path-scoped read still happens.)
 
-Record the findings. Read individual entries from these lists only when a task's keywords match them (Step 4b).
+Record the findings. Read individual entries from this list only when a task's keywords match them (Step 4b).
 
-## Step 2 — Extract intent from the plan
-<!-- note: each plan is superplan - do we need this? -->
+## Step 2 — Map the plan's structural sections
 
-Read the plan as plain markdown. Extract three things; the rest is orientation:
+The plan is a superplan; map its §0–§6 sections. A missing section is a thin prose fallback (scan the surrounding text for the same signal in one pass), never a failure:
 
-1. **Outcome intent** — what the plan accomplishes (1–3 sentences). If a `## Scope` / `### 1. Scope` heading exists, prefer its text; otherwise synthesise from the opening prose.
-2. **Mental model / context** — any paragraph that explains *how the relevant subsystem works* or *why this work exists*. Optional. Carry it forward into each task's `## Plan context`.
-3. **Execution hints** — non-binding signals the plan may carry:
-   - File lists / `Files to change` tables / inline file paths → candidate `Touches` material.
-   - Numbered task lists / `Task graph` sections → grouping suggestions (not binding — see Step 3).
-   - `TDD discipline per task` style tables → opinion of the planner about Mode (not binding — see Step 4a). (The "task" in such a host table is the planner's own wording — read it as a Mode hint, not a reference to this pipeline's task files.)
-   - `Tests to add` lists → seed material for per-task `Tests`.
-   - Risks / Out-of-scope sections → orientation; flag any out-of-scope item if a task would touch it.
+- **§1 Touch list** → candidate `## Touches` material (`<path> — create|modify — <purpose>`).
+- **§2 Phases & dependencies** (`blocks:`) → ordering hints + candidate `## Depends on` (suggestions, not binding — Step 3 / 4e decide).
+- **§3 Decisions resolved** → decision context for `## Plan context` and `Why` lines.
+- **§4 Test strategy + "Testing direction"** → the `Mode` floor + `## Tests` material (Step 4a binding floor, Step 4c).
+- **§5 Risks & assumptions** → `## Notes` orientation; flag any task that would touch an out-of-scope / risk item.
+- **§6 Migration / data** → `## Touches` with role `migration` + ordering (schema / data change before its consumers).
 
-If no executable intent can be extracted (the plan is pure vision, an empty template, or unrelated prose) → `STATUS: FAIL` with `## Notes` line: `no executable intent found — plan describes no concrete change`.
+**Plan context source.** Synthesize each task's `## Plan context` from the plan **title** + the `> Spec:` reference (if present) + **§3 Decisions resolved**. The source template has no Scope/Context section, so this is the designated source — not a fallback.
 
-### Imperative-directive detection (cross-cutting)
-<!-- note: each plan is superplan - do we need this? if we do then use subagent for detection -->
-
-While reading, mark any sentence written in *imperative* tone that constrains implementation decisions. Imperatives are binding overrides; descriptive hints are not. Recognise imperative forms in whatever language the plan uses:
-
-- **Mode overrides** — phrases like `must have TDD tests`, `TDD is mandatory`, `no tests needed`, `docs only`, `requires e2e`, `requires integration test`, `tests are mandatory here`, `skip tests for this`, `pure docs change`.
-- **Ordering overrides** — phrases like `X before Y`, `first X then Y`, `X must precede Y`, `do Y last`, `Y depends on X` (when stated as a hard constraint, not just observation).
-- **Test specifics** — phrases like `must cover edge case Z`, `must check the negative scenario`, `an assertion on X is required`.
-
-Record each imperative with its verbatim quote and its target (which intent / file / task candidate it constrains). Cite it in the relevant task's `Why` line.
+**FAIL trigger — no executable intent.** Return `STATUS: FAIL` with `## Notes` line `no executable intent found — plan describes no concrete change` ONLY when there is **no §1 Touch list AND no recognizable intent** from the title / §3. A plan that merely omits prose is not a failure.
 
 ### Contradiction detection
 
-If two passages in the plan demand mutually exclusive things (e.g. `add column X` and `do NOT touch table T` where X belongs to T; or `Mode: tdd` and `no tests for this` for the same scope) → `STATUS: FAIL` with `## Notes` listing both verbatim quotes and the conflict.
+If two structural passages demand mutually exclusive things (e.g. §1 adds column X to table T while §3/§5 says "do NOT touch T"; or §4 says `tdd` for a scope while another line says "no tests for this" for the same scope) → `STATUS: FAIL` with `## Notes` listing both verbatim quotes and the conflict.
 
 ## Step 3 — Infer task boundaries
 
-The decomposer decides how the work breaks into tasks. The plan's own numbering or task lists are a *hint*, never a contract.
+The decomposer decides how the work breaks into tasks. The plan's own phases or §2 ordering are a *hint*, never a contract.
 
 Aim for tasks that each satisfy:
 
@@ -146,8 +139,8 @@ For each task candidate, decide `Mode`, `Tests`, `Touches` (final), `Depends on`
 
 1. **`tdd` is the starting point** — assume `tdd` unless a carve-out fires.
 2. The carve-out table below (the only routes off the `tdd` baseline).
-3. Imperative directives from Step 2 (override the baseline + carve-outs — but see the binding floor: they may raise rigor, never lower it).
-4. Project rules / skills discovered in Step 4b (may shift the outcome — typically toward more rigor).
+3. The §4 binding floor — testing-direction directives from §4 + decisions from §3 (they may raise rigor, never lower it — see the binding floor below).
+4. Project rules discovered in Step 4b (may shift the outcome — typically toward more rigor).
 
 **Classify by logic, not surface.** Decide the Mode by reasoning about the *logic inside the files in `## Touches`* — does this task introduce branching, an invariant, a calculation, a transformation, a state transition? — NOT by the task's surface description or its verb phrase. A task titled "wire up the endpoint" that actually computes a discount inside the handler carries logic and stays `tdd` (or is split per the extract-pure-testable-helper rule in Step 3). When the logic is unclear from the intent, classify `tdd` (see the hard tie-breaker).
 
@@ -163,22 +156,21 @@ If no carve-out clearly matches, the Mode is `tdd`. Do not reach for a carve-out
 
 **Tie-breaker — hard rule (not a preference):** when it is uncertain whether a carve-out applies, the Mode **is** `tdd`. This is binding, not advisory: ambiguity resolves to `tdd` every time. Cost of over-applying: one extra cycle. Cost of under-applying: a silent regression with no test to catch it. Never downgrade from `tdd` to soften an uncertain call.
 
-**Imperative override + binding floor:** if the plan contains an imperative directive (Step 2) targeting this task's scope, it interacts with the baseline per the binding-floor rule below — cite the verbatim quote in `Why`.
+**Plan directive + binding floor:** if §4 carries a testing direction targeting this task's scope, it interacts with the baseline per the binding-floor rule below — cite the §4 line in `Why`.
 
-**Binding floor (recommended testing direction):** when the plan carries a recommended testing direction for a task's scope — an explicit "this needs TDD", a named edge case / failure mode to cover, or a port seam to test (the testing-direction content a `superplan` plan carries in its §4 test strategy — TDD areas, named edge cases / failure modes, port seams to isolate) — treat it as a **floor on rigor**: it may **raise** the Mode toward more testing (e.g. push a borderline `code-first-then-tests` task to `tdd`, or add a named branch to `## Tests`) but it may **never lower** it below the `tdd` baseline or below what the carve-out table + classify-by-logic already demand. A plan directive that says "skip tests here" is honoured only when `Touches` independently qualifies for `tests-none`; otherwise the floor holds and the task stays at its computed Mode (note the tension in `Why`). The floor is an extension of the imperative-override mechanism — same detection (Step 2), but asymmetric: rigor-raising directives bind, rigor-lowering ones cannot pierce the baseline.
+**Binding floor (recommended testing direction):** when the plan carries a recommended testing direction for a task's scope — the §4 test strategy "Testing direction" content (TDD areas, named edge cases / failure modes, port seams to isolate) — treat it as a **floor on rigor**: it may **raise** the Mode toward more testing (e.g. push a borderline `code-first-then-tests` task to `tdd`, or add a named branch to `## Tests`) but it may **never lower** it below the `tdd` baseline or below what the carve-out table + classify-by-logic already demand. A §4 directive that says "skip tests here" is honoured only when `Touches` independently qualifies for `tests-none`; otherwise the floor holds and the task stays at its computed Mode (note the tension in `Why`). The floor reads from §4 structurally (Step 2) and is asymmetric: rigor-raising directives bind, rigor-lowering ones cannot pierce the baseline.
 
 **Project-rule modulation:** see Step 4b — a rule may raise the bar further (e.g. "every API endpoint needs an integration test" adds an `integration` entry to a `tdd` task that ships an endpoint).
 
-### 4b — Selective rules / skills read
+### 4b — Selective rules read
 
-From the lists globbed in Step 1b, derive keywords from this task's intent and `Touches`:
+From the list globbed in Step 1b, derive keywords from this task's intent and `Touches`:
 
 - Directory segments from `Touches` (e.g. top-level module / layer / feature names visible in the path).
 - Topical words from the intent (e.g. `endpoint`, `migration`, `validator`, `auth`, `e2e`, `test`, `tdd`, `cors`).
-- Mode-related words: when considering `tdd` always Read any rule/skill whose path or name contains `tdd`, `test`, `testing`.
+- Mode-related words: when considering `tdd` always Read any rule whose path or name contains `tdd`, `test`, `testing`.
 
-<!-- note: why skills by name - not CSO? -->
-`Read` ONLY rule files (`.claude/rules/**/*.md`) and skill files (`.claude/skills/**/SKILL.md`) whose path or filename matches at least one keyword.
+`Read` ONLY rule files (`.claude/rules/**/*.md`) whose path or filename matches at least one keyword.
 
 If nothing matches, record in `Why`: `no project-specific rule matched; applied built-in heuristic`.
 
@@ -206,14 +198,14 @@ Do NOT invent fully-qualified test names. The decomposer's contract is *intent +
 
 ### 4d — `Touches` (final)
 
-Start with the plan's hints (file paths it explicitly mentions for this task intent). Augment with:
+Start with the §1 hints (file paths it explicitly mentions for this task intent). Augment with:
 
 - `Glob`-derived paths when the intent unambiguously identifies a module (e.g. intent "add <Feature> service" + project has `<module-root>/**/<Feature>*` → include the glob `<module-root>/**/<Feature>*` if the precise files are not yet known).
 - Test directory globs for the task's `Tests` (so the task-reviewer can locate the new test files).
 
 Each entry in `Touches` is a `path-or-glob — role` line. Roles are short ("production", "test", "config", "migration", "docs"). Do NOT `Read` the file contents — paths and globs are enough.
 
-If the intent unambiguously names a module / area but no plan hint and no `Glob` finds it → record in `Why`: `Touches inferred from intent; no concrete files found via Glob` and put the closest glob.
+If the intent unambiguously names a module / area but no §1 hint and no `Glob` finds it → record in `Why`: `Touches inferred from intent; no concrete files found via Glob` and put the closest glob.
 
 ### 4e — `Depends on`
 
@@ -221,7 +213,7 @@ Derive from two sources, in this order:
 
 1. **Logical precedence from intent** — task N depends on task M < N when the intent of N consumes an artefact produced by M (e.g. M introduces a schema column that N's code reads; M defines an endpoint that N's frontend calls). Reason over the intent paragraphs.
 2. **`Touches` intersection** — task N depends on task M < N when `Touches[N] ∩ Touches[M] ≠ ∅` (same file edited in both). Compute on path globs by structural inclusion (e.g. `<module>/**/<Feature>*` intersects `<module>/<Feature>/<FeatureService>.<ext>`).
-3. **Imperative ordering directive** — overrides both above when present (e.g. plan says `endpoint before UI` → frontend task depends on backend task explicitly).
+3. **Ordering directive from §2 Phases & dependencies** — the §2 `blocks:` graph overrides both above when present (e.g. §2 says `endpoint` blocks `UI` → the frontend task depends on the backend task explicitly).
 
 Result is a comma-separated ascending list of task numbers strictly less than N, or `—` when empty. For each dependency, store a one-line reason for the `Depends on` field.
 
@@ -261,21 +253,20 @@ Both task gate shapes the `coder`/`task-reviewer` agents understand:
 
 ## Step 7 — Write task files
 
-### Step 7.0 — Copy source plan
+### Step 7.0 — Copy source plan + reset status (deterministic)
 
-Before writing any task file, `Read` the source plan (the `Plan:` path from the input contract) and `Write` its content **verbatim** to `.temp/.workflows/<PlanSlug>/plan.md`. This is a side-artefact for retrospective auditability — the superbuild does not consume it; it lets the user reopen the exact plan body alongside the task files even if `.claude/plans/<slug>.md` is later modified or deleted.
+Before writing any task file, run the bundled committer of the plan-copy edge — it copies the source plan byte-exact into the workflow dir and resets `status.yml` to `current_task: 1`:
 
-### Step 7.0b — Seed status.yml (authoritative task tracker)
-
-After Step 7.0, `Write` a minimal status file at `.temp/.workflows/<PlanSlug>/status.yml` with this exact one-line shape:
-
-```yaml
-current_task: 1
+```
+bash "${CLAUDE_PLUGIN_ROOT}/skills/superbuild-decomposer/scripts/copy_plan.sh" "<src-plan-path>" "<PlanSlug>"
 ```
 
-The superbuild reads this file when resolving the starting task; the superbuild updates `current_task` after each successful per-task commit. The total task count `K` is derived by the superbuild from `len(task_files)`, not stored in `status.yml`. You only seed the file — never read it back during the same decomposer run.
+Echo both arguments at the call site (the `Plan:` path from the input contract + the `PlanSlug:`). Read the single-line result:
 
-Idempotency: when Step 0 short-circuits (task files already exist), do NOT touch `status.yml` from this step — Step 0 itself owns the status.yml seed for that case. The superbuild owns all updates after the first commit; a stale `status.yml` from a previous run is the intended source of truth.
+- `PLAN_COPIED` → proceed to Step 7.1.
+- `COPY_FAIL <reason>` → `STATUS: FAIL` with `## Notes` line `plan copy failed: <reason>`; write no task files.
+
+The script owns the byte-exact copy and the status reset (the fresh-path `current_task: 1`); trust its result — do not re-`Read` `plan.md` to re-verify it.
 
 ### Step 7.1 — Write each task file
 
@@ -291,7 +282,7 @@ For each task `N` from 1 to `K`, `Write` the file `.temp/.workflows/<PlanSlug>/t
 
 ## Plan context
 
-<2–4 sentence synthesis of the plan's outcome intent and any mental-model context relevant to this task. State why this task exists in the plan's bigger picture. No verbatim copy of `## Scope` unless it is exactly the right length.>
+<2–4 sentence synthesis from the plan title + `> Spec:` reference (if present) + §3 Decisions resolved relevant to this task. State why this task exists in the plan's bigger picture.>
 
 ## Deliverable
 
@@ -306,7 +297,7 @@ For each task `N` from 1 to `K`, `Write` the file `.temp/.workflows/<PlanSlug>/t
 
 `<tdd | code-first-then-tests | e2e-first | tests-none>`
 
-**Why:** <1–2 sentences. Cite the source of the decision: built-in matrix entry / rule file path / verbatim quote from imperative directive in the plan / `low confidence — no project rule matched`.>
+**Why:** <1–2 sentences. Cite the source of the decision: built-in matrix entry / rule file path / §4 testing-direction line / `low confidence — no project rule matched`.>
 
 ## Tests
 
@@ -317,7 +308,7 @@ For each task `N` from 1 to `K`, `Write` the file `.temp/.workflows/<PlanSlug>/t
 
 ## Depends on
 
-- task <M> — <one-line reason (logical precedence / Touches intersection / imperative directive)>
+- task <M> — <one-line reason (logical precedence / Touches intersection / §2 ordering directive)>
 - <…>
 
 <!-- When there are no dependencies, the section body is the single line `—`. -->
@@ -335,34 +326,50 @@ As you write each task file, keep a `(N, verb-phrase, path)` triple in memory �
 **Cutting rules:**
 
 - `# <type>(<scope>): <imperative summary>` (the H1) — a Conventional-Commits-form commit subject; this is the line the scripted commit (`commit-task.sh`) extracts verbatim as the commit subject. It MUST be present and well-formed on every task file. No `# Task <N> — …` heading.
-- `## Plan context` — synthesise from the plan's outcome intent + mental-model paragraph; never paraphrase the plan's headline sentence to the point of losing its substance.
-- `## Deliverable` — a clear restatement of the observable outcome. For `Mode: tdd` logic tasks, name every decision branch / failure mode explicitly (the 1:1 anchor for Step 4c and the task-reviewer's CRITICAL-FAIL check). Do NOT copy a §6 task line verbatim — there is no longer a binding §6.
-- `## Mode` + `**Why:**` — single source of truth for how this task is executed. No separate "TDD discipline" bullet. The `**Why:**` line states why the task left (or stayed on) the `tdd` baseline: the carve-out that fired, the imperative/floor directive, or `tdd baseline — no carve-out matched`.
+- `## Plan context` — synthesise from the plan title + `> Spec:` + §3 Decisions resolved; never lose the plan's substance.
+- `## Deliverable` — a clear restatement of the observable outcome. For `Mode: tdd` logic tasks, name every decision branch / failure mode explicitly (the 1:1 anchor for Step 4c and the task-reviewer's CRITICAL-FAIL check). Do NOT copy a plan section line verbatim.
+- `## Mode` + `**Why:**` — single source of truth for how this task is executed. No separate "TDD discipline" bullet. The `**Why:**` line states why the task left (or stayed on) the `tdd` baseline: the carve-out that fired, the §4 floor directive, or `tdd baseline — no carve-out matched`.
 - `## Tests` — intent + suggested location; the `coder` agent dispatches the precise filename and method name.
 - `## Task gate` — what the runner will be told to run. Either runnable shape or `Tests: none`.
 
 ## Step 8 — Self-check
-<!-- note: need to run subagent for every file review -->
-Run the checklist before returning — each item is verified in full at the cited step:
 
-- Every file has the seven body sections in order, after the commit-subject H1 + `>` orientation lines (Step 7.1).
-- Every task file's first line is a well-formed Conventional-Commits H1 `# <type>(<scope>): <summary>` (Step 7.1).
-- `Mode` value is exactly one of the four-element enum (Step 4a).
-- `Mode: tests-none` → `## Tests` body and `## Task gate` body are each the single prescribed line (Step 4c / 6).
-- Every other `Mode` → `## Tests` ≥1 entry and `## Task gate` has `- Build: green` + a matching `- Tests:` line (Step 4c / 6).
-- `Mode: tdd` → ≥1 `unit` entry, one per decision branch / failure mode named in `## Deliverable` (branch-driven 1:1) (Step 4c).
-- `Mode: e2e-first` → ≥1 `e2e` entry (Step 4c).
-- Mode honors the tdd-baseline / ambiguity→tdd / binding-floor doctrine; `**Why:**` justifies any non-`tdd` Mode (Step 4a).
-- The forcing functions were applied (one-concern-one-Mode, extract-pure-testable-helper, port-seam split) (Step 3).
-- `Depends on` references only task numbers `< N`; no forward/self-references, no cycles (Step 4e / 5).
-- Task 1 has `Depends on: —` (Step 5).
-- Every Step 2 imperative directive honored in `Mode` / `Tests` / `Depends on`, with `**Why:**` citing the verbatim quote (Step 2 / 4a).
-- No file written outside `.temp/.workflows/<PlanSlug>/`; source plan unmodified (header).
-- `plan.md` exists and matches the source plan byte-for-byte (Step 7.0).
-- `status.yml` exists with `current_task: 1` (or unmodified on the Step 0 short-circuit) (Step 7.0b).
-- Every `## Task files` line carries the `<verb-phrase>` matching its file's H1 byte-for-byte (Step 7.1 / Output format).
+Validate the written task files with the bundled structural validator, then run the inline non-scriptable checks.
 
-If any check fails, repair the offending file and re-check before returning. If a check cannot be repaired (a structural impossibility in the plan), return `STATUS: FAIL` and name the offending file / task / check.
+**Structural validation (scripted):** if `command -v python3` resolves, run:
+
+```
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/superbuild-decomposer/scripts/validate_tasks.py" "<PlanSlug>" "<src-plan-path>"
+```
+
+Echo both arguments at the call site (`plan-bytes` / `status-seed` need the source path + slug). Read the result:
+
+- `VALIDATE_OK` → structural checks pass.
+- one or more `FAIL <file>:<check>` lines → repair the named file(s) and re-run until `VALIDATE_OK`. If a check cannot be repaired (a structural impossibility in the plan), return `STATUS: FAIL` and name the offending file / check.
+
+The validator covers (trust it; do not re-verify by hand): `h1-form`, `verb-h1`, `section-order`, `mode-enum`, `tests-none-shape`, `tests-empty`, `gate-shape`, `tdd-unit-min`, `e2e-min`, `forward-ref`, `task1-dep`, `cycle`, `plan-bytes`, `status-seed`.
+
+**Fail-open (no python3):** when `command -v python3` does NOT resolve, the validator does not start — run this condensed inline checklist by hand instead (the same structural checks):
+
+- Every file has the seven body sections in order, after the commit-subject H1 + `>` orientation lines.
+- Every task file's first line is a well-formed Conventional-Commits H1 `# <type>(<scope>): <summary>` and not a `# Task <N>` heading.
+- `Mode` value is exactly one of the four-element enum.
+- `Mode: tests-none` → `## Tests` body and `## Task gate` body are each the single prescribed line.
+- Every other `Mode` → `## Tests` ≥1 entry and `## Task gate` has `- Build: green` + a matching `- Tests:` line.
+- `Mode: tdd` → ≥1 `unit` entry; `Mode: e2e-first` → ≥1 `e2e` entry.
+- `Depends on` references only task numbers `< N`; no forward/self-references, no cycles; Task 1 has `Depends on: —`.
+- `plan.md` exists and matches the source plan byte-for-byte; `status.yml` exists with `current_task: 1`.
+
+**Inline non-scriptable checks (ALWAYS run, both branches):**
+
+- **Branch→test 1:1** — every decision branch / failure mode named in `## Deliverable` has a matching `## Tests` entry (Step 4c).
+- **Mode doctrine** — Mode honors the tdd-baseline / ambiguity→tdd / binding-floor doctrine; `**Why:**` justifies any non-`tdd` Mode (Step 4a).
+- **Forcing functions applied** — one-concern-one-Mode, extract-pure-testable-helper, port-seam split (Step 3).
+- **§4 floor / §2 ordering honored** — each §4 testing-direction directive and §2 ordering directive is reflected in `Mode` / `Tests` / `Depends on`, cited in `**Why:**`.
+- No file written outside `.temp/.workflows/<PlanSlug>/`; source plan unmodified.
+- Every `## Task files` line carries the `<verb-phrase>` matching its file's H1 byte-for-byte.
+
+If any inline check fails, repair the offending file and re-check before returning.
 
 # Output format
 
@@ -379,7 +386,7 @@ STATUS: PASS
 ## Notes
 - <one short bullet per material assumption / low-confidence decision / unmatched project rule>
 - <one bullet per task that has `**Why:** low confidence — …`>
-- <one bullet per imperative directive honored (cite verbatim quote and task number)>
+- <one bullet per §4 floor / §2 ordering directive honored (cite the line and task number)>
 - <…>
 ```
 
@@ -393,10 +400,10 @@ Total reply under 80 lines.
 
 Traps with no positive-step home (every other rule lives in its step; the Step 8 checklist points there):
 
-- Falling back to `STATUS: FAIL` because the plan is "incomplete" or lacks a specific structure (§1 / §3 / §6 / §7 / Layer enum / TDD-discipline-per-task). Any markdown is acceptable input; missing sections are never a failure. Failure is reserved for: empty/unreadable file, no executable intent, contradictory requirements, cyclic dependencies, no standalone-buildable Task 1, a missing `.temp/.workflows/<PlanSlug>/profile.md` (recipe step did not run — Step 1b fail-closed). Everything else is best-effort + `## Notes`.
+- Falling back to `STATUS: FAIL` because the plan is "incomplete" or lacks a specific §0–§6 section. A missing section degrades to a thin prose fallback, never a failure. Failure is reserved for: empty/unreadable file, no executable intent (no §1 Touch list AND no recognizable intent from title/§3), contradictory requirements, cyclic dependencies, no standalone-buildable Task 1, a missing `.temp/.workflows/<PlanSlug>/profile.md` (recipe step did not run — Step 1b fail-closed), a `COPY_FAIL` from the plan-copy script (Step 7.0). Everything else is best-effort + `## Notes`.
 - Emitting a `**TDD discipline:**` bullet, a `Layer` token (`Backend` / `Frontend` / `Infra` / `Migrate` / `Shared`), a `Task gate` shape-(A)/shape-(B) distinction, or a `Relevant technical design` section. These belong to the old contract and are removed.
-- Reading or invoking any other agent. Decomposer is a self-contained reasoning + grouping step.
+- Reading or invoking any other agent or skill. Decomposer is a self-contained reasoning + grouping step.
 
 # Constraint — technology-agnostic
 
-You operate in any language and any framework. The Mode enum (`tdd`, `code-first-then-tests`, `e2e-first`, `tests-none`) is project-agnostic — it describes *styles of work*, not technologies. Project-specific knowledge (test frameworks, naming conventions, layer taxonomy, mandatory test categories) lives in the project's `CLAUDE.md` + `.claude/rules/**` + `.claude/skills/**` and is read selectively. You never default to an ecosystem assumption.
+You operate in any language and any framework. The Mode enum (`tdd`, `code-first-then-tests`, `e2e-first`, `tests-none`) is project-agnostic — it describes *styles of work*, not technologies. Project-specific knowledge (test frameworks, naming conventions, layer taxonomy, mandatory test categories) lives in the project's `CLAUDE.md` + `.claude/rules/**` and is read selectively. You never default to an ecosystem assumption.

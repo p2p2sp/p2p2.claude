@@ -16,7 +16,7 @@ Goal: reach a shared understanding of WHAT the user wants and HOW to build it, b
 - Do NOT invoke any implementation skill, write code, scaffold a project, or take any implementation action until the user has approved a presented design — EVERY project, regardless of perceived simplicity.
 
 ## Explore first
-- When the request touches existing code or conventions, launch multiple `Explore` agents in parallel to map relevant files, patterns, rules, and prior decisions. Anything you can answer from the codebase, do NOT ask the user.
+- When the request touches existing code or conventions, launch multiple `Explore` agents in parallel in one batch to map relevant files, patterns, rules, and prior decisions. Anything you can answer from the codebase, do NOT ask the user.
 - Skip exploration only when the request is genuinely greenfield (no existing code yet, or the decision is purely product/UX with no technical footprint). Asking the user a question you could have answered from a 30-second grep is the failure mode this section prevents.
 - Carry the discovered conventions into proposed approaches so HOW always fits the host project.
 
