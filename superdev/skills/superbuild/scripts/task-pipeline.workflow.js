@@ -55,7 +55,7 @@ export const meta = {
   description:
     'Deterministic per-task pipeline: drives one decomposed task through coder → runner → task-reviewer → improver with the retry / BLOCKED-unblock / infinite-loop-guard logic.',
   whenToUse:
-    'Invoked once per task by superdev:superbuild (its SKILL.md tells it to call Workflow). Requires args {taskFile, reportDir, taskBaseSha, taskGateRunnable?, rulesImprover?, retryMaxAttempts?, feedbackPath?}.',
+    'Invoked once per task by superdev:superbuild (its SKILL.md tells it to call Workflow). Requires args {taskFile, reportDir, taskBaseSha, recipePath?, taskGateRunnable?, rulesImprover?, retryMaxAttempts?, feedbackPath?}.',
   phases: [
     { title: 'Coder', detail: 'write production code for the task (Mode: normal / unblock)' },
     { title: 'Runner', detail: 'run the task gate (skipped on Tests: none)' },
@@ -109,9 +109,9 @@ function tokensDelta() {
 }
 
 // ── the agent() port seam ────────────────────────────────────────────────────
-// In production each role is a single fork (the three converted plugin agents, plus a
-// cheap haiku wrapper for the runner). In stub mode every role pops a canned verdict so
-// the branch logic is exercisable with no real forks (the dry-run technique of plan §8).
+// In production each role is a single fork — a per-task plugin agent (coder / runner /
+// task-reviewer / improver, plus the commiter committer). In stub mode every role pops a
+// canned verdict so the branch logic is exercisable with no real forks (the dry-run technique of plan §8).
 const trace = []
 const VERDICT = {
   type: 'object',
@@ -181,9 +181,10 @@ function coder(attempt, mode, feedback) {
   return dispatch(stubRole, prompt, { agentType: 'superdev:coder', model: 'opus' }, reportPath)
 }
 
-// The runner pass is a cheap haiku wrapper agent that invokes Skill(superdev:superbuild-runner)
-// in pipeline mode, reads the runner's report, and returns the structured verdict. Encoding the
-// command + scope-hint construction lives in that wrapper agent; this script only forwards paths.
+// The runner pass is the cheap haiku `superdev:runner` plugin agent: it invokes
+// Skill(superdev:superbuild-runner) in pipeline mode, reads the runner's report, and returns the
+// structured verdict. Encoding the test-filter + scope-hint construction lives in that agent's body
+// (agents/runner.md); this script only forwards paths.
 function runner(attempt) {
   const reportPath = r(`runner-${attempt}.md`)
   const prompt =
@@ -191,7 +192,7 @@ function runner(attempt) {
     `Report path: ${reportPath}\n` +
     `Recipe: ${recipePath || '—'}\n` +
     `Run the task gate via Skill(superdev:superbuild-runner) in pipeline mode and return the structured verdict.`
-  return dispatch('runner', prompt, { model: 'haiku' }, reportPath)
+  return dispatch('runner', prompt, { agentType: 'superdev:runner', model: 'haiku' }, reportPath)
 }
 
 function taskReviewer(attempt, runnerReportLine, previousCoderReport) {

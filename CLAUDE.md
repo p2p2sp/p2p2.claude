@@ -93,10 +93,10 @@ superdev/            The superdev plugin
   shared/            Plugin-level shared assets + scripts (rubric.md; rubric-core.md — the shared 4-section "How to …" review-rubric core, read by both rubric.md and superbuild/agents/rubric-task-review.md; references/ — auditor-contract.sh fragments (_input.md, _output.md, lens-{architecture,code-quality,production-readiness,testing}.md); coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the memory-layers / memory-rules scans; scripts/auditor-contract.sh — router-style body assembler `!`-injected by the four superbuild-reviewer-{quality,architecture,testing,readiness} lenses)
   skills/            Skills (bare-named by functional role; the implementation-pipeline forks share the `superbuild-*` family prefix); some skills bundle a
                      deterministic helper under their own scripts/ dir (superbuild/scripts/commit-task.sh
-                     + commit-adr.sh + commit-docs.sh + task-pipeline.workflow.js, superbuild-recipe/scripts/recipe.template.sh,
-                     memory-rules/scripts/route.sh, setup/scripts/bootstrap.sh);
-                     superbuild also bundles the 4 per-task pipeline plugin agents under its agents/ subdir
-                     (coder.md, task-reviewer.md, improver.md, commiter.md), plus a bundled
+                     + commit-adr.sh + commit-docs.sh + task-pipeline.workflow.js, superbuild-recipe/scripts/recipe.template.sh
+                     (+ recipe.template.test.sh), memory-rules/scripts/route.sh, setup/scripts/bootstrap.sh);
+                     superbuild also bundles the 5 per-task pipeline plugin agents under its agents/ subdir
+                     (coder.md, runner.md, task-reviewer.md, improver.md, commiter.md), plus a bundled
                      reference asset agents/rubric-task-review.md (task-reviewer's own task-review variant —
                      the 5 dimensions / 3-bucket severity / PASS-FAIL mapping only; the four shared "How to …"
                      sections live once in shared/rubric-core.md — a reference file, NOT a registered agent)
@@ -157,12 +157,13 @@ chains, not individual skills.
 forked, fork-only **skill** workers — invoked **only by a superordinate skill via the `Skill` tool** (never the
 user, never auto-routed) — and stay **skills** (not `agents/<name>.md` definitions). The name no longer carries
 that signal (the former `agent-` marker is gone); fork-only nature lives entirely in frontmatter (`context: fork`
-+ `user-invocable: false` + a one-line "pipeline-bound; invoked only by …" guard `description`). The four
-per-task pipeline workers are NOT `superbuild-`-prefixed: `coder`, `task-reviewer`, `improver`,
++ `user-invocable: false` + a one-line "pipeline-bound; invoked only by …" guard `description`). The five
+per-task pipeline workers are NOT `superbuild-`-prefixed: `coder`, `runner`, `task-reviewer`, `improver`,
 `commiter` are real **plugin agents** (`superdev/skills/superbuild/agents/*.md`, listed in `plugin.json`
 `agents[]`, dispatched by the `task-pipeline.workflow.js` via `agentType:'superdev:<name>'`) — bare-named
-precisely because they are genuine agents, not fork-skills. (`commiter` is a thin haiku passthrough — it only
-runs `commit-task.sh` and relays its tag — but it is still a workflow-dispatched plugin agent, so it stays
+precisely because they are genuine agents, not fork-skills. (Both `runner` and `commiter` are thin haiku
+wrappers — `runner` builds the task-scoped args and drives the `superbuild-runner` skill; `commiter` only
+runs `commit-task.sh` and relays its tag — but each is still a workflow-dispatched plugin agent, so they stay
 bare-named like the other three.) Every user-facing / auto-routed superdev skill is bare-named, as is the
 planning fork `superplan-reviewer`. (Unrelated: `supergh:agent-committer` keeps the `agent-` token within its
 own plugin — that convention is local to supergh.)
@@ -214,7 +215,7 @@ own plugin — that convention is local to supergh.)
   (`superbuild` → **mandatory first step** `superbuild-recipe` (derives the host toolchain once →
   `recipe.sh` + `profile.md`; owns the clean-tree guard; FAIL = hard halt) → `superbuild-adr` →
   `superbuild-decomposer` → per task **one `Workflow`** call to `task-pipeline.workflow.js` driving `coder` →
-  `superbuild-runner` → `task-reviewer` → `improver` → commit (the `commiter` agent runs
+  `runner` → `task-reviewer` → `improver` → commit (the `commiter` agent runs
   `commit-task.sh` as the workflow's final stage, only on PASS) → `superbuild-reviewer` → `superbuild-docs`), the final-gate
   lenses `superbuild-reviewer` fans out in parallel via the Skill tool (`superbuild-reviewer-plan` Plan-alignment +
   the four code-quality lenses `superbuild-reviewer-quality` / `superbuild-reviewer-architecture` /
@@ -233,8 +234,8 @@ own plugin — that convention is local to supergh.)
   `shared/rubric.md` (superbuild-reviewer-plan) and `superbuild/agents/rubric-task-review.md` (task-reviewer) no
   longer duplicate their four stable "How to …" sections — those live once in `shared/rubric-core.md`, read
   alongside each variant; the two variants carry only their own severity buckets + PASS/FAIL(/BLOCKED) mapping.
-  The four
-  per-task workers `coder` / `task-reviewer` / `improver` / `commiter` are **plugin agents**
+  The five
+  per-task workers `coder` / `runner` / `task-reviewer` / `improver` / `commiter` are **plugin agents**
   (`superdev/skills/superbuild/agents/*.md`), not skills — dispatched by the workflow via `agentType:'superdev:<name>'`.
 
 ## supergh plugin (GitHub / git — flat-named skills)
@@ -366,7 +367,7 @@ invariant exception). Components, qualified `superfix:<name>`:
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`agent-committer`/`create-issue`/`create-pr` skill,
   superfix's for the `code-auditor` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
-  (superdev's `coder` / `task-reviewer` / `improver` / `commiter` and superfix's `scout` / `detective` live there, not in `skills[]`) — and this file
+  (superdev's `coder` / `runner` / `task-reviewer` / `improver` / `commiter` and superfix's `scout` / `detective` live there, not in `skills[]`) — and this file
   in either case. They must stay in sync, and a worker must never appear in both `skills[]` and `agents[]`.
   For the manifest-bearing plugins (`superdev`, `superui`), that plugin's injected manifest
   (`<plugin>/hooks/content/manifest.md`) lists its **groups/roles + chains**, not individual skills, so update it

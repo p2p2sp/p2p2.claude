@@ -33,6 +33,7 @@
   ],
   "agents": [
     "./skills/superbuild/agents/coder.md",
+    "./skills/superbuild/agents/runner.md",
     "./skills/superbuild/agents/task-reviewer.md",
     "./skills/superbuild/agents/improver.md",
     "./skills/superbuild/agents/commiter.md"
