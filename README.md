@@ -23,13 +23,21 @@ none declares another as a dependency.
 
 ## Install
 
+Run these from a terminal to install at **user scope** — available across all your projects, not just
+whichever repo you happen to be in:
+
 ```
-/plugin marketplace add https://github.com/p2p2sp/p2p2.claude
-/plugin install superdev
-/plugin install superui
-/plugin install supergh
-/plugin install superfix
+claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
+claude plugin install superdev@p2p2 --scope user
+claude plugin install superui@p2p2 --scope user
+claude plugin install supergh@p2p2 --scope user
+claude plugin install superfix@p2p2 --scope user
 ```
+
+`--scope user` is already the default for both commands (writes to `~/.claude/settings.json`); it's spelled
+out above for clarity. Inside an active Claude Code session you can instead run the interactive
+`/plugin marketplace add https://github.com/p2p2sp/p2p2.claude` + `/plugin install superdev@p2p2` and pick
+**User scope** when prompted — `project` / `local` scope installs the plugin only for the current repo.
 
 Every plugin is self-contained — none declares any dependencies. Installing one gives you that whole
 ecosystem: `superdev` / `superui` route every request through their injected manifest, while `supergh` /
