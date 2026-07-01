@@ -175,7 +175,10 @@ planning fork `superplan-reviewer` and the self-mode code-review fork `self-revi
     the user to map the design tree before any plan/code, then hands off silently to `superplan`. It is
     model-invocable and is the skill the manifest's decision flow forces first (step 1), unlike `setup`.
   - `setup`: one-time, user-only environment bootstrap (`/setup`). Seeds `.temp/` + `.superdev/`,
-  copies the bundled `.gitignore` / `.claude/settings.json` templates, and **seeds `.superdev/config.yml` from a
+  copies the bundled `.gitignore` / `.claude/settings.json` templates, **seeds `.claude/rules/_superdev.md`
+  from a bundled asset** (a frozen, `_`-prefixed pointer rule reminding the agent of the `<superdev:manifest>`
+  mandatory rules — this is how the plugin gets any standing memory into `.claude/rules/`, since a plugin
+  cannot ship that directory at install time), and **seeds `.superdev/config.yml` from a
   bundled asset** (`setup/scripts/bootstrap.sh` copies `assets/config.yml`, all switches seeded `false`, never
   overwriting an existing one), then **interactively asks the 3 opt-in switches** and `Edit`s the freshly-seeded
   file to flip the selected ones on. Runs in the **main session** (not a fork) so it can prompt via

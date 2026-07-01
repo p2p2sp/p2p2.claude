@@ -5,7 +5,7 @@ model: opus
 effort: high
 context: fork
 user-invocable: false
-allowed-tools: Read, Grep, Glob, Bash
+allowed-tools: Read, Grep, Glob, Bash, Skill
 ---
 
 # Self Reviewer

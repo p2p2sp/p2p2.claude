@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # superdev / setup — bootstrap.test.sh
 #
-# Deterministic test runs for bootstrap.sh's config.yml seeding behavior. This
-# repo has no test framework (markdown + JSON + bash), so a "test" is a real
-# script run against a `mktemp -d` scratch project root with stdout + file-state
-# assertions (see plan §8 binding floor).
+# Deterministic test runs for bootstrap.sh's config.yml + _superdev.md seeding
+# behavior. This repo has no test framework (markdown + JSON + bash), so a
+# "test" is a real script run against a `mktemp -d` scratch project root with
+# stdout + file-state assertions (see plan §8 binding floor).
 #
 # Contract:
 #   input  : none. Builds an isolated scratch project root under `mktemp -d`
@@ -23,7 +23,13 @@
 #                unchanged on the second run and report already-present;
 #            (4) 5->2 reconcile: the present-path switch grep reports only `adr`
 #                and `rules_improver` (no artifacts|help|ui, no "5 switches" text)
-#                even when the config carries those legacy keys.
+#                even when the config carries those legacy keys;
+#            (5) _superdev.md seed-when-absent: no .claude/rules/_superdev.md ->
+#                bootstrap copies the asset byte-for-byte, prints "_superdev.md:
+#                created", exit 0;
+#            (6) _superdev.md never-overwrite-when-present: a pre-existing
+#                .claude/rules/_superdev.md (arbitrary content) is byte-unchanged,
+#                prints "_superdev.md: already present (left untouched)", exit 0.
 #   note   : asserts on bootstrap.sh stdout AND exit code AND on-disk file state;
 #            each scratch dir is removed on exit (trap).
 set -u
@@ -31,6 +37,7 @@ set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SUT="$SCRIPT_DIR/bootstrap.sh"
 ASSET="$(cd "$SCRIPT_DIR/.." && pwd)/assets/config.yml"
+ASSET_RULES_SUPERDEV="$(cd "$SCRIPT_DIR/.." && pwd)/assets/_superdev.md"
 
 SCRATCH="$(mktemp -d 2>/dev/null || mktemp -d -t bootstrap)"
 trap 'rm -rf "$SCRATCH"' EXIT
@@ -118,6 +125,44 @@ elif ! printf '%s\n' "$config_lines" | grep -qE '^[[:space:]]*adr:' || ! printf 
     fail "switches report limited to adr+rules_improver" "expected adr + rules_improver in the switch report"
 else
     pass "switches report limited to adr+rules_improver"
+fi
+
+# Case 5 — _superdev.md seed-when-absent: no .claude/rules/_superdev.md -> asset
+# copied byte-for-byte + "created" report line, exit 0.
+TOTAL=$((TOTAL + 1))
+T5="$SCRATCH/case5"
+mkdir -p "$T5"
+out="$(cd "$T5" && bash "$SUT")"; rc=$?
+if [ "$rc" -ne 0 ]; then
+    fail "_superdev.md seed when absent" "exit code $rc (expected 0)"
+elif [ ! -f "$T5/.claude/rules/_superdev.md" ]; then
+    fail "_superdev.md seed when absent" ".claude/rules/_superdev.md was not created"
+elif ! printf '%s\n' "$out" | grep -qF "_superdev.md: created"; then
+    fail "_superdev.md seed when absent" "missing created report line; got: $(printf '%s\n' "$out" | grep -i _superdev.md)"
+elif ! cmp -s "$ASSET_RULES_SUPERDEV" "$T5/.claude/rules/_superdev.md"; then
+    fail "_superdev.md seed when absent" "seeded file differs from the asset"
+else
+    pass "_superdev.md seed when absent"
+fi
+
+# Case 6 — _superdev.md never-overwrite-when-present: a pre-existing file
+# (arbitrary content) is byte-unchanged and the present report line is printed,
+# exit 0.
+TOTAL=$((TOTAL + 1))
+T6="$SCRATCH/case6"
+mkdir -p "$T6/.claude/rules"
+printf 'hand-edited content\n' > "$T6/.claude/rules/_superdev.md"
+before="$(cat "$T6/.claude/rules/_superdev.md")"
+out="$(cd "$T6" && bash "$SUT")"; rc=$?
+after="$(cat "$T6/.claude/rules/_superdev.md")"
+if [ "$rc" -ne 0 ]; then
+    fail "_superdev.md never overwrite when present" "exit code $rc (expected 0)"
+elif [ "$before" != "$after" ]; then
+    fail "_superdev.md never overwrite when present" "_superdev.md was modified (expected byte-unchanged)"
+elif ! printf '%s\n' "$out" | grep -qF "_superdev.md: already present (left untouched)"; then
+    fail "_superdev.md never overwrite when present" "missing present report line"
+else
+    pass "_superdev.md never overwrite when present"
 fi
 
 echo ""

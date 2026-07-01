@@ -15,7 +15,9 @@
 #   - seeds .gitignore from the bundled template when the project has none,
 #   - seeds .claude/settings.json from the bundled template when none,
 #   - seeds .superdev/config.yml from the bundled template when none,
-#   - never overwrites an existing config.yml (reports its current switches).
+#   - never overwrites an existing config.yml (reports its current switches),
+#   - seeds .claude/rules/_superdev.md (a frozen pointer to the manifest's
+#     mandatory rules) from the bundled template when none, never overwriting.
 #
 # Contract:
 #   argv : none.
@@ -27,6 +29,10 @@
 #           rules_improver=false, docs=false" (fresh seed) or "config.yml: already
 #           present (left untouched) — current switches:" followed by the grep'd
 #           switch lines (limited to the documented keys: adr, rules_improver, docs).
+#           The rules line is either "_superdev.md: created", "_superdev.md:
+#           already present (left untouched)", or "_superdev.md: template missing
+#           at $src — skipped" — this exact literal is asserted verbatim by
+#           bootstrap.test.sh.
 #   exit : always 0 (fail-soft; missing templates are reported, not fatal).
 
 set -u
@@ -35,6 +41,7 @@ skill_dir="$(cd "$(dirname "$0")/.." && pwd)"
 src_gitignore="${skill_dir}/assets/gitignore.txt"
 src_settings="${skill_dir}/assets/settings.json"
 src_config="${skill_dir}/assets/config.yml"
+src_rules_superdev="${skill_dir}/assets/_superdev.md"
 
 if [ -d ".temp" ]; then
   echo ".temp: already present"
@@ -70,6 +77,15 @@ elif [ -f "$src_config" ]; then
     && echo "config.yml: seeded from template — defaults: adr=false, rules_improver=false, docs=false"
 else
   echo "config.yml: template missing at $src_config — skipped"
+fi
+
+if [ -f ".claude/rules/_superdev.md" ]; then
+  echo "_superdev.md: already present (left untouched)"
+elif [ -f "$src_rules_superdev" ]; then
+  mkdir -p .claude/rules && cp "$src_rules_superdev" .claude/rules/_superdev.md \
+    && echo "_superdev.md: created"
+else
+  echo "_superdev.md: template missing at $src_rules_superdev — skipped"
 fi
 
 exit 0
