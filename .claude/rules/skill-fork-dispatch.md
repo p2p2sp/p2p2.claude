@@ -1,6 +1,6 @@
 ---
 paths:
-  - "**/skills/**"
+  - "**/skills/**/*.*"
 ---
 
 # Forked-skill dispatch

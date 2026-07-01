@@ -1,6 +1,6 @@
 ---
 paths:
-  - "**/skills/**"
+  - "**/skills/**/*.*"
 ---
 # Skill script routing & dynamic-context injection
 

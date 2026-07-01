@@ -1,7 +1,7 @@
 ---
 paths:
-  - "**/skills/**"
-  - "**/agents/**"
+  - "**/skills/**/*.*"
+  - "**/agents/**/*.*"
 ---
 
 # How to write perfect skills or agents
