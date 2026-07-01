@@ -61,6 +61,6 @@ Remember that superdev skills override default system-prompt behavior, but user 
 - NEVER append summary/recap sections describing work just completed, and NEVER restate decisions the user did not question, unless the user explicitly asks.
 
 ## Save all temporary files in .temp
-All temp files (test results, output logs, build logs, etc.) go into `.temp/`. Group them in subdirectories: `playwright/`, `coverage/`, `TestResults/`, `logs/`, etc.
+All temp files (temporary test scripts, test results, output logs, build logs, etc.) go into `.temp/`. Group them in subdirectories: `playwright/`, `coverage/`, `TestResults/`, `logs/`, etc.
 
 </superdev:manifest>
