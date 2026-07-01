@@ -96,17 +96,20 @@ When the work is "find every place to change, then change it" over an unknown/la
 - Gate/rank the hits deterministically (script), then dispatch expensive frontier workers only into the located shards.
 - Main context keeps the conclusion (the shard list), not the search. Token cost stays flat as the repo grows.
 
-## Gotchas
+## Gotchas and don'ts
 - Shortening the text cannot mean less precise instructions.
 - Agent also can have references and LLM can just read it - even if the documentation says nothing about it.
 - Use only clean bash - no other additional tools like `jq` or `bc`.
 - DO NOT chop paragraphs into multiline text.
+- DO NOT put reading CLAUDE.md instruction - harnes will inject it.
 
 ## Examples
 
 **BAD**
 ```
 # CSV to JSON Conversion Skill 🟢
+
+Read CLAUDE.md first.
 
 This skill helps you convert CSV files into JSON format. CSV (Comma-Separated
 Values) is a common format for tabular data, while JSON (JavaScript Object

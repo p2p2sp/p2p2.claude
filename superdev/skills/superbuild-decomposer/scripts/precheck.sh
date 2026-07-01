@@ -15,8 +15,7 @@
 #            (b) the verbatim short-circuit block when >=1 task file exists:
 #                `STATUS: PASS`, a blank line, `## Task files` (one
 #                `- <N> — <verb> — <path>` line per existing task in numeric
-#                order; separator is the literal UTF-8 " — " em-dash so the line
-#                matches the superbuild regex `^- (\d+) — (.+) — (.+\.md)$`), then
+#                order; separator format per SKILL.md's `# Output format`), then
 #                `## Notes` carrying the literal
 #                `existing task files detected — decomposition skipped` plus one
 #                bullet per task file missing its `# ` H1.

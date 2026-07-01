@@ -15,6 +15,13 @@ git status --porcelain
 
 The block above runs at skill load. It is the **clean-tree guard**: if it lists ANY path (the working tree is dirty), this run is invalid — go straight to Step 0 and return `STATUS: FAIL`. An empty block = clean tree = proceed. (Fallback: if the block is absent because the harness did not execute it, run `git status --porcelain` yourself via `Bash` in Step 0.)
 
+# Python3 availability (pre-injected)
+```!
+command -v python3 >/dev/null 2>&1 && echo yes || echo no
+```
+
+The block above runs at skill load and reports whether `python3` resolves on PATH (`yes` / `no`). This is informational for plugin-bundled `python3` scripts (e.g. `superbuild-decomposer`'s structural validator / toposort) — it is NOT a host-project fact, NOT part of `REQUIRED_TOOLS`, and never fail-closed (Step 4 does not gate on it). Record it verbatim as `Python3 available` in `profile.md` (Step 3b) so downstream forks stop re-probing `command -v python3` themselves. (Fallback: if the block is absent, run the same command yourself via `Bash` in Step 2.)
+
 # Recipe generator (fork)
 
 Derive the host project's build / test / lint / launch contract **once** and materialize it as an executable `recipe.sh` + a lean `profile.md` under `.temp/.workflows/<slug>/` — the single artifact every downstream pipeline fork consumes instead of re-deriving the same facts. **Fail-closed:** a dirty tree, an unresolvable host command, or a missing recorded tool returns `STATUS: FAIL` (a hard halt) — never a soft fallback.
@@ -57,7 +64,7 @@ If `recipe.sh` does not exist, proceed to Step 2.
 
 Derive every host fact from the project, treating discovered contents as authoritative. Never assume an ecosystem.
 
-- `Read CLAUDE.md` at the repo root if present; `Glob '**/CLAUDE.md'` and read child nodes in directories that carry build/test config. Look for the build command, the test-all command, the test-filter syntax, the lint command, and the launch command.
+- `Glob '**/CLAUDE.md'` and `Read` child nodes in directories that carry build/test config — the root `CLAUDE.md` is already in context (harness-injected for this fork; no `agent:` override), so do not re-`Read` it. Look for the build command, the test-all command, the test-filter syntax, the lint command, and the launch command.
 - `Glob '.claude/rules/**/*.md'` and `Read` rule files whose path/heading matches `build`, `test`, `lint`, `ci`, `run`, `launch`, or a module name — for command syntax, test naming, test layout, and the liveness signal.
 - When `CLAUDE.md` / rules do not state a command, `Glob` for the canonical manifest / lockfile / task-runner config (the host's build manifest) and read it to recover the command; record that file as a fingerprint source.
 - Capture, for `profile.md`: the **framework**, the **test naming convention** + **test layout** (dir/glob), the **liveness signal** (what stdout/port/exit proves the app is up — for `recipe.sh launch`), and **rule pointers** (the `.claude/rules/**` paths that scope conventions — pointers only; never inline rule bodies).
@@ -92,6 +99,7 @@ Derive every host fact from the project, treating discovered contents as authori
 - **Test layout** — the directory/glob where tests live.
 - **Liveness signal** — what proves the app launched (for `recipe.sh launch`); `N/A` when the host documents no launchable app.
 - **Rule pointers** — the `.claude/rules/**` paths that scope conventions (pointers only — NEVER inline rule bodies or `CLAUDE.md`; rules stay harness-delivered).
+- **Python3 available** — `yes` / `no`, from the pre-injected `# Python3 availability` block. Not a host-project fact (unrelated to the framework/build/test discovery above) and never fail-closed — purely informational for plugin-bundled `python3` scripts.
 
 ### 3c — Record the fingerprint
 
@@ -125,7 +133,7 @@ Before returning `STATUS: PASS`:
 - Every marker in the harness's AGENT-FILLED REGION was replaced — no surviving `###TOKEN###` or `__unfilled <TOKEN>` line (a leftover marker would fail-close at runtime).
 - The fingerprint recorded in `recipe.sh` equals `bash recipe.sh fingerprint`, and `bash recipe.sh verify` prints `FRESH` (exit 0).
 - Every non-`N/A` verb resolved and ran in Step 4; any unresolvable verb or missing tool is a FAIL, not a PASS.
-- `profile.md` carries framework / test naming / test layout / liveness signal / rule pointers, and inlines **no** rule body or `CLAUDE.md` content.
+- `profile.md` carries framework / test naming / test layout / liveness signal / rule pointers / Python3 available, and inlines **no** rule body or `CLAUDE.md` content.
 - No tracked file was modified (the recipe's `verify` build/test runs left the tree clean).
 
 If any check fails and cannot be repaired, return `STATUS: FAIL` naming the offending check.

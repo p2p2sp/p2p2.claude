@@ -2,7 +2,7 @@
 name: superbuild-decomposer
 description: Pipeline-bound; invoked only by `superdev:superbuild` via the Skill tool, never directly.
 model: opus
-effort: xhigh
+effort: high
 context: fork
 user-invocable: false
 allowed-tools: Read, Grep, Glob, Write, Bash(bash:*), Bash(python3:*)
@@ -72,8 +72,7 @@ If the plan file is empty or unreadable → `STATUS: FAIL` with `## Notes` line:
 
 These reads inform the `Mode` decisions and per-task test suggestions. They are project-driven — treat their contents as authoritative, but never assume any particular file exists.
 
-- `Read .temp/.workflows/<PlanSlug>/profile.md` — the recipe agent already derived the host **framework**, **test naming**, and **test layout** there; consume it for the `Mode` decisions and the per-task `Tests` suggestions instead of re-deriving them. Being a fork, you `Read` it directly. **Fail-closed:** if `profile.md` is absent, the recipe step did not run — return `STATUS: FAIL` with `## Notes` line `profile.md absent at .temp/.workflows/<PlanSlug>/profile.md — recipe step did not run`, and do NOT fall back to inferring the framework from `CLAUDE.md`.
-- `Read CLAUDE.md` at the repository root if it exists. Ignore silently if absent.
+- `Read .temp/.workflows/<PlanSlug>/profile.md` — the recipe agent already derived the host **framework**, **test naming**, **test layout**, and the **Python3 available** fact there; consume it for the `Mode` decisions, the per-task `Tests` suggestions, and the Step 5 / Step 8 python3 checks instead of re-deriving or re-probing them. Being a fork, you `Read` it directly. **Fail-closed:** if `profile.md` is absent, the recipe step did not run — return `STATUS: FAIL` with `## Notes` line `profile.md absent at .temp/.workflows/<PlanSlug>/profile.md — recipe step did not run`, and do NOT fall back to inferring the framework from `CLAUDE.md`.
 - Take the `.claude/rules/**/*.md` paths from the pre-injected **# Project rules listing** block → keep the full list of rule files (paths only) in memory for selective reads later. Fallback: if that block is empty/absent, `Glob '.claude/rules/**/*.md'` to recover the listing. (The profile carries pointers only — it never inlines rule bodies, so this path-scoped read still happens.)
 
 Record the findings. Read individual entries from this list only when a task's keywords match them (Step 4b).
@@ -127,7 +126,7 @@ These three rules constrain Step 3 so the TDD-baseline Mode decision in Step 4a 
 - **Extract-pure-testable-helper rule.** When decision logic (≥2 branches, an invariant, a calculation, a transformation) is entangled inside glue / wiring / I/O that would otherwise be classified `code-first-then-tests`, split the pure logic into its own task so it can be driven `tdd` against a pure function / class with no I/O. The wiring that calls the helper stays a separate `code-first-then-tests` (or `e2e-first`) task. The goal: never bury a `tdd`-worthy branch inside an untestable wiring task.
 - **Port-seam split.** When a task's logic depends on an external resource (DB, HTTP, queue, clock, filesystem) reached through a port / interface / adapter seam, split it in two: (a) a **logic task**, `Mode: tdd`, that exercises the logic against an in-memory fake of the port in the test project (the seam is the unit boundary); and (b) a separate **adapter task** for the concrete implementation of that port, verified by `integration` / `e2e` at its own task gate (`Mode: code-first-then-tests` or `e2e-first`). **Trivial-CRUD guard:** do NOT introduce a port seam for a straight CRUD passthrough with no logic between the call site and the resource (no branching, no calculation, no invariant) — that is over-engineering; classify it `code-first-then-tests` as a single task. **Host precedence:** if the host `.claude/rules/` testing conventions prescribe a different seam / fake / layering strategy, follow them and cite the rule path in `Why`.
 
-Output of Step 3: an ordered list of task **candidates**, each with: short verb-phrase, intent paragraph, and the candidate `Touches` set. Task numbers are assigned in Step 7 after dependency analysis.
+Output of Step 3: an ordered list of task **candidates**, each with: short verb-phrase, intent paragraph, and the candidate `Touches` set. Each candidate's **candidate id** is its position in this list (1..K) — stable through Steps 3–4, distinct from the **final task number**, which Step 5 computes and Step 7 assigns to filenames.
 
 ## Step 4 — Per-task decisions
 
@@ -156,9 +155,7 @@ If no carve-out clearly matches, the Mode is `tdd`. Do not reach for a carve-out
 
 **Tie-breaker — hard rule (not a preference):** when it is uncertain whether a carve-out applies, the Mode **is** `tdd`. This is binding, not advisory: ambiguity resolves to `tdd` every time. Cost of over-applying: one extra cycle. Cost of under-applying: a silent regression with no test to catch it. Never downgrade from `tdd` to soften an uncertain call.
 
-**Plan directive + binding floor:** if §4 carries a testing direction targeting this task's scope, it interacts with the baseline per the binding-floor rule below — cite the §4 line in `Why`.
-
-**Binding floor (recommended testing direction):** when the plan carries a recommended testing direction for a task's scope — the §4 test strategy "Testing direction" content (TDD areas, named edge cases / failure modes, port seams to isolate) — treat it as a **floor on rigor**: it may **raise** the Mode toward more testing (e.g. push a borderline `code-first-then-tests` task to `tdd`, or add a named branch to `## Tests`) but it may **never lower** it below the `tdd` baseline or below what the carve-out table + classify-by-logic already demand. A §4 directive that says "skip tests here" is honoured only when `Touches` independently qualifies for `tests-none`; otherwise the floor holds and the task stays at its computed Mode (note the tension in `Why`). The floor reads from §4 structurally (Step 2) and is asymmetric: rigor-raising directives bind, rigor-lowering ones cannot pierce the baseline.
+**Binding floor:** when §4 carries a recommended testing direction for a task's scope — the §4 test strategy "Testing direction" content (TDD areas, named edge cases / failure modes, port seams to isolate) — treat it as a **floor on rigor**: it may **raise** the Mode toward more testing (e.g. push a borderline `code-first-then-tests` task to `tdd`, or add a named branch to `## Tests`) but it may **never lower** it below the `tdd` baseline or below what the carve-out table + classify-by-logic already demand. A §4 directive that says "skip tests here" is honoured only when `Touches` independently qualifies for `tests-none`; otherwise the floor holds and the task stays at its computed Mode (note the tension in `Why`). Cite the §4 line in `Why` whenever it applies.
 
 **Project-rule modulation:** see Step 4b — a rule may raise the bar further (e.g. "every API endpoint needs an integration test" adds an `integration` entry to a `tdd` task that ships an endpoint).
 
@@ -211,11 +208,11 @@ If the intent unambiguously names a module / area but no §1 hint and no `Glob` 
 
 Derive from two sources, in this order:
 
-1. **Logical precedence from intent** — task N depends on task M < N when the intent of N consumes an artefact produced by M (e.g. M introduces a schema column that N's code reads; M defines an endpoint that N's frontend calls). Reason over the intent paragraphs.
-2. **`Touches` intersection** — task N depends on task M < N when `Touches[N] ∩ Touches[M] ≠ ∅` (same file edited in both). Compute on path globs by structural inclusion (e.g. `<module>/**/<Feature>*` intersects `<module>/<Feature>/<FeatureService>.<ext>`).
+1. **Logical precedence from intent** — task N depends on task M when the intent of N consumes an artefact produced by M (e.g. M introduces a schema column that N's code reads; M defines an endpoint that N's frontend calls). Reason over the intent paragraphs.
+2. **`Touches` intersection** — task N depends on task M when `Touches[N] ∩ Touches[M] ≠ ∅` (same file edited in both). Compute on path globs by structural inclusion (e.g. `<module>/**/<Feature>*` intersects `<module>/<Feature>/<FeatureService>.<ext>`).
 3. **Ordering directive from §2 Phases & dependencies** — the §2 `blocks:` graph overrides both above when present (e.g. §2 says `endpoint` blocks `UI` → the frontend task depends on the backend task explicitly).
 
-Result is a comma-separated ascending list of task numbers strictly less than N, or `—` when empty. For each dependency, store a one-line reason for the `Depends on` field.
+Result is a comma-separated list of this candidate's dependency candidate ids (any numeric relation — Step 5's script computes the final order), or `—` when empty. For each dependency, store a one-line reason for the `Depends on` field.
 
 ### Tie-breakers (when no dependency forces order)
 
@@ -224,13 +221,24 @@ When two tasks are genuinely independent and both could start first:
 1. Smaller `Touches` set wins the earlier slot (less risk of conflict with the rest of the pipeline).
 2. If still tied, use the order in which the intents appear in the plan.
 
-## Step 5 — Order tasks and detect cycles
+## Step 5 — Order tasks and detect cycles (scripted)
 
-Topologically sort the task candidates using the `Depends on` graph from Step 4e. Tie-breakers from Step 4e settle remaining slots. Assign numeric IDs 1..K in the resulting order.
+When `profile.md`'s `Python3 available` fact (Step 1b) is `yes`, run the bundled toposort edge over the Step 4e dependency graph — one line per candidate, in any order: `<candidate id> <Touches bullet count> [dep candidate id ...]`:
 
-If the dependency graph contains a cycle → `STATUS: FAIL` with `## Notes` line: `cyclic dependency detected between task candidates: <verb-phrases>`. Do not write any files.
+```
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/superbuild-decomposer/scripts/toposort.py" <<'__DECOMP_GRAPH__'
+<one line per candidate>
+__DECOMP_GRAPH__
+```
 
-Task 1 must have `Depends on: —`. If after sorting the slot-1 task has dependencies, attempt one swap with another `Depends on: —` candidate; if no `Depends on: —` candidate exists at all → `STATUS: FAIL` with `## Notes` line: `no standalone-buildable task candidate for Task 1`.
+Read the result:
+
+- `<final task number> <candidate id>` × K lines, ascending final task number → this is both the execution order and the candidate-id → final-number lookup (build it in one pass over these lines); use it in Step 7 to translate every `Depends on` reference and to name each task file.
+- `CYCLE <id> <id> ...` → translate the listed candidate ids to their verb-phrases (held from Step 3), then `STATUS: FAIL` with `## Notes` line: `cyclic dependency detected between task candidates: <verb-phrases>`. Do not write any files.
+
+Trust the script's order and tie-break (ascending `Touches` count, then candidate id) — do not re-sort or re-verify by hand. A real topological sort guarantees the first line's candidate has zero dependencies, so final Task 1 always carries `Depends on: —` — no manual repair needed.
+
+**Fail-open (profile says python3 unavailable):** when `profile.md`'s `Python3 available` fact is `no`, sort by hand — order candidates so every dependency precedes its dependent, breaking remaining ties by ascending `Touches` count then candidate id. If no candidate is placeable while others remain, that is the cycle: `STATUS: FAIL` per the cyclic-dependency `## Notes` line above.
 
 ## Step 6 — `Task gate`
 
@@ -270,7 +278,7 @@ The script owns the byte-exact copy and the status reset (the fresh-path `curren
 
 ### Step 7.1 — Write each task file
 
-For each task `N` from 1 to `K`, `Write` the file `.temp/.workflows/<PlanSlug>/tasks/<N>.md` with this exact structure.
+Using Step 5's candidate-id → final-task-number mapping, for each final task `N` from 1 to `K`, resolve which candidate fills it and `Write` the file `.temp/.workflows/<PlanSlug>/tasks/<N>.md` with this exact structure.
 
 **The first line MUST be a Conventional-Commits-form commit subject H1** — `# <type>(<scope>): <imperative summary>` (e.g. `# feat(auth): add token refresh`, `# docs(readme): document setup steps`). This H1 is the contract consumed by the scripted commit (`commit-task.sh`), which extracts it verbatim as the commit subject (`T<N>: <subject>`). `<type>` is a Conventional-Commits type (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`, `style`); `<scope>` is the affected module / area; the summary is a short imperative phrase, no trailing period. Derive it from the task's verb-phrase + `## Touches`. Do NOT write a `# Task <N> — <verb-phrase>` heading; the `Task <N> of <K>` orientation now lives only in the `>` line below.
 
@@ -311,7 +319,9 @@ For each task `N` from 1 to `K`, `Write` the file `.temp/.workflows/<PlanSlug>/t
 - task <M> — <one-line reason (logical precedence / Touches intersection / §2 ordering directive)>
 - <…>
 
-<!-- When there are no dependencies, the section body is the single line `—`. -->
+<!-- <M> is the FINAL task number — translate each dependency's candidate id
+     through Step 5's mapping before writing this section. When there are no
+     dependencies, the section body is the single line `—`. -->
 
 ## Task gate
 
@@ -336,7 +346,7 @@ As you write each task file, keep a `(N, verb-phrase, path)` triple in memory �
 
 Validate the written task files with the bundled structural validator, then run the inline non-scriptable checks.
 
-**Structural validation (scripted):** if `command -v python3` resolves, run:
+**Structural validation (scripted):** when `profile.md`'s `Python3 available` fact (Step 1b) is `yes`, run:
 
 ```
 python3 "${CLAUDE_PLUGIN_ROOT}/skills/superbuild-decomposer/scripts/validate_tasks.py" "<PlanSlug>" "<src-plan-path>"
@@ -349,7 +359,7 @@ Echo both arguments at the call site (`plan-bytes` / `status-seed` need the sour
 
 The validator covers (trust it; do not re-verify by hand): `h1-form`, `verb-h1`, `section-order`, `mode-enum`, `tests-none-shape`, `tests-empty`, `gate-shape`, `tdd-unit-min`, `e2e-min`, `forward-ref`, `task1-dep`, `cycle`, `plan-bytes`, `status-seed`.
 
-**Fail-open (no python3):** when `command -v python3` does NOT resolve, the validator does not start — run this condensed inline checklist by hand instead (the same structural checks):
+**Fail-open (profile says python3 unavailable):** when `profile.md`'s `Python3 available` fact is `no`, the validator does not start — run this condensed inline checklist by hand instead (the same structural checks):
 
 - Every file has the seven body sections in order, after the commit-subject H1 + `>` orientation lines.
 - Every task file's first line is a well-formed Conventional-Commits H1 `# <type>(<scope>): <summary>` and not a `# Task <N>` heading.
@@ -400,8 +410,7 @@ Total reply under 80 lines.
 
 Traps with no positive-step home (every other rule lives in its step; the Step 8 checklist points there):
 
-- Falling back to `STATUS: FAIL` because the plan is "incomplete" or lacks a specific §0–§6 section. A missing section degrades to a thin prose fallback, never a failure. Failure is reserved for: empty/unreadable file, no executable intent (no §1 Touch list AND no recognizable intent from title/§3), contradictory requirements, cyclic dependencies, no standalone-buildable Task 1, a missing `.temp/.workflows/<PlanSlug>/profile.md` (recipe step did not run — Step 1b fail-closed), a `COPY_FAIL` from the plan-copy script (Step 7.0). Everything else is best-effort + `## Notes`.
-- Emitting a `**TDD discipline:**` bullet, a `Layer` token (`Backend` / `Frontend` / `Infra` / `Migrate` / `Shared`), a `Task gate` shape-(A)/shape-(B) distinction, or a `Relevant technical design` section. These belong to the old contract and are removed.
+- Falling back to `STATUS: FAIL` because the plan is "incomplete" or lacks a specific §0–§6 section. A missing section degrades to a thin prose fallback, never a failure. Failure is reserved for: empty/unreadable file, no executable intent (no §1 Touch list AND no recognizable intent from title/§3), contradictory requirements, cyclic dependencies, a missing `.temp/.workflows/<PlanSlug>/profile.md` (recipe step did not run — Step 1b fail-closed), a `COPY_FAIL` from the plan-copy script (Step 7.0). Everything else is best-effort + `## Notes`.
 - Reading or invoking any other agent or skill. Decomposer is a self-contained reasoning + grouping step.
 
 # Constraint — technology-agnostic
