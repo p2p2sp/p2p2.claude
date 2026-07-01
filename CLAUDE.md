@@ -91,16 +91,16 @@ superdev/            The superdev plugin
     hooks.json       SessionStart (inject manifest) + PreToolUse: ExitPlanMode (plan-review gate)
     content/manifest.md  The injected `using-superdev` dispatcher
     scripts/         session-start.sh, review-plan.sh
-  shared/            Plugin-level shared assets + scripts (rubric.md; rubric-core.md — the shared 4-section "How to …" review-rubric core, read by both rubric.md and superbuild/agents/rubric-task-review.md; references/ — auditor-contract.sh fragments (_input.md, _output.md, lens-{architecture,code-quality,production-readiness,testing}.md); coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the memory-layers / memory-rules scans; scripts/auditor-contract.sh — router-style body assembler `!`-injected by the four superbuild-reviewer-{quality,architecture,testing,readiness} lenses)
+  shared/            Plugin-level shared assets + scripts (rubric.md; rubric-core.md — the shared 4-section "How to …" review-rubric core, read by both rubric.md and superbuild/references/task-review.md; references/ — auditor-contract.sh fragments (_input.md, _output.md, lens-{architecture,code-quality,production-readiness,testing}.md); coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the memory-layers / memory-rules scans; scripts/auditor-contract.sh — router-style body assembler `!`-injected by the four superbuild-reviewer-{quality,architecture,testing,readiness} lenses)
   skills/            Skills (bare-named by functional role; the implementation-pipeline forks share the `superbuild-*` family prefix); some skills bundle a
                      deterministic helper under their own scripts/ dir (superbuild/scripts/commit-task.sh
                      + commit-adr.sh + commit-docs.sh + task-pipeline.workflow.js, superbuild-recipe/scripts/recipe.template.sh
                      (+ recipe.template.test.sh), memory-rules/scripts/route.sh, setup/scripts/bootstrap.sh);
                      superbuild also bundles the 5 per-task pipeline plugin agents under its agents/ subdir
                      (coder.md, runner.md, task-reviewer.md, improver.md, commiter.md), plus a bundled
-                     reference asset agents/rubric-task-review.md (task-reviewer's own task-review variant —
-                     the 5 dimensions / 3-bucket severity / PASS-FAIL mapping only; the four shared "How to …"
-                     sections live once in shared/rubric-core.md — a reference file, NOT a registered agent)
+                     references/task-review.md (task-reviewer's own task-review variant — the 5 dimensions /
+                     3-bucket severity / PASS-FAIL mapping only; the four shared "How to …" sections live once
+                     in shared/rubric-core.md)
 superui/             The superui plugin
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
   hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
@@ -237,10 +237,10 @@ planning fork `superplan-reviewer` and the self-mode code-review fork `self-revi
   `superspec` (with its `REVIEW: PASS`-gated quality fork `superspec-reviewer`, the spec-side mirror of
   `superplan-reviewer`: a read-only fork that checks the saved spec against the superspec hard rules and returns
   `REVIEW: PASS | FAIL`, never editing the spec or handing off). The four quality lenses share `shared/rubric-code-review.md` (the dimension-agnostic scope /
-  false-positive / 3-bucket-severity rules, mirroring `superbuild/agents/rubric-task-review.md` at whole-plan
+  false-positive / 3-bucket-severity rules, mirroring `superbuild/references/task-review.md` at whole-plan
   scope); each lens's per-dimension criteria live in its own `shared/references/lens-*.md` fragment, injected by
   `shared/scripts/auditor-contract.sh`. Separately,
-  `shared/rubric.md` (superbuild-reviewer-plan) and `superbuild/agents/rubric-task-review.md` (task-reviewer) no
+  `shared/rubric.md` (superbuild-reviewer-plan) and `superbuild/references/task-review.md` (task-reviewer) no
   longer duplicate their four stable "How to …" sections — those live once in `shared/rubric-core.md`, read
   alongside each variant; the two variants carry only their own severity buckets + PASS/FAIL(/BLOCKED) mapping.
   The five

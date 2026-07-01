@@ -13,23 +13,13 @@ Behavioural reference for the retry / unblock mechanics of the per-task pipeline
 
 ## Who owns what
 
-- **The workflow** owns: the per-attempt loop, the coder / runner / task-reviewer / improver dispatch, both
-  BLOCKED-unblock branches, the infinite-loop guard, feedback-/previous-coder-report forwarding, **and the
-  final commit stage** (the haiku `commiter` passthrough running `commit-task.sh`, only on PASS). Returns
-  `{status: 'PASS'|'FAIL', attempts, lastFailureReportPath, outputTokens, commit?}` — `commit` only on PASS;
-  `outputTokens` = output tokens this run consumed (a `budget.spent()` delta; output-only, `null` when the
-  budget API is unavailable; the dispatcher sums it across invocations for the closing report).
-- **The dispatcher** (`SKILL.md` per-task loop) owns: the widget flip, the `task-base.sha` capture, the single
-  `Workflow` call, and — on PASS — the state writes (`status.yml` / one-time `base.sha`) driven by
-  `wf_out.commit` / on FAIL — the escalation `AskUserQuestion`. It does not run the commit. On Retry it
-  re-invokes with a fresh cap (`retry_escalation_attempts`) and `feedbackPath = lastFailureReportPath`.
+- **The workflow** owns: the per-attempt loop, the coder / runner / task-reviewer / improver dispatch, both BLOCKED-unblock branches, the infinite-loop guard, feedback-/previous-coder-report forwarding, **and the final commit stage** (the haiku `commiter` passthrough running `commit-task.sh`, only on PASS). Returns `{status: 'PASS'|'FAIL', attempts, lastFailureReportPath, outputTokens, commit?}` — `commit` only on PASS; `outputTokens` = output tokens this run consumed (a `budget.spent()` delta; output-only, `null` when the budget API is unavailable; the dispatcher sums it across invocations for the closing report).
+- **The dispatcher** (`SKILL.md` per-task loop) owns: the widget flip, the `task-base.sha` capture, the single `Workflow` call, and — on PASS — the state writes (`status.yml` / one-time `base.sha`) driven by `wf_out.commit` / on FAIL — the escalation `AskUserQuestion`. It does not run the commit. On Retry it re-invokes with a fresh cap (`retry_escalation_attempts`) and `feedbackPath = lastFailureReportPath`.
 
 ## Retry cap
 
 - The `attempt` counter is **shared** across coder / runner / task-reviewer / unblock-coder failures within one task.
-- Cap per invocation = `args.retryMaxAttempts ?? 3`: `retry_max_attempts` on the first invocation,
-  `retry_escalation_attempts` on an escalation Retry. Total ceiling across both = `retry_max_attempts +
-  retry_escalation_attempts` (default `6`), with the user gate in between.
+- Cap per invocation = `args.retryMaxAttempts ?? 3`: `retry_max_attempts` on the first invocation, `retry_escalation_attempts` on an escalation Retry. Total ceiling across both = `retry_max_attempts + retry_escalation_attempts` (default `6`), with the user gate in between.
 - Only a **successful** unblock pass is free (does not increment `attempt`); a failed unblock counts like any FAIL.
 - No separate budget for `BLOCKED` — the unblock branch shares the same cap.
 

@@ -1,14 +1,14 @@
 # Shared review-rubric core
 
 The four stable "How to …" sections shared **verbatim** by the two derived rubrics
-(`shared/rubric.md` for `superbuild-reviewer-plan`, `skills/superbuild/agents/rubric-task-review.md` for
+(`shared/rubric.md` for `superbuild-reviewer-plan`, `skills/superbuild/references/task-review.md` for
 `task-reviewer`). This file is the **single source** for them — edit here, never re-copy into a derived file.
 The derived rubrics that do NOT need these sections (`shared/rubric-code-review.md`) ignore this file.
 
 Two reading conventions the consuming rubric supplies, not this file:
 
 - **"the diff"** is diff-agnostic here — the consuming rubric defines the range (cumulative `<base>..HEAD` for
-  `rubric.md`, `task_diff` for `rubric-task-review.md`).
+  `rubric.md`, `task_diff` for `task-review.md`).
 - **Severity vocabulary** below is the 2-bucket **CRITICAL / Note** wording. A 3-bucket consumer remaps it
   (read **Note** as **Minor**); the consuming rubric states its own remap.
 

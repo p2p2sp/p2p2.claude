@@ -1,5 +1,5 @@
 <!-- MIRROR: the 3-bucket Critical/Important/Minor severity model below is a whole-plan adaptation of
-`superdev/skills/superbuild/agents/rubric-task-review.md` (its "Severity buckets" section) — that file is
+`superdev/skills/superbuild/references/task-review.md` (its "Severity buckets" section) — that file is
 the PRIMARY sync source: if its severity buckets change, re-sync them here. The per-dimension criteria and
 their severity mapping live in `superdev/shared/references/lens-*.md` (one fragment per lens, injected by
 `shared/scripts/auditor-contract.sh`), NOT in this file — re-sync any dimension change there. No lint catches

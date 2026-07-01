@@ -21,12 +21,10 @@ Task file: <absolute path to .temp/.workflows/<slug>/tasks/<N>.md>
 
 # What to do
 
-1. Run, via `Bash`, exactly:
-   `bash "${CLAUDE_PLUGIN_ROOT}/skills/superbuild/scripts/commit-task.sh" "<Task file>"`
+1. Run, via `Bash`, exactly: `bash "${CLAUDE_PLUGIN_ROOT}/skills/superbuild/scripts/commit-task.sh" "<Task file>"`
 2. Reply with the script's **single stdout line, verbatim** — and nothing else.
 
-The script prints exactly one tag line, one of:
-`<commit sha="…" files="…">T<N>: <subject></commit>` / `<commit status="no-changes"/>` / `<commit status="error">…</commit>`.
+The script prints exactly one tag line, one of: `<commit sha="…" files="…">T<N>: <subject></commit>` / `<commit status="no-changes"/>` / `<commit status="error">…</commit>`.
 
 # Iron rules
 

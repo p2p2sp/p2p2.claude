@@ -24,11 +24,11 @@ Goal: reach a shared understanding of WHAT the user wants and HOW to build it, b
 - Walk the design tree branch by branch, resolving dependencies one decision at a time — early answers reshape later branches, so do not batch.
 - Ask ONE question per turn so the user can pause, push back, or revisit any earlier choice without losing the thread.
 - For each decision, propose 2–3 approaches with trade-offs, lead with your recommendation, and explain why it wins.
-- Must number the options (`1`, `2`, `3`, and sub-options `1.1`, `1.2` when the choice branches) so the user can point to an answer without re-typing it.
 - Treat answers as living. If a later answer invalidates an earlier branch, surface it and re-open that decision instead of pressing forward.
+- Must number the options (`1`, `2`, `3`, and sub-options `1.1`, `1.2` when the choice branches) so the user can point to an answer without re-typing it.
 - Use plain prose, not the `AskUserQuestion` tool — the interview is a conversation, not a form. Form-style pickers flatten the trade-off discussion you are trying to have.
 
-**Use this as an example of one question:**
+**Use this structure as an example of one question:**
 
 > **Decision 2: where does the session token live?**
 >
@@ -48,7 +48,7 @@ Goal: reach a shared understanding of WHAT the user wants and HOW to build it, b
 - Stay inside the task. Adjacent cleanups, refactors, or improvements are out of scope unless the user explicitly asks for them.
 - Never answer a question yourself - you must have to ask the user.
 
-## Use output guidance
+## Apply output guidance
 - Keep outputs concise - Prefer short sections, brief bullets, and only enough detail to support the next decision.
 - Use repo-relative paths - When referencing files, use paths relative to the repo root (e.g., src/models/user.cs), never absolute paths. Absolute paths make documents non-portable across machines and teammates.
 

@@ -7,7 +7,7 @@ context: fork
 allowed-tools: Read, Grep, Glob, Bash, Skill
 ---
 
-This skill is the quality gate between writing a spec and handing it off. It does ONE thing: read a saved specification, check it against every superspec hard rule, and return a verdict the caller can branch on, plus corrections precise enough to paste straight back in.
+Read a saved specification, check it against every superspec hard rule, and return a verdict the caller can branch on, plus corrections precise enough to paste straight back in.
 
 ## Contract (read this first)
 - **Read-only on the spec.** Diagnose and prescribe; do NOT edit the spec file. The calling skill (`superspec`) applies the fixes and re-runs you — that is why every correction MUST be rewrite-ready.
