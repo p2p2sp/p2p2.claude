@@ -5,18 +5,28 @@ model: opus
 effort: high
 context: fork
 user-invocable: false
-allowed-tools: Read, Grep, Glob, Write, Bash(bash:*), Bash(python3:*)
+allowed-tools: Read, Grep, Glob, Write, Bash(bash:*), Bash(python3:*), Bash(cat:*)
 ---
 
 # Decomposer
 
-The **implementation planner**. Your input is the `Plan:` and `PlanSlug:` fields defined in `# Input contract` — the harness delivers them appended under an `ARGUMENTS:` line — read them from that appended block. Parse the `Plan:` path from that input block and `Read` it; reach for additional `Read`s only if something it references is missing.
+The **implementation planner**. Your input is the `Plan:` and `PlanSlug:` fields defined in `# Input contract` — read them from the pre-injected `# Arguments (pre-injected)` block below. Parse the `Plan:` path from that block and `Read` it; reach for additional `Read`s only if something it references is missing.
 
 The upstream plan describes *what* and *why*; this skill decides *how to execute it* — task boundaries, per-task working mode, what to test, and ordering — and writes one focused, self-contained Markdown file per task, each a tight, self-contained context for one downstream task.
 
 Writes nothing outside `.temp/`. Never modifies the source plan.
 
 Project/stack-agnostic. The plan is expected to be a superplan with sections §0–§6 (source template: `## 0. Implementation mode` … `## 6. Migration / data`); free-form prose is a thin fallback, never a failure. Project-specific knowledge (test frameworks, naming, layering) comes from the project's `CLAUDE.md` and `.claude/rules/**` discovered on disk; downstream agents re-read those rules when they touch the relevant files. **Mark the path**; downstream skills walk it.
+
+# Arguments (pre-injected)
+
+```!
+cat <<'__DECOMP_ARGV__'
+$ARGUMENTS
+__DECOMP_ARGV__
+```
+
+The block above splices the raw `$ARGUMENTS` text at skill load — the delivery path for the two `# Input contract` fields below. Read `Plan:` and `PlanSlug:` from between the fences above. (Its `$ARGUMENTS` token suppresses the harness `ARGUMENTS:` auto-append, so this block is the sole delivery path — no `ARGUMENTS:`-line fallback exists.)
 
 # Idempotency precheck (pre-injected)
 
@@ -38,7 +48,7 @@ The block above runs at skill load and lists the project's `.claude/rules/**/*.m
 
 # Input contract
 
-The first user message has this exact shape:
+The pre-injected `# Arguments (pre-injected)` block carries this exact shape:
 
 ```
 Plan: <absolute path to plan file>
@@ -64,7 +74,7 @@ The idempotency check is **hard no-op for task files** — content / freshness o
 
 `Read` the `Plan:` path from your input — that is the plan content. Note its absolute path — referenced as `Source plan:` in each generated file (path relative to the repository root when convenient, otherwise absolute).
 
-Parse the `> Spec:` reference from the plan's header (present only when a `superspec` handoff produced the plan; absent otherwise). When present, `Read` the spec — **fail-open**: if the spec path is missing or unreadable, continue without it. Spec consumption points: §4 Behavior Contract + §5 Acceptance Criteria feed the deliverable-branch naming in `## Deliverable` (Step 2 / Step 4c) and the 1:1 `## Tests` mapping (Step 4c). Without these consumption points the spec read is a no-op — so use it only there.
+Parse the `> Spec:` reference from the plan's header (present only when a `superspec` handoff produced the plan; absent otherwise). When present, `Read` the spec — **fail-open**: if the spec path is missing or unreadable, continue without it. Spec consumption points: §4 Behavior Contract + §5 Acceptance Criteria feed the deliverable-branch naming in `## Deliverable` (Step 2 / Step 4c) and the 1:1 `## Tests` mapping (Step 4c). Without these consumption points the spec read is a no-op — so use it only there. For a standalone plan (no spec), the plan's own `## Scope & acceptance criteria` → `Acceptance criteria:` list is the equivalent feed for those same two consumption points (deliverable-branch naming in `## Deliverable` + the 1:1 `## Tests` mapping).
 
 If the plan file is empty or unreadable → `STATUS: FAIL` with `## Notes` line: `plan file empty or unreadable: <path>`. Do not write any task files.
 

@@ -29,7 +29,7 @@ $ARGUMENTS
 __RECIPE_ARGS__
 ```
 
-The block above splices the raw `$ARGUMENTS` text at skill load, independent of the harness's `ARGUMENTS:` auto-append. This is the primary delivery path for the two positional arguments in `# Input contract` below — read them from between the fences above.
+The block above splices the raw `$ARGUMENTS` text at skill load, independent of the harness's `ARGUMENTS:` auto-append. This is the delivery path for the two positional arguments in `# Input contract` below — read them from between the fences above.
 
 # Recipe generator (fork)
 
@@ -41,7 +41,7 @@ Writes nothing outside `.temp/`. Never modifies tracked files (its `verify` runs
 
 # Input contract
 
-Two positional arguments, read from the pre-injected `# Arguments (pre-injected)` block above. Fallback: if that block is empty or absent (the harness did not run it), read the harness-appended `ARGUMENTS:` line instead.
+Two positional arguments, read from the pre-injected `# Arguments (pre-injected)` block above — the sole delivery path (its `$ARGUMENTS` token suppresses the harness `ARGUMENTS:` auto-append, so no `ARGUMENTS:`-line fallback exists).
 
 ```
 <abspath(plan)> <slug>

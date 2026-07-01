@@ -126,7 +126,7 @@ Before calling `ExitPlanMode`, run the `superdev:superplan-reviewer` skill. Trac
   - <what changed, one line per fix>
   ```
 
-It reads the plan (and the spec the plan's `> Spec:` header points to), checks it against the known failure modes, and returns its findings to this (main) session — it does not call `ExitPlanMode` itself.
+It reads the plan (and its WHAT-source — an external spec via the `> Spec:` header, or the plan's own `## Scope & acceptance criteria` section), checks it against the known failure modes, and returns its findings to this (main) session — it does not call `ExitPlanMode` itself.
 
 Show to the user critical or major findings summary as list, apply any fixes it returns, re-run reviewer (any change to the plan file will force a review via the hook anyway), and proceed to handoff only after `Verdict: PASS`. This gate exists so the human approves a plan that has already cleared the reviewer, not a raw first draft.
 
