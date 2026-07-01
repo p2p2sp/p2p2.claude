@@ -146,7 +146,7 @@ ONE network-free HTML page by inlining the showcase CSS/JS and the active
 target's theme directly, and dropping every relative `assets/…` link:
 
 ```bash
-python scripts/build_site.py standalone \
+python ${CLAUDE_SKILL_DIR}/scripts/build_site.py standalone \
   --design-system .superui/layout/design-system \
   --target <chosen> \
   --out .superui/layout/preview \
@@ -204,7 +204,7 @@ goes into the per-page content fragments.
 Read `references/page-anatomy.md`, then scaffold the site and shared assets:
 
 ```bash
-python scripts/build_site.py init \
+python ${CLAUDE_SKILL_DIR}/scripts/build_site.py init \
   --design-system .superui/layout/design-system \
   --target <chosen> \
   --out .superui/layout/preview
@@ -236,11 +236,11 @@ page placing many components together to reveal spacing/rhythm inconsistencies.
 One layout file per distinct layout component. Save under `content/layouts/`.
 
 ### Phase 5 — Build + index
-Author `manifest.json` listing every page (`path`, `title`, `group`, `layout`),
+Author `manifest.json` listing every page (`path`, `fragment`, `title`, `group`, `layout`),
 then build the whole site and the auto-generated `index.html` in one pass:
 
 ```bash
-python scripts/build_site.py build \
+python ${CLAUDE_SKILL_DIR}/scripts/build_site.py build \
   --design-system .superui/layout/design-system \
   --target <chosen> \
   --out .superui/layout/preview \
@@ -294,13 +294,13 @@ the design system.
 
 ## Scripts
 Plain Python 3 (stdlib only — no install needed).
-- `scripts/build_site.py init|build|standalone …` — `init`/`build` scaffold the
+- `${CLAUDE_SKILL_DIR}/scripts/build_site.py init|build|standalone …` — `init`/`build` scaffold the
   multi-file site + shared assets, inject the active target's theme artifact into
   every page (selecting the delivery branch from `target.md`), and generate
   `index.html` from the manifest. `standalone` emits ONE self-contained,
   network-free HTML file (Claude Code Artifact) by inlining the CSS/JS + theme and
   dropping relative `assets/…` links — the input to `cc-artifact` (see "Share a
-  preview as an artifact" above). Run `python scripts/build_site.py --help`.
+  preview as an artifact" above). Run `python ${CLAUDE_SKILL_DIR}/scripts/build_site.py --help`.
 
 ## Related skills
 - **adapt-target** — adapts the agnostic L1 system to one concrete target, producing

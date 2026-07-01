@@ -55,7 +55,7 @@ extracting.
 - **Screenshots directory** (a user-provided path — typically a project
   assets folder): `view` the directory, then `view` every image so you
   actually see it. Run
-  `scripts/sample_colors.py` per image to read exact colors. Estimate spacing
+  `${CLAUDE_SKILL_DIR}/scripts/sample_colors.py` per image to read exact colors. Estimate spacing
   and sizes against a known reference in the image (a 16 px body line, a 40 px
   avatar), not round numbers.
 - **Website URL** (a page to take inspiration from): retrieve it with the
@@ -104,7 +104,7 @@ full foundations coverage checklist so no category is missed.
    one. Cover surfaces, text, borders, brand/accent, states, focus ring, overlay.
    **Surface/elevation order is measured, not assumed:** sample the background of
    every major region (page/canvas, sidebar, content panel, topbar, cards, menus)
-   with `scripts/sample_colors.py --regions` and assign `surface.base / raised /
+   with `${CLAUDE_SKILL_DIR}/scripts/sample_colors.py --regions` and assign `surface.base / raised /
    muted / overlay` by the printed luminance order (darkest = base); record that
    order in `foundations.md`. Never assign surfaces by convention.
 2. **Typography** — families (by shape if unlabeled — say so), size scale,
@@ -123,7 +123,7 @@ full foundations coverage checklist so no category is missed.
 Write `design-tokens.yaml`, then validate and fix every error:
 
 ```bash
-python scripts/validate_tokens.py .superui/layout/design-system/design-tokens.yaml
+python ${CLAUDE_SKILL_DIR}/scripts/validate_tokens.py .superui/layout/design-system/design-tokens.yaml
 ```
 
 **Accent-usage inventory.** Before moving on, enumerate every location the
@@ -222,7 +222,7 @@ match it — this catches the assumption-driven defects (inverted surfaces, lost
 geometry, misused accent) that pass token validation but contradict the source.
 
 For each layout component and each key atomic state, RE-SAMPLE the corresponding
-region/element in the source image (`scripts/sample_colors.py --regions` /
+region/element in the source image (`${CLAUDE_SKILL_DIR}/scripts/sample_colors.py --regions` /
 `--points`) and check:
 
 - Surface/elevation order matches the spec and the recorded foundations order?
@@ -260,12 +260,12 @@ values to confirm. Then offer the natural next step (see Related skills).
 Plain Python (stdlib + `pyyaml`, `Pillow`, `numpy`). Install if missing:
 `pip install pyyaml pillow numpy --break-system-packages`.
 
-- `scripts/sample_colors.py IMAGE [--k N] [--points x,y …] [--regions name=x,y,w,h …] [--json]`
+- `${CLAUDE_SKILL_DIR}/scripts/sample_colors.py IMAGE [--k N] [--points x,y …] [--regions name=x,y,w,h …] [--json]`
   — k-means palette / exact color sampling for **image** sources; `--regions`
   ranks named region backgrounds by luminance to derive the measured
   surface/elevation order (Phases 1 and 7). (For URL sources read colors from CSS
   via `web_fetch` instead.)
-- `scripts/validate_tokens.py TOKENS.yaml` — DTCG conformance + alias resolution.
+- `${CLAUDE_SKILL_DIR}/scripts/validate_tokens.py TOKENS.yaml` — DTCG conformance + alias resolution.
 
 `tokens.css` is written by hand from the validated tokens (Phase 3) — there is no
 framework generator in L1. Deterministic per-target generators live downstream in

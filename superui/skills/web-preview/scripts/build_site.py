@@ -2,7 +2,7 @@
 """Build self-contained, zero-build HTML mockups from a design system.
 
 Two modes:
-  init   scaffold folders + shared assets (mockup.js, mockup.css), cache nothing
+  init   scaffold folders + shared assets (preview.js, preview.css), cache nothing
   build  wrap authored content fragments in the shared shell (CDN + injected
          design-system theme + assets) and generate index.html from a manifest
 
@@ -72,7 +72,7 @@ PAGE_TEMPLATE = """<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{TITLE}</title>
 {THEME_HEAD}
-<link rel="stylesheet" href="{PREFIX}assets/mockup.css">
+<link rel="stylesheet" href="{PREFIX}assets/preview.css">
 </head>
 <body class="mk-body">
 <header class="mk-bar">
@@ -83,7 +83,7 @@ PAGE_TEMPLATE = """<!doctype html>
 <main class="{MAIN_CLASS}">
 {CONTENT}
 </main>
-<script src="{PREFIX}assets/mockup.js"></script>
+<script src="{PREFIX}assets/preview.js"></script>
 </body>
 </html>
 """
@@ -94,7 +94,7 @@ MAIN_CLASS = {
     "showcase": "mk-main mk-main--showcase",
 }
 
-MOCKUP_JS = """/* mockup.js \u2014 shared interactivity for design-system mockups.
+MOCKUP_JS = """/* preview.js \u2014 shared interactivity for design-system mockups.
    Two behaviors, both driven by data-attributes so pages need no inline JS. */
 (function () {
   var KEY = "mockup-theme";
@@ -199,7 +199,7 @@ INDEX_TEMPLATE = """<!doctype html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{TITLE}</title>
-<link rel="stylesheet" href="assets/mockup.css">
+<link rel="stylesheet" href="assets/preview.css">
 </head>
 <body class="mk-body">
 <header class="mk-bar">
@@ -211,7 +211,7 @@ INDEX_TEMPLATE = """<!doctype html>
 <p class="mk-index__sub">{SUB}</p>
 {GROUPS}
 </main>
-<script src="assets/mockup.js"></script>
+<script src="assets/preview.js"></script>
 </body>
 </html>
 """
@@ -268,9 +268,9 @@ def cmd_init(args):
     for d in ("layouts", "pages", "components", "assets",
               "content/layouts", "content/pages", "content/components"):
         os.makedirs(os.path.join(out, d), exist_ok=True)
-    with open(os.path.join(out, "assets", "mockup.js"), "w", encoding="utf-8") as f:
+    with open(os.path.join(out, "assets", "preview.js"), "w", encoding="utf-8") as f:
         f.write(MOCKUP_JS)
-    with open(os.path.join(out, "assets", "mockup.css"), "w", encoding="utf-8") as f:
+    with open(os.path.join(out, "assets", "preview.css"), "w", encoding="utf-8") as f:
         f.write(MOCKUP_CSS)
     # validate the target's theme artifact is present now, so failures surface early
     _, name = read_theme(target_dir(args.design_system, args.target),

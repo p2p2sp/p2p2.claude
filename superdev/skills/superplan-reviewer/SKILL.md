@@ -49,7 +49,7 @@ Run every dimension. For each, the point is the *failure it catches*, not box-ti
 - All six superplan components are present **and concrete** — no `TBD`, no unfilled `<placeholder>`.
 - The touch list names real, specific paths with `create|modify` + purpose.
 - Open decisions are actually **resolved** (each has a chosen option + why), not left as questions.
-- The plan is **self-contained**: a decomposer with only the plan + spec, and none of this session's context, could act on it.
+- The plan is **self-contained**: a decomposer with only the plan + its WHAT-source (external spec, or the plan's own `Scope & acceptance criteria` section), and none of this session's context, could act on it.
 > Catches: a plan that reads fine but can't be decomposed without re-asking.
 
 ### 3. Codebase fit & architecture

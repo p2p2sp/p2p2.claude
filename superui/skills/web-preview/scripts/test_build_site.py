@@ -216,8 +216,8 @@ class StandalonePureCssTests(StandaloneCase):
         self.assertNotIn('src="assets/', html)
         self.assertNotIn("../", html)
         # NO leftover <script src> / <link rel=stylesheet href> for assets
-        self.assertNotIn("assets/mockup.css", html)
-        self.assertNotIn("assets/mockup.js", html)
+        self.assertNotIn("assets/preview.css", html)
+        self.assertNotIn("assets/preview.js", html)
 
 
 class StandaloneTailwindVendoredTests(StandaloneCase):

@@ -81,7 +81,7 @@ template asset.
 ## Generate
 
 ```bash
-python scripts/tokens_to_tailwind.py TOKENS.yaml --shadcn -o globals.css
+python ${CLAUDE_PLUGIN_ROOT}/skills/adapt-target/scripts/tokens_to_tailwind.py TOKENS.yaml --shadcn -o globals.css
 # options: --color-format oklch|hex  (default oklch, matching shadcn v4)
 #          --theme-only               (omit the @import line)
 ```

@@ -71,8 +71,8 @@ The user picks **one**. Each target produces exactly one theme artifact filename
 | Target | Theme artifact | Reference | Theme approach |
 |------|------|------|------|
 | `pure-css` | `styles.css` | `references/pure-css.md` | `tokens.css` re-expressed as a utility/class layer + per-component HTML patterns for SSR; no framework, no build. |
-| `tailwind` | `theme.css` | `references/tailwind.md` | Tailwind v4 CSS-first `@theme { … }` block (deterministic via `scripts/tokens_to_tailwind.py`). |
-| `react-shadcn` | `globals.css` | `references/shadcn.md` (layers on `tailwind.md`) | shadcn `:root`/`.dark` + `@theme inline` (deterministic via `scripts/tokens_to_tailwind.py --shadcn`). |
+| `tailwind` | `theme.css` | `references/tailwind.md` | Tailwind v4 CSS-first `@theme { … }` block (deterministic via `${CLAUDE_SKILL_DIR}/scripts/tokens_to_tailwind.py`). |
+| `react-shadcn` | `globals.css` | `references/shadcn.md` (layers on `tailwind.md`) | shadcn `:root`/`.dark` + `@theme inline` (deterministic via `${CLAUDE_SKILL_DIR}/scripts/tokens_to_tailwind.py --shadcn`). |
 | `react-mui` | `theme.ts` | `references/mui.md` | MUI `createTheme({ palette, typography, spacing, shape, … })` (reference-guided). |
 | `flutter` | `theme.dart` | `references/flutter.md` | Flutter `ThemeData` + `ColorScheme.fromSeed` / explicit `ColorScheme` + `TextTheme` (reference-guided). |
 
@@ -80,7 +80,7 @@ The user picks **one**. Each target produces exactly one theme artifact filename
 target slot (see Out-of-scope); no reference ships for it yet.
 
 > **Generation strategy.** `tailwind` and `react-shadcn` have a deterministic
-> generator (`scripts/tokens_to_tailwind.py`). The other three theme artifacts
+> generator (`${CLAUDE_SKILL_DIR}/scripts/tokens_to_tailwind.py`). The other three theme artifacts
 > (`pure-css`, `react-mui`, `flutter`) and **all** `components.md` files are
 > reference-guided for now — you write them by hand from the matching
 > `references/<target>.md`, mapping the L1 tokens/specs by name. Deterministic
@@ -114,8 +114,8 @@ on). Do not read the references for targets you are not building.
 
 ### Step 2 — Produce the theme artifact
 
-- `tailwind` → run `scripts/tokens_to_tailwind.py design-tokens.yaml -o targets/tailwind/theme.css` (deterministic).
-- `react-shadcn` → run `scripts/tokens_to_tailwind.py design-tokens.yaml --shadcn -o targets/react-shadcn/globals.css` (deterministic).
+- `tailwind` → run `${CLAUDE_SKILL_DIR}/scripts/tokens_to_tailwind.py design-tokens.yaml -o targets/tailwind/theme.css` (deterministic).
+- `react-shadcn` → run `${CLAUDE_SKILL_DIR}/scripts/tokens_to_tailwind.py design-tokens.yaml --shadcn -o targets/react-shadcn/globals.css` (deterministic).
 - `pure-css` / `react-mui` / `flutter` → author the artifact by hand from
   `tokens.css`, following the mapping table in `references/<target>.md`. Map
   each semantic token by **name** (do not restate raw values that already live
@@ -193,7 +193,7 @@ from memory. Read only the one(s) for the chosen target.
 Plain Python (stdlib + `pyyaml`). Install if missing:
 `pip install pyyaml --break-system-packages`.
 
-- `scripts/tokens_to_tailwind.py TOKENS.yaml [-o OUT] [--shadcn] [--theme-only]
+- `${CLAUDE_SKILL_DIR}/scripts/tokens_to_tailwind.py TOKENS.yaml [-o OUT] [--shadcn] [--theme-only]
   [--color-format oklch|hex]` — deterministic DTCG → Tailwind v4 `@theme`
   stylesheet; `--shadcn` emits the shadcn `:root`/`.dark` + `@theme inline`
   idiom. The only deterministic per-target generator; the other theme artifacts
