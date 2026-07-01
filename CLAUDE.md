@@ -166,8 +166,8 @@ precisely because they are genuine agents, not fork-skills. (Both `runner` and `
 wrappers — `runner` builds the task-scoped args and drives the `superbuild-runner` skill; `commiter` only
 runs `commit-task.sh` and relays its tag — but each is still a workflow-dispatched plugin agent, so they stay
 bare-named like the other three.) Every user-facing / auto-routed superdev skill is bare-named, as is the
-planning fork `superplan-reviewer`. (Unrelated: `supergh:agent-committer` keeps the `agent-` token within its
-own plugin — that convention is local to supergh.)
+planning fork `superplan-reviewer` and the self-mode code-review fork `self-reviewer`. (Unrelated:
+`supergh:agent-committer` keeps the `agent-` token within its own plugin — that convention is local to supergh.)
 
 - **Entry & environment** — two top-level skills:
   - `superdev`: the always-on **entry skill** (the renamed former `dev-interview`), named after the plugin
@@ -206,13 +206,18 @@ own plugin — that convention is local to supergh.)
 - **End-user documentation** (1 skill): `help-writer` (the end-user product-help layer → `.superdev/help/`).
   Authors the human-facing help that ships to the people who use the built app — distinct
   from the agent-facing memory layers above; faces the end user, not Claude.
-- **Agentic-development pipeline + diagnostics/specs** (18 skills + 4 plugin agents): planning
+- **Agentic-development pipeline + diagnostics/specs** (19 skills + 5 plugin agents): planning
   (`superplan`, `superplan-reviewer` — a read-only fork that reviews the plan against the spec and
   superplan's required components/boundaries across six dimensions (spec coverage, decomposer-readiness, codebase
   fit, verifiability/risk, boundary discipline, and a conditional security dimension engaged only when the plan
   touches sensitive surfaces), then returns a `Verdict: BLOCK | FIX | PASS` plus an ordered fix list to the main
-  session; it never edits the plan or calls `ExitPlanMode`; the interview entry point now lives in the no-prefix
-  `superdev` skill above), the orchestrated implementation pipeline
+  session; it never edits the plan or calls `ExitPlanMode`; a self-mode plan (§0 `Implementation: self`) carries
+  a closing instruction to run the sibling read-only fork `self-reviewer` before committing the plan's changes —
+  scope is code-vs-plan only (touch list, decisions, test-strategy mapping, risks, migration; NOT spec fidelity,
+  already judged pre-approval), reading `git status`/`git diff HEAD` against an assumed-clean starting tree and
+  returning a two-way `Verdict: PASS | FAIL` plus a findings/fix list; this is a Layer-A soft gate only (no
+  `PreToolUse` hook backstops it, unlike the `ExitPlanMode` plan gate); the interview entry point now lives in
+  the no-prefix `superdev` skill above), the orchestrated implementation pipeline
   (`superbuild` → **mandatory first step** `superbuild-recipe` (derives the host toolchain once →
   `recipe.sh` + `profile.md`; owns the clean-tree guard; FAIL = hard halt) → `superbuild-adr` →
   `superbuild-decomposer` → per task **one `Workflow`** call to `task-pipeline.workflow.js` driving `coder` →

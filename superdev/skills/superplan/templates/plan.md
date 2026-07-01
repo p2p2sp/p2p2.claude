@@ -12,6 +12,7 @@ Implementation: superbuild
 <!-- VARIANT B — self (agent implements directly):
 Implementation: self
 > The user explicitly opted OUT of the superbuild pipeline for this plan — implement it directly in the main session; do NOT invoke `superbuild` even if the plan text mentions it.
+> Before committing any of this plan's changes, run the `superdev:self-reviewer` skill passing this plan's absolute file path as the argument, apply any fixes it returns, and re-run until `Verdict: PASS`.
 -->
 
 ## 1. Touch list
