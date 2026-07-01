@@ -213,7 +213,7 @@ planning fork `superplan-reviewer` and the self-mode code-review fork `self-revi
   (`superplan`, `superplan-reviewer` — a read-only fork that reviews the plan against the spec and
   superplan's required components/boundaries across six dimensions (spec coverage, decomposer-readiness, codebase
   fit, verifiability/risk, boundary discipline, and a conditional security dimension engaged only when the plan
-  touches sensitive surfaces), then returns a `Verdict: BLOCK | FIX | PASS` plus an ordered fix list to the main
+  touches sensitive surfaces), then returns a `Verdict: PASS | FAIL` plus an ordered fix list to the main
   session; it never edits the plan or calls `ExitPlanMode`; a self-mode plan (§0 `Implementation: self`) carries
   a closing instruction to run the sibling read-only fork `self-reviewer` before committing the plan's changes —
   scope is code-vs-plan only (touch list, decisions, test-strategy mapping, risks, migration; NOT spec fidelity,

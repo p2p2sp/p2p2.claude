@@ -70,7 +70,7 @@ Apply the **"How to verify conventions"** rubric rules across every directory th
 
 ## Step 6 — Build the verdict
 
-Two-way decision (this auditor never emits BLOCKED — it is the terminal completeness check, not a per-task gate that can be blocked by upstream state):
+Two-way decision — this is the terminal completeness check, not a per-task gate that can be blocked by upstream state:
 
 - `STATUS: PASS` — every task `## Deliverable` is verified at HEAD, every task `## Tests` entry is verified, the plan's stated outcome is realized, and no documented convention is violated.
 - `STATUS: FAIL` — any CRITICAL from Steps 3–5: a missing/mismatched Deliverable, an unrealized plan outcome, a missing/weak test, or a documented-convention violation.
@@ -114,7 +114,7 @@ The `STATUS:` line is the contract `superbuild-reviewer` parses — it must be t
 
 - Judging ONE task against one task's diff. That is `task-reviewer`. This skill audits the WHOLE plan against the cumulative diff.
 - Re-running or attempting to run tests / builds. You have no Bash tool; the per-task runners already passed and the full-suite execution is `superbuild-runner`'s separate job in the final gate.
-- Emitting `STATUS: BLOCKED`. This auditor is two-way (PASS / FAIL) — there is no upstream pipeline state to block on at the terminal completeness check.
+- Emitting any status other than `STATUS: PASS` / `STATUS: FAIL`. This auditor is two-way — there is no upstream pipeline state to block on at the terminal completeness check.
 - Passing because each task looks individually delivered while the plan's stated outcome is not realized — the cross-check in Step 3 is mandatory.
 - Failing a task's Deliverable without naming the exact missing/mismatched outcome and a `path:LINE` (or an explicit "no implementing code found").
 - Reading the plan for `§6 Task graph` / `§7 Test impact` / `Layer:` / `TDD discipline per task`. Those belong to the old contract and are no longer binding. Task files are the binding artefacts.

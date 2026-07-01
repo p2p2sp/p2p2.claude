@@ -81,13 +81,13 @@ Run only if the plan touches auth, authorization, payments, PII/sensitive data, 
 - **MAJOR** — a missing or non-concrete component; an unresolved open decision; an acceptance criterion with no test; an unhandled known risk; a convention/reuse mismatch.
 - **MINOR** — clarity or specificity nits that don't block decomposition.
 
-**Verdict rule:** any CRITICAL → `BLOCK`. Else any MAJOR → `FIX`. Else → `PASS`.
+**Verdict rule:** any CRITICAL or MAJOR → `FAIL`. Else → `PASS`. Two-way only — the sole consumer (the ExitPlanMode gate + the main session) branches on PASS vs not-PASS, so a partial "block vs fix" state would change nothing.
 
 ## Output — return EXACTLY this format and nothing else
 
 ```
 ## Superplan Review
-**Verdict:** BLOCK | FIX | PASS
+**Verdict:** PASS | FAIL
 **Resolved since last round:** <X/Y previously flagged CRITICAL|MAJOR resolved> <!-- omit this line entirely on round 1 -->
 **Findings:**
 - [CRITICAL|MAJOR|MINOR] (<plan section / component>) — <problem> [evidence: <path:line if any>]

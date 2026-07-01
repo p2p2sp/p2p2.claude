@@ -13,7 +13,7 @@
 #   output : one "PASS: <case>" line per case, then "ALL PASS (N/N)"; a mismatch
 #            prints "FAIL: <case> — <detail>" and exits non-zero.
 #   cases  : the S-match must bind to the reviewer's OWN first verdict (a later
-#            stray `Verdict: PASS` must NOT approve a FIX/BLOCK'd plan), and a
+#            stray `Verdict: PASS` must NOT approve a FAIL'd plan), and a
 #            post-PASS Bash mutation of the plan file must re-gate — without
 #            false-denying a benign command that merely names the plan path.
 set -u
@@ -32,18 +32,17 @@ fail() { echo "FAIL: $1 — $2"; FAILED=$((FAILED + 1)); }
 #     a real Windows transcript where paths are "C:\\Users\\..\\.claude\\plans\\..") -
 LW='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"file_path":"C:\\Users\\dariu\\.claude\\plans\\foo.md","content":"plan"}}]}}'
 LR='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Skill","input":{"skill":"superdev:superplan-reviewer","args":"C:\\Users\\dariu\\.claude\\plans\\foo.md"}}]}}'
-LR2='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Skill","input":{"skill":"superdev:superplan-reviewer","args":"C:\\Users\\dariu\\.claude\\plans\\foo.md\n--- Previous review (round 1) ---\nVerdict: FIX\n--- Fixes applied ---"}}]}}'
+LR2='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Skill","input":{"skill":"superdev:superplan-reviewer","args":"C:\\Users\\dariu\\.claude\\plans\\foo.md\n--- Previous review (round 1) ---\nVerdict: FAIL\n--- Fixes applied ---"}}]}}'
 LPASS='{"type":"user","message":{"content":[{"type":"tool_result","content":"## Superplan Review\n**Verdict:** PASS\nAll good."}]}}'
-LFIX='{"type":"user","message":{"content":[{"type":"tool_result","content":"## Superplan Review\n**Verdict:** FIX\nFix list: rework step 3."}]}}'
-LBLOCK='{"type":"user","message":{"content":[{"type":"tool_result","content":"## Superplan Review\n**Verdict:** BLOCK\nCritical: security hole."}]}}'
+LFAIL='{"type":"user","message":{"content":[{"type":"tool_result","content":"## Superplan Review\n**Verdict:** FAIL\nFix list: rework step 3."}]}}'
 LPASTE='{"type":"user","message":{"content":"here is an older reviewed doc I pasted:\n**Verdict:** PASS looked fine last week"}}'
-LLEGEND='{"type":"assistant","message":{"content":"for reference the template legend is:\nVerdict: PASS | FIX | BLOCK"}}'
+LLEGEND='{"type":"assistant","message":{"content":"for reference the template legend is:\nVerdict: PASS | FAIL"}}'
 LTAMPER_SED='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"sed -i s/x/y/ C:\\Users\\dariu\\.claude\\plans\\foo.md"}}]}}'
 LTAMPER_REDIR='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"cat extra >> C:\\Users\\dariu\\.claude\\plans\\foo.md"}}]}}'
 LSTAGE='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"git add C:\\Users\\dariu\\.claude\\plans\\foo.md"}}]}}'
 LREDIR_OTHER='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"echo see foo.md > notes.txt"}}]}}'
-# reviewer result whose FIRST verdict-shaped line is a NEGATED/qualified PASS, before the real FIX
-LNEG='{"type":"user","message":{"content":[{"type":"tool_result","content":"## Superplan Review\nVerdict: PASS is NOT warranted; see below.\n**Verdict:** FIX\nFix list: rework."}]}}'
+# reviewer result whose FIRST verdict-shaped line is a NEGATED/qualified PASS, before the real FAIL
+LNEG='{"type":"user","message":{"content":[{"type":"tool_result","content":"## Superplan Review\nVerdict: PASS is NOT warranted; see below.\n**Verdict:** FAIL\nFix list: rework."}]}}'
 # further tamper shapes: single `>` redirect, and a `tee` write, both targeting the plan
 LTAMPER_GT='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"printf x > C:\\Users\\dariu\\.claude\\plans\\foo.md"}}]}}'
 LTAMPER_TEE='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"echo x | tee C:\\Users\\dariu\\.claude\\plans\\foo.md"}}]}}'
@@ -70,17 +69,17 @@ run_case() {
 mkfix "$SCRATCH/A"  "$LW" "$LR" "$LPASS"
 run_case "A happy W->R->PASS -> allow" "$SCRATCH/A" ALLOW
 
-# B — genuine FIX only -> deny
-mkfix "$SCRATCH/B"  "$LW" "$LR" "$LFIX"
-run_case "B genuine FIX only -> deny" "$SCRATCH/B" DENY
+# B — genuine FAIL only -> deny
+mkfix "$SCRATCH/B"  "$LW" "$LR" "$LFAIL"
+run_case "B genuine FAIL only -> deny" "$SCRATCH/B" DENY
 
-# G — reviewer FIX then a later pasted 'Verdict: PASS' -> deny (no false-allow)
-mkfix "$SCRATCH/G"  "$LW" "$LR" "$LFIX" "$LPASTE"
-run_case "G FIX + later pasted PASS -> deny" "$SCRATCH/G" DENY
+# G — reviewer FAIL then a later pasted 'Verdict: PASS' -> deny (no false-allow)
+mkfix "$SCRATCH/G"  "$LW" "$LR" "$LFAIL" "$LPASTE"
+run_case "G FAIL + later pasted PASS -> deny" "$SCRATCH/G" DENY
 
-# H — reviewer BLOCK then a 'Verdict: PASS | FIX | BLOCK' legend line -> deny
-mkfix "$SCRATCH/H"  "$LW" "$LR" "$LBLOCK" "$LLEGEND"
-run_case "H BLOCK + template legend PASS -> deny" "$SCRATCH/H" DENY
+# H — reviewer FAIL then a 'Verdict: PASS | FAIL' legend line -> deny
+mkfix "$SCRATCH/H"  "$LW" "$LR" "$LFAIL" "$LLEGEND"
+run_case "H FAIL + template legend PASS -> deny" "$SCRATCH/H" DENY
 
 # T1 — genuine PASS then Bash `sed -i` on the plan path -> deny (tamper)
 mkfix "$SCRATCH/T1" "$LW" "$LR" "$LPASS" "$LTAMPER_SED"
@@ -102,13 +101,13 @@ run_case "N2 PASS then redirect-to-other names plan -> allow" "$SCRATCH/N2" ALLO
 mkfix "$SCRATCH/N3" "$LW" "$LR" "$LPASS" "$LPASTE"
 run_case "N3 genuine PASS + later stray PASS -> allow" "$SCRATCH/N3" ALLOW
 
-# R2 — round-2 re-review: prior FIX rides ON the reviewer-call line, then genuine PASS -> allow
+# R2 — round-2 re-review: prior FAIL rides ON the reviewer-call line, then genuine PASS -> allow
 mkfix "$SCRATCH/R2" "$LW" "$LR2" "$LPASS"
 run_case "R2 round-2 re-review PASS -> allow" "$SCRATCH/R2" ALLOW
 
-# NEG — a negated 'Verdict: PASS is NOT ...' precedes the real FIX verdict -> deny
+# NEG — a negated 'Verdict: PASS is NOT ...' precedes the real FAIL verdict -> deny
 mkfix "$SCRATCH/NEG" "$LW" "$LR" "$LNEG"
-run_case "NEG negated PASS before real FIX -> deny" "$SCRATCH/NEG" DENY
+run_case "NEG negated PASS before real FAIL -> deny" "$SCRATCH/NEG" DENY
 
 # T3 — genuine PASS then a single `>` redirect into the plan -> deny (tamper)
 mkfix "$SCRATCH/T3" "$LW" "$LR" "$LPASS" "$LTAMPER_GT"

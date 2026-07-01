@@ -112,16 +112,16 @@ fi
 # always starts its own markdown line, so it appears as `\n**Verdict:** <value>` (the
 # `(\*\*)?` makes the bold markers optional; the `\\n` matches the two literal chars
 # backslash-n JSON uses to escape a newline — this excludes inline/back-ticked mentions).
-# LOAD-BEARING: bind to the FIRST verdict, matching PASS|FIX|BLOCK, not "any later PASS".
-# A FIX/BLOCK verdict must DENY even when a later line (a paste, an assistant restatement,
-# a tool_result echo, or a `Verdict: PASS | FIX | BLOCK` legend) carries a stray PASS.
+# LOAD-BEARING: bind to the FIRST verdict, matching PASS|FAIL, not "any later PASS".
+# A FAIL verdict must DENY even when a later line (a paste, an assistant restatement,
+# a tool_result echo, or a `Verdict: PASS | FAIL` legend) carries a stray PASS.
 # The verdict VALUE must END the line-anchored token — followed by the escaped
 # newline (\n) that starts the next markdown line, or the closing quote (") that
 # ends the JSON content string (optional trailing spaces tolerated). This rejects a
 # qualified/negated `Verdict: PASS is NOT ...` whose value is not the whole token:
 # without the end-anchor its last matched word is still `PASS` -> a false-allow.
 verdict_line=$(
-  awk -v start="$reviewer_call_line" 'NR>start && /\\n(\*\*)?Verdict:(\*\*)? (PASS|FIX|BLOCK)[[:space:]]*(\\n|")/ { print NR; exit }' \
+  awk -v start="$reviewer_call_line" 'NR>start && /\\n(\*\*)?Verdict:(\*\*)? (PASS|FAIL)[[:space:]]*(\\n|")/ { print NR; exit }' \
     "$transcript_path" 2>/dev/null
 )
 
@@ -133,7 +133,7 @@ fi
 # last whitespace-delimited token of the remaining `\n**Verdict:** <value>` span.
 verdict_value=$(
   awk -v ln="$verdict_line" 'NR==ln {
-    if (match($0, /\\n(\*\*)?Verdict:(\*\*)? (PASS|FIX|BLOCK)[[:space:]]*(\\n|")/)) {
+    if (match($0, /\\n(\*\*)?Verdict:(\*\*)? (PASS|FAIL)[[:space:]]*(\\n|")/)) {
       v = substr($0, RSTART, RLENGTH); sub(/[[:space:]]*(\\n|")$/, "", v)
       n = split(v, a, " "); print a[n]
     }
