@@ -5,6 +5,7 @@ description: >-
 allowed-tools: Bash(git status:*), Bash(git rev-parse:*), Bash(git diff:*), Bash(sh:*), Skill
 user-invocable: true
 argument-hint: "[all|staged]"
+model: sonnet
 effort: low
 ---
 
