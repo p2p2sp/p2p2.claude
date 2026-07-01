@@ -13,17 +13,24 @@ effort: xhigh
 Produce plans that survive contact with implementation. Default plan mode content drifts: missing files, hidden assumptions, no rollback story. SuperPlan closes that gap with a strict template plus mandatory pre-plan behavior before the plan is presented.
 
 ## Pre-plan context
-Do not re-interview the user — discovery of *intent* belongs to the superdev skill (which may have run, or the user may have skipped). If invoked directly with no prior interview, MUST run the `superdev:superdev` Skill. The session supplies intent and requirements; the codebase facts the plan depends on are verified fresh (see "Explore the plan's open questions" below), never assumed from session memory.
+
+Do not re-interview the user — discovery of *intent* belongs to the superdev skill (which may have run, or the user may have skipped).
+
+- If invoked directly with no prior interview, MUST run the `superdev:superdev` Skill.
 - If a spec filepath was passed (handoff from `superspec`), `Read` it first — it is the source of truth for WHAT; record its path in the plan's `> Spec:` header (that is how `superplan-reviewer` resolves it). Reference its sections; do not restate it.
 
 ## Explore the plan's open questions
 
 Run this gate BEFORE drafting — discover the codebase facts the plan needs instead of assuming them.
 
-- Enumerate the codebase facts each plan component needs: §1 real paths + symbol names, §2 integration / sequencing points, §3 codebase-dependent open decisions (where validation lives, the error-signalling pattern, test layout), §4 test locations + port seams.
-- Subtract facts already confirmed this session (from the interview's exploration or files read here). Explore only the delta — do NOT re-run the interview's broad sweep.
+- Enumerate the codebase facts each plan component needs:
+   - real paths + symbol names,
+   - integration / sequencing points,
+   - codebase-dependent open decisions (where validation lives, the error-signalling pattern, test layout),
+   - test locations + port seams.
+- Subtract facts already confirmed this session. Explore only the delta — do NOT re-run the interview's broad sweep.
 - For each remaining unknown, dispatch a scoped `Explore` agent via the `Agent` tool (read-only), each with a narrow brief = the single open decision it must resolve. Batch independent ones in parallel (one message, up to 3 agents).
-- Draft only from confirmed facts. An unknown that Explore could not resolve becomes a §5 `[load-bearing]` item or a plan option — never a silent guess.
+- Draft only from confirmed facts. An unknown that Explore could not resolve becomes a `[load-bearing]` item or a plan option — never a silent guess.
 
 ## Behavioral rules during planning
 
@@ -37,6 +44,7 @@ The explore gate above is the primary mechanism (discover before you decide); th
 - **No silent assumptions.** Every §5 item explicit; surface an unstated default as `[load-bearing]` in §5 so `superplan-reviewer` and the user catch it. Never bury a guess in narrative.
 
 ## Where this sits in the pipeline
+
 Keep these boundaries sharp. Each layer answers a different question and re-deciding another layer's job is the most common failure mode.
 
 - **Spec = WHAT** — external contract, scope, locked decisions, acceptance criteria. Input. Do not restate it; reference its sections.
@@ -50,27 +58,35 @@ The plan is not a pass-through. `ExitPlanMode` is an approval gate; if the plan 
 
 These are the components that are absent from the spec yet too coarse for the decomposer. Fill each with project specifics; omit a section only with an explicit one-line reason.
 
-1. **Touch list (file-level change map).** Every file to create or modify, with code paths. The spec names modules to reuse but not the implementation surface — this is it.
-   `<list: path → create|modify → one-line purpose>`
+### Touch list (file-level change map)
+Every file to create or modify, with code paths. The spec names modules to reuse but not the implementation surface — this is it.
+`<list: path → create|modify → one-line purpose>`
 
-2. **Sequencing & dependency order.** The ordered phases and what blocks what (e.g. migration → data layer → handler → frontend). The decomposer makes atoms; the *order of phases* is decided here.
-   `<phase 1 → phase 2 → ... with blockers>`
+### Sequencing & dependency order
+The ordered phases and what blocks what (e.g. migration → data layer → handler → frontend). The decomposer makes atoms; the *order of phases* is decided here.
+`<phase 1 → phase 2 → ... with blockers>`
 
-3. **Open decisions not locked by the spec.** Resolve every choice the spec left open so downstream layers don't re-decide and diverge: where validation lives, the optimistic-update mechanism, the rollback strategy, how each error surfaces in the UI, test layout.
-   `<decision → chosen option → why>`
+### Open decisions not locked by the spec
+Resolve every choice the spec left open so downstream layers don't re-decide and diverge: where validation lives, the optimistic-update mechanism, the rollback strategy, how each error surfaces in the UI, test layout.
+`<decision → chosen option → why>`
 
-4. **Acceptance-criteria → test strategy mapping + testing direction.** For each spec criterion, name *where and how* it is verified (unit / integration / component / e2e). Then state the **testing direction** the decomposer treats as a binding floor (it may raise rigor, never lower it): which logic warrants test-first (TDD areas + why), the key edge cases / failure modes named concretely, and any port seams worth isolating against an in-memory fake. For a change with no decision logic (pure docs / config / trivial CRUD), say so in one line.
-   `<criterion → test type → location>` + `<TDD areas · edge cases/failure modes · port seams>`
+### Acceptance-criteria → test strategy mapping + testing direction
+For each spec criterion, name *where and how* it is verified (unit / integration / component / e2e). Then state the **testing direction** the decomposer treats as a binding floor (it may raise rigor, never lower it): which logic warrants test-first (TDD areas + why), the key edge cases / failure modes named concretely, and any port seams worth isolating against an in-memory fake. For a change with no decision logic (pure docs / config / trivial CRUD), say so in one line.
+`<criterion → test type → location>` + `<TDD areas · edge cases/failure modes · port seams>`
 
-5. **Risks, unknowns, assumptions.** Anything ambiguous or implementation-only that lives in neither the spec nor the decomposer. Catching these is the plan's highest-leverage job.
-   <!-- Example: spec says the client never sets `id` AND requires an optimistic
-        insert. So the row must render before the server-generated uuid exists →
-        plan a temp-id → swap-on-201 reconciliation and a rollback path for
-        400/401. Neither the spec nor an atomic task surfaces this on its own. -->
-   `<risk/assumption → decided handling>`
+### Risks, unknowns, assumptions
+Anything ambiguous or implementation-only that lives in neither the spec nor the decomposer. Catching these is the plan's highest-leverage job.
+<!--
+   Example: spec says the client never sets `id` AND requires an optimistic
+   insert. So the row must render before the server-generated uuid exists →
+   plan a temp-id → swap-on-201 reconciliation and a rollback path for
+   400/401. Neither the spec nor an atomic task surfaces this on its own.
+-->
+`<risk/assumption → decided handling>`
 
-6. **Migration / data plan (when applicable).** Schema/migration steps and how they apply in dev, test, and CI.
-   `<migration steps + apply path>`
+### Migration / data plan (when applicable)
+Schema/migration steps and how they apply in dev, test, and CI.
+`<migration steps + apply path>`
 
 ## What the plan MUST NOT contain
 
@@ -100,10 +116,11 @@ Then write §0 as the single matching variant (delete the other variant and the 
 
 Before calling `ExitPlanMode`, run the `superdev:superplan-reviewer` skill, passing the plan file path as the bare argument. It reads the plan (and the spec the plan's `> Spec:` header points to), checks it against the known failure modes, and returns its findings to this (main) session — it does not call `ExitPlanMode` itself.
 
-Apply any fixes it returns, re-run it if the changes were substantive, and proceed to handoff only after `Verdict: PASS`. This gate exists so the human approves a plan that has already cleared the reviewer, not a raw first draft.
+Show to the user critical or major findings summary as list, apply any fixes it returns, re-run it if the changes were substantive, and proceed to handoff only after `Verdict: PASS`. This gate exists so the human approves a plan that has already cleared the reviewer, not a raw first draft.
 
-You must call `ExitPlanMode` only after `Verdict: PASS`.
+You must call `ExitPlanMode` ONLY AFTER `Verdict: PASS`.
 
 ## Handoff
+
 1. Write the final plan (do not edit anything else).
 2. Call `ExitPlanMode` to request approval.

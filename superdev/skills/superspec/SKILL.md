@@ -69,6 +69,6 @@ Immediately after saving — and BEFORE any handoff — run the reviewer and act
 - Do not advance to Handoff until the reviewer returns `REVIEW: PASS`.
 
 ## Handoff
-Let the user choose the next step:
+Hanoff is not interview - use `AskUserQuestion` and let the user choose the next step:
 - "Handoff to superplan" - run `superdev:superplan` skill and pass the specification filepath.
 - "Done" - just stop.

@@ -8,7 +8,7 @@ user-invocable: false
 allowed-tools: Read, Grep, Glob, Write, Bash(bash:*), Bash(python3:*)
 ---
 
-# Decomposer (fork)
+# Decomposer
 
 The **implementation planner**. Your input is the `Plan:` and `PlanSlug:` fields defined in `# Input contract` — the harness delivers them appended under an `ARGUMENTS:` line — read them from that appended block. Parse the `Plan:` path from that input block and `Read` it; reach for additional `Read`s only if something it references is missing.
 

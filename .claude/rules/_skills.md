@@ -4,17 +4,29 @@ paths:
   - "**/agents/**"
 ---
 
-# Hwo to write perfect skills or agents
+# How to write perfect skills or agents
+
+Always use those rules when creating, refactoring, reshaping, optimizing skills or agents.
 
 ## LLM is your audience
 
-Remember, you're writing a skill or agent for an LLM, not a human. An LLM needs short, on-point instructions, highly preferable bullet points - it should probably be more like code instructions than plain prose. An LLM doesn't need long sentences (prose) surrounded by context. Too much information means chaos and misleading decisions.
+Remember, you're writing a skill or agent for an LLM, not a human. An LLM needs short, on-point instructions, bullet points and sub-points over prose - closer to code instructions than narrative. Too much information means chaos and misleading decisions.
 
-Do not use excesive formating. Do not use italics, tables - clean text, bullets is enough.
+Content at the top of a file and under clear headings gets more reliable attention than content buried in the middle of dense paragraphs. Structure your skill or agent files so the most critical, most frequently relevant instructions are first and clearly marked.
+
+## Formatting
+
+Clean text only:
+- No italics, no tables.
+- Never use emoji.
 
 ## Write for Retrieval, Not for Completeness
 
 The instinct when writing skill or agent documentation is to be thorough. Cover every parameter. Note every edge case. Document every default behavior. Resist this. LLM doesn’t need a manual. It needs the delta — the things that differ from sensible defaults. If the right behavior is what a competent developer would do anyway, you don’t need to document it.
+
+## Prevention over correction
+
+Generate correct output on the first pass — bake constraints, profiles, and negative examples into the generation instructions — rather than generating loosely and running a separate fixer/corrector skill afterward. Detecting and correcting bad LLM output with another LLM pass is more expensive than preventing it, and tends toward whack-a-mole.
 
 ## A skill does not narrate its caller
 
@@ -26,14 +38,6 @@ Write every skill as `input -> work -> output`. It does NOT need to know WHO inv
 - Keep a genuine scope boundary even when it names siblings ("you own ONLY dimension X; Y and Z are out of scope") — that is a behavioural constraint, not caller narrative.
 - Litmus: would the sentence still be true and useful if a different caller sent the same input? Keep it. Does it only describe the current caller's world? Cut it.
 
-## Use Clear Structure and Headings
-
-Content at the top of a file and under clear headings gets more reliable attention than content buried in the middle of dense paragraphs. Structure your skill or agent files so that the most critical, most frequently relevant instructions are first and clearly marked.
-
-Use short, declarative sentences. EXTREMELY IMPORTANT is to avoid prose explanations where a bullet point will do. The LLM doesn’t need narrative context — it needs short, clear, parseable, bulletproof instructions.
-
-Never ever use emoji.
-
 ## Audit for Contradictions and Redundancy
 
 Set a recurring reminder to review your skill or agent files the same way you’d review any codebase. Look for:
@@ -42,7 +46,7 @@ Set a recurring reminder to review your skill or agent files the same way you’
 - Guidance that was added for a specific situation but was never scoped to that situation
 - Documentation for tools or patterns your project no longer uses
 - Repeated information across multiple files
-- Caller narrative in the body — who invokes the skill and why, especially in a fork. See "A skill does not narrate its caller"; cut it on sight.
+- Caller narrative in the body — see "A skill does not narrate its caller"; cut it on sight.
 
 Remove mercilessly. Everything in a skill file has a cost.
 
@@ -55,7 +59,7 @@ Advantages of using deterministic scripts:
 - Speed & Cost: Executing code is significantly cheaper and faster than generating tokens for agent reasoning.
 - Performance: Written script is optimised and tested - run faster than executed one by one Bash command by agent.
 
-## Single or (if impossible) narrow responsibility
+## CRITICAL: Skill must have single or (if impossible) narrow responsibility
 
 - One skill = one responsibility. Push every other responsibility into a separate skill — preferably a fork, out of the main context.
 - Carry more than one responsibility ONLY when a split is genuinely impossible — then keep the count as low as possible.
@@ -70,16 +74,19 @@ A skill whose body spells out N branches/modes whose instructions do NOT overlap
 
 Choose the script when a parsable input parameter selects the branch; choose fork sub-workers when each branch is heavy work that also benefits from running out of context.
 
-### Split an interactive skill: question-asker (main) + fork worker
+**Specific case — interactive skill (question-asker + fork worker).** `AskUserQuestion` only runs in the main session, so a skill that both asks the user AND does heavy work pins its whole body to the main context for the whole session.
 
-Specific case of the rule above.
+- Entry skill (main context) — asks every question, resolves all ambiguity, hands off. Keep it small.
+- Fork worker (`context: fork` + `user-invocable: false`) — takes the resolved inputs, does the heavy work out of context, never asks the user.
+- Hand off via the arg convention: short fields inline, large/multiline content as a PATH (see `_skill-script-routing.md`).
 
-A skill that BOTH asks the user (`AskUserQuestion`, interactive preview-then-confirm) AND does heavy work holds two responsibilities. `AskUserQuestion` runs only in the main session — a fork cannot ask the user — so the whole body stays pinned to the main context and burns tokens for the entire session. Split it in two:
+### Co-occurring concerns -> independent specialists
 
-- Entry skill on main context — asks every question, resolves all ambiguity, then hands the answers off. Keep it small: this body is what lingers in context.
-- Fork worker (`context: fork` + `user-invocable: false`) — gets the resolved inputs and does the heavy work out of context; it never asks the user, because the entry already resolved everything.
-- Hand off by the arg convention: short fields inline, large/multiline content as a PATH the fork injects (see `_skill-script-routing.md`).
-- Two payoffs: narrow responsibility AND token economy — the heavy body leaves the main context.
+The two mechanisms above assume mutually-exclusive branches, resolved by one dispatcher. When concerns can instead co-occur on the same task — e.g. style, consistency, flow, references, links checks over one editing job — do not fold them into one skill with internal per-concern logic, and do not route them through a single dispatcher either.
+
+- Give each concern its own skill with its own CSO `description:` trigger.
+- Let several fire independently for the same task rather than one skill juggling all of them.
+- Keeps each skill within its own context budget — a monolith big enough to cover every concern eventually loses track of its own instructions.
 
 ## Fan-out cheap workers to locate change sites
 
