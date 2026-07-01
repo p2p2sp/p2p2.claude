@@ -14,12 +14,6 @@ Remember, you're writing a skill or agent for an LLM, not a human. An LLM needs 
 
 Content at the top of a file and under clear headings gets more reliable attention than content buried in the middle of dense paragraphs. Structure your skill or agent files so the most critical, most frequently relevant instructions are first and clearly marked.
 
-## Formatting
-
-Clean text only:
-- No italics, no tables.
-- Never use emoji.
-
 ## Write for Retrieval, Not for Completeness
 
 The instinct when writing skill or agent documentation is to be thorough. Cover every parameter. Note every edge case. Document every default behavior. Resist this. LLM doesn’t need a manual. It needs the delta — the things that differ from sensible defaults. If the right behavior is what a competent developer would do anyway, you don’t need to document it.
@@ -102,6 +96,12 @@ When the work is "find every place to change, then change it" over an unknown/la
 - Use only clean bash - no other additional tools like `jq` or `bc`.
 - DO NOT chop paragraphs into multiline text.
 - DO NOT put reading CLAUDE.md instruction - harnes will inject it.
+
+## Formatting
+
+Clean text only:
+- No italics, no tables.
+- Never use emoji.
 
 ## Examples
 

@@ -116,7 +116,7 @@ Then write §0 as the single matching variant (delete the other variant and the 
 
 Before calling `ExitPlanMode`, run the `superdev:superplan-reviewer` skill, passing the plan file path as the bare argument. It reads the plan (and the spec the plan's `> Spec:` header points to), checks it against the known failure modes, and returns its findings to this (main) session — it does not call `ExitPlanMode` itself.
 
-Show to the user critical or major findings summary as list, apply any fixes it returns, re-run it if the changes were substantive, and proceed to handoff only after `Verdict: PASS`. This gate exists so the human approves a plan that has already cleared the reviewer, not a raw first draft.
+Show to the user critical or major findings summary as list, apply any fixes it returns, re-run reviewer (any change to the plan file will force a review via the hook anyway), and proceed to handoff only after `Verdict: PASS`. This gate exists so the human approves a plan that has already cleared the reviewer, not a raw first draft.
 
 You must call `ExitPlanMode` ONLY AFTER `Verdict: PASS`.
 
