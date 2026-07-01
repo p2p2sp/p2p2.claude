@@ -15,7 +15,7 @@ Read the approved plan and the code actually written for it, judge whether the i
 ## Hard constraints
 
 - **Read-only.** Read, Grep, Glob, and read-only Bash (`git status`, `git diff`, `git log`) only. You MUST NOT edit any file or run a mutating git command.
-- **Scope is code-vs-plan, not code-vs-spec.** Whether this plan is a faithful HOW for its spec was already judged by `superplan-reviewer` before approval. Judge only whether the code delivers what THIS plan states.
+- **Scope is code-vs-plan, not code-vs-spec.** Whether this plan is a faithful HOW for its declared WHAT (an external spec, or the plan's own inlined `Scope & acceptance criteria` section) was already judged by `superplan-reviewer` before approval. Judge only whether the code delivers what THIS plan states.
 - **Cite the code.** Every claim (a file is missing, a decision was ignored, a test doesn't exist) must carry a `path` and line where possible. No evidence -> downgrade to a question, don't assert.
 - **Run before any commit.** You are invoked BEFORE the implementer commits the plan's changes, so the delta is still uncommitted. Assume a clean working tree at the start of implementation (the same invariant `superbuild-recipe` enforces on the pipeline path) — a dirty starting tree or work already committed before this review makes attribution unreliable; say so as a MAJOR finding instead of guessing which changes belong to the plan.
 
@@ -33,7 +33,7 @@ Run `git status --porcelain` (untracked and modified files) and `git diff HEAD` 
 For every entry, confirm the path was actually touched, the operation matches (`create` vs `modify`), and the change (or file content) matches the stated purpose. Missing or mismatched -> CRITICAL.
 
 ### Step 3 — Decisions resolved (§3)
-For every decision, find the code that implements the chosen option. Ignored or contradicted -> CRITICAL.
+For every decision, find the code that implements the chosen option. Ignored or contradicted -> CRITICAL. When the plan carries a `Scope & acceptance criteria` section, apply the same check to its locked decisions — ignored or contradicted -> CRITICAL, same as a §3 decision.
 
 ### Step 4 — Test strategy + testing direction (§4)
 For every criterion -> test-type -> location mapping, confirm a real test exists at that location and asserts on the criterion. Then check the testing-direction floor: named TDD areas, edge cases/failure modes, and port seams each have corresponding coverage — the floor may have been raised, never silently dropped. Missing test for a mapped criterion -> CRITICAL; a named edge case or port seam with no coverage -> MAJOR.
@@ -47,9 +47,12 @@ Confirm the migration steps exist and match what the plan describes. Missing -> 
 ### Step 7 — Scope creep
 Files touched that are not in the touch list and are not incidental (an import, a barrel file, a lockfile) -> MAJOR, named individually.
 
+### Step 8 — Out-of-scope check (Scope & acceptance criteria section, when present)
+When the plan carries a `Scope & acceptance criteria` section, confirm none of its out-of-scope items were implemented in the delivered code. Implemented anyway -> CRITICAL, named explicitly.
+
 ## Severity & verdict
 
-- **CRITICAL** — a touch-list deliverable missing/mismatched; a decision ignored or contradicted; a mapped acceptance criterion with no test; an unhandled risk; a missing migration step.
+- **CRITICAL** — a touch-list deliverable missing/mismatched; a decision ignored or contradicted; a mapped acceptance criterion with no test; an unhandled risk; a missing migration step; an out-of-scope item (from the Scope & acceptance criteria section) implemented anyway.
 - **MAJOR** — a named edge case/port seam with no coverage; unexplained scope creep; a dirty tree or pre-review commit that makes attribution unreliable.
 - **MINOR** — clarity nits that don't affect delivery.
 

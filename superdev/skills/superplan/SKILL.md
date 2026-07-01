@@ -17,7 +17,8 @@ Produce plans that survive contact with implementation. Default plan mode conten
 Do not re-interview the user — discovery of *intent* belongs to the superdev skill (which may have run, or the user may have skipped).
 
 - If invoked directly with no prior interview, MUST run the `superdev:superdev` Skill.
-- If a spec filepath was passed (handoff from `superspec`), `Read` it first — it is the source of truth for WHAT; record its path in the plan's `> Spec:` header (that is how `superplan-reviewer` resolves it). Reference its sections; do not restate it.
+- If a spec filepath was passed (handoff from `superspec`) or the user references an existing spec file, `Read` it first — it is the source of truth for WHAT; record its path in the plan's `> Spec:` header (that is how `superplan-reviewer` resolves it). Reference its sections; do not restate it.
+- Template selection is silent, based on this resolution alone — no new question to the user: a resolved spec path → `templates/plan.md`; no spec path resolved → `templates/plan-standalone.md`, which inlines its own `Scope & acceptance criteria` section instead of referencing a spec.
 
 ## Explore the plan's open questions
 
@@ -71,7 +72,7 @@ Resolve every choice the spec left open so downstream layers don't re-decide and
 `<decision → chosen option → why>`
 
 ### Acceptance-criteria → test strategy mapping + testing direction
-For each spec criterion, name *where and how* it is verified (unit / integration / component / e2e). Then state the **testing direction** the decomposer treats as a binding floor (it may raise rigor, never lower it): which logic warrants test-first (TDD areas + why), the key edge cases / failure modes named concretely, and any port seams worth isolating against an in-memory fake. For a change with no decision logic (pure docs / config / trivial CRUD), say so in one line.
+For each criterion — from the spec, or from the plan's own `Scope & acceptance criteria` section when no spec exists — name *where and how* it is verified (unit / integration / component / e2e). Then state the **testing direction** the decomposer treats as a binding floor (it may raise rigor, never lower it): which logic warrants test-first (TDD areas + why), the key edge cases / failure modes named concretely, and any port seams worth isolating against an in-memory fake. For a change with no decision logic (pure docs / config / trivial CRUD), say so in one line.
 `<criterion → test type → location>` + `<TDD areas · edge cases/failure modes · port seams>`
 
 ### Risks, unknowns, assumptions
@@ -101,7 +102,7 @@ The plan is read later by the decomposer/orchestrator, in a fresh context. Make 
 
 ## Output template
 
-ALWAYS write the plan in the shape from `templates/plan.md` so the decomposer can parse it.
+Write the plan in the shape of `templates/plan.md` when a spec was resolved, or `templates/plan-standalone.md` when none was — so the decomposer can parse either shape.
 
 ## Implementation mode (before handoff)
 

@@ -21,8 +21,9 @@ Read the plan draft, judge it against the spec and against the bar `superplan` s
 ## Input
 
 - The **plan file path** is the argument's first standalone line — Read it in full before judging. Any content from the next line onward is the optional feedback block below; never treat the whole multi-line argument as the path.
-- Resolve the **spec** from the plan's `> Spec:` header and Read it — source of truth for the spec-coverage (dim. 1) and AC-mapping (dim. 4) checks.
-- No spec (header absent or an unfilled `<...>` placeholder → the plan came straight from the interview, no superspec): skip the spec-derived checks (dim. 1, and dim. 4's AC mapping) and judge the plan against the codebase and its own internal consistency. Say so in the summary.
+- Resolve the **WHAT-source**: a filled `> Spec:` header (not an unfilled `<...>` placeholder) → Read that external spec file — source of truth for the spec-coverage (dim. 1) and AC-mapping (dim. 4) checks. Header absent or still an unfilled placeholder → look instead for the plan's own `## Scope & acceptance criteria` section; if present, it is the WHAT-source for dim. 1 and dim. 4.
+- Both present (a filled `> Spec:` header AND a `## Scope & acceptance criteria` section): the header wins as the WHAT-source; flag the section's mere presence as a MINOR structural nit (the plan mixed the two template shapes) — never silently pick one without saying so.
+- Neither present (header absent/placeholder AND no `## Scope & acceptance criteria` section): report this as a CRITICAL finding — the plan has no documented WHAT at all — never a silent skip.
 - The path MAY be followed by `--- Previous review (round N) ---` (the prior verdict + findings, verbatim) and `--- Fixes applied since ---` (the caller's summary of changes). Present → this is a re-review; run the **Resolved check** below before the normal dimensions. Absent → this is round 1; skip straight to the dimensions.
 
 ## Resolved check (re-review only)
@@ -38,9 +39,9 @@ Only when the argument includes a `Previous review` block:
 Run every dimension. For each, the point is the *failure it catches*, not box-ticking.
 
 ### 1. Spec coverage & scope fidelity
-- Every acceptance criterion in the spec is addressed somewhere in the plan.
+- Every acceptance criterion in the resolved WHAT-source (external spec, or the plan's own `Scope & acceptance criteria` section) is addressed somewhere in the plan.
 - Every error case / behavior in the contract is handled.
-- Nothing from the spec's **out-of-scope** list appears in the plan (no scope creep).
+- Nothing from the WHAT-source's **out-of-scope** list appears in the plan (no scope creep).
 - Locked decisions (schema, response shapes, fixed libraries) are respected — not contradicted or re-litigated.
 > Catches: silent gaps and scope creep.
 
@@ -76,7 +77,7 @@ Run only if the plan touches auth, authorization, payments, PII/sensitive data, 
 
 ## Severity & verdict
 
-- **CRITICAL** — uncovered acceptance criterion; scope creep; a locked decision contradicted; a boundary violation (decomposition / code / file edits); a security gap on a sensitive surface; touch-list paths that don't resolve in a way that breaks decomposition.
+- **CRITICAL** — uncovered acceptance criterion; scope creep; a locked decision contradicted; a boundary violation (decomposition / code / file edits); a security gap on a sensitive surface; touch-list paths that don't resolve in a way that breaks decomposition; no WHAT-source at all (missing/placeholder `> Spec:` header AND no `Scope & acceptance criteria` section).
 - **MAJOR** — a missing or non-concrete component; an unresolved open decision; an acceptance criterion with no test; an unhandled known risk; a convention/reuse mismatch.
 - **MINOR** — clarity or specificity nits that don't block decomposition.
 

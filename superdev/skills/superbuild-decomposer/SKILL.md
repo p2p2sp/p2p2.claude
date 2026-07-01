@@ -85,10 +85,10 @@ The plan is a superplan; map its §0–§6 sections. A missing section is a thin
 - **§2 Phases & dependencies** (`blocks:`) → ordering hints + candidate `## Depends on` (suggestions, not binding — Step 3 / 4e decide).
 - **§3 Decisions resolved** → decision context for `## Plan context` and `Why` lines.
 - **§4 Test strategy + "Testing direction"** → the `Mode` floor + `## Tests` material (Step 4a binding floor, Step 4c).
-- **§5 Risks & assumptions** → `## Notes` orientation; flag any task that would touch an out-of-scope / risk item.
+- **§5 Risks & assumptions** → `## Notes` orientation; flag any task that would touch an out-of-scope / risk item — including an out-of-scope item listed in the plan's own `## Scope & acceptance criteria` section, when present.
 - **§6 Migration / data** → `## Touches` with role `migration` + ordering (schema / data change before its consumers).
 
-**Plan context source.** Synthesize each task's `## Plan context` from the plan **title** + the `> Spec:` reference (if present) + **§3 Decisions resolved**. The source template has no Scope/Context section, so this is the designated source — not a fallback.
+**Plan context source.** Synthesize each task's `## Plan context` from the plan **title** + the `> Spec:` reference (if present) + the plan's own `## Scope & acceptance criteria` section (if present, in place of the absent spec) + **§3 Decisions resolved**. A standalone (no-spec) plan carries the `## Scope & acceptance criteria` section — read it directly; a plan with neither a spec nor that section has no dedicated Scope/Context source, so title + §3 remain the designated source for it.
 
 **FAIL trigger — no executable intent.** Return `STATUS: FAIL` with `## Notes` line `no executable intent found — plan describes no concrete change` ONLY when there is **no §1 Touch list AND no recognizable intent** from the title / §3. A plan that merely omits prose is not a failure.
 
@@ -290,7 +290,7 @@ Using Step 5's candidate-id → final-task-number mapping, for each final task `
 
 ## Plan context
 
-<2–4 sentence synthesis from the plan title + `> Spec:` reference (if present) + §3 Decisions resolved relevant to this task. State why this task exists in the plan's bigger picture.>
+<2–4 sentence synthesis from the plan title + `> Spec:` reference (if present) + the plan's own `## Scope & acceptance criteria` section (if present) + §3 Decisions resolved relevant to this task. State why this task exists in the plan's bigger picture.>
 
 ## Deliverable
 
@@ -336,7 +336,7 @@ As you write each task file, keep a `(N, verb-phrase, path)` triple in memory �
 **Cutting rules:**
 
 - `# <type>(<scope>): <imperative summary>` (the H1) — a Conventional-Commits-form commit subject; this is the line the scripted commit (`commit-task.sh`) extracts verbatim as the commit subject. It MUST be present and well-formed on every task file. No `# Task <N> — …` heading.
-- `## Plan context` — synthesise from the plan title + `> Spec:` + §3 Decisions resolved; never lose the plan's substance.
+- `## Plan context` — synthesise from the plan title + `> Spec:` (if present) + the plan's own `## Scope & acceptance criteria` section (if present) + §3 Decisions resolved; never lose the plan's substance.
 - `## Deliverable` — a clear restatement of the observable outcome. For `Mode: tdd` logic tasks, name every decision branch / failure mode explicitly (the 1:1 anchor for Step 4c and the task-reviewer's CRITICAL-FAIL check). Do NOT copy a plan section line verbatim.
 - `## Mode` + `**Why:**` — single source of truth for how this task is executed. No separate "TDD discipline" bullet. The `**Why:**` line states why the task left (or stayed on) the `tdd` baseline: the carve-out that fired, the §4 floor directive, or `tdd baseline — no carve-out matched`.
 - `## Tests` — intent + suggested location; the `coder` agent dispatches the precise filename and method name.
