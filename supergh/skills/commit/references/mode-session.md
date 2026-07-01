@@ -1,7 +1,7 @@
 Commit **only what we touched in this conversation** — not unrelated changes that happen to sit in the working tree. This is the default when the argument is empty. You author the message inline (you already know these changes — you made them) and commit via `commit.sh`; there is NO fork.
 
 1. From the conversation context, build the set of file paths created or modified during this session (the files written/edited while helping the user).
-2. `git status --short` — keep only the paths from step 1 that actually show a change; drop the rest.
+2. `git status --short --untracked-files=all` — keep only the paths from step 1 that actually show a change; drop the rest. `--untracked-files=all` expands untracked DIRECTORIES into their individual files (a fresh `src/newfeature/` shows every file inside, not one collapsed `?? src/newfeature/` line) — without it, a session-created file inside a brand-new directory would never literally match its status line and would be silently dropped.
 3. **No-op gate (resolver-owned):** if the resulting set is **empty** → report `no changes from context to commit` and **stop**. Do **not** call `commit.sh`, and do **not** fall back to committing the whole tree — silence is safer than a surprise commit.
 4. **Author the subject (+ optional footer) inline** for exactly this path set, per the authoring rules appended below. Read the diff if you need to (`git diff -- <paths>`); you may already have the content from this session.
 5. **Commit via the script** — `sh "${CLAUDE_PLUGIN_ROOT}/shared/scripts/commit.sh" paths "<subject>" "<footer-or-empty>" <path>…` with the resolved paths verbatim. The script stages ONLY those paths, commits, and verifies HEAD advanced before emitting its line.

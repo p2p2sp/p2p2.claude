@@ -1,7 +1,7 @@
 ---
 name: create-pr
 description: GitHub pull request creation expert — interactive, template-driven flow. Use whenever the user wants to create a PR, open a pull request, submit changes for review, or raise a draft PR. Triggers include "create PR", "open PR", "pull request", "draft PR", "submit for review". Reads `.github/pull_request_template.md`, resolves the linked issue from branch name (`task.N`/`issue.N`), argument, or session context, and creates a draft PR via `gh pr create`. Do NOT call `gh pr create` directly via Bash — use this skill (it enforces template usage, draft mode, GitFlow branch routing, issue-driven title `[#N] {issue-title}`). Do NOT use for editing existing PRs, posting reviews, or merging.
-allowed-tools: Read, Glob, Write, AskUserQuestion, Bash(sh:*), Bash(gh --version), Bash(gh auth status), Bash(gh pr create:*), Bash(gh pr list:*), Bash(gh issue view:*), Bash(git rev-parse:*), Bash(git branch:*), Bash(git log:*)
+allowed-tools: Read, Glob, Write, AskUserQuestion, Bash(sh:*), Bash(gh --version), Bash(gh auth status), Bash(gh pr create:*), Bash(gh pr list:*), Bash(gh issue view:*), Bash(git rev-parse:*), Bash(git branch:*), Bash(git log:*), Bash(git diff:*)
 user-invocable: true
 effort: medium
 argument-hint: "[issue-number]"
@@ -39,6 +39,8 @@ Compute a routing default from `current`:
 |-------------------|----------------|
 | `hotfix/*`        | `main`         |
 | `feature/*`       | `develop`      |
+| `fix/*`           | `develop`      |
+| `refactor/*`      | `develop`      |
 | anything else     | (no default — `AskUserQuestion` with options `main`, `develop`, `(other — type manually)`) |
 
 **Always-confirm:** after computing the default, ALWAYS surface an `AskUserQuestion` of the form `Target branch: \`<base\>\` — confirm or change?`. Never skip this prompt, even if the routing rule produced an unambiguous answer (this is the explicit user-requested invariant — defaults must be explicit, not silent).
@@ -51,7 +53,7 @@ Then check for an already-open PR from this branch:
 
 - `Bash(gh pr list --head <current> --base <base> --state open --json url --jq '.[0].url // ""')` — non-empty → STOP with `A PR from \`<current>\` to \`<base>\` already exists: <URL>. Use \`gh pr edit\` to modify it.` (Edge D)
 
-**Branch naming.** Feature branches follow `feature/{slug}` / `fix/{slug}` / `refactor/{slug}`; the primary branch is `main`. This is the convention the routing rules above and the Step 3 branch-regex parse expect — it is a host-project default the skill never assumes blindly (see Safety rules).
+**Branch naming.** Feature branches follow `feature/{slug}` / `fix/{slug}` / `refactor/{slug}` / `hotfix/{slug}`; the primary branch is `main`. This is the convention the routing rules above and the Step 3 branch-regex parse expect — it is a host-project default the skill never assumes blindly (see Safety rules).
 
 ## Step 3 — Resolve issue number (4-priority cascade)
 
@@ -146,8 +148,9 @@ The edit loop is unbounded — user may edit any number of fields before saving.
 
 1. **Compute the body path** — deterministic; the script timestamps, slugifies the title (with Polish transliteration), creates `.temp/create-pr/`, and prints the ready path. Trust its single output line:
    ```
-   body_path = Bash("\"${CLAUDE_PLUGIN_ROOT}/shared/scripts/body-path.sh\" create-pr \"<title>\"")
+   body_path = Bash("sh \"${CLAUDE_PLUGIN_ROOT}/shared/scripts/body-path.sh\" create-pr \"<title>\"")
    ```
+   Empty `body_path` (the script failed — missing args or `.temp/create-pr/` could not be created) → STOP with a short, actionable message reporting the failure; do not proceed to `Write` or `gh pr create`.
 2. `Write` the rendered body markdown to `<body_path>`.
 3. Construct and execute:
    ```
@@ -202,7 +205,7 @@ Rules:
 - NEVER use `gh pr create --body "<inline>"` — body markdown carries newlines, quotes, dollar signs, backticks; inline escaping under bash is a footgun. Always `--body-file "<body_path>"` (the per-run file from Step 8.1).
 - NEVER omit `--draft`. Conversion to ready-for-review is a follow-up the user does via `gh pr ready` or the UI. The API-level draft↔ready conversion and resolving PR review threads are GraphQL-only — the `cli` skill owns which layer applies (`references/pr-review-threads.md`); hand the fully-specified operation to `cli-executor` to run out of the main context.
 - NEVER widen the sandbox — `git push`, `gh label list`, `gh api repos`, `gh pr edit`, `gh pr ready`, `gh pr view --web` are intentionally out of scope (deliberate "no"s: no auto-push, no labels/reviewers/assignees collection, no in-skill draft→ready). The only non-gh/git tool is `Bash(sh:*)` for the bundled preflight/body-path scripts.
-- NEVER assume the template, branch naming, or routing reality look like the current repo's — this skill ships stack-agnostic. The routing rules (`hotfix/*→main`, `feature/*→develop`) are an opinionated default; the always-confirm prompt and Edge-A fallback keep the user in control. Behavior derives entirely from `.github/pull_request_template.md`, the actual branch name, `git log`, `git branch -r`, and `gh issue view` at runtime.
+- NEVER assume the template, branch naming, or routing reality look like the current repo's — this skill ships stack-agnostic. The routing rules (`hotfix/*→main`, `feature/*→develop`, `fix/*→develop`, `refactor/*→develop`) are an opinionated default; the always-confirm prompt and Edge-A fallback keep the user in control. Behavior derives entirely from `.github/pull_request_template.md`, the actual branch name, `git log`, `git branch -r`, and `gh issue view` at runtime.
 - NEVER render the template's literal test-section placeholders (`- [ ] Test 1`, etc.) — example content, not contract. Replace with concrete steps from session context (Step 6 + **Test-section auto-fill** in `references/auto-fill.md`) or skip the section when the change is untestable (docs / assets / dotfiles only).
 - NEVER fabricate specific function / endpoint / file / module names in auto-generated test or Summary bullets — conservativeness applies to both **Test-section auto-fill** and **Summary auto-fill** (`references/auto-fill.md`). On sparse context, fall back as defined there, never invent specifics.
 - NEVER carry `#`-prefixed numeric references through the "Podsumowanie zmian" section — Summary auto-fill strips `#(\d+)` → `\1` so squash-merge subjects like `feat: foo (#123)` don't become noisy cross-reference renders. `#` is preserved only in "Powiązane zadania", where GitHub keyword-linking (`closes #N`) needs it.

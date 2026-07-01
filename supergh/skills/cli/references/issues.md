@@ -122,7 +122,31 @@ gh api -X DELETE repos/{owner}/{repo}/milestones/{n}
 
 Attach an existing milestone to an issue via `gh issue create -m "Q2 2026"` or `gh issue edit <n> -m "Q2 2026"`.
 
+## Reactions
+
+REST via `gh api` — no native `gh` subcommand exists for reactions. Content types on issues and issue/PR comments: `+1` `-1` `laugh` `confused` `heart` `hooray` `rocket` `eyes`. Releases accept a NARROWER set — no `-1` / `confused`: `+1` `laugh` `heart` `hooray` `rocket` `eyes`.
+
+```bash
+# Add a reaction — issue, issue/PR comment, or release (swap the path)
+gh api repos/{owner}/{repo}/issues/{issue_number}/reactions -f content=+1
+gh api repos/{owner}/{repo}/issues/comments/{comment_id}/reactions -f content=heart
+gh api repos/{owner}/{repo}/releases/{release_id}/reactions -f content=rocket
+
+# List reactions
+gh api repos/{owner}/{repo}/issues/{issue_number}/reactions
+
+# Remove a reaction — needs the reaction's own `id` (from the list/create response,
+# not the issue/comment/release id)
+gh api -X DELETE repos/{owner}/{repo}/issues/{issue_number}/reactions/{reaction_id}
+```
+
+Notes:
+- Adding a reaction that the same user already gave is idempotent (returns the existing reaction, HTTP 200) rather than duplicating it.
+- PR comments use the same `issues/comments/{comment_id}` path as issue comments — GitHub's REST API treats PR conversation comments as issue comments.
+- Reactions on Discussions / Discussion comments are GraphQL-only — see `references/discussions.md`.
+
 ## Sources
 
 - gh manual — issue: <https://cli.github.com/manual/gh_issue>
 - REST — Issues (with `type` field): <https://docs.github.com/en/rest/issues/issues>
+- REST — Reactions: <https://docs.github.com/en/rest/reactions/reactions>

@@ -138,8 +138,9 @@ The edit loop is unbounded — user may edit any number of fields before saving.
 
 1. **Compute the body path** — deterministic; the script timestamps, slugifies the title (with Polish transliteration), creates `.temp/create-issue/`, and prints the ready path. Trust its single output line:
    ```
-   body_path = Bash("\"${CLAUDE_PLUGIN_ROOT}/shared/scripts/body-path.sh\" create-issue \"<title>\"")
+   body_path = Bash("sh \"${CLAUDE_PLUGIN_ROOT}/shared/scripts/body-path.sh\" create-issue \"<title>\"")
    ```
+   Empty `body_path` (the script failed — missing args or `.temp/create-issue/` could not be created) → STOP with a short, actionable message reporting the failure; do not proceed to `Write` or `gh issue create`.
 2. `Write` the rendered body to `<body_path>`.
 3. Construct the `gh issue create` invocation:
    ```

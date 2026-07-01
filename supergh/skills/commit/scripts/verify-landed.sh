@@ -19,7 +19,11 @@
 #   cwd  : the repository the fork committed into (caller's cwd; repo root).
 #   stdout: EXACTLY ONE line — the user-facing result, relayed verbatim:
 #            ✓ <short-sha> <subject> (<N> files)   — a commit landed (HEAD moved)
-#            nothing to commit                     — index mode, empty staged set
+#            nothing to commit                     — empty staged set (index mode:
+#                                                    nothing was ever staged; all
+#                                                    mode: `git add -A` would
+#                                                    legitimately stage nothing —
+#                                                    worktree AND index both clean)
 #            not-landed                            — HEAD did not move though it
 #                                                    should have (fork fabricated
 #                                                    its line / never committed);
@@ -30,7 +34,7 @@
 # Verify-before-claim: a `✓` is emitted ONLY when `before != after`, i.e. git
 #   itself proves HEAD advanced. The success line is RECONSTRUCTED from git
 #   (rev-parse + log -1 + diff-tree), never composed from the fork's text.
-#   KEEP THE SUCCESS-LINE RECIPE IN SYNC WITH commit.sh:99-101 (same fork/main
+#   KEEP THE SUCCESS-LINE RECIPE IN SYNC WITH commit.sh:141-142 (same fork/main
 #   trust boundary; no build/lint guards this duplication).
 #
 # Safety: read-only — runs ONLY `git rev-parse` / `git diff` / `git log` /
@@ -61,15 +65,27 @@ after="$(git rev-parse --verify --quiet HEAD 2>/dev/null || echo NONE)"
 if [ "$before" != "$after" ]; then
   sha="$(git rev-parse --short HEAD 2>/dev/null)"
   subject="$(git log -1 --format=%s 2>/dev/null)"
-  files="$(git diff-tree --no-commit-id --name-only -r --root HEAD 2>/dev/null | grep -c .)"
+  files="$(git diff-tree --no-commit-id --name-only -r --root -m HEAD 2>/dev/null | sort -u | grep -c .)"
   printf '\xe2\x9c\x93 %s %s (%s files)\n' "$sha" "$subject" "$files"
   exit 0
 fi
 
 # --- HEAD unmoved ------------------------------------------------------------
-# index mode with an empty staged set is a legitimate no-op; anything else here
-# means the fork did not actually commit what was pending.
+# A legitimate no-op needs proof matching what commit.sh itself would have seen:
+#  - `index` mode never stages anything (no `git add` anywhere in that path), so
+#    the pre-existing staged set is the right proof — `--cached` alone.
+#  - `all` mode's commit.sh runs `git add -A` before its own no-op check, so an
+#    empty INDEX there is only meaningful together with a clean WORKTREE too.
+#    This script never stages anything itself, so `--cached` alone cannot tell a
+#    legitimate no-op (worktree really is clean after `add -A`) apart from a fork
+#    that fabricated its line without ever calling `commit.sh` (worktree still
+#    dirty, index simply was never touched) — that gap must fall through to
+#    `not-landed`, not be reported as a no-op.
 if [ "$mode" = index ] && git diff --cached --quiet 2>/dev/null; then
+  printf 'nothing to commit\n'
+  exit 0
+fi
+if [ "$mode" = all ] && git diff --quiet 2>/dev/null && git diff --cached --quiet 2>/dev/null; then
   printf 'nothing to commit\n'
   exit 0
 fi

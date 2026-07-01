@@ -8,11 +8,14 @@
 # the line without re-checking (same trust contract as commit/route.sh).
 #
 # IN : $1 = prefix (the .temp subdir, e.g. "create-issue" | "create-pr")
-#      $2 = title (raw, may contain spaces / Polish diacritics / punctuation)
+#      $2 = title (raw, may contain spaces / Polish diacritics / punctuation / embedded
+#           newlines — any \n or \r is collapsed to a space before slugify, so a multi-
+#           line title can never split the OUT contract below across multiple lines)
 # OUT: exactly one line on stdout — the ready body path:
 #        .temp/<prefix>/<YYYYmmdd-HHMMSS>-<slug>.md
 #      The parent dir `.temp/<prefix>/` is `mkdir -p`'d before the line is printed.
 # Slugify (applied to the title, in order):
+#   0. collapse embedded newlines/CR to spaces (see IN above)
 #   1. lowercase (ASCII)
 #   2. transliterate PL diacritics: ą->a ć->c ę->e ł->l ń->n ó->o ś->s ź->z ż->z (both cases)
 #   3. every char outside [a-z0-9] -> '-'
@@ -30,6 +33,12 @@ if [ -z "$prefix" ] || [ $# -lt 2 ]; then
   echo "ERROR body-path.sh: need <prefix> <title>" >&2
   exit 2
 fi
+
+# Collapse any embedded newline/CR in the title to a space BEFORE slugify — the
+# sed pipeline below is line-oriented, so a multi-line title would otherwise
+# split across multiple stdout lines, breaking the "exactly one line" contract.
+# Same idiom as commit.sh's emit_error (`tr '\n\r' '  '`).
+title=$(printf '%s' "$title" | tr '\n\r' '  ')
 
 slug=$(printf '%s' "$title" \
   | tr 'A-Z' 'a-z' \

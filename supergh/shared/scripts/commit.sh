@@ -12,7 +12,13 @@
 #   argv : $1 = staging mode — one of:
 #            all    → `git add -A`            (stage every modified/new/deleted file)
 #            index  → no `git add`            (commit the index exactly as it stands)
-#            paths  → `git add -- <paths…>`   (stage ONLY $4… , nothing else)
+#            paths  → `git add -- <paths…>`   (stage ONLY $4… , nothing else); the
+#                      commit itself is ALSO pathspec-scoped to those paths (`git
+#                      commit -- <paths…>`) so other already-staged content stays
+#                      staged, never swept into this commit — UNLESS a merge is in
+#                      progress (`MERGE_HEAD` exists), where git refuses a partial
+#                      commit during a merge; then the full staged merge result
+#                      commits as usual (whole-index, same as `all`/`index`).
 #          $2 = subject — one-line Conventional-Commits subject (authored by the caller).
 #          $3 = footer  — optional issue footer (e.g. "Refs: #42"); empty string "" = none.
 #          $4… = paths  — required for `paths` mode, ignored otherwise.
@@ -26,10 +32,14 @@
 #
 # Verify-before-claim (the whole point):
 #   A `✓ <sha>` is emitted ONLY after this script confirms `before != after` HEAD AND the
-#   index is empty afterwards (`git diff --cached --quiet`). A non-zero `git commit`, an
-#   unmoved HEAD, or a still-dirty index all yield `error: …` — NEVER a fabricated sha.
+#   relevant staged set is empty afterwards (`git diff --cached --quiet`, scoped to the
+#   given paths in `paths` mode outside a merge; whole-index for `all`/`index` and for
+#   `paths` during a merge — see the MERGE_HEAD note above). A non-zero `git commit`, an
+#   unmoved HEAD, or leftover staged changes in that scope all yield `error: …` — NEVER a
+#   fabricated sha.
 #   NB: unlike commit-task.sh this does NOT assert a fully clean worktree — `index`/`paths`
-#   modes intentionally leave OTHER changes unstaged, so "empty index" is the correct proof.
+#   modes intentionally leave OTHER changes unstaged (or, for `paths`, staged-but-not-
+#   committed), so "the relevant staged set is empty" is the correct proof.
 #
 # Safety: runs ONLY `git add` + `git commit -m …` + read-only `git rev-parse`/`diff`/
 #   `diff-tree`. NEVER pushes, merges, rebases, amends, resets, --force, or --no-verify, and
@@ -68,18 +78,42 @@ case "$mode" in
   index) : ;;  # commit the index as-is
 esac
 
-# --- no-op gate: nothing staged after staging -> nothing to commit ----------
-if git diff --cached --quiet 2>/dev/null; then
-  printf 'nothing to commit\n'
-  exit 0
+# `paths` mode scopes the no-op gate + commit + post-commit check to the given
+# paths (so other already-staged content is left alone) — UNLESS a merge is in
+# progress, where git refuses a pathspec-scoped commit and the whole staged
+# merge result must land as one commit (see the contract note above).
+scoped=0
+if [ "$mode" = paths ] && ! git rev-parse --verify -q MERGE_HEAD >/dev/null 2>&1; then
+  scoped=1
+fi
+
+# --- no-op gate: nothing staged (in scope) after staging -> nothing to commit
+if [ "$scoped" -eq 1 ]; then
+  if git diff --cached --quiet -- "$@" 2>/dev/null; then
+    printf 'nothing to commit\n'
+    exit 0
+  fi
+else
+  if git diff --cached --quiet 2>/dev/null; then
+    printf 'nothing to commit\n'
+    exit 0
+  fi
 fi
 
 # --- commit, recording HEAD before/after so the move can be PROVEN ----------
 before="$(git rev-parse HEAD 2>/dev/null || true)"
-if [ -n "$footer" ]; then
-  commit_err="$(git commit -m "$subject" -m "$footer" 2>&1 1>/dev/null)"
+if [ "$scoped" -eq 1 ]; then
+  if [ -n "$footer" ]; then
+    commit_err="$(git commit -m "$subject" -m "$footer" -- "$@" 2>&1 1>/dev/null)"
+  else
+    commit_err="$(git commit -m "$subject" -- "$@" 2>&1 1>/dev/null)"
+  fi
 else
-  commit_err="$(git commit -m "$subject" 2>&1 1>/dev/null)"
+  if [ -n "$footer" ]; then
+    commit_err="$(git commit -m "$subject" -m "$footer" 2>&1 1>/dev/null)"
+  else
+    commit_err="$(git commit -m "$subject" 2>&1 1>/dev/null)"
+  fi
 fi
 commit_rc=$?
 after="$(git rev-parse HEAD 2>/dev/null || true)"
@@ -91,14 +125,20 @@ fi
 if [ "$before" = "$after" ]; then
   emit_error "commit did not land (HEAD unchanged)"
 fi
-if ! git diff --cached --quiet 2>/dev/null; then
-  emit_error "staged changes remain after commit"
+if [ "$scoped" -eq 1 ]; then
+  if ! git diff --cached --quiet -- "$@" 2>/dev/null; then
+    emit_error "staged changes remain after commit"
+  fi
+else
+  if ! git diff --cached --quiet 2>/dev/null; then
+    emit_error "staged changes remain after commit"
+  fi
 fi
 
 # --- success: sha + file count taken verbatim from git, never composed ------
 # KEEP THIS RECIPE IN SYNC WITH skills/commit/scripts/verify-landed.sh (the
 # main-context backstop reconstructs the same ✓ line; no build/lint catches desync).
 sha="$(git rev-parse --short HEAD 2>/dev/null)"
-files="$(git diff-tree --no-commit-id --name-only -r --root HEAD 2>/dev/null | grep -c .)"
+files="$(git diff-tree --no-commit-id --name-only -r --root -m HEAD 2>/dev/null | sort -u | grep -c .)"
 printf '\xe2\x9c\x93 %s %s (%s files)\n' "$sha" "$subject" "$files"
 exit 0

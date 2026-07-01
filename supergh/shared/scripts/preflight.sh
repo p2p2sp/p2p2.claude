@@ -33,6 +33,9 @@ else
 fi
 
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+# On a detached HEAD, `--abbrev-ref HEAD` succeeds and prints the literal string
+# "HEAD" (not empty) — normalize that to "" to honor the contract above.
+[ "$branch" = "HEAD" ] && branch=""
 echo "BRANCH=$branch"
 
 upstream=$(git rev-parse --abbrev-ref '@{u}' 2>/dev/null || true)
