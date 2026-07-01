@@ -22,6 +22,15 @@ command -v python3 >/dev/null 2>&1 && echo yes || echo no
 
 The block above runs at skill load and reports whether `python3` resolves on PATH (`yes` / `no`). This is informational for plugin-bundled `python3` scripts (e.g. `superbuild-decomposer`'s structural validator / toposort) — it is NOT a host-project fact, NOT part of `REQUIRED_TOOLS`, and never fail-closed (Step 4 does not gate on it). Record it verbatim as `Python3 available` in `profile.md` (Step 3b) so downstream forks stop re-probing `command -v python3` themselves. (Fallback: if the block is absent, run the same command yourself via `Bash` in Step 2.)
 
+# Arguments (pre-injected)
+```!
+cat <<'__RECIPE_ARGS__'
+$ARGUMENTS
+__RECIPE_ARGS__
+```
+
+The block above splices the raw `$ARGUMENTS` text at skill load, independent of the harness's `ARGUMENTS:` auto-append. This is the primary delivery path for the two positional arguments in `# Input contract` below — read them from between the fences above.
+
 # Recipe generator (fork)
 
 Derive the host project's build / test / lint / launch contract **once** and materialize it as an executable `recipe.sh` + a lean `profile.md` under `.temp/.workflows/<slug>/` — the single artifact every downstream pipeline fork consumes instead of re-deriving the same facts. **Fail-closed:** a dirty tree, an unresolvable host command, or a missing recorded tool returns `STATUS: FAIL` (a hard halt) — never a soft fallback.
@@ -32,7 +41,7 @@ Writes nothing outside `.temp/`. Never modifies tracked files (its `verify` runs
 
 # Input contract
 
-The first user message carries two positional arguments (the harness appends them under an `ARGUMENTS:` line — read them from that block):
+Two positional arguments, read from the pre-injected `# Arguments (pre-injected)` block above. Fallback: if that block is empty or absent (the harness did not run it), read the harness-appended `ARGUMENTS:` line instead.
 
 ```
 <abspath(plan)> <slug>
