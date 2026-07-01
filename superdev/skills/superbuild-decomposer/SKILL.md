@@ -245,6 +245,7 @@ Read the result:
 
 - `<final task number> <candidate id>` × K lines, ascending final task number → this is both the execution order and the candidate-id → final-number lookup (build it in one pass over these lines); use it in Step 7 to translate every `Depends on` reference and to name each task file.
 - `CYCLE <id> <id> ...` → translate the listed candidate ids to their verb-phrases (held from Step 3), then `STATUS: FAIL` with `## Notes` line: `cyclic dependency detected between task candidates: <verb-phrases>`. Do not write any files.
+- `MALFORMED <line>` or `DUPLICATE <id>` (exit 2) → the graph you emitted was ill-formed (a line that is not `<candidate id> <count> [dep id ...]`, or a repeated candidate id) — a Step-4e construction bug, NOT a cyclic graph. `STATUS: FAIL` with `## Notes` line: `malformed dependency graph: <the MALFORMED/DUPLICATE token verbatim>`. Do not write any files; correct the Step-4e emission and re-run.
 
 Trust the script's order and tie-break (ascending `Touches` count, then candidate id) — do not re-sort or re-verify by hand. A real topological sort guarantees the first line's candidate has zero dependencies, so final Task 1 always carries `Depends on: —` — no manual repair needed.
 

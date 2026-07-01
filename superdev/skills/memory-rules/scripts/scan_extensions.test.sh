@@ -122,6 +122,57 @@ else
     pass "empty repo exits 0 with no lines"
 fi
 
+# --- Case 5 — non-ASCII tracked path: quotepath must not corrupt the extension -
+# git quotes non-ASCII names by default ("caf\303\251.py"); the histogram must
+# still count it as `py`, never split off a bogus `py"` key or undercount.
+T5="$SCRATCH/case5"
+mkdir -p "$T5"
+printf 'x\n' > "$T5/café.py"
+printf 'y\n' > "$T5/normal.py"
+printf 'z\n' > "$T5/second.py"        # 3x py, one with a non-ASCII name
+git_init "$T5"
+git -C "$T5" add -A
+git -C "$T5" commit -qm init
+TOTAL=$((TOTAL + 1))
+out="$(cd "$T5" && bash "$SUT")"; rc=$?
+expected="$(printf '%s\n' '      3 py')"
+if [ "$rc" -ne 0 ]; then
+    fail "non-ASCII path counted correctly — exit $rc (expected 0)"
+elif [ "$out" != "$expected" ]; then
+    fail "non-ASCII path counted correctly — got:
+$out
+expected:
+$expected"
+else
+    pass "non-ASCII path counted correctly"
+fi
+
+# --- Case 6 — non-ASCII PARENT directory with an ASCII file: same quotepath trap -
+# git quotes the whole path when any segment is non-ASCII, so a non-ASCII DIR
+# corrupts the extension of an ASCII-named file inside it just as a non-ASCII
+# basename does; the histogram must still count it as `py`.
+T6="$SCRATCH/case6"
+mkdir -p "$T6/café"
+printf 'a\n' > "$T6/café/normal.py"   # ASCII file, non-ASCII parent dir
+printf 'b\n' > "$T6/root.py"
+printf 'c\n' > "$T6/other.py"         # 3x py total
+git_init "$T6"
+git -C "$T6" add -A
+git -C "$T6" commit -qm init
+TOTAL=$((TOTAL + 1))
+out="$(cd "$T6" && bash "$SUT")"; rc=$?
+expected="$(printf '%s\n' '      3 py')"
+if [ "$rc" -ne 0 ]; then
+    fail "non-ASCII parent dir counted correctly — exit $rc (expected 0)"
+elif [ "$out" != "$expected" ]; then
+    fail "non-ASCII parent dir counted correctly — got:
+$out
+expected:
+$expected"
+else
+    pass "non-ASCII parent dir counted correctly"
+fi
+
 echo ""
 if [ "$FAILED" -ne 0 ]; then
     echo "FAILED ($PASS_COUNT/$TOTAL)"

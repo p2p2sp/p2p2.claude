@@ -25,23 +25,27 @@ set -u
 
 TARGET_PATH="${1:-.}"
 
-# --- enumerate tracked source files (one path per line) --------------------
+# --- enumerate tracked source files (one NUL-terminated path each) ----------
 # git branch: `git ls-files` already honors .gitignore, so no FIND_EXCLUDES here.
 # non-git branch: recursive `find` -> must prune .gitignore'd subtrees, so source
 # lib_find_excludes.sh (recursive-scan -> sources, per the discovery-scripts rule).
+# BOTH branches emit NUL-delimited paths: `-z`/`-print0` bypass git's default
+# core.quotepath (which would octal-escape+quote a non-ASCII path, e.g.
+# "caf\303\251.py", corrupting the extension into a bogus `py"`) and also harden
+# against paths containing spaces or newlines.
 list_files() {
     if git -C "$TARGET_PATH" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        git -C "$TARGET_PATH" ls-files 2>/dev/null
+        git -C "$TARGET_PATH" ls-files -z 2>/dev/null
     else
         source "$(dirname "${BASH_SOURCE[0]}")/../../../shared/scripts/lib_find_excludes.sh"
         load_find_excludes "$TARGET_PATH" || true
-        find "$TARGET_PATH" -type f "${FIND_EXCLUDES[@]}" 2>/dev/null
+        find "$TARGET_PATH" -type f "${FIND_EXCLUDES[@]}" -print0 2>/dev/null
     fi
 }
 
 # Build the histogram: keep only files whose BASENAME contains a "." (extension),
 # emit the lowercase extension, then `sort | uniq -c | sort -rn` -> count desc.
-list_files | while IFS= read -r f; do
+list_files | while IFS= read -r -d '' f; do
     [ -n "$f" ] || continue
     base="${f##*/}"
     # Strip a single leading dot first so dotfiles (.gitignore, .env, .npmrc)

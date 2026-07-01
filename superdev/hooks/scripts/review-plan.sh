@@ -107,22 +107,71 @@ if [ -z "$reviewer_call_line" ]; then
   emit_deny "Next step: plan review. Run superplan-reviewer with the absolute plan file path as the bare argument, wait for 'Verdict: PASS', then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
-# S: the ACTUAL "Verdict: PASS" verdict line occurring AFTER the reviewer
-# call line. Anchor on the escaped newline (\n in the JSONL) that precedes it: the
-# real verdict always starts its own markdown line, so it appears as `\n**Verdict:**
-# PASS` in the transcript (the `(\*\*)?` makes the bold markers optional). This excludes
-# prose/back-ticked mentions of the literal (e.g. guidance text "...checks for `Verdict:
-# PASS`...") that ride inline and would otherwise match for a BLOCK/FIX report — turning
-# the gate into a no-op. The `\\n` matches the two literal chars backslash-n that JSON
-# uses to escape the newline.
-status_pass_line=$(
-  awk -v start="$reviewer_call_line" 'NR>start && /\\n(\*\*)?Verdict:(\*\*)? PASS/ { print NR; exit }' \
+# S: the reviewer's OWN verdict — the FIRST verdict line AFTER the reviewer call.
+# Anchor on the escaped newline (\n in the JSONL) that precedes it: the real verdict
+# always starts its own markdown line, so it appears as `\n**Verdict:** <value>` (the
+# `(\*\*)?` makes the bold markers optional; the `\\n` matches the two literal chars
+# backslash-n JSON uses to escape a newline — this excludes inline/back-ticked mentions).
+# LOAD-BEARING: bind to the FIRST verdict, matching PASS|FIX|BLOCK, not "any later PASS".
+# A FIX/BLOCK verdict must DENY even when a later line (a paste, an assistant restatement,
+# a tool_result echo, or a `Verdict: PASS | FIX | BLOCK` legend) carries a stray PASS.
+# The verdict VALUE must END the line-anchored token — followed by the escaped
+# newline (\n) that starts the next markdown line, or the closing quote (") that
+# ends the JSON content string (optional trailing spaces tolerated). This rejects a
+# qualified/negated `Verdict: PASS is NOT ...` whose value is not the whole token:
+# without the end-anchor its last matched word is still `PASS` -> a false-allow.
+verdict_line=$(
+  awk -v start="$reviewer_call_line" 'NR>start && /\\n(\*\*)?Verdict:(\*\*)? (PASS|FIX|BLOCK)[[:space:]]*(\\n|")/ { print NR; exit }' \
     "$transcript_path" 2>/dev/null
 )
 
-if [ -z "$status_pass_line" ]; then
-  emit_deny "Next step: address the review. superplan-reviewer ran but did not return 'Verdict: PASS' — apply its Fix list to the plan file, re-run superplan-reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+if [ -z "$verdict_line" ]; then
+  emit_deny "Next step: address the review. superplan-reviewer ran but returned no 'Verdict:' line — re-run superplan-reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
-# Sequence W -> R -> S satisfied -> allow.
+# The value on that first verdict line — strip the trailing anchor, then take the
+# last whitespace-delimited token of the remaining `\n**Verdict:** <value>` span.
+verdict_value=$(
+  awk -v ln="$verdict_line" 'NR==ln {
+    if (match($0, /\\n(\*\*)?Verdict:(\*\*)? (PASS|FIX|BLOCK)[[:space:]]*(\\n|")/)) {
+      v = substr($0, RSTART, RLENGTH); sub(/[[:space:]]*(\\n|")$/, "", v)
+      n = split(v, a, " "); print a[n]
+    }
+  }' "$transcript_path" 2>/dev/null
+)
+
+if [ "$verdict_value" != "PASS" ]; then
+  emit_deny "Next step: address the review. superplan-reviewer returned 'Verdict: ${verdict_value}', not PASS — apply its Fix list to the plan file, re-run superplan-reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+fi
+
+# Tamper guard: a PASS approves the plan AS REVIEWED. The Step-1 write-detection only
+# sees Write/Edit, so a plan mutation via a Bash command AFTER the verdict is invisible
+# and would let a stale PASS approve tampered content. Re-gate when a later Bash line
+# makes the plan path the TARGET of a mutation (a redirect target, or an operand of
+# sed -i / tee / cp / mv) — NOT mere co-occurrence, so a read/stage (`cat`, `git add`)
+# or a redirect aimed at another file that merely names the plan does not false-deny.
+plan_path=$(
+  awk -v ln="$last_plan_write_line" 'NR==ln' "$transcript_path" 2>/dev/null \
+    | grep -oE '"file_path":"[^"]*\.claude[\\/]+plans[\\/]+[^"]*\.md"' \
+    | head -n1 \
+    | sed -E 's/.*"file_path":"([^"]*)"$/\1/'
+)
+plan_base="${plan_path##*[\\/]}"
+
+if [ -n "$plan_base" ]; then
+  tamper_line=$(
+    awk -v start="$verdict_line" -v base="$plan_base" '
+      NR>start && /"(tool_name|name)":"Bash"/ {
+        redir = ($0 ~ (">>?[[:space:]]*[^[:space:]]*" base))
+        verb  = ($0 ~ /[^[:alnum:]_](sed[[:space:]]+-i|tee|cp|mv)[[:space:]]/)
+        tok   = ($0 ~ ("[[:space:]][^[:space:]]*" base))
+        if (redir || (verb && tok)) { print NR; exit }
+      }' "$transcript_path" 2>/dev/null
+  )
+  if [ -n "$tamper_line" ]; then
+    emit_deny "Next step: re-review. The plan file was modified after 'Verdict: PASS' — re-run superplan-reviewer on the current plan, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+  fi
+fi
+
+# Sequence W -> R -> S(PASS) satisfied, no post-approval tamper -> allow.
 emit_allow

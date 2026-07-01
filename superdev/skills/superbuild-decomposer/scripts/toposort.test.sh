@@ -74,6 +74,35 @@ run "$(printf '1 1\n2 1 1\n3 1 4\n4 1 5\n5 1 3\n')"
 if [ "$RC" -eq 1 ] && [ "$OUT" = "CYCLE 3 4 5" ]; then pass "multi-node cycle with acyclic prefix"
 else fail "multi-node cycle with acyclic prefix" "rc=$RC out=<$OUT>"; fi
 
+# --- Case 7 — malformed line, non-numeric field -> MALFORMED + exit 2 ----------
+# exit 2 (NOT 1) so the decomposer tells a bad graph from a cyclic one.
+TOTAL=$((TOTAL + 1))
+run "1 bogus"
+case "$OUT" in MALFORMED*) m=1;; *) m=0;; esac
+if [ "$RC" -eq 2 ] && [ "$m" -eq 1 ]; then pass "malformed non-numeric field"
+else fail "malformed non-numeric field" "rc=$RC out=<$OUT>"; fi
+
+# --- Case 8 — too few fields (id only, no touches count) -> MALFORMED + exit 2 -
+TOTAL=$((TOTAL + 1))
+run "1"
+case "$OUT" in MALFORMED*) m=1;; *) m=0;; esac
+if [ "$RC" -eq 2 ] && [ "$m" -eq 1 ]; then pass "malformed too-few-fields"
+else fail "malformed too-few-fields" "rc=$RC out=<$OUT>"; fi
+
+# --- Case 9 — non-integer dependency token -> MALFORMED + exit 2 ---------------
+TOTAL=$((TOTAL + 1))
+run "$(printf '1 1\n2 1 abc\n')"
+case "$OUT" in MALFORMED*) m=1;; *) m=0;; esac
+if [ "$RC" -eq 2 ] && [ "$m" -eq 1 ]; then pass "malformed non-int dependency"
+else fail "malformed non-int dependency" "rc=$RC out=<$OUT>"; fi
+
+# --- Case 10 — duplicate candidate id -> DUPLICATE + exit 2 (no silent drop) ---
+TOTAL=$((TOTAL + 1))
+run "$(printf '1 1\n2 1 1\n2 2 1\n3 1 2\n')"
+case "$OUT" in DUPLICATE*) m=1;; *) m=0;; esac
+if [ "$RC" -eq 2 ] && [ "$m" -eq 1 ]; then pass "duplicate candidate id"
+else fail "duplicate candidate id" "rc=$RC out=<$OUT>"; fi
+
 echo ""
 if [ "$FAILED" -ne 0 ]; then echo "FAILED ($PASS_COUNT/$TOTAL)"; exit 1; fi
 echo "ALL PASS ($PASS_COUNT/$TOTAL)"

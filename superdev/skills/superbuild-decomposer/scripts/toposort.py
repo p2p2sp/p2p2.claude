@@ -26,6 +26,11 @@ Output:
   CYCLE <id> <id> ...                   (exit 1) — the candidate ids left
       over once no more zero-indegree candidates remain (participate in, or
       are downstream of, a cyclic dependency). Ascending order.
+  MALFORMED <line>                      (exit 2) — a stdin line was not
+      `<int> <int> [int ...]` (too few fields or a non-numeric token).
+  DUPLICATE <id>                        (exit 2) — a candidate id appeared on
+      more than one line. Both exit 2 so a bad graph never masquerades as a
+      cycle (exit 1) or a silent candidate drop.
 """
 import sys
 
@@ -70,10 +75,25 @@ def main():
         if not line:
             continue
         parts = line.split()
-        cid = int(parts[0])
+        # Validate before trusting: the graph is the decomposer LLM's own output,
+        # but a mis-formatted line must fail LOUD and DISTINCT from a cycle — exit 2
+        # (MALFORMED/DUPLICATE), never exit 1 (reserved for CYCLE), never a silent drop.
+        if len(parts) < 2:
+            print(f"MALFORMED {line}")
+            sys.exit(2)
+        try:
+            cid = int(parts[0])
+            tc = int(parts[1])
+            dl = [int(p) for p in parts[2:]]
+        except ValueError:
+            print(f"MALFORMED {line}")
+            sys.exit(2)
+        if cid in touches:
+            print(f"DUPLICATE {cid}")
+            sys.exit(2)
         order.append(cid)
-        touches[cid] = int(parts[1])
-        deps[cid] = [int(p) for p in parts[2:]]
+        touches[cid] = tc
+        deps[cid] = dl
 
     if not order:
         sys.exit(0)
