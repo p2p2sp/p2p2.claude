@@ -41,8 +41,13 @@ def walk(node, path, inherited_type):
             errors.append(f"{'.'.join(path)}: missing $type (and none inherited)")
         tokens[".".join(path)] = {"type": node_type, "value": node["$value"]}
         for k in node:
-            if k.startswith("$") and k not in META:
-                warnings.append(f"{'.'.join(path)}: unknown meta key {k}")
+            if k.startswith("$"):
+                if k not in META:
+                    warnings.append(f"{'.'.join(path)}: unknown meta key {k}")
+            else:
+                errors.append(f"{'.'.join(path)}: a token with $value cannot also "
+                              f"nest child '{k}' — it is silently ignored; move the "
+                              f"nested tokens out of this $value node")
         return
     # group
     for key, child in node.items():

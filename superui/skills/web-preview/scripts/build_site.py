@@ -330,6 +330,21 @@ def render_groups(pages):
     return "\n".join(out)
 
 
+def validate_pages(pages):
+    """Fail early (before writing anything) if a manifest page is missing a
+    required key, so a downstream KeyError never crashes mid-render and leaves a
+    partially-written site."""
+    required = ("path", "fragment", "title")
+    for i, p in enumerate(pages):
+        if not isinstance(p, dict):
+            sys.exit(f"ERROR: manifest page #{i} is not an object: {p!r}")
+        missing = [k for k in required if k not in p]
+        if missing:
+            ident = p.get("path") or p.get("title") or "?"
+            sys.exit(f"ERROR: manifest page #{i} ({ident}) is missing required "
+                     f"key(s): {', '.join(missing)}.")
+
+
 def cmd_build(args):
     out = args.out
     cfg = resolve_target(args.target)  # web target or sys.exit with guidance
@@ -343,6 +358,7 @@ def cmd_build(args):
                                                  "tailwindcss-browser.js")))
 
     pages = manifest.get("pages", [])
+    validate_pages(pages)
     written = 0
     for p in pages:
         rel = p["path"]
@@ -493,6 +509,7 @@ def cmd_standalone(args):
             f'{theme}\n</style>')
 
     pages = manifest.get("pages", [])
+    validate_pages(pages)
     title = manifest.get("title", "Design System — Mockups")
     only = getattr(args, "page", None)
     body = _standalone_body(args.out, pages, only)

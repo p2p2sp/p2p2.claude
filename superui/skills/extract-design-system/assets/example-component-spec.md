@@ -37,7 +37,7 @@ context.
 ## Anatomy
 | # | Part | Description | Tokens |
 |---|---|---|---|
-| 1 | Container | Padded, rounded clickable box | `space.2` / `space.4`, `radius.control`, `border.control` |
+| 1 | Container | Padded, rounded clickable box | `spacing.2` / `spacing.4`, `radius.control`, `border.control` |
 | 2 | Leading icon | Optional icon before the label | icon `size.4`, `color.text.on-accent` |
 | 3 | Label | The action text | `typography.label`, `color.text.on-accent` |
 | 4 | Trailing icon | Optional icon after the label (e.g. caret) | icon `size.4` |
@@ -81,5 +81,5 @@ context.
 ## Tokens consumed
 `color.surface.accent`, `color.surface.accent-hover`, `color.surface.accent-active`,
 `color.text.on-accent`, `color.focus`, `radius.control`, `border.control`,
-`space.2`, `space.4`, `size.4`, `size.control`, `typography.label`,
+`spacing.2`, `spacing.4`, `size.4`, `size.control`, `typography.label`,
 `shadow.focus`, `opacity.disabled`, `motion.spinner`.

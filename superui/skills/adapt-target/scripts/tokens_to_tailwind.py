@@ -126,6 +126,8 @@ def fmt_color(v):
     if space == "srgb":
         if hexv and (alpha is None or alpha >= 1):
             return hexv
+        if comps is not None and len(comps) != 3:
+            return f"/* invalid srgb color: {len(comps)} components, expected 3 */"
         if comps:
             r, g, b = (round(c * 255) for c in comps)
             if alpha is not None and alpha < 1:
@@ -314,7 +316,7 @@ def color_to_css(value, fmt):
     space = obj.get("colorSpace", "srgb")
     comps = obj.get("components")
     hexv = obj.get("hex")
-    if fmt == "oklch" and space == "srgb" and comps:
+    if fmt == "oklch" and space == "srgb" and comps and len(comps) >= 3:
         return srgb_to_oklch(comps[0], comps[1], comps[2], alpha)
     if fmt == "hex" and hexv and (alpha is None or alpha >= 1):
         return hexv

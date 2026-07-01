@@ -347,5 +347,43 @@ class StandaloneCompositionTests(StandaloneCase):
         self.assertIn("not found", str(cm.exception))
 
 
+class ManifestValidationTests(BuildSiteCase):
+    """A manifest page missing a required key must fail early with a clear
+    message and write nothing (no partial site)."""
+
+    def _run_build(self, manifest_json):
+        _write(os.path.join(self.out, "content", "components", "btn.html"),
+               '<button class="btn">Go</button>')
+        self._make_target("pure-css", "styles.css", ".btn{color:red;}")
+        manifest = os.path.join(self.out, "manifest.json")
+        _write(manifest, manifest_json)
+        args = build_site.argparse.Namespace(
+            design_system=self.ds, out=self.out, manifest=manifest,
+            target="pure-css", mode="build")
+        build_site.cmd_build(args)
+
+    def test_page_missing_title_exits_with_clear_message(self):
+        with self.assertRaises(SystemExit) as cm:
+            self._run_build(
+                '{"title":"T","pages":[{"path":"components/btn.html",'
+                '"fragment":"content/components/btn.html"}]}')
+        msg = str(cm.exception)
+        self.assertIn("missing required key", msg)
+        self.assertIn("title", msg)
+
+    def test_invalid_page_writes_nothing(self):
+        # first page valid, second missing 'fragment' -> must abort before ANY
+        # page is written (no partial site).
+        with self.assertRaises(SystemExit):
+            self._run_build(
+                '{"title":"T","pages":['
+                '{"path":"components/btn.html",'
+                '"fragment":"content/components/btn.html","title":"Button"},'
+                '{"path":"broken.html","title":"Broken"}]}')
+        self.assertFalse(
+            os.path.isfile(os.path.join(self.out, "components", "btn.html")))
+        self.assertFalse(os.path.isfile(os.path.join(self.out, "index.html")))
+
+
 if __name__ == "__main__":
     unittest.main()

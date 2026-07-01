@@ -131,6 +131,17 @@ def regions(img, specs, k):
     return valid + errs
 
 
+def _ints(s, n, what):
+    """Parse a comma-separated int tuple, or exit with a clear message."""
+    try:
+        vals = [int(v) for v in s.split(",")]
+    except ValueError:
+        sys.exit(f"error: {what} expects {n} integers like 'a,b,...', got {s!r}")
+    if len(vals) != n:
+        sys.exit(f"error: {what} expects {n} integers, got {len(vals)} in {s!r}")
+    return vals
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("image")
@@ -142,9 +153,12 @@ def main():
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
-    img = Image.open(args.image)
+    try:
+        img = Image.open(args.image)
+    except OSError as e:
+        sys.exit(f"error: cannot open image {args.image!r}: {e}")
     if args.crop:
-        x, y, w, h = (int(v) for v in args.crop.split(","))
+        x, y, w, h = _ints(args.crop, 4, "--crop x,y,w,h")
         img_for_palette = img.crop((x, y, x + w, y + h))
     else:
         img_for_palette = img
@@ -153,14 +167,16 @@ def main():
     if args.k > 0:
         result["palette"] = palette(img_for_palette, args.k)
     if args.points:
-        pts = [tuple(int(v) for v in p.split(",")) for p in args.points]
+        pts = [tuple(_ints(p, 2, "--points x,y")) for p in args.points]
         result["points"] = points(img, pts)
     if args.regions:
         rk = args.k if args.k > 0 else 5
         specs = []
         for r in args.regions:
-            name, _, rect = r.partition("=")
-            x, y, w, h = (int(v) for v in rect.split(","))
+            name, sep, rect = r.partition("=")
+            if not sep or not name:
+                sys.exit(f"error: --regions expects name=x,y,w,h, got {r!r}")
+            x, y, w, h = _ints(rect, 4, "--regions name=x,y,w,h")
             specs.append((name, x, y, w, h))
         result["regions"] = regions(img, specs, rk)
 
