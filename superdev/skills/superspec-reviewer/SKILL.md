@@ -15,12 +15,21 @@ This skill is the quality gate between writing a spec and handing it off. It doe
 - **PASS is binary.** PASS = zero blockers (of either class). A single blocker → FAIL.
 
 ## Input
-- A filepath to the spec to review (normally the file `superspec` just saved at `.temp/.workflows/<date>-<slug>.md`).
+- The **spec filepath** is the argument's first standalone line (normally the file `superspec` just saved at `.temp/.workflows/<date>-<slug>.md`). Any content from the next line onward is the optional feedback block below; never treat the whole multi-line argument as the path.
 - If no path is given: if exactly one recent spec exists in `.temp/.workflows/`, use it; if several are plausible, ask which one — do not guess.
 - Read the **entire** file before judging. Review only what is written; never assume content that isn't on the page.
+- The path MAY be followed by `--- Previous review (round N) ---` (the prior `REVIEW: FAIL` report, verbatim) and `--- Fixes applied since ---` (the caller's summary of changes). Present → this is a re-review of a fixable-in-draft FAIL; run the **Resolved check** below before the normal checklist. Absent → this is round 1 (or a fresh round after a needs-discovery detour); skip straight to the checklist.
 
 ## Language
 Write the review in the spec's language (Polish or English). Keep the verdict token line in English exactly as specified below, so the caller can branch deterministically regardless of language.
+
+## Resolved check (re-review only)
+
+Only when the argument includes a `Previous review` block:
+
+- For every fixable-in-draft blocker in that block, re-examine the cited section/story/AC in the current spec and mark it `Resolved: yes` or `Resolved: no`.
+- Any `Resolved: no` carries forward into this round's blockers — do not silently drop it.
+- Then walk the full checklist (A-H) below as normal — a fix in one story can break another; do not scope the walk down to only the changed sections.
 
 ## Checklist
 Walk every item. For each violation, record the rule, the exact offending location/text, and the fix.
@@ -80,6 +89,7 @@ On FAIL:
 REVIEW: FAIL
 File: <path>
 Blockers: <X fixable>, <Y need discovery> · Suggestions: <Z>
+Resolved since last round: <A/B previously flagged fixable blockers resolved> <!-- omit this line entirely on round 1 -->
 
 ## Blocking — fixable in draft
 1. [<rule, e.g. E: max 3 AC>] <section / story / AC reference>
@@ -100,6 +110,7 @@ On PASS:
 ```
 REVIEW: PASS
 File: <path>
+Resolved since last round: <A/B previously flagged fixable blockers resolved> <!-- omit this line entirely on round 1 -->
 Every hard rule holds — safe to hand off.
 
 ## Suggestions (non-blocking)

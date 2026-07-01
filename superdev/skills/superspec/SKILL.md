@@ -58,14 +58,22 @@ Save date (yyyyMMdd):
 2. Render into the template and save it in `.temp/.workflows/<date>-<slug>.md` (where `<date>` is the yyyyMMdd value above and `<slug>` is a short title as slug).
 
 ## Review gate
-Immediately after saving — and BEFORE any handoff — run the reviewer and act on its verdict. Never hand off a spec that has not returned `REVIEW: PASS`.
+Immediately after saving — and BEFORE any handoff — run the reviewer and act on its verdict. Never hand off a spec that has not returned `REVIEW: PASS`. Track which invocation this is (round 1, round 2, …).
 
-1. Run the `superdev:superspec-reviewer` Skill, passing the saved spec filepath.
+1. Run the `superdev:superspec-reviewer` Skill.
+   - **Round 1** — pass the saved spec filepath as the sole argument.
+   - **Round 2+, looping back from a fixable-in-draft FAIL** — pass the spec filepath on the first line, then append:
+     ```
+     --- Previous review (round <N-1>) ---
+     <verbatim previous REVIEW: FAIL report>
+     --- Fixes applied since ---
+     - <what changed, one line per fix>
+     ```
 2. Read the first line of its output: `REVIEW: PASS` or `REVIEW: FAIL`.
 3. `REVIEW: PASS` → proceed to **Handoff**.
 4. `REVIEW: FAIL`:
    - **Fixable-in-draft blockers** → apply the returned corrections to the saved file, then go back to step 1 and re-run the reviewer.
-   - **Needs-discovery blockers** → STOP looping. Run the `superdev:superdev` Skill (or ask the user) to obtain the missing decision, update the spec, then go back to step 1.
+   - **Needs-discovery blockers** → STOP looping. Run the `superdev:superdev` Skill (or ask the user) to obtain the missing decision, update the spec, then go back to step 1 as a fresh round 1 (no `Previous review` block) — the spec changed for a reason the prior reviewer report never covered.
 - Do not advance to Handoff until the reviewer returns `REVIEW: PASS`.
 
 ## Handoff

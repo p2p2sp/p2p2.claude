@@ -20,9 +20,18 @@ Read the plan draft, judge it against the spec and against the bar `superplan` s
 
 ## Input
 
-- A path to the **plan file** (the bare argument) — Read it in full before judging.
+- The **plan file path** is the argument's first standalone line — Read it in full before judging. Any content from the next line onward is the optional feedback block below; never treat the whole multi-line argument as the path.
 - Resolve the **spec** from the plan's `> Spec:` header and Read it — source of truth for the spec-coverage (dim. 1) and AC-mapping (dim. 4) checks.
 - No spec (header absent or an unfilled `<...>` placeholder → the plan came straight from the interview, no superspec): skip the spec-derived checks (dim. 1, and dim. 4's AC mapping) and judge the plan against the codebase and its own internal consistency. Say so in the summary.
+- The path MAY be followed by `--- Previous review (round N) ---` (the prior verdict + findings, verbatim) and `--- Fixes applied since ---` (the caller's summary of changes). Present → this is a re-review; run the **Resolved check** below before the normal dimensions. Absent → this is round 1; skip straight to the dimensions.
+
+## Resolved check (re-review only)
+
+Only when the argument includes a `Previous review` block:
+
+- For every CRITICAL/MAJOR finding in that block, re-examine the cited location in the current plan and mark it `Resolved: yes` or `Resolved: no` (still present / re-introduced / not actually fixed).
+- Any `Resolved: no` carries its original severity into this round's findings — do not silently drop it.
+- Then run all six review dimensions below as normal, on the plan as it stands now — a fix in one area can break another; do not scope the audit down to only the changed sections.
 
 ## Review dimensions
 
@@ -78,6 +87,7 @@ Run only if the plan touches auth, authorization, payments, PII/sensitive data, 
 ```
 ## Superplan Review
 **Verdict:** BLOCK | FIX | PASS
+**Resolved since last round:** <X/Y previously flagged CRITICAL|MAJOR resolved> <!-- omit this line entirely on round 1 -->
 **Findings:**
 - [CRITICAL|MAJOR|MINOR] (<plan section / component>) — <problem> [evidence: <path:line if any>]
   Impact: <why it matters>
