@@ -1,7 +1,6 @@
 ---
 name: superspec
 description: Specification writing expert with spec-driven-development practices. Use this skill whenever the user asks for a Spec, Specification, PRD, requirements document, feature spec, or user-story breakdown. Triggers include "spec", "specification", "prd", "requirements doc", "feature spec", "user story", "acceptance criteria". Do NOT write specs ad-hoc — use this skill first; it forbids TBD and forces working-backwards framing. Do NOT use for implementation plans — use the `superplan` skill instead.
-model: opus
 effort: xhigh
 ---
 

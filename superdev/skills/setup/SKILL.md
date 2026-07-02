@@ -4,6 +4,7 @@ description: Setup superdev environment.
 allowed-tools: Read, Glob, Grep, Bash, Edit, AskUserQuestion
 user-invocable: true
 disable-model-invocation: true
+effort: medium
 ---
 
 ## Bootstrap

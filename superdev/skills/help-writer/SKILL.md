@@ -2,7 +2,6 @@
 name: help-writer
 description: Authoring layer for the END-USER help / product documentation of the application being built — the human-facing knowledge that ships to the app's users, stored under `.superdev/help/`. Covers information architecture and page hierarchy, task-oriented structure, plain-language writing, when to use steps / callouts / tabs / diagrams, multilingual translation discipline, and a pre-publication checklist. Use this skill WHENEVER the user wants to write, plan, review, restructure, or generate user-facing documentation, help articles, onboarding / getting-started guides, knowledge-base content, a help-site navigation tree, or "docs for the users" of the product — even if they don't say "best practices" or "help". Output is written under `.superdev/help/` (default Markdown); the craft itself is platform-agnostic, so pair it with a generator/platform skill for the exact file syntax. Do NOT use for agent-facing project memory.
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, AskUserQuestion, Skill
-model: opus
 user-invocable: true
 ---
 

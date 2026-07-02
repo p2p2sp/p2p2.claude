@@ -2,7 +2,6 @@
 name: superplan
 description: >
   Use this skill in plan-mode to turn an accepted feature spec into a single, approvable implementation plan (the HOW) and hand it off via ExitPlanMode. Trigger whenever the user is in plan-mode on a spec, asks to "plan the implementation", "write the plan" — or whenever a spec already exists and the next step is implementation strategy rather than code. This produces the strategy layer that sits BETWEEN the spec (WHAT/contract) and the decomposer (atomic tasks): it is NOT a granular task breakdown and NOT code. Use it even if the user only says "let's plan" without naming a plan explicitly.
-model: opus
 effort: xhigh
 ---
 

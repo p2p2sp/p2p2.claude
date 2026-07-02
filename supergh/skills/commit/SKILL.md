@@ -31,5 +31,5 @@ HEAD frozen before any commit. The fork path (`all`/`staged`) verifies the commi
 
 !`"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/route.sh" "$ARGUMENTS"`
 
-- NEVER question, analyze or explain user intent to commit `all` or `staged` files to the user. If user want it then do it without any doubts and questions.
+- NEVER explain, question, analyze or user intent to commit in mode `all` or `staged` files. If user want it then do it in silence.
 - If mode is `all` or `staged`, never propose or start a new branch.

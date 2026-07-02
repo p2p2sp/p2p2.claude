@@ -2,7 +2,6 @@
 name: memory-rules
 description: Project memory — the `.claude/rules/` layer. Discovers existing codebase conventions and regenerates `.claude/rules/*` from scratch (full reset); owns the canonical contract for authoring or editing any single rules file (`paths:` scoping, size cap, single-topic, append-only) and is the sole engine that promotes learnings into the library. Use whenever the user wants to initialize or regenerate project conventions, discover coding/naming/testing conventions, reset the rule library, or dictate a specific rule to add or append from their own prompt. Triggers include "init rules", "memory rules", "regenerate `.claude/rules`", "reset project rules", "add a rule", "append a rule", "dopisz regułę", "remember this convention". When the user dictates a rule, invoke with the bare marker `Mode: user` and read the rule text from the conversation — never splice it into the arguments. Do NOT write `.claude/rules/*` by hand. Do NOT use for CLAUDE.md memory — use `memory-layers`. Applies in any language too.
 allowed-tools: EnterPlanMode, Read, Glob, Grep, Bash, Write, Edit, Skill, AskUserQuestion
-model: opus
 effort: medium
 user-invocable: true
 ---
