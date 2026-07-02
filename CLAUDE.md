@@ -293,8 +293,8 @@ invariant exception). Components, qualified `superfix:<name>`:
 - `code-auditor` (skill, main context, user-only) — prioritized multi-agent codebase investigation on the
   `score = Impact × Opportunity` law: a deterministic sweep (`scripts/collect_signals.sh`) → cheap `scout`
   scoring fan-out → deterministic gate/rank (`scripts/rank.py`) → frontier `detective` dispatch into the
-  hotspots only → verified, severity-ranked synthesis. State lives under a `.io/<run-id>/` workspace, not the
-  main context. Bundles `references/{jobs,scoring,synthesis}.md`.
+  hotspots only → verified, severity-ranked synthesis. State lives under a `.temp/code-reviewer/<run-id>/`
+  workspace, not the main context. Bundles `references/{jobs,scoring,synthesis}.md`.
 - `scout` / `detective` — the two **plugin agents** (`superfix/agents/*.md`, listed in `plugin.json`
   `agents[]`, dispatched via the Task tool with `subagent_type: superfix:<name>`). `scout` is cheap-tier
   breadth-first triage (spawn many); `detective` is frontier-tier depth-first investigation (spawn few).

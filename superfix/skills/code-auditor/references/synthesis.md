@@ -4,7 +4,7 @@ The detective sweep produces many candidate reports of mixed quality. This phase
 
 ## Detective report schema
 
-Each detective writes one file to `.io/<run-id>/reports/<rank>-<slug>.md`:
+Each detective writes one file to `.temp/code-reviewer/<run-id>/reports/<rank>-<slug>.md`:
 
 ```markdown
 # <short title>
@@ -60,7 +60,7 @@ Give every surviving finding a `SEVERITY: N.N` on its own line (0-10). The exact
 Rank by severity descending. Because the tag is on its own line, the final sort is a one-liner:
 
 ```bash
-grep -rH '^SEVERITY:' .io/<run-id>/reports | sort -t: -k3 -rn
+grep -rH '^SEVERITY:' .temp/code-reviewer/<run-id>/reports | sort -t: -k3 -rn
 ```
 
 ## findings.md (final output)

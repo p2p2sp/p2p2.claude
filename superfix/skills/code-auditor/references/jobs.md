@@ -4,7 +4,7 @@ Every job is the same formula: **Impact × Opportunity**, where each side is a
 concrete, cheaply-measurable signal. Pick the job that matches the user's goal,
 then tell every scout to score `impact` against the Impact signal and
 `opportunity` against the Opportunity signal listed here. Write the chosen pair
-into `.io/<run-id>/job.md` so the whole swarm scores consistently.
+into `.temp/code-reviewer/<run-id>/job.md` so the whole swarm scores consistently.
 
 > Impact = "how much pain it touches if we fix it."
 > Opportunity = "how bad / hard it is right now, and how fixable today."

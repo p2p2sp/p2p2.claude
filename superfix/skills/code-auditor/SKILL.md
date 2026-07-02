@@ -49,15 +49,15 @@ This mirrors the five-step idea: *sweep → score → ignore noise → send dete
 
 ### Phase 0 — Frame
 1. Confirm the **target repo path** and the **job** (above).
-2. Create a workspace: `mkdir -p .io/<run-id>/{signals,scores,reports,hotlist}`.
-3. Define the Impact and Opportunity signals for the chosen job from `references/jobs.md`. Write them to `.io/<run-id>/job.md` so every subagent scores against the *same* rubric.
+2. Create a workspace: `mkdir -p .temp/code-reviewer/<run-id>/{signals,scores,reports,hotlist}`.
+3. Define the Impact and Opportunity signals for the chosen job from `references/jobs.md`. Write them to `.temp/code-reviewer/<run-id>/job.md` so every subagent scores against the *same* rubric.
 
 ### Phase 1 — Sweep (cheap signal collection)
 Collect deterministic signals for every candidate file. This is the only place you run a script, because these numbers must be repeatable and free:
 
 ```bash
 bash scripts/collect_signals.sh <window-days> <repo-root> \
-  > .io/<run-id>/signals/signals.jsonl
+  > .temp/code-reviewer/<run-id>/signals/signals.jsonl
 ```
 
 This emits one JSON line per source file with `churn`, `fix_commits`, `recency_days`, `loc`, and (optional) `dependents`. These feed the scouts as priors — they are *not* the score, just evidence.
@@ -66,7 +66,7 @@ This emits one JSON line per source file with `churn`, `fix_commits`, `recency_d
 For each candidate file (or each batch of N files), spawn a **`scout`** subagent (Task tool, `subagent_type: superfix:scout`) — cheap tier, runs in its own isolated context, returns one line of strict JSON. Launch them in parallel; tens at a time is normal.
 
 - Give each scout: the file path, the matching signal line, and `job.md`.
-- Each scout returns `{path, impact, opportunity, impact_reason, opportunity_reason}` with Impact and Opportunity each on **1-5** (rubric in `references/scoring.md`). Append every verdict to `.io/<run-id>/scores/scores.jsonl`.
+- Each scout returns `{path, impact, opportunity, impact_reason, opportunity_reason}` with Impact and Opportunity each on **1-5** (rubric in `references/scoring.md`). Append every verdict to `.temp/code-reviewer/<run-id>/scores/scores.jsonl`.
 - A good scout will rate most files low and say "nothing interesting" — that is correct, not a failure. Cheap and shallow on purpose: the scout rates *likelihood worth a closer look*, it does NOT try to find the actual bug.
 
 Batch to control cost: ~10-40 files per scout for a huge tree, 1 file per scout when you want maximum resolution on a hot module.
@@ -76,11 +76,11 @@ Combine and rank deterministically so the cut is reproducible:
 
 ```bash
 python3 scripts/rank.py \
-  --scores .io/<run-id>/scores/scores.jsonl \
-  --signals .io/<run-id>/signals/signals.jsonl \
+  --scores .temp/code-reviewer/<run-id>/scores/scores.jsonl \
+  --signals .temp/code-reviewer/<run-id>/signals/signals.jsonl \
   --min-impact 3 --min-opportunity 3 --top 20 \
-  --out-json .io/<run-id>/hotlist/hotlist.json \
-  --out-md   .io/<run-id>/hotlist/hotlist.md
+  --out-json .temp/code-reviewer/<run-id>/hotlist/hotlist.json \
+  --out-md   .temp/code-reviewer/<run-id>/hotlist/hotlist.md
 ```
 
 `rank.py` computes `score = impact × opportunity`, assigns each file a 2×2 quadrant, drops everything that is not in the top-right corner, and writes a ranked **HOTLIST** (`#, Component, Impact, Opportunity, Score, Reason`). Show the hotlist to the user before spending frontier tokens.
@@ -89,7 +89,7 @@ python3 scripts/rank.py \
 For each hotspot on the gated hotlist, spawn a **`detective`** subagent (Task tool, `subagent_type: superfix:detective`) — frontier tier, isolated context. This is "Send the detective here": you only pay deep-model cost for the survivors.
 
 - Give each detective ONE hotspot as an **entry point** (not a constraint — it may follow the trail into neighbouring code) plus `job.md`.
-- The detective hunts the actual issue, **verifies it on a clean checkout**, and writes a structured report (schema in `references/synthesis.md`) to `.io/<run-id>/reports/<rank>-<slug>.md`, or writes `NO FINDING` if nothing real survives verification.
+- The detective hunts the actual issue, **verifies it on a clean checkout**, and writes a structured report (schema in `references/synthesis.md`) to `.temp/code-reviewer/<run-id>/reports/<rank>-<slug>.md`, or writes `NO FINDING` if nothing real survives verification.
 - Scale the count to how many hotspots cleared the bar — 5, 20, or 50. Run in waves if the tier has concurrency limits.
 
 ### Phase 5 — Synthesize (verify, dedupe, score, rank)
@@ -97,7 +97,7 @@ Read `references/synthesis.md` and run the critic pass:
 1. Spawn a separate **critic** instance per report (or reuse `detective` in verify-only mode) that replays the claimed issue **on a fresh checkout** — this catches the classic failure where an agent earlier edited the tree, then "discovered" its own change after a context compaction.
 2. Deduplicate findings that are the same root cause hit from different files.
 3. Assign each surviving finding a **severity 0-10** and tag it `SEVERITY: N.N` on its own line so the final ranking is greppable.
-4. Emit `.io/<run-id>/findings.md`: a severity-sorted list, each entry with location, class, root cause, repro/PoC, fix sketch, and confidence.
+4. Emit `.temp/code-reviewer/<run-id>/findings.md`: a severity-sorted list, each entry with location, class, root cause, repro/PoC, fix sketch, and confidence.
 
 ### Phase 6 — Iterate & open new fronts
 The workflow is *dynamic*, not a fixed pipeline. After synthesis:
@@ -108,7 +108,7 @@ The workflow is *dynamic*, not a fixed pipeline. After synthesis:
 ## Scale & cost guidance
 - **Scouts**: cheap tier, many, shallow. Breadth is their whole job.
 - **Detectives**: frontier tier, few, deep. Never dispatch one to a file that did not clear the gate.
-- Keep all wave plans and partial results in `.io/<run-id>/` files, not in the main thread, so a 50-agent run does not blow the orchestrator's context.
+- Keep all wave plans and partial results in `.temp/code-reviewer/<run-id>/` files, not in the main thread, so a 50-agent run does not blow the orchestrator's context.
 - Re-running the same sweep is cheap and repeatable; that is a feature — use it weekly (the slide's "THIS WEEK") and diff hotlists over time.
 
 ## Output the user sees
