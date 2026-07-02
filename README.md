@@ -3,7 +3,7 @@
 Four independent, self-contained Claude Code plugins. `superdev` and `superui` are cohesive ecosystems, each driven by its own injected dispatcher manifest; `supergh` and `superfix` ship no manifest and no hooks (`supergh` routes its GitHub skills purely via CSO descriptions; `superfix` is a single user-invoked skill). Skills compose through CSO + documented natural chains.
 
 - **superdev** (`./superdev`) — a configurable agentic-development ecosystem: project memory, planning, and the implementation pipeline.
-- **superui** (`./superui`) — the design / frontend ecosystem: the framework-agnostic design system, target adaptation, web preview, the UI-edit guardian, and a shareable-artifact publisher.
+- **superui** (`./superui`) — the design / frontend ecosystem: the framework-agnostic design system, target adaptation, web preview, the UI-edit guardian, a shareable-artifact publisher, and a user-only design-system audit (`/superui:design-audit`).
 - **supergh** (`./supergh`) — the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation executor, Conventional-Commits commits, and template-driven issue / PR creation. No manifest, no hooks — skills route via their CSO descriptions.
 - **superfix** (`./superfix`) — prioritized multi-agent codebase investigation: the `/superfix:code-auditor` command sweeps a repo with cheap `scout` agents, scores Impact × Opportunity, and sends frontier `detective` agents only into the hotspots. No manifest, no hooks — one user-invoked skill.
 
@@ -59,6 +59,7 @@ Flat-named (single-domain plugin, no group prefix):
 | `web-preview` | Render zero-build, self-contained static HTML preview pages for a web target |
 | `design-guardian` | Bind UI edits to the documented tokens / components / foundations (auto-triggered before UI implementation work) |
 | `cc-artifact` | Claude Code platform — opt-in, main-session publisher of one self-contained `.html`/`.htm`/`.md` file as a shareable Claude Code Artifact; validates single-file / no-external-ref / size, asks first, falls back to the local path (fail-open) |
+| `design-audit` (user-only) | Prioritized multi-agent audit of design-system compliance + component-library extraction — Wave 1 flags drift (raw values, off-theme classes, inline styles, invented variants), each classified Drift (replaceable) vs Gap (needs a system extension); Wave 2 finds scattered / undocumented components and proposes a sibling library + reusable components; idiom-aware (web vs Flutter); one markdown report, changes no code. Runs only via `/superui:design-audit` (`disable-model-invocation`), driving cheap `design-scout` + frontier `design-detective` agents |
 
 ## superfix skills
 

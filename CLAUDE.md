@@ -28,7 +28,9 @@ Each plugin is independently installable; none declares another as a dependency.
 
 - **superdev** — project memory, planning, and the agentic-development pipeline.
 - **superui** — the design / frontend ecosystem (the framework-agnostic L1 system, target adaptation, web
-  preview, the UI-edit guardian, and a shareable-artifact publisher).
+  preview, the UI-edit guardian, a shareable-artifact publisher, and a user-only design-system audit — the
+  `design-audit` orchestrator plus its two plugin agents `design-scout` (cheap haiku scorer) / `design-detective`
+  (frontier opus investigator)).
 - **supergh** — the GitHub / git ecosystem (the `gh` CLI/REST/GraphQL reference, a fully-specified operation
   executor, Conventional-Commits commits, and template-driven issue / PR creation). Ships **no hooks and no
   manifest** — its skills route purely via CSO `description:` (unlike `superfix`, supergh's skills are still
@@ -102,11 +104,17 @@ superdev/            The superdev plugin
                      3-bucket severity / PASS-FAIL mapping only; the four shared "How to …" sections live once
                      in shared/rubric-core.md)
 superui/             The superui plugin
-  .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
+  .claude-plugin/plugin.json   The plugin manifest — skills[] + agents[] are the catalog of record
   hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
     content/manifest.md  The injected `using-superui` dispatcher
   shared/            Plugin-level shared scripts (scripts/check_python.sh — the Python preflight)
-  skills/            Flat-named skills (single-domain plugin); some bundle preview scripts
+  skills/            Flat-named skills (single-domain plugin); some bundle preview scripts. The user-only
+                     design-audit orchestrator (disable-model-invocation; deliberately out of the manifest, like
+                     superdev's setup / superfix's code-auditor) bundles its two plugin agents under
+                     skills/design-audit/agents/ (design-scout.md + design-detective.md — superui's ONLY agents[],
+                     the code-auditor-style orchestrator pattern) plus scripts/ (collect_signals.sh, rank.py,
+                     route.sh, each with a *.test.sh) and references/ (rubric-{css,js-theme,flutter,agnostic}.md,
+                     scoring.md, synthesis.md)
 supergh/             The supergh plugin (NO hooks, NO manifest — skills route purely via CSO descriptions)
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
   shared/            Plugin-level shared scripts + references (scripts/preflight.sh — `!`-injected auth+git fact block;
@@ -376,7 +384,8 @@ invariant exception). Components, qualified `superfix:<name>`:
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`agent-committer`/`create-issue`/`create-pr` skill,
   superfix's for the `code-auditor` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
-  (superdev's `coder` / `runner` / `task-reviewer` / `improver` / `commiter` and superfix's `scout` / `detective` live there, not in `skills[]`) — and this file
+  (superdev's `coder` / `runner` / `task-reviewer` / `improver` / `commiter`, superfix's `scout` / `detective`, and
+  superui's `design-scout` / `design-detective` live there, not in `skills[]`) — and this file
   in either case. They must stay in sync, and a worker must never appear in both `skills[]` and `agents[]`.
   For the manifest-bearing plugins (`superdev`, `superui`), that plugin's injected manifest
   (`<plugin>/hooks/content/manifest.md`) lists its **groups/roles + chains**, not individual skills, so update it

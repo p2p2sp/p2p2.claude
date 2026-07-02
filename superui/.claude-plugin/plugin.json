@@ -12,6 +12,11 @@
     "./skills/adapt-target/",
     "./skills/web-preview/",
     "./skills/design-guardian/",
-    "./skills/cc-artifact/"
+    "./skills/cc-artifact/",
+    "./skills/design-audit/"
+  ],
+  "agents": [
+    "./skills/design-audit/agents/design-scout.md",
+    "./skills/design-audit/agents/design-detective.md"
   ]
 }
