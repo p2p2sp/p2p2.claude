@@ -55,6 +55,10 @@ Hierarchical CLAUDE.md infrastructure so CLAUDE navigate codebases like senior e
 
 Do NOT create for: every directory, simple utilities, test folders (unless complex) and folders which name begin with dot (eg.: .claude).
 
+## Proposing candidates (level 1)
+
+When you offer the level-1 directories (top level under the project root) as answer options — which of them get a CLAUDE.md — ALWAYS include `All projects` as one of the proposed answers, even when some of those directories fall below the token threshold. The threshold only sets which options come pre-selected; it never removes an option. `All projects` means "create a node for every level-1 directory, sub-threshold ones included" and must always be on offer.
+
 ## Capture Questions
 
 When documenting existing code, ask:
