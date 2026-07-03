@@ -15,10 +15,22 @@
 #                   Conventional-Commits rules reach the main context ONLY in this mode).
 # Self-locating via $0 (POSIX): references resolved relative to this script's own dir, never
 # the host CWD. `commit-conventions.md` lives at <plugin>/shared/references/ (../../../shared).
+#
+# ${CLAUDE_PLUGIN_ROOT} resolution: the mode playbooks tell the MAIN-context LLM to later run
+# `sh "${CLAUDE_PLUGIN_ROOT}/…/verify-landed.sh"` / `commit.sh` from its own Bash. That harness
+# placeholder is substituted ONLY in `!`-injection / hook commands — NOT in Bash the model
+# issues itself, and the main session (unlike a fork/agent) carries no CLAUDE_PLUGIN_ROOT env
+# var, so it would expand to empty (→ `/skills/…/verify-landed.sh`, exit 127). This script runs
+# at `!`-injection time where it CAN self-locate, so it rewrites `${CLAUDE_PLUGIN_ROOT}` to the
+# absolute plugin root before the playbook reaches the model. (`root` = $dir/../../.. = plugin
+# root; a bundled-cache path carries no sed-special char, so a `|`-delimited replace is safe.)
 set -euf
 dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 ref="$dir/../references"
 shared_ref="$dir/../../../shared/references"
+root=$(CDPATH= cd -- "$dir/../../.." && pwd)
+# Emit a reference with the plugin-root placeholder resolved to its absolute path.
+inject() { sed "s|\${CLAUDE_PLUGIN_ROOT}|$root|g" "$1"; }
 token=context
 for w in $(printf '%s' "${1:-}" | tr 'A-Z' 'a-z'); do
   w=$(printf '%s' "$w" | tr -cd 'a-z0-9')
@@ -30,14 +42,14 @@ done
 case "$token" in
   all)
     printf 'staging mode: **all**\n\n'
-    cat "$ref/mode-fork.md"
+    inject "$ref/mode-fork.md"
     ;;
   staged)
     printf 'staging mode: **index**\n\n'
-    cat "$ref/mode-fork.md"
+    inject "$ref/mode-fork.md"
     ;;
   *)
-    cat "$ref/mode-session.md"
+    inject "$ref/mode-session.md"
     printf '\n\n---\n\n'
     cat "$shared_ref/commit-conventions.md"
     ;;
