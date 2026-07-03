@@ -1,4 +1,4 @@
-# superdev + superui + supergh + superfix — four Claude Code plugins (one per subdir) + marketplace catalog
+# P2P2 Claude Code plugins (one per subdir) + marketplace catalog
 
 > **These are the plugins' SOURCE files, not the live plugins.** This repo is the source
 > of the `superdev`, `superui`, `supergh`, and `superfix` plugins (the first three are *also installed* in this session). Editing files here (skills,
