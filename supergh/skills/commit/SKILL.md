@@ -9,6 +9,8 @@ model: sonnet
 effort: low
 ---
 
+Commit changes to GitHub.
+
 ## Step 1: No-op gate
 
 !`sh -c '[ -z "$(git status --porcelain)" ] && echo "Nothing to commit. STOP." || echo "There are some changes. Go to next step."'`
