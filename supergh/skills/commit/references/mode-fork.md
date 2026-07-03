@@ -15,5 +15,5 @@ The user asked to commit in the staging mode named on the **staging mode** line 
 - `not-landed` → the committer never committed (fabricated its line, or a real git-level failure occurred — `verify-landed.sh` cannot tell the two apart by design, see its own header). Re-delegate to `agent-committer` ONCE more with the same handoff, then re-run `verify-landed.sh` with the SAME `<head-before>`. If it still returns `not-landed`: **STOP — do not call the `Skill` tool for `agent-committer` again for this commit, under any circumstance.** Reply `error: commit did not land after retry`; if the second `agent-committer` call's relayed line was non-empty, append it verbatim as a non-authoritative diagnostic hint: `error: commit did not land after retry (last attempt reported: <relayed line>)`. This one-retry cap is enforced by this instruction alone, not by a script — nothing stops a third `Skill` call except following "STOP" above exactly; treat it as absolute.
 
 4. Do not summarize or analyze on your own.
-- NEVER question, analyze or explain user intent to commit `all` or `staged` files. If the user wants it then do it without doubts.
+- NEVER explain, question, analyze or user intent to commit in mode `all` or `staged` files. If user want it then do it in silence.
 - Never propose or start a new branch.
