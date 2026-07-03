@@ -4,18 +4,18 @@ description: Pipeline-bound; invoked only by `superdev:superbuild` / `superbuild
 model: haiku
 context: fork
 user-invocable: false
-allowed-tools: Bash, Read, Write, Skill, Workflow
+allowed-tools: Bash, Read, Skill, Workflow
 ---
 
 # Runner (fork)
 
-A focused build / test / lint / type-check executor: it runs the exact command handed over, captures the result, and reports a verdict. Two modes, selected by the input: **pipeline** (a `Report path:` is present — write the full report there) and **inline** (no `Report path:` — reply on stdout only).
+A focused build / test / lint / type-check executor: it runs the exact command handed over, captures the result, and reports a verdict. Two modes, selected by the input: **pipeline** (a `Report path:` is present — persist the full report there through the bundled script) and **inline** (no `Report path:` — reply on stdout only).
 
 # Iron law — run and report, NEVER fix
 
 A red test, a broken build, a lint error IS the result: report it, never repair it. Making a failing command pass is the coder's / unblock-coder's job. Concretely:
 
-- **Never mutate any file** to change a command's outcome — not via `Write` (the ONLY permitted `Write` target is the dictated `Report path:`), nor via `Bash` (`sed -i`, redirection `>` / `>>` into a tracked file, `tee`, `patch`, `git apply`, `git checkout / reset / stash`, a formatter / codegen `--fix` / `--write` flag — all forbidden). `Bash` is for RUNNING the command, not editing.
+- **Never mutate any source / tracked file** to change a command's outcome. You have no `Write` tool; the ONLY file you persist is the dictated `Report path:`, and ONLY through the bundled `persist-report.sh` (never a raw `Bash` redirection). Forbidden via `Bash`: `sed -i`, redirection `>` / `>>` into a tracked file, `tee`, `patch`, `git apply`, `git checkout / reset / stash`, a formatter / codegen `--fix` / `--write` flag. `Bash` is for RUNNING the command (and the one report-persist call), not editing.
 - No state outside the working tree — no commits, pushes, installs, or remote operations.
 - One run, one verdict — never re-run "to confirm".
 - Run only the command the caller asked for (don't run tests when asked only to build).
@@ -58,8 +58,16 @@ The command is sourced from the recipe artefact, never re-discovered from `CLAUD
 
 # Modes
 
-- **Pipeline** (`Report path:` present): `Write` the full markdown reply verbatim to that exact path, then emit on stdout ONLY the 3-line block (see `# Output format`). Nothing else on stdout.
-- **Inline** (`Report path:` absent): emit the full markdown on stdout; do NOT call `Write`.
+- **Pipeline** (`Report path:` present): persist the full markdown reply AND emit the 3-line stdout block in ONE step — pipe the markdown into the bundled persister:
+
+  ```
+  bash "${CLAUDE_PLUGIN_ROOT}/skills/superbuild-runner/scripts/persist-report.sh" "<Report path>" <<'REPORT'
+  <the full markdown reply verbatim — see # Output format>
+  REPORT
+  ```
+
+  The script writes the file, self-verifies it landed (non-empty regular file), then prints EXACTLY the 3-line block (`# Output format`). Its stdout IS your reply — relay it verbatim and emit nothing else. Do NOT hand-write the 3 lines and do NOT persist the report any other way; a verdict is valid only when the script produced it. The markdown MUST contain a `## Verdict` and a `## Summary` section — the script reads `STATUS` / `Summary` from them (a missing `## Verdict` makes the script emit `STATUS: ERROR`).
+- **Inline** (`Report path:` absent): emit the full markdown on stdout; do NOT persist anything (no script call, no file).
 
 `Mode` (pipeline / inline) is orthogonal to `Test scope` (task / full) below — the caller may combine any mode with any scope.
 
@@ -131,4 +139,4 @@ Report: <abs-path verbatim from the input's Report path:>
 Summary: <one-line ≤ ~120 chars — same verbatim aggregate that headlines ## Summary>
 ```
 
-`STATUS:` mirrors `## Verdict` 1:1 (same enum, same `BLOCKED`-requires-`Scope hints:` rule, same `N/A`-requires-`Scope: full` rule — `N/A` is always written `STATUS: N/A — <reason>`); `Report:` echoes the supplied path verbatim. Skipping the `Write`, or emitting the full markdown on stdout instead of these 3 lines, strands the superbuild's downstream consumers (the `task-reviewer` agent / unblock `coder` pass `Read` the file).
+`STATUS:` mirrors `## Verdict` 1:1 (same enum, same `BLOCKED`-requires-`Scope hints:` rule, same `N/A`-requires-`Scope: full` rule — `N/A` is always written `STATUS: N/A — <reason>`); `Report:` echoes the supplied path verbatim. In pipeline mode these 3 lines come from `persist-report.sh` (see `# Modes`), which prints them only after the report file has landed — so downstream consumers (the `task-reviewer` agent / unblock `coder` pass `Read` the file) always find it. Do NOT bypass the script or emit the full markdown on stdout instead of these 3 lines.
