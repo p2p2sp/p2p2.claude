@@ -44,16 +44,16 @@ scripts under `<plugin>/hooks/scripts/` (only `superdev` / `superui` have hooks;
 none), plus a handful of deterministic helper scripts bundled under
 individual skills' `scripts/` dirs (the `superui` preview scripts, the superdev pipeline commit scripts
 `superbuild/scripts/commit-task.sh` + `superbuild/scripts/commit-adr.sh` + `superbuild/scripts/commit-docs.sh`, the fixed recipe harness
-`superbuild-recipe/scripts/recipe.template.sh`, the `superbuild-runner` report persister
-`superbuild-runner/scripts/persist-report.sh` (self-verifying write+parse of a pipeline report → its 3-line stdout, so a verdict is emitted only once the report file has landed; with `persist-report.test.sh` — `superbuild-runner`'s first bundled `scripts/` dir), the `superbuild-decomposer` deterministic edges
+`superbuild-recipe/scripts/recipe.template.sh`, the `superbuild-decomposer` deterministic edges
 `superbuild-decomposer/scripts/precheck.sh` (Step 0 idempotency, `!`-injected) + `copy_plan.sh` (Step 7.0 byte-exact plan copy + status reset) + `validate_tasks.py` (Step 8 structural validator) + `toposort.py` (Step 5 topological sort + cycle detection) + their sourced `slug-guard.sh` helper, each with a committed `*.test.sh` harness (`precheck.test.sh`, `copy_plan.test.sh`, `validate_tasks.test.sh`, `toposort.test.sh`) plus `skill_contract.test.sh` (grep-asserts the rewritten SKILL.md) and `scripts/fixtures/handtrace-{plan,expected,transcript}.md`, the `supergh` `commit` mode router
 `commit/scripts/route.sh` + its fork-path git-truth backstop `commit/scripts/verify-landed.sh`, the `memory-rules` mode router `memory-rules/scripts/route.sh` + its discovery
 scripts `memory-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), the one-time `setup/scripts/bootstrap.sh`,
 and the `superfix` investigation scripts `code-auditor/scripts/collect_signals.sh` (deterministic signal sweep) + `rank.py` (the gate/rank step)).
-Six helpers instead live at **plugin-level** `<plugin>/shared/scripts/` (one copy shared across a plugin's
+Seven helpers instead live at **plugin-level** `<plugin>/shared/scripts/` (one copy shared across a plugin's
 skills): `superdev/shared/scripts/lib_find_excludes.sh` (sourced by the `memory-layers` / `memory-rules` scan scripts),
 `superdev/shared/scripts/auditor-contract.sh` (router-style assembler `!`-injected by the four `superbuild-reviewer-{quality,architecture,testing,readiness}` final-review lenses;
 takes the lens name and cat-concatenates `shared/references/_input.md` + `lens-<lens>.md` + `_output.md` — placeholder-free, so no `${CLAUDE_PLUGIN_ROOT}` survives into the fork),
+`superdev/shared/scripts/persist-report.sh` (self-verifying write+parse of a pipeline runner report → its 3-line stdout, so a verdict is emitted only once the report file has landed; shared by the `runner` agent (runtime `Read` of the core) + the `superbuild-runner` skill (`!`-injected core); with `persist-report.test.sh`),
 `superui/shared/scripts/check_python.sh` (the Python preflight, `!`-injected by each `superui` skill that runs a Python step),
 and the three `supergh/shared/scripts/` helpers `preflight.sh` (`!`-injected read-only auth+git fact block, shared by
 `create-issue` / `create-pr` / `cli-executor`) + `body-path.sh` (deterministic timestamp+slugify body-path builder
@@ -94,12 +94,11 @@ superdev/            The superdev plugin
     hooks.json       SessionStart (inject manifest) + PreToolUse: ExitPlanMode (plan-review gate)
     content/manifest.md  The injected `using-superdev` dispatcher
     scripts/         session-start.sh, review-plan.sh
-  shared/            Plugin-level shared assets + scripts (rubric.md; rubric-core.md — the shared 4-section "How to …" review-rubric core, read by both rubric.md and superbuild/references/task-review.md; references/ — auditor-contract.sh fragments (_input.md, _output.md, lens-{architecture,code-quality,production-readiness,testing}.md); coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the memory-layers / memory-rules scans; scripts/auditor-contract.sh — router-style body assembler `!`-injected by the four superbuild-reviewer-{quality,architecture,testing,readiness} lenses)
+  shared/            Plugin-level shared assets + scripts (rubric.md; rubric-core.md — the shared 4-section "How to …" review-rubric core, read by both rubric.md and superbuild/references/task-review.md; references/ — auditor-contract.sh fragments (_input.md, _output.md, lens-{architecture,code-quality,production-readiness,testing}.md) + run-and-report.md — the shared runner executor core read by the runner agent + superbuild-runner; coder-modes/ work-order files; scripts/lib_find_excludes.sh — sourced by the memory-layers / memory-rules scans; scripts/auditor-contract.sh — router-style body assembler `!`-injected by the four superbuild-reviewer-{quality,architecture,testing,readiness} lenses; scripts/persist-report.sh (+ persist-report.test.sh) — the self-verifying pipeline-report persister shared by the runner agent + superbuild-runner)
   skills/            Skills (bare-named by functional role; the implementation-pipeline forks share the `superbuild-*` family prefix); some skills bundle a
                      deterministic helper under their own scripts/ dir (superbuild/scripts/commit-task.sh
                      + commit-adr.sh + commit-docs.sh + task-pipeline.workflow.js, superbuild-recipe/scripts/recipe.template.sh
-                     (+ recipe.template.test.sh), superbuild-runner/scripts/persist-report.sh
-                     (+ persist-report.test.sh), memory-rules/scripts/route.sh, setup/scripts/bootstrap.sh);
+                     (+ recipe.template.test.sh), memory-rules/scripts/route.sh, setup/scripts/bootstrap.sh);
                      superbuild also bundles the 5 per-task pipeline plugin agents under its agents/ subdir
                      (coder.md, runner.md, task-reviewer.md, improver.md, commiter.md), plus a bundled
                      references/task-review.md (task-reviewer's own task-review variant — the 5 dimensions /
@@ -172,9 +171,10 @@ that signal (the former `agent-` marker is gone); fork-only nature lives entirel
 per-task pipeline workers are NOT `superbuild-`-prefixed: `coder`, `runner`, `task-reviewer`, `improver`,
 `commiter` are real **plugin agents** (`superdev/skills/superbuild/agents/*.md`, listed in `plugin.json`
 `agents[]`, dispatched by the `task-pipeline.workflow.js` via `agentType:'superdev:<name>'`) — bare-named
-precisely because they are genuine agents, not fork-skills. (Both `runner` and `commiter` are thin haiku
-wrappers — `runner` builds the task-scoped args and drives the `superbuild-runner` skill; `commiter` only
-runs `commit-task.sh` and relays its tag — but each is still a workflow-dispatched plugin agent, so they stay
+precisely because they are genuine agents, not fork-skills. (`commiter` is a thin haiku wrapper — it only runs
+`commit-task.sh` and relays its tag; `runner` is a haiku executor that runs the task gate directly (reads the
+shared run-and-report core, runs the recipe verbs, persists via `persist-report.sh`) — no longer nesting a
+`superbuild-runner` fork — but each is still a workflow-dispatched plugin agent, so they stay
 bare-named like the other three.) Every user-facing / auto-routed superdev skill is bare-named, as is the
 planning fork `superplan-reviewer` and the self-mode code-review fork `self-reviewer`. (Unrelated:
 `supergh:agent-committer` keeps the `agent-` token within its own plugin — that convention is local to supergh.)
@@ -356,7 +356,7 @@ invariant exception). Components, qualified `superfix:<name>`:
 - **Recipe — mandatory first step (fail-closed) + sole clean-tree guard.** `superbuild` invokes
   `superbuild-recipe` as the FIRST step on **every** entry (before ADR); it derives the host
   build/test/lint/launch verbs once and materializes `.superdev/.workflows/<slug>/recipe.sh` + `profile.md`, the
-  single artifact every downstream fork (`superbuild-runner`, `coder`, `task-reviewer`,
+  single artifact every downstream fork (`superbuild-runner`, the `runner` agent, `coder`, `task-reviewer`,
   `superbuild-decomposer`, `superbuild-reviewer-plan`) consumes instead of re-deriving the
   toolchain. It is **fail-closed**: a recipe `STATUS: FAIL` is a hard halt (like a decomposer fail), and the
   recipe agent's Step 0 (`git status --porcelain`) is now the **single** clean-tree guard for the whole run —

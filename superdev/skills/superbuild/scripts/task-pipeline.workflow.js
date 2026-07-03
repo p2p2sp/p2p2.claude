@@ -182,17 +182,17 @@ function coder(attempt, mode, feedback) {
   return dispatch(stubRole, prompt, { agentType: 'superdev:coder', model: 'opus' }, reportPath)
 }
 
-// The runner pass is the cheap haiku `superdev:runner` plugin agent: it invokes
-// Skill(superdev:superbuild-runner) in pipeline mode, reads the runner's report, and returns the
-// structured verdict. Encoding the test-filter + scope-hint construction lives in that agent's body
-// (agents/runner.md); this script only forwards paths.
+// The runner pass is the cheap haiku `superdev:runner` plugin agent: it runs the task gate directly
+// (reads the shared run-and-report core, runs the recipe's verify + test-filtered verbs, persists via
+// the shared persist-report.sh) and returns the structured verdict. The test-filter + scope-hint
+// construction lives in that agent's body (agents/runner.md); this script only forwards paths.
 function runner(attempt) {
   const reportPath = r(`runner-${attempt}.md`)
   const prompt =
     `Task file: ${taskFile}\n` +
     `Report path: ${reportPath}\n` +
     `Recipe: ${recipePath || '—'}\n` +
-    `Run the task gate via Skill(superdev:superbuild-runner) in pipeline mode and return the structured verdict.`
+    `Run the task gate and return the structured verdict.`
   return dispatch('runner', prompt, { agentType: 'superdev:runner', model: 'haiku' }, reportPath)
 }
 

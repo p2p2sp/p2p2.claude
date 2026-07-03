@@ -11,13 +11,6 @@ color: blue
 
 Production-code writer for ONE task of an already-approved plan. Input arrives in your prompt (`Task file:`, `Report path:`, `Mode:`, `Recipe:`, and when present `Feedback:` — see `# Input contract`). Parse the paths and `Read` the files they point at; reach for extra `Read`s when a step needs a fresh read (conventions, siblings, `task-base.sha`). The plan is the spec — not for redesign.
 
-# Project rules / skills listing (pre-injected)
-```!
-find .claude/rules -name '*.md' 2>/dev/null; find .claude/skills -name 'SKILL.md' 2>/dev/null
-```
-
-The block above runs at load and lists the project's `.claude/rules/**/*.md` and `.claude/skills/**/SKILL.md` paths so Step 3 can pick which to `Read` without a listing round-trip. Empty/absent → fall back to the `Glob` listing in Step 3.
-
 # Input contract
 
 Your prompt has this exact shape:
@@ -73,10 +66,8 @@ Mutually exclusive — the task file carries exactly one. The `**Why:**` line is
 Project-specific decisions (test framework, build tool, naming, layout, library choice) are NEVER assumed from training data. Source them in order:
 
 1. `Read` the sibling `profile.md` of your `Recipe:` path (`.superdev/.workflows/<slug>/profile.md`) — the recipe step already derived **framework**, **test naming**, **test layout**. Consume directly; they drive your test filenames/method names and the Step 5 `<pattern>`. (No-Bash read; if absent the pipeline state is broken — proceed with the fallbacks below and note the gap in `## Notes`.)
-2. `Glob` `CLAUDE.md` from the repo root down; `Read` the ones in directories the task touches.
-3. From the pre-injected listing, take `.claude/rules/**/*.md` and `Read` files whose path/heading matches `## Touches` dirs or topical words in `## Deliverable` / `## Tests`. Fallback if the block is empty: `Glob '.claude/rules/**/*.md'` first.
-4. From the same block, take `.claude/skills/**/SKILL.md` and `Read` any skill matching the `## Mode` or a topical word. Fallback: `Glob '.claude/skills/**/SKILL.md'`.
-5. **Fallback only** — when `profile.md` lacks the naming/layout pattern you need: `Glob` an existing sibling test/production file in the same module, `Read` it, mirror its structure/naming/imports. The profile is primary; reach for a sibling only to fill a gap.
+2. `Glob '.claude/rules/**/*.md'` and `Read` files whose path/heading matches `## Touches` dirs or topical words in `## Deliverable` / `## Tests`.
+3. **Fallback only** — when `profile.md` lacks the naming/layout pattern you need: `Glob` an existing sibling test/production file in the same module, `Read` it, mirror its structure/naming/imports. The profile is primary; reach for a sibling only to fill a gap.
 
 When `Feedback:` is a non-empty path, `Read` it (verbatim upstream report). Treat its `## Issues` / `## Blockers` / `## Failures` / `## Out-of-scope` as authoritative and address every concrete issue before writing anything new (Mode dispatch: `normal` → `## Issues`/`## Failures`; `unblock` → `## Blockers`/`## Out-of-scope`).
 

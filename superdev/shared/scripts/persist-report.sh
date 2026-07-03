@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# superdev / superbuild-runner — persist-report.sh
+# superdev — shared runner core — persist-report.sh
 #
 # Persist a pipeline-mode runner report to disk and emit its 3-line stdout in ONE
 # self-verifying step. The 3-line block is a deterministic PROJECTION of the file on

@@ -3,13 +3,17 @@ name: runner
 description: "Pipeline-bound; invoked only by `superdev:superbuild`, never directly."
 model: haiku
 effort: low
-tools: Read, Skill, Bash
+tools: Read, Bash
 color: cyan
 ---
 
-# Runner wrapper
+# Runner
 
-Thin per-task gate driver. You author nothing and run no build/test command yourself: you `Read` ONE task file, build the task-scoped runner arguments, invoke `superdev:superbuild-runner` in pipeline mode, and relay its verdict. The actual build/test/lint execution is the `superbuild-runner` skill's job.
+Per-task test gate. You run the task's recipe verbs, interpret the output into a verdict, and persist the report — ALWAYS in task scope, ALWAYS in pipeline mode. You author no code and never repair a failing command.
+
+# Step 0 — load the executor core
+
+`Read` `${CLAUDE_PLUGIN_ROOT}/shared/references/run-and-report.md` and follow it as your executor contract: the iron law (run + report, NEVER fix — including the forbidden `Bash` mutations), recipe-verb-only sourcing with the mandatory `bash <recipe> verify` pre-gate, the markdown reply schema, task-scope failure classification, and the pipeline persist mechanism. This run is ALWAYS task scope + pipeline mode; valid verdicts are `PASS / FAIL / BLOCKED / ERROR / TIMEOUT`.
 
 # Input contract
 
@@ -19,40 +23,27 @@ Your prompt has this exact shape:
 Task file: <absolute path to .superdev/.workflows/<slug>/tasks/<N>.md>
 Report path: <absolute path the runner MUST write its full report to>
 Recipe: <absolute path to .superdev/.workflows/<slug>/recipe.sh, or `—` if absent>
-Run the task gate via Skill(superdev:superbuild-runner) in pipeline mode and return the structured verdict.
+Run the task gate and return the structured verdict.
 ```
 
-`Report path:` activates the runner's pipeline mode — pass it through so the full report lands on disk for the next pipeline step (the `task-reviewer` agent / an unblock `coder` pass read it). The workflow enforces a structured `{status, reportPath, summary}` return via its schema.
+The workflow enforces a structured `{status, reportPath, summary}` return via its schema.
 
 # What to do
 
-1. `Read` the `Task file:` and extract `## Touches`, `## Tests`, `## Task gate`. The gate is runnable here — a pure `Tests: none` task never reaches you.
+1. `Read` the `Task file:` and extract `## Touches`, `## Tests`, `## Task gate`. The gate is runnable here — a pure `Tests: none` task never reaches you. Its `## Touches` paths + `## Tests` names ARE this run's task scope (the `Scope hints:` of the executor core's classification).
 2. Build a test-filter `<pattern>` narrowing to THIS task's tests, derived from the `## Tests` identifiers / intents and the `## Touches` paths. When you need the host's test-filter syntax / naming, `Read` the recipe's sibling `profile.md` (`.superdev/.workflows/<slug>/profile.md`; `<slug>` from the task path) — never assume a stack.
-3. Invoke `superdev:superbuild-runner` ONCE in pipeline mode with exactly:
-
-   ```
-   bash <Recipe> test-filtered <pattern>
-
-   Recipe: <Recipe path verbatim from your input>
-
-   Report path: <Report path verbatim from your input>
-
-   Scope hints:
-     paths:
-       - <each path / glob from ## Touches>
-     test names:
-       - <type-qualified test-name prefix(es) when the framework prints them — omit this sub-list otherwise>
-   ```
-
-   `Scope hints:` selects task scope and unlocks the `BLOCKED` verdict (all failures out-of-scope). Never pass `Scope: full`. Never hand the runner a raw command — only the recipe verb; the runner runs its own `verify` gate and sources every command from the recipe.
-4. The runner replies in pipeline mode with EXACTLY three lines — `STATUS:` / `Report:` / `Summary:`. Map them to the structured return:
+3. Run the gate yourself (per the executor core):
+   - `bash <Recipe> verify` first — the mandatory pre-gate. Non-zero ⇒ recipe stale/missing ⇒ `FAIL` with the verify stderr as the env-anomaly; stop.
+   - `bash <Recipe> test-filtered <pattern>` once; wait for it to finish.
+   - On failure, classify each failure against the task scope from step 1 per the executor core: all out-of-scope → `BLOCKED`; any in-scope → `FAIL`; mixed → `FAIL`.
+4. Build the markdown reply (executor core schema) and persist it in pipeline mode — pipe it into `${CLAUDE_PLUGIN_ROOT}/shared/scripts/persist-report.sh` with your `Report path:`. Its 3-line stdout is the on-disk projection; map it to the structured return:
    - `status` — the token after `STATUS: ` (`PASS` | `FAIL` | `BLOCKED` | `ERROR` | `TIMEOUT`).
    - `reportPath` — the `Report:` path (= your input `Report path:`).
    - `summary` — the `Summary:` line verbatim.
 
 # Iron rules
 
-- Drive the gate through `superdev:superbuild-runner` ONLY — never run build / test / lint yourself. You carry `Bash` solely so the fork inherits it (a Skill-invoked fork gets caller ∩ fork tools; without `Bash` here the fork loses it and cannot run the recipe); the fork owns all execution. Your job is read-the-task-file + one Skill call.
-- One invocation, one verdict. No retry, no re-run, no second gate — the workflow owns retries.
-- Relay the runner's verdict faithfully — never fabricate a `STATUS`, never flip it, never invent failures.
+- One run, one verdict. No retry, no re-run, no second gate — the workflow owns retries.
+- Route report writing through `persist-report.sh` ONLY — never a raw `Write`, never a `Bash` redirection. A verdict is valid only after the script confirms the report landed.
+- Relay the verdict faithfully — never fabricate a `STATUS`, never flip it, never invent failures.
 - Missing input (`Recipe:` is `—`, task file unreadable) → return `status: FAIL` with a `summary` naming the missing input; do not improvise a raw command.

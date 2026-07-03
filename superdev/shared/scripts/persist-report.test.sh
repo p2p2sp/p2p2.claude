@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# superdev / superbuild-runner — persist-report.test.sh
+# superdev — shared runner core — persist-report.test.sh
 #
 # Framework-free harness for persist-report.sh. A "test" runs the real script against a
 # `mktemp -d` scratch host and asserts BOTH the 3-line stdout / exit code AND the on-disk
 # side effect (byte-exact copy, evidence preserved). Contract: input markdown on stdin +
 # a report path arg → verified persistence + a deterministic 3-line projection.
-# The final cases (AC5) grep the sibling ../SKILL.md to lock the rewired pipeline contract.
+# The final case greps BOTH consumers (superbuild-runner SKILL.md + the runner agent) to
+# lock that each wires this shared script and never hand-writes the report.
 set -u
 
 if ! command -v bash >/dev/null 2>&1; then
@@ -15,7 +16,8 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SUT="$SCRIPT_DIR/persist-report.sh"
-SKILL="$SCRIPT_DIR/../SKILL.md"
+RUNNER_SKILL="$SCRIPT_DIR/../../skills/superbuild-runner/SKILL.md"
+RUNNER_AGENT="$SCRIPT_DIR/../../skills/superbuild/agents/runner.md"
 
 SCRATCH="$(mktemp -d 2>/dev/null || mktemp -d -t persistreport)"
 trap 'rm -rf "$SCRATCH"' EXIT
@@ -190,13 +192,19 @@ if [ ! -f "$p" ] || ! cmp -s "$p" "$d/in.md"; then fail "missing parent dir" "re
 elif ! want_line "STATUS: PASS"; then fail "missing parent dir" "got: <$out>"
 else pass "missing parent dir"; fi
 
-# --- Case 12 — AC5: ../SKILL.md rewired (Write gone, script + inline clause) ---
+# --- Case 12 — both consumers wire the shared script, neither hand-writes ------
+# superbuild-runner SKILL.md: no Write in allowed-tools, invokes persist-report.sh,
+# keeps its inline-mode stdout-only clause. runner agent: no Write in tools, invokes
+# persist-report.sh (its report is the script's verified projection, never a raw Write).
 TOTAL=$((TOTAL + 1))
-if [ ! -f "$SKILL" ]; then fail "SKILL rewired" "SKILL.md not found at $SKILL"
-elif grep -E '^allowed-tools:' "$SKILL" | grep -q 'Write'; then fail "SKILL rewired" "allowed-tools still lists Write"
-elif ! grep -q 'persist-report.sh' "$SKILL"; then fail "SKILL rewired" "pipeline mode does not invoke persist-report.sh"
-elif ! grep -q 'do NOT persist anything' "$SKILL"; then fail "SKILL rewired" "inline mode stdout-only clause missing"
-else pass "SKILL rewired"; fi
+if [ ! -f "$RUNNER_SKILL" ]; then fail "consumers wired" "superbuild-runner SKILL.md not found at $RUNNER_SKILL"
+elif [ ! -f "$RUNNER_AGENT" ]; then fail "consumers wired" "runner agent not found at $RUNNER_AGENT"
+elif grep -E '^allowed-tools:' "$RUNNER_SKILL" | grep -q 'Write'; then fail "consumers wired" "superbuild-runner allowed-tools still lists Write"
+elif ! grep -q 'persist-report.sh' "$RUNNER_SKILL"; then fail "consumers wired" "superbuild-runner does not invoke persist-report.sh"
+elif ! grep -q 'do NOT persist anything' "$RUNNER_SKILL"; then fail "consumers wired" "superbuild-runner inline stdout-only clause missing"
+elif grep -E '^tools:' "$RUNNER_AGENT" | grep -q 'Write'; then fail "consumers wired" "runner agent tools still lists Write"
+elif ! grep -q 'persist-report.sh' "$RUNNER_AGENT"; then fail "consumers wired" "runner agent does not invoke persist-report.sh"
+else pass "consumers wired"; fi
 
 echo ""
 if [ "$FAILED" -ne 0 ]; then echo "FAILED ($PASS_COUNT/$TOTAL)"; exit 1; fi
