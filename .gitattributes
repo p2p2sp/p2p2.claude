@@ -1,6 +1,7 @@
+.superdev/.workflows/** linguist-generated=true
+
+
 ###############################################################################
 # Default: auto-normalize line endings
 ###############################################################################
 * text=auto eol=lf
-
-.superdev/.workflows/** linguist-generated=true
