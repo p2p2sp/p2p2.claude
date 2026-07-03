@@ -136,6 +136,8 @@ The edit loop is unbounded — user may edit any number of fields before saving.
 
 ## Step 8 — Persist & create
 
+**Echo the final content first (mandatory, unconditional).** Before any `Write` or `gh issue create`, re-print the exact issue about to be saved — the same block shape as the Step 7 preview (title + type/labels/assignees/projects + the full rendered body verbatim, byte-for-byte what lands in `<body_path>`), under a `## Saving issue` heading. This fires regardless of auto-fill ratio or whether the Step 7 edit loop ran — the user always sees precisely what gets persisted immediately before it is written. Only after printing it, persist:
+
 1. **Compute the body path** — deterministic; the script timestamps, slugifies the title (with Polish transliteration), creates `.temp/create-issue/`, and prints the ready path. Trust its single output line:
    ```
    body_path = Bash("sh \"${CLAUDE_PLUGIN_ROOT}/shared/scripts/body-path.sh\" create-issue \"<title>\"")
@@ -204,3 +206,4 @@ Rules:
 - NEVER assume the template set looks like the current repo's — this skill ships stack-agnostic; behavior derives entirely from what's present in `.github/ISSUE_TEMPLATE/` at runtime.
 - NEVER auto-fill a value into a `dropdown` or `checkboxes` field that is not an exact member of `attributes.options[]` — context implying an out-of-set value → MISSING (never partially select for `checkboxes`).
 - NEVER bypass the Step 7 preview / confirmation — auto-fill ratio is irrelevant; the user always sees the preview and the Save / Edit field / Cancel triad.
+- NEVER `Write` the body or run `gh issue create` before printing the Step 8 "Saving issue" echo of the exact final content — the print precedes persistence unconditionally, however the content was assembled.

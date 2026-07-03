@@ -146,6 +146,8 @@ The edit loop is unbounded — user may edit any number of fields before saving.
 
 ## Step 8 — Persist & create
 
+**Echo the final content first (mandatory, unconditional).** Before any `Write` or `gh pr create`, re-print the exact PR about to be saved — the same block shape as the Step 7 preview (title + base/head/draft + the full rendered body verbatim, byte-for-byte what lands in `<body_path>`), under a `## Saving PR` heading. This fires regardless of auto-fill ratio or whether the Step 7 edit loop ran — the user always sees precisely what gets persisted immediately before it is written. Only after printing it, persist:
+
 1. **Compute the body path** — deterministic; the script timestamps, slugifies the title (with Polish transliteration), creates `.temp/create-pr/`, and prints the ready path. Trust its single output line:
    ```
    body_path = Bash("sh \"${CLAUDE_PLUGIN_ROOT}/shared/scripts/body-path.sh\" create-pr \"<title>\"")
@@ -209,3 +211,5 @@ Rules:
 - NEVER render the template's literal test-section placeholders (`- [ ] Test 1`, etc.) — example content, not contract. Replace with concrete steps from session context (Step 6 + **Test-section auto-fill** in `references/auto-fill.md`) or skip the section when the change is untestable (docs / assets / dotfiles only).
 - NEVER fabricate specific function / endpoint / file / module names in auto-generated test or Summary bullets — conservativeness applies to both **Test-section auto-fill** and **Summary auto-fill** (`references/auto-fill.md`). On sparse context, fall back as defined there, never invent specifics.
 - NEVER carry `#`-prefixed numeric references through the "Podsumowanie zmian" section — Summary auto-fill strips `#(\d+)` → `\1` so squash-merge subjects like `feat: foo (#123)` don't become noisy cross-reference renders. `#` is preserved only in "Powiązane zadania", where GitHub keyword-linking (`closes #N`) needs it.
+- NEVER bypass the Step 7 preview / confirmation — auto-fill ratio is irrelevant; the user always sees the preview and the Save / Edit field / Cancel triad.
+- NEVER `Write` the body or run `gh pr create` before printing the Step 8 "Saving PR" echo of the exact final content — the print precedes persistence unconditionally, however the content was assembled.
