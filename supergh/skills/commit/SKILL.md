@@ -5,29 +5,19 @@ description: >-
 allowed-tools: Bash(git status:*), Bash(git rev-parse:*), Bash(git diff:*), Bash(sh:*), Skill
 user-invocable: true
 argument-hint: "[all|staged]"
-model: claude-sonnet-4-6
+model: sonnet
 effort: low
 ---
 
-## No-op gate
-<worktree-status>
+## Step 1: No-op gate
 
-!`git status --porcelain`
+!`sh -c '[ -z "$(git status --porcelain)" ] && echo "Nothing to commit. STOP." || echo "There are some changes. Go to next step."'`
 
-</worktree-status>
-
-Empty block above → the working tree is clean: nothing to commit in any mode. Reply `nothing to commit` and stop — do NOT run the routed playbook, do NOT delegate to the committer.
-
-## Pre-commit HEAD
-<head-before>
+## Step 2: Process
 
 !`git rev-parse --verify --quiet HEAD 2>/dev/null || echo NONE`
 
-</head-before>
-
 HEAD frozen before any commit. The fork path (`all`/`staged`) verifies the commit landed against this value — do NOT re-read it.
-
-## Routed playbook
 
 !`"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/route.sh" "$ARGUMENTS"`
 
