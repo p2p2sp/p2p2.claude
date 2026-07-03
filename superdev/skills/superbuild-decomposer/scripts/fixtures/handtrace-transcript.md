@@ -56,7 +56,7 @@ PLAN_COPIED
 
 ## Step 7.1 — task files written
 
-`.temp/.workflows/coupon-discount-at-checkout/tasks/{1,2,3}.md` written per the
+`.superdev/.workflows/coupon-discount-at-checkout/tasks/{1,2,3}.md` written per the
 Step 7.1 template (H1 + `>` orientation + 7 body sections).
 
 ## Step 8 — validate_tasks.py
@@ -73,7 +73,7 @@ hand above.
 ## Output-format line shape
 
 ```
-- 1 — feat(discount): add coupon discount calculator — .temp/.workflows/coupon-discount-at-checkout/tasks/1.md
+- 1 — feat(discount): add coupon discount calculator — .superdev/.workflows/coupon-discount-at-checkout/tasks/1.md
 ```
 Matches the superbuild consumer regex `^- (\d+) — (.+) — (.+\.md)$` (exact UTF-8
 " — " separator).

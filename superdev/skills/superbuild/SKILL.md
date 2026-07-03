@@ -8,7 +8,7 @@ model: opus
 effort: low
 ---
 
-!`mkdir -p .temp/.workflows 2>/dev/null || true`
+!`mkdir -p .superdev/.workflows 2>/dev/null || true`
 
 # Superbuild — Task Pipeline Dispatcher
 
@@ -22,13 +22,13 @@ The per-task inner loop (coder → runner → task-reviewer → improver, with r
 plan.md
    │  (MANDATORY first step every entry — owns the clean-tree guard; FAIL = hard halt)
    ▼
-recipe  ──►  writes .temp/.workflows/<slug>/recipe.sh + profile.md  ──►  recipePath threaded into every Workflow
+recipe  ──►  writes .superdev/.workflows/<slug>/recipe.sh + profile.md  ──►  recipePath threaded into every Workflow
    │  (once, before decompose — config-gated by `adr`, idempotent via adr.done)
    ▼
 adr-recorder  ──►  writes .superdev/adr/<ADR>.md + .superdev/ADR.md  ──►  commit-adr.sh commits them
    │  (once, before the loop)
    ▼
-decomposer  ──►  .temp/.workflows/<slug>/tasks/<N>.md  +  status.yml
+decomposer  ──►  .superdev/.workflows/<slug>/tasks/<N>.md  +  status.yml
    │  (per task N — ONE Workflow invocation drives the whole inner loop)
    ▼
 task-pipeline.workflow.js  ──►  coder ─► runner ─► task-reviewer ─► improver ─► commiter
@@ -55,7 +55,7 @@ Roles (one line each):
 - **task-reviewer** (`task-reviewer` agent) — verifies Deliverable + tests + conventions against the working tree; emits `PASS`/`FAIL`/`BLOCKED`.
 - **improver** (`improver` agent) — promotes the task's review learnings into `.claude/rules/` (delegating authoring to `memory-rules`); always `PASS`. Gated by `rules_improver`.
 - **commiter** (`commiter` agent → `scripts/commit-task.sh`) — commits the task as the workflow's **final stage**, only on PASS. The script self-verifies (HEAD advanced + clean tree) before emitting a `sha`; the agent only relays its tag; the workflow parses it into `wf_out.commit`. The dispatcher never runs the commit and trusts `wf_out.commit` directly.
-- **superbuild-reviewer (sub-dispatcher)** — one-shot terminal gate after the last commit; fans out six parallel lenses via Skill (`superbuild-reviewer-plan` + four `superbuild-reviewer-{quality,architecture,testing,readiness}` code-quality lenses + `superbuild-runner` Scope: full), synthesizes one go/no-go verdict on stdout, and **writes** `.temp/.workflows/<slug>/final-review.md`. The dispatcher materializes `plan.diff` and passes `Report path:` + `Diff file:`.
+- **superbuild-reviewer (sub-dispatcher)** — one-shot terminal gate after the last commit; fans out six parallel lenses via Skill (`superbuild-reviewer-plan` + four `superbuild-reviewer-{quality,architecture,testing,readiness}` code-quality lenses + `superbuild-runner` Scope: full), synthesizes one go/no-go verdict on stdout, and **writes** `.superdev/.workflows/<slug>/final-review.md`. The dispatcher materializes `plan.diff` and passes `Report path:` + `Diff file:`.
 - **docs-recorder** (`superbuild-docs`) — the **last** step; reconciles the agent-facing as-built docs in `.superdev/docs/` (index + shards) against the cumulative `plan.diff`. Once, after final review, config-gated by `docs`, runs on ANY final verdict (changes are already committed), committed by `commit-docs.sh`. Reuses the `plan.diff` + `final-review.md` already materialized; never touches source or the plan.
 
 Each worker carries its own input/output contract: the workflow's agents in `agents/<name>.md`; decomposer/runner in their `SKILL.md`; the committer tag in `scripts/commit-task.sh`'s header; the workflow's args/return in `scripts/task-pipeline.workflow.js`'s header. The dispatcher reads only the workflow's `{status, attempts, lastFailureReportPath, outputTokens, commit}` return and the **ADR** / **docs** committers' tags (`parse_commit_tag`). When the workflow's contract changes, update the `.js` header, then this graph and `references/retry-policy.md`.
@@ -77,7 +77,7 @@ The **FIRST** step every entry, before ADR / decompose / loop. `superbuild-recip
 
 ```
 slug = basename(plan-path) without trailing ".md"   # ORIGINAL plan filename — same slug ADR/decompose re-derive
-recipe_path = ".temp/.workflows/<slug>/recipe.sh"    # forwarded to each per-task Workflow as `recipePath`
+recipe_path = ".superdev/.workflows/<slug>/recipe.sh"    # forwarded to each per-task Workflow as `recipePath`
 
 # Inject the plan CONTENT via dynamic context — pass the BARE ABSOLUTE plan path + the slug.
 recipe_out = Skill(skill="superdev:superbuild-recipe", args="<abspath(plan-path)> <slug>")
@@ -120,13 +120,13 @@ slug = basename(plan-path) without trailing ".md"   # always the ORIGINAL plan f
 decompose_plan_path = plan-path                      # ALWAYS the original plan — never augmented or copied
 
 # Idempotency gate: ADR step already done, or task files exist (resume past decompose).
-if exists(".temp/.workflows/<slug>/adr.done") OR Glob(".temp/.workflows/<slug>/tasks/*.md") returns ≥1 path:
+if exists(".superdev/.workflows/<slug>/adr.done") OR Glob(".superdev/.workflows/<slug>/tasks/*.md") returns ≥1 path:
     skip to "Decompose the plan into per-task files"
 
 # Config gate: `adr` ≠ literally `true` → skip, mark done so a later resume stays consistent.
 if config switch `adr` is not literally `true`:
     print("ADR: skipped (disabled)")
-    Write(".temp/.workflows/<slug>/adr.done", "skipped\n")
+    Write(".superdev/.workflows/<slug>/adr.done", "skipped\n")
     skip to "Decompose the plan into per-task files"
 
 # Clean tree already guaranteed by the recipe step's Step 0 — no git status re-check here.
@@ -147,7 +147,7 @@ else:
     # STATUS: NO-ADR (or malformed) → nothing written, nothing to commit.
     print("ADR: none")
 
-Write(".temp/.workflows/<slug>/adr.done", "done\n")   # mark done for idempotent resume
+Write(".superdev/.workflows/<slug>/adr.done", "done\n")   # mark done for idempotent resume
 ```
 
 The ADR commit lands **before** the per-task loop, so it parents the Task 1 commit; `base.sha` (= `HEAD^` after Task 1) points at it and the final-review diff excludes it — correct, since an ADR is documentation, not plan functionality.
@@ -168,11 +168,11 @@ max = len(task_files)
 
 Each `## Task files` line is `- <N> — <verb-phrase> — <path>`; parse with `^- (\d+) — (.+) — (.+\.md)$` (group 2 = verb-phrase, group 3 = path). `task_titles` seeds the progress widget without re-reading task files.
 
-Decomposer is idempotent: existing `.temp/.workflows/<slug>/tasks/*.md` → `STATUS: PASS` + `## Notes: existing task files detected — decomposition skipped`. To force regeneration, delete the directory.
+Decomposer is idempotent: existing `.superdev/.workflows/<slug>/tasks/*.md` → `STATUS: PASS` + `## Notes: existing task files detected — decomposition skipped`. To force regeneration, delete the directory.
 
 Print `Plan decomposed into <K> task file(s).`
 
-The dispatcher hands per-task work to `task-pipeline.workflow.js` (one `Workflow` per task), not to workers directly — the workflow builds every worker prompt and owns the report paths under `.temp/.workflows/<slug>/orchestration/task-<N>/<role>-<attempt>.md`. The dispatcher passes only the coarse handles: `taskFile`, `reportDir`, `taskBaseSha`, `recipePath`, `taskGateRunnable`, `rulesImprover`, `retryMaxAttempts`, and (on escalation) `feedbackPath`. The commit stays inside the workflow. Exact prompt shapes + report slots: the workflow's header + `references/retry-policy.md`.
+The dispatcher hands per-task work to `task-pipeline.workflow.js` (one `Workflow` per task), not to workers directly — the workflow builds every worker prompt and owns the report paths under `.superdev/.workflows/<slug>/orchestration/task-<N>/<role>-<attempt>.md`. The dispatcher passes only the coarse handles: `taskFile`, `reportDir`, `taskBaseSha`, `recipePath`, `taskGateRunnable`, `rulesImprover`, `retryMaxAttempts`, and (on escalation) `feedbackPath`. The commit stays inside the workflow. Exact prompt shapes + report slots: the workflow's header + `references/retry-policy.md`.
 
 Decomposer's `## Notes` is informational — the superbuild does not gate on it. Material decisions resurface in the final whole-plan review against the cumulative diff.
 
@@ -181,7 +181,7 @@ Decomposer's `## Notes` is informational — the superbuild does not gate on it.
 First applicable wins:
 
 ```
-status_path = ".temp/.workflows/<slug>/status.yml"
+status_path = ".superdev/.workflows/<slug>/status.yml"
 current_task = parse_status_yml(status_path)   # None if missing or malformed
 arg_task = parse_arg_task($ARGUMENTS)          # integer N if `task=<N>` present, else None
 
@@ -222,7 +222,7 @@ for N in 1..max:
     verb = task_titles[N]              # from decomposer's listing — no file read
     task_widgets[N] = safe_task_call(TaskCreate,
         subject=f"Task {N}: {verb}",
-        description=f"Pipeline pass for task file `.temp/.workflows/{slug}/tasks/{N}.md`.",
+        description=f"Pipeline pass for task file `.superdev/.workflows/{slug}/tasks/{N}.md`.",
         activeForm=f"Implementing Task {N}: {verb}")
 
 # Resume: every task below `start` is already committed → mark completed.
@@ -253,12 +253,12 @@ For each task `N` from `start` to `max`, the dispatcher's job is four bookends: 
 safe_task_call(TaskUpdate, taskId=task_widgets[N], status="in_progress")   # only this task is in_progress
 
 # Per-task audit/transport dir (ephemeral, NOT truth). The workflow dictates every report path inside it.
-orch_dir = f".temp/.workflows/<slug>/orchestration/task-{N}"
+orch_dir = f".superdev/.workflows/<slug>/orchestration/task-{N}"
 
 # Persist task-base.sha BEFORE the workflow (attempt-1 capture). The SHA every task-reviewer/coder uses for the
 # task diff; stable for the whole task — escalation re-invokes MUST NOT overwrite it. Written once per task.
 task_base_sha = bash("git rev-parse HEAD").strip()
-Write(".temp/.workflows/<slug>/task-base.sha", task_base_sha + "\n")
+Write(".superdev/.workflows/<slug>/task-base.sha", task_base_sha + "\n")
 
 # Is the gate runnable? Pure `Tests: none` → false (runner pass skipped).
 gate = extract_task_gate(N)
@@ -310,7 +310,7 @@ if commit.kind == "sha":
     print(f"[{N}/{max}] commit: {short_sha}")
     if N == 1:    # persist base.sha after the first commit (parent is now HEAD^ — read-only query)
         parent_sha = bash("git rev-parse \"HEAD^\"").strip()
-        Write(".temp/.workflows/<slug>/base.sha", parent_sha + "\n")
+        Write(".superdev/.workflows/<slug>/base.sha", parent_sha + "\n")
     safe_task_call(TaskUpdate, taskId=task_widgets[N], status="completed", description=f"Committed {short_sha}.")
 elif commit.kind == "no-changes":
     print(f"[{N}/{max}] commit: no-op (no-changes)")
@@ -322,7 +322,7 @@ else:
 
 # status.yml — authoritative task tracker. After task N, next is N+1. After N=max → `current_task: max+1`
 # (the "all done" sentinel the starting-task resolution detects on a re-run).
-Write(".temp/.workflows/<slug>/status.yml", f"current_task: {N + 1}\n")
+Write(".superdev/.workflows/<slug>/status.yml", f"current_task: {N + 1}\n")
 ```
 
 ### Notes on the loop
@@ -336,9 +336,9 @@ Write(".temp/.workflows/<slug>/status.yml", f"current_task: {N + 1}\n")
 Runs **once**, after the last task commits (or when the `current_task > max` sentinel jumps here). Delegated wholesale to `superdev:superbuild-reviewer`, which fans out six parallel lenses → synthesis, **returns one go/no-go verdict on stdout**, and **writes** the report to the `Report path:` you hand it. The dispatcher materializes the cumulative patch the four quality lenses need (they have no `Bash`).
 
 ```
-# base_sha priority: persisted .temp/.workflows/<slug>/base.sha → git merge-base HEAD main. Then head_sha = HEAD.
-diff_path   = ".temp/.workflows/<slug>/plan.diff"      # ephemeral transport, NOT truth
-report_path = ".temp/.workflows/<slug>/final-review.md"
+# base_sha priority: persisted .superdev/.workflows/<slug>/base.sha → git merge-base HEAD main. Then head_sha = HEAD.
+diff_path   = ".superdev/.workflows/<slug>/plan.diff"      # ephemeral transport, NOT truth
+report_path = ".superdev/.workflows/<slug>/final-review.md"
 bash(f'git diff {base_sha}..{head_sha} > "{diff_path}"')
 final_prompt = (
     "Plan: <plan-path>\n"
@@ -365,13 +365,13 @@ The **last** step. `superbuild-docs` reconciles `.superdev/docs/` (index + shard
 
 ```
 # Idempotency gate: docs step already done this run.
-if exists(".temp/.workflows/<slug>/docs.done"):
+if exists(".superdev/.workflows/<slug>/docs.done"):
     stop the skill
 
 # Config gate: `docs` ≠ literally `true` → skip, mark done, stop.
 if config switch `docs` is not literally `true`:
     print("Docs: skipped (disabled)")
-    Write(".temp/.workflows/<slug>/docs.done", "skipped\n")
+    Write(".superdev/.workflows/<slug>/docs.done", "skipped\n")
     stop the skill
 
 # superbuild-docs injects plan + plan.diff + final-review CONTENT via `cat` of the four ` ||| `-separated
@@ -392,7 +392,7 @@ else:
     # STATUS: NO-DOCS (or malformed) → nothing written, nothing to commit.
     print("Docs: none")
 
-Write(".temp/.workflows/<slug>/docs.done", "done\n")   # mark done for idempotent resume
+Write(".superdev/.workflows/<slug>/docs.done", "done\n")   # mark done for idempotent resume
 stop the skill
 ```
 

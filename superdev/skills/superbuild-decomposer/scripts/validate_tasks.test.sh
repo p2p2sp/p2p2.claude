@@ -79,10 +79,10 @@ EOF
 new_host() {
   local slug="$1"
   local host="$SCRATCH/h_${slug}_$RANDOM"
-  mkdir -p "$host/.temp/.workflows/$slug/tasks"
+  mkdir -p "$host/.superdev/.workflows/$slug/tasks"
   printf '# the plan\n\nbody\n' > "$host/src.md"
-  cp "$host/src.md" "$host/.temp/.workflows/$slug/plan.md"
-  printf 'current_task: 1\n' > "$host/.temp/.workflows/$slug/status.yml"
+  cp "$host/src.md" "$host/.superdev/.workflows/$slug/plan.md"
+  printf 'current_task: 1\n' > "$host/.superdev/.workflows/$slug/status.yml"
   echo "$host"
 }
 
@@ -102,7 +102,7 @@ assert_fail() {
 }
 
 # --- Positive — VALIDATE_OK ---------------------------------------------------
-H="$(new_host ok)"; D="$H/.temp/.workflows/ok/tasks"
+H="$(new_host ok)"; D="$H/.superdev/.workflows/ok/tasks"
 emit_task "$D/1.md" '# feat(core): add validator' tdd '—' \
   '- unit — rejects empty input — suggested location: t/
 - unit — accepts non-empty — suggested location: t/' "$GATE"
@@ -111,16 +111,16 @@ emit_task "$D/2.md" '# docs(readme): document it' tests-none '- task 1 — uses 
 assert_ok "positive -> VALIDATE_OK" "$H" ok
 
 # --- h1-form (no Conventional-Commits type) -----------------------------------
-H="$(new_host hf)"; emit_task "$H/.temp/.workflows/hf/tasks/1.md" '# add a thing' tdd '—' '- unit — u' "$GATE"
+H="$(new_host hf)"; emit_task "$H/.superdev/.workflows/hf/tasks/1.md" '# add a thing' tdd '—' '- unit — u' "$GATE"
 assert_fail "h1-form" "$H" hf h1-form
 
 # --- verb-h1 (forbidden legacy `# Task N` heading) ----------------------------
-H="$(new_host vh)"; emit_task "$H/.temp/.workflows/vh/tasks/1.md" '# Task 1 — do thing' tdd '—' '- unit — u' "$GATE"
+H="$(new_host vh)"; emit_task "$H/.superdev/.workflows/vh/tasks/1.md" '# Task 1 — do thing' tdd '—' '- unit — u' "$GATE"
 assert_fail "verb-h1" "$H" vh verb-h1
 
 # --- section-order (missing/disordered sections) ------------------------------
 H="$(new_host so)"
-cat > "$H/.temp/.workflows/so/tasks/1.md" <<'EOF'
+cat > "$H/.superdev/.workflows/so/tasks/1.md" <<'EOF'
 # feat(a): x
 
 ## Deliverable
@@ -134,55 +134,55 @@ EOF
 assert_fail "section-order" "$H" so section-order
 
 # --- mode-enum ----------------------------------------------------------------
-H="$(new_host me)"; emit_task "$H/.temp/.workflows/me/tasks/1.md" '# feat(a): x' bogusmode '—' '- unit — u' "$GATE"
+H="$(new_host me)"; emit_task "$H/.superdev/.workflows/me/tasks/1.md" '# feat(a): x' bogusmode '—' '- unit — u' "$GATE"
 assert_fail "mode-enum" "$H" me mode-enum
 
 # --- tests-none-shape (tests-none with a real test list) ----------------------
-H="$(new_host tn)"; emit_task "$H/.temp/.workflows/tn/tasks/1.md" '# docs(a): x' tests-none '—' '- unit — u' "$GATE"
+H="$(new_host tn)"; emit_task "$H/.superdev/.workflows/tn/tasks/1.md" '# docs(a): x' tests-none '—' '- unit — u' "$GATE"
 assert_fail "tests-none-shape" "$H" tn tests-none-shape
 
 # --- tests-empty (runnable mode, empty Tests) ---------------------------------
-H="$(new_host te)"; emit_task "$H/.temp/.workflows/te/tasks/1.md" '# feat(a): x' code-first-then-tests '—' '(no bullets here)' "$GATE"
+H="$(new_host te)"; emit_task "$H/.superdev/.workflows/te/tasks/1.md" '# feat(a): x' code-first-then-tests '—' '(no bullets here)' "$GATE"
 assert_fail "tests-empty" "$H" te tests-empty
 
 # --- gate-shape (runnable mode missing Build/Tests gate lines) ----------------
-H="$(new_host gs)"; emit_task "$H/.temp/.workflows/gs/tasks/1.md" '# feat(a): x' tdd '—' '- unit — u' '- something else'
+H="$(new_host gs)"; emit_task "$H/.superdev/.workflows/gs/tasks/1.md" '# feat(a): x' tdd '—' '- unit — u' '- something else'
 assert_fail "gate-shape" "$H" gs gate-shape
 
 # --- tdd-unit-min (tdd with no unit Kind) -------------------------------------
-H="$(new_host tu)"; emit_task "$H/.temp/.workflows/tu/tasks/1.md" '# feat(a): x' tdd '—' '- integration — i' "$GATE"
+H="$(new_host tu)"; emit_task "$H/.superdev/.workflows/tu/tasks/1.md" '# feat(a): x' tdd '—' '- integration — i' "$GATE"
 assert_fail "tdd-unit-min" "$H" tu tdd-unit-min
 
 # --- e2e-min (e2e-first with no e2e Kind) -------------------------------------
-H="$(new_host em)"; emit_task "$H/.temp/.workflows/em/tasks/1.md" '# feat(a): x' e2e-first '—' '- unit — u' "$GATE"
+H="$(new_host em)"; emit_task "$H/.superdev/.workflows/em/tasks/1.md" '# feat(a): x' e2e-first '—' '- unit — u' "$GATE"
 assert_fail "e2e-min" "$H" em e2e-min
 
 # --- forward-ref (dep >= N) ---------------------------------------------------
-H="$(new_host fr)"; D="$H/.temp/.workflows/fr/tasks"
+H="$(new_host fr)"; D="$H/.superdev/.workflows/fr/tasks"
 emit_task "$D/1.md" '# feat(a): x' tdd '—' '- unit — u' "$GATE"
 emit_task "$D/2.md" '# feat(b): y' tdd '- task 2 — self' '- unit — u' "$GATE"
 assert_fail "forward-ref" "$H" fr forward-ref
 
 # --- task1-dep (Task 1 has a dependency) --------------------------------------
-H="$(new_host td)"; D="$H/.temp/.workflows/td/tasks"
+H="$(new_host td)"; D="$H/.superdev/.workflows/td/tasks"
 emit_task "$D/1.md" '# feat(a): x' tdd '- task 2 — bad' '- unit — u' "$GATE"
 emit_task "$D/2.md" '# feat(b): y' tdd '—' '- unit — u' "$GATE"
 assert_fail "task1-dep" "$H" td task1-dep
 
 # --- cycle --------------------------------------------------------------------
-H="$(new_host cy)"; D="$H/.temp/.workflows/cy/tasks"
+H="$(new_host cy)"; D="$H/.superdev/.workflows/cy/tasks"
 emit_task "$D/1.md" '# feat(a): x' tdd '- task 2 — c' '- unit — u' "$GATE"
 emit_task "$D/2.md" '# feat(b): y' tdd '- task 1 — c' '- unit — u' "$GATE"
 assert_fail "cycle" "$H" cy cycle
 
 # --- plan-bytes (plan.md != source) -------------------------------------------
-H="$(new_host pb)"; emit_task "$H/.temp/.workflows/pb/tasks/1.md" '# feat(a): x' tdd '—' '- unit — u' "$GATE"
-printf 'DRIFTED COPY\n' > "$H/.temp/.workflows/pb/plan.md"
+H="$(new_host pb)"; emit_task "$H/.superdev/.workflows/pb/tasks/1.md" '# feat(a): x' tdd '—' '- unit — u' "$GATE"
+printf 'DRIFTED COPY\n' > "$H/.superdev/.workflows/pb/plan.md"
 assert_fail "plan-bytes" "$H" pb plan-bytes
 
 # --- status-seed (status.yml missing) -----------------------------------------
-H="$(new_host se)"; emit_task "$H/.temp/.workflows/se/tasks/1.md" '# feat(a): x' tdd '—' '- unit — u' "$GATE"
-rm "$H/.temp/.workflows/se/status.yml"
+H="$(new_host se)"; emit_task "$H/.superdev/.workflows/se/tasks/1.md" '# feat(a): x' tdd '—' '- unit — u' "$GATE"
+rm "$H/.superdev/.workflows/se/status.yml"
 assert_fail "status-seed" "$H" se status-seed
 
 # --- slug-invalid -------------------------------------------------------------
@@ -190,7 +190,7 @@ H="$(new_host ok)"   # any host; the bad slug never resolves a path
 assert_fail "slug-invalid" "$H" "../evil" slug-invalid
 
 # --- no-tasks (valid slug, empty tasks dir) -----------------------------------
-H="$SCRATCH/notasks"; mkdir -p "$H/.temp/.workflows/empty/tasks"; printf 'x\n' > "$H/src.md"
+H="$SCRATCH/notasks"; mkdir -p "$H/.superdev/.workflows/empty/tasks"; printf 'x\n' > "$H/src.md"
 assert_fail "no-tasks" "$H" empty no-tasks
 
 echo ""

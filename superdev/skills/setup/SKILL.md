@@ -12,7 +12,9 @@ effort: medium
 Run the bundled deterministic bootstrap (idempotent — never overwrites anything that exists). It
 seeds `.superdev/`, `.temp/`, `.gitignore`, `.claude/settings.json`, `.superdev/config.yml`, and
 `.claude/rules/_superdev.md` (a frozen pointer rule reminding the agent of the `<superdev:manifest>`
-mandatory rules) from templates and prints one result line per item. Trust those lines — do not
+mandatory rules) from templates, ensures `.gitattributes` carries the `.superdev/**`
+linguist-generated rules (append-if-absent, so GitHub collapses the tracked `.superdev/` scratch in
+review), and prints one result line per item. Trust those lines — do not
 re-verify.
 
 ```!
@@ -44,7 +46,7 @@ Emit exactly one message:
 ```
 ## superdev setup complete
 
-<one line per bootstrap result — e.g. ".superdev created", ".temp already present", ".gitignore seeded from template", "settings.json already present", "_superdev.md created">
+<one line per bootstrap result — e.g. ".superdev created", ".temp already present", ".gitignore seeded from template", "settings.json already present", "_superdev.md created", ".gitattributes created with linguist-generated rules">
 <config line — e.g. "config.yml seeded from template, then enabled: adr (rules_improver left off)" OR "config.yml already present (left untouched): <current values>">
 
 ### Recommended next steps

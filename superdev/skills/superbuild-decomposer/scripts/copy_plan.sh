@@ -11,8 +11,8 @@
 # Contract:
 #   argv  : $1 = source plan path; $2 = PlanSlug.
 #   cwd   : host repository root.
-#   writes: .temp/.workflows/<slug>/plan.md   — byte-exact copy of $1 (overwrite)
-#           .temp/.workflows/<slug>/status.yml — `current_task: 1` UNCONDITIONALLY
+#   writes: .superdev/.workflows/<slug>/plan.md   — byte-exact copy of $1 (overwrite)
+#           .superdev/.workflows/<slug>/status.yml — `current_task: 1` UNCONDITIONALLY
 #   stdout: EXACTLY one line — `PLAN_COPIED` on success, `COPY_FAIL <reason>` else.
 #   slug  : empty / invalid (fails slug_valid) -> `COPY_FAIL`, no FS write.
 #   guard : if the dest plan.md is a symlink or other non-regular file (a planted
@@ -34,7 +34,7 @@ slug_valid "$slug" || fail "empty or invalid PlanSlug"
 [ -f "$src" ] && [ -r "$src" ] || fail "source plan not a readable file: $src"
 [ -s "$src" ] || fail "source plan empty: $src"
 
-wf_dir=".temp/.workflows/$slug"
+wf_dir=".superdev/.workflows/$slug"
 mkdir -p "$wf_dir" || fail "cannot create $wf_dir"
 
 dest="$wf_dir/plan.md"

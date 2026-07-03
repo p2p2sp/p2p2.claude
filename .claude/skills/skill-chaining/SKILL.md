@@ -40,7 +40,7 @@ and gotchas live in [references/skill-chaining.md](references/skill-chaining.md)
 
 **This repo already lives these rules.** The `developer` pipeline (`coder`, `runner`, `task-reviewer`,
 `committer`, `decomposer`, …) and `github` (`cli-executor`, `commit`) are all `context: fork` executors that
-hand state through files under `.temp/.workflows/<slug>/` and a `Report path:`, and preload data with `!command`
+hand state through files under `.superdev/.workflows/<slug>/` and a `Report path:`, and preload data with `!command`
 (`committer` injects `git status`/diff, `runner` injects the build command). When designing a new chained
 skill, mirror that shape.
 

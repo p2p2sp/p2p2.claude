@@ -17,7 +17,9 @@
 #   - seeds .superdev/config.yml from the bundled template when none,
 #   - never overwrites an existing config.yml (reports its current switches),
 #   - seeds .claude/rules/_superdev.md (a frozen pointer to the manifest's
-#     mandatory rules) from the bundled template when none, never overwriting.
+#     mandatory rules) from the bundled template when none, never overwriting,
+#   - ensures .gitattributes carries the two .superdev/** linguist-generated
+#     rules (append-if-absent; creates the file when missing; never duplicates).
 #
 # Contract:
 #   argv : none.
@@ -33,6 +35,10 @@
 #           already present (left untouched)", or "_superdev.md: template missing
 #           at $src — skipped" — this exact literal is asserted verbatim by
 #           bootstrap.test.sh.
+#           The .gitattributes line is one of ".gitattributes: created with
+#           linguist-generated rules", ".gitattributes: linguist-generated rules
+#           appended", or ".gitattributes: linguist-generated rules already
+#           present" — also asserted verbatim by bootstrap.test.sh.
 #   exit : always 0 (fail-soft; missing templates are reported, not fatal).
 
 set -u
@@ -86,6 +92,29 @@ elif [ -f "$src_rules_superdev" ]; then
     && echo "_superdev.md: created"
 else
   echo "_superdev.md: template missing at $src_rules_superdev — skipped"
+fi
+
+# .gitattributes — collapse the tracked .superdev/ scratch + records in GitHub
+# review (linguist-generated). Append-if-absent so a host's own rules survive;
+# both lines are ensured independently (idempotent, no duplicates).
+ga_line1=".superdev/**            linguist-generated=true"
+ga_line2=".superdev/.workflows/** linguist-generated=true"
+if [ ! -f ".gitattributes" ]; then
+  printf '%s\n%s\n' "$ga_line1" "$ga_line2" > .gitattributes
+  echo ".gitattributes: created with linguist-generated rules"
+else
+  ga_added=0
+  # ensure a trailing newline so an append starts on its own line
+  if [ -s ".gitattributes" ] && [ -n "$(tail -c1 .gitattributes)" ]; then
+    printf '\n' >> .gitattributes
+  fi
+  grep -qxF "$ga_line1" .gitattributes || { printf '%s\n' "$ga_line1" >> .gitattributes; ga_added=1; }
+  grep -qxF "$ga_line2" .gitattributes || { printf '%s\n' "$ga_line2" >> .gitattributes; ga_added=1; }
+  if [ "$ga_added" -eq 1 ]; then
+    echo ".gitattributes: linguist-generated rules appended"
+  else
+    echo ".gitattributes: linguist-generated rules already present"
+  fi
 fi
 
 exit 0

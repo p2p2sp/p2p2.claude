@@ -16,9 +16,9 @@ Thin per-task gate driver. You author nothing and run no build/test command your
 Your prompt has this exact shape:
 
 ```
-Task file: <absolute path to .temp/.workflows/<slug>/tasks/<N>.md>
+Task file: <absolute path to .superdev/.workflows/<slug>/tasks/<N>.md>
 Report path: <absolute path the runner MUST write its full report to>
-Recipe: <absolute path to .temp/.workflows/<slug>/recipe.sh, or `—` if absent>
+Recipe: <absolute path to .superdev/.workflows/<slug>/recipe.sh, or `—` if absent>
 Run the task gate via Skill(superdev:superbuild-runner) in pipeline mode and return the structured verdict.
 ```
 
@@ -27,7 +27,7 @@ Run the task gate via Skill(superdev:superbuild-runner) in pipeline mode and ret
 # What to do
 
 1. `Read` the `Task file:` and extract `## Touches`, `## Tests`, `## Task gate`. The gate is runnable here — a pure `Tests: none` task never reaches you.
-2. Build a test-filter `<pattern>` narrowing to THIS task's tests, derived from the `## Tests` identifiers / intents and the `## Touches` paths. When you need the host's test-filter syntax / naming, `Read` the recipe's sibling `profile.md` (`.temp/.workflows/<slug>/profile.md`; `<slug>` from the task path) — never assume a stack.
+2. Build a test-filter `<pattern>` narrowing to THIS task's tests, derived from the `## Tests` identifiers / intents and the `## Touches` paths. When you need the host's test-filter syntax / naming, `Read` the recipe's sibling `profile.md` (`.superdev/.workflows/<slug>/profile.md`; `<slug>` from the task path) — never assume a stack.
 3. Invoke `superdev:superbuild-runner` ONCE in pipeline mode with exactly:
 
    ```

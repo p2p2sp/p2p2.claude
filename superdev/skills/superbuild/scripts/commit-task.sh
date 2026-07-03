@@ -12,14 +12,15 @@
 # `git add -A && git commit -m "T<N>: <subject>"`.
 #
 # Contract:
-#   argv : $1 = path to the per-task file (.temp/.workflows/<slug>/tasks/<N>.md).
+#   argv : $1 = path to the per-task file (.superdev/.workflows/<slug>/tasks/<N>.md).
 #          N      = basename "$1" .md
 #          subject= first `# ` H1 line of "$1", leading "# " stripped (verbatim
 #                   Conventional-Commits subject authored by superbuild-decomposer).
 #          The committed message is "T<N>: <subject>" — nothing is re-authored.
 #   cwd  : the repository whose staged tree is to be committed (caller's cwd;
 #          the superbuild runs this at the repo root). `git add -A` stages
-#          everything before committing, matching the old fork's `!`-block.
+#          everything EXCEPT the tracked pipeline scratch `.superdev/.workflows`
+#          before committing (that scratch never belongs in a task commit).
 #   stdout: EXACTLY ONE line — one of (vocabulary identical to dev-committer):
 #            <commit sha="<7-40 hex>" files="<count>">T<N>: <subject></commit>
 #            <commit status="no-changes"/>
@@ -71,9 +72,9 @@ fi
 
 # --- empty staged tree -> no-changes (checked BEFORE deriving subject, so an
 #     empty-tree no-op never depends on the H1 being present) ----------------
-# Stage everything first (matches the old fork's `git add -A` in its `!`-block),
-# then ask git whether anything is actually staged for commit.
-git add -A >/dev/null 2>&1
+# Stage everything EXCEPT the tracked pipeline scratch `.superdev/.workflows`
+# (which must never enter a task commit), then ask git whether anything is staged.
+git add -A -- . ':(exclude).superdev/.workflows' >/dev/null 2>&1
 if git diff --cached --quiet 2>/dev/null; then
   # exit 0 from --quiet == no staged differences == nothing to commit.
   printf '<commit status="no-changes"/>\n'
@@ -102,7 +103,7 @@ fi
 if [ "$before" = "$after" ]; then
   emit_error "commit did not land (HEAD unchanged)"
 fi
-if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+if [ -n "$(git status --porcelain -- . ':(exclude).superdev/.workflows' 2>/dev/null)" ]; then
   emit_error "worktree not clean after commit"
 fi
 

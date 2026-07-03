@@ -2,7 +2,7 @@
 # superdev / superbuild-recipe — recipe.sh harness TEMPLATE.
 #
 # This is the FIXED, bundled harness the superbuild-recipe generator copies into
-# `.temp/.workflows/<slug>/recipe.sh` and fills with host-specific values. The
+# `.superdev/.workflows/<slug>/recipe.sh` and fills with host-specific values. The
 # verb dispatch, the fail-closed `verify` self-check, the `N/A` sentinel, and the
 # fingerprint algorithm are FIXED here and never authored by the agent (modeled
 # on commit-task.sh: deterministic, self-verifying, trusted by callers). The

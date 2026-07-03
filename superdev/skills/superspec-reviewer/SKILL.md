@@ -15,8 +15,8 @@ Read a saved specification, check it against every superspec hard rule, and retu
 - **PASS is binary.** PASS = zero blockers (of either class). A single blocker → FAIL.
 
 ## Input
-- The **spec filepath** is the argument's first standalone line (normally the file `superspec` just saved at `.temp/.workflows/<date>-<slug>.md`). Any content from the next line onward is the optional feedback block below; never treat the whole multi-line argument as the path.
-- If no path is given: if exactly one recent spec exists in `.temp/.workflows/`, use it; if several are plausible, ask which one — do not guess.
+- The **spec filepath** is the argument's first standalone line (normally the file `superspec` just saved at `.superdev/.workflows/<date>-<slug>.md`). Any content from the next line onward is the optional feedback block below; never treat the whole multi-line argument as the path.
+- If no path is given: if exactly one recent spec exists in `.superdev/.workflows/`, use it; if several are plausible, ask which one — do not guess.
 - Read the **entire** file before judging. Review only what is written; never assume content that isn't on the page.
 - The path MAY be followed by `--- Previous review (round N) ---` (the prior `REVIEW: FAIL` report, verbatim) and `--- Fixes applied since ---` (the caller's summary of changes). Present → this is a re-review of a fixable-in-draft FAIL; run the **Resolved check** below before the normal checklist. Absent → this is round 1 (or a fresh round after a needs-discovery detour); skip straight to the checklist.
 

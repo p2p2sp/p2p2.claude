@@ -25,7 +25,7 @@ Plan: <absolute path to the original plan file>
 Diff range: <base_sha>..HEAD
 ```
 
-Both fields are present. The plan is free-form markdown (no `§6 Task graph` or `§7 Test impact` is required); the binding per-task contracts live in `.temp/.workflows/<slug>/tasks/*.md`. Every task has already reached PASS and been committed — there is no runner output to consult here; this is a static read of the plan, the task files, and the cumulative diff.
+Both fields are present. The plan is free-form markdown (no `§6 Task graph` or `§7 Test impact` is required); the binding per-task contracts live in `.superdev/.workflows/<slug>/tasks/*.md`. Every task has already reached PASS and been committed — there is no runner output to consult here; this is a static read of the plan, the task files, and the cumulative diff.
 
 If `Plan:` or `Diff range:` is absent or malformed, reply on stdout with `STATUS: FAIL` and a one-line reason naming the malformed-input fault, then stop.
 
@@ -35,9 +35,9 @@ If `Plan:` or `Diff range:` is absent or malformed, reply on stdout with `STATUS
 
 `Read` the `Plan:` path for orientation — the plan's outcome intent and any mental-model context. The plan is free-form markdown; no specific structure required.
 
-Derive the slug from the plan filename (the basename without `.md`). `Glob '.temp/.workflows/<slug>/tasks/*.md'` and `Read` every returned task file. Each task file is the binding contract for one slice of the cumulative diff. Extract per task: `## Deliverable`, `## Mode`, `## Tests`, `## Task gate`.
+Derive the slug from the plan filename (the basename without `.md`). `Glob '.superdev/.workflows/<slug>/tasks/*.md'` and `Read` every returned task file. Each task file is the binding contract for one slice of the cumulative diff. Extract per task: `## Deliverable`, `## Mode`, `## Tests`, `## Task gate`.
 
-If the glob returns zero task files, reply `STATUS: FAIL` with the line `no task files found under .temp/.workflows/<slug>/tasks/ — pipeline state missing or slug mismatch` and stop.
+If the glob returns zero task files, reply `STATUS: FAIL` with the line `no task files found under .superdev/.workflows/<slug>/tasks/ — pipeline state missing or slug mismatch` and stop.
 
 ## Step 2 — Inspect the cumulative diff
 
@@ -66,7 +66,7 @@ Do NOT attempt to re-run any test — you have no Bash tool and the per-task run
 
 ## Step 5 — Verify conventions across all touched directories
 
-Apply the **"How to verify conventions"** rubric rules across every directory the cumulative diff touches. First `Read .temp/.workflows/<slug>/profile.md` (the slug derived in Step 1) for the derived framework / test-naming / test-layout facts — being a no-Bash fork, you `Read` it directly. **Fail-closed:** if `profile.md` is absent, reply `STATUS: FAIL` with the line `profile.md absent at .temp/.workflows/<slug>/profile.md — recipe step did not run` and stop; do NOT re-derive the framework from `CLAUDE.md`. Then `Glob` `CLAUDE.md` from the repository root and `Read` the ones for touched directories; `Glob .claude/rules/**/*.md` and read those whose path or top heading matches any touched module / layer (the profile carries pointers only — never inlines rule bodies, so the path-scoped rule read still happens). Documented-rule violations → CRITICAL. Stylistic divergence → a Note, not CRITICAL.
+Apply the **"How to verify conventions"** rubric rules across every directory the cumulative diff touches. First `Read .superdev/.workflows/<slug>/profile.md` (the slug derived in Step 1) for the derived framework / test-naming / test-layout facts — being a no-Bash fork, you `Read` it directly. **Fail-closed:** if `profile.md` is absent, reply `STATUS: FAIL` with the line `profile.md absent at .superdev/.workflows/<slug>/profile.md — recipe step did not run` and stop; do NOT re-derive the framework from `CLAUDE.md`. Then `Glob` `CLAUDE.md` from the repository root and `Read` the ones for touched directories; `Glob .claude/rules/**/*.md` and read those whose path or top heading matches any touched module / layer (the profile carries pointers only — never inlines rule bodies, so the path-scoped rule read still happens). Documented-rule violations → CRITICAL. Stylistic divergence → a Note, not CRITICAL.
 
 ## Step 6 — Build the verdict
 

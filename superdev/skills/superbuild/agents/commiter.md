@@ -16,7 +16,7 @@ Passthrough git-commit executor for ONE task that already cleared the pipeline. 
 Your prompt has this exact shape:
 
 ```
-Task file: <absolute path to .temp/.workflows/<slug>/tasks/<N>.md>
+Task file: <absolute path to .superdev/.workflows/<slug>/tasks/<N>.md>
 ```
 
 # What to do

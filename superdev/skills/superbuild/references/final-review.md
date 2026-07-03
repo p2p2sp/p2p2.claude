@@ -1,6 +1,6 @@
 # Final whole-plan review
 
-Detail reference for the one-shot terminal gate run after the per-task pipeline completes. The superbuild delegates the whole review to `superdev:superbuild-reviewer` (which fans out **six parallel lenses** → synthesis), **returns one go/no-go verdict on stdout**, and **writes** `.temp/.workflows/<slug>/final-review.md`. The superbuild materializes the cumulative patch the four code-quality lenses need and passes its path; it does NOT write the report itself.
+Detail reference for the one-shot terminal gate run after the per-task pipeline completes. The superbuild delegates the whole review to `superdev:superbuild-reviewer` (which fans out **six parallel lenses** → synthesis), **returns one go/no-go verdict on stdout**, and **writes** `.superdev/.workflows/<slug>/final-review.md`. The superbuild materializes the cumulative patch the four code-quality lenses need and passes its path; it does NOT write the report itself.
 
 ## When it runs
 
@@ -13,18 +13,18 @@ The verdict covers the implementation as a whole against the plan's outcome inte
 
 Priority for `base_sha` — **first applicable wins**:
 
-1. **Persisted `.temp/.workflows/<slug>/base.sha`** — written after the Task 1 commit. Authoritative for any run that started fresh from Task 1 in this slug. Cross-session safe (survives on disk).
+1. **Persisted `.superdev/.workflows/<slug>/base.sha`** — written after the Task 1 commit. Authoritative for any run that started fresh from Task 1 in this slug. Cross-session safe (survives on disk).
 2. **`git merge-base HEAD main`** — last resort for runs that never persisted `base.sha` (e.g. started at `task=N>1` in a fresh repo with no Task 1 commit). The range may then include unrelated commits.
 
 ```
-persisted_base_path = ".temp/.workflows/<slug>/base.sha"
+persisted_base_path = ".superdev/.workflows/<slug>/base.sha"
 if exists(persisted_base_path):
     base_sha = Read(persisted_base_path).strip()
 else:
     base_sha = git merge-base HEAD main   # last resort: base.sha was never persisted
 head_sha = git rev-parse HEAD
 
-diff_path = ".temp/.workflows/<slug>/plan.diff"          # ephemeral transport, NOT truth
+diff_path = ".superdev/.workflows/<slug>/plan.diff"          # ephemeral transport, NOT truth
 bash(f'git diff {base_sha}..{head_sha} > "{diff_path}"')  # the patch the 4 quality lenses scope to
 ```
 
@@ -35,7 +35,7 @@ bash(f'git diff {base_sha}..{head_sha} > "{diff_path}"')  # the patch the 4 qual
 Invoke `superdev:superbuild-reviewer` **exactly once**, passing the plan path, diff range, patch path, and report path. It fans out its six lenses, synthesizes, writes the report, and returns `STATUS: PASS` (go) or `STATUS: FAIL` (no-go) on stdout with a per-lens breakdown.
 
 ```
-report_path = ".temp/.workflows/<slug>/final-review.md"
+report_path = ".superdev/.workflows/<slug>/final-review.md"
 final_prompt = (
     "Plan: <plan-path>\n"
     "Diff range: " + base_sha + ".." + head_sha + "\n"

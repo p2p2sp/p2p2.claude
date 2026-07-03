@@ -29,7 +29,15 @@
 #                created", exit 0;
 #            (6) _superdev.md never-overwrite-when-present: a pre-existing
 #                .claude/rules/_superdev.md (arbitrary content) is byte-unchanged,
-#                prints "_superdev.md: already present (left untouched)", exit 0.
+#                prints "_superdev.md: already present (left untouched)", exit 0;
+#            (7) .gitattributes seed-when-absent: no .gitattributes -> created with
+#                both .superdev/** linguist-generated lines + "created" report;
+#            (8) .gitattributes append preserves unrelated rules: an existing file
+#                gains both lines, its unrelated rule survives, "appended" report;
+#            (9) .gitattributes append only the missing line: with one line already
+#                present, only the other is added (no duplicate), "appended";
+#            (10) .gitattributes idempotent: a second run reports already-present,
+#                adds no duplicate, leaves the file byte-unchanged.
 #   note   : asserts on bootstrap.sh stdout AND exit code AND on-disk file state;
 #            each scratch dir is removed on exit (trap).
 set -u
@@ -163,6 +171,90 @@ elif ! printf '%s\n' "$out" | grep -qF "_superdev.md: already present (left unto
     fail "_superdev.md never overwrite when present" "missing present report line"
 else
     pass "_superdev.md never overwrite when present"
+fi
+
+# Case 7 — .gitattributes seed-when-absent: no .gitattributes -> created with both
+# linguist-generated lines + "created" report, exit 0.
+TOTAL=$((TOTAL + 1))
+T7="$SCRATCH/case7"
+mkdir -p "$T7"
+out="$(cd "$T7" && bash "$SUT")"; rc=$?
+if [ "$rc" -ne 0 ]; then
+    fail ".gitattributes seed when absent" "exit code $rc (expected 0)"
+elif [ ! -f "$T7/.gitattributes" ]; then
+    fail ".gitattributes seed when absent" ".gitattributes was not created"
+elif ! grep -qE '^\.superdev/\*\*[[:space:]]+linguist-generated=true$' "$T7/.gitattributes"; then
+    fail ".gitattributes seed when absent" "missing .superdev/** line"
+elif ! grep -qE '^\.superdev/\.workflows/\*\*[[:space:]]+linguist-generated=true$' "$T7/.gitattributes"; then
+    fail ".gitattributes seed when absent" "missing .superdev/.workflows/** line"
+elif ! printf '%s\n' "$out" | grep -qF ".gitattributes: created with linguist-generated rules"; then
+    fail ".gitattributes seed when absent" "missing created report line"
+else
+    pass ".gitattributes seed when absent"
+fi
+
+# Case 8 — .gitattributes append preserves unrelated rules: an existing file with an
+# unrelated rule gains both lines, the unrelated rule survives, "appended" report.
+TOTAL=$((TOTAL + 1))
+T8="$SCRATCH/case8"
+mkdir -p "$T8"
+printf '*.png binary\n' > "$T8/.gitattributes"
+out="$(cd "$T8" && bash "$SUT")"; rc=$?
+if [ "$rc" -ne 0 ]; then
+    fail ".gitattributes append preserves unrelated" "exit code $rc (expected 0)"
+elif ! grep -qxF '*.png binary' "$T8/.gitattributes"; then
+    fail ".gitattributes append preserves unrelated" "unrelated rule was lost"
+elif ! grep -qE '^\.superdev/\*\*[[:space:]]+linguist-generated=true$' "$T8/.gitattributes"; then
+    fail ".gitattributes append preserves unrelated" "missing .superdev/** line"
+elif ! grep -qE '^\.superdev/\.workflows/\*\*[[:space:]]+linguist-generated=true$' "$T8/.gitattributes"; then
+    fail ".gitattributes append preserves unrelated" "missing .superdev/.workflows/** line"
+elif ! printf '%s\n' "$out" | grep -qF ".gitattributes: linguist-generated rules appended"; then
+    fail ".gitattributes append preserves unrelated" "missing appended report line"
+else
+    pass ".gitattributes append preserves unrelated"
+fi
+
+# Case 9 — .gitattributes append only the missing line: seed both, strip the
+# workflows line, re-run -> only that line is re-added (kept line not duplicated).
+TOTAL=$((TOTAL + 1))
+T9="$SCRATCH/case9"
+mkdir -p "$T9"
+( cd "$T9" && bash "$SUT" >/dev/null )
+grep -vE '\.workflows' "$T9/.gitattributes" > "$T9/ga.tmp" && mv "$T9/ga.tmp" "$T9/.gitattributes"
+out="$(cd "$T9" && bash "$SUT")"; rc=$?
+n1="$(grep -cE '^\.superdev/\*\*[[:space:]]+linguist-generated=true$' "$T9/.gitattributes")"
+if [ "$rc" -ne 0 ]; then
+    fail ".gitattributes append only missing" "exit code $rc (expected 0)"
+elif [ "$n1" -ne 1 ]; then
+    fail ".gitattributes append only missing" "kept line duplicated ($n1 copies)"
+elif ! grep -qE '^\.superdev/\.workflows/\*\*[[:space:]]+linguist-generated=true$' "$T9/.gitattributes"; then
+    fail ".gitattributes append only missing" "missing line was not re-appended"
+elif ! printf '%s\n' "$out" | grep -qF ".gitattributes: linguist-generated rules appended"; then
+    fail ".gitattributes append only missing" "missing appended report line"
+else
+    pass ".gitattributes append only missing"
+fi
+
+# Case 10 — .gitattributes idempotent: a second run reports already-present, adds no
+# duplicate, leaves the file byte-unchanged.
+TOTAL=$((TOTAL + 1))
+T10="$SCRATCH/case10"
+mkdir -p "$T10"
+( cd "$T10" && bash "$SUT" >/dev/null )
+ga_first="$(cat "$T10/.gitattributes")"
+out="$(cd "$T10" && bash "$SUT")"; rc=$?
+ga_second="$(cat "$T10/.gitattributes")"
+n1="$(grep -cE '^\.superdev/\*\*[[:space:]]+linguist-generated=true$' "$T10/.gitattributes")"
+if [ "$rc" -ne 0 ]; then
+    fail ".gitattributes idempotent" "exit code $rc (expected 0)"
+elif [ "$ga_first" != "$ga_second" ]; then
+    fail ".gitattributes idempotent" ".gitattributes changed on the second run"
+elif [ "$n1" -ne 1 ]; then
+    fail ".gitattributes idempotent" ".superdev/** line duplicated ($n1 copies)"
+elif ! printf '%s\n' "$out" | grep -qF ".gitattributes: linguist-generated rules already present"; then
+    fail ".gitattributes idempotent" "second run did not report already-present"
+else
+    pass ".gitattributes idempotent"
 fi
 
 echo ""

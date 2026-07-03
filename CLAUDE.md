@@ -237,7 +237,7 @@ planning fork `superplan-reviewer` and the self-mode code-review fork `self-revi
   lenses `superbuild-reviewer` fans out in parallel via the Skill tool (`superbuild-reviewer-plan` Plan-alignment +
   the four code-quality lenses `superbuild-reviewer-quality` / `superbuild-reviewer-architecture` /
   `superbuild-reviewer-testing` / `superbuild-reviewer-readiness` + `superbuild-runner` Scope: full; the reviewer
-  synthesizes one go/no-go verdict and writes `.temp/.workflows/<slug>/final-review.md`, the superbuild first
+  synthesizes one go/no-go verdict and writes `.superdev/.workflows/<slug>/final-review.md`, the superbuild first
   materializing the cumulative `plan.diff` patch the no-Bash quality lenses read); the **last** pipeline step
   `superbuild-docs` then reconciles the as-built docs layer (`.superdev/docs/` index + shards) incrementally
   against that same `plan.diff` and is committed by `commit-docs.sh` (config-gated `docs`, runs on any final
@@ -349,11 +349,11 @@ invariant exception). Components, qualified `superfix:<name>`:
   `hooks` field to `plugin.json` is a hard install error.
 - **File-based dispatch.** The superbuild dispatches by passing **file paths** (task file + path params
   like feedback/retry, reports); agents receive content **injected via dynamic context `!`**, not via `Read`.
-  Pipeline state lives under `.temp/.workflows/<slug>/`; agents reply with a 3-line `STATUS / Report / Summary`
+  Pipeline state lives under `.superdev/.workflows/<slug>/`; agents reply with a 3-line `STATUS / Report / Summary`
   stdout.
 - **Recipe — mandatory first step (fail-closed) + sole clean-tree guard.** `superbuild` invokes
   `superbuild-recipe` as the FIRST step on **every** entry (before ADR); it derives the host
-  build/test/lint/launch verbs once and materializes `.temp/.workflows/<slug>/recipe.sh` + `profile.md`, the
+  build/test/lint/launch verbs once and materializes `.superdev/.workflows/<slug>/recipe.sh` + `profile.md`, the
   single artifact every downstream fork (`superbuild-runner`, `coder`, `task-reviewer`,
   `superbuild-decomposer`, `superbuild-reviewer-plan`) consumes instead of re-deriving the
   toolchain. It is **fail-closed**: a recipe `STATUS: FAIL` is a hard halt (like a decomposer fail), and the

@@ -5,9 +5,10 @@
 # superbuild-adr fork WRITES the ADR file(s) + the .superdev/ADR.md
 # index itself; this script commits exactly those paths. Being deterministic,
 # it cannot fabricate its `sha` tag — it emits one ONLY after itself confirming,
-# with git, that HEAD advanced and the worktree is clean. The superbuild
-# guarantees a clean tree BEFORE the recorder runs, so the only dirty paths at
-# commit time are the ADR records; the staging is scoped to them regardless.
+# with git, that HEAD advanced and the worktree is clean (excluding the tracked
+# pipeline scratch `.superdev/.workflows`). The superbuild guarantees a clean
+# tree BEFORE the recorder runs, so the only committable dirty paths are the ADR
+# records; the staging is scoped to them regardless.
 #
 # Contract:
 #   argv : $1 = the full commit subject authored by the recorder
@@ -86,7 +87,7 @@ fi
 if [ "$before" = "$after" ]; then
   emit_error "commit did not land (HEAD unchanged)"
 fi
-if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+if [ -n "$(git status --porcelain -- . ':(exclude).superdev/.workflows' 2>/dev/null)" ]; then
   emit_error "worktree not clean after commit"
 fi
 

@@ -11,10 +11,10 @@
 //
 // ── I/O contract ───────────────────────────────────────────────────────────
 // args (Workflow({scriptPath, args})):
-//   taskFile           : absolute path to .temp/.workflows/<slug>/tasks/<N>.md         (required)
-//   reportDir          : absolute path to .temp/.workflows/<slug>/orchestration/task-<N> (required)
+//   taskFile           : absolute path to .superdev/.workflows/<slug>/tasks/<N>.md         (required)
+//   reportDir          : absolute path to .superdev/.workflows/<slug>/orchestration/task-<N> (required)
 //   taskBaseSha        : the task-base git SHA the superbuild captured at attempt 1   (required)
-//   recipePath         : absolute path to the slug-scoped .temp/.workflows/<slug>/recipe.sh
+//   recipePath         : absolute path to the slug-scoped .superdev/.workflows/<slug>/recipe.sh
 //                        the superbuild-recipe generator authored at run start. Spliced into
 //                        the coder prompt and the runner-wrapper prompt so each downstream
 //                        fork sources its build/test/launch verbs from that one artifact.    (optional)

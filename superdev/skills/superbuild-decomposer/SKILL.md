@@ -55,7 +55,7 @@ Plan: <absolute path to plan file>
 PlanSlug: <kebab-case slug — usually the plan filename without `.md`>
 ```
 
-The `Plan:` path points to an existing markdown file describing *what* should be done. It is expected to be a superplan with the §0–§6 sections of the source template, optionally carrying a `> Spec:` reference on its second line. Parse the structural sections (Step 2); a missing section degrades to a thin prose fallback, never a failure. The dispatcher resolves the slug from the plan filename; use it verbatim as the directory name under `.temp/.workflows/`.
+The `Plan:` path points to an existing markdown file describing *what* should be done. It is expected to be a superplan with the §0–§6 sections of the source template, optionally carrying a `> Spec:` reference on its second line. Parse the structural sections (Step 2); a missing section degrades to a thin prose fallback, never a failure. The dispatcher resolves the slug from the plan filename; use it verbatim as the directory name under `.superdev/.workflows/`.
 
 # How to work
 
@@ -66,7 +66,7 @@ Read the **# Idempotency precheck (pre-injected)** output:
 - If it is exactly `FRESH` → proceed to Step 1.
 - Otherwise it is the full short-circuit block (a prior decomposition exists) → return that block **verbatim** as your entire reply and stop. Do NOT read the plan, do NOT write any task files.
 
-The idempotency check is **hard no-op for task files** — content / freshness of existing task files is NOT verified; the user must manually delete `.temp/.workflows/<PlanSlug>/` to force regeneration. (`precheck.sh` seeds a missing `status.yml` itself; the superbuild owns it after the first commit.)
+The idempotency check is **hard no-op for task files** — content / freshness of existing task files is NOT verified; the user must manually delete `.superdev/.workflows/<PlanSlug>/` to force regeneration. (`precheck.sh` seeds a missing `status.yml` itself; the superbuild owns it after the first commit.)
 
 ## Step 1 — Read the plan and discover project rules
 
@@ -82,7 +82,7 @@ If the plan file is empty or unreadable → `STATUS: FAIL` with `## Notes` line:
 
 These reads inform the `Mode` decisions and per-task test suggestions. They are project-driven — treat their contents as authoritative, but never assume any particular file exists.
 
-- `Read .temp/.workflows/<PlanSlug>/profile.md` — the recipe agent already derived the host **framework**, **test naming**, **test layout**, and the **Python3 available** fact there; consume it for the `Mode` decisions, the per-task `Tests` suggestions, and the Step 5 / Step 8 python3 checks instead of re-deriving or re-probing them. Being a fork, you `Read` it directly. **Fail-closed:** if `profile.md` is absent, the recipe step did not run — return `STATUS: FAIL` with `## Notes` line `profile.md absent at .temp/.workflows/<PlanSlug>/profile.md — recipe step did not run`, and do NOT fall back to inferring the framework from `CLAUDE.md`.
+- `Read .superdev/.workflows/<PlanSlug>/profile.md` — the recipe agent already derived the host **framework**, **test naming**, **test layout**, and the **Python3 available** fact there; consume it for the `Mode` decisions, the per-task `Tests` suggestions, and the Step 5 / Step 8 python3 checks instead of re-deriving or re-probing them. Being a fork, you `Read` it directly. **Fail-closed:** if `profile.md` is absent, the recipe step did not run — return `STATUS: FAIL` with `## Notes` line `profile.md absent at .superdev/.workflows/<PlanSlug>/profile.md — recipe step did not run`, and do NOT fall back to inferring the framework from `CLAUDE.md`.
 - Take the `.claude/rules/**/*.md` paths from the pre-injected **# Project rules listing** block → keep the full list of rule files (paths only) in memory for selective reads later. Fallback: if that block is empty/absent, `Glob '.claude/rules/**/*.md'` to recover the listing. (The profile carries pointers only — it never inlines rule bodies, so this path-scoped read still happens.)
 
 Record the findings. Read individual entries from this list only when a task's keywords match them (Step 4b).
@@ -289,7 +289,7 @@ The script owns the byte-exact copy and the status reset (the fresh-path `curren
 
 ### Step 7.1 — Write each task file
 
-Using Step 5's candidate-id → final-task-number mapping, for each final task `N` from 1 to `K`, resolve which candidate fills it and `Write` the file `.temp/.workflows/<PlanSlug>/tasks/<N>.md` with this exact structure.
+Using Step 5's candidate-id → final-task-number mapping, for each final task `N` from 1 to `K`, resolve which candidate fills it and `Write` the file `.superdev/.workflows/<PlanSlug>/tasks/<N>.md` with this exact structure.
 
 **The first line MUST be a Conventional-Commits-form commit subject H1** — `# <type>(<scope>): <imperative summary>` (e.g. `# feat(auth): add token refresh`, `# docs(readme): document setup steps`). This H1 is the contract consumed by the scripted commit (`commit-task.sh`), which extracts it verbatim as the commit subject (`T<N>: <subject>`). `<type>` is a Conventional-Commits type (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`, `style`); `<scope>` is the affected module / area; the summary is a short imperative phrase, no trailing period. Derive it from the task's verb-phrase + `## Touches`. Do NOT write a `# Task <N> — <verb-phrase>` heading; the `Task <N> of <K>` orientation now lives only in the `>` line below.
 
@@ -387,7 +387,7 @@ The validator covers (trust it; do not re-verify by hand): `h1-form`, `verb-h1`,
 - **Mode doctrine** — Mode honors the tdd-baseline / ambiguity→tdd / binding-floor doctrine; `**Why:**` justifies any non-`tdd` Mode (Step 4a).
 - **Forcing functions applied** — one-concern-one-Mode, extract-pure-testable-helper, port-seam split (Step 3).
 - **§4 floor / §2 ordering honored** — each §4 testing-direction directive and §2 ordering directive is reflected in `Mode` / `Tests` / `Depends on`, cited in `**Why:**`.
-- No file written outside `.temp/.workflows/<PlanSlug>/`; source plan unmodified.
+- No file written outside `.superdev/.workflows/<PlanSlug>/`; source plan unmodified.
 - Every `## Task files` line carries the `<verb-phrase>` matching its file's H1 byte-for-byte.
 
 If any inline check fails, repair the offending file and re-check before returning.
@@ -400,8 +400,8 @@ First line MUST be exactly `STATUS: PASS` or `STATUS: FAIL`.
 STATUS: PASS
 
 ## Task files
-- 1 — <verb-phrase> — .temp/.workflows/<slug>/tasks/1.md
-- 2 — <verb-phrase> — .temp/.workflows/<slug>/tasks/2.md
+- 1 — <verb-phrase> — .superdev/.workflows/<slug>/tasks/1.md
+- 2 — <verb-phrase> — .superdev/.workflows/<slug>/tasks/2.md
 - ...
 
 ## Notes
@@ -421,7 +421,7 @@ Total reply under 80 lines.
 
 Traps with no positive-step home (every other rule lives in its step; the Step 8 checklist points there):
 
-- Falling back to `STATUS: FAIL` because the plan is "incomplete" or lacks a specific §0–§6 section. A missing section degrades to a thin prose fallback, never a failure. Failure is reserved for: empty/unreadable file, no executable intent (no §1 Touch list AND no recognizable intent from title/§3), contradictory requirements, cyclic dependencies, a missing `.temp/.workflows/<PlanSlug>/profile.md` (recipe step did not run — Step 1b fail-closed), a `COPY_FAIL` from the plan-copy script (Step 7.0). Everything else is best-effort + `## Notes`.
+- Falling back to `STATUS: FAIL` because the plan is "incomplete" or lacks a specific §0–§6 section. A missing section degrades to a thin prose fallback, never a failure. Failure is reserved for: empty/unreadable file, no executable intent (no §1 Touch list AND no recognizable intent from title/§3), contradictory requirements, cyclic dependencies, a missing `.superdev/.workflows/<PlanSlug>/profile.md` (recipe step did not run — Step 1b fail-closed), a `COPY_FAIL` from the plan-copy script (Step 7.0). Everything else is best-effort + `## Notes`.
 - Reading or invoking any other agent or skill. Decomposer is a self-contained reasoning + grouping step.
 
 # Constraint — technology-agnostic

@@ -19,7 +19,7 @@
 #                `## Notes` carrying the literal
 #                `existing task files detected — decomposition skipped` plus one
 #                bullet per task file missing its `# ` H1.
-#   side  : seeds `.temp/.workflows/<slug>/status.yml` with `current_task: 1`
+#   side  : seeds `.superdev/.workflows/<slug>/status.yml` with `current_task: 1`
 #           ONLY when absent (the superbuild owns it after the first commit).
 #           Never writes when the slug is empty/invalid or no task files exist.
 #   slug  : empty / invalid (fails slug_valid) -> `FRESH` no-op, no FS write.
@@ -38,7 +38,7 @@ if ! slug_valid "$slug"; then
   exit 0
 fi
 
-wf_dir=".temp/.workflows/$slug"
+wf_dir=".superdev/.workflows/$slug"
 tasks_dir="$wf_dir/tasks"
 
 # Collect numeric task IDs (skip non-numeric filenames). A no-match glob stays

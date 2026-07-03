@@ -27,7 +27,7 @@ A red test, a broken build, a lint error IS the result: report it, never repair 
 ```
 <verbatim command line — a `bash <recipePath> <verb> [arg]` invocation>
 
-Recipe: <absolute path to the slug-scoped .temp/.workflows/<slug>/recipe.sh>
+Recipe: <absolute path to the slug-scoped .superdev/.workflows/<slug>/recipe.sh>
 
 [Report path: <absolute path to write the full markdown reply to>]
 

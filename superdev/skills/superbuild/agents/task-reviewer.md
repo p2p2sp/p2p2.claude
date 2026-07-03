@@ -62,7 +62,7 @@ Apply the rubric's "How to read a `## Deliverable`" to `task_diff`: locate the c
 
 ## 5 — Verify conventions
 
-- Consume `.temp/.workflows/<slug>/profile.md` (`<slug>` from the `Task file:` path `.temp/.workflows/<slug>/tasks/<N>.md`) for framework / test-naming / test-layout facts. Absent → **FAIL** with `[pipeline state] profile.md absent at .temp/.workflows/<slug>/profile.md — recipe step did not run`; do NOT re-derive the framework from `CLAUDE.md`.
+- Consume `.superdev/.workflows/<slug>/profile.md` (`<slug>` from the `Task file:` path `.superdev/.workflows/<slug>/tasks/<N>.md`) for framework / test-naming / test-layout facts. Absent → **FAIL** with `[pipeline state] profile.md absent at .superdev/.workflows/<slug>/profile.md — recipe step did not run`; do NOT re-derive the framework from `CLAUDE.md`.
 - `Glob` `CLAUDE.md` from the repo root + the relevant `.claude/rules/**/*.md`; read those touching the diff's directories. Documented-rule violations and introduced `TODO` / `FIXME` / "implement later" markers → CRITICAL; stylistic divergence → `## Notes`.
 - **Unblock mode** (diff carries a `## Out-of-scope fixes` block): those edits must also respect conventions; the `## Touches` rule is suspended for files declared there — don't flag them solely for lying outside Touches. But edits beyond the minimum to clear the blocker (unrelated refactor, tangential cleanup, new abstractions) → `FAIL`, cite the offending lines.
 

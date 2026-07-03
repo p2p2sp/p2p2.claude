@@ -48,7 +48,7 @@ All three committer scripts — `scripts/commit-task.sh` (per-task), `scripts/co
 
 Subject content rule: `</commit>` inside `subject` is escaped `<\/commit>` by the script; neither parser unescapes unless surfacing to the user.
 
-The script self-verifies before emitting a `sha` (HEAD advanced past pre-commit HEAD AND `git status --porcelain` empty — else an `error` tag, never a fabricated `sha`; see the script's "Verify-before-claim" header). `parseCommitTag` validates only tag *shape*, but the shape suffices: the dispatcher does **not** re-run `git rev-parse HEAD`, does **not** wrap it in a phantom-commit retry loop, and takes the sha straight from `wf_out.commit.sha`. On `error`/`malformed` it hard-stops.
+The script self-verifies before emitting a `sha` (HEAD advanced past pre-commit HEAD AND `git status --porcelain` empty — excluding the tracked pipeline scratch `.superdev/.workflows` — else an `error` tag, never a fabricated `sha`; see the script's "Verify-before-claim" header). `parseCommitTag` validates only tag *shape*, but the shape suffices: the dispatcher does **not** re-run `git rev-parse HEAD`, does **not** wrap it in a phantom-commit retry loop, and takes the sha straight from `wf_out.commit.sha`. On `error`/`malformed` it hard-stops.
 
 ## Helpers referenced by the pseudocode
 

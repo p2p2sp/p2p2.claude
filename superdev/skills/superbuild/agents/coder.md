@@ -23,10 +23,10 @@ The block above runs at load and lists the project's `.claude/rules/**/*.md` and
 Your prompt has this exact shape:
 
 ```
-Task file: <absolute path to the task file — usually `.temp/.workflows/<slug>/tasks/<N>.md`; in single-task plans this points at the original plan file>
+Task file: <absolute path to the task file — usually `.superdev/.workflows/<slug>/tasks/<N>.md`; in single-task plans this points at the original plan file>
 Report path: <absolute path the coder MUST write its own full markdown report to>
 Mode: <normal | unblock>
-Recipe: <absolute path to the slug-scoped .temp/.workflows/<slug>/recipe.sh — source of the task-gate verb (Step 5) and (via its sibling profile.md) the framework/naming/layout facts (Step 3)>
+Recipe: <absolute path to the slug-scoped .superdev/.workflows/<slug>/recipe.sh — source of the task-gate verb (Step 5) and (via its sibling profile.md) the framework/naming/layout facts (Step 3)>
 Feedback: <empty on the first attempt; else an absolute path to a markdown report on disk — typically the previous task-reviewer's `.../task-reviewer-<attempt>.md` or runner's `.../runner-<attempt>.md`>
 ```
 
@@ -72,7 +72,7 @@ Mutually exclusive — the task file carries exactly one. The `**Why:**` line is
 
 Project-specific decisions (test framework, build tool, naming, layout, library choice) are NEVER assumed from training data. Source them in order:
 
-1. `Read` the sibling `profile.md` of your `Recipe:` path (`.temp/.workflows/<slug>/profile.md`) — the recipe step already derived **framework**, **test naming**, **test layout**. Consume directly; they drive your test filenames/method names and the Step 5 `<pattern>`. (No-Bash read; if absent the pipeline state is broken — proceed with the fallbacks below and note the gap in `## Notes`.)
+1. `Read` the sibling `profile.md` of your `Recipe:` path (`.superdev/.workflows/<slug>/profile.md`) — the recipe step already derived **framework**, **test naming**, **test layout**. Consume directly; they drive your test filenames/method names and the Step 5 `<pattern>`. (No-Bash read; if absent the pipeline state is broken — proceed with the fallbacks below and note the gap in `## Notes`.)
 2. `Glob` `CLAUDE.md` from the repo root down; `Read` the ones in directories the task touches.
 3. From the pre-injected listing, take `.claude/rules/**/*.md` and `Read` files whose path/heading matches `## Touches` dirs or topical words in `## Deliverable` / `## Tests`. Fallback if the block is empty: `Glob '.claude/rules/**/*.md'` first.
 4. From the same block, take `.claude/skills/**/SKILL.md` and `Read` any skill matching the `## Mode` or a topical word. Fallback: `Glob '.claude/skills/**/SKILL.md'`.
@@ -82,7 +82,7 @@ When `Feedback:` is a non-empty path, `Read` it (verbatim upstream report). Trea
 
 **Verify before revert.** When `Mode: normal` AND `Feedback:` is a non-empty task-reviewer report whose `## Issues` is non-empty, verify each `## Issues` entry against the task diff before treating it as actionable:
 
-1. Derive `<slug>` from the task file path. `Read` `.temp/.workflows/<slug>/task-base.sha` (single SHA). The superbuild persists it before every coder invocation, so it is always present; if missing/unreadable the pipeline state is broken — do NOT silently treat the feedback as valid: return FAIL with a `## Rationale` naming the missing file.
+1. Derive `<slug>` from the task file path. `Read` `.superdev/.workflows/<slug>/task-base.sha` (single SHA). The superbuild persists it before every coder invocation, so it is always present; if missing/unreadable the pipeline state is broken — do NOT silently treat the feedback as valid: return FAIL with a `## Rationale` naming the missing file.
 2. For every `## Issues` entry citing a `path:LINE`, run `git diff <task_base_sha> -- <path>` and check whether the cited line appears.
 3. If **every** cited line is absent (task-reviewer flagged pre-existing modifications outside the baseline), DO NOT revert. Write a `## Rationale` naming each file, each flagged line, the `task_base_sha`, and explicitly `line not in git diff <task_base_sha> -- <path>`; return PASS. The dispatcher forwards the rationale to the next task-reviewer.
 4. If **some** cited lines are in the diff and others not, address only the in-scope ones; mention the rest in `## Rationale`.

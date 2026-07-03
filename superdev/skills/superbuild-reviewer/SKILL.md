@@ -27,7 +27,7 @@ synthesize ──► STATUS: PASS  (no blocking lens — see the verdict rule)
                STATUS: FAIL  (a blocking lens failed — name it)
         │
         ▼
-write .temp/.workflows/<slug>/final-review.md  (per-lens results + prioritized "What to fix" backlog)
+write .superdev/.workflows/<slug>/final-review.md  (per-lens results + prioritized "What to fix" backlog)
 ```
 
 This is a **gate, not a fixer**. There is **no retry loop**, **no improver pass**, and **no `AskUserQuestion`**. You return the verdict on stdout and persist the full report to disk, then stop.
@@ -43,7 +43,7 @@ Diff file: <absolute path to the materialized cumulative patch (git diff base..H
 Report path: <absolute path you MUST write the final review report to>
 ```
 
-All four fields are present, sent once the last task is committed. The plan is free-form markdown; the binding per-task contracts live in `.temp/.workflows/<slug>/tasks/*.md`. Derive `<slug>` from the plan filename (basename without `.md`) — you need it for the runner's recipe path (`.temp/.workflows/<slug>/recipe.sh`).
+All four fields are present, sent once the last task is committed. The plan is free-form markdown; the binding per-task contracts live in `.superdev/.workflows/<slug>/tasks/*.md`. Derive `<slug>` from the plan filename (basename without `.md`) — you need it for the runner's recipe path (`.superdev/.workflows/<slug>/recipe.sh`).
 
 If any of `Plan:` / `Diff range:` / `Diff file:` / `Report path:` is absent or malformed, reply `STATUS: FAIL` with a one-line reason naming the malformed-input fault, then stop — do not dispatch any lens on bad input, and do not write a report.
 
@@ -72,7 +72,7 @@ Invoke all six lens skills via the `Skill` tool **in a single batch (one turn)**
   bash <recipePath> test-all
   bash <recipePath> lint
 
-  Recipe: .temp/.workflows/<slug>/recipe.sh
+  Recipe: .superdev/.workflows/<slug>/recipe.sh
 
   Scope: full
   ```
@@ -94,7 +94,7 @@ Never invent a finding of your own and never flip a lens's verdict — your verd
 
 ## Step 3 — Write the report
 
-`Write` the full report to the `Report path:` from your input (the superbuild points it at `.temp/.workflows/<slug>/final-review.md`). The report is the durable, actionable artifact — its `## What to fix` backlog is written so the user can paste it straight into a new `superdev` interview / `superplan` cycle. Aggregate every lens's findings into ONE prioritized list (Critical → Important → Minor), each item self-contained. Write the report on **both** PASS and FAIL — on PASS the backlog is the Important/Minor improvement list (valuable even when nothing blocked).
+`Write` the full report to the `Report path:` from your input (the superbuild points it at `.superdev/.workflows/<slug>/final-review.md`). The report is the durable, actionable artifact — its `## What to fix` backlog is written so the user can paste it straight into a new `superdev` interview / `superplan` cycle. Aggregate every lens's findings into ONE prioritized list (Critical → Important → Minor), each item self-contained. Write the report on **both** PASS and FAIL — on PASS the backlog is the Important/Minor improvement list (valuable even when nothing blocked).
 
 # Output format
 
@@ -109,7 +109,7 @@ The first line is the terminal verdict; the body summarizes the six lenses and p
 ```
 STATUS: PASS
 Summary: GO — plan complete, suite green, no blocking findings.
-Report: .temp/.workflows/<slug>/final-review.md
+Report: .superdev/.workflows/<slug>/final-review.md
 
 ## Lens results
 - superbuild-reviewer-plan: PASS — <its summary>
@@ -125,7 +125,7 @@ Report: .temp/.workflows/<slug>/final-review.md
 ```
 STATUS: FAIL
 Summary: NO-GO — <the single most important blocking reason>.
-Report: .temp/.workflows/<slug>/final-review.md
+Report: .superdev/.workflows/<slug>/final-review.md
 
 ## Lens results
 - superbuild-reviewer-plan: <PASS|FAIL> — <its summary>

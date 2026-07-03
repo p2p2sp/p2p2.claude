@@ -10,10 +10,10 @@ allowed-tools: Read, Grep, Glob, Bash, Write
 
 # Project tree state (pre-injected)
 ```!
-git status --porcelain
+git status --porcelain -- . ':(exclude).superdev/.workflows'
 ```
 
-The block above runs at skill load. It is the **clean-tree guard**: if it lists ANY path (the working tree is dirty), this run is invalid — go straight to Step 0 and return `STATUS: FAIL`. An empty block = clean tree = proceed. (Fallback: if the block is absent because the harness did not execute it, run `git status --porcelain` yourself via `Bash` in Step 0.)
+The block above runs at skill load. It is the **clean-tree guard**: if it lists ANY path (the working tree is dirty), this run is invalid — go straight to Step 0 and return `STATUS: FAIL`. An empty block = clean tree = proceed. (Fallback: if the block is absent because the harness did not execute it, run `git status --porcelain -- . ':(exclude).superdev/.workflows'` yourself via `Bash` in Step 0. The tracked pipeline scratch `.superdev/.workflows` is excluded from the probe, so leftover state from a prior run never trips the guard.)
 
 # Python3 availability (pre-injected)
 ```!
@@ -33,11 +33,11 @@ The block above splices the raw `$ARGUMENTS` text at skill load, independent of 
 
 # Recipe generator (fork)
 
-Derive the host project's build / test / lint / launch contract **once** and materialize it as an executable `recipe.sh` + a lean `profile.md` under `.temp/.workflows/<slug>/` — the single artifact every downstream pipeline fork consumes instead of re-deriving the same facts. **Fail-closed:** a dirty tree, an unresolvable host command, or a missing recorded tool returns `STATUS: FAIL` (a hard halt) — never a soft fallback.
+Derive the host project's build / test / lint / launch contract **once** and materialize it as an executable `recipe.sh` + a lean `profile.md` under `.superdev/.workflows/<slug>/` — the single artifact every downstream pipeline fork consumes instead of re-deriving the same facts. **Fail-closed:** a dirty tree, an unresolvable host command, or a missing recorded tool returns `STATUS: FAIL` (a hard halt) — never a soft fallback.
 
 `recipe` — copies the fixed bundled harness (`scripts/recipe.template.sh`), fills in only the host command bodies + the fingerprinted-file list + the required-tools list + the recorded fingerprint, writes a `profile.md`, runs **verify-before-claim**, and PASSes only if the recipe is runnable.
 
-Writes nothing outside `.temp/`. Never modifies tracked files (its `verify` runs build/test against a clean tree and must not dirty it). Project/stack-agnostic — every host command, framework, and convention is discovered from the host `CLAUDE.md` + `.claude/rules/**` at run time, never assumed from training data.
+Writes nothing outside `.superdev/.workflows/<slug>/`. Never modifies tracked files OUTSIDE that dir (its `verify` runs build/test against a clean tree and must not dirty it). Project/stack-agnostic — every host command, framework, and convention is discovered from the host `CLAUDE.md` + `.claude/rules/**` at run time, never assumed from training data.
 
 # Input contract
 
@@ -48,7 +48,7 @@ Two positional arguments, read from the pre-injected `# Arguments (pre-injected)
 ```
 
 - `<abspath(plan)>` — absolute path to the approved source plan. Orientation only; the recipe derives toolchain facts from the host project, **not** from the plan body. Do not redesign anything in the plan.
-- `<slug>` — the kebab-case plan slug. The workflow directory is `.temp/.workflows/<slug>/`; `recipe.sh` and `profile.md` are written there.
+- `<slug>` — the kebab-case plan slug. The workflow directory is `.superdev/.workflows/<slug>/`; `recipe.sh` and `profile.md` are written there.
 
 `${CLAUDE_PLUGIN_ROOT}` resolves to this plugin's install dir; the bundled harness is `${CLAUDE_PLUGIN_ROOT}/skills/superbuild-recipe/scripts/recipe.template.sh`.
 
@@ -58,11 +58,11 @@ Two positional arguments, read from the pre-injected `# Arguments (pre-injected)
 
 Read the pre-injected `# Project tree state` block. If it is **non-empty** (any path listed), the working tree is dirty: do NOT discover, copy, or write anything. Return `STATUS: FAIL` with a `## Notes` line naming the dirty paths and `working tree not clean — recipe cannot run with uncommitted changes`. This clean-tree guard is centralized here.
 
-Fallback: if the block was absent (harness did not run it), run `git status --porcelain` once via `Bash`; apply the same rule.
+Fallback: if the block was absent (harness did not run it), run `git status --porcelain -- . ':(exclude).superdev/.workflows'` once via `Bash`; apply the same rule.
 
 ## Step 1 — Idempotency: verify an existing recipe before regenerating
 
-If `.temp/.workflows/<slug>/recipe.sh` already exists, run `bash .temp/.workflows/<slug>/recipe.sh verify`:
+If `.superdev/.workflows/<slug>/recipe.sh` already exists, run `bash .superdev/.workflows/<slug>/recipe.sh verify`:
 
 - Exit 0 (`FRESH`) ⇒ the recorded toolchain is unchanged and every tool still resolves. **Do not regenerate.** Re-author nothing; return `STATUS: PASS` with `## Notes`: `existing recipe verified FRESH — regeneration skipped`. (Do not re-run the real verbs — `verify` is the freshness proof.)
 - Non-zero (`STALE` / `missing-tool`) ⇒ the recipe is out of date; proceed to Step 2 and regenerate from scratch (overwrite both files).
@@ -97,11 +97,11 @@ Derive every host fact from the project, treating discovered contents as authori
 | `  __unfilled LINT_BODY` | one shell line for the linter, OR `N/A` |
 | `  __unfilled LAUNCH_BODY` | one shell line that launches the app for a liveness check, OR `N/A` |
 
-`Write` the filled result to `.temp/.workflows/<slug>/recipe.sh`. Fill **every** marker — an unfilled marker survives as a fail-closed `__unfilled` guard (exit 5) and would break the recipe at runtime. Do NOT touch any line outside the marker lines; the fixed dispatch/verify/fingerprint logic is never agent-authored.
+`Write` the filled result to `.superdev/.workflows/<slug>/recipe.sh`. Fill **every** marker — an unfilled marker survives as a fail-closed `__unfilled` guard (exit 5) and would break the recipe at runtime. Do NOT touch any line outside the marker lines; the fixed dispatch/verify/fingerprint logic is never agent-authored.
 
 ### 3b — Author `profile.md`
 
-`Write` `.temp/.workflows/<slug>/profile.md` — the lean derived-facts sheet the no-Bash forks (`superbuild-decomposer`, `superbuild-reviewer-plan`) and the convention consumers `Read`. Keep it terse (bullets, not prose). Include:
+`Write` `.superdev/.workflows/<slug>/profile.md` — the lean derived-facts sheet the no-Bash forks (`superbuild-decomposer`, `superbuild-reviewer-plan`) and the convention consumers `Read`. Keep it terse (bullets, not prose). Include:
 
 - **Framework** — the test/build framework name(s).
 - **Test naming** — the convention downstream coders/reviewers mirror.
@@ -112,16 +112,16 @@ Derive every host fact from the project, treating discovered contents as authori
 
 ### 3c — Record the fingerprint
 
-After `recipe.sh` exists with its `FINGERPRINTED_FILES` filled, derive the live fingerprint from the harness's own algorithm: run `bash .temp/.workflows/<slug>/recipe.sh fingerprint`. Take its single stdout token and re-`Write` `recipe.sh` with the `recorded_fingerprint()` body set to `  echo "<that-token>"` (replace the placeholder from 3a). This guarantees the recorded fingerprint matches what `verify` will recompute. Re-run `bash .temp/.workflows/<slug>/recipe.sh verify` and confirm it prints `FRESH` / exits 0 before continuing.
+After `recipe.sh` exists with its `FINGERPRINTED_FILES` filled, derive the live fingerprint from the harness's own algorithm: run `bash .superdev/.workflows/<slug>/recipe.sh fingerprint`. Take its single stdout token and re-`Write` `recipe.sh` with the `recorded_fingerprint()` body set to `  echo "<that-token>"` (replace the placeholder from 3a). This guarantees the recorded fingerprint matches what `verify` will recompute. Re-run `bash .superdev/.workflows/<slug>/recipe.sh verify` and confirm it prints `FRESH` / exits 0 before continuing.
 
 ## Step 4 — Verify-before-claim (4.A)
 
 PASS only when the recipe is **runnable**. Execute each non-`N/A` verb once via `Bash`, in the host project root:
 
-- `bash .temp/.workflows/<slug>/recipe.sh build`
-- `bash .temp/.workflows/<slug>/recipe.sh test-all`
-- `bash .temp/.workflows/<slug>/recipe.sh lint`
-- `bash .temp/.workflows/<slug>/recipe.sh launch` — only if the host documents a launchable app and the launch can be exercised non-interactively (else rely on Step 3c `verify` and the recorded liveness signal); never leave a process running.
+- `bash .superdev/.workflows/<slug>/recipe.sh build`
+- `bash .superdev/.workflows/<slug>/recipe.sh test-all`
+- `bash .superdev/.workflows/<slug>/recipe.sh lint`
+- `bash .superdev/.workflows/<slug>/recipe.sh launch` — only if the host documents a launchable app and the launch can be exercised non-interactively (else rely on Step 3c `verify` and the recorded liveness signal); never leave a process running.
 
 Interpret the result by **resolvability, not test colour**:
 
@@ -129,7 +129,7 @@ Interpret the result by **resolvability, not test colour**:
 - A verb whose command is **unresolvable** (command-not-found / missing tool / the body cannot be parsed) ⇒ `STATUS: FAIL`. Name the verb + the missing tool in `## Notes`.
 - An `N/A` verb body exits 0 without running (documented no-suite) ⇒ PASS-eligible; the step still PASSes.
 
-Also confirm `bash .temp/.workflows/<slug>/recipe.sh verify` prints `FRESH` and exits 0 (every recorded tool resolves AND the fingerprint matches). A `missing-tool` / `STALE` from `verify` ⇒ `STATUS: FAIL`.
+Also confirm `bash .superdev/.workflows/<slug>/recipe.sh verify` prints `FRESH` and exits 0 (every recorded tool resolves AND the fingerprint matches). A `missing-tool` / `STALE` from `verify` ⇒ `STATUS: FAIL`.
 
 Treat a non-zero exit you cannot attribute to a red suite (e.g. command-not-found, exit 127) as unresolvable ⇒ FAIL. The point is to catch an unrunnable recipe before any downstream fork trusts it.
 
@@ -138,12 +138,12 @@ Treat a non-zero exit you cannot attribute to a red suite (e.g. command-not-foun
 Before returning `STATUS: PASS`:
 
 - The working tree was clean at Step 0 (else this is already a FAIL).
-- `.temp/.workflows/<slug>/recipe.sh` and `.temp/.workflows/<slug>/profile.md` both exist; nothing was written outside `.temp/`.
+- `.superdev/.workflows/<slug>/recipe.sh` and `.superdev/.workflows/<slug>/profile.md` both exist; nothing was written outside `.superdev/.workflows/<slug>/`.
 - Every marker in the harness's AGENT-FILLED REGION was replaced — no surviving `###TOKEN###` or `__unfilled <TOKEN>` line (a leftover marker would fail-close at runtime).
 - The fingerprint recorded in `recipe.sh` equals `bash recipe.sh fingerprint`, and `bash recipe.sh verify` prints `FRESH` (exit 0).
 - Every non-`N/A` verb resolved and ran in Step 4; any unresolvable verb or missing tool is a FAIL, not a PASS.
 - `profile.md` carries framework / test naming / test layout / liveness signal / rule pointers / Python3 available, and inlines **no** rule body or `CLAUDE.md` content.
-- No tracked file was modified (the recipe's `verify` build/test runs left the tree clean).
+- No tracked file OUTSIDE `.superdev/.workflows/<slug>/` was modified (the recipe's `verify` build/test runs left the rest of the tree clean).
 
 If any check fails and cannot be repaired, return `STATUS: FAIL` naming the offending check.
 
@@ -155,8 +155,8 @@ First line MUST be exactly `STATUS: PASS` or `STATUS: FAIL`. The reply is the ve
 STATUS: PASS
 
 ## Recipe
-- recipe.sh: .temp/.workflows/<slug>/recipe.sh
-- profile.md: .temp/.workflows/<slug>/profile.md
+- recipe.sh: .superdev/.workflows/<slug>/recipe.sh
+- profile.md: .superdev/.workflows/<slug>/profile.md
 - verbs: build=<cmd|N/A> · test-all=<cmd|N/A> · test-filtered=<cmd|N/A> · lint=<cmd|N/A> · launch=<cmd|N/A>
 - verify: FRESH
 
@@ -174,7 +174,7 @@ On `STATUS: FAIL` omit the `## Recipe` block and put the single blocking reason 
 - Returning `STATUS: FAIL` because the host's test suite is RED. A red suite under a *runnable* recipe is a PASS — `verify` proves runnability, not green tests.
 - Returning `STATUS: PASS` with an unresolvable verb (command-not-found / missing tool) or a `verify` that prints `STALE` / `missing-tool`. Fail-closed: an unrunnable recipe must FAIL the step so the superbuild halts.
 - Recording the fingerprint by hand instead of from `bash recipe.sh fingerprint` — the recorded value MUST come from the harness's own algorithm so `verify` recomputes a match.
-- Writing anywhere outside `.temp/.workflows/<slug>/`, or modifying tracked files (including letting a build/test verb dirty the tree).
+- Writing anywhere outside `.superdev/.workflows/<slug>/`, or modifying tracked files OUTSIDE it (including letting a build/test verb dirty the tree).
 - Inlining `.claude/rules` bodies or `CLAUDE.md` into `profile.md` — rules stay harness-delivered; the profile carries pointers only.
 - Regenerating when an existing `recipe.sh verify` already prints `FRESH` — the Step 1 idempotency check short-circuits; re-author nothing.
 - Reading or invoking any other agent / pipeline skill. The recipe is a self-contained discovery + materialization step.

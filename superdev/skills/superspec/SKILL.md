@@ -54,7 +54,7 @@ Write a specification document using the superspec template. Leverage the inform
 Save date (yyyyMMdd):
 !`date +%Y%m%d`
 1. Detect language, load template (Polish → `templates/specification.pl.md`, English or unclear → `templates/specification.en.md`). Do not translate the template.
-2. Render into the template and save it in `.temp/.workflows/<date>-<slug>.md` (where `<date>` is the yyyyMMdd value above and `<slug>` is a short title as slug).
+2. Render into the template and save it in `.superdev/.workflows/<date>-<slug>.md` (where `<date>` is the yyyyMMdd value above and `<slug>` is a short title as slug).
 
 ## Review gate
 Immediately after saving — and BEFORE any handoff — run the reviewer and act on its verdict. Never hand off a spec that has not returned `REVIEW: PASS`. Track which invocation this is (round 1, round 2, …).

@@ -2,7 +2,7 @@
 # superdev / superbuild-decomposer — slug-guard.sh (sourced helper)
 #
 # Shared PlanSlug validation + extraction for precheck.sh and copy_plan.sh. The
-# slug is interpolated into a `.temp/.workflows/<slug>/` filesystem path, so it is
+# slug is interpolated into a `.superdev/.workflows/<slug>/` filesystem path, so it is
 # validated defense-in-depth before any path is built (path-escape / word-split
 # guard) even though the dispatcher normally derives it via basename. This is the
 # single copy for this skill's sh scripts; validate_tasks.py repeats the rule

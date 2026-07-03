@@ -9,7 +9,7 @@ How a skill (not agents) preloads state or picks one playbook with a determinist
 ## `!`-injection (dynamic context) in skills
 
 - A line `` !`command` `` in a SKILL.md body runs the command **at skill-load time** and pastes its stdout **verbatim** into the skill text the LLM reads. It is not a tool call the model decides to make — it fires on load.
-- Use it to **preload state** (`!`cat .superdev/config.yml 2>/dev/null || true``, `!`git diff --cached --stat``, `!`mkdir -p .temp/.workflows`) or to **inject exactly one chosen playbook** (the mode-router case below).
+- Use it to **preload state** (`!`cat .superdev/config.yml 2>/dev/null || true``, `!`git diff --cached --stat``, `!`mkdir -p .superdev/.workflows`) or to **inject exactly one chosen playbook** (the mode-router case below).
 - Always quote args and use `${CLAUDE_PLUGIN_ROOT}` for plugin-relative paths: `` !`"${CLAUDE_PLUGIN_ROOT}/skills/<skill>/scripts/route.sh" "$ARGUMENTS"` ``.
 - The SKILL frontmatter MUST whitelist the interpreter for the call to run — e.g. `allowed-tools: …, Bash(sh:*)`.
 

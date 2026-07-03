@@ -2,7 +2,7 @@
 """validate_tasks.py — structural validation of decomposer task files.
 
 Purely structural validation (regex + string parsing — NEVER eval/exec/yaml.load)
-of `.temp/.workflows/<slug>/tasks/<N>.md` against the decomposer's output
+of `.superdev/.workflows/<slug>/tasks/<N>.md` against the decomposer's output
 contract, plus the cross-file plan.md byte-match and status.yml seed checks.
 status.yml is parsed with a plain regex, not a YAML loader, so there is no runtime
 dependency on PyYAML.
@@ -166,7 +166,7 @@ def main():
         print("FAIL :slug-invalid")
         sys.exit(1)
 
-    wf_dir = os.path.join(".temp", ".workflows", slug)
+    wf_dir = os.path.join(".superdev", ".workflows", slug)
     tasks_dir = os.path.join(wf_dir, "tasks")
 
     task_files = []

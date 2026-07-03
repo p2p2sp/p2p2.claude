@@ -31,7 +31,7 @@ blocks docs).
 ## Pipeline-artefact expectations (deterministic edges)
 
 - `precheck.sh` on a FRESH slug → emits `FRESH` (no prior tasks).
-- `copy_plan.sh` → `PLAN_COPIED`; `.temp/.workflows/<slug>/plan.md` byte-equal to the
+- `copy_plan.sh` → `PLAN_COPIED`; `.superdev/.workflows/<slug>/plan.md` byte-equal to the
   fixture; `status.yml` = `current_task: 1`.
 - `validate_tasks.py` over the three task files materialized to match this table →
   `VALIDATE_OK`.
