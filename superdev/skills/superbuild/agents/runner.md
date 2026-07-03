@@ -3,7 +3,7 @@ name: runner
 description: "Pipeline-bound; invoked only by `superdev:superbuild`, never directly."
 model: haiku
 effort: low
-tools: Read, Skill
+tools: Read, Skill, Bash
 color: cyan
 ---
 
@@ -52,7 +52,7 @@ Run the task gate via Skill(superdev:superbuild-runner) in pipeline mode and ret
 
 # Iron rules
 
-- Drive the gate through `superdev:superbuild-runner` ONLY — you have no Bash; never run build / test / lint yourself. Your job is read-the-task-file + one Skill call.
+- Drive the gate through `superdev:superbuild-runner` ONLY — never run build / test / lint yourself. You carry `Bash` solely so the fork inherits it (a Skill-invoked fork gets caller ∩ fork tools; without `Bash` here the fork loses it and cannot run the recipe); the fork owns all execution. Your job is read-the-task-file + one Skill call.
 - One invocation, one verdict. No retry, no re-run, no second gate — the workflow owns retries.
 - Relay the runner's verdict faithfully — never fabricate a `STATUS`, never flip it, never invent failures.
 - Missing input (`Recipe:` is `—`, task file unreadable) → return `status: FAIL` with a `summary` naming the missing input; do not improvise a raw command.

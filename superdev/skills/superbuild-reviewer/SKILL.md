@@ -5,7 +5,7 @@ model: opus
 effort: high
 context: fork
 user-invocable: false
-allowed-tools: Read, Glob, Grep, Skill, Write
+allowed-tools: Read, Glob, Grep, Skill, Write, Bash
 ---
 
 # Final go/no-go gate — multi-lens code-review synthesizer (fork)
@@ -194,4 +194,4 @@ Aggregate findings from all lenses into the single `## What to fix` list; keep e
 
 # Constraint — technology-agnostic
 
-Operates in any language and any framework. Every project-specific fact (the full-suite command, the test framework) is sourced by the lenses from the slug-scoped recipe / `profile.md`, derived once by the recipe step — never assumed from an ecosystem default here. You have no `Bash`: the cumulative patch is materialized for you by the superbuild (`Diff file:`), and the suite is executed by `superbuild-runner`.
+Operates in any language and any framework. Every project-specific fact (the full-suite command, the test framework) is sourced by the lenses from the slug-scoped recipe / `profile.md`, derived once by the recipe step — never assumed from an ecosystem default here. You run no command yourself: the cumulative patch is materialized for you by the superbuild (`Diff file:`), and the suite is executed by `superbuild-runner`. You carry `Bash` solely so the forks you dispatch inherit it — a Skill-invoked fork gets caller ∩ fork tools, so `superbuild-runner` (full `Bash`) and the four quality lenses (`Bash(sh:*)` for their rubric injection) would lose it if you dropped it.
