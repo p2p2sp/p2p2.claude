@@ -82,7 +82,7 @@ When `Feedback:` is a non-empty path, `Read` it (verbatim upstream report). Trea
 
 **Verify before revert.** When `Mode: normal` AND `Feedback:` is a non-empty task-reviewer report whose `## Issues` is non-empty, verify each `## Issues` entry against the task diff before treating it as actionable:
 
-1. Derive `<slug>` from the task file path. `Read` `.superdev/.workflows/<slug>/task-base.sha` (single SHA). The superbuild persists it before every coder invocation, so it is always present; if missing/unreadable the pipeline state is broken — do NOT silently treat the feedback as valid: return FAIL with a `## Rationale` naming the missing file.
+1. Derive `<slug>` from the task file path. `Read` `.superdev/.workflows/<slug>/task-base.sha` (two lines: `task: <N>` + `sha: <SHA>` — take `task_base_sha` = the value after `sha:`; a legacy bare-SHA file is the whole content). The superbuild persists it before every coder invocation, so it is always present; if missing/unreadable the pipeline state is broken — do NOT silently treat the feedback as valid: return FAIL with a `## Rationale` naming the missing file.
 2. For every `## Issues` entry citing a `path:LINE`, run `git diff <task_base_sha> -- <path>` and check whether the cited line appears.
 3. If **every** cited line is absent (task-reviewer flagged pre-existing modifications outside the baseline), DO NOT revert. Write a `## Rationale` naming each file, each flagged line, the `task_base_sha`, and explicitly `line not in git diff <task_base_sha> -- <path>`; return PASS. The dispatcher forwards the rationale to the next task-reviewer.
 4. If **some** cited lines are in the diff and others not, address only the in-scope ones; mention the rest in `## Rationale`.

@@ -255,10 +255,21 @@ safe_task_call(TaskUpdate, taskId=task_widgets[N], status="in_progress")   # onl
 # Per-task audit/transport dir (ephemeral, NOT truth). The workflow dictates every report path inside it.
 orch_dir = f".superdev/.workflows/<slug>/orchestration/task-{N}"
 
-# Persist task-base.sha BEFORE the workflow (attempt-1 capture). The SHA every task-reviewer/coder uses for the
-# task diff; stable for the whole task — escalation re-invokes MUST NOT overwrite it. Written once per task.
-task_base_sha = bash("git rev-parse HEAD").strip()
-Write(".superdev/.workflows/<slug>/task-base.sha", task_base_sha + "\n")
+# Resolve task-base.sha BEFORE the workflow: the SHA every task-reviewer/coder uses for the task diff; stable for
+# the whole task. Stored as TWO lines (`task: <N>` + `sha: <SHA>`) in ONE atomic Write so resume can tell which
+# task the SHA belongs to. On a FRESH entry capture HEAD; on RESUME of the SAME task (a re-run of superbuild while
+# status.yml still points at N) RE-READ the saved SHA instead of re-capturing HEAD — otherwise, if task N's
+# deliverable already landed in HEAD (a prior run committed it, or a manual commit), a fresh capture would set the
+# base ABOVE the deliverable and every task-reviewer would see an empty task_diff → FAIL forever. Escalation
+# re-invokes (same run) keep the in-memory task_base_sha and never re-enter this block.
+# Read the saved base — two lines `task: <N>` + `sha: <SHA>`. Missing file, malformed, or a legacy single-line
+# (bare-SHA) file → treat as None so the branch below falls through to a fresh capture (backward-compatible).
+saved_task (int), saved_sha (str) = parse the file's `task:` / `sha:` lines; missing/malformed/legacy-bare-SHA → (None, None)
+if saved_sha is not None and saved_task == N:
+    task_base_sha = saved_sha        # resume of the SAME task — keep the original pre-deliverable baseline
+else:
+    task_base_sha = bash("git rev-parse HEAD").strip()   # fresh entry: new task, or a file from another task/absent
+    Write(".superdev/.workflows/<slug>/task-base.sha", f"task: {N}\nsha: {task_base_sha}\n")
 
 # Is the gate runnable? The runner is a TEST runner, so runnable iff the gate has real tests.
 # A `Tests: none` task (even with `- Build: green`) → false; its build is verified inside the coder, not the runner.
@@ -444,7 +455,7 @@ Then stop. Do not call any further tool.
 - Re-implementing anything the workflow owns: the per-task inner loop (per-agent dispatch, BLOCKED-unblock branches, loop-guard), feedback-forwarding (only the most recent failure's path), task-reviewer retry-freshness, the runner `Scope hints:` block. Do NOT call `coder` / `runner` / `task-reviewer` / `improver` / `commiter` / `superbuild-runner` directly — each is dispatched only by the workflow. The dispatcher's only forwarded failure handle is the escalation `feedbackPath` (forwarded without reading the file).
 - Skipping the task-pipeline `Workflow` "to save time" on a small task — every task goes through it.
 - Re-deriving or overriding the workflow's retry cap. Base cap = `retry_max_attempts` (fail-open `3`), escalation = `retry_escalation_attempts` (fail-open `3`); both forwarded as `retryMaxAttempts`. Do NOT offer a "skip task" option (intentionally absent), and do NOT recompute `task_base_sha` on escalation — the baseline is stable.
-- Writing any state file other than: (a) `status.yml` (after each PASS), (b) `base.sha` (once, after Task 1), (c) `task-base.sha` (once per task, before the workflow), (d) `adr.done` (once, after the ADR step), (e) `docs.done` (once, after the docs step). The dispatcher also materializes the ephemeral `plan.diff` (transport, NOT truth) for the final review. The recipe artifacts (`recipe.sh`, `profile.md`), `final-review.md`, and everything under `orchestration/task-<N>/` are written by the forks/workflow, not the dispatcher — they are ephemeral audit/transport, NOT truth (resume relies only on `status.yml` + `task-base.sha` + `base.sha`).
+- Writing any state file other than: (a) `status.yml` (after each PASS), (b) `base.sha` (once, after Task 1), (c) `task-base.sha` (two lines `task: <N>` + `sha: <SHA>`, before the workflow — written only on a FRESH task entry; re-READ, never overwritten, when resuming the same task), (d) `adr.done` (once, after the ADR step), (e) `docs.done` (once, after the docs step). The dispatcher also materializes the ephemeral `plan.diff` (transport, NOT truth) for the final review. The recipe artifacts (`recipe.sh`, `profile.md`), `final-review.md`, and everything under `orchestration/task-<N>/` are written by the forks/workflow, not the dispatcher — they are ephemeral audit/transport, NOT truth (resume relies only on `status.yml` + `task-base.sha` + `base.sha`).
 - Re-verifying or retrying any commit. All rest on the self-verifying scripts: `commit-task.sh` / `commit-adr.sh` / `commit-docs.sh` emit a `sha` ONLY after proving HEAD advanced past pre-commit HEAD AND `git status --porcelain` is empty (else an `error` tag, never a fabricated `sha`). The committer agent only RELAYS the line. Trust `wf_out.commit` (and the ADR/docs commit tags) directly: do NOT re-run `git rev-parse HEAD`, do NOT wrap in a phantom-commit retry loop, take the sha straight from the tag. On `error`/`malformed`, hard-stop — never hand-commit.
 - Pasting the plan body (or task content) into a sub-agent prompt — the sub-agent reads it itself from the supplied path. The dispatcher hands the workflow only the `taskFile` path.
 - Paging any worker report (`coder-K.md`, `task-reviewer-K.md`, `improver-K.md`, `unblock-coder-K.md`, `runner-K.md`) into the dispatcher's context. The dispatcher reads only the workflow's structured return and (for escalation) forwards `lastFailureReportPath` as the next `feedbackPath` without reading it.
