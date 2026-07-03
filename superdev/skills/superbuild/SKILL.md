@@ -260,9 +260,10 @@ orch_dir = f".superdev/.workflows/<slug>/orchestration/task-{N}"
 task_base_sha = bash("git rev-parse HEAD").strip()
 Write(".superdev/.workflows/<slug>/task-base.sha", task_base_sha + "\n")
 
-# Is the gate runnable? Pure `Tests: none` → false (runner pass skipped).
+# Is the gate runnable? The runner is a TEST runner, so runnable iff the gate has real tests.
+# A `Tests: none` task (even with `- Build: green`) → false; its build is verified inside the coder, not the runner.
 gate = extract_task_gate(N)
-task_gate_runnable = (gate has "^\s*- Tests:" with non-`none` value) OR (gate has "^\s*- Build: green")
+task_gate_runnable = gate has "^\s*- Tests:" with a non-`none` value
 
 feedback_path = ""           # "" on first invocation; set on escalation Retry
 cap = retry_max_attempts     # first invocation; escalation uses retry_escalation_attempts

@@ -57,7 +57,7 @@ The script self-verifies before emitting a `sha` (HEAD advanced past pre-commit 
 - `parse_arg_task($ARGUMENTS)` — integer `N` for the first match of `task=(\d+)`, else `None`.
 - `parse_int_config(key, default=3)` — read an integer from the preloaded `.superdev/config.yml`: match `^<key>:\s*(\d+)\s*$`, return `int(group(1))` else `default` (missing key/file or non-integer all fail-open). Used for `retry_max_attempts` and `retry_escalation_attempts` (both default `3`).
 - `parse_commit_tag(out)` — applies the table above, returning the tuple form. Used by the dispatcher for the **ADR and docs** commits; the per-task tag is parsed inside the workflow.
-- `extract_task_gate(N)` — the lines under the task file's `## Task gate` heading. Used **only** to compute the boolean `taskGateRunnable` (`true` iff the gate has a `- Tests:` line with a non-`none` value or a `- Build: green` line). The workflow's `runner` agent does the actual command construction.
+- `extract_task_gate(N)` — the lines under the task file's `## Task gate` heading. Used **only** to compute the boolean `taskGateRunnable` (`true` iff the gate has a `- Tests:` line with a non-`none` value). The runner is a test runner, so a `Tests: none` gate is not runnable even with `- Build: green` (that build is verified in the coder). The workflow's `runner` agent does the actual command construction.
 - `safe_task_call(tool_fn, **kwargs)` — wraps one `TaskCreate`/`TaskUpdate` in try-catch. On success returns the tool's return value (e.g. the new task id). On error, prints `TaskCreate/TaskUpdate failed: <error> — continuing` once and returns `None`. **All progress-widget calls go through this** — a UI failure must not halt the pipeline.
 
 ## Progress widget — TaskCreate / TaskUpdate constraints

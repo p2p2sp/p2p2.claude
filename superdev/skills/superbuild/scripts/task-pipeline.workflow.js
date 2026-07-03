@@ -18,8 +18,9 @@
 //                        the superbuild-recipe generator authored at run start. Spliced into
 //                        the coder prompt and the runner-wrapper prompt so each downstream
 //                        fork sources its build/test/launch verbs from that one artifact.    (optional)
-//   taskGateRunnable   : true iff the task's `## Task gate` is runnable (Build: green / Tests: <non-none>);
-//                        false on a pure `Tests: none` task (runner pass skipped).      (default true)
+//   taskGateRunnable   : true iff the task's `## Task gate` has a `- Tests:` line with a non-none value
+//                        (the runner is a TEST runner). A `Tests: none` task — even with `- Build: green` —
+//                        is false: the runner pass is skipped and that build is verified inside the coder. (default true)
 //   rulesImprover      : false → skip the improver step; anything else → run it.        (default true standalone; superbuild forwards explicit)
 //   retryMaxAttempts   : attempt-cap for this invocation (escalation passes a fresh cap).(default 3)
 //   feedbackPath       : on an escalation re-invoke, the prior run's lastFailureReportPath —
