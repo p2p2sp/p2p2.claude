@@ -1,0 +1,17 @@
+--- a/superui/skills/design-audit/agents/design-scout.md
++++ b/superui/skills/design-audit/agents/design-scout.md
+@@ -1,7 +1,13 @@
+ ---
+ name: design-scout
+ description: >-
+-  Cheap, fast triage scout for the Design Audit workflow. Scores a single UI file (or a small batch) for Impact and Opportunity on a 1-5 scale against the run's active idiom rubric, counts drift signals, and returns one compact line of JSON — plus a cluster hint for Wave 2. Breadth over depth — spawn many in parallel during the sweep. Does NOT hunt or classify the actual drift; it only rates whether a place is worth a closer look.
++  Workflow-bound design-triage scout; dispatched only by /superui:design-audit
++  (subagent_type: superui:design-scout), never for ad-hoc tasks. Scores a
++  single UI file (or a small batch) for Impact and Opportunity on a 1-5 scale
++  against the run's active idiom rubric, counts drift signals, and returns one
++  compact line of JSON — plus a cluster hint for Wave 2. Breadth over depth —
++  the orchestrator spawns many in parallel; it does NOT hunt or classify the
++  actual drift, only rates whether a place is worth a closer look.
+ model: haiku
+ tools: Read, Grep, Glob, Bash
+ ---
