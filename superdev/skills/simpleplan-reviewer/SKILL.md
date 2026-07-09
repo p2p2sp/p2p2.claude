@@ -17,7 +17,7 @@ Read-only — edit no files. Verify this plan is complete and ready for implemen
 
 ## What to Check
 
-- Spec Alignment - Plan covers spec requirements, no major scope creep.
+- Requirement coverage - Plan covers the plan's Goal and Acceptance criteria, no major scope creep.
 - Completeness - TODOs, placeholders, incomplete tasks, missing steps.
 - Task Decomposition - Tasks have clear boundaries, steps are actionable.
 - Buildability - Could an engineer follow this plan without getting stuck?
@@ -28,7 +28,7 @@ Read-only — edit no files. Verify this plan is complete and ready for implemen
 
 An implementer building the wrong thing or getting stuck is an issue. Minor wording, stylistic preferences, and "nice to have" suggestions are not.
 
-Approve unless there are serious gaps — missing requirements from the spec, contradictory steps, placeholder content, or tasks so vague they can't be acted on.
+Approve unless there are serious gaps — missing requirements from the plan's Goal / Acceptance criteria, contradictory steps, placeholder content, or tasks so vague they can't be acted on.
 
 If `## previous-review` is present, check each prior finding was addressed; do not re-raise findings the fixes already resolved.
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # superdev / setup — bootstrap.test.sh
 #
-# Deterministic test runs for bootstrap.sh's config.yml + _superdev.md seeding
+# Deterministic test runs for bootstrap.sh's config.yml + .gitattributes seeding
 # behavior. This repo has no test framework (markdown + JSON + bash), so a
 # "test" is a real script run against a `mktemp -d` scratch project root with
 # stdout + file-state assertions (see plan §8 binding floor).
@@ -15,28 +15,22 @@
 #            the expected vs actual detail and exits non-zero.
 #   cases  : (1) seed-when-absent: no .superdev/config.yml -> bootstrap copies the
 #                asset, prints the "seeded from template — defaults: adr=false,
-#                rules_improver=false" line, exit 0;
+#                rules=false" line, exit 0;
 #            (2) never-overwrite-when-present: a pre-existing config.yml (flipped
 #                switch) is byte-unchanged, prints "already present (left
 #                untouched) — current switches:", exit 0;
 #            (3) idempotency: two runs in a row leave the seeded config.yml
 #                unchanged on the second run and report already-present;
-#            (4) 5->2 reconcile: the present-path switch grep reports only `adr`
-#                and `rules_improver` (no artifacts|help|ui, no "5 switches" text)
-#                even when the config carries those legacy keys;
-#            (5) _superdev.md seed-when-absent: no .claude/rules/_superdev.md ->
-#                bootstrap copies the asset byte-for-byte, prints "_superdev.md:
-#                created", exit 0;
-#            (6) _superdev.md never-overwrite-when-present: a pre-existing
-#                .claude/rules/_superdev.md (arbitrary content) is byte-unchanged,
-#                prints "_superdev.md: already present (left untouched)", exit 0;
-#            (7) .gitattributes seed-when-absent: no .gitattributes -> created with
+#            (4) legacy-key reconcile: the present-path switch grep reports only
+#                the documented keys (adr, rules, memory), never legacy
+#                artifacts|help|ui, even when the config carries those legacy keys;
+#            (5) .gitattributes seed-when-absent: no .gitattributes -> created with
 #                both .superdev/** linguist-generated lines + "created" report;
-#            (8) .gitattributes append preserves unrelated rules: an existing file
+#            (6) .gitattributes append preserves unrelated rules: an existing file
 #                gains both lines, its unrelated rule survives, "appended" report;
-#            (9) .gitattributes append only the missing line: with one line already
+#            (7) .gitattributes append only the missing line: with one line already
 #                present, only the other is added (no duplicate), "appended";
-#            (10) .gitattributes idempotent: a second run reports already-present,
+#            (8) .gitattributes idempotent: a second run reports already-present,
 #                adds no duplicate, leaves the file byte-unchanged.
 #   note   : asserts on bootstrap.sh stdout AND exit code AND on-disk file state;
 #            each scratch dir is removed on exit (trap).
@@ -45,7 +39,6 @@ set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SUT="$SCRIPT_DIR/bootstrap.sh"
 ASSET="$(cd "$SCRIPT_DIR/.." && pwd)/assets/config.yml"
-ASSET_RULES_SUPERDEV="$(cd "$SCRIPT_DIR/.." && pwd)/assets/_superdev.md"
 
 SCRATCH="$(mktemp -d 2>/dev/null || mktemp -d -t bootstrap)"
 trap 'rm -rf "$SCRATCH"' EXIT
@@ -66,7 +59,7 @@ if [ "$rc" -ne 0 ]; then
     fail "seed when absent" "exit code $rc (expected 0)"
 elif [ ! -f "$T1/.superdev/config.yml" ]; then
     fail "seed when absent" ".superdev/config.yml was not created"
-elif ! printf '%s\n' "$out" | grep -qF "config.yml: seeded from template — defaults: adr=false, rules_improver=false"; then
+elif ! printf '%s\n' "$out" | grep -qF "config.yml: seeded from template — defaults: adr=false, rules=false"; then
     fail "seed when absent" "missing seeded report line; got: $(printf '%s\n' "$out" | grep -i config.yml)"
 elif ! cmp -s "$ASSET" "$T1/.superdev/config.yml"; then
     fail "seed when absent" "seeded config.yml differs from the asset"
@@ -79,7 +72,7 @@ fi
 TOTAL=$((TOTAL + 1))
 T2="$SCRATCH/case2"
 mkdir -p "$T2/.superdev"
-printf 'adr:            false\nrules_improver: true\n' > "$T2/.superdev/config.yml"
+printf 'adr:    false\nrules:  true\n' > "$T2/.superdev/config.yml"
 before="$(cat "$T2/.superdev/config.yml")"
 out="$(cd "$T2" && bash "$SUT")"; rc=$?
 after="$(cat "$T2/.superdev/config.yml")"
@@ -114,78 +107,42 @@ else
     pass "idempotent on second run"
 fi
 
-# Case 4 — 5->2 reconcile: with a config carrying legacy keys, the present-path
-# grep reports only adr + rules_improver, never artifacts|help|ui, and the output
+# Case 4 — legacy-key reconcile: with a config carrying legacy keys, the present-path
+# grep reports only adr + rules + memory, never artifacts|help|ui, and the output
 # never carries the stale "5 switches" text.
 TOTAL=$((TOTAL + 1))
 T4="$SCRATCH/case4"
 mkdir -p "$T4/.superdev"
-printf 'adr: true\nartifacts: true\nhelp: true\nrules_improver: true\nui: true\n' > "$T4/.superdev/config.yml"
+printf 'adr: true\nartifacts: true\nhelp: true\nrules: true\nmemory: true\nui: true\n' > "$T4/.superdev/config.yml"
 out="$(cd "$T4" && bash "$SUT")"; rc=$?
-config_lines="$(printf '%s\n' "$out" | grep -E '^[[:space:]]*(adr|artifacts|help|rules_improver|ui):')"
+config_lines="$(printf '%s\n' "$out" | grep -E '^[[:space:]]*(adr|artifacts|help|rules|memory|ui):')"
 if [ "$rc" -ne 0 ]; then
-    fail "switches report limited to adr+rules_improver" "exit code $rc (expected 0)"
+    fail "switches report limited to adr+rules+memory" "exit code $rc (expected 0)"
 elif printf '%s\n' "$config_lines" | grep -qE '^[[:space:]]*(artifacts|help|ui):'; then
-    fail "switches report limited to adr+rules_improver" "legacy keys leaked into the switch report"
+    fail "switches report limited to adr+rules+memory" "legacy keys leaked into the switch report"
 elif printf '%s\n' "$out" | grep -qiF "5 switches"; then
-    fail "switches report limited to adr+rules_improver" "stale '5 switches' text present"
-elif ! printf '%s\n' "$config_lines" | grep -qE '^[[:space:]]*adr:' || ! printf '%s\n' "$config_lines" | grep -qE '^[[:space:]]*rules_improver:'; then
-    fail "switches report limited to adr+rules_improver" "expected adr + rules_improver in the switch report"
+    fail "switches report limited to adr+rules+memory" "stale '5 switches' text present"
+elif ! printf '%s\n' "$config_lines" | grep -qE '^[[:space:]]*adr:' \
+    || ! printf '%s\n' "$config_lines" | grep -qE '^[[:space:]]*rules:' \
+    || ! printf '%s\n' "$config_lines" | grep -qE '^[[:space:]]*memory:'; then
+    fail "switches report limited to adr+rules+memory" "expected adr + rules + memory in the switch report"
 else
-    pass "switches report limited to adr+rules_improver"
+    pass "switches report limited to adr+rules+memory"
 fi
 
-# Case 5 — _superdev.md seed-when-absent: no .claude/rules/_superdev.md -> asset
-# copied byte-for-byte + "created" report line, exit 0.
+# Case 5 — .gitattributes seed-when-absent: no .gitattributes -> created with both
+# linguist-generated lines + "created" report, exit 0.
 TOTAL=$((TOTAL + 1))
 T5="$SCRATCH/case5"
 mkdir -p "$T5"
 out="$(cd "$T5" && bash "$SUT")"; rc=$?
 if [ "$rc" -ne 0 ]; then
-    fail "_superdev.md seed when absent" "exit code $rc (expected 0)"
-elif [ ! -f "$T5/.claude/rules/_superdev.md" ]; then
-    fail "_superdev.md seed when absent" ".claude/rules/_superdev.md was not created"
-elif ! printf '%s\n' "$out" | grep -qF "_superdev.md: created"; then
-    fail "_superdev.md seed when absent" "missing created report line; got: $(printf '%s\n' "$out" | grep -i _superdev.md)"
-elif ! cmp -s "$ASSET_RULES_SUPERDEV" "$T5/.claude/rules/_superdev.md"; then
-    fail "_superdev.md seed when absent" "seeded file differs from the asset"
-else
-    pass "_superdev.md seed when absent"
-fi
-
-# Case 6 — _superdev.md never-overwrite-when-present: a pre-existing file
-# (arbitrary content) is byte-unchanged and the present report line is printed,
-# exit 0.
-TOTAL=$((TOTAL + 1))
-T6="$SCRATCH/case6"
-mkdir -p "$T6/.claude/rules"
-printf 'hand-edited content\n' > "$T6/.claude/rules/_superdev.md"
-before="$(cat "$T6/.claude/rules/_superdev.md")"
-out="$(cd "$T6" && bash "$SUT")"; rc=$?
-after="$(cat "$T6/.claude/rules/_superdev.md")"
-if [ "$rc" -ne 0 ]; then
-    fail "_superdev.md never overwrite when present" "exit code $rc (expected 0)"
-elif [ "$before" != "$after" ]; then
-    fail "_superdev.md never overwrite when present" "_superdev.md was modified (expected byte-unchanged)"
-elif ! printf '%s\n' "$out" | grep -qF "_superdev.md: already present (left untouched)"; then
-    fail "_superdev.md never overwrite when present" "missing present report line"
-else
-    pass "_superdev.md never overwrite when present"
-fi
-
-# Case 7 — .gitattributes seed-when-absent: no .gitattributes -> created with both
-# linguist-generated lines + "created" report, exit 0.
-TOTAL=$((TOTAL + 1))
-T7="$SCRATCH/case7"
-mkdir -p "$T7"
-out="$(cd "$T7" && bash "$SUT")"; rc=$?
-if [ "$rc" -ne 0 ]; then
     fail ".gitattributes seed when absent" "exit code $rc (expected 0)"
-elif [ ! -f "$T7/.gitattributes" ]; then
+elif [ ! -f "$T5/.gitattributes" ]; then
     fail ".gitattributes seed when absent" ".gitattributes was not created"
-elif ! grep -qE '^\.superdev/\*\*[[:space:]]+linguist-generated=true$' "$T7/.gitattributes"; then
+elif ! grep -qE '^\.superdev/\*\*[[:space:]]+linguist-generated=true$' "$T5/.gitattributes"; then
     fail ".gitattributes seed when absent" "missing .superdev/** line"
-elif ! grep -qE '^\.superdev/\.workflows/\*\*[[:space:]]+linguist-generated=true$' "$T7/.gitattributes"; then
+elif ! grep -qE '^\.superdev/\.workflows/\*\*[[:space:]]+linguist-generated=true$' "$T5/.gitattributes"; then
     fail ".gitattributes seed when absent" "missing .superdev/.workflows/** line"
 elif ! printf '%s\n' "$out" | grep -qF ".gitattributes: created with linguist-generated rules"; then
     fail ".gitattributes seed when absent" "missing created report line"
@@ -193,20 +150,20 @@ else
     pass ".gitattributes seed when absent"
 fi
 
-# Case 8 — .gitattributes append preserves unrelated rules: an existing file with an
+# Case 6 — .gitattributes append preserves unrelated rules: an existing file with an
 # unrelated rule gains both lines, the unrelated rule survives, "appended" report.
 TOTAL=$((TOTAL + 1))
-T8="$SCRATCH/case8"
-mkdir -p "$T8"
-printf '*.png binary\n' > "$T8/.gitattributes"
-out="$(cd "$T8" && bash "$SUT")"; rc=$?
+T6="$SCRATCH/case6"
+mkdir -p "$T6"
+printf '*.png binary\n' > "$T6/.gitattributes"
+out="$(cd "$T6" && bash "$SUT")"; rc=$?
 if [ "$rc" -ne 0 ]; then
     fail ".gitattributes append preserves unrelated" "exit code $rc (expected 0)"
-elif ! grep -qxF '*.png binary' "$T8/.gitattributes"; then
+elif ! grep -qxF '*.png binary' "$T6/.gitattributes"; then
     fail ".gitattributes append preserves unrelated" "unrelated rule was lost"
-elif ! grep -qE '^\.superdev/\*\*[[:space:]]+linguist-generated=true$' "$T8/.gitattributes"; then
+elif ! grep -qE '^\.superdev/\*\*[[:space:]]+linguist-generated=true$' "$T6/.gitattributes"; then
     fail ".gitattributes append preserves unrelated" "missing .superdev/** line"
-elif ! grep -qE '^\.superdev/\.workflows/\*\*[[:space:]]+linguist-generated=true$' "$T8/.gitattributes"; then
+elif ! grep -qE '^\.superdev/\.workflows/\*\*[[:space:]]+linguist-generated=true$' "$T6/.gitattributes"; then
     fail ".gitattributes append preserves unrelated" "missing .superdev/.workflows/** line"
 elif ! printf '%s\n' "$out" | grep -qF ".gitattributes: linguist-generated rules appended"; then
     fail ".gitattributes append preserves unrelated" "missing appended report line"
@@ -214,20 +171,20 @@ else
     pass ".gitattributes append preserves unrelated"
 fi
 
-# Case 9 — .gitattributes append only the missing line: seed both, strip the
+# Case 7 — .gitattributes append only the missing line: seed both, strip the
 # workflows line, re-run -> only that line is re-added (kept line not duplicated).
 TOTAL=$((TOTAL + 1))
-T9="$SCRATCH/case9"
-mkdir -p "$T9"
-( cd "$T9" && bash "$SUT" >/dev/null )
-grep -vE '\.workflows' "$T9/.gitattributes" > "$T9/ga.tmp" && mv "$T9/ga.tmp" "$T9/.gitattributes"
-out="$(cd "$T9" && bash "$SUT")"; rc=$?
-n1="$(grep -cE '^\.superdev/\*\*[[:space:]]+linguist-generated=true$' "$T9/.gitattributes")"
+T7="$SCRATCH/case7"
+mkdir -p "$T7"
+( cd "$T7" && bash "$SUT" >/dev/null )
+grep -vE '\.workflows' "$T7/.gitattributes" > "$T7/ga.tmp" && mv "$T7/ga.tmp" "$T7/.gitattributes"
+out="$(cd "$T7" && bash "$SUT")"; rc=$?
+n1="$(grep -cE '^\.superdev/\*\*[[:space:]]+linguist-generated=true$' "$T7/.gitattributes")"
 if [ "$rc" -ne 0 ]; then
     fail ".gitattributes append only missing" "exit code $rc (expected 0)"
 elif [ "$n1" -ne 1 ]; then
     fail ".gitattributes append only missing" "kept line duplicated ($n1 copies)"
-elif ! grep -qE '^\.superdev/\.workflows/\*\*[[:space:]]+linguist-generated=true$' "$T9/.gitattributes"; then
+elif ! grep -qE '^\.superdev/\.workflows/\*\*[[:space:]]+linguist-generated=true$' "$T7/.gitattributes"; then
     fail ".gitattributes append only missing" "missing line was not re-appended"
 elif ! printf '%s\n' "$out" | grep -qF ".gitattributes: linguist-generated rules appended"; then
     fail ".gitattributes append only missing" "missing appended report line"
@@ -235,16 +192,16 @@ else
     pass ".gitattributes append only missing"
 fi
 
-# Case 10 — .gitattributes idempotent: a second run reports already-present, adds no
+# Case 8 — .gitattributes idempotent: a second run reports already-present, adds no
 # duplicate, leaves the file byte-unchanged.
 TOTAL=$((TOTAL + 1))
-T10="$SCRATCH/case10"
-mkdir -p "$T10"
-( cd "$T10" && bash "$SUT" >/dev/null )
-ga_first="$(cat "$T10/.gitattributes")"
-out="$(cd "$T10" && bash "$SUT")"; rc=$?
-ga_second="$(cat "$T10/.gitattributes")"
-n1="$(grep -cE '^\.superdev/\*\*[[:space:]]+linguist-generated=true$' "$T10/.gitattributes")"
+T8="$SCRATCH/case8"
+mkdir -p "$T8"
+( cd "$T8" && bash "$SUT" >/dev/null )
+ga_first="$(cat "$T8/.gitattributes")"
+out="$(cd "$T8" && bash "$SUT")"; rc=$?
+ga_second="$(cat "$T8/.gitattributes")"
+n1="$(grep -cE '^\.superdev/\*\*[[:space:]]+linguist-generated=true$' "$T8/.gitattributes")"
 if [ "$rc" -ne 0 ]; then
     fail ".gitattributes idempotent" "exit code $rc (expected 0)"
 elif [ "$ga_first" != "$ga_second" ]; then

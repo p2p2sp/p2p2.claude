@@ -10,9 +10,8 @@ effort: medium
 ## Bootstrap
 
 Run the bundled deterministic bootstrap (idempotent — never overwrites anything that exists). It
-seeds `.superdev/`, `.temp/`, `.gitignore`, `.claude/settings.json`, `.superdev/config.yml`, and
-`.claude/rules/_superdev.md` (a frozen pointer rule reminding the agent of the `<superdev:manifest>`
-mandatory rules) from templates, ensures `.gitattributes` carries the `.superdev/**`
+seeds `.superdev/`, `.temp/`, `.gitignore`, `.claude/settings.json`, and `.superdev/config.yml` from
+templates, ensures `.gitattributes` carries the `.superdev/**`
 linguist-generated rules (append-if-absent, so GitHub collapses the tracked `.superdev/` scratch in
 review), and prints one result line per item. Trust those lines — do not
 re-verify.
@@ -46,13 +45,8 @@ Emit exactly one message:
 ```
 ## superdev setup complete
 
-<one line per bootstrap result — e.g. ".superdev created", ".temp already present", ".gitignore seeded from template", "settings.json already present", "_superdev.md created", ".gitattributes created with linguist-generated rules">
+<one line per bootstrap result — e.g. ".superdev created", ".temp already present", ".gitignore seeded from template", "settings.json already present", ".gitattributes created with linguist-generated rules">
 <config line — e.g. "config.yml seeded from template, then enabled: adr (rules, memory left off)" OR "config.yml already present (left untouched): <current values>">
-
-### Recommended next steps
-- Run `/superdev:memory-layers` — bootstrap the CLAUDE.md project-memory cascade (general → specific).
-- Run `/superdev:memory-rules` — author the `.claude/rules/` conventions layer.
 ```
 
-Report the actual results — never invent them. Do NOT invoke `memory-layers` / `memory-rules` (or any
-skill) yourself; they are interactive and the user chooses when to run them.
+Report the actual results — never invent them.

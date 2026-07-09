@@ -6,9 +6,9 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitP
 
 CRITICAL: Run `EnterPlanMode` first, if plan mode is not already active.
 
-# Superplan
+# SuperPlan
 
-Default plan mode content drifts: missing files, hidden assumptions. SimplePlan closes that gap with a strict template plus mandatory pre-plan behavior before the plan is presented.
+Default plan mode content drifts: missing files, hidden assumptions. SuperPlan closes that gap with a strict template plus mandatory pre-plan behavior before the plan is presented.
 
 - Input: superdev interview (already in context).
 - Spec: <path/to/spec.md>, path passed by superspec. Spec is human-approved knowledge of `What & Why` — do not re-approve it.

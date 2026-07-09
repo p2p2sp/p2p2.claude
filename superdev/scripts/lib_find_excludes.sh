@@ -5,7 +5,7 @@
 # the project's .gitignore (root located by walking up from a start path), with a
 # fallback to the bundled ../../skills/setup/assets/gitignore.txt template.
 #
-# Plugin-level shared helper (consumed by memory-layers and memory-rules scripts). It is
+# Plugin-level shared helper (consumed by superdev-memory's scan scripts). It is
 # the single copy — do not re-duplicate it under a skill's own scripts/ dir.
 #
 # Contract:
