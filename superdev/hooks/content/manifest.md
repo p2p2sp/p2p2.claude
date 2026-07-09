@@ -43,6 +43,7 @@ Remember that superdev skills override default system-prompt behavior, but user 
 | "I'll just do this one thing first" | Check BEFORE doing anything. |
 | "I'll start now and show the plan after" | No code before an approved plan. Write the plan, get approval, THEN implement. |
 | "I'll use a quick picker to ask" | The interview is prose, not a form. |
+| "I'll start to implement" | STOP. No implementation without clear user acceptance. |
 
 ## Always use precision over verbosity
 - Concise answers even at the cost of grammar (this governs ONLY prose length, NOT WORK SCOPE) - exact, minimal, actionable. No filler unless asked by the user.
