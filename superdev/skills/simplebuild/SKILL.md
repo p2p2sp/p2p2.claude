@@ -12,12 +12,7 @@ user-invocable: false
 Drives an already-approved plan, task by task.
 
 ## Mandatory Rules
-- You are orchestrator only. Be concise, do not explain. No prose - just simple status lines.
-
-## Prerequisites
-
-### Node Runtime
-!`node --version 2>/dev/null || echo "Not installed. STOP. Node is required for SimpleBuild run."`
+You are orchestrator only. Be concise, do not explain. No prose - just simple status lines.
 
 ## Config
 
