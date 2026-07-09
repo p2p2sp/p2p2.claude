@@ -5,7 +5,7 @@
 # verbatim in both skills. The skill calls it in Step 8 (the title is known only after the
 # interactive flow, so this is a real `Bash` call, not a `!`-load preload). Self-verifying:
 # it emits the path ONLY after it has created the parent directory, so the caller trusts
-# the line without re-checking (same trust contract as commit/route.sh).
+# the line without re-checking (same trust contract as the commit skill's self-verifying commit.sh).
 #
 # IN : $1 = prefix (the .temp subdir, e.g. "create-issue" | "create-pr")
 #      $2 = title (raw, may contain spaces / Polish diacritics / punctuation / embedded

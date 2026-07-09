@@ -45,21 +45,20 @@ none), plus a handful of deterministic helper scripts bundled under
 individual skills' `scripts/` dirs (the `superui` preview scripts, the superdev pipeline commit scripts
 `superbuild/scripts/commit-task.sh` + `superbuild/scripts/commit-adr.sh` + `superbuild/scripts/commit-docs.sh`, the fixed recipe harness
 `superbuild-recipe/scripts/recipe.template.sh`, the `superbuild-decomposer` deterministic edges
-`superbuild-decomposer/scripts/precheck.sh` (Step 0 idempotency, `!`-injected) + `copy_plan.sh` (Step 7.0 byte-exact plan copy + status reset) + `validate_tasks.py` (Step 8 structural validator) + `toposort.py` (Step 5 topological sort + cycle detection) + their sourced `slug-guard.sh` helper, each with a committed `*.test.sh` harness (`precheck.test.sh`, `copy_plan.test.sh`, `validate_tasks.test.sh`, `toposort.test.sh`) plus `skill_contract.test.sh` (grep-asserts the rewritten SKILL.md) and `scripts/fixtures/handtrace-{plan,expected,transcript}.md`, the `supergh` `commit` mode router
-`commit/scripts/route.sh` + its fork-path git-truth backstop `commit/scripts/verify-landed.sh`, the `memory-rules` mode router `memory-rules/scripts/route.sh` + its discovery
+`superbuild-decomposer/scripts/precheck.sh` (Step 0 idempotency, `!`-injected) + `copy_plan.sh` (Step 7.0 byte-exact plan copy + status reset) + `validate_tasks.py` (Step 8 structural validator) + `toposort.py` (Step 5 topological sort + cycle detection) + their sourced `slug-guard.sh` helper, each with a committed `*.test.sh` harness (`precheck.test.sh`, `copy_plan.test.sh`, `validate_tasks.test.sh`, `toposort.test.sh`) plus `skill_contract.test.sh` (grep-asserts the rewritten SKILL.md) and `scripts/fixtures/handtrace-{plan,expected,transcript}.md`, the `supergh` `commit` fork's own scripts
+`commit/scripts/commit.sh` (self-verifying stage+commit+verify) + `commit-context.sh` (injects recent-style + status/diff scoped to the selector) + `commit-selfcheck.sh` (HEAD-moved check) + their sourced `commit-args.sh` selector helper, the `memory-rules` mode router `memory-rules/scripts/route.sh` + its discovery
 scripts `memory-rules/scripts/scan_extensions.sh` (+ `detect_state.sh`, `scan_conventions.sh`), the one-time `setup/scripts/bootstrap.sh`,
 and the `superfix` investigation scripts `code-auditor/scripts/collect_signals.sh` (deterministic signal sweep) + `rank.py` (the gate/rank step)).
-Seven helpers instead live at **plugin-level** `<plugin>/shared/scripts/` (one copy shared across a plugin's
+Six helpers instead live at **plugin-level** `<plugin>/shared/scripts/` (one copy shared across a plugin's
 skills): `superdev/shared/scripts/lib_find_excludes.sh` (sourced by the `memory-layers` / `memory-rules` scan scripts),
 `superdev/shared/scripts/auditor-contract.sh` (router-style assembler `!`-injected by the four `superbuild-reviewer-{quality,architecture,testing,readiness}` final-review lenses;
 takes the lens name and cat-concatenates `shared/references/_input.md` + `lens-<lens>.md` + `_output.md` — placeholder-free, so no `${CLAUDE_PLUGIN_ROOT}` survives into the fork),
 `superdev/shared/scripts/persist-report.sh` (self-verifying write+parse of a pipeline runner report → its 3-line stdout, so a verdict is emitted only once the report file has landed; shared by the `runner` agent (runtime `Read` of the core) + the `superbuild-runner` skill (`!`-injected core); with `persist-report.test.sh`),
 `superui/shared/scripts/check_python.sh` (the Python preflight, `!`-injected by each `superui` skill that runs a Python step),
-and the three `supergh/shared/scripts/` helpers `preflight.sh` (`!`-injected read-only auth+git fact block, shared by
+and the two `supergh/shared/scripts/` helpers `preflight.sh` (`!`-injected read-only auth+git fact block, shared by
 `create-issue` / `create-pr` / `cli-executor`) + `body-path.sh` (deterministic timestamp+slugify body-path builder
-called by `create-issue` / `create-pr` in their Step 8) + `commit.sh` (the self-verifying stage+commit+verify
-committer — the single git-mutation point of the commit chain, called by the `commit` resolver in `context` mode and
-by the `agent-committer` fork in `all`/`staged`; it cannot fabricate its `✓ <sha>` line, mirroring `commit-task.sh`).
+called by `create-issue` / `create-pr` in their Step 8). (The `commit` skill's own stage+commit+verify script now
+lives skill-local at `commit/scripts/commit.sh` — no longer shared — since `agent-committer` is gone.)
 **Editing markdown / JSON IS shipping** — there is no build / test /
 lint at any level. Contracts between files are enforced by humans reading carefully.
 
@@ -118,12 +117,12 @@ superui/             The superui plugin
                      scoring.md, synthesis.md)
 supergh/             The supergh plugin (NO hooks, NO manifest — skills route purely via CSO descriptions)
   .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
-  shared/            Plugin-level shared scripts + references (scripts/preflight.sh — `!`-injected auth+git fact block;
-                     scripts/body-path.sh — deterministic timestamp+slugify body-path builder; scripts/commit.sh —
-                     self-verifying stage+commit+verify committer; references/commit-conventions.md — single source of
-                     the Conventional-Commits subject/footer rules, read by agent-committer + commit's context mode)
-  skills/            Flat-named skills (cli, cli-executor, commit, agent-committer, create-issue, create-pr);
-                     the commit skill bundles scripts/route.sh (mode router) + scripts/verify-landed.sh (fork-path git-truth backstop) + references/{mode-fork,mode-session}.md
+  shared/            Plugin-level shared scripts (scripts/preflight.sh — `!`-injected auth+git fact block;
+                     scripts/body-path.sh — deterministic timestamp+slugify body-path builder)
+  skills/            Flat-named skills (cli, cli-executor, commit, create-issue, create-pr);
+                     the commit skill (haiku fork) bundles scripts/{commit.sh (self-verifying stage+commit+verify),
+                     commit-context.sh (injects recent-style + status/diff), commit-selfcheck.sh (HEAD-moved check),
+                     commit-args.sh (sourced selector helper)} + references/commit-conventions.md (the Conventional-Commits subject/footer rules, injected into the fork)
 superfix/            The superfix plugin (NO hooks, NO manifest — single user-only skill)
   .claude-plugin/plugin.json   The plugin manifest — skills[] + agents[] are the catalog of record
   skills/            One user-invoked skill code-auditor/ (disable-model-invocation); bundles
@@ -176,8 +175,7 @@ precisely because they are genuine agents, not fork-skills. (`commiter` is a thi
 shared run-and-report core, runs the recipe verbs, persists via `persist-report.sh`) — no longer nesting a
 `superbuild-runner` fork — but each is still a workflow-dispatched plugin agent, so they stay
 bare-named like the other three.) Every user-facing / auto-routed superdev skill is bare-named, as is the
-planning fork `superplan-reviewer` and the self-mode code-review fork `self-reviewer`. (Unrelated:
-`supergh:agent-committer` keeps the `agent-` token within its own plugin — that convention is local to supergh.)
+planning fork `superplan-reviewer` and the self-mode code-review fork `self-reviewer`.
 
 - **Entry & environment** — two top-level skills:
   - `superdev`: the always-on **entry skill** (the renamed former `dev-interview`), named after the plugin
@@ -262,33 +260,31 @@ planning fork `superplan-reviewer` and the self-mode code-review fork `self-revi
 `supergh` is a single-domain plugin, so its skills carry **no group prefix** (the plugin name is the group).
 It ships **no `hooks/` and no injected manifest** — unlike `superdev` / `superui`, its skills route purely via
 their CSO `description:` (the always-on guardrail formerly carried by the manifest now lives in each skill's
-"Do NOT call gh… directly" description clause). Three plugin-level helpers live under `shared/scripts/`:
-`preflight.sh` (`!`-injected read-only auth+git fact block, replacing the old per-skill 2–5 `gh`/`git` probes),
-`body-path.sh` (deterministic timestamp+slugify body-path builder, ending the slugify-prose duplication
-between `create-issue` and `create-pr`), and `commit.sh` (self-verifying stage+commit+verify — the single
-git-mutation point of the commit chain, which CANNOT fabricate its `✓ <sha>` line, mirroring `commit-task.sh`);
-plus one shared reference `shared/references/commit-conventions.md` (the single source of the Conventional-Commits
-subject/footer authoring rules, read by both `agent-committer` and `commit`'s `context` mode). Six skills, qualified as `supergh:<name>`:
+"Do NOT call gh… directly" description clause). Two plugin-level helpers live under `shared/scripts/`:
+`preflight.sh` (`!`-injected read-only auth+git fact block, replacing the old per-skill 2–5 `gh`/`git` probes)
+and `body-path.sh` (deterministic timestamp+slugify body-path builder, ending the slugify-prose duplication
+between `create-issue` and `create-pr`). The `commit` skill's commit machinery (its `commit.sh` +
+`commit-context.sh` + `commit-selfcheck.sh` + `commit-args.sh` scripts and its `commit-conventions.md`
+reference) is now skill-local under `skills/commit/`, not shared. Five skills, qualified as `supergh:<name>`:
 
 - `cli` — GitHub CLI **reference** (which layer — `gh` subcommand / `gh api` REST / `gh api graphql` — a given
   operation needs); reference-only, never executes.
 - `cli-executor` — **fork** (reachable from the main session and from consumer skills) that runs ONE
   fully-specified gh/REST/GraphQL operation out of context and returns a single tagged line; guards every
   GraphQL mutation against the silent-200 error case.
-- `commit` (entry, main context) + `agent-committer` (its **fork**) — `commit` resolves WHAT to commit
-  (session / `all` / `staged`, via its `scripts/route.sh` mode router). For `all`/`staged` it delegates
-  Conventional-Commits authoring to `agent-committer`, which reads the diff out of the main context; for `context`
-  it authors inline (it already knows the session's changes — no redundant fork). In BOTH paths the actual
-  staging+commit+verify is done by the shared `shared/scripts/commit.sh`, never by an LLM `git commit` — closing the
-  verify-before-claim gap (a fork could assert a `✓` for a commit that never landed; the script proves HEAD moved
-  first). `agent-committer` is fork-only (`context: fork` + `user-invocable: false`), invoked only by `commit`, and
-  runs no `git add`/`git commit` of its own.
+- `commit` — a **haiku fork** (CSO-routed, runs out of the main context) that owns the whole commit
+  end-to-end by selector (`all` / `staged` / a path): `commit-context.sh` injects the recent-commit style +
+  `git status`/diff scoped to that selector, the fork authors the Conventional-Commits message (rules injected
+  from its `references/commit-conventions.md`), then `commit.sh` does the staging+commit+verify (never an LLM
+  `git commit`) and `commit-selfcheck.sh` confirms HEAD moved. `commit.sh` proves HEAD advanced before the fork
+  reports its `<sha> | <message>` line, closing the verify-before-claim gap — the fork does the commit AND the
+  check itself, so there is no LLM relay hop to distrust and no separate git-truth backstop is needed.
 - `create-issue` / `create-pr` — interactive, template-driven creators (`gh issue create` / `gh pr create
   --draft`); each MAY delegate a fully-specified API call to `cli-executor`.
 
-Fork-only discipline carries through the rename: `agent-committer` (invoked only by `commit`) keeps the
-`agent-` lead token as its fork-only signal, while `cli-executor` is a fork still reachable from the main
-session. Soft cross-plugin chains into superdev: `superdev:superspec → supergh:create-issue`,
+`commit` and `cli-executor` are both forks reachable from the main session (CSO-routed), not fork-only
+sub-workers — supergh no longer has a fork-only skill (the former `agent-committer` was folded into `commit`).
+Soft cross-plugin chains into superdev: `superdev:superspec → supergh:create-issue`,
 `superdev:superbuild-reviewer → supergh:create-pr` (CSO only, engage only when both plugins installed).
 
 ## superfix plugin (codebase investigation — no hooks, no manifest)
@@ -373,17 +369,15 @@ invariant exception). Components, qualified `superfix:<name>`:
   the haiku `commiter` agent (so the commit lives inside the per-task `Workflow`, not the superbuild), but
   the agent only relays the script's tag verbatim — the self-verification stays in the script, so its caller
   (the workflow, then the dispatcher reading `wf_out.commit`) still trusts the result without re-checking.
-  **Exception — supergh `commit` fork path.** The trust-the-relayed-tag property holds only when the relay is a
-  deterministic consumer (the superdev `commit-task.sh` → `Workflow` → dispatcher chain above). It does NOT hold
-  across an **LLM** relay hop: an LLM fork can skip the script entirely and FABRICATE a plausible `✓ <sha>` line
-  the script never emitted (the supergh `commit` `all`/`staged` path, where the haiku `agent-committer` relays
-  `commit.sh`). So there the main-context `commit` resolver does NOT trust the relayed line — it freezes HEAD
-  before delegating and re-derives the verdict from git (HEAD before/after) via `skills/commit/scripts/verify-landed.sh`,
-  retrying the fork once before reporting a hard error. The script-side guarantee protects the script; this
-  backstop protects the LLM hop above it. (The superdev pipeline's identical twin pattern is not yet hardened.)
+  **supergh `commit`.** This one haiku fork runs `commit.sh` (which cannot fabricate a landed commit — it
+  proves HEAD moved) and then `commit-selfcheck.sh` (re-derives `VERIFIED`/`FAILED` from HEAD before/after),
+  reporting a single `<sha> | <message> (<verification>)` line. The verify-before-claim guarantee lives in
+  those scripts; the fork's returned line is trusted by its caller — a fabricating fork is not separately
+  backstopped (the former main-context `verify-landed.sh` was dropped when `agent-committer` was folded in,
+  the same "not yet hardened" caveat as the superdev pipeline's per-task commit twin).
 - **Self-documentation.** Any skill add / remove / rename MUST update the **owning plugin's**
   `<plugin>/.claude-plugin/plugin.json` `skills[]` (superdev's for any of its skills, superui's
-  for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`agent-committer`/`create-issue`/`create-pr` skill,
+  for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`create-issue`/`create-pr` skill,
   superfix's for the `code-auditor` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
   (superdev's `coder` / `runner` / `task-reviewer` / `improver` / `commiter`, superfix's `scout` / `detective`, and

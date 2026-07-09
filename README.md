@@ -42,8 +42,7 @@ Flat-named (single-domain plugin, no group prefix). No manifest, no hooks — sk
 | --- | --- |
 | `cli` | GitHub CLI reference — which layer (`gh` subcommand / `gh api` REST / `gh api graphql`) a given operation needs; reference-only, never executes |
 | `cli-executor` | Fork that runs ONE fully-specified gh/REST/GraphQL operation out of the main context and returns a single tagged line |
-| `commit` | Main-context commit-context resolver — gathers the file set (session / `all` / `staged`); authors inline in `context` mode, delegates to `agent-committer` for `all`/`staged`; the actual commit always runs through the self-verifying `commit.sh` |
-| `agent-committer` | Fork that reads the diff and authors the Conventional-Commits subject for `all`/`staged`, then commits via the self-verifying `commit.sh` (runs no `git add`/`git commit` itself; invoked only by `commit`) |
+| `commit` | Haiku fork that gathers the change context (recent-commit style + `git status`/diff for `all` / `staged` / a path), authors the Conventional-Commits message, commits via the self-verifying `commit.sh`, then self-checks that HEAD moved |
 | `create-issue` | Interactive, template-driven GitHub issue creation (`gh issue create`) |
 | `create-pr` | Interactive, template-driven draft pull-request creation (`gh pr create --draft`) |
 
