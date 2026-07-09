@@ -12,7 +12,15 @@ user-invocable: false
 Drives an already-approved plan, task by task.
 
 ## Mandatory Rules
-- You are orchestrator only. Be concise, do not explain. No prose - just simple status lines.
+You are orchestrator only. Be concise, do not explain. No prose - just simple status lines.
+
+## Config
+
+Resolved opt-in switches (missing file/key = `false`; nothing below breaks on a missing config):
+
+!`bash "${CLAUDE_SKILL_DIR}/../../scripts/read-config.sh"`
+
+These gate Step 2 (`adr`) and the Close-Out delegations (Step 5: `rules`, `memory`). Run a gated step ONLY when its line above reads exactly `true`; anything else (`false`, absent, or an unresolved block) = skip.
 
 ## Step 1 - Decompose Plan
 
@@ -28,6 +36,8 @@ It prints the task index (`workdir:` working-dir path, `status:` last processed 
 No `spec:` line in the index -> STOP: this plan belongs to `simplebuild`, not here. Non-zero exit (e.g. a `Covers:` criterion absent from the spec) -> STOP and show the error.
 
 ## Step 2 - Record ADR
+
+Gated by Config: only when `adr: true`. Otherwise skip (note "ADR: disabled" for the Step 6 summary).
 
 Invoke `superbuild-adr` (Skill) with a labeled-line `args` block — `plan: <plan-copy path>`, `spec: <spec path>`, and `adr: .superdev/adr/<workdir basename>.md` on separate lines. Best-effort: `VERDICT: FAIL` does not block — note it for the Step 6 summary and continue.
 
@@ -72,12 +82,12 @@ For each remaining task file (in order):
 ## Step 5 - Close Out
 
 1. `TaskUpdate` -> start
-2. In parallel (both delegations in a single message, await both):
-    - Delegate to `superdev-memory`: pass plan-header PATH + all task file PATHs.
-    - Delegate to `superdev-rules`:  pass plan-header PATH + all task file PATHs.
+2. Gated by Config; run only the enabled delegations, in parallel (single message, await all). If none enabled, skip to 4.
+    - `memory: true` -> Delegate to `superdev-memory`: pass plan-header PATH + all task file PATHs.
+    - `rules: true`  -> Delegate to `superdev-rules`:  pass plan-header PATH + all task file PATHs.
 3. Either delegation failing is non-fatal -> note it in the Step 6 summary, do not block.
 4. `TaskStop` -> completed
 
 ## Step 6 - Done
 
-Cleanup the task list and display short summary of work, including the ADR path (or the noted ADR failure). Max ~3-5 sentences.
+Cleanup the task list and display short summary of work, including the ADR path (or the noted ADR failure / disabled). Max ~3-5 sentences.

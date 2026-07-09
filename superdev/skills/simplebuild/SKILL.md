@@ -19,6 +19,14 @@ Drives an already-approved plan, task by task.
 ### Node Runtime
 !`node --version 2>/dev/null || echo "Not installed. STOP. Node is required for SimpleBuild run."`
 
+## Config
+
+Resolved opt-in switches (missing file/key = `false`; nothing below breaks on a missing config):
+
+!`bash "${CLAUDE_SKILL_DIR}/../../scripts/read-config.sh"`
+
+These gate the Close-Out delegations (Step 4). Run a delegation ONLY when its line above reads exactly `true`; anything else (`false`, absent, or an unresolved block) = skip. `adr` is not used here.
+
 ## Step 1 - Decompose Plan
 
 Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/decompose.sh" <plan-file>` with the approved plan's path. It creates a working dir (returned as `workdir:`) containing:
@@ -69,9 +77,9 @@ For each remaining task file (in order):
 ## Step 4 - Close Out
 
 1. `TaskUpdate` -> start
-2. In parallel (both delegations in a single message, await both):
-    - Delegate to `superdev-memory`: pass plan-header PATH + all task file PATHs.
-    - Delegate to `superdev-rules`:  pass plan-header PATH + all task file PATHs.
+2. Gated by Config; run only the enabled delegations, in parallel (single message, await all). If none enabled, skip to 4.
+    - `memory: true` -> Delegate to `superdev-memory`: pass plan-header PATH + all task file PATHs.
+    - `rules: true`  -> Delegate to `superdev-rules`:  pass plan-header PATH + all task file PATHs.
 3. Either delegation failing is non-fatal -> note it in the Step 5 summary, do not block.
 4. `TaskStop` -> completed
 
