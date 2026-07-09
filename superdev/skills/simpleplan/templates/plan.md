@@ -1,15 +1,28 @@
-# SuperPlan
-To build this plan use the `superbuild` skill.
+# SimplePlan
+To build this plan must use the `simplebuild` skill.
 
 Title: "<title>"
-Spec: <full/path/to/spec.md> <!-- `What & Why` specification -->
+
+---
+<!-- HEADER -->
+
+## Goal
+<observable end-state behavior from the interview>
+
+## Context
+<short description of plan context, 3-5 sentences max>
+
+## Acceptance criteria
+1. <numbered, testable, observable true/false condition>
+2. …
+
+<!-- /HEADER -->
 
 ---
 
 <!-- TASK -->
 
 ## Task <N> — <title which become a commit message>
-- TDD: <marker>
 - Covers: criteria #<n>[, #<m>]
 
 ### Dependencies

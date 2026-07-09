@@ -1,7 +1,7 @@
 ---
 name: tdd
 description: >-
-  Test-Driven Development discipline expert. Always use this BEFORE writing any production code or test code — for new features, bug fixes, refactors, or behavior changes. Enforces Red-Green-Refactor (iron law: no production code without a failing test first), mandatory VERIFY-RED and VERIFY-GREEN checkpoints, and a per-cycle stop-condition checklist. Triggers include "TDD", "test first", "red-green-refactor", "RGR", "failing test", "test before code", or any plan phase with `Mode: tdd`. Do NOT use for adding tests to already-written code — that is code-first-then-tests mode, not TDD. Trigger applies in any language and to descriptive phrasing too.
+  Test-Driven Development discipline expert. Always use this BEFORE writing any production code or test code — for new features, bug fixes, refactors, or behavior changes. Enforces Red-Green-Refactor (iron law: no production code without a failing test first), mandatory VERIFY-RED and VERIFY-GREEN checkpoints, and a per-cycle stop-condition checklist. Triggers include "TDD", "test first", "red-green-refactor", "RGR", "failing test", "test before code", or any plan task marked `TDD: required`. Do NOT use for adding tests to already-written code.
 user-invocable: false
 ---
 
@@ -35,7 +35,8 @@ Execute the cycle in this exact order for each delivered behavior. **VERIFY RED*
 
 ### VERIFY RED — run it and watch it fail correctly (mandatory)
 
-- **Actually run the test — never simulate it mentally.** Inside the `superdev:coder` agent, run it by invoking the `superdev:superbuild-runner` skill (inline mode — command only, never `Report path:`) with the **unit-scope command for just this test** (single test or single file — not the full `## Task gate`); outside the `coder` agent (main session, ad-hoc), run it directly or via the `superdev:superbuild-runner` skill. The point of VERIFY RED is the observation, not the prediction.
+- **Actually run the test — never simulate it mentally.**
+- The point of VERIFY RED is the observation, not the prediction.
 - The test MUST fail, and fail because the behavior is missing — not from a syntax error, missing import, typo in the test, harness misconfig, or wrong fixture path.
 - Passes immediately? It tested something already true (or tested nothing). Restart RED with a sharper assertion that exercises the not-yet-implemented behavior.
 - Without watching it fail for the right reason, the test's actual coverage is unknown.
@@ -47,7 +48,7 @@ Execute the cycle in this exact order for each delivered behavior. **VERIFY RED*
 
 ### VERIFY GREEN — confirm all tests pass, output pristine (mandatory)
 
-- **Actually run the test — never simulate it mentally.** Inside the `superdev:coder` agent, re-invoke the `superdev:superbuild-runner` skill with the same unit-scope command used in VERIFY RED; outside the `coder` agent, run it directly or via the `superdev:superbuild-runner` skill.
+- **Actually run the test — never simulate it mentally.**
 - The target test passes; every previously-passing test still passes — no regressions.
 - Output is pristine: no new warnings, no new lint errors, no stray prints, no flaky failures hidden behind retries.
 - Not pristine? Something broke — fix it before the next cycle. A "small" regression is still a regression.

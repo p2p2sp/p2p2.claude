@@ -1,33 +1,27 @@
 ---
 name: superdev
-description: As a SuperDev interview the user to map the dependency graph of decisions before drafting any plan or code. You MUST use this before any creative work - creating features, building components, adding functionality, modifying behavior or explores user intent, requirements and design ALWAYS before implementation. Do NOT run for pure information/repo question (answer those directly) or casual clarification follow-ups. The well-specified-edit exception is NARROW — single file AND zero open design/scope/approach decisions; if you'd ask the user ANY question (a picker counts) or touch multiple files, the exception does NOT apply and you MUST interview.
-effort: xhigh
+description: You MUST to use this skill every time a user wants to do something creative - a new idea, a new feature, a change to an existing solution. Do not trigger when user want to implement something now or fast.
+allowed-tools: Read, Grep, Glob, Agent, AskUserQuestion, Skill, ExitPlanMode
 ---
 
-**CRITICAL**: Run `ExitPlanMode` first, if plan mode is active.
+CRITICAL: Run `ExitPlanMode` first, if plan mode is active.
 
-# Interview
-
-Goal: reach a shared understanding of WHAT the user wants and HOW to build it, before any plan or code is drafted.
-- Start from the current project context; ask questions one at a time, waiting for feedback before the next — asking multiple questions at once is forbidden.
-- Walk each branch of the design tree, resolving dependencies between decisions one-by-one.
-- Once you understand what you're building, present the design and get user approval before acting.
-- Do NOT invoke any implementation skill, write code, scaffold a project, or take any implementation action until the user has approved a presented design — EVERY project, regardless of perceived simplicity.
+You are a Super Developer. First thing to do is reach a shared understanding of `What` the user wants and `How` to build something, before any plan or code is drafted.
 
 ## Explore first
 - When the request touches existing code or conventions, launch multiple `Explore` agents in parallel in one batch to map relevant files, patterns, rules, and prior decisions. Anything you can answer from the codebase, do NOT ask the user.
-- Skip exploration only when the request is genuinely greenfield (no existing code yet, or the decision is purely product/UX with no technical footprint). Asking the user a question you could have answered from a 30-second grep is the failure mode this section prevents.
-- Carry the discovered conventions into proposed approaches so HOW always fits the host project.
+- Skip exploration only when the request is genuinely greenfield.
+- Carry the discovered conventions into proposed approaches so `How` always fits the host project.
 
 ## Run the interview
 - Walk the design tree branch by branch, resolving dependencies one decision at a time — early answers reshape later branches, so do not batch.
 - Ask ONE question per turn so the user can pause, push back, or revisit any earlier choice without losing the thread.
 - For each decision, propose 2–3 approaches with trade-offs, lead with your recommendation, and explain why it wins.
 - Treat answers as living. If a later answer invalidates an earlier branch, surface it and re-open that decision instead of pressing forward.
-- Must number the options (`1`, `2`, `3`, and sub-options `1.1`, `1.2` when the choice branches) so the user can point to an answer without re-typing it.
+- Must number the options (`1`, `2`, `3`, and sub-options `1.1`, `1.1.1`, `1.2`, `1.2.1...` when the choice branches) so the user can point to an answer without re-typing it.
 - Use plain prose, not the `AskUserQuestion` tool — the interview is a conversation, not a form. Form-style pickers flatten the trade-off discussion you are trying to have.
 
-**Use this structure as an example of one question:**
+**Use ALWAYS this structure as an example of one question:**
 
 > **Decision 2: where does the session token live?**
 >
@@ -46,6 +40,8 @@ Goal: reach a shared understanding of WHAT the user wants and HOW to build it, b
 - Do not invent branches to justify a longer conversation — the goal is shared understanding, not ritual.
 - Stay inside the task. Adjacent cleanups, refactors, or improvements are out of scope unless the user explicitly asks for them.
 - Never answer a question yourself - you must have to ask the user.
+- Do NOT invoke any implementation skill, write code, scaffold a project, or take any implementation action until the user has approved a presented design — EVERY project, regardless of perceived simplicity.
+- Ask questions one at a time, waiting for feedback before the next — asking multiple questions at once is forbidden.
 
 ## Apply output guidance
 - Keep outputs concise - Prefer short sections, brief bullets, and only enough detail to support the next decision.
@@ -53,10 +49,9 @@ Goal: reach a shared understanding of WHAT the user wants and HOW to build it, b
 
 ## Synthesis
 - Close the interview when every **load-bearing** branch has a confirmed answer. A branch is load-bearing if a different answer would change which files are touched, which library or pattern is chosen, the data shape, or a contract between components. Branches whose answer only affects local style or naming are NOT load-bearing — do not gate the handoff on them.
-- Present the synthesis as ~3–5 bullets capturing the chosen approach, key constraints, and explicit out-of-scope items. Wait for the user's confirmation before
-handing off.
+- Present the synthesis as ~3–5 bullets capturing the chosen approach, key constraints, and explicit out-of-scope items. Wait for the user's confirmation before handing off.
 
-## Handoff
-Hanoff is not interview - use `AskUserQuestion` and let the user choose the next step:
-- Save conclusions as the specification - run `superdev:superspec` skill
-- Handoff to superplan - run `superdev:superplan` skill
+## Handoff — the user picks the track [GATE]
+Handoff is not the interview. After the user confirms the synthesis, present the two tracks with `AskUserQuestion` and let the user choose. The user's choice is the gate; never route yourself past it.
+- **Simple path** — run `simpleplan`. No spec; the plan carries its own DoD / acceptance criteria. Fits small, contained, reversible changes.
+- **Spec path** — run `superspec`. The spec (`What & Why`) is written first, then auto-chains into the plan. Fits medium/large, cross-cutting, or hard-to-reverse changes.

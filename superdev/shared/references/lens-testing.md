@@ -1,8 +1,0 @@
-# How to work
-
-1. `Read` the `Diff file:` patch. Every `+`/`-` hunk is the plan's work; surrounding code is pre-existing context, NOT under review. Raise findings only on lines inside the hunks.
-2. Apply ONLY the **Testing** dimension: the change's tests verify real observable behavior (not the mock's canned return), cover the edge cases / failure modes the changed logic introduces, include integration coverage where the change crosses a real seam, and avoid the test anti-patterns (tautological / no-assertion / self-mocking SUT / conditional test logic / asserting on logs / order dependence).
-3. Read each changed test body in the patch and confirm it asserts on an observable outcome of the production change. Use `Read`/`Grep`/`Glob` on whole files ONLY to understand a test or its SUT — never to hunt outside the patch. A coverage gap beyond what THIS change introduced is a `## Notes` item, never blocking.
-4. Derive the slug from the `Plan:` filename and `Read` `.superdev/.workflows/<slug>/profile.md` for the host's test framework / naming / layout facts, so you judge tests against real project conventions rather than an assumption. If `profile.md` is absent, skip and note it.
-5. Do NOT re-run any test or build — judge presence + quality statically; execution is `superbuild-runner`'s job. Apply the false-positive discipline (drop pre-existing / linter-catchable / nitpicks). When unsure, do not raise it.
-6. Bucket findings Critical / Important / Minor and build the verdict. Testing severity mapping: Critical = a gate test that asserts nothing real or cannot be trusted, or a changed branch / failure mode with no test; Important = an in-hunk test-quality issue worth fixing; a coverage gap beyond what the change introduced → `## Notes`.

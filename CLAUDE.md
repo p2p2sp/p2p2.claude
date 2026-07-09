@@ -62,12 +62,12 @@ Each plugin keeps its domain's skills together so a consumer can install just th
 (`superdev`), just the design ecosystem (`superui`), just the GitHub ecosystem (`supergh`), or just the
 codebase-investigation tool (`superfix`). Within a plugin, skills compose through CSO (frontmatter
 `description:`) and — for the two manifest-bearing plugins (`superdev`, `superui`) — that plugin's single
-injected manifest documents the in-plugin chains (e.g. `improver → memory-rules` in superdev); `supergh` and
+injected manifest documents its routing (e.g. superdev's interview-first decision flow); `supergh` and
 `superfix` ship no manifest (superfix's sole skill is user-only; supergh routes purely via CSO descriptions).
 Each is **self-contained**: its `plugin.json` declares **no `dependencies`** — installing it gives that whole
-ecosystem. Cross-plugin chains are **soft and optional**: superdev's `superspec → supergh:create-issue` and
-`superbuild-reviewer → supergh:create-pr` are CSO compositions that fire only when `supergh` is also
-installed; absent it they simply do not engage (no declared dependency, graceful degradation).
+ecosystem. Cross-plugin chains are **soft and optional** by design: any CSO composition that names another
+plugin's skill fires only when that plugin is also installed; absent it it simply does not engage (no declared
+dependency, graceful degradation).
 
 ## Repository layout (top level)
 
@@ -132,8 +132,8 @@ The invariants below hold across the repo.
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`create-issue`/`create-pr` skill,
   superfix's for the `code-auditor` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
-  (superdev's `coder` / `runner` / `task-reviewer` / `improver` / `commiter`, superfix's `scout` / `detective`, and
-  superui's `design-scout` / `design-detective` live there, not in `skills[]`) — and the relevant `CLAUDE.md`
+  (superfix's `scout` / `detective` and superui's `design-scout` / `design-detective` live there, not in
+  `skills[]`; superdev ships no agents — every superdev worker is a skill) — and the relevant `CLAUDE.md`
   (that plugin's, and this root file when the change is repo-wide) in either case. They must stay in sync, and a
   worker must never appear in both `skills[]` and `agents[]`.
   For the manifest-bearing plugins (`superdev`, `superui`), that plugin's injected manifest
