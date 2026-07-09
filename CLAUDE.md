@@ -18,10 +18,10 @@
 > the plugins will execute against entirely different memory files elsewhere. Treat them strictly as guidance
 > for working on the source, never as a runtime signal the plugins consume.
 >
-> **Per-plugin detail lives in `<plugin>/CLAUDE.md`.** Each plugin keeps its own dev-time orientation file —
-> `superdev/CLAUDE.md`, `superui/CLAUDE.md`, `supergh/CLAUDE.md`, `superfix/CLAUDE.md` — with that plugin's
-> skill taxonomy, internal layout, and plugin-specific architecture invariants. Claude Code auto-loads the one
-> for whichever plugin dir you're editing under. **This root file holds only the repo-wide facts** (the catalog,
+> **Per-plugin detail lives in `<plugin>/CLAUDE.md`.** `superui`, `supergh`, and `superfix` each keep their own
+> dev-time orientation file — `superui/CLAUDE.md`, `supergh/CLAUDE.md`, `superfix/CLAUDE.md` — with that plugin's
+> skill taxonomy, internal layout, and plugin-specific architecture invariants; `superdev` currently has none.
+> Claude Code auto-loads the one for whichever plugin dir you're editing under. **This root file holds only the repo-wide facts** (the catalog,
 > versioning, and the cross-plugin invariants); go to the plugin's own file for anything specific to it.
 
 ## What this repo is
@@ -32,7 +32,7 @@ by subdir `source` (`"./superdev"`, `"./superui"`, `"./supergh"`, `"./superfix"`
 Each plugin is independently installable; none declares another as a dependency. End-user help lives in
 `README.md`; this file is orientation for the assistant.
 
-- **superdev** — project memory, planning, and the agentic-development pipeline. (→ `superdev/CLAUDE.md`)
+- **superdev** — project memory, planning, and the agentic-development pipeline.
 - **superui** — the design / frontend ecosystem: the framework-agnostic L1 system, target adaptation, web
   preview, the UI-edit guardian, a shareable-artifact publisher, and a user-only design-system audit.
   (→ `superui/CLAUDE.md`)
@@ -71,12 +71,12 @@ dependency, graceful degradation).
 
 ## Repository layout (top level)
 
-Each plugin's own internal layout lives in its `<plugin>/CLAUDE.md`.
+Each plugin's own internal layout lives in its `<plugin>/CLAUDE.md` (`superdev` excepted — it has none).
 
 ```
 .claude-plugin/
   marketplace.json   Marketplace catalog — co-lists superdev "./superdev", superui "./superui", supergh "./supergh", superfix "./superfix"
-superdev/            The superdev plugin (project memory, planning, dev pipeline)   → superdev/CLAUDE.md
+superdev/            The superdev plugin (project memory, planning, dev pipeline)
 superui/             The superui plugin (design / frontend ecosystem)               → superui/CLAUDE.md
 supergh/             The supergh plugin (GitHub / git; NO hooks, NO manifest)       → supergh/CLAUDE.md
 superfix/            The superfix plugin (codebase investigation; NO hooks/manifest) → superfix/CLAUDE.md
