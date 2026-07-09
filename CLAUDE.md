@@ -81,7 +81,7 @@ superui/             The superui plugin (design / frontend ecosystem)           
 supergh/             The supergh plugin (GitHub / git; NO hooks, NO manifest)       → supergh/CLAUDE.md
 superfix/            The superfix plugin (codebase investigation; NO hooks/manifest) → superfix/CLAUDE.md
 README.md            User-facing help (install + how it works)
-.github/             CI: scripts/release.sh + workflows/ (auto-version.yml, release-version.yml)
+.github/             CI: scripts/release.sh + workflows/ (release-version.yml — manual dispatch only)
 .claude/rules/       Development-only conventions for this repo
 ```
 
@@ -91,18 +91,17 @@ Each plugin dir carries a `.claude-plugin/plugin.json` (its `skills[]` (+ `agent
 
 ## Versioning
 
-Versioning is tag-driven and shared across all four plugins (one version namespace). CI keeps **all four**
+Versioning is tag-driven and shared across all four plugins (one version namespace). A release keeps **all four**
 `plugin.json` `version` fields (`superdev/`, `superui/`, `supergh/`, `superfix/`) in sync with the highest `MAJOR.MINOR.PATCH`
-git tag (no `v` prefix, seed `0.1.0`): `.github/workflows/auto-version.yml` patch-bumps on every push to
-`main`, and `.github/workflows/release-version.yml` is a manual `workflow_dispatch` that bumps a chosen
-part (major/minor/patch). The shared `.github/scripts/release.sh` computes the next version from the tags,
-writes it into all four manifests, commits the bump (`chore(bump): …`, no `[skip ci]`), pushes the commit + tag,
-and then publishes a **GitHub Release** whose notes are built from the commits since the previous tag (grouped
-by conventional type) with GitHub's auto-generated notes appended. The bump commit carries no `[skip ci]`
-token; the loop is instead broken by an `auto-version.yml` job guard
-(`if: !startsWith(github.event.head_commit.message, 'chore(bump)')`) — keep that `chore(bump)` prefix in sync
-with the script. The tag is the source of truth; each `plugin.json.version` is derived. Because each
-`plugin.json` carries a `version`, `/plugin update` ships a new version on each bump.
+git tag (no `v` prefix, seed `0.1.0`). The sole versioning workflow is `.github/workflows/release-version.yml`
+(the "Release" workflow) — a **manual** `workflow_dispatch` that bumps a chosen part (major/minor/patch, default
+patch); there is **no** automatic bump on push to `main`. It runs the shared `.github/scripts/release.sh`, which
+computes the next version from the tags, writes it into all four manifests, commits the bump (`chore(bump): …`),
+pushes the commit + tag, and then publishes a **GitHub Release** whose notes are built from the commits since the
+previous tag (grouped by conventional type) with GitHub's auto-generated notes appended. The `chore(bump)` commit
+is pushed to `main` but nothing runs on push, so there is no bump loop to guard against. The tag is the source of
+truth; each `plugin.json.version` is derived. Because each `plugin.json` carries a `version`, `/plugin update`
+ships a new version on each release.
 
 ## Cross-plugin architecture invariants
 

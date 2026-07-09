@@ -9,9 +9,9 @@
 # notes are built from the commits since the previous tag (grouped by conventional
 # type) with GitHub's auto-generated notes appended.
 #
-# Loop guard: the bump commit carries NO [skip ci] token; auto-version.yml skips
-# its own bump commits via an `if: !startsWith(head_commit.message, 'chore(bump)')`
-# job guard instead — keep the `chore(bump)` prefix in sync with that workflow.
+# The bump commit (`chore(bump): …`) is pushed to main; no workflow runs on
+# push, so there is no bump loop to guard against. This script runs only via
+# manual workflow_dispatch (release-version.yml).
 #
 # Usage:    .github/scripts/release.sh <major|minor|patch>
 # Source of truth: highest tag matching ^[0-9]+\.[0-9]+\.[0-9]+$ ; none => seed 0.1.0
