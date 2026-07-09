@@ -64,7 +64,7 @@ Before `ExitPlanMode` invoke the `superplan-reviewer` skill (Skill tool, forked 
      ```
      then add `previous-review: <that sibling file path>` as a third line.
 2. Read the first line of its output: `VERDICT: PASS` or `VERDICT: FAIL`, and show the human the Critical/Major findings as a list.
-3. `VERDICT: PASS` → proceed to **Handoff**.
+3. `VERDICT: PASS` → proceed to **Final Plan**.
 4. `VERDICT: FAIL`:
    - **Fixable-in-draft blockers** → apply the returned corrections to the plan, then go back to step 1 and re-run the reviewer.
    - **Needs-discovery blockers** → STOP looping. Run the `superdev` Skill (or ask the user) to obtain the missing decision, update the plan, then go back to step 1 as a fresh round 1.

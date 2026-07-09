@@ -1,6 +1,6 @@
 ---
 name: simplebuild
-description: "Use ONLY when the approved plan's body contains intruction to use it."
+description: "Use ONLY when the approved plan's body contains instruction to use it."
 model: sonnet
 effort: low
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, AskUserQuestion, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop
@@ -25,10 +25,12 @@ Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/decompose.sh" <plan-file>` with the app
 - `status.md` — number of the last processed task (starts at `00`).
 - `plan-header.md` — plan header.
 - `plan.md` — full copy of the approved plan.
-- `tasks/task-NN.md` — one file per task.
+- `tasks/task-NN.md` — one file per task, each carrying the verbatim acceptance criteria it covers.
 - `implementation/` — reviewer reports (`review-NN.md`), one per Final Review round; created empty here, filled in Step 3.
 
 It prints the task index (`workdir:` working-dir path, `status:` last processed task or `none`, `plan-header:` path, `plan:` full-plan copy path, then `<task-file>\t<title>` per line) — use it to drive the implementation loop.
+
+Non-zero exit (e.g. a `Covers:` criterion absent from the plan's `## Acceptance criteria`) -> STOP and show the error.
 
 ## Step 2 - Run Implementation Loop
 

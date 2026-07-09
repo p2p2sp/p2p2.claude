@@ -2,11 +2,7 @@
 
 You have `superui` plugin and it defines EXTREMELY IMPORTANT RULES that you must always follow during a session with a user.
 
-## MANDATORY RULES — NON-NEGOTIABLE
-
-Iron, universal, always-on, golden rules.
-
-### Operating
+## Operating
 - **Design artifacts** — The framework-agnostic design system and its target adaptations live under `.superui/layout/`.
 
 ## These thoughts mean STOP — you're rationalizing

@@ -19,11 +19,13 @@
 #   - tworzy status.md z numerem ostatnio przetworzonego taska (start: 00);
 #     istniejący status.md jest zachowywany (wznowienie)
 #   - rozdziela taski (sekcje TASK) do plików tasks/task-NN.md
-#   - tor superbuild (plan z linią "Spec:"): waliduje istnienie pliku speca
-#     (brak -> exit 4), dopisuje do plan-header.md sekcje "## Out of scope"
-#     i "## Constraints / assumptions" ze speca, a do każdego taska sekcję
-#     "### Covered criteria" z verbatim treścią kryteriów wskazanych w jego
-#     linii "Covers:"; kryterium nieobecne w specu -> exit 5
+#   - do każdego taska dopisywana jest sekcja "### Covered criteria" z verbatim
+#     treścią kryteriów wskazanych w jego linii "Covers:"; źródło to spec
+#     (tor superbuild) albo sekcja "## Acceptance criteria" z nagłówka planu
+#     (tor simplebuild); kryterium nieobecne w źródle -> exit 5
+#   - tor superbuild (plan z linią "Spec:"): dodatkowo waliduje istnienie pliku
+#     speca (brak -> exit 4) i dopisuje do plan-header.md sekcje "## Out of scope"
+#     i "## Constraints / assumptions" ze speca
 #   - tworzy pusty katalog implementation/ na raporty reviewera (Final Review)
 #   - wypisuje na stdout indeks tasków dla pętli implementacji:
 #       workdir: <ścieżka do .superdev/.workflows/<data>-<slug>/>
@@ -86,6 +88,15 @@ if [[ -n "$spec_path" && ! -f "$spec_path" ]]; then
   exit 4
 fi
 
+# źródło kryteriów dla per-taskowej sekcji "### Covered criteria": spec (tor
+# superbuild) albo sam plan — jego HEADER "## Acceptance criteria" (tor
+# simplebuild). Zawsze ustawione, więc kryteria dopisywane są w obu torach.
+if [[ -n "$spec_path" ]]; then
+  crit_source="$spec_path"
+else
+  crit_source="$plan"
+fi
+
 # sekcja speca (nagłówek + treść, do następnego "## " lub EOF)
 spec_section() {
   awk -v h="$1" '
@@ -95,8 +106,8 @@ spec_section() {
   ' "$spec_path"
 }
 
-# treść kryterium akceptacji nr $1 ze speca (linia "N. ..." + kontynuacje,
-# do następnego numeru, pustej linii lub końca sekcji)
+# treść kryterium akceptacji nr $1 ze źródła crit_source (linia "N. ..." +
+# kontynuacje, do następnego numeru, pustej linii lub końca sekcji)
 criterion_of() {
   awk -v n="$1" '
     /^## Acceptance criteria/ { insec=1; next }
@@ -106,7 +117,7 @@ criterion_of() {
     /^[0-9][0-9]*\. /         { grab=0; next }
     /^[[:space:]]*$/          { grab=0; next }
     grab                      { print }
-  ' "$spec_path"
+  ' "$crit_source"
 }
 
 header="$dir/plan-header.md"
@@ -175,30 +186,29 @@ awk -v dir="$dir" -v hdr="$header" '
   }
 ' "$plan"
 
-# --- tor superbuild: kryteria akceptacji do plików tasków ---
-# każdy task dostaje verbatim treść kryteriów z jego linii "Covers:" — dzięki
-# temu per-taskowe forki nie potrzebują pełnego speca. Kryterium wskazane
-# w "Covers:", a nieobecne w specu, to rozjazd plan<->spec -> twardy błąd.
-if [[ -n "$spec_path" ]]; then
-  for task_file in "$dir"/tasks/task-*.md; do
-    covers="$(grep -m1 '^-[[:space:]]*Covers:' "$task_file" || true)"
-    nums="$(printf '%s\n' "$covers" | grep -o '#[0-9][0-9]*' | tr -d '#' || true)"
-    if [[ -z "$nums" ]]; then
-      echo "warning: $(basename "$task_file") has no 'Covers:' criteria — none appended" >&2
-      continue
+# --- kryteria akceptacji do plików tasków (oba tory) ---
+# każdy task dostaje verbatim treść kryteriów z jego linii "Covers:" ze źródła
+# crit_source (spec w torze superbuild, HEADER planu w torze simplebuild) —
+# per-taskowe forki nie muszą wtedy skanować całości. Kryterium wskazane
+# w "Covers:", a nieobecne w źródle, to rozjazd -> twardy błąd.
+for task_file in "$dir"/tasks/task-*.md; do
+  covers="$(grep -m1 '^-[[:space:]]*Covers:' "$task_file" || true)"
+  nums="$(printf '%s\n' "$covers" | grep -o '#[0-9][0-9]*' | tr -d '#' || true)"
+  if [[ -z "$nums" ]]; then
+    echo "warning: $(basename "$task_file") has no 'Covers:' criteria — none appended" >&2
+    continue
+  fi
+  crit_block=""
+  for n in $nums; do
+    text="$(criterion_of "$n")"
+    if [[ -z "${text//[[:space:]]/}" ]]; then
+      echo "error: $(basename "$task_file") covers criterion #$n, absent from source: $crit_source" >&2
+      exit 5
     fi
-    crit_block=""
-    for n in $nums; do
-      text="$(criterion_of "$n")"
-      if [[ -z "${text//[[:space:]]/}" ]]; then
-        echo "error: $(basename "$task_file") covers criterion #$n, absent from spec: $spec_path" >&2
-        exit 5
-      fi
-      crit_block+="$text"$'\n'
-    done
-    printf '\n### Covered criteria\n%s' "$crit_block" >> "$task_file"
+    crit_block+="$text"$'\n'
   done
-fi
+  printf '\n### Covered criteria\n%s' "$crit_block" >> "$task_file"
+done
 
 # --- commit dekompozycji ---
 # artefakty robocze + wszelkie zmiany drzewa; szum gita kierujemy na stderr,
