@@ -1,27 +1,34 @@
 ---
 name: commit
-description: Always must use this skill when user want to commit or save changes. Do not commit by yourself. Do not analyze files and git status - agent in fork will do all of this.
+description: Use whenever the user wants to commit, save, or record changes to git — including "commit", "commit changes", "commit all". This is the ONLY path to a commit: never run git add/commit yourself, never branch, never inspect git status/diff first — a forked agent stages, writes the Conventional Commits message, commits and verifies.
 model: haiku
 context: fork
 allowed-tools: Bash
 ---
 
+## Recognize what has changed and commit
+
+Compose a "commit message" according to the Conventional Commits rules below, based on the diff above and matching the type/scope style of the recent commit subjects. Execute the commit, return one line with sha and composed commit message - wait for result.
+
+Before SHA: !`git rev-parse --verify -q HEAD 2>/dev/null || echo "(none)"`
+
 ## Conventional Commits rules
 !`cat "${CLAUDE_PLUGIN_ROOT}/skills/commit/references/commit-conventions.md" 2>&1`
 
 ## Commit context (recent style + changes + diff)
-!`"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit-context.sh" "$ARGUMENTS" 2>&1`
-
-## Recognize what has changed and commit
-
-Compose a "commit message" according to the Conventional Commits rules above, based on the diff above and matching the type/scope style of the recent commit subjects. Execute the commit, return one line with sha and composed commit message - wait for result.
-
-Before SHA: !`git rev-parse --verify -q HEAD 2>/dev/null || echo "(none)"`
+```!
+ARG=$(cat <<'__COMMIT_ARGS__'
+$ARGUMENTS
+__COMMIT_ARGS__
+)
+"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit-context.sh" "$ARG" 2>&1
+```
 
 ## Working mode
 - `all` or empty args -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>"`.
 - `staged` -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>" "staged"`.
-- anything else is a PATH -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>" "<path>"` to commit ONLY that path. Pass the path exactly as given — POSIX (`src/foo`), Windows (`C:/foo`, `C:\foo`) and MSYS (`/c/foo`) all work verbatim; do not rewrite separators.
+- an existing PATH -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>" "<path>"` to commit ONLY that path. Pass the path exactly as given — POSIX (`src/foo`), Windows (`C:/foo`, `C:\foo`) and MSYS (`/c/foo`) all work verbatim; do not rewrite separators.
+- anything else (a value that is not an existing path) falls back to `all` — commit.sh runs with no 2nd arg and commits every change. The Selector line in the context above states which mode was resolved.
 
 ## Self-Check
 
