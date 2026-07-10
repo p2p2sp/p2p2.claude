@@ -9,7 +9,7 @@ user-invocable: false
 ---
 
 ## Input
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" spec checklist ?previous-review 2>&1`
+!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" spec checklist '?previous-review' 2>&1`
 
 The block above is the spec under review (`## spec`), the quality checklist (`## checklist`) and, on re-review rounds only, the previous review report plus the fixes applied since (`## previous-review`).
 

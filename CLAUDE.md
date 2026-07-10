@@ -128,6 +128,16 @@ The invariants below hold across the repo.
   (the verify-before-claim guarantee lives in the script). A script may still be *invoked through* a thin fork
   without losing this property, as long as the fork only relays the script's verbatim result. Per-plugin
   examples live in each `<plugin>/CLAUDE.md`.
+- **Shell-portable `!` preload commands (bash / Windows / zsh).** Every inline `` !`…` `` preload in a SKILL.md
+  is parsed by the **host's** shell before its content ever reaches the invoked script — and that shell varies
+  per machine: zsh on macOS, bash on Linux, bash/Git-Bash on Windows. The command line MUST behave **identically
+  under all of them**. The concrete trap: an argument containing a glob metacharacter (`?`, `*`, `[`) left
+  **unquoted**. bash's default leaves an unmatched glob as the literal string (so it silently works), but zsh's
+  default (`nomatch`) **aborts the whole command** with `no matches found` and a non-zero exit — which kills the
+  entire fork preload (`Shell command failed for pattern…`), so the fork loads with no input. This is why the
+  bug is invisible on bash and only surfaces on zsh. Rule: **single-quote any argument bearing `?`, `*`, or `[`**
+  — e.g. `resolve-input.sh`'s optional-label convention (`'?previous-review'`, `'?plan'`, `'?spec'`), never bare
+  `?previous-review`. Never rely on bash-only unmatched-glob-as-literal behavior; assume the strictest shell.
 - **Self-documentation.** Any skill add / remove / rename MUST update the **owning plugin's**
   `<plugin>/.claude-plugin/plugin.json` `skills[]` (superdev's for any of its skills, superui's
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`create-issue`/`create-pr` skill,
@@ -163,4 +173,8 @@ This file is orientation only. The authoritative contract of each skill is its o
 # Assistant Conventions
 
 ## Environment
-- Shell is bash on Windows; do NOT use PowerShell syntax in Bash tool calls.
+- The dev shell varies per machine — bash / Git-Bash on Windows, **zsh on macOS**, bash on Linux — so do NOT
+  assume bash-only behavior when writing anything a shell parses (Bash tool calls AND the `` !`…` `` preloads
+  the plugins ship). No PowerShell syntax; and assume the strictest shell — e.g. zsh's default `nomatch` aborts
+  on an unquoted glob (`?`, `*`, `[`) where bash would let it pass, so quote such tokens (see the
+  "Shell-portable `!` preload commands" invariant above).

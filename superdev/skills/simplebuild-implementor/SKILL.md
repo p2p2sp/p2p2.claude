@@ -11,7 +11,7 @@ user-invocable: false
 You are a Senior Developer. Deliver one unit of work to the highest standard, then prove it green. Order is fixed: Implement -> Review -> Build + Test.
 
 ## Input
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan-header task ?plan 2>&1`
+!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan-header task '?plan' 2>&1`
 
 The block above is the plan header (`## plan-header`) and the unit to build (`## task`). The header carries Goal / Context / Acceptance criteria for orientation; the task is what you deliver. `## plan` (the full plan) is present only for a review-fix — use it to source the build + test commands the task itself lacks.
 

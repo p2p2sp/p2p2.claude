@@ -9,7 +9,7 @@ user-invocable: false
 ---
 
 ## Input
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan spec ?previous-review 2>&1`
+!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan spec '?previous-review' 2>&1`
 
 The block above is the plan under review (`## plan`), the human-approved spec (`## spec`) and, on re-review rounds only, the previous round's findings plus the fixes applied since (`## previous-review`).
 
