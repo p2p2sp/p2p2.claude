@@ -33,6 +33,8 @@ fail() { echo "FAIL: $1 — $2"; FAILED=$((FAILED + 1)); }
 LW='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"file_path":"C:\\Users\\dariu\\.claude\\plans\\foo.md","content":"plan"}}]}}'
 LR='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Skill","input":{"skill":"superdev:superplan-reviewer","args":"C:\\Users\\dariu\\.claude\\plans\\foo.md"}}]}}'
 LR2='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Skill","input":{"skill":"superdev:superplan-reviewer","args":"C:\\Users\\dariu\\.claude\\plans\\foo.md\n--- Previous review (round 1) ---\nVerdict: FAIL\n--- Fixes applied ---"}}]}}'
+# Simple-path reviewer call — the gate must recognize simpleplan-reviewer, not only superplan-reviewer.
+LRS='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Skill","input":{"skill":"superdev:simpleplan-reviewer","args":"C:\\Users\\dariu\\.claude\\plans\\foo.md"}}]}}'
 LPASS='{"type":"user","message":{"content":[{"type":"tool_result","content":"## Superplan Review\n**Verdict:** PASS\nAll good."}]}}'
 LFAIL='{"type":"user","message":{"content":[{"type":"tool_result","content":"## Superplan Review\n**Verdict:** FAIL\nFix list: rework step 3."}]}}'
 LPASTE='{"type":"user","message":{"content":"here is an older reviewed doc I pasted:\n**Verdict:** PASS looked fine last week"}}'
@@ -68,6 +70,10 @@ run_case() {
 # A — genuine happy path W->R->PASS -> allow
 mkfix "$SCRATCH/A"  "$LW" "$LR" "$LPASS"
 run_case "A happy W->R->PASS -> allow" "$SCRATCH/A" ALLOW
+
+# A2 — Simple-path happy path W->R(simpleplan-reviewer)->PASS -> allow
+mkfix "$SCRATCH/A2" "$LW" "$LRS" "$LPASS"
+run_case "A2 Simple-path W->R(simpleplan-reviewer)->PASS -> allow" "$SCRATCH/A2" ALLOW
 
 # B — genuine FAIL only -> deny
 mkfix "$SCRATCH/B"  "$LW" "$LR" "$LFAIL"

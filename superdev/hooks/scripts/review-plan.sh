@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # superdev / PreToolUse hook for ExitPlanMode.
 #
-# Blocks ExitPlanMode until the superplan-reviewer skill has approved the plan
+# Blocks ExitPlanMode until the plan reviewer (superplan-reviewer for the spec
+# path, or simpleplan-reviewer for the Simple path) has approved the plan
 # file with "Verdict: PASS". Heuristic: only gates when the transcript shows a
 # prior Write/Edit to a path under .claude/plans/*.md (i.e. plan-mode for an
 # implementation plan, not commit-flow plan-mode without a plan file).
 #
 # NOTE: this hook only fires when the model calls ExitPlanMode, i.e. in plan
-# mode. Entering plan mode before drafting a plan is driven by the superplan
-# skill instruction, so this ExitPlanMode gate fires for every plan-driven flow
+# mode. Entering plan mode before drafting a plan is driven by the superplan /
+# simpleplan skill instruction, so this ExitPlanMode gate fires for every plan-driven flow
 # regardless of the mode the session started in.
 # superbuild trusts this gate as the single plan-review checkpoint and does
 # not re-review the plan itself.
@@ -87,24 +88,25 @@ if [ -z "$last_plan_write_line" ]; then
 fi
 
 # Step 2: from the line AFTER the last plan-file write, look for:
-#   R = a line containing "superplan-reviewer" AND a subagent marker
+#   R = a line containing the plan reviewer name AND a subagent marker
 #   S = a line carrying the actual verdict "Verdict: PASS"
 # Require R < S so the reviewer call precedes its result.
 tail_start=$((last_plan_write_line + 1))
 
-# R: subagent / skill invocation referencing superplan-reviewer.
-# Match either the Agent tool call ("subagent_type":"...superplan-reviewer...") or the
-# Skill tool_use envelope (superplan-reviewer is a context:fork skill invoked via the
-# Skill tool — "skill":"superdev:superplan-reviewer") that mentions superplan-reviewer on
-# the same JSONL line. Load-bearing: name + marker must co-occur on one line; if a
-# future transport splits them, relax to a two-stage match (superplan-reviewer line, then the verdict).
+# R: subagent / skill invocation referencing the plan reviewer — either
+# superplan-reviewer (spec path) or simpleplan-reviewer (Simple path).
+# Match either the Agent tool call ("subagent_type":"...(super|simple)plan-reviewer...") or the
+# Skill tool_use envelope (both reviewers are context:fork skills invoked via the
+# Skill tool — "skill":"superdev:superplan-reviewer" / "superdev:simpleplan-reviewer") that
+# mentions the reviewer on the same JSONL line. Load-bearing: name + marker must co-occur on
+# one line; if a future transport splits them, relax to a two-stage match (reviewer line, then the verdict).
 reviewer_call_line=$(
-  awk -v start="$tail_start" 'NR>=start && /superplan-reviewer/ && (/"subagent_type"/ || /"Agent"/ || /"Skill"/ || /"skill"/) { print NR; exit }' \
+  awk -v start="$tail_start" 'NR>=start && /(superplan|simpleplan)-reviewer/ && (/"subagent_type"/ || /"Agent"/ || /"Skill"/ || /"skill"/) { print NR; exit }' \
     "$transcript_path" 2>/dev/null
 )
 
 if [ -z "$reviewer_call_line" ]; then
-  emit_deny "Next step: plan review. Run superplan-reviewer with the absolute plan file path as the bare argument, wait for 'Verdict: PASS', then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+  emit_deny "Next step: plan review. Run the plan reviewer (superplan-reviewer for the spec path, or simpleplan-reviewer for the Simple path), wait for 'Verdict: PASS', then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
 # S: the reviewer's OWN verdict — the FIRST verdict line AFTER the reviewer call.
@@ -126,7 +128,7 @@ verdict_line=$(
 )
 
 if [ -z "$verdict_line" ]; then
-  emit_deny "Next step: address the review. superplan-reviewer ran but returned no 'Verdict:' line — re-run superplan-reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+  emit_deny "Next step: address the review. The plan reviewer ran but returned no 'Verdict:' line — re-run it, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
 # The value on that first verdict line — strip the trailing anchor, then take the
@@ -141,7 +143,7 @@ verdict_value=$(
 )
 
 if [ "$verdict_value" != "PASS" ]; then
-  emit_deny "Next step: address the review. superplan-reviewer returned 'Verdict: ${verdict_value}', not PASS — apply its Fix list to the plan file, re-run superplan-reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+  emit_deny "Next step: address the review. The plan reviewer returned 'Verdict: ${verdict_value}', not PASS — apply its Fix list to the plan file, re-run the reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
 # Tamper guard: a PASS approves the plan AS REVIEWED. The Step-1 write-detection only
@@ -169,7 +171,7 @@ if [ -n "$plan_base" ]; then
       }' "$transcript_path" 2>/dev/null
   )
   if [ -n "$tamper_line" ]; then
-    emit_deny "Next step: re-review. The plan file was modified after 'Verdict: PASS' — re-run superplan-reviewer on the current plan, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+    emit_deny "Next step: re-review. The plan file was modified after 'Verdict: PASS' — re-run the plan reviewer on the current plan, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
   fi
 fi
 
