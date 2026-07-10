@@ -57,8 +57,8 @@ Flat-named (single-domain plugin, no group prefix):
 | `adapt-target` | Adapt the agnostic L1 system to ONE concrete UI target (pure-css / tailwind / react-shadcn / react-mui / flutter) — per-target theme + component mapping |
 | `web-preview` | Render zero-build, self-contained static HTML preview pages for a web target |
 | `design-guardian` | Bind UI edits to the documented tokens / components / foundations (auto-triggered before UI implementation work) |
-| `cc-artifact` | Claude Code platform — opt-in, main-session publisher of one self-contained `.html`/`.htm`/`.md` file as a shareable Claude Code Artifact; validates single-file / no-external-ref / size, asks first, falls back to the local path (fail-open) |
 | `design-audit` (user-only) | Prioritized multi-agent audit of design-system compliance + component-library extraction — Wave 1 flags drift (raw values, off-theme classes, inline styles, invented variants), each classified Drift (replaceable) vs Gap (needs a system extension); Wave 2 finds scattered / undocumented components and proposes a sibling library + reusable components; idiom-aware (web vs Flutter); one markdown report, changes no code. Runs only via `/superui:design-audit` (`disable-model-invocation`), driving cheap `design-scout` + frontier `design-detective` agents |
+| `pro-designer` | Professional UI/UX design standards — visual hierarchy, 60-30-10 color discipline, type ramps, 4/8pt spacing, accessibility, component states, form-validation UX, and evidence-based conversion psychology with anti-dark-pattern rules; fires when creating, styling, or reviewing any interface; bundles topic reference docs + a WCAG contrast script |
 
 ## superfix skills
 

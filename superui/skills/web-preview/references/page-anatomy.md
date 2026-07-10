@@ -236,7 +236,7 @@ The multi-file `build` above writes a site whose pages reference shared
 `file://` review but **not** publishable as a Claude Code Artifact: an artifact is
 exactly **one** self-contained file under a strict CSP — no external requests, no
 relative-link resolution, one page. `build_site.py standalone` emits that
-conformant file; `cc-artifact` then validates and publishes it.
+conformant file, ready to publish as a Claude Code Artifact.
 
 **What gets inlined.** `standalone` composes ONE page by inlining everything the
 multi-file shell links out to:
@@ -267,9 +267,9 @@ reference named) rather than emit a page that would fetch at runtime:
   live fetch). Run `init --vendor-tailwind` first, or use `pure-css` for a
   fully-offline page by construction.
 
-These are the same three guarantees `cc-artifact` re-checks before publishing
+These are the same three guarantees a Claude Code Artifact must satisfy
 (single file / no external references / size-bounded), so a `standalone` emit
-passes that validation by construction — the chain is `standalone → cc-artifact`.
+is publishable as an artifact by construction.
 The `pure-css` branch is the cleanest source (plain CSS inlined verbatim, nothing
 to vendor); the Tailwind branches inline the vendored build, which makes the file
 larger — prefer `--page` or `pure-css` if the combined showcase grows past the

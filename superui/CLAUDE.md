@@ -7,7 +7,7 @@
 > `superui`.
 
 `superui` is the design / frontend ecosystem: the framework-agnostic **L1** design system, per-target
-adaptation, web preview, the UI-edit guardian, a shareable-artifact publisher, and a user-only design-system
+adaptation, web preview, the UI-edit guardian, and a user-only design-system
 audit. It is a **single-domain** plugin, so its skills carry **no group prefix** (the plugin name is the group)
 and are flat-named. The **per-skill** catalog of record is `.claude-plugin/plugin.json` `skills[]` + `agents[]`;
 the injected manifest (`hooks/content/manifest.md`) documents the design-guardian gate + design-artifact
@@ -50,9 +50,6 @@ The design skills form an L1 → target → preview → guard pipeline, each com
 - `design-guardian` — the **UI-edit guardian**: fires before any `Edit`/`Write` touching UI in a project whose
   design system has already been adapted to a target, binding the edit to the documented tokens / components /
   foundations and the three-path gap policy instead of improvising.
-- `cc-artifact` — the distinct **Claude-Code-platform publisher**: publishes ONE already-written self-contained
-  `.html`/`.md` as a private, shareable Claude Code Artifact. Opt-in, main-session only, fail-open; does NOT
-  generate the file and is never invoked from a fork or an automated pipeline.
 - `design-audit` — the **user-only** design-system audit orchestrator (`disable-model-invocation`, deliberately
   outside the manifest). A code-auditor-style orchestrator: deterministic signal sweep (`scripts/collect_signals.sh`)
   → cheap `design-scout` scoring fan-out → deterministic gate/rank (`scripts/rank.py`) → frontier

@@ -34,7 +34,7 @@ Each plugin is independently installable; none declares another as a dependency.
 
 - **superdev** — project memory, planning, and the agentic-development pipeline.
 - **superui** — the design / frontend ecosystem: the framework-agnostic L1 system, target adaptation, web
-  preview, the UI-edit guardian, a shareable-artifact publisher, and a user-only design-system audit.
+  preview, the UI-edit guardian, and a user-only design-system audit.
   (→ `superui/CLAUDE.md`)
 - **supergh** — the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation
   executor, Conventional-Commits commits, and template-driven issue / PR creation. Ships **no hooks and no

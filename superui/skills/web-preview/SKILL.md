@@ -140,10 +140,10 @@ and offline vendoring for the Tailwind branches: `references/page-anatomy.md`.
 ## Share a preview as an artifact (standalone single-file emit)
 
 The multi-file site above is the default. When the user wants to **share** a
-preview as a live link (not a `file://` path), emit a single self-contained file
-and hand it to the `cc-artifact` skill. The builder's `standalone` command writes
-ONE network-free HTML page by inlining the showcase CSS/JS and the active
-target's theme directly, and dropping every relative `assets/…` link:
+preview as a live link (not a `file://` path), emit a single self-contained file.
+The builder's `standalone` command writes ONE network-free HTML page by inlining
+the showcase CSS/JS and the active target's theme directly, and dropping every
+relative `assets/…` link:
 
 ```bash
 python ${CLAUDE_SKILL_DIR}/scripts/build_site.py standalone \
@@ -157,12 +157,10 @@ python ${CLAUDE_SKILL_DIR}/scripts/build_site.py standalone \
 ```
 
 It produces a file built to satisfy the Claude Code Artifact CSP (one file, no
-external requests, in-page anchors only), so `cc-artifact` will validate and
-publish it without edits. The natural chain is **`web-preview → cc-artifact`**:
-emit the standalone file here, then invoke `cc-artifact` with that `--dest` path
-and a title to publish it as a private, shareable page (or fall back to the local
-path when artifacts are unavailable). Run the multi-file `build` for local review;
-run `standalone` only when producing a shareable link.
+external requests, in-page anchors only), so the `--dest` emit is publishable as a
+private, shareable Claude Code Artifact as-is (or served from the local path when
+artifacts are unavailable). Run the multi-file `build` for local review; run
+`standalone` only when producing a shareable link.
 
 **Caveats — size & Tailwind vendoring:**
 
@@ -299,8 +297,8 @@ Plain Python 3 (stdlib only — no install needed).
   every page (selecting the delivery branch from `target.md`), and generate
   `index.html` from the manifest. `standalone` emits ONE self-contained,
   network-free HTML file (Claude Code Artifact) by inlining the CSS/JS + theme and
-  dropping relative `assets/…` links — the input to `cc-artifact` (see "Share a
-  preview as an artifact" above). Run `python ${CLAUDE_SKILL_DIR}/scripts/build_site.py --help`.
+  dropping relative `assets/…` links (see "Share a preview as an artifact" above).
+  Run `python ${CLAUDE_SKILL_DIR}/scripts/build_site.py --help`.
 
 ## Related skills
 - **adapt-target** — adapts the agnostic L1 system to one concrete target, producing
@@ -310,7 +308,3 @@ Plain Python 3 (stdlib only — no install needed).
 - **extract-design-system** — produces the framework-agnostic L1 system (`tokens.css`,
   `components/inventory.md` + specs) that `adapt-target` reads. Run it first if no
   design system exists at all.
-- **cc-artifact** — publishes the `standalone` single-file emit as a private,
-  shareable Claude Code Artifact (a live link instead of a `file://` path). The
-  downstream chain `web-preview → cc-artifact` — emit the standalone file here,
-  then publish it there. (Reference by name; load on demand.)
