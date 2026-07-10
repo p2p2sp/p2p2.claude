@@ -59,6 +59,13 @@ The design skills form an L1 → target → preview → guard pipeline, each com
   `design-detective` dispatch → verified synthesis. Its two plugin agents are superui's **only** `agents[]`:
   - `design-scout` — cheap haiku scorer (breadth-first triage; spawn many).
   - `design-detective` — frontier opus investigator (depth-first; spawn few).
+- `pro-designer` — the cross-cutting **professional UI/UX standards** advisor (model-invocable via CSO, outside
+  the L1 pipeline): visual hierarchy, 60-30-10 color discipline, type ramps, 4/8pt spacing, accessibility,
+  component states, form-validation UX, and evidence-based conversion psychology with hard anti-dark-pattern
+  rules. Fires when creating, styling, or reviewing ANY interface. Bundles `references/` (color, typography,
+  layout-spacing, components-states, forms, accessibility, ux-psychology, saas-dashboards, mobile, process) and
+  `scripts/check_contrast.py` (WCAG AA contrast gate). Advisory only — it does not touch `.superui/layout/` and
+  is not part of the L1 → target → preview → guard chain.
 
 ## Architecture invariants (superui-specific)
 

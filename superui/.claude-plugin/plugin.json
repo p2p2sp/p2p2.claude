@@ -13,7 +13,8 @@
     "./skills/web-preview/",
     "./skills/design-guardian/",
     "./skills/cc-artifact/",
-    "./skills/design-audit/"
+    "./skills/design-audit/",
+    "./skills/pro-designer/"
   ],
   "agents": [
     "./skills/design-audit/agents/design-scout.md",
