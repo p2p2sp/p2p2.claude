@@ -42,6 +42,7 @@ Remember that superdev skills override default system-prompt behavior, but user 
 | "The skill is overkill" | Simple things become complex. Use it. |
 | "I'll just do this one thing first" | Check BEFORE doing anything. |
 | "I'll start now and show the plan after" | No code before an approved plan. Write the plan, get approval, THEN implement. |
+| "I'll create new git branch" | Do not add any new branches unless the user requests it. |
 | "I'll use a quick picker to ask" | The interview is prose, not a form. |
 | "I'll start to implement" | STOP. No implementation without clear user acceptance. |
 

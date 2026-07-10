@@ -16,7 +16,7 @@ allowed-tools: Bash
 
 Compose a "commit message" according to the Conventional Commits rules above, based on the diff above and matching the type/scope style of the recent commit subjects. Execute the commit, return one line with sha and composed commit message - wait for result.
 
-Before SHA: !`git rev-parse HEAD 2>&1`
+Before SHA: !`git rev-parse --verify -q HEAD 2>/dev/null || echo "(none)"`
 
 ## Working mode
 - `all` or empty args -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>"`.

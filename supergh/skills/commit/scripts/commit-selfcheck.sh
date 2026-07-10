@@ -21,9 +21,12 @@ if [[ -z "$before" ]]; then
   exit 1
 fi
 
-after="$(git rev-parse HEAD 2>&1)"
+# --verify -q: puste (nie smiec) gdy HEAD wciaz unborn (commit nie powstal).
+after="$(git rev-parse --verify -q HEAD 2>/dev/null || true)"
 
-if [[ "$after" != "$before" ]]; then
+# VERIFIED tylko gdy HEAD istnieje I ruszyl wzgledem before (sentinel "(none)"
+# przy pierwszym root-commicie tez przechodzi; pusty after => FAILED).
+if [[ -n "$after" && "$after" != "$before" ]]; then
   echo "VERIFIED"
 else
   echo "FAILED"
