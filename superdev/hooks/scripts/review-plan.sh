@@ -10,7 +10,9 @@
 # NOTE: this hook only fires when the model calls ExitPlanMode, i.e. in plan
 # mode. Entering plan mode before drafting a plan is driven by the superplan /
 # simpleplan skill instruction, so this ExitPlanMode gate fires for every plan-driven flow
-# regardless of the mode the session started in.
+# regardless of the mode the session started in. Plain plan mode (entered by the
+# harness/user, not a plan skill) also writes its plan under .claude/plans/*.md, so it
+# is gated identically; the deny guidance defaults to simpleplan-reviewer.
 # superbuild trusts this gate as the single plan-review checkpoint and does
 # not re-review the plan itself.
 #
@@ -106,7 +108,7 @@ reviewer_call_line=$(
 )
 
 if [ -z "$reviewer_call_line" ]; then
-  emit_deny "Next step: plan review. Run the plan reviewer (superplan-reviewer for the spec path, or simpleplan-reviewer for the Simple path), wait for 'VERDICT: PASS', then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+  emit_deny "Next step: plan review. Run the simpleplan-reviewer skill (or superplan-reviewer if this plan follows a spec), wait for 'VERDICT: PASS', then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
 # S: the reviewer's OWN verdict — the FIRST verdict line AFTER the reviewer call.

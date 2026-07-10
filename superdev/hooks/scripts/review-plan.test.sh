@@ -77,6 +77,19 @@ run_case() {
   if [ "$dec" = "$3" ]; then pass "$1"; else fail "$1" "expected $3 got $dec"; fi
 }
 
+# run_case_deny_contains <name> <fixture-file> <substring> — assert DENY AND that the
+# emitted permissionDecisionReason carries <substring> (locks message content, not just
+# the decision). "deny" precedes the reason in the JSON, so the ordered pattern holds.
+run_case_deny_contains() {
+  local out
+  out="$(printf '{"transcript_path":"%s","tool_name":"ExitPlanMode"}' "$2" | bash "$SUT")"
+  TOTAL=$((TOTAL + 1))
+  case "$out" in
+    *'"permissionDecision":"deny"'*"$3"*) pass "$1" ;;
+    *) fail "$1" "expected DENY containing '$3', got <$out>" ;;
+  esac
+}
+
 # A — genuine happy path W->R->PASS -> allow
 mkfix "$SCRATCH/A"  "$LW" "$LR" "$LPASS"
 run_case "A happy W->R->PASS -> allow" "$SCRATCH/A" ALLOW
@@ -156,6 +169,12 @@ run_case "FF list+backtick VERDICT: \`FAIL\` -> deny" "$SCRATCH/FF" DENY
 # NEGU — negated UPPER PASS before the real UPPER FAIL -> deny
 mkfix "$SCRATCH/NEGU" "$LW" "$LR" "$LNEG_UPPER"
 run_case "NEGU negated UPPER PASS before real FAIL -> deny" "$SCRATCH/NEGU" DENY
+
+# P — plain path: plan-file WRITE only, NO reviewer call at all -> deny, and the deny
+# reason defaults to naming simpleplan-reviewer (super/simple/plain gated identically).
+mkfix "$SCRATCH/P" "$LW"
+run_case "P plain: W only, no reviewer -> deny" "$SCRATCH/P" DENY
+run_case_deny_contains "P plain: deny defaults to simpleplan-reviewer" "$SCRATCH/P" "simpleplan-reviewer"
 
 echo ""
 if [ "$FAILED" -ne 0 ]; then
