@@ -12,16 +12,29 @@
 #
 # <args-block>: pełny $ARGUMENTS forka — linie "label: <ścieżka>" (po jednej
 # etykiecie na linię). Najpierw waliduje wszystkie etykiety i pliki, dopiero
-# potem wypisuje nagłówek + zawartość każdego pliku. Brak WYMAGANEJ etykiety lub
-# pliku -> błąd na stderr, exit != 0 i ZERO częściowej treści na stdout (głośna
-# awaria ładowania forka — lepsza niż cicha, częściowa praca).
+# potem wypisuje nagłówek + zawartość każdego pliku.
+#
+# FAIL-SOFT przy braku WYMAGANEJ etykiety lub pliku: skrypt NIE pada z exit != 0,
+# tylko wypisuje na stdout wyraźnie oznaczony blok `## INPUT ERROR` (i ZERO
+# częściowej treści plików) oraz kończy exit 0. Powód: ten skrypt biegnie jako
+# preload `!command` w SKILL.md forka — nienzerowy exit przerywa CAŁE ładowanie
+# forka ("Shell command failed for pattern…"), więc rodzic nie dostaje żadnego
+# werdyktu, tylko surowy błąd shella. Fail-soft utrzymuje błąd GŁOŚNYM (widoczny
+# w kontekście forka), ale pozwala forkowi się załadować i zgłosić brak wejścia
+# (reviewer zwraca VERDICT: FAIL), zamiast cicho ubić cały przepływ.
+# Nadal obowiązuje zasada "ZERO częściowej treści": jeśli choć jedna wymagana
+# etykieta/plik zawodzi, na stdout idzie WYŁĄCZNIE blok błędu — nigdy wymieszany
+# z treścią poprawnych plików (lepiej niż cicha, częściowa praca).
 #
 set -euo pipefail
 
 block="${1:-}"
 shift || true
 
-if [[ -z "$block" || $# -eq 0 ]]; then
+# Brak etykiet w wywołaniu to błąd okablowania skilla (autor napisał `!command`
+# bez etykiet) — łapany na etapie dev, więc twardy exit. Pusty $block NIE jest
+# tu błędem użycia: spływa do walidacji i fail-softuje jak każde brakujące wejście.
+if [[ $# -eq 0 ]]; then
   echo "error: usage: resolve-input.sh <args-block> <label> [label ...]" >&2
   exit 1
 fi
@@ -37,9 +50,11 @@ value_of() {
 
 # przebieg 1: walidacja wszystkich etykiet i plików (nic nie idzie na stdout).
 # etykieta z prefiksem '?' jest opcjonalna: brak etykiety/pliku -> pusta ścieżka
-# (pomijana w przebiegu 2), bez błędu.
+# (pomijana w przebiegu 2), bez błędu. brak WYMAGANEJ etykiety/pliku -> zbieramy
+# komunikat do `errors` (fail-soft), NIE przerywamy skryptu.
 labels=()
 paths=()
+errors=()
 for spec in "$@"; do
   optional=0
   label="$spec"
@@ -55,15 +70,31 @@ for spec in "$@"; do
       continue
     fi
     if [[ -z "$p" ]]; then
-      echo "error: missing required label '$label:' in fork arguments" >&2
-      exit 2
+      errors+=("missing required label '$label:' in fork arguments")
+    else
+      errors+=("file for '$label:' not found: $p")
     fi
-    echo "error: file for '$label:' not found: $p" >&2
-    exit 3
+    labels+=("$label")
+    paths+=("")
+    continue
   fi
   labels+=("$label")
   paths+=("$p")
 done
+
+# fail-soft: jakikolwiek brak wymaganego wejścia -> tylko blok błędu na stdout,
+# ZERO treści plików, exit 0 (fork się załaduje i zgłosi problem zamiast paść).
+if [[ ${#errors[@]} -gt 0 ]]; then
+  printf '## INPUT ERROR\n\n'
+  printf 'resolve-input.sh could not resolve required fork input:\n'
+  for e in "${errors[@]}"; do
+    printf -- '- %s\n' "$e"
+  done
+  printf '\nNo file content was injected — the required input is missing, so you cannot do your job on it.\n'
+  printf 'Do NOT proceed as if the input were present and do NOT invent it. Report the missing input and stop.\n'
+  printf 'A reviewer returns VERDICT: FAIL stating the input was missing.\n'
+  exit 0
+fi
 
 # przebieg 2: wstrzyknięcie treści (dopiero gdy wszystko poprawne; opcjonalne
 # nieobecne etykiety mają pustą ścieżkę i są pomijane)

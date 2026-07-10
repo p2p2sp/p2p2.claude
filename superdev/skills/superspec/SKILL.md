@@ -54,8 +54,12 @@ Immediately after saving — and BEFORE any handoff — run the reviewer and act
 
 Checklist path (for the reviewer): !`printf '%s' "${CLAUDE_SKILL_DIR}/references/checklist.md"`
 
-1. Invoke `superspec-reviewer` (Skill) with a labeled-line `args` block — `spec: <saved spec filepath>` and `checklist: <checklist path above>` on separate lines.
-   - **Round 1** — send those two lines only.
+1. Invoke `superspec-reviewer` (Skill). The `args` MUST be a labeled block — one `label: value` per line, NOT a bare path:
+   ```
+   spec: <saved spec filepath>
+   checklist: <checklist path above>
+   ```
+   - **Round 1** — send exactly those two lines.
    - **Round 2+, looping back from a fixable-in-draft FAIL** — first save the round context to a sibling file `<saved spec filepath>.review-<N-1>.md` with exactly:
      ```
      --- Previous review (round <N-1>) ---

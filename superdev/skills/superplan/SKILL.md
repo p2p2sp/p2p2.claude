@@ -53,8 +53,12 @@ Once you have written a complete plan and before final review, fast review it wi
 ## Final Review
 Before `ExitPlanMode` invoke the `superplan-reviewer` skill (Skill tool, forked context) to make final review. Never call `ExitPlanMode` on a plan that has not returned `VERDICT: PASS`. Track which invocation this is (round 1, round 2, …).
 
-1. Invoke `superplan-reviewer` (Skill) with a labeled-line `args` block — `plan: <plan-file path>` and `spec: <spec path>` on separate lines.
-   - **Round 1** — send those two lines only.
+1. Invoke `superplan-reviewer` (Skill). The `args` MUST be a labeled block — one `label: value` per line, NOT the bare plan path:
+   ```
+   plan: <plan-file path>
+   spec: <spec path>
+   ```
+   - **Round 1** — send exactly those two lines.
    - **Round 2+, looping back from a fixable-in-draft FAIL** — first save the round context to a sibling file `<plan-file path>.review-<N-1>.md` with exactly:
      ```
      --- Previous review (round <N-1>) ---
