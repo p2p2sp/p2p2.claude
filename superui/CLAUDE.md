@@ -39,6 +39,8 @@ The design skills form an L1 → target → preview → guard pipeline, each com
 - `extract-design-system` — reverse-engineers a **framework-agnostic** design system (DTCG tokens, foundations,
   a pure-CSS `tokens.css`, and a tiered component catalog) from a folder of UI screenshots or a website URL.
   Source-only; targets no UI framework and builds no HTML mockups. Default output `.superui/layout/design-system/`.
+  Bundles `scripts/{sample_colors.py, validate_tokens.py, tokens_to_css.py}` — the last one derives `tokens.css`
+  deterministically from the validated YAML (no hand-written CSS).
 - `create-component` — authors a **net-new** component into an existing agnostic system (describe → agnostic
   spec → minimal pure-CSS single-component preview → catalog entry). Strictly L1; MUST NOT depend on `web-preview`.
 - `adapt-target` — adapts the L1 agnostic system onto **ONE** concrete UI target (pure-css / tailwind /
@@ -49,7 +51,8 @@ The design skills form an L1 → target → preview → guard pipeline, each com
   react-mui / flutter (previewed with their own tooling).
 - `design-guardian` — the **UI-edit guardian**: fires before any `Edit`/`Write` touching UI in a project whose
   design system has already been adapted to a target, binding the edit to the documented tokens / components /
-  foundations and the three-path gap policy instead of improvising.
+  foundations and the three-path gap policy instead of improvising. In an unadapted project it passes through
+  without gating (one-line notice, no brief).
 - `design-audit` — the **user-only** design-system audit orchestrator (`disable-model-invocation`, deliberately
   outside the manifest). A code-auditor-style orchestrator: deterministic signal sweep (`scripts/collect_signals.sh`)
   → cheap `design-scout` scoring fan-out → deterministic gate/rank (`scripts/rank.py`) → frontier
@@ -62,7 +65,8 @@ The design skills form an L1 → target → preview → guard pipeline, each com
   rules. Fires when creating, styling, or reviewing ANY interface. Bundles `references/` (color, typography,
   layout-spacing, components-states, forms, accessibility, ux-psychology, saas-dashboards, mobile, process) and
   `scripts/check_contrast.py` (WCAG AA contrast gate). Advisory only — it does not touch `.superui/layout/` and
-  is not part of the L1 → target → preview → guard chain.
+  is not part of the L1 → target → preview → guard chain; in an adapted project the documented system (and the
+  `design-guardian` brief) takes precedence over its generic absolutes.
 
 ## Architecture invariants (superui-specific)
 
@@ -73,3 +77,12 @@ The design skills form an L1 → target → preview → guard pipeline, each com
   to the documented tokens first via `design-guardian`.
 - **Design artifacts location.** The framework-agnostic design system and its target adaptations live under
   `.superui/layout/` in the host project.
+- **Cross-skill data contracts.** Two literals travel between skills and MUST stay identical everywhere:
+  the gap marker `NEEDS INPUT:` (specs, briefs, previews, audit reports) and the L1 dark-mode canon
+  `$extensions.org.superui.dark` on a token (a complete dark replacement for `$value`, same shape, aliases
+  allowed) — the ONLY dark source in `design-tokens.yaml`, consumed by `tokens_to_css.py` (`.dark` block in
+  `tokens.css`) and by adapt-target's `tokens_to_tailwind.py` (both modes). Renaming either literal is a
+  coordinated multi-skill change.
+- **Scripted artifacts are regenerated wholesale.** Converter outputs (`tokens.css`, `theme.css`, `globals.css`)
+  are fully rewritten on re-run; hand-maintained knowledge belongs in `target.md` / `components.md` /
+  `design-tokens.yaml`, never in a generated file.

@@ -48,20 +48,20 @@ foundations onto these.
 
 ## Token → theme mapping
 
-| L1 token (from `tokens.css` / `design-tokens.yaml`) | MUI theme slot |
-|---|---|
-| brand / accent color | `palette.primary.main` (+ `.light` / `.dark` / `.contrastText`) |
-| secondary accent | `palette.secondary.main` (+ light/dark/contrastText) |
-| feedback: error / warning / info / success | `palette.error\|warning\|info\|success.main` |
-| surface base / text primary | `palette.background.default` / `palette.text.primary` |
-| surface raised / text secondary | `palette.background.paper` / `palette.text.secondary` |
-| border / divider | `palette.divider` |
-| font family | `typography.fontFamily` |
-| base body size | `typography.htmlFontSize` + per-variant `fontSize` |
-| named text styles (`typography.heading-*`, body, caption) | `typography.h1…h6`, `body1`, `body2`, `caption`, `button`, `overline` |
-| spacing base step (4 / 8 px) | `spacing: <step>` (a number = the base unit) |
-| control / card radius | `shape.borderRadius` (single base radius; per-component radius via `components.*.styleOverrides`) |
-| breakpoints | `breakpoints.values` (`xs/sm/md/lg/xl`) |
+L1 token (from `tokens.css` / `design-tokens.yaml`) → MUI theme slot:
+
+- brand / accent color → `palette.primary.main` (+ `.light` / `.dark` / `.contrastText`)
+- secondary accent → `palette.secondary.main` (+ light/dark/contrastText)
+- feedback: error / warning / info / success → `palette.error|warning|info|success.main`
+- surface base / text primary → `palette.background.default` / `palette.text.primary`
+- surface raised / text secondary → `palette.background.paper` / `palette.text.secondary`
+- border / divider → `palette.divider`
+- font family → `typography.fontFamily`
+- base body size → `typography.htmlFontSize` + per-variant `fontSize`
+- named text styles (`typography.heading-*`, body, caption) → `typography.h1…h6`, `body1`, `body2`, `caption`, `button`, `overline`
+- spacing base step (4 / 8 px) → `spacing: <step>` (a number = the base unit)
+- control / card radius → `shape.borderRadius` (single base radius; per-component radius via `components.*.styleOverrides`)
+- breakpoints → `breakpoints.values` (`xs/sm/md/lg/xl`)
 
 ### Palette
 Each color role is an object with **`main`** (required) and optional **`light`**,
@@ -71,7 +71,9 @@ defines them. The roles are `primary`, `secondary`, `error`, `warning`, `info`,
 `success`, plus `background` (`default` / `paper`), `text` (`primary` /
 `secondary` / `disabled`), `divider`, and `action.*`. Set
 `palette.mode: "light" | "dark"` per scheme; for both modes use
-`colorSchemes: { light, dark }` (v6+) so MUI emits the dark overrides.
+`colorSchemes: { light, dark }` (v6+) so MUI emits the dark overrides. Take the
+dark palette values from the L1 `tokens.css` `.dark` block; if the L1 system has
+no dark values, ship light-only — never fabricate a dark palette.
 
 ### Typography
 `typography.fontFamily` sets the global stack; each named variant (`h1`–`h6`,
@@ -110,5 +112,5 @@ tabs → `Tabs`/`Tab`; badge → `Badge`/`Chip`; avatar → `Avatar`; alert →
 
 **Gap policy:** if the L1 inventory has a component MUI does not ship, compose it
 from MUI primitives (`Box`, `Stack`, `Paper`, `Typography`) and say so; if no
-clean composition exists, write `> ⚠️ Needs input: …`. Never invent a `@mui/*`
-component that the docs do not list.
+clean composition exists, write `> NEEDS INPUT: <what's missing>`. Never invent
+a `@mui/*` component that the docs do not list.

@@ -16,7 +16,7 @@ The design system is the source of truth: semantic names in `tokens.css` / `desi
 ## Classify every finding (two buckets)
 
 - Drift (fixable) — the value/class/variant duplicates or trivially maps onto an existing documented token/component. Report the exact replacement, e.g. "replace `#111827` with `var(--color-text-primary)`" or "use the mapped class from `components.md`".
-- Gap (needs design decision) — no documented equivalent exists. Flag it as a candidate design-system extension (route to `extract-design-system` / `create-component`). Do NOT propose a mechanical swap for a gap.
+- Gap (needs design decision) — no documented equivalent exists. Flag it as a candidate design-system extension (route to `superui:extract-design-system` / `superui:create-component`). Do NOT propose a mechanical swap for a gap.
 
 ## Wave 2 hints (report as cluster candidates, do not fix)
 

@@ -19,62 +19,100 @@ block. Variables in known namespaces automatically generate utilities.
 }
 ```
 
+The converter (run via the SKILL.md Step 2 command) implements exactly the
+mapping below; this file documents its actual behavior.
+
 ## Namespace map
 
-| DTCG token (type / role) | v4 theme namespace | Generated utilities |
-|---|---|---|
-| color | `--color-{name}` | `bg-*`, `text-*`, `border-*`, `ring-*`, `fill-*` … |
-| dimension, role `spacing` | `--spacing-{name}` | `p-*`, `m-*`, `gap-*`, `w-*`, `h-*`, `size-*` |
-| dimension, role `font-size`/`text` | `--text-{name}` | `text-*` (size) |
-| dimension, role `radius` | `--radius-{name}` | `rounded-*` |
-| dimension, role `breakpoint` | `--breakpoint-{name}` | `{name}:` responsive variant |
-| fontFamily | `--font-{name}` | `font-*` |
-| fontWeight | `--font-weight-{name}` | `font-*` (weight) |
-| shadow | `--shadow-{name}` | `shadow-*` |
-| cubicBezier | `--ease-{name}` | `ease-*` |
-| duration | *(no util namespace)* | emit as plain `--duration-*`; use via arbitrary value `duration-[var(--duration-fast)]` |
-| number (z-index, opacity) | *(no util namespace)* | emit as plain `--z-*` / `--opacity-*` custom props |
+DTCG type / role → v4 theme namespace → generated utilities:
 
-Role is taken from `$extensions.org.tailwindcss.namespace` if present, else from
-the token's top-level group name (`spacing`, `radius`, `breakpoint`, etc.). The
-`tokens_to_tailwind.py` script implements exactly this.
+- color → `--color-{name}` → `bg-*`, `text-*`, `border-*`, `ring-*`, `fill-*`, …
+- dimension, role `spacing` → `--spacing-{name}` → `p-*`, `m-*`, `gap-*`, `w-*`, `h-*`, `size-*`
+- dimension, role `font-size` / `text` → `--text-{name}` → `text-*` (size)
+- dimension, role `radius` → `--radius-{name}` → `rounded-*`
+- dimension, role `breakpoint` → `--breakpoint-{name}` → `{name}:` responsive variant
+- fontFamily → `--font-{name}` → `font-*`
+- fontWeight → `--font-weight-{name}` → `font-*` (weight)
+- shadow → `--shadow-{name}` → `shadow-*`
+- cubicBezier → `--ease-{name}` → `ease-*` (aliases in `$value` resolve to `var(--ease-…)`)
+- duration → no utility namespace; emitted as `--duration-*`; use via arbitrary
+  value, e.g. `duration-[var(--duration-fast)]`
+- number (z-index, opacity) → no utility namespace; emitted as plain custom
+  properties (e.g. `--z-*` / `--opacity-*`)
+
+Role is taken from `$extensions.org.tailwindcss.namespace` if a token carries
+it, else from the token's `$type` + top-level group name (`spacing`, `radius`,
+`breakpoint`, etc.); `$extensions.org.tailwindcss.name` overrides the leaf name.
 
 ### Color output
-For sRGB colors with a `hex`, the converter emits the hex (most readable). For
-colors with alpha < 1 or non-sRGB spaces it emits a modern CSS color function
-(`color(srgb r g b / a)` or `oklch(…)`). Either way utilities resolve normally.
+
+Default output format is **hex**: sRGB colors emit `#rrggbb` when alpha is 1
+(derived from `components` when no `hex` is given), and `rgb(r g b / a)` when
+alpha < 1 (an alpha embedded in `#rrggbbaa` or set via `alpha:` is preserved,
+even for hex-only tokens). With `--color-format oklch` every literal sRGB color
+(components or hex-only) is converted to `oklch(…)` deterministically. Non-sRGB
+spaces always emit natively (`oklch()` / `lab()` / `color(<space> …)`). Alias
+values become `var(--color-…)` references either way. Utilities resolve all of
+these normally.
 
 ### Typography composites
-`typography` tokens don't map to a single namespace. The converter emits their
-parts to the relevant namespaces (`--text-*`, `--font-*`, `--font-weight-*`) and
-lists each named style in a comment so you can build a matching utility or a
-small `@utility` (e.g. `@utility text-heading-1 { … }`) by hand if desired.
+
+`typography` tokens don't map to a single namespace. The converter **decomposes**
+each one: `fontSize` → `--text-{name}`, `lineHeight` → `--text-{name}--line-height`,
+`letterSpacing` → `--text-{name}--letter-spacing` (Tailwind v4 font-size
+sub-values, picked up by the `text-{name}` utility), `fontWeight` →
+`--font-weight-{name}`, `fontFamily` → `--font-{name}`. Parts absent from the
+composite are omitted; aliases inside parts resolve to `var(…)`. Each decomposed
+style is listed in a trailing comment. Other composite types (border,
+transition, gradient, …) are skipped and listed in a
+`/* Composite tokens not auto-mapped … */` comment.
 
 ### Semantic vs primitive
+
 Emit **both** layers. Primitives become the base scale; semantic tokens become
 named variables that reference primitives, e.g.
 `--color-text-primary: var(--color-gray-900);` → utilities `text-text-primary`
 read awkwardly, so for semantic colors prefer concise role names
 (`--color-fg`, `--color-bg`, `--color-surface`, `--color-accent`,
 `--color-border`) → `text-fg`, `bg-surface`, `border-border`. The converter uses
-the semantic token's leaf path to build a short utility-friendly name and warns
-on collisions.
+the semantic token's leaf path to build a short utility-friendly name; when two
+tokens emit the same custom-property name it warns on stderr and appends a
+`/* WARNING: custom-property name collisions … */` comment (in CSS the later
+declaration wins).
 
-### Dark mode (only if tokens declare a dark theme)
-The converter scaffolds:
+### Dark mode
+
+The only dark source is `$extensions.org.superui.dark` on a token — same shape
+as its `$value`, aliases allowed. The converter always scaffolds the
+class-strategy variant:
 
 ```css
 @custom-variant dark (&:where(.dark, .dark *));
 ```
-and emits dark overrides inside `@layer base { .dark { --color-…: …; } }` from a
-`$extensions.org.tailwindcss.dark` value on the relevant tokens. Toggle by adding
-`class="dark"` on `<html>`.
+
+When at least one token carries a dark value, it emits the overrides after the
+`@theme` block:
+
+```css
+@layer base {
+  .dark {
+    --color-surface: #17171c;
+    --color-fg: var(--color-neutral-0);
+  }
+}
+```
+
+When no token has a dark value it emits a comment instead ("no dark overrides
+in design-tokens.yaml ($extensions.org.superui.dark); if the L1 tokens.css has
+a .dark block, port it manually"). It never fabricates dark values. Toggle by
+adding `class="dark"` on `<html>`.
 
 ## Consuming the theme
 
 The generated `theme.css` (for the `tailwind` target) / `globals.css` (for
 `react-shadcn`) is the machine-readable output of the design system — the bridge
-from the agnostic L1 tokens to a Tailwind implementation. Building live HTML
-example pages from it (Play CDN single-file previews, the app shell wired to the
-documented components) is the job of the separate **web-preview** skill, not
-this one.
+from the agnostic L1 tokens to a Tailwind implementation. It is regenerated in
+full on every converter run, so never hand-edit it. Building live HTML example
+pages from it (Play CDN single-file previews, the app shell wired to the
+documented components) is the job of the separate **superui:web-preview** skill,
+not this one.

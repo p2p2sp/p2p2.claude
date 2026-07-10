@@ -1,7 +1,7 @@
 ---
 name: extract-design-system
-description: Use when the user provides a folder of UI screenshots or a website URL and wants to reverse-engineer a framework-agnostic design system from it. Triggers: "extract a design system", "build design tokens from these screens", "document the components in this UI", "turn this site into a design system", "reverse-engineer this UI/website", a filesystem path to a screenshots directory, or a URL to take inspiration from. Source-only: produces DTCG design tokens (YAML), a foundations document, a pure-CSS tokens.css (no framework coupling), and a tiered component catalog — layout, composite, and atomic — each with a detailed spec covering variants, states, anatomy, Figma properties, usage rules, and accessibility. Does not target any UI framework or build HTML mockups; per-target adaptation is the separate adapt-target skill, web preview is web-preview.
-allowed-tools: Bash(sh:*)
+description: Use when the user provides a folder of UI screenshots or a website URL and wants to reverse-engineer a framework-agnostic design system from it. Triggers: "extract a design system", "build design tokens from these screens", "document the components in this UI", "turn this site into a design system", "reverse-engineer this UI/website", a filesystem path to a screenshots directory, or a URL to take inspiration from. Source-only: produces DTCG design tokens (YAML), a foundations document, a pure-CSS tokens.css (no framework coupling), and a tiered component catalog — layout, composite, and atomic — each with a detailed spec covering variants, states, anatomy, Figma properties, usage rules, and accessibility. Does not target any UI framework or build HTML mockups; per-target adaptation is the separate superui:adapt-target skill, web preview is superui:web-preview.
+allowed-tools: Bash(sh:*) Bash(python:*) Bash(python3:*) Bash(py:*) Bash(curl:*)
 ---
 
 # System Design Extractor
@@ -10,12 +10,15 @@ Turn a source UI — a folder of screenshots or a website URL — into a detaile
 self-contained, **framework-agnostic design system**: DTCG design tokens, a
 foundations document, a pure-CSS `tokens.css`, and a **tiered catalog of
 components**, each documented with a full spec. This is the L1 core: it
-reverse-engineers the *source* into one neutral system that downstream skills
-adapt per target. Run manually: the user names the source in the prompt.
+reverse-engineers the source into one neutral system.
+
+Input contract: the source (a screenshots-directory path or a website URL)
+comes from the invocation prompt or arguments. If none is present, ask for it
+before starting.
 
 ## Python preflight
 
-!`"${CLAUDE_PLUGIN_ROOT}/shared/scripts/check_python.sh"`
+!`sh "${CLAUDE_PLUGIN_ROOT}/shared/scripts/check_python.sh"`
 
 The line above runs this skill's Python check at load. If it reads `PYTHON_MISSING`,
 tell the user this skill's `*.py` steps need **Python 3** (install it; on Windows make
@@ -29,7 +32,7 @@ These shape every step.
 - **Measure, do not guess.** Token and spec values come from the source — pixels
   (images) or CSS (URL) — not from memory of "typical" systems. If a value
   cannot be determined, record `null` with a `$description` saying why; in a spec
-  write `> ⚠️ Needs input: <what's missing>`. Never fabricate.
+  write `> NEEDS INPUT: <what's missing>`. Never fabricate.
 - **References say what to LOOK FOR, never what to ASSUME.** Any "typical" value,
   color role, or state treatment named in a reference is a detection hint, not a
   default. Every assigned value — including the FORM and COLOR of state treatments
@@ -43,8 +46,8 @@ These shape every step.
   ask before proceeding.
 - **Scope = the agnostic design system, not a framework target or mockups.** This
   skill ends at the documented, framework-neutral system. Adapting it to a target
-  (`pure-css` / `tailwind` / `react-shadcn` / `react-mui` / `flutter`) is the
-  separate **adapt-target** skill; building live HTML previews is **web-preview**.
+  (`pure-css` / `tailwind` / `react-shadcn` / `react-mui` / `flutter`) is
+  **superui:adapt-target**; building live HTML previews is **superui:web-preview**.
   Offer the next step (see Related skills) — do not bake framework knowledge here.
 
 ## Source intake — directory or URL
@@ -53,18 +56,29 @@ The user supplies one of two source types. Detect which and read it fully before
 extracting.
 
 - **Screenshots directory** (a user-provided path — typically a project
-  assets folder): `view` the directory, then `view` every image so you
+  assets folder): `Read` the directory listing, then `Read` every image so you
   actually see it. Run
-  `${CLAUDE_SKILL_DIR}/scripts/sample_colors.py` per image to read exact colors. Estimate spacing
-  and sizes against a known reference in the image (a 16 px body line, a 40 px
-  avatar), not round numbers.
-- **Website URL** (a page to take inspiration from): retrieve it with the
-  **`web_fetch` tool** (not bash — sandbox egress is restricted). Fetch the page,
-  then its linked stylesheets, and read **exact values from the CSS**: custom
-  properties (`--*`), `color`, `font-*`, spacing, `border-radius`, `box-shadow`,
-  breakpoints. CSS gives precise values — prefer it over estimation. If you also
-  need to see layout/components and a screenshot tool is available, capture and
-  `view` it; otherwise infer structure from the DOM and CSS.
+  `python "${CLAUDE_SKILL_DIR}/scripts/sample_colors.py" <image>` per image to
+  read exact colors. Estimate spacing and sizes against a known reference in the
+  image (a 16 px body line, a 40 px avatar), not round numbers.
+- **Website URL** (a page to take inspiration from): prefer the **raw sources** —
+  download the page and its stylesheets, then `Read` the files, so values come
+  from the actual CSS text:
+
+  ```bash
+  curl -sL --create-dirs -o .temp/extract-design-system/page.html <url>
+  ```
+
+  Find the linked stylesheets in the HTML (`<link rel="stylesheet">`, `@import`)
+  and `curl` each one the same way, then `Read` them and take **exact values from
+  the raw CSS**: custom properties (`--*`), `color`, `font-*`, spacing,
+  `border-radius`, `box-shadow`, breakpoints. If `curl` is unavailable or the
+  fetch is blocked, fall back to the `WebFetch` tool — but note that WebFetch
+  returns processed (markdown-converted) content, so treat values it reports as
+  approximate and confirm any load-bearing value against a raw stylesheet when
+  possible. If you also need to see layout/components and a screenshot tool is
+  available, capture and `Read` the screenshot; otherwise infer structure from
+  the DOM and CSS.
 
 Note the target viewport(s) (desktop ~1280–1440, tablet, mobile) so measurements
 are consistent.
@@ -73,13 +87,16 @@ are consistent.
 
 Write everything under `.superui/layout/design-system/` (default; the user may override):
 
-| File | What it is |
-|------|------------|
-| `design-tokens.yaml` | DTCG tokens — primitive + semantic (+ sparse component), serialized as YAML |
-| `foundations.md` | The extracted foundations: principles, token tiers, visual foundations, theming, consistency rules, accessibility |
-| `tokens.css` | Pure-CSS custom properties — semantic token names as `:root` (light) + `.dark` (dark) declarations; no framework, no build step |
-| `components/inventory.md` | The tiered component catalog (layout → composite → atomic) — the list shown to the user |
-| `components/<tier>/<name>.md` | One detailed spec per identified component |
+- `design-tokens.yaml` — DTCG tokens: primitive + semantic (+ sparse component),
+  serialized as YAML; dark-mode values ride `$extensions.org.superui.dark` (Phase 1).
+- `foundations.md` — the extracted foundations: principles, token tiers, visual
+  foundations, theming, consistency rules, accessibility.
+- `tokens.css` — pure-CSS custom properties generated from the validated tokens
+  by `scripts/tokens_to_css.py`: `:root` (light) + `.dark` (overrides); no
+  framework, no build step.
+- `components/inventory.md` — the tiered component catalog (layout → composite →
+  atomic); the list shown to the user.
+- `components/<tier>/<name>.md` — one detailed spec per identified component.
 
 ## Workflow
 
@@ -96,17 +113,24 @@ Phases in order. 1–3 build the system core; 4 catalogs components; 5 reconcile
 ### Phase 1 — Extract design tokens
 
 Read `references/dtcg-token-format.md` (YAML shape, types, sRGB color object,
-composites, aliasing). Skim `references/design-system-foundations.md` §3 for the
-full foundations coverage checklist so no category is missed.
+composites, aliasing, the dark-mode extension). Skim
+`references/design-system-foundations.md` §3 for the full foundations coverage
+checklist so no category is missed. Start from `assets/tokens.template.yaml`:
+copy its skeleton and replace every value with a measured one. Its semantic
+vocabulary — `color.surface.base/raised/muted/overlay`,
+`color.text.primary/secondary/on-accent`, `color.border.default`,
+`color.accent.*`, `color.focus`, `radius.control`, `size.icon` / `size.control` —
+is the naming baseline for tokens, `foundations.md`, and every spec.
 
 1. **Colors** — exact palette (sampled pixels or CSS); deduplicate near-identical
    colors into one primitive; build a per-hue ramp where the design clearly has
    one. Cover surfaces, text, borders, brand/accent, states, focus ring, overlay.
    **Surface/elevation order is measured, not assumed:** sample the background of
    every major region (page/canvas, sidebar, content panel, topbar, cards, menus)
-   with `${CLAUDE_SKILL_DIR}/scripts/sample_colors.py --regions` and assign `surface.base / raised /
-   muted / overlay` by the printed luminance order (darkest = base); record that
-   order in `foundations.md`. Never assign surfaces by convention.
+   with `python "${CLAUDE_SKILL_DIR}/scripts/sample_colors.py" <image> --regions …`
+   and assign `surface.base / raised / muted / overlay` by the printed luminance
+   order (darkest = base); record that order in `foundations.md`. Never assign
+   surfaces by convention.
 2. **Typography** — families (by shape if unlabeled — say so), size scale,
    weights, line-heights, letter-spacing; named text styles as `typography`
    composites.
@@ -120,10 +144,30 @@ full foundations coverage checklist so no category is missed.
    globally, e.g. `button.bg`; keep sparse). Alias up the chain; never duplicate a
    raw value.
 
+**Dark mode (canon).** A token whose value differs between light and dark
+carries the complete dark replacement in `$extensions`:
+
+```yaml
+color:
+  surface:
+    base:
+      $value: "{color.gray.50}"
+      $extensions:
+        org.superui:
+          dark: "{color.gray.900}"
+```
+
+- `dark` is a full replacement value — same shape and type as `$value`; aliases
+  are allowed.
+- A token with no light/dark difference has no such extension.
+- This extension is the ONLY source of truth for dark in L1; the `.dark` block
+  of `tokens.css` is derived from it (Phase 3). Never fabricate dark values — if
+  the source shows no dark screens, add no extensions and tell the user.
+
 Write `design-tokens.yaml`, then validate and fix every error:
 
 ```bash
-python ${CLAUDE_SKILL_DIR}/scripts/validate_tokens.py .superui/layout/design-system/design-tokens.yaml
+python "${CLAUDE_SKILL_DIR}/scripts/validate_tokens.py" .superui/layout/design-system/design-tokens.yaml
 ```
 
 **Accent-usage inventory.** Before moving on, enumerate every location the
@@ -135,41 +179,36 @@ only on the selected calendar-day ring"). This list becomes the foundations
 
 Using `references/design-system-foundations.md` as the map, write
 `foundations.md`: the observed design principles, the token tiers, the visual
-foundations summary, the theming approach, the cross-component consistency rules,
-and the system-wide accessibility notes. Reference tokens by name; state any
-assumptions and unresolved values explicitly.
+foundations summary, the theming approach (including which tokens carry
+`$extensions.org.superui.dark`), the cross-component consistency rules, and the
+system-wide accessibility notes. Reference tokens by name; state any assumptions
+and unresolved values explicitly.
 
-### Phase 3 — Emit `tokens.css` (pure CSS, framework-agnostic)
+**Heading contract (guaranteed output).** `foundations.md` MUST contain a
+section whose heading is exactly `## 6. Patterns & usage / consistency rules`.
+Downstream consumers (superui:design-guardian, superui:design-audit) locate the
+consistency rules by that verbatim heading — do not rename, renumber, or merge it.
 
-Write `tokens.css` — the agnostic theming artifact — as plain CSS custom
-properties keyed by **semantic token name**, no framework syntax and no build
-step. Each semantic token becomes one `--<token-name>` declaration; light values
-go in `:root`, the dark parallel set in `.dark`. Reference primitives only behind
-the semantic names so a target adapter can map them cleanly later.
+### Phase 3 — Generate `tokens.css`
 
-```css
-:root {
-  --color-surface-base: #ffffff;
-  --color-text-primary: #111827;
-  --radius-control: 8px;
-  /* …one line per semantic token… */
-}
-.dark {
-  --color-surface-base: #0b0f17;
-  --color-text-primary: #f4f6fb;
-  /* …parallel values, same names… */
-}
+`tokens.css` is derived, never authored by hand. Generate it from the validated
+tokens:
+
+```bash
+python "${CLAUDE_SKILL_DIR}/scripts/tokens_to_css.py" .superui/layout/design-system/design-tokens.yaml .superui/layout/design-system/tokens.css
 ```
 
-**Theming.** A theme swaps token *values* behind stable semantic *names* (light
-in `:root`, dark in `.dark`); a dark theme is a parallel value set aliasing
-different primitives, not a rename. **Never fabricate** an alternate palette — if
-only light screens were given, leave the `.dark` block as a TODO scaffold and
-tell the user.
+The script emits one flat `--<token-path-with-hyphens>` custom property per
+token in `:root` (aliases become `var(--…)`; shadow/border/transition composites
+become one usable CSS value; typography/gradient composites become comments —
+their parts are already tokens) and builds the `.dark` block from every
+`$extensions.org.superui.dark` value. Trust its result — do not re-verify or
+hand-edit `tokens.css`; to change it, edit the YAML, re-validate, re-run.
 
-**Targets are downstream.** Do **not** generate Tailwind, shadcn, MUI, Flutter,
-or any other framework theme here. `tokens.css` is the single neutral source the
-**adapt-target** skill consumes to produce each per-target theme artifact.
+**Theming.** A theme swaps token values behind stable semantic names: `:root`
+holds light, `.dark` holds the overrides derived from the extensions. If the
+source gave no dark screens, the script leaves a TODO scaffold in `.dark` —
+tell the user rather than inventing a palette.
 
 ### Phase 4 — Identify components in three tiers
 
@@ -194,9 +233,10 @@ detailed), so they see what was identified before the full specs land.
 ### Phase 5 — Reconcile
 
 Cross-check tokens ↔ components. If a component reveals a value not yet tokenized
-(e.g. a focus-ring color, a card radius), add it as a token and re-run
-`validate_tokens.py`. Every distinct visual value a component uses must exist as
-a token before it is specced.
+(e.g. a focus-ring color, a card radius), add it as a token, re-run the Phase 1
+validation, and re-run the Phase 3 generation so `tokens.css` stays derived.
+Every distinct visual value a component uses must exist as a token before it is
+specced.
 
 Then cross-check each component's token **assignments** against the foundations
 consistency rules — not just token existence: accent discipline (no spec uses the
@@ -211,9 +251,10 @@ Read `assets/example-component-spec.md` for the expected depth, then write one
 spec per identified component to `components/<tier>/<name>.md`, using the template
 and section guidance in `references/component-spec.md`. Every spec references
 design-system tokens by name (not raw values) and ties anatomy/states to them.
-Apply the never-invent rule: ask or use the `⚠️ Needs input` placeholder for any
-section the source does not support. Adapt the template per tier (layout/composite
-components document a "Composed of" list; atoms document related/paired atoms).
+Apply the never-invent rule: ask, or write the `> NEEDS INPUT: <what's missing>`
+placeholder for any section the source does not support. Adapt the template per
+tier (layout/composite components document a "Composed of" list; atoms document
+related/paired atoms).
 
 ### Phase 7 — Fidelity verification
 
@@ -222,8 +263,9 @@ match it — this catches the assumption-driven defects (inverted surfaces, lost
 geometry, misused accent) that pass token validation but contradict the source.
 
 For each layout component and each key atomic state, RE-SAMPLE the corresponding
-region/element in the source image (`${CLAUDE_SKILL_DIR}/scripts/sample_colors.py --regions` /
-`--points`) and check:
+region/element in the source image
+(`python "${CLAUDE_SKILL_DIR}/scripts/sample_colors.py" <image> --regions …` /
+`--points …`) and check:
 
 - Surface/elevation order matches the spec and the recorded foundations order?
 - Large-region / panel corner radii captured (with a token)?
@@ -232,14 +274,15 @@ region/element in the source image (`${CLAUDE_SKILL_DIR}/scripts/sample_colors.p
 - Every state's color AND form match a re-sample (not a "typical" pattern)?
 
 Fix any mismatch and re-run the checklist; loop until it is clean. Record residual
-uncertainties as `> ⚠️ Needs input: <what's missing>`, never as silent guesses.
+uncertainties as `> NEEDS INPUT: <what's missing>`, never as silent guesses.
 
 ## Presenting results
 
-Use `present_files` with `design-tokens.yaml` first, then `foundations.md`,
-`tokens.css`, `components/inventory.md`, and the specs. Keep the message short:
-what you extracted, the tiered component count, and any assumptions or unresolved
-values to confirm. Then offer the natural next step (see Related skills).
+Give the user the paths of the produced files, `design-tokens.yaml` first, then
+`foundations.md`, `tokens.css`, `components/inventory.md`, and the
+`components/<tier>/` spec files. Keep the message short: what you extracted, the
+tiered component count, and any assumptions or `NEEDS INPUT` items to confirm.
+Then offer the natural next step (see Related skills).
 
 ## Reference files
 
@@ -248,28 +291,34 @@ values to confirm. Then offer the natural next step (see Related skills).
   checklist, theming, components, consistency rules, accessibility). **Skim before
   phase 1.**
 - `references/dtcg-token-format.md` — DTCG 2025.10 YAML schema: token shape,
-  types, sRGB color object, composites, aliasing. **Read before phase 1.**
+  types, sRGB color object, composites, aliasing, the
+  `$extensions.org.superui.dark` canon. **Read before phase 1.**
 - `references/component-patterns.md` — detection catalog (cues, anatomy, states,
-  tokens, a11y) + the visual-consistency checklist. **Read before phases 4 and 7.**
+  tokens, a11y per common block) + the visual-consistency checklist. **Read before
+  phases 4 and 7.**
 - `references/component-spec.md` — the three-tier taxonomy and the per-component
   spec template + section guidance (the shared canon also consumed by
-  **create-component**). **Read before phases 4 and 6.**
+  **superui:create-component**). **Read before phases 4 and 6.**
 
 ## Scripts
 
-Plain Python (stdlib + `pyyaml`, `Pillow`, `numpy`). Install if missing:
-`pip install pyyaml pillow numpy --break-system-packages`.
+Plain Python (stdlib + `pyyaml`, `Pillow`, `numpy`). Install if missing, using
+the interpreter resolved by the preflight:
+`<cmd> -m pip install pyyaml pillow numpy --break-system-packages`.
 
-- `${CLAUDE_SKILL_DIR}/scripts/sample_colors.py IMAGE [--k N] [--points x,y …] [--regions name=x,y,w,h …] [--json]`
+- `python "${CLAUDE_SKILL_DIR}/scripts/sample_colors.py" IMAGE [--k N] [--points x,y …] [--regions name=x,y,w,h …] [--json]`
   — k-means palette / exact color sampling for **image** sources; `--regions`
   ranks named region backgrounds by luminance to derive the measured
-  surface/elevation order (Phases 1 and 7). (For URL sources read colors from CSS
-  via `web_fetch` instead.)
-- `${CLAUDE_SKILL_DIR}/scripts/validate_tokens.py TOKENS.yaml` — DTCG conformance + alias resolution.
+  surface/elevation order (Phases 1 and 7). (For URL sources read colors from the
+  downloaded CSS instead.)
+- `python "${CLAUDE_SKILL_DIR}/scripts/validate_tokens.py" TOKENS.yaml` — DTCG
+  conformance + recursive alias resolution, covering composite values and
+  `$extensions.org.superui.dark`.
+- `python "${CLAUDE_SKILL_DIR}/scripts/tokens_to_css.py" TOKENS.yaml OUTPUT.css`
+  — deterministic `design-tokens.yaml` → `tokens.css` generation (Phase 3).
 
-`tokens.css` is written by hand from the validated tokens (Phase 3) — there is no
-framework generator in L1. Deterministic per-target generators live downstream in
-**adapt-target**.
+Each script carries its full I/O contract in its header and verifies its own
+result — trust its output and error messages; do not re-check or retry.
 
 ## Related skills
 
@@ -277,12 +326,12 @@ This skill is L1 — the framework-agnostic core. Everything framework- or
 preview-specific lives downstream; mention the relevant next step when you finish
 (reference by name; load on demand).
 
-- **adapt-target** — adapts this agnostic system to **one** chosen target
+- **superui:adapt-target** — adapts this agnostic system to **one** chosen target
   (`pure-css` / `tailwind` / `react-shadcn` / `react-mui` / `flutter`),
   generating the per-target theme artifact and component mapping. The natural
-  next step *after* the system is documented.
-- **web-preview** — renders live HTML preview pages for the web targets once
-  adapt-target has produced a target.
-- **create-component** — interactive authoring of a **net-new** component
+  next step once the system is documented.
+- **superui:web-preview** — renders live HTML preview pages for the web targets
+  once superui:adapt-target has produced a target.
+- **superui:create-component** — interactive authoring of a **net-new** component
   directly into this L1 system (reuses the canonical `component-spec.md`); use it
   when a component is missing rather than extracted from a source.

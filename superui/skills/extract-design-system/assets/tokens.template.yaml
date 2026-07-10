@@ -1,13 +1,13 @@
 $description: "Design tokens extracted from <project> mockups (DTCG 2025.10)"
 
 # ============================================================
-# COLOR  — primitives (ramps) + semantic roles, all under `color`
-# so leaf names stay short: --color-bg, --color-accent, --color-brand-500 …
+# COLOR — primitives (ramps) + semantic roles, all under `color`
+# so leaf names stay short: --color-surface-base, --color-brand-500 ...
 # ============================================================
 color:
   $type: color
 
-  # --- primitives: neutral ramp ---
+  # --- primitives: raw values, never consumed directly ---
   gray:
     "50":  { $value: { colorSpace: srgb, components: [0.98, 0.98, 0.98], hex: "#fafafa" } }
     "100": { $value: { colorSpace: srgb, components: [0.96, 0.96, 0.97], hex: "#f4f4f5" } }
@@ -19,53 +19,89 @@ color:
     "500": { $value: { colorSpace: srgb, components: [0.20, 0.40, 0.95], hex: "#3366f2" } }
     "600": { $value: { colorSpace: srgb, components: [0.16, 0.32, 0.80], hex: "#2952cc" } }
   white: { $value: { colorSpace: srgb, components: [1, 1, 1], hex: "#ffffff" } }
+  black: { $value: { colorSpace: srgb, components: [0, 0, 0], hex: "#000000" } }
 
   # --- semantic roles: aliases into the primitives above ---
-  bg:        { $value: "{color.gray.50}" }    # -> --color-bg   -> bg-bg
-  surface:   { $value: "{color.white}" }      # -> --color-surface
-  fg:        { $value: "{color.gray.900}" }   # -> --color-fg   -> text-fg
-  muted:     { $value: "{color.gray.500}" }
-  border:    { $value: "{color.gray.200}" }   # -> border-border
-  accent:    { $value: "{color.brand.500}" }
-  accent-fg: { $value: "{color.white}" }
+  # surface.* is assigned by the MEASURED luminance order (darkest = base).
+  surface:
+    base:
+      $value: "{color.gray.50}"
+      # Dark-mode canon: a token that differs between light and dark carries
+      # its complete dark replacement (same shape/type; aliases allowed) in
+      # $extensions.org.superui.dark. Tokens with no difference carry nothing.
+      $extensions:
+        org.superui:
+          dark: "{color.gray.900}"
+    raised: { $value: "{color.white}" }
+    muted:  { $value: "{color.gray.100}" }
+    overlay:
+      $value: { colorSpace: srgb, components: [0, 0, 0], alpha: 0.5, hex: "#000000" }
+      $description: "Modal scrim — black at measured opacity (alpha cannot ride an alias)"
+  text:
+    primary:   { $value: "{color.gray.900}" }
+    secondary: { $value: "{color.gray.500}" }
+    on-accent: { $value: "{color.white}" }
+  border:
+    default: { $value: "{color.gray.200}" }
+  accent:
+    default: { $value: "{color.brand.500}" }
+    hover:   { $value: "{color.brand.600}" }
+  focus: { $value: "{color.brand.500}" }
 
 font:
   family:
     $type: fontFamily
-    sans: { $value: ["Inter", "system-ui", "sans-serif"] }   # -> --font-sans
+    sans: { $value: ["Inter", "system-ui", "sans-serif"] }
     mono: { $value: ["ui-monospace", "monospace"] }
   weight:
     $type: fontWeight
-    regular:  { $value: 400 }       # -> --font-weight-regular
+    regular:  { $value: 400 }
     medium:   { $value: 500 }
     semibold: { $value: 600 }
 
 dimension:
   font-size:
     $type: dimension
-    "300": { $value: { value: 14, unit: px } }   # -> --text-300 -> text-300
+    "300": { $value: { value: 14, unit: px } }
     "400": { $value: { value: 16, unit: px } }
     "600": { $value: { value: 20, unit: px } }
     "800": { $value: { value: 28, unit: px } }
 
 spacing:
   $type: dimension
-  "1": { $value: { value: 4,  unit: px } }       # -> --spacing-1 -> p-1, gap-1 …
+  "1": { $value: { value: 4,  unit: px } }
   "2": { $value: { value: 8,  unit: px } }
   "3": { $value: { value: 12, unit: px } }
   "4": { $value: { value: 16, unit: px } }
   "6": { $value: { value: 24, unit: px } }
   "8": { $value: { value: 32, unit: px } }
 
+size:
+  $type: dimension
+  icon:    { $value: { value: 16, unit: px } }
+  control: { $value: { value: 40, unit: px } }
+
 radius:
   $type: dimension
-  control: { $value: { value: 8,    unit: px } } # -> --radius-control -> rounded-control
+  control: { $value: { value: 8,    unit: px } }
   card:    { $value: { value: 12,   unit: px } }
   full:    { $value: { value: 9999, unit: px } }
 
 border-width:
   $type: dimension
   hairline: { $value: { value: 1, unit: px } }
+
+border:
+  $type: border
+  control:
+    $value:
+      color: "{color.border.default}"
+      width: { value: 1, unit: px }
+      style: solid
+
+opacity:
+  $type: number
+  disabled: { $value: 0.5 }
 
 shadow:
   $type: shadow
@@ -83,6 +119,13 @@ shadow:
         offsetY: { value: 10, unit: px }
         blur:    { value: 30, unit: px }
         spread:  { value: 0,  unit: px }
+  focus:
+    $value:
+      - color: "{color.focus}"
+        offsetX: { value: 0, unit: px }
+        offsetY: { value: 0, unit: px }
+        blur:    { value: 0, unit: px }
+        spread:  { value: 2, unit: px }
 
 motion:
   duration:
@@ -90,21 +133,22 @@ motion:
     fast: { $value: { value: 150, unit: ms } }
   ease:
     $type: cubicBezier
-    standard: { $value: [0.4, 0, 0.2, 1] }       # -> --ease-standard
+    standard: { $value: [0.4, 0, 0.2, 1] }
 
 breakpoint:
   $type: dimension
-  md: { $value: { value: 48, unit: rem } }        # -> --breakpoint-md
+  md: { $value: { value: 48, unit: rem } }
   lg: { $value: { value: 64, unit: rem } }
 
 zindex:
   $type: number
-  sidebar: { $value: 10 }                          # -> plain --zindex-sidebar
+  sidebar: { $value: 10 }
   panel:   { $value: 20 }
   modal:   { $value: 50 }
 
-# Composite text styles (emitted as comments by the converter; parts already
-# exist as tokens above, so use them directly in markup).
+# Composite text styles — scripts/tokens_to_css.py emits these into tokens.css
+# as comments; the parts already exist as tokens above, so consume the parts
+# directly in markup.
 typography:
   $type: typography
   heading-1:
@@ -112,6 +156,12 @@ typography:
       fontFamily: "{font.family.sans}"
       fontSize: "{dimension.font-size.800}"
       fontWeight: "{font.weight.semibold}"
+      lineHeight: 1.2
+  label:
+    $value:
+      fontFamily: "{font.family.sans}"
+      fontSize: "{dimension.font-size.300}"
+      fontWeight: "{font.weight.medium}"
       lineHeight: 1.2
   body:
     $value:

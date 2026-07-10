@@ -16,7 +16,7 @@ There is NO CSS, class, `--custom-property`, `sx`, or inline-`style` concept her
 ## Classify every finding (two buckets)
 
 - Drift (fixable) — maps onto an existing `ColorScheme`/`TextTheme`/spacing constant. Report the replacement, e.g. "replace `Color(0xFF111827)` with `Theme.of(context).colorScheme.onSurface`".
-- Gap (needs design decision) — no documented equivalent. Flag as a candidate extension (`extract-design-system` / `create-component`). No mechanical swap.
+- Gap (needs design decision) — no documented equivalent. Flag as a candidate extension (`superui:extract-design-system` / `superui:create-component`). No mechanical swap.
 
 ## Wave 2 hints (report as cluster candidates, do not fix)
 

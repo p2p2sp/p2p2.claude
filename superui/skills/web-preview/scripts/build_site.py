@@ -1,18 +1,36 @@
 #!/usr/bin/env python3
-"""Build self-contained, zero-build HTML mockups from a design system.
+"""Build self-contained, zero-build HTML preview pages from an adapted web target.
 
-Two modes:
-  init   scaffold folders + shared assets (preview.js, preview.css), cache nothing
-  build  wrap authored content fragments in the shared shell (CDN + injected
-         design-system theme + assets) and generate index.html from a manifest
+Three modes:
+  init        scaffold folders + shared assets (assets/preview.js,
+              assets/preview.css), validate the target's theme artifact exists,
+              optionally vendor the Tailwind browser build (--vendor-tailwind)
+  build       wrap authored content fragments (content/**) in the shared page
+              shell (per-target theme delivery + assets) and generate index.html
+              from a manifest; all-or-nothing — nothing is written unless every
+              manifest page and every fragment file validates first
+  standalone  emit ONE self-contained, network-free HTML file (Claude Code
+              Artifact-conformant) by inlining the chrome CSS/JS + theme,
+              refusing on any external fetching reference
 
-The design-system theme (theme.css or globals.css) is read fresh on every build
-and injected into each page, so it has one source of truth even though every
-output page is self-contained and opens from file://.
+Target selection: the caller resolves the active web target (e.g. from
+targets/<target>/target.md) and passes it as --target — this script never reads
+target.md. Per target the script resolves the theme artifact from an ordered
+candidate list in targets/<target>/ and selects the delivery branch:
+  pure-css      styles.css    plain <style>, no CDN, fully offline
+  tailwind      theme.css     Tailwind v4 browser CDN (or vendored build) +
+                              <style type="text/tailwindcss"> block
+  react-shadcn  globals.css   same Tailwind branch (OKLCH :root/.dark theme)
+react-mui / flutter are refused with guidance (no static-HTML preview).
 
-Stdlib only. Run with --help on either subcommand.
+The theme artifact is read fresh on every build/standalone run and injected into
+each page, so it has one source of truth even though every output page is
+self-contained and opens from file://.
+
+Stdlib only. Run with --help on any subcommand.
 """
 import argparse
+import html as html_mod
 import json
 import os
 import re
@@ -65,12 +83,20 @@ def resolve_target(target):
     sys.exit(f"ERROR: unknown target {target!r}. "
              f"Web targets: {', '.join(sorted(TARGETS))}.")
 
+# Anti-FOUC theme boot: restores the persisted dark/light choice before first
+# paint, inline in <head> of every template. Same localStorage key as MOCKUP_JS;
+# try/catch keeps it harmless wherever localStorage is unavailable (file://
+# works in normal browsers; sandboxed contexts just skip it).
+THEME_BOOT = ('<script>try{if(localStorage.getItem("mockup-theme")==="dark")'
+              'document.documentElement.classList.add("dark");}catch(e){}</script>')
+
 PAGE_TEMPLATE = """<!doctype html>
-<html lang="en"{HTML_ATTR}>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{TITLE}</title>
+{THEME_BOOT}
 {THEME_HEAD}
 <link rel="stylesheet" href="{PREFIX}assets/preview.css">
 </head>
@@ -180,6 +206,13 @@ MOCKUP_CSS = """:root{
 .mk-gap{border:1px solid var(--mk-warn-line);background:var(--mk-warn-bg);color:var(--mk-warn-fg);
   border-radius:8px;padding:.75rem 1rem;font-size:.85rem;margin:.5rem 0;}
 
+/* standalone combined-showcase table of contents */
+.mk-toc{margin:0 0 2rem;padding:.9rem 1.1rem;background:var(--mk-card);
+  border:1px solid var(--mk-line);border-radius:8px;}
+.mk-toc ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.35rem 1rem;}
+.mk-toc a{color:var(--mk-accent);text-decoration:none;font-size:.85rem;}
+.mk-toc a:hover{text-decoration:underline;}
+
 /* index */
 .mk-index{max-width:960px;margin:0 auto;padding:2.5rem 1.5rem;}
 .mk-index__h1{font-size:1.75rem;font-weight:700;margin:0 0 .25rem;}
@@ -199,6 +232,7 @@ INDEX_TEMPLATE = """<!doctype html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{TITLE}</title>
+{THEME_BOOT}
 <link rel="stylesheet" href="assets/preview.css">
 </head>
 <body class="mk-body">
@@ -322,10 +356,11 @@ def render_groups(pages):
     out = []
     for g in order:
         items = "\n".join(
-            f'    <li><a class="mk-index__link" href="{p["path"]}">{p["title"]}</a></li>'
+            f'    <li><a class="mk-index__link" href="{html_mod.escape(p["path"], quote=True)}">'
+            f'{html_mod.escape(p["title"])}</a></li>'
             for p in groups[g]
         )
-        out.append(f'<h2 class="mk-index__group">{g}</h2>\n'
+        out.append(f'<h2 class="mk-index__group">{html_mod.escape(g)}</h2>\n'
                    f'  <ul class="mk-index__list">\n{items}\n  </ul>')
     return "\n".join(out)
 
@@ -345,6 +380,17 @@ def validate_pages(pages):
                      f"key(s): {', '.join(missing)}.")
 
 
+def validate_fragments(out, pages):
+    """Fail early (before writing anything) if any manifest fragment file is
+    missing, so the all-or-nothing promise holds: a bad manifest never leaves a
+    partially-written site."""
+    missing = [p["fragment"] for p in pages
+               if not os.path.isfile(os.path.join(out, p["fragment"]))]
+    if missing:
+        sys.exit(f"ERROR: fragment(s) not found under {out!r}: "
+                 f"{', '.join(missing)}. Nothing was written.")
+
+
 def cmd_build(args):
     out = args.out
     cfg = resolve_target(args.target)  # web target or sys.exit with guidance
@@ -359,20 +405,18 @@ def cmd_build(args):
 
     pages = manifest.get("pages", [])
     validate_pages(pages)
+    validate_fragments(out, pages)
     written = 0
     for p in pages:
         rel = p["path"]
-        frag_path = os.path.join(out, p["fragment"])
-        if not os.path.isfile(frag_path):
-            sys.exit(f"ERROR: fragment not found: {frag_path}")
-        with open(frag_path, encoding="utf-8") as f:
+        with open(os.path.join(out, p["fragment"]), encoding="utf-8") as f:
             content = f.read()
         prefix = asset_prefix(rel)
         layout = p.get("layout", "showcase")
         tw = (VENDOR_TAG.format(prefix=prefix) if vendored else CDN_TAG)
-        html = (PAGE_TEMPLATE
-                .replace("{HTML_ATTR}", "")
-                .replace("{TITLE}", p["title"])
+        page_html = (PAGE_TEMPLATE
+                .replace("{TITLE}", html_mod.escape(p["title"]))
+                .replace("{THEME_BOOT}", THEME_BOOT)
                 .replace("{THEME_HEAD}", theme_head(branch, theme, tw))
                 .replace("{PREFIX}", prefix)
                 .replace("{MAIN_CLASS}", MAIN_CLASS.get(layout, MAIN_CLASS["showcase"]))
@@ -380,7 +424,7 @@ def cmd_build(args):
         dest = os.path.join(out, rel)
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         with open(dest, "w", encoding="utf-8") as f:
-            f.write(html)
+            f.write(page_html)
         written += 1
 
     title = manifest.get("title", "Design System \u2014 Mockups")
@@ -389,8 +433,9 @@ def cmd_build(args):
     sub = (f"{written} pages \u00b7 target: {args.target} \u00b7 theme: {theme_name} \u00b7 "
            f"{delivery}. Open any page; use \u25d0 Theme to toggle dark mode.")
     index = (INDEX_TEMPLATE
-             .replace("{TITLE}", title)
-             .replace("{SUB}", sub)
+             .replace("{TITLE}", html_mod.escape(title))
+             .replace("{THEME_BOOT}", THEME_BOOT)
+             .replace("{SUB}", html_mod.escape(sub))
              .replace("{GROUPS}", render_groups(pages)))
     with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:
         f.write(index)
@@ -410,11 +455,12 @@ def cmd_build(args):
 # the theme directly into the page and dropping every relative assets/ link.
 
 STANDALONE_TEMPLATE = """<!doctype html>
-<html lang="en"{HTML_ATTR}>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{TITLE}</title>
+{THEME_BOOT}
 {THEME_HEAD}
 <style>
 {MOCKUP_CSS}
@@ -433,34 +479,90 @@ STANDALONE_TEMPLATE = """<!doctype html>
 </html>
 """
 
-# An external reference forbidden inside a published artifact: an http(s):// URL
-# or a protocol-relative (//host) URL, in a `url(...)` or anywhere in the text.
-# `data:` URIs and bare `#anchor` refs are NOT external and are left alone — the
-# negative lookbehind for `:` keeps a `data:.../...//...` payload from matching.
-_EXTERNAL_REF_RE = re.compile(
-    r"https?://"            # http://… or https://…
-    r"|(?<![a-z0-9:])//",   # protocol-relative //host (not preceded by scheme/word)
+# External-reference detection (the artifact-CSP guard). A published artifact
+# forbids any off-page request, so `standalone` refuses when the theme or a
+# fragment would FETCH an external resource. Detection is context-based: a
+# reference counts only where the browser actually fetches — src/href/srcset
+# attributes, CSS url(...) / @import, JS fetch(...) / import(...). Plain-text
+# URLs (e.g. inside <code>) never fetch and are allowed. Valid data: URIs are
+# masked out before the scan so a base64 payload (which may contain `+//`)
+# can never false-positive; bare in-page `#anchor` refs are ignored.
+
+# A data: URI as embedded in an attribute value or url(): mediatype, optional
+# ;parameters (e.g. ;base64), then a payload running until a character that
+# would terminate the URI in any embedding context.
+_DATA_URI_RE = re.compile(
+    r"data:[a-z0-9][a-z0-9.+-]*/[a-z0-9.+-]+"   # mediatype
+    r"(?:;[a-z0-9.+=-]+)*"                       # ;parameters
+    r",[^\s\"'()<>]*",                           # payload (may contain + / =)
     re.IGNORECASE)
+
+# Fetching contexts. Each regex captures the referenced value; the first
+# non-None group of a match is that value.
+_FETCH_CONTEXT_RES = (
+    # HTML src= / href= (quoted or bare)
+    re.compile(r"""\b(?:src|href)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'<>`]+))""",
+               re.IGNORECASE),
+    # CSS url(...) (quoted or bare)
+    re.compile(r"""\burl\(\s*(?:"([^"]*)"|'([^']*)'|([^)"'\s]+))\s*\)""",
+               re.IGNORECASE),
+    # CSS @import "…" / '…' (the @import url(…) form is caught by url() above)
+    re.compile(r"""@import\s+(?:"([^"]*)"|'([^']*)')""", re.IGNORECASE),
+    # JS fetch("…") / dynamic import("…")
+    re.compile(r"""\b(?:fetch|import)\s*\(\s*(?:"([^"]*)"|'([^']*)'|`([^`]*)`)""",
+               re.IGNORECASE),
+)
+# srcset carries comma-separated candidates ("url [descriptor], …") — scan each.
+_SRCSET_RE = re.compile(r"""\bsrcset\s*=\s*(?:"([^"]*)"|'([^']*)')""",
+                        re.IGNORECASE)
+
+
+def _is_external(value):
+    """True if a fetched value goes off-page: http(s):// or protocol-relative
+    //host. data: was masked before this runs; #anchor and local paths pass."""
+    v = value.strip()
+    return v.startswith("//") or v.lower().startswith(("http://", "https://"))
+
+
+def _first_group(match):
+    for g in match.groups():
+        if g is not None:
+            return g
+    return ""
 
 
 def find_external_refs(text):
-    """Return the external/protocol-relative references in `text`.
-
-    Catches `http(s)://` and protocol-relative `//host` (the references a
-    published-artifact CSP forbids); `data:` URIs and `#anchor` refs are allowed.
-    Empty list means the text is safe to inline into a standalone file."""
-    return _EXTERNAL_REF_RE.findall(text)
+    """Return the external references in `text` that a published artifact's CSP
+    forbids: http(s):// or protocol-relative //host values, detected ONLY in
+    fetching contexts (src/href/srcset attributes, CSS url(...) / @import, JS
+    fetch(...) / import(...)). Valid data: URIs are masked before the scan so
+    base64 payloads containing `//` never false-positive, and plain-text URLs
+    outside a fetching context (e.g. inside <code>) are allowed. Empty list
+    means the text is safe to inline into a standalone file."""
+    masked = _DATA_URI_RE.sub("data:,", text)
+    refs = []
+    for ctx in _FETCH_CONTEXT_RES:
+        for m in ctx.finditer(masked):
+            v = _first_group(m).strip()
+            if _is_external(v):
+                refs.append(v)
+    for m in _SRCSET_RE.finditer(masked):
+        for cand in _first_group(m).split(","):
+            parts = cand.split()
+            if parts and _is_external(parts[0]):
+                refs.append(parts[0])
+    return refs
 
 
 def _refuse_external(label, text):
-    """sys.exit with guidance if `text` carries any external reference."""
+    """sys.exit with guidance if `text` carries any external fetching reference."""
     bad = find_external_refs(text)
     if bad:
         sys.exit(
             f"ERROR: {label} carries external reference(s) {sorted(set(bad))} "
-            "that a published artifact's CSP forbids. Remove or inline the "
-            "external resource (url()/http(s)/// ) before emitting a standalone "
-            "file.")
+            "that a published artifact's CSP forbids (in src/href/srcset, "
+            "url(...), @import, or fetch/import). Inline or remove the external "
+            "resource at the source before emitting a standalone file.")
 
 
 def _slugify(text):
@@ -514,9 +616,9 @@ def cmd_standalone(args):
     only = getattr(args, "page", None)
     body = _standalone_body(args.out, pages, only)
 
-    html = (STANDALONE_TEMPLATE
-            .replace("{HTML_ATTR}", "")
-            .replace("{TITLE}", title)
+    page_html = (STANDALONE_TEMPLATE
+            .replace("{TITLE}", html_mod.escape(title))
+            .replace("{THEME_BOOT}", THEME_BOOT)
             .replace("{THEME_HEAD}", theme_head_html)
             .replace("{MOCKUP_CSS}", MOCKUP_CSS)
             .replace("{MOCKUP_JS}", MOCKUP_JS)
@@ -525,7 +627,7 @@ def cmd_standalone(args):
     dest = args.dest
     os.makedirs(os.path.dirname(os.path.abspath(dest)), exist_ok=True)
     with open(dest, "w", encoding="utf-8") as f:
-        f.write(html)
+        f.write(page_html)
     scope = f"page {only!r}" if only else f"{len(pages)} pages (combined showcase)"
     print(f"standalone: wrote {dest} ({scope}; target {args.target}, "
           f"theme {theme_name}, fully inline, no external requests)")
@@ -561,11 +663,11 @@ def _standalone_body(out, pages, only):
     sections, toc = [], []
     for p in pages:
         anchor = _slugify(p.get("title", p["path"]))
-        toc.append(f'    <li><a href="#{anchor}">{p["title"]}</a></li>')
+        toc.append(f'    <li><a href="#{anchor}">{html_mod.escape(p["title"])}</a></li>')
         content = _read_fragment(out, p)
         sections.append(
             f'<section id="{anchor}" class="mk-section">\n'
-            f'<h2 class="mk-section__title">{p["title"]}</h2>\n'
+            f'<h2 class="mk-section__title">{html_mod.escape(p["title"])}</h2>\n'
             f'{content}\n</section>')
     toc_html = ('<nav class="mk-toc">\n  <ul>\n' + "\n".join(toc)
                 + '\n  </ul>\n</nav>')

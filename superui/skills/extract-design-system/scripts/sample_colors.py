@@ -8,13 +8,20 @@ Three modes (combinable):
              (darkest first = surface.base, lighter = raised/muted) so the
              surface/elevation order is MEASURED, not assumed
 
-Usage:
-  python sample_colors.py IMAGE [--k 8] [--points 12,40 300,18 ...]
-                          [--crop x,y,w,h] [--json]
-                          [--regions sidebar=0,0,240,900 content=240,64,1040,836 ...]
-
-Output: human-readable table by default, or DTCG-ready JSON with --json.
-Each color is reported as hex, sRGB 0..1 components, and a coverage % (palette).
+IN : IMAGE — path to a raster image Pillow can open.
+Flags:
+  --k N               palette size (default 8; 0 skips the palette)
+  --points x,y ...    pixel coordinates to sample exactly
+  --crop x,y,w,h      crop applied before palette extraction
+  --regions name=x,y,w,h ...  named rects, ranked by background luminance
+  --json              emit DTCG-ready JSON instead of the table
+OUT: stdout — human-readable table by default, JSON with --json. Each color is
+     reported as hex, sRGB 0..1 components, and a coverage % (palette). The
+     palette contains only real clusters: empty clusters (k larger than the
+     number of distinct colors) are dropped and identical centroids are merged,
+     so no duplicate or cov=0.0% entries are ever printed.
+Exit codes: 0 = ok; 1 = bad arguments, missing deps, or unreadable image
+     (message on stderr).
 """
 import argparse
 import json
@@ -24,7 +31,7 @@ try:
     from PIL import Image
     import numpy as np
 except ImportError:
-    sys.exit("Missing deps. Run: pip install pillow numpy --break-system-packages")
+    sys.exit("Missing deps. Run: python -m pip install pillow numpy --break-system-packages")
 
 
 def _kmeans(pixels, k, iters=25, seed=0):
@@ -71,11 +78,23 @@ def palette(img, k):
     centroids, counts = _kmeans(pixels, k)
     total = counts.sum()
     order = counts.argsort()[::-1]
+    # Drop empty clusters (k > distinct colors) and merge clusters that
+    # quantize to the same color, so the output has no dup / cov=0.0% rows.
+    by_hex = {}
     out = []
     for i in order:
+        if counts[i] == 0:
+            continue
         rec = _to_record(centroids[i])
-        rec["coverage"] = round(float(counts[i]) / total, 4)
-        out.append(rec)
+        cov = float(counts[i]) / total
+        if rec["hex"] in by_hex:
+            prev = by_hex[rec["hex"]]
+            prev["coverage"] = round(prev["coverage"] + cov, 4)
+        else:
+            rec["coverage"] = round(cov, 4)
+            by_hex[rec["hex"]] = rec
+            out.append(rec)
+    out.sort(key=lambda r: r["coverage"], reverse=True)
     return out
 
 

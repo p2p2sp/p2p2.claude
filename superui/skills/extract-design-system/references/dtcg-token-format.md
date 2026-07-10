@@ -173,7 +173,7 @@ $value:
 DTCG says tools should not infer purpose from group names. A downstream target
 adapter, however, needs to know a dimension token's **role** (is `16px` spacing,
 a radius, or a font size?) to map it correctly. Capture the role at the agnostic
-L1 layer — by **top-level-group convention** (the group name *is* the role) and,
+L1 layer — by **top-level-group convention** (the group name IS the role) and,
 when a token lives outside its conventional group, by an explicit `$extensions`
 override:
 
@@ -191,10 +191,31 @@ radius:
 
 Recognized roles: `color`, `spacing`, `radius`, `font-size` (`text`),
 `font-family`, `font-weight`, `breakpoint`, `shadow`, `ease`. These roles are
-neutral — how each one maps to a concrete target namespace (a CSS variable
-prefix, a framework theme key, …) is **target-specific** and documented
-downstream by the **adapt-target** skill, not here. Anything unmapped is carried
-through as a plain `--<group>-<name>` custom property.
+neutral. Anything unmapped is carried through as a plain `--<group>-<name>`
+custom property.
+
+## Dark mode — `$extensions.org.superui.dark` (our extension)
+
+A token whose value differs in dark mode carries the complete dark replacement
+under `$extensions`:
+
+```yaml
+color:
+  surface:
+    base:
+      $type: color
+      $value: "{color.gray.50}"
+      $extensions:
+        org.superui:
+          dark: "{color.gray.900}"
+```
+
+- `dark` has the same shape and type as `$value`; aliases and composites are
+  allowed.
+- A token with no light/dark difference has no such extension.
+- This is the only source of truth for dark in L1: the `.dark` block of
+  `tokens.css` is derived from it (see the SKILL.md Phase 3 generation step),
+  and `validate_tokens.py` validates `dark` exactly like `$value`.
 
 ## Recommended file skeleton
 

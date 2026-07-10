@@ -3,12 +3,12 @@
 A good design system is more than a token file plus a component list. This
 reference names **every aspect a complete system describes**, so the extractor
 knows the full target shape and nothing slips through. Use it as a coverage
-checklist that sits *above* the detail references:
+checklist that sits above the detail references:
 
-- token *shape* lives in `dtcg-token-format.md`
-- component *detection* lives in `component-patterns.md`
-- component *spec template + taxonomy* lives in `component-spec.md`
-- this file is the *map of what a system contains* and how the pieces relate.
+- token shape lives in `dtcg-token-format.md`
+- component detection lives in `component-patterns.md`
+- component spec template + taxonomy lives in `component-spec.md`
+- this file is the map of what a system contains and how the pieces relate.
 
 Everything here must still obey the skill's operating principles: **measure, do
 not guess; one source of truth; never fabricate** a value the source does not
@@ -32,7 +32,7 @@ A design system encodes design decisions once and lets everything else reference
 them, so design and code stay aligned. Two consequences for extraction:
 
 - **Single source of truth.** Each raw value exists once (a primitive). Semantic
-  tokens, component specs, and CSS all *reference* it — never restate it. This is
+  tokens, component specs, and CSS all reference it — never restate it. This is
   what makes a later color/spacing change propagate everywhere.
 - **Observed principles, not invented ones.** If the source reveals a guiding
   rule (e.g. "elevation is shown with color, not shadow"; "one 8 px spacing
@@ -45,14 +45,16 @@ them, so design and code stay aligned. Two consequences for extraction:
 Tokens are named key–value pairs holding design decisions in a platform-agnostic
 form. A mature system layers them in **three tiers**, each adding abstraction:
 
-| Tier | Also called | Holds | Used directly in UI? |
-|------|-------------|-------|----------------------|
-| **Primitive** | reference / global | raw values: a hex, a px step, a font size | No — names carry no meaning |
-| **Semantic** | alias | purpose-named refs: `color.text.primary`, `radius.control` | Yes — this is the everyday layer |
-| **Component** | scoped | per-component refs: `button.bg`, `sidebar.item.active.bg` | Yes — only inside that component |
+- **Primitive** (also called reference / global) — holds raw values: a hex, a px
+  step, a font size. Never used directly in UI; the names carry no meaning.
+- **Semantic** (also called alias) — holds purpose-named refs:
+  `color.text.primary`, `radius.control`. Used directly in UI — this is the
+  everyday layer.
+- **Component** (also called scoped) — holds per-component refs: `button.bg`,
+  `sidebar.item.active.bg`. Used directly in UI, but only inside that component.
 
 This skill already builds tiers 1–2 (see Phase 1, "token tiers"). Add a
-**component token** only when a component needs a value that should *not* leak
+**component token** only when a component needs a value that should NOT leak
 into the global vocabulary — e.g. a button background that must stay
 independently themeable. A component token aliases a semantic token
 (`button.bg → {color.accent.500}`), never a primitive directly. Keep component
@@ -68,7 +70,7 @@ extracts most; treat this as the "did I miss one?" list. Each is a `dimension`,
 `color`, or composite token unless noted.
 
 Each category is tagged **[universal]** or **[web-only]**. Universal foundations
-belong to the agnostic L1 system and translate to *any* target including mobile
+belong to the agnostic L1 system and translate to ANY target including mobile
 (Flutter); web-only foundations are meaningful only on the web platform and a
 mobile adapter ignores or remaps them. The web-only set is `hover`,
 `focus-ring`, `breakpoints`, and `z-index`; everything else is universal.
@@ -85,7 +87,7 @@ mobile adapter ignores or remaps them. The web-only set is `hover`,
 - **Grid / layout** — [universal] column structure, container/content max-widths,
   gutters, the fixed region widths of the app shell.
 - **Elevation** — [universal] how depth is shown: shadow ramp (`shadow`
-  composite) *and/or* surface-color steps. Record which mechanism the design uses
+  composite) and/or surface-color steps. Record which mechanism the design uses
   (some systems use color for elevation, not shadows) — this is a principle worth
   noting. Surface order is MEASURED, never assumed: sample the background of every
   major region (page/canvas, sidebar, content panel, topbar, cards, menus) with
@@ -117,25 +119,29 @@ mobile adapter ignores or remaps them. The web-only set is `hover`,
 
 ## 4. Theming
 
-A **theme** is a set of token *values* chosen to achieve one look; switching
-themes means swapping values behind the *same semantic token names*, so UI code
+A **theme** is a set of token values chosen to achieve one look; switching
+themes means swapping values behind the same semantic token names, so UI code
 never changes. Modes are themes: light, dark, high-contrast, and non-color modes
 (compact/comfortable, reduced motion) all qualify.
 
 How this maps to the skill's outputs:
 
-- Keep semantic token *names* stable across themes; only the primitive each one
+- Keep semantic token names stable across themes; only the primitive each one
   aliases differs per theme.
 - A dark theme is a **parallel set of values** mirroring the light tokens but
   referencing different primitives — not a rename.
-- L1 expresses theming as **pure CSS** in `tokens.css`: light values as
-  `--<token-name>` declarations under `:root`, the dark parallel set under
-  `.dark`, with semantic names identical across both. No framework syntax —
-  per-target theme artifacts are produced **downstream by adapt-target** from this
-  neutral source.
+- L1 records dark mode in the tokens themselves: a token whose value differs in
+  dark carries the complete replacement in `$extensions.org.superui.dark` (same
+  shape/type as `$value`; aliases allowed — see `dtcg-token-format.md`). That
+  extension is the only source of truth for dark in L1.
+- `tokens.css` is derived, pure CSS: light values as `--<token-name>`
+  declarations under `:root`, the `.dark` overrides generated from the
+  extensions by `scripts/tokens_to_css.py` (see the SKILL.md Phase 3 step). No
+  framework syntax — per-target theme artifacts are produced by
+  **superui:adapt-target** from this neutral source.
 - **Never fabricate** the dark (or alternate) palette. If only a light screen was
-  provided, leave the `.dark` values as a TODO scaffold and tell the user, rather
-  than inventing them.
+  provided, add no dark extensions (the generated `.dark` block stays a TODO
+  scaffold) and tell the user, rather than inventing values.
 
 ## 5. Component library
 
@@ -198,12 +204,18 @@ checks. Note findings in `foundations.md` and honour them in every spec.
 
 ## Where each aspect is produced
 
-| Aspect (1–7) | Phase | Output |
-|--------------|-------|--------|
-| 1 Principles / single source of truth | 1–2 | `foundations.md` notes; token structure |
-| 2 Token tiers (primitive/semantic/component) | 1 | `design-tokens.yaml` |
-| 3 Visual foundations | 1 | `design-tokens.yaml` |
-| 4 Theming | 1, 3 | tokens (parallel values) → pure-CSS `tokens.css` (`:root`/`.dark`); per-target theme artifacts produced downstream by **adapt-target** |
-| 5 Component library | 4, 6 | `components/inventory.md` + per-component specs |
-| 6 Patterns / consistency rules | 2, 4 | `foundations.md`; inventory |
-| 7 Accessibility | 2, 6 | `foundations.md` notes; per-component specs |
+- Aspect 1, Principles / single source of truth — Phases 1–2 — `foundations.md`
+  notes; token structure.
+- Aspect 2, Token tiers (primitive/semantic/component) — Phase 1 —
+  `design-tokens.yaml`.
+- Aspect 3, Visual foundations — Phase 1 — `design-tokens.yaml`.
+- Aspect 4, Theming — Phases 1, 3 — tokens (dark via
+  `$extensions.org.superui.dark`) → generated pure-CSS `tokens.css`
+  (`:root`/`.dark`); per-target theme artifacts produced by
+  **superui:adapt-target**.
+- Aspect 5, Component library — Phases 4, 6 — `components/inventory.md` +
+  per-component specs.
+- Aspect 6, Patterns / consistency rules — Phases 2, 4 — `foundations.md`;
+  inventory.
+- Aspect 7, Accessibility — Phases 2, 6 — `foundations.md` notes; per-component
+  specs.

@@ -4,7 +4,7 @@ The detective sweep produces many candidate findings of mixed quality. This phas
 
 ## Detective report schema
 
-Each detective writes one file to `.temp/superui-audit/<run-id>/reports/<rank>-<slug>.md`. It carries two kinds of entry — Wave 1 findings and Wave 2 candidates — plus a fixed tail.
+Each detective writes one file to `.temp/superui-audit/<run-id>/reports/<rank>-<slug>.md`. It carries two kinds of entry — Wave 1 findings and Wave 2 candidates — plus the fixed tail defined below. These schemas are duplicated verbatim in the `design-detective` agent definition (which cannot read this file at runtime) — keep the two copies identical.
 
 ### Wave 1 — compliance finding
 
@@ -17,7 +17,7 @@ ACTION: <Drift -> "replace with <token/component>"; Gap -> "candidate extension:
 CONFIDENCE: low | medium | high
 ```
 
-Rule for the bucket: read `tokens.css` / `design-tokens.yaml` and `components/inventory.md` before deciding. A literal that resolves to an existing semantic token/component is Drift with the exact replacement named. A literal with no documented equivalent is a Gap — never propose a mechanical swap for a Gap; route it to `extract-design-system` / `create-component`.
+Rule for the bucket: read `tokens.css` / `design-tokens.yaml` and `components/inventory.md` before deciding. A literal that resolves to an existing semantic token/component is Drift with the exact replacement named. A literal with no documented equivalent is a Gap — never propose a mechanical swap for a Gap; route it to `superui:extract-design-system` / `superui:create-component`.
 
 ### Wave 2 — library candidate
 
@@ -28,14 +28,22 @@ OCCURRENCES:
   - path/to/a.ext:Lx-Ly
   - path/to/b.ext:Lx-Ly
 INVENTORY: <matching components/inventory.md entry, OR "absent">
-PROPOSAL: <Type I -> "centralize into the shared library"; Type II -> "author via create-component, then reuse">
+PROPOSAL: <Type I -> "centralize into the shared library"; Type II -> "author via superui:create-component, then reuse">
 ```
 
 Type I = the structure maps onto an existing `inventory.md` entry but is re-implemented inline in >= 2 places. Type II = a recurring component-like structure with NO inventory match, repeated in >= the recurrence threshold (default 3; passed to the detective by the orchestrator). Grouping is semantic and supra-idiomatic — a Flutter widget, a JSX block, and an HTML fragment that render the same thing are one candidate.
 
+### Fixed tail — the report's mandatory last line
+
+```
+CHECKED: <one line on what you examined and ruled out>
+```
+
+Every detective report ends with this line, findings or not — it is the coverage evidence.
+
 ### No finding
 
-If nothing real survives, the detective writes a file whose entire body is `NO FINDING` plus one line on what it checked. Keep these — they are coverage evidence.
+If nothing real survives, the detective writes a file whose entire body is `NO FINDING` followed by the fixed tail (`CHECKED: …`). Keep these — they are coverage evidence.
 
 ## Confirm before you report (anti-slop)
 
@@ -58,7 +66,7 @@ Assemble every surviving finding into one document. Structure:
 # Design system audit — <project> (<yyyyMMdd-HHmm>)
 
 ## Metadata
-Target: react-mui (family B) · Root: .superui/layout/design-system/ · Scope: src/** · Files swept: 214
+Target: react-mui (family js-theme) · Root: .superui/layout/design-system/ · Scope: src/** · Files swept: 214
 
 ## Summary
 Drift: 38 · Gaps: 6 · Library candidates: 9 (Type I: 5, Type II: 4) · Health: moderate
@@ -82,6 +90,8 @@ Drift: 38 · Gaps: 6 · Library candidates: 9 (Type I: 5, Type II: 4) · Health:
 1) … 2) …
 ```
 
+The Metadata `Target:` line names the active target plus its idiom family — one of `css` (pure-css / tailwind / react-shadcn), `js-theme` (react-mui), `flutter`, or `agnostic` (no target adapted).
+
 Write the report in the host project's documentation language; keep the section structure above.
 
 ### Extraction blueprint
@@ -98,4 +108,4 @@ A document, never an action. Render, for the active target's family:
 
 ### Agnostic-mode variant (no active target)
 
-When no target is adapted: the Metadata line reads `Target: (none) — agnostic mode`; Wave 1 and Wave 2 still fill (token/variant level and Type I/II candidates), but the blueprint's "Referencing" line reads `Referencing: deferred — run adapt-target` instead of a concrete mechanism. Note in Summary that idiom checks were skipped and Wave 2 detectability is partial.
+When no target is adapted: the Metadata line reads `Target: (none) — agnostic mode`; Wave 1 and Wave 2 still fill (token/variant level and Type I/II candidates), but the blueprint's "Referencing" line reads `Referencing: deferred — run superui:adapt-target` instead of a concrete mechanism. Note in Summary that idiom checks were skipped and Wave 2 detectability is partial.

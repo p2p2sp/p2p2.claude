@@ -16,7 +16,7 @@ There is no CSS-class or `--custom-property` concept here — do not report thos
 ## Classify every finding (two buckets)
 
 - Drift (fixable) — maps onto an existing theme token / mapped MUI component. Report the replacement, e.g. "replace `sx={{ color: '#111' }}` with `sx={{ color: 'text.primary' }}`" or "use `<Button>` per `components.md`".
-- Gap (needs design decision) — no documented equivalent. Flag as a candidate extension (`extract-design-system` / `create-component`). No mechanical swap.
+- Gap (needs design decision) — no documented equivalent. Flag as a candidate extension (`superui:extract-design-system` / `superui:create-component`). No mechanical swap.
 
 ## Wave 2 hints (report as cluster candidates, do not fix)
 

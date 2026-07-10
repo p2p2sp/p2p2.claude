@@ -83,6 +83,8 @@ superfix/            The superfix plugin (codebase investigation; NO hooks/manif
 README.md            User-facing help (install + how it works)
 .github/             CI: scripts/release.sh + workflows/ (release-version.yml — manual dispatch only)
 .claude/rules/       Development-only conventions for this repo
+.docs/               Dev-time notes + source material (per-plugin subdirs, e.g. .docs/superui/) — reference
+                     documents behind skill content; NOT part of any plugin, never shipped, never read at runtime
 ```
 
 Each plugin dir carries a `.claude-plugin/plugin.json` (its `skills[]` (+ `agents[]`) is the catalog of record).

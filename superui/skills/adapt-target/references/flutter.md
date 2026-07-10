@@ -40,26 +40,24 @@ fidelity) — set each role directly with `const ColorScheme(...)` (or
 `ColorScheme.fromSeed(...).copyWith(...)` to override specific roles).
 
 Dark mode: build a second `ColorScheme` with `brightness: Brightness.dark` (seed)
-or the L1 `.dark` values (explicit), and pass it as `darkTheme:` on
-`MaterialApp`. **Only** emit a dark theme if the L1 system has dark values — do
-not fabricate one.
+or the values from the L1 `tokens.css` `.dark` block (explicit), and pass it as
+`darkTheme:` on `MaterialApp`. **Only** emit a dark theme if the L1 system has
+dark values — do not fabricate one.
 
 ## Token → `ColorScheme` role mapping
 
 `ColorScheme` is role-based; map L1 semantic colors onto roles, not raw hexes:
 
-| L1 semantic token | Material 3 `ColorScheme` role |
-|---|---|
-| brand / accent (primary) | `primary` / `onPrimary` (text on it) |
-| primary container / muted brand surface | `primaryContainer` / `onPrimaryContainer` |
-| secondary accent | `secondary` / `onSecondary` (+ `secondaryContainer`) |
-| tertiary / extra accent | `tertiary` / `onTertiary` |
-| surface base | `surface` / `onSurface` |
-| raised / elevated surfaces (cards, sheets) | `surfaceContainerLowest`…`surfaceContainerHighest` (elevation tiers) |
-| muted text on surface | `onSurfaceVariant` |
-| border / divider | `outline` / `outlineVariant` |
-| feedback: error | `error` / `onError` (+ `errorContainer`) |
-| overlay / scrim | `scrim`, `shadow` |
+- brand / accent (primary) → `primary` / `onPrimary` (text on it)
+- primary container / muted brand surface → `primaryContainer` / `onPrimaryContainer`
+- secondary accent → `secondary` / `onSecondary` (+ `secondaryContainer`)
+- tertiary / extra accent → `tertiary` / `onTertiary`
+- surface base → `surface` / `onSurface`
+- raised / elevated surfaces (cards, sheets) → `surfaceContainerLowest`…`surfaceContainerHighest` (elevation tiers)
+- muted text on surface → `onSurfaceVariant`
+- border / divider → `outline` / `outlineVariant`
+- feedback: error → `error` / `onError` (+ `errorContainer`)
+- overlay / scrim → `scrim`, `shadow`
 
 `ColorScheme.fromSeed` parameters: **`seedColor`** (required), **`brightness`**
 (`Brightness.light`/`dark`), `dynamicSchemeVariant` (e.g. `tonalSpot`),
@@ -73,14 +71,12 @@ Small`, `headlineLarge/Medium/Small`, `titleLarge/Medium/Small`,
 `bodyLarge/Medium/Small`, `labelLarge/Medium/Small`. Map L1 named text styles by
 role:
 
-| L1 text style | `TextTheme` slot |
-|---|---|
-| hero / page title | `displayLarge` / `headlineLarge` |
-| section heading (`heading-*`) | `headlineMedium` / `titleLarge` |
-| card / list title | `titleMedium` |
-| body | `bodyLarge` / `bodyMedium` |
-| caption / helper | `bodySmall` / `labelSmall` |
-| button / chip label | `labelLarge` |
+- hero / page title → `displayLarge` / `headlineLarge`
+- section heading (`heading-*`) → `headlineMedium` / `titleLarge`
+- card / list title → `titleMedium`
+- body → `bodyLarge` / `bodyMedium`
+- caption / helper → `bodySmall` / `labelSmall`
+- button / chip label → `labelLarge`
 
 Each slot is a `TextStyle(fontFamily, fontSize, fontWeight, height, letterSpacing)`
 — `height` is the line-height **multiplier** (lineHeight / fontSize), not px.
@@ -105,14 +101,15 @@ Each slot is a `TextStyle(fontFamily, fontSize, fontWeight, height, letterSpacin
 Common L1 → widget mapping: button → `FilledButton`/`OutlinedButton`/`TextButton`;
 input/field → `TextField` (+ `InputDecoration`); select → `DropdownButton` /
 `DropdownMenu`; modal/dialog → `showDialog` + `AlertDialog`/`Dialog`; right
-panel/drawer → `Drawer` / `NavigationDrawer` / `EndDrawer`; app bar → `AppBar`;
+panel/drawer → `Drawer` / `NavigationDrawer` (in the `Scaffold.endDrawer` slot
+when it opens from the trailing edge); app bar → `AppBar`;
 sidebar nav → `NavigationRail` / `NavigationDrawer`; bottom nav → `NavigationBar`;
 card → `Card`; tabs → `TabBar`/`TabBarView`; badge → `Badge`; chip → `Chip`;
-avatar → `CircleAvatar`; alert/snackbar → `SnackBar` / `Banner`; tooltip →
+avatar → `CircleAvatar`; alert/snackbar → `SnackBar` / `MaterialBanner`; tooltip →
 `Tooltip`; list → `ListView` + `ListTile`; data table → `DataTable`.
 
 **Gap policy:** if a built-in widget does not exist for an L1 entry, compose it
 from primitives (`Container`, `Row`/`Column`, `Material`, `InkWell`) and say so;
-otherwise write `> ⚠️ Needs input: …`. Never invent a widget the API does not
-document. (Note: `web-preview` cannot render Flutter — direct the user to
-DartPad / a Flutter run for visual preview.)
+otherwise write `> NEEDS INPUT: <what's missing>`. Never invent a widget the API
+does not document. (Note: `superui:web-preview` cannot render Flutter — direct
+the user to DartPad / a Flutter run for visual preview.)

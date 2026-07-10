@@ -8,8 +8,8 @@
 shadcn/ui is built on **Tailwind CSS** (utilities) + **Radix** (behavior). It is
 not an installed component library — you copy components into your project and
 they read their colors from a fixed set of **semantic CSS variables**. If the
-extracted tokens use shadcn's names and structure, the generated theme drops
-straight into a shadcn project and the previews can use shadcn components.
+extracted tokens use shadcn's names, the generated theme drops straight into a
+shadcn project and the previews can use shadcn components.
 
 Use this mode when the user targets shadcn, mentions shadcn components, or wants
 the theme to populate a shadcn `globals.css`.
@@ -28,7 +28,9 @@ Color tokens: `background`, `foreground`, `card` / `card-foreground`,
 `sidebar` / `sidebar-foreground`, `sidebar-primary` / `sidebar-primary-foreground`,
 `sidebar-accent` / `sidebar-accent-foreground`, `sidebar-border`, `sidebar-ring`.
 
-Plus a base radius token `--radius`, from which a `radius-sm…2xl` scale is derived.
+Plus a base radius token `--radius`, from which the `radius-sm…xl` scale is
+derived with shadcn's documented offsets: `sm` = radius − 4px, `md` = radius −
+2px, `lg` = radius, `xl` = radius + 4px.
 
 (Source: ui.shadcn.com/docs/theming, verified against the current Tailwind v4 /
 OKLCH theming docs. The components in the L1 output — `components/inventory.md`
@@ -38,53 +40,35 @@ button→`primary*`, hover/selected rows→`accent*`, focus ring→`ring`,
 inputs→`input`/`ring`. Read the spec's token list and bind each named token to
 the matching shadcn role.)
 
-## How to author the tokens
+## How tokens map (L1 stays neutral)
 
-Keep your **primitives** (ramps) as the source of truth and add shadcn semantic
-tokens as **aliases** into them. Two ways to tell the converter a token is a
-shadcn token:
+The converter maps a color token to a shadcn variable when its **leaf name
+equals a shadcn token name** (e.g. `color.primary`, `color.primary-foreground`,
+`color.sidebar-accent`). The base radius is the dimension token at path
+`radius` / `radius.base` or with leaf name `radius`; an alias `$value` there is
+resolved to its literal (never emitted as an undefined `var(--radius-…)`).
+shadcn roles it cannot find are listed in a trailing comment of the output.
 
-1. **Name the token exactly** like the shadcn token (leaf name match), e.g.
-   `color.primary`, `color.primary-foreground`, `color.sidebar-accent`.
-2. **Explicit override** via extensions (use when your naming differs):
-   ```yaml
-   color:
-     brandBlue:
-       $value: "{color.brand.500}"
-       $extensions: { org.shadcn: { token: primary } }
-   ```
-
-Base radius:
-```yaml
-radius:
-  base:
-    $value: { value: 0.625, unit: rem }
-    $extensions: { org.shadcn: { token: radius } }
-```
-
-Dark mode — provide real dark values (the converter will **not** invent them):
-```yaml
-color:
-  background:
-    $value: "{color.neutral.0}"
-    $extensions:
-      org.shadcn:
-        token: background
-        dark: { colorSpace: srgb, components: [0.09,0.09,0.11], hex: "#17171c" }
-```
-
-Author these directly in the L1 `design-tokens.yaml` (primitives as the source of
-truth, shadcn semantic tokens as aliases per the two patterns above) — the
-shadcn token-authoring guidance lives in this reference; there is no separate
-template asset.
+Do **not** add shadcn-specific tokens or `$extensions` to the L1
+`design-tokens.yaml` — L1 is target-neutral. Dark values come from the canonical
+`$extensions.org.superui.dark` written by `superui:extract-design-system`; the
+converter never invents them (with none present, `.dark` gets a TODO scaffold).
+If the L1 leaf names differ from shadcn's roles and roles come out unmapped,
+document the role-binding decisions as a mapping section in
+`targets/react-shadcn/target.md` (a target artifact) and apply them by editing
+the generated `globals.css` accordingly — never by renaming-for-shadcn or
+annotating the L1 files.
 
 ## Generate
 
-```bash
-python ${CLAUDE_PLUGIN_ROOT}/skills/adapt-target/scripts/tokens_to_tailwind.py TOKENS.yaml --shadcn -o globals.css
-# options: --color-format oklch|hex  (default oklch, matching shadcn v4)
-#          --theme-only               (omit the @import line)
-```
+Run the `react-shadcn` converter command from **SKILL.md Step 2** (the full
+invocation lives only there). Options, both documented in Step 2:
+`--color-format oklch|hex` (default oklch here, matching shadcn v4) and
+`--theme-only` (omit the `@import` line). Non-color tokens (fonts, spacing,
+shadows, breakpoints, durations, …) are not emitted in this mode — they are
+listed in a trailing "not emitted" comment; use the plain `tailwind` output or
+hand-add them if the project needs them. Name collisions are warned on stderr
+and flagged in an output comment.
 
 Output structure (Tailwind v4, shadcn idiom):
 
@@ -96,32 +80,41 @@ Output structure (Tailwind v4, shadcn idiom):
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.2 0 0);
-  /* …all mapped shadcn tokens… (primitives also exposed as custom colors) */
+  /* …all mapped shadcn tokens… (other colors also exposed as --<leaf>) */
 }
-.dark { /* dark values, or a TODO scaffold if none were provided */ }
+.dark { /* values from $extensions.org.superui.dark, or a TODO scaffold */ }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
   --color-background: var(--background);
   --color-primary: var(--primary);
   /* …each token → var()… */
 }
 ```
 
+Note the dark variant selector: shadcn's documented idiom is
+`@custom-variant dark (&:is(.dark *))`, while the plain tailwind mode uses the
+Tailwind-docs `&:where(.dark, .dark *)` form — same class strategy, `:where()`
+just keeps specificity at zero; the converter follows each ecosystem's own
+documented selector.
+
 Notes:
-- shadcn v4 uses **OKLCH** by default; the converter converts sRGB→OKLCH
-  deterministically. Opacity modifiers (`bg-primary/50`) work regardless of
-  format in v4.
-- The raw `:root`/`.dark` variables hold literal colors; `@theme inline` exposes
-  them to utilities — this indirection is shadcn's documented v4 pattern and is
-  why it differs from the plain `@theme` output (no `inline`).
-- Primitives are also emitted as `--color-<leaf>` so you can still use
-  `bg-brand-500` etc. If you want a clean shadcn-only file, don't name primitives
-  in a way that surfaces them, or strip the `extra` block by hand.
+- shadcn v4 uses **OKLCH** by default; the converter converts sRGB (components
+  or hex-only) → OKLCH deterministically. Opacity modifiers (`bg-primary/50`)
+  work regardless of format in v4.
+- The raw `:root`/`.dark` variables hold literal colors (aliases are resolved,
+  not emitted as `var()`); `@theme inline` exposes them to utilities — this
+  indirection is shadcn's documented v4 pattern and is why it differs from the
+  plain `@theme` output (no `inline`).
+- Non-shadcn colors are also emitted as `--<leaf>` + `--color-<leaf>` so you can
+  still use `bg-brand-500` etc. If you want a clean shadcn-only file, strip that
+  extra block by hand.
 - Prototypes: paste the whole block into `<style type="text/tailwindcss">` (the
   CDN build processes `@custom-variant`, `:root`, `.dark`, and `@theme inline`).
   Add/remove `class="dark"` on `<html>` to preview dark mode.
 - To run actual shadcn components in a real project (not the CDN prototype),
-  install via the shadcn CLI; this theme replaces the color block in your
-  `globals.css`.
+  install via the shadcn CLI (`npx shadcn add <component>`); this theme replaces
+  the color block in your `globals.css`.

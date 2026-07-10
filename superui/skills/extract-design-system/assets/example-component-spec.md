@@ -27,20 +27,20 @@ context.
 ## States
 | State | Description / trigger | Tokens |
 |---|---|---|
-| Default | Resting | `color.surface.accent`, `color.text.on-accent`, `radius.control` |
-| Hover | Pointer over | `color.surface.accent-hover` |
+| Default | Resting | `color.accent.default`, `color.text.on-accent`, `radius.control` |
+| Hover | Pointer over | `color.accent.hover` |
 | Focus-visible | Keyboard focus | `shadow.focus` (`color.focus`) |
-| Active / Pressed | During press | `color.surface.accent-active` |
+| Active / Pressed | During press | `color.accent.active` |
 | Disabled | Non-interactive | `opacity.disabled`, cursor not-allowed |
-| Loading | Action in progress; label swapped for spinner, control stays sized | `motion.spinner` |
+| Loading | Action in progress; label swapped for spinner, control stays sized | `motion.duration.fast` |
 
 ## Anatomy
 | # | Part | Description | Tokens |
 |---|---|---|---|
 | 1 | Container | Padded, rounded clickable box | `spacing.2` / `spacing.4`, `radius.control`, `border.control` |
-| 2 | Leading icon | Optional icon before the label | icon `size.4`, `color.text.on-accent` |
+| 2 | Leading icon | Optional icon before the label | `size.icon`, `color.text.on-accent` |
 | 3 | Label | The action text | `typography.label`, `color.text.on-accent` |
-| 4 | Trailing icon | Optional icon after the label (e.g. caret) | icon `size.4` |
+| 4 | Trailing icon | Optional icon after the label (e.g. caret) | `size.icon` |
 | 5 | Spinner | Replaces content in the loading state | `color.text.on-accent` |
 
 ## Figma properties
@@ -79,7 +79,7 @@ context.
 - Icon (leading/trailing), Label, Spinner (loading).
 
 ## Tokens consumed
-`color.surface.accent`, `color.surface.accent-hover`, `color.surface.accent-active`,
+`color.accent.default`, `color.accent.hover`, `color.accent.active`,
 `color.text.on-accent`, `color.focus`, `radius.control`, `border.control`,
-`spacing.2`, `spacing.4`, `size.4`, `size.control`, `typography.label`,
-`shadow.focus`, `opacity.disabled`, `motion.spinner`.
+`spacing.2`, `spacing.4`, `size.icon`, `size.control`, `typography.label`,
+`shadow.focus`, `opacity.disabled`, `motion.duration.fast`.

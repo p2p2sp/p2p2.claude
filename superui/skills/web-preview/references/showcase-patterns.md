@@ -33,13 +33,13 @@ four parts, in order:
 
 1. **Header** — component name, tier, "appears on", and the one-sentence
    Definition. Chrome-styled.
-2. **Variants** — one labeled sample per row in the spec's *Variants* table,
-   rendered in its Default state. This is the at-a-glance "do the variants look
-   right and distinct?" view.
+2. **Variants** — one labeled sample per variant the spec's Variants section
+   documents, rendered in its Default state. This is the at-a-glance "do the
+   variants look right and distinct?" view.
 3. **States** — for the canonical variant (usually the first/primary), one
-   labeled sample per row in the spec's *States* table, using the forced-state
-   convention below. Plus **one interactive sample** wired to `data-state-toggle`
-   controls so a reviewer can flip through states live.
+   labeled sample per state the spec's States section documents, using the
+   forced-state convention below. Plus **one interactive sample** wired to
+   `data-state-toggle` controls so a reviewer can flip through states live.
 4. **Tokens consumed** — a chrome-styled strip listing the spec's "Tokens
    consumed" entries, so a reviewer can trace which design-system tokens this
    component depends on.
@@ -48,8 +48,8 @@ Use the component's real semantic HTML element (a `button` for Button, `input`
 for Input, `dialog`/role for modal) so the preview also sanity-checks the
 accessibility intent in the spec.
 
-Variants and states are different axes — never collapse them. A *variant* is an
-author-time choice (Primary vs Ghost); a *state* is runtime (Hover, Disabled).
+Variants and states are different axes — never collapse them. A variant is an
+author-time choice (Primary vs Ghost); a state is runtime (Hover, Disabled).
 Show variants in one block, states in another.
 
 ## Rendering states (the forced-state convention)
@@ -62,25 +62,32 @@ static "Hover" sample cannot rely on the real pseudo-class. Convention:
   use the state's documented classes/markup.
 - **Hover, Focus-visible, Active** — these have a real interactive form and a
   forced static form:
-  - *Static grid sample:* apply the same declarations the pseudo-class would,
+  - **Static grid sample:** apply the same declarations the pseudo-class would,
     but unconditionally (e.g. if hover is `hover:bg-surface-hover`, the static
     sample uses `bg-surface-hover` plus a chrome label "Hover"). This makes the
     state visible without interaction.
-  - *Interactive sample:* leave the real `hover:`/`focus-visible:` utilities in
+  - **Interactive sample:** leave the real `hover:`/`focus-visible:` utilities in
     place so pointer/keyboard genuinely trigger them, and additionally wire a
     `data-state-toggle` button to force the class for reviewers without a mouse.
+- **Pure-css caveat** — the forced static form assumes the active target exposes
+  the state's declarations as an applicable class. If the target styles a state
+  ONLY via pseudo-classes (no forceable class exists in `styles.css` /
+  `components.md`), do NOT invent one: render that state's static cell as a gap
+  card carrying `NEEDS INPUT: <component> <state> — the target defines this
+  state only via pseudo-classes; no forceable class to apply`, and keep the
+  interactive sample (real pseudo-classes still work there).
 
 Only render the states the spec actually lists. If the spec marks a state
-`⚠️ Needs input`, render the gap card (below) for that state instead of guessing
+`NEEDS INPUT:`, render the gap card (below) for that state instead of guessing
 its appearance.
 
 ## Surfacing gaps
 
 The previews exist to reveal what is incomplete. When a spec section is missing
-or marked `⚠️ Needs input: <x>`:
+or marked `NEEDS INPUT: <x>`:
 
 - Render a visible, chrome-styled placeholder card containing the exact note,
-  e.g. a bordered box reading `⚠️ Needs input: focus-ring color not in source`.
+  e.g. a bordered box reading `NEEDS INPUT: focus-ring color not in source`.
 - Do **not** invent the missing markup, color, or state.
 - Collect every gap so Phase 6 can report them to the user.
 

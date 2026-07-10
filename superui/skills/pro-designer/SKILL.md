@@ -1,9 +1,20 @@
 ---
 name: pro-designer
 description: Professional UI/UX design standards for web apps, SaaS products and mobile apps — visual hierarchy, 60-30-10 color discipline, type scales, 8pt spacing, accessibility, component states, form validation UX, and evidence-based conversion psychology with hard anti-dark-pattern rules. Use whenever creating, styling or reviewing ANY user interface — a page, screen, dashboard, form, onboarding or pricing flow, landing page, navigation, or a single component — even if the user only says "build/add/fix" and never says "design". Also use when critiquing existing UI or choosing colors, fonts, spacing, or layout.
+allowed-tools: Bash(sh:*) Bash(python:*) Bash(python3:*) Bash(py:*)
 ---
 
 # Professional UI Design
+
+## Python preflight
+
+!`sh "${CLAUDE_PLUGIN_ROOT}/shared/scripts/check_python.sh"`
+
+The line above runs this skill's Python check at load. If it reads `PYTHON_MISSING`,
+tell the user the contrast check needs **Python 3** (install it; on Windows make sure
+`python` or `py` is on `PATH`), skip the contrast-script step with a clear note, and
+continue the rest of this skill. If it reads `PYTHON_OK <cmd>`, use `<cmd>` in place
+of `python` in every `python …` command below.
 
 UI is attention management, not decoration. A professional interface is transparent: color, size and space each carry one deliberate signal, so the user never guesses where to look or what to do next. Amateur UI fails by shouting everywhere at once; senior UI fails nothing — it removes until only the signal remains.
 
@@ -19,7 +30,7 @@ UI is attention management, not decoration. A professional interface is transpar
 ## Non-negotiables — every screen
 
 - One primary CTA per screen; the accent color appears **only** where interaction is required (~10% of surface).
-- Text contrast ≥ 4.5:1 (≥ 3:1 for large text and UI components). Run `scripts/check_contrast.py` (path relative to this skill's directory) — never eyeball it.
+- Text contrast ≥ 4.5:1 (≥ 3:1 for large text and UI components). Run `"${CLAUDE_SKILL_DIR}/scripts/check_contrast.py"` with the preflight interpreter — never eyeball it.
 - Every spacing and component size sits on the 4/8px scale. Space between groups > space within groups; padding ≤ surrounding margin.
 - Font sizes only from the type ramp. Body 16px / line-height 1.5, line length ≤ 75ch. Hierarchy via size + weight + color — never by adding typefaces.
 - Red and green are reserved for system error/success states. Never decorative, never red logout.
@@ -29,6 +40,10 @@ UI is attention management, not decoration. A professional interface is transpar
 - Touch targets: web ≥ 24×24 CSS px (WCAG AA legal floor), iOS ≥ 44×44 pt, Android ≥ 48×48 dp. Design anything a finger touches to 44-48px, not the web floor.
 - In data display the value dominates, the label is muted — never equal weight.
 - No dark patterns: no fake urgency, scarcity, progress, or anchors; defaults never work against the user. Full rules in `references/ux-psychology.md`.
+
+## Design-system precedence
+
+In a project with `.superui/layout/` and an adapted target (`targets/<t>/`), the documented design system takes precedence over this skill's generic absolutes: apply the type ramp, spacing scale, and 60-30-10 through the system's tokens, never alongside them. When a `superui:design-guardian` brief is in context and conflicts with a rule here, the brief wins. This skill stays advisory and never touches `.superui/layout/`.
 
 ## Reference routing
 
@@ -46,6 +61,6 @@ UI is attention management, not decoration. A professional interface is transpar
 ## Final QA
 
 - **Squint test**: blur your eyes — the primary CTA must be the only element that pops.
-- **Contrast**: `python <skill-dir>/scripts/check_contrast.py FG BG [TYPE] [FG BG [TYPE] ...]` for every text/background and component/background pair. TYPE = `normal` (default, 4.5:1) | `large` (3:1) | `ui` (borders/icons/focus, 3:1) — exit 1 means a pair failed the AA threshold for its own type.
+- **Contrast**: `python "${CLAUDE_SKILL_DIR}/scripts/check_contrast.py" FG BG [TYPE] [FG BG [TYPE] ...]` (interpreter per preflight) for every text/background and component/background pair. TYPE = `normal` (default, 4.5:1) | `large` (3:1) | `ui` (borders/icons/focus, 3:1) — exit 1 means a pair failed the AA threshold for its own type.
 - **States inventory**: hover, focus, disabled, loading, empty, error — all present?
 - **Detail rule**: if a detail is too small or too faint to notice, delete it instead of keeping it faint.

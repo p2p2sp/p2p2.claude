@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
-"""Unit tests for build_site.py per-target injection branches.
+"""Contract tests for build_site.py.
 
-Stdlib-only (unittest). Run from this directory:
+Covers: per-target theme-injection branches (pure-css / tailwind / react-shadcn),
+non-web-target refusal, theme-artifact resolution, manifest + fragment
+prevalidation (all-or-nothing build), HTML-escaping of manifest title/group,
+the anti-FOUC theme-boot snippet, the standalone single-file emit, and the
+context-based external-reference detection (data: URI masking, fetching
+contexts only).
+
+Stdlib-only (unittest); also runs under pytest. Run from this directory:
     python -m unittest test_build_site
-or discover:
-    python -m unittest discover -s . -p 'test_*.py'
+    python -m pytest test_build_site.py
 
-Each test builds a one-page site into a temp dir for a given target and asserts
-on the generated HTML, so the injection branch is verified by its observable
-output rather than by inspecting internals.
+Each end-to-end test builds a site into a temp dir for a given target and
+asserts on the generated HTML, so behavior is verified by observable output
+rather than by inspecting internals.
 """
 import os
 import tempfile
@@ -383,6 +389,182 @@ class ManifestValidationTests(BuildSiteCase):
         self.assertFalse(
             os.path.isfile(os.path.join(self.out, "components", "btn.html")))
         self.assertFalse(os.path.isfile(os.path.join(self.out, "index.html")))
+
+
+class ExternalRefDetectionTests(unittest.TestCase):
+    """find_external_refs is context-based: it flags http(s):// and //host only
+    in fetching contexts, masks valid data: URIs first, and ignores plain text."""
+
+    def test_data_uri_base64_payload_with_plus_slash_slash_is_allowed(self):
+        # `ab+//cd` is a legal base64 run; the `//` after `+` must NOT match.
+        css = ".i{background:url(data:image/png;base64,ab+//cd);}"
+        self.assertEqual(build_site.find_external_refs(css), [])
+
+    def test_data_uri_in_src_attribute_with_tricky_payload_is_allowed(self):
+        html = '<img src="data:image/png;base64,ab+//cd==" alt="x">'
+        self.assertEqual(build_site.find_external_refs(html), [])
+
+    def test_img_src_https_is_rejected(self):
+        refs = build_site.find_external_refs('<img src="https://cdn.example/x.png">')
+        self.assertEqual(refs, ["https://cdn.example/x.png"])
+
+    def test_plain_text_url_in_code_is_allowed(self):
+        html = "<code>https://example.com</code> and prose http://x.test too"
+        self.assertEqual(build_site.find_external_refs(html), [])
+
+    def test_protocol_relative_src_is_rejected(self):
+        self.assertTrue(
+            build_site.find_external_refs('<img src="//cdn.example/logo.png">'))
+
+    def test_css_url_https_is_rejected(self):
+        self.assertTrue(build_site.find_external_refs(
+            "@font-face{src:url(https://fonts.example/x.woff2);}"))
+
+    def test_css_at_import_https_is_rejected(self):
+        self.assertTrue(
+            build_site.find_external_refs('@import "https://cdn.example/a.css";'))
+
+    def test_js_fetch_and_dynamic_import_https_are_rejected(self):
+        self.assertTrue(build_site.find_external_refs('fetch("https://api.example/x")'))
+        self.assertTrue(build_site.find_external_refs("import('https://cdn.example/m.js')"))
+
+    def test_srcset_with_external_candidate_is_rejected(self):
+        html = '<img srcset="local.png 1x, https://cdn.example/x.png 2x">'
+        self.assertEqual(build_site.find_external_refs(html),
+                         ["https://cdn.example/x.png"])
+
+    def test_srcset_with_only_local_and_data_candidates_is_allowed(self):
+        html = '<img srcset="local.png 1x, data:image/png;base64,//aa 2x">'
+        self.assertEqual(build_site.find_external_refs(html), [])
+
+    def test_local_relative_refs_are_allowed(self):
+        html = ('<a href="#top">t</a><img src="assets/x.png">'
+                '<link href="assets/a.css">.b{background:url(../img/b.svg);}')
+        self.assertEqual(build_site.find_external_refs(html), [])
+
+
+class StandaloneDataUriEndToEndTests(StandaloneCase):
+    def test_theme_and_fragment_with_tricky_data_uri_emit_successfully(self):
+        # End-to-end: base64 payload `ab+//cd` in the theme AND a text URL in
+        # <code> in a fragment must not refuse; a real external ref still does.
+        self._make_target(
+            "pure-css", "styles.css",
+            ".i{background:url(data:image/png;base64,ab+//cd);}")
+        _write(os.path.join(self.out, "content", "components", "ok.html"),
+               '<code>https://example.com</code>'
+               '<img src="data:image/png;base64,ab+//cd==">')
+        manifest = os.path.join(self.out, "manifest.json")
+        _write(manifest,
+               '{"title":"DS","pages":[{"path":"components/ok.html",'
+               '"fragment":"content/components/ok.html","title":"Ok",'
+               '"group":"Components","layout":"showcase"}]}')
+        html = self._standalone("pure-css", manifest=manifest)
+        self.assertIn("data:image/png;base64,ab+//cd", html)
+        self.assertIn("<code>https://example.com</code>", html)
+
+    def test_fragment_with_img_src_https_still_refuses(self):
+        self._make_target("pure-css", "styles.css", ".btn{color:red;}")
+        _write(os.path.join(self.out, "content", "components", "bad.html"),
+               '<img src="https://cdn.example/logo.png">')
+        manifest = os.path.join(self.out, "manifest.json")
+        _write(manifest,
+               '{"title":"DS","pages":[{"path":"components/bad.html",'
+               '"fragment":"content/components/bad.html","title":"Bad",'
+               '"group":"Components","layout":"showcase"}]}')
+        dest = os.path.join(self.out, "standalone.html")
+        with self.assertRaises(SystemExit) as cm:
+            self._standalone("pure-css", manifest=manifest, dest=dest)
+        self.assertIn("external", str(cm.exception).lower())
+        self.assertFalse(os.path.isfile(dest))
+
+
+class FragmentPrevalidationTests(BuildSiteCase):
+    """All fragment files are checked before ANY page is written — a missing
+    fragment means a refusal with no partial site."""
+
+    def test_missing_fragment_refuses_and_writes_nothing(self):
+        self._make_target("pure-css", "styles.css", ".btn{color:red;}")
+        # first fragment exists, second does not
+        _write(os.path.join(self.out, "content", "components", "btn.html"),
+               '<button class="btn">Go</button>')
+        manifest = os.path.join(self.out, "manifest.json")
+        _write(manifest,
+               '{"title":"T","pages":['
+               '{"path":"components/btn.html","fragment":"content/components/btn.html",'
+               '"title":"Button","group":"Components"},'
+               '{"path":"pages/gone.html","fragment":"content/pages/gone.html",'
+               '"title":"Gone","group":"Pages"}]}')
+        args = build_site.argparse.Namespace(
+            design_system=self.ds, out=self.out, manifest=manifest,
+            target="pure-css", mode="build")
+        with self.assertRaises(SystemExit) as cm:
+            build_site.cmd_build(args)
+        msg = str(cm.exception)
+        self.assertIn("fragment", msg.lower())
+        self.assertIn("content/pages/gone.html", msg)
+        # nothing was written: not even the valid first page, nor the index
+        self.assertFalse(
+            os.path.isfile(os.path.join(self.out, "components", "btn.html")))
+        self.assertFalse(os.path.isfile(os.path.join(self.out, "index.html")))
+
+
+class EscapingTests(BuildSiteCase):
+    """Manifest title/group values are HTML-escaped wherever they land."""
+
+    def _build_with_title(self, title, group):
+        self._make_target("pure-css", "styles.css", ".btn{color:red;}")
+        _write(os.path.join(self.out, "content", "components", "btn.html"),
+               '<button class="btn">Go</button>')
+        manifest = os.path.join(self.out, "manifest.json")
+        _write(manifest, build_site.json.dumps({
+            "title": "T <&> tle", "pages": [{
+                "path": "components/btn.html",
+                "fragment": "content/components/btn.html",
+                "title": title, "group": group, "layout": "showcase"}]}))
+        args = build_site.argparse.Namespace(
+            design_system=self.ds, out=self.out, manifest=manifest,
+            target="pure-css", mode="build")
+        build_site.cmd_build(args)
+        with open(os.path.join(self.out, "components", "btn.html"),
+                  encoding="utf-8") as f:
+            page = f.read()
+        with open(os.path.join(self.out, "index.html"), encoding="utf-8") as f:
+            index = f.read()
+        return page, index
+
+    def test_title_and_group_are_escaped_in_page_and_index(self):
+        page, index = self._build_with_title(
+            'B<script>"x"&</script>', 'G<em>&</em>')
+        self.assertNotIn("B<script>", page)
+        self.assertIn("B&lt;script&gt;", page)
+        self.assertNotIn("B<script>", index)
+        self.assertIn("B&lt;script&gt;", index)
+        self.assertNotIn("G<em>", index)
+        self.assertIn("G&lt;em&gt;", index)
+        self.assertIn("T &lt;&amp;&gt; tle", index)
+
+
+class ThemeBootTests(BuildSiteCase):
+    """Every template's <head> carries the inline anti-FOUC theme-boot snippet."""
+
+    def test_built_page_and_index_head_carry_theme_boot(self):
+        self._make_target("pure-css", "styles.css", ".btn{color:red;}")
+        html = self._build_one_page("pure-css")
+        head = html.split("</head>")[0]
+        self.assertIn(build_site.THEME_BOOT, head)
+        with open(os.path.join(self.out, "index.html"), encoding="utf-8") as f:
+            index_head = f.read().split("</head>")[0]
+        self.assertIn(build_site.THEME_BOOT, index_head)
+
+    def test_mk_toc_chrome_rule_exists(self):
+        self.assertIn(".mk-toc", build_site.MOCKUP_CSS)
+
+
+class StandaloneThemeBootTests(StandaloneCase):
+    def test_standalone_head_carries_theme_boot(self):
+        self._make_target("pure-css", "styles.css", ".btn{color:red;}")
+        html = self._standalone("pure-css")
+        self.assertIn(build_site.THEME_BOOT, html.split("</head>")[0])
 
 
 if __name__ == "__main__":

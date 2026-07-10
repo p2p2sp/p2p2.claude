@@ -3,7 +3,8 @@
 #
 # Deterministic test runs for collect_signals.sh against a scratch fixture tree
 # (no git; the script's find-fallback path). A "test" is a real run with a JSONL
-# assertion. Sibling pattern: route.test.sh.
+# assertion. The SUT is a bash script, so it is invoked via `bash`, never `sh`.
+# Sibling pattern: route.test.sh.
 #
 # Contract:
 #   input  : none. Builds fixtures under `mktemp -d` (honors $TMPDIR); removed on exit.
@@ -14,7 +15,12 @@
 #            zeroes class_hits/inline_style_hits on every line; (5) unknown family
 #            -> STATUS: FAIL + non-zero; (6) empty tree -> empty output, rc 0;
 #            (7) --scope narrows to a subtree; (8) vendor/build/minified excluded;
-#            (9) a path with a space emits well-formed, quoted JSON.
+#            (9) a path with a space emits well-formed, quoted JSON;
+#            (10) .superui/ and .temp/ excluded; (11) href="#…" anchors do not
+#            count as hex raw_value_hits (real literals on the same line still do);
+#            (12) an unreadable file is skipped with a stderr warn, sweep survives
+#            (chmod-dependent; auto-skips where chmod 000 is ineffective, e.g.
+#            Git Bash on Windows).
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -47,7 +53,7 @@ line_of() { printf '%s\n' "$1" | grep -F "$2"; }
 
 # Case 1 — flutter: Dart literals counted; class/inline = 0.
 TOTAL=$((TOTAL + 1))
-OUT="$(sh "$SUT" flutter "$FX")"
+OUT="$(bash "$SUT" flutter "$FX")"
 L="$(line_of "$OUT" 'ui.dart')"
 if printf '%s' "$L" | grep -qF '"class_hits":0,"inline_style_hits":0' \
    && ! printf '%s' "$L" | grep -qF '"raw_value_hits":0'; then
@@ -56,7 +62,7 @@ else fail "flutter" "line=<$L>"; fi
 
 # Case 2 — css: raw values counted (non-zero).
 TOTAL=$((TOTAL + 1))
-OUT="$(sh "$SUT" css "$FX")"
+OUT="$(bash "$SUT" css "$FX")"
 L="$(line_of "$OUT" 'styles.css')"
 if [ -n "$L" ] && ! printf '%s' "$L" | grep -qF '"raw_value_hits":0'; then
   pass "css counts raw values"
@@ -64,7 +70,7 @@ else fail "css" "line=<$L>"; fi
 
 # Case 3 — js-theme: inline sx literal counted (non-zero).
 TOTAL=$((TOTAL + 1))
-OUT="$(sh "$SUT" js-theme "$FX")"
+OUT="$(bash "$SUT" js-theme "$FX")"
 L="$(line_of "$OUT" 'Card.jsx')"
 if [ -n "$L" ] && ! printf '%s' "$L" | grep -qF '"inline_style_hits":0'; then
   pass "js-theme counts inline sx"
@@ -72,7 +78,7 @@ else fail "js-theme" "line=<$L>"; fi
 
 # Case 4 — agnostic: every output line has class_hits/inline_style_hits = 0.
 TOTAL=$((TOTAL + 1))
-OUT="$(sh "$SUT" agnostic "$FX")"
+OUT="$(bash "$SUT" agnostic "$FX")"
 BAD="$(printf '%s\n' "$OUT" | grep -v '^$' | grep -vF '"class_hits":0,"inline_style_hits":0' || true)"
 if [ -n "$OUT" ] && [ -z "$BAD" ]; then
   pass "agnostic zeroes class/inline on every line"
@@ -80,7 +86,7 @@ else fail "agnostic" "offending=<$BAD>"; fi
 
 # Case 5 — unknown family fails loud and non-zero.
 TOTAL=$((TOTAL + 1))
-if OUT="$(sh "$SUT" bogus "$FX" 2>&1)"; then
+if OUT="$(bash "$SUT" bogus "$FX" 2>&1)"; then
   fail "unknown family" "expected non-zero exit"
 elif printf '%s\n' "$OUT" | grep -qF "STATUS: FAIL"; then
   pass "unknown family -> STATUS: FAIL + non-zero"
@@ -89,7 +95,7 @@ else fail "unknown family" "missing STATUS: FAIL (out=<$OUT>)"; fi
 # Case 6 — empty tree: empty output, rc 0 (no set -e abort on zero matches).
 TOTAL=$((TOTAL + 1))
 EMPTY="$SCRATCH/empty"; mkdir -p "$EMPTY"
-if OUT="$(sh "$SUT" css "$EMPTY")" && [ -z "$OUT" ]; then
+if OUT="$(bash "$SUT" css "$EMPTY")" && [ -z "$OUT" ]; then
   pass "empty tree -> empty output, rc 0"
 else fail "empty tree" "rc=$? out=<$OUT>"; fi
 
@@ -98,7 +104,7 @@ TOTAL=$((TOTAL + 1))
 mkdir -p "$FX/inside" "$FX/outside"
 printf '.a{color:#abc}\n' > "$FX/inside/in.css"
 printf '.b{color:#def}\n' > "$FX/outside/out.css"
-OUT="$(sh "$SUT" css "$FX" --scope inside)"
+OUT="$(bash "$SUT" css "$FX" --scope inside)"
 if printf '%s\n' "$OUT" | grep -qF 'inside/in.css' \
    && ! printf '%s\n' "$OUT" | grep -qF 'outside/out.css'; then
   pass "--scope narrows to subtree"
@@ -109,7 +115,7 @@ TOTAL=$((TOTAL + 1))
 mkdir -p "$FX/node_modules"
 printf '.x{color:#111}\n' > "$FX/node_modules/dep.css"
 printf '.y{color:#222}\n' > "$FX/app.min.css"
-OUT="$(sh "$SUT" css "$FX")"
+OUT="$(bash "$SUT" css "$FX")"
 if ! printf '%s\n' "$OUT" | grep -qF 'node_modules/dep.css' \
    && ! printf '%s\n' "$OUT" | grep -qF 'app.min.css'; then
   pass "vendor + minified excluded"
@@ -119,12 +125,56 @@ else fail "exclusion" "out=<$OUT>"; fi
 TOTAL=$((TOTAL + 1))
 mkdir -p "$FX/with space"
 printf '.z{color:#333}\n' > "$FX/with space/s.css"
-OUT="$(sh "$SUT" css "$FX")"
+OUT="$(bash "$SUT" css "$FX")"
 L="$(line_of "$OUT" 'with space/s.css')"
 case "$L" in
   '{"path":"'*'with space/s.css","ext":"css"'*'}') pass "spaced path -> well-formed JSON" ;;
   *) fail "spaced path" "line=<$L>" ;;
 esac
+
+# Case 10 — .superui/ (plugin artifacts) and .temp/ (workspaces) are excluded.
+TOTAL=$((TOTAL + 1))
+mkdir -p "$FX/.superui/layout/design-system" "$FX/.temp/superui-audit"
+printf ':root{--c:#123456}\n' > "$FX/.superui/layout/design-system/tokens.css"
+printf '.t{color:#654321}\n' > "$FX/.temp/superui-audit/leak.css"
+OUT="$(bash "$SUT" css "$FX")"
+if ! printf '%s\n' "$OUT" | grep -qF '.superui/' \
+   && ! printf '%s\n' "$OUT" | grep -qF '.temp/'; then
+  pass ".superui/ + .temp/ excluded"
+else fail ".superui/.temp exclusion" "out=<$OUT>"; fi
+
+# Case 11 — href="#…" anchors are not hex hits; a real literal still counts.
+TOTAL=$((TOTAL + 1))
+cat > "$FX/anchors.html" <<'EOF'
+<a href="#abc123">jump</a>
+<a href='#deadbe'>jump2</a>
+<a href="#cafe12" style="color:#111827">mixed</a>
+EOF
+OUT="$(bash "$SUT" css "$FX")"
+L="$(line_of "$OUT" 'anchors.html')"
+if printf '%s' "$L" | grep -qF '"raw_value_hits":1'; then
+  pass "href anchors stripped; real literal still counted"
+else fail "href anchors" "line=<$L>"; fi
+
+# Case 12 — unreadable file: warn on stderr, sweep survives. Only meaningful
+# where chmod 000 actually removes read permission (not Git Bash on Windows).
+TOTAL=$((TOTAL + 1))
+UNR="$FX/locked.css"
+printf '.l{color:#999}\n' > "$UNR"
+chmod 000 "$UNR" 2>/dev/null || true
+if [ -r "$UNR" ]; then
+  chmod 644 "$UNR" 2>/dev/null || true
+  pass "unreadable-file case skipped (chmod 000 ineffective on this host)"
+else
+  ERR="$SCRATCH/err.log"
+  if OUT="$(bash "$SUT" css "$FX" 2>"$ERR")" \
+     && ! printf '%s\n' "$OUT" | grep -qF 'locked.css' \
+     && grep -qF 'locked.css' "$ERR" \
+     && printf '%s\n' "$OUT" | grep -qF 'styles.css'; then
+    pass "unreadable file skipped with warn, sweep survives"
+  else fail "unreadable file" "rc=$? err=<$(cat "$ERR" 2>/dev/null)>"; fi
+  chmod 644 "$UNR" 2>/dev/null || true
+fi
 
 echo ""
 if [ "$FAILED" -ne 0 ]; then echo "FAILED ($PASS_COUNT/$TOTAL)"; exit 1; fi

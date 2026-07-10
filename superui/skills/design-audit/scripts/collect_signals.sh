@@ -15,7 +15,14 @@
 #   loc                line count
 #
 # File set: tracked files via `git ls-files` when inside a work tree, else a
-# `find` fallback; filtered to the family's extensions, minus vendor/build noise.
+# `find` fallback; filtered to the family's extensions, minus noise:
+#   - vendor/build dirs (node_modules, dist, build, out, vendor, third_party),
+#     minified files, source maps;
+#   - `.superui/` (the plugin's own artifact dir — never an audit candidate)
+#     and `.temp/` (workspaces).
+# Robustness: an unreadable file is skipped with a `warn:` line on stderr; it
+# never aborts the sweep. Anchor fragments (href="#…" / href='#…') are stripped
+# before counting so link anchors do not inflate hex raw_value_hits.
 set -euo pipefail
 
 FAMILY="${1:?family required: css|js-theme|flutter|agnostic}"
@@ -66,30 +73,37 @@ esac
 # Minimal JSON string escaper (handles backslash and double-quote).
 esc() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
 
-# count <pattern> <file>  — matching-line count; empty pattern -> 0.
+# count <pattern> <file>  — matching-line count; empty pattern -> 0. Strips
+# href="#…" / href='#…' fragments first so link anchors never count as hex
+# literals (cheap false-positive guard; real literals elsewhere on the line
+# still match).
 count() {
   [ -z "$1" ] && { printf '0'; return; }
-  grep -Eic -- "$1" "$2" 2>/dev/null || true
+  sed -e 's/href="#[^"]*"//g' -e "s/href='#[^']*'//g" "$2" 2>/dev/null \
+    | grep -Eic -- "$1" || true
 }
 
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   files="$(git ls-files -- ${SCOPE:+"$SCOPE"} 2>/dev/null || true)"
 else
-  files="$(find ${SCOPE:-.} -type f 2>/dev/null || true)"
+  files="$(find "${SCOPE:-.}" -type f 2>/dev/null || true)"
 fi
 
 # Filter to the family's extensions minus noise. `|| true` swallows a no-match
 # grep (rc=1) so an empty candidate set yields empty output, not a set -e abort.
 cand="$(printf '%s\n' "$files" \
-  | grep -Ev '(^|/)(node_modules|dist|build|out|vendor|third_party)(/|$)|\.min\.|\.map$' \
+  | grep -Ev '(^|/)(node_modules|dist|build|out|vendor|third_party|\.superui|\.temp)(/|$)|\.min\.|\.map$' \
   | grep -E "$EXT" || true)"
 
 printf '%s\n' "$cand" \
   | while IFS= read -r f; do
       [ -n "$f" ] || continue
       [ -f "$f" ] || continue
+      if [ ! -r "$f" ] || ! loc="$(wc -l 2>/dev/null < "$f" | tr -d ' ')"; then
+        echo "warn: unreadable file skipped: $f" >&2
+        continue
+      fi
       ext="${f##*.}"
-      loc="$(wc -l < "$f" | tr -d ' ')"
       raw="$(count "$RAW" "$f")"
       cls="$(count "$CLS" "$f")"
       inl="$(count "$INL" "$f")"

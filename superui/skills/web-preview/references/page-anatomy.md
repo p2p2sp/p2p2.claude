@@ -30,6 +30,9 @@ html lang  (class is set by JS for dark mode)
   head
     meta charset / viewport
     title  ← from manifest
+    inline theme-boot <script>  ← restores the persisted dark/light choice from
+                                  localStorage (in try/catch) before first paint,
+                                  so a dark-mode page never flashes light (anti-FOUC)
     «theme delivery»   ← per-target branch: plain <style> (pure-css)
                           OR Tailwind CDN <script> + <style type="text/tailwindcss">
     link  rel=stylesheet href=…/assets/preview.css   ← neutral chrome only
@@ -45,20 +48,24 @@ needs the network; the `pure-css` branch needs nothing.
 
 ## Per-target delivery branches
 
-The builder resolves the **active target** from `targets/<target>/target.md`
-(which names the target and its `<theme-artifact>` filename) and selects one of
-two `<head>` delivery branches. Only the three **web** targets are handled here —
-`react-mui` / `flutter` are out of scope for this skill (see the SKILL.md
-"Non-web targets" section).
+The **active target** is resolved by the authoring agent from
+`targets/<target>/target.md` (which names the target and its `<theme-artifact>`
+filename) and passed to the builder as the `--target` flag — the builder never
+reads `target.md`. From that flag the builder selects one of two `<head>`
+delivery branches and resolves the theme artifact from the target's known
+candidate filenames inside `targets/<target>/`. Only the three **web** targets
+are handled here — `react-mui` / `flutter` are out of scope for this skill (see
+the SKILL.md "Non-web targets" section).
 
-| Active target | Theme artifact | Delivery branch |
-|---------------|----------------|-----------------|
-| `pure-css` | `styles.css` | Plain-CSS branch — ordinary `<style>` / `<link>`, no Tailwind, no CDN |
-| `tailwind` | `theme.css` | Tailwind browser-CDN branch — `@theme` injected into a `text/tailwindcss` block |
-| `react-shadcn` | `globals.css` | Tailwind browser-CDN branch — OKLCH `:root`/`.dark` + `@theme inline` injected the same way |
+- `pure-css` — theme artifact `styles.css`; plain-CSS branch — ordinary
+  `<style>` / `<link>`, no Tailwind, no CDN.
+- `tailwind` — theme artifact `theme.css`; Tailwind browser-CDN branch —
+  `@theme` injected into a `text/tailwindcss` block.
+- `react-shadcn` — theme artifact `globals.css`; Tailwind browser-CDN branch —
+  OKLCH `:root`/`.dark` + `@theme inline` injected the same way.
 
-The builder reads `target.md` once per run; that single read decides the branch
-and the theme-artifact filename for every page it emits.
+The builder receives the target once per run via `--target`; that single flag
+decides the branch and the theme-artifact filename for every page it emits.
 
 ## The pure-css branch (plain CSS, no build)
 
@@ -94,7 +101,7 @@ compiles utilities in-page — the modern replacement for the v3
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 ```
 
-Source: Tailwind CSS docs, *Play CDN* (tailwindcss.com/docs/installation/play-cdn).
+Source: Tailwind CSS docs, "Play CDN" (tailwindcss.com/docs/installation/play-cdn).
 Notes that matter for previews:
 
 - It is **development/prototype-only** — exactly the preview use case. Do not ship
@@ -166,8 +173,8 @@ so interactive states are simulated by toggling a class on a target:
 - Convention: the active target's hover/focus styles are exposed as classes you
   can apply directly (e.g. a `hover:bg-surface-hover` paired with a forced
   `bg-surface-hover` for the static example on a Tailwind branch; the equivalent
-  hover class from `styles.css` on the pure-css branch). For the *interactive*
-  sample, toggle the forced class; for the *static grid*, apply the forced class
+  hover class from `styles.css` on the pure-css branch). For the interactive
+  sample, toggle the forced class; for the static grid, apply the forced class
   inline so every state is visible at once. Both appear on the showcase page.
 
 The reference JS is generic and self-documenting; read `assets/preview.js` after
@@ -259,9 +266,12 @@ The result is written to `--dest`; every relative `assets/…` link is dropped.
 off-page request, so `standalone` refuses (non-zero exit, with the offending
 reference named) rather than emit a page that would fetch at runtime:
 
-- An `http(s)://` or protocol-relative `//host` reference anywhere in the theme or
-  a fragment (in a `url(...)`, `href`, `src`, `@import`, …) → refused. `data:`
-  URIs and bare in-page `#anchor` fragments are **not** external and are allowed.
+- An `http(s)://` or protocol-relative `//host` reference in a **fetching
+  context** of the theme or a fragment — a `src` / `href` / `srcset` attribute,
+  a CSS `url(...)` or `@import`, a JS `fetch(...)` / `import(...)` — → refused.
+  `data:` URIs (masked before the scan, so base64 payloads containing `//` never
+  false-positive), bare in-page `#anchor` refs, and plain-text URLs outside a
+  fetching context (e.g. inside `<code>`) are **not** external and are allowed.
 - A `tailwind` / `react-shadcn` target with no vendored build at
   `assets/tailwindcss-browser.js` → refused (inlining the CDN tag would leave a
   live fetch). Run `init --vendor-tailwind` first, or use `pure-css` for a

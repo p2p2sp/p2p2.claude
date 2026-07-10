@@ -2,11 +2,11 @@
 
 How to classify every detected component into a tier, and how to document each
 one as a precise spec. Pair this with `component-patterns.md` (which gives
-*detection cues* per common component); this file gives the *output shape*.
+detection cues per common component); this file gives the output shape.
 
 > This is the **canonical, framework-agnostic** component-spec template — the
-> shared canon also consumed by **create-component** when authoring net-new
-> components. Keep it framework-neutral so both producers stay in sync.
+> shared canon also consumed by **superui:create-component** when authoring
+> net-new components. Keep it framework-neutral so both producers stay in sync.
 
 ## Contents
 - [Never invent details](#never-invent-details)
@@ -23,7 +23,7 @@ the source (image, CSS, description, or code). When a section can't be
 determined:
 
 1. Prefer to **ask the user** a short, specific question.
-2. If you can't ask, write `> ⚠️ Needs input: <what's missing>` in that section
+2. If you can't ask, write `> NEEDS INPUT: <what's missing>` in that section
    rather than guessing.
 
 If sources conflict (a screenshot shows a state the CSS doesn't implement), note
@@ -35,11 +35,18 @@ design system — reference them by name, never restate a raw hex or px.
 Classify each component into exactly one tier. Tier sets the granularity, not the
 spec template (the template is shared).
 
-| Tier | What it is | Examples |
-|------|-----------|----------|
-| **Layout / structural** | The persistent app skeleton; regions that frame or contain content | app shell, sidebar / nav rail, header / top bar, content area, right side panel, footer / status bar, page header, grid |
-| **Composite / patterns** | Assemblies that do a job — whole flows or reusable blocks built from atoms | modal / dialog, login form, register form, 2FA form, create form, edit/update form, search + results list, data table, card with actions, toolbar, dropdown menu, tabs, stepper/wizard, empty state, toast stack |
-| **Atomic / primitive** | The smallest reusable units | button, icon button, input, textarea, select, checkbox, radio, switch, slider, badge, chip/tag, avatar, alert/banner, tooltip, label, link, spinner, progress, divider, icon |
+- **Layout / structural** — the persistent app skeleton; regions that frame or
+  contain content. Examples: app shell, sidebar / nav rail, header / top bar,
+  content area, right side panel, footer / status bar, page header, grid.
+- **Composite / patterns** — assemblies that do a job; whole flows or reusable
+  blocks built from atoms. Examples: modal / dialog, login form, register form,
+  2FA form, create form, edit/update form, search + results list, data table,
+  card with actions, toolbar, dropdown menu, tabs, stepper/wizard, empty state,
+  toast stack.
+- **Atomic / primitive** — the smallest reusable units. Examples: button, icon
+  button, input, textarea, select, checkbox, radio, switch, slider, badge,
+  chip/tag, avatar, alert/banner, tooltip, label, link, spinner, progress,
+  divider, icon.
 
 A component is worth cataloguing if it recurs across screens **or** is a
 self-contained reusable unit even on one screen. Composites reference the atoms
@@ -127,8 +134,8 @@ change is traceable to the components it affects.>
   sentence, gather more input.
 - **When / When not to use** — the highest-value sections for preventing misuse.
   "When not to use" must always point to the correct alternative component.
-- **Variants vs. States** — keep distinct. A *variant* is an author-time
-  configuration (primary vs. secondary button); a *state* is a runtime condition
+- **Variants vs. States** — keep distinct. A variant is an author-time
+  configuration (primary vs. secondary button); a state is a runtime condition
   (hover, disabled). Never list "primary" as a state or "hover" as a variant.
 - **State treatment = form + color** — for each state document both its FORM
   (left bar, filled pill, underline, ring, tint, …) and its MEASURED color read
@@ -140,14 +147,14 @@ change is traceable to the components it affects.>
 - **Figma properties** — the component property / variant axes (Variant, Boolean,
   Instance Swap, Text). List only what you can confirm. With code but no Figma
   file, derive likely properties from props and mark the section
-  `> ⚠️ Needs input: confirm against the Figma component`.
+  `> NEEDS INPUT: confirm against the Figma component`.
 - **Accessibility** — base behaviour on the component's nature and the WAI-ARIA
   Authoring Practices for that pattern (button, combobox, dialog, tabs…). Be
   specific about keys. Don't assert behaviour you can't ground; mark unknowns.
   Authoritative reference: the current WAI-ARIA Authoring Practices Guide
   (https://www.w3.org/WAI/ARIA/apg/).
 - **Tokens** — every spec must wire to the design system. If a component needs a
-  value with no token, that's a Phase 5 reconcile gap: add the token first.
+  value with no token, that's a reconcile gap: add the token first.
 
 ## Per-tier adaptations
 
@@ -155,14 +162,14 @@ The template fits all tiers; adapt these sections:
 
 - **Layout / structural:** Variants/States still apply (sidebar
   collapsed/expanded, panel open/closed). "Figma properties" is often N/A — mark
-  `⚠️ Needs input` or omit. "Composition" lists the regions/composites it
+  `NEEDS INPUT` or omit. "Composition" lists the regions/composites it
   arranges, with their layout (flex/grid, gaps, alignment, fixed widths, sticky
   vs. scroll). MANDATORY for every layout component, per region: (a) the surface
   token, measured by sampling + luminance rank, never assumed; (b) which region
   owns the divider/border and on which edge; (c) corner radii on large
   regions/panels/shell (with a token) and whether content is FLUSH vs
   INSET/FLOATING. When authoring net-new with no source to measure, state each
-  field deliberately or mark `⚠️ Needs input` — never silently omit.
+  field deliberately or mark `NEEDS INPUT` — never silently omit.
 - **Composite / patterns:** focus "Anatomy" on the sub-blocks and the flow
   (e.g. a login form: fields, validation, submit, error summary, secondary
   links). "Composition" lists the atoms used. Document empty/loading/error states

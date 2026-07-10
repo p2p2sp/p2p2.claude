@@ -1,7 +1,7 @@
 # DTCG → pure CSS (no framework) mapping
 
 The `pure-css` target needs **no framework and no build step**: the L1
-`tokens.css` already *is* valid CSS custom properties, so this target re-expresses
+`tokens.css` already IS valid CSS custom properties, so this target re-expresses
 it as a small **utility/class layer** plus per-component **HTML patterns** that
 SSR (or hand-written HTML) can emit directly. The theme artifact is `styles.css`.
 
@@ -20,7 +20,8 @@ SSR (or hand-written HTML) can emit directly. The theme artifact is `styles.css`
   `@media (prefers-color-scheme: dark)`); elements inside the scope pick up the
   overridden value. This is exactly the shape `tokens.css` already uses
   (`:root` light + `.dark`), so `styles.css` can `@import "tokens.css";` or inline
-  it, then build the class layer on top.
+  it (carrying the `.dark` block over verbatim — but only if the L1 system has
+  one; never fabricate dark values), then build the class layer on top.
 
 ## The theme artifact (`styles.css`)
 
@@ -85,7 +86,8 @@ its tokens, and the state hooks (`:hover`, `:focus-visible`, `[aria-disabled]`,
 
 **Gap policy:** every component must come from `components/inventory.md`. If a
 visual the inventory lacks is needed, compose it from documented primitives and
-say so, or write `> ⚠️ Needs input: …`. Never invent a component or a token.
+say so, or write `> NEEDS INPUT: <what's missing>`. Never invent a component or
+a token.
 
-This is a **web** target — `web-preview` can render its static appearance from
+This is a **web** target — `superui:web-preview` can render its static appearance from
 `styles.css` (plain `<link>`/inline `<style>`, no CDN, no Tailwind block).
