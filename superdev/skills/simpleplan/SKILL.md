@@ -4,7 +4,7 @@ description: Invoked by superdev skill only.
 allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode
 ---
 
-CRITICAL: Run `EnterPlanMode` first, if plan mode is not already active.
+**CRITICAL**: Run `EnterPlanMode` tool first, if plan mode is not already active.
 
 # SimplePlan
 
