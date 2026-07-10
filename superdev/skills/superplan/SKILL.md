@@ -2,6 +2,7 @@
 name: superplan
 description: Invoked by superspec skill only.
 allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode
+user-invocable: false
 ---
 
 **CRITICAL**: Run `EnterPlanMode` tool first, if plan mode is not already active.

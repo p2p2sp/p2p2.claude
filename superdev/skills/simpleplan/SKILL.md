@@ -1,7 +1,8 @@
 ---
 name: simpleplan
-description: Invoked by superdev skill only.
+description: Invoked by superdev skill or by user command only.
 allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode
+user-invocable: true
 ---
 
 **CRITICAL**: Run `EnterPlanMode` tool first, if plan mode is not already active.
