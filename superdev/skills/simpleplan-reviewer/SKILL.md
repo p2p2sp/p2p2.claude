@@ -34,6 +34,9 @@ If `## previous-review` is present, check each prior finding was addressed; do n
 
 ## Output Format
 
-RETURN exactly two sections (your only channel to the parent):
-- VERDICT: `PASS` or `FAIL`
+RETURN exactly two sections (your only channel to the parent). The verdict MUST be the FIRST line of your output, verbatim, with no preamble before it:
+
+**VERDICT:** PASS
+
+- Use `FAIL` in place of `PASS` when the plan is not ready. Bold markers required; value bare on its own line — no back-ticks, no list marker, no text before it.
 - FINDINGS: by severity (Critical / Major / Minor), or "none"

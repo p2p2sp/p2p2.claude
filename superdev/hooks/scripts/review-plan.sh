@@ -3,7 +3,7 @@
 #
 # Blocks ExitPlanMode until the plan reviewer (superplan-reviewer for the spec
 # path, or simpleplan-reviewer for the Simple path) has approved the plan
-# file with "Verdict: PASS". Heuristic: only gates when the transcript shows a
+# file with "VERDICT: PASS". Heuristic: only gates when the transcript shows a
 # prior Write/Edit to a path under .claude/plans/*.md (i.e. plan-mode for an
 # implementation plan, not commit-flow plan-mode without a plan file).
 #
@@ -89,7 +89,7 @@ fi
 
 # Step 2: from the line AFTER the last plan-file write, look for:
 #   R = a line containing the plan reviewer name AND a subagent marker
-#   S = a line carrying the actual verdict "Verdict: PASS"
+#   S = a line carrying the actual verdict "VERDICT: PASS"
 # Require R < S so the reviewer call precedes its result.
 tail_start=$((last_plan_write_line + 1))
 
@@ -106,44 +106,51 @@ reviewer_call_line=$(
 )
 
 if [ -z "$reviewer_call_line" ]; then
-  emit_deny "Next step: plan review. Run the plan reviewer (superplan-reviewer for the spec path, or simpleplan-reviewer for the Simple path), wait for 'Verdict: PASS', then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+  emit_deny "Next step: plan review. Run the plan reviewer (superplan-reviewer for the spec path, or simpleplan-reviewer for the Simple path), wait for 'VERDICT: PASS', then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
 # S: the reviewer's OWN verdict — the FIRST verdict line AFTER the reviewer call.
 # Anchor on the escaped newline (\n in the JSONL) that precedes it: the real verdict
-# always starts its own markdown line, so it appears as `\n**Verdict:** <value>` (the
-# `(\*\*)?` makes the bold markers optional; the `\\n` matches the two literal chars
-# backslash-n JSON uses to escape a newline — this excludes inline/back-ticked mentions).
+# always starts its own markdown line, so it appears as `\n**VERDICT:** <value>`. The
+# match is deliberately TOLERANT of how an LLM reviewer formats that line, so a drifted
+# format still GATES instead of failing open (the historical bug: the reviewer emits
+# upper-case `VERDICT:` while this pattern only accepted `Verdict:` -> never matched):
+#   - `[Vv][Ee][Rr][Dd][Ii][Cc][Tt]` matches the keyword case-insensitively (VERDICT / Verdict / …);
+#   - `([-*] )?` tolerates a leading markdown list marker (`- VERDICT:`);
+#   - `(\*\*)?` on each side makes the bold markers optional;
+#   - `` `? `` on each side tolerates back-ticks around the value (`` `PASS` ``).
+# The `\\n` matches the two literal chars backslash-n JSON uses to escape a newline —
+# this excludes inline mentions mid-line.
 # LOAD-BEARING: bind to the FIRST verdict, matching PASS|FAIL, not "any later PASS".
 # A FAIL verdict must DENY even when a later line (a paste, an assistant restatement,
-# a tool_result echo, or a `Verdict: PASS | FAIL` legend) carries a stray PASS.
+# a tool_result echo, or a `VERDICT: PASS | FAIL` legend) carries a stray PASS.
 # The verdict VALUE must END the line-anchored token — followed by the escaped
 # newline (\n) that starts the next markdown line, or the closing quote (") that
 # ends the JSON content string (optional trailing spaces tolerated). This rejects a
-# qualified/negated `Verdict: PASS is NOT ...` whose value is not the whole token:
+# qualified/negated `VERDICT: PASS is NOT ...` whose value is not the whole token:
 # without the end-anchor its last matched word is still `PASS` -> a false-allow.
 verdict_line=$(
-  awk -v start="$reviewer_call_line" 'NR>start && /\\n(\*\*)?Verdict:(\*\*)? (PASS|FAIL)[[:space:]]*(\\n|")/ { print NR; exit }' \
+  awk -v start="$reviewer_call_line" 'NR>start && /\\n([-*] )?(\*\*)?[Vv][Ee][Rr][Dd][Ii][Cc][Tt]:(\*\*)?[[:space:]]+`?(PASS|FAIL)`?[[:space:]]*(\\n|")/ { print NR; exit }' \
     "$transcript_path" 2>/dev/null
 )
 
 if [ -z "$verdict_line" ]; then
-  emit_deny "Next step: address the review. The plan reviewer ran but returned no 'Verdict:' line — re-run it, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+  emit_deny "Next step: address the review. The plan reviewer ran but returned no 'VERDICT:' line — re-run it, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
-# The value on that first verdict line — strip the trailing anchor, then take the
-# last whitespace-delimited token of the remaining `\n**Verdict:** <value>` span.
+# The value on that first verdict line — strip the trailing anchor, drop any back-ticks,
+# then take the last whitespace-delimited token of the remaining `\n**VERDICT:** <value>` span.
 verdict_value=$(
   awk -v ln="$verdict_line" 'NR==ln {
-    if (match($0, /\\n(\*\*)?Verdict:(\*\*)? (PASS|FAIL)[[:space:]]*(\\n|")/)) {
-      v = substr($0, RSTART, RLENGTH); sub(/[[:space:]]*(\\n|")$/, "", v)
+    if (match($0, /\\n([-*] )?(\*\*)?[Vv][Ee][Rr][Dd][Ii][Cc][Tt]:(\*\*)?[[:space:]]+`?(PASS|FAIL)`?[[:space:]]*(\\n|")/)) {
+      v = substr($0, RSTART, RLENGTH); sub(/[[:space:]]*(\\n|")$/, "", v); gsub(/`/, "", v)
       n = split(v, a, " "); print a[n]
     }
   }' "$transcript_path" 2>/dev/null
 )
 
 if [ "$verdict_value" != "PASS" ]; then
-  emit_deny "Next step: address the review. The plan reviewer returned 'Verdict: ${verdict_value}', not PASS — apply its Fix list to the plan file, re-run the reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+  emit_deny "Next step: address the review. The plan reviewer returned 'VERDICT: ${verdict_value}', not PASS — apply its Fix list to the plan file, re-run the reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
 # Tamper guard: a PASS approves the plan AS REVIEWED. The Step-1 write-detection only
@@ -171,7 +178,7 @@ if [ -n "$plan_base" ]; then
       }' "$transcript_path" 2>/dev/null
   )
   if [ -n "$tamper_line" ]; then
-    emit_deny "Next step: re-review. The plan file was modified after 'Verdict: PASS' — re-run the plan reviewer on the current plan, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+    emit_deny "Next step: re-review. The plan file was modified after 'VERDICT: PASS' — re-run the plan reviewer on the current plan, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
   fi
 fi
 

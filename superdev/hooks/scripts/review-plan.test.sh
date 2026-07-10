@@ -50,6 +50,16 @@ LTAMPER_GT='{"type":"assistant","message":{"content":[{"type":"tool_use","name":
 LTAMPER_TEE='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"echo x | tee C:\\Users\\dariu\\.claude\\plans\\foo.md"}}]}}'
 LTAMPER_CP='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"cp other C:\\Users\\dariu\\.claude\\plans\\foo.md"}}]}}'
 LTAMPER_MV='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"mv other C:\\Users\\dariu\\.claude\\plans\\foo.md"}}]}}'
+# Format-tolerance fixtures — the reviewer may emit the verdict in several markdown shapes.
+# The gate must recognise them all (case-insensitive keyword, optional bold, optional list
+# marker, optional back-ticks around the value). CV = the canonical bold+UPPER form the
+# reviewers now emit; LV/LF = the exact list+back-tick+UPPER form that historically slipped
+# past the old `Verdict:`-only pattern and left the gate stuck.
+LPASS_CANON='{"type":"user","message":{"content":[{"type":"tool_result","content":"## Superplan Review\n**VERDICT:** PASS\nAll good."}]}}'
+LPASS_LIST='{"type":"user","message":{"content":[{"type":"tool_result","content":"## Superplan Review\n- VERDICT: `PASS`\nAll good."}]}}'
+LFAIL_LIST='{"type":"user","message":{"content":[{"type":"tool_result","content":"## Superplan Review\n- VERDICT: `FAIL`\nFix list: rework step 3."}]}}'
+# negated UPPER PASS before the real UPPER FAIL — end-anchor must still reject the negation
+LNEG_UPPER='{"type":"user","message":{"content":[{"type":"tool_result","content":"## Superplan Review\nVERDICT: PASS is NOT warranted; see below.\n**VERDICT:** FAIL\nFix list: rework."}]}}'
 
 # mkfix <file> <line...> — write a JSONL fixture, one arg per line.
 mkfix() { local f="$1"; shift; printf '%s\n' "$@" > "$f"; }
@@ -130,6 +140,22 @@ run_case "T5 PASS then cp over plan -> deny" "$SCRATCH/T5" DENY
 # T6 — genuine PASS then `mv` overwriting the plan -> deny (tamper)
 mkfix "$SCRATCH/T6" "$LW" "$LR" "$LPASS" "$LTAMPER_MV"
 run_case "T6 PASS then mv over plan -> deny" "$SCRATCH/T6" DENY
+
+# FC — canonical bold+UPPER `**VERDICT:** PASS` -> allow
+mkfix "$SCRATCH/FC" "$LW" "$LR" "$LPASS_CANON"
+run_case "FC canonical **VERDICT:** PASS -> allow" "$SCRATCH/FC" ALLOW
+
+# FL — list marker + back-ticked UPPER `- VERDICT: \`PASS\`` (the historical miss) -> allow
+mkfix "$SCRATCH/FL" "$LW" "$LR" "$LPASS_LIST"
+run_case "FL list+backtick VERDICT: \`PASS\` -> allow" "$SCRATCH/FL" ALLOW
+
+# FF — same shape carrying FAIL must still deny, not slip through -> deny
+mkfix "$SCRATCH/FF" "$LW" "$LR" "$LFAIL_LIST"
+run_case "FF list+backtick VERDICT: \`FAIL\` -> deny" "$SCRATCH/FF" DENY
+
+# NEGU — negated UPPER PASS before the real UPPER FAIL -> deny
+mkfix "$SCRATCH/NEGU" "$LW" "$LR" "$LNEG_UPPER"
+run_case "NEGU negated UPPER PASS before real FAIL -> deny" "$SCRATCH/NEGU" DENY
 
 echo ""
 if [ "$FAILED" -ne 0 ]; then

@@ -47,23 +47,23 @@ A task is the smallest unit that carries its own test cycle and is worth a fresh
 Once you have written a complete plan and before final review, fast review it with your fresh eyes and check the plan against it. If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 
 ### Final Review
-Before `ExitPlanMode` invoke the `simpleplan-reviewer` skill (Skill tool, forked context) to make final review. Never call `ExitPlanMode` on a plan that has not returned `VERDICT: PASS`. Track which invocation this is (round 1, round 2, …).
+Before `ExitPlanMode` invoke the `simpleplan-reviewer` skill (Skill tool, forked context) to make final review. Never call `ExitPlanMode` on a plan that has not returned **VERDICT:** PASS. Track which invocation this is (round 1, round 2, …).
 
 1. Invoke `simpleplan-reviewer` (Skill). The `args` MUST be a labeled block — one `label: value` per line, NOT the bare plan path.
    - **Round 1** — send exactly one line: `plan: <plan-file path>`.
    - **Round 2+, looping back from a fixable-in-draft FAIL** — first save the round context to a sibling file `<plan-file path>.review-<N-1>.md` with exactly:
      ```
      --- Previous review (round <N-1>) ---
-     <verbatim previous VERDICT: FAIL findings>
+     <verbatim previous **VERDICT:** FAIL findings>
      --- Fixes applied since ---
      - <what changed, one line per fix>
      ```
      then pass `plan: <plan-file path>` and `previous-review: <that sibling file path>` on separate lines.
-2. Read the first line of its output: `VERDICT: PASS` or `VERDICT: FAIL`, and show the human the Critical/Major findings as a list.
-3. `VERDICT: PASS` → proceed to **Final Plan**.
-4. `VERDICT: FAIL`:
+2. Read the first line of its output: **VERDICT:** PASS or **VERDICT:** FAIL, and show the human the Critical/Major findings as a list.
+3. **VERDICT:** PASS → proceed to **Final Plan**.
+4. **VERDICT:** FAIL:
    - **Fixable-in-draft blockers** → apply the returned corrections to the plan, then go back to step 1 and re-run the reviewer.
    - **Needs-discovery blockers** → STOP looping. Run the `superdev` Skill (or ask the user) to obtain the missing decision, update the plan, then go back to step 1 as a fresh round 1.
 
 ### Final Plan
-Call `ExitPlanMode` ONLY AFTER `VERDICT: PASS`. The human approves a reviewer-cleared plan, not a raw draft.
+Call `ExitPlanMode` ONLY AFTER **VERDICT:** PASS. The human approves a reviewer-cleared plan, not a raw draft.
