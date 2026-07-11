@@ -55,6 +55,17 @@ superui/
   step checklist (1–14); every measurement/spec/sheet is produced by one of the eight agents — the
   orchestrator itself only runs scripts, gates, and the user conversation. Run state lives under
   `.temp/design-system-extractor/<run>/`.
+- `design-system-generator` — the shared **mechanical tail**, `user-invocable: false` (invoked only via the
+  `Skill` tool by `design-system-extractor` and `design-system-creator`, never directly — it cannot be
+  `context: fork` because it must itself dispatch agents, and a forked subagent cannot spawn subagents). Takes a
+  labeled-args input contract (`run:`, `out:`, `spec-producer:`, `provenance:`, optional `source:`, `context:`,
+  `intake:`) and runs the mechanical checklist common to both heads: compose `dtcg.yml` (`token-composer`) ->
+  `tokens_to_css.py` -> `design_md_skeleton.py` -> `design-doc-writer` -> spec fan-out via whichever agent the
+  caller names in `spec-producer:` (`spec-writer` for the extractor, `spec-designer` for the creator) -> collect
+  `MISSING-TOKENS`/`SYNTHESIZED-TOKENS` -> `token-composer` merge + re-css + `check_spec_tokens.py` -> copy
+  `docs.css` -> `html-visualizer` fan-out -> `build_index.py` + `lint_previews.py`. Zero user conversation, zero
+  design judgment — every value it writes already arrived decided in its inputs; it returns artifact paths,
+  counts, and carried `> NEEDS INPUT` items to its caller, which relays them verbatim.
 - `design-system-completer` — the opt-in **gap-completion** orchestrator, run after the extractor when the
   source screenshots never showed some piece of the system (a missing state, missing dark coverage, a missing
   token role). Two hard-gated stages: (1) `check_completeness.py` extracts facts, `gap-analyst` judges them
@@ -136,7 +147,11 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   scripts run by the orchestrator (`tokens_to_css.py`, `design_md_skeleton.py`, `build_index.py`,
   `lint_previews.py`, `check_completeness.py`). The completer's sole hand-written exception is step 8
   (bookkeeping): a mechanical, judgment-free transcription of already-approved entries into the two ledgers
-  below — never a parallel worker's job.
+  below — never a parallel worker's job. The extractor's own artifact-generation steps live in the shared
+  `design-system-generator` tail (`user-invocable: false`, invoked via the `Skill` tool, never `context: fork`
+  since it must dispatch agents itself): it composes `dtcg.yml` / generates css-doc-skeleton-specs-sheets-index
+  through the SAME agents and scripts, carries zero user conversation and zero design judgment of its own, and
+  is shared verbatim by `design-system-creator`.
 - **Single writer per file.** `dtcg.yml` is written exclusively by `token-composer` — in both pipelines: the
   extractor's compose job and the completer's merge job. Each spec/sheet has exactly one producer per run.
   Never two agents into one file.
