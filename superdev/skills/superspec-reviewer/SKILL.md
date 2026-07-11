@@ -2,7 +2,7 @@
 name: superspec-reviewer
 description: Read-only `What & Why` spec reviewer. Checks completeness, ambiguity, testability of acceptance criteria, internal consistency, and `How` leaks. Asks max 5 clarify questions. Invoked only by the superspec skill, never directly.
 context: fork
-model: sonnet
+model: opus
 effort: high
 allowed-tools: Read, Grep, Glob, Bash
 user-invocable: false

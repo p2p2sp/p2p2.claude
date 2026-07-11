@@ -3,7 +3,7 @@ name: simplebuild-reviewer
 description: Invoked only by simplebuild skill.
 context: fork
 model: sonnet
-effort: medium
+effort: high
 allowed-tools: Read, Write, Grep, Glob, Bash
 user-invocable: false
 ---

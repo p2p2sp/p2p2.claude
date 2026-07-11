@@ -1,14 +1,8 @@
 # Recurring component patterns — detection & documentation
 
-A catalog of the UI building blocks to look for in a source UI (screenshots or a
-rendered page). For each detected component, document in its spec (template +
-taxonomy in `component-spec.md`): where it appears, its anatomy,
-its states/variants (mark inferred vs. visible), the tokens it consumes, and
-accessibility notes. Use this list as a checklist — scan every screen against
-all entries.
+A catalog of the UI building blocks to look for in a source UI (screenshots or a rendered page). For each detected component, document in its spec (template + taxonomy in `component-spec.md`): where it appears, its anatomy, its states/variants (mark inferred vs. visible), the tokens it consumes, and accessibility notes. Use this list as a checklist — scan every screen against all entries.
 
-For each pattern below: **Cues** = how to recognize it · **Anatomy** = its parts
-· **States** = variations to look for · **Tokens** = what it typically consumes.
+For each pattern below: **Cues** = how to recognize it · **Anatomy** = its parts · **States** = variations to look for · **Tokens** = what it typically consumes.
 
 ## Contents
 App shell · Sidebar / nav rail · Logo / brand lockup · User / account menu ·

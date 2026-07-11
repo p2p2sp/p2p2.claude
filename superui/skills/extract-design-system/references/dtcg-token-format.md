@@ -1,11 +1,6 @@
 # DTCG token format (2025.10) — YAML serialization
 
-The W3C Design Tokens Community Group format reached its first stable version,
-**2025.10**, on 2025-10-28. The spec defines a JSON file format. YAML is a
-superset of JSON's data model, so we author tokens in **YAML using the exact
-DTCG object model** (same `$`-prefixed keys, same value shapes). The scripts in
-this skill load the YAML and treat it as the DTCG structure 1:1, so it converts
-losslessly to `.tokens.json` if ever needed.
+Author tokens in **YAML using the exact DTCG object model** (same `$`-prefixed keys, same value shapes). The scripts in this skill load the YAML and treat it as the DTCG structure 1:1, so it converts losslessly to `.tokens.json` if ever needed.
 
 ## Core shape
 

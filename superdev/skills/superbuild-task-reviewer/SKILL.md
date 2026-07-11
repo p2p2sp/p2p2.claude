@@ -3,7 +3,7 @@ name: superbuild-task-reviewer
 description: Invoked only by superbuild skill.
 context: fork
 model: sonnet
-effort: medium
+effort: high
 allowed-tools: Read, Write, Grep, Glob, Bash
 user-invocable: false
 ---
