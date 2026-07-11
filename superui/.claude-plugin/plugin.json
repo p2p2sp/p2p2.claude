@@ -23,6 +23,8 @@
     "./agents/html-visualizer.md",
     "./agents/fidelity-reviewer.md",
     "./agents/gap-analyst.md",
-    "./agents/design-synthesizer.md"
+    "./agents/design-synthesizer.md",
+    "./agents/design-director.md",
+    "./agents/spec-designer.md"
   ]
 }

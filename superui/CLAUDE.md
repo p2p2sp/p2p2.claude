@@ -31,9 +31,11 @@ superui/
                      component-spec.md, design-system-foundations.md)
   assets/            Plugin-root bundled assets shared across skills (tokens.template.yaml,
                      example-component-spec.md, doc-chrome/ — the fixed doc chrome)
-  agents/            The eight extraction workers plus the two completion workers (`gap-analyst`,
-                     `design-synthesizer`) — genuine plugin agents, dispatched by the design-system-extractor
-                     / design-system-completer orchestrators via the Agent tool (`subagent_type: superui:<name>`)
+  agents/            The eight extraction workers, the two completion workers (`gap-analyst`,
+                     `design-synthesizer`), and the two creative-head workers (`design-director`,
+                     `spec-designer`) — genuine plugin agents, dispatched by the design-system-extractor /
+                     design-system-completer / design-system-creator orchestrators via the Agent tool
+                     (`subagent_type: superui:<name>`)
   skills/            Flat-named skills (single-domain plugin); design-system-extractor keeps only its own
                      references/component-patterns.md (everything else moved to the plugin-root scripts/,
                      references/, assets/ above, addressed via `${CLAUDE_PLUGIN_ROOT}/...`);
@@ -134,6 +136,19 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   extrapolating from the measured system first and falling back to pro-designer doctrine only where the
   system offers no basis. Emits a synthesized-tokens list (token-composer merge input) and provenance-marked
   spec content; never edits `dtcg.yml` directly. Spawn one per approved scope, in parallel.
+- `design-director` — `design-system-creator`'s single holistic creative head: designs the complete visual
+  direction of a NEW system from a brief (+ optional inspiration hints, HINTS never values-to-copy). Frontmatter
+  `skills: [superui:pro-designer]` preloads the doctrine. Verifies every planned text/surface pair with
+  `check_contrast.py` BEFORE writing it down (prevention over correction) and writes the four
+  `notes-<foundation>.md` files in foundation-analyst's format (colors notes additionally carry a designed
+  surface/elevation order, an accent-usage plan, and a `CONTRAST-PAIRS:` section), an inventory proposal in
+  component-scout's format using the sanctioned synthesized entry shape, and a direction rationale. Never
+  talks to the user (`> NEEDS INPUT` convention). Spawn exactly one — design coherence needs a single head.
+- `spec-designer` — one spec per inventory entry, designed with NO source screenshots: extrapolates from the
+  system's own `dtcg.yml` tokens/scales first, pro-designer doctrine second (frontmatter
+  `skills: [superui:pro-designer]`). Every value a token NAME; a needed value with no match becomes a
+  `SYNTHESIZED-TOKENS` entry (design-synthesizer's shape) rather than a raw value; the spec carries
+  `**Provenance:** designed, not extracted`. Never edits `dtcg.yml`. Spawn one per inventory entry, in parallel.
 
 ## Architecture invariants (superui-specific)
 
