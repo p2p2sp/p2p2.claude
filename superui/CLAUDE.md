@@ -71,6 +71,19 @@ superui/
   `docs.css` -> `html-visualizer` fan-out -> `build_index.py` + `lint_previews.py`. Zero user conversation, zero
   design judgment — every value it writes already arrived decided in its inputs; it returns artifact paths,
   counts, and carried `> NEEDS INPUT` items to its caller, which relays them verbatim.
+- `design-system-creator` — the **creative head** counterpart to the extractor: designs a NEW design system
+  from the user's intent (prose interview, one question per turn — no forms/multi-select tool) plus optional
+  inspiration images, sampled as HINTS never canon. Hard collision gate on an existing `DESIGN.md` (full
+  redesign-overwrite or abort, explicit user choice — never merge; routes gap-only needs to
+  `design-system-completer` and new-source-screenshot needs to `design-system-extractor`). Dispatches the
+  holistic `design-director` agent for the whole visual direction in one pass, gates on the user's approval
+  (adjust/re-dispatch loop, capped — two rejections offers restating the brief instead of a third blind
+  re-design), then — like the extractor — hands off to the shared `design-system-generator` tail
+  (`spec-producer: superui:spec-designer`, `provenance: designed`). Its own writes are limited to the interview
+  artifacts under `.temp/design-system-creator/<run>/` and copying the approved inventory proposal into
+  `<out>/inventory.md` (mirroring the extractor's `component-scout` ownership); every other artifact write
+  flows through the generator. Closes with a contrast-QA pass re-verifying `design-director`'s
+  `CONTRAST-PAIRS` against the FINAL post-merge token values.
 - `design-system-completer` — the opt-in **gap-completion** orchestrator, run after the extractor when the
   source screenshots never showed some piece of the system (a missing state, missing dark coverage, a missing
   token role). Two hard-gated stages: (1) `check_completeness.py` extracts facts, `gap-analyst` judges them
@@ -157,9 +170,11 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   Unlike superdev, superui ships **no `PreToolUse` plan gate** — its only hook is `SessionStart`. The manifest
   documents the design-artifact location, not routing.
 - **Design artifacts location.** The framework-agnostic design system lives under `.superui/design-system/`
-  in the host project. BOTH pipelines write there: the extractor (measurement) and the completer (opt-in,
-  user-gated synthesis) — never a third writer, and the completer never scaffolds `<out>` itself (it requires
-  `DESIGN.md` + `dtcg.yml` to already exist).
+  in the host project. THREE pipelines write there: the extractor (measurement), the creator (design-from-intent,
+  via the shared generator tail), and the completer (opt-in, user-gated synthesis) — never a fourth writer, and
+  the completer never scaffolds `<out>` itself (it requires `DESIGN.md` + `dtcg.yml` to already exist). The
+  creator's hard collision gate keeps it from ever running alongside an existing system without an explicit
+  full-redesign choice — it either overwrites wholesale or aborts, never merges.
 - **Orchestrator does no worker work.** Both orchestrator SKILL.mds (extractor, completer) are a checklist +
   gates; screenshots/facts are read and artifacts authored ONLY by the agents. Deterministic steps are
   scripts run by the orchestrator (`tokens_to_css.py`, `design_md_skeleton.py`, `build_index.py`,

@@ -8,6 +8,7 @@
   },
   "skills": [
     "./skills/design-system-extractor/",
+    "./skills/design-system-creator/",
     "./skills/design-system-generator/",
     "./skills/design-system-guardian/",
     "./skills/design-system-completer/",
