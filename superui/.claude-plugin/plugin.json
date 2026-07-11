@@ -19,6 +19,7 @@
     "./agents/component-scout.md",
     "./agents/spec-writer.md",
     "./agents/html-visualizer.md",
-    "./agents/fidelity-reviewer.md"
+    "./agents/fidelity-reviewer.md",
+    "./agents/gap-analyst.md"
   ]
 }
