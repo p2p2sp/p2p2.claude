@@ -33,8 +33,8 @@ Each plugin is independently installable; none declares another as a dependency.
 `README.md`; this file is orientation for the assistant.
 
 - **superdev** — project memory, planning, and the agentic-development pipeline.
-- **superui** — the design / frontend ecosystem: the framework-agnostic L1 design-system extractor and a
-  professional UI/UX standards advisor.
+- **superui** — the design / frontend ecosystem: the multi-agent, framework-agnostic design-system extractor
+  (an orchestrator skill dispatching eight extraction agents) and a professional UI/UX standards advisor.
   (→ `superui/CLAUDE.md`)
 - **supergh** — the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation
   executor, Conventional-Commits commits, and template-driven issue / PR creation. Ships **no hooks and no
@@ -89,7 +89,8 @@ README.md            User-facing help (install + how it works)
 
 Each plugin dir carries a `.claude-plugin/plugin.json` (its `skills[]` (+ `agents[]`) is the catalog of record).
 `superdev` / `superui` also carry `hooks/` (one injected dispatcher manifest + hook scripts) and
-`shared/` (plugin-level shared assets/scripts); `supergh` carries `shared/` only; `superfix` carries `agents/`.
+`shared/` (plugin-level shared assets/scripts); `supergh` carries `shared/` only; `superui` and `superfix`
+carry `agents/`.
 
 ## Versioning
 
@@ -143,8 +144,8 @@ The invariants below hold across the repo.
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`create-issue`/`create-pr` skill,
   superfix's for the `code-auditor` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
-  (superfix's `scout` / `detective` live there, not in `skills[]`; superdev / superui ship no agents —
-  every superdev / superui worker is a skill) — and the relevant `CLAUDE.md`
+  (superfix's `scout` / `detective` and superui's eight extraction workers live there, not in `skills[]`;
+  superdev ships no agents — every superdev worker is a skill) — and the relevant `CLAUDE.md`
   (that plugin's, and this root file when the change is repo-wide) in either case. They must stay in sync, and a
   worker must never appear in both `skills[]` and `agents[]`.
   For the manifest-bearing plugins (`superdev`, `superui`), that plugin's injected manifest

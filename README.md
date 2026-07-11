@@ -52,7 +52,7 @@ Flat-named (single-domain plugin, no group prefix):
 
 | Skill | Role |
 | --- | --- |
-| `extract-design-system` | Reverse-engineer a framework-agnostic L1 design system from screenshots / a URL — DTCG tokens, foundations, pure-CSS `tokens.css`, tiered component catalog |
+| `design-system-extractor` | Reverse-engineer a framework-agnostic design system from UI screenshots via a multi-agent pipeline — DTCG tokens (`dtcg.yml`), `DESIGN.md`, pure-CSS `tokens.css`, component/pattern specs, and an HTML documentation site (per-foundation/component/pattern sheets + `index.html`) |
 | `pro-designer` | Professional UI/UX design standards — visual hierarchy, 60-30-10 color discipline, type ramps, 4/8pt spacing, accessibility, component states, form-validation UX, and evidence-based conversion psychology with anti-dark-pattern rules; fires when creating, styling, or reviewing any interface; bundles topic reference docs + a WCAG contrast script |
 
 ## superfix skills

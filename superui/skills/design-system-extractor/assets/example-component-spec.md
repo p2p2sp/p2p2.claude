@@ -1,6 +1,6 @@
 # Button
 
-**Tier:** Atomic · **Appears on:** all screens (toolbar, modal footer, forms)
+**Kind:** Component (atomic) · **Appears on:** all screens (toolbar, modal footer, forms)
 
 ## Definition
 A clickable control that triggers an action or submits a form in the current
@@ -43,15 +43,15 @@ context.
 | 4 | Trailing icon | Optional icon after the label (e.g. caret) | `size.icon` |
 | 5 | Spinner | Replaces content in the loading state | `color.text.on-accent` |
 
-## Figma properties
+## Properties
 | Property | Type | Options / default |
 |---|---|---|
-| Variant | Variant | Primary / Secondary / Ghost / Destructive (default Primary) |
-| Size | Variant | Small / Medium / Large (default Medium) |
-| Leading icon | Boolean | true / false (default false) |
-| Trailing icon | Boolean | true / false (default false) |
-| State | Variant | Default / Hover / Focus / Active / Disabled / Loading |
-| Label | Text | "Button" |
+| Variant | enum | Primary / Secondary / Ghost / Destructive (default Primary) |
+| Size | enum | Small / Medium / Large (default Medium) |
+| Leading icon | boolean | true / false (default false) |
+| Trailing icon | boolean | true / false (default false) |
+| State | enum | Default / Hover / Focus / Active / Disabled / Loading |
+| Label | text | "Button" |
 
 ## Usage rules
 **Do**
@@ -70,10 +70,10 @@ context.
 - **Keyboard:** focusable via Tab; activates on Enter and Space.
 - **Screen reader:** announced as "<label>, button"; disabled announced as
   unavailable; loading should expose `aria-busy="true"`.
-- **Focus:** visible focus ring (`shadow.focus`) meeting 3:1 contrast against the
-  background; never remove the indicator.
-- **Contrast / target size:** label/background ≥ 4.5:1 (sampled pair passes AA);
-  hit target ≥ the `size.control` height.
+- **Focus:** visible focus ring (`shadow.focus`) meeting 3:1 contrast against
+  the background; never remove the indicator.
+- **Contrast / target size:** label/background ≥ 4.5:1 (sampled pair passes
+  AA); hit target ≥ the `size.control` height.
 
 ## Composition / related components
 - Icon (leading/trailing), Label, Spinner (loading).

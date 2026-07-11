@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Deterministically transform a validated DTCG-in-YAML token file into tokens.css.
 
-IN : argv[1] — path to design-tokens.yaml (read as UTF-8). Run
+IN : argv[1] — path to dtcg.yml (read as UTF-8). Run
      validate_tokens.py on it FIRST; this script assumes a well-formed tree
      but still fails hard on any alias it cannot resolve.
      argv[2] — output path for tokens.css (written as UTF-8; parent dir must exist).
@@ -294,8 +294,8 @@ def main():
                       "and re-run tokens_to_css.py */"]
 
     out = "\n".join(
-        ["/* tokens.css — GENERATED from design-tokens.yaml by",
-         "   extract-design-system/scripts/tokens_to_css.py. Do not edit by hand;",
+        ["/* tokens.css — GENERATED from dtcg.yml by",
+         "   design-system-extractor/scripts/tokens_to_css.py. Do not edit by hand;",
          "   edit the YAML and re-run. */",
          "",
          ":root {",

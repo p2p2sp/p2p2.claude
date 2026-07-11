@@ -209,7 +209,7 @@ color:
   allowed.
 - A token with no light/dark difference has no such extension.
 - This is the only source of truth for dark in L1: the `.dark` block of
-  `tokens.css` is derived from it (see the SKILL.md Phase 3 generation step),
+  `tokens.css` is derived from it by `tokens_to_css.py`,
   and `validate_tokens.py` validates `dark` exactly like `$value`.
 
 ## Recommended file skeleton

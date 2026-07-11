@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!-- sheet.template.html — skeleton for every generated documentation sheet.
+     Copy, fill the {{...}} placeholders, keep the chrome classes as-is.
+
+     Placeholders:
+       {{TITLE}}       sheet title (h1)
+       {{SUBTITLE}}    one-line description under the title
+       {{DOCS_CSS}}    relative href to docs.css   (subdir sheets: ../docs.css)
+       {{TOKENS_CSS}}  relative href to tokens.css (subdir sheets: ../tokens.css)
+       {{DARK_TOGGLE}} the toggle block below, verbatim — ONLY when the run's
+                       dark flag is set; otherwise remove the placeholder line
+       {{BODY}}        the sheet sections
+
+     Chrome class inventory (all defined in docs.css — do not invent others):
+       layout ......... .section  .section-sub  h2/h3 inside .section
+       card grids ..... .card-grid  .card  .token-card  .token-demo  .token-name
+                        .token-value  .token-var  .token-usage  .swatch
+       typography ..... .type-row  .type-name  .type-specs  .type-usage  .type-render
+       example frame .. .frame  .frame-grid  .frame-rows   (dashed matrix/pattern box)
+       previews ....... .preview   (token-consuming area; .dark is toggled HERE)
+       tables ......... .table-wrap  .props-table  .muted
+       do's/don'ts .... .dos-donts  .do-card  .dont-card  .dd-title
+       anatomy ........ .anatomy-notes
+       misc ........... .needs-input  hr.rule
+
+     Preview rule: every color/size/spacing/radius/shadow/font value inside
+     .preview / .token-demo / .frame content is var(- -token-name) from
+     tokens.css. Structural CSS (flex, grid, alignment) is fine; raw hex, rgb(),
+     hsl(), or px values (other than 0) are lint failures.
+
+     Dark toggle block ({{DARK_TOGGLE}}), verbatim:
+       <button class="dark-toggle" onclick="
+         for (const p of document.querySelectorAll('.preview, .token-demo, .frame'))
+           p.classList.toggle('dark');
+         this.textContent = this.textContent === 'Dark' ? 'Light' : 'Dark';
+       ">Dark</button>
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<link rel="stylesheet" href="{{DOCS_CSS}}">
+<link rel="stylesheet" href="{{TOKENS_CSS}}">
+</head>
+<body>
+{{DARK_TOGGLE}}
+<header class="sheet-header">
+  <h1>{{TITLE}}</h1>
+  <p class="sheet-sub">{{SUBTITLE}}</p>
+</header>
+
+{{BODY}}
+
+</body>
+</html>

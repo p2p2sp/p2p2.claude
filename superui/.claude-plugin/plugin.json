@@ -7,7 +7,17 @@
     "email": "dariusz.lenartowicz@p2p2.com.pl"
   },
   "skills": [
-    "./skills/extract-design-system/",
+    "./skills/design-system-extractor/",
     "./skills/pro-designer/"
+  ],
+  "agents": [
+    "./agents/source-scout.md",
+    "./agents/foundation-analyst.md",
+    "./agents/token-composer.md",
+    "./agents/design-doc-writer.md",
+    "./agents/component-scout.md",
+    "./agents/spec-writer.md",
+    "./agents/html-visualizer.md",
+    "./agents/fidelity-reviewer.md"
   ]
 }
