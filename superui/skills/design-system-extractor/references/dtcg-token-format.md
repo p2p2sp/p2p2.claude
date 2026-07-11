@@ -21,14 +21,10 @@ color:
 
 Rules that matter:
 
-- `$value` and `$type` are **required** (per token, or `$type` inherited from the
-  nearest parent group that sets it).
-- Token / group names **must not** start with `$` and must not contain `.`, `{`,
-  `}` (those are reserved for the alias syntax). Prefer kebab/lower names.
+- `$value` and `$type` are **required** (per token, or `$type` inherited from the nearest parent group that sets it).
+- Token / group names **must not** start with `$` and must not contain `.`, `{`, `}` (those are reserved for the alias syntax). Prefer kebab/lower names.
 - Allowed token metadata: `$description`, `$extensions`, `$deprecated`.
-- A **group** is any object without `$value`. Groups may set a group-wide
-  `$type`. Groups are organizational only — do not encode meaning a tool must
-  rely on (we use a small, explicit **role** convention; see below).
+- A **group** is any object without `$value`. Groups may set a group-wide `$type`. Groups are organizational only — do not encode meaning a tool must rely on (we use a small, explicit **role** convention; see below).
 
 ## Aliases (references)
 
@@ -42,8 +38,7 @@ color:
       $value: "{color.gray.900}"   # alias → resolves to that token's value
 ```
 
-Use aliases to build the **semantic layer** on top of **primitives**. Never
-duplicate a raw value in two places — alias instead.
+Use aliases to build the **semantic layer** on top of **primitives**. Never duplicate a raw value in two places — alias instead.
 
 ## Types
 
@@ -58,12 +53,10 @@ $value:
   alpha: 1                 # 0..1, optional (default 1)
   hex: "#3366f2"           # optional; include for sRGB to ease CSS output
 ```
-Always include `hex` for sRGB colors — `sample_colors.py` emits it and it gives
-the most readable output when a downstream target adapter writes CSS / theme code.
+Always include `hex` for sRGB colors — `sample_colors.py` emits it and it gives the most readable output when a downstream target adapter writes CSS / theme code.
 
 ### dimension
-A number plus a unit. Use for spacing, sizes, radii, border widths, font sizes,
-breakpoints.
+A number plus a unit. Use for spacing, sizes, radii, border widths, font sizes, breakpoints.
 
 ```yaml
 $type: dimension
@@ -165,12 +158,7 @@ $value:
 
 ## Role convention (our extension)
 
-DTCG says tools should not infer purpose from group names. A downstream target
-adapter, however, needs to know a dimension token's **role** (is `16px` spacing,
-a radius, or a font size?) to map it correctly. Capture the role at the agnostic
-L1 layer — by **top-level-group convention** (the group name IS the role) and,
-when a token lives outside its conventional group, by an explicit `$extensions`
-override:
+DTCG says tools should not infer purpose from group names. A downstream target adapter, however, needs to know a dimension token's **role** (is `16px` spacing, a radius, or a font size?) to map it correctly. Capture the role at the agnostic L1 layer — by **top-level-group convention** (the group name IS the role) and, when a token lives outside its conventional group, by an explicit `$extensions` override:
 
 ```yaml
 spacing:           # convention: group name == role
@@ -184,15 +172,11 @@ radius:
       role: radius   # explicit role override wins over the group name
 ```
 
-Recognized roles: `color`, `spacing`, `radius`, `font-size` (`text`),
-`font-family`, `font-weight`, `breakpoint`, `shadow`, `ease`. These roles are
-neutral. Anything unmapped is carried through as a plain `--<group>-<name>`
-custom property.
+Recognized roles: `color`, `spacing`, `radius`, `font-size` (`text`), `font-family`, `font-weight`, `breakpoint`, `shadow`, `ease`. These roles are neutral. Anything unmapped is carried through as a plain `--<group>-<name>` custom property.
 
 ## Dark mode — `$extensions.org.superui.dark` (our extension)
 
-A token whose value differs in dark mode carries the complete dark replacement
-under `$extensions`:
+A token whose value differs in dark mode carries the complete dark replacement under `$extensions`:
 
 ```yaml
 color:
@@ -205,12 +189,9 @@ color:
           dark: "{color.gray.900}"
 ```
 
-- `dark` has the same shape and type as `$value`; aliases and composites are
-  allowed.
+- `dark` has the same shape and type as `$value`; aliases and composites are allowed.
 - A token with no light/dark difference has no such extension.
-- This is the only source of truth for dark in L1: the `.dark` block of
-  `tokens.css` is derived from it by `tokens_to_css.py`,
-  and `validate_tokens.py` validates `dark` exactly like `$value`.
+- This is the only source of truth for dark in L1: the `.dark` block of `tokens.css` is derived from it by `tokens_to_css.py`, and `validate_tokens.py` validates `dark` exactly like `$value`.
 
 ## Recommended file skeleton
 

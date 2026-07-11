@@ -3,8 +3,7 @@
 **Kind:** Component (atomic) · **Appears on:** all screens (toolbar, modal footer, forms)
 
 ## Definition
-A clickable control that triggers an action or submits a form in the current
-context.
+A clickable control that triggers an action or submits a form in the current context.
 
 ## When to use
 - Triggering an action: save, delete, submit, open a dialog, run a process.
@@ -65,15 +64,11 @@ context.
 - Don't disable the only path forward without explaining why.
 
 ## Accessibility
-- **Role / semantics:** native `button` element (`type="button"`, or `submit`
-  inside a form).
+- **Role / semantics:** native `button` element (`type="button"`, or `submit` inside a form).
 - **Keyboard:** focusable via Tab; activates on Enter and Space.
-- **Screen reader:** announced as "<label>, button"; disabled announced as
-  unavailable; loading should expose `aria-busy="true"`.
-- **Focus:** visible focus ring (`shadow.focus`) meeting 3:1 contrast against
-  the background; never remove the indicator.
-- **Contrast / target size:** label/background ≥ 4.5:1 (sampled pair passes
-  AA); hit target ≥ the `size.control` height.
+- **Screen reader:** announced as "<label>, button"; disabled announced as unavailable; loading should expose `aria-busy="true"`.
+- **Focus:** visible focus ring (`shadow.focus`) meeting 3:1 contrast against the background; never remove the indicator.
+- **Contrast / target size:** label/background ≥ 4.5:1 (sampled pair passes AA); hit target ≥ the `size.control` height.
 
 ## Composition / related components
 - Icon (leading/trailing), Label, Spinner (loading).
