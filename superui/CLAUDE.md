@@ -40,7 +40,7 @@ superui/
   (with a mandatory agent-usage section), a derived pure-CSS `tokens.css`, per-component and per-pattern
   specs (`.md`), and a static HTML documentation site (per-foundation / per-component / per-pattern sheets +
   `index.html`) rendered inside a FIXED bundled doc chrome (`assets/doc-chrome/`). The SKILL.md body is a hard
-  step checklist (0a–6); every measurement/spec/sheet is produced by one of the eight agents — the
+  step checklist (1–14); every measurement/spec/sheet is produced by one of the eight agents — the
   orchestrator itself only runs scripts, gates, and the user conversation. Run state lives under
   `.temp/design-system-extractor/<run>/`.
 - `design-system-guardian` — the doctrinal **enforcement** skill for the extractor's output (model-invocable
