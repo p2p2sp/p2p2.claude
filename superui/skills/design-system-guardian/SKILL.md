@@ -1,6 +1,6 @@
 ---
 name: design-system-guardian
-description: Enforces the project's EXTRACTED design system on every UI task. Use whenever creating, building, adding, fixing, updating, modifying, styling, restyling, theming, refactoring, or reviewing ANY user interface — a page, screen, view, dashboard, form, component, layout, or a single CSS/style tweak — even if the user only says "build/add/fix" and never mentions a design system; applies in any language, phrasing, and framework. Invoke on every such task without checking anything first — the skill itself verifies `.superui/layout/design-system/` (the design-system-extractor output — tokens, DESIGN.md, component/pattern specs) and silently stands down when it is absent. Distinct from pro-designer, which gives generic UI/UX standards — this skill binds the work to THIS project's concrete tokens and specs, which take precedence.
+description: Enforces the project's EXTRACTED design system on every UI task. Use whenever creating, building, adding, fixing, updating, modifying, styling, restyling, theming, refactoring, or reviewing ANY user interface — a page, screen, view, dashboard, form, component, layout, or a single CSS/style tweak — even if the user only says "build/add/fix" and never mentions a design system; applies in any language, phrasing, and framework. Invoke on every such task without checking anything first — the skill itself verifies `.superui/design-system/` (the design-system-extractor output — tokens, DESIGN.md, component/pattern specs) and silently stands down when it is absent. Distinct from pro-designer, which gives generic UI/UX standards — this skill binds the work to THIS project's concrete tokens and specs, which take precedence.
 ---
 
 # Design System Guardian
@@ -11,7 +11,7 @@ invent token values from memory; read them fresh from the files below.
 
 ## Gate — verify the system exists
 
-- Check that `.superui/layout/design-system/DESIGN.md` exists (Glob).
+- Check that `.superui/design-system/DESIGN.md` exists (Glob).
 - ABSENT -> this skill does not apply. Stand down silently and proceed with your
   normal standards. Suggest running `design-system-extractor` only if the user
   explicitly asks about a design system.
@@ -20,7 +20,7 @@ invent token values from memory; read them fresh from the files below.
 
 ## Required reading — BEFORE writing or judging any UI code
 
-Read from `.superui/layout/design-system/`, in this order, only this much:
+Read from `.superui/design-system/`, in this order, only this much:
 
 - ALWAYS: the `## Using this design system (for agents)` section of `DESIGN.md`
   — the system's own agent contract; its rules bind exactly like this skill's
@@ -52,7 +52,7 @@ system exactly as fast as a new screen.
   NEVER promote the accent to backgrounds, borders, or text it does not list.
 - Dark mode ONLY through tokens (the `.dark` block of `tokens.css`). NEVER a
   hardcoded dark-specific value, NEVER a parallel dark palette.
-- NEVER edit anything under `.superui/layout/` — this skill reads and
+- NEVER edit anything under `.superui/design-system/` — this skill reads and
   enforces; only the extractor writes there.
 
 ## Gaps — when the system has no answer
@@ -78,7 +78,7 @@ Before presenting the result, verify each line against the files you read:
 5. Nothing exists in the output that the specs and `DESIGN.md` do not define.
 6. Dark mode resolves through tokens alone — toggling `.dark` needs no code
    change.
-7. Nothing under `.superui/layout/` was created or modified.
+7. Nothing under `.superui/design-system/` was created or modified.
 
 Any failure -> fix it before presenting, or report it as a gap. Never present
 UI code with an unchecked list.

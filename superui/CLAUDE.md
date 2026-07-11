@@ -20,7 +20,7 @@ skills.
 superui/
   .claude-plugin/plugin.json   The plugin manifest — skills[] + agents[] are the catalog of record
   hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
-    content/manifest.md  The injected `using-superui` dispatcher (`.superui/layout/` design-artifact location)
+    content/manifest.md  The injected `using-superui` dispatcher (`.superui/design-system/` design-artifact location)
     scripts/         session-start.sh
   shared/            Plugin-level shared scripts (scripts/check_python.sh — the Python preflight,
                      `!`-injected by each superui skill that runs a Python step)
@@ -36,7 +36,7 @@ superui/
 
 - `design-system-extractor` — the ORCHESTRATOR of a multi-agent extraction pipeline. Reverse-engineers a
   **framework-agnostic** design system from a folder of UI screenshots (screenshots ONLY — no website
-  scraping) into `.superui/layout/design-system/`: DTCG tokens (`dtcg.yml`), a `DESIGN.md` system document
+  scraping) into `.superui/design-system/`: DTCG tokens (`dtcg.yml`), a `DESIGN.md` system document
   (with a mandatory agent-usage section), a derived pure-CSS `tokens.css`, per-component and per-pattern
   specs (`.md`), and a static HTML documentation site (per-foundation / per-component / per-pattern sheets +
   `index.html`) rendered inside a FIXED bundled doc chrome (`assets/doc-chrome/`). The SKILL.md body is a hard
@@ -45,17 +45,17 @@ superui/
   `.temp/design-system-extractor/<run>/`.
 - `design-system-guardian` — the doctrinal **enforcement** skill for the extractor's output (model-invocable
   via CSO; no fork, no `allowed-tools`, no bundled files). Fires on ANY UI creation/styling/review work;
-  gates itself on the existence of `.superui/layout/design-system/DESIGN.md` (absent -> silent stand-down).
+  gates itself on the existence of `.superui/design-system/DESIGN.md` (absent -> silent stand-down).
   Pointer-not-payload: it forces reading the DESIGN.md agent-usage section + the touched component/pattern
   specs, bans raw values a token covers, bans inventing beyond spec, and mandates a post-generation
-  self-check. Read-only towards `.superui/layout/` — gaps route to the extractor, never to inlined values.
+  self-check. Read-only towards `.superui/design-system/` — gaps route to the extractor, never to inlined values.
   Role split vs `pro-designer`: pro-designer = GENERIC UI/UX standards; guardian = fidelity to THIS
   project's CONCRETE extracted system (which wins on conflict — pro-designer itself defers).
 - `pro-designer` — the cross-cutting **professional UI/UX standards** advisor (model-invocable via CSO):
   visual hierarchy, 60-30-10 color discipline, type ramps, 4/8pt spacing, accessibility, component states,
   form-validation UX, and evidence-based conversion psychology with hard anti-dark-pattern rules. Fires when
   creating, styling, or reviewing ANY interface. Bundles `references/` and `scripts/check_contrast.py`
-  (WCAG AA contrast gate). Advisory only — it does not touch `.superui/layout/`; in a project with a
+  (WCAG AA contrast gate). Advisory only — it does not touch `.superui/design-system/`; in a project with a
   documented design system there, that system takes precedence over its generic absolutes.
 
 ## Agents (the extraction workers, `agents/*.md`)
@@ -85,8 +85,8 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   (the `using-superui` dispatcher) **verbatim** once per session (`source == "resume"` excluded; fail-open).
   Unlike superdev, superui ships **no `PreToolUse` plan gate** — its only hook is `SessionStart`. The manifest
   documents the design-artifact location, not routing.
-- **Design artifacts location.** The framework-agnostic design system lives under `.superui/layout/` in the
-  host project (`design-system/` for the extractor's output).
+- **Design artifacts location.** The framework-agnostic design system (the extractor's output) lives under
+  `.superui/design-system/` in the host project.
 - **Orchestrator does no worker work.** The extractor SKILL.md is a checklist + gates; screenshots are read
   and artifacts authored ONLY by the agents. Deterministic steps are scripts run by the orchestrator
   (`tokens_to_css.py`, `design_md_skeleton.py`, `build_index.py`, `lint_previews.py`).

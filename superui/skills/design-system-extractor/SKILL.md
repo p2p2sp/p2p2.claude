@@ -48,7 +48,7 @@ interpreter command when spawning the Bash-bearing agents (`foundation-analyst`,
   skeleton are regenerated wholesale, never patched by hand.
 - Paths: `<run>` = `.temp/design-system-extractor/<run-slug>/` (run state:
   source map, notes, reports; slug = source dir basename). `<out>` =
-  `.superui/layout/design-system/` (final artifacts; the user may override).
+  `.superui/design-system/` (final artifacts; the user may override).
 
 ## Output layout
 
