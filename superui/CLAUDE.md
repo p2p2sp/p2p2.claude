@@ -46,15 +46,18 @@ superui/
 
 ## Skills (flat-named, single domain)
 
-- `design-system-extractor` — the ORCHESTRATOR of a multi-agent extraction pipeline. Reverse-engineers a
-  **framework-agnostic** design system from a folder of UI screenshots (screenshots ONLY — no website
+- `design-system-extractor` — the **measurement head** of a multi-agent extraction pipeline. Reverse-engineers
+  a **framework-agnostic** design system from a folder of UI screenshots (screenshots ONLY — no website
   scraping) into `.superui/design-system/`: DTCG tokens (`dtcg.yml`), a `DESIGN.md` system document
   (with a mandatory agent-usage section), a derived pure-CSS `tokens.css`, per-component and per-pattern
   specs (`.md`), and a static HTML documentation site (per-foundation / per-component / per-pattern sheets +
   `index.html`) rendered inside a FIXED bundled doc chrome (`assets/doc-chrome/`). The SKILL.md body is a hard
-  step checklist (1–14); every measurement/spec/sheet is produced by one of the eight agents — the
-  orchestrator itself only runs scripts, gates, and the user conversation. Run state lives under
-  `.temp/design-system-extractor/<run>/`.
+  step checklist (1–8): intake/env-check, source-map, ambiguity resolution, foundations fan-out, inventory
+  (shown to the user), ONE `Skill`-tool invocation of the shared `design-system-generator` tail
+  (`spec-producer: superui:spec-writer`, `provenance: measured`) that owns every artifact-generation step,
+  fidelity-review fan-out, and presenting results. It owns only measurement (source-scout, foundation-analyst,
+  component-scout) and verification (fidelity-reviewer); it never writes tokens/specs/sheets itself — that is
+  the generator's job. Run state lives under `.temp/design-system-extractor/<run>/`.
 - `design-system-generator` — the shared **mechanical tail**, `user-invocable: false` (invoked only via the
   `Skill` tool by `design-system-extractor` and `design-system-creator`, never directly — it cannot be
   `context: fork` because it must itself dispatch agents, and a forked subagent cannot spawn subagents). Takes a
