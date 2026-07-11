@@ -10,11 +10,7 @@ allowed-tools: Bash(sh:*) Bash(python:*) Bash(python3:*) Bash(py:*)
 
 !`sh "${CLAUDE_PLUGIN_ROOT}/shared/scripts/check_python.sh"`
 
-The line above runs this skill's Python check at load. If it reads `PYTHON_MISSING`,
-tell the user the contrast check needs **Python 3** (install it; on Windows make sure
-`python` or `py` is on `PATH`), skip the contrast-script step with a clear note, and
-continue the rest of this skill. If it reads `PYTHON_OK <cmd>`, use `<cmd>` in place
-of `python` in every `python …` command below.
+The line above runs this skill's Python check at load. If it reads `PYTHON_MISSING`, tell the user the contrast check needs **Python 3** (install it; on Windows make sure `python` or `py` is on `PATH`), skip the contrast-script step with a clear note, and continue the rest of this skill. If it reads `PYTHON_OK <cmd>`, use `<cmd>` in place of `python` in every `python …` command below.
 
 UI is attention management, not decoration. A professional interface is transparent: color, size and space each carry one deliberate signal, so the user never guesses where to look or what to do next. Amateur UI fails by shouting everywhere at once; senior UI fails nothing — it removes until only the signal remains.
 
