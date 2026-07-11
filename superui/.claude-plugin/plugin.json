@@ -8,6 +8,7 @@
   },
   "skills": [
     "./skills/design-system-extractor/",
+    "./skills/design-system-guardian/",
     "./skills/pro-designer/"
   ],
   "agents": [

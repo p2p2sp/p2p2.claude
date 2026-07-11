@@ -34,8 +34,8 @@ Each plugin is independently installable; none declares another as a dependency.
 
 - **superdev** — project memory, planning, and the agentic-development pipeline.
 - **superui** — the design / frontend ecosystem: the multi-agent, framework-agnostic design-system extractor
-  (an orchestrator skill dispatching eight extraction agents) and a professional UI/UX standards advisor.
-  (→ `superui/CLAUDE.md`)
+  (an orchestrator skill dispatching eight extraction agents), a doctrinal guardian that enforces the
+  extracted system on every UI task, and a professional UI/UX standards advisor. (→ `superui/CLAUDE.md`)
 - **supergh** — the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation
   executor, Conventional-Commits commits, and template-driven issue / PR creation. Ships **no hooks and no
   manifest** — its skills route purely via CSO `description:`. (→ `supergh/CLAUDE.md`)

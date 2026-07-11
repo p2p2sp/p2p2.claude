@@ -7,7 +7,8 @@
 > `superui`.
 
 `superui` is the design / frontend ecosystem: the multi-agent, framework-agnostic design-system extractor
-(an orchestrator skill dispatching eight plugin agents) and a professional UI/UX standards advisor. It is a
+(an orchestrator skill dispatching eight plugin agents), a doctrinal guardian that enforces the extracted
+system on every UI task, and a professional UI/UX standards advisor. It is a
 **single-domain** plugin, so its skills carry **no group prefix** (the plugin name is the group) and are
 flat-named. The **per-component** catalog of record is `.claude-plugin/plugin.json` `skills[]` + `agents[]`;
 the injected manifest (`hooks/content/manifest.md`) documents the design-artifact location, not individual
@@ -26,7 +27,8 @@ superui/
   agents/            The eight extraction workers (see below) — genuine plugin agents, dispatched by the
                      design-system-extractor orchestrator via the Agent tool (`subagent_type: superui:<name>`)
   skills/            Flat-named skills (single-domain plugin); design-system-extractor bundles scripts/,
-                     references/ and assets/ (incl. the fixed doc chrome); pro-designer bundles references/
+                     references/ and assets/ (incl. the fixed doc chrome); design-system-guardian is a bare
+                     SKILL.md (doctrine only, no bundled files); pro-designer bundles references/
                      + a contrast script
 ```
 
@@ -41,6 +43,14 @@ superui/
   step checklist (0a–6); every measurement/spec/sheet is produced by one of the eight agents — the
   orchestrator itself only runs scripts, gates, and the user conversation. Run state lives under
   `.temp/design-system-extractor/<run>/`.
+- `design-system-guardian` — the doctrinal **enforcement** skill for the extractor's output (model-invocable
+  via CSO; no fork, no `allowed-tools`, no bundled files). Fires on ANY UI creation/styling/review work;
+  gates itself on the existence of `.superui/layout/design-system/DESIGN.md` (absent -> silent stand-down).
+  Pointer-not-payload: it forces reading the DESIGN.md agent-usage section + the touched component/pattern
+  specs, bans raw values a token covers, bans inventing beyond spec, and mandates a post-generation
+  self-check. Read-only towards `.superui/layout/` — gaps route to the extractor, never to inlined values.
+  Role split vs `pro-designer`: pro-designer = GENERIC UI/UX standards; guardian = fidelity to THIS
+  project's CONCRETE extracted system (which wins on conflict — pro-designer itself defers).
 - `pro-designer` — the cross-cutting **professional UI/UX standards** advisor (model-invocable via CSO):
   visual hierarchy, 60-30-10 color discipline, type ramps, 4/8pt spacing, accessibility, component states,
   form-validation UX, and evidence-based conversion psychology with hard anti-dark-pattern rules. Fires when
