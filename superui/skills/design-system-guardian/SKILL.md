@@ -32,14 +32,15 @@ No deeper cascades: these files are the single level of indirection. Do not skip
 - NEVER restyle an existing component ad hoc — change flows through its spec and tokens or it does not happen.
 - Accent discipline: accent tokens appear ONLY where `DESIGN.md` allows them. NEVER promote the accent to backgrounds, borders, or text it does not list.
 - Dark mode ONLY through tokens (the `.dark` block of `tokens.css`). NEVER a hardcoded dark-specific value, NEVER a parallel dark palette.
-- NEVER edit anything under `.superui/design-system/` — this skill reads and enforces; only the extractor writes there.
+- NEVER edit anything under `.superui/design-system/` — this skill reads and enforces; only the extraction and completion pipelines (`design-system-extractor`, `design-system-completer`) write there.
 
 ## Gaps — when the system has no answer
 
 A needed value with no token, or a needed component with no spec, is a GAP — not permission to improvise:
 
 - NEVER inline the missing value or design the missing component freehand.
-- Report the gap to the user and point at `design-system-extractor` to extend the system; proceed only on the user's explicit call, and mark every deviation in the code with a `design-system-gap:` comment naming the missing token or spec.
+- Route the gap by whether the source screenshots could show it: a gap the source COULD show (present but unmeasured) -> point at `design-system-extractor` to measure it; a gap the source never contained (a missing state, missing dark coverage, a missing token role, an unshown component) -> point at `design-system-completer`, which designs it with marked provenance on the user's approval.
+- Proceed only on the user's explicit call, and mark every deviation in the code with a `design-system-gap:` comment naming the missing token or spec.
 
 ## Self-check — MANDATORY after generating or editing UI code
 

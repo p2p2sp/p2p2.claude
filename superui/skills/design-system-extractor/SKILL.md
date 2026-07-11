@@ -102,7 +102,7 @@ Spawn `superui:fidelity-reviewer` per scope: one per pattern's canonical screen;
 Mismatches route to the OWNING producer per the re-dispatch convention: token issues → `token-composer` (merge job, step-5 input set) then re-run the step-11 scripts; spec issues → that spec's `spec-writer`; sheet issues → that sheet's `html-visualizer`; DESIGN.md issues → `design-doc-writer` (revision: previous DESIGN.md + findings, affected sections only). After fixes, spawn a fresh `fidelity-reviewer` on the affected scope. GATE: every scope reports PASS (or two remediation rounds spent — then report the residue to the user).
 
 ### Present results [you]
-Give the user: the artifact paths (`dtcg.yml` first, then `DESIGN.md`, `tokens.css`, `inventory.md`, `index.html`), component/pattern counts, every collected `NEEDS INPUT` item, and the inventory's flagged inconsistencies. Keep it short.
+Give the user: the artifact paths (`dtcg.yml` first, then `DESIGN.md`, `tokens.css`, `inventory.md`, `index.html`), component/pattern counts, every collected `NEEDS INPUT` item, and the inventory's flagged inconsistencies. Keep it short. If `<out>/completions.md` already existed before this run, report that this re-extraction regenerated the artifacts wholesale and overwrote the previous syntheses it recorded; suggest running `design-system-completer` to re-validate and re-apply them.
 
 ## Scripts (each carries its I/O contract in its header)
 
