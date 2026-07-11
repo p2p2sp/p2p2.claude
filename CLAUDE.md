@@ -33,11 +33,14 @@ Each plugin is independently installable; none declares another as a dependency.
 `README.md`; this file is orientation for the assistant.
 
 - **superdev** — project memory, planning, and the agentic-development pipeline.
-- **superui** — the design / frontend ecosystem: the multi-agent, framework-agnostic design-system extractor
-  (an orchestrator skill dispatching eight extraction agents), an opt-in gap-completion orchestrator
-  (dispatching two further agents) that fills what the extraction could not measure on explicit user
-  approval, a doctrinal guardian that enforces the extracted system on every UI task, and a professional
-  UI/UX standards advisor. (→ `superui/CLAUDE.md`)
+- **superui** — the design / frontend ecosystem: a multi-agent, framework-agnostic design-system pipeline with
+  two heads sharing one mechanical tail — `design-system-extractor` (measurement, from screenshots; eight
+  extraction agents) and `design-system-creator` (creative, from a prose interview + optional inspiration
+  images; the holistic `design-director` agent + `spec-designer`) both hand off to the shared
+  `design-system-generator` sub-skill for artifact production — plus an opt-in gap-completion orchestrator
+  (two further agents) that fills what neither head covered on explicit user approval, a doctrinal guardian
+  that enforces the system on every UI task, a professional UI/UX standards advisor, and a user-only `setup`
+  diagnostic. Seven skills total (one internal, non-user-invocable). (→ `superui/CLAUDE.md`)
 - **supergh** — the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation
   executor, Conventional-Commits commits, and template-driven issue / PR creation. Ships **no hooks and no
   manifest** — its skills route purely via CSO `description:`. (→ `supergh/CLAUDE.md`)
@@ -149,8 +152,9 @@ The invariants below hold across the repo.
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`create-issue`/`create-pr` skill,
   superfix's for the `code-auditor` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
-  (superfix's `scout` / `detective` and superui's ten agents — eight extraction workers plus the two
-  completion workers, `gap-analyst` / `design-synthesizer` — live there, not in `skills[]`;
+  (superfix's `scout` / `detective` and superui's twelve agents — eight extraction workers, the two
+  completion workers (`gap-analyst` / `design-synthesizer`), and the two creative-head workers
+  (`design-director` / `spec-designer`) — live there, not in `skills[]`;
   superdev ships no agents — every superdev worker is a skill) — and the relevant `CLAUDE.md`
   (that plugin's, and this root file when the change is repo-wide) in either case. They must stay in sync, and a
   worker must never appear in both `skills[]` and `agents[]`.

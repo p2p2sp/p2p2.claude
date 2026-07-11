@@ -6,11 +6,14 @@
 > `CLAUDE.md` for the repo-wide warnings and cross-plugin invariants; this file holds only what is specific to
 > `superui`.
 
-`superui` is the design / frontend ecosystem: the multi-agent, framework-agnostic design-system extractor
-(an orchestrator skill dispatching eight extraction agents), an opt-in gap-completion orchestrator (dispatching
-two further agents — `gap-analyst`, `design-synthesizer`) that validates and, on explicit user approval, fills
-what the extraction could not measure, a doctrinal guardian that enforces the extracted system on every UI
-task, and a professional UI/UX standards advisor. It is a
+`superui` is the design / frontend ecosystem: the multi-agent, framework-agnostic design-system pipeline has
+two heads sharing one mechanical tail — `design-system-extractor` (the **measurement head**, dispatching eight
+extraction agents) and `design-system-creator` (the **creative head**, a prose interview plus the holistic
+`design-director` agent and `spec-designer`) — both hand off to the shared, non-user-invocable
+`design-system-generator` sub-skill for artifact production. On top of that: an opt-in gap-completion
+orchestrator (dispatching two further agents — `gap-analyst`, `design-synthesizer`) that validates and, on
+explicit user approval, fills what neither head could cover; a doctrinal guardian that enforces the resulting
+system on every UI task; a professional UI/UX standards advisor; and a user-only `setup` diagnostic. It is a
 **single-domain** plugin, so its skills carry **no group prefix** (the plugin name is the group) and are
 flat-named. The **per-component** catalog of record is `.claude-plugin/plugin.json` `skills[]` + `agents[]`;
 the injected manifest (`hooks/content/manifest.md`) documents the design-artifact location, not individual
@@ -43,7 +46,11 @@ superui/
                      reuses the plugin-root scripts/references/assets plus pro-designer's references by
                      path — no duplicated reference files; design-system-guardian is a bare SKILL.md
                      (doctrine only, no bundled files); pro-designer bundles references/ only (its contrast
-                     script now lives at the plugin-root scripts/)
+                     script now lives at the plugin-root scripts/); design-system-creator and
+                     design-system-generator are bare SKILL.mds (no bundled files — every script/reference/
+                     asset they use is the plugin-root copy); setup bundles only its own
+                     scripts/check_env.sh (a diagnostic, never merged into the plugin-root scripts/ since
+                     no other skill calls it)
 ```
 
 ## Skills (flat-named, single domain)
@@ -110,9 +117,16 @@ superui/
 - `pro-designer` — the cross-cutting **professional UI/UX standards** advisor (model-invocable via CSO):
   visual hierarchy, 60-30-10 color discipline, type ramps, 4/8pt spacing, accessibility, component states,
   form-validation UX, and evidence-based conversion psychology with hard anti-dark-pattern rules. Fires when
-  creating, styling, or reviewing ANY interface. Bundles `references/` and `scripts/check_contrast.py`
-  (WCAG AA contrast gate). Advisory only — it does not touch `.superui/design-system/`; in a project with a
-  documented design system there, that system takes precedence over its generic absolutes.
+  creating, styling, or reviewing ANY interface. Bundles `references/` only — its contrast gate is the
+  plugin-root `scripts/check_contrast.py` (WCAG AA), addressed via `${CLAUDE_PLUGIN_ROOT}/...`; a missing
+  interpreter is a skip-with-note pointing at `/superui:setup`, never a hard stop. Advisory only — it does not
+  touch `.superui/design-system/`; in a project with a documented design system there, that system takes
+  precedence over its generic absolutes.
+- `setup` — user-only (`disable-model-invocation: true`) environment diagnostic, `/superui:setup`. Runs its
+  own bundled `scripts/check_env.sh`, which reports the interpreter (via the plugin-root `check_python.sh`)
+  and the three third-party modules (Pillow, numpy, PyYAML) as PASS/FAIL lines with install hints. Never
+  installs anything, never edits project files — diagnostic only. Every other skill's env-check step and
+  pro-designer's contrast-script fallback point here on a missing interpreter/module.
 
 ## Agents (the extraction + completion workers, `agents/*.md`)
 
@@ -247,3 +261,6 @@ Single-responsibility workers with input->work->output contracts; none may ask t
 - `skills/design-system-completer/scripts/check_completeness.py` — `dtcg.yml` (+ specs, + `completions.md` if
   present) -> a four-section facts file (tier / dark / spec-state / provenance facts); exit 1 only on
   missing/unreadable `dtcg.yml`; gaps are data, not errors, so an empty system still exits 0.
+- `skills/setup/scripts/check_env.sh` — diagnostic-only, always exits 0; reports `PYTHON <cmd>|MISSING` (via
+  `check_python.sh`) and one `MODULE <name> OK|MISSING (pip install <pkg>)` line per third-party module
+  (Pillow, numpy, PyYAML). Not shared by any other skill — stays under `setup`, not the plugin root.

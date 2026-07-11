@@ -12,7 +12,8 @@
     "./skills/design-system-generator/",
     "./skills/design-system-guardian/",
     "./skills/design-system-completer/",
-    "./skills/pro-designer/"
+    "./skills/pro-designer/",
+    "./skills/setup/"
   ],
   "agents": [
     "./agents/source-scout.md",
