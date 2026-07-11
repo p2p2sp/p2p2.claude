@@ -47,7 +47,7 @@ Read ONLY the `## Ambiguities` section of the source map. If it is non-empty, as
 Spawn `superui:foundation-analyst` once per foundation — `colors`, `typography`, `dimensions`, `effects-motion` — each with: its foundation name, source dir, source-map path (+ intake answers), sampler path `${CLAUDE_PLUGIN_ROOT}/scripts/sample_colors.py`, template path `${CLAUDE_PLUGIN_ROOT}/assets/tokens.template.yaml`, output `<run>/notes-<foundation>.md`. GATE: four notes files exist; the colors notes contain a measured surface/elevation order AND an accent-usage inventory. Missing either → re-dispatch the colors analyst per the re-dispatch convention.
 
 ### 5 — Inventory [component-scout, x1]
-Spawn `superui:component-scout` with: source dir, source-map path (+ intake answers), detection catalog `${CLAUDE_SKILL_DIR}/references/component-patterns.md`, output `<out>/inventory.md`. Then LIST the inventory to the user in your reply (components by kind, then patterns, then flagged inconsistencies) so they see what was identified before the specs land. GATE: inventory exists; user has seen it (do not block on approval unless they object).
+Spawn `superui:component-scout` with: source dir, source-map path (+ intake answers), detection catalog `${CLAUDE_PLUGIN_ROOT}/references/component-patterns.md`, output `<out>/inventory.md`. Then LIST the inventory to the user in your reply (components by kind, then patterns, then flagged inconsistencies) so they see what was identified before the specs land. GATE: inventory exists; user has seen it (do not block on approval unless they object).
 
 ### 6 — Generate artifacts [design-system-generator, x1]
 Invoke `design-system-generator` via the Skill tool with the labeled block:

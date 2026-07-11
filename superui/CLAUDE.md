@@ -31,7 +31,7 @@ superui/
                      the Python env-check, run as an explicit early step by each skill with a Python step,
                      no `!` preflight)
   references/        Plugin-root reference docs shared across skills (dtcg-token-format.md,
-                     component-spec.md, design-system-foundations.md)
+                     component-spec.md, design-system-foundations.md, component-patterns.md)
   assets/            Plugin-root bundled assets shared across skills (tokens.template.yaml,
                      example-component-spec.md, doc-chrome/ — the fixed doc chrome)
   agents/            The eight extraction workers, the two completion workers (`gap-analyst`,
@@ -39,16 +39,17 @@ superui/
                      `spec-designer`) — genuine plugin agents, dispatched by the design-system-extractor /
                      design-system-completer / design-system-creator orchestrators via the Agent tool
                      (`subagent_type: superui:<name>`)
-  skills/            Flat-named skills (single-domain plugin); design-system-extractor keeps only its own
-                     references/component-patterns.md (everything else moved to the plugin-root scripts/,
-                     references/, assets/ above, addressed via `${CLAUDE_PLUGIN_ROOT}/...`);
+  skills/            Flat-named skills (single-domain plugin); all shared scripts/references/assets live at
+                     the plugin root (scripts/, references/, assets/ above, addressed via
+                     `${CLAUDE_PLUGIN_ROOT}/...`);
                      design-system-completer bundles only its own scripts/ (check_completeness.py) and
                      reuses the plugin-root scripts/references/assets plus pro-designer's references by
                      path — no duplicated reference files; design-system-guardian is a bare SKILL.md
                      (doctrine only, no bundled files); pro-designer bundles references/ only (its contrast
-                     script now lives at the plugin-root scripts/); design-system-creator and
-                     design-system-generator are bare SKILL.mds (no bundled files — every script/reference/
-                     asset they use is the plugin-root copy); setup bundles only its own
+                     script now lives at the plugin-root scripts/); design-system-extractor,
+                     design-system-creator and design-system-generator are bare SKILL.mds (no bundled
+                     files — every script/reference/asset they use is the plugin-root copy); setup bundles
+                     only its own
                      scripts/check_env.sh (a diagnostic, never merged into the plugin-root scripts/ since
                      no other skill calls it)
 ```

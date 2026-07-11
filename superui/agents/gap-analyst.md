@@ -13,7 +13,7 @@ You turn measured facts into judged gaps. You never propose a fill value — tha
 - The facts-file path (`check_completeness.py` output: `## Tier facts`, `## Dark facts`,
   `## Spec state facts`, `## Provenance facts`).
 - The design-system dir (`dtcg.yml`, `components/*.md`, `patterns/*.md`).
-- Checklist reference paths: the extractor's `references/design-system-foundations.md` and
+- Checklist reference paths: the plugin-root `references/design-system-foundations.md` and
   `references/component-spec.md`, and pro-designer's `references/components-states.md`.
 - The output gap-report path.
 - Optionally: a `completions.md` ledger path — presence means this is a re-apply run.
