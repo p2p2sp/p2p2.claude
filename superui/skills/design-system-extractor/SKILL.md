@@ -1,7 +1,7 @@
 ---
 name: design-system-extractor
 description: Use when the user provides a folder of UI screenshots and wants to reverse-engineer a framework-agnostic design system from it. Triggers: "extract a design system", "build design tokens from these screens", "document the components in this UI", "reverse-engineer this UI", a filesystem path to a screenshots directory. Screenshots only — does not scrape websites, does not target any UI framework. Orchestrates dedicated agents to produce DTCG design tokens (dtcg.yml), a DESIGN.md system document, a pure-CSS tokens.css, per-component and per-pattern specs, and a static HTML documentation site (foundation, component, and pattern sheets plus index.html).
-allowed-tools: Write, Bash(sh:*), Bash(python:*), Bash(python3:*), Bash(py:*), Bash(mkdir:*), Skill
+allowed-tools: Write, Bash(sh:*), Bash(python:*), Bash(python3:*), Bash(py:*), Bash(mkdir:*), Skill, Agent
 ---
 
 # Design System Extractor — measurement head

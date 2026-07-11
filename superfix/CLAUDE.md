@@ -31,7 +31,7 @@ superfix/
   hotspots only → verified, severity-ranked synthesis. State lives under a `.temp/code-reviewer/<run-id>/`
   workspace, not the main context. Bundles `references/{jobs,scoring,synthesis}.md`.
 - `scout` / `detective` — the two **plugin agents** (`agents/*.md`, listed in `plugin.json` `agents[]`,
-  dispatched via the Task tool with `subagent_type: superfix:<name>`). `scout` is cheap-tier breadth-first
+  dispatched via the Agent tool with `subagent_type: superfix:<name>`). `scout` is cheap-tier breadth-first
   triage (spawn many); `detective` is frontier-tier depth-first investigation (spawn few). Bare-named because
   they are genuine agents, not fork-skills.
 

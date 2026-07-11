@@ -4,6 +4,7 @@ description: >-
   Prioritized, multi-agent investigation of a large codebase using the Impact × Opportunity law. Sweep every file with cheap scout agents, score Impact (how much it matters) and Opportunity (how broken / fixable it is right now) on a 1-5 scale, drop the noise, then dispatch a small number of frontier-model "detective" agents ONLY into the highest Impact×Opportunity hotspots, and synthesize a ranked, deduplicated, verified hotlist. Use this whenever the user wants to review or audit a large codebase, hunt bugs or security issues at scale, find tech-debt / dead-code / performance / reliability hotspots, run many (tens of) subagents over a repo, or needs a repeatable "where should I look first" triage. Trigger even if the user only says "review this repo", "find bugs across the codebase", "where's the risk", "scan everything and tell me what matters", or "audit this for security".
 user-invocable: true
 disable-model-invocation: true
+allowed-tools: Agent
 ---
 
 # Code Auditor — prioritized multi-agent codebase investigation
@@ -63,7 +64,7 @@ bash scripts/collect_signals.sh <window-days> <repo-root> \
 This emits one JSON line per source file with `churn`, `fix_commits`, `recency_days`, `loc`, and (optional) `dependents`. These feed the scouts as priors — they are *not* the score, just evidence.
 
 ### Phase 2 — Score (fan out the scouts, cheap model)
-For each candidate file (or each batch of N files), spawn a **`scout`** subagent (Task tool, `subagent_type: superfix:scout`) — cheap tier, runs in its own isolated context, returns one line of strict JSON. Launch them in parallel; tens at a time is normal.
+For each candidate file (or each batch of N files), spawn a **`scout`** subagent (Agent tool, `subagent_type: superfix:scout`) — cheap tier, runs in its own isolated context, returns one line of strict JSON. Launch them in parallel; tens at a time is normal.
 
 - Give each scout: the file path, the matching signal line, and `job.md`.
 - Each scout returns `{path, impact, opportunity, impact_reason, opportunity_reason}` with Impact and Opportunity each on **1-5** (rubric in `references/scoring.md`). Append every verdict to `.temp/code-reviewer/<run-id>/scores/scores.jsonl`.
@@ -86,7 +87,7 @@ python3 scripts/rank.py \
 `rank.py` computes `score = impact × opportunity`, assigns each file a 2×2 quadrant, drops everything that is not in the top-right corner, and writes a ranked **HOTLIST** (`#, Component, Impact, Opportunity, Score, Reason`). Show the hotlist to the user before spending frontier tokens.
 
 ### Phase 4 — Dispatch detectives (frontier model, top-N only)
-For each hotspot on the gated hotlist, spawn a **`detective`** subagent (Task tool, `subagent_type: superfix:detective`) — frontier tier, isolated context. This is "Send the detective here": you only pay deep-model cost for the survivors.
+For each hotspot on the gated hotlist, spawn a **`detective`** subagent (Agent tool, `subagent_type: superfix:detective`) — frontier tier, isolated context. This is "Send the detective here": you only pay deep-model cost for the survivors.
 
 - Give each detective ONE hotspot as an **entry point** (not a constraint — it may follow the trail into neighbouring code) plus `job.md`.
 - The detective hunts the actual issue, **verifies it on a clean checkout**, and writes a structured report (schema in `references/synthesis.md`) to `.temp/code-reviewer/<run-id>/reports/<rank>-<slug>.md`, or writes `NO FINDING` if nothing real survives verification.
@@ -122,6 +123,6 @@ The workflow is *dynamic*, not a fixed pipeline. After synthesis:
 - `references/synthesis.md` — detective/critic report schema, clean-checkout verification, dedup, severity scoring, the open-new-fronts loop.
 
 ## Subagents this skill drives
-Dispatched via the Task tool with `subagent_type` (plugin-namespaced):
+Dispatched via the Agent tool with `subagent_type` (plugin-namespaced):
 - `superfix:scout` — cheap breadth-first scorer (spawn many).
 - `superfix:detective` — frontier depth-first investigator (spawn few).

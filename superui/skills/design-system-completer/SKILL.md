@@ -1,7 +1,7 @@
 ---
 name: design-system-completer
 description: Validates an EXTRACTED design system (.superui/design-system/) for completeness gaps and, only with explicit user approval, designs the missing pieces with marked provenance. Use when the user asks to fill gaps in the design system, check design-system completeness, add missing states/dark coverage/token roles, or re-apply syntheses after re-extraction. Requires an existing extraction — does not extract, does not read screenshots. Distinct from design-system-extractor (measurement) and design-system-guardian (enforcement).
-allowed-tools: Write, Bash(sh:*), Bash(python:*), Bash(python3:*), Bash(py:*), Bash(mkdir:*)
+allowed-tools: Write, Edit, Bash(sh:*), Bash(python:*), Bash(python3:*), Bash(py:*), Bash(mkdir:*), Agent
 ---
 
 # Design System Completer — orchestrator
