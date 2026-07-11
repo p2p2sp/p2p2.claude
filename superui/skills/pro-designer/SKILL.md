@@ -43,7 +43,7 @@ UI is attention management, not decoration. A professional interface is transpar
 
 ## Design-system precedence
 
-In a project with `.superui/layout/` and an adapted target (`targets/<t>/`), the documented design system takes precedence over this skill's generic absolutes: apply the type ramp, spacing scale, and 60-30-10 through the system's tokens, never alongside them. When a `superui:design-guardian` brief is in context and conflicts with a rule here, the brief wins. This skill stays advisory and never touches `.superui/layout/`.
+In a project with a documented design system under `.superui/layout/`, that system takes precedence over this skill's generic absolutes: apply the type ramp, spacing scale, and 60-30-10 through the system's tokens, never alongside them. This skill stays advisory and never touches `.superui/layout/`.
 
 ## Reference routing
 

@@ -6,83 +6,53 @@
 > `CLAUDE.md` for the repo-wide warnings and cross-plugin invariants; this file holds only what is specific to
 > `superui`.
 
-`superui` is the design / frontend ecosystem: the framework-agnostic **L1** design system, per-target
-adaptation, web preview, the UI-edit guardian, and a user-only design-system
-audit. It is a **single-domain** plugin, so its skills carry **no group prefix** (the plugin name is the group)
-and are flat-named. The **per-skill** catalog of record is `.claude-plugin/plugin.json` `skills[]` + `agents[]`;
-the injected manifest (`hooks/content/manifest.md`) documents the design-guardian gate + design-artifact
-location, not individual skills.
+`superui` is the design / frontend ecosystem: the framework-agnostic **L1** design-system extractor and a
+professional UI/UX standards advisor. It is a **single-domain** plugin, so its skills carry **no group prefix**
+(the plugin name is the group) and are flat-named. It ships **no agents**. The **per-skill** catalog of record is
+`.claude-plugin/plugin.json` `skills[]`; the injected manifest (`hooks/content/manifest.md`) documents the
+design-artifact location, not individual skills.
 
 ## Layout (superui internals)
 
 ```
 superui/
-  .claude-plugin/plugin.json   The plugin manifest — skills[] + agents[] are the catalog of record
+  .claude-plugin/plugin.json   The plugin manifest — skills[] is the catalog of record
   hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
-    content/manifest.md  The injected `using-superui` dispatcher (design-guardian gate + `.superui/layout/`)
+    content/manifest.md  The injected `using-superui` dispatcher (`.superui/layout/` design-artifact location)
     scripts/         session-start.sh
   shared/            Plugin-level shared scripts (scripts/check_python.sh — the Python preflight,
                      `!`-injected by each superui skill that runs a Python step)
-  skills/            Flat-named skills (single-domain plugin); some bundle preview / helper scripts. The
-                     user-only design-audit orchestrator (disable-model-invocation; deliberately out of the
-                     manifest, like superdev's setup / superfix's code-auditor) bundles its two plugin agents
-                     under skills/design-audit/agents/ (design-scout.md + design-detective.md — superui's ONLY
-                     agents[], the code-auditor-style orchestrator pattern) plus scripts/ (collect_signals.sh,
-                     rank.py, route.sh, each with a *.test.sh) and references/ (rubric-{css,js-theme,flutter,
-                     agnostic}.md, scoring.md, synthesis.md)
+  skills/            Flat-named skills (single-domain plugin); extract-design-system bundles helper scripts,
+                     pro-designer bundles references/ + a contrast script
 ```
 
 ## Skills (flat-named, single domain)
 
-The design skills form an L1 → target → preview → guard pipeline, each composing via CSO `description:`:
+Two skills, each composing via CSO `description:`:
 
 - `extract-design-system` — reverse-engineers a **framework-agnostic** design system (DTCG tokens, foundations,
   a pure-CSS `tokens.css`, and a tiered component catalog) from a folder of UI screenshots or a website URL.
   Source-only; targets no UI framework and builds no HTML mockups. Default output `.superui/layout/design-system/`.
   Bundles `scripts/{sample_colors.py, validate_tokens.py, tokens_to_css.py}` — the last one derives `tokens.css`
   deterministically from the validated YAML (no hand-written CSS).
-- `create-component` — authors a **net-new** component into an existing agnostic system (describe → agnostic
-  spec → minimal pure-CSS single-component preview → catalog entry). Strictly L1; MUST NOT depend on `web-preview`.
-- `adapt-target` — adapts the L1 agnostic system onto **ONE** concrete UI target (pure-css / tailwind /
-  react-shadcn / react-mui / flutter), writing `targets/<target>/`. Incremental and idempotent; never invents
-  components absent from the L1 inventory.
-- `web-preview` — renders live, zero-build **HTML** preview pages from an adapted **web** target (pure-css /
-  tailwind / react-shadcn): index, layout pages, app pages, per-component showcases, dark/light toggle. N/A for
-  react-mui / flutter (previewed with their own tooling).
-- `design-guardian` — the **UI-edit guardian**: fires before any `Edit`/`Write` touching UI in a project whose
-  design system has already been adapted to a target, binding the edit to the documented tokens / components /
-  foundations and the three-path gap policy instead of improvising. In an unadapted project it passes through
-  without gating (one-line notice, no brief).
-- `design-audit` — the **user-only** design-system audit orchestrator (`disable-model-invocation`, deliberately
-  outside the manifest). A code-auditor-style orchestrator: deterministic signal sweep (`scripts/collect_signals.sh`)
-  → cheap `design-scout` scoring fan-out → deterministic gate/rank (`scripts/rank.py`) → frontier
-  `design-detective` dispatch → verified synthesis. Its two plugin agents are superui's **only** `agents[]`:
-  - `design-scout` — cheap haiku scorer (breadth-first triage; spawn many).
-  - `design-detective` — frontier opus investigator (depth-first; spawn few).
-- `pro-designer` — the cross-cutting **professional UI/UX standards** advisor (model-invocable via CSO, outside
-  the L1 pipeline): visual hierarchy, 60-30-10 color discipline, type ramps, 4/8pt spacing, accessibility,
+- `pro-designer` — the cross-cutting **professional UI/UX standards** advisor (model-invocable via CSO):
+  visual hierarchy, 60-30-10 color discipline, type ramps, 4/8pt spacing, accessibility,
   component states, form-validation UX, and evidence-based conversion psychology with hard anti-dark-pattern
   rules. Fires when creating, styling, or reviewing ANY interface. Bundles `references/` (color, typography,
   layout-spacing, components-states, forms, accessibility, ux-psychology, saas-dashboards, mobile, process) and
-  `scripts/check_contrast.py` (WCAG AA contrast gate). Advisory only — it does not touch `.superui/layout/` and
-  is not part of the L1 → target → preview → guard chain; in an adapted project the documented system (and the
-  `design-guardian` brief) takes precedence over its generic absolutes.
+  `scripts/check_contrast.py` (WCAG AA contrast gate). Advisory only — it does not touch `.superui/layout/`;
+  in a project with a documented design system there, that system takes precedence over its generic absolutes.
 
 ## Architecture invariants (superui-specific)
 
 - **Injected manifest, no plan gate.** A single `SessionStart` hook force-injects `hooks/content/manifest.md`
   (the `using-superui` dispatcher) **verbatim** once per session (`source == "resume"` excluded; fail-open).
-  Unlike superdev, superui ships **no `PreToolUse` plan gate** — its only hook is `SessionStart`. The manifest's
-  live rule is the **design-guardian gate**: before any `Edit`/`Write` touching UI in an adapted project, bind
-  to the documented tokens first via `design-guardian`.
-- **Design artifacts location.** The framework-agnostic design system and its target adaptations live under
-  `.superui/layout/` in the host project.
-- **Cross-skill data contracts.** Two literals travel between skills and MUST stay identical everywhere:
-  the gap marker `NEEDS INPUT:` (specs, briefs, previews, audit reports) and the L1 dark-mode canon
-  `$extensions.org.superui.dark` on a token (a complete dark replacement for `$value`, same shape, aliases
-  allowed) — the ONLY dark source in `design-tokens.yaml`, consumed by `tokens_to_css.py` (`.dark` block in
-  `tokens.css`) and by adapt-target's `tokens_to_tailwind.py` (both modes). Renaming either literal is a
-  coordinated multi-skill change.
-- **Scripted artifacts are regenerated wholesale.** Converter outputs (`tokens.css`, `theme.css`, `globals.css`)
-  are fully rewritten on re-run; hand-maintained knowledge belongs in `target.md` / `components.md` /
-  `design-tokens.yaml`, never in a generated file.
+  Unlike superdev, superui ships **no `PreToolUse` plan gate** — its only hook is `SessionStart`. The manifest
+  documents the design-artifact location, not routing.
+- **Design artifacts location.** The framework-agnostic design system lives under `.superui/layout/` in the host
+  project.
+- **Dark-mode canon.** The L1 dark-mode literal `$extensions.org.superui.dark` on a token (a complete dark
+  replacement for `$value`, same shape, aliases allowed) is the ONLY dark source in `design-tokens.yaml`,
+  consumed by `tokens_to_css.py` (`.dark` block in `tokens.css`). Renaming it is a coordinated change.
+- **Scripted artifacts are regenerated wholesale.** The converter output (`tokens.css`) is fully rewritten on
+  re-run; hand-maintained knowledge belongs in `design-tokens.yaml`, never in the generated file.

@@ -8,15 +8,6 @@
   },
   "skills": [
     "./skills/extract-design-system/",
-    "./skills/create-component/",
-    "./skills/adapt-target/",
-    "./skills/web-preview/",
-    "./skills/design-guardian/",
-    "./skills/design-audit/",
     "./skills/pro-designer/"
-  ],
-  "agents": [
-    "./skills/design-audit/agents/design-scout.md",
-    "./skills/design-audit/agents/design-detective.md"
   ]
 }

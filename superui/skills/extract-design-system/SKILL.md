@@ -1,6 +1,6 @@
 ---
 name: extract-design-system
-description: Use when the user provides a folder of UI screenshots or a website URL and wants to reverse-engineer a framework-agnostic design system from it. Triggers: "extract a design system", "build design tokens from these screens", "document the components in this UI", "turn this site into a design system", "reverse-engineer this UI/website", a filesystem path to a screenshots directory, or a URL to take inspiration from. Source-only: produces DTCG design tokens (YAML), a foundations document, a pure-CSS tokens.css (no framework coupling), and a tiered component catalog — layout, composite, and atomic — each with a detailed spec covering variants, states, anatomy, Figma properties, usage rules, and accessibility. Does not target any UI framework or build HTML mockups; per-target adaptation is the separate superui:adapt-target skill, web preview is superui:web-preview.
+description: Use when the user provides a folder of UI screenshots or a website URL and wants to reverse-engineer a framework-agnostic design system from it. Triggers: "extract a design system", "build design tokens from these screens", "document the components in this UI", "turn this site into a design system", "reverse-engineer this UI/website", a filesystem path to a screenshots directory, or a URL to take inspiration from. Source-only: produces DTCG design tokens (YAML), a foundations document, a pure-CSS tokens.css (no framework coupling), and a tiered component catalog — layout, composite, and atomic — each with a detailed spec covering variants, states, anatomy, Figma properties, usage rules, and accessibility. Does not target any UI framework or build HTML mockups.
 allowed-tools: Bash(sh:*) Bash(python:*) Bash(python3:*) Bash(py:*) Bash(curl:*)
 ---
 
@@ -45,10 +45,8 @@ These shape every step.
   screen for a shared component is uncertain, or an element is cropped/occluded,
   ask before proceeding.
 - **Scope = the agnostic design system, not a framework target or mockups.** This
-  skill ends at the documented, framework-neutral system. Adapting it to a target
-  (`pure-css` / `tailwind` / `react-shadcn` / `react-mui` / `flutter`) is
-  **superui:adapt-target**; building live HTML previews is **superui:web-preview**.
-  Offer the next step (see Related skills) — do not bake framework knowledge here.
+  skill ends at the documented, framework-neutral system — do not bake framework
+  knowledge or build mockups here.
 
 ## Source intake — directory or URL
 
@@ -185,9 +183,8 @@ system-wide accessibility notes. Reference tokens by name; state any assumptions
 and unresolved values explicitly.
 
 **Heading contract (guaranteed output).** `foundations.md` MUST contain a
-section whose heading is exactly `## 6. Patterns & usage / consistency rules`.
-Downstream consumers (superui:design-guardian, superui:design-audit) locate the
-consistency rules by that verbatim heading — do not rename, renumber, or merge it.
+section whose heading is exactly `## 6. Patterns & usage / consistency rules`
+— do not rename, renumber, or merge it.
 
 ### Phase 3 — Generate `tokens.css`
 
@@ -282,7 +279,6 @@ Give the user the paths of the produced files, `design-tokens.yaml` first, then
 `foundations.md`, `tokens.css`, `components/inventory.md`, and the
 `components/<tier>/` spec files. Keep the message short: what you extracted, the
 tiered component count, and any assumptions or `NEEDS INPUT` items to confirm.
-Then offer the natural next step (see Related skills).
 
 ## Reference files
 
@@ -297,8 +293,7 @@ Then offer the natural next step (see Related skills).
   tokens, a11y per common block) + the visual-consistency checklist. **Read before
   phases 4 and 7.**
 - `references/component-spec.md` — the three-tier taxonomy and the per-component
-  spec template + section guidance (the shared canon also consumed by
-  **superui:create-component**). **Read before phases 4 and 6.**
+  spec template + section guidance. **Read before phases 4 and 6.**
 
 ## Scripts
 
@@ -319,19 +314,3 @@ the interpreter resolved by the preflight:
 
 Each script carries its full I/O contract in its header and verifies its own
 result — trust its output and error messages; do not re-check or retry.
-
-## Related skills
-
-This skill is L1 — the framework-agnostic core. Everything framework- or
-preview-specific lives downstream; mention the relevant next step when you finish
-(reference by name; load on demand).
-
-- **superui:adapt-target** — adapts this agnostic system to **one** chosen target
-  (`pure-css` / `tailwind` / `react-shadcn` / `react-mui` / `flutter`),
-  generating the per-target theme artifact and component mapping. The natural
-  next step once the system is documented.
-- **superui:web-preview** — renders live HTML preview pages for the web targets
-  once superui:adapt-target has produced a target.
-- **superui:create-component** — interactive authoring of a **net-new** component
-  directly into this L1 system (reuses the canonical `component-spec.md`); use it
-  when a component is missing rather than extracted from a source.

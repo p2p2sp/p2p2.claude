@@ -3,7 +3,7 @@
 Four independent, self-contained Claude Code plugins. `superdev` and `superui` are cohesive ecosystems, each driven by its own injected dispatcher manifest; `supergh` and `superfix` ship no manifest and no hooks (`supergh` routes its GitHub skills purely via CSO descriptions; `superfix` is a single user-invoked skill). Skills compose through CSO + documented natural chains.
 
 - **superdev** (`./superdev`) — a configurable agentic-development ecosystem: project memory, planning, and the implementation pipeline.
-- **superui** (`./superui`) — the design / frontend ecosystem: the framework-agnostic design system, target adaptation, web preview, the UI-edit guardian, a shareable-artifact publisher, and a user-only design-system audit (`/superui:design-audit`).
+- **superui** (`./superui`) — the design / frontend ecosystem: the framework-agnostic design system extractor and a professional UI/UX standards advisor.
 - **supergh** (`./supergh`) — the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation executor, Conventional-Commits commits, and template-driven issue / PR creation. No manifest, no hooks — skills route via their CSO descriptions.
 - **superfix** (`./superfix`) — prioritized multi-agent codebase investigation: the `/superfix:code-auditor` command sweeps a repo with cheap `scout` agents, scores Impact × Opportunity, and sends frontier `detective` agents only into the hotspots. No manifest, no hooks — one user-invoked skill.
 
@@ -53,11 +53,6 @@ Flat-named (single-domain plugin, no group prefix):
 | Skill | Role |
 | --- | --- |
 | `extract-design-system` | Reverse-engineer a framework-agnostic L1 design system from screenshots / a URL — DTCG tokens, foundations, pure-CSS `tokens.css`, tiered component catalog |
-| `create-component` | Author a net-new component into the existing L1 system — interactive draft → pure-CSS preview → write spec into the catalog |
-| `adapt-target` | Adapt the agnostic L1 system to ONE concrete UI target (pure-css / tailwind / react-shadcn / react-mui / flutter) — per-target theme + component mapping |
-| `web-preview` | Render zero-build, self-contained static HTML preview pages for a web target |
-| `design-guardian` | Bind UI edits to the documented tokens / components / foundations (auto-triggered before UI implementation work) |
-| `design-audit` (user-only) | Prioritized multi-agent audit of design-system compliance + component-library extraction — Wave 1 flags drift (raw values, off-theme classes, inline styles, invented variants), each classified Drift (replaceable) vs Gap (needs a system extension); Wave 2 finds scattered / undocumented components and proposes a sibling library + reusable components; idiom-aware (web vs Flutter); one markdown report, changes no code. Runs only via `/superui:design-audit` (`disable-model-invocation`), driving cheap `design-scout` + frontier `design-detective` agents |
 | `pro-designer` | Professional UI/UX design standards — visual hierarchy, 60-30-10 color discipline, type ramps, 4/8pt spacing, accessibility, component states, form-validation UX, and evidence-based conversion psychology with anti-dark-pattern rules; fires when creating, styling, or reviewing any interface; bundles topic reference docs + a WCAG contrast script |
 
 ## superfix skills

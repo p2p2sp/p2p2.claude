@@ -137,8 +137,7 @@ How this maps to the skill's outputs:
 - `tokens.css` is derived, pure CSS: light values as `--<token-name>`
   declarations under `:root`, the `.dark` overrides generated from the
   extensions by `scripts/tokens_to_css.py` (see the SKILL.md Phase 3 step). No
-  framework syntax — per-target theme artifacts are produced by
-  **superui:adapt-target** from this neutral source.
+  framework syntax — this is the neutral source.
 - **Never fabricate** the dark (or alternate) palette. If only a light screen was
   provided, add no dark extensions (the generated `.dark` block stays a TODO
   scaffold) and tell the user, rather than inventing values.
@@ -211,8 +210,7 @@ checks. Note findings in `foundations.md` and honour them in every spec.
 - Aspect 3, Visual foundations — Phase 1 — `design-tokens.yaml`.
 - Aspect 4, Theming — Phases 1, 3 — tokens (dark via
   `$extensions.org.superui.dark`) → generated pure-CSS `tokens.css`
-  (`:root`/`.dark`); per-target theme artifacts produced by
-  **superui:adapt-target**.
+  (`:root`/`.dark`).
 - Aspect 5, Component library — Phases 4, 6 — `components/inventory.md` +
   per-component specs.
 - Aspect 6, Patterns / consistency rules — Phases 2, 4 — `foundations.md`;
