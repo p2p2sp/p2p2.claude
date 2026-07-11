@@ -163,7 +163,7 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   `tokens_to_css.py` (`.dark` block) and surfaced in sheets via the conditional dark toggle (present only
   when dark values exist). Renaming it is a coordinated change.
 - **Provenance canon.** A coordinated vocabulary across `token-composer` / `fidelity-reviewer` /
-  `html-visualizer` / `check_completeness.py`, parallel to the dark canon above — renaming any of the three
+  `html-visualizer` / `check_completeness.py`, parallel to the dark canon above — renaming any of the four
   markers is a coordinated change across all four:
   - `$extensions.org.superui.synthesized: true` on a `dtcg.yml` token — written only by `token-composer`'s
     merge job on a `SYNTHESIZED-TOKENS` entry (never on `MISSING-TOKENS`, never dropped once present);
@@ -174,6 +174,15 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   - `> SYNTHESIZED: <rationale>` — a section-level marker inside an otherwise-measured spec, modeled on
     `> NEEDS INPUT`; `html-visualizer` renders it with the same `.needs-input` chrome class; `fidelity-reviewer`
     skips that section only; the fact script detects it.
+  - `$extensions.org.superui.provenance: designed` at the `dtcg.yml` document ROOT (sibling of the top-level
+    token groups, not inside any group) — a whole-system flag, independent of the three per-item markers
+    above. Written only by `token-composer`'s compose job when its dispatch carries `provenance: designed`
+    (the creator's path); preserved verbatim (never dropped, never added unrequested) across every subsequent
+    compose or merge job. Consumed by `fidelity-reviewer` (root marker present -> skip ALL token spot-checks
+    and spec comparisons wholesale, report `system provenance: designed — comparison skipped`) and by
+    `check_completeness.py` (`## Provenance facts` reports `system provenance: designed|measured (root marker
+    present|absent)`). `validate_tokens.py` already ignores any `$`-prefixed top-level key in its group walk,
+    so the root marker needs no validator change — confirmed by the fixture test in Task 4.
 - **`completions.md` ledger + inventory `## Synthesized` ownership.** Both live under `<out>` and are owned
   exclusively by the completer's step-8 bookkeeping (never `component-scout`, never any other agent).
   `completions.md` records what was synthesized, per run, with a rationale; a re-apply pass (run after

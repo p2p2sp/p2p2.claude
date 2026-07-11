@@ -21,7 +21,10 @@ OUT: writes argv[2] — four '## ' sections, each holding single '- ' fact
        ## Spec state facts    per components/*.md and patterns/*.md: whether
                               '## States' exists, and if so the row names
                               parsed from the first cell of its '|' table rows
-       ## Provenance facts    tokens flagged $extensions.org.superui.synthesized,
+       ## Provenance facts    system provenance: designed|measured, from the
+                              root $extensions.org.superui.provenance marker
+                              (present|absent) on the dtcg.yml document itself;
+                              tokens flagged $extensions.org.superui.synthesized,
                               specs carrying a '**Provenance:**' line or a
                               '> SYNTHESIZED:' marker, and whether
                               completions.md exists (its '- ' entries verbatim)
@@ -196,8 +199,21 @@ def spec_state_facts(root):
     return lines
 
 
-def provenance_facts(root, tokens):
+def system_provenance(data):
+    """Return "designed" when the dtcg.yml document itself (root, sibling of
+    the top-level token groups) carries $extensions.org.superui.provenance:
+    designed; "measured" otherwise (marker absent or any other value)."""
+    org = _org_superui(data)
+    if org is not None and org.get("provenance") == "designed":
+        return "designed"
+    return "measured"
+
+
+def provenance_facts(root, data, tokens):
     lines = []
+    marker = system_provenance(data)
+    presence = "present" if marker == "designed" else "absent"
+    lines.append(f"- system provenance: {marker} (root marker {presence})")
     synthesized = sorted(p for p, info in tokens.items() if has_synthesized(info["node"]))
     lines.append(f"- synthesized tokens: {len(synthesized)}")
     for p in synthesized:
@@ -262,7 +278,7 @@ def main():
     lines.extend(spec_state_facts(root))
     lines.append("")
     lines.append("## Provenance facts")
-    lines.extend(provenance_facts(root, tokens))
+    lines.extend(provenance_facts(root, data, tokens))
     lines.append("")
 
     try:

@@ -11,7 +11,7 @@ You produce or update `dtcg.yml`. You are its only writer; nobody else edits it 
 
 ## Inputs you are given
 One of two jobs, plus the validator script path (`validate_tokens.py`), the DTCG format reference path, and the template path (`tokens.template.yaml`):
-- Compose: the foundation notes files + the output `dtcg.yml` path.
+- Compose: the foundation notes files + the output `dtcg.yml` path. Optionally a `provenance: designed` line.
 - Merge: an existing `dtcg.yml` + a merge list (name proposal, value, evidence) — entries arrive tagged either `MISSING-TOKENS` (measured) or `SYNTHESIZED-TOKENS` (designed, not extracted).
 
 ## What to do
@@ -20,7 +20,8 @@ One of two jobs, plus the validator script path (`validate_tokens.py`), the DTCG
 3. Structure by tier: primitive (raw values, never consumed directly) -> semantic (purpose-named aliases like `color.text.primary`, `radius.control`) -> component (scoped, sparse, only when a value must not leak globally). Alias up the chain.
 4. Dedupe: one raw value exists exactly once as a primitive. Two near-identical measured values that the notes flag as the same thing become one primitive.
 5. Dark canon: a token whose measured value differs between light and dark carries the COMPLETE dark replacement in `$extensions.org.superui.dark` (same shape and type as `$value`; aliases allowed). Notes without dark measurements = no dark extensions, ever.
-6. Validate and fix until clean:
+6. Root provenance marker: on a compose job given `provenance: designed`, write a root-level `$extensions.org.superui.provenance: designed` on the `dtcg.yml` document itself (sibling of the top-level token groups, not inside any group). On EVERY job — compose or merge — an existing root marker is preserved verbatim: never drop it, never add it unrequested. This is a whole-document flag, independent of the per-token `synthesized` flag.
+7. Validate and fix until clean:
    ```
    python <validator> <dtcg.yml>
    ```
