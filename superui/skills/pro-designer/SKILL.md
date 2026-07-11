@@ -1,16 +1,10 @@
 ---
 name: pro-designer
 description: Professional UI/UX design standards for web apps, SaaS products and mobile apps — visual hierarchy, 60-30-10 color discipline, type scales, 8pt spacing, accessibility, component states, form validation UX, and evidence-based conversion psychology with hard anti-dark-pattern rules. Use whenever creating, styling or reviewing ANY user interface — a page, screen, dashboard, form, onboarding or pricing flow, landing page, navigation, or a single component — even if the user only says "build/add/fix" and never says "design". Also use when critiquing existing UI or choosing colors, fonts, spacing, or layout.
-allowed-tools: Bash(sh:*) Bash(python:*) Bash(python3:*) Bash(py:*)
+allowed-tools: Bash(python:*) Bash(python3:*) Bash(py:*)
 ---
 
 # Professional UI Design
-
-## Python preflight
-
-!`sh "${CLAUDE_PLUGIN_ROOT}/shared/scripts/check_python.sh"`
-
-The line above runs this skill's Python check at load. If it reads `PYTHON_MISSING`, tell the user the contrast check needs **Python 3** (install it; on Windows make sure `python` or `py` is on `PATH`), skip the contrast-script step with a clear note, and continue the rest of this skill. If it reads `PYTHON_OK <cmd>`, use `<cmd>` in place of `python` in every `python …` command below.
 
 UI is attention management, not decoration. A professional interface is transparent: color, size and space each carry one deliberate signal, so the user never guesses where to look or what to do next. Amateur UI fails by shouting everywhere at once; senior UI fails nothing — it removes until only the signal remains.
 
@@ -26,7 +20,7 @@ UI is attention management, not decoration. A professional interface is transpar
 ## Non-negotiables — every screen
 
 - One primary CTA per screen; the accent color appears **only** where interaction is required (~10% of surface).
-- Text contrast ≥ 4.5:1 (≥ 3:1 for large text and UI components). Run `"${CLAUDE_SKILL_DIR}/scripts/check_contrast.py"` with the preflight interpreter — never eyeball it.
+- Text contrast ≥ 4.5:1 (≥ 3:1 for large text and UI components). Run `"${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.py"` (try `python`, fall back to `python3`) — never eyeball it. Neither interpreter works -> skip the check with a clear note and point the user at `/superui:setup`.
 - Every spacing and component size sits on the 4/8px scale. Space between groups > space within groups; padding ≤ surrounding margin.
 - Font sizes only from the type ramp. Body 16px / line-height 1.5, line length ≤ 75ch. Hierarchy via size + weight + color — never by adding typefaces.
 - Red and green are reserved for system error/success states. Never decorative, never red logout.
@@ -57,6 +51,6 @@ In a project with a documented design system under `.superui/design-system/`, th
 ## Final QA
 
 - **Squint test**: blur your eyes — the primary CTA must be the only element that pops.
-- **Contrast**: `python "${CLAUDE_SKILL_DIR}/scripts/check_contrast.py" FG BG [TYPE] [FG BG [TYPE] ...]` (interpreter per preflight) for every text/background and component/background pair. TYPE = `normal` (default, 4.5:1) | `large` (3:1) | `ui` (borders/icons/focus, 3:1) — exit 1 means a pair failed the AA threshold for its own type.
+- **Contrast**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.py" FG BG [TYPE] [FG BG [TYPE] ...]` (try `python`, fall back to `python3`; neither works -> skip with a note and point at `/superui:setup`) for every text/background and component/background pair. TYPE = `normal` (default, 4.5:1) | `large` (3:1) | `ui` (borders/icons/focus, 3:1) — exit 1 means a pair failed the AA threshold for its own type.
 - **States inventory**: hover, focus, disabled, loading, empty, error — all present?
 - **Detail rule**: if a detail is too small or too faint to notice, delete it instead of keeping it faint.

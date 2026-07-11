@@ -295,7 +295,7 @@ def main():
 
     out = "\n".join(
         ["/* tokens.css — GENERATED from dtcg.yml by",
-         "   design-system-extractor/scripts/tokens_to_css.py. Do not edit by hand;",
+         "   superui/scripts/tokens_to_css.py. Do not edit by hand;",
          "   edit the YAML and re-run. */",
          "",
          ":root {",

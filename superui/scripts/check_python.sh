@@ -1,5 +1,5 @@
 #!/bin/sh
-# superui — shared/scripts/check_python.sh
+# superui — scripts/check_python.sh
 # Plugin-level Python interpreter preflight, shared by every superui skill that runs a
 # bundled .py step. Resolves the first WORKING interpreter so the skill can substitute
 # it (or halt with a clear message) before any `python …` step — instead of the agent

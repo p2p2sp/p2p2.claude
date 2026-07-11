@@ -24,17 +24,24 @@ superui/
   hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
     content/manifest.md  The injected `using-superui` dispatcher (`.superui/design-system/` design-artifact location)
     scripts/         session-start.sh
-  shared/            Plugin-level shared scripts (scripts/check_python.sh — the Python preflight,
-                     `!`-injected by each superui skill that runs a Python step)
+  scripts/           Plugin-root deterministic scripts, shared across skills (incl. check_python.sh —
+                     the Python env-check, run as an explicit early step by each skill with a Python step,
+                     no `!` preflight)
+  references/        Plugin-root reference docs shared across skills (dtcg-token-format.md,
+                     component-spec.md, design-system-foundations.md)
+  assets/            Plugin-root bundled assets shared across skills (tokens.template.yaml,
+                     example-component-spec.md, doc-chrome/ — the fixed doc chrome)
   agents/            The eight extraction workers plus the two completion workers (`gap-analyst`,
                      `design-synthesizer`) — genuine plugin agents, dispatched by the design-system-extractor
                      / design-system-completer orchestrators via the Agent tool (`subagent_type: superui:<name>`)
-  skills/            Flat-named skills (single-domain plugin); design-system-extractor bundles scripts/,
-                     references/ and assets/ (incl. the fixed doc chrome); design-system-completer bundles
-                     only scripts/ (check_completeness.py) and reuses the extractor's/pro-designer's
-                     references/assets by sibling path — no duplicated reference files;
-                     design-system-guardian is a bare SKILL.md (doctrine only, no bundled files); pro-designer
-                     bundles references/ + a contrast script
+  skills/            Flat-named skills (single-domain plugin); design-system-extractor keeps only its own
+                     references/component-patterns.md (everything else moved to the plugin-root scripts/,
+                     references/, assets/ above, addressed via `${CLAUDE_PLUGIN_ROOT}/...`);
+                     design-system-completer bundles only its own scripts/ (check_completeness.py) and
+                     reuses the plugin-root scripts/references/assets plus pro-designer's references by
+                     path — no duplicated reference files; design-system-guardian is a bare SKILL.md
+                     (doctrine only, no bundled files); pro-designer bundles references/ only (its contrast
+                     script now lives at the plugin-root scripts/)
 ```
 
 ## Skills (flat-named, single domain)
@@ -58,9 +65,9 @@ superui/
   synthesized spec/section carries a `**Provenance:**` line or `> SYNTHESIZED:` marker. The orchestrator alone
   (mechanical, no judgment) appends to two ledgers: `<out>/completions.md` (what was synthesized, this run vs
   prior) and `inventory.md`'s `## Synthesized` section. Gated on `DESIGN.md` + `dtcg.yml` already existing
-  (absent either -> stand down, point at the extractor, never scaffold `<out>` itself). Reuses the extractor's
-  and pro-designer's scripts/references/assets by sibling path (`${CLAUDE_SKILL_DIR}/../design-system-extractor/...`,
-  `${CLAUDE_SKILL_DIR}/../pro-designer/references/`) — bundles only its own `check_completeness.py`.
+  (absent either -> stand down, point at the extractor, never scaffold `<out>` itself). Reuses the plugin-root
+  scripts/references/assets (`${CLAUDE_PLUGIN_ROOT}/...`) and pro-designer's references by sibling path
+  (`${CLAUDE_SKILL_DIR}/../pro-designer/references/`) — bundles only its own `check_completeness.py`.
 - `design-system-guardian` — the doctrinal **enforcement** skill for the extractor's (and completer's) output
   (model-invocable via CSO; no fork, no `allowed-tools`, no bundled files). Fires on ANY UI creation/styling/
   review work; gates itself on the existence of `.superui/design-system/DESIGN.md` (absent -> silent stand-down).
@@ -165,22 +172,21 @@ Single-responsibility workers with input->work->output contracts; none may ask t
 
 ## Scripts inventory
 
-- `skills/design-system-extractor/scripts/sample_colors.py` — k-means palette / exact pixel sampling;
-  `--regions` ranks named region backgrounds by luminance (the measured surface/elevation order).
-- `skills/design-system-extractor/scripts/validate_tokens.py` — DTCG conformance + recursive alias
-  resolution incl. the dark extension.
-- `skills/design-system-extractor/scripts/tokens_to_css.py` — deterministic `dtcg.yml` -> `tokens.css`
-  (`:root` + `.dark`).
-- `skills/design-system-extractor/scripts/design_md_skeleton.py` — `dtcg.yml` -> DESIGN.md skeleton
-  (auto stats + `<!-- FILL -->` placeholders; heading contract, self-verified).
-- `skills/design-system-extractor/scripts/check_spec_tokens.py` — resolves every backticked token
-  reference in the specs against `dtcg.yml`; exit 1 on dangling references.
-- `skills/design-system-extractor/scripts/build_index.py` — output dir -> `index.html` (narrative pulled
-  from DESIGN.md; links self-verified).
-- `skills/design-system-extractor/scripts/lint_previews.py` — flags raw hex/rgb/hsl/px in sheet styles;
-  exit 1 on violations.
-- `skills/pro-designer/scripts/check_contrast.py` — WCAG AA contrast gate.
+- `scripts/check_python.sh` — the Python env-check; run as an explicit early step (`sh
+  "${CLAUDE_PLUGIN_ROOT}/scripts/check_python.sh"`) by every skill with a Python step — no `!` preflight.
+  `PYTHON_MISSING` -> that skill stops the Python-dependent parts and points the user at `/superui:setup`.
+- `scripts/sample_colors.py` — k-means palette / exact pixel sampling; `--regions` ranks named region
+  backgrounds by luminance (the measured surface/elevation order).
+- `scripts/validate_tokens.py` — DTCG conformance + recursive alias resolution incl. the dark extension.
+- `scripts/tokens_to_css.py` — deterministic `dtcg.yml` -> `tokens.css` (`:root` + `.dark`).
+- `scripts/design_md_skeleton.py` — `dtcg.yml` -> DESIGN.md skeleton (auto stats + `<!-- FILL -->`
+  placeholders; heading contract, self-verified).
+- `scripts/check_spec_tokens.py` — resolves every backticked token reference in the specs against
+  `dtcg.yml`; exit 1 on dangling references.
+- `scripts/build_index.py` — output dir -> `index.html` (narrative pulled from DESIGN.md; links
+  self-verified).
+- `scripts/lint_previews.py` — flags raw hex/rgb/hsl/px in sheet styles; exit 1 on violations.
+- `scripts/check_contrast.py` — WCAG AA contrast gate (pro-designer).
 - `skills/design-system-completer/scripts/check_completeness.py` — `dtcg.yml` (+ specs, + `completions.md` if
   present) -> a four-section facts file (tier / dark / spec-state / provenance facts); exit 1 only on
   missing/unreadable `dtcg.yml`; gaps are data, not errors, so an empty system still exits 0.
-- `shared/scripts/check_python.sh` — the Python preflight (`!`-injected).

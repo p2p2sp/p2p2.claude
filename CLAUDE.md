@@ -48,9 +48,11 @@ Each plugin is independently installable; none declares another as a dependency.
 They ship no application code — the artefacts are markdown (skills) + JSON (manifests) + per-plugin hook
 scripts under `<plugin>/hooks/scripts/` (only `superdev` / `superui` have hooks; `supergh` / `superfix` ship
 none), plus deterministic helper scripts bundled either under an individual skill's own `scripts/` dir or, when
-shared across a plugin's skills, at plugin-level `<plugin>/shared/scripts/`. Each plugin's own `CLAUDE.md`
-inventories its scripts. **Editing markdown / JSON IS shipping** — there is no build / test / lint at any level.
-Contracts between files are enforced by humans reading carefully.
+shared across a plugin's skills, at plugin level. `supergh` keeps its shared scripts under `<plugin>/shared/`
+(a `scripts/` subdir); `superui` keeps its shared scripts, references and assets at the plugin root
+(`<plugin>/scripts/`, `<plugin>/references/`, `<plugin>/assets/`) instead, with no `shared/` subdir. Each
+plugin's own `CLAUDE.md` inventories its scripts. **Editing markdown / JSON IS shipping** — there is no
+build / test / lint at any level. Contracts between files are enforced by humans reading carefully.
 
 All four plugins are **stack-agnostic on purpose**: skills read project-specific knowledge (test framework, build
 tool, naming, how to launch the app) from the **host** project's `CLAUDE.md` + `.claude/rules/`, never from
@@ -91,7 +93,8 @@ README.md            User-facing help (install + how it works)
 
 Each plugin dir carries a `.claude-plugin/plugin.json` (its `skills[]` (+ `agents[]`) is the catalog of record).
 `superdev` / `superui` also carry `hooks/` (one injected dispatcher manifest + hook scripts) and
-`shared/` (plugin-level shared assets/scripts); `supergh` carries `shared/` only; `superui` and `superfix`
+plugin-level shared assets/scripts (`superdev/scripts/`; `superui/scripts/`, `superui/references/`,
+`superui/assets/` — no `shared/` subdir); `supergh` carries `shared/` only; `superui` and `superfix`
 carry `agents/`.
 
 ## Versioning

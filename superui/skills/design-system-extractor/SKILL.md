@@ -10,12 +10,6 @@ Turn a folder of UI screenshots into a framework-agnostic design system: DTCG to
 
 Input contract: the screenshots-directory path comes from the invocation prompt or arguments. If none is present, ask for it before starting.
 
-## Python preflight
-
-!`sh "${CLAUDE_PLUGIN_ROOT}/shared/scripts/check_python.sh"`
-
-If the line above reads `PYTHON_MISSING`, tell the user the pipeline's `*.py` steps need Python 3 (install it; on Windows ensure `python` or `py` is on `PATH`) and stop before any `python ...` step. If it reads `PYTHON_OK <cmd>`, use `<cmd>` in place of `python` everywhere below — and state it as the interpreter command when spawning the Bash-bearing agents (`foundation-analyst`, `token-composer`, `spec-writer`, `fidelity-reviewer`).
-
 ## Ground rules
 
 - NEVER do a worker's job inline — no reading source screenshots, no measuring, no writing tokens/specs/sheets yourself. Spawn the owning agent (Agent tool, `subagent_type: superui:<agent-name>`) even when the task looks small.
@@ -39,6 +33,8 @@ If the line above reads `PYTHON_MISSING`, tell the user the pipeline's `*.py` st
 ## Checklist — execute in order, never skip a step or a gate
 
 ### 1 — Intake [you]
+Run `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_python.sh"`. `PYTHON_MISSING` -> tell the user the pipeline's `*.py` steps need Python 3 and point them at `/superui:setup`; stop before any `python ...` step. `PYTHON_OK <cmd>` -> use `<cmd>` in place of `python` everywhere below, and state it as the interpreter command when spawning the Bash-bearing agents (`foundation-analyst`, `token-composer`, `spec-writer`, `fidelity-reviewer`).
+
 Confirm the source directory exists and contains images. Ask the user for scope only if genuinely unclear (which screens are canonical, desired output dir). Create `<run>` and the `<out>` skeleton (`mkdir`). GATE: source dir confirmed non-empty.
 
 ### 2 — Source map [source-scout, x1]
@@ -48,51 +44,51 @@ Spawn `superui:source-scout` with: source dir, output path `<run>/source-map.md`
 Read ONLY the `## Ambiguities` section of the source map. If it is non-empty, ask the user those questions now and write the answers to `<run>/intake-answers.md`. Every later agent dispatch that lists the source map also gets `<run>/intake-answers.md` when it exists (authoritative user clarifications). GATE: no unanswered ambiguity that blocks measurement.
 
 ### 4 — Foundations fan-out [foundation-analyst, x4 parallel]
-Spawn `superui:foundation-analyst` once per foundation — `colors`, `typography`, `dimensions`, `effects-motion` — each with: its foundation name, source dir, source-map path (+ intake answers), sampler path `${CLAUDE_SKILL_DIR}/scripts/sample_colors.py`, template path `${CLAUDE_SKILL_DIR}/assets/tokens.template.yaml`, output `<run>/notes-<foundation>.md`. GATE: four notes files exist; the colors notes contain a measured surface/elevation order AND an accent-usage inventory. Missing either → re-dispatch the colors analyst per the re-dispatch convention.
+Spawn `superui:foundation-analyst` once per foundation — `colors`, `typography`, `dimensions`, `effects-motion` — each with: its foundation name, source dir, source-map path (+ intake answers), sampler path `${CLAUDE_PLUGIN_ROOT}/scripts/sample_colors.py`, template path `${CLAUDE_PLUGIN_ROOT}/assets/tokens.template.yaml`, output `<run>/notes-<foundation>.md`. GATE: four notes files exist; the colors notes contain a measured surface/elevation order AND an accent-usage inventory. Missing either → re-dispatch the colors analyst per the re-dispatch convention.
 
 ### 5 — Compose tokens [token-composer, x1]
-Spawn `superui:token-composer` (compose job) with: the four notes paths, validator path `${CLAUDE_SKILL_DIR}/scripts/validate_tokens.py`, DTCG format reference `${CLAUDE_SKILL_DIR}/references/dtcg-token-format.md`, template path, output `<out>/dtcg.yml`. GATE: composer reports 0 errors.
+Spawn `superui:token-composer` (compose job) with: the four notes paths, validator path `${CLAUDE_PLUGIN_ROOT}/scripts/validate_tokens.py`, DTCG format reference `${CLAUDE_PLUGIN_ROOT}/references/dtcg-token-format.md`, template path, output `<out>/dtcg.yml`. GATE: composer reports 0 errors.
 
 ### 6 — Generate tokens.css [script]
 ```
-python "${CLAUDE_SKILL_DIR}/scripts/tokens_to_css.py" <out>/dtcg.yml <out>/tokens.css
+python "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_css.py" <out>/dtcg.yml <out>/tokens.css
 ```
 Note the reported dark-override count — it is the DARK FLAG for step 12 (dark overrides > 0 → flag set).
 
 ### 7 — Generate DESIGN.md skeleton [script]
 ```
-python "${CLAUDE_SKILL_DIR}/scripts/design_md_skeleton.py" <out>/dtcg.yml <out>/DESIGN.md
+python "${CLAUDE_PLUGIN_ROOT}/scripts/design_md_skeleton.py" <out>/dtcg.yml <out>/DESIGN.md
 ```
 
 ### 8 — Complete DESIGN.md [design-doc-writer, x1]
-Spawn `superui:design-doc-writer` with: skeleton path, dtcg.yml, the notes paths, source-map path (+ intake answers), completeness-map reference `${CLAUDE_SKILL_DIR}/references/design-system-foundations.md`. GATE: no `<!-- FILL: ... -->` placeholder left in DESIGN.md (leftover `> NEEDS INPUT` markers are allowed — collect them for the user).
+Spawn `superui:design-doc-writer` with: skeleton path, dtcg.yml, the notes paths, source-map path (+ intake answers), completeness-map reference `${CLAUDE_PLUGIN_ROOT}/references/design-system-foundations.md`. GATE: no `<!-- FILL: ... -->` placeholder left in DESIGN.md (leftover `> NEEDS INPUT` markers are allowed — collect them for the user).
 
 ### 9 — Inventory [component-scout, x1]
 Spawn `superui:component-scout` with: source dir, source-map path (+ intake answers), detection catalog `${CLAUDE_SKILL_DIR}/references/component-patterns.md`, output `<out>/inventory.md`. Then LIST the inventory to the user in your reply (components by kind, then patterns, then flagged inconsistencies) so they see what was identified before the specs land. GATE: inventory exists; user has seen it (do not block on approval unless they object).
 
 ### 10 — Specs fan-out [spec-writer, xN parallel]
-Spawn `superui:spec-writer` once per inventory entry with: the entry line, source dir (+ intake answers), dtcg.yml, spec template reference `${CLAUDE_SKILL_DIR}/references/component-spec.md`, example spec `${CLAUDE_SKILL_DIR}/assets/example-component-spec.md`, sampler path, output `<out>/components/<slug>.md` or `<out>/patterns/<slug>.md`. Collect the `MISSING-TOKENS` blocks from the agents' reports (skip the ones reporting `none`) into `<run>/missing-tokens.md`. GATE: one spec file per inventory entry.
+Spawn `superui:spec-writer` once per inventory entry with: the entry line, source dir (+ intake answers), dtcg.yml, spec template reference `${CLAUDE_PLUGIN_ROOT}/references/component-spec.md`, example spec `${CLAUDE_PLUGIN_ROOT}/assets/example-component-spec.md`, sampler path, output `<out>/components/<slug>.md` or `<out>/patterns/<slug>.md`. Collect the `MISSING-TOKENS` blocks from the agents' reports (skip the ones reporting `none`) into `<run>/missing-tokens.md`. GATE: one spec file per inventory entry.
 
 ### 11 — Reconcile [token-composer merge, x1 — only if missing tokens exist]
 Spawn `superui:token-composer` (merge job) with: `<out>/dtcg.yml`, `<run>/missing-tokens.md`, validator path, DTCG format reference, template path (same set as step 5). The composer keeps the proposed names unless a tier rule forces a rename, and reports renames as `old -> new` lines. Then:
 
 ```
-python "${CLAUDE_SKILL_DIR}/scripts/tokens_to_css.py" <out>/dtcg.yml <out>/tokens.css
-python "${CLAUDE_SKILL_DIR}/scripts/check_spec_tokens.py" <out>
+python "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_css.py" <out>/dtcg.yml <out>/tokens.css
+python "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec_tokens.py" <out>
 ```
 
 If the composer reported renames, re-dispatch `spec-writer` for each affected spec with the rename map, then re-run the checker. GATE: composer reports 0 errors; `check_spec_tokens.py` exits 0 (every spec token reference resolves in dtcg.yml).
 
 ### 12 — Sheets fan-out [html-visualizer, xN parallel]
-First: `cp "${CLAUDE_SKILL_DIR}/assets/doc-chrome/docs.css" <out>/docs.css`. Spawn `superui:html-visualizer` once per sheet:
+First: `cp "${CLAUDE_PLUGIN_ROOT}/assets/doc-chrome/docs.css" <out>/docs.css`. Spawn `superui:html-visualizer` once per sheet:
 - foundation sheets → `<out>/foundations/<name>.html`, emitted when ANY of the sheet's dtcg.yml groups exist: `color` (groups: color) · `typography` (font, dimension, typography) · `spacing-radius` (spacing, radius, size, border, border-width) · `effects` (shadow, opacity, motion, zindex); content source = those groups + the matching DESIGN.md sections.
 - one per component spec → `<out>/components/<slug>.html`;
-- one per pattern spec → `<out>/patterns/<slug>.html`. Each gets: sheet kind + content source, template `${CLAUDE_SKILL_DIR}/assets/doc-chrome/sheet.template.html`, hrefs (`../docs.css`, `../tokens.css` from subdirs), the dark flag (from step 6), output path. GATE: one sheet per emitted foundation / spec.
+- one per pattern spec → `<out>/patterns/<slug>.html`. Each gets: sheet kind + content source, template `${CLAUDE_PLUGIN_ROOT}/assets/doc-chrome/sheet.template.html`, hrefs (`../docs.css`, `../tokens.css` from subdirs), the dark flag (from step 6), output path. GATE: one sheet per emitted foundation / spec.
 
 ### 13 — Index + lint [scripts]
 ```
-python "${CLAUDE_SKILL_DIR}/scripts/build_index.py" <out>
-python "${CLAUDE_SKILL_DIR}/scripts/lint_previews.py" <out>
+python "${CLAUDE_PLUGIN_ROOT}/scripts/build_index.py" <out>
+python "${CLAUDE_PLUGIN_ROOT}/scripts/lint_previews.py" <out>
 ```
 Lint violations name the offending sheet — re-dispatch that sheet's `html-visualizer` per the re-dispatch convention (lint lines as findings), then re-run the lint. GATE: lint exits 0.
 
@@ -106,7 +102,7 @@ Give the user: the artifact paths (`dtcg.yml` first, then `DESIGN.md`, `tokens.c
 
 ## Scripts (each carries its I/O contract in its header)
 
-Plain Python (stdlib + `pyyaml`, `Pillow`, `numpy`). Install if missing, using the preflight interpreter: `<cmd> -m pip install pyyaml pillow numpy --break-system-packages`.
+Plain Python (stdlib + `pyyaml`, `Pillow`, `numpy`). Install if missing, using the step-1 interpreter: `<cmd> -m pip install pyyaml pillow numpy --break-system-packages`.
 
 Run by YOU (the orchestrator):
 - `tokens_to_css.py TOKENS.yaml OUT.css` — dtcg.yml → tokens.css (`:root` + `.dark`); its summary line carries the dark-override count (the dark flag).
