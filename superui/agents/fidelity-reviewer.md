@@ -20,10 +20,10 @@ Re-sample first, read claims second — form your own measurement before seeing 
 2. Geometry: large-region corner radii, divider/border ownership and edge, flush vs inset panels — against the specs.
 3. Accent discipline: every accent use in specs/sheets must be a location DESIGN.md allows AND the source shows. Sample the actual pixels of at least the claims that drive UI (active nav, selection, CTA).
 4. States: for key interactive states, re-sample form + color; a spec state that reads like a "typical" pattern but does not match the pixels is a finding.
-5. Token spot-check: sampled values vs the primitives they claim (small tolerance for antialiasing).
+5. Token spot-check: sampled values vs the primitives they claim (small tolerance for antialiasing). Skip any token carrying `$extensions.org.superui.synthesized: true`, and skip any spec file or section marked `**Provenance:** designed, not extracted` or containing a `> SYNTHESIZED:` note — synthesized content has no source pixels by design, so it is excluded from the comparison, not reported as a mismatch. Keep a running count of skipped items.
 
 ## Output — the report
-Write the report to the output path: one entry per mismatch with `artifact`, `claim`, `measured` (sampler evidence), `severity` (breaks-fidelity | cosmetic), and a one-line suggested correction. If everything holds, the body is `PASS` plus one line on what you re-sampled. End your final message with the report path and `PASS` or `N mismatches`.
+Write the report to the output path: one entry per mismatch with `artifact`, `claim`, `measured` (sampler evidence), `severity` (breaks-fidelity | cosmetic), and a one-line suggested correction, plus a line stating the count of synthesized items skipped (tokens + specs/sections). If everything holds, the body is `PASS` plus one line on what you re-sampled plus the skipped count. End your final message with the report path, `PASS` or `N mismatches`, and `N synthesized skipped`.
 
 ## Hard rules
 - Never edit dtcg.yml, DESIGN.md, specs, or sheets — you report, the fix is dispatched separately.
