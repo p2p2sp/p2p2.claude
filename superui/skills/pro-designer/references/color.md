@@ -1,63 +1,92 @@
-# Color: 60-30-10 Distribution and Restraint
+# Color: Programmatic Four-Layer Architecture
 
-Read when choosing a palette, assigning colors to UI surfaces, or auditing a screen that feels "loud", chaotic, or unfocused.
+Read when choosing a palette, assigning colors to surfaces, building dark mode, theming/white-labeling, coloring data viz, or auditing a screen that feels "loud", flat, or muddy in the dark.
 
-## 60-30-10 Distribution
+## Start here
 
-Mental model: a 1000px-wide strip representing all colored surface on screen — 600px neutral, 300px brand, 100px accent.
+- Do not default to a 60-30-10 split for product UI; it gives no rules for elevation, dark mode, or state steps. Apply the four layers below instead.
+- Aim the distribution semantic, not balanced: neutral dominates, accent stays scarce — closer to ~90% neutral / 8% structure / 2% accent (Vercel) than to 60/30/10.
+- Apply in order: (1) neutral foundation + elevation, (2) accent scale + states, (3) semantic colors, (4) OKLCH math theming.
+- The accent is a scarce functional signal, never a surface fill — it must be the single element that pops on a squint test.
 
-- 60% Neutral base: white/cream in light schemes, deep darks in dark mode. Its job is breathing room and a quiet backdrop for content.
-- 30% Brand/structure: brand color on structural areas — panels, headers, nav. Visually dominant over the base but never the primary action signal.
-- 10% Accent/CTA: the ONLY operational signal — "look here", "this is active", "click me". Apply with maximum restraint.
-- Keep the 10% scarce — it must scream against the 60/30 sea; if the CTA color covers more surface, it stops working as a signpost and conversion and usability drop.
-- Note: 60-30-10 is a heuristic derived from interior design, not part of WCAG/HIG/Material — treat proportions as a target, not a spec.
-- Justify every deviation functionally: if breaking the ratio does not improve readability or navigation, revert to 60-30-10.
-- Gradients/textures are allowed inside the 30% or 10% buckets only if they introduce no new unrelated hues that compete with the CTA.
-- Multiple shades of one hue count inside that hue's bucket (e.g. several blues all live within the 30%).
+## Layer 1 — Neutral foundation and spatial architecture
 
-## Variants
+The neutral palette is infrastructure, not background: it defines spatial division and reading hierarchy. Budget at least four background layers, two stroke types (soft light-mode border, brighter dark-mode edge), and three text-contrast levels.
 
-- Dark mode: 60% dark base, 30% lighter shades (subtle gradients OK for depth), 10% bright, near-glowing accent.
-- Inverted color-first (strong-identity brands): intense color as the 60% base, 30% lighter hues of the SAME color, 10% still a distinct CTA color.
-- Two-color projects: shift to 70-20-10, where 20% = shades/variants of the base hue — rich look from a minimal palette.
-- Component level: the ratio nests — e.g. white cards (30%) on a gray page background (60%) builds layering without chaos.
-- Images/UGC: exclude photos and user graphics from the math — treat them as neutral/external so their unpredictable colors don't break the system ratio.
+Canvas and elevation (light mode):
+- Pure white (100%) is the scarcest resource — reserve it for lifted surfaces (cards, popovers) so they detach from the canvas. Give the base canvas a subtle gray/color tint instead of pure white.
+- Reference canvases: Notion ~100% white (paper approach, darker cards divide nested content); Linear ~99% white; Vercel ~98% white (absolutely white cards build depth against a low-luminance canvas).
+- Anchor large chrome (sidebars, frames) with a faint structural tint, not high contrast — e.g. Mercury's ~2% blue sidebar. It marks the region without pulling attention.
+- Card borders: soft stroke (~85% white) — no hard dark outlines.
 
-## Color Restraint: "Everything on Fire" Anti-Pattern
+Text hierarchy (light mode), as offset from pure black:
+- Headings: ~11% white offset (near-black) — top scan priority.
+- Body: 15-20% white — optimal for long reading.
+- Metadata / labels: 30-40% white — low visual weight.
 
-Amateur tell: one intense brand color on icons, headings, input borders, AND buttons at once — everything screams, so nothing signals. Put out the fire so one element can shine.
+Button surface hierarchy:
+- Primary: solid black (or brand) — max visual weight, conversion action.
+- Secondary: 90-95% white — helper actions, low weight, clean.
+- Ghost / tertiary: transparent / borderless — contextual actions, minimal footprint.
 
-- Junior: brand color everywhere ("pink everything"). Senior: brand color reserved for the primary CTA only.
-- Junior: brand-colored text on light backgrounds, no black. Senior: black/white/gray as the text default — black text on light background for maximum contrast.
-- Junior: color dominates function (branding-first). Senior: color supports function; content speaks for itself.
-- Default text to black/white/gray; color in text only for links and semantic states.
+Dark mode — physiology, not inversion:
+- "Double the distance": the eye resolves dark luminance poorly, so a 2% step that reads in light mode vanishes in the dark. Widen luminance steps between background layers to 4-6%.
+- "Lighter-as-it-rises": obey a physical light model — higher elevation = lighter surface. Level 0 background = lowest luminance; Level 1 card/surface = 4-6% lighter; Level 2 popover/modal = highest.
+- Shadows stop reading as depth in the dark; replace them with active borders — brighten the stroke relative to the card so the edge, not a shadow, defines the component.
+- Dim text off pure white (light grays) to kill glare; brighten borders above the surface — the inverse of light mode's darker-than-background borders.
 
-## System Colors: Red/Green Are Reserved
+## Layer 2 — Accent scale and interactive states
 
-- Reserve red strictly for errors and destructive outcomes; green strictly for success states. Never decorative.
-- Never style neutral actions (e.g. Logout) in "emergency red" — it signals danger and triggers anxiety for a routine action.
+Brand color is a continuous scale (100-900), not one hex. Each step maps to an operational state, which is what lets states be automated.
 
-Bad:  [Logout] in red — reads as destructive/error.
-Good: [Logout] neutral gray/text link; red kept for "Delete account".
+- Baseline (default action / brand): 500 or 600 in light; 300 or 400 in dark.
+- Hover: 700 (darker) in light; 400 or 500 (brighter / more saturated) in dark.
+- Inline links: 400 or 500 in light; 300 or 400 in dark.
+- Dark-mode rule: never carry the light-mode 500 weights straight over — mid weights read muddy and dim and break WCAG on dark surfaces. Use vibrant 300-400 so accents stay luminous and pass contrast.
 
-## "Color Through Data" (Dashboards)
+## Layer 3 — Semantic colors and perceptual uniformity (OKLCH)
 
-- Move saturated color OUT of UI chrome (buttons, icons) and INTO the data: charts and micro-charts are the only carriers of saturated hues.
-- Use deep, muted backgrounds (desaturated greens, navies) for analytics chrome — reduces eye fatigue in long sessions and lets anomalies/trends pop.
-- Rationale: a restrained chrome palette lets users subconsciously ignore the UI and lock onto the data — the interface is an analytical instrument, not decoration.
-- Reject AI-generated "pretty" palettes that prioritize looks over data readability.
+Semantic colors (error / warning / success) outrank brand absolutely: the system must signal an error regardless of brand aesthetics. Even a monochrome system (e.g. Vercel) overrides itself with a hard red for a failed state.
 
-## QA Checklist (Per Screen)
+- Reserve red strictly for errors/destructive outcomes, green strictly for success. Never decorative, never a red logout.
+- Never make color the only signal — pair it with icon, text, or shape.
 
-- [ ] Base (60%): does the dominant neutral give enough breathing room?
-- [ ] Brand (30%): does the brand color support structure WITHOUT masquerading as an action button?
-- [ ] Signal uniqueness (10%): does the CTA color appear ONLY where user interaction is required?
-- [ ] Squint test: squint at the screen — the 10% CTA must be the single element that clearly pops; if several things pop (or nothing), redistribute.
-- [ ] Content integration: are photos/graphics excluded from the color math without disturbing hierarchy?
-- [ ] Hue consistency: do all shades of a hue stay within their assigned percentage bucket?
-- [ ] Red/green audit: does red/green appear anywhere that is not an error/success or destructive/confirm state?
-- [ ] Dashboard screens: is saturated color confined to data visualizations, not chrome?
+Data visualization — use OKLCH, not RGB/HSL:
+- RGB/HSL carry a perceptual bias: at identical L, a green reads brighter than a blue, so a chart's categories get unequal visual weight.
+- OKLCH (Lightness, Chroma, Hue) is perceptually uniform — equal L reads as equal brightness.
+- Build a categorical palette by holding L and C constant and stepping Hue by a fixed 25-30 degrees. Every series then carries identical visual weight; no category falsely dominates.
+- Keep saturated color in the data, not the chrome: mute app chrome (desaturated navies/greens) so anomalies and trends pop and long sessions fatigue less. Reject "pretty" palettes that trade data readability for looks.
 
-## Sources
+## Layer 4 — OKLCH mathematical theming
 
-- 60-30-10 rule (origin and status as heuristic): https://en.wikipedia.org/wiki/60-30-10_rule
+Programmatic theming / white-labeling is coordinate math in OKLCH, not hand-picked hexes and per-brand contrast audits.
+
+- Turn a neutral surface into a colored one with a fixed transform, then vary only Hue per brand:
+  - Lightness_new = Lightness_original - 0.03
+  - Chroma_new = Chroma_original + 0.02
+- Because the base's lightness relationships are preserved, the WCAG contrast ratios established on the neutral base carry over automatically — hierarchy holds whether the theme is blue, green, or violet.
+
+## Color restraint — the "everything on fire" anti-pattern
+
+- Amateur tell: one intense brand color on icons, headings, input borders AND buttons at once — everything screams, nothing signals. Put out the fire so one element shines.
+- Junior: brand color everywhere. Senior: brand reserved for the primary action; black/white/gray is the text default (black text on light background for max contrast).
+- Color supports function; it never leads it. Color in text only for links and semantic states.
+
+## QA checklist (per screen)
+
+- [ ] Neutral layers: at least four background steps, cards lifted off a tinted (not pure-white) canvas?
+- [ ] Accent scarcity: does the accent appear ONLY where interaction is required — the single thing that pops on a squint test?
+- [ ] State scale: do hover / active / disabled each pull a distinct step of the 100-900 scale, not one flat hex?
+- [ ] Dark mode: 4-6% luminance steps between layers, elevated surfaces lighter, borders brighter than the surface (shadows not relied on)?
+- [ ] Dark accents: do main actions use 300-400 weights, not a carried-over 500 (no muddy/dim CTA)?
+- [ ] Semantic priority: do red/green appear only for error/success/destructive — never decorative, never a routine action?
+- [ ] Data viz: are categorical colors stepped in OKLCH (constant L/C, Hue +25-30 degrees), with saturated color confined to data, not chrome?
+- [ ] Theming: are brand variants derived by OKLCH shift (L -0.03, C +0.02, vary H) so contrast holds across themes?
+
+## Key terms
+
+- OKLCH (Lightness, Chroma, Hue): color model built on perception, not screen math.
+- Perceptual uniformity: equal lightness reads as equal brightness across hues.
+- Double the distance: widen dark-mode luminance steps to 4-6% to keep layers separable.
+- Lighter-as-it-rises: higher-elevation surfaces are lighter in dark mode (physical light model).
+- Semantic overriding: functional colors (error/success) outrank brand aesthetics.

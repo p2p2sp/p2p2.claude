@@ -116,7 +116,7 @@ superui/
   Role split vs `pro-designer`: pro-designer = GENERIC UI/UX standards; guardian = fidelity to THIS
   project's CONCRETE extracted system (which wins on conflict — pro-designer itself defers).
 - `pro-designer` — the cross-cutting **professional UI/UX standards** advisor (model-invocable via CSO):
-  visual hierarchy, 60-30-10 color discipline, type ramps, 4/8pt spacing, accessibility, component states,
+  visual hierarchy, color-system discipline (neutral foundation, dark mode, accent scales), type ramps, 4/8pt spacing, accessibility, component states,
   form-validation UX, and evidence-based conversion psychology with hard anti-dark-pattern rules. Fires when
   creating, styling, or reviewing ANY interface. Bundles `references/` only — its contrast gate is the
   plugin-root `scripts/check_contrast.py` (WCAG AA), addressed via `${CLAUDE_PLUGIN_ROOT}/...`; a missing
