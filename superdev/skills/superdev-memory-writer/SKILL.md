@@ -2,6 +2,8 @@
 name: superdev-memory-writer
 description: Writes and updates the hierarchical CLAUDE.md memory cascade from a single capture file. Invoked only by the superdev-memory skill or a build close-out step, never directly. Never asks the user.
 context: fork
+model: opus
+effort: high
 user-invocable: false
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash
 ---
@@ -17,6 +19,11 @@ Folds the facts in `## capture` into the project's CLAUDE.md memory cascade. Inp
 `## capture` is one of two shapes — read it before acting:
 - a capture document — has `## Nodes` (directive: `<dir> — <purpose>` per line, `.` = project root node; paths relative to project root) and `## Facts` (per-area knowledge under `### <dir>` headings). Create or update exactly the listed nodes; fold each area's facts into its node.
 - change material (e.g. a completed build plan with tasks) — no `## Nodes`. Map the described changes onto EXISTING nodes (Glob `**/CLAUDE.md`) and update only those affected; create nothing new. Nothing affected -> `VERDICT: PASS` with `NODES: none`.
+
+Qualification filter for change material — apply BEFORE touching any node. A change qualifies only when it alters DURABLE knowledge of an area a node records:
+- folds in: a shifted responsibility/scope, a new or broken contract/invariant, a changed entry point or command, a pattern/anti-pattern the change establishes or invalidates.
+- never folds in: task-level implementation steps, feature-specific details, workarounds, transient state, or coding-style conventions (that is .claude/rules material, not memory).
+- When in doubt -> not memory. `NODES: none` is a normal verdict for small builds.
 
 ## Write rules
 

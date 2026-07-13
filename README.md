@@ -2,12 +2,12 @@
 
 Four independent, self-contained Claude Code plugins. `superdev` and `superui` are cohesive ecosystems, each driven by its own injected dispatcher manifest; `supergh` and `superfix` ship no manifest and no hooks (`supergh` routes its GitHub skills purely via CSO descriptions; `superfix` is a single user-invoked skill). Skills compose through CSO + documented natural chains.
 
-- **superdev** (`./superdev`) — a configurable agentic-development ecosystem: project memory, planning, and the implementation pipeline.
-- **superui** (`./superui`) — the design / frontend ecosystem: a framework-agnostic design system extracted from screenshots or designed from intent, enforced on every UI task, and backed by a professional UI/UX standards advisor. Requires Python 3 + `pip install pillow numpy pyyaml` — see `superui/README.md`.
-- **supergh** (`./supergh`) — the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation executor, Conventional-Commits commits, and template-driven issue / PR creation. No manifest, no hooks — skills route via their CSO descriptions.
-- **superfix** (`./superfix`) — prioritized multi-agent codebase investigation: the `/superfix:code-auditor` command sweeps a repo with cheap `scout` agents, scores Impact × Opportunity, and sends frontier `detective` agents only into the hotspots. No manifest, no hooks — one user-invoked skill.
+- **superdev** — a configurable agentic-development ecosystem: project memory, planning, and the implementation pipeline.
+- **superui** — the design / frontend ecosystem: a framework-agnostic design system extracted from screenshots or designed from intent, enforced on every UI task, and backed by a professional UI/UX standards advisor. Requires Python 3 + `pip install pillow numpy pyyaml` — see `superui/README.md`.
+- **supergh** — the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation executor, Conventional-Commits commits, and template-driven issue / PR creation. No manifest, no hooks — skills route via their CSO descriptions.
+- **superfix** — prioritized multi-agent codebase investigation: the `/superfix:code-auditor` command sweeps a repo with cheap `scout` agents, scores Impact × Opportunity, and sends frontier `detective` agents only into the hotspots. No manifest, no hooks — one user-invoked skill.
 
-This repository is the **marketplace catalog** for all four: each plugin lives in its own subdirectory, and the root `.claude-plugin/marketplace.json` co-lists them by `source: "./superdev"`, `source: "./superui"`, `source: "./supergh"`, and `source: "./superfix"`. Each is **independently installable** — install any subset; none declares another as a dependency.
+Each is **independently installable** — install any subset; none declares another as a dependency.
 
 ## Install
 
@@ -27,7 +27,7 @@ claude plugin install superfix@p2p2 --scope user
 
 Every plugin is self-contained — none declares any dependencies. Installing one gives you that whole ecosystem: `superdev` / `superui` route every request through their injected manifest, while `supergh` / `superfix` route purely via skill descriptions. Install only the one(s) you need.
 
-## superdev skills
+## Super Dev
 
 | Area | Skills |
 | --- | --- |
@@ -36,7 +36,7 @@ Every plugin is self-contained — none declares any dependencies. Installing on
 | End-user documentation | `help-writer` (end-user product help → `.superdev/help/`) |
 | Development pipeline + diagnostics/specs | Skills: `superplan`, `superplan-reviewer`, `superbuild`, `superbuild-adr`, `superbuild-decomposer`, `superbuild-runner`, `superbuild-reviewer`, `superbuild-reviewer-plan`, `tdd`, `debug`, `superspec`, `superspec-reviewer`. Plugin agents (per-task pipeline workers): `coder`, `task-reviewer`, `improver` |
 
-## supergh skills
+## Super GH
 
 Flat-named (single-domain plugin, no group prefix). No manifest, no hooks — skills route via their CSO `description:`:
 
@@ -48,7 +48,7 @@ Flat-named (single-domain plugin, no group prefix). No manifest, no hooks — sk
 | `create-issue` | Interactive, template-driven GitHub issue creation (`gh issue create`) |
 | `create-pr` | Interactive, template-driven draft pull-request creation (`gh pr create --draft`) |
 
-## superui skills
+## Super UI
 
 Flat-named (single-domain plugin, no group prefix). Requires Python 3 + `pip install pillow numpy
 pyyaml` — run `/superui:setup` to verify. Full detail: `superui/README.md`.
@@ -63,7 +63,7 @@ pyyaml` — run `/superui:setup` to verify. Full detail: `superui/README.md`.
 | `setup` | User-only environment diagnostic (`/superui:setup`) — reports Python interpreter + module status; installs nothing |
 | `design-system-generator` (internal) | The shared mechanical artifact tail invoked by the extractor and the creator — not directly invocable |
 
-## superfix skills
+## Super Fix
 
 Single user-invoked skill (no manifest, no hooks); runs only via `/superfix:code-auditor`:
 
@@ -72,17 +72,3 @@ Single user-invoked skill (no manifest, no hooks); runs only via `/superfix:code
 | `code-auditor` (skill) | Prioritized multi-agent codebase investigation — sweep every file, score Impact × Opportunity, gate to the hotspots, dispatch deep investigators, synthesize a verified, severity-ranked hotlist. User-only (`disable-model-invocation`) |
 | `scout` (agent) | Cheap, fast triage scorer — rates one file (or a small batch) for Impact and Opportunity 1-5; spawn many in parallel during the sweep |
 | `detective` (agent) | Frontier-model deep investigator — hunts the actual issue in one hotspot, verifies it on a clean checkout, writes a structured finding; spawn few |
-
-## How it works
-
-- **The manifest-bearing plugins (`superdev`, `superui`) inject their manifest** (`<plugin>/hooks/content/manifest.md`) once per session and route across that plugin's domains (instruction priority, the 1% rule, decision flow, the skill catalog, the natural chains, and red flags). `supergh` / `superfix` ship no manifest and route purely via CSO descriptions. Install several and their manifests coexist.
-- **Skills auto-engage via CSO** — each skill's `description:` is its trigger, in any language.
-- **Opt-in per project (superdev)** — `/setup` writes `.superdev/config.yml` (two switches: `adr`,
-  `rules_improver`). The routing manifest is always injected as-is; a disabled switch only skips its
-  `orchestrator` pipeline step (`agent-adr-recorder` / the `improver` agent); both switches default off (a missing config = both off,
-  fail-closed), so these two optional steps run only once you enable them via `/setup`.
-- **The implementation pipeline is file-based (superdev)**: `orchestrator` dispatches forked executors
-  that hand state through files and reply with a 3-line status, keeping the main context lean.
-- **Planning always happens in plan mode (superdev).** Whatever mode you start in, superdev's planning skill
-  enters plan mode before drafting a plan, so the plan-review gate runs
-  every time — the planning pipeline behaves the same regardless of the mode you started in.

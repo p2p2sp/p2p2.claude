@@ -28,6 +28,7 @@
     "./skills/superdev-memory/",
     "./skills/superdev-memory-writer/",
     "./skills/superdev-rules/",
+    "./skills/superdev-rules-writer/",
     "./skills/tdd/",
     "./skills/debug/"
   ]
