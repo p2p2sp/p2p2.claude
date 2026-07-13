@@ -2,8 +2,8 @@
 name: superplan-reviewer
 description: Plan reviewer invoked only by the superplan skill, never directly.
 context: fork
-model: sonnet
-effort: high
+model: opus
+effort: xhigh
 allowed-tools: Read, Grep, Glob, Bash
 user-invocable: false
 ---

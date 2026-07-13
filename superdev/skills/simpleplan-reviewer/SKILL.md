@@ -3,7 +3,7 @@ name: simpleplan-reviewer
 description: Plan reviewer invoked only by the simpleplan skill, never directly.
 context: fork
 model: sonnet
-effort: medium
+effort: high
 allowed-tools: Read, Grep, Glob, Bash
 user-invocable: false
 ---
