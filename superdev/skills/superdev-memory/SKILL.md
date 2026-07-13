@@ -6,7 +6,7 @@ user-invocable: true
 
 # SuperDev Memory
 
-Hierarchical CLAUDE.md infrastructure so CLAUDE navigate codebases like senior engineers.
+Hierarchical CLAUDE.md infrastructure so CLAUDE navigate codebases like senior engineers. This skill is the interactive front: it measures, asks, and resolves every decision with the user, then hands ONE capture file to the `superdev-memory-writer` fork, which writes the cascade.
 
 ## Core Principle
 
@@ -26,21 +26,36 @@ Hierarchical CLAUDE.md infrastructure so CLAUDE navigate codebases like senior e
 3. Measure [gate - show table first]
    scripts/analyze_structure.sh /path/to/project
    scripts/estimate_tokens.sh /path/to/each/source/dir
+   Table columns: | Directory | Tokens | Threshold | Needs Node? |
 
 4. Decide
    No root file  → Ask: CLAUDE.md?
    Has root file → Add Memory Layer section + child nodes if needed
 
-5. Execute
-   Use references/templates.md for structure
-   Use references/node-examples.md for real-world patterns
-   Validate: one root, READ-FIRST directive, <4k tokens per node
+5. Capture + hand off
+   Ask the Capture Questions per selected area
+   Write .superdev/.memory/capture.md (format below)
+   Invoke `superdev-memory-writer` (Skill) with a labeled-line args block:
+     capture: .superdev/.memory/capture.md
+   Relay its VERDICT/NODE lines verbatim — do NOT re-verify or rewrite the nodes yourself
 
 6. Maintenance mode (when state=complete)
    Ask user:
    a) Audit nodes     → Use references/capture-protocol.md for SME questions
    b) Find candidates → Re-measure tokens, suggest new nodes
    c) Both
+   Resolved changes go through step 5 (same capture file + writer handoff)
+```
+
+## Capture file format
+
+```
+# Memory capture
+## Nodes
+- <dir> — <one-line purpose>     (`.` = project root node; paths relative to project root)
+## Facts
+### <dir>
+- <captured fact / invariant / discovered command / anti-pattern>
 ```
 
 ## When to Create Child Nodes
@@ -76,6 +91,4 @@ When documenting existing code, ask:
 - `scripts/estimate_tokens.sh` - Measure directory complexity
 
 **References:**
-- `references/templates.md` - Root and child node templates
-- `references/node-examples.md` - Real-world examples
 - `references/capture-protocol.md` - SME interview protocol

@@ -26,6 +26,7 @@
     "./skills/simplebuild-implementor/",
     "./skills/simplebuild-reviewer/",
     "./skills/superdev-memory/",
+    "./skills/superdev-memory-writer/",
     "./skills/superdev-rules/",
     "./skills/tdd/",
     "./skills/debug/"

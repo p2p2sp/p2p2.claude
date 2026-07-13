@@ -74,7 +74,7 @@ For each remaining task file (in order):
 
 1. `TaskUpdate` -> start
 2. Gated by Config; run only the enabled delegations, in parallel (single message, await all). If none enabled, skip to 4.
-    - `memory: true` -> Delegate to `superdev-memory`: pass plan-header PATH + all task file PATHs.
+    - `memory: true` -> Invoke `superdev-memory-writer` (Skill) with a labeled-line `args` block — `capture: <plan-copy path>`.
     - `rules: true`  -> Delegate to `superdev-rules`:  pass plan-header PATH + all task file PATHs.
 3. Either delegation failing is non-fatal -> note it in the Step 5 summary, do not block.
 4. `TaskStop` -> completed
