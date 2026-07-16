@@ -1,6 +1,6 @@
 {
   "name": "superui",
-  "version": "0.16.4",
+  "version": "0.17.0",
   "description": "Super UI Designer ecosystem for Claude Code.",
   "author": {
     "name": "Dariusz Lenartowicz",
@@ -12,6 +12,7 @@
     "./skills/design-system-generator/",
     "./skills/design-system-guardian/",
     "./skills/design-system-completer/",
+    "./skills/design-system-auditor/",
     "./skills/pro-designer/",
     "./skills/setup/"
   ],
@@ -27,6 +28,9 @@
     "./agents/gap-analyst.md",
     "./agents/design-synthesizer.md",
     "./agents/design-director.md",
-    "./agents/spec-designer.md"
+    "./agents/spec-designer.md",
+    "./agents/token-drift-auditor.md",
+    "./agents/spec-fidelity-auditor.md",
+    "./agents/inventory-coverage-auditor.md"
   ]
 }

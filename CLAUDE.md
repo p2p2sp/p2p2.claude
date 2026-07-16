@@ -38,9 +38,11 @@ Each plugin is independently installable; none declares another as a dependency.
   extraction agents) and `design-system-creator` (creative, from a prose interview + optional inspiration
   images; the holistic `design-director` agent + `spec-designer`) both hand off to the shared
   `design-system-generator` sub-skill for artifact production — plus an opt-in gap-completion orchestrator
-  (two further agents) that fills what neither head covered on explicit user approval, a doctrinal guardian
+  (two further agents) that fills what neither head covered on explicit user approval, a read-only
+  consistency auditor (three further agents) that checks the implementation against the system and only
+  writes a report under `.superui/reports/`, a doctrinal guardian
   that enforces the system on every UI task, a professional UI/UX standards advisor, and a user-only `setup`
-  diagnostic. Seven skills total (one internal, non-user-invocable). (→ `superui/CLAUDE.md`)
+  diagnostic. Eight skills total (one internal, non-user-invocable). (→ `superui/CLAUDE.md`)
 - **supergh** — the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation
   executor, Conventional-Commits commits, and template-driven issue / PR creation. Ships **no hooks and no
   manifest** — its skills route purely via CSO `description:`. (→ `supergh/CLAUDE.md`)
@@ -152,9 +154,10 @@ The invariants below hold across the repo.
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`create-issue`/`create-pr` skill,
   superfix's for the `code-auditor` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
-  (superfix's `scout` / `detective` and superui's twelve agents — eight extraction workers, the two
-  completion workers (`gap-analyst` / `design-synthesizer`), and the two creative-head workers
-  (`design-director` / `spec-designer`) — live there, not in `skills[]`;
+  (superfix's `scout` / `detective` and superui's fifteen agents — eight extraction workers, the two
+  completion workers (`gap-analyst` / `design-synthesizer`), the two creative-head workers
+  (`design-director` / `spec-designer`), and the three audit workers (`token-drift-auditor` /
+  `spec-fidelity-auditor` / `inventory-coverage-auditor`) — live there, not in `skills[]`;
   superdev ships no agents — every superdev worker is a skill) — and the relevant `CLAUDE.md`
   (that plugin's, and this root file when the change is repo-wide) in either case. They must stay in sync, and a
   worker must never appear in both `skills[]` and `agents[]`.

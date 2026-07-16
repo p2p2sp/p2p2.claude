@@ -63,3 +63,5 @@ When reviewing existing UI, the self-check above is the finding list: report eac
 ## Scope boundary
 
 Generic UI/UX standards (hierarchy, contrast, spacing rhythm) belong to `pro-designer`; this skill owns fidelity to the concrete extracted system. Where the two disagree, the extracted system wins.
+
+After-the-fact detection across an existing codebase belongs to `design-system-auditor` (a read-only audit report); this skill owns in-session prevention while the UI is being written.

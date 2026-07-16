@@ -12,8 +12,11 @@ extraction agents) and `design-system-creator` (the **creative head**, a prose i
 `design-director` agent and `spec-designer`) — both hand off to the shared, non-user-invocable
 `design-system-generator` sub-skill for artifact production. On top of that: an opt-in gap-completion
 orchestrator (dispatching two further agents — `gap-analyst`, `design-synthesizer`) that validates and, on
-explicit user approval, fills what neither head could cover; a doctrinal guardian that enforces the resulting
-system on every UI task; a professional UI/UX standards advisor; and a user-only `setup` diagnostic. It is a
+explicit user approval, fills what neither head could cover; a read-only consistency auditor (dispatching
+three audit agents — `token-drift-auditor`, `spec-fidelity-auditor`, `inventory-coverage-auditor`) that
+checks the implementation against the system and writes a report under `.superui/reports/`; a doctrinal
+guardian that enforces the resulting system on every UI task; a professional UI/UX standards advisor; and a
+user-only `setup` diagnostic. It is a
 **single-domain** plugin, so its skills carry **no group prefix** (the plugin name is the group) and are
 flat-named. The **per-component** catalog of record is `.claude-plugin/plugin.json` `skills[]` + `agents[]`;
 the injected manifest (`hooks/content/manifest.md`) documents the design-artifact location, not individual
@@ -35,9 +38,11 @@ superui/
   assets/            Plugin-root bundled assets shared across skills (tokens.template.yaml,
                      example-component-spec.md, doc-chrome/ — the fixed doc chrome)
   agents/            The eight extraction workers, the two completion workers (`gap-analyst`,
-                     `design-synthesizer`), and the two creative-head workers (`design-director`,
-                     `spec-designer`) — genuine plugin agents, dispatched by the design-system-extractor /
-                     design-system-completer / design-system-creator orchestrators via the Agent tool
+                     `design-synthesizer`), the two creative-head workers (`design-director`,
+                     `spec-designer`), and the three audit workers (`token-drift-auditor`,
+                     `spec-fidelity-auditor`, `inventory-coverage-auditor`) — genuine plugin agents,
+                     dispatched by the design-system-extractor / design-system-completer /
+                     design-system-creator / design-system-auditor orchestrators via the Agent tool
                      (`subagent_type: superui:<name>`)
   skills/            Flat-named skills (single-domain plugin); all shared scripts/references/assets live at
                      the plugin root (scripts/, references/, assets/ above, addressed via
@@ -47,7 +52,8 @@ superui/
                      path — no duplicated reference files; design-system-guardian is a bare SKILL.md
                      (doctrine only, no bundled files); pro-designer bundles references/ only (its contrast
                      script now lives at the plugin-root scripts/); design-system-extractor,
-                     design-system-creator and design-system-generator are bare SKILL.mds (no bundled
+                     design-system-creator, design-system-generator and design-system-auditor are bare
+                     SKILL.mds (no bundled
                      files — every script/reference/asset they use is the plugin-root copy); setup bundles
                      only its own
                      scripts/check_env.sh (a diagnostic, never merged into the plugin-root scripts/ since
@@ -105,6 +111,24 @@ superui/
   (absent either -> stand down, point at the extractor, never scaffold `<out>` itself). Reuses the plugin-root
   scripts/references/assets (`${CLAUDE_PLUGIN_ROOT}/...`) and pro-designer's references by sibling path
   (`${CLAUDE_SKILL_DIR}/../pro-designer/references/`) — bundles only its own `check_completeness.py`.
+- `design-system-auditor` — the read-only **consistency audit** orchestrator (bare SKILL.md, model-invocable
+  via CSO). Verifies the consuming project's implementation code against the project's own system in
+  `.superui/design-system/` and produces a report — it changes NOTHING (neither the implementation nor the
+  system; "safe outputs": the audit can only tell, never touch). Gated on `<sys>/DESIGN.md` existing (absent ->
+  stand down); one prose scope question (paths/globs + free-form surface labels — never a framework assumption
+  or platform list); then a deterministic pre-pass (the plugin-root validators `validate_tokens.py`,
+  `check_spec_tokens.py`, `check_contrast.py` — a broken system is itself a finding — plus the
+  `scan_hardcoded_values.py` scanner and a mechanical grep for `design-system-gap:` comments); then a parallel
+  fan-out of the three audit agents (`token-drift-auditor`, `spec-fidelity-auditor`,
+  `inventory-coverage-auditor`), one trio per surface. Finding taxonomy — deliberately distinct from the
+  plugin's "gap" term: DRIFT = the implementation contradicts an existing token/spec; GAP = the implementation
+  needs something the system does not define (routed exactly like the guardian routes gaps:
+  measurable-from-source -> extractor, never-shown -> completer; existing `design-system-gap:` comments count
+  here as known, marked gaps); UNTRACKED = code component missing from `inventory.md` or vice versa. The
+  orchestrator's sole write beyond `.temp/` run state is the report:
+  `.superui/reports/design-system-auditor-<YYYY-MM-DD>.md` (executive summary + per-category finding tables +
+  method appendix) — NEVER anything under `.superui/design-system/`. Role split vs the guardian: guardian =
+  in-session prevention, auditor = after-the-fact detection.
 - `design-system-guardian` — the doctrinal **enforcement** skill for the extractor's (and completer's) output
   (model-invocable via CSO; no fork, no `allowed-tools`, no bundled files). Fires on ANY UI creation/styling/
   review work; gates itself on the existence of `.superui/design-system/DESIGN.md` (absent -> silent stand-down).
@@ -172,6 +196,20 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   surface/elevation order, an accent-usage plan, and a `CONTRAST-PAIRS:` section), an inventory proposal in
   component-scout's format using the sanctioned synthesized entry shape, and a direction rationale. Never
   talks to the user (`> NEEDS INPUT` convention). Spawn exactly one — design coherence needs a single head.
+- `token-drift-auditor` — the auditor's scan interpreter: judges each `scan_hardcoded_values.py` hit against
+  the token set read fresh from `dtcg.yml`/`tokens.css` — filters the scanner's deliberate false positives,
+  classifies DRIFT (a token covers the raw value, exact or near) vs GAP candidate (no token covers it, routed
+  extractor/completer), honors `design-system-gap:` known-gap marks, flags hardcoded dark values and forbidden
+  accent uses. Returns structured finding lines only. Spawn one per audit surface, in parallel.
+- `spec-fidelity-auditor` — the auditor's spec comparator: matches scoped implementation files to
+  `components/<slug>.md` / `patterns/<slug>.md` and compares states, variants, anatomy, accent discipline, and
+  dark-mode handling — specs read fresh from the files, never from memory. Off-spec = DRIFT; a genuine need the
+  spec lacks = GAP with routing. Unmatched code components are out of scope (inventory-coverage-auditor owns
+  them). Returns structured finding lines only. Spawn one per audit surface, in parallel.
+- `inventory-coverage-auditor` — the auditor's inventory reconciler: matches reusable code components against
+  `inventory.md` in both directions (implemented-but-uninventoried, inventoried-but-unimplemented on the
+  audited surface, using the optional `Implemented on:` coverage field when present) — UNTRACKED findings.
+  Returns structured finding lines only. Spawn one per audit surface, in parallel.
 - `spec-designer` — one spec per inventory entry, designed with NO source screenshots: extrapolates from the
   system's own `dtcg.yml` tokens/scales first, pro-designer doctrine second (frontmatter
   `skills: [superui:pro-designer]`). Every value a token NAME; a needed value with no match becomes a
@@ -189,7 +227,10 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   via the shared generator tail), and the completer (opt-in, user-gated synthesis) — never a fourth writer, and
   the completer never scaffolds `<out>` itself (it requires `DESIGN.md` + `dtcg.yml` to already exist). The
   creator's hard collision gate keeps it from ever running alongside an existing system without an explicit
-  full-redesign choice — it either overwrites wholesale or aborts, never merges.
+  full-redesign choice — it either overwrites wholesale or aborts, never merges. The `design-system-auditor`
+  is never a writer there at all — it is read-only toward `.superui/design-system/` AND the implementation;
+  its sole output lands under `.superui/reports/`, a separate directory precisely so audit output never
+  lands inside the generated system.
 - **Orchestrator does no worker work.** Both orchestrator SKILL.mds (extractor, completer) are a checklist +
   gates; screenshots/facts are read and artifacts authored ONLY by the agents. Deterministic steps are
   scripts run by the orchestrator (`tokens_to_css.py`, `design_md_skeleton.py`, `build_index.py`,
@@ -258,7 +299,11 @@ Single-responsibility workers with input->work->output contracts; none may ask t
 - `scripts/build_index.py` — output dir -> `index.html` (narrative pulled from DESIGN.md; links
   self-verified).
 - `scripts/lint_previews.py` — flags raw hex/rgb/hsl/px in sheet styles; exit 1 on violations.
-- `scripts/check_contrast.py` — WCAG AA contrast gate (pro-designer).
+- `scripts/check_contrast.py` — WCAG AA contrast gate (pro-designer; also the auditor's pre-pass).
+- `scripts/scan_hardcoded_values.py` — the auditor's technology-neutral hardcoded-style-value scanner:
+  file list + `dtcg.yml` (covered families only) -> `<file>:<line>\t<family>\t<raw-value>` hit lines;
+  intentionally dumb regexes, false positives filtered downstream by `token-drift-auditor`; exit 1 only on
+  bad args/unreadable inputs.
 - `skills/design-system-completer/scripts/check_completeness.py` — `dtcg.yml` (+ specs, + `completions.md` if
   present) -> a four-section facts file (tier / dark / spec-state / provenance facts); exit 1 only on
   missing/unreadable `dtcg.yml`; gaps are data, not errors, so an empty system still exits 0.

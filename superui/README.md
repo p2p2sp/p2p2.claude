@@ -20,6 +20,7 @@ standards. Flat-named (single-domain plugin, no group prefix).
 | `design-system-extractor` | The measurement head — reverse-engineers a design system from a folder of UI screenshots. |
 | `design-system-creator` | The creative head — designs a NEW design system from a prose interview (product, audience, mood) plus optional inspiration images (hints, never canon). |
 | `design-system-completer` | Opt-in gap-completion — validates an existing system for what the extraction/design couldn't cover, and synthesizes only user-approved gaps. |
+| `design-system-auditor` | Read-only consistency audit — checks the implementation against the system's own tokens, specs, and inventory; writes a DRIFT / GAP / UNTRACKED report under `.superui/reports/` and changes nothing. |
 | `design-system-guardian` | Doctrinal enforcement — binds every UI task to the project's own extracted/designed tokens and specs; silently stands down with no `.superui/design-system/`. |
 | `pro-designer` | Generic professional UI/UX standards; advisory, defers to the project's own system when one exists. |
 | `setup` | User-only environment diagnostic (`/superui:setup`) — no auto-routing. |
@@ -34,6 +35,9 @@ standards. Flat-named (single-domain plugin, no group prefix).
   gates on your approval of the direction before generating anything.
 - **Already have a system but it's missing states, dark coverage, or a token role?** Run
   `design-system-completer` — it reports gaps first and synthesizes only what you approve.
+- **Wondering how far the code has drifted from the system?** Run `design-system-auditor` — a
+  read-only audit that reports DRIFT (code vs tokens/specs), GAPs (needs the system doesn't
+  define), and UNTRACKED components; its only output is a report under `.superui/reports/`.
 - **Building or styling any UI afterward?** `design-system-guardian` engages automatically and
   enforces the system's tokens and specs; `pro-designer` backs it with generic standards wherever the
   system itself is silent.
