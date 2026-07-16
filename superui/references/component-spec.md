@@ -19,6 +19,14 @@ Every entry is exactly one of:
 
 An entry is worth cataloguing if it recurs across screens OR is a self-contained reusable unit even on one screen. Composites reference the atoms they contain; patterns reference the components they compose.
 
+## Implementation coverage — optional inventory metadata
+
+An inventory entry MAY carry an `implemented on:` field: a free-form, comma-separated list of platform labels that the CONSUMING project defines and maintains. This plugin never enumerates, hardcodes, or suggests platform names — the label vocabulary is the host's alone.
+
+- An absent field means coverage is NOT TRACKED for that entry. It never means "not implemented".
+- The field is host knowledge, not source knowledge — it describes the consuming codebase, not the screenshots. No agent here derives or invents it; extraction only carries existing values through.
+- A spec that exists but is not yet built on some platform is implementation work, bound by that spec. It is not a design gap and never routes to the extractor or the completer.
+
 ## The component spec template
 
 Use this exact structure and order. Keep prose tight.

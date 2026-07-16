@@ -55,7 +55,7 @@ pyyaml` — run `/superui:setup` to verify. Full detail: `superui/README.md`.
 
 | Skill | Role |
 | --- | --- |
-| `design-system-extractor` | The measurement head — reverse-engineer a framework-agnostic design system from UI screenshots via a multi-agent pipeline — DTCG tokens (`dtcg.yml`), `DESIGN.md`, pure-CSS `tokens.css`, component/pattern specs, and an HTML documentation site (per-foundation/component/pattern sheets + `index.html`) |
+| `design-system-extractor` | The measurement head — reverse-engineer a framework-agnostic design system from UI screenshots via a multi-agent pipeline — DTCG tokens (`dtcg.yml`), `DESIGN.md`, DTCG-JSON `tokens.json`, pure-CSS `tokens.css`, component/pattern specs, and an HTML documentation site (per-foundation/component/pattern sheets + `index.html`) |
 | `design-system-creator` | The creative head — designs a NEW design system from a prose interview (product, audience, mood) plus optional inspiration images (hints, never canon); gates on the user's approval of the direction before generating anything |
 | `design-system-completer` | Opt-in gap-completion — validates an existing extracted/designed system for what could not be measured/covered and, only with explicit per-gap approval, synthesizes the missing pieces with marked provenance |
 | `design-system-guardian` | Enforces the project's design system on every UI task (create, style, review) — mandates reading `DESIGN.md`'s agent rules + the touched component/pattern specs, tokens-only values, no inventions beyond spec, and a post-generation self-check; silently stands down when `.superui/design-system/` does not exist |

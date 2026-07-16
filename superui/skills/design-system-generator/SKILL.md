@@ -25,7 +25,7 @@ A labeled block, one `label: value` per line:
 - NEVER do a producer's job inline — no writing tokens/specs/sheets yourself. Spawn the owning agent (Agent tool, `subagent_type: superui:<agent-name>`) even when the task looks small.
 - Fan-out steps run agents in parallel, batched (about 5 concurrent); wait for a batch before dispatching the next.
 - Single writer per file: `dtcg.yml` is written only by `token-composer` (compose job, then the merge job); each spec and each sheet has exactly one producer at a time.
-- Scripted artifacts (`tokens.css`, the DESIGN.md skeleton, `index.html`) are regenerated wholesale, never patched by hand.
+- Scripted artifacts (`tokens.css`, `tokens.json`, the DESIGN.md skeleton, `index.html`) are regenerated wholesale, never patched by hand.
 - RE-DISPATCH CONVENTION (gate failures, lint hits): spawn the same agent type again with its normal inputs PLUS its previous output path and the findings as additional constraints; it regenerates its artifact in full honoring them. Cap remediation at two rounds per gate — after that, carry the remaining findings into your final message as `> NEEDS INPUT` instead of looping.
 - Trust the scripts: each verifies its own result — do not re-check or hand-edit script output.
 
@@ -37,9 +37,10 @@ Run `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_python.sh"`. `PYTHON_MISSING` -> st
 ### 1 — Compose tokens [token-composer, x1]
 Spawn `superui:token-composer` (compose job) with: the four `<run>/notes-<foundation>.md` paths, validator path `${CLAUDE_PLUGIN_ROOT}/scripts/validate_tokens.py`, DTCG format reference `${CLAUDE_PLUGIN_ROOT}/references/dtcg-token-format.md`, template path `${CLAUDE_PLUGIN_ROOT}/assets/tokens.template.yaml`, output `<out>/dtcg.yml`. When `provenance: designed`, the dispatch also instructs: write `$extensions.org.superui.provenance: designed` at the dtcg.yml ROOT, and preserve that root marker across every later write (this step and every merge in step 6). GATE: composer reports 0 errors.
 
-### 2 — Generate tokens.css [script]
+### 2 — Generate tokens.css + tokens.json [scripts]
 ```
 python "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_css.py" <out>/dtcg.yml <out>/tokens.css
+python "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_json.py" <out>/dtcg.yml <out>/tokens.json
 ```
 Note the reported dark-override count — it is the DARK FLAG for step 8.
 
@@ -62,6 +63,7 @@ Collect the token blocks from each agent's report (skip the ones reporting `none
 Spawn `superui:token-composer` (merge job) with: `<out>/dtcg.yml`, whichever of `<run>/missing-tokens.md` / `<run>/synthesized-tokens.md` has entries (token-composer distinguishes `MISSING-TOKENS` vs `SYNTHESIZED-TOKENS` entries by tag — pass both files when both are non-empty), validator path, DTCG format reference, template path (same set as step 1). When `provenance: designed`, the dispatch again instructs preserving the root provenance marker. The composer keeps proposed names unless a tier rule forces a rename, and reports renames as `old -> new` lines. Then:
 ```
 python "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_css.py" <out>/dtcg.yml <out>/tokens.css
+python "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_json.py" <out>/dtcg.yml <out>/tokens.json
 python "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec_tokens.py" <out>
 ```
 If the composer reported renames, re-dispatch `<spec-producer>` for each affected spec with the rename map, then re-run the checker. GATE: composer reports 0 errors; `check_spec_tokens.py` exits 0 (every spec token reference resolves in dtcg.yml).
@@ -87,7 +89,7 @@ python "${CLAUDE_PLUGIN_ROOT}/scripts/lint_previews.py" <out>
 Lint violations name the offending sheet — re-dispatch that sheet's `html-visualizer` per the re-dispatch convention (lint lines as findings), then re-run the lint. GATE: lint exits 0.
 
 ### 10 — Return [you]
-End with a single message: the artifact paths (`dtcg.yml` first, then `DESIGN.md`, `tokens.css`, `inventory.md`, `index.html`), token/spec/sheet counts, every collected `> NEEDS INPUT` item (from design-doc-writer, spec producers, and any un-remediated re-dispatch findings), and confirmation every gate is green. You never talk to the user directly — the caller relays this verbatim.
+End with a single message: the artifact paths (`dtcg.yml` first, then `DESIGN.md`, `tokens.css`, `tokens.json`, `inventory.md`, `index.html`), token/spec/sheet counts, every collected `> NEEDS INPUT` item (from design-doc-writer, spec producers, and any un-remediated re-dispatch findings), and confirmation every gate is green. You never talk to the user directly — the caller relays this verbatim.
 
 ## Edge cases
 

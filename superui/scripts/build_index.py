@@ -2,9 +2,9 @@
 """Build index.html for an extracted design-system directory.
 
 IN : argv[1] — the design-system output dir. Expected inside it:
-     DESIGN.md (narrative source), docs.css, tokens.css, optionally
-     inventory.md (kind metadata), foundations/*.html, components/*.html,
-     patterns/*.html.
+     DESIGN.md (narrative source), docs.css, tokens.css, dtcg.yml,
+     tokens.json, inventory.md, optionally foundations/*.html,
+     components/*.html, patterns/*.html.
 OUT: writes <dir>/index.html — the overview page (chrome classes from
      docs.css): intro pulled from DESIGN.md's first paragraph, the fixed
      three-layer explanation, Principles / Token naming / Status sections
@@ -196,9 +196,10 @@ def main():
     parts.append('<div class="section"><h2>Files</h2><ul class="toc-list">'
                  '<li><a href="DESIGN.md">DESIGN.md</a></li>'
                  '<li><a href="dtcg.yml">dtcg.yml</a></li>'
+                 '<li><a href="tokens.json">tokens.json</a></li>'
                  '<li><a href="tokens.css">tokens.css</a></li>'
                  '<li><a href="inventory.md">inventory.md</a></li></ul></div>')
-    targets += ["DESIGN.md", "dtcg.yml", "tokens.css", "inventory.md"]
+    targets += ["DESIGN.md", "dtcg.yml", "tokens.json", "tokens.css", "inventory.md"]
 
     body = "\n".join(parts)
     page = f"""<!DOCTYPE html>

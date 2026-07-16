@@ -65,7 +65,8 @@ superui/
 - `design-system-extractor` — the **measurement head** of a multi-agent extraction pipeline. Reverse-engineers
   a **framework-agnostic** design system from a folder of UI screenshots (screenshots ONLY — no website
   scraping) into `.superui/design-system/`: DTCG tokens (`dtcg.yml`), a `DESIGN.md` system document
-  (with a mandatory agent-usage section), a derived pure-CSS `tokens.css`, per-component and per-pattern
+  (with a mandatory agent-usage section), a derived pure-CSS `tokens.css`, a derived `tokens.json` (the
+  vendor-neutral DTCG JSON interchange form), per-component and per-pattern
   specs (`.md`), and a static HTML documentation site (per-foundation / per-component / per-pattern sheets +
   `index.html`) rendered inside a FIXED bundled doc chrome (`assets/doc-chrome/`). The SKILL.md body is a hard
   step checklist (1–8): intake/env-check, source-map, ambiguity resolution, foundations fan-out, inventory
@@ -79,9 +80,9 @@ superui/
   `context: fork` because it must itself dispatch agents, and a forked subagent cannot spawn subagents). Takes a
   labeled-args input contract (`run:`, `out:`, `spec-producer:`, `provenance:`, optional `source:`, `context:`,
   `intake:`) and runs the mechanical checklist common to both heads: compose `dtcg.yml` (`token-composer`) ->
-  `tokens_to_css.py` -> `design_md_skeleton.py` -> `design-doc-writer` -> spec fan-out via whichever agent the
+  `tokens_to_css.py` + `tokens_to_json.py` -> `design_md_skeleton.py` -> `design-doc-writer` -> spec fan-out via whichever agent the
   caller names in `spec-producer:` (`spec-writer` for the extractor, `spec-designer` for the creator) -> collect
-  `MISSING-TOKENS`/`SYNTHESIZED-TOKENS` -> `token-composer` merge + re-css + `check_spec_tokens.py` -> copy
+  `MISSING-TOKENS`/`SYNTHESIZED-TOKENS` -> `token-composer` merge + re-css + re-json + `check_spec_tokens.py` -> copy
   `docs.css` -> `html-visualizer` fan-out -> `build_index.py` + `lint_previews.py`. Zero user conversation, zero
   design judgment — every value it writes already arrived decided in its inputs; it returns artifact paths,
   counts, and carried `> NEEDS INPUT` items to its caller, which relays them verbatim.
@@ -233,8 +234,8 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   lands inside the generated system.
 - **Orchestrator does no worker work.** Both orchestrator SKILL.mds (extractor, completer) are a checklist +
   gates; screenshots/facts are read and artifacts authored ONLY by the agents. Deterministic steps are
-  scripts run by the orchestrator (`tokens_to_css.py`, `design_md_skeleton.py`, `build_index.py`,
-  `lint_previews.py`, `check_completeness.py`). The completer's sole hand-written exception is step 8
+  scripts run by the orchestrator (`tokens_to_css.py`, `tokens_to_json.py`, `design_md_skeleton.py`,
+  `build_index.py`, `lint_previews.py`, `check_completeness.py`). The completer's sole hand-written exception is step 8
   (bookkeeping): a mechanical, judgment-free transcription of already-approved entries into the two ledgers
   below — never a parallel worker's job. The extractor's own artifact-generation steps live in the shared
   `design-system-generator` tail (`user-invocable: false`, invoked via the `Skill` tool, never `context: fork`
@@ -278,7 +279,7 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   extractor re-run, the extractor's "Present results" step reports that the re-extraction overwrote the
   previous syntheses and suggests re-running the completer to re-validate and re-apply them — the extractor
   itself never reads or reasons about ledger content beyond that existence check.
-- **Scripted artifacts are regenerated wholesale.** `tokens.css`, `index.html`, and the DESIGN.md skeleton
+- **Scripted artifacts are regenerated wholesale.** `tokens.css`, `tokens.json`, `index.html`, and the DESIGN.md skeleton
   are fully rewritten on re-run; hand-maintained knowledge belongs in `dtcg.yml` / the writer-filled DESIGN.md
   sections / the specs, never in generated output. The doc chrome (`docs.css`, `sheet.template.html`) is a
   fixed asset copied into the output — the documented system renders inside it through its own tokens.
@@ -292,6 +293,8 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   backgrounds by luminance (the measured surface/elevation order).
 - `scripts/validate_tokens.py` — DTCG conformance + recursive alias resolution incl. the dark extension.
 - `scripts/tokens_to_css.py` — deterministic `dtcg.yml` -> `tokens.css` (`:root` + `.dark`).
+- `scripts/tokens_to_json.py` — lossless `dtcg.yml` -> `tokens.json` (DTCG JSON interchange; document order
+  and `$`-metadata preserved, aliases left unresolved, round-trip asserted before the write).
 - `scripts/design_md_skeleton.py` — `dtcg.yml` -> DESIGN.md skeleton (auto stats + `<!-- FILL -->`
   placeholders; heading contract, self-verified).
 - `scripts/check_spec_tokens.py` — resolves every backticked token reference in the specs against

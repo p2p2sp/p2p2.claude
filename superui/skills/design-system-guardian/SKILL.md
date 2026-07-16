@@ -19,7 +19,7 @@ Read from `.superui/design-system/`, in this order, only this much:
 
 - ALWAYS: the `## Using this design system (for agents)` section of `DESIGN.md` — the system's own agent contract; its rules bind exactly like this skill's (on conflict between the two, the more restrictive rule wins).
 - ALWAYS, for every component or pattern touched that has a spec: `components/<slug>.md` / `patterns/<slug>.md`.
-- ONLY when adding new UI: `inventory.md` — check whether a component or pattern for the need already exists BEFORE creating anything new.
+- ONLY when adding new UI: `inventory.md` — check whether a component or pattern for the need already exists BEFORE creating anything new. When an entry carries `implemented on:` and your target platform is absent from that list, this is implementation work bound by the existing spec — build it against that spec. It is NOT a gap and never routes to the extractor or the completer.
 - ONLY when composing a whole screen or reviewing beyond one component: the full `DESIGN.md` (consistency rules, theming, accessibility).
 
 No deeper cascades: these files are the single level of indirection. Do not skip them because the change "is small" — a one-line style tweak drifts a system exactly as fast as a new screen.

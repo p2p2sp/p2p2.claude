@@ -45,9 +45,11 @@ standards. Flat-named (single-domain plugin, no group prefix).
 ## Artifacts
 
 Every pipeline (extractor, creator, completer) writes to the same location:
-`.superui/design-system/` — `dtcg.yml` (DTCG tokens), `DESIGN.md`, `tokens.css`, per-component and
-per-pattern specs, and a static HTML documentation site (`index.html` + per-foundation/component/
-pattern sheets). A root `$extensions.org.superui.provenance` marker in `dtcg.yml` records whether the
-whole system is `measured` (extractor) or `designed` (creator).
+`.superui/design-system/` — `dtcg.yml` (DTCG tokens, the authored source of truth), `DESIGN.md`,
+`tokens.json` (the same tokens as vendor-neutral DTCG JSON, for Style Dictionary and friends),
+`tokens.css`, per-component and per-pattern specs, and a static HTML documentation site
+(`index.html` + per-foundation/component/pattern sheets). A root
+`$extensions.org.superui.provenance` marker in `dtcg.yml` records whether the whole system is
+`measured` (extractor) or `designed` (creator).
 
 See `superui/CLAUDE.md` for the full architecture, agent roster, and provenance canon.
