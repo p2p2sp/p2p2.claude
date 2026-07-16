@@ -130,15 +130,12 @@
       "Read(/etc/shadow)",
       "Read(/etc/passwd)",
       "Read(/etc/sudoers)",
-      "Write(./.env)",
-      "Write(./.env.*)",
-      "Write(./secrets/**)",
-      "Write(./**/*.pem)",
-      "Write(./**/*.key)",
-      "Write(~/.ssh/**)",
       "Edit(./.env)",
       "Edit(./.env.*)",
-      "Edit(./secrets/**)"
+      "Edit(./secrets/**)",
+      "Edit(./**/*.pem)",
+      "Edit(./**/*.key)",
+      "Edit(~/.ssh/**)"
     ],
     "defaultMode": "acceptEdits"
   },
