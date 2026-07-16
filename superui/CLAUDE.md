@@ -209,7 +209,7 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   them). Returns structured finding lines only. Spawn one per audit surface, in parallel.
 - `inventory-coverage-auditor` — the auditor's inventory reconciler: matches reusable code components against
   `inventory.md` in both directions (implemented-but-uninventoried, inventoried-but-unimplemented on the
-  audited surface, using the optional `Implemented on:` coverage field when present) — UNTRACKED findings.
+  audited surface, using the optional `implemented on:` coverage field when present) — UNTRACKED findings.
   Returns structured finding lines only. Spawn one per audit surface, in parallel.
 - `spec-designer` — one spec per inventory entry, designed with NO source screenshots: extrapolates from the
   system's own `dtcg.yml` tokens/scales first, pro-designer doctrine second (frontmatter

@@ -16,6 +16,10 @@
 #            stray `Verdict: PASS` must NOT approve a FAIL'd plan), and a
 #            post-PASS Bash mutation of the plan file must re-gate — without
 #            false-denying a benign command that merely names the plan path.
+#            A round-2 `<plan>.md.review-<N>.md` sibling write must NOT steal
+#            plan_base from the real plan (tamper guard stays armed), and a
+#            verdict that OPENS the content string (spec-faithful first-line
+#            output, no `\n` prefix) must still be recognized.
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -60,6 +64,15 @@ LPASS_LIST='{"type":"user","message":{"content":[{"type":"tool_result","content"
 LFAIL_LIST='{"type":"user","message":{"content":[{"type":"tool_result","content":"## Superplan Review\n- VERDICT: `FAIL`\nFix list: rework step 3."}]}}'
 # negated UPPER PASS before the real UPPER FAIL — end-anchor must still reject the negation
 LNEG_UPPER='{"type":"user","message":{"content":[{"type":"tool_result","content":"## Superplan Review\nVERDICT: PASS is NOT warranted; see below.\n**VERDICT:** FAIL\nFix list: rework."}]}}'
+# round-2 sibling: the reviewer-context file written NEXT TO the plan — matches the
+# plans dir glob by path, must be EXCLUDED from plan-write detection (else it steals
+# plan_base and the post-PASS tamper guard silently disarms from round 2 onward).
+LWREV='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"file_path":"C:\\Users\\dariu\\.claude\\plans\\foo.md.review-1.md","content":"--- Previous review (round 1) ---"}}]}}'
+# spec-faithful reviewer output: the verdict OPENS the content string (first line, no
+# preamble, so no leading \n) — the gate must recognize it without relying on the
+# harness prefixing forked-skill results with "Result:\n".
+LPASS_START='{"type":"user","message":{"content":[{"type":"tool_result","content":"**VERDICT:** PASS\nAll good."}]}}'
+LFAIL_START='{"type":"user","message":{"content":[{"type":"tool_result","content":"**VERDICT:** FAIL\nFix list: rework step 3."}]}}'
 
 # mkfix <file> <line...> — write a JSONL fixture, one arg per line.
 mkfix() { local f="$1"; shift; printf '%s\n' "$@" > "$f"; }
@@ -175,6 +188,27 @@ run_case "NEGU negated UPPER PASS before real FAIL -> deny" "$SCRATCH/NEGU" DENY
 mkfix "$SCRATCH/P" "$LW"
 run_case "P plain: W only, no reviewer -> deny" "$SCRATCH/P" DENY
 run_case_deny_contains "P plain: deny defaults to simpleplan-reviewer" "$SCRATCH/P" "simpleplan-reviewer"
+
+# R2T — round-2 flow: plan write, then the review-sibling write, then reviewer PASS,
+# then a sed -i tamper on the REAL plan -> deny. The sibling must not become plan_base.
+mkfix "$SCRATCH/R2T" "$LW" "$LWREV" "$LR" "$LPASS" "$LTAMPER_SED"
+run_case "R2T round-2 sibling write, PASS, tamper on plan -> deny" "$SCRATCH/R2T" DENY
+
+# R2A — same round-2 flow without the tamper -> allow (sibling write is benign).
+mkfix "$SCRATCH/R2A" "$LW" "$LWREV" "$LR" "$LPASS"
+run_case "R2A round-2 sibling write, PASS, no tamper -> allow" "$SCRATCH/R2A" ALLOW
+
+# RS — review-sibling write ONLY (no plan write at all) must NOT arm the gate -> allow.
+mkfix "$SCRATCH/RS" "$LWREV"
+run_case "RS sibling write only, no plan write -> allow" "$SCRATCH/RS" ALLOW
+
+# VS — spec-faithful verdict at the START of the content string -> allow.
+mkfix "$SCRATCH/VS" "$LW" "$LR" "$LPASS_START"
+run_case "VS verdict opens content string, PASS -> allow" "$SCRATCH/VS" ALLOW
+
+# VSF — same shape carrying FAIL must still deny.
+mkfix "$SCRATCH/VSF" "$LW" "$LR" "$LFAIL_START"
+run_case "VSF verdict opens content string, FAIL -> deny" "$SCRATCH/VSF" DENY
 
 echo ""
 if [ "$FAILED" -ne 0 ]; then

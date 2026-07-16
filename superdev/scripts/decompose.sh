@@ -59,9 +59,12 @@ title_line="$(grep -m1 '^Title:' "$plan" || true)"
 raw_title="${title_line#Title:}"
 raw_title="$(printf '%s' "$raw_title" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//')"
 
+# LC_ALL=C przypina semantyke bajtowa: pod locale UTF-8 GNU sed gubi sie na
+# 4-bajtowych znakach (emoji) i zostawia w slugu smieciowy bajt, ktory laduje
+# w nazwie katalogu builda i w linii "workdir:" parsowanej przez orkiestrator.
 slug="$(printf '%s' "$raw_title" \
-  | tr '[:upper:]' '[:lower:]' \
-  | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-*//' -e 's/-*$//')"
+  | LC_ALL=C tr '[:upper:]' '[:lower:]' \
+  | LC_ALL=C sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-*//' -e 's/-*$//')"
 [[ -z "$slug" ]] && slug="plan"
 
 dir=".superdev/.workflows/$(date +%F)-${slug}"

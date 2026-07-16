@@ -77,8 +77,13 @@ transcript_path="$(
 #     legacy "tool_name":"Write|Edit"; that filter also excludes a Read of a plan
 #     file (file_path present, but not a write).
 # This is the most-recent plan-file write in the transcript.
+#   - review siblings excluded: the round-2 reviewer flow writes
+#     `<plan>.md.review-<N>.md` NEXT TO the plan, which would otherwise match this
+#     glob and latch plan_base onto the review file — silently disarming the
+#     post-PASS tamper guard below from round 2 onward.
 last_plan_write_line=$(
   grep -nE '"file_path":"[^"]*\.claude[\\/]+plans[\\/]+[^"]*\.md"' "$transcript_path" 2>/dev/null \
+    | grep -vE '"file_path":"[^"]*\.review-[0-9]+\.md"' \
     | grep -E '"(tool_name|name)":"(Write|Edit)"' \
     | tail -n 1 \
     | cut -d: -f1
@@ -122,7 +127,10 @@ fi
 #   - `(\*\*)?` on each side makes the bold markers optional;
 #   - `` `? `` on each side tolerates back-ticks around the value (`` `PASS` ``).
 # The `\\n` matches the two literal chars backslash-n JSON uses to escape a newline —
-# this excludes inline mentions mid-line.
+# this excludes inline mentions mid-line. The alternative `"(text|content)":"` anchor
+# accepts a verdict that OPENS the content string (a spec-faithful reviewer puts the
+# verdict on the FIRST line with no preamble; today the harness prefixes forked-skill
+# results with `Result:\n`, but the gate must not depend on that undocumented framing).
 # LOAD-BEARING: bind to the FIRST verdict, matching PASS|FAIL, not "any later PASS".
 # A FAIL verdict must DENY even when a later line (a paste, an assistant restatement,
 # a tool_result echo, or a `VERDICT: PASS | FAIL` legend) carries a stray PASS.
@@ -132,7 +140,7 @@ fi
 # qualified/negated `VERDICT: PASS is NOT ...` whose value is not the whole token:
 # without the end-anchor its last matched word is still `PASS` -> a false-allow.
 verdict_line=$(
-  awk -v start="$reviewer_call_line" 'NR>start && /\\n([-*] )?(\*\*)?[Vv][Ee][Rr][Dd][Ii][Cc][Tt]:(\*\*)?[[:space:]]+`?(PASS|FAIL)`?[[:space:]]*(\\n|")/ { print NR; exit }' \
+  awk -v start="$reviewer_call_line" 'NR>start && /(\\n|"(text|content)":")([-*] )?(\*\*)?[Vv][Ee][Rr][Dd][Ii][Cc][Tt]:(\*\*)?[[:space:]]+`?(PASS|FAIL)`?[[:space:]]*(\\n|")/ { print NR; exit }' \
     "$transcript_path" 2>/dev/null
 )
 
@@ -144,7 +152,7 @@ fi
 # then take the last whitespace-delimited token of the remaining `\n**VERDICT:** <value>` span.
 verdict_value=$(
   awk -v ln="$verdict_line" 'NR==ln {
-    if (match($0, /\\n([-*] )?(\*\*)?[Vv][Ee][Rr][Dd][Ii][Cc][Tt]:(\*\*)?[[:space:]]+`?(PASS|FAIL)`?[[:space:]]*(\\n|")/)) {
+    if (match($0, /(\\n|"(text|content)":")([-*] )?(\*\*)?[Vv][Ee][Rr][Dd][Ii][Cc][Tt]:(\*\*)?[[:space:]]+`?(PASS|FAIL)`?[[:space:]]*(\\n|")/)) {
       v = substr($0, RSTART, RLENGTH); sub(/[[:space:]]*(\\n|")$/, "", v); gsub(/`/, "", v)
       n = split(v, a, " "); print a[n]
     }

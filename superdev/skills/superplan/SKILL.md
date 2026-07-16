@@ -22,7 +22,7 @@ This plan workflow is better, extended and more accurate version of default inst
 Comprehensive understanding of the user's request is in your context. Missing knowledge or open questions → STOP, run `superdev` skill.
 
 ### Rules
-Load `templates/plan.md` and fill by sticking to the following rules. Write plan file to the disk. Show the full path to the user. Plan file is required for the review.
+Load `templates/plan.md` and fill by sticking to the following rules. Write the plan file to `.claude/plans/<topic-slug>.md` — exactly this directory, never elsewhere: the ExitPlanMode approval gate only recognizes plan files under `.claude/plans/`, so any other location silently skips the mandatory review. Show the full path to the user. Plan file is required for the review.
 
 **File Structure**
 Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.

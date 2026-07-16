@@ -24,7 +24,10 @@
 #   6. truncate to 40 chars; if the cut lands mid-word, back off to the last '-' before 40
 #   7. empty result -> "untitled"
 # exit: 0 on the emitted path; 2 on missing args; 1 if the dir could not be created.
-# Pure POSIX — no jq/awk/bc. Transliteration via literal-byte sed (locale-independent match).
+# Pure POSIX — no jq/awk/bc. Transliteration via literal-byte sed; the whole slug
+# pipeline runs under LC_ALL=C so byte semantics hold on every host locale (under
+# UTF-8 a 4-byte char, e.g. an emoji, would otherwise leak a stray invalid byte
+# into the slug and break the pure-ASCII invariant below).
 set -u
 
 prefix=${1:-}
@@ -41,8 +44,8 @@ fi
 title=$(printf '%s' "$title" | tr '\n\r' '  ')
 
 slug=$(printf '%s' "$title" \
-  | tr 'A-Z' 'a-z' \
-  | sed -e 's/ą/a/g' -e 's/Ą/a/g' \
+  | LC_ALL=C tr 'A-Z' 'a-z' \
+  | LC_ALL=C sed -e 's/ą/a/g' -e 's/Ą/a/g' \
         -e 's/ć/c/g' -e 's/Ć/c/g' \
         -e 's/ę/e/g' -e 's/Ę/e/g' \
         -e 's/ł/l/g' -e 's/Ł/l/g' \
@@ -51,7 +54,7 @@ slug=$(printf '%s' "$title" \
         -e 's/ś/s/g' -e 's/Ś/s/g' \
         -e 's/ź/z/g' -e 's/Ź/z/g' \
         -e 's/ż/z/g' -e 's/Ż/z/g' \
-  | sed -e 's/[^a-z0-9]/-/g' -e 's/--*/-/g' -e 's/^-//' -e 's/-$//')
+  | LC_ALL=C sed -e 's/[^a-z0-9]/-/g' -e 's/--*/-/g' -e 's/^-//' -e 's/-$//')
 
 # Step 6 — truncate to 40 with word-boundary back-off (slug is pure ASCII here, so
 # character count == byte count and ${#var} is safe).

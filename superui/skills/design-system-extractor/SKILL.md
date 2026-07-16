@@ -24,7 +24,7 @@ Input contract: the screenshots-directory path comes from the invocation prompt 
 
 ```
 <out>/
-  dtcg.yml  DESIGN.md  tokens.css  docs.css  index.html  inventory.md
+  dtcg.yml  DESIGN.md  tokens.css  tokens.json  docs.css  index.html  inventory.md
   foundations/<name>.html
   components/<slug>.md  components/<slug>.html
   patterns/<slug>.md    patterns/<slug>.html
@@ -67,7 +67,7 @@ Spawn `superui:fidelity-reviewer` per scope: one per pattern's canonical screen;
 Mismatches route to the owning producer per the re-dispatch convention — the same producers `design-system-generator`'s own checklist names for that artifact kind (its token composer for token issues, then a re-run of its css/spec-token scripts; its spec producer for a spec issue; its sheet renderer for a sheet issue; its doc-completion step for a DESIGN.md issue, revision: previous DESIGN.md + findings, affected sections only). Re-dispatch that agent directly (Agent tool) with its previous output path plus the findings as additional constraints. After fixes, spawn a fresh `fidelity-reviewer` on the affected scope. GATE: every scope reports PASS (or two remediation rounds spent — then report the residue to the user).
 
 ### 8 — Present results [you]
-Give the user: the artifact paths (`dtcg.yml` first, then `DESIGN.md`, `tokens.css`, `inventory.md`, `index.html`), component/pattern counts, every collected `NEEDS INPUT` item (yours plus the generator's relayed ones), and the inventory's flagged inconsistencies. Keep it short. If `<out>/completions.md` already existed before this run, report that this re-extraction regenerated the artifacts wholesale and overwrote the previous syntheses it recorded; suggest running `design-system-completer` to re-validate and re-apply them.
+Give the user: the artifact paths (`dtcg.yml` first, then `DESIGN.md`, `tokens.css`, `tokens.json`, `inventory.md`, `index.html`), component/pattern counts, every collected `NEEDS INPUT` item (yours plus the generator's relayed ones), and the inventory's flagged inconsistencies. Keep it short. If `<out>/completions.md` already existed before this run, report that this re-extraction regenerated the artifacts wholesale and overwrote the previous syntheses it recorded; suggest running `design-system-completer` to re-validate and re-apply them.
 
 ## Scripts (each carries its I/O contract in its header)
 

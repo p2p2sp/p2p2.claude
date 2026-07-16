@@ -16,11 +16,11 @@ You reconcile what the code actually contains with what `inventory.md` claims. Y
 - Optionally: a surface label (name it in your final message).
 
 ## What to do
-1. Read `inventory.md` fully: `## Components`, `## Patterns`, and — when present — `## Synthesized` (synthesized entries count as inventoried) and the optional `Implemented on:` coverage field per entry.
+1. Read `inventory.md` fully: `## Components`, `## Patterns`, and — when present — `## Synthesized` (synthesized entries count as inventoried) and the optional `implemented on:` coverage field per entry.
 2. Enumerate reusable components in the scoped code: self-contained blocks built for reuse, judged from the code's own structure and naming — never from an assumed framework, file extension, or directory convention. A block used (or clearly designed to be used) in more than one place is reusable; a one-off page section is not.
 3. Match code components to inventory entries by slug, display name, and role (tolerate naming-convention differences). Then report both directions:
    - In code, absent from the inventory -> UNTRACKED. Severity by reuse breadth: used across many screens = high; a few = medium; reusable but single-use so far = low.
-   - Inventoried, not found in the scoped code -> UNTRACKED (reverse direction) — severity high when the entry's `Implemented on:` field claims the audited surface; otherwise low, with the caveat that the audited scope may simply not cover it.
+   - Inventoried, not found in the scoped code -> UNTRACKED (reverse direction) — severity high when the entry's `implemented on:` field claims the audited surface; otherwise low, with the caveat that the audited scope may simply not cover it.
 4. Write ONLY finding lines (format below) to the output path.
 
 ## Output — finding lines
