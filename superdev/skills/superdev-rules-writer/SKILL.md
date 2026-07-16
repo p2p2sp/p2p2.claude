@@ -18,12 +18,17 @@ Folds the content of `## capture` into the project's `.claude/rules/*.md` files.
 
 `## capture` is one of two shapes — read it before acting:
 - a capture document — has `## Rules` (directive: `<slug> — paths: <globs> — <scope>` per line, plus optional `delete: <path> — <reason>` lines) and `## Facts` (per-area conventions under `### <slug>` headings). Write exactly the listed rules — one file `.claude/rules/<slug>.md` per entry with that area's facts as the body; remove the files named on `delete:` lines.
-- change material (e.g. a completed build plan with tasks) — no `## Rules`. Map the described changes onto EXISTING rule files (Glob `.claude/rules/**/*.md`) and update only those whose convention the change contradicts or extends; create nothing new, delete nothing. Nothing affected -> `VERDICT: PASS` with `RULES: none`.
+- change material (e.g. a build plan with tasks) — no `## Rules`. Map the described changes onto EXISTING rule files (Glob `.claude/rules/**/*.md`) and update only those whose convention the change contradicts or extends; create nothing new, delete nothing. Nothing affected -> `VERDICT: PASS` with `RULES: none`.
 
-Qualification filter for change material — apply BEFORE touching any rule. A change qualifies only when it sets a REPEATABLE pattern for future code:
+Qualification filter for change material — apply BEFORE touching any rule. A capture document never passes through this filter: its facts are interview-resolved, and may state a TARGET convention the code does not yet follow.
+
+Change material states INTENT; the code is TRUTH. Confirm every described change against the actual code (Read/Grep the named files and symbols) — a change the code does not show did not happen; ignore it.
+
+Beyond that, a change qualifies only when it sets a REPEATABLE pattern for future code:
 - folds in: the change contradicts a rule (the rule is now wrong) or adds a new case of a pattern the rule already records.
 - never folds in: one-off implementation decisions, feature-specific details, workarounds, migration steps, or architecture/ownership description (that is CLAUDE.md-memory material, not a rule).
 - When in doubt -> not a rule. `RULES: none` is the expected verdict for most builds.
+- A convention the change establishes that no rule covers -> a `GAP:` line, never a new rule file.
 
 ## Write rules
 
@@ -45,4 +50,5 @@ Qualification filter for change material — apply BEFORE touching any rule. A c
 Return exactly this — your only output channel (no prose, no diffs):
 - line 1: `VERDICT: PASS` or `VERDICT: FAIL`
 - on PASS: one `RULE: <path> (created|updated|deleted)` line per touched file, or `RULES: none`
+- on PASS, change material only: one `GAP: <area> — <convention no rule covers>` line per convention the change established that no rule records; omit entirely when none
 - on FAIL only, line 2: `REASON: <one line>`

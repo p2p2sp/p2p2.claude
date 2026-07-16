@@ -73,12 +73,15 @@ For each remaining task file (in order):
 ## Step 4 - Close Out
 
 1. `TaskUpdate` -> start
-2. Gated by Config; run only the enabled delegations, in parallel (single message, await all). If none enabled, skip to 4.
+2. Gated by Config; run only the enabled delegations, in parallel (single message, await all). If none enabled, skip to 5.
     - `memory: true` -> Invoke `superdev-memory-writer` (Skill) with a labeled-line `args` block — `capture: <plan-copy path>`.
     - `rules: true`  -> Invoke `superdev-rules-writer` (Skill) with a labeled-line `args` block — `capture: <plan-copy path>`.
-3. Either delegation failing is non-fatal -> note it in the Step 5 summary, do not block.
-4. `TaskStop` -> completed
+3. Keep each writer's `NODE:` / `RULE:` / `GAP:` lines verbatim for the Step 5 summary. Either delegation failing is non-fatal -> note it there too, do not block.
+4. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(simplebuild): close out memory and rules"` — commits whatever the writers touched.
+5. `TaskStop` -> completed
 
 ## Step 5 - Done
 
-Cleanup the task list and display short summary of work. Max ~3-5 sentences.
+Cleanup the task list and display short summary of work. Max ~3-5 sentences plus the relayed lines. Include:
+- Step 4's `NODE:` / `RULE:` lines verbatim (or the noted failure / disabled)
+- every `GAP:` line verbatim, each followed by `-> run superdev-memory` (memory gaps) or `-> run superdev-rules` (rules gaps)
