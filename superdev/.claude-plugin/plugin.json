@@ -30,6 +30,6 @@
     "./skills/superdev-rules/",
     "./skills/superdev-rules-writer/",
     "./skills/tdd/",
-    "./skills/debug/"
+    "./skills/simpledebug/"
   ]
 }

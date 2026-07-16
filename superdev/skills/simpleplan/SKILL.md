@@ -1,6 +1,6 @@
 ---
 name: simpleplan
-description: Invoked by superdev skill or by user command only.
+description: Invoked by the superdev or simpledebug skill, or by user command only.
 allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode
 user-invocable: true
 ---
@@ -11,14 +11,14 @@ user-invocable: true
 
 Default plan mode content drifts: missing files, hidden assumptions. SimplePlan closes that gap with a strict template plus mandatory pre-plan behavior before the plan is presented.
 
-- Input: superdev interview (already in context). No spec — the plan carries its own DoD / acceptance criteria.
-- Plan = `How`. Derive goal + acceptance criteria from the interview. Do not re-interview.
+- Input: the confirmed understanding already in context — a design interview, or a proven bug diagnosis with its fix plan. No spec — the plan carries its own DoD / acceptance criteria.
+- Plan = `How`. Derive goal + acceptance criteria from that input. Do not re-interview, do not re-investigate.
 
 ## Plan Workflow
 This plan workflow is better, extended and more accurate version of default instruction injected by harnes.
 
 ### Initial Understanding
-Comprehensive understanding of the user's request is in your context. Missing knowledge or open questions → STOP, run `superdev` skill.
+Comprehensive understanding of the user's request is in your context. Missing knowledge or open questions → STOP and close them before drafting; an unresolved design decision → run `superdev` skill.
 
 ### Rules
 Load `templates/plan.md` and fill by sticking to the following rules. Write plan file to the disk. Show the full path to the user. Plan file is required for the review.
