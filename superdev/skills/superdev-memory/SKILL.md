@@ -12,6 +12,12 @@ Hierarchical CLAUDE.md infrastructure so CLAUDE navigate codebases like senior e
 
 **Keep exactly ONE root context file** (`CLAUDE.md`) at the project root — do not split root-level memory across competing files. Child `CLAUDE.md` files in subdirectories are encouraged for complex subsystems.
 
+## Run ID
+
+!`date +%Y%m%d-%H%M%S`
+
+The line above is `<RUN_ID>` — use it verbatim. Every run writes a fresh capture file `.superdev/.memory/capture-<RUN_ID>.md`; never reuse or overwrite an existing one.
+
 ## Workflow
 
 ```
@@ -34,9 +40,9 @@ Hierarchical CLAUDE.md infrastructure so CLAUDE navigate codebases like senior e
 
 5. Capture + hand off
    Ask the Capture Questions per selected area
-   Write .superdev/.memory/capture.md (format below)
+   Write .superdev/.memory/capture-<RUN_ID>.md (format below)
    Invoke `superdev-memory-writer` (Skill) with a labeled-line args block:
-     capture: .superdev/.memory/capture.md
+     capture: .superdev/.memory/capture-<RUN_ID>.md
    Relay its VERDICT/NODE lines verbatim — do NOT re-verify or rewrite the nodes yourself
 
 6. Maintenance mode (when state=complete)
@@ -44,7 +50,7 @@ Hierarchical CLAUDE.md infrastructure so CLAUDE navigate codebases like senior e
    a) Audit nodes     → Use references/capture-protocol.md for SME questions
    b) Find candidates → Re-measure tokens, suggest new nodes
    c) Both
-   Resolved changes go through step 5 (same capture file + writer handoff)
+   Resolved changes go through step 5 (capture + writer handoff)
 ```
 
 ## Capture file format

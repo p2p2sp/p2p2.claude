@@ -14,6 +14,12 @@ Discovers the host project's coding conventions (naming, testing, error-handling
 
 **Frozen `_` convention.** A basename with a leading underscore (`_{topic}.md`) is frozen: the native loader still loads it, but this skill never reads, scores, audits, or proposes it — reserved for hand-authored or bootstrap meta-rules that must stay immutable. Never emit a capture slug starting with `_`.
 
+## Run ID
+
+!`date +%Y%m%d-%H%M%S`
+
+The line above is `<RUN_ID>` — use it verbatim. Every run writes a fresh capture file `.superdev/.rules/capture-<RUN_ID>.md`; never reuse or overwrite an existing one.
+
 ## Workflow
 
 ```
@@ -36,9 +42,9 @@ Discovers the host project's coding conventions (naming, testing, error-handling
    Capture Questions. Only confirmed conventions reach the capture.
 
 5. Capture + hand off
-   Write .superdev/.rules/capture.md (format below)
+   Write .superdev/.rules/capture-<RUN_ID>.md (format below)
    Invoke `superdev-rules-writer` (Skill) with a labeled-line args block:
-     capture: .superdev/.rules/capture.md
+     capture: .superdev/.rules/capture-<RUN_ID>.md
    Relay its VERDICT/RULE lines verbatim — do NOT re-verify or rewrite the rule files yourself
 
 6. Maintenance mode (when state=complete)
@@ -48,7 +54,7 @@ Discovers the host project's coding conventions (naming, testing, error-handling
                         nothing / convention gone), drift from the dominant pattern
    b) Find candidates → Re-scan (step 3) for areas no existing rule covers
    c) Both
-   Resolved changes go through step 5 (same capture file + writer handoff);
+   Resolved changes go through step 5 (capture + writer handoff);
    a dead rule becomes a `delete:` line.
 ```
 
