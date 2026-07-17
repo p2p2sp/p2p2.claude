@@ -1,6 +1,6 @@
 ---
 name: authoring-reference
-description: Claude Code authoring reference — the exact YAML frontmatter / JSON schemas for defining a skill (SKILL.md), a subagent, a slash command, hooks, MCP servers, and plugins (plugin.json / marketplace.json). Must use this skill whenever creating, editing, or reviewing any of these artifacts, or when the exact field names, allowed values, hook event names, path conventions, or string substitutions are needed. Triggers include "create a skill", "write a SKILL.md", "define an agent", "agent frontmatter", "add a hook", "hooks.json", "plugin.json", "marketplace.json", ".mcp.json", "slash command". Do NOT write these schemas from memory — consult this skill first. Do NOT use for authoring METHOD/process (splitting content, trimming, description quality) — that is the skill-constructor's job; this skill is the field-level data reference. Trigger applies in any language and to descriptive phrasing too.
+description: "Field-level Claude Code schemas — SKILL.md, subagent, slash command, hooks.json, .mcp.json, plugin.json, marketplace.json: exact field names, allowed values, hook event names, paths, substitutions. Use whenever creating, editing or reviewing any of these; never write the schemas from memory. NOT the authoring method or description quality (skill-creator), NOT architecture (skill-chaining). Applies in any language and to descriptive phrasing."
 user-invocable: true
 ---
 

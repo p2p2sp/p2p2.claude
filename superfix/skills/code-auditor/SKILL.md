@@ -1,10 +1,9 @@
 ---
 name: code-auditor
-description: >-
-  Prioritized, multi-agent investigation of a large codebase using the Impact × Opportunity law. Sweep every file with cheap scout agents, score Impact (how much it matters) and Opportunity (how broken / fixable it is right now) on a 1-5 scale, drop the noise, then dispatch a small number of frontier-model "detective" agents ONLY into the highest Impact×Opportunity hotspots, and synthesize a ranked, deduplicated, verified hotlist. Use this whenever the user wants to review or audit a large codebase, hunt bugs or security issues at scale, find tech-debt / dead-code / performance / reliability hotspots, run many (tens of) subagents over a repo, or needs a repeatable "where should I look first" triage. Trigger even if the user only says "review this repo", "find bugs across the codebase", "where's the risk", "scan everything and tell me what matters", or "audit this for security".
+description: Prioritized, multi-agent investigation of a large codebase using the Impact × Opportunity law.
 user-invocable: true
 disable-model-invocation: true
-allowed-tools: Agent
+allowed-tools: Agent, Read, Glob
 ---
 
 # Code Auditor — prioritized multi-agent codebase investigation

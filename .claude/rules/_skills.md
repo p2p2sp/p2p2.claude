@@ -63,8 +63,8 @@ Advantages of using deterministic scripts:
 
 A skill whose body spells out N branches/modes whose instructions do NOT overlap holds N responsibilities. Never leave all branches inline — only the branch actually taken should reach the LLM. Split one of two ways:
 
-- Fork sub-workers — one `context: fork` sub-skill per branch; the entry resolves which branch applies and dispatches only that one via the `Skill` tool. See `skill-fork-dispatch.md`.
-- Mode-router script — a deterministic script parses the input parameter and `!`-injects only the chosen branch's playbook; the other branches never enter context. See `_skill-script-routing.md` (mode-router).
+- Fork sub-workers — one `context: fork` sub-skill per branch; the entry resolves which branch applies and dispatches only that one via the `Skill` tool.
+- Mode-router script — a deterministic script parses the input parameter and `!`-injects only the chosen branch's playbook; the other branches never enter context.
 
 Choose the script when a parsable input parameter selects the branch; choose fork sub-workers when each branch is heavy work that also benefits from running out of context.
 
@@ -72,7 +72,7 @@ Choose the script when a parsable input parameter selects the branch; choose for
 
 - Entry skill (main context) — asks every question, resolves all ambiguity, hands off. Keep it small.
 - Fork worker (`context: fork` + `user-invocable: false`) — takes the resolved inputs, does the heavy work out of context, never asks the user.
-- Hand off via the arg convention: short fields inline, large/multiline content as a PATH (see `_skill-script-routing.md`).
+- Hand off via the arg convention: short fields inline, large/multiline content as a PATH.
 
 ### Co-occurring concerns -> independent specialists
 

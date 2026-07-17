@@ -1,16 +1,6 @@
 ---
 name: skill-chaining
-description: >-
-  Skill ARCHITECTURE guideline — how to make a skill scale across many runs (the isolate / compress / preload
-  pattern): when to run a skill in a fork (`context: fork`), when to hand state between stages through files,
-  when to preload data with `!command`, and how Skill vs Agent vs Model compose. Use whenever creating a NEW
-  skill or refactoring/improving an EXISTING one and an architectural choice is in play. Triggers include
-  "create a skill", "design a skill", "edit/improve/refactor a skill", "should this skill fork", "context: fork",
-  "split into sub-skills vs monolith", "skill chaining", "skill is slow / bloats context at scale",
-  "promote behaviour to a custom agent". Do NOT use for the exact field names / allowed values of SKILL.md,
-  agents, hooks, plugins — that is the `authoring-reference` skill (field-level schemas). Do NOT use for the
-  general skill-writing method/process or description quality — that is the `skill-creator`. This skill is the
-  ARCHITECTURE layer that sits between them. Trigger applies in any language and to descriptive phrasing too.
+description: "Skill ARCHITECTURE — isolate / compress / preload: when to run a skill in `context: fork`, when to hand state between stages through files, when to preload with `!command`, Skill vs Agent vs Model, sub-skills vs monolith. Use when creating or refactoring a skill and an architectural choice is in play — skill is slow, bloats context at scale, or behaviour should become an agent. NOT field names or allowed values (authoring-reference), NOT the authoring method or description quality (skill-creator). Applies in any language and to descriptive phrasing."
 user-invocable: true
 ---
 
@@ -32,17 +22,17 @@ and gotchas live in [references/skill-chaining.md](references/skill-chaining.md)
 | Skill is a **chain of stages** | fork **+** file handoff **+** `!command` preload |
 | Skill needs **user input mid-run** | **Do NOT fork** — `AskUserQuestion` does not work inside a fork |
 | Output **belongs in the main chat** (you keep reasoning about it) | **Do NOT fork** — the fork discards everything but its final return |
-| **Reference / doctrine** skill (no task to run) | **Do NOT fork** — and omit `allowed-tools` (see `.claude/rules/skill-authoring.md`) |
+| **Reference / doctrine** skill (no task to run) | **Do NOT fork** — and omit `allowed-tools` |
 | Scheduled skill that often has nothing to do | Early-bail first, fork second — never fork an empty pipeline |
 | **3+ skills** would copy the same system prompt / behaviour | Promote it to a custom agent (`agents/<name>.md`); for one skill keep it inline in `references/` |
 | Reasoning- or voice-heavy work in the fork | Inherit the session model or pin `model:`; avoid a downgraded read-only profile |
 | Read-only exploration in the fork | A lighter/read-only profile is fine (cheaper, faster) |
 
-**This repo already lives these rules.** The `developer` pipeline (`coder`, `runner`, `task-reviewer`,
-`committer`, `decomposer`, …) and `github` (`cli-executor`, `commit`) are all `context: fork` executors that
-hand state through files under `.superdev/.workflows/<slug>/` and a `Report path:`, and preload data with `!command`
-(`committer` injects `git status`/diff, `runner` injects the build command). When designing a new chained
-skill, mirror that shape.
+**This repo already lives these rules.** `superbuild` dispatches `superbuild-task-coder` /
+`superbuild-task-reviewer` through the `Skill` tool with labeled-line `args` — `context: fork` executors that
+take file PATHS in, write their output to a `report:` path, and return only a short verdict line
+(`VERDICT: PASS`, or `VERDICT: FAIL` + `REVIEW: <path>`). `supergh`'s `cli-executor` / `commit` have the same
+shape, and `commit` preloads its input with `!command`. When designing a new chained skill, mirror that shape.
 
 ## Sub-skills vs a monolith
 
@@ -69,5 +59,3 @@ The pattern of "which subagent identity runs the fork" is real, but **field vali
 - **Field schemas** (frontmatter fields, allowed values, paths, `!`-block + `$ARGUMENTS` safety) →
   `authoring-reference`.
 - **General skill-writing method / description quality / splitting & trimming** → `skill-creator`.
-- **Per-file skill conventions in this repo** (reference-only omits `allowed-tools`, consolidation discipline)
-  → `.claude/rules/skill-authoring.md`.

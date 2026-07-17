@@ -1,7 +1,9 @@
 ---
 name: design-system-auditor
-description: Read-only consistency audit of the implementation against the project's OWN design system (.superui/design-system/) — finds DRIFT (code contradicting existing tokens/specs: hardcoded colors/spacing/fonts/radii/shadows/motion a token covers, off-spec component states or variants, accent misuse, hardcoded dark-mode values), GAPs (needs the system does not define, routed to extractor/completer) and UNTRACKED components missing from inventory.md. Use when the user asks to audit design-system consistency or compliance, find drift or hardcoded style values, check whether the code follows the tokens and specs, or wants a design-debt report; any language, phrasing, and framework. Its only output is a report under .superui/reports/ — it never changes the code or the design system. Distinct from design-system-guardian (in-session prevention while UI is being written) and design-system-completer (fills gaps in the system itself).
+description: Read-only consistency audit of the implementation against the project's OWN design system (.superui/design-system/) — finds DRIFT (code contradicting existing tokens/specs: hardcoded colors/spacing/fonts/radii/shadows/motion a token covers, off-spec component states or variants, accent misuse, hardcoded dark-mode values), GAPs (needs the system does not define, routed to extractor/completer) and UNTRACKED components missing from inventory.md.
 allowed-tools: Write, Bash(sh:*), Bash(python:*), Bash(python3:*), Bash(py:*), Bash(mkdir:*), Bash(date:*), Agent
+user-invocable: true
+disable-model-invocation: true
 ---
 
 # Design System Auditor — orchestrator
