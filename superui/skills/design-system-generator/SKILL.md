@@ -1,6 +1,7 @@
 ---
 name: design-system-generator
-description: Mechanical artifact tail of a design-system run — composes dtcg.yml from notes, generates css/skeleton/doc/specs/sheets/index. Invoked only by design-system-extractor and design-system-creator via the Skill tool, never directly.
+description: Invoked only by design-system-extractor and design-system-creator skills.
+context: fork
 allowed-tools: Write, Bash(sh:*), Bash(python:*), Bash(python3:*), Bash(py:*), Bash(mkdir:*), Bash(cp:*), Agent
 user-invocable: false
 ---

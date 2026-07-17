@@ -46,10 +46,10 @@ modified files, and report issues by priority with concrete fixes.
 
 - **Model resolution order**: `CLAUDE_CODE_SUBAGENT_MODEL` env → per-invocation `model` → frontmatter `model` → main conversation's model.
 - **tools + disallowedTools**: if both set, `disallowedTools` applies first, then `tools` resolves against the remainder. To preload skills use `skills:`, not `Skill` in `tools`.
-- **Unavailable to subagents even if listed**: `Agent`, `AskUserQuestion`, `EnterPlanMode`, `ScheduleWakeup`, `WaitForMcpServers` (and `ExitPlanMode` unless `permissionMode: plan`).
+- **Unavailable to subagents even if listed**: `AskUserQuestion`, `EnterPlanMode`, `ScheduleWakeup`, `WaitForMcpServers` (and `ExitPlanMode` unless `permissionMode: plan`).
 - **Parent mode wins**: if the parent is `bypassPermissions`/`acceptEdits`/`auto`, the child's `permissionMode` is overridden.
 - **Body = system prompt** only (plus environment details) — not the full Claude Code system prompt. CLAUDE.md + git status load for custom agents (built-in Explore/Plan skip them).
-- Subagents cannot spawn other subagents.
+- **Nested subagents** (2.1.172+): a subagent CAN spawn subagents. It has `Agent` when `tools` lists it, or when `tools` is omitted (inherits); to block, omit it from `tools` or set `disallowedTools: Agent`. In a subagent definition the `Agent(type)` allowlist form is ignored — the parenthesised list only applies to a main-thread `claude --agent`. Depth limit: 5 levels below the main conversation, fixed; at depth 5 no `Agent` tool. A `context: fork` skill is one such level and takes its tools from its `agent:` type (default `general-purpose` = has `Agent`; `Explore`/`Plan` = read-only, no `Agent`). Unrelated: a `/fork` (conversation fork) cannot spawn another `/fork`, but can spawn ordinary subagent types.
 
 ## Plugin agents — restrictions
 

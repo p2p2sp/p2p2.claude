@@ -75,9 +75,11 @@ superui/
   fidelity-review fan-out, and presenting results. It owns only measurement (source-scout, foundation-analyst,
   component-scout) and verification (fidelity-reviewer); it never writes tokens/specs/sheets itself — that is
   the generator's job. Run state lives under `.temp/design-system-extractor/<run>/`.
-- `design-system-generator` — the shared **mechanical tail**, `user-invocable: false` (invoked only via the
-  `Skill` tool by `design-system-extractor` and `design-system-creator`, never directly — it cannot be
-  `context: fork` because it must itself dispatch agents, and a forked subagent cannot spawn subagents). Takes a
+- `design-system-generator` — the shared **mechanical tail**, `context: fork` + `user-invocable: false`
+  (invoked only via the `Skill` tool by `design-system-extractor` and `design-system-creator`, never directly).
+  The fork runs as the default `general-purpose` agent type, so it keeps the `Agent` tool and dispatches its own
+  producer agents from inside the fork (depth 2 — the limit is 5): the whole fan-out's noise (script output,
+  per-agent reports, re-dispatch loops) stays in the fork and only its step-10 return reaches the caller. Takes a
   labeled-args input contract (`run:`, `out:`, `spec-producer:`, `provenance:`, optional `source:`, `context:`,
   `intake:`) and runs the mechanical checklist common to both heads: compose `dtcg.yml` (`token-composer`) ->
   `tokens_to_css.py` + `tokens_to_json.py` -> `design_md_skeleton.py` -> `design-doc-writer` -> spec fan-out via whichever agent the
@@ -238,8 +240,9 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   `build_index.py`, `lint_previews.py`, `check_completeness.py`). The completer's sole hand-written exception is step 8
   (bookkeeping): a mechanical, judgment-free transcription of already-approved entries into the two ledgers
   below — never a parallel worker's job. The extractor's own artifact-generation steps live in the shared
-  `design-system-generator` tail (`user-invocable: false`, invoked via the `Skill` tool, never `context: fork`
-  since it must dispatch agents itself): it composes `dtcg.yml` / generates css-doc-skeleton-specs-sheets-index
+  `design-system-generator` tail (`context: fork` + `user-invocable: false`, invoked via the `Skill` tool —
+  a fork dispatches its own agents, so isolating it costs nothing): it composes `dtcg.yml` / generates
+  css-doc-skeleton-specs-sheets-index
   through the SAME agents and scripts, carries zero user conversation and zero design judgment of its own, and
   is shared verbatim by `design-system-creator`.
 - **Single writer per file.** `dtcg.yml` is written exclusively by `token-composer` — in both pipelines: the

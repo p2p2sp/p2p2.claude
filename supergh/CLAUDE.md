@@ -40,9 +40,9 @@ supergh/
 
 - `cli` — GitHub CLI **reference** (which layer — `gh` subcommand / `gh api` REST / `gh api graphql` — a given
   operation needs); reference-only, never executes.
-- `cli-executor` — **fork** (reachable from the main session and from consumer skills) that runs ONE
-  fully-specified gh/REST/GraphQL operation out of context and returns a single tagged line; guards every
-  GraphQL mutation against the silent-200 error case.
+- `cli-executor` — **fork-only sub-worker** (dispatched by a consumer skill via the `Skill` tool, never
+  invoked directly) that runs ONE fully-specified gh/REST/GraphQL operation out of context and returns a
+  single tagged line; guards every GraphQL mutation against the silent-200 error case.
 - `commit` — a **haiku fork** (CSO-routed, runs out of the main context) that owns the whole commit
   end-to-end by selector (`all` / `staged` / a path): `commit-context.sh` injects the recent-commit style +
   `git status`/diff scoped to that selector, the fork authors the Conventional-Commits message (rules injected
@@ -54,8 +54,10 @@ supergh/
   --draft`); every `gh`/`git` call runs through bundled per-skill `scripts/` (plus the shared `preflight.sh` /
   `body-path.sh`); out-of-scope API follow-ups (e.g. draft→ready) go to `cli-executor`.
 
-`commit` and `cli-executor` are both forks reachable from the main session (CSO-routed), not fork-only
-sub-workers — supergh no longer has a fork-only skill (the former `agent-committer` was folded into `commit`).
+`commit` is a fork reachable from the main session (CSO-routed), not a fork-only sub-worker — it absorbed the
+former `agent-committer`. `cli-executor` is supergh's one fork-only skill: consumer skills hand it a
+fully-specified operation via the `Skill` tool; its `description:` carries the "invoked only by another skill,
+never directly" guard.
 
 ## Architecture invariants (supergh-specific)
 

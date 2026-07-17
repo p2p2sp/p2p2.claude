@@ -3,6 +3,7 @@ name: create-issue
 description: GitHub issue creation expert — interactive, template-driven flow. Use whenever the user wants to create a GitHub issue, report a bug, file a feature request, or open a ticket. Triggers include "create issue", "new issue", "report bug", "feature request". Reads `.github/ISSUE_TEMPLATE/` fresh per run, auto-fills from session context, previews, then creates via `gh issue create`. Do NOT write issue markdown by hand or call `gh issue create` directly via Bash — use this skill (it parses the template, enforces required fields, respects frontmatter labels/type/assignees). Do NOT use for editing or commenting on existing issues.
 allowed-tools: Read, Glob, Write, AskUserQuestion, Bash(sh:*), Bash(gh --version), Bash(gh auth status)
 user-invocable: true
+disable-model-invocation: true
 model: sonnet
 effort: medium
 argument-hint: "[template-slug]"

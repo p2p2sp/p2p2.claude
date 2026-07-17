@@ -3,6 +3,7 @@ name: create-pr
 description: GitHub pull request creation expert — interactive, template-driven flow. Use whenever the user wants to create a PR, open a pull request, submit changes for review, or raise a draft PR. Triggers include "create PR", "open PR", "pull request", "draft PR", "submit for review". Reads `.github/pull_request_template.md`, resolves the linked issue from branch name (`task.N`/`issue.N`), argument, or session context, and creates a draft PR via `gh pr create`. Do NOT call `gh pr create` directly via Bash — use this skill (it enforces template usage, draft mode, GitFlow branch routing, issue-driven title `[#N] {issue-title}`). Do NOT use for editing existing PRs, posting reviews, or merging.
 allowed-tools: Read, Glob, Write, AskUserQuestion, Bash(sh:*), Bash(gh --version), Bash(gh auth status)
 user-invocable: true
+disable-model-invocation: true
 model: sonnet
 effort: medium
 argument-hint: "[issue-number]"
