@@ -26,12 +26,10 @@ Iterate each non-`markdown` entry of `body[]`. For each entry:
 
 ## Type-specific constraints
 
-| `type` | Auto-fill rule |
-|--------|----------------|
-| `textarea` | Value drawn verbatim from the transcript where possible; light paraphrase allowed only to fit the field's scope. Multi-line preserved. |
-| `input` | Same as `textarea`, single-line — if the matching context spans multiple lines, collapse to one line or mark MISSING. |
-| `dropdown` | Value MUST equal one of `attributes.options[]` (exact string match). Context implying a value outside the option set → MISSING. |
-| `checkboxes` | Selected set MUST be a subset of `attributes.options[].label`. Context implying a label outside the option set → MISSING (do not partially select). |
+- `textarea` — value drawn verbatim from the transcript where possible; light paraphrase allowed only to fit the field's scope. Multi-line preserved.
+- `input` — same as `textarea`, single-line; if the matching context spans multiple lines, collapse to one line or mark MISSING.
+- `dropdown` — value MUST equal one of `attributes.options[]` (exact string match). Context implying a value outside the option set → MISSING.
+- `checkboxes` — selected set MUST be a subset of `attributes.options[].label`. Context implying a label outside the option set → MISSING (do not partially select).
 
 ## Output
 

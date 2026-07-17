@@ -4,10 +4,10 @@ Detail for the two heading heuristics that Step 6 of `SKILL.md` delegates here: 
 
 ## Test-section auto-fill (testability classifier)
 
-**Sources** (priority — in-context first, one bash call at most):
+**Sources** (priority — in-context first):
 
 1. Scan transcript (~30 last turns) for: prior `git diff --stat` / `git diff --name-only` output, coder / reviewer / orchestrator sub-agent results listing changed files, explicit user / assistant mentions of changed areas ("added endpoint X", "fixed validation Y").
-2. **Only if transcript yields no file list** → one `Bash(git diff --name-only <base>..<current>)` call (`base` / `current` are already resolved by Steps 1 / 2; idempotent, read-only).
+2. **Only if transcript yields no file list** → the `CHANGED_FILES` list from the Step 4 `pr-facts.sh` block (comma-separated; already in context — no new tool call).
 
 **Classification rule** applied to the file list:
 
@@ -16,7 +16,7 @@ Detail for the two heading heuristics that Step 6 of `SKILL.md` delegates here: 
 - **Mixed diff (code + docs)** → testable (code dominates).
 - **Empty diff / classification ambiguous** → testable (conservative; never silently drop a section we cannot prove is unnecessary).
 
-**Content generation (testable case)** — in-context reasoning only, no new tool calls beyond the one above:
+**Content generation (testable case)** — in-context reasoning only, no new tool calls:
 
 1. Inspect transcript for concrete action verbs against changed areas (`added`, `fixed`, `renamed`, `extracted`, `removed`).
 2. Emit 2–4 checkbox bullets matching the template's checkbox style (`- [ ] <step>`) — concrete manual or automated verification steps grounded in transcript evidence.
@@ -35,11 +35,11 @@ Detail for the two heading heuristics that Step 6 of `SKILL.md` delegates here: 
 
 **Goal**: produce a short, human-readable description of WHAT was changed in this branch, grouped by area when the change set is large. NEVER paste the raw `git log` output as-is.
 
-**Sources** (priority — in-context first, minimal bash):
+**Sources** (priority — in-context first, no new tool calls):
 
 1. Scan transcript (~30 last turns) for: prior diff output, sub-agent results (coder / reviewer / orchestrator) describing what was implemented, explicit user / assistant statements about the change.
-2. Use the file list already obtained by Test-section auto-fill (do not re-run `git diff --name-only`).
-3. **One additional bash call at most**: `Bash(git log <base>..<current> --reverse --format='%s%n%b%n---')` to get commit subjects + bodies as raw input for summarization. Commit messages are a hint about intent, not the output format.
+2. `CHANGED_FILES` from the Step 4 `pr-facts.sh` block.
+3. The `COMMITS:` section of the Step 4 block (commit subjects + bodies, oldest first) as raw input for summarization. Commit messages are a hint about intent, not the output format.
 
 **Output format**:
 
@@ -68,6 +68,6 @@ Detail for the two heading heuristics that Step 6 of `SKILL.md` delegates here: 
 
 **Conservativeness rule**: never invent endpoints / function names / scope that are not present in transcript, commit messages, or file paths. When uncertain about a specific name → describe generically (`zaktualizowano logikę walidacji w module sesji`) rather than fabricate.
 
-**Fallback (very sparse context — empty transcript signals AND commit messages are too terse / non-descriptive like `wip`, `fix`, `update`)**: emit `git log <base>..<current> --reverse --format='- %s'` output as the bullets (post-processed: `#`-strip applied). This restores the legacy behaviour as a safety net so a PR description is never empty.
+**Fallback (very sparse context — empty transcript signals AND commit messages are too terse / non-descriptive like `wip`, `fix`, `update`)**: emit one `- <subject>` bullet per commit from the `COMMITS:` block, oldest first (post-processed: `#`-strip applied). This restores the legacy behaviour as a safety net so a PR description is never empty.
 
 **Empty range** (branch at base, no commits past base): leave the section's original placeholder lines untouched.

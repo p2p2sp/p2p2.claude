@@ -29,6 +29,11 @@ supergh/
                      commit-selfcheck.sh (HEAD-moved check), commit-args.sh (sourced selector helper)} +
                      references/commit-conventions.md (the Conventional-Commits subject/footer rules, injected
                      into the fork). This machinery is skill-local — no longer shared — since agent-committer is gone.
+                     create-issue bundles scripts/create.sh (gh issue create + URL parse + tolerant type-PATCH
+                     in one self-verifying call). create-pr bundles scripts/{check-base.sh (base-exists +
+                     open-PR probe), pr-facts.sh (issue title + first subject + closes-refs + changed files +
+                     raw commits in one block), create.sh (gh pr create with --draft/--body-file hardcoded +
+                     URL parse)}.
 ```
 
 ## Skills (qualified `supergh:<name>`)
@@ -46,7 +51,8 @@ supergh/
   reports its `<sha> | <message>` line, closing the verify-before-claim gap — the fork does the commit AND the
   check itself, so there is no LLM relay hop to distrust and no separate git-truth backstop is needed.
 - `create-issue` / `create-pr` — interactive, template-driven creators (`gh issue create` / `gh pr create
-  --draft`); each MAY delegate a fully-specified API call to `cli-executor`.
+  --draft`); every `gh`/`git` call runs through bundled per-skill `scripts/` (plus the shared `preflight.sh` /
+  `body-path.sh`); out-of-scope API follow-ups (e.g. draft→ready) go to `cli-executor`.
 
 `commit` and `cli-executor` are both forks reachable from the main session (CSO-routed), not fork-only
 sub-workers — supergh no longer has a fork-only skill (the former `agent-committer` was folded into `commit`).

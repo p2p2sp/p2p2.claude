@@ -1,90 +1,92 @@
 ---
 name: create-pr
 description: GitHub pull request creation expert — interactive, template-driven flow. Use whenever the user wants to create a PR, open a pull request, submit changes for review, or raise a draft PR. Triggers include "create PR", "open PR", "pull request", "draft PR", "submit for review". Reads `.github/pull_request_template.md`, resolves the linked issue from branch name (`task.N`/`issue.N`), argument, or session context, and creates a draft PR via `gh pr create`. Do NOT call `gh pr create` directly via Bash — use this skill (it enforces template usage, draft mode, GitFlow branch routing, issue-driven title `[#N] {issue-title}`). Do NOT use for editing existing PRs, posting reviews, or merging.
-allowed-tools: Read, Glob, Write, AskUserQuestion, Bash(sh:*), Bash(gh --version), Bash(gh auth status), Bash(gh pr create:*), Bash(gh pr list:*), Bash(gh issue view:*), Bash(git rev-parse:*), Bash(git branch:*), Bash(git log:*), Bash(git diff:*)
+allowed-tools: Read, Glob, Write, AskUserQuestion, Bash(sh:*), Bash(gh --version), Bash(gh auth status)
 user-invocable: true
+model: sonnet
 effort: medium
 argument-hint: "[issue-number]"
 ---
 
 # Create GitHub Pull Request
 
-Interactive, template-driven draft-PR creator. Reads `.github/pull_request_template.md` on every run (no caching), resolves the linked issue from the branch name (`task.N` / `issue.N`), command argument, or session context, fetches the issue title via `gh issue view`, formats the PR title as `[#<N>] <issue-title>`, routes the target branch via hardcoded GitFlow (`hotfix/*` → `main`, `feature/*` → `develop`, else → ask), agressively pre-fills the body, and lets the user iterate through an Edit / Save / Cancel preview loop before calling `gh pr create --draft`. Meta-prompts match the user's conversation language; section headings are kept verbatim from the template (template authority).
+Interactive, template-driven draft-PR creator. Reads `.github/pull_request_template.md` fresh on every run, resolves the linked issue (argument -> branch name `task.N`/`issue.N` -> session context -> ask), titles the PR `[#<N>] <issue-title>`, routes the base branch via GitFlow defaults, aggressively pre-fills the body, and iterates an Edit / Save / Cancel preview loop before creating through the bundled `scripts/create.sh` (always draft). Meta-prompts match the user's conversation language; section headings stay verbatim from the template (template authority).
 
 ## Argument shape
 
-`[issue-number]` — optional. When provided and matching `^\d+$`, the skill **skips branch-regex parsing and session-context scanning** (Step 3 priorities 2 and 3) and uses this number directly. Anything else (non-numeric, multiple tokens) → emit a one-line warning ("ignoring invalid argument: <arg>") and fall through to the regular resolution cascade.
+`[issue-number]` — optional. Matches `^\d+$` -> use it directly and skip Step 3 priorities 2 and 3. Anything else -> one-line warning ("ignoring invalid argument: <arg>") and fall through to the regular cascade.
 
 ## Preflight
 
 !`"${CLAUDE_PLUGIN_ROOT}/shared/scripts/preflight.sh"`
 
-The `KEY=VALUE` block above is injected at load (read-only facts; STOP logic stays here). Read it — do NOT re-run `gh`/`git` probes. `BRANCH` is the current branch (`current`); `UPSTREAM` is its tracking ref. On any STOP: print a short, actionable message in the user's conversation language and halt — do not proceed, do not write, do not ask further questions.
+The `KEY=VALUE` block above is injected at load (read-only facts; STOP logic stays here). Read it — do NOT re-run `gh`/`git` probes. `BRANCH` is the current branch (`current`); `UPSTREAM` is its tracking ref. On any STOP: print a short, actionable message in the user's conversation language and halt — no further writes or questions.
 
-- `GH_PRESENT=0` → STOP: GitHub CLI is missing, link to https://cli.github.com/.
-- `GH_AUTH=fail` → STOP: not authenticated, instruct `gh auth login`.
+- `GH_PRESENT=0` -> STOP: GitHub CLI is missing, link to https://cli.github.com/.
+- `GH_AUTH=fail` -> STOP: not authenticated, instruct `gh auth login`.
 
 ## Step 1 — Preconditions (fail-fast)
 
 `current` = `BRANCH` from Preflight. Same STOP discipline:
 
-1. Reject **current branch is a known base**: if `current ∈ {main, master, develop}` → STOP with `Cannot open a PR from \`<current>\`. Switch to a feature branch first.` (Edge B)
-2. `UPSTREAM` empty → STOP with `Branch \`<current>\` is not pushed. Run \`git push -u origin <current>\` first.` (Edge C) Do NOT auto-push; sandbox intentionally excludes `git push`.
+1. `current` in {`main`, `master`, `develop`} -> STOP: `Cannot open a PR from \`<current>\`. Switch to a feature branch first.` (Edge B)
+2. `UPSTREAM` empty -> STOP: `Branch \`<current>\` is not pushed. Run \`git push -u origin <current>\` first.` (Edge C) Never auto-push — the sandbox intentionally excludes `git push`.
 
 ## Step 2 — Resolve target branch (routing)
 
-Compute a routing default from `current`:
+Routing default from `current`:
 
-| `current` matches | Default `base` |
-|-------------------|----------------|
-| `hotfix/*`        | `main`         |
-| `feature/*`       | `develop`      |
-| `fix/*`           | `develop`      |
-| `refactor/*`      | `develop`      |
-| anything else     | (no default — `AskUserQuestion` with options `main`, `develop`, `(other — type manually)`) |
+- `hotfix/*` -> `main`.
+- `feature/*` / `fix/*` / `refactor/*` -> `develop`.
+- Anything else -> no default: `AskUserQuestion` with options `main`, `develop`, `(other — type manually)`.
 
-**Always-confirm:** after computing the default, ALWAYS surface an `AskUserQuestion` of the form `Target branch: \`<base\>\` — confirm or change?`. Never skip this prompt, even if the routing rule produced an unambiguous answer (this is the explicit user-requested invariant — defaults must be explicit, not silent).
+Always-confirm: after computing the default, ALWAYS surface `AskUserQuestion` — `Target branch: \`<base>\` — confirm or change?`. Never skip it, even when routing is unambiguous — defaults must be explicit, never silent.
 
-After user confirmation/selection, verify the chosen base actually exists on origin:
+After confirmation, verify with one call:
 
-- `Bash(git rev-parse --verify refs/remotes/origin/<base>)` — exit code ≠ 0 → `AskUserQuestion` with a list pulled from `Bash(git branch -r)` filtered to `origin/*` (exclude `origin/HEAD`, exclude `origin/<current>` itself). User picks an existing remote branch. (Edge A)
+```
+sh "${CLAUDE_PLUGIN_ROOT}/skills/create-pr/scripts/check-base.sh" "<base>" "<current>"
+```
 
-Then check for an already-open PR from this branch:
+- `BASE_EXISTS=0` -> `AskUserQuestion` over `REMOTE_BRANCHES` (pre-filtered: `origin/*` minus `origin/HEAD` and `<current>`); user picks an existing branch -> re-run the script with the new base. (Edge A)
+- `OPEN_PR` non-empty -> STOP: `A PR from \`<current>\` to \`<base>\` already exists: <URL>. Use \`gh pr edit\` to modify it.` (Edge D)
 
-- `Bash(gh pr list --head <current> --base <base> --state open --json url --jq '.[0].url // ""')` — non-empty → STOP with `A PR from \`<current>\` to \`<base>\` already exists: <URL>. Use \`gh pr edit\` to modify it.` (Edge D)
-
-**Branch naming.** Feature branches follow `feature/{slug}` / `fix/{slug}` / `refactor/{slug}` / `hotfix/{slug}`; the primary branch is `main`. This is the convention the routing rules above and the Step 3 branch-regex parse expect — it is a host-project default the skill never assumes blindly (see Safety rules).
+Branch naming: `feature/{slug}` / `fix/{slug}` / `refactor/{slug}` / `hotfix/{slug}`, primary branch `main` — the host-project default the routing rules and the Step 3 regex expect, never assumed blindly (see Safety rules).
 
 ## Step 3 — Resolve issue number (4-priority cascade)
 
-Try each source in order. The first one that yields a number wins; later sources are not consulted.
+The first source that yields a number wins; later sources are not consulted.
 
-1. **Argument** — if `$ARGUMENTS` matches `^\d+$`, use it directly.
-2. **Branch regex** — apply `(?:task|issue)\.(\d+)` (case-insensitive) to `current`. Examples: `feature/task.1234-add-config` → `1234`; `bugfix/issue.42` → `42`; `task.7` → `7`. First capture group is the number.
-3. **Session-context scan** — scan the conversation transcript (most recent ~20 turns) for `#\d+` or phrases like `issue 1234` / `task 5678`. If **exactly one** distinct number appears → `AskUserQuestion`: `Wykryto #<N> w kontekście rozmowy. Użyć dla tego PR?` / language-appropriate equivalent with options `Tak (use #<N>)` / `Nie, podaj inny` / `Pomiń (no issue prefix)`. Multiple distinct numbers → skip this priority (do not ask the user to disambiguate; fall through).
-4. **Ask user** — `AskUserQuestion`: `Numer issue dla tego PR (puste = bez issue prefix)` / language-appropriate equivalent. Empty answer → no issue number; continue without prefix.
+1. Argument — `$ARGUMENTS` matches `^\d+$` -> use directly.
+2. Branch regex — `(?:task|issue)\.(\d+)` (case-insensitive) on `current` (`feature/task.1234-add-config` -> `1234`; `task.7` -> `7`).
+3. Session-context scan — last ~20 turns for `#\d+` or phrases like `issue 1234` / `task 5678`. Exactly one distinct number -> `AskUserQuestion`: `Wykryto #<N> w kontekście rozmowy. Użyć dla tego PR?` (language-appropriate) with `Tak (use #<N>)` / `Nie, podaj inny` / `Pomiń (no issue prefix)`. Multiple distinct numbers -> skip this priority (never ask to disambiguate).
+4. Ask user — `Numer issue dla tego PR (puste = bez issue prefix)` (language-appropriate). Empty -> no issue number.
 
-If no number was resolved → continue to Step 4 with `N = null` (title fallback path).
+No number resolved -> continue with `N = null` (title fallback path).
 
-## Step 4 — Resolve title
+## Step 4 — Gather facts & resolve title
 
-If `N` is non-null:
+One call (its output also feeds Step 6):
 
-1. `Bash(gh issue view <N> --json title --jq .title)`
-   - Success (non-empty stdout, exit 0) → `title = "[#<N>] <issue-title>"`.
-   - Failure (404, auth error, network, empty title) → emit warning `Issue #<N> nie dostępne: <error>. Wpisz tytuł ręcznie:` (language-appropriate) → conversational prompt for manual title → `title = "[#<N>] <user-input>"` (prefix preserved; reject empty / whitespace-only and re-prompt).
+```
+sh "${CLAUDE_PLUGIN_ROOT}/skills/create-pr/scripts/pr-facts.sh" "<base>" "<current>" [<N>]
+```
 
-If `N` is null:
+Block: `ISSUE_TITLE` / `ISSUE_ERROR` (only when `<N>` was passed), `FIRST_SUBJECT`, `CLOSES` (distinct closes/fixes/resolves refs from commit messages, `<N>` excluded), `CHANGED_FILES`, `COMMITS:` (raw subjects + bodies). Trust the block — do not re-run `gh issue view` / `git log` / `git diff`.
 
-1. Try first-commit subject: `Bash(git log <base>..<current> --reverse --format=%s | head -1)` → if non-empty, use as `title` (no prefix).
-2. If empty (fresh branch with no commits past base, or `<base>..<current>` is empty) → conversational prompt `Wpisz tytuł PR` / language-appropriate equivalent. Reject empty / whitespace-only and re-prompt.
+Title resolution:
+
+- `N` non-null + `ISSUE_TITLE` -> `title = "[#<N>] <ISSUE_TITLE>"`.
+- `N` non-null + `ISSUE_ERROR` -> warn `Issue #<N> nie dostępne: <ISSUE_ERROR>. Wpisz tytuł ręcznie:` (language-appropriate) -> manual prompt -> `title = "[#<N>] <user-input>"` (prefix preserved; reject empty / whitespace-only and re-prompt).
+- `N` null + `FIRST_SUBJECT` non-empty -> `title = FIRST_SUBJECT` (no prefix).
+- `N` null + `FIRST_SUBJECT` empty -> prompt `Wpisz tytuł PR` (language-appropriate); reject empty / whitespace-only and re-prompt.
 
 ## Step 5 — Load PR template
 
 `Read` `.github/pull_request_template.md`.
 
-- **Exists** → use file content as the template.
-- **Not exists** → use a generic skeleton (hardcoded fallback):
+- Exists -> use its content.
+- Missing -> use the hardcoded fallback skeleton below and surface a one-line info in the preview: `Nie znaleziono szablonu PR — używam minimalnego szkieletu.` (language-appropriate).
   ```markdown
   ### Podsumowanie zmian
   - ...
@@ -92,30 +94,25 @@ If `N` is null:
   ### Plan testów
   - [ ]
   ```
-  And surface a one-line info in the preview: `Nie znaleziono szablonu PR — używam minimalnego szkieletu.` (language-appropriate).
 
-**Parse the template in-context** (no external markdown parser):
+Parse in-context (no external markdown parser):
 
-- Sections are delimited by lines matching `^#{2,3}\s+` (accept `## Heading` and `### Heading` — most repos use `###`).
-- Each section's content is everything between its heading and the next heading (or EOF).
-- HTML comments (`<!--\s.*?\s-->`, possibly multi-line) — interpret as **hints** to display in Edit-field prompts; NEVER render them in the final body.
-- Within a section, lines matching `^\s*-\s+\[[\sxX]\]\s+` are **checkbox items** — preserve them literally in the rendered body (do not strip, do not pre-check, user edits via Edit field if they want).
-- Other dash-prefixed lines (`- closes #...`, `- ...`) are **placeholders** — eligible for replacement by auto-fill (Step 6) or for verbatim retention if no auto-fill rule matches the section.
+- Sections are delimited by lines matching `^#{2,3}\s+` (`##` and `###`).
+- A section's content runs to the next heading (or EOF).
+- HTML comments (`<!--\s.*?\s-->`, possibly multi-line) are hints for Edit-field prompts; NEVER render them in the final body.
+- Lines matching `^\s*-\s+\[[\sxX]\]\s+` are checkbox items — preserve literally (no stripping, no pre-checking; user edits via Edit field).
+- Other dash-prefixed lines (`- closes #...`, `- ...`) are placeholders — replaceable by Step 6 auto-fill, retained verbatim when no rule matches the section.
 
 ## Step 6 — Auto-fill body (aggressive pre-fill, preview-first)
 
-For each parsed section, attempt to auto-fill content based on a heading heuristic. Match is **case-insensitive and accent-insensitive** (e.g. `Powiązane zadania` matches the same way as `Powiazane zadania`).
+Per parsed section, match the heading case- and accent-insensitively (`Powiązane zadania` matches like `Powiazane zadania`):
 
-| Section type (heading contains any of) | Auto-fill rule |
-|----------------------------------------|----------------|
-| `zadan`, `issue`, `closes`, `link`, `relat` | Emit one line per linked issue. If `N` (from Step 3) is set → include `- closes #<N>` first. Then scan `Bash(git log <base>..<current> --format=%B)` for `(?i)(?:closes|fixes|resolves)\s+#(\d+)` and add one `- closes #<M>` per distinct extra number (de-duplicated against `N`). If no numbers at all → leave the section's original placeholder lines untouched. |
-| `podsumow`, `summary`, `changes`, `zmian` | See **Summary auto-fill** in `references/auto-fill.md` — generate a short prose-style description of WHAT changed (not a copy of commit subjects), grouped by area when the diff is large; strip `#` from `#(\d+)` references; fall back to commit log only when both diff and session context are too sparse to summarize. |
-| `test`, `qa`, `walidacj` | See **Test-section auto-fill** in `references/auto-fill.md` — classify scope (in-context first, single `git diff --name-only` fallback), generate concrete bullets when testable, **mark the section `skip=true` (omit from rendered body entirely — no heading, no `_No response_`) when untestable**. Never carry the template's literal `- [ ] Test 1` / `- [ ] Test 2` placeholders into the rendered body. |
-| Anything else (custom heading) | Preserve section content verbatim from the template (placeholders like `...` remain — user sees them in preview and can Edit field). |
+- Heading contains `zadan` / `issue` / `closes` / `link` / `relat` -> linked issues: if `N` is set, emit `- closes #<N>` first; then one `- closes #<M>` per number in `CLOSES` (Step 4 block). No numbers at all -> leave the section's original placeholder lines untouched.
+- Heading contains `podsumow` / `summary` / `changes` / `zmian` -> Summary auto-fill per `references/auto-fill.md`: short prose description of WHAT changed (never a copy of commit subjects), grouped by area when large, `#`-strip applied; `COMMITS` / `CHANGED_FILES` from the Step 4 block are the raw input.
+- Heading contains `test` / `qa` / `walidacj` -> Test-section auto-fill per `references/auto-fill.md`: testability classifier (in-context first, `CHANGED_FILES` fallback), concrete bullets when testable, `skip=true` when untestable (section omitted from the rendered body entirely — no heading, no `_No response_`). Never carry the template's literal `- [ ] Test 1` / `- [ ] Test 2` placeholders.
+- Anything else -> preserve the section verbatim (placeholders like `...` remain; user sees them in the preview and can Edit field).
 
-After auto-fill, drop any remaining HTML comments from each section. The result is the rendered body markdown.
-
-The two heading heuristics that need detail — **Test-section auto-fill** (testability classifier) and **Summary auto-fill** (description, not commit list) — live in `references/auto-fill.md`. Apply them per that file when the matching section type is detected; their conservativeness and fallback rules are binding (a sparse-context PR body must never be empty, and specific names must never be fabricated).
+After auto-fill, drop remaining HTML comments from each section. Both heuristics in `references/auto-fill.md` are binding — a sparse-context body must never be empty, and specific names must never be fabricated.
 
 ## Step 7 — Preview & edit loop
 
@@ -138,78 +135,61 @@ Print:
 
 Then `AskUserQuestion` with three options:
 
-- `Save` — proceed to Step 8.
-- `Edit field` — second `AskUserQuestion` lists every editable field: `Title`, `Base`, then each parsed section by its heading (verbatim, with leading `###`/`##` stripped for display). **`Draft` is not editable** — the skill always creates draft PRs. User picks one → conversational prompt with the previous value as default / starting point → re-run Step 6 auto-fill for non-edited sections only (keep user-edited content), re-render preview → **return to Step 7**. If a section was marked `skip=true` in Step 6 (untestable change → Plan testów omitted), list it in the Edit-field options with a `(pominięto — przywróć?)` suffix so the user can opt back in; selecting it flips `skip=false` and triggers a conversational prompt for the section content.
-- `Cancel` — print `Anulowano. Nie utworzono PR.` (language-appropriate) and STOP. Any tempfile under `.temp/create-pr/` stays — `.temp/` is in `.gitignore`, debug-friendly.
-
-The edit loop is unbounded — user may edit any number of fields before saving.
+- `Save` -> Step 8.
+- `Edit field` -> second `AskUserQuestion` listing every editable field: `Title`, `Base`, then each parsed section by its heading (leading `##`/`###` stripped for display). `Draft` is not editable — this skill always creates draft PRs. User picks one -> conversational prompt with the previous value as the starting point -> re-run Step 6 auto-fill for non-edited sections only (keep user-edited content) -> re-render -> back to Step 7. A section skipped in Step 6 is listed with a `(pominięto — przywróć?)` suffix; selecting it flips `skip=false` and prompts for its content. The loop is unbounded.
+- `Cancel` -> print `Anulowano. Nie utworzono PR.` (language-appropriate) and STOP. Tempfiles under `.temp/create-pr/` stay — `.temp/` is gitignored, debug-friendly.
 
 ## Step 8 — Persist & create
 
-**Echo the final content first (mandatory, unconditional).** Before any `Write` or `gh pr create`, re-print the exact PR about to be saved — the same block shape as the Step 7 preview (title + base/head/draft + the full rendered body verbatim, byte-for-byte what lands in `<body_path>`), under a `## Saving PR` heading. This fires regardless of auto-fill ratio or whether the Step 7 edit loop ran — the user always sees precisely what gets persisted immediately before it is written. Only after printing it, persist:
+Echo the final content first (mandatory, unconditional): before any `Write` or create call, re-print the exact PR about to be saved — same block shape as the Step 7 preview, body byte-for-byte what lands in `<body_path>` — under a `## Saving PR` heading. This fires regardless of auto-fill ratio or whether the edit loop ran. Only then:
 
-1. **Compute the body path** — deterministic; the script timestamps, slugifies the title (with Polish transliteration), creates `.temp/create-pr/`, and prints the ready path. Trust its single output line:
-   ```
-   body_path = Bash("sh \"${CLAUDE_PLUGIN_ROOT}/shared/scripts/body-path.sh\" create-pr \"<title>\"")
-   ```
-   Empty `body_path` (the script failed — missing args or `.temp/create-pr/` could not be created) → STOP with a short, actionable message reporting the failure; do not proceed to `Write` or `gh pr create`.
+1. `body_path = Bash("sh \"${CLAUDE_PLUGIN_ROOT}/shared/scripts/body-path.sh\" create-pr \"<title>\"")` — deterministic (timestamps, slugifies, creates `.temp/create-pr/`, prints the ready path). Trust its single output line. Empty -> STOP with a short, actionable message; no `Write`, no create.
 2. `Write` the rendered body markdown to `<body_path>`.
-3. Construct and execute:
+3. Create:
    ```
-   gh pr create \
-     --base "<base>" \
-     --head "<current>" \
-     --draft \
-     --title "<title>" \
-     --body-file "<body_path>"
+   sh "${CLAUDE_PLUGIN_ROOT}/skills/create-pr/scripts/create.sh" "<base>" "<current>" "<body_path>" "<title>"
    ```
-   - Title MUST go via `--title`; body MUST go via `--body-file` (never `--body` with inline string — see Safety rules).
-   - `--draft` MUST be present unconditionally (the skill always creates draft PRs).
-4. On success `gh pr create` prints the new PR URL to stdout — capture the tail line and parse `{owner}`, `{repo}`, `{N}` from `https://github.com/{owner}/{repo}/pull/{N}`.
+   The script wraps `gh pr create` with `--draft` and `--body-file` hardcoded (always draft, body never inline) and prints `PR_URL` / `PR_NUMBER`. Trust the block — do not re-verify.
+4. Script exit != 0 -> STOP with its stderr line.
 
 ## Step 9 — Output
 
-Print exactly two lines (emoji literal, verb language-appropriate):
+Print exactly two lines (emoji literal, verb language-appropriate), nothing else — no preamble, no follow-up suggestions:
 
 ```
-✓ Created draft PR #<N>: <title>
-  <URL>
+✓ Created draft PR #<PR_NUMBER>: <title>
+  <PR_URL>
 ```
-
-If parsing `<N>` from the URL fails, print just `<URL>` on its own line under the `✓` line. Reply with nothing else — no preamble, no follow-up suggestions.
 
 ## Body format
 
-Final body markdown matches what GitHub renders when reading the file via the UI — PRs created by this skill are visually indistinguishable from manually-authored ones using the same template.
+Final body markdown matches what GitHub renders via the UI — PRs created by this skill are visually indistinguishable from manually-authored ones using the same template.
 
 For each parsed section in template order:
 
 ```
 ### <heading from template>
 
-<content per Step 6 heuristic, or "_No response_">
+<content per Step 6, or "_No response_">
 
 ```
 
 Rules:
 
-- Heading line preserved **verbatim** from the template — same level (`##` or `###`), same casing, emojis, accents, punctuation, language.
-- Single blank line between heading and content; single blank line between content and the next heading.
-- HTML comments from the template — **omitted** entirely from the final body (they were hints for the author).
-- Empty section (no auto-fill applied, user did not edit, original placeholders were stripped) → `_No response_` (single-line italic) under the heading. Match `create-issue` semantics.
-- Checkbox lines (`- [ ] ...`, `- [x] ...`) preserved as-is when retained from the template or set by the user via Edit field.
-- No trailing whitespace on lines; file ends with a single newline.
+- Heading line preserved verbatim from the template — same level (`##`/`###`), casing, emojis, accents, language.
+- Single blank line between heading and content, and between content and the next heading.
+- HTML comments from the template — omitted entirely.
+- Empty section (no auto-fill, no user edit, placeholders stripped) -> `_No response_` under the heading (matches `create-issue` semantics).
+- Checkbox lines (`- [ ]` / `- [x]`) preserved as-is when retained from the template or set via Edit field.
+- Sections with `skip=true` -> fully omitted (no heading, nothing).
+- No trailing whitespace; file ends with a single newline.
 
 ## Safety rules
 
-(Deltas only — invariants already stated in the steps/description are not repeated here.)
+(Deltas only — invariants already stated above are not repeated.)
 
-- NEVER use `gh pr create --body "<inline>"` — body markdown carries newlines, quotes, dollar signs, backticks; inline escaping under bash is a footgun. Always `--body-file "<body_path>"` (the per-run file from Step 8.1).
-- NEVER omit `--draft`. Conversion to ready-for-review is a follow-up the user does via `gh pr ready` or the UI. The API-level draft↔ready conversion and resolving PR review threads are GraphQL-only — the `cli` skill owns which layer applies (`references/pr-review-threads.md`); hand the fully-specified operation to `cli-executor` to run out of the main context.
-- NEVER widen the sandbox — `git push`, `gh label list`, `gh api repos`, `gh pr edit`, `gh pr ready`, `gh pr view --web` are intentionally out of scope (deliberate "no"s: no auto-push, no labels/reviewers/assignees collection, no in-skill draft→ready). The only non-gh/git tool is `Bash(sh:*)` for the bundled preflight/body-path scripts.
-- NEVER assume the template, branch naming, or routing reality look like the current repo's — this skill ships stack-agnostic. The routing rules (`hotfix/*→main`, `feature/*→develop`, `fix/*→develop`, `refactor/*→develop`) are an opinionated default; the always-confirm prompt and Edge-A fallback keep the user in control. Behavior derives entirely from `.github/pull_request_template.md`, the actual branch name, `git log`, `git branch -r`, and `gh issue view` at runtime.
-- NEVER render the template's literal test-section placeholders (`- [ ] Test 1`, etc.) — example content, not contract. Replace with concrete steps from session context (Step 6 + **Test-section auto-fill** in `references/auto-fill.md`) or skip the section when the change is untestable (docs / assets / dotfiles only).
-- NEVER fabricate specific function / endpoint / file / module names in auto-generated test or Summary bullets — conservativeness applies to both **Test-section auto-fill** and **Summary auto-fill** (`references/auto-fill.md`). On sparse context, fall back as defined there, never invent specifics.
-- NEVER carry `#`-prefixed numeric references through the "Podsumowanie zmian" section — Summary auto-fill strips `#(\d+)` → `\1` so squash-merge subjects like `feat: foo (#123)` don't become noisy cross-reference renders. `#` is preserved only in "Powiązane zadania", where GitHub keyword-linking (`closes #N`) needs it.
-- NEVER bypass the Step 7 preview / confirmation — auto-fill ratio is irrelevant; the user always sees the preview and the Save / Edit field / Cancel triad.
-- NEVER `Write` the body or run `gh pr create` before printing the Step 8 "Saving PR" echo of the exact final content — the print precedes persistence unconditionally, however the content was assembled.
+- NEVER pass the body inline to any `gh` call — it always travels as the Step 8 tempfile through `create.sh` `--body-file` (inline escaping of newlines/quotes/backticks under bash is a footgun).
+- NEVER create a non-draft PR — `scripts/create.sh` hardcodes `--draft`. Draft -> ready is a follow-up the user does via `gh pr ready` or the UI; the API-level conversion and resolving review threads are GraphQL-only — the `cli` skill owns the layer choice, and the fully-specified operation goes to `cli-executor`.
+- NEVER widen the sandbox — `git push`, labels/reviewers/assignees collection, `gh pr edit`, `gh pr ready`, `gh pr view --web` are deliberate "no"s; the only surfaces are `Bash(sh:*)` (bundled scripts) and the two preflight probes.
+- NEVER assume the template, branch naming, or routing reality match the current repo — this skill ships stack-agnostic; GitFlow routing is an opinionated default kept in check by always-confirm and Edge A. Behavior derives entirely from the template, the actual branch name, and the script-gathered facts at runtime.
+- NEVER bypass the Step 7 preview or the Step 8 echo — auto-fill ratio is irrelevant; the user always sees the Save / Edit field / Cancel triad and the exact persisted content before it is written.
