@@ -1,6 +1,6 @@
 ---
 name: superbuild
-description: "Use ONLY when the approved plan's body contains instruction to use it."
+description: Use ONLY when the approved plan's body contains instruction to use it.
 model: sonnet
 effort: low
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, AskUserQuestion, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop
