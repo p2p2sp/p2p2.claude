@@ -1,7 +1,10 @@
 ---
 name: design-system-creator
-description: Designs a NEW framework-agnostic design system from the user's intent and optional inspiration materials — inspiration, never replication. Use when the user describes a product/mood and wants a visual direction or design system created from scratch ("design me a design system", "projekt od zera z inspiracji"), in any language. Inspiration images are hints only; for pixel-perfect extraction from screenshots use design-system-extractor. Produces the same .superui/design-system/ artifacts (dtcg.yml, DESIGN.md, tokens.css, specs, HTML sheets), marked with designed provenance and enforced by design-system-guardian afterwards. NOT for styling individual pages/components (pro-designer/guardian handle those).
+description: Designs a NEW framework-agnostic design system from the user's intent and optional inspiration materials — inspiration, never replication.
 allowed-tools: Write, Bash(sh:*), Bash(python:*), Bash(python3:*), Bash(py:*), Bash(mkdir:*), Bash(cp:*), Skill, Agent
+user-invocable: true
+disable-model-invocation: true
+
 ---
 
 # Design System Creator — creative head
