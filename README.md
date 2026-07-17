@@ -29,6 +29,10 @@ Every plugin is self-contained — none declares any dependencies. Installing on
 
 ## Super Dev
 
+Every request enters through the same interview, then the user picks one of two tracks at an explicit gate — Simple (plan straight away) or Super (spec first, then plan). Both meet the same `ExitPlanMode` hook, and both end in the same Close Out:
+
+![superdev flow — the Simple track and the Super track](.docs/assets/superdev-flow.svg)
+
 | Area | Skills |
 | --- | --- |
 | Entry interview & environment | `superdev` — the always-on entry skill named after the plugin; interviews you to map the design before any plan/code, then hands off to planning. `setup` — run `/setup` once to seed `.temp/` + `.superdev/`, copy the `.gitignore` / `.claude/settings.json` templates, seed `.claude/rules/_superdev.md` (a frozen pointer to the manifest's mandatory rules), and choose the opt-in switches written to `.superdev/config.yml` |

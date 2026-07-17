@@ -93,7 +93,10 @@ README.md            User-facing help (install + how it works)
 .github/             CI: scripts/release.sh + workflows/ (release-version.yml — manual dispatch only)
 .claude/rules/       Development-only conventions for this repo
 .docs/               Dev-time notes + source material (per-plugin subdirs, e.g. .docs/superui/) — reference
-                     documents behind skill content; NOT part of any plugin, never shipped, never read at runtime
+                     documents behind skill content; NOT part of any plugin, never shipped, never read at runtime.
+                     ONE exception to "dev-time only": .docs/assets/ holds images embedded in README.md
+                     (superdev-flow.svg — the superdev Simple/Super flow diagram), so it renders publicly on
+                     GitHub — moving or deleting anything there breaks the README image links
 ```
 
 Each plugin dir carries a `.claude-plugin/plugin.json` (its `skills[]` (+ `agents[]`) is the catalog of record).
