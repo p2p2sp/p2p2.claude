@@ -1,7 +1,6 @@
 ---
 name: foundation-analyst
-description: >-
-  Measures exactly ONE foundation dimension (colors | typography | dimensions | effects-motion) of a design-system extraction across source screenshots and writes measured notes to a file. Spawn one per foundation, in parallel. Measures pixels with the bundled sampler; never adopts a value from memory, a hint, or a "typical" system.
+description: Single-foundation pixel measurer. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep, Bash
 ---
 

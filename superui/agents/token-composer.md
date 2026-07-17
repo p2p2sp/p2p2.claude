@@ -1,7 +1,6 @@
 ---
 name: token-composer
-description: >-
-  Sole writer of dtcg.yml in a design-system extraction. Either composes dtcg.yml from foundation-analyst notes, or merges a missing-tokens list into an existing dtcg.yml — then runs the validator in a loop until zero errors. Never invents a value that no note or list entry provides.
+description: Sole dtcg.yml writer — compose + merge. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 

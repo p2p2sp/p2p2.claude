@@ -1,7 +1,6 @@
 ---
 name: fidelity-reviewer
-description: >-
-  Independent fidelity verifier for a design-system extraction. Re-samples the source screenshots and checks the produced artifacts (dtcg.yml, DESIGN.md, specs, sheets) against what the pixels actually show — surface order, radii, divider ownership, accent discipline, state form+color. Reports mismatches; never edits artifacts. Spawn per verification scope, in parallel; always a different agent than the one that produced the artifact.
+description: Artifacts-vs-screenshots fidelity verifier. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep, Bash
 ---
 

@@ -1,7 +1,6 @@
 ---
 name: gap-analyst
-description: >-
-  Judgment stage of a design-system completion run — turns completeness FACTS into judged gaps; names WHAT is missing, never a fill value. Spawn exactly one.
+description: Completeness-facts-to-gaps judge. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
 ---
 

@@ -1,7 +1,6 @@
 ---
 name: source-scout
-description: >-
-  Source-mapping scout for design-system extraction. Reads every screenshot in a source directory once and writes a source map: screen inventory, viewport classes, dark-mode coverage, per-foundation reading lists, phenomena to measure, and ambiguities for the orchestrator to resolve with the user. Hints only — it names WHAT and WHERE to measure, never what values to adopt. Spawn exactly one, before any analyst.
+description: Screenshot source-map scout. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
 ---
 

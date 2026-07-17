@@ -1,7 +1,6 @@
 ---
 name: spec-writer
-description: >-
-  Writes ONE component or pattern spec (.md) for a design-system extraction, from the canonical screenshot(s) plus dtcg.yml, following the bundled spec template. References tokens by NAME only. A value with no matching token is returned as a MISSING-TOKENS list entry — this agent never edits dtcg.yml. Spawn one per inventory entry, in parallel.
+description: Single spec writer, from screenshots. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep, Bash
 ---
 

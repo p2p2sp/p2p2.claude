@@ -1,7 +1,6 @@
 ---
 name: inventory-coverage-auditor
-description: >-
-  Matches reusable components found in the implementation against the design system's inventory.md, in both directions: implemented-but-uninventoried and inventoried-but-unimplemented on the audited surface — the UNTRACKED findings of a consistency audit. Read-only; returns structured findings only. Spawn one per audit surface, in parallel.
+description: Implementation-vs-inventory coverage matcher. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
 ---
 

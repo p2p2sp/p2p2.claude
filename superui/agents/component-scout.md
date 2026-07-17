@@ -1,7 +1,6 @@
 ---
 name: component-scout
-description: >-
-  Builds the single deduplicated inventory of a design-system extraction: components (flat list with atomic|composite metadata) and patterns (source screens as compositions), each with a canonical screen. Spawn exactly one — dedup requires one pair of eyes across all screens; parallel scouts produce duplicate or missed entries.
+description: Deduplicated component + pattern inventory builder. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
 ---
 

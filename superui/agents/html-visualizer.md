@@ -1,7 +1,6 @@
 ---
 name: html-visualizer
-description: >-
-  Renders ONE documentation sheet (.html) of an extracted design system — a foundation, component, or pattern sheet — from its spec/DESIGN.md content plus tokens.css, inside the fixed bundled doc chrome. All preview styling uses var(--token) exclusively; zero raw hex/px. Never reads screenshots. Spawn one per sheet, in parallel.
+description: Single doc-sheet HTML renderer. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
 ---
 

@@ -1,7 +1,6 @@
 ---
 name: design-director
-description: >-
-  Designs the complete visual direction of a NEW design system from a user brief + optional inspiration hints — all four foundation notes files, an inventory proposal and a rationale. Spawn exactly one; design coherence requires a single head.
+description: Holistic visual-direction designer for a new system. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep, Bash
 skills: [superui:pro-designer]
 ---

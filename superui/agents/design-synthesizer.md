@@ -1,7 +1,6 @@
 ---
 name: design-synthesizer
-description: >-
-  Designs the user-APPROVED gaps of one scope in a design-system completion run — extrapolates from the existing tokens/specs first, generic professional standards second. Emits a synthesized-tokens list and provenance-marked spec content; never edits dtcg.yml. Spawn one per approved scope, in parallel.
+description: Approved-gap designer. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
 ---
 

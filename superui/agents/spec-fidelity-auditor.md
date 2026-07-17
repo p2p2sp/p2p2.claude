@@ -1,7 +1,6 @@
 ---
 name: spec-fidelity-auditor
-description: >-
-  Compares implemented components and patterns against their design-system specs in a consistency audit: states, variants, anatomy, accent discipline, and dark-mode handling versus components/<slug>.md / patterns/<slug>.md and DESIGN.md. Reads specs fresh from the files, never from memory. Read-only; returns structured findings only. Spawn one per audit surface, in parallel.
+description: Implementation-vs-spec conformance auditor. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
 ---
 

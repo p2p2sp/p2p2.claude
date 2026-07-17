@@ -1,7 +1,6 @@
 ---
 name: token-drift-auditor
-description: >-
-  Interprets the hardcoded-value scan of a design-system consistency audit: for each raw style value found in the implementation, decides whether an existing token covers it (exact or near match), names the token, and classifies DRIFT (a token covers it) vs GAP candidate (no token covers it). Read-only toward code and system alike; returns structured findings only. Spawn one per audit surface, in parallel.
+description: Hardcoded-value drift-vs-gap classifier. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
 ---
 

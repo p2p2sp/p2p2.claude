@@ -1,7 +1,6 @@
 ---
 name: design-doc-writer
-description: >-
-  Completes a script-generated DESIGN.md skeleton for an extracted design system: observed principles, token tiers, theming, consistency rules (accent discipline), accessibility notes, and the agent-usage instructions section. Writes prose around token NAMES only — never restates a raw hex or px.
+description: DESIGN.md skeleton completer. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Edit, Glob, Grep
 ---
 

@@ -1,7 +1,6 @@
 ---
 name: spec-designer
-description: >-
-  Designs ONE component or pattern spec for a design system that has no source screenshots — from the inventory entry, dtcg.yml and the design brief, following the bundled spec template. Values by token NAME only; unmatched values return as SYNTHESIZED-TOKENS. Spawn one per inventory entry, in parallel.
+description: Single spec designer, no screenshots. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
 skills: [superui:pro-designer]
 ---
