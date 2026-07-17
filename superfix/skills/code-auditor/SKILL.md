@@ -3,7 +3,7 @@ name: code-auditor
 description: Prioritized, multi-agent investigation of a large codebase using the Impact × Opportunity law.
 user-invocable: true
 disable-model-invocation: true
-allowed-tools: Agent, Read, Glob
+allowed-tools: Agent, Read, Write, Edit, Glob, Bash, AskUserQuestion
 ---
 
 # Code Auditor — prioritized multi-agent codebase investigation
@@ -34,7 +34,7 @@ Cheap models for **breadth** (score everything). Frontier models for **depth** (
 
 ## What you can point it at (the "jobs")
 
-The same Impact × Opportunity formula generalizes across domains. Before sweeping, pick the **job** that matches the user's goal and read `references/jobs.md` for the exact Impact-signal × Opportunity-signal pair:
+The same Impact × Opportunity formula generalizes across domains. Before sweeping, pick the **job** that matches the user's goal and read `${CLAUDE_SKILL_DIR}/references/jobs.md` for the exact Impact-signal × Opportunity-signal pair:
 
 - **Code** — Tech debt (churn × complexity), Dead code (unused-confidence × size)
 - **Reliability** — Bugs (change-frequency × hotfix-blame), Coverage (blast-radius × coverage-gap), Consistency (usage × rubric-drift)
@@ -49,14 +49,15 @@ This mirrors the five-step idea: *sweep → score → ignore noise → send dete
 
 ### Phase 0 — Frame
 1. Confirm the **target repo path** and the **job** (above).
-2. Create a workspace: `mkdir -p .temp/code-reviewer/<run-id>/{signals,scores,reports,hotlist}`.
-3. Define the Impact and Opportunity signals for the chosen job from `references/jobs.md`. Write them to `.temp/code-reviewer/<run-id>/job.md` so every subagent scores against the *same* rubric.
+2. Run `sh "${CLAUDE_SKILL_DIR}/scripts/check_python.sh"`. `PYTHON_OK <cmd>` -> use `<cmd>` wherever this skill writes `python3`. `PYTHON_MISSING` -> STOP here: the Phase 3 gate needs Python 3, and without it the sweep and the scout fan-out would be paid for and then discarded. Tell the user, and do not start Phase 1.
+3. Create a workspace: `mkdir -p .temp/code-reviewer/<run-id>/{signals,scores,reports,hotlist}`.
+4. Define the Impact and Opportunity signals for the chosen job from `${CLAUDE_SKILL_DIR}/references/jobs.md`. Write them to `.temp/code-reviewer/<run-id>/job.md`, inlining the 1-5 rubric from `${CLAUDE_SKILL_DIR}/references/scoring.md`, so every subagent scores against the *same* rubric from one self-contained file.
 
 ### Phase 1 — Sweep (cheap signal collection)
 Collect deterministic signals for every candidate file. This is the only place you run a script, because these numbers must be repeatable and free:
 
 ```bash
-bash scripts/collect_signals.sh <window-days> <repo-root> \
+bash "${CLAUDE_SKILL_DIR}/scripts/collect_signals.sh" <window-days> <repo-root> \
   > .temp/code-reviewer/<run-id>/signals/signals.jsonl
 ```
 
@@ -66,7 +67,7 @@ This emits one JSON line per source file with `churn`, `fix_commits`, `recency_d
 For each candidate file (or each batch of N files), spawn a **`scout`** subagent (Agent tool, `subagent_type: superfix:scout`) — cheap tier, runs in its own isolated context, returns one line of strict JSON. Launch them in parallel; tens at a time is normal.
 
 - Give each scout: the file path, the matching signal line, and `job.md`.
-- Each scout returns `{path, impact, opportunity, impact_reason, opportunity_reason}` with Impact and Opportunity each on **1-5** (rubric in `references/scoring.md`). Append every verdict to `.temp/code-reviewer/<run-id>/scores/scores.jsonl`.
+- Each scout returns `{path, impact, opportunity, impact_reason, opportunity_reason}` with Impact and Opportunity each on **1-5** (rubric inlined in `job.md`). Append every verdict to `.temp/code-reviewer/<run-id>/scores/scores.jsonl`.
 - A good scout will rate most files low and say "nothing interesting" — that is correct, not a failure. Cheap and shallow on purpose: the scout rates *likelihood worth a closer look*, it does NOT try to find the actual bug.
 
 Batch to control cost: ~10-40 files per scout for a huge tree, 1 file per scout when you want maximum resolution on a hot module.
@@ -75,7 +76,7 @@ Batch to control cost: ~10-40 files per scout for a huge tree, 1 file per scout 
 Combine and rank deterministically so the cut is reproducible:
 
 ```bash
-python3 scripts/rank.py \
+python3 "${CLAUDE_SKILL_DIR}/scripts/rank.py" \
   --scores .temp/code-reviewer/<run-id>/scores/scores.jsonl \
   --signals .temp/code-reviewer/<run-id>/signals/signals.jsonl \
   --min-impact 3 --min-opportunity 3 --top 20 \
@@ -88,12 +89,12 @@ python3 scripts/rank.py \
 ### Phase 4 — Dispatch detectives (frontier model, top-N only)
 For each hotspot on the gated hotlist, spawn a **`detective`** subagent (Agent tool, `subagent_type: superfix:detective`) — frontier tier, isolated context. This is "Send the detective here": you only pay deep-model cost for the survivors.
 
-- Give each detective ONE hotspot as an **entry point** (not a constraint — it may follow the trail into neighbouring code) plus `job.md`.
-- The detective hunts the actual issue, **verifies it on a clean checkout**, and writes a structured report (schema in `references/synthesis.md`) to `.temp/code-reviewer/<run-id>/reports/<rank>-<slug>.md`, or writes `NO FINDING` if nothing real survives verification.
+- Give each detective ONE hotspot as an **entry point** (not a constraint — it may follow the trail into neighbouring code), `job.md`, and the report-schema path `${CLAUDE_SKILL_DIR}/references/synthesis.md`.
+- The detective hunts the actual issue, **verifies it on a clean checkout**, and writes a structured report (schema in `synthesis.md`) to `.temp/code-reviewer/<run-id>/reports/<rank>-<slug>.md`, or writes `NO FINDING` if nothing real survives verification.
 - Scale the count to how many hotspots cleared the bar — 5, 20, or 50. Run in waves if the tier has concurrency limits.
 
 ### Phase 5 — Synthesize (verify, dedupe, score, rank)
-Read `references/synthesis.md` and run the critic pass:
+Read `${CLAUDE_SKILL_DIR}/references/synthesis.md` and run the critic pass:
 1. Spawn a separate **critic** instance per report (or reuse `detective` in verify-only mode) that replays the claimed issue **on a fresh checkout** — this catches the classic failure where an agent earlier edited the tree, then "discovered" its own change after a context compaction.
 2. Deduplicate findings that are the same root cause hit from different files.
 3. Assign each surviving finding a **severity 0-10** and tag it `SEVERITY: N.N` on its own line so the final ranking is greppable.
@@ -117,9 +118,9 @@ The workflow is *dynamic*, not a fixed pipeline. After synthesis:
 3. A short prose summary: how many files swept, how many hotspots, how many confirmed findings, and which fronts remain open.
 
 ## Reference files
-- `references/jobs.md` — the job catalog: Impact-signal × Opportunity-signal per job.
-- `references/scoring.md` — the 1-5 rubric, the 2×2 gate, the combine formula, hotlist schema.
-- `references/synthesis.md` — detective/critic report schema, clean-checkout verification, dedup, severity scoring, the open-new-fronts loop.
+- `${CLAUDE_SKILL_DIR}/references/jobs.md` — the job catalog: Impact-signal × Opportunity-signal per job.
+- `${CLAUDE_SKILL_DIR}/references/scoring.md` — the 1-5 rubric, the 2×2 gate, the combine formula, hotlist schema.
+- `${CLAUDE_SKILL_DIR}/references/synthesis.md` — detective/critic report schema, clean-checkout verification, dedup, severity scoring, the open-new-fronts loop.
 
 ## Subagents this skill drives
 Dispatched via the Agent tool with `subagent_type` (plugin-namespaced):

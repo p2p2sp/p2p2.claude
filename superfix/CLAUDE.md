@@ -19,7 +19,8 @@ deliberately outside any routing manifest. The **per-skill** catalog of record i
 superfix/
   .claude-plugin/plugin.json   The plugin manifest — skills[] + agents[] are the catalog of record
   skills/            One user-invoked skill code-auditor/ (disable-model-invocation); bundles
-                     references/ (jobs.md, scoring.md, synthesis.md) + scripts/ (collect_signals.sh, rank.py)
+                     references/ (jobs.md, scoring.md, synthesis.md) + scripts/ (check_python.sh,
+                     collect_signals.sh, rank.py) — all addressed via `${CLAUDE_SKILL_DIR}/...`
   agents/            Two plugin agents: scout.md (cheap haiku triage) + detective.md (frontier opus deep-dive)
 ```
 
@@ -29,7 +30,11 @@ superfix/
   `score = Impact × Opportunity` law: a deterministic sweep (`scripts/collect_signals.sh`) → cheap `scout`
   scoring fan-out → deterministic gate/rank (`scripts/rank.py`) → frontier `detective` dispatch into the
   hotspots only → verified, severity-ranked synthesis. State lives under a `.temp/code-reviewer/<run-id>/`
-  workspace, not the main context. Bundles `references/{jobs,scoring,synthesis}.md`.
+  workspace, not the main context. Bundles `references/{jobs,scoring,synthesis}.md`. Phase 0 resolves the
+  interpreter via `scripts/check_python.sh` and HARD-STOPS on `PYTHON_MISSING` — the gate is what makes the
+  cut reproducible, so a run that cannot rank must not pay for the sweep and the scout fan-out first. This is
+  the one place superfix's env-check differs from superui's (which degrades to a skip-with-note); it is also
+  why the check sits in Phase 0 rather than next to the Phase 3 step it guards.
 - `scout` / `detective` — the two **plugin agents** (`agents/*.md`, listed in `plugin.json` `agents[]`,
   dispatched via the Agent tool with `subagent_type: superfix:<name>`). `scout` is cheap-tier breadth-first
   triage (spawn many); `detective` is frontier-tier depth-first investigation (spawn few). Bare-named because
