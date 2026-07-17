@@ -41,7 +41,7 @@ Every request enters through the same interview, then the user picks one of two 
 | Super track | `superspec` + `superspec-reviewer` (the `What & Why` spec; `superspec-refine` to evolve an existing one), then `superplan` + `superplan-reviewer`, then `superbuild` driving `superbuild-adr` (only when `adr: true`), `superbuild-task-coder` + `superbuild-task-reviewer` per task, and `superbuild-reviewer-spec` → `superbuild-reviewer-code` at the end |
 | Cross-cutting | `tdd` (Red-Green-Refactor discipline on any task marked `TDD: required`), `simpledebug` (trace the flow, prove the diagnosis with a failing test, hand the fix plan to `simpleplan`) |
 
-Every worker is a skill — `superdev` ships no plugin agents; the reviewers, coders, and writers above run as forks in their own context.
+The reviewers, coders, and writers above run as forks in their own context — the track drives them for you; you never invoke them by hand.
 
 ## Super GH
 
@@ -75,8 +75,6 @@ pyyaml` — run `/superui:setup` to verify. Full detail: `superui/README.md`.
 
 Single user-invoked skill (no manifest, no hooks); runs only via `/superfix:code-auditor`:
 
-| Component | Role |
+| Skill | Role |
 | --- | --- |
-| `code-auditor` (skill) | Prioritized multi-agent codebase investigation — sweep every file, score Impact × Opportunity, gate to the hotspots, dispatch deep investigators, synthesize a verified, severity-ranked hotlist. User-only (`disable-model-invocation`) |
-| `scout` (agent) | Cheap, fast triage scorer — rates one file (or a small batch) for Impact and Opportunity 1-5; spawn many in parallel during the sweep |
-| `detective` (agent) | Frontier-model deep investigator — hunts the actual issue in one hotspot, verifies it on a clean checkout, writes a structured finding; spawn few |
+| `code-auditor` | Prioritized multi-agent codebase investigation — sweeps every file, scores each one Impact × Opportunity, gates to the hotspots, sends deep investigators only there, and synthesizes a verified, severity-ranked hotlist. User-only (`disable-model-invocation`), so nothing auto-routes to it |
