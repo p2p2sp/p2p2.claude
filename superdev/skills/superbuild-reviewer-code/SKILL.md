@@ -16,8 +16,10 @@ The block above is the full plan (`## plan`) and the human-approved spec (`## sp
 Report path: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*report:[[:space:]]*//p' | head -n1`
 Write the full review to that path (see `## Report`).
 
+Base SHA: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*base:[[:space:]]*//p' | head -n1`
+
 ## Scope
-You own ONE dimension: the quality of the delivered code. Spec conformance is a separate review dimension — assume the behavior is correct unless a quality defect breaks it. The change under review is the set of files listed under the plan tasks' `Files` (plus their tests); read them in full and inspect how they integrate with their surroundings.
+You own ONE dimension: the quality of the delivered code. Spec conformance is a separate review dimension — assume the behavior is correct unless a quality defect breaks it. The change under review is the build's change set — `git diff --name-status <base SHA>..HEAD` (Base SHA empty or `none` -> fall back to the files listed under the plan tasks' `Files` plus their tests); read the changed files in full and inspect how they integrate with their surroundings.
 
 ## Review
 

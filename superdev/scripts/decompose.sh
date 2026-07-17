@@ -18,6 +18,8 @@
 #   - kopiuje pełny plan obok nagłówka jako plan.md
 #   - tworzy status.md z numerem ostatnio przetworzonego taska (start: 00);
 #     istniejący status.md jest zachowywany (wznowienie)
+#   - zapisuje bazowy SHA builda (HEAD sprzed commita dekompozycji) do base.md;
+#     istniejący base.md jest zachowywany (wznowienie); brak commitów -> none
 #   - rozdziela taski (sekcje TASK) do plików tasks/task-NN.md
 #   - do każdego taska dopisywana jest sekcja "### Covered criteria" z verbatim
 #     treścią kryteriów wskazanych w jego linii "Covers:"; źródło to spec
@@ -30,6 +32,7 @@
 #   - wypisuje na stdout indeks tasków dla pętli implementacji:
 #       workdir: <ścieżka do .superdev/.workflows/<data>-<slug>/>
 #       status: <numer-ostatniego-taska | none>
+#       base: <SHA | none>
 #       plan-header: <ścieżka>
 #       plan: <ścieżka>
 #       spec: <ścieżka>          (tylko gdy plan ma linię "Spec:")
@@ -159,6 +162,21 @@ else
   printf 'task: %s\n' "$last" > "$status"
 fi
 
+# --- bazowy SHA builda: HEAD sprzed commita dekompozycji ---
+# granica diffa dla Final Review (git diff <base>..HEAD); istniejący base.md
+# zachowujemy (wznowienie nie przesuwa bazy). brak commitów w repo -> none.
+basefile="$dir/base.md"
+if [[ -f "$basefile" ]]; then
+  base="$(sed -n 's/^base:[[:space:]]*//p' "$basefile" | head -n1)"
+  if [[ -z "$base" ]]; then base="none"; fi
+else
+  # --verify -q: w repo bez commitów zwykłe rev-parse HEAD drukuje literalne
+  # "HEAD" na stdout mimo błędu; wariant -q milczy i pozwala podstawić none.
+  base="$(git rev-parse --verify -q HEAD 2>/dev/null || true)"
+  if [[ -z "$base" ]]; then base="none"; fi
+  printf 'base: %s\n' "$base" > "$basefile"
+fi
+
 # --- podział na pliki tasków + indeks na stdout ---
 # workdir: katalog roboczy; status: numer ostatniego taska (lub none); potem nagłówek + taski.
 echo "workdir: $dir"
@@ -167,6 +185,7 @@ if [[ "$((10#$last))" -gt 0 ]]; then
 else
   echo "status: none"
 fi
+echo "base: $base"
 echo "plan-header: $header"
 echo "plan: $plan_copy"
 [[ -n "$spec_path" ]] && echo "spec: $spec_path"

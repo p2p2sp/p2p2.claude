@@ -22,6 +22,9 @@ Folds the facts in `## capture` into the project's CLAUDE.md memory cascade. Inp
 
 `## spec` (when present) — the approved What & Why behind the change material, which carries only the How. Durability is judged from the spec: its scope, contracts and constraints are what a node records.
 
+Notes dir: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*notes:[[:space:]]*//p' | head -n1`
+When set, Read its `*-notes.md` files — the recorded plan->code deviations. Where a note marks a deviation, the code state PLUS its recorded why is the durable fact — never fold in the intent the note overrode (record "X deliberately not migrated", not the plan's X). A deviation with no recorded why is not design — keep it out of memory.
+
 Qualification filter for change material — apply BEFORE touching any node. A capture document never passes through this filter: its facts are interview-resolved, and an invariant or pitfall the code cannot show is exactly what it exists to record.
 
 Change material states INTENT; the code is TRUTH. Confirm every described change against the actual code (Read/Grep the named files and symbols) — a change the code does not show did not happen; ignore it.

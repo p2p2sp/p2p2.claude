@@ -20,6 +20,9 @@ Folds the content of `## capture` into the project's `.claude/rules/*.md` files.
 - a capture document — has `## Rules` (directive: `<slug> — paths: <globs> — <scope>` per line, plus optional `delete: <path> — <reason>` lines) and `## Facts` (per-area conventions under `### <slug>` headings). Write exactly the listed rules — one file `.claude/rules/<slug>.md` per entry with that area's facts as the body; remove the files named on `delete:` lines.
 - change material (e.g. a build plan with tasks) — no `## Rules`. Map the described changes onto EXISTING rule files (Glob `.claude/rules/**/*.md`) and update only those whose convention the change contradicts or extends; create nothing new, delete nothing. Nothing affected -> `VERDICT: PASS` with `RULES: none`.
 
+Notes dir: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*notes:[[:space:]]*//p' | head -n1`
+When set, Read its `*-notes.md` files — the recorded plan->code deviations. A noted deviation's why can establish or contradict a convention the change material alone does not show; an unrecorded deviation qualifies nothing.
+
 Qualification filter for change material — apply BEFORE touching any rule. A capture document never passes through this filter: its facts are interview-resolved, and may state a TARGET convention the code does not yet follow.
 
 Change material states INTENT; the code is TRUTH. Confirm every described change against the actual code (Read/Grep the named files and symbols) — a change the code does not show did not happen; ignore it.

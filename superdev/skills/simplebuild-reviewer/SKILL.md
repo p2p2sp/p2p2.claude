@@ -8,9 +8,6 @@ allowed-tools: Read, Write, Grep, Glob, Bash
 user-invocable: false
 ---
 
-## Prerequisites
-Base SHA: !`git rev-parse HEAD 2>&1`
-
 ## Input
 !`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan-header plan 2>&1`
 
@@ -19,13 +16,19 @@ The block above is the plan header (`## plan-header`) and the full plan (`## pla
 Report path: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*report:[[:space:]]*//p' | head -n1`
 Write the full review to that path (see `## Report`).
 
+Base SHA: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*base:[[:space:]]*//p' | head -n1`
+The build's change set is `git diff --name-status <base SHA>..HEAD` — run it first; it bounds what you judge. Base SHA empty or `none` -> review unbounded and say so in the report.
+
+Notes dir: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*notes:[[:space:]]*//p' | head -n1`
+When set, Read its `*-notes.md` files — the implementor's recorded plan->code deviations. Claims to verify, not truth.
+
 ## Review
 Review the completed work against the plan.
 
 **Plan alignment (gate — check FIRST):**
 - Does the implementation match the plan / requirements?
-- Are deviations justified improvements, or problematic departures?
 - Is all planned functionality present?
+- Reverse direction: does every file in the change set map to a plan task's `Files` (test/config fallout is fine)? An unmapped change — or any deviation — NOT recorded in the notes is a misalignment in itself; a recorded one is judged on merit: justified improvement or problematic departure.
 
 On any misalignment: STOP. Write the report (misalignment under Critical), emit
 `VERDICT: FAIL` + `REVIEW: <report path>`, and return immediately — do not run the

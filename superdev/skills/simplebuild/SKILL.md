@@ -27,12 +27,13 @@ These gate the Close-Out delegations (Step 4). Run a delegation ONLY when its li
 
 Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/decompose.sh" <plan-file>` with the approved plan's path. It creates a working dir (returned as `workdir:`) containing:
 - `status.md` — number of the last processed task (starts at `00`).
+- `base.md` — the build's base SHA (HEAD before the decompose commit); preserved on resume.
 - `plan-header.md` — plan header.
 - `plan.md` — full copy of the approved plan.
 - `tasks/task-NN.md` — one file per task, each carrying the verbatim acceptance criteria it covers.
-- `implementation/` — reviewer reports (`review-NN.md`), one per Final Review round; created empty here, filled in Step 3.
+- `implementation/` — implementor deviation notes (`task-NN-notes.md`, `fix-NN-notes.md`) and reviewer reports (`review-NN.md`); created empty here, filled in Steps 2-3.
 
-It prints the task index (`workdir:` working-dir path, `status:` last processed task or `none`, `plan-header:` path, `plan:` full-plan copy path, then `<task-file>\t<title>` per line) — use it to drive the implementation loop.
+It prints the task index (`workdir:` working-dir path, `status:` last processed task or `none`, `base:` the build's base SHA or `none`, `plan-header:` path, `plan:` full-plan copy path, then `<task-file>\t<title>` per line) — use it to drive the implementation loop.
 
 Non-zero exit (e.g. a `Covers:` criterion absent from the plan's `## Acceptance criteria`) -> STOP and show the error.
 
@@ -50,7 +51,7 @@ Starting point (from decompose `status:`):
 
 For each remaining task file (in order):
   1. `TaskUpdate` -> start
-  2. Invoke `simplebuild-implementor` (Skill) with a labeled-line `args` block — `plan-header: <path>` and `task: <task-file path>` on separate lines (paths from the decompose index).
+  2. Invoke `simplebuild-implementor` (Skill) with a labeled-line `args` block — `plan-header: <path>`, `task: <task-file path>`, and `notes: <workdir>/implementation/task-NN-notes.md` on separate lines (paths from the decompose index).
      It returns `VERDICT: PASS`, or `VERDICT: FAIL` + a `REASON: <line>`.
        - `VERDICT: PASS`  -> continue to commit
        - `VERDICT: FAIL`  -> escalate via `AskUserQuestion` (retry / skip / abort); act on the answer (abort ends the loop)
@@ -60,10 +61,10 @@ For each remaining task file (in order):
 ## Step 3 - Final Review
 
 1. `TaskUpdate` -> start
-2. Invoke `simplebuild-reviewer` (Skill) with a labeled-line `args` block — `plan-header: <path>`, `plan: <plan-copy path>`, and `report: <workdir>/implementation/review-NN.md` on separate lines (NN = review round, starting `01`, +1 on each reviewer call). It returns `VERDICT: PASS`, or `VERDICT: FAIL` + `REVIEW: <path>`.
+2. Invoke `simplebuild-reviewer` (Skill) with a labeled-line `args` block — `plan-header: <path>`, `plan: <plan-copy path>`, `base: <base SHA from the decompose index>`, `notes: <workdir>/implementation/`, and `report: <workdir>/implementation/review-NN.md` on separate lines (NN = review round, starting `01`, +1 on each reviewer call). It returns `VERDICT: PASS`, or `VERDICT: FAIL` + `REVIEW: <path>`.
 3. Fix loop (max 2 rounds):
     - `VERDICT: PASS`  -> Step 4
-    - `VERDICT: FAIL`  -> invoke `simplebuild-implementor` (Skill) with `plan-header: <path>`, `plan: <plan-copy path>`, and `task: <REVIEW path>` on separate lines (`plan` lets it verify the fix with the plan's real Test Commands).
+    - `VERDICT: FAIL`  -> invoke `simplebuild-implementor` (Skill) with `plan-header: <path>`, `plan: <plan-copy path>`, `task: <REVIEW path>`, and `notes: <workdir>/implementation/fix-NN-notes.md` on separate lines (`plan` lets it verify the fix with the plan's real Test Commands).
         - implementor `VERDICT: PASS`  -> `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<fix title>"`, then re-run the reviewer with the next `report:` number.
         - implementor `VERDICT: FAIL`  -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.
     - Still `VERDICT: FAIL` after 2 rounds -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.
@@ -74,8 +75,8 @@ For each remaining task file (in order):
 
 1. `TaskUpdate` -> start
 2. Gated by Config; run only the enabled delegations, in parallel (single message, await all). If none enabled, skip to 5.
-    - `memory: true` -> Invoke `superdev-memory-writer` (Skill) with a labeled-line `args` block — `capture: <plan-copy path>`.
-    - `rules: true`  -> Invoke `superdev-rules-writer` (Skill) with a labeled-line `args` block — `capture: <plan-copy path>`.
+    - `memory: true` -> Invoke `superdev-memory-writer` (Skill) with a labeled-line `args` block — `capture: <plan-copy path>` and `notes: <workdir>/implementation/` on separate lines.
+    - `rules: true`  -> Invoke `superdev-rules-writer` (Skill) with a labeled-line `args` block — `capture: <plan-copy path>` and `notes: <workdir>/implementation/` on separate lines.
 3. Keep each writer's `NODE:` / `RULE:` / `GAP:` lines verbatim for the Step 5 summary. Either delegation failing is non-fatal -> note it there too, do not block.
 4. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(simplebuild): close out memory and rules"` — commits whatever the writers touched.
 5. `TaskStop` -> completed

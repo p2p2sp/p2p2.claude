@@ -1,5 +1,7 @@
 # P2P2 Claude Code plugins (one per subdir) + marketplace catalog
 
+> Always in English: all CLAUDE.MD files, scripts
+
 > **These are the plugins' SOURCE files, not the live plugins.** This repo is the source
 > of the `superdev`, `superui`, `supergh`, and `superfix` plugins (the first three are *also installed* in this session). Editing files here (skills,
 > manifests, hooks, the `plugin.json` of any plugin) does **NOT** change the behavior of the currently loaded
@@ -23,6 +25,13 @@
 > skill taxonomy, internal layout, and plugin-specific architecture invariants; `superdev` currently has none.
 > Claude Code auto-loads the one for whichever plugin dir you're editing under. **This root file holds only the repo-wide facts** (the catalog,
 > versioning, and the cross-plugin invariants); go to the plugin's own file for anything specific to it.
+
+## Environment
+- The dev shell varies per machine — bash / Git-Bash on Windows, **zsh on macOS**, bash on Linux — so do NOT
+  assume bash-only behavior when writing anything a shell parses (Bash tool calls AND the `` !`…` `` preloads
+  the plugins ship). No PowerShell syntax; and assume the strictest shell — e.g. zsh's default `nomatch` aborts
+  on an unquoted glob (`?`, `*`, `[`) where bash would let it pass, so quote such tokens (see the
+  "Shell-portable `!` preload commands" invariant above).
 
 ## What this repo is
 
@@ -186,12 +195,3 @@ This file is orientation only. The authoritative contract of each skill is its o
   architecture invariants above and the plugin-specific ones in its `<plugin>/CLAUDE.md`. Paths in each
   `plugin.json` are plugin-root-relative (`./skills/…`); hook commands use `${CLAUDE_PLUGIN_ROOT}` (that
   plugin's install dir, i.e. its `superdev/`, `superui/`, `supergh/`, or `superfix/` subdir).
-
-# Assistant Conventions
-
-## Environment
-- The dev shell varies per machine — bash / Git-Bash on Windows, **zsh on macOS**, bash on Linux — so do NOT
-  assume bash-only behavior when writing anything a shell parses (Bash tool calls AND the `` !`…` `` preloads
-  the plugins ship). No PowerShell syntax; and assume the strictest shell — e.g. zsh's default `nomatch` aborts
-  on an unquoted glob (`?`, `*`, `[`) where bash would let it pass, so quote such tokens (see the
-  "Shell-portable `!` preload commands" invariant above).
