@@ -1,6 +1,6 @@
 ---
 name: simpleplan-reviewer
-description: Plan reviewer invoked only by the simpleplan skill, never directly.
+description: Invoked only by simpleplan skill.
 context: fork
 model: sonnet
 effort: high

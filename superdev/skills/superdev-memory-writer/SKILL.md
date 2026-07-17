@@ -1,6 +1,6 @@
 ---
 name: superdev-memory-writer
-description: Writes and updates the hierarchical CLAUDE.md memory cascade from a single capture file. Invoked only by the superdev-memory skill or a build close-out step, never directly. Never asks the user.
+description: Invoked only by superdev-memory, superbuild or simplebuild skill.
 context: fork
 model: opus
 effort: high

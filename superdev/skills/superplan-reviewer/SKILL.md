@@ -1,6 +1,6 @@
 ---
 name: superplan-reviewer
-description: Plan reviewer invoked only by the superplan skill, never directly.
+description: Invoked only by superplan skill.
 context: fork
 model: opus
 effort: xhigh

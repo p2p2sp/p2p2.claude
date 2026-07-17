@@ -1,6 +1,6 @@
 ---
 name: superspec-reviewer
-description: Read-only `What & Why` spec reviewer. Checks completeness, ambiguity, testability of acceptance criteria, internal consistency, and `How` leaks. Asks max 5 clarify questions. Invoked only by the superspec skill, never directly.
+description: Invoked only by superspec skill.
 context: fork
 model: opus
 effort: xhigh
@@ -27,5 +27,5 @@ If `## previous-review` is present, check each prior defect and question was add
 
 RETURN exactly three sections (your only channel to the parent):
 - VERDICT: `PASS` or `FAIL`
-- QUESTIONS: numbered list, or "none"
+- QUESTIONS: numbered list, max 5, or "none"
 - DEFECTS: gaps / contradictions / `How` leaks, or "none"

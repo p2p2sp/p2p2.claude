@@ -1,6 +1,6 @@
 ---
 name: superdev-rules-writer
-description: Writes and updates path-scoped .claude/rules/*.md convention files from a single capture file. Invoked only by the superdev-rules skill or a build close-out step, never directly. Never asks the user.
+description: Invoked only by superdev-rules, superbuild or simplebuild skill.
 context: fork
 model: opus
 effort: high
