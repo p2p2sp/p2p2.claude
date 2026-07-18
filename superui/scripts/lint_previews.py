@@ -1,17 +1,25 @@
 #!/usr/bin/env python3
-"""Lint generated documentation sheets for raw (non-token) style values.
+"""Lint generated documentation sheets and their data files for raw (non-token)
+style values.
 
-IN : argv[1] — the design-system output dir; every *.html under it (recursive)
-     is scanned. index.html is included; docs.css is NOT scanned (the fixed
-     chrome legitimately carries raw values and var() fallbacks).
+IN : argv[1] — the design-system output dir; every *.html AND every *.data.js
+     under it (recursive) is scanned. index.html is included; components.js
+     and docs.css are NOT scanned (the fixed chrome legitimately carries raw
+     values and var() fallbacks).
 OUT: stdout — one "VIOLATION <file>: <snippet>" line per finding, then a
      summary line: "<n> files scanned, <v> violations".
-     A violation is any of the following inside a style="..." attribute or a
-     <style>...</style> block (HTML/CSS comments stripped first):
+     A violation is any of the following inside a style="..." attribute, a
+     <style>...</style> block, or (in a *.data.js file) a JS string literal
+     carrying markup (HTML/CSS comments stripped first from *.html; *.data.js
+     is scanned as raw source text, never parsed as JS):
        - a hex color literal  (#abc, #aabbcc, #aabbccdd)
        - rgb( / rgba( / hsl( / hsla(
        - a px length other than 0px
-     Sheets must express every such value as var(--token) from tokens.css.
+     Sheets/data must express every such value as var(--token) from
+     tokens.css. In *.data.js, a style attribute inside a JS string literal
+     arrives backslash-escaped (style=\\"color: ...\\") — the attr pattern
+     tolerates an optional backslash before each quote so plain, single-quoted
+     and JS-escaped forms are all caught.
 Exit codes: 0 = clean (files may be zero — reported in the summary);
      1 = violations found or the dir is unreadable.
 Flags: none.
@@ -21,7 +29,9 @@ import re
 import sys
 
 STYLE_BLOCK = re.compile(r"<style\b[^>]*>(.*?)</style>", re.S | re.I)
-STYLE_ATTR = re.compile(r"""style\s*=\s*("([^"]*)"|'([^']*)')""", re.I)
+STYLE_ATTR = re.compile(
+    r"""style\s*=\s*(?:\\?"((?:[^"\\]|\\.)*?)\\?"|'([^']*)')""", re.I
+)
 HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)
 CSS_COMMENT = re.compile(r"/\*.*?\*/", re.S)
 
@@ -60,7 +70,7 @@ def main():
     files = []
     for dirpath, _dirs, names in os.walk(root):
         for n in names:
-            if n.endswith(".html"):
+            if n.endswith(".html") or n.endswith(".data.js"):
                 files.append(os.path.join(dirpath, n))
 
     total = 0
@@ -74,7 +84,7 @@ def main():
             continue
         doc = HTML_COMMENT.sub("", raw)
         chunks = [m.group(1) for m in STYLE_BLOCK.finditer(doc)]
-        chunks += [m.group(2) or m.group(3) or "" for m in STYLE_ATTR.finditer(doc)]
+        chunks += [m.group(1) or m.group(2) or "" for m in STYLE_ATTR.finditer(doc)]
         rel = os.path.relpath(path, root)
         for chunk in chunks:
             for v in violations_in(chunk):

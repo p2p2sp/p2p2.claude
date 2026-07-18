@@ -2,21 +2,24 @@
 """Build index.html for an extracted design-system directory.
 
 IN : argv[1] — the design-system output dir. Expected inside it:
-     DESIGN.md (narrative source), docs.css, tokens.css, dtcg.yml,
-     tokens.json, inventory.md, optionally foundations/*.html,
-     components/*.html, patterns/*.html.
+     DESIGN.md (narrative source), docs.css, tokens.css, components.js,
+     dtcg.yml, tokens.json, inventory.md, optionally foundations/*.html,
+     components/*.html, patterns/*.html (each with a sibling *.data.js).
 OUT: writes <dir>/index.html — the overview page (chrome classes from
      docs.css): intro pulled from DESIGN.md's first paragraph, the fixed
      three-layer explanation, Principles / Token naming / Status sections
      pulled from the matching DESIGN.md sections (minimal markdown -> HTML:
      paragraphs, "- " bullets, **bold**, `code`), and link lists to every
      sheet found on disk (components get an atomic/composite badge from
-     inventory.md when available). Carries the whole-page dark toggle when
-     tokens.css declares at least one .dark override.
+     inventory.md when available; link labels come from the sheet's sibling
+     *.data.js "title", falling back to the shell's <h1>/<title>). Loads
+     components.js (the single dark-toggle source) and carries
+     data-dark-toggle on <body> when tokens.css declares at least one .dark
+     override.
      stdout — one summary line: "<f> foundation, <c> component, <p> pattern
      sheets -> <path>".
-     Self-verifies: every href it emits points at an existing file; a missing
-     target exits 1 with a message on stderr.
+     Self-verifies: every href/src it emits (including components.js) points
+     at an existing file; a missing target exits 1 with a message on stderr.
 Exit codes: 0 = written and verified; 1 = bad args, missing DESIGN.md/docs.css/
      tokens.css, or a dangling link.
 Flags: none.
@@ -24,26 +27,10 @@ Flags: none.
 Regenerated wholesale on every run — never hand-edit index.html.
 """
 import html
+import json
 import os
 import re
 import sys
-
-# Same block as sheet.template.html's {{DARK_TOGGLE}} — flips .dark on <html>
-# (whole-page theme, chrome included) and persists the choice, so index.html
-# and every sheet stay in agreement. Emitted only when tokens.css carries real
-# dark overrides. The button's label comes from docs.css, not from JS.
-DARK_TOGGLE = """<script>
-(function () {
-  try {
-    if (localStorage.getItem('superui-docs-theme') === 'dark')
-      document.documentElement.classList.add('dark');
-  } catch (e) {}
-})();
-</script>
-<button class="dark-toggle" aria-label="Toggle dark mode" onclick="
-  var d = document.documentElement.classList.toggle('dark');
-  try { localStorage.setItem('superui-docs-theme', d ? 'dark' : 'light'); } catch (e) {}
-"></button>"""
 
 
 def has_dark_overrides(root):
@@ -116,7 +103,24 @@ def sections_of(md_text):
     return secs
 
 
+DATA_TITLE = re.compile(r'"title"\s*:\s*"((?:[^"\\]|\\.)*)"')
+
+
 def sheet_title(path):
+    """Link label for a sheet: sibling <slug>.data.js "title" first (the
+    data file is the single source of sheet content), falling back to the
+    shell's own <h1>/<title>, then the basename."""
+    data_path = os.path.splitext(path)[0] + ".data.js"
+    try:
+        with open(data_path, encoding="utf-8") as f:
+            m = DATA_TITLE.search(f.read(4000))
+        if m:
+            try:
+                return json.loads('"' + m.group(1) + '"')
+            except ValueError:
+                return m.group(1)
+    except OSError:
+        pass
     try:
         with open(path, encoding="utf-8") as f:
             head = f.read(4000)
@@ -167,7 +171,8 @@ def main():
     root = sys.argv[1]
     design_md = os.path.join(root, "DESIGN.md")
     for req in (design_md, os.path.join(root, "docs.css"),
-                os.path.join(root, "tokens.css")):
+                os.path.join(root, "tokens.css"),
+                os.path.join(root, "components.js")):
         if not os.path.isfile(req):
             sys.exit(f"error: missing required file {req}")
 
@@ -185,8 +190,8 @@ def main():
     intro = md_block(intro_lines) or "<p>An extracted, token-bound design system.</p>"
 
     kinds = inventory_kinds(root)
-    toggle = DARK_TOGGLE if has_dark_overrides(root) else ""
-    targets, parts = [], []
+    dark_toggle = has_dark_overrides(root)
+    targets, parts = ["components.js"], []
 
     parts.append('<div class="section index-hero">')
     parts.append(intro)
@@ -232,6 +237,7 @@ def main():
     targets += ["DESIGN.md", "dtcg.yml", "tokens.json", "tokens.css", "inventory.md"]
 
     body = "\n".join(parts)
+    body_attrs = " data-dark-toggle" if dark_toggle else ""
     page = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -241,8 +247,8 @@ def main():
 <link rel="stylesheet" href="docs.css">
 <link rel="stylesheet" href="tokens.css">
 </head>
-<body>
-{toggle}
+<body{body_attrs}>
+<script src="components.js"></script>
 <header class="sheet-header">
   <h1>Design System</h1>
 </header>
@@ -254,16 +260,16 @@ def main():
     with open(out, "w", encoding="utf-8", newline="\n") as f:
         f.write(page)
 
-    # self-verify: every emitted link resolves
+    # self-verify: every emitted link/script src resolves
     missing = [t for t in targets if not os.path.isfile(os.path.join(root, t))]
     if missing:
         for t in missing:
             print(f"error: dangling link target {t}", file=sys.stderr)
         sys.exit(1)
 
-    nf = sum(1 for t in targets if t.startswith("foundations"))
-    nc = sum(1 for t in targets if t.startswith("components"))
-    np_ = sum(1 for t in targets if t.startswith("patterns"))
+    nf = sum(1 for t in targets if t.startswith("foundations/"))
+    nc = sum(1 for t in targets if t.startswith("components/"))
+    np_ = sum(1 for t in targets if t.startswith("patterns/"))
     print(f"{nf} foundation, {nc} component, {np_} pattern sheets -> {out}")
 
 
