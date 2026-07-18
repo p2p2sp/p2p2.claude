@@ -260,6 +260,17 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   `.dark` declarations (otherwise a persisted dark theme would strand the index with no way back). The button
   carries no text — `docs.css` renders its label from `--doc-toggle-label`. The block therefore lives in two
   places, `sheet.template.html` and `build_index.py`'s `DARK_TOGGLE`: changing one means changing both.
+  Dark is a VERIFIED source, not just an emitted one: the auditor's contrast pre-pass and the creator's step 7
+  QA each build a `contrast-pairs-light.json` (from `:root`) and a `contrast-pairs-dark.json` (from `.dark`,
+  falling back to the light value where a token carries no dark override) and run `check_contrast.py --json`
+  once per theme, separately — an absent or empty `.dark` block is an explicit skip note, never a failure, and
+  the two runs surface as separate, theme-labeled blocks in the auditor's report. In the creative head,
+  `design-director` verifies every dark pair with `check_contrast.py` before writing its `CONTRAST-PAIRS`
+  entries, and dark coverage is gated on the brief: the brief asks for dark -> every color token whose role
+  differs in dark carries a verified dark value, full coverage; the brief doesn't -> no color token carries a
+  dark value at all. In the extractor, a source map reporting dark screens spawns one additional
+  `fidelity-reviewer` dark scope, colour-only (surface/elevation order, accent discipline, dark-value
+  spot-check) — it never repeats the geometry or state checks the light-scope reviews already covered.
 - **Provenance canon.** A coordinated vocabulary across `token-composer` / `fidelity-reviewer` /
   `html-visualizer` / `check_completeness.py`, parallel to the dark canon above — renaming any of the four
   markers is a coordinated change across all four:
