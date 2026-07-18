@@ -1,7 +1,7 @@
 # superui — the design / frontend ecosystem
 
 > Dev-time orientation for **editing this plugin's source**. Like the repo root `CLAUDE.md`, it is **not a
-> plugin input** — it never reaches the skills / agents / manifest / hooks as runtime data, and the plugin reads
+> plugin input** — it never reaches the skills / agents as runtime data, and the plugin reads
 > host-project design knowledge from the **consuming** repo when it runs there, never from here. See the root
 > `CLAUDE.md` for the repo-wide warnings and cross-plugin invariants; this file holds only what is specific to
 > `superui`.
@@ -18,18 +18,15 @@ checks the implementation against the system and writes a report under `.superui
 guardian that enforces the resulting system on every UI task; a professional UI/UX standards advisor; and a
 user-only `setup` diagnostic. It is a
 **single-domain** plugin, so its skills carry **no group prefix** (the plugin name is the group) and are
-flat-named. The **per-component** catalog of record is `.claude-plugin/plugin.json` `skills[]` + `agents[]`;
-the injected manifest (`hooks/content/manifest.md`) documents the design-artifact location, not individual
-skills.
+flat-named. The **per-component** catalog of record is `.claude-plugin/plugin.json` `skills[]` + `agents[]`.
+It ships **no hooks and no manifest** — every skill routes purely via its CSO `description:`.
 
 ## Layout (superui internals)
 
 ```
 superui/
   .claude-plugin/plugin.json   The plugin manifest — skills[] + agents[] are the catalog of record
-  hooks/             One injected dispatcher manifest + SessionStart only (no plan gate)
-    content/manifest.md  The injected `using-superui` dispatcher (`.superui/design-system/` design-artifact location)
-    scripts/         session-start.sh
+                     (no hooks/ — superui ships no hooks and no injected manifest)
   scripts/           Plugin-root deterministic scripts, shared across skills (incl. check_python.sh —
                      the Python env-check, run as an explicit early step by each skill with a Python step,
                      no `!` preflight)
@@ -221,10 +218,11 @@ Single-responsibility workers with input->work->output contracts; none may ask t
 
 ## Architecture invariants (superui-specific)
 
-- **Injected manifest, no plan gate.** A single `SessionStart` hook force-injects `hooks/content/manifest.md`
-  (the `using-superui` dispatcher) **verbatim** once per session (`source == "resume"` excluded; fail-open).
-  Unlike superdev, superui ships **no `PreToolUse` plan gate** — its only hook is `SessionStart`. The manifest
-  documents the design-artifact location, not routing.
+- **No hooks, no manifest.** Unlike superdev, superui ships no `hooks/` at all — neither a `SessionStart`
+  manifest injection nor a `PreToolUse` plan gate. Every skill is reached through its own CSO `description:`;
+  the always-on doctrine that used to live in the injected manifest belongs in the skill descriptions and
+  bodies themselves (`design-system-guardian` / `pro-designer` carry the "fires on ANY UI task" triggers).
+  Do not reintroduce a dispatcher manifest unless routing genuinely stops working through descriptions alone.
 - **Design artifacts location.** The framework-agnostic design system lives under `.superui/design-system/`
   in the host project. THREE pipelines write there: the extractor (measurement), the creator (design-from-intent,
   via the shared generator tail), and the completer (opt-in, user-gated synthesis) — never a fourth writer, and

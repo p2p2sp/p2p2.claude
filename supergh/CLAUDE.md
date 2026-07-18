@@ -7,7 +7,7 @@
 `supergh` is the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation
 executor, Conventional-Commits commits, and template-driven issue / PR creation. It is a **single-domain**
 plugin, so its skills carry **no group prefix** (the plugin name is the group) and are flat-named. It ships
-**no `hooks/` and no injected manifest** — unlike `superdev` / `superui`, its skills route purely via their CSO
+**no `hooks/` and no injected manifest** — unlike `superdev`, its skills route purely via their CSO
 `description:` (the always-on guardrail formerly carried by a manifest now lives in each skill's "Do NOT call
 gh… directly" description clause). A `SessionStart`-injected dispatcher would add no routing value over the
 skill descriptions, so there is none. The **per-skill** catalog of record is `.claude-plugin/plugin.json`

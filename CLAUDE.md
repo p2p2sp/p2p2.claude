@@ -51,7 +51,8 @@ Each plugin is independently installable; none declares another as a dependency.
   consistency auditor (three further agents) that checks the implementation against the system and only
   writes a report under `.superui/reports/`, a doctrinal guardian
   that enforces the system on every UI task, a professional UI/UX standards advisor, and a user-only `setup`
-  diagnostic. Eight skills total (one internal, non-user-invocable). (→ `superui/CLAUDE.md`)
+  diagnostic. Eight skills total (one internal, non-user-invocable). Ships **no hooks and no manifest** — its
+  skills route purely via CSO `description:`. (→ `superui/CLAUDE.md`)
 - **supergh** — the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation
   executor, Conventional-Commits commits, and template-driven issue / PR creation. Ships **no hooks and no
   manifest** — its skills route purely via CSO `description:`. (→ `supergh/CLAUDE.md`)
@@ -60,7 +61,7 @@ Each plugin is independently installable; none declares another as a dependency.
   agents. (→ `superfix/CLAUDE.md`)
 
 They ship no application code — the artefacts are markdown (skills) + JSON (manifests) + per-plugin hook
-scripts under `<plugin>/hooks/scripts/` (only `superdev` / `superui` have hooks; `supergh` / `superfix` ship
+scripts under `<plugin>/hooks/scripts/` (only `superdev` has hooks; `superui` / `supergh` / `superfix` ship
 none), plus deterministic helper scripts bundled either under an individual skill's own `scripts/` dir or, when
 shared across a plugin's skills, at plugin level. `supergh` keeps its shared scripts under `<plugin>/shared/`
 (a `scripts/` subdir); `superui` keeps its shared scripts, references and assets at the plugin root
@@ -79,9 +80,10 @@ DO NOT USE ADR capture for this project. The plugins are constantly refactored.
 Each plugin keeps its domain's skills together so a consumer can install just the development ecosystem
 (`superdev`), just the design ecosystem (`superui`), just the GitHub ecosystem (`supergh`), or just the
 codebase-investigation tool (`superfix`). Within a plugin, skills compose through CSO (frontmatter
-`description:`) and — for the two manifest-bearing plugins (`superdev`, `superui`) — that plugin's single
-injected manifest documents its routing (e.g. superdev's interview-first decision flow); `supergh` and
-`superfix` ship no manifest (superfix's sole skill is user-only; supergh routes purely via CSO descriptions).
+`description:`) and — for the sole manifest-bearing plugin (`superdev`) — that plugin's single
+injected manifest documents its routing (e.g. superdev's interview-first decision flow); `superui`, `supergh`
+and `superfix` ship no manifest (superfix's sole skill is user-only; superui and supergh route purely via CSO
+descriptions).
 Each is **self-contained**: its `plugin.json` declares **no `dependencies`** — installing it gives that whole
 ecosystem. Cross-plugin chains are **soft and optional** by design: any CSO composition that names another
 plugin's skill fires only when that plugin is also installed; absent it it simply does not engage (no declared
@@ -95,7 +97,7 @@ Each plugin's own internal layout lives in its `<plugin>/CLAUDE.md` (`superdev` 
 .claude-plugin/
   marketplace.json   Marketplace catalog — co-lists superdev "./superdev", superui "./superui", supergh "./supergh", superfix "./superfix"
 superdev/            The superdev plugin (project memory, planning, dev pipeline)
-superui/             The superui plugin (design / frontend ecosystem)               → superui/CLAUDE.md
+superui/             The superui plugin (design / frontend; NO hooks, NO manifest)  → superui/CLAUDE.md
 supergh/             The supergh plugin (GitHub / git; NO hooks, NO manifest)       → supergh/CLAUDE.md
 superfix/            The superfix plugin (codebase investigation; NO hooks/manifest) → superfix/CLAUDE.md
 README.md            User-facing help (install + how it works)
@@ -109,9 +111,9 @@ README.md            User-facing help (install + how it works)
 ```
 
 Each plugin dir carries a `.claude-plugin/plugin.json` (its `skills[]` (+ `agents[]`) is the catalog of record).
-`superdev` / `superui` also carry `hooks/` (one injected dispatcher manifest + hook scripts) and
-plugin-level shared assets/scripts (`superdev/scripts/`; `superui/scripts/`, `superui/references/`,
-`superui/assets/` — no `shared/` subdir); `supergh` carries `shared/` only; `superui` and `superfix`
+`superdev` alone also carries `hooks/` (one injected dispatcher manifest + hook scripts); plugin-level shared
+assets/scripts live in `superdev/scripts/` and `superui/scripts/`, `superui/references/`,
+`superui/assets/` (no `shared/` subdir); `supergh` carries `shared/` only; `superui` and `superfix`
 carry `agents/`.
 
 ## Versioning
@@ -130,17 +132,17 @@ ships a new version on each release.
 
 ## Cross-plugin architecture invariants
 
-Plugin-specific invariants (superdev's config switches / plan gate / recipe / file-based dispatch, superui's
-injected manifest, supergh's / superfix's manifest-less rationale) live in the respective `<plugin>/CLAUDE.md`.
+Plugin-specific invariants (superdev's config switches / plan gate / recipe / file-based dispatch, superui's /
+supergh's / superfix's manifest-less rationale) live in the respective `<plugin>/CLAUDE.md`.
 The invariants below hold across the repo.
 
 - **One injected manifest per manifest-bearing plugin.** A single `SessionStart` hook force-injects
   `hooks/content/manifest.md` **verbatim** once per session; `source == "resume"` is excluded by the matcher;
   fail-open (an unreadable manifest = banner only, no `additionalContext`). The hook does no per-project
-  rendering — the manifest is injected as-is, identically for every project. This holds for `superdev` /
-  `superui`; **`supergh` and `superfix` are the exceptions** — they ship no `hooks/` and no manifest at all
-  (superfix's sole skill is user-only with nothing to auto-route; supergh stays model-routable via CSO
-  `description:`). A manifest-less plugin is valid whenever a `SessionStart`-injected dispatcher would add no
+  rendering — the manifest is injected as-is, identically for every project. This holds for `superdev` only;
+  **`superui`, `supergh` and `superfix` ship no `hooks/` and no manifest at all** (superfix's sole skill is
+  user-only with nothing to auto-route; superui and supergh stay model-routable via CSO `description:`).
+  A manifest-less plugin is valid whenever a `SessionStart`-injected dispatcher would add no
   routing value over the skill descriptions.
 - **No `"hooks"` field in `plugin.json`.** Claude Code auto-loads `hooks/hooks.json` from that path; adding a
   `hooks` field to `plugin.json` is a hard install error.
@@ -173,10 +175,11 @@ The invariants below hold across the repo.
   superdev ships no agents — every superdev worker is a skill) — and the relevant `CLAUDE.md`
   (that plugin's, and this root file when the change is repo-wide) in either case. They must stay in sync, and a
   worker must never appear in both `skills[]` and `agents[]`.
-  For the manifest-bearing plugins (`superdev`, `superui`), that plugin's injected manifest
-  (`<plugin>/hooks/content/manifest.md`) lists its **groups/roles + chains**, not individual skills, so update it
+  For the manifest-bearing plugin (`superdev`), its injected manifest
+  (`superdev/hooks/content/manifest.md`) lists its **groups/roles + chains**, not individual skills, so update it
   only when a change adds/removes a group, shifts a group's scope, or alters a documented chain or config-gated
-  area — not for every per-skill change. `supergh` / `superfix` have no manifest, so nothing of the sort to sync.
+  area — not for every per-skill change. `superui` / `supergh` / `superfix` have no manifest, so nothing of the
+  sort to sync.
   **Exception:** a user-only one-time command (`disable-model-invocation: true`, e.g. `setup`) does not
   participate in routing and stays out of the manifest entirely — do not "fix" that gap.
 

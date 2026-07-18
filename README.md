@@ -1,9 +1,9 @@
 # P2P2 Claude Code Plugins
 
-Four independent, self-contained Claude Code plugins. `superdev` and `superui` are cohesive ecosystems, each driven by its own injected dispatcher manifest; `supergh` and `superfix` ship no manifest and no hooks (`supergh` routes its GitHub skills purely via CSO descriptions; `superfix` is a single user-invoked skill). Skills compose through CSO + documented natural chains.
+Four independent, self-contained Claude Code plugins. `superdev` is a cohesive ecosystem driven by its own injected dispatcher manifest; `superui`, `supergh` and `superfix` ship no manifest and no hooks (`superui` and `supergh` route their skills purely via CSO descriptions; `superfix` is a single user-invoked skill). Skills compose through CSO + documented natural chains.
 
 - **superdev** — a configurable agentic-development ecosystem: project memory, planning, and the implementation pipeline.
-- **superui** — the design / frontend ecosystem: a framework-agnostic design system extracted from screenshots or designed from intent, enforced on every UI task, audited against the implementation, and backed by a professional UI/UX standards advisor. Requires Python 3 + `pip install pillow numpy pyyaml` — see `superui/README.md`.
+- **superui** — the design / frontend ecosystem: a framework-agnostic design system extracted from screenshots or designed from intent, enforced on every UI task, audited against the implementation, and backed by a professional UI/UX standards advisor. No manifest, no hooks — skills route via their CSO descriptions. Requires Python 3 + `pip install pillow numpy pyyaml` — see `superui/README.md`.
 - **supergh** — the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation executor, Conventional-Commits commits, and template-driven issue / PR creation. No manifest, no hooks — skills route via their CSO descriptions.
 - **superfix** — prioritized multi-agent codebase investigation: the `/superfix:code-auditor` command sweeps a repo with cheap triage agents, scores Impact × Opportunity, and sends frontier investigators only into the hotspots. No manifest, no hooks — one user-invoked skill.
 
@@ -25,7 +25,7 @@ claude plugin install superfix@p2p2 --scope user
 
 `superui` additionally needs Python 3 + `pip install pillow numpy pyyaml` on the machine running it — see `superui/README.md` for the full requirements, or run `/superui:setup` after install to diagnose.
 
-Every plugin is self-contained — none declares any dependencies. Installing one gives you that whole ecosystem: `superdev` / `superui` route every request through their injected manifest, while `supergh` / `superfix` route purely via skill descriptions. Install only the one(s) you need.
+Every plugin is self-contained — none declares any dependencies. Installing one gives you that whole ecosystem: `superdev` routes every request through its injected manifest, while `superui` / `supergh` / `superfix` route purely via skill descriptions. Install only the one(s) you need.
 
 ## Super Dev
 
@@ -57,7 +57,8 @@ Flat-named (single-domain plugin, no group prefix). No manifest, no hooks — sk
 
 ## Super UI
 
-Flat-named (single-domain plugin, no group prefix). Requires Python 3 + `pip install pillow numpy
+Flat-named (single-domain plugin, no group prefix). No manifest, no hooks — skills route via their CSO
+`description:`. Requires Python 3 + `pip install pillow numpy
 pyyaml` — run `/superui:setup` to verify. Full detail: `superui/README.md`.
 
 | Skill | Role |
