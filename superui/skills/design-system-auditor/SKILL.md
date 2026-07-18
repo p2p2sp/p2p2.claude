@@ -56,11 +56,23 @@ list). Skip only what the invocation already answered. GATE: scope resolved and 
   broken system is itself a finding, not a stop):
   - `python "${CLAUDE_PLUGIN_ROOT}/scripts/validate_tokens.py" <sys>/dtcg.yml`
   - `python "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec_tokens.py" <sys>`
-  - Contrast: from `<sys>/tokens.css` `:root` values build the text-on-background pairs that
-    `DESIGN.md`'s accessibility/theming sections name (when they name none: each text role on each
-    surface role, and each `on-<bg>` text role on its own `<bg>` instead; skip alpha-bearing
-    values). Write them to `<run>/contrast-pairs.json` and run
-    `python "${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.py" --json <run>/contrast-pairs.json`.
+  - Contrast — two runs, one per theme, same pair-selection rule applied to both: build the
+    text-on-background pairs that `DESIGN.md`'s accessibility/theming sections name (when they name
+    none: each text role on each surface role, and each `on-<bg>` text role on its own `<bg>`
+    instead; skip alpha-bearing values). Build them once from `<sys>/tokens.css` `:root` values into
+    `<run>/contrast-pairs-light.json`, once from the `.dark` block into `<run>/contrast-pairs-dark.json`
+    (a token with no dark override takes its inherited `:root` value). `tokens_to_css.py` emits alias
+    tokens as `var(--target-path)` in BOTH blocks and `check_contrast.py`'s `parse_color()` accepts
+    only `#rgb`, `#rrggbb`, `rgb(r,g,b)` — dereference every `var(--x)` chain to its literal before
+    writing a pair; a value that resolves to no literal is skipped exactly like an alpha-bearing one,
+    never handed to `check_contrast.py`. Resolution is THEME-AWARE: a `var(--x)` in the dark set
+    resolves to `.dark`'s `--x` when `.dark` declares it, else falls back to `:root`'s (resolving a
+    dark alias straight against `:root` would silently re-check the light value). `tokens.css` carries
+    no `.dark` block, or the block declares nothing -> record a one-line skip note for the dark run
+    and continue (never a failure, never a stop). Run
+    `python "${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.py" --json <run>/contrast-pairs-light.json`
+    and, when the dark run was not skipped,
+    `python "${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.py" --json <run>/contrast-pairs-dark.json`.
 - Scanner, once per scope list:
   `python "${CLAUDE_PLUGIN_ROOT}/scripts/scan_hardcoded_values.py" <run>/scope-files.txt <sys>/dtcg.yml > <run>/scan.txt`
   (per surface: `scan-<label>.txt`). Exit 1 (unreadable list or `dtcg.yml`) -> record it as a
@@ -108,10 +120,11 @@ across many sites); medium = isolated but user-visible; low = cosmetic or edge.
 1. `## Executive summary` — counts per category and severity, the top 3-5 systemic risks, and the
    recommended next actions: which GAP findings route to `design-system-extractor` vs
    `design-system-completer`; DRIFT and UNTRACKED findings are plain code/inventory fixes.
-2. `## Operational findings` — first `### System health` (validator + contrast output, verbatim
-   lines), then one table per category — `### DRIFT`, `### GAP`, `### UNTRACKED` — columns:
-   severity, file:line, what was found, the violated token/spec rule (token paths in backticks),
-   suggested fix.
+2. `## Operational findings` — first `### System health` (validator output verbatim, then contrast
+   output as two theme-labeled verbatim blocks — light and dark, the dark block replaced by its
+   skip note when `.dark` was absent or empty), then one table per category — `### DRIFT`, `### GAP`,
+   `### UNTRACKED` — columns: severity, file:line, what was found, the violated token/spec rule
+   (token paths in backticks), suggested fix.
 3. `## Method appendix` — scope globs and surface labels, files-scanned count, validators run,
    agents dispatched, and limitations (dynamic/computed styles are not statically detectable; value
    families with no tokens are not scanned).
