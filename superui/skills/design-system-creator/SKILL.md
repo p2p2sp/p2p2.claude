@@ -110,15 +110,29 @@ and every carried `> NEEDS INPUT` item. GATE: the generator reports success (all
 failure line (env or gate) -> surface it to the user verbatim and stop.
 
 ### 7 — Contrast QA [you + design-director + token-composer, as needed]
-Re-run `check_contrast.py` on every `CONTRAST-PAIRS` entry from `<run>/notes-colors.md` against the FINAL
-`<out>/dtcg.yml` token values (resolve any composer renames from the generator's step-6 merge report first).
-Every pair still passes -> done. Any failure:
-1. Re-dispatch `design-director` (RE-DISPATCH CONVENTION) scoped to only the failing pairs — brief, current
-   `dtcg.yml`, and the failing pairs as the constraint — to produce corrected values.
+Resolve any composer renames from the generator's step-6 merge report first. Split the `CONTRAST-PAIRS`
+entries from `<run>/notes-colors.md` by their leading theme column and verify each theme as its OWN run
+against the FINAL `<out>/dtcg.yml` token values:
+- a `light` entry resolves each token to its `$value`.
+- a `dark` entry resolves each token to `$extensions.org.superui.dark`, falling back to `$value` when the
+  token carries no dark override.
+Dereference alias chains to a literal before writing a pair; a value that resolves to none (e.g.
+alpha-bearing) is skipped, never handed to `check_contrast.py` — same rule as the auditor's contrast
+pre-pass. Build `<run>/contrast-pairs-light.json` and, only when dark entries
+exist, `<run>/contrast-pairs-dark.json`; run `check_contrast.py --json` once per file that exists. No dark
+entries -> only the light run happens; the absence is not a failure.
+
+Every pair in a run still passes -> that theme is done. A run's failure:
+1. Re-dispatch `design-director` (RE-DISPATCH CONVENTION) scoped to only THAT theme's failing pairs —
+   brief, current `dtcg.yml`, and the failing pairs as the constraint — to produce corrected values.
 2. Spawn `superui:token-composer` (merge job) with the corrected values against `<out>/dtcg.yml`, then re-run
    `tokens_to_css.py`.
-3. Re-run `check_contrast.py` on the previously-failing pairs.
-Cap remediation at two rounds; after that, carry the remaining failures into step 8 as `> NEEDS INPUT`.
+3. Re-run `check_contrast.py` on that theme's previously-failing pairs.
+Both themes' remediation runs SEQUENTIALLY — never two `design-director` instances at once, per its "spawn
+exactly one" rule and the RE-DISPATCH CONVENTION's "one at a time — never in parallel with itself" ground rule.
+Cap remediation at two rounds total (a round may carry one re-dispatch per failing theme, run one after the
+other — the cap never becomes four rounds); after that, carry the remaining failures into step 8 as
+`> NEEDS INPUT`.
 
 ### 8 — Present results [you]
 Give the user: the artifact paths (`dtcg.yml` first, then `DESIGN.md`, `tokens.css`, `inventory.md`,
