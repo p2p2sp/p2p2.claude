@@ -2,7 +2,7 @@
 name: simpleplan-reviewer
 description: Invoked only by simpleplan skill.
 context: fork
-model: inherited
+model: inherit
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write
 user-invocable: false
 ---
