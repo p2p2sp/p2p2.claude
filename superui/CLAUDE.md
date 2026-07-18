@@ -31,9 +31,13 @@ superui/
                      the Python env-check, run as an explicit early step by each skill with a Python step,
                      no `!` preflight)
   references/        Plugin-root reference docs shared across skills (dtcg-token-format.md,
-                     component-spec.md, design-system-foundations.md, component-patterns.md)
+                     component-spec.md, design-system-foundations.md, component-patterns.md,
+                     preview-data-format.md — the *.data.js schema contract shared by components.js,
+                     html-visualizer, build_foundation_data.py and build_sheets.py)
   assets/            Plugin-root bundled assets shared across skills (tokens.template.yaml,
-                     example-component-spec.md, doc-chrome/ — the fixed doc chrome)
+                     example-component-spec.md, doc-chrome/ — the fixed doc chrome: docs.css (styling) +
+                     components.js (the single runtime — sheet rendering from window.SUPERUI_DATA, and the
+                     sole dark-toggle source); no sheet.template.html — every shell is script-generated)
   agents/            The eight extraction workers, the two completion workers (`gap-analyst`,
                      `design-synthesizer`), the two creative-head workers (`design-director`,
                      `spec-designer`), and the three audit workers (`token-drift-auditor`,
@@ -82,9 +86,12 @@ superui/
   `tokens_to_css.py` + `tokens_to_json.py` -> `design_md_skeleton.py` -> `design-doc-writer` -> spec fan-out via whichever agent the
   caller names in `spec-producer:` (`spec-writer` for the extractor, `spec-designer` for the creator) -> collect
   `MISSING-TOKENS`/`SYNTHESIZED-TOKENS` -> `token-composer` merge + re-css + re-json + `check_spec_tokens.py` -> copy
-  `docs.css` -> `html-visualizer` fan-out -> `build_index.py` + `lint_previews.py`. Zero user conversation, zero
-  design judgment — every value it writes already arrived decided in its inputs; it returns artifact paths,
-  counts, and carried `> NEEDS INPUT` items to its caller, which relays them verbatim.
+  `docs.css` + `components.js` -> `build_foundation_data.py` (scripts foundation sheet data straight from
+  `dtcg.yml`, no LLM) -> `html-visualizer` fan-out (component/pattern sheet DATA only, never HTML) ->
+  `build_sheets.py` (scripts every shell `.html` from the data files) -> `build_index.py` + `lint_previews.py`.
+  Zero user conversation, zero design judgment — every value it writes already arrived decided in its inputs;
+  it returns artifact paths, counts, and carried `> NEEDS INPUT` items to its caller, which relays them
+  verbatim.
 - `design-system-creator` — the **creative head** counterpart to the extractor: designs a NEW design system
   from the user's intent (prose interview, one question per turn — no forms/multi-select tool) plus optional
   inspiration images, sampled as HINTS never canon. Hard collision gate on an existing `DESIGN.md` (full
@@ -171,12 +178,15 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   patterns (screen-level compositions), each with a canonical screen.
 - `spec-writer` — one spec per inventory entry; tokens by NAME; unmatched values come back as
   `MISSING-TOKENS`, never written into `dtcg.yml`.
-- `html-visualizer` — one documentation sheet per foundation/spec, inside the fixed chrome; preview styling
-  is exclusively `var(--token)` (lint-enforced); never reads screenshots. Every named color is also SHOWN, never
-  text alone — `.swatch` in a token card, `.swatch-inline` chip in a table cell/list item/sentence,
-  `.swatch-strip` for an ordered set (scale, elevation order), always painted `background: var(--token)`. Renders a `> SYNTHESIZED: <rationale>`
-  note with the same chrome class as `> NEEDS INPUT`, and a spec's `**Provenance:** designed, not extracted`
-  line as a visible note in the sheet header — no new chrome classes for either.
+- `html-visualizer` — one `<slug>.data.js` sheet-DATA file per component/pattern spec (never foundations,
+  which are scripted by `build_foundation_data.py`); never writes HTML — rendering happens at runtime through
+  the shared `components.js`. Every value inside a `markup`/`html` string is `var(--token-name)`
+  (lint-enforced, no raw hex/px); never reads screenshots. Every named color is a `varName` field only — the
+  runtime paints it as a swatch (`.swatch` in a token card, `.swatch-inline` chip in a table cell/list
+  item/sentence, `.swatch-strip` for an ordered set), never text alone. Emits `> SYNTHESIZED: <rationale>` and
+  a spec's `**Provenance:** designed, not extracted` as data fields (a `synthesized`-flagged section entry and
+  a top-level `provenance` field) — `components.js` is the sole renderer of both, using the same chrome
+  classes as before.
 - `fidelity-reviewer` — independent verification: re-samples the source and reports artifact mismatches
   (surface order, radii, accent discipline, state form+color); never edits. Skips any token flagged
   `$extensions.org.superui.synthesized: true` and any spec/section carrying `**Provenance:**` or
@@ -256,10 +266,12 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   `--doc-*` variables (`docs.css` `:root` / `html.dark`) and the previews pick up tokens.css's `.dark`
   overrides by inheritance — never a per-element `.dark`, which left a dark box on an otherwise white page
   and destroyed the perceived contrast. The choice persists in `localStorage` under `superui-docs-theme`,
-  which is why `build_index.py` emits the SAME toggle block on `index.html` whenever tokens.css carries real
-  `.dark` declarations (otherwise a persisted dark theme would strand the index with no way back). The button
-  carries no text — `docs.css` renders its label from `--doc-toggle-label`. The block therefore lives in two
-  places, `sheet.template.html` and `build_index.py`'s `DARK_TOGGLE`: changing one means changing both.
+  which is why `build_index.py` and `build_sheets.py` both emit `<body data-dark-toggle>` whenever tokens.css
+  carries real `.dark` declarations (otherwise a persisted dark theme would strand that page with no way
+  back). The toggle block lives in exactly ONE place — `components.js`, which loads on every shell and
+  `index.html` alike, checks `data-dark-toggle` on `<body>`, and only then injects the `.dark-toggle` button
+  (no text — `docs.css` renders its label from `--doc-toggle-label`); changing the toggle means changing
+  `components.js` alone, never a second file.
   Dark is a VERIFIED source, not just an emitted one: the auditor's contrast pre-pass and the creator's step 7
   QA each build a `contrast-pairs-light.json` (from `:root`) and a `contrast-pairs-dark.json` (from `.dark`,
   falling back to the light value where a token carries no dark override) and run `check_contrast.py --json`
