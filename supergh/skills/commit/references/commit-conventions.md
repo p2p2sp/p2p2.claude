@@ -12,11 +12,12 @@ Single source of the message-authoring rules.
 
 ## Issue footer (optional)
 
-Most commits need none. Add one only when the number is sourceable without guessing — from the current branch (see the "Current branch" block in the injected context), via `(?i)(?:task|issue)\.(\d+)` (e.g. `feature/task.42-…` → `42`):
+Most commits need none. Add one only when the number is sourceable without guessing — never fabricate a number.
 
-- exactly one distinct number → append `Refs: #N`;
-- zero, or more than one distinct number → no footer (ambiguity is not worth a wrong link);
-- never fabricate a number.
+Source order (first that yields a number wins):
+
+1. The "Issue footer (explicit…)" block in the injected context — a GitHub issue link was passed in the arguments. Copy that `Refs:` line verbatim and ignore the branch.
+2. The current branch (see the "Current branch" block), via `(?i)(?:task|issue)\.(\d+)` (e.g. `feature/task.42-…` → `42`): exactly one distinct number → `Refs: #N`; zero or more than one → no footer (ambiguity is not worth a wrong link).
 
 Put the footer inside the message string itself: subject line, one blank line, then `Refs: #N`. Omit it entirely when no number resolves — never append an empty footer.
 
@@ -24,4 +25,5 @@ Put the footer inside the message string itself: subject line, one blank line, t
 
 - Two user-profile endpoints, branch `main` → `feat(profile): add user-profile endpoints`
 - CORS fix on branch `feature/task.42-cors` → `fix(cors): distinguish dev and prod policies`, then a blank line, then `Refs: #42`
+- Args carried `https://github.com/o/r/issues/7` on branch `main` → subject, blank line, then `Refs: #7`
 - Deprecated flag dropped on a branch with no task number → `refactor(config): drop deprecated retry flag` (no footer)

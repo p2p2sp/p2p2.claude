@@ -28,6 +28,7 @@ __COMMIT_ARGS__
 - `all` or empty args -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>"`.
 - `staged` -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>" "staged"`.
 - an existing PATH -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>" "<path>"` to commit ONLY that path. Pass the path exactly as given — POSIX (`src/foo`), Windows (`C:/foo`, `C:\foo`) and MSYS (`/c/foo`) all work verbatim; do not rewrite separators.
+- a GitHub issue link anywhere in the args is stripped before selector resolution (so `src/foo https://github.com/o/r/issues/42` is still mode `path`) and surfaces as the "Issue footer (explicit…)" block in the context — put that `Refs:` line in the message.
 - anything else (a value that is not an existing path) falls back to `all` — commit.sh runs with no 2nd arg and commits every change. The Selector line in the context above states which mode was resolved.
 
 ## Self-Check

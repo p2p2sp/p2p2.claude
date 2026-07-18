@@ -42,6 +42,14 @@ else
 fi
 echo
 
+if [ -n "$COMMIT_ISSUE_REFS" ]; then
+  echo "## Issue footer (explicit, from a GitHub issue link in the arguments — use verbatim, ignore the branch)"
+  refs=""
+  for n in $COMMIT_ISSUE_REFS; do refs="${refs:+$refs, }#$n"; done
+  echo "Refs: $refs"
+  echo
+fi
+
 echo "## Current branch (issue-footer source)"
 # symbolic-ref: czysta nazwa brancha takze na unborn (main), bez fatala HEAD.
 git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --abbrev-ref HEAD 2>/dev/null || true
