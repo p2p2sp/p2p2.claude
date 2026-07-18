@@ -50,7 +50,7 @@ Once you have written a complete plan and before final review, fast review it wi
 ### Final Review
 Before `ExitPlanMode` invoke the `simpleplan-reviewer` skill (Skill tool, forked context) to make final review. Never call `ExitPlanMode` on a plan that has not returned **VERDICT:** PASS. Track which invocation this is (round 1, round 2, …).
 
-1. Invoke `simpleplan-reviewer` (Skill). The `args` MUST be a labeled block — one `label: value` per line, NOT the bare plan path.
+1. Invoke `simpleplan-reviewer` (Skill). The `args` MUST be a labeled block — one `label: <file path>` per line. Every value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong.
    - **Round 1** — send exactly one line: `plan: <plan-file path>`.
    - **Round 2+, looping back from a fixable-in-draft FAIL** — first save the round context to a sibling file `<plan-file path>.review-<N-1>.md` with exactly:
      ```

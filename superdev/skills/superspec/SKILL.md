@@ -54,7 +54,7 @@ Immediately after saving — and BEFORE any handoff — run the reviewer and act
 
 Checklist path (for the reviewer): !`printf '%s' "${CLAUDE_SKILL_DIR}/references/checklist.md"`
 
-1. Invoke `superspec-reviewer` (Skill). The `args` MUST be a labeled block — one `label: value` per line, NOT a bare path:
+1. Invoke `superspec-reviewer` (Skill). The `args` MUST be a labeled block — one `label: <file path>` per line. Every value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong:
    ```
    spec: <saved spec filepath>
    checklist: <checklist path above>

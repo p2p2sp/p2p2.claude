@@ -13,7 +13,7 @@ Drives an already-approved plan, task by task.
 
 ## Mandatory Rules
 You are orchestrator only. Be concise, do not explain. No prose - just simple status lines.
-Every `args` handoff to a fork (Skill) is a labeled block — one `label: value` per line, never a bare path.
+Every `args` handoff to a fork (Skill) is a labeled block — one `label: <file path>` per line. Every value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong.
 
 ## Config
 
