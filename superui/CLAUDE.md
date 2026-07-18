@@ -37,7 +37,7 @@ superui/
   assets/            Plugin-root bundled assets shared across skills (tokens.template.yaml,
                      example-component-spec.md, doc-chrome/ — the fixed doc chrome: docs.css (styling) +
                      components.js (the single runtime — sheet rendering from window.SUPERUI_DATA, and the
-                     sole dark-toggle source); no sheet.template.html — every shell is script-generated)
+                     sole dark-toggle source); no shared HTML template file — every shell is script-generated)
   agents/            The eight extraction workers, the two completion workers (`gap-analyst`,
                      `design-synthesizer`), the two creative-head workers (`design-director`,
                      `spec-designer`), and the three audit workers (`token-drift-auditor`,
@@ -247,7 +247,8 @@ Single-responsibility workers with input->work->output contracts; none may ask t
 - **Orchestrator does no worker work.** Both orchestrator SKILL.mds (extractor, completer) are a checklist +
   gates; screenshots/facts are read and artifacts authored ONLY by the agents. Deterministic steps are
   scripts run by the orchestrator (`tokens_to_css.py`, `tokens_to_json.py`, `design_md_skeleton.py`,
-  `build_index.py`, `lint_previews.py`, `check_completeness.py`). The completer's sole hand-written exception is step 8
+  `build_foundation_data.py`, `build_sheets.py`, `build_index.py`, `lint_previews.py`, `check_completeness.py`).
+  The completer's sole hand-written exception is step 8
   (bookkeeping): a mechanical, judgment-free transcription of already-approved entries into the two ledgers
   below — never a parallel worker's job. The extractor's own artifact-generation steps live in the shared
   `design-system-generator` tail (`context: fork` + `user-invocable: false`, invoked via the `Skill` tool —
@@ -284,17 +285,20 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   `fidelity-reviewer` dark scope, colour-only (surface/elevation order, accent discipline, dark-value
   spot-check) — it never repeats the geometry or state checks the light-scope reviews already covered.
 - **Provenance canon.** A coordinated vocabulary across `token-composer` / `fidelity-reviewer` /
-  `html-visualizer` / `check_completeness.py`, parallel to the dark canon above — renaming any of the four
-  markers is a coordinated change across all four:
+  `html-visualizer` / `components.js` / `check_completeness.py`, parallel to the dark canon above — renaming
+  any of the markers is a coordinated change across all of them. `html-visualizer` only ever EMITS these as
+  `*.data.js` fields (a section entry, a top-level `provenance` field); `components.js` is the sole renderer,
+  at runtime, from `window.SUPERUI_DATA`:
   - `$extensions.org.superui.synthesized: true` on a `dtcg.yml` token — written only by `token-composer`'s
     merge job on a `SYNTHESIZED-TOKENS` entry (never on `MISSING-TOKENS`, never dropped once present);
     `fidelity-reviewer` skips it; `check_completeness.py` counts it under `## Provenance facts`.
   - `**Provenance:** designed, not extracted` — a meta line on a wholly-synthesized spec; `html-visualizer`
-    renders it as a visible sheet-header note; `fidelity-reviewer` skips the whole file; the fact script
-    detects it.
+    emits it as the data file's top-level `provenance: "designed"` field; `components.js` renders it as a
+    visible sheet-header note; `fidelity-reviewer` skips the whole file; the fact script detects it.
   - `> SYNTHESIZED: <rationale>` — a section-level marker inside an otherwise-measured spec, modeled on
-    `> NEEDS INPUT`; `html-visualizer` renders it with the same `.needs-input` chrome class; `fidelity-reviewer`
-    skips that section only; the fact script detects it.
+    `> NEEDS INPUT`; `html-visualizer` emits it as a `{ type: "needs-input", synthesized: true }` section
+    entry; `components.js` renders it with the same `.needs-input` chrome class; `fidelity-reviewer` skips
+    that section only; the fact script detects it.
   - `$extensions.org.superui.provenance: designed` at the `dtcg.yml` document ROOT (sibling of the top-level
     token groups, not inside any group) — a whole-system flag, independent of the three per-item markers
     above. Written only by `token-composer`'s compose job when its dispatch carries `provenance: designed`
@@ -313,10 +317,15 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   extractor re-run, the extractor's "Present results" step reports that the re-extraction overwrote the
   previous syntheses and suggests re-running the completer to re-validate and re-apply them — the extractor
   itself never reads or reasons about ledger content beyond that existence check.
-- **Scripted artifacts are regenerated wholesale.** `tokens.css`, `tokens.json`, `index.html`, and the DESIGN.md skeleton
-  are fully rewritten on re-run; hand-maintained knowledge belongs in `dtcg.yml` / the writer-filled DESIGN.md
-  sections / the specs, never in generated output. The doc chrome (`docs.css`, `sheet.template.html`) is a
-  fixed asset copied into the output — the documented system renders inside it through its own tokens.
+- **Scripted artifacts are regenerated wholesale.** `tokens.css`, `tokens.json`, the DESIGN.md skeleton,
+  `foundations/*.data.js` (`build_foundation_data.py`, straight from `dtcg.yml` — no LLM step), every shell
+  `*.html` (`build_sheets.py`, one per `*.data.js`), and `index.html` are fully rewritten on re-run;
+  hand-maintained knowledge belongs in `dtcg.yml` / the writer-filled DESIGN.md sections / the specs, never in
+  generated output. The doc chrome (`docs.css`, `components.js`) is a fixed asset copied into the output
+  verbatim — the documented system renders inside it through its own tokens. `components/*.data.js` and
+  `patterns/*.data.js` are the one exception: they are producer (LLM) artifacts, authored by `html-visualizer`
+  from the spec, never scripted — a spec change still needs the agent, only the shell/markup plumbing around
+  it is now mechanical.
 
 ## Scripts inventory
 
@@ -333,9 +342,21 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   placeholders; heading contract, self-verified).
 - `scripts/check_spec_tokens.py` — resolves every backticked token reference in the specs against
   `dtcg.yml`; exit 1 on dangling references.
-- `scripts/build_index.py` — output dir -> `index.html` (narrative pulled from DESIGN.md; links
-  self-verified; whole-page dark toggle emitted when tokens.css declares real `.dark` overrides).
-- `scripts/lint_previews.py` — flags raw hex/rgb/hsl/px in sheet styles; exit 1 on violations.
+- `scripts/build_foundation_data.py` — `dtcg.yml` (+ `DESIGN.md` prose) -> `foundations/<name>.data.js`,
+  using the generator's existing group mapping (color · typography · spacing-radius · effects); no LLM step,
+  so a token value edit and a re-run change the readout alone; self-verifies (registry key + `json.loads` on
+  the embedded payload) and prints a one-line summary.
+- `scripts/build_sheets.py` — output dir -> exactly one shell `.html` per existing `*.data.js`
+  (foundations/components/patterns); a shell carries only head links, the `components.js` script tag,
+  `<ds-sheet>`, and data `<script src>` tags (pattern shells additionally load every `components/*.data.js`
+  for `<ds-demo>` reuse); emits `data-dark-toggle` on `<body>` only when `tokens.css` has a non-empty `.dark`
+  block; self-verifies every referenced file exists.
+- `scripts/build_index.py` — output dir -> `index.html` (narrative pulled from DESIGN.md; link labels come
+  from each sheet's data file `"title"`, falling back to the shell's own `<h1>`/`<title>`; links
+  self-verified; emits the `components.js` script tag + `data-dark-toggle` on `<body>` — no inline
+  `DARK_TOGGLE` constant — whenever tokens.css declares real `.dark` overrides).
+- `scripts/lint_previews.py` — flags raw hex/rgb/hsl/px inside sheet styles AND inside `*.data.js`
+  `markup`/`html` strings; exit 1 on violations.
 - `scripts/check_contrast.py` — WCAG AA contrast gate (pro-designer; also the auditor's pre-pass).
 - `scripts/scan_hardcoded_values.py` — the auditor's technology-neutral hardcoded-style-value scanner:
   file list + `dtcg.yml` (covered families only) -> `<file>:<line>\t<family>\t<raw-value>` hit lines;
