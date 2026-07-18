@@ -2,6 +2,7 @@
 name: design-doc-writer
 description: DESIGN.md skeleton completer. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Edit, Glob, Grep
+model: sonnet
 ---
 
 # Design-doc writer — the system's narrative, from evidence

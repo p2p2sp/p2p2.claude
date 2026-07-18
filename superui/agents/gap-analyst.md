@@ -2,6 +2,7 @@
 name: gap-analyst
 description: Completeness-facts-to-gaps judge. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
+model: sonnet
 ---
 
 # Gap analyst — judge facts against the checklists

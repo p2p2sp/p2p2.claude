@@ -2,6 +2,7 @@
 name: design-system-generator
 description: Invoked only by design-system-extractor and design-system-creator skills.
 context: fork
+model: sonnet
 allowed-tools: Write, Bash(sh:*), Bash(python:*), Bash(python3:*), Bash(py:*), Bash(mkdir:*), Bash(cp:*), Agent
 user-invocable: false
 ---

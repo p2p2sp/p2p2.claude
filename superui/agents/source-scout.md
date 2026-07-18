@@ -2,6 +2,7 @@
 name: source-scout
 description: Screenshot source-map scout. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
+model: sonnet
 ---
 
 # Source scout — map the source, hint, never measure

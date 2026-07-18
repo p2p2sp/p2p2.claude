@@ -2,6 +2,7 @@
 name: detective
 description: Frontier depth-first hotspot investigator. Invoked only by the code-auditor skill, never directly.
 model: opus
+effort: high
 tools: Read, Write, Grep, Glob, Bash, Edit
 ---
 

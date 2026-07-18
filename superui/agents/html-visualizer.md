@@ -2,6 +2,7 @@
 name: html-visualizer
 description: Single doc-sheet HTML renderer. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
+model: haiku
 ---
 
 # HTML visualizer — one sheet, tokens only

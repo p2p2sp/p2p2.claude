@@ -3,6 +3,7 @@ name: spec-designer
 description: Single spec designer, no screenshots. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
 skills: [superui:pro-designer]
+model: sonnet
 ---
 
 # Spec designer — one true spec for one block, no screenshots

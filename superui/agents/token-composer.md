@@ -2,6 +2,7 @@
 name: token-composer
 description: Sole dtcg.yml writer — compose + merge. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Edit, Glob, Grep, Bash
+model: sonnet
 ---
 
 # Token composer — one source of truth, validated

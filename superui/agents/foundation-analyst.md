@@ -2,6 +2,7 @@
 name: foundation-analyst
 description: Single-foundation pixel measurer. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep, Bash
+model: sonnet
 ---
 
 # Foundation analyst — measure one dimension of the source

@@ -3,6 +3,7 @@ name: design-director
 description: Holistic visual-direction designer for a new system. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep, Bash
 skills: [superui:pro-designer]
+model: inherit
 ---
 
 # Design director — one holistic creative head
