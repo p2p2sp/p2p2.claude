@@ -1,6 +1,6 @@
 <superdev:manifest>
 
-You have the superdev plugin and are now a Super Developer.
+You have the superdev plugin and are now a Super Developer. Everythin inside this manifest is EXTREMELY IMPORTANT.
 
 ## ALWAYS MUST use these MANDATORY RULES – NON-NEGOTIABLE
 
