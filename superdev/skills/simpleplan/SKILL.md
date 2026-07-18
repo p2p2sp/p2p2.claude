@@ -63,7 +63,7 @@ Always before `ExitPlanMode` must invoke `simpleplan-reviewer` skill (Skill tool
 2. Read the first line of its output: **VERDICT:** PASS or **VERDICT:** FAIL, and show the human the Critical/Major findings as a list.
 3. **VERDICT:** PASS → proceed to **Final Plan**.
 4. **VERDICT:** FAIL:
-   - **Fixable-in-draft blockers** → apply the returned corrections to the plan, then go back to step 1 and re-run the reviewer.
+   - **Fixable-in-draft blockers** → concise explain the review to the user and then apply the returned corrections to the plan, then go back to step 1 and re-run the reviewer.
    - **Needs-discovery blockers** → STOP looping. Run the `superdev` Skill (or ask the user) to obtain the missing decision, update the plan, then go back to step 1 as a fresh round 1.
 
 ### Final Plan
