@@ -79,6 +79,27 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.08);
   margin-bottom: 10px;
 }
+/* inline chip — a color named inside a table cell, list item or sentence */
+.swatch-inline {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  margin-right: 7px;
+  vertical-align: -2px;
+  flex: none;
+}
+/* contiguous strip — an ordered set of colors (scale, elevation order, ramp);
+   each direct child is one step and needs only its background var() */
+.swatch-strip {
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  margin: 8px 0 10px;
+}
+.swatch-strip > * { flex: 1; height: 40px; }
 
 /* ---------- typography sheet rows ---------- */
 .type-row {

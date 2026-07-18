@@ -172,7 +172,9 @@ Single-responsibility workers with input->work->output contracts; none may ask t
 - `spec-writer` — one spec per inventory entry; tokens by NAME; unmatched values come back as
   `MISSING-TOKENS`, never written into `dtcg.yml`.
 - `html-visualizer` — one documentation sheet per foundation/spec, inside the fixed chrome; preview styling
-  is exclusively `var(--token)` (lint-enforced); never reads screenshots. Renders a `> SYNTHESIZED: <rationale>`
+  is exclusively `var(--token)` (lint-enforced); never reads screenshots. Every named color is also SHOWN, never
+  text alone — `.swatch` in a token card, `.swatch-inline` chip in a table cell/list item/sentence,
+  `.swatch-strip` for an ordered set (scale, elevation order), always painted `background: var(--token)`. Renders a `> SYNTHESIZED: <rationale>`
   note with the same chrome class as `> NEEDS INPUT`, and a spec's `**Provenance:** designed, not extracted`
   line as a visible note in the sheet header — no new chrome classes for either.
 - `fidelity-reviewer` — independent verification: re-samples the source and reports artifact mismatches

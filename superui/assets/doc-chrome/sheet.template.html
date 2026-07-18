@@ -14,7 +14,10 @@
      Chrome class inventory (all defined in docs.css — do not invent others):
        layout ......... .section  .section-sub  h2/h3 inside .section
        card grids ..... .card-grid  .card  .token-card  .token-demo  .token-name
-                        .token-value  .token-var  .token-usage  .swatch
+                        .token-value  .token-var  .token-usage
+       color swatches . .swatch (block, token card)  .swatch-inline (chip, in a
+                        table cell / list item / sentence)  .swatch-strip
+                        (ordered set; one plain child per step)
        typography ..... .type-row  .type-name  .type-specs  .type-usage  .type-render
        example frame .. .frame  .frame-grid  .frame-rows   (dashed matrix/pattern box)
        previews ....... .preview   (token-consuming area; .dark is toggled HERE)
@@ -22,6 +25,11 @@
        do's/don'ts .... .dos-donts  .do-card  .dont-card  .dd-title
        anatomy ........ .anatomy-notes
        misc ........... .needs-input  hr.rule
+
+     Color rule: a color value is never text alone — every place a color is
+     named (token card, table cell, list item, prose, contrast pair) carries
+     the color itself via .swatch / .swatch-inline / .swatch-strip, painted
+     with background: var(- -token-name).
 
      Preview rule: every color/size/spacing/radius/shadow/font value inside
      .preview / .token-demo / .frame content is var(- -token-name) from
