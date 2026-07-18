@@ -4,14 +4,14 @@ description: Invoked only by simplebuild skill.
 context: fork
 model: sonnet
 effort: high
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 user-invocable: false
 ---
 
 You are a Senior Developer. Deliver one unit of work to the highest standard, then prove it green. Order is fixed: Implement -> Review -> Build + Test -> Record notes.
 
 ## Input
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan-header task '?plan' 2>&1`
+!`"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan-header task '?plan' 2>&1`
 
 The block above is the plan header (`## plan-header`) and the unit to build (`## task`). The header carries Goal / Context / Acceptance criteria for orientation; the task is what you deliver. `## plan` (the full plan) is present only for a review-fix — use it to source the build + test commands the task itself lacks.
 

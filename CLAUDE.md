@@ -163,6 +163,15 @@ The invariants below hold across the repo.
   bug is invisible on bash and only surfaces on zsh. Rule: **single-quote any argument bearing `?`, `*`, or `[`**
   — e.g. `resolve-input.sh`'s optional-label convention (`'?plan'`, `'?spec'`), never bare
   `?plan`. Never rely on bash-only unmatched-glob-as-literal behavior; assume the strictest shell.
+- **Pre-approved `!` preload commands.** A preload runs at skill-load time and is permission-checked like any
+  Bash call, but a bare `Bash` entry in `allowed-tools` (or a blanket `"Bash"` allow in the user's settings)
+  does **not** cover it — an unmatched preload aborts the whole fork load with
+  `Shell command permission check failed for pattern…`, so the fork never sees its input. Two rules, both
+  required: (1) the skill's `allowed-tools` MUST carry a **pattern** entry for the preload, e.g.
+  `Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)` (supergh precedent: `Bash(sh:*)`); (2) invoke a
+  bundled script **directly** (`` !`"${CLAUDE_PLUGIN_ROOT}/…/foo.sh" …` ``), never through an interpreter
+  (`bash foo.sh`) — which also means every preloaded script MUST keep its exec bit (`100755` in the git index)
+  and its `#!/usr/bin/env bash` shebang.
 - **Self-documentation.** Any skill add / remove / rename MUST update the **owning plugin's**
   `<plugin>/.claude-plugin/plugin.json` `skills[]` (superdev's for any of its skills, superui's
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`create-issue`/`create-pr` skill,

@@ -5,7 +5,7 @@ context: fork
 model: opus
 effort: high
 user-invocable: false
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 ---
 
 # SuperDev Rules Writer
@@ -14,7 +14,7 @@ Folds the content of `## capture` into the project's `.claude/rules/*.md` files.
 
 ## Input
 
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" capture 2>&1`
+!`"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" capture 2>&1`
 
 `## capture` is one of two shapes — read it before acting:
 - a capture document — has `## Rules` (directive: `<slug> — paths: <globs> — <scope>` per line, plus optional `delete: <path> — <reason>` lines) and `## Facts` (per-area conventions under `### <slug>` headings). Write exactly the listed rules — one file `.claude/rules/<slug>.md` per entry with that area's facts as the body; remove the files named on `delete:` lines.

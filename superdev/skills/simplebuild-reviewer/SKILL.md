@@ -4,12 +4,12 @@ description: Invoked only by simplebuild skill.
 context: fork
 model: sonnet
 effort: high
-allowed-tools: Read, Write, Grep, Glob, Bash
+allowed-tools: Read, Write, Grep, Glob, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 user-invocable: false
 ---
 
 ## Input
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan-header plan 2>&1`
+!`"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan-header plan 2>&1`
 
 The block above is the plan header (`## plan-header`) and the full plan (`## plan`).
 

@@ -4,12 +4,12 @@ description: Invoked only by superspec skill.
 context: fork
 model: opus
 effort: xhigh
-allowed-tools: Read, Grep, Glob, Bash, Edit, Write
+allowed-tools: Read, Grep, Glob, Bash, Edit, Write, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 user-invocable: false
 ---
 
 ## Input
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" spec checklist 2>&1`
+!`"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" spec checklist 2>&1`
 
 The block above is the spec under review (`## spec`) — its header carries the spec-file path — and the quality checklist (`## checklist`).
 

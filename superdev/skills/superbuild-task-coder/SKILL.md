@@ -4,14 +4,14 @@ description: Invoked only by superbuild skill.
 context: fork
 model: opus
 effort: high
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 user-invocable: false
 ---
 
 You are a Senior Developer. Deliver one unit of work to the highest standard, then prove it green. Order is fixed: Implement -> Build + Test -> Record notes.
 
 ## Input
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan-header task '?plan' '?spec' 2>&1`
+!`"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan-header task '?plan' '?spec' 2>&1`
 
 The block above is the plan header (`## plan-header`) and the unit to build (`## task`). The header carries the change's global boundaries — out of scope, constraints; the task is what you deliver. `## plan` and `## spec` are present only for a review-fix — `## plan` sources the build + test commands the task itself lacks; `## spec` (full `What & Why`) grounds spec-level findings.
 

@@ -3,12 +3,12 @@ name: simpleplan-reviewer
 description: Invoked only by simpleplan skill.
 context: fork
 model: inherit
-allowed-tools: Read, Grep, Glob, Bash, Edit, Write
+allowed-tools: Read, Grep, Glob, Bash, Edit, Write, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 user-invocable: false
 ---
 
 ## Input
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan 2>&1`
+!`"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan 2>&1`
 
 The block above is the plan under review (`## plan`); its header carries the plan-file path.
 

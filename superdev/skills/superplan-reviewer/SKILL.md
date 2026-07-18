@@ -4,12 +4,12 @@ description: Invoked only by superplan skill.
 context: fork
 model: opus
 effort: xhigh
-allowed-tools: Read, Grep, Glob, Bash, Edit, Write
+allowed-tools: Read, Grep, Glob, Bash, Edit, Write, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 user-invocable: false
 ---
 
 ## Input
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan spec 2>&1`
+!`"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan spec 2>&1`
 
 The block above is the plan under review (`## plan`) and the human-approved spec (`## spec`); each header carries its file path.
 

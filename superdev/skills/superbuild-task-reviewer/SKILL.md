@@ -4,7 +4,7 @@ description: Invoked only by superbuild skill.
 context: fork
 model: sonnet
 effort: high
-allowed-tools: Read, Write, Grep, Glob, Bash
+allowed-tools: Read, Write, Grep, Glob, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 user-invocable: false
 ---
 
@@ -13,7 +13,7 @@ Uncommitted work under review:
 !`git status --short 2>&1`
 
 ## Input
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan-header task 2>&1`
+!`"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan-header task 2>&1`
 
 The block above is the plan header (`## plan-header`) and the task whose implementation you review (`## task`). The header carries the change's global boundaries (out of scope, constraints).
 

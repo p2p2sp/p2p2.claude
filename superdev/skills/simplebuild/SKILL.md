@@ -3,7 +3,7 @@ name: simplebuild
 description: Use ONLY when the approved plan's body contains instruction to use it.
 model: sonnet
 effort: low
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, AskUserQuestion, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, AskUserQuestion, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop, Bash(${CLAUDE_SKILL_DIR}/../../scripts/read-config.sh:*)
 user-invocable: false
 ---
 
@@ -19,7 +19,7 @@ Every `args` handoff to a fork (Skill) is a labeled block — one `label: <file 
 
 Resolved opt-in switches (missing file/key = `false`; nothing below breaks on a missing config):
 
-!`bash "${CLAUDE_SKILL_DIR}/../../scripts/read-config.sh"`
+!`"${CLAUDE_SKILL_DIR}/../../scripts/read-config.sh"`
 
 These gate the Close-Out delegations (Step 4). Run a delegation ONLY when its line above reads exactly `true`; anything else (`false`, absent, or an unresolved block) = skip. `adr` is not used here.
 

@@ -5,7 +5,7 @@ context: fork
 model: opus
 effort: high
 user-invocable: false
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 ---
 
 # SuperDev Memory Writer
@@ -14,7 +14,7 @@ Folds the facts in `## capture` into the project's CLAUDE.md memory cascade. Inp
 
 ## Input
 
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" capture '?spec' 2>&1`
+!`"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" capture '?spec' 2>&1`
 
 `## capture` is one of two shapes — read it before acting:
 - a capture document — has `## Nodes` (directive: `<dir> — <purpose>` per line, `.` = project root node; paths relative to project root) and `## Facts` (per-area knowledge under `### <dir>` headings). Create or update exactly the listed nodes; fold each area's facts into its node.

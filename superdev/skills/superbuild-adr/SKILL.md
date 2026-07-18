@@ -3,14 +3,14 @@ name: superbuild-adr
 description: Invoked only by superbuild skill.
 context: fork
 model: sonnet
-allowed-tools: Read, Write, Bash
+allowed-tools: Read, Write, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 user-invocable: false
 ---
 
 You are an architecture scribe. Record the architectural decisions a plan commits to, as a single ADR — before any code exists, so the record captures intent, not hindsight.
 
 ## Input
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan spec 2>&1`
+!`"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan spec 2>&1`
 
 The block above is the full plan (`## plan`) and the human-approved spec (`## spec`).
 
