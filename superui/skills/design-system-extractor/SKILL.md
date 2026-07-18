@@ -26,10 +26,10 @@ Input contract: the screenshots-directory path comes from the invocation prompt 
 
 ```
 <out>/
-  dtcg.yml  DESIGN.md  tokens.css  tokens.json  docs.css  index.html  inventory.md
-  foundations/<name>.html
-  components/<slug>.md  components/<slug>.html
-  patterns/<slug>.md    patterns/<slug>.html
+  dtcg.yml  DESIGN.md  tokens.css  tokens.json  docs.css  components.js  index.html  inventory.md
+  foundations/<name>.data.js  foundations/<name>.html
+  components/<slug>.md  components/<slug>.data.js  components/<slug>.html
+  patterns/<slug>.md    patterns/<slug>.data.js    patterns/<slug>.html
 ```
 
 ## Checklist — execute in order, never skip a step or a gate
@@ -81,6 +81,6 @@ Run by YOU (the head):
 - `check_python.sh` — the step-1 interpreter check.
 
 Run by the GENERATOR or its AGENTS (never by you — see `design-system-generator`'s own Scripts section):
-- `tokens_to_css.py`, `design_md_skeleton.py`, `check_spec_tokens.py`, `build_index.py`, `lint_previews.py` — the mechanical generation/validation scripts.
+- `tokens_to_css.py`, `design_md_skeleton.py`, `check_spec_tokens.py`, `build_foundation_data.py`, `build_sheets.py`, `build_index.py`, `lint_previews.py` — the mechanical generation/validation scripts.
 - `sample_colors.py` — pixel sampling (foundation-analyst, the generator's spec producer, fidelity-reviewer).
 - `validate_tokens.py` — DTCG conformance + alias resolution (the generator's token composer).

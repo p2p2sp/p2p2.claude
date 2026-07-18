@@ -9,7 +9,7 @@ user-invocable: false
 
 # Design System Generator — mechanical tail
 
-Turn a run's foundation notes + inventory into the full `.superui/design-system/` artifact set: `dtcg.yml`, `tokens.css`, `DESIGN.md`, specs, sheets, `index.html`. You do zero user conversation and zero design judgment — every measurement/design decision already happened before you were invoked; you compose, generate, fan out to producer agents, and gate.
+Turn a run's foundation notes + inventory into the full `.superui/design-system/` artifact set: `dtcg.yml`, `tokens.css`, `DESIGN.md`, specs, `components.js`, `*.data.js` sheet data, HTML shells, `index.html`. You do zero user conversation and zero design judgment — every measurement/design decision already happened before you were invoked; you compose, generate, fan out to producer agents, and gate.
 
 ## Input contract
 A labeled block, one `label: value` per line:
@@ -27,7 +27,7 @@ A labeled block, one `label: value` per line:
 - NEVER do a producer's job inline — no writing tokens/specs/sheets yourself. Spawn the owning agent (Agent tool, `subagent_type: superui:<agent-name>`) even when the task looks small.
 - Fan-out steps run agents in parallel, batched (about 5 concurrent); wait for a batch before dispatching the next.
 - Single writer per file: `dtcg.yml` is written only by `token-composer` (compose job, then the merge job); each spec and each sheet has exactly one producer at a time.
-- Scripted artifacts (`tokens.css`, `tokens.json`, the DESIGN.md skeleton, `index.html`) are regenerated wholesale, never patched by hand.
+- Scripted artifacts (`tokens.css`, `tokens.json`, the DESIGN.md skeleton, `foundations/*.data.js`, every `*.html` shell, `index.html`) are regenerated wholesale, never patched by hand.
 - RE-DISPATCH CONVENTION (gate failures, lint hits): spawn the same agent type again with its normal inputs PLUS its previous output path and the findings as additional constraints; it regenerates its artifact in full honoring them. Cap remediation at two rounds per gate — after that, carry the remaining findings into your final message as `> NEEDS INPUT` instead of looping.
 - Trust the scripts: each verifies its own result — do not re-check or hand-edit script output.
 
@@ -44,7 +44,6 @@ Spawn `superui:token-composer` (compose job) with: the four `<run>/notes-<founda
 python "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_css.py" <out>/dtcg.yml <out>/tokens.css
 python "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_json.py" <out>/dtcg.yml <out>/tokens.json
 ```
-Note the reported dark-override count — it is the DARK FLAG for step 8.
 
 ### 3 — Generate DESIGN.md skeleton [script]
 ```
@@ -73,22 +72,43 @@ If the composer reported renames, re-dispatch `<spec-producer>` for each affecte
 ### 7 — Copy doc chrome [script]
 ```
 cp "${CLAUDE_PLUGIN_ROOT}/assets/doc-chrome/docs.css" <out>/docs.css
+cp "${CLAUDE_PLUGIN_ROOT}/assets/doc-chrome/components.js" <out>/components.js
 ```
 
-### 8 — Sheets fan-out [html-visualizer, xN parallel]
-Spawn `superui:html-visualizer` once per sheet:
-- foundation sheets → `<out>/foundations/<name>.html`, emitted when ANY of the sheet's dtcg.yml groups exist: `color` (groups: color) · `typography` (font, dimension, typography) · `spacing-radius` (spacing, radius, size, border, border-width) · `effects` (shadow, opacity, motion, zindex); content source = those groups + the matching DESIGN.md sections.
-- one per component spec → `<out>/components/<slug>.html`;
-- one per pattern spec → `<out>/patterns/<slug>.html`.
+### 7b — Foundation data [script]
+```
+python "${CLAUDE_PLUGIN_ROOT}/scripts/build_foundation_data.py" <out>
+```
+Derives `<out>/foundations/<name>.data.js` straight from `dtcg.yml` (+ `DESIGN.md` prose when present) —
+no LLM step, so a token value edit and a re-run change the readout with nothing dispatched. GATE: script
+exits 0.
 
-Each gets: sheet kind + content source, template `${CLAUDE_PLUGIN_ROOT}/assets/doc-chrome/sheet.template.html`, hrefs (`../docs.css`, `../tokens.css` from subdirs), the dark flag (from step 2), output path. GATE: one sheet per emitted foundation / spec.
+### 8 — Sheet data fan-out [html-visualizer, xN parallel]
+Spawn `superui:html-visualizer` once per component/pattern spec — foundation data was already scripted in
+step 7b, never dispatched here:
+- one per component spec → `<out>/components/<slug>.data.js`;
+- one per pattern spec → `<out>/patterns/<slug>.data.js`.
+
+Each gets: sheet kind + spec path, the preview data format reference
+`${CLAUDE_PLUGIN_ROOT}/references/preview-data-format.md`, output path. GATE: one data file per spec.
+
+### 8b — Build shells [script]
+```
+python "${CLAUDE_PLUGIN_ROOT}/scripts/build_sheets.py" <out>
+```
+Emits one thin shell `.html` per `*.data.js` found under `foundations/`, `components/`, `patterns/`. GATE:
+script exits 0.
 
 ### 9 — Index + lint [scripts]
 ```
 python "${CLAUDE_PLUGIN_ROOT}/scripts/build_index.py" <out>
 python "${CLAUDE_PLUGIN_ROOT}/scripts/lint_previews.py" <out>
 ```
-Lint violations name the offending sheet — re-dispatch that sheet's `html-visualizer` per the re-dispatch convention (lint lines as findings), then re-run the lint. GATE: lint exits 0.
+Lint violations name the offending file. A violation in `components/*.data.js` or `patterns/*.data.js` —
+re-dispatch that spec's `html-visualizer` per the re-dispatch convention (lint lines as findings), then
+re-run `build_sheets.py` (step 8b) and the lint. A violation in `foundations/*.data.js` is a
+`build_foundation_data.py` bug, not something an LLM re-dispatch can fix — never re-dispatch an agent at
+it; carry it into your final message as `> NEEDS INPUT` instead. GATE: lint exits 0.
 
 ### 10 — Return [you]
 End with a single message: the artifact paths (`dtcg.yml` first, then `DESIGN.md`, `tokens.css`, `tokens.json`, `inventory.md`, `index.html`), token/spec/sheet counts, every collected `> NEEDS INPUT` item (from design-doc-writer, spec producers, and any un-remediated re-dispatch findings), and confirmation every gate is green. You never talk to the user directly — the caller relays this verbatim.
@@ -96,7 +116,7 @@ End with a single message: the artifact paths (`dtcg.yml` first, then `DESIGN.md
 ## Edge cases
 
 - Both token-list kinds may appear in one run (e.g. a spec producer re-dispatch after renames adds fresh entries of either tag) — pass every non-empty file to the step-6 merge job; `token-composer` already distinguishes by tag.
-- Empty inventory (no entries in `<out>/inventory.md`) — skip step 5 (and any per-entry work in step 6) entirely; still render foundation sheets and the index in steps 8-9.
+- Empty inventory (no entries in `<out>/inventory.md`) — skip step 5 (and any per-entry work in step 6) entirely, and step 8 has nothing to fan out; steps 7b (foundation data), 8b (shells), and 9 (index + lint) still run.
 - `PYTHON_MISSING` at step 0 — stop immediately; return only the single failure line pointing at `/superui:setup`; write no artifacts.
 
 ## Contracts

@@ -100,17 +100,26 @@ If the composer reported renames, re-dispatch `spec-writer` (design-system-extra
 affected spec with the rename map, then re-run the checker — identical handling to the extractor's
 step 11. GATE: composer reports 0 errors; the checker exits 0.
 
-### 7 — Sheets [html-visualizer, xN parallel]
-Spawn `superui:html-visualizer` once per new-or-changed spec from step 5, each with: sheet kind +
-content source (the spec), template path
-`${CLAUDE_PLUGIN_ROOT}/assets/doc-chrome/sheet.template.html`, hrefs
-(`../docs.css`, `../tokens.css`), the dark flag, output path. Then:
+### 7 — Sheets [script, html-visualizer xN parallel, scripts]
 ```
+cp "${CLAUDE_PLUGIN_ROOT}/assets/doc-chrome/docs.css" <out>/docs.css
+cp "${CLAUDE_PLUGIN_ROOT}/assets/doc-chrome/components.js" <out>/components.js
+```
+Spawn `superui:html-visualizer` once per new-or-changed spec from step 5, each with: sheet kind + spec
+path, the preview data format reference `${CLAUDE_PLUGIN_ROOT}/references/preview-data-format.md`,
+output `<out>/components|patterns/<slug>.data.js`. Then:
+```
+python "${CLAUDE_PLUGIN_ROOT}/scripts/build_foundation_data.py" <out>
+python "${CLAUDE_PLUGIN_ROOT}/scripts/build_sheets.py" <out>
 python "${CLAUDE_PLUGIN_ROOT}/scripts/build_index.py" <out>
 python "${CLAUDE_PLUGIN_ROOT}/scripts/lint_previews.py" <out>
 ```
-Lint violations name the offending sheet — re-dispatch that sheet's `html-visualizer` per the
-re-dispatch convention, then re-run the lint. GATE: lint exits 0.
+`build_foundation_data.py` re-derives foundation data straight from the merged `dtcg.yml`, so a token
+change from step 6 reaches the foundation sheets with no LLM step. Lint violations name the offending
+file. A violation in `components/*.data.js` or `patterns/*.data.js` — re-dispatch that spec's
+`html-visualizer` per the re-dispatch convention, then re-run `build_sheets.py` and the lint. A violation
+in `foundations/*.data.js` is a `build_foundation_data.py` bug, never an LLM re-dispatch target — surface
+it to the user instead. GATE: lint exits 0.
 
 ### 8 — Bookkeeping [you]
 Mechanical transcription only — no judgment, the sole orchestrator-write exception in this pipeline.
