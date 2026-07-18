@@ -61,10 +61,11 @@ Glob `.superui/design-system/DESIGN.md`.
 - ABSENT -> `mkdir` `<run>` and the `<out>` skeleton.
 
 ### 2 — Interview [you + user]
-Prose, one question per turn, no forms: the product and its audience; mood in 3-5 adjectives; whether they have
-inspiration images (a directory path) and, if so, what to take from them (palette, type, density, mood) and
-what to avoid. Write the answers to `<run>/brief.md`. No inspiration materials -> skip step 3; a brief-only
-design is first-class.
+Prose, one question per turn, no forms: the product and its audience; mood in 3-5 adjectives; whether the system
+needs dark mode; whether they have inspiration images (a directory path) and, if so, what to take from them
+(palette, type, density, mood) and what to avoid. Write the answers to `<run>/brief.md`, including the dark-mode
+answer — undecided is recorded as "no dark", never fabricated. No inspiration materials -> skip step 3; a
+brief-only design is first-class.
 
 ### 3 — Inspiration hints [optional, script]
 For each image in the inspiration dir:
@@ -80,7 +81,11 @@ Spawn `superui:design-director` (Agent tool, `subagent_type: superui:design-dire
 the inspiration-hints path (when step 3 produced one), the naming-vocabulary template
 `${CLAUDE_PLUGIN_ROOT}/assets/tokens.template.yaml`, the contrast script
 `${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.py`, and the output run-dir `<run>`. GATE: the four
-`notes-<foundation>.md` files, `inventory.md`, and `direction-rationale.md` all exist in `<run>`.
+`notes-<foundation>.md` files, `inventory.md`, and `direction-rationale.md` all exist in `<run>`. Additionally,
+mechanical dark condition: the brief asked for dark -> `<run>/notes-colors.md`'s `CONTRAST-PAIRS` section
+contains at least one `dark ·` entry; missing -> re-dispatch `design-director` per the RE-DISPATCH CONVENTION,
+capped at two rounds — after that, carry the residue to step 8 as `> NEEDS INPUT` rather than looping forever
+(this skill has no global remediation cap, so this gate states its own).
 
 ### 5 — Direction GATE [you + user]
 Present the direction to the user: the palette (token names + prose, not raw values), the type ramp, the mood
