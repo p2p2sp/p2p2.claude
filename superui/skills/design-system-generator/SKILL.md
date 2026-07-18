@@ -3,7 +3,7 @@ name: design-system-generator
 description: Invoked only by design-system-extractor and design-system-creator skills.
 context: fork
 model: sonnet
-allowed-tools: Write, Bash(sh:*), Bash(python:*), Bash(python3:*), Bash(py:*), Bash(mkdir:*), Bash(cp:*), Agent
+allowed-tools: Write, Bash(sh:*), Bash(node:*), Bash(mkdir:*), Bash(cp:*), Agent
 user-invocable: false
 ---
 
@@ -34,20 +34,20 @@ A labeled block, one `label: value` per line:
 ## Checklist — execute in order, never skip a step or a gate
 
 ### 0 — Env check [you]
-Run `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_python.sh"`. `PYTHON_MISSING` -> stop now, write no artifacts, and return a single failure line telling the caller to send the user to `/superui:setup`. `PYTHON_OK <cmd>` -> use `<cmd>` in place of `python` in every step below, and state it as the interpreter command when spawning the Bash-bearing agents (`token-composer`, `spec-writer`/`spec-designer`).
+Run `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_node.sh"`. `NODE_MISSING` -> stop now, write no artifacts, and return a single failure line telling the caller to send the user to `/superui:setup`. `NODE_OK <cmd>` -> use `<cmd>` in place of `node` in every step below, and state it as the runtime command when spawning the Bash-bearing agents (`token-composer`, `spec-writer`/`spec-designer`).
 
 ### 1 — Compose tokens [token-composer, x1]
-Spawn `superui:token-composer` (compose job) with: the four `<run>/notes-<foundation>.md` paths, validator path `${CLAUDE_PLUGIN_ROOT}/scripts/validate_tokens.py`, DTCG format reference `${CLAUDE_PLUGIN_ROOT}/references/dtcg-token-format.md`, template path `${CLAUDE_PLUGIN_ROOT}/assets/tokens.template.yaml`, output `<out>/dtcg.yml`. When `provenance: designed`, the dispatch also instructs: write `$extensions.org.superui.provenance: designed` at the dtcg.yml ROOT, and preserve that root marker across every later write (this step and every merge in step 6). GATE: composer reports 0 errors.
+Spawn `superui:token-composer` (compose job) with: the four `<run>/notes-<foundation>.md` paths, validator path `${CLAUDE_PLUGIN_ROOT}/scripts/validate_tokens.ts`, DTCG format reference `${CLAUDE_PLUGIN_ROOT}/references/dtcg-token-format.md`, template path `${CLAUDE_PLUGIN_ROOT}/assets/tokens.template.yaml`, output `<out>/dtcg.yml`. When `provenance: designed`, the dispatch also instructs: write `$extensions.org.superui.provenance: designed` at the dtcg.yml ROOT, and preserve that root marker across every later write (this step and every merge in step 6). GATE: composer reports 0 errors.
 
 ### 2 — Generate tokens.css + tokens.json [scripts]
 ```
-python "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_css.py" <out>/dtcg.yml <out>/tokens.css
-python "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_json.py" <out>/dtcg.yml <out>/tokens.json
+node "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_css.ts" <out>/dtcg.yml <out>/tokens.css
+node "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_json.ts" <out>/dtcg.yml <out>/tokens.json
 ```
 
 ### 3 — Generate DESIGN.md skeleton [script]
 ```
-python "${CLAUDE_PLUGIN_ROOT}/scripts/design_md_skeleton.py" <out>/dtcg.yml <out>/DESIGN.md
+node "${CLAUDE_PLUGIN_ROOT}/scripts/design_md_skeleton.ts" <out>/dtcg.yml <out>/DESIGN.md
 ```
 
 ### 4 — Complete DESIGN.md [design-doc-writer, x1]
@@ -55,7 +55,7 @@ Spawn `superui:design-doc-writer` with: skeleton path, dtcg.yml, the four notes 
 
 ### 5 — Specs fan-out [spec-producer, xN parallel]
 Skip entirely when `<out>/inventory.md` lists no entries. Otherwise spawn `<spec-producer>` once per inventory entry:
-- `superui:spec-writer`: the entry line, source dir (`<source>`) + intake answers (`<intake>`) when given, dtcg.yml, spec template reference `${CLAUDE_PLUGIN_ROOT}/references/component-spec.md`, example spec `${CLAUDE_PLUGIN_ROOT}/assets/example-component-spec.md`, sampler path `${CLAUDE_PLUGIN_ROOT}/scripts/sample_colors.py`, output `<out>/components/<slug>.md` or `<out>/patterns/<slug>.md`.
+- `superui:spec-writer`: the entry line, source dir (`<source>`) + intake answers (`<intake>`) when given, dtcg.yml, spec template reference `${CLAUDE_PLUGIN_ROOT}/references/component-spec.md`, example spec `${CLAUDE_PLUGIN_ROOT}/assets/example-component-spec.md`, sampler path `${CLAUDE_PLUGIN_ROOT}/scripts/sample_colors.ts`, output `<out>/components/<slug>.md` or `<out>/patterns/<slug>.md`.
 - `superui:spec-designer`: the entry line, brief path (`<context>`), dtcg.yml, the same template and example paths — no source dir, no sampler.
 
 Collect the token blocks from each agent's report (skip the ones reporting `none`): `MISSING-TOKENS` blocks into `<run>/missing-tokens.md`, `SYNTHESIZED-TOKENS` blocks into `<run>/synthesized-tokens.md`. GATE: one spec file per inventory entry.
@@ -63,11 +63,11 @@ Collect the token blocks from each agent's report (skip the ones reporting `none
 ### 6 — Reconcile [token-composer merge, x1 — only if either token list has entries]
 Spawn `superui:token-composer` (merge job) with: `<out>/dtcg.yml`, whichever of `<run>/missing-tokens.md` / `<run>/synthesized-tokens.md` has entries (token-composer distinguishes `MISSING-TOKENS` vs `SYNTHESIZED-TOKENS` entries by tag — pass both files when both are non-empty), validator path, DTCG format reference, template path (same set as step 1). When `provenance: designed`, the dispatch again instructs preserving the root provenance marker. The composer keeps proposed names unless a tier rule forces a rename, and reports renames as `old -> new` lines. Then:
 ```
-python "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_css.py" <out>/dtcg.yml <out>/tokens.css
-python "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_json.py" <out>/dtcg.yml <out>/tokens.json
-python "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec_tokens.py" <out>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_css.ts" <out>/dtcg.yml <out>/tokens.css
+node "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_json.ts" <out>/dtcg.yml <out>/tokens.json
+node "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec_tokens.ts" <out>
 ```
-If the composer reported renames, re-dispatch `<spec-producer>` for each affected spec with the rename map, then re-run the checker. GATE: composer reports 0 errors; `check_spec_tokens.py` exits 0 (every spec token reference resolves in dtcg.yml).
+If the composer reported renames, re-dispatch `<spec-producer>` for each affected spec with the rename map, then re-run the checker. GATE: composer reports 0 errors; `check_spec_tokens.ts` exits 0 (every spec token reference resolves in dtcg.yml).
 
 ### 7 — Copy doc chrome [script]
 ```
@@ -77,7 +77,7 @@ cp "${CLAUDE_PLUGIN_ROOT}/assets/doc-chrome/components.js" <out>/components.js
 
 ### 7b — Foundation data [script]
 ```
-python "${CLAUDE_PLUGIN_ROOT}/scripts/build_foundation_data.py" <out>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/build_foundation_data.ts" <out>
 ```
 Derives `<out>/foundations/<name>.data.js` straight from `dtcg.yml` (+ `DESIGN.md` prose when present) —
 no LLM step, so a token value edit and a re-run change the readout with nothing dispatched. GATE: script
@@ -94,20 +94,20 @@ Each gets: sheet kind + spec path, the preview data format reference
 
 ### 8b — Build shells [script]
 ```
-python "${CLAUDE_PLUGIN_ROOT}/scripts/build_sheets.py" <out>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/build_sheets.ts" <out>
 ```
 Emits one thin shell `.html` per `*.data.js` found under `foundations/`, `components/`, `patterns/`. GATE:
 script exits 0.
 
 ### 9 — Index + lint [scripts]
 ```
-python "${CLAUDE_PLUGIN_ROOT}/scripts/build_index.py" <out>
-python "${CLAUDE_PLUGIN_ROOT}/scripts/lint_previews.py" <out>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/build_index.ts" <out>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/lint_previews.ts" <out>
 ```
 Lint violations name the offending file. A violation in `components/*.data.js` or `patterns/*.data.js` —
 re-dispatch that spec's `html-visualizer` per the re-dispatch convention (lint lines as findings), then
-re-run `build_sheets.py` (step 8b) and the lint. A violation in `foundations/*.data.js` is a
-`build_foundation_data.py` bug, not something an LLM re-dispatch can fix — never re-dispatch an agent at
+re-run `build_sheets.ts` (step 8b) and the lint. A violation in `foundations/*.data.js` is a
+`build_foundation_data.ts` bug, not something an LLM re-dispatch can fix — never re-dispatch an agent at
 it; carry it into your final message as `> NEEDS INPUT` instead. GATE: lint exits 0.
 
 ### 10 — Return [you]
@@ -117,7 +117,7 @@ End with a single message: the artifact paths (`dtcg.yml` first, then `DESIGN.md
 
 - Both token-list kinds may appear in one run (e.g. a spec producer re-dispatch after renames adds fresh entries of either tag) — pass every non-empty file to the step-6 merge job; `token-composer` already distinguishes by tag.
 - Empty inventory (no entries in `<out>/inventory.md`) — skip step 5 (and any per-entry work in step 6) entirely, and step 8 has nothing to fan out; steps 7b (foundation data), 8b (shells), and 9 (index + lint) still run.
-- `PYTHON_MISSING` at step 0 — stop immediately; return only the single failure line pointing at `/superui:setup`; write no artifacts.
+- `NODE_MISSING` at step 0 — stop immediately; return only the single failure line pointing at `/superui:setup`; write no artifacts.
 
 ## Contracts
 

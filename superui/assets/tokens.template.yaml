@@ -146,7 +146,7 @@ zindex:
   panel:   { $value: 20 }
   modal:   { $value: 50 }
 
-# Composite text styles — scripts/tokens_to_css.py emits these into tokens.css
+# Composite text styles — scripts/tokens_to_css.ts emits these into tokens.css
 # as comments; the parts already exist as tokens above, so consume the parts
 # directly in markup.
 typography:

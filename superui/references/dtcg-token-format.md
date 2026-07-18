@@ -1,6 +1,6 @@
 # DTCG token format (2025.10) — YAML serialization
 
-Author tokens in **YAML using the exact DTCG object model** (same `$`-prefixed keys, same value shapes). The scripts in this skill load the YAML and treat it as the DTCG structure 1:1, so it converts losslessly to DTCG JSON — `tokens_to_json.py` does exactly that on every run, emitting `tokens.json` beside `tokens.css` as the vendor-neutral interchange file for downstream tooling (Style Dictionary, JSON Schema validation). `dtcg.yml` stays the authored source of truth; `tokens.json` is generated and never hand-edited.
+Author tokens in **YAML using the exact DTCG object model** (same `$`-prefixed keys, same value shapes). The scripts in this skill load the YAML and treat it as the DTCG structure 1:1, so it converts losslessly to DTCG JSON — `tokens_to_json.ts` does exactly that on every run, emitting `tokens.json` beside `tokens.css` as the vendor-neutral interchange file for downstream tooling (Style Dictionary, JSON Schema validation). `dtcg.yml` stays the authored source of truth; `tokens.json` is generated and never hand-edited.
 
 ## Core shape
 
@@ -53,7 +53,7 @@ $value:
   alpha: 1                 # 0..1, optional (default 1)
   hex: "#3366f2"           # optional; include for sRGB to ease CSS output
 ```
-Always include `hex` for sRGB colors — `sample_colors.py` emits it and it gives the most readable output when a downstream target adapter writes CSS / theme code.
+Always include `hex` for sRGB colors — `sample_colors.ts` emits it and it gives the most readable output when a downstream target adapter writes CSS / theme code.
 
 ### dimension
 A number plus a unit. Use for spacing, sizes, radii, border widths, font sizes, breakpoints.
@@ -191,16 +191,16 @@ color:
 
 - `dark` has the same shape and type as `$value`; aliases and composites are allowed.
 - A token with no light/dark difference has no such extension.
-- This is the only source of truth for dark in L1: the `.dark` block of `tokens.css` is derived from it by `tokens_to_css.py`, and `validate_tokens.py` validates `dark` exactly like `$value`.
+- This is the only source of truth for dark in L1: the `.dark` block of `tokens.css` is derived from it by `tokens_to_css.ts`, and `validate_tokens.ts` validates `dark` exactly like `$value`.
 
 ## Platform variants — deliberately out of scope
 
 A token carries ONE technology-agnostic value, plus its dark counterpart. Per-platform replacement values (a different radius on one platform, a different type ramp on another) do NOT belong in `dtcg.yml`: they live in the consuming repo's target adapter — e.g. Style Dictionary platforms — fed by the generated `tokens.json`. This is a decision, not an omission.
 
-Dark mode earns its in-plugin extension because it is a closed, universal axis of a design system that every artifact already models (`tokens_to_css.py` renders a `.dark` block, the sheets carry a dark toggle, `validate_tokens.py` type-checks the value). A platform axis has none of those properties:
+Dark mode earns its in-plugin extension because it is a closed, universal axis of a design system that every artifact already models (`tokens_to_css.ts` renders a `.dark` block, the sheets carry a dark toggle, `validate_tokens.ts` type-checks the value). A platform axis has none of those properties:
 
 - `org.superui` already reserves `dark`, `synthesized`, and `provenance`. An open-ended label set in that same namespace makes every typo — `darkk`, `provenence` — validate silently as "a platform".
-- The label set is defined by the consuming project, so the plugin could never enumerate it, and `tokens_to_css.py` renders base values only — platform variants would be unrenderable in the docs and unverifiable by `fidelity-reviewer`.
+- The label set is defined by the consuming project, so the plugin could never enumerate it, and `tokens_to_css.ts` renders base values only — platform variants would be unrenderable in the docs and unverifiable by `fidelity-reviewer`.
 - Platform mapping is exactly what a target adapter exists to do, and DTCG JSON is the sanctioned handoff point for it.
 
 ## Recommended file skeleton

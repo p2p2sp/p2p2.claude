@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Setup / diagnose the superui environment (Python + required modules).
+description: Setup / diagnose the superui environment (Node.js runtime).
 allowed-tools: Read, Bash(sh:*)
 user-invocable: true
 disable-model-invocation: true
@@ -8,9 +8,10 @@ disable-model-invocation: true
 
 # Setup — superui environment diagnostic
 
-Report whether this machine can run superui's Python steps (token sampling, contrast checks,
-tokens.css/DESIGN.md/index generation, spec-token/preview linting). Diagnostic only — never writes
-anything, never installs anything.
+Report whether this machine can run superui's script steps (token sampling, contrast checks,
+tokens.css/DESIGN.md/index generation, spec-token/preview linting). The bundled scripts are
+TypeScript run directly by Node's native type stripping — no build step, no packages to install
+beyond Node itself. Diagnostic only — never writes anything, never installs anything.
 
 ## Run
 
@@ -23,22 +24,16 @@ script failure.
 
 ## Report
 
-Turn the script's lines into a PASS/FAIL table, one row per check (`PYTHON ...` -> interpreter row,
-each `MODULE ...` -> a module row), then add install hints for anything not `OK`:
+Turn the script's lines into a PASS/FAIL table (`NODE <cmd>` -> runtime row PASS with the command;
+`NODE MISSING` -> FAIL; `VERSION ...` -> informational row), then add install hints for a FAIL:
 
-- Interpreter missing -> macOS: `brew install python3`; Windows: install from python.org and ensure
-  it's added to PATH during setup; Linux: use the distro package manager (e.g. `apt install
-  python3`).
-- Any `MODULE ... MISSING` line -> `pip install pillow numpy pyyaml` (installs all three at once;
-  the script's own per-module hint installs just that one).
+- Node missing or older than 22.6 -> install Node.js 24 LTS (or any version >= 22.6) — macOS:
+  `brew install node`; Windows: installer from nodejs.org or `winget install OpenJS.NodeJS.LTS`;
+  Linux: distro package manager or nodejs.org binaries.
+- `NODE node --experimental-strip-types` (a 22.6–23.5 runtime) is a PASS — the skills use that
+  command verbatim; upgrading to >= 23.6 just drops the flag.
 
-Close with which skills need what, so a partial PASS is still actionable:
-- Pillow + numpy -> inspiration-image sampling (`design-system-creator` step 3, `spec-writer`'s
-  screenshot sampling).
-- PyYAML -> the token pipeline (`token-composer`, `validate_tokens.py`, `tokens_to_css.py`) —
-  everything that reads or writes `dtcg.yml`.
-- No third-party module -> contrast checks, spec/preview linting, and index generation are stdlib-only
-  and run under any working interpreter.
-- Interpreter missing entirely -> every `*.py` step across all four skills (extractor, creator,
-  completer, generator) stops at its env-check; only the guardian and pro-designer's non-script
-  guidance remain usable.
+Close with impact, so a FAIL is actionable: with no working Node, every `*.ts` step across the
+pipeline skills (extractor, creator, completer, generator, auditor) stops at its env-check and
+pro-designer's contrast gate is skipped with a note; only the guardian and pro-designer's non-script
+guidance remain usable.

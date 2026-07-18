@@ -49,7 +49,7 @@ This mirrors the five-step idea: *sweep → score → ignore noise → send dete
 
 ### Phase 0 — Frame
 1. Confirm the **target repo path** and the **job** (above).
-2. Run `sh "${CLAUDE_SKILL_DIR}/scripts/check_python.sh"`. `PYTHON_OK <cmd>` -> use `<cmd>` wherever this skill writes `python3`. `PYTHON_MISSING` -> STOP here: the Phase 3 gate needs Python 3, and without it the sweep and the scout fan-out would be paid for and then discarded. Tell the user, and do not start Phase 1.
+2. Run `sh "${CLAUDE_SKILL_DIR}/scripts/check_node.sh"`. `NODE_OK <cmd>` -> use `<cmd>` wherever this skill writes `node`. `NODE_MISSING` -> STOP here: the Phase 3 gate needs Node.js >= 22.6, and without it the sweep and the scout fan-out would be paid for and then discarded. Tell the user, and do not start Phase 1.
 3. Create a workspace: `mkdir -p .temp/code-reviewer/<run-id>/{signals,scores,reports,hotlist}`.
 4. Define the Impact and Opportunity signals for the chosen job from `${CLAUDE_SKILL_DIR}/references/jobs.md`. Write them to `.temp/code-reviewer/<run-id>/job.md`, inlining the 1-5 rubric from `${CLAUDE_SKILL_DIR}/references/scoring.md`, so every subagent scores against the *same* rubric from one self-contained file.
 
@@ -76,7 +76,7 @@ Batch to control cost: ~10-40 files per scout for a huge tree, 1 file per scout 
 Combine and rank deterministically so the cut is reproducible:
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/scripts/rank.py" \
+node "${CLAUDE_SKILL_DIR}/scripts/rank.ts" \
   --scores .temp/code-reviewer/<run-id>/scores/scores.jsonl \
   --signals .temp/code-reviewer/<run-id>/signals/signals.jsonl \
   --min-impact 3 --min-opportunity 3 --top 20 \
@@ -84,7 +84,7 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/rank.py" \
   --out-md   .temp/code-reviewer/<run-id>/hotlist/hotlist.md
 ```
 
-`rank.py` computes `score = impact × opportunity`, assigns each file a 2×2 quadrant, drops everything that is not in the top-right corner, and writes a ranked **HOTLIST** (`#, Component, Impact, Opportunity, Score, Reason`). Show the hotlist to the user before spending frontier tokens.
+`rank.ts` computes `score = impact × opportunity`, assigns each file a 2×2 quadrant, drops everything that is not in the top-right corner, and writes a ranked **HOTLIST** (`#, Component, Impact, Opportunity, Score, Reason`). Show the hotlist to the user before spending frontier tokens.
 
 ### Phase 4 — Dispatch detectives (frontier model, top-N only)
 For each hotspot on the gated hotlist, spawn a **`detective`** subagent (Agent tool, `subagent_type: superfix:detective`) — frontier tier, isolated context. This is "Send the detective here": you only pay deep-model cost for the survivors.

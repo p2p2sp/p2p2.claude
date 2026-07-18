@@ -1,7 +1,7 @@
 # Preview data format — `*.data.js` contract
 
 The schema shared by `components.js` (the runtime that renders it), `html-visualizer` (the sole author of
-component/pattern data), and `build_foundation_data.py` (the sole author of foundation data). A `.data.js`
+component/pattern data), and `build_foundation_data.ts` (the sole author of foundation data). A `.data.js`
 file is a classic (non-module) script — `file://`-safe, loaded via `<script src>`, never `fetch()` — that
 registers one entry in a global registry:
 
@@ -42,14 +42,14 @@ one file, one writer, one entry.
 }
 ```
 
-`title` is also what `build_index.py` uses as the link label on the index page (fallback: the shell's
+`title` is also what `build_index.ts` uses as the link label on the index page (fallback: the shell's
 `<title>`), so keep it short and human-facing.
 
 ## The color rule
 
 A color is **always** given as a token `varName`, **never a literal**. No section item, table cell, or demo
 `markup` string ever carries a raw hex/`rgb()`/`hsl()`. Wherever a color is named, name its `varName` and the
-runtime paints the swatch — `lint_previews.py` enforces this by scanning `.data.js` source text for raw
+runtime paints the swatch — `lint_previews.ts` enforces this by scanning `.data.js` source text for raw
 color/px literals inside `markup`/`html` strings and inside `render: color` item values.
 
 `varName` (used everywhere below) is a CSS custom-property name **without** the leading `--` — dtcg.yml path

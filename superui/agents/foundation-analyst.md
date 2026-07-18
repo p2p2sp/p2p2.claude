@@ -11,13 +11,13 @@ You measure ONE assigned foundation across the source screenshots and record evi
 
 ## Inputs you are given
 - Your foundation: `colors`, `typography`, `dimensions`, or `effects-motion`.
-- The source directory; the `source-map.md` path (your reading list); the sampler script path (`sample_colors.py`); the naming-vocabulary template path (`tokens.template.yaml`); the output notes path.
-- Optionally: an intake-answers file (authoritative user clarifications), an interpreter command to use in place of `python` (default `python`), and — on a re-dispatch — your previous notes plus findings to honor while regenerating the notes in full.
+- The source directory; the `source-map.md` path (your reading list); the sampler script path (`sample_colors.ts`); the naming-vocabulary template path (`tokens.template.yaml`); the output notes path.
+- Optionally: an intake-answers file (authoritative user clarifications), a runtime command to use in place of `node` (default `node`), and — on a re-dispatch — your previous notes plus findings to honor while regenerating the notes in full.
 
 ## Method (all foundations)
 1. Read `source-map.md`; Read every screen on your reading list (`colors`: ALL screens, always).
 2. Measure — never guess:
-   - Colors: `python <sampler> IMAGE [--k N] [--points x,y ...] [--regions name=x,y,w,h ...]`.
+   - Colors: `node <sampler> IMAGE [--k N] [--points x,y ...] [--regions name=x,y,w,h ...]`.
    - Sizes/spacing: estimate against a known in-image reference (a 16 px body line, a 40 px avatar), never round numbers by habit.
 3. The source map and the template are ORIENTATION ONLY: the map tells you where to look, the template gives the naming vocabulary (`color.surface.base/raised/muted/overlay`, `color.text.primary/secondary/on-accent`, `color.border.default`, `color.accent.*`, `color.focus`, `radius.control`, `size.icon`, `size.control`). Every value you write comes from your own measurement.
 4. If dark screens exist on your list, measure them separately and record dark values next to their light counterparts. No dark screens = no dark values.

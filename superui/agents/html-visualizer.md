@@ -13,7 +13,7 @@ sheet's data object.
 
 ## Inputs you are given
 - Sheet kind: `component` or `pattern`, and its spec `.md` path. Foundation sheets are scripted
-  (`build_foundation_data.py`), never dispatched to you.
+  (`build_foundation_data.ts`), never dispatched to you.
 - The preview data format reference path (`preview-data-format.md`) — the schema you must conform to.
 - The output `.data.js` path.
 - Optionally, on a re-dispatch: your previous data file plus lint/review findings — regenerate the whole

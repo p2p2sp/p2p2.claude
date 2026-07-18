@@ -1,7 +1,7 @@
 ---
 name: design-system-extractor
 description: Use when the user provides a folder of UI screenshots and wants to reverse-engineer a framework-agnostic design system from it.
-allowed-tools: Write, Bash(sh:*), Bash(python:*), Bash(python3:*), Bash(py:*), Bash(mkdir:*), Skill, Agent
+allowed-tools: Write, Bash(sh:*), Bash(node:*), Bash(mkdir:*), Skill, Agent
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -35,7 +35,7 @@ Input contract: the screenshots-directory path comes from the invocation prompt 
 ## Checklist — execute in order, never skip a step or a gate
 
 ### 1 — Intake [you]
-Run `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_python.sh"`. `PYTHON_MISSING` -> tell the user the pipeline's `*.py` steps need Python 3 and point them at `/superui:setup`; stop before any `python ...` step. `PYTHON_OK <cmd>` -> use `<cmd>` in place of `python` everywhere below, and state it as the interpreter command when spawning the Bash-bearing agents (`foundation-analyst`, `fidelity-reviewer`).
+Run `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_node.sh"`. `NODE_MISSING` -> tell the user the pipeline's `*.ts` steps need Node.js >= 22.6 and point them at `/superui:setup`; stop before any `node ...` step. `NODE_OK <cmd>` -> use `<cmd>` in place of `node` everywhere below, and state it as the runtime command when spawning the Bash-bearing agents (`foundation-analyst`, `fidelity-reviewer`).
 
 Confirm the source directory exists and contains images. Ask the user for scope only if genuinely unclear (which screens are canonical, desired output dir). Create `<run>` and the `<out>` skeleton (`mkdir`). GATE: source dir confirmed non-empty.
 
@@ -46,7 +46,7 @@ Spawn `superui:source-scout` with: source dir, output path `<run>/source-map.md`
 Read ONLY the `## Ambiguities` section of the source map. If it is non-empty, ask the user those questions now and write the answers to `<run>/intake-answers.md`. Every later agent dispatch that lists the source map also gets `<run>/intake-answers.md` when it exists (authoritative user clarifications). GATE: no unanswered ambiguity that blocks measurement.
 
 ### 4 — Foundations fan-out [foundation-analyst, x4 parallel]
-Spawn `superui:foundation-analyst` once per foundation — `colors`, `typography`, `dimensions`, `effects-motion` — each with: its foundation name, source dir, source-map path (+ intake answers), sampler path `${CLAUDE_PLUGIN_ROOT}/scripts/sample_colors.py`, template path `${CLAUDE_PLUGIN_ROOT}/assets/tokens.template.yaml`, output `<run>/notes-<foundation>.md`. GATE: four notes files exist; the colors notes contain a measured surface/elevation order AND an accent-usage inventory. Missing either → re-dispatch the colors analyst per the re-dispatch convention.
+Spawn `superui:foundation-analyst` once per foundation — `colors`, `typography`, `dimensions`, `effects-motion` — each with: its foundation name, source dir, source-map path (+ intake answers), sampler path `${CLAUDE_PLUGIN_ROOT}/scripts/sample_colors.ts`, template path `${CLAUDE_PLUGIN_ROOT}/assets/tokens.template.yaml`, output `<run>/notes-<foundation>.md`. GATE: four notes files exist; the colors notes contain a measured surface/elevation order AND an accent-usage inventory. Missing either → re-dispatch the colors analyst per the re-dispatch convention.
 
 ### 5 — Inventory [component-scout, x1]
 Spawn `superui:component-scout` with: source dir, source-map path (+ intake answers), detection catalog `${CLAUDE_PLUGIN_ROOT}/references/component-patterns.md`, output `<out>/inventory.md`. Then LIST the inventory to the user in your reply (components by kind, then patterns, then flagged inconsistencies) so they see what was identified before the specs land. GATE: inventory exists; user has seen it (do not block on approval unless they object).
@@ -75,12 +75,12 @@ Give the user: the artifact paths (`dtcg.yml` first, then `DESIGN.md`, `tokens.c
 
 ## Scripts (each carries its I/O contract in its header)
 
-Plain Python (stdlib + `pyyaml`, `Pillow`, `numpy`). Install if missing, using the step-1 interpreter: `<cmd> -m pip install pyyaml pillow numpy --break-system-packages`.
+Plain TypeScript run directly by Node's native type stripping (`node:` builtins only — nothing to install beyond Node itself, no build step).
 
 Run by YOU (the head):
-- `check_python.sh` — the step-1 interpreter check.
+- `check_node.sh` — the step-1 runtime check.
 
 Run by the GENERATOR or its AGENTS (never by you — see `design-system-generator`'s own Scripts section):
-- `tokens_to_css.py`, `design_md_skeleton.py`, `check_spec_tokens.py`, `build_foundation_data.py`, `build_sheets.py`, `build_index.py`, `lint_previews.py` — the mechanical generation/validation scripts.
-- `sample_colors.py` — pixel sampling (foundation-analyst, the generator's spec producer, fidelity-reviewer).
-- `validate_tokens.py` — DTCG conformance + alias resolution (the generator's token composer).
+- `tokens_to_css.ts`, `design_md_skeleton.ts`, `check_spec_tokens.ts`, `build_foundation_data.ts`, `build_sheets.ts`, `build_index.ts`, `lint_previews.ts` — the mechanical generation/validation scripts.
+- `sample_colors.ts` — pixel sampling (foundation-analyst, the generator's spec producer, fidelity-reviewer).
+- `validate_tokens.ts` — DTCG conformance + alias resolution (the generator's token composer).

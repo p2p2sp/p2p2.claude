@@ -38,7 +38,7 @@ The categories a complete system defines. Tagged **[universal]** (translates to 
 - **Typography** — [universal] families, size scale, weights, line-heights, letter-spacing; named text styles as `typography` composites.
 - **Spacing** — [universal] the spacing scale (snap to a base step only if the design uses one); padding and gap rhythm.
 - **Grid / layout** — [universal] column structure, container/content max-widths, gutters, fixed region widths of the app shell.
-- **Elevation** — [universal] how depth is shown: shadow ramp and/or surface-color steps; record which mechanism the design uses. Surface order is MEASURED, never assumed: sample every major region's background with `sample_colors.py --regions` and adopt the printed luminance order (darkest = `surface.base`). Record the resulting order explicitly in DESIGN.md; when two adjacent regions differ, state which is raised relative to the other.
+- **Elevation** — [universal] how depth is shown: shadow ramp and/or surface-color steps; record which mechanism the design uses. Surface order is MEASURED, never assumed: sample every major region's background with `sample_colors.ts --regions` and adopt the printed luminance order (darkest = `surface.base`). Record the resulting order explicitly in DESIGN.md; when two adjacent regions differ, state which is raised relative to the other.
 - **Radius** — [universal] the corner-radius scale, including "full" for pills/avatars AND large-surface/panel/shell radii.
 - **Border** — [universal] widths and the border composite.
 - **Iconography** — [universal] icon size step(s) and stroke style.
@@ -56,7 +56,7 @@ A **theme** swaps token values behind stable semantic names, so UI never changes
 
 - Semantic token names stay stable across themes; only the primitive each one aliases differs.
 - L1 records dark in the tokens themselves: a token whose value differs in dark carries the complete replacement in `$extensions.org.superui.dark` (same shape/type; aliases allowed — see `dtcg-token-format.md`). That extension is the ONLY source of truth for dark.
-- `tokens.css` is derived, pure CSS: `:root` (light) + `.dark` overrides generated from the extensions by `tokens_to_css.py`.
+- `tokens.css` is derived, pure CSS: `:root` (light) + `.dark` overrides generated from the extensions by `tokens_to_css.ts`.
 - **Never fabricate** the dark palette. No dark screens in the source = no dark extensions (the generated `.dark` block stays a TODO scaffold); say so in DESIGN.md instead of inventing values.
 
 ## 5. Component & pattern library
@@ -76,7 +76,7 @@ Beyond individual blocks, the system records **rules that keep it coherent**. Ca
 
 Per-entry a11y lives in each spec; these are the system-wide checks for DESIGN.md:
 
-- **Color contrast (WCAG 2.x AA):** body text ≥ 4.5:1; large text and UI components/graphical objects ≥ 3:1. Read actual fg/bg pairs with `sample_colors.py` and compute ratios; a failing pair is recorded as an observation, never silently "fixed".
+- **Color contrast (WCAG 2.x AA):** body text ≥ 4.5:1; large text and UI components/graphical objects ≥ 3:1. Read actual fg/bg pairs with `sample_colors.ts` and compute ratios; a failing pair is recorded as an observation, never silently "fixed".
 - **Focus visibility:** a visible indicator must exist; captured as a token so specs can reference it.
 - **Keyboard & semantics:** interactive elements reachable and operable; correct roles/landmarks; accessible names for icon-only controls.
 - **Target size:** targets should not undercut the control-height token.

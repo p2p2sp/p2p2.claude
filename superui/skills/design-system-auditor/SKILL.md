@@ -1,7 +1,7 @@
 ---
 name: design-system-auditor
 description: Read-only consistency audit of the implementation against the project's OWN design system (.superui/design-system/) — finds DRIFT (code contradicting existing tokens/specs: hardcoded colors/spacing/fonts/radii/shadows/motion a token covers, off-spec component states or variants, accent misuse, hardcoded dark-mode values), GAPs (needs the system does not define, routed to extractor/completer) and UNTRACKED components missing from inventory.md.
-allowed-tools: Write, Bash(sh:*), Bash(python:*), Bash(python3:*), Bash(py:*), Bash(mkdir:*), Bash(date:*), Agent
+allowed-tools: Write, Bash(sh:*), Bash(node:*), Bash(mkdir:*), Bash(date:*), Agent
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -37,9 +37,9 @@ Today: !`date +%F`
 ## Checklist — execute in order, never skip a step or a gate
 
 ### 1 — Gate [you]
-Run `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_python.sh"`. `PYTHON_MISSING` -> the pre-pass `*.py`
-steps need Python 3; point the user at `/superui:setup` and stop. `PYTHON_OK <cmd>` -> use `<cmd>`
-in place of `python` everywhere below.
+Run `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_node.sh"`. `NODE_MISSING` -> the pre-pass `*.ts`
+steps need Node.js >= 22.6; point the user at `/superui:setup` and stop. `NODE_OK <cmd>` -> use `<cmd>`
+in place of `node` everywhere below.
 Check `<sys>/DESIGN.md` exists (Glob). ABSENT -> there is no design system to audit against; say so
 and stand down (suggest `design-system-extractor` / `design-system-creator` only if the user asks).
 PRESENT -> `mkdir` `<run>`.
@@ -54,27 +54,27 @@ list). Skip only what the invocation already answered. GATE: scope resolved and 
   `<run>/scope-files.txt` (one list per surface when several: `scope-files-<label>.txt`).
 - System validators — their output lines go into the report's System health section verbatim (a
   broken system is itself a finding, not a stop):
-  - `python "${CLAUDE_PLUGIN_ROOT}/scripts/validate_tokens.py" <sys>/dtcg.yml`
-  - `python "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec_tokens.py" <sys>`
+  - `node "${CLAUDE_PLUGIN_ROOT}/scripts/validate_tokens.ts" <sys>/dtcg.yml`
+  - `node "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec_tokens.ts" <sys>`
   - Contrast — two runs, one per theme, same pair-selection rule applied to both: build the
     text-on-background pairs that `DESIGN.md`'s accessibility/theming sections name (when they name
     none: each text role on each surface role, and each `on-<bg>` text role on its own `<bg>`
     instead; skip alpha-bearing values). Build them once from `<sys>/tokens.css` `:root` values into
     `<run>/contrast-pairs-light.json`, once from the `.dark` block into `<run>/contrast-pairs-dark.json`
-    (a token with no dark override takes its inherited `:root` value). `tokens_to_css.py` emits alias
-    tokens as `var(--target-path)` in BOTH blocks and `check_contrast.py`'s `parse_color()` accepts
+    (a token with no dark override takes its inherited `:root` value). `tokens_to_css.ts` emits alias
+    tokens as `var(--target-path)` in BOTH blocks and `check_contrast.ts`'s `parse_color()` accepts
     only `#rgb`, `#rrggbb`, `rgb(r,g,b)` — dereference every `var(--x)` chain to its literal before
     writing a pair; a value that resolves to no literal is skipped exactly like an alpha-bearing one,
-    never handed to `check_contrast.py`. Resolution is THEME-AWARE: a `var(--x)` in the dark set
+    never handed to `check_contrast.ts`. Resolution is THEME-AWARE: a `var(--x)` in the dark set
     resolves to `.dark`'s `--x` when `.dark` declares it, else falls back to `:root`'s (resolving a
     dark alias straight against `:root` would silently re-check the light value). `tokens.css` carries
     no `.dark` block, or the block declares nothing -> record a one-line skip note for the dark run
     and continue (never a failure, never a stop). Run
-    `python "${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.py" --json <run>/contrast-pairs-light.json`
+    `node "${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.ts" --json <run>/contrast-pairs-light.json`
     and, when the dark run was not skipped,
-    `python "${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.py" --json <run>/contrast-pairs-dark.json`.
+    `node "${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.ts" --json <run>/contrast-pairs-dark.json`.
 - Scanner, once per scope list:
-  `python "${CLAUDE_PLUGIN_ROOT}/scripts/scan_hardcoded_values.py" <run>/scope-files.txt <sys>/dtcg.yml > <run>/scan.txt`
+  `node "${CLAUDE_PLUGIN_ROOT}/scripts/scan_hardcoded_values.ts" <run>/scope-files.txt <sys>/dtcg.yml > <run>/scan.txt`
   (per surface: `scan-<label>.txt`). Exit 1 (unreadable list or `dtcg.yml`) -> record it as a
   System health finding, skip the token-drift dispatch, continue with the other two agents.
 - Known gap marks: Grep the scoped files for `design-system-gap:` and Write the hits, one

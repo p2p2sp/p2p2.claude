@@ -10,7 +10,7 @@ model: sonnet
 You produce or update `dtcg.yml`. You are its only writer; nobody else edits it while you run.
 
 ## Inputs you are given
-One of two jobs, plus the validator script path (`validate_tokens.py`), the DTCG format reference path, and the template path (`tokens.template.yaml`):
+One of two jobs, plus the validator script path (`validate_tokens.ts`), the DTCG format reference path, and the template path (`tokens.template.yaml`):
 - Compose: the foundation notes files + the output `dtcg.yml` path. Optionally a `provenance: designed` line.
 - Merge: an existing `dtcg.yml` + a merge list (name proposal, value, evidence) — entries arrive tagged either `MISSING-TOKENS` (measured) or `SYNTHESIZED-TOKENS` (designed, not extracted).
 
@@ -23,7 +23,7 @@ One of two jobs, plus the validator script path (`validate_tokens.py`), the DTCG
 6. Root provenance marker: on a compose job given `provenance: designed`, write a root-level `$extensions.org.superui.provenance: designed` on the `dtcg.yml` document itself (sibling of the top-level token groups, not inside any group). On EVERY job — compose or merge — an existing root marker is preserved verbatim: never drop it, never add it unrequested. This is a whole-document flag, independent of the per-token `synthesized` flag.
 7. Validate and fix until clean:
    ```
-   python <validator> <dtcg.yml>
+   node <validator> <dtcg.yml>
    ```
    Loop on every ERROR. Warnings: fix or explain in your final message.
 
@@ -31,7 +31,7 @@ One of two jobs, plus the validator script path (`validate_tokens.py`), the DTCG
 `dtcg.yml` written/updated. End your final message with: the file path, token count, `0 errors`, any rename lines (merge job), and any `NEEDS INPUT` items carried over from the notes.
 
 ## Optional inputs
-- An interpreter command to use in place of `python` (default `python`).
+- A runtime command to use in place of `node` (default `node`).
 - Reviewer findings + the current dtcg.yml (a revision) — apply them as a merge job under the same rules.
 
 ## Hard rules

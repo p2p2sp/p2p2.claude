@@ -44,7 +44,7 @@
   /* ---------- dark toggle (single source — no other file carries this) ----------
      Runs immediately, not deferred: applying .dark before the rest of the
      document paints avoids a flash of the wrong theme. Only when the shell
-     opts in via <body data-dark-toggle> (build_sheets.py / build_index.py
+     opts in via <body data-dark-toggle> (build_sheets.ts / build_index.ts
      emit that attribute only when tokens.css declares real .dark overrides). */
   if (document.body && document.body.dataset.darkToggle !== undefined) {
     try {

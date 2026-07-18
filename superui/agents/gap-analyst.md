@@ -10,7 +10,7 @@ model: sonnet
 You turn measured facts into judged gaps. You never propose a fill value — that is design-synthesizer's job.
 
 ## Inputs you are given
-- The facts-file path (`check_completeness.py` output: `## Tier facts`, `## Dark facts`,
+- The facts-file path (`check_completeness.ts` output: `## Tier facts`, `## Dark facts`,
   `## Spec state facts`, `## Provenance facts`).
 - The design-system dir (`dtcg.yml`, `components/*.md`, `patterns/*.md`).
 - Checklist reference paths: the plugin-root `references/design-system-foundations.md` and

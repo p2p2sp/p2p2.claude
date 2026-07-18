@@ -1,7 +1,7 @@
 ---
 name: design-system-creator
 description: Designs a NEW framework-agnostic design system from the user's intent and optional inspiration materials — inspiration, never replication.
-allowed-tools: Write, Bash(sh:*), Bash(python:*), Bash(python3:*), Bash(py:*), Bash(mkdir:*), Bash(cp:*), Skill, Agent
+allowed-tools: Write, Bash(sh:*), Bash(node:*), Bash(mkdir:*), Bash(cp:*), Skill, Agent
 user-invocable: true
 disable-model-invocation: true
 
@@ -46,9 +46,9 @@ inspiration from the conversation.
 ## Checklist — execute in order, never skip a step or a gate
 
 ### 1 — Env-check + collision gate [you]
-Run `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_python.sh"`. `PYTHON_MISSING` -> tell the user the pipeline's
-`*.py` steps need Python 3 and point them at `/superui:setup`; stop before any `python ...` step. `PYTHON_OK
-<cmd>` -> use `<cmd>` in place of `python` everywhere below, and state it as the interpreter command when
+Run `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_node.sh"`. `NODE_MISSING` -> tell the user the pipeline's
+`*.ts` steps need Node.js >= 22.6 and point them at `/superui:setup`; stop before any `node ...` step. `NODE_OK
+<cmd>` -> use `<cmd>` in place of `node` everywhere below, and state it as the runtime command when
 spawning `design-director` (Bash-bearing).
 
 Glob `.superui/design-system/DESIGN.md`.
@@ -70,7 +70,7 @@ brief-only design is first-class.
 ### 3 — Inspiration hints [optional, script]
 For each image in the inspiration dir:
 ```
-python "${CLAUDE_PLUGIN_ROOT}/scripts/sample_colors.py" <image> --k 6
+node "${CLAUDE_PLUGIN_ROOT}/scripts/sample_colors.ts" <image> --k 6
 ```
 Append each result to `<run>/inspiration-hints.md`, every palette labeled `hint — mood direction, not canon`.
 An unreadable or non-image file makes the sampler exit 1 — skip that file with a one-line note in
@@ -80,7 +80,7 @@ An unreadable or non-image file makes the sampler exit 1 — skip that file with
 Spawn `superui:design-director` (Agent tool, `subagent_type: superui:design-director`) with: the brief path,
 the inspiration-hints path (when step 3 produced one), the naming-vocabulary template
 `${CLAUDE_PLUGIN_ROOT}/assets/tokens.template.yaml`, the contrast script
-`${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.py`, and the output run-dir `<run>`. GATE: the four
+`${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.ts`, and the output run-dir `<run>`. GATE: the four
 `notes-<foundation>.md` files, `inventory.md`, and `direction-rationale.md` all exist in `<run>`. Additionally,
 mechanical dark condition: the brief asked for dark -> `<run>/notes-colors.md`'s `CONTRAST-PAIRS` section
 contains at least one `dark ·` entry; missing -> re-dispatch `design-director` per the RE-DISPATCH CONVENTION,
@@ -117,17 +117,17 @@ against the FINAL `<out>/dtcg.yml` token values:
 - a `dark` entry resolves each token to `$extensions.org.superui.dark`, falling back to `$value` when the
   token carries no dark override.
 Dereference alias chains to a literal before writing a pair; a value that resolves to none (e.g.
-alpha-bearing) is skipped, never handed to `check_contrast.py` — same rule as the auditor's contrast
+alpha-bearing) is skipped, never handed to `check_contrast.ts` — same rule as the auditor's contrast
 pre-pass. Build `<run>/contrast-pairs-light.json` and, only when dark entries
-exist, `<run>/contrast-pairs-dark.json`; run `check_contrast.py --json` once per file that exists. No dark
+exist, `<run>/contrast-pairs-dark.json`; run `check_contrast.ts --json` once per file that exists. No dark
 entries -> only the light run happens; the absence is not a failure.
 
 Every pair in a run still passes -> that theme is done. A run's failure:
 1. Re-dispatch `design-director` (RE-DISPATCH CONVENTION) scoped to only THAT theme's failing pairs —
    brief, current `dtcg.yml`, and the failing pairs as the constraint — to produce corrected values.
 2. Spawn `superui:token-composer` (merge job) with the corrected values against `<out>/dtcg.yml`, then re-run
-   `tokens_to_css.py`.
-3. Re-run `check_contrast.py` on that theme's previously-failing pairs.
+   `tokens_to_css.ts`.
+3. Re-run `check_contrast.ts` on that theme's previously-failing pairs.
 Both themes' remediation runs SEQUENTIALLY — never two `design-director` instances at once, per its "spawn
 exactly one" rule and the RE-DISPATCH CONVENTION's "one at a time — never in parallel with itself" ground rule.
 Cap remediation at two rounds total (a round may carry one re-dispatch per failing theme, run one after the

@@ -1,7 +1,7 @@
 ---
 name: design-system-completer
 description: Validates an EXTRACTED design system (.superui/design-system/) for completeness gaps and, only with explicit user approval, designs the missing pieces with marked provenance.
-allowed-tools: Write, Edit, Bash(sh:*), Bash(python:*), Bash(python3:*), Bash(py:*), Bash(mkdir:*), Agent
+allowed-tools: Write, Edit, Bash(sh:*), Bash(node:*), Bash(mkdir:*), Agent
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -43,10 +43,10 @@ Input contract: the design-system dir comes from the invocation prompt/arguments
 ## Checklist — execute in order, never skip a step or a gate
 
 ### 1 — Gate [you]
-Run `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_python.sh"`. `PYTHON_MISSING` -> tell the user the
-pipeline's `*.py` steps need Python 3 and point them at `/superui:setup`; stop before any
-`python ...` step. `PYTHON_OK <cmd>` -> use `<cmd>` in place of `python` everywhere below, and state
-it as the interpreter command when spawning the Bash-bearing agent (`token-composer`).
+Run `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_node.sh"`. `NODE_MISSING` -> tell the user the
+pipeline's `*.ts` steps need Node.js >= 22.6 and point them at `/superui:setup`; stop before any
+`node ...` step. `NODE_OK <cmd>` -> use `<cmd>` in place of `node` everywhere below, and state
+it as the runtime command when spawning the Bash-bearing agent (`token-composer`).
 
 Confirm `<out>/DESIGN.md` and `<out>/dtcg.yml` both exist (Glob). MISSING EITHER -> this skill does
 not apply here; point the user at `design-system-extractor` and stop — never scaffold `<out>`
@@ -54,7 +54,7 @@ yourself. PRESENT -> `mkdir` `<run>`.
 
 ### 2 — Facts [script]
 ```
-python "${CLAUDE_SKILL_DIR}/scripts/check_completeness.py" <out> <run>/completeness-facts.md
+node "${CLAUDE_SKILL_DIR}/scripts/check_completeness.ts" <out> <run>/completeness-facts.md
 ```
 GATE: exit 0 and the facts file exists (exit 1 means `dtcg.yml` is missing/unreadable — treat as a
 step-1 gate failure and stop).
@@ -88,13 +88,13 @@ GATE: one output set per approved scope.
 ### 6 — Merge [token-composer merge, x1 — only if synthesized tokens exist]
 Skip entirely when `<run>/synthesized-tokens.md` collected nothing but `none` lines. Otherwise spawn
 `superui:token-composer` (merge job) with: `<out>/dtcg.yml`, `<run>/synthesized-tokens.md`, validator
-path `${CLAUDE_PLUGIN_ROOT}/scripts/validate_tokens.py`, DTCG format
+path `${CLAUDE_PLUGIN_ROOT}/scripts/validate_tokens.ts`, DTCG format
 reference `${CLAUDE_PLUGIN_ROOT}/references/dtcg-token-format.md`, template
 path `${CLAUDE_PLUGIN_ROOT}/assets/tokens.template.yaml`. Every merged entry
 is flagged `$extensions.org.superui.synthesized: true`; existing flags are preserved. Then:
 ```
-python "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_css.py" <out>/dtcg.yml <out>/tokens.css
-python "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec_tokens.py" <out>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/tokens_to_css.ts" <out>/dtcg.yml <out>/tokens.css
+node "${CLAUDE_PLUGIN_ROOT}/scripts/check_spec_tokens.ts" <out>
 ```
 If the composer reported renames, re-dispatch `spec-writer` (design-system-extractor's agent) for each
 affected spec with the rename map, then re-run the checker — identical handling to the extractor's
@@ -109,16 +109,16 @@ Spawn `superui:html-visualizer` once per new-or-changed spec from step 5, each w
 path, the preview data format reference `${CLAUDE_PLUGIN_ROOT}/references/preview-data-format.md`,
 output `<out>/components|patterns/<slug>.data.js`. Then:
 ```
-python "${CLAUDE_PLUGIN_ROOT}/scripts/build_foundation_data.py" <out>
-python "${CLAUDE_PLUGIN_ROOT}/scripts/build_sheets.py" <out>
-python "${CLAUDE_PLUGIN_ROOT}/scripts/build_index.py" <out>
-python "${CLAUDE_PLUGIN_ROOT}/scripts/lint_previews.py" <out>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/build_foundation_data.ts" <out>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/build_sheets.ts" <out>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/build_index.ts" <out>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/lint_previews.ts" <out>
 ```
-`build_foundation_data.py` re-derives foundation data straight from the merged `dtcg.yml`, so a token
+`build_foundation_data.ts` re-derives foundation data straight from the merged `dtcg.yml`, so a token
 change from step 6 reaches the foundation sheets with no LLM step. Lint violations name the offending
 file. A violation in `components/*.data.js` or `patterns/*.data.js` — re-dispatch that spec's
-`html-visualizer` per the re-dispatch convention, then re-run `build_sheets.py` and the lint. A violation
-in `foundations/*.data.js` is a `build_foundation_data.py` bug, never an LLM re-dispatch target — surface
+`html-visualizer` per the re-dispatch convention, then re-run `build_sheets.ts` and the lint. A violation
+in `foundations/*.data.js` is a `build_foundation_data.ts` bug, never an LLM re-dispatch target — surface
 it to the user instead. GATE: lint exits 0.
 
 ### 8 — Bookkeeping [you]

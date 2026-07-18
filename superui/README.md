@@ -6,12 +6,11 @@ standards. Flat-named (single-domain plugin, no group prefix).
 
 ## Requirements
 
-- Python 3 (`python`, `python3`, or `py` on PATH — any one works).
-- `pip install pillow numpy pyyaml` — Pillow + numpy for inspiration-image / screenshot sampling,
-  PyYAML for the token pipeline (`dtcg.yml`). Contrast checks, spec/preview linting, and index
-  generation are stdlib-only and work under any interpreter, even without the three modules.
-- Run `/superui:setup` any time to verify — it reports interpreter + module status as a PASS/FAIL
-  table with install hints. It never installs anything itself.
+- Node.js >= 22.6 (`node` on PATH). Nothing else — the bundled scripts are TypeScript run directly
+  by Node's native type stripping (on 22.6–23.5 the skills add `--experimental-strip-types`
+  automatically; from 23.6 plain `node` suffices). No `npm install`, no packages, no build step.
+- Run `/superui:setup` any time to verify — it reports the runtime status as a PASS/FAIL table with
+  install hints. It never installs anything itself.
 
 ## Skills
 

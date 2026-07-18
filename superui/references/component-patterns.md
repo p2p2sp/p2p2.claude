@@ -17,7 +17,7 @@ App shell (pattern) · Sidebar / nav rail · Logo / brand lockup · User menu ·
 ## App shell / layout frame — usually a PATTERN
 - **Cues:** page divides into persistent regions: left nav, top bar, main area, optional right panel; regions stay fixed while content scrolls.
 - **Anatomy:** sidebar · top bar · main content · (right panel) · (footer).
-- **Geometry & surface (measure each region, never assume):** sample every region's background with `sample_colors.py --regions` and assign `color.surface.*` by the printed luminance order. For each region also capture: which region owns the divider/border and on which edge, corner radii on large panels/shell (with a token), and whether content is FLUSH vs an INSET/FLOATING panel.
+- **Geometry & surface (measure each region, never assume):** sample every region's background with `sample_colors.ts --regions` and assign `color.surface.*` by the printed luminance order. For each region also capture: which region owns the divider/border and on which edge, corner radii on large panels/shell (with a token), and whether content is FLUSH vs an INSET/FLOATING panel.
 - **States:** sidebar expanded vs collapsed; with/without right panel.
 - **Tokens:** layout widths; per-region `color.surface.*` by measured order; divider `border` with owner+edge; large-region `radius.*`; `zindex`.
 - **Worked example (regression):** an HR-style shell — sidebar on the canvas (`surface.base`, grayer); content a RAISED white panel (`surface.raised`) INSET from the sidebar by a hairline divider the content owns on its left edge, with a captured top-left `radius.panel`; the active nav item a thin INK bar (`color.text.primary`), not the accent. Measuring — not assuming "sidebar = raised, nav-active = accent" — is what gets this right.

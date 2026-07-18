@@ -27,13 +27,15 @@ It ships **no hooks and no manifest** — every skill routes purely via its CSO 
 superui/
   .claude-plugin/plugin.json   The plugin manifest — skills[] + agents[] are the catalog of record
                      (no hooks/ — superui ships no hooks and no injected manifest)
-  scripts/           Plugin-root deterministic scripts, shared across skills (incl. check_python.sh —
-                     the Python env-check, run as an explicit early step by each skill with a Python step,
-                     no `!` preflight)
+  scripts/           Plugin-root deterministic scripts, shared across skills — TypeScript (*.ts) run
+                     directly by Node's native type stripping, `node:` builtins only, no npm deps and no
+                     build step (incl. check_node.sh — the Node env-check, run as an explicit early step
+                     by each skill with a script step, no `!` preflight; lib/ + vendor/ hold the shared
+                     YAML subset parser and the vendored image decoders)
   references/        Plugin-root reference docs shared across skills (dtcg-token-format.md,
                      component-spec.md, design-system-foundations.md, component-patterns.md,
                      preview-data-format.md — the *.data.js schema contract shared by components.js,
-                     html-visualizer, build_foundation_data.py and build_sheets.py)
+                     html-visualizer, build_foundation_data.ts and build_sheets.ts)
   assets/            Plugin-root bundled assets shared across skills (tokens.template.yaml,
                      example-component-spec.md, doc-chrome/ — the fixed doc chrome: docs.css (styling) +
                      components.js (the single runtime — sheet rendering from window.SUPERUI_DATA, and the
@@ -48,7 +50,7 @@ superui/
   skills/            Flat-named skills (single-domain plugin); all shared scripts/references/assets live at
                      the plugin root (scripts/, references/, assets/ above, addressed via
                      `${CLAUDE_PLUGIN_ROOT}/...`);
-                     design-system-completer bundles only its own scripts/ (check_completeness.py) and
+                     design-system-completer bundles only its own scripts/ (check_completeness.ts) and
                      reuses the plugin-root scripts/references/assets plus pro-designer's references by
                      path — no duplicated reference files; design-system-guardian is a bare SKILL.md
                      (doctrine only, no bundled files); pro-designer bundles references/ only (its contrast
@@ -83,12 +85,12 @@ superui/
   per-agent reports, re-dispatch loops) stays in the fork and only its step-10 return reaches the caller. Takes a
   labeled-args input contract (`run:`, `out:`, `spec-producer:`, `provenance:`, optional `source:`, `context:`,
   `intake:`) and runs the mechanical checklist common to both heads: compose `dtcg.yml` (`token-composer`) ->
-  `tokens_to_css.py` + `tokens_to_json.py` -> `design_md_skeleton.py` -> `design-doc-writer` -> spec fan-out via whichever agent the
+  `tokens_to_css.ts` + `tokens_to_json.ts` -> `design_md_skeleton.ts` -> `design-doc-writer` -> spec fan-out via whichever agent the
   caller names in `spec-producer:` (`spec-writer` for the extractor, `spec-designer` for the creator) -> collect
-  `MISSING-TOKENS`/`SYNTHESIZED-TOKENS` -> `token-composer` merge + re-css + re-json + `check_spec_tokens.py` -> copy
-  `docs.css` + `components.js` -> `build_foundation_data.py` (scripts foundation sheet data straight from
+  `MISSING-TOKENS`/`SYNTHESIZED-TOKENS` -> `token-composer` merge + re-css + re-json + `check_spec_tokens.ts` -> copy
+  `docs.css` + `components.js` -> `build_foundation_data.ts` (scripts foundation sheet data straight from
   `dtcg.yml`, no LLM) -> `html-visualizer` fan-out (component/pattern sheet DATA only, never HTML) ->
-  `build_sheets.py` (scripts every shell `.html` from the data files) -> `build_index.py` + `lint_previews.py`.
+  `build_sheets.ts` (scripts every shell `.html` from the data files) -> `build_index.ts` + `lint_previews.ts`.
   Zero user conversation, zero design judgment — every value it writes already arrived decided in its inputs;
   it returns artifact paths, counts, and carried `> NEEDS INPUT` items to its caller, which relays them
   verbatim.
@@ -107,7 +109,7 @@ superui/
   `CONTRAST-PAIRS` against the FINAL post-merge token values.
 - `design-system-completer` — the opt-in **gap-completion** orchestrator, run after the extractor when the
   source screenshots never showed some piece of the system (a missing state, missing dark coverage, a missing
-  token role). Two hard-gated stages: (1) `check_completeness.py` extracts facts, `gap-analyst` judges them
+  token role). Two hard-gated stages: (1) `check_completeness.ts` extracts facts, `gap-analyst` judges them
   into a gap report, presented to the user — nothing is designed until per-gap/per-category approval; (2) only
   approved scopes are fanned out to `design-synthesizer`, whose output flows through the SAME single-writer
   pipeline as the extractor (`token-composer` merge for `dtcg.yml`, `html-visualizer` for sheets), never a
@@ -117,15 +119,15 @@ superui/
   prior) and `inventory.md`'s `## Synthesized` section. Gated on `DESIGN.md` + `dtcg.yml` already existing
   (absent either -> stand down, point at the extractor, never scaffold `<out>` itself). Reuses the plugin-root
   scripts/references/assets (`${CLAUDE_PLUGIN_ROOT}/...`) and pro-designer's references by sibling path
-  (`${CLAUDE_SKILL_DIR}/../pro-designer/references/`) — bundles only its own `check_completeness.py`.
+  (`${CLAUDE_SKILL_DIR}/../pro-designer/references/`) — bundles only its own `check_completeness.ts`.
 - `design-system-auditor` — the read-only **consistency audit** orchestrator (bare SKILL.md, model-invocable
   via CSO). Verifies the consuming project's implementation code against the project's own system in
   `.superui/design-system/` and produces a report — it changes NOTHING (neither the implementation nor the
   system; "safe outputs": the audit can only tell, never touch). Gated on `<sys>/DESIGN.md` existing (absent ->
   stand down); one prose scope question (paths/globs + free-form surface labels — never a framework assumption
-  or platform list); then a deterministic pre-pass (the plugin-root validators `validate_tokens.py`,
-  `check_spec_tokens.py`, `check_contrast.py` — a broken system is itself a finding — plus the
-  `scan_hardcoded_values.py` scanner and a mechanical grep for `design-system-gap:` comments); then a parallel
+  or platform list); then a deterministic pre-pass (the plugin-root validators `validate_tokens.ts`,
+  `check_spec_tokens.ts`, `check_contrast.ts` — a broken system is itself a finding — plus the
+  `scan_hardcoded_values.ts` scanner and a mechanical grep for `design-system-gap:` comments); then a parallel
   fan-out of the three audit agents (`token-drift-auditor`, `spec-fidelity-auditor`,
   `inventory-coverage-auditor`), one trio per surface. Finding taxonomy — deliberately distinct from the
   plugin's "gap" term: DRIFT = the implementation contradicts an existing token/spec; GAP = the implementation
@@ -150,13 +152,13 @@ superui/
   visual hierarchy, color-system discipline (neutral foundation, dark mode, accent scales), type ramps, 4/8pt spacing, accessibility, component states,
   form-validation UX, and evidence-based conversion psychology with hard anti-dark-pattern rules. Fires when
   creating, styling, or reviewing ANY interface. Bundles `references/` only — its contrast gate is the
-  plugin-root `scripts/check_contrast.py` (WCAG AA), addressed via `${CLAUDE_PLUGIN_ROOT}/...`; a missing
+  plugin-root `scripts/check_contrast.ts` (WCAG AA), addressed via `${CLAUDE_PLUGIN_ROOT}/...`; a missing
   interpreter is a skip-with-note pointing at `/superui:setup`, never a hard stop. Advisory only — it does not
   touch `.superui/design-system/`; in a project with a documented design system there, that system takes
   precedence over its generic absolutes.
 - `setup` — user-only (`disable-model-invocation: true`) environment diagnostic, `/superui:setup`. Runs its
-  own bundled `scripts/check_env.sh`, which reports the interpreter (via the plugin-root `check_python.sh`)
-  and the three third-party modules (Pillow, numpy, PyYAML) as PASS/FAIL lines with install hints. Never
+  own bundled `scripts/check_env.sh`, which reports the Node runtime (via the plugin-root `check_node.sh`)
+  as PASS/FAIL lines with install hints — no third-party modules to check, the scripts run on Node alone. Never
   installs anything, never edits project files — diagnostic only. Every other skill's env-check step and
   pro-designer's contrast-script fallback point here on a missing interpreter/module.
 
@@ -179,7 +181,7 @@ Single-responsibility workers with input->work->output contracts; none may ask t
 - `spec-writer` — one spec per inventory entry; tokens by NAME; unmatched values come back as
   `MISSING-TOKENS`, never written into `dtcg.yml`.
 - `html-visualizer` — one `<slug>.data.js` sheet-DATA file per component/pattern spec (never foundations,
-  which are scripted by `build_foundation_data.py`); never writes HTML — rendering happens at runtime through
+  which are scripted by `build_foundation_data.ts`); never writes HTML — rendering happens at runtime through
   the shared `components.js`. Every value inside a `markup`/`html` string is `var(--token-name)`
   (lint-enforced, no raw hex/px); never reads screenshots. Every named color is a `varName` field only — the
   runtime paints it as a swatch (`.swatch` in a token card, `.swatch-inline` chip in a table cell/list
@@ -192,7 +194,7 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   `$extensions.org.superui.synthesized: true` and any spec/section carrying `**Provenance:**` or
   `> SYNTHESIZED:` (synthesized content has no source pixels by design) and reports the skipped count
   alongside the mismatch count.
-- `gap-analyst` — the completer's judgment stage: turns `check_completeness.py` facts into a judged gap
+- `gap-analyst` — the completer's judgment stage: turns `check_completeness.ts` facts into a judged gap
   report against the extractor's/pro-designer's checklists, one `[G<n>]` entry per gap; on a re-apply run
   (a `completions.md` path given) also classifies every ledger entry as still-missing/now-measured/obsolete.
   Never proposes a fill value, never writes under `.superui/design-system/`. Spawn exactly one.
@@ -203,12 +205,12 @@ Single-responsibility workers with input->work->output contracts; none may ask t
 - `design-director` — `design-system-creator`'s single holistic creative head: designs the complete visual
   direction of a NEW system from a brief (+ optional inspiration hints, HINTS never values-to-copy). Frontmatter
   `skills: [superui:pro-designer]` preloads the doctrine. Verifies every planned text/surface pair with
-  `check_contrast.py` BEFORE writing it down (prevention over correction) and writes the four
+  `check_contrast.ts` BEFORE writing it down (prevention over correction) and writes the four
   `notes-<foundation>.md` files in foundation-analyst's format (colors notes additionally carry a designed
   surface/elevation order, an accent-usage plan, and a `CONTRAST-PAIRS:` section), an inventory proposal in
   component-scout's format using the sanctioned synthesized entry shape, and a direction rationale. Never
   talks to the user (`> NEEDS INPUT` convention). Spawn exactly one — design coherence needs a single head.
-- `token-drift-auditor` — the auditor's scan interpreter: judges each `scan_hardcoded_values.py` hit against
+- `token-drift-auditor` — the auditor's scan interpreter: judges each `scan_hardcoded_values.ts` hit against
   the token set read fresh from `dtcg.yml`/`tokens.css` — filters the scanner's deliberate false positives,
   classifies DRIFT (a token covers the raw value, exact or near) vs GAP candidate (no token covers it, routed
   extractor/completer), honors `design-system-gap:` known-gap marks, flags hardcoded dark values and forbidden
@@ -246,8 +248,8 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   lands inside the generated system.
 - **Orchestrator does no worker work.** Both orchestrator SKILL.mds (extractor, completer) are a checklist +
   gates; screenshots/facts are read and artifacts authored ONLY by the agents. Deterministic steps are
-  scripts run by the orchestrator (`tokens_to_css.py`, `tokens_to_json.py`, `design_md_skeleton.py`,
-  `build_foundation_data.py`, `build_sheets.py`, `build_index.py`, `lint_previews.py`, `check_completeness.py`).
+  scripts run by the orchestrator (`tokens_to_css.ts`, `tokens_to_json.ts`, `design_md_skeleton.ts`,
+  `build_foundation_data.ts`, `build_sheets.ts`, `build_index.ts`, `lint_previews.ts`, `check_completeness.ts`).
   The completer's sole hand-written exception is step 8
   (bookkeeping): a mechanical, judgment-free transcription of already-approved entries into the two ledgers
   below — never a parallel worker's job. The extractor's own artifact-generation steps live in the shared
@@ -261,13 +263,13 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   Never two agents into one file.
 - **Dark-mode canon.** The L1 dark literal `$extensions.org.superui.dark` on a token (a complete dark
   replacement for `$value`, same shape, aliases allowed) is the ONLY dark source in `dtcg.yml`, consumed by
-  `tokens_to_css.py` (`.dark` block) and surfaced in sheets via the conditional dark toggle (present only
+  `tokens_to_css.ts` (`.dark` block) and surfaced in sheets via the conditional dark toggle (present only
   when dark values exist). Renaming it is a coordinated change.
   The toggle is **whole-page**: it flips `.dark` on `<html>`, so the fixed chrome re-themes through its
   `--doc-*` variables (`docs.css` `:root` / `html.dark`) and the previews pick up tokens.css's `.dark`
   overrides by inheritance — never a per-element `.dark`, which left a dark box on an otherwise white page
   and destroyed the perceived contrast. The choice persists in `localStorage` under `superui-docs-theme`,
-  which is why `build_index.py` and `build_sheets.py` both emit `<body data-dark-toggle>` whenever tokens.css
+  which is why `build_index.ts` and `build_sheets.ts` both emit `<body data-dark-toggle>` whenever tokens.css
   carries real `.dark` declarations (otherwise a persisted dark theme would strand that page with no way
   back). The toggle block lives in exactly ONE place — `components.js`, which loads on every shell and
   `index.html` alike, checks `data-dark-toggle` on `<body>`, and only then injects the `.dark-toggle` button
@@ -275,23 +277,23 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   `components.js` alone, never a second file.
   Dark is a VERIFIED source, not just an emitted one: the auditor's contrast pre-pass and the creator's step 7
   QA each build a `contrast-pairs-light.json` (from `:root`) and a `contrast-pairs-dark.json` (from `.dark`,
-  falling back to the light value where a token carries no dark override) and run `check_contrast.py --json`
+  falling back to the light value where a token carries no dark override) and run `check_contrast.ts --json`
   once per theme, separately — an absent or empty `.dark` block is an explicit skip note, never a failure, and
   the two runs surface as separate, theme-labeled blocks in the auditor's report. In the creative head,
-  `design-director` verifies every dark pair with `check_contrast.py` before writing its `CONTRAST-PAIRS`
+  `design-director` verifies every dark pair with `check_contrast.ts` before writing its `CONTRAST-PAIRS`
   entries, and dark coverage is gated on the brief: the brief asks for dark -> every color token whose role
   differs in dark carries a verified dark value, full coverage; the brief doesn't -> no color token carries a
   dark value at all. In the extractor, a source map reporting dark screens spawns one additional
   `fidelity-reviewer` dark scope, colour-only (surface/elevation order, accent discipline, dark-value
   spot-check) — it never repeats the geometry or state checks the light-scope reviews already covered.
 - **Provenance canon.** A coordinated vocabulary across `token-composer` / `fidelity-reviewer` /
-  `html-visualizer` / `components.js` / `check_completeness.py`, parallel to the dark canon above — renaming
+  `html-visualizer` / `components.js` / `check_completeness.ts`, parallel to the dark canon above — renaming
   any of the markers is a coordinated change across all of them. `html-visualizer` only ever EMITS these as
   `*.data.js` fields (a section entry, a top-level `provenance` field); `components.js` is the sole renderer,
   at runtime, from `window.SUPERUI_DATA`:
   - `$extensions.org.superui.synthesized: true` on a `dtcg.yml` token — written only by `token-composer`'s
     merge job on a `SYNTHESIZED-TOKENS` entry (never on `MISSING-TOKENS`, never dropped once present);
-    `fidelity-reviewer` skips it; `check_completeness.py` counts it under `## Provenance facts`.
+    `fidelity-reviewer` skips it; `check_completeness.ts` counts it under `## Provenance facts`.
   - `**Provenance:** designed, not extracted` — a meta line on a wholly-synthesized spec; `html-visualizer`
     emits it as the data file's top-level `provenance: "designed"` field; `components.js` renders it as a
     visible sheet-header note; `fidelity-reviewer` skips the whole file; the fact script detects it.
@@ -305,8 +307,8 @@ Single-responsibility workers with input->work->output contracts; none may ask t
     (the creator's path); preserved verbatim (never dropped, never added unrequested) across every subsequent
     compose or merge job. Consumed by `fidelity-reviewer` (root marker present -> skip ALL token spot-checks
     and spec comparisons wholesale, report `system provenance: designed — comparison skipped`) and by
-    `check_completeness.py` (`## Provenance facts` reports `system provenance: designed|measured (root marker
-    present|absent)`). `validate_tokens.py` already ignores any `$`-prefixed top-level key in its group walk,
+    `check_completeness.ts` (`## Provenance facts` reports `system provenance: designed|measured (root marker
+    present|absent)`). `validate_tokens.ts` already ignores any `$`-prefixed top-level key in its group walk,
     so the root marker needs no validator change — confirmed by the fixture test in Task 4.
 - **`completions.md` ledger + inventory `## Synthesized` ownership.** Both live under `<out>` and are owned
   exclusively by the completer's step-8 bookkeeping (never `component-scout`, never any other agent).
@@ -318,8 +320,8 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   previous syntheses and suggests re-running the completer to re-validate and re-apply them — the extractor
   itself never reads or reasons about ledger content beyond that existence check.
 - **Scripted artifacts are regenerated wholesale.** `tokens.css`, `tokens.json`, the DESIGN.md skeleton,
-  `foundations/*.data.js` (`build_foundation_data.py`, straight from `dtcg.yml` — no LLM step), every shell
-  `*.html` (`build_sheets.py`, one per `*.data.js`), and `index.html` are fully rewritten on re-run;
+  `foundations/*.data.js` (`build_foundation_data.ts`, straight from `dtcg.yml` — no LLM step), every shell
+  `*.html` (`build_sheets.ts`, one per `*.data.js`), and `index.html` are fully rewritten on re-run;
   hand-maintained knowledge belongs in `dtcg.yml` / the writer-filled DESIGN.md sections / the specs, never in
   generated output. The doc chrome (`docs.css`, `components.js`) is a fixed asset copied into the output
   verbatim — the documented system renders inside it through its own tokens. `components/*.data.js` and
@@ -329,42 +331,60 @@ Single-responsibility workers with input->work->output contracts; none may ask t
 
 ## Scripts inventory
 
-- `scripts/check_python.sh` — the Python env-check; run as an explicit early step (`sh
-  "${CLAUDE_PLUGIN_ROOT}/scripts/check_python.sh"`) by every skill with a Python step — no `!` preflight.
-  `PYTHON_MISSING` -> that skill stops the Python-dependent parts and points the user at `/superui:setup`.
-- `scripts/sample_colors.py` — k-means palette / exact pixel sampling; `--regions` ranks named region
+All `*.ts` scripts are plain ESM TypeScript with erasable syntax only, run directly by Node's native type
+stripping (`node <script>.ts`; the `check_node.sh`-resolved command adds `--experimental-strip-types` on
+22.6–23.5) — `node:` builtins only, no npm dependencies, no build step. Each script is standalone like its
+Python predecessor: the only relative imports are `sample_colors.ts` -> `vendor/` and the `lib/yaml.ts`
+consumers (`validate_tokens.ts`, `tokens_to_json.ts`, `tokens_to_css.ts`, `design_md_skeleton.ts`);
+`check_spec_tokens.ts`, `scan_hardcoded_values.ts`, `build_foundation_data.ts` and the completer's
+`check_completeness.ts` each embed their own PyYAML-compatible subset parser instead (deliberate
+duplication — each stays single-file, and each copy's behavior was verified independently).
+
+- `scripts/check_node.sh` — the Node.js env-check; run as an explicit early step (`sh
+  "${CLAUDE_PLUGIN_ROOT}/scripts/check_node.sh"`) by every skill with a script step — no `!` preflight.
+  Emits `NODE_OK <cmd>` (`node`, or `node --experimental-strip-types` on 22.6 <= v < 23.6) or
+  `NODE_MISSING` (absent / < 22.6) -> that skill stops the script-dependent parts and points the user at
+  `/superui:setup`.
+- `scripts/sample_colors.ts` — k-means palette / exact pixel sampling; `--regions` ranks named region
   backgrounds by luminance (the measured surface/elevation order).
-- `scripts/validate_tokens.py` — DTCG conformance + recursive alias resolution incl. the dark extension.
-- `scripts/tokens_to_css.py` — deterministic `dtcg.yml` -> `tokens.css` (`:root` + `.dark`).
-- `scripts/tokens_to_json.py` — lossless `dtcg.yml` -> `tokens.json` (DTCG JSON interchange; document order
+- `scripts/validate_tokens.ts` — DTCG conformance + recursive alias resolution incl. the dark extension.
+- `scripts/tokens_to_css.ts` — deterministic `dtcg.yml` -> `tokens.css` (`:root` + `.dark`).
+- `scripts/tokens_to_json.ts` — lossless `dtcg.yml` -> `tokens.json` (DTCG JSON interchange; document order
   and `$`-metadata preserved, aliases left unresolved, round-trip asserted before the write).
-- `scripts/design_md_skeleton.py` — `dtcg.yml` -> DESIGN.md skeleton (auto stats + `<!-- FILL -->`
+- `scripts/design_md_skeleton.ts` — `dtcg.yml` -> DESIGN.md skeleton (auto stats + `<!-- FILL -->`
   placeholders; heading contract, self-verified).
-- `scripts/check_spec_tokens.py` — resolves every backticked token reference in the specs against
+- `scripts/check_spec_tokens.ts` — resolves every backticked token reference in the specs against
   `dtcg.yml`; exit 1 on dangling references.
-- `scripts/build_foundation_data.py` — `dtcg.yml` (+ `DESIGN.md` prose) -> `foundations/<name>.data.js`,
+- `scripts/build_foundation_data.ts` — `dtcg.yml` (+ `DESIGN.md` prose) -> `foundations/<name>.data.js`,
   using the generator's existing group mapping (color · typography · spacing-radius · effects); no LLM step,
   so a token value edit and a re-run change the readout alone; self-verifies (registry key + `json.loads` on
   the embedded payload) and prints a one-line summary.
-- `scripts/build_sheets.py` — output dir -> exactly one shell `.html` per existing `*.data.js`
+- `scripts/build_sheets.ts` — output dir -> exactly one shell `.html` per existing `*.data.js`
   (foundations/components/patterns); a shell carries only head links, the `components.js` script tag,
   `<ds-sheet>`, and data `<script src>` tags (pattern shells additionally load every `components/*.data.js`
   for `<ds-demo>` reuse); emits `data-dark-toggle` on `<body>` only when `tokens.css` has a non-empty `.dark`
   block; self-verifies every referenced file exists.
-- `scripts/build_index.py` — output dir -> `index.html` (narrative pulled from DESIGN.md; link labels come
+- `scripts/build_index.ts` — output dir -> `index.html` (narrative pulled from DESIGN.md; link labels come
   from each sheet's data file `"title"`, falling back to the shell's own `<h1>`/`<title>`; links
   self-verified; emits the `components.js` script tag + `data-dark-toggle` on `<body>` — no inline
   `DARK_TOGGLE` constant — whenever tokens.css declares real `.dark` overrides).
-- `scripts/lint_previews.py` — flags raw hex/rgb/hsl/px inside sheet styles AND inside `*.data.js`
+- `scripts/lint_previews.ts` — flags raw hex/rgb/hsl/px inside sheet styles AND inside `*.data.js`
   `markup`/`html` strings; exit 1 on violations.
-- `scripts/check_contrast.py` — WCAG AA contrast gate (pro-designer; also the auditor's pre-pass).
-- `scripts/scan_hardcoded_values.py` — the auditor's technology-neutral hardcoded-style-value scanner:
+- `scripts/check_contrast.ts` — WCAG AA contrast gate (pro-designer; also the auditor's pre-pass).
+- `scripts/scan_hardcoded_values.ts` — the auditor's technology-neutral hardcoded-style-value scanner:
   file list + `dtcg.yml` (covered families only) -> `<file>:<line>\t<family>\t<raw-value>` hit lines;
   intentionally dumb regexes, false positives filtered downstream by `token-drift-auditor`; exit 1 only on
   bad args/unreadable inputs.
-- `skills/design-system-completer/scripts/check_completeness.py` — `dtcg.yml` (+ specs, + `completions.md` if
+- `skills/design-system-completer/scripts/check_completeness.ts` — `dtcg.yml` (+ specs, + `completions.md` if
   present) -> a four-section facts file (tier / dark / spec-state / provenance facts); exit 1 only on
   missing/unreadable `dtcg.yml`; gaps are data, not errors, so an empty system still exits 0.
-- `skills/setup/scripts/check_env.sh` — diagnostic-only, always exits 0; reports `PYTHON <cmd>|MISSING` (via
-  `check_python.sh`) and one `MODULE <name> OK|MISSING (pip install <pkg>)` line per third-party module
-  (Pillow, numpy, PyYAML). Not shared by any other skill — stays under `setup`, not the plugin root.
+- `scripts/lib/yaml.ts` — the shared YAML subset parser (PyYAML-1.1-compatible resolution, key order
+  preserved via Map incl. numeric-like keys; anchors/aliases/tags/directives/multi-doc throw a clear
+  "outside the superui YAML subset" error). Imported only by the four token-pipeline scripts above.
+- `scripts/vendor/png-decode.ts` — from-scratch PNG decoder on `node:zlib` (color types 0/2/3/4/6, bit
+  depths 1–16, all filters; interlaced -> clear unsupported error). `scripts/vendor/jpeg-decode.ts` — the
+  vendored jpeg-js decoder (MIT, attribution + source commit in its header). Both consumed only by
+  `sample_colors.ts`.
+- `skills/setup/scripts/check_env.sh` — diagnostic-only, always exits 0; reports `NODE <cmd>|MISSING` (via
+  `check_node.sh`) plus a `VERSION <v>` line whenever node exists. Not shared by any other skill — stays
+  under `setup`, not the plugin root.

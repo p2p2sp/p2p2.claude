@@ -14,14 +14,14 @@ You design the complete visual direction of a new design system from a user brie
 - The brief path (product, audience, mood adjectives, what to take/avoid).
 - Optionally: an inspiration-hints path — sampled colors/notes from example images. HINTS toward a mood direction, NEVER values to copy verbatim.
 - The naming-vocabulary template path (`tokens.template.yaml`).
-- The contrast-script path (`check_contrast.py`).
+- The contrast-script path (`check_contrast.ts`).
 - The output run-dir — where your four notes files, inventory proposal, and rationale land.
 
 ## Method
 1. Read the brief in full; read the inspiration-hints file if given.
 2. Consult pro-designer doctrine for whatever the brief doesn't pin down (layout-spacing, typography, color, components-states, ux-psychology as relevant).
 3. Design holistically across all four foundations in one pass so they cohere under one intent: palette, type ramp, spacing/dimensions, effects/motion. Dark coverage is an explicit brief-keyed obligation, not a parenthetical: the brief says dark is wanted -> every color token whose role differs in dark carries a dark value, full coverage, never partial; the brief says dark is not wanted (or leaves it undecided) -> no color token carries a dark value at all — never fabricate one.
-4. Verify every planned text/surface and component/surface pair — light AND dark alike — with `python <contrast-script> FG BG [TYPE]` BEFORE writing it down; a failing pair gets its value adjusted and re-checked — prevention over correction, never record a failing pair.
+4. Verify every planned text/surface and component/surface pair — light AND dark alike — with `node <contrast-script> FG BG [TYPE]` BEFORE writing it down; a failing pair gets its value adjusted and re-checked — prevention over correction, never record a failing pair.
 5. Write the four notes files, the inventory proposal, and the rationale (formats below).
 
 ## Output — four notes files (foundation-analyst's format)

@@ -3,7 +3,7 @@
 Four independent, self-contained Claude Code plugins. `superdev` is a cohesive ecosystem driven by its own injected dispatcher manifest; `superui`, `supergh` and `superfix` ship no manifest and no hooks (`superui` and `supergh` route their skills purely via CSO descriptions; `superfix` is a single user-invoked skill). Skills compose through CSO + documented natural chains.
 
 - **superdev** — a configurable agentic-development ecosystem: project memory, planning, and the implementation pipeline.
-- **superui** — the design / frontend ecosystem: a framework-agnostic design system extracted from screenshots or designed from intent, enforced on every UI task, audited against the implementation, and backed by a professional UI/UX standards advisor. No manifest, no hooks — skills route via their CSO descriptions. Requires Python 3 + `pip install pillow numpy pyyaml` — see `superui/README.md`.
+- **superui** — the design / frontend ecosystem: a framework-agnostic design system extracted from screenshots or designed from intent, enforced on every UI task, audited against the implementation, and backed by a professional UI/UX standards advisor. No manifest, no hooks — skills route via their CSO descriptions. Requires Node.js >= 22.6, nothing else — see `superui/README.md`.
 - **supergh** — the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation executor, Conventional-Commits commits, and template-driven issue / PR creation. No manifest, no hooks — skills route via their CSO descriptions.
 - **superfix** — prioritized multi-agent codebase investigation: the `/superfix:code-auditor` command sweeps a repo with cheap triage agents, scores Impact × Opportunity, and sends frontier investigators only into the hotspots. No manifest, no hooks — one user-invoked skill.
 
@@ -23,7 +23,7 @@ claude plugin install superfix@p2p2 --scope user
 
 `--scope user` is already the default for both commands (writes to `~/.claude/settings.json`); it's spelled out above for clarity. Inside an active Claude Code session you can instead run the interactive `/plugin marketplace add https://github.com/p2p2sp/p2p2.claude` + `/plugin install superdev@p2p2` and pick **User scope** when prompted — `project` / `local` scope installs the plugin only for the current repo.
 
-`superui` additionally needs Python 3 + `pip install pillow numpy pyyaml` on the machine running it — see `superui/README.md` for the full requirements, or run `/superui:setup` after install to diagnose.
+`superui` and `superfix` additionally need Node.js >= 22.6 on the machine running them (their bundled scripts are TypeScript run directly by Node's native type stripping — no packages, no build step) — see `superui/README.md`, or run `/superui:setup` after install to diagnose.
 
 Every plugin is self-contained — none declares any dependencies. Installing one gives you that whole ecosystem: `superdev` routes every request through its injected manifest, while `superui` / `supergh` / `superfix` route purely via skill descriptions. Install only the one(s) you need.
 
@@ -58,8 +58,8 @@ Flat-named (single-domain plugin, no group prefix). No manifest, no hooks — sk
 ## Super UI
 
 Flat-named (single-domain plugin, no group prefix). No manifest, no hooks — skills route via their CSO
-`description:`. Requires Python 3 + `pip install pillow numpy
-pyyaml` — run `/superui:setup` to verify. Full detail: `superui/README.md`.
+`description:`. Requires Node.js >= 22.6, nothing else — run `/superui:setup` to verify. Full detail:
+`superui/README.md`.
 
 | Skill | Role |
 | --- | --- |
@@ -69,7 +69,7 @@ pyyaml` — run `/superui:setup` to verify. Full detail: `superui/README.md`.
 | `design-system-auditor` | Read-only consistency audit — checks the implementation against the system's own tokens, specs, and inventory; reports DRIFT (code contradicts the system), GAP (code needs what the system does not define), and UNTRACKED (inventory mismatch) to `.superui/reports/`, and changes nothing else |
 | `design-system-guardian` | Enforces the project's design system on every UI task (create, style, review) — mandates reading `DESIGN.md`'s agent rules + the touched component/pattern specs, tokens-only values, no inventions beyond spec, and a post-generation self-check; silently stands down when `.superui/design-system/` does not exist |
 | `pro-designer` | Professional UI/UX design standards — visual hierarchy, 60-30-10 color discipline, type ramps, 4/8pt spacing, accessibility, component states, form-validation UX, and evidence-based conversion psychology with anti-dark-pattern rules; fires when creating, styling, or reviewing any interface; bundles topic reference docs + a WCAG contrast script |
-| `setup` | User-only environment diagnostic (`/superui:setup`) — reports Python interpreter + module status; installs nothing |
+| `setup` | User-only environment diagnostic (`/superui:setup`) — reports Node.js runtime status; installs nothing |
 | `design-system-generator` (internal) | The shared mechanical artifact tail invoked by the extractor and the creator — not directly invocable |
 
 ## Super Fix
