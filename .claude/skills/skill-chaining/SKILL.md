@@ -1,6 +1,6 @@
 ---
 name: skill-chaining
-description: Skill ARCHITECTURE — isolate / compress / preload: when to run a skill in `context: fork`, when to hand state between stages through files, when to preload with `!command`, Skill vs Agent vs Model, sub-skills vs monolith. Use when creating or refactoring a skill and an architectural choice is in play — skill is slow, bloats context at scale, or behaviour should become an agent. NOT field names or allowed values (authoring-reference), NOT the authoring method or description quality (skill-creator). Applies in any language and to descriptive phrasing.
+description: Skill chaining architecture. Use when creating or refactoring a skill and an architectural choice is in play — skill is slow, bloats context at scale, or behaviour should become an agent. NOT field names or allowed values (authoring-reference), NOT the authoring method or description quality (skill-creator).
 ---
 
 # Skill chaining — architecture guideline

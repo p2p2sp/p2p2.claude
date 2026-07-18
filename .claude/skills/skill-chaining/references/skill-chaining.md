@@ -1,8 +1,5 @@
 # Skill chaining — the full pattern
 
-Companion depth for the `skill-chaining` skill. Read `SKILL.md` first for the decision rules; this file is the
-*why* and the *how*, with a worked example and the gotchas.
-
 **Provenance honesty (read first).** The primitives — `context: fork`, `Read`, `Write`, `Bash`, `!command` —
 are all Anthropic-documented. The *composition* taught here ("each stage writes a predictable file, the next
 reads it") is a natural consequence of those primitives and is **community practice, not Anthropic doctrine**
