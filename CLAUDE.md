@@ -161,8 +161,8 @@ The invariants below hold across the repo.
   default (`nomatch`) **aborts the whole command** with `no matches found` and a non-zero exit — which kills the
   entire fork preload (`Shell command failed for pattern…`), so the fork loads with no input. This is why the
   bug is invisible on bash and only surfaces on zsh. Rule: **single-quote any argument bearing `?`, `*`, or `[`**
-  — e.g. `resolve-input.sh`'s optional-label convention (`'?previous-review'`, `'?plan'`, `'?spec'`), never bare
-  `?previous-review`. Never rely on bash-only unmatched-glob-as-literal behavior; assume the strictest shell.
+  — e.g. `resolve-input.sh`'s optional-label convention (`'?plan'`, `'?spec'`), never bare
+  `?plan`. Never rely on bash-only unmatched-glob-as-literal behavior; assume the strictest shell.
 - **Self-documentation.** Any skill add / remove / rename MUST update the **owning plugin's**
   `<plugin>/.claude-plugin/plugin.json` `skills[]` (superdev's for any of its skills, superui's
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`create-issue`/`create-pr` skill,

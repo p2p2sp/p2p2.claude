@@ -54,25 +54,19 @@ Immediately after saving — and BEFORE any handoff — run the reviewer and act
 
 Checklist path (for the reviewer): !`printf '%s' "${CLAUDE_SKILL_DIR}/references/checklist.md"`
 
-1. Invoke `superspec-reviewer` (Skill). The `args` MUST be a labeled block — one `label: <file path>` per line. Every value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong:
+The reviewer repairs the spec file itself wherever the fix is derivable from the spec's own content + the checklist, and returns what it changed (`FIXED:`) plus what needs product knowledge or a user decision (`BLOCKED:`). No review history is passed between rounds — the spec file's current state carries everything.
+
+1. Invoke `superspec-reviewer` (Skill). The `args` MUST be a labeled block, identical every round — one `label: <file path>` per line. Every value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong:
    ```
    spec: <saved spec filepath>
    checklist: <checklist path above>
    ```
-   - **Round 1** — send exactly those two lines.
-   - **Round 2+, looping back from a fixable-in-draft FAIL** — first save the round context to a sibling file `<saved spec filepath>.review-<N-1>.md` with exactly:
-     ```
-     --- Previous review (round <N-1>) ---
-     <verbatim previous VERDICT: FAIL report>
-     --- Fixes applied since ---
-     - <what changed, one line per fix>
-     ```
-     then add `previous-review: <that sibling file path>` as a third line.
-2. Read the first line of its output: `VERDICT: PASS` or `VERDICT: FAIL`.
+2. Read the first line of its output: `VERDICT: PASS` or `VERDICT: FAIL`, and concise show the human the FIXED list and any BLOCKED items.
 3. `VERDICT: PASS` → proceed to **Handoff**.
-4. `VERDICT: FAIL` — classify by the reviewer's channels: resolvable DEFECTS are fixable-in-draft; QUESTIONS (open clarifications) or defects needing a product decision are needs-discovery.
-   - **Fixable-in-draft blockers** → apply the returned corrections to the saved file, then go back to step 1 and re-run the reviewer.
-   - **Needs-discovery blockers** → STOP looping. Run the `superdev` Skill (or ask the user) to obtain the missing decision, update the spec, then go back to step 1 as a fresh round 1 (no `Previous review` block) — the spec changed for a reason the prior reviewer report never covered.
+4. `VERDICT: FAIL`:
+   - **`BLOCKED` items present** → resolve each from the interview context already in your context and edit the spec accordingly; an item needing a genuinely open product decision → run the `superdev` Skill (or ask the user) first. Then go back to step 1.
+   - **only `FIXED` (reviewer edits)** → go back to step 1 so a fresh reviewer validates the edited spec. Do not re-apply or rework its fixes yourself.
+5. **Round cap:** after round 3 without PASS, STOP looping — show the user the remaining findings and let them decide how to proceed.
 - Do not advance to Handoff until the reviewer returns `VERDICT: PASS`.
 
 ## Hand off

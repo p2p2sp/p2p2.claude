@@ -77,10 +77,10 @@ transcript_path="$(
 #     legacy "tool_name":"Write|Edit"; that filter also excludes a Read of a plan
 #     file (file_path present, but not a write).
 # This is the most-recent plan-file write in the transcript.
-#   - review siblings excluded: the round-2 reviewer flow writes
-#     `<plan>.md.review-<N>.md` NEXT TO the plan, which would otherwise match this
-#     glob and latch plan_base onto the review file — silently disarming the
-#     post-PASS tamper guard below from round 2 onward.
+#   - review siblings excluded (defensive): a stray `<plan>.md.review-<N>.md`
+#     written NEXT TO the plan (the pre-fixer reviewer flow used these; none of the
+#     current skills do) would otherwise match this glob and latch plan_base onto
+#     the review file — silently disarming the post-PASS tamper guard below.
 last_plan_write_line=$(
   grep -nE '"file_path":"[^"]*\.claude[\\/]+plans[\\/]+[^"]*\.md"' "$transcript_path" 2>/dev/null \
     | grep -vE '"file_path":"[^"]*\.review-[0-9]+\.md"' \

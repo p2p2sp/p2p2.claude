@@ -4,28 +4,32 @@ description: Invoked only by superspec skill.
 context: fork
 model: opus
 effort: xhigh
-allowed-tools: Read, Grep, Glob, Bash
+allowed-tools: Read, Grep, Glob, Bash, Edit, Write
 user-invocable: false
 ---
 
 ## Input
-!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" spec checklist '?previous-review' 2>&1`
+!`bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" spec checklist 2>&1`
 
-The block above is the spec under review (`## spec`), the quality checklist (`## checklist`) and, on re-review rounds only, the previous review report plus the fixes applied since (`## previous-review`).
+The block above is the spec under review (`## spec`) — its header carries the spec-file path — and the quality checklist (`## checklist`).
 
-Read-only — edit no files. You cannot pause to ask; return everything in one reply.
+You cannot pause to ask; return everything in one reply. You may edit ONLY the spec file (the path in the `## spec` header); never any other file.
 
 ## Assessment
 
-Review the spec against each checklist item.
+Review the spec against each checklist item — and repair it where you can. Put every finding in exactly one of two buckets:
 
-If all rules are met, return `PASS`, otherwise `FAIL`.
+- FIXABLE — resolvable from the spec's own content plus the checklist: a `How` leak to remove, an acceptance criterion phrased as mechanics rewritten as a declarative outcome, a story with 4+ AC split, a template placeholder or formatting violation whose intended content is already present elsewhere in the spec. Apply the fix directly to the spec file.
+- BLOCKED — needs product knowledge or a user decision: open scope, a missing persona or edge case, an Out of Scope entry you cannot derive, ambiguity only the user can resolve. NEVER invent these into the spec — report them.
 
-If `## previous-review` is present, check each prior defect and question was addressed; do not re-raise items the fixes already resolved.
+Do not restructure or reword content that already satisfies the checklist.
+
+Return PASS only when every checklist item holds, you made zero edits, and nothing is BLOCKED.
 
 ## Output format
 
-RETURN exactly three sections (your only channel to the parent):
-- VERDICT: `PASS` or `FAIL`
-- QUESTIONS: numbered list, max 5, or "none"
-- DEFECTS: gaps / contradictions / `How` leaks, or "none"
+RETURN exactly three sections (your only channel to the parent). The verdict MUST be the first line:
+
+- VERDICT: `PASS` or `FAIL` — FAIL when you edited the spec file (your edits need a fresh-eyes re-review) or any item is BLOCKED
+- FIXED: what you changed in the spec file, one line per fix, or "none"
+- BLOCKED: open questions (numbered, max 5) and defects needing a decision, or "none"
