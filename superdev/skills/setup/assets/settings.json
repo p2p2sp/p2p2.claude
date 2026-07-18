@@ -29,6 +29,13 @@
       "mcp__plugin_microsoft-docs_microsoft-learn__*"
     ],
     "deny": [
+      "ScheduleWakeup",
+      "ReportFindings",
+      "CronCreate",
+      "CronList",
+      "CronDelete",
+      "NotebookEdit",
+      "SendMessage",
       "Bash(rm -rf /)",
       "Bash(rm -rf /*)",
       "Bash(rm -rf ~)",
@@ -139,7 +146,9 @@
     ],
     "defaultMode": "acceptEdits"
   },
-  "enabledPlugins": {
-    "plugin-dev@claude-plugins-official": true
-  }
+  "disableBundledSkills": true,
+  "disableWorkflows": true,
+  "disableRemoteControl": true,
+  "disableClaudeAiConnectors": true,
+  "disableArtifact": true
 }
