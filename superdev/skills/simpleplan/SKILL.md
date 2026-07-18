@@ -45,26 +45,20 @@ A task is the smallest unit that carries its own test cycle and is worth a fresh
 - DRY, YAGNI, SRP, SOLID
 
 ### Self-Review
-Once you have written a complete plan and before final review, fast review it with your fresh eyes and check the plan against it. If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
+Once you have written a complete plan and before final review, MUST fast review it with your fresh eyes and check the plan against it. If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 
 ### Final Review
 Always before `ExitPlanMode` must invoke `simpleplan-reviewer` skill (Skill tool, forked context) to make final review. Never call `ExitPlanMode` on a plan that has not returned **VERDICT:** PASS. Track which invocation this is (round 1, round 2, …).
 
-1. Invoke `simpleplan-reviewer` (Skill). The `args` MUST be a labeled block — one `label: <file path>` per line. Every value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong.
-   - **Round 1** — send exactly one line: `plan: <plan-file path>`.
-   - **Round 2+, looping back from a fixable-in-draft FAIL** — first save the round context to a sibling file `<plan-file path>.review-<N-1>.md` with exactly:
-     ```
-     --- Previous review (round <N-1>) ---
-     <verbatim previous **VERDICT:** FAIL findings>
-     --- Fixes applied since ---
-     - <what changed, one line per fix>
-     ```
-     then pass `plan: <plan-file path>` and `previous-review: <that sibling file path>` on separate lines.
-2. Read the first line of its output: **VERDICT:** PASS or **VERDICT:** FAIL, and show the human the Critical/Major findings as a list.
+The reviewer repairs the plan file itself wherever the fix is derivable from the plan + repo, and returns what it changed (`FIXED:`) plus what it could not fix for lack of conversation context (`BLOCKED:`). No review history is passed between rounds — the plan file's current state carries everything.
+
+1. Invoke `simpleplan-reviewer` (Skill). The `args` MUST be exactly one line, identical every round: `plan: <plan-file path>`. The value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong.
+2. Read the first line of its output: **VERDICT:** PASS or **VERDICT:** FAIL, and concise show the human the FIXED list and any BLOCKED findings.
 3. **VERDICT:** PASS → proceed to **Final Plan**.
 4. **VERDICT:** FAIL:
-   - **Fixable-in-draft blockers** → concise explain the review to the user and then apply the returned corrections to the plan, then go back to step 1 and re-run the reviewer.
-   - **Needs-discovery blockers** → STOP looping. Run the `superdev` Skill (or ask the user) to obtain the missing decision, update the plan, then go back to step 1 as a fresh round 1.
+   - **`BLOCKED` findings present** → resolve each from the confirmed understanding already in your context and edit the plan accordingly; a finding needing a genuinely open design decision → run the `superdev` Skill (or ask the user) first. Then go back to step 1.
+   - **only `FIXED` (reviewer edits)** → go back to step 1 so a fresh reviewer validates the edited plan. Do not re-apply or rework its fixes yourself.
+5. **Round cap:** after round 3 without PASS, STOP looping — show the user the remaining findings and let them decide how to proceed.
 
 ### Final Plan
 Call `ExitPlanMode` ONLY AFTER **VERDICT:** PASS. The human approves a reviewer-cleared plan, not a raw draft.
