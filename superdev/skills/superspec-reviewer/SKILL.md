@@ -2,8 +2,7 @@
 name: superspec-reviewer
 description: Invoked only by superspec skill.
 context: fork
-model: opus
-effort: xhigh
+model: inherit
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 user-invocable: false
 ---
