@@ -3,7 +3,7 @@ name: superplan-reviewer
 description: Invoked only by superplan skill.
 context: fork
 model: inherit
-allowed-tools: Read, Grep, Glob, Bash, Edit, Write, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
+allowed-tools: Read, Grep, Glob, Edit, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 user-invocable: false
 ---
 
@@ -29,7 +29,7 @@ The plan describes `How` to build the human-approved spec. Judge the plan agains
 
 Put every finding in exactly one of two buckets:
 
-- FIXABLE — resolvable from the plan, the spec, and the repository (verify with Read/Grep/Glob/Bash before touching anything): a wrong or missing file path, contradictory steps, a leftover TODO/placeholder, a missing `TDD:` marker, a command that does not match the repo, a spec requirement with no task where the task is directly derivable from the spec. Apply the fix directly to the plan file.
+- FIXABLE — resolvable from the plan, the spec, and the repository (verify with Read/Grep/Glob before touching anything): a wrong or missing file path, contradictory steps, a leftover TODO/placeholder, a missing `TDD:` marker, a command that does not match the repo, a spec requirement with no task where the task is directly derivable from the spec. Apply the fix directly to the plan file.
 - BLOCKED — needs knowledge you do not have: an unresolved design decision, an architectural choice the spec leaves open, a security gap needing a product decision. NEVER guess these into the plan — report them.
 
 Do not restructure or reword content that already works; touch real blockers only.

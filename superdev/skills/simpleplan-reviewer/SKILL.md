@@ -3,7 +3,7 @@ name: simpleplan-reviewer
 description: Invoked only by simpleplan skill.
 context: fork
 model: inherit
-allowed-tools: Read, Grep, Glob, Bash, Edit, Write, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
+allowed-tools: Read, Grep, Glob, Edit, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 user-invocable: false
 ---
 
@@ -25,7 +25,7 @@ Verify this plan is complete and ready for implementation — and repair it wher
 
 Put every finding in exactly one of two buckets:
 
-- FIXABLE — resolvable from the plan text plus the repository (verify with Read/Grep/Glob/Bash before touching anything): a wrong or missing file path, contradictory steps, a leftover TODO/placeholder, a step missing between two existing steps, a command that does not match the repo. Apply the fix directly to the plan file.
+- FIXABLE — resolvable from the plan text plus the repository (verify with Read/Grep/Glob before touching anything): a wrong or missing file path, contradictory steps, a leftover TODO/placeholder, a step missing between two existing steps, a command that does not match the repo. Apply the fix directly to the plan file.
 - BLOCKED — needs knowledge you do not have: an unresolved design decision, an ambiguous requirement, a missing acceptance criterion whose intent is not derivable from the plan itself. NEVER guess these into the plan — report them.
 
 Do not restructure or reword content that already works; touch real blockers only.
