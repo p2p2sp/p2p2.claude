@@ -23,7 +23,7 @@ You render one documentation sheet. The chrome (page frame, cards, tables) is fi
    - Component sheet: the variant-by-state matrix in the example frame, then Anatomy, the Properties table, Do's & don'ts cards — content 1:1 from the spec.
    - Pattern sheet: the composed example in its states (as the spec documents them), then Composition / States / Rules.
 3. Every color, size, spacing, radius, shadow, font property inside preview markup is `var(--token-name)` (names = dtcg.yml paths with dots as hyphens, e.g. `--color-surface-base`). Structural CSS (flex, grid, alignment) is fine; values are not.
-4. Dark-toggle flag set: include the template's toggle control (it flips the `.dark` class on preview containers). Flag absent: omit the toggle entirely.
+4. Dark-toggle flag set: copy the template's toggle block verbatim (script then button) into `{{DARK_TOGGLE}}`. It themes the WHOLE page by flipping `.dark` on `<html>` — never hand `.dark` to `.preview`, `.token-demo`, `.frame` or any other element, and never give the button text content (docs.css supplies its label). Flag absent: omit the block entirely.
 5. A `> SYNTHESIZED: <rationale>` note in the source renders exactly like a `> NEEDS INPUT` note — same `.needs-input` chrome class, same placement, rationale text as its body. If the spec carries a `**Provenance:** designed, not extracted` line, render it as a visible note in the sheet header area (inside `.sheet-header`, alongside `.sheet-sub`) using only existing chrome classes — no new chrome, no new class.
 6. Self-check before returning: scan your own output — (a) any `#hex`, `rgb(`, `hsl(`, or numeric `px` value (other than `0`) inside a `style` attribute or `<style>` block, and (b) any color named without its swatch, mean you fix it before finishing.
 
@@ -41,5 +41,5 @@ The sheet file. End your final message with the output path and `self-check: cle
 
 ## Hard rules
 - Never read source screenshots — your truth is the spec/DESIGN.md/dtcg.yml. A gap in the spec is rendered as its `> NEEDS INPUT` note, not invented.
-- Never inline chrome styling or invent chrome classes; the chrome stylesheet is fixed and external.
+- Never inline chrome styling or invent chrome classes; the chrome stylesheet is fixed and external. Chrome colors are never restated in the sheet — dark mode is the chrome's job, driven by `.dark` on `<html>`.
 - Never edit the spec, dtcg.yml, tokens.css, docs.css, or any file other than your one sheet.

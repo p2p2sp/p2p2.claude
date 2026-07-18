@@ -252,6 +252,14 @@ Single-responsibility workers with input->work->output contracts; none may ask t
   replacement for `$value`, same shape, aliases allowed) is the ONLY dark source in `dtcg.yml`, consumed by
   `tokens_to_css.py` (`.dark` block) and surfaced in sheets via the conditional dark toggle (present only
   when dark values exist). Renaming it is a coordinated change.
+  The toggle is **whole-page**: it flips `.dark` on `<html>`, so the fixed chrome re-themes through its
+  `--doc-*` variables (`docs.css` `:root` / `html.dark`) and the previews pick up tokens.css's `.dark`
+  overrides by inheritance — never a per-element `.dark`, which left a dark box on an otherwise white page
+  and destroyed the perceived contrast. The choice persists in `localStorage` under `superui-docs-theme`,
+  which is why `build_index.py` emits the SAME toggle block on `index.html` whenever tokens.css carries real
+  `.dark` declarations (otherwise a persisted dark theme would strand the index with no way back). The button
+  carries no text — `docs.css` renders its label from `--doc-toggle-label`. The block therefore lives in two
+  places, `sheet.template.html` and `build_index.py`'s `DARK_TOGGLE`: changing one means changing both.
 - **Provenance canon.** A coordinated vocabulary across `token-composer` / `fidelity-reviewer` /
   `html-visualizer` / `check_completeness.py`, parallel to the dark canon above — renaming any of the four
   markers is a coordinated change across all four:
@@ -303,7 +311,7 @@ Single-responsibility workers with input->work->output contracts; none may ask t
 - `scripts/check_spec_tokens.py` — resolves every backticked token reference in the specs against
   `dtcg.yml`; exit 1 on dangling references.
 - `scripts/build_index.py` — output dir -> `index.html` (narrative pulled from DESIGN.md; links
-  self-verified).
+  self-verified; whole-page dark toggle emitted when tokens.css declares real `.dark` overrides).
 - `scripts/lint_previews.py` — flags raw hex/rgb/hsl/px in sheet styles; exit 1 on violations.
 - `scripts/check_contrast.py` — WCAG AA contrast gate (pro-designer; also the auditor's pre-pass).
 - `scripts/scan_hardcoded_values.py` — the auditor's technology-neutral hardcoded-style-value scanner:

@@ -11,7 +11,8 @@ OUT: writes <dir>/index.html — the overview page (chrome classes from
      pulled from the matching DESIGN.md sections (minimal markdown -> HTML:
      paragraphs, "- " bullets, **bold**, `code`), and link lists to every
      sheet found on disk (components get an atomic/composite badge from
-     inventory.md when available).
+     inventory.md when available). Carries the whole-page dark toggle when
+     tokens.css declares at least one .dark override.
      stdout — one summary line: "<f> foundation, <c> component, <p> pattern
      sheets -> <path>".
      Self-verifies: every href it emits points at an existing file; a missing
@@ -26,6 +27,34 @@ import html
 import os
 import re
 import sys
+
+# Same block as sheet.template.html's {{DARK_TOGGLE}} — flips .dark on <html>
+# (whole-page theme, chrome included) and persists the choice, so index.html
+# and every sheet stay in agreement. Emitted only when tokens.css carries real
+# dark overrides. The button's label comes from docs.css, not from JS.
+DARK_TOGGLE = """<script>
+(function () {
+  try {
+    if (localStorage.getItem('superui-docs-theme') === 'dark')
+      document.documentElement.classList.add('dark');
+  } catch (e) {}
+})();
+</script>
+<button class="dark-toggle" aria-label="Toggle dark mode" onclick="
+  var d = document.documentElement.classList.toggle('dark');
+  try { localStorage.setItem('superui-docs-theme', d ? 'dark' : 'light'); } catch (e) {}
+"></button>"""
+
+
+def has_dark_overrides(root):
+    """True when tokens.css's .dark block declares at least one custom property."""
+    try:
+        with open(os.path.join(root, "tokens.css"), encoding="utf-8") as f:
+            css = f.read()
+    except OSError:
+        return False
+    m = re.search(r"\.dark\s*\{(.*?)\}", css, re.S)
+    return bool(m) and "--" in re.sub(r"/\*.*?\*/", "", m.group(1), flags=re.S)
 
 
 def md_inline(s):
@@ -156,6 +185,7 @@ def main():
     intro = md_block(intro_lines) or "<p>An extracted, token-bound design system.</p>"
 
     kinds = inventory_kinds(root)
+    toggle = DARK_TOGGLE if has_dark_overrides(root) else ""
     targets, parts = [], []
 
     parts.append('<div class="section index-hero">')
@@ -212,6 +242,7 @@ def main():
 <link rel="stylesheet" href="tokens.css">
 </head>
 <body>
+{toggle}
 <header class="sheet-header">
   <h1>Design System</h1>
 </header>

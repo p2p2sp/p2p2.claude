@@ -7,8 +7,9 @@
        {{SUBTITLE}}    one-line description under the title
        {{DOCS_CSS}}    relative href to docs.css   (subdir sheets: ../docs.css)
        {{TOKENS_CSS}}  relative href to tokens.css (subdir sheets: ../tokens.css)
-       {{DARK_TOGGLE}} the toggle block below, verbatim — ONLY when the run's
-                       dark flag is set; otherwise remove the placeholder line
+       {{DARK_TOGGLE}} the script + button block below, verbatim and in that
+                       order — ONLY when the run's dark flag is set; otherwise
+                       remove the placeholder line
        {{BODY}}        the sheet sections
 
      Chrome class inventory (all defined in docs.css — do not invent others):
@@ -20,7 +21,8 @@
                         (ordered set; one plain child per step)
        typography ..... .type-row  .type-name  .type-specs  .type-usage  .type-render
        example frame .. .frame  .frame-grid  .frame-rows   (dashed matrix/pattern box)
-       previews ....... .preview   (token-consuming area; .dark is toggled HERE)
+       previews ....... .preview   (token-consuming area; never carries .dark —
+                        the toggle flips it on <html> and it inherits)
        tables ......... .table-wrap  .props-table  .muted
        do's/don'ts .... .dos-donts  .do-card  .dont-card  .dd-title
        anatomy ........ .anatomy-notes
@@ -36,12 +38,22 @@
      tokens.css. Structural CSS (flex, grid, alignment) is fine; raw hex, rgb(),
      hsl(), or px values (other than 0) are lint failures.
 
-     Dark toggle block ({{DARK_TOGGLE}}), verbatim:
-       <button class="dark-toggle" onclick="
-         for (const p of document.querySelectorAll('.preview, .token-demo, .frame'))
-           p.classList.toggle('dark');
-         this.textContent = this.textContent === 'Dark' ? 'Light' : 'Dark';
-       ">Dark</button>
+     Dark toggle block ({{DARK_TOGGLE}}), verbatim — it themes the WHOLE page
+     (chrome + previews) by flipping .dark on <html>, never on single boxes,
+     and persists the choice so every sheet and index.html agree. The button
+     carries no text: docs.css renders its label from the current theme.
+       <script>
+       (function () {
+         try {
+           if (localStorage.getItem('superui-docs-theme') === 'dark')
+             document.documentElement.classList.add('dark');
+         } catch (e) {}
+       })();
+       </script>
+       <button class="dark-toggle" aria-label="Toggle dark mode" onclick="
+         var d = document.documentElement.classList.toggle('dark');
+         try { localStorage.setItem('superui-docs-theme', d ? 'dark' : 'light'); } catch (e) {}
+       "></button>
 -->
 <html lang="en">
 <head>
