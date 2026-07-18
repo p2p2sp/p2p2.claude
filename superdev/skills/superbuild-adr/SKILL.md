@@ -2,8 +2,7 @@
 name: superbuild-adr
 description: Invoked only by superbuild skill.
 context: fork
-model: opus
-effort: high
+model: sonnet
 allowed-tools: Read, Write, Bash
 user-invocable: false
 ---
