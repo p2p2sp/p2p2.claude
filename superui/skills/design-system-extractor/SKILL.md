@@ -66,6 +66,8 @@ The generator composes `dtcg.yml`, renders `tokens.css`/`DESIGN.md`/specs/sheets
 ### 7 — Fidelity review fan-out [fidelity-reviewer, xM parallel]
 Spawn `superui:fidelity-reviewer` per scope: one per pattern's canonical screen; one per canonical screen of components NOT covered by any pattern scope (group components sharing a canonical screen into one scope); plus one whole-system scope for surface/elevation order + accent discipline. Each gets: scope, source dir, artifact paths, sampler path, output `<run>/review-<scope>.md`.
 
+When `<run>/source-map.md`'s `## Dark-mode coverage` reports dark screens, spawn one additional dark scope: the dark screens (plus their light counterparts where paired), artifact paths, sampler path, output `<run>/review-dark.md`. No dark screens reported -> no extra dispatch.
+
 Mismatches route to the owning producer per the re-dispatch convention — the same producers `design-system-generator`'s own checklist names for that artifact kind (its token composer for token issues, then a re-run of its css/spec-token scripts; its spec producer for a spec issue; its sheet renderer for a sheet issue; its doc-completion step for a DESIGN.md issue, revision: previous DESIGN.md + findings, affected sections only). Re-dispatch that agent directly (Agent tool) with its previous output path plus the findings as additional constraints. After fixes, spawn a fresh `fidelity-reviewer` on the affected scope. GATE: every scope reports PASS (or two remediation rounds spent — then report the residue to the user).
 
 ### 8 — Present results [you]
