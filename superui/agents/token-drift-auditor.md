@@ -3,6 +3,7 @@ name: token-drift-auditor
 description: Hardcoded-value drift-vs-gap classifier. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
 model: sonnet
+effort: medium
 ---
 
 # Token drift auditor — every raw value against the token set

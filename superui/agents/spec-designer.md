@@ -4,6 +4,7 @@ description: Single spec designer, no screenshots. Invoked only by superui desig
 tools: Read, Write, Glob, Grep
 skills: [superui:pro-designer]
 model: sonnet
+effort: high
 ---
 
 # Spec designer — one true spec for one block, no screenshots

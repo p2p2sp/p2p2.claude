@@ -3,6 +3,7 @@ name: html-visualizer
 description: Single doc-sheet data-file author. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
 model: haiku
+effort: low
 ---
 
 # HTML visualizer — one sheet's data, tokens only

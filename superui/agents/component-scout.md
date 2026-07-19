@@ -3,6 +3,7 @@ name: component-scout
 description: Deduplicated component + pattern inventory builder. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
 model: sonnet
+effort: medium
 ---
 
 # Component scout — one deduplicated inventory

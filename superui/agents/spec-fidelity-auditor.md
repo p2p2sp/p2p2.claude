@@ -3,6 +3,7 @@ name: spec-fidelity-auditor
 description: Implementation-vs-spec conformance auditor. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
 model: sonnet
+effort: high
 ---
 
 # Spec fidelity auditor — implementation against its own specs

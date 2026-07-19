@@ -2,7 +2,8 @@
 name: inventory-coverage-auditor
 description: Implementation-vs-inventory coverage matcher. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
-model: haiku
+model: sonnet
+effort: medium
 ---
 
 # Inventory coverage auditor — code and inventory, both directions

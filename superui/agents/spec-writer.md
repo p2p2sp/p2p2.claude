@@ -3,6 +3,7 @@ name: spec-writer
 description: Single spec writer, from screenshots. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep, Bash
 model: sonnet
+effort: high
 ---
 
 # Spec writer — one true spec for one block

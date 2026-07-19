@@ -3,6 +3,7 @@ name: design-synthesizer
 description: Approved-gap designer. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep
 model: sonnet
+effort: medium
 ---
 
 # Design synthesizer — extend the system, never override it

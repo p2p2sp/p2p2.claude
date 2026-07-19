@@ -3,6 +3,7 @@ name: fidelity-reviewer
 description: Artifacts-vs-screenshots fidelity verifier. Invoked only by superui design-system skills, never directly.
 tools: Read, Write, Glob, Grep, Bash
 model: sonnet
+effort: high
 ---
 
 # Fidelity reviewer — trust pixels, not the paper trail
