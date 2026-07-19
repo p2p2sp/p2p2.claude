@@ -64,8 +64,9 @@ They ship no application code — the artefacts are markdown (skills) + JSON (ma
 scripts under `<plugin>/hooks/scripts/` (only `superdev` has hooks; `superui` / `supergh` / `superfix` ship
 none), plus deterministic helper scripts bundled either under an individual skill's own `scripts/` dir or, when
 shared across a plugin's skills, at plugin level. `supergh` keeps its shared scripts under `<plugin>/shared/`
-(a `scripts/` subdir); `superui` keeps its shared scripts, references and assets at the plugin root
-(`<plugin>/scripts/`, `<plugin>/references/`, `<plugin>/assets/`) instead, with no `shared/` subdir. Each
+(a `scripts/` subdir); `superdev` and `superui` keep their shared scripts and references at the plugin root
+(`superdev/scripts/`, `superdev/references/`; `<plugin>/scripts/`, `<plugin>/references/`, `<plugin>/assets/`
+for `superui`, which also has `assets/`) instead, with no `shared/` subdir. Each
 plugin's own `CLAUDE.md` inventories its scripts. **Editing markdown / JSON IS shipping** — there is no
 build / test / lint at any level. Contracts between files are enforced by humans reading carefully.
 
@@ -112,7 +113,7 @@ README.md            User-facing help (install + how it works)
 
 Each plugin dir carries a `.claude-plugin/plugin.json` (its `skills[]` (+ `agents[]`) is the catalog of record).
 `superdev` alone also carries `hooks/` (one injected dispatcher manifest + hook scripts); plugin-level shared
-assets/scripts live in `superdev/scripts/` and `superui/scripts/`, `superui/references/`,
+assets/scripts live in `superdev/scripts/`, `superdev/references/` and `superui/scripts/`, `superui/references/`,
 `superui/assets/` (no `shared/` subdir); `supergh` carries `shared/` only; `superui` and `superfix`
 carry `agents/`.
 
