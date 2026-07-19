@@ -50,14 +50,14 @@ Once you have written a complete plan and before final review, MUST fast review 
 ### Final Review
 Always before `ExitPlanMode` must invoke `simpleplan-reviewer` skill (Skill tool, forked context) to make final review. Never call `ExitPlanMode` on a plan that has not returned **VERDICT:** PASS. Track which invocation this is (round 1, round 2, …).
 
-The reviewer repairs the plan file itself wherever the fix is derivable from the plan + repo, and returns what it changed (`FIXED:`) plus what it could not fix for lack of conversation context (`BLOCKED:`). No review history is passed between rounds — the plan file's current state carries everything.
+The reviewer is read-only: it edits nothing and returns issues derivable from the plan + repo (`FINDINGS:`) plus what it could not resolve for lack of conversation context (`BLOCKED:`). Every fix is yours to apply. No review history is passed between rounds — the plan file's current state carries everything.
 
 1. Invoke `simpleplan-reviewer` (Skill). The `args` MUST be exactly one line, identical every round: `plan: <plan-file path>`. The value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong.
-2. Read the first line of its output: **VERDICT:** PASS or **VERDICT:** FAIL, and concise show the human the FIXED list and any BLOCKED findings.
+2. Read the first line of its output: **VERDICT:** PASS or **VERDICT:** FAIL, and concise show the human the FINDINGS and any BLOCKED findings.
 3. **VERDICT:** PASS → proceed to **Final Plan**.
-4. **VERDICT:** FAIL:
-   - **`BLOCKED` findings present** → resolve each from the confirmed understanding already in your context and edit the plan accordingly; a finding needing a genuinely open design decision → run the `superdev` Skill (or ask the user) first. Then go back to step 1.
-   - **only `FIXED` (reviewer edits)** → go back to step 1 so a fresh reviewer validates the edited plan. Do not re-apply or rework its fixes yourself.
+4. **VERDICT:** FAIL — apply the fixes to the plan file yourself, then go back to step 1:
+   - **`FINDINGS`** → edit the plan as each one directs; touch nothing else.
+   - **`BLOCKED` findings present** → resolve each from the confirmed understanding already in your context and edit the plan accordingly; a finding needing a genuinely open design decision → run the `superdev` Skill (or ask the user) first.
 5. **Round cap:** after round 3 without PASS, STOP looping — show the user the remaining findings and let them decide how to proceed.
 
 ### Final Plan
