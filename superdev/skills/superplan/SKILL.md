@@ -56,7 +56,7 @@ Always before `ExitPlanMode` must invoke `superplan-reviewer` skill (Skill tool,
 
 The reviewer is read-only: it edits nothing and returns issues derivable from the plan + spec + repo (`FINDINGS:`) plus what it could not resolve for lack of a decision (`BLOCKED:`). Every fix is yours to apply. No review history is passed between rounds — the plan file's current state carries everything.
 
-1. Invoke `superplan-reviewer` (Skill). The `args` MUST be a labeled block, identical every round — one `label: <file path>` per line. Every value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong:
+1. Invoke `superplan-reviewer` (Skill). The `args` MUST be a labeled block, identical every round — one `label: <file path>` per line. Every value is a PATH — the reviewer reads the files itself; NEVER paste file content. A bare path with no label is equally wrong:
    ```
    plan: <plan-file path>
    spec: <spec path>

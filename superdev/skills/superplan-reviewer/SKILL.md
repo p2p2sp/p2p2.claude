@@ -3,14 +3,16 @@ name: superplan-reviewer
 description: Invoked only by superplan skill.
 context: fork
 model: inherit
-allowed-tools: Read, Grep, Glob, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
+allowed-tools: Read, Grep, Glob
 user-invocable: false
 ---
 
 ## Input
-!`"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan spec 2>&1`
+"$ARGUMENTS"
 
-The block above is the plan under review (`## plan`) and the human-approved spec (`## spec`); each header carries its file path.
+Two labeled lines above: `plan: <path>` (the plan under review — its path is where every finding points) and `spec: <path>` (the human-approved spec). Read both files first.
+
+A missing label, or a file that does not exist -> return `**VERDICT:** FAIL` with that as the single FINDINGS entry and stop.
 
 Read-only — create or modify NO file, neither the plan nor the spec. Verify this plan is complete and ready for implementation and report what is wrong; never repair it yourself.
 

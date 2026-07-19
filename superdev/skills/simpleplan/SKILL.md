@@ -52,7 +52,7 @@ Always before `ExitPlanMode` must invoke `simpleplan-reviewer` skill (Skill tool
 
 The reviewer is read-only: it edits nothing and returns issues derivable from the plan + repo (`FINDINGS:`) plus what it could not resolve for lack of conversation context (`BLOCKED:`). Every fix is yours to apply. No review history is passed between rounds — the plan file's current state carries everything.
 
-1. Invoke `simpleplan-reviewer` (Skill). The `args` MUST be exactly one line, identical every round: `plan: <plan-file path>`. The value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong.
+1. Invoke `simpleplan-reviewer` (Skill). The `args` MUST be exactly one line, identical every round: `plan: <plan-file path>`. The value is a PATH — the reviewer reads the file itself; NEVER paste file content. A bare path with no label is equally wrong.
 2. Read the first line of its output: **VERDICT:** PASS or **VERDICT:** FAIL, and concise show the human the FINDINGS and any BLOCKED findings.
 3. **VERDICT:** PASS → proceed to **Final Plan**.
 4. **VERDICT:** FAIL — apply the fixes to the plan file yourself, then go back to step 1:

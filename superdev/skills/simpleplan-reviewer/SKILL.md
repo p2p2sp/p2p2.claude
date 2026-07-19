@@ -3,14 +3,16 @@ name: simpleplan-reviewer
 description: Invoked only by simpleplan skill.
 context: fork
 model: inherit
-allowed-tools: Read, Grep, Glob, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
+allowed-tools: Read, Grep, Glob
 user-invocable: false
 ---
 
 ## Input
-!`"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan 2>&1`
+"$ARGUMENTS"
 
-The block above is the plan under review (`## plan`); its header carries the plan-file path.
+One labeled line above: `plan: <path>`. Read that file first — it is the plan under review, and its path is where every finding points.
+
+No `plan:` line, or the file does not exist -> return `**VERDICT:** FAIL` with that as the single FINDINGS entry and stop.
 
 Read-only — create or modify NO file, not even the plan. Verify this plan is complete and ready for implementation and report what is wrong; never repair it yourself.
 
