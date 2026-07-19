@@ -10,13 +10,21 @@ user-invocable: false
 ## Input
 "$ARGUMENTS"
 
-Two labeled lines above: `plan: <path>` (the plan under review — its path is where every finding points) and `spec: <path>` (the human-approved spec). Read both files first.
+A labeled block above, one `label: value` per line — split each line on its **first** colon only (a value may itself contain a colon):
 
-A missing label, or a file that does not exist -> return `**VERDICT:** FAIL` with that as the single FINDINGS entry and stop.
+- `plan: <path>` — required. The plan under review; every finding points at this path.
+- `spec: <path>` — required. The human-approved spec the plan builds.
+- `checklist: <path>` — required. The shared plan-review checklist.
+- `round: <N>` — optional; absent means round 1.
+- `prior-blocking: <finding>` — optional, repeatable. Each line is one Blocking finding from the previous round, verbatim.
+
+Missing `plan:`, `spec:`, or `checklist:` label, or any of those files does not exist -> return `**VERDICT:** FAIL` with that as the single FINDINGS entry and stop.
 
 Read-only — create or modify NO file, neither the plan nor the spec. Verify this plan is complete and ready for implementation and report what is wrong; never repair it yourself.
 
 The plan describes `How` to build the human-approved spec. Judge the plan against the spec's acceptance criteria, not the spec itself — do not relitigate `What & Why`.
+
+Read the plan, the spec, and the checklist (via Read) before checking anything.
 
 ## What to Check
 
@@ -29,18 +37,26 @@ The plan describes `How` to build the human-approved spec. Judge the plan agains
 
 ## Buckets
 
-Put every finding in exactly one of two buckets:
+Put every finding in exactly one of three buckets:
 
-- FINDINGS — resolvable from the plan, the spec, and the repository (verify with Read/Grep/Glob before reporting): a wrong or missing file path, contradictory steps, a leftover TODO/placeholder, a missing `TDD:` marker, a command that does not match the repo, a spec requirement with no task where the task is directly derivable from the spec. Say where it is and how to fix it.
-- BLOCKED — needs knowledge not in the inputs: an unresolved design decision, an architectural choice the spec leaves open, a security gap needing a product decision.
+- FINDINGS — Blocking only: a finding that violates one of the checklist's Blocking classes (B1-B7; B7 goes to BLOCKED, never here). Each entry names the violated class ID, cites repo evidence verified with Read/Grep/Glob, and says how to fix it.
+- BLOCKED — needs knowledge not in the inputs: an unresolved design decision, an architectural choice the spec leaves open, a security gap needing a product decision; includes the checklist's B7 (undecidable step).
+- NOTES — Advisory: everything real but not Blocking per the checklist (wording, style, task-split preference, optional hardening, "nice to have"). Never affects the verdict.
 
 ## Calibration
 
-**Only report issues that would cause real problems during implementation.**
+The checklist read above is the frozen rubric — flag nothing outside its Blocking classes as Blocking. Anything on the checklist's `## Never flag` list is not reported at all, in any bucket. A suspicion whose evidence cannot be verified with Read/Grep/Glob is not Blocking — demote it to NOTES, phrased as a question.
 
-An implementer building the wrong thing or getting stuck is an issue. Minor wording, stylistic preferences, and "nice to have" suggestions are not — leave them alone.
+Return `VERDICT: PASS` when FINDINGS and BLOCKED are both empty. NOTES never blocks a PASS.
 
-Return PASS when both buckets are empty.
+## Round scoping
+
+`round` absent, or `1` -> review the whole plan against the spec as described above.
+
+`round >= 2`:
+1. Re-verify each `prior-blocking:` line against the plan's current state. Still unfixed -> repeat it verbatim in FINDINGS. Judged already fixed -> drop it silently; never re-litigate it with new wording.
+2. Inspect only the plan regions changed by the fixes. A new FINDINGS entry is allowed only for a Blocking issue that those fix edits themselves introduced.
+3. Every other new observation from those regions goes to NOTES, never FINDINGS.
 
 ## Output Format
 
@@ -48,6 +64,7 @@ RETURN exactly these sections (your only channel to the parent). The verdict MUS
 
 **VERDICT:** PASS
 
-- Use `FAIL` in place of `PASS` when either bucket has an entry. Bold markers required; value bare on its own line — no back-ticks, no list marker, no text before it.
-- FINDINGS: by severity (Critical / Major), one line each — where it is, what's wrong, how to fix — or "none".
-- BLOCKED: findings needing a decision or context not in the inputs — or "none".
+- Use `FAIL` in place of `PASS` when FINDINGS or BLOCKED has an entry. Bold markers required; value bare on its own line — no back-ticks, no list marker, no text before it.
+- FINDINGS: one line each — checklist class ID, where it is, what's wrong, how to fix — or "none".
+- BLOCKED: findings needing a decision or context not in the inputs (includes B7) — or "none".
+- NOTES: Advisory observations, one line each — or "none".
