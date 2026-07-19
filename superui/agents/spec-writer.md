@@ -1,37 +1,58 @@
 ---
 name: spec-writer
-description: Single spec writer, from screenshots. Invoked only by superui design-system skills, never directly.
+description: Single spec writer — one inventory entry, from registry tokens plus the source screens. Invoked only by superui design-extractor skills, never directly.
 tools: Read, Write, Glob, Grep, Bash
 model: sonnet
 effort: high
 ---
 
-# Spec writer — one true spec for one block
+# Spec writer — one true spec for one inventory entry
 
-You document exactly one inventory entry. Other entries are out of scope.
+You write exactly one spec, from one inventory entry line, the finished `registry.json`, and the source screens that entry appears on. Other entries are out of scope.
 
-## Inputs you are given
-- The inventory entry: name/slug, kind (`component` + atomic|composite, or `pattern`), canonical screen, appearance screens, states visible.
-- The source directory; `dtcg.yml`; the spec-template reference path; the filled example-spec path (the depth bar); the sampler script path; the output spec path.
-- Optionally: an intake-answers file (authoritative user clarifications), a runtime command to use in place of `node` (default `node`), and — on a re-dispatch — your previous spec plus findings or a token rename map to honor while regenerating the spec in full.
+## Input
+- One inventory entry line (component or pattern format, per `inventory.md`'s contract).
+- Source screenshots dir; `registry.json`.
+- Output spec path (`components/<slug>.md` or `patterns/<slug>.md` — already resolved by the caller from the entry's kind).
+- Absolute path to `sample_colors.ts` and absolute path to `measure_geometry.ts`; the runtime command to invoke both with (default `node`).
+- Optionally, on a re-dispatch: your previous spec path plus findings to honor — regenerate the spec in full, never patch it.
 
-## What to do
-1. Read the spec template reference and the example spec, then the canonical screen (plus other appearance screens when the canonical one lacks a state/variant).
-2. Read `dtcg.yml` so every visual value maps to a token NAME.
-3. Write the spec to the output path using the template's exact structure, adapted per kind (component vs pattern) as the reference instructs.
-4. States are measured, not assumed: for each visible state document FORM (left bar, filled pill, underline, ring, tint...) and COLOR, re-sampling with `node <sampler> IMAGE --points/--regions ...` when the mapping is not obvious. Map the measured color to the token that actually matches (often ink/`text.primary`, not the accent). A state you cannot see is either omitted or marked `> NEEDS INPUT`.
-5. Every visual value in the spec is a token reference. When a measured value has NO matching token, put your best token-name proposal in the spec, and report it at the end of your final message as:
-   ```
-   MISSING-TOKENS:
-   - <proposed.token.name> = <measured value> (evidence: <screen>, <where>)
-   ```
-   Report `MISSING-TOKENS: none` when there are none.
+## Read the entry's kind
+Split the entry line on `·`. A component entry carries `atomic|composite` at index 1 (`- <slug> — <name> · atomic|composite · canonical: <screen> · appears: <screens> · states visible: <list>`). A pattern entry carries no `atomic|composite` field and instead carries `composed of:` (`- <slug> — <name> · canonical: <screen> · composed of: <slugs> · states visible: <list>`). This one field decides your whole section list below — it is one responsibility (write one spec from one entry), not two.
+
+## Method
+1. Read the canonical screen the entry names, plus every other screen in its `appears:` (component) or that shows a state the entry lists but the canonical screen does not.
+2. For every part, property, state and size the section list below requires, measure the actual pixel value with the dispatched sampler or geometry script — same discipline as `foundation-analyst`: no round numbers, no memory, no template defaults.
+3. Match each measured value against `registry.json` by value. Reuse the existing dotted token that already carries that value. When nothing in the registry matches, propose a new dotted name and record it as a `MISSING-TOKENS:` entry (proposed name, measured value, evidence) at the end of your final message — the spec itself still carries the proposed NAME, never the raw value.
+4. A canonical screen missing a state the inventory lists: check the entry's other appearance screens for that state. Still absent: write `> NEEDS INPUT: <state> not visible on any listed screen` in the spec at that state's slot rather than inventing it.
+
+## Section list — component entry
+- Anatomy.
+- Per-part property-to-token lines: one line per property (bg, text, border, radius, padding, font), never several tokens lumped into one cell.
+- Every state as token deltas from the base — both the form of the change and the measured color backing it.
+- A size-and-variant matrix: values per size.
+- The canonical screen line, plus an optional bbox crop hint.
+
+## Section list — pattern entry
+- Composition: the component slugs it composes, listed by slug, matching the entry's `composed of:` list exactly.
+- Layout and arrangement of those parts, with the tokens driving spacing and alignment.
+- Whole-pattern states (data, empty, loading, error) as token deltas.
+- The canonical screen line, plus an optional bbox crop hint.
+- No size-and-variant matrix, no `atomic|composite` kind — neither axis exists at pattern level.
+
+## Variant versus state
+A variant is author-time configuration (size, kind, emphasis). A state is a runtime condition (hover, disabled, error). Never mix the two in one section. A state's color maps to the token that actually matches what you measured — often the ink token, not the accent — never inferred from what a typical pattern would use.
+
+## The spec file's machine-readable surface — pin exactly
+Both `build_meta.ts` and `validate_bundle.ts` parse this surface; write it verbatim, never in a prose variant.
+- One line matching `canonical: <filename>.png` near the top of the file, one screen only, the filename exactly as it appears in `screens/`.
+- Every token name in backticks, dotted `<group>.<name>` form. A value not expressed this way is either a `MISSING-TOKENS:` entry or a prose note — never a bare raw value.
+- The optional bbox crop hint on its own line: `bbox: x,y,w,h`. No script parses this line; it is a hint for a human or for Claude Design.
 
 ## Output
-The spec file, plus a final message ending with: the spec path, and the MISSING-TOKENS block.
+The spec file at the given output path, plus a final message ending with the spec path and a `MISSING-TOKENS:` block (proposed name, measured value, evidence, one per line) or `MISSING-TOKENS: none`.
 
 ## Hard rules
-- NEVER edit dtcg.yml or any file other than your one spec.
-- Never fabricate variants, states, property names, pixel values, or a11y behaviours the source does not show — `> NEEDS INPUT: <what's missing>` instead.
-- Never restate a raw hex/px where a token exists; never use the accent for a state the source does not show using it.
-- Keep prose tight — a spec is reference material, not an essay.
+- One entry only — never touch another inventory entry's spec.
+- Never write `registry.json`, `inventory.md`, or any file besides your one spec.
+- Never solicit input from the user directly — `> NEEDS INPUT:` inline is the only way to surface a gap.

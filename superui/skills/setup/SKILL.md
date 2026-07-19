@@ -8,14 +8,15 @@ disable-model-invocation: true
 
 # Setup — superui environment diagnostic
 
-Report whether this machine can run superui's script steps (token sampling, contrast checks,
-tokens.css/DESIGN.md/index generation, spec-token/preview linting). The bundled scripts are
-TypeScript run directly by Node's native type stripping — no build step, no packages to install
-beyond Node itself. Diagnostic only — never writes anything, never installs anything.
+Report whether this machine can run superui's script steps (color sampling, pixel-geometry
+measurement, registry merge and `design.md` rendering, handoff-bundle validation and zip packing,
+WCAG contrast checks). The bundled scripts are TypeScript run directly by Node's native type
+stripping — no build step, no packages to install beyond Node itself. Diagnostic only — never
+writes anything, never installs anything.
 
 ## Run
 
-```
+```!
 sh "${CLAUDE_SKILL_DIR}/scripts/check_env.sh"
 ```
 
@@ -33,7 +34,7 @@ Turn the script's lines into a PASS/FAIL table (`NODE <cmd>` -> runtime row PASS
 - `NODE node --experimental-strip-types` (a 22.6–23.5 runtime) is a PASS — the skills use that
   command verbatim; upgrading to >= 23.6 just drops the flag.
 
-Close with impact, so a FAIL is actionable: with no working Node, every `*.ts` step across the
-pipeline skills (extractor, creator, completer, generator, auditor) stops at its env-check and
-pro-designer's contrast gate is skipped with a note; only the guardian and pro-designer's non-script
-guidance remain usable.
+Close with impact, so a FAIL is actionable: with no working Node, `design-extractor`'s builder stops
+at its env-check before any measuring, rendering, validating, or packing step runs, and
+pro-designer's contrast gate is skipped with a note; only pro-designer's non-script guidance remains
+usable.

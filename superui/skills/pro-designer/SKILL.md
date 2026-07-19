@@ -1,7 +1,7 @@
 ---
 name: pro-designer
 description: Professional UI/UX design standards for web apps, SaaS products and mobile apps — visual hierarchy, color-system discipline (neutral foundation, dark mode, accent scales), type scales, 8pt spacing, accessibility, component states, form validation UX, and evidence-based conversion psychology with hard anti-dark-pattern rules. Use whenever creating, styling or reviewing ANY user interface — a page, screen, dashboard, form, onboarding or pricing flow, landing page, navigation, or a single component — even if the user only says "build/add/fix" and never says "design". Also use when critiquing existing UI or choosing colors, fonts, spacing, or layout.
-allowed-tools: Bash(sh:*) Bash(node:*)
+allowed-tools: Bash(sh:*), Bash(node:*)
 ---
 
 # Professional UI Design
@@ -33,7 +33,7 @@ UI is attention management, not decoration. A professional interface is transpar
 
 ## Design-system precedence
 
-In a project with a documented design system under `.superui/design-system/`, that system takes precedence over this skill's generic absolutes: apply the type ramp, spacing scale, and color system through the system's tokens, never alongside them. This skill stays advisory and never touches `.superui/design-system/`.
+In a project with a `design-extractor` handoff bundle (`design.md` and its component/pattern specs), that bundle takes precedence over this skill's generic absolutes: apply the type ramp, spacing scale, and color system through its measured values, never alongside them. This skill stays advisory and never edits the bundle.
 
 ## Reference routing
 

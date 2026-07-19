@@ -7,30 +7,16 @@
     "email": "dariusz.lenartowicz@p2p2.com.pl"
   },
   "skills": [
-    "./skills/design-system-extractor/",
-    "./skills/design-system-creator/",
-    "./skills/design-system-generator/",
-    "./skills/design-system-guardian/",
-    "./skills/design-system-completer/",
-    "./skills/design-system-auditor/",
     "./skills/pro-designer/",
-    "./skills/setup/"
+    "./skills/setup/",
+    "./skills/design-extractor/",
+    "./skills/design-extractor-builder/"
   ],
   "agents": [
     "./agents/source-scout.md",
     "./agents/foundation-analyst.md",
-    "./agents/token-composer.md",
-    "./agents/design-doc-writer.md",
     "./agents/component-scout.md",
     "./agents/spec-writer.md",
-    "./agents/html-visualizer.md",
-    "./agents/fidelity-reviewer.md",
-    "./agents/gap-analyst.md",
-    "./agents/design-synthesizer.md",
-    "./agents/design-director.md",
-    "./agents/spec-designer.md",
-    "./agents/token-drift-auditor.md",
-    "./agents/spec-fidelity-auditor.md",
-    "./agents/inventory-coverage-auditor.md"
+    "./agents/bundle-reviewer.md"
   ]
 }

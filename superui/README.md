@@ -1,8 +1,14 @@
 # superui
 
-The design / frontend ecosystem for Claude Code: a framework-agnostic design system, extracted from
-screenshots or designed from intent, enforced on every UI task, and backed by professional UI/UX
-standards. Flat-named (single-domain plugin, no group prefix).
+The design / frontend ecosystem for Claude Code. Flat-named (single-domain plugin, no group prefix).
+
+superui pairs Claude Code CLI (measurement, agentic fan-out) with Claude Design (live, inline-styled Design
+Components). `/superui:design-extractor <screenshots-dir>` turns a folder of UI screenshots into a handoff
+bundle — `design.md`, `inventory.md`, `components/<slug>.md`, `patterns/<slug>.md`, `screens/<file>.png`,
+`meta.yml`, optional `intake-answers.md`, packed alongside as `handoff.zip` — that Claude Design consumes to
+build the live components. No token file, no CSS, no generated documentation site ships in the bundle:
+`design.md` is the single, self-contained source of foundation values, and every value in it traces to a
+pixel sample or a stated in-image reference.
 
 ## Requirements
 
@@ -16,39 +22,9 @@ standards. Flat-named (single-domain plugin, no group prefix).
 
 | Skill | Role |
 | --- | --- |
-| `design-system-extractor` | The measurement head — reverse-engineers a design system from a folder of UI screenshots. |
-| `design-system-creator` | The creative head — designs a NEW design system from a prose interview (product, audience, mood) plus optional inspiration images (hints, never canon). |
-| `design-system-completer` | Opt-in gap-completion — validates an existing system for what the extraction/design couldn't cover, and synthesizes only user-approved gaps. |
-| `design-system-auditor` | Read-only consistency audit — checks the implementation against the system's own tokens, specs, and inventory; writes a DRIFT / GAP / UNTRACKED report under `.superui/reports/` and changes nothing. |
-| `design-system-guardian` | Doctrinal enforcement — binds every UI task to the project's own extracted/designed tokens and specs; silently stands down with no `.superui/design-system/`. |
-| `pro-designer` | Generic professional UI/UX standards; advisory, defers to the project's own system when one exists. |
-| `setup` | User-only environment diagnostic (`/superui:setup`) — no auto-routing. |
-| `design-system-generator` | Internal — the shared mechanical artifact tail invoked by the extractor and the creator; not directly invocable. |
+| `pro-designer` | Professional UI/UX standards — visual hierarchy, color discipline, type ramps, 4/8pt spacing, accessibility, component states, form-validation UX, and evidence-based conversion psychology with anti-dark-pattern rules. Fires when creating, styling, or reviewing any interface. |
+| `setup` | User-only environment diagnostic (`/superui:setup`) — reports Node.js runtime status; installs nothing. |
+| `design-extractor` | User-only (`/superui:design-extractor <screenshots-dir>`) — turns a folder of UI screenshots into the Claude Design handoff bundle. Resolves ambiguity with the user, then dispatches the builder for the rest. |
+| `design-extractor-builder` | Internal fork worker, not user-invocable — the mechanical tail of `design-extractor`: fans out to five agents and the plugin's measurement/rendering/validation scripts to produce the finished bundle. |
 
-## Quick start
-
-- **Have screenshots to reverse-engineer?** Point `design-system-extractor` at a folder of UI
-  screenshots — "extract a design system from these screens".
-- **Designing from scratch?** Ask `design-system-creator` — describe the product, audience, and mood;
-  optionally point it at a folder of inspiration images. It interviews you one question at a time and
-  gates on your approval of the direction before generating anything.
-- **Already have a system but it's missing states, dark coverage, or a token role?** Run
-  `design-system-completer` — it reports gaps first and synthesizes only what you approve.
-- **Wondering how far the code has drifted from the system?** Run `design-system-auditor` — a
-  read-only audit that reports DRIFT (code vs tokens/specs), GAPs (needs the system doesn't
-  define), and UNTRACKED components; its only output is a report under `.superui/reports/`.
-- **Building or styling any UI afterward?** `design-system-guardian` engages automatically and
-  enforces the system's tokens and specs; `pro-designer` backs it with generic standards wherever the
-  system itself is silent.
-
-## Artifacts
-
-Every pipeline (extractor, creator, completer) writes to the same location:
-`.superui/design-system/` — `dtcg.yml` (DTCG tokens, the authored source of truth), `DESIGN.md`,
-`tokens.json` (the same tokens as vendor-neutral DTCG JSON, for Style Dictionary and friends),
-`tokens.css`, per-component and per-pattern specs, and a static HTML documentation site
-(`index.html` + per-foundation/component/pattern sheets). A root
-`$extensions.org.superui.provenance` marker in `dtcg.yml` records whether the whole system is
-`measured` (extractor) or `designed` (creator).
-
-See `superui/CLAUDE.md` for the full architecture, agent roster, and provenance canon.
+See `superui/CLAUDE.md` for the architecture and the handoff-bundle pipeline.

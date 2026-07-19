@@ -1,6 +1,6 @@
 ---
 name: component-scout
-description: Deduplicated component + pattern inventory builder. Invoked only by superui design-system skills, never directly.
+description: Deduplicated component and pattern inventory builder. Invoked only by superui design-extractor skills, never directly.
 tools: Read, Write, Glob, Grep
 model: sonnet
 effort: medium
@@ -10,27 +10,29 @@ effort: medium
 
 You identify every reusable block and every screen-level composition in the source, exactly once each.
 
-## Inputs you are given
+## Input
 - The source directory; the `source-map.md` path (its hotspots section is a starting pointer, not a boundary).
-- The detection-catalog reference path (cues, anatomy, states per common block).
 - The output `inventory.md` path.
-- Optionally: an intake-answers file (authoritative user clarifications).
+- Optionally: an intake-answers path — authoritative user clarifications, read when given.
+- Optionally, on a re-dispatch: your previous `inventory.md` path plus constraints to honor — regenerate the file in full, never patch it.
 
 ## What to do
-1. Read the detection catalog, then Read EVERY screen and scan it against the full catalog — hotspots first, but never only hotspots.
+1. Read `source-map.md` first, then Read EVERY screen and scan it for reusable blocks and screen-level compositions — hotspots first, but never only hotspots.
 2. Classify each find:
    - `component` — a reusable block. Metadata `atomic` (smallest units: button, input, badge, avatar, icon...) or `composite` (assembled blocks: modal, data table, toolbar, tabs, dropdown, form group...).
    - `pattern` — a screen-level composition: how components come together into a real screen or a major screen region (e.g. a list page with toolbar + table + pagination; a settings form page).
-3. Deduplicate ruthlessly: one entry per distinct block, with every screen it appears on listed and ONE canonical screen chosen (the clearest, most complete instance). Two visual variants of the same job (two button radii) = one entry + a flagged inconsistency, not two entries.
-4. Write `inventory.md`:
-   - `## Components` — per entry: `- <slug> — <Display name> · atomic|composite · canonical: <screen> · appears: <screens> · states visible: <list>`
-   - `## Patterns` — per entry: `- <slug> — <Display name> · canonical: <screen> · composed of: <component slugs> · states visible: <list>`
+3. Deduplicate ruthlessly: one entry per distinct block, with every screen it appears on listed and ONE canonical screen chosen — the clearest, most complete instance. Two visual variants of the same job (two button radii) are one entry plus a flagged inconsistency, never two entries.
+4. Write `inventory.md` with exactly these three headings, in this order — `## Components`, `## Patterns`, `## Inconsistencies` — components and patterns are the only parseable sections; inconsistencies is prose for a human reader and is never parsed:
+   - `## Components` — one entry line per component: `- <slug> — <Display name> · atomic|composite · canonical: <screen> · appears: <screens> · states visible: <list>`
+   - `## Patterns` — one entry line per pattern: `- <slug> — <Display name> · canonical: <screen> · composed of: <component slugs> · states visible: <list>`
    - `## Inconsistencies` — same-job-different-look findings, phrased for the user.
-   - Either entry kind may end with an optional ` · implemented on: <labels>` segment — carried over, never authored by you (see Hard rules).
 5. End your final message with the inventory path and counts (components by kind, patterns, inconsistencies).
+
+## Field order — pin exactly
+`build_meta.ts` splits a component line on `·` and reads `atomic|composite` at index 1 and `canonical:` at index 2 — do not reorder these fields. `canonical:` is the exact source filename including its extension (`canonical: dashboard.png`), never a display name and never extension-less: `checkScreenRefs` resolves it against `screens/` verbatim and the builder copies by it, so a bare `dashboard` yields a spurious `missing-screen` finding and a failed copy. `appears:` uses the same exact-filename form for every screen listed.
 
 ## Hard rules
 - A block is worth cataloguing if it recurs across screens OR is self-contained and reusable even on one screen.
-- Names: lowercase slugs, stable, filesystem-safe — they become spec/sheet filenames.
+- Slugs are lowercase, stable, filesystem-safe — they become spec filenames (`components/<slug>.md`, `patterns/<slug>.md`).
 - Inventory only — no specs, no measurements, no token proposals, no values.
-- `implemented on:` is the host project's knowledge, never yours: you cannot see it in a screenshot, so NEVER author, guess, or drop it. When `inventory.md` already exists at the output path, Read it FIRST and copy each entry's existing `implemented on:` segment verbatim onto the matching slug — you rewrite the file wholesale, so anything you do not carry over is destroyed. A slug with no prior segment gets none.
+- Never solicit input from the user directly — `## Inconsistencies` and the ambiguities you inherit from `source-map.md` are the only way to surface a gap.

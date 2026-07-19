@@ -6,339 +6,123 @@
 > `CLAUDE.md` for the repo-wide warnings and cross-plugin invariants; this file holds only what is specific to
 > `superui`.
 
-`superui` is the design / frontend ecosystem: the multi-agent, framework-agnostic design-system pipeline has
-two heads sharing one mechanical tail — `design-system-extractor` (the **measurement head**, dispatching eight
-extraction agents) and `design-system-creator` (the **creative head**, a prose interview plus the holistic
-`design-director` agent and `spec-designer`) — both hand off to the shared, non-user-invocable
-`design-system-generator` sub-skill for artifact production. On top of that: an opt-in gap-completion
-orchestrator (dispatching two further agents — `gap-analyst`, `design-synthesizer`) that validates and, on
-explicit user approval, fills what neither head could cover; a read-only consistency auditor (dispatching
-three audit agents — `token-drift-auditor`, `spec-fidelity-auditor`, `inventory-coverage-auditor`) that
-checks the implementation against the system and writes a report under `.superui/reports/`; a doctrinal
-guardian that enforces the resulting system on every UI task; a professional UI/UX standards advisor; and a
-user-only `setup` diagnostic. It is a
-**single-domain** plugin, so its skills carry **no group prefix** (the plugin name is the group) and are
-flat-named. The **per-component** catalog of record is `.claude-plugin/plugin.json` `skills[]` + `agents[]`.
-It ships **no hooks and no manifest** — every skill routes purely via its CSO `description:`.
+superui pairs Claude Code CLI (measurement, agentic fan-out) with Claude Design (live, inline-styled Design
+Components). It ships four skills — `pro-designer` (the cross-cutting UI/UX standards advisor), `setup` (the
+user-only environment diagnostic), and `design-extractor` + its fork worker `design-extractor-builder` (the
+screenshots-to-handoff-bundle pipeline) — plus the five agents `design-extractor` dispatches through its
+builder: `source-scout`, `foundation-analyst`, `component-scout`, `spec-writer`, `bundle-reviewer`.
+
+It is a **single-domain** plugin, so its skills carry **no group prefix** (the plugin name is the group) and
+are flat-named. The **per-component** catalog of record is `.claude-plugin/plugin.json` `skills[]` +
+`agents[]`. It ships **no hooks and no manifest** — `pro-designer` is the only skill reached purely through its
+CSO `description:`; `setup` and `design-extractor` are user-only (`disable-model-invocation: true`,
+`/superui:setup` and `/superui:design-extractor <screenshots-dir>`); `design-extractor-builder` is internal
+(`user-invocable: false`, `context: fork`), reachable only via the `Skill` tool from `design-extractor` itself.
+
+## The handoff bundle
+
+The pipeline produces a **handoff bundle** that Claude Design consumes to build live, inline-styled Design
+Components — never a self-contained design system. Consequences that shape the pipeline skills:
+
+- `design.md` is the **single source of values on input** — exhaustive and self-contained (color primitives,
+  semantic roles, luminance-ranked surface/elevation order, accent-usage inventory, type scale, spacing, radii,
+  borders, shadows, motion, dark-mode coverage). No token file ships alongside it.
+- **DTCG is an OUTPUT, never an input.** It is regenerated from the finished Design Components at the end, as
+  the handoff back to Claude Code. Shipping it on input would create a second, competing source of truth.
+- **No doc site.** The consumer renders live inline-styled components — a generated CSS/JS documentation site
+  duplicates that and breaks click-to-edit.
+- Bundle shape: `design.md` + `inventory.md` + `components/<slug>.md` + `patterns/<slug>.md` +
+  `screens/<file>.png` + `meta.yml` (machine index) + optional `intake-answers.md`, packed alongside as
+  `handoff.zip`. Markdown + PNG + one small index — no consumer-side Node, npm, or build step to read it.
+- Invariants held throughout: **measure, never guess — every value traces to a pixel sample or a stated
+  in-image reference**; luminance-ranked surface order; accent-usage inventory; ruthless component dedup.
 
 ## Layout (superui internals)
 
 ```
 superui/
-  .claude-plugin/plugin.json   The plugin manifest — skills[] + agents[] are the catalog of record
+  .claude-plugin/plugin.json   The plugin manifest — skills[] + agents[] is the catalog of record
                      (no hooks/ — superui ships no hooks and no injected manifest)
+  agents/            The five design-extractor-builder workers, flat-named, each single-purpose
+                     (measuring: source-scout, foundation-analyst, spec-writer; judgment:
+                     component-scout, bundle-reviewer) — addressed via the `Agent` tool by name
   scripts/           Plugin-root deterministic scripts, shared across skills — TypeScript (*.ts) run
                      directly by Node's native type stripping, `node:` builtins only, no npm deps and no
-                     build step (incl. check_node.sh — the Node env-check, run as an explicit early step
-                     by each skill with a script step, no `!` preflight; lib/ + vendor/ hold the shared
-                     YAML subset parser and the vendored image decoders)
-  references/        Plugin-root reference docs shared across skills (dtcg-token-format.md,
-                     component-spec.md, design-system-foundations.md, component-patterns.md,
-                     preview-data-format.md — the *.data.js schema contract shared by components.js,
-                     html-visualizer, build_foundation_data.ts and build_sheets.ts)
-  assets/            Plugin-root bundled assets shared across skills (tokens.template.yaml,
-                     example-component-spec.md, doc-chrome/ — the fixed doc chrome: docs.css (styling) +
-                     components.js (the single runtime — sheet rendering from window.SUPERUI_DATA, and the
-                     sole dark-toggle source); no shared HTML template file — every shell is script-generated)
-  agents/            The eight extraction workers, the two completion workers (`gap-analyst`,
-                     `design-synthesizer`), the two creative-head workers (`design-director`,
-                     `spec-designer`), and the three audit workers (`token-drift-auditor`,
-                     `spec-fidelity-auditor`, `inventory-coverage-auditor`) — genuine plugin agents,
-                     dispatched by the design-system-extractor / design-system-completer /
-                     design-system-creator / design-system-auditor orchestrators via the Agent tool
-                     (`subagent_type: superui:<name>`)
-  skills/            Flat-named skills (single-domain plugin); all shared scripts/references/assets live at
-                     the plugin root (scripts/, references/, assets/ above, addressed via
-                     `${CLAUDE_PLUGIN_ROOT}/...`);
-                     design-system-completer bundles only its own scripts/ (check_completeness.ts) and
-                     reuses the plugin-root scripts/references/assets plus pro-designer's references by
-                     path — no duplicated reference files; design-system-guardian is a bare SKILL.md
-                     (doctrine only, no bundled files); pro-designer bundles references/ only (its contrast
-                     script now lives at the plugin-root scripts/); design-system-extractor,
-                     design-system-creator, design-system-generator and design-system-auditor are bare
-                     SKILL.mds (no bundled
-                     files — every script/reference/asset they use is the plugin-root copy); setup bundles
-                     only its own
-                     scripts/check_env.sh (a diagnostic, never merged into the plugin-root scripts/ since
-                     no other skill calls it)
+                     build step (plus check_node.sh — the Node env-check, run as an explicit early step
+                     by each skill with a script step, no `!` preflight)
+  skills/            Flat-named skills (single-domain plugin); shared scripts live at the plugin root
+                     (scripts/, addressed via `${CLAUDE_PLUGIN_ROOT}/...`).
+                     pro-designer bundles references/ only (its contrast script lives at the plugin-root
+                     scripts/); setup bundles only its own scripts/check_env.sh (a diagnostic, never merged
+                     into the plugin-root scripts/ since no other skill calls it); design-extractor and
+                     design-extractor-builder bundle nothing beyond their own SKILL.md — every deterministic
+                     step they run lives at the plugin-root scripts/, every worker they dispatch lives at the
+                     plugin-root agents/
 ```
+
+There is no `references/` or `assets/` dir at present — only `pro-designer` needs a `references/` dir, and it
+keeps its own rather than sharing one at the plugin root.
 
 ## Skills (flat-named, single domain)
 
-- `design-system-extractor` — the **measurement head** of a multi-agent extraction pipeline. Reverse-engineers
-  a **framework-agnostic** design system from a folder of UI screenshots (screenshots ONLY — no website
-  scraping) into `.superui/design-system/`: DTCG tokens (`dtcg.yml`), a `DESIGN.md` system document
-  (with a mandatory agent-usage section), a derived pure-CSS `tokens.css`, a derived `tokens.json` (the
-  vendor-neutral DTCG JSON interchange form), per-component and per-pattern
-  specs (`.md`), and a static HTML documentation site (per-foundation / per-component / per-pattern sheets +
-  `index.html`) rendered inside a FIXED bundled doc chrome (`assets/doc-chrome/`). The SKILL.md body is a hard
-  step checklist (1–8): intake/env-check, source-map, ambiguity resolution, foundations fan-out, inventory
-  (shown to the user), ONE `Skill`-tool invocation of the shared `design-system-generator` tail
-  (`spec-producer: superui:spec-writer`, `provenance: measured`) that owns every artifact-generation step,
-  fidelity-review fan-out, and presenting results. It owns only measurement (source-scout, foundation-analyst,
-  component-scout) and verification (fidelity-reviewer); it never writes tokens/specs/sheets itself — that is
-  the generator's job. Run state lives under `.temp/design-system-extractor/<run>/`.
-- `design-system-generator` — the shared **mechanical tail**, `context: fork` + `user-invocable: false`
-  (invoked only via the `Skill` tool by `design-system-extractor` and `design-system-creator`, never directly).
-  The fork runs as the default `general-purpose` agent type, so it keeps the `Agent` tool and dispatches its own
-  producer agents from inside the fork (depth 2 — the limit is 5): the whole fan-out's noise (script output,
-  per-agent reports, re-dispatch loops) stays in the fork and only its step-10 return reaches the caller. Takes a
-  labeled-args input contract (`run:`, `out:`, `spec-producer:`, `provenance:`, optional `source:`, `context:`,
-  `intake:`) and runs the mechanical checklist common to both heads: compose `dtcg.yml` (`token-composer`) ->
-  `tokens_to_css.ts` + `tokens_to_json.ts` -> `design_md_skeleton.ts` -> `design-doc-writer` -> spec fan-out via whichever agent the
-  caller names in `spec-producer:` (`spec-writer` for the extractor, `spec-designer` for the creator) -> collect
-  `MISSING-TOKENS`/`SYNTHESIZED-TOKENS` -> `token-composer` merge + re-css + re-json + `check_spec_tokens.ts` -> copy
-  `docs.css` + `components.js` -> `build_foundation_data.ts` (scripts foundation sheet data straight from
-  `dtcg.yml`, no LLM) -> `html-visualizer` fan-out (component/pattern sheet DATA only, never HTML) ->
-  `build_sheets.ts` (scripts every shell `.html` from the data files) -> `build_index.ts` + `lint_previews.ts`.
-  Zero user conversation, zero design judgment — every value it writes already arrived decided in its inputs;
-  it returns artifact paths, counts, and carried `> NEEDS INPUT` items to its caller, which relays them
-  verbatim.
-- `design-system-creator` — the **creative head** counterpart to the extractor: designs a NEW design system
-  from the user's intent (prose interview, one question per turn — no forms/multi-select tool) plus optional
-  inspiration images, sampled as HINTS never canon. Hard collision gate on an existing `DESIGN.md` (full
-  redesign-overwrite or abort, explicit user choice — never merge; routes gap-only needs to
-  `design-system-completer` and new-source-screenshot needs to `design-system-extractor`). Dispatches the
-  holistic `design-director` agent for the whole visual direction in one pass, gates on the user's approval
-  (adjust/re-dispatch loop, capped — two rejections offers restating the brief instead of a third blind
-  re-design), then — like the extractor — hands off to the shared `design-system-generator` tail
-  (`spec-producer: superui:spec-designer`, `provenance: designed`). Its own writes are limited to the interview
-  artifacts under `.temp/design-system-creator/<run>/` and copying the approved inventory proposal into
-  `<out>/inventory.md` (mirroring the extractor's `component-scout` ownership); every other artifact write
-  flows through the generator. Closes with a contrast-QA pass re-verifying `design-director`'s
-  `CONTRAST-PAIRS` against the FINAL post-merge token values.
-- `design-system-completer` — the opt-in **gap-completion** orchestrator, run after the extractor when the
-  source screenshots never showed some piece of the system (a missing state, missing dark coverage, a missing
-  token role). Two hard-gated stages: (1) `check_completeness.ts` extracts facts, `gap-analyst` judges them
-  into a gap report, presented to the user — nothing is designed until per-gap/per-category approval; (2) only
-  approved scopes are fanned out to `design-synthesizer`, whose output flows through the SAME single-writer
-  pipeline as the extractor (`token-composer` merge for `dtcg.yml`, `html-visualizer` for sheets), never a
-  side channel. Every synthesized token is flagged `$extensions.org.superui.synthesized: true`; every
-  synthesized spec/section carries a `**Provenance:**` line or `> SYNTHESIZED:` marker. The orchestrator alone
-  (mechanical, no judgment) appends to two ledgers: `<out>/completions.md` (what was synthesized, this run vs
-  prior) and `inventory.md`'s `## Synthesized` section. Gated on `DESIGN.md` + `dtcg.yml` already existing
-  (absent either -> stand down, point at the extractor, never scaffold `<out>` itself). Reuses the plugin-root
-  scripts/references/assets (`${CLAUDE_PLUGIN_ROOT}/...`) and pro-designer's references by sibling path
-  (`${CLAUDE_SKILL_DIR}/../pro-designer/references/`) — bundles only its own `check_completeness.ts`.
-- `design-system-auditor` — the read-only **consistency audit** orchestrator (bare SKILL.md, model-invocable
-  via CSO). Verifies the consuming project's implementation code against the project's own system in
-  `.superui/design-system/` and produces a report — it changes NOTHING (neither the implementation nor the
-  system; "safe outputs": the audit can only tell, never touch). Gated on `<sys>/DESIGN.md` existing (absent ->
-  stand down); one prose scope question (paths/globs + free-form surface labels — never a framework assumption
-  or platform list); then a deterministic pre-pass (the plugin-root validators `validate_tokens.ts`,
-  `check_spec_tokens.ts`, `check_contrast.ts` — a broken system is itself a finding — plus the
-  `scan_hardcoded_values.ts` scanner and a mechanical grep for `design-system-gap:` comments); then a parallel
-  fan-out of the three audit agents (`token-drift-auditor`, `spec-fidelity-auditor`,
-  `inventory-coverage-auditor`), one trio per surface. Finding taxonomy — deliberately distinct from the
-  plugin's "gap" term: DRIFT = the implementation contradicts an existing token/spec; GAP = the implementation
-  needs something the system does not define (routed exactly like the guardian routes gaps:
-  measurable-from-source -> extractor, never-shown -> completer; existing `design-system-gap:` comments count
-  here as known, marked gaps); UNTRACKED = code component missing from `inventory.md` or vice versa. The
-  orchestrator's sole write beyond `.temp/` run state is the report:
-  `.superui/reports/design-system-auditor-<YYYY-MM-DD>.md` (executive summary + per-category finding tables +
-  method appendix) — NEVER anything under `.superui/design-system/`. Role split vs the guardian: guardian =
-  in-session prevention, auditor = after-the-fact detection.
-- `design-system-guardian` — the doctrinal **enforcement** skill for the extractor's (and completer's) output
-  (model-invocable via CSO; no fork, no `allowed-tools`, no bundled files). Fires on ANY UI creation/styling/
-  review work; gates itself on the existence of `.superui/design-system/DESIGN.md` (absent -> silent stand-down).
-  Pointer-not-payload: it forces reading the DESIGN.md agent-usage section + the touched component/pattern
-  specs, bans raw values a token covers, bans inventing beyond spec, and mandates a post-generation
-  self-check. Read-only towards `.superui/design-system/` — routes gaps dually: measurable-from-source ->
-  `design-system-extractor`; absent-from-source (a state/dark value/token role the screenshots never showed) ->
-  `design-system-completer`; never to inlined values.
-  Role split vs `pro-designer`: pro-designer = GENERIC UI/UX standards; guardian = fidelity to THIS
-  project's CONCRETE extracted system (which wins on conflict — pro-designer itself defers).
 - `pro-designer` — the cross-cutting **professional UI/UX standards** advisor (model-invocable via CSO):
-  visual hierarchy, color-system discipline (neutral foundation, dark mode, accent scales), type ramps, 4/8pt spacing, accessibility, component states,
-  form-validation UX, and evidence-based conversion psychology with hard anti-dark-pattern rules. Fires when
-  creating, styling, or reviewing ANY interface. Bundles `references/` only — its contrast gate is the
-  plugin-root `scripts/check_contrast.ts` (WCAG AA), addressed via `${CLAUDE_PLUGIN_ROOT}/...`; a missing
-  interpreter is a skip-with-note pointing at `/superui:setup`, never a hard stop. Advisory only — it does not
-  touch `.superui/design-system/`; in a project with a documented design system there, that system takes
-  precedence over its generic absolutes.
+  visual hierarchy, color-system discipline (neutral foundation, dark mode, accent scales), type ramps, 4/8pt
+  spacing, accessibility, component states, form-validation UX, and evidence-based conversion psychology with
+  hard anti-dark-pattern rules. Fires when creating, styling, or reviewing ANY interface. Bundles
+  `references/` only — its contrast gate is the plugin-root `scripts/check_contrast.ts` (WCAG AA), addressed
+  via `${CLAUDE_PLUGIN_ROOT}/...`; a missing interpreter is a skip-with-note pointing at `/superui:setup`,
+  never a hard stop. Advisory only.
 - `setup` — user-only (`disable-model-invocation: true`) environment diagnostic, `/superui:setup`. Runs its
   own bundled `scripts/check_env.sh`, which reports the Node runtime (via the plugin-root `check_node.sh`)
   as PASS/FAIL lines with install hints — no third-party modules to check, the scripts run on Node alone. Never
   installs anything, never edits project files — diagnostic only. Every other skill's env-check step and
   pro-designer's contrast-script fallback point here on a missing interpreter/module.
+- `design-extractor` — user-only (`disable-model-invocation: true`) head skill, `/superui:design-extractor
+  <screenshots-dir>`. Resolves the input, asks the user any ambiguity questions via `AskUserQuestion` (the
+  one call surface that only runs in the main context), transcribes the answers to
+  `<run>/intake-answers.md` — the single file it writes itself — then dispatches
+  `design-extractor-builder` for everything else and gates on its result. Measures nothing and authors no
+  measured or generated artifact inline.
+- `design-extractor-builder` — internal fork worker (`user-invocable: false`, `context: fork`), reached only
+  via the `Skill` tool from `design-extractor`. The mechanical tail: fans out to the five agents below and
+  the plugin-root scripts to turn a resolved source dir + source map + inventory into the finished handoff
+  bundle (`design.md`, `inventory.md`, `components/<slug>.md`, `patterns/<slug>.md`, `screens/<file>.png`,
+  `meta.yml`, optional `intake-answers.md`) plus a sibling `handoff.zip`. Zero user conversation, zero
+  inline design judgment — composes, dispatches, and gates on scripted validation.
 
-## Agents (the extraction + completion workers, `agents/*.md`)
+## Agents (design-extractor-builder workers)
 
-Single-responsibility workers with input->work->output contracts; none may ask the user (they return
-`> NEEDS INPUT` markers instead). Spawned in parallel where the pipeline allows.
-
-- `source-scout` — maps the screenshots (inventory, viewports, dark coverage, per-foundation reading lists,
-  ambiguities). HINTS ONLY: names what and where to measure, never a value.
-- `foundation-analyst` — measures ONE foundation (colors | typography | dimensions | effects-motion); the
-  colors analyst always reads ALL screens (surface/elevation order via `--regions`, accent-usage inventory).
-- `token-composer` — the ONLY writer of `dtcg.yml` (compose from notes, or merge missing-token lists);
-  validates in a loop until clean. Merge entries arrive tagged `MISSING-TOKENS` (measured, never flagged) or
-  `SYNTHESIZED-TOKENS` (designed; every such entry gets `$extensions.org.superui.synthesized: true` on write,
-  and a flag already present on an existing token is always preserved across the merge).
-- `design-doc-writer` — fills the script-generated `DESIGN.md` skeleton (headings are a contract).
-- `component-scout` — the single deduplicated inventory: components (flat; atomic|composite as metadata) +
-  patterns (screen-level compositions), each with a canonical screen.
-- `spec-writer` — one spec per inventory entry; tokens by NAME; unmatched values come back as
-  `MISSING-TOKENS`, never written into `dtcg.yml`.
-- `html-visualizer` — one `<slug>.data.js` sheet-DATA file per component/pattern spec (never foundations,
-  which are scripted by `build_foundation_data.ts`); never writes HTML — rendering happens at runtime through
-  the shared `components.js`. Every value inside a `markup`/`html` string is `var(--token-name)`
-  (lint-enforced, no raw hex/px); never reads screenshots. Every named color is a `varName` field only — the
-  runtime paints it as a swatch (`.swatch` in a token card, `.swatch-inline` chip in a table cell/list
-  item/sentence, `.swatch-strip` for an ordered set), never text alone. Emits `> SYNTHESIZED: <rationale>` and
-  a spec's `**Provenance:** designed, not extracted` as data fields (a `synthesized`-flagged section entry and
-  a top-level `provenance` field) — `components.js` is the sole renderer of both, using the same chrome
-  classes as before.
-- `fidelity-reviewer` — independent verification: re-samples the source and reports artifact mismatches
-  (surface order, radii, accent discipline, state form+color); never edits. Skips any token flagged
-  `$extensions.org.superui.synthesized: true` and any spec/section carrying `**Provenance:**` or
-  `> SYNTHESIZED:` (synthesized content has no source pixels by design) and reports the skipped count
-  alongside the mismatch count.
-- `gap-analyst` — the completer's judgment stage: turns `check_completeness.ts` facts into a judged gap
-  report against the extractor's/pro-designer's checklists, one `[G<n>]` entry per gap; on a re-apply run
-  (a `completions.md` path given) also classifies every ledger entry as still-missing/now-measured/obsolete.
-  Never proposes a fill value, never writes under `.superui/design-system/`. Spawn exactly one.
-- `design-synthesizer` — the completer's design stage: designs exactly the user-approved gaps of ONE scope,
-  extrapolating from the measured system first and falling back to pro-designer doctrine only where the
-  system offers no basis. Emits a synthesized-tokens list (token-composer merge input) and provenance-marked
-  spec content; never edits `dtcg.yml` directly. Spawn one per approved scope, in parallel.
-- `design-director` — `design-system-creator`'s single holistic creative head: designs the complete visual
-  direction of a NEW system from a brief (+ optional inspiration hints, HINTS never values-to-copy). Frontmatter
-  `skills: [superui:pro-designer]` preloads the doctrine. Verifies every planned text/surface pair with
-  `check_contrast.ts` BEFORE writing it down (prevention over correction) and writes the four
-  `notes-<foundation>.md` files in foundation-analyst's format (colors notes additionally carry a designed
-  surface/elevation order, an accent-usage plan, and a `CONTRAST-PAIRS:` section), an inventory proposal in
-  component-scout's format using the sanctioned synthesized entry shape, and a direction rationale. Never
-  talks to the user (`> NEEDS INPUT` convention). Spawn exactly one — design coherence needs a single head.
-- `token-drift-auditor` — the auditor's scan interpreter: judges each `scan_hardcoded_values.ts` hit against
-  the token set read fresh from `dtcg.yml`/`tokens.css` — filters the scanner's deliberate false positives,
-  classifies DRIFT (a token covers the raw value, exact or near) vs GAP candidate (no token covers it, routed
-  extractor/completer), honors `design-system-gap:` known-gap marks, flags hardcoded dark values and forbidden
-  accent uses. Returns structured finding lines only. Spawn one per audit surface, in parallel.
-- `spec-fidelity-auditor` — the auditor's spec comparator: matches scoped implementation files to
-  `components/<slug>.md` / `patterns/<slug>.md` and compares states, variants, anatomy, accent discipline, and
-  dark-mode handling — specs read fresh from the files, never from memory. Off-spec = DRIFT; a genuine need the
-  spec lacks = GAP with routing. Unmatched code components are out of scope (inventory-coverage-auditor owns
-  them). Returns structured finding lines only. Spawn one per audit surface, in parallel.
-- `inventory-coverage-auditor` — the auditor's inventory reconciler: matches reusable code components against
-  `inventory.md` in both directions (implemented-but-uninventoried, inventoried-but-unimplemented on the
-  audited surface, using the optional `implemented on:` coverage field when present) — UNTRACKED findings.
-  Returns structured finding lines only. Spawn one per audit surface, in parallel.
-- `spec-designer` — one spec per inventory entry, designed with NO source screenshots: extrapolates from the
-  system's own `dtcg.yml` tokens/scales first, pro-designer doctrine second (frontmatter
-  `skills: [superui:pro-designer]`). Every value a token NAME; a needed value with no match becomes a
-  `SYNTHESIZED-TOKENS` entry (design-synthesizer's shape) rather than a raw value; the spec carries
-  `**Provenance:** designed, not extracted`. Never edits `dtcg.yml`. Spawn one per inventory entry, in parallel.
+- `source-scout` — maps the screenshots dir into a source map (screen roles, dedup hints); measures nothing.
+- `foundation-analyst` — measures ONE foundation per invocation (colors, typography, dimensions, or
+  effects-motion) via the plugin-root `sample_colors.ts` / `measure_geometry.ts`, writing a
+  `notes-<foundation>.json` fragment; fanned out once per foundation for parallelism.
+- `component-scout` — builds the deduplicated component/pattern inventory from the source map.
+- `spec-writer` — writes ONE inventory entry's `components/<slug>.md` or `patterns/<slug>.md` from the merged
+  registry plus the source screens; fanned out once per entry.
+- `bundle-reviewer` — judgment-only reviewer over the finished bundle (accent discipline, dedup correctness,
+  state-form completeness, surface-order coherence); never measures, never edits.
 
 ## Architecture invariants (superui-specific)
 
 - **No hooks, no manifest.** Unlike superdev, superui ships no `hooks/` at all — neither a `SessionStart`
-  manifest injection nor a `PreToolUse` plan gate. Every skill is reached through its own CSO `description:`;
-  the always-on doctrine that used to live in the injected manifest belongs in the skill descriptions and
-  bodies themselves (`design-system-guardian` / `pro-designer` carry the "fires on ANY UI task" triggers).
-  Do not reintroduce a dispatcher manifest unless routing genuinely stops working through descriptions alone.
-- **Design artifacts location.** The framework-agnostic design system lives under `.superui/design-system/`
-  in the host project. THREE pipelines write there: the extractor (measurement), the creator (design-from-intent,
-  via the shared generator tail), and the completer (opt-in, user-gated synthesis) — never a fourth writer, and
-  the completer never scaffolds `<out>` itself (it requires `DESIGN.md` + `dtcg.yml` to already exist). The
-  creator's hard collision gate keeps it from ever running alongside an existing system without an explicit
-  full-redesign choice — it either overwrites wholesale or aborts, never merges. The `design-system-auditor`
-  is never a writer there at all — it is read-only toward `.superui/design-system/` AND the implementation;
-  its sole output lands under `.superui/reports/`, a separate directory precisely so audit output never
-  lands inside the generated system.
-- **Orchestrator does no worker work.** Both orchestrator SKILL.mds (extractor, completer) are a checklist +
-  gates; screenshots/facts are read and artifacts authored ONLY by the agents. Deterministic steps are
-  scripts run by the orchestrator (`tokens_to_css.ts`, `tokens_to_json.ts`, `design_md_skeleton.ts`,
-  `build_foundation_data.ts`, `build_sheets.ts`, `build_index.ts`, `lint_previews.ts`, `check_completeness.ts`).
-  The completer's sole hand-written exception is step 8
-  (bookkeeping): a mechanical, judgment-free transcription of already-approved entries into the two ledgers
-  below — never a parallel worker's job. The extractor's own artifact-generation steps live in the shared
-  `design-system-generator` tail (`context: fork` + `user-invocable: false`, invoked via the `Skill` tool —
-  a fork dispatches its own agents, so isolating it costs nothing): it composes `dtcg.yml` / generates
-  css-doc-skeleton-specs-sheets-index
-  through the SAME agents and scripts, carries zero user conversation and zero design judgment of its own, and
-  is shared verbatim by `design-system-creator`.
-- **Single writer per file.** `dtcg.yml` is written exclusively by `token-composer` — in both pipelines: the
-  extractor's compose job and the completer's merge job. Each spec/sheet has exactly one producer per run.
-  Never two agents into one file.
-- **Dark-mode canon.** The L1 dark literal `$extensions.org.superui.dark` on a token (a complete dark
-  replacement for `$value`, same shape, aliases allowed) is the ONLY dark source in `dtcg.yml`, consumed by
-  `tokens_to_css.ts` (`.dark` block) and surfaced in sheets via the conditional dark toggle (present only
-  when dark values exist). Renaming it is a coordinated change.
-  The toggle is **whole-page**: it flips `.dark` on `<html>`, so the fixed chrome re-themes through its
-  `--doc-*` variables (`docs.css` `:root` / `html.dark`) and the previews pick up tokens.css's `.dark`
-  overrides by inheritance — never a per-element `.dark`, which left a dark box on an otherwise white page
-  and destroyed the perceived contrast. The choice persists in `localStorage` under `superui-docs-theme`,
-  which is why `build_index.ts` and `build_sheets.ts` both emit `<body data-dark-toggle>` whenever tokens.css
-  carries real `.dark` declarations (otherwise a persisted dark theme would strand that page with no way
-  back). The toggle block lives in exactly ONE place — `components.js`, which loads on every shell and
-  `index.html` alike, checks `data-dark-toggle` on `<body>`, and only then injects the `.dark-toggle` button
-  (no text — `docs.css` renders its label from `--doc-toggle-label`); changing the toggle means changing
-  `components.js` alone, never a second file.
-  Dark is a VERIFIED source, not just an emitted one: the auditor's contrast pre-pass and the creator's step 7
-  QA each build a `contrast-pairs-light.json` (from `:root`) and a `contrast-pairs-dark.json` (from `.dark`,
-  falling back to the light value where a token carries no dark override) and run `check_contrast.ts --json`
-  once per theme, separately — an absent or empty `.dark` block is an explicit skip note, never a failure, and
-  the two runs surface as separate, theme-labeled blocks in the auditor's report. In the creative head,
-  `design-director` verifies every dark pair with `check_contrast.ts` before writing its `CONTRAST-PAIRS`
-  entries, and dark coverage is gated on the brief: the brief asks for dark -> every color token whose role
-  differs in dark carries a verified dark value, full coverage; the brief doesn't -> no color token carries a
-  dark value at all. In the extractor, a source map reporting dark screens spawns one additional
-  `fidelity-reviewer` dark scope, colour-only (surface/elevation order, accent discipline, dark-value
-  spot-check) — it never repeats the geometry or state checks the light-scope reviews already covered.
-- **Provenance canon.** A coordinated vocabulary across `token-composer` / `fidelity-reviewer` /
-  `html-visualizer` / `components.js` / `check_completeness.ts`, parallel to the dark canon above — renaming
-  any of the markers is a coordinated change across all of them. `html-visualizer` only ever EMITS these as
-  `*.data.js` fields (a section entry, a top-level `provenance` field); `components.js` is the sole renderer,
-  at runtime, from `window.SUPERUI_DATA`:
-  - `$extensions.org.superui.synthesized: true` on a `dtcg.yml` token — written only by `token-composer`'s
-    merge job on a `SYNTHESIZED-TOKENS` entry (never on `MISSING-TOKENS`, never dropped once present);
-    `fidelity-reviewer` skips it; `check_completeness.ts` counts it under `## Provenance facts`.
-  - `**Provenance:** designed, not extracted` — a meta line on a wholly-synthesized spec; `html-visualizer`
-    emits it as the data file's top-level `provenance: "designed"` field; `components.js` renders it as a
-    visible sheet-header note; `fidelity-reviewer` skips the whole file; the fact script detects it.
-  - `> SYNTHESIZED: <rationale>` — a section-level marker inside an otherwise-measured spec, modeled on
-    `> NEEDS INPUT`; `html-visualizer` emits it as a `{ type: "needs-input", synthesized: true }` section
-    entry; `components.js` renders it with the same `.needs-input` chrome class; `fidelity-reviewer` skips
-    that section only; the fact script detects it.
-  - `$extensions.org.superui.provenance: designed` at the `dtcg.yml` document ROOT (sibling of the top-level
-    token groups, not inside any group) — a whole-system flag, independent of the three per-item markers
-    above. Written only by `token-composer`'s compose job when its dispatch carries `provenance: designed`
-    (the creator's path); preserved verbatim (never dropped, never added unrequested) across every subsequent
-    compose or merge job. Consumed by `fidelity-reviewer` (root marker present -> skip ALL token spot-checks
-    and spec comparisons wholesale, report `system provenance: designed — comparison skipped`) and by
-    `check_completeness.ts` (`## Provenance facts` reports `system provenance: designed|measured (root marker
-    present|absent)`). `validate_tokens.ts` already ignores any `$`-prefixed top-level key in its group walk,
-    so the root marker needs no validator change — confirmed by the fixture test in Task 4.
-- **`completions.md` ledger + inventory `## Synthesized` ownership.** Both live under `<out>` and are owned
-  exclusively by the completer's step-8 bookkeeping (never `component-scout`, never any other agent).
-  `completions.md` records what was synthesized, per run, with a rationale; a re-apply pass (run after
-  re-extraction) drops every `now-measured` entry and re-appends only `still-missing` approved entries.
-  `inventory.md`'s `## Synthesized` section lists synthesized components/patterns (no canonical screen) next
-  to `component-scout`'s measured entries. When `<out>/completions.md` already existed before an
-  extractor re-run, the extractor's "Present results" step reports that the re-extraction overwrote the
-  previous syntheses and suggests re-running the completer to re-validate and re-apply them — the extractor
-  itself never reads or reasons about ledger content beyond that existence check.
-- **Scripted artifacts are regenerated wholesale.** `tokens.css`, `tokens.json`, the DESIGN.md skeleton,
-  `foundations/*.data.js` (`build_foundation_data.ts`, straight from `dtcg.yml` — no LLM step), every shell
-  `*.html` (`build_sheets.ts`, one per `*.data.js`), and `index.html` are fully rewritten on re-run;
-  hand-maintained knowledge belongs in `dtcg.yml` / the writer-filled DESIGN.md sections / the specs, never in
-  generated output. The doc chrome (`docs.css`, `components.js`) is a fixed asset copied into the output
-  verbatim — the documented system renders inside it through its own tokens. `components/*.data.js` and
-  `patterns/*.data.js` are the one exception: they are producer (LLM) artifacts, authored by `html-visualizer`
-  from the spec, never scripted — a spec change still needs the agent, only the shell/markup plumbing around
-  it is now mechanical.
+  manifest injection nor a `PreToolUse` plan gate. `pro-designer` is reached purely through its CSO
+  `description:`; `setup` and `design-extractor` are user-only commands; `design-extractor-builder` is an
+  internal fork reached only via the `Skill` tool. Do not reintroduce a dispatcher manifest unless routing
+  genuinely stops working through descriptions alone.
+- **Orchestrator does no worker work.** An orchestrator SKILL.md is a checklist plus gates; screenshots are
+  read and artifacts authored ONLY by its agents, and deterministic steps are scripts the orchestrator runs.
+  `design-extractor` and `design-extractor-builder` hold to this: the head skill's one exception is writing
+  the user's own intake answers, since `AskUserQuestion` runs only in the main context.
+- **Single writer per file.** Each artifact has exactly one producer per run. Never two agents into one file.
+- **Scripts are trusted by their caller.** A self-verifying script carries its I/O contract in its header
+  comment; the caller does not re-verify or retry its result.
 
 ## Scripts inventory
 
 All `*.ts` scripts are plain ESM TypeScript with erasable syntax only, run directly by Node's native type
 stripping (`node <script>.ts`; the `check_node.sh`-resolved command adds `--experimental-strip-types` on
-22.6–23.5) — `node:` builtins only, no npm dependencies, no build step. Each script is standalone like its
-Python predecessor: the only relative imports are `sample_colors.ts` -> `vendor/` and the `lib/yaml.ts`
-consumers (`validate_tokens.ts`, `tokens_to_json.ts`, `tokens_to_css.ts`, `design_md_skeleton.ts`);
-`check_spec_tokens.ts`, `scan_hardcoded_values.ts`, `build_foundation_data.ts` and the completer's
-`check_completeness.ts` each embed their own PyYAML-compatible subset parser instead (deliberate
-duplication — each stays single-file, and each copy's behavior was verified independently).
+22.6–23.5) — `node:` builtins only, no npm dependencies, no build step. Each script is standalone; the only
+relative imports are `sample_colors.ts` -> `vendor/` and `measure_geometry.ts` -> `vendor/`.
 
 - `scripts/check_node.sh` — the Node.js env-check; run as an explicit early step (`sh
   "${CLAUDE_PLUGIN_ROOT}/scripts/check_node.sh"`) by every skill with a script step — no `!` preflight.
@@ -346,45 +130,30 @@ duplication — each stays single-file, and each copy's behavior was verified in
   `NODE_MISSING` (absent / < 22.6) -> that skill stops the script-dependent parts and points the user at
   `/superui:setup`.
 - `scripts/sample_colors.ts` — k-means palette / exact pixel sampling; `--regions` ranks named region
-  backgrounds by luminance (the measured surface/elevation order).
-- `scripts/validate_tokens.ts` — DTCG conformance + recursive alias resolution incl. the dark extension.
-- `scripts/tokens_to_css.ts` — deterministic `dtcg.yml` -> `tokens.css` (`:root` + `.dark`).
-- `scripts/tokens_to_json.ts` — lossless `dtcg.yml` -> `tokens.json` (DTCG JSON interchange; document order
-  and `$`-metadata preserved, aliases left unresolved, round-trip asserted before the write).
-- `scripts/design_md_skeleton.ts` — `dtcg.yml` -> DESIGN.md skeleton (auto stats + `<!-- FILL -->`
-  placeholders; heading contract, self-verified).
-- `scripts/check_spec_tokens.ts` — resolves every backticked token reference in the specs against
-  `dtcg.yml`; exit 1 on dangling references.
-- `scripts/build_foundation_data.ts` — `dtcg.yml` (+ `DESIGN.md` prose) -> `foundations/<name>.data.js`,
-  using the generator's existing group mapping (color · typography · spacing-radius · effects); no LLM step,
-  so a token value edit and a re-run change the readout alone; self-verifies (registry key + `json.loads` on
-  the embedded payload) and prints a one-line summary.
-- `scripts/build_sheets.ts` — output dir -> exactly one shell `.html` per existing `*.data.js`
-  (foundations/components/patterns); a shell carries only head links, the `components.js` script tag,
-  `<ds-sheet>`, and data `<script src>` tags (pattern shells additionally load every `components/*.data.js`
-  for `<ds-demo>` reuse); emits `data-dark-toggle` on `<body>` only when `tokens.css` has a non-empty `.dark`
-  block; self-verifies every referenced file exists.
-- `scripts/build_index.ts` — output dir -> `index.html` (narrative pulled from DESIGN.md; link labels come
-  from each sheet's data file `"title"`, falling back to the shell's own `<h1>`/`<title>`; links
-  self-verified; emits the `components.js` script tag + `data-dark-toggle` on `<body>` — no inline
-  `DARK_TOGGLE` constant — whenever tokens.css declares real `.dark` overrides).
-- `scripts/lint_previews.ts` — flags raw hex/rgb/hsl/px inside sheet styles AND inside `*.data.js`
-  `markup`/`html` strings; exit 1 on violations.
-- `scripts/check_contrast.ts` — WCAG AA contrast gate (pro-designer; also the auditor's pre-pass).
-- `scripts/scan_hardcoded_values.ts` — the auditor's technology-neutral hardcoded-style-value scanner:
-  file list + `dtcg.yml` (covered families only) -> `<file>:<line>\t<family>\t<raw-value>` hit lines;
-  intentionally dumb regexes, false positives filtered downstream by `token-drift-auditor`; exit 1 only on
-  bad args/unreadable inputs.
-- `skills/design-system-completer/scripts/check_completeness.ts` — `dtcg.yml` (+ specs, + `completions.md` if
-  present) -> a four-section facts file (tier / dark / spec-state / provenance facts); exit 1 only on
-  missing/unreadable `dtcg.yml`; gaps are data, not errors, so an empty system still exits 0.
-- `scripts/lib/yaml.ts` — the shared YAML subset parser (PyYAML-1.1-compatible resolution, key order
-  preserved via Map incl. numeric-like keys; anchors/aliases/tags/directives/multi-doc throw a clear
-  "outside the superui YAML subset" error). Imported only by the four token-pipeline scripts above.
+  backgrounds by luminance (the measured surface/elevation order). The color half of the
+  "measure, never guess" invariant.
+- `scripts/measure_geometry.ts` — pixel-geometry sampler covering what color sampling does not: paddings,
+  gaps, border widths, control heights, corner radii, shadow extents, ink/cap-height bounds. Four independent
+  measurement modes selected per invocation (`--edges`, plus the sibling geometry modes). The geometry half of
+  the "measure, never guess" invariant, run by `foundation-analyst`.
+- `scripts/build_registry.ts` — merges the per-foundation `notes-<foundation>.json` fragments the
+  `foundation-analyst` agents write into one `registry.json`, the sole resolution namespace
+  `render_design_md.ts` and `validate_bundle.ts` read against. Internal to `.temp/` — never enters the bundle.
+- `scripts/render_design_md.ts` — pure renderer: turns a merged `registry.json` into `design.md`'s ten fixed
+  `## 3.N` sections. Never invents, rounds, or infers a value — an entry listed in `unknowns` renders as
+  `> NEEDS INPUT: <what> — <reason>` instead.
+- `scripts/build_meta.ts` — derives `meta.yml`, the bundle's machine index, from the bundle dir's own
+  contents, so meta-versus-contents consistency holds by construction.
+- `scripts/validate_bundle.ts` — validates a finished bundle against `registry.json` and its own internal
+  cross-references (token citations, CANONICAL screen citations, non-empty required sections) before packing;
+  never mutates the bundle.
+- `scripts/pack_bundle.ts` — packs a validated bundle dir into a sibling `handoff.zip` by hand
+  (`node:zlib.deflateRawSync` per entry, local file headers, central directory, CRC32) — no npm dependency.
+- `scripts/check_contrast.ts` — WCAG AA contrast gate (pro-designer).
 - `scripts/vendor/png-decode.ts` — from-scratch PNG decoder on `node:zlib` (color types 0/2/3/4/6, bit
   depths 1–16, all filters; interlaced -> clear unsupported error). `scripts/vendor/jpeg-decode.ts` — the
-  vendored jpeg-js decoder (MIT, attribution + source commit in its header). Both consumed only by
-  `sample_colors.ts`.
+  vendored jpeg-js decoder (MIT, attribution + source commit in its header). Consumed by `sample_colors.ts`
+  and `measure_geometry.ts`.
 - `skills/setup/scripts/check_env.sh` — diagnostic-only, always exits 0; reports `NODE <cmd>|MISSING` (via
   `check_node.sh`) plus a `VERSION <v>` line whenever node exists. Not shared by any other skill — stays
   under `setup`, not the plugin root.

@@ -42,17 +42,14 @@ Each plugin is independently installable; none declares another as a dependency.
 `README.md`; this file is orientation for the assistant.
 
 - **superdev** — project memory, planning, and the agentic-development pipeline.
-- **superui** — the design / frontend ecosystem: a multi-agent, framework-agnostic design-system pipeline with
-  two heads sharing one mechanical tail — `design-system-extractor` (measurement, from screenshots; eight
-  extraction agents) and `design-system-creator` (creative, from a prose interview + optional inspiration
-  images; the holistic `design-director` agent + `spec-designer`) both hand off to the shared
-  `design-system-generator` sub-skill for artifact production — plus an opt-in gap-completion orchestrator
-  (two further agents) that fills what neither head covered on explicit user approval, a read-only
-  consistency auditor (three further agents) that checks the implementation against the system and only
-  writes a report under `.superui/reports/`, a doctrinal guardian
-  that enforces the system on every UI task, a professional UI/UX standards advisor, and a user-only `setup`
-  diagnostic. Eight skills total (one internal, non-user-invocable). Ships **no hooks and no manifest** — its
-  skills route purely via CSO `description:`. (→ `superui/CLAUDE.md`)
+- **superui** — the design / frontend ecosystem, pairing Claude Code CLI (measurement, agentic fan-out) and
+  Claude Design (live, inline-styled Design Components): `/superui:design-extractor <screenshots-dir>` turns a
+  folder of UI screenshots into a handoff bundle (`design.md` + `inventory.md` + component/pattern specs +
+  canonical screens + `meta.yml`, packed as `handoff.zip`) that Claude Design consumes, via an internal fork
+  worker (`design-extractor-builder`) fanning out to five agents. Also ships a professional UI/UX standards
+  advisor (`pro-designer`) and a user-only `setup` diagnostic. Ships **no hooks and no manifest** —
+  `pro-designer` routes purely via CSO `description:`; `design-extractor` is a user-only command.
+  (→ `superui/CLAUDE.md`)
 - **supergh** — the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation
   executor, Conventional-Commits commits, and template-driven issue / PR creation. Ships **no hooks and no
   manifest** — its skills route purely via CSO `description:`. (→ `supergh/CLAUDE.md`)
@@ -64,9 +61,11 @@ They ship no application code — the artefacts are markdown (skills) + JSON (ma
 scripts under `<plugin>/hooks/scripts/` (only `superdev` has hooks; `superui` / `supergh` / `superfix` ship
 none), plus deterministic helper scripts bundled either under an individual skill's own `scripts/` dir or, when
 shared across a plugin's skills, at plugin level. `supergh` keeps its shared scripts under `<plugin>/shared/`
-(a `scripts/` subdir); `superdev` and `superui` keep their shared scripts and references at the plugin root
-(`superdev/scripts/`, `superdev/references/`; `<plugin>/scripts/`, `<plugin>/references/`, `<plugin>/assets/`
-for `superui`, which also has `assets/`) instead, with no `shared/` subdir. Each
+(a `scripts/` subdir); `superdev` keeps its shared scripts and references at the plugin root
+(`superdev/scripts/`, `superdev/references/`), and `superui` keeps its shared scripts and its five agents at
+the plugin root (`superui/scripts/`, `superui/agents/`), both with no `shared/` subdir. `superui` has no
+`references/` or `assets/` dir at the plugin root (only its `pro-designer` skill needs `references/`, and keeps
+its own). Each
 plugin's own `CLAUDE.md` inventories its scripts. **Editing markdown / JSON IS shipping** — there is no
 build / test / lint at any level. Contracts between files are enforced by humans reading carefully.
 
@@ -83,8 +82,9 @@ Each plugin keeps its domain's skills together so a consumer can install just th
 codebase-investigation tool (`superfix`). Within a plugin, skills compose through CSO (frontmatter
 `description:`) and — for the sole manifest-bearing plugin (`superdev`) — that plugin's single
 injected manifest documents its routing (e.g. superdev's interview-first decision flow); `superui`, `supergh`
-and `superfix` ship no manifest (superfix's sole skill is user-only; superui and supergh route purely via CSO
-descriptions).
+and `superfix` ship no manifest (superfix's sole skill is user-only; supergh routes purely via CSO
+descriptions; superui routes `pro-designer` the same way while its `design-extractor` skill is a user-only
+command).
 Each is **self-contained**: its `plugin.json` declares **no `dependencies`** — installing it gives that whole
 ecosystem. Cross-plugin chains are **soft and optional** by design: any CSO composition that names another
 plugin's skill fires only when that plugin is also installed; absent it it simply does not engage (no declared
@@ -113,9 +113,8 @@ README.md            User-facing help (install + how it works)
 
 Each plugin dir carries a `.claude-plugin/plugin.json` (its `skills[]` (+ `agents[]`) is the catalog of record).
 `superdev` alone also carries `hooks/` (one injected dispatcher manifest + hook scripts); plugin-level shared
-assets/scripts live in `superdev/scripts/`, `superdev/references/` and `superui/scripts/`, `superui/references/`,
-`superui/assets/` (no `shared/` subdir); `supergh` carries `shared/` only; `superui` and `superfix`
-carry `agents/`.
+scripts live in `superdev/scripts/`, `superdev/references/` and `superui/scripts/` (no `shared/` subdir);
+`supergh` carries `shared/` only; `superui` and `superfix` both carry `agents/`.
 
 ## Versioning
 
@@ -142,7 +141,9 @@ The invariants below hold across the repo.
   fail-open (an unreadable manifest = banner only, no `additionalContext`). The hook does no per-project
   rendering — the manifest is injected as-is, identically for every project. This holds for `superdev` only;
   **`superui`, `supergh` and `superfix` ship no `hooks/` and no manifest at all** (superfix's sole skill is
-  user-only with nothing to auto-route; superui and supergh stay model-routable via CSO `description:`).
+  user-only with nothing to auto-route; supergh stays fully model-routable via CSO `description:`; superui
+  routes `pro-designer` the same way while `design-extractor` is a user-only command with an internal fork
+  worker behind it).
   A manifest-less plugin is valid whenever a `SessionStart`-injected dispatcher would add no
   routing value over the skill descriptions.
 - **No `"hooks"` field in `plugin.json`.** Claude Code auto-loads `hooks/hooks.json` from that path; adding a
@@ -178,11 +179,8 @@ The invariants below hold across the repo.
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`create-issue`/`create-pr` skill,
   superfix's for the `code-auditor` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
-  (superfix's `scout` / `detective` and superui's fifteen agents — eight extraction workers, the two
-  completion workers (`gap-analyst` / `design-synthesizer`), the two creative-head workers
-  (`design-director` / `spec-designer`), and the three audit workers (`token-drift-auditor` /
-  `spec-fidelity-auditor` / `inventory-coverage-auditor`) — live there, not in `skills[]`;
-  superdev ships no agents — every superdev worker is a skill) — and the relevant `CLAUDE.md`
+  (superfix's `scout` / `detective` live there, not in `skills[]`; superui's five `design-extractor-builder`
+  workers live there too; superdev ships no agents — every superdev worker is a skill) — and the relevant `CLAUDE.md`
   (that plugin's, and this root file when the change is repo-wide) in either case. They must stay in sync, and a
   worker must never appear in both `skills[]` and `agents[]`.
   For the manifest-bearing plugin (`superdev`), its injected manifest
