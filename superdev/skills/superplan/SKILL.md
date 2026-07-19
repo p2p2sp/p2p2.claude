@@ -1,7 +1,7 @@
 ---
 name: superplan
 description: Invoked by superspec skill only.
-allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode
+allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode, Bash(printf:*)
 user-invocable: false
 ---
 
@@ -23,6 +23,8 @@ Comprehensive understanding of the user's request is in your context. Missing kn
 
 ### Rules
 Load `templates/plan.md` and fill by sticking to the following rules. Write the plan file to `.claude/plans/<topic-slug>.md` — exactly this directory, never elsewhere: the ExitPlanMode approval gate only recognizes plan files under `.claude/plans/`, so any other location silently skips the mandatory review. Show the full path to the user. Plan file is required for the review.
+
+Checklist path: !`printf '%s' "${CLAUDE_PLUGIN_ROOT}/references/plan-review-checklist.md"`
 
 **File Structure**
 Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
@@ -49,22 +51,28 @@ A task is the smallest unit that carries its own test cycle and is worth a fresh
 Every task gets `TDD: required` marker, unless it changes no runtime behavior (pure config / docs / mechanical rename / scafolding) - then mark it as `TDD: none`.
 
 ### Self-Review
-Once you have written a complete plan and before final review, fast review it with your fresh eyes and check the plan against it. If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
+Once you have written a complete plan and before final review, fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B7 plus `## Author self-check`) — the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:
+- Verify in the repo (Read/Grep/Glob) every `### Files` path and symbol, and every `### Test Commands` command against the repo's real build/test tooling.
+- Verify the two-way mapping: every acceptance criterion is covered by at least one task, and every task covers at least one criterion or is traceable to the Goal/spec.
+- Fix any violation inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 
 ## Final Review
 Always before `ExitPlanMode` must invoke `superplan-reviewer` skill (Skill tool, forked context) to make final review. Never call `ExitPlanMode` on a plan that has not returned **VERDICT:** PASS. Track which invocation this is (round 1, round 2, …).
 
-The reviewer is read-only: it edits nothing and returns issues derivable from the plan + spec + repo (`FINDINGS:`) plus what it could not resolve for lack of a decision (`BLOCKED:`). Every fix is yours to apply. No review history is passed between rounds — the plan file's current state carries everything.
+The reviewer is read-only: it edits nothing and returns issues derivable from the plan + spec + repo (`FINDINGS:`) plus what it could not resolve for lack of a decision (`BLOCKED:`), plus advisory `NOTES:` that never block a PASS. Every fix is yours to apply.
 
-1. Invoke `superplan-reviewer` (Skill). The `args` MUST be a labeled block, identical every round — one `label: <file path>` per line. Every value is a PATH — the reviewer reads the files itself; NEVER paste file content. A bare path with no label is equally wrong:
+1. Invoke `superplan-reviewer` (Skill). The `args` MUST be a labeled block, one `label: value` per line. Every value is a PATH — the reviewer reads the files itself; NEVER paste file content. A bare path with no label is equally wrong:
    ```
    plan: <plan-file path>
    spec: <spec path>
+   checklist: <checklist path from ### Rules>
+   round: <N>
    ```
-2. Read the first line of its output: **VERDICT:** PASS or **VERDICT:** FAIL, and concise show the human the FINDINGS and any BLOCKED findings.
-3. **VERDICT:** PASS → proceed to **Final Plan**.
+   `round` starts at 1 and increments by 1 each invocation of this loop for the current plan. From round 2 on, also append one `prior-blocking: <finding>` line per FINDINGS (and BLOCKED) entry the previous round returned, verbatim.
+2. Read the first line of its output: **VERDICT:** PASS or **VERDICT:** FAIL, and concise show the human the FINDINGS, any BLOCKED findings, and any NOTES.
+3. **VERDICT:** PASS → relay any NOTES to the user together with the final plan; never edit the plan file after PASS — the approval gate re-arms on any post-verdict write. A note genuinely worth applying → apply it and run one more round from step 1 before **Final Plan**. Otherwise proceed straight to **Final Plan**.
 4. **VERDICT:** FAIL — apply the fixes to the plan file yourself, then go back to step 1:
-   - **`FINDINGS`** → edit the plan as each one directs; touch nothing else.
+   - **`FINDINGS`** → edit the plan as each one directs; touch nothing else. Exception — a Blocking finding whose evidence you can show is factually wrong (repo state, the spec, or the confirmed understanding already in your context contradicts it) → do not re-loop on it; instead present that single finding plus your counterargument to the user in plain prose and apply their ruling.
    - **`BLOCKED` findings present** → resolve each from the spec and the confirmed understanding already in your context and edit the plan accordingly; a finding needing a genuinely open design decision → run the `superdev` Skill (or ask the user) first.
 5. **Round cap:** after round 3 without PASS, STOP looping — show the user the remaining findings and let them decide how to proceed.
 
