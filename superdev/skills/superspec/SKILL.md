@@ -54,17 +54,19 @@ Immediately after saving — and BEFORE any handoff — run the reviewer and act
 
 Checklist path (for the reviewer): !`printf '%s' "${CLAUDE_SKILL_DIR}/references/checklist.md"`
 
-The reviewer is read-only: it edits nothing and returns issues derivable from the spec's own content + the checklist (`FINDINGS:`) plus what needs product knowledge or a user decision (`BLOCKED:`). Every fix is yours to apply. No review history is passed between rounds — the spec file's current state carries everything.
+The reviewer is read-only: it edits nothing and returns issues derivable from the spec's own content + the checklist (`FINDINGS:`) plus what needs product knowledge or a user decision (`BLOCKED:`), plus advisory `NOTES:` that never block a PASS. Every fix is yours to apply.
 
-1. Invoke `superspec-reviewer` (Skill). The `args` MUST be a labeled block, identical every round — one `label: <file path>` per line. Every value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong:
+1. Invoke `superspec-reviewer` (Skill). The `args` MUST be a labeled block, one `label: value` per line. Every value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong:
    ```
    spec: <saved spec filepath>
    checklist: <checklist path above>
+   round: <N>
    ```
-2. Read the first line of its output: `VERDICT: PASS` or `VERDICT: FAIL`, and concise show the human the FINDINGS and any BLOCKED items.
-3. `VERDICT: PASS` → proceed to **Handoff**.
+   `round` starts at 1 and increments by 1 each invocation of this loop for the current spec. From round 2 on, also append one `prior-blocking: <finding>` line per FINDINGS entry the previous round returned, verbatim — except sanitized: replace any double quote, back-tick, dollar sign, or backslash in that line with a single quote (the args block is substituted into the reviewer's shell preload; unsanitized content aborts the fork load).
+2. Read the first line of its output: `VERDICT: PASS` or `VERDICT: FAIL`, and concisely show the human the FINDINGS, any BLOCKED items, and any NOTES.
+3. `VERDICT: PASS` → NOTES may be applied directly to the spec now (no exit gate exists for specs, so a post-verdict edit is safe) or relayed to the user at Handoff instead — no re-review required either way. Proceed to **Handoff**.
 4. `VERDICT: FAIL` — apply the fixes to the spec file yourself, then go back to step 1:
-   - **`FINDINGS`** → edit the spec as each one directs; touch nothing else.
+   - **`FINDINGS`** → edit the spec as each one directs; touch nothing else. Exception — a Blocking finding whose evidence you can show is factually wrong (repo state or the interview context already in your context contradicts it) → do not re-loop on it; instead present that single finding plus your counterargument to the user in plain prose and apply their ruling.
    - **`BLOCKED` items present** → resolve each from the interview context already in your context and edit the spec accordingly; an item needing a genuinely open product decision → run the `superdev` Skill (or ask the user) first.
 5. **Round cap:** after round 3 without PASS, STOP looping — show the user the remaining findings and let them decide how to proceed.
 - Do not advance to Handoff until the reviewer returns `VERDICT: PASS`.
