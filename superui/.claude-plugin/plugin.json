@@ -17,6 +17,7 @@
     "./agents/foundation-analyst.md",
     "./agents/component-scout.md",
     "./agents/spec-writer.md",
+    "./agents/design-synthesizer.md",
     "./agents/bundle-reviewer.md"
   ]
 }

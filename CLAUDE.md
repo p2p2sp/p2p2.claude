@@ -46,7 +46,7 @@ Each plugin is independently installable; none declares another as a dependency.
   Claude Design (live, inline-styled Design Components): `/superui:design-extractor <screenshots-dir>` turns a
   folder of UI screenshots into a handoff bundle (`design.md` + `inventory.md` + component/pattern specs +
   canonical screens + `meta.yml`, packed as `handoff.zip`) that Claude Design consumes, via an internal fork
-  worker (`design-extractor-builder`) fanning out to five agents. Also ships a professional UI/UX standards
+  worker (`design-extractor-builder`) fanning out to six agents. Also ships a professional UI/UX standards
   advisor (`pro-designer`) and a user-only `setup` diagnostic. Ships **no hooks and no manifest** —
   `pro-designer` routes purely via CSO `description:`; `design-extractor` is a user-only command.
   (→ `superui/CLAUDE.md`)

@@ -33,11 +33,13 @@ A labeled block, one `label: value` per line:
 - Trust every script's self-verified result — never re-check or retry it.
 - One writer per file — each fragment, spec and generated artifact has exactly one producer per
   dispatch.
-- Re-dispatch convention, scoped to the two agents this skill owns: `foundation-analyst` for a
-  token or value finding, `spec-writer` for a spec finding (a missing or malformed output). Spawn
-  the same agent again with its normal inputs plus its previous output path and the findings as
-  added constraints; it regenerates its artifact in full, never a patch. Cap at two rounds per
-  gate — after that, carry the residue into the final message as `> NEEDS INPUT`.
+- Re-dispatch convention, scoped to the three agents this skill owns: `foundation-analyst` for a
+  token or value finding, `spec-writer` for a spec finding (a missing or malformed output),
+  `design-synthesizer` for a missing/malformed proposed fragment or a name collision reported by
+  `build_registry.ts`. Spawn the same agent again with its normal inputs plus its previous output
+  path and the findings as added constraints; it regenerates its artifact in full, never a patch.
+  Cap at two rounds per gate — after that, carry the residue into the final message as
+  `> NEEDS INPUT`.
 - `bundle-reviewer` findings are never a gate here — `dedup` and `accent-sprawl` trace back to the
   inventory, an input this skill receives rather than authors, so its findings are carried
   verbatim into the return message for the user to act on, never re-dispatched.
@@ -99,36 +101,51 @@ fragment path plus the routed entries as findings to honor; the analyst adopts e
 name verbatim. Then repeat steps 3 and 4. Cap at two rounds; a still-unresolved entry after that
 -> `> NEEDS INPUT: <name> unmeasured`, carried into the final message.
 
-### 8 — Copy canonical screens [you]
+### 8 — Synthesize gaps [design-synthesizer, x1]
+Spawn `superui:design-synthesizer` once with: `<run>/registry.json` (the final measured registry, unknowns
+and all), `source-map:`, `intake:` when present, output `<run>/notes/notes-proposed.json`. It writes one
+`foundation:"proposed"` fragment of best-practice PROPOSED tokens/textStyles plus a `resolved` list of the
+unknowns those proposals cover.
+GATE: `<run>/notes/notes-proposed.json` exists and is non-empty JSON. A missing or malformed fragment ->
+re-dispatch per the re-dispatch convention.
+Then repeat step 3 (merge) and step 4 (render) so the proposed values land in `design.md` and every
+`resolved` unknown drops out of the `> NEEDS INPUT` list. A `build_registry.ts` name-collision exit ->
+re-dispatch the synthesizer with the collision message as a finding (cap two rounds); an unresolved collision
+after that -> skip the proposed fragment (`rm` it), re-run steps 3 and 4 without it, and note it in the
+return. Record the proposed-token count and the resolved-versus-standing unknown counts from the analyst's
+final message.
+
+### 9 — Copy canonical screens [you]
 Collect every `canonical:` filename from `<out>/inventory.md`'s `## Components` and
 `## Patterns` entries, deduplicated. `mkdir -p <out>/screens`. Every source file is PNG by
 construction, so no conversion is ever needed — for each filename present in `source:`, copy it
 verbatim into `<out>/screens/<filename>`. A filename absent from `source:` is skipped here
-without error — `validate_bundle.ts` reports it as a `missing-screen` finding in step 10, this
+without error — `validate_bundle.ts` reports it as a `missing-screen` finding in step 11, this
 step never fails on it.
 
-### 9 — Build the index [script]
+### 10 — Build the index [script]
 `<cmd> "${CLAUDE_PLUGIN_ROOT}/scripts/build_meta.ts" <out> <source>`
 GATE: exit 0.
 
-### 10 — Validate [script]
+### 11 — Validate [script]
 `<cmd> "${CLAUDE_PLUGIN_ROOT}/scripts/validate_bundle.ts" <out> <run>/registry.json`
 Collect every `FINDING:` line. Exit 1 here is informational, never a stop — the bundle still
-gets packed in step 12 so the user receives it alongside the findings.
+gets packed in step 13 so the user receives it alongside the findings.
 
-### 11 — Review [bundle-reviewer, x1]
+### 12 — Review [bundle-reviewer, x1]
 Spawn `superui:bundle-reviewer` once with `<out>` and `<run>/registry.json`. Collect every
 `FINDING:` line, or note `CLEAN`. Never re-dispatched, never a gate — carry the output verbatim
 into the final message.
 
-### 12 — Pack [script]
+### 13 — Pack [script]
 `<cmd> "${CLAUDE_PLUGIN_ROOT}/scripts/pack_bundle.ts" <out> <out>/../handoff.zip`
 GATE: exit 0.
 
 ## Return
 End with a single message: the `<out>` path, the zip path, the component and pattern counts (the
-spec files written in step 6), every `FINDING:` line collected in steps 10 and 11, and every
-`> NEEDS INPUT` item collected in steps 2, 6 and 7.
+spec files written in step 6), the proposed-value count and resolved-versus-standing unknown
+counts from step 8, every `FINDING:` line collected in steps 11 and 12, and every
+`> NEEDS INPUT` item still standing (steps 2, 6 and 7, minus every one step 8 resolved).
 
 ## Contracts
 Input contract above. Output: the single return message described above; artifacts land only at

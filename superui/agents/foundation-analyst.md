@@ -1,6 +1,6 @@
 ---
 name: foundation-analyst
-description: Single-foundation pixel measurer — colors, typography, dimensions or effects-motion. Invoked only by superui design-extractor skills, never directly.
+description: Invoked only by superui design-extractor skills, never directly.
 tools: Read, Write, Glob, Grep, Bash
 model: sonnet
 effort: high

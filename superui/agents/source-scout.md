@@ -1,6 +1,6 @@
 ---
 name: source-scout
-description: Screenshot source-map scout. Invoked only by superui design-extractor skills, never directly.
+description: Invoked only by superui design-extractor skills, never directly.
 tools: Read, Write, Glob, Grep
 model: sonnet
 effort: medium

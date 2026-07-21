@@ -1,6 +1,6 @@
 ---
 name: bundle-reviewer
-description: Judgment-only handoff-bundle reviewer — accent discipline, dedup correctness, state-form completeness, surface-order coherence. Invoked only by superui design-extractor skills, never directly.
+description: Invoked only by superui design-extractor skills, never directly.
 tools: Read, Glob, Grep
 model: sonnet
 effort: medium

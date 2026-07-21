@@ -80,8 +80,11 @@ verbatim — do not re-verify or re-derive any of it.
 
 ## Final report
 Tell the user: the `<out>` bundle path, the `handoff.zip` path, the component and pattern counts,
-every finding and every `> NEEDS INPUT` item from the builder's return, then the next action —
-hand `handoff.zip` to Claude Design. State plainly that the bundle is one-shot input material:
+the count of proposed (best-practice, unmeasured) values the synthesizer supplied plus how many
+gaps it resolved versus left standing, every finding and every `> NEEDS INPUT` item from the
+builder's return, then the next action — hand `handoff.zip` to Claude Design. Note that values
+marked `proposed` in `design.md` were invented to best practice, not measured, and should be
+reviewed. State plainly that the bundle is one-shot input material:
 iterating in Claude Design supersedes it, and a changed source means re-running this skill, never
 patching the bundle by hand.
 

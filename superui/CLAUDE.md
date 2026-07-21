@@ -9,8 +9,9 @@
 superui pairs Claude Code CLI (measurement, agentic fan-out) with Claude Design (live, inline-styled Design
 Components). It ships four skills — `pro-designer` (the cross-cutting UI/UX standards advisor), `setup` (the
 user-only environment diagnostic), and `design-extractor` + its fork worker `design-extractor-builder` (the
-screenshots-to-handoff-bundle pipeline) — plus the five agents `design-extractor` dispatches through its
-builder: `source-scout`, `foundation-analyst`, `component-scout`, `spec-writer`, `bundle-reviewer`.
+screenshots-to-handoff-bundle pipeline) — plus the six agents `design-extractor` dispatches through its
+builder: `source-scout`, `foundation-analyst`, `component-scout`, `spec-writer`, `design-synthesizer`,
+`bundle-reviewer`.
 
 It is a **single-domain** plugin, so its skills carry **no group prefix** (the plugin name is the group) and
 are flat-named. The **per-component** catalog of record is `.claude-plugin/plugin.json` `skills[]` +
@@ -34,8 +35,13 @@ Components — never a self-contained design system. Consequences that shape the
 - Bundle shape: `design.md` + `inventory.md` + `components/<slug>.md` + `patterns/<slug>.md` +
   `screens/<file>.png` + `meta.yml` (machine index) + optional `intake-answers.md`, packed alongside as
   `handoff.zip`. Markdown + PNG + one small index — no consumer-side Node, npm, or build step to read it.
-- Invariants held throughout: **measure, never guess — every value traces to a pixel sample or a stated
-  in-image reference**; luminance-ranked surface order; accent-usage inventory; ruthless component dedup.
+- Invariants held throughout: **measure, never guess — every MEASURED value traces to a pixel sample or a
+  stated in-image reference**; luminance-ranked surface order; accent-usage inventory; ruthless component
+  dedup. The one sanctioned non-measured value is a **PROPOSED** one: when measurement cannot supply a token,
+  the `design-synthesizer` may fill it (and round the system out to best practice) with a value carrying
+  `proposed: true` + a `rationale` and no evidence — always rendered with a `Source: proposed` marker so an
+  invented value is never mistaken for a measured one. Measured and proposed provenance are mutually exclusive
+  per token.
 
 ## Layout (superui internals)
 
@@ -43,9 +49,10 @@ Components — never a self-contained design system. Consequences that shape the
 superui/
   .claude-plugin/plugin.json   The plugin manifest — skills[] + agents[] is the catalog of record
                      (no hooks/ — superui ships no hooks and no injected manifest)
-  agents/            The five design-extractor-builder workers, flat-named, each single-purpose
+  agents/            The six design-extractor-builder workers, flat-named, each single-purpose
                      (measuring: source-scout, foundation-analyst, spec-writer; judgment:
-                     component-scout, bundle-reviewer) — addressed via the `Agent` tool by name
+                     component-scout, design-synthesizer, bundle-reviewer) — addressed via the
+                     `Agent` tool by name
   scripts/           Plugin-root deterministic scripts, shared across skills — TypeScript (*.ts) run
                      directly by Node's native type stripping, `node:` builtins only, no npm deps and no
                      build step (plus check_node.sh — the Node env-check, run as an explicit early step
@@ -84,7 +91,7 @@ keeps its own rather than sharing one at the plugin root.
   `design-extractor-builder` for everything else and gates on its result. Measures nothing and authors no
   measured or generated artifact inline.
 - `design-extractor-builder` — internal fork worker (`user-invocable: false`, `context: fork`), reached only
-  via the `Skill` tool from `design-extractor`. The mechanical tail: fans out to the five agents below and
+  via the `Skill` tool from `design-extractor`. The mechanical tail: fans out to the six agents below and
   the plugin-root scripts to turn a resolved source dir + source map + inventory into the finished handoff
   bundle (`design.md`, `inventory.md`, `components/<slug>.md`, `patterns/<slug>.md`, `screens/<file>.png`,
   `meta.yml`, optional `intake-answers.md`) plus a sibling `handoff.zip`. Zero user conversation, zero
@@ -99,6 +106,11 @@ keeps its own rather than sharing one at the plugin root.
 - `component-scout` — builds the deduplicated component/pattern inventory from the source map.
 - `spec-writer` — writes ONE inventory entry's `components/<slug>.md` or `patterns/<slug>.md` from the merged
   registry plus the source screens; fanned out once per entry.
+- `design-synthesizer` — fills the registry's `unknowns` and rounds the system out to best practice with
+  PROPOSED tokens/textStyles (`proposed: true` + `rationale`, no evidence), writing one
+  `foundation:"proposed"` fragment plus a `resolved` list of the unknowns it covered; grounds every proposal
+  in the preloaded `pro-designer` skill (`skills:` frontmatter). Runs once, after measurement and
+  missing-token resolution. Never measures, never edits a measured value.
 - `bundle-reviewer` — judgment-only reviewer over the finished bundle (accent discipline, dedup correctness,
   state-form completeness, surface-order coherence); never measures, never edits.
 
@@ -137,11 +149,16 @@ relative imports are `sample_colors.ts` -> `vendor/` and `measure_geometry.ts` -
   measurement modes selected per invocation (`--edges`, plus the sibling geometry modes). The geometry half of
   the "measure, never guess" invariant, run by `foundation-analyst`.
 - `scripts/build_registry.ts` — merges the per-foundation `notes-<foundation>.json` fragments the
-  `foundation-analyst` agents write into one `registry.json`, the sole resolution namespace
-  `render_design_md.ts` and `validate_bundle.ts` read against. Internal to `.temp/` — never enters the bundle.
+  `foundation-analyst` agents write, plus the `design-synthesizer`'s `foundation:"proposed"` fragment, into
+  one `registry.json`, the sole resolution namespace `render_design_md.ts` and `validate_bundle.ts` read
+  against. A proposed token carries `proposed: true` + `rationale` (no `evidence`); any `unknowns` entry a
+  fragment lists under `resolved` (matched by section + `what`) is dropped from the merged `unknowns`, so a
+  filled gap never also renders as `> NEEDS INPUT`. Internal to `.temp/` — never enters the bundle.
 - `scripts/render_design_md.ts` — pure renderer: turns a merged `registry.json` into `design.md`'s ten fixed
-  `## 3.N` sections. Never invents, rounds, or infers a value — an entry listed in `unknowns` renders as
-  `> NEEDS INPUT: <what> — <reason>` instead.
+  `## 3.N` sections. Never invents, rounds, or infers a value itself — an entry listed in `unknowns` renders
+  as `> NEEDS INPUT: <what> — <reason>`. A `proposed` token/textStyle renders as a real row with a `Source`
+  column (`measured|proposed`) and its `rationale` in `Notes`; when any proposed value is present a one-line
+  `> Legend` is prepended above section 3.1.
 - `scripts/build_meta.ts` — derives `meta.yml`, the bundle's machine index, from the bundle dir's own
   contents, so meta-versus-contents consistency holds by construction.
 - `scripts/validate_bundle.ts` — validates a finished bundle against `registry.json` and its own internal

@@ -7,14 +7,19 @@
  *
  * IN : INPUT_DIR — directory holding one or more `notes-*.json` fragments,
  *      each shaped `{ foundation, tokens, surfaceOrder, accentUsage,
- *      textStyles, unknowns }` (see the Task 2 Contracts block for the full
- *      per-field shape). OUTPUT_PATH — where to write the merged
- *      `registry.json`.
+ *      textStyles, unknowns, resolved }` (see the Task 2 Contracts block for
+ *      the full per-field shape). A `foundation:"proposed"` fragment (written
+ *      by the design synthesizer) carries proposed tokens/textStyles plus a
+ *      `resolved` list of the unknowns those proposals cover. OUTPUT_PATH —
+ *      where to write the merged `registry.json`.
  * OUT: stdout — one line on success:
  *        REGISTRY_OK tokens=<N> unknowns=<M> -> <OUTPUT_PATH>
  *      OUTPUT_PATH holds the merged registry: the same shape as a fragment
- *      minus `foundation`, tokens/surfaceOrder/accentUsage/textStyles/
- *      unknowns concatenated in fragment-then-within-fragment order.
+ *      minus `foundation` and `resolved`, tokens/surfaceOrder/accentUsage/
+ *      textStyles concatenated in fragment-then-within-fragment order, and
+ *      `unknowns` concatenated then filtered — any entry matched (by section
+ *      + `what`) by some fragment's `resolved` list is dropped, so a proposed
+ *      value never coexists with a `> NEEDS INPUT` for the same gap.
  * Exit codes: 0 = ok; 1 = empty/unreadable input dir, invalid JSON, a shape
  *      violation (message on stderr, naming the fragment and field), or a
  *      cross-fragment token-name collision (message names the duplicated
@@ -29,7 +34,12 @@
  *     it would escape validation;
  *   - every token carries a non-empty `value` (a dark-only token, i.e. one
  *     carrying `dark` but no `value`, is rejected — it has no light
- *     counterpart to render) and a well-formed `evidence` object;
+ *     counterpart to render);
+ *   - a measured token carries a well-formed `evidence` object; a proposed
+ *     token (`proposed:true`, a best-practice value the synthesizer supplied
+ *     for a foundation="proposed" fragment) carries a non-empty `rationale`
+ *     instead and its `evidence` is stored null — the two provenances are
+ *     mutually exclusive per token;
  *   - a token in section "3.2" carries non-empty `primitive` and `usedFor`
  *     (both stay optional for every other section);
  *   - after merging, every `accentUsage[].token` names a key already
@@ -64,8 +74,10 @@ export interface TokenEntry {
   section: string; // "3.1".."3.9"
   primitive: string | null;
   usedFor: string | null;
-  evidence: Evidence;
+  evidence: Evidence | null; // null only for a proposed token (no pixel evidence exists)
   notes: string | null;
+  proposed: boolean; // true = a best-practice value the synthesizer proposed, not a measured one
+  rationale: string | null; // why the proposed value — required when `proposed`, else null
 }
 
 export interface SurfaceOrderEntry {
@@ -89,6 +101,8 @@ export interface TextStyleEntry {
   lineHeight: number;
   letterSpacing: string;
   usedFor: string;
+  proposed: boolean; // true = a best-practice type style the synthesizer proposed, not a measured one
+  rationale: string | null; // why the proposed style — required when `proposed`, else null
 }
 
 export interface UnknownEntry {
@@ -104,6 +118,7 @@ export interface Fragment {
   accentUsage: AccentUsageEntry[];
   textStyles: TextStyleEntry[];
   unknowns: UnknownEntry[];
+  resolved: UnknownEntry[]; // unknowns (from any fragment) this fragment's proposed values cover; dropped from merged unknowns
 }
 
 export interface Registry {
@@ -130,8 +145,8 @@ export interface Collision {
 
 export class ShapeError extends Error {}
 
-const ALLOWED_TOP_KEYS = ["foundation", "tokens", "surfaceOrder", "accentUsage", "textStyles", "unknowns"];
-const ALLOWED_FOUNDATIONS = ["colors", "typography", "dimensions", "effects-motion"];
+const ALLOWED_TOP_KEYS = ["foundation", "tokens", "surfaceOrder", "accentUsage", "textStyles", "unknowns", "resolved"];
+const ALLOWED_FOUNDATIONS = ["colors", "typography", "dimensions", "effects-motion", "proposed"];
 const ALLOWED_METHODS: EvidenceMethod[] = ["points", "regions", "geometry", "reference"];
 const TOKEN_SECTION_RE = /^3\.[1-9]$/;
 const UNKNOWN_SECTION_RE = /^3\.(?:[1-9]|10)$/;
@@ -169,18 +184,34 @@ function validateToken(name: string, raw: unknown, filename: string): TokenEntry
   if (!nonEmptyString(entry.section) || !TOKEN_SECTION_RE.test(entry.section)) {
     throw new ShapeError(`${filename}: token '${name}' has an invalid 'section' (${String(entry.section)})`);
   }
-  if (!isPlainObject(entry.evidence)) {
-    throw new ShapeError(`${filename}: token '${name}' is missing 'evidence'`);
+  if (entry.proposed !== undefined && typeof entry.proposed !== "boolean") {
+    throw new ShapeError(`${filename}: token '${name}' has a non-boolean 'proposed'`);
   }
-  const ev = entry.evidence as Record<string, unknown>;
-  if (!nonEmptyString(ev.screen)) {
-    throw new ShapeError(`${filename}: token '${name}' evidence is missing 'screen'`);
+  const proposed = entry.proposed === true;
+  if (entry.rationale !== undefined && entry.rationale !== null && typeof entry.rationale !== "string") {
+    throw new ShapeError(`${filename}: token '${name}' has a non-string 'rationale'`);
   }
-  if (!ALLOWED_METHODS.includes(ev.method as EvidenceMethod)) {
-    throw new ShapeError(`${filename}: token '${name}' evidence has an invalid 'method' (${String(ev.method)})`);
-  }
-  if (!nonEmptyString(ev.detail)) {
-    throw new ShapeError(`${filename}: token '${name}' evidence is missing 'detail'`);
+  // A proposed token carries a rationale in place of pixel evidence; a measured token carries evidence.
+  let evidence: Evidence | null = null;
+  if (proposed) {
+    if (!nonEmptyString(entry.rationale)) {
+      throw new ShapeError(`${filename}: token '${name}' is proposed and is missing 'rationale'`);
+    }
+  } else {
+    if (!isPlainObject(entry.evidence)) {
+      throw new ShapeError(`${filename}: token '${name}' is missing 'evidence'`);
+    }
+    const ev = entry.evidence as Record<string, unknown>;
+    if (!nonEmptyString(ev.screen)) {
+      throw new ShapeError(`${filename}: token '${name}' evidence is missing 'screen'`);
+    }
+    if (!ALLOWED_METHODS.includes(ev.method as EvidenceMethod)) {
+      throw new ShapeError(`${filename}: token '${name}' evidence has an invalid 'method' (${String(ev.method)})`);
+    }
+    if (!nonEmptyString(ev.detail)) {
+      throw new ShapeError(`${filename}: token '${name}' evidence is missing 'detail'`);
+    }
+    evidence = { screen: ev.screen as string, method: ev.method as EvidenceMethod, detail: ev.detail as string };
   }
   if (entry.primitive !== undefined && entry.primitive !== null && typeof entry.primitive !== "string") {
     throw new ShapeError(`${filename}: token '${name}' has a non-string 'primitive'`);
@@ -206,8 +237,10 @@ function validateToken(name: string, raw: unknown, filename: string): TokenEntry
     section: entry.section as string,
     primitive: (entry.primitive as string | null) ?? null,
     usedFor: (entry.usedFor as string | null) ?? null,
-    evidence: { screen: ev.screen as string, method: ev.method as EvidenceMethod, detail: ev.detail as string },
+    evidence,
     notes: (entry.notes as string | null) ?? null,
+    proposed,
+    rationale: (entry.rationale as string | null) ?? null,
   };
 }
 
@@ -250,6 +283,16 @@ function validateTextStyles(raw: unknown, filename: string): TextStyleEntry[] {
     if (typeof item.lineHeight !== "number") throw new ShapeError(`${filename}: textStyles[${i}] is missing 'lineHeight'`);
     if (!nonEmptyString(item.letterSpacing)) throw new ShapeError(`${filename}: textStyles[${i}] is missing 'letterSpacing'`);
     if (!nonEmptyString(item.usedFor)) throw new ShapeError(`${filename}: textStyles[${i}] is missing 'usedFor'`);
+    if (item.proposed !== undefined && typeof item.proposed !== "boolean") {
+      throw new ShapeError(`${filename}: textStyles[${i}] has a non-boolean 'proposed'`);
+    }
+    const proposed = item.proposed === true;
+    if (item.rationale !== undefined && item.rationale !== null && typeof item.rationale !== "string") {
+      throw new ShapeError(`${filename}: textStyles[${i}] has a non-string 'rationale'`);
+    }
+    if (proposed && !nonEmptyString(item.rationale)) {
+      throw new ShapeError(`${filename}: textStyles[${i}] is proposed and is missing 'rationale'`);
+    }
     return {
       name: item.name,
       family: item.family,
@@ -258,6 +301,8 @@ function validateTextStyles(raw: unknown, filename: string): TextStyleEntry[] {
       lineHeight: item.lineHeight,
       letterSpacing: item.letterSpacing,
       usedFor: item.usedFor,
+      proposed,
+      rationale: (item.rationale as string | null) ?? null,
     } as TextStyleEntry;
   });
 }
@@ -304,6 +349,7 @@ export function validateShape(raw: unknown, filename: string): Fragment {
     accentUsage: validateAccentUsage(raw.accentUsage, filename),
     textStyles: validateTextStyles(raw.textStyles, filename),
     unknowns: validateUnknowns(raw.unknowns, filename),
+    resolved: validateUnknowns(raw.resolved, filename),
   };
 }
 
@@ -328,21 +374,33 @@ export function detectCollisions(fragments: NamedFragment[]): Collision[] {
   return collisions;
 }
 
-/** Merges validated fragments into one registry, preserving insertion order per section. */
+/** Stable key for matching a `resolved` entry against an `unknowns` entry — section plus the `what` text. */
+function unknownKey(u: UnknownEntry): string {
+  return `${u.section} ${u.what}`;
+}
+
+/**
+ * Merges validated fragments into one registry, preserving insertion order per section. Any merged `unknowns`
+ * entry a fragment lists under `resolved` (matched by section + `what`) is dropped — a proposed value now
+ * covers it, so it must not also render as `> NEEDS INPUT`.
+ */
 export function mergeFragments(fragments: NamedFragment[]): Registry {
   const tokens: Record<string, TokenEntry> = {};
   const surfaceOrder: SurfaceOrderEntry[] = [];
   const accentUsage: AccentUsageEntry[] = [];
   const textStyles: TextStyleEntry[] = [];
   const unknowns: UnknownEntry[] = [];
+  const resolvedKeys = new Set<string>();
   for (const { data } of fragments) {
     Object.assign(tokens, data.tokens);
     surfaceOrder.push(...data.surfaceOrder);
     accentUsage.push(...data.accentUsage);
     textStyles.push(...data.textStyles);
     unknowns.push(...data.unknowns);
+    for (const r of data.resolved) resolvedKeys.add(unknownKey(r));
   }
-  return { tokens, surfaceOrder, accentUsage, textStyles, unknowns };
+  const filteredUnknowns = unknowns.filter((u) => !resolvedKeys.has(unknownKey(u)));
+  return { tokens, surfaceOrder, accentUsage, textStyles, unknowns: filteredUnknowns };
 }
 
 // ---------------------------------------------------------------------------

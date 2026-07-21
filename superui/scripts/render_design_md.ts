@@ -4,7 +4,16 @@
  * cell prints exactly what the registry holds; an entry listed in
  * `unknowns` renders as `> NEEDS INPUT: <what> — <reason>` inside its
  * section instead of a fabricated value. This script never invents, rounds
- * or infers a value — it is a pure renderer over already-measured data.
+ * or infers a value — it is a pure renderer over already-measured (or
+ * already-proposed) data.
+ *
+ * Provenance: a token/textStyle carrying `proposed:true` is a best-practice
+ * value the design synthesizer supplied for something the pipeline could not
+ * measure. Such a row adds a `Source` column (`measured`|`proposed`) to its
+ * table and carries `PROPOSED — <rationale>` in the `Notes` column; when any
+ * proposed value is present, a one-line `> Legend` is prepended above
+ * section 3.1 (it holds no `## ` heading, so the ten-heading self-verify and
+ * every `## 3.N` consumer are unaffected).
  *
  * IN : REGISTRY_JSON — path to a merged registry (the `build_registry.ts`
  *      output shape: `{ tokens, surfaceOrder, accentUsage, textStyles,
@@ -53,8 +62,10 @@ export interface TokenEntry {
   section: string;
   primitive: string | null;
   usedFor: string | null;
-  evidence: { screen: string; method: string; detail: string };
+  evidence: { screen: string; method: string; detail: string } | null;
   notes: string | null;
+  proposed?: boolean;
+  rationale?: string | null;
 }
 
 export interface TokenRow extends TokenEntry {
@@ -82,6 +93,8 @@ export interface TextStyleEntry {
   lineHeight: number;
   letterSpacing: string;
   usedFor: string;
+  proposed?: boolean;
+  rationale?: string | null;
 }
 
 export interface UnknownEntry {
@@ -127,21 +140,42 @@ function tokensForSection(registry: Registry, section: string): TokenRow[] {
 // Generic token table
 // ---------------------------------------------------------------------------
 
-/** Generic Name/Value(+Dark)(+Notes) table. Callers gate emptiness themselves; an empty `rows` renders "none". */
+/** Table-safe cell text: escape the column separator and flatten newlines so free-text rationale never breaks a row. */
+function cellSafe(text: string): string {
+  return text.replace(/\|/g, "\\|").replace(/\s*\n\s*/g, " ").trim();
+}
+
+/** The Notes cell for a token row: a proposed row leads with `PROPOSED — <rationale>`, then any measured note. */
+export function tokenNotesCell(r: TokenRow): string {
+  const parts: string[] = [];
+  if (r.proposed) parts.push(r.rationale ? `PROPOSED — ${r.rationale}` : "PROPOSED");
+  if (r.notes) parts.push(r.notes);
+  return cellSafe(parts.join("; "));
+}
+
+/**
+ * Generic Name/Value(+Dark)(+Source)(+Notes) table. Callers gate emptiness themselves; an empty `rows` renders "none".
+ * The Source column appears only when a row is proposed (measured|proposed); the Notes column carries any measured
+ * note plus each proposed row's rationale.
+ */
 export function renderTokenTable(rows: TokenRow[], opts: { nameHeader: string; valueHeader: string }): string {
   if (rows.length === 0) return "none\n";
   const hasDark = rows.some((r) => r.dark !== null && r.dark !== undefined && r.dark !== "");
-  const hasNotes = rows.some((r) => r.notes !== null && r.notes !== undefined && r.notes !== "");
+  const hasProposed = rows.some((r) => r.proposed === true);
+  const noteCells = rows.map((r) => tokenNotesCell(r));
+  const hasNotes = noteCells.some((n) => n.length > 0);
   const headers = [opts.nameHeader, opts.valueHeader];
   if (hasDark) headers.push("Dark");
+  if (hasProposed) headers.push("Source");
   if (hasNotes) headers.push("Notes");
   const lines = [`| ${headers.join(" | ")} |`, `| ${headers.map(() => "---").join(" | ")} |`];
-  for (const r of rows) {
+  rows.forEach((r, i) => {
     const cells = [r.name, r.value];
     if (hasDark) cells.push(r.dark ?? "");
-    if (hasNotes) cells.push(r.notes ?? "");
+    if (hasProposed) cells.push(r.proposed ? "proposed" : "measured");
+    if (hasNotes) cells.push(noteCells[i]);
     lines.push(`| ${cells.join(" | ")} |`);
-  }
+  });
   return lines.join("\n") + "\n";
 }
 
@@ -178,10 +212,14 @@ function renderColorPrimitives(rows: TokenRow[]): string {
 // ---------------------------------------------------------------------------
 
 function renderSemanticColors(rows: TokenRow[]): string {
+  const hasProposed = rows.some((r) => r.proposed === true);
   const headers = ["Role", "Primitive", "Hex (light)", "Hex (dark)", "Where used"];
+  if (hasProposed) headers.push("Source", "Notes");
   const lines = [`| ${headers.join(" | ")} |`, `| ${headers.map(() => "---").join(" | ")} |`];
   for (const r of rows) {
-    lines.push(`| ${r.name} | ${r.primitive ?? ""} | ${r.value} | ${r.dark ?? ""} | ${r.usedFor ?? ""} |`);
+    const cells = [r.name, r.primitive ?? "", r.value, r.dark ?? "", r.usedFor ?? ""];
+    if (hasProposed) cells.push(r.proposed ? "proposed" : "measured", tokenNotesCell(r));
+    lines.push(`| ${cells.join(" | ")} |`);
   }
   return lines.join("\n") + "\n";
 }
@@ -222,10 +260,17 @@ export function renderAccentUsage(accentUsage: AccentUsageEntry[]): string {
 
 export function renderTextStyles(textStyles: TextStyleEntry[]): string {
   if (textStyles.length === 0) return "none\n";
+  const hasProposed = textStyles.some((t) => t.proposed === true);
   const headers = ["Style", "Family", "Size", "Weight", "Line-height", "Letter-spacing", "Where used"];
+  if (hasProposed) headers.push("Source", "Notes");
   const lines = [`| ${headers.join(" | ")} |`, `| ${headers.map(() => "---").join(" | ")} |`];
   for (const t of textStyles) {
-    lines.push(`| ${t.name} | ${t.family} | ${t.size} | ${t.weight} | ${t.lineHeight} | ${t.letterSpacing} | ${t.usedFor} |`);
+    const cells = [t.name, t.family, t.size, String(t.weight), String(t.lineHeight), t.letterSpacing, t.usedFor];
+    if (hasProposed) {
+      const note = t.proposed ? (t.rationale ? `PROPOSED — ${t.rationale}` : "PROPOSED") : "";
+      cells.push(t.proposed ? "proposed" : "measured", cellSafe(note));
+    }
+    lines.push(`| ${cells.join(" | ")} |`);
   }
   return lines.join("\n") + "\n";
 }
@@ -410,7 +455,14 @@ function main(): void {
   };
 
   const rendered = SECTION_IDS.map((id) => renderSection(id, registry));
-  writeFileSync(outputPath, rendered.join("\n"));
+  const anyProposed =
+    Object.values(registry.tokens).some((t) => t.proposed === true) ||
+    registry.textStyles.some((t) => t.proposed === true);
+  const legend = anyProposed
+    ? "> Legend — Source: `measured` = sampled from the screenshots; `proposed` = a best-practice value supplied by the " +
+      "design synthesizer (no source measurement, rationale in Notes). Review every proposed value before shipping.\n\n"
+    : "";
+  writeFileSync(outputPath, legend + rendered.join("\n"));
 
   // Self-verify: re-read the written file and re-count the section headings rather than trust the write.
   let written: string;
