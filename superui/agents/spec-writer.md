@@ -3,7 +3,7 @@ name: spec-writer
 description: Single spec writer — one inventory entry, from registry tokens plus the source screens. Invoked only by superui design-extractor skills, never directly.
 tools: Read, Write, Glob, Grep, Bash
 model: sonnet
-effort: high
+effort: medium
 ---
 
 # Spec writer — one true spec for one inventory entry

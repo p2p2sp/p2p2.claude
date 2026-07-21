@@ -3,6 +3,7 @@ name: design-extractor-builder
 description: Invoked only by the design-extractor skill, never directly.
 context: fork
 model: sonnet
+effort: medium
 user-invocable: false
 allowed-tools: Read, Write, Glob, Grep, Bash, Bash(sh:*), Bash(node:*), Bash(mkdir:*), Agent
 ---
