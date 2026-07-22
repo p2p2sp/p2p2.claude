@@ -36,6 +36,7 @@ Read when writing any CSS/HTML with colors, text, interactive elements, or touch
 ## Text over images
 - Text over images/gradients must pass its ratio (4.5:1, 3:1 large) at EVERY point — verify against the lightest pixel it can sit on, not the average. Responsive crops and user-supplied images make the safe area unpredictable.
 - Fixes: semi-transparent dark scrim (NN/g example needed 50% opacity, not 30%), bottom "floor fade" gradient, blurred region behind text, or solid/semi-opaque text container.
+- Same rule for functional icons over imagery (a save/close/play control on a photo): give the icon a high-contrast backing — a solid or semi-opaque circle/pill behind it, or a drop shadow — so it clears 3:1 against whatever pixel it lands on (SC 1.4.11), not just the average.
 
 ## De-emphasis without low contrast
 - NEVER use low contrast as a de-emphasis or aesthetic device. Hierarchy for secondary text = smaller size, lighter weight, whitespace, position — not lightness below the 4.5:1 floor.

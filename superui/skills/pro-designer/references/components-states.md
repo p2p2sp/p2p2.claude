@@ -28,6 +28,19 @@ Read when designing or reviewing component states (loading, empty, error, disabl
 - Say precisely what went wrong and how to fix it: "Card number must be 16 digits", not "Invalid input" or an error code. Avoid blaming words like "invalid/illegal".
 - Preserve the user's typed input for editing — never clear the form.
 
+## Optimistic UI
+- For high-confidence, reversible mutations (delete a row, toggle, like, reorder, send), update the view immediately on the user action and reconcile with the server in the background — the interface feels instant instead of waiting on a round-trip (Gmail archive/delete is the canonical case).
+- Always design the rollback: if the request fails, restore the prior state and surface a clear, adjacent error (-> Error states above) — never leave the optimistic state standing after a failure.
+- Pair a reversible destructive action (delete a row, archive) with a time-boxed Undo ("Deleted. Undo", ~5-10s) rather than a blocking confirm dialog on every delete — it removes friction while still protecting the user; hold the real commit until the undo window closes. Reserve hard-stop confirm dialogs for irreversible / high-stakes actions.
+- Do NOT use optimistic UI for low-confidence or high-stakes writes (payments, irreversible or slow server-validated operations) — there a pending state and an explicit confirmed result are correct.
+
+## Overlays: modal vs drawer vs popover
+- Choose on two axes: stakes / need for a hard stop, and task complexity / need to keep page context. Do not decide on importance alone.
+- Modal (blocking) — a short, self-contained, high-stakes decision that must interrupt: destructive/irreversible confirms, or a single focused choice. Keep it rare; overused confirms breed click-through and lose their stopping power. For reversible actions prefer Undo (-> Optimistic UI) over a confirm dialog.
+  - Destructive confirm: restate the exact consequence, put the verb in the button ("Delete account", not "OK"), default focus on the safe option, dismissive action left / affirmative right, and require typing a token (DELETE) for the most dangerous.
+- Drawer / side panel (non-blocking) — a sub-task too big for a modal but not worth a full navigation, where the user needs the page's data visible while acting (edit a record, create beside a list, inspect a detail). Slides in, page stays readable behind it.
+- Popover (non-blocking) — a quick, small, contextual pick or edit inline, so users fix a gap without jumping to another screen. Small content only; escalate to a drawer when it grows. Dismisses on outside click, so never gate a critical/destructive decision behind one.
+
 ## Disabled
 - Style as the on-surface (text) color at 38% opacity for label and icon, 12% for the container (M3 tokens) — not a bespoke gray. Keep the label legible so users can still read what the action would be.
 - No hover/pressed state layer, no elevation, cursor: default.

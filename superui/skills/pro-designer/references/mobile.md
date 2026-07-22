@@ -39,10 +39,14 @@ Active:   filled house icon + accent color + bold "Home"   (fill + color/weight 
 - Place primary actions in the bottom reachable area of the screen — tap zones are sized and positioned for the average human thumb in one-handed use.
 - The bottom nav bar and its central CTA exist precisely because the bottom edge is the easiest reach; do not move the primary action to the top of the screen.
 
+## Gestures over chrome
+- Prefer native swipe to on-screen arrows for carousels and paged content on touch screens — drop the prev/next arrow chrome and let the horizontal swipe drive it, with a dot/position indicator for orientation. Keep a visible control only where discoverability needs it (a first-run hint) or for pointer/accessibility users.
+
 ## Mobile flows
 - 3-5 screens per flow; one concept or decision per screen — never a wall of empty inputs on one screen.
 - Auto-save progress at every step; input must survive interruption.
 - Design re-entry: after an interruption (call, app switch), return the user exactly where they left off, never to the start of the flow.
+- Give every non-essential step a visible Skip / "Later" escape hatch — never force users through steps that do not apply (full rule -> ux-psychology.md "Escape hatches").
 
 ## Spacing rhythm (mobile)
 - Mobile rhythm values (stacked blocks, gap before the primary CTA, tight intra-component gaps) -> layout-spacing.md "How much white space".

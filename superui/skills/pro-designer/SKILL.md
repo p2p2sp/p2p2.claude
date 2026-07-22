@@ -42,9 +42,9 @@ When the project already defines its own design system — a token set, a design
 - Headings, body text, data/number display, form text conventions -> `references/typography.md`
 - Page layout, spacing, responsive breakpoints, grids, navigation structure -> `references/layout-spacing.md`
 - Contrast, focus states, non-color cues, target sizes -> `references/accessibility.md`
-- Cards, badges, shadows, loading/empty/error/disabled states, motion timing -> `references/components-states.md`
+- Cards, badges, shadows, loading/empty/error/disabled states, optimistic UI, overlays (modal/drawer/popover), motion timing -> `references/components-states.md`
 - Any form: fields, validation, error copy, smart defaults -> `references/forms.md`
-- Dashboards, KPI tiles, SaaS app chrome, sidebar, billing, landing pages -> `references/saas-dashboards.md`
+- Dashboards, KPI tiles, data tables, charts, SaaS app chrome, sidebar, billing, landing pages and hero layouts -> `references/saas-dashboards.md`
 - Mobile app UI, bottom navigation, touch ergonomics -> `references/mobile.md`
 - Design process, wireframes, developer handoff specs -> `references/process.md`
 

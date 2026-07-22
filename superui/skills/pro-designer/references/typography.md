@@ -49,6 +49,7 @@ Read when choosing font sizes, line-heights, weights, letter-spacing, or font fa
 - Build hierarchy with size, weight, and color together. To emphasize at the same size, step weight up (Apple: Body = 17pt Regular, Headline = 17pt Semibold) — never add a font.
 - Weights: 400 for display/headline/body; 500-600 for titles, labels, buttons. Don't bold everything; don't use heavy weights at display sizes.
 - One typeface family per UI by default; hard max 2. If pairing: contrast classification (serif headings + sans body), match x-heights; prefer a superfamily (Roboto + Roboto Serif + Roboto Mono, IBM Plex) or one variable family.
+- Align a leading icon to the adjacent text's cap-height and size it near that cap- or x-height, so icon and label share one optical line instead of sitting off-center (icon sizes on the grid -> layout-spacing.md).
 - Cards need 3-4 explicit hierarchy tiers — full card anatomy in components-states.md.
 
 ## Data display

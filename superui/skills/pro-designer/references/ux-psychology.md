@@ -53,6 +53,11 @@ Read when designing onboarding, forms, signup/paywall placement, progress indica
 - Upgrade / pricing / trial end -> loss framing + anchoring on true facts. Avoid: fake urgency/scarcity, misleading anchor.
 - Whole platform -> short flows, low cognitive load, visible progress, re-entry after interruption. Avoid: overload, lost progress, no draft save.
 
+## Escape hatches
+- Every multi-step flow (onboarding, setup wizard, personalization) needs a visible way out: a "Skip" / "Do this later" on each non-essential step, and a working back/close that preserves entered data.
+- Never force users through steps that do not apply to them — irrelevant forced steps are a top onboarding-abandonment cause. Gate optional steps behind the user's own choices (smart defaults -> section 1) so nothing mandatory is busywork.
+- Skipping must not lose progress: a skipped step stays resumable from the activation checklist (-> Zeigarnik), never silently discarded.
+
 ## Hard ethics rules (never do)
 1. Fake urgency — countdown timers or "offer ends in 5 min" that do not really expire.
 2. Fake scarcity — "2 spots left" when untrue.
