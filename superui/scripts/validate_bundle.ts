@@ -1,15 +1,15 @@
 /*
- * validate_bundle.ts — validates a finished handoff bundle against
+ * validate_bundle.ts — validates a finished handoff seed bundle against
  * `registry.json` (Task 2's merged token/style namespace) and the bundle's
- * own internal cross-references, before it is zipped. Never mutates the
- * bundle; a clean run and a dirty run both leave every file untouched.
+ * own internal cross-references. Never mutates the bundle; a clean run and a
+ * dirty run both leave every file untouched.
  *
- * IN : BUNDLE_DIR — the handoff bundle dir (`design.md`, `inventory.md`,
- *      `components/*.md`, `patterns/*.md`, `screens/*.png`, optional
- *      `meta.yml` / `intake-answers.md`). REGISTRY_JSON — the
- *      `build_registry.ts` output (`{ tokens, textStyles, ... }`); the
- *      resolution namespace a spec's token references are checked against
- *      is exactly `Object.keys(tokens)` union every `textStyles[].name`.
+ * IN : BUNDLE_DIR — the seed bundle dir (`DESIGN.md`, the two consolidated
+ *      satellites `DESIGN.components.md` + `DESIGN.patterns.md`,
+ *      `screens/*.png`). REGISTRY_JSON — the `build_registry.ts` output
+ *      (`{ tokens, textStyles, ... }`); the resolution namespace a spec's
+ *      token references are checked against is exactly `Object.keys(tokens)`
+ *      union every `textStyles[].name`.
  * OUT: stdout — one `FINDING: <category> <detail>` line per defect found
  *      (checkTokenRefs, then checkScreenRefs, then checkSections, then
  *      checkForbidden, in that order), or the single line `CLEAN` when none
@@ -20,31 +20,28 @@
  *      command-line usage errors.
  *
  * Finding categories:
- *   - unknown-token   — a backticked dotted token in a `components/*.md` or
- *     `patterns/*.md` spec resolves against neither `tokens{}` nor
+ *   - unknown-token   — a backticked dotted token in `DESIGN.components.md` or
+ *     `DESIGN.patterns.md` resolves against neither `tokens{}` nor
  *     `textStyles[].name`. A backtick span counts as a token reference only
  *     when it matches `<group>.<name>` (at least one dot, no whitespace, no
  *     slash) AND is not an image filename (`login.png` is exempt by
  *     extension, not by heuristic) — a bare property name (`bg`, `radius`)
  *     never contains a dot and is excluded by construction.
- *   - missing-screen  — a CANONICAL screen reference (a spec's `canonical:
- *     <filename>.png` line, or an `inventory.md` entry's `canonical:`
- *     field) names a file absent from `screens/`. References are
- *     deduplicated by exact filename first, so one absent screen cited from
- *     several places yields exactly one finding. `appears:` in
- *     `inventory.md` is source metadata, not a file reference, and is
- *     deliberately excluded — the bundle contract ships one PNG per
- *     canonical screen only.
- *   - empty-section   — a `## 3.N` heading in `design.md` is followed by no
- *     non-whitespace content before the next `## ` heading or EOF.
+ *   - missing-screen  — a `canonical: <filename>.png` line inside a satellite
+ *     (a consolidated spec's canonical reference) names a file absent from
+ *     `screens/`. References are deduplicated by exact filename first, so one
+ *     absent screen cited from several specs yields exactly one finding.
+ *   - empty-section   — a standard `## ` heading in `DESIGN.md` is missing, or
+ *     is followed by no non-whitespace content before the next `## ` heading
+ *     or EOF. The required set is the fixed STANDARD_HEADINGS below.
  *   - forbidden-artifact — any `*.css`, `*.js`, `*.html` or `*.json` file
  *     anywhere under BUNDLE_DIR (blanket rejection, not a name heuristic;
- *     `meta.yml` is YAML and unaffected).
+ *     `DESIGN.md`'s inline YAML front matter is not a file and is unaffected).
  *
  * Usage: node validate_bundle.ts BUNDLE_DIR REGISTRY_JSON
  */
 
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, join, relative } from "node:path";
 
 // ---------------------------------------------------------------------------
@@ -63,8 +60,21 @@ interface Registry {
   textStyles: { name: string }[];
 }
 
+// The fixed standard heading set DESIGN.md must carry — mirrors render_design_md.ts's STANDARD_HEADINGS.
+const STANDARD_HEADINGS = [
+  "Overview",
+  "Colors",
+  "Typography",
+  "Layout & Spacing",
+  "Elevation & Depth",
+  "Shapes",
+  "Motion",
+  "Components",
+  "Do's and Don'ts",
+] as const;
+
 // ---------------------------------------------------------------------------
-// Directory walk (shared by checkTokenRefs, checkForbidden)
+// Directory walk (shared by checkForbidden)
 // ---------------------------------------------------------------------------
 
 function walkFiles(dir: string): string[] {
@@ -86,10 +96,9 @@ function walkFiles(dir: string): string[] {
   return entries;
 }
 
+/** The two consolidated satellites — the specs no longer ship as a per-entry file fan. */
 function specFiles(bundleDir: string): string[] {
-  return [...walkFiles(join(bundleDir, "components")), ...walkFiles(join(bundleDir, "patterns"))].filter((f) =>
-    f.endsWith(".md"),
-  );
+  return [join(bundleDir, "DESIGN.components.md"), join(bundleDir, "DESIGN.patterns.md")].filter((f) => existsSync(f));
 }
 
 // ---------------------------------------------------------------------------
@@ -138,16 +147,8 @@ export function checkTokenRefs(bundleDir: string, registry: Registry): Finding[]
 // checkScreenRefs
 // ---------------------------------------------------------------------------
 
-const CANONICAL_LINE_RE = /^canonical:\s*(\S+)\s*$/m;
-
-function canonicalOfEntryLine(line: string, fieldIndex: number): string | null {
-  const fields = line.split("·");
-  const field = fields[fieldIndex];
-  if (field === undefined) return null;
-  const idx = field.indexOf(":");
-  if (idx === -1) return null;
-  return field.slice(idx + 1).trim();
-}
+// A consolidated satellite carries many `canonical:` lines (one per spec) — matchAll needs the global flag.
+const CANONICAL_LINE_RE = /^canonical:\s*(\S+)\s*$/gm;
 
 export function checkScreenRefs(bundleDir: string): Finding[] {
   const cited = new Set<string>();
@@ -159,35 +160,7 @@ export function checkScreenRefs(bundleDir: string): Finding[] {
     } catch {
       continue;
     }
-    const m = CANONICAL_LINE_RE.exec(content);
-    if (m) cited.add(m[1]);
-  }
-
-  let inventoryMd = "";
-  try {
-    inventoryMd = readFileSync(join(bundleDir, "inventory.md"), "utf-8");
-  } catch {
-    inventoryMd = "";
-  }
-  const lines = inventoryMd.split(/\r?\n/);
-  let section: "components" | "patterns" | null = null;
-  for (const line of lines) {
-    if (line.trim() === "## Components") {
-      section = "components";
-      continue;
-    }
-    if (line.trim() === "## Patterns") {
-      section = "patterns";
-      continue;
-    }
-    if (/^## /.test(line)) {
-      section = null;
-      continue;
-    }
-    if (section && line.startsWith("- ")) {
-      const canonical = canonicalOfEntryLine(line, section === "components" ? 2 : 1);
-      if (canonical) cited.add(canonical);
-    }
+    for (const m of content.matchAll(CANONICAL_LINE_RE)) cited.add(m[1]);
   }
 
   let shipped: Set<string>;
@@ -210,31 +183,36 @@ export function checkScreenRefs(bundleDir: string): Finding[] {
 // checkSections
 // ---------------------------------------------------------------------------
 
-const SECTION_HEADING_RE = /^## 3\.(10|[1-9])\b/;
-
 export function checkSections(bundleDir: string): Finding[] {
   let content: string;
   try {
-    content = readFileSync(join(bundleDir, "design.md"), "utf-8");
+    content = readFileSync(join(bundleDir, "DESIGN.md"), "utf-8");
   } catch (e) {
-    return [{ category: "empty-section", detail: `design.md is missing or unreadable: ${(e as Error).message}` }];
+    return [{ category: "empty-section", detail: `DESIGN.md is missing or unreadable: ${(e as Error).message}` }];
   }
   const lines = content.split(/\r?\n/);
-  const headings: { num: string; start: number }[] = [];
+
+  // Index every `## ` heading (exactly h2, never `### ` subsections) by its title.
+  const headings: { title: string; start: number }[] = [];
   lines.forEach((line, i) => {
-    const m = SECTION_HEADING_RE.exec(line);
-    if (m) headings.push({ num: m[1], start: i });
+    const m = /^## (.+?)\s*$/.exec(line);
+    if (m) headings.push({ title: m[1].trim(), start: i });
   });
 
   const findings: Finding[] = [];
-  for (let i = 0; i < headings.length; i++) {
-    const end = i + 1 < headings.length ? headings[i + 1].start : lines.length;
-    const body = lines
-      .slice(headings[i].start + 1, end)
-      .join("\n")
-      .trim();
+  for (const expected of STANDARD_HEADINGS) {
+    const h = headings.find((x) => x.title === expected);
+    if (!h) {
+      findings.push({ category: "empty-section", detail: `DESIGN.md is missing the '${expected}' section` });
+      continue;
+    }
+    let end = lines.length;
+    for (const x of headings) {
+      if (x.start > h.start && x.start < end) end = x.start;
+    }
+    const body = lines.slice(h.start + 1, end).join("\n").trim();
     if (body.length === 0) {
-      findings.push({ category: "empty-section", detail: `design.md section 3.${headings[i].num} has no content` });
+      findings.push({ category: "empty-section", detail: `DESIGN.md section '${expected}' has no content` });
     }
   }
   return findings;

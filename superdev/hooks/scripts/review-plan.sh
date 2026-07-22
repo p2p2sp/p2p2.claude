@@ -7,6 +7,11 @@
 # prior Write/Edit to a path under .claude/plans/*.md (i.e. plan-mode for an
 # implementation plan, not commit-flow plan-mode without a plan file).
 #
+# It also requires the plan file to DECLARE its format up front — a SimplePlan
+# ("# SimplePlan" / "simplebuild") or a SuperPlan ("# SuperPlan" / "superbuild").
+# A plan that names neither format is denied with guidance to use the default
+# SimplePlan format, so the review / build path is never ambiguous.
+#
 # NOTE: this hook only fires when the model calls ExitPlanMode, i.e. in plan
 # mode. Entering plan mode before drafting a plan is driven by the superplan /
 # simpleplan skill instruction, so this ExitPlanMode gate fires for every plan-driven flow
@@ -94,6 +99,31 @@ if [ -z "$last_plan_write_line" ]; then
   emit_allow
 fi
 
+# Resolve the plan file path from that write line (hoisted here so both the format
+# gate below and the tamper guard at the end can reuse it). Unescape the JSON
+# backslashes so a Windows path ("C:\\Users\\..") becomes a real filesystem path we
+# can read; a no-op for mac/linux forward slashes. plan_base is the bare filename,
+# used by the tamper guard's transcript matching.
+plan_path=$(
+  awk -v ln="$last_plan_write_line" 'NR==ln' "$transcript_path" 2>/dev/null \
+    | grep -oE '"file_path":"[^"]*\.claude[\\/]+plans[\\/]+[^"]*\.md"' \
+    | head -n1 \
+    | sed -E 's/.*"file_path":"([^"]*)"$/\1/' \
+    | sed 's/\\\\/\\/g'
+)
+plan_base="${plan_path##*[\\/]}"
+
+# Step 1b: the plan MUST declare its format so the review / build path is
+# unambiguous. A SimplePlan carries the "# SimplePlan" header / "simplebuild"
+# reference; a SuperPlan carries "# SuperPlan" / "superbuild". Read the plan file;
+# if it names NEITHER format, the format is undeclared -> deny and require the
+# default (SimplePlan). Fail-open only when the plan file itself cannot be read
+# (established fail-open policy for hook faults).
+if [ -n "$plan_path" ] && [ -f "$plan_path" ] \
+   && ! grep -qiE 'simpleplan|simplebuild|superplan|superbuild' "$plan_path" 2>/dev/null; then
+  emit_deny "Next step: declare the plan format. The plan file does not indicate whether it is a SimplePlan or a SuperPlan. By default a plan MUST use the SimplePlan format — rewrite it from the simpleplan template (header '# SimplePlan' plus 'To build this plan must use the simplebuild skill.'). Add the format marker, re-run the plan reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+fi
+
 # Step 2: from the line AFTER the last plan-file write, look for:
 #   R = a line containing the plan reviewer name AND a subagent marker
 #   S = a line carrying the actual verdict "VERDICT: PASS"
@@ -169,14 +199,7 @@ fi
 # makes the plan path the TARGET of a mutation (a redirect target, or an operand of
 # sed -i / tee / cp / mv) — NOT mere co-occurrence, so a read/stage (`cat`, `git add`)
 # or a redirect aimed at another file that merely names the plan does not false-deny.
-plan_path=$(
-  awk -v ln="$last_plan_write_line" 'NR==ln' "$transcript_path" 2>/dev/null \
-    | grep -oE '"file_path":"[^"]*\.claude[\\/]+plans[\\/]+[^"]*\.md"' \
-    | head -n1 \
-    | sed -E 's/.*"file_path":"([^"]*)"$/\1/'
-)
-plan_base="${plan_path##*[\\/]}"
-
+# plan_path / plan_base were resolved right after Step 1 (hoisted for the format gate).
 if [ -n "$plan_base" ]; then
   tamper_line=$(
     awk -v start="$verdict_line" -v base="$plan_base" '

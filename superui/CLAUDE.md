@@ -22,19 +22,28 @@ CSO `description:`; `setup` and `design-extractor` are user-only (`disable-model
 
 ## The handoff bundle
 
-The pipeline produces a **handoff bundle** that Claude Design consumes to build live, inline-styled Design
-Components — never a self-contained design system. Consequences that shape the pipeline skills:
+The pipeline produces a lean, one-shot **seed bundle** Claude Design consumes to build live, inline-styled
+Design Components — never a self-contained design system, and never persisted by the consumer (Claude Design
+re-authors inline styles each turn). Consequences that shape the pipeline skills:
 
-- `design.md` is the **single source of values on input** — exhaustive and self-contained (color primitives,
-  semantic roles, luminance-ranked surface/elevation order, accent-usage inventory, type scale, spacing, radii,
-  borders, shadows, motion, dark-mode coverage). No token file ships alongside it.
-- **DTCG is an OUTPUT, never an input.** It is regenerated from the finished Design Components at the end, as
-  the handoff back to Claude Code. Shipping it on input would create a second, competing source of truth.
+- `DESIGN.md` is the **single source of values on input** — a lean seed loosely conforming to the
+  google-labs-code/design.md standard: YAML front matter FIRST (DTCG-shaped light-value tokens — `colors`,
+  `typography`, `spacing`, `rounded`, foundations only) then a prose body under the fixed standard headings
+  (Overview, Colors, Typography, Layout & Spacing, Elevation & Depth, Shapes, Motion, Components, Do's and
+  Don'ts). Rich detail beyond the coarse front-matter token model (semantic roles, surface/elevation order,
+  accent-usage inventory, borders, shadows, motion, dark-mode coverage) and provenance (`measured|proposed`)
+  live in the body only, never as front-matter tokens. No token file ships alongside it.
+- **DTCG dropped; front-matter YAML tokens subsume it.** There is no separate DTCG file on input or output —
+  the readable front-matter maps are the token surface (readable MD over JSON). A second, competing token
+  format would only create a rival source of truth.
 - **No doc site.** The consumer renders live inline-styled components — a generated CSS/JS documentation site
   duplicates that and breaks click-to-edit.
-- Bundle shape: `design.md` + `inventory.md` + `components/<slug>.md` + `patterns/<slug>.md` +
-  `screens/<file>.png` + `meta.yml` (machine index) + optional `intake-answers.md`, packed alongside as
-  `handoff.zip`. Markdown + PNG + one small index — no consumer-side Node, npm, or build step to read it.
+- Bundle shape: `DESIGN.md` + `DESIGN.components.md` (all component specs, one `## <slug>` subsection each) +
+  `DESIGN.patterns.md` (all pattern specs) + `screens/<file>.png`. Markdown + PNG only — no consumer-side
+  Node, npm, or build step to read it. `inventory.md` and `intake-answers.md` stay at `<run>` as internal
+  intermediates/provenance; there is no `meta.yml` and no `handoff.zip` (the `<out>/` folder is the
+  deliverable). CRITICAL for the renderer: every front-matter value that starts with `#` or holds a `:` is
+  quoted (`key: #fff` is a YAML comment) — the emitter double-quotes every string scalar.
 - Invariants held throughout: **measure, never guess — every MEASURED value traces to a pixel sample or a
   stated in-image reference**; luminance-ranked surface order; accent-usage inventory; ruthless component
   dedup. The one sanctioned non-measured value is a **PROPOSED** one: when measurement cannot supply a token,
@@ -91,11 +100,12 @@ keeps its own rather than sharing one at the plugin root.
   `design-extractor-builder` for everything else and gates on its result. Measures nothing and authors no
   measured or generated artifact inline.
 - `design-extractor-builder` — internal fork worker (`user-invocable: false`, `context: fork`), reached only
-  via the `Skill` tool from `design-extractor`. The mechanical tail: fans out to the six agents below and
-  the plugin-root scripts to turn a resolved source dir + source map + inventory into the finished handoff
-  bundle (`design.md`, `inventory.md`, `components/<slug>.md`, `patterns/<slug>.md`, `screens/<file>.png`,
-  `meta.yml`, optional `intake-answers.md`) plus a sibling `handoff.zip`. Zero user conversation, zero
-  inline design judgment — composes, dispatches, and gates on scripted validation.
+  via the `Skill` tool from `design-extractor`. The mechanical tail: fans out to the agents below and
+  the plugin-root scripts to turn a resolved source dir + source map + inventory into the finished seed
+  bundle (`DESIGN.md`, `DESIGN.components.md`, `DESIGN.patterns.md`, `screens/<file>.png`). Each spec-writer
+  writes an internal `<run>/specs/{components,patterns}/<slug>.md`; `assemble_specs.ts` consolidates each kind
+  into its satellite. Zero user conversation, zero inline design judgment — composes, dispatches, and gates on
+  scripted validation.
 
 ## Agents (design-extractor-builder workers)
 
@@ -104,8 +114,9 @@ keeps its own rather than sharing one at the plugin root.
   effects-motion) via the plugin-root `sample_colors.ts` / `measure_geometry.ts`, writing a
   `notes-<foundation>.json` fragment; fanned out once per foundation for parallelism.
 - `component-scout` — builds the deduplicated component/pattern inventory from the source map.
-- `spec-writer` — writes ONE inventory entry's `components/<slug>.md` or `patterns/<slug>.md` from the merged
-  registry plus the source screens; fanned out once per entry.
+- `spec-writer` — writes ONE inventory entry's internal `<run>/specs/components/<slug>.md` or
+  `<run>/specs/patterns/<slug>.md` from the merged registry plus the source screens; fanned out once per entry.
+  `assemble_specs.ts` later consolidates these into the two shipped satellites.
 - `design-synthesizer` — fills the registry's `unknowns` and rounds the system out to best practice with
   PROPOSED tokens/textStyles (`proposed: true` + `rationale`, no evidence), writing one
   `foundation:"proposed"` fragment plus a `resolved` list of the unknowns it covered; grounds every proposal
@@ -154,18 +165,25 @@ relative imports are `sample_colors.ts` -> `vendor/` and `measure_geometry.ts` -
   against. A proposed token carries `proposed: true` + `rationale` (no `evidence`); any `unknowns` entry a
   fragment lists under `resolved` (matched by section + `what`) is dropped from the merged `unknowns`, so a
   filled gap never also renders as `> NEEDS INPUT`. Internal to `.temp/` — never enters the bundle.
-- `scripts/render_design_md.ts` — pure renderer: turns a merged `registry.json` into `design.md`'s ten fixed
-  `## 3.N` sections. Never invents, rounds, or infers a value itself — an entry listed in `unknowns` renders
-  as `> NEEDS INPUT: <what> — <reason>`. A `proposed` token/textStyle renders as a real row with a `Source`
-  column (`measured|proposed`) and its `rationale` in `Notes`; when any proposed value is present a one-line
-  `> Legend` is prepended above section 3.1.
-- `scripts/build_meta.ts` — derives `meta.yml`, the bundle's machine index, from the bundle dir's own
-  contents, so meta-versus-contents consistency holds by construction.
-- `scripts/validate_bundle.ts` — validates a finished bundle against `registry.json` and its own internal
-  cross-references (token citations, CANONICAL screen citations, non-empty required sections) before packing;
-  never mutates the bundle.
-- `scripts/pack_bundle.ts` — packs a validated bundle dir into a sibling `handoff.zip` by hand
-  (`node:zlib.deflateRawSync` per entry, local file headers, central directory, CRC32) — no npm dependency.
+- `scripts/render_design_md.ts` — the sole writer of `DESIGN.md`. Reads a merged `registry.json` plus the
+  run's `inventory.md` (for the Components overview) and emits the seed: YAML front matter FIRST (quoted,
+  DTCG-shaped light tokens — `colors` from 3.1+3.2, `typography` from 3.5 families + textStyles, `spacing`
+  from 3.6, `rounded` from 3.7 `radius.*`) then the prose body under the fixed standard headings, the old
+  `## 3.N` sections surviving as `###` subsections. Never invents, rounds, or infers a value itself — an entry
+  listed in `unknowns` renders as `> NEEDS INPUT: <what> — <reason>`; Overview and Do's-and-Don'ts are
+  mechanical only (counts + fixed boilerplate). A `proposed` token/textStyle renders as a real body row with a
+  `Source` column (`measured|proposed`) and its `rationale` in `Notes`; the `> Legend` and a `> Note`
+  (front-matter defaults vs authoritative body Source columns) sit BELOW the closing front-matter `---`.
+  CLI: `render_design_md.ts REGISTRY_JSON INVENTORY_MD OUTPUT_MD [--source <label>]`.
+- `scripts/assemble_specs.ts` — consolidates a dir of per-entry intermediate specs into ONE satellite
+  (`assemble_specs.ts SPECS_DIR OUTPUT_MD`, run once per kind). Each `<slug>.md` is wrapped under a `## <slug>`
+  heading derived from the FILENAME (body `## ` headings demoted to `### ` so the slug wrappers stay the only
+  h2); an empty dir yields a titled "None catalogued." stub, exit 0. The sole writer of its satellite.
+- `scripts/validate_bundle.ts` — validates a finished seed bundle (`DESIGN.md` + the two satellites
+  `DESIGN.components.md` / `DESIGN.patterns.md` + `screens/`) against `registry.json` and its own internal
+  cross-references: token citations (backtick dotted refs in the satellites), CANONICAL screen citations (every
+  satellite `canonical:` line, `matchAll`), the fixed standard headings present + non-empty in `DESIGN.md`, and
+  no forbidden `css/js/html/json` artifact. Never mutates the bundle.
 - `scripts/check_contrast.ts` — WCAG AA contrast gate (pro-designer).
 - `scripts/vendor/png-decode.ts` — from-scratch PNG decoder on `node:zlib` (color types 0/2/3/4/6, bit
   depths 1–16, all filters; interlaced -> clear unsupported error). `scripts/vendor/jpeg-decode.ts` — the

@@ -33,7 +33,7 @@ UI is attention management, not decoration. A professional interface is transpar
 
 ## Design-system precedence
 
-In a project with a `design-extractor` handoff bundle (`design.md` and its component/pattern specs), that bundle takes precedence over this skill's generic absolutes: apply the type ramp, spacing scale, and color system through its measured values, never alongside them. This skill stays advisory and never edits the bundle.
+When the project already defines its own design system — a token set, a design spec, or documented brand/UI guidelines — those authoritative values override this skill's generic absolutes: apply the project's own type ramp, spacing scale, and color system, never a second one alongside them. This skill stays advisory: it reasons about the project's system, never overwrites it.
 
 ## Reference routing
 

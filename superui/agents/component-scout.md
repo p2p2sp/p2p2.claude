@@ -29,10 +29,10 @@ You identify every reusable block and every screen-level composition in the sour
 5. End your final message with the inventory path and counts (components by kind, patterns, inconsistencies).
 
 ## Field order — pin exactly
-`build_meta.ts` splits a component line on `·` and reads `atomic|composite` at index 1 and `canonical:` at index 2 — do not reorder these fields. `canonical:` is the exact source filename including its extension (`canonical: dashboard.png`), never a display name and never extension-less: `checkScreenRefs` resolves it against `screens/` verbatim and the builder copies by it, so a bare `dashboard` yields a spurious `missing-screen` finding and a failed copy. `appears:` uses the same exact-filename form for every screen listed.
+The builder's entry-routing and screen-copy steps, plus `render_design_md.ts`'s Components overview, split a component line on `·` and read `atomic|composite` at index 1 and `canonical:` at index 2 — do not reorder these fields. `canonical:` is the exact source filename including its extension (`canonical: dashboard.png`), never a display name and never extension-less: `checkScreenRefs` resolves it against `screens/` verbatim and the builder copies by it, so a bare `dashboard` yields a spurious `missing-screen` finding and a failed copy. `appears:` uses the same exact-filename form for every screen listed.
 
 ## Hard rules
 - A block is worth cataloguing if it recurs across screens OR is self-contained and reusable even on one screen.
-- Slugs are lowercase, stable, filesystem-safe — they become spec filenames (`components/<slug>.md`, `patterns/<slug>.md`).
+- Slugs are lowercase, stable, filesystem-safe — they become the internal spec filenames (`<run>/specs/components/<slug>.md`, `<run>/specs/patterns/<slug>.md`) and each satellite's `## <slug>` subsection heading.
 - Inventory only — no specs, no measurements, no token proposals, no values.
 - Never solicit input from the user directly — `## Inconsistencies` and the ambiguities you inherit from `source-map.md` are the only way to surface a gap.

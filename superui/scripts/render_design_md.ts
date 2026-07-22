@@ -1,51 +1,53 @@
 /*
- * render_design_md.ts — renders `design.md`'s ten fixed `## 3.N` sections
- * from a merged `registry.json` (written by build_registry.ts). Every value
- * cell prints exactly what the registry holds; an entry listed in
+ * render_design_md.ts — renders `DESIGN.md`, the one-shot design seed, from a
+ * merged `registry.json` (written by build_registry.ts) plus the run's
+ * `inventory.md` (for the Components overview). The output is a lean, readable
+ * seed loosely conforming to the design.md standard:
+ *   1. YAML front matter FIRST (before any prose) — DTCG-shaped light-value
+ *      tokens: `colors` (3.1+3.2), `typography` (3.5 families + textStyles),
+ *      `spacing` (3.6), `rounded` (3.7 `radius.*`). Nothing else lands in front
+ *      matter (border widths, shadows, motion, surface order, accent usage live
+ *      in the body only).
+ *   2. A prose body under the fixed standard `## ` headings (Overview, Colors,
+ *      Typography, Layout & Spacing, Elevation & Depth, Shapes, Motion,
+ *      Components, Do's and Don'ts). The old `## 3.N` sections survive as `###`
+ *      subsections grouped under those headings.
+ *
+ * Every value cell prints exactly what the registry holds; an entry listed in
  * `unknowns` renders as `> NEEDS INPUT: <what> — <reason>` inside its
- * section instead of a fabricated value. This script never invents, rounds
+ * subsection instead of a fabricated value. This script never invents, rounds
  * or infers a value — it is a pure renderer over already-measured (or
- * already-proposed) data.
+ * already-proposed) data. Overview and Do's-and-Don'ts are MECHANICAL only
+ * (counts + fixed boilerplate); the script authors no narrative.
  *
  * Provenance: a token/textStyle carrying `proposed:true` is a best-practice
  * value the design synthesizer supplied for something the pipeline could not
  * measure. Such a row adds a `Source` column (`measured`|`proposed`) to its
- * table and carries `PROPOSED — <rationale>` in the `Notes` column; when any
- * proposed value is present, a one-line `> Legend` is prepended above
- * section 3.1 (it holds no `## ` heading, so the ten-heading self-verify and
- * every `## 3.N` consumer are unaffected).
+ * body table and carries `PROPOSED — <rationale>` in `Notes`; when any proposed
+ * value is present, a one-line `> Legend` follows the closing front-matter
+ * `---`. Front matter may carry proposed defaults too — a `> Note` below the
+ * front matter states the body Source columns are authoritative for provenance.
  *
- * IN : REGISTRY_JSON — path to a merged registry (the `build_registry.ts`
- *      output shape: `{ tokens, surfaceOrder, accentUsage, textStyles,
- *      unknowns }`). OUTPUT_MD — where to write the rendered `design.md`.
+ * CRITICAL — YAML quoting: `key: #fff` is a YAML comment (null), and a value
+ * containing `:` breaks the scalar. The emitter double-quotes every string
+ * value (hex, sizes, family stacks) and every risky key; only true numbers
+ * (weight, lineHeight) stay bare — so no `: #` and no stray `:` ever reach the
+ * front matter.
+ *
+ * IN : REGISTRY_JSON — a merged registry (`{ tokens, surfaceOrder, accentUsage,
+ *      textStyles, unknowns }`). INVENTORY_MD — the run's `inventory.md`
+ *      (`## Components` / `## Patterns` entry lines), read for the Components
+ *      overview. OUTPUT_MD — where to write `DESIGN.md`. Optional
+ *      `--source <label>` — recorded in the Overview sentence only.
  * OUT: stdout — one line on success:
- *        DESIGN_MD_OK sections=3.1,3.2,...,3.10 -> <OUTPUT_MD>
- *      OUTPUT_MD holds all ten sections in fixed order, each heading
- *      `## 3.N <title>` followed by non-empty content — either the
- *      rendered table/list, one or more `> NEEDS INPUT` lines, or the
- *      literal `none` when a section carries neither measured tokens nor an
- *      unknowns entry.
- * Exit codes: 0 = ok; 1 = unreadable/invalid-JSON registry, or a
- *      self-verify mismatch after writing (message on stderr); 2 =
- *      command-line usage errors.
+ *        DESIGN_MD_OK headings=Overview,Colors,... -> <OUTPUT_MD>
+ *      OUTPUT_MD opens with `---` front matter, then the fixed standard
+ *      headings in order, each present and non-empty.
+ * Exit codes: 0 = ok; 1 = unreadable/invalid-JSON registry, unreadable
+ *      inventory, or a self-verify mismatch after writing (message on stderr);
+ *      2 = command-line usage errors.
  *
- * Section-specific rendering rules (see Task 2 Contracts for the full ten):
- *   - 3.1 groups tokens sharing a `<ramp>.<step>` name prefix under a ramp
- *     subheading; ungrouped primitives render in one flat table.
- *   - Any generic token table emits a "Dark" column only when at least one
- *     row in that section carries a non-null `dark` value (3.2 always shows
- *     Primitive/Hex-light/Hex-dark/Where-used — its columns are pinned).
- *   - 3.3 renders `surfaceOrder` as an ordered list in the array's own
- *     order (already ranked by the sampler — never re-sorted here).
- *   - 3.4 groups `accentUsage` per screen.
- *   - 3.5 renders section-3.5 tokens (font families) as a table, then the
- *     finite type scale from `textStyles[]`.
- *   - 3.7 splits section-3.7 tokens into a radii table and a border-width
- *     table by name prefix (`radius.*` / `border.*`).
- *   - 3.10 lists every token across the whole registry that carries a
- *     non-null `dark`, or the literal `none` when there are none.
- *
- * Usage: node render_design_md.ts REGISTRY_JSON OUTPUT_MD
+ * Usage: node render_design_md.ts REGISTRY_JSON INVENTORY_MD OUTPUT_MD [--source <label>]
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -112,10 +114,24 @@ export interface Registry {
 }
 
 // ---------------------------------------------------------------------------
-// Section catalog (fixed order + titles, per Task 2 Contracts)
+// Standard headings (fixed order + non-empty) — the self-verify + validation contract
 // ---------------------------------------------------------------------------
 
-const SECTION_IDS = ["3.1", "3.2", "3.3", "3.4", "3.5", "3.6", "3.7", "3.8", "3.9", "3.10"] as const;
+export const STANDARD_HEADINGS = [
+  "Overview",
+  "Colors",
+  "Typography",
+  "Layout & Spacing",
+  "Elevation & Depth",
+  "Shapes",
+  "Motion",
+  "Components",
+  "Do's and Don'ts",
+] as const;
+
+// ---------------------------------------------------------------------------
+// Subsection catalog (the old `## 3.N` sections, now `###` under the headings)
+// ---------------------------------------------------------------------------
 
 const SECTION_TITLES: Record<string, string> = {
   "3.1": "Color primitives",
@@ -302,16 +318,15 @@ function renderDarkModeSummary(registry: Registry): string | null {
     .filter(([, t]) => t.dark !== null && t.dark !== undefined && t.dark !== "")
     .map(([name, t]) => ({ name, ...t }));
   if (rows.length === 0) return null;
-  return rows.map((r) => `- \`${r.name}\`: ${r.value} -> ${r.dark}`).join("\n") + "\n";
+  return rows.map((r) => `- \`${r.name}\` — light ${r.value}, dark ${r.dark}`).join("\n") + "\n";
 }
 
 // ---------------------------------------------------------------------------
-// Section dispatcher
+// Subsection body dispatcher (the old `## 3.N` bodies, now under `###`)
 // ---------------------------------------------------------------------------
 
-/** Renders one full `## 3.N <title>` section (heading + body + any NEEDS INPUT markers, or `none`). */
-export function renderSection(sectionId: string, registry: Registry): string {
-  const heading = `## ${sectionId} ${SECTION_TITLES[sectionId]}`;
+/** Renders one `## 3.N` subsection body (table/list + any NEEDS INPUT markers, or `none`) — no heading. */
+export function renderSubsectionBody(sectionId: string, registry: Registry): string {
   const unknownsForSection = registry.unknowns.filter((u) => u.section === sectionId);
   const unknownBlock = unknownsForSection.map((u) => `> NEEDS INPUT: ${u.what} — ${u.reason}`).join("\n");
 
@@ -390,7 +405,219 @@ export function renderSection(sectionId: string, registry: Registry): string {
   if (unknownsForSection.length > 0) bodyParts.push(unknownBlock);
   if (bodyParts.length === 0) bodyParts.push("none");
 
-  return `${heading}\n\n${bodyParts.join("\n\n")}\n`;
+  return bodyParts.join("\n\n");
+}
+
+/** `### 3.N <title>` heading + its body. */
+function renderSubsection(sectionId: string, registry: Registry): string {
+  return `### ${sectionId} ${SECTION_TITLES[sectionId]}\n\n${renderSubsectionBody(sectionId, registry)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Front matter (DTCG-shaped, light values, quoted) — the first bytes of DESIGN.md
+// ---------------------------------------------------------------------------
+
+/** Double-quote every string scalar (escaping `\` and `"`); leave true numbers bare — no unquoted `#`/`:` ever. */
+function yamlScalar(v: string | number): string {
+  if (typeof v === "number") return String(v);
+  return `"${String(v).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+/** Quote a mapping key only when it carries a YAML-significant char; dotted identifiers/slugs stay bare. */
+function yamlKey(k: string): string {
+  if (k === "" || /[:#{}[\],&*!|>'"%@`]/.test(k) || /^\s|\s$/.test(k)) {
+    return `"${k.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+  }
+  return k;
+}
+
+function buildFrontMatter(registry: Registry): string {
+  const lines: string[] = [];
+
+  // colors <- 3.1 + 3.2, light `value`
+  const colorRows = [...tokensForSection(registry, "3.1"), ...tokensForSection(registry, "3.2")];
+  if (colorRows.length === 0) {
+    lines.push("colors: {}");
+  } else {
+    lines.push("colors:");
+    for (const r of colorRows) lines.push(`  ${yamlKey(r.name)}: ${yamlScalar(r.value)}`);
+  }
+
+  // typography <- 3.5 families + textStyles (nested maps)
+  lines.push("typography:");
+  const families = tokensForSection(registry, "3.5");
+  if (families.length === 0) {
+    lines.push("  families: {}");
+  } else {
+    lines.push("  families:");
+    for (const f of families) lines.push(`    ${yamlKey(f.name)}: ${yamlScalar(f.value)}`);
+  }
+  if (registry.textStyles.length === 0) {
+    lines.push("  styles: {}");
+  } else {
+    lines.push("  styles:");
+    for (const t of registry.textStyles) {
+      lines.push(`    ${yamlKey(t.name)}:`);
+      lines.push(`      family: ${yamlScalar(t.family)}`);
+      lines.push(`      size: ${yamlScalar(t.size)}`);
+      lines.push(`      weight: ${yamlScalar(t.weight)}`);
+      lines.push(`      lineHeight: ${yamlScalar(t.lineHeight)}`);
+      lines.push(`      letterSpacing: ${yamlScalar(t.letterSpacing)}`);
+    }
+  }
+
+  // spacing <- 3.6
+  const spacing = tokensForSection(registry, "3.6");
+  if (spacing.length === 0) {
+    lines.push("spacing: {}");
+  } else {
+    lines.push("spacing:");
+    for (const s of spacing) lines.push(`  ${yamlKey(s.name)}: ${yamlScalar(s.value)}`);
+  }
+
+  // rounded <- 3.7 `radius.*`
+  const rounded = tokensForSection(registry, "3.7").filter((r) => r.name.startsWith("radius."));
+  if (rounded.length === 0) {
+    lines.push("rounded: {}");
+  } else {
+    lines.push("rounded:");
+    for (const r of rounded) lines.push(`  ${yamlKey(r.name)}: ${yamlScalar(r.value)}`);
+  }
+
+  return lines.join("\n") + "\n";
+}
+
+// ---------------------------------------------------------------------------
+// Overview + Components + Do's-and-Don'ts — MECHANICAL only (no authored narrative)
+// ---------------------------------------------------------------------------
+
+function renderOverview(registry: Registry, source: string): string {
+  const colorCount = Object.values(registry.tokens).filter((t) => t.section === "3.1" || t.section === "3.2").length;
+  const styleCount = registry.textStyles.length;
+  const spacingCount = tokensForSection(registry, "3.6").length;
+  const shapeCount = tokensForSection(registry, "3.7").length;
+  const hasDark = Object.values(registry.tokens).some((t) => t.dark !== null && t.dark !== undefined && t.dark !== "");
+  const proposedCount =
+    Object.values(registry.tokens).filter((t) => t.proposed === true).length +
+    registry.textStyles.filter((t) => t.proposed === true).length;
+  const src = source.length > 0 ? source : "the source screenshots";
+
+  const sentences = [
+    `This is a one-shot design seed extracted from ${src}.`,
+    `It catalogues ${colorCount} color token(s), ${styleCount} type style(s), ${spacingCount} spacing step(s) and ${shapeCount} radius/border token(s).`,
+    `Dark-mode values are ${hasDark ? "present" : "absent"}.`,
+    proposedCount > 0
+      ? `${proposedCount} value(s) are proposed best-practice defaults (not measured) — review them; the body Source columns mark provenance.`
+      : `Every value is measured; the body Source columns mark provenance.`,
+  ];
+  return sentences.join(" ") + "\n";
+}
+
+interface InvEntry {
+  slug: string;
+  kind: string;
+  canonical: string;
+}
+
+/** `canonical: home.png` -> `home.png`; a label-less field returns trimmed. */
+function fieldValue(field: string): string {
+  const idx = field.indexOf(":");
+  return idx === -1 ? field.trim() : field.slice(idx + 1).trim();
+}
+
+function inventoryEntries(inventoryMd: string, heading: string): InvEntry[] {
+  const lines = inventoryMd.split(/\r?\n/);
+  const start = lines.findIndex((l) => l.trim() === heading);
+  if (start === -1) return [];
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^## /.test(lines[i])) {
+      end = i;
+      break;
+    }
+  }
+  const isComponents = heading === "## Components";
+  return lines
+    .slice(start + 1, end)
+    .filter((l) => l.startsWith("- "))
+    .map((line) => {
+      const fields = line.split("·");
+      const slug = fields[0].replace(/^- /, "").split(" — ")[0].trim();
+      if (isComponents) {
+        return { slug, kind: (fields[1] ?? "").trim(), canonical: fieldValue(fields[2] ?? "") };
+      }
+      return { slug, kind: "", canonical: fieldValue(fields[1] ?? "") };
+    });
+}
+
+function renderComponentsOverview(inventoryMd: string): string {
+  const comps = inventoryEntries(inventoryMd, "## Components");
+  const pats = inventoryEntries(inventoryMd, "## Patterns");
+  const lines: string[] = [];
+  lines.push(`${comps.length} component(s) and ${pats.length} pattern(s) catalogued. Full per-entry specifications live in the satellite files.`);
+  lines.push("");
+  lines.push("**Components**");
+  lines.push("");
+  if (comps.length === 0) lines.push("None catalogued.");
+  else for (const c of comps) lines.push(`- ${c.slug} — ${c.kind || "component"}, canonical ${c.canonical || "n/a"}`);
+  lines.push("");
+  lines.push("**Patterns**");
+  lines.push("");
+  if (pats.length === 0) lines.push("None catalogued.");
+  else for (const p of pats) lines.push(`- ${p.slug} — canonical ${p.canonical || "n/a"}`);
+  lines.push("");
+  lines.push("See `DESIGN.components.md` for component specs and `DESIGN.patterns.md` for pattern specs.");
+  return lines.join("\n") + "\n";
+}
+
+function renderDosAndDonts(): string {
+  return [
+    "**Do**",
+    "",
+    "- Keep the neutral foundation dominant; reserve chromatic accent for the roles the Colors accent inventory lists.",
+    "- Express each component state as a change of FORM (border, elevation, opacity, icon), not only a color swap.",
+    "- Treat measured values as authoritative and review every `proposed` value before shipping.",
+    "",
+    "**Don't**",
+    "",
+    "- Don't spread an accent color into plain text or borders it was never measured on.",
+    "- Don't hand-patch this seed — re-run the extractor when the source changes; iterating in Claude Design supersedes it.",
+    "- Don't mistake a front-matter default for a measured value; the body Source columns are authoritative.",
+  ].join("\n") + "\n";
+}
+
+// ---------------------------------------------------------------------------
+// Body assembly (standard `##` headings, old sections as `###` subsections)
+// ---------------------------------------------------------------------------
+
+function renderBody(registry: Registry, inventoryMd: string, source: string): string {
+  const blocks: string[] = [];
+
+  blocks.push(`## Overview\n\n${renderOverview(registry, source)}`);
+
+  blocks.push(
+    [
+      "## Colors",
+      renderSubsection("3.1", registry),
+      renderSubsection("3.2", registry),
+      renderSubsection("3.4", registry),
+      renderSubsection("3.10", registry),
+    ].join("\n\n"),
+  );
+
+  blocks.push(`## Typography\n\n${renderSubsectionBody("3.5", registry)}`);
+  blocks.push(`## Layout & Spacing\n\n${renderSubsectionBody("3.6", registry)}`);
+
+  blocks.push(
+    ["## Elevation & Depth", renderSubsection("3.3", registry), renderSubsection("3.8", registry)].join("\n\n"),
+  );
+
+  blocks.push(`## Shapes\n\n${renderSubsectionBody("3.7", registry)}`);
+  blocks.push(`## Motion\n\n${renderSubsectionBody("3.9", registry)}`);
+  blocks.push(`## Components\n\n${renderComponentsOverview(inventoryMd)}`);
+  blocks.push(`## Do's and Don'ts\n\n${renderDosAndDonts()}`);
+
+  return blocks.join("\n\n") + "\n";
 }
 
 // ---------------------------------------------------------------------------
@@ -400,7 +627,7 @@ export function renderSection(sectionId: string, registry: Registry): string {
 const PROG = basename(process.argv[1] ?? "render_design_md.ts");
 
 function usageText(): string {
-  return `usage: ${PROG} [-h] REGISTRY_JSON OUTPUT_MD`;
+  return `usage: ${PROG} [-h] REGISTRY_JSON INVENTORY_MD OUTPUT_MD [--source <label>]`;
 }
 
 function helpText(): string {
@@ -419,16 +646,33 @@ function exitErr(msg: string): never {
   process.exit(1);
 }
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function main(): void {
   const argv = process.argv.slice(2);
   if (argv.includes("-h") || argv.includes("--help")) {
     process.stdout.write(helpText() + "\n");
     process.exit(0);
   }
-  if (argv.length !== 2) {
-    argError(`expected 2 arguments (REGISTRY_JSON OUTPUT_MD), got ${argv.length}`);
+
+  let source = "";
+  const positional: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--source") {
+      source = argv[i + 1] ?? "";
+      i++;
+    } else if (argv[i].startsWith("--source=")) {
+      source = argv[i].slice("--source=".length);
+    } else {
+      positional.push(argv[i]);
+    }
   }
-  const [registryPath, outputPath] = argv;
+  if (positional.length !== 3) {
+    argError(`expected 3 positional arguments (REGISTRY_JSON INVENTORY_MD OUTPUT_MD), got ${positional.length}`);
+  }
+  const [registryPath, inventoryPath, outputPath] = positional;
 
   let raw: string;
   try {
@@ -454,29 +698,47 @@ function main(): void {
     unknowns: (Array.isArray(p.unknowns) ? p.unknowns : []) as UnknownEntry[],
   };
 
-  const rendered = SECTION_IDS.map((id) => renderSection(id, registry));
+  let inventoryMd: string;
+  try {
+    inventoryMd = readFileSync(inventoryPath, "utf-8");
+  } catch (e) {
+    exitErr(`error: cannot read '${inventoryPath}': ${(e as Error).message}`);
+  }
+
   const anyProposed =
     Object.values(registry.tokens).some((t) => t.proposed === true) ||
     registry.textStyles.some((t) => t.proposed === true);
+  const caution =
+    "> Note — front-matter token values are light-mode defaults and may include proposed best-practice values; the " +
+    "body Source columns below are authoritative for provenance (measured vs proposed).\n";
   const legend = anyProposed
     ? "> Legend — Source: `measured` = sampled from the screenshots; `proposed` = a best-practice value supplied by the " +
-      "design synthesizer (no source measurement, rationale in Notes). Review every proposed value before shipping.\n\n"
+      "design synthesizer (no source measurement, rationale in Notes). Review every proposed value before shipping.\n"
     : "";
-  writeFileSync(outputPath, legend + rendered.join("\n"));
 
-  // Self-verify: re-read the written file and re-count the section headings rather than trust the write.
+  let out = `---\n${buildFrontMatter(registry)}---\n\n`;
+  out += caution + "\n";
+  if (anyProposed) out += legend + "\n";
+  out += renderBody(registry, inventoryMd, source);
+  writeFileSync(outputPath, out);
+
+  // Self-verify: re-read the written file, assert the opening `---` and every standard heading by name.
   let written: string;
   try {
     written = readFileSync(outputPath, "utf-8");
   } catch (e) {
     exitErr(`error: self-verify failed reading back '${outputPath}': ${(e as Error).message}`);
   }
-  const headingCount = (written.match(/^## /gm) ?? []).length;
-  if (headingCount !== SECTION_IDS.length) {
-    exitErr(`error: self-verify failed for '${outputPath}' (expected ${SECTION_IDS.length} '## ' headings, found ${headingCount})`);
+  if (!/^---\r?\n/.test(written)) {
+    exitErr(`error: self-verify failed for '${outputPath}' (missing opening '---' front-matter delimiter)`);
+  }
+  for (const h of STANDARD_HEADINGS) {
+    if (!new RegExp("^## " + escapeRegExp(h) + "\\s*$", "m").test(written)) {
+      exitErr(`error: self-verify failed for '${outputPath}' (missing '## ${h}' heading)`);
+    }
   }
 
-  process.stdout.write(`DESIGN_MD_OK sections=${SECTION_IDS.join(",")} -> ${outputPath}\n`);
+  process.stdout.write(`DESIGN_MD_OK headings=${STANDARD_HEADINGS.join(",")} -> ${outputPath}\n`);
 }
 
 main();

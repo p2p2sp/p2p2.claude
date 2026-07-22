@@ -19,7 +19,9 @@
 #            A round-2 `<plan>.md.review-<N>.md` sibling write must NOT steal
 #            plan_base from the real plan (tamper guard stays armed), and a
 #            verdict that OPENS the content string (spec-faithful first-line
-#            output, no `\n` prefix) must still be recognized.
+#            output, no `\n` prefix) must still be recognized. A plan file that
+#            declares NEITHER SimplePlan nor SuperPlan format must be denied with
+#            the default-to-SimplePlan guidance; one that declares a format is not.
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -209,6 +211,35 @@ run_case "VS verdict opens content string, PASS -> allow" "$SCRATCH/VS" ALLOW
 # VSF — same shape carrying FAIL must still deny.
 mkfix "$SCRATCH/VSF" "$LW" "$LR" "$LFAIL_START"
 run_case "VSF verdict opens content string, FAIL -> deny" "$SCRATCH/VSF" DENY
+
+# --- Format gate (Step 1b): the plan file must DECLARE its format ON DISK. These
+#     fixtures reference REAL plan files under SCRATCH; the C:\Users\.. fixtures above
+#     point at a non-existent path, so the disk-read format check fails open there and
+#     leaves every case above unchanged.
+mkdir -p "$SCRATCH/.claude/plans"
+PLAN_SIMPLE="$SCRATCH/.claude/plans/simple.md"
+printf '%s\n' '# SimplePlan' 'To build this plan must use the `simplebuild` skill.' > "$PLAN_SIMPLE"
+PLAN_SUPER="$SCRATCH/.claude/plans/super.md"
+printf '%s\n' '# SuperPlan' 'To build this plan use the `superbuild` skill.' > "$PLAN_SUPER"
+PLAN_NOFMT="$SCRATCH/.claude/plans/nofmt.md"
+printf '%s\n' '# My Plan' 'Some tasks, but no format marker at all.' > "$PLAN_NOFMT"
+LW_SIMPLE='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"file_path":"'"$PLAN_SIMPLE"'","content":"plan"}}]}}'
+LW_SUPER='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"file_path":"'"$PLAN_SUPER"'","content":"plan"}}]}}'
+LW_NOFMT='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"file_path":"'"$PLAN_NOFMT"'","content":"plan"}}]}}'
+
+# DF — plan declares SimplePlan format, reviewer PASS -> allow (format gate passes).
+mkfix "$SCRATCH/DF" "$LW_SIMPLE" "$LR" "$LPASS"
+run_case "DF SimplePlan format declared, PASS -> allow" "$SCRATCH/DF" ALLOW
+
+# DFS — plan declares SuperPlan format, reviewer PASS -> allow (format gate passes).
+mkfix "$SCRATCH/DFS" "$LW_SUPER" "$LR" "$LPASS"
+run_case "DFS SuperPlan format declared, PASS -> allow" "$SCRATCH/DFS" ALLOW
+
+# UF — plan declares NO format: deny even with a reviewer PASS present (the format gate
+# fires before the review gate), and the deny reason names the default SimplePlan format.
+mkfix "$SCRATCH/UF" "$LW_NOFMT" "$LR" "$LPASS"
+run_case "UF undeclared format, PASS present -> deny" "$SCRATCH/UF" DENY
+run_case_deny_contains "UF deny names the default SimplePlan format" "$SCRATCH/UF" "SimplePlan format"
 
 echo ""
 if [ "$FAILED" -ne 0 ]; then

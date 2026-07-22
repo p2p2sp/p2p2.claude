@@ -1,23 +1,23 @@
 ---
 name: design-extractor
-description: Turn a folder of UI screenshots into a Claude Design handoff bundle (design.md, inventory.md, component and pattern specs, canonical screens, meta.yml, handoff.zip).
+description: Turn a folder of UI screenshots into a Claude Design seed bundle (DESIGN.md plus the DESIGN.components.md / DESIGN.patterns.md spec satellites and canonical screens).
 allowed-tools: Read, Write, Glob, Bash(sh:*), Bash(mkdir:*), Bash(rm:*), Skill, Agent, AskUserQuestion
 user-invocable: true
 disable-model-invocation: true
 argument-hint: <screenshots-dir>
 ---
 
-# Design Extractor — screenshots to Claude Design handoff bundle
+# Design Extractor — screenshots to Claude Design seed bundle
 
-Turn a directory of UI screenshots into the handoff bundle Claude Design consumes to build live,
-inline-styled Design Components: `design.md`, `inventory.md`, `components/<slug>.md`,
-`patterns/<slug>.md`, `screens/<file>.png`, `meta.yml`, optional `intake-answers.md`, packed
-alongside as `handoff.zip`.
+Turn a directory of UI screenshots into the one-shot seed Claude Design consumes to build live,
+inline-styled Design Components: `DESIGN.md` (a lean seed — YAML front-matter tokens plus a prose
+body), the two consolidated spec satellites `DESIGN.components.md` and `DESIGN.patterns.md`, and
+`screens/<file>.png`.
 
 ## Ground rules
 - Never do a worker's job inline. This skill measures nothing and authors no measured or generated
-  artifact — `design.md`, every spec, `inventory.md`, `screens/`, `meta.yml` and the zip all come
-  from the builder dispatched in the Handoff step below. The only file it writes itself is
+  artifact — `DESIGN.md`, the two spec satellites, `inventory.md` and `screens/` all come from the
+  builder dispatched in the Handoff step below. The only file it writes itself is
   `<run>/intake-answers.md`, transcribing the user's own answers — `AskUserQuestion` only runs in
   the main context, so intake has to happen here.
 - Paths: `<run>` = `.temp/design-extractor/<run-slug>/`, `<run-slug>` = the source directory's
@@ -79,15 +79,16 @@ Omit the `intake:` line entirely when step 3 wrote no such file. Relay the build
 verbatim — do not re-verify or re-derive any of it.
 
 ## Final report
-Tell the user: the `<out>` bundle path, the `handoff.zip` path, the component and pattern counts,
-the count of proposed (best-practice, unmeasured) values the synthesizer supplied plus how many
-gaps it resolved versus left standing, every finding and every `> NEEDS INPUT` item from the
-builder's return, then the next action — hand `handoff.zip` to Claude Design. Note that values
-marked `proposed` in `design.md` were invented to best practice, not measured, and should be
-reviewed. State plainly that the bundle is one-shot input material:
-iterating in Claude Design supersedes it, and a changed source means re-running this skill, never
-patching the bundle by hand.
+Tell the user: the `<out>` bundle path (holding `DESIGN.md`, `DESIGN.components.md`,
+`DESIGN.patterns.md` and `screens/`), the component and pattern counts, the count of proposed
+(best-practice, unmeasured) values the synthesizer supplied plus how many gaps it resolved versus
+left standing, every finding and every `> NEEDS INPUT` item from the builder's return, then the
+next action — hand the `<out>/` folder to Claude Design. Note that values marked `proposed` in
+`DESIGN.md` (front matter or body) were invented to best practice, not measured, and should be
+reviewed. State plainly that the seed is one-shot input material: iterating in Claude Design
+supersedes it, and a changed source means re-running this skill, never patching the bundle by hand.
 
 ## Contracts
-Consumes a screenshots directory path (from the arguments, or asked). Produces
-`.temp/design-extractor/<run-slug>/handoff/` and `.temp/design-extractor/<run-slug>/handoff.zip`.
+Consumes a screenshots directory path (from the arguments, or asked). Produces the
+`.temp/design-extractor/<run-slug>/handoff/` seed bundle (`DESIGN.md`, `DESIGN.components.md`,
+`DESIGN.patterns.md`, `screens/`).

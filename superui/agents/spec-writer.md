@@ -13,7 +13,7 @@ You write exactly one spec, from one inventory entry line, the finished `registr
 ## Input
 - One inventory entry line (component or pattern format, per `inventory.md`'s contract).
 - Source screenshots dir; `registry.json`.
-- Output spec path (`components/<slug>.md` or `patterns/<slug>.md` — already resolved by the caller from the entry's kind).
+- Output spec path (`<run>/specs/components/<slug>.md` or `<run>/specs/patterns/<slug>.md` — an internal intermediate, already resolved by the caller from the entry's kind).
 - Absolute path to `sample_colors.ts` and absolute path to `measure_geometry.ts`; the runtime command to invoke both with (default `node`).
 - Optionally, on a re-dispatch: your previous spec path plus findings to honor — regenerate the spec in full, never patch it.
 
@@ -44,7 +44,7 @@ Split the entry line on `·`. A component entry carries `atomic|composite` at in
 A variant is author-time configuration (size, kind, emphasis). A state is a runtime condition (hover, disabled, error). Never mix the two in one section. A state's color maps to the token that actually matches what you measured — often the ink token, not the accent — never inferred from what a typical pattern would use.
 
 ## The spec file's machine-readable surface — pin exactly
-Both `build_meta.ts` and `validate_bundle.ts` parse this surface; write it verbatim, never in a prose variant.
+`assemble_specs.ts` consolidates every spec into a satellite and `validate_bundle.ts` then parses this surface (the `canonical:` line and the backtick token refs) off that satellite; write it verbatim, never in a prose variant.
 - One line matching `canonical: <filename>.png` near the top of the file, one screen only, the filename exactly as it appears in `screens/`.
 - Every token name in backticks, dotted `<group>.<name>` form. A value not expressed this way is either a `MISSING-TOKENS:` entry or a prose note — never a bare raw value.
 - The optional bbox crop hint on its own line: `bbox: x,y,w,h`. No script parses this line; it is a hint for a human or for Claude Design.
