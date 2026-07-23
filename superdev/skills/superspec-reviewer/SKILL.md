@@ -2,6 +2,7 @@
 name: superspec-reviewer
 description: Invoked only by superspec skill.
 context: fork
+background: false
 model: inherit
 allowed-tools: Read, Grep, Glob, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 user-invocable: false

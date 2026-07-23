@@ -2,6 +2,7 @@
 name: superdev-memory-writer
 description: Invoked only by superdev-memory, superbuild or simplebuild skill.
 context: fork
+background: false
 model: opus
 effort: high
 user-invocable: false

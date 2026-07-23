@@ -2,6 +2,7 @@
 name: superplan-reviewer
 description: Invoked only by superplan skill.
 context: fork
+background: false
 model: inherit
 allowed-tools: Read, Grep, Glob
 user-invocable: false

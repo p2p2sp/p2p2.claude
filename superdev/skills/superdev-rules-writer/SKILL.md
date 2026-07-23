@@ -2,6 +2,7 @@
 name: superdev-rules-writer
 description: Invoked only by superdev-rules, superbuild or simplebuild skill.
 context: fork
+background: false
 model: opus
 effort: high
 user-invocable: false

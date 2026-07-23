@@ -2,6 +2,7 @@
 name: simplebuild-implementor
 description: Invoked only by simplebuild skill.
 context: fork
+background: false
 model: sonnet
 effort: high
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)

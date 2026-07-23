@@ -2,6 +2,7 @@
 name: superbuild-adr
 description: Invoked only by superbuild skill.
 context: fork
+background: false
 model: sonnet
 allowed-tools: Read, Write, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 user-invocable: false

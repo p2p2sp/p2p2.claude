@@ -2,6 +2,7 @@
 name: superbuild-task-coder
 description: Invoked only by superbuild skill.
 context: fork
+background: false
 model: opus
 effort: high
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)

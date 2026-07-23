@@ -2,6 +2,7 @@
 name: superbuild-reviewer-code
 description: Invoked only by superbuild skill.
 context: fork
+background: false
 model: opus
 effort: high
 allowed-tools: Read, Write, Grep, Glob, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
