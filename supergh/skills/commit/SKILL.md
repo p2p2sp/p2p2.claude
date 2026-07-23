@@ -3,6 +3,7 @@ name: commit
 description: Use whenever the user wants to commit, save, or record changes to git — including "commit", "commit changes", "commit all". This is the ONLY path to a commit: never run git add/commit yourself, never branch, never inspect git status/diff first — a forked agent stages, writes the Conventional Commits message, commits and verifies.
 model: haiku
 context: fork
+background: false
 allowed-tools: Bash
 ---
 

@@ -2,6 +2,7 @@
 name: cli-executor
 description: Runs ONE fully-specified gh / REST / GraphQL operation and returns a single tagged line. Invoked only by another skill, never directly.
 context: fork
+background: false
 model: sonnet
 user-invocable: false
 allowed-tools: Read, Bash(sh:*), Bash(gh --version), Bash(gh auth status), Bash(gh:*), Skill
