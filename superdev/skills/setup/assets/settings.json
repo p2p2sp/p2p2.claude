@@ -9,7 +9,6 @@
       "Grep",
       "LSP",
       "Read",
-      "TodoWrite",
       "TaskCreate",
       "TaskGet",
       "TaskList",
@@ -148,7 +147,7 @@
   },
   "disableBundledSkills": true,
   "disableWorkflows": true,
-  "disableRemoteControl": true,
+  "disableRemoteControl": false,
   "disableClaudeAiConnectors": true,
   "disableArtifact": true
 }
