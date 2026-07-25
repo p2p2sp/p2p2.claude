@@ -392,8 +392,12 @@ const HELP =
   "  --scores SCORES\n" +
   "  --signals SIGNALS\n" +
   "  --min-impact MIN_IMPACT\n" +
+  "                        independent gate on the impact axis (default: 3)\n" +
   "  --min-opportunity MIN_OPPORTUNITY\n" +
+  "                        independent gate on the opportunity axis (default: 3)\n" +
   "  --top TOP\n" +
+  "                        cap on dispatched hotspots; gate-clearing rows beyond\n" +
+  "                        it land in overflow, not off the record\n" +
   "  --job JOB\n" +
   "  --run-id RUN_ID\n" +
   "  --out-json OUT_JSON\n" +
@@ -555,9 +559,9 @@ function loadJsonl(p: string): JsonMap[] {
   return rows;
 }
 
-function quadrant(impact: number, opportunity: number, t: number): string {
-  const hiI = impact >= t;
-  const hiO = opportunity >= t;
+function quadrant(impact: number, opportunity: number, minImpact: number, minOpportunity: number): string {
+  const hiI = impact >= minImpact;
+  const hiO = opportunity >= minOpportunity;
   if (hiI && hiO) return "HOTSPOT";
   if (hiI && !hiO) return "already-fine"; // high impact, nothing to win -> leave it
   if (!hiI && hiO) return "nobody-cares"; // broken but low impact -> skip it
@@ -594,8 +598,6 @@ function isPyEq(v: JsonValue, n: number): boolean {
 function main(): void {
   const args = parseArgs(process.argv.slice(2));
 
-  const t = Math.min(args.minImpact, args.minOpportunity);
-
   const scores = loadJsonl(args.scores);
   const sigByPath = new Map<JsonValue, JsonMap>();
   if (args.signals) {
@@ -625,12 +627,18 @@ function main(): void {
       console.error(`warn: skipping record without numeric impact/opportunity: ${pyRepr(rec)}`);
       continue;
     }
+    if (args.signals && !sigByPath.has(p)) {
+      console.error(`warn: no signals row for ${pyStr(p)}`);
+    }
     const row: JsonMap = new Map(sigByPath.get(p) ?? []);
     for (const [k, v] of rec) row.set(k, v);
     row.set("impact", Math.max(1, Math.min(5, impact)));
     row.set("opportunity", Math.max(1, Math.min(5, opportunity)));
     row.set("score", (row.get("impact") as number) * (row.get("opportunity") as number));
-    row.set("quadrant", quadrant(row.get("impact") as number, row.get("opportunity") as number, t));
+    row.set(
+      "quadrant",
+      quadrant(row.get("impact") as number, row.get("opportunity") as number, args.minImpact, args.minOpportunity),
+    );
     row.set("reason", reason(row));
     // last write wins, but keep the higher score if a file was scored twice
     const prev = merged.get(p);
@@ -658,13 +666,21 @@ function main(): void {
     return 0;
   });
 
-  // Array.prototype.slice mirrors Python list[:top] for negative tops too.
-  const hotspots = rows.filter((r) => r.get("quadrant") === "HOTSPOT").slice(0, args.top);
-  const skipped = rows.filter((r) => r.get("quadrant") !== "HOTSPOT");
-
-  for (let i = 0; i < hotspots.length; i++) {
-    hotspots[i].set("rank", i + 1);
+  // Partition every ranked row into exactly one of three buckets: gate-clearing
+  // rows go to hotspots (capped by --top) or overflow (the rest of the
+  // gate-clearing rows); everything else is skipped. Array.prototype.slice
+  // mirrors Python list[:top] for negative tops too.
+  const gateClearing: JsonMap[] = [];
+  const skipped: JsonMap[] = [];
+  for (const r of rows) {
+    if (r.get("quadrant") === "HOTSPOT") gateClearing.push(r);
+    else skipped.push(r);
   }
+  for (let i = 0; i < gateClearing.length; i++) {
+    gateClearing[i].set("rank", i + 1);
+  }
+  const hotspots = gateClearing.slice(0, args.top);
+  const overflow = gateClearing.slice(hotspots.length);
 
   const hotKeys = ["rank", "path", "impact", "opportunity", "score", "quadrant", "reason"];
   const skipKeys = ["path", "impact", "opportunity", "score", "quadrant", "reason"];
@@ -677,14 +693,17 @@ function main(): void {
   const counts: JsonMap = new Map();
   counts.set("scored", rows.length);
   counts.set("hotspots", hotspots.length);
+  counts.set("overflow", overflow.length);
   counts.set("skipped", skipped.length);
   const out: JsonMap = new Map();
   out.set("run_id", args.runId);
   out.set("job", args.job);
-  out.set("threshold", t);
+  out.set("min_impact", args.minImpact);
+  out.set("min_opportunity", args.minOpportunity);
   out.set("top", args.top);
   out.set("counts", counts);
   out.set("hotspots", hotspots.map((r) => pick(r, hotKeys)));
+  out.set("overflow", overflow.map((r) => pick(r, hotKeys)));
   out.set("skipped", skipped.map((r) => pick(r, skipKeys)));
   fs.writeFileSync(args.outJson, pyJsonDumps(out, 2), "utf8");
 
@@ -698,7 +717,7 @@ function main(): void {
   lines.push("");
   lines.push(
     `Scored ${rows.length} files · ${hotspots.length} hotspots · ` +
-      `${skipped.length} skipped · threshold ${t}.`,
+      `${skipped.length} skipped · min impact ${args.minImpact}, min opportunity ${args.minOpportunity}.`,
   );
   lines.push("");
   lines.push("| # | Component | Impact | Opportunity | Score | Reason |");
@@ -708,6 +727,21 @@ function main(): void {
       `| ${pyStr(r.get("rank"))} | \`${pyStr(r.get("path"))}\` | ${pyStr(r.get("impact"))} | ` +
         `${pyStr(r.get("opportunity"))} | ${pyStr(r.get("score"))} | ${pyStr(r.get("reason"))} |`,
     );
+  }
+  if (overflow.length > 0) {
+    lines.push("");
+    lines.push("<details><summary>Overflow (cleared the gate, beyond --top)</summary>");
+    lines.push("");
+    lines.push("| # | Component | Impact | Opportunity | Score | Reason |");
+    lines.push("|---|-----------|:------:|:-----------:|:-----:|--------|");
+    for (const r of overflow) {
+      lines.push(
+        `| ${pyStr(r.get("rank"))} | \`${pyStr(r.get("path"))}\` | ${pyStr(r.get("impact"))} | ` +
+          `${pyStr(r.get("opportunity"))} | ${pyStr(r.get("score"))} | ${pyStr(r.get("reason"))} |`,
+      );
+    }
+    lines.push("");
+    lines.push("</details>");
   }
   if (skipped.length > 0) {
     lines.push("");
