@@ -24,6 +24,7 @@ Title: "<title>"
 
 ## Task <N> - <title which become a commit message>
 - Covers: criteria #<n>[, #<m>]
+- TDD: <marker>
 
 ### Dependencies
 - <task N> - blocks: <…>
