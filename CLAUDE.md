@@ -54,8 +54,9 @@ Each plugin is independently installable; none declares another as a dependency.
   executor, Conventional-Commits commits, and template-driven issue / PR creation. Ships **no hooks and no
   manifest** - its skills route purely via CSO `description:`. (→ `supergh/CLAUDE.md`)
 - **superfix** - prioritized multi-agent codebase investigation (one user-invoked skill, no hooks/manifest):
-  the `code-auditor` skill sweeps a repo, scores Impact × Opportunity, and dispatches cheap-triage / deep-dive
-  agents. (→ `superfix/CLAUDE.md`)
+  the `code-auditor` skill sweeps a repo on two tracks - files, scored Impact × Opportunity, and
+  producer/consumer artifact pairs, triaged `MATCH` / `MISMATCH` / `UNCLEAR` - and dispatches cheap-triage /
+  deep-dive agents into the union of both. (→ `superfix/CLAUDE.md`)
 
 They ship no application code - the artefacts are markdown (skills) + JSON (manifests) + per-plugin hook
 scripts under `<plugin>/hooks/scripts/` (only `superdev` has hooks; `superui` / `supergh` / `superfix` ship
@@ -192,7 +193,7 @@ The invariants below hold across the repo.
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`create-issue`/`create-pr` skill,
   superfix's for the `code-auditor` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
-  (superfix's `scout` / `detective` / `critic` live there, not in `skills[]`; superui's five `design-extractor-builder`
+  (superfix's `scout` / `edge-scout` / `detective` / `critic` live there, not in `skills[]`; superui's five `design-extractor-builder`
   workers live there too; superdev ships no agents - every superdev worker is a skill) - and the relevant `CLAUDE.md`
   (that plugin's, and this root file when the change is repo-wide) in either case. They must stay in sync, and a
   worker must never appear in both `skills[]` and `agents[]`.
