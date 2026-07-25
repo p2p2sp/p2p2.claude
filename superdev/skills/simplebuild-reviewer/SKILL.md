@@ -5,7 +5,7 @@ context: fork
 background: false
 model: sonnet
 effort: high
-allowed-tools: Read, Write, Grep, Glob, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
+allowed-tools: Read, Write, Grep, Glob, Skill, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 user-invocable: false
 ---
 
