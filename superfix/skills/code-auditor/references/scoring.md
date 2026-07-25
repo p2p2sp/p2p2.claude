@@ -94,3 +94,69 @@ naming both minimums:
 
 The skipped table caps at 50 rows even when more files were skipped - `hotlist.md` truncates for
 readability, but `hotlist.json`'s `skipped` array is never truncated and carries every skipped file.
+
+## Edge gate (edges.json)
+
+The edge track scores **pairs**, not files - a contract defect that lives between two individually-correct
+files has no single file to attach to, so it needs its own unit of assessment and its own gate. `rank_edges.ts`
+is that gate: deterministic, no LLM judgment, run once per sweep against `collect_edges.sh`'s candidates and
+`edge-scout`'s verdicts.
+
+Edge record (from `collect_edges.sh`, one per candidate pair):
+
+```json
+{"a":"src/api/UserDto.ts","b":"src/db/userSchema.sql","via":"user.dto.ts","fanout":2,"shared":1}
+```
+
+`a < b` lexicographically. `via` is the linking literal chosen for the pair; `fanout` is how many swept files
+mention `via`; `shared` is how many distinct literals link this exact pair.
+
+Verdict record (from `edge-scout`, one per pair):
+
+```json
+{"a":"src/api/UserDto.ts","b":"src/db/userSchema.sql","verdict":"MISMATCH","reason":"dto adds a field the schema lacks"}
+```
+
+`verdict` is exactly `MATCH`, `MISMATCH`, or `UNCLEAR`; `a`/`b` are echoed byte-identical to the edge record -
+that is the join key. A verdict string outside the three allowed values is treated as `UNCLEAR`.
+
+`pairImpact` - Impact only, no Opportunity axis on the edge track (`fix_commits` is an Opportunity prior and
+plays no part here):
+
+```
+pair_impact = churn_a + churn_b + dependents_a + dependents_b
+```
+
+A missing signals row for either endpoint, or a `-1` sentinel on either field, contributes 0 for that term.
+
+Sort order for every non-`MATCH` pair: verdict class first (`MISMATCH` before `UNCLEAR`), then `pair_impact`
+descending, then `shared` descending, then `a` then `b` lexicographically. `rank` is assigned over that whole
+sorted list before splitting at `--top-edges` into `dispatch` (capped) and `overflow` (the rest) - the same
+cap-not-cut shape as the file track's `--top`. `MATCH` pairs are dropped from ranking entirely and kept only in
+the `match` bucket, for the record.
+
+`edges.json` schema:
+
+```json
+{
+  "run_id": "2026-06-26-bugs",
+  "job": "reliability/bugs",
+  "top_edges": 20,
+  "counts": {"pairs": 3, "match": 1, "mismatch": 1, "unclear": 1, "unscored": 0, "dispatch": 2},
+  "dispatch": [
+    {"rank":1,"a":"src/api/UserDto.ts","b":"src/db/userSchema.sql","via":"user.dto.ts","shared":1,
+     "verdict":"MISMATCH","pair_impact":15,"reason":"dto adds a field the schema lacks"}
+  ],
+  "overflow": [],
+  "match": [],
+  "degree": [{"path":"src/api/UserDto.ts","degree":3}]
+}
+```
+
+`counts.pairs` is the union of every pair that appears in either the edge records or the verdicts; a pair
+present on only one side is `unscored` - never dispatched, warned once on stderr naming the pair.
+`counts.match + counts.mismatch + counts.unclear + counts.unscored == counts.pairs`. `degree[]` is the count of
+candidate pairs each path participates in (from the full edge record set, regardless of verdict), sorted
+descending and capped at 20 rows - this is what `SKILL.md`'s structural budget reads to pull in
+highest-degree files that never clear the pair gate on their own. `edges.md` renders `dispatch` as a ranked
+table plus `<details>` blocks for `overflow` and `match`.
