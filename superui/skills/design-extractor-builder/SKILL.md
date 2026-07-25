@@ -111,13 +111,10 @@ after that -> skip the proposed fragment (`rm` it), re-run steps 3 and 4 without
 return. Record the proposed-token count and the resolved-versus-standing unknown counts from the analyst's
 final message.
 
-### 8 - Copy canonical screens [you]
-Collect every `canonical:` filename from `<run>/inventory.md`'s `## Components` and
-`## Patterns` entries, deduplicated. `mkdir -p <out>/screens`. Every source file is PNG by
-construction, so no conversion is ever needed - for each filename present in `source:`, copy it
-verbatim into `<out>/screens/<filename>`. A filename absent from `source:` is skipped here
-without error - `validate_bundle.ts` reports it as a `missing-screen` finding in step 10, this
-step never fails on it.
+### 8 - Copy canonical screens [script]
+`<cmd> "${CLAUDE_PLUGIN_ROOT}/scripts/copy_screens.ts" <run>/inventory.md <source> <out>`
+GATE: exit 0. A filename absent from `source:` is skipped here without error - `validate_bundle.ts`
+reports it as a `missing-screen` finding in step 10, this step never fails on it.
 
 ### 9 - Assemble satellites [script]
 The specs authored in step 5 (re-rendered against the finalized registry by steps 6–7, which never
