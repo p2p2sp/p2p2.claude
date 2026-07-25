@@ -39,7 +39,10 @@ Only HOTSPOT files are dispatched to detectives. Keep the others in the hotlist 
 
 ## Tie-breaking & caps
 - Break equal `score` ties by higher `impact` first, then higher `churn`.
-- Cap detective dispatch with `--top N`; even if 80 files clear the gate, start with the top N and open new fronts later (Phase 6) rather than spending on all at once.
+- `--top N` caps **dispatch**, not the record: gate-clearing files beyond N land in `overflow`, not off the
+  hotlist. Even if 80 files clear the gate, dispatch starts with the top N and opens new fronts later
+  (Phase 6) rather than spending on all at once - but every gate-clearing file is still visible in
+  `hotlist.json` / `hotlist.md`.
 - A file that scores 5×2 is NOT a hotspot - high impact but nothing to win. Resist the urge to investigate it just because impact is high. That is the "leave it" cell, and chasing it is the most common waste.
 
 ## Hotlist schema (`hotlist.json`)
@@ -48,11 +51,17 @@ Only HOTSPOT files are dispatched to detectives. Keep the others in the hotlist 
 {
   "run_id": "2026-06-26-bugs",
   "job": "reliability/bugs",
-  "threshold": 3,
+  "min_impact": 3,
+  "min_opportunity": 3,
   "top": 20,
+  "counts": {"scored": 42, "hotspots": 18, "overflow": 2, "skipped": 22},
   "hotspots": [
     {"rank":1,"path":"src/billing/PricingCards.tsx","impact":5,"opportunity":5,
      "score":25,"quadrant":"HOTSPOT","reason":"high impact, high churn"}
+  ],
+  "overflow": [
+    {"rank":19,"path":"src/checkout/Refunds.tsx","impact":4,"opportunity":4,
+     "score":16,"quadrant":"HOTSPOT","reason":"cleared the gate, beyond --top"}
   ],
   "skipped": [
     {"path":"src/legal/Terms.tsx","impact":2,"opportunity":2,"score":4,
@@ -61,7 +70,19 @@ Only HOTSPOT files are dispatched to detectives. Keep the others in the hotlist 
 }
 ```
 
-`hotlist.md` renders the same data as a ranked table:
+`run_id` and `job` are populated verbatim from the `--run-id` / `--job` flags Phase 3 passes. `min_impact` and
+`min_opportunity` are the two independent gates each axis must clear on its own (see the combine formula
+above) - there is no single `threshold` scalar. `impact` and `opportunity` on every row are clamped to the
+1..5 rubric range even when a scout emits a score outside it.
+
+`counts` records the four-way split of every scored file, and its members always sum to `counts.scored`:
+`hotspots + overflow + skipped == scored`. `overflow` holds rows that cleared the gate exactly like
+`hotspots` but sit beyond the `--top` cap, so they are not dispatched - see Tie-breaking & caps. `hotspots`
+and `overflow` rows carry `rank`; `skipped` rows do not.
+
+`hotlist.md` renders the same data as ranked tables: a hotspots table, an `<details>` overflow table when
+`overflow` is non-empty, and an `<details>` skipped table when `skipped` is non-empty, plus a summary line
+naming both minimums:
 
 ```
 #  Component                     Impact  Opportunity  Score  Reason
@@ -70,3 +91,6 @@ Only HOTSPOT files are dispatched to detectives. Keep the others in the hotlist 
 3  src/checkout/Checkout.tsx       4         4         16    drop-off spikes
 ...
 ```
+
+The skipped table caps at 50 rows even when more files were skipped - `hotlist.md` truncates for
+readability, but `hotlist.json`'s `skipped` array is never truncated and carries every skipped file.
