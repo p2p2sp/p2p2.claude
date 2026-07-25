@@ -56,9 +56,11 @@ measured value - you complete what is missing.
 ## Output - one fragment
 Write `notes-proposed.json`, shaped `{ foundation: "proposed", tokens, surfaceOrder: [], accentUsage: [],
 textStyles, unknowns: [], resolved }`:
-- Every `tokens{}` entry: `value`, optional `dark`, `type`, `section` (`3.1`..`3.9`), `primitive`/`usedFor`
-  when section 3.2, `proposed: true`, and a concise `rationale` naming the basis (which measured value it
-  derives from, and/or which pro-designer rule). NO `evidence` object - a proposed token has none.
+- Every `tokens{}` entry: `value`, optional `dark`, `type`, `section` (`3.1`, `3.2`, `3.5`-`3.9` - 3.3 and 3.4
+  are field-backed and rejected on a token), `primitive`/`usedFor` when section 3.2, `proposed: true`, and a
+  concise `rationale` naming the basis (which measured value it derives from, and/or which pro-designer rule).
+  NO `evidence` object - a proposed token has none. A proposal touching accent usage is a semantic token in
+  3.2, never an `accentUsage` entry.
 - Every `textStyles[]` entry: the measured type-style shape plus `proposed: true` and a `rationale`.
 - `resolved`: copy VERBATIM (`what`, `reason`, `section`) every `unknowns` entry from `registry.json` that
   your proposals now cover - those get dropped from the rendered `> NEEDS INPUT` list.

@@ -54,6 +54,7 @@
 
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
+import { TOKEN_SECTION_RE, UNKNOWN_SECTION_RE } from "./section-model.ts";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -71,7 +72,7 @@ export interface TokenEntry {
   value: string;
   dark: string | null;
   type: string;
-  section: string; // "3.1".."3.9"
+  section: string; // one of TOKEN_BACKED_SECTIONS (section-model.ts) — 3.3/3.4 are field-backed, rejected here
   primitive: string | null;
   usedFor: string | null;
   evidence: Evidence | null; // null only for a proposed token (no pixel evidence exists)
@@ -148,8 +149,6 @@ export class ShapeError extends Error {}
 const ALLOWED_TOP_KEYS = ["foundation", "tokens", "surfaceOrder", "accentUsage", "textStyles", "unknowns", "resolved"];
 const ALLOWED_FOUNDATIONS = ["colors", "typography", "dimensions", "effects-motion", "proposed"];
 const ALLOWED_METHODS: EvidenceMethod[] = ["points", "regions", "geometry", "reference"];
-const TOKEN_SECTION_RE = /^3\.[1-9]$/;
-const UNKNOWN_SECTION_RE = /^3\.(?:[1-9]|10)$/;
 
 function isDotted(name: string): boolean {
   return typeof name === "string" && name.includes(".") && !name.startsWith(".") && !name.endsWith(".");
@@ -182,7 +181,13 @@ function validateToken(name: string, raw: unknown, filename: string): TokenEntry
     throw new ShapeError(`${filename}: token '${name}' is missing 'type'`);
   }
   if (!nonEmptyString(entry.section) || !TOKEN_SECTION_RE.test(entry.section)) {
-    throw new ShapeError(`${filename}: token '${name}' has an invalid 'section' (${String(entry.section)})`);
+    const fieldHint =
+      entry.section === "3.3"
+        ? " — section 3.3 is field-backed; record it in 'surfaceOrder', not as a token"
+        : entry.section === "3.4"
+          ? " — section 3.4 is field-backed; record it in 'accentUsage', not as a token"
+          : "";
+    throw new ShapeError(`${filename}: token '${name}' has an invalid 'section' (${String(entry.section)})${fieldHint}`);
   }
   if (entry.proposed !== undefined && typeof entry.proposed !== "boolean") {
     throw new ShapeError(`${filename}: token '${name}' has a non-boolean 'proposed'`);
@@ -376,7 +381,7 @@ export function detectCollisions(fragments: NamedFragment[]): Collision[] {
 
 /** Stable key for matching a `resolved` entry against an `unknowns` entry — section plus the `what` text. */
 function unknownKey(u: UnknownEntry): string {
-  return `${u.section} ${u.what}`;
+  return `${u.section}\x00${u.what}`;
 }
 
 /**

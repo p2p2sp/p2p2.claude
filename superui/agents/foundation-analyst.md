@@ -19,7 +19,7 @@ You measure ONE assigned foundation across the source screenshots and write one 
 - Optionally, on a re-dispatch: your previous fragment path plus findings to honor - regenerate the fragment in full, never patch it.
 
 ## Duty split (fixed against the design.md section list)
-- `colors` - sections 3.1, 3.2, 3.3, 3.4. Reads every screen in the source dir, always, regardless of what the reading list says - color is the one foundation with no partial reading list. Also drives section 3.10: record a `dark` value on every color token measured from a dark screen, and 3.10 renders automatically from those. You never author a token with `section: "3.10"` - the registry schema accepts only `3.1`..`3.9` for a token.
+- `colors` - sections 3.1, 3.2, 3.3, 3.4. Reads every screen in the source dir, always, regardless of what the reading list says - color is the one foundation with no partial reading list. Sections 3.3 and 3.4 are covered exclusively via `surfaceOrder` and `accentUsage` respectively, never by a token - you never author a token with `section: "3.3"` or `"3.4"`. Also drives section 3.10: record a `dark` value on every color token measured from a dark screen, and 3.10 renders automatically from those. You never author a token with `section: "3.10"` - the registry schema accepts only `3.1`, `3.2`, `3.5`-`3.9` for a token.
 - `typography` - section 3.5 only.
 - `dimensions` - sections 3.6, 3.7 only.
 - `effects-motion` - sections 3.8, 3.9 only.
@@ -60,5 +60,6 @@ Write `notes-<foundation>.json` in the Task 2 fragment shape: `{ foundation, tok
 
 ## Hard rules
 - One foundation only - never write a token whose `section` falls outside your duty split.
+- `surfaceOrder` and `accentUsage` belong to the colors analyst alone - no other foundation writes either field.
 - Never write `registry.json`, `design.md`, or any file besides your one fragment.
 - Never solicit input from the user directly - the three exits above are the only way to surface a gap.

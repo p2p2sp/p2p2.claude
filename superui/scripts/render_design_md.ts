@@ -52,6 +52,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
+import { SECTION_TITLES } from "./section-model.ts";
 
 // ---------------------------------------------------------------------------
 // Types (mirrors the registry shape written by build_registry.ts)
@@ -132,19 +133,6 @@ export const STANDARD_HEADINGS = [
 // ---------------------------------------------------------------------------
 // Subsection catalog (the old `## 3.N` sections, now `###` under the headings)
 // ---------------------------------------------------------------------------
-
-const SECTION_TITLES: Record<string, string> = {
-  "3.1": "Color primitives",
-  "3.2": "Semantic colors",
-  "3.3": "Surface / elevation order",
-  "3.4": "Accent-usage inventory",
-  "3.5": "Typography",
-  "3.6": "Spacing",
-  "3.7": "Radii and borders",
-  "3.8": "Shadows and effects",
-  "3.9": "Motion",
-  "3.10": "Dark mode summary",
-};
 
 function tokensForSection(registry: Registry, section: string): TokenRow[] {
   return Object.entries(registry.tokens)

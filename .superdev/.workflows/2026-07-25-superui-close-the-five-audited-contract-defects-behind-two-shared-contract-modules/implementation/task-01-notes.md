@@ -1,0 +1,2 @@
+- Added a one-line inline comment fix on `TokenEntry.section` in `build_registry.ts` (was `// "3.1".."3.9"`, now points at `TOKEN_BACKED_SECTIONS` in `section-model.ts` and notes 3.3/3.4 are field-backed) - not listed in Approach, but the old comment became actively wrong once 3.3/3.4 were excluded from the token-legal set, and leaving it would mislead the next reader of the same file.
+- no other deviations
