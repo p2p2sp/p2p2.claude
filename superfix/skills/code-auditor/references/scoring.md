@@ -55,6 +55,8 @@ Only HOTSPOT files are dispatched to detectives. Keep the others in the hotlist 
   "min_opportunity": 3,
   "top": 20,
   "counts": {"scored": 42, "hotspots": 18, "overflow": 2, "skipped": 22},
+  "opportunity_histogram": {"1": 20, "2": 8, "3": 6, "4": 5, "5": 3},
+  "degenerate": false,
   "hotspots": [
     {"rank":1,"path":"src/billing/PricingCards.tsx","impact":5,"opportunity":5,
      "score":25,"quadrant":"HOTSPOT","reason":"high impact, high churn"}
@@ -79,6 +81,14 @@ above) - there is no single `threshold` scalar. `impact` and `opportunity` on ev
 `hotspots + overflow + skipped == scored`. `overflow` holds rows that cleared the gate exactly like
 `hotspots` but sit beyond the `--top` cap, so they are not dispatched - see Tie-breaking & caps. `hotspots`
 and `overflow` rows carry `rank`; `skipped` rows do not.
+
+`opportunity_histogram` counts every scored row by its clamped `opportunity` value, keys `"1"` through `"5"`
+in order; its values always sum to `counts.scored`. `degenerate` is `true` when at least one file was scored
+and none reached `min_opportunity` - the per-file sweep found nothing to act on. An empty run (`scored: 0`)
+is not degenerate, it is empty: `degenerate` is `false` and the histogram is all zeros. When `degenerate` is
+`true`, `hotlist.md` carries one `DEGENERATE OPPORTUNITY DISTRIBUTION` line naming the gate and the max
+opportunity actually reached - a zero-hotspot run must say so instead of reading as "all clear" (see the edge
+gate below, which exists for exactly this case).
 
 `hotlist.md` renders the same data as ranked tables: a hotspots table, an `<details>` overflow table when
 `overflow` is non-empty, and an `<details>` skipped table when `skipped` is non-empty, plus a summary line

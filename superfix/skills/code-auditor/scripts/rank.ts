@@ -690,6 +690,21 @@ function main(): void {
     return o;
   };
 
+  // Opportunity histogram + degeneracy alarm: a zero-hotspot run must name
+  // itself instead of reading as "all clear" - see the edge track in SKILL.md.
+  const opportunityHistogram: JsonMap = new Map();
+  for (let level = 1; level <= 5; level++) {
+    opportunityHistogram.set(String(level), 0);
+  }
+  let maxOpportunity = 0;
+  for (const r of rows) {
+    const opp = r.get("opportunity") as number;
+    const key = String(opp);
+    opportunityHistogram.set(key, (opportunityHistogram.get(key) as number) + 1);
+    if (opp > maxOpportunity) maxOpportunity = opp;
+  }
+  const degenerate = rows.length > 0 && maxOpportunity < args.minOpportunity;
+
   const counts: JsonMap = new Map();
   counts.set("scored", rows.length);
   counts.set("hotspots", hotspots.length);
@@ -702,6 +717,8 @@ function main(): void {
   out.set("min_opportunity", args.minOpportunity);
   out.set("top", args.top);
   out.set("counts", counts);
+  out.set("opportunity_histogram", opportunityHistogram);
+  out.set("degenerate", degenerate);
   out.set("hotspots", hotspots.map((r) => pick(r, hotKeys)));
   out.set("overflow", overflow.map((r) => pick(r, hotKeys)));
   out.set("skipped", skipped.map((r) => pick(r, skipKeys)));
@@ -719,6 +736,13 @@ function main(): void {
     `Scored ${rows.length} files · ${hotspots.length} hotspots · ` +
       `${skipped.length} skipped · min impact ${args.minImpact}, min opportunity ${args.minOpportunity}.`,
   );
+  if (degenerate) {
+    lines.push(
+      `DEGENERATE OPPORTUNITY DISTRIBUTION: no scored file reached min opportunity ${args.minOpportunity} ` +
+        `(max was ${maxOpportunity}). The per-file sweep returned no information - read the edge track before ` +
+        `concluding "all clear".`,
+    );
+  }
   lines.push("");
   lines.push("| # | Component | Impact | Opportunity | Score | Reason |");
   lines.push("|---|-----------|:------:|:-----------:|:-----:|--------|");
