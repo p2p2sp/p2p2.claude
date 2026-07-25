@@ -14,6 +14,19 @@
 #   dependents    rough count of tracked files referencing the file's basename
 #                 (only computed with --with-dependents; it is O(n) git-greps)
 #
+# A per-file probe (churn, fix_commits, recency, loc) that fails - e.g. an
+# unreadable tracked file - emits one stderr warning naming the file and
+# skips it; the stream continues instead of the whole sweep aborting mid-write.
+# A repo with no commits yet (unborn HEAD) has no churn/fix/recency data to
+# compute at all, so the script exits non-zero with one explanatory stderr
+# message and no stdout output before doing any work.
+#
+# --with-dependents on a dotfile (a basename with no dot other than its
+# leading one, e.g. .gitignore) uses the full basename as the search stem
+# instead of the empty string a naive `${base%.*}` would produce - an empty
+# stem would make `git grep` match every tracked file, inflating dependents
+# to a near-maximal count instead of a meaningful one.
+#
 # Candidate selection is DISCOVERED, not hardcoded: pass 1 scans the tracked tree
 # for every extension actually present, drops a deny-list of no-value ones
 # (binaries, media, fonts, archives, locks, generated maps), and pass 2 sweeps
@@ -49,6 +62,14 @@ WINDOW_DAYS="${positional[0]:-30}"
 ROOT="${positional[1]:-.}"
 
 cd "$ROOT"
+
+# An unborn HEAD (a repo with no commits yet) has no churn, fix, or recency
+# data to compute - a sweep of it would be meaningless rather than merely
+# incomplete, so fail fast with one message and no output.
+if ! git rev-parse --verify -q HEAD >/dev/null 2>&1; then
+  echo 'collect_signals.sh: HEAD has no commits yet (unborn HEAD) - nothing to sweep' >&2
+  exit 1
+fi
 
 # Portable "N days ago" (GNU date vs BSD/macOS date).
 if date -v-1d >/dev/null 2>&1; then
@@ -97,30 +118,54 @@ git -c core.quotePath=false ls-files | noise_filter \
   | while IFS= read -r f; do
       [ -f "$f" ] || continue
 
-      churn="$(git log --since="$SINCE" --oneline -- "$f" 2>/dev/null | wc -l | tr -d ' ')"
-      fix_commits="$(git log --since="$SINCE" -i \
+      # Each probe below is guarded individually: a failure (e.g. an
+      # unreadable tracked file) warns on stderr, naming the file, and skips
+      # straight to the next one - it must not abort the whole stream under
+      # `set -euo pipefail`.
+      if ! churn="$(git log --since="$SINCE" --oneline -- "$f" 2>/dev/null | wc -l | tr -d ' ')"; then
+        printf 'collect_signals.sh: warning: skipping %s (churn probe failed)\n' "$f" >&2
+        continue
+      fi
+      if ! fix_commits="$(git log --since="$SINCE" -i \
                        --grep='fix' --grep='hotfix' --grep='revert' \
-                       --oneline -- "$f" 2>/dev/null | wc -l | tr -d ' ')"
+                       --oneline -- "$f" 2>/dev/null | wc -l | tr -d ' ')"; then
+        printf 'collect_signals.sh: warning: skipping %s (fix_commits probe failed)\n' "$f" >&2
+        continue
+      fi
 
-      last_ct="$(git log -1 --format=%ct -- "$f" 2>/dev/null || echo 0)"
+      if ! last_ct="$(git log -1 --format=%ct -- "$f" 2>/dev/null)"; then
+        printf 'collect_signals.sh: warning: skipping %s (last_ct probe failed)\n' "$f" >&2
+        continue
+      fi
       if [ "${last_ct:-0}" -gt 0 ] 2>/dev/null; then
         recency_days=$(( (NOW - last_ct) / 86400 ))
       else
         recency_days=-1
       fi
 
-      loc="$(wc -l < "$f" | tr -d ' ')"
+      if ! loc="$(wc -l 2>/dev/null < "$f" | tr -d ' ')"; then
+        printf 'collect_signals.sh: warning: skipping %s (loc probe failed)\n' "$f" >&2
+        continue
+      fi
 
       dependents=-1
       if [ "$WITH_DEPENDENTS" = "yes" ]; then
         base="$(basename "$f")"
         stem="${base%.*}"
+        # A leading-dot basename with no other dot (.gitignore) strips to the
+        # empty string via `${base%.*}` - fall back to the full basename so
+        # the grep below searches for something, not everything.
+        [ -n "$stem" ] || stem="$base"
         # files that mention the stem, minus the file itself.
         # `|| true` guards each stage: a no-match git grep / grep returns rc=1,
         # which would otherwise trip `set -e` + `pipefail` and abort the sweep.
-        dependents="$( { git grep -lI -- "$stem" 2>/dev/null || true; } \
-                       | { grep -vxF "$f" || true; } \
-                       | wc -l | tr -d ' ')"
+        # An empty stem (should not occur once the fallback above applies)
+        # skips the probe entirely rather than matching every tracked file.
+        if [ -n "$stem" ]; then
+          dependents="$( { git grep -lI -- "$stem" 2>/dev/null || true; } \
+                         | { grep -vxF "$f" || true; } \
+                         | wc -l | tr -d ' ')"
+        fi
       fi
 
       printf '{"path":"%s","churn":%s,"fix_commits":%s,"recency_days":%s,"loc":%s,"dependents":%s}\n' \
