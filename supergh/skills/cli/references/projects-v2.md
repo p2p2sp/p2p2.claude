@@ -1,6 +1,6 @@
 # Projects v2
 
-`gh project` exists and is surprisingly capable. REST has **no Projects v2 endpoints at all** — anything past what `gh project` exposes is GraphQL-only. There is no legacy `gh project` for classic Projects — the subcommand always means Projects v2.
+`gh project` exists and is surprisingly capable. REST has **no Projects v2 endpoints at all** - anything past what `gh project` exposes is GraphQL-only. There is no legacy `gh project` for classic Projects - the subcommand always means Projects v2.
 
 ## Subcommand map
 
@@ -22,9 +22,9 @@ gh project field-create / field-list / field-delete
 | Reorder items / set position relative to siblings | **not supported by `gh`** | `updateProjectV2ItemPosition` |
 | Bulk-set multiple fields on one item in one call | not supported (one field per `item-edit`) | combine multiple mutations in a single GraphQL request via aliases |
 
-## Discovery — get the IDs you need
+## Discovery - get the IDs you need
 
-`item-edit` and every GraphQL mutation need `projectId`, `itemId`, `fieldId`, and (for single-select) `optionId` or (for iteration) `iterationId`. These are not surfaced in the UI — query them:
+`item-edit` and every GraphQL mutation need `projectId`, `itemId`, `fieldId`, and (for single-select) `optionId` or (for iteration) `iterationId`. These are not surfaced in the UI - query them:
 
 ```bash
 gh api graphql -F org="$ORG" -F number=42 -f query='
@@ -94,5 +94,5 @@ See `auth-and-scopes.md` for the full scope matrix and CI guidance.
 
 ## Sources
 
-- gh manual — project: <https://cli.github.com/manual/gh_project>
+- gh manual - project: <https://cli.github.com/manual/gh_project>
 - Projects v2 GraphQL guide: <https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/using-the-api-to-manage-projects>

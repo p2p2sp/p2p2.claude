@@ -1,3 +1,3 @@
-## Task 3 — notes
+## Task 3 - notes
 
 no deviations

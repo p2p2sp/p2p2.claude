@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# read-config.sh — rozwiązuje przełączniki .superdev/config.yml do stałego bloku
+# read-config.sh - rozwiązuje przełączniki .superdev/config.yml do stałego bloku
 # wstrzykiwanego do simplebuild / superbuild przy ładowaniu skila.
 #
-# Powstał, bo parser YAML z grep|sed to komenda złożona — a Claude Code rozbija
+# Powstał, bo parser YAML z grep|sed to komenda złożona - a Claude Code rozbija
 # komendy złożone i pyta o zgodę na KAŻDY człon (patrz setup/bootstrap.sh), co
 # zabija krok na trybach uprawnień, które nie auto-akceptują wszystkiego.
 # Zamknięcie w jednym skrypcie sprawia, że silnik uprawnień widzi JEDNĄ komendę.
@@ -17,7 +17,7 @@
 #           spacją/komentarzem/końcem linii). Brak klucza -> false.
 #   stdout: nagłówek + jedna linia `<klucz>: <true|false>` na każdy klucz,
 #           w stałej kolejności. Wartości znormalizowane do true/false.
-#   exit : zawsze 0 (fail-open — brak pliku/klucza nigdy nie wywala mechanizmu).
+#   exit : zawsze 0 (fail-open - brak pliku/klucza nigdy nie wywala mechanizmu).
 
 set -u
 

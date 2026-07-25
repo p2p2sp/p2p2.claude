@@ -18,21 +18,21 @@ Report path: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*re
 Write the full review to that path (see `## Report`).
 
 Base SHA: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*base:[[:space:]]*//p' | head -n1`
-The build's change set is `git diff --name-status <base SHA>..HEAD` — run it first; it bounds what you judge. Base SHA empty or `none` -> review unbounded and say so in the report.
+The build's change set is `git diff --name-status <base SHA>..HEAD` - run it first; it bounds what you judge. Base SHA empty or `none` -> review unbounded and say so in the report.
 
 Notes dir: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*notes:[[:space:]]*//p' | head -n1`
-When set, Read its `*-notes.md` files — the implementor's recorded plan->code deviations. Claims to verify, not truth.
+When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations. Claims to verify, not truth.
 
 ## Review
 Review the completed work against the plan.
 
-**Plan alignment (gate — check FIRST):**
+**Plan alignment (gate - check FIRST):**
 - Does the implementation match the plan / requirements?
 - Is all planned functionality present?
-- Reverse direction: does every file in the change set map to a plan task's `Files` (test/config fallout is fine)? An unmapped change — or any deviation — NOT recorded in the notes is a misalignment in itself; a recorded one is judged on merit: justified improvement or problematic departure.
+- Reverse direction: does every file in the change set map to a plan task's `Files` (test/config fallout is fine)? An unmapped change - or any deviation - NOT recorded in the notes is a misalignment in itself; a recorded one is judged on merit: justified improvement or problematic departure.
 
 On any misalignment: STOP. Write the report (misalignment under Critical), emit
-`VERDICT: FAIL` + `REVIEW: <report path>`, and return immediately — do not run the
+`VERDICT: FAIL` + `REVIEW: <report path>`, and return immediately - do not run the
 checks below. They only apply once the plan is met.
 
 **Code quality:**
@@ -63,7 +63,7 @@ checks below. They only apply once the plan is met.
 
 ## Calibration
 
-Categorize issues by actual severity. Not everything is Critical. Acknowledge what was done well before listing issues — accurate praise
+Categorize issues by actual severity. Not everything is Critical. Acknowledge what was done well before listing issues - accurate praise
 helps the implementer trust the rest of the feedback.
 
 If you find significant deviations from the plan, flag them specifically so the implementer can confirm whether the deviation was intentional.
@@ -71,7 +71,7 @@ If you find issues with the plan itself rather than the implementation, say so.
 
 ## Report
 Write the full review to the Report path (from `## Input`), using exactly this
-structure. Always write it — on PASS and on FAIL.
+structure. Always write it - on PASS and on FAIL.
 
 ```markdown
 ## Output Format
@@ -109,6 +109,6 @@ For each issue:
 `VERDICT` must agree with Assessment: `Yes` -> PASS; `No` / `With fixes` -> FAIL.
 
 ## Output format
-Return to the parent exactly (the only channel — the report itself stays on disk):
+Return to the parent exactly (the only channel - the report itself stays on disk):
 - line 1: `VERDICT: PASS` or `VERDICT: FAIL`
 - only on `FAIL`, line 2: `REVIEW: <report path>`

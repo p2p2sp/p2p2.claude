@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sample deterministic convention signals from a codebase, one section per
-# convention area. Counts only — interpreting what the convention IS (and
+# convention area. Counts only - interpreting what the convention IS (and
 # proving it with real file reads) is the caller's job.
 # Usage: ./scan_conventions.sh [path]
 

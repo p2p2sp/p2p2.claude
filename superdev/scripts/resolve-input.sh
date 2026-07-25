@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# resolve-input.sh — deterministycznie konsumuje etykietowany blok argumentów
+# resolve-input.sh - deterministycznie konsumuje etykietowany blok argumentów
 # forka i wstrzykuje treść wskazanych plików do jego kontekstu.
 #
 # Użycie:
@@ -10,20 +10,20 @@
 # brak pliku -> po prostu pomijana (bez błędu, bez treści). Etykieta bez
 # prefiksu jest WYMAGANA.
 #
-# <args-block>: pełny $ARGUMENTS forka — linie "label: <ścieżka>" (po jednej
+# <args-block>: pełny $ARGUMENTS forka - linie "label: <ścieżka>" (po jednej
 # etykiecie na linię). Najpierw waliduje wszystkie etykiety i pliki, dopiero
 # potem wypisuje nagłówek + zawartość każdego pliku.
 #
 # FAIL-SOFT przy braku WYMAGANEJ etykiety lub pliku: skrypt NIE pada z exit != 0,
 # tylko wypisuje na stdout wyraźnie oznaczony blok `## INPUT ERROR` (i ZERO
 # częściowej treści plików) oraz kończy exit 0. Powód: ten skrypt biegnie jako
-# preload `!command` w SKILL.md forka — nienzerowy exit przerywa CAŁE ładowanie
+# preload `!command` w SKILL.md forka - nienzerowy exit przerywa CAŁE ładowanie
 # forka ("Shell command failed for pattern…"), więc rodzic nie dostaje żadnego
 # werdyktu, tylko surowy błąd shella. Fail-soft utrzymuje błąd GŁOŚNYM (widoczny
 # w kontekście forka), ale pozwala forkowi się załadować i zgłosić brak wejścia
 # (reviewer zwraca VERDICT: FAIL), zamiast cicho ubić cały przepływ.
 # Nadal obowiązuje zasada "ZERO częściowej treści": jeśli choć jedna wymagana
-# etykieta/plik zawodzi, na stdout idzie WYŁĄCZNIE blok błędu — nigdy wymieszany
+# etykieta/plik zawodzi, na stdout idzie WYŁĄCZNIE blok błędu - nigdy wymieszany
 # z treścią poprawnych plików (lepiej niż cicha, częściowa praca).
 #
 set -euo pipefail
@@ -32,7 +32,7 @@ block="${1:-}"
 shift || true
 
 # Brak etykiet w wywołaniu to błąd okablowania skilla (autor napisał `!command`
-# bez etykiet) — łapany na etapie dev, więc twardy exit. Pusty $block NIE jest
+# bez etykiet) - łapany na etapie dev, więc twardy exit. Pusty $block NIE jest
 # tu błędem użycia: spływa do walidacji i fail-softuje jak każde brakujące wejście.
 if [[ $# -eq 0 ]]; then
   echo "error: usage: resolve-input.sh <args-block> <label> [label ...]" >&2
@@ -90,7 +90,7 @@ if [[ ${#errors[@]} -gt 0 ]]; then
   for e in "${errors[@]}"; do
     printf -- '- %s\n' "$e"
   done
-  printf '\nNo file content was injected — the required input is missing, so you cannot do your job on it.\n'
+  printf '\nNo file content was injected - the required input is missing, so you cannot do your job on it.\n'
   printf 'Do NOT proceed as if the input were present and do NOT invent it. Report the missing input and stop.\n'
   printf 'A reviewer returns VERDICT: FAIL stating the input was missing.\n'
   exit 0

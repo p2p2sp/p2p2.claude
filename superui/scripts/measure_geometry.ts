@@ -1,5 +1,5 @@
 /*
- * measure_geometry.ts — pixel-geometry sampler for handoff-bundle "measure,
+ * measure_geometry.ts - pixel-geometry sampler for handoff-bundle "measure,
  * never guess" foundation values (paddings, gaps, border widths, control
  * heights, corner radii, shadow extents, ink/cap-height bounds) that
  * sample_colors.ts's color/luminance measurement does not cover.
@@ -30,7 +30,7 @@
  *       of each contiguous ink row-band) plus a derived `lineHeight`
  *       (average band height).
  *
- * IN : IMAGE — path to a PNG or JPEG image (non-interlaced PNG; baseline or
+ * IN : IMAGE - path to a PNG or JPEG image (non-interlaced PNG; baseline or
  *      progressive JPEG), decoded by the bundled vendor decoders (no
  *      third-party dependencies, Node built-ins only). Exactly one of
  *      --edges/--radius/--shadow/--ink selects the mode; each requires its
@@ -39,7 +39,7 @@
  * Flags:
  *   --tol N     per-channel color tolerance (default 8)
  *   --json      emit structured JSON instead of human-readable lines
- * OUT: stdout — one measurement per mode, a human-readable line (or lines)
+ * OUT: stdout - one measurement per mode, a human-readable line (or lines)
  *      by default, or a JSON object with --json.
  * Exit codes: 0 = ok; 1 = unreadable/unsupported image, or a box out of
  *      bounds / zero-sized, or a malformed x,y,w,h value (message on
@@ -47,11 +47,11 @@
  *      usage errors (unknown flag, missing IMAGE, missing/duplicated mode
  *      flag, bad --axis/--corner/--side/--tol value).
  *
- * Tolerance and alpha: --tol (default 8) governs per-channel run grouping —
+ * Tolerance and alpha: --tol (default 8) governs per-channel run grouping -
  * a run shorter than 1px cannot exist, so antialiased/subpixel edges report
  * as the nearest whole pixel; this is a measurement granularity limit, not a
  * bug. Alpha is discarded by both vendor decoders (see their headers) and
- * cannot be recovered here — a screenshot with transparency yields the raw
+ * cannot be recovered here - a screenshot with transparency yields the raw
  * under-color, never a composited one.
  *
  * Usage: node measure_geometry.ts IMAGE
@@ -166,7 +166,7 @@ function clamp(v: number, lo: number, hi: number): number {
 }
 
 // ---------------------------------------------------------------------------
-// Mode 1 — scanRuns
+// Mode 1 - scanRuns
 // ---------------------------------------------------------------------------
 
 export function scanRuns(img: RgbImage, box: Box, axis: Axis, tol: number): Run[] {
@@ -206,11 +206,11 @@ export function scanRuns(img: RgbImage, box: Box, axis: Axis, tol: number): Run[
 }
 
 // ---------------------------------------------------------------------------
-// Mode 2 — fitRadius
+// Mode 2 - fitRadius
 // ---------------------------------------------------------------------------
 
 /** Smallest column index (0-based, from the corner) whose pixel falls inside
- *  a quarter-circle of radius r anchored at the corner — the same test used
+ *  a quarter-circle of radius r anchored at the corner - the same test used
  *  to render (and thus to measure) a rounded corner. Row/col are both
  *  0-based, counted inward from the corner. */
 function predictedOffset(row: number, r: number): number {
@@ -275,7 +275,7 @@ export function fitRadius(img: RgbImage, box: Box, corner: Corner, tol: number):
 }
 
 // ---------------------------------------------------------------------------
-// Mode 3 — scanShadow
+// Mode 3 - scanShadow
 // ---------------------------------------------------------------------------
 
 export function scanShadow(img: RgbImage, box: Box, side: Side, tol: number): ShadowResult {
@@ -315,7 +315,7 @@ export function scanShadow(img: RgbImage, box: Box, side: Side, tol: number): Sh
 }
 
 // ---------------------------------------------------------------------------
-// Mode 4 — inkBox
+// Mode 4 - inkBox
 // ---------------------------------------------------------------------------
 
 export function inkBox(img: RgbImage, box: Box, tol: number): InkResult {

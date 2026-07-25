@@ -16,20 +16,20 @@ Content at the top of a file and under clear headings gets more reliable attenti
 
 ## Write for Retrieval, Not for Completeness
 
-The instinct when writing skill or agent documentation is to be thorough. Cover every parameter. Note every edge case. Document every default behavior. Resist this. LLM doesn’t need a manual. It needs the delta — the things that differ from sensible defaults. If the right behavior is what a competent developer would do anyway, you don’t need to document it.
+The instinct when writing skill or agent documentation is to be thorough. Cover every parameter. Note every edge case. Document every default behavior. Resist this. LLM doesn’t need a manual. It needs the delta - the things that differ from sensible defaults. If the right behavior is what a competent developer would do anyway, you don’t need to document it.
 
 ## Prevention over correction
 
-Generate correct output on the first pass — bake constraints, profiles, and negative examples into the generation instructions — rather than generating loosely and running a separate fixer/corrector skill afterward. Detecting and correcting bad LLM output with another LLM pass is more expensive than preventing it, and tends toward whack-a-mole.
+Generate correct output on the first pass - bake constraints, profiles, and negative examples into the generation instructions - rather than generating loosely and running a separate fixer/corrector skill afterward. Detecting and correcting bad LLM output with another LLM pass is more expensive than preventing it, and tends toward whack-a-mole.
 
 ## A skill does not narrate its caller
 
-Write every skill as `input -> work -> output`. It does NOT need to know WHO invokes it or WHY — a fork least of all. It receives an input, does its job, returns its output. Strip the surrounding-world story from the body.
+Write every skill as `input -> work -> output`. It does NOT need to know WHO invokes it or WHY - a fork least of all. It receives an input, does its job, returns its output. Strip the surrounding-world story from the body.
 
-- Keep the routing guard in frontmatter `description:` only (e.g. "invoked only by X, never directly") — that single line is a real signal that stops the wrong caller. The BODY needs none of it.
+- Keep the routing guard in frontmatter `description:` only (e.g. "invoked only by X, never directly") - that single line is a real signal that stops the wrong caller. The BODY needs none of it.
 - In the body, cut: the caller's name, the caller's surrounding flow ("after every task the superbuild…", "one of six lenses the reviewer fans out…", "you are the terminal gate of the pipeline"), and the rationale for the call. None of it changes what the skill does with its input.
 - Keep behaviour the INPUT drives, but frame it on the input, never the caller: "if `Report path:` present -> write the report there", NOT "the superbuild passes `Report path:`, so…".
-- Keep a genuine scope boundary even when it names siblings ("you own ONLY dimension X; Y and Z are out of scope") — that is a behavioural constraint, not caller narrative.
+- Keep a genuine scope boundary even when it names siblings ("you own ONLY dimension X; Y and Z are out of scope") - that is a behavioural constraint, not caller narrative.
 - Litmus: would the sentence still be true and useful if a different caller sent the same input? Keep it. Does it only describe the current caller's world? Cut it.
 
 ## Audit for Contradictions and Redundancy
@@ -40,7 +40,7 @@ Set a recurring reminder to review your skill or agent files the same way you’
 - Guidance that was added for a specific situation but was never scoped to that situation
 - Documentation for tools or patterns your project no longer uses
 - Repeated information across multiple files
-- Caller narrative in the body — see "A skill does not narrate its caller"; cut it on sight.
+- Caller narrative in the body - see "A skill does not narrate its caller"; cut it on sight.
 
 Remove mercilessly. Everything in a skill file has a cost.
 
@@ -55,38 +55,38 @@ Advantages of using deterministic scripts:
 
 ## CRITICAL: Skill must have single or (if impossible) narrow responsibility
 
-- One skill = one responsibility. Push every other responsibility into a separate skill — preferably a fork, out of the main context.
-- Carry more than one responsibility ONLY when a split is genuinely impossible — then keep the count as low as possible.
+- One skill = one responsibility. Push every other responsibility into a separate skill - preferably a fork, out of the main context.
+- Carry more than one responsibility ONLY when a split is genuinely impossible - then keep the count as low as possible.
 - Excess responsibility -> noise and drift. When a skill grows a second concern, propose the split before adding to it.
 
 ### Non-overlapping branches MUST be split
 
-A skill whose body spells out N branches/modes whose instructions do NOT overlap holds N responsibilities. Never leave all branches inline — only the branch actually taken should reach the LLM. Split one of two ways:
+A skill whose body spells out N branches/modes whose instructions do NOT overlap holds N responsibilities. Never leave all branches inline - only the branch actually taken should reach the LLM. Split one of two ways:
 
-- Fork sub-workers — one `context: fork` sub-skill per branch; the entry resolves which branch applies and dispatches only that one via the `Skill` tool.
-- Mode-router script — a deterministic script parses the input parameter and `!`-injects only the chosen branch's playbook; the other branches never enter context.
+- Fork sub-workers - one `context: fork` sub-skill per branch; the entry resolves which branch applies and dispatches only that one via the `Skill` tool.
+- Mode-router script - a deterministic script parses the input parameter and `!`-injects only the chosen branch's playbook; the other branches never enter context.
 
 Choose the script when a parsable input parameter selects the branch; choose fork sub-workers when each branch is heavy work that also benefits from running out of context.
 
-**Specific case — interactive skill (question-asker + fork worker).** `AskUserQuestion` only runs in the main session, so a skill that both asks the user AND does heavy work pins its whole body to the main context for the whole session.
+**Specific case - interactive skill (question-asker + fork worker).** `AskUserQuestion` only runs in the main session, so a skill that both asks the user AND does heavy work pins its whole body to the main context for the whole session.
 
-- Entry skill (main context) — asks every question, resolves all ambiguity, hands off. Keep it small.
-- Fork worker (`context: fork` + `user-invocable: false`) — takes the resolved inputs, does the heavy work out of context, never asks the user.
+- Entry skill (main context) - asks every question, resolves all ambiguity, hands off. Keep it small.
+- Fork worker (`context: fork` + `user-invocable: false`) - takes the resolved inputs, does the heavy work out of context, never asks the user.
 - Hand off via the arg convention: short fields inline, large/multiline content as a PATH.
 
 ### Co-occurring concerns -> independent specialists
 
-The two mechanisms above assume mutually-exclusive branches, resolved by one dispatcher. When concerns can instead co-occur on the same task — e.g. style, consistency, flow, references, links checks over one editing job — do not fold them into one skill with internal per-concern logic, and do not route them through a single dispatcher either.
+The two mechanisms above assume mutually-exclusive branches, resolved by one dispatcher. When concerns can instead co-occur on the same task - e.g. style, consistency, flow, references, links checks over one editing job - do not fold them into one skill with internal per-concern logic, and do not route them through a single dispatcher either.
 
 - Give each concern its own skill with its own CSO `description:` trigger.
 - Let several fire independently for the same task rather than one skill juggling all of them.
-- Keeps each skill within its own context budget — a monolith big enough to cover every concern eventually loses track of its own instructions.
+- Keeps each skill within its own context budget - a monolith big enough to cover every concern eventually loses track of its own instructions.
 
 ## Fan-out cheap workers to locate change sites
 
 When the work is "find every place to change, then change it" over an unknown/large set, do NOT scan the whole repo in the main context. Split discovery from action:
 
-- Fan out many cheap-tier forks in parallel, each scoring/locating one file or shard — breadth, not depth. They return a compact tagged line (path + verdict), never raw file dumps into the main context.
+- Fan out many cheap-tier forks in parallel, each scoring/locating one file or shard - breadth, not depth. They return a compact tagged line (path + verdict), never raw file dumps into the main context.
 - Gate/rank the hits deterministically (script), then dispatch expensive frontier workers only into the located shards.
 - Main context keeps the conclusion (the shard list), not the search. Token cost stays flat as the repo grows.
 

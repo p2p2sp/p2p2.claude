@@ -17,7 +17,7 @@ Users lose track of work because tasks live in scattered notes.
 
 - Recurring tasks, reminders, notifications.
 - Sharing tasks between users or any multi-user/collaboration logic.
-- OAuth or any new auth flow — assume the user is already authenticated.
+- OAuth or any new auth flow - assume the user is already authenticated.
 
 ## User scenarios
 <As a <role> I want <goal> so that <value>. Concrete, observable.>

@@ -11,7 +11,7 @@ paths:
 # API error handling
 
 - Wrap handler bodies in `withErrorBoundary()` (`src/api/middleware/errors.ts`); never try/catch inline.
-- Error responses use `ApiError` subclasses — never throw a raw `Error` from a handler.
+- Error responses use `ApiError` subclasses - never throw a raw `Error` from a handler.
 ```
 
 Filename = the capture slug: `.claude/rules/api-error-handling.md`. Subdirectories are allowed (`.claude/rules/frontend/naming.md`) when the capture slug carries a `/`.
@@ -32,7 +32,7 @@ paths:
 - Use the `make_invoice()` factory (`tests/factories.py`); never construct `Invoice` inline.
 ```
 
-## Bad — never write these
+## Bad - never write these
 
 - Monolith: one `conventions.md` covering naming + tests + errors + imports. Split per area.
 - Restating defaults: "write clear code", "add tests for new features", "handle errors properly".

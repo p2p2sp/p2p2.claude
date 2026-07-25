@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
-# decompose.sh — parsuje zatwierdzony plan i rozbija go na pliki robocze.
+# decompose.sh - parsuje zatwierdzony plan i rozbija go na pliki robocze.
 #
 # Użycie:
 #   decompose.sh <plan-file> [commit-prefix]
 #
-# commit-prefix (opcjonalny, domyślnie "simplebuild") — prefiks komunikatu
+# commit-prefix (opcjonalny, domyślnie "simplebuild") - prefiks komunikatu
 # commita dekompozycji, np. "superbuild".
 #
 # Obsługuje oba szablony planów:
@@ -86,7 +86,7 @@ spec_line="$(grep -m1 '^Spec:' "$plan" || true)"
 spec_line="$(printf '%s' "$spec_line" | sed -e 's/[[:space:]]*<!--.*-->[[:space:]]*$//')"
 
 # ścieżka speca (szablon superplan): z linii "Spec: <ścieżka>", bez skrajnych
-# spacji; niepusta ścieżka MUSI istnieć — ekstrakcja wycinka speca poniżej
+# spacji; niepusta ścieżka MUSI istnieć - ekstrakcja wycinka speca poniżej
 # jest bez niej niemożliwa, więc rozjazd wybucha tu, nie w środku builda.
 spec_path="$(printf '%s' "${spec_line#Spec:}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
 if [[ -n "$spec_path" && ! -f "$spec_path" ]]; then
@@ -95,7 +95,7 @@ if [[ -n "$spec_path" && ! -f "$spec_path" ]]; then
 fi
 
 # źródło kryteriów dla per-taskowej sekcji "### Covered criteria": spec (tor
-# superbuild) albo sam plan — jego HEADER "## Acceptance criteria" (tor
+# superbuild) albo sam plan - jego HEADER "## Acceptance criteria" (tor
 # simplebuild). Zawsze ustawione, więc kryteria dopisywane są w obu torach.
 if [[ -n "$spec_path" ]]; then
   crit_source="$spec_path"
@@ -133,7 +133,7 @@ header="$dir/plan-header.md"
   printf '\n'
 } > "$header"
 
-# tor superbuild: globalne sekcje speca trafiają do nagłówka planu — jedyny
+# tor superbuild: globalne sekcje speca trafiają do nagłówka planu - jedyny
 # fragment speca, jaki widzą per-taskowe forki (coder / task-reviewer).
 if [[ -n "$spec_path" ]]; then
   for sec in "## Out of scope" "## Constraints / assumptions"; do
@@ -210,14 +210,14 @@ awk -v dir="$dir" -v hdr="$header" '
 
 # --- kryteria akceptacji do plików tasków (oba tory) ---
 # każdy task dostaje verbatim treść kryteriów z jego linii "Covers:" ze źródła
-# crit_source (spec w torze superbuild, HEADER planu w torze simplebuild) —
+# crit_source (spec w torze superbuild, HEADER planu w torze simplebuild) -
 # per-taskowe forki nie muszą wtedy skanować całości. Kryterium wskazane
 # w "Covers:", a nieobecne w źródle, to rozjazd -> twardy błąd.
 for task_file in "$dir"/tasks/task-*.md; do
   covers="$(grep -m1 '^-[[:space:]]*Covers:' "$task_file" || true)"
   nums="$(printf '%s\n' "$covers" | grep -o '#[0-9][0-9]*' | tr -d '#' || true)"
   if [[ -z "$nums" ]]; then
-    echo "warning: $(basename "$task_file") has no 'Covers:' criteria — none appended" >&2
+    echo "warning: $(basename "$task_file") has no 'Covers:' criteria - none appended" >&2
     continue
   fi
   crit_block=""

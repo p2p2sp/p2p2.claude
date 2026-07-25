@@ -18,7 +18,7 @@ superui writes dark values (`foundation-analyst` measures them, `token-composer`
 dark at all, the auditor's contrast pre-pass reads only `tokens.css` `:root`, and in the creative
 head dark is a parenthetical in `design-director.md` step 3 whose values reach no contrast check.
 Result: the default theme is well fitted, the second theme has holes. This plan closes the review
-gap without touching the token format — the light/dark axis stays closed and every change is
+gap without touching the token format - the light/dark axis stays closed and every change is
 additive in the verification layer. Editing markdown here IS shipping: there is no build, test, or
 lint at any level, so verification is textual and structural.
 
@@ -57,11 +57,11 @@ lint at any level, so verification is textual and structural.
 
 <!-- TASK -->
 
-## Task 1 — feat(superui): split the auditor contrast pre-pass per theme
+## Task 1 - feat(superui): split the auditor contrast pre-pass per theme
 - Covers: criteria #1, #2
 
 ### Dependencies
-- none — blocks: Task 5
+- none - blocks: Task 5
 
 ### Files
 - modify - superui/skills/design-system-auditor/SKILL.md (step 3 "Deterministic pre-pass" Contrast bullet; "Report structure" item 2)
@@ -71,19 +71,19 @@ lint at any level, so verification is textual and structural.
 - none (markdown source; no build at any level in this repo)
 
 *Tests*
-- `grep -n "contrast-pairs-light.json\|contrast-pairs-dark.json" superui/skills/design-system-auditor/SKILL.md` — expect both filenames present
-- `grep -c 'check_contrast.py" --json' superui/skills/design-system-auditor/SKILL.md` — expect 2 (returns 1 today). Match the closing quote: the path is written `"${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.py" --json`, so a bare `check_contrast.py --json` never occurs; and a bare `check_contrast.py` would also count this task's own prose mention of `parse_color()`.
-- `grep -n -A 4 "## Operational findings" superui/skills/design-system-auditor/SKILL.md` — expect the System health description to name two theme-labeled contrast blocks (today it reads "validator + contrast output, verbatim lines", with no theme labeling)
-- `grep -n "contrast-pairs.json" superui/skills/design-system-auditor/SKILL.md` — expect no bare (unsuffixed) hit remaining
+- `grep -n "contrast-pairs-light.json\|contrast-pairs-dark.json" superui/skills/design-system-auditor/SKILL.md` - expect both filenames present
+- `grep -c 'check_contrast.py" --json' superui/skills/design-system-auditor/SKILL.md` - expect 2 (returns 1 today). Match the closing quote: the path is written `"${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.py" --json`, so a bare `check_contrast.py --json` never occurs; and a bare `check_contrast.py` would also count this task's own prose mention of `parse_color()`.
+- `grep -n -A 4 "## Operational findings" superui/skills/design-system-auditor/SKILL.md` - expect the System health description to name two theme-labeled contrast blocks (today it reads "validator + contrast output, verbatim lines", with no theme labeling)
+- `grep -n "contrast-pairs.json" superui/skills/design-system-auditor/SKILL.md` - expect no bare (unsuffixed) hit remaining
 
 ### Approach
 1. In step 3, replace the single Contrast bullet with a two-run bullet: build the SAME token roles
-   twice — once from `<sys>/tokens.css` `:root` into `<run>/contrast-pairs-light.json`, once from
+   twice - once from `<sys>/tokens.css` `:root` into `<run>/contrast-pairs-light.json`, once from
    the `.dark` block into `<run>/contrast-pairs-dark.json`, a token with no dark override taking its
-   inherited `:root` value — then run `check_contrast.py --json` once per file.
+   inherited `:root` value - then run `check_contrast.py --json` once per file.
 2. Keep the existing pair-selection rule verbatim (pairs `DESIGN.md`'s accessibility/theming
    sections name; when they name none, each text role on each surface role and each `on-<bg>` role
-   on its own `<bg>`; skip alpha-bearing values) — state it once, applied to both themes. Add the
+   on its own `<bg>`; skip alpha-bearing values) - state it once, applied to both themes. Add the
    literal-resolution rule: `tokens_to_css.py` emits alias tokens as `var(--target-path)` in BOTH
    blocks and `check_contrast.py` `parse_color()` accepts only `#rgb`, `#rrggbb`, `rgb(r,g,b)`, so
    dereference every `var(--x)` chain to its literal before writing the pair; a value that resolves
@@ -106,7 +106,7 @@ lint at any level, so verification is textual and structural.
   existing "a broken system is itself a finding, not a stop" rule).
 
 ### Contracts
-- `<run>/contrast-pairs-light.json`, `<run>/contrast-pairs-dark.json` — existing
+- `<run>/contrast-pairs-light.json`, `<run>/contrast-pairs-dark.json` - existing
   `check_contrast.py --json` item shape, unchanged: `{"fg","bg","type","label"}`. No `theme` field;
   the theme is the file.
 
@@ -120,14 +120,14 @@ theme-labeled contrast blocks; no other section of the file changed.
 
 <!-- TASK -->
 
-## Task 2 — feat(superui): make dark a gated, obligatory decision in the creative head
+## Task 2 - feat(superui): make dark a gated, obligatory decision in the creative head
 - Covers: criteria #3, #4, #5, #6
 
 ### Dependencies
-- none — blocks: Task 3 (step 7 consumes the theme-columned `CONTRAST-PAIRS`), Task 5
+- none - blocks: Task 3 (step 7 consumes the theme-columned `CONTRAST-PAIRS`), Task 5
 
 ### Files
-- modify - superui/agents/design-director.md (Method step 3 and 4; Output notes-colors.md `CONTRAST-PAIRS:` line; the dark-inline sentence in the "Output — four notes files" preamble, scoped to finding lines)
+- modify - superui/agents/design-director.md (Method step 3 and 4; Output notes-colors.md `CONTRAST-PAIRS:` line; the dark-inline sentence in the "Output - four notes files" preamble, scoped to finding lines)
 - modify - superui/skills/design-system-creator/SKILL.md (step 2 Interview; step 4 GATE)
 
 ### Test Commands
@@ -135,11 +135,11 @@ theme-labeled contrast blocks; no other section of the file changed.
 - none
 
 *Tests*
-- `grep -n "CONTRAST-PAIRS" superui/agents/design-director.md` — expect the entry format to carry a leading `<theme>` field
-- `grep -c "CONTRAST-PAIRS:" superui/agents/design-director.md` — expect 1 (one section, not two)
-- `grep -n "per-pair verification" superui/agents/design-director.md` — expect the new scoping of the dark-inline rule (zero hits today; `finding line` alone already matches and would be vacuous)
-- `grep -n "dark" superui/skills/design-system-creator/SKILL.md` — expect hits in step 2 and step 4
-- `grep -n "Spawn exactly one" superui/agents/design-director.md` — expect the single-dispatch rule intact
+- `grep -n "CONTRAST-PAIRS" superui/agents/design-director.md` - expect the entry format to carry a leading `<theme>` field
+- `grep -c "CONTRAST-PAIRS:" superui/agents/design-director.md` - expect 1 (one section, not two)
+- `grep -n "per-pair verification" superui/agents/design-director.md` - expect the new scoping of the dark-inline rule (zero hits today; `finding line` alone already matches and would be vacuous)
+- `grep -n "dark" superui/skills/design-system-creator/SKILL.md` - expect hits in step 2 and step 4
+- `grep -n "Spawn exactly one" superui/agents/design-director.md` - expect the single-dispatch rule intact
 
 ### Approach
 1. In `design-director.md` Method step 3, promote dark from the `(incl. dark)` parenthetical to an
@@ -160,7 +160,7 @@ theme-labeled contrast blocks; no other section of the file changed.
    in `<run>/notes-colors.md` contains dark entries; missing -> re-dispatch per the RE-DISPATCH
    CONVENTION, capped at two rounds, after which the residue is carried to the user as
    `> NEEDS INPUT`. The creator has no global remediation cap in its ground rules, so this gate
-   states its own — an uncapped loop would otherwise be unbounded.
+   states its own - an uncapped loop would otherwise be unbounded.
 
 ### Edge cases
 - Brief says no dark -> gate requires NO dark entries; a dark value present is itself a violation.
@@ -184,11 +184,11 @@ dark question and gates step 4 on dark entries; the single-dispatch rule is unto
 
 <!-- TASK -->
 
-## Task 3 — feat(superui): split the creator contrast QA per theme
+## Task 3 - feat(superui): split the creator contrast QA per theme
 - Covers: criteria #7
 
 ### Dependencies
-- Task 2 — blocks: Task 5
+- Task 2 - blocks: Task 5
 
 ### Files
 - modify - superui/skills/design-system-creator/SKILL.md (step 7 "Contrast QA")
@@ -198,22 +198,22 @@ dark question and gates step 4 on dark entries; the single-dispatch rule is unto
 - none
 
 *Tests*
-- `grep -n "org.superui.dark" superui/skills/design-system-creator/SKILL.md` — expect step 7's dark resolution rule (zero hits today)
-- `grep -n -A 25 "### 7 — Contrast QA" superui/skills/design-system-creator/SKILL.md` — read for the sequential per-theme re-dispatch (a bare `one at a time` grep already matches the step-40 ground rule and would be vacuous)
-- `grep -n "two rounds\|Cap remediation" superui/skills/design-system-creator/SKILL.md` — expect the cap unchanged
+- `grep -n "org.superui.dark" superui/skills/design-system-creator/SKILL.md` - expect step 7's dark resolution rule (zero hits today)
+- `grep -n -A 25 "### 7 - Contrast QA" superui/skills/design-system-creator/SKILL.md` - read for the sequential per-theme re-dispatch (a bare `one at a time` grep already matches the step-40 ground rule and would be vacuous)
+- `grep -n "two rounds\|Cap remediation" superui/skills/design-system-creator/SKILL.md` - expect the cap unchanged
 
 ### Approach
 1. In step 7, split the re-run of `check_contrast.py` by the `CONTRAST-PAIRS` theme column: the
    light entries and the dark entries are verified as two runs against the FINAL `<out>/dtcg.yml`
-   values, keeping the existing composer-rename resolution. State the per-theme resolution rule —
+   values, keeping the existing composer-rename resolution. State the per-theme resolution rule -
    a `light` entry resolves each token to `$value`; a `dark` entry resolves it to
    `$extensions.org.superui.dark`, falling back to `$value` when the token carries no dark
-   override — and dereference alias chains to a literal before the check, skipping any value that
+   override - and dereference alias chains to a literal before the check, skipping any value that
    resolves to none (same rule as the auditor pre-pass). Without this the dark run re-checks light
    values and can only mirror the light result.
 2. Scope the remediation loop: a failing run re-dispatches `design-director` with the failing pairs
    of THAT theme only, so a corrected palette is never derived from mixed-theme constraints.
-   Per-theme re-dispatches run SEQUENTIALLY — never two `design-director` instances at once, per
+   Per-theme re-dispatches run SEQUENTIALLY - never two `design-director` instances at once, per
    its "Spawn exactly one" rule and the creator's "one at a time, never in parallel with itself"
    ground rule.
 3. Leave the three remediation sub-steps (re-dispatch, `token-composer` merge + `tokens_to_css.py`,
@@ -237,11 +237,11 @@ the existing cap and NEEDS INPUT behaviour intact.
 
 <!-- TASK -->
 
-## Task 4 — feat(superui): add a conditional dark fidelity-review scope
+## Task 4 - feat(superui): add a conditional dark fidelity-review scope
 - Covers: criteria #8, #9
 
 ### Dependencies
-- none — blocks: Task 5
+- none - blocks: Task 5
 
 ### Files
 - modify - superui/skills/design-system-extractor/SKILL.md (step 7 "Fidelity review fan-out")
@@ -252,18 +252,18 @@ the existing cap and NEEDS INPUT behaviour intact.
 - none
 
 *Tests*
-- `grep -n "dark" superui/skills/design-system-extractor/SKILL.md` — expect the conditional dark scope in step 7
-- `grep -n "dark" superui/agents/fidelity-reviewer.md` — expect the dark-scope handling
-- `grep -n "provenance: designed" superui/agents/fidelity-reviewer.md` — expect the root-marker wholesale skip intact
+- `grep -n "dark" superui/skills/design-system-extractor/SKILL.md` - expect the conditional dark scope in step 7
+- `grep -n "dark" superui/agents/fidelity-reviewer.md` - expect the dark-scope handling
+- `grep -n "provenance: designed" superui/agents/fidelity-reviewer.md` - expect the root-marker wholesale skip intact
 
 ### Approach
 1. In extractor step 7, add one dark scope to the fan-out list, conditional on
-   `<run>/source-map.md`'s `## Dark-mode coverage` reporting dark screens — no dark screens, no
+   `<run>/source-map.md`'s `## Dark-mode coverage` reporting dark screens - no dark screens, no
    extra dispatch. It gets the dark screens, the artifact paths, the sampler path, and output
    `<run>/review-dark.md`; routing of its mismatches follows the existing re-dispatch convention.
 2. In `fidelity-reviewer.md` "Inputs you are given", state that the verification scope may be a
    dark scope (the dark screens plus their light counterparts).
-3. In "What to do", add the dark-scope branch: run only the colour-bearing checks — surface and
+3. In "What to do", add the dark-scope branch: run only the colour-bearing checks - surface and
    elevation order on the dark screens via `--regions`, accent discipline in dark, and a spot-check
    of `$extensions.org.superui.dark` values against the dark pixels. State explicitly that geometry,
    radii, and state form are theme-invariant and are NOT re-checked in a dark scope.
@@ -277,7 +277,7 @@ the existing cap and NEEDS INPUT behaviour intact.
 - Root marker `provenance: designed` -> the dark scope is skipped wholesale like every other scope.
 
 ### Contracts
-- `<run>/review-dark.md` — the existing fidelity report format, no new fields.
+- `<run>/review-dark.md` - the existing fidelity report format, no new fields.
 
 ### DoD
 The extractor dispatches a dark scope only when dark screens exist, and `fidelity-reviewer` runs
@@ -289,11 +289,11 @@ colour-only checks for it without repeating theme-invariant checks.
 
 <!-- TASK -->
 
-## Task 5 — docs(superui): record dark verification in the dark-mode canon
+## Task 5 - docs(superui): record dark verification in the dark-mode canon
 - Covers: criteria #10, #11
 
 ### Dependencies
-- Task 1, Task 2, Task 3, Task 4 — blocks: nothing
+- Task 1, Task 2, Task 3, Task 4 - blocks: nothing
 
 ### Files
 - modify - superui/CLAUDE.md ("Dark-mode canon" invariant)
@@ -303,12 +303,12 @@ colour-only checks for it without repeating theme-invariant checks.
 - none
 
 *Tests*
-- `grep -n -A 20 "Dark-mode canon" superui/CLAUDE.md` — expect the verification sentence present
-- `git log -1 --format=%s -- superui/.claude-plugin/plugin.json` — expect a subject predating this
+- `grep -n -A 20 "Dark-mode canon" superui/CLAUDE.md` - expect the verification sentence present
+- `git log -1 --format=%s -- superui/.claude-plugin/plugin.json` - expect a subject predating this
   plan (NOT one of Task 1-4's commit subjects). A working-tree `git diff` is vacuous here:
   `simplebuild` commits per task, so by Task 5 the tree is clean either way.
-- `git log -1 --format=%s -- superui/scripts/ superui/assets/` — same expectation
-- `git log -1 --format=%s -- superui/agents/spec-writer.md superui/agents/spec-designer.md` — same expectation (specs stay light-only; a blanket `superui/agents/` check is impossible because Tasks 2 and 4 legitimately modify `design-director.md` and `fidelity-reviewer.md`)
+- `git log -1 --format=%s -- superui/scripts/ superui/assets/` - same expectation
+- `git log -1 --format=%s -- superui/agents/spec-writer.md superui/agents/spec-designer.md` - same expectation (specs stay light-only; a blanket `superui/agents/` check is impossible because Tasks 2 and 4 legitimately modify `design-director.md` and `fidelity-reviewer.md`)
 
 ### Approach
 1. Extend the "Dark-mode canon" invariant with the verification half: dark is checked by two
@@ -317,7 +317,7 @@ colour-only checks for it without repeating theme-invariant checks.
 2. Note that the creative head gates dark coverage on the brief, so an unrequested dark theme is
    never fabricated.
 3. Keep the existing canon text (the `$extensions.org.superui.dark` literal, the whole-page toggle,
-   the `sheet.template.html` / `build_index.py` duplication warning) verbatim — this is an addition,
+   the `sheet.template.html` / `build_index.py` duplication warning) verbatim - this is an addition,
    not a rewrite.
 4. Verify the untouched surfaces with the three `git log -1` commands above.
 

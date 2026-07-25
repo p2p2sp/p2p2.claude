@@ -1,4 +1,4 @@
-# Jobs catalog — what you can point it at
+# Jobs catalog - what you can point it at
 
 Every job is the same formula: **Impact × Opportunity**, where each side is a
 concrete, cheaply-measurable signal. Pick the job that matches the user's goal,
@@ -12,53 +12,53 @@ into `.temp/code-reviewer/<run-id>/job.md` so the whole swarm scores consistentl
 ## Code
 
 ### Tech debt
-- **Impact** — git churn (commits touching the file in the window) × number of
+- **Impact** - git churn (commits touching the file in the window) × number of
   dependents/importers. Code that changes a lot and is depended on a lot hurts most.
-- **Opportunity** — complexity / size and how tangled it is. High complexity =
+- **Opportunity** - complexity / size and how tangled it is. High complexity =
   lots to win by untangling.
 
 ### Dead code
-- **Impact** — size of the file/module (how much it weighs the codebase down).
-- **Opportunity** — confidence that it is actually unused (no callers, no
+- **Impact** - size of the file/module (how much it weighs the codebase down).
+- **Opportunity** - confidence that it is actually unused (no callers, no
   imports, no route, no test references). High confidence-unused = safe, real win.
 
 ## Reliability  *(default for "find bugs / audit")*
 
 ### Bugs
-- **Impact** — change frequency × blast radius (how reachable from entry points,
+- **Impact** - change frequency × blast radius (how reachable from entry points,
   how many callers downstream).
-- **Opportunity** — hotfix / revert "blame": how often this file appears in
+- **Opportunity** - hotfix / revert "blame": how often this file appears in
   commits messaged fix/hotfix/revert. A file that keeps getting emergency-patched
   is where the next bug lives.
 
 ### Coverage
-- **Impact** — blast radius (how much breaks if this is wrong).
-- **Opportunity** — coverage gap (untested branches, no tests touching it).
+- **Impact** - blast radius (how much breaks if this is wrong).
+- **Opportunity** - coverage gap (untested branches, no tests touching it).
 
 ### Consistency
-- **Impact** — usage (how widely this helper/pattern is relied on).
-- **Opportunity** — rubric drift (divergence from the project's stated
+- **Impact** - usage (how widely this helper/pattern is relied on).
+- **Opportunity** - rubric drift (divergence from the project's stated
   conventions / the pattern used elsewhere).
 
 ## Cost
 
 ### Spend
-- **Impact** — dollar spend attributable to the component (infra, API calls).
-- **Opportunity** — how optimizable it looks (obvious waste, N+1, no caching).
+- **Impact** - dollar spend attributable to the component (infra, API calls).
+- **Opportunity** - how optimizable it looks (obvious waste, N+1, no caching).
 
 ### Performance
-- **Impact** — run frequency (hot path, called per request / per row).
-- **Opportunity** — slowness (algorithmic cliffs, sync I/O in a loop, big-O smell).
+- **Impact** - run frequency (hot path, called per request / per row).
+- **Opportunity** - slowness (algorithmic cliffs, sync I/O in a loop, big-O smell).
 
 ## Growth
 
 ### Conversion
-- **Impact** — traffic reaching the surface (paywall viewed, button clicked).
-- **Opportunity** — drop-off at that step (the gap between reach and conversion).
+- **Impact** - traffic reaching the surface (paywall viewed, button clicked).
+- **Opportunity** - drop-off at that step (the gap between reach and conversion).
 
 ### SEO
-- **Impact** — organic traffic / potential traffic to the page.
-- **Opportunity** — ranking gap (how far from where it could rank).
+- **Impact** - organic traffic / potential traffic to the page.
+- **Opportunity** - ranking gap (how far from where it could rank).
 
 ---
 

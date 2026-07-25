@@ -18,12 +18,12 @@ Native GitHub sub-issues are **REST-supported** (API version `2026-03-10`). Ther
 
 | Surface | Wants which ID? |
 |---|---|
-| REST `/sub_issues` | **DB id** — the numeric `id` field of `GET /repos/{o}/{r}/issues/{n}` (NOT the issue number, NOT the GraphQL node id) |
-| GraphQL `addSubIssue` | **node id** — `I_kwDOABCDEF…` (NOT the issue number, NOT the DB id) |
+| REST `/sub_issues` | **DB id** - the numeric `id` field of `GET /repos/{o}/{r}/issues/{n}` (NOT the issue number, NOT the GraphQL node id) |
+| GraphQL `addSubIssue` | **node id** - `I_kwDOABCDEF…` (NOT the issue number, NOT the DB id) |
 
-Mixing them silently 404s or misroutes — always resolve the right shape first.
+Mixing them silently 404s or misroutes - always resolve the right shape first.
 
-## REST path (preferred — least friction)
+## REST path (preferred - least friction)
 
 Get the child issue's DB id:
 
@@ -88,5 +88,5 @@ Remove uses `removeSubIssue(input: { issueId, subIssueId })`; reorder uses `repr
 
 ## Sources
 
-- REST — Sub-issues: <https://docs.github.com/en/rest/issues/sub-issues>
-- GraphQL — addSubIssue: <https://docs.github.com/en/graphql/reference/mutations#addsubissue>
+- REST - Sub-issues: <https://docs.github.com/en/rest/issues/sub-issues>
+- GraphQL - addSubIssue: <https://docs.github.com/en/graphql/reference/mutations#addsubissue>

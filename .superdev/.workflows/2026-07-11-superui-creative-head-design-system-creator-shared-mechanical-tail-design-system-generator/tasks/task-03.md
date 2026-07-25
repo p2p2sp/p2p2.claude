@@ -1,9 +1,9 @@
 
-## Task 3 — refactor(superui): slim design-system-extractor to the measurement head
+## Task 3 - refactor(superui): slim design-system-extractor to the measurement head
 - Covers: criteria #4
 
 ### Dependencies
-- Task 2 — blocks: Task 7
+- Task 2 - blocks: Task 7
 
 ### Files
 - modify - superui/skills/design-system-extractor/SKILL.md (steps + allowed-tools)
@@ -26,7 +26,7 @@
 
 ### Edge cases
 - Generator returns a failure line (env or gate) -> extractor surfaces it and stops; no fidelity fan-out on missing artifacts.
-- Spec-writer NEEDS INPUT markers arrive via the generator's return — extractor carries them into Present results exactly like today.
+- Spec-writer NEEDS INPUT markers arrive via the generator's return - extractor carries them into Present results exactly like today.
 
 ### Contracts
 - Consumes the generator input/return contract from Task 2 (labeled args, verbatim relay).

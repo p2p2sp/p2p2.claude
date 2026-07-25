@@ -1,4 +1,4 @@
-# Scoring — the 1-5 rubric, the gate, and the hotlist
+# Scoring - the 1-5 rubric, the gate, and the hotlist
 
 ## The 1-5 rubric
 
@@ -40,7 +40,7 @@ Only HOTSPOT files are dispatched to detectives. Keep the others in the hotlist 
 ## Tie-breaking & caps
 - Break equal `score` ties by higher `impact` first, then higher `churn`.
 - Cap detective dispatch with `--top N`; even if 80 files clear the gate, start with the top N and open new fronts later (Phase 6) rather than spending on all at once.
-- A file that scores 5×2 is NOT a hotspot — high impact but nothing to win. Resist the urge to investigate it just because impact is high. That is the "leave it" cell, and chasing it is the most common waste.
+- A file that scores 5×2 is NOT a hotspot - high impact but nothing to win. Resist the urge to investigate it just because impact is high. That is the "leave it" cell, and chasing it is the most common waste.
 
 ## Hotlist schema (`hotlist.json`)
 

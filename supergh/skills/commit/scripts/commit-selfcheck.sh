@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 #
-# commit-selfcheck.sh — weryfikuje, czy commit powstał, porównując HEAD sprzed i po commicie.
+# commit-selfcheck.sh - weryfikuje, czy commit powstał, porównując HEAD sprzed i po commicie.
 #
 # Użycie:
 #   commit-selfcheck.sh <before_sha>
 #
 # Parametry:
-#   before_sha (wymagany) — SHA HEAD sprzed commita
+#   before_sha (wymagany) - SHA HEAD sprzed commita
 #
 # Wypisuje jedno słowo na stdout:
-#   VERIFIED — HEAD się zmienił (commit powstał)
-#   FAILED   — HEAD bez zmian (commit nie powstał)
+#   VERIFIED - HEAD się zmienił (commit powstał)
+#   FAILED   - HEAD bez zmian (commit nie powstał)
 set -euo pipefail
 
 before="${1:-}"

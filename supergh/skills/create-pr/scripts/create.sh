@@ -1,17 +1,17 @@
 #!/bin/sh
-# supergh — skills/create-pr/scripts/create.sh
+# supergh - skills/create-pr/scripts/create.sh
 # Creates the draft PR and parses the printed URL in one deterministic step. `--draft`
 # and `--body-file` are hardcoded here, so the invariants (always draft, never an inline
 # body) cannot be skipped by the caller. Self-verifying: PR_URL is printed only after gh
-# returned a well-formed PR URL — the caller trusts the block without re-checking.
+# returned a well-formed PR URL - the caller trusts the block without re-checking.
 #
 # IN : $1 = base branch, $2 = head branch, $3 = body file path (from body-path.sh),
 #      $4 = title
-# OUT: KEY=VALUE block on stdout —
+# OUT: KEY=VALUE block on stdout -
 #        PR_URL=https://github.com/{owner}/{repo}/pull/{N}
 #        PR_NUMBER=<N>
 # exit: 0 with the block above; 1 (one ERROR line on stderr) when `gh pr create` failed
-#       or printed no parsable URL — nothing created to trust, caller STOPs; 2 on bad
+#       or printed no parsable URL - nothing created to trust, caller STOPs; 2 on bad
 #       arguments.
 set -u
 

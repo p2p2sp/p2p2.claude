@@ -1,10 +1,10 @@
 #!/bin/sh
-# supergh — skills/create-issue/scripts/create.sh
+# supergh - skills/create-issue/scripts/create.sh
 # Creates the GitHub issue and (optionally) applies the issue type in one deterministic
 # step: `gh issue create` -> parse the printed URL -> REST PATCH the type (no `--type`
 # flag exists on `gh issue create`). Replaces the 3-call prose dance (create, URL parse,
 # PATCH + benign-error triage) in SKILL.md Step 8. Self-verifying: ISSUE_URL is printed
-# only after gh returned a well-formed issue URL — the caller trusts the block without
+# only after gh returned a well-formed issue URL - the caller trusts the block without
 # re-checking.
 #
 # IN : $1 = body file path (from body-path.sh)
@@ -14,7 +14,7 @@
 #        --label <L>      repeatable, passed to gh verbatim
 #        --assignee <A>   repeatable, passed to gh verbatim
 #        --project <P>    repeatable, passed to gh verbatim
-# OUT: KEY=VALUE block on stdout —
+# OUT: KEY=VALUE block on stdout -
 #        ISSUE_URL=https://github.com/{owner}/{repo}/issues/{N}
 #        ISSUE_NUMBER=<N>
 #        TYPE=applied|dropped|error|none
@@ -24,7 +24,7 @@
 #      TYPE=error   -> unexpected PATCH failure: the issue still exists (never rolled
 #      back), caller surfaces TYPE_ERROR and continues.
 # exit: 0 with the block above; 1 (one ERROR line on stderr) when `gh issue create`
-#       itself failed or printed no parsable URL — nothing created to trust, caller STOPs;
+#       itself failed or printed no parsable URL - nothing created to trust, caller STOPs;
 #       2 on bad arguments.
 set -u
 

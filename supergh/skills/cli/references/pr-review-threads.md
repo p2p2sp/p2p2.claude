@@ -11,9 +11,9 @@ A review **thread** is the group of review comments anchored to the same diff lo
 | Resolve a thread | no (tracked in `cli/cli#12419`) | **not supported** | `resolveReviewThread` |
 | Unresolve a thread | no | **not supported** | `unresolveReviewThread` |
 
-To resolve programmatically you need the **thread** node ID (`PRRT_…`), which is only obtainable via GraphQL — so both the lookup and the mutation are GraphQL.
+To resolve programmatically you need the **thread** node ID (`PRRT_…`), which is only obtainable via GraphQL - so both the lookup and the mutation are GraphQL.
 
-## Discovery — list threads of a PR
+## Discovery - list threads of a PR
 
 ```bash
 gh api graphql -F owner="$O" -F name="$R" -F num=123 -f query='
@@ -84,7 +84,7 @@ gh api graphql -F threadId="$PRRT_ID" -f body='…' -f query='
   }'
 ```
 
-## Bulk-resolve outdated threads — common script shape
+## Bulk-resolve outdated threads - common script shape
 
 ```bash
 # 1. Page through threads; filter outdated + unresolved with gh's built-in jq (no system jq).
@@ -113,5 +113,5 @@ gh api graphql --paginate --slurp -F owner="$O" -F name="$R" -F num=123 \
 
 ## Sources
 
-- GraphQL — resolveReviewThread: <https://docs.github.com/en/graphql/reference/mutations#resolvereviewthread>
-- REST — Pull request review comments: <https://docs.github.com/en/rest/pulls/comments>
+- GraphQL - resolveReviewThread: <https://docs.github.com/en/graphql/reference/mutations#resolvereviewthread>
+- REST - Pull request review comments: <https://docs.github.com/en/rest/pulls/comments>

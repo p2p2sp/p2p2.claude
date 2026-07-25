@@ -33,7 +33,7 @@
   talking to the user, `spec-designer`'s `SYNTHESIZED-TOKENS:` block is byte-for-byte the same shape
   `design-synthesizer` already established, and `design-director`'s synthesized inventory-entry shape
   (`· synthesized (no canonical screen) · states: <list>`) matches the "sanctioned" shape the completer
-  already uses in its `## Synthesized` ledger — a genuine, non-obvious cross-plan consistency check
+  already uses in its `## Synthesized` ledger - a genuine, non-obvious cross-plan consistency check
   that holds.
 - Documentation sync (Task 7) is unusually thorough: `superui/README.md`, root `README.md`,
   `superui/CLAUDE.md`, and root `CLAUDE.md` all agree on skill/agent counts (7 skills, 12 agents),
@@ -42,7 +42,7 @@
   since it names no artifact writers (matching the plan's conditional instruction).
 - `check_env.sh` and the `setup` skill honor the script/fork trust invariant precisely: the script is
   self-verifying and always exits 0 (diagnostic data, not failure), and the skill body explicitly says
-  "trust its lines verbatim — do not re-verify them."
+  "trust its lines verbatim - do not re-verify them."
 
 ### Issues
 
@@ -59,20 +59,20 @@ None.
   `source-map.md`), but `design-doc-writer.md` was never updated to acknowledge this second mode. Its
   own "Evidence only" hard rule ("every claim traces to dtcg.yml, a notes file, or the source map")
   and its step-2 wording ("Principles: only rules **the source** demonstrably shows") are written
-  entirely around the measured/extraction case. This mostly self-resolves in practice — the notes
+  entirely around the measured/extraction case. This mostly self-resolves in practice - the notes
   files `design-director` produces are in the same format `foundation-analyst` produces, so "a notes
-  file" already covers the creator path as an allowed evidence source — but the brief itself is never
+  file" already covers the creator path as an allowed evidence source - but the brief itself is never
   named as a legitimate input, and the "the source demonstrably shows" phrasing has no natural reading
   for a system with no source screenshots at all. Failure scenario: a run through `design-system-creator`
   dispatches `design-doc-writer` with a `notes-*.md` set plus `brief.md` and no `source-map.md`; the
   agent's own contract gives it no explicit license to draw principles/theming narrative from the brief,
   so it either ignores the brief (weaker, generic-sounding DESIGN.md prose for a "designed" system) or
   hedges with `> NEEDS INPUT` markers for principles a competent read of the brief would have answered.
-  This is best read as a plan gap — Task 2's Files list for `design-system-generator` never included
+  This is best read as a plan gap - Task 2's Files list for `design-system-generator` never included
   `design-doc-writer.md`, even though the generator's own step 4 changes what gets handed to it. Fix:
   add a short "designed systems" note to `design-doc-writer.md` naming the brief as an allowed
   narrative-context source and rephrasing "the source demonstrably shows" to cover both the measured
-  and designed cases (e.g. "only rules the evidence — source, notes, or brief — demonstrably shows").
+  and designed cases (e.g. "only rules the evidence - source, notes, or brief - demonstrably shows").
 
 #### Minor (Nice to Have)
 
@@ -91,7 +91,7 @@ None.
 ### Recommendations
 
 - Consider whether `design-doc-writer.md`'s fix above should also touch its "Theming" bullet
-  (`$extensions.org.superui.dark`) — that part is already dtcg.yml-driven and provenance-agnostic, so
+  (`$extensions.org.superui.dark`) - that part is already dtcg.yml-driven and provenance-agnostic, so
   no change needed there; only the "Principles" bullet and the top-level evidence rule need the
   designed-system wording.
 - No other cross-file contract drift was found: `component-scout`'s section-format vocabulary,
@@ -107,5 +107,5 @@ None.
 architecture is implemented faithfully and symmetrically; the provenance canon extension is coherent
 end to end and independently verified with a live fixture. The one Important finding
 (`design-doc-writer.md`'s contract not updated for the creator's brief-driven, source-less dispatch) is
-a real but self-mitigating documentation gap — the existing "notes file" evidence clause already covers
-most of it — not a broken pipeline; it can be fixed as a small follow-up without blocking merge.
+a real but self-mitigating documentation gap - the existing "notes file" evidence clause already covers
+most of it - not a broken pipeline; it can be fixed as a small follow-up without blocking merge.

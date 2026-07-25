@@ -1,8 +1,8 @@
 /*
- * assemble_specs.ts — consolidates every per-entry intermediate spec under
+ * assemble_specs.ts - consolidates every per-entry intermediate spec under
  * SPECS_DIR into ONE satellite markdown file (`DESIGN.components.md` or
  * `DESIGN.patterns.md`). It is the SOLE writer of its OUTPUT_MD and is run
- * once per kind — first the components specs dir, then the patterns specs dir.
+ * once per kind - first the components specs dir, then the patterns specs dir.
  *
  * Each intermediate `<slug>.md` is wrapped under a `## <slug>` heading whose
  * slug is derived from the FILENAME (never by parsing the spec body), so the
@@ -14,9 +14,9 @@
  * self-verify's `## `-count == spec-count invariant exact regardless of how a
  * spec headed its own sections).
  *
- * IN : SPECS_DIR — a dir of zero or more `<slug>.md` intermediate specs.
- *      OUTPUT_MD — where to write the consolidated satellite.
- * OUT: stdout — one line on success:
+ * IN : SPECS_DIR - a dir of zero or more `<slug>.md` intermediate specs.
+ *      OUTPUT_MD - where to write the consolidated satellite.
+ * OUT: stdout - one line on success:
  *        SPECS_OK entries=<N> -> <OUTPUT_MD>
  *      OUTPUT_MD holds a `# <Title>` line then one `## <slug>` subsection per
  *      input spec (slugs sorted), each followed by that spec's body. An empty

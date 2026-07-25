@@ -1,4 +1,4 @@
-# Issues — create, edit, type, labels, milestones, assignees
+# Issues - create, edit, type, labels, milestones, assignees
 
 ## Verdict at a glance
 
@@ -13,7 +13,7 @@
 | Manage milestone **definitions** (CRUD) | `gh api .../milestones` (REST) | No top-level `gh milestone`. |
 | Manage org issue type **definitions** | `gh api .../orgs/{org}/issue-types` (REST) | Or GraphQL `createIssueType`/`updateIssueType`/`deleteIssueType`. |
 
-## `gh issue create` — canonical pattern
+## `gh issue create` - canonical pattern
 
 ```bash
 gh issue create \
@@ -29,11 +29,11 @@ gh issue create \
 - `--web` opens the browser instead of creating directly.
 - On success, the new issue URL is printed to stdout.
 
-## Issue types — the gotcha
+## Issue types - the gotcha
 
 `gh issue create` does **not** accept `--type`. The flag does not exist (manual: <https://cli.github.com/manual/gh_issue_create>). Two paths to set the type:
 
-### Path A — REST, in one call (preferred when starting fresh)
+### Path A - REST, in one call (preferred when starting fresh)
 
 ```bash
 gh api repos/{owner}/{repo}/issues \
@@ -46,10 +46,10 @@ gh api repos/{owner}/{repo}/issues \
 
 Notes:
 - `type=` accepts the **name** of the type (`Bug`, `Feature`, `Task`, or any org-custom name).
-- `labels` and `assignees` are JSON arrays — use `-F` so the string is parsed.
+- `labels` and `assignees` are JSON arrays - use `-F` so the string is parsed.
 - Response body contains the new issue (`.number`, `.html_url`, `.id`).
 
-### Path B — REST PATCH after `gh issue create` (preferred when wrapping `gh issue create`)
+### Path B - REST PATCH after `gh issue create` (preferred when wrapping `gh issue create`)
 
 ```bash
 gh issue create --title '...' --body-file body.md --label bug --assignee @me
@@ -59,7 +59,7 @@ gh api -X PATCH repos/{owner}/{repo}/issues/{N} -f type=Bug
 
 This is the right pattern when an existing skill already builds a `gh issue create` invocation and we just need to bolt on the type. Used by the `create-issue` skill in this plugin.
 
-### Path C — GraphQL (needed only if you already hold a node ID, not a number)
+### Path C - GraphQL (needed only if you already hold a node ID, not a number)
 
 ```bash
 gh api graphql -H 'GraphQL-Features: issue_types' \
@@ -93,7 +93,7 @@ To clear a type: REST `PATCH` with `-f type=` (empty), or GraphQL `updateIssue(i
 |---|---|---|
 | `unknown flag: --type` | You used `gh issue create --type ...`. Flag does not exist. | Drop the flag; use Path A or B. |
 | `Validation Failed: Type … is not a valid issue type` | Type name wrong, or not enabled in the org. | Surface a 1-line warning; continue without type. |
-| `Issue types are not enabled for this organization` | Org has not enabled the feature. | Same — warn, continue. |
+| `Issue types are not enabled for this organization` | Org has not enabled the feature. | Same - warn, continue. |
 | `403 Resource not accessible by personal access token` | Token missing scope. | Re-run with `admin:org` (classic PAT) or the fine-grained `Issue types` permission. See `auth-and-scopes.md`. |
 
 ## Labels
@@ -111,7 +111,7 @@ REST equivalents under `/repos/{o}/{r}/labels`.
 
 ## Milestones
 
-No top-level `gh milestone` subcommand — use REST:
+No top-level `gh milestone` subcommand - use REST:
 
 ```bash
 gh api repos/{owner}/{repo}/milestones -f title='Q2 2026' -f state=open -f description='…'
@@ -124,10 +124,10 @@ Attach an existing milestone to an issue via `gh issue create -m "Q2 2026"` or `
 
 ## Reactions
 
-REST via `gh api` — no native `gh` subcommand exists for reactions. Content types on issues and issue/PR comments: `+1` `-1` `laugh` `confused` `heart` `hooray` `rocket` `eyes`. Releases accept a NARROWER set — no `-1` / `confused`: `+1` `laugh` `heart` `hooray` `rocket` `eyes`.
+REST via `gh api` - no native `gh` subcommand exists for reactions. Content types on issues and issue/PR comments: `+1` `-1` `laugh` `confused` `heart` `hooray` `rocket` `eyes`. Releases accept a NARROWER set - no `-1` / `confused`: `+1` `laugh` `heart` `hooray` `rocket` `eyes`.
 
 ```bash
-# Add a reaction — issue, issue/PR comment, or release (swap the path)
+# Add a reaction - issue, issue/PR comment, or release (swap the path)
 gh api repos/{owner}/{repo}/issues/{issue_number}/reactions -f content=+1
 gh api repos/{owner}/{repo}/issues/comments/{comment_id}/reactions -f content=heart
 gh api repos/{owner}/{repo}/releases/{release_id}/reactions -f content=rocket
@@ -135,18 +135,18 @@ gh api repos/{owner}/{repo}/releases/{release_id}/reactions -f content=rocket
 # List reactions
 gh api repos/{owner}/{repo}/issues/{issue_number}/reactions
 
-# Remove a reaction — needs the reaction's own `id` (from the list/create response,
+# Remove a reaction - needs the reaction's own `id` (from the list/create response,
 # not the issue/comment/release id)
 gh api -X DELETE repos/{owner}/{repo}/issues/{issue_number}/reactions/{reaction_id}
 ```
 
 Notes:
 - Adding a reaction that the same user already gave is idempotent (returns the existing reaction, HTTP 200) rather than duplicating it.
-- PR comments use the same `issues/comments/{comment_id}` path as issue comments — GitHub's REST API treats PR conversation comments as issue comments.
-- Reactions on Discussions / Discussion comments are GraphQL-only — see `references/discussions.md`.
+- PR comments use the same `issues/comments/{comment_id}` path as issue comments - GitHub's REST API treats PR conversation comments as issue comments.
+- Reactions on Discussions / Discussion comments are GraphQL-only - see `references/discussions.md`.
 
 ## Sources
 
-- gh manual — issue: <https://cli.github.com/manual/gh_issue>
-- REST — Issues (with `type` field): <https://docs.github.com/en/rest/issues/issues>
-- REST — Reactions: <https://docs.github.com/en/rest/reactions/reactions>
+- gh manual - issue: <https://cli.github.com/manual/gh_issue>
+- REST - Issues (with `type` field): <https://docs.github.com/en/rest/issues/issues>
+- REST - Reactions: <https://docs.github.com/en/rest/reactions/reactions>

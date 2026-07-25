@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// rank.ts — combine scout scores into a gated, ranked HOTLIST.
+// rank.ts - combine scout scores into a gated, ranked HOTLIST.
 //
 // Reads scout verdicts (JSONL, one object per line with at least `path`, `impact`,
 // `opportunity`) and optionally the deterministic signals JSONL, computes
@@ -21,7 +21,7 @@ import * as path from "node:path";
 // Python-compat data model
 //
 // JSON is parsed with a bespoke parser so that (a) object key order is fully
-// preserved (Map, like Python dict — JS objects reorder integer-like keys),
+// preserved (Map, like Python dict - JS objects reorder integer-like keys),
 // and (b) ints and floats stay distinct (PyFloat wrapper), matching Python's
 // int/float split in str() and json.dumps output.
 // ---------------------------------------------------------------------------
@@ -690,7 +690,7 @@ function main(): void {
 
   // Markdown hotlist (the slide's HOTLIST READY table).
   const lines: string[] = [];
-  let title = `# HOTLIST — ${args.runId || "run"}`;
+  let title = `# HOTLIST - ${args.runId || "run"}`;
   if (args.job) {
     title += `  (${args.job})`;
   }

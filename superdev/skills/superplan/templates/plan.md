@@ -8,12 +8,12 @@ Spec: <full/path/to/spec.md> <!-- `What & Why` specification -->
 
 <!-- TASK -->
 
-## Task <N> — <title which become a commit message>
+## Task <N> - <title which become a commit message>
 - TDD: <marker>
 - Covers: criteria #<n>[, #<m>]
 
 ### Dependencies
-- <task N> — blocks: <…>
+- <task N> - blocks: <…>
 
 ### Files
 - <add | modify | delete> - <path> (<symbol>)
@@ -28,7 +28,7 @@ Spec: <full/path/to/spec.md> <!-- `What & Why` specification -->
 <one line per test command>
 
 ### Approach
-<2–5 imperative steps — symbol + signature, algorithm (name the symbol, never a line number). No prose, no "figure out">
+<2–5 imperative steps - symbol + signature, algorithm (name the symbol, never a line number). No prose, no "figure out">
 
 ### Edge cases
 <error / boundary behavior this task must handle (or "none")>

@@ -34,7 +34,7 @@ else
     echo "rules_dir: none"
 fi
 echo "rule_files: ${#RULE_FILES[@]}"
-echo "frozen_files: ${#FROZEN_FILES[@]} (leading _, immutable — excluded from state and from all downstream work)"
+echo "frozen_files: ${#FROZEN_FILES[@]} (leading _, immutable - excluded from state and from all downstream work)"
 for f in "${FROZEN_FILES[@]}"; do
     echo "  - $f (frozen)"
 done

@@ -8,8 +8,8 @@ Three modes (combinable):
              (darkest first = surface.base, lighter = raised/muted) so the
              surface/elevation order is MEASURED, not assumed
 
-IN : IMAGE — path to a PNG or JPEG image (non-interlaced PNG; baseline or
-     progressive JPEG). Decoded by the bundled vendor decoders — no
+IN : IMAGE - path to a PNG or JPEG image (non-interlaced PNG; baseline or
+     progressive JPEG). Decoded by the bundled vendor decoders - no
      third-party dependencies, Node built-ins only.
 Flags:
   --k N               palette size (default 8; 0 skips the palette)
@@ -17,7 +17,7 @@ Flags:
   --crop x,y,w,h      crop applied before palette extraction
   --regions name=x,y,w,h ...  named rects, ranked by background luminance
   --json              emit DTCG-ready JSON instead of the table
-OUT: stdout — human-readable table by default, JSON with --json. Each color is
+OUT: stdout - human-readable table by default, JSON with --json. Each color is
      reported as hex, sRGB 0..1 components, and a coverage % (palette). The
      palette contains only real clusters: empty clusters (k larger than the
      number of distinct colors) are dropped and identical centroids are merged,
@@ -116,7 +116,7 @@ function pyRoundInt(x: number): number {
 }
 
 /**
- * numpy round(x, 4) — NOT the same as CPython's round. In the original
+ * numpy round(x, 4) - NOT the same as CPython's round. In the original
  * script `cov` is an np.float64 (int64 count / int64 total), so `round(cov,
  * 4)` dispatches to np.round: multiply by 10^4 (IEEE-rounded product!), rint
  * half-even, divide back. This differs from CPython's exact-decimal rounding
@@ -183,7 +183,7 @@ function jsonString(s: string): string {
   return out + '"';
 }
 
-/** Python json.dumps(value, indent=2) — same layout, key order, and floats. */
+/** Python json.dumps(value, indent=2) - same layout, key order, and floats. */
 function pyJson(v: unknown, indent: number = 0): string {
   if (v instanceof F) return floatRepr(v.v);
   if (typeof v === "number") return String(v);

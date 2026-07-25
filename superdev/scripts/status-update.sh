@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# status-update.sh — zapisuje numer przetworzonego taska do status.md.
+# status-update.sh - zapisuje numer przetworzonego taska do status.md.
 #
 # Użycie:
 #   status-update.sh <task-file>

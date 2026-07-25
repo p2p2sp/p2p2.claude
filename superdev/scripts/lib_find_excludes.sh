@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# superdev / scripts — lib_find_excludes.sh
+# superdev / scripts - lib_find_excludes.sh
 #
 # Builds a global FIND_EXCLUDES=( -not -path ... ) array for `find`, derived from
 # the project's .gitignore (root located by walking up from a start path), with a
 # fallback to the bundled ../../skills/setup/assets/gitignore.txt template.
 #
 # Plugin-level shared helper (consumed by superdev-memory's scan scripts). It is
-# the single copy — do not re-duplicate it under a skill's own scripts/ dir.
+# the single copy - do not re-duplicate it under a skill's own scripts/ dir.
 #
 # Contract:
 #   input  : $1 = start path (default: CWD). The project root is the nearest
 #            ancestor containing .gitignore (preferred) or a .git/ directory.
-#   output : sets the GLOBAL array FIND_EXCLUDES (always non-empty — safety floor).
+#   output : sets the GLOBAL array FIND_EXCLUDES (always non-empty - safety floor).
 #            Always returns 0 (fail-soft). Diagnostics go to stderr, never stdout.
 #   usage  : source "$(dirname "${BASH_SOURCE[0]}")/../../../scripts/lib_find_excludes.sh"
 #            load_find_excludes "$TARGET_PATH"
@@ -21,7 +21,7 @@
 #            non-matching grep / empty read.
 #   scope  : DIRECTORY pruning only. File-glob patterns (*.log, .DS_Store),
 #            negations (!...) and the leading-"/" root anchor are intentionally
-#            skipped/relaxed — a directory token that matches nothing is harmless,
+#            skipped/relaxed - a directory token that matches nothing is harmless,
 #            so the parser only ever risks excluding too LITTLE, never too much.
 
 # Append the (*/p, */p/*) token pair for one normalized directory pattern.
@@ -42,7 +42,7 @@ _collect_dir_names() {
     [ -z "$line" ] && continue
     case "$line" in
       \#*) continue ;;   # comment
-      \!*) continue ;;   # negation — not expressible as -not -path; skip
+      \!*) continue ;;   # negation - not expressible as -not -path; skip
     esac
     # classify directory vs file
     local is_dir=0
@@ -75,7 +75,7 @@ load_find_excludes() {
   local start="${1:-.}"
   FIND_EXCLUDES=()
 
-  # safety floor — always excluded, and keeps the array non-empty (guards the
+  # safety floor - always excluded, and keeps the array non-empty (guards the
   # set -u + empty-array trap on the older bash that ships with Git Bash).
   _emit_dir_pattern ".git"
   _emit_dir_pattern "node_modules"
@@ -100,7 +100,7 @@ load_find_excludes() {
     if [ -f "$fb" ]; then
       gi="$fb"
     else
-      echo "lib_find_excludes: no .gitignore and no fallback ($fb) — safety floor only" >&2
+      echo "lib_find_excludes: no .gitignore and no fallback ($fb) - safety floor only" >&2
       return 0
     fi
   fi

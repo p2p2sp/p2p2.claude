@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# superdev / setup — bootstrap.test.sh
+# superdev / setup - bootstrap.test.sh
 #
 # Deterministic test runs for bootstrap.sh's config.yml + .gitattributes seeding
 # behavior. This repo has no test framework (markdown + JSON + bash), so a
@@ -14,11 +14,11 @@
 #            "ALL PASS (N/N)" line. On any mismatch it prints "FAIL: <case>" with
 #            the expected vs actual detail and exits non-zero.
 #   cases  : (1) seed-when-absent: no .superdev/config.yml -> bootstrap copies the
-#                asset, prints the "seeded from template — defaults: adr=false,
+#                asset, prints the "seeded from template - defaults: adr=false,
 #                rules=false" line, exit 0;
 #            (2) never-overwrite-when-present: a pre-existing config.yml (flipped
 #                switch) is byte-unchanged, prints "already present (left
-#                untouched) — current switches:", exit 0;
+#                untouched) - current switches:", exit 0;
 #            (3) idempotency: two runs in a row leave the seeded config.yml
 #                unchanged on the second run and report already-present;
 #            (4) legacy-key reconcile: the present-path switch grep reports only
@@ -48,9 +48,9 @@ TOTAL=0
 FAILED=0
 
 pass() { echo "PASS: $1"; PASS_COUNT=$((PASS_COUNT + 1)); }
-fail() { echo "FAIL: $1 — $2"; FAILED=$((FAILED + 1)); }
+fail() { echo "FAIL: $1 - $2"; FAILED=$((FAILED + 1)); }
 
-# Case 1 — seed-when-absent: no config.yml -> asset copied + seeded report + exit 0.
+# Case 1 - seed-when-absent: no config.yml -> asset copied + seeded report + exit 0.
 TOTAL=$((TOTAL + 1))
 T1="$SCRATCH/case1"
 mkdir -p "$T1"
@@ -59,7 +59,7 @@ if [ "$rc" -ne 0 ]; then
     fail "seed when absent" "exit code $rc (expected 0)"
 elif [ ! -f "$T1/.superdev/config.yml" ]; then
     fail "seed when absent" ".superdev/config.yml was not created"
-elif ! printf '%s\n' "$out" | grep -qF "config.yml: seeded from template — defaults: adr=false, rules=false"; then
+elif ! printf '%s\n' "$out" | grep -qF "config.yml: seeded from template - defaults: adr=false, rules=false"; then
     fail "seed when absent" "missing seeded report line; got: $(printf '%s\n' "$out" | grep -i config.yml)"
 elif ! cmp -s "$ASSET" "$T1/.superdev/config.yml"; then
     fail "seed when absent" "seeded config.yml differs from the asset"
@@ -67,7 +67,7 @@ else
     pass "seed when absent"
 fi
 
-# Case 2 — never-overwrite-when-present: a pre-existing config (flipped switch) is
+# Case 2 - never-overwrite-when-present: a pre-existing config (flipped switch) is
 # byte-unchanged and the present report line + grep is printed, exit 0.
 TOTAL=$((TOTAL + 1))
 T2="$SCRATCH/case2"
@@ -80,7 +80,7 @@ if [ "$rc" -ne 0 ]; then
     fail "never overwrite when present" "exit code $rc (expected 0)"
 elif [ "$before" != "$after" ]; then
     fail "never overwrite when present" "config.yml was modified (expected byte-unchanged)"
-elif ! printf '%s\n' "$out" | grep -qF "config.yml: already present (left untouched) — current switches:"; then
+elif ! printf '%s\n' "$out" | grep -qF "config.yml: already present (left untouched) - current switches:"; then
     fail "never overwrite when present" "missing present report line"
 elif ! printf '%s\n' "$out" | grep -qE '^[[:space:]]*adr:[[:space:]]*false'; then
     fail "never overwrite when present" "current switches not grep'd into output"
@@ -88,7 +88,7 @@ else
     pass "never overwrite when present"
 fi
 
-# Case 3 — idempotency: two runs in a row leave the seeded config unchanged on the
+# Case 3 - idempotency: two runs in a row leave the seeded config unchanged on the
 # second run and report already-present.
 TOTAL=$((TOTAL + 1))
 T3="$SCRATCH/case3"
@@ -101,13 +101,13 @@ if [ "$rc1" -ne 0 ] || [ "$rc2" -ne 0 ]; then
     fail "idempotent on second run" "exit codes $rc1/$rc2 (expected 0/0)"
 elif [ "$first" != "$second" ]; then
     fail "idempotent on second run" "config.yml changed on the second run"
-elif ! printf '%s\n' "$out" | grep -qF "config.yml: already present (left untouched) — current switches:"; then
+elif ! printf '%s\n' "$out" | grep -qF "config.yml: already present (left untouched) - current switches:"; then
     fail "idempotent on second run" "second run did not report already-present"
 else
     pass "idempotent on second run"
 fi
 
-# Case 4 — legacy-key reconcile: with a config carrying legacy keys, the present-path
+# Case 4 - legacy-key reconcile: with a config carrying legacy keys, the present-path
 # grep reports only adr + rules + memory, never artifacts|help|ui, and the output
 # never carries the stale "5 switches" text.
 TOTAL=$((TOTAL + 1))
@@ -130,7 +130,7 @@ else
     pass "switches report limited to adr+rules+memory"
 fi
 
-# Case 5 — .gitattributes seed-when-absent: no .gitattributes -> created with both
+# Case 5 - .gitattributes seed-when-absent: no .gitattributes -> created with both
 # linguist-generated lines + "created" report, exit 0.
 TOTAL=$((TOTAL + 1))
 T5="$SCRATCH/case5"
@@ -150,7 +150,7 @@ else
     pass ".gitattributes seed when absent"
 fi
 
-# Case 6 — .gitattributes append preserves unrelated rules: an existing file with an
+# Case 6 - .gitattributes append preserves unrelated rules: an existing file with an
 # unrelated rule gains both lines, the unrelated rule survives, "appended" report.
 TOTAL=$((TOTAL + 1))
 T6="$SCRATCH/case6"
@@ -171,7 +171,7 @@ else
     pass ".gitattributes append preserves unrelated"
 fi
 
-# Case 7 — .gitattributes append only the missing line: seed both, strip the
+# Case 7 - .gitattributes append only the missing line: seed both, strip the
 # workflows line, re-run -> only that line is re-added (kept line not duplicated).
 TOTAL=$((TOTAL + 1))
 T7="$SCRATCH/case7"
@@ -192,7 +192,7 @@ else
     pass ".gitattributes append only missing"
 fi
 
-# Case 8 — .gitattributes idempotent: a second run reports already-present, adds no
+# Case 8 - .gitattributes idempotent: a second run reports already-present, adds no
 # duplicate, leaves the file byte-unchanged.
 TOTAL=$((TOTAL + 1))
 T8="$SCRATCH/case8"

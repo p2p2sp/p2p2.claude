@@ -1,3 +1,3 @@
-# Task 2 — implementation notes
+# Task 2 - implementation notes
 
 no deviations

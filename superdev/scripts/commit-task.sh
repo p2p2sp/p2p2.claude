@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
-# commit-task.sh — commituje pracę pojedynczego taska; opcjonalnie przesuwa status.
+# commit-task.sh - commituje pracę pojedynczego taska; opcjonalnie przesuwa status.
 #
 # Użycie:
 #   commit-task.sh <message> [task-file]
 #
 # Parametry:
-#   message    (wymagany) — treść commita
-#   task-file  (opcjonalny) — jeśli podany, przed commitem deleguje do
+#   message    (wymagany) - treść commita
+#   task-file  (opcjonalny) - jeśli podany, przed commitem deleguje do
 #              status-update.sh <task-file>, zapisując numer taska w status.md
 #              (bump statusu wchodzi do tego samego commita co praca taska)
 #

@@ -7,7 +7,7 @@
  *   - color type 0 (grayscale): bit depths 1/2/4 scale to 0..255 (x255, x85,
  *     x17), depth 8 passes through, depth 16 CLAMPS at 255 (Pillow opens
  *     16-bit grayscale as mode "I;16" and its convert("RGB") saturates instead
- *     of taking the high byte — measured behavior, Pillow 11.3.0);
+ *     of taking the high byte - measured behavior, Pillow 11.3.0);
  *   - color type 2 (RGB): depth 8 direct, depth 16 keeps the HIGH byte per
  *     channel (Pillow's "RGB;16B" raw mode);
  *   - color type 3 (palette): bit depths 1/2/4/8; a tRNS chunk is IGNORED
@@ -20,7 +20,7 @@
  * Adam7-interlaced files are rejected with "interlaced PNG not supported".
  *
  * CRCs are verified for the critical header chunks (IHDR/PLTE) and skipped
- * for IDAT and ancillary chunks — the measured Pillow policy (Pillow 11.3
+ * for IDAT and ancillary chunks - the measured Pillow policy (Pillow 11.3
  * rejects a bad IHDR/PLTE checksum at open, but decodes the IDAT stream
  * without checking chunk CRCs).
  *
@@ -279,7 +279,7 @@ export function decodePng(buf: Uint8Array): DecodedPng {
       const values = unpackBits(row, width, bitDepth);
       if (colorType === 0) {
         // Pillow scales sub-byte grayscale to the full 0..255 range.
-        const scale = 255 / ((1 << bitDepth) - 1); // 255, 85, or 17 — exact
+        const scale = 255 / ((1 << bitDepth) - 1); // 255, 85, or 17 - exact
         for (let x = 0; x < width; x++) {
           const v = values[x] * scale;
           rgb[out++] = v;
@@ -349,7 +349,7 @@ export function decodePng(buf: Uint8Array): DecodedPng {
         }
         case 4: {
           // Gray + alpha; alpha dropped. 16-bit keeps the high byte (unlike
-          // pure 16-bit grayscale, which clamps — both measured from Pillow).
+          // pure 16-bit grayscale, which clamps - both measured from Pillow).
           const v = row[base];
           r = v;
           g = v;

@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 #
-# commit.sh — wykonuje git commit z podanym message.
+# commit.sh - wykonuje git commit z podanym message.
 #
 # Uzycie:
 #   commit.sh <message> [selector]
 #
 # Parametry:
-#   message  (wymagany) — tresc commita
+#   message  (wymagany) - tresc commita
 #   selector (opcjonalny):
-#              (puste)/all — commituje wszystkie zmiany (staged + unstaged + nowe pliki)
-#              staged       — commituje tylko zmiany juz staged
-#              <sciezka>    — commituje TYLKO podana sciezke (plik lub katalog),
+#              (puste)/all - commituje wszystkie zmiany (staged + unstaged + nowe pliki)
+#              staged       - commituje tylko zmiany juz staged
+#              <sciezka>    - commituje TYLKO podana sciezke (plik lub katalog),
 #                             izolowana od innych staged zmian; obsluguje sciezki
 #                             POSIX, C:/, C:\ oraz /c/ (patrz commit-args.sh)
 #
@@ -30,7 +30,7 @@ resolve_commit_selector "$selector"
 
 case "$COMMIT_MODE" in
   all)    git add -A ;;
-  staged) : ;;  # nic nie dodajemy — commitujemy istniejacy index
+  staged) : ;;  # nic nie dodajemy - commitujemy istniejacy index
   path)   git add -- "$COMMIT_PATH" ;;
 esac
 

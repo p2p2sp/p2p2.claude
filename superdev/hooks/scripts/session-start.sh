@@ -67,7 +67,7 @@ manifest=""
 # --- version banner (user-facing, NOT injected into the model) -----------
 # `systemMessage` surfaces in the user's terminal but is NOT added to the
 # model's context (per the Claude Code hooks docs). Source the version from
-# the plugin-root basename — Claude Code installs each plugin under
+# the plugin-root basename - Claude Code installs each plugin under
 # `cache/<marketplace>/<plugin>/<version-or-commit-sha>/`, so this matches
 # whatever the host considers the installed version.
 version="${CLAUDE_PLUGIN_ROOT:-}"

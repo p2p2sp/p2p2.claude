@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 #
-# commit-args.sh — wspolna normalizacja argumentow skilla commit.
+# commit-args.sh - wspolna normalizacja argumentow skilla commit.
 # Sourcuj i wywolaj: resolve_commit_selector "<raw>"
 #
 # Ustawia zmienne:
-#   COMMIT_MODE       — all | staged | path
-#   COMMIT_PATH       — sciezka (tylko dla mode=path), inaczej pusty string
-#   COMMIT_ISSUE_REFS — numery issue z linkow GitHub podanych w argumentach,
+#   COMMIT_MODE       - all | staged | path
+#   COMMIT_PATH       - sciezka (tylko dla mode=path), inaczej pusty string
+#   COMMIT_ISSUE_REFS - numery issue z linkow GitHub podanych w argumentach,
 #                       unikalne, w kolejnosci wystapienia ("42" / "42 7"),
 #                       pusty string gdy zadnego linku nie bylo
 #
 # Selektor (case-insensitive dla slow kluczowych; istniejaca sciezka wygrywa
-# ze slowem kluczowym — plik/katalog o nazwie "all"/"staged" jest sciezka):
+# ze slowem kluczowym - plik/katalog o nazwie "all"/"staged" jest sciezka):
 #   istniejaca sciezka -> path   (na dysku lub w indeksie gita)
 #   ""   / all         -> all    (wszystkie zmiany)
 #   staged             -> staged (tylko zmiany staged)
@@ -31,12 +31,12 @@ extract_issue_refs() {
   while [[ "$raw" =~ $re ]]; do
     url="${BASH_REMATCH[1]}"; num="${BASH_REMATCH[2]}"
     case " $COMMIT_ISSUE_REFS " in
-      *" $num "*) : ;;  # duplikat tego samego issue — pomijamy
+      *" $num "*) : ;;  # duplikat tego samego issue - pomijamy
       *) COMMIT_ISSUE_REFS="${COMMIT_ISSUE_REFS:+$COMMIT_ISSUE_REFS }$num" ;;
     esac
     raw="${raw/"$url"/ }"
   done
-  # Po wycieciu linku zostaja zdwojone spacje — scalamy je i przycinamy brzegi,
+  # Po wycieciu linku zostaja zdwojone spacje - scalamy je i przycinamy brzegi,
   # inaczej reszta argumentow nie dopasuje sie do slowa kluczowego ani sciezki.
   while [[ "$raw" == *"  "* ]]; do raw="${raw//  / }"; done
   raw="${raw#"${raw%%[![:space:]]*}"}"

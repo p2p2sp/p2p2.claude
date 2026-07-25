@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1340 2150" width="1340" height="2150" role="img" aria-labelledby="svgTitle svgDesc">
-  <title id="svgTitle">superdev — flow: tor Simple i tor Super</title>
+  <title id="svgTitle">superdev - flow: tor Simple i tor Super</title>
   <desc id="svgDesc">Diagram przeplywu pluginu superdev: wejscie (pomysl lub bug), wywiad w skillu superdev, gate wyboru toru, tor Simple (simpleplan, simpleplan-reviewer, hook, simplebuild) i tor Super (superspec, superplan, superbuild z ADR i recenzja po kazdym zadaniu), wspolny Close Out.</desc>
 
   <style>
@@ -57,7 +57,7 @@
       50%      { stroke-width: 5;   stroke-opacity: .5; }
     }
 
-    /* SMIL ignores prefers-reduced-motion, so the comets are hidden outright —
+    /* SMIL ignores prefers-reduced-motion, so the comets are hidden outright -
        the static links + arrowheads still carry the whole flow. */
     @media (prefers-reduced-motion: reduce) {
       .flow { animation: none; }
@@ -76,7 +76,7 @@
   <rect x="0" y="0" width="1340" height="2150" fill="var(--bg)"/>
 
   <!-- ============ NAGLOWEK ============ -->
-  <text x="40" y="46" style="font-size:24px;font-weight:700">superdev — jak to działa</text>
+  <text x="40" y="46" style="font-size:24px;font-weight:700">superdev - jak to działa</text>
   <text x="40" y="70" class="desc" style="font-size:13px">Od pomysłu do zacommitowanego kodu. Ten sam wywiad na wejściu, dwa tory realizacji.</text>
 
   <!-- ============ LEGENDA ============ -->
@@ -88,17 +88,17 @@
   <text x="998" y="133" class="desc">skill w głównym kontekście</text>
 
   <rect x="958" y="149" width="30" height="14" rx="4" class="node fork"/>
-  <text x="998" y="160" class="desc">fork — osobny kontekst, zwraca werdykt</text>
+  <text x="998" y="160" class="desc">fork - osobny kontekst, zwraca werdykt</text>
 
   <rect x="958" y="176" width="30" height="14" rx="4" class="node"/>
   <rect x="958" y="176" width="4" height="14" rx="2" fill="var(--blue)"/>
-  <text x="998" y="187" class="desc">skrypt — deterministyczny, bez LLM</text>
+  <text x="998" y="187" class="desc">skrypt - deterministyczny, bez LLM</text>
 
   <rect x="958" y="203" width="30" height="14" rx="4" fill="var(--red-bg)" stroke="var(--red)" stroke-width="1.5"/>
-  <text x="998" y="214" class="desc">hook — twarda blokada w harnessie</text>
+  <text x="998" y="214" class="desc">hook - twarda blokada w harnessie</text>
 
   <rect x="958" y="230" width="30" height="14" rx="7" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="1.5"/>
-  <text x="998" y="241" class="desc">gate — czeka na decyzję człowieka</text>
+  <text x="998" y="241" class="desc">gate - czeka na decyzję człowieka</text>
 
   <path d="M988 265 L960 265" class="link l-n" marker-end="url(#ar-n)"/>
   <path d="M988 265 L960 265" class="flow l-n"/>
@@ -116,8 +116,8 @@
   <rect x="352" y="186" width="58" height="16" rx="8" class="badge"/>
   <text x="381" y="198" class="badge-t" text-anchor="middle">skill</text>
   <text x="60" y="204" class="title">simpledebug</text>
-  <text x="60" y="226" class="desc">Prześledź przepływ krok po kroku — bez zgadywania.</text>
-  <text x="60" y="244" class="desc">Test reprodukujący musi być RED — to jest dowód.</text>
+  <text x="60" y="226" class="desc">Prześledź przepływ krok po kroku - bez zgadywania.</text>
+  <text x="60" y="244" class="desc">Test reprodukujący musi być RED - to jest dowód.</text>
   <text x="60" y="262" class="desc">Nie naprawia tutaj: oddaje udowodniony plan naprawy.</text>
 
   <!-- bug -> simpleplan (lewym kanalem) -->
@@ -141,7 +141,7 @@
   <rect x="822" y="186" width="58" height="16" rx="8" class="badge"/>
   <text x="851" y="198" class="badge-t" text-anchor="middle">skill</text>
   <text x="470" y="204" class="title">superdev</text>
-  <text x="470" y="226" class="desc">Explore (agenty równolegle) — mapuje kod, wzorce, reguły.</text>
+  <text x="470" y="226" class="desc">Explore (agenty równolegle) - mapuje kod, wzorce, reguły.</text>
   <text x="470" y="244" class="desc">Wywiad: jedno pytanie na turę, prozą, opcje numerowane.</text>
   <text x="470" y="262" class="desc">Zero kodu i planu, dopóki nie ma wspólnego rozumienia.</text>
 
@@ -158,7 +158,7 @@
   <!-- GATE: wybor toru -->
   <rect x="446" y="388" width="448" height="56" rx="28" class="ring-a"/>
   <rect x="450" y="392" width="440" height="48" rx="24" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="1.5"/>
-  <text x="670" y="415" class="title" text-anchor="middle" style="font-size:12.5px">GATE — użytkownik wybiera tor</text>
+  <text x="670" y="415" class="title" text-anchor="middle" style="font-size:12.5px">GATE - użytkownik wybiera tor</text>
   <text x="670" y="431" class="desc-s" text-anchor="middle">AskUserQuestion · nigdy nie omijaj tego wyboru sam</text>
 
   <!-- rozgalezienie -->
@@ -174,10 +174,10 @@
 
   <!-- ============ NAGLOWKI TOROW ============ -->
   <rect x="140" y="520" width="400" height="42" rx="21" fill="var(--simple-bg)" stroke="var(--simple)" stroke-width="1.5"/>
-  <text x="340" y="546" class="hdr-t" text-anchor="middle" fill="var(--simple)">TOR SIMPLE — małe, odwracalne zmiany</text>
+  <text x="340" y="546" class="hdr-t" text-anchor="middle" fill="var(--simple)">TOR SIMPLE - małe, odwracalne zmiany</text>
 
   <rect x="800" y="520" width="400" height="42" rx="21" fill="var(--super-bg)" stroke="var(--super)" stroke-width="1.5"/>
-  <text x="1000" y="546" class="hdr-t" text-anchor="middle" fill="var(--super)">TOR SUPER — duże, trudne do cofnięcia</text>
+  <text x="1000" y="546" class="hdr-t" text-anchor="middle" fill="var(--super)">TOR SUPER - duże, trudne do cofnięcia</text>
 
   <path d="M340 562 L340 582" class="link l-s" marker-end="url(#ar-s)"/>
   <path d="M340 562 L340 582" class="flow l-s"/>
@@ -201,7 +201,7 @@
   <rect x="492" y="716" width="58" height="16" rx="8" class="badge"/>
   <text x="521" y="728" class="badge-t" text-anchor="middle">fork</text>
   <text x="140" y="734" class="title">simpleplan-reviewer</text>
-  <text x="140" y="756" class="desc">VERDICT: PASS / FAIL — rundy 1, 2, …</text>
+  <text x="140" y="756" class="desc">VERDICT: PASS / FAIL - rundy 1, 2, …</text>
   <text x="140" y="773" class="desc-s">needs-discovery → z powrotem do superdev, nie w kółko</text>
 
   <path d="M560 744 L592 744 Q610 744 610 726 L610 652 Q610 634 592 634 L564 634" class="link l-s" marker-end="url(#ar-s)"/>
@@ -223,7 +223,7 @@
 
   <rect x="116" y="886" width="448" height="56" rx="28" class="ring-a"/>
   <rect x="120" y="890" width="440" height="48" rx="24" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="1.5"/>
-  <text x="340" y="919" class="title" text-anchor="middle" style="font-size:12.5px">GATE — człowiek zatwierdza plan</text>
+  <text x="340" y="919" class="title" text-anchor="middle" style="font-size:12.5px">GATE - człowiek zatwierdza plan</text>
 
   <path d="M340 938 L340 958" class="link l-s" marker-end="url(#ar-s)"/>
   <path d="M340 938 L340 958" class="flow l-s"/>
@@ -233,7 +233,7 @@
   <rect x="470" y="972" width="80" height="16" rx="8" class="badge"/>
   <text x="510" y="984" class="badge-t" text-anchor="middle">skill · sonnet</text>
   <text x="140" y="990" class="title">simplebuild</text>
-  <text x="140" y="1012" class="desc">Orkiestrator — same statusy, zero prozy.</text>
+  <text x="140" y="1012" class="desc">Orkiestrator - same statusy, zero prozy.</text>
 
   <path d="M340 1022 L340 1042" class="link l-s" marker-end="url(#ar-s)"/>
   <path d="M340 1022 L340 1042" class="flow l-s"/>
@@ -251,7 +251,7 @@
   <rect x="120" y="1130" width="440" height="96" rx="10" class="node fork"/>
   <rect x="466" y="1140" width="84" height="16" rx="8" class="badge"/>
   <text x="508" y="1152" class="badge-t" text-anchor="middle">fork · sonnet</text>
-  <text x="140" y="1152" class="kicker">PĘTLA ZADAŃ — DLA KAŻDEGO task-NN</text>
+  <text x="140" y="1152" class="kicker">PĘTLA ZADAŃ - DLA KAŻDEGO task-NN</text>
   <text x="140" y="1176" class="title">simplebuild-implementor</text>
   <text x="140" y="1198" class="desc">Implement → własny Review → Build + Test (do 5 rund).</text>
   <text x="140" y="1216" class="desc">FAIL → pyta użytkownika: ponów / pomiń / przerwij.</text>
@@ -289,7 +289,7 @@
   <text x="140" y="1490" class="title" style="font-size:14px">Czym różnią się tory</text>
 
   <text x="140" y="1520" class="hdr-t" fill="var(--simple)">SIMPLE</text>
-  <text x="140" y="1542" class="desc">• bez spec — plan niesie własne kryteria akceptacji</text>
+  <text x="140" y="1542" class="desc">• bez spec - plan niesie własne kryteria akceptacji</text>
   <text x="140" y="1562" class="desc">• zadania bez markerów TDD</text>
   <text x="140" y="1582" class="desc">• implementor: sonnet, recenzuje sam siebie</text>
   <text x="140" y="1602" class="desc">• brak recenzji po każdym zadaniu</text>
@@ -311,7 +311,7 @@
   <text x="1181" y="608" class="badge-t" text-anchor="middle">skill</text>
   <text x="800" y="614" class="title">superspec</text>
   <text x="800" y="636" class="desc">Spec = What &amp; Why · nigdy How · INVEST · maks. 3 AC na historię.</text>
-  <text x="800" y="654" class="desc">Zero TBD i pytań otwartych — spec zawiera odpowiedzi.</text>
+  <text x="800" y="654" class="desc">Zero TBD i pytań otwartych - spec zawiera odpowiedzi.</text>
   <text x="800" y="674" class="mono">.superdev/.workflows/&lt;data&gt;-&lt;slug&gt;.md</text>
 
   <path d="M1000 682 L1000 702" class="link l-u" marker-end="url(#ar-u)"/>
@@ -321,7 +321,7 @@
   <rect x="1152" y="716" width="58" height="16" rx="8" class="badge"/>
   <text x="1181" y="728" class="badge-t" text-anchor="middle">fork</text>
   <text x="800" y="734" class="title">superspec-reviewer</text>
-  <text x="800" y="756" class="desc">VERDICT: PASS / FAIL — bez PASS nie ma przekazania dalej.</text>
+  <text x="800" y="756" class="desc">VERDICT: PASS / FAIL - bez PASS nie ma przekazania dalej.</text>
   <text x="800" y="773" class="desc-s">pytania otwarte / decyzja produktowa → superdev</text>
 
   <path d="M1220 744 L1252 744 Q1270 744 1270 726 L1270 652 Q1270 634 1252 634 L1224 634" class="link l-u" marker-end="url(#ar-u)"/>
@@ -335,7 +335,7 @@
 
   <rect x="776" y="802" width="448" height="56" rx="28" class="ring-a"/>
   <rect x="780" y="806" width="440" height="48" rx="24" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="1.5"/>
-  <text x="1000" y="829" class="title" text-anchor="middle" style="font-size:12.5px">GATE — plan czy koniec na spec?</text>
+  <text x="1000" y="829" class="title" text-anchor="middle" style="font-size:12.5px">GATE - plan czy koniec na spec?</text>
   <text x="1000" y="845" class="desc-s" text-anchor="middle">AskUserQuestion · superplan albo stop</text>
 
   <path d="M1000 858 L1000 874" class="link l-u" marker-end="url(#ar-u)"/>
@@ -346,7 +346,7 @@
   <rect x="1152" y="888" width="58" height="16" rx="8" class="badge"/>
   <text x="1181" y="900" class="badge-t" text-anchor="middle">skill</text>
   <text x="800" y="906" class="title">superplan</text>
-  <text x="800" y="928" class="desc">Plan = How ze spec. What &amp; Why są zamknięte — nie wraca do nich.</text>
+  <text x="800" y="928" class="desc">Plan = How ze spec. What &amp; Why są zamknięte - nie wraca do nich.</text>
   <text x="800" y="946" class="desc">Każde zadanie dostaje marker TDD: required (lub TDD: none).</text>
   <text x="800" y="966" class="mono">.claude/plans/&lt;slug&gt;.md</text>
 
@@ -372,14 +372,14 @@
   <rect x="776" y="1094" width="448" height="68" rx="12" class="ring-r"/>
   <rect x="780" y="1098" width="440" height="60" rx="10" fill="var(--red-bg)" stroke="var(--red)" stroke-width="1.5"/>
   <text x="800" y="1124" class="mono-t">review-plan.sh</text>
-  <text x="800" y="1146" class="desc">Ten sam hook — jedno wspólne wejście do kodu, dla obu torów</text>
+  <text x="800" y="1146" class="desc">Ten sam hook - jedno wspólne wejście do kodu, dla obu torów</text>
 
   <path d="M1000 1158 L1000 1178" class="link l-a" marker-end="url(#ar-a)"/>
   <path d="M1000 1158 L1000 1178" class="flow l-a"/>
 
   <rect x="776" y="1178" width="448" height="56" rx="28" class="ring-a"/>
   <rect x="780" y="1182" width="440" height="48" rx="24" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="1.5"/>
-  <text x="1000" y="1211" class="title" text-anchor="middle" style="font-size:12.5px">GATE — człowiek zatwierdza plan</text>
+  <text x="1000" y="1211" class="title" text-anchor="middle" style="font-size:12.5px">GATE - człowiek zatwierdza plan</text>
 
   <path d="M1000 1230 L1000 1250" class="link l-u" marker-end="url(#ar-u)"/>
   <path d="M1000 1230 L1000 1250" class="flow l-u"/>
@@ -389,7 +389,7 @@
   <rect x="1130" y="1264" width="80" height="16" rx="8" class="badge"/>
   <text x="1170" y="1276" class="badge-t" text-anchor="middle">skill · sonnet</text>
   <text x="800" y="1282" class="title">superbuild</text>
-  <text x="800" y="1304" class="desc">Orkiestrator — same statusy, zero prozy.</text>
+  <text x="800" y="1304" class="desc">Orkiestrator - same statusy, zero prozy.</text>
 
   <path d="M1000 1314 L1000 1334" class="link l-u" marker-end="url(#ar-u)"/>
   <path d="M1000 1314 L1000 1334" class="flow l-u"/>
@@ -408,7 +408,7 @@
   <rect x="1108" y="1432" width="102" height="16" rx="8" class="badge"/>
   <text x="1159" y="1444" class="badge-t" text-anchor="middle">fork · opcjonalne</text>
   <text x="800" y="1448" class="title">superbuild-adr</text>
-  <text x="800" y="1470" class="desc">Tylko gdy adr: true. FAIL nie blokuje — trafia do podsumowania.</text>
+  <text x="800" y="1470" class="desc">Tylko gdy adr: true. FAIL nie blokuje - trafia do podsumowania.</text>
 
   <path d="M1000 1482 L1000 1502" class="link l-u" marker-end="url(#ar-u)"/>
   <path d="M1000 1482 L1000 1502" class="flow l-u"/>
@@ -416,7 +416,7 @@
   <rect x="780" y="1506" width="440" height="120" rx="10" class="node fork"/>
   <rect x="1132" y="1516" width="78" height="16" rx="8" class="badge"/>
   <text x="1171" y="1528" class="badge-t" text-anchor="middle">fork · opus</text>
-  <text x="800" y="1528" class="kicker">PĘTLA ZADAŃ — DLA KAŻDEGO task-NN</text>
+  <text x="800" y="1528" class="kicker">PĘTLA ZADAŃ - DLA KAŻDEGO task-NN</text>
   <text x="800" y="1552" class="title">superbuild-task-coder</text>
   <text x="800" y="1574" class="desc">TDD: required → red-green-refactor: test pierwszy, zobacz RED.</text>
   <text x="800" y="1594" class="desc">→ superbuild-task-reviewer (fork) recenzuje każde zadanie.</text>
@@ -457,13 +457,13 @@
   <text x="470" y="1876" class="title">Close Out</text>
   <text x="470" y="1898" class="desc">memory: true → superdev-memory-writer</text>
   <text x="470" y="1916" class="desc">rules: true → superdev-rules-writer  (równolegle, gdy włączone)</text>
-  <text x="470" y="1936" class="desc-s">porażka writera nie blokuje — ląduje w podsumowaniu</text>
+  <text x="470" y="1936" class="desc-s">porażka writera nie blokuje - ląduje w podsumowaniu</text>
 
   <!-- karta konfiguracji -->
   <rect x="940" y="1848" width="360" height="96" rx="10" fill="var(--panel2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="958" y="1876" class="title" style="font-size:13px">Przełączniki</text>
   <text x="958" y="1898" class="mono">.superdev/config.yml</text>
-  <text x="958" y="1918" class="desc">adr · rules · memory — domyślnie false</text>
+  <text x="958" y="1918" class="desc">adr · rules · memory - domyślnie false</text>
   <text x="958" y="1936" class="desc-s">ustawiasz raz przez /setup</text>
 
   <path d="M938 1896 L894 1896" class="link l-a" marker-end="url(#ar-a)"/>

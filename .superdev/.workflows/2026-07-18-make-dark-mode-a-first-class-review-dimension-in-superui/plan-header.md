@@ -13,7 +13,7 @@ superui writes dark values (`foundation-analyst` measures them, `token-composer`
 dark at all, the auditor's contrast pre-pass reads only `tokens.css` `:root`, and in the creative
 head dark is a parenthetical in `design-director.md` step 3 whose values reach no contrast check.
 Result: the default theme is well fitted, the second theme has holes. This plan closes the review
-gap without touching the token format — the light/dark axis stays closed and every change is
+gap without touching the token format - the light/dark axis stays closed and every change is
 additive in the verification layer. Editing markdown here IS shipping: there is no build, test, or
 lint at any level, so verification is textual and structural.
 

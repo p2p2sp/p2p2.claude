@@ -1,6 +1,6 @@
 # Authentication and scopes
 
-## Preconditions — every gh-using skill should fail fast
+## Preconditions - every gh-using skill should fail fast
 
 Run these checks before any other `gh` call. Non-zero exit code on either ⇒ stop and tell the user.
 
@@ -11,7 +11,7 @@ gh auth status        # authenticated to the host you'll call?
 
 If `gh --version` fails: point the user to <https://cli.github.com/>.
 
-If `gh auth status` fails: instruct `gh auth login` (interactive — must be run by the user; an agent cannot complete the browser flow).
+If `gh auth status` fails: instruct `gh auth login` (interactive - must be run by the user; an agent cannot complete the browser flow).
 
 ## Interactive auth
 
@@ -50,7 +50,7 @@ Always check `gh auth status` output: it lists active scopes. If a call returns 
 
 ## CI / non-interactive auth
 
-In GitHub Actions, set the env var — do not call `gh auth login`:
+In GitHub Actions, set the env var - do not call `gh auth login`:
 
 ```yaml
 env:
@@ -90,9 +90,9 @@ gh api user -q .login                          # confirm which account the token
 gh api -i user | grep -i x-oauth-scopes        # show the scopes the API sees
 ```
 
-The `X-OAuth-Scopes` response header is the source of truth — it shows what GitHub thinks the token can do, irrespective of what was requested at login.
+The `X-OAuth-Scopes` response header is the source of truth - it shows what GitHub thinks the token can do, irrespective of what was requested at login.
 
 ## Sources
 
-- gh manual — auth: <https://cli.github.com/manual/gh_auth>
+- gh manual - auth: <https://cli.github.com/manual/gh_auth>
 - OAuth scopes reference: <https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps>

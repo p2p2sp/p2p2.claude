@@ -1,12 +1,12 @@
 
-## Task 2 — feat(superui): make dark a gated, obligatory decision in the creative head
+## Task 2 - feat(superui): make dark a gated, obligatory decision in the creative head
 - Covers: criteria #3, #4, #5, #6
 
 ### Dependencies
-- none — blocks: Task 3 (step 7 consumes the theme-columned `CONTRAST-PAIRS`), Task 5
+- none - blocks: Task 3 (step 7 consumes the theme-columned `CONTRAST-PAIRS`), Task 5
 
 ### Files
-- modify - superui/agents/design-director.md (Method step 3 and 4; Output notes-colors.md `CONTRAST-PAIRS:` line; the dark-inline sentence in the "Output — four notes files" preamble, scoped to finding lines)
+- modify - superui/agents/design-director.md (Method step 3 and 4; Output notes-colors.md `CONTRAST-PAIRS:` line; the dark-inline sentence in the "Output - four notes files" preamble, scoped to finding lines)
 - modify - superui/skills/design-system-creator/SKILL.md (step 2 Interview; step 4 GATE)
 
 ### Test Commands
@@ -14,11 +14,11 @@
 - none
 
 *Tests*
-- `grep -n "CONTRAST-PAIRS" superui/agents/design-director.md` — expect the entry format to carry a leading `<theme>` field
-- `grep -c "CONTRAST-PAIRS:" superui/agents/design-director.md` — expect 1 (one section, not two)
-- `grep -n "per-pair verification" superui/agents/design-director.md` — expect the new scoping of the dark-inline rule (zero hits today; `finding line` alone already matches and would be vacuous)
-- `grep -n "dark" superui/skills/design-system-creator/SKILL.md` — expect hits in step 2 and step 4
-- `grep -n "Spawn exactly one" superui/agents/design-director.md` — expect the single-dispatch rule intact
+- `grep -n "CONTRAST-PAIRS" superui/agents/design-director.md` - expect the entry format to carry a leading `<theme>` field
+- `grep -c "CONTRAST-PAIRS:" superui/agents/design-director.md` - expect 1 (one section, not two)
+- `grep -n "per-pair verification" superui/agents/design-director.md` - expect the new scoping of the dark-inline rule (zero hits today; `finding line` alone already matches and would be vacuous)
+- `grep -n "dark" superui/skills/design-system-creator/SKILL.md` - expect hits in step 2 and step 4
+- `grep -n "Spawn exactly one" superui/agents/design-director.md` - expect the single-dispatch rule intact
 
 ### Approach
 1. In `design-director.md` Method step 3, promote dark from the `(incl. dark)` parenthetical to an
@@ -39,7 +39,7 @@
    in `<run>/notes-colors.md` contains dark entries; missing -> re-dispatch per the RE-DISPATCH
    CONVENTION, capped at two rounds, after which the residue is carried to the user as
    `> NEEDS INPUT`. The creator has no global remediation cap in its ground rules, so this gate
-   states its own — an uncapped loop would otherwise be unbounded.
+   states its own - an uncapped loop would otherwise be unbounded.
 
 ### Edge cases
 - Brief says no dark -> gate requires NO dark entries; a dark value present is itself a violation.

@@ -1,15 +1,15 @@
 #!/bin/sh
-# superfix — skills/code-auditor/scripts/check_node.sh
+# superfix - skills/code-auditor/scripts/check_node.sh
 # Node.js runtime preflight for the code-auditor skill's bundled .ts step (rank.ts).
 # The bundled scripts are TypeScript executed directly by Node's native type
 # stripping (no build step, no npm install), which needs Node >= 22.6 (behind
 # --experimental-strip-types) or >= 23.6 (on by default). Resolves the exact
 # command able to run them so the skill can substitute it (or halt with a clear
-# message) before any `node …` step — instead of the agent hitting a raw
+# message) before any `node …` step - instead of the agent hitting a raw
 # `node: command not found` or an unsupported-syntax error on an old Node.
 #
 # IN : (no args)
-# OUT: exactly one line on stdout —
+# OUT: exactly one line on stdout -
 #        NODE_OK <cmd>   <cmd> is `node` (>= 23.6: type stripping is on by default)
 #                        or `node --experimental-strip-types` (22.6 <= version < 23.6)
 #        NODE_MISSING    node absent, version unparsable, or version < 22.6

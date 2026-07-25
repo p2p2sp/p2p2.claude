@@ -13,7 +13,7 @@ Drives an already-approved plan, task by task.
 
 ## Mandatory Rules
 You are orchestrator only. Be concise, do not explain. No prose - just simple status lines.
-Every `args` handoff to a fork (Skill) is a labeled block — one `label: <file path>` per line. Every value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong.
+Every `args` handoff to a fork (Skill) is a labeled block - one `label: <file path>` per line. Every value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong.
 
 ## Config
 
@@ -26,14 +26,14 @@ These gate Step 2 (`adr`) and the Close-Out delegations (Step 5: `rules`, `memor
 ## Step 1 - Decompose Plan
 
 Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/decompose.sh" <plan-file> superbuild` with the approved plan's path. It creates a working dir (returned as `workdir:`) containing:
-- `status.md` — number of the last processed task (starts at `00`).
-- `base.md` — the build's base SHA (HEAD before the decompose commit); preserved on resume.
-- `plan-header.md` — plan header + the spec's out-of-scope and constraints sections.
-- `plan.md` — full copy of the approved plan.
-- `tasks/task-NN.md` — one file per task, each carrying the verbatim acceptance criteria it covers.
-- `implementation/` — implementor deviation notes (`task-NN-notes.md`, `fix-NN-notes.md`) and review reports; created empty here, filled in Steps 3-4.
+- `status.md` - number of the last processed task (starts at `00`).
+- `base.md` - the build's base SHA (HEAD before the decompose commit); preserved on resume.
+- `plan-header.md` - plan header + the spec's out-of-scope and constraints sections.
+- `plan.md` - full copy of the approved plan.
+- `tasks/task-NN.md` - one file per task, each carrying the verbatim acceptance criteria it covers.
+- `implementation/` - implementor deviation notes (`task-NN-notes.md`, `fix-NN-notes.md`) and review reports; created empty here, filled in Steps 3-4.
 
-It prints the task index (`workdir:` working-dir path, `status:` last processed task or `none`, `base:` the build's base SHA or `none`, `plan-header:` path, `plan:` full-plan copy path, `spec:` spec path, then `<task-file>\t<title>` per line) — use it to drive the implementation loop.
+It prints the task index (`workdir:` working-dir path, `status:` last processed task or `none`, `base:` the build's base SHA or `none`, `plan-header:` path, `plan:` full-plan copy path, `spec:` spec path, then `<task-file>\t<title>` per line) - use it to drive the implementation loop.
 
 No `spec:` line in the index -> STOP: this plan belongs to `simplebuild`, not here. Non-zero exit (e.g. a `Covers:` criterion absent from the spec) -> STOP and show the error.
 
@@ -41,7 +41,7 @@ No `spec:` line in the index -> STOP: this plan belongs to `simplebuild`, not he
 
 Gated by Config: only when `adr: true`. Otherwise skip (note "ADR: disabled" for the Step 6 summary).
 
-Invoke `superbuild-adr` (Skill) with a labeled-line `args` block — `plan: <plan-copy path>`, `spec: <spec path>`, and `adr: .superdev/adr/<workdir basename>.md` on separate lines. Best-effort: `VERDICT: FAIL` does not block — note it for the Step 6 summary and continue.
+Invoke `superbuild-adr` (Skill) with a labeled-line `args` block - `plan: <plan-copy path>`, `spec: <spec path>`, and `adr: .superdev/adr/<workdir basename>.md` on separate lines. Best-effort: `VERDICT: FAIL` does not block - note it for the Step 6 summary and continue.
 
 ## Step 3 - Run Implementation Loop
 
@@ -57,7 +57,7 @@ Starting point (from decompose `status:`):
 
 For each remaining task file (in order):
   1. `TaskUpdate` -> start
-  2. Invoke `superbuild-task-coder` (Skill) with a labeled-line `args` block — `plan-header: <path>`, `task: <task-file path>`, and `notes: <workdir>/implementation/task-NN-notes.md` on separate lines (paths from the decompose index).
+  2. Invoke `superbuild-task-coder` (Skill) with a labeled-line `args` block - `plan-header: <path>`, `task: <task-file path>`, and `notes: <workdir>/implementation/task-NN-notes.md` on separate lines (paths from the decompose index).
      It returns `VERDICT: PASS`, or `VERDICT: FAIL` + a `REASON: <line>`.
        - `VERDICT: PASS`  -> continue to review
        - `VERDICT: FAIL`  -> escalate via `AskUserQuestion` (retry / skip / abort); act on the answer (abort ends the loop)
@@ -65,7 +65,7 @@ For each remaining task file (in order):
        - `VERDICT: PASS`  -> continue to commit
        - `VERDICT: FAIL`  -> invoke `superbuild-task-coder` with `plan-header: <path>`, `plan: <plan-copy path>`, `task: <REVIEW path>`, and `notes: <workdir>/implementation/task-NN-notes.md` on separate lines (`plan` lets it source the real Test Commands), then re-run the reviewer with the next `R`.
          Max 3 review rounds per task -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.
-  4. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<task title>" <task-file>` — commits the task and records its number in `status.md`.
+  4. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<task title>" <task-file>` - commits the task and records its number in `status.md`.
   5. `TaskStop` -> completed
 
 ## Step 4 - Final Review
@@ -78,17 +78,17 @@ For each remaining task file (in order):
         - coder `VERDICT: PASS`  -> `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<fix title>"`, then re-run this step from the reviewer that failed with the next round NN (a spec fix re-runs `superbuild-reviewer-code` afterwards too).
         - coder `VERDICT: FAIL`  -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.
     - Still `VERDICT: FAIL` after 2 rounds -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.
-5. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(superbuild): final review reports"` — saves the review reports (also on an accepted FAIL).
+5. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(superbuild): final review reports"` - saves the review reports (also on an accepted FAIL).
 6. `TaskStop` -> completed
 
 ## Step 5 - Close Out
 
 1. `TaskUpdate` -> start
 2. Gated by Config; run only the enabled delegations, in parallel (single message, await all). If none enabled, skip to 5.
-    - `memory: true` -> Invoke `superdev-memory-writer` (Skill) with a labeled-line `args` block — `capture: <plan-copy path>`, `spec: <spec path>`, and `notes: <workdir>/implementation/` on separate lines.
-    - `rules: true`  -> Invoke `superdev-rules-writer` (Skill) with a labeled-line `args` block — `capture: <plan-copy path>` and `notes: <workdir>/implementation/` on separate lines.
+    - `memory: true` -> Invoke `superdev-memory-writer` (Skill) with a labeled-line `args` block - `capture: <plan-copy path>`, `spec: <spec path>`, and `notes: <workdir>/implementation/` on separate lines.
+    - `rules: true`  -> Invoke `superdev-rules-writer` (Skill) with a labeled-line `args` block - `capture: <plan-copy path>` and `notes: <workdir>/implementation/` on separate lines.
 3. Keep each writer's `NODE:` / `RULE:` / `GAP:` lines verbatim for the Step 6 summary. Either delegation failing is non-fatal -> note it there too, do not block.
-4. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(superbuild): close out memory and rules"` — commits whatever the writers touched.
+4. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(superbuild): close out memory and rules"` - commits whatever the writers touched.
 5. `TaskStop` -> completed
 
 ## Step 6 - Done

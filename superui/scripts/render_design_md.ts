@@ -1,9 +1,9 @@
 /*
- * render_design_md.ts — renders `DESIGN.md`, the one-shot design seed, from a
+ * render_design_md.ts - renders `DESIGN.md`, the one-shot design seed, from a
  * merged `registry.json` (written by build_registry.ts) plus the run's
  * `inventory.md` (for the Components overview). The output is a lean, readable
  * seed loosely conforming to the design.md standard:
- *   1. YAML front matter FIRST (before any prose) — DTCG-shaped light-value
+ *   1. YAML front matter FIRST (before any prose) - DTCG-shaped light-value
  *      tokens: `colors` (3.1+3.2), `typography` (3.5 families + textStyles),
  *      `spacing` (3.6), `rounded` (3.7 `radius.*`). Nothing else lands in front
  *      matter (border widths, shadows, motion, surface order, accent usage live
@@ -14,32 +14,32 @@
  *      subsections grouped under those headings.
  *
  * Every value cell prints exactly what the registry holds; an entry listed in
- * `unknowns` renders as `> NEEDS INPUT: <what> — <reason>` inside its
+ * `unknowns` renders as `> NEEDS INPUT: <what> - <reason>` inside its
  * subsection instead of a fabricated value. This script never invents, rounds
- * or infers a value — it is a pure renderer over already-measured (or
+ * or infers a value - it is a pure renderer over already-measured (or
  * already-proposed) data. Overview and Do's-and-Don'ts are MECHANICAL only
  * (counts + fixed boilerplate); the script authors no narrative.
  *
  * Provenance: a token/textStyle carrying `proposed:true` is a best-practice
  * value the design synthesizer supplied for something the pipeline could not
  * measure. Such a row adds a `Source` column (`measured`|`proposed`) to its
- * body table and carries `PROPOSED — <rationale>` in `Notes`; when any proposed
+ * body table and carries `PROPOSED - <rationale>` in `Notes`; when any proposed
  * value is present, a one-line `> Legend` follows the closing front-matter
- * `---`. Front matter may carry proposed defaults too — a `> Note` below the
+ * `---`. Front matter may carry proposed defaults too - a `> Note` below the
  * front matter states the body Source columns are authoritative for provenance.
  *
- * CRITICAL — YAML quoting: `key: #fff` is a YAML comment (null), and a value
+ * CRITICAL - YAML quoting: `key: #fff` is a YAML comment (null), and a value
  * containing `:` breaks the scalar. The emitter double-quotes every string
  * value (hex, sizes, family stacks) and every risky key; only true numbers
- * (weight, lineHeight) stay bare — so no `: #` and no stray `:` ever reach the
+ * (weight, lineHeight) stay bare - so no `: #` and no stray `:` ever reach the
  * front matter.
  *
- * IN : REGISTRY_JSON — a merged registry (`{ tokens, surfaceOrder, accentUsage,
- *      textStyles, unknowns }`). INVENTORY_MD — the run's `inventory.md`
+ * IN : REGISTRY_JSON - a merged registry (`{ tokens, surfaceOrder, accentUsage,
+ *      textStyles, unknowns }`). INVENTORY_MD - the run's `inventory.md`
  *      (`## Components` / `## Patterns` entry lines), read for the Components
- *      overview. OUTPUT_MD — where to write `DESIGN.md`. Optional
- *      `--source <label>` — recorded in the Overview sentence only.
- * OUT: stdout — one line on success:
+ *      overview. OUTPUT_MD - where to write `DESIGN.md`. Optional
+ *      `--source <label>` - recorded in the Overview sentence only.
+ * OUT: stdout - one line on success:
  *        DESIGN_MD_OK headings=Overview,Colors,... -> <OUTPUT_MD>
  *      OUTPUT_MD opens with `---` front matter, then the fixed standard
  *      headings in order, each present and non-empty.
@@ -114,7 +114,7 @@ export interface Registry {
 }
 
 // ---------------------------------------------------------------------------
-// Standard headings (fixed order + non-empty) — the self-verify + validation contract
+// Standard headings (fixed order + non-empty) - the self-verify + validation contract
 // ---------------------------------------------------------------------------
 
 export const STANDARD_HEADINGS = [
@@ -161,10 +161,10 @@ function cellSafe(text: string): string {
   return text.replace(/\|/g, "\\|").replace(/\s*\n\s*/g, " ").trim();
 }
 
-/** The Notes cell for a token row: a proposed row leads with `PROPOSED — <rationale>`, then any measured note. */
+/** The Notes cell for a token row: a proposed row leads with `PROPOSED - <rationale>`, then any measured note. */
 export function tokenNotesCell(r: TokenRow): string {
   const parts: string[] = [];
-  if (r.proposed) parts.push(r.rationale ? `PROPOSED — ${r.rationale}` : "PROPOSED");
+  if (r.proposed) parts.push(r.rationale ? `PROPOSED - ${r.rationale}` : "PROPOSED");
   if (r.notes) parts.push(r.notes);
   return cellSafe(parts.join("; "));
 }
@@ -196,7 +196,7 @@ export function renderTokenTable(rows: TokenRow[], opts: { nameHeader: string; v
 }
 
 // ---------------------------------------------------------------------------
-// 3.1 — Color primitives (ramp-grouped)
+// 3.1 - Color primitives (ramp-grouped)
 // ---------------------------------------------------------------------------
 
 function renderColorPrimitives(rows: TokenRow[]): string {
@@ -224,7 +224,7 @@ function renderColorPrimitives(rows: TokenRow[]): string {
 }
 
 // ---------------------------------------------------------------------------
-// 3.2 — Semantic colors (pinned columns: role, primitive, hex light, hex dark, where used)
+// 3.2 - Semantic colors (pinned columns: role, primitive, hex light, hex dark, where used)
 // ---------------------------------------------------------------------------
 
 function renderSemanticColors(rows: TokenRow[]): string {
@@ -241,17 +241,17 @@ function renderSemanticColors(rows: TokenRow[]): string {
 }
 
 // ---------------------------------------------------------------------------
-// 3.3 — Surface / elevation order
+// 3.3 - Surface / elevation order
 // ---------------------------------------------------------------------------
 
-/** Renders `surfaceOrder` in its own array order — already ranked by the sampler, never re-sorted here. */
+/** Renders `surfaceOrder` in its own array order - already ranked by the sampler, never re-sorted here. */
 export function renderSurfaceOrder(surfaceOrder: SurfaceOrderEntry[]): string {
   if (surfaceOrder.length === 0) return "none\n";
-  return surfaceOrder.map((s, i) => `${i + 1}. **${s.region}** — ${s.hex} (rank ${s.rank}, luminance ${s.luminance})`).join("\n") + "\n";
+  return surfaceOrder.map((s, i) => `${i + 1}. **${s.region}** - ${s.hex} (rank ${s.rank}, luminance ${s.luminance})`).join("\n") + "\n";
 }
 
 // ---------------------------------------------------------------------------
-// 3.4 — Accent-usage inventory (grouped per screen)
+// 3.4 - Accent-usage inventory (grouped per screen)
 // ---------------------------------------------------------------------------
 
 export function renderAccentUsage(accentUsage: AccentUsageEntry[]): string {
@@ -271,7 +271,7 @@ export function renderAccentUsage(accentUsage: AccentUsageEntry[]): string {
 }
 
 // ---------------------------------------------------------------------------
-// 3.5 — Typography (families table + finite type scale)
+// 3.5 - Typography (families table + finite type scale)
 // ---------------------------------------------------------------------------
 
 export function renderTextStyles(textStyles: TextStyleEntry[]): string {
@@ -283,7 +283,7 @@ export function renderTextStyles(textStyles: TextStyleEntry[]): string {
   for (const t of textStyles) {
     const cells = [t.name, t.family, t.size, String(t.weight), String(t.lineHeight), t.letterSpacing, t.usedFor];
     if (hasProposed) {
-      const note = t.proposed ? (t.rationale ? `PROPOSED — ${t.rationale}` : "PROPOSED") : "";
+      const note = t.proposed ? (t.rationale ? `PROPOSED - ${t.rationale}` : "PROPOSED") : "";
       cells.push(t.proposed ? "proposed" : "measured", cellSafe(note));
     }
     lines.push(`| ${cells.join(" | ")} |`);
@@ -292,7 +292,7 @@ export function renderTextStyles(textStyles: TextStyleEntry[]): string {
 }
 
 // ---------------------------------------------------------------------------
-// 3.7 — Radii and borders (split by name prefix)
+// 3.7 - Radii and borders (split by name prefix)
 // ---------------------------------------------------------------------------
 
 function renderRadiiAndBorders(rows: TokenRow[]): string {
@@ -310,7 +310,7 @@ function renderRadiiAndBorders(rows: TokenRow[]): string {
 }
 
 // ---------------------------------------------------------------------------
-// 3.10 — Dark mode summary
+// 3.10 - Dark mode summary
 // ---------------------------------------------------------------------------
 
 function renderDarkModeSummary(registry: Registry): string | null {
@@ -318,17 +318,17 @@ function renderDarkModeSummary(registry: Registry): string | null {
     .filter(([, t]) => t.dark !== null && t.dark !== undefined && t.dark !== "")
     .map(([name, t]) => ({ name, ...t }));
   if (rows.length === 0) return null;
-  return rows.map((r) => `- \`${r.name}\` — light ${r.value}, dark ${r.dark}`).join("\n") + "\n";
+  return rows.map((r) => `- \`${r.name}\` - light ${r.value}, dark ${r.dark}`).join("\n") + "\n";
 }
 
 // ---------------------------------------------------------------------------
 // Subsection body dispatcher (the old `## 3.N` bodies, now under `###`)
 // ---------------------------------------------------------------------------
 
-/** Renders one `## 3.N` subsection body (table/list + any NEEDS INPUT markers, or `none`) — no heading. */
+/** Renders one `## 3.N` subsection body (table/list + any NEEDS INPUT markers, or `none`) - no heading. */
 export function renderSubsectionBody(sectionId: string, registry: Registry): string {
   const unknownsForSection = registry.unknowns.filter((u) => u.section === sectionId);
-  const unknownBlock = unknownsForSection.map((u) => `> NEEDS INPUT: ${u.what} — ${u.reason}`).join("\n");
+  const unknownBlock = unknownsForSection.map((u) => `> NEEDS INPUT: ${u.what} - ${u.reason}`).join("\n");
 
   let hasContent = false;
   let body = "";
@@ -414,10 +414,10 @@ function renderSubsection(sectionId: string, registry: Registry): string {
 }
 
 // ---------------------------------------------------------------------------
-// Front matter (DTCG-shaped, light values, quoted) — the first bytes of DESIGN.md
+// Front matter (DTCG-shaped, light values, quoted) - the first bytes of DESIGN.md
 // ---------------------------------------------------------------------------
 
-/** Double-quote every string scalar (escaping `\` and `"`); leave true numbers bare — no unquoted `#`/`:` ever. */
+/** Double-quote every string scalar (escaping `\` and `"`); leave true numbers bare - no unquoted `#`/`:` ever. */
 function yamlScalar(v: string | number): string {
   if (typeof v === "number") return String(v);
   return `"${String(v).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
@@ -488,7 +488,7 @@ function buildFrontMatter(registry: Registry): string {
 }
 
 // ---------------------------------------------------------------------------
-// Overview + Components + Do's-and-Don'ts — MECHANICAL only (no authored narrative)
+// Overview + Components + Do's-and-Don'ts - MECHANICAL only (no authored narrative)
 // ---------------------------------------------------------------------------
 
 function renderOverview(registry: Registry, source: string): string {
@@ -507,7 +507,7 @@ function renderOverview(registry: Registry, source: string): string {
     `It catalogues ${colorCount} color token(s), ${styleCount} type style(s), ${spacingCount} spacing step(s) and ${shapeCount} radius/border token(s).`,
     `Dark-mode values are ${hasDark ? "present" : "absent"}.`,
     proposedCount > 0
-      ? `${proposedCount} value(s) are proposed best-practice defaults (not measured) — review them; the body Source columns mark provenance.`
+      ? `${proposedCount} value(s) are proposed best-practice defaults (not measured) - review them; the body Source columns mark provenance.`
       : `Every value is measured; the body Source columns mark provenance.`,
   ];
   return sentences.join(" ") + "\n";
@@ -542,7 +542,7 @@ function inventoryEntries(inventoryMd: string, heading: string): InvEntry[] {
     .filter((l) => l.startsWith("- "))
     .map((line) => {
       const fields = line.split("·");
-      const slug = fields[0].replace(/^- /, "").split(" — ")[0].trim();
+      const slug = fields[0].replace(/^- /, "").split(" - ")[0].trim();
       if (isComponents) {
         return { slug, kind: (fields[1] ?? "").trim(), canonical: fieldValue(fields[2] ?? "") };
       }
@@ -559,12 +559,12 @@ function renderComponentsOverview(inventoryMd: string): string {
   lines.push("**Components**");
   lines.push("");
   if (comps.length === 0) lines.push("None catalogued.");
-  else for (const c of comps) lines.push(`- ${c.slug} — ${c.kind || "component"}, canonical ${c.canonical || "n/a"}`);
+  else for (const c of comps) lines.push(`- ${c.slug} - ${c.kind || "component"}, canonical ${c.canonical || "n/a"}`);
   lines.push("");
   lines.push("**Patterns**");
   lines.push("");
   if (pats.length === 0) lines.push("None catalogued.");
-  else for (const p of pats) lines.push(`- ${p.slug} — canonical ${p.canonical || "n/a"}`);
+  else for (const p of pats) lines.push(`- ${p.slug} - canonical ${p.canonical || "n/a"}`);
   lines.push("");
   lines.push("See `DESIGN.components.md` for component specs and `DESIGN.patterns.md` for pattern specs.");
   return lines.join("\n") + "\n";
@@ -581,7 +581,7 @@ function renderDosAndDonts(): string {
     "**Don't**",
     "",
     "- Don't spread an accent color into plain text or borders it was never measured on.",
-    "- Don't hand-patch this seed — re-run the extractor when the source changes; iterating in Claude Design supersedes it.",
+    "- Don't hand-patch this seed - re-run the extractor when the source changes; iterating in Claude Design supersedes it.",
     "- Don't mistake a front-matter default for a measured value; the body Source columns are authoritative.",
   ].join("\n") + "\n";
 }
@@ -709,10 +709,10 @@ function main(): void {
     Object.values(registry.tokens).some((t) => t.proposed === true) ||
     registry.textStyles.some((t) => t.proposed === true);
   const caution =
-    "> Note — front-matter token values are light-mode defaults and may include proposed best-practice values; the " +
+    "> Note - front-matter token values are light-mode defaults and may include proposed best-practice values; the " +
     "body Source columns below are authoritative for provenance (measured vs proposed).\n";
   const legend = anyProposed
-    ? "> Legend — Source: `measured` = sampled from the screenshots; `proposed` = a best-practice value supplied by the " +
+    ? "> Legend - Source: `measured` = sampled from the screenshots; `proposed` = a best-practice value supplied by the " +
       "design synthesizer (no source measurement, rationale in Notes). Review every proposed value before shipping.\n"
     : "";
 

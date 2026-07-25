@@ -1,3 +1,3 @@
-# Task 6 — implementation notes
+# Task 6 - implementation notes
 
 no deviations

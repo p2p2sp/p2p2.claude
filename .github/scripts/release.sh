@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# release.sh — tag-driven version bump for the superdev + superui + supergh + superfix plugins.
+# release.sh - tag-driven version bump for the superdev + superui + supergh + superfix plugins.
 #
 # Computes the next MAJOR.MINOR.PATCH version (no "v" prefix) from the highest
 # existing git tag, syncs it into ALL FOUR subdir plugin manifests' .version
-# (superdev/, superui/, supergh/, superfix/ .claude-plugin/plugin.json — shared version,
+# (superdev/, superui/, supergh/, superfix/ .claude-plugin/plugin.json - shared version,
 # one tag namespace), commits the bump (`chore(bump): …`, no
 # [skip ci]), creates + pushes the tag, then publishes a GitHub Release whose
 # notes are built from the commits since the previous tag (grouped by conventional
@@ -55,7 +55,7 @@ for manifest in "${manifests[@]}"; do
   mv "$tmp" "$manifest"
 done
 
-# 2. Commit the bump FIRST — this commit is what the release tag points at.
+# 2. Commit the bump FIRST - this commit is what the release tag points at.
 #    The no-diff branch is recovery only: a prior run already committed this exact
 #    version but failed before tagging, so re-tag that commit instead of fabricating
 #    an empty one (rerun-safe). A diff in ANY manifest counts as a change, so the

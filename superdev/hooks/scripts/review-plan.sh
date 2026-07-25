@@ -7,7 +7,7 @@
 # prior Write/Edit to a path under .claude/plans/*.md (i.e. plan-mode for an
 # implementation plan, not commit-flow plan-mode without a plan file).
 #
-# It also requires the plan file to DECLARE its format up front — a SimplePlan
+# It also requires the plan file to DECLARE its format up front - a SimplePlan
 # ("# SimplePlan" / "simplebuild") or a SuperPlan ("# SuperPlan" / "superbuild").
 # A plan that names neither format is denied with guidance to use the default
 # SimplePlan format, so the review / build path is never ambiguous.
@@ -60,7 +60,7 @@ input="$(cat)"
 # the value is a filesystem path with no literal '"', so [^"]* is a safe class.
 # Second sed JSON-unescapes backslashes so a Windows transcript path "C:\\Users\\..."
 # resolves to a real path for the -f test below (jq did this); standalone single-quoted
-# sed on purpose — bash 3.2 mangles ${//} backslash substitution. No-op for forward slashes.
+# sed on purpose - bash 3.2 mangles ${//} backslash substitution. No-op for forward slashes.
 transcript_path="$(
   printf '%s' "$input" \
     | grep -oE '"transcript_path"[[:space:]]*:[[:space:]]*"[^"]*"' \
@@ -71,12 +71,12 @@ transcript_path="$(
 [ -z "$transcript_path" ] && emit_allow
 [ -f "$transcript_path" ] || emit_allow
 
-# Step 1: locate the LAST JSONL line recording a plan-file WRITE — an assistant
+# Step 1: locate the LAST JSONL line recording a plan-file WRITE - an assistant
 # tool_use whose file_path points under .claude/plans/*.md. Anchor on the
 # "file_path":"..." key, NOT arbitrary line text, so a Write whose *content* merely
 # mentions a .claude/plans/<slug>.md path does not false-match.
 # Robustness across Claude Code builds / OSes:
-#   - path separators: match both "/" and "\" — Windows records file_path with
+#   - path separators: match both "/" and "\" - Windows records file_path with
 #     escaped backslashes ("C:\\Users\\..\\.claude\\plans\\.."), mac/linux use "/".
 #   - tool key: accept both "name":"Write|Edit" (current tool_use schema) and the
 #     legacy "tool_name":"Write|Edit"; that filter also excludes a Read of a plan
@@ -85,7 +85,7 @@ transcript_path="$(
 #   - review siblings excluded (defensive): a stray `<plan>.md.review-<N>.md`
 #     written NEXT TO the plan (the pre-fixer reviewer flow used these; none of the
 #     current skills do) would otherwise match this glob and latch plan_base onto
-#     the review file — silently disarming the post-PASS tamper guard below.
+#     the review file - silently disarming the post-PASS tamper guard below.
 last_plan_write_line=$(
   grep -nE '"file_path":"[^"]*\.claude[\\/]+plans[\\/]+[^"]*\.md"' "$transcript_path" 2>/dev/null \
     | grep -vE '"file_path":"[^"]*\.review-[0-9]+\.md"' \
@@ -121,7 +121,7 @@ plan_base="${plan_path##*[\\/]}"
 # (established fail-open policy for hook faults).
 if [ -n "$plan_path" ] && [ -f "$plan_path" ] \
    && ! grep -qiE 'simpleplan|simplebuild|superplan|superbuild' "$plan_path" 2>/dev/null; then
-  emit_deny "Next step: declare the plan format. The plan file does not indicate whether it is a SimplePlan or a SuperPlan. By default a plan MUST use the SimplePlan format — rewrite it from the simpleplan template (header '# SimplePlan' plus 'To build this plan must use the simplebuild skill.'). Add the format marker, re-run the plan reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+  emit_deny "Next step: declare the plan format. The plan file does not indicate whether it is a SimplePlan or a SuperPlan. By default a plan MUST use the SimplePlan format - rewrite it from the simpleplan template (header '# SimplePlan' plus 'To build this plan must use the simplebuild skill.'). Add the format marker, re-run the plan reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
 # Step 2: from the line AFTER the last plan-file write, look for:
@@ -130,11 +130,11 @@ fi
 # Require R < S so the reviewer call precedes its result.
 tail_start=$((last_plan_write_line + 1))
 
-# R: subagent / skill invocation referencing the plan reviewer — either
+# R: subagent / skill invocation referencing the plan reviewer - either
 # superplan-reviewer (spec path) or simpleplan-reviewer (Simple path).
 # Match either the Agent tool call ("subagent_type":"...(super|simple)plan-reviewer...") or the
 # Skill tool_use envelope (both reviewers are context:fork skills invoked via the
-# Skill tool — "skill":"superdev:superplan-reviewer" / "superdev:simpleplan-reviewer") that
+# Skill tool - "skill":"superdev:superplan-reviewer" / "superdev:simpleplan-reviewer") that
 # mentions the reviewer on the same JSONL line. Load-bearing: name + marker must co-occur on
 # one line; if a future transport splits them, relax to a two-stage match (reviewer line, then the verdict).
 reviewer_call_line=$(
@@ -146,7 +146,7 @@ if [ -z "$reviewer_call_line" ]; then
   emit_deny "Next step: plan review. Run the simpleplan-reviewer skill (or superplan-reviewer if this plan follows a spec), wait for 'VERDICT: PASS', then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
-# S: the reviewer's OWN verdict — the FIRST verdict line AFTER the reviewer call.
+# S: the reviewer's OWN verdict - the FIRST verdict line AFTER the reviewer call.
 # Anchor on the escaped newline (\n in the JSONL) that precedes it: the real verdict
 # always starts its own markdown line, so it appears as `\n**VERDICT:** <value>`. The
 # match is deliberately TOLERANT of how an LLM reviewer formats that line, so a drifted
@@ -156,7 +156,7 @@ fi
 #   - `([-*] )?` tolerates a leading markdown list marker (`- VERDICT:`);
 #   - `(\*\*)?` on each side makes the bold markers optional;
 #   - `` `? `` on each side tolerates back-ticks around the value (`` `PASS` ``).
-# The `\\n` matches the two literal chars backslash-n JSON uses to escape a newline —
+# The `\\n` matches the two literal chars backslash-n JSON uses to escape a newline -
 # this excludes inline mentions mid-line. The alternative `"(text|content)":"` anchor
 # accepts a verdict that OPENS the content string (a spec-faithful reviewer puts the
 # verdict on the FIRST line with no preamble; today the harness prefixes forked-skill
@@ -164,7 +164,7 @@ fi
 # LOAD-BEARING: bind to the FIRST verdict, matching PASS|FAIL, not "any later PASS".
 # A FAIL verdict must DENY even when a later line (a paste, an assistant restatement,
 # a tool_result echo, or a `VERDICT: PASS | FAIL` legend) carries a stray PASS.
-# The verdict VALUE must END the line-anchored token — followed by the escaped
+# The verdict VALUE must END the line-anchored token - followed by the escaped
 # newline (\n) that starts the next markdown line, or the closing quote (") that
 # ends the JSON content string (optional trailing spaces tolerated). This rejects a
 # qualified/negated `VERDICT: PASS is NOT ...` whose value is not the whole token:
@@ -175,10 +175,10 @@ verdict_line=$(
 )
 
 if [ -z "$verdict_line" ]; then
-  emit_deny "Next step: address the review. The plan reviewer ran but returned no 'VERDICT:' line — re-run it, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+  emit_deny "Next step: address the review. The plan reviewer ran but returned no 'VERDICT:' line - re-run it, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
-# The value on that first verdict line — strip the trailing anchor, drop any back-ticks,
+# The value on that first verdict line - strip the trailing anchor, drop any back-ticks,
 # then take the last whitespace-delimited token of the remaining `\n**VERDICT:** <value>` span.
 verdict_value=$(
   awk -v ln="$verdict_line" 'NR==ln {
@@ -190,14 +190,14 @@ verdict_value=$(
 )
 
 if [ "$verdict_value" != "PASS" ]; then
-  emit_deny "Next step: address the review. The plan reviewer returned 'VERDICT: ${verdict_value}', not PASS — apply its Fix list to the plan file, re-run the reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+  emit_deny "Next step: address the review. The plan reviewer returned 'VERDICT: ${verdict_value}', not PASS - apply its Fix list to the plan file, re-run the reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
 # Tamper guard: a PASS approves the plan AS REVIEWED. The Step-1 write-detection only
 # sees Write/Edit, so a plan mutation via a Bash command AFTER the verdict is invisible
 # and would let a stale PASS approve tampered content. Re-gate when a later Bash line
 # makes the plan path the TARGET of a mutation (a redirect target, or an operand of
-# sed -i / tee / cp / mv) — NOT mere co-occurrence, so a read/stage (`cat`, `git add`)
+# sed -i / tee / cp / mv) - NOT mere co-occurrence, so a read/stage (`cat`, `git add`)
 # or a redirect aimed at another file that merely names the plan does not false-deny.
 # plan_path / plan_base were resolved right after Step 1 (hoisted for the format gate).
 if [ -n "$plan_base" ]; then
@@ -211,7 +211,7 @@ if [ -n "$plan_base" ]; then
       }' "$transcript_path" 2>/dev/null
   )
   if [ -n "$tamper_line" ]; then
-    emit_deny "Next step: re-review. The plan file was modified after 'VERDICT: PASS' — re-run the plan reviewer on the current plan, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+    emit_deny "Next step: re-review. The plan file was modified after 'VERDICT: PASS' - re-run the plan reviewer on the current plan, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
   fi
 fi
 

@@ -1,16 +1,16 @@
 /*
- * validate_bundle.ts — validates a finished handoff seed bundle against
+ * validate_bundle.ts - validates a finished handoff seed bundle against
  * `registry.json` (Task 2's merged token/style namespace) and the bundle's
  * own internal cross-references. Never mutates the bundle; a clean run and a
  * dirty run both leave every file untouched.
  *
- * IN : BUNDLE_DIR — the seed bundle dir (`DESIGN.md`, the two consolidated
+ * IN : BUNDLE_DIR - the seed bundle dir (`DESIGN.md`, the two consolidated
  *      satellites `DESIGN.components.md` + `DESIGN.patterns.md`,
- *      `screens/*.png`). REGISTRY_JSON — the `build_registry.ts` output
+ *      `screens/*.png`). REGISTRY_JSON - the `build_registry.ts` output
  *      (`{ tokens, textStyles, ... }`); the resolution namespace a spec's
  *      token references are checked against is exactly `Object.keys(tokens)`
  *      union every `textStyles[].name`.
- * OUT: stdout — one `FINDING: <category> <detail>` line per defect found
+ * OUT: stdout - one `FINDING: <category> <detail>` line per defect found
  *      (checkTokenRefs, then checkScreenRefs, then checkSections, then
  *      checkForbidden, in that order), or the single line `CLEAN` when none
  *      are found.
@@ -20,21 +20,21 @@
  *      command-line usage errors.
  *
  * Finding categories:
- *   - unknown-token   — a backticked dotted token in `DESIGN.components.md` or
+ *   - unknown-token   - a backticked dotted token in `DESIGN.components.md` or
  *     `DESIGN.patterns.md` resolves against neither `tokens{}` nor
  *     `textStyles[].name`. A backtick span counts as a token reference only
  *     when it matches `<group>.<name>` (at least one dot, no whitespace, no
  *     slash) AND is not an image filename (`login.png` is exempt by
- *     extension, not by heuristic) — a bare property name (`bg`, `radius`)
+ *     extension, not by heuristic) - a bare property name (`bg`, `radius`)
  *     never contains a dot and is excluded by construction.
- *   - missing-screen  — a `canonical: <filename>.png` line inside a satellite
+ *   - missing-screen  - a `canonical: <filename>.png` line inside a satellite
  *     (a consolidated spec's canonical reference) names a file absent from
  *     `screens/`. References are deduplicated by exact filename first, so one
  *     absent screen cited from several specs yields exactly one finding.
- *   - empty-section   — a standard `## ` heading in `DESIGN.md` is missing, or
+ *   - empty-section   - a standard `## ` heading in `DESIGN.md` is missing, or
  *     is followed by no non-whitespace content before the next `## ` heading
  *     or EOF. The required set is the fixed STANDARD_HEADINGS below.
- *   - forbidden-artifact — any `*.css`, `*.js`, `*.html` or `*.json` file
+ *   - forbidden-artifact - any `*.css`, `*.js`, `*.html` or `*.json` file
  *     anywhere under BUNDLE_DIR (blanket rejection, not a name heuristic;
  *     `DESIGN.md`'s inline YAML front matter is not a file and is unaffected).
  *
@@ -60,7 +60,7 @@ interface Registry {
   textStyles: { name: string }[];
 }
 
-// The fixed standard heading set DESIGN.md must carry — mirrors render_design_md.ts's STANDARD_HEADINGS.
+// The fixed standard heading set DESIGN.md must carry - mirrors render_design_md.ts's STANDARD_HEADINGS.
 const STANDARD_HEADINGS = [
   "Overview",
   "Colors",
@@ -96,7 +96,7 @@ function walkFiles(dir: string): string[] {
   return entries;
 }
 
-/** The two consolidated satellites — the specs no longer ship as a per-entry file fan. */
+/** The two consolidated satellites - the specs no longer ship as a per-entry file fan. */
 function specFiles(bundleDir: string): string[] {
   return [join(bundleDir, "DESIGN.components.md"), join(bundleDir, "DESIGN.patterns.md")].filter((f) => existsSync(f));
 }
@@ -147,7 +147,7 @@ export function checkTokenRefs(bundleDir: string, registry: Registry): Finding[]
 // checkScreenRefs
 // ---------------------------------------------------------------------------
 
-// A consolidated satellite carries many `canonical:` lines (one per spec) — matchAll needs the global flag.
+// A consolidated satellite carries many `canonical:` lines (one per spec) - matchAll needs the global flag.
 const CANONICAL_LINE_RE = /^canonical:\s*(\S+)\s*$/gm;
 
 export function checkScreenRefs(bundleDir: string): Finding[] {
@@ -224,7 +224,7 @@ export function checkSections(bundleDir: string): Finding[] {
 
 const FORBIDDEN_EXT_RE = /\.(css|js|html|json)$/i;
 
-/** Blanket rejection of css/js/html/json anywhere under the bundle dir — not a name heuristic. */
+/** Blanket rejection of css/js/html/json anywhere under the bundle dir - not a name heuristic. */
 export function checkForbidden(bundleDir: string): Finding[] {
   const findings: Finding[] = [];
   for (const file of walkFiles(bundleDir)) {

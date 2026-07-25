@@ -12,15 +12,15 @@ gh api graphql -f query='
 ' -F owner=octocat -F repo=hello-world
 ```
 
-## Variable flags — `-f` vs `-F`
+## Variable flags - `-f` vs `-F`
 
-- `-f, --raw-field key=value` — **always a string**. Use for the `query` text itself and for any GraphQL variable that is genuinely a `String!`.
-- `-F, --field key=value` — **typed magic conversion**: numbers become `Int`, `true`/`false`/`null` are coerced, `@filename` reads a file, `-` reads stdin. Use for `Boolean`, `Int`, numeric IDs, and placeholder substitution.
+- `-f, --raw-field key=value` - **always a string**. Use for the `query` text itself and for any GraphQL variable that is genuinely a `String!`.
+- `-F, --field key=value` - **typed magic conversion**: numbers become `Int`, `true`/`false`/`null` are coerced, `@filename` reads a file, `-` reads stdin. Use for `Boolean`, `Int`, numeric IDs, and placeholder substitution.
 - Both flags can be repeated; every key other than `query` / `operationName` is forwarded as a GraphQL variable.
 
 Rule of thumb for GraphQL via `gh`: **`-f query=...` for the query body; `-F` for everything else** unless the variable is genuinely a String.
 
-## Pagination — `--paginate`
+## Pagination - `--paginate`
 
 `--paginate` only works when the query is explicitly written for it. The query MUST:
 
@@ -57,7 +57,7 @@ gh api graphql -f query='{ __schema { types { name kind } } }'
 gh api graphql -f query='{ __type(name: "Issue") { fields { name type { name kind } } } }'
 ```
 
-## Error handling — errors ride inside `200 OK`
+## Error handling - errors ride inside `200 OK`
 
 `gh api graphql` returns HTTP 200 even for GraphQL errors. The exit code is 0, but the response body contains an `errors` array. Always select enough of the response to detect failure, and when scripting capture the errors through `gh`'s built-in jq engine (no system `jq` needed):
 
@@ -66,7 +66,7 @@ err="$(gh api graphql -f query='...' --jq '.errors // empty')"
 [ -n "$err" ] && { echo "GraphQL failed: $err" >&2; exit 1; }
 ```
 
-A non-empty `$err` is your real failure signal — `gh --jq` does NOT propagate `jq -e`'s exit code, so test the captured output, not the exit status.
+A non-empty `$err` is your real failure signal - `gh --jq` does NOT propagate `jq -e`'s exit code, so test the captured output, not the exit status.
 
 For mutations that return an object, always select at least one field of the return type. An empty selection compiles but returns nothing useful for downstream parsing.
 
@@ -89,7 +89,7 @@ gh api graphql -H 'GraphQL-Features: issue_types' -f query='...'
 
 The header is a no-op once the feature is fully GA in the schema you hit. Specifically:
 
-- `GraphQL-Features: issue_types` — for `updateIssueIssueType`, `organization.issueTypes`, `Issue.issueType`.
+- `GraphQL-Features: issue_types` - for `updateIssueIssueType`, `organization.issueTypes`, `Issue.issueType`.
 
 For REST (`gh api`) the equivalent is `-H 'X-GitHub-Api-Version: 2026-03-10'` on endpoints like `/repos/{o}/{r}/issues/{n}/sub_issues`.
 
@@ -99,5 +99,5 @@ REST and GraphQL have separate buckets. GraphQL is metered by query cost (points
 
 ## Sources
 
-- gh manual — api: <https://cli.github.com/manual/gh_api>
+- gh manual - api: <https://cli.github.com/manual/gh_api>
 - GraphQL reference: <https://docs.github.com/en/graphql/reference>

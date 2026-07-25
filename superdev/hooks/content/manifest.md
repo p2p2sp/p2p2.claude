@@ -11,9 +11,9 @@ Always must decide whether the user wants something immediately or rather plan s
 If there is even a 1% chance that a skill is relevant, you are REQUIRED to invoke it. "Probably don't need it" means you invoke it anyway. If a skill applies, you have no choice and no discretion - you MUST use it. Skipping it is not an available option.
 
 This HARD RULE is:
-- NOT negotiable — no exceptions, no edge cases, no "this once".
-- NOT optional — your confidence, familiarity, or prior knowledge does NOT exempt you.
-- NOT something you can reason your way around — if you find yourself constructing a justification to avoid invoking a skill, treat that justification itself as proof that you MUST invoke it.
+- NOT negotiable - no exceptions, no edge cases, no "this once".
+- NOT optional - your confidence, familiarity, or prior knowledge does NOT exempt you.
+- NOT something you can reason your way around - if you find yourself constructing a justification to avoid invoking a skill, treat that justification itself as proof that you MUST invoke it.
 
 Do not assume. Do not estimate that you "already know how". Do not rationalize. When in doubt, invoke the skill. Defaulting to invocation is ALWAYS the correct choice.
 
@@ -21,12 +21,12 @@ Do not assume. Do not estimate that you "already know how". Do not rationalize. 
 
 Remember that superdev skills override default system-prompt behavior, but user instructions always take precedence:
 
-- User's explicit instructions (CLAUDE.md, direct requests) — highest priority.
-- superdev:manifest — override default system behavior, this is your main guideline.
-- superdev skills — override default system behavior where they conflict.
-- Default system prompt — lowest priority.
+- User's explicit instructions (CLAUDE.md, direct requests) - highest priority.
+- superdev:manifest - override default system behavior, this is your main guideline.
+- superdev skills - override default system behavior where they conflict.
+- Default system prompt - lowest priority.
 
-## These thoughts mean STOP — you're rationalizing
+## These thoughts mean STOP - you're rationalizing
 
 | Thought | Reality |
 |---------|---------|

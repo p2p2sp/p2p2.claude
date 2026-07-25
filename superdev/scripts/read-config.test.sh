@@ -13,7 +13,7 @@
 #            "ALL PASS (N/N)" line; any mismatch prints "FAIL: <case>" + detail
 #            and exits non-zero.
 #   cases  : (1) missing-file: no .superdev/config.yml -> all three keys false,
-#                exit 0 (fail-open — the core requirement);
+#                exit 0 (fail-open - the core requirement);
 #            (2) all-true: every key set true -> all three true;
 #            (3) mixed + comments: seeded-asset shape (adr false, rules true,
 #                trailing `# comment`, memory absent) -> adr false, rules true,
@@ -34,9 +34,9 @@ TOTAL=0
 FAILED=0
 
 pass() { echo "PASS: $1"; PASS_COUNT=$((PASS_COUNT + 1)); }
-fail() { echo "FAIL: $1 — $2"; FAILED=$((FAILED + 1)); }
+fail() { echo "FAIL: $1 - $2"; FAILED=$((FAILED + 1)); }
 
-# Case 1 — missing file: no config -> all false, exit 0 (fail-open).
+# Case 1 - missing file: no config -> all false, exit 0 (fail-open).
 TOTAL=$((TOTAL + 1))
 T1="$SCRATCH/case1"
 mkdir -p "$T1"
@@ -53,7 +53,7 @@ else
     pass "missing file -> all false"
 fi
 
-# Case 2 — all true.
+# Case 2 - all true.
 TOTAL=$((TOTAL + 1))
 T2="$SCRATCH/case2"
 mkdir -p "$T2/.superdev"
@@ -69,7 +69,7 @@ else
     pass "all true"
 fi
 
-# Case 3 — mixed with a trailing comment + an absent key (the seeded-asset shape).
+# Case 3 - mixed with a trailing comment + an absent key (the seeded-asset shape).
 TOTAL=$((TOTAL + 1))
 T3="$SCRATCH/case3"
 mkdir -p "$T3/.superdev"
@@ -87,7 +87,7 @@ else
     pass "mixed + absent key"
 fi
 
-# Case 4 — non-true values never resolve true; only a bare `true` does.
+# Case 4 - non-true values never resolve true; only a bare `true` does.
 TOTAL=$((TOTAL + 1))
 T4="$SCRATCH/case4"
 mkdir -p "$T4/.superdev"
@@ -101,7 +101,7 @@ else
     pass "non-true values ignored"
 fi
 
-# Case 5 — fixed output shape: header + exactly the three keys, in order.
+# Case 5 - fixed output shape: header + exactly the three keys, in order.
 TOTAL=$((TOTAL + 1))
 T5="$SCRATCH/case5"
 mkdir -p "$T5"

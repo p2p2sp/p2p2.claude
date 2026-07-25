@@ -1,6 +1,6 @@
 ---
 name: superdev-memory
-description: Use ALWAYS when the user wants to create, initialize, regenerate, bootstrap, or maintain CLAUDE.md project-memory for a repository — set up project memory, add a memory layer, or make Claude understand the codebase. Triggers include "create CLAUDE.md", "initialize project memory", "bootstrap Claude context", "set up CLAUDE.md", "add memory layer". Generates a hierarchical CASCADE of CLAUDE.md files (one general root plus progressively more specific child nodes in genuine architectural units), not a single root file, and offers a maintenance mode to audit existing nodes and find new candidates.
+description: Use ALWAYS when the user wants to create, initialize, regenerate, bootstrap, or maintain CLAUDE.md project-memory for a repository - set up project memory, add a memory layer, or make Claude understand the codebase. Triggers include "create CLAUDE.md", "initialize project memory", "bootstrap Claude context", "set up CLAUDE.md", "add memory layer". Generates a hierarchical CASCADE of CLAUDE.md files (one general root plus progressively more specific child nodes in genuine architectural units), not a single root file, and offers a maintenance mode to audit existing nodes and find new candidates.
 user-invocable: true
 ---
 
@@ -10,13 +10,13 @@ Hierarchical CLAUDE.md infrastructure so CLAUDE navigate codebases like senior e
 
 ## Core Principle
 
-**Keep exactly ONE root context file** (`CLAUDE.md`) at the project root — do not split root-level memory across competing files. Child `CLAUDE.md` files in subdirectories are encouraged for complex subsystems.
+**Keep exactly ONE root context file** (`CLAUDE.md`) at the project root - do not split root-level memory across competing files. Child `CLAUDE.md` files in subdirectories are encouraged for complex subsystems.
 
 ## Run ID
 
 !`date +%Y%m%d-%H%M%S`
 
-The line above is `<RUN_ID>` — use it verbatim. Every run writes a fresh capture file `.superdev/.memory/capture-<RUN_ID>.md`; never reuse or overwrite an existing one.
+The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture file `.superdev/.memory/capture-<RUN_ID>.md`; never reuse or overwrite an existing one.
 
 ## Workflow
 
@@ -43,7 +43,7 @@ The line above is `<RUN_ID>` — use it verbatim. Every run writes a fresh captu
    Write .superdev/.memory/capture-<RUN_ID>.md (format below)
    Invoke `superdev-memory-writer` (Skill) with a labeled-line args block:
      capture: .superdev/.memory/capture-<RUN_ID>.md
-   Relay its VERDICT/NODE lines verbatim — do NOT re-verify or rewrite the nodes yourself
+   Relay its VERDICT/NODE lines verbatim - do NOT re-verify or rewrite the nodes yourself
 
 6. Maintenance mode (when state=complete)
    Ask user:
@@ -58,7 +58,7 @@ The line above is `<RUN_ID>` — use it verbatim. Every run writes a fresh captu
 ```
 # Memory capture
 ## Nodes
-- <dir> — <one-line purpose>     (`.` = project root node; paths relative to project root)
+- <dir> - <one-line purpose>     (`.` = project root node; paths relative to project root)
 ## Facts
 ### <dir>
 - <captured fact / invariant / discovered command / anti-pattern>
@@ -78,7 +78,7 @@ Do NOT create for: every directory, simple utilities, test folders (unless compl
 
 ## Proposing candidates (level 1)
 
-When you offer the level-1 directories (top level under the project root) as answer options — which of them get a CLAUDE.md — ALWAYS include `All projects` as one of the proposed answers, even when some of those directories fall below the token threshold. The threshold only sets which options come pre-selected; it never removes an option. `All projects` means "create a node for every level-1 directory, sub-threshold ones included" and must always be on offer.
+When you offer the level-1 directories (top level under the project root) as answer options - which of them get a CLAUDE.md - ALWAYS include `All projects` as one of the proposed answers, even when some of those directories fall below the token threshold. The threshold only sets which options come pre-selected; it never removes an option. `All projects` means "create a node for every level-1 directory, sub-threshold ones included" and must always be on offer.
 
 ## Capture Questions
 

@@ -1,9 +1,9 @@
 
-## Task 4 — feat(superui): add a conditional dark fidelity-review scope
+## Task 4 - feat(superui): add a conditional dark fidelity-review scope
 - Covers: criteria #8, #9
 
 ### Dependencies
-- none — blocks: Task 5
+- none - blocks: Task 5
 
 ### Files
 - modify - superui/skills/design-system-extractor/SKILL.md (step 7 "Fidelity review fan-out")
@@ -14,18 +14,18 @@
 - none
 
 *Tests*
-- `grep -n "dark" superui/skills/design-system-extractor/SKILL.md` — expect the conditional dark scope in step 7
-- `grep -n "dark" superui/agents/fidelity-reviewer.md` — expect the dark-scope handling
-- `grep -n "provenance: designed" superui/agents/fidelity-reviewer.md` — expect the root-marker wholesale skip intact
+- `grep -n "dark" superui/skills/design-system-extractor/SKILL.md` - expect the conditional dark scope in step 7
+- `grep -n "dark" superui/agents/fidelity-reviewer.md` - expect the dark-scope handling
+- `grep -n "provenance: designed" superui/agents/fidelity-reviewer.md` - expect the root-marker wholesale skip intact
 
 ### Approach
 1. In extractor step 7, add one dark scope to the fan-out list, conditional on
-   `<run>/source-map.md`'s `## Dark-mode coverage` reporting dark screens — no dark screens, no
+   `<run>/source-map.md`'s `## Dark-mode coverage` reporting dark screens - no dark screens, no
    extra dispatch. It gets the dark screens, the artifact paths, the sampler path, and output
    `<run>/review-dark.md`; routing of its mismatches follows the existing re-dispatch convention.
 2. In `fidelity-reviewer.md` "Inputs you are given", state that the verification scope may be a
    dark scope (the dark screens plus their light counterparts).
-3. In "What to do", add the dark-scope branch: run only the colour-bearing checks — surface and
+3. In "What to do", add the dark-scope branch: run only the colour-bearing checks - surface and
    elevation order on the dark screens via `--regions`, accent discipline in dark, and a spot-check
    of `$extensions.org.superui.dark` values against the dark pixels. State explicitly that geometry,
    radii, and state form are theme-invariant and are NOT re-checked in a dark scope.
@@ -39,7 +39,7 @@
 - Root marker `provenance: designed` -> the dark scope is skipped wholesale like every other scope.
 
 ### Contracts
-- `<run>/review-dark.md` — the existing fidelity report format, no new fields.
+- `<run>/review-dark.md` - the existing fidelity report format, no new fields.
 
 ### DoD
 The extractor dispatches a dark scope only when dark screens exist, and `fidelity-reviewer` runs

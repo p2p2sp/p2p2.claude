@@ -1,5 +1,5 @@
 #!/bin/sh
-# supergh — shared/scripts/body-path.sh
+# supergh - shared/scripts/body-path.sh
 # Deterministic body-file path builder, shared by create-issue and create-pr. Replaces
 # the prose `date +…` + 7-step slugify (with Polish transliteration) that was DUPLICATED
 # verbatim in both skills. The skill calls it in Step 8 (the title is known only after the
@@ -9,9 +9,9 @@
 #
 # IN : $1 = prefix (the .temp subdir, e.g. "create-issue" | "create-pr")
 #      $2 = title (raw, may contain spaces / Polish diacritics / punctuation / embedded
-#           newlines — any \n or \r is collapsed to a space before slugify, so a multi-
+#           newlines - any \n or \r is collapsed to a space before slugify, so a multi-
 #           line title can never split the OUT contract below across multiple lines)
-# OUT: exactly one line on stdout — the ready body path:
+# OUT: exactly one line on stdout - the ready body path:
 #        .temp/<prefix>/<YYYYmmdd-HHMMSS>-<slug>.md
 #      The parent dir `.temp/<prefix>/` is `mkdir -p`'d before the line is printed.
 # Slugify (applied to the title, in order):
@@ -24,7 +24,7 @@
 #   6. truncate to 40 chars; if the cut lands mid-word, back off to the last '-' before 40
 #   7. empty result -> "untitled"
 # exit: 0 on the emitted path; 2 on missing args; 1 if the dir could not be created.
-# Pure POSIX — no jq/awk/bc. Transliteration via literal-byte sed; the whole slug
+# Pure POSIX - no jq/awk/bc. Transliteration via literal-byte sed; the whole slug
 # pipeline runs under LC_ALL=C so byte semantics hold on every host locale (under
 # UTF-8 a 4-byte char, e.g. an emoji, would otherwise leak a stray invalid byte
 # into the slug and break the pure-ASCII invariant below).
@@ -37,7 +37,7 @@ if [ -z "$prefix" ] || [ $# -lt 2 ]; then
   exit 2
 fi
 
-# Collapse any embedded newline/CR in the title to a space BEFORE slugify — the
+# Collapse any embedded newline/CR in the title to a space BEFORE slugify - the
 # sed pipeline below is line-oriented, so a multi-line title would otherwise
 # split across multiple stdout lines, breaking the "exactly one line" contract.
 # Same idiom as commit.sh's emit_error (`tr '\n\r' '  '`).
@@ -56,7 +56,7 @@ slug=$(printf '%s' "$title" \
         -e 's/ż/z/g' -e 's/Ż/z/g' \
   | LC_ALL=C sed -e 's/[^a-z0-9]/-/g' -e 's/--*/-/g' -e 's/^-//' -e 's/-$//')
 
-# Step 6 — truncate to 40 with word-boundary back-off (slug is pure ASCII here, so
+# Step 6 - truncate to 40 with word-boundary back-off (slug is pure ASCII here, so
 # character count == byte count and ${#var} is safe).
 if [ "${#slug}" -gt 40 ]; then
   c41=$(printf '%s' "$slug" | cut -c41-41)

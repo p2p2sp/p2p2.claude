@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# commit-context.sh — emituje kontekst do skomponowania commit message:
+# commit-context.sh - emituje kontekst do skomponowania commit message:
 #   - kilka ostatnich tematow commitow (styl/scope repo do dopasowania),
 #   - liste zmian (git status) wlasciwa dla selektora,
 #   - diff wlasciwy dla selektora (staged -> --cached, path -> vs HEAD dla sciezki,
@@ -10,11 +10,11 @@
 #   commit-context.sh [selector]
 #
 # Parametry:
-#   selector (opcjonalny) — pelny string argumentow skilla. Interpretacja jak w
+#   selector (opcjonalny) - pelny string argumentow skilla. Interpretacja jak w
 #                           commit-args.sh: ""/all -> all, staged -> staged,
 #                           cokolwiek innego -> sciezka (kontekst zawezony do niej).
 #
-# Uwaga: swiadomie BEZ `set -e` — to best-effort kontekst; pojedyncza nieudana
+# Uwaga: swiadomie BEZ `set -e` - to best-effort kontekst; pojedyncza nieudana
 # komenda git nie moze wywalic ladowania skilla.
 set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/commit-args.sh"
@@ -34,16 +34,16 @@ else
 fi
 
 if [ "$COMMIT_MODE" = "path" ]; then
-  echo "## Selector: path — run commit.sh with 2nd arg \"$COMMIT_PATH\""
+  echo "## Selector: path - run commit.sh with 2nd arg \"$COMMIT_PATH\""
 elif [ "$COMMIT_MODE" = "staged" ]; then
-  echo "## Selector: staged — run commit.sh with 2nd arg \"staged\""
+  echo "## Selector: staged - run commit.sh with 2nd arg \"staged\""
 else
-  echo "## Selector: all — run commit.sh with no 2nd arg"
+  echo "## Selector: all - run commit.sh with no 2nd arg"
 fi
 echo
 
 if [ -n "$COMMIT_ISSUE_REFS" ]; then
-  echo "## Issue footer (explicit, from a GitHub issue link in the arguments — use verbatim, ignore the branch)"
+  echo "## Issue footer (explicit, from a GitHub issue link in the arguments - use verbatim, ignore the branch)"
   refs=""
   for n in $COMMIT_ISSUE_REFS; do refs="${refs:+$refs, }#$n"; done
   echo "Refs: $refs"
@@ -94,6 +94,6 @@ else
   total=$(printf '%s\n' "$diff_out" | wc -l | tr -d ' ')
   printf '%s\n' "$diff_out" | head -n "$MAX_LINES"
   if [ "$total" -gt "$MAX_LINES" ]; then
-    echo "... [diff truncated: showing first ${MAX_LINES} of ${total} lines — run git diff for the rest]"
+    echo "... [diff truncated: showing first ${MAX_LINES} of ${total} lines - run git diff for the rest]"
   fi
 fi

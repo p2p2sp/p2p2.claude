@@ -1,9 +1,9 @@
 
-## Task 5 — docs(superui): record dark verification in the dark-mode canon
+## Task 5 - docs(superui): record dark verification in the dark-mode canon
 - Covers: criteria #10, #11
 
 ### Dependencies
-- Task 1, Task 2, Task 3, Task 4 — blocks: nothing
+- Task 1, Task 2, Task 3, Task 4 - blocks: nothing
 
 ### Files
 - modify - superui/CLAUDE.md ("Dark-mode canon" invariant)
@@ -13,12 +13,12 @@
 - none
 
 *Tests*
-- `grep -n -A 20 "Dark-mode canon" superui/CLAUDE.md` — expect the verification sentence present
-- `git log -1 --format=%s -- superui/.claude-plugin/plugin.json` — expect a subject predating this
+- `grep -n -A 20 "Dark-mode canon" superui/CLAUDE.md` - expect the verification sentence present
+- `git log -1 --format=%s -- superui/.claude-plugin/plugin.json` - expect a subject predating this
   plan (NOT one of Task 1-4's commit subjects). A working-tree `git diff` is vacuous here:
   `simplebuild` commits per task, so by Task 5 the tree is clean either way.
-- `git log -1 --format=%s -- superui/scripts/ superui/assets/` — same expectation
-- `git log -1 --format=%s -- superui/agents/spec-writer.md superui/agents/spec-designer.md` — same expectation (specs stay light-only; a blanket `superui/agents/` check is impossible because Tasks 2 and 4 legitimately modify `design-director.md` and `fidelity-reviewer.md`)
+- `git log -1 --format=%s -- superui/scripts/ superui/assets/` - same expectation
+- `git log -1 --format=%s -- superui/agents/spec-writer.md superui/agents/spec-designer.md` - same expectation (specs stay light-only; a blanket `superui/agents/` check is impossible because Tasks 2 and 4 legitimately modify `design-director.md` and `fidelity-reviewer.md`)
 
 ### Approach
 1. Extend the "Dark-mode canon" invariant with the verification half: dark is checked by two
@@ -27,7 +27,7 @@
 2. Note that the creative head gates dark coverage on the brief, so an unrequested dark theme is
    never fabricated.
 3. Keep the existing canon text (the `$extensions.org.superui.dark` literal, the whole-page toggle,
-   the `sheet.template.html` / `build_index.py` duplication warning) verbatim — this is an addition,
+   the `sheet.template.html` / `build_index.py` duplication warning) verbatim - this is an addition,
    not a rewrite.
 4. Verify the untouched surfaces with the three `git log -1` commands above.
 

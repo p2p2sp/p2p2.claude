@@ -1,15 +1,15 @@
 #!/bin/sh
-# supergh — skills/create-pr/scripts/pr-facts.sh
+# supergh - skills/create-pr/scripts/pr-facts.sh
 # Gathers every git/gh fact the PR flow needs after issue resolution, in ONE call:
 # issue title, first-commit subject, closes-refs, changed files, raw commit messages.
 # Replaces up to 4 prose calls (gh issue view, git log x2, git diff --name-only) spread
-# over SKILL.md Steps 4 and 6. Reports facts only — title/fallback logic stays in the
+# over SKILL.md Steps 4 and 6. Reports facts only - title/fallback logic stays in the
 # skill. Fail-soft: a failed probe yields an empty value, never a broken block.
 #
 # IN : $1 = base branch, $2 = head branch, $3 = issue number (optional)
 #      The commit range prefers "<base>..<head>"; when <base> does not resolve locally
 #      it falls back to "origin/<base>..<head>".
-# OUT: block on stdout —
+# OUT: block on stdout -
 #        ISSUE_TITLE=<title>     only when $3 given and the fetch succeeded
 #        ISSUE_ERROR=<one line>  only when $3 given and the fetch failed / empty title
 #        FIRST_SUBJECT=<s>       subject of the first commit past base ("" if none)

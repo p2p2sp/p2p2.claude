@@ -47,7 +47,7 @@ Does NOT own: invoicing (see billing-service), user accounts.
 
 ## Commands
 
-(own toolchain — discovered from `services/payment/package.json`, lives here, not in root)
+(own toolchain - discovered from `services/payment/package.json`, lives here, not in root)
 - Test: `pnpm --filter payment test`
 - Run: `pnpm --filter payment dev`
 

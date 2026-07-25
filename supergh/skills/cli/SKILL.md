@@ -1,6 +1,6 @@
 ---
 name: cli
-description: GitHub CLI (gh) reference — which layer (native `gh` / `gh api` REST / `gh api graphql`) a GitHub operation needs. Covers auth & scopes, issue types (REST — `gh issue create` has no `--type`), Projects v2, sub-issues, Discussions, PR review threads, pagination, error handling. Use whenever a skill needs to call `gh`/`gh api`/`gh api graphql` — check here which layer is correct and whether the field/mutation exists before writing from memory. Triggers include "sub-issue", "review thread", "discussion API", "addSubIssue", "resolveReviewThread", "gh pr create". Do NOT execute gh commands from this skill — it is reference-only; execution belongs to consumer skills (create-issue, commit, create-pr, cli-executor).
+description: GitHub CLI (gh) reference - which layer (native `gh` / `gh api` REST / `gh api graphql`) a GitHub operation needs. Covers auth & scopes, issue types (REST - `gh issue create` has no `--type`), Projects v2, sub-issues, Discussions, PR review threads, pagination, error handling. Use whenever a skill needs to call `gh`/`gh api`/`gh api graphql` - check here which layer is correct and whether the field/mutation exists before writing from memory. Triggers include "sub-issue", "review thread", "discussion API", "addSubIssue", "resolveReviewThread", "gh pr create". Do NOT execute gh commands from this skill - it is reference-only; execution belongs to consumer skills (create-issue, commit, create-pr, cli-executor).
 user-invocable: false
 effort: low
 ---
@@ -31,27 +31,27 @@ Try **native `gh` → REST via `gh api` → GraphQL via `gh api graphql`**. Esca
 | **Resolve** PR review threads | GraphQL only | `references/pr-review-threads.md` |
 | Reply to a specific PR review thread | REST `/pulls/{n}/comments/{id}/replies` or GraphQL | `references/pr-review-threads.md` |
 | Saved replies | GraphQL only | (`viewer.savedReplies`, `createSavedReply`) |
-| Repo custom properties / rulesets / branch protection | REST via `gh api` | (none yet — escalate from this list when needed) |
-| GraphQL invocation, pagination, error handling | n/a — pattern | `references/graphql-patterns.md` |
-| Auth & scopes (CLI and CI) | n/a — pattern | `references/auth-and-scopes.md` |
+| Repo custom properties / rulesets / branch protection | REST via `gh api` | (none yet - escalate from this list when needed) |
+| GraphQL invocation, pagination, error handling | n/a - pattern | `references/graphql-patterns.md` |
+| Auth & scopes (CLI and CI) | n/a - pattern | `references/auth-and-scopes.md` |
 
 ## Operational must-knows
 
-- **`gh issue create` has no `--type` flag.** Setting issue type requires REST — see `references/issues.md`. A skill that "sets the type" via `--type` is silently a no-op.
-- **GraphQL errors ride inside HTTP 200.** `gh api graphql` exits 0 on a failed mutation. Select enough of the response to detect failure and guard every mutation by capturing `--jq '.errors'` (treat non-empty as failure) — see `references/graphql-patterns.md`.
-- **`--paginate` only works when the query is written for it.** Needs `$endCursor` + `pageInfo { hasNextPage endCursor }` + `after: $endCursor` on every paginated connection — see `references/graphql-patterns.md`.
-- **Mutating GraphQL needs node IDs.** Every `*Id` input requires a preceding discovery query; the mutation snippets in `references/*.md` are paired with theirs — copy both.
-- **Projects v2 needs the `project` token scope.** Issue-type org mutations need `admin:org` (classic PAT) or the fine-grained `Issue types` permission — see `references/auth-and-scopes.md`.
+- **`gh issue create` has no `--type` flag.** Setting issue type requires REST - see `references/issues.md`. A skill that "sets the type" via `--type` is silently a no-op.
+- **GraphQL errors ride inside HTTP 200.** `gh api graphql` exits 0 on a failed mutation. Select enough of the response to detect failure and guard every mutation by capturing `--jq '.errors'` (treat non-empty as failure) - see `references/graphql-patterns.md`.
+- **`--paginate` only works when the query is written for it.** Needs `$endCursor` + `pageInfo { hasNextPage endCursor }` + `after: $endCursor` on every paginated connection - see `references/graphql-patterns.md`.
+- **Mutating GraphQL needs node IDs.** Every `*Id` input requires a preceding discovery query; the mutation snippets in `references/*.md` are paired with theirs - copy both.
+- **Projects v2 needs the `project` token scope.** Issue-type org mutations need `admin:org` (classic PAT) or the fine-grained `Issue types` permission - see `references/auth-and-scopes.md`.
 - **REST and GraphQL have separate rate-limit buckets.** GraphQL is metered by query cost (points). For bulk sub-issue / project / review-thread work, one GraphQL request with aliases beats N REST calls.
 
 ## For consumer skills
 
-This skill is **reference-only** — it owns the *what to call* / *which layer* decision but never executes `gh`. A consumer skill must:
+This skill is **reference-only** - it owns the *what to call* / *which layer* decision but never executes `gh`. A consumer skill must:
 
-- declare its own `allowed-tools` sandbox — this reference widens nothing and does **not** authorise `Bash(gh:*)`; `Bash` access stays on the consumer, scoped to what its flow actually needs;
+- declare its own `allowed-tools` sandbox - this reference widens nothing and does **not** authorise `Bash(gh:*)`; `Bash` access stays on the consumer, scoped to what its flow actually needs;
 - copy the matching snippet (with its discovery query) from `references/*.md` into its flow;
 - credit this skill in prose ("see the `cli` skill") rather than duplicate the rationale or source links.
 
-Don't hand a skill a `gh` command from memory without checking the matching reference here — GitHub's surface evolves (issue types are REST-supported, not a `gh issue create` flag; sub-issues are REST-supported with no native `gh` subcommand; PR thread resolve stays GraphQL-only); what "needs GraphQL" may already be REST, and vice versa.
+Don't hand a skill a `gh` command from memory without checking the matching reference here - GitHub's surface evolves (issue types are REST-supported, not a `gh issue create` flag; sub-issues are REST-supported with no native `gh` subcommand; PR thread resolve stays GraphQL-only); what "needs GraphQL" may already be REST, and vice versa.
 
 For interactive issue creation see the **create-issue** skill, for commits the **commit** skill, for PR creation the **create-pr** skill. To execute a fully-specified gh/REST/GraphQL operation out of the main context, hand it to the **cli-executor** skill.

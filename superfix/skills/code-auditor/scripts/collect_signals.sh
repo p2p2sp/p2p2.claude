@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# collect_signals.sh — cheap, deterministic signal collection for the
+# collect_signals.sh - cheap, deterministic signal collection for the
 # Impact x Opportunity sweep. Emits one JSON object per candidate source file to
 # stdout (JSONL). These are PRIORS for the scouts, not the score itself.
 #
@@ -17,7 +17,7 @@
 # Candidate selection is DISCOVERED, not hardcoded: pass 1 scans the tracked tree
 # for every extension actually present, drops a deny-list of no-value ones
 # (binaries, media, fonts, archives, locks, generated maps), and pass 2 sweeps
-# every file whose extension survived — plus extensionless files (scripts,
+# every file whose extension survived - plus extensionless files (scripts,
 # Makefile, hooks). The kept extension set is echoed to stderr so each run is
 # honest about its coverage. This keeps the sweep stack-agnostic: a repo of
 # markdown+shell+json is covered exactly like a C++ or JS tree.
@@ -55,7 +55,7 @@ noise_filter() {
   grep -Ev '(^|/)(node_modules|dist|build|out|vendor|third_party)(/|$)|\.min\.|(^|/)package-lock\.json$|(^|/)yarn\.lock$' || true
 }
 
-# Pass 1 — discover the repo's own extension set, minus the deny-list.
+# Pass 1 - discover the repo's own extension set, minus the deny-list.
 kept_exts="$(
   git ls-files | noise_filter \
     | sed -n 's/.*\.\([A-Za-z0-9_]\{1,\}\)$/\1/p' \
@@ -64,7 +64,7 @@ kept_exts="$(
 )"
 printf 'sweep extensions:%s\n' "$(printf '%s' "$kept_exts" | tr '\n' ' ' | sed 's/[[:space:]]*$//; s/^/ /')" >&2
 
-# Pass 2 — candidates: files whose extension was kept, plus extensionless files.
+# Pass 2 - candidates: files whose extension was kept, plus extensionless files.
 git ls-files | noise_filter \
   | awk -v exts="$kept_exts" '
       BEGIN { n = split(exts, a, "\n"); for (i = 1; i <= n; i++) if (a[i] != "") keep[a[i]] = 1 }

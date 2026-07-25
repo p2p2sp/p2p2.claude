@@ -1,7 +1,7 @@
 /*
  * JPEG decoder vendored from jpeg-js (https://github.com/jpeg-js/jpeg-js),
  * file lib/decoder.js at master commit
- * b8cfcd4adcb20a2c9ea43a918827484c67781611 (2023-02-24) — the tip of the
+ * b8cfcd4adcb20a2c9ea43a918827484c67781611 (2023-02-24) - the tip of the
  * decoder's history, slightly newer than the last npm release (0.4.4).
  *
  * jpeg-js license: MIT (c) 2014 Eugene Ware, https://github.com/jpeg-js/jpeg-js/blob/master/LICENSE

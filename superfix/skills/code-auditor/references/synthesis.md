@@ -1,4 +1,4 @@
-# Synthesis — verify, dedupe, score, and open new fronts
+# Synthesis - verify, dedupe, score, and open new fronts
 
 The detective sweep produces many candidate reports of mixed quality. This phase turns them into a trustworthy, severity-ranked findings list. The cardinal rule: **never file an unverified finding.** Cheap to generate, expensive to be wrong.
 
@@ -19,17 +19,17 @@ ENTRY: <the hotspot it started from>
 <concrete steps or a runnable PoC: input, command, expected vs actual.>
 
 ## Verification
-<how it was confirmed on a CLEAN checkout — oracle output, crash trace,
+<how it was confirmed on a CLEAN checkout - oracle output, crash trace,
 failing request, etc.>
 
 ## Suggested fix (sketch)
-<not a PR — just the shape of the fix and what it must not break.>
+<not a PR - just the shape of the fix and what it must not break.>
 
 CONFIDENCE: <low | medium | high>
 SEVERITY: <0.0-10.0>
 ```
 
-If nothing real survives, the detective writes a file whose entire body is `NO FINDING` plus one line on what it checked. Keep these — they are coverage evidence.
+If nothing real survives, the detective writes a file whose entire body is `NO FINDING` plus one line on what it checked. Keep these - they are coverage evidence.
 
 ## Clean-checkout verification (anti-self-poisoning)
 
@@ -38,7 +38,7 @@ The most common false positive: early in a session an agent edits the tree (adds
 ```bash
 git worktree add /tmp/verify-<rank> <commit-or-HEAD>
 # replay the PoC against /tmp/verify-<rank>; if it does not reproduce there,
-# the finding is an artifact — drop it.
+# the finding is an artifact - drop it.
 git worktree remove /tmp/verify-<rank>
 ```
 
@@ -46,11 +46,11 @@ For memory-corruption work, use a real oracle: build with ASan in the clean work
 
 ## Deduplicate
 
-Group reports by root cause, not by file — the same defect (e.g. a shared unchecked helper) often surfaces from several entry points. Merge them into one finding, list all affected locations, keep the highest severity and the clearest PoC.
+Group reports by root cause, not by file - the same defect (e.g. a shared unchecked helper) often surfaces from several entry points. Merge them into one finding, list all affected locations, keep the highest severity and the clearest PoC.
 
 ## Severity scoring (greppable)
 
-Give every surviving finding a `SEVERITY: N.N` on its own line (0-10). The exact number is a rough, internal ranking signal — not a published CVSS — but it must be consistent enough to sort by. Rough anchors:
+Give every surviving finding a `SEVERITY: N.N` on its own line (0-10). The exact number is a rough, internal ranking signal - not a published CVSS - but it must be consistent enough to sort by. Rough anchors:
 
 - **9-10** unauthenticated RCE / full account takeover / trivial data breach
 - **7-8** authenticated high-impact, or memory corruption with a plausible path
@@ -66,10 +66,10 @@ grep -rH '^SEVERITY:' .temp/code-reviewer/<run-id>/reports | sort -t: -k3 -rn
 ## findings.md (final output)
 
 ```markdown
-# Findings — <run-id> (<job>)
+# Findings - <run-id> (<job>)
 Swept N files · M hotspots investigated · K confirmed findings · J fronts still open.
 
-## 1. <title>  —  SEVERITY 9.2  (confidence: high)
+## 1. <title>  -  SEVERITY 9.2  (confidence: high)
 LOCATION ... CLASS ... root cause ... repro ... fix sketch ...
 
 ## 2. ...
@@ -81,7 +81,7 @@ LOCATION ... CLASS ... root cause ... repro ... fix sketch ...
 
 ## Open new fronts (Phase 6 loop)
 
-Synthesis feeds the next iteration — this is what makes the workflow dynamic:
+Synthesis feeds the next iteration - this is what makes the workflow dynamic:
 
 1. **Generalize a confirmed class.** A confirmed missing-authz / unchecked-length / unescaped-input finding becomes a *pattern*. Spawn a fresh scout wave whose job is "find this same pattern elsewhere," seeded with the confirmed example.
 2. **Propagate impact.** Callers and importers of a confirmed-broken file inherit elevated Impact; re-sweep them at a lower threshold.

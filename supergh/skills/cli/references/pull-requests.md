@@ -1,6 +1,6 @@
 # Pull requests
 
-`gh pr` is the most mature surface in the CLI. Almost everything you need at PR creation/edit/review/merge time is a flag — escalate to REST/GraphQL only for the specific gaps called out below.
+`gh pr` is the most mature surface in the CLI. Almost everything you need at PR creation/edit/review/merge time is a flag - escalate to REST/GraphQL only for the specific gaps called out below.
 
 ## Subcommand map
 
@@ -11,7 +11,7 @@ gh pr review / comment
 gh pr checkout / lock / unlock
 ```
 
-## `gh pr create` — canonical pattern
+## `gh pr create` - canonical pattern
 
 ```bash
 gh pr create \
@@ -51,7 +51,7 @@ Full flag list (verbatim from `gh pr create --help`):
 Notes:
 - Use `--body-file` (not `--body "<inline>"`) for any body with newlines, quotes, backticks, dollar signs.
 - `--fill` / `--fill-first` / `--fill-verbose` are mutually exclusive ways to seed from commit messages; useful for one-shot/automation flows.
-- `--draft` toggles the PR to draft state at creation. To toggle later: `gh pr ready` (un-draft) — no direct "make draft" subcommand; for that, use GraphQL `convertPullRequestToDraft`.
+- `--draft` toggles the PR to draft state at creation. To toggle later: `gh pr ready` (un-draft) - no direct "make draft" subcommand; for that, use GraphQL `convertPullRequestToDraft`.
 
 ## Editing an existing PR
 
@@ -76,7 +76,7 @@ gh pr review <num> --comment --body 'Some context'
 gh pr review <num> --body-file review.md
 ```
 
-For per-line review comments, the CLI does not have first-class support — escalate to REST (`POST /repos/{o}/{r}/pulls/{n}/comments`) or GraphQL (`addPullRequestReviewThread`).
+For per-line review comments, the CLI does not have first-class support - escalate to REST (`POST /repos/{o}/{r}/pulls/{n}/comments`) or GraphQL (`addPullRequestReviewThread`).
 
 ## Merge
 
@@ -91,17 +91,17 @@ gh pr merge <num> --subject '…' --body '…'   # override commit message
 
 `--auto` requires the repo to allow auto-merge in settings.
 
-## Gaps — when to escalate beyond `gh pr`
+## Gaps - when to escalate beyond `gh pr`
 
 | Need | Path |
 |---|---|
-| List / resolve PR review **threads** (the wrapping object with `isResolved`) | GraphQL only — see `pr-review-threads.md` |
+| List / resolve PR review **threads** (the wrapping object with `isResolved`) | GraphQL only - see `pr-review-threads.md` |
 | Convert an open PR back to draft | GraphQL `convertPullRequestToDraft` |
-| Attach PR to a Projects v2 board | `gh project item-add` — see `projects-v2.md` |
-| Set or clear an issue type on the **linked issue** | REST `PATCH /repos/.../issues/{n}` — see `issues.md` |
+| Attach PR to a Projects v2 board | `gh project item-add` - see `projects-v2.md` |
+| Set or clear an issue type on the **linked issue** | REST `PATCH /repos/.../issues/{n}` - see `issues.md` |
 | Bulk reactions on review comments | REST `/repos/.../pulls/comments/{id}/reactions` |
 
 ## Sources
 
-- gh manual — pr: <https://cli.github.com/manual/gh_pr>
-- REST — Pulls: <https://docs.github.com/en/rest/pulls/pulls>
+- gh manual - pr: <https://cli.github.com/manual/gh_pr>
+- REST - Pulls: <https://docs.github.com/en/rest/pulls/pulls>

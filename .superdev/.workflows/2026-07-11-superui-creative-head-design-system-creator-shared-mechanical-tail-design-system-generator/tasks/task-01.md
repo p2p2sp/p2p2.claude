@@ -1,12 +1,12 @@
 
-## Task 1 — refactor(superui): consolidate shared scripts, references and assets at plugin root; drop `!` preflights
+## Task 1 - refactor(superui): consolidate shared scripts, references and assets at plugin root; drop `!` preflights
 - Covers: criteria #1, #2 (extractor/completer/pro-designer parts)
 
 ### Dependencies
-- none — blocks: Task 2, 3, 4, 5, 6, 7
+- none - blocks: Task 2, 3, 4, 5, 6, 7
 
 ### Files
-- modify (git mv) - superui/shared/scripts/check_python.sh -> superui/scripts/check_python.sh (update its `# superui — shared/scripts/...` header comment)
+- modify (git mv) - superui/shared/scripts/check_python.sh -> superui/scripts/check_python.sh (update its `# superui - shared/scripts/...` header comment)
 - modify (git mv) - superui/skills/design-system-extractor/scripts/{sample_colors,validate_tokens,tokens_to_css,design_md_skeleton,check_spec_tokens,build_index,lint_previews}.py -> superui/scripts/
 - modify (git mv) - superui/skills/pro-designer/scripts/check_contrast.py -> superui/scripts/check_contrast.py (remove now-empty pro-designer/scripts/)
 - modify (git mv) - superui/skills/design-system-extractor/references/{dtcg-token-format,component-spec,design-system-foundations}.md -> superui/references/
@@ -15,11 +15,11 @@
 - modify - superui/skills/design-system-completer/SKILL.md (same preflight->env-check swap; sibling-path idioms `${CLAUDE_SKILL_DIR}/../design-system-extractor/{scripts,references,assets}/...` -> `${CLAUDE_PLUGIN_ROOT}/{scripts,references,assets}/...`; `../pro-designer/references/` refs unchanged; own `scripts/check_completeness.py` unchanged)
 - modify - superui/skills/pro-designer/SKILL.md (delete `## Python preflight` section incl. `!` line; contrast-script path -> `${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.py`; interpreter wording: try `python`/`python3`, on failure skip with note + point at `/superui:setup`)
 - modify - superui/CLAUDE.md (layout block: `shared/` -> `scripts/` + `references/` + `assets/`; scripts inventory paths)
-- modify - CLAUDE.md (root: the `shared/scripts` convention sentence — superui now uses plugin-root `scripts/`; supergh keeps `shared/`)
+- modify - CLAUDE.md (root: the `shared/scripts` convention sentence - superui now uses plugin-root `scripts/`; supergh keeps `shared/`)
 
 ### Test Commands
 *Build*
-- none (markdown/JSON repo) — `python3 -c "import json;json.load(open('superui/.claude-plugin/plugin.json'))"` must exit 0
+- none (markdown/JSON repo) - `python3 -c "import json;json.load(open('superui/.claude-plugin/plugin.json'))"` must exit 0
 
 *Tests*
 - `sh superui/scripts/check_python.sh` prints `PYTHON_OK <cmd>` or `PYTHON_MISSING`, exit 0

@@ -5,9 +5,9 @@
   `superdev/skills/simpleplan-reviewer/SKILL.md`, `superdev/skills/superplan-reviewer/SKILL.md`, and
   `superdev/skills/superspec-reviewer/SKILL.md` to their pre-`6b2fbb3` state, and `git diff
   469eadae25031d716f44791c5c225ebbecb34d4d..HEAD --name-status` confirms none of the three files appear in
-  the change set anymore — the unmapped, undocumented permission-narrowing is gone. The remaining change set
+  the change set anymore - the unmapped, undocumented permission-narrowing is gone. The remaining change set
   is now cleanly bounded to `superui/` (plus the four `plugin.json` version bumps, which are pre-existing
-  history noise already called out as non-blocking in review-01 — see Recommendations).
+  history noise already called out as non-blocking in review-01 - see Recommendations).
 - Every one of the ten plan-header acceptance criteria checks out against the actual shipped files, not just
   the notes' claims:
   - `components.js` (`superui/assets/doc-chrome/components.js`) defines exactly three custom elements
@@ -31,7 +31,7 @@
     unmodified regex would miss) and confirmed `lint_previews.py` catches it (`VIOLATION
     components/button.data.js: background:#ff0000`, exit 1), then reverted and confirmed a clean re-run exits
     0 again.
-  - `grep -rn "sheet.template" .` outside `.superdev/.workflows/`, `.docs/`, and `.temp/` returns nothing —
+  - `grep -rn "sheet.template" .` outside `.superdev/.workflows/`, `.docs/`, and `.temp/` returns nothing -
     the repo-wide sweep the plan's Task 7 DoD requires is clean.
 - The implementor's notes across all seven tasks are detailed, and every recorded deviation is a reasonable,
   narrowly-scoped judgment call consistent with the task's own Contracts/Test Commands (e.g. Task 1's third
@@ -60,12 +60,12 @@ to the user, never re-dispatched at an LLM), and single-writer-per-file discipli
 - `superui/agents/html-visualizer.md:34` instructs "a `props-table` cell... is given by its `varName` only,
   never a hex/`rgb()`/`hsl()` literal; the runtime paints the swatch from that name," but
   `superui/assets/doc-chrome/components.js`'s `renderPropsTable` (lines 279–300) builds cells with
-  `text("td", null, cell)`, which sets `textContent` — a `<ds-swatch>` tag placed in a props-table cell string
+  `text("td", null, cell)`, which sets `textContent` - a `<ds-swatch>` tag placed in a props-table cell string
   would render as literal escaped text, not upgrade into a live swatch (unlike `prose`/`composition`, which
   use `innerHTML` and would upgrade it correctly). In practice this is inert: `preview-data-format.md`'s own
   `props-table` section doc doesn't claim live-swatch support for cells (it documents plain string rows only),
   and `lint_previews.py` doesn't scan table-cell text for raw hex either, so nothing currently exercises this
-  path incorrectly — it's a wording overreach in the agent doc versus what the runtime and schema actually
+  path incorrectly - it's a wording overreach in the agent doc versus what the runtime and schema actually
   support for that one section type, not a functional bug in the shipped code. Worth tightening
   `html-visualizer.md`'s wording (e.g. "prose" and `token-grid`/`composition` markup can host a live
   `<ds-swatch>`; a `props-table` cell is display text only, still varName-not-literal by convention) on a
@@ -80,7 +80,7 @@ to the user, never re-dispatched at an LLM), and single-writer-per-file discipli
   future reviews of this workflow should not assume this Base SHA is reliably an ancestor.
 - The four `plugin.json` version bumps (`0.20.3` -> `0.20.4`) present in the diff are pre-existing history
   (commit `1de86a0`, landed before the plan's own `8370163`…`ba1292b` commits per `git log`), not something
-  any of the seven tasks touched — correctly out of scope for this plan and not counted against it.
+  any of the seven tasks touched - correctly out of scope for this plan and not counted against it.
 
 ### Assessment
 

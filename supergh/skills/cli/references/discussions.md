@@ -14,9 +14,9 @@
 | Delete discussion | `deleteDiscussion` |
 | Add a comment | `addDiscussionComment` |
 | Mark a comment as the answer | `markDiscussionCommentAsAnswer` |
-| Add reaction (👍, ❤️, etc.) | `addReaction` (yes, even on discussions — REST `/reactions` does not cover Discussions) |
+| Add reaction (👍, ❤️, etc.) | `addReaction` (yes, even on discussions - REST `/reactions` does not cover Discussions) |
 
-## Discovery — needed every time
+## Discovery - needed every time
 
 `createDiscussion` requires `repositoryId` and `categoryId`. Both are node IDs, not numbers:
 
@@ -86,4 +86,4 @@ Repo Discussions need the same scope as repo content access (`repo` for private 
 ## Sources
 
 - Discussions GraphQL guide: <https://docs.github.com/en/graphql/guides/using-the-graphql-api-for-discussions>
-- GraphQL — createDiscussion: <https://docs.github.com/en/graphql/reference/mutations#creatediscussion>
+- GraphQL - createDiscussion: <https://docs.github.com/en/graphql/reference/mutations#creatediscussion>

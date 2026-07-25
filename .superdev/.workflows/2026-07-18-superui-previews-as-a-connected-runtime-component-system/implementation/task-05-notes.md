@@ -1,3 +1,3 @@
-## Task 5 — html-visualizer rewrite
+## Task 5 - html-visualizer rewrite
 
 no deviations

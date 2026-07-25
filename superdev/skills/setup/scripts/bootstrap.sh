@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# superdev / setup — deterministic environment bootstrap.
+# superdev / setup - deterministic environment bootstrap.
 #
 # Replaces the multi-operation inline `!` block that the SKILL.md used to carry.
 # That block was a single compound command (≈25 `[ ]`/echo/cp/mkdir/grep parts
@@ -7,7 +7,7 @@
 # commands and demands approval for EACH part, which dead-ends `/setup` on
 # permission modes that cannot auto-approve every sub-command (observed on macOS;
 # the Windows parse path tolerated it). Collapsing the step into one bundled
-# script — per the repo "Script vs. fork" invariant (fixed tools + fixed paths) —
+# script - per the repo "Script vs. fork" invariant (fixed tools + fixed paths) -
 # makes the permission engine see ONE command (`bash .../bootstrap.sh`).
 #
 # Idempotent: re-running never overwrites anything that already exists.
@@ -22,17 +22,17 @@
 # Contract:
 #   argv : none.
 #   cwd  : the project root (the SKILL.md `!` block runs at skill load there).
-#   env  : none required — the skill dir (for assets/) is derived from $0.
+#   env  : none required - the skill dir (for assets/) is derived from $0.
 #   stdout: one human-readable line per result; the SKILL.md "Output" step and
 #           the config-switch step read these lines verbatim. The config line is
-#           either "config.yml: seeded from template — defaults: adr=false,
+#           either "config.yml: seeded from template - defaults: adr=false,
 #           rules=false, memory=false" (fresh seed) or "config.yml: already
-#           present (left untouched) — current switches:" followed by the grep'd
+#           present (left untouched) - current switches:" followed by the grep'd
 #           switch lines (limited to the documented keys: adr, rules, memory).
 #           The .gitattributes line is one of ".gitattributes: created with
 #           linguist-generated rules", ".gitattributes: linguist-generated rules
 #           appended", or ".gitattributes: linguist-generated rules already
-#           present" — also asserted verbatim by bootstrap.test.sh.
+#           present" - also asserted verbatim by bootstrap.test.sh.
 #   exit : always 0 (fail-soft; missing templates are reported, not fatal).
 
 set -u
@@ -59,7 +59,7 @@ if [ -f ".gitignore" ]; then
 elif [ -f "$src_gitignore" ]; then
   cp "$src_gitignore" ".gitignore" && echo ".gitignore: created from template"
 else
-  echo ".gitignore: template missing at $src_gitignore — skipped"
+  echo ".gitignore: template missing at $src_gitignore - skipped"
 fi
 
 if [ ! -f .claude/settings.json ]; then
@@ -69,16 +69,16 @@ else
 fi
 
 if [ -f ".superdev/config.yml" ]; then
-  echo "config.yml: already present (left untouched) — current switches:"
+  echo "config.yml: already present (left untouched) - current switches:"
   grep -E '^[[:space:]]*(adr|rules|memory)[[:space:]]*:' .superdev/config.yml
 elif [ -f "$src_config" ]; then
   mkdir -p .superdev && cp "$src_config" .superdev/config.yml \
-    && echo "config.yml: seeded from template — defaults: adr=false, rules=false, memory=false"
+    && echo "config.yml: seeded from template - defaults: adr=false, rules=false, memory=false"
 else
-  echo "config.yml: template missing at $src_config — skipped"
+  echo "config.yml: template missing at $src_config - skipped"
 fi
 
-# .gitattributes — collapse the tracked .superdev/ scratch + records in GitHub
+# .gitattributes - collapse the tracked .superdev/ scratch + records in GitHub
 # review (linguist-generated). Append-if-absent so a host's own rules survive;
 # both lines are ensured independently (idempotent, no duplicates).
 ga_line1=".superdev/**            linguist-generated=true"
