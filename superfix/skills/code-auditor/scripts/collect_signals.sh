@@ -21,15 +21,32 @@
 # Makefile, hooks). The kept extension set is echoed to stderr so each run is
 # honest about its coverage. This keeps the sweep stack-agnostic: a repo of
 # markdown+shell+json is covered exactly like a C++ or JS tree.
+#
+# Both `git ls-files` passes run with `-c core.quotePath=false` so paths with
+# non-ASCII bytes are listed raw instead of C-quoted - otherwise a quoted path
+# never matches its real extension or its own `[ -f "$f" ]` check. The pass-1
+# extension list is handed to the pass-2 `awk` filter via an exported
+# environment variable (ENVIRON), never `awk -v` - BSD/macOS awk aborts on a
+# `-v` assignment whose value contains a newline, which a multi-extension repo
+# always produces.
+#
+# --with-dependents is stripped out of the positional stream before
+# window_days/repo_root are bound, so it may appear anywhere on the command
+# line and either positional argument may be omitted.
 
 set -euo pipefail
 
-WINDOW_DAYS="${1:-30}"
-ROOT="${2:-.}"
 WITH_DEPENDENTS="no"
+positional=()
 for arg in "$@"; do
-  [ "$arg" = "--with-dependents" ] && WITH_DEPENDENTS="yes"
+  if [ "$arg" = "--with-dependents" ]; then
+    WITH_DEPENDENTS="yes"
+  else
+    positional+=("$arg")
+  fi
 done
+WINDOW_DAYS="${positional[0]:-30}"
+ROOT="${positional[1]:-.}"
 
 cd "$ROOT"
 
@@ -56,8 +73,9 @@ noise_filter() {
 }
 
 # Pass 1 - discover the repo's own extension set, minus the deny-list.
+# `-c core.quotePath=false`: never let a non-ASCII path reach us C-quoted.
 kept_exts="$(
-  git ls-files | noise_filter \
+  git -c core.quotePath=false ls-files | noise_filter \
     | sed -n 's/.*\.\([A-Za-z0-9_]\{1,\}\)$/\1/p' \
     | tr '[:upper:]' '[:lower:]' | sort -u \
     | { grep -Ev "^(${DENY_EXT})$" || true; }
@@ -65,9 +83,11 @@ kept_exts="$(
 printf 'sweep extensions:%s\n' "$(printf '%s' "$kept_exts" | tr '\n' ' ' | sed 's/[[:space:]]*$//; s/^/ /')" >&2
 
 # Pass 2 - candidates: files whose extension was kept, plus extensionless files.
-git ls-files | noise_filter \
-  | awk -v exts="$kept_exts" '
-      BEGIN { n = split(exts, a, "\n"); for (i = 1; i <= n; i++) if (a[i] != "") keep[a[i]] = 1 }
+# kept_exts is handed to awk via ENVIRON, not `-v` - a `-v` value containing a
+# newline (any multi-extension repo) aborts BSD/macOS awk outright.
+git -c core.quotePath=false ls-files | noise_filter \
+  | KEPT_EXTS="$kept_exts" awk '
+      BEGIN { n = split(ENVIRON["KEPT_EXTS"], a, "\n"); for (i = 1; i <= n; i++) if (a[i] != "") keep[a[i]] = 1 }
       {
         base = $0; sub(/.*\//, "", base)
         if (base ~ /\./) { ext = base; sub(/.*\./, "", ext); ext = tolower(ext) }
