@@ -3,7 +3,7 @@ name: code-auditor
 description: Prioritized, multi-agent investigation of a large codebase using the Impact × Opportunity law.
 user-invocable: true
 disable-model-invocation: true
-allowed-tools: Agent, Read, Write, Edit, Glob, Bash, AskUserQuestion
+allowed-tools: Skill, Agent, Read, Write, Edit, Glob, Bash, AskUserQuestion
 ---
 
 # Code Auditor - prioritized multi-agent codebase investigation
