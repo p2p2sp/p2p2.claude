@@ -22,8 +22,11 @@
  *      value never coexists with a `> NEEDS INPUT` for the same gap.
  * Exit codes: 0 = ok; 1 = empty/unreadable input dir, invalid JSON, a shape
  *      violation (message on stderr, naming the fragment and field), or a
- *      cross-fragment token-name collision (message names the duplicated
- *      token and both fragments); 2 = command-line usage errors.
+ *      collision in any of four merged namespaces — `tokens` keys,
+ *      `textStyles[].name`, `surfaceOrder[].region`, or an `accentUsage`
+ *      screen+where+token triple (message names the namespace, the
+ *      duplicated key, and both fragments — the same fragment twice for a
+ *      within-fragment duplicate); 2 = command-line usage errors.
  *
  * Validation performed by validateShape (per fragment) and detectCollisions
  * (across fragments):
@@ -44,10 +47,12 @@
  *     (both stay optional for every other section);
  *   - after merging, every `accentUsage[].token` names a key already
  *     present in the merged `tokens{}`.
- * A duplicate key WITHIN one fragment is deliberately not detectable:
- * `tokens` is a JSON object keyed by name, so `JSON.parse` silently keeps
- * the last occurrence. Only cross-fragment collisions are observable, and
- * detectCollisions covers exactly those.
+ * A same-fragment duplicate `tokens{}` key is not detectable: `tokens` is a
+ * JSON object keyed by name, so `JSON.parse` silently keeps the last
+ * occurrence — only cross-fragment collisions are observable there.
+ * `textStyles`, `surfaceOrder`, and `accentUsage` are JSON arrays, so a
+ * same-fragment duplicate in any of them DOES survive parsing intact and
+ * IS detected, alongside their cross-fragment collisions.
  *
  * Usage: node build_registry.ts INPUT_DIR OUTPUT_PATH
  */
@@ -136,7 +141,8 @@ interface NamedFragment {
 }
 
 export interface Collision {
-  token: string;
+  namespace: string;
+  key: string;
   fragments: [string, string];
 }
 
@@ -362,17 +368,88 @@ export function validateShape(raw: unknown, filename: string): Fragment {
 // Collision detection + merge
 // ---------------------------------------------------------------------------
 
-/** Cross-fragment token-name collisions only — a same-fragment duplicate is unobservable after JSON.parse. */
+/**
+ * Collisions across four merged namespaces: `tokens` keys, `textStyles[].name`, `surfaceOrder[].region`, and
+ * `accentUsage` keyed on its `screen`+`where`+`token` triple. A name may legitimately repeat across namespaces
+ * (e.g. a dotted name as both a token key and unrelated text — they never collide with each other), so each
+ * namespace gets its own seen-map. `tokens` is a JSON object keyed by name, so a same-fragment duplicate is
+ * unobservable after `JSON.parse` (the parser silently keeps the last occurrence) — only cross-fragment
+ * collisions are detectable there. The three array namespaces survive parsing intact, so a same-fragment
+ * duplicate within one of them IS observable; `detectArrayCollisions` catches it via a per-fragment set before
+ * that fragment's keys ever reach the cross-fragment map.
+ */
 export function detectCollisions(fragments: NamedFragment[]): Collision[] {
-  const seen = new Map<string, string>();
   const collisions: Collision[] = [];
+
+  const tokenSeen = new Map<string, string>();
   for (const { filename, data } of fragments) {
     for (const name of Object.keys(data.tokens)) {
-      const prev = seen.get(name);
+      const prev = tokenSeen.get(name);
       if (prev !== undefined) {
-        collisions.push({ token: name, fragments: [prev, filename] });
+        collisions.push({ namespace: "tokens", key: name, fragments: [prev, filename] });
       } else {
-        seen.set(name, filename);
+        tokenSeen.set(name, filename);
+      }
+    }
+  }
+
+  collisions.push(
+    ...detectArrayCollisions(
+      "textStyles",
+      fragments,
+      (data) => data.textStyles,
+      (item) => item.name,
+    ),
+  );
+  collisions.push(
+    ...detectArrayCollisions(
+      "surfaceOrder",
+      fragments,
+      (data) => data.surfaceOrder,
+      (item) => item.region,
+    ),
+  );
+  collisions.push(
+    ...detectArrayCollisions(
+      "accentUsage",
+      fragments,
+      (data) => data.accentUsage,
+      (item) => `${item.screen} / ${item.where} / ${item.token}`,
+    ),
+  );
+
+  return collisions;
+}
+
+/**
+ * Detects collisions for one array-shaped namespace. First builds a per-fragment set to catch a duplicate key
+ * declared twice within the SAME fragment's array (reported with both `fragments` entries set to that
+ * filename); only each fragment's distinct keys are then merged into the cross-fragment map, so a same-fragment
+ * duplicate never masks — or is masked by — a genuine cross-fragment collision.
+ */
+function detectArrayCollisions<T>(
+  namespace: string,
+  fragments: NamedFragment[],
+  getArray: (data: Fragment) => T[],
+  keyFn: (item: T) => string,
+): Collision[] {
+  const collisions: Collision[] = [];
+  const seen = new Map<string, string>();
+  for (const { filename, data } of fragments) {
+    const withinFragment = new Set<string>();
+    for (const item of getArray(data)) {
+      const key = keyFn(item);
+      if (withinFragment.has(key)) {
+        collisions.push({ namespace, key, fragments: [filename, filename] });
+      }
+      withinFragment.add(key);
+    }
+    for (const key of withinFragment) {
+      const prev = seen.get(key);
+      if (prev !== undefined) {
+        collisions.push({ namespace, key, fragments: [prev, filename] });
+      } else {
+        seen.set(key, filename);
       }
     }
   }
@@ -483,7 +560,9 @@ function main(): void {
   const collisions = detectCollisions(fragments);
   if (collisions.length > 0) {
     for (const c of collisions) {
-      process.stderr.write(`error: token '${c.token}' is declared in both '${c.fragments[0]}' and '${c.fragments[1]}'\n`);
+      process.stderr.write(
+        `error: ${c.namespace} '${c.key}' is declared in both '${c.fragments[0]}' and '${c.fragments[1]}'\n`,
+      );
     }
     process.exit(1);
   }

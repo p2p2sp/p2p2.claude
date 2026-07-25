@@ -45,8 +45,10 @@ measured value - you complete what is missing.
   no defensible best-practice answer, leave it as an unknown (see below), never guess wildly.
 
 ## Coherence and collision rules
-- Read `registry.json` tokens first. NEVER reuse an existing dotted token name and NEVER re-propose a value
-  that is already measured - a duplicate name aborts the merge.
+- Read `registry.json` first - tokens AND `textStyles`. NEVER reuse an existing dotted token name, an existing
+  `textStyles[].name`, or re-propose a value already measured - a duplicate name in any merged namespace
+  (`tokens`, `textStyles[].name`, `surfaceOrder[].region`, `accentUsage`'s screen+where+token triple) aborts
+  the merge, and so does declaring the same name twice within your own fragment's array.
 - Every proposed token name is DOTTED (`color.focus.ring`, `radius.control`, `text.body`); every
   `textStyles[].name` is DOTTED for the same reason.
 - Section 3.2 tokens carry non-empty `primitive` and `usedFor`.
