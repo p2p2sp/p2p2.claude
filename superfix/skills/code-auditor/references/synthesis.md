@@ -33,14 +33,17 @@ If nothing real survives, the detective writes a file whose entire body is `NO F
 
 ## Clean-checkout verification (anti-self-poisoning)
 
-The most common false positive: early in a session an agent edits the tree (adds a debug bypass, a print, a relaxed check), the context gets compacted a few times, and later it "finds" the very thing it introduced. Defeat this by verifying every finding in a **fresh, untouched checkout**, ideally in a separate subagent instance that never saw the investigation:
+The most common false positive: early in a session an agent edits the tree (adds a debug bypass, a print, a relaxed check), the context gets compacted a few times, and later it "finds" the very thing it introduced. Defeat this by verifying every finding in a **fresh, untouched checkout**, ideally in a separate subagent instance that never saw the investigation. Reproduce the issue in the verification-worktree path you were given (never invent your own path). That worktree contains the whole repository, so an audited subtree sits under it at the target's own relative path:
 
 ```bash
-git worktree add /tmp/verify-<rank> <commit-or-HEAD>
-# replay the PoC against /tmp/verify-<rank>; if it does not reproduce there,
-# the finding is an artifact - drop it.
-git worktree remove /tmp/verify-<rank>
+git worktree add <verify-worktree-path> HEAD
+# replay your PoC there; if it does not reproduce, it is an artifact - drop it.
+git worktree remove <verify-worktree-path>
 ```
+
+Recovery, if `git worktree add` fails:
+- `fatal: ... is a missing but already registered worktree` -> run `git worktree prune`, then retry `git worktree add`.
+- `fatal: '<verify-worktree-path>' already exists` -> run `git worktree remove <verify-worktree-path>`. If that succeeds, retry `git worktree add`. If it instead fails with `fatal: ... is not a working tree`, the directory is an orphaned leftover, not a registered worktree - remove it directly (`rm -rf <verify-worktree-path>`) and retry `git worktree add`.
 
 For memory-corruption work, use a real oracle: build with ASan in the clean worktree and treat an ASan crash on the PoC input as confirmation. A perfect crash oracle is worth more than any amount of agent self-assessment.
 
