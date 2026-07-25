@@ -11,6 +11,7 @@
   ],
   "agents": [
     "./agents/scout.md",
+    "./agents/edge-scout.md",
     "./agents/detective.md",
     "./agents/critic.md"
   ]
