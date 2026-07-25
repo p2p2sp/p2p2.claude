@@ -10,7 +10,7 @@ Each detective writes one file to `.temp/code-reviewer/<run-id>/reports/<rank>-<
 # <short title>
 LOCATION: path/to/file.ext:Lstart-Lend
 CLASS: <bug class, e.g. SQL injection / use-after-free / missing authz / N+1>
-ENTRY: <the hotspot it started from>
+ENTRY: <the hotspot it started from - one path, or a pair `<path A> <-> <path B>` for an edge entry>
 
 ## Root cause
 <2-4 sentences: what is actually wrong and why.>
@@ -28,6 +28,8 @@ failing request, etc.>
 CONFIDENCE: <low | medium | high>
 SEVERITY: <0.0-10.0>
 ```
+
+For an edge entry, the contract between the two endpoints is the first thing to check; `LOCATION` may name either endpoint or both, whichever carries the defect.
 
 If nothing real survives, the detective writes a file whose entire body is `NO FINDING` plus one line on what it checked. Keep these - they are coverage evidence.
 
