@@ -43,6 +43,7 @@
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, join, relative } from "node:path";
+import { canonicalRefs } from "./inventory-format.ts";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -147,9 +148,6 @@ export function checkTokenRefs(bundleDir: string, registry: Registry): Finding[]
 // checkScreenRefs
 // ---------------------------------------------------------------------------
 
-// A consolidated satellite carries many `canonical:` lines (one per spec) - matchAll needs the global flag.
-const CANONICAL_LINE_RE = /^canonical:\s*(\S+)\s*$/gm;
-
 export function checkScreenRefs(bundleDir: string): Finding[] {
   const cited = new Set<string>();
 
@@ -160,7 +158,7 @@ export function checkScreenRefs(bundleDir: string): Finding[] {
     } catch {
       continue;
     }
-    for (const m of content.matchAll(CANONICAL_LINE_RE)) cited.add(m[1]);
+    for (const filename of canonicalRefs(content)) cited.add(filename);
   }
 
   let shipped: Set<string>;

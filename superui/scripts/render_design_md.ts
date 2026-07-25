@@ -53,6 +53,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
 import { SECTION_TITLES } from "./section-model.ts";
+import { parseInventoryEntries } from "./inventory-format.ts";
 
 // ---------------------------------------------------------------------------
 // Types (mirrors the registry shape written by build_registry.ts)
@@ -501,46 +502,9 @@ function renderOverview(registry: Registry, source: string): string {
   return sentences.join(" ") + "\n";
 }
 
-interface InvEntry {
-  slug: string;
-  kind: string;
-  canonical: string;
-}
-
-/** `canonical: home.png` -> `home.png`; a label-less field returns trimmed. */
-function fieldValue(field: string): string {
-  const idx = field.indexOf(":");
-  return idx === -1 ? field.trim() : field.slice(idx + 1).trim();
-}
-
-function inventoryEntries(inventoryMd: string, heading: string): InvEntry[] {
-  const lines = inventoryMd.split(/\r?\n/);
-  const start = lines.findIndex((l) => l.trim() === heading);
-  if (start === -1) return [];
-  let end = lines.length;
-  for (let i = start + 1; i < lines.length; i++) {
-    if (/^## /.test(lines[i])) {
-      end = i;
-      break;
-    }
-  }
-  const isComponents = heading === "## Components";
-  return lines
-    .slice(start + 1, end)
-    .filter((l) => l.startsWith("- "))
-    .map((line) => {
-      const fields = line.split("·");
-      const slug = fields[0].replace(/^- /, "").split(" - ")[0].trim();
-      if (isComponents) {
-        return { slug, kind: (fields[1] ?? "").trim(), canonical: fieldValue(fields[2] ?? "") };
-      }
-      return { slug, kind: "", canonical: fieldValue(fields[1] ?? "") };
-    });
-}
-
 function renderComponentsOverview(inventoryMd: string): string {
-  const comps = inventoryEntries(inventoryMd, "## Components");
-  const pats = inventoryEntries(inventoryMd, "## Patterns");
+  const comps = parseInventoryEntries(inventoryMd, "## Components");
+  const pats = parseInventoryEntries(inventoryMd, "## Patterns");
   const lines: string[] = [];
   lines.push(`${comps.length} component(s) and ${pats.length} pattern(s) catalogued. Full per-entry specifications live in the satellite files.`);
   lines.push("");
