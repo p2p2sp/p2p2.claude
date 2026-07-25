@@ -48,6 +48,7 @@ A variant is author-time configuration (size, kind, emphasis). A state is a runt
 - One line matching `canonical: <filename>.png` near the top of the file, one screen only, the filename exactly as it appears in `screens/`.
 - Every token name in backticks, dotted `<group>.<name>` form. A value not expressed this way is either a `MISSING-TOKENS:` entry or a prose note - never a bare raw value.
 - The optional bbox crop hint on its own line: `bbox: x,y,w,h`. No script parses this line; it is a hint for a human or for Claude Design.
+- Heading floor: spec bodies start at `##` and never use a single `#` - the assembler reserves h1 for the satellite's own title and h2 for the slug wrapper it writes around this spec.
 
 ## Output
 The spec file at the given output path, plus a final message ending with the spec path and a `MISSING-TOKENS:` block (proposed name, measured value, evidence, one per line) or `MISSING-TOKENS: none`.
