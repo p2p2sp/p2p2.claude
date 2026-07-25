@@ -50,6 +50,7 @@ checks below. They only apply once the plan is met.
 - Integrates cleanly with surrounding code?
 
 **Testing:**
+- Every `TDD: required` task -> tests exist and cover the new behavior?
 - Tests verify real behavior, not mocks?
 - Edge cases covered?
 - Integration tests where they matter?
