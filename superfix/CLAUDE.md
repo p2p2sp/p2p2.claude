@@ -21,7 +21,8 @@ superfix/
   skills/            One user-invoked skill code-auditor/ (disable-model-invocation); bundles
                      references/ (jobs.md, scoring.md, synthesis.md) + scripts/ (check_node.sh,
                      collect_signals.sh, rank.ts) - all addressed via `${CLAUDE_SKILL_DIR}/...`
-  agents/            Two plugin agents: scout.md (cheap haiku triage) + detective.md (frontier opus deep-dive)
+  agents/            Three plugin agents: scout.md (cheap haiku triage) + detective.md (frontier opus
+                     deep-dive) + critic.md (frontier opus independent verifier)
 ```
 
 ## Components (qualified `superfix:<name>`)
@@ -36,9 +37,11 @@ superfix/
   cut reproducible, so a run that cannot rank must not pay for the sweep and the scout fan-out first. This is
   the one place superfix's env-check differs from superui's (which degrades to a skip-with-note); it is also
   why the check sits in Phase 0 rather than next to the Phase 3 step it guards.
-- `scout` / `detective` - the two **plugin agents** (`agents/*.md`, listed in `plugin.json` `agents[]`,
-  dispatched via the Agent tool with `subagent_type: superfix:<name>`). `scout` is cheap-tier breadth-first
-  triage (spawn many); `detective` is frontier-tier depth-first investigation (spawn few). Bare-named because
-  they are genuine agents, not fork-skills.
+- `scout` / `detective` / `critic` - the three **plugin agents** (`agents/*.md`, listed in `plugin.json`
+  `agents[]`, dispatched via the Agent tool with `subagent_type: superfix:<name>`). `scout` is cheap-tier
+  breadth-first triage (spawn many); `detective` is frontier-tier depth-first investigation (spawn few);
+  `critic` is frontier-tier independent verification, one instance per detective report, replaying its claim on
+  a fresh checkout and returning a tagged verdict (schema in `references/synthesis.md`) rather than a file.
+  Bare-named because they are genuine agents, not fork-skills.
 
 `superfix` declares no cross-plugin chains.

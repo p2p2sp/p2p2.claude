@@ -47,6 +47,31 @@ Recovery, if `git worktree add` fails:
 
 For memory-corruption work, use a real oracle: build with ASan in the clean worktree and treat an ASan crash on the PoC input as confirmation. A perfect crash oracle is worth more than any amount of agent self-assessment.
 
+## Critic verdict schema
+
+The `critic` agent (`subagent_type: superfix:critic`) independently replays one detective's claim on a fresh
+checkout and returns a tagged verdict in its final message - it writes no file:
+
+```
+VERDICT: VERIFIED | REFUTED | PARTIALLY VERIFIED | INCONCLUSIVE
+COMMAND: <the exact command run to test the claim>
+OBSERVED: <the actual output/result seen>
+SEVERITY: <the critic's independent 0-10 judgement, or "unchanged">
+```
+
+Fold each verdict into `findings.md` like this:
+
+- **VERIFIED** - keep the finding exactly as filed by the detective.
+- **PARTIALLY VERIFIED** - keep only the sub-claims the critic's `OBSERVED` confirms; drop the rest and lower
+  the `SEVERITY` to match the narrower, confirmed scope.
+- **REFUTED** - drop the finding entirely. It does not appear in `findings.md`, not even at low severity.
+- **INCONCLUSIVE** - keep the finding, lower its `CONFIDENCE` by one step (high -> medium, medium -> low), and
+  name the missing oracle (what would have settled it) alongside the entry so the gap reads as honest coverage,
+  not a silent gap.
+
+`INCONCLUSIVE` is the required verdict whenever no oracle can settle the claim - never let a critic invent a
+pass or fail to avoid it.
+
 ## Deduplicate
 
 Group reports by root cause, not by file - the same defect (e.g. a shared unchecked helper) often surfaces from several entry points. Merge them into one finding, list all affected locations, keep the highest severity and the clearest PoC.

@@ -192,7 +192,7 @@ The invariants below hold across the repo.
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`create-issue`/`create-pr` skill,
   superfix's for the `code-auditor` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
-  (superfix's `scout` / `detective` live there, not in `skills[]`; superui's five `design-extractor-builder`
+  (superfix's `scout` / `detective` / `critic` live there, not in `skills[]`; superui's five `design-extractor-builder`
   workers live there too; superdev ships no agents - every superdev worker is a skill) - and the relevant `CLAUDE.md`
   (that plugin's, and this root file when the change is repo-wide) in either case. They must stay in sync, and a
   worker must never appear in both `skills[]` and `agents[]`.
