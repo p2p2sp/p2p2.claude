@@ -1,7 +1,8 @@
 ---
 name: simpleplan
 description: Invoked by the superdev or simpledebug skill, or by user command only.
-allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode, Bash(printf:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, EnterPlanMode, ExitPlanMode, AskUserQuestion
+disallowed-tools: Bash, NotebookEdit, Task, Agent, WebFetch, WebSearch
 user-invocable: true
 ---
 
@@ -21,9 +22,8 @@ This plan workflow is better, extended and more accurate version of default inst
 Comprehensive understanding of the user's request is in your context. Missing knowledge or open questions → STOP and close them before drafting; an unresolved design decision → run `superdev` skill.
 
 ### Rules
-Load `templates/plan.md` and fill by sticking to the following rules. Write the plan file to `.claude/plans/<topic-slug>.md` - exactly this directory, never elsewhere: the ExitPlanMode approval gate only recognizes plan files under `.claude/plans/`, so any other location silently skips the mandatory review. Show the full path to the user. Plan file is required for the review.
-
-Checklist path: !`printf '%s' "${CLAUDE_PLUGIN_ROOT}/references/plan-review-checklist.md"`
+- Load `templates/plan.md` and fill by sticking to the following rules.
+- Read review checklist from `${CLAUDE_PLUGIN_ROOT}/references/plan-review-checklist.md`.
 
 Stick to the template structure. Don't invent or add your own points. Adapt all content to the template structure and stick to it.
 
