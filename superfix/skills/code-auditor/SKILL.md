@@ -128,7 +128,7 @@ A file that appears in both the file hotlist and an edge dispatch row gets **one
 ### Phase 5 - Synthesize (verify, dedupe, score, rank)
 Read `${CLAUDE_SKILL_DIR}/references/synthesis.md` and run the critic pass:
 1. For every detective report that is not `NO FINDING`, spawn a **`critic`** subagent (Agent tool, `subagent_type: superfix:critic`) - frontier tier, isolated context, one instance per report. Give it the claim (bug description, LOCATION, CLASS, claimed reproduction), the report path, `job.md`, and a fresh unique **absolute** verification-worktree path (never the one the detective used). The critic replays the claim on that clean checkout and returns a tagged `VERDICT: ...` in its final message (schema in `synthesis.md`) - it writes no file.
-2. Fold each verdict into `findings.md` per the table in `synthesis.md`: `VERIFIED` keeps the finding as filed, `PARTIALLY VERIFIED` keeps only the confirmed sub-claims at a lowered severity, `REFUTED` drops the finding entirely, `INCONCLUSIVE` keeps it with confidence lowered and the missing oracle named.
+2. Fold each verdict into `findings.md` per the table in `synthesis.md`. `synthesis.md` is the sole authority on how a verdict changes `SEVERITY` and `CONFIDENCE` - do not restate its fold rules here.
 3. Deduplicate findings that are the same root cause hit from different files.
 4. Assign each surviving finding a **severity 0-10** and tag it `SEVERITY: N.N` on its own line so the final ranking is greppable.
 5. Emit `.temp/code-reviewer/<run-id>/findings.md`: a severity-sorted list, each entry with location, class, root cause, repro/PoC, fix sketch, and confidence.
