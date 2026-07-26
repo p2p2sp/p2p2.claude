@@ -24,11 +24,17 @@ You investigate exactly one hotspot deeply and return a *verified* finding or no
    ```bash
    git worktree add <verify-worktree-path> HEAD
    # replay your PoC there; if it does not reproduce, it is an artifact - drop it.
-   git worktree remove <verify-worktree-path>
+   git worktree remove --force <verify-worktree-path>
    ```
+   The replay leaves untracked artifacts (your PoC files, build output) sitting in the worktree, which a bare
+   `git worktree remove` refuses to delete - always pass `--force`.
+
    Recovery, if `git worktree add` fails:
    - `fatal: ... is a missing but already registered worktree` -> run `git worktree prune`, then retry `git worktree add`.
-   - `fatal: '<verify-worktree-path>' already exists` -> run `git worktree remove <verify-worktree-path>`. If that succeeds, retry `git worktree add`. If it instead fails with `fatal: ... is not a working tree`, the directory is an orphaned leftover, not a registered worktree - remove it directly (`rm -rf <verify-worktree-path>`) and retry `git worktree add`.
+   - `fatal: '<verify-worktree-path>' already exists` -> run `git worktree remove --force <verify-worktree-path>`. If that succeeds, retry `git worktree add`. If it instead fails with `fatal: ... is not a working tree`, the directory is an orphaned leftover, not a registered worktree - remove it directly (`rm -rf <verify-worktree-path>`) and retry `git worktree add`.
+
+   Recovery, if `git worktree remove --force` still fails:
+   - `fatal: ... contains modified or untracked files` -> `--force` did not clear it; run `rm -rf <verify-worktree-path>`, then `git worktree prune`, then retry `git worktree add`.
 
    If a real oracle exists (ASan build, failing test, HTTP 500), use it - an oracle beats your own judgement every time.
 4. **Write the report** using the schema at the report-schema path you were given: title, LOCATION, CLASS, ENTRY, root cause, reproduction/PoC, verification, fix sketch, CONFIDENCE, and a `SEVERITY: N.N` line (0-10) on its own line so it is greppable.

@@ -21,11 +21,17 @@ You take one detective's claim and settle it independently, without trusting the
    ```bash
    git worktree add <verify-worktree-path> HEAD
    # replay the claimed reproduction there
-   git worktree remove <verify-worktree-path>
+   git worktree remove --force <verify-worktree-path>
    ```
+   The replay leaves untracked artifacts (PoC files, build output) sitting in the worktree, which a bare
+   `git worktree remove` refuses to delete - always pass `--force`.
+
    Recovery, if `git worktree add` fails:
    - `fatal: ... is a missing but already registered worktree` -> run `git worktree prune`, then retry `git worktree add`.
-   - `fatal: '<verify-worktree-path>' already exists` -> run `git worktree remove <verify-worktree-path>`. If that succeeds, retry `git worktree add`. If it instead fails with `fatal: ... is not a working tree`, the directory is an orphaned leftover, not a registered worktree - remove it directly (`rm -rf <verify-worktree-path>`) and retry `git worktree add`.
+   - `fatal: '<verify-worktree-path>' already exists` -> run `git worktree remove --force <verify-worktree-path>`. If that succeeds, retry `git worktree add`. If it instead fails with `fatal: ... is not a working tree`, the directory is an orphaned leftover, not a registered worktree - remove it directly (`rm -rf <verify-worktree-path>`) and retry `git worktree add`.
+
+   Recovery, if `git worktree remove --force` still fails:
+   - `fatal: ... contains modified or untracked files` -> `--force` did not clear it; run `rm -rf <verify-worktree-path>`, then `git worktree prune`, then retry `git worktree add`.
 3. If a real oracle exists (a failing test, a crash, an HTTP status, a checksum) use it - an oracle beats judgement. If no oracle can settle the claim (needs a live external system, is a subjective call, etc.), that is `INCONCLUSIVE`, not an invented pass or fail.
 4. Judge severity independently: does the reproduction actually support the claimed impact, or is it narrower/broader than filed?
 
