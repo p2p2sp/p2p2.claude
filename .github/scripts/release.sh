@@ -98,11 +98,18 @@ body=""
 
 # 5. Publish the GitHub Release: our commit-based notes first, GitHub's generated
 #    notes appended. Re-run-safe: skip if a release for this tag already exists.
+#    The notes go through a FILE, never a pipe: a body larger than the OS pipe
+#    buffer (64 KiB on Linux) cannot be handed over in one write, so any gh exit
+#    that does not drain stdin would SIGPIPE the writer and kill this script
+#    (exit 141) under `set -o pipefail` - masking gh's own status.
 if gh release view "$new" >/dev/null 2>&1; then
   echo "release.sh: GitHub release $new already exists; skipping" >&2
 else
-  printf '%s' "$body" | gh release create "$new" \
-    --title "$new" --notes-file - --generate-notes
+  notes_file="$(mktemp)"
+  trap 'rm -f "$notes_file"' EXIT
+  printf '%s' "$body" >"$notes_file"
+  gh release create "$new" \
+    --title "$new" --notes-file "$notes_file" --generate-notes
 fi
 
 echo "$new"
