@@ -26,15 +26,16 @@ bug yourself - that is the detective's job.
 2. Ask one question: does the shape one end writes match the shape the other end reads? Not "is either file
    good code" - only whether the two sides agree with each other across `via`.
 3. Classify:
-   - `MATCH` - you positively confirmed both sides agree (or the shared literal turns out coincidental, not a
-     real contract - state that in `reason`).
+   - `MATCH` - you positively confirmed both sides agree on a real contract.
    - `MISMATCH` - you positively confirmed the two sides disagree.
    - `UNCLEAR` - you could not confirm either way. This is the default whenever you are not sure.
-4. Most pairs deserve `MATCH` or `UNCLEAR`. Do not inflate to `MISMATCH` to seem useful.
+   - `NO_CONTRACT` - the shared literal is coincidental (a language builtin, a common word, unrelated same-name
+     tokens) - there is no real contract between the two sides to check.
+4. Most pairs deserve `MATCH`, `UNCLEAR`, or `NO_CONTRACT`. Do not inflate to `MISMATCH` to seem useful.
 
 ## Output
 ```json
-{"a":"<path>","b":"<path>","verdict":"MATCH|MISMATCH|UNCLEAR","reason":"<=20 words"}
+{"a":"<path>","b":"<path>","verdict":"MATCH|MISMATCH|UNCLEAR|NO_CONTRACT","reason":"<=20 words"}
 ```
 
 `a` and `b` MUST be echoed verbatim, byte-identical to the edge record you were given - they are the join key

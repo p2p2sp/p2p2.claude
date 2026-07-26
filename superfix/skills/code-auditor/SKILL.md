@@ -81,7 +81,7 @@ For each candidate file (or each batch of N files), spawn a **`scout`** subagent
 
 Batch to control cost: ~10-40 files per scout for a huge tree, 1 file per scout when you want maximum resolution on a hot module.
 
-For each candidate pair (or small batch of pairs), spawn an **`edge-scout`** subagent (Agent tool, `subagent_type: superfix:edge-scout`) - same cheap tier, same 16-concurrent ceiling - given the edge record and `job.md`. Append every verdict line to `.temp/code-reviewer/<run-id>/scores/edge_scores.jsonl`. `UNCLEAR` is the correct verdict when the cheap tier cannot settle whether the pair's contract holds - it is a dispatch reason for Phase 4, not a rejection.
+For each candidate pair (or small batch of pairs), spawn an **`edge-scout`** subagent (Agent tool, `subagent_type: superfix:edge-scout`) - same cheap tier, same 16-concurrent ceiling - given the edge record and `job.md`. Append every verdict line to `.temp/code-reviewer/<run-id>/scores/edge_scores.jsonl`. The verdict is one of `MATCH` / `MISMATCH` / `UNCLEAR` / `NO_CONTRACT`: `UNCLEAR` is the correct verdict when the cheap tier cannot settle whether the pair's contract holds - it is a dispatch reason for Phase 4, not a rejection; `NO_CONTRACT` is for a shared literal that turns out coincidental (no real contract to check), and is never a dispatch reason.
 
 ### Phase 3 - Gate (drop the noise, build the hotlist)
 Combine and rank deterministically so the cut is reproducible:
@@ -108,13 +108,13 @@ node "${CLAUDE_SKILL_DIR}/scripts/rank_edges.ts" \
   --out-md   .temp/code-reviewer/<run-id>/hotlist/edges.md
 ```
 
-`rank_edges.ts` drops `MATCH` verdicts, orders the rest (`MISMATCH` before `UNCLEAR`, then by pair-Impact) and caps dispatch at `--top-edges`; it also reports `degree[]`, the structural degree (pair count) of every path, for Phase 4's degree budget. Show both `hotlist.md` and `edges.md` to the user before spending frontier tokens.
+`rank_edges.ts` drops `MATCH` and `NO_CONTRACT` verdicts (both kept on record, never dispatched), orders the rest (`MISMATCH` before `UNCLEAR`, then by pair-Impact) and caps dispatch at `--top-edges`; it also reports `degree[]`, the structural degree (pair count) of every path, for Phase 4's degree budget. Show both `hotlist.md` and `edges.md` to the user before spending frontier tokens.
 
 ### Phase 4 - Dispatch detectives (frontier model, top-N only)
 Build the dispatch set as the **union** of three sources, then spawn one **`detective`** subagent (Agent tool, `subagent_type: superfix:detective`) per entry in that union - frontier tier, isolated context. This is "Send the detective here": you only pay deep-model cost for the survivors.
 
 - `hotlist.json` `hotspots` - the file track's gate-clearing files.
-- `edges.json` `dispatch` - the edge track's non-`MATCH`, gate-ranked pairs.
+- `edges.json` `dispatch` - the edge track's `MISMATCH` / `UNCLEAR`, gate-ranked pairs (never `MATCH` or `NO_CONTRACT`).
 - A **structural budget**: the top 2 rows of `edges.json` `degree[]` (highest pair-count paths) that are not already covered by either source above. This is a `SKILL.md`-level rule, not a script flag - read `degree[]` yourself and walk down it, skipping any path already in the union, until 2 budget slots are filled or `degree[]` is exhausted. A file already covered by the union is skipped and the next row taken, so the budget is never spent twice on one file.
 
 A file that appears in both the file hotlist and an edge dispatch row gets **one** detective, not two - dispatch it with the edge as the richer entry (both endpoints), not the single file path.
@@ -147,7 +147,7 @@ The workflow is *dynamic*, not a fixed pipeline. After synthesis:
 
 ## Output the user sees
 1. **HOTLIST** (`hotlist.md`) - the ranked triage table, what got investigated and what was skipped (with the quadrant reason). If `degenerate: true`, this is reported explicitly, not read as a clean zero-hotspot result.
-2. **EDGE GATE** (`edges.md`) - the ranked artifact-pair table alongside the hotlist: non-`MATCH` pairs dispatched or held in overflow, plus the structural `degree[]` list.
+2. **EDGE GATE** (`edges.md`) - the ranked artifact-pair table alongside the hotlist: `MISMATCH` / `UNCLEAR` pairs dispatched or held in overflow, `MATCH` and `NO_CONTRACT` pairs kept on record but never dispatched, plus the structural `degree[]` list.
 3. **FINDINGS** (`findings.md`) - severity-sorted, verified findings with PoCs and fix sketches.
 4. A short prose summary: how many files and pairs swept, how many hotspots/edges/degree-budget slots dispatched, how many confirmed findings, and which fronts remain open.
 

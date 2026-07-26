@@ -126,7 +126,7 @@ function pairImpact(a: string, b: string, signals: Map<string, Row>): number {
   );
 }
 
-const VALID_VERDICTS = new Set(["MATCH", "MISMATCH", "UNCLEAR"]);
+const VALID_VERDICTS = new Set(["MATCH", "MISMATCH", "UNCLEAR", "NO_CONTRACT"]);
 const pairKey = (a: string, b: string): string => `${a}\x00${b}`;
 
 // Markdown-table-surface only: JSON outputs keep the raw, unescaped value.
@@ -170,6 +170,7 @@ function main(): void {
 
   const matched: Row[] = []; // MISMATCH / UNCLEAR, ranked and dispatched/overflowed
   const matchBucket: Row[] = []; // MATCH, kept for the record only
+  const noContractBucket: Row[] = []; // NO_CONTRACT, kept for the record only - never dispatched
   let unscored = 0;
 
   for (const key of allKeys) {
@@ -191,6 +192,7 @@ function main(): void {
       reason: typeof verdict.reason === "string" ? verdict.reason : "",
     };
     if (row.verdict === "MATCH") matchBucket.push(row);
+    else if (row.verdict === "NO_CONTRACT") noContractBucket.push(row);
     else matched.push(row);
   }
 
@@ -236,18 +238,21 @@ function main(): void {
       match: matchBucket.length,
       mismatch: mismatchCount,
       unclear: unclearCount,
+      no_contract: noContractBucket.length,
       unscored,
       dispatch: dispatch.length,
     },
     dispatch,
     overflow,
     match: matchBucket,
+    no_contract: noContractBucket,
     degree,
   };
   fs.writeFileSync(args.outJson, JSON.stringify(out, null, 2), "utf8");
 
   // Markdown - a ranked table for dispatch, plus <details> blocks for
-  // overflow (visible but beyond the cap) and match (contract confirmed).
+  // overflow (visible but beyond the cap), match (contract confirmed), and
+  // no_contract (coincidental literal, never dispatched).
   const lines: string[] = [];
   let title = `# EDGE GATE - ${args.runId || "run"}`;
   if (args.job) title += `  (${args.job})`;
@@ -255,7 +260,8 @@ function main(): void {
   lines.push("");
   lines.push(
     `${allKeys.size} pairs · ${mismatchCount} mismatch · ${unclearCount} unclear · ` +
-      `${matchBucket.length} match · ${unscored} unscored · top-edges ${args.topEdges}.`,
+      `${matchBucket.length} match · ${noContractBucket.length} no_contract · ${unscored} unscored · ` +
+      `top-edges ${args.topEdges}.`,
   );
   lines.push("");
   lines.push("| # | A | B | Verdict | Pair Impact | Shared | Via | Reason |");
@@ -291,11 +297,23 @@ function main(): void {
     lines.push("");
     lines.push("</details>");
   }
+  if (noContractBucket.length > 0) {
+    lines.push("");
+    lines.push("<details><summary>No contract (NO_CONTRACT, not dispatched)</summary>");
+    lines.push("");
+    lines.push("| A | B | Via | Shared | Reason |");
+    lines.push("|---|---|-----|:------:|--------|");
+    for (const r of noContractBucket) {
+      lines.push(`| \`${r.a}\` | \`${r.b}\` | \`${mdCell(r.via)}\` | ${r.shared} | ${mdCell(r.reason)} |`);
+    }
+    lines.push("");
+    lines.push("</details>");
+  }
   fs.writeFileSync(args.outMd, lines.join("\n") + "\n", "utf8");
 
   console.log(
     `edges: ${dispatch.length} dispatched from ${allKeys.size} pairs ` +
-      `(${matchBucket.length} match, ${unscored} unscored) -> ${args.outJson}, ${args.outMd}`,
+      `(${matchBucket.length} match, ${noContractBucket.length} no_contract, ${unscored} unscored) -> ${args.outJson}, ${args.outMd}`,
   );
 }
 
