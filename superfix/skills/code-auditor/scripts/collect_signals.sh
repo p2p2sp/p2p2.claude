@@ -43,6 +43,18 @@
 # `-v` assignment whose value contains a newline, which a multi-extension repo
 # always produces.
 #
+# A path containing `"` or `\` is C-quoted by git regardless of
+# core.quotePath=false - that setting only controls non-ASCII bytes, not the
+# quoting syntax's own special characters. The pass-2 `awk` filter detects a
+# leading `"` and warns-and-skips it before the extension test, since a quoted
+# line's parsed extension (e.g. `md"`) never matches a real kept extension
+# anyway. As a result, `esc()` below never sees a raw `"` or `\` in a path
+# today - both are filtered out upstream.
+#
+# The `--with-dependents` `git grep` also runs with `-c core.quotePath=false`
+# so its output stays directly comparable (via `grep -vxF`) to the raw `$f`
+# paths pass 2 already produced unquoted.
+#
 # --with-dependents is stripped out of the positional stream before
 # window_days/repo_root are bound, so it may appear anywhere on the command
 # line and either positional argument may be omitted.
@@ -110,6 +122,10 @@ git -c core.quotePath=false ls-files | noise_filter \
   | KEPT_EXTS="$kept_exts" awk '
       BEGIN { n = split(ENVIRON["KEPT_EXTS"], a, "\n"); for (i = 1; i <= n; i++) if (a[i] != "") keep[a[i]] = 1 }
       {
+        if (substr($0, 1, 1) == "\"") {
+          printf "collect_signals.sh: warning: skipping quoted path %s\n", $0 > "/dev/stderr"
+          next
+        }
         base = $0; sub(/.*\//, "", base)
         if (base ~ /\./) { ext = base; sub(/.*\./, "", ext); ext = tolower(ext) }
         else ext = ""
@@ -162,7 +178,7 @@ git -c core.quotePath=false ls-files | noise_filter \
         # An empty stem (should not occur once the fallback above applies)
         # skips the probe entirely rather than matching every tracked file.
         if [ -n "$stem" ]; then
-          dependents="$( { git grep -lI -- "$stem" 2>/dev/null || true; } \
+          dependents="$( { git -c core.quotePath=false grep -lI -- "$stem" 2>/dev/null || true; } \
                          | { grep -vxF "$f" || true; } \
                          | wc -l | tr -d ' ')"
         fi

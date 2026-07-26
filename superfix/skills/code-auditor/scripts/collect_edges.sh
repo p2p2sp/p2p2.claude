@@ -52,6 +52,13 @@
 #     `set -euo pipefail`.
 #   - Non-ASCII paths - `-c core.quotePath=false` on both `git ls-files`
 #     passes, as in collect_signals.sh.
+#   - A path containing `"` or `\` is C-quoted by git regardless of
+#     core.quotePath=false (that setting only controls non-ASCII bytes, not
+#     the quoting syntax's own special characters). The pass-2 `awk` filter
+#     inside `raw_pairs` detects a leading `"` and warns-and-skips it before
+#     the extension test, since a quoted line's parsed extension never
+#     matches a real kept extension anyway. As a result, `esc()` below never
+#     sees a raw `"` or `\` in a path today - both are filtered out upstream.
 
 set -euo pipefail
 
@@ -116,6 +123,10 @@ raw_pairs="$(
     | KEPT_EXTS="$kept_exts" awk '
         BEGIN { n = split(ENVIRON["KEPT_EXTS"], a, "\n"); for (i = 1; i <= n; i++) if (a[i] != "") keep[a[i]] = 1 }
         {
+          if (substr($0, 1, 1) == "\"") {
+            printf "collect_edges.sh: warning: skipping quoted path %s\n", $0 > "/dev/stderr"
+            next
+          }
           base = $0; sub(/.*\//, "", base)
           if (base ~ /\./) { ext = base; sub(/.*\./, "", ext); ext = tolower(ext) }
           else ext = ""
