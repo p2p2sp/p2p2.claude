@@ -251,8 +251,9 @@ function main(): void {
   fs.writeFileSync(args.outJson, JSON.stringify(out, null, 2), "utf8");
 
   // Markdown - a ranked table for dispatch, plus <details> blocks for
-  // overflow (visible but beyond the cap), match (contract confirmed), and
-  // no_contract (coincidental literal, never dispatched).
+  // overflow (visible but beyond the cap), match (contract confirmed),
+  // no_contract (coincidental literal, never dispatched), and degree (the
+  // structural pair count per path, capped at 20 rows).
   const lines: string[] = [];
   let title = `# EDGE GATE - ${args.runId || "run"}`;
   if (args.job) title += `  (${args.job})`;
@@ -268,7 +269,7 @@ function main(): void {
   lines.push("|---|---|---|---------|:------------:|:------:|-----|--------|");
   for (const r of dispatch) {
     lines.push(
-      `| ${r.rank} | \`${r.a}\` | \`${r.b}\` | ${r.verdict} | ${r.pair_impact} | ${r.shared} | \`${mdCell(r.via)}\` | ${mdCell(r.reason)} |`,
+      `| ${r.rank} | \`${mdCell(r.a)}\` | \`${mdCell(r.b)}\` | ${r.verdict} | ${r.pair_impact} | ${r.shared} | \`${mdCell(r.via)}\` | ${mdCell(r.reason)} |`,
     );
   }
   if (overflow.length > 0) {
@@ -279,7 +280,7 @@ function main(): void {
     lines.push("|---|---|---|---------|:------------:|:------:|-----|--------|");
     for (const r of overflow) {
       lines.push(
-        `| ${r.rank} | \`${r.a}\` | \`${r.b}\` | ${r.verdict} | ${r.pair_impact} | ${r.shared} | \`${mdCell(r.via)}\` | ${mdCell(r.reason)} |`,
+        `| ${r.rank} | \`${mdCell(r.a)}\` | \`${mdCell(r.b)}\` | ${r.verdict} | ${r.pair_impact} | ${r.shared} | \`${mdCell(r.via)}\` | ${mdCell(r.reason)} |`,
       );
     }
     lines.push("");
@@ -292,7 +293,7 @@ function main(): void {
     lines.push("| A | B | Via | Shared | Reason |");
     lines.push("|---|---|-----|:------:|--------|");
     for (const r of matchBucket) {
-      lines.push(`| \`${r.a}\` | \`${r.b}\` | \`${mdCell(r.via)}\` | ${r.shared} | ${mdCell(r.reason)} |`);
+      lines.push(`| \`${mdCell(r.a)}\` | \`${mdCell(r.b)}\` | \`${mdCell(r.via)}\` | ${r.shared} | ${mdCell(r.reason)} |`);
     }
     lines.push("");
     lines.push("</details>");
@@ -304,7 +305,19 @@ function main(): void {
     lines.push("| A | B | Via | Shared | Reason |");
     lines.push("|---|---|-----|:------:|--------|");
     for (const r of noContractBucket) {
-      lines.push(`| \`${r.a}\` | \`${r.b}\` | \`${mdCell(r.via)}\` | ${r.shared} | ${mdCell(r.reason)} |`);
+      lines.push(`| \`${mdCell(r.a)}\` | \`${mdCell(r.b)}\` | \`${mdCell(r.via)}\` | ${r.shared} | ${mdCell(r.reason)} |`);
+    }
+    lines.push("");
+    lines.push("</details>");
+  }
+  if (degree.length > 0) {
+    lines.push("");
+    lines.push("<details><summary>Degree (structural pair count per path, top 20)</summary>");
+    lines.push("");
+    lines.push("| Path | Degree |");
+    lines.push("|------|:------:|");
+    for (const d of degree) {
+      lines.push(`| \`${mdCell(d.path)}\` | ${d.degree} |`);
     }
     lines.push("");
     lines.push("</details>");

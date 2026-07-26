@@ -179,4 +179,5 @@ present on only one side is `unscored` - never dispatched, warned once on stderr
 candidate pairs each path participates in (from the full edge record set, regardless of verdict), sorted
 descending and capped at 20 rows - this is what `SKILL.md`'s structural budget reads to pull in
 highest-degree files that never clear the pair gate on their own. `edges.md` renders `dispatch` as a ranked
-table plus `<details>` blocks for `overflow`, `match`, and `no_contract`.
+table plus `<details>` blocks for `overflow`, `match`, `no_contract`, and `degree` (a capped Path/Degree table,
+omitted when `degree[]` is empty).
