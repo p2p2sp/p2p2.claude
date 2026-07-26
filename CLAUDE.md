@@ -118,7 +118,10 @@ docs/.workflows/     Run records of superdev builds executed ON this repo (one d
                      tasks, implementation reports) - history, never rewritten; ships with no plugin
 tests/               Dev-time regression suites for plugin scripts, run with `node --test` (e.g. tests/superui/)
                      - sits outside every plugin dir, so no plugin.json and no marketplace entry references it;
-                     ships with no plugin
+                     ships with no plugin. Fixtures, expected outputs and stub scenarios stay file-local to
+                     each `*.test.ts` - `tests/harness/` is the single exception, exposing shared *mechanism*
+                     only (subprocess execution, temp dirs, throwaway git repos, PATH stubs, shell discovery,
+                     PNG fixtures), never per-script knowledge.
 .docs/               Dev-time notes + source material (per-plugin subdirs, e.g. .docs/superui/) - reference
                      documents behind skill content; NOT part of any plugin, never shipped, never read at runtime.
                      ONE exception to "dev-time only": .docs/assets/ holds images embedded in README.md
