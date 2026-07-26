@@ -69,13 +69,18 @@ SEVERITY: <the critic's independent 0-10 judgement, or "unchanged">
 
 Fold each verdict into `findings.md` like this:
 
-- **VERIFIED** - keep the finding exactly as filed by the detective.
-- **PARTIALLY VERIFIED** - keep only the sub-claims the critic's `OBSERVED` confirms; drop the rest and lower
-  the `SEVERITY` to match the narrower, confirmed scope.
-- **REFUTED** - drop the finding entirely. It does not appear in `findings.md`, not even at low severity.
-- **INCONCLUSIVE** - keep the finding, lower its `CONFIDENCE` by one step (high -> medium, medium -> low), and
-  name the missing oracle (what would have settled it) alongside the entry so the gap reads as honest coverage,
-  not a silent gap.
+- **VERIFIED** - keep the finding as filed; `CONFIDENCE` stays as filed. If the critic's independent
+  `SEVERITY` names a number, adopt it as the filed severity and note the adopted value in the entry; if the
+  critic returns `unchanged`, keep the detective's `SEVERITY`.
+- **PARTIALLY VERIFIED** - keep only the sub-claims the critic's `OBSERVED` confirms; drop the rest;
+  `CONFIDENCE` stays as filed. Apply the critic's independent `SEVERITY` the same way as for VERIFIED - adopt
+  it when it names a number and note the adopted value, or keep it unchanged; when the critic gives no number
+  at all, lower `SEVERITY` yourself to match the narrower, confirmed scope.
+- **REFUTED** - drop the finding entirely, `SEVERITY` and `CONFIDENCE` moot. It does not appear in
+  `findings.md`, not even at low severity.
+- **INCONCLUSIVE** - keep the finding; `SEVERITY` stays as filed. Lower `CONFIDENCE` by one step (high ->
+  medium, medium -> low); an entry whose `CONFIDENCE` is already low stays low. Name the missing oracle (what
+  would have settled it) alongside the entry so the gap reads as honest coverage, not a silent gap.
 
 `INCONCLUSIVE` is the required verdict whenever no oracle can settle the claim - never let a critic invent a
 pass or fail to avoid it.
@@ -93,10 +98,12 @@ Give every surviving finding a `SEVERITY: N.N` on its own line (0-10). The exact
 - **4-6** real bug, limited reach or needs preconditions
 - **1-3** minor / hardening / quality issue
 
-Rank by severity descending. Because the tag is on its own line, the final sort is a one-liner:
+Rank by severity descending as you fold. Because the tag is on its own line, verify the emitted file with a
+one-liner self-check - it should already read severity-sorted (`reports/` is never rewritten by the fold, so
+sorting it proves nothing about the final file):
 
 ```bash
-grep -rH '^SEVERITY:' .temp/code-reviewer/<run-id>/reports | sort -t: -k3 -rn
+grep -n '^SEVERITY:' .temp/code-reviewer/<run-id>/findings.md | sort -t: -k3 -rn
 ```
 
 ## findings.md (final output)
@@ -105,7 +112,9 @@ grep -rH '^SEVERITY:' .temp/code-reviewer/<run-id>/reports | sort -t: -k3 -rn
 # Findings - <run-id> (<job>)
 Swept N files · M hotspots investigated · K confirmed findings · J fronts still open.
 
-## 1. <title>  -  SEVERITY 9.2  (confidence: high)
+## 1. <title>
+SEVERITY: N.N
+CONFIDENCE: <low|medium|high>
 LOCATION ... CLASS ... root cause ... repro ... fix sketch ...
 
 ## 2. ...
