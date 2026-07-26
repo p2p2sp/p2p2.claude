@@ -41,7 +41,7 @@ No `spec:` line in the index -> STOP: this plan belongs to `simplebuild`, not he
 
 Gated by Config: only when `adr: true`. Otherwise skip (note "ADR: disabled" for the Step 6 summary).
 
-Invoke `superbuild-adr` (Skill) with a labeled-line `args` block - `plan: <plan-copy path>`, `spec: <spec path>`, and `adr: .superdev/adr/<workdir basename>.md` on separate lines. Best-effort: `VERDICT: FAIL` does not block - note it for the Step 6 summary and continue.
+Invoke `superbuild-adr` (Skill) with a labeled-line `args` block - `plan: <plan-copy path>`, `spec: <spec path>`, and `adr: docs/adr/<workdir basename>.md` on separate lines. Best-effort: `VERDICT: FAIL` does not block - note it for the Step 6 summary and continue.
 
 ## Step 3 - Run Implementation Loop
 

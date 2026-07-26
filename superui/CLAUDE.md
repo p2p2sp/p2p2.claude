@@ -42,7 +42,12 @@ re-authors inline styles each turn). Consequences that shape the pipeline skills
   `DESIGN.patterns.md` (all pattern specs) + `screens/<file>.png`. Markdown + PNG only - no consumer-side
   Node, npm, or build step to read it. `inventory.md` and `intake-answers.md` stay at `<run>` as internal
   intermediates/provenance; there is no `meta.yml` and no `handoff.zip` (the `<out>/` folder is the
-  deliverable). CRITICAL for the renderer: every front-matter value that starts with `#` or holds a `:` is
+  deliverable). **`<out>` is `docs/design-system/` in the host repo** - `docs/design-system/<target>/` when
+  the user passes the optional `<target>` argument (a monorepo shipping separate bundles per app). It sits
+  alongside the other two host-repo doc layers, `docs/adr/` and `docs/product/`, and unlike `<run>` it is a
+  version-controlled deliverable, not scratch. A bundle is always regenerated whole, so a non-empty `<out>`
+  gates on an explicit user wipe/abort answer before any write - see the design-extractor skill entry below.
+  CRITICAL for the renderer: every front-matter value that starts with `#` or holds a `:` is
   quoted (`key: #fff` is a YAML comment) - the emitter double-quotes every string scalar.
 - Invariants held throughout: **measure, never guess - every MEASURED value traces to a pixel sample or a
   stated in-image reference**; luminance-ranked surface order; accent-usage inventory; ruthless component
@@ -96,11 +101,16 @@ keeps its own rather than sharing one at the plugin root.
   edits project files - diagnostic only. Every other skill's env-check step and pro-designer's contrast-script
   fallback point here on a missing interpreter/module.
 - `design-extractor` - user-only (`disable-model-invocation: true`) head skill, `/superui:design-extractor
-  <screenshots-dir>`. Resolves the input, dispatches `source-scout` for the source map and `component-scout`
+  <screenshots-dir> [<target>]`. Resolves the input - including `<out>` (`docs/design-system/`, or
+  `docs/design-system/<target>/` when the optional second argument is given; `<target>` is taken verbatim,
+  never invented and never asked for) - dispatches `source-scout` for the source map and `component-scout`
   for the inventory itself, asks the user any ambiguity questions via `AskUserQuestion` (the one call surface
   that only runs in the main context), transcribes the answers to `<run>/intake-answers.md` - the single file
   it writes itself - then hands off to `design-extractor-builder` for measurement, spec writing, synthesis and
   review, and gates on its result. Measures nothing and authors no measured or generated artifact inline.
+  Its two input gates differ by what the directory costs to lose: a stale `<run>` is `rm -rf`'d silently
+  (scratch under `.temp/`), while a non-empty `<out>` STOPS for an `AskUserQuestion` wipe/abort answer, since
+  it is committed and may carry hand edits a whole-bundle rebuild would destroy.
 - `design-extractor-builder` - internal fork worker (`user-invocable: false`, `context: fork`), reached only
   via the `Skill` tool from `design-extractor`. The mechanical tail: fans out to four of the agents below -
   `foundation-analyst`, `spec-writer`, `design-synthesizer`, `bundle-reviewer` - and the plugin-root scripts

@@ -47,10 +47,11 @@ Each plugin is independently installable; none declares another as a dependency.
   as a requirement, never silently overwritten), wired into both build close-outs behind an opt-in `docs`
   config switch.
 - **superui** - the design / frontend ecosystem, pairing Claude Code CLI (measurement, agentic fan-out) and
-  Claude Design (live, inline-styled Design Components): `/superui:design-extractor <screenshots-dir>` turns a
-  folder of UI screenshots into a lean seed bundle (`DESIGN.md` - YAML front-matter tokens + a prose body -
-  plus the `DESIGN.components.md` / `DESIGN.patterns.md` spec satellites and canonical screens) that Claude
-  Design consumes, via an internal fork worker (`design-extractor-builder`). Also ships a professional UI/UX standards
+  Claude Design (live, inline-styled Design Components): `/superui:design-extractor <screenshots-dir>
+  [<target>]` turns a folder of UI screenshots into a lean seed bundle (`DESIGN.md` - YAML front-matter tokens
+  + a prose body - plus the `DESIGN.components.md` / `DESIGN.patterns.md` spec satellites and canonical
+  screens) that Claude Design consumes, written to the host repo's `docs/design-system/` (or
+  `docs/design-system/<target>/`), via an internal fork worker (`design-extractor-builder`). Also ships a professional UI/UX standards
   advisor (`pro-designer`) and a user-only `setup` diagnostic. Ships **no hooks and no manifest** -
   `pro-designer` routes purely via CSO `description:`; `design-extractor` is a user-only command.
   (→ `superui/CLAUDE.md`)
@@ -148,6 +149,15 @@ Plugin-specific invariants (superdev's config switches / plan gate / recipe / fi
 supergh's / superfix's manifest-less rationale) live in the respective `<plugin>/CLAUDE.md`.
 The invariants below hold across the repo.
 
+- **Host-repo `docs/` is the one home for user-facing persisted knowledge.** Every long-lived document a
+  plugin writes into the consuming repo lands under `docs/<layer>/`, never in a dot-dir and never in a
+  plugin-named dir: `docs/adr/` (superdev's `superbuild-adr`, gated by the `adr` config switch),
+  `docs/design-system/` (superui's `design-extractor`; `docs/design-system/<target>/` with the optional
+  `<target>` argument), `docs/product/` (superdev's docs layer, gated by the `docs` switch). These are
+  version-controlled deliverables the user reads and edits. The plugin-named dot-dirs stay strictly for
+  machine state and scratch - `.superdev/` (config, workflow working dirs, capture files) and `.temp/`
+  (superui run dirs, and every other temporary artifact) - and nothing under them is a `docs/` layer. Adding
+  a new persisted user-facing artifact means adding a `docs/<layer>/`, not a new dot-dir.
 - **One injected manifest per manifest-bearing plugin.** A single `SessionStart` hook force-injects
   `hooks/content/manifest.md` **verbatim** once per session; `source == "resume"` is excluded by the matcher;
   fail-open (an unreadable manifest = banner only, no `additionalContext`). The hook does no per-project

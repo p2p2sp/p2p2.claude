@@ -1,10 +1,10 @@
 ---
 name: design-extractor
-description: Turn a folder of UI screenshots into a Claude Design seed bundle (DESIGN.md plus the DESIGN.components.md / DESIGN.patterns.md spec satellites and canonical screens).
+description: Turn a folder of UI screenshots into a Claude Design seed bundle (DESIGN.md plus the DESIGN.components.md / DESIGN.patterns.md spec satellites and canonical screens) at docs/design-system/.
 allowed-tools: Read, Write, Glob, Bash(sh:*), Bash(mkdir:*), Bash(rm:*), Skill, Agent, AskUserQuestion
 user-invocable: true
 disable-model-invocation: true
-argument-hint: <screenshots-dir>
+argument-hint: <screenshots-dir> [<target>]
 ---
 
 # Design Extractor - screenshots to Claude Design seed bundle
@@ -20,14 +20,17 @@ body), the two consolidated spec satellites `DESIGN.components.md` and `DESIGN.p
   builder dispatched in the Handoff step below. The only file it writes itself is
   `<run>/intake-answers.md`, transcribing the user's own answers - `AskUserQuestion` only runs in
   the main context, so intake has to happen here.
-- Paths: `<run>` = `.temp/design-extractor/<run-slug>/`, `<run-slug>` = the source directory's
-  basename; `<out>` = `<run>/handoff/`.
+- Paths: `<run>` = `.temp/design-extractor/<run-slug>/` (scratch, disposable), `<run-slug>` = the
+  source directory's basename; `<out>` = `docs/design-system/`, or
+  `docs/design-system/<target>/` when a `<target>` argument was given. `<out>` is the shipped,
+  version-controlled deliverable - it does NOT nest under `<run>`.
 - Every `args` handoff to a fork (Skill or Agent) is a labeled block, one `label: <value>` per
   line. A path value is a path - never paste file content.
 
 ## Step 1 - Intake and gate
-1. Screenshots directory: take it from the arguments; if absent, ask via `AskUserQuestion` before
-   doing anything else.
+1. Screenshots directory: the first argument; if absent, ask via `AskUserQuestion` before doing
+   anything else. `<target>`: the optional second argument, taken verbatim - never invent one, never
+   ask for one.
 2. Confirm the directory exists and holds files. Glob `<dir>/*.png` for sources and
    `<dir>/*.jpg`, `<dir>/*.jpeg`, `<dir>/*.webp`, `<dir>/*.avif` for rejected formats.
    - Directory missing, empty, or holding zero PNGs -> stop here, before creating any run state:
@@ -38,13 +41,16 @@ body), the two consolidated spec satellites `DESIGN.components.md` and `DESIGN.p
      design and fails later inside the fork at first decode - that step carries the decoder's
      exit-1 message verbatim into its return, and the Final report surfaces it with the file named.
 3. Compute `<run-slug>` = the source directory's basename, `<run>` = `.temp/design-extractor/<run-slug>/`,
-   `<out>` = `<run>/handoff/`.
+   `<out>` = `docs/design-system/` (no `<target>`) or `docs/design-system/<target>/` (with one).
 4. `<run>` already exists (a previous run on this same source) -> `rm -rf` it wholesale before any
-   write - never merge, never patch; every later step assumes an empty output tree.
-5. `mkdir -p <out>` - creates both `<run>` and `<out>` in one call, since `<out>` nests under
-   `<run>`.
-6. Report the gate result to the user: source dir, PNG count, `<run>` path, whether a stale `<run>`
-   was removed.
+   write - never merge, never patch; every later step assumes an empty scratch tree.
+5. Glob `<out>/**`. Any file -> STOP and ask via `AskUserQuestion` whether to wipe it and
+   rebuild, or abort. Only on an explicit wipe answer `rm -rf <out>`; abort ends the skill here,
+   having written nothing. A bundle is regenerated whole, never merged or patched - so hand edits
+   under `<out>` are lost by a rebuild, and the question is the user's only chance to keep them.
+6. `mkdir -p <run> <out>`.
+7. Report the gate result to the user: source dir, PNG count, `<run>` path, `<out>` path, whether a
+   stale `<run>` was removed and whether `<out>` was wiped on the user's answer.
 
 ## Step 2 - Source map
 Dispatch `superui:source-scout` (Agent tool) with the source directory and `<run>/source-map.md`
@@ -83,12 +89,13 @@ Tell the user: the `<out>` bundle path (holding `DESIGN.md`, `DESIGN.components.
 `DESIGN.patterns.md` and `screens/`), the component and pattern counts, the count of proposed
 (best-practice, unmeasured) values the synthesizer supplied plus how many gaps it resolved versus
 left standing, every finding and every `> NEEDS INPUT` item from the builder's return, then the
-next action - hand the `<out>/` folder to Claude Design. Note that values marked `proposed` in
+next action - hand the `<out>/` folder to Claude Design, and commit it: `<out>` is a
+version-controlled deliverable, not scratch. Note that values marked `proposed` in
 `DESIGN.md` (front matter or body) were invented to best practice, not measured, and should be
 reviewed. State plainly that the seed is one-shot input material: iterating in Claude Design
 supersedes it, and a changed source means re-running this skill, never patching the bundle by hand.
 
 ## Contracts
-Consumes a screenshots directory path (from the arguments, or asked). Produces the
-`.temp/design-extractor/<run-slug>/handoff/` seed bundle (`DESIGN.md`, `DESIGN.components.md`,
-`DESIGN.patterns.md`, `screens/`).
+Consumes a screenshots directory path (first argument, or asked) and an optional `<target>` (second
+argument). Produces the seed bundle (`DESIGN.md`, `DESIGN.components.md`, `DESIGN.patterns.md`,
+`screens/`) at `docs/design-system/`, or `docs/design-system/<target>/` when `<target>` was given.

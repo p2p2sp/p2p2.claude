@@ -32,10 +32,10 @@ the asset is the only source of its shape.
 - **`seeded from template`** - the switches are `false`. Ask which to enable, then flip those on:
   1. Call `AskUserQuestion` **once** - a single `multiSelect` question, "Which areas to enable?
      (unchecked = stays disabled)". All options default **unchecked**:
-     - `adr` - ADR capture.
-     - `rules` - Rules system.
-     - `memory` - Memory system.
-     - `docs` - Product docs system.
+     - `adr` - ADR capture (`docs/adr/`).
+     - `rules` - Rules system (`.claude/rules/`).
+     - `memory` - Memory system (CLAUDE.md cascade).
+     - `docs` - Product docs system (`docs/product/`).
   2. For each **selected** area, `Edit` `.superdev/config.yml` to flip that key `false → true`
      (change only the boolean; leave the key + comment intact). Unselected areas stay `false`.
 

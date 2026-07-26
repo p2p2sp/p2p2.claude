@@ -1,5 +1,5 @@
 # SuperDev Config
-adr:     false   # ADR capture
-rules:   false   # Rules system
-memory:  false   # Memory system
-docs:    false   # Product docs system
+adr:     false   # ADR capture -> docs/adr/
+rules:   false   # Rules system -> .claude/rules/
+memory:  false   # Memory system -> CLAUDE.md cascade
+docs:    false   # Product docs system -> docs/product/
