@@ -39,11 +39,11 @@ body), the two consolidated spec satellites `DESIGN.components.md` and `DESIGN.p
      exit-1 message verbatim into its return, and the Final report surfaces it with the file named.
 3. Compute `<run-slug>` = the source directory's basename, `<run>` = `.temp/design-extractor/<run-slug>/`,
    `<out>` = `<run>/handoff/`.
-4. `<out>` already exists (a previous run on this same source) -> `rm -rf` it wholesale before any
+4. `<run>` already exists (a previous run on this same source) -> `rm -rf` it wholesale before any
    write - never merge, never patch; every later step assumes an empty output tree.
 5. `mkdir -p <out>` - creates both `<run>` and `<out>` in one call, since `<out>` nests under
    `<run>`.
-6. Report the gate result to the user: source dir, PNG count, `<run>` path, whether a stale `<out>`
+6. Report the gate result to the user: source dir, PNG count, `<run>` path, whether a stale `<run>`
    was removed.
 
 ## Step 2 - Source map
