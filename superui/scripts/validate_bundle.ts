@@ -30,7 +30,12 @@
  *   - missing-screen  - a `canonical: <filename>.png` line inside a satellite
  *     (a consolidated spec's canonical reference) names a file absent from
  *     `screens/`. References are deduplicated by exact filename first, so one
- *     absent screen cited from several specs yields exactly one finding.
+ *     absent screen cited from several specs yields exactly one finding. Also
+ *     fires as a fail-open backstop: a satellite carrying real spec content
+ *     (at least one `## <slug>` wrapper) contributes ZERO canonical citations
+ *     to a run whose total citation count is zero - an entirely empty run
+ *     (no spec content anywhere) stays CLEAN, but non-empty content citing
+ *     nothing is a defect, not silence.
  *   - empty-section   - a standard `## ` heading in `DESIGN.md` is missing, or
  *     is followed by no non-whitespace content before the next `## ` heading
  *     or EOF. The required set is the fixed STANDARD_HEADINGS below.
@@ -149,8 +154,15 @@ export function checkTokenRefs(bundleDir: string, registry: Registry): Finding[]
 // checkScreenRefs
 // ---------------------------------------------------------------------------
 
+/** A satellite "carries spec content" when it has at least one `## <slug>` wrapper - assemble_specs.ts's
+ * empty-dir stub is a bare `# Title` + "None catalogued." line with no `## ` heading, so this excludes it. */
+function hasSpecContent(content: string): boolean {
+  return /^## /m.test(content);
+}
+
 export function checkScreenRefs(bundleDir: string): Finding[] {
   const cited = new Set<string>();
+  const contentfulFiles: string[] = [];
 
   for (const file of specFiles(bundleDir)) {
     let content: string;
@@ -159,6 +171,7 @@ export function checkScreenRefs(bundleDir: string): Finding[] {
     } catch {
       continue;
     }
+    if (hasSpecContent(content)) contentfulFiles.push(file);
     for (const filename of canonicalRefs(content)) cited.add(filename);
   }
 
@@ -175,6 +188,16 @@ export function checkScreenRefs(bundleDir: string): Finding[] {
       findings.push({ category: "missing-screen", detail: `canonical screen '${filename}' is not present in screens/` });
     }
   }
+
+  // Fail-open backstop: zero entries across an entirely empty run is legitimately clean, but a satellite
+  // that carries real spec content and still contributes zero canonical citations is a defect, not silence.
+  if (cited.size === 0) {
+    for (const file of contentfulFiles) {
+      const rel = relative(bundleDir, file).split("\\").join("/");
+      findings.push({ category: "missing-screen", detail: `${rel} carries spec content but cites no canonical screen` });
+    }
+  }
+
   return findings;
 }
 

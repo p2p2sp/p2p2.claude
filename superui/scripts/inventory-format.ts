@@ -6,15 +6,20 @@
  * copy_screens.ts all import from here instead of each keeping its own
  * regex/split logic, so the two can never drift out of sync with each other.
  *
- * `CANONICAL_LINE_RE` captures the WHOLE trimmed remainder of a `canonical:`
- * line, not just its first non-whitespace token — `\s*(.+?)\s*$` forces even
- * a lazy `.+?` to expand to end of line because of the trailing `\s*$`
- * anchor. This means a filename containing spaces (e.g. a macOS screenshot
- * name) captures in full, but it also means a `canonical:` line carrying
- * trailing commentary after the filename captures whole too — that line
- * shape is out of contract (the satellite convention is the bare filename,
- * nothing else), and the deliberate behaviour is to surface it as a
- * `missing-screen` finding rather than silently truncate or drop it.
+ * `CANONICAL_LINE_RE` tolerates the markdown decoration a `canonical:` line
+ * commonly carries — leading indentation, a list marker (`-`/`*`/`+`), a
+ * blockquote marker (`>`), a heading marker (`#` … `######`), bold emphasis
+ * asterisks wrapped around the label, and a capitalised `Canonical:` label —
+ * while staying anchored to line start so it never matches mid-line. It
+ * still captures the WHOLE trimmed remainder, not just the first
+ * non-whitespace token — `\s*(.+?)\s*$` forces even a lazy `.+?` to expand
+ * to end of line because of the trailing `\s*$` anchor. This means a
+ * filename containing spaces (e.g. a macOS screenshot name) captures in
+ * full, but it also means a `canonical:` line carrying trailing commentary
+ * after the filename captures whole too — that line shape is out of
+ * contract (the satellite convention is the bare filename, nothing else),
+ * and the deliberate behaviour is to surface it as a `missing-screen`
+ * finding rather than silently truncate or drop it.
  *
  * `INVENTORY_DELIMITER` is the single U+00B7 (`·`) character `inventory.md`
  * uses to separate an entry's fields; a filename carrying that character
@@ -30,7 +35,9 @@
 export const INVENTORY_DELIMITER = "·";
 
 // A consolidated satellite carries many `canonical:` lines (one per spec) — matchAll needs the global flag.
-export const CANONICAL_LINE_RE = /^canonical:\s*(.+?)\s*$/gm;
+// Leading decoration, in order: indentation, an optional list marker, an optional blockquote marker, an
+// optional heading marker, then the (optionally bold, optionally capitalised) `canonical:` label itself.
+export const CANONICAL_LINE_RE = /^[ \t]*(?:[-*+]\s+)?(?:>\s*)?(?:#{1,6}\s+)?\*{0,2}[Cc]anonical:\*{0,2}\s*(.+?)\s*$/gm;
 
 /** Deduplicated, in-first-seen-order list of every `canonical:` filename captured in `content`. */
 export function canonicalRefs(content: string): string[] {
