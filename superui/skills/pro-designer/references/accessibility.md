@@ -58,7 +58,7 @@ Read when writing any CSS/HTML with colors, text, interactive elements, or touch
 
 ## Contrast is a build step, not a review step
 - Contrast is deterministic: ratio = (L1 + 0.05) / (L2 + 0.05) via WCAG relative luminance. Do not eyeball it.
-- Run `scripts/check_contrast.ts` (in this skill) on EVERY foreground/background pair you emit - body text, placeholders, borders, icons, focus rings, text-over-scrim - and fix failures before delivery.
+- Run `"${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.ts"` on EVERY foreground/background pair you emit - body text, placeholders, borders, icons, focus rings, text-over-scrim - and fix failures before delivery.
 - Pass each pair's type (`normal` | `large` | `ui`) so the verdict and exit code use the right threshold: 4.5:1 body, 3:1 large text, 3:1 components/focus. No rounding in your favor.
 
 ## Sources
