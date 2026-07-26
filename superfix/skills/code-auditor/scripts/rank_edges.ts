@@ -84,7 +84,12 @@ function parseArgs(argv: string[]): Args {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
 
-function loadJsonl(p: string): Row[] {
+// The verdicts file is absent exactly when the sweep found zero pairs, which
+// collect_edges.sh documents as a valid result - missingOk lets that case
+// through as an empty row set instead of a crash. Every other input
+// (--edges, --signals) must still exist, so callers leave missingOk unset.
+function loadJsonl(p: string, missingOk = false): Row[] {
+  if (missingOk && !fs.existsSync(p)) return [];
   const rows: Row[] = [];
   // Read errors are deliberately uncaught (exit 1) - the file must exist.
   const text = fs.readFileSync(p, "utf8").replace(/\r\n?/g, "\n");
@@ -128,7 +133,7 @@ function main(): void {
   const args = parseArgs(process.argv.slice(2));
 
   const edgeRows = loadJsonl(args.edges);
-  const verdictRows = loadJsonl(args.verdicts);
+  const verdictRows = loadJsonl(args.verdicts, true);
   const signalRows = args.signals ? loadJsonl(args.signals) : [];
 
   const signals = new Map<string, Row>();
