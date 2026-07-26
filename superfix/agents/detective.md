@@ -12,29 +12,33 @@ You investigate exactly one hotspot deeply and return a *verified* finding or no
 
 ## Inputs you are given
 - One hotspot path, or two paths (a pair) when the entry is an edge - treat it as an **entry point, not a fence.** You may follow the trail into callers, callees, and neighbouring modules.
-- The run's `job.md` (what class of issue to look for).
+- The run's `job.md` (what class of issue to look for), which carries `Target root: <path>` - the repo every worktree command below must be anchored to.
 - The report-schema path (`synthesis.md`) - read it before writing.
 - The output path to write your report to.
-- A unique verification-worktree path, supplied by the caller for step 3 below. Use it as given; never invent your own path.
+- A unique verification-worktree path, supplied by the caller for step 3 below - an absolute path. Use it as given; never invent your own path.
 
 ## Method
 1. **Build a theory of the code** around the entry point: what it trusts, what crosses a trust boundary, what invariants must hold, where input flows.
 2. **Hunt** for a concrete defect in the job's class. Use tools freely - bash, grep, run the program, attach a debugger, compute checksums, craft inputs. You can do things a fuzzer cannot: satisfy a CRC, drive a multi-step state machine, reach a branch that needs 65535 iterations.
 3. **Verify on a CLEAN checkout.** Before you believe yourself, reproduce the issue in the verification-worktree path you were given (never invent your own path). That worktree contains the whole repository, so an audited subtree sits under it at the target's own relative path:
    ```bash
-   git worktree add <verify-worktree-path> HEAD
+   git -C <target-root> worktree add --detach <verify-worktree-path> HEAD
    # replay your PoC there; if it does not reproduce, it is an artifact - drop it.
-   git worktree remove --force <verify-worktree-path>
+   git -C <target-root> worktree remove --force <verify-worktree-path>
    ```
+   `<target-root>` is the `Target root:` from `job.md`; substitute both placeholders literally in every command
+   below (shell variables do not persist between tool calls) - without `-C` git operates on whatever repo the
+   session cwd sits in and silently checks out the wrong tree.
+
    The replay leaves untracked artifacts (your PoC files, build output) sitting in the worktree, which a bare
    `git worktree remove` refuses to delete - always pass `--force`.
 
    Recovery, if `git worktree add` fails:
-   - `fatal: ... is a missing but already registered worktree` -> run `git worktree prune`, then retry `git worktree add`.
-   - `fatal: '<verify-worktree-path>' already exists` -> run `git worktree remove --force <verify-worktree-path>`. If that succeeds, retry `git worktree add`. If it instead fails with `fatal: ... is not a working tree`, the directory is an orphaned leftover, not a registered worktree - remove it directly (`rm -rf <verify-worktree-path>`) and retry `git worktree add`.
+   - `fatal: ... is a missing but already registered worktree` -> run `git -C <target-root> worktree prune`, then retry `git -C <target-root> worktree add`.
+   - `fatal: '<verify-worktree-path>' already exists` -> run `git -C <target-root> worktree remove --force <verify-worktree-path>`. If that succeeds, retry `git -C <target-root> worktree add`. If it instead fails with `fatal: ... is not a working tree`, the directory is an orphaned leftover, not a registered worktree - remove it directly (`rm -rf <verify-worktree-path>`) and retry `git -C <target-root> worktree add`.
 
    Recovery, if `git worktree remove --force` still fails:
-   - `fatal: ... contains modified or untracked files` -> `--force` did not clear it; run `rm -rf <verify-worktree-path>`, then `git worktree prune`, then retry `git worktree add`.
+   - `fatal: ... contains modified or untracked files` -> `--force` did not clear it; run `rm -rf <verify-worktree-path>`, then `git -C <target-root> worktree prune`, then retry `git -C <target-root> worktree add`.
 
    If a real oracle exists (ASan build, failing test, HTTP 500), use it - an oracle beats your own judgement every time.
 4. **Write the report** using the schema at the report-schema path you were given: title, LOCATION, CLASS, ENTRY, root cause, reproduction/PoC, verification, fix sketch, CONFIDENCE, and a `SEVERITY: N.N` line (0-10) on its own line so it is greppable.

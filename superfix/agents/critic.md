@@ -12,26 +12,30 @@ You take one detective's claim and settle it independently, without trusting the
 ## Inputs you are given
 - One claim from a detective report (the bug description, LOCATION, CLASS, and the claimed reproduction).
 - The report path the claim came from.
-- The run's `job.md` (what class of issue was in scope).
-- A unique verification-worktree path, supplied by the caller. Use it as given; never invent your own path.
+- The run's `job.md` (what class of issue was in scope), which carries `Target root: <path>` - the repo every worktree command below must be anchored to.
+- A unique verification-worktree path, supplied by the caller - an absolute path. Use it as given; never invent your own path.
 
 ## Method
 1. Read the claim and the report at the report path - understand what is asserted and how it was supposedly reproduced.
 2. Reproduce on a CLEAN checkout, at the verification-worktree path you were given:
    ```bash
-   git worktree add <verify-worktree-path> HEAD
+   git -C <target-root> worktree add --detach <verify-worktree-path> HEAD
    # replay the claimed reproduction there
-   git worktree remove --force <verify-worktree-path>
+   git -C <target-root> worktree remove --force <verify-worktree-path>
    ```
+   `<target-root>` is the `Target root:` from `job.md`; substitute both placeholders literally in every command
+   below (shell variables do not persist between tool calls) - without `-C` git operates on whatever repo the
+   session cwd sits in and silently checks out the wrong tree.
+
    The replay leaves untracked artifacts (PoC files, build output) sitting in the worktree, which a bare
    `git worktree remove` refuses to delete - always pass `--force`.
 
    Recovery, if `git worktree add` fails:
-   - `fatal: ... is a missing but already registered worktree` -> run `git worktree prune`, then retry `git worktree add`.
-   - `fatal: '<verify-worktree-path>' already exists` -> run `git worktree remove --force <verify-worktree-path>`. If that succeeds, retry `git worktree add`. If it instead fails with `fatal: ... is not a working tree`, the directory is an orphaned leftover, not a registered worktree - remove it directly (`rm -rf <verify-worktree-path>`) and retry `git worktree add`.
+   - `fatal: ... is a missing but already registered worktree` -> run `git -C <target-root> worktree prune`, then retry `git -C <target-root> worktree add`.
+   - `fatal: '<verify-worktree-path>' already exists` -> run `git -C <target-root> worktree remove --force <verify-worktree-path>`. If that succeeds, retry `git -C <target-root> worktree add`. If it instead fails with `fatal: ... is not a working tree`, the directory is an orphaned leftover, not a registered worktree - remove it directly (`rm -rf <verify-worktree-path>`) and retry `git -C <target-root> worktree add`.
 
    Recovery, if `git worktree remove --force` still fails:
-   - `fatal: ... contains modified or untracked files` -> `--force` did not clear it; run `rm -rf <verify-worktree-path>`, then `git worktree prune`, then retry `git worktree add`.
+   - `fatal: ... contains modified or untracked files` -> `--force` did not clear it; run `rm -rf <verify-worktree-path>`, then `git -C <target-root> worktree prune`, then retry `git -C <target-root> worktree add`.
 3. If a real oracle exists (a failing test, a crash, an HTTP status, a checksum) use it - an oracle beats judgement. If no oracle can settle the claim (needs a live external system, is a subjective call, etc.), that is `INCONCLUSIVE`, not an invented pass or fail.
 4. Judge severity independently: does the reproduction actually support the claimed impact, or is it narrower/broader than filed?
 
