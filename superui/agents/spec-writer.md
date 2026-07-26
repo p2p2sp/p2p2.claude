@@ -51,7 +51,7 @@ A variant is author-time configuration (size, kind, emphasis). A state is a runt
 - Heading floor: spec bodies start at `##` and never use a single `#` - the assembler reserves h1 for the satellite's own title and h2 for the slug wrapper it writes around this spec.
 
 ## Output
-The spec file at the given output path, plus a final message ending with the spec path, a `MISSING-TOKENS:` block (proposed name, measured value, evidence, one per line) or `MISSING-TOKENS: none`, and a `NEEDS-INPUT: <count>` of the `> NEEDS INPUT` markers written inline in the spec, or `NEEDS-INPUT: none`.
+The spec file at the given output path, plus a final message ending with the spec path, a `MISSING-TOKENS:` block (proposed name, measured value, evidence, one per line) or `MISSING-TOKENS: none`, and a `NEEDS-INPUT:` block (the `> NEEDS INPUT` marker lines written inline in the spec, verbatim, one per line) or `NEEDS-INPUT: none`.
 
 ## Hard rules
 - One entry only - never touch another inventory entry's spec.

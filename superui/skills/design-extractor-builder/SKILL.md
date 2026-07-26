@@ -67,6 +67,8 @@ name, `source:`, `source-map:`, `intake:` when present, the resolved sampler and
 the runtime command, output `<run>/notes/notes-<foundation>.json`.
 GATE: all four fragment files exist and are non-empty JSON. A missing or malformed fragment ->
 re-dispatch that one analyst per the re-dispatch convention.
+Collect every `> NEEDS INPUT:` marker line from each dispatch's final message as a standing
+NEEDS-INPUT item.
 
 ### 3 - Merge the registry [script]
 `<cmd> "${CLAUDE_PLUGIN_ROOT}/scripts/build_registry.ts" <run>/notes <run>/registry.json`
@@ -85,8 +87,8 @@ GATE: exit 0.
 resolved output path, the sampler and geometry paths, the runtime command.
 GATE: one spec file per entry, non-empty. A missing spec -> re-dispatch that entry's
 `spec-writer` per the re-dispatch convention.
-Collect every `MISSING-TOKENS:` block from every dispatch's final message (skip entries
-reporting `none`).
+Collect every `MISSING-TOKENS:` block and every `NEEDS-INPUT:` block from every dispatch's final
+message (skip entries reporting `none`).
 
 ### 6 - Resolve missing tokens [foundation-analyst, re-dispatch]
 Skip when step 5 collected no `MISSING-TOKENS:` blocks. Otherwise route every collected entry
@@ -108,8 +110,8 @@ Then repeat step 3 (merge) and step 4 (render) so the proposed values land in `D
 `resolved` unknown drops out of the `> NEEDS INPUT` list. A `build_registry.ts` name-collision exit ->
 re-dispatch the synthesizer with the collision message as a finding (cap two rounds); an unresolved collision
 after that -> skip the proposed fragment (`rm` it), re-run steps 3 and 4 without it, and note it in the
-return. Record the proposed-token count and the resolved-versus-standing unknown counts from the analyst's
-final message.
+return. Record the proposed-token count and the resolved-versus-standing unknown counts from the
+synthesizer's final message.
 
 ### 8 - Copy canonical screens [script]
 `<cmd> "${CLAUDE_PLUGIN_ROOT}/scripts/copy_screens.ts" <run>/inventory.md <source> <out>`
@@ -137,8 +139,10 @@ output verbatim into the final message.
 ## Return
 End with a single message: the `<out>` path, the component and pattern counts (the spec files
 written in step 5), the proposed-value count and resolved-versus-standing unknown counts from step
-7, every `FINDING:` line collected in steps 10 and 11, and every `> NEEDS INPUT` item still
-standing (steps 2, 5 and 6, minus every one step 7 resolved).
+7 (registry `unknowns` only - the one namespace `build_registry.ts` can match a `resolved` entry
+against), every `FINDING:` line collected in steps 10 and 11, and every `> NEEDS INPUT` item
+collected in steps 2, 5 and 6 - never subtracted by step 7, since none of these entered
+registry.json's `unknowns` array for it to resolve.
 
 ## Contracts
 Input contract above. Output: the single return message described above; artifacts land only under
