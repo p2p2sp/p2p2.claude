@@ -108,7 +108,7 @@ node "${CLAUDE_SKILL_DIR}/scripts/rank_edges.ts" \
   --out-md   .temp/code-reviewer/<run-id>/hotlist/edges.md
 ```
 
-`rank_edges.ts` drops `MATCH` and `NO_CONTRACT` verdicts (both kept on record, never dispatched), orders the rest (`MISMATCH` before `UNCLEAR`, then by pair-Impact) and caps dispatch at `--top-edges`; it also reports `degree[]`, the structural degree (pair count) of every path, for Phase 4's degree budget. Show both `hotlist.md` and `edges.md` to the user before spending frontier tokens.
+`rank_edges.ts` drops `MATCH` and `NO_CONTRACT` verdicts (both kept on record, never dispatched), orders the rest (`MISMATCH` before `UNCLEAR`, then by pair-Impact) and caps dispatch at `--top-edges`; it also reports `degree[]`, the top 20 highest-degree paths (pair count, descending), for Phase 4's degree budget. Show both `hotlist.md` and `edges.md` to the user before spending frontier tokens.
 
 ### Phase 4 - Dispatch detectives (frontier model, top-N only)
 Build the dispatch set as the **union** of three sources, then spawn one **`detective`** subagent (Agent tool, `subagent_type: superfix:detective`) per entry in that union - frontier tier, isolated context. This is "Send the detective here": you only pay deep-model cost for the survivors.

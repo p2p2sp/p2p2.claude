@@ -3,7 +3,7 @@ name: superbuild
 description: Use ONLY when the approved plan's body contains instruction to use it.
 model: sonnet
 effort: low
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, AskUserQuestion, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop, Bash(${CLAUDE_SKILL_DIR}/../../scripts/read-config.sh:*)
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, AskUserQuestion, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh:*)
 user-invocable: false
 ---
 
@@ -19,7 +19,7 @@ Every `args` handoff to a fork (Skill) is a labeled block - one `label: <file pa
 
 Resolved opt-in switches (missing file/key = `false`; nothing below breaks on a missing config):
 
-!`"${CLAUDE_SKILL_DIR}/../../scripts/read-config.sh"`
+!`"${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh"`
 
 These gate Step 2 (`adr`) and the Close-Out delegations (Step 5: `rules`, `memory`). Run a gated step ONLY when its line above reads exactly `true`; anything else (`false`, absent, or an unresolved block) = skip.
 

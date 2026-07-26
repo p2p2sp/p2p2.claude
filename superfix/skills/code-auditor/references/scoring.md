@@ -166,8 +166,14 @@ neither is ever dispatched or held in overflow.
      "verdict":"MISMATCH","pair_impact":15,"reason":"dto adds a field the schema lacks"}
   ],
   "overflow": [],
-  "match": [],
-  "no_contract": [],
+  "match": [
+    {"a":"src/api/OrderDto.ts","b":"src/db/orderSchema.sql","via":"order.dto.ts","shared":1,
+     "verdict":"MATCH","pair_impact":9,"reason":"both sides agree on every field"}
+  ],
+  "no_contract": [
+    {"a":"src/utils/format.ts","b":"src/legal/Terms.tsx","via":"format","shared":1,
+     "verdict":"NO_CONTRACT","pair_impact":2,"reason":"shared literal is a common word, no real link"}
+  ],
   "degree": [{"path":"src/api/UserDto.ts","degree":3}]
 }
 ```
