@@ -22,7 +22,7 @@
 #            (3) idempotency: two runs in a row leave the seeded config.yml
 #                unchanged on the second run and report already-present;
 #            (4) legacy-key reconcile: the present-path switch grep reports only
-#                the documented keys (adr, rules, memory), never legacy
+#                the documented keys (adr, rules, memory, docs), never legacy
 #                artifacts|help|ui, even when the config carries those legacy keys;
 #            (5) .gitattributes seed-when-absent: no .gitattributes -> created with
 #                both .superdev/** linguist-generated lines + "created" report;
@@ -108,26 +108,27 @@ else
 fi
 
 # Case 4 - legacy-key reconcile: with a config carrying legacy keys, the present-path
-# grep reports only adr + rules + memory, never artifacts|help|ui, and the output
-# never carries the stale "5 switches" text.
+# grep reports only adr + rules + memory + docs, never artifacts|help|ui, and the
+# output never carries the stale "5 switches" text.
 TOTAL=$((TOTAL + 1))
 T4="$SCRATCH/case4"
 mkdir -p "$T4/.superdev"
-printf 'adr: true\nartifacts: true\nhelp: true\nrules: true\nmemory: true\nui: true\n' > "$T4/.superdev/config.yml"
+printf 'adr: true\nartifacts: true\nhelp: true\nrules: true\nmemory: true\ndocs: true\nui: true\n' > "$T4/.superdev/config.yml"
 out="$(cd "$T4" && bash "$SUT")"; rc=$?
-config_lines="$(printf '%s\n' "$out" | grep -E '^[[:space:]]*(adr|artifacts|help|rules|memory|ui):')"
+config_lines="$(printf '%s\n' "$out" | grep -E '^[[:space:]]*(adr|artifacts|help|rules|memory|docs|ui):')"
 if [ "$rc" -ne 0 ]; then
-    fail "switches report limited to adr+rules+memory" "exit code $rc (expected 0)"
+    fail "switches report limited to adr+rules+memory+docs" "exit code $rc (expected 0)"
 elif printf '%s\n' "$config_lines" | grep -qE '^[[:space:]]*(artifacts|help|ui):'; then
-    fail "switches report limited to adr+rules+memory" "legacy keys leaked into the switch report"
+    fail "switches report limited to adr+rules+memory+docs" "legacy keys leaked into the switch report"
 elif printf '%s\n' "$out" | grep -qiF "5 switches"; then
-    fail "switches report limited to adr+rules+memory" "stale '5 switches' text present"
+    fail "switches report limited to adr+rules+memory+docs" "stale '5 switches' text present"
 elif ! printf '%s\n' "$config_lines" | grep -qE '^[[:space:]]*adr:' \
     || ! printf '%s\n' "$config_lines" | grep -qE '^[[:space:]]*rules:' \
-    || ! printf '%s\n' "$config_lines" | grep -qE '^[[:space:]]*memory:'; then
-    fail "switches report limited to adr+rules+memory" "expected adr + rules + memory in the switch report"
+    || ! printf '%s\n' "$config_lines" | grep -qE '^[[:space:]]*memory:' \
+    || ! printf '%s\n' "$config_lines" | grep -qE '^[[:space:]]*docs:'; then
+    fail "switches report limited to adr+rules+memory+docs" "expected adr + rules + memory + docs in the switch report"
 else
-    pass "switches report limited to adr+rules+memory"
+    pass "switches report limited to adr+rules+memory+docs"
 fi
 
 # Case 5 - .gitattributes seed-when-absent: no .gitattributes -> created with both

@@ -26,9 +26,10 @@
 #   stdout: one human-readable line per result; the SKILL.md "Output" step and
 #           the config-switch step read these lines verbatim. The config line is
 #           either "config.yml: seeded from template - defaults: adr=false,
-#           rules=false, memory=false" (fresh seed) or "config.yml: already
-#           present (left untouched) - current switches:" followed by the grep'd
-#           switch lines (limited to the documented keys: adr, rules, memory).
+#           rules=false, memory=false, docs=false" (fresh seed) or "config.yml:
+#           already present (left untouched) - current switches:" followed by
+#           the grep'd switch lines (limited to the documented keys: adr,
+#           rules, memory, docs).
 #           The .gitattributes line is one of ".gitattributes: created with
 #           linguist-generated rules", ".gitattributes: linguist-generated rules
 #           appended", or ".gitattributes: linguist-generated rules already
@@ -70,10 +71,10 @@ fi
 
 if [ -f ".superdev/config.yml" ]; then
   echo "config.yml: already present (left untouched) - current switches:"
-  grep -E '^[[:space:]]*(adr|rules|memory)[[:space:]]*:' .superdev/config.yml
+  grep -E '^[[:space:]]*(adr|rules|memory|docs)[[:space:]]*:' .superdev/config.yml
 elif [ -f "$src_config" ]; then
   mkdir -p .superdev && cp "$src_config" .superdev/config.yml \
-    && echo "config.yml: seeded from template - defaults: adr=false, rules=false, memory=false"
+    && echo "config.yml: seeded from template - defaults: adr=false, rules=false, memory=false, docs=false"
 else
   echo "config.yml: template missing at $src_config - skipped"
 fi

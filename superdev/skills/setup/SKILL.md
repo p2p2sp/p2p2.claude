@@ -35,6 +35,7 @@ the asset is the only source of its shape.
      - `adr` - ADR capture.
      - `rules` - Rules system.
      - `memory` - Memory system.
+     - `docs` - Product docs system.
   2. For each **selected** area, `Edit` `.superdev/config.yml` to flip that key `false → true`
      (change only the boolean; leave the key + comment intact). Unselected areas stay `false`.
 

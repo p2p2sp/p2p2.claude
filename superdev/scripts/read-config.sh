@@ -12,7 +12,7 @@
 #   cwd  : root projektu (blok `!` w SKILL.md wykonuje się przy ładowaniu tam).
 #   env  : brak.
 #   plik : .superdev/config.yml (opcjonalny). Brak pliku -> wszystko false.
-#   klucze: adr, rules, memory. Klucz jest `true` WYŁĄCZNIE gdy plik ma linię
+#   klucze: adr, rules, memory, docs. Klucz jest `true` WYŁĄCZNIE gdy plik ma linię
 #           pasującą do `^\s*<klucz>\s*:\s*true` (koniec wartości ograniczony
 #           spacją/komentarzem/końcem linii). Brak klucza -> false.
 #   stdout: nagłówek + jedna linia `<klucz>: <true|false>` na każdy klucz,
@@ -35,7 +35,7 @@ resolve() {
 }
 
 echo "# superdev config (resolved)"
-for key in adr rules memory; do
+for key in adr rules memory docs; do
   printf '%s: %s\n' "$key" "$(resolve "$key")"
 done
 

@@ -12,15 +12,15 @@
 #   output : one "PASS: <case>" line per asserted case, then a final
 #            "ALL PASS (N/N)" line; any mismatch prints "FAIL: <case>" + detail
 #            and exits non-zero.
-#   cases  : (1) missing-file: no .superdev/config.yml -> all three keys false,
+#   cases  : (1) missing-file: no .superdev/config.yml -> all four keys false,
 #                exit 0 (fail-open - the core requirement);
-#            (2) all-true: every key set true -> all three true;
+#            (2) all-true: every key set true -> all four true;
 #            (3) mixed + comments: seeded-asset shape (adr false, rules true,
 #                trailing `# comment`, memory absent) -> adr false, rules true,
 #                memory false (absent key = false);
 #            (4) non-true values ignored: `yes`/`1`/`True-ish` garbage never
 #                resolves to true; only a bare `true` does;
-#            (5) fixed shape: header + exactly adr/rules/memory lines in order.
+#            (5) fixed shape: header + exactly adr/rules/memory/docs lines in order.
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -47,8 +47,9 @@ elif [ "$(printf '%s\n' "$out" | grep -c 'true')" -ne 0 ]; then
     fail "missing file -> all false" "some key resolved true without a config file"
 elif ! printf '%s\n' "$out" | grep -qxF "adr: false" \
     || ! printf '%s\n' "$out" | grep -qxF "rules: false" \
-    || ! printf '%s\n' "$out" | grep -qxF "memory: false"; then
-    fail "missing file -> all false" "expected adr/rules/memory all false; got: $out"
+    || ! printf '%s\n' "$out" | grep -qxF "memory: false" \
+    || ! printf '%s\n' "$out" | grep -qxF "docs: false"; then
+    fail "missing file -> all false" "expected adr/rules/memory/docs all false; got: $out"
 else
     pass "missing file -> all false"
 fi
@@ -57,14 +58,15 @@ fi
 TOTAL=$((TOTAL + 1))
 T2="$SCRATCH/case2"
 mkdir -p "$T2/.superdev"
-printf 'adr: true\nrules: true\nmemory: true\n' > "$T2/.superdev/config.yml"
+printf 'adr: true\nrules: true\nmemory: true\ndocs: true\n' > "$T2/.superdev/config.yml"
 out="$(cd "$T2" && bash "$SUT")"; rc=$?
 if [ "$rc" -ne 0 ]; then
     fail "all true" "exit code $rc (expected 0)"
 elif ! printf '%s\n' "$out" | grep -qxF "adr: true" \
     || ! printf '%s\n' "$out" | grep -qxF "rules: true" \
-    || ! printf '%s\n' "$out" | grep -qxF "memory: true"; then
-    fail "all true" "expected all three true; got: $out"
+    || ! printf '%s\n' "$out" | grep -qxF "memory: true" \
+    || ! printf '%s\n' "$out" | grep -qxF "docs: true"; then
+    fail "all true" "expected all four true; got: $out"
 else
     pass "all true"
 fi
@@ -107,7 +109,7 @@ T5="$SCRATCH/case5"
 mkdir -p "$T5"
 out="$(cd "$T5" && bash "$SUT")"; rc=$?
 body="$(printf '%s\n' "$out" | grep -vE '^#')"
-expected="$(printf 'adr: false\nrules: false\nmemory: false')"
+expected="$(printf 'adr: false\nrules: false\nmemory: false\ndocs: false')"
 if [ "$rc" -ne 0 ]; then
     fail "fixed shape" "exit code $rc (expected 0)"
 elif ! printf '%s\n' "$out" | grep -qF "# superdev config (resolved)"; then

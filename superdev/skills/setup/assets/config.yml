@@ -2,3 +2,4 @@
 adr:     false   # ADR capture
 rules:   false   # Rules system
 memory:  false   # Memory system
+docs:    false   # Product docs system
