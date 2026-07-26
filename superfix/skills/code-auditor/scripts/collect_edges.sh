@@ -22,8 +22,12 @@
 #
 # A literal is dropped as noise before pairing if: its extension matches
 # DENY_EXT (case-insensitive), or it equals the mentioning file's own
-# basename (self-reference, not a cross-file link). A literal mentioned by
-# only one file produces no pair. A literal mentioned by more files than
+# basename (self-reference, not a cross-file link), or its post-dot tail
+# exceeds 8 characters (e.g. "com.example.UserServiceImpl") - such a token is
+# SKIPPED WHOLE, never truncated to an 8-char stand-in, because a truncated
+# token names nothing in either endpoint and would fabricate a pair out of
+# two unrelated literals that merely share a long prefix. A literal mentioned
+# by only one file produces no pair. A literal mentioned by more files than
 # --max-fanout (default 8) is dropped as ambient (package.json, README.md -
 # everything references it, so it carries no pairing signal) and counted on
 # stderr, alongside the count of literals actually kept.
@@ -124,9 +128,23 @@ raw_pairs="$(
           continue
         fi
         base="$(basename "$f")"
-        tokens="$(grep -oE '[A-Za-z0-9_][A-Za-z0-9_.-]*\.[A-Za-z0-9]{1,8}' "$f" 2>/dev/null || true)"
+        # Trailing `([^A-Za-z0-9_.-]|$)` forces the match to end at a real
+        # token boundary. Without it, POSIX leftmost-longest matching backs
+        # an over-long tail (>8 chars past the last dot) off onto an earlier
+        # dot and truncates - e.g. "com.example.UserServiceImpl" would match
+        # as "com.example.UserServ", a token absent from both endpoints. With
+        # the boundary required, no dot in that token can both satisfy
+        # `{1,8}` and be followed by a non-continuation character, so the
+        # whole token is skipped - never truncated - and the emitted literal
+        # always equals a real substring bounded by real delimiters.
+        tokens="$(grep -oE '[A-Za-z0-9_][A-Za-z0-9_.-]*\.[A-Za-z0-9]{1,8}([^A-Za-z0-9_.-]|$)' "$f" 2>/dev/null || true)"
         [ -n "$tokens" ] || continue
         while IFS= read -r tok; do
+          # Strip the captured boundary char (present unless the match hit
+          # end-of-line, where the `$` alternative consumes nothing).
+          case "$tok" in
+            (*[!A-Za-z0-9_.-]) tok="${tok%?}" ;;
+          esac
           [ -n "$tok" ] || continue
           [ "$tok" = "$base" ] && continue
           tok_ext="${tok##*.}"
