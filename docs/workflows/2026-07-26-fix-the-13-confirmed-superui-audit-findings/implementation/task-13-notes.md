@@ -1,1 +1,0 @@
-added a short ownership-split note plus a `source-scout` no-Bash aside under the new `## Agents` heading (beyond the five listed edit sites) - the DoD requires the file to contradict itself nowhere about the split, and the bare heading rename alone left the bullet list without stating who dispatches whom.

@@ -16,7 +16,7 @@
 #   - seeds .claude/settings.json from the bundled template when none,
 #   - seeds .claude/superdev.yml from the bundled template when none,
 #   - never overwrites an existing superdev.yml (reports its current switches),
-#   - ensures .gitattributes carries the docs/workflows/** linguist-generated
+#   - ensures .gitattributes carries the docs/.workflows/** linguist-generated
 #     rule (append-if-absent; creates the file when missing; never duplicates).
 #
 # Contract:
@@ -73,10 +73,10 @@ else
   echo "superdev.yml: template missing at $src_config - skipped"
 fi
 
-# .gitattributes - collapse the tracked docs/workflows/ run records in GitHub
+# .gitattributes - collapse the tracked docs/.workflows/ run records in GitHub
 # review (linguist-generated). Append-if-absent so a host's own rules survive
 # (idempotent, no duplicates).
-ga_line="docs/workflows/** linguist-generated=true"
+ga_line="docs/.workflows/** linguist-generated=true"
 if [ ! -f ".gitattributes" ]; then
   printf '%s\n' "$ga_line" > .gitattributes
   echo ".gitattributes: created with linguist-generated rule"

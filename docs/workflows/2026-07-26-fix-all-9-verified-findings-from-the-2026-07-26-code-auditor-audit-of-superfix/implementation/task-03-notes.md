@@ -1,4 +1,0 @@
-## Task 3 - fix(superfix): skip over-long literals instead of truncating them mid-word
-
-- Used the trailing-boundary-group approach (extended `grep -oE` pattern with `([^A-Za-z0-9_.-]|$)`, then stripped the captured boundary char in the shell loop) rather than a post-filter of the match stream - the Approach offered either, and the trailing group keeps the whole fix inside one `grep -oE` call with no extra pipeline stage.
-- The boundary-char strip needed a `case "$tok" in (*[!A-Za-z0-9_.-]) ...` guard; macOS's default bash (3.2) has a known parser bug where a `case` pattern arm without a leading `(` inside a `$(...)` command substitution miscounts parens and breaks a later `if ... "^(...)$"` line in the same subshell (reproduced and confirmed in isolation) - added the leading `(` to the pattern, which is plain POSIX syntax, to stay bash-3.2/BSD-portable per the file's own portability contract.

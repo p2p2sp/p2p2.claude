@@ -13,7 +13,7 @@
 #   - superplan:  nagłówek to Title + Spec (brak sekcji HEADER)
 #
 # Działanie:
-#   - tworzy katalog roboczy docs/workflows/<data>-<slug>/
+#   - tworzy katalog roboczy docs/.workflows/<data>-<slug>/
 #   - zapisuje nagłówek planu do plan-header.md
 #   - kopiuje pełny plan obok nagłówka jako plan.md
 #   - tworzy status.md z numerem ostatnio przetworzonego taska (start: 00);
@@ -30,7 +30,7 @@
 #     i "## Constraints / assumptions" ze speca
 #   - tworzy pusty katalog implementation/ na raporty reviewera (Final Review)
 #   - wypisuje na stdout indeks tasków dla pętli implementacji:
-#       workdir: <ścieżka do docs/workflows/<data>-<slug>/>
+#       workdir: <ścieżka do docs/.workflows/<data>-<slug>/>
 #       status: <numer-ostatniego-taska | none>
 #       base: <SHA | none>
 #       plan-header: <ścieżka>
@@ -70,7 +70,7 @@ slug="$(printf '%s' "$raw_title" \
   | LC_ALL=C sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-*//' -e 's/-*$//')"
 [[ -z "$slug" ]] && slug="plan"
 
-dir="docs/workflows/$(date +%F)-${slug}"
+dir="docs/.workflows/$(date +%F)-${slug}"
 
 # świeży katalog tasks (usuń pozostałości po poprzednim biegu)
 rm -rf "$dir/tasks"

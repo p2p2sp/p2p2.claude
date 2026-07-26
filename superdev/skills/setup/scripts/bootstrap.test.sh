@@ -25,7 +25,7 @@
 #                the documented keys (adr, rules, memory, docs), never legacy
 #                artifacts|help|ui, even when the config carries those legacy keys;
 #            (5) .gitattributes seed-when-absent: no .gitattributes -> created with
-#                the docs/workflows/** linguist-generated line + "created" report;
+#                the docs/.workflows/** linguist-generated line + "created" report;
 #            (6) .gitattributes append preserves unrelated rules: an existing file
 #                gains the line, its unrelated rule survives, "appended" report;
 #            (7) .gitattributes idempotent: a second run reports already-present,
@@ -141,8 +141,8 @@ if [ "$rc" -ne 0 ]; then
     fail ".gitattributes seed when absent" "exit code $rc (expected 0)"
 elif [ ! -f "$T5/.gitattributes" ]; then
     fail ".gitattributes seed when absent" ".gitattributes was not created"
-elif ! grep -qE '^docs/workflows/\*\*[[:space:]]+linguist-generated=true$' "$T5/.gitattributes"; then
-    fail ".gitattributes seed when absent" "missing docs/workflows/** line"
+elif ! grep -qE '^docs/\.workflows/\*\*[[:space:]]+linguist-generated=true$' "$T5/.gitattributes"; then
+    fail ".gitattributes seed when absent" "missing docs/.workflows/** line"
 elif ! printf '%s\n' "$out" | grep -qF ".gitattributes: created with linguist-generated rule"; then
     fail ".gitattributes seed when absent" "missing created report line"
 else
@@ -160,8 +160,8 @@ if [ "$rc" -ne 0 ]; then
     fail ".gitattributes append preserves unrelated" "exit code $rc (expected 0)"
 elif ! grep -qxF '*.png binary' "$T6/.gitattributes"; then
     fail ".gitattributes append preserves unrelated" "unrelated rule was lost"
-elif ! grep -qE '^docs/workflows/\*\*[[:space:]]+linguist-generated=true$' "$T6/.gitattributes"; then
-    fail ".gitattributes append preserves unrelated" "missing docs/workflows/** line"
+elif ! grep -qE '^docs/\.workflows/\*\*[[:space:]]+linguist-generated=true$' "$T6/.gitattributes"; then
+    fail ".gitattributes append preserves unrelated" "missing docs/.workflows/** line"
 elif ! printf '%s\n' "$out" | grep -qF ".gitattributes: linguist-generated rule appended"; then
     fail ".gitattributes append preserves unrelated" "missing appended report line"
 else
@@ -177,13 +177,13 @@ mkdir -p "$T7"
 ga_first="$(cat "$T7/.gitattributes")"
 out="$(cd "$T7" && bash "$SUT")"; rc=$?
 ga_second="$(cat "$T7/.gitattributes")"
-n1="$(grep -cE '^docs/workflows/\*\*[[:space:]]+linguist-generated=true$' "$T7/.gitattributes")"
+n1="$(grep -cE '^docs/\.workflows/\*\*[[:space:]]+linguist-generated=true$' "$T7/.gitattributes")"
 if [ "$rc" -ne 0 ]; then
     fail ".gitattributes idempotent" "exit code $rc (expected 0)"
 elif [ "$ga_first" != "$ga_second" ]; then
     fail ".gitattributes idempotent" ".gitattributes changed on the second run"
 elif [ "$n1" -ne 1 ]; then
-    fail ".gitattributes idempotent" "docs/workflows/** line duplicated ($n1 copies)"
+    fail ".gitattributes idempotent" "docs/.workflows/** line duplicated ($n1 copies)"
 elif ! printf '%s\n' "$out" | grep -qF ".gitattributes: linguist-generated rule already present"; then
     fail ".gitattributes idempotent" "second run did not report already-present"
 else

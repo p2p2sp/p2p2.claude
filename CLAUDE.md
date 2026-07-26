@@ -114,7 +114,7 @@ superfix/            The superfix plugin (codebase investigation; NO hooks/manif
 README.md            User-facing help (install + how it works)
 .github/             CI: scripts/release.sh + workflows/ (release-version.yml - manual dispatch only)
 .claude/rules/       Development-only conventions for this repo
-docs/workflows/      Run records of superdev builds executed ON this repo (one dir per build: spec, plan,
+docs/.workflows/     Run records of superdev builds executed ON this repo (one dir per build: spec, plan,
                      tasks, implementation reports) - history, never rewritten; ships with no plugin
 tests/               Dev-time regression suites for plugin scripts, run with `node --test` (e.g. tests/superui/)
                      - sits outside every plugin dir, so no plugin.json and no marketplace entry references it;
@@ -152,11 +152,11 @@ supergh's / superfix's manifest-less rationale) live in the respective `<plugin>
 The invariants below hold across the repo.
 
 - **Host-repo `docs/` is the one home for user-facing persisted knowledge.** Every long-lived document a
-  plugin writes into the consuming repo lands under `docs/<layer>/`, never in a dot-dir and never in a
-  plugin-named dir: `docs/adr/` (superdev's `superbuild-adr`, gated by the `adr` config switch),
+  plugin writes into the consuming repo lands under `docs/<layer>/`, never in a host-root dot-dir and never
+  in a plugin-named dir: `docs/adr/` (superdev's `superbuild-adr`, gated by the `adr` config switch),
   `docs/design-system/` (superui's `design-extractor`; `docs/design-system/<target>/` with the optional
   `<target>` argument), `docs/product/` (superdev's docs layer, gated by the `docs` switch),
-  `docs/workflows/` (superdev's per-build working dirs written by `decompose.sh` - spec, plan copy,
+  `docs/.workflows/` (superdev's per-build working dirs written by `decompose.sh` - spec, plan copy,
   task files, implementation reports - plus the specs `superspec` saves; marked `linguist-generated`
   in `.gitattributes` so GitHub collapses them in review). These are
   version-controlled deliverables the user reads and edits.

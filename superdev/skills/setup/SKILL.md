@@ -11,7 +11,7 @@ effort: medium
 
 Run the bundled deterministic bootstrap (idempotent - never overwrites anything that exists). It
 seeds `.temp/`, `.gitignore`, `.claude/settings.json`, and `.claude/superdev.yml` from
-templates, ensures `.gitattributes` carries the `docs/workflows/**` linguist-generated rule
+templates, ensures `.gitattributes` carries the `docs/.workflows/**` linguist-generated rule
 (append-if-absent, so GitHub collapses the tracked run records in review), and prints one result line
 per item. Trust those lines - do not re-verify.
 
