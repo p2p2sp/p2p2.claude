@@ -2,7 +2,7 @@
 name: simpleplan
 description: Invoked by the superdev or simpledebug skill, or by user command only.
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, EnterPlanMode, ExitPlanMode, AskUserQuestion
-disallowed-tools: Bash, NotebookEdit, Task, Agent, WebFetch, WebSearch
+disallowed-tools: NotebookEdit, Task, Agent, WebFetch, WebSearch
 user-invocable: true
 ---
 
