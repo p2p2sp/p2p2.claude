@@ -62,6 +62,7 @@ Once you have written a complete plan and before final review, MUST fast review 
 - Verify in the repo (Read/Grep/Glob) every `### Files` path and symbol, and every `### Test Commands` command against the repo's real build/test tooling.
 - Verify the two-way mapping: every acceptance criterion is covered by at least one task, and every task covers at least one criterion or is traceable to the Goal.
 - Verify every task carries a `TDD:` marker, that each `required` one meets the criteria above, and that its `### Approach` opens with the `tdd` skill step.
+- When the host repo carries `docs/product/`, verify the plan does not contradict the affected feature's doc. A contradiction is an unresolved design decision - STOP, run `superdev` skill.
 - Fix any violation inline. No need to re-review - just fix and move on. If you find a requirement with no task, add the task.
 
 ### Final Review
