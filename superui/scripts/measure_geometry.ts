@@ -211,15 +211,17 @@ export function scanRuns(img: RgbImage, box: Box, axis: Axis, tol: number): Run[
 // ---------------------------------------------------------------------------
 
 /** Smallest column index (0-based, from the corner) whose pixel falls inside
- *  a quarter-circle of radius r anchored at the corner - the same test used
- *  to render (and thus to measure) a rounded corner. Row/col are both
- *  0-based, counted inward from the corner. */
+ *  a quarter-circle of radius r anchored at the corner - the same
+ *  pixel-centre test used to rasterise a rounded corner (a pixel is painted
+ *  when its centre lies inside the shape). Row/col are both 0-based,
+ *  counted inward from the corner. */
 function predictedOffset(row: number, r: number): number {
   if (r <= 0) return 0;
-  if (row >= r) return 0;
-  const d = r - row;
+  const cy = row + 0.5;
+  if (cy >= r) return 0;
+  const d = r - cy;
   const inner = Math.max(0, r * r - d * d);
-  return Math.ceil(r - Math.sqrt(inner));
+  return Math.max(0, Math.ceil(r - Math.sqrt(inner) - 0.5));
 }
 
 function rowForCorner(box: Box, corner: Corner, i: number): number {
