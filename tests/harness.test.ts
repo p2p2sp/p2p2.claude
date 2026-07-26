@@ -18,7 +18,7 @@ import path from "node:path";
 import { runScript } from "./harness/run.ts";
 import { withTempDir, withGitRepo } from "./harness/tmp.ts";
 import { withStub } from "./harness/stub.ts";
-import { forEachShell } from "./harness/shells.ts";
+import { forEachShell, shellBin } from "./harness/shells.ts";
 import { writePng } from "./harness/png.ts";
 import { decodePng } from "../superui/scripts/vendor/png-decode.ts";
 
@@ -69,7 +69,7 @@ test('forEachShell("posix", ...) yields at least one shell and never throws when
   let calls = 0;
   const skips = forEachShell("posix", (shell) => {
     calls += 1;
-    assert.ok(fs.existsSync(shell), `resolved shell ${shell} should exist`);
+    assert.ok(fs.existsSync(shellBin(shell)), `resolved shell ${shellBin(shell)} should exist`);
   });
   assert.ok(calls > 0, "expected at least one POSIX shell on this machine (/bin/sh at minimum)");
   for (const skip of skips) {

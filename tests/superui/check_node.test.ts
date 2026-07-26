@@ -24,7 +24,7 @@ import path from "node:path";
 
 import { runScript, type RunResult } from "../harness/run.ts";
 import { withStub } from "../harness/stub.ts";
-import { forEachShell } from "../harness/shells.ts";
+import { forEachShell, type Shell } from "../harness/shells.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../superui/scripts/check_node.sh");
 const SUPERFIX_SUT = path.resolve(
@@ -42,7 +42,7 @@ function pathWithoutNode(): string {
   return kept.join(path.delimiter);
 }
 
-function assertPosix(fn: (shell: string) => void) {
+function assertPosix(fn: (shell: Shell) => void) {
   const skips = forEachShell("posix", fn);
   for (const skip of skips) {
     assert.equal(skip.kind, "posix");

@@ -21,7 +21,7 @@ import path from "node:path";
 
 import { runScript, type RunResult } from "../harness/run.ts";
 import { withTempDir } from "../harness/tmp.ts";
-import { forEachShell } from "../harness/shells.ts";
+import { forEachShell, type Shell } from "../harness/shells.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../supergh/shared/scripts/body-path.sh");
 
@@ -30,7 +30,7 @@ const SUT = path.resolve(import.meta.dirname, "../../supergh/shared/scripts/body
  *  fixed string. */
 const PATH_PATTERN = /^\.temp\/(.+)\/(\d{8})-(\d{6})-(.+)\.md$/;
 
-function assertPosix(fn: (shell: string) => void) {
+function assertPosix(fn: (shell: Shell) => void) {
   const skips = forEachShell("posix", fn);
   for (const skip of skips) {
     assert.equal(skip.kind, "posix");
@@ -38,7 +38,7 @@ function assertPosix(fn: (shell: string) => void) {
   }
 }
 
-function run(shell: string, cwd: string, args: string[]): RunResult {
+function run(shell: Shell, cwd: string, args: string[]): RunResult {
   return runScript(SUT, args, { shell, cwd });
 }
 

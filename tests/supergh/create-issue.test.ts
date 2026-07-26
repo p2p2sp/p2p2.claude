@@ -26,11 +26,11 @@ import path from "node:path";
 import { runScript, type RunResult } from "../harness/run.ts";
 import { withTempDir } from "../harness/tmp.ts";
 import { withStub } from "../harness/stub.ts";
-import { forEachShell } from "../harness/shells.ts";
+import { forEachShell, type Shell } from "../harness/shells.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../supergh/skills/create-issue/scripts/create.sh");
 
-function assertPosix(fn: (shell: string) => void) {
+function assertPosix(fn: (shell: Shell) => void) {
   const skips = forEachShell("posix", fn);
   for (const skip of skips) {
     assert.equal(skip.kind, "posix");
@@ -69,7 +69,7 @@ exit 1
 `;
 
 interface Ctx {
-  shell: string;
+  shell: Shell;
   cwd: string;
   bodyPath: string;
   argvFile: string;

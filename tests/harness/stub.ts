@@ -13,7 +13,9 @@ import { withTempDir } from "./tmp.ts";
  *  the shebang) into a fresh temp dir, and - on win32, where a shebang alone
  *  would not resolve - a matching `name.cmd` shim that shells out to it via
  *  bash, so the stub is found whichever way the OS resolves an unqualified
- *  command name. The dir is meant to be prepended to `PATH` (see
+ *  command name (a shell under test resolves the extensionless file itself;
+ *  a spawn straight from the test goes through `runScript`'s stubDirs
+ *  lookup). The dir is meant to be prepended to `PATH` (see
  *  `RunOpts.stubDirs`). Cleaned up whether `fn` returns or throws. */
 export function withStub<T>(name: string, body: string, fn: (stubDir: string) => T): T {
   return withTempDir("p2p2-stub-", (dir) => {

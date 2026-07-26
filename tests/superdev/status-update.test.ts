@@ -17,6 +17,7 @@ import path from "node:path";
 
 import { runScript } from "../harness/run.ts";
 import { withTempDir } from "../harness/tmp.ts";
+import { slash } from "../harness/paths.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../superdev/scripts/status-update.sh");
 
@@ -35,7 +36,7 @@ test("valid tasks/task-NN.md updates <workdir>/status.md and reports it on stdou
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const statusPath = path.join(dir, "status.md");
     assert.equal(fs.readFileSync(statusPath, "utf-8"), "task: 01\n");
-    assert.equal(result.stdout, `status: ${statusPath} -> task: 01\n`);
+    assert.equal(slash(result.stdout), `status: ${slash(statusPath)} -> task: 01\n`);
   });
 });
 

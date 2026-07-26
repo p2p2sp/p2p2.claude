@@ -33,13 +33,13 @@ import path from "node:path";
 import { runScript, type RunResult } from "../harness/run.ts";
 import { withGitRepo, type GitRepo } from "../harness/tmp.ts";
 import { withStub } from "../harness/stub.ts";
-import { forEachShell } from "../harness/shells.ts";
+import { forEachShell, type Shell } from "../harness/shells.ts";
 
 const CHECK_BASE = path.resolve(import.meta.dirname, "../../supergh/skills/create-pr/scripts/check-base.sh");
 const PR_FACTS = path.resolve(import.meta.dirname, "../../supergh/skills/create-pr/scripts/pr-facts.sh");
 const CREATE = path.resolve(import.meta.dirname, "../../supergh/skills/create-pr/scripts/create.sh");
 
-function assertPosix(fn: (shell: string) => void) {
+function assertPosix(fn: (shell: Shell) => void) {
   const skips = forEachShell("posix", fn);
   for (const skip of skips) {
     assert.equal(skip.kind, "posix");

@@ -6,12 +6,17 @@
  * Interpreter resolution:
  *   - `opts.shell` set        -> `<shell> <script> ...args` (used to force a
  *     script through a specific bash/POSIX shell binary, see shells.ts).
+ *     A two-token shell ("bash --posix") is passed as an argv array and its
+ *     prefix args are kept ahead of the script.
  *   - script ends in a JS/TS
  *     extension                -> `<node> <script> ...args` (works
  *     identically on every OS - no shebang involved).
  *   - otherwise, on win32      -> the OS does not honour a `#!` line, so the
  *     script's own shebang is read and the matching interpreter
- *     (bash/sh/node/...) is resolved from PATH by name.
+ *     (bash/sh/node/...) is resolved from PATH by name. A bare command name
+ *     is first looked up in `opts.stubDirs`, because CreateProcess only ever
+ *     appends `.exe` and would otherwise walk straight past an extensionless
+ *     stub to the real binary (see stub.ts).
  *   - otherwise (POSIX,
  *     no explicit shell)       -> the script (or bare command name, e.g.
  *     "git") is executed directly; the OS/exec resolves its shebang or PATH.
@@ -22,8 +27,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 export interface RunOpts {
-  /** Absolute interpreter path - when set, invoke `shell script ...args`. */
-  shell?: string;
+  /** Absolute interpreter path, or [path, ...prefixArgs] for a two-token
+   *  shell - when set, invoke `shell script ...args`. */
+  shell?: string | string[];
   cwd?: string;
   env?: Record<string, string>;
   /** Piped to the child's stdin. */
@@ -95,17 +101,33 @@ function shebangInterpreter(script: string): string | null {
   return bin;
 }
 
+/** A `withStub` stub matching the bare command name `script`, if any of
+ *  `stubDirs` holds one - win32 only, where CreateProcess would ignore it. */
+function stubbedCommand(script: string, stubDirs: string[]): string | null {
+  if (script.includes("/") || script.includes("\\")) return null;
+  for (const dir of stubDirs) {
+    const candidate = path.join(dir, script);
+    if (isExecutableFile(candidate) && shebangInterpreter(candidate)) return candidate;
+  }
+  return null;
+}
+
 function resolveCommand(script: string, args: string[], opts: RunOpts): { cmd: string; args: string[] } {
   if (opts.shell) {
-    return { cmd: opts.shell, args: [script, ...args] };
+    const [cmd, ...prefix] = Array.isArray(opts.shell) ? opts.shell : [opts.shell];
+    return { cmd, args: [...prefix, script, ...args] };
   }
   if (/\.(ts|mts|cts|js|mjs|cjs)$/.test(script)) {
     return { cmd: process.execPath, args: [script, ...args] };
   }
-  if (process.platform === "win32" && isExecutableFile(script)) {
-    const interpreter = shebangInterpreter(script);
-    if (interpreter) {
-      return { cmd: interpreter, args: [script, ...args] };
+  if (process.platform === "win32") {
+    const stub = stubbedCommand(script, opts.stubDirs ?? []);
+    const target = stub ?? script;
+    if (isExecutableFile(target)) {
+      const interpreter = shebangInterpreter(target);
+      if (interpreter) {
+        return { cmd: interpreter, args: [target, ...args] };
+      }
     }
   }
   return { cmd: script, args };

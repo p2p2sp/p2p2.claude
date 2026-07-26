@@ -28,6 +28,7 @@ import path from "node:path";
 import { runScript, type RunResult } from "../harness/run.ts";
 import { withTempDir } from "../harness/tmp.ts";
 import { forEachShell } from "../harness/shells.ts";
+import { slash } from "../harness/paths.ts";
 
 const SCRIPTS_DIR = path.resolve(import.meta.dirname, "../../superdev/skills/superdev-memory/scripts");
 const DETECT_STATE = path.join(SCRIPTS_DIR, "detect_state.sh");
@@ -106,8 +107,8 @@ test("detect_state.sh: root + Memory Layer section + child nodes -> state comple
       assert.match(result.stdout, /^has_Memory_section: true$/m);
       assert.match(result.stdout, /^child_nodes: 2$/m);
       // find's traversal order is not guaranteed - assert membership, not order.
-      assert.ok(result.stdout.includes(path.join(dir, "child1", "CLAUDE.md")));
-      assert.ok(result.stdout.includes(path.join(dir, "child2", "CLAUDE.md")));
+      assert.ok(slash(result.stdout).includes(slash(path.join(dir, "child1", "CLAUDE.md"))));
+      assert.ok(slash(result.stdout).includes(slash(path.join(dir, "child2", "CLAUDE.md"))));
       assert.match(result.stdout, /^state: complete$/m);
       assert.match(result.stdout, /^action: maintenance mode \(audit\/candidates\/both\)$/m);
     });
@@ -137,7 +138,7 @@ test("detect_state.sh: a CLAUDE.md reachable only through a symlinked subdirecto
       // only the CLAUDE.md reached through the real dir is found; find does not
       // descend into a symlinked directory without -L.
       assert.match(result.stdout, /^child_nodes: 1$/m);
-      assert.ok(result.stdout.includes(path.join(dir, "real", "CLAUDE.md")));
+      assert.ok(slash(result.stdout).includes(slash(path.join(dir, "real", "CLAUDE.md"))));
     });
   });
 });
@@ -190,22 +191,22 @@ test("analyze_structure.sh: all documented sections appear, populated from a 3-l
       assert.match(result.stdout, new RegExp(`^Target: ${escapeRegex(dir)}$`, "m"));
 
       assert.match(result.stdout, /^## Directory Structure \(depth 3\)$/m);
-      assert.ok(result.stdout.includes(path.join(dir, "src", "sub", "deep")));
+      assert.ok(slash(result.stdout).includes(slash(path.join(dir, "src", "sub", "deep"))));
 
       assert.match(result.stdout, /^## Existing Memory Nodes$/m);
-      assert.ok(result.stdout.includes(path.join(dir, "CLAUDE.md")));
-      assert.ok(result.stdout.includes(path.join(dir, "src", "CLAUDE.md")));
+      assert.ok(slash(result.stdout).includes(slash(path.join(dir, "CLAUDE.md"))));
+      assert.ok(slash(result.stdout).includes(slash(path.join(dir, "src", "CLAUDE.md"))));
 
       assert.match(result.stdout, /^## Large Directories \(potential boundaries\)$/m);
       assert.match(result.stdout, /^\(Directories with >20 files\)$/m);
-      assert.match(result.stdout, new RegExp(`25 files: ${escapeRegex(path.join(dir, "bigdir"))}`));
+      assert.match(slash(result.stdout), new RegExp(`25 files: ${escapeRegex(slash(path.join(dir, "bigdir")))}`));
 
       assert.match(result.stdout, /^## Package\/Config Files \(semantic boundaries\)$/m);
-      assert.ok(result.stdout.includes(path.join(dir, "package.json")));
+      assert.ok(slash(result.stdout).includes(slash(path.join(dir, "package.json"))));
 
       assert.match(result.stdout, /^## Suggested Memory Node Locations$/m);
-      assert.match(result.stdout, new RegExp(`^1\\. Root: ${escapeRegex(path.join(dir, "CLAUDE.md"))} \\(required\\)$`, "m"));
-      assert.match(result.stdout, new RegExp(`^2\\. Source: ${escapeRegex(path.join(dir, "src", "CLAUDE.md"))}$`, "m"));
+      assert.match(slash(result.stdout), new RegExp(`^1\\. Root: ${escapeRegex(slash(path.join(dir, "CLAUDE.md")))} \\(required\\)$`, "m"));
+      assert.match(slash(result.stdout), new RegExp(`^2\\. Source: ${escapeRegex(slash(path.join(dir, "src", "CLAUDE.md")))}$`, "m"));
 
       assert.match(
         result.stdout,

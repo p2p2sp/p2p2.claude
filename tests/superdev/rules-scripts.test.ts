@@ -26,6 +26,7 @@ import path from "node:path";
 import { runScript, type RunResult } from "../harness/run.ts";
 import { withTempDir } from "../harness/tmp.ts";
 import { forEachShell } from "../harness/shells.ts";
+import { slash } from "../harness/paths.ts";
 
 const SCRIPTS_DIR = path.resolve(import.meta.dirname, "../../superdev/skills/superdev-rules/scripts");
 const DETECT_STATE = path.join(SCRIPTS_DIR, "detect_state.sh");
@@ -198,10 +199,10 @@ test("scan_conventions.sh: all documented sections appear with integer counts, o
       assert.match(result.stdout, /^test directories:$/m);
 
       assert.match(result.stdout, /^## Tool \/ format configs \(depth 2\)$/m);
-      assert.ok(result.stdout.includes(path.join(dir, ".editorconfig")));
+      assert.ok(slash(result.stdout).includes(slash(path.join(dir, ".editorconfig"))));
 
       assert.match(result.stdout, /^## Directory layout \(depth 2\)$/m);
-      assert.ok(result.stdout.includes(path.join(dir, "src")));
+      assert.ok(slash(result.stdout).includes(slash(path.join(dir, "src"))));
 
       assert.match(result.stdout, /^Read 2-3 representative files per candidate area before proposing a convention\.$/m);
     });
@@ -244,7 +245,7 @@ test("scan_conventions.sh: a file reachable only through a symlinked subdirector
       assert.match(result.stdout, /^\s*1\s+ts$/m);
       assert.match(result.stdout, /^kebab-case:\s+1$/m);
       // the symlink itself is not descended into (find does not follow it without -L)
-      assert.ok(!result.stdout.includes(path.join(dir, "linked", "kebab-name.ts")));
+      assert.ok(!slash(result.stdout).includes(slash(path.join(dir, "linked", "kebab-name.ts"))));
     });
   });
 });

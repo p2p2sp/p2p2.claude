@@ -9,20 +9,29 @@
  * A `#!/bin/sh` script goes through every POSIX shell present: `/bin/sh`,
  * `dash`, `busybox sh` and `bash --posix`. `busybox sh` and `bash --posix`
  * are two-token invocations ("busybox sh script", "bash --posix script"),
- * so each is wrapped in a tiny generated one-line shim that `exec`s it,
- * giving `forEachShell` a single interpreter path to hand to
- * `RunOpts.shell` either way.
+ * so a resolved shell is an ARGV - either a bare interpreter path or a
+ * [path, ...prefixArgs] tuple - which `RunOpts.shell` accepts as-is. No
+ * generated wrapper script is involved: an extensionless shim is not
+ * spawnable on Windows, where `bash --posix` is the only POSIX shell there
+ * is.
  */
 
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+
+/** An interpreter path, or [path, ...prefixArgs] for a two-token shell. */
+export type Shell = string | string[];
 
 export interface ShellSkip {
   kind: "bash" | "posix";
   name: string;
   reason: string;
+}
+
+/** The executable of a resolved shell, whichever form it takes. */
+export function shellBin(shell: Shell): string {
+  return Array.isArray(shell) ? shell[0] : shell;
 }
 
 function isExecutable(candidate: string): boolean {
@@ -56,26 +65,6 @@ function bashMajorVersion(bashPath: string): string | null {
   return match ? match[1] : null;
 }
 
-let shimDirCache: string | null = null;
-
-/** One shim dir per process, under the OS temp root - never inside this
- *  repo's working tree, and never reused across test runs. */
-function shimDir(): string {
-  if (shimDirCache === null) {
-    shimDirCache = fs.mkdtempSync(path.join(os.tmpdir(), "p2p2-shell-shim-"));
-    const dir = shimDirCache;
-    process.once("exit", () => fs.rmSync(dir, { recursive: true, force: true }));
-  }
-  return shimDirCache;
-}
-
-function writeShim(name: string, exec: string): string {
-  const shimPath = path.join(shimDir(), name);
-  fs.writeFileSync(shimPath, `#!/bin/sh\n${exec} "$@"\n`, { mode: 0o755 });
-  fs.chmodSync(shimPath, 0o755);
-  return shimPath;
-}
-
 /** Every distinct bash on this machine, deduplicated by reported `--version`
  *  major (so bash 5.1 and 5.2 on the same box count once). */
 export function bashShells(): string[] {
@@ -94,7 +83,7 @@ export function bashShells(): string[] {
 
 interface ShellCandidate {
   name: string;
-  resolve: () => string | null;
+  resolve: () => Shell | null;
 }
 
 function posixCandidates(): ShellCandidate[] {
@@ -105,24 +94,24 @@ function posixCandidates(): ShellCandidate[] {
       name: "busybox sh",
       resolve: () => {
         const busybox = candidatesOnPath("busybox")[0];
-        return busybox ? writeShim("busybox-sh", `exec "${busybox}" sh`) : null;
+        return busybox ? [busybox, "sh"] : null;
       },
     },
     {
       name: "bash --posix",
       resolve: () => {
         const bash = bashShells()[0];
-        return bash ? writeShim("bash-posix", `exec "${bash}" --posix`) : null;
+        return bash ? [bash, "--posix"] : null;
       },
     },
   ];
 }
 
 /** Every POSIX shell present on this machine (see module doc for the list). */
-export function posixShells(): string[] {
+export function posixShells(): Shell[] {
   return posixCandidates()
     .map((candidate) => candidate.resolve())
-    .filter((resolved): resolved is string => resolved !== null);
+    .filter((resolved): resolved is Shell => resolved !== null);
 }
 
 function bashCandidates(): ShellCandidate[] {
@@ -135,7 +124,7 @@ function bashCandidates(): ShellCandidate[] {
 
 /** Calls `fn(shellPath)` for every shell of `kind` present on this machine;
  *  records a `ShellSkip` (never throws) for each one that is not. */
-export function forEachShell(kind: "bash" | "posix", fn: (shell: string) => void): ShellSkip[] {
+export function forEachShell(kind: "bash" | "posix", fn: (shell: Shell) => void): ShellSkip[] {
   const candidates = kind === "bash" ? bashCandidates() : posixCandidates();
   const skips: ShellSkip[] = [];
   for (const candidate of candidates) {

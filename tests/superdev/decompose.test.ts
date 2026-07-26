@@ -127,8 +127,8 @@ test("happy path (default prefix): builds the full tree, prints a clean index, c
 
       const dir = `docs/.workflows/${todayISO()}-my-simple-plan`;
       const absDir = path.join(repo.dir, dir);
-      const header = path.join(dir, "plan-header.md");
-      const planCopy = path.join(dir, "plan.md");
+      const header = `${dir}/plan-header.md`;
+      const planCopy = `${dir}/plan.md`;
       const task1 = `${dir}/tasks/task-01.md`;
       const task2 = `${dir}/tasks/task-02.md`;
 

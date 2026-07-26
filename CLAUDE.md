@@ -123,7 +123,11 @@ tests/               Dev-time regression suites for plugin scripts, run from the
                      ships with no plugin. Fixtures, expected outputs and stub scenarios stay file-local to
                      each `*.test.ts` - `tests/harness/` is the single exception, exposing shared *mechanism*
                      only (subprocess execution, temp dirs, throwaway git repos, PATH stubs, shell discovery,
-                     PNG fixtures), never per-script knowledge.
+                     path-separator normalisation, PNG fixtures), never per-script knowledge.
+                     CI (.github/workflows/tests.yml) runs the suite on ubuntu / macos / windows, so every
+                     test must hold under Git-Bash too: compare script-printed paths with `slash()` from
+                     `tests/harness/paths.ts` (a shell script joins with "/" whatever native path it was
+                     handed), and never assume `chmod` denies access.
 .docs/               Dev-time notes + source material (per-plugin subdirs, e.g. .docs/superui/) - reference
                      documents behind skill content; NOT part of any plugin, never shipped, never read at runtime.
                      ONE exception to "dev-time only": .docs/assets/ holds images embedded in README.md

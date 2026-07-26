@@ -27,10 +27,13 @@ if [ -n "$ROOT_FILE" ]; then
     fi
 fi
 
-# Find child CLAUDE.md files
+# Find child CLAUDE.md files - -mindepth 2 drops the root's own CLAUDE.md
+# (the only depth-1 match). A `-not -path "$TARGET_PATH/CLAUDE.md"` would not:
+# -path is an fnmatch pattern, so a Windows-style target path's backslashes
+# would be read as escapes and the root file would leak in as a child node.
 while IFS= read -r file; do
     CHILD_NODES+=("$file")
-done < <(find "$TARGET_PATH" -name "CLAUDE.md" -not -path "$TARGET_PATH/CLAUDE.md" "${FIND_EXCLUDES[@]}" 2>/dev/null)
+done < <(find "$TARGET_PATH" -mindepth 2 -name "CLAUDE.md" "${FIND_EXCLUDES[@]}" 2>/dev/null)
 
 # Output state
 echo "=== Memory Layer State ==="
