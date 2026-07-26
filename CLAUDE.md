@@ -124,7 +124,8 @@ tests/               Dev-time regression suites for plugin scripts, run from the
                      each `*.test.ts` - `tests/harness/` is the single exception, exposing shared *mechanism*
                      only (subprocess execution, temp dirs, throwaway git repos, PATH stubs, shell discovery,
                      path-separator normalisation, PNG fixtures), never per-script knowledge.
-                     CI (.github/workflows/tests.yml) runs the suite on ubuntu / macos / windows, so every
+                     CI (.github/workflows/tests.yml) runs the suite on ubuntu only for push / pull_request,
+                     and on the full ubuntu / macos / windows matrix on manual workflow_dispatch, so every
                      test must hold under Git-Bash too: compare script-printed paths with `slash()` from
                      `tests/harness/paths.ts` (a shell script joins with "/" whatever native path it was
                      handed), and never assume `chmod` denies access.
