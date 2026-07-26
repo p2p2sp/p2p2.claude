@@ -4,7 +4,10 @@
  * (3.5 type scale) never let a free-text value break row arity: a `usedFor`
  * carrying `|` or a newline must render as exactly one table cell, and the
  * Notes column must render on its own merits (a measured note) independent
- * of whether any row in the table is proposed.
+ * of whether any row in the table is proposed. Also proves the 3.10 dark
+ * mode summary (renderSubsectionBody("3.10", ...)) marks a proposed dark
+ * value distinguishably from a measured one, honouring the same
+ * measured|proposed provenance vocabulary the table renderers use.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is
  * run directly by Node's native test runner + TypeScript type stripping:
@@ -147,4 +150,48 @@ test("a textStyle's usedFor containing a pipe or newline renders as exactly one 
   assert.equal(lines.length, 3, `expected exactly one data row, got table lines:\n${lines.join("\n")}`);
   const dataCells = splitRow(lines[2]);
   assert.equal(dataCells.length, headerCells.length, "data row cell count must match header cell count");
+});
+
+// ---------------------------------------------------------------------------
+// 3.10 dark mode summary - proposed provenance
+// ---------------------------------------------------------------------------
+
+test("a proposed dark value in the 3.10 summary renders distinguishably from a measured one", () => {
+  const registry = mkRegistry({
+    "color.surface.default": mkToken({
+      section: "3.1",
+      dark: "#0B0B0B",
+    }),
+    "color.surface.accent": mkToken({
+      section: "3.1",
+      dark: "#221100",
+      proposed: true,
+      rationale: "no dark-mode screenshot supplied",
+    }),
+  });
+
+  const output = renderSubsectionBody("3.10", registry);
+  const bullets = output.split("\n").filter((l) => l.startsWith("- "));
+  assert.equal(bullets.length, 2, `expected two bullets, got:\n${output}`);
+  const measuredLine = bullets.find((l) => l.includes("color.surface.default"));
+  const proposedLine = bullets.find((l) => l.includes("color.surface.accent"));
+  assert.ok(measuredLine, "expected a bullet for the measured token");
+  assert.ok(proposedLine, "expected a bullet for the proposed token");
+  assert.notEqual(
+    measuredLine!.replace("color.surface.default", "X").replace("#0B0B0B", "Y"),
+    proposedLine!.replace("color.surface.accent", "X").replace("#221100", "Y"),
+    "a proposed dark bullet must be shaped differently from a measured one, not just differ by name/value",
+  );
+});
+
+test("an all-measured 3.10 summary still renders exactly the current bullet shape", () => {
+  const registry = mkRegistry({
+    "color.surface.default": mkToken({
+      section: "3.1",
+      dark: "#0B0B0B",
+    }),
+  });
+
+  const output = renderSubsectionBody("3.10", registry);
+  assert.equal(output, "- `color.surface.default` - light #0057FF, dark #0B0B0B");
 });

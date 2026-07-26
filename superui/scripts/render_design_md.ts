@@ -320,7 +320,11 @@ function renderDarkModeSummary(registry: Registry): string | null {
     .filter(([, t]) => t.dark !== null && t.dark !== undefined && t.dark !== "")
     .map(([name, t]) => ({ name, ...t }));
   if (rows.length === 0) return null;
-  return rows.map((r) => `- \`${r.name}\` - light ${r.value}, dark ${r.dark}`).join("\n") + "\n";
+  return (
+    rows
+      .map((r) => `- \`${r.name}\` - light ${r.value}, dark ${r.dark}${r.proposed ? " (Source: proposed)" : ""}`)
+      .join("\n") + "\n"
+  );
 }
 
 // ---------------------------------------------------------------------------
