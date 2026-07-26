@@ -4,7 +4,7 @@ The detective sweep produces many candidate reports of mixed quality. This phase
 
 ## Detective report schema
 
-Each detective writes one file to `.temp/code-reviewer/<run-id>/reports/<rank>-<slug>.md`:
+Each detective writes one file to `.temp/superfix/<run-id>/reports/<rank>-<slug>.md`:
 
 ```markdown
 # <short title>
@@ -110,8 +110,8 @@ it, `sort` falls back to a whole-line comparison for equal severities and reorde
 would wrongly report a correctly sorted file (a findings list routinely carries ties) as broken:
 
 ```bash
-diff <(grep -n '^SEVERITY:' .temp/code-reviewer/<run-id>/findings.md) \
-     <(grep -n '^SEVERITY:' .temp/code-reviewer/<run-id>/findings.md | sort -t: -k3 -rn -s)
+diff <(grep -n '^SEVERITY:' .temp/superfix/<run-id>/findings.md) \
+     <(grep -n '^SEVERITY:' .temp/superfix/<run-id>/findings.md | sort -t: -k3 -rn -s)
 ```
 
 ## findings.md (final output)

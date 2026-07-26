@@ -53,7 +53,7 @@ superfix/
   - Detectives are dispatched into the **union** of file hotspots, edge dispatch rows, and a small structural
     budget (2 highest-degree files from `edges.json`'s `degree[]` not already in that union) - never into
     either track's hotspots alone → verified, severity-ranked synthesis. State lives under a
-    `.temp/code-reviewer/<run-id>/` workspace, not the main context. Bundles `references/{jobs,scoring,synthesis}.md`.
+    `.temp/superfix/<run-id>/` workspace, not the main context. Bundles `references/{jobs,scoring,synthesis}.md`.
     Phase 0 resolves the runtime via `scripts/check_node.sh` and HARD-STOPS on `NODE_MISSING` - the gate is
     what makes the cut reproducible, so a run that cannot rank must not pay for the sweep and the scout fan-out
     first (this now covers both tracks' gates, both driven by the same Node runtime). This is
