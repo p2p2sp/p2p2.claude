@@ -7,7 +7,7 @@
  *
  * IN : INPUT_DIR — directory holding one or more `notes-*.json` fragments,
  *      each shaped `{ foundation, tokens, surfaceOrder, accentUsage,
- *      textStyles, unknowns, resolved }` (see the Task 2 Contracts block for
+ *      textStyles, unknowns, resolved }` (see validateShape below for
  *      the full per-field shape). A `foundation:"proposed"` fragment (written
  *      by the design synthesizer) carries proposed tokens/textStyles plus a
  *      `resolved` list of the unknowns those proposals cover. OUTPUT_PATH —
@@ -359,7 +359,7 @@ function validateUnknowns(raw: unknown, filename: string): UnknownEntry[] {
   });
 }
 
-/** Validates one parsed fragment against the Task 2 fragment contract; throws ShapeError on any violation. */
+/** Validates one parsed fragment against the fragment contract documented in the header comment above; throws ShapeError on any violation. */
 export function validateShape(raw: unknown, filename: string): Fragment {
   if (!isPlainObject(raw)) {
     throw new ShapeError(`${filename}: fragment must be a JSON object`);

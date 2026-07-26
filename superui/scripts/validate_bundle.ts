@@ -1,6 +1,6 @@
 /*
  * validate_bundle.ts - validates a finished handoff seed bundle against
- * `registry.json` (Task 2's merged token/style namespace) and the bundle's
+ * `registry.json` (build_registry.ts's merged token/style namespace) and the bundle's
  * own internal cross-references. Never mutates the bundle; a clean run and a
  * dirty run both leave every file untouched.
  *

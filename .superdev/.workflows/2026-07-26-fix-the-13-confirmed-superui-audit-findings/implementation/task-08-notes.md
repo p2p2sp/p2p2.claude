@@ -1,0 +1,1 @@
+- Approach step 5 named `build_registry.ts:335` for the "the Task 2 fragment contract" phantom pointer, but that comment actually sits at line 362 (`validateShape`'s doc comment) - same text, off-by-line in the task description, fixed at its real location.

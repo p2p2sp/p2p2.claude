@@ -51,10 +51,13 @@ Never a fabricated value. Exactly one of:
 If dark screens fall in your reading requirement, measure them separately and record the `dark` value alongside the `value` on the same token. No dark screens = no `dark` values, ever.
 
 ## Output - one fragment
-Write `notes-<foundation>.json` in the Task 2 fragment shape: `{ foundation, tokens, surfaceOrder, accentUsage, textStyles, unknowns }`.
+Write `notes-<foundation>.json` shaped `{ foundation, tokens, surfaceOrder, accentUsage, textStyles, unknowns }`:
 - Every `tokens{}` key is DOTTED (`color.surface.base`, `radius.control`, `text.body`) - a bare name is rejected by `validateShape`, and one that slipped through would escape every spec's token-reference validation entirely.
-- Every `textStyles[].name` is DOTTED for the identical reason - a spec's `font` property line resolves a type-style name through the same check as a token.
-- Every token carries its `evidence` object: `screen`, `method` (`points|regions|geometry|reference`), `detail`.
+- Every token carries its `evidence` object: `screen`, `method` (`points|regions|geometry|reference`), `detail`, plus a non-empty `type`.
+- A token in `section: "3.2"` additionally needs non-empty `primitive` and `usedFor`.
+- Every `accentUsage[]` entry needs `token` alongside `screen` and `where`.
+- Every `unknowns[]` entry needs `section` (the section id the gap belongs to) alongside `what` and `reason`.
+- Every `textStyles[]` entry is DOTTED at `name` for the identical reason a token is - a spec's `font` property line resolves a type-style name through the same check as a token - and needs `family`, `size`, `weight`, `lineHeight`, `letterSpacing` and `usedFor`.
 - On a re-dispatch, adopt any proposed name arriving through a `MISSING-TOKENS:` finding VERBATIM - measure the value, keep the proposed name unchanged. A rename leaves the spec's existing reference dangling and `checkTokenRefs` reports it as `unknown-token` on an otherwise clean run.
 - End your final message with the fragment path and a count of tokens written plus unknowns recorded.
 
