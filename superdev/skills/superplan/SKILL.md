@@ -2,7 +2,7 @@
 name: superplan
 description: Invoked by superspec skill only.
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, EnterPlanMode, ExitPlanMode, AskUserQuestion
-disallowed-tools: NotebookEdit, Task, Agent, WebFetch, WebSearch
+disallowed-tools: Bash, NotebookEdit, Task, Agent, WebFetch, WebSearch
 user-invocable: false
 ---
 
