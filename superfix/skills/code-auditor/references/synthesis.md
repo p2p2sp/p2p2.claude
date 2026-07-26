@@ -103,11 +103,15 @@ Give every surviving finding a `SEVERITY: N.N` on its own line (0-10). The exact
 - **1-3** minor / hardening / quality issue
 
 Rank by severity descending as you fold. Because the tag is on its own line, verify the emitted file with a
-one-liner self-check - it should already read severity-sorted (`reports/` is never rewritten by the fold, so
-sorting it proves nothing about the final file):
+self-check that compares its own `SEVERITY:` order against the sorted order (`reports/` is never rewritten by
+the fold, so sorting it proves nothing about the final file). Empty output means the file is already
+severity-sorted; any output names the entries that are out of order. The `-s` (stable) flag is required: without
+it, `sort` falls back to a whole-line comparison for equal severities and reorders tied entries, so the check
+would wrongly report a correctly sorted file (a findings list routinely carries ties) as broken:
 
 ```bash
-grep -n '^SEVERITY:' .temp/code-reviewer/<run-id>/findings.md | sort -t: -k3 -rn
+diff <(grep -n '^SEVERITY:' .temp/code-reviewer/<run-id>/findings.md) \
+     <(grep -n '^SEVERITY:' .temp/code-reviewer/<run-id>/findings.md | sort -t: -k3 -rn -s)
 ```
 
 ## findings.md (final output)
