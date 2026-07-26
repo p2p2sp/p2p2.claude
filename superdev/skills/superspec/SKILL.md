@@ -47,7 +47,7 @@ Save date (yyyyMMdd):
 
 - Load spec from `templates/spec.md`.
 - **Refining an existing spec** - when an existing spec file path is in context (the user asked to work on that spec), render into it and overwrite that file in place; skip the date/slug step.
-- **New spec** - render into the template and save it as `.superdev/.workflows/<date>-<slug>.md` (`<date>` = the yyyyMMdd value above; `<slug>` = a short title as slug).
+- **New spec** - render into the template and save it as `docs/workflows/<date>-<slug>.md` (`<date>` = the yyyyMMdd value above; `<slug>` = a short title as slug).
 
 ## Review gate
 Immediately after saving - and BEFORE any handoff - run the reviewer and act on its verdict. Never hand off a spec that has not returned `VERDICT: PASS`. Track which invocation this is (round 1, round 2, …).
@@ -73,5 +73,5 @@ The reviewer is read-only: it edits nothing and returns issues derivable from th
 
 ## Hand off
 Handoff is not the interview - use `AskUserQuestion`. The user's confirmation is the gate; never route yourself past it.
-- **SuperPlan** - run the `superplan` Skill, passing the saved spec filepath (`.superdev/.workflows/<date>-<slug>.md`) as the sole argument.
+- **SuperPlan** - run the `superplan` Skill, passing the saved spec filepath (`docs/workflows/<date>-<slug>.md`) as the sole argument.
 - **Done for now** - STOP. Do not do anthing more.

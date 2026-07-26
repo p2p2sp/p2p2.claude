@@ -12,7 +12,7 @@
 #   output : one "PASS: <case>" line per asserted case, then a final
 #            "ALL PASS (N/N)" line; any mismatch prints "FAIL: <case>" + detail
 #            and exits non-zero.
-#   cases  : (1) missing-file: no .superdev/config.yml -> all four keys false,
+#   cases  : (1) missing-file: no .claude/superdev.yml -> all four keys false,
 #                exit 0 (fail-open - the core requirement);
 #            (2) all-true: every key set true -> all four true;
 #            (3) mixed + comments: seeded-asset shape (adr false, rules true,
@@ -57,8 +57,8 @@ fi
 # Case 2 - all true.
 TOTAL=$((TOTAL + 1))
 T2="$SCRATCH/case2"
-mkdir -p "$T2/.superdev"
-printf 'adr: true\nrules: true\nmemory: true\ndocs: true\n' > "$T2/.superdev/config.yml"
+mkdir -p "$T2/.claude"
+printf 'adr: true\nrules: true\nmemory: true\ndocs: true\n' > "$T2/.claude/superdev.yml"
 out="$(cd "$T2" && bash "$SUT")"; rc=$?
 if [ "$rc" -ne 0 ]; then
     fail "all true" "exit code $rc (expected 0)"
@@ -74,8 +74,8 @@ fi
 # Case 3 - mixed with a trailing comment + an absent key (the seeded-asset shape).
 TOTAL=$((TOTAL + 1))
 T3="$SCRATCH/case3"
-mkdir -p "$T3/.superdev"
-printf '# SuperDev Config\nadr:     false   # ADR capture\nrules:   true    # Rules system\n' > "$T3/.superdev/config.yml"
+mkdir -p "$T3/.claude"
+printf '# SuperDev Config\nadr:     false   # ADR capture\nrules:   true    # Rules system\n' > "$T3/.claude/superdev.yml"
 out="$(cd "$T3" && bash "$SUT")"; rc=$?
 if [ "$rc" -ne 0 ]; then
     fail "mixed + absent key" "exit code $rc (expected 0)"
@@ -92,8 +92,8 @@ fi
 # Case 4 - non-true values never resolve true; only a bare `true` does.
 TOTAL=$((TOTAL + 1))
 T4="$SCRATCH/case4"
-mkdir -p "$T4/.superdev"
-printf 'adr: yes\nrules: 1\nmemory: truthy\n' > "$T4/.superdev/config.yml"
+mkdir -p "$T4/.claude"
+printf 'adr: yes\nrules: 1\nmemory: truthy\n' > "$T4/.claude/superdev.yml"
 out="$(cd "$T4" && bash "$SUT")"; rc=$?
 if [ "$rc" -ne 0 ]; then
     fail "non-true values ignored" "exit code $rc (expected 0)"

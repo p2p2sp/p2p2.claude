@@ -11,13 +11,13 @@
 # makes the permission engine see ONE command (`bash .../bootstrap.sh`).
 #
 # Idempotent: re-running never overwrites anything that already exists.
-#   - creates .temp/ and .superdev/ when missing,
+#   - creates .temp/ when missing,
 #   - seeds .gitignore from the bundled template when the project has none,
 #   - seeds .claude/settings.json from the bundled template when none,
-#   - seeds .superdev/config.yml from the bundled template when none,
-#   - never overwrites an existing config.yml (reports its current switches),
-#   - ensures .gitattributes carries the two .superdev/** linguist-generated
-#     rules (append-if-absent; creates the file when missing; never duplicates).
+#   - seeds .claude/superdev.yml from the bundled template when none,
+#   - never overwrites an existing superdev.yml (reports its current switches),
+#   - ensures .gitattributes carries the docs/workflows/** linguist-generated
+#     rule (append-if-absent; creates the file when missing; never duplicates).
 #
 # Contract:
 #   argv : none.
@@ -25,14 +25,14 @@
 #   env  : none required - the skill dir (for assets/) is derived from $0.
 #   stdout: one human-readable line per result; the SKILL.md "Output" step and
 #           the config-switch step read these lines verbatim. The config line is
-#           either "config.yml: seeded from template - defaults: adr=false,
-#           rules=false, memory=false, docs=false" (fresh seed) or "config.yml:
-#           already present (left untouched) - current switches:" followed by
-#           the grep'd switch lines (limited to the documented keys: adr,
-#           rules, memory, docs).
+#           either "superdev.yml: seeded from template - defaults: adr=false,
+#           rules=false, memory=false, docs=false" (fresh seed) or
+#           "superdev.yml: already present (left untouched) - current switches:"
+#           followed by the grep'd switch lines (limited to the documented keys:
+#           adr, rules, memory, docs).
 #           The .gitattributes line is one of ".gitattributes: created with
-#           linguist-generated rules", ".gitattributes: linguist-generated rules
-#           appended", or ".gitattributes: linguist-generated rules already
+#           linguist-generated rule", ".gitattributes: linguist-generated rule
+#           appended", or ".gitattributes: linguist-generated rule already
 #           present" - also asserted verbatim by bootstrap.test.sh.
 #   exit : always 0 (fail-soft; missing templates are reported, not fatal).
 
@@ -49,12 +49,6 @@ else
   mkdir -p ".temp" && echo ".temp: created"
 fi
 
-if [ -d ".superdev" ]; then
-  echo ".superdev: already present"
-else
-  mkdir -p ".superdev" && echo ".superdev: created"
-fi
-
 if [ -f ".gitignore" ]; then
   echo ".gitignore: already present (left untouched)"
 elif [ -f "$src_gitignore" ]; then
@@ -69,37 +63,32 @@ else
   echo "settings.json: already present"
 fi
 
-if [ -f ".superdev/config.yml" ]; then
-  echo "config.yml: already present (left untouched) - current switches:"
-  grep -E '^[[:space:]]*(adr|rules|memory|docs)[[:space:]]*:' .superdev/config.yml
+if [ -f ".claude/superdev.yml" ]; then
+  echo "superdev.yml: already present (left untouched) - current switches:"
+  grep -E '^[[:space:]]*(adr|rules|memory|docs)[[:space:]]*:' .claude/superdev.yml
 elif [ -f "$src_config" ]; then
-  mkdir -p .superdev && cp "$src_config" .superdev/config.yml \
-    && echo "config.yml: seeded from template - defaults: adr=false, rules=false, memory=false, docs=false"
+  mkdir -p .claude && cp "$src_config" .claude/superdev.yml \
+    && echo "superdev.yml: seeded from template - defaults: adr=false, rules=false, memory=false, docs=false"
 else
-  echo "config.yml: template missing at $src_config - skipped"
+  echo "superdev.yml: template missing at $src_config - skipped"
 fi
 
-# .gitattributes - collapse the tracked .superdev/ scratch + records in GitHub
-# review (linguist-generated). Append-if-absent so a host's own rules survive;
-# both lines are ensured independently (idempotent, no duplicates).
-ga_line1=".superdev/**            linguist-generated=true"
-ga_line2=".superdev/.workflows/** linguist-generated=true"
+# .gitattributes - collapse the tracked docs/workflows/ run records in GitHub
+# review (linguist-generated). Append-if-absent so a host's own rules survive
+# (idempotent, no duplicates).
+ga_line="docs/workflows/** linguist-generated=true"
 if [ ! -f ".gitattributes" ]; then
-  printf '%s\n%s\n' "$ga_line1" "$ga_line2" > .gitattributes
-  echo ".gitattributes: created with linguist-generated rules"
+  printf '%s\n' "$ga_line" > .gitattributes
+  echo ".gitattributes: created with linguist-generated rule"
+elif grep -qxF "$ga_line" .gitattributes; then
+  echo ".gitattributes: linguist-generated rule already present"
 else
-  ga_added=0
   # ensure a trailing newline so an append starts on its own line
   if [ -s ".gitattributes" ] && [ -n "$(tail -c1 .gitattributes)" ]; then
     printf '\n' >> .gitattributes
   fi
-  grep -qxF "$ga_line1" .gitattributes || { printf '%s\n' "$ga_line1" >> .gitattributes; ga_added=1; }
-  grep -qxF "$ga_line2" .gitattributes || { printf '%s\n' "$ga_line2" >> .gitattributes; ga_added=1; }
-  if [ "$ga_added" -eq 1 ]; then
-    echo ".gitattributes: linguist-generated rules appended"
-  else
-    echo ".gitattributes: linguist-generated rules already present"
-  fi
+  printf '%s\n' "$ga_line" >> .gitattributes
+  echo ".gitattributes: linguist-generated rule appended"
 fi
 
 exit 0

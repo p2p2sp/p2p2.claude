@@ -18,7 +18,7 @@ Discovers the host project's coding conventions (naming, testing, error-handling
 
 !`date +%Y%m%d-%H%M%S`
 
-The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture file `.superdev/.rules/capture-<RUN_ID>.md`; never reuse or overwrite an existing one.
+The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture file `.temp/superdev/rules/capture-<RUN_ID>.md`; never reuse or overwrite an existing one.
 
 ## Workflow
 
@@ -42,9 +42,9 @@ The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture
    Capture Questions. Only confirmed conventions reach the capture.
 
 5. Capture + hand off
-   Write .superdev/.rules/capture-<RUN_ID>.md (format below)
+   Write .temp/superdev/rules/capture-<RUN_ID>.md (format below)
    Invoke `superdev-rules-writer` (Skill) with a labeled-line args block:
-     capture: .superdev/.rules/capture-<RUN_ID>.md
+     capture: .temp/superdev/rules/capture-<RUN_ID>.md
    Relay its VERDICT/RULE lines verbatim - do NOT re-verify or rewrite the rule files yourself
 
 6. Maintenance mode (when state=complete)

@@ -114,6 +114,8 @@ superfix/            The superfix plugin (codebase investigation; NO hooks/manif
 README.md            User-facing help (install + how it works)
 .github/             CI: scripts/release.sh + workflows/ (release-version.yml - manual dispatch only)
 .claude/rules/       Development-only conventions for this repo
+docs/workflows/      Run records of superdev builds executed ON this repo (one dir per build: spec, plan,
+                     tasks, implementation reports) - history, never rewritten; ships with no plugin
 tests/               Dev-time regression suites for plugin scripts, run with `node --test` (e.g. tests/superui/)
                      - sits outside every plugin dir, so no plugin.json and no marketplace entry references it;
                      ships with no plugin
@@ -153,11 +155,19 @@ The invariants below hold across the repo.
   plugin writes into the consuming repo lands under `docs/<layer>/`, never in a dot-dir and never in a
   plugin-named dir: `docs/adr/` (superdev's `superbuild-adr`, gated by the `adr` config switch),
   `docs/design-system/` (superui's `design-extractor`; `docs/design-system/<target>/` with the optional
-  `<target>` argument), `docs/product/` (superdev's docs layer, gated by the `docs` switch). These are
-  version-controlled deliverables the user reads and edits. The plugin-named dot-dirs stay strictly for
-  machine state and scratch - `.superdev/` (config, workflow working dirs, capture files) and `.temp/`
-  (superui run dirs, and every other temporary artifact) - and nothing under them is a `docs/` layer. Adding
-  a new persisted user-facing artifact means adding a `docs/<layer>/`, not a new dot-dir.
+  `<target>` argument), `docs/product/` (superdev's docs layer, gated by the `docs` switch),
+  `docs/workflows/` (superdev's per-build working dirs written by `decompose.sh` - spec, plan copy,
+  task files, implementation reports - plus the specs `superspec` saves; marked `linguist-generated`
+  in `.gitattributes` so GitHub collapses them in review). These are
+  version-controlled deliverables the user reads and edits.
+- **No plugin ever creates a plugin-named dot-dir in the host repo** - no `.superdev/`, no `.superui/`,
+  no equivalent for any future plugin. Only three host-repo locations are writable: `docs/<layer>/` for
+  persisted user-facing knowledge (above), `.claude/` for configuration the user owns and edits
+  (superdev's opt-in switches live in `.claude/superdev.yml`, read by `scripts/read-config.sh`; rules in
+  `.claude/rules/`), and `.temp/` for every temporary artifact, grouped in per-plugin subdirs
+  (`.temp/superdev/{docs,memory,rules}/capture-<RUN_ID>.md`, superui run dirs). A new persisted
+  user-facing artifact means a new `docs/<layer>/`; new machine state means `.temp/<plugin>/` - never a
+  dot-dir at the host root.
 - **One injected manifest per manifest-bearing plugin.** A single `SessionStart` hook force-injects
   `hooks/content/manifest.md` **verbatim** once per session; `source == "resume"` is excluded by the matcher;
   fail-open (an unreadable manifest = banner only, no `additionalContext`). The hook does no per-project

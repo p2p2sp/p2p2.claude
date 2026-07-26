@@ -115,7 +115,7 @@ unique slug so parallel runs do not overwrite each other:
 ```
 
 The `developer` pipeline is the in-repo instance of this: the orchestrator hands tasks to executors through
-files under `.superdev/.workflows/<slug>/tasks/` and a `Report path:`, never by pasting raw output between agents.
+files under `docs/workflows/<slug>/tasks/` and a `Report path:`, never by pasting raw output between agents.
 
 ### Why files matter *more* with nested forks
 

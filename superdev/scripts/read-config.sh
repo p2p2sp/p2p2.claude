@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# read-config.sh - rozwiązuje przełączniki .superdev/config.yml do stałego bloku
+# read-config.sh - rozwiązuje przełączniki .claude/superdev.yml do stałego bloku
 # wstrzykiwanego do simplebuild / superbuild przy ładowaniu skila.
 #
 # Powstał, bo parser YAML z grep|sed to komenda złożona - a Claude Code rozbija
@@ -11,7 +11,7 @@
 #   argv : brak.
 #   cwd  : root projektu (blok `!` w SKILL.md wykonuje się przy ładowaniu tam).
 #   env  : brak.
-#   plik : .superdev/config.yml (opcjonalny). Brak pliku -> wszystko false.
+#   plik : .claude/superdev.yml (opcjonalny). Brak pliku -> wszystko false.
 #   klucze: adr, rules, memory, docs. Klucz jest `true` WYŁĄCZNIE gdy plik ma linię
 #           pasującą do `^\s*<klucz>\s*:\s*true` (koniec wartości ograniczony
 #           spacją/komentarzem/końcem linii). Brak klucza -> false.
@@ -21,7 +21,7 @@
 
 set -u
 
-cfg=".superdev/config.yml"
+cfg=".claude/superdev.yml"
 
 # true wtw. gdy w configu jest linia `^\s*<klucz>\s*:\s*true` (wartość ograniczona
 # spacją / `#` / końcem linii). Brak pliku lub brak dopasowania -> false.

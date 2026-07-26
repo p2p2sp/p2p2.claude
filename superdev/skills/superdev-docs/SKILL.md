@@ -18,7 +18,7 @@ Discovers the host project's user-facing features and persists a distilled "how 
 
 !`date +%Y%m%d-%H%M%S`
 
-The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture file `.superdev/.docs/capture-<RUN_ID>.md`; never reuse or overwrite an existing one.
+The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture file `.temp/superdev/docs/capture-<RUN_ID>.md`; never reuse or overwrite an existing one.
 
 ## Workflow
 
@@ -52,9 +52,9 @@ The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture
    Resolved changes go through step 6 (capture + writer handoff).
 
 6. Capture + hand off
-   Write .superdev/.docs/capture-<RUN_ID>.md (format below)
+   Write .temp/superdev/docs/capture-<RUN_ID>.md (format below)
    Invoke `superdev-docs-writer` (Skill) with a labeled-line args block:
-     capture: .superdev/.docs/capture-<RUN_ID>.md
+     capture: .temp/superdev/docs/capture-<RUN_ID>.md
    Relay its VERDICT/DOC lines verbatim - do NOT re-verify or rewrite the docs yourself
 ```
 

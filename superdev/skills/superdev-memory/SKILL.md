@@ -16,7 +16,7 @@ Hierarchical CLAUDE.md infrastructure so CLAUDE navigate codebases like senior e
 
 !`date +%Y%m%d-%H%M%S`
 
-The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture file `.superdev/.memory/capture-<RUN_ID>.md`; never reuse or overwrite an existing one.
+The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture file `.temp/superdev/memory/capture-<RUN_ID>.md`; never reuse or overwrite an existing one.
 
 ## Workflow
 
@@ -40,9 +40,9 @@ The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture
 
 5. Capture + hand off
    Ask the Capture Questions per selected area
-   Write .superdev/.memory/capture-<RUN_ID>.md (format below)
+   Write .temp/superdev/memory/capture-<RUN_ID>.md (format below)
    Invoke `superdev-memory-writer` (Skill) with a labeled-line args block:
-     capture: .superdev/.memory/capture-<RUN_ID>.md
+     capture: .temp/superdev/memory/capture-<RUN_ID>.md
    Relay its VERDICT/NODE lines verbatim - do NOT re-verify or rewrite the nodes yourself
 
 6. Maintenance mode (when state=complete)
