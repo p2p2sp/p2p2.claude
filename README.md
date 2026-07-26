@@ -63,14 +63,16 @@ Node.js >= 22.6, nothing else - run `/superui:setup` to verify. Full detail: `su
 
 | Skill | Role |
 | --- | --- |
-| `pro-designer` | Professional UI/UX design standards - visual hierarchy, 60-30-10 color discipline, type ramps, 4/8pt spacing, accessibility, component states, form-validation UX, and evidence-based conversion psychology with anti-dark-pattern rules; fires when creating, styling, or reviewing any interface; bundles topic reference docs + a WCAG contrast script |
+| `pro-designer` | Professional UI/UX design standards - visual hierarchy, color discipline, type ramps, 4/8pt spacing, accessibility, component states, form-validation UX, and evidence-based conversion psychology with anti-dark-pattern rules; fires when creating, styling, or reviewing any interface; bundles topic reference docs only - its WCAG contrast script lives at the plugin-root shared `scripts/`, not inside the skill |
 | `setup` | User-only environment diagnostic (`/superui:setup`) - reports Node.js runtime status; installs nothing |
 | `design-extractor` | User-only (`/superui:design-extractor <screenshots-dir>`) - turns a folder of UI screenshots into the Claude Design seed bundle: `DESIGN.md` (YAML front-matter tokens + prose body), the `DESIGN.components.md` / `DESIGN.patterns.md` spec satellites, and canonical screens |
 
 superui pairs Claude Code CLI (measurement, agentic fan-out) with Claude Design (live, inline-styled Design
-Components). `design-extractor` dispatches an internal fork worker, `design-extractor-builder`, which in turn
-fans out to five agents (source mapping, per-foundation measurement, component/pattern inventory, spec
-writing, bundle review) - see `superui/README.md` and `superui/CLAUDE.md` for the full pipeline.
+Components). `design-extractor` itself dispatches two agents - `source-scout` (source mapping) and
+`component-scout` (component/pattern inventory) - then hands off to an internal fork worker,
+`design-extractor-builder`, which dispatches the remaining four: `foundation-analyst` (per-foundation
+measurement), `spec-writer` (spec writing), `design-synthesizer` (proposed-token synthesis for gaps), and
+`bundle-reviewer` (bundle review) - see `superui/README.md` and `superui/CLAUDE.md` for the full pipeline.
 
 ## Super Fix
 

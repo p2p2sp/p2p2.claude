@@ -64,12 +64,15 @@ scripts under `<plugin>/hooks/scripts/` (only `superdev` has hooks; `superui` / 
 none), plus deterministic helper scripts bundled either under an individual skill's own `scripts/` dir or, when
 shared across a plugin's skills, at plugin level. `supergh` keeps its shared scripts under `<plugin>/shared/`
 (a `scripts/` subdir); `superdev` keeps its shared scripts and references at the plugin root
-(`superdev/scripts/`, `superdev/references/`), and `superui` keeps its shared scripts and its five agents at
+(`superdev/scripts/`, `superdev/references/`), and `superui` keeps its shared scripts and its six agents at
 the plugin root (`superui/scripts/`, `superui/agents/`), both with no `shared/` subdir. `superui` has no
 `references/` or `assets/` dir at the plugin root (only its `pro-designer` skill needs `references/`, and keeps
 its own). Each
 plugin's own `CLAUDE.md` inventories its scripts. **Editing markdown / JSON IS shipping** - there is no
-build / test / lint at any level. Contracts between files are enforced by humans reading carefully.
+build step and no lint at any level, and no test tooling inside any plugin. Dev-time regression suites for
+plugin scripts live at the repo-root `tests/` tree (outside every plugin dir, so no `plugin.json` or
+marketplace entry references it) and run with Node's native `node --test`. Contracts between files are
+otherwise enforced by humans reading carefully.
 
 All four plugins are **stack-agnostic on purpose**: skills read project-specific knowledge (test framework, build
 tool, naming, how to launch the app) from the **host** project's `CLAUDE.md` + `.claude/rules/`, never from
@@ -106,6 +109,9 @@ superfix/            The superfix plugin (codebase investigation; NO hooks/manif
 README.md            User-facing help (install + how it works)
 .github/             CI: scripts/release.sh + workflows/ (release-version.yml - manual dispatch only)
 .claude/rules/       Development-only conventions for this repo
+tests/               Dev-time regression suites for plugin scripts, run with `node --test` (e.g. tests/superui/)
+                     - sits outside every plugin dir, so no plugin.json and no marketplace entry references it;
+                     ships with no plugin
 .docs/               Dev-time notes + source material (per-plugin subdirs, e.g. .docs/superui/) - reference
                      documents behind skill content; NOT part of any plugin, never shipped, never read at runtime.
                      ONE exception to "dev-time only": .docs/assets/ holds images embedded in README.md
@@ -194,8 +200,10 @@ The invariants below hold across the repo.
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`create-issue`/`create-pr` skill,
   superfix's for the `code-auditor` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
-  (superfix's `scout` / `edge-scout` / `detective` / `critic` live there, not in `skills[]`; superui's five `design-extractor-builder`
-  workers live there too; superdev ships no agents - every superdev worker is a skill) - and the relevant `CLAUDE.md`
+  (superfix's `scout` / `edge-scout` / `detective` / `critic` live there, not in `skills[]`; superui's six agents
+  live there too - `source-scout` and `component-scout` dispatched by `design-extractor` itself, the other four
+  (`foundation-analyst`, `spec-writer`, `design-synthesizer`, `bundle-reviewer`) by `design-extractor-builder`;
+  superdev ships no agents - every superdev worker is a skill) - and the relevant `CLAUDE.md`
   (that plugin's, and this root file when the change is repo-wide) in either case. They must stay in sync, and a
   worker must never appear in both `skills[]` and `agents[]`.
   For the manifest-bearing plugin (`superdev`), its injected manifest
