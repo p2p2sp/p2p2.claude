@@ -9,9 +9,9 @@
 superui pairs Claude Code CLI (measurement, agentic fan-out) with Claude Design (live, inline-styled Design
 Components). It ships four skills - `pro-designer` (the cross-cutting UI/UX standards advisor), `setup` (the
 user-only environment diagnostic), and `design-extractor` + its fork worker `design-extractor-builder` (the
-screenshots-to-handoff-bundle pipeline) - plus the six agents `design-extractor` dispatches through its
-builder: `source-scout`, `foundation-analyst`, `component-scout`, `spec-writer`, `design-synthesizer`,
-`bundle-reviewer`.
+screenshots-to-handoff-bundle pipeline) - plus six agents split across the two: `design-extractor` itself
+dispatches `source-scout` and `component-scout`; `design-extractor-builder` dispatches the other four -
+`foundation-analyst`, `spec-writer`, `design-synthesizer`, `bundle-reviewer`.
 
 It is a **single-domain** plugin, so its skills carry **no group prefix** (the plugin name is the group) and
 are flat-named. The **per-component** catalog of record is `.claude-plugin/plugin.json` `skills[]` +
@@ -58,10 +58,10 @@ re-authors inline styles each turn). Consequences that shape the pipeline skills
 superui/
   .claude-plugin/plugin.json   The plugin manifest - skills[] + agents[] is the catalog of record
                      (no hooks/ - superui ships no hooks and no injected manifest)
-  agents/            The six design-extractor-builder workers, flat-named, each single-purpose
-                     (measuring: source-scout, foundation-analyst, spec-writer; judgment:
-                     component-scout, design-synthesizer, bundle-reviewer) - addressed via the
-                     `Agent` tool by name
+  agents/            The six agents design-extractor and its builder dispatch between them,
+                     flat-named, each single-purpose (measuring: foundation-analyst, spec-writer;
+                     judgment: source-scout, component-scout, design-synthesizer, bundle-reviewer)
+                     - addressed via the `Agent` tool by name
   scripts/           Plugin-root deterministic scripts, shared across skills - TypeScript (*.ts) run
                      directly by Node's native type stripping, `node:` builtins only, no npm deps and no
                      build step (plus check_node.sh - the Node env-check, run as an explicit early step
@@ -89,28 +89,36 @@ keeps its own rather than sharing one at the plugin root.
   via `${CLAUDE_PLUGIN_ROOT}/...`; a missing interpreter is a skip-with-note pointing at `/superui:setup`,
   never a hard stop. Advisory only.
 - `setup` - user-only (`disable-model-invocation: true`) environment diagnostic, `/superui:setup`. Runs its
-  own bundled `scripts/check_env.sh`, which reports the Node runtime (via the plugin-root `check_node.sh`)
-  as PASS/FAIL lines with install hints - no third-party modules to check, the scripts run on Node alone. Never
-  installs anything, never edits project files - diagnostic only. Every other skill's env-check step and
-  pro-designer's contrast-script fallback point here on a missing interpreter/module.
+  own bundled `scripts/check_env.sh`, which reports the Node runtime (via the plugin-root `check_node.sh`) as
+  `NODE <cmd>` or `NODE MISSING` plus a `VERSION <v>` line when node exists - no third-party modules to check,
+  the scripts run on Node alone. The skill's own `SKILL.md` turns those lines into the user-facing PASS/FAIL
+  table with install hints; the script itself never prints that formatting. Never installs anything, never
+  edits project files - diagnostic only. Every other skill's env-check step and pro-designer's contrast-script
+  fallback point here on a missing interpreter/module.
 - `design-extractor` - user-only (`disable-model-invocation: true`) head skill, `/superui:design-extractor
-  <screenshots-dir>`. Resolves the input, asks the user any ambiguity questions via `AskUserQuestion` (the
-  one call surface that only runs in the main context), transcribes the answers to
-  `<run>/intake-answers.md` - the single file it writes itself - then dispatches
-  `design-extractor-builder` for everything else and gates on its result. Measures nothing and authors no
-  measured or generated artifact inline.
+  <screenshots-dir>`. Resolves the input, dispatches `source-scout` for the source map and `component-scout`
+  for the inventory itself, asks the user any ambiguity questions via `AskUserQuestion` (the one call surface
+  that only runs in the main context), transcribes the answers to `<run>/intake-answers.md` - the single file
+  it writes itself - then hands off to `design-extractor-builder` for measurement, spec writing, synthesis and
+  review, and gates on its result. Measures nothing and authors no measured or generated artifact inline.
 - `design-extractor-builder` - internal fork worker (`user-invocable: false`, `context: fork`), reached only
-  via the `Skill` tool from `design-extractor`. The mechanical tail: fans out to the agents below and
-  the plugin-root scripts to turn a resolved source dir + source map + inventory into the finished seed
+  via the `Skill` tool from `design-extractor`. The mechanical tail: fans out to four of the agents below -
+  `foundation-analyst`, `spec-writer`, `design-synthesizer`, `bundle-reviewer` - and the plugin-root scripts
+  to turn a resolved source dir + source map + inventory into the finished seed
   bundle (`DESIGN.md`, `DESIGN.components.md`, `DESIGN.patterns.md`, `screens/<file>.png`). Each spec-writer
   writes an internal `<run>/specs/{components,patterns}/<slug>.md`; `assemble_specs.ts` consolidates each kind
   into its satellite; `copy_screens.ts` copies the deduplicated canonical screens from the source dir into
   `<out>/screens/` as its own scripted step, never an inline copy the orchestrator performs itself. Zero user
   conversation, zero inline design judgment - composes, dispatches, and gates on scripted validation.
 
-## Agents (design-extractor-builder workers)
+## Agents (dispatched by design-extractor and its builder)
 
-- `source-scout` - maps the screenshots dir into a source map (screen roles, dedup hints); measures nothing.
+`design-extractor` dispatches `source-scout` and `component-scout` itself (steps 2 and 4); the other four -
+`foundation-analyst`, `spec-writer`, `design-synthesizer`, `bundle-reviewer` - are dispatched by
+`design-extractor-builder`.
+
+- `source-scout` - maps the screenshots dir into a source map (screen roles, dedup hints); measures nothing,
+  and carries no `Bash` tool - judgment-only, like `component-scout`.
 - `foundation-analyst` - measures ONE foundation per invocation (colors, typography, dimensions, or
   effects-motion) via the plugin-root `sample_colors.ts` / `measure_geometry.ts`, writing a
   `notes-<foundation>.json` fragment; fanned out once per foundation for parallelism.
