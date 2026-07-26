@@ -53,9 +53,9 @@ Only HOTSPOT files are dispatched to detectives. Keep the others in the hotlist 
   "job": "reliability/bugs",
   "min_impact": 3,
   "min_opportunity": 3,
-  "top": 20,
+  "top": 18,
   "counts": {"scored": 42, "hotspots": 18, "overflow": 2, "skipped": 22},
-  "opportunity_histogram": {"1": 20, "2": 8, "3": 6, "4": 5, "5": 3},
+  "opportunity_histogram": {"1": 14, "2": 8, "3": 6, "4": 8, "5": 6},
   "degenerate": false,
   "hotspots": [
     {"rank":1,"path":"src/billing/PricingCards.tsx","impact":5,"opportunity":5,
