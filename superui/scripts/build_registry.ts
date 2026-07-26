@@ -12,14 +12,18 @@
  *      by the design synthesizer) carries proposed tokens/textStyles plus a
  *      `resolved` list of the unknowns those proposals cover. OUTPUT_PATH —
  *      where to write the merged `registry.json`.
- * OUT: stdout — one line on success:
+ * OUT: stdout - one line on success:
  *        REGISTRY_OK tokens=<N> unknowns=<M> -> <OUTPUT_PATH>
  *      OUTPUT_PATH holds the merged registry: the same shape as a fragment
  *      minus `foundation` and `resolved`, tokens/surfaceOrder/accentUsage/
  *      textStyles concatenated in fragment-then-within-fragment order, and
- *      `unknowns` concatenated then filtered — any entry matched (by section
- *      + `what`) by some fragment's `resolved` list is dropped, so a proposed
- *      value never coexists with a `> NEEDS INPUT` for the same gap.
+ *      `unknowns` concatenated then filtered - any entry matched (by section
+ *      + `what`) by some fragment's `resolved` list is dropped, PROVIDED that
+ *      fragment itself contributed at least one token or textStyle flagged
+ *      `proposed:true` (an empty or purely-measured `resolved` claim is
+ *      ignored), so a proposed value never coexists with a `> NEEDS INPUT`
+ *      for the same gap, and a gap nobody actually proposed for keeps
+ *      rendering as `> NEEDS INPUT`.
  * Exit codes: 0 = ok; 1 = empty/unreadable input dir, invalid JSON, a shape
  *      violation (message on stderr, naming the fragment and field), or a
  *      collision in any of four merged namespaces — `tokens` keys,
@@ -41,8 +45,15 @@
  *   - a measured token carries a well-formed `evidence` object; a proposed
  *     token (`proposed:true`, a best-practice value the synthesizer supplied
  *     for a foundation="proposed" fragment) carries a non-empty `rationale`
- *     instead and its `evidence` is stored null — the two provenances are
+ *     instead and its `evidence` is stored null - the two provenances are
  *     mutually exclusive per token;
+ *   - every token AND every `textStyles[]` entry inside a `foundation:
+ *     "proposed"` fragment must itself carry `proposed:true` - the
+ *     fragment-level foundation is not proof of provenance for each entry it
+ *     carries; a `textStyles[]` entry outside such a fragment must not carry
+ *     `rationale` (textStyles have no `evidence` field, so this is the only
+ *     signal that keeps a synthesized style from shipping unmarked as
+ *     measured);
  *   - a token in section "3.2" carries non-empty `primitive` and `usedFor`
  *     (both stay optional for every other section);
  *   - after merging, every `accentUsage[].token` names a key already
@@ -169,7 +180,7 @@ function nonEmptyString(v: unknown): v is string {
   return typeof v === "string" && v.length > 0;
 }
 
-function validateToken(name: string, raw: unknown, filename: string): TokenEntry {
+function validateToken(name: string, raw: unknown, filename: string, foundation: string): TokenEntry {
   if (!isDotted(name)) {
     throw new ShapeError(`${filename}: token name '${name}' is not dotted (needs a '<group>.<name>' form)`);
   }
@@ -202,6 +213,11 @@ function validateToken(name: string, raw: unknown, filename: string): TokenEntry
   const proposed = entry.proposed === true;
   if (entry.rationale !== undefined && entry.rationale !== null && typeof entry.rationale !== "string") {
     throw new ShapeError(`${filename}: token '${name}' has a non-string 'rationale'`);
+  }
+  // Every token inside a foundation:"proposed" fragment must self-identify as proposed - a fragment-level
+  // "proposed" foundation is not itself proof of provenance for each entry it carries.
+  if (foundation === "proposed" && !proposed) {
+    throw new ShapeError(`${filename}: token '${name}' is in a foundation:"proposed" fragment and must carry 'proposed: true'`);
   }
   // A proposed token carries a rationale in place of pixel evidence; a measured token carries evidence.
   let evidence: Evidence | null = null;
@@ -281,7 +297,7 @@ function validateAccentUsage(raw: unknown, filename: string): AccentUsageEntry[]
   });
 }
 
-function validateTextStyles(raw: unknown, filename: string): TextStyleEntry[] {
+function validateTextStyles(raw: unknown, filename: string, foundation: string): TextStyleEntry[] {
   if (raw === undefined) return [];
   if (!Array.isArray(raw)) throw new ShapeError(`${filename}: 'textStyles' must be an array`);
   return raw.map((item, i) => {
@@ -304,6 +320,16 @@ function validateTextStyles(raw: unknown, filename: string): TextStyleEntry[] {
     }
     if (proposed && !nonEmptyString(item.rationale)) {
       throw new ShapeError(`${filename}: textStyles[${i}] is proposed and is missing 'rationale'`);
+    }
+    // Symmetric with the token rule above: every textStyle inside a foundation:"proposed" fragment must
+    // self-identify as proposed, and - mirroring the fact that a measured token needs 'evidence' - a
+    // textStyle outside a foundation:"proposed" fragment must not carry a 'rationale' (rationale is
+    // reserved for provenance the fragment actually declares as proposed).
+    if (foundation === "proposed" && !proposed) {
+      throw new ShapeError(`${filename}: textStyles[${i}] is in a foundation:"proposed" fragment and must carry 'proposed: true'`);
+    }
+    if (foundation !== "proposed" && nonEmptyString(item.rationale)) {
+      throw new ShapeError(`${filename}: textStyles[${i}] carries 'rationale' but its fragment is not foundation:"proposed"`);
     }
     return {
       name: item.name,
@@ -352,14 +378,14 @@ export function validateShape(raw: unknown, filename: string): Fragment {
   }
   const tokens: Record<string, TokenEntry> = {};
   for (const [name, entry] of Object.entries(tokensRaw)) {
-    tokens[name] = validateToken(name, entry, filename);
+    tokens[name] = validateToken(name, entry, filename, raw.foundation);
   }
   return {
     foundation: raw.foundation,
     tokens,
     surfaceOrder: validateSurfaceOrder(raw.surfaceOrder, filename),
     accentUsage: validateAccentUsage(raw.accentUsage, filename),
-    textStyles: validateTextStyles(raw.textStyles, filename),
+    textStyles: validateTextStyles(raw.textStyles, filename, raw.foundation),
     unknowns: validateUnknowns(raw.unknowns, filename),
     resolved: validateUnknowns(raw.resolved, filename),
   };
@@ -480,7 +506,13 @@ export function mergeFragments(fragments: NamedFragment[]): Registry {
     accentUsage.push(...data.accentUsage);
     textStyles.push(...data.textStyles);
     unknowns.push(...data.unknowns);
-    for (const r of data.resolved) resolvedKeys.add(unknownKey(r));
+    // A fragment's `resolved` list only counts when the fragment itself contributed at least one entry
+    // flagged `proposed: true` - otherwise it is an empty (or purely measured) claim that a gap is filled,
+    // and the `unknowns` entry it names must keep rendering as `> NEEDS INPUT`.
+    const contributedProposed = Object.values(data.tokens).some((t) => t.proposed) || data.textStyles.some((s) => s.proposed);
+    if (contributedProposed) {
+      for (const r of data.resolved) resolvedKeys.add(unknownKey(r));
+    }
   }
   const filteredUnknowns = unknowns.filter((u) => !resolvedKeys.has(unknownKey(u)));
   return { tokens, surfaceOrder, accentUsage, textStyles, unknowns: filteredUnknowns };
