@@ -41,7 +41,11 @@ by subdir `source` (`"./superdev"`, `"./superui"`, `"./supergh"`, `"./superfix"`
 Each plugin is independently installable; none declares another as a dependency. End-user help lives in
 `README.md`; this file is orientation for the assistant.
 
-- **superdev** - project memory, planning, and the agentic-development pipeline.
+- **superdev** - project memory, planning, and the agentic-development pipeline. Also ships a third,
+  user-facing memory layer - `superdev-docs` + `superdev-docs-writer` maintain per-feature product docs in
+  the host repo's `docs/product/<feature-slug>.md`, treated as user intent (divergence from code is surfaced
+  as a requirement, never silently overwritten), wired into both build close-outs behind an opt-in `docs`
+  config switch.
 - **superui** - the design / frontend ecosystem, pairing Claude Code CLI (measurement, agentic fan-out) and
   Claude Design (live, inline-styled Design Components): `/superui:design-extractor <screenshots-dir>` turns a
   folder of UI screenshots into a lean seed bundle (`DESIGN.md` - YAML front-matter tokens + a prose body -
