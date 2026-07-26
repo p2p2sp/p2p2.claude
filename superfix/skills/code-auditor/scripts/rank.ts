@@ -542,7 +542,7 @@ function loadJsonl(p: string): JsonMap[] {
   const rows: JsonMap[] = [];
   // Read errors are deliberately uncaught (exit 1), like the original.
   const buf = fs.readFileSync(p);
-  const text = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true })
+  const text = new TextDecoder("utf-8", { fatal: true, ignoreBOM: false })
     .decode(buf)
     .replace(/\r\n?/g, "\n");
   const lines = text.split("\n");
@@ -619,8 +619,8 @@ function main(): void {
   const merged = new Map<JsonValue, JsonMap>();
   for (const rec of scores) {
     if (!(rec instanceof Map)) {
-      // Python would crash with AttributeError on rec.get; mirror the crash.
-      throw new TypeError(`'${rec === null ? "NoneType" : typeof rec}' object has no attribute 'get'`);
+      console.error(`warn: skipping non-object record: ${pyRepr(rec)}`);
+      continue;
     }
     const p = rec.has("path") ? rec.get("path") : null;
     if (p === null || p === undefined) continue;

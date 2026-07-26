@@ -92,7 +92,7 @@ function loadJsonl(p: string, missingOk = false): Row[] {
   if (missingOk && !fs.existsSync(p)) return [];
   const rows: Row[] = [];
   // Read errors are deliberately uncaught (exit 1) - the file must exist.
-  const text = fs.readFileSync(p, "utf8").replace(/\r\n?/g, "\n");
+  const text = fs.readFileSync(p, "utf8").replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
   const lines = text.split("\n");
   for (let ln = 1; ln <= lines.length; ln++) {
     const line = lines[ln - 1].trim();
