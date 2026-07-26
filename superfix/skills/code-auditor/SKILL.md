@@ -70,7 +70,7 @@ bash "${CLAUDE_SKILL_DIR}/scripts/collect_edges.sh" <repo-root> --max-fanout 8 \
   > .temp/code-reviewer/<run-id>/signals/edges.jsonl
 ```
 
-This emits one JSON line per candidate artifact pair with `a`, `b`, `via`, `fanout`, `shared` - two swept files that share a path-like literal (a filename token), which is evidence they share a contract. An empty `edges.jsonl` is a valid result: the edge track then contributes nothing and the run proceeds on the file track alone.
+This emits one JSON line per candidate artifact pair with all six keys `a`, `b`, `via`, `vias`, `fanout`, `shared` - two swept files that share a path-like literal (a filename token), which is evidence they share a contract. `vias` is up to 3 ranked linking-literal candidates for the pair, best first; `via` is always `vias[0]`. See `${CLAUDE_SKILL_DIR}/references/scoring.md` for the full edge-record schema. An empty `edges.jsonl` is a valid result: the edge track then contributes nothing and the run proceeds on the file track alone.
 
 ### Phase 2 - Score (fan out the scouts, cheap model)
 For each candidate file (or each batch of N files), spawn a **`scout`** subagent (Agent tool, `subagent_type: superfix:scout`) - cheap tier, runs in its own isolated context, returns one line of strict JSON. Launch at most 16 concurrent subagents at a time; beyond that, run successive waves.
@@ -81,7 +81,7 @@ For each candidate file (or each batch of N files), spawn a **`scout`** subagent
 
 Batch to control cost: ~10-40 files per scout for a huge tree, 1 file per scout when you want maximum resolution on a hot module.
 
-For each candidate pair (or small batch of pairs), spawn an **`edge-scout`** subagent (Agent tool, `subagent_type: superfix:edge-scout`) - same cheap tier, same 16-concurrent ceiling - given the edge record and `job.md`. Append every verdict line to `.temp/code-reviewer/<run-id>/scores/edge_scores.jsonl`. The verdict is one of `MATCH` / `MISMATCH` / `UNCLEAR` / `NO_CONTRACT`: `UNCLEAR` is the correct verdict when the cheap tier cannot settle whether the pair's contract holds - it is a dispatch reason for Phase 4, not a rejection; `NO_CONTRACT` is for a shared literal that turns out coincidental (no real contract to check), and is never a dispatch reason.
+For each candidate pair (or small batch of pairs), spawn an **`edge-scout`** subagent (Agent tool, `subagent_type: superfix:edge-scout`) - same cheap tier, same 16-concurrent ceiling - given the edge record and `job.md`. The edge record line from `edges.jsonl` is handed to the scout verbatim and is the single source of truth. Append every verdict line to `.temp/code-reviewer/<run-id>/scores/edge_scores.jsonl`. The verdict is one of `MATCH` / `MISMATCH` / `UNCLEAR` / `NO_CONTRACT`: `UNCLEAR` is the correct verdict when the cheap tier cannot settle whether the pair's contract holds - it is a dispatch reason for Phase 4, not a rejection; `NO_CONTRACT` is for a shared literal that turns out coincidental (no real contract to check), and is never a dispatch reason.
 
 ### Phase 3 - Gate (drop the noise, build the hotlist)
 Combine and rank deterministically so the cut is reproducible:
