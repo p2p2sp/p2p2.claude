@@ -116,7 +116,9 @@ README.md            User-facing help (install + how it works)
 .claude/rules/       Development-only conventions for this repo
 docs/.workflows/     Run records of superdev builds executed ON this repo (one dir per build: spec, plan,
                      tasks, implementation reports) - history, never rewritten; ships with no plugin
-tests/               Dev-time regression suites for plugin scripts, run with `node --test` (e.g. tests/superui/)
+tests/               Dev-time regression suites for plugin scripts, run from the repo root with
+                     `node --test "tests/**/*.test.ts"` (a bare directory argument, e.g. `tests/superui/`,
+                     does not work - `node --test` resolves it as a module path, not a glob)
                      - sits outside every plugin dir, so no plugin.json and no marketplace entry references it;
                      ships with no plugin. Fixtures, expected outputs and stub scenarios stay file-local to
                      each `*.test.ts` - `tests/harness/` is the single exception, exposing shared *mechanism*
