@@ -357,6 +357,31 @@ if (!jqAvailable || !bashPath) {
     });
   });
 
+  test("a release body larger than the OS pipe buffer still publishes - gh exiting without draining the notes must not kill release.sh", () => {
+    withReleaseFixture((fx) => {
+      fx.repo.git("tag", "1.2.3");
+      // A commit whose SUBJECT alone outgrows every OS pipe buffer (64 KiB on
+      // Linux, 16-64 KiB on macOS), so the notes body cannot be handed over in a
+      // single non-blocking write. Passed via -F, never -m: Git-Bash caps a
+      // command line at 32 KiB. The filler commit ahead of it is load-bearing -
+      // `--pretty=format:` ends without a newline, so the OLDEST commit in the
+      // range never reaches the body and the big one must not be it.
+      const filler = fx.repo.git("commit", "--allow-empty", "-m", "fix: filler ahead of the big subject");
+      assert.equal(filler.status, 0, `seeding the filler commit should succeed: ${filler.stderr}`);
+      const msgFile = path.join(fx.stateDir, "big-subject.txt");
+      fs.writeFileSync(msgFile, `feat: ${"x".repeat(128 * 1024)}\n`);
+      const commit = fx.repo.git("commit", "--allow-empty", "-F", msgFile);
+      assert.equal(commit.status, 0, `seeding the big-subject commit should succeed: ${commit.stderr}`);
+
+      const result = runRelease(bash, fx, "patch");
+      assert.equal(result.status, 0, `release.sh should succeed: ${result.stderr}`);
+      assert.equal(lastStdoutLine(result.stdout), "1.2.4");
+
+      const calls = argvCalls(fx.argvFile);
+      assert.equal(calls.filter((c) => c[0] === "release" && c[1] === "create").length, 1, "the release must still be created");
+    });
+  });
+
   test("re-run recovery: a second run at the same target version re-tags the already-committed bump instead of fabricating an empty commit, and does not re-create the GitHub release", () => {
     withReleaseFixture((fx) => {
       fx.repo.git("tag", "1.2.3");
