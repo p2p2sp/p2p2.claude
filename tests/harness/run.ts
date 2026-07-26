@@ -36,7 +36,9 @@ export interface RunOpts {
   input?: string;
   /** Prepended to PATH, in order, ahead of the sanitised base PATH. */
   stubDirs?: string[];
-  /** Milliseconds; default 30000. */
+  /** Milliseconds; default 60000 - generous on purpose, because CI runs the
+   *  files more concurrently than the runner has cores, so a spawn-heavy
+   *  script can take several times its unloaded wall time. */
   timeout?: number;
 }
 
@@ -146,7 +148,7 @@ export function runScript(script: string, args: string[] = [], opts: RunOpts = {
     env,
     input: opts.input,
     encoding: "utf-8",
-    timeout: opts.timeout ?? 30000,
+    timeout: opts.timeout ?? 60000,
   });
   return {
     stdout: result.stdout ?? "",

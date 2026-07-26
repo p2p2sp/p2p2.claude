@@ -255,8 +255,18 @@ if (!jqAvailable || !bashPath) {
 
   test("200 tags, including a 1.9.0/1.10.0 pair, sort by version not lexicographically", () => {
     withReleaseFixture((fx) => {
-      const loop = 'set -e; for i in $(seq 1 198); do git tag "0.0.$i"; done; git tag "1.9.0"; git tag "1.10.0"';
-      const seedTags = runScript("bash", ["-c", loop], { cwd: fx.repo.dir, env: fx.repo.env });
+      // One `git update-ref --stdin` rather than 200 `git tag` calls: the refs
+      // it writes are the same lightweight tags, and 200 spawned processes
+      // take tens of seconds on Windows.
+      const head = fx.repo.git("rev-parse", "HEAD");
+      assert.equal(head.status, 0, `resolving HEAD should succeed: ${head.stderr}`);
+      const names = [...Array.from({ length: 198 }, (_, i) => `0.0.${i + 1}`), "1.9.0", "1.10.0"];
+      const commands = names.map((name) => `create refs/tags/${name} ${head.stdout.trim()}\n`).join("");
+      const seedTags = runScript("git", ["update-ref", "--stdin"], {
+        cwd: fx.repo.dir,
+        env: fx.repo.env,
+        input: commands,
+      });
       assert.equal(seedTags.status, 0, `seeding 200 tags should succeed: ${seedTags.stderr}`);
 
       const result = runRelease(bash, fx, "patch");
