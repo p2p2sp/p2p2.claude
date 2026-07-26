@@ -23,5 +23,9 @@ jobs:
         run: |
           count=$(git ls-files 'tests/**/*.test.ts' | wc -l)
           [ "$count" -gt 0 ]
+      # --test-concurrency: the suite spends its time waiting on spawned
+      # scripts, not on CPU, so it runs more files at once than the runner has
+      # cores. Matters on windows-latest (4 vCPU, default concurrency 3), where
+      # process creation is an order of magnitude dearer than on Linux/macOS.
       - name: Run tests
-        run: node --test "tests/**/*.test.ts"
+        run: node --test --test-concurrency=8 "tests/**/*.test.ts"

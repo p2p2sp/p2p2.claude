@@ -40,7 +40,6 @@ export interface WithGitRepoOpts {
 export function withGitRepo<T>(fn: (repo: GitRepo) => T, opts: WithGitRepoOpts = {}): T {
   return withTempDir("p2p2-git-", (dir) => {
     const gitConfigGlobal = path.join(dir, ".gitconfig-global");
-    fs.writeFileSync(gitConfigGlobal, "");
     const env: Record<string, string> = {
       HOME: dir,
       USERPROFILE: dir,
@@ -57,10 +56,22 @@ export function withGitRepo<T>(fn: (repo: GitRepo) => T, opts: WithGitRepoOpts =
       return runScript("git", args, { cwd: dir, env });
     }
 
-    git("config", "--global", "user.name", env.GIT_AUTHOR_NAME);
-    git("config", "--global", "user.email", env.GIT_AUTHOR_EMAIL);
-    git("config", "--global", "commit.gpgsign", "false");
-    git("config", "--global", "init.defaultBranch", "main");
+    // Written as a file rather than through four `git config --global` calls:
+    // the suite creates ~90 of these repos, and a spawned process is the most
+    // expensive thing it does (an order of magnitude more so on Windows).
+    fs.writeFileSync(
+      gitConfigGlobal,
+      [
+        "[user]",
+        `\tname = ${env.GIT_AUTHOR_NAME}`,
+        `\temail = ${env.GIT_AUTHOR_EMAIL}`,
+        "[commit]",
+        "\tgpgsign = false",
+        "[init]",
+        "\tdefaultBranch = main",
+        "",
+      ].join("\n"),
+    );
     const init = opts.bare ? git("init", "--bare", ".") : git("init", ".");
     if (init.status !== 0) {
       throw new Error(`withGitRepo: git init failed (status ${init.status}): ${init.stderr}`);
