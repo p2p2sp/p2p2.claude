@@ -219,14 +219,18 @@ function renderColorPrimitives(rows: TokenRow[]): string {
 
 function renderSemanticColors(rows: TokenRow[]): string {
   const hasProposed = rows.some((r) => r.proposed === true);
+  const noteCells = rows.map((r) => tokenNotesCell(r));
+  const hasNotes = noteCells.some((n) => n.length > 0);
   const headers = ["Role", "Primitive", "Hex (light)", "Hex (dark)", "Where used"];
-  if (hasProposed) headers.push("Source", "Notes");
+  if (hasProposed) headers.push("Source");
+  if (hasNotes) headers.push("Notes");
   const lines = [`| ${headers.join(" | ")} |`, `| ${headers.map(() => "---").join(" | ")} |`];
-  for (const r of rows) {
-    const cells = [r.name, r.primitive ?? "", r.value, r.dark ?? "", r.usedFor ?? ""];
-    if (hasProposed) cells.push(r.proposed ? "proposed" : "measured", tokenNotesCell(r));
+  rows.forEach((r, i) => {
+    const cells = [r.name, cellSafe(r.primitive ?? ""), r.value, r.dark ?? "", cellSafe(r.usedFor ?? "")];
+    if (hasProposed) cells.push(r.proposed ? "proposed" : "measured");
+    if (hasNotes) cells.push(noteCells[i]);
     lines.push(`| ${cells.join(" | ")} |`);
-  }
+  });
   return lines.join("\n") + "\n";
 }
 
@@ -271,7 +275,15 @@ export function renderTextStyles(textStyles: TextStyleEntry[]): string {
   if (hasProposed) headers.push("Source", "Notes");
   const lines = [`| ${headers.join(" | ")} |`, `| ${headers.map(() => "---").join(" | ")} |`];
   for (const t of textStyles) {
-    const cells = [t.name, t.family, t.size, String(t.weight), String(t.lineHeight), t.letterSpacing, t.usedFor];
+    const cells = [
+      t.name,
+      cellSafe(t.family),
+      cellSafe(t.size),
+      String(t.weight),
+      String(t.lineHeight),
+      cellSafe(t.letterSpacing),
+      cellSafe(t.usedFor),
+    ];
     if (hasProposed) {
       const note = t.proposed ? (t.rationale ? `PROPOSED - ${t.rationale}` : "PROPOSED") : "";
       cells.push(t.proposed ? "proposed" : "measured", cellSafe(note));
