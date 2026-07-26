@@ -62,8 +62,9 @@
  *          [--tol N] [--json]
  */
 
-import { basename } from "node:path";
+import { basename, resolve } from "node:path";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { decodePng, isPng, PngDecodeError, PngUnsupportedError } from "./vendor/png-decode.ts";
 import { decode as decodeJpeg } from "./vendor/jpeg-decode.ts";
 
@@ -659,4 +660,6 @@ function main(): void {
   process.stdout.write(lines.join("\n") + "\n");
 }
 
-main();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}

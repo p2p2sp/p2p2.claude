@@ -42,7 +42,8 @@
  */
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { basename, join, relative } from "node:path";
+import { basename, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { canonicalRefs } from "./inventory-format.ts";
 
 // ---------------------------------------------------------------------------
@@ -319,4 +320,6 @@ function main(): void {
   process.exit(1);
 }
 
-main();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}

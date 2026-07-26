@@ -16,6 +16,8 @@
 // Exit 1 if any pair fails the AA threshold FOR ITS OWN TYPE (a 3.2:1 border passes; 3.2:1 body text fails).
 
 import * as fs from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const DOC = `WCAG 2.2 contrast checker. No dependencies.
 
@@ -103,7 +105,7 @@ function pyFloatStr(v: number): string {
 
 // --- Contrast math ---------------------------------------------------------
 
-function parseColor(input: string): [number, number, number] {
+export function parseColor(input: string): [number, number, number] {
   let s = pyStrip(input).toLowerCase();
   const m = /^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/.exec(s);
   if (m) {
@@ -136,7 +138,7 @@ function relLuminance(rgb: [number, number, number]): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-function contrastRatio(fg: [number, number, number], bg: [number, number, number]): number {
+export function contrastRatio(fg: [number, number, number], bg: [number, number, number]): number {
   const lf = relLuminance(fg);
   const lb = relLuminance(bg);
   const l1 = Math.max(lf, lb);
@@ -170,7 +172,7 @@ function parseCliPairs(argv: string[]): Pair[] {
   return pairs;
 }
 
-function main(argv: string[]): number {
+export function main(argv: string[]): number {
   if (argv.length === 0) {
     console.log(DOC);
     return 2;
@@ -225,4 +227,6 @@ function main(argv: string[]): number {
   return anyFail ? 1 : 0;
 }
 
-process.exitCode = main(process.argv.slice(2));
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  process.exitCode = main(process.argv.slice(2));
+}

@@ -51,7 +51,8 @@
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { basename } from "node:path";
+import { basename, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { SECTION_TITLES } from "./section-model.ts";
 import { parseInventoryEntries } from "./inventory-format.ts";
 
@@ -693,4 +694,6 @@ function main(): void {
   process.stdout.write(`DESIGN_MD_OK headings=${STANDARD_HEADINGS.join(",")} -> ${outputPath}\n`);
 }
 
-main();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}

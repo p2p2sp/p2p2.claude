@@ -58,7 +58,8 @@
  */
 
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { TOKEN_SECTION_RE, UNKNOWN_SECTION_RE } from "./section-model.ts";
 
 // ---------------------------------------------------------------------------
@@ -597,4 +598,6 @@ function main(): void {
   process.stdout.write(`REGISTRY_OK tokens=${tokenCount} unknowns=${unknownCount} -> ${outputPath}\n`);
 }
 
-main();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}
