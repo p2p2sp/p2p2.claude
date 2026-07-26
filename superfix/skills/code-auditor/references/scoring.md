@@ -115,11 +115,15 @@ is that gate: deterministic, no LLM judgment, run once per sweep against `collec
 Edge record (from `collect_edges.sh`, one per candidate pair):
 
 ```json
-{"a":"src/api/UserDto.ts","b":"src/db/userSchema.sql","via":"user.dto.ts","fanout":2,"shared":1}
+{"a":"src/api/UserDto.ts","b":"src/db/userSchema.sql","via":"user.dto.ts","vias":["user.dto.ts"],"fanout":2,"shared":1}
 ```
 
-`a < b` lexicographically. `via` is the linking literal chosen for the pair; `fanout` is how many swept files
-mention `via`; `shared` is how many distinct literals link this exact pair.
+`a < b` lexicographically. `via` is the linking literal with the highest artifact evidence for the pair (a
+literal naming a real tracked file outranks one that merely shares the repo's extension set, which in turn
+outranks syntax noise; ties break by lower fanout then lexicographically smaller literal); `vias` carries up
+to 3 candidates ranked by that same rule, best first, with `via` always `vias[0]` - a scout-facing prior list,
+not part of `rank_edges.ts`'s own projection (`edges.json`/`edges.md` still carry only `via`/`shared`).
+`fanout` is how many swept files mention `via`; `shared` is how many distinct literals link this exact pair.
 
 Verdict record (from `edge-scout`, one per pair):
 

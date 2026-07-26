@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # collect_edges.sh - cheap, deterministic ARTIFACT-PAIR discovery for the
 # edge track. Emits one JSON object per candidate pair to stdout (JSONL).
-# These are PRIORS for edge-scout, not the verdict itself.
+# These are PRIORS for edge-scout, not the verdict itself; downstream,
+# rank_edges.ts joins them against edge-scout's verdicts and projects `via`
+# (never `vias`) verbatim into its own gate output, edges.json / edges.md.
 #
 # Usage:
 #   bash collect_edges.sh [repo_root] [--max-fanout K]
@@ -17,6 +19,9 @@
 # Fields per pair:
 #   a, b      the two paths, always a < b lexicographically
 #   via       the linking literal chosen for this pair (see tie-break below)
+#   vias      up to 3 linking literals for this pair, ranked by the same
+#             tie-break as `via` (best first) - a scout-facing list of
+#             candidates, not just the single winner
 #   fanout    count[via] - the number of distinct files that mention `via`
 #   shared    number of distinct literals linking this exact pair
 #
@@ -32,11 +37,18 @@
 # everything references it, so it carries no pairing signal) and counted on
 # stderr, alongside the count of literals actually kept.
 #
-# A pair can be linked by more than one literal (`shared` counts them); the
-# emitted `via`/`fanout` are the LOWEST-fanout linking literal (the most
-# specific one), ties broken by lexicographically smaller literal - both for
-# determinism, since the lowest-fanout literal is the strongest evidence of
-# an intentional producer/consumer relationship.
+# A pair can be linked by more than one literal (`shared` counts them, `vias`
+# lists up to 3, best first). The emitted `via`/`fanout` are the linking
+# literal with the HIGHEST artifact evidence: scored 2 when the literal names
+# a real tracked file (an artifact one side writes and the other reads), 1
+# when its extension is merely one the repo actually carries, 0 otherwise
+# (syntax noise, e.g. a method call like "Array.from" that only looks
+# path-like) - ties within a score broken by lower fanout, then
+# lexicographically smaller literal. Lowest-fanout is the right tie-break
+# only among literals of comparable evidence; used alone as the PRIMARY key
+# it is INVERTED for a code-to-code pair, since a rare method name can carry
+# a lower fanout than a real shared artifact yet says nothing about a
+# producer/consumer contract.
 #
 # --max-fanout is stripped out of the positional stream before repo_root is
 # bound, the same way collect_signals.sh strips --with-dependents, so it may
@@ -112,6 +124,17 @@ kept_exts="$(
     | { grep -Ev "^(${DENY_EXT})$" || true; }
 )"
 
+# Tracked-basename set - a linking literal that names a real tracked file is
+# ARTIFACT evidence (a filename one side writes, the other reads); one that
+# only looks path-like (a method call such as "Array.from") is syntax noise.
+# Built the same way kept_exts is above and handed to the pairing awk below
+# via ENVIRON, for the same BSD/macOS-awk-aborts-on-newline-in--v reason.
+tracked_basenames="$(
+  git -c core.quotePath=false ls-files | noise_filter \
+    | awk -F/ '{ print $NF }' \
+    | sort -u
+)"
+
 # Pass 2 - candidates: files whose extension was kept, plus extensionless
 # files. kept_exts is handed to awk via ENVIRON, not `-v` - a `-v` value
 # containing a newline (any multi-extension repo) aborts BSD/macOS awk.
@@ -173,13 +196,28 @@ sorted_pairs="$(printf '%s\n' "$raw_pairs" | sort -u)"
 # Count distinct files per literal, then, for literals kept (fanout in
 # [2, MAX_FANOUT]), emit every unordered distinct pair those files form -
 # aggregated so each pair appears once regardless of how many literals link
-# it, with `via`/`fanout` set to the lowest-fanout linking literal (ties
-# broken lexicographically) and `shared` the count of distinct linking
-# literals. Iterating only within each split()'s own 1..n range (rather than
-# relying on `delete array`, a non-portable extension) keeps this working
-# across awk implementations (BSD/macOS awk and gawk alike).
+# it. Each linking literal is scored ARTIFACT-first via via_score() (2 =
+# names a tracked file, 1 = extension the repo carries, 0 = syntax noise);
+# `via`/`fanout` come from the highest-scoring literal, ties broken by lower
+# fanout then lexicographically smaller literal, and `vias` carries up to 3
+# literals ordered by that same key - `via` is always `vias[0]`. Iterating
+# only within each split()'s own 1..n range (rather than relying on `delete
+# array`, a non-portable extension) keeps this working across awk
+# implementations (BSD/macOS awk and gawk alike).
 pair_tsv="$(
-  awk -F'\t' -v max_fanout="$MAX_FANOUT" '
+  KEPT_EXTS="$kept_exts" TRACKED_BASENAMES="$tracked_basenames" awk -F'\t' -v max_fanout="$MAX_FANOUT" '
+    BEGIN {
+      n = split(ENVIRON["KEPT_EXTS"], ea, "\n"); for (i = 1; i <= n; i++) if (ea[i] != "") kept_ext[ea[i]] = 1
+      n = split(ENVIRON["TRACKED_BASENAMES"], ba, "\n"); for (i = 1; i <= n; i++) if (ba[i] != "") tracked_base[ba[i]] = 1
+    }
+    function via_score(tok,    ext) {
+      if (tok in tracked_base) return 2
+      ext = tok
+      sub(/.*\./, "", ext)
+      ext = tolower(ext)
+      if (ext in kept_ext) return 1
+      return 0
+    }
     NF < 2 || $1 == "" || $2 == "" { next }
     {
       files[$2] = files[$2] $1 "\n"
@@ -202,17 +240,43 @@ pair_tsv="$(
             pair_a[pkey] = pa
             pair_b[pkey] = pb
             tkey = pkey SUBSEP tok
-            if (!(tkey in tokseen)) { tokseen[tkey] = 1; pair_shared[pkey]++ }
-            curf = count[tok]
-            if (!(pkey in pair_fanout) || curf < pair_fanout[pkey] || (curf == pair_fanout[pkey] && tok < pair_via[pkey])) {
-              pair_fanout[pkey] = curf
-              pair_via[pkey] = tok
+            if (!(tkey in tokseen)) {
+              tokseen[tkey] = 1
+              pair_shared[pkey]++
+              idx = ++pair_n[pkey]
+              pair_tok[pkey, idx] = tok
+              pair_fan[pkey, idx] = count[tok]
             }
           }
         }
       }
+      # Selection sort the linking-literal list of each pair by the SAME
+      # comparator that picks `via`, so `via` (position 1) and `vias`
+      # (positions 1..3) never disagree: higher via_score first, then lower
+      # fanout, then lexicographically smaller literal.
       for (pkey in pair_a) {
-        printf "%s\t%s\t%s\t%d\t%d\n", pair_a[pkey], pair_b[pkey], pair_via[pkey], pair_fanout[pkey], pair_shared[pkey]
+        n = pair_n[pkey]
+        for (x = 1; x <= n; x++) {
+          best = x
+          bs = via_score(pair_tok[pkey, x])
+          for (y = x + 1; y <= n; y++) {
+            ys = via_score(pair_tok[pkey, y])
+            swap = 0
+            if (ys > bs) swap = 1
+            else if (ys == bs && pair_fan[pkey, y] < pair_fan[pkey, best]) swap = 1
+            else if (ys == bs && pair_fan[pkey, y] == pair_fan[pkey, best] && pair_tok[pkey, y] < pair_tok[pkey, best]) swap = 1
+            if (swap) { best = y; bs = ys }
+          }
+          if (best != x) {
+            t = pair_tok[pkey, x]; pair_tok[pkey, x] = pair_tok[pkey, best]; pair_tok[pkey, best] = t
+            f = pair_fan[pkey, x]; pair_fan[pkey, x] = pair_fan[pkey, best]; pair_fan[pkey, best] = f
+          }
+        }
+        cap = (n < 3 ? n : 3)
+        vias = "[\"" pair_tok[pkey, 1] "\""
+        for (x = 2; x <= cap; x++) vias = vias ",\"" pair_tok[pkey, x] "\""
+        vias = vias "]"
+        printf "%s\t%s\t%s\t%d\t%d\t%s\n", pair_a[pkey], pair_b[pkey], pair_tok[pkey, 1], pair_fan[pkey, 1], pair_shared[pkey], vias
       }
       printf "collect_edges.sh: literals: %d kept, %d dropped as ambient (fanout>%d)\n", kept_tokens, dropped_ambient, max_fanout > "/dev/stderr"
     }
@@ -221,8 +285,8 @@ pair_tsv="$(
 
 [ -n "$pair_tsv" ] || exit 0
 
-while IFS=$'\t' read -r a b via fanout shared; do
+while IFS=$'\t' read -r a b via fanout shared vias; do
   [ -n "$a" ] || continue
-  printf '{"a":"%s","b":"%s","via":"%s","fanout":%s,"shared":%s}\n' \
-    "$(esc "$a")" "$(esc "$b")" "$(esc "$via")" "$fanout" "$shared"
+  printf '{"a":"%s","b":"%s","via":"%s","fanout":%s,"shared":%s,"vias":%s}\n' \
+    "$(esc "$a")" "$(esc "$b")" "$(esc "$via")" "$fanout" "$shared" "$vias"
 done <<< "$pair_tsv"

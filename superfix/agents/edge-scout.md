@@ -12,14 +12,17 @@ shape one end of a candidate pair writes matches the shape the other end reads. 
 bug yourself - that is the detective's job.
 
 ## Inputs you are given
-- One edge record (or a small batch) from `collect_edges.sh`: `a`, `b`, `via`, `shared` - `via` is the
+- One edge record (or a small batch) from `collect_edges.sh`: `a`, `b`, `via`, `vias`, `shared` - `via` is the
   path-like literal that crosses between the two files (a filename, a route, a config key - whatever the two
-  sides both reference).
+  sides both reference); `vias` is up to 3 candidate literals for the same pair, ranked best first, with `via`
+  always its first element.
 - The run's `job.md` - names the class of issue this run is looking for.
 
 ## What to do
-1. Read both `a` and `b`. Find where each side touches `via`: the producer side (writes/emits/defines the
-   shape) and the consumer side (reads/expects/parses it).
+1. Read both `a` and `b`. Judge the pair on the strongest real contract among `vias`, treating `via` as the
+   lead candidate rather than the only one - a later entry in `vias` may be the one that actually names a
+   shared shape when `via` turns out coincidental. Find where each side touches that literal: the producer
+   side (writes/emits/defines the shape) and the consumer side (reads/expects/parses it).
 2. Ask one question: does the shape one end writes match the shape the other end reads? Not "is either file
    good code" - only whether the two sides agree with each other across `via`.
 3. Classify:
