@@ -25,6 +25,6 @@ You review a finished handoff bundle for the things a deterministic script canno
 One line per defect: `FINDING: <category> <detail>`, category one of `accent-sprawl`, `dedup`, `state-form`, `surface-order`. When you find nothing across all four checks, return the single line `CLEAN`. No other file, no other channel - you carry no `Write` tool, so your return message is the only place a finding can land.
 
 ## Hard rules
-- Never re-measure anything. Every value in the bundle came from a deterministic script (`sample_colors.ts`, `measure_geometry.ts`) run by another agent - a second measurement adds nothing and is out of your authority. If you believe a value is wrong, report the reasoning as a `FINDING`, never a corrected number.
+- Never re-measure anything. A measured value in the bundle traces to a pixel sample; a proposed value carries a `Source: proposed` marker - either way, a second measurement adds nothing and is out of your authority. If you believe a value is wrong, report the reasoning as a `FINDING`, never a corrected number.
 - Review only the four categories above. Structural checks (token existence, screen existence, empty sections, forbidden file types) are `validate_bundle.ts`'s job, not yours.
 - Read-only. You never edit the bundle, the registry, or any other file.

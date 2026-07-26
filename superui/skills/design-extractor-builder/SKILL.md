@@ -39,9 +39,11 @@ A labeled block, one `label: value` per line:
   path and the findings as added constraints; it regenerates its artifact in full, never a patch.
   Cap at two rounds per gate - after that, carry the residue into the final message as
   `> NEEDS INPUT`.
-- `bundle-reviewer` findings are never a gate here - `dedup` and `accent-sprawl` trace back to the
-  inventory, an input this skill receives rather than authors, so its findings are carried
-  verbatim into the return message for the user to act on, never re-dispatched.
+- `bundle-reviewer` findings are never a gate here, and never re-dispatched even when they fall
+  inside the convention above (e.g. `state-form`, "a malformed spec output"): they are judgment
+  calls over a finished bundle - accent discipline, dedup, state completeness, surface-order
+  coherence - not structural defects a re-generated artifact would fix, so they are carried
+  verbatim into the return message for the user to act on.
 - Fan-out steps run agents in parallel, batched (about 5 concurrent); wait for a batch before
   dispatching the next.
 
