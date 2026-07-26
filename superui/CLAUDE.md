@@ -154,8 +154,10 @@ contract modules are imported across `scripts/` itself - `section-model.ts` by `
 - `scripts/check_node.sh` - the Node.js env-check; run as an explicit early step (`sh
   "${CLAUDE_PLUGIN_ROOT}/scripts/check_node.sh"`) by every skill with a script step - no `!` preflight.
   Emits `NODE_OK <cmd>` (`node`, or `node --experimental-strip-types` on 22.6 <= v < 23.6) or
-  `NODE_MISSING` (absent / < 22.6) -> that skill stops the script-dependent parts and points the user at
-  `/superui:setup`.
+  `NODE_MISSING` (absent / < 22.6) -> the two script-dependent skills respond differently, not
+  uniformly: `pro-designer`'s contrast gate skips that check with a note pointing at `/superui:setup` and the
+  rest of the (advisory-only) review continues; `design-extractor-builder` hard-stops immediately, writes
+  nothing, and returns a single line pointing at `/superui:setup`.
 - `scripts/sample_colors.ts` - k-means palette / exact pixel sampling; `--regions` ranks named region
   backgrounds by luminance (the measured surface/elevation order). The color half of the
   "measure, never guess" invariant.

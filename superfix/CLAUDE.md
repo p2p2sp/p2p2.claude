@@ -6,8 +6,8 @@
 
 `superfix` is the codebase-investigation plugin: one user-invoked skill that sweeps a repo on **two tracks** -
 files, scored Impact × Opportunity, and producer/consumer artifact pairs, triaged `MATCH` / `MISMATCH` /
-`UNCLEAR` - and dispatches cheap-triage / deep-dive agents into the union of both tracks' hotspots. It is the only plugin
-with **no `hooks/` and no injected manifest**. Its single skill `code-auditor` is `disable-model-invocation:
+`UNCLEAR` / `NO_CONTRACT` - and dispatches cheap-triage / deep-dive agents into the union of both tracks'
+hotspots. It ships **no `hooks/` and no injected manifest**. Its single skill `code-auditor` is `disable-model-invocation:
 true` (user-only, invoked solely via `/superfix:code-auditor`), so there is nothing to auto-route - a dispatcher
 manifest would be dead weight, and the manifest is what the `SessionStart` hook injects, so dropping the
 manifest drops the hook too. This is the plugin-scale analogue of superdev's `setup`: a user-only command
@@ -39,12 +39,17 @@ superfix/
     itself instead of reading as "all clear".
   - **Edge track** (new) - a contract defect between two individually-correct files is invisible to a
     per-file scout, so pairs get their own sweep: a deterministic pair discovery (`scripts/collect_edges.sh`,
-    reusing `collect_signals.sh`'s deny-list and noise filter, no language-specific parsing) → cheap
-    `edge-scout` fan-out returning `MATCH` / `MISMATCH` / `UNCLEAR` per pair → deterministic gate/rank
-    (`scripts/rank_edges.ts`) that drops `MATCH`, orders the rest by verdict class then a pair-Impact
-    computed only from both endpoints' signals, caps dispatch at `--top-edges`, and writes its own
-    `hotlist/edges.json` + `hotlist/edges.md` (a separate file from `hotlist.md`, not an appended section -
-    appending is not idempotent on a re-run, and `rank.ts` overwrites `hotlist.md` wholesale).
+    reusing `collect_signals.sh`'s deny-list and noise filter, no language-specific parsing) scores every
+    linking literal artifact-first (a real tracked file both sides touch outranks a same-named syntax token),
+    emits `via` as the top-scoring literal and `vias` as up to 3 candidates ranked the same way, best first →
+    cheap `edge-scout` fan-out judging the pair on the strongest real contract among those candidates and
+    returning `MATCH` / `MISMATCH` / `UNCLEAR` / `NO_CONTRACT` per pair (`NO_CONTRACT` when the shared literal
+    is coincidental - no real contract to check) → deterministic gate/rank (`scripts/rank_edges.ts`) that keeps
+    `MATCH` and `NO_CONTRACT` out of both `dispatch` and `overflow`, orders the rest by verdict class
+    (`MISMATCH` before `UNCLEAR`) then a pair-Impact computed only from both endpoints' signals, caps dispatch
+    at `--top-edges`, and writes its own `hotlist/edges.json` + `hotlist/edges.md` (a separate file from
+    `hotlist.md`, not an appended section - appending is not idempotent on a re-run, and `rank.ts` overwrites
+    `hotlist.md` wholesale).
   - Detectives are dispatched into the **union** of file hotspots, edge dispatch rows, and a small structural
     budget (2 highest-degree files from `edges.json`'s `degree[]` not already in that union) - never into
     either track's hotspots alone → verified, severity-ranked synthesis. State lives under a
@@ -52,13 +57,16 @@ superfix/
     Phase 0 resolves the runtime via `scripts/check_node.sh` and HARD-STOPS on `NODE_MISSING` - the gate is
     what makes the cut reproducible, so a run that cannot rank must not pay for the sweep and the scout fan-out
     first (this now covers both tracks' gates, both driven by the same Node runtime). This is
-    the one place superfix's env-check differs from superui's (which degrades to a skip-with-note); it is also
-    why the check sits in Phase 0 rather than next to the ranking steps it guards.
+    the one place superfix's env-check differs from superui's `pro-designer` (whose contrast-script fallback
+    degrades with a note pointing at `/superui:setup` rather than hard-stopping) - superui's other
+    script-dependent skill, `design-extractor-builder`, hard-stops on `NODE_MISSING` exactly like superfix; it
+    is also why the check sits in Phase 0 rather than next to the ranking steps it guards.
 - `scout` / `edge-scout` / `detective` / `critic` - the four **plugin agents** (`agents/*.md`, listed in
   `plugin.json` `agents[]`, dispatched via the Agent tool with `subagent_type: superfix:<name>`). `scout` is
   cheap-tier breadth-first per-file triage (spawn many); `edge-scout` is the same cheap tier applied to a
-  candidate pair instead of a file - its job is narrower (three-way verdict on whether both endpoints agree on
-  a shared contract), and its `UNCLEAR` verdict is itself a dispatch reason for Phase 4, not a rejection;
+  candidate pair instead of a file - its job is narrower (a four-way verdict on whether both endpoints agree on
+  a shared contract, judged on the strongest real contract among the pair's `via` and `vias` candidates), and
+  its `UNCLEAR` verdict is itself a dispatch reason for Phase 4, not a rejection;
   `detective` is frontier-tier depth-first investigation (spawn few) - a detective dispatched from an edge
   receives both endpoints as entry points, per `synthesis.md`'s pair-capable `ENTRY:` field; `critic` is
   frontier-tier independent verification, one instance per detective report, replaying its claim on

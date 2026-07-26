@@ -55,8 +55,9 @@ Each plugin is independently installable; none declares another as a dependency.
   manifest** - its skills route purely via CSO `description:`. (→ `supergh/CLAUDE.md`)
 - **superfix** - prioritized multi-agent codebase investigation (one user-invoked skill, no hooks/manifest):
   the `code-auditor` skill sweeps a repo on two tracks - files, scored Impact × Opportunity, and
-  producer/consumer artifact pairs, triaged `MATCH` / `MISMATCH` / `UNCLEAR` - and dispatches cheap-triage /
-  deep-dive agents into the union of both. (→ `superfix/CLAUDE.md`)
+  producer/consumer artifact pairs, triaged `MATCH` / `MISMATCH` / `UNCLEAR` / `NO_CONTRACT` (the gate keeps
+  `MATCH` and `NO_CONTRACT` out of dispatch) - and dispatches cheap-triage / deep-dive agents into the union of
+  both. (→ `superfix/CLAUDE.md`)
 
 They ship no application code - the artefacts are markdown (skills) + JSON (manifests) + per-plugin hook
 scripts under `<plugin>/hooks/scripts/` (only `superdev` has hooks; `superui` / `supergh` / `superfix` ship
