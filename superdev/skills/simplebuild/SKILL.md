@@ -21,7 +21,7 @@ Resolved opt-in switches (missing file/key = `false`; nothing below breaks on a 
 
 !`"${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh"`
 
-These gate the Close-Out delegations (Step 4). Run a delegation ONLY when its line above reads exactly `true`; anything else (`false`, absent, or an unresolved block) = skip. `adr` is not used here.
+These gate the Close-Out delegations (Step 4: `rules`, `memory`, `docs`). Run a delegation ONLY when its line above reads exactly `true`; anything else (`false`, absent, or an unresolved block) = skip. `adr` is not used here.
 
 ## Step 1 - Decompose Plan
 
@@ -77,12 +77,13 @@ For each remaining task file (in order):
 2. Gated by Config; run only the enabled delegations, in parallel (single message, await all). If none enabled, skip to 5.
     - `memory: true` -> Invoke `superdev-memory-writer` (Skill) with a labeled-line `args` block - `capture: <plan-copy path>` and `notes: <workdir>/implementation/` on separate lines.
     - `rules: true`  -> Invoke `superdev-rules-writer` (Skill) with a labeled-line `args` block - `capture: <plan-copy path>` and `notes: <workdir>/implementation/` on separate lines.
-3. Keep each writer's `NODE:` / `RULE:` / `GAP:` lines verbatim for the Step 5 summary. Either delegation failing is non-fatal -> note it there too, do not block.
-4. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(simplebuild): close out memory and rules"` - commits whatever the writers touched.
+    - `docs: true`   -> Invoke `superdev-docs-writer` (Skill) with a labeled-line `args` block - `capture: <plan-copy path>` and `notes: <workdir>/implementation/` on separate lines.
+3. Keep each writer's `NODE:` / `RULE:` / `DOC:` / `GAP:` lines verbatim for the Step 5 summary. Any delegation failing is non-fatal -> note it there too, do not block.
+4. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(simplebuild): close out memory, rules and docs"` - commits whatever the writers touched.
 5. `TaskStop` -> completed
 
 ## Step 5 - Done
 
 Cleanup the task list and display short summary of work. Max ~3-5 sentences plus the relayed lines. Include:
-- Step 4's `NODE:` / `RULE:` lines verbatim (or the noted failure / disabled)
-- every `GAP:` line verbatim, each followed by `-> run superdev-memory` (memory gaps) or `-> run superdev-rules` (rules gaps)
+- Step 4's `NODE:` / `RULE:` / `DOC:` lines verbatim (or the noted failure / disabled)
+- every `GAP:` line verbatim, each followed by `-> run superdev-memory` (memory gaps), `-> run superdev-rules` (rules gaps), or `-> run superdev-docs` (docs gaps)
