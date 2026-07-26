@@ -162,23 +162,40 @@ raw_pairs="$(
           continue
         fi
         base="$(basename "$f")"
-        # Trailing `([^A-Za-z0-9_.-]|$)` forces the match to end at a real
-        # token boundary. Without it, POSIX leftmost-longest matching backs
-        # an over-long tail (>8 chars past the last dot) off onto an earlier
-        # dot and truncates - e.g. "com.example.UserServiceImpl" would match
-        # as "com.example.UserServ", a token absent from both endpoints. With
-        # the boundary required, no dot in that token can both satisfy
-        # `{1,8}` and be followed by a non-continuation character, so the
-        # whole token is skipped - never truncated - and the emitted literal
-        # always equals a real substring bounded by real delimiters.
-        tokens="$(grep -oE '[A-Za-z0-9_][A-Za-z0-9_.-]*\.[A-Za-z0-9]{1,8}([^A-Za-z0-9_.-]|$)' "$f" 2>/dev/null || true)"
+        # Trailing `([^A-Za-z0-9_.-]|\.[^A-Za-z0-9_-]|\.$|$)` forces the
+        # match to end at a real token boundary. Without it, POSIX
+        # leftmost-longest matching backs an over-long tail (>8 chars past
+        # the last dot) off onto an earlier dot and truncates - e.g.
+        # "com.example.UserServiceImpl" would match as "com.example.UserServ",
+        # a token absent from both endpoints. With the boundary required, no
+        # dot in that token can both satisfy `{1,8}` and be followed by a
+        # non-continuation character, so the whole token is skipped - never
+        # truncated - and the emitted literal always equals a real substring
+        # bounded by real delimiters. The two `\.`-prefixed alternatives
+        # re-admit a sentence-final dot without weakening that guarantee: a
+        # real extension never itself contains a dot, so a dot immediately
+        # after the `{1,8}` extension chars is punctuation, not part of the
+        # token - whether it ends the line ("report.md." at EOL, `\.$`) or
+        # is followed by a non-continuation character ("report.md. Then"
+        # mid-line, `\.[^A-Za-z0-9_-]`). `-` and `_` stay continuation
+        # characters, not sentence punctuation, so a hyphenated literal like
+        # "report.md-based" is unaffected - it is a distinct token, never
+        # truncated at the hyphen.
+        tokens="$(grep -oE '[A-Za-z0-9_][A-Za-z0-9_.-]*\.[A-Za-z0-9]{1,8}([^A-Za-z0-9_.-]|\.[^A-Za-z0-9_-]|\.$|$)' "$f" 2>/dev/null || true)"
         [ -n "$tokens" ] || continue
         while IFS= read -r tok; do
-          # Strip the captured boundary char (present unless the match hit
-          # end-of-line, where the `$` alternative consumes nothing).
-          case "$tok" in
-            (*[!A-Za-z0-9_.-]) tok="${tok%?}" ;;
-          esac
+          # Strip every trailing boundary character, not just one: the real
+          # token always ends alphanumeric (the extension is
+          # `[A-Za-z0-9]{1,8}`), so any non-alphanumeric tail - one char from
+          # the plain boundary alternative, or up to two from a
+          # `\.`-prefixed one (e.g. a sentence-final "..." or "report.md.)")
+          # - is captured punctuation, never part of the literal.
+          while true; do
+            case "$tok" in
+              (*[!A-Za-z0-9]) tok="${tok%?}" ;;
+              (*) break ;;
+            esac
+          done
           [ -n "$tok" ] || continue
           [ "$tok" = "$base" ] && continue
           tok_ext="${tok##*.}"
