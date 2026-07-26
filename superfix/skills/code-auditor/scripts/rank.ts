@@ -586,6 +586,14 @@ function reason(rec: JsonMap): string {
   return "";
 }
 
+// Markdown-table-surface only: JSON outputs (pyJsonDumps) keep the raw,
+// unescaped value. Escapes `|` (which would otherwise split into a phantom
+// cell) and collapses any embedded newline/carriage-return to a single space
+// (which would otherwise break the row onto a new markdown line).
+function mdCell(s: string): string {
+  return s.replace(/\|/g, "\\|").replace(/\r\n?|\n/g, " ");
+}
+
 // Python `x != -1` for JSON values (numbers compare by value, others are !=).
 function isPyEq(v: JsonValue, n: number): boolean {
   if (typeof v === "number") return v === n;
@@ -748,8 +756,8 @@ function main(): void {
   lines.push("|---|-----------|:------:|:-----------:|:-----:|--------|");
   for (const r of hotspots) {
     lines.push(
-      `| ${pyStr(r.get("rank"))} | \`${pyStr(r.get("path"))}\` | ${pyStr(r.get("impact"))} | ` +
-        `${pyStr(r.get("opportunity"))} | ${pyStr(r.get("score"))} | ${pyStr(r.get("reason"))} |`,
+      `| ${pyStr(r.get("rank"))} | \`${mdCell(pyStr(r.get("path")))}\` | ${pyStr(r.get("impact"))} | ` +
+        `${pyStr(r.get("opportunity"))} | ${pyStr(r.get("score"))} | ${mdCell(pyStr(r.get("reason")))} |`,
     );
   }
   if (overflow.length > 0) {
@@ -760,8 +768,8 @@ function main(): void {
     lines.push("|---|-----------|:------:|:-----------:|:-----:|--------|");
     for (const r of overflow) {
       lines.push(
-        `| ${pyStr(r.get("rank"))} | \`${pyStr(r.get("path"))}\` | ${pyStr(r.get("impact"))} | ` +
-          `${pyStr(r.get("opportunity"))} | ${pyStr(r.get("score"))} | ${pyStr(r.get("reason"))} |`,
+        `| ${pyStr(r.get("rank"))} | \`${mdCell(pyStr(r.get("path")))}\` | ${pyStr(r.get("impact"))} | ` +
+          `${pyStr(r.get("opportunity"))} | ${pyStr(r.get("score"))} | ${mdCell(pyStr(r.get("reason")))} |`,
       );
     }
     lines.push("");
@@ -775,8 +783,8 @@ function main(): void {
     lines.push("|-----------|:------:|:-----------:|:-----:|----------|--------|");
     for (const r of skipped.slice(0, 50)) {
       lines.push(
-        `| \`${pyStr(r.get("path"))}\` | ${pyStr(r.get("impact"))} | ${pyStr(r.get("opportunity"))} | ` +
-          `${pyStr(r.get("score"))} | ${pyStr(r.get("quadrant"))} | ${pyStr(r.get("reason"))} |`,
+        `| \`${mdCell(pyStr(r.get("path")))}\` | ${pyStr(r.get("impact"))} | ${pyStr(r.get("opportunity"))} | ` +
+          `${pyStr(r.get("score"))} | ${pyStr(r.get("quadrant"))} | ${mdCell(pyStr(r.get("reason")))} |`,
       );
     }
     lines.push("");

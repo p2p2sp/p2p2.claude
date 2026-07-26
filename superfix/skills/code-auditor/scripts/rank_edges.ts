@@ -129,6 +129,14 @@ function pairImpact(a: string, b: string, signals: Map<string, Row>): number {
 const VALID_VERDICTS = new Set(["MATCH", "MISMATCH", "UNCLEAR"]);
 const pairKey = (a: string, b: string): string => `${a}\x00${b}`;
 
+// Markdown-table-surface only: JSON outputs keep the raw, unescaped value.
+// Escapes `|` (which would otherwise split into a phantom cell) and collapses
+// any embedded newline/carriage-return to a single space (which would
+// otherwise break the row onto a new markdown line).
+function mdCell(s: string): string {
+  return String(s).replace(/\|/g, "\\|").replace(/\r\n?|\n/g, " ");
+}
+
 function main(): void {
   const args = parseArgs(process.argv.slice(2));
 
@@ -254,7 +262,7 @@ function main(): void {
   lines.push("|---|---|---|---------|:------------:|:------:|-----|--------|");
   for (const r of dispatch) {
     lines.push(
-      `| ${r.rank} | \`${r.a}\` | \`${r.b}\` | ${r.verdict} | ${r.pair_impact} | ${r.shared} | \`${r.via}\` | ${r.reason} |`,
+      `| ${r.rank} | \`${r.a}\` | \`${r.b}\` | ${r.verdict} | ${r.pair_impact} | ${r.shared} | \`${mdCell(r.via)}\` | ${mdCell(r.reason)} |`,
     );
   }
   if (overflow.length > 0) {
@@ -265,7 +273,7 @@ function main(): void {
     lines.push("|---|---|---|---------|:------------:|:------:|-----|--------|");
     for (const r of overflow) {
       lines.push(
-        `| ${r.rank} | \`${r.a}\` | \`${r.b}\` | ${r.verdict} | ${r.pair_impact} | ${r.shared} | \`${r.via}\` | ${r.reason} |`,
+        `| ${r.rank} | \`${r.a}\` | \`${r.b}\` | ${r.verdict} | ${r.pair_impact} | ${r.shared} | \`${mdCell(r.via)}\` | ${mdCell(r.reason)} |`,
       );
     }
     lines.push("");
@@ -278,7 +286,7 @@ function main(): void {
     lines.push("| A | B | Via | Shared | Reason |");
     lines.push("|---|---|-----|:------:|--------|");
     for (const r of matchBucket) {
-      lines.push(`| \`${r.a}\` | \`${r.b}\` | \`${r.via}\` | ${r.shared} | ${r.reason} |`);
+      lines.push(`| \`${r.a}\` | \`${r.b}\` | \`${mdCell(r.via)}\` | ${r.shared} | ${mdCell(r.reason)} |`);
     }
     lines.push("");
     lines.push("</details>");
