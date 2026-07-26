@@ -51,6 +51,6 @@ When the project already defines its own design system - a token set, a design s
 ## Final QA
 
 - **Squint test**: blur your eyes - the primary CTA must be the only element that pops.
-- **Contrast**: `node "${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.ts" FG BG [TYPE] [FG BG [TYPE] ...]` (resolve the `node` command via `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_node.sh"` first; `NODE_MISSING` -> skip with a note and point at `/superui:setup`) for every text/background and component/background pair. TYPE = `normal` (default, 4.5:1) | `large` (3:1) | `ui` (borders/icons/focus, 3:1) - exit 1 means a pair failed the AA threshold for its own type.
+- **Contrast**: resolve the `node` command via `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_node.sh"` first (`NODE_MISSING` -> skip with a note and point at `/superui:setup`), then run `<resolved node cmd> "${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.ts" FG BG [TYPE] [FG BG [TYPE] ...]` for every text/background and component/background pair. TYPE = `normal` (default, 4.5:1) | `large` (3:1) | `ui` (borders/icons/focus, 3:1) - exit 1 means a pair failed the AA threshold for its own type; exit 2 means bad input or usage (an out-of-range color, a malformed JSON record, or no args).
 - **States inventory**: hover, focus, disabled, loading, empty, error - all present?
 - **Detail rule**: if a detail is too small or too faint to notice, delete it instead of keeping it faint.

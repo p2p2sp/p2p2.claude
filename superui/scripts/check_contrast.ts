@@ -109,7 +109,13 @@ export function parseColor(input: string): [number, number, number] {
   let s = pyStrip(input).toLowerCase();
   const m = /^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/.exec(s);
   if (m) {
-    return [parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)];
+    const rgb: [number, number, number] = [parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)];
+    for (const c of rgb) {
+      if (c > 255) {
+        throw new Error(`Unrecognized color: ${pyReprStr(s)} (use #rgb, #rrggbb or rgb(r,g,b))`);
+      }
+    }
+    return rgb;
   }
   s = s.replace(/^#+/, "");
   if (/^[0-9a-f]{3}$/.test(s)) {
@@ -178,51 +184,66 @@ export function main(argv: string[]): number {
     return 2;
   }
   let pairs: Pair[] = [];
-  if (argv[0] === "--json") {
-    if (argv.length !== 2) {
-      console.log(DOC);
-      return 2;
-    }
-    // Read + parse errors are deliberately uncaught (exit 1), like the original.
-    const items = JSON.parse(fs.readFileSync(argv[1], "utf-8")) as unknown[];
-    for (const item of items) {
-      const rec = item as Record<string, unknown>;
-      const rawType = Object.hasOwn(rec, "type") ? rec["type"] : "normal";
-      const ptype = pyStr(rawType).toLowerCase();
-      if (!Object.hasOwn(THRESHOLDS, ptype)) {
-        throw new ValueError(`Unknown type ${pyReprStr(ptype)} (use normal|large|ui)`);
+  try {
+    if (argv[0] === "--json") {
+      if (argv.length !== 2) {
+        console.log(DOC);
+        return 2;
       }
-      const label = Object.hasOwn(rec, "label") ? rec["label"] : "";
-      pairs.push([rec["fg"], rec["bg"], ptype, label]);
-    }
-  } else {
-    try {
+      // Read + JSON.parse errors are deliberately uncaught (exit 1), like the original.
+      const items = JSON.parse(fs.readFileSync(argv[1], "utf-8")) as unknown[];
+      for (const item of items) {
+        const rec = item as Record<string, unknown>;
+        const rawType = Object.hasOwn(rec, "type") ? rec["type"] : "normal";
+        const ptype = pyStr(rawType).toLowerCase();
+        if (!Object.hasOwn(THRESHOLDS, ptype)) {
+          throw new ValueError(`Unknown type ${pyReprStr(ptype)} (use normal|large|ui)`);
+        }
+        const label = Object.hasOwn(rec, "label") ? rec["label"] : "";
+        const fg = rec["fg"];
+        const bg = rec["bg"];
+        if (typeof fg !== "string" || fg.length === 0) {
+          throw new ValueError(`Missing or invalid 'fg' in record: ${pyReprStr(pyStr(fg))}`);
+        }
+        if (typeof bg !== "string" || bg.length === 0) {
+          throw new ValueError(`Missing or invalid 'bg' in record: ${pyReprStr(pyStr(bg))}`);
+        }
+        pairs.push([fg, bg, ptype, label]);
+      }
+    } else {
       pairs = parseCliPairs(argv);
-    } catch (e) {
-      if (!(e instanceof ValueError)) throw e;
-      console.log(e.message);
-      console.log(DOC);
-      return 2;
     }
+  } catch (e) {
+    if (!(e instanceof ValueError)) throw e;
+    console.log(e.message);
+    console.log(DOC);
+    return 2;
   }
 
   let anyFail = false;
-  for (const [fgS, bgS, ptype, label] of pairs) {
-    const ratio = contrastRatio(parseColor(fgS as string), parseColor(bgS as string));
-    const { aa, aaa } = THRESHOLDS[ptype];
-    const aaOk = ratio >= aa;
-    if (!aaOk) {
-      anyFail = true;
+  try {
+    for (const [fgS, bgS, ptype, label] of pairs) {
+      const ratio = contrastRatio(parseColor(fgS as string), parseColor(bgS as string));
+      const { aa, aaa } = THRESHOLDS[ptype];
+      const aaOk = ratio >= aa;
+      if (!aaOk) {
+        anyFail = true;
+      }
+      const tag = pyTruthy(label) ? ` [${pyStr(label)}]` : "";
+      const aaaPart =
+        aaa !== null
+          ? `  AAA(need ${pyFloatStr(aaa)}): ${ratio >= aaa ? "PASS" : "FAIL"}`
+          : "";
+      console.log(
+        `${pyStr(fgS)} on ${pyStr(bgS)}${tag} (${ptype}): ${ratio.toFixed(2)}:1  ` +
+          `AA(need ${pyFloatStr(aa)}): ${aaOk ? "PASS" : "FAIL"}${aaaPart}`,
+      );
     }
-    const tag = pyTruthy(label) ? ` [${pyStr(label)}]` : "";
-    const aaaPart =
-      aaa !== null
-        ? `  AAA(need ${pyFloatStr(aaa)}): ${ratio >= aaa ? "PASS" : "FAIL"}`
-        : "";
-    console.log(
-      `${pyStr(fgS)} on ${pyStr(bgS)}${tag} (${ptype}): ${ratio.toFixed(2)}:1  ` +
-        `AA(need ${pyFloatStr(aa)}): ${aaOk ? "PASS" : "FAIL"}${aaaPart}`,
-    );
+  } catch (e) {
+    if (!(e instanceof Error)) throw e;
+    console.log(e.message);
+    console.log(DOC);
+    return 2;
   }
   return anyFail ? 1 : 0;
 }
