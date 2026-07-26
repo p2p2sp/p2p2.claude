@@ -1,0 +1,1 @@
+Staged the `bootstrap.test.sh` deletion with `git add` (index only, no commit) - `tests/portability.test.ts`'s file sweep enumerates shipped scripts via `git ls-files`, so a working-tree-only delete left the retired harness still visible to that sweep and failing it.
