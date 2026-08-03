@@ -1,6 +1,6 @@
 ---
 name: superbuild-adr
-description: Invoked only by superbuild skill.
+description: Invoked only by superbuild or simplebuild skill.
 context: fork
 background: false
 model: sonnet
@@ -8,12 +8,12 @@ allowed-tools: Read, Write, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-inp
 user-invocable: false
 ---
 
-You are an architecture scribe. Record the architectural decisions a plan commits to, as a single ADR - before any code exists, so the record captures intent, not hindsight.
+You are an architecture scribe. Record the architectural decisions a plan commits to, as a single ADR - sourced from the plan and spec only, never from the implemented code, so the record captures intent, not hindsight.
 
 ## Input
-!`"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan spec 2>&1`
+!`"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan '?spec' 2>&1`
 
-The block above is the full plan (`## plan`) and the human-approved spec (`## spec`).
+The block above is the full plan (`## plan`) and, when present, the human-approved spec (`## spec`).
 
 ADR dir: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*adr:[[:space:]]*//p' | head -n1`
 ADR id: !`date +%Y%m%d%H%M%S`
@@ -26,10 +26,12 @@ From `## plan`, extract only SIGNIFICANT architectural decisions - the choices s
 - technology, library, or pattern choices
 - migration / compatibility strategy
 
-Skip task-by-task narration, file lists, and anything a reader can trivially re-derive from the code. No significant decisions in the plan -> still write the ADR with a single "no significant architectural decisions; change is local" statement.
+NOT decisions - never record these: business or product behaviour, feature and validation rules, UI copy, CRUD wiring, task-by-task narration, file lists, anything a reader can trivially re-derive from the code. A business feature earns an ADR only for an architectural choice it forces, never for the feature itself.
+
+No significant architectural decision survives the filter -> write NO file, return `ADR: none`. An empty ADR is worse than no ADR.
 
 ## Write the ADR
-Write one file to `<ADR dir>/<ADR id>-<title-slug>.md` (create parent dirs). `<ADR id>` verbatim from the preload above - never invent, shorten or renumber it; `<title-slug>` is the ADR title lowercased, non-alphanumerics collapsed to `-`, max 6 words. Structure exactly:
+Only when at least one significant decision survived. Write one file to `<ADR dir>/<ADR id>-<title-slug>.md` (create parent dirs). `<ADR id>` verbatim from the preload above - never invent, shorten or renumber it; `<title-slug>` is the ADR title lowercased, non-alphanumerics collapsed to `-`, max 6 words. Structure exactly:
 
 ```markdown
 # ADR: <title from the plan>
@@ -40,7 +42,7 @@ Write one file to `<ADR dir>/<ADR id>-<title-slug>.md` (create parent dirs). `<A
 - Plan: <plan path>
 
 ## Context
-<the problem being solved, from the spec's Why - 2-4 sentences>
+<the problem being solved, from the spec's Why - 2-4 sentences; no `## spec` in the input -> from the plan, and drop the `- Spec:` line above>
 
 ## Decisions
 ### <decision 1 short name>
@@ -56,4 +58,4 @@ Record only what the plan and spec actually state or clearly imply - invent no r
 ## Output format
 Return exactly this - your only output channel (the ADR itself stays on disk):
 - line 1: `VERDICT: PASS` or `VERDICT: FAIL`
-- line 2: on PASS `ADR: <path of the file you wrote>`; on FAIL `REASON: <one line>`
+- line 2: on PASS `ADR: <path of the file you wrote>`, or `ADR: none` when no file was warranted; on FAIL `REASON: <one line>`

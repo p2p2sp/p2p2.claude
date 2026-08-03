@@ -41,7 +41,7 @@ No `spec:` line in the index -> STOP: this plan belongs to `simplebuild`, not he
 
 Gated by Config: only when `adr: true`. Otherwise skip (note "ADR: disabled" for the Step 6 summary).
 
-Invoke `superbuild-adr` (Skill) with a labeled-line `args` block - `plan: <plan-copy path>`, `spec: <spec path>`, and `adr: docs/adr` (the target DIRECTORY - it timestamps the filename itself) on separate lines. It returns the written path in its `ADR:` line - use that verbatim in the Step 6 summary. Best-effort: `VERDICT: FAIL` does not block - note it for the Step 6 summary and continue.
+Invoke `superbuild-adr` (Skill) with a labeled-line `args` block - `plan: <plan-copy path>`, `spec: <spec path>`, and `adr: docs/adr` (the target DIRECTORY - it timestamps the filename itself) on separate lines. Its `ADR:` line carries the written path, or `none` when the plan holds no significant architectural decision and no file was written - use it verbatim in the Step 6 summary. Best-effort: `VERDICT: FAIL` does not block - note it for the Step 6 summary and continue.
 
 ## Step 3 - Run Implementation Loop
 
@@ -95,6 +95,6 @@ For each remaining task file (in order):
 ## Step 6 - Done
 
 Cleanup the task list and display short summary of work. Max ~3-5 sentences plus the relayed lines. Include:
-- the ADR path (or the noted ADR failure / disabled)
+- the ADR path (or `ADR: none` / the noted ADR failure / disabled)
 - Step 5's `NODE:` / `RULE:` / `DOC:` lines verbatim (or the noted failure / disabled)
 - every `GAP:` line verbatim, each followed by `-> run superdev-memory` (memory gaps), `-> run superdev-rules` (rules gaps), or `-> run superdev-docs` (docs gaps)
