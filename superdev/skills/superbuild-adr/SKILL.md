@@ -15,7 +15,8 @@ You are an architecture scribe. Record the architectural decisions a plan commit
 
 The block above is the full plan (`## plan`) and the human-approved spec (`## spec`).
 
-ADR path: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*adr:[[:space:]]*//p' | head -n1`
+ADR dir: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*adr:[[:space:]]*//p' | head -n1`
+ADR id: !`date +%Y%m%d%H%M%S`
 Date: !`date +%F`
 
 ## Extract decisions
@@ -28,7 +29,7 @@ From `## plan`, extract only SIGNIFICANT architectural decisions - the choices s
 Skip task-by-task narration, file lists, and anything a reader can trivially re-derive from the code. No significant decisions in the plan -> still write the ADR with a single "no significant architectural decisions; change is local" statement.
 
 ## Write the ADR
-Write one file to the ADR path (create parent dirs), structure exactly:
+Write one file to `<ADR dir>/<ADR id>-<title-slug>.md` (create parent dirs). `<ADR id>` verbatim from the preload above - never invent, shorten or renumber it; `<title-slug>` is the ADR title lowercased, non-alphanumerics collapsed to `-`, max 6 words. Structure exactly:
 
 ```markdown
 # ADR: <title from the plan>
@@ -55,4 +56,4 @@ Record only what the plan and spec actually state or clearly imply - invent no r
 ## Output format
 Return exactly this - your only output channel (the ADR itself stays on disk):
 - line 1: `VERDICT: PASS` or `VERDICT: FAIL`
-- line 2: on PASS `ADR: <path>`; on FAIL `REASON: <one line>`
+- line 2: on PASS `ADR: <path of the file you wrote>`; on FAIL `REASON: <one line>`
