@@ -43,6 +43,8 @@ Read when designing SaaS dashboards, KPI tiles, app navigation/sidebars, billing
 - Start a bar/column value axis at zero; a truncated axis exaggerates differences and misreads magnitude.
 - Ship the reading furniture: visible axes, subtle gridlines, a legend, numeric value labels (or an accessible on-hover tooltip), and a date-range selector for any time series.
 - Never encode a series by color alone - add direct labels, patterns, or shapes so colorblind users can still separate series (-> accessibility.md "Never color alone").
+- Pie/donut charts cap at 5 categories - beyond that, slices become visually indistinguishable; switch to a horizontal bar chart instead. Sort bar/column charts descending by value unless the axis is inherently ordinal or time-based.
+- Ship a non-visual alternative alongside every chart: a data-table view of the underlying values, or a one-sentence text summary of the key insight, so screen reader users get the finding without parsing the visual.
 
 ## Sidebar and Navigation
 - Sidebar: left-aligned labels, dense professional spacing, navigation only (e.g. Dashboard, Analytics).
@@ -57,6 +59,9 @@ Read when designing SaaS dashboards, KPI tiles, app navigation/sidebars, billing
 - Use a system icon library - Lucide or Phosphor - for consistent stroke width and legibility across scales.
 - No emoji as UI icons. Notion's emoji use is a brand-specific exception, not a SaaS standard.
 - No icon library available (single-file deliverable, no dependencies)? Inline the SVG paths - never fall back to emoji or unicode glyphs.
+- Inline SVG craft: set `fill`/`stroke` to `currentColor` so the icon inherits the surrounding text color, use `viewBox="0 0 24 24"`, and include a `<title>` element naming what the icon means. For outlined styles, use round line caps and joins.
+- Design icons at 24px, then verify legibility at both 16px and 48px - detail that vanishes at 16px does not belong in the icon.
+- Match icon style to context: outlined with a ~2px stroke for dense app UI, filled for mobile nav bars and toolbars, duotone for marketing surfaces. Hold one style per product (-> distinctiveness.md consistency lock) unless an existing product icon set already dictates otherwise.
 
 ## Modals and Forms
 - Prefer compact modals over flyouts and loose inline forms.

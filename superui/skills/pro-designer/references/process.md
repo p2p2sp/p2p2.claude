@@ -31,9 +31,10 @@ Never change silently during a redesign: URL slugs, primary nav labels, form fie
 
 - A custom 404 page; back navigation from every page (no dead ends).
 - A "skip to content" link; visible focus everywhere (-> accessibility.md).
-- Legal footer links (privacy, terms); a real favicon.
+- Legal footer links (privacy, terms); a real favicon - legible at 16px, survives single-color.
 - Client-side form validation wired, not just styled (-> forms.md).
 - Every link goes somewhere: no dead `#` hrefs - link for real or visibly disable.
+- A social share image (`og:image`, 1200x630) - critical content centered; platforms crop the edges.
 
 ## Developer handoff = full UI specification
 
