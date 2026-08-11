@@ -7,7 +7,10 @@
  * of whether any row in the table is proposed. Also proves the 3.10 dark
  * mode summary (renderSubsectionBody("3.10", ...)) marks a proposed dark
  * value distinguishably from a measured one, honouring the same
- * measured|proposed provenance vocabulary the table renderers use.
+ * measured|proposed provenance vocabulary the table renderers use. Also
+ * proves the Components section is fixed pointer boilerplate (no inventory
+ * input) and the post-front-matter note carries the reference-px-@1x /
+ * shadow-notation / per-platform-unit-mapping declaration.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is
  * run directly by Node's native test runner + TypeScript type stripping:
@@ -16,9 +19,21 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import path from "node:path";
+import fs from "node:fs";
 
-import { renderSubsectionBody, renderTextStyles, buildFrontMatter } from "../../superui/scripts/render_design_md.ts";
+import { runScript } from "../harness/run.ts";
+import { withTempDir } from "../harness/tmp.ts";
+import {
+  renderSubsectionBody,
+  renderTextStyles,
+  buildFrontMatter,
+  renderComponentsOverview,
+  buildNote,
+} from "../../superui/scripts/render_design_md.ts";
 import type { Registry, TokenEntry, TextStyleEntry } from "../../superui/scripts/render_design_md.ts";
+
+const RENDER_SUT = path.resolve(import.meta.dirname, "../../superui/scripts/render_design_md.ts");
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
@@ -280,4 +295,65 @@ test("no 3.8 tokens at all still renders 'none' for the 3.8 body", () => {
   const output = renderSubsectionBody("3.8", registry);
 
   assert.equal(output, "none");
+});
+
+// ---------------------------------------------------------------------------
+// Components section - fixed pointer boilerplate, no inventory input
+// ---------------------------------------------------------------------------
+
+test("renderComponentsOverview takes no inventory and points at /superui:component-extractor per platform", () => {
+  const output = renderComponentsOverview();
+
+  assert.ok(
+    output.includes("/superui:component-extractor"),
+    `expected a pointer to /superui:component-extractor, got:\n${output}`,
+  );
+  assert.ok(
+    output.includes("DESIGN.components.md") && output.includes("DESIGN.patterns.md"),
+    `expected the two per-platform satellite filenames, got:\n${output}`,
+  );
+  assert.ok(
+    output.includes("web-app") && output.includes("mobile") && output.includes("website"),
+    `expected the three platform values to be named, got:\n${output}`,
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Post-front-matter note - reference px @1x + shadow notation + per-platform mapping
+// ---------------------------------------------------------------------------
+
+test("buildNote declares reference px @1x and how to read shadow notation and map units per platform", () => {
+  const note = buildNote();
+
+  assert.ok(note.startsWith("> "), `expected a '> ' blockquote note, got:\n${note}`);
+  assert.ok(note.includes("reference px @1x"), `expected the 'reference px @1x' declaration, got:\n${note}`);
+  assert.ok(
+    /shadow/i.test(note) && /measurement notation/i.test(note),
+    `expected shadow notation reading guidance, got:\n${note}`,
+  );
+  assert.ok(
+    /platform/i.test(note) && /unit/i.test(note),
+    `expected per-platform unit-mapping guidance, got:\n${note}`,
+  );
+});
+
+// ---------------------------------------------------------------------------
+// CLI - the old 3-positional (INVENTORY_MD) form is gone
+// ---------------------------------------------------------------------------
+
+test("the old 3-positional CLI form (REGISTRY_JSON INVENTORY_MD OUTPUT_MD) exits 2 naming the new form", () => {
+  withTempDir("p2p2-render-design-oldcli-", (dir) => {
+    const registryPath = path.join(dir, "registry.json");
+    const inventoryPath = path.join(dir, "inventory.md");
+    const outputPath = path.join(dir, "DESIGN.md");
+    fs.writeFileSync(registryPath, JSON.stringify({ tokens: {}, surfaceOrder: [], accentUsage: [], textStyles: [], unknowns: [] }));
+    fs.writeFileSync(inventoryPath, "## Components\n\n## Patterns\n");
+
+    const result = runScript(RENDER_SUT, [registryPath, inventoryPath, outputPath]);
+
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /^usage: render_design_md\.ts \[-h\] REGISTRY_JSON OUTPUT_MD \[--source <label>\]/m);
+    assert.match(result.stderr, /expected 2 positional arguments/);
+    assert.ok(!fs.existsSync(outputPath), "expected no OUTPUT_MD to be written on a usage error");
+  });
 });

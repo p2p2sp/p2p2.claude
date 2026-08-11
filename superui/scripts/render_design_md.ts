@@ -1,8 +1,9 @@
 /*
  * render_design_md.ts - renders `DESIGN.md`, the one-shot design seed, from a
- * merged `registry.json` (written by build_registry.ts) plus the run's
- * `inventory.md` (for the Components overview). The output is a lean, readable
- * seed loosely conforming to the design.md standard:
+ * merged `registry.json` (written by build_registry.ts) alone - the pure,
+ * platform-neutral foundations, with nothing about components or patterns.
+ * The output is a lean, readable seed loosely conforming to the design.md
+ * standard:
  *   1. YAML front matter FIRST (before any prose) - DTCG-shaped light-value
  *      tokens: `colors` (3.1+3.2), `typography` (3.5 families + textStyles),
  *      `spacing` (3.6), `rounded` (3.7 `radius.*`), `shadows` (3.8 `shadow.*`),
@@ -12,7 +13,10 @@
  *   2. A prose body under the fixed standard `## ` headings (Overview, Colors,
  *      Typography, Layout & Spacing, Elevation & Depth, Shapes, Motion,
  *      Components, Do's and Don'ts). The old `## 3.N` sections survive as `###`
- *      subsections grouped under those headings.
+ *      subsections grouped under those headings. The Components heading is
+ *      fixed pointer boilerplate - this script never renders a component/
+ *      pattern inventory; that is `/superui:component-extractor`'s job, run
+ *      once per platform against this file's tokens.
  *
  * Every value cell prints exactly what the registry holds; an entry listed in
  * `unknowns` renders as `> NEEDS INPUT: <what> - <reason>` inside its
@@ -36,26 +40,26 @@
  * front matter.
  *
  * IN : REGISTRY_JSON - a merged registry (`{ tokens, surfaceOrder, accentUsage,
- *      textStyles, unknowns }`). INVENTORY_MD - the run's `inventory.md`
- *      (`## Components` / `## Patterns` entry lines), read for the Components
- *      overview. OUTPUT_MD - where to write `DESIGN.md`. Optional
- *      `--source <label>` - recorded in the Overview sentence only.
+ *      textStyles, unknowns }`). OUTPUT_MD - where to write `DESIGN.md`.
+ *      Optional `--source <label>` - recorded in the Overview sentence only.
  * OUT: stdout - one line on success:
  *        DESIGN_MD_OK headings=Overview,Colors,... -> <OUTPUT_MD>
  *      OUTPUT_MD opens with `---` front matter, then the fixed standard
- *      headings in order, each present and non-empty.
- * Exit codes: 0 = ok; 1 = unreadable/invalid-JSON registry, unreadable
- *      inventory, or a self-verify mismatch after writing (message on stderr);
- *      2 = command-line usage errors.
+ *      headings in order, each present and non-empty. The `> Note` block
+ *      below the closing front-matter `---` declares that every dimension
+ *      value is reference px @1x and states how to read shadow notation and
+ *      map units per platform.
+ * Exit codes: 0 = ok; 1 = unreadable/invalid-JSON registry, or a self-verify
+ *      mismatch after writing (message on stderr); 2 = command-line usage
+ *      errors.
  *
- * Usage: node render_design_md.ts REGISTRY_JSON INVENTORY_MD OUTPUT_MD [--source <label>]
+ * Usage: node render_design_md.ts REGISTRY_JSON OUTPUT_MD [--source <label>]
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SECTION_TITLES } from "./section-model.ts";
-import { parseInventoryEntries } from "./inventory-format.ts";
 
 // ---------------------------------------------------------------------------
 // Types (mirrors the registry shape written by build_registry.ts)
@@ -556,24 +560,15 @@ function renderOverview(registry: Registry, source: string): string {
   return sentences.join(" ") + "\n";
 }
 
-function renderComponentsOverview(inventoryMd: string): string {
-  const comps = parseInventoryEntries(inventoryMd, "## Components");
-  const pats = parseInventoryEntries(inventoryMd, "## Patterns");
-  const lines: string[] = [];
-  lines.push(`${comps.length} component(s) and ${pats.length} pattern(s) catalogued. Full per-entry specifications live in the satellite files.`);
-  lines.push("");
-  lines.push("**Components**");
-  lines.push("");
-  if (comps.length === 0) lines.push("None catalogued.");
-  else for (const c of comps) lines.push(`- ${c.slug} - ${c.kind || "component"}, canonical ${c.canonical || "n/a"}`);
-  lines.push("");
-  lines.push("**Patterns**");
-  lines.push("");
-  if (pats.length === 0) lines.push("None catalogued.");
-  else for (const p of pats) lines.push(`- ${p.slug} - canonical ${p.canonical || "n/a"}`);
-  lines.push("");
-  lines.push("See `DESIGN.components.md` for component specs and `DESIGN.patterns.md` for pattern specs.");
-  return lines.join("\n") + "\n";
+/** Fixed pointer boilerplate - this script never catalogues components/patterns itself; see the header comment. */
+export function renderComponentsOverview(): string {
+  return (
+    "Components and patterns are not catalogued in this file. Run `/superui:component-extractor " +
+    "<screenshots-dir> <platform>` once per platform (`web-app` | `mobile` | `website`) against these " +
+    "foundations - each run reads this file's tokens and writes that platform's own " +
+    "`<platform>/DESIGN.components.md` (component specs) and `<platform>/DESIGN.patterns.md` (pattern specs), " +
+    "alongside its `<platform>/screens/`.\n"
+  );
 }
 
 function renderDosAndDonts(): string {
@@ -596,7 +591,7 @@ function renderDosAndDonts(): string {
 // Body assembly (standard `##` headings, old sections as `###` subsections)
 // ---------------------------------------------------------------------------
 
-function renderBody(registry: Registry, inventoryMd: string, source: string): string {
+function renderBody(registry: Registry, source: string): string {
   const blocks: string[] = [];
 
   blocks.push(`## Overview\n\n${renderOverview(registry, source)}`);
@@ -620,7 +615,7 @@ function renderBody(registry: Registry, inventoryMd: string, source: string): st
 
   blocks.push(`## Shapes\n\n${renderSubsectionBody("3.7", registry)}`);
   blocks.push(`## Motion\n\n${renderSubsectionBody("3.9", registry)}`);
-  blocks.push(`## Components\n\n${renderComponentsOverview(inventoryMd)}`);
+  blocks.push(`## Components\n\n${renderComponentsOverview()}`);
   blocks.push(`## Do's and Don'ts\n\n${renderDosAndDonts()}`);
 
   return blocks.join("\n\n") + "\n";
@@ -633,7 +628,7 @@ function renderBody(registry: Registry, inventoryMd: string, source: string): st
 const PROG = basename(process.argv[1] ?? "render_design_md.ts");
 
 function usageText(): string {
-  return `usage: ${PROG} [-h] REGISTRY_JSON INVENTORY_MD OUTPUT_MD [--source <label>]`;
+  return `usage: ${PROG} [-h] REGISTRY_JSON OUTPUT_MD [--source <label>]`;
 }
 
 function helpText(): string {
@@ -656,6 +651,26 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * The `> Note` block printed below the closing front-matter `---`: the
+ * existing provenance caveat (front-matter defaults vs body Source columns)
+ * plus the neutral-notation declaration - every dimension value in this file
+ * is reference px @1x, a shadow token is offset/blur/color measurement
+ * notation (not literal CSS syntax), and per-platform unit mapping guidance
+ * lives in each platform's own bundle.
+ */
+export function buildNote(): string {
+  return (
+    "> Note - front-matter token values are light-mode defaults and may include proposed best-practice values; the " +
+    "body Source columns below are authoritative for provenance (measured vs proposed).\n" +
+    "> All dimension values in this file are reference px @1x (measured against a 1x/standard-density " +
+    "screenshot) - not a platform-native unit. A `shadow.*` token is offset/blur/color measurement notation, " +
+    "not literal CSS shadow syntax. Read reference px against each platform's own unit (web: CSS px 1:1, iOS: " +
+    "pt, Android: dp) and interaction-state vocabulary - that mapping guidance lives in the platform bundle " +
+    "`/superui:component-extractor` writes, not here.\n"
+  );
+}
+
 function main(): void {
   const argv = process.argv.slice(2);
   if (argv.includes("-h") || argv.includes("--help")) {
@@ -675,10 +690,10 @@ function main(): void {
       positional.push(argv[i]);
     }
   }
-  if (positional.length !== 3) {
-    argError(`expected 3 positional arguments (REGISTRY_JSON INVENTORY_MD OUTPUT_MD), got ${positional.length}`);
+  if (positional.length !== 2) {
+    argError(`expected 2 positional arguments (REGISTRY_JSON OUTPUT_MD), got ${positional.length}`);
   }
-  const [registryPath, inventoryPath, outputPath] = positional;
+  const [registryPath, outputPath] = positional;
 
   let raw: string;
   try {
@@ -704,28 +719,18 @@ function main(): void {
     unknowns: (Array.isArray(p.unknowns) ? p.unknowns : []) as UnknownEntry[],
   };
 
-  let inventoryMd: string;
-  try {
-    inventoryMd = readFileSync(inventoryPath, "utf-8");
-  } catch (e) {
-    exitErr(`error: cannot read '${inventoryPath}': ${(e as Error).message}`);
-  }
-
   const anyProposed =
     Object.values(registry.tokens).some((t) => t.proposed === true) ||
     registry.textStyles.some((t) => t.proposed === true);
-  const caution =
-    "> Note - front-matter token values are light-mode defaults and may include proposed best-practice values; the " +
-    "body Source columns below are authoritative for provenance (measured vs proposed).\n";
   const legend = anyProposed
     ? "> Legend - Source: `measured` = sampled from the screenshots; `proposed` = a best-practice value supplied by the " +
       "design synthesizer (no source measurement, rationale in Notes). Review every proposed value before shipping.\n"
     : "";
 
   let out = `---\n${buildFrontMatter(registry)}---\n\n`;
-  out += caution + "\n";
+  out += buildNote() + "\n";
   if (anyProposed) out += legend + "\n";
-  out += renderBody(registry, inventoryMd, source);
+  out += renderBody(registry, source);
   writeFileSync(outputPath, out);
 
   // Self-verify: re-read the written file, assert the opening `---` and every standard heading by name.

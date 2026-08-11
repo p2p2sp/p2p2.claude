@@ -238,11 +238,9 @@ function buildFixtureRegistry() {
 
 function renderFixture(dir: string): string {
   const registryPath = path.join(dir, "registry.json");
-  const inventoryPath = path.join(dir, "inventory.md");
   const outputPath = path.join(dir, "DESIGN.md");
   fs.writeFileSync(registryPath, JSON.stringify(buildFixtureRegistry(), null, 2));
-  fs.writeFileSync(inventoryPath, "## Components\n\n## Patterns\n");
-  const renderResult = runRender([registryPath, inventoryPath, outputPath]);
+  const renderResult = runRender([registryPath, outputPath]);
   assert.equal(renderResult.status, 0, `render_design_md.ts failed: ${renderResult.stderr}`);
   return outputPath;
 }
@@ -343,11 +341,9 @@ test("a proposed token with no dark value round-trips its Source + rationale", (
       unknowns: [],
     };
     const registryPath = path.join(dir, "registry.json");
-    const inventoryPath = path.join(dir, "inventory.md");
     const designPath = path.join(dir, "DESIGN.md");
     fs.writeFileSync(registryPath, JSON.stringify(registry, null, 2));
-    fs.writeFileSync(inventoryPath, "## Components\n\n## Patterns\n");
-    const renderResult = runRender([registryPath, inventoryPath, designPath]);
+    const renderResult = runRender([registryPath, designPath]);
     assert.equal(renderResult.status, 0, `render_design_md.ts failed: ${renderResult.stderr}`);
 
     const outJsonPath = path.join(dir, "parsed.json");
@@ -386,11 +382,9 @@ test("a minimal system (empty surfaceOrder/accentUsage/textStyles) still parses 
       unknowns: [],
     };
     const registryPath = path.join(dir, "registry.json");
-    const inventoryPath = path.join(dir, "inventory.md");
     const designPath = path.join(dir, "DESIGN.md");
     fs.writeFileSync(registryPath, JSON.stringify(registry, null, 2));
-    fs.writeFileSync(inventoryPath, "## Components\n\n## Patterns\n");
-    const renderResult = runRender([registryPath, inventoryPath, designPath]);
+    const renderResult = runRender([registryPath, designPath]);
     assert.equal(renderResult.status, 0, `render_design_md.ts failed: ${renderResult.stderr}`);
 
     const outJsonPath = path.join(dir, "parsed.json");
