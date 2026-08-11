@@ -1,29 +1,28 @@
 ---
 name: design-extractor
-description: Turn a folder of UI screenshots into a Claude Design seed bundle (DESIGN.md plus the DESIGN.components.md / DESIGN.patterns.md spec satellites and canonical screens) at docs/design-system/.
+description: Turn a folder of UI screenshots into DESIGN.md - the pure, platform-neutral design system (tokens, type, spacing, elevation, motion) - at docs/design-system/, then loop to chain per-platform component extraction.
 allowed-tools: Read, Write, Glob, Bash(sh:*), Bash(mkdir:*), Bash(rm:*), Skill, Agent, AskUserQuestion
 user-invocable: true
 disable-model-invocation: true
 argument-hint: <screenshots-dir> [<target>]
 ---
 
-# Design Extractor - screenshots to Claude Design seed bundle
+# Design Extractor - screenshots to the platform-neutral design system
 
-Turn a directory of UI screenshots into the one-shot seed Claude Design consumes to build live,
-inline-styled Design Components: `DESIGN.md` (a lean seed - YAML front-matter tokens plus a prose
-body), the two consolidated spec satellites `DESIGN.components.md` and `DESIGN.patterns.md`, and
-`screens/<file>.png`.
+Turn a directory of UI screenshots into `DESIGN.md` - the one-shot, platform-neutral design-system
+seed (YAML front-matter tokens plus a prose body: colors, typography, spacing, elevation, shapes,
+motion). Components and patterns are a separate, per-platform concern - `/superui:component-extractor`
+reads this file and builds them; this skill never touches them.
 
 ## Ground rules
 - Never do a worker's job inline. This skill measures nothing and authors no measured or generated
-  artifact - `DESIGN.md`, the two spec satellites, `inventory.md` and `screens/` all come from the
-  builder dispatched in the Handoff step below. The only file it writes itself is
-  `<run>/intake-answers.md`, transcribing the user's own answers - `AskUserQuestion` only runs in
-  the main context, so intake has to happen here.
+  artifact - `DESIGN.md` comes from the builder dispatched in the Handoff step below. The only file
+  it writes itself is `<run>/intake-answers.md`, transcribing the user's own answers -
+  `AskUserQuestion` only runs in the main context, so intake has to happen here.
 - Paths: `<run>` = `.temp/design-extractor/<run-slug>/` (scratch, disposable), `<run-slug>` = the
   source directory's basename; `<out>` = `docs/design-system/`, or
-  `docs/design-system/<target>/` when a `<target>` argument was given. `<out>` is the shipped,
-  version-controlled deliverable - it does NOT nest under `<run>`.
+  `docs/design-system/<target>/` when a `<target>` argument was given. `<out>/DESIGN.md` is the
+  shipped, version-controlled deliverable - it does NOT nest under `<run>`.
 - Every `args` handoff to a fork (Skill or Agent) is a labeled block, one `label: <value>` per
   line. A path value is a path - never paste file content.
 
@@ -44,13 +43,17 @@ body), the two consolidated spec satellites `DESIGN.components.md` and `DESIGN.p
    `<out>` = `docs/design-system/` (no `<target>`) or `docs/design-system/<target>/` (with one).
 4. `<run>` already exists (a previous run on this same source) -> `rm -rf` it wholesale before any
    write - never merge, never patch; every later step assumes an empty scratch tree.
-5. Glob `<out>/**`. Any file -> STOP and ask via `AskUserQuestion` whether to wipe it and
-   rebuild, or abort. Only on an explicit wipe answer `rm -rf <out>`; abort ends the skill here,
-   having written nothing. A bundle is regenerated whole, never merged or patched - so hand edits
-   under `<out>` are lost by a rebuild, and the question is the user's only chance to keep them.
+5. Glob `<out>/DESIGN.md`. Present -> STOP and ask via `AskUserQuestion` whether to wipe it and
+   rebuild, or abort. Only on an explicit wipe answer remove that one file (`rm <out>/DESIGN.md`);
+   abort ends the skill here, having written nothing. `DESIGN.md` is regenerated whole, never
+   merged or patched. This gate touches `DESIGN.md` ONLY - any platform subdir already under
+   `<out>` (e.g. `<out>/web-app/`) is left untouched; say so in the same message and warn that its
+   `DESIGN.components.md` / `DESIGN.patterns.md` become stale against the regenerated tokens, so
+   re-running `/superui:component-extractor` for that platform afterward is on the user to
+   remember.
 6. `mkdir -p <run> <out>`.
 7. Report the gate result to the user: source dir, PNG count, `<run>` path, `<out>` path, whether a
-   stale `<run>` was removed and whether `<out>` was wiped on the user's answer.
+   stale `<run>` was removed and whether `<out>/DESIGN.md` was wiped on the user's answer.
 
 ## Step 2 - Source map
 Dispatch `superui:source-scout` (Agent tool) with the source directory and `<run>/source-map.md`
@@ -62,40 +65,45 @@ Read only `<run>/source-map.md`'s `## Ambiguities` section.
 - Otherwise -> ask the user those questions in prose via `AskUserQuestion`, then write the answers
   to `<run>/intake-answers.md`.
 
-## Step 4 - Inventory
-Dispatch `superui:component-scout` (Agent tool) with the source directory, `<run>/source-map.md`,
-`<run>/intake-answers.md` when step 3 wrote one, and `<run>/inventory.md` as the output path.
-List the returned inventory to the user in this order - components, then patterns, then flagged
-inconsistencies - before any spec gets written.
-User objects to the inventory -> re-dispatch `component-scout` with its previous `inventory.md`
-path plus the objection as an added constraint, capped at two rounds; past that, carry the
-standing objection into the Handoff and Final report as a note instead of looping further.
-
-## Handoff - build the bundle
+## Handoff - build DESIGN.md
 Invoke `design-extractor-builder` (Skill tool) with a labeled-args block:
 ```
 run: <run>
 out: <out>
 source: <source dir>
 source-map: <run>/source-map.md
-inventory: <run>/inventory.md
 intake: <run>/intake-answers.md
 ```
 Omit the `intake:` line entirely when step 3 wrote no such file. Relay the builder's return
 verbatim - do not re-verify or re-derive any of it.
 
 ## Final report
-Tell the user: the `<out>` bundle path (holding `DESIGN.md`, `DESIGN.components.md`,
-`DESIGN.patterns.md` and `screens/`), the component and pattern counts, the count of proposed
-(best-practice, unmeasured) values the synthesizer supplied plus how many gaps it resolved versus
-left standing, every finding and every `> NEEDS INPUT` item from the builder's return, then the
-next action - hand the `<out>/` folder to Claude Design, and commit it: `<out>` is a
-version-controlled deliverable, not scratch. Note that values marked `proposed` in
-`DESIGN.md` (front matter or body) were invented to best practice, not measured, and should be
-reviewed. State plainly that the seed is one-shot input material: iterating in Claude Design
-supersedes it, and a changed source means re-running this skill, never patching the bundle by hand.
+Tell the user: the `<out>/DESIGN.md` path, the token and text-style counts, the count of proposed
+(best-practice, unmeasured) values the synthesizer supplied plus how many unknowns it resolved
+versus left standing, every finding and every `> NEEDS INPUT` item from the builder's return, then
+the next action - commit `DESIGN.md`: it is a version-controlled deliverable, not scratch. Note
+that values marked `proposed` in `DESIGN.md` (front matter or body) were invented to best
+practice, not measured, and should be reviewed. State plainly that this is one-shot input
+material for the platform component/pattern bundles `/superui:component-extractor` builds next,
+and that a changed source means re-running this skill, never patching `DESIGN.md` by hand.
+
+## Ending loop - chain a platform
+After the Final report, ask via `AskUserQuestion` (single-select): `web app`, `mobile`, `website`,
+`finish`. No answer (the question is aborted) -> treat as `finish`, which ends the skill here.
+
+On a platform choice:
+1. Ask a second `AskUserQuestion` confirming the screenshots directory for that platform - default
+   to this run's source dir, with an `Other` option to type a different path.
+2. Invoke `component-extractor` (Skill tool) with positional args `<screenshots-dir> <platform>
+   [<target>]` - `<platform>` is the machine value for the chosen option (`web-app`, `mobile`, or
+   `website`), and `<target>` is this run's own `<target>` argument, passed through verbatim when
+   one was given.
+3. Relay its report verbatim - a chained run's own hard stops (e.g. missing PNGs in the confirmed
+   dir) surface through that relay, nothing re-checked here.
+4. Re-ask the same single-select question. Loop until `finish`.
 
 ## Contracts
 Consumes a screenshots directory path (first argument, or asked) and an optional `<target>` (second
-argument). Produces the seed bundle (`DESIGN.md`, `DESIGN.components.md`, `DESIGN.patterns.md`,
-`screens/`) at `docs/design-system/`, or `docs/design-system/<target>/` when `<target>` was given.
+argument). Produces `DESIGN.md` at `docs/design-system/`, or `docs/design-system/<target>/` when
+`<target>` was given. Chains to `component-extractor` (Skill tool) with `<screenshots-dir>
+<platform> [<target>]`.
