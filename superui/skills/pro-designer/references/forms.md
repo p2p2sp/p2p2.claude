@@ -26,7 +26,7 @@ Good: `The date field is in the wrong format; it should be similar to 17/09/2013
 
 - Mark error state with redundant cues, never color alone: red border + warning icon + red error text in heavier font weight.
 - Set `aria-invalid="true"` on the input; link the message via `aria-describedby`; announce injected errors with `role="alert"` (or `aria-live="polite"` for as-you-type feedback).
-- On failed submit, prefix the page `<title>` with the error count (e.g. "3 Errors – Billing Address") - screen-reader users hear the outcome immediately.
+- On failed submit, prefix the page `<title>` with the error count (e.g. "3 Errors - Billing Address") - screen-reader users hear the outcome immediately.
 - Do not animate the error text itself - reduces readability.
 - Keep validation feedback persistent; never fade it out - disappearing messages make users doubt whether they erred.
 
@@ -44,6 +44,12 @@ Good: `The date field is in the wrong format; it should be similar to 17/09/2013
 - Explicitly mark optional phone fields - 15% of adults refuse to give a phone number and abandon if they assume it is required.
 - State constraints up front as persistent helper text near the field (password rules, accepted formats, character limits) before typing starts - never reveal requirements only through error messages after a failed attempt.
 
+## Mobile input mechanics
+
+- Set every input's font-size to 16px or larger on mobile - iOS Safari auto-zooms any focused field below 16px and leaves the page zoomed after the user leaves the field.
+- Use semantic `type` (`email`, `tel`, `url`, `number`) plus `inputmode` (`numeric`, `decimal`) so the field raises the matching mobile keyboard instead of the default alphabetic one.
+- Use real `autocomplete` tokens (`name`, `email`, `postal-code`, `cc-number`) matching the field's data - never blanket `autocomplete="off"`, it breaks password managers and autofill for every field it touches.
+
 ## Smart defaults
 
 - Pre-fill every field with a sensible recommendation - turn the task from "fill from scratch" into "review and correct" (mechanism and evidence -> ux-psychology.md "Smart defaults").
@@ -54,7 +60,7 @@ Good: `The date field is in the wrong format; it should be similar to 17/09/2013
 - A wall of empty inputs with a disabled submit is the anti-pattern: it maximizes decision fatigue and kills conversion.
 
 Bad:  5 empty dropdowns ("Select date...", "Number of guests...") + disabled gray "Search"
-Good: pre-filled "15 Oct – 20 Oct", "1 Adult", "Standard Room", auto code "AUTO15" (removable) + enabled CTA "See 12 results"
+Good: pre-filled "15 Oct - 20 Oct", "1 Adult", "Standard Room", auto code "AUTO15" (removable) + enabled CTA "See 12 results"
 
 ## Choice reduction
 

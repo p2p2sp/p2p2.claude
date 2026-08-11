@@ -33,6 +33,11 @@ Read when writing any CSS/HTML with colors, text, interactive elements, or touch
   - Required fields: asterisk or the word "required", never just red.
 - Links inside body text: underline by default. If you remove the underline: link color >= 3:1 vs surrounding text AND >= 4.5:1 vs background AND underline reappears on hover/focus. Nav/menu links in obvious link contexts are exempt from the 3:1-vs-text rule.
 
+## Accessible names and hidden semantics
+- Every icon-only control (icon button, overflow/triple-dot menu, close X) carries `aria-label` or visually hidden text naming the action ("Close dialog", "Delete item") - an icon alone has no accessible name.
+- Meaningful images get descriptive `alt` text stating what the image conveys, not its filename.
+- Purely decorative icons/images are hidden from assistive tech (`aria-hidden="true"` or an empty `alt=""`) so screen readers do not announce noise.
+
 ## Text over images
 - Text over images/gradients must pass its ratio (4.5:1, 3:1 large) at EVERY point - verify against the lightest pixel it can sit on, not the average. Responsive crops and user-supplied images make the safe area unpredictable.
 - Fixes: semi-transparent dark scrim (NN/g example needed 50% opacity, not 30%), bottom "floor fade" gradient, blurred region behind text, or solid/semi-opaque text container.
@@ -55,6 +60,7 @@ Read when writing any CSS/HTML with colors, text, interactive elements, or touch
 ## Resize and spacing resilience
 - Text must resize to 200% without horizontal scrolling to read a line (SC 1.4.4 / 1.4.8). Use relative units; never fixed-height text containers.
 - Content must not break under user overrides (SC 1.4.12 AA): line-height 1.5x font size, paragraph spacing 2x, letter spacing 0.12x, word spacing 0.16x - avoid `overflow: hidden` on text and fixed heights that clip.
+- Never `user-scalable=no` or `maximum-scale=1` in the viewport meta - pinch-zoom must stay available (SC 1.4.4). Keep `width=device-width, initial-scale=1`.
 
 ## Contrast is a build step, not a review step
 - Contrast is deterministic: ratio = (L1 + 0.05) / (L2 + 0.05) via WCAG relative luminance. Do not eyeball it.
