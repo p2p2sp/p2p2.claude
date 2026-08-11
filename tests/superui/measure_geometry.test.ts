@@ -17,7 +17,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { fitRadius, scanShadow } from "../../superui/scripts/measure_geometry.ts";
+import { fitRadius, scanShadow, scanGradient } from "../../superui/scripts/measure_geometry.ts";
 import type { RgbImage } from "../../superui/scripts/measure_geometry.ts";
 
 const FG: [number, number, number] = [20, 20, 20];
@@ -176,4 +176,76 @@ test("scanShadow reports a zero profile when the box edge is flush against the i
   assert.equal(result.peakOffset, 0);
   assert.equal(result.peakHex, result.bgHex);
   assert.equal(result.samples.length, 0);
+});
+
+// ---------------------------------------------------------------------------
+// scanGradient
+// ---------------------------------------------------------------------------
+
+/** A single-column (or single-row) image of `n` steps, each row/col holding
+ *  the linearly-interpolated color between `start` and `end`. */
+function makeRampImage(
+  n: number,
+  start: [number, number, number],
+  end: [number, number, number],
+  axis: "h" | "v",
+): RgbImage {
+  const width = axis === "h" ? n : 1;
+  const height = axis === "h" ? 1 : n;
+  const img = fillImage(width, height, [0, 0, 0]);
+  for (let i = 0; i < n; i++) {
+    const t = n === 1 ? 0 : i / (n - 1);
+    const color: [number, number, number] = [
+      start[0] + (end[0] - start[0]) * t,
+      start[1] + (end[1] - start[1]) * t,
+      start[2] + (end[2] - start[2]) * t,
+    ];
+    if (axis === "h") setPixel(img, i, 0, color);
+    else setPixel(img, 0, i, color);
+  }
+  return img;
+}
+
+test("scanGradient classifies an 8-step vertical linear ramp as linear with measured endpoint hexes", () => {
+  const start: [number, number, number] = [0, 0, 0];
+  const end: [number, number, number] = [140, 140, 140];
+  const img = makeRampImage(8, start, end, "v");
+  const box: Box = { x: 0, y: 0, w: 1, h: 8 };
+  const result = scanGradient(img, box, "v");
+  assert.equal(result.verdict, "linear");
+  assert.equal(result.startHex, "#000000");
+  assert.equal(result.endHex, "#8c8c8c");
+  assert.equal(result.totalDelta, 140);
+});
+
+test("scanGradient classifies a flat surface with +/-1 noise as flat", () => {
+  const img = fillImage(8, 1, [100, 100, 100]);
+  setPixel(img, 0, 0, [100, 100, 100]);
+  setPixel(img, 3, 0, [101, 99, 100]);
+  setPixel(img, 5, 0, [99, 101, 100]);
+  setPixel(img, 7, 0, [101, 100, 100]);
+  const box: Box = { x: 0, y: 0, w: 8, h: 1 };
+  const result = scanGradient(img, box, "h");
+  assert.equal(result.verdict, "flat");
+  assert.ok(result.totalDelta < 3, `expected totalDelta < 3, got ${result.totalDelta}`);
+});
+
+test("scanGradient classifies a hard two-tone split as nonlinear", () => {
+  const img = fillImage(8, 1, [0, 0, 0]);
+  for (let x = 4; x < 8; x++) setPixel(img, x, 0, [200, 200, 200]);
+  const box: Box = { x: 0, y: 0, w: 8, h: 1 };
+  const result = scanGradient(img, box, "h");
+  assert.equal(result.verdict, "nonlinear");
+});
+
+test("scanGradient collapses a 1px-wide-on-axis box to a single flat sample", () => {
+  const img = fillImage(1, 1, [123, 45, 67]);
+  const box: Box = { x: 0, y: 0, w: 1, h: 1 };
+  const result = scanGradient(img, box, "h");
+  assert.equal(result.startHex, "#7b2d43");
+  assert.equal(result.midHex, "#7b2d43");
+  assert.equal(result.endHex, "#7b2d43");
+  assert.equal(result.totalDelta, 0);
+  assert.equal(result.maxDeviation, 0);
+  assert.equal(result.verdict, "flat");
 });

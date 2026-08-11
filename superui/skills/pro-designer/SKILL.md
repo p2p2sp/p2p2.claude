@@ -40,6 +40,7 @@ Before any design decision, name what the visitor's success looks like on THIS s
 - Touch targets: web ≥ 24×24 CSS px (WCAG AA legal floor), iOS ≥ 44×44 pt, Android ≥ 48×48 dp. Design anything a finger touches to 44-48px, not the web floor.
 - In data display the value dominates, the label is muted - never equal weight.
 - No dark patterns: no fake urgency, scarcity, progress, or anchors; defaults never work against the user. Full rules in `references/ux-psychology.md`.
+- HARD RULE: never output an em dash (U+2014) or an en dash (U+2013) anywhere - not in UI copy, microcopy, code, comments, or reports. Always use a plain hyphen (-).
 
 ## Design-system precedence
 

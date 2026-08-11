@@ -4,7 +4,7 @@
  * heights, corner radii, shadow extents, ink/cap-height bounds) that
  * sample_colors.ts's color/luminance measurement does not cover.
  *
- * Four independent measurement modes, one per invocation:
+ * Five independent measurement modes, one per invocation:
  *   --edges x,y,w,h --axis h|v   Run-length scan along the row/column that
  *       crosses the box's midline on the cross-axis: groups consecutive
  *       pixels whose per-channel delta from the run's start pixel stays
@@ -30,6 +30,15 @@
  *       `samples[]` are tolerance-independent - a shadow whose maximum
  *       per-channel delta is 3 is reported in full under the default
  *       `--tol 8` instead of vanishing.
+ *   --gradient x,y,w,h --axis h|v   Walks the box's midline on the chosen
+ *       axis (the same midline --edges uses), sampling every pixel along it.
+ *       Reports `startHex`/`midHex`/`endHex` (first/middle/last sampled
+ *       pixel), `totalDelta` (max per-channel delta between start and end),
+ *       `maxDeviation` (the largest per-channel delta between any sampled
+ *       pixel and the linear interpolation of start->end at that position),
+ *       and a `verdict` of `flat` (totalDelta < 3), `linear` (maxDeviation
+ *       within the larger of 2 or 25% of totalDelta), or `nonlinear`
+ *       (otherwise). Tolerance-independent - --tol is not consulted.
  *   --ink x,y,w,h   Background = the modal color inside the rect (the
  *       surface the glyphs sit on); reports the bounding box of every pixel
  *       differing from that background by more than --tol, plus
@@ -40,11 +49,12 @@
  * IN : IMAGE - path to a PNG or JPEG image (non-interlaced PNG; baseline or
  *      progressive JPEG), decoded by the bundled vendor decoders (no
  *      third-party dependencies, Node built-ins only). Exactly one of
- *      --edges/--radius/--shadow/--ink selects the mode; each requires its
- *      listed companion flag (--axis / --corner / --side respectively;
- *      --ink has none).
+ *      --edges/--radius/--shadow/--gradient/--ink selects the mode; each
+ *      requires its listed companion flag (--axis / --corner / --side /
+ *      --axis respectively; --ink has none).
  * Flags:
- *   --tol N     per-channel color tolerance (default 8)
+ *   --tol N     per-channel color tolerance (default 8); not consulted by
+ *               --gradient, which is tolerance-independent
  *   --json      emit structured JSON instead of human-readable lines
  * OUT: stdout - one measurement per mode, a human-readable line (or lines)
  *      by default, or a JSON object with --json.
@@ -65,6 +75,7 @@
  *          (--edges x,y,w,h --axis h|v
  *           | --radius x,y,w,h --corner tl|tr|bl|br
  *           | --shadow x,y,w,h --side top|right|bottom|left
+ *           | --gradient x,y,w,h --axis h|v
  *           | --ink x,y,w,h)
  *          [--tol N] [--json]
  */
@@ -122,6 +133,17 @@ export interface ShadowResult {
   peakHex: string;
   bgHex: string;
   samples: ShadowSample[];
+}
+
+export type GradientVerdict = "flat" | "linear" | "nonlinear";
+
+export interface GradientResult {
+  startHex: string;
+  midHex: string;
+  endHex: string;
+  totalDelta: number;
+  maxDeviation: number;
+  verdict: GradientVerdict;
 }
 
 export interface InkResult {
@@ -372,7 +394,64 @@ export function scanShadow(img: RgbImage, box: Box, side: Side, tol: number): Sh
 }
 
 // ---------------------------------------------------------------------------
-// Mode 4 - inkBox
+// Mode 4 - scanGradient
+// ---------------------------------------------------------------------------
+
+/** Fixed classification thresholds - not flags. A gradient's verdict is
+ *  tolerance-independent (--tol is not consulted here). */
+const GRADIENT_FLAT_DELTA = 3;
+const GRADIENT_LINEAR_FLOOR = 2;
+const GRADIENT_LINEAR_FRACTION = 0.25;
+
+export function scanGradient(img: RgbImage, box: Box, axis: Axis): GradientResult {
+  const n = axis === "h" ? box.w : box.h;
+  const samples: Rgb[] = [];
+  if (axis === "h") {
+    const y = box.y + Math.floor((box.h - 1) / 2);
+    for (let i = 0; i < n; i++) samples.push(pixelAt(img, box.x + i, y));
+  } else {
+    const x = box.x + Math.floor((box.w - 1) / 2);
+    for (let i = 0; i < n; i++) samples.push(pixelAt(img, x, box.y + i));
+  }
+
+  const start = samples[0];
+  const end = samples[n - 1];
+  const mid = samples[Math.floor((n - 1) / 2)];
+  const totalDelta = maxChannelDelta(start, end);
+
+  let maxDeviation = 0;
+  for (let i = 0; i < n; i++) {
+    const t = n === 1 ? 0 : i / (n - 1);
+    const predicted: Rgb = [
+      start[0] + (end[0] - start[0]) * t,
+      start[1] + (end[1] - start[1]) * t,
+      start[2] + (end[2] - start[2]) * t,
+    ];
+    const deviation = maxChannelDelta(samples[i], predicted);
+    if (deviation > maxDeviation) maxDeviation = deviation;
+  }
+
+  let verdict: GradientVerdict;
+  if (totalDelta < GRADIENT_FLAT_DELTA) {
+    verdict = "flat";
+  } else if (maxDeviation <= Math.max(GRADIENT_LINEAR_FLOOR, totalDelta * GRADIENT_LINEAR_FRACTION)) {
+    verdict = "linear";
+  } else {
+    verdict = "nonlinear";
+  }
+
+  return {
+    startHex: toHex(start),
+    midHex: toHex(mid),
+    endHex: toHex(end),
+    totalDelta,
+    maxDeviation,
+    verdict,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Mode 5 - inkBox
 // ---------------------------------------------------------------------------
 
 export function inkBox(img: RgbImage, box: Box, tol: number): InkResult {
@@ -458,7 +537,19 @@ export function inkBox(img: RgbImage, box: Box, tol: number): InkResult {
 
 const PROG = basename(process.argv[1] ?? "measure_geometry.ts");
 
-const OPTION_NAMES = ["--help", "--edges", "--axis", "--radius", "--corner", "--shadow", "--side", "--ink", "--tol", "--json"];
+const OPTION_NAMES = [
+  "--help",
+  "--edges",
+  "--axis",
+  "--radius",
+  "--corner",
+  "--shadow",
+  "--side",
+  "--gradient",
+  "--ink",
+  "--tol",
+  "--json",
+];
 
 function usageText(): string {
   const pad = " ".repeat(7 + PROG.length + 1);
@@ -467,6 +558,7 @@ function usageText(): string {
     `${pad}(--edges x,y,w,h --axis h|v\n` +
     `${pad} | --radius x,y,w,h --corner tl|tr|bl|br\n` +
     `${pad} | --shadow x,y,w,h --side top|right|bottom|left\n` +
+    `${pad} | --gradient x,y,w,h --axis h|v\n` +
     `${pad} | --ink x,y,w,h)\n` +
     `${pad}[--tol N] [--json]`
   );
@@ -505,6 +597,7 @@ interface ParsedArgs {
   corner: string | null;
   shadow: string | null;
   side: string | null;
+  gradient: string | null;
   ink: string | null;
   tol: number;
   json: boolean;
@@ -519,6 +612,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     corner: null,
     shadow: null,
     side: null,
+    gradient: null,
     ink: null,
     tol: 8,
     json: false,
@@ -578,6 +672,9 @@ export function parseArgs(argv: string[]): ParsedArgs {
       case "--side":
         args.side = value;
         break;
+      case "--gradient":
+        args.gradient = value;
+        break;
       case "--ink":
         args.ink = value;
         break;
@@ -616,9 +713,9 @@ function checkBox(box: Box, img: RgbImage): void {
 function main(): void {
   const args = parseArgs(process.argv.slice(2));
 
-  const modeCount = [args.edges, args.radius, args.shadow, args.ink].filter((v) => v !== null).length;
+  const modeCount = [args.edges, args.radius, args.shadow, args.gradient, args.ink].filter((v) => v !== null).length;
   if (modeCount !== 1) {
-    argError("exactly one of --edges, --radius, --shadow, --ink is required");
+    argError("exactly one of --edges, --radius, --shadow, --gradient, --ink is required");
   }
 
   let img: RgbImage;
@@ -673,6 +770,24 @@ function main(): void {
       bgHex: sh.bgHex,
       samples: sh.samples,
     };
+  } else if (args.gradient !== null) {
+    if (args.axis !== "h" && args.axis !== "v") {
+      argError("argument --axis: invalid choice (choose from 'h', 'v')");
+    }
+    const box = parseBox(args.gradient, "--gradient");
+    checkBox(box, img);
+    const gr = scanGradient(img, box, args.axis);
+    result = {
+      mode: "gradient",
+      axis: args.axis,
+      box: [box.x, box.y, box.w, box.h],
+      startHex: gr.startHex,
+      midHex: gr.midHex,
+      endHex: gr.endHex,
+      totalDelta: gr.totalDelta,
+      maxDeviation: gr.maxDeviation,
+      verdict: gr.verdict,
+    };
   } else {
     const box = parseBox(args.ink as string, "--ink");
     checkBox(box, img);
@@ -714,6 +829,12 @@ function main(): void {
       for (const s of result.samples as ShadowSample[]) {
         lines.push(`sample ${s.offset} ${s.delta} ${s.hex}`);
       }
+      break;
+    case "gradient":
+      lines.push(
+        `startHex=${result.startHex} midHex=${result.midHex} endHex=${result.endHex} ` +
+          `totalDelta=${result.totalDelta} maxDeviation=${result.maxDeviation} verdict=${result.verdict}`,
+      );
       break;
     case "ink":
       lines.push(
