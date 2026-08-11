@@ -17,7 +17,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { renderSubsectionBody, renderTextStyles } from "../../superui/scripts/render_design_md.ts";
+import { renderSubsectionBody, renderTextStyles, buildFrontMatter } from "../../superui/scripts/render_design_md.ts";
 import type { Registry, TokenEntry, TextStyleEntry } from "../../superui/scripts/render_design_md.ts";
 
 // ---------------------------------------------------------------------------
@@ -194,4 +194,90 @@ test("an all-measured 3.10 summary still renders exactly the current bullet shap
 
   const output = renderSubsectionBody("3.10", registry);
   assert.equal(output, "- `color.surface.default` - light #0057FF, dark #0B0B0B");
+});
+
+// ---------------------------------------------------------------------------
+// buildFrontMatter - shadows/gradients maps
+// ---------------------------------------------------------------------------
+
+test("buildFrontMatter emits empty shadows and gradients maps when no 3.8 tokens exist", () => {
+  const registry = mkRegistry({});
+
+  const frontMatter = buildFrontMatter(registry);
+
+  assert.ok(frontMatter.includes("\nshadows: {}\n"), `expected 'shadows: {}', got:\n${frontMatter}`);
+  assert.ok(frontMatter.includes("\ngradients: {}\n"), `expected 'gradients: {}', got:\n${frontMatter}`);
+});
+
+test("buildFrontMatter emits a shadow.* token under shadows, quoted, and not under gradients", () => {
+  const registry = mkRegistry({
+    "shadow.card": mkToken({ section: "3.8", value: "0 1px 2px rgba(0,0,0,.05)" }),
+  });
+
+  const frontMatter = buildFrontMatter(registry);
+
+  assert.ok(
+    frontMatter.includes('\n  shadow.card: "0 1px 2px rgba(0,0,0,.05)"\n'),
+    `expected quoted shadow.card line, got:\n${frontMatter}`,
+  );
+  assert.ok(frontMatter.includes("\ngradients: {}\n"), `expected empty gradients map, got:\n${frontMatter}`);
+});
+
+test("buildFrontMatter quotes a linear-gradient value verbatim so '#' and ',' survive YAML intact", () => {
+  const registry = mkRegistry({
+    "gradient.surface.hero": mkToken({
+      section: "3.8",
+      value: "linear-gradient(180deg, #ffffff 0%, #f7f8fa 100%)",
+    }),
+  });
+
+  const frontMatter = buildFrontMatter(registry);
+
+  assert.ok(
+    frontMatter.includes('\n  gradient.surface.hero: "linear-gradient(180deg, #ffffff 0%, #f7f8fa 100%)"\n'),
+    `expected verbatim quoted gradient line, got:\n${frontMatter}`,
+  );
+});
+
+// ---------------------------------------------------------------------------
+// 3.8 body - split into Shadows / Gradients / remaining, mirroring 3.7
+// ---------------------------------------------------------------------------
+
+test("the 3.8 body splits shadow.* and gradient.* tokens into their own labelled tables", () => {
+  const registry = mkRegistry({
+    "shadow.card": mkToken({ section: "3.8", value: "0 1px 2px rgba(0,0,0,.05)" }),
+    "gradient.surface.hero": mkToken({
+      section: "3.8",
+      value: "linear-gradient(180deg, #ffffff 0%, #f7f8fa 100%)",
+    }),
+  });
+
+  const output = renderSubsectionBody("3.8", registry);
+
+  assert.ok(output.includes("**Shadows**"), `expected a Shadows label, got:\n${output}`);
+  assert.ok(output.includes("**Gradients**"), `expected a Gradients label, got:\n${output}`);
+  const shadowsIdx = output.indexOf("**Shadows**");
+  const gradientsIdx = output.indexOf("**Gradients**");
+  const cardIdx = output.indexOf("shadow.card");
+  const heroIdx = output.indexOf("gradient.surface.hero");
+  assert.ok(shadowsIdx < cardIdx && cardIdx < gradientsIdx, "shadow.card must sit in the Shadows table");
+  assert.ok(gradientsIdx < heroIdx, "gradient.surface.hero must sit in the Gradients table");
+});
+
+test("a 3.8 token matching neither shadow. nor gradient. lands in the remaining table, never dropped", () => {
+  const registry = mkRegistry({
+    "blur.overlay": mkToken({ section: "3.8", value: "8px" }),
+  });
+
+  const output = renderSubsectionBody("3.8", registry);
+
+  assert.ok(output.includes("blur.overlay"), `expected blur.overlay to survive in the 3.8 body, got:\n${output}`);
+});
+
+test("no 3.8 tokens at all still renders 'none' for the 3.8 body", () => {
+  const registry = mkRegistry({});
+
+  const output = renderSubsectionBody("3.8", registry);
+
+  assert.equal(output, "none");
 });

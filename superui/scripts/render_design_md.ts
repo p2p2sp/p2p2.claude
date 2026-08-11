@@ -5,9 +5,10 @@
  * seed loosely conforming to the design.md standard:
  *   1. YAML front matter FIRST (before any prose) - DTCG-shaped light-value
  *      tokens: `colors` (3.1+3.2), `typography` (3.5 families + textStyles),
- *      `spacing` (3.6), `rounded` (3.7 `radius.*`). Nothing else lands in front
- *      matter (border widths, shadows, motion, surface order, accent usage live
- *      in the body only).
+ *      `spacing` (3.6), `rounded` (3.7 `radius.*`), `shadows` (3.8 `shadow.*`),
+ *      `gradients` (3.8 `gradient.*`). Nothing else lands in front matter
+ *      (border widths, motion, surface order, accent usage live in the body
+ *      only).
  *   2. A prose body under the fixed standard `## ` headings (Overview, Colors,
  *      Typography, Layout & Spacing, Elevation & Depth, Shapes, Motion,
  *      Components, Do's and Don'ts). The old `## 3.N` sections survive as `###`
@@ -312,6 +313,24 @@ function renderRadiiAndBorders(rows: TokenRow[]): string {
 }
 
 // ---------------------------------------------------------------------------
+// 3.8 - Shadows and gradients (split by name prefix)
+// ---------------------------------------------------------------------------
+
+function renderShadowsAndEffects(rows: TokenRow[]): string {
+  const shadows = rows.filter((r) => r.name.startsWith("shadow."));
+  const gradients = rows.filter((r) => r.name.startsWith("gradient."));
+  const other = rows.filter((r) => !r.name.startsWith("shadow.") && !r.name.startsWith("gradient."));
+  const parts: string[] = [
+    `**Shadows**\n\n${renderTokenTable(shadows, { nameHeader: "Shadow token", valueHeader: "Value" })}`,
+    `**Gradients**\n\n${renderTokenTable(gradients, { nameHeader: "Gradient token", valueHeader: "Value" })}`,
+  ];
+  if (other.length > 0) {
+    parts.push(renderTokenTable(other, { nameHeader: "Name", valueHeader: "Value" }));
+  }
+  return parts.join("\n");
+}
+
+// ---------------------------------------------------------------------------
 // 3.10 - Dark mode summary
 // ---------------------------------------------------------------------------
 
@@ -387,7 +406,7 @@ export function renderSubsectionBody(sectionId: string, registry: Registry): str
     case "3.8": {
       const rows = tokensForSection(registry, "3.8");
       hasContent = rows.length > 0;
-      if (hasContent) body = renderTokenTable(rows, { nameHeader: "Name", valueHeader: "Value" });
+      if (hasContent) body = renderShadowsAndEffects(rows);
       break;
     }
     case "3.9": {
@@ -437,7 +456,7 @@ function yamlKey(k: string): string {
   return k;
 }
 
-function buildFrontMatter(registry: Registry): string {
+export function buildFrontMatter(registry: Registry): string {
   const lines: string[] = [];
 
   // colors <- 3.1 + 3.2, light `value`
@@ -488,6 +507,24 @@ function buildFrontMatter(registry: Registry): string {
   } else {
     lines.push("rounded:");
     for (const r of rounded) lines.push(`  ${yamlKey(r.name)}: ${yamlScalar(r.value)}`);
+  }
+
+  // shadows <- 3.8 `shadow.*`
+  const shadows = tokensForSection(registry, "3.8").filter((r) => r.name.startsWith("shadow."));
+  if (shadows.length === 0) {
+    lines.push("shadows: {}");
+  } else {
+    lines.push("shadows:");
+    for (const r of shadows) lines.push(`  ${yamlKey(r.name)}: ${yamlScalar(r.value)}`);
+  }
+
+  // gradients <- 3.8 `gradient.*`
+  const gradients = tokensForSection(registry, "3.8").filter((r) => r.name.startsWith("gradient."));
+  if (gradients.length === 0) {
+    lines.push("gradients: {}");
+  } else {
+    lines.push("gradients:");
+    for (const r of gradients) lines.push(`  ${yamlKey(r.name)}: ${yamlScalar(r.value)}`);
   }
 
   return lines.join("\n") + "\n";
