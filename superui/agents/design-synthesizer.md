@@ -27,11 +27,11 @@ measured value - you complete what is missing.
 2. Proactively complete the system to a coherent best-practice standard, filling what is absent even when no
    `unknowns` entry names it:
    - color: missing neutral-ramp steps, a full accent scale (100-900) when only a few steps are measured,
-     absent semantic roles (focus ring, error, success, warning, info, disabled) - reserve red/green for
+     absent semantic roles (focus indicator, error, success, warning, info, disabled) - reserve red/green for
      system states only;
    - typography: a finite type ramp (`textStyles[]`) covering display/heading/body/label/caption when it is
      partial;
-   - spacing: a 4/8px step ramp filling gaps between measured steps;
+   - spacing: a 4/8 step ramp in reference px filling gaps between measured steps;
    - radii and border widths: the missing steps of the scale;
    - shadows and gradients: standard elevation values (`shadow.*`) and surface treatments (`gradient.*`) when
      a surface implies one and `registry.json` carries no measured `shadow.*`/`gradient.*` for it - but never
