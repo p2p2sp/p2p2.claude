@@ -96,7 +96,7 @@ message (skip entries reporting `none`).
 Skip when step 5 collected no `MISSING-TOKENS:` blocks. Otherwise route every collected entry
 (proposed name, measured value, evidence) to the analyst owning its group - `color.*` -> colors,
 `text.*` -> typography, `spacing.*` / `radius.*` / `border.*` -> dimensions, `shadow.*` /
-`motion.*` -> effects-motion - and re-dispatch that foundation's analyst with its previous
+`gradient.*` / `motion.*` -> effects-motion - and re-dispatch that foundation's analyst with its previous
 fragment path plus the routed entries as findings to honor; the analyst adopts every proposed
 name verbatim. Then repeat steps 3 and 4. Cap at two rounds; a still-unresolved entry after that
 -> `> NEEDS INPUT: <name> unmeasured`, carried into the final message.

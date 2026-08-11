@@ -28,7 +28,7 @@ Split the entry line on `·`. A component entry carries `atomic|composite` at in
 
 ## Section list - component entry
 - Anatomy.
-- Per-part property-to-token lines: one line per property (bg, text, border, radius, padding, font), never several tokens lumped into one cell.
+- Per-part property-to-token lines: one line per property (bg, text, border, radius, padding, font), never several tokens lumped into one cell. Every part additionally carries a `border:`, a `shadow:` and a `gradient:` line - `none` is a legal, measured value for any of the three, omission is not.
 - Every state as token deltas from the base - both the form of the change and the measured color backing it.
 - A size-and-variant matrix: values per size.
 - The canonical screen line, plus an optional bbox crop hint.
@@ -47,6 +47,7 @@ A variant is author-time configuration (size, kind, emphasis). A state is a runt
 `assemble_specs.ts` consolidates every spec into a satellite and `validate_bundle.ts` then parses this surface (the `canonical:` line and the backtick token refs) off that satellite; write it verbatim, never in a prose variant.
 - One line matching `canonical: <filename>.png` near the top of the file, one screen only, the filename exactly as it appears in `screens/`.
 - Every token name in backticks, dotted `<group>.<name>` form. A value not expressed this way is either a `MISSING-TOKENS:` entry or a prose note - never a bare raw value.
+- A `border:`, `shadow:` and `gradient:` line per part, pinned next to `canonical:` and the backtick token refs - `validate_bundle.ts`'s `checkEffectLines` parses these three exactly. `none` is a legal value written out (`shadow: none`); the line itself is never dropped.
 - The optional bbox crop hint on its own line: `bbox: x,y,w,h`. No script parses this line; it is a hint for a human or for Claude Design.
 - Heading floor: spec bodies start at `##` and never use a single `#` - the assembler reserves h1 for the satellite's own title and h2 for the slug wrapper it writes around this spec.
 

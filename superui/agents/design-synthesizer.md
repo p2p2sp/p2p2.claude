@@ -33,7 +33,11 @@ measured value - you complete what is missing.
      partial;
    - spacing: a 4/8px step ramp filling gaps between measured steps;
    - radii and border widths: the missing steps of the scale;
-   - shadows/effects and motion: standard elevation and timing values when a surface implies them;
+   - shadows and gradients: standard elevation values (`shadow.*`) and surface treatments (`gradient.*`) when
+     a surface implies one and `registry.json` carries no measured `shadow.*`/`gradient.*` for it - but never
+     where a measured `shadow.*`/`gradient.*` already exists AT ALL, including a measured `none`: a measured
+     `none` is a value, not a gap, and proposing over it contradicts the measured system;
+   - motion: standard timing values when a surface implies them;
    - dark-mode: propose a `dark` value on any token you introduce whose role needs one.
 
 ## How to propose a value
@@ -54,6 +58,9 @@ measured value - you complete what is missing.
 - Section 3.2 tokens carry non-empty `primitive` and `usedFor`.
 - Never set a token `section` to `3.10`. Dark-mode coverage is a `dark` value on a token you propose, and
   section 3.10 renders from those automatically.
+- Never propose a `shadow.*` or `gradient.*` token where `registry.json` already carries a measured one for
+  that surface, even when its value is `none` - a measured `none` is the surface's stated answer, not a slot
+  left open for a proposal.
 
 ## Output - one fragment
 Write `notes-proposed.json`, shaped `{ foundation: "proposed", tokens, surfaceOrder: [], accentUsage: [],

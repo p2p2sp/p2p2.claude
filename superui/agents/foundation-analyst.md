@@ -28,7 +28,7 @@ Read `source-map.md` first, then every screen your duty split requires.
 
 ## Measurement law
 Every value traces to one of exactly two sources:
-- An invocation of the dispatched script: `<runtime> <sampler-path> IMAGE [--k N] [--points x,y ...] [--regions name=x,y,w,h ...]` for color; `<runtime> <geometry-path> IMAGE (--edges x,y,w,h --axis h|v | --radius x,y,w,h --corner tl|tr|bl|br | --shadow x,y,w,h --side top|right|bottom|left | --ink x,y,w,h)` for geometry.
+- An invocation of the dispatched script: `<runtime> <sampler-path> IMAGE [--k N] [--points x,y ...] [--regions name=x,y,w,h ...]` for color; `<runtime> <geometry-path> IMAGE (--edges x,y,w,h --axis h|v | --radius x,y,w,h --corner tl|tr|bl|br | --shadow x,y,w,h --side top|right|bottom|left | --gradient x,y,w,h --axis h|v | --ink x,y,w,h)` for geometry.
 - A stated in-image reference - a measurement or label already printed in the screenshot.
 
 Never a round number by habit. Never a value recalled from memory or copied from a template.
@@ -44,8 +44,15 @@ Never a fabricated value. Exactly one of:
 - Omission.
 
 ## Colors - mandatory coverage
-- Sample the background of every major region (page/canvas, sidebar, content panel, topbar, cards, menus) with `--regions`, and transcribe the printed luminance rank VERBATIM into `surfaceOrder`. You never rank surfaces by eye - only by the sampler's own printed order.
+- Before sampling `--regions`, run `--gradient` on both axes of each candidate rect. A `flat` verdict on both axes -> sample that rect as-is. A non-`flat` verdict on either axis -> re-run `--regions` with the rect re-centred on the ramp's midpoint (the position `--gradient` sampled as `midHex`) and transcribe THAT printed rank instead - a rect straddling a ramp reports a blended, unrepresentative background otherwise.
+- Sample the background of every major region (page/canvas, sidebar, content panel, topbar, cards, menus) with `--regions`, and transcribe the printed luminance rank VERBATIM into `surfaceOrder`. You never rank surfaces by eye - only by the sampler's own printed order; only the rect moves, per the rule above.
 - Build the accent-usage inventory as a per-screen enumeration: every screen the chromatic accent appears on, and where on that screen (text, border, feedback/state color, focus ring, overlay).
+- Record a hairline border's color as a semantic 3.2 token when `dimensions` reports one (the color, never the width or the token name `border.*`). You write NO `gradient.*` and NO `border.*` token yourself - sections 3.8 and 3.7 sit outside the colors duty split, and a second fragment declaring a key `dimensions` or `effects-motion` already owns makes `build_registry.ts`'s `detectCollisions` exit 1.
+
+## Subtle effects - mandatory coverage
+- `dimensions` (3.7): run `--edges --tol 2` on all four edges of every distinct surface and control - the default `--tol 8` merges a hairline border into its neighbouring run - and record any 1-3px run found as a `border.*` token.
+- `effects-motion` (3.8): run `--shadow` on all four sides of every distinct surface and control; read `samples[]`, `peakOffset` and `peakHex` from the result and derive the CSS shadow shorthand yourself - offset from which opposing sides carry a delta, blur from the falloff length (the run of samples before it settles), color from `peakHex`. Also run `--gradient` on both axes (`--axis h` and `--axis v`) of every distinct surface. `shadow.*` and `gradient.*` tokens belong to the effects-motion analyst ALONE - no other foundation writes either prefix.
+- Both duties: a `none` result is a measured value, written as the token's value - never an omission and never silently skipped.
 
 ## Dark values
 If dark screens fall in your reading requirement, measure them separately and record the `dark` value alongside the `value` on the same token. No dark screens = no `dark` values, ever.
