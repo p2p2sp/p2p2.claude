@@ -88,8 +88,14 @@ keeps its own rather than sharing one at the plugin root.
 
 - `pro-designer` - the cross-cutting **professional UI/UX standards** advisor (model-invocable via CSO):
   visual hierarchy, color-system discipline (neutral foundation, dark mode, accent scales), type ramps, 4/8pt
-  spacing, accessibility, component states, form-validation UX, and evidence-based conversion psychology with
-  hard anti-dark-pattern rules. Fires when creating, styling, or reviewing ANY interface. Bundles
+  spacing, accessibility, component states, form-validation UX, evidence-based conversion psychology with
+  hard anti-dark-pattern rules, and anti-AI-slop aesthetic direction (`references/distinctiveness.md`,
+  distilled from Anthropic's Apache-2.0 frontend-design skill: refuse the recognizable generated-look
+  defaults, ground direction in the subject, one signature element, plan-then-critique, copy as design
+  material). Its SKILL.md also carries four framings adapted from pbakaus/impeccable (Apache-2.0): the
+  surface-mode taxonomy (Persuade/Operate/Read/Experience, chosen from the surface, not the product), the
+  brief-wins rule, refinement-preserves-vs-redesign-replaces, and bounded QA passes (batched inspect-fix,
+  max two rounds). Fires when creating, styling, or reviewing ANY interface. Bundles
   `references/` only - its contrast gate is the plugin-root `scripts/check_contrast.ts` (WCAG AA), addressed
   via `${CLAUDE_PLUGIN_ROOT}/...`; a missing interpreter is a skip-with-note pointing at `/superui:setup`,
   never a hard stop. Advisory only.

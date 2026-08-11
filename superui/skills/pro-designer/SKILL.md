@@ -1,6 +1,6 @@
 ---
 name: pro-designer
-description: Professional UI/UX design standards for web apps, SaaS products and mobile apps - visual hierarchy, color-system discipline (neutral foundation, dark mode, accent scales), type scales, 8pt spacing, accessibility, component states, form validation UX, and evidence-based conversion psychology with hard anti-dark-pattern rules. Use whenever creating, styling or reviewing ANY user interface - a page, screen, dashboard, form, onboarding or pricing flow, landing page, navigation, or a single component - even if the user only says "build/add/fix" and never says "design". Also use when critiquing existing UI or choosing colors, fonts, spacing, or layout.
+description: Professional UI/UX design standards for web apps, SaaS products and mobile apps - visual hierarchy, color-system discipline (neutral foundation, dark mode, accent scales), type scales, 8pt spacing, accessibility, component states, form validation UX, evidence-based conversion psychology with hard anti-dark-pattern rules, and distinctive aesthetic direction that avoids the generic AI-generated look. Use whenever creating, styling or reviewing ANY user interface - a page, screen, dashboard, form, onboarding or pricing flow, landing page, navigation, or a single component - even if the user only says "build/add/fix" and never says "design". Also use when critiquing existing UI, choosing colors, fonts, spacing, or layout, or when a UI looks generic, templated, or AI-generated.
 allowed-tools: Bash(sh:*), Bash(node:*)
 ---
 
@@ -8,14 +8,24 @@ allowed-tools: Bash(sh:*), Bash(node:*)
 
 UI is attention management, not decoration. A professional interface is transparent: color, size and space each carry one deliberate signal, so the user never guesses where to look or what to do next. Amateur UI fails by shouting everywhere at once; senior UI fails nothing - it removes until only the signal remains.
 
+## Surface mode - name the visitor's success first
+
+Before any design decision, name what the visitor's success looks like on THIS surface. Choose from the requested surface, not the product: a tool's landing page is still Persuade; a fashion brand's docs are still Read.
+
+- **Persuade** - the visitor decides and acts: landing pages, marketing, pricing. Design earns attention and action.
+- **Operate** - the visitor completes a task: app UI, dashboards, forms, settings, admin. Scanability, consistency and platform expectations outrank expression; brand lives in precise details.
+- **Read** - the visitor understands something: docs, articles, help, changelogs. Structure for comprehension first, then make staying worth it.
+- **Experience** - the visitor is inside the work itself: portfolios, galleries, showcases. The artifact leads from the first viewport; the interface recedes.
+
 ## Design pass - apply in this order
 
-1. **Layout skeleton** - spacing scale, grouping, grid, max-width -> `references/layout-spacing.md`
-2. **Hierarchy & type** - one focal point per screen, fixed type ramp, mute labels / amplify values -> `references/typography.md`
-3. **Color** - neutral foundation + elevation, a scarce 100-900 accent scale, dark mode by physiology, OKLCH theming -> `references/color.md`
-4. **Components & states** - loading/empty/error designed, soft elevation, card anatomy -> `references/components-states.md`
-5. **Flow psychology** - only on conversion surfaces (onboarding, signup, upgrade, pricing) -> `references/ux-psychology.md`
-6. **QA** - checklist below + contrast script; never ship on "looks fine".
+1. **Aesthetic direction** - only for a new surface with no established design system: ground the direction in the subject, refuse the AI-default looks, pick one signature element -> `references/distinctiveness.md`
+2. **Layout skeleton** - spacing scale, grouping, grid, max-width -> `references/layout-spacing.md`
+3. **Hierarchy & type** - one focal point per screen, fixed type ramp, mute labels / amplify values -> `references/typography.md`
+4. **Color** - neutral foundation + elevation, a scarce 100-900 accent scale, dark mode by physiology, OKLCH theming -> `references/color.md`
+5. **Components & states** - loading/empty/error designed, soft elevation, card anatomy -> `references/components-states.md`
+6. **Flow psychology** - only on conversion surfaces (onboarding, signup, upgrade, pricing) -> `references/ux-psychology.md`
+7. **QA** - checklist below + contrast script; never ship on "looks fine".
 
 ## Non-negotiables - every screen
 
@@ -35,8 +45,14 @@ UI is attention management, not decoration. A professional interface is transpar
 
 When the project already defines its own design system - a token set, a design spec, or documented brand/UI guidelines - those authoritative values override this skill's generic absolutes: apply the project's own type ramp, spacing scale, and color system, never a second one alongside them. This skill stays advisory: it reasons about the project's system, never overwrites it.
 
+## Scope discipline
+
+- **The brief wins.** Honor aesthetics, eras, fonts, and palettes the user pinned - even when they conflict with this skill's anti-generic warnings. Redirecting a clear brief toward your own taste is failure; only accessibility and anti-dark-pattern rules stay non-negotiable.
+- **Refinement preserves; redesign replaces.** Refinement keeps the incumbent identity, behavior, and copy, touching only what is in scope - ask before rewriting factual copy or adding claims. Redesign keeps product truth, content, and function, but treats the old look as evidence and anti-reference. Never split the difference into polish on a discarded look.
+
 ## Reference routing
 
+- Aesthetic direction for a new surface, hero sections, signature elements, UI copy/microcopy voice, or UI that looks generic, templated, or AI-generated -> `references/distinctiveness.md`
 - Onboarding, signup, upgrade, pricing, paywalls, conversion flows -> `references/ux-psychology.md`
 - Choosing/using colors, palettes, dark mode -> `references/color.md`
 - Headings, body text, data/number display, form text conventions -> `references/typography.md`
@@ -54,3 +70,9 @@ When the project already defines its own design system - a token set, a design s
 - **Contrast**: resolve the `node` command via `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_node.sh"` first (`NODE_MISSING` -> skip with a note and point at `/superui:setup`), then run `<resolved node cmd> "${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.ts" FG BG [TYPE] [FG BG [TYPE] ...]` for every text/background and component/background pair. TYPE = `normal` (default, 4.5:1) | `large` (3:1) | `ui` (borders/icons/focus, 3:1) - exit 1 means a pair failed the AA threshold for its own type; exit 2 means bad input or usage (an out-of-range color, a malformed JSON record, or no args).
 - **States inventory**: hover, focus, disabled, loading, empty, error - all present?
 - **Detail rule**: if a detail is too small or too faint to notice, delete it instead of keeping it faint.
+- **Template test** (new surfaces only): would this exact palette + type + hero combination ship for any similar brief? If yes, it is a default, not a decision - revise the generic part (`references/distinctiveness.md`).
+- **Bounded passes**: verify in batches, not an open loop - build fully, inspect once (desktop and mobile together), fix everything found in one batch, confirm with at most one more round, then stop polishing. Open-ended self-QA burns effort without improving the result.
+
+## Sources
+
+- Surface modes, brief-wins, refinement-vs-redesign, and bounded QA passes adapted from pbakaus/impeccable (Apache License 2.0) - https://github.com/pbakaus/impeccable
