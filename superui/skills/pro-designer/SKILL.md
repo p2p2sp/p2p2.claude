@@ -58,6 +58,7 @@ When the project already defines its own design system - a token set, a design s
 - UI that looks generic, templated, or AI-generated; hero composition; landing/marketing pages before shipping; demo data, placeholder names, marketing copy -> `references/anti-slop.md`
 - Onboarding, signup, upgrade, pricing, paywalls, conversion flows -> `references/ux-psychology.md`
 - Choosing/using colors, palettes, dark mode -> `references/color.md`
+- Building or reviewing a token system - CSS variables, primitive/semantic/component layering, theming mechanism, dark-mode switching, z-index layers -> `references/tokens.md`
 - Headings, body text, data/number display, form text conventions -> `references/typography.md`
 - Page layout, spacing, responsive breakpoints, grids, navigation structure -> `references/layout-spacing.md`
 - Contrast, focus states, non-color cues, target sizes -> `references/accessibility.md`

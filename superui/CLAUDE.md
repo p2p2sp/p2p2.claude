@@ -95,7 +95,10 @@ keeps its own rather than sharing one at the plugin root.
   recognizable generated-look defaults, ground direction in the subject, one signature element,
   plan-then-critique, copy as design material, plus consistency locks) and `references/anti-slop.md` (the
   forensic generated-UI tells catalog distilled from Leonxlnx/taste-skill: layout/visual/decoration tells,
-  hero discipline, demo-content realism, CTA-intent dedup). Its SKILL.md also carries four framings adapted
+  hero discipline, demo-content realism, CTA-intent dedup). `references/tokens.md` carries token-architecture
+  doctrine (primitive/semantic/component layering, dark-mode-overrides-only-the-semantic-layer, paired
+  surface/foreground tokens, role-based naming, derived radius/z-index scales) distilled from the
+  ui-ux-pro-max-skill analysis. Its SKILL.md also carries four framings adapted
   from pbakaus/impeccable (Apache-2.0): the
   surface-mode taxonomy (Persuade/Operate/Read/Experience, chosen from the surface, not the product), the
   brief-wins rule, refinement-preserves-vs-redesign-replaces, and bounded QA passes (batched inspect-fix,
