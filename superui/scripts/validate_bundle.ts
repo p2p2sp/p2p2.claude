@@ -1,65 +1,81 @@
 /*
- * validate_bundle.ts - validates a finished handoff seed bundle against
+ * validate_bundle.ts - validates a finished handoff bundle against
  * `registry.json` (build_registry.ts's merged token/style namespace) and the bundle's
  * own internal cross-references. Never mutates the bundle; a clean run and a
  * dirty run both leave every file untouched.
  *
- * IN : BUNDLE_DIR - the seed bundle dir (`DESIGN.md`, the two consolidated
- *      satellites `DESIGN.components.md` + `DESIGN.patterns.md`,
- *      `screens/*.png`). REGISTRY_JSON - the `build_registry.ts` output
+ * Two mutually exclusive modes, selected by the required `--mode` flag:
+ *   - design   - BUNDLE_DIR holds only `DESIGN.md` (design-extractor-builder's output). Runs checkSections +
+ *     checkForbidden. REGISTRY_JSON is still a required positional (CLI uniformity across both modes) but its
+ *     content is unused - no token references exist to check.
+ *   - platform - BUNDLE_DIR holds a platform's satellites + `screens/` (component-extractor-builder's output,
+ *     no `DESIGN.md`). Runs checkTokenRefs + checkScreenRefs + checkEffectLines + checkForbidden; checkSections
+ *     is skipped entirely (there is no `DESIGN.md` to check).
+ *
+ * IN : BUNDLE_DIR - the bundle dir to validate (contents depend on --mode,
+ *      see above). REGISTRY_JSON - the `build_registry.ts` output
  *      (`{ tokens, textStyles, ... }`); the resolution namespace a spec's
  *      token references are checked against is exactly `Object.keys(tokens)`
  *      union every `textStyles[].name`.
  * OUT: stdout - one `FINDING: <category> <detail>` line per defect found
- *      (checkTokenRefs, then checkScreenRefs, then checkSections, then
- *      checkEffectLines, then checkForbidden, in that order), or the single
- *      line `CLEAN` when none are found.
+ *      (checkTokenRefs, then checkScreenRefs, then checkEffectLines, then
+ *      checkForbidden for `--mode platform`; checkSections then
+ *      checkForbidden for `--mode design`), or the single line `CLEAN` when
+ *      none are found.
  * Exit codes: 0 = clean bundle; 1 = BUNDLE_DIR absent/empty/not-a-directory
  *      (message on stderr naming the dir), or one-or-more findings printed
  *      (still exit 1, findings are on stdout, not an error); 2 =
- *      command-line usage errors.
+ *      command-line usage errors (including a missing or unrecognised
+ *      `--mode` value).
  *
  * Finding categories:
- *   - unknown-token   - a backticked dotted token in `DESIGN.components.md` or
- *     `DESIGN.patterns.md` resolves against neither `tokens{}` nor
- *     `textStyles[].name`. A backtick span counts as a token reference only
- *     when it matches `<group>.<name>` (at least one dot, no whitespace, no
- *     slash) AND is not an image filename (`login.png` is exempt by
- *     extension, not by heuristic) - a bare property name (`bg`, `radius`)
- *     never contains a dot and is excluded by construction.
- *   - missing-screen  - a `canonical: <filename>.png` line inside a satellite
- *     (a consolidated spec's canonical reference) names a file absent from
- *     `screens/`. References are deduplicated by exact filename first, so one
- *     absent screen cited from several specs yields exactly one finding. Also
- *     fires as a fail-open backstop: a satellite carrying real spec content
- *     (at least one `## <slug>` wrapper) contributes ZERO canonical citations
- *     to a run whose total citation count is zero - an entirely empty run
- *     (no spec content anywhere) stays CLEAN, but non-empty content citing
- *     nothing is a defect, not silence.
- *   - empty-section   - a standard `## ` heading in `DESIGN.md` is missing, or
- *     is followed by no non-whitespace content before the next `## ` heading
- *     or EOF. The required set is the fixed STANDARD_HEADINGS below.
- *   - forbidden-artifact - any `*.css`, `*.js`, `*.html` or `*.json` file
- *     anywhere under BUNDLE_DIR (blanket rejection, not a name heuristic;
- *     `DESIGN.md`'s inline YAML front matter is not a file and is unaffected).
- *   - missing-effect-line - a `## <slug>` block in `DESIGN.components.md`
- *     (satellites only - `DESIGN.patterns.md` describes composition, not
- *     painted surfaces, and is out of scope here) lacks a `border:`,
- *     `shadow:` or `gradient:` property line, up to one finding per missing
- *     property (three max per block). `none` is a satisfying value for any
- *     of the three - absence of an effect is a stated measurement, not an
- *     omission; only the property LINE itself is required. A block carrying
- *     all three (any value) contributes zero findings; a satellite absent or
- *     reduced to `assemble_specs.ts`'s "None catalogued." stub (no `## `
- *     wrapper) contributes zero blocks and therefore zero findings.
+ *   - unknown-token   - (platform mode only) a backticked dotted token in
+ *     `DESIGN.components.md` or `DESIGN.patterns.md` resolves against neither
+ *     `tokens{}` nor `textStyles[].name`. A backtick span counts as a token
+ *     reference only when it matches `<group>.<name>` (at least one dot, no
+ *     whitespace, no slash) AND is not an image filename (`login.png` is
+ *     exempt by extension, not by heuristic) - a bare property name (`bg`,
+ *     `radius`) never contains a dot and is excluded by construction.
+ *   - missing-screen  - (platform mode only) a `canonical: <filename>.png`
+ *     line inside a satellite (a consolidated spec's canonical reference)
+ *     names a file absent from `screens/`. References are deduplicated by
+ *     exact filename first, so one absent screen cited from several specs
+ *     yields exactly one finding. The literal value `none` (an invented
+ *     spec's deliberate "no canonical screen" declaration, per
+ *     `inventory-format.ts`'s `canonicalRefs`) is never checked against
+ *     `screens/` and never yields this finding. Also fires as a fail-open
+ *     backstop: a satellite carrying real spec content (at least one
+ *     `## <slug>` wrapper) contributes ZERO `canonical:` lines - real or
+ *     `none` - to a run whose total such-line count is zero. An entirely
+ *     empty run (no spec content anywhere) stays CLEAN; content citing
+ *     nothing, not even `none`, is a defect, not silence.
+ *   - empty-section   - (design mode only) a standard `## ` heading in
+ *     `DESIGN.md` is missing, or is followed by no non-whitespace content
+ *     before the next `## ` heading or EOF. The required set is the fixed
+ *     STANDARD_HEADINGS below.
+ *   - forbidden-artifact - (both modes) any `*.css`, `*.js`, `*.html` or
+ *     `*.json` file anywhere under BUNDLE_DIR (blanket rejection, not a name
+ *     heuristic; `DESIGN.md`'s inline YAML front matter is not a file and is
+ *     unaffected).
+ *   - missing-effect-line - (platform mode only) a `## <slug>` block in
+ *     `DESIGN.components.md` (satellites only - `DESIGN.patterns.md`
+ *     describes composition, not painted surfaces, and is out of scope here)
+ *     lacks a `border:`, `shadow:` or `gradient:` property line, up to one
+ *     finding per missing property (three max per block). `none` is a
+ *     satisfying value for any of the three - absence of an effect is a
+ *     stated measurement, not an omission; only the property LINE itself is
+ *     required. A block carrying all three (any value) contributes zero
+ *     findings; a satellite absent or reduced to `assemble_specs.ts`'s "None
+ *     catalogued." stub (no `## ` wrapper) contributes zero blocks and
+ *     therefore zero findings.
  *
- * Usage: node validate_bundle.ts BUNDLE_DIR REGISTRY_JSON
+ * Usage: node validate_bundle.ts BUNDLE_DIR REGISTRY_JSON --mode design|platform
  */
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { canonicalRefs } from "./inventory-format.ts";
+import { CANONICAL_LINE_RE, canonicalRefs } from "./inventory-format.ts";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -173,6 +189,7 @@ function hasSpecContent(content: string): boolean {
 export function checkScreenRefs(bundleDir: string): Finding[] {
   const cited = new Set<string>();
   const contentfulFiles: string[] = [];
+  let rawCanonicalLines = 0;
 
   for (const file of specFiles(bundleDir)) {
     let content: string;
@@ -183,6 +200,11 @@ export function checkScreenRefs(bundleDir: string): Finding[] {
     }
     if (hasSpecContent(content)) contentfulFiles.push(file);
     for (const filename of canonicalRefs(content)) cited.add(filename);
+    // Counted separately from `cited`: a `canonical: none` line is a deliberate, no-screen declaration -
+    // canonicalRefs drops it (it is never a screen reference), but it must still count as "the run engaged
+    // with the canonical field" for the backstop below, or an all-invented satellite would fail-open on
+    // every `## <slug>` block.
+    rawCanonicalLines += (content.match(CANONICAL_LINE_RE) ?? []).length;
   }
 
   let shipped: Set<string>;
@@ -200,8 +222,9 @@ export function checkScreenRefs(bundleDir: string): Finding[] {
   }
 
   // Fail-open backstop: zero entries across an entirely empty run is legitimately clean, but a satellite
-  // that carries real spec content and still contributes zero canonical citations is a defect, not silence.
-  if (cited.size === 0) {
+  // that carries real spec content and still contributes zero canonical: lines (real or `none`) is a
+  // defect, not silence.
+  if (rawCanonicalLines === 0) {
     for (const file of contentfulFiles) {
       const rel = relative(bundleDir, file).split("\\").join("/");
       findings.push({ category: "missing-screen", detail: `${rel} carries spec content but cites no canonical screen` });
@@ -313,7 +336,7 @@ export function checkForbidden(bundleDir: string): Finding[] {
 const PROG = basename(process.argv[1] ?? "validate_bundle.ts");
 
 function usageText(): string {
-  return `usage: ${PROG} [-h] BUNDLE_DIR REGISTRY_JSON`;
+  return `usage: ${PROG} [-h] BUNDLE_DIR REGISTRY_JSON --mode design|platform`;
 }
 
 function helpText(): string {
@@ -338,10 +361,26 @@ function main(): void {
     process.stdout.write(helpText() + "\n");
     process.exit(0);
   }
-  if (argv.length !== 2) {
-    argError(`expected 2 arguments (BUNDLE_DIR REGISTRY_JSON), got ${argv.length}`);
+
+  let mode: string | undefined;
+  const positional: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--mode") {
+      mode = argv[i + 1];
+      i++;
+    } else if (argv[i].startsWith("--mode=")) {
+      mode = argv[i].slice("--mode=".length);
+    } else {
+      positional.push(argv[i]);
+    }
   }
-  const [bundleDir, registryPath] = argv;
+  if (positional.length !== 2) {
+    argError(`expected 2 arguments (BUNDLE_DIR REGISTRY_JSON), got ${positional.length}`);
+  }
+  if (mode !== "design" && mode !== "platform") {
+    argError(`--mode must be 'design' or 'platform', got ${mode === undefined ? "nothing" : `'${mode}'`}`);
+  }
+  const [bundleDir, registryPath] = positional;
 
   let st;
   try {
@@ -373,13 +412,15 @@ function main(): void {
     exitErr(`error: '${registryPath}' is not valid JSON: ${(e as Error).message}`);
   }
 
-  const findings: Finding[] = [
-    ...checkTokenRefs(bundleDir, registry),
-    ...checkScreenRefs(bundleDir),
-    ...checkSections(bundleDir),
-    ...checkEffectLines(bundleDir),
-    ...checkForbidden(bundleDir),
-  ];
+  const findings: Finding[] =
+    mode === "design"
+      ? [...checkSections(bundleDir), ...checkForbidden(bundleDir)]
+      : [
+          ...checkTokenRefs(bundleDir, registry),
+          ...checkScreenRefs(bundleDir),
+          ...checkEffectLines(bundleDir),
+          ...checkForbidden(bundleDir),
+        ];
 
   if (findings.length === 0) {
     process.stdout.write("CLEAN\n");

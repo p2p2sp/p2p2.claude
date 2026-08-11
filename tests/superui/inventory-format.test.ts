@@ -140,3 +140,16 @@ test("CANONICAL_LINE_RE is anchored to line start (never matches mid-line)", () 
   CANONICAL_LINE_RE.lastIndex = 0;
   assert.deepEqual(canonicalRefs("see canonical: not-a-match.png in prose\n"), []);
 });
+
+// ---------------------------------------------------------------------------
+// canonicalRefs - literal "none" is never a reference
+// ---------------------------------------------------------------------------
+
+test("canonicalRefs drops a canonical: none line entirely", () => {
+  assert.deepEqual(canonicalRefs("canonical: none\n"), []);
+});
+
+test("canonicalRefs drops only the literal none, keeping a real filename alongside it", () => {
+  const content = "canonical: none\ncanonical: hero.png\n";
+  assert.deepEqual(canonicalRefs(content), ["hero.png"]);
+});

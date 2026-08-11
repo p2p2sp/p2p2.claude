@@ -4,7 +4,10 @@
  * leading markdown decoration (list marker, indentation, blockquote/heading
  * marker, bold emphasis, capitalised label), and checkScreenRefs must not
  * report CLEAN when a satellite carries real spec content but the run cites
- * zero canonical screens.
+ * zero canonical screens (nor when its only citation is a deliberate
+ * `canonical: none`). Also covers the CLI's required `--mode design|platform`
+ * flag: `design` runs sections + forbidden-artifact checks only, `platform`
+ * runs token/screen/effect + forbidden-artifact checks and skips sections.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is
  * run directly by Node's native test runner + TypeScript type stripping:
@@ -16,9 +19,13 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import path from "node:path";
 
 import { canonicalRefs } from "../../superui/scripts/inventory-format.ts";
 import { checkEffectLines, checkScreenRefs } from "../../superui/scripts/validate_bundle.ts";
+import { runScript } from "../harness/run.ts";
+
+const SUT = path.resolve(import.meta.dirname, "../../superui/scripts/validate_bundle.ts");
 
 // ---------------------------------------------------------------------------
 // canonicalRefs - decorated canonical: lines
@@ -93,6 +100,18 @@ test("checkScreenRefs still resolves a canonical filename containing spaces", ()
 test("checkScreenRefs stays clean when the whole run has zero entries and zero refs", () => {
   const dir = makeBundle({
     "DESIGN.components.md": "# Components\n\nNone catalogued.\n",
+    "DESIGN.patterns.md": "# Patterns\n\nNone catalogued.\n",
+  });
+  try {
+    assert.deepEqual(checkScreenRefs(dir), []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("checkScreenRefs does not fail-open a satellite whose only citation is canonical: none", () => {
+  const dir = makeBundle({
+    "DESIGN.components.md": "# Components\n\n## widget\n\n> NEEDS ATTENTION: invented, not observed\n\ncanonical: none\n",
     "DESIGN.patterns.md": "# Patterns\n\nNone catalogued.\n",
   });
   try {
@@ -194,5 +213,132 @@ test("checkEffectLines accepts a bold-labelled or table-cell effect line", () =>
     assert.deepEqual(checkEffectLines(dir), []);
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// CLI - required --mode design|platform flag
+// ---------------------------------------------------------------------------
+
+const FULL_DESIGN_MD = [
+  "## Overview",
+  "",
+  "A design system.",
+  "",
+  "## Colors",
+  "",
+  "One color.",
+  "",
+  "## Typography",
+  "",
+  "One style.",
+  "",
+  "## Layout & Spacing",
+  "",
+  "One ramp.",
+  "",
+  "## Elevation & Depth",
+  "",
+  "One level.",
+  "",
+  "## Shapes",
+  "",
+  "One radius.",
+  "",
+  "## Motion",
+  "",
+  "One duration.",
+  "",
+  "## Components",
+  "",
+  "See DESIGN.components.md.",
+  "",
+  "## Do's and Don'ts",
+  "",
+  "Do this.",
+  "",
+].join("\n");
+
+const EMPTY_REGISTRY = JSON.stringify({ tokens: {}, textStyles: [] });
+
+/** Writes REGISTRY_JSON in its own temp dir, sibling to (never inside) a bundle dir - a bundle dir holding a
+ *  `.json` file trips checkForbidden, and a real run always keeps registry.json at `<run>/`, outside `<out>`. */
+function makeRegistry(content: string): string {
+  const dir = mkdtempSync(join(tmpdir(), "validate-bundle-registry-"));
+  const p = join(dir, "registry.json");
+  writeFileSync(p, content);
+  return p;
+}
+
+test("no --mode flag exits 2 with a usage error", () => {
+  const dir = makeBundle({ "DESIGN.md": FULL_DESIGN_MD });
+  const registryPath = makeRegistry(EMPTY_REGISTRY);
+  try {
+    const result = runScript(SUT, [dir, registryPath]);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /--mode/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(join(registryPath, ".."), { recursive: true, force: true });
+  }
+});
+
+test("an unknown --mode value exits 2 with a usage error", () => {
+  const dir = makeBundle({ "DESIGN.md": FULL_DESIGN_MD });
+  const registryPath = makeRegistry(EMPTY_REGISTRY);
+  try {
+    const result = runScript(SUT, [dir, registryPath, "--mode", "bogus"]);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /--mode/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(join(registryPath, ".."), { recursive: true, force: true });
+  }
+});
+
+test("--mode design ignores an unknown token in a satellite (satellites are not checked)", () => {
+  const dir = makeBundle({
+    "DESIGN.md": FULL_DESIGN_MD,
+    "DESIGN.components.md": "# Components\n\n## card\n\nA card referencing `no.such.token`.\n",
+  });
+  const registryPath = makeRegistry(EMPTY_REGISTRY);
+  try {
+    const result = runScript(SUT, [dir, registryPath, "--mode", "design"]);
+    assert.equal(result.status, 0, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
+    assert.equal(result.stdout, "CLEAN\n");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(join(registryPath, ".."), { recursive: true, force: true });
+  }
+});
+
+test("--mode platform skips the DESIGN.md section check (no DESIGN.md present)", () => {
+  const dir = makeBundle({
+    "DESIGN.components.md": "# Components\n\nNone catalogued.\n",
+    "DESIGN.patterns.md": "# Patterns\n\nNone catalogued.\n",
+  });
+  const registryPath = makeRegistry(EMPTY_REGISTRY);
+  try {
+    const result = runScript(SUT, [dir, registryPath, "--mode", "platform"]);
+    assert.equal(result.status, 0, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
+    assert.equal(result.stdout, "CLEAN\n");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(join(registryPath, ".."), { recursive: true, force: true });
+  }
+});
+
+test("--mode platform still catches an unknown token in a satellite", () => {
+  const dir = makeBundle({
+    "DESIGN.components.md": "# Components\n\n## card\n\nA card referencing `no.such.token`.\n",
+  });
+  const registryPath = makeRegistry(EMPTY_REGISTRY);
+  try {
+    const result = runScript(SUT, [dir, registryPath, "--mode", "platform"]);
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /FINDING: unknown-token/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(join(registryPath, ".."), { recursive: true, force: true });
   }
 });

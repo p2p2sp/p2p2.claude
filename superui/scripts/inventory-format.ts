@@ -1,10 +1,10 @@
 /*
  * inventory-format.ts — the one place the two shared line formats between
- * the design-extractor pipeline stages are parsed: a satellite's
- * `canonical: <filename>` line, and an `inventory.md` entry's U+00B7
- * (`·`)-delimited fields. validate_bundle.ts, render_design_md.ts, and
- * copy_screens.ts all import from here instead of each keeping its own
- * regex/split logic, so the two can never drift out of sync with each other.
+ * the design-extractor / component-extractor pipeline stages are parsed: a
+ * satellite's `canonical: <filename>` line, and an `inventory.md` entry's
+ * U+00B7 (`·`)-delimited fields. validate_bundle.ts and copy_screens.ts both
+ * import from here instead of each keeping its own regex/split logic, so the
+ * two can never drift out of sync with each other.
  *
  * `CANONICAL_LINE_RE` tolerates the markdown decoration a `canonical:` line
  * commonly carries — leading indentation, a list marker (`-`/`*`/`+`), a
@@ -20,6 +20,11 @@
  * contract (the satellite convention is the bare filename, nothing else),
  * and the deliberate behaviour is to surface it as a `missing-screen`
  * finding rather than silently truncate or drop it.
+ *
+ * `canonicalRefs` drops the literal value `none` — a component-synthesizer
+ * invented spec's deliberate "no canonical screen to cite" declaration — from
+ * its returned list, so it is never a reference validate_bundle.ts checks
+ * against `screens/`, and never triggers a `missing-screen` finding.
  *
  * `INVENTORY_DELIMITER` is the single U+00B7 (`·`) character `inventory.md`
  * uses to separate an entry's fields; a filename carrying that character
@@ -39,10 +44,15 @@ export const INVENTORY_DELIMITER = "·";
 // optional heading marker, then the (optionally bold, optionally capitalised) `canonical:` label itself.
 export const CANONICAL_LINE_RE = /^[ \t]*(?:[-*+]\s+)?(?:>\s*)?(?:#{1,6}\s+)?\*{0,2}[Cc]anonical:\*{0,2}\s*(.+?)\s*$/gm;
 
-/** Deduplicated, in-first-seen-order list of every `canonical:` filename captured in `content`. */
+/** Deduplicated, in-first-seen-order list of every `canonical:` filename captured in `content`. The literal
+ * value `none` (an invented spec's deliberate "no canonical screen" declaration) is never a reference - it is
+ * dropped here so `checkScreenRefs`'s `missing-screen` gate never sees it. */
 export function canonicalRefs(content: string): string[] {
   const seen = new Set<string>();
-  for (const m of content.matchAll(CANONICAL_LINE_RE)) seen.add(m[1]);
+  for (const m of content.matchAll(CANONICAL_LINE_RE)) {
+    if (m[1] === "none") continue;
+    seen.add(m[1]);
+  }
   return Array.from(seen);
 }
 
