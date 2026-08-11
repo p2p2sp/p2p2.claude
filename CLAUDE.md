@@ -47,14 +47,21 @@ Each plugin is independently installable; none declares another as a dependency.
   as a requirement, never silently overwritten), wired into both build close-outs behind an opt-in `docs`
   config switch.
 - **superui** - the design / frontend ecosystem, pairing Claude Code CLI (measurement, agentic fan-out) and
-  Claude Design (live, inline-styled Design Components): `/superui:design-extractor <screenshots-dir>
-  [<target>]` turns a folder of UI screenshots into a lean seed bundle (`DESIGN.md` - YAML front-matter tokens
-  + a prose body - plus the `DESIGN.components.md` / `DESIGN.patterns.md` spec satellites and canonical
-  screens) that Claude Design consumes, written to the host repo's `docs/design-system/` (or
-  `docs/design-system/<target>/`), via an internal fork worker (`design-extractor-builder`). Also ships a professional UI/UX standards
-  advisor (`pro-designer`) and a user-only `setup` diagnostic. Ships **no hooks and no manifest** -
-  `pro-designer` routes purely via CSO `description:`; `design-extractor` is a user-only command.
-  (→ `superui/CLAUDE.md`)
+  Claude Design (live, inline-styled Design Components), via a **two-stage** screenshots-to-handoff-bundle
+  pipeline: `/superui:design-extractor <screenshots-dir> [<target>]` turns a folder of UI screenshots into the
+  pure, platform-neutral design system alone - `DESIGN.md` (YAML front-matter tokens + a prose body) at the
+  host repo's `docs/design-system/` (or `docs/design-system/<target>/`), via an internal fork worker
+  (`design-extractor-builder`) - then loops to offer chaining `/superui:component-extractor <screenshots-dir>
+  <platform> [<target>]` (`platform`: `web-app` | `mobile` | `website`) once per platform, which reads that
+  `DESIGN.md` and builds the platform component/pattern bundle (`DESIGN.components.md` /
+  `DESIGN.patterns.md` spec satellites plus canonical screens) at `docs/design-system/[<target>/]<platform>/`,
+  via its own internal fork worker (`component-extractor-builder`); `component-extractor` also runs standalone
+  against an already-extracted `DESIGN.md`, any number of times, one platform per run. Also ships a
+  professional UI/UX standards advisor (`pro-designer`) and a user-only `setup` diagnostic. Ships **no hooks
+  and no manifest** - `pro-designer` routes purely via CSO `description:`; `design-extractor` and `setup` are
+  user-only commands; `component-extractor` is a deliberate exception - model-invocable behind its own guarded
+  CSO `description:` so `design-extractor`'s ending loop can chain it via the `Skill` tool, while a user can
+  also invoke it directly. (→ `superui/CLAUDE.md`)
 - **supergh** - the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation
   executor, Conventional-Commits commits, and template-driven issue / PR creation. Ships **no hooks and no
   manifest** - its skills route purely via CSO `description:`. (→ `supergh/CLAUDE.md`)
@@ -69,10 +76,10 @@ scripts under `<plugin>/hooks/scripts/` (only `superdev` has hooks; `superui` / 
 none), plus deterministic helper scripts bundled either under an individual skill's own `scripts/` dir or, when
 shared across a plugin's skills, at plugin level. `supergh` keeps its shared scripts under `<plugin>/shared/`
 (a `scripts/` subdir); `superdev` keeps its shared scripts and references at the plugin root
-(`superdev/scripts/`, `superdev/references/`), and `superui` keeps its shared scripts and its six agents at
+(`superdev/scripts/`, `superdev/references/`), and `superui` keeps its shared scripts and its seven agents at
 the plugin root (`superui/scripts/`, `superui/agents/`), both with no `shared/` subdir. `superui` has no
-`references/` or `assets/` dir at the plugin root (only its `pro-designer` skill needs `references/`, and keeps
-its own). Each
+`references/` or `assets/` dir at the plugin root - only `pro-designer` and `component-extractor` need a
+`references/` dir, and each keeps its own rather than sharing one at the plugin root. Each
 plugin's own `CLAUDE.md` inventories its scripts. **Editing markdown / JSON IS shipping** - there is no
 build step and no lint at any level, and no test tooling inside any plugin. Dev-time regression suites for
 plugin scripts live at the repo-root `tests/` tree (outside every plugin dir, so no `plugin.json` or
@@ -234,10 +241,12 @@ The invariants below hold across the repo.
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`create-issue`/`create-pr` skill,
   superfix's for the `code-auditor` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
-  (superfix's `scout` / `edge-scout` / `detective` / `critic` live there, not in `skills[]`; superui's six agents
-  live there too - `source-scout` and `component-scout` dispatched by `design-extractor` itself, the other four
-  (`foundation-analyst`, `spec-writer`, `design-synthesizer`, `bundle-reviewer`) by `design-extractor-builder`;
-  superdev ships no agents - every superdev worker is a skill) - and the relevant `CLAUDE.md`
+  (superfix's `scout` / `edge-scout` / `detective` / `critic` live there, not in `skills[]`; superui's seven
+  agents live there too, split 2+5 across its four pipeline skills - `design-extractor` dispatches
+  `source-scout`; `design-extractor-builder` dispatches `foundation-analyst` and `design-synthesizer`;
+  `component-extractor` dispatches `source-scout` again and `component-scout`; `component-extractor-builder`
+  dispatches `spec-writer`, `component-synthesizer` and `bundle-reviewer`; superdev ships no agents - every
+  superdev worker is a skill) - and the relevant `CLAUDE.md`
   (that plugin's, and this root file when the change is repo-wide) in either case. They must stay in sync, and a
   worker must never appear in both `skills[]` and `agents[]`.
   For the manifest-bearing plugin (`superdev`), its injected manifest

@@ -3,7 +3,7 @@
 Four independent, self-contained Claude Code plugins. `superdev` is a cohesive ecosystem driven by its own injected dispatcher manifest; `superui`, `supergh` and `superfix` ship no manifest and no hooks (`supergh` routes its skills purely via CSO descriptions; `superui` routes `pro-designer` via CSO and reaches `design-extractor` as a user-only command with an internal fork worker behind it; `superfix` is a single user-invoked skill). Skills compose through CSO + documented natural chains.
 
 - **superdev** - a configurable agentic-development ecosystem: project memory, planning, and the implementation pipeline.
-- **superui** - the design / frontend ecosystem, pairing Claude Code CLI and Claude Design: `/superui:design-extractor` turns a folder of UI screenshots into a `docs/design-system/` seed bundle that Claude Design consumes to build live, inline-styled Design Components, backed by a professional UI/UX standards advisor. No manifest, no hooks - `pro-designer` routes via its CSO description; `design-extractor` is a user-only command. Requires Node.js >= 22.6, nothing else - see `superui/README.md`.
+- **superui** - the design / frontend ecosystem, pairing Claude Code CLI and Claude Design: `/superui:design-extractor` turns a folder of UI screenshots into the pure, platform-neutral design system (`DESIGN.md`) at `docs/design-system/`, then loops to chain `/superui:component-extractor` per platform (`web-app` / `mobile` / `website`) for that platform's component/pattern bundle - Claude Design consumes both to build live, inline-styled Design Components, backed by a professional UI/UX standards advisor. No manifest, no hooks - `pro-designer` routes via its CSO description; `design-extractor` is a user-only command, `component-extractor` is model-invocable behind a guarded CSO description so the chain can reach it, and can also be run standalone. Requires Node.js >= 22.6, nothing else - see `superui/README.md`.
 - **supergh** - the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation executor, Conventional-Commits commits, and template-driven issue / PR creation. No manifest, no hooks - skills route via their CSO descriptions.
 - **superfix** - prioritized multi-agent codebase investigation: the `/superfix:code-auditor` command sweeps a repo with cheap triage agents, scores Impact × Opportunity, and sends frontier investigators only into the hotspots. No manifest, no hooks - one user-invoked skill.
 
@@ -58,21 +58,28 @@ Flat-named (single-domain plugin, no group prefix). No manifest, no hooks - skil
 ## Super UI
 
 Flat-named (single-domain plugin, no group prefix). No manifest, no hooks - `pro-designer` routes via its CSO
-`description:`; `design-extractor` is a user-only command with an internal fork worker behind it. Requires
-Node.js >= 22.6, nothing else - run `/superui:setup` to verify. Full detail: `superui/README.md`.
+`description:`; `design-extractor` is a user-only command, `component-extractor` is model-invocable behind
+its own guarded CSO `description:` (so `design-extractor`'s ending loop can chain into it), and both carry an
+internal fork worker behind them. Requires Node.js >= 22.6, nothing else - run `/superui:setup` to verify.
+Full detail: `superui/README.md`.
 
 | Skill | Role |
 | --- | --- |
 | `pro-designer` | Professional UI/UX design standards - visual hierarchy, color discipline, type ramps, 4/8pt spacing, accessibility, component states, form-validation UX, and evidence-based conversion psychology with anti-dark-pattern rules; fires when creating, styling, or reviewing any interface; bundles topic reference docs only - its WCAG contrast script lives at the plugin-root shared `scripts/`, not inside the skill |
 | `setup` | User-only environment diagnostic (`/superui:setup`) - reports Node.js runtime status; installs nothing |
-| `design-extractor` | User-only (`/superui:design-extractor <screenshots-dir> [<target>]`) - turns a folder of UI screenshots into the Claude Design seed bundle at `docs/design-system/` (or `docs/design-system/<target>/` for a monorepo shipping one bundle per app): `DESIGN.md` (YAML front-matter tokens + prose body), the `DESIGN.components.md` / `DESIGN.patterns.md` spec satellites, and canonical screens |
+| `design-extractor` | User-only (`/superui:design-extractor <screenshots-dir> [<target>]`) - turns a folder of UI screenshots into the pure, platform-neutral design system alone at `docs/design-system/` (or `docs/design-system/<target>/` for a monorepo shipping one bundle per app): `DESIGN.md` (YAML front-matter tokens + prose body). Ends by looping to offer chaining `component-extractor` per platform |
+| `component-extractor` | Model-invocable via a guarded CSO description, also user-runnable (`/superui:component-extractor <screenshots-dir> <platform> [<target>]`, `platform`: `web-app` \| `mobile` \| `website`) - reads an existing `DESIGN.md` and builds that platform's component/pattern bundle at `docs/design-system/[<target>/]<platform>/`: the `DESIGN.components.md` / `DESIGN.patterns.md` spec satellites and canonical screens. Runs any number of times, one platform per run, chained or standalone |
 
 superui pairs Claude Code CLI (measurement, agentic fan-out) with Claude Design (live, inline-styled Design
-Components). `design-extractor` itself dispatches two agents - `source-scout` (source mapping) and
-`component-scout` (component/pattern inventory) - then hands off to an internal fork worker,
-`design-extractor-builder`, which dispatches the remaining four: `foundation-analyst` (per-foundation
-measurement), `spec-writer` (spec writing), `design-synthesizer` (proposed-token synthesis for gaps), and
-`bundle-reviewer` (bundle review) - see `superui/README.md` and `superui/CLAUDE.md` for the full pipeline.
+Components) through a two-stage pipeline. `design-extractor` dispatches one agent - `source-scout` (source
+mapping) - then hands off to its internal fork worker `design-extractor-builder`, which dispatches
+`foundation-analyst` (per-foundation measurement) and `design-synthesizer` (proposed-token synthesis for
+gaps) to produce `DESIGN.md` alone. `component-extractor` dispatches `source-scout` again plus
+`component-scout` (component/pattern inventory, gap-checked against a per-platform reference checklist), then
+hands off to its own internal fork worker `component-extractor-builder`, which dispatches `spec-writer`
+(observed specs), `component-synthesizer` (invented specs for checklist gaps, marked
+`> NEEDS ATTENTION`), and `bundle-reviewer` (bundle review) - see `superui/README.md` and `superui/CLAUDE.md`
+for the full pipeline.
 
 ## Super Fix
 
