@@ -10,6 +10,7 @@ Read when designing or reviewing component states (loading, empty, error, disabl
 - Animate skeletons with a subtle left-to-right shimmer/pulse, ~1-2s loop (CSS gradient translating across placeholders).
 - No skeletons for uploads, downloads, or file conversions - use a progress bar or step wizard there.
 - Submit buttons: on click, switch the button itself to loading (inline spinner next to the label, interaction blocked via aria-disabled + click guard, not the disabled attribute) - prevents double-submit.
+- Reserve space for async content: explicit dimensions or `aspect-ratio` on images, embeds and late-loading blocks so nothing jumps on arrival. Load webfonts with `font-display: swap` plus a metric-similar fallback font.
 
 ## Empty states
 - Branch on loading BEFORE emptiness. Never flash "No records" while a fetch is in flight - users watch it populate seconds later and distrust the app.
@@ -34,12 +35,19 @@ Read when designing or reviewing component states (loading, empty, error, disabl
 - Pair a reversible destructive action (delete a row, archive) with a time-boxed Undo ("Deleted. Undo", ~5-10s) rather than a blocking confirm dialog on every delete - it removes friction while still protecting the user; hold the real commit until the undo window closes. Reserve hard-stop confirm dialogs for irreversible / high-stakes actions.
 - Do NOT use optimistic UI for low-confidence or high-stakes writes (payments, irreversible or slow server-validated operations) - there a pending state and an explicit confirmed result are correct.
 
+## Toasts and async status
+- Toasts auto-dismiss in 3-5s, never steal focus, and announce via `aria-live="polite"` - reserve `assertive` for errors. An undo toast (-> Optimistic UI above) keeps its longer, time-boxed window instead; the toast being dismissable does not shorten it.
+- Any non-form async status change (a background save, an async result arriving) gets an `aria-live` region so the state change is announced without a focus shift. Form-field errors keep `role="alert"` (-> forms.md) rather than a generic live region.
+- An AI/LLM response streams token-by-token as it arrives - a long spinner hiding an already-flowing answer is a designed-in wait.
+
 ## Overlays: modal vs drawer vs popover
 - Choose on two axes: stakes / need for a hard stop, and task complexity / need to keep page context. Do not decide on importance alone.
 - Modal (blocking) - a short, self-contained, high-stakes decision that must interrupt: destructive/irreversible confirms, or a single focused choice. Keep it rare; overused confirms breed click-through and lose their stopping power. For reversible actions prefer Undo (-> Optimistic UI) over a confirm dialog.
   - Destructive confirm: restate the exact consequence, put the verb in the button ("Delete account", not "OK"), default focus on the safe option, dismissive action left / affirmative right, and require typing a token (DELETE) for the most dangerous.
 - Drawer / side panel (non-blocking) - a sub-task too big for a modal but not worth a full navigation, where the user needs the page's data visible while acting (edit a record, create beside a list, inspect a detail). Slides in, page stays readable behind it.
 - Popover (non-blocking) - a quick, small, contextual pick or edit inline, so users fix a gap without jumping to another screen. Small content only; escalate to a drawer when it grows. Dismisses on outside click, so never gate a critical/destructive decision behind one.
+- Keyboard/focus contract: a modal or drawer traps focus inside, autofocuses its first meaningful control, closes on Esc, and returns focus to the trigger element on close. A menu or popover opens on Enter/Space, navigates its items with arrow keys, and closes on Esc.
+- Modal scrim: 40-60% black over the page - lighter fails to isolate the dialog from the background, darker reads as a full screen change rather than a layer on top.
 
 ## Disabled
 - Style as the on-surface (text) color at 38% opacity for label and icon, 12% for the container (M3 tokens) - not a bespoke gray. Keep the label legible so users can still read what the action would be.
@@ -47,7 +55,7 @@ Read when designing or reviewing component states (loading, empty, error, disabl
 - Prefer aria-disabled="true" with a click-handler guard over the HTML disabled attribute - keeps the control in tab order so keyboard and screen-reader users can find it. Pair with a nearby hint saying what unlocks it.
 
 ## Hover, focus, pressed
-- Implement as a translucent state layer in the component's own content color: hover 8%, focus 12%, pressed 12%, dragged 16% opacity (M3 tokens; e.g. pseudo-element with background: currentColor). One layer at a time - pressed wins over hover.
+- Implement as a translucent state layer in the component's own content color: hover 8%, focus 12%, pressed 12%, dragged 16% opacity (M3 tokens; e.g. pseudo-element with background: currentColor). One layer at a time - when states co-occur, priority runs disabled > loading > pressed > focus > hover.
 - Hover transitions ~150-200ms - prevents flicker when the cursor passes through. Always set cursor: pointer.
 - Pressed feedback within 100-150ms of activation - immediate, or users click twice. Give the press a physical cue: `scale(0.98)` or `translateY(1px)` on `:active` - a button that does not move reads as dead.
 - Standard transitions (tab switch, screen change, tap ripple) at ~300ms with ease-in-out; screen transitions = cross-fade + horizontal slide.
@@ -60,6 +68,8 @@ Read when designing or reviewing component states (loading, empty, error, disabl
 - List/grid entrances: staggered reveal (translateY ~12-16px + fade, `animation-delay: calc(var(--index) * 80ms)`), driven by IntersectionObserver or CSS scroll timelines - never a scroll listener, never everything mounting at once.
 - `backdrop-filter: blur` only on fixed/sticky elements (nav, overlays) - on scrolling containers it repaints continuously and kills mobile frame rate. Grain/noise overlays live on a `position: fixed; pointer-events: none` layer, never on scrolling content.
 - Respect `prefers-reduced-motion`: infinite loops, parallax, and scroll-driven effects collapse to static; entrances become plain visibility.
+- Exits run ~60-70% of the enter duration - leaving is acknowledgment, not a second entrance. Ease-out entering, ease-in exiting, never linear for UI motion.
+- Cap staggered reveals at ~8 children - beyond that the tail feels laggy; keep the per-item delay recipe above unchanged.
 
 ## Depth and elevation
 - Give shadows a positive Y offset, never X:0 Y:0 - a symmetric halo exists under no real light source.
