@@ -14,6 +14,27 @@ Read when planning a design workflow, choosing wireframe fidelity, or writing a 
 - Hi-fi: final look and feel - the right fidelity for user testing, since users react to realistic screens.
 - Escalate fidelity only after the previous rung is validated - polishing an unvalidated structure wastes the polish.
 
+## Redesign levers - order by lift per unit of risk
+
+When upgrading an existing surface (refinement or redesign - scope rules in SKILL.md), apply levers in this order; levers 1-4 deliver roughly 70% of the value at 40% of the risk:
+
+1. Typography refresh - the biggest visual lift, lowest risk.
+2. Spacing and rhythm - scale, grouping, section padding.
+3. Color recalibration - neutrals, accent discipline, contrast fixes.
+4. Interaction states and motion layer - hover/pressed/focus, transitions.
+5. Hero recomposition.
+6. Full block replacement - only when a section is unsalvageable.
+
+Never change silently during a redesign: URL slugs, primary nav labels, form field names/order (breaks analytics and autofill), the logo, legal/consent copy. Never regress an existing accessibility win.
+
+## What generated builds forget - finish checklist
+
+- A custom 404 page; back navigation from every page (no dead ends).
+- A "skip to content" link; visible focus everywhere (-> accessibility.md).
+- Legal footer links (privacy, terms); a real favicon.
+- Client-side form validation wired, not just styled (-> forms.md).
+- Every link goes somewhere: no dead `#` hrefs - link for real or visibly disable.
+
 ## Developer handoff = full UI specification
 
 A design is not done until every component ships with:

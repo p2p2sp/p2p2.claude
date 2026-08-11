@@ -49,9 +49,17 @@ Read when designing or reviewing component states (loading, empty, error, disabl
 ## Hover, focus, pressed
 - Implement as a translucent state layer in the component's own content color: hover 8%, focus 12%, pressed 12%, dragged 16% opacity (M3 tokens; e.g. pseudo-element with background: currentColor). One layer at a time - pressed wins over hover.
 - Hover transitions ~150-200ms - prevents flicker when the cursor passes through. Always set cursor: pointer.
-- Pressed feedback within 100-150ms of activation - immediate, or users click twice.
+- Pressed feedback within 100-150ms of activation - immediate, or users click twice. Give the press a physical cue: `scale(0.98)` or `translateY(1px)` on `:active` - a button that does not move reads as dead.
 - Standard transitions (tab switch, screen change, tap ripple) at ~300ms with ease-in-out; screen transitions = cross-fade + horizontal slide.
 - Never remove the focus outline without a replacement (no bare outline: none) - recipe and contrast minimums in accessibility.md.
+
+## Motion engineering
+
+- Every animation must justify itself as hierarchy, feedback, storytelling, or state transition - "it looked cool" is not a reason. One orchestrated moment lands harder than scattered effects; micro-animations on everything are themselves a generated-look tell (anti-slop.md).
+- Animate only `transform` and `opacity` - never top/left/width/height (layout thrash). `will-change: transform` sparingly, only while animating.
+- List/grid entrances: staggered reveal (translateY ~12-16px + fade, `animation-delay: calc(var(--index) * 80ms)`), driven by IntersectionObserver or CSS scroll timelines - never a scroll listener, never everything mounting at once.
+- `backdrop-filter: blur` only on fixed/sticky elements (nav, overlays) - on scrolling containers it repaints continuously and kills mobile frame rate. Grain/noise overlays live on a `position: fixed; pointer-events: none` layer, never on scrolling content.
+- Respect `prefers-reduced-motion`: infinite loops, parallax, and scroll-driven effects collapse to static; entrances become plain visibility.
 
 ## Depth and elevation
 - Give shadows a positive Y offset, never X:0 Y:0 - a symmetric halo exists under no real light source.
@@ -66,6 +74,9 @@ GOOD: box-shadow: 0 12px 48px #CFC9DD;  /* Y offset, hue-shifted toward lavender
 - Separate borderless cards via subtle background contrast (white card on very light gray) plus a near-invisible shadow. Avoid heavy borders and separator lines - they are visual noise.
 - Hard shadows / neo-brutalism only as a deliberate style choice, limited to interactive elements - never as the default separation method.
 - Separate fixed nav from scrolling content with a 1px top border or an ultra-soft shadow.
+- Keep one light source: audit all shadows on a surface for a single consistent direction - mixed offsets read as broken physics.
+- Glass surfaces need three layers to read as material: backdrop blur + a 1px light inner border (e.g. rgba(255,255,255,0.1)) + an inset top highlight (`inset 0 1px 0 rgba(255,255,255,0.1)`). Blur alone reads cheap. Provide a solid fallback under `prefers-reduced-transparency`, and treat glass as an accent, never the default surface.
+- Nested rounded elements stay concentric: inner radius = outer radius minus the padding between them. Equal radii on nested corners read as a mistake.
 
 ## Card anatomy
 - Give every card 3-4 explicit hierarchy tiers: T1 primary value (largest, boldest, darkest) -> T2 title (medium, bold) -> T3 metadata (small, gray, icon-led) -> T4 supporting block. Eight rows at one size/weight = zero hierarchy.
@@ -74,13 +85,3 @@ GOOD: box-shadow: 0 12px 48px #CFC9DD;  /* Y offset, hue-shifted toward lavender
 - Render status/type as colored pill badges, not plain text.
 - Group metadata into one compact horizontal stats row (icon + value clusters), not a stacked list.
 - Humanize person data: avatar next to the name, never a bare text row.
-
-## Sources
-- Nielsen Norman Group, Progress Indicators - https://www.nngroup.com/articles/progress-indicators/
-- Nielsen Norman Group, Skeleton Screens 101 - https://www.nngroup.com/articles/skeleton-screens/
-- Nielsen Norman Group, Designing Empty States - https://www.nngroup.com/articles/empty-state-interface-design/
-- Nielsen Norman Group, Error Message Guidelines - https://www.nngroup.com/articles/error-message-guidelines/
-- Nielsen Norman Group, Button States: Communicate Interaction - https://www.nngroup.com/articles/button-states-communicate-interaction/
-- Baymard Institute, No Results Pages - https://baymard.com/blog/no-results-page
-- Material Design 3, States - https://m3.material.io/foundations/interaction/states
-- W3C, WCAG 2.2 Understanding Focus Appearance - https://www.w3.org/WAI/WCAG22/Understanding/focus-appearance.html

@@ -50,10 +50,3 @@ Active:   filled house icon + accent color + bold "Home"   (fill + color/weight 
 
 ## Spacing rhythm (mobile)
 - Mobile rhythm values (stacked blocks, gap before the primary CTA, tight intra-component gaps) -> layout-spacing.md "How much white space".
-
-## Sources
-- Apple Human Interface Guidelines - Accessibility (44x44 pt): https://developer.apple.com/design/human-interface-guidelines/accessibility
-- Material 3 - Navigation bar guidelines (3-5 destinations): https://m3.material.io/components/navigation-bar/guidelines
-- Android accessibility - touch target size (48x48 dp): https://support.google.com/accessibility/android/answer/7101858
-- WCAG 2.2 Understanding SC 2.5.8 Target Size (Minimum, AA): https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html
-- WCAG 2.2 Understanding SC 2.5.5 Target Size (Enhanced, AAA): https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced.html

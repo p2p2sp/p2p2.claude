@@ -22,6 +22,7 @@ Read when choosing font sizes, line-heights, weights, letter-spacing, or font fa
 - Paragraph spacing at least 1.5x the line spacing (body 16/1.5 -> `margin-bottom: ~1em-1.5em`, never 0).
 - Left-align; `text-align: justify` is banned for UI copy - creates rivers of space (WCAG 1.4.8).
 - Layout must survive 200% text zoom without horizontal scrolling (WCAG 1.4.8).
+- Kill orphaned last words: `text-wrap: balance` on headings, `text-wrap: pretty` on body paragraphs - a single word on the last line of a heading reads as a layout bug.
 
 ## Line-height - inverse to font size, never one global value
 
@@ -59,6 +60,7 @@ Read when choosing font sizes, line-heights, weights, letter-spacing, or font fa
 - Bold the number, mute the unit: `1634` bold dark + `sqft` regular gray; `5` bold + `bed.` muted - users compare numbers, units are context.
 - Trend deltas stay small (~12px, label-size), semantically colored, immediately beside the value - never competing with it.
 - Format numbers: thousands separators, currency, one-decimal percentages, abbreviations where space is tight (`$4,981.00`, `2,121`, `3.2%`, `12.4k`).
+- Columns and stacks of numbers get `font-variant-numeric: tabular-nums` (or a mono face) so digits align for down-column comparison; proportional figures make identical values look different lengths.
 
 ## Forms and links
 
@@ -71,14 +73,3 @@ Read when choosing font sizes, line-heights, weights, letter-spacing, or font fa
 
 - Never fix the height of any element containing wrapping text; never `overflow: hidden` on paragraph containers; size text in rem.
 - Layout must lose nothing when users override: line-height 1.5x font size, paragraph spacing 2x, letter-spacing 0.12em, word-spacing 0.16em (WCAG 1.4.12, AA). Fixed-height cards with px text are the typical failure.
-
-## Sources
-
-- Material Design 3 Typography - https://m3.material.io/styles/typography
-- M3 typescale tokens (material-web v0.192) - https://raw.githubusercontent.com/material-components/material-web/main/tokens/versions/v0_192/_md-sys-typescale.scss
-- Apple HIG Typography - https://developer.apple.com/design/human-interface-guidelines/typography
-- Baymard Institute: The Optimal Line Length - https://baymard.com/blog/line-length-readability
-- Refactoring UI: Line-height is proportional - https://refactoringui.com/previews/line-height-is-proportional
-- WCAG 2.2 Understanding SC 1.4.8 Visual Presentation - https://www.w3.org/WAI/WCAG22/Understanding/visual-presentation.html
-- WCAG 2.2 Understanding SC 1.4.12 Text Spacing - https://www.w3.org/WAI/WCAG22/Understanding/text-spacing.html
-- Google Fonts Knowledge: Pairing typefaces within a family/superfamily - https://fonts.google.com/knowledge/choosing_type/pairing_typefaces_within_a_family_superfamily

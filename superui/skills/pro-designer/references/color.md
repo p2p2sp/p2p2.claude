@@ -11,7 +11,7 @@ Read when choosing a palette, assigning colors to surfaces, building dark mode, 
 
 ## Layer 1 - Neutral foundation and spatial architecture
 
-The neutral palette is infrastructure, not background: it defines spatial division and reading hierarchy. Budget at least four background layers, two stroke types (soft light-mode border, brighter dark-mode edge), and three text-contrast levels.
+The neutral palette is infrastructure, not background: it defines spatial division and reading hierarchy. Budget at least four background layers, two stroke types (soft light-mode border, brighter dark-mode edge), and three text-contrast levels. One gray family per project: never mix warm and cool grays - tint every neutral with the same hue, or the surface reads assembled from two different products.
 
 Canvas and elevation (light mode):
 - Pure white (100%) is the scarcest resource - reserve it for lifted surfaces (cards, popovers) so they detach from the canvas. Give the base canvas a subtle gray/color tint instead of pure white.
@@ -30,6 +30,7 @@ Button surface hierarchy:
 - Ghost / tertiary: transparent / borderless - contextual actions, minimal footprint.
 
 Dark mode - physiology, not inversion:
+- Never a pure #000000 canvas or pure #FFFFFF text - off-black surfaces (a zinc/charcoal register) and dimmed off-white text; pure values kill depth and glare-fatigue readers.
 - "Double the distance": the eye resolves dark luminance poorly, so a 2% step that reads in light mode vanishes in the dark. Widen luminance steps between background layers to 4-6%.
 - "Lighter-as-it-rises": obey a physical light model - higher elevation = lighter surface. Level 0 background = lowest luminance; Level 1 card/surface = 4-6% lighter; Level 2 popover/modal = highest.
 - Shadows stop reading as depth in the dark; replace them with active borders - brighten the stroke relative to the card so the edge, not a shadow, defines the component.
@@ -38,6 +39,9 @@ Dark mode - physiology, not inversion:
 ## Layer 2 - Accent scale and interactive states
 
 Brand color is a continuous scale (100-900), not one hex. Each step maps to an operational state, which is what lets states be automated.
+
+- One accent per surface, saturation below ~80% by default: a fully saturated accent fights the neutrals instead of sitting with them. Desaturate until it reads as part of the system.
+- The accent is locked page-wide once chosen: the accent of section 1 is the accent of section 7 - a warm-gray page never suddenly gets a blue CTA.
 
 - Baseline (default action / brand): 500 or 600 in light; 300 or 400 in dark.
 - Hover: 700 (darker) in light; 400 or 500 (brighter / more saturated) in dark.

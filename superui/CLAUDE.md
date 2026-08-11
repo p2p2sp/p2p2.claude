@@ -90,10 +90,13 @@ keeps its own rather than sharing one at the plugin root.
 - `pro-designer` - the cross-cutting **professional UI/UX standards** advisor (model-invocable via CSO):
   visual hierarchy, color-system discipline (neutral foundation, dark mode, accent scales), type ramps, 4/8pt
   spacing, accessibility, component states, form-validation UX, evidence-based conversion psychology with
-  hard anti-dark-pattern rules, and anti-AI-slop aesthetic direction (`references/distinctiveness.md`,
-  distilled from Anthropic's Apache-2.0 frontend-design skill: refuse the recognizable generated-look
-  defaults, ground direction in the subject, one signature element, plan-then-critique, copy as design
-  material). Its SKILL.md also carries four framings adapted from pbakaus/impeccable (Apache-2.0): the
+  hard anti-dark-pattern rules, and anti-AI-slop aesthetic direction split across two references:
+  `references/distinctiveness.md` (distilled from Anthropic's Apache-2.0 frontend-design skill: refuse the
+  recognizable generated-look defaults, ground direction in the subject, one signature element,
+  plan-then-critique, copy as design material, plus consistency locks) and `references/anti-slop.md` (the
+  forensic generated-UI tells catalog distilled from Leonxlnx/taste-skill: layout/visual/decoration tells,
+  hero discipline, demo-content realism, CTA-intent dedup). Its SKILL.md also carries four framings adapted
+  from pbakaus/impeccable (Apache-2.0): the
   surface-mode taxonomy (Persuade/Operate/Read/Experience, chosen from the surface, not the product), the
   brief-wins rule, refinement-preserves-vs-redesign-replaces, and bounded QA passes (batched inspect-fix,
   max two rounds). Fires when creating, styling, or reviewing ANY interface. Bundles

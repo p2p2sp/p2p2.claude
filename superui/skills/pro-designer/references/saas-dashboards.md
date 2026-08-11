@@ -70,13 +70,11 @@ Read when designing SaaS dashboards, KPI tiles, app navigation/sidebars, billing
 - Show trust elements: a visible contact email and the saved payment method - removes friction at the decision point.
 
 ## Landing Page
-- Show the real product: lightly skewed, in-perspective screenshots of actual modules ("skewed graphics") instead of generic flat icons - a polished real interface builds trust no stock icon can.
+- Hero composition limits, decoration tells, and demo-content realism -> anti-slop.md; read it before shipping any landing surface.
+- Show the real product: lightly skewed, in-perspective screenshots of actual modules ("skewed graphics") instead of generic flat icons - a polished real interface builds trust no stock icon can. Never fake a product screenshot with styled divs.
 - This principle is backed by CRO case studies (e.g. StatusCake's landing test replacing an abstract hero with real UI screenshots), but no verified universal uplift numbers exist - never quote specific conversion percentages as fact.
 - Communicate benefits, not technical internals: presentation over complexity; perceived visual quality drives perceived product value.
 - Hero archetype by message: text-left / visual-right is the default trust-builder; center-aligned suits one short, strong statement; a bento grid organizes many features into one scannable block. Pick by content, not taste.
 - Hero internal spacing: ~12px below the eyebrow line, ~8px heading-to-subtext, ~32px before the CTA - tight proximity binds the lockup, the larger gap sets the CTA apart (scale -> layout-spacing.md).
 - Progressive disclosure over infinite scroll: prefer a "Load more" button to auto-infinite-scroll on browse/marketing pages - it hands the user control and keeps the footer reachable, which infinite scroll pushes permanently out of reach.
 - Flavor is the deliberate style layer (corner radius, grain/texture, color temperature) tuned to brand personality: a friendly brand takes larger radii and warmer hues; a professional/enterprise one takes sharp edges, restraint, and a neutral palette. Choose one flavor and hold it system-wide; radii still snap to the spacing scale (-> layout-spacing.md).
-
-## Sources
-- Conversion Rate Experts - StatusCake landing page win report: https://conversion-rate-experts.com/statuscake-landing-page-win-report/

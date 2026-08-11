@@ -59,15 +59,3 @@ Good: pre-filled "15 Oct – 20 Oct", "1 Adult", "Standard Room", auto code "AUT
 ## Choice reduction
 
 - Fewer visible options generally convert better, but do not cite the jam study as a general law - see ux-psychology.md for the actual numbers and its replication caveats; keep one link, do not restate the evidence here.
-
-## Sources
-
-- Inline Validation in Web Forms – A List Apart (Luke Wroblewski): https://alistapart.com/article/inline-validation-in-web-forms/
-- Usability Testing of Inline Form Validation – Baymard Institute: https://baymard.com/blog/inline-form-validation
-- Required vs Optional Field Marking – Baymard Institute: https://baymard.com/blog/required-optional-form-fields
-- A Complete Guide To Live Validation UX – Smashing Magazine: https://www.smashingmagazine.com/2022/09/inline-validation-web-forms-ux/
-- 10 Design Guidelines for Reporting Errors in Forms – NN/g: https://www.nngroup.com/articles/errors-forms-design-guidelines/
-- Error-Message Guidelines – NN/g: https://www.nngroup.com/articles/error-message-guidelines/
-- Website Forms Usability: Top 10 Recommendations – NN/g: https://www.nngroup.com/articles/web-form-design/
-- Hostile Patterns in Error Messages – NN/g: https://www.nngroup.com/articles/hostile-error-messages/
-- W3C WAI Forms Tutorial: User Notifications: https://www.w3.org/WAI/tutorials/forms/notifications/

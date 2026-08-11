@@ -19,7 +19,7 @@ Before any design decision, name what the visitor's success looks like on THIS s
 
 ## Design pass - apply in this order
 
-1. **Aesthetic direction** - only for a new surface with no established design system: ground the direction in the subject, refuse the AI-default looks, pick one signature element -> `references/distinctiveness.md`
+1. **Aesthetic direction** - only for a new surface with no established design system: ground the direction in the subject, refuse the AI-default looks (`references/anti-slop.md`), pick one signature element -> `references/distinctiveness.md`
 2. **Layout skeleton** - spacing scale, grouping, grid, max-width -> `references/layout-spacing.md`
 3. **Hierarchy & type** - one focal point per screen, fixed type ramp, mute labels / amplify values -> `references/typography.md`
 4. **Color** - neutral foundation + elevation, a scarce 100-900 accent scale, dark mode by physiology, OKLCH theming -> `references/color.md`
@@ -39,6 +39,7 @@ Before any design decision, name what the visitor's success looks like on THIS s
 - Color is never the only signal - pair it with icon, text, or underline.
 - Touch targets: web ≥ 24×24 CSS px (WCAG AA legal floor), iOS ≥ 44×44 pt, Android ≥ 48×48 dp. Design anything a finger touches to 44-48px, not the web floor.
 - In data display the value dominates, the label is muted - never equal weight.
+- Demo content is real content: no Acme/John Doe/Lorem Ipsum, no fake round numbers (47.2%, not 50%), no cliche marketing verbs (Elevate, Seamless, Unleash). Full tells catalog in `references/anti-slop.md`.
 - No dark patterns: no fake urgency, scarcity, progress, or anchors; defaults never work against the user. Full rules in `references/ux-psychology.md`.
 - HARD RULE: never output an em dash (U+2014) or an en dash (U+2013) anywhere - not in UI copy, microcopy, code, comments, or reports. Always use a plain hyphen (-).
 
@@ -53,7 +54,8 @@ When the project already defines its own design system - a token set, a design s
 
 ## Reference routing
 
-- Aesthetic direction for a new surface, hero sections, signature elements, UI copy/microcopy voice, or UI that looks generic, templated, or AI-generated -> `references/distinctiveness.md`
+- Aesthetic direction for a new surface, signature elements, UI copy/microcopy voice, consistency locks (radius/gray/theme/accent/register) -> `references/distinctiveness.md`
+- UI that looks generic, templated, or AI-generated; hero composition; landing/marketing pages before shipping; demo data, placeholder names, marketing copy -> `references/anti-slop.md`
 - Onboarding, signup, upgrade, pricing, paywalls, conversion flows -> `references/ux-psychology.md`
 - Choosing/using colors, palettes, dark mode -> `references/color.md`
 - Headings, body text, data/number display, form text conventions -> `references/typography.md`
@@ -73,7 +75,3 @@ When the project already defines its own design system - a token set, a design s
 - **Detail rule**: if a detail is too small or too faint to notice, delete it instead of keeping it faint.
 - **Template test** (new surfaces only): would this exact palette + type + hero combination ship for any similar brief? If yes, it is a default, not a decision - revise the generic part (`references/distinctiveness.md`).
 - **Bounded passes**: verify in batches, not an open loop - build fully, inspect once (desktop and mobile together), fix everything found in one batch, confirm with at most one more round, then stop polishing. Open-ended self-QA burns effort without improving the result.
-
-## Sources
-
-- Surface modes, brief-wins, refinement-vs-redesign, and bounded QA passes adapted from pbakaus/impeccable (Apache License 2.0) - https://github.com/pbakaus/impeccable

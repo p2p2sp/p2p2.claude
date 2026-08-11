@@ -25,6 +25,17 @@ Good: label -8px- input -24px- next label
 - Lockup: icon + title + description is one locked unit with fixed internal spacing (enforce via auto-layout/flex gap). An icon floating too far from its title stops being associated with it.
 - Calibrate both directions: too tight reads as amateur chaos; too loose breaks functional context between related elements.
 
+## Containment discipline
+
+- One primary framing move per section: never cards inside cards inside a rounded section container - box-in-box-in-box nesting is the top structural tell of a generated layout (anti-slop.md). Flatten: open layout, whitespace, direct alignment.
+- A card exists only when elevation communicates hierarchy. Otherwise separate with section-header typography, border-top dividers, `divide-y` rules, or background shifts (-> saas-dashboards.md "Containers").
+- Bento/asymmetric grids: exact cell count (N items = N cells, no filler tile), spans interlocking with no empty corner (`grid-auto-flow: dense` helps); collapse to a strict single column below the compact breakpoint.
+
+## Alignment craft
+
+- Side-by-side cards: pin CTAs to the bottom of each card so they form one line; pricing/comparison columns start their feature lists at the same Y (fix the title/price block height). Misaligned baselines across panels read as broken.
+- Trust the eye over the math: icons beside text, glyphs centered in circles, and text in buttons usually need 1-2px optical nudges; perfectly symmetric vertical padding often wants slightly more at the bottom.
+
 ## Component sizing on the grid
 - Interactive control heights in 8px increments: 32px compact, 40px default, 48px large - same set for buttons and inputs so rows and toolbars align without nudges.
 - Icons at 16/20/24/32px; line-heights in multiples of 4px so text blocks stack on the grid.
@@ -45,16 +56,6 @@ Good: label -8px- input -24px- next label
 
 ## Big screens and line length
 - Don't stretch content to fill wide screens: center the page in a max-width container of ~1200-1440px (`max-width: 80rem; margin-inline: auto; padding-inline: 24px`), fluid margins absorb the rest.
+- Full-height sections: `min-height: 100dvh`, never `height: 100vh` - the fixed viewport unit jumps with the iOS Safari address bar and clips content.
 - At expanded/large widths add panes or columns (list-detail, sidebar, multi-column card grid) instead of widening a single column.
 - Prose blocks: `max-width: 65ch` even when the parent is wider; optimal 50-75 characters per line, WCAG 1.4.8 hard cap 80 characters (40 CJK).
-
-## Sources
-- Cieden - Spacing best practices: https://cieden.com/book/sub-atomic/spacing/spacing-best-practices
-- Nielsen Norman Group - The Principle of Proximity: https://www.nngroup.com/articles/gestalt-proximity/
-- Refactoring UI - Start with too much white space: https://archive.org/details/RefactoringUIStartWithTooMuchWhiteSpace
-- Tailwind CSS - Theme variables: https://tailwindcss.com/docs/theme
-- Bootstrap 5.3 - Breakpoints: https://getbootstrap.com/docs/5.3/layout/breakpoints/
-- Android Developers - Window size classes: https://developer.android.com/develop/ui/compose/layouts/adaptive/use-window-size-classes
-- Material Design - Responsive layout grid: https://m2.material.io/design/layout/responsive-layout-grid.html
-- W3C - Understanding WCAG 1.4.8 Visual Presentation: https://www.w3.org/WAI/WCAG22/Understanding/visual-presentation.html
-- Baymard Institute - Line length readability: https://baymard.com/blog/line-length-readability
