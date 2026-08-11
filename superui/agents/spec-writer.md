@@ -15,6 +15,7 @@ You write exactly one spec, from one inventory entry line, the finished `registr
 - Source screenshots dir; `registry.json`.
 - Output spec path (`<run>/specs/components/<slug>.md` or `<run>/specs/patterns/<slug>.md` - an internal intermediate, already resolved by the caller from the entry's kind).
 - Absolute path to `sample_colors.ts` and absolute path to `measure_geometry.ts`; the runtime command to invoke both with (default `node`).
+- Optionally: a platform reference path - use it per "Variant versus state" below.
 - Optionally, on a re-dispatch: your previous spec path plus findings to honor - regenerate the spec in full, never patch it.
 
 ## Read the entry's kind
@@ -41,7 +42,9 @@ Split the entry line on `·`. A component entry carries `atomic|composite` at in
 - No size-and-variant matrix, no `atomic|composite` kind - neither axis exists at pattern level.
 
 ## Variant versus state
-A variant is author-time configuration (size, kind, emphasis). A state is a runtime condition (hover, disabled, error). Never mix the two in one section. A state's color maps to the token that actually matches what you measured - often the ink token, not the accent - never inferred from what a typical pattern would use.
+A variant is author-time configuration (size, kind, emphasis). A state is a runtime condition (hover, disabled, error - platform-neutral examples only). Never mix the two in one section. A state's color maps to the token that actually matches what you measured - often the ink token, not the accent - never inferred from what a typical pattern would use.
+
+When a platform reference is given, take the actual state list from its `## Interaction states` instead of the examples above (e.g. mobile's `pressed`/`long-press`/`swipe` in place of `hover`/`active`), and apply its `## Spec guidance` deltas (touch-target floors, confirm-before-destructive rules, and the like) to every part and state you write.
 
 ## The spec file's machine-readable surface - pin exactly
 `assemble_specs.ts` consolidates every spec into a satellite and `validate_bundle.ts` then parses this surface (the `canonical:` line and the backtick token refs) off that satellite; write it verbatim, never in a prose variant.
