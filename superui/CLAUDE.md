@@ -28,11 +28,12 @@ re-authors inline styles each turn). Consequences that shape the pipeline skills
 
 - `DESIGN.md` is the **single source of values on input** - a lean seed loosely conforming to the
   google-labs-code/design.md standard: YAML front matter FIRST (DTCG-shaped light-value tokens - `colors`,
-  `typography`, `spacing`, `rounded`, foundations only) then a prose body under the fixed standard headings
-  (Overview, Colors, Typography, Layout & Spacing, Elevation & Depth, Shapes, Motion, Components, Do's and
-  Don'ts). Rich detail beyond the coarse front-matter token model (semantic roles, surface/elevation order,
-  accent-usage inventory, borders, shadows, motion, dark-mode coverage) and provenance (`measured|proposed`)
-  live in the body only, never as front-matter tokens. No token file ships alongside it.
+  `typography`, `spacing`, `rounded`, `shadows` (3.8 `shadow.*`), `gradients` (3.8 `gradient.*`), foundations
+  only) then a prose body under the fixed standard headings (Overview, Colors, Typography, Layout & Spacing,
+  Elevation & Depth, Shapes, Motion, Components, Do's and Don'ts). Rich detail beyond the coarse front-matter
+  token model (semantic roles, surface/elevation order, accent-usage inventory, borders, motion, dark-mode
+  coverage) and provenance (`measured|proposed`) live in the body only, never as front-matter tokens. No token
+  file ships alongside it.
 - **DTCG dropped; front-matter YAML tokens subsume it.** There is no separate DTCG file on input or output -
   the readable front-matter maps are the token surface (readable MD over JSON). A second, competing token
   format would only create a rival source of truth.
@@ -146,9 +147,16 @@ keeps its own rather than sharing one at the plugin root.
   PROPOSED tokens/textStyles (`proposed: true` + `rationale`, no evidence), writing one
   `foundation:"proposed"` fragment plus a `resolved` list of the unknowns it covered; grounds every proposal
   in the preloaded `pro-designer` skill (`skills:` frontmatter). Runs once, after measurement and
-  missing-token resolution. Never measures, never edits a measured value.
+  missing-token resolution. Never measures, never edits a measured value; never proposes a `shadow.*`/
+  `gradient.*` token where `registry.json` already carries a measured one for that surface, even when its
+  value is `none` - a measured `none` is the surface's stated answer, not a slot left open for a proposal
+  (`shadow.*`/`gradient.*` belong to the effects-motion `foundation-analyst` alone; no other foundation, and no
+  synthesizer proposal, writes either prefix once a measurement exists).
 - `bundle-reviewer` - judgment-only reviewer over the finished bundle (accent discipline, dedup correctness,
-  state-form completeness, surface-order coherence); never measures, never edits.
+  state-form completeness, surface-order coherence, and a fifth `flat-render` category - a spec declaring
+  `shadow:`/`gradient:`/`border: none` while the registry carries a measured token for that surface, or a
+  state description changing only a color where the measured record shows a border/shadow change too); never
+  measures, never edits.
 
 ## Architecture invariants (superui-specific)
 
@@ -186,9 +194,15 @@ contract modules are imported across `scripts/` itself - `section-model.ts` by `
   backgrounds by luminance (the measured surface/elevation order). The color half of the
   "measure, never guess" invariant.
 - `scripts/measure_geometry.ts` - pixel-geometry sampler covering what color sampling does not: paddings,
-  gaps, border widths, control heights, corner radii, shadow extents, ink/cap-height bounds. Four independent
-  measurement modes selected per invocation (`--edges`, plus the sibling geometry modes). The geometry half of
-  the "measure, never guess" invariant, run by `foundation-analyst`.
+  gaps, border widths, control heights, corner radii, shadow falloff, gradient classification, ink/cap-height
+  bounds. Five independent measurement modes selected per invocation (`--edges`, `--radius`, `--shadow`,
+  `--gradient`, `--ink`). `--shadow` reports the full falloff profile - `samples[]` (per-step `offset`/
+  `delta`/`hex`), `peakOffset`, `peakHex` alongside `extent`/`peakDelta`/`bgHex` - and `peakDelta`/`samples[]`
+  are tolerance-independent (a fixed settle floor, not `--tol`), so a shadow whose maximum per-channel delta
+  sits under the default `--tol 8` is still reported in full instead of vanishing. `--gradient x,y,w,h --axis
+  h|v` walks the box's midline and reports `startHex`/`midHex`/`endHex`, `totalDelta`, `maxDeviation` and a
+  `verdict` of `flat|linear|nonlinear`, itself tolerance-independent. The geometry half of the "measure, never
+  guess" invariant, run by `foundation-analyst`.
 - `scripts/section-model.ts` - the one shared contract module declaring the `3.N` section list: `SECTION_IDS`
   (all ten, in order), `SECTION_TITLES`, the token-legal `TOKEN_BACKED_SECTIONS` subset (every id except the
   field-backed 3.3/3.4 and the derived 3.10), and the two regexes built from it. `build_registry.ts` imports it
@@ -212,13 +226,16 @@ contract modules are imported across `scripts/` itself - `section-model.ts` by `
 - `scripts/render_design_md.ts` - the sole writer of `DESIGN.md`. Reads a merged `registry.json` plus the
   run's `inventory.md` (for the Components overview) and emits the seed: YAML front matter FIRST (quoted,
   DTCG-shaped light tokens - `colors` from 3.1+3.2, `typography` from 3.5 families + textStyles, `spacing`
-  from 3.6, `rounded` from 3.7 `radius.*`) then the prose body under the fixed standard headings, the old
-  `## 3.N` sections (from `section-model.ts`) surviving as `###` subsections. Never invents, rounds, or infers
-  a value itself - an entry listed in `unknowns` renders as `> NEEDS INPUT: <what> - <reason>`; Overview and
-  Do's-and-Don'ts are mechanical only (counts + fixed boilerplate). A `proposed` token/textStyle renders as a
-  real body row with a `Source` column (`measured|proposed`) and its `rationale` in `Notes`; the `> Legend` and
-  a `> Note` (front-matter defaults vs authoritative body Source columns) sit BELOW the closing front-matter
-  `---`. CLI: `render_design_md.ts REGISTRY_JSON INVENTORY_MD OUTPUT_MD [--source <label>]`.
+  from 3.6, `rounded` from 3.7 `radius.*`, `shadows` from 3.8 `shadow.*`, `gradients` from 3.8 `gradient.*` -
+  each map rendered `{}` when empty) then the prose body under the fixed standard headings, the old `## 3.N`
+  sections (from `section-model.ts`) surviving as `###` subsections; section 3.8's rendered body is split by
+  name prefix into a `**Shadows**` table, a `**Gradients**` table and a remaining table (mirroring 3.7's
+  radius/border split). Never invents, rounds, or infers a value itself - an entry listed in `unknowns` renders
+  as `> NEEDS INPUT: <what> - <reason>`; Overview and Do's-and-Don'ts are mechanical only (counts + fixed
+  boilerplate). A `proposed` token/textStyle renders as a real body row with a `Source` column
+  (`measured|proposed`) and its `rationale` in `Notes`; the `> Legend` and a `> Note` (front-matter defaults vs
+  authoritative body Source columns) sit BELOW the closing front-matter `---`. CLI: `render_design_md.ts
+  REGISTRY_JSON INVENTORY_MD OUTPUT_MD [--source <label>]`.
 - `scripts/assemble_specs.ts` - consolidates a dir of per-entry intermediate specs into ONE satellite
   (`assemble_specs.ts SPECS_DIR OUTPUT_MD`, run once per kind). Each `<slug>.md` is wrapped under a `## <slug>`
   heading derived from the FILENAME; every ATX heading inside a spec body is shifted down on inclusion - h1 and
@@ -235,8 +252,11 @@ contract modules are imported across `scripts/` itself - `section-model.ts` by `
   `DESIGN.components.md` / `DESIGN.patterns.md` + `screens/`) against `registry.json` and its own internal
   cross-references: token citations (backtick dotted refs in the satellites), CANONICAL screen citations (every
   satellite `canonical:` line, parsed via `inventory-format.ts`'s `canonicalRefs`), the fixed standard headings
-  present + non-empty in `DESIGN.md`, and no forbidden `css/js/html/json` artifact. A `canonical:` filename
-  absent from `screens/` - including one containing spaces - emits a `missing-screen` finding. Never mutates
+  present + non-empty in `DESIGN.md`, no forbidden `css/js/html/json` artifact, and every `## <slug>` block in
+  `DESIGN.components.md` carrying a `border:`, `shadow:` and `gradient:` property line. A `canonical:` filename
+  absent from `screens/` - including one containing spaces - emits a `missing-screen` finding; a block missing
+  one of the three effect lines emits a `missing-effect-line` finding per missing property (up to three per
+  block) - `none` is a satisfying value for any of the three, only the line itself is required. Never mutates
   the bundle.
 - `scripts/check_contrast.ts` - WCAG AA contrast gate (pro-designer).
 - `scripts/vendor/png-decode.ts` - from-scratch PNG decoder on `node:zlib` (color types 0/2/3/4/6, bit
