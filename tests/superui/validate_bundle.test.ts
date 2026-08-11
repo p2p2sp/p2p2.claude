@@ -18,7 +18,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { canonicalRefs } from "../../superui/scripts/inventory-format.ts";
-import { checkScreenRefs } from "../../superui/scripts/validate_bundle.ts";
+import { checkEffectLines, checkScreenRefs } from "../../superui/scripts/validate_bundle.ts";
 
 // ---------------------------------------------------------------------------
 // canonicalRefs - decorated canonical: lines
@@ -110,6 +110,88 @@ test("checkScreenRefs reports CLEAN (no findings) when every citation is satisfi
   });
   try {
     assert.deepEqual(checkScreenRefs(dir), []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// checkEffectLines
+// ---------------------------------------------------------------------------
+
+test("checkEffectLines reports zero findings when DESIGN.components.md is absent", () => {
+  const dir = makeBundle({
+    "DESIGN.patterns.md": "# Patterns\n\nNone catalogued.\n",
+  });
+  try {
+    assert.deepEqual(checkEffectLines(dir), []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("checkEffectLines reports one missing-effect-line finding per absent property", () => {
+  const dir = makeBundle({
+    "DESIGN.components.md": "# Components\n\n## card\n\nA card with no effect lines at all.\n",
+  });
+  try {
+    const findings = checkEffectLines(dir);
+    assert.equal(findings.length, 3);
+    for (const f of findings) assert.equal(f.category, "missing-effect-line");
+    assert.ok(findings.some((f) => /border/.test(f.detail)));
+    assert.ok(findings.some((f) => /shadow/.test(f.detail)));
+    assert.ok(findings.some((f) => /gradient/.test(f.detail)));
+    assert.ok(findings.every((f) => /card/.test(f.detail)));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("checkEffectLines is clean when a block carries all three effect lines, including a 'none' value", () => {
+  const dir = makeBundle({
+    "DESIGN.components.md":
+      "# Components\n\n## card\n\nborder: 1px solid #eee\nshadow: none\ngradient: linear-gradient(180deg, #fff 0%, #f7f8fa 100%)\n",
+  });
+  try {
+    assert.deepEqual(checkEffectLines(dir), []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("checkEffectLines is clean on the assemble_specs.ts 'None catalogued.' stub (no ## wrapper)", () => {
+  const dir = makeBundle({
+    "DESIGN.components.md": "# Components\n\nNone catalogued.\n",
+  });
+  try {
+    assert.deepEqual(checkEffectLines(dir), []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("checkEffectLines does not accept border-radius: as satisfying the border property", () => {
+  const dir = makeBundle({
+    "DESIGN.components.md":
+      "# Components\n\n## card\n\nborder-radius: 8px\nshadow: none\ngradient: none\n",
+  });
+  try {
+    const findings = checkEffectLines(dir);
+    assert.equal(findings.length, 1);
+    assert.equal(findings[0].category, "missing-effect-line");
+    assert.match(findings[0].detail, /border/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("checkEffectLines accepts a bold-labelled or table-cell effect line", () => {
+  const dir = makeBundle({
+    "DESIGN.components.md":
+      "# Components\n\n## card\n\n**border:** none\n| shadow: none |\ngradient: none\n",
+  });
+  try {
+    assert.deepEqual(checkEffectLines(dir), []);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

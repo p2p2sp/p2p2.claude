@@ -12,8 +12,8 @@
  *      union every `textStyles[].name`.
  * OUT: stdout - one `FINDING: <category> <detail>` line per defect found
  *      (checkTokenRefs, then checkScreenRefs, then checkSections, then
- *      checkForbidden, in that order), or the single line `CLEAN` when none
- *      are found.
+ *      checkEffectLines, then checkForbidden, in that order), or the single
+ *      line `CLEAN` when none are found.
  * Exit codes: 0 = clean bundle; 1 = BUNDLE_DIR absent/empty/not-a-directory
  *      (message on stderr naming the dir), or one-or-more findings printed
  *      (still exit 1, findings are on stdout, not an error); 2 =
@@ -42,6 +42,16 @@
  *   - forbidden-artifact - any `*.css`, `*.js`, `*.html` or `*.json` file
  *     anywhere under BUNDLE_DIR (blanket rejection, not a name heuristic;
  *     `DESIGN.md`'s inline YAML front matter is not a file and is unaffected).
+ *   - missing-effect-line - a `## <slug>` block in `DESIGN.components.md`
+ *     (satellites only - `DESIGN.patterns.md` describes composition, not
+ *     painted surfaces, and is out of scope here) lacks a `border:`,
+ *     `shadow:` or `gradient:` property line, up to one finding per missing
+ *     property (three max per block). `none` is a satisfying value for any
+ *     of the three - absence of an effect is a stated measurement, not an
+ *     omission; only the property LINE itself is required. A block carrying
+ *     all three (any value) contributes zero findings; a satellite absent or
+ *     reduced to `assemble_specs.ts`'s "None catalogued." stub (no `## `
+ *     wrapper) contributes zero blocks and therefore zero findings.
  *
  * Usage: node validate_bundle.ts BUNDLE_DIR REGISTRY_JSON
  */
@@ -55,7 +65,7 @@ import { canonicalRefs } from "./inventory-format.ts";
 // Types
 // ---------------------------------------------------------------------------
 
-export type FindingCategory = "unknown-token" | "missing-screen" | "empty-section" | "forbidden-artifact";
+export type FindingCategory = "unknown-token" | "missing-screen" | "empty-section" | "forbidden-artifact" | "missing-effect-line";
 
 export interface Finding {
   category: FindingCategory;
@@ -241,6 +251,44 @@ export function checkSections(bundleDir: string): Finding[] {
 }
 
 // ---------------------------------------------------------------------------
+// checkEffectLines
+// ---------------------------------------------------------------------------
+
+/** One required property per `## <slug>` block - a block missing any of these has no place for a
+ * measured-or-none verdict to live. Anchored per-property so `border-radius:` never satisfies `border`. */
+const EFFECT_PROPERTIES = ["border", "shadow", "gradient"] as const;
+
+function effectLineRe(property: string): RegExp {
+  return new RegExp(`^[ \\t>|*-]*\\*{0,2}${property}\\*{0,2}[ \\t]*:`, "im");
+}
+
+export function checkEffectLines(bundleDir: string): Finding[] {
+  const file = join(bundleDir, "DESIGN.components.md");
+  let content: string;
+  try {
+    content = readFileSync(file, "utf-8");
+  } catch {
+    return [];
+  }
+
+  const findings: Finding[] = [];
+  const headingRe = /^## (.+?)\s*$/gm;
+  const matches = Array.from(content.matchAll(headingRe));
+  for (let i = 0; i < matches.length; i++) {
+    const slug = matches[i][1].trim();
+    const start = matches[i].index! + matches[i][0].length;
+    const end = i + 1 < matches.length ? matches[i + 1].index! : content.length;
+    const block = content.slice(start, end);
+    for (const property of EFFECT_PROPERTIES) {
+      if (!effectLineRe(property).test(block)) {
+        findings.push({ category: "missing-effect-line", detail: `'${slug}' is missing a '${property}:' line` });
+      }
+    }
+  }
+  return findings;
+}
+
+// ---------------------------------------------------------------------------
 // checkForbidden
 // ---------------------------------------------------------------------------
 
@@ -329,6 +377,7 @@ function main(): void {
     ...checkTokenRefs(bundleDir, registry),
     ...checkScreenRefs(bundleDir),
     ...checkSections(bundleDir),
+    ...checkEffectLines(bundleDir),
     ...checkForbidden(bundleDir),
   ];
 
