@@ -19,10 +19,17 @@
  *       per-row error. Reports `radius=N` and a `confidence` (fraction of
  *       rows within 1px of the fit at the chosen radius).
  *   --shadow x,y,w,h --side top|right|bottom|left   Steps outward from the
- *       given box edge (along the edge's midline) until color returns to the
- *       far background (sampled well beyond the edge), reporting `extent`
- *       (pixel count before returning to background), `peakDelta` (max
- *       per-channel delta seen from that background) and `bgHex`.
+ *       given box edge (along the edge's midline), walking up to 32 samples
+ *       and stopping early once 3 consecutive samples settle to within 1 of
+ *       the far background (sampled well beyond the edge) - a fixed floor,
+ *       independent of --tol. Reports the full falloff profile: `samples[]`
+ *       (per-step `offset`/`delta`/`hex`, truncated after the last
+ *       above-floor sample), `peakOffset` and `peakHex` (the offset/hex of
+ *       the maximum-delta sample), plus `extent` (today's semantics: count
+ *       of leading samples above --tol) and `bgHex`. `peakDelta` and
+ *       `samples[]` are tolerance-independent - a shadow whose maximum
+ *       per-channel delta is 3 is reported in full under the default
+ *       `--tol 8` instead of vanishing.
  *   --ink x,y,w,h   Background = the modal color inside the rect (the
  *       surface the glyphs sit on); reports the bounding box of every pixel
  *       differing from that background by more than --tol, plus
@@ -102,10 +109,19 @@ export interface RadiusFit {
   confidence: number;
 }
 
+export interface ShadowSample {
+  offset: number;
+  delta: number;
+  hex: string;
+}
+
 export interface ShadowResult {
   extent: number;
   peakDelta: number;
+  peakOffset: number;
+  peakHex: string;
   bgHex: string;
+  samples: ShadowSample[];
 }
 
 export interface InkResult {
@@ -281,6 +297,12 @@ export function fitRadius(img: RgbImage, box: Box, corner: Corner, tol: number):
 // Mode 3 - scanShadow
 // ---------------------------------------------------------------------------
 
+/** Consecutive walked steps whose delta must stay at or below SETTLE_DELTA to
+ *  stop the walk early - a fixed floor, independent of --tol, so a low-delta
+ *  falloff is walked to completion instead of vanishing under a high --tol. */
+const SETTLE_RUN = 3;
+const SETTLE_DELTA = 1;
+
 export function scanShadow(img: RgbImage, box: Box, side: Side, tol: number): ShadowResult {
   const dx = side === "left" ? -1 : side === "right" ? 1 : 0;
   const dy = side === "top" ? -1 : side === "bottom" ? 1 : 0;
@@ -299,22 +321,54 @@ export function scanShadow(img: RgbImage, box: Box, side: Side, tol: number): Sh
   const farX = clamp(startX + dx * margin, 0, img.width - 1);
   const farY = clamp(startY + dy * margin, 0, img.height - 1);
   const bg = pixelAt(img, farX, farY);
+  const bgHex = toHex(bg);
 
-  let extent = 0;
-  let peakDelta = 0;
+  // Walk outward at most `margin` samples, stopping early once the falloff
+  // has settled (SETTLE_RUN consecutive steps at/under SETTLE_DELTA).
+  const walked: ShadowSample[] = [];
   let x = startX;
   let y = startY;
-  let steps = 0;
-  while (x >= 0 && x < img.width && y >= 0 && y < img.height && steps <= margin) {
-    const delta = maxChannelDelta(pixelAt(img, x, y), bg);
-    if (delta <= tol) break;
-    extent++;
-    if (delta > peakDelta) peakDelta = delta;
+  let settleCount = 0;
+  for (let step = 0; step < margin; step++) {
+    if (x < 0 || x >= img.width || y < 0 || y >= img.height) break;
+    const px = pixelAt(img, x, y);
+    const delta = maxChannelDelta(px, bg);
+    walked.push({ offset: step, delta, hex: toHex(px) });
+    if (delta <= SETTLE_DELTA) {
+      settleCount++;
+      if (settleCount >= SETTLE_RUN) break;
+    } else {
+      settleCount = 0;
+    }
     x += dx;
     y += dy;
-    steps++;
   }
-  return { extent, peakDelta, bgHex: toHex(bg) };
+
+  // extent: today's semantics unchanged - count of leading samples above --tol.
+  let extent = 0;
+  while (extent < walked.length && walked[extent].delta > tol) extent++;
+
+  // peak*: tolerance-independent, over the full walked profile.
+  let peakDelta = 0;
+  let peakOffset = 0;
+  let peakHex = bgHex;
+  for (const s of walked) {
+    if (s.delta > peakDelta) {
+      peakDelta = s.delta;
+      peakOffset = s.offset;
+      peakHex = s.hex;
+    }
+  }
+
+  // Truncate the reported profile after the last sample above SETTLE_DELTA -
+  // the trailing settle steps proved the falloff ended but are not retained.
+  let lastAbove = -1;
+  for (let i = 0; i < walked.length; i++) {
+    if (walked[i].delta > SETTLE_DELTA) lastAbove = i;
+  }
+  const samples = lastAbove === -1 ? [] : walked.slice(0, lastAbove + 1);
+
+  return { extent, peakDelta, peakOffset, peakHex, bgHex, samples };
 }
 
 // ---------------------------------------------------------------------------
@@ -614,7 +668,10 @@ function main(): void {
       tol,
       extent: sh.extent,
       peakDelta: sh.peakDelta,
+      peakOffset: sh.peakOffset,
+      peakHex: sh.peakHex,
       bgHex: sh.bgHex,
+      samples: sh.samples,
     };
   } else {
     const box = parseBox(args.ink as string, "--ink");
@@ -650,7 +707,13 @@ function main(): void {
       lines.push(`radius=${result.radius} confidence=${(result.confidence as number).toFixed(2)}`);
       break;
     case "shadow":
-      lines.push(`extent=${result.extent} peakDelta=${result.peakDelta} bgHex=${result.bgHex}`);
+      lines.push(
+        `extent=${result.extent} peakDelta=${result.peakDelta} peakOffset=${result.peakOffset} ` +
+          `peakHex=${result.peakHex} bgHex=${result.bgHex}`,
+      );
+      for (const s of result.samples as ShadowSample[]) {
+        lines.push(`sample ${s.offset} ${s.delta} ${s.hex}`);
+      }
       break;
     case "ink":
       lines.push(
