@@ -264,6 +264,9 @@ This file is orientation only. The authoritative contract of each skill is its o
 
 ## When editing
 
+- **No source attribution.** Never add a "Sources" section and never mention where knowledge was
+  taken from (upstream repos, skills, courses, authors) - not in skill/reference/agent content, not in
+  CLAUDE.md files, not in reports or chat answers. Distilled knowledge ships as this repo's own content.
 - **Catalog / install layer** (`.claude-plugin/marketplace.json`, root `README.md`): keep changes minimal and
   structural. The marketplace co-lists exactly four plugins by subdir `source` (`"./superdev"`, `"./superui"`,
   `"./supergh"`, `"./superfix"`); renaming a plugin must update the marketplace manifest, that plugin's

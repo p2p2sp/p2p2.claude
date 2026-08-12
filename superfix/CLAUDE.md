@@ -22,7 +22,8 @@ superfix/
   skills/            One user-invoked skill code-auditor/ (disable-model-invocation); bundles
                      references/ (jobs.md, scoring.md, synthesis.md) + scripts/ (check_node.sh,
                      collect_signals.sh, rank.ts - the file track; collect_edges.sh, rank_edges.ts - the
-                     edge track) - all addressed via `${CLAUDE_SKILL_DIR}/...`
+                     edge track; worktree.sh - the verification-checkout lifecycle shared by detective and
+                     critic) - all addressed via `${CLAUDE_SKILL_DIR}/...`
   agents/            Four plugin agents: scout.md (cheap haiku file triage) + edge-scout.md (cheap haiku
                      pair triage) + detective.md (frontier opus deep-dive) + critic.md (frontier opus
                      independent verifier)
@@ -72,6 +73,27 @@ superfix/
   frontier-tier independent verification, one instance per detective report, replaying its claim on
   a fresh checkout and returning a tagged verdict (schema in `references/synthesis.md`) rather than a file.
   Bare-named because they are genuine agents, not fork-skills.
+
+**Plugin-specific invariant: thin harness, model does the judgment.** Deterministic code stays confined to
+cheap signal collection, the two gates, and the worktree lifecycle; all reasoning stays with the agents. Do not
+grow elaborate scaffolding around them - the next model release tends to make a clever harness unnecessary, and
+an over-specified harness becomes a cage. This is dev-time guidance for whoever edits the plugin: the runtime
+files carry no such rationale, they only carry what changes behaviour.
+
+**Plugin-specific invariant: agents receive bundled-script paths as arguments, never as env expansions.**
+`${CLAUDE_SKILL_DIR}` resolves inside the skill, not inside an `agents/*.md` file, so `code-auditor` hands
+`detective` and `critic` the expanded `scripts/worktree.sh` path in the dispatch brief - the same way it already
+hands them `job.md`, the report-schema path and the output path. Any future bundled script an agent needs
+travels the same route; an agent file must never try to expand a plugin path itself.
+
+**Plugin-specific invariant: `worktree.sh` owns every clean-checkout recovery.** The detective and the critic
+both verify claims on a fresh checkout, and every failure mode there (a stale registration, a leftover
+directory, replay artifacts a bare `worktree remove` refuses to delete) is git-error-message-driven recovery -
+fixed tool, fixed format, so it collapses to a script per the repo-wide script-vs-fork principle. The script is
+self-verifying (`WORKTREE_READY` / `WORKTREE_REMOVED` only after the end state is confirmed, `WORKTREE_FAILED`
+otherwise) and is trusted by its callers: neither agent re-checks, retries or branches on git output. Both
+commands are idempotent. A `WORKTREE_FAILED` is a verification verdict, not a retry prompt - it means
+`NO FINDING` for the detective and `INCONCLUSIVE` for the critic.
 
 **Plugin-specific invariant: the edge track carries no Opportunity axis.** Opportunity is a property of one
 file (how cheap/safe a fix there is); a pair defect's Impact is already computed from both endpoints, but there

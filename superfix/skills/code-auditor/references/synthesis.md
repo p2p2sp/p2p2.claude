@@ -1,6 +1,6 @@
-# Synthesis - verify, dedupe, score, and open new fronts
+# Synthesis - verify, dedupe, score
 
-The detective sweep produces many candidate reports of mixed quality. This phase turns them into a trustworthy, severity-ranked findings list. The cardinal rule: **never file an unverified finding.** Cheap to generate, expensive to be wrong.
+Turns many candidate detective reports of mixed quality into a trustworthy, severity-ranked findings list. Cardinal rule: never file an unverified finding.
 
 ## Detective report schema
 
@@ -35,34 +35,23 @@ If nothing real survives, the detective writes a file whose entire body is `NO F
 
 ## Clean-checkout verification (anti-self-poisoning)
 
-The most common false positive: early in a session an agent edits the tree (adds a debug bypass, a print, a relaxed check), the context gets compacted a few times, and later it "finds" the very thing it introduced. Defeat this by verifying every finding in a **fresh, untouched checkout**, ideally in a separate subagent instance that never saw the investigation. Reproduce the issue in the verification-worktree path you were given (never invent your own path). That worktree contains the whole repository, so an audited subtree sits under it at the target's own relative path:
+The most common false positive: early in a session an agent edits the tree (a debug bypass, a print, a relaxed check), the context gets compacted a few times, and later it "finds" the very thing it introduced. Defeat this by replaying every claim in a fresh checkout, in a subagent instance that never saw the investigation.
+
+`scripts/worktree.sh` owns that checkout. It takes the run's `Target root:` and the caller's own reserved worktree path, verifies its own result, and handles every recovery internally, so no caller branches on a git error:
 
 ```bash
-git -C <target-root> worktree add --detach <verify-worktree-path> HEAD
-# replay your PoC there; if it does not reproduce, it is an artifact - drop it.
-git -C <target-root> worktree remove --force <verify-worktree-path>
+sh <worktree-script> add <target-root> <verify-worktree-path>
+# replay the PoC there
+sh <worktree-script> remove <target-root> <verify-worktree-path>
 ```
 
-`<target-root>` is the `Target root:` from `job.md`; substitute both placeholders literally in every command
-below (shell variables do not persist between tool calls) - without `-C` git operates on whatever repo the
-session cwd sits in and silently checks out the wrong tree.
+The worktree holds the whole repository, so an audited subtree sits under it at the target's own relative path. `WORKTREE_FAILED` means no clean checkout was possible and the claim cannot be settled: `NO FINDING` for a detective, `INCONCLUSIVE` for a critic.
 
-The replay leaves untracked artifacts (PoC files, build output) sitting in the worktree, which a bare
-`git worktree remove` refuses to delete - always pass `--force`.
-
-Recovery, if `git worktree add` fails:
-- `fatal: ... is a missing but already registered worktree` -> run `git -C <target-root> worktree prune`, then retry `git -C <target-root> worktree add`.
-- `fatal: '<verify-worktree-path>' already exists` -> run `git -C <target-root> worktree remove --force <verify-worktree-path>`. If that succeeds, retry `git -C <target-root> worktree add`. If it instead fails with `fatal: ... is not a working tree`, the directory is an orphaned leftover, not a registered worktree - remove it directly (`rm -rf <verify-worktree-path>`) and retry `git -C <target-root> worktree add`.
-
-Recovery, if `git worktree remove --force` still fails:
-- `fatal: ... contains modified or untracked files` -> `--force` did not clear it; run `rm -rf <verify-worktree-path>`, then `git -C <target-root> worktree prune`, then retry `git -C <target-root> worktree add`.
-
-For memory-corruption work, use a real oracle: build with ASan in the clean worktree and treat an ASan crash on the PoC input as confirmation. A perfect crash oracle is worth more than any amount of agent self-assessment.
+For memory-corruption work, use a real oracle: build with ASan in the clean worktree and treat an ASan crash on the PoC input as confirmation. A crash oracle is worth more than any amount of agent self-assessment.
 
 ## Critic verdict schema
 
-The `critic` agent (`subagent_type: superfix:critic`) independently replays one detective's claim on a fresh
-checkout and returns a tagged verdict in its final message - it writes no file:
+The `critic` agent replays one detective's claim on a fresh checkout and returns a tagged verdict in its final message - it writes no file:
 
 ```
 VERDICT: VERIFIED | REFUTED | PARTIALLY VERIFIED | INCONCLUSIVE
@@ -73,46 +62,25 @@ SEVERITY: <the critic's independent 0-10 judgement, or "unchanged">
 
 Fold each verdict into `findings.md` like this:
 
-- **VERIFIED** - keep the finding as filed; `CONFIDENCE` stays as filed. If the critic's independent
-  `SEVERITY` names a number, adopt it as the filed severity and note the adopted value in the entry; if the
-  critic returns `unchanged`, keep the detective's `SEVERITY`.
-- **PARTIALLY VERIFIED** - keep only the sub-claims the critic's `OBSERVED` confirms; drop the rest;
-  `CONFIDENCE` stays as filed. Apply the critic's independent `SEVERITY` the same way as for VERIFIED - adopt
-  it when it names a number and note the adopted value, or keep it unchanged; when the critic gives no number
-  at all, lower `SEVERITY` yourself to match the narrower, confirmed scope.
-- **REFUTED** - drop the finding entirely, `SEVERITY` and `CONFIDENCE` moot. It does not appear in
-  `findings.md`, not even at low severity.
-- **INCONCLUSIVE** - keep the finding; `SEVERITY` stays as filed. Lower `CONFIDENCE` by one step (high ->
-  medium, medium -> low); an entry whose `CONFIDENCE` is already low stays low. Name the missing oracle (what
-  would have settled it) alongside the entry so the gap reads as honest coverage, not a silent gap.
+- VERIFIED - keep the finding as filed; `CONFIDENCE` stays as filed. If the critic's independent `SEVERITY` names a number, adopt it as the filed severity and note the adopted value in the entry; if the critic returns `unchanged`, keep the detective's `SEVERITY`.
+- PARTIALLY VERIFIED - keep only the sub-claims the critic's `OBSERVED` confirms, drop the rest; `CONFIDENCE` stays as filed. Apply the critic's independent `SEVERITY` the same way as for VERIFIED; when the critic gives no number at all, lower `SEVERITY` yourself to match the narrower, confirmed scope.
+- REFUTED - drop the finding entirely. It does not appear in `findings.md`, not even at low severity.
+- INCONCLUSIVE - keep the finding; `SEVERITY` stays as filed. Lower `CONFIDENCE` by one step (high -> medium, medium -> low); an entry already at low stays low. Name the missing oracle alongside the entry so the gap reads as honest coverage.
 
-`INCONCLUSIVE` is the required verdict whenever no oracle can settle the claim - never let a critic invent a
-pass or fail to avoid it.
+`INCONCLUSIVE` is the required verdict whenever no oracle can settle the claim - never let a critic invent a pass or fail to avoid it.
 
 ## Deduplicate
 
-Group reports by root cause, not by file - the same defect (e.g. a shared unchecked helper) often surfaces from several entry points. Merge them into one finding, list all affected locations, keep the highest severity and the clearest PoC.
+Group reports by root cause, not by file - the same defect (a shared unchecked helper, say) often surfaces from several entry points. Merge them into one finding, list all affected locations, keep the highest severity and the clearest PoC.
 
-## Severity scoring (greppable)
+## Severity
 
-Give every surviving finding a `SEVERITY: N.N` on its own line (0-10). The exact number is a rough, internal ranking signal - not a published CVSS - but it must be consistent enough to sort by. Rough anchors:
+Give every surviving finding a `SEVERITY: N.N` on its own line (0-10) and emit the entries already in descending severity order. The number is a rough internal ranking signal, not a published CVSS, but it must be consistent enough to sort by:
 
-- **9-10** unauthenticated RCE / full account takeover / trivial data breach
-- **7-8** authenticated high-impact, or memory corruption with a plausible path
-- **4-6** real bug, limited reach or needs preconditions
-- **1-3** minor / hardening / quality issue
-
-Rank by severity descending as you fold. Because the tag is on its own line, verify the emitted file with a
-self-check that compares its own `SEVERITY:` order against the sorted order (`reports/` is never rewritten by
-the fold, so sorting it proves nothing about the final file). Empty output means the file is already
-severity-sorted; any output names the entries that are out of order. The `-s` (stable) flag is required: without
-it, `sort` falls back to a whole-line comparison for equal severities and reorders tied entries, so the check
-would wrongly report a correctly sorted file (a findings list routinely carries ties) as broken:
-
-```bash
-diff <(grep -n '^SEVERITY:' .temp/superfix/<run-id>/findings.md) \
-     <(grep -n '^SEVERITY:' .temp/superfix/<run-id>/findings.md | sort -t: -k3 -rn -s)
-```
+- 9-10 unauthenticated RCE, full account takeover, trivial data breach
+- 7-8 authenticated high-impact, or memory corruption with a plausible path
+- 4-6 real bug, limited reach or needs preconditions
+- 1-3 minor, hardening, quality
 
 ## findings.md (final output)
 
@@ -131,11 +99,3 @@ LOCATION ... CLASS ... root cause ... repro ... fix sketch ...
 - Areas given only a shallow pass: ...
 - Open fronts handed to the next wave: ...
 ```
-
-## Open new fronts (Phase 6 loop)
-
-Synthesis feeds the next iteration - this is what makes the workflow dynamic:
-
-1. **Generalize a confirmed class.** A confirmed missing-authz / unchecked-length / unescaped-input finding becomes a *pattern*. Spawn a fresh scout wave whose job is "find this same pattern elsewhere," seeded with the confirmed example.
-2. **Propagate impact.** Callers and importers of a confirmed-broken file inherit elevated Impact; re-sweep them at a lower threshold.
-3. **Stop honestly.** End a run when new waves stop yielding top-right-corner hotspots, or the budget / coverage target is hit. Record what was NOT covered so the hotlist never reads as a false "all clear."

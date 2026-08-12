@@ -63,13 +63,13 @@ Read when designing or reviewing component states (loading, empty, error, disabl
 
 ## Motion engineering
 
-- Every animation must justify itself as hierarchy, feedback, storytelling, or state transition - "it looked cool" is not a reason. One orchestrated moment lands harder than scattered effects; micro-animations on everything are themselves a generated-look tell (anti-slop.md).
-- Animate only `transform` and `opacity` - never top/left/width/height (layout thrash). `will-change: transform` sparingly, only while animating.
-- List/grid entrances: staggered reveal (translateY ~12-16px + fade, `animation-delay: calc(var(--index) * 80ms)`), driven by IntersectionObserver or CSS scroll timelines - never a scroll listener, never everything mounting at once.
+Motion doctrine - whether to animate at all (frequency gate), easing curves, duration budgets, springs, enter/exit, gestures, performance rules - lives in motion.md. Here only what is page-level:
+
+- One orchestrated moment lands harder than scattered effects; micro-animations on everything are themselves a generated-look tell (anti-slop.md).
+- List/grid entrances: staggered reveal (translateY ~12-16px + fade, per-item delay 30-80ms via `animation-delay: calc(var(--index) * 50ms)`, cap ~8 children), driven by IntersectionObserver or CSS scroll timelines - never a scroll listener, never everything mounting at once.
+- `will-change: transform` sparingly, only while animating.
 - `backdrop-filter: blur` only on fixed/sticky elements (nav, overlays) - on scrolling containers it repaints continuously and kills mobile frame rate. Grain/noise overlays live on a `position: fixed; pointer-events: none` layer, never on scrolling content.
 - Respect `prefers-reduced-motion`: infinite loops, parallax, and scroll-driven effects collapse to static; entrances become plain visibility.
-- Exits run ~60-70% of the enter duration - leaving is acknowledgment, not a second entrance. Ease-out entering, ease-in exiting, never linear for UI motion.
-- Cap staggered reveals at ~8 children - beyond that the tail feels laggy; keep the per-item delay recipe above unchanged.
 
 ## Depth and elevation
 - Give shadows a positive Y offset, never X:0 Y:0 - a symmetric halo exists under no real light source.

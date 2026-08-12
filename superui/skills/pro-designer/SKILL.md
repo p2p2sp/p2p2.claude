@@ -1,6 +1,6 @@
 ---
 name: pro-designer
-description: Professional UI/UX design standards for web apps, SaaS products and mobile apps - visual hierarchy, color-system discipline (neutral foundation, dark mode, accent scales), type scales, 8pt spacing, accessibility, component states, form validation UX, evidence-based conversion psychology with hard anti-dark-pattern rules, and distinctive aesthetic direction that avoids the generic AI-generated look. Use whenever creating, styling or reviewing ANY user interface - a page, screen, dashboard, form, onboarding or pricing flow, landing page, navigation, or a single component - even if the user only says "build/add/fix" and never says "design". Also use when critiquing existing UI, choosing colors, fonts, spacing, or layout, or when a UI looks generic, templated, or AI-generated.
+description: Professional UI/UX design standards for web apps, SaaS products and mobile apps - visual hierarchy, color-system discipline (neutral foundation, dark mode, accent scales), type scales, 8pt spacing, accessibility, component states, form validation UX, evidence-based conversion psychology with hard anti-dark-pattern rules, purposeful motion and micro-interactions (frequency-gated animation, easing and duration discipline, springs, gestures), and distinctive aesthetic direction that avoids the generic AI-generated look. Use whenever creating, styling or reviewing ANY user interface - a page, screen, dashboard, form, onboarding or pricing flow, landing page, navigation, or a single component - even if the user only says "build/add/fix" and never says "design". Also use when critiquing existing UI, adding or reviewing animations, making a static page feel alive, choosing colors, fonts, spacing, or layout, or when a UI looks generic, templated, or AI-generated.
 allowed-tools: Bash(sh:*), Bash(node:*)
 ---
 
@@ -24,8 +24,9 @@ Before any design decision, name what the visitor's success looks like on THIS s
 3. **Hierarchy & type** - one focal point per screen, fixed type ramp, mute labels / amplify values -> `references/typography.md`
 4. **Color** - neutral foundation + elevation, a scarce 100-900 accent scale, dark mode by physiology, OKLCH theming -> `references/color.md`
 5. **Components & states** - loading/empty/error designed, soft elevation, card anatomy -> `references/components-states.md`
-6. **Flow psychology** - only on conversion surfaces (onboarding, signup, upgrade, pricing) -> `references/ux-psychology.md`
-7. **QA** - checklist below + contrast script; never ship on "looks fine".
+6. **Motion** - only where the frequency gate allows it: purposeful enter/exit, press feedback, one orchestrated moment - never motion everywhere -> `references/motion.md`
+7. **Flow psychology** - only on conversion surfaces (onboarding, signup, upgrade, pricing) -> `references/ux-psychology.md`
+8. **QA** - checklist below + contrast script; never ship on "looks fine".
 
 ## Non-negotiables - every screen
 
@@ -39,6 +40,7 @@ Before any design decision, name what the visitor's success looks like on THIS s
 - Color is never the only signal - pair it with icon, text, or underline.
 - Touch targets: web ≥ 24×24 CSS px (WCAG AA legal floor), iOS ≥ 44×44 pt, Android ≥ 48×48 dp. Design anything a finger touches to 44-48px, not the web floor.
 - In data display the value dominates, the label is muted - never equal weight.
+- Motion: animate only `transform`/`opacity`, UI durations under 300ms, `ease-out` for enter/exit (never `ease-in`), never from `scale(0)`, no animation on keyboard-initiated or 100+/day actions, and `prefers-reduced-motion` handled (gentler, not zero).
 - Demo content is real content: no Acme/John Doe/Lorem Ipsum, no fake round numbers (47.2%, not 50%), no cliche marketing verbs (Elevate, Seamless, Unleash). Full tells catalog in `references/anti-slop.md`.
 - No dark patterns: no fake urgency, scarcity, progress, or anchors; defaults never work against the user. Full rules in `references/ux-psychology.md`.
 - HARD RULE: never output an em dash (U+2014) or an en dash (U+2013) anywhere - not in UI copy, microcopy, code, comments, or reports. Always use a plain hyphen (-).
@@ -62,7 +64,8 @@ When the project already defines its own design system - a token set, a design s
 - Headings, body text, data/number display, form text conventions -> `references/typography.md`
 - Page layout, spacing, responsive breakpoints, grids, navigation structure -> `references/layout-spacing.md`
 - Contrast, focus states, non-color cues, target sizes -> `references/accessibility.md`
-- Cards, badges, shadows, loading/empty/error/disabled states, optimistic UI, overlays (modal/drawer/popover), motion timing -> `references/components-states.md`
+- Cards, badges, shadows, loading/empty/error/disabled states, optimistic UI, overlays (modal/drawer/popover) -> `references/components-states.md`
+- Adding or reviewing animation, making a static page or component feel alive, micro-interactions, enter/exit transitions, easing/duration/springs, gestures, scroll reveals, animation performance -> `references/motion.md`
 - Any form: fields, validation, error copy, smart defaults -> `references/forms.md`
 - Dashboards, KPI tiles, data tables, charts, SaaS app chrome, sidebar, billing, landing pages and hero layouts -> `references/saas-dashboards.md`
 - Mobile app UI, bottom navigation, touch ergonomics -> `references/mobile.md`

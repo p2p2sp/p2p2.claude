@@ -132,7 +132,12 @@ them rather than sharing a plugin-root copy.
   hero discipline, demo-content realism, CTA-intent dedup). `references/tokens.md` carries token-architecture
   doctrine (primitive/semantic/component layering, dark-mode-overrides-only-the-semantic-layer, paired
   surface/foreground tokens, role-based naming, derived radius/z-index scales) distilled from the
-  ui-ux-pro-max-skill analysis. Its SKILL.md also carries four framings adapted
+  ui-ux-pro-max-skill analysis. `references/motion.md` carries the animation doctrine (the four-question
+  gate led by frequency, the static-page animation-opportunity hunt list, easing/duration budgets with
+  strong custom curves, springs, interruption/enter/exit, clip-path recipes, gestures,
+  transform/opacity-only performance rules, reduced-motion and hover gating);
+  components-states.md keeps only the page-level motion deltas (stagger recipe, will-change,
+  backdrop-filter placement) and defers the doctrine to motion.md. Its SKILL.md also carries four framings adapted
   from pbakaus/impeccable (Apache-2.0): the
   surface-mode taxonomy (Persuade/Operate/Read/Experience, chosen from the surface, not the product), the
   brief-wins rule, refinement-preserves-vs-redesign-replaces, and bounded QA passes (batched inspect-fix,
