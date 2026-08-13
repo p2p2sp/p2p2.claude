@@ -2,6 +2,7 @@
 name: superdev-docs
 description: Use ALWAYS when the user wants to create, initialize, or maintain user-facing product documentation / a product knowledge base for a repository - describe features from the user's perspective, set up docs/product/, keep product docs in sync with the code. Triggers include "create product docs", "document features for users", "init docs/product", "audit product docs", "update the product documentation". Writes one distilled file per feature under docs/product/<feature-slug>.md in the host-project language, plus a maintenance mode that audits existing docs against the code.
 user-invocable: true
+allowed-tools: Read, Write, Glob, AskUserQuestion, Skill, Bash(date:*)
 ---
 
 # SuperDev Docs

@@ -20,10 +20,10 @@ Spec: <full/path/to/spec.md> <!-- `What & Why` specification -->
 <one line per file touched>
 
 ### Test Commands
-*Build*
+#### Build
 - <build command which agent can run to verify build>
 
-*Tests*
+#### Tests
 -  <test command which agent can run to verify tests>
 <one line per test command>
 

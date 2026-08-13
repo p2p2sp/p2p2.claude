@@ -1,7 +1,7 @@
 ---
 name: superspec
 description: Invoked by superdev skill only.
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill, AskUserQuestion, ExitPlanMode
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill, AskUserQuestion, ExitPlanMode, Bash(date:*), Bash(printf:*)
 ---
 
 CRITICAL: Run `ExitPlanMode` first, if plan mode is active.

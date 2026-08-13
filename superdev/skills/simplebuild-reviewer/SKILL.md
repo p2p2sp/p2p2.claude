@@ -5,7 +5,7 @@ context: fork
 background: false
 model: sonnet
 effort: high
-allowed-tools: Read, Write, Grep, Glob, Skill, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
+allowed-tools: Read, Write, Grep, Glob, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 user-invocable: false
 ---
 
@@ -14,12 +14,15 @@ user-invocable: false
 
 The block above is the plan header (`## plan-header`) and the full plan (`## plan`).
 
+<!-- no Bash pattern here: this preload is a pipeline (printf | tr | sed | head); a pattern entry matches one command, not a pipe -->
 Report path: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*report:[[:space:]]*//p' | head -n1`
 Write the full review to that path (see `## Report`).
 
+<!-- no Bash pattern here: this preload is a pipeline (printf | tr | sed | head); a pattern entry matches one command, not a pipe -->
 Base SHA: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*base:[[:space:]]*//p' | head -n1`
 The build's change set is `git diff --name-status <base SHA>..HEAD` - run it first; it bounds what you judge. Base SHA empty or `none` -> review unbounded and say so in the report.
 
+<!-- no Bash pattern here: this preload is a pipeline (printf | tr | sed | head); a pattern entry matches one command, not a pipe -->
 Notes dir: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*notes:[[:space:]]*//p' | head -n1`
 When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations. Claims to verify, not truth.
 

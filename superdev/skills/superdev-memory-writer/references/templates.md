@@ -69,18 +69,3 @@ To add a new endpoint:
 - Database layer: `./db/CLAUDE.md`
 - Shared utilities: `../shared/CLAUDE.md`
 ```
-
-## Measurements Table Format
-
-```
-| Directory        | Tokens | Threshold | Needs Node? |
-|------------------|--------|-----------|-------------|
-| src/components   | ~30k   | 20-64k    | YES (2-3k)  |
-| src/pages        | ~22k   | 20-64k    | YES (2-3k)  |
-| src/lib          | ~8k    | <20k      | NO          |
-```
-
-Thresholds:
-- <20k tokens → No node needed
-- 20-64k tokens → 2-3k token node
-- >64k tokens → Split into child nodes

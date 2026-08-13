@@ -4,7 +4,7 @@ description: Invoked only by superbuild or simplebuild skill.
 context: fork
 background: false
 model: sonnet
-allowed-tools: Read, Write, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
+allowed-tools: Read, Write, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*), Bash(date:*)
 user-invocable: false
 ---
 
@@ -15,6 +15,7 @@ You are an architecture scribe. Record the architectural decisions a plan commit
 
 The block above is the full plan (`## plan`) and, when present, the human-approved spec (`## spec`).
 
+<!-- no Bash pattern here: this preload is a pipeline (printf | tr | sed | head); a pattern entry matches one command, not a pipe -->
 ADR dir: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*adr:[[:space:]]*//p' | head -n1`
 ADR id: !`date +%Y%m%d%H%M%S`
 Date: !`date +%F`

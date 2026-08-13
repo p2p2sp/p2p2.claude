@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Setup superdev environment.
-allowed-tools: Read, Glob, Grep, Bash, Edit, AskUserQuestion
+allowed-tools: Read, Glob, Grep, Bash, Edit, AskUserQuestion, Bash(${CLAUDE_SKILL_DIR}/scripts/bootstrap.sh:*)
 user-invocable: true
 disable-model-invocation: true
 effort: medium
@@ -16,7 +16,7 @@ templates, ensures `.gitattributes` carries the `docs/.workflows/**` linguist-ge
 per item. Trust those lines - do not re-verify.
 
 ```!
-bash "${CLAUDE_SKILL_DIR}/scripts/bootstrap.sh"
+"${CLAUDE_SKILL_DIR}/scripts/bootstrap.sh"
 ```
 
 ## Enable opt-in switches

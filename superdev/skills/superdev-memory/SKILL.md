@@ -2,6 +2,7 @@
 name: superdev-memory
 description: Use ALWAYS when the user wants to create, initialize, regenerate, bootstrap, or maintain CLAUDE.md project-memory for a repository - set up project memory, add a memory layer, or make Claude understand the codebase. Triggers include "create CLAUDE.md", "initialize project memory", "bootstrap Claude context", "set up CLAUDE.md", "add memory layer". Generates a hierarchical CASCADE of CLAUDE.md files (one general root plus progressively more specific child nodes in genuine architectural units), not a single root file, and offers a maintenance mode to audit existing nodes and find new candidates.
 user-invocable: true
+allowed-tools: Read, Write, AskUserQuestion, Skill, Bash, Bash(date:*)
 ---
 
 # SuperDev Memory
@@ -29,10 +30,14 @@ The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture
    none/partial → Initial setup (steps 3-5)
    complete     → Maintenance (step 6)
 
-3. Measure [gate - show table first]
+3. Measure [gate - show list first]
    scripts/analyze_structure.sh /path/to/project
    scripts/estimate_tokens.sh /path/to/each/source/dir
-   Table columns: | Directory | Tokens | Threshold | Needs Node? |
+   Report per directory, one line each: directory - tokens - threshold - needs node?
+   Thresholds:
+   - <20k tokens → No node needed
+   - 20-64k tokens → 2-3k token node
+   - >64k tokens → Split into child nodes
 
 4. Decide
    No root file  → Ask: CLAUDE.md?
@@ -66,13 +71,11 @@ The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture
 
 ## When to Create Child Nodes
 
-| Signal | Action |
-|--------|--------|
-| >20k tokens in directory | Create CLAUDE.md |
-| Responsibility shift | Create CLAUDE.md |
-| Hidden contracts/invariants | Document in nearest ancestor |
-| Cross-cutting concern | Place at LCA |
-| Distinct toolchain (own build/test config) | Create CLAUDE.md |
+- >20k tokens in directory → Create CLAUDE.md
+- Responsibility shift → Create CLAUDE.md
+- Hidden contracts/invariants → Document in nearest ancestor
+- Cross-cutting concern → Place at LCA
+- Distinct toolchain (own build/test config) → Create CLAUDE.md
 
 Do NOT create for: every directory, simple utilities, test folders (unless complex) and folders which name begin with dot (eg.: .claude).
 

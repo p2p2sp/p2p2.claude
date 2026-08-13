@@ -5,7 +5,7 @@ context: fork
 background: false
 model: sonnet
 effort: high
-allowed-tools: Read, Write, Grep, Glob, Skill, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
+allowed-tools: Read, Write, Grep, Glob, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*), Bash(git status:*)
 user-invocable: false
 ---
 
@@ -18,9 +18,11 @@ Uncommitted work under review:
 
 The block above is the plan header (`## plan-header`) and the task whose implementation you review (`## task`). The header carries the change's global boundaries (out of scope, constraints).
 
+<!-- no Bash pattern here: this preload is a pipeline (printf | tr | sed | head); a pattern entry matches one command, not a pipe -->
 Report path: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*report:[[:space:]]*//p' | head -n1`
 On FAIL, write the findings to that path (see `## Output format`).
 
+<!-- no Bash pattern here: this preload is a pipeline (printf | tr | sed | head); a pattern entry matches one command, not a pipe -->
 Notes path: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*notes:[[:space:]]*//p' | head -n1`
 When set, Read it - the coder's recorded plan->code deviations for this task. Claims to verify, not truth.
 
