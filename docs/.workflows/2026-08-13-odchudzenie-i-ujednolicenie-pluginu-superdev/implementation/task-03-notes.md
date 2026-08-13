@@ -1,0 +1,3 @@
+## Task 3 notes
+
+- `superdev/hooks/content/manifest.md`: to fit the <=30-line budget while keeping the `## Instruction Priority`, `## Always use precision over verbosity` and `## Save all temporary files in .temp` sections byte-identical to the original, the blank line between the `## ALWAYS MUST use these MANDATORY RULES` heading and its two intro sentences was removed and the two sentences ("Always-on..." and "Always must decide...") were joined onto one line - not called out explicitly in the Approach, but the Approach's own step 4 only requires the "decide immediate vs. plan" sentence's content to survive, not its original line breaks.
