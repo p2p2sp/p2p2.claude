@@ -3,9 +3,13 @@
 #
 # Blocks ExitPlanMode until the plan reviewer (superplan-reviewer for the spec
 # path, or simpleplan-reviewer for the Simple path) has approved the plan
-# file with "VERDICT: PASS". Heuristic: only gates when the transcript shows a
+# file with "VERDICT: PASS". Heuristic: gates when the transcript shows a
 # prior Write/Edit to a path under .claude/plans/*.md (i.e. plan-mode for an
-# implementation plan, not commit-flow plan-mode without a plan file).
+# implementation plan, not commit-flow plan-mode without a plan file); when a
+# host project configures its own `plansDirectory`, falls back to the LAST
+# Write/Edit of any .md file whose on-disk first line declares the plan
+# format ("# SimplePlan" / "# SuperPlan"), so the gate is not blind to a
+# custom plans directory.
 #
 # It also requires the plan file to DECLARE its format up front - a SimplePlan
 # ("# SimplePlan" / "simplebuild") or a SuperPlan ("# SuperPlan" / "superbuild").
@@ -94,19 +98,54 @@ last_plan_write_line=$(
     | cut -d: -f1
 )
 
+# Step 1-fallback: a host project with its own `plansDirectory` writes the
+# plan somewhere else entirely, so the fixed .claude/plans/ anchor above finds
+# nothing. Fall back to the LAST write/edit to ANY .md file in the transcript,
+# then require its first line on disk to declare the format ("# SimplePlan" /
+# "# SuperPlan") before accepting it as the plan - the path alone carries no
+# signal outside .claude/plans/, so anchoring on the on-disk first line is
+# what keeps an unrelated .md write (or one merely mentioning "superbuild" in
+# prose) from false-arming the gate. An unreadable/missing file fails open,
+# same policy as everywhere else in this hook.
+if [ -z "$last_plan_write_line" ]; then
+  fallback_line=$(
+    grep -nE '"file_path":"[^"]*\.md"' "$transcript_path" 2>/dev/null \
+      | grep -vE '"file_path":"[^"]*\.review-[0-9]+\.md"' \
+      | grep -E '"(tool_name|name)":"(Write|Edit)"' \
+      | tail -n 1 \
+      | cut -d: -f1
+  )
+  if [ -n "$fallback_line" ]; then
+    fallback_path=$(
+      awk -v ln="$fallback_line" 'NR==ln' "$transcript_path" 2>/dev/null \
+        | grep -oE '"file_path":"[^"]*\.md"' \
+        | head -n1 \
+        | sed -E 's/.*"file_path":"([^"]*)"$/\1/' \
+        | sed 's/\\\\/\\/g'
+    )
+    if [ -n "$fallback_path" ] && [ -f "$fallback_path" ] \
+       && head -n1 "$fallback_path" 2>/dev/null | grep -qE '^# (SimplePlan|SuperPlan)'; then
+      last_plan_write_line="$fallback_line"
+    fi
+  fi
+fi
+
 # No plan-file write recorded -> not an implementation plan mode -> allow.
 if [ -z "$last_plan_write_line" ]; then
   emit_allow
 fi
 
 # Resolve the plan file path from that write line (hoisted here so both the format
-# gate below and the tamper guard at the end can reuse it). Unescape the JSON
-# backslashes so a Windows path ("C:\\Users\\..") becomes a real filesystem path we
-# can read; a no-op for mac/linux forward slashes. plan_base is the bare filename,
-# used by the tamper guard's transcript matching.
+# gate below and the tamper guard at the end can reuse it). A generic .md match
+# covers both the fast .claude/plans/ path and the plansDirectory fallback above -
+# last_plan_write_line is, by construction, always a Write/Edit to a .md file at
+# this point. Unescape the JSON backslashes so a Windows path ("C:\\Users\\..")
+# becomes a real filesystem path we can read; a no-op for mac/linux forward
+# slashes. plan_base is the bare filename, used by the tamper guard's transcript
+# matching.
 plan_path=$(
   awk -v ln="$last_plan_write_line" 'NR==ln' "$transcript_path" 2>/dev/null \
-    | grep -oE '"file_path":"[^"]*\.claude[\\/]+plans[\\/]+[^"]*\.md"' \
+    | grep -oE '"file_path":"[^"]*\.md"' \
     | head -n1 \
     | sed -E 's/.*"file_path":"([^"]*)"$/\1/' \
     | sed 's/\\\\/\\/g'

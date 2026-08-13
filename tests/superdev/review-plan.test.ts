@@ -68,6 +68,16 @@ function writePlanFile(dir: string, name: string, contents: string): string {
   return file;
 }
 
+// A plan file written OUTSIDE .claude/plans/ - proves the fallback that
+// detects a plan by its format header when the host project has its own
+// `plansDirectory`, not the fixed .claude/plans/ path.
+function writeCustomPlanFile(dir: string, relPath: string, contents: string): string {
+  const file = path.join(dir, relPath);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, contents);
+  return file;
+}
+
 function writeOf(filePath: string): string {
   return line({
     type: "assistant",
@@ -493,6 +503,30 @@ test("multiple plan writes in one transcript - the LAST write is the operative p
     // Tampering the LAST plan write's file after PASS re-gates - deny.
     const f2 = writeFixtureFile(dir, "t2.jsonl", [lwFoo, lwBar, reviewer, LPASS, tamperBar]);
     assert.equal(runCase(f2).decision, "deny");
+  });
+});
+
+// --- Plan-outside-.claude/plans/ fallback: a project with its own
+// `plansDirectory` writes the plan somewhere else entirely; the gate must
+// still catch it by the format header on the last written .md file. ---
+
+test("CF - plan written outside .claude/plans/ with a '# SimplePlan' header, no reviewer call -> deny", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const plan = writeCustomPlanFile(dir, "plans-custom/foo.md", "# SimplePlan\nbody\n");
+    const lw = writeOf(plan);
+    const f = writeFixtureFile(dir, "t.jsonl", [lw]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /simpleplan-reviewer/);
+  });
+});
+
+test("CFN - .md file written outside .claude/plans/ WITHOUT a format header -> not detected as a plan -> allow", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const plan = writeCustomPlanFile(dir, "plans-custom/foo.md", "# My Notes\nsuperbuild is mentioned here in prose.\n");
+    const lw = writeOf(plan);
+    const f = writeFixtureFile(dir, "t.jsonl", [lw]);
+    assert.equal(runCase(f).decision, "allow");
   });
 });
 

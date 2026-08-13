@@ -25,6 +25,7 @@ Comprehensive understanding of the user's request is in your context. Missing kn
 ### Rules
 - Load `templates/plan.md` and fill by sticking to the following rules.
 - Read review checklist from `${CLAUDE_PLUGIN_ROOT}/references/plan-review-checklist.md`.
+- Save the plan to the file path given in the plan mode tool's own message - never a hardcoded or assumed directory - and pass that same path to the reviewer as `plan:`.
 
 **File Structure**
 Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
