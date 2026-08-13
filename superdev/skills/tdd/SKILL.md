@@ -29,7 +29,7 @@ Execute the cycle in this exact order for each delivered behavior. **VERIFY RED*
 
 ### RED - write one failing test
 
-- One behavior, one test. Real code on both sides; mocks only at system boundaries (see `references/mocking.md`).
+- One behavior, one test. Real code on both sides; mocks only at system boundaries.
 - Name the test after a behavior, not a structure: "user can checkout with valid cart", never "constructor returns instance". An "and" in the name means split it.
 - Public interface only - no private methods, no internal collaborators in assertions.
 
@@ -85,8 +85,8 @@ Wrong *moves and structures* - distinct from the willpower excuses below.
   ```
 
 - **Test that passes immediately on RED** - it tested something already true, or nothing. Restart RED with a stronger assertion that exercises the not-yet-implemented behavior.
-- **Mocking internal collaborators** - couples tests to implementation; they break on refactor without behavior change. Mock only at system boundaries. See `references/mocking.md`.
-- **Testing implementation details** - private methods, call counts, call order, internal data shapes. Test observable behavior through the public interface. The diagnostic: a test that breaks on an internal refactor with no behavior change was testing implementation, not behavior. See `references/tests.md`.
+- **Mocking internal collaborators** - couples tests to implementation; they break on refactor without behavior change. Mock only at system boundaries.
+- **Testing implementation details** - private methods, call counts, call order, internal data shapes. Test observable behavior through the public interface. The diagnostic: a test that breaks on an internal refactor with no behavior change was testing implementation, not behavior.
 
 ## Common rationalizations
 
@@ -146,7 +146,7 @@ The friction is feedback - a test that is hard to write is telling you the desig
 
 ## Workflow
 
-1. **Plan.** Decide the public interface and which behaviors matter *before* coding. Design for testability (`references/interface-design.md`) and for deep modules - small interface, deep implementation (`references/deep-modules.md`). List the behaviors to test (not implementation steps); you can't test everything, so prioritize critical paths and complex logic, not every edge case. Working interactively, confirm the interface and priorities with the user and get approval.
+1. **Plan.** Decide the public interface and which behaviors matter *before* coding. Design for testability and for deep modules - small interface, deep implementation. List the behaviors to test (not implementation steps); you can't test everything, so prioritize critical paths and complex logic, not every edge case. Working interactively, confirm the interface and priorities with the user and get approval.
 2. **Tracer bullet.** Run the full cycle on ONE test for ONE behavior first - it proves the path works end-to-end before scaling up.
 3. **Loop.** Repeat the full cycle for each remaining behavior, running the stop-condition checklist after each.
-4. **Refactor.** Once all tests are green, look for refactor candidates (`references/refactoring.md`) and consider what the new code reveals about existing code.
+4. **Refactor.** Once all tests are green, look for refactor candidates and consider what the new code reveals about existing code.

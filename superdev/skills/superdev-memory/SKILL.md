@@ -47,7 +47,7 @@ The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture
 
 6. Maintenance mode (when state=complete)
    Ask user:
-   a) Audit nodes     → Use references/capture-protocol.md for SME questions
+   a) Audit nodes     → Use `## Capture Questions` below for SME questions
    b) Find candidates → Re-measure tokens, suggest new nodes
    c) Both
    Resolved changes go through step 5 (capture + writer handoff)
@@ -95,6 +95,3 @@ When documenting existing code, ask:
 - `scripts/detect_state.sh` - Check Memory Layer state (none/partial/complete)
 - `scripts/analyze_structure.sh` - Find semantic boundaries
 - `scripts/estimate_tokens.sh` - Measure directory complexity
-
-**References:**
-- `references/capture-protocol.md` - SME interview protocol

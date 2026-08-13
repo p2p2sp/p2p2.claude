@@ -38,7 +38,7 @@ Beyond that, a change qualifies only when it alters DURABLE knowledge of an area
 
 ## Write rules
 
-- Exactly ONE root CLAUDE.md. Root Memory Layer section per the root template, child nodes per the child template - `references/templates.md`; tone and compression per `references/node-examples.md`.
+- Exactly ONE root CLAUDE.md. Root Memory Layer section per the root template, child nodes per the child template - `references/templates.md`.
 - Update = fold in new facts, drop contradicted ones; preserve unrelated content verbatim.
 - Commands: discovered from host project config only, placed at the node owning the toolchain; never invented.
 - No nodes for dot-directories, test folders, or simple utilities.
