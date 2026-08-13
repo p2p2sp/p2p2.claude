@@ -48,7 +48,13 @@ A task is the smallest unit that carries its own test cycle and is worth a fresh
 - DRY, YAGNI, SRP, SOLID
 
 **TDD Discipline**
-Every task gets `TDD: required` marker, unless it changes no runtime behavior (pure config / docs / mechanical rename / scafolding) - then mark it as `TDD: none`.
+Every task gets `TDD: none` by default. Mark `TDD: required` ONLY when the task's code owns a decision of its own:
+- business logic or a domain rule,
+- a non-trivial condition or a state machine,
+- an algorithm - transformation, parsing, calculation,
+- a hot path.
+
+Never `TDD: required` when the task's code touches the outside world directly (I/O, network, DB, filesystem, UI, framework wiring) - that yields integration tests, not a TDD cycle.
 
 ### Self-Review
 Once you have written a complete plan and before final review, fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B7 plus `## Author self-check`) - the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:

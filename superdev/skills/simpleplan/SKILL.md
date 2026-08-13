@@ -55,13 +55,11 @@ Every task gets `TDD: none` by default. Mark `TDD: required` ONLY when the task'
 
 Never `TDD: required` when the task's code touches the outside world directly (I/O, network, DB, filesystem, UI, framework wiring) - that yields integration tests, not a TDD cycle.
 
-`TDD: required` MUST reach the `### Approach`: its first step is to apply the `tdd` skill discipline (strict red-green-refactor) for that task. `Approach` is the only field the builder executes step by step, so a marker no `Approach` step references changes nothing.
-
 ### Self-Review
 Once you have written a complete plan and before final review, MUST fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B7 plus `## Author self-check`) - the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:
 - Verify in the repo (Read/Grep/Glob) every `### Files` path and symbol, and every `### Test Commands` command against the repo's real build/test tooling.
 - Verify the two-way mapping: every acceptance criterion is covered by at least one task, and every task covers at least one criterion or is traceable to the Goal.
-- Verify every task carries a `TDD:` marker, that each `required` one meets the criteria above, and that its `### Approach` opens with the `tdd` skill step.
+- Verify every task carries a `TDD:` marker, that each `required` one meets the criteria above.
 - When the host repo carries `docs/product/`, verify the plan does not contradict the affected feature's doc. A contradiction is an unresolved design decision - STOP, run `superdev` skill.
 - Fix any violation inline. No need to re-review - just fix and move on. If you find a requirement with no task, add the task.
 
