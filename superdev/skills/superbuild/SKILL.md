@@ -21,7 +21,7 @@ Resolved opt-in switches (missing file/key = `false`; nothing below breaks on a 
 
 !`"${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh"`
 
-These gate Step 2 (`adr`) and the Close-Out delegations (Step 5: `rules`, `memory`, `docs`). Run a gated step ONLY when its line above reads exactly `true`; anything else (`false`, absent, or an unresolved block) = skip.
+These gate the Close-Out delegations (Step 4: `adr`, `rules`, `memory`, `docs`). Run a delegation ONLY when its line above reads exactly `true`; anything else (`false`, absent, or an unresolved block) = skip.
 
 ## Step 1 - Decompose Plan
 
@@ -31,19 +31,13 @@ Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/decompose.sh" <plan-file> superbuild` w
 - `plan-header.md` - plan header + the spec's out-of-scope and constraints sections.
 - `plan.md` - full copy of the approved plan.
 - `tasks/task-NN.md` - one file per task, each carrying the verbatim acceptance criteria it covers.
-- `implementation/` - implementor deviation notes (`task-NN-notes.md`, `fix-NN-notes.md`) and review reports; created empty here, filled in Steps 3-4.
+- `implementation/` - implementor deviation notes (`task-NN-notes.md`, `fix-NN-notes.md`) and review reports; created empty here, filled in Steps 2-3.
 
 It prints the task index (`workdir:` working-dir path, `status:` last processed task or `none`, `base:` the build's base SHA or `none`, `plan-header:` path, `plan:` full-plan copy path, `spec:` spec path, then `<task-file>\t<title>` per line) - use it to drive the implementation loop.
 
 No `spec:` line in the index -> STOP: this plan belongs to `simplebuild`, not here. Non-zero exit (e.g. a `Covers:` criterion absent from the spec) -> STOP and show the error.
 
-## Step 2 - Record ADR
-
-Gated by Config: only when `adr: true`. Otherwise skip (note "ADR: disabled" for the Step 6 summary).
-
-Invoke `superbuild-adr` (Skill) with a labeled-line `args` block - `plan: <plan-copy path>`, `spec: <spec path>`, and `adr: docs/adr` (the target DIRECTORY - it timestamps the filename itself) on separate lines. Its `ADR:` line carries the written path, or `none` when the plan holds no significant architectural decision and no file was written - use it verbatim in the Step 6 summary. Best-effort: `VERDICT: FAIL` does not block - note it for the Step 6 summary and continue.
-
-## Step 3 - Run Implementation Loop
+## Step 2 - Run Implementation Loop
 
 ### Build task list
 
@@ -68,12 +62,12 @@ For each remaining task file (in order):
   4. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<task title>" <task-file>` - commits the task and records its number in `status.md`.
   5. `TaskStop` -> completed
 
-## Step 4 - Final Review
+## Step 3 - Final Review
 
 1. `TaskUpdate` -> start
 2. Invoke `superbuild-reviewer-spec` (Skill) with `plan: <plan-copy path>`, `spec: <spec path>`, `base: <base SHA from the decompose index>`, `notes: <workdir>/implementation/`, and `report: <workdir>/implementation/review-NN-spec.md` on separate lines (NN = final-review round, starting `01`, +1 per round).
 3. On its `VERDICT: PASS`, invoke `superbuild-reviewer-code` (Skill) with `plan: <plan-copy path>`, `spec: <spec path>`, `base: <base SHA from the decompose index>`, and `report: <workdir>/implementation/review-NN-code.md` on separate lines.
-4. Fix loop (max 2 rounds). Both reviewers `VERDICT: PASS` -> Step 5. On any `VERDICT: FAIL` + `REVIEW: <path>`:
+4. Fix loop (max 2 rounds). Both reviewers `VERDICT: PASS` -> Step 4. On any `VERDICT: FAIL` + `REVIEW: <path>`:
     - Invoke `superbuild-task-coder` with `spec: <path>`, `plan-header: <path>`, `plan: <plan-copy path>`, `task: <REVIEW path>`, and `notes: <workdir>/implementation/fix-NN-notes.md` on separate lines.
         - coder `VERDICT: PASS`  -> `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<fix title>"`, then re-run this step from the reviewer that failed with the next round NN (a spec fix re-runs `superbuild-reviewer-code` afterwards too).
         - coder `VERDICT: FAIL`  -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.
@@ -81,20 +75,20 @@ For each remaining task file (in order):
 5. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(superbuild): final review reports"` - saves the review reports (also on an accepted FAIL).
 6. `TaskStop` -> completed
 
-## Step 5 - Close Out
+## Step 4 - Close Out
 
 1. `TaskUpdate` -> start
 2. Gated by Config; run only the enabled delegations, in parallel (single message, await all). If none enabled, skip to 5.
+    - `adr: true`    -> Invoke `superbuild-adr` (Skill) with a labeled-line `args` block - `plan: <plan-copy path>`, `spec: <spec path>`, and `adr: docs/adr` (the target DIRECTORY - it timestamps the filename itself) on separate lines. Its `ADR:` line carries the written path, or `none` when the plan holds no significant architectural decision and no file was written.
     - `memory: true` -> Invoke `superdev-memory-writer` (Skill) with a labeled-line `args` block - `capture: <plan-copy path>`, `spec: <spec path>`, and `notes: <workdir>/implementation/` on separate lines.
     - `rules: true`  -> Invoke `superdev-rules-writer` (Skill) with a labeled-line `args` block - `capture: <plan-copy path>` and `notes: <workdir>/implementation/` on separate lines.
     - `docs: true`   -> Invoke `superdev-docs-writer` (Skill) with a labeled-line `args` block - `capture: <plan-copy path>`, `spec: <spec path>`, and `notes: <workdir>/implementation/` on separate lines.
-3. Keep each writer's `NODE:` / `RULE:` / `DOC:` / `GAP:` lines verbatim for the Step 6 summary. Any delegation failing is non-fatal -> note it there too, do not block.
-4. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(superbuild): close out memory, rules and docs"` - commits whatever the writers touched.
+3. Keep each delegation's `ADR:` / `NODE:` / `RULE:` / `DOC:` / `GAP:` lines verbatim for the Step 5 summary. Any delegation failing is non-fatal -> note it there too, do not block.
+4. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(superbuild): close out adr, memory, rules and docs"` - commits whatever the delegations touched.
 5. `TaskStop` -> completed
 
-## Step 6 - Done
+## Step 5 - Done
 
 Cleanup the task list and display short summary of work. Max ~3-5 sentences plus the relayed lines. Include:
-- the ADR path (or `ADR: none` / the noted ADR failure / disabled)
-- Step 5's `NODE:` / `RULE:` / `DOC:` lines verbatim (or the noted failure / disabled)
+- Step 4's `ADR:` / `NODE:` / `RULE:` / `DOC:` lines verbatim (or the noted failure / disabled)
 - every `GAP:` line verbatim, each followed by `-> run superdev-memory` (memory gaps), `-> run superdev-rules` (rules gaps), or `-> run superdev-docs` (docs gaps)
