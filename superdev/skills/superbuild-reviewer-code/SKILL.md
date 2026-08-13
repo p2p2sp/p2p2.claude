@@ -24,28 +24,13 @@ You own ONE dimension: the quality of the delivered code. Spec conformance is a 
 
 ## Review
 
-**Code quality:**
-- Clean separation of concerns; SRP respected across the new/changed units?
-- Proper error handling on every failure path?
-- Type safety where the language allows; no primitive obsession?
-- DRY without premature abstraction; no dead code or debug leftovers?
-- Edge cases handled?
+**Code quality:** clean separation of concerns with SRP respected across the new/changed units, proper error handling on every failure path, type safety, DRY without premature abstraction, no dead code or debug leftovers, edge cases handled.
 
-**Architecture:**
-- Sound design decisions; boundaries and contracts between the new units coherent as a whole?
-- Consistent with the codebase's established patterns and idioms?
-- Reasonable scalability and performance; no needless cost introduced?
-- Security concerns on any touched sensitive surface?
+**Architecture:** sound design decisions with boundaries and contracts between the new units coherent as a whole, consistent with the codebase's established patterns, reasonable scalability and performance, security concerns on any touched sensitive surface.
 
-**Testing:**
-- Tests verify real behavior, not mocks?
-- Integration coverage where units meet?
-- Test code held to the same quality bar as production code?
+**Testing:** tests verify real behavior not mocks, integration coverage where units meet, test code held to the same quality bar as production code.
 
-**Production readiness:**
-- Migration strategy if schema/data changed?
-- Backward compatibility considered?
-- Touched documentation updated?
+**Production readiness:** migration strategy if schema/data changed, backward compatibility considered, touched documentation updated.
 
 ## Calibration
 Categorize issues by actual severity. Not everything is Critical. Acknowledge what was done well before listing issues - accurate praise helps the implementer trust the rest of the feedback. Judge the whole delivery, not single tasks: cross-cutting duplication, inconsistent contracts, and seams between tasks are exactly what this review exists to catch.

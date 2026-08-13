@@ -12,11 +12,11 @@ Investigate by tracing, not guessing. Pattern-matching a symptom to a "likely" c
 
 Three laws, in this order. None substitutes for another.
 
-**1. Trace the entire code flow, step by step - no assumptions, no shortcuts.** The bug sits at the first point where actual behavior diverges from what you assumed; the only way to find that point is to walk every step, because the step you skip is the one where you'd have stopped guessing and started seeing. ALWAYS find root cause before proposing a fix. Symptom fixes are failure.
+**1. Trace the entire code flow, step by step - no assumptions, no shortcuts.** The bug sits at the first point where actual behavior diverges from what you assumed; the only way to find that point is to walk every step, because the step you skip is the one where you'd have stopped guessing and started seeing. ALWAYS find root cause before proposing a fix. Symptom fixes are failure. Never describe runtime behavior as "should", "probably", or "likely" - state the actual observed value.
 
-**2. NO FIX PLAN WITHOUT A FAILING TEST THAT REPRODUCES THE DIVERGENCE.** Reading code proves what it says, never what it does. Until a test fails on the divergence you found, the root cause is unconfirmed and the fix has nothing to verify it. Reasoning is not evidence - a failing test is.
+**2. NO FIX PLAN WITHOUT A FAILING TEST THAT REPRODUCES THE DIVERGENCE.** Reading code proves what it says, never what it does. Until a test fails on the divergence you found, the root cause is unconfirmed and the fix has nothing to verify it. Reasoning is not evidence - a failing test is. A test that passes on its first run proves nothing - return to tracing, do not move on.
 
-**3. NEVER APPLY THE FIX HERE.** Edit nothing but the reproduction test. The fix leaves this skill as a plan and is built through `simpleplan` -> `simplebuild`, never by hand - that route is what commits the work and records project memory. A hand-applied fix, however small, loses both.
+**3. NEVER APPLY THE FIX HERE.** Edit nothing but the reproduction test. The fix leaves this skill as a plan and is built through `simpleplan` -> `simplebuild`, never by hand - that route is what commits the work and records project memory. A hand-applied fix, however small, loses both. Skipping the handoff because the fix "is trivial" or "is one line" is the same violation.
 
 ## The Process
 1. Locate the exact entry point that triggers the behavior - the call, request, or event.
@@ -51,15 +51,3 @@ Invoke `simpleplan` (Skill) with the fix plan in context. Stop there - do not im
 
 ## Bypass authorization
 The reproduction test is unconditional. When reproduction is genuinely infeasible (hard race, rendering artifact, unreachable third-party state), STOP and ask the user for explicit authorization to hand off without it, stating what blocks reproduction. Never decide this alone; "hard to test" is not infeasible.
-
-## Red flags - stop and trace
-- Proposing a fix before reaching the diverging line.
-- Drafting the fix plan before the reproduction test is RED.
-- Editing anything other than the reproduction test.
-- Skipping the handoff because the fix "is trivial" or "is one line".
-- Saying "should", "probably", or "likely" about runtime behavior.
-- "I verified it by reading the code" - that is the hypothesis, not the proof.
-- The reproduction test passed on its first run and you moved on anyway.
-- Reading only the function named in the error, not its callers and callees.
-- Random fixes waste time and create new bugs. Quick patches mask underlying issues.
-- Issue seems simple (simple bugs have root causes too).

@@ -35,32 +35,13 @@ On any misalignment: STOP. Write the report (misalignment under Critical), emit
 `VERDICT: FAIL` + `REVIEW: <report path>`, and return immediately - do not run the
 checks below. They only apply once the plan is met.
 
-**Code quality:**
-- Clean separation of concerns?
-- Proper error handling?
-- Type safety where applicable?
-- DRY without premature abstraction?
-- Edge cases handled?
-- Primitive obsesion?
+**Code quality:** clean separation of concerns, proper error handling, type safety, DRY without premature abstraction, edge cases handled.
 
-**Architecture:**
-- Sound design decisions?
-- Reasonable scalability and performance?
-- Security concerns?
-- Integrates cleanly with surrounding code?
+**Architecture:** sound design decisions, reasonable scalability and performance, no security concerns, integrates cleanly with surrounding code.
 
-**Testing:**
-- Every `TDD: required` task -> tests exist and cover the new behavior?
-- Tests verify real behavior, not mocks?
-- Edge cases covered?
-- Integration tests where they matter?
-- All tests passing?
+**Testing:** every `TDD: required` task has tests covering the new behavior, tests verify real behavior not mocks, edge cases covered, all tests passing.
 
-**Production readiness:**
-- Migration strategy if schema changed?
-- Backward compatibility considered?
-- Documentation complete?
-- No obvious bugs?
+**Production readiness:** migration strategy if schema changed, backward compatibility considered, documentation complete, no obvious bugs.
 
 ## Calibration
 

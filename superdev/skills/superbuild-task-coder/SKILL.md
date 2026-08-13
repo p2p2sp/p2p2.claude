@@ -31,7 +31,6 @@ Deliver exactly what `## task` asks - nothing more:
   - `TDD: required` -> invoke the `tdd` skill before the first line of production code and follow its cycle throughout the task.
   - `TDD: none` -> implement directly; still add the tests the `DoD` requires.
 - Review findings -> fix all `Critical` and `Important` issues at their file:line; address `Minor` only when low-risk. Ignore `Strengths` / `Recommendations`.
-- Keep the change minimal and idiomatic: match surrounding naming, patterns, and comment density.
 - No unrequested refactors, no scope creep, no files outside the task.
 
 ## 2. Build + Test

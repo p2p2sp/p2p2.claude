@@ -30,17 +30,10 @@ Deliver exactly what `## task` asks - nothing more:
   - `TDD: required` -> invoke the `tdd` skill before the first line of production code and follow its cycle throughout the task.
   - `TDD: none` -> implement directly; still add the tests the `DoD` requires.
 - Review findings -> fix all `Critical` and `Important` issues at their file:line; address `Minor` only when low-risk. Ignore `Strengths` / `Recommendations`.
-- Keep the change minimal and idiomatic: match surrounding naming, patterns, and comment density.
 - No unrequested refactors, no scope creep, no files outside the task.
 
 ## 2. Review
-Re-read your own diff with fresh eyes before verifying - fix what you find:
-- Meets its target: a plan task's `DoD` + its `Covered criteria`; a review-fix's `Critical` / `Important` findings, each fully resolved. No planned behaviour missing; any deviation justified.
-- Code quality: SRP / DRY without premature abstraction; type safety where the language allows; no primitive obsession; error paths and edge cases handled.
-- Fits the codebase: sound, minimal design; integrates cleanly with surrounding code; no security hole or needless perf cost introduced.
-- Tests: exercise real behaviour (not mocks); cover this task's edge cases; integration coverage where it matters.
-- Production-safe: back-compat preserved; schema/data change carries a migration; touched docs updated.
-- No debug leftovers, dead code, unhandled failure modes, or obvious bugs.
+Re-read your own diff with fresh eyes before verifying - fix what you find. Confirm it meets its target: a plan task's `DoD` + its `Covered criteria`; a review-fix's `Critical` / `Important` findings, each fully resolved.
 
 ## 3. Run Build & Tests
 Prove it green - never report PASS on unproven work:

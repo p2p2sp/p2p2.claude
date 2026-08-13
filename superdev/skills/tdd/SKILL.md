@@ -48,7 +48,6 @@ Execute the cycle in this exact order for each delivered behavior. **VERIFY RED*
 
 ### VERIFY GREEN - confirm all tests pass, output pristine (mandatory)
 
-- **Actually run the test - never simulate it mentally.**
 - The target test passes; every previously-passing test still passes - no regressions.
 - Output is pristine: no new warnings, no new lint errors, no stray prints, no flaky failures hidden behind retries.
 - Not pristine? Something broke - fix it before the next cycle. A "small" regression is still a regression.
@@ -88,39 +87,6 @@ Wrong *moves and structures* - distinct from the willpower excuses below.
 - **Mocking internal collaborators** - couples tests to implementation; they break on refactor without behavior change. Mock only at system boundaries.
 - **Testing implementation details** - private methods, call counts, call order, internal data shapes. Test observable behavior through the public interface. The diagnostic: a test that breaks on an internal refactor with no behavior change was testing implementation, not behavior.
 
-## Common rationalizations
-
-Every excuse to skip the failing-test-first step, and why it is wrong:
-
-| Excuse | Reality |
-|--------|---------|
-| "I'll add tests later" | Tests written after assert what the code already does, not what it should - they freeze bugs in place. You never saw them catch anything. |
-| "Just this once / it's a quick fix" | Every bypass is a precedent and erodes the next reviewer's trust in the suite. Rationalization, not a reason. |
-| "I already manually tested it" | Ad-hoc ≠ systematic. No record, can't re-run on change, easy to forget cases under pressure. |
-| "Deleting hours of work is wasteful" | Sunk cost. The unverified code you can't trust is the waste - it is technical debt. |
-| "Keep it as reference, write tests first" | You will adapt it - that is testing after. Delete means delete. |
-| "Too simple to test" | Simple code still breaks. The test costs seconds. |
-| "Tests-after achieve the same goal" | Tests-after ask "what does this do?"; tests-first ask "what should this do?". Tests-after are biased by the implementation you wrote. |
-| "The test is hard to write" | Listen to the test: hard to test = hard to use. Fix the design, not the test. |
-| "TDD is dogmatic, I'm being pragmatic" | TDD finds bugs before commit and enables fearless refactoring. Shortcuts = debugging in production = slower. |
-| "Existing code has no tests" | You are improving it - add tests for the behavior you touch. |
-
-## Red flags - STOP and start over
-
-Catch yourself thinking or doing any of these and the cycle is already broken:
-
-- Production code written before its failing test
-- A test written after the implementation
-- A test that passes on its very first run
-- Can't explain why the test failed
-- "I'll add tests later" / "just this once"
-- "Keep it as reference" / "adapt the existing code"
-- "Already spent hours, deleting is wasteful"
-- "TDD is dogmatic, I'm being pragmatic"
-- "This case is different because…"
-
-**All of these mean: delete the code and start over from RED - unless you hold explicit bypass authorization (below).**
-
 ## Bypass authorization
 
 The Iron Law applies always - **UNLESS** the user explicitly authorizes a specific bypass for a specific change, with reasoning. Implicit signals ("it's just a quick fix", "we're behind schedule", "no one will notice") do not count and MUST be refused.
@@ -132,17 +98,6 @@ Unacceptable:
 > "Just write it, we don't need tests for this."
 
 If the request is ambiguous, stop and ask. Never assume authorization.
-
-## When stuck
-
-The friction is feedback - a test that is hard to write is telling you the design is hard to use:
-
-| Problem | Fix |
-|---------|-----|
-| Don't know how to test it | Write the wished-for API, or the assertion, first. |
-| Test is too complicated | The design is too complicated. Simplify the interface. |
-| Must mock everything | Code is too coupled. Inject dependencies instead. |
-| Test setup is huge | Extract helpers; still complex ⇒ simplify the design. |
 
 ## Workflow
 
