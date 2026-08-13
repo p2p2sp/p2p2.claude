@@ -109,19 +109,19 @@ const LRS = line({
 });
 const LPASS = line({
   type: "user",
-  message: { content: [{ type: "tool_result", content: "## Superplan Review\n**Verdict:** PASS\nAll good." }] },
+  message: { content: [{ type: "tool_result", content: "## Superplan Review\nVERDICT: PASS\nAll good." }] },
 });
 const LFAIL = line({
   type: "user",
-  message: { content: [{ type: "tool_result", content: "## Superplan Review\n**Verdict:** FAIL\nFix list: rework step 3." }] },
+  message: { content: [{ type: "tool_result", content: "## Superplan Review\nVERDICT: FAIL\nFix list: rework step 3." }] },
 });
 const LPASTE = line({
   type: "user",
-  message: { content: "here is an older reviewed doc I pasted:\n**Verdict:** PASS looked fine last week" },
+  message: { content: "here is an older reviewed doc I pasted:\nVERDICT: PASS looked fine last week" },
 });
 const LLEGEND = line({
   type: "assistant",
-  message: { content: "for reference the template legend is:\nVerdict: PASS | FAIL" },
+  message: { content: "for reference the template legend is:\nVERDICT: PASS | FAIL" },
 });
 const LTAMPER_SED = line({
   type: "assistant",
@@ -146,7 +146,7 @@ const LNEG = line({
     content: [
       {
         type: "tool_result",
-        content: "## Superplan Review\nVerdict: PASS is NOT warranted; see below.\n**Verdict:** FAIL\nFix list: rework.",
+        content: "## Superplan Review\nVERDICT: PASS is NOT warranted; see below.\nVERDICT: FAIL\nFix list: rework.",
       },
     ],
   },
@@ -167,12 +167,12 @@ const LTAMPER_MV = line({
   type: "assistant",
   message: { content: [{ type: "tool_use", name: "Bash", input: { command: `mv other ${PLAN}` } }] },
 });
-// Format-tolerance fixtures - the reviewer may emit the verdict in several markdown
-// shapes; the gate must recognise them all (case-insensitive keyword, optional bold,
-// optional list marker, optional back-ticks around the value).
+// Format-tolerance fixtures - the reviewer emits the canonical literal `VERDICT:`
+// keyword (no bold, no case variance); the gate still tolerates a leading markdown
+// list marker and back-ticks around the value.
 const LPASS_CANON = line({
   type: "user",
-  message: { content: [{ type: "tool_result", content: "## Superplan Review\n**VERDICT:** PASS\nAll good." }] },
+  message: { content: [{ type: "tool_result", content: "## Superplan Review\nVERDICT: PASS\nAll good." }] },
 });
 const LPASS_LIST = line({
   type: "user",
@@ -188,7 +188,7 @@ const LNEG_UPPER = line({
     content: [
       {
         type: "tool_result",
-        content: "## Superplan Review\nVERDICT: PASS is NOT warranted; see below.\n**VERDICT:** FAIL\nFix list: rework.",
+        content: "## Superplan Review\nVERDICT: PASS is NOT warranted; see below.\nVERDICT: FAIL\nFix list: rework.",
       },
     ],
   },
@@ -208,10 +208,16 @@ const LWREV = line({
   },
 });
 // spec-faithful reviewer output: the verdict OPENS the content string.
-const LPASS_START = line({ type: "user", message: { content: [{ type: "tool_result", content: "**VERDICT:** PASS\nAll good." }] } });
+const LPASS_START = line({ type: "user", message: { content: [{ type: "tool_result", content: "VERDICT: PASS\nAll good." }] } });
 const LFAIL_START = line({
   type: "user",
-  message: { content: [{ type: "tool_result", content: "**VERDICT:** FAIL\nFix list: rework step 3." }] },
+  message: { content: [{ type: "tool_result", content: "VERDICT: FAIL\nFix list: rework step 3." }] },
+});
+// old bold format, now rejected outright - no verdict-shaped line matches, so the
+// gate falls through to "no VERDICT: line found" and denies.
+const LPASS_BOLD_OLD = line({
+  type: "user",
+  message: { content: [{ type: "tool_result", content: "## Superplan Review\n**VERDICT:** PASS\nAll good." }] },
 });
 
 test("A - happy path W->R->PASS -> allow", () => {
@@ -326,10 +332,17 @@ test("T6 - genuine PASS then `mv` overwriting the plan -> deny (tamper)", () => 
   });
 });
 
-test("FC - canonical bold+UPPER `**VERDICT:** PASS` -> allow", () => {
+test("FC - canonical `VERDICT: PASS` -> allow", () => {
   withTempDir("p2p2-review-plan-", (dir) => {
     const f = writeFixtureFile(dir, "t.jsonl", [LW, LR, LPASS_CANON]);
     assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("FB - old bold `**VERDICT:** PASS` no longer matches -> deny", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const f = writeFixtureFile(dir, "t.jsonl", [LW, LR, LPASS_BOLD_OLD]);
+    assert.equal(runCase(f).decision, "deny");
   });
 });
 

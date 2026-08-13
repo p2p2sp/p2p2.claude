@@ -64,7 +64,7 @@ Once you have written a complete plan and before final review, fast review it wi
 - Fix any violation inline. No need to re-review - just fix and move on. If you find a spec requirement with no task, add the task.
 
 ## Final Review
-Always before `ExitPlanMode` must invoke `superplan-reviewer` skill (Skill tool, forked context) to make final review. Never call `ExitPlanMode` on a plan that has not returned **VERDICT:** PASS. Track which invocation this is (round 1, round 2, …).
+Always before `ExitPlanMode` must invoke `superplan-reviewer` skill (Skill tool, forked context) to make final review. Never call `ExitPlanMode` on a plan that has not returned VERDICT: PASS. Track which invocation this is (round 1, round 2, …).
 
 The reviewer is read-only: it edits nothing and returns issues derivable from the plan + spec + repo (`FINDINGS:`) plus what it could not resolve for lack of a decision (`BLOCKED:`), plus advisory `NOTES:` that never block a PASS. Every fix is yours to apply.
 
@@ -76,12 +76,12 @@ The reviewer is read-only: it edits nothing and returns issues derivable from th
    round: <N>
    ```
    `round` starts at 1 and increments by 1 each invocation of this loop for the current plan. From round 2 on, also append one `prior-blocking: <finding>` line per FINDINGS (and BLOCKED) entry the previous round returned, verbatim.
-2. Read the first line of its output: **VERDICT:** PASS or **VERDICT:** FAIL, and concise show the human the FINDINGS, any BLOCKED findings, and any NOTES.
-3. **VERDICT:** PASS → relay any NOTES to the user together with the final plan; never edit the plan file after PASS - the approval gate re-arms on any post-verdict write. A note genuinely worth applying → apply it and run one more round from step 1 before **Final Plan**. Otherwise proceed straight to **Final Plan**.
-4. **VERDICT:** FAIL - apply the fixes to the plan file yourself, then go back to step 1:
+2. Read the first line of its output: VERDICT: PASS or VERDICT: FAIL, and concise show the human the FINDINGS, any BLOCKED findings, and any NOTES.
+3. VERDICT: PASS → relay any NOTES to the user together with the final plan; never edit the plan file after PASS - the approval gate re-arms on any post-verdict write. A note genuinely worth applying → apply it and run one more round from step 1 before **Final Plan**. Otherwise proceed straight to **Final Plan**.
+4. VERDICT: FAIL - apply the fixes to the plan file yourself, then go back to step 1:
    - **`FINDINGS`** → edit the plan as each one directs; touch nothing else. Exception - a Blocking finding whose evidence you can show is factually wrong (repo state, the spec, or the confirmed understanding already in your context contradicts it) → do not re-loop on it; instead present that single finding plus your counterargument to the user in plain prose and apply their ruling.
    - **`BLOCKED` findings present** → resolve each from the spec and the confirmed understanding already in your context and edit the plan accordingly; a finding needing a genuinely open design decision → run the `superdev` Skill (or ask the user) first.
 5. **Round cap:** after round 3 without PASS, STOP looping - show the user the remaining findings and let them decide how to proceed.
 
 ### Final Plan
-Call `ExitPlanMode` ONLY AFTER **VERDICT:** PASS. The human approves a reviewer-cleared plan, not a raw draft.
+Call `ExitPlanMode` ONLY AFTER VERDICT: PASS. The human approves a reviewer-cleared plan, not a raw draft.

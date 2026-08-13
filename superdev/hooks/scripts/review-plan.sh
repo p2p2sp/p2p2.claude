@@ -148,13 +148,12 @@ fi
 
 # S: the reviewer's OWN verdict - the FIRST verdict line AFTER the reviewer call.
 # Anchor on the escaped newline (\n in the JSONL) that precedes it: the real verdict
-# always starts its own markdown line, so it appears as `\n**VERDICT:** <value>`. The
-# match is deliberately TOLERANT of how an LLM reviewer formats that line, so a drifted
-# format still GATES instead of failing open (the historical bug: the reviewer emits
-# upper-case `VERDICT:` while this pattern only accepted `Verdict:` -> never matched):
-#   - `[Vv][Ee][Rr][Dd][Ii][Cc][Tt]` matches the keyword case-insensitively (VERDICT / Verdict / …);
+# always starts its own markdown line, so it appears as `\nVERDICT: <value>`. The
+# keyword is the literal, canonical `VERDICT:` (no bold, no case variance - every
+# superdev skill returns exactly this) so a drifted format (old bold markers, a
+# different case) does NOT match and correctly falls through to the "no VERDICT:
+# line" deny below, rather than silently tolerating stale output shapes:
 #   - `([-*] )?` tolerates a leading markdown list marker (`- VERDICT:`);
-#   - `(\*\*)?` on each side makes the bold markers optional;
 #   - `` `? `` on each side tolerates back-ticks around the value (`` `PASS` ``).
 # The `\\n` matches the two literal chars backslash-n JSON uses to escape a newline -
 # this excludes inline mentions mid-line. The alternative `"(text|content)":"` anchor
@@ -170,7 +169,7 @@ fi
 # qualified/negated `VERDICT: PASS is NOT ...` whose value is not the whole token:
 # without the end-anchor its last matched word is still `PASS` -> a false-allow.
 verdict_line=$(
-  awk -v start="$reviewer_call_line" 'NR>start && /(\\n|"(text|content)":")([-*] )?(\*\*)?[Vv][Ee][Rr][Dd][Ii][Cc][Tt]:(\*\*)?[[:space:]]+`?(PASS|FAIL)`?[[:space:]]*(\\n|")/ { print NR; exit }' \
+  awk -v start="$reviewer_call_line" 'NR>start && /(\\n|"(text|content)":")([-*] )?VERDICT:[[:space:]]+`?(PASS|FAIL)`?[[:space:]]*(\\n|")/ { print NR; exit }' \
     "$transcript_path" 2>/dev/null
 )
 
@@ -179,10 +178,10 @@ if [ -z "$verdict_line" ]; then
 fi
 
 # The value on that first verdict line - strip the trailing anchor, drop any back-ticks,
-# then take the last whitespace-delimited token of the remaining `\n**VERDICT:** <value>` span.
+# then take the last whitespace-delimited token of the remaining `\nVERDICT: <value>` span.
 verdict_value=$(
   awk -v ln="$verdict_line" 'NR==ln {
-    if (match($0, /(\\n|"(text|content)":")([-*] )?(\*\*)?[Vv][Ee][Rr][Dd][Ii][Cc][Tt]:(\*\*)?[[:space:]]+`?(PASS|FAIL)`?[[:space:]]*(\\n|")/)) {
+    if (match($0, /(\\n|"(text|content)":")([-*] )?VERDICT:[[:space:]]+`?(PASS|FAIL)`?[[:space:]]*(\\n|")/)) {
       v = substr($0, RSTART, RLENGTH); sub(/[[:space:]]*(\\n|")$/, "", v); gsub(/`/, "", v)
       n = split(v, a, " "); print a[n]
     }

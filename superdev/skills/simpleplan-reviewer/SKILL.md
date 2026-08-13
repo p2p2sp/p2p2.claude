@@ -19,7 +19,7 @@ A labeled block above, one `label: value` per line - split each line on its **fi
 - `round: <N>` - optional; absent means round 1.
 - `prior-blocking: <finding>` - optional, repeatable. Each line is one Blocking finding from the previous round, verbatim.
 
-Missing `plan:` label, or its file (or an explicitly given `checklist:` file) does not exist -> return `**VERDICT:** FAIL` with that as the single FINDINGS entry and stop.
+Missing `plan:` label, or its file (or an explicitly given `checklist:` file) does not exist -> return `VERDICT: FAIL` with that as the single FINDINGS entry and stop.
 
 Your only tools are Read, Grep, Glob. Never run a command - no `git`, `ls`, `cat`, `find`, no build or test command - and create or modify NO file, not even the plan. Check a path's existence with Glob, a symbol's or a command's presence with Grep, content with Read. Verify this plan is complete and ready for implementation and report what is wrong; never repair it yourself.
 
@@ -59,9 +59,9 @@ Return `VERDICT: PASS` when FINDINGS and BLOCKED are both empty. NOTES never blo
 
 RETURN exactly these sections (your only channel to the parent). The verdict MUST be the FIRST line of your output, verbatim, with no preamble before it:
 
-**VERDICT:** PASS
+VERDICT: PASS
 
-- Use `FAIL` in place of `PASS` when FINDINGS or BLOCKED has an entry. Bold markers required; value bare on its own line - no back-ticks, no list marker, no text before it.
+- Use `FAIL` in place of `PASS` when FINDINGS or BLOCKED has an entry. Value bare on its own line - no bold, no back-ticks, no list marker, no text before it.
 - FINDINGS: one line each - checklist class ID, where it is, what's wrong, how to fix - or "none".
 - BLOCKED: findings needing a decision or context not in the inputs (includes B7) - or "none".
 - NOTES: Advisory observations, one line each - or "none".
