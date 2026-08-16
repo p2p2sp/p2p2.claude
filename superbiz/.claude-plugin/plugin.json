@@ -11,6 +11,7 @@
     "./skills/business-idea-validator-researcher/",
     "./skills/product-phase-roadmap/",
     "./skills/product-phase-roadmap-writer/",
+    "./skills/council-this/",
     "./skills/council-this-chairman/"
   ],
   "agents": [
