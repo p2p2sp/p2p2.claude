@@ -10,7 +10,8 @@
     "./skills/business-idea-validator/",
     "./skills/business-idea-validator-researcher/",
     "./skills/product-phase-roadmap/",
-    "./skills/product-phase-roadmap-writer/"
+    "./skills/product-phase-roadmap-writer/",
+    "./skills/council-this-chairman/"
   ],
   "agents": [
     "./agents/council-contrarian.md",
