@@ -1,6 +1,6 @@
 {
   "name": "p2p2",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "owner": {
     "name": "P2P2",
     "email": "dariusz.lenartowicz@p2p2.com.pl"
@@ -25,6 +25,11 @@
       "name": "superfix",
       "source": "./superfix",
       "description": "Super Fix ecosystem for Claude Code."
+    },
+    {
+      "name": "superbiz",
+      "source": "./superbiz",
+      "description": "Super Biz ecosystem for Claude Code."
     }
   ]
 }
