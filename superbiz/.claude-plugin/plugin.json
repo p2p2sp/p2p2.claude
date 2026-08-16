@@ -11,5 +11,12 @@
     "./skills/business-idea-validator-researcher/",
     "./skills/product-phase-roadmap/",
     "./skills/product-phase-roadmap-writer/"
+  ],
+  "agents": [
+    "./agents/council-contrarian.md",
+    "./agents/council-first-principles.md",
+    "./agents/council-expansionist.md",
+    "./agents/council-outsider.md",
+    "./agents/council-executor.md"
   ]
 }
