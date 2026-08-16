@@ -72,13 +72,17 @@ Each plugin is independently installable; none declares another as a dependency.
   producer/consumer artifact pairs, triaged `MATCH` / `MISMATCH` / `UNCLEAR` / `NO_CONTRACT` (the gate keeps
   `MATCH` and `NO_CONTRACT` out of dispatch) - and dispatches cheap-triage / deep-dive agents into the union of
   both. (→ `superfix/CLAUDE.md`)
-- **superbiz** - the business validation / product roadmap ecosystem, two CSO-routed entry skills each backed
-  by a fork worker: `business-idea-validator` interviews the user about a business/product idea and dispatches
-  `business-idea-validator-researcher` (an `opus` fork doing deep web research for a real comparative
-  baseline) to write a sourced report to `docs/business/<idea-slug>/walidacja.md`; `product-phase-roadmap`
-  interviews about scope and dispatches `product-phase-roadmap-writer` (a `sonnet` fork) to turn a validated
-  idea into a phased execution plan folder at `docs/business/<idea-slug>/plan/`. Ships **no hooks and no
-  manifest** - both entries route purely via CSO `description:`, and the validator ends by offering
+- **superbiz** - the business validation / product roadmap ecosystem, three CSO-routed entry skills each
+  backed by a fork worker: `business-idea-validator` interviews the user about a business/product idea and
+  dispatches `business-idea-validator-researcher` (an `opus` fork doing deep web research for a real
+  comparative baseline) to write a sourced report to `docs/business/<idea-slug>/walidacja.md`;
+  `product-phase-roadmap` interviews about scope and dispatches `product-phase-roadmap-writer` (a `sonnet`
+  fork) to turn a validated idea into a phased execution plan folder at `docs/business/<idea-slug>/plan/`;
+  `council-this` frames a decision with real stakes and dispatches `council-this-chairman` (an `opus` fork),
+  which convenes five persona agents (`council-contrarian`, `council-first-principles`, `council-expansionist`,
+  `council-outsider`, `council-executor` - superbiz's first `agents[]`) in parallel and synthesizes the
+  chairman verdict itself at `docs/business/<decision-slug>/rada.md`. Ships **no hooks and no
+  manifest** - all three entries route purely via CSO `description:`, and the validator ends by offering
   (`AskUserQuestion`) to chain into the roadmap. (→ `superbiz/CLAUDE.md`)
 
 They ship no application code - the artefacts are markdown (skills) + JSON (manifests) + per-plugin hook
@@ -90,8 +94,9 @@ plugin root (`superdev/scripts/`, `superdev/references/`), and `superui` keeps i
 seven agents at the plugin root (`superui/scripts/`, `superui/agents/`), both with no `shared/` subdir.
 `superui` has no `references/` or `assets/` dir at the plugin root - only `pro-designer` and
 `component-extractor` need a `references/` dir, and each keeps its own rather than sharing one at the plugin
-root. `superbiz` likewise ships no scripts and no plugin-root `references/` dir - each of its two forks keeps
-its own `references/` under its own skill dir. Each
+root. `superbiz` likewise ships no scripts and no plugin-root `references/` dir - its researcher and writer forks
+keep their own `references/` under their own skill dir (the chairman fork bundles none), and it carries a
+plugin-root `agents/` (the five council personas). Each
 plugin's own `CLAUDE.md` inventories its scripts. **Editing markdown / JSON IS shipping** - there is no
 build step and no lint at any level, and no test tooling inside any plugin. Dev-time regression suites for
 plugin scripts live at the repo-root `tests/` tree (outside every plugin dir, so no `plugin.json` or
@@ -114,7 +119,7 @@ codebase-investigation tool (`superfix`), or just the business validation / prod
 injected manifest documents its routing (e.g. superdev's interview-first decision flow); `superui`, `supergh`,
 `superfix` and `superbiz` ship no manifest (superfix's sole skill is user-only; supergh routes purely via CSO
 descriptions; superui routes `pro-designer` the same way while its `design-extractor` skill is a user-only
-command; superbiz's two entry skills route purely via CSO descriptions, each backed by its own fork worker).
+command; superbiz's three entry skills route purely via CSO descriptions, each backed by its own fork worker).
 Each is **self-contained**: its `plugin.json` declares **no `dependencies`** - installing it gives that whole
 ecosystem. Cross-plugin chains are **soft and optional** by design: any CSO composition that names another
 plugin's skill fires only when that plugin is also installed; absent it it simply does not engage (no declared
@@ -160,9 +165,9 @@ tests/               Dev-time regression suites for plugin scripts, run from the
 Each plugin dir carries a `.claude-plugin/plugin.json` (its `skills[]` (+ `agents[]`) is the catalog of record).
 `superdev` alone also carries `hooks/` (one injected dispatcher manifest + hook scripts); plugin-level shared
 scripts live in `superdev/scripts/`, `superdev/references/` and `superui/scripts/` (no `shared/` subdir);
-`supergh` carries `shared/` only; `superui` and `superfix` both carry `agents/`; `superbiz` carries no
-plugin-root `scripts/`, `references/`, or `agents/` - it ships no agents, and each of its two fork skills keeps
-its own `references/`.
+`supergh` carries `shared/` only; `superui`, `superfix` and `superbiz` all carry `agents/`; `superbiz` still
+carries no plugin-root `scripts/` or `references/` - its researcher and writer forks each keep their own
+`references/`.
 
 ## Versioning
 
@@ -192,15 +197,16 @@ The invariants below hold across the repo.
   `docs/.workflows/` (superdev's per-build working dirs written by `decompose.sh` - spec, plan copy,
   task files, implementation reports - plus the specs `superspec` saves; marked `linguist-generated`
   in `.gitattributes` so GitHub collapses them in review), `docs/business/<idea-slug>/` (superbiz's
-  `business-idea-validator-researcher` writes its report there, and `product-phase-roadmap-writer` writes its
-  phased plan folder at `docs/business/<idea-slug>/plan/`). These are
+  `business-idea-validator-researcher` writes its report there, `product-phase-roadmap-writer` writes its
+  phased plan folder at `docs/business/<idea-slug>/plan/`, and `council-this-chairman` writes the council
+  verdict there as `docs/business/<decision-slug>/rada.md`). These are
   version-controlled deliverables the user reads and edits.
 - **No plugin ever creates a plugin-named dot-dir in the host repo** - no `.superdev/`, no `.superui/`,
   no equivalent for any future plugin. Only three host-repo locations are writable: `docs/<layer>/` for
   persisted user-facing knowledge (above), `.claude/` for configuration the user owns and edits
   (superdev's opt-in switches live in `.claude/superdev.yml`, read by `scripts/read-config.sh`; rules in
   `.claude/rules/`), and `.temp/` for every temporary artifact, grouped in per-plugin subdirs
-  (`.temp/superdev/{docs,memory,rules}/capture-<RUN_ID>.md`, superui run dirs, `.temp/superbiz/{validator,roadmap}/capture-<RUN_ID>.md`). A new persisted
+  (`.temp/superdev/{docs,memory,rules}/capture-<RUN_ID>.md`, superui run dirs, `.temp/superbiz/{validator,roadmap,council}/capture-<RUN_ID>.md`). A new persisted
   user-facing artifact means a new `docs/<layer>/`; new machine state means `.temp/<plugin>/` - never a
   dot-dir at the host root.
 - **One injected manifest per manifest-bearing plugin.** A single `SessionStart` hook force-injects
@@ -210,7 +216,7 @@ The invariants below hold across the repo.
   **`superui`, `supergh`, `superfix` and `superbiz` ship no `hooks/` and no manifest at all** (superfix's sole
   skill is user-only with nothing to auto-route; supergh stays fully model-routable via CSO `description:`;
   superui routes `pro-designer` the same way while `design-extractor` is a user-only command with an internal
-  fork worker behind it; superbiz's two entry skills route the same way, each with its own fork worker behind
+  fork worker behind it; superbiz's three entry skills route the same way, each with its own fork worker behind
   it).
   A manifest-less plugin is valid whenever a `SessionStart`-injected dispatcher would add no
   routing value over the skill descriptions.
@@ -258,9 +264,11 @@ The invariants below hold across the repo.
 - **Self-documentation.** Any skill add / remove / rename MUST update the **owning plugin's**
   `<plugin>/.claude-plugin/plugin.json` `skills[]` (superdev's for any of its skills, superui's
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`create-issue`/`create-pr` skill,
-  superfix's for the `code-auditor` skill, superbiz's for its four skills -
+  superfix's for the `code-auditor` skill, superbiz's for its six skills -
   `business-idea-validator` / `business-idea-validator-researcher` / `product-phase-roadmap` /
-  `product-phase-roadmap-writer`, and it ships no `agents[]`);
+  `product-phase-roadmap-writer` / `council-this` / `council-this-chairman`, and its `agents[]` carries the
+  five council persona agents - `council-contrarian`, `council-first-principles`, `council-expansionist`,
+  `council-outsider`, `council-executor` - dispatched only by the chairman fork);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
   (superfix's `scout` / `edge-scout` / `detective` / `critic` live there, not in `skills[]`; superui's seven
   agents live there too, split 2+5 across its four pipeline skills - `design-extractor` dispatches
