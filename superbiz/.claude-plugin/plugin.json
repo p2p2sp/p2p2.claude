@@ -1,0 +1,15 @@
+{
+  "name": "superbiz",
+  "version": "0.28.2",
+  "description": "Super Biz ecosystem for Claude Code.",
+  "author": {
+    "name": "Dariusz Lenartowicz",
+    "email": "dariusz.lenartowicz@p2p2.com.pl"
+  },
+  "skills": [
+    "./skills/business-idea-validator/",
+    "./skills/business-idea-validator-researcher/",
+    "./skills/product-phase-roadmap/",
+    "./skills/product-phase-roadmap-writer/"
+  ]
+}
