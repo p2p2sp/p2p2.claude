@@ -1,6 +1,6 @@
 ---
 name: council-this-chairman
-description: Invoked only by the council-this skill, never directly.
+description: Invoked only by the council-this and business-idea-validator skills, never directly.
 context: fork
 background: false
 model: opus
