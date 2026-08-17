@@ -28,6 +28,13 @@ Sweep these seams; each is a known class of genuine opportunity. Gate every cand
 
 Useful sweeps: conditional renders with no transition (`{isOpen &&`, `display: none` toggles), `onClick` on elements with no `:active`/transition styles, accordion markup, drag handlers, entering lists, empty-state and success components.
 
+## Scroll-reveal budget
+
+- Per page: one orchestrated entrance (typically the hero) plus at most 1-2 further scroll-reveal moments; every other section renders visible by default, no scroll trigger at all.
+- Fade-up-on-scroll applied to every section is a named generated-look tell (anti-slop.md) - the budget is the fix, spend it deliberately.
+- Hard rule: content is visible without JS and in a full-page screenshot. Initial `opacity: 0` on content that only a scroll handler later reveals is an accessibility, SEO and share-card defect, not a stylistic choice.
+- Progressive enhancement only - a JS-added class enables the animation, never the visibility. The unanimated state IS the visible state; JS adds motion on top, it does not gate whether content is there.
+
 ## Easing
 
 Decision order:
@@ -104,7 +111,7 @@ Keep bounce 0.1-0.3 and avoid it in most UI - reserve for drag-to-dismiss and pl
 
 `clip-path: inset(t r b l)` - each value eats in from that side; hardware-accelerated, no extra DOM.
 
-- Reveal on scroll: `inset(0 0 100% 0)` -> `inset(0 0 0 0)` when the element enters the viewport (IntersectionObserver, `{ once: true }`).
+- Reveal on scroll: `inset(0 0 100% 0)` -> `inset(0 0 0 0)` when the element enters the viewport (IntersectionObserver, `{ once: true }`) - counts against the scroll-reveal budget.
 - Hold-to-confirm: colored overlay clipped `inset(0 100% 0 0)`; on `:active` transition to `inset(0 0 0 0)` over 2s linear; on release snap back 200ms ease-out; add `scale(0.97)` press feedback.
 - Tab indicators with perfect color transitions: duplicate the tab list, style the copy active, clip it to the active tab, animate the clip.
 - Comparison sliders: overlay two images, clip the top with `inset(0 50% 0 0)`, drive the inset from drag position.
@@ -156,6 +163,8 @@ Reduced motion means fewer and gentler animations, not zero - keep transitions t
 - Animating `width`/`height`/`margin`/`padding`/`top`/`left` -> `transform`/`opacity`.
 - Ungated `:hover` motion or missing `prefers-reduced-motion` -> the two media queries above.
 - Everything entering at once -> 30-80ms stagger.
+- Fade-up on every section -> the scroll-reveal budget (one orchestrated entrance plus at most 1-2 reveal moments per page).
+- Content hidden until a scroll handler runs -> visible by default; JS adds motion only, never visibility.
 
 ## Cohesion and feel-checks
 
