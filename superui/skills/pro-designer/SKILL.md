@@ -19,9 +19,9 @@ Before any design decision, name what the visitor's success looks like on THIS s
 
 ## Design pass - apply in this order
 
-1. **Aesthetic direction** - only for a new surface with no established design system: ground the direction in the subject, refuse the AI-default looks (`references/anti-slop.md`), pick one signature element -> `references/distinctiveness.md`
+1. **Aesthetic direction** - for a new Persuade/Experience surface, FIRST write the mandatory concept brief and show it to the user, even when a design system already exists -> `references/concepting.md`; then ground the direction in the subject, refuse the AI-default looks (`references/anti-slop.md`), pick one signature element -> `references/distinctiveness.md`
 2. **Layout skeleton** - spacing scale, grouping, grid, max-width -> `references/layout-spacing.md`
-3. **Hierarchy & type** - one focal point per screen, fixed type ramp, mute labels / amplify values -> `references/typography.md`
+3. **Hierarchy & type** - one focal point per screen, fixed type ramp, mute labels / amplify values -> `references/typography.md`; on Persuade surfaces section headings come from the display scale -> `references/typography.md`
 4. **Color** - neutral foundation + elevation, a scarce 100-900 accent scale, dark mode by physiology, OKLCH theming -> `references/color.md`
 5. **Components & states** - loading/empty/error designed, soft elevation, card anatomy -> `references/components-states.md`
 6. **Motion** - only where the frequency gate allows it: purposeful enter/exit, press feedback, one orchestrated moment - never motion everywhere -> `references/motion.md`
@@ -49,6 +49,8 @@ Before any design decision, name what the visitor's success looks like on THIS s
 
 When the project already defines its own design system - a token set, a design spec, or documented brand/UI guidelines - those authoritative values override this skill's generic absolutes: apply the project's own type ramp, spacing scale, and color system, never a second one alongside them. This skill stays advisory: it reasons about the project's system, never overwrites it.
 
+A token set binds palette, typography, radii and spacing - it is not a composition concept or art direction. A new Persuade/Experience surface still requires the full concept brief (`references/concepting.md`), expressed in the project's tokens.
+
 ## Scope discipline
 
 - **The brief wins.** Honor aesthetics, eras, fonts, and palettes the user pinned - even when they conflict with this skill's anti-generic warnings. Redirecting a clear brief toward your own taste is failure; only accessibility and anti-dark-pattern rules stay non-negotiable.
@@ -56,6 +58,7 @@ When the project already defines its own design system - a token set, a design s
 
 ## Reference routing
 
+- New Persuade/Experience surface, before any layout - concept brief, section sequence, skeleton critique -> `references/concepting.md`
 - Aesthetic direction for a new surface, signature elements, UI copy/microcopy voice, consistency locks (radius/gray/theme/accent/register) -> `references/distinctiveness.md`
 - UI that looks generic, templated, or AI-generated; hero composition; landing/marketing pages before shipping; demo data, placeholder names, marketing copy -> `references/anti-slop.md`
 - Onboarding, signup, upgrade, pricing, paywalls, conversion flows -> `references/ux-psychology.md`
@@ -79,3 +82,4 @@ When the project already defines its own design system - a token set, a design s
 - **Detail rule**: if a detail is too small or too faint to notice, delete it instead of keeping it faint.
 - **Template test** (new surfaces only): would this exact palette + type + hero combination ship for any similar brief? If yes, it is a default, not a decision - revise the generic part (`references/distinctiveness.md`).
 - **Bounded passes**: verify in batches, not an open loop - build fully, inspect once (desktop and mobile together), fix everything found in one batch, confirm with at most one more round, then stop polishing. Open-ended self-QA burns effort without improving the result.
+- **Screenshot QA** (new Persuade/Experience surfaces only): render the built page and take full-page desktop and mobile screenshots with whatever the host project offers; no way to render -> note the gap and run the same checks on the code instead. On the image: skeleton test (would this section sequence ship for any similar product?), domain-artifact test (point at 3 places showing the product's world, not the template's), signature recurrence (3+ placements), and "would I remember this page tomorrow?". Run the squint test on the screenshot itself, not rhetorically - a full-page screenshot also exposes content hidden by initial `opacity: 0` (-> `references/motion.md`). Stays inside the bounded-passes discipline above.
