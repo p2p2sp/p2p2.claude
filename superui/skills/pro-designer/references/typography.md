@@ -13,7 +13,14 @@ Read when choosing font sizes, line-heights, weights, letter-spacing, or font fa
   - Label: 14/20, 12/16, 11/16 - weight 500
 
 - Role mapping: display = short hero text/numerals; headline = page-level headings; title = card headers, dialog titles; body = paragraphs; label = buttons, captions, inputs. Ramp membership is binding, role mapping is the default guide - e.g. a full-width 48px CTA may step up from label-large to 16px/600.
-- Avoid oversized text - huge fonts make the UI look bloated and unfinished, not premium.
+- Operate/Read surfaces (product UI): avoid oversized text - huge fonts make the UI look bloated and unfinished, not premium. Persuade/Experience surfaces follow the display ramp below instead - oversized type there is a deliberate tool, not a mistake.
+
+## Persuade surfaces - the display ramp
+
+- Marketing section headings come from the display scale, not the document scale. A headline-to-body gap of roughly 2x the document ramp's is the target - an h1 at display size followed by 24px h2s reads as documentation, not marketing.
+- Extreme weight contrast is a legitimate tool on Persuade surfaces: pair 100 and 900, not 400 and 700. The gap itself carries the intent.
+- When the page has no imagery budget, typography IS the imagery - oversized type serves as texture and composition, not just a label for content below it.
+- Ramp membership stays binding even at display sizes - the display tokens are part of the ramp, not a one-off escape from it.
 
 ## Body text
 
