@@ -2,7 +2,7 @@
 
 Read when setting the aesthetic direction of a new surface (landing page, hero, marketing or brand-carrying screen), when a brief leaves look-and-feel open, or when reviewing UI that reads generic, templated, or AI-generated.
 
-Scope: direction-setting, not a decoration license. Every choice here still obeys the skill's non-negotiables (contrast, states, spacing scale, type ramp) - the signature risk lives inside the accessibility floor. When the project defines its own design system, that system IS the direction: audit against it, never invent a rival one.
+Scope: direction-setting, not a decoration license. Every choice here still obeys the skill's non-negotiables (contrast, states, spacing scale, type ramp) - the signature risk lives inside the accessibility floor. The project's own design system, when it has one, binds palette, type, radius and spacing - audit against it, never invent a rival one. But a token set is not a composition concept: a new Persuade/Experience surface still needs the full concept brief (concepting.md), expressed in those tokens.
 
 ## The AI-default looks - recognize and refuse
 
@@ -24,6 +24,7 @@ Rule: where the brief pins a direction, follow the brief exactly - even into one
 - If the brief does not pin down the product or subject, pin it before designing: name one concrete subject, its audience, and the page's single job - and state the choice.
 - Distinctive choices come from the subject's own world - its materials, instruments, artifacts, vernacular - never from a house style applied to every project.
 - Design with the real content throughout; placeholder-content thinking produces template design.
+- Verifiable rule: when the product concerns physical or visual objects, render them as designed graphic elements - their real shapes, proportions, and layouts drawn from their own world. Line icons are allowed only for genuinely abstract concepts, never as a stand-in for a real object. Test: point at 3 places on the render that show the product's own world, not the template's - if you cannot, the subject is not grounded yet.
 
 ## Direction rules
 
@@ -51,15 +52,10 @@ Simplicity is not the goal by itself - cleanliness is. A surface may be rich, la
 - Spend boldness in ONE place: a single element the page is remembered by, embodying the brief. Everything around it stays quiet and disciplined.
 - Cut every decoration that does not serve the brief. Before shipping, remove one accessory.
 - Not taking any risk is itself a risk: a surface with no signature reads as template.
+- A signature element exists only if it recurs in at least 3 points of the page, in consistent form. One hero effect followed by neutral cards is decoration, not a signature. Later returns may be quieter than the first appearance (a list marker, a chip shape, a CTA background echoing the same device) but they must be present.
 - The quality floor ships silently, never announced: responsive to mobile, visible focus, reduced motion respected.
 
-## Plan-then-critique pass
-
-Before building a new surface, write a compact direction plan, then attack it:
-
-1. Plan: palette as 4-6 named hex values; typefaces for 2+ roles (a characterful display face used with restraint, a complementary body face, optional utility face for captions/data); a one-sentence layout concept; the signature element.
-2. Critique: for each part ask "would this same choice appear for ANY similar brief?" If yes it is a default, not a decision - revise that part and note why.
-3. Build only after the critique, deriving every color and type decision from the revised plan.
+The mandatory pre-build concept brief and skeleton critique live in concepting.md - read it before setting direction on any new surface.
 
 ## Copy is design material
 
