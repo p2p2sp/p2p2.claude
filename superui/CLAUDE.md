@@ -124,24 +124,34 @@ them rather than sharing a plugin-root copy.
 - `pro-designer` - the cross-cutting **professional UI/UX standards** advisor (model-invocable via CSO):
   visual hierarchy, color-system discipline (neutral foundation, dark mode, accent scales), type ramps, 4/8pt
   spacing, accessibility, component states, form-validation UX, evidence-based conversion psychology with
-  hard anti-dark-pattern rules, and anti-AI-slop aesthetic direction split across two references:
-  `references/distinctiveness.md` (distilled from Anthropic's Apache-2.0 frontend-design skill: refuse the
-  recognizable generated-look defaults, ground direction in the subject, one signature element,
-  plan-then-critique, copy as design material, plus consistency locks) and `references/anti-slop.md` (the
-  forensic generated-UI tells catalog distilled from Leonxlnx/taste-skill: layout/visual/decoration tells,
-  hero discipline, demo-content realism, CTA-intent dedup). `references/tokens.md` carries token-architecture
+  hard anti-dark-pattern rules, and anti-AI-slop aesthetic direction split across three references:
+  `references/concepting.md` (the mandatory pre-layout concept brief - thesis, subject world, one narrow
+  out-of-web reference anchor, named anti-references, signature element with a recurrence plan, section
+  sequence with a layout family per section - plus the skeleton critique, required before any new
+  Persuade/Experience surface even when a design system already exists), `references/distinctiveness.md`
+  (refuse the recognizable generated-look defaults, subject grounding with the point-at-3-places physical-
+  artifact rule, signature element with 3-point recurrence, consistency locks, copy as design material - the
+  plan-then-critique pass now defers to `concepting.md`) and `references/anti-slop.md` (the forensic
+  generated-UI tells catalog: an entropy meta-rule opening it, skeleton-level section-sequence tells with
+  minimum-variation requirements, uniform-padding and cardocalypse limits, second-generation tells, layout/
+  visual/decoration tells, hero discipline, demo-content realism, CTA-intent dedup).
+  `references/tokens.md` carries token-architecture
   doctrine (primitive/semantic/component layering, dark-mode-overrides-only-the-semantic-layer, paired
   surface/foreground tokens, role-based naming, derived radius/z-index scales) distilled from the
   ui-ux-pro-max-skill analysis. `references/motion.md` carries the animation doctrine (the four-question
   gate led by frequency, the static-page animation-opportunity hunt list, easing/duration budgets with
   strong custom curves, springs, interruption/enter/exit, clip-path recipes, gestures,
-  transform/opacity-only performance rules, reduced-motion and hover gating);
+  transform/opacity-only performance rules, reduced-motion and hover gating, plus a scroll-reveal budget and
+  a content-visible-without-JS rule for Persuade/Experience surfaces);
   components-states.md keeps only the page-level motion deltas (stagger recipe, will-change,
   backdrop-filter placement) and defers the doctrine to motion.md. Its SKILL.md also carries four framings adapted
   from pbakaus/impeccable (Apache-2.0): the
   surface-mode taxonomy (Persuade/Operate/Read/Experience, chosen from the surface, not the product), the
   brief-wins rule, refinement-preserves-vs-redesign-replaces, and bounded QA passes (batched inspect-fix,
-  max two rounds). Fires when creating, styling, or reviewing ANY interface. Bundles
+  max two rounds) - Final QA adds a screenshot-based check for new Persuade/Experience surfaces (full-page
+  desktop + mobile renders via host tooling, or a code-only fallback when rendering is impossible; skeleton,
+  domain-artifact, signature-recurrence and memorability tests plus the squint test applied on the image).
+  Fires when creating, styling, or reviewing ANY interface. Bundles
   `references/` only - its contrast gate is the plugin-root `scripts/check_contrast.ts` (WCAG AA), addressed
   via `${CLAUDE_PLUGIN_ROOT}/...`; a missing interpreter is a skip-with-note pointing at `/superui:setup`,
   never a hard stop. Advisory only.
