@@ -24,7 +24,7 @@ superbiz/
     council-outsider.md                Persona - responds to only what is on the page, no assumed context
     council-executor.md                Persona - only feasibility and the fastest first step
   skills/
-    business-idea-validator/               Entry - interactive intake, dispatches the researcher fork
+    business-idea-validator/               Entry - interactive intake, dispatches the researcher then the chairman fork
     business-idea-validator-researcher/     Fork - web research + report writing, out of the main context
       references/frameworks.md
       references/report-template.md
@@ -38,9 +38,14 @@ superbiz/
 ## Skills (qualified `superbiz:<name>`)
 
 - `business-idea-validator` - interactive entry. Interviews the user about the idea (AskUserQuestion), writes
-  an intake capture file to `.temp/superbiz/validator/capture-<RUN_ID>.md`, dispatches
-  `business-idea-validator-researcher` via the `Skill` tool, and relays the finished report path back to the
-  user. On success it offers (AskUserQuestion) to chain into `product-phase-roadmap`.
+  an intake capture file to `.temp/superbiz/validator/capture-<RUN_ID>.md`, and dispatches
+  `business-idea-validator-researcher` via the `Skill` tool. Once the researcher returns its report, the entry
+  runs a mandatory council round: it writes a second capture file to `.temp/superbiz/council/capture-<RUN_ID>.md`
+  (same `<RUN_ID>`, a neutral question framing that never states the researcher's verdict, and the report as a
+  context file) and dispatches `council-this-chairman` via the `Skill` tool on the finished report. It then
+  relays both tagged lines - the researcher's verdict and the chairman's recommendation - in one combined
+  summary, explicitly surfacing any researcher-vs-council clash instead of smoothing it. On success it still
+  offers (AskUserQuestion) to chain into `product-phase-roadmap` as the final step.
 - `business-idea-validator-researcher` - fork-only sub-worker (dispatched only by `business-idea-validator`,
   never directly). Runs the deep web research (competitors, market sizing, differentiation) with `WebSearch` /
   `WebFetch`, applies the frameworks in `references/frameworks.md`, and writes the sourced report to
@@ -56,14 +61,15 @@ superbiz/
 - `council-this` - interactive entry. Frames the user's decision and its stakes (AskUserQuestion for at most
   one clarification), writes an intake capture file to `.temp/superbiz/council/capture-<RUN_ID>.md`, dispatches
   `council-this-chairman` via the `Skill` tool, and relays the fork's tagged verdict line back to the user.
-- `council-this-chairman` - fork-only sub-worker (dispatched only by `council-this`, never directly). Convenes
-  the five `superbiz:council-*` persona agents in one parallel dispatch, synthesizes the chairman verdict
+- `council-this-chairman` - fork-only sub-worker (dispatched only by `council-this` and
+  `business-idea-validator`, never directly). Convenes the five `superbiz:council-*` persona agents in one
+  parallel dispatch, synthesizes the chairman verdict
   itself - no separate peer-review round - and writes it to `docs/business/<decision-slug>/rada.md`
   (`council.md` when the language is English), then returns a single tagged line.
 
 All three entries are model-invocable via CSO `description:` and user-invocable directly; all three forks carry
-`context: fork`, `user-invocable: false`, and a "invoked only by the entry skill, never directly" description
-guard.
+`context: fork`, `user-invocable: false`, and a description guard naming its allowed caller(s), never directly -
+`council-this-chairman`'s now names two, `council-this` and `business-idea-validator`.
 
 ## Agents (qualified `superbiz:<name>`)
 
@@ -91,5 +97,7 @@ directly by a user or any other skill. All five run `model: opus`.
   output must be sourced, and every claim is labeled by tier - fact, estimate, or assumption - never presented
   as more certain than it is. The council chairman applies the same tiering to any number its verdict cites.
 
-`superbiz` declares no cross-plugin chains - the validator-to-roadmap chain is in-plugin
-(`business-idea-validator` to `product-phase-roadmap`); `council-this` is not chained from either.
+`superbiz` declares no cross-plugin chains - both chains are in-plugin: the validator's finished report
+mandatorily convenes the council via `council-this-chairman` (a mandatory council round, not an offer), and the
+validator separately offers to chain into `product-phase-roadmap`; the `council-this` entry itself is not
+chained from either.

@@ -75,7 +75,9 @@ Each plugin is independently installable; none declares another as a dependency.
 - **superbiz** - the business validation / product roadmap ecosystem, three CSO-routed entry skills each
   backed by a fork worker: `business-idea-validator` interviews the user about a business/product idea and
   dispatches `business-idea-validator-researcher` (an `opus` fork doing deep web research for a real
-  comparative baseline) to write a sourced report to `docs/business/<idea-slug>/walidacja.md`;
+  comparative baseline) to write a sourced report to `docs/business/<idea-slug>/walidacja.md`, then
+  mandatorily convenes the council round on that finished report via `council-this-chairman` (writing
+  `rada.md` next to the report, no opt-in) before relaying both verdicts;
   `product-phase-roadmap` interviews about scope and dispatches `product-phase-roadmap-writer` (a `sonnet`
   fork) to turn a validated idea into a phased execution plan folder at `docs/business/<idea-slug>/plan/`;
   `council-this` frames a decision with real stakes and dispatches `council-this-chairman` (an `opus` fork),
