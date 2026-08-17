@@ -2,7 +2,6 @@
 name: council-contrarian
 description: Invoked only by the council-this-chairman skill, never directly.
 tools: Read, Glob, Grep, WebSearch, WebFetch
-model: opus
 effort: high
 ---
 

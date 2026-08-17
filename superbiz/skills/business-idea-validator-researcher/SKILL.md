@@ -3,7 +3,6 @@ name: business-idea-validator-researcher
 description: Invoked only by the business-idea-validator skill, never directly.
 context: fork
 background: false
-model: opus
 effort: high
 user-invocable: false
 allowed-tools: Read, Write, Glob, WebSearch, WebFetch, Bash(date:*)

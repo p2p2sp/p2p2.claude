@@ -3,7 +3,6 @@ name: council-this-chairman
 description: Invoked only by the council-this and business-idea-validator skills, never directly.
 context: fork
 background: false
-model: opus
 effort: high
 user-invocable: false
 allowed-tools: Read, Write, Glob, Agent, WebSearch, WebFetch
