@@ -6,6 +6,18 @@ allowed-tools: Bash(sh:*), Bash(node:*)
 
 # Professional UI Design
 
+## Load the AI Slop filter before reasoning about anything
+
+FIRST ACTION of every invocation, no exceptions: read `references/anti-slop.md` in full. Nothing else in this skill starts until it is in context.
+
+- Applies to every job size - a whole page, one component, a color question, a code review, a one-line fix - and applies even when a design system, brief, or token set already exists.
+- Load it BEFORE proposing anything. The tells it names are your own statistical defaults; they have to leave the candidate set before the first decision, not get scrubbed out of a finished draft.
+- Keep it active for the rest of the run: every palette, layout family, section sequence, icon, headline and demo value is checked against it at the moment it is chosen, not at the end.
+- A tell nobody asked for is out. A tell the user's brief explicitly pinned stays ("Scope discipline") - the brief is the only override.
+- Never claim a surface "avoids the generic look" without having read the catalog. The check is that file, not your impression of it.
+
+## The bar
+
 UI is attention management, not decoration. A professional interface is transparent: color, size and space each carry one deliberate signal, so the user never guesses where to look or what to do next. Amateur UI fails by shouting everywhere at once; senior UI fails nothing - it removes until only the signal remains.
 
 ## Surface mode - name the visitor's success first
@@ -19,14 +31,14 @@ Before any design decision, name what the visitor's success looks like on THIS s
 
 ## Design pass - apply in this order
 
-1. **Aesthetic direction** - for a new Persuade/Experience surface, FIRST write the mandatory concept brief and show it to the user, even when a design system already exists -> `references/concepting.md`; then ground the direction in the subject, refuse the AI-default looks (`references/anti-slop.md`), pick one signature element -> `references/distinctiveness.md`
+1. **Aesthetic direction** - for a new Persuade/Experience surface, FIRST write the mandatory concept brief and show it to the user, even when a design system already exists -> `references/concepting.md`; then ground the direction in the subject, You ABSOLUTELY MUST refuse the AI-default looks already catalogued in `anti-slop.md`, pick one signature element -> `references/distinctiveness.md`
 2. **Layout skeleton** - spacing scale, grouping, grid, max-width -> `references/layout-spacing.md`
 3. **Hierarchy & type** - one focal point per screen, fixed type ramp, mute labels / amplify values -> `references/typography.md`; on Persuade surfaces section headings come from the display scale -> `references/typography.md`
 4. **Color** - neutral foundation + elevation, a scarce 100-900 accent scale, dark mode by physiology, OKLCH theming -> `references/color.md`
 5. **Components & states** - loading/empty/error designed, soft elevation, card anatomy -> `references/components-states.md`
 6. **Motion** - only where the frequency gate allows it: purposeful enter/exit, press feedback, one orchestrated moment - never motion everywhere -> `references/motion.md`
 7. **Flow psychology** - only on conversion surfaces (onboarding, signup, upgrade, pricing) -> `references/ux-psychology.md`
-8. **QA** - checklist below + contrast script; never ship on "looks fine".
+8. **QA** - checklist below + contrast script; must never ever ship on "looks fine".
 
 ## Non-negotiables - every screen
 
@@ -41,7 +53,7 @@ Before any design decision, name what the visitor's success looks like on THIS s
 - Touch targets: web ≥ 24×24 CSS px (WCAG AA legal floor), iOS ≥ 44×44 pt, Android ≥ 48×48 dp. Design anything a finger touches to 44-48px, not the web floor.
 - In data display the value dominates, the label is muted - never equal weight.
 - Motion: animate only `transform`/`opacity`, UI durations under 300ms, `ease-out` for enter/exit (never `ease-in`), never from `scale(0)`, no animation on keyboard-initiated or 100+/day actions, and `prefers-reduced-motion` handled (gentler, not zero).
-- Demo content is real content: no Acme/John Doe/Lorem Ipsum, no fake round numbers (47.2%, not 50%), no cliche marketing verbs (Elevate, Seamless, Unleash). Full tells catalog in `references/anti-slop.md`.
+- Demo content is real content: no Acme/John Doe/Lorem Ipsum, no fake round numbers (47.2%, not 50%), no cliche marketing verbs (Elevate, Seamless, Unleash). Full catalog: the `anti-slop.md` file.
 - No dark patterns: no fake urgency, scarcity, progress, or anchors; defaults never work against the user. Full rules in `references/ux-psychology.md`.
 - HARD RULE: never output an em dash (U+2014) or an en dash (U+2013) anywhere - not in UI copy, microcopy, code, comments, or reports. Always use a plain hyphen (-).
 
@@ -58,9 +70,10 @@ A token set binds palette, typography, radii and spacing - it is not a compositi
 
 ## Reference routing
 
+`references/anti-slop.md` is not on this list - it is already loaded unconditionally. Everything below is routed on demand, on top of it.
+
 - New Persuade/Experience surface, before any layout - concept brief, section sequence, skeleton critique -> `references/concepting.md`
 - Aesthetic direction for a new surface, signature elements, UI copy/microcopy voice, consistency locks (radius/gray/theme/accent/register) -> `references/distinctiveness.md`
-- UI that looks generic, templated, or AI-generated; hero composition; landing/marketing pages before shipping; demo data, placeholder names, marketing copy -> `references/anti-slop.md`
 - Onboarding, signup, upgrade, pricing, paywalls, conversion flows -> `references/ux-psychology.md`
 - Choosing/using colors, palettes, dark mode -> `references/color.md`
 - Building or reviewing a token system - CSS variables, primitive/semantic/component layering, theming mechanism, dark-mode switching, z-index layers -> `references/tokens.md`

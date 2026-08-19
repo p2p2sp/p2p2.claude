@@ -75,7 +75,7 @@ Read when designing SaaS dashboards, KPI tiles, app navigation/sidebars, billing
 - Show trust elements: a visible contact email and the saved payment method - removes friction at the decision point.
 
 ## Landing Page
-- Hero composition limits, decoration tells, and demo-content realism -> anti-slop.md; read it before shipping any landing surface.
+- Hero composition limits, decoration tells, and demo-content realism -> anti-slop.md, already loaded before any layout work here.
 - Show the real product: lightly skewed, in-perspective screenshots of actual modules ("skewed graphics") instead of generic flat icons - a polished real interface builds trust no stock icon can. Never fake a product screenshot with styled divs.
 - This principle is backed by CRO case studies (e.g. StatusCake's landing test replacing an abstract hero with real UI screenshots), but no verified universal uplift numbers exist - never quote specific conversion percentages as fact.
 - Communicate benefits, not technical internals: presentation over complexity; perceived visual quality drives perceived product value.

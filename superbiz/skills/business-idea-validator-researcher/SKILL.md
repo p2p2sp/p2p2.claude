@@ -5,7 +5,7 @@ context: fork
 background: false
 effort: high
 user-invocable: false
-allowed-tools: Read, Write, Glob, WebSearch, WebFetch, Bash(date:*)
+allowed-tools: Read, Write, Glob, Skill, Agent, WebSearch, WebFetch, Bash(date:*)
 ---
 
 # Business Idea Validator Researcher

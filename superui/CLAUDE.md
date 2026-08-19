@@ -133,8 +133,15 @@ them rather than sharing a plugin-root copy.
   artifact rule, signature element with 3-point recurrence, consistency locks, copy as design material - the
   plan-then-critique pass now defers to `concepting.md`) and `references/anti-slop.md` (the forensic
   generated-UI tells catalog: an entropy meta-rule opening it, skeleton-level section-sequence tells with
-  minimum-variation requirements, uniform-padding and cardocalypse limits, second-generation tells, layout/
-  visual/decoration tells, hero discipline, demo-content realism, CTA-intent dedup).
+  minimum-variation requirements, uniform-padding and cardocalypse limits, second-generation tells including
+  the four clone looks, layout/visual/decoration tells covering the count reflex, the centered-section-header
+  limit, untouched framework defaults and keyword-matched/sparkles AI iconography, hero discipline,
+  app-dashboard and chat/AI-surface tells, demo-content realism, banned headline formulas and the default
+  CTA tail, CTA-intent dedup). `anti-slop.md` is the one reference NOT routed on demand: SKILL.md opens with a
+  **Step 0** gate loading it in full before any other reasoning, on every invocation and every job size, so the
+  tells leave the candidate set before the first decision instead of being scrubbed out of a finished draft -
+  hence it is deliberately absent from the "Reference routing" list, and the reference files point at it as
+  already-loaded rather than telling the reader to go read it.
   `references/tokens.md` carries token-architecture
   doctrine (primitive/semantic/component layering, dark-mode-overrides-only-the-semantic-layer, paired
   surface/foreground tokens, role-based naming, derived radius/z-index scales) distilled from the

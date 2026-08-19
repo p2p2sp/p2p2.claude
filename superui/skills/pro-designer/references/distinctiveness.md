@@ -15,7 +15,7 @@ Generated UI clusters around a few recognizable looks. Each is legitimate when t
 - Numbered section markers (01 / 02 / 03) on content that is not actually a sequence.
 - Micro-animations scattered on everything - excess motion is itself a generated-look tell.
 
-The full forensic catalog - layout, visual, decoration, hero, and copy tells with their fixes - lives in anti-slop.md; read it whenever reviewing a surface for the generated look.
+The full forensic catalog - layout, visual, decoration, hero, app/AI-surface, and copy tells with their fixes - lives in anti-slop.md, already loaded before any of this.
 
 Rule: where the brief pins a direction, follow the brief exactly - even into one of these looks. Where the brief leaves an axis free, never spend that freedom on a default.
 

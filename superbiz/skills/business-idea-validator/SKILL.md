@@ -2,7 +2,7 @@
 name: business-idea-validator
 description: Validate whether a business idea is feasible and can win against competitors, using deep web research for a real comparative baseline. Use whenever the user describes a business/startup/product/SaaS idea and wants to know if it's viable, worth building, who the competitors are, how big the market is, or how to differentiate - even without the word "validate". Also use when they ask whether their app can beat an existing product (better UX, UI, onboarding, performance) - occupied markets are the default case, not a reason to skip. Also use when they ask which features their product needs to win, what pain points of existing tools to exploit, or what's missing in the market ("jakie funkcje powinna mieć moja apka", "czego brakuje w istniejących rozwiązaniach"). Trigger on "is my idea good", "czy mój pomysł ma sens", "sprawdź mój pomysł na biznes", "who would I compete with", "market research for my idea". Do NOT use for analyzing a running company's quarterly performance, for pure marketing copywriting, or for casual conversation about business topics with no concrete idea of the user's own on the table.
 user-invocable: true
-allowed-tools: Read, Write, Glob, AskUserQuestion, Skill, Bash(date:*)
+allowed-tools: Read, Write, Glob, Agent, AskUserQuestion, Skill, Bash(date:*)
 ---
 
 # Business Idea Validator
