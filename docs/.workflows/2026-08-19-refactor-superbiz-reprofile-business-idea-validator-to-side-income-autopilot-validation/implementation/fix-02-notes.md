@@ -1,0 +1,11 @@
+# fix-02 notes
+
+- Important (researcher SKILL.md DROP contradiction) fixed by adding an ungated lead-in paragraph ("Regardless of the verdict, DROP included, the report must also carry these three ...") before the three items, splitting them out of the "For BUILD or PIVOT" how-to-win bullet list - matches the template's ungated sections 3 and 11 without weakening the how-to-win gate.
+- Minor fixed - "bottom band" replaced with "scores 3 or below" in `business-idea-validator-researcher/SKILL.md` (autopilot operability dimension) and `references/frameworks.md` (autopilot operability anchor) - so the hard gate names the number the guideline consumes.
+- Minor fixed - `references/frameworks.md` verdict guideline: "leads to PIVOT or DROP regardless of total" changed to "forces PIVOT or DROP regardless of total" - restores the spec's precedence wording; the "guideline, not formula" framing is untouched.
+- Minor fixed - `references/report-template.md` section 8 and section 10b now name the `unstated` value alongside the absent heading, matching the researcher SKILL.md degraded path; section 10b previously had no degraded branch at all.
+- Minor fixed - `references/report-template.md` section 10 (Wedge) gained one clause requiring the recommended clone strategy to be named when a clone path applies - the researcher SKILL.md already mandates it in two places.
+- Minor fixed - `references/report-template.md` section 10c now states its maintenance-hours figure is "the same total stated in section 8, here itemized by source", so the two plan-mandated mentions cannot diverge.
+- Minor NOT fixed (recorded) - researcher SKILL.md length/internal repetition (lens at the autopilot-economics section vs the how-to-win output spec): unchanged, same rationale as fix-01 - a multi-section consolidation of passing content is beyond a review-fix round and the review re-raised it only for the record.
+- Minor NOT fixed (recorded) - `superbiz/CLAUDE.md` "All five run `model: opus`" left as is: the plan and the spec's out-of-scope list both exclude stale documentation outside the validator paragraphs, and the review agreed it was correctly left alone.
+- No files outside the plan's seven-file set were touched; three of the seven (validator SKILL.md, root CLAUDE.md, README.md) needed no change this round.

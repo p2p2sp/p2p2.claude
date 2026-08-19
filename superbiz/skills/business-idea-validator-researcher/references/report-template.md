@@ -79,8 +79,9 @@ ambitious technical scope viable - state the assumed timeline); give
 extra weight to the non-compressible constraints: distribution, sales
 cycle, compliance, data, support. Include the estimated post-launch
 maintenance load in hours per month, compared against the capture's
-`# Maintenance budget` (state the gap in both directions; the input
-absent - say so).
+`# Maintenance budget` (state the gap in both directions; the heading
+absent or carrying the value `unstated` - say so and judge the load on
+category evidence alone).
 
 ## 9. SWOT
 
@@ -91,7 +92,9 @@ for which segment, tied to documented complaints; state which users
 incumbents get to keep) leads to positioning (generic strategy) leads to why users
 will switch (or which users have nothing to switch from) leads to moat
 trajectory (remember: "built fast with AI" is not a moat - rivals
-have the same tooling) leads to go-to-market entry sequence.
+have the same tooling) leads to go-to-market entry sequence. When a
+clone path applies, name the recommended clone strategy from the
+clone-strategy catalog here and why the research favors it.
 
 ## 10a. Rekomendowany zakres funkcji / Recommended feature set
 (only for BUILD/PIVOT) Source everything from three lists: (a) MVP
@@ -116,7 +119,9 @@ what in the product makes the value adequate to the price. Never
 "monetize later". State whether the capture's `# Income target` is
 plausible at that anchor - show the arithmetic (price times paying
 customers needed) and judge whether that count is reachable and
-retainable in this niche. (2) The one channel - the single
+retainable in this niche; the heading absent or carrying the value
+`unstated` - say so and judge monetization on category evidence alone.
+(2) The one channel - the single
 distribution channel to make work first, why, and numeric targets:
 payback on paid spend under 60 days (aspiration around 7 days); rule:
 profitable channel leads to doubling down before adding a second one.
@@ -129,9 +134,10 @@ self-serve onboarding; sales weak leads to seasonal events, launches).
 
 ## 10c. Koszt utrzymania i ryzyka auto-pilota / Autopilot economics
 (only for BUILD/PIVOT) Four parts: (1) the estimated maintenance load
-in hours per month, itemized by source (support volume, manual steps,
-integration upkeep, moderation, updates) and compared against the
-capture's `# Maintenance budget`; (2) the self-serve customer path -
+in hours per month - the same total stated in section 8, here itemized
+by source (support volume, manual steps, integration upkeep,
+moderation, updates) and compared against the capture's
+`# Maintenance budget`; (2) the self-serve customer path -
 onboarding, payments, refunds, FAQ-first and docs-first support - with
 each researched gap that would pull the owner into the loop and the
 automation that closes it; (3) churn resilience without active
