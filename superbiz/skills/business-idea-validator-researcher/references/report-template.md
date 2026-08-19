@@ -11,7 +11,8 @@ The verdict label in bold, translated to the report language:
 BUDUJ / PIVOT / ODPUŚĆ in Polish, BUILD / PIVOT / DROP in English,
 the analogous translation in any other report language. Then a 5-8
 sentence executive summary of why, then the scoring table: the six
-dimensions in this exact order - PCV (Perceived Created Value -
+dimensions in this exact order - PCV (Perceived Created Value,
+expanded on first use in the report language, e.g. in Polish:
 postrzegana wartość dla klienta), problem evidence, autopilot
 operability, monetization vs CAC, MVP feasibility within the 2-4 week
 cap, solo-founder distribution access - each scored 1-10 with a

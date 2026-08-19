@@ -97,7 +97,7 @@ Flat-named (single-domain plugin, no group prefix). No manifest, no hooks - the 
 
 | Skill | Role |
 | --- | --- |
-| `business-idea-validator` | Interactive entry - resolves the idea, the accepted post-launch maintenance hours and the target supplementary income with the user, then hands one capture file to its fork worker. On the finished report it runs a mandatory council round (`council-this-chairman`, no opt-in) and relays both verdicts, then always offers (`AskUserQuestion`) to chain straight into `product-phase-roadmap` |
+| `business-idea-validator` | Interactive entry - resolves the idea, the accepted post-launch maintenance hours and the target supplementary income with the user, then hands one capture file to its fork worker. On the finished report it runs a mandatory council round (`council-this-chairman`, no opt-in) and relays both verdicts, then offers (`AskUserQuestion`) to chain straight into `product-phase-roadmap` |
 | `business-idea-validator-researcher` | Fork - does the deep web research for a real competitive baseline and writes the BUILD / PIVOT / DROP report, judging the idea as a side-income autopilot product, to `docs/business/<idea-slug>/` |
 | `product-phase-roadmap` | Interactive entry - resolves the report (often the validator's own output), the slug, and every open decision with the user, then hands one capture file to its fork worker |
 | `product-phase-roadmap-writer` | Fork - refreshes best practices from the web and writes the phased execution documentation (landing page + waitlist through MVP to full-scope growth) to `docs/business/<idea-slug>/plan/` |
