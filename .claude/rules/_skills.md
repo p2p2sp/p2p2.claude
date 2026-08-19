@@ -8,6 +8,8 @@ paths:
 
 Always use those rules when creating, refactoring, reshaping, optimizing skills or agents.
 
+Never put a learned knowledge to the skill content - only instructions that are unlearned and unknown. Such records only needlessly duplicate known knowledge.
+
 ## LLM is your audience
 
 Remember, you're writing a skill or agent for an LLM, not a human. An LLM needs short, on-point instructions, bullet points and sub-points over prose - closer to code instructions than narrative. Too much information means chaos and misleading decisions.
