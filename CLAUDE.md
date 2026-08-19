@@ -73,14 +73,17 @@ Each plugin is independently installable; none declares another as a dependency.
   `MATCH` and `NO_CONTRACT` out of dispatch) - and dispatches cheap-triage / deep-dive agents into the union of
   both. (→ `superfix/CLAUDE.md`)
 - **superbiz** - the business validation / product roadmap ecosystem, three CSO-routed entry skills each
-  backed by a fork worker: `business-idea-validator` interviews the user about a business/product idea and
-  dispatches `business-idea-validator-researcher` (an `opus` fork doing deep web research for a real
-  comparative baseline) to write a sourced report to `docs/business/<idea-slug>/walidacja.md`, then
+  backed by a fork worker: `business-idea-validator` interviews the user about a business/product idea plus
+  the maintenance hours per month accepted after launch and the target supplementary income, and
+  dispatches `business-idea-validator-researcher` (a fork doing deep web research for a real
+  comparative baseline) to write a sourced report to `docs/business/<idea-slug>/walidacja.md` judging the
+  idea as a side-income product running on autopilot rather than a venture-scale startup, and returning a
+  BUILD / PIVOT / DROP verdict; the entry then
   mandatorily convenes the council round on that finished report via `council-this-chairman` (writing
   `rada.md` next to the report, no opt-in) before relaying both verdicts;
   `product-phase-roadmap` interviews about scope and dispatches `product-phase-roadmap-writer` (a `sonnet`
   fork) to turn a validated idea into a phased execution plan folder at `docs/business/<idea-slug>/plan/`;
-  `council-this` frames a decision with real stakes and dispatches `council-this-chairman` (an `opus` fork),
+  `council-this` frames a decision with real stakes and dispatches `council-this-chairman` (a fork),
   which convenes five persona agents (`council-contrarian`, `council-first-principles`, `council-expansionist`,
   `council-outsider`, `council-executor` - superbiz's first `agents[]`) in parallel and synthesizes the
   chairman verdict itself at `docs/business/<decision-slug>/rada.md`. Ships **no hooks and no

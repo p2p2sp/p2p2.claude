@@ -4,8 +4,10 @@
 > plugin input** - it never reaches the skills as runtime data. See the root `CLAUDE.md` for the repo-wide
 > warnings and cross-plugin invariants; this file holds only what is specific to `superbiz`.
 
-`superbiz` is the business validation / product roadmap ecosystem: turning a raw idea into a sourced viability
-report, turning a validated idea into a phased execution roadmap, and turning a framed decision into a
+`superbiz` is the business validation / product roadmap ecosystem: turning a raw idea into a sourced
+side-income autopilot viability report (a BUILD / PIVOT / DROP verdict on the idea as a supplementary-income
+product that runs with minimal owner time after launch, not as a venture-scale startup), turning a validated
+idea into a phased execution roadmap, and turning a framed decision into a
 synthesized council verdict. It is a **single-domain** plugin, so
 its skills carry **no group prefix** (the plugin name is the group) and are flat-named. It ships **no
 `hooks/` and no injected manifest** - each pair (entry + fork) routes purely via its CSO `description:`; a
@@ -37,7 +39,10 @@ superbiz/
 
 ## Skills (qualified `superbiz:<name>`)
 
-- `business-idea-validator` - interactive entry. Interviews the user about the idea (AskUserQuestion), writes
+- `business-idea-validator` - interactive entry. Interviews the user about the idea (AskUserQuestion),
+  including the maintenance hours per month accepted after launch and the target supplementary income per
+  month (both recorded as "unstated" when the user declines, never invented), states the side-income
+  autopilot premise before proceeding, writes
   an intake capture file to `.temp/superbiz/validator/capture-<RUN_ID>.md`, and dispatches
   `business-idea-validator-researcher` via the `Skill` tool. Once the researcher returns its report, the entry
   runs a mandatory council round: it writes a second capture file to `.temp/superbiz/council/capture-<RUN_ID>.md`
@@ -48,7 +53,10 @@ superbiz/
   offers (AskUserQuestion) to chain into `product-phase-roadmap` as the final step.
 - `business-idea-validator-researcher` - fork-only sub-worker (dispatched only by `business-idea-validator`,
   never directly). Runs the deep web research (competitors, market sizing, differentiation) with `WebSearch` /
-  `WebFetch`, applies the frameworks in `references/frameworks.md`, and writes the sourced report to
+  `WebFetch`, applies the frameworks in `references/frameworks.md`, scores six dimensions on a uniform 1-10
+  scale led by PCV (perceived created value), with autopilot operability as a hard gate - an estimated
+  post-launch maintenance load clearly above the capture's stated budget is gate-breaking on its own - and
+  returns a BUILD / PIVOT / DROP verdict. Writes the sourced report to
   `docs/business/<idea-slug>/walidacja.md` (or `validation.md` when the report language is English) following
   `references/report-template.md`, then returns a single tagged line.
 - `product-phase-roadmap` - interactive entry. Interviews the user about scope/constraints (AskUserQuestion),
