@@ -25,8 +25,9 @@ what the research showed: confirmed / broken / still open.
 ## 3. Najbardziej ryzykowne założenie i mapa ryzyka / The riskiest assumption and the risk map
 Exactly ONE riskiest assumption - the single one whose failure kills
 the idea outright - with what makes it more lethal than the rest.
-Then the assumption-risk map: the remaining open assumptions ordered
-by what to test first (highest kill-power and cheapest to test
+Then the assumption-risk map, built from the assumptions still open
+in section 2 (no re-arguing their status here): those assumptions
+ordered by what to test first (highest kill-power and cheapest to test
 first), each with the concrete signal that would falsify it.
 Present for every verdict, DROP included.
 
@@ -119,7 +120,10 @@ what in the product makes the value adequate to the price. Never
 "monetize later". State whether the capture's `# Income target` is
 plausible at that anchor - show the arithmetic (price times paying
 customers needed) and judge whether that count is reachable and
-retainable in this niche; the heading absent or carrying the value
+retainable in this niche. Both figures must be in the same currency:
+the target comes in the user's currency and the researched price
+anchor often does not, so convert the anchor when they differ and
+name the rate used. The heading absent or carrying the value
 `unstated` - say so and judge monetization on category evidence alone.
 (2) The one channel - the single
 distribution channel to make work first, why, and numeric targets:

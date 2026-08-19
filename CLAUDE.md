@@ -76,9 +76,9 @@ Each plugin is independently installable; none declares another as a dependency.
   backed by a fork worker: `business-idea-validator` interviews the user about a business/product idea plus
   the maintenance hours per month accepted after launch and the target supplementary income, and
   dispatches `business-idea-validator-researcher` (a fork doing deep web research for a real
-  comparative baseline) to write a sourced report to `docs/business/<idea-slug>/walidacja.md` judging the
-  idea as a side-income product running on autopilot rather than a venture-scale startup, and returning a
-  BUILD / PIVOT / DROP verdict; the entry then
+  comparative baseline) to write a sourced report to `docs/business/<idea-slug>/walidacja.md`; that fork
+  judges the idea as a side-income product running on autopilot rather than a venture-scale startup, and
+  returns a BUILD / PIVOT / DROP verdict; the entry then
   mandatorily convenes the council round on that finished report via `council-this-chairman` (writing
   `rada.md` next to the report, no opt-in) before relaying both verdicts;
   `product-phase-roadmap` interviews about scope and dispatches `product-phase-roadmap-writer` (a `sonnet`

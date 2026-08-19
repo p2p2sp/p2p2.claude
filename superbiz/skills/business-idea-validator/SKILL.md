@@ -18,7 +18,7 @@ The line above is `<RUN_ID>` - use it verbatim.
 ## Workflow
 
 1. Intake. Extract from the user's description: the problem being solved, target customer, proposed solution, monetization model, target geography, the user's resources (budget, team, skills, timeline), the maintenance hours per month the user accepts after launch, and the target supplementary income per month.
-2. Ask only what desk research cannot answer. If target geography or B2B/B2C is missing, ask those first via AskUserQuestion - they change every downstream framework input. Ask the acceptable maintenance hours per month and the target supplementary income per month the same way whenever they are missing - only the user knows their time budget and income goal, and both drive the scoring. Ask about any other materially-missing input the same way. Never ask what research can find on its own (market size, competitors, pricing). A user who declines to give the hours budget or the income target is recorded as "unstated" - never block the interview and never invent a number.
+2. Ask only what desk research cannot answer. If target geography or B2B/B2C is missing, ask those first via AskUserQuestion - they change every downstream framework input. Ask the acceptable maintenance hours per month and the target supplementary income per month the same way whenever they are missing - only the user knows their time budget and income goal, and both drive the scoring. Record the income target with the currency the user stated it in (ask which currency when the user gave a bare number) - the figure is compared against researched incumbent pricing downstream, so an unlabeled amount produces a wrong score. Ask about any other materially-missing input the same way. Never ask what research can find on its own (market size, competitors, pricing). A user who declines to give the hours budget or the income target is recorded as "unstated" - never block the interview and never invent a number.
 3. Restate and confirm assumptions. Restate the idea in one paragraph. State the premise explicitly: the verdict judges the idea as a supplementary-income product running on autopilot, not as a venture-scale startup, so the user can stop or reframe here. List the 3-5 riskiest "leap of faith" assumptions - the ones that, if false, kill the idea. Confirm the restated idea and the assumption list with the user. Never compliment or endorse the idea at any point in the interview - restate neutrally and let the research decide.
 4. Slug and language. Derive `<idea-slug>` (kebab-case) from the idea and confirm it with the user. Detect the report language from the language the user used to describe the idea.
 5. Capture. Write `.temp/superbiz/validator/capture-<RUN_ID>.md` in the format below.
@@ -53,7 +53,7 @@ The line above is `<RUN_ID>` - use it verbatim.
 # Maintenance budget
 <acceptable maintenance hours per month after launch, or "unstated">
 # Income target
-<target supplementary income per month, or "unstated">
+<target supplementary income per month with its currency, or "unstated">
 # Assumptions
 - <leap-of-faith assumption>
 - <leap-of-faith assumption>
