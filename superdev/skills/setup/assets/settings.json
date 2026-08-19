@@ -145,9 +145,9 @@
     ],
     "defaultMode": "acceptEdits"
   },
-  "disableBundledSkills": true,
+  "disableBundledSkills": false,
   "disableWorkflows": true,
   "disableRemoteControl": false,
   "disableClaudeAiConnectors": true,
-  "disableArtifact": true
+  "disableArtifact": false
 }
