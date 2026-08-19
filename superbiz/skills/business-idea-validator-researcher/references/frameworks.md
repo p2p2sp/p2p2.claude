@@ -22,7 +22,7 @@ Rates industry attractiveness - whether the structure of the industry allows abo
 4. Bargaining power of suppliers - includes platform dependency: if the idea lives on top of an API, app store, or marketplace, that platform is a high-power supplier. Flag existential platform risk (the platform could build the feature natively).
 5. Threat of substitutes - different-shaped solutions to the same job, including manual processes, spreadsheets, and "do nothing". For most B2B SaaS ideas the real competitor is a spreadsheet.
 
-Conclusion to draw: if 4-5 forces are High, even a well-executed product fights for thin margins - this should weigh heavily toward PIVOT/NO-GO regardless of how nice the idea sounds.
+Conclusion to draw: if 4-5 forces are High, even a well-executed product fights for thin margins - this should weigh heavily toward PIVOT/DROP regardless of how nice the idea sounds.
 
 ## Competitor comparison table
 
@@ -73,12 +73,30 @@ network effects, switching costs (data lock-in, workflow integration), economies
 
 ## Scoring rubric for the verdict
 
-Score 1-5 each; report the number with a one-line justification:
+Score exactly six dimensions, each on a uniform 1-10 scale; report the number with a one-line justification anchored on a research finding:
 
-- Problem evidence: 1 means no trace of anyone complaining; 5 means abundant, recent, high-intensity complaints.
-- Market attractiveness: 1 means small and shrinking; 5 means large or fast-growing, sourced.
-- Competitive intensity (inverted): 1 means incumbents are beloved (high ratings, few complaints), price wars, prohibitive switching costs; 5 means incumbents exist but are complacent, with documented dissatisfaction and a low execution bar.
-- Differentiation potential: 1 means the idea is a feature clone with no execution or feature edge; 5 means a clear gap mapped to documented complaints - an execution gap (speed, UI, UX, onboarding, simplicity) and/or a requested-but-absent feature that is a documented switching trigger.
-- Feasibility with stated resources: 1 means it needs capital/skills the founder lacks by an order of magnitude, or is blocked by non-compressible constraints (distribution, compliance, data); 5 means it's achievable with the stated budget/timeline on the experienced-engineer plus Claude Code baseline - score the build optimistically (including technically ambitious scope), the go-to-market realistically.
+- PCV (Perceived Created Value) - painkiller vs vitamin. 1 means a vitamin nobody would miss if it vanished tomorrow; 10 means a painkiller with researched evidence of people already paying to kill that exact pain. Mid-band: 4-6 is a real but tolerated annoyance, 7-9 is a pain with churn stories behind it. Reported first - it is the headline metric.
+- Problem evidence - strength of behavioral Mom Test evidence only: past spending, churn stories, active workarounds (spreadsheets, hired help, glued-together tools). 1 means no trace anyone has this problem; 10 means abundant, recent, high-intensity evidence of money and effort already spent on it. Declared intent scores nothing - survey interest, upvotes, and "would you buy this" answers move this dimension by zero regardless of volume.
+- Autopilot operability - the estimated post-launch maintenance load against the capture's `# Maintenance budget`. 1 means the founder sits in the loop of every sale and every support case; 10 means a fully self-serve path (signup, payment, refund, docs-first support) with the estimated maintenance clearly inside the budget. A load clearly above the budget scores in the bottom band.
+- Monetization vs CAC - researched willingness to pay against researched acquisition cost. 1 means no plausible channel pays back inside 60 days, or the capture's `# Income target` is out of reach for the niche at any defensible price; 10 means a researched channel with payback near the 7-day gold standard and the target plausibly covered by a reachable customer count.
+- MVP feasibility within the cap - the hard 2-4 calendar-week cap on solo work. 1 means the core value cannot be delivered inside the cap even AI-assisted; 10 means it fits comfortably inside the cap with room for the one differentiator. Score the build on the experienced-engineer plus Claude Code baseline; scope that overflows the cap belongs in the backlog, not in a lower score, unless what remains no longer closes a first paying customer.
+- Solo-founder distribution access - 1 means enterprise sales, gatekept channels, partnership dependency, or a brand budget the founder does not have; 10 means a self-serve channel one person can operate alone (SEO, app-store search, a community the founder already belongs to, marketplace listing).
 
-Guideline, not formula: total of 18 or more with no dimension at 1 leads to GO; a single 1 on problem evidence or feasibility leads to NO-GO or PIVOT regardless of total; otherwise PIVOT territory - the analysis, not the arithmetic, makes the call, and the report must explain it.
+Guideline, not formula: total of 36 or more with no dimension at 2 or below leads to BUILD; a score of 3 or less on PCV, problem evidence, or autopilot operability leads to PIVOT or DROP regardless of total; otherwise PIVOT territory - the analysis, not the arithmetic, makes the call, and the report must explain it.
+
+## Assumption risk map
+
+Order the capture's remaining assumptions by impact-if-false times current uncertainty, highest first. The top row after The Riskiest Assumption defines what to test next - that is the map's only job, so each row carries the concrete signal that would falsify the assumption.
+
+Assumptions the research confirmed or broke drop out of the map entirely: they are settled findings, and belong in the analysis, not in a list of open risks. If fewer than two assumptions survive as open, the map may collapse to a single row - state that explicitly ("research settled the rest") rather than padding it back to length with restated findings.
+
+## Mom Test rules for experiment questions
+
+Questions for the 48-hour experiment ask about the past and the concrete:
+
+- What did you do the last time this problem hit?
+- What did it cost you (time, money, a lost customer)?
+- What have you already paid for to solve it, and what happened to that tool?
+- How did you find that tool?
+
+Hypotheticals are banned - "would you use it", "would you pay for X", "how much would you pay" produce answers that predict nothing. Compliments and generic enthusiasm ("great idea", "I'd definitely use this") are recorded as zero evidence; only a past action, a past payment, or a commitment of time, money, or reputation counts.
