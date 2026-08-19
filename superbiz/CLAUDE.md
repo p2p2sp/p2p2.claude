@@ -82,7 +82,7 @@ All three entries are model-invocable via CSO `description:` and user-invocable 
 ## Agents (qualified `superbiz:<name>`)
 
 Dispatched only by the `council-this-chairman` fork, via the `Agent` tool, in one parallel dispatch - never
-directly by a user or any other skill. All five run `model: opus`.
+directly by a user or any other skill. None declares `model:` - all five inherit the caller's model.
 
 - `council-contrarian` - hunts the fatal flaw: what is wrong, missing, or will fail.
 - `council-first-principles` - strips the framing's assumptions and rebuilds the reasoning from the ground up.
