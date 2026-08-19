@@ -1,6 +1,6 @@
 ---
 name: council-this
-description: Run a question, idea, or decision with real stakes through a council of five independent advisors who each analyze it from a fundamentally different angle, synthesized into one verdict with a clear recommendation and a single first step. Use whenever the user asks to pressure-test a decision, wants multiple perspectives, is torn between options, or presents a genuine tradeoff. Trigger on "council this", "run the council", "pressure-test this", "stress-test this", "debate this", "przedyskutuj to z radą", "zbierz radę", "nie mogę się zdecydować", "co byś zrobił na moim miejscu", "should I X or Y" / "czy lepiej X czy Y" when the choice carries real stakes. Do NOT use for questions with one verifiable right answer, factual lookups, creation tasks (write the tweet), processing tasks (summarize the article), or a casual should-I with no meaningful tradeoff.
+description: Run a question, idea, or decision with real stakes through a council of five independent advisors, each analyzing it from a fundamentally different angle, synthesized into one verdict with a clear recommendation and a single first step. Use whenever the user wants to pressure-test or stress-test a decision, wants multiple perspectives, is torn between options, or presents a genuine tradeoff. Trigger on "council this", "run the council", "I can't decide", "what would you do in my place", "should I X or Y" when the choice carries real stakes. Do NOT use for questions with one verifiable right answer, factual lookups, creation or processing tasks (write the tweet, summarize the article), or a casual should-I with no meaningful tradeoff.
 user-invocable: true
 argument-hint: "[<decision or question>]"
 allowed-tools: Read, Write, Glob, AskUserQuestion, Skill, Bash(date:*)
@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Glob, AskUserQuestion, Skill, Bash(date:*)
 
 # Council This
 
-Runs a decision with real stakes through a council of five advisors who each analyze it from a fundamentally different angle. This skill is the interactive front: it frames the decision and gathers the context the council needs, then hands one capture file to the `council-this-chairman` fork, which convenes the five persona agents and writes the verdict.
+Interactive front: frame the decision and gather the context the council needs, then dispatch the council round to the `council-this-chairman` fork - this skill never convenes the council or writes the verdict itself.
 
 ## Run ID
 

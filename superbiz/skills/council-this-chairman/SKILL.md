@@ -5,16 +5,16 @@ context: fork
 background: false
 effort: high
 user-invocable: false
-allowed-tools: Read, Write, Glob, Agent, WebSearch, WebFetch
+allowed-tools: Read, Write, Glob, Agent
 ---
 
 # Council This Chairman
 
-Convenes five persona advisors on a framed decision, synthesizes the chairman verdict itself, and writes one overwritable Markdown artifact. There is no peer-review round here - the council process (five independent angles plus a synthesized verdict) is itself the review of the user's decision.
+Convenes five persona advisors on a framed decision, synthesizes the chairman verdict itself, and writes one overwritable Markdown artifact.
 
 ## Input contract
 
-Single labeled arg: `capture: <path>`. Read it first. The capture is the complete decision record - `# Question`, `# Slug`, `# Language`, `# Context files`, `# Constraints`, `# Extra context` were already settled in the interview. Never ask the user anything.
+Single labeled arg: `capture: <path>`. Read it first. The capture is the complete decision record - `# Question`, `# Slug`, `# Language`, `# Context files`, `# Constraints`, `# Extra context` are already settled. Never ask the user anything.
 
 Capture missing or unreadable: return `ERROR: capture unreadable at <path>` as the single output line instead of convening from nothing.
 

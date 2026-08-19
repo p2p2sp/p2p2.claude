@@ -15,7 +15,7 @@ Converts a validated idea into execution documentation: a folder of Markdown fil
 
 ## Input contract
 
-Single labeled arg: `capture: <path>`. Read it first, then read the `# Report` path it names when the value is not "none". The capture is the complete decision record: every open question was already resolved in the interview. Never ask the user anything. No unresolved "[do decyzji]" placeholder may survive into the output - every open item is either a decision already in the capture or a decision rule with a numeric threshold and a resolving phase.
+Single labeled arg: `capture: <path>`. Read it first, then read the `# Report` path it names when the value is not "none". The capture is the complete decision record - every open question is already resolved. Never ask the user anything. No unresolved "[do decyzji]" placeholder may survive into the output - every open item is either a decision already in the capture or a decision rule with a numeric threshold and a resolving phase.
 
 Capture missing or unreadable: return `ERROR: capture unreadable at <path>` as the single output line instead of writing from nothing.
 
@@ -35,27 +35,19 @@ Budget 4-8 web searches. Best practices in launch marketing and product-led grow
 - post-launch product-led growth: activation, time-to-value, retention benchmarks
 - anything product-specific the phases depend on (billing providers available in the user's country, GDPR/DPA requirements if EU customers)
 
-**Honesty rule:** every benchmark, conversion rate, or timeline norm cited in the output must come from a fetched source with inline attribution ("(Publisher, year)"). Where sources conflict, give the range. Where no data exists, write "brak wiarygodnych danych" / "no reliable data" - never invent numbers. Distinguish [fakt - źródło] / [szacunek - metoda] (translated to the output language). There is no "[do decyzji]" tier in the output - the capture's interview already eliminated it: user-owned choices are answered, data-dependent choices are decision rules with thresholds.
+**Honesty rule:** every benchmark, conversion rate, or timeline norm cited in the output must come from a fetched source with inline attribution ("(Publisher, year)"). Where sources conflict, give the range. Where no data exists, write "brak wiarygodnych danych" / "no reliable data" - never invent numbers. Distinguish [fakt - źródło] / [szacunek - metoda] (translated to the output language). There is no "[do decyzji]" tier in the output: user-owned choices are already answered in the capture, data-dependent choices are decision rules with thresholds.
 
 ## Structure
 
-Read `references/phase-blueprint.md` now - it contains the default five-phase skeleton, the per-phase section template, exit-criteria patterns, and benchmark starting points with sources.
+Read `references/phase-blueprint.md` now - it contains the default five-phase skeleton (Faza 0 Fundament through Faza 4 Wzrost), the per-phase section template, exit-criteria patterns, and benchmark starting points with sources. Adapt phase count and names to the product - merge or split when the report or capture implies it.
 
-Default phases (adapt count and names to the product - merge or split when the report or capture implies it):
+Rules that hold even where the blueprint is adapted:
 
-- Phase 0 - Fundament: positioning, ICP, name/domain/brand, analytics and legal groundwork, budget.
-- Phase 1 - Landing page + waitlista: pre-launch page, waitlist mechanics, first traffic, message testing.
-- Phase 2 - MVP + zamknięta beta: build scope (from the report's table stakes), pilot customers (including any committed first customer), feedback loop, pricing dry-run.
-- Phase 3 - Launch publiczny: soft launch to hard launch (channels chosen by research), migration/import paths from competitors, launch-week operations.
-- Phase 4 - Wzrost do pełnego zakresu: deferred modules shipped by trigger (not by date), content/SEO engine, activation and retention optimization, pricing iteration.
-
-Rules that make the plan real rather than slideware:
-
-- Exit criteria gate every phase. Each phase ends with 2-4 measurable criteria (numbers, not vibes) that must be met before the next phase starts, plus an explicit "co jeśli nie" branch (iterate / pivot / stop). Pull thresholds from research benchmarks, the report's experiments, and the capture's decision rules.
-- Marketing is scheduled work. Every phase includes distribution tasks with the same step-by-step rigor as build tasks - channel, concrete action, time estimate, owner (the user), expected signal.
-- Deferred features ship on triggers. Phase 4 items are tied to signals ("N or more paying customers request X", "support volume exceeds Y per week") rather than calendar dates.
-- Steps are checkboxes. Write actionable steps as `- [ ]` items a solo founder can literally tick off, ordered, with rough time estimates (hours/days) on the solo + Claude Code baseline.
-- Trace to the report or capture. Where a step exists because of a researched finding (a pain point, a competitor gap, a pricing decision) or a capture decision, say so in one clause - the user should see why each step earns its place.
+- Exit criteria gate every phase: 2-4 measurable criteria (numbers, not vibes) plus an explicit "co jeśli nie" branch (iterate / pivot / stop). Pull thresholds from research benchmarks, the report's experiments, and the capture's decision rules.
+- Marketing is scheduled work: every phase carries distribution tasks with the same step-by-step rigor as build tasks - channel, concrete action, time estimate, expected signal.
+- Deferred features ship on triggers ("N or more paying customers request X"), never on calendar dates.
+- Steps are `- [ ]` checkboxes a solo founder can literally tick off, ordered, with rough time estimates (hours/days) on the solo + Claude Code baseline.
+- Where a step exists because of a researched finding or a capture decision, say so in one clause - the user should see why each step earns its place.
 
 ## Output
 

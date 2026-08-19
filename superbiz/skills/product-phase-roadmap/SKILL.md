@@ -1,6 +1,6 @@
 ---
 name: product-phase-roadmap
-description: Turn a validated business/product idea (especially a validation report produced by the business-idea-validator skill) into phased product documentation - a folder of Markdown files, one per phase, from landing page + waitlist, through MVP and public launch, to full-scope growth - with step-by-step actions including marketing, distribution, and metrics for every phase. Use whenever the user asks to "rozpisz na fazy", "rozpisz raport jako dokumentację", "plan wytwarzania produktu", "roadmapa wdrożenia", "plan od landing page do MVP", "co robić krok po kroku żeby wystartować", "launch plan", "go-to-market plan", or wants execution documentation for a SaaS/app idea - even if they don't say "roadmap" or "phases". Also use when a validation report exists in the conversation and the user asks "what next" or "jak to teraz zrealizować". Do NOT use to run the validation itself (use business-idea-validator first), for a running company's operational planning unrelated to a new product launch, or for pure marketing copywriting with no phased execution ask.
+description: Turn a validated business/product idea (especially a business-idea-validator report) into phased execution documentation - a folder of Markdown files, one per phase, from landing page + waitlist through MVP and public launch to growth, with step-by-step actions covering marketing, distribution, and metrics. Use whenever the user asks for a launch plan, go-to-market plan, an implementation roadmap, a step-by-step plan to get from idea to launch, or execution documentation for a SaaS/app idea - even without the words "roadmap" or "phases" - and when a validation report exists and the user asks "what next" or how to execute it. Do NOT use to run the validation itself (business-idea-validator does that), for a running company's operational planning unrelated to a new product launch, or for pure marketing copywriting with no phased execution ask.
 user-invocable: true
 argument-hint: "[<validation-report path>]"
 allowed-tools: Read, Write, Glob, AskUserQuestion, Skill, Bash(date:*)
@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Glob, AskUserQuestion, Skill, Bash(date:*)
 
 # Product Phase Roadmap
 
-Converts a validated idea into execution documentation: a folder of Markdown files where each file is one delivery phase (pre-launch landing page + waitlist to MVP + closed beta to public launch to growth to full scope). This skill is the interactive front: it resolves the report, every open decision, and the slug with the user, then hands one capture file to the `product-phase-roadmap-writer` fork, which does the web refresh and writes the phase files.
+Interactive front: resolve the report, every open decision, and the slug with the user, then dispatch the writing to the `product-phase-roadmap-writer` fork - this skill never writes the plan itself.
 
 ## Run ID
 

@@ -88,9 +88,11 @@ category evidence alone).
 
 ## 10. Jak wygrać / How to win   (only for BUILD/PIVOT)
 Wedge (execution wedge - which dimension: speed, UI, UX, onboarding,
-simplicity - and/or feature wedge from the requested-but-absent band,
-for which segment, tied to documented complaints; state which users
-incumbents get to keep) leads to positioning (generic strategy) leads to why users
+simplicity - saying what "10x better on that dimension for that
+segment" looks like, and/or feature wedge from the requested-but-absent
+band resolving a top switching-trigger pain; both combined is the
+strongest form; for which segment, tied to documented complaints; state
+which users incumbents get to keep) leads to positioning (generic strategy) leads to why users
 will switch (or which users have nothing to switch from) leads to moat
 trajectory (remember: "built fast with AI" is not a moat - rivals
 have the same tooling) leads to go-to-market entry sequence. When a
@@ -102,10 +104,13 @@ clone-strategy catalog here and why the research favors it.
 table stakes (from the matrix, incl. justified deferrals);
 (b) differentiators, each as "feature, pain it kills, source";
 (c) Propozycje dodatkowych funkcji / Proposed additional features -
-3-6 capabilities not mentioned in the capture, clearly labeled as the
-analyst's proposals, each with one line on why it strengthens the
-wedge and rough build cost on the Claude Code baseline. No generic
-filler - every proposal traces to a researched gap. Then split the
+3-6 capabilities not mentioned in the capture, sourced from
+requested-but-absent gaps, adjacent-market features incumbents haven't
+imported, or AI-native capabilities incumbents with legacy codebases
+can't ship quickly; clearly labeled as the analyst's proposals, each
+with one line on why it strengthens the wedge and rough build cost on
+the Claude Code baseline. No generic filler ("add dark mode") - every
+proposal traces to a researched gap or a plausible structural advantage. Then split the
 whole set into two delivery lists, keeping each item's sourcing:
 MVP core (2-4 tygodnie / 2-4 weeks) - aggressively minimal, anything
 not required to close the first paying customer moves out; and
