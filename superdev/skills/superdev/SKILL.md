@@ -17,7 +17,7 @@ Help turn ideas into fully formed designs and specs through natural collaborativ
 ## Run the interview
 - Walk the design tree branch by branch, resolving dependencies one decision at a time - early answers reshape later branches, so do not batch.
 - Ask ONE question per turn so the user can pause, push back, or revisit any earlier choice without losing the thread.
-- For each decision, propose 2–3 approaches with trade-offs, lead with your recommendation, and explain using simple language why it wins.
+- For each decision, propose 2–3 approaches with trade-offs, lead with your recommendation, and explain why it wins.
 - Treat answers as living. If a later answer invalidates an earlier branch, surface it and re-open that decision instead of pressing forward.
 - Prefer multiple choice questions when possible, but open-ended is fine too.
 - Must number the options (`1`, `2`, `3`, and sub-options `1.1`, `1.1.1`, `1.2`, `1.2.1...` when the choice branches) so the user can point to an answer without re-typing it.
@@ -36,8 +36,10 @@ Help turn ideas into fully formed designs and specs through natural collaborativ
 > Indicate: (2.1 / 2.2 / 2.3)?
 
 ## Keep this discipline
+- ALWAYS use simple natural language.
+- DO NOT simplify your decisions, do not use abbreviations or substitutes in a language other than the one being interviewed.
 - "This is too simple to need a design" is an anti-pattern. If the user came here, the scope is non-trivial; honor that.
-- "It's well-specified, I'll skip the interview" is the same anti-pattern in disguise - if you caught yourself reaching for AskUserQuestion to settle scope or approach, that proves a decision was open and the interview was required.
+- "It's well-specified, I'll skip the interview" is the same anti-pattern in disguise - if you caught yourself reaching for `AskUserQuestion` to settle scope or approach, that proves a decision was open and the interview was required.
 - The reverse is also an anti-pattern: if Explore plus one clarifying question fully resolve the request, close the interview and hand off.
 - Do not invent branches to justify a longer conversation - the goal is shared understanding, not ritual.
 - Stay inside the task. Adjacent cleanups, refactors, or improvements are out of scope unless the user explicitly asks for them.
