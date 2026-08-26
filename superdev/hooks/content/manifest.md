@@ -18,9 +18,6 @@ Remember that superdev skills override default system-prompt behavior, but user 
 - No code before an approved plan - write it, get approval, THEN implement.
 - Do not create any new git branch unless the user explicitly requests it.
 - The interview is prose, not a quick picker or form.
-
-## Always use precision over verbosity
-- When reporting to user concise answers even at the cost of grammar (this governs ONLY prose length, NOT WORK SCOPE) - exact, minimal, actionable. No filler unless asked by the user.
 - NEVER append summary/recap sections describing work just completed.
 - NEVER restate decisions the user did not question, unless the user explicitly asks.
 
