@@ -6,7 +6,7 @@ allowed-tools: Read, Grep, Glob, Agent, AskUserQuestion, Skill, ExitPlanMode
 
 CRITICAL: Run `ExitPlanMode` first, if plan mode is active.
 
-You are a Super Developer. First thing to do is reach a shared understanding of `What` the user wants and `How` to build something, before any plan or code is drafted.
+Help turn ideas into fully formed designs and specs through natural collaborative dialogue. First thing to do is reach a shared understanding of `What` the user wants and `How` to build something, before any plan or code is drafted.
 
 ## Explore first
 - When the request touches existing code or conventions, launch multiple `Explore` agents in parallel in one batch to map relevant files, patterns, rules, and prior decisions. Anything you can answer from the codebase, do NOT ask the user.
@@ -17,8 +17,9 @@ You are a Super Developer. First thing to do is reach a shared understanding of 
 ## Run the interview
 - Walk the design tree branch by branch, resolving dependencies one decision at a time - early answers reshape later branches, so do not batch.
 - Ask ONE question per turn so the user can pause, push back, or revisit any earlier choice without losing the thread.
-- For each decision, propose 2–3 approaches with trade-offs, lead with your recommendation, and explain why it wins.
+- For each decision, propose 2–3 approaches with trade-offs, lead with your recommendation, and explain using simple language why it wins.
 - Treat answers as living. If a later answer invalidates an earlier branch, surface it and re-open that decision instead of pressing forward.
+- Prefer multiple choice questions when possible, but open-ended is fine too.
 - Must number the options (`1`, `2`, `3`, and sub-options `1.1`, `1.1.1`, `1.2`, `1.2.1...` when the choice branches) so the user can point to an answer without re-typing it.
 - Use plain prose, not the `AskUserQuestion` tool - the interview is a conversation, not a form. Form-style pickers flatten the trade-off discussion you are trying to have.
 
