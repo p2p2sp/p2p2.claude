@@ -2,6 +2,7 @@
 To build this plan must use the `simplebuild` skill.
 
 Title: "<title>"
+Plan: <absolute path of this plan file, exactly as given by plan mode>
 
 ---
 <!-- HEADER -->
