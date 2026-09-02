@@ -25,7 +25,9 @@ These gate the Close-Out delegations (Step 4: `adr`, `rules`, `memory`, `docs`).
 
 ## Step 1 - Decompose Plan
 
-Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/decompose.sh" <plan-file>` with the approved plan's path. It creates a working dir (returned as `workdir:`) containing:
+Resolve `<plan-file>` from the `Plan:` line of the approved plan already in context - never guessed. No `Plan:` line -> STOP on the same branch below. Then verify identity: `grep -m1 '^Title:' <plan-file>` must equal the approved plan's own `Title:` line. Missing file or a differing `Title:` -> STOP: report that the plan file at that path is absent or holds a different plan (a plan-slug collision may have overwritten it); do not decompose, do not fall back, do not rewrite the plan from context.
+
+Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/decompose.sh" <plan-file>` with the resolved plan path. It creates a working dir (returned as `workdir:`) containing:
 - `status.md` - number of the last processed task (starts at `00`).
 - `base.md` - the build's base SHA (HEAD before the decompose commit); preserved on resume.
 - `plan-header.md` - plan header.
