@@ -288,6 +288,91 @@ test("a task's 'Covers:' criterion absent from the source -> exit 5", () => {
   });
 });
 
+// --- no orphaned working directory on failure -------------------------
+
+test("exit 3 (no TASK blocks): no working directory is left behind", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-plan-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "No Tasks Plan",
+          criteria: ["One."],
+          tasks: [],
+        }),
+      );
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 3);
+      assert.match(result.stderr, /error: no <!-- TASK --> blocks found in plan/);
+      const dir = `docs/.workflows/${todayISO()}-no-tasks-plan`;
+      assert.equal(fs.existsSync(path.join(repo.dir, dir)), false);
+    });
+  });
+});
+
+test("exit 4 (missing spec file): no working directory is left behind", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-spec-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        superPlan({
+          title: "Broken Spec Orphan Plan",
+          specPath: path.join(planDir, "missing-spec.md"),
+          tasks: [taskBlock("Task 1 - do it", [1])],
+        }),
+      );
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 4);
+      const dir = `docs/.workflows/${todayISO()}-broken-spec-orphan-plan`;
+      assert.equal(fs.existsSync(path.join(repo.dir, dir)), false);
+    });
+  });
+});
+
+test("resume safety: the failure trap never removes a working directory that pre-existed the run", () => {
+  withGitRepo((repo) => {
+    const base = seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-plan-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Resume Safety Plan",
+          criteria: ["One."],
+          tasks: [taskBlock("Task 1 - do it", [1])],
+        }),
+      );
+
+      const first = run(repo, [plan]);
+      assert.equal(first.status, 0, `stderr: ${first.stderr}`);
+      const dir = `docs/.workflows/${todayISO()}-resume-safety-plan`;
+      const absDir = path.join(repo.dir, dir);
+      assert.ok(fs.statSync(absDir).isDirectory());
+
+      // re-run with the SAME title but the task blocks removed -> exit 3
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Resume Safety Plan",
+          criteria: ["One."],
+          tasks: [],
+        }),
+      );
+      const second = run(repo, [plan]);
+      assert.equal(second.status, 3);
+
+      // the pre-existing working directory survives, status/base untouched
+      assert.ok(fs.statSync(absDir).isDirectory());
+      assert.equal(fs.readFileSync(path.join(absDir, "status.md"), "utf-8"), "task: 00\n");
+      assert.equal(fs.readFileSync(path.join(absDir, "base.md"), "utf-8"), `base: ${base}\n`);
+    });
+  });
+});
+
 // --- edge cases --------------------------------------------------------
 
 test("edge: an unborn HEAD (no commits yet) resolves base to 'none' and still commits", () => {

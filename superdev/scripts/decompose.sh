@@ -72,6 +72,26 @@ slug="$(printf '%s' "$raw_title" \
 
 dir="docs/.workflows/$(date +%F)-${slug}"
 
+# zapamiętaj, czy katalog roboczy istniał PRZED tym biegiem - trap poniżej
+# wolno mu usunąć wyłącznie katalog utworzony w TYM biegu; wznowienie
+# (katalog już istniejący) zostaje nietknięte nawet przy błędzie.
+dir_preexisted=0
+[[ -d "$dir" ]] && dir_preexisted=1
+
+# sprzątanie na wszelkie niezerowe wyjście przed commitem dekompozycji:
+# usuwamy katalog roboczy tylko gdy ten bieg go utworzył, żeby nie zostawiać
+# osieroconego drzewa po błędzie (brak sekcji TASK, brakujący spec, itp.).
+# trap jest rozbrajany tuż przed sekcją commita - błąd gita po tym punkcie
+# ma zostawić w pełni zbudowany katalog roboczy, nie go zniszczyć.
+cleanup_on_failure() {
+  local status=$?
+  if [[ "$status" -ne 0 && "$dir_preexisted" -eq 0 ]]; then
+    rm -rf "$dir"
+  fi
+  exit "$status"
+}
+trap cleanup_on_failure EXIT
+
 # świeży katalog tasks (usuń pozostałości po poprzednim biegu)
 rm -rf "$dir/tasks"
 mkdir -p "$dir/tasks"
@@ -231,6 +251,10 @@ for task_file in "$dir"/tasks/task-*.md; do
   done
   printf '\n### Covered criteria\n%s' "$crit_block" >> "$task_file"
 done
+
+# katalog roboczy jest teraz w pełni zbudowany - błąd gita poniżej ma zostawić
+# go na miejscu, nie zniszczyć, więc rozbrajamy trap sprzątający.
+trap - EXIT
 
 # --- commit dekompozycji ---
 # artefakty robocze + wszelkie zmiany drzewa; szum gita kierujemy na stderr,
