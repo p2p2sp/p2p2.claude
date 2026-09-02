@@ -163,6 +163,21 @@ if [ -n "$plan_path" ] && [ -f "$plan_path" ] \
   emit_deny "Next step: declare the plan format. The plan file does not indicate whether it is a SimplePlan or a SuperPlan. By default a plan MUST use the SimplePlan format - rewrite it from the simpleplan template (header '# SimplePlan' plus 'To build this plan must use the simplebuild skill.'). Add the format marker, re-run the plan reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
+# Step 1c: the plan MUST declare its own file path so both build orchestrators can
+# resolve it after a context reset (the harness passes the plan TEXT, never its
+# path). Read the first "Plan:" line from the plan file and compare its basename
+# against plan_base (the file we actually resolved from the transcript) - basenames
+# only, so a path-separator or drive-case difference between the transcript-recorded
+# path and the author-written path cannot cause a false deny. Fail-open only when the
+# plan file itself cannot be read (established fail-open policy for hook faults).
+if [ -n "$plan_path" ] && [ -f "$plan_path" ] && [ -r "$plan_path" ]; then
+  plan_line_value=$(grep -m1 -E '^Plan:' "$plan_path" 2>/dev/null | sed -E 's/^Plan:[[:space:]]*//; s/[[:space:]]+$//')
+  plan_line_base="${plan_line_value##*[\\/]}"
+  if [ -z "$plan_line_base" ] || [ "$plan_line_base" != "$plan_base" ]; then
+    emit_deny "Next step: declare the plan's own path. The plan file does not carry a 'Plan:' line naming itself. Add 'Plan: ${plan_path}' to the plan preamble (exactly as given by plan mode), re-run the plan reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+  fi
+fi
+
 # Step 2: from the line AFTER the last plan-file write, look for:
 #   R = a line containing the plan reviewer name AND a subagent marker
 #   S = a line carrying the actual verdict "VERDICT: PASS"

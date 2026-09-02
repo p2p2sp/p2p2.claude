@@ -425,7 +425,12 @@ test("VSF - same shape carrying FAIL must still deny", () => {
 
 test("DF - plan declares SimplePlan format, reviewer PASS -> allow", () => {
   withTempDir("p2p2-review-plan-", (dir) => {
-    const plan = writePlanFile(dir, "simple.md", "# SimplePlan\nTo build this plan must use the `simplebuild` skill.\n");
+    const planPath = path.join(dir, ".claude", "plans", "simple.md");
+    const plan = writePlanFile(
+      dir,
+      "simple.md",
+      `# SimplePlan\nTo build this plan must use the \`simplebuild\` skill.\nPlan: ${planPath}\n`,
+    );
     const lw = writeOf(plan);
     const lr = line({
       type: "assistant",
@@ -438,7 +443,12 @@ test("DF - plan declares SimplePlan format, reviewer PASS -> allow", () => {
 
 test("DFS - plan declares SuperPlan format, reviewer PASS -> allow", () => {
   withTempDir("p2p2-review-plan-", (dir) => {
-    const plan = writePlanFile(dir, "super.md", "# SuperPlan\nTo build this plan use the `superbuild` skill.\n");
+    const planPath = path.join(dir, ".claude", "plans", "super.md");
+    const plan = writePlanFile(
+      dir,
+      "super.md",
+      `# SuperPlan\nTo build this plan use the \`superbuild\` skill.\nPlan: ${planPath}\n`,
+    );
     const lw = writeOf(plan);
     const lr = line({
       type: "assistant",
@@ -466,7 +476,12 @@ test("UF - plan declares NO format: deny even with reviewer PASS present, reason
 
 test("both format markers present on the same plan -> allow (either marker satisfies the gate)", () => {
   withTempDir("p2p2-review-plan-", (dir) => {
-    const plan = writePlanFile(dir, "both.md", "# SimplePlan\n# SuperPlan (also mentions superbuild)\nbody\n");
+    const planPath = path.join(dir, ".claude", "plans", "both.md");
+    const plan = writePlanFile(
+      dir,
+      "both.md",
+      `# SimplePlan\n# SuperPlan (also mentions superbuild)\nPlan: ${planPath}\nbody\n`,
+    );
     const lw = writeOf(plan);
     const lr = line({
       type: "assistant",
@@ -480,7 +495,8 @@ test("both format markers present on the same plan -> allow (either marker satis
 test("multiple plan writes in one transcript - the LAST write is the operative plan for format/tamper", () => {
   withTempDir("p2p2-review-plan-", (dir) => {
     const fooPath = writePlanFile(dir, "foo.md", "# SimplePlan\nfoo.\n");
-    const barPath = writePlanFile(dir, "bar.md", "# SimplePlan\nbar.\n");
+    const expectedBarPath = path.join(dir, ".claude", "plans", "bar.md");
+    const barPath = writePlanFile(dir, "bar.md", `# SimplePlan\nbar.\nPlan: ${expectedBarPath}\n`);
     const lwFoo = writeOf(fooPath);
     const lwBar = writeOf(barPath);
     const reviewer = line({
@@ -506,13 +522,60 @@ test("multiple plan writes in one transcript - the LAST write is the operative p
   });
 });
 
+// --- Plan-path gate (Step 1c): the plan file must declare its OWN path via a
+// 'Plan:' line so both build orchestrators can resolve it after a context reset. ---
+
+test("PP - readable plan with reviewer PASS but no 'Plan:' line -> deny naming the plan path", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const plan = writePlanFile(dir, "nopath.md", "# SimplePlan\nTo build this plan must use the `simplebuild` skill.\n");
+    const lw = writeOf(plan);
+    const lr = line({
+      type: "assistant",
+      message: { content: [{ type: "tool_use", name: "Skill", input: { skill: "superdev:simpleplan-reviewer", args: plan } }] },
+    });
+    const f = writeFixtureFile(dir, "t.jsonl", [lw, lr, LPASS]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /Plan:/);
+  });
+});
+
+test("PPW - 'Plan:' line names a DIFFERENT file than the resolved plan -> deny", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const plan = writePlanFile(
+      dir,
+      "wrongpath.md",
+      "# SimplePlan\nTo build this plan must use the `simplebuild` skill.\nPlan: /some/other/place/elsewhere.md\n",
+    );
+    const lw = writeOf(plan);
+    const lr = line({
+      type: "assistant",
+      message: { content: [{ type: "tool_use", name: "Skill", input: { skill: "superdev:simpleplan-reviewer", args: plan } }] },
+    });
+    const f = writeFixtureFile(dir, "t.jsonl", [lw, lr, LPASS]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /Plan:/);
+  });
+});
+
+test("PPF - transcript-recorded plan path does not exist on disk, reviewer PASS present -> allow (fail-open guard)", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    // PLAN never exists on disk on any OS; W->R->PASS is otherwise complete, so only
+    // the [ -f ] guard on the new Plan-path gate can decide - it must fail open.
+    const f = writeFixtureFile(dir, "t.jsonl", [LW, LR, LPASS]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
 // --- Plan-outside-.claude/plans/ fallback: a project with its own
 // `plansDirectory` writes the plan somewhere else entirely; the gate must
 // still catch it by the format header on the last written .md file. ---
 
 test("CF - plan written outside .claude/plans/ with a '# SimplePlan' header, no reviewer call -> deny", () => {
   withTempDir("p2p2-review-plan-", (dir) => {
-    const plan = writeCustomPlanFile(dir, "plans-custom/foo.md", "# SimplePlan\nbody\n");
+    const planPath = path.join(dir, "plans-custom", "foo.md");
+    const plan = writeCustomPlanFile(dir, "plans-custom/foo.md", `# SimplePlan\nPlan: ${planPath}\nbody\n`);
     const lw = writeOf(plan);
     const f = writeFixtureFile(dir, "t.jsonl", [lw]);
     const { decision, reason } = runCase(f);
