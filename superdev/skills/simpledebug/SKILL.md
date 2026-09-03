@@ -1,6 +1,6 @@
 ---
 name: simpledebug
-description: Use ALWAYS when the user reports a bug, error, crash, regression, or unexpected behavior, or asks to fix, investigate, debug, diagnose, apply the fix from review, trace a value, or verify that code works correctly. Fires before diagnosing - enforces tracing the entire code flow step by step instead of guessing the cause, proving the diagnosis with a failing test, then handing the proven fix plan to `simpleplan`.
+description: Use when the user reports a bug, error, crash, regression, unexpected behavior OR MUST USE when asks to fix, repair, investigate, debug, diagnose, apply the fix from review, trace a value, or verify that code works correctly. Fires before diagnosing - enforces tracing the entire code flow step by step instead of guessing the cause, proving the diagnosis with a failing test, then handing the proven fix plan to `simpleplan`.
 ---
 
 # SimpleDebug

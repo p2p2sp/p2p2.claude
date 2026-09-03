@@ -413,7 +413,7 @@
     "auto-mode-hardening": {
       "title": "Wzmocnienie klasyfikatora trybu auto",
       "recommended": true,
-      "summary": "Dokłada prozatorskie reguły hard_deny do autoMode: zakaz sięgania po poświadczenia i zakaz operacji na zasilaniu maszyny także drogą pośrednią (skrypt, subproces), której reguły Read/Bash nie widzą.",
+      "summary": "Dokłada reguły hard_deny do autoMode: zakaz sięgania po poświadczenia i zakaz operacji na zasilaniu maszyny także drogą pośrednią (skrypt, subproces), której reguły Read/Bash nie widzą.",
       "tradeoff": "hard_deny jest bezwarunkowe — nie zdejmiesz go zdaniem w czacie. Żeby obejść, trzeba wyjść z trybu auto. Blok działa wyłącznie w ustawieniach użytkownika i managed; klasyfikator nie czyta autoMode z ustawień projektu.",
       "requiresUserSettings": true,
       "autoMode": {
