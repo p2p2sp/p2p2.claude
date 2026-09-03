@@ -25,7 +25,7 @@ Same interview on the way in, two execution tracks, one shared Close Out.
 
 ## Quick start
 
-1. **Run `/superdev:setup` once per repository.** It seeds `.temp/`, `.gitignore`, `.claude/settings.json`
+1. **Run `/superdev:setup` once per repository.** It seeds `.temp/`, `.gitignore`
    and `.claude/superdev.yml`, adds the `docs/.workflows/**` linguist rule to `.gitattributes`, and lets you
    flip the opt-in switches. It never overwrites what already exists.
 2. **Describe what you want to build.** The `superdev` skill fires by itself. It sends `Explore` agents into

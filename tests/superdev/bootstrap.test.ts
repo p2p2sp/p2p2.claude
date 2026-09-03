@@ -1,7 +1,6 @@
 /*
  * bootstrap.test.ts - proves bootstrap.sh's idempotent environment seeding
- * (.temp/, .gitignore, .claude/settings.json, .claude/superdev.yml,
- * .gitattributes), replacing the retired
+ * (.temp/, .gitignore, .claude/superdev.yml, .gitattributes), replacing the retired
  * superdev/skills/setup/scripts/bootstrap.test.sh (every case that bash
  * harness asserted, run through the shared subprocess harness instead of a
  * bespoke bash test runner), plus the idempotence + seeding edge cases from
@@ -24,7 +23,6 @@ const SUT = path.resolve(import.meta.dirname, "../../superdev/skills/setup/scrip
 const ASSETS_DIR = path.resolve(import.meta.dirname, "../../superdev/skills/setup/assets");
 const ASSET_CONFIG = path.join(ASSETS_DIR, "config.yml");
 const ASSET_GITIGNORE = path.join(ASSETS_DIR, "gitignore.txt");
-const ASSET_SETTINGS = path.join(ASSETS_DIR, "settings.json");
 
 function run(dir: string) {
   return runScript(SUT, [], { cwd: dir });
@@ -47,7 +45,6 @@ test("seed-when-absent: a fresh project root seeds every item and prints one lin
       [
         ".temp: created",
         ".gitignore: created from template",
-        "settings.json: created",
         "superdev.yml: seeded from template - defaults: adr=false, rules=false, memory=false, docs=false",
         ".gitattributes: created with linguist-generated rule",
         "",
@@ -55,7 +52,6 @@ test("seed-when-absent: a fresh project root seeds every item and prints one lin
     );
     assert.ok(fs.statSync(path.join(dir, ".temp")).isDirectory());
     assert.equal(readIfExists(path.join(dir, ".gitignore")), fs.readFileSync(ASSET_GITIGNORE, "utf-8"));
-    assert.equal(readIfExists(path.join(dir, ".claude", "settings.json")), fs.readFileSync(ASSET_SETTINGS, "utf-8"));
     assert.equal(readIfExists(path.join(dir, ".claude", "superdev.yml")), fs.readFileSync(ASSET_CONFIG, "utf-8"));
     assert.equal(
       readIfExists(path.join(dir, ".gitattributes")),
@@ -87,7 +83,6 @@ test("idempotence: running twice reports 'already present' for every item on the
     assert.equal(first.status, 0, `stderr: ${first.stderr}`);
 
     const beforeGitignore = fs.readFileSync(path.join(dir, ".gitignore"), "utf-8");
-    const beforeSettings = fs.readFileSync(path.join(dir, ".claude", "settings.json"), "utf-8");
     const beforeConfig = fs.readFileSync(path.join(dir, ".claude", "superdev.yml"), "utf-8");
     const beforeGitattributes = fs.readFileSync(path.join(dir, ".gitattributes"), "utf-8");
 
@@ -99,7 +94,6 @@ test("idempotence: running twice reports 'already present' for every item on the
       [
         ".temp: already present",
         ".gitignore: already present (left untouched)",
-        "settings.json: already present",
         "superdev.yml: already present (left untouched) - current switches:",
         "adr:     false   # ADR capture -> docs/adr/",
         "rules:   false   # Rules system -> .claude/rules/",
@@ -110,7 +104,6 @@ test("idempotence: running twice reports 'already present' for every item on the
       ].join("\n"),
     );
     assert.equal(fs.readFileSync(path.join(dir, ".gitignore"), "utf-8"), beforeGitignore);
-    assert.equal(fs.readFileSync(path.join(dir, ".claude", "settings.json"), "utf-8"), beforeSettings);
     assert.equal(fs.readFileSync(path.join(dir, ".claude", "superdev.yml"), "utf-8"), beforeConfig);
     assert.equal(fs.readFileSync(path.join(dir, ".gitattributes"), "utf-8"), beforeGitattributes);
   });
@@ -170,20 +163,6 @@ test("edge: the append-if-absent rule does not duplicate when the existing .gita
     const contents = fs.readFileSync(gaPath, "utf-8");
     assert.equal(contents, "*.png binary\ndocs/.workflows/** linguist-generated=true\n");
     assert.match(result.stdout, /^\.gitattributes: linguist-generated rule appended$/m);
-  });
-});
-
-test("edge: an invalid-JSON .claude/settings.json is reported already-present and left byte-unchanged", () => {
-  withTempDir("p2p2-bootstrap-", (dir) => {
-    fs.mkdirSync(path.join(dir, ".claude"), { recursive: true });
-    const settingsPath = path.join(dir, ".claude", "settings.json");
-    fs.writeFileSync(settingsPath, "{ not valid json");
-
-    const result = run(dir);
-
-    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.equal(fs.readFileSync(settingsPath, "utf-8"), "{ not valid json");
-    assert.match(result.stdout, /^settings\.json: already present$/m);
   });
 });
 

@@ -13,7 +13,6 @@
 # Idempotent: re-running never overwrites anything that already exists.
 #   - creates .temp/ when missing,
 #   - seeds .gitignore from the bundled template when the project has none,
-#   - seeds .claude/settings.json from the bundled template when none,
 #   - seeds .claude/superdev.yml from the bundled template when none,
 #   - never overwrites an existing superdev.yml (reports its current switches),
 #   - ensures .gitattributes carries the docs/.workflows/** linguist-generated
@@ -40,7 +39,6 @@ set -u
 
 skill_dir="$(cd "$(dirname "$0")/.." && pwd)"
 src_gitignore="${skill_dir}/assets/gitignore.txt"
-src_settings="${skill_dir}/assets/settings.json"
 src_config="${skill_dir}/assets/config.yml"
 
 if [ -d ".temp" ]; then
@@ -55,12 +53,6 @@ elif [ -f "$src_gitignore" ]; then
   cp "$src_gitignore" ".gitignore" && echo ".gitignore: created from template"
 else
   echo ".gitignore: template missing at $src_gitignore - skipped"
-fi
-
-if [ ! -f .claude/settings.json ]; then
-  mkdir -p .claude && cp "$src_settings" .claude/settings.json && echo "settings.json: created"
-else
-  echo "settings.json: already present"
 fi
 
 if [ -f ".claude/superdev.yml" ]; then
