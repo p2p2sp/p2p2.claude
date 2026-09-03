@@ -32,7 +32,7 @@ The output is one standalone HTML file. Everything before that is working materi
 
 ## Working directory
 
-Create `./idea-validation/<slug>-<YYYY-MM-DD>/` (slug = 2–4 words from the idea, kebab-case). Every step writes its own file there. Subagents get file paths, not pasted content, so the main context stays small.
+Create `.temp/superbiz/<slug>-<YYYY-MM-DD>/` (slug = 2–4 words from the idea, kebab-case) for every working file. Subagents get file paths, not pasted content, so the main context stays small. The deliverable (`report.html`) is the one exception - it does not go here, see step 15.
 
 ```
 00-input.md            raw idea + answers to clarifying questions
@@ -50,7 +50,6 @@ Create `./idea-validation/<slug>-<YYYY-MM-DD>/` (slug = 2–4 words from the ide
 12-synthesis.md
 13-experiments.md
 report-data.json
-report.html            ← the deliverable
 ```
 
 ## Process
@@ -101,10 +100,11 @@ From `references/experiments.md`: for each of the top hypotheses (riskiest first
 Before the user sees any experiment results, write the thresholds that mean Go / Pivot / No-Go for the experiment set as a whole. This goes in the report as its own section. Skipping this step is not allowed; it is the guard against reading results optimistically.
 
 ### Step 15 — Build the report
-1. Assemble `report-data.json` following `references/report-schema.md` exactly (the renderer depends on the field names).
-2. Run: `python3 ${CLAUDE_SKILL_DIR}/scripts/build_report.py <dir>/report-data.json <dir>/report.html`
+1. Assemble `report-data.json` (in the working directory) following `references/report-schema.md` exactly (the renderer depends on the field names).
+2. Create `docs/business/<slug>/` (same slug as the working directory) at the host repo root.
+3. Run: `python3 ${CLAUDE_SKILL_DIR}/scripts/build_report.py <dir>/report-data.json docs/business/<slug>/report.html`
    The script validates required fields and prints what is missing; fix the JSON and rerun rather than editing the HTML by hand.
-3. Tell the user the path to `report.html` and give a 3-line summary: verdict, biggest risk, first experiment to run.
+4. Tell the user the path to `report.html` and give a 3-line summary: verdict, biggest risk, first experiment to run.
 
 ## What the report does not claim
 

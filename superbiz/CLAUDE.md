@@ -87,10 +87,9 @@ No plugin-root `agents/`, `scripts/`, `references/` or `shared/` dir - the skill
   estimate is allowed only when labelled as one with its method shown. `no data found` is an expected result.
 - **Report language follows the idea.** All skill instructions are English; the report and the council members
   write in whatever language the idea was written in.
-- **Artifact home - a known, deliberate divergence.** `idea-validator` writes to
-  `./idea-validation/<slug>-<YYYY-MM-DD>/` at the **host repo root**, holding both the numbered working files
-  (00-13) and its `report.html`. That is none of the three locations the root `CLAUDE.md` allows - resolve it
-  by moving the run under `.temp/superbiz/` (and the report to `docs/business/<idea-slug>/` if it should
-  persist), or by amending the root invariant. Do not quietly document it as compliant.
+- **Artifact home.** `idea-validator` writes its numbered working files (00-13, `report-data.json`) under
+  `.temp/superbiz/<slug>-<YYYY-MM-DD>/` and its `report.html` deliverable under `docs/business/<slug>/` at the
+  host repo root - the two locations the root `CLAUDE.md` allows for temporary vs. persisted user-facing
+  artifacts.
 
 `superbiz` declares no cross-plugin chains, and its single skill has nothing to chain to in-plugin either.

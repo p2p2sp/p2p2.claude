@@ -220,19 +220,16 @@ The invariants below hold across the repo.
   `<target>` argument), `docs/product/` (superdev's docs layer, gated by the `docs` switch),
   `docs/.workflows/` (superdev's per-build working dirs written by `decompose.sh` - spec, plan copy,
   task files, implementation reports - plus the specs `superspec` saves; marked `linguist-generated`
-  in `.gitattributes` so GitHub collapses them in review). These are
-  version-controlled deliverables the user reads and edits.
-  **Open deviation:** superbiz's `idea-validator` currently writes its whole run - working files 00-13 *and*
-  the `report.html` deliverable - to `./idea-validation/<slug>-<YYYY-MM-DD>/` at the host repo root, which is
-  none of the three allowed locations. Either the skill moves (working files to `.temp/superbiz/`, the report
-  to `docs/business/<idea-slug>/`) or this invariant gets amended; until then it is a known divergence, not a
-  precedent.
+  in `.gitattributes` so GitHub collapses them in review), `docs/business/<idea-slug>/` (superbiz's
+  `idea-validator`, its `report.html` deliverable only - the run's working files 00-13 live in
+  `.temp/superbiz/`, not here). These are version-controlled deliverables the user reads and edits.
 - **No plugin ever creates a plugin-named dot-dir in the host repo** - no `.superdev/`, no `.superui/`,
   no equivalent for any future plugin. Only three host-repo locations are writable: `docs/<layer>/` for
   persisted user-facing knowledge (above), `.claude/` for configuration the user owns and edits
   (superdev's opt-in switches live in `.claude/superdev.yml`, read by `scripts/read-config.sh`; rules in
   `.claude/rules/`), and `.temp/` for every temporary artifact, grouped in per-plugin subdirs
-  (`.temp/superdev/{docs,memory,rules}/capture-<RUN_ID>.md`, superui run dirs). A new persisted
+  (`.temp/superdev/{docs,memory,rules}/capture-<RUN_ID>.md`, superui run dirs,
+  `.temp/superbiz/<slug>-<YYYY-MM-DD>/` for `idea-validator`'s working files 00-13). A new persisted
   user-facing artifact means a new `docs/<layer>/`; new machine state means `.temp/<plugin>/` - never a
   dot-dir at the host root. **One carve-out, and only this one:** `supercc`'s `setup-permissions` writes the
   user's machine-wide Claude Code configuration (`~/.claude/settings.json`, plus a marker-scoped block in

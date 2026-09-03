@@ -63,12 +63,12 @@ comes back in whatever language you described the idea in.
 
 ## What you get
 
-A run directory `./idea-validation/<slug>-<date>/` with the numbered working files (intake, canvas,
+A working directory `.temp/superbiz/<slug>-<date>/` with the numbered working files (intake, canvas,
 hypotheses, the three research files, the fit analyses, every council member's answer per round, the
 synthesis and the experiment plan), and the deliverable:
 
 ```
-report.html
+docs/business/<slug>/report.html
 ```
 
 Scorecard, evidence with links, council positions, the dissenting opinion, the experiment plan and the

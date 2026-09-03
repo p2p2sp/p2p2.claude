@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "/idea-validator \"A Chrome extension that turns any recipe page into a grocery list and sends it to Todoist. Freemium, $3/month for unlimited lists. I have no audience.\"",
-      "expected_output": "Asks intake questions (weekly hours, geography, stage) once; creates ./idea-validation/<slug>-<date>/ with files 00–13; runs 3 research subagents then 7 council subagents in parallel for round 1 and again for round 2; report.html is generated via build_report.py; report is in English; Distribution scored ≤ 3 given 'no audience'; dissent section present; thresholds set before experiments.",
+      "expected_output": "Asks intake questions (weekly hours, geography, stage) once; creates .temp/superbiz/<slug>-<date>/ with files 00–13; runs 3 research subagents then 7 council subagents in parallel for round 1 and again for round 2; report.html is generated via build_report.py into docs/business/<slug>/; report is in English; Distribution scored ≤ 3 given 'no audience'; dissent section present; thresholds set before experiments.",
       "files": []
     },
     {
