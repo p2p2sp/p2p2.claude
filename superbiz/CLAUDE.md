@@ -1,111 +1,96 @@
-# superbiz - the business validation / product roadmap ecosystem
+# superbiz - the idea validation ecosystem
 
 > Dev-time orientation for **editing this plugin's source**. Like the repo root `CLAUDE.md`, it is **not a
-> plugin input** - it never reaches the skills as runtime data. See the root `CLAUDE.md` for the repo-wide
+> plugin input** - it never reaches the skill as runtime data. See the root `CLAUDE.md` for the repo-wide
 > warnings and cross-plugin invariants; this file holds only what is specific to `superbiz`.
 
-`superbiz` is the business validation / product roadmap ecosystem: turning a raw idea into a sourced
-side-income autopilot viability report (a BUILD / PIVOT / DROP verdict on the idea as a supplementary-income
-product that runs with minimal owner time after launch, not as a venture-scale startup), turning a validated
-idea into a phased execution roadmap, and turning a framed decision into a
-synthesized council verdict. It is a **single-domain** plugin, so
-its skills carry **no group prefix** (the plugin name is the group) and are flat-named. It ships **no
-`hooks/` and no injected manifest** - each pair (entry + fork) routes purely via its CSO `description:`; a
-`SessionStart`-injected dispatcher would add no routing value over the skill descriptions, so there is none.
-The catalog of record is `.claude-plugin/plugin.json` `skills[]` + `agents[]`.
+`superbiz` answers one question about one idea: **is it worth turning into a side project?** Not "is it a good
+startup". The build is assumed cheap (an AI coding agent writes it), so what is judged is the problem,
+distribution, and whether the thing runs without its owner after launch. The deliverable is a single
+self-contained HTML report.
+
+It is a **single-skill** plugin: one user-invoked entry, `idea-validator`, which fans out its own
+`general-purpose` Agent subagents rather than dispatching sibling skills or bundled persona agents. It ships
+**no `hooks/`, no injected manifest and no `agents[]`** - the skill carries `disable-model-invocation: true`,
+so it does not route at all; the user invokes it by name. The catalog of record is
+`.claude-plugin/plugin.json` `skills[]`.
 
 ## Layout (superbiz internals)
 
 ```
 superbiz/
-  .claude-plugin/plugin.json   The plugin manifest - skills[] + agents[] is the catalog of record
-  agents/
-    council-contrarian.md              Persona - hunts the fatal flaw
-    council-first-principles.md        Persona - strips assumptions, rebuilds from the ground up
-    council-expansionist.md            Persona - finds the upside everyone else misses
-    council-outsider.md                Persona - responds to only what is on the page, no assumed context
-    council-executor.md                Persona - only feasibility and the fastest first step
+  .claude-plugin/plugin.json   The plugin manifest - skills[] is the catalog of record
   skills/
-    business-idea-validator/               Entry - interactive intake, dispatches the researcher then the chairman fork
-    business-idea-validator-researcher/     Fork - web research + report writing, out of the main context
-      references/frameworks.md
-      references/report-template.md
-    product-phase-roadmap/                 Entry - interactive intake, dispatches the writer fork
-    product-phase-roadmap-writer/           Fork - phased doc writing, out of the main context
-      references/phase-blueprint.md
-    council-this/                          Entry - interactive intake, dispatches the chairman fork
-    council-this-chairman/                 Fork - convenes the five agents, synthesizes the verdict
+    idea-validator/
+      SKILL.md                     Sequence, hand-offs and ground rules only; protocols live in references/
+      references/process.md        Intake questions, Lean Canvas fields, hypothesis format, the three research
+                                   briefs, source-quality rules
+      references/dimensions.md     9 scorecard dimensions with 1-5 anchors and weights, the three autopilot
+                                   layers and the hours/week mapping, the verdict rules
+      references/council.md        Round 1 / round 2 output formats, moderator protocol, safeguards against
+                                   fake diversity
+      references/council/*.md      The 7 member prompts: 01-customer, 02-skeptic, 03-analyst, 04-growth,
+                                   05-operator, 06-risk, 07-visionary
+      references/experiments.md    Experiment catalogue and threshold-setting guidance
+      references/report-schema.md  JSON structure consumed by scripts/build_report.py
+      references/frameworks.md     Frameworks used, with links verified at authoring time
+      scripts/build_report.py      report-data.json + assets/report-template.html -> report.html; validates
+                                   required fields and exits 1 listing what is missing. Python 3 stdlib only
+      assets/report-template.html  HTML/CSS/JS shell the script fills
+      evals/evals.json             Dev-time eval cases (not shipped as runtime data)
 ```
 
-## Skills (qualified `superbiz:<name>`)
+No plugin-root `agents/`, `scripts/`, `references/` or `shared/` dir - the one skill bundles everything it
+needs.
 
-- `business-idea-validator` - interactive entry. Interviews the user about the idea (AskUserQuestion),
-  including the maintenance hours per month accepted after launch and the target supplementary income per
-  month (both recorded as "unstated" when the user declines, never invented), states the side-income
-  autopilot premise before proceeding, writes
-  an intake capture file to `.temp/superbiz/validator/capture-<RUN_ID>.md`, and dispatches
-  `business-idea-validator-researcher` via the `Skill` tool. Once the researcher returns its report, the entry
-  runs a mandatory council round: it writes a second capture file to `.temp/superbiz/council/capture-<RUN_ID>.md`
-  (same `<RUN_ID>`, a neutral question framing that never states the researcher's verdict, and the report as a
-  context file) and dispatches `council-this-chairman` via the `Skill` tool on the finished report. It then
-  relays both tagged lines - the researcher's verdict and the chairman's recommendation - in one combined
-  summary, explicitly surfacing any researcher-vs-council clash instead of smoothing it. On success it still
-  offers (AskUserQuestion) to chain into `product-phase-roadmap` as the final step.
-- `business-idea-validator-researcher` - fork-only sub-worker (dispatched only by `business-idea-validator`,
-  never directly). Runs the deep web research (competitors, market sizing, differentiation) with `WebSearch` /
-  `WebFetch`, applies the frameworks in `references/frameworks.md`, scores six dimensions on a uniform 1-10
-  scale led by PCV (perceived created value), with autopilot operability as a hard gate - an estimated
-  post-launch maintenance load clearly above the capture's stated budget is gate-breaking on its own - and
-  returns a BUILD / PIVOT / DROP verdict. Writes the sourced report to
-  `docs/business/<idea-slug>/walidacja.md` (or `validation.md` when the report language is English) following
-  `references/report-template.md`, then returns a single tagged line.
-- `product-phase-roadmap` - interactive entry. Interviews the user about scope/constraints (AskUserQuestion),
-  writes an intake capture file to `.temp/superbiz/roadmap/capture-<RUN_ID>.md`, dispatches
-  `product-phase-roadmap-writer` via the `Skill` tool, and relays the finished folder path back to the user.
-- `product-phase-roadmap-writer` - fork-only sub-worker (dispatched only by `product-phase-roadmap`, never
-  directly). Turns a validated idea (typically the validator's report) into a phased folder of Markdown files
-  under `docs/business/<idea-slug>/plan/` - landing page + waitlist through MVP to public launch and growth -
-  following `references/phase-blueprint.md`, then returns a single tagged line.
-- `council-this` - interactive entry. Frames the user's decision and its stakes (AskUserQuestion for at most
-  one clarification), writes an intake capture file to `.temp/superbiz/council/capture-<RUN_ID>.md`, dispatches
-  `council-this-chairman` via the `Skill` tool, and relays the fork's tagged verdict line back to the user.
-- `council-this-chairman` - fork-only sub-worker (dispatched only by `council-this` and
-  `business-idea-validator`, never directly). Convenes the five `superbiz:council-*` persona agents in one
-  parallel dispatch, synthesizes the chairman verdict
-  itself - no separate peer-review round - and writes it to `docs/business/<decision-slug>/rada.md`
-  (`council.md` when the language is English), then returns a single tagged line.
+## Skill (qualified `superbiz:idea-validator`)
 
-All three entries are model-invocable via CSO `description:` and user-invocable directly; all three forks carry
-`context: fork`, `user-invocable: false`, and a description guard naming its allowed caller(s), never directly -
-`council-this-chairman`'s now names two, `council-this` and `business-idea-validator`.
+`idea-validator` - user-only (`disable-model-invocation: true`), argument `[idea text | path/to/idea.md]
+[--quick]`. Fifteen steps, always in the same order so two ideas stay comparable:
 
-## Agents (qualified `superbiz:<name>`)
-
-Dispatched only by the `council-this-chairman` fork, via the `Agent` tool, in one parallel dispatch - never
-directly by a user or any other skill. None declares `model:` - all five inherit the caller's model.
-
-- `council-contrarian` - hunts the fatal flaw: what is wrong, missing, or will fail.
-- `council-first-principles` - strips the framing's assumptions and rebuilds the reasoning from the ground up.
-- `council-expansionist` - finds the upside everyone else misses; the ceiling, not the floor.
-- `council-outsider` - responds to only what is literally on the page, flags jargon and unstated assumptions.
-- `council-executor` - only feasibility and the fastest path: the concrete next move.
+- Steps 0-2 (main context): intake (one batched `AskUserQuestion` for segment, geography, revenue model,
+  weekly hours, existing channels, stage), Lean Canvas plus hidden assumptions, risk hypotheses sorted
+  riskiest-first.
+- Steps 3-5: three `general-purpose` subagents in one parallel dispatch - problem, market, competition
+  research over `WebSearch` / `WebFetch`.
+- Steps 6-9 (main context): business model, distribution, side-project fit, autopilot fit (hours/week per
+  acquire / deliver / maintain layer plus autopilot killers with a remove / automate / redesign fix).
+- Step 10: council round 1 - seven `general-purpose` subagents in one parallel dispatch, isolated from each
+  other. Step 11: round 2, the same seven, each now seeing all round-1 files, responding by name. Round 2 is
+  on by default and skipped only with `--quick`.
+- Step 12 (main context, moderator role): synthesis and scorecard - agreed points, disputes kept as disputes,
+  verdict Go / Pivot / No-Go, biggest single risk, a mandatory dissenting opinion, council health.
+- Steps 13-14: experiment plan (cheapest test that can kill the hypothesis first) and the Go / Pivot / No-Go
+  thresholds, pre-committed before any result exists.
+- Step 15: assemble `report-data.json` per `references/report-schema.md`, run `scripts/build_report.py`, hand
+  the user the path plus a three-line summary.
 
 ## Architecture invariants (superbiz-specific)
 
-- **No manifest, no hooks.** superbiz's six skills stay model-routable via CSO `description:` alone; a
-  `SessionStart`-injected dispatcher would add no routing value the descriptions do not already carry.
-- **Entry asks, fork works.** `AskUserQuestion` is a main-session-only tool, so all interactive intake lives in
-  the entry skill; the bulk of the work - web research, multi-file writing - stays out of the main context in
-  the fork, dispatched via the `Skill` tool and returned as a single tagged line the entry relays verbatim.
-- **Artifact home.** Persisted output lands at `docs/business/<idea-slug>/` in the host repo - the validator's
-  report (`walidacja.md`, or `validation.md` when the report language is English), the roadmap's `plan/`
-  folder, and the council's verdict (`rada.md`, or `council.md` when the language is English); scratch intake
-  capture files land at `.temp/superbiz/validator/`, `.temp/superbiz/roadmap/`, and `.temp/superbiz/council/`.
-- **Honesty rule.** The researcher and writer forks share the same content invariant: every number in the
-  output must be sourced, and every claim is labeled by tier - fact, estimate, or assumption - never presented
-  as more certain than it is. The council chairman applies the same tiering to any number its verdict cites.
+- **No manifest, no hooks, no routing.** The sole skill is user-only, so there is nothing for a
+  `SessionStart`-injected dispatcher to route; a CSO `description:` trigger would not fire either.
+- **Subagents, not sibling skills.** The heavy work stays out of the main context through the `Agent` tool
+  (3 research + 7 council x 2 rounds), not through `Skill` forks. Every subagent receives **file paths**, never
+  pasted content, and writes its own numbered file into the run directory; the main context keeps the
+  conclusions, not the material.
+- **Council isolation is the product.** Round-1 members never see each other's output and are never told what
+  verdict is expected; the moderator adds no arguments of its own and attributes every sentence to a member.
+  Unanimity without reservations is a **failure signal** (the council did not produce independent views), not
+  confidence - the report must say so.
+- **Disagreement is preserved, never averaged** - between sources and between members. A council dispute of 2+
+  points forces the dimension's confidence to `low` and shows the range, not a mean.
+- **The script owns the deliverable.** `report.html` is never hand-written or hand-edited: the LLM produces
+  `report-data.json`, `build_report.py` validates it and renders. A failed validation is fixed in the JSON.
+- **Evidence or `no data found`.** Every number in the report carries a source URL or is marked as missing; an
+  estimate is allowed only when labelled as one with its method shown. `no data found` is an expected result.
+- **Report language follows the idea.** All skill instructions are English; the report and the council members
+  write in whatever language the idea was written in.
+- **Artifact home - deviation from the repo-wide rule.** The run directory is `./idea-validation/<slug>-<YYYY-MM-DD>/`
+  at the **host repo root**, holding both the numbered working files (00-13) and the deliverable `report.html`.
+  The root `CLAUDE.md` invariant allows only `docs/<layer>/`, `.claude/` and `.temp/<plugin>/` in a host repo, so
+  this is a **known, deliberate divergence** - resolve it either by moving the working files to
+  `.temp/superbiz/` and the report to `docs/business/<idea-slug>/`, or by amending the root invariant. Do not
+  quietly document it as compliant.
 
-`superbiz` declares no cross-plugin chains - both chains are in-plugin: the validator's finished report
-mandatorily convenes the council via `council-this-chairman` (a mandatory council round, not an offer), and the
-validator separately offers to chain into `product-phase-roadmap`; the `council-this` entry itself is not
-chained from either.
+`superbiz` declares no cross-plugin chains and, since the plugin collapsed to one skill, no in-plugin chains
+either.

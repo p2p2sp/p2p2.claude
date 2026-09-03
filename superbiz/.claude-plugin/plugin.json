@@ -7,18 +7,6 @@
     "email": "dariusz.lenartowicz@p2p2.com.pl"
   },
   "skills": [
-    "./skills/business-idea-validator/",
-    "./skills/business-idea-validator-researcher/",
-    "./skills/product-phase-roadmap/",
-    "./skills/product-phase-roadmap-writer/",
-    "./skills/council-this/",
-    "./skills/council-this-chairman/"
-  ],
-  "agents": [
-    "./agents/council-contrarian.md",
-    "./agents/council-first-principles.md",
-    "./agents/council-expansionist.md",
-    "./agents/council-outsider.md",
-    "./agents/council-executor.md"
+    "./skills/idea-validator/"
   ]
 }

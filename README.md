@@ -5,7 +5,7 @@ subdirectory, co-listed by the catalog at `.claude-plugin/marketplace.json`. Ins
 declares another as a dependency, and installing one gives you that whole ecosystem.
 
 The plugins ship no application code. They are Markdown skills, JSON manifests, a few agents, and
-deterministic bash / TypeScript helper scripts - there is no build step. All six are **stack-agnostic on
+deterministic bash / TypeScript / Python helper scripts - there is no build step. All six are **stack-agnostic on
 purpose**: they read project-specific knowledge (test framework, build tool, naming, how to launch the app)
 from the consuming repository's own `CLAUDE.md` and `.claude/rules/`, never from the plugin sources.
 
@@ -40,7 +40,7 @@ only.
 | **superui** | Design and frontend: professional UI/UX standards on every interface you build, plus a screenshots-to-design-system pipeline that Claude Design consumes to build live components. | [superui/README.md](superui/README.md) |
 | **supergh** | GitHub and git: Conventional-Commits commits, template-driven issues and draft PRs, and a `gh` CLI/REST/GraphQL reference so the model stops guessing which API layer to use. | [supergh/README.md](supergh/README.md) |
 | **superfix** | Codebase investigation: sweeps the whole repo with cheap agents, ranks findings by Impact x Opportunity, and sends frontier investigators only into the hotspots. | [superfix/README.md](superfix/README.md) |
-| **superbiz** | Business validation and product roadmaps: a sourced BUILD / PIVOT / DROP verdict on an idea judged as a side-income autopilot product, a phased launch plan, and a five-advisor council for decisions with real stakes. | [superbiz/README.md](superbiz/README.md) |
+| **superbiz** | Idea validation: web research, a nine-dimension scorecard and a seven-member council debating over two rounds decide whether an idea is worth turning into a side project - one self-contained HTML report with the verdict, the dissent and an experiment plan. | [superbiz/README.md](superbiz/README.md) |
 | **supercc** | Claude Code's own configuration: writes permission rules into your user settings so credential reads and machine shutdown stay blocked in every repository you open - and so routine work stops prompting for approval on every call. | [supercc/README.md](supercc/README.md) |
 
 Each plugin's README carries its own description, a short usage guide, and the list of its skills.
@@ -52,7 +52,8 @@ Each plugin's README carries its own description, a short usage guide, and the l
   diagnose.
 - **supercc** needs Node.js too, but any maintained version.
 - **supergh** needs the `gh` CLI installed and authenticated.
-- **superdev** and **superbiz** have no runtime dependencies.
+- **superbiz** needs **Python 3** (any maintained version, standard library only) to render its report.
+- **superdev** has no runtime dependencies.
 
 ## How they fit together
 

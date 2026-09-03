@@ -1,16 +1,14 @@
 # superbiz
 
-The business validation and product roadmap ecosystem for Claude Code. Three things it does: judge whether
-an idea is worth building, turn a validated idea into a phased execution plan, and pressure-test a decision
-with real stakes through a council of five independent advisors.
+Idea validation for Claude Code. One skill, one question: **is this idea worth turning into a side project?**
 
-The framing is deliberate and non-negotiable: an idea is judged as a **side-income product that runs on
-autopilot** - a supplementary income source needing minimal owner time after launch - not as a
-venture-scale startup. An estimated post-launch maintenance load clearly above your stated budget breaks
-the gate on its own, however attractive the market looks.
+The framing is deliberate and non-negotiable. Your idea is judged as a **side-income product that runs on
+autopilot** - something that keeps earning with a few hours of your time a week after launch - not as a
+venture-scale startup. And because an AI coding agent does the building, the build is assumed cheap and
+therefore non-differentiating: what decides the verdict is the problem, the distribution, and what the thing
+demands from you in month three.
 
-Every entry skill asks the questions in your session and then hands the heavy work to a fork that runs out
-of the main context. Ships no hooks and no manifest.
+The output is one self-contained HTML file you can open, keep and compare against the next idea.
 
 ## Install
 
@@ -19,62 +17,70 @@ claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
 claude plugin install superbiz@p2p2 --scope user
 ```
 
-Needs web access for the research and roadmap skills. No runtime dependencies.
+Needs web access for the research, and Python 3 to render the report. No packages to install.
 
 ## Quick start
 
-### Validate an idea
+```
+/superbiz:idea-validator "A Chrome extension that turns any recipe page into a grocery list. $3/month. I have no audience."
+/superbiz:idea-validator ./my-idea.md
+/superbiz:idea-validator ./my-idea.md --quick
+```
 
-Describe the idea and ask whether it is worth building ("is my idea good", "who would I compete with",
-"could this beat <product>"). `business-idea-validator` fires by itself.
+Pass the idea as text or as a path to a file. The skill is user-invoked only - it never fires by itself.
+`--quick` skips the council's second round; the report says so when it was used.
 
-1. It interviews you: the idea, the maintenance hours per month you accept after launch, and the
-   supplementary income you are targeting. Decline any of them and it is recorded as "unstated", never
-   invented.
-2. A fork runs the deep web research - competitors, market sizing, differentiation - scores six dimensions
-   led by perceived created value, and writes a sourced BUILD / PIVOT / DROP report to
-   `docs/business/<idea-slug>/walidacja.md`.
-3. A council round then runs on that finished report automatically (no opt-in) and writes `rada.md` beside
-   it. You get both verdicts, and any clash between them is stated outright rather than smoothed over.
-4. It offers to chain straight into the roadmap.
+Write the idea in the language you want the report in. The instructions are English, the report is not: it
+comes back in whatever language you described the idea in.
 
-Every number in the report is sourced, and every claim is labeled fact, estimate or assumption.
+## What it does
 
-### Plan the launch
+1. **Intake.** Asks once, in one batch, for what actually changes the answer: target segment, geography,
+   revenue model, hours per week you can commit, channels or audience you already have, and stage. "Don't
+   know" is a valid answer and is recorded as such.
+2. **Normalize.** Lean Canvas plus a numbered list of the hidden assumptions the idea only works if true -
+   every "it will sell itself" included.
+3. **Research.** Three agents in parallel dig into the problem, the market and the competition. Two
+   independent sources minimum for any key number, primary sources preferred, disagreements reported rather
+   than averaged. `no data found` is an expected answer - nothing is filled in with a plausible-sounding
+   figure.
+4. **Score.** Nine dimensions, 1-5, with fixed anchors so two runs are comparable: problem strength, market
+   size, competition, defensibility, revenue model, distribution, timing, side-project fit, autopilot fit.
+   Problem strength and distribution carry double weight. Autopilot fit is measured in hours per week after
+   launch across three layers - acquiring, delivering, maintaining - and every autopilot killer gets a
+   proposed fix or is recorded as unfixable.
+5. **Council.** Seven independent advisors, each a separate agent with its own guiding question, working in
+   isolation: the target customer, the skeptic, the market analyst, the growth person, the operator, risk and
+   legal, and the visionary. Then a second round where they read each other and argue by name.
+6. **Verdict.** Go / Pivot / No-Go, with the arithmetic shown. The verdict is never more confident than the
+   weakest of the three key dimensions - problem, distribution, autopilot - so a weak one caps it regardless
+   of the total. Disputes stay disputes, and a mandatory dissenting section makes the losing side's best case.
+   If all seven advisors agree without reservation, the report flags it as a probable council failure rather
+   than as strong evidence.
+7. **Experiments and thresholds.** Six to eight experiments, riskiest hypothesis first, each with a metric,
+   a pass threshold and a cost - and the Go / Pivot / No-Go thresholds are written down *before* you have any
+   results, so you cannot read them optimistically later.
 
-Ask for a launch plan, go-to-market plan or roadmap - or accept the offer at the end of a validation.
-`product-phase-roadmap` interviews you about scope and constraints, then a fork writes one Markdown file
-per phase to `docs/business/<idea-slug>/plan/`: landing page + waitlist, MVP, public launch, growth - each
-with step-by-step actions covering marketing, distribution and metrics.
+## What you get
 
-### Convene the council
+A run directory `./idea-validation/<slug>-<date>/` with the numbered working files (intake, canvas,
+hypotheses, the three research files, the fit analyses, every council member's answer per round, the
+synthesis and the experiment plan), and the deliverable:
 
-Say "council this", "I can't decide", or put a genuine tradeoff on the table. `council-this` frames the
-decision and its stakes, then a fork convenes five advisors in parallel and synthesizes one chairman
-verdict - a clear recommendation plus a single first step - at `docs/business/<decision-slug>/rada.md`.
+```
+report.html
+```
 
-Do not reach for it on questions with one verifiable right answer, or on a casual should-I with no real
-tradeoff.
+Scorecard, evidence with links, council positions, the dissenting opinion, the experiment plan and the
+pre-committed thresholds - one file, no assets, opens anywhere.
+
+## What the report does not claim
+
+It does not tell you that people will pay. Nothing short of the experiments in step 7 can. Read a Go as
+"worth testing", not as "worth building".
 
 ## Skills
 
 | Skill | Role |
 | --- | --- |
-| `business-idea-validator` | Interactive entry - resolves the idea, the accepted maintenance load and the income target, dispatches the researcher, then runs the mandatory council round on the finished report and relays both verdicts. Ends by offering the roadmap. |
-| `business-idea-validator-researcher` | Fork - deep web research, six scored dimensions with autopilot operability as a hard gate, and the sourced BUILD / PIVOT / DROP report. |
-| `product-phase-roadmap` | Interactive entry - resolves the source report, the slug and every open decision, then dispatches the writer. |
-| `product-phase-roadmap-writer` | Fork - refreshes best practices from the web and writes the phased execution folder. |
-| `council-this` | Interactive entry - frames the decision and its stakes (at most one clarifying question), then dispatches the chairman. |
-| `council-this-chairman` | Fork - convenes the five persona agents in one parallel dispatch and writes the chairman verdict. |
-
-## Agents
-
-The five council personas, dispatched by `council-this-chairman` only.
-
-| Agent | Angle |
-| --- | --- |
-| `council-contrarian` | Hunts the fatal flaw: what is wrong, missing, or will fail. |
-| `council-first-principles` | Strips the framing's assumptions and rebuilds the reasoning from the ground up. |
-| `council-expansionist` | Finds the upside everyone else misses - the ceiling, not the floor. |
-| `council-outsider` | Responds only to what is literally on the page; flags jargon and unstated assumptions. |
-| `council-executor` | Only feasibility and the fastest path: the concrete next move. |
+| `idea-validator` | The whole pipeline: intake, research, nine-dimension scorecard, seven-member council over two rounds, verdict with dissent, experiment plan with pre-committed thresholds, and the HTML report. User-invoked only. |
