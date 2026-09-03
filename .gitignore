@@ -355,6 +355,7 @@ frontend/*/coverage/
 next-env.d.ts
 
 ## Environment files (covers .env.local, .env.development.local, etc.)
+.env
 *.local
 
 ## macOS
