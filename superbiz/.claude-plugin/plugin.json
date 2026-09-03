@@ -7,7 +7,6 @@
     "email": "dariusz.lenartowicz@p2p2.com.pl"
   },
   "skills": [
-    "./skills/idea-validator/",
-    "./skills/hormozi-report/"
+    "./skills/idea-validator/"
   ]
 }

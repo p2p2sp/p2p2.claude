@@ -82,13 +82,7 @@ skill/agent list. This file is orientation for the assistant.
   producer/consumer artifact pairs, triaged `MATCH` / `MISMATCH` / `UNCLEAR` / `NO_CONTRACT` (the gate keeps
   `MATCH` and `NO_CONTRACT` out of dispatch) - and dispatches cheap-triage / deep-dive agents into the union of
   both. (→ `superfix/CLAUDE.md`)
-- **superbiz** - the business analysis ecosystem: **two independent skills** that share nothing and never
-  compose. `hormozi-report` (model-routable) diagnoses a business that already exists - a rigid
-  twelve-question interview, `WebSearch` / `WebFetch` research, a ranked three-constraint board, and a
-  self-contained branded HTML dashboard whose every claim is cited to the page it was read from, rendered by
-  its own `scripts/build_report.ts` (Node, no deps). It was externally sourced and is now dependency-free;
-  three cosmetic divergences from repo convention remain - see `superbiz/CLAUDE.md`. The other is
-  `idea-validator`
+- **superbiz** - the business analysis ecosystem: **one skill**, `idea-validator`
   (`disable-model-invocation: true`, argument `[idea text | path/to/idea.md] [--quick]`). It answers one
   question - is this idea worth turning into a side project - judging it as a side-income product that runs on
   autopilot after launch rather than a venture-scale startup, and treating the build as cheap and therefore
@@ -99,8 +93,7 @@ skill/agent list. This file is orientation for the assistant.
   moderator synthesis with a Go / Pivot / No-Go verdict and a mandatory dissenting opinion, an experiment plan
   and pre-committed decision thresholds, and finally `scripts/build_report.py` rendering one self-contained
   `report.html`. The plugin ships **no hooks, no manifest and no agents** - `idea-validator` does not route at
-  all and fans out with the `Agent` tool rather than `Skill` forks, and `hormozi-report` routes on its own CSO
-  `description:`. (→ `superbiz/CLAUDE.md`)
+  all and fans out with the `Agent` tool rather than `Skill` forks. (→ `superbiz/CLAUDE.md`)
 - **supercc** - Claude Code's own configuration on the machine it runs on. One CSO-routed skill,
   `setup-permissions`, writes permission rules into the **user's** settings (`~/.claude/settings.json`) - and,
   for blocks carrying a `memory` array, a marker-scoped block in the user's memory (`~/.claude/CLAUDE.md`) -
@@ -118,9 +111,8 @@ plugin root (`superdev/scripts/`, `superdev/references/`), and `superui` keeps i
 seven agents at the plugin root (`superui/scripts/`, `superui/agents/`), both with no `shared/` subdir.
 `superui` has no `references/` or `assets/` dir at the plugin root - only `pro-designer` and
 `component-extractor` need a `references/` dir, and each keeps its own rather than sharing one at the plugin
-root. `superbiz` ships no plugin-root dirs at all - each of its two skills bundles its own: `idea-validator` a
-`references/` (including a `references/council/` subdir), `scripts/`, `assets/` and `evals/`, and
-`hormozi-report` a `reference/` (singular - a known divergence) and `scripts/`. `idea-validator`'s
+root. `superbiz` ships no plugin-root dirs at all - its one skill, `idea-validator`, bundles its own
+`references/` (including a `references/council/` subdir), `scripts/`, `assets/` and `evals/`. Its
 `build_report.py` is the repo's only **Python** script (stdlib only), every other bundled script being bash
 or TypeScript. `supercc` likewise ships
 no plugin-root dirs - its single skill bundles its own `references/` and `scripts/`. Each
@@ -234,8 +226,7 @@ The invariants below hold across the repo.
   the `report.html` deliverable - to `./idea-validation/<slug>-<YYYY-MM-DD>/` at the host repo root, which is
   none of the three allowed locations. Either the skill moves (working files to `.temp/superbiz/`, the report
   to `docs/business/<idea-slug>/`) or this invariant gets amended; until then it is a known divergence, not a
-  precedent. Its sibling `hormozi-report` writes its whole run to
-  `.temp/superbiz/hormozi-report/<subject-slug>-<YYYY-MM-DD>/` and is compliant.
+  precedent.
 - **No plugin ever creates a plugin-named dot-dir in the host repo** - no `.superdev/`, no `.superui/`,
   no equivalent for any future plugin. Only three host-repo locations are writable: `docs/<layer>/` for
   persisted user-facing knowledge (above), `.claude/` for configuration the user owns and edits
@@ -303,7 +294,7 @@ The invariants below hold across the repo.
 - **Self-documentation.** Any skill add / remove / rename MUST update the **owning plugin's**
   `<plugin>/.claude-plugin/plugin.json` `skills[]` (superdev's for any of its skills, superui's
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`create-issue`/`create-pr` skill,
-  superfix's for the `code-auditor` skill, superbiz's for the `idea-validator` / `hormozi-report` skills;
+  superfix's for the `code-auditor` skill, superbiz's for the `idea-validator` skill;
   supercc's for the `setup-permissions` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
   (superfix's `scout` / `edge-scout` / `detective` / `critic` live there, not in `skills[]`; superui's seven

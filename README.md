@@ -39,7 +39,7 @@ only.
 | **superui** | Design and frontend: professional UI/UX standards on every interface you build, plus a screenshots-to-design-system pipeline that Claude Design consumes to build live components. | [superui/README.md](superui/README.md) |
 | **supergh** | GitHub and git: Conventional-Commits commits, template-driven issues and draft PRs, and a `gh` CLI/REST/GraphQL reference so the model stops guessing which API layer to use. | [supergh/README.md](supergh/README.md) |
 | **superfix** | Codebase investigation: sweeps the whole repo with cheap agents, ranks findings by Impact x Opportunity, and sends frontier investigators only into the hotspots. | [superfix/README.md](superfix/README.md) |
-| **superbiz** | Business analysis, two skills: idea validation - web research, a nine-dimension scorecard and a seven-member council debating over two rounds decide whether an idea is worth turning into a side project; and a constraint diagnosis of a business that already exists, written up with a cited source behind each claim. Each ends in one self-contained HTML report. | [superbiz/README.md](superbiz/README.md) |
+| **superbiz** | Idea validation: web research, a nine-dimension scorecard and a seven-member council debating over two rounds decide whether an idea is worth turning into a side project, ending in one self-contained HTML report. | [superbiz/README.md](superbiz/README.md) |
 
 Each plugin's README carries its own description, a short usage guide, and the list of its skills.
 
@@ -50,7 +50,7 @@ Each plugin's README carries its own description, a short usage guide, and the l
   diagnose.
 - **supergh** needs the `gh` CLI installed and authenticated.
 - **superbiz** needs web access, plus **Python 3** (any maintained version, standard library only) to render
-  `idea-validator`'s report and **Node.js >= 22.6** to render `hormozi-report`'s.
+  `idea-validator`'s report.
 - **superdev** has no runtime dependencies.
 
 ## How they fit together

@@ -19,8 +19,6 @@ claude plugin install superbiz@p2p2 --scope user
 
 `idea-validator` needs web access for the research, and Python 3 to render the report. No packages to install.
 
-`hormozi-report` needs web access for the research and Node 22.6+ to render its report. Nothing to install.
-
 ## Quick start
 
 ```
@@ -86,4 +84,3 @@ It does not tell you that people will pay. Nothing short of the experiments in s
 | Skill | Role |
 | --- | --- |
 | `idea-validator` | The whole pipeline: intake, research, nine-dimension scorecard, seven-member council over two rounds, verdict with dissent, experiment plan with pre-committed thresholds, and the HTML report. User-invoked only. |
-| `hormozi-report` | Long-form written diagnosis of a business that already exists - a twelve-question interview, web research where every quote comes from a page actually opened, a ranked three-constraint board, and a branded self-contained HTML dashboard with a cited source behind each claim. Model-routable. |
