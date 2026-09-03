@@ -30,6 +30,11 @@
       "name": "superbiz",
       "source": "./superbiz",
       "description": "Super Biz ecosystem for Claude Code."
+    },
+    {
+      "name": "supercc",
+      "source": "./supercc",
+      "description": "Super CC ecosystem for Claude Code."
     }
   ]
 }

@@ -1,0 +1,12 @@
+{
+  "name": "supercc",
+  "version": "0.29.6",
+  "description": "Super CC ecosystem for Claude Code.",
+  "author": {
+    "name": "Dariusz Lenartowicz",
+    "email": "dariusz.lenartowicz@p2p2.com.pl"
+  },
+  "skills": [
+    "./skills/setup-permissions/"
+  ]
+}
