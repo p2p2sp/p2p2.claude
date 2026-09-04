@@ -39,7 +39,9 @@
 #       <ścieżka-taska><TAB><tytuł>
 #   - commituje dekompozycję (git add -A + commit) komunikatem
 #     "chore(<commit-prefix>): decompose plan <slug>"; szum gita idzie na stderr,
-#     więc stdout pozostaje czystym indeksem
+#     więc stdout pozostaje czystym indeksem. Outside a git repository the commit
+#     is skipped (note on stderr, exit 0) - the working dir is already complete,
+#     so a missing repo must never fail the decomposition
 #
 set -euo pipefail
 
@@ -257,6 +259,15 @@ done
 trap - EXIT
 
 # --- commit dekompozycji ---
+# The commit is best-effort. Outside a git repository there is nothing to commit
+# to, and the working dir above is already complete on disk - so skip it and exit
+# clean, instead of letting `set -e` turn git's exit 128 into a failed decompose
+# that stops the whole build.
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+  echo "decompose: not a git repository - skipping commit" >&2
+  exit 0
+fi
+
 # artefakty robocze + wszelkie zmiany drzewa; szum gita kierujemy na stderr,
 # aby stdout niósł wyłącznie indeks parsowany przez skill.
 git add -A

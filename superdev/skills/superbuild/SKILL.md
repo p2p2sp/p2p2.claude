@@ -27,6 +27,10 @@ These gate the Close-Out delegations (Step 4: `adr`, `rules`, `memory`, `docs`).
 
 Resolve `<plan-file>` from the `Plan:` line of the approved plan already in context - never from its `Spec:` line, never guessed. No `Plan:` line -> STOP on the same branch below. Then verify identity: `grep -m1 '^Title:' <plan-file>` must equal the approved plan's own `Title:` line. Missing file or a differing `Title:` -> STOP: report that the plan file at that path is absent or holds a different plan (a plan-slug collision may have overwritten it); do not decompose, do not fall back, do not rewrite the plan from context.
 
+Then preflight git: run `git rev-parse --git-dir`. A non-zero exit means this is not a git repository - and the whole pipeline assumes one (`base.md`, the reviewer's `git diff <base>..HEAD`, a commit after every task). Ask via `AskUserQuestion` before decomposing:
+- **Initialize git (recommended)** -> run `git init`, then `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore: initial commit"`, so the build gets a real base SHA and a per-task history.
+- **Continue without git** -> proceed; `base:` stays `none`, no task gets committed, and Final Review runs unbounded over the whole tree.
+
 Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/decompose.sh" <plan-file> superbuild` with the resolved plan path. It creates a working dir (returned as `workdir:`) containing:
 - `status.md` - number of the last processed task (starts at `00`).
 - `base.md` - the build's base SHA (HEAD before the decompose commit); preserved on resume.

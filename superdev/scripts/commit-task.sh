@@ -14,6 +14,8 @@
 # Działanie:
 #   - jeśli podano <task-file> -> najpierw status-update.sh <task-file>
 #     (zapisuje numer taska do <workdir>/status.md, aby trafił do commita taska)
+#   - outside a git repository -> "Not a git repository - skipping commit."
+#     and exit 0 (the status bump above has already been written)
 #   - git add -A; brak zmian w staged -> "Nothing to commit." i exit 0
 #   - w przeciwnym razie git commit -m <message>
 #
@@ -32,6 +34,15 @@ fi
 
 if [[ -n "$task" ]]; then
   "$SCRIPT_DIR/status-update.sh" "$task"
+fi
+
+# The commit is best-effort. Outside a git repository there is nothing to commit
+# to and the task's work is already on disk - so skip it and exit clean, instead
+# of letting `set -e` turn git's exit 128 into a failed task that stops the
+# implementation loop mid-build.
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+  echo "Not a git repository - skipping commit."
+  exit 0
 fi
 
 git add -A

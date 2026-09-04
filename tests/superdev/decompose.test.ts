@@ -3,7 +3,8 @@
  * `decompose.sh <plan-file> [commit-prefix]` builds
  * docs/.workflows/<date>-<slug>/{plan-header.md,plan.md,status.md,base.md,
  * tasks/task-NN.md,implementation/}, prints a clean stdout index (all git
- * noise on stderr), commits the decomposition, and exits 1/4/5 on its
+ * noise on stderr), commits the decomposition - skipping only that commit, and
+ * keeping the built tree, outside a git repository - and exits 1/4/5 on its
  * documented error paths.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
@@ -394,6 +395,39 @@ test("edge: an unborn HEAD (no commits yet) resolves base to 'none' and still co
       assert.equal(fs.readFileSync(path.join(repo.dir, dir, "base.md"), "utf-8"), "base: none\n");
       // the decomposition commit becomes the repo's first (root) commit
       assert.equal(subjectOf(repo), "chore(simplebuild): decompose plan unborn-head-plan");
+    });
+  });
+});
+
+test("edge: outside a git repository the tree is built and the commit is skipped, exit 0", () => {
+  withTempDir("p2p2-decompose-nonrepo-", (projectDir) => {
+    withTempDir("p2p2-decompose-plan-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "No Git Plan",
+          criteria: ["One."],
+          tasks: [taskBlock("Task 1 - do it", [1])],
+        }),
+      );
+      // no repo.env here on purpose: a bare temp dir is not a git repository,
+      // so `git rev-parse --git-dir` fails and the commit section must bail out.
+      const result = runScript(SUT, [plan], { cwd: projectDir, shell: "bash" });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match(result.stderr, /decompose: not a git repository - skipping commit/);
+      assert.match(result.stdout, /^base: none$/m);
+
+      // the decomposition itself is complete and SURVIVES - the cleanup trap is
+      // disarmed before the commit section, so nothing rolls the working dir back.
+      const dir = `docs/.workflows/${todayISO()}-no-git-plan`;
+      const absDir = path.join(projectDir, dir);
+      assert.match(result.stdout, new RegExp(`^workdir: ${dir}$`, "m"));
+      assert.equal(fs.readFileSync(path.join(absDir, "status.md"), "utf-8"), "task: 00\n");
+      assert.equal(fs.readFileSync(path.join(absDir, "base.md"), "utf-8"), "base: none\n");
+      assert.ok(fs.existsSync(path.join(absDir, "plan-header.md")));
+      assert.ok(fs.existsSync(path.join(absDir, "plan.md")));
+      assert.match(fs.readFileSync(path.join(absDir, "tasks", "task-01.md"), "utf-8"), /## Task 1 - do it/);
     });
   });
 });

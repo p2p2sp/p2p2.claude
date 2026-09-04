@@ -3,7 +3,8 @@
  * <message> [task-file]` delegates to status-update.sh first (so a bumped
  * status.md rides IN the same commit as the task's work), then stages
  * everything and commits with <message>, or reports "Nothing to commit."
- * on a clean index; exits 1 on a missing message.
+ * on a clean index; skips the commit outside a git repository; exits 1 on a
+ * missing message.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -16,7 +17,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { runScript } from "../harness/run.ts";
-import { withGitRepo } from "../harness/tmp.ts";
+import { withGitRepo, withTempDir } from "../harness/tmp.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../superdev/scripts/commit-task.sh");
 
@@ -79,6 +80,25 @@ test("clean index, no changes -> 'Nothing to commit.' on stdout, exit 0", () => 
     const result = run(repo.dir, repo.env, ["no-op message"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "Nothing to commit.\n");
+  });
+});
+
+test("outside a git repository -> skips the commit, exit 0, and the status bump still lands", () => {
+  // no withGitRepo here on purpose: a bare temp dir is not a git repository, so
+  // `git rev-parse --git-dir` fails and the commit section must bail out rather
+  // than kill the caller's implementation loop.
+  withTempDir("p2p2-commit-task-nonrepo-", (dir) => {
+    const tasksDir = path.join(dir, "tasks");
+    fs.mkdirSync(tasksDir, { recursive: true });
+    fs.writeFileSync(path.join(tasksDir, "task-03.md"), "## a task\n");
+
+    const result = run(dir, {}, ["finish task 3", "tasks/task-03.md"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    // the status-update.sh delegation runs BEFORE the git guard (its own line
+    // comes first), so the resume marker is written even when nothing can be
+    // committed.
+    assert.equal(result.stdout, "status: ./status.md -> task: 03\nNot a git repository - skipping commit.\n");
+    assert.equal(fs.readFileSync(path.join(dir, "status.md"), "utf-8"), "task: 03\n");
   });
 });
 
