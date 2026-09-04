@@ -34,9 +34,7 @@ Review the completed work against the plan.
 - Is all planned functionality present?
 - Reverse direction: does every file in the change set map to a plan task's `Files` (test/config fallout is fine)? An unmapped change - or any deviation - NOT recorded in the notes is a misalignment in itself; a recorded one is judged on merit: justified improvement or problematic departure.
 
-On any misalignment: STOP. Write the report (misalignment under Critical), emit
-`VERDICT: FAIL` + `REVIEW: <report path>`, and return immediately - do not run the
-checks below. They only apply once the plan is met.
+On any misalignment: STOP. Write the report (misalignment under Critical), emit `VERDICT: FAIL` + `REVIEW: <report path>`, and return immediately - do not run the checks below. They only apply once the plan is met.
 
 **Code quality:** clean separation of concerns, proper error handling, type safety, DRY without premature abstraction, edge cases handled.
 
@@ -48,15 +46,13 @@ checks below. They only apply once the plan is met.
 
 ## Calibration
 
-Categorize issues by actual severity. Not everything is Critical. Acknowledge what was done well before listing issues - accurate praise
-helps the implementer trust the rest of the feedback.
+Categorize issues by actual severity. Not everything is Critical. Acknowledge what was done well before listing issues - accurate praise helps the implementer trust the rest of the feedback.
 
 If you find significant deviations from the plan, flag them specifically so the implementer can confirm whether the deviation was intentional.
 If you find issues with the plan itself rather than the implementation, say so.
 
 ## Report
-Write the full review to the Report path (from `## Input`), using exactly this
-structure. Always write it - on PASS and on FAIL.
+Write the full review to the Report path (from `## Input`), using exactly this structure. Always write it - on PASS and on FAIL.
 
 ```markdown
 ## Output Format
