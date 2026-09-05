@@ -653,3 +653,142 @@ test("a very long transcript (thousands of noise lines) still resolves the happy
     assert.equal(runCase(f).decision, "allow");
   });
 });
+
+// --- Latest-review binding: the gate reads the verdict of the LAST completed
+// (reviewer call -> verdict) pair after the last plan write, not the first one.
+// Binding to the first pair latched a stale FAIL for the rest of the session
+// whenever the plan was fixed through a channel Step 1 cannot see. ---
+
+test("RL1 - FAIL, then a re-review PASS -> allow (the newest review binds)", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const f = writeFixtureFile(dir, "t.jsonl", [LW, LR, LFAIL, LR, LPASS]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("RL1b - four stale FAILs, then a PASS -> allow (no permanent latch)", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const f = writeFixtureFile(dir, "t.jsonl", [LW, LR, LFAIL, LR, LFAIL, LRS, LFAIL, LR, LFAIL, LRS, LPASS]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("RL2 - PASS, then a re-review FAIL -> deny (newest review binds both ways)", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const f = writeFixtureFile(dir, "t.jsonl", [LW, LR, LPASS, LR, LFAIL]);
+    assert.equal(runCase(f).decision, "deny");
+  });
+});
+
+test("RL3 - PASS, then a reviewer call with NO verdict after it -> allow (an unfinished call cannot clobber the last complete pair)", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const f = writeFixtureFile(dir, "t.jsonl", [LW, LR, LPASS, LR]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("RL4 - FAIL, re-review PASS, then a stray pasted PASS -> allow (stray line binds to no call)", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const f = writeFixtureFile(dir, "t.jsonl", [LW, LR, LFAIL, LR, LPASS, LPASTE]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("RL5 - FAIL, then a stray pasted PASS with no reviewer call before it -> deny (no forged re-review)", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const f = writeFixtureFile(dir, "t.jsonl", [LW, LR, LFAIL, LPASTE, LPASS]);
+    assert.equal(runCase(f).decision, "deny");
+  });
+});
+
+test("RLD - the FAIL deny names the review it read (reviewer-call and verdict transcript lines)", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const f = writeFixtureFile(dir, "t.jsonl", [LW, LR, LPASS, LR, LFAIL]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /reviewer call on line 4/);
+    assert.match(reason ?? "", /verdict on line 5/);
+  });
+});
+
+test("RLD2 - the no-verdict deny names the reviewer call it read", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const f = writeFixtureFile(dir, "t.jsonl", [LW, LR, LPASTE]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /no 'VERDICT:' line/);
+    assert.match(reason ?? "", /transcript line 2/);
+  });
+});
+
+// --- Tamper guard (a): mtime. The reviewed plan must be OLDER than its own
+// verdict, whatever wrote it - this catches the writers the command-shape
+// detector cannot enumerate (a python/node heredoc, an editor, a script). ---
+
+// A verdict line carrying the transcript's own "timestamp" key, so the guard has
+// both halves of the comparison.
+function passAt(iso: string): string {
+  return line({
+    type: "user",
+    timestamp: iso,
+    message: { content: [{ type: "tool_result", content: "## Simpleplan Review\nVERDICT: PASS\nAll good." }] },
+  });
+}
+
+function realPlan(dir: string, name: string): { plan: string; lw: string; lr: string } {
+  const planPath = path.join(dir, ".claude", "plans", name);
+  const plan = writePlanFile(
+    dir,
+    name,
+    `# SimplePlan\nTo build this plan must use the \`simplebuild\` skill.\nPlan: ${planPath}\n`,
+  );
+  return {
+    plan,
+    lw: writeOf(plan),
+    lr: line({
+      type: "assistant",
+      message: { content: [{ type: "tool_use", name: "Skill", input: { skill: "superdev:simpleplan-reviewer", args: plan } }] },
+    }),
+  };
+}
+
+test("TM1 - plan file modified AFTER its verdict's timestamp -> deny (tamper, whatever wrote it)", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const { lw, lr } = realPlan(dir, "mtime-stale.md");
+    // The plan was just written, so its mtime is "now"; the verdict is an hour old.
+    const stale = new Date(Date.now() - 3600_000).toISOString();
+    const f = writeFixtureFile(dir, "t.jsonl", [lw, lr, passAt(stale)]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /modified after 'VERDICT: PASS'/);
+  });
+});
+
+test("TM2 - plan file older than its verdict's timestamp -> allow (no false tamper)", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const { lw, lr } = realPlan(dir, "mtime-fresh.md");
+    const fresh = new Date(Date.now() + 3600_000).toISOString();
+    const f = writeFixtureFile(dir, "t.jsonl", [lw, lr, passAt(fresh)]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("TM3 - verdict line carries no timestamp -> mtime check skipped, not denied (fail-open)", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const { lw, lr } = realPlan(dir, "mtime-none.md");
+    const f = writeFixtureFile(dir, "t.jsonl", [lw, lr, LPASS]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("TM4 - a re-review AFTER the out-of-band edit clears the mtime tamper -> allow", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const { lw, lr } = realPlan(dir, "mtime-rereviewed.md");
+    const stale = new Date(Date.now() - 3600_000).toISOString();
+    const fresh = new Date(Date.now() + 3600_000).toISOString();
+    // FAIL, an unseen (non-Write/Edit) fix, then a fresh review whose verdict
+    // post-dates the plan file: the gate must reopen.
+    const f = writeFixtureFile(dir, "t.jsonl", [lw, lr, passAt(stale), lr, passAt(fresh)]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});

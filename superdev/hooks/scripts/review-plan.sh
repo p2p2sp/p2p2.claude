@@ -11,6 +11,14 @@
 # format ("# SimplePlan" / "# SuperPlan"), so the gate is not blind to a
 # custom plans directory.
 #
+# The verdict it reads is the one from the LATEST completed review after that write
+# (a reviewer call plus the first verdict following it), never the first review of
+# the session - so a plan that was fixed and re-reviewed clears an earlier FAIL even
+# when the fix itself went through a channel Step 1 cannot see. What keeps such an
+# unseen edit honest is the tamper guard at the end: the plan file must be OLDER than
+# the verdict that approved it (file mtime vs. the transcript timestamp on the verdict
+# line), whatever wrote it.
+#
 # It also requires the plan file to DECLARE its format up front - a SimplePlan
 # ("# SimplePlan" / "simplebuild") or a SuperPlan ("# SuperPlan" / "superbuild").
 # A plan that names neither format is denied with guidance to use the default
@@ -178,10 +186,23 @@ if [ -n "$plan_path" ] && [ -f "$plan_path" ] && [ -r "$plan_path" ]; then
   fi
 fi
 
-# Step 2: from the line AFTER the last plan-file write, look for:
+# Step 2: from the line AFTER the last plan-file write, resolve the MOST RECENT
+# COMPLETED review - the LAST (R -> S) pair, where
 #   R = a line containing the plan reviewer name AND a subagent marker
-#   S = a line carrying the actual verdict "VERDICT: PASS"
-# Require R < S so the reviewer call precedes its result.
+#   S = the FIRST verdict line ("VERDICT: PASS|FAIL") after that R.
+# Binding to the FIRST R's verdict (the previous behavior) latched the gate onto a
+# stale verdict for the rest of the session: this anchor only moves on a Write/Edit
+# of the plan, so whenever the plan was fixed through something Step 1 cannot see (a
+# Bash heredoc / script edit), every later re-review stayed invisible and an old FAIL
+# could never be cleared - the run deadlocked with no way out from inside.
+# Pairing keeps every anti-forgery property the first-verdict binding had:
+#   - the verdict is still the FIRST verdict AFTER ITS OWN reviewer call, so a
+#     stray/pasted/echoed PASS later in the transcript never overrides it;
+#   - a FAIL from the newest review still denies;
+#   - a line that merely LOOKS like a reviewer call but has no verdict after it
+#     cannot clobber the last real pair - only call+verdict pairs are recorded;
+#   - a plan Write/Edit after a review moves tail_start past every pair, so an
+#     edited plan still demands a fresh review.
 tail_start=$((last_plan_write_line + 1))
 
 # R: subagent / skill invocation referencing the plan reviewer - either
@@ -191,22 +212,13 @@ tail_start=$((last_plan_write_line + 1))
 # Skill tool - "skill":"superdev:superplan-reviewer" / "superdev:simpleplan-reviewer") that
 # mentions the reviewer on the same JSONL line. Load-bearing: name + marker must co-occur on
 # one line; if a future transport splits them, relax to a two-stage match (reviewer line, then the verdict).
-reviewer_call_line=$(
-  awk -v start="$tail_start" 'NR>=start && /(superplan|simpleplan)-reviewer/ && (/"subagent_type"/ || /"Agent"/ || /"Skill"/ || /"skill"/) { print NR; exit }' \
-    "$transcript_path" 2>/dev/null
-)
-
-if [ -z "$reviewer_call_line" ]; then
-  emit_deny "Next step: plan review. Run the simpleplan-reviewer skill (or superplan-reviewer if this plan follows a spec), wait for 'VERDICT: PASS', then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
-fi
-
-# S: the reviewer's OWN verdict - the FIRST verdict line AFTER the reviewer call.
-# Anchor on the escaped newline (\n in the JSONL) that precedes it: the real verdict
-# always starts its own markdown line, so it appears as `\nVERDICT: <value>`. The
-# keyword is the literal, canonical `VERDICT:` (no bold, no case variance - every
-# superdev skill returns exactly this) so a drifted format (old bold markers, a
-# different case) does NOT match and correctly falls through to the "no VERDICT:
-# line" deny below, rather than silently tolerating stale output shapes:
+#
+# S: the reviewer's OWN verdict. Anchor on the escaped newline (\n in the JSONL) that
+# precedes it: the real verdict always starts its own markdown line, so it appears as
+# `\nVERDICT: <value>`. The keyword is the literal, canonical `VERDICT:` (no bold, no
+# case variance - every superdev skill returns exactly this) so a drifted format (old
+# bold markers, a different case) does NOT match and correctly falls through to the
+# "no VERDICT: line" deny below, rather than silently tolerating stale output shapes:
 #   - `([-*] )?` tolerates a leading markdown list marker (`- VERDICT:`);
 #   - `` `? `` on each side tolerates back-ticks around the value (`` `PASS` ``).
 # The `\\n` matches the two literal chars backslash-n JSON uses to escape a newline -
@@ -214,24 +226,42 @@ fi
 # accepts a verdict that OPENS the content string (a spec-faithful reviewer puts the
 # verdict on the FIRST line with no preamble; today the harness prefixes forked-skill
 # results with `Result:\n`, but the gate must not depend on that undocumented framing).
-# LOAD-BEARING: bind to the FIRST verdict, matching PASS|FAIL, not "any later PASS".
-# A FAIL verdict must DENY even when a later line (a paste, an assistant restatement,
-# a tool_result echo, or a `VERDICT: PASS | FAIL` legend) carries a stray PASS.
-# The verdict VALUE must END the line-anchored token - followed by the escaped
-# newline (\n) that starts the next markdown line, or the closing quote (") that
-# ends the JSON content string (optional trailing spaces tolerated). This rejects a
-# qualified/negated `VERDICT: PASS is NOT ...` whose value is not the whole token:
-# without the end-anchor its last matched word is still `PASS` -> a false-allow.
-verdict_line=$(
-  awk -v start="$reviewer_call_line" 'NR>start && /(\\n|"(text|content)":")([-*] )?VERDICT:[[:space:]]+`?(PASS|FAIL)`?[[:space:]]*(\\n|")/ { print NR; exit }' \
-    "$transcript_path" 2>/dev/null
+# The verdict VALUE must END the line-anchored token - followed by the escaped newline
+# (\n) that starts the next markdown line, or the closing quote (") that ends the JSON
+# content string (optional trailing spaces tolerated). This rejects a qualified/negated
+# `VERDICT: PASS is NOT ...` whose value is not the whole token: without the end-anchor
+# its last matched word is still `PASS` -> a false-allow.
+# `next` on a call line keeps a round-2 reviewer call (whose ARGS quote the previous
+# round's verdict) from being read as that same call's result.
+# Emits three integers: the last reviewer call seen, then the call/verdict line numbers
+# of the last complete pair (0 for each when there is none).
+read -r last_call_line reviewer_call_line verdict_line <<PAIR
+$(
+  awk -v start="$tail_start" '
+    NR < start { next }
+    /(superplan|simpleplan)-reviewer/ && (/"subagent_type"/ || /"Agent"/ || /"Skill"/ || /"skill"/) {
+      call = NR; last_call = NR; next
+    }
+    call && /(\\n|"(text|content)":")([-*] )?VERDICT:[[:space:]]+`?(PASS|FAIL)`?[[:space:]]*(\\n|")/ {
+      best_call = call; best_verdict = NR; call = 0
+    }
+    END { print last_call + 0, best_call + 0, best_verdict + 0 }
+  ' "$transcript_path" 2>/dev/null
 )
+PAIR
+last_call_line="${last_call_line:-0}"
+reviewer_call_line="${reviewer_call_line:-0}"
+verdict_line="${verdict_line:-0}"
 
-if [ -z "$verdict_line" ]; then
-  emit_deny "Next step: address the review. The plan reviewer ran but returned no 'VERDICT:' line - re-run it, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+if [ "$last_call_line" = "0" ]; then
+  emit_deny "Next step: plan review. Run the simpleplan-reviewer skill (or superplan-reviewer if this plan follows a spec), wait for 'VERDICT: PASS', then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
 fi
 
-# The value on that first verdict line - strip the trailing anchor, drop any back-ticks,
+if [ "$verdict_line" = "0" ]; then
+  emit_deny "Next step: address the review. The plan reviewer was called (transcript line ${last_call_line}, after the last plan Write/Edit on line ${last_plan_write_line}) but returned no 'VERDICT:' line - re-run it and let it return its verdict, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+fi
+
+# The value on that verdict line - strip the trailing anchor, drop any back-ticks,
 # then take the last whitespace-delimited token of the remaining `\nVERDICT: <value>` span.
 verdict_value=$(
   awk -v ln="$verdict_line" 'NR==ln {
@@ -242,17 +272,56 @@ verdict_value=$(
   }' "$transcript_path" 2>/dev/null
 )
 
+# The deny names WHICH review it read (reviewer-call and verdict transcript lines) and
+# how that review was selected, so a run that keeps being denied is diagnosable from the
+# message alone instead of by reading the transcript.
 if [ "$verdict_value" != "PASS" ]; then
-  emit_deny "Next step: address the review. The plan reviewer returned 'VERDICT: ${verdict_value}', not PASS - apply its Fix list to the plan file, re-run the reviewer, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+  emit_deny "Next step: address the review. The plan reviewer returned 'VERDICT: ${verdict_value}', not PASS - apply its Fix list to the plan file, re-run the reviewer, then retry ExitPlanMode. (Read from the LATEST review in the transcript: reviewer call on line ${reviewer_call_line}, its verdict on line ${verdict_line}, both after the last plan Write/Edit on line ${last_plan_write_line}; re-running the reviewer creates a newer pair that supersedes this one. This is the normal approval gate, not an error.)"
 fi
 
-# Tamper guard: a PASS approves the plan AS REVIEWED. The Step-1 write-detection only
-# sees Write/Edit, so a plan mutation via a Bash command AFTER the verdict is invisible
-# and would let a stale PASS approve tampered content. Re-gate when a later Bash line
-# makes the plan path the TARGET of a mutation (a redirect target, or an operand of
-# sed -i / tee / cp / mv) - NOT mere co-occurrence, so a read/stage (`cat`, `git add`)
-# or a redirect aimed at another file that merely names the plan does not false-deny.
+# Tamper guard: a PASS approves the plan AS REVIEWED. Step 1 only sees Write/Edit, so a
+# plan mutation through any other channel after the verdict would let a stale PASS
+# approve content the reviewer never saw. Two independent detectors, both fail-open:
+#
+# (a) mtime - tool-agnostic. Compare the plan file's modification time against the
+#     timestamp the transcript records on the verdict line: the reviewed plan must be
+#     OLDER than its own verdict. This catches every writer (a redirect, sed, a
+#     python/node heredoc, an external editor), instead of a hard-coded verb list that
+#     can only ever enumerate the writers someone thought of. Needs both values;
+#     anything unresolvable (no "timestamp" key on that line, a date/stat flavor that
+#     rejects the input) skips the check rather than denying. The 2s slack absorbs
+#     filesystem / clock rounding.
+# (b) command shape - the historical textual detector, kept for transcripts that carry
+#     no timestamps. Re-gate when a later Bash line makes the plan path the TARGET of a
+#     mutation (a redirect target, or an operand of sed -i / tee / cp / mv) - NOT mere
+#     co-occurrence, so a read/stage (`cat`, `git add`) or a redirect aimed at another
+#     file that merely names the plan does not false-deny.
 # plan_path / plan_base were resolved right after Step 1 (hoisted for the format gate).
+tamper_reason="Next step: re-review. The plan file was modified after 'VERDICT: PASS' - re-run the plan reviewer on the current plan, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+
+if [ -n "$plan_path" ] && [ -f "$plan_path" ]; then
+  plan_mtime=$(stat -c %Y "$plan_path" 2>/dev/null || stat -f %m "$plan_path" 2>/dev/null)
+  verdict_iso=$(
+    awk -v ln="$verdict_line" 'NR==ln' "$transcript_path" 2>/dev/null \
+      | grep -oE '"timestamp":"[^"]+"' \
+      | head -n1 \
+      | sed -E 's/.*"timestamp":"([^"]+)".*/\1/'
+  )
+  verdict_epoch=""
+  if [ -n "$verdict_iso" ]; then
+    verdict_epoch=$(date -u -d "$verdict_iso" +%s 2>/dev/null) \
+      || verdict_epoch=$(date -j -u -f '%Y-%m-%dT%H:%M:%S' "${verdict_iso%%[.Z]*}" +%s 2>/dev/null) \
+      || verdict_epoch=""
+  fi
+  # Blank out anything non-numeric so the comparison below simply does not run.
+  case "${plan_mtime:-}"    in ''|*[!0-9]*) plan_mtime="" ;; esac
+  case "${verdict_epoch:-}" in ''|*[!0-9]*) verdict_epoch="" ;; esac
+  if [ -n "$plan_mtime" ] && [ -n "$verdict_epoch" ] \
+     && [ "$plan_mtime" -gt "$((verdict_epoch + 2))" ]; then
+    emit_deny "$tamper_reason"
+  fi
+fi
+
 if [ -n "$plan_base" ]; then
   tamper_line=$(
     awk -v start="$verdict_line" -v base="$plan_base" '
@@ -264,7 +333,7 @@ if [ -n "$plan_base" ]; then
       }' "$transcript_path" 2>/dev/null
   )
   if [ -n "$tamper_line" ]; then
-    emit_deny "Next step: re-review. The plan file was modified after 'VERDICT: PASS' - re-run the plan reviewer on the current plan, then retry ExitPlanMode. (This is the normal approval gate, not an error.)"
+    emit_deny "$tamper_reason"
   fi
 fi
 
