@@ -8,7 +8,7 @@
   },
   "skills": [
     "./skills/setup/",
-    "./skills/superdev/",
+    "./skills/intent/",
     "./skills/superspec/",
     "./skills/superspec-refine/",
     "./skills/superspec-reviewer/",

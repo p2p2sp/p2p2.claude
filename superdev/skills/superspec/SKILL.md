@@ -1,6 +1,6 @@
 ---
 name: superspec
-description: Invoked by superdev skill only.
+description: Invoked by intent skill only.
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill, AskUserQuestion, ExitPlanMode, Bash(date:*), Bash(printf:*), WebFetch, WebSearch
 ---
 
@@ -10,15 +10,15 @@ CRITICAL: Run `ExitPlanMode` first, if plan mode is active.
 Write a specification document using the superspec template. Leverage the information gathered during the interview. A good specification is short enough that anyone can read it in one sitting, yet precise enough to be implemented without guesswork. Never describes `How` (that is superplan).
 
 ## Inputs
-Do not re-interview the user - discovery belongs to the superdev skill (which may have run, or the user may have skipped). Use whatever context the session already holds; if invoked directly with no prior interview, MUST run the `superdev` Skill.
+Do not re-interview the user - discovery belongs to the intent skill (which may have run, or the user may have skipped). Use whatever context the session already holds; if invoked directly with no prior interview, MUST run the `intent` Skill.
 
 What should be delivered:
-- superdev interview context
-- the spec track was chosen at handoff (this is medium/large work; if it turns out small → stop; hand back to `superdev`, which owns the simple-track route)
+- intent interview context
+- the spec track was chosen at handoff (this is medium/large work; if it turns out small → stop; hand back to `intent`, which owns the simple-track route)
 
 ## Smell test
-- Is anything ambiguous or conflicting with the codebase → STOP and run `superdev` Skill - do not invent scope.
-- Is any scope decision left open? → the agent will fill it in for you, usually wrong - run `superdev` Skill.
+- Is anything ambiguous or conflicting with the codebase → STOP and run `intent` Skill - do not invent scope.
+- Is any scope decision left open? → the agent will fill it in for you, usually wrong - run `intent` Skill.
 - Could an agent build the wrong thing and still satisfy the spec? → tighten the **outcome** and **acceptance criteria**.
 - Are you describing style in prose? → replace with one **example**.
 
@@ -30,7 +30,7 @@ What should be delivered:
 - Every AC testable - sketch its failing test; if you can't, fix the AC.
 - Spec = `What & Why` - the specific persona who benefits + the concrete observable change for them + business value. No How. If you think "we'll do it via X", that belongs in superplan.
 - Out of Scope ≥ 2 entries.
-- No TBD / "later" / "details to follow" / Open questions - if you have any → STOP and run `superdev` Skill.
+- No TBD / "later" / "details to follow" / Open questions - if you have any → STOP and run `intent` Skill.
 - Before publishing: verify every rule above holds and no persona/edge case is missed; fix - never publish while a rule fails.
 
 ## Authoring the spec
@@ -67,7 +67,7 @@ The reviewer is read-only: it edits nothing and returns issues derivable from th
 3. `VERDICT: PASS` → NOTES may be applied directly to the spec now (no exit gate exists for specs, so a post-verdict edit is safe) or relayed to the user at Handoff instead - no re-review required either way. Proceed to **Handoff**.
 4. `VERDICT: FAIL` - apply the fixes to the spec file yourself, then go back to step 1:
    - **`FINDINGS`** → edit the spec as each one directs; touch nothing else. Exception - a Blocking finding whose evidence you can show is factually wrong (repo state or the interview context already in your context contradicts it) → do not re-loop on it; instead present that single finding plus your counterargument to the user in plain prose and apply their ruling.
-   - **`BLOCKED` items present** → resolve each from the interview context already in your context and edit the spec accordingly; an item needing a genuinely open product decision → run the `superdev` Skill (or ask the user) first.
+   - **`BLOCKED` items present** → resolve each from the interview context already in your context and edit the spec accordingly; an item needing a genuinely open product decision → run the `intent` Skill (or ask the user) first.
 5. **Round cap:** after round 3 without PASS, STOP looping - show the user the remaining findings and let them decide how to proceed.
 - Do not advance to Handoff until the reviewer returns `VERDICT: PASS`.
 

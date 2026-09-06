@@ -1,5 +1,5 @@
 ---
-name: superdev
+name: intent
 description: You MUST ALWAYS use this skill every time a user wants to do something creative - a new idea, a new feature, build something from scratch, a change to an existing solution. Do not trigger when user want to implement something here and now or fast.
 allowed-tools: Read, Grep, Glob, Agent, AskUserQuestion, Skill, ExitPlanMode
 ---

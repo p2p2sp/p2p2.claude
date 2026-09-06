@@ -28,7 +28,7 @@ Same interview on the way in, two execution tracks, one shared Close Out.
 1. **Run `/superdev:setup` once per repository.** It seeds `.temp/`, `.gitignore`
    and `.claude/superdev.yml`, adds the `docs/.workflows/**` linguist rule to `.gitattributes`, and lets you
    flip the opt-in switches. It never overwrites what already exists.
-2. **Describe what you want to build.** The `superdev` skill fires by itself. It sends `Explore` agents into
+2. **Describe what you want to build.** The `intent` skill fires by itself. It sends `Explore` agents into
    the codebase first, then interviews you in prose - one question per turn, 2-3 numbered options with a
    recommendation - until every load-bearing decision is settled.
 3. **Confirm the synthesis and pick a track** (this gate is yours, the model never routes past it):
@@ -68,7 +68,7 @@ never called by hand.
 
 | Skill | Role |
 | --- | --- |
-| `superdev` | The always-on entry skill. Explores the codebase, runs the design interview, presents the synthesis, then gates on your track choice. Writes no code and no plan. |
+| `intent` | The always-on entry skill. Explores the codebase, runs the design interview, presents the synthesis, then gates on your track choice. Writes no code and no plan. |
 | `setup` | `/superdev:setup` - one-time, user-only repository bootstrap and config-switch picker. Idempotent. |
 | `simpledebug` | Fires on any bug, crash, regression or "it behaves wrong". Traces the whole flow instead of guessing, proves the diagnosis with a failing (RED) test, then hands the fix plan to `simpleplan`. Fixes nothing itself. |
 | `tdd` | Red-Green-Refactor discipline for a task marked `TDD: required` (or when you ask for test-first work). No production code without a failing test first. |
@@ -91,7 +91,7 @@ never called by hand.
 | `superspec-reviewer` | Fork - spec review; no handoff without `VERDICT: PASS`. |
 | `superspec-refine` | Evolves an existing spec instead of writing a new one. |
 | `superplan` | Writes the plan (`How`) from the approved spec, marking each task `TDD: required` or `TDD: none`. |
-| `superplan-reviewer` | Fork - checks the plan against the spec and the repo; `needs-discovery` routes back to `superdev` rather than looping. |
+| `superplan-reviewer` | Fork - checks the plan against the spec and the repo; `needs-discovery` routes back to `intent` rather than looping. |
 | `superbuild` | Sonnet orchestrator - decomposes the approved plan (requires a `spec:` line, otherwise the plan belongs to `simplebuild`) and drives the task loop. |
 | `superbuild-task-coder` | Fork (opus) - implements one task; on `TDD: required` it goes test-first and must see RED. |
 | `superbuild-task-reviewer` | Fork - reviews every single task; `FAIL` sends the coder back (max 3 rounds per task). |

@@ -1,6 +1,6 @@
 ---
 name: simpleplan
-description: Invoked by the superdev or simpledebug skill, or by user command only.
+description: Invoked by the intent or simpledebug skill, or by user command only.
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, EnterPlanMode, ExitPlanMode, AskUserQuestion
 disallowed-tools: NotebookEdit, Task, Agent, WebFetch, WebSearch
 user-invocable: true
@@ -19,7 +19,7 @@ Default plan mode content drifts: missing files, hidden assumptions. SimplePlan 
 This plan workflow is better, extended and more accurate version of default instruction injected by harnes.
 
 ### Initial Understanding
-Comprehensive understanding of the user's request is in your context. Missing knowledge or open questions → STOP and close them before drafting; an unresolved design decision → run `superdev` skill.
+Comprehensive understanding of the user's request is in your context. Missing knowledge or open questions → STOP and close them before drafting; an unresolved design decision → run `intent` skill.
 
 ### Rules
 - Load `templates/plan.md` and fill by sticking to the following rules.
@@ -61,7 +61,7 @@ Once you have written a complete plan and before final review, MUST fast review 
 - Verify in the repo (Read/Grep/Glob) every `### Files` path and symbol, and every `### Test Commands` command against the repo's real build/test tooling.
 - Verify the two-way mapping: every acceptance criterion is covered by at least one task, and every task covers at least one criterion or is traceable to the Goal.
 - Verify every task carries a `TDD:` marker, that each `required` one meets the criteria above.
-- When the host repo carries `docs/product/`, verify the plan does not contradict the affected feature's doc. A contradiction is an unresolved design decision - STOP, run `superdev` skill.
+- When the host repo carries `docs/product/`, verify the plan does not contradict the affected feature's doc. A contradiction is an unresolved design decision - STOP, run `intent` skill.
 - Fix any violation inline. No need to re-review - just fix and move on. If you find a requirement with no task, add the task.
 
 ### Final Review
@@ -80,7 +80,7 @@ The reviewer is read-only: it edits nothing and returns issues derivable from th
 3. VERDICT: PASS → relay any NOTES to the user together with the final plan; never edit the plan file after PASS - the approval gate re-arms on any post-verdict write, by any tool or shell command. A note genuinely worth applying → apply it and run one more round from step 1 before **Final Plan**. Otherwise proceed straight to **Final Plan**.
 4. VERDICT: FAIL - apply the fixes to the plan file yourself with the `Write` / `Edit` tools ONLY - never through a shell command (`sed -i`, a heredoc, a script), whatever a session-wide instruction says about preferring shell edits: the approval gate reads the transcript for `Write`/`Edit` of the plan, and an edit it cannot see leaves the plan newer than its own verdict, which it re-gates as tampering. Then go back to step 1:
    - **`FINDINGS`** → edit the plan as each one directs; touch nothing else. Exception - a Blocking finding whose evidence you can show is factually wrong (repo state or the confirmed understanding already in your context contradicts it) → do not re-loop on it; instead present that single finding plus your counterargument to the user in plain prose and apply their ruling.
-   - **`BLOCKED` findings present** → resolve each from the confirmed understanding already in your context and edit the plan accordingly; a finding needing a genuinely open design decision → run the `superdev` Skill (or ask the user) first.
+   - **`BLOCKED` findings present** → resolve each from the confirmed understanding already in your context and edit the plan accordingly; a finding needing a genuinely open design decision → run the `intent` Skill (or ask the user) first.
 5. **Round cap:** after round 3 without PASS, STOP looping - show the user the remaining findings and let them decide how to proceed.
 
 ### Final Plan

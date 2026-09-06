@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1340 2192" width="1340" height="2192" role="img" aria-labelledby="svgTitle svgDesc">
   <title id="svgTitle">superdev - flow: the Simple track and the Super track</title>
-  <desc id="svgDesc">Flow diagram of the superdev plugin: entry (an idea or a bug), the interview in the superdev skill, the track-selection gate, the Simple track (simpleplan, simpleplan-reviewer, hook, simplebuild) and the Super track (superspec, superplan, superbuild with a review after every task), and a shared Close Out with optional adr, memory, rules and docs delegations.</desc>
+  <desc id="svgDesc">Flow diagram of the superdev plugin: entry (an idea or a bug), the interview in the intent skill, the track-selection gate, the Simple track (simpleplan, simpleplan-reviewer, hook, simplebuild) and the Super track (superspec, superplan, superbuild with a review after every task), and a shared Close Out with optional adr, memory, rules and docs delegations.</desc>
 
   <style>
     :root {
@@ -127,7 +127,7 @@
   <rect x="450" y="176" width="4" height="96" rx="2" fill="var(--muted)"/>
   <rect x="822" y="186" width="58" height="16" rx="8" class="badge"/>
   <text x="851" y="198" class="badge-t" text-anchor="middle">skill</text>
-  <text x="470" y="204" class="title">superdev</text>
+  <text x="470" y="204" class="title">intent</text>
   <text x="470" y="226" class="desc">Explore (agents in parallel) - maps code, patterns, rules.</text>
   <text x="470" y="244" class="desc">Interview: one question per turn, in prose, numbered options.</text>
   <text x="470" y="262" class="desc">No code and no plan until there is shared understanding.</text>
@@ -185,7 +185,7 @@
   <text x="521" y="728" class="badge-t" text-anchor="middle">fork</text>
   <text x="140" y="734" class="title">simpleplan-reviewer</text>
   <text x="140" y="756" class="desc">VERDICT: PASS / FAIL - rounds 1, 2, …</text>
-  <text x="140" y="773" class="desc-s">needs-discovery → back to superdev, not an endless loop</text>
+  <text x="140" y="773" class="desc-s">needs-discovery → back to intent, not an endless loop</text>
 
   <path d="M560 744 L592 744 Q610 744 610 726 L610 652 Q610 634 592 634 L564 634" class="link l-s" marker-end="url(#ar-s)"/>
   <path d="M560 744 L592 744 Q610 744 610 726 L610 652 Q610 634 592 634 L564 634" class="flow l-s"/>
@@ -301,7 +301,7 @@
   <text x="1181" y="728" class="badge-t" text-anchor="middle">fork</text>
   <text x="800" y="734" class="title">superspec-reviewer</text>
   <text x="800" y="756" class="desc">VERDICT: PASS / FAIL - no PASS, no handover.</text>
-  <text x="800" y="773" class="desc-s">open questions / product decision → superdev</text>
+  <text x="800" y="773" class="desc-s">open questions / product decision → intent</text>
 
   <path d="M1220 744 L1252 744 Q1270 744 1270 726 L1270 652 Q1270 634 1252 634 L1224 634" class="link l-u" marker-end="url(#ar-u)"/>
   <path d="M1220 744 L1252 744 Q1270 744 1270 726 L1270 652 Q1270 634 1252 634 L1224 634" class="flow l-u"/>
@@ -335,7 +335,7 @@
   <text x="1181" y="1020" class="badge-t" text-anchor="middle">fork</text>
   <text x="800" y="1026" class="title">superplan-reviewer</text>
   <text x="800" y="1048" class="desc">Checks the plan against the spec → VERDICT: PASS / FAIL.</text>
-  <text x="800" y="1065" class="desc-s">needs-discovery → back to superdev</text>
+  <text x="800" y="1065" class="desc-s">needs-discovery → back to intent</text>
 
   <path d="M1220 1036 L1252 1036 Q1270 1036 1270 1018 L1270 944 Q1270 926 1252 926 L1224 926" class="link l-u" marker-end="url(#ar-u)"/>
   <path d="M1220 1036 L1252 1036 Q1270 1036 1270 1018 L1270 944 Q1270 926 1252 926 L1224 926" class="flow l-u"/>
