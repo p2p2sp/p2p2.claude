@@ -1,6 +1,6 @@
 # SuperDev Config
-adr:     false   # ADR capture
-rules:   false   # Rules system
-memory:  false   # Memory system
+adr:       false   # ADR capture
+rules:     false   # Rules system
+memory:    false   # Memory system
 changelog: false   # Changelog
 cleanup:   false   # Run cleanup

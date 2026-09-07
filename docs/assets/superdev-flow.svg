@@ -449,6 +449,6 @@
 
   <rect x="450" y="2086" width="440" height="72" rx="10" fill="var(--simple-bg)" stroke="var(--simple)" stroke-width="1.5"/>
   <text x="470" y="2112" class="title" fill="var(--simple)">Done</text>
-  <text x="470" y="2134" class="desc">A 3–5 sentence summary · ADR: / NODE: / RULE: / DOC: lines verbatim.</text>
-  <text x="470" y="2151" class="desc-s">every GAP: → run superdev-memory, -rules or -docs</text>
+  <text x="470" y="2134" class="desc">Summary · ADR: / NODE: / RULE: / CHANGELOG: / INDEX: verbatim.</text>
+  <text x="470" y="2151" class="desc-s">every GAP: → run superdev-memory or -rules</text>
 </svg>

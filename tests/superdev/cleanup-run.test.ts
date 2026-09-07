@@ -286,6 +286,22 @@ test("edge: a workdir already removed by an earlier cleanup exits 1 with 'workdi
   });
 });
 
+test("edge: a locally-modified tracked file in the workdir does not abort the removal", () => {
+  withGitRepo((repo) => {
+    // A tracked file with unstaged local modifications makes plain `git rm`
+    // (no -f) refuse to remove it - cleanup-run.sh must use -f so the removal
+    // (and the commit it produces) still goes through.
+    const { dir } = buildRun(repo);
+    fs.appendFileSync(path.join(repo.dir, dir, "status.md"), "dirty edit\n");
+
+    const result = run(repo, [dir]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, `CLEANUP: ${dir} (removed)\n`);
+    assert.equal(fs.existsSync(path.join(repo.dir, dir)), false);
+    assert.equal(subjectOf(repo), "chore(simplebuild): clean up run demo");
+  });
+});
+
 test("edge: an untracked run directory is removed with nothing to commit", () => {
   withGitRepo((repo) => {
     // Deliberately NOT committed - buildRunFiles only, no git add/commit - so

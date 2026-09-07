@@ -36,8 +36,10 @@
 #   - poza repo gita (git rev-parse --git-dir zawodzi): rm -rf workdir,
 #     rm -f rozwiązanych plików, "CLEANUP: <workdir> (removed - no git
 #     repository)", exit 0
-#   - w repo gita: dla workdir + spec + intent -> `git rm -r -q
-#     --ignore-unmatch -- <target>` (usuwa z indeksu i drzewa roboczego) po
+#   - w repo gita: dla workdir + spec + intent -> `git rm -r -f -q
+#     --ignore-unmatch -- <target>` (usuwa z indeksu i drzewa roboczego,
+#     nawet gdy target ma lokalne modyfikacje - i tak jest usuwany, treść
+#     jest odtwarzalna z HEAD) po
 #     czym `rm -rf <target>` (sprząta nieśledzone resztki); brak zmian w
 #     staged -> "CLEANUP: <workdir> (removed - nothing to commit)"; inaczej
 #     `git commit -q -m "chore(<prefix>): clean up run <slug>"` (slug = nazwa
@@ -122,7 +124,7 @@ targets=("$dir")
 [[ -n "$intent" ]] && targets+=("$intent")
 
 for t in "${targets[@]}"; do
-  git rm -r -q --ignore-unmatch -- "$t" >&2
+  git rm -r -f -q --ignore-unmatch -- "$t" >&2
   rm -rf "$t"
 done
 

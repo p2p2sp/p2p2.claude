@@ -1,6 +1,6 @@
 # SuperDev Config
-adr:     false   # ADR capture -> docs/adr/
-rules:   false   # Rules system -> .claude/rules/
-memory:  false   # Memory system -> CLAUDE.md cascade
+adr:       false   # ADR capture -> docs/adr/
+rules:     false   # Rules system -> .claude/rules/
+memory:    false   # Memory system -> CLAUDE.md cascade
 changelog: false   # Changelog -> docs/changelog/
 cleanup:   false   # Remove run files (docs/.workflows/<run>, spec, intent) after a completed build
