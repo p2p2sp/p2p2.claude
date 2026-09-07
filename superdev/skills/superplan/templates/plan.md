@@ -3,6 +3,7 @@ To build this plan use the `superbuild` skill.
 
 Title: "<title>"
 Spec: <full/path/to/spec.md> <!-- `What & Why` specification -->
+Intent: <path copied from the spec's Intent: line; omit when the spec has none>
 Plan: <absolute path of this plan file, exactly as given by plan mode>
 
 ---

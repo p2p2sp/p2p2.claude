@@ -10,5 +10,6 @@ The user wants to work on the existing spec at "$ARGUMENTS" - to change, edit, i
 
 - Read the spec at "$ARGUMENTS" so its current content is the baseline in context, and keep its path in context - the eventual `superspec` handoff overwrites this file in place.
 - Run the `intent` Skill to drive the interview over that existing spec.
+- Keep the spec's `Intent:` line - the rewritten spec must carry it unchanged.
 
 Ask the user nothing here and do not edit the spec yourself - `intent` owns the interview.

@@ -15,6 +15,7 @@ Do not re-interview the user - discovery belongs to the intent skill (which may 
 What should be delivered:
 - intent interview context
 - the spec track was chosen at handoff (this is medium/large work; if it turns out small → stop; hand back to `intent`, which owns the simple-track route)
+- optionally `intent: <path>` from the handoff, naming the persisted intent file - write it verbatim into the spec's `Intent:` line; when the handoff carries none, omit that line entirely
 
 ## Smell test
 - Is anything ambiguous or conflicting with the codebase → STOP and run `intent` Skill - do not invent scope.
@@ -46,7 +47,7 @@ Save date (yyyyMMdd):
 !`date +%Y%m%d`
 
 - Load spec from `templates/spec.md`.
-- **Refining an existing spec** - when an existing spec file path is in context (the user asked to work on that spec), render into it and overwrite that file in place; skip the date/slug step.
+- **Refining an existing spec** - when an existing spec file path is in context (the user asked to work on that spec), render into it and overwrite that file in place; skip the date/slug step. Keep its existing `Intent:` line unchanged - a refine never adds, drops, or rewrites it.
 - **New spec** - render into the template and save it as `docs/.workflows/<date>-<slug>.md` (`<date>` = the yyyyMMdd value above; `<slug>` = a short title as slug).
 
 ## Review gate

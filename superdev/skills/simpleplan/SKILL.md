@@ -13,6 +13,7 @@ user-invocable: true
 Default plan mode content drifts: missing files, hidden assumptions. SimplePlan closes that gap with a strict template plus mandatory pre-plan behavior before the plan is presented.
 
 - Input: the confirmed understanding already in context - a design interview, or a proven bug diagnosis with its fix plan. No spec - the plan carries its own DoD / acceptance criteria.
+- Optionally `intent: <path>` from the handoff, naming the persisted intent file - when present, write it verbatim into the plan's `Intent:` line; when absent, omit that line.
 - Plan = `How`. Derive goal + acceptance criteria from that input. Do not re-interview, do not re-investigate.
 
 ## Plan Workflow
@@ -25,6 +26,7 @@ Comprehensive understanding of the user's request is in your context. Missing kn
 - Load `templates/plan.md` and fill by sticking to the following rules.
 - Read review checklist from `${CLAUDE_PLUGIN_ROOT}/references/plan-review-checklist.md`.
 - Save the plan to the file path given in the plan mode tool's own message - never a hardcoded or assumed directory - and pass that same path to the reviewer as `plan:`. Write that same path into the plan's `Plan:` preamble line while drafting, before the reviewer is invoked - never after a `VERDICT: PASS`, because a post-verdict write re-arms the approval gate.
+- Write the handoff's `intent:` path (when given) into the plan's `Intent:` preamble line while drafting, same timing as `Plan:` above - before the reviewer is invoked, never after a `VERDICT: PASS`. When the handoff carries no `intent:`, omit the line.
 
 Stick to the template structure. Don't invent or add your own points. Adapt all content to the template structure and stick to it.
 

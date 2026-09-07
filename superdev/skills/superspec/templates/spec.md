@@ -1,4 +1,5 @@
 # Spec: <title>
+Intent: <path to the intent file, from the handoff; omit the line when none>
 
 ## Problem / context (Why)
 <Problem being solved. No solution.>

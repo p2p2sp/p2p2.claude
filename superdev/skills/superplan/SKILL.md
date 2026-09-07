@@ -14,6 +14,7 @@ Default plan mode content drifts: missing files, hidden assumptions. SuperPlan c
 
 - Input: intent interview (already in context).
 - Spec: <path/to/spec.md>, path passed by superspec. Spec is human-approved knowledge of `What & Why` - do not re-approve it.
+- Intent: <path/to/intent-file.md>, copied from the spec's own `Intent:` line (may be absent, when the spec carries none).
 - Plan = `How` only. `What & Why` are fixed in the spec - do not restate or renegotiate them.
 
 ## Plan Workflow
@@ -26,6 +27,7 @@ Comprehensive understanding of the user's request is in your context. Missing kn
 - Load `templates/plan.md` and fill by sticking to the following rules.
 - Read review checklist from `${CLAUDE_PLUGIN_ROOT}/references/plan-review-checklist.md`.
 - Save the plan to the file path given in the plan mode tool's own message - never a hardcoded or assumed directory - and pass that same path to the reviewer as `plan:`. Write that same path into the plan's `Plan:` preamble line while drafting, before the reviewer is invoked - never after a `VERDICT: PASS`, because a post-verdict write re-arms the approval gate.
+- Copy the spec's `Intent:` value verbatim into the plan's `Intent:` preamble line while drafting, same timing as `Plan:` above - before the reviewer is invoked, never after a `VERDICT: PASS`. When the spec carries no `Intent:` line, omit it from the plan too.
 
 **File Structure**
 Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
