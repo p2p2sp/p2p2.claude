@@ -36,6 +36,7 @@
 #       plan-header: <ścieżka>
 #       plan: <ścieżka>
 #       spec: <ścieżka>          (tylko gdy plan ma linię "Spec:")
+#       intent: <path>   (only when the plan has an Intent: line naming an existing file)
 #       <ścieżka-taska><TAB><tytuł>
 #   - commituje dekompozycję (git add -A + commit) komunikatem
 #     "chore(<commit-prefix>): decompose plan <slug>"; szum gita idzie na stderr,
@@ -116,6 +117,19 @@ if [[ -n "$spec_path" && ! -f "$spec_path" ]]; then
   exit 4
 fi
 
+# ścieżka do zapisanej syntezy intent (opcjonalna preambuła "Intent:", oba
+# tory) - w przeciwieństwie do Spec: brak pliku NIE jest błędem builda: linia
+# trafia do nagłówka wyłącznie gdy plik istnieje, w przeciwnym razie ostrzeżenie
+# na stderr i pomijamy zarówno linię w nagłówku, jak i wpis w indeksie stdout.
+intent_line="$(grep -m1 '^Intent:' "$plan" || true)"
+intent_line="$(printf '%s' "$intent_line" | sed -e 's/[[:space:]]*<!--.*-->[[:space:]]*$//')"
+
+intent_path="$(printf '%s' "${intent_line#Intent:}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+if [[ -n "$intent_path" && ! -f "$intent_path" ]]; then
+  echo "warning: intent file not found: $intent_path (from plan's 'Intent:' line) - omitted" >&2
+  intent_path=""
+fi
+
 # źródło kryteriów dla per-taskowej sekcji "### Covered criteria": spec (tor
 # superbuild) albo sam plan - jego HEADER "## Acceptance criteria" (tor
 # simplebuild). Zawsze ustawione, więc kryteria dopisywane są w obu torach.
@@ -152,6 +166,7 @@ header="$dir/plan-header.md"
 {
   [[ -n "$title_line" ]] && printf '%s\n' "$title_line"
   [[ -n "$spec_line" ]] && printf '%s\n' "$spec_line"
+  [[ -n "$intent_path" ]] && printf '%s\n' "$intent_line"
   printf '\n'
 } > "$header"
 
@@ -211,6 +226,7 @@ echo "base: $base"
 echo "plan-header: $header"
 echo "plan: $plan_copy"
 [[ -n "$spec_path" ]] && echo "spec: $spec_path"
+[[ -n "$intent_path" ]] && echo "intent: $intent_path"
 awk -v dir="$dir" -v hdr="$header" '
   /<!-- HEADER -->/   { inhdr=1; next }
   /<!-- \/HEADER -->/ { inhdr=0; next }

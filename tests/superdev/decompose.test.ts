@@ -19,6 +19,7 @@ import path from "node:path";
 
 import { runScript, type RunResult } from "../harness/run.ts";
 import { withTempDir, withGitRepo, type GitRepo } from "../harness/tmp.ts";
+import { slash } from "../harness/paths.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../superdev/scripts/decompose.sh");
 
@@ -34,9 +35,10 @@ function taskBlock(heading: string, covers: number[], body = "Do the work."): st
   );
 }
 
-function simplePlan(opts: { title: string; criteria: string[]; tasks: string[] }): string {
+function simplePlan(opts: { title: string; criteria: string[]; tasks: string[]; intentPath?: string }): string {
   return [
     `Title: "${opts.title}"`,
+    ...(opts.intentPath ? [`Intent: ${opts.intentPath}`] : []),
     "",
     "<!-- HEADER -->",
     "",
@@ -66,10 +68,11 @@ function specFixture(criteria: string[]): string {
   ].join("\n");
 }
 
-function superPlan(opts: { title: string; specPath: string; tasks: string[] }): string {
+function superPlan(opts: { title: string; specPath: string; tasks: string[]; intentPath?: string }): string {
   return [
     `Title: "${opts.title}"`,
     `Spec: ${opts.specPath}`,
+    ...(opts.intentPath ? [`Intent: ${opts.intentPath}`] : []),
     "",
     "<!-- HEADER -->",
     "",
@@ -228,6 +231,127 @@ test("superbuild track: criteria/out-of-scope/constraints are sourced from the s
 
       const task1Text = fs.readFileSync(path.join(repo.dir, dir, "tasks", "task-01.md"), "utf-8");
       assert.match(task1Text, /### Covered criteria\n1\. Spec-sourced criterion\.\n$/);
+    });
+  });
+});
+
+// --- Intent: preamble line -----------------------------------------------
+
+test("simplebuild track: an Intent: line naming an existing file is copied into the header and the stdout index", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-intent-", (planDir) => {
+      const intentFile = path.join(planDir, "intent.md");
+      fs.writeFileSync(intentFile, "# Intent\n\nSynthesis.\n");
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Intent Bearing Plan",
+          criteria: ["Only criterion."],
+          tasks: [taskBlock("Task 1 - do it", [1])],
+          intentPath: intentFile,
+        }),
+      );
+
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match(
+        slash(result.stdout),
+        new RegExp(`^intent: ${slash(intentFile).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"),
+      );
+
+      const dir = `docs/.workflows/${todayISO()}-intent-bearing-plan`;
+      const headerText = fs.readFileSync(path.join(repo.dir, dir, "plan-header.md"), "utf-8");
+      assert.match(slash(headerText), new RegExp(`^Intent: ${slash(intentFile).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"));
+      assert.match(headerText, /^Title: "Intent Bearing Plan"/);
+    });
+  });
+});
+
+test("superbuild track: an Intent: line after Spec: is copied into the header, in order, and into the stdout index", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-intent-super-", (planDir) => {
+      const spec = path.join(planDir, "spec.md");
+      fs.writeFileSync(spec, specFixture(["Spec-sourced criterion."]));
+      const intentFile = path.join(planDir, "intent.md");
+      fs.writeFileSync(intentFile, "# Intent\n\nSynthesis.\n");
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        superPlan({
+          title: "Spec And Intent Plan",
+          specPath: spec,
+          tasks: [taskBlock("Task 1 - implement", [1])],
+          intentPath: intentFile,
+        }),
+      );
+
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const stdoutSlashed = slash(result.stdout);
+      const specIdx = stdoutSlashed.indexOf(`spec: ${slash(spec)}`);
+      const intentIdx = stdoutSlashed.indexOf(`intent: ${slash(intentFile)}`);
+      assert.ok(specIdx >= 0 && intentIdx >= 0 && specIdx < intentIdx, `expected spec: before intent: in:\n${result.stdout}`);
+
+      const dir = `docs/.workflows/${todayISO()}-spec-and-intent-plan`;
+      const headerText = slash(fs.readFileSync(path.join(repo.dir, dir, "plan-header.md"), "utf-8"));
+      const specHdrIdx = headerText.indexOf(`Spec: ${slash(spec)}`);
+      const intentHdrIdx = headerText.indexOf(`Intent: ${slash(intentFile)}`);
+      assert.ok(
+        specHdrIdx >= 0 && intentHdrIdx >= 0 && specHdrIdx < intentHdrIdx,
+        `expected Spec: before Intent: in header:\n${headerText}`,
+      );
+    });
+  });
+});
+
+test("a plan with no Intent: line produces neither the header line nor the stdout index line, exit 0", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-plan-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "No Intent Plan",
+          criteria: ["One."],
+          tasks: [taskBlock("Task 1 - do it", [1])],
+        }),
+      );
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.doesNotMatch(result.stdout, /^intent:/m);
+      const dir = `docs/.workflows/${todayISO()}-no-intent-plan`;
+      const headerText = fs.readFileSync(path.join(repo.dir, dir, "plan-header.md"), "utf-8");
+      assert.doesNotMatch(headerText, /^Intent:/m);
+    });
+  });
+});
+
+test("an Intent: line naming a missing file -> stderr warning, no header/index line, exit 0", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-intent-missing-", (planDir) => {
+      const missingIntent = path.join(planDir, "missing-intent.md");
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Missing Intent Plan",
+          criteria: ["One."],
+          tasks: [taskBlock("Task 1 - do it", [1])],
+          intentPath: missingIntent,
+        }),
+      );
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match(result.stderr, /warning: intent file not found/);
+      assert.doesNotMatch(result.stdout, /^intent:/m);
+      const dir = `docs/.workflows/${todayISO()}-missing-intent-plan`;
+      const headerText = fs.readFileSync(path.join(repo.dir, dir, "plan-header.md"), "utf-8");
+      assert.doesNotMatch(headerText, /^Intent:/m);
     });
   });
 });
