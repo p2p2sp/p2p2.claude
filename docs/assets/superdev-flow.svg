@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1340 2192" width="1340" height="2192" role="img" aria-labelledby="svgTitle svgDesc">
   <title id="svgTitle">superdev - flow: the Simple track and the Super track</title>
-  <desc id="svgDesc">Flow diagram of the superdev plugin: entry (an idea or a bug), the interview in the intent skill, the track-selection gate, the Simple track (simpleplan, simpleplan-reviewer, hook, simplebuild) and the Super track (superspec, superplan, superbuild with a review after every task), and a shared Close Out with optional adr, memory, rules and docs delegations.</desc>
+  <desc id="svgDesc">Flow diagram of the superdev plugin: entry (an idea or a bug), the interview in the intent skill, the track-selection gate, the Simple track (simpleplan, simpleplan-reviewer, hook, simplebuild) and the Super track (superspec, superplan, superbuild with a review after every task), and a shared Close Out with optional adr, memory, rules and changelog delegations, followed by an optional cleanup step.</desc>
 
   <style>
     :root {
