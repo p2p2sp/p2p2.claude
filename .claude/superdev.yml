@@ -2,4 +2,5 @@
 adr:     false   # ADR capture
 rules:   false   # Rules system
 memory:  false   # Memory system
-docs:    false
+changelog: false   # Changelog
+cleanup:   false   # Run cleanup
