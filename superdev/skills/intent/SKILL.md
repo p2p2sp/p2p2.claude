@@ -1,15 +1,27 @@
 ---
 name: intent
 description: You MUST ALWAYS use this skill every time a user wants to do something creative - a new idea, a new feature, build something from scratch, a change to an existing solution. Do not trigger when user want to implement something here and now or fast.
-allowed-tools: Read, Grep, Glob, Agent, AskUserQuestion, Skill, ExitPlanMode
+argument-hint: [path-to-intent.md]
+allowed-tools: Read, Grep, Glob, Agent, AskUserQuestion, Skill, ExitPlanMode, Write, Bash(date:*)
 ---
 
 CRITICAL: Run `ExitPlanMode` first, if plan mode is active.
 
 Help turn ideas into fully formed designs and specs through natural collaborative dialogue. First thing to do is reach a shared understanding of `What` the user wants and `How` to build something, before any plan or code is drafted.
 
+## Run
+Date: !`date +%Y%m%d`
+
+## Resume from a file
+- `$ARGUMENTS` is a path to an existing file ending in `-intent.md`: Read it, skip `## Explore first` and `## Run the interview` entirely. Present its `## Decisions` section as the synthesis and ask the user whether to reopen one decision by number.
+  - A decision is reopened: run `## Run the interview` for that branch only, then overwrite the intent file in place with the updated decision (and anything it invalidates downstream). Go to `## Handoff`.
+  - No decision reopened: go straight to `## Handoff`.
+- `$ARGUMENTS` names a `-intent.md` path that does not exist: tell the user the file was not found, then fall through to the normal flow using the argument text itself as the request.
+- Any other argument, or none: normal flow - continue to `## Explore first`.
+
 ## Explore first
 - When the request touches existing code or conventions, launch multiple `Explore` agents in parallel in one batch to map relevant files, patterns, rules, and prior decisions. Anything you can answer from the codebase, do NOT ask the user.
+- History agent - always one of the parallel `Explore` agents when `docs/changelog/` or `docs/adr/` exists: grep `docs/changelog/README.md` for the request's areas, open the matched entries, follow their `ADR:` links, and independently `Grep docs/adr/` for the same areas. Report each hit as decision context (what was chosen, why, whether a rejected alternative is the one now proposed) - the interview asks whether to uphold it; history is never a requirement. Neither dir present -> skip without comment.
 - Skip exploration only when the request is genuinely greenfield.
 - Carry the discovered conventions into proposed approaches so `How` always fits the host project.
 
@@ -53,8 +65,33 @@ Help turn ideas into fully formed designs and specs through natural collaborativ
 ## Synthesis
 - Close the interview when every **load-bearing** branch has a confirmed answer. A branch is load-bearing if a different answer would change which files are touched, which library or pattern is chosen, the data shape, or a contract between components. Branches whose answer only affects local style or naming are NOT load-bearing - do not gate the handoff on them.
 - Present the synthesis as ~3–5 bullets capturing the chosen approach, key constraints, and explicit out-of-scope items. Wait for the user's confirmation before handing off.
+- After the user confirms, write the synthesis to `docs/.workflows/<Date>-<slug>-intent.md` (`<Date>` from `## Run`; `<slug>` = short title as slug; if that path already exists for a fresh run, append `-2`, `-3`, ... - a resume overwrites its own path instead of appending). Write it in the interview's language, in this exact structure:
+
+```markdown
+# Intent: <title>
+Date: <YYYY-MM-DD>
+
+## Request
+<the ask in one short paragraph, the user's own framing>
+
+## Decisions
+### <n>. <decision name>
+- Chosen: <approach>
+- Alternatives: <a> - <why rejected>; <b> - <why rejected>
+- Why: <reason>
+
+## Constraints
+- <...>
+
+## Out of scope
+- <...>
+
+## History
+- <changelog entry or ADR consulted - upheld | changed, why> (or `none`)
+```
 
 ## Handoff - the user picks the track [GATE]
-Handoff is not the interview. After the user confirms the synthesis, present the two tracks with `AskUserQuestion` and let the user choose. The user's choice is the gate; never route yourself past it.
-- **Simple path** - run `simpleplan`. No spec; the plan carries its own DoD / acceptance criteria. Fits small, contained, reversible changes.
-- **Spec path** - run `superspec`. The spec (`What & Why`) is written first, then auto-chains into the plan. Fits medium/large, cross-cutting, or hard-to-reverse changes.
+Handoff is not the interview. After the user confirms the synthesis (and the intent file is written), present three options with `AskUserQuestion` and let the user choose. The user's choice is the gate; never route yourself past it.
+- **Simple path** - run `simpleplan`, passing `intent: <path to the intent file>` as the argument line. No spec; the plan carries its own DoD / acceptance criteria. Fits small, contained, reversible changes.
+- **Spec path** - run `superspec`, passing `intent: <path to the intent file>` as the argument line. The spec (`What & Why`) is written first, then auto-chains into the plan. Fits medium/large, cross-cutting, or hard-to-reverse changes.
+- **Stop here** - STOP. Reply with the intent file path and tell the user they can resume this interview anytime with `intent <path>`.
