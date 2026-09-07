@@ -21,7 +21,7 @@ Resolved opt-in switches (missing file/key = `false`; nothing below breaks on a 
 
 !`"${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh"`
 
-These gate the Close-Out delegations (Step 4: `adr`, `rules`, `memory`, `docs`). Run a delegation ONLY when its line above reads exactly `true`; anything else (`false`, absent, or an unresolved block) = skip.
+These gate the Close-Out delegations (Step 4: `adr`, `rules`, `memory`, `changelog`) and the run cleanup (Step 5: `cleanup`). Run a delegation ONLY when its line above reads exactly `true`; anything else (`false`, absent, or an unresolved block) = skip.
 
 ## Step 1 - Decompose Plan
 
@@ -39,7 +39,7 @@ Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/decompose.sh" <plan-file> superbuild` w
 - `tasks/task-NN.md` - one file per task, each carrying the verbatim acceptance criteria it covers.
 - `implementation/` - implementor deviation notes (`task-NN-notes.md`, `fix-NN-notes.md`) and review reports; created empty here, filled in Steps 2-3.
 
-It prints the task index (`workdir:` working-dir path, `status:` last processed task or `none`, `base:` the build's base SHA or `none`, `plan-header:` path, `plan:` full-plan copy path, `spec:` spec path, then `<task-file>\t<title>` per line) - use it to drive the implementation loop.
+It prints the task index (`workdir:` working-dir path, `status:` last processed task or `none`, `base:` the build's base SHA or `none`, `plan-header:` path, `plan:` full-plan copy path, `spec:` spec path, `intent:` intent path (optional), then `<task-file>\t<title>` per line) - use it to drive the implementation loop.
 
 No `spec:` line in the index -> STOP: this plan belongs to `simplebuild`, not here. Non-zero exit (e.g. a `Covers:` criterion absent from the spec) -> STOP and show the error.
 
@@ -84,17 +84,20 @@ For each remaining task file (in order):
 ## Step 4 - Close Out
 
 1. `TaskUpdate` -> start
-2. Gated by Config; run only the enabled delegations, in parallel (single message, await all). If none enabled, skip to 5.
+2. Wave 1 - gated by Config; run only the enabled ones, in parallel (single message, await all).
     - `adr: true`    -> Invoke `superbuild-adr` (Skill) with a labeled-line `args` block - `plan: <plan-copy path>`, `spec: <spec path>`, and `adr: docs/adr` (the target DIRECTORY - it timestamps the filename itself) on separate lines. Its `ADR:` line carries the written path, or `none` when the plan holds no significant architectural decision and no file was written.
     - `memory: true` -> Invoke `superdev-memory-writer` (Skill) with a labeled-line `args` block - `capture: <plan-copy path>`, `spec: <spec path>`, and `notes: <workdir>/implementation/` on separate lines.
     - `rules: true`  -> Invoke `superdev-rules-writer` (Skill) with a labeled-line `args` block - `capture: <plan-copy path>` and `notes: <workdir>/implementation/` on separate lines.
-    - `docs: true`   -> Invoke `superdev-docs-writer` (Skill) with a labeled-line `args` block - `capture: <plan-copy path>`, `spec: <spec path>`, and `notes: <workdir>/implementation/` on separate lines.
-3. Keep each delegation's `ADR:` / `NODE:` / `RULE:` / `DOC:` / `GAP:` lines verbatim for the Step 5 summary. Any delegation failing is non-fatal -> note it there too, do not block.
-4. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(superbuild): close out adr, memory, rules and docs"` - commits whatever the delegations touched.
-5. `TaskStop` -> completed
+3. Wave 2 - `changelog: true` -> after wave 1 completes, invoke `superdev-changelog-writer` (Skill) with a labeled-line `args` block - `capture: <plan-copy path>`, `workdir: <workdir>`, and `notes: <workdir>/implementation/` on separate lines, plus `intent: <intent path>` only when the decompose index printed an `intent:` line, `spec: <spec path>` (superbuild only), and `adr: <path>` only when wave 1 returned `ADR: <path>` other than `none`.
+   Nothing enabled in either wave -> skip to the commit.
+4. Keep each delegation's `ADR:` / `NODE:` / `RULE:` / `CHANGELOG:` / `INDEX:` / `GAP:` lines verbatim for the Step 5 summary. Any delegation failing is non-fatal -> note it there too, do not block.
+5. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(superbuild): close out adr, memory, rules and changelog"` - commits whatever the delegations touched.
+6. `TaskStop` -> completed
 
 ## Step 5 - Done
 
-Cleanup the task list and display short summary of work. Max ~3-5 sentences plus the relayed lines. Include:
-- Step 4's `ADR:` / `NODE:` / `RULE:` / `DOC:` lines verbatim (or the noted failure / disabled)
-- every `GAP:` line verbatim, each followed by `-> run superdev-memory` (memory gaps), `-> run superdev-rules` (rules gaps), or `-> run superdev-docs` (docs gaps)
+1. `cleanup: true` -> run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-run.sh" <workdir> superbuild` and keep its `CLEANUP:` line; the script verifies completion itself - never re-check, never retry.
+2. Cleanup the task list and display short summary of work. Max ~3-5 sentences plus the relayed lines. Include:
+    - Step 4's `ADR:` / `NODE:` / `RULE:` / `CHANGELOG:` / `INDEX:` lines verbatim (or the noted failure / disabled)
+    - the `CLEANUP:` line verbatim (or "disabled" when `cleanup` is off)
+    - every `GAP:` line verbatim, each followed by `-> run superdev-memory` (memory gaps) or `-> run superdev-rules` (rules gaps)
