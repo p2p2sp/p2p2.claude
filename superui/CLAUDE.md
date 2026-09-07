@@ -69,7 +69,7 @@ never exists without the first:
   deliverable). **`<out>` is `docs/design-system/` in the host repo** - `docs/design-system/<target>/` when
   the user passes the optional `<target>` argument (a monorepo shipping separate bundles per app);
   `component-extractor`'s own `<out>` nests one level deeper, `docs/design-system/[<target>/]<platform>/`. It
-  sits alongside the other two host-repo doc layers, `docs/adr/` and `docs/product/`, and unlike `<run>` it is
+  sits alongside the other two host-repo doc layers, `docs/adr/` and `docs/changelog/`, and unlike `<run>` it is
   a version-controlled deliverable, not scratch. Each layer is always regenerated whole, so a non-empty
   `<out>` gates on an explicit user wipe/abort answer before any write, scoped to that one layer only - a
   `DESIGN.md` rebuild never touches an existing platform subdir (it warns the subdir's satellites are now

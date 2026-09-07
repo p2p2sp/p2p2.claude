@@ -35,7 +35,7 @@ only.
 
 | Plugin | What it is for | Details |
 | --- | --- | --- |
-| **superdev** | Agentic development end to end: a design interview before any code, project memory (`CLAUDE.md` cascade, `.claude/rules/`, product docs), specs and plans that must pass a reviewer, then a task-by-task build with a commit per task. | [superdev/README.md](superdev/README.md) |
+| **superdev** | Agentic development end to end: a design interview before any code, project memory (`CLAUDE.md` cascade, `.claude/rules/`, a build changelog), specs and plans that must pass a reviewer, then a task-by-task build with a commit per task. | [superdev/README.md](superdev/README.md) |
 | **superui** | Design and frontend: professional UI/UX standards on every interface you build, plus a screenshots-to-design-system pipeline that Claude Design consumes to build live components. | [superui/README.md](superui/README.md) |
 | **supergh** | GitHub and git: Conventional-Commits commits, template-driven issues and draft PRs, and a `gh` CLI/REST/GraphQL reference so the model stops guessing which API layer to use. | [supergh/README.md](supergh/README.md) |
 | **superfix** | Codebase investigation: sweeps the whole repo with cheap agents, ranks findings by Impact x Opportunity, and sends frontier investigators only into the hotspots. | [superfix/README.md](superfix/README.md) |

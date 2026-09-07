@@ -422,14 +422,14 @@
   <text x="470" y="1898" class="desc">adr: true → superbuild-adr</text>
   <text x="470" y="1916" class="desc">memory: true → superdev-memory-writer</text>
   <text x="470" y="1934" class="desc">rules: true → superdev-rules-writer</text>
-  <text x="470" y="1952" class="desc">docs: true → superdev-docs-writer</text>
-  <text x="470" y="1972" class="desc-s">the enabled ones run in parallel · a failed delegation does not block</text>
+  <text x="470" y="1952" class="desc">changelog: true → superdev-changelog-writer (after adr)</text>
+  <text x="470" y="1972" class="desc-s">wave 1 in parallel, changelog after it · a failed delegation does not block</text>
 
   <!-- config card -->
   <rect x="940" y="1848" width="360" height="138" rx="10" fill="var(--panel2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="958" y="1884" class="title" style="font-size:13px">Switches</text>
   <text x="958" y="1908" class="mono">.claude/superdev.yml</text>
-  <text x="958" y="1930" class="desc">adr · rules · memory · docs</text>
+  <text x="958" y="1930" class="desc">adr · rules · memory · changelog · cleanup</text>
   <text x="958" y="1950" class="desc">all false by default</text>
   <text x="958" y="1968" class="desc-s">set once via /superdev:setup</text>
 

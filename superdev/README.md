@@ -31,7 +31,9 @@ Same interview on the way in, two execution tracks, one shared Close Out.
 2. **Describe what you want to build.** The `intent` skill fires by itself. It sends `Explore` agents into
    the codebase first, then interviews you in prose - one question per turn, 2-3 numbered options with a
    recommendation - until every load-bearing decision is settled.
-3. **Confirm the synthesis and pick a track** (this gate is yours, the model never routes past it):
+3. **Confirm the synthesis and pick a track, or stop here** (this gate is yours, the model never routes past
+   it) - the confirmed synthesis is saved to `docs/.workflows/<date>-<slug>-intent.md` and `intent <path>`
+   resumes it later:
    - **Simple** - small, contained, reversible changes. `simpleplan` writes the plan; the plan carries its
      own acceptance criteria, no spec.
    - **Super** - medium/large, cross-cutting or hard-to-reverse changes. `superspec` writes the
@@ -41,7 +43,9 @@ Same interview on the way in, two execution tracks, one shared Close Out.
 5. **The build runs task by task.** The orchestrator (`simplebuild` / `superbuild`) decomposes the plan into
    `docs/.workflows/<run>/tasks/task-NN.md`, runs a coder fork per task, commits each task separately, and
    ends with the final review round.
-6. **Close Out** runs the enabled delegations in parallel and commits what they touched.
+6. **Close Out** runs two waves: `adr`, `memory` and `rules` in parallel, then `changelog` (which also links
+   the ADR when one was written), and commits what they touched; when `cleanup: true` it then removes the
+   run's working files (workdir, spec, intent) and commits that removal.
 
 Reporting a bug instead? Just say so - `simpledebug` fires first, traces the flow step by step, proves the
 diagnosis with a failing test, and hands the proven fix plan to `simpleplan`.
@@ -55,7 +59,8 @@ diagnosis with a failing test, and hands the proven fix plan to `simpleplan`.
 | `adr` | records an architectural decision at `docs/adr/<timestamp>-<title-slug>.md` (no file when the plan holds no real decision) |
 | `memory` | refreshes the `CLAUDE.md` project-memory cascade |
 | `rules` | refreshes the path-scoped `.claude/rules/` convention files |
-| `docs` | refreshes the user-facing product docs at `docs/product/<feature-slug>.md` |
+| `changelog` | writes one append-only entry at `docs/changelog/<run>.md` (intent, decisions, ADR link, deviations, areas) plus an index line in `docs/changelog/README.md` |
+| `cleanup` | removes the run's working files (workdir, spec, intent) after a completed build and commits the removal |
 
 A failing delegation never blocks the build - it lands in the final summary instead.
 
@@ -68,7 +73,7 @@ never called by hand.
 
 | Skill | Role |
 | --- | --- |
-| `intent` | The always-on entry skill. Explores the codebase, runs the design interview, presents the synthesis, then gates on your track choice. Writes no code and no plan. |
+| `intent` | The always-on entry skill. Explores the codebase (including prior changelog entries and ADRs), runs the design interview, persists the confirmed synthesis to `docs/.workflows/<date>-<slug>-intent.md`, then gates on your track choice or stopping there - `intent <path>` resumes a saved synthesis later. Writes no code and no plan. |
 | `setup` | `/superdev:setup` - one-time, user-only repository bootstrap and config-switch picker. Idempotent. |
 | `simpledebug` | Fires on any bug, crash, regression or "it behaves wrong". Traces the whole flow instead of guessing, proves the diagnosis with a failing (RED) test, then hands the fix plan to `simpleplan`. Fixes nothing itself. |
 | `tdd` | Red-Green-Refactor discipline for a task marked `TDD: required` (or when you ask for test-first work). No production code without a failing test first. |
@@ -104,6 +109,6 @@ never called by hand.
 | --- | --- |
 | `superdev-memory` | Builds or audits the hierarchical `CLAUDE.md` cascade - one general root plus more specific child nodes in genuine architectural units, never a single monolith. |
 | `superdev-rules` | Discovers the codebase's real conventions with examples, confirms each with you, and writes many small path-scoped files under `.claude/rules/`. |
-| `superdev-docs` | Maintains user-facing product docs at `docs/product/<feature-slug>.md`. Docs are treated as user intent: a doc-vs-code divergence is surfaced as a requirement, never silently overwritten. |
-| `superdev-memory-writer` / `superdev-rules-writer` / `superdev-docs-writer` | Forks - the writing half of each layer; also invoked at Close Out when the matching switch is on. |
+| `superdev-changelog-writer` | Fork - writes one append-only build changelog entry at `docs/changelog/<run>.md` plus its index line at Close Out when `changelog: true`; never edits an existing entry. |
+| `superdev-memory-writer` / `superdev-rules-writer` | Forks - the writing half of each layer; also invoked at Close Out when the matching switch is on. |
 | `superbuild-adr` | Fork - records the architectural decision at Close Out when `adr: true`; writes no file when the plan commits to none. |
