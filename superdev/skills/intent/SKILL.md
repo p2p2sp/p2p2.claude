@@ -12,7 +12,6 @@ Help turn ideas into fully formed designs and specs through natural collaborativ
 - When the request touches existing code or conventions, launch multiple `Explore` agents in parallel in one batch to map relevant files, patterns, rules, and prior decisions. Anything you can answer from the codebase, do NOT ask the user.
 - Skip exploration only when the request is genuinely greenfield.
 - Carry the discovered conventions into proposed approaches so `How` always fits the host project.
-- When the host repo carries `docs/product/`, have one of the parallel `Explore` agents read the affected feature's doc(s). Docs are user intent: any doc-vs-code divergence is reported into the interview as an open requirement (fix the code, or - only on the user's explicit choice - amend the doc), never treated as text the code overrides.
 
 ## Run the interview
 - Walk the design tree branch by branch, resolving dependencies one decision at a time - early answers reshape later branches, so do not batch.
