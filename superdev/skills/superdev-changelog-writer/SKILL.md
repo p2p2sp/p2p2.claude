@@ -3,8 +3,8 @@ name: superdev-changelog-writer
 description: Invoked only by superbuild or simplebuild skill.
 context: fork
 background: false
-model: opus
-effort: high
+model: sonnet
+effort: low
 user-invocable: false
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*), Bash(date:*), Bash(git rev-parse:*)
 ---

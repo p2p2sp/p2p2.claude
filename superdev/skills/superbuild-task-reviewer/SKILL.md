@@ -4,7 +4,7 @@ description: Invoked only by superbuild skill.
 context: fork
 background: false
 model: sonnet
-effort: high
+effort: medium
 allowed-tools: Read, Write, Grep, Glob, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*), Bash(git status:*)
 user-invocable: false
 ---

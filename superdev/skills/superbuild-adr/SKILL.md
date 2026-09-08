@@ -4,6 +4,7 @@ description: Invoked only by superbuild or simplebuild skill.
 context: fork
 background: false
 model: sonnet
+effort: low
 allowed-tools: Read, Write, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*), Bash(date:*)
 user-invocable: false
 ---
