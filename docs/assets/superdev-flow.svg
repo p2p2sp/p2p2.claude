@@ -291,7 +291,7 @@
   <text x="800" y="614" class="title">superspec</text>
   <text x="800" y="636" class="desc">Spec = What &amp; Why · never How · INVEST · max. 3 AC per story.</text>
   <text x="800" y="654" class="desc">No TBDs and no open questions - the spec holds the answers.</text>
-  <text x="800" y="674" class="mono">docs/.workflows/&lt;date&gt;-&lt;slug&gt;.md</text>
+  <text x="800" y="674" class="mono">docs/.workflows/&lt;run&gt;/spec.md</text>
 
   <path d="M1000 682 L1000 702" class="link l-u" marker-end="url(#ar-u)"/>
   <path d="M1000 682 L1000 702" class="flow l-u"/>

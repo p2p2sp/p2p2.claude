@@ -32,12 +32,12 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    the codebase first, then interviews you in prose - one question per turn, 2-3 numbered options with a
    recommendation - until every load-bearing decision is settled.
 3. **Confirm the synthesis and pick a track, or stop here** (this gate is yours, the model never routes past
-   it) - the confirmed synthesis is saved to `docs/.workflows/<date>-<slug>-intent.md` and `intent <path>`
+   it) - the confirmed synthesis is saved to `docs/.workflows/<run>/intent.md` and `intent <path>`
    resumes it later:
    - **Simple** - small, contained, reversible changes. `simpleplan` writes the plan; the plan carries its
      own acceptance criteria, no spec.
    - **Super** - medium/large, cross-cutting or hard-to-reverse changes. `superspec` writes the
-     `What & Why` spec first (saved to `docs/.workflows/<date>-<slug>.md`), then chains into `superplan`.
+     `What & Why` spec first (saved to `docs/.workflows/<run>/spec.md`), then chains into `superplan`.
 4. **Approve the plan.** A forked reviewer must return `VERDICT: PASS` before `ExitPlanMode` is even allowed;
    then you approve it yourself.
 5. **The build runs task by task.** The orchestrator (`simplebuild` / `superbuild`) decomposes the plan into
@@ -45,7 +45,7 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    ends with the final review round.
 6. **Close Out** runs two waves: `adr`, `memory` and `rules` in parallel, then `changelog` (which also links
    the ADR when one was written), and commits what they touched; when `cleanup: true` it then removes the
-   run's working files (workdir, spec, intent) and commits that removal.
+   run's working directory and commits that removal.
 
 Reporting a bug instead? Just say so - `simpledebug` fires first, traces the flow step by step, proves the
 diagnosis with a failing test, and hands the proven fix plan to `simpleplan`.
@@ -60,7 +60,7 @@ diagnosis with a failing test, and hands the proven fix plan to `simpleplan`.
 | `memory` | refreshes the `CLAUDE.md` project-memory cascade |
 | `rules` | refreshes the path-scoped `.claude/rules/` convention files |
 | `changelog` | writes one append-only entry at `docs/changelog/<run>.md` (intent, decisions, ADR link, deviations, areas) plus an index line in `docs/changelog/README.md` |
-| `cleanup` | removes the run's working files (workdir, spec, intent) after a completed build and commits the removal |
+| `cleanup` | removes the run's working directory after a completed build and commits the removal |
 
 A failing delegation never blocks the build - it lands in the final summary instead.
 
@@ -73,7 +73,7 @@ never called by hand.
 
 | Skill | Role |
 | --- | --- |
-| `intent` | The always-on entry skill. Explores the codebase (including prior changelog entries and ADRs), runs the design interview, persists the confirmed synthesis to `docs/.workflows/<date>-<slug>-intent.md`, then gates on your track choice or stopping there - `intent <path>` resumes a saved synthesis later. Writes no code and no plan. |
+| `intent` | The always-on entry skill. Explores the codebase (including prior changelog entries and ADRs), runs the design interview, persists the confirmed synthesis to `docs/.workflows/<run>/intent.md`, then gates on your track choice or stopping there - `intent <path>` resumes a saved synthesis later. Writes no code and no plan. |
 | `setup` | `/superdev:setup` - one-time, user-only repository bootstrap and config-switch picker. Idempotent. |
 | `simpledebug` | Fires on any bug, crash, regression or "it behaves wrong". Traces the whole flow instead of guessing, proves the diagnosis with a failing (RED) test, then hands the fix plan to `simpleplan`. Fixes nothing itself. |
 | `tdd` | Red-Green-Refactor discipline for a task marked `TDD: required` (or when you ask for test-first work). No production code without a failing test first. |
@@ -92,7 +92,7 @@ never called by hand.
 
 | Skill | Role |
 | --- | --- |
-| `superspec` | Writes the `What & Why` spec (INVEST stories, max 3 acceptance criteria each, zero TBDs) to `docs/.workflows/<date>-<slug>.md`, then gates on continuing to the plan. |
+| `superspec` | Writes the `What & Why` spec (INVEST stories, max 3 acceptance criteria each, zero TBDs) to `docs/.workflows/<run>/spec.md`, then gates on continuing to the plan. |
 | `superspec-reviewer` | Fork - spec review; no handoff without `VERDICT: PASS`. |
 | `superspec-refine` | Evolves an existing spec instead of writing a new one. |
 | `superplan` | Writes the plan (`How`) from the approved spec, marking each task `TDD: required` or `TDD: none`. |

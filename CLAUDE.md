@@ -51,10 +51,10 @@ skill/agent list. This file is orientation for the assistant.
   one append-only entry per completed build to the host repo's `docs/changelog/<run>.md` (intent, decisions
   with the ADR link, deviations, areas) plus one index line in `docs/changelog/README.md`, wired into both
   build close-outs behind an opt-in `changelog` config switch. The `intent` skill persists its confirmed
-  interview synthesis to `docs/.workflows/<date>-<slug>-intent.md`, lets the user stop there and resume later
+  interview synthesis to `docs/.workflows/<run>/intent.md`, lets the user stop there and resume later
   with `intent <path>`, and reads prior changelog entries and ADRs through an explicit history Explore agent
   as decision context (never as requirements). A `cleanup` config switch makes both build orchestrators remove
-  a completed run's working files (workdir, spec, intent) after close-out via `scripts/cleanup-run.sh`.
+  a completed run's working directory after close-out via `scripts/cleanup-run.sh`.
 - **superui** - the design / frontend ecosystem, pairing Claude Code CLI (measurement, agentic fan-out) and
   Claude Design (live, inline-styled Design Components), via a **two-stage** screenshots-to-handoff-bundle
   pipeline: `/superui:design-extractor <screenshots-dir> [<target>]` turns a folder of UI screenshots into the
@@ -150,9 +150,10 @@ README.md            User-facing catalog page (what the repo is, install, one ro
                      skill list; every plugin has one)
 .github/             CI: scripts/release.sh + workflows/ (release-version.yml - manual dispatch only)
 .claude/rules/       Development-only conventions for this repo
-docs/.workflows/     Per-run working files of superdev builds executed ON this repo (intent, spec, plan copy,
-                     tasks, implementation reports) - removed by `cleanup-run.sh` after a completed build
-                     when `cleanup: true`; the changelog is the history. Ships with no plugin
+docs/.workflows/     Per-run working directories of superdev builds executed ON this repo - each run's
+                     intent.md, spec.md, plan copy, tasks and implementation reports live together inside
+                     docs/.workflows/<run>/ - removed by `cleanup-run.sh` after a completed build when
+                     `cleanup: true`; the changelog is the history. Ships with no plugin
 tests/               Dev-time regression suites for plugin scripts, run from the repo root with
                      `node --test "tests/**/*.test.ts"` (a bare directory argument, e.g. `tests/superui/`,
                      does not work - `node --test` resolves it as a module path, not a glob)
@@ -207,9 +208,10 @@ The invariants below hold across the repo.
   `docs/design-system/` (superui's `design-extractor`; `docs/design-system/<target>/` with the optional
   `<target>` argument), `docs/changelog/` (superdev's changelog layer, gated by the `changelog` switch -
   `superdev-changelog-writer` appends one entry per completed build plus one index line in
-  `docs/changelog/README.md`), `docs/.workflows/` (superdev's per-run working files - the intent file the
-  `intent` skill persists, the spec, the plan copy written by `decompose.sh`, task files, implementation
-  reports; marked `linguist-generated` in `.gitattributes` so GitHub collapses them in review, and removed
+  `docs/changelog/README.md`), `docs/.workflows/` (superdev's per-run working directory
+  `docs/.workflows/<run>/` - the intent file the `intent` skill persists (`intent.md`), the spec
+  (`spec.md`), the plan copy written by `decompose.sh`, task files and implementation reports all live
+  inside it; marked `linguist-generated` in `.gitattributes` so GitHub collapses them in review, and removed
   by `cleanup-run.sh` after a completed build when the `cleanup` switch is on), `docs/business/<idea-slug>/`
   (superbiz's `idea-validator`, its `report.html` deliverable only - the run's working files 00-13 live in
   `.temp/superbiz/`, not here). These are version-controlled deliverables the user reads and edits.

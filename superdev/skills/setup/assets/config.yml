@@ -3,4 +3,4 @@ adr:       false   # ADR capture -> docs/adr/
 rules:     false   # Rules system -> .claude/rules/
 memory:    false   # Memory system -> CLAUDE.md cascade
 changelog: false   # Changelog -> docs/changelog/
-cleanup:   false   # Remove run files (docs/.workflows/<run>, spec, intent) after a completed build
+cleanup:   false   # Remove the run's working dir (docs/.workflows/<run>) after a completed build
