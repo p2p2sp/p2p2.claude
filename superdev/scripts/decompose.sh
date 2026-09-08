@@ -13,7 +13,19 @@
 #   - superplan:  nagłówek to Title + Spec (brak sekcji HEADER)
 #
 # Działanie:
-#   - tworzy katalog roboczy docs/.workflows/<data>-<slug>/
+#   - katalog roboczy: gdy linia "Intent:" planu (albo, w jej braku, "Spec:")
+#     wskazuje na plik już leżący pod docs/.workflows/<data>-<slug>/, TEN
+#     katalog jest ADOPTOWANY jako katalog roboczy - intent.md i spec.md
+#     lądują obok plan-header.md/plan.md/tasks/. W przeciwnym razie (żadna
+#     ścieżka nie leży pod docs/.workflows/, np. stary bieg sprzed tej zmiany)
+#     wracamy do dotychczasowej nazwy pochodnej od tytułu planu,
+#     docs/.workflows/<data>-<slug>/. Ścieżka absolutna z segmentem
+#     docs/.workflows/ jest normalizowana do postaci względem repo; ścieżka
+#     zagnieżdżona głębiej niż jeden poziom adoptuje sam katalog biegu, nie
+#     jego podkatalog. Adoptowany katalog zawsze istniał przed tym biegiem,
+#     więc gwarancja poniżej (trap nie usuwa katalogu, który biegowi nie
+#     przynależy) obejmuje go automatycznie: błąd dekompozycji nigdy nie
+#     kasuje cudzego intent.md/spec.md.
 #   - zapisuje nagłówek planu do plan-header.md
 #   - kopiuje pełny plan obok nagłówka jako plan.md
 #   - tworzy status.md z numerem ostatnio przetworzonego taska (start: 00);
@@ -73,11 +85,71 @@ slug="$(printf '%s' "$raw_title" \
   | LC_ALL=C sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-*//' -e 's/-*$//')"
 [[ -z "$slug" ]] && slug="plan"
 
-dir="docs/.workflows/$(date +%F)-${slug}"
+# --- ścieżka speca (linia "Spec:", szablon superplan) ---
+# preambuła: Title zawsze, Spec tylko w szablonie superplan; sekcję HEADER
+# (jeśli jest) dopisze awk poniżej. Trailing HTML-comment przy Spec usuwamy.
+# Ekstrakcja jedzie PRZED utworzeniem katalogu roboczego (patrz run_dir_of
+# niżej: dir może adoptować katalog speca) - błąd "spec nie istnieje" nie
+# zostawia więc żadnego katalogu na dysku.
+spec_line="$(grep -m1 '^Spec:' "$plan" || true)"
+spec_line="$(printf '%s' "$spec_line" | sed -e 's/[[:space:]]*<!--.*-->[[:space:]]*$//')"
+
+# ścieżka speca (szablon superplan): z linii "Spec: <ścieżka>", bez skrajnych
+# spacji; niepusta ścieżka MUSI istnieć - ekstrakcja wycinka speca poniżej
+# jest bez niej niemożliwa, więc rozjazd wybucha tu, nie w środku builda.
+spec_path="$(printf '%s' "${spec_line#Spec:}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+if [[ -n "$spec_path" && ! -f "$spec_path" ]]; then
+  echo "error: spec file not found: $spec_path (from plan's 'Spec:' line)" >&2
+  exit 4
+fi
+
+# --- ścieżka zapisanej syntezy intent (opcjonalna preambuła "Intent:", oba
+# tory) --- w przeciwieństwie do Spec: brak pliku NIE jest błędem builda: linia
+# trafia do nagłówka wyłącznie gdy plik istnieje, w przeciwnym razie ostrzeżenie
+# na stderr i pomijamy zarówno linię w nagłówku, jak i wpis w indeksie stdout.
+intent_line="$(grep -m1 '^Intent:' "$plan" || true)"
+intent_line="$(printf '%s' "$intent_line" | sed -e 's/[[:space:]]*<!--.*-->[[:space:]]*$//')"
+
+intent_path="$(printf '%s' "${intent_line#Intent:}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+if [[ -n "$intent_path" && ! -f "$intent_path" ]]; then
+  echo "warning: intent file not found: $intent_path (from plan's 'Intent:' line) - omitted" >&2
+  intent_path=""
+fi
+
+# katalog roboczy przynależny do ścieżki $1: dirname z normalizacją "\" -> "/"
+# (żeby ścieżka windowsowa też trafiła); pusty argument albo dirname bez
+# segmentu docs/.workflows/ -> pusty wynik (żaden trap, nigdy exit != 0).
+# Gdy segment jest obecny, adoptujemy WYŁĄCZNIE jego pierwszy poziom (tail po
+# OSTATNIM "docs/.workflows/", ucięty do pierwszego "/") - katalog biegu, nie
+# jego podkatalog, i nigdy nie ta część ścieżki sprzed docs/.workflows/.
+run_dir_of() {
+  local p="$1"
+  [[ -z "$p" ]] && return 0
+  p="${p//\\//}"
+  local d
+  d="$(dirname -- "$p")"
+  case "$d" in
+    *docs/.workflows/*) ;;
+    *) return 0 ;;
+  esac
+  local tail="${d##*docs/.workflows/}"
+  local first="${tail%%/*}"
+  printf '%s\n' "docs/.workflows/${first}"
+}
+
+# Intent: wygrywa nad Spec: (jest zapisywany pierwszy, w tym samym katalogu
+# biegu); w braku obu (albo gdy żadna nie leży pod docs/.workflows/) wracamy
+# do dotychczasowej nazwy pochodnej od tytułu planu.
+dir="$(run_dir_of "$intent_path")"
+[[ -z "$dir" ]] && dir="$(run_dir_of "$spec_path")"
+[[ -z "$dir" ]] && dir="docs/.workflows/$(date +%F)-${slug}"
 
 # zapamiętaj, czy katalog roboczy istniał PRZED tym biegiem - trap poniżej
 # wolno mu usunąć wyłącznie katalog utworzony w TYM biegu; wznowienie
-# (katalog już istniejący) zostaje nietknięte nawet przy błędzie.
+# (katalog już istniejący) zostaje nietknięte nawet przy błędzie. Adoptowany
+# katalog ZAWSZE istniał wcześniej (zawiera przynajmniej intent.md albo
+# spec.md), więc dziedziczy tę gwarancję za darmo - błąd dekompozycji nigdy
+# go nie kasuje.
 dir_preexisted=0
 [[ -d "$dir" ]] && dir_preexisted=1
 
@@ -101,34 +173,6 @@ mkdir -p "$dir/tasks"
 
 # katalog na raporty reviewera; zachowujemy istniejące przy wznowieniu
 mkdir -p "$dir/implementation"
-
-# --- nagłówek planu ---
-# preambuła: Title zawsze, Spec tylko w szablonie superplan; sekcję HEADER
-# (jeśli jest) dopisze awk poniżej. Trailing HTML-comment przy Spec usuwamy.
-spec_line="$(grep -m1 '^Spec:' "$plan" || true)"
-spec_line="$(printf '%s' "$spec_line" | sed -e 's/[[:space:]]*<!--.*-->[[:space:]]*$//')"
-
-# ścieżka speca (szablon superplan): z linii "Spec: <ścieżka>", bez skrajnych
-# spacji; niepusta ścieżka MUSI istnieć - ekstrakcja wycinka speca poniżej
-# jest bez niej niemożliwa, więc rozjazd wybucha tu, nie w środku builda.
-spec_path="$(printf '%s' "${spec_line#Spec:}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-if [[ -n "$spec_path" && ! -f "$spec_path" ]]; then
-  echo "error: spec file not found: $spec_path (from plan's 'Spec:' line)" >&2
-  exit 4
-fi
-
-# ścieżka do zapisanej syntezy intent (opcjonalna preambuła "Intent:", oba
-# tory) - w przeciwieństwie do Spec: brak pliku NIE jest błędem builda: linia
-# trafia do nagłówka wyłącznie gdy plik istnieje, w przeciwnym razie ostrzeżenie
-# na stderr i pomijamy zarówno linię w nagłówku, jak i wpis w indeksie stdout.
-intent_line="$(grep -m1 '^Intent:' "$plan" || true)"
-intent_line="$(printf '%s' "$intent_line" | sed -e 's/[[:space:]]*<!--.*-->[[:space:]]*$//')"
-
-intent_path="$(printf '%s' "${intent_line#Intent:}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-if [[ -n "$intent_path" && ! -f "$intent_path" ]]; then
-  echo "warning: intent file not found: $intent_path (from plan's 'Intent:' line) - omitted" >&2
-  intent_path=""
-fi
 
 # źródło kryteriów dla per-taskowej sekcji "### Covered criteria": spec (tor
 # superbuild) albo sam plan - jego HEADER "## Acceptance criteria" (tor
@@ -162,6 +206,7 @@ criterion_of() {
   ' "$crit_source"
 }
 
+# --- nagłówek planu ---
 header="$dir/plan-header.md"
 {
   [[ -n "$title_line" ]] && printf '%s\n' "$title_line"

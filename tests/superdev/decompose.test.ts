@@ -356,6 +356,202 @@ test("an Intent: line naming a missing file -> stderr warning, no header/index l
   });
 });
 
+// --- run-directory adoption from Intent:/Spec: --------------------------
+
+test("adoption: an Intent: file already under docs/.workflows/<run>/ becomes the working dir, not the derived date-slug name", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    const runDir = "docs/.workflows/2026-01-02-adopted";
+    fs.mkdirSync(path.join(repo.dir, runDir), { recursive: true });
+    const intentRel = `${runDir}/intent.md`;
+    fs.writeFileSync(path.join(repo.dir, intentRel), "# Intent\n\nAdopted synthesis.\n");
+
+    withTempDir("p2p2-decompose-adopt-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Adopted Intent Plan",
+          criteria: ["Only criterion."],
+          tasks: [taskBlock("Task 1 - do it", [1])],
+          intentPath: intentRel,
+        }),
+      );
+
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match(result.stdout, new RegExp(`^workdir: ${runDir}$`, "m"));
+
+      const absDir = path.join(repo.dir, runDir);
+      assert.ok(fs.existsSync(path.join(absDir, "plan-header.md")));
+      assert.ok(fs.existsSync(path.join(absDir, "tasks", "task-01.md")));
+      // the pre-existing intent.md survives untouched, sitting next to the
+      // freshly built decomposition artifacts in the same adopted directory
+      assert.equal(fs.readFileSync(path.join(absDir, "intent.md"), "utf-8"), "# Intent\n\nAdopted synthesis.\n");
+    });
+  });
+});
+
+test("adoption: a Spec: file alone (no Intent:) under docs/.workflows/<run>/ becomes the working dir", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    const runDir = "docs/.workflows/2026-01-02-spec-adopted";
+    fs.mkdirSync(path.join(repo.dir, runDir), { recursive: true });
+    const specRel = `${runDir}/spec.md`;
+    fs.writeFileSync(path.join(repo.dir, specRel), specFixture(["Spec-sourced criterion."]));
+
+    withTempDir("p2p2-decompose-adopt-spec-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        superPlan({
+          title: "Adopted Spec Plan",
+          specPath: specRel,
+          tasks: [taskBlock("Task 1 - implement", [1])],
+        }),
+      );
+
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match(result.stdout, new RegExp(`^workdir: ${runDir}$`, "m"));
+
+      const absDir = path.join(repo.dir, runDir);
+      assert.ok(fs.existsSync(path.join(absDir, "plan-header.md")));
+      assert.ok(fs.existsSync(path.join(absDir, "tasks", "task-01.md")));
+      assert.equal(
+        fs.readFileSync(path.join(absDir, "spec.md"), "utf-8"),
+        specFixture(["Spec-sourced criterion."]),
+      );
+    });
+  });
+});
+
+test("adoption: Intent: wins over a Spec: that resolves to a different run directory", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    const intentRunDir = "docs/.workflows/2026-01-02-intent-run";
+    const specRunDir = "docs/.workflows/2026-01-02-spec-run";
+    fs.mkdirSync(path.join(repo.dir, intentRunDir), { recursive: true });
+    fs.mkdirSync(path.join(repo.dir, specRunDir), { recursive: true });
+    const intentRel = `${intentRunDir}/intent.md`;
+    const specRel = `${specRunDir}/spec.md`;
+    fs.writeFileSync(path.join(repo.dir, intentRel), "# Intent\n\nSynthesis.\n");
+    fs.writeFileSync(path.join(repo.dir, specRel), specFixture(["Spec-sourced criterion."]));
+
+    withTempDir("p2p2-decompose-adopt-precedence-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        superPlan({
+          title: "Precedence Plan",
+          specPath: specRel,
+          tasks: [taskBlock("Task 1 - implement", [1])],
+          intentPath: intentRel,
+        }),
+      );
+
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match(result.stdout, new RegExp(`^workdir: ${intentRunDir}$`, "m"));
+      assert.doesNotMatch(result.stdout, new RegExp(`^workdir: ${specRunDir}$`, "m"));
+
+      // Intent's own run directory got the build; Spec's run directory was
+      // left alone - only its pre-existing spec.md is there, nothing else.
+      assert.ok(fs.existsSync(path.join(repo.dir, intentRunDir, "plan-header.md")));
+      assert.deepEqual(fs.readdirSync(path.join(repo.dir, specRunDir)), ["spec.md"]);
+    });
+  });
+});
+
+test("adoption: an absolute Intent: path is normalised to the repo-relative run directory", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    const runDir = "docs/.workflows/2026-01-02-abs-adopted";
+    const absRunDir = path.join(repo.dir, runDir);
+    fs.mkdirSync(absRunDir, { recursive: true });
+    const intentAbs = path.join(absRunDir, "intent.md");
+    fs.writeFileSync(intentAbs, "# Intent\n\nAbsolute path synthesis.\n");
+
+    withTempDir("p2p2-decompose-adopt-abs-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Absolute Path Plan",
+          criteria: ["Only criterion."],
+          tasks: [taskBlock("Task 1 - do it", [1])],
+          intentPath: intentAbs,
+        }),
+      );
+
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      // normalised to the bare repo-relative run dir - no absolute prefix,
+      // no backslashes, even when the plan's Intent: line carried both
+      assert.match(result.stdout, new RegExp(`^workdir: ${runDir}$`, "m"));
+      assert.ok(fs.existsSync(path.join(absRunDir, "plan-header.md")));
+    });
+  });
+});
+
+test("adoption fallback: neither Intent: nor Spec: sits under docs/.workflows/ -> the derived <date>-<slug> name is used", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-adopt-fallback-", (planDir) => {
+      const intentFile = path.join(planDir, "intent.md");
+      fs.writeFileSync(intentFile, "# Intent\n\nSynthesis.\n");
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Fallback Plan",
+          criteria: ["Only criterion."],
+          tasks: [taskBlock("Task 1 - do it", [1])],
+          intentPath: intentFile,
+        }),
+      );
+
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const dir = `docs/.workflows/${todayISO()}-fallback-plan`;
+      assert.match(result.stdout, new RegExp(`^workdir: ${dir}$`, "m"));
+      assert.ok(fs.statSync(path.join(repo.dir, dir)).isDirectory());
+    });
+  });
+});
+
+test("adoption survival: a failed run never deletes the adopted run directory or its pre-existing intent.md", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    const runDir = "docs/.workflows/2026-01-02-fails";
+    fs.mkdirSync(path.join(repo.dir, runDir), { recursive: true });
+    const intentRel = `${runDir}/intent.md`;
+    const intentContent = "# Intent\n\nPre-existing, must survive.\n";
+    fs.writeFileSync(path.join(repo.dir, intentRel), intentContent);
+
+    withTempDir("p2p2-decompose-adopt-fail-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Adopted Failing Plan",
+          criteria: ["Only criterion."],
+          tasks: [], // no <!-- TASK --> blocks -> exit 3
+          intentPath: intentRel,
+        }),
+      );
+
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 3);
+      assert.match(result.stderr, /error: no <!-- TASK --> blocks found in plan/);
+
+      const absDir = path.join(repo.dir, runDir);
+      assert.ok(fs.statSync(absDir).isDirectory());
+      assert.equal(fs.readFileSync(path.join(absDir, "intent.md"), "utf-8"), intentContent);
+    });
+  });
+});
+
 // --- exit codes ------------------------------------------------------------
 
 test("missing plan-file argument -> exit 1", () => {
