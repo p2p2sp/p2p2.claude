@@ -43,12 +43,13 @@ What should be delivered:
 - Read `references/checklist.md` (relative to this skill's directory) and apply every checklist item to craft an extraordinary spec.
 
 ## Publish
-Save date (yyyyMMdd):
-!`date +%Y%m%d`
+Save date (YYYY-MM-DD):
+!`date +%F`
 
 - Load spec from `templates/spec.md`.
 - **Refining an existing spec** - when an existing spec file path is in context (the user asked to work on that spec), render into it and overwrite that file in place; skip the date/slug step. Keep its existing `Intent:` line unchanged - a refine never adds, drops, or rewrites it.
-- **New spec** - render into the template and save it as `docs/.workflows/<date>-<slug>.md` (`<date>` = the yyyyMMdd value above; `<slug>` = a short title as slug).
+- **New spec, handoff carried `intent: <path>`** - render into the template and save it as `spec.md` inside that path's own directory.
+- **New spec, no `intent:` in the handoff** - create `docs/.workflows/<date>-<slug>/` (`<date>` = the value above; `<slug>` = a short title as slug; append `-2`, `-3`, … on collision) and render into the template, saving it as `spec.md` inside that directory.
 
 ## Review gate
 Immediately after saving - and BEFORE any handoff - run the reviewer and act on its verdict. Never hand off a spec that has not returned `VERDICT: PASS`. Track which invocation this is (round 1, round 2, …).
@@ -74,5 +75,5 @@ The reviewer is read-only: it edits nothing and returns issues derivable from th
 
 ## Hand off
 Handoff is not the interview - use `AskUserQuestion`. The user's confirmation is the gate; never route yourself past it.
-- **SuperPlan** - run the `superplan` Skill, passing the saved spec filepath (`docs/.workflows/<date>-<slug>.md`) as the sole argument.
+- **SuperPlan** - run the `superplan` Skill, passing the saved spec filepath (`docs/.workflows/<run>/spec.md`) as the sole argument.
 - **Done for now** - STOP. Do not do anthing more.
