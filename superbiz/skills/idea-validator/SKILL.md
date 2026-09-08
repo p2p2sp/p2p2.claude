@@ -2,6 +2,7 @@
 name: idea-validator
 description: Validates a business idea as a side-project candidate. Runs web research (problem, market, competition), scores it on 9 dimensions including Distribution, Side-project fit and Autopilot fit, convenes a 7-member council of independent perspectives, and produces a single self-contained HTML report with scorecard, dissent, experiment plan and pre-committed decision thresholds. User-invoked only.
 argument-hint: "[idea text | path/to/idea.md] [--quick]"
+user-invocable: true
 disable-model-invocation: true
 allowed-tools: WebSearch, WebFetch, Read, Write, Glob, Agent, AskUserQuestion, Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/build_report.py:*), Bash(mkdir:*), Bash(ls:*), Bash(date:*)
 ---

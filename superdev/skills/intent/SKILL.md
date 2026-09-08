@@ -1,7 +1,7 @@
 ---
 name: intent
 description: You MUST ALWAYS use this skill every time a user wants to do something creative - a new idea, a new feature, build something from scratch, a change to an existing solution. Do not trigger when user want to implement something here and now or fast.
-argument-hint: [path-to-intent.md]
+argument-hint: [path-to-run-dir/intent.md]
 allowed-tools: Read, Grep, Glob, Agent, AskUserQuestion, Skill, ExitPlanMode, Write, Bash(date:*)
 ---
 
@@ -10,13 +10,13 @@ CRITICAL: Run `ExitPlanMode` first, if plan mode is active.
 Help turn ideas into fully formed designs and specs through natural collaborative dialogue. First thing to do is reach a shared understanding of `What` the user wants and `How` to build something, before any plan or code is drafted.
 
 ## Run
-Date: !`date +%Y%m%d`
+Date: !`date +%F`
 
 ## Resume from a file
-- `$ARGUMENTS` is a path to an existing file ending in `-intent.md`: Read it, skip `## Explore first` and `## Run the interview` entirely. Present its `## Decisions` section as the synthesis and ask the user whether to reopen one decision by number.
+- `$ARGUMENTS` is a path to an existing file named `intent.md`: Read it, skip `## Explore first` and `## Run the interview` entirely. Present its `## Decisions` section as the synthesis and ask the user whether to reopen one decision by number.
   - A decision is reopened: run `## Run the interview` for that branch only, then overwrite the intent file in place with the updated decision (and anything it invalidates downstream). Go to `## Handoff`.
   - No decision reopened: go straight to `## Handoff`.
-- `$ARGUMENTS` names a `-intent.md` path that does not exist: tell the user the file was not found, then fall through to the normal flow using the argument text itself as the request.
+- `$ARGUMENTS` names an `intent.md` path that does not exist: tell the user the file was not found, then fall through to the normal flow using the argument text itself as the request.
 - Any other argument, or none: normal flow - continue to `## Explore first`.
 
 ## Explore first
@@ -65,7 +65,10 @@ Date: !`date +%Y%m%d`
 ## Synthesis
 - Close the interview when every **load-bearing** branch has a confirmed answer. A branch is load-bearing if a different answer would change which files are touched, which library or pattern is chosen, the data shape, or a contract between components. Branches whose answer only affects local style or naming are NOT load-bearing - do not gate the handoff on them.
 - Present the synthesis as ~3–5 bullets capturing the chosen approach, key constraints, and explicit out-of-scope items. Wait for the user's confirmation before handing off.
-- After the user confirms, write the synthesis to `docs/.workflows/<Date>-<slug>-intent.md` (`<Date>` from `## Run`; `<slug>` = short title as slug; if that path already exists for a fresh run, append `-2`, `-3`, ... - a resume overwrites its own path instead of appending). Write it in the interview's language, in this exact structure:
+- After the user confirms:
+  - Fresh run (no resume): the run directory is `docs/.workflows/<Date>-<slug>/` (`<Date>` from `## Run`; `<slug>` = short title as slug). `Glob` `docs/.workflows/<Date>-<slug>*` first - if `docs/.workflows/<Date>-<slug>/` already exists, append `-2`, `-3`, ... to the directory name until one is free. Then `Write` the synthesis to `<run-dir>/intent.md` - the `Write` call itself creates the run directory; never `mkdir` it.
+  - Resume: overwrite the resumed file's own `intent.md` in place.
+  - Write it in the interview's language, in this exact structure:
 
 ```markdown
 # Intent: <title>
