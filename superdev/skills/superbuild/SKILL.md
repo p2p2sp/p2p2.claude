@@ -100,4 +100,4 @@ For each remaining task file (in order):
 2. Cleanup the task list and display short summary of work. Max ~3-5 sentences plus the relayed lines. Include:
     - Step 4's `ADR:` / `NODE:` / `RULE:` / `CHANGELOG:` / `INDEX:` lines verbatim (or the noted failure / disabled)
     - the `CLEANUP:` line verbatim (or "disabled" when `cleanup` is off)
-    - every `GAP:` line verbatim, each followed by `-> run superdev-memory` (memory gaps) or `-> run superdev-rules` (rules gaps)
+    - every `GAP:` line verbatim, each followed by `-> run superdev-memory`
