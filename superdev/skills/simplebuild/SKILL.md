@@ -3,7 +3,7 @@ name: simplebuild
 description: Use ONLY when the approved plan's body contains instruction to use it.
 model: sonnet
 effort: low
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, AskUserQuestion, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh:*)
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, Agent, AskUserQuestion, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh:*)
 user-invocable: false
 ---
 
@@ -80,15 +80,16 @@ For each remaining task file (in order):
 ## Step 4 - Close Out
 
 1. `TaskUpdate` -> start
-2. Wave 1 - gated by Config; run only the enabled ones, in parallel (single message, await all).
-    - `adr: true`    -> Invoke `superbuild-adr` (Skill) with a labeled-line `args` block - `plan: <plan-copy path>` and `adr: docs/adr` (the target DIRECTORY - it timestamps the filename itself) on separate lines. Its `ADR:` line carries the written path, or `none` when the plan holds no significant architectural decision and no file was written.
-    - `memory: true` -> Invoke `superdev-memory-writer` (Skill) with a labeled-line `args` block - `capture: <plan-copy path>` and `notes: <workdir>/implementation/` on separate lines.
-    - `rules: true`  -> Invoke `superdev-rules-writer` (Skill) with a labeled-line `args` block - `capture: <plan-copy path>` and `notes: <workdir>/implementation/` on separate lines.
-3. Wave 2 - `changelog: true` -> after wave 1 completes, invoke `superdev-changelog-writer` (Skill) with a labeled-line `args` block - `capture: <plan-copy path>`, `workdir: <workdir>`, and `notes: <workdir>/implementation/` on separate lines, plus `intent: <intent path>` only when the decompose index printed an `intent:` line, and `adr: <path>` only when wave 1 returned `ADR: <path>` other than `none`.
+2. Run `printf '%s\n' "${CLAUDE_PLUGIN_ROOT}/references"` and keep its output as `<refs>` - the absolute references dir every writer agent below that needs a reference file receives.
+3. Wave 1 - gated by Config; dispatch only the enabled ones with the `Agent` tool - all of them as multiple tool uses in ONE single message so they run concurrently - and await all before moving on.
+    - `adr: true`    -> `Agent` with `subagent_type: superdev:adr-writer` and a labeled-line prompt - `plan: <plan-copy path>` and `adr: docs/adr` (the target DIRECTORY - it timestamps the filename itself) on separate lines. Its `ADR:` line carries the written path, or `none` when the plan holds no significant architectural decision and no file was written.
+    - `memory: true` -> `Agent` with `subagent_type: superdev:memory-writer` and a labeled-line prompt - `capture: <plan-copy path>`, `notes: <workdir>/implementation/`, and `refs: <refs>` on separate lines.
+    - `rules: true`  -> `Agent` with `subagent_type: superdev:rules-writer` and a labeled-line prompt - `capture: <plan-copy path>`, `notes: <workdir>/implementation/`, and `refs: <refs>` on separate lines.
+4. Wave 2 - `changelog: true` -> after wave 1 completes, `Agent` with `subagent_type: superdev:changelog-writer` and a labeled-line prompt - `capture: <plan-copy path>`, `workdir: <workdir>`, `notes: <workdir>/implementation/`, and `refs: <refs>` on separate lines, plus `intent: <intent path>` only when the decompose index printed an `intent:` line, and `adr: <path>` only when wave 1 returned `ADR: <path>` other than `none`.
    Nothing enabled in either wave -> skip to the commit.
-4. Keep each delegation's `ADR:` / `NODE:` / `RULE:` / `CHANGELOG:` / `INDEX:` / `GAP:` lines verbatim for the Step 5 summary. Any delegation failing is non-fatal -> note it there too, do not block.
-5. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(simplebuild): close out adr, memory, rules and changelog"` - commits whatever the delegations touched.
-6. `TaskStop` -> completed
+5. Keep each delegation's `ADR:` / `NODE:` / `RULE:` / `CHANGELOG:` / `INDEX:` / `GAP:` lines verbatim for the Step 5 summary. Any delegation failing is non-fatal -> note it there too, do not block.
+6. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(simplebuild): close out adr, memory, rules and changelog"` - commits whatever the delegations touched.
+7. `TaskStop` -> completed
 
 ## Step 5 - Done
 
