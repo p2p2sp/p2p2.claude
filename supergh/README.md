@@ -21,7 +21,8 @@ Requires the `gh` CLI installed and authenticated (`gh auth login`). Nothing els
 - **Commit.** Say "commit", "commit changes", or "commit all". A haiku fork reads the recent-commit style
   plus the scoped `git status`/diff, writes the Conventional Commits message, commits, and verifies that
   HEAD actually moved before reporting `<sha> | <message>`. It never creates a branch. Scope it with a
-  selector: everything (`all`), only what is staged (`staged`), or a single path.
+  selector: everything (`all`), only what is staged (`staged`), or a single path. Mention an issue -
+  `#42` or a GitHub issue link - and it lands in the message as a `Refs: #42` footer.
 - **Open an issue.** Run `/supergh:create-issue`. It reads `.github/ISSUE_TEMPLATE/` fresh, auto-fills what
   it can from the session, enforces the template's required fields and frontmatter (labels, type,
   assignees), previews the result, then creates it.

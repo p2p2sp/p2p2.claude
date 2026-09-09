@@ -6,9 +6,11 @@
 # Ustawia zmienne:
 #   COMMIT_MODE       - all | staged | path
 #   COMMIT_PATH       - sciezka (tylko dla mode=path), inaczej pusty string
-#   COMMIT_ISSUE_REFS - numery issue z linkow GitHub podanych w argumentach,
-#                       unikalne, w kolejnosci wystapienia ("42" / "42 7"),
-#                       pusty string gdy zadnego linku nie bylo
+#   COMMIT_ISSUE_REFS - numery issue podane w argumentach - z linkow GitHub
+#                       oraz z golych referencji w stylu "#123" (tak issue
+#                       podaje user w promptcie) - unikalne, w kolejnosci
+#                       wystapienia ("42" / "42 7"), pusty string gdy zadnej
+#                       referencji nie bylo
 #
 # Selektor (case-insensitive dla slow kluczowych; istniejaca sciezka wygrywa
 # ze slowem kluczowym - plik/katalog o nazwie "all"/"staged" jest sciezka):
@@ -22,22 +24,47 @@
 # natywnie formaty POSIX (src/foo), Windows drive (C:/foo, C:\foo) i MSYS (/c/foo),
 # wiec zadna reczna konwersja separatorow nie jest potrzebna.
 #
-# Linki do issue sa wycinane z argumentow PRZED rozpoznaniem selektora, wiec
-# "src/foo https://github.com/o/r/issues/42" nadal rozwiazuje sie do path=src/foo.
-extract_issue_refs() {
-  local raw="${1:-}" url num
-  local re='(https?://[^[:space:]]+/issues/([0-9]+)[^[:space:]]*)'
-  COMMIT_ISSUE_REFS=""
-  while [[ "$raw" =~ $re ]]; do
-    url="${BASH_REMATCH[1]}"; num="${BASH_REMATCH[2]}"
-    case " $COMMIT_ISSUE_REFS " in
-      *" $num "*) : ;;  # duplikat tego samego issue - pomijamy
-      *) COMMIT_ISSUE_REFS="${COMMIT_ISSUE_REFS:+$COMMIT_ISSUE_REFS }$num" ;;
-    esac
-    raw="${raw/"$url"/ }"
+# Referencje do issue sa wycinane z argumentow PRZED rozpoznaniem selektora,
+# wiec "src/foo #42" nadal rozwiazuje sie do path=src/foo.
+add_issue_ref() {
+  local num="$1"
+  case " $COMMIT_ISSUE_REFS " in
+    *" $num "*) : ;;  # duplikat tego samego issue - pomijamy
+    *) COMMIT_ISSUE_REFS="${COMMIT_ISSUE_REFS:+$COMMIT_ISSUE_REFS }$num" ;;
+  esac
+}
+
+# Wycina z $1 wszystkie dopasowania regexa $2, dopisujac numer z grupy $3 do
+# COMMIT_ISSUE_REFS; tekst bez dopasowan laduje w COMMIT_SELECTOR_RAW.
+# Petla konsumuje prefiks (out += przed-dopasowaniem, scan := po-dopasowaniu),
+# wiec skraca sie w kazdej iteracji i zawsze sie konczy - podmiana w miejscu
+# moglaby trafic wczesniejsze, niedopasowane wystapienie tego samego tekstu.
+strip_issue_refs() {
+  local scan="$1" re="$2" grp="$3" out="" full
+  while [[ "$scan" =~ $re ]]; do
+    full="${BASH_REMATCH[0]}"
+    add_issue_ref "${BASH_REMATCH[$grp]}"
+    out="$out${scan%%"$full"*} "
+    scan="${scan#*"$full"}"
   done
-  # Po wycieciu linku zostaja zdwojone spacje - scalamy je i przycinamy brzegi,
-  # inaczej reszta argumentow nie dopasuje sie do slowa kluczowego ani sciezki.
+  COMMIT_SELECTOR_RAW="$out$scan"
+}
+
+extract_issue_refs() {
+  local raw="${1:-}"
+  # Gola referencja "#123" wymaga niealfanumerycznej granicy z obu stron, inaczej
+  # kolor hex (#1a2b3c) czy fragment URL (#issue-12x) udawalyby numer issue.
+  local url_re='(https?://[^[:space:]]+/issues/([0-9]+)[^[:space:]]*)'
+  local hash_re='(^|[^[:alnum:]_])(#([0-9]+))([^[:alnum:]_]|$)'
+  COMMIT_ISSUE_REFS=""
+  # Linki najpierw: URL moze niesc fragment (.../issues/42#issuecomment-1),
+  # ktorego reszta po wycieciu calego linku juz nie zostanie.
+  strip_issue_refs "$raw" "$url_re" 2
+  strip_issue_refs "$COMMIT_SELECTOR_RAW" "$hash_re" 3
+  raw="$COMMIT_SELECTOR_RAW"
+  # Po wycieciu referencji zostaja zdwojone spacje - scalamy je i przycinamy
+  # brzegi, inaczej reszta argumentow nie dopasuje sie do slowa kluczowego ani
+  # sciezki.
   while [[ "$raw" == *"  "* ]]; do raw="${raw//  / }"; done
   raw="${raw#"${raw%%[![:space:]]*}"}"
   raw="${raw%"${raw##*[![:space:]]}"}"

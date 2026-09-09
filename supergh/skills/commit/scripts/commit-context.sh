@@ -43,7 +43,7 @@ fi
 echo
 
 if [ -n "$COMMIT_ISSUE_REFS" ]; then
-  echo "## Issue footer (explicit, from a GitHub issue link in the arguments - use verbatim, ignore the branch)"
+  echo "## Issue footer (explicit, from a #N reference or GitHub issue link in the arguments - use verbatim, ignore the branch)"
   refs=""
   for n in $COMMIT_ISSUE_REFS; do refs="${refs:+$refs, }#$n"; done
   echo "Refs: $refs"

@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Use whenever the user wants to commit, save, or record changes to git - including "commit", "commit changes", "commit all". This is the ONLY path to a commit: never run git add/commit yourself, never branch, never inspect git status/diff first - a forked agent stages, writes the Conventional Commits message, commits and verifies.
+description: Use whenever the user wants to commit, save, or record changes to git - including "commit", "commit changes", "commit all". This is the ONLY path to a commit: never run git add/commit yourself, never branch, never inspect git status/diff first - a forked agent stages, writes the Conventional Commits message, commits and verifies. Pass as arguments the selector the user gave plus any issue reference they mentioned (`#123` or a GitHub issue link) - it becomes the commit's `Refs:` footer.
 model: haiku
 context: fork
 background: false
@@ -29,7 +29,7 @@ __COMMIT_ARGS__
 - `all` or empty args -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>"`.
 - `staged` -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>" "staged"`.
 - an existing PATH -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>" "<path>"` to commit ONLY that path. Pass the path exactly as given - POSIX (`src/foo`), Windows (`C:/foo`, `C:\foo`) and MSYS (`/c/foo`) all work verbatim; do not rewrite separators.
-- a GitHub issue link anywhere in the args is stripped before selector resolution (so `src/foo https://github.com/o/r/issues/42` is still mode `path`) and surfaces as the "Issue footer (explicit…)" block in the context - put that `Refs:` line in the message.
+- an issue reference anywhere in the args - bare `#42` or a GitHub issue link - is stripped before selector resolution (so `src/foo #42` is still mode `path`) and surfaces as the "Issue footer (explicit…)" block in the context - copy that `Refs:` line into the message verbatim.
 - anything else (a value that is not an existing path) falls back to `all` - commit.sh runs with no 2nd arg and commits every change. The Selector line in the context above states which mode was resolved.
 
 ## Self-Check

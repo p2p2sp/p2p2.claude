@@ -164,6 +164,74 @@ test("an issue URL plus an existing path resolves to mode 'path' with the issue 
   });
 });
 
+test("a bare '#42' reference is stripped before selector resolution, leaving mode 'all'", () => {
+  assertBash((bash) => {
+    withTempDir("p2p2-commit-args-", (dir) => {
+      const sel = resolve(bash, dir, "#42");
+      assert.deepEqual(sel, { mode: "all", path: "", issueRefs: "42" });
+    });
+  });
+});
+
+test("several bare references are all stripped, unique and in order of appearance", () => {
+  assertBash((bash) => {
+    withTempDir("p2p2-commit-args-", (dir) => {
+      const sel = resolve(bash, dir, "#42 #7 #42");
+      assert.deepEqual(sel, { mode: "all", path: "", issueRefs: "42 7" });
+    });
+  });
+});
+
+test("a bare reference next to punctuation is still recognised", () => {
+  assertBash((bash) => {
+    withTempDir("p2p2-commit-args-", (dir) => {
+      const sel = resolve(bash, dir, "(#42,#7)");
+      assert.deepEqual(sel, { mode: "all", path: "", issueRefs: "42 7" });
+    });
+  });
+});
+
+test("a bare reference plus an existing path resolves to mode 'path' with the ref captured separately", () => {
+  assertBash((bash) => {
+    withTempDir("p2p2-commit-args-", (dir) => {
+      fs.mkdirSync(path.join(dir, "src"));
+      fs.writeFileSync(path.join(dir, "src", "foo"), "content\n");
+      const sel = resolve(bash, dir, "src/foo #42");
+      assert.deepEqual(sel, { mode: "path", path: "src/foo", issueRefs: "42" });
+    });
+  });
+});
+
+test("an issue URL and a bare reference combine into one deduplicated ref list", () => {
+  assertBash((bash) => {
+    withTempDir("p2p2-commit-args-", (dir) => {
+      const raw = "https://github.com/owner/repo/issues/42 #7 #42";
+      const sel = resolve(bash, dir, raw);
+      assert.deepEqual(sel, { mode: "all", path: "", issueRefs: "42 7" });
+    });
+  });
+});
+
+test("a '#' token that is not a bare issue number yields no reference", () => {
+  assertBash((bash) => {
+    withTempDir("p2p2-commit-args-", (dir) => {
+      // hex colour, alnum suffix and a bare '#' - none of them is an issue number
+      const sel = resolve(bash, dir, "#1a2b3c #42abc #");
+      assert.deepEqual(sel, { mode: "all", path: "", issueRefs: "" });
+    });
+  });
+});
+
+test("a URL fragment after the issue number does not leak a second reference", () => {
+  assertBash((bash) => {
+    withTempDir("p2p2-commit-args-", (dir) => {
+      const raw = "https://github.com/owner/repo/issues/42#issuecomment-99";
+      const sel = resolve(bash, dir, raw);
+      assert.deepEqual(sel, { mode: "all", path: "", issueRefs: "42" });
+    });
+  });
+});
+
 test("a path containing a space resolves to mode 'path' with the space preserved verbatim", () => {
   assertBash((bash) => {
     withTempDir("p2p2-commit-args-", (dir) => {

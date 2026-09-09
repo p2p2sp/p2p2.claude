@@ -70,6 +70,36 @@ test("mode 'all': Selector/branch/recent-subjects/status/diff sections all prese
   });
 });
 
+test("a bare '#42' in the arguments emits the explicit Issue-footer block and still resolves the selector", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      commitFile(repo, "a.txt", "line one\n");
+      fs.mkdirSync(path.join(repo.dir, "src"));
+      fs.writeFileSync(path.join(repo.dir, "src", "foo.txt"), "new\n");
+
+      const result = runContext(bash, repo, "src/foo.txt #42");
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match(result.stdout, /## Issue footer \(explicit, from a #N reference or GitHub issue link/);
+      assert.match(result.stdout, /^Refs: #42$/m);
+      assert.match(result.stdout, /## Selector: path - run commit\.sh with 2nd arg "src\/foo\.txt"/);
+    });
+  });
+});
+
+test("no issue reference in the arguments: the Issue-footer block is absent entirely", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      commitFile(repo, "a.txt", "line one\n");
+      fs.writeFileSync(path.join(repo.dir, "a.txt"), "line one\nline two\n");
+
+      const result = runContext(bash, repo);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.doesNotMatch(result.stdout, /## Issue footer/);
+      assert.doesNotMatch(result.stdout, /^Refs: /m);
+    });
+  });
+});
+
 // --- selector mode: staged -----------------------------------------------------
 
 test("mode 'staged': diff section is scoped to --cached only, unstaged changes are excluded", () => {

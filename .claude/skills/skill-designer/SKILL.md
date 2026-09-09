@@ -1,6 +1,6 @@
 ---
 name: skill-designer
-description: Design, create, refactor, split, shrink or audit Claude Code skills and agents (SKILL.md files, agent .md files, their scripts and references). Use whenever the user wants a new skill or agent, asks to improve, clean up, compress or fix an existing one, complains a skill is too long, drifts or triggers badly, wants a skill split into forks, or asks for a review of skill files, even when they only say "make a skill for X" or "this agent does too much".
+description: Design, create, refactor, split, shrink or audit skills and agents (SKILL.md files, agent .md files, their scripts and references). Use whenever the user wants a new skill or agent, asks to improve, clean up, compress, optymize or fix an existing one, complains a skill is too long, drifts or triggers badly, wants a skill split into forks, or asks for a review of skill files, even when they only say "make a skill for X" or "this agent does too much".
 ---
 
 # skill-designer
@@ -40,7 +40,7 @@ Write `input -> work -> output`. The skill receives input, works, returns output
 - Cut caller narrative: the caller's name, its surrounding flow, the rationale for the call. Litmus: would the line still be true for a different caller sending the same input? Keep it. Only true of this caller's world? Cut.
 - Frame input-driven behaviour on the input: "if `Report path:` present -> write there", never "X hands over `Report path:`, so...".
 - Keep real scope boundaries even when they name siblings ("you own ONLY X; Y and Z are out of scope").
-- Document only the delta from sensible defaults. Skip what the model already knows or a competent developer would do anyway.
+- Document only the delta from sensible defaults. Always skip what the model already knows or a competent developer would do anyway.
 - Most critical and most frequent instructions first, under clear headings. Mid-paragraph content gets unreliable attention.
 - Prevention over correction: put constraints, profiles and negative examples into the generation step. A separate fixer pass costs more and never converges.
 - Imperative form. One short why per constraint beats an all-caps MUST.
