@@ -68,7 +68,8 @@ Date: !`date +%F`
 - After the user confirms:
   - Fresh run (no resume): the run directory is `docs/.workflows/<Date>-<slug>/` (`<Date>` from `## Run`; `<slug>` = short title as slug). `Glob` `docs/.workflows/<Date>-<slug>*` first - if `docs/.workflows/<Date>-<slug>/` already exists, append `-2`, `-3`, ... to the directory name until one is free. Then `Write` the synthesis to `<run-dir>/intent.md` - the `Write` call itself creates the run directory; never `mkdir` it.
   - Resume: overwrite the resumed file's own `intent.md` in place.
-  - Write it in the interview's language, in this exact structure:
+  - Write it in the interview's language, in this exact structure - one `###` block per decision, carrying the question as it was asked and the confirmed answer, nothing else.
+  - NEVER record a rejected option, nor why it lost, nor the reasoning behind the winning one. Alternatives belong to the live interview; in the file they only crowd the context and the judgement of every downstream reader (spec, plan, build, changelog).
 
 ```markdown
 # Intent: <title>
@@ -78,10 +79,8 @@ Date: <YYYY-MM-DD>
 <the ask in one short paragraph, the user's own framing>
 
 ## Decisions
-### <n>. <decision name>
-- Chosen: <approach>
-- Alternatives: <a> - <why rejected>; <b> - <why rejected>
-- Why: <reason>
+### <n>. <the question, worded as it was put to the user>
+<the confirmed answer, one or two sentences>
 
 ## Constraints
 - <...>

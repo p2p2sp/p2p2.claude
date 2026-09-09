@@ -17,7 +17,7 @@ The prompt carries one `label: value` line per input. Read each file-valued labe
 Required: `capture`. Optional: `intent`, `spec`, `adr`.
 
 `## capture` is the plan (the How) - source of the entry's title, areas and load-bearing decisions.
-`## intent` (when present) is the confirmed interview synthesis (the Why: chosen approach, rejected alternatives, reasons) - primary source for the Why section.
+`## intent` (when present) is the confirmed interview synthesis - the request plus one question/answer block per decision - primary source for the Why section. It deliberately records no rejected alternatives; never infer one that is not written down.
 `## spec` (when present) is the approved What & Why - falls back for Why when `## intent` is absent.
 `## adr` (when present) is the ADR written for this run - its path (the `adr:` value) becomes the entry's `ADR:` bullet.
 
@@ -44,7 +44,7 @@ When `Notes dir:` is set, Read its `*-notes.md` files - the recorded plan->code 
 Format exactly per `<refs>/changelog-entry-format.md`.
 
 - What changed: from `## capture`, confirmed against the actual code - Read/Grep the files it names; a described change the code does not show is not recorded.
-- Why: from `## intent` when present - the chosen approach, the alternatives it rejected, and why; falls back to `## spec`'s Why, then the plan's Goal/Context. No `## intent` -> add a bullet `Intent: not recorded`.
+- Why: from `## intent` when present - its Request and the confirmed answers; falls back to `## spec`'s Why, then the plan's Goal/Context. No `## intent` -> add a bullet `Intent: not recorded`.
 - Decisions: the load-bearing choices only (new contracts, module boundaries, technology/pattern choices) - never task-by-task narration. One line each. Include the `ADR:` bullet (from the `adr:` value) only when `## adr` is present; omit it entirely otherwise.
 - Deviations from plan: from `<Notes dir>/*-notes.md`. Every note says "no deviations" (or the dir is empty/absent) -> write `no deviations`. Otherwise one line per recorded deviation with its why.
 - Index (`docs/changelog/README.md`): absent -> create it with `# Changelog` heading followed by a blank line. Insert the new index line directly after that heading block, above every existing line - newest entries stay first. Never touch other entries.

@@ -169,7 +169,14 @@ test("a filesystem root as the worktree path is rejected", () => {
 test("the target root itself as the worktree path is rejected", () => {
   assertPosix((shell) => {
     withSeededRepo((repo) => {
-      assertFailed(run(shell, repo, ["remove", repo.dir, slash(repo.dir)]));
+      // slash() only rewrites separators, so this is the target root spelled a
+      // second way - the guard must recognise it as the root whichever
+      // separator the caller used, or `remove` rm -rf's the repo it was
+      // anchored to and still reports success.
+      const result = run(shell, repo, ["remove", repo.dir, slash(repo.dir)]);
+      assertFailed(result);
+      assert.match(result.stdout, /must not be the target root/);
+      assert.ok(fs.existsSync(repo.dir), "the target root must survive a rejected remove");
     });
   });
 });
