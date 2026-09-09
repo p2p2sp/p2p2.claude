@@ -1,0 +1,12 @@
+{
+  "name": "supercc",
+  "version": "0.35.1",
+  "description": "Super Claude Code ecosystem - authoring skills and agents.",
+  "author": {
+    "name": "Dariusz Lenartowicz",
+    "email": "dariusz.lenartowicz@p2p2.com.pl"
+  },
+  "skills": [
+    "./skills/skill-designer/"
+  ]
+}

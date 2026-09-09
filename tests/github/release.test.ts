@@ -34,7 +34,7 @@ import { bashShells } from "../harness/shells.ts";
 
 const RELEASE_SH = path.resolve(import.meta.dirname, "../../.github/scripts/release.sh");
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
-const PLUGINS = ["superdev", "superui", "supergh", "superfix", "superbiz"];
+const PLUGINS = ["superdev", "superui", "supergh", "superfix", "superbiz", "supercc"];
 
 function commandAvailable(cmd: string): boolean {
   return !spawnSync(cmd, ["--version"]).error;
@@ -317,7 +317,7 @@ if (!jqAvailable || !bashPath) {
     });
   });
 
-  test("bumps all five manifests' version and nothing else in them, commits with the exact chore(bump) subject, tags and pushes to origin, and creates the GitHub release", () => {
+  test("bumps all six manifests' version and nothing else in them, commits with the exact chore(bump) subject, tags and pushes to origin, and creates the GitHub release", () => {
     withReleaseFixture((fx) => {
       fx.repo.git("tag", "1.2.3");
       const before = readManifests(fx.repo.dir);

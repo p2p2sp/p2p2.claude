@@ -24,11 +24,9 @@ import path from "node:path";
 import { runScript, type RunResult } from "../harness/run.ts";
 import { withGitRepo, withTempDir, type GitRepo } from "../harness/tmp.ts";
 import { forEachShell } from "../harness/shells.ts";
+import { canDenyRead, denyRead, restoreRead } from "../harness/perms.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../superfix/skills/code-auditor/scripts/collect_signals.sh");
-
-const skipUnreadableTest =
-  process.platform === "win32" || (typeof process.getuid === "function" && process.getuid() === 0);
 
 function assertBash(fn: (bash: string) => void) {
   const skips = forEachShell("bash", fn);
@@ -217,14 +215,15 @@ test("stderr carries the kept-extension list and nothing else on a clean run", (
 
 test(
   "a per-file probe failure (unreadable tracked file) warns on stderr only and is skipped from stdout",
-  { skip: skipUnreadableTest ? "requires non-root POSIX file permissions" : false },
+  { skip: canDenyRead() ? false : "this machine cannot deny its own account read access" },
   () => {
     assertBash((bash) => {
       withGitRepo((repo) => {
         fs.writeFileSync(path.join(repo.dir, "locked.txt"), "secret\n");
         fs.writeFileSync(path.join(repo.dir, "open.txt"), "visible\n");
         commitAt(repo, 0, "seed");
-        fs.chmodSync(path.join(repo.dir, "locked.txt"), 0o000);
+        const locked = path.join(repo.dir, "locked.txt");
+        assert.ok(denyRead(locked), "the deny must hold, or this case proves nothing");
         try {
           const result = run(bash, repo, []);
           assert.equal(result.status, 0, `stderr: ${result.stderr}`);
@@ -236,7 +235,7 @@ test(
           );
           assert.ok(records.some((r) => r.path === "open.txt"));
         } finally {
-          fs.chmodSync(path.join(repo.dir, "locked.txt"), 0o644);
+          restoreRead(locked);
         }
       });
     });

@@ -22,11 +22,9 @@ import path from "node:path";
 
 import { runScript, type RunResult } from "../harness/run.ts";
 import { withTempDir } from "../harness/tmp.ts";
+import { canDenyRead, denyRead, restoreRead } from "../harness/perms.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../superui/scripts/assemble_specs.ts");
-
-const skipUnreadableTest =
-  process.platform === "win32" || (typeof process.getuid === "function" && process.getuid() === 0);
 
 function run(args: string[], cwd?: string): RunResult {
   return runScript(SUT, args, { cwd });
@@ -158,18 +156,18 @@ test("a SPECS_DIR that is actually a file exits 1", () => {
 
 test(
   "an unreadable spec file exits 1 naming the file",
-  { skip: skipUnreadableTest ? "requires non-root POSIX file permissions" : false },
+  { skip: canDenyRead() ? false : "this machine cannot deny its own account read access" },
   () => {
     withTempDir("p2p2-assemble-specs-unreadable-", (dir) => {
       const specsDir = writeSpecs(dir, { "locked.md": "secret body\n" });
       const lockedPath = path.join(specsDir, "locked.md");
-      fs.chmodSync(lockedPath, 0o000);
+      assert.ok(denyRead(lockedPath), "the deny must hold, or this case proves nothing");
       try {
         const result = run([specsDir, path.join(dir, "OUTPUT.md")]);
         assert.equal(result.status, 1);
         assert.match(result.stderr, /error: cannot read spec/);
       } finally {
-        fs.chmodSync(lockedPath, 0o644);
+        restoreRead(lockedPath);
       }
     });
   },

@@ -1,8 +1,9 @@
 /*
  * harness.test.ts - proves the shared subprocess/git/stub harness itself
- * (tests/harness/) before any script test relies on it: runScript,
- * withTempDir, withGitRepo, withStub, forEachShell and writePng each get one
- * assertion of their documented behaviour.
+ * (tests/harness/) before any script test relies on it: runScript (including
+ * its win32 transport for an argument no command line survives), withTempDir,
+ * withGitRepo, withStub, forEachShell, denyRead/restoreRead and writePng each
+ * get one assertion of their documented behaviour.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is
  * run directly by Node's native test runner + TypeScript type stripping:
@@ -17,6 +18,7 @@ import path from "node:path";
 
 import { runScript } from "./harness/run.ts";
 import { withTempDir, withGitRepo } from "./harness/tmp.ts";
+import { canDenyRead, denyRead, restoreRead } from "./harness/perms.ts";
 import { withStub } from "./harness/stub.ts";
 import { forEachShell, shellBin } from "./harness/shells.ts";
 import { writePng } from "./harness/png.ts";
@@ -35,6 +37,36 @@ test("runScript round-trips stdout and stderr and reports the real exit status",
     assert.equal(result.status, 7);
   });
 });
+
+test("runScript delivers an argument containing a newline and a CR to the script's argv", () => {
+  withTempDir("p2p2-harness-argv-", (dir) => {
+    const scriptPath = path.join(dir, "echo-argv.sh");
+    fs.writeFileSync(scriptPath, '#!/bin/sh\nprintf "[%s]" "$1"\n', { mode: 0o755 });
+    fs.chmodSync(scriptPath, 0o755);
+
+    const result = runScript(scriptPath, ["Line1\nLine2\rLine3"]);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "[Line1\nLine2\rLine3]");
+  });
+});
+
+test(
+  "denyRead makes a file unreadable for this account and restoreRead hands it back",
+  { skip: canDenyRead() ? false : "this machine cannot deny its own account read access" },
+  () => {
+    withTempDir("p2p2-harness-perms-", (dir) => {
+      const file = path.join(dir, "locked.txt");
+      fs.writeFileSync(file, "secret\n");
+
+      assert.ok(denyRead(file), "denyRead should report success on a machine that can do it");
+      assert.throws(() => fs.readFileSync(file), "the file must really be unreadable, not just marked");
+
+      restoreRead(file);
+      assert.equal(fs.readFileSync(file, "utf-8"), "secret\n");
+    });
+  },
+);
 
 test("withTempDir removes its directory once the callback returns", () => {
   let capturedDir = "";

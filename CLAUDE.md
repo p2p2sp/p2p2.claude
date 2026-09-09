@@ -3,7 +3,7 @@
 > Always in English: all CLAUDE.MD files, scripts
 
 > **These are the plugins' SOURCE files, not the live plugins.** This repo is the source
-> of the `superdev`, `superui`, `supergh`, `superfix`, and `superbiz` plugins (the first three are *also installed* in this session). Editing files here (skills,
+> of the `superdev`, `superui`, `supergh`, `superfix`, `superbiz`, and `supercc` plugins (the first three are *also installed* in this session). Editing files here (skills,
 > manifests, hooks, the `plugin.json` of any plugin) does **NOT** change the behavior of the currently loaded
 > plugins - the routing manifests and skill instructions active in this session were loaded at install/session
 > start and stay frozen regardless of edits. Your changes take effect only after the **user publishes** them
@@ -13,16 +13,16 @@
 >
 > **Likewise, this repo's own `CLAUDE.md` files and `.claude/rules/` are NOT plugin inputs.** They are dev-time
 > orientation for editing the source (and conventions for working *in this repo*) - they never reach the
-> skills, manifests, or hooks as runtime data. All five plugins are stack-agnostic and read host-project memory
+> skills, manifests, or hooks as runtime data. All six plugins are stack-agnostic and read host-project memory
 > from the **consuming** repo's `CLAUDE.md` + `.claude/rules/` only when they run there, and every host has
 > different ones. So when reasoning about how any skill / manifest / hook behaves, do NOT factor in this
 > repo's `CLAUDE.md` files or rules as though they shaped that behavior - they don't ship, they don't travel, and
 > the plugins will execute against entirely different memory files elsewhere. Treat them strictly as guidance
 > for working on the source, never as a runtime signal the plugins consume.
 >
-> **Per-plugin detail lives in `<plugin>/CLAUDE.md`.** `superui`, `supergh`, `superfix`, and `superbiz`
-> each keep their own dev-time orientation file - `superui/CLAUDE.md`, `supergh/CLAUDE.md`,
-> `superfix/CLAUDE.md`, `superbiz/CLAUDE.md` - with that plugin's skill taxonomy, internal
+> **Per-plugin detail lives in `<plugin>/CLAUDE.md`.** `superui`, `supergh`, `superfix`, `superbiz`, and
+> `supercc` each keep their own dev-time orientation file - `superui/CLAUDE.md`, `supergh/CLAUDE.md`,
+> `superfix/CLAUDE.md`, `superbiz/CLAUDE.md`, `supercc/CLAUDE.md` - with that plugin's skill taxonomy, internal
 > layout, and plugin-specific architecture invariants; `superdev` currently has none.
 > Claude Code auto-loads the one for whichever plugin dir you're editing under. **This root file holds only the repo-wide facts** (the catalog,
 > versioning, and the cross-plugin invariants); go to the plugin's own file for anything specific to it.
@@ -36,10 +36,10 @@
 
 ## What this repo is
 
-**Five self-contained Claude Code plugins, each in its own subdirectory - `superdev/`, `superui/`, `supergh/`,
-`superfix/`, and `superbiz/`.** The
+**Six self-contained Claude Code plugins, each in its own subdirectory - `superdev/`, `superui/`, `supergh/`,
+`superfix/`, `superbiz/`, and `supercc/`.** The
 repo root carries a **marketplace catalog** (`.claude-plugin/marketplace.json`) that co-lists them
-by subdir `source` (`"./superdev"`, `"./superui"`, `"./supergh"`, `"./superfix"`, `"./superbiz"`).
+by subdir `source` (`"./superdev"`, `"./superui"`, `"./supergh"`, `"./superfix"`, `"./superbiz"`, `"./supercc"`).
 
 Each plugin is independently installable; none declares another as a dependency. End-user help is split:
 the root `README.md` is the catalog page (what the repo is, install, one row per plugin linking onward),
@@ -91,10 +91,16 @@ skill/agent list. This file is orientation for the assistant.
   and pre-committed decision thresholds, and finally `scripts/build_report.py` rendering one self-contained
   `report.html`. The plugin ships **no hooks, no manifest and no agents** - `idea-validator` does not route at
   all and fans out with the `Agent` tool rather than `Skill` forks. (→ `superbiz/CLAUDE.md`)
+- **supercc** - the Claude Code authoring ecosystem: **one skill**, `skill-designer`, whose subject is the
+  extension surface itself - SKILL.md files, agent `.md` files, their frontmatter, bundled `scripts/` and
+  `references/`. It creates a new skill or agent, refactors an existing one, splits an overloaded one into
+  forks, shrinks a bloated one, or audits a set, and lints the result with its bundled `lint_skill.sh`
+  (mechanically-decidable form only - every judgment call stays with the model). Model-invocable, routing
+  purely via CSO `description:`; the plugin ships **no hooks, no manifest and no agents**. (→ `supercc/CLAUDE.md`)
 
 They ship no application code - the artefacts are markdown (skills) + JSON (manifests) + per-plugin hook
 scripts under `<plugin>/hooks/scripts/` (only `superdev` has hooks; `superui` / `supergh` / `superfix` /
-`superbiz` ship none), plus deterministic helper scripts bundled either under an individual skill's own
+`superbiz` / `supercc` ship none), plus deterministic helper scripts bundled either under an individual skill's own
 `scripts/` dir or, when shared across a plugin's skills, at plugin level. `supergh` keeps its shared scripts
 under `<plugin>/shared/` (a `scripts/` subdir); `superdev` keeps its shared scripts and references at the
 plugin root (`superdev/scripts/`, `superdev/references/`), and `superui` keeps its shared scripts and its
@@ -102,7 +108,8 @@ seven agents at the plugin root (`superui/scripts/`, `superui/agents/`), both wi
 `superui` has no `references/` or `assets/` dir at the plugin root - only `pro-designer` and
 `component-extractor` need a `references/` dir, and each keeps its own rather than sharing one at the plugin
 root. `superbiz` ships no plugin-root dirs at all - its one skill, `idea-validator`, bundles its own
-`references/` (including a `references/council/` subdir), `scripts/`, `assets/` and `evals/`. Its
+`references/` (including a `references/council/` subdir), `scripts/`, `assets/` and `evals/`; `supercc`
+ships none either - its one skill, `skill-designer`, bundles its own `references/` and `scripts/`. Its
 `build_report.py` is the repo's only **Python** script (stdlib only), every other bundled script being bash
 or TypeScript. Each
 plugin's own `CLAUDE.md` inventories its scripts. **Editing markdown / JSON IS shipping** - there is no
@@ -111,23 +118,24 @@ plugin scripts live at the repo-root `tests/` tree (outside every plugin dir, so
 marketplace entry references it) and run with Node's native `node --test`. Contracts between files are
 otherwise enforced by humans reading carefully.
 
-All five plugins are **stack-agnostic on purpose**: skills read project-specific knowledge (test framework, build
+All six plugins are **stack-agnostic on purpose**: skills read project-specific knowledge (test framework, build
 tool, naming, how to launch the app) from the **host** project's `CLAUDE.md` + `.claude/rules/`, never from
 the plugin sources. Do not bake ecosystem assumptions (dotnet, npm, pytest…) into skill prompts.
 
 DO NOT USE ADR capture for this project. The plugins are constantly refactored.
 
-## Why five plugins
+## Why six plugins
 
 Each plugin keeps its domain's skills together so a consumer can install just the development ecosystem
 (`superdev`), just the design ecosystem (`superui`), just the GitHub ecosystem (`supergh`), just the
-codebase-investigation tool (`superfix`), or just the idea validation tool
-(`superbiz`). Within a plugin, skills compose through CSO (frontmatter
-`description:`) and - for the sole manifest-bearing plugin (`superdev`) - that plugin's single
+codebase-investigation tool (`superfix`), just the idea validation tool
+(`superbiz`), or just the skill/agent authoring tool (`supercc`). Within a plugin, skills compose through CSO
+(frontmatter `description:`) and - for the sole manifest-bearing plugin (`superdev`) - that plugin's single
 injected manifest documents its routing (e.g. superdev's interview-first decision flow); `superui`, `supergh`,
-`superfix` and `superbiz` ship no manifest (superfix's sole skill is user-only; supergh routes purely via CSO
-descriptions; superui routes `pro-designer` the same way while its `design-extractor` skill is a user-only
-command; superbiz's sole skill is a user-only command too, so nothing routes there at all).
+`superfix`, `superbiz` and `supercc` ship no manifest (superfix's sole skill is user-only; supergh routes purely
+via CSO descriptions; superui routes `pro-designer` the same way while its `design-extractor` skill is a user-only
+command; superbiz's sole skill is a user-only command too, so nothing routes there at all; supercc's sole skill
+is model-invocable but has nothing to dispatch, so its own `description:` is the whole routing story).
 Each is **self-contained**: its `plugin.json` declares **no `dependencies`** - installing it gives that whole
 ecosystem. Cross-plugin chains are **soft and optional** by design: any CSO composition that names another
 plugin's skill fires only when that plugin is also installed; absent it it simply does not engage (no declared
@@ -139,13 +147,14 @@ Each plugin's own internal layout lives in its `<plugin>/CLAUDE.md` (`superdev` 
 
 ```
 .claude-plugin/
-  marketplace.json   Marketplace catalog - co-lists superdev "./superdev", superui "./superui", supergh "./supergh", superfix "./superfix", superbiz "./superbiz"
+  marketplace.json   Marketplace catalog - co-lists superdev "./superdev", superui "./superui", supergh "./supergh", superfix "./superfix", superbiz "./superbiz", supercc "./supercc"
 superdev/            The superdev plugin (project memory, planning, dev pipeline; carries agents/ for its
                      four closeout writers)
 superui/             The superui plugin (design / frontend; NO hooks, NO manifest)  → superui/CLAUDE.md
 supergh/             The supergh plugin (GitHub / git; NO hooks, NO manifest)       → supergh/CLAUDE.md
 superfix/            The superfix plugin (codebase investigation; NO hooks/manifest) → superfix/CLAUDE.md
 superbiz/            The superbiz plugin (idea validation; one user-only skill, NO hooks, NO manifest, NO agents) → superbiz/CLAUDE.md
+supercc/             The supercc plugin (skill / agent authoring; one model-invocable skill, NO hooks, NO manifest, NO agents) → supercc/CLAUDE.md
 README.md            User-facing catalog page (what the repo is, install, one row per plugin linking to
                      that plugin's own <plugin>/README.md - which carries its description, usage guide and
                      skill list; every plugin has one)
@@ -162,12 +171,15 @@ tests/               Dev-time regression suites for plugin scripts, run from the
                      ships with no plugin. Fixtures, expected outputs and stub scenarios stay file-local to
                      each `*.test.ts` - `tests/harness/` is the single exception, exposing shared *mechanism*
                      only (subprocess execution, temp dirs, throwaway git repos, PATH stubs, shell discovery,
-                     path-separator normalisation, PNG fixtures), never per-script knowledge.
-                     CI (.github/workflows/tests.yml) runs the suite on ubuntu only for push / pull_request,
-                     and on the full ubuntu / macos / windows matrix on manual workflow_dispatch, so every
-                     test must hold under Git-Bash too: compare script-printed paths with `slash()` from
-                     `tests/harness/paths.ts` (a shell script joins with "/" whatever native path it was
-                     handed), and never assume `chmod` denies access.
+                     path-separator normalisation, read-denial, PNG fixtures), never per-script knowledge.
+                     CI (.github/workflows/ci.yml, the "CI" workflow) runs the suite on ubuntu only for
+                     push / pull_request, and on the full ubuntu / macos / windows matrix on manual
+                     workflow_dispatch, so every test must hold under Git-Bash too: compare script-printed
+                     paths with `slash()` from `tests/harness/paths.ts` (a shell script joins with "/"
+                     whatever native path it was handed); make a file unreadable with `denyRead()` from
+                     `tests/harness/perms.ts`, never with `chmod`, whose mode bits Windows ignores and root
+                     overrides - it gates the case on `canDenyRead()` and denies through an ACL where that
+                     is what the platform honours.
 docs/assets/         Images embedded in a README so they render publicly on GitHub - superdev-flow.svg
                      (the superdev Simple/Super flow diagram, embedded by superdev/README.md via the
                      relative path ../docs/assets/). Ships with no plugin; moving or deleting anything
@@ -179,17 +191,17 @@ docs/assets/         Images embedded in a README so they render publicly on GitH
 Each plugin dir carries a `.claude-plugin/plugin.json` (its `skills[]` (+ `agents[]`) is the catalog of record).
 `superdev` alone also carries `hooks/` (one injected dispatcher manifest + hook scripts); plugin-level shared
 scripts live in `superdev/scripts/`, `superdev/references/` and `superui/scripts/` (no `shared/` subdir);
-`supergh` carries `shared/` only; `superdev`, `superui` and `superfix` carry `agents/`. `superbiz` carries
-`skills/` and nothing else at the plugin root - its single skill bundles everything it needs.
+`supergh` carries `shared/` only; `superdev`, `superui` and `superfix` carry `agents/`. `superbiz` and
+`supercc` carry `skills/` and nothing else at the plugin root - their single skill bundles everything it needs.
 
 ## Versioning
 
-Versioning is tag-driven and shared across all five plugins (one version namespace). A release keeps **all five**
-`plugin.json` `version` fields (`superdev/`, `superui/`, `supergh/`, `superfix/`, `superbiz/`) in sync with the highest `MAJOR.MINOR.PATCH`
+Versioning is tag-driven and shared across all six plugins (one version namespace). A release keeps **all six**
+`plugin.json` `version` fields (`superdev/`, `superui/`, `supergh/`, `superfix/`, `superbiz/`, `supercc/`) in sync with the highest `MAJOR.MINOR.PATCH`
 git tag (no `v` prefix, seed `0.1.0`). The sole versioning workflow is `.github/workflows/release-version.yml`
 (the "Release" workflow) - a **manual** `workflow_dispatch` that bumps a chosen part (major/minor/patch, default
 patch); there is **no** automatic bump on push to `main`. It runs the shared `.github/scripts/release.sh`, which
-computes the next version from the tags, writes it into all five manifests, commits the bump (`chore(bump): …`),
+computes the next version from the tags, writes it into all six manifests, commits the bump (`chore(bump): …`),
 pushes the commit + tag, and then publishes a **GitHub Release** whose notes are built from the commits since the
 previous tag (grouped by conventional type) with GitHub's auto-generated notes appended. The `chore(bump)` commit
 is pushed to `main` but nothing runs on push, so there is no bump loop to guard against. The tag is the source of
@@ -199,7 +211,7 @@ ships a new version on each release.
 ## Cross-plugin architecture invariants
 
 Plugin-specific invariants (superdev's config switches / plan gate / recipe / file-based dispatch, superui's /
-supergh's / superfix's / superbiz's manifest-less rationale) live in the respective
+supergh's / superfix's / superbiz's / supercc's manifest-less rationale) live in the respective
 `<plugin>/CLAUDE.md`.
 The invariants below hold across the repo.
 
@@ -216,6 +228,9 @@ The invariants below hold across the repo.
   by `cleanup-run.sh` after a completed build when the `cleanup` switch is on), `docs/business/<idea-slug>/`
   (superbiz's `idea-validator`, its `report.html` deliverable only - the run's working files 00-13 live in
   `.temp/superbiz/`, not here). These are version-controlled deliverables the user reads and edits.
+  `supercc` writes no `docs/<layer>/` of its own and never will: `skill-designer`'s deliverable is the skill or
+  agent file itself, which belongs wherever the request puts it (`.claude/skills/`, a plugin's `skills/`,
+  an `agents/` dir) - a knowledge layer would be a copy of the artifact, not a record about it.
 - **No plugin ever creates a plugin-named dot-dir in the host repo** - no `.superdev/`, no `.superui/`,
   no equivalent for any future plugin. Only three host-repo locations are writable: `docs/<layer>/` for
   persisted user-facing knowledge (above), `.claude/` for configuration the user owns and edits
@@ -229,10 +244,11 @@ The invariants below hold across the repo.
   `hooks/content/manifest.md` **verbatim** once per session; `source == "resume"` is excluded by the matcher;
   fail-open (an unreadable manifest = banner only, no `additionalContext`). The hook does no per-project
   rendering - the manifest is injected as-is, identically for every project. This holds for `superdev` only;
-  **`superui`, `supergh`, `superfix` and `superbiz` ship no `hooks/` and no manifest at all** (superfix's sole
-  skill is user-only with nothing to auto-route; supergh stays fully model-routable via CSO `description:`;
-  superui routes `pro-designer` the same way while `design-extractor` is a user-only command with an internal
-  fork worker behind it; superbiz's sole skill is a user-only command with nothing to auto-route).
+  **`superui`, `supergh`, `superfix`, `superbiz` and `supercc` ship no `hooks/` and no manifest at all**
+  (superfix's sole skill is user-only with nothing to auto-route; supergh stays fully model-routable via CSO
+  `description:`; superui routes `pro-designer` the same way while `design-extractor` is a user-only command
+  with an internal fork worker behind it; superbiz's sole skill is a user-only command with nothing to
+  auto-route; supercc's sole skill is model-routable via its own `description:` and dispatches nothing).
   A manifest-less plugin is valid whenever a `SessionStart`-injected dispatcher would add no
   routing value over the skill descriptions.
 - **No `"hooks"` field in `plugin.json`.** Claude Code auto-loads `hooks/hooks.json` from that path; adding a
@@ -279,7 +295,8 @@ The invariants below hold across the repo.
 - **Self-documentation.** Any skill add / remove / rename MUST update the **owning plugin's**
   `<plugin>/.claude-plugin/plugin.json` `skills[]` (superdev's for any of its skills, superui's
   for any of its skills, supergh's for a `cli`/`cli-executor`/`commit`/`create-issue`/`create-pr` skill,
-  superfix's for the `code-auditor` skill, superbiz's for the `idea-validator` skill);
+  superfix's for the `code-auditor` skill, superbiz's for the `idea-validator` skill, supercc's for the
+  `skill-designer` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
   (superfix's `scout` / `edge-scout` / `detective` / `critic` live there, not in `skills[]`; superui's seven
   agents live there too, split 2+5 across its four pipeline skills - `design-extractor` dispatches
@@ -291,14 +308,15 @@ The invariants below hold across the repo.
   wave 1 with the `Agent` tool in one message, then `changelog-writer` alone as wave 2, and
   `superdev-memory` / `superdev-rules` each dispatch their matching writer (`memory-writer` /
   `rules-writer`) the same way; superbiz ships no agents at all - its council members are
-  `general-purpose` subagents prompted from `references/council/`, not declared agents) - and the
+  `general-purpose` subagents prompted from `references/council/`, not declared agents; supercc ships none
+  either - `skill-designer` dispatches nothing) - and the
   relevant `CLAUDE.md`
   (that plugin's, and this root file when the change is repo-wide) in either case. They must stay in sync, and a
   worker must never appear in both `skills[]` and `agents[]`.
   For the manifest-bearing plugin (`superdev`), its injected manifest
   (`superdev/hooks/content/manifest.md`) lists its **groups/roles + chains**, not individual skills, so update it
   only when a change adds/removes a group, shifts a group's scope, or alters a documented chain or config-gated
-  area - not for every per-skill change. `superui` / `supergh` / `superfix` / `superbiz` have no
+  area - not for every per-skill change. `superui` / `supergh` / `superfix` / `superbiz` / `supercc` have no
   manifest, so nothing of the sort to sync.
   **Exception:** a user-only one-time command (`disable-model-invocation: true`, e.g. `setup`) does not
   participate in routing and stays out of the manifest entirely - do not "fix" that gap.
@@ -314,11 +332,12 @@ This file is orientation only. The authoritative contract of each skill is its o
   taken from (upstream repos, skills, courses, authors) - not in skill/reference/agent content, not in
   CLAUDE.md files, not in reports or chat answers. Distilled knowledge ships as this repo's own content.
 - **Catalog / install layer** (`.claude-plugin/marketplace.json`, root `README.md`): keep changes minimal and
-  structural. The marketplace co-lists exactly five plugins by subdir `source` (`"./superdev"`, `"./superui"`,
-  `"./supergh"`, `"./superfix"`, `"./superbiz"`); renaming a
+  structural. The marketplace co-lists exactly six plugins by subdir `source` (`"./superdev"`, `"./superui"`,
+  `"./supergh"`, `"./superfix"`, `"./superbiz"`, `"./supercc"`); renaming a
   plugin must update the marketplace manifest, that plugin's `<plugin>/.claude-plugin/plugin.json`, and the
   root `README.md`.
 - **Plugin internals** (`<plugin>/.claude-plugin/plugin.json`, `<plugin>/hooks/`, `<plugin>/skills/`): obey the
   architecture invariants above and the plugin-specific ones in its `<plugin>/CLAUDE.md`. Paths in each
   `plugin.json` are plugin-root-relative (`./skills/…`); hook commands use `${CLAUDE_PLUGIN_ROOT}` (that
-  plugin's install dir, i.e. its `superdev/`, `superui/`, `supergh/`, `superfix/`, or `superbiz/` subdir).
+  plugin's install dir, i.e. its `superdev/`, `superui/`, `supergh/`, `superfix/`, `superbiz/`, or `supercc/`
+  subdir).

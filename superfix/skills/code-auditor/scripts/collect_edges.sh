@@ -157,10 +157,6 @@ raw_pairs="$(
         }' \
     | while IFS= read -r f; do
         [ -f "$f" ] || continue
-        if [ ! -r "$f" ]; then
-          printf 'collect_edges.sh: warning: skipping %s (unreadable)\n' "$f" >&2
-          continue
-        fi
         base="$(basename "$f")"
         # Trailing `([^A-Za-z0-9_.-]|\.[^A-Za-z0-9_-]|\.$|$)` forces the
         # match to end at a real token boundary. Without it, POSIX
@@ -181,7 +177,18 @@ raw_pairs="$(
         # characters, not sentence punctuation, so a hyphenated literal like
         # "report.md-based" is unaffected - it is a distinct token, never
         # truncated at the hyphen.
-        tokens="$(grep -oE '[A-Za-z0-9_][A-Za-z0-9_.-]*\.[A-Za-z0-9]{1,8}([^A-Za-z0-9_.-]|\.[^A-Za-z0-9_-]|\.$|$)' "$f" 2>/dev/null || true)"
+        # A read that FAILED and a read that matched NOTHING are different
+        # outcomes, so the grep status is kept: 1 is "no literals here"
+        # (silent skip), >=2 is "could not read it" (warn, then skip). The
+        # attempt itself is the readability test - `[ -r ]` answers from the
+        # permission bits, which a Windows ACL entry never reaches, so a file
+        # this loop cannot open would otherwise be dropped silently there.
+        grep_status=0
+        tokens="$(grep -oE '[A-Za-z0-9_][A-Za-z0-9_.-]*\.[A-Za-z0-9]{1,8}([^A-Za-z0-9_.-]|\.[^A-Za-z0-9_-]|\.$|$)' "$f" 2>/dev/null)" || grep_status=$?
+        if [ "$grep_status" -ge 2 ]; then
+          printf 'collect_edges.sh: warning: skipping %s (unreadable)\n' "$f" >&2
+          continue
+        fi
         [ -n "$tokens" ] || continue
         while IFS= read -r tok; do
           # Strip every trailing boundary character, not just one: the real

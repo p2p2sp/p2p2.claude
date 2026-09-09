@@ -23,11 +23,9 @@ import path from "node:path";
 import { runScript, type RunResult } from "../harness/run.ts";
 import { withGitRepo, withTempDir, type GitRepo } from "../harness/tmp.ts";
 import { forEachShell } from "../harness/shells.ts";
+import { canDenyRead, denyRead, restoreRead } from "../harness/perms.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../superfix/skills/code-auditor/scripts/collect_edges.sh");
-
-const skipUnreadableTest =
-  process.platform === "win32" || (typeof process.getuid === "function" && process.getuid() === 0);
 
 function assertBash(fn: (bash: string) => void) {
   const skips = forEachShell("bash", fn);
@@ -216,7 +214,7 @@ test("a file deleted in a later commit never appears as a pair endpoint", () => 
 
 test(
   "an unreadable tracked file warns on stderr only and is skipped from stdout",
-  { skip: skipUnreadableTest ? "requires non-root POSIX file permissions" : false },
+  { skip: canDenyRead() ? false : "this machine cannot deny its own account read access" },
   () => {
     assertBash((bash) => {
       withGitRepo((repo) => {
@@ -224,7 +222,8 @@ test(
         fs.writeFileSync(path.join(repo.dir, "locked.ts"), "// reads shared.md\n");
         fs.writeFileSync(path.join(repo.dir, "open.ts"), "// also reads shared.md\n");
         commitAt(repo, 0, "seed unreadable fixture");
-        fs.chmodSync(path.join(repo.dir, "locked.ts"), 0o000);
+        const locked = path.join(repo.dir, "locked.ts");
+        assert.ok(denyRead(locked), "the deny must hold, or this case proves nothing");
         try {
           const result = run(bash, repo, []);
           assert.equal(result.status, 0, `stderr: ${result.stderr}`);
@@ -232,7 +231,7 @@ test(
           const records = recordsOf(result);
           assert.ok(!records.some((r) => r.a === "locked.ts" || r.b === "locked.ts"));
         } finally {
-          fs.chmodSync(path.join(repo.dir, "locked.ts"), 0o644);
+          restoreRead(locked);
         }
       });
     });

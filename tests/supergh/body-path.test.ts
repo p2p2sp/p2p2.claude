@@ -30,11 +30,6 @@ const SUT = path.resolve(import.meta.dirname, "../../supergh/shared/scripts/body
  *  fixed string. */
 const PATH_PATTERN = /^\.temp\/(.+)\/(\d{8})-(\d{6})-(.+)\.md$/;
 
-/** A CreateProcess command line is one string the child re-parses, and a
- *  literal newline truncates it there - so an argument carrying one cannot
- *  reach the script at all on Windows. */
-const skipMultilineArgTest = process.platform === "win32";
-
 function assertPosix(fn: (shell: Shell) => void) {
   const skips = forEachShell("posix", fn);
   for (const skip of skips) {
@@ -172,18 +167,14 @@ test("slugify: an empty title slugifies to 'untitled'", () => {
   });
 });
 
-test(
-  "slugify: an embedded newline and CR collapse to a space, so the one-line contract holds",
-  { skip: skipMultilineArgTest ? "Windows passes one command-line STRING, so a newline never survives into argv" : false },
-  () => {
-    assertPosix((shell) => {
-      withTempDir("p2p2-body-path-", (dir) => {
-        const result = run(shell, dir, ["p", "Line1\nLine2\rLine3"]);
-        assertPath(result, "p", "line1-line2-line3");
-      });
+test("slugify: an embedded newline and CR collapse to a space, so the one-line contract holds", () => {
+  assertPosix((shell) => {
+    withTempDir("p2p2-body-path-", (dir) => {
+      const result = run(shell, dir, ["p", "Line1\nLine2\rLine3"]);
+      assertPath(result, "p", "line1-line2-line3");
     });
-  },
-);
+  });
+});
 
 test("slugify: a 4-byte emoji is stripped under LC_ALL=C byte semantics, never breaking the pipeline", () => {
   assertPosix((shell) => {

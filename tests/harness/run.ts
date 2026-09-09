@@ -20,6 +20,12 @@
  *   - otherwise (POSIX,
  *     no explicit shell)       -> the script (or bare command name, e.g.
  *     "git") is executed directly; the OS/exec resolves its shebang or PATH.
+ *
+ * Argument transport: argv is passed straight through, except on win32 for an
+ * argument carrying a newline or carriage return - a control character no
+ * CreateProcess command line survives. Those arguments are carried in the
+ * environment and restored to argv by a shell preamble, so a test can exercise
+ * a multi-line argument on every OS. See the `P2P2_ARGV` block below.
  */
 
 import { spawnSync } from "node:child_process";
@@ -103,6 +109,15 @@ function shebangInterpreter(script: string): string | null {
   return bin;
 }
 
+/** The shell to route an argv rewrite through: an explicit `opts.shell`, or
+ *  a `#!` line naming one. `null` when the script runs any other way, which
+ *  leaves the rewrite impossible. */
+function shellInterpreter(script: string, opts: RunOpts): string[] | null {
+  if (opts.shell) return Array.isArray(opts.shell) ? [...opts.shell] : [opts.shell];
+  const interpreter = shebangInterpreter(script);
+  return interpreter === "bash" || interpreter === "sh" ? [interpreter] : null;
+}
+
 /** A `withStub` stub matching the bare command name `script`, if any of
  *  `stubDirs` holds one - win32 only, where CreateProcess would ignore it. */
 function stubbedCommand(script: string, stubDirs: string[]): string | null {
@@ -142,7 +157,46 @@ export function runScript(script: string, args: string[] = [], opts: RunOpts = {
   if (opts.stubDirs && opts.stubDirs.length > 0) {
     env.PATH = [...opts.stubDirs, env.PATH ?? ""].filter(Boolean).join(path.delimiter);
   }
-  const { cmd, args: fullArgs } = resolveCommand(script, args, opts);
+  // Windows only: an argument carrying a newline or carriage return cannot
+  // reach a child through argv at all - a CreateProcess command line is ONE
+  // string the child re-parses, and the control character truncates it there.
+  // The environment block has no such limit, so such arguments travel as
+  // `P2P2_ARGV<n>` and a one-line shell preamble restores them to argv before
+  // the script runs, byte for byte. Only a shell can do that, so a script
+  // invoked any other way is left alone (its caller must skip the case).
+  // POSIX hands argv over as a real array and is never rewritten.
+  const controlCharArg = process.platform === "win32" && args.some((arg) => /[\r\n]/.test(arg));
+  const viaEnv = controlCharArg ? shellInterpreter(script, opts) : null;
+  let cmd: string;
+  let fullArgs: string[];
+  if (viaEnv) {
+    // Backslashes are what a shell cannot take here: dash resolves an `exec`
+    // target through execve and rejects "C:\...", while every Win32 call
+    // accepts "C:/..." just as readily - so both paths cross into the
+    // preamble slash-separated. The child still receives the same file.
+    const slashed = (target: string) => target.replace(/\\/g, "/");
+    const [bin, ...prefix] = viaEnv;
+    env.P2P2_ARGV_SHELL = slashed(bin);
+    env.P2P2_ARGV_SCRIPT = slashed(script);
+    const refs = args.map((arg, index) => {
+      env[`P2P2_ARGV${index}`] = arg;
+      return `"$P2P2_ARGV${index}"`;
+    });
+    // The preamble re-invokes the shell ON the script rather than `exec`ing
+    // the script itself: a native Windows script path is something a shell
+    // opens happily as an argument, but dash's `exec` (and `.`) resolve it
+    // through execve and fail on the backslashes. The prefix tokens are this
+    // harness's own ("--posix", "sh"), never test data.
+    const prefixLiteral = prefix.map((token) => `"${token}"`).join(" ");
+    cmd = bin;
+    fullArgs = [
+      ...prefix,
+      "-c",
+      `exec "$P2P2_ARGV_SHELL" ${prefixLiteral} "$P2P2_ARGV_SCRIPT" ${refs.join(" ")}`,
+    ];
+  } else {
+    ({ cmd, args: fullArgs } = resolveCommand(script, args, opts));
+  }
   const result = spawnSync(cmd, fullArgs, {
     cwd: opts.cwd,
     env,
