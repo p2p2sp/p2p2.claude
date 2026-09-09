@@ -1,6 +1,6 @@
 ---
 name: component-extractor
-description: Build the platform component/pattern bundle (DESIGN.components.md, DESIGN.patterns.md, screens/) for one platform (web-app, mobile, or website) from an existing DESIGN.md, at docs/design-system/[<target>/]<platform>/. Invoked from the design-extractor ending loop or by the user command, never spontaneously.
+description: Build the platform component/pattern bundle for one platform (web-app, mobile, or website) from an existing DESIGN.md. Invoked from the design-extractor ending loop or by the user command, never spontaneously.
 allowed-tools: Read, Write, Glob, Bash(sh:*), Bash(mkdir:*), Bash(rm:*), Skill, Agent, AskUserQuestion
 user-invocable: true
 argument-hint: <screenshots-dir> <platform> [<target>]

@@ -2,6 +2,15 @@
 
 `gh pr` is the most mature surface in the CLI. Almost everything you need at PR creation/edit/review/merge time is a flag - escalate to REST/GraphQL only for the specific gaps called out below.
 
+## Contents
+
+- Subcommand map
+- `gh pr create` - canonical pattern
+- Editing an existing PR
+- Review actions
+- Merge
+- Gaps - when to escalate beyond `gh pr`
+
 ## Subcommand map
 
 ```

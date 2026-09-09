@@ -2,6 +2,15 @@
 
 Turns many candidate detective reports of mixed quality into a trustworthy, severity-ranked findings list. Cardinal rule: never file an unverified finding.
 
+## Contents
+
+- Detective report schema
+- Clean-checkout verification (anti-self-poisoning)
+- Critic verdict schema
+- Deduplicate
+- Severity
+- findings.md (final output)
+
 ## Detective report schema
 
 Each detective writes one file to `.temp/superfix/<run-id>/reports/<rank>-<slug>.md`:

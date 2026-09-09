@@ -2,6 +2,14 @@
 
 A review **thread** is the group of review comments anchored to the same diff location. It has an `isResolved` flag and an `id` shaped like `PRRT_…`. REST exposes the underlying review **comments** but does **not** expose thread objects or the resolution state. Resolving threads is GraphQL-only.
 
+## Contents
+
+- Verdict at a glance
+- Discovery - list threads of a PR
+- Resolve a thread
+- Reply to a thread
+- Bulk-resolve outdated threads - common script shape
+
 ## Verdict at a glance
 
 | Operation | `gh` | REST | GraphQL |

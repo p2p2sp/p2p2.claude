@@ -2,6 +2,17 @@
 
 `gh` ships a generic API client. The GraphQL endpoint is fixed (`/graphql`); everything else is your query string plus variables.
 
+## Contents
+
+- Basic shape
+- Variable flags - `-f` vs `-F`
+- Pagination - `--paginate`
+- Schema introspection
+- Error handling - errors ride inside `200 OK`
+- Discovery query → mutation pairing
+- Preview headers
+- Rate limits
+
 ## Basic shape
 
 ```bash

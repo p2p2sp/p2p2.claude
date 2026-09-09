@@ -1,5 +1,14 @@
 # Issues - create, edit, type, labels, milestones, assignees
 
+## Contents
+
+- Verdict at a glance
+- `gh issue create` - canonical pattern
+- Issue types - the gotcha
+- Labels
+- Milestones
+- Reactions
+
 ## Verdict at a glance
 
 | Operation | Path | Notes |

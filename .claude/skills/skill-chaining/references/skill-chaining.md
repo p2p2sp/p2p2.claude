@@ -8,6 +8,15 @@ choice. Label it that way when you teach it. Field validity is owned by `authori
 
 ---
 
+## Contents
+
+- Chapter 1 - The problem: context residue
+- Chapter 2 - Layer 1: Fork (`context: fork`)
+- Chapter 3 - Layer 2: File-based handoff
+- Chapter 4 - Layer 3: `!command` preloading
+- Chapter 5 - Skill vs Agent vs Model
+- The stack, in one line
+
 ## Chapter 1 - The problem: context residue
 
 A skill works fine on one item. Run it fifty times and it chokes - not because the skill is broken, but because

@@ -4,6 +4,14 @@ Nine dimensions. Each gets: score 1–5, one-paragraph justification, evidence (
 
 Confidence rule: `high` = two or more independent sources agree; `medium` = one solid source or two weak ones; `low` = inference only or `no data found`. A dimension with a council dispute of 2+ points is automatically `low`.
 
+## Contents
+
+- Dimensions, weights, owners
+- Score anchors (1-5)
+- Side-project fit protocol → `08-side-project-fit.md`
+- Autopilot fit protocol → `09-autopilot-fit.md`
+- Verdict rules (applied by the moderator in step 12)
+
 ## Dimensions, weights, owners
 
 | # | Dimension | Weight | Primary owner | Question |

@@ -32,6 +32,7 @@ One skill = one concern. Extra concerns become noise and drift, so each one goes
 - Skills undertrigger, so write the description pushy: what it does, then explicit contexts and phrasings that should fire it, including indirect ones.
 - Routing guards ("invoked only by X, never directly") live here and nowhere else.
 - Metadata (name + description) is always in context: aim for about 100 words.
+- Hard platform caps, not style: name 64 chars, lowercase letters, digits and single hyphens, no reserved word (anthropic, claude); description 1024 chars, no angle brackets. Everything past 1024 is truncated, so the trigger words in the tail vanish with no error.
 
 ## Body
 
@@ -53,7 +54,7 @@ Three layers load at different times: metadata always, body on trigger, bundled 
 - Body: only what every invocation needs.
 - `references/`: what some invocations need, or detail consumed once at a decision point. Move it there regardless of body size, and leave a one-line pointer saying when to read it.
 - Mode selected by a parsable argument: a router script that `!`-injects only the chosen playbook beats references, because it costs zero extra reads.
-- Ceiling, not trigger: body under 500 lines; a reference over 300 lines gets a table of contents at the top.
+- Ceiling, not trigger: body under 500 lines; a reference over 100 lines gets a table of contents at the top, because a partial read sees only the head.
 - Multiple domains or variants: one reference per variant, body holds workflow and selection only.
 - The agent can read any bundled file even if undocumented; still name the ones that matter.
 

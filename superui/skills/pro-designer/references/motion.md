@@ -4,6 +4,25 @@ Read when adding animation, making a static page or component feel alive, choosi
 
 Two failure modes, and the first is worse: animating something that should not animate, and animating the right thing with the wrong ingredients. Sometimes the best animation is no animation - a short list of high-conviction moments beats motion everywhere. Over-animated interfaces are themselves a generated-look tell (anti-slop.md).
 
+## Contents
+
+- The gate - every animation passes all four, in order
+- Where a static page comes alive - the hunt list
+- Scroll-reveal budget
+- Easing
+- Duration
+- Physicality
+- Springs
+- Interruption, enter, exit
+- Performance
+- clip-path recipes
+- Gestures and drag
+- Stagger
+- Masking imperfect crossfades
+- Accessibility gates - ship with the animation, never as a follow-up
+- Never ship
+- Cohesion and feel-checks
+
 ## The gate - every animation passes all four, in order
 
 1. **Frequency** - how often will a user see it?

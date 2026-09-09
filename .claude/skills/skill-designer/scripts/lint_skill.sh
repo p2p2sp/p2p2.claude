@@ -44,7 +44,16 @@ else
 fi
 
 if [ -n "$fm" ]; then
-  printf '%s\n' "$fm" | grep -Eq '^name:[[:space:]]*[^[:space:]]' || fail "$main: frontmatter missing name"
+  name="$(printf '%s\n' "$fm" | sed -n 's/^name:[[:space:]]*//p' | head -n 1 | tr -d "\"'" | tr -d '\r')"
+  if [ -z "$name" ]; then
+    fail "$main: frontmatter missing name"
+  else
+    [ "${#name}" -gt 64 ] && fail "$main: name has ${#name} chars, the platform caps it at 64"
+    printf '%s' "$name" | grep -Eq '^[a-z0-9]+(-[a-z0-9]+)*$' \
+      || fail "$main: name '$name' must be lowercase letters, digits and single hyphens"
+    printf '%s' "$name" | grep -Eiq '(anthropic|claude)' \
+      && warn "$main: name '$name' uses a reserved word (anthropic, claude)"
+  fi
   # single-line value, or a block scalar (>, |) continued on indented lines
   desc="$(printf '%s\n' "$fm" | awk '
     /^description:/ { v = $0; sub(/^description:[[:space:]]*/, "", v); if (v ~ /^[>|]/) v = ""; on = 1; printf "%s", v; next }
@@ -54,6 +63,11 @@ if [ -n "$fm" ]; then
   if [ -z "$desc" ]; then
     fail "$main: frontmatter missing description"
   else
+    desc="${desc# }"  # the awk join above prefixes a space on block scalars
+    desc_chars="${#desc}"
+    [ "$desc_chars" -gt 1024 ] && fail "$main: description has $desc_chars chars, the platform truncates past 1024 and the trigger words in the tail are lost"
+    [ "$desc_chars" -gt 800 ] && [ "$desc_chars" -le 1024 ] && warn "$main: description has $desc_chars chars, approaching the 1024 limit"
+    case "$desc" in *"<"*|*">"*) fail "$main: description contains an angle bracket, XML tags are rejected" ;; esac
     desc_words="$(printf '%s' "$desc" | wc -w | tr -d ' ')"
     [ "$desc_words" -lt 15 ] && warn "$main: description has $desc_words words, add what it does and when to trigger"
     [ "$desc_words" -gt 120 ] && warn "$main: description has $desc_words words, metadata should stay around 100"
@@ -117,9 +131,14 @@ if [ -d "$root/references" ]; then
   for r in "$root"/references/*.md; do
     [ -f "$r" ] || continue
     rl="$(wc -l < "$r" | tr -d ' ')"
-    if [ "$rl" -gt 300 ]; then
-      head -n 40 "$r" | grep -Eiq '(table of contents|^## contents|^# contents|^- \[.*\]\(#)' \
-        || fail "$r: $rl lines without a table of contents"
+    if [ "$rl" -gt 100 ]; then
+      if ! head -n 40 "$r" | grep -Eiq '(table of contents|^## contents|^# contents|^- \[.*\]\(#)'; then
+        if [ "$rl" -gt 300 ]; then
+          fail "$r: $rl lines without a table of contents"
+        else
+          warn "$r: $rl lines without a table of contents, partial reads see only the head"
+        fi
+      fi
     fi
     grep -q "$(basename "$r")" "$main" || warn "$r: not referenced from $(basename "$main")"
   done

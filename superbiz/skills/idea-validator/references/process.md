@@ -2,6 +2,14 @@
 
 Read before step 1. Sections map to the step numbers in SKILL.md.
 
+## Contents
+
+- Step 0 - Intake questions
+- Step 1 - Normalize (Lean Canvas)
+- Step 2 - Risk hypotheses
+- Steps 3-5 - Research briefs
+- Source quality rules (paste into every research prompt)
+
 ## Step 0 — Intake questions
 
 Ask only for what is missing from the idea text and would change the analysis. One batch, via `AskUserQuestion`, each with a "don't know" option.

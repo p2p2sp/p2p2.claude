@@ -4,6 +4,25 @@
 
 Run `python3 scripts/build_report.py data.json out.html` — it lists missing required fields and exits non-zero until they are present.
 
+## Contents
+
+Top-level keys of report-data.json, in order:
+
+- meta
+- verdict
+- scorecard
+- council
+- lean_canvas
+- assumptions
+- research
+- side_project_fit
+- autopilot_fit
+- risks
+- experiments
+- thresholds
+- appendix
+- labels
+
 ```jsonc
 {
   "meta": {
