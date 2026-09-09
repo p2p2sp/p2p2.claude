@@ -2,12 +2,12 @@
 name: superdev-memory
 description: Use ALWAYS when the user wants to create, initialize, regenerate, bootstrap, or maintain CLAUDE.md project-memory for a repository - set up project memory, add a memory layer, or make Claude understand the codebase. Triggers include "create CLAUDE.md", "initialize project memory", "bootstrap Claude context", "set up CLAUDE.md", "add memory layer". Generates a hierarchical CASCADE of CLAUDE.md files (one general root plus progressively more specific child nodes in genuine architectural units), not a single root file, and offers a maintenance mode to audit existing nodes and find new candidates.
 user-invocable: true
-allowed-tools: Read, Write, AskUserQuestion, Skill, Bash, Bash(date:*)
+allowed-tools: Read, Write, AskUserQuestion, Skill, Agent, Bash, Bash(date:*)
 ---
 
 # SuperDev Memory
 
-Hierarchical CLAUDE.md infrastructure so CLAUDE navigate codebases like senior engineers. This skill is the interactive front: it measures, asks, and resolves every decision with the user, then hands ONE capture file to the `superdev-memory-writer` fork, which writes the cascade.
+Hierarchical CLAUDE.md infrastructure so CLAUDE navigate codebases like senior engineers. This skill is the interactive front: it measures, asks, and resolves every decision with the user, then hands ONE capture file to the `superdev:memory-writer` agent, which writes the cascade.
 
 ## Core Principle
 
@@ -46,8 +46,10 @@ The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture
 5. Capture + hand off
    Ask the Capture Questions per selected area
    Write .temp/superdev/memory/capture-<RUN_ID>.md (format below)
-   Invoke `superdev-memory-writer` (Skill) with a labeled-line args block:
+   Run `printf '%s\n' "${CLAUDE_PLUGIN_ROOT}/references"` and keep its output as `<refs>`
+   Invoke `Agent` with `subagent_type: superdev:memory-writer` and a labeled-line prompt:
      capture: .temp/superdev/memory/capture-<RUN_ID>.md
+     refs: <refs>
    Relay its VERDICT/NODE lines verbatim - do NOT re-verify or rewrite the nodes yourself
 
 6. Maintenance mode (when state=complete)

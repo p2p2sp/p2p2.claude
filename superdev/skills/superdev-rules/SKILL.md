@@ -2,12 +2,12 @@
 name: superdev-rules
 description: Use ALWAYS when the user wants to discover, capture, or maintain project coding conventions as .claude/rules files - learn the codebase's conventions, set up path-scoped rules, teach Claude the project's style. Triggers include "create rules", "set up .claude/rules", "capture coding conventions", "learn our conventions", "add naming/testing/error-handling rules", "audit rules". Discovers dominant patterns from the host code with real examples, confirms each in an interview, and writes MANY SMALL path-scoped rule files (one convention area per file, YAML paths: gating) instead of a monolith, plus a maintenance mode to audit existing rules against the actual code and find new candidates.
 user-invocable: true
-allowed-tools: Read, Write, AskUserQuestion, Skill, Bash, Bash(date:*)
+allowed-tools: Read, Write, AskUserQuestion, Skill, Agent, Bash, Bash(date:*)
 ---
 
 # SuperDev Rules
 
-Discovers the host project's coding conventions (naming, testing, error-handling, imports, ...) and persists them as `.claude/rules/*.md`. This skill is the interactive front: it scans, asks, and resolves every decision with the user, then hands ONE capture file to the `superdev-rules-writer` fork, which writes the rule files.
+Discovers the host project's coding conventions (naming, testing, error-handling, imports, ...) and persists them as `.claude/rules/*.md`. This skill is the interactive front: it scans, asks, and resolves every decision with the user, then hands ONE capture file to the `superdev:rules-writer` agent, which writes the rule files.
 
 ## Core Principle
 
@@ -44,8 +44,10 @@ The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture
 
 5. Capture + hand off
    Write .temp/superdev/rules/capture-<RUN_ID>.md (format below)
-   Invoke `superdev-rules-writer` (Skill) with a labeled-line args block:
+   Run `printf '%s\n' "${CLAUDE_PLUGIN_ROOT}/references"` and keep its output as `<refs>`
+   Invoke `Agent` with `subagent_type: superdev:rules-writer` and a labeled-line prompt:
      capture: .temp/superdev/rules/capture-<RUN_ID>.md
+     refs: <refs>
    Relay its VERDICT/RULE lines verbatim - do NOT re-verify or rewrite the rule files yourself
 
 6. Maintenance mode (when state=complete)
