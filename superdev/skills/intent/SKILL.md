@@ -13,8 +13,8 @@ Help turn ideas into fully formed designs and specs through natural collaborativ
 Date: !`date +%F`
 
 ## Resume from a file
-- `$ARGUMENTS` is a path to an existing file named `intent.md`: Read it, skip `## Explore first` and `## Run the interview` entirely. Present its `## Decisions` section as the synthesis and ask the user whether to reopen one decision by number.
-  - A decision is reopened: run `## Run the interview` for that branch only, then overwrite the intent file in place with the updated decision (and anything it invalidates downstream). Go to `## Handoff`.
+- `$ARGUMENTS` is a path to an existing file named `intent.md`: Read it, skip `## Explore first`, `## Step 1 - list the gap questions` and `## Step 2 - run the interview` entirely. Present its `## Decisions` section as the synthesis and ask the user whether to reopen one decision by number.
+  - A decision is reopened: run `## Step 2 - run the interview` for that branch only, then overwrite the intent file in place with the updated decision (and anything it invalidates downstream). Go to `## Handoff`.
   - No decision reopened: go straight to `## Handoff`.
 - `$ARGUMENTS` names an `intent.md` path that does not exist: tell the user the file was not found, then fall through to the normal flow using the argument text itself as the request.
 - Any other argument, or none: normal flow - continue to `## Explore first`.
@@ -25,7 +25,20 @@ Date: !`date +%F`
 - Skip exploration only when the request is genuinely greenfield.
 - Carry the discovered conventions into proposed approaches so `How` always fits the host project.
 
-## Run the interview
+## Step 1 - list the gap questions
+- Put every remaining gap question to the user in ONE message, as a flat numbered list (`1.`, `2.`, `3.`).
+- Plain prose only - no `AskUserQuestion`, no recommendation, no options, no trade-off talk. A gap question asks for a fact, not a choice.
+- Ask only what the codebase cannot answer. Never re-raise anything Explore already settled.
+- Boundary rule: the answer is a fact only the user holds -> Step 1. The answer is a choice between two or more workable solutions with trade-offs -> Step 2.
+  - Step 1 examples: "What should this feature be called?", "Is there an existing rate limit on this endpoint?", "Should this ship behind a flag?"
+  - Step 2 examples: "Store the session token in a cookie or in memory?", "Cache with Redis or an in-process LRU?"
+- Soft cap of about 8 questions. Past the cap, keep only the questions whose answer would still change the design.
+- No-gaps exit: if Explore left nothing to ask, say so in one line and go straight to Step 2 - never invent a question to fill the list.
+- An unanswered item, or one answered "I don't know", returns as an ordinary Step 2 question - one per turn - only when its answer would still shape the solution. Otherwise it is dropped for good, not re-raised.
+- Answers here are input, never a `## Decisions` entry - `## Synthesis` owns where each one lands.
+
+## Step 2 - run the interview
+- Enter with Explore's findings and the Step 1 answers already in hand. Never re-ask what either settled; expect fewer open decisions than before Step 1 existed.
 - Walk the design tree branch by branch, resolving dependencies one decision at a time - early answers reshape later branches, so do not batch.
 - Ask ONE question per turn so the user can pause, push back, or revisit any earlier choice without losing the thread.
 - For each decision, propose 2–3 approaches with trade-offs, lead with your recommendation, and explain why it wins.
@@ -51,12 +64,12 @@ Date: !`date +%F`
 - DO NOT simplify your decisions, do not use abbreviations or substitutes in a language other than the one being interviewed.
 - "This is too simple to need a design" is an anti-pattern. If the user came here, the scope is non-trivial; honor that.
 - "It's well-specified, I'll skip the interview" is the same anti-pattern in disguise - if you caught yourself reaching for `AskUserQuestion` to settle scope or approach, that proves a decision was open and the interview was required.
-- The reverse is also an anti-pattern: if Explore plus one clarifying question fully resolve the request, close the interview and hand off.
+- The reverse is also an anti-pattern: if Explore plus the Step 1 answers fully resolve the request, close the interview and hand off.
 - Do not invent branches to justify a longer conversation - the goal is shared understanding, not ritual.
 - Stay inside the task. Adjacent cleanups, refactors, or improvements are out of scope unless the user explicitly asks for them.
 - Never answer a question yourself - you must have to ask the user.
 - Do NOT invoke any implementation skill, write code, scaffold a project, or take any implementation action until the user has approved a presented design - EVERY project, regardless of perceived simplicity.
-- Ask questions one at a time, waiting for feedback before the next - asking multiple questions at once is forbidden.
+- In Step 2, ask questions one at a time, waiting for feedback before the next - asking multiple decisions at once is forbidden. Step 1's single batched message is the only exception to this rule.
 
 ## Apply output guidance
 - Keep outputs concise - Prefer short sections, brief bullets, and only enough detail to support the next decision.
@@ -70,6 +83,7 @@ Date: !`date +%F`
   - Resume: overwrite the resumed file's own `intent.md` in place.
   - Write it in the interview's language, in this exact structure - one `###` block per decision, carrying the question as it was asked and the confirmed answer, nothing else.
   - NEVER record a rejected option, nor why it lost, nor the reasoning behind the winning one. Alternatives belong to the live interview; in the file they only crowd the context and the judgement of every downstream reader (spec, plan, build, changelog). `## Out of scope` is not a loophole for them: it lists non-goals - areas this change deliberately does not touch - never the losing alternative to a decision under `## Decisions`.
+  - Step 1 answers are input, not decisions: fold each into `## Request` (the sharpened goal), `## Constraints` (limits, existing state, stated preferences), or `## Out of scope` (a boundary the user drew). Every Step 1 answer that shapes the solution MUST land in one of those three; one that shapes nothing is dropped. `## Decisions` carries interview rulings only.
 
 ```markdown
 # Intent: <title>
