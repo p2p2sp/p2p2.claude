@@ -35,6 +35,7 @@ Dark mode - physiology, not inversion:
 - "Lighter-as-it-rises": obey a physical light model - higher elevation = lighter surface. Level 0 background = lowest luminance; Level 1 card/surface = 4-6% lighter; Level 2 popover/modal = highest.
 - Shadows stop reading as depth in the dark; replace them with active borders - brighten the stroke relative to the card so the edge, not a shadow, defines the component.
 - Dim text off pure white (light grays) to kill glare; brighten borders above the surface - the inverse of light mode's darker-than-background borders.
+- Dimming has a floor. Body text still clears 4.5:1 against its own dark surface, and structural strokes stay visible on a mid-brightness laptop screen, not only on an OLED at night. Near-black canvas + mid-gray text + 5%-white borders is the generated dark mode (-> anti-slop.md): one narrow luminance band, no edges, nothing passing AA. Run the contrast check as a separate pass on the dark tokens - light-mode results never carry over.
 
 ## Layer 2 - Accent scale and interactive states
 
@@ -82,6 +83,7 @@ Programmatic theming / white-labeling is coordinate math in OKLCH, not hand-pick
 - [ ] Accent scarcity: does the accent appear ONLY where interaction is required - the single thing that pops on a squint test?
 - [ ] State scale: do hover / active / disabled each pull a distinct step of the 100-900 scale, not one flat hex?
 - [ ] Dark mode: 4-6% luminance steps between layers, elevated surfaces lighter, borders brighter than the surface (shadows not relied on)?
+- [ ] Dark-mode contrast: does body text clear 4.5:1 against its own dark surface, measured on the dark tokens rather than inherited from the light-mode pass?
 - [ ] Dark accents: do main actions use 300-400 weights, not a carried-over 500 (no muddy/dim CTA)?
 - [ ] Semantic priority: do red/green appear only for error/success/destructive - never decorative, never a routine action?
 - [ ] Data viz: are categorical colors stepped in OKLCH (constant L/C, Hue +25-30 degrees), with saturated color confined to data, not chrome?

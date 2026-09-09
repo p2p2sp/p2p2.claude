@@ -43,16 +43,16 @@ Before any design decision, name what the visitor's success looks like on THIS s
 ## Non-negotiables - every screen
 
 - One primary CTA per screen; the accent color appears **only** where interaction is required - a scarce functional signal, not a surface fill.
-- Text contrast ≥ 4.5:1 (≥ 3:1 for large text and UI components). Run `"${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.ts"` with the command `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_node.sh"` resolves - never eyeball it. `NODE_MISSING` -> skip the check with a clear note and point the user at `/superui:setup`.
+- Text contrast ≥ 4.5:1 (≥ 3:1 for large text and UI components), verified in **every theme the surface ships** - dark mode is a second set of pairs to check, never an inversion that inherits the light-mode result. Run `"${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.ts"` with the command `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_node.sh"` resolves - never eyeball it. `NODE_MISSING` -> skip the check with a clear note and point the user at `/superui:setup`.
 - Every spacing and component size sits on the 4/8px scale. Space between groups > space within groups; padding ≤ surrounding margin.
 - Font sizes only from the type ramp. Body 16px / line-height 1.5, line length ≤ 75ch. Hierarchy via size + weight + color - never by adding typefaces.
 - Red and green are reserved for system error/success states. Never decorative, never red logout.
-- Every interactive element has visible hover, `:focus-visible`, and disabled states. No `outline: none` without an equal replacement.
+- Every interactive element has visible hover, `:focus-visible`, and disabled states. A hover that only lowers opacity is not a state - change background, border, or elevation, and keep text contrast at full strength. No `outline: none` without an equal replacement.
 - Every async view exists in at least 3 designed states: loading, empty, error.
 - Color is never the only signal - pair it with icon, text, or underline.
 - Touch targets: web ≥ 24×24 CSS px (WCAG AA legal floor), iOS ≥ 44×44 pt, Android ≥ 48×48 dp. Design anything a finger touches to 44-48px, not the web floor.
 - In data display the value dominates, the label is muted - never equal weight.
-- Motion: animate only `transform`/`opacity`, UI durations under 300ms, `ease-out` for enter/exit (never `ease-in`), never from `scale(0)`, no animation on keyboard-initiated or 100+/day actions, and `prefers-reduced-motion` handled (gentler, not zero).
+- Motion: animate only `transform`/`opacity`, UI durations under 300ms, `ease-out` for enter/exit (never `ease-in`), never from `scale(0)`, no animation on keyboard-initiated or 100+/day actions, and `prefers-reduced-motion` handled (gentler, not zero). Never `transition: all`; never a cursor-tracking beam, spotlight, or tilt.
 - Demo content is real content: no Acme/John Doe/Lorem Ipsum, no fake round numbers (47.2%, not 50%), no cliche marketing verbs (Elevate, Seamless, Unleash). Full catalog: the `anti-slop.md` file.
 - No dark patterns: no fake urgency, scarcity, progress, or anchors; defaults never work against the user. Full rules in `references/ux-psychology.md`.
 - HARD RULE: never output an em dash (U+2014) or an en dash (U+2013) anywhere - not in UI copy, microcopy, code, comments, or reports. Always use a plain hyphen (-).

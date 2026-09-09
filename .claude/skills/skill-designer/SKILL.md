@@ -14,10 +14,11 @@ description: Design, create, refactor, split, shrink or audit skills and agents 
 
 1. Classify the request: new, refactor, split, or audit. For an existing file read it whole before touching it.
 2. Run the responsibility check. If it fails or the request is a split, read `references/split-patterns.md` and build the split, not a bigger monolith.
-3. Writing a body from scratch: read `references/example.md` first.
-4. Write frontmatter, then body, then scripts and references.
-5. Lint: `bash <this skill's base directory>/scripts/lint_skill.sh <skill-dir-or-agent-file>`. Fix every FAIL, judge every WARN.
-6. Return per Output.
+3. Decide where the work runs before writing it: read `references/architecture.md` when the skill drives noisy tool calls, chains stages, or repeats a behaviour other skills already carry.
+4. Writing a body from scratch: read `references/example.md` first.
+5. Write frontmatter, then body, then scripts and references.
+6. Lint: `bash <this skill's base directory>/scripts/lint_skill.sh <skill-dir-or-agent-file>`. Fix every FAIL, judge every WARN.
+7. Return per Output.
 
 ## Responsibility check
 

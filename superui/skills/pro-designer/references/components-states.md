@@ -56,7 +56,8 @@ Read when designing or reviewing component states (loading, empty, error, disabl
 
 ## Hover, focus, pressed
 - Implement as a translucent state layer in the component's own content color: hover 8%, focus 12%, pressed 12%, dragged 16% opacity (M3 tokens; e.g. pseudo-element with background: currentColor). One layer at a time - when states co-occur, priority runs disabled > loading > pressed > focus > hover.
-- Hover transitions ~150-200ms - prevents flicker when the cursor passes through. Always set cursor: pointer.
+- Hover transitions ~150-200ms - prevents flicker when the cursor passes through. Always set cursor: pointer. Transition the named properties (`background-color`, `border-color`, `transform`, `box-shadow`), never `transition: all`.
+- Opacity is not a hover state: `hover:opacity-90` on a button dims the label along with the fill and makes the hovered control read as disabled. Move one step on the accent scale, add the state layer above, or change border/elevation - text contrast stays at full strength through every state.
 - Pressed feedback within 100-150ms of activation - immediate, or users click twice. Give the press a physical cue: `scale(0.98)` or `translateY(1px)` on `:active` - a button that does not move reads as dead.
 - Standard transitions (tab switch, screen change, tap ripple) at ~300ms with ease-in-out; screen transitions = cross-fade + horizontal slide.
 - Never remove the focus outline without a replacement (no bare outline: none) - recipe and contrast minimums in accessibility.md.

@@ -134,10 +134,15 @@ them rather than sharing a plugin-root copy.
   plan-then-critique pass now defers to `concepting.md`) and `references/anti-slop.md` (the forensic
   generated-UI tells catalog: an entropy meta-rule opening it, skeleton-level section-sequence tells with
   minimum-variation requirements, uniform-padding and cardocalypse limits, second-generation tells including
-  the four clone looks, layout/visual/decoration tells covering the count reflex, the centered-section-header
-  limit, untouched framework defaults and keyword-matched/sparkles AI iconography, hero discipline,
-  app-dashboard and chat/AI-surface tells, demo-content realism, banned headline formulas and the default
-  CTA tail, CTA-intent dedup). `anti-slop.md` is the one reference NOT routed on demand: SKILL.md opens with a
+  the four clone looks and the Space-Grotesk-plus-Instrument-Serif escape pairing, layout/visual/decoration
+  tells covering the count reflex, the centered-section-header limit, untouched framework defaults,
+  keyword-matched/sparkles AI iconography, emoji-in-headings, grain-over-gradient and the gray-on-gray dark
+  mode, a dedicated **interaction-and-motion** section (scroll reveals, `opacity: 0` content, cursor-following
+  beams/spotlights/tilt, `transition: all`, opacity-fade hover, the uniform hover lift) and a dedicated
+  **craft** section (off-scale spacing and off-ramp type sizes, padding vs. neighbors, the
+  `rounded-2xl`+`shadow-lg` reflex, optical misalignment), hero discipline including the badge-above-the-
+  headline default, app-dashboard and chat/AI-surface tells, demo-content realism, banned headline formulas,
+  em/en dashes in visible copy, uniform sentence rhythm, the default CTA tail, CTA-intent dedup). `anti-slop.md` is the one reference NOT routed on demand: SKILL.md opens with a
   **Step 0** gate loading it in full before any other reasoning, on every invocation and every job size, so the
   tells leave the candidate set before the first decision instead of being scrubbed out of a finished draft -
   hence it is deliberately absent from the "Reference routing" list, and the reference files point at it as
