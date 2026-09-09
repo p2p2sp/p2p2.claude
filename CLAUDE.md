@@ -47,7 +47,7 @@ and each plugin carries its own `<plugin>/README.md` with that plugin's descript
 skill/agent list. This file is orientation for the assistant.
 
 - **superdev** - project memory, planning, and the agentic-development pipeline. Also ships a fourth
-  knowledge layer, the changelog - `superdev-changelog-writer` (a fork writer only, no interactive front) writes
+  knowledge layer, the changelog - `superdev:changelog-writer` (an agent, no interactive front) writes
   one append-only entry per completed build to the host repo's `docs/changelog/<run>.md` (intent, decisions
   with the ADR link, deviations, areas) plus one index line in `docs/changelog/README.md`, wired into both
   build close-outs behind an opt-in `changelog` config switch. The `intent` skill persists its confirmed
@@ -140,7 +140,8 @@ Each plugin's own internal layout lives in its `<plugin>/CLAUDE.md` (`superdev` 
 ```
 .claude-plugin/
   marketplace.json   Marketplace catalog - co-lists superdev "./superdev", superui "./superui", supergh "./supergh", superfix "./superfix", superbiz "./superbiz"
-superdev/            The superdev plugin (project memory, planning, dev pipeline)
+superdev/            The superdev plugin (project memory, planning, dev pipeline; carries agents/ for its
+                     four closeout writers)
 superui/             The superui plugin (design / frontend; NO hooks, NO manifest)  → superui/CLAUDE.md
 supergh/             The supergh plugin (GitHub / git; NO hooks, NO manifest)       → supergh/CLAUDE.md
 superfix/            The superfix plugin (codebase investigation; NO hooks/manifest) → superfix/CLAUDE.md
@@ -178,7 +179,7 @@ docs/assets/         Images embedded in a README so they render publicly on GitH
 Each plugin dir carries a `.claude-plugin/plugin.json` (its `skills[]` (+ `agents[]`) is the catalog of record).
 `superdev` alone also carries `hooks/` (one injected dispatcher manifest + hook scripts); plugin-level shared
 scripts live in `superdev/scripts/`, `superdev/references/` and `superui/scripts/` (no `shared/` subdir);
-`supergh` carries `shared/` only; `superui` and `superfix` carry `agents/`. `superbiz` carries
+`supergh` carries `shared/` only; `superdev`, `superui` and `superfix` carry `agents/`. `superbiz` carries
 `skills/` and nothing else at the plugin root - its single skill bundles everything it needs.
 
 ## Versioning
@@ -204,10 +205,10 @@ The invariants below hold across the repo.
 
 - **Host-repo `docs/` is the one home for user-facing persisted knowledge.** Every long-lived document a
   plugin writes into the consuming repo lands under `docs/<layer>/`, never in a host-root dot-dir and never
-  in a plugin-named dir: `docs/adr/` (superdev's `superbuild-adr`, gated by the `adr` config switch),
+  in a plugin-named dir: `docs/adr/` (superdev's `superdev:adr-writer` agent, gated by the `adr` config switch),
   `docs/design-system/` (superui's `design-extractor`; `docs/design-system/<target>/` with the optional
   `<target>` argument), `docs/changelog/` (superdev's changelog layer, gated by the `changelog` switch -
-  `superdev-changelog-writer` appends one entry per completed build plus one index line in
+  `superdev:changelog-writer` appends one entry per completed build plus one index line in
   `docs/changelog/README.md`), `docs/.workflows/` (superdev's per-run working directory
   `docs/.workflows/<run>/` - the intent file the `intent` skill persists (`intent.md`), the spec
   (`spec.md`), the plan copy written by `decompose.sh`, task files and implementation reports all live
@@ -284,9 +285,14 @@ The invariants below hold across the repo.
   agents live there too, split 2+5 across its four pipeline skills - `design-extractor` dispatches
   `source-scout`; `design-extractor-builder` dispatches `foundation-analyst` and `design-synthesizer`;
   `component-extractor` dispatches `source-scout` again and `component-scout`; `component-extractor-builder`
-  dispatches `spec-writer`, `component-synthesizer` and `bundle-reviewer`; superdev and superbiz ship
-  no agents at all - superdev's workers are skills, and superbiz's council members are `general-purpose`
-  subagents prompted from `references/council/`, not declared agents) - and the relevant `CLAUDE.md`
+  dispatches `spec-writer`, `component-synthesizer` and `bundle-reviewer`; superdev's four closeout
+  writers - `adr-writer`, `memory-writer`, `rules-writer`, `changelog-writer` - live there too:
+  `superbuild` and `simplebuild` dispatch `adr-writer` / `memory-writer` / `rules-writer` together as
+  wave 1 with the `Agent` tool in one message, then `changelog-writer` alone as wave 2, and
+  `superdev-memory` / `superdev-rules` each dispatch their matching writer (`memory-writer` /
+  `rules-writer`) the same way; superbiz ships no agents at all - its council members are
+  `general-purpose` subagents prompted from `references/council/`, not declared agents) - and the
+  relevant `CLAUDE.md`
   (that plugin's, and this root file when the change is repo-wide) in either case. They must stay in sync, and a
   worker must never appear in both `skills[]` and `agents[]`.
   For the manifest-bearing plugin (`superdev`), its injected manifest

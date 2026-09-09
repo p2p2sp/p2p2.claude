@@ -105,10 +105,10 @@ never called by hand.
 
 ### Knowledge layers (also runnable on their own)
 
-| Skill | Role |
+| Worker | Role |
 | --- | --- |
 | `superdev-memory` | Builds or audits the hierarchical `CLAUDE.md` cascade - one general root plus more specific child nodes in genuine architectural units, never a single monolith. |
 | `superdev-rules` | Discovers the codebase's real conventions with examples, confirms each with you, and writes many small path-scoped files under `.claude/rules/`. |
-| `superdev-changelog-writer` | Fork - writes one append-only build changelog entry at `docs/changelog/<run>.md` plus its index line at Close Out when `changelog: true`; never edits an existing entry. |
-| `superdev-memory-writer` / `superdev-rules-writer` | Forks - the writing half of each layer; also invoked at Close Out when the matching switch is on. |
-| `superbuild-adr` | Fork - records the architectural decision at Close Out when `adr: true`; writes no file when the plan commits to none. |
+| `superdev:changelog-writer` | Agent - writes one append-only build changelog entry at `docs/changelog/<run>.md` plus its index line at Close Out when `changelog: true`; never edits an existing entry. |
+| `superdev:memory-writer` / `superdev:rules-writer` | Agents - the writing half of each layer; also invoked at Close Out when the matching switch is on. Close Out dispatches these two alongside `superdev:adr-writer` with the `Agent` tool in a single message, so they run in parallel. |
+| `superdev:adr-writer` | Agent - records the architectural decision at Close Out when `adr: true`; writes no file when the plan commits to none. |
