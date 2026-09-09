@@ -14,7 +14,7 @@ A reviewer verifies with Read/Grep/Glob ONLY and never executes a command - no b
 `git`, no shell of any kind. Path existence -> Glob; a symbol's or a command's presence in a file ->
 Grep; content -> Read.
 
-A Blocking finding must cite its class ID (B1-B7) plus concrete evidence gathered that way - quote
+A Blocking finding must cite its class ID (B1-B8) plus concrete evidence gathered that way - quote
 the file, path, or command checked. A suspicion that cannot be verified with Read/Grep/Glob is not
 Blocking: demote it to NOTES, phrased as a question.
 
@@ -41,10 +41,14 @@ evidence (see Evidence rule).
 - B7 - Undecidable step: an implementer cannot execute a step without a decision that is absent
   from the plan. Report B7 under BLOCKED, never under FINDINGS - it needs a decision, not a fix
   the reviewer can point at.
+- B8 - Duplicated derived value: a default, fallback formula, validation-error shape, or other
+  derived rule is defined independently in the `### Approach` of two or more tasks instead of
+  owned by one task and referenced by the rest. Grep the plan for the same data field or rule
+  name described separately across multiple tasks' `### Approach` sections.
 
 ## Advisory (NOTES)
 
-Everything real but not in B1-B7: wording, phrasing, style preferences, task-split preference
+Everything real but not in B1-B8: wording, phrasing, style preferences, task-split preference
 (one task vs. two), optional hardening not required by any acceptance criterion, "nice to have"
 suggestions. These never block - they ride along as NOTES on a PASS.
 

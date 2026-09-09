@@ -38,6 +38,7 @@ Stick to the template structure. Don't invent or add your own points. Adapt all 
 - You reason best about code you can hold in context at once, and your edits are more reliable when files are focused. Prefer smaller, focused files over large ones that do too much.
 - Files that change together should live together. Split by responsibility, not by technical layer.
 - In existing codebases, follow established patterns. If the codebase uses large files, don't unilaterally restructure - but if a file you're modifying has grown unwieldy, including a split in the plan is reasonable.
+- List every value or rule more than one task will need - a default string, a fallback formula, a validation-error shape, a component variant - and give each exactly one owning task, sequenced before every task that consumes it. Two tasks independently defining the same rule is the defect to prevent here, not to catch at review.
 
 This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
 
@@ -60,7 +61,7 @@ Every task gets `TDD: none` by default. Mark `TDD: required` ONLY when the task'
 Never `TDD: required` when the task's code touches the outside world directly (I/O, network, DB, filesystem, UI, framework wiring) - that yields integration tests, not a TDD cycle.
 
 ### Self-Review
-Once you have written a complete plan and before final review, fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B7 plus `## Author self-check`) - the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:
+Once you have written a complete plan and before final review, fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B8 plus `## Author self-check`) - the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:
 - Verify in the repo (Read/Grep/Glob) every `### Files` path and symbol, and every `### Test Commands` command against the repo's real build/test tooling.
 - Verify the two-way mapping: every acceptance criterion is covered by at least one task, and every task covers at least one criterion or is traceable to the Goal/spec.
 - Fix any violation inline. No need to re-review - just fix and move on. If you find a spec requirement with no task, add the task.

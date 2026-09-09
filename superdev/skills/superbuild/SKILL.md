@@ -72,7 +72,7 @@ For each remaining task file (in order):
 
 1. `TaskUpdate` -> start
 2. Invoke `superbuild-reviewer-spec` (Skill) with `plan: <plan-copy path>`, `spec: <spec path>`, `base: <base SHA from the decompose index>`, `notes: <workdir>/implementation/`, and `report: <workdir>/implementation/review-NN-spec.md` on separate lines (NN = final-review round, starting `01`, +1 per round).
-3. On its `VERDICT: PASS`, invoke `superbuild-reviewer-change` (Skill) with `plan: <plan-copy path>`, `spec: <spec path>`, `base: <base SHA from the decompose index>`, and `report: <workdir>/implementation/review-NN-code.md` on separate lines.
+3. On its `VERDICT: PASS`, invoke `superbuild-reviewer-change` (Skill) with `plan: <plan-copy path>`, `spec: <spec path>`, `base: <base SHA from the decompose index>`, `notes: <workdir>/implementation/`, and `report: <workdir>/implementation/review-NN-code.md` on separate lines.
 4. Fix loop (max 2 rounds). Both reviewers `VERDICT: PASS` -> Step 4. On any `VERDICT: FAIL` + `REVIEW: <path>`:
     - Invoke `superbuild-task-implementor` with `spec: <path>`, `plan-header: <path>`, `plan: <plan-copy path>`, `task: <REVIEW path>`, and `notes: <workdir>/implementation/fix-NN-notes.md` on separate lines.
         - implementor `VERDICT: PASS`  -> `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<fix title>"`, then re-run this step from the reviewer that failed with the next round NN (a spec fix re-runs `superbuild-reviewer-change` afterwards too).

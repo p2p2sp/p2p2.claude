@@ -19,6 +19,9 @@ Write the full review to that path (see `## Report`).
 
 Base SHA: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*base:[[:space:]]*//p' | head -n1`
 
+Notes dir: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*notes:[[:space:]]*//p' | head -n1`
+When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations. Claims to verify, not truth.
+
 ## Scope
 You own ONE dimension: the quality of the delivered code. Spec conformance is a separate review dimension - assume the behavior is correct unless a quality defect breaks it. The change under review is the build's change set - `git diff --name-status <base SHA>..HEAD` (Base SHA empty or `none` -> fall back to the files listed under the plan tasks' `Files` plus their tests); read the changed files in full and inspect how they integrate with their surroundings.
 
@@ -34,6 +37,10 @@ You own ONE dimension: the quality of the delivered code. Spec conformance is a 
 
 ## Calibration
 Categorize issues by actual severity. Not everything is Critical. Acknowledge what was done well before listing issues - accurate praise helps the implementer trust the rest of the feedback. Judge the whole delivery, not single tasks: cross-cutting duplication, inconsistent contracts, and seams between tasks are exactly what this review exists to catch.
+
+Grep the changed files for a repeated pattern accessing the same field (`??`, `||`, a default literal, an error-shape literal) across more than one file; any hit -> read both locations in full before judging whether they agree.
+
+When Notes dir is set, scan the `*-notes.md` files for more than one `UNDERSPECIFIED:` line naming the same field or rule; that pair is a duplicated-derived-value defect even when the resulting code shares no syntactic pattern - read both tasks' code for that field and judge whether the decisions agree.
 
 ## Report
 Write the full review to the Report path (from `## Input`), using exactly this

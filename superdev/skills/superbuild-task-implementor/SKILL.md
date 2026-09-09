@@ -43,6 +43,7 @@ Fix loop max 5 rounds. Still failing after 5 -> STOP and return `FAIL`.
 ## 3. Record notes
 Only on PASS, and only when a Notes path was given. Write the delta between `## task` and what you actually delivered to that path (append when the file exists - earlier rounds stay):
 - one line per deviation - a touched file outside `Files`, an `Approach` step changed or dropped, a contract/edge case handled differently - each ending with a short why.
+- a value the task needed but neither its own text nor `Contracts` pinned down precisely (a default, a formula, a threshold, an error shape you had to decide yourself) -> its own line prefixed `UNDERSPECIFIED:`, separate from ordinary deviations, naming the value and the decision made.
 - no deviations -> the single line `no deviations`.
 The notes are the only durable record of these decisions - an unrecorded deviation reads downstream as unintended drift.
 
