@@ -24,7 +24,7 @@ On FAIL, write the findings to that path (see `## Output format`).
 
 <!-- no Bash pattern here: this preload is a pipeline (printf | tr | sed | head); a pattern entry matches one command, not a pipe -->
 Notes path: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*notes:[[:space:]]*//p' | head -n1`
-When set, Read it - the coder's recorded plan->code deviations for this task. Claims to verify, not truth.
+When set, Read it - the implementor's recorded plan->code deviations for this task. Claims to verify, not truth.
 
 ## Scope
 A fast per-task gate, not a full review - whole-plan conformance and deep code/architecture review are separate, later dimensions. Judge ONLY the uncommitted work (working tree vs HEAD, plus untracked files) against `## task`.

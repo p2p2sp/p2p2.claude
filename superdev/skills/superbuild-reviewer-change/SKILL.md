@@ -1,5 +1,5 @@
 ---
-name: superbuild-reviewer-code
+name: superbuild-reviewer-change
 description: Invoked only by superbuild skill.
 context: fork
 background: false

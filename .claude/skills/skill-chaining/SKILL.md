@@ -27,7 +27,7 @@ and gotchas live in [references/skill-chaining.md](references/skill-chaining.md)
 | Reasoning- or voice-heavy work in the fork | Inherit the session model or pin `model:`; avoid a downgraded read-only profile |
 | Read-only exploration in the fork | A lighter/read-only profile is fine (cheaper, faster) |
 
-**This repo already lives these rules.** `superbuild` dispatches `superbuild-task-coder` /
+**This repo already lives these rules.** `superbuild` dispatches `superbuild-task-implementor` /
 `superbuild-task-reviewer` through the `Skill` tool with labeled-line `args` - `context: fork` executors that
 take file PATHS in, write their output to a `report:` path, and return only a short verdict line
 (`VERDICT: PASS`, or `VERDICT: FAIL` + `REVIEW: <path>`). `supergh`'s `cli-executor` / `commit` have the same

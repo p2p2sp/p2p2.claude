@@ -1,5 +1,5 @@
 ---
-name: superbuild-task-coder
+name: superbuild-task-implementor
 description: Invoked only by superbuild skill.
 context: fork
 background: false

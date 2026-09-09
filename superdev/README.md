@@ -42,7 +42,7 @@ Same interview on the way in, two execution tracks, one shared Close Out.
 4. **Approve the plan.** A forked reviewer must return `VERDICT: PASS` before `ExitPlanMode` is even allowed;
    then you approve it yourself.
 5. **The build runs task by task.** The orchestrator (`simplebuild` / `superbuild`) decomposes the plan into
-   `docs/.workflows/<run>/tasks/task-NN.md`, runs a coder fork per task, commits each task separately, and
+   `docs/.workflows/<run>/tasks/task-NN.md`, runs an implementor fork per task, commits each task separately, and
    ends with the final review round.
 6. **Close Out** runs two waves: `adr`, `memory` and `rules` in parallel, then `changelog` (which also links
    the ADR when one was written), and commits what they touched; when `cleanup: true` it then removes the
@@ -99,10 +99,10 @@ never called by hand.
 | `superplan` | Writes the plan (`How`) from the approved spec, marking each task `TDD: required` or `TDD: none`. |
 | `superplan-reviewer` | Fork - checks the plan against the spec and the repo; `needs-discovery` routes back to `intent` rather than looping. |
 | `superbuild` | Sonnet orchestrator - decomposes the approved plan (requires a `spec:` line, otherwise the plan belongs to `simplebuild`) and drives the task loop. |
-| `superbuild-task-coder` | Fork (opus) - implements one task; on `TDD: required` it goes test-first and must see RED. |
-| `superbuild-task-reviewer` | Fork - reviews every single task; `FAIL` sends the coder back (max 3 rounds per task). |
+| `superbuild-task-implementor` | Fork (opus) - implements one task; on `TDD: required` it goes test-first and must see RED. |
+| `superbuild-task-reviewer` | Fork - reviews every single task; `FAIL` sends the implementor back (max 3 rounds per task). |
 | `superbuild-reviewer-spec` | Fork - final review of the whole change against the spec. |
-| `superbuild-reviewer-code` | Fork - final code review, run after the spec reviewer passes. |
+| `superbuild-reviewer-change` | Fork - final review of the whole change since the base commit, run after the spec reviewer passes. |
 
 ### Knowledge layers (also runnable on their own)
 

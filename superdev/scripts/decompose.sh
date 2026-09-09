@@ -216,7 +216,7 @@ header="$dir/plan-header.md"
 } > "$header"
 
 # tor superbuild: globalne sekcje speca trafiają do nagłówka planu - jedyny
-# fragment speca, jaki widzą per-taskowe forki (coder / task-reviewer).
+# fragment speca, jaki widzą per-taskowe forki (implementor / task-reviewer).
 if [[ -n "$spec_path" ]]; then
   for sec in "## Out of scope" "## Constraints / assumptions"; do
     content="$(spec_section "$sec")"

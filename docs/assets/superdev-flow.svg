@@ -278,8 +278,8 @@
   <text x="140" y="1678" class="desc">• spec What &amp; Why + its own reviewer, then the plan</text>
   <text x="140" y="1698" class="desc">• the plan forces TDD: required on tasks</text>
   <text x="140" y="1718" class="desc">• plan-header carries out-of-scope and spec constraints</text>
-  <text x="140" y="1738" class="desc">• coder: opus + a reviewer after every task (up to 3 rounds)</text>
-  <text x="140" y="1758" class="desc">• two reviewers at the end: spec, then code</text>
+  <text x="140" y="1738" class="desc">• implementor: opus + a reviewer per task (up to 3 rounds)</text>
+  <text x="140" y="1758" class="desc">• two reviewers at the end: spec, then change</text>
 
   <text x="140" y="1788" class="desc-s">Shared: the same hook before ExitPlanMode · a commit per task · Close Out</text>
 
@@ -383,10 +383,10 @@
   <rect x="1132" y="1432" width="78" height="16" rx="8" class="badge"/>
   <text x="1171" y="1444" class="badge-t" text-anchor="middle">fork · opus</text>
   <text x="800" y="1444" class="kicker">TASK LOOP - FOR EVERY task-NN</text>
-  <text x="800" y="1468" class="title">superbuild-task-coder</text>
+  <text x="800" y="1468" class="title">superbuild-task-implementor</text>
   <text x="800" y="1490" class="desc">TDD: required → red-green-refactor: test first, see it RED.</text>
   <text x="800" y="1510" class="desc">→ superbuild-task-reviewer (fork) reviews every task.</text>
-  <text x="800" y="1530" class="desc">FAIL → the coder fixes · after 3 rounds it asks the user.</text>
+  <text x="800" y="1530" class="desc">FAIL → the implementor fixes · after 3 rounds it asks the user.</text>
 
   <path d="M1000 1542 L1000 1562" class="link l-u" marker-end="url(#ar-u)"/>
   <path d="M1000 1542 L1000 1562" class="flow l-u"/>
@@ -407,8 +407,8 @@
   <rect x="1146" y="1652" width="64" height="16" rx="8" class="badge"/>
   <text x="1178" y="1664" class="badge-t" text-anchor="middle">fork ×2</text>
   <text x="800" y="1668" class="title">Final review: spec → code</text>
-  <text x="800" y="1690" class="desc">superbuild-reviewer-spec, then on its PASS superbuild-reviewer-code.</text>
-  <text x="800" y="1707" class="desc-s">FAIL → task-coder fixes, the review starts over (max. 2 rounds)</text>
+  <text x="800" y="1690" class="desc">superbuild-reviewer-spec, then on PASS superbuild-reviewer-change.</text>
+  <text x="800" y="1707" class="desc-s">FAIL → task-implementor fixes, the review starts over (max. 2 rounds)</text>
 
   <path d="M1000 1714 L1000 1804 Q1000 1822 982 1822 L688 1822 Q670 1822 670 1840 L670 1844" class="link l-u" marker-end="url(#ar-u)"/>
   <path d="M1000 1714 L1000 1804 Q1000 1822 982 1822 L688 1822 Q670 1822 670 1840 L670 1844" class="flow l-u"/>

@@ -57,13 +57,13 @@ Starting point (from decompose `status:`):
 
 For each remaining task file (in order):
   1. `TaskUpdate` -> start
-  2. Invoke `superbuild-task-coder` (Skill) with a labeled-line `args` block - `plan-header: <path>`, `task: <task-file path>`, and `notes: <workdir>/implementation/task-NN-notes.md` on separate lines (paths from the decompose index).
+  2. Invoke `superbuild-task-implementor` (Skill) with a labeled-line `args` block - `plan-header: <path>`, `task: <task-file path>`, and `notes: <workdir>/implementation/task-NN-notes.md` on separate lines (paths from the decompose index).
      It returns `VERDICT: PASS`, or `VERDICT: FAIL` + a `REASON: <line>`.
        - `VERDICT: PASS`  -> continue to review
        - `VERDICT: FAIL`  -> escalate via `AskUserQuestion` (retry / skip / abort); act on the answer (abort ends the loop)
   3. Invoke `superbuild-task-reviewer` (Skill) with `plan-header: <path>`, `task: <task-file path>`, `notes: <workdir>/implementation/task-NN-notes.md`, and `report: <workdir>/implementation/task-NN-review-R.md` on separate lines (R = review round for this task, starting `1`, +1 on each reviewer call). It returns `VERDICT: PASS`, or `VERDICT: FAIL` + `REVIEW: <path>`.
        - `VERDICT: PASS`  -> continue to commit
-       - `VERDICT: FAIL`  -> invoke `superbuild-task-coder` with `plan-header: <path>`, `plan: <plan-copy path>`, `task: <REVIEW path>`, and `notes: <workdir>/implementation/task-NN-notes.md` on separate lines (`plan` lets it source the real Test Commands), then re-run the reviewer with the next `R`.
+       - `VERDICT: FAIL`  -> invoke `superbuild-task-implementor` with `plan-header: <path>`, `plan: <plan-copy path>`, `task: <REVIEW path>`, and `notes: <workdir>/implementation/task-NN-notes.md` on separate lines (`plan` lets it source the real Test Commands), then re-run the reviewer with the next `R`.
          Max 3 review rounds per task -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.
   4. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<task title>" <task-file>` - commits the task and records its number in `status.md`.
   5. `TaskStop` -> completed
@@ -72,11 +72,11 @@ For each remaining task file (in order):
 
 1. `TaskUpdate` -> start
 2. Invoke `superbuild-reviewer-spec` (Skill) with `plan: <plan-copy path>`, `spec: <spec path>`, `base: <base SHA from the decompose index>`, `notes: <workdir>/implementation/`, and `report: <workdir>/implementation/review-NN-spec.md` on separate lines (NN = final-review round, starting `01`, +1 per round).
-3. On its `VERDICT: PASS`, invoke `superbuild-reviewer-code` (Skill) with `plan: <plan-copy path>`, `spec: <spec path>`, `base: <base SHA from the decompose index>`, and `report: <workdir>/implementation/review-NN-code.md` on separate lines.
+3. On its `VERDICT: PASS`, invoke `superbuild-reviewer-change` (Skill) with `plan: <plan-copy path>`, `spec: <spec path>`, `base: <base SHA from the decompose index>`, and `report: <workdir>/implementation/review-NN-code.md` on separate lines.
 4. Fix loop (max 2 rounds). Both reviewers `VERDICT: PASS` -> Step 4. On any `VERDICT: FAIL` + `REVIEW: <path>`:
-    - Invoke `superbuild-task-coder` with `spec: <path>`, `plan-header: <path>`, `plan: <plan-copy path>`, `task: <REVIEW path>`, and `notes: <workdir>/implementation/fix-NN-notes.md` on separate lines.
-        - coder `VERDICT: PASS`  -> `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<fix title>"`, then re-run this step from the reviewer that failed with the next round NN (a spec fix re-runs `superbuild-reviewer-code` afterwards too).
-        - coder `VERDICT: FAIL`  -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.
+    - Invoke `superbuild-task-implementor` with `spec: <path>`, `plan-header: <path>`, `plan: <plan-copy path>`, `task: <REVIEW path>`, and `notes: <workdir>/implementation/fix-NN-notes.md` on separate lines.
+        - implementor `VERDICT: PASS`  -> `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<fix title>"`, then re-run this step from the reviewer that failed with the next round NN (a spec fix re-runs `superbuild-reviewer-change` afterwards too).
+        - implementor `VERDICT: FAIL`  -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.
     - Still `VERDICT: FAIL` after 2 rounds -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.
 5. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(superbuild): final review reports"` - saves the review reports (also on an accepted FAIL).
 6. `TaskStop` -> completed
