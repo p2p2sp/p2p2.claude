@@ -17,6 +17,8 @@
 #      <worktree-path>  MUST be absolute (POSIX /... or Windows C:/...). A
 #                       relative path would resolve against the caller's cwd,
 #                       and parallel callers each own a distinct path.
+#                       MUST NOT be the target root - compared with separators
+#                       and a trailing separator normalised away.
 # OUT: exactly one line on stdout -
 #        WORKTREE_READY <worktree-path>     add succeeded and was verified
 #        WORKTREE_REMOVED <worktree-path>   remove succeeded and was verified
@@ -28,6 +30,14 @@ set -u
 fail() {
   printf 'WORKTREE_FAILED %s\n' "$1"
   exit 1
+}
+
+# norm_path <path> -> stdout: the same path with backslashes rewritten to
+# forward slashes and trailing slashes stripped. Comparison-only, not
+# filesystem-truthful (a bare root normalises to empty/no-drive) - used to
+# decide whether two argument spellings name the same path.
+norm_path() {
+  printf '%s' "$1" | tr '\134' '/' | sed 's:/*$::'
 }
 
 cmd=${1:-}
@@ -44,7 +54,7 @@ case "$wt" in
   *) fail "worktree path must be absolute: $wt" ;;
 esac
 
-[ "$wt" != "$root" ] || fail "worktree path must not be the target root: $wt"
+[ "$(norm_path "$wt")" != "$(norm_path "$root")" ] || fail "worktree path must not be the target root: $wt"
 
 git -C "$root" rev-parse --git-dir >/dev/null 2>&1 || fail "not a git repository: $root"
 
