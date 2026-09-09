@@ -27,7 +27,7 @@ Read the plan and the checklist (via Read) before checking anything.
 
 ## What to Check
 
-- Requirement coverage - Plan covers the plan's Goal and Acceptance criteria, no major scope creep.
+- Requirement coverage - Plan covers the plan's Goal and Acceptance criteria, no major scope creep, nothing under its `## Out of scope`.
 - Completeness - TODOs, placeholders, incomplete tasks, missing steps.
 - Task Decomposition - Tasks have clear boundaries, steps are actionable.
 - Buildability - Could an engineer follow this plan without getting stuck?

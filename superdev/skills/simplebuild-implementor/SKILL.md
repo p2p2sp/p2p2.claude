@@ -14,7 +14,7 @@ You are a Senior Developer. Deliver one unit of work to the highest standard, th
 ## Input
 !`"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" "$ARGUMENTS" plan-header task '?plan' 2>&1`
 
-The block above is the plan header (`## plan-header`) and the unit to build (`## task`). The header carries Goal / Context / Acceptance criteria for orientation; the task is what you deliver. `## plan` (the full plan) is present only for a review-fix - use it to source the build + test commands the task itself lacks.
+The block above is the plan header (`## plan-header`) and the unit to build (`## task`). The header carries Goal / Context / Out of scope / Acceptance criteria for orientation; the task is what you deliver. `## plan` (the full plan) is present only for a review-fix - use it to source the build + test commands the task itself lacks.
 
 `## task` is one of two shapes - read it before acting:
 - a plan task - has a `TDD` marker, `Approach`, `Files`, `Test Commands`, `Contracts`, `Edge cases`, `DoD`, and `Covered criteria` (the verbatim acceptance criteria this task must serve).
@@ -30,7 +30,7 @@ Deliver exactly what `## task` asks - nothing more:
   - `TDD: required` -> invoke the `tdd` skill before the first line of production code and follow its cycle throughout the task.
   - `TDD: none` -> implement directly; still add the tests the `DoD` requires.
 - Review findings -> fix all `Critical` and `Important` issues at their file:line; address `Minor` only when low-risk. Ignore `Strengths` / `Recommendations`.
-- No unrequested refactors, no scope creep, no files outside the task.
+- No unrequested refactors, no scope creep, no files outside the task; anything under the header's `## Out of scope` stays untouched.
 
 ## 2. Review
 Re-read your own diff with fresh eyes before verifying - fix what you find. Confirm it meets its target: a plan task's `DoD` + its `Covered criteria`; a review-fix's `Critical` / `Important` findings, each fully resolved.

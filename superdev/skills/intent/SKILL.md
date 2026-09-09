@@ -69,7 +69,7 @@ Date: !`date +%F`
   - Fresh run (no resume): the run directory is `docs/.workflows/<Date>-<slug>/` (`<Date>` from `## Run`; `<slug>` = short title as slug). `Glob` `docs/.workflows/<Date>-<slug>*` first - if `docs/.workflows/<Date>-<slug>/` already exists, append `-2`, `-3`, ... to the directory name until one is free. Then `Write` the synthesis to `<run-dir>/intent.md` - the `Write` call itself creates the run directory; never `mkdir` it.
   - Resume: overwrite the resumed file's own `intent.md` in place.
   - Write it in the interview's language, in this exact structure - one `###` block per decision, carrying the question as it was asked and the confirmed answer, nothing else.
-  - NEVER record a rejected option, nor why it lost, nor the reasoning behind the winning one. Alternatives belong to the live interview; in the file they only crowd the context and the judgement of every downstream reader (spec, plan, build, changelog).
+  - NEVER record a rejected option, nor why it lost, nor the reasoning behind the winning one. Alternatives belong to the live interview; in the file they only crowd the context and the judgement of every downstream reader (spec, plan, build, changelog). `## Out of scope` is not a loophole for them: it lists non-goals - areas this change deliberately does not touch - never the losing alternative to a decision under `## Decisions`.
 
 ```markdown
 # Intent: <title>
@@ -86,7 +86,7 @@ Date: <YYYY-MM-DD>
 - <...>
 
 ## Out of scope
-- <...>
+- <non-goal: an area this change deliberately does not touch - never a rejected alternative to a decision above>
 
 ## History
 - <changelog entry or ADR consulted - upheld | changed, why> (or `none`)

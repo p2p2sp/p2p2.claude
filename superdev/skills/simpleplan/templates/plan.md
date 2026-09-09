@@ -14,6 +14,10 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 ## Context
 <short description of plan context, 3-5 sentences max>
 
+## Out of scope
+- <non-goal this plan deliberately does not deliver - one short line, no rationale>
+<max 5 bullets; nothing to exclude -> the single bullet "none">
+
 ## Acceptance criteria
 1. <numbered, testable, observable true/false condition>
 2. …

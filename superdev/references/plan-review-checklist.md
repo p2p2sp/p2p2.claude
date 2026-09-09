@@ -31,7 +31,7 @@ evidence (see Evidence rule).
   cannot be confirmed that way is not B2 - it goes to NOTES.
 - B3 - Criteria/task mapping broken: an acceptance criterion has no task covering it, or a task
   covers no acceptance criterion and is not traceable to the Goal or spec (scope creep beyond
-  Goal-or-spec).
+  Goal-or-spec), or a task delivers something the `## Out of scope` list excludes.
 - B4 - Contradictory or broken ordering: two steps (within one task's `### Approach`, or across
   tasks) contradict each other, or `### Dependencies` is circular, points at a nonexistent task, or
   orders a task before one it depends on.

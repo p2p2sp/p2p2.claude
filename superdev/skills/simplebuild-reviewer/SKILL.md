@@ -32,6 +32,7 @@ Review the completed work against the plan.
 **Plan alignment (gate - check FIRST):**
 - Does the implementation match the plan / requirements?
 - Is all planned functionality present?
+- Scope boundary: is anything under the header's `## Out of scope` implemented? Present -> misalignment.
 - Reverse direction: does every file in the change set map to a plan task's `Files` (test/config fallout is fine)? An unmapped change - or any deviation - NOT recorded in the notes is a misalignment in itself; a recorded one is judged on merit: justified improvement or problematic departure.
 
 On any misalignment: STOP. Write the report (misalignment under Critical), emit `VERDICT: FAIL` + `REVIEW: <report path>`, and return immediately - do not run the checks below. They only apply once the plan is met.
