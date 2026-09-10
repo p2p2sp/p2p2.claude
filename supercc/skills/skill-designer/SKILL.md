@@ -50,14 +50,17 @@ Write `input -> work -> output`. The skill receives input, works, returns output
 
 ## Progressive disclosure
 
-Three layers load at different times: metadata always, body on trigger, bundled files only when read or executed. Place content by how often an invocation needs it, not by total length.
+Three layers load at different times: metadata always, body on trigger, bundled files only when read or executed. Place content by the moment an invocation first needs it, never by total length: what every run needs before its first action goes in the body; what one step, some runs, or a single decision point needs goes in a bundled file read exactly at that step.
 
-- Body: only what every invocation needs.
-- `references/`: what some invocations need, or detail consumed once at a decision point. Move it there regardless of body size, and leave a one-line pointer saying when to read it.
+- Litmus per paragraph: does every invocation need this before it starts working? Yes -> body. No -> `references/` (instructions, checklists, examples, domain notes) or `assets/` (templates, boilerplate, output formats), regardless of how short the body already is.
+- Typical movers: an output or report template, a checklist for one phase, a worked example, the long procedure of one branch, notes consulted once at a decision. Inlined, each costs full context on every run; on demand, near zero on the runs that skip it.
+- The pointer replaces the content: one line at the exact step that consumes the file, stating the condition and the purpose, e.g. "Writing the report: fill `${CLAUDE_SKILL_DIR}/assets/report.md`" or "If the check fails, read `${CLAUDE_SKILL_DIR}/references/split-patterns.md`". Never restate the file in the body.
+- Read at the step, never up front. A "read all references first" opener loads every file on every run and cancels the layer; a file read before its step is body text with extra tool calls.
 - Mode selected by a parsable argument: a router script that `!`-injects only the chosen playbook beats references, because it costs zero extra reads.
+- Multiple domains or variants: one reference per variant, body holds workflow and selection only. Split a reference by step when different steps read different parts of it.
+- Address bundled files as `${CLAUDE_SKILL_DIR}/...`; a relative path does not resolve from the session cwd.
 - Ceiling, not trigger: body under 500 lines; a reference over 100 lines gets a table of contents at the top, because a partial read sees only the head.
-- Multiple domains or variants: one reference per variant, body holds workflow and selection only.
-- The agent can read any bundled file even if undocumented; still name the ones that matter.
+- The agent can read any bundled file even if undocumented; still name the ones that matter and the step that needs them.
 
 ## Scripts
 

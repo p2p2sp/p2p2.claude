@@ -29,7 +29,7 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    and `.claude/superdev.yml`, adds the `docs/.workflows/**` linguist rule to `.gitattributes`, and lets you
    flip the opt-in switches. It never overwrites what already exists.
 2. **Describe what you want to build.** The `intent` skill fires by itself. It sends `Explore` agents into
-   the codebase first, then puts every remaining gap question the codebase can't answer to you in one batch -
+   the codebase first, then puts the gap questions the codebase can't answer to you in short rounds of up to three -
    then interviews you in prose - one question per turn, 2-3 numbered options with a recommendation - until
    every load-bearing decision is settled.
 3. **Confirm the synthesis and pick a track, or stop here** (this gate is yours, the model never routes past
@@ -74,7 +74,7 @@ never called by hand.
 
 | Skill | Role |
 | --- | --- |
-| `intent` | The always-on entry skill. Explores the codebase (including prior changelog entries and ADRs), puts every remaining gap question to you in one batch, runs the design interview, persists the confirmed synthesis to `docs/.workflows/<run>/intent.md`, then gates on your track choice or stopping there - `intent <path>` resumes a saved synthesis later. Writes no code and no plan. |
+| `intent` | The always-on entry skill. Explores the codebase (including prior changelog entries and ADRs), puts the gap questions to you in short rounds of up to three, runs the design interview, persists the confirmed synthesis to `docs/.workflows/<run>/intent.md`, then gates on your track choice or stopping there - `intent <path>` resumes a saved synthesis later. Writes no code and no plan. |
 | `setup` | `/superdev:setup` - one-time, user-only repository bootstrap and config-switch picker. Idempotent. |
 | `simpledebug` | Fires on any bug, crash, regression or "it behaves wrong". Traces the whole flow instead of guessing, proves the diagnosis with a failing (RED) test, then hands the fix plan to `simpleplan`. Fixes nothing itself. |
 | `tdd` | Red-Green-Refactor discipline for a task marked `TDD: required` (or when you ask for test-first work). No production code without a failing test first. |
