@@ -43,8 +43,8 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    then you approve it yourself.
 5. **The build runs task by task.** The orchestrator (`simplebuild` / `superbuild`) decomposes the plan into
    `docs/.workflows/<run>/tasks/task-NN.md`, runs an implementor agent per task at the model and effort the plan
-   assigned to that task (`Model:` / `Effort:` markers), commits each task separately, and ends with the final
-   review round.
+   assigned to that task (`Model:` / `Effort:` markers), on the Super track gates each task with a reviewer agent
+   dispatched at that same strength, commits each task separately, and ends with the final review round.
 6. **Close Out** runs two waves: `adr`, `memory` and `rules` in parallel, then `changelog` (which also links
    the ADR when one was written), and commits what they touched; when `cleanup: true` it then removes the
    run's working directory and commits that removal.
@@ -101,7 +101,7 @@ never called by hand.
 | `superplan-reviewer` | Fork - checks the plan against the spec and the repo; `needs-discovery` routes back to `intent` rather than looping. |
 | `superbuild` | Sonnet orchestrator - decomposes the approved plan (requires a `spec:` line, otherwise the plan belongs to `simplebuild`) and drives the task loop. |
 | `superdev:superbuild-task-implementor` | Agent - implements one task; on `TDD: required` it goes test-first and must see RED; dispatched with the `Agent` tool at the task's `Model:` / `Effort:` (frontmatter default `opus` / `high`). |
-| `superbuild-task-reviewer` | Fork - reviews every single task; `FAIL` sends the implementor back (max 3 rounds per task). |
+| `superdev:superbuild-task-reviewer` | Agent - reviews every single task; `FAIL` sends the implementor back (max 3 rounds per task); dispatched with the `Agent` tool at the task's `Model:` / `Effort:`, the same values as the implementor (frontmatter default `opus` / `high`). |
 | `superbuild-reviewer-spec` | Fork - final review of the whole change against the spec. |
 | `superbuild-reviewer-change` | Fork - final review of the whole change since the base commit, run after the spec reviewer passes. |
 

@@ -58,7 +58,8 @@ skill/agent list. This file is orientation for the assistant.
   carries a build strength - `Model:` (`sonnet` | `opus`) and `Effort:` (`low` | `medium` | `high` |
   `xhigh`) - chosen by the planner (the user's own, usually strongest, model) for that task's
   reasoning load, rounded up when in doubt; `decompose.sh` prints both as index columns and the build
-  orchestrator dispatches the implementor agent at exactly those values.
+  orchestrator dispatches the implementor agent - and, on the Super track, the per-task reviewer agent -
+  at exactly those values.
 - **superui** - the design / frontend ecosystem, pairing Claude Code CLI (measurement, agentic fan-out) and
   Claude Design (live, inline-styled Design Components), via a **two-stage** screenshots-to-handoff-bundle
   pipeline: `/superui:design-extractor <screenshots-dir> [<target>]` turns a folder of UI screenshots into the
@@ -153,7 +154,7 @@ Each plugin's own internal layout lives in its `<plugin>/CLAUDE.md` (`superdev` 
 .claude-plugin/
   marketplace.json   Marketplace catalog - co-lists superdev "./superdev", superui "./superui", supergh "./supergh", superfix "./superfix", superbiz "./superbiz", supercc "./supercc"
 superdev/            The superdev plugin (project memory, planning, dev pipeline; carries agents/ for its
-                     two task implementors and four closeout writers)
+                     two task implementors, one task reviewer and four closeout writers)
 superui/             The superui plugin (design / frontend; NO hooks, NO manifest)  → superui/CLAUDE.md
 supergh/             The supergh plugin (GitHub / git; NO hooks, NO manifest)       → supergh/CLAUDE.md
 superfix/            The superfix plugin (codebase investigation; NO hooks/manifest) → superfix/CLAUDE.md
@@ -313,9 +314,10 @@ The invariants below hold across the repo.
   implementors - `superbuild-task-implementor`, `simplebuild-task-implementor` - live there, dispatched per
   task by `superbuild` / `simplebuild` with the `Agent` tool at the task's `Model:` / `Effort:` markers
   (the `Agent` tool's per-call `model` is honored; `effort` is passed the same way on the assumption
-  the harness will honor it too - the agent's frontmatter is the fallback for both), and superdev's
-  four closeout writers - `adr-writer`, `memory-writer`, `rules-writer`, `changelog-writer` - live
-  there too:
+  the harness will honor it too - the agent's frontmatter is the fallback for both), superdev's per-task
+  reviewer - `superbuild-task-reviewer` - lives there too, dispatched by `superbuild` after each
+  implementor run at that task's same `Model:` / `Effort:`, and superdev's four closeout writers -
+  `adr-writer`, `memory-writer`, `rules-writer`, `changelog-writer` - live there too:
   `superbuild` and `simplebuild` dispatch `adr-writer` / `memory-writer` / `rules-writer` together as
   wave 1 with the `Agent` tool in one message, then `changelog-writer` alone as wave 2, and
   `superdev-memory` / `superdev-rules` each dispatch their matching writer (`memory-writer` /
