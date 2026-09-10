@@ -15,7 +15,6 @@
     "./skills/superplan/",
     "./skills/superplan-reviewer/",
     "./skills/superbuild/",
-    "./skills/superbuild-task-reviewer/",
     "./skills/superbuild-reviewer-spec/",
     "./skills/superbuild-reviewer-change/",
     "./skills/simpleplan/",
@@ -30,6 +29,7 @@
   "agents": [
     "./agents/superbuild-task-implementor.md",
     "./agents/simplebuild-task-implementor.md",
+    "./agents/superbuild-task-reviewer.md",
     "./agents/adr-writer.md",
     "./agents/memory-writer.md",
     "./agents/rules-writer.md",
