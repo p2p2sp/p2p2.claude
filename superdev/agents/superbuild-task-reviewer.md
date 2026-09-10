@@ -5,6 +5,7 @@ tools: Read, Write, Grep, Glob, Bash
 model: opus
 effort: high
 color: purple
+background: false
 ---
 
 ## Input
