@@ -144,8 +144,8 @@ test("happy path (default prefix): builds the full tree, prints a clean index, c
           `base: ${base}`,
           `plan-header: ${header}`,
           `plan: ${planCopy}`,
-          `${task1}\tTask 1 - build widget`,
-          `${task2}\tTask 2 - ship widget`,
+          `${task1}\tTask 1 - build widget\t-\t-`,
+          `${task2}\tTask 2 - ship widget\t-\t-`,
           "",
         ].join("\n"),
       );
@@ -848,9 +848,42 @@ test("edge: a task title containing a tab breaks the tab-separated index row (do
       const dir = `docs/.workflows/${todayISO()}-tabbed-title-plan`;
       const indexLine = result.stdout.split("\n").find((l) => l.startsWith(`${dir}/tasks/task-01.md`));
       assert.ok(indexLine, `expected the task-01 index row, got:\n${result.stdout}`);
-      // one tab separates path from title in the well-formed case; the embedded
-      // tab in the title itself yields a THIRD field, breaking any \t-split parse.
-      assert.equal(indexLine!.split("\t").length, 3);
+      // tabs separate path, title, model and effort in the well-formed case (4
+      // fields); the embedded tab in the title itself yields a FIFTH field,
+      // breaking any \t-split parse.
+      assert.equal(indexLine!.split("\t").length, 5);
+    });
+  });
+});
+
+test("task Model:/Effort: markers land verbatim in the index columns; a task without them prints '-'", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-plan-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Marked Plan",
+          criteria: ["One.", "Two."],
+          tasks: [
+            taskBlock("Task 1 - marked", [1], "- TDD: none\n- Model: sonnet\n- Effort: xhigh  \nDo the work."),
+            taskBlock("Task 2 - unmarked", [2]),
+          ],
+        }),
+      );
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const dir = `docs/.workflows/${todayISO()}-marked-plan`;
+      const rows = result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`));
+      assert.deepEqual(rows, [
+        `${dir}/tasks/task-01.md\tTask 1 - marked\tsonnet\txhigh`,
+        `${dir}/tasks/task-02.md\tTask 2 - unmarked\t-\t-`,
+      ]);
+      // the marker lines stay in the task file - the implementor reads them there too
+      const task1Text = fs.readFileSync(path.join(repo.dir, dir, "tasks", "task-01.md"), "utf-8");
+      assert.match(task1Text, /^- Model: sonnet$/m);
+      assert.match(task1Text, /^- Effort: xhigh/m);
     });
   });
 });

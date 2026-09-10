@@ -1,6 +1,6 @@
 ---
 name: superbuild
-description: Use ONLY when the approved plan's body contains instruction to use it.
+description: Build orchestrator for an approved SuperPlan (a plan with a Spec line). Decomposes the plan into per-task files, dispatches the superbuild-task-implementor agent per task at the Model and Effort the plan assigned to that task, gates every task through a reviewer and a commit, then runs the final spec and code reviews and the config-gated close-out writers. Use it ONLY when the approved plan's body says to build it with the superbuild skill - never for a plan that names simplebuild, never without an approved plan.
 model: sonnet
 effort: low
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, Agent, AskUserQuestion, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh:*)
@@ -13,7 +13,7 @@ Drives an already-approved plan, task by task.
 
 ## Mandatory Rules
 You are orchestrator only. Be concise, do not explain. No prose - just simple status lines.
-Every `args` handoff to a fork (Skill) is a labeled block - one `label: <file path>` per line. Every value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong.
+Every handoff - the `args` of a fork (Skill) or the `prompt` of an agent (Agent) - is a labeled block - one `label: <file path>` per line. Every value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong.
 
 ## Config
 
@@ -39,7 +39,7 @@ Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/decompose.sh" <plan-file> superbuild` w
 - `tasks/task-NN.md` - one file per task, each carrying the verbatim acceptance criteria it covers.
 - `implementation/` - implementor deviation notes (`task-NN-notes.md`, `fix-NN-notes.md`) and review reports; created empty here, filled in Steps 2-3.
 
-It prints the task index (`workdir:` working-dir path, `status:` last processed task or `none`, `base:` the build's base SHA or `none`, `plan-header:` path, `plan:` full-plan copy path, `spec:` spec path, `intent:` intent path (optional), then `<task-file>\t<title>` per line) - use it to drive the implementation loop.
+It prints the task index (`workdir:` working-dir path, `status:` last processed task or `none`, `base:` the build's base SHA or `none`, `plan-header:` path, `plan:` full-plan copy path, `spec:` spec path, `intent:` intent path (optional), then `<task-file>\t<title>\t<model>\t<effort>` per line - `<model>` / `<effort>` verbatim from the task's `Model:` / `Effort:` markers, `-` when absent) - use it to drive the implementation loop.
 
 No `spec:` line in the index -> STOP: this plan belongs to `simplebuild`, not here. Non-zero exit (e.g. a `Covers:` criterion absent from the spec) -> STOP and show the error.
 
@@ -57,13 +57,13 @@ Starting point (from decompose `status:`):
 
 For each remaining task file (in order):
   1. `TaskUpdate` -> start
-  2. Invoke `superbuild-task-implementor` (Skill) with a labeled-line `args` block - `plan-header: <path>`, `task: <task-file path>`, and `notes: <workdir>/implementation/task-NN-notes.md` on separate lines (paths from the decompose index).
+  2. Dispatch the implementor: `Agent` with `subagent_type: superdev:superbuild-task-implementor`, `model:` = this task's `<model>` column and `effort:` = its `<effort>` column (omit a parameter whose column is `-`), and a labeled-line prompt - `plan-header: <path>`, `task: <task-file path>`, and `notes: <workdir>/implementation/task-NN-notes.md` on separate lines (paths from the decompose index). Await it.
      It returns `VERDICT: PASS`, or `VERDICT: FAIL` + a `REASON: <line>`.
        - `VERDICT: PASS`  -> continue to review
        - `VERDICT: FAIL`  -> escalate via `AskUserQuestion` (retry / skip / abort); act on the answer (abort ends the loop)
   3. Invoke `superbuild-task-reviewer` (Skill) with `plan-header: <path>`, `task: <task-file path>`, `notes: <workdir>/implementation/task-NN-notes.md`, and `report: <workdir>/implementation/task-NN-review-R.md` on separate lines (R = review round for this task, starting `1`, +1 on each reviewer call). It returns `VERDICT: PASS`, or `VERDICT: FAIL` + `REVIEW: <path>`.
        - `VERDICT: PASS`  -> continue to commit
-       - `VERDICT: FAIL`  -> invoke `superbuild-task-implementor` with `plan-header: <path>`, `plan: <plan-copy path>`, `task: <REVIEW path>`, and `notes: <workdir>/implementation/task-NN-notes.md` on separate lines (`plan` lets it source the real Test Commands), then re-run the reviewer with the next `R`.
+       - `VERDICT: FAIL`  -> dispatch `superbuild-task-implementor` again (`Agent`, same `model:` / `effort:` as in step 2) with `plan-header: <path>`, `plan: <plan-copy path>`, `task: <REVIEW path>`, and `notes: <workdir>/implementation/task-NN-notes.md` on separate lines (`plan` lets it source the real Test Commands), then re-run the reviewer with the next `R`.
          Max 3 review rounds per task -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.
   4. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<task title>" <task-file>` - commits the task and records its number in `status.md`.
   5. `TaskStop` -> completed
@@ -74,7 +74,7 @@ For each remaining task file (in order):
 2. Invoke `superbuild-reviewer-spec` (Skill) with `plan: <plan-copy path>`, `spec: <spec path>`, `base: <base SHA from the decompose index>`, `notes: <workdir>/implementation/`, and `report: <workdir>/implementation/review-NN-spec.md` on separate lines (NN = final-review round, starting `01`, +1 per round).
 3. On its `VERDICT: PASS`, invoke `superbuild-reviewer-change` (Skill) with `plan: <plan-copy path>`, `spec: <spec path>`, `base: <base SHA from the decompose index>`, `notes: <workdir>/implementation/`, and `report: <workdir>/implementation/review-NN-code.md` on separate lines.
 4. Fix loop (max 2 rounds). Both reviewers `VERDICT: PASS` -> Step 4. On any `VERDICT: FAIL` + `REVIEW: <path>`:
-    - Invoke `superbuild-task-implementor` with `spec: <path>`, `plan-header: <path>`, `plan: <plan-copy path>`, `task: <REVIEW path>`, and `notes: <workdir>/implementation/fix-NN-notes.md` on separate lines.
+    - Dispatch `superbuild-task-implementor` (`Agent`, no `model:` / `effort:` parameters) with `spec: <path>`, `plan-header: <path>`, `plan: <plan-copy path>`, `task: <REVIEW path>`, and `notes: <workdir>/implementation/fix-NN-notes.md` on separate lines.
         - implementor `VERDICT: PASS`  -> `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<fix title>"`, then re-run this step from the reviewer that failed with the next round NN (a spec fix re-runs `superbuild-reviewer-change` afterwards too).
         - implementor `VERDICT: FAIL`  -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.
     - Still `VERDICT: FAIL` after 2 rounds -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.

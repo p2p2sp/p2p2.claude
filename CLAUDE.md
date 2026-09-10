@@ -54,7 +54,11 @@ skill/agent list. This file is orientation for the assistant.
   interview synthesis to `docs/.workflows/<run>/intent.md`, lets the user stop there and resume later
   with `intent <path>`, and reads prior changelog entries and ADRs through an explicit history Explore agent
   as decision context (never as requirements). A `cleanup` config switch makes both build orchestrators remove
-  a completed run's working directory after close-out via `scripts/cleanup-run.sh`.
+  a completed run's working directory after close-out via `scripts/cleanup-run.sh`. Every plan task
+  carries a build strength - `Model:` (`sonnet` | `opus`) and `Effort:` (`low` | `medium` | `high` |
+  `xhigh`) - chosen by the planner (the user's own, usually strongest, model) for that task's
+  reasoning load, rounded up when in doubt; `decompose.sh` prints both as index columns and the build
+  orchestrator dispatches the implementor agent at exactly those values.
 - **superui** - the design / frontend ecosystem, pairing Claude Code CLI (measurement, agentic fan-out) and
   Claude Design (live, inline-styled Design Components), via a **two-stage** screenshots-to-handoff-bundle
   pipeline: `/superui:design-extractor <screenshots-dir> [<target>]` turns a folder of UI screenshots into the
@@ -149,7 +153,7 @@ Each plugin's own internal layout lives in its `<plugin>/CLAUDE.md` (`superdev` 
 .claude-plugin/
   marketplace.json   Marketplace catalog - co-lists superdev "./superdev", superui "./superui", supergh "./supergh", superfix "./superfix", superbiz "./superbiz", supercc "./supercc"
 superdev/            The superdev plugin (project memory, planning, dev pipeline; carries agents/ for its
-                     four closeout writers)
+                     two task implementors and four closeout writers)
 superui/             The superui plugin (design / frontend; NO hooks, NO manifest)  → superui/CLAUDE.md
 supergh/             The supergh plugin (GitHub / git; NO hooks, NO manifest)       → supergh/CLAUDE.md
 superfix/            The superfix plugin (codebase investigation; NO hooks/manifest) → superfix/CLAUDE.md
@@ -171,7 +175,8 @@ tests/               Dev-time regression suites for plugin scripts, run from the
                      ships with no plugin. Fixtures, expected outputs and stub scenarios stay file-local to
                      each `*.test.ts` - `tests/harness/` is the single exception, exposing shared *mechanism*
                      only (subprocess execution, temp dirs, throwaway git repos, PATH stubs, shell discovery,
-                     path-separator normalisation, read-denial, PNG fixtures), never per-script knowledge.
+                     path-separator normalisation, read-denial, directory-symlink capability, PNG fixtures),
+                     never per-script knowledge.
                      CI (.github/workflows/ci.yml, the "CI" workflow) runs the suite on ubuntu only for
                      push / pull_request, and on the full ubuntu / macos / windows matrix on manual
                      workflow_dispatch, so every test must hold under Git-Bash too: compare script-printed
@@ -179,7 +184,9 @@ tests/               Dev-time regression suites for plugin scripts, run from the
                      whatever native path it was handed); make a file unreadable with `denyRead()` from
                      `tests/harness/perms.ts`, never with `chmod`, whose mode bits Windows ignores and root
                      overrides - it gates the case on `canDenyRead()` and denies through an ACL where that
-                     is what the platform honours.
+                     is what the platform honours; gate a case that creates a symlink on `canSymlinkDir()`
+                     from `tests/harness/symlinks.ts`, because a plain Windows account gets EPERM from
+                     `fs.symlinkSync` and the case must skip with a reason rather than fail before asserting.
 docs/assets/         Images embedded in a README so they render publicly on GitHub - superdev-flow.svg
                      (the superdev Simple/Super flow diagram, embedded by superdev/README.md via the
                      relative path ../docs/assets/). Ships with no plugin; moving or deleting anything
@@ -302,8 +309,13 @@ The invariants below hold across the repo.
   agents live there too, split 2+5 across its four pipeline skills - `design-extractor` dispatches
   `source-scout`; `design-extractor-builder` dispatches `foundation-analyst` and `design-synthesizer`;
   `component-extractor` dispatches `source-scout` again and `component-scout`; `component-extractor-builder`
-  dispatches `spec-writer`, `component-synthesizer` and `bundle-reviewer`; superdev's four closeout
-  writers - `adr-writer`, `memory-writer`, `rules-writer`, `changelog-writer` - live there too:
+  dispatches `spec-writer`, `component-synthesizer` and `bundle-reviewer`; superdev's two task
+  implementors - `superbuild-task-implementor`, `simplebuild-task-implementor` - live there, dispatched per
+  task by `superbuild` / `simplebuild` with the `Agent` tool at the task's `Model:` / `Effort:` markers
+  (the `Agent` tool's per-call `model` is honored; `effort` is passed the same way on the assumption
+  the harness will honor it too - the agent's frontmatter is the fallback for both), and superdev's
+  four closeout writers - `adr-writer`, `memory-writer`, `rules-writer`, `changelog-writer` - live
+  there too:
   `superbuild` and `simplebuild` dispatch `adr-writer` / `memory-writer` / `rules-writer` together as
   wave 1 with the `Agent` tool in one message, then `changelog-writer` alone as wave 2, and
   `superdev-memory` / `superdev-rules` each dispatch their matching writer (`memory-writer` /

@@ -6,7 +6,8 @@ self-check should pass review.
 
 Stack-agnostic: every class below refers only to the plan template's own sections
 (`### Files`, `### Dependencies`, `### Test Commands`, `### Approach`, `### Edge cases`,
-`### Contracts`, `### DoD`, `TDD:`, `Covers:`) - never to a specific ecosystem's tools.
+`### Contracts`, `### DoD`, `TDD:`, `Model:`, `Effort:`, `Covers:`) - never to a specific
+ecosystem's tools.
 
 ## Evidence rule
 
@@ -37,7 +38,10 @@ evidence (see Evidence rule).
   orders a task before one it depends on.
 - B5 - Leftover placeholder: a TODO, an unfilled `<placeholder>` template token, or a mandatory
   template section left empty survives in the submitted plan.
-- B6 - Missing TDD marker: the template requires a `TDD:` marker on a task and it is absent.
+- B6 - Missing or invalid task marker: the template requires `TDD:`, `Model:` and `Effort:` on
+  every task; one is absent, or carries a value outside its allowed set (`TDD:` `required` |
+  `none`; `Model:` `sonnet` | `opus`; `Effort:` `low` | `medium` | `high` | `xhigh`), or a
+  `TDD: required` task is marked `Model: sonnet`. Settled by reading the task's marker lines.
 - B7 - Undecidable step: an implementer cannot execute a step without a decision that is absent
   from the plan. Report B7 under BLOCKED, never under FINDINGS - it needs a decision, not a fix
   the reviewer can point at.
@@ -50,7 +54,10 @@ evidence (see Evidence rule).
 
 Everything real but not in B1-B8: wording, phrasing, style preferences, task-split preference
 (one task vs. two), optional hardening not required by any acceptance criterion, "nice to have"
-suggestions. These never block - they ride along as NOTES on a PASS.
+suggestions, and a `Model:` / `Effort:` that reads too low for what the task's `### Approach`
+has to reason about (an algorithm, a state machine, a contract other tasks consume, a hard-to-undo
+change) - the author rounds up, never down, but the choice itself is not Blocking. These never
+block - they ride along as NOTES on a PASS.
 
 ## Never flag
 
@@ -71,5 +78,7 @@ Before submitting a plan for review, verify in the repo:
 - Every `### Test Commands` entry matches the repo's real build/test tooling.
 - The two-way mapping holds: every acceptance criterion is covered by at least one task, and every
   task covers at least one criterion or is traceable to the Goal/spec.
+- Every task carries `TDD:`, `Model:` and `Effort:` with values from their allowed sets, and no
+  `TDD: required` task sits on `Model: sonnet`.
 
 Fix any violation inline before submitting - do not rely on the reviewer to catch it.

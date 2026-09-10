@@ -12,6 +12,8 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 
 ## Task <N> - <title which become a commit message>
 - TDD: <marker>
+- Model: <sonnet | opus>
+- Effort: <low | medium | high | xhigh>
 - Covers: criteria #<n>[, #<m>]
 
 ### Dependencies
@@ -30,7 +32,7 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 <one line per test command>
 
 ### Approach
-<2–5 imperative steps - symbol + signature, algorithm (name the symbol, never a line number). No prose, no "figure out">
+<2-5 imperative steps - symbol + signature, algorithm (name the symbol, never a line number). No prose, no "figure out">
 
 ### Edge cases
 <error / boundary behavior this task must handle (or "none")>

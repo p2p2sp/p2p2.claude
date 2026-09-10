@@ -1,6 +1,6 @@
 ---
 name: simplebuild
-description: Use ONLY when the approved plan's body contains instruction to use it.
+description: Build orchestrator for an approved SimplePlan (a plan without a Spec line). Decomposes the plan into per-task files, dispatches the simplebuild-task-implementor agent per task at the Model and Effort the plan assigned to that task, commits every task, then runs one final review of the whole change and the config-gated close-out writers. Use it ONLY when the approved plan's body says to build it with the simplebuild skill - never for a plan that names superbuild, never without an approved plan.
 model: sonnet
 effort: low
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, Agent, AskUserQuestion, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh:*)
@@ -13,7 +13,7 @@ Drives an already-approved plan, task by task.
 
 ## Mandatory Rules
 You are orchestrator only. Be concise, do not explain. No prose - just simple status lines.
-Every `args` handoff to a fork (Skill) is a labeled block - one `label: <file path>` per line. Every value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong.
+Every handoff - the `args` of a fork (Skill) or the `prompt` of an agent (Agent) - is a labeled block - one `label: <file path>` per line. Every value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong.
 
 ## Config
 
@@ -39,7 +39,7 @@ Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/decompose.sh" <plan-file>` with the res
 - `tasks/task-NN.md` - one file per task, each carrying the verbatim acceptance criteria it covers.
 - `implementation/` - implementor deviation notes (`task-NN-notes.md`, `fix-NN-notes.md`) and reviewer reports (`review-NN.md`); created empty here, filled in Steps 2-3.
 
-It prints the task index (`workdir:` working-dir path, `status:` last processed task or `none`, `base:` the build's base SHA or `none`, `plan-header:` path, `plan:` full-plan copy path, `intent:` intent path (optional), then `<task-file>\t<title>` per line) - use it to drive the implementation loop.
+It prints the task index (`workdir:` working-dir path, `status:` last processed task or `none`, `base:` the build's base SHA or `none`, `plan-header:` path, `plan:` full-plan copy path, `intent:` intent path (optional), then `<task-file>\t<title>\t<model>\t<effort>` per line - `<model>` / `<effort>` verbatim from the task's `Model:` / `Effort:` markers, `-` when absent) - use it to drive the implementation loop.
 
 Non-zero exit (e.g. a `Covers:` criterion absent from the plan's `## Acceptance criteria`) -> STOP and show the error.
 
@@ -57,7 +57,7 @@ Starting point (from decompose `status:`):
 
 For each remaining task file (in order):
   1. `TaskUpdate` -> start
-  2. Invoke `simplebuild-implementor` (Skill) with a labeled-line `args` block - `plan-header: <path>`, `task: <task-file path>`, and `notes: <workdir>/implementation/task-NN-notes.md` on separate lines (paths from the decompose index).
+  2. Dispatch the implementor: `Agent` with `subagent_type: superdev:simplebuild-task-implementor`, `model:` = this task's `<model>` column and `effort:` = its `<effort>` column (omit a parameter whose column is `-`), and a labeled-line prompt - `plan-header: <path>`, `task: <task-file path>`, and `notes: <workdir>/implementation/task-NN-notes.md` on separate lines (paths from the decompose index). Await it.
      It returns `VERDICT: PASS`, or `VERDICT: FAIL` + a `REASON: <line>`.
        - `VERDICT: PASS`  -> continue to commit
        - `VERDICT: FAIL`  -> escalate via `AskUserQuestion` (retry / skip / abort); act on the answer (abort ends the loop)
@@ -70,7 +70,7 @@ For each remaining task file (in order):
 2. Invoke `simplebuild-reviewer` (Skill) with a labeled-line `args` block - `plan-header: <path>`, `plan: <plan-copy path>`, `base: <base SHA from the decompose index>`, `notes: <workdir>/implementation/`, and `report: <workdir>/implementation/review-NN.md` on separate lines (NN = review round, starting `01`, +1 on each reviewer call). It returns `VERDICT: PASS`, or `VERDICT: FAIL` + `REVIEW: <path>`.
 3. Fix loop (max 2 rounds):
     - `VERDICT: PASS`  -> Step 4
-    - `VERDICT: FAIL`  -> invoke `simplebuild-implementor` (Skill) with `plan-header: <path>`, `plan: <plan-copy path>`, `task: <REVIEW path>`, and `notes: <workdir>/implementation/fix-NN-notes.md` on separate lines (`plan` lets it verify the fix with the plan's real Test Commands).
+    - `VERDICT: FAIL`  -> dispatch `simplebuild-task-implementor` (`Agent`, no `model:` / `effort:` parameters) with `plan-header: <path>`, `plan: <plan-copy path>`, `task: <REVIEW path>`, and `notes: <workdir>/implementation/fix-NN-notes.md` on separate lines (`plan` lets it verify the fix with the plan's real Test Commands).
         - implementor `VERDICT: PASS`  -> `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<fix title>"`, then re-run the reviewer with the next `report:` number.
         - implementor `VERDICT: FAIL`  -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.
     - Still `VERDICT: FAIL` after 2 rounds -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.

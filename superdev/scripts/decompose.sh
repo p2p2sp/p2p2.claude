@@ -49,7 +49,13 @@
 #       plan: <ścieżka>
 #       spec: <ścieżka>          (tylko gdy plan ma linię "Spec:")
 #       intent: <path>   (only when the plan has an Intent: line naming an existing file)
-#       <ścieżka-taska><TAB><tytuł>
+#       <ścieżka-taska><TAB><tytuł><TAB><model><TAB><effort>
+#     model / effort come verbatim from the task's own "- Model:" / "- Effort:"
+#     marker lines (the plan template's per-task build-strength markers); a
+#     task carrying no such marker prints "-" in that column, and the
+#     orchestrator then passes nothing, so the implementor agent's frontmatter
+#     default applies. The script never validates the values - the plan
+#     reviewer owns that (checklist class B6)
 #   - commituje dekompozycję (git add -A + commit) komunikatem
 #     "chore(<commit-prefix>): decompose plan <slug>"; szum gita idzie na stderr,
 #     więc stdout pozostaje czystym indeksem. Outside a git repository the commit
@@ -282,12 +288,16 @@ awk -v dir="$dir" -v hdr="$header" '
   intask {
     print > f
     if (title[n] == "" && $0 ~ /^##[[:space:]]/) { t=$0; sub(/^##[[:space:]]*/, "", t); title[n]=t }
+    # per-task build-strength markers: first "- Model:" / "- Effort:" line wins;
+    # value trimmed, passed through verbatim (validity belongs to the plan reviewer)
+    if (model[n] == "" && $0 ~ /^-[[:space:]]*Model:/) { m=$0; sub(/^-[[:space:]]*Model:[[:space:]]*/, "", m); sub(/[[:space:]]+$/, "", m); model[n]=m }
+    if (effort[n] == "" && $0 ~ /^-[[:space:]]*Effort:/) { e=$0; sub(/^-[[:space:]]*Effort:[[:space:]]*/, "", e); sub(/[[:space:]]+$/, "", e); effort[n]=e }
     next
   }
 
   END {
     if (n == 0) { print "error: no <!-- TASK --> blocks found in plan" > "/dev/stderr"; exit 3 }
-    for (i = 1; i <= n; i++) printf "%s\t%s\n", files[i], title[i]
+    for (i = 1; i <= n; i++) printf "%s\t%s\t%s\t%s\n", files[i], title[i], (model[i] == "" ? "-" : model[i]), (effort[i] == "" ? "-" : effort[i])
   }
 ' "$plan"
 

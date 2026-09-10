@@ -27,6 +27,7 @@ import { runScript, type RunResult } from "../harness/run.ts";
 import { withTempDir } from "../harness/tmp.ts";
 import { forEachShell } from "../harness/shells.ts";
 import { slash } from "../harness/paths.ts";
+import { canSymlinkDir } from "../harness/symlinks.ts";
 
 const SCRIPTS_DIR = path.resolve(import.meta.dirname, "../../superdev/skills/superdev-rules/scripts");
 const DETECT_STATE = path.join(SCRIPTS_DIR, "detect_state.sh");
@@ -232,7 +233,10 @@ test("scan_conventions.sh: a .gitignore-excluded directory's files are not count
   });
 });
 
-test("scan_conventions.sh: a file reachable only through a symlinked subdirectory is not counted", () => {
+test(
+  "scan_conventions.sh: a file reachable only through a symlinked subdirectory is not counted",
+  { skip: canSymlinkDir() ? false : "this account cannot create a directory symlink" },
+  () => {
   assertBash((bash) => {
     withTempDir("p2p2-rules-scan-", (dir) => {
       fs.mkdirSync(path.join(dir, "real"), { recursive: true });
@@ -248,4 +252,5 @@ test("scan_conventions.sh: a file reachable only through a symlinked subdirector
       assert.ok(!slash(result.stdout).includes(slash(path.join(dir, "linked", "kebab-name.ts"))));
     });
   });
-});
+  },
+);

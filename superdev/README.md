@@ -42,8 +42,9 @@ Same interview on the way in, two execution tracks, one shared Close Out.
 4. **Approve the plan.** A forked reviewer must return `VERDICT: PASS` before `ExitPlanMode` is even allowed;
    then you approve it yourself.
 5. **The build runs task by task.** The orchestrator (`simplebuild` / `superbuild`) decomposes the plan into
-   `docs/.workflows/<run>/tasks/task-NN.md`, runs an implementor fork per task, commits each task separately, and
-   ends with the final review round.
+   `docs/.workflows/<run>/tasks/task-NN.md`, runs an implementor agent per task at the model and effort the plan
+   assigned to that task (`Model:` / `Effort:` markers), commits each task separately, and ends with the final
+   review round.
 6. **Close Out** runs two waves: `adr`, `memory` and `rules` in parallel, then `changelog` (which also links
    the ADR when one was written), and commits what they touched; when `cleanup: true` it then removes the
    run's working directory and commits that removal.
@@ -86,7 +87,7 @@ never called by hand.
 | `simpleplan` | Writes the plan (`How`) from the confirmed understanding - no spec, the plan carries its own DoD. Self-reviews, then calls the reviewer. |
 | `simpleplan-reviewer` | Fork - read-only plan review against the checklist; returns `VERDICT: PASS` / `FAIL` plus findings. Max 3 rounds. |
 | `simplebuild` | Sonnet orchestrator - decomposes the approved plan and drives the task loop; status lines only, no prose. |
-| `simplebuild-implementor` | Fork - implements one task, reviews its own work, runs build + tests (up to 5 rounds). |
+| `superdev:simplebuild-task-implementor` | Agent - implements one task, reviews its own work, runs build + tests (up to 5 rounds); dispatched with the `Agent` tool at the task's `Model:` / `Effort:` (frontmatter default `sonnet` / `high`). |
 | `simplebuild-reviewer` | Fork - one final review of the whole change; `FAIL` sends it back to the implementor (max 2 rounds). |
 
 ### Super track
@@ -96,10 +97,10 @@ never called by hand.
 | `superspec` | Writes the `What & Why` spec (INVEST stories, max 3 acceptance criteria each, zero TBDs) to `docs/.workflows/<run>/spec.md`, then gates on continuing to the plan. |
 | `superspec-reviewer` | Fork - spec review; no handoff without `VERDICT: PASS`. |
 | `superspec-refine` | Evolves an existing spec instead of writing a new one. |
-| `superplan` | Writes the plan (`How`) from the approved spec, marking each task `TDD: required` or `TDD: none`. |
+| `superplan` | Writes the plan (`How`) from the approved spec, marking each task `TDD: required` or `TDD: none` and assigning it a build strength - `Model:` (`sonnet` / `opus`) and `Effort:` (`low` … `xhigh`), rounded up when in doubt. |
 | `superplan-reviewer` | Fork - checks the plan against the spec and the repo; `needs-discovery` routes back to `intent` rather than looping. |
 | `superbuild` | Sonnet orchestrator - decomposes the approved plan (requires a `spec:` line, otherwise the plan belongs to `simplebuild`) and drives the task loop. |
-| `superbuild-task-implementor` | Fork (opus) - implements one task; on `TDD: required` it goes test-first and must see RED. |
+| `superdev:superbuild-task-implementor` | Agent - implements one task; on `TDD: required` it goes test-first and must see RED; dispatched with the `Agent` tool at the task's `Model:` / `Effort:` (frontmatter default `opus` / `high`). |
 | `superbuild-task-reviewer` | Fork - reviews every single task; `FAIL` sends the implementor back (max 3 rounds per task). |
 | `superbuild-reviewer-spec` | Fork - final review of the whole change against the spec. |
 | `superbuild-reviewer-change` | Fork - final review of the whole change since the base commit, run after the spec reviewer passes. |

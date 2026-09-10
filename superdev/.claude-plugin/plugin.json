@@ -15,14 +15,12 @@
     "./skills/superplan/",
     "./skills/superplan-reviewer/",
     "./skills/superbuild/",
-    "./skills/superbuild-task-implementor/",
     "./skills/superbuild-task-reviewer/",
     "./skills/superbuild-reviewer-spec/",
     "./skills/superbuild-reviewer-change/",
     "./skills/simpleplan/",
     "./skills/simpleplan-reviewer/",
     "./skills/simplebuild/",
-    "./skills/simplebuild-implementor/",
     "./skills/simplebuild-reviewer/",
     "./skills/superdev-memory/",
     "./skills/superdev-rules/",
@@ -30,6 +28,8 @@
     "./skills/simpledebug/"
   ],
   "agents": [
+    "./agents/superbuild-task-implementor.md",
+    "./agents/simplebuild-task-implementor.md",
     "./agents/adr-writer.md",
     "./agents/memory-writer.md",
     "./agents/rules-writer.md",

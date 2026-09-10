@@ -29,6 +29,7 @@ import { runScript, type RunResult } from "../harness/run.ts";
 import { withTempDir } from "../harness/tmp.ts";
 import { forEachShell } from "../harness/shells.ts";
 import { slash } from "../harness/paths.ts";
+import { canSymlinkDir } from "../harness/symlinks.ts";
 
 const SCRIPTS_DIR = path.resolve(import.meta.dirname, "../../superdev/skills/superdev-memory/scripts");
 const DETECT_STATE = path.join(SCRIPTS_DIR, "detect_state.sh");
@@ -126,7 +127,10 @@ test("detect_state.sh: default '.' argument resolves against cwd", () => {
   });
 });
 
-test("detect_state.sh: a CLAUDE.md reachable only through a symlinked subdirectory is not counted as a child node", () => {
+test(
+  "detect_state.sh: a CLAUDE.md reachable only through a symlinked subdirectory is not counted as a child node",
+  { skip: canSymlinkDir() ? false : "this account cannot create a directory symlink" },
+  () => {
   assertBash((bash) => {
     withTempDir("p2p2-mem-detect-", (dir) => {
       fs.mkdirSync(path.join(dir, "real"), { recursive: true });
@@ -141,7 +145,8 @@ test("detect_state.sh: a CLAUDE.md reachable only through a symlinked subdirecto
       assert.ok(slash(result.stdout).includes(slash(path.join(dir, "real", "CLAUDE.md"))));
     });
   });
-});
+  },
+);
 
 test("detect_state.sh: a .gitignore-excluded child directory's CLAUDE.md is not counted", () => {
   assertBash((bash) => {

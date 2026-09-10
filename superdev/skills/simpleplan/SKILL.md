@@ -1,6 +1,6 @@
 ---
 name: simpleplan
-description: Invoked by the intent or simpledebug skill, or by user command only.
+description: Writes the implementation plan (the How) for a small, contained change from an understanding already confirmed in context - an intent interview or a proven bug diagnosis - as small, independently testable tasks with exact files, commands, contracts, a TDD marker and a per-task build strength (Model and Effort), self-checks it against the plan-review checklist, and gates ExitPlanMode on a forked reviewer's VERDICT PASS. Invoked by the intent or simpledebug skill, or by explicit user command only - never spontaneously, never before an interview.
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, EnterPlanMode, ExitPlanMode, AskUserQuestion
 disallowed-tools: NotebookEdit, Task, Agent, WebFetch, WebSearch
 user-invocable: true
@@ -58,11 +58,17 @@ Every task gets `TDD: none` by default. Mark `TDD: required` ONLY when the task'
 
 Never `TDD: required` when the task's code touches the outside world directly (I/O, network, DB, filesystem, UI, framework wiring) - that yields integration tests, not a TDD cycle.
 
+**Build strength**
+Every task carries `Model:` (`sonnet` | `opus`) and `Effort:` (`low` | `medium` | `high` | `xhigh`) - the model and effort the task's implementor runs at. The implementor is a weaker model than you, so judge each task on what it has to reason about, not on its line count:
+- `Model: sonnet` only when the task follows an existing pattern step by step - wiring, configuration, a mirror of a named symbol, tests for behaviour already specified - and its `Approach` leaves nothing to design. Anything else, and every `TDD: required` task, is `Model: opus`.
+- `Effort: low` only for a mechanical task on `Model: sonnet`; `medium` for a pattern-following task with a real test cycle; `high` for a task that owns a decision - an algorithm, a contract other tasks consume, a state machine; `xhigh` for a task where a wrong choice is expensive to undo - concurrency, security, data migration, a public interface.
+- Undecided between two levels -> the higher one, for both markers; lost quality costs more than tokens.
+
 ### Self-Review
 Once you have written a complete plan and before final review, MUST fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B8 plus `## Author self-check`) - the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:
 - Verify in the repo (Read/Grep/Glob) every `### Files` path and symbol, and every `### Test Commands` command against the repo's real build/test tooling.
 - Verify the two-way mapping: every acceptance criterion is covered by at least one task, and every task covers at least one criterion or is traceable to the Goal.
-- Verify every task carries a `TDD:` marker, that each `required` one meets the criteria above.
+- Verify every task carries a `TDD:` marker, that each `required` one meets the criteria above, and that every task carries `Model:` and `Effort:` with values from the allowed sets - a `TDD: required` task on `Model: sonnet` is a violation.
 - Fix any violation inline. No need to re-review - just fix and move on. If you find a requirement with no task, add the task.
 
 ### Final Review
