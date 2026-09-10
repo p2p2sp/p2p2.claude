@@ -1,6 +1,6 @@
 ---
 name: superbuild
-description: Build orchestrator for an approved SuperPlan (a plan with a Spec line). Decomposes the plan into per-task files, dispatches the superbuild-task-implementor agent per task at the Model and Effort the plan assigned to that task, gates every task through a reviewer and a commit, then runs the final spec and code reviews and the config-gated close-out writers. Use it ONLY when the approved plan's body says to build it with the superbuild skill - never for a plan that names simplebuild, never without an approved plan.
+description: Build orchestrator for an approved SuperPlan (a plan with a Spec line). Decomposes the plan into per-task files, dispatches the superbuild-task-implementor agent per task at the Model and Effort the plan assigned to that task, gates every task through the superbuild-task-reviewer agent, dispatched at that same Model and Effort, and a commit, then runs the final spec and code reviews and the config-gated close-out writers. Use it ONLY when the approved plan's body says to build it with the superbuild skill - never for a plan that names simplebuild, never without an approved plan.
 model: sonnet
 effort: low
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, Agent, AskUserQuestion, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh:*)
@@ -61,9 +61,10 @@ For each remaining task file (in order):
      It returns `VERDICT: PASS`, or `VERDICT: FAIL` + a `REASON: <line>`.
        - `VERDICT: PASS`  -> continue to review
        - `VERDICT: FAIL`  -> escalate via `AskUserQuestion` (retry / skip / abort); act on the answer (abort ends the loop)
-  3. Invoke `superbuild-task-reviewer` (Skill) with `plan-header: <path>`, `task: <task-file path>`, `notes: <workdir>/implementation/task-NN-notes.md`, and `report: <workdir>/implementation/task-NN-review-R.md` on separate lines (R = review round for this task, starting `1`, +1 on each reviewer call). It returns `VERDICT: PASS`, or `VERDICT: FAIL` + `REVIEW: <path>`.
+  3. Dispatch the reviewer: `Agent` with `subagent_type: superdev:superbuild-task-reviewer`, the same `model:` / `effort:` as in step 2 for this task (omit a parameter whose column is `-`), and a labeled-line prompt - `plan-header: <path>`, `task: <task-file path>`, `notes: <workdir>/implementation/task-NN-notes.md`, and `report: <workdir>/implementation/task-NN-review-R.md` on separate lines (R = review round for this task, starting `1`, +1 on each reviewer dispatch). Await it. It returns `VERDICT: PASS`, `VERDICT: FAIL` + `REVIEW: <path>`, or `VERDICT: FAIL` + `REASON: <line>`.
        - `VERDICT: PASS`  -> continue to commit
-       - `VERDICT: FAIL`  -> dispatch `superbuild-task-implementor` again (`Agent`, same `model:` / `effort:` as in step 2) with `plan-header: <path>`, `plan: <plan-copy path>`, `task: <REVIEW path>`, and `notes: <workdir>/implementation/task-NN-notes.md` on separate lines (`plan` lets it source the real Test Commands), then re-run the reviewer with the next `R`.
+       - `VERDICT: FAIL` + `REVIEW:` -> dispatch `superbuild-task-implementor` again (`Agent`, same `model:` / `effort:` as in step 2) with `plan-header: <path>`, `plan: <plan-copy path>`, `task: <REVIEW path>`, and `notes: <workdir>/implementation/task-NN-notes.md` on separate lines (`plan` lets it source the real Test Commands), then dispatch the reviewer again the same way with the next `R`.
+       - `VERDICT: FAIL` + `REASON:` (no `REVIEW:` line) -> a missing reviewer input is an orchestration fault, not the implementor's: escalate via `AskUserQuestion` (retry / abort) and never re-dispatch the implementor for it; `retry` re-dispatches the reviewer the same way with the same `R` (no report was written) and does not count as a review round.
          Max 3 review rounds per task -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.
   4. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<task title>" <task-file>` - commits the task and records its number in `status.md`.
   5. `TaskStop` -> completed
