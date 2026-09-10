@@ -31,6 +31,7 @@
 
     .node { fill: var(--panel); stroke: var(--border); stroke-width: 1.5; }
     .fork { stroke-dasharray: 6 4; }
+    .agent { stroke-dasharray: 2 3; stroke-width: 2; }
     .badge { fill: var(--chip); stroke: var(--border); stroke-width: 1; }
 
     .link { fill: none; stroke-width: 1.6; stroke-opacity: .5; }
@@ -71,7 +72,7 @@
   <text x="40" y="70" class="desc" style="font-size:13px">From an idea to committed code. The same interview at the entrance, two delivery tracks.</text>
 
   <!-- ============ LEGEND ============ -->
-  <rect x="940" y="84" width="360" height="216" rx="10" fill="var(--panel2)" stroke="var(--border)" stroke-width="1.5"/>
+  <rect x="940" y="84" width="360" height="243" rx="10" fill="var(--panel2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="958" y="110" class="kicker">LEGEND</text>
 
   <rect x="958" y="122" width="30" height="14" rx="4" class="node"/>
@@ -81,19 +82,22 @@
   <rect x="958" y="149" width="30" height="14" rx="4" class="node fork"/>
   <text x="998" y="160" class="desc">fork - separate context, returns a verdict</text>
 
-  <rect x="958" y="176" width="30" height="14" rx="4" class="node"/>
-  <rect x="958" y="176" width="4" height="14" rx="2" fill="var(--blue)"/>
-  <text x="998" y="187" class="desc">script - deterministic, no LLM</text>
+  <rect x="958" y="176" width="30" height="14" rx="4" class="node agent"/>
+  <text x="998" y="187" class="desc">agent - own context, model / effort per task</text>
 
-  <rect x="958" y="203" width="30" height="14" rx="4" fill="var(--red-bg)" stroke="var(--red)" stroke-width="1.5"/>
-  <text x="998" y="214" class="desc">hook - hard block in the harness</text>
+  <rect x="958" y="203" width="30" height="14" rx="4" class="node"/>
+  <rect x="958" y="203" width="4" height="14" rx="2" fill="var(--blue)"/>
+  <text x="998" y="214" class="desc">script - deterministic, no LLM</text>
 
-  <rect x="958" y="230" width="30" height="14" rx="7" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="1.5"/>
-  <text x="998" y="241" class="desc">gate - waits for a human decision</text>
+  <rect x="958" y="230" width="30" height="14" rx="4" fill="var(--red-bg)" stroke="var(--red)" stroke-width="1.5"/>
+  <text x="998" y="241" class="desc">hook - hard block in the harness</text>
 
-  <path d="M988 265 L960 265" class="link l-n" marker-end="url(#ar-n)"/>
-  <path d="M988 265 L960 265" class="flow l-n"/>
-  <text x="998" y="269" class="desc">return loop after a FAIL</text>
+  <rect x="958" y="257" width="30" height="14" rx="7" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="1.5"/>
+  <text x="998" y="268" class="desc">gate - waits for a human decision</text>
+
+  <path d="M988 292 L960 292" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M988 292 L960 292" class="flow l-n"/>
+  <text x="998" y="296" class="desc">return loop after a FAIL</text>
 
   <!-- ============ ENTRY: BUG ============ -->
   <rect x="40" y="84" width="380" height="48" rx="24" fill="var(--chip)" stroke="var(--border)" stroke-width="1.5"/>
@@ -229,11 +233,11 @@
   <path d="M340 1106 L340 1126" class="link l-s" marker-end="url(#ar-s)"/>
   <path d="M340 1106 L340 1126" class="flow l-s"/>
 
-  <rect x="120" y="1130" width="440" height="96" rx="10" class="node fork"/>
-  <rect x="466" y="1140" width="84" height="16" rx="8" class="badge"/>
-  <text x="508" y="1152" class="badge-t" text-anchor="middle">fork · sonnet</text>
+  <rect x="120" y="1130" width="440" height="96" rx="10" class="node agent"/>
+  <rect x="430" y="1140" width="120" height="16" rx="8" class="badge"/>
+  <text x="490" y="1152" class="badge-t" text-anchor="middle">agent · plan strength</text>
   <text x="140" y="1152" class="kicker">TASK LOOP - FOR EVERY task-NN</text>
-  <text x="140" y="1176" class="title">simplebuild-implementor</text>
+  <text x="140" y="1176" class="title">simplebuild-task-implementor</text>
   <text x="140" y="1198" class="desc">Implement → own Review → Build + Test (up to 5 rounds).</text>
   <text x="140" y="1216" class="desc">FAIL → asks the user: retry / skip / abort.</text>
 
@@ -270,7 +274,7 @@
   <text x="140" y="1520" class="hdr-t" fill="var(--simple)">SIMPLE</text>
   <text x="140" y="1542" class="desc">• no spec - the plan carries its own acceptance criteria</text>
   <text x="140" y="1562" class="desc">• tasks with no TDD markers</text>
-  <text x="140" y="1582" class="desc">• implementor: sonnet, reviews itself</text>
+  <text x="140" y="1582" class="desc">• implementor agent at plan strength, reviews itself</text>
   <text x="140" y="1602" class="desc">• no review after every task</text>
   <text x="140" y="1622" class="desc">• a single reviewer at the end</text>
 
@@ -278,7 +282,7 @@
   <text x="140" y="1678" class="desc">• spec What &amp; Why + its own reviewer, then the plan</text>
   <text x="140" y="1698" class="desc">• the plan forces TDD: required on tasks</text>
   <text x="140" y="1718" class="desc">• plan-header carries out-of-scope and spec constraints</text>
-  <text x="140" y="1738" class="desc">• implementor: opus + a reviewer per task (up to 3 rounds)</text>
+  <text x="140" y="1738" class="desc">• implementor + reviewer agents per task, same strength</text>
   <text x="140" y="1758" class="desc">• two reviewers at the end: spec, then change</text>
 
   <text x="140" y="1788" class="desc-s">Shared: the same hook before ExitPlanMode · a commit per task · Close Out</text>
@@ -379,13 +383,13 @@
   <path d="M1000 1398 L1000 1418" class="link l-u" marker-end="url(#ar-u)"/>
   <path d="M1000 1398 L1000 1418" class="flow l-u"/>
 
-  <rect x="780" y="1422" width="440" height="120" rx="10" class="node fork"/>
-  <rect x="1132" y="1432" width="78" height="16" rx="8" class="badge"/>
-  <text x="1171" y="1444" class="badge-t" text-anchor="middle">fork · opus</text>
+  <rect x="780" y="1422" width="440" height="120" rx="10" class="node agent"/>
+  <rect x="1090" y="1432" width="120" height="16" rx="8" class="badge"/>
+  <text x="1150" y="1444" class="badge-t" text-anchor="middle">agent · plan strength</text>
   <text x="800" y="1444" class="kicker">TASK LOOP - FOR EVERY task-NN</text>
   <text x="800" y="1468" class="title">superbuild-task-implementor</text>
   <text x="800" y="1490" class="desc">TDD: required → red-green-refactor: test first, see it RED.</text>
-  <text x="800" y="1510" class="desc">→ superbuild-task-reviewer (fork) reviews every task.</text>
+  <text x="800" y="1510" class="desc">→ superbuild-task-reviewer agent (same strength) gates each task.</text>
   <text x="800" y="1530" class="desc">FAIL → the implementor fixes · after 3 rounds it asks the user.</text>
 
   <path d="M1000 1542 L1000 1562" class="link l-u" marker-end="url(#ar-u)"/>
