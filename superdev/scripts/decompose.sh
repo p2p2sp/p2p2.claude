@@ -12,6 +12,12 @@
 #   - simpleplan: nagłówek to Title + sekcja HEADER (Goal/Context/Acceptance)
 #   - superplan:  nagłówek to Title + Spec (brak sekcji HEADER)
 #
+# The plan file is resolved to an absolute path and, inside a git repository,
+# the script moves to the repository root before deriving anything - so a run
+# started from a subdirectory builds the same working dir, prints the same
+# index and commits the same paths as one started from the root. Outside a
+# repository the cwd stays put and paths resolve against it, as before.
+#
 # Działanie:
 #   - katalog roboczy: gdy linia "Intent:" planu (albo, w jej braku, "Spec:")
 #     wskazuje na plik już leżący pod docs/.workflows/, ADOPTOWANY jako katalog
@@ -46,6 +52,13 @@
 #   - tworzy pusty katalog implementation/ na raporty reviewera (Final Review)
 #   - wypisuje na stdout indeks tasków dla pętli implementacji:
 #       workdir: <ścieżka do docs/.workflows/<data>-<slug>/>
+#       root: <absolute path of the repository root the paths above are
+#              relative to; outside a repository, the absolute cwd. The
+#              orchestrator joins it with the relative paths of this index to
+#              build the absolute path of every fork / agent label, so a build
+#              started from any cwd hands its workers the same files. workdir:
+#              itself stays repository-relative - cleanup-run.sh needs it that
+#              way>
 #       status: <numer-ostatniego-taska | none>
 #       base: <SHA | none>
 #       plan-header: <ścieżka>
@@ -59,8 +72,11 @@
 #     orchestrator then passes nothing, so the implementor agent's frontmatter
 #     default applies. The script never validates the values - the plan
 #     reviewer owns that (checklist class B6)
-#   - commituje dekompozycję (git add -A + commit) komunikatem
-#     "chore(<commit-prefix>): decompose plan <slug>"; szum gita idzie na stderr,
+#   - commituje dekompozycję (git add -A -- <katalog roboczy> + commit)
+#     komunikatem
+#     "chore(<commit-prefix>): decompose plan <slug>"; w indeksie ląduje
+#     WYŁĄCZNIE katalog roboczy zbudowany przez ten bieg, nigdy inne zmiany
+#     z drzewa roboczego; szum gita idzie na stderr,
 #     więc stdout pozostaje czystym indeksem. Outside a git repository the commit
 #     is skipped (note on stderr, exit 0) - the working dir is already complete,
 #     so a missing repo must never fail the decomposition
@@ -79,6 +95,23 @@ fi
 if [[ ! -f "$plan" ]]; then
   echo "error: plan file not found: $plan" >&2
   exit 1
+fi
+
+# --- repository root as the working directory ---
+# Every path derived below (the working dir, the index lines, the commit
+# pathspec) is repository-root relative, so a run must not depend on the
+# directory its caller was started in: resolve the plan to an absolute path
+# first - it may well be relative to that caller's cwd - and only then move to
+# the repository root. Outside a repository there is no root to move to, so the
+# cwd stays put and every derived path resolves against it, exactly as before.
+plan_dir="$(CDPATH= cd -- "$(dirname -- "$plan")" && pwd)"
+plan="${plan_dir%/}/$(basename -- "$plan")"
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -n "$repo_root" && -d "$repo_root" ]]; then
+  CDPATH= cd -- "$repo_root"
+else
+  repo_root="$(pwd)"
 fi
 
 # --- slug z tytułu planu ---
@@ -270,6 +303,7 @@ fi
 # --- podział na pliki tasków + indeks na stdout ---
 # workdir: katalog roboczy; status: numer ostatniego taska (lub none); potem nagłówek + taski.
 echo "workdir: $dir"
+echo "root: $repo_root"
 if [[ "$((10#$last))" -gt 0 ]]; then
   echo "status: $last"
 else
@@ -341,9 +375,11 @@ if ! git rev-parse --git-dir >/dev/null 2>&1; then
   exit 0
 fi
 
-# artefakty robocze + wszelkie zmiany drzewa; szum gita kierujemy na stderr,
-# aby stdout niósł wyłącznie indeks parsowany przez skill.
-git add -A
+# Only the run directory this script built enters the decomposition commit:
+# whatever else sits in the working tree (a parallel edit, a stray file) is the
+# user's, and staging it here would smuggle it into a commit nobody declared.
+# Git noise goes to stderr, so stdout carries the index alone.
+git add -A -- "$dir"
 if git diff --cached --quiet; then
   echo "decompose: nothing to commit" >&2
 else

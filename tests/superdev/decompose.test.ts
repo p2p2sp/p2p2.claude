@@ -2,10 +2,11 @@
  * decompose.test.ts - proves decompose.sh's plan -> working-dir contract:
  * `decompose.sh <plan-file> [commit-prefix]` builds
  * docs/.workflows/<date>-<slug>/{plan-header.md,plan.md,status.md,base.md,
- * tasks/task-NN.md,implementation/}, prints a clean stdout index (all git
- * noise on stderr), commits the decomposition - skipping only that commit, and
- * keeping the built tree, outside a git repository - and exits 1/4/5 on its
- * documented error paths.
+ * tasks/task-NN.md,implementation/} under the repository root whatever cwd it
+ * was started in, prints a clean stdout index (all git noise on stderr) whose
+ * `root:` line names that root, commits the run directory ALONE - skipping
+ * only that commit, and keeping the built tree, outside a git repository - and
+ * exits 1/4/5 on its documented error paths.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -112,6 +113,40 @@ function subjectOf(repo: GitRepo): string {
   return repo.git("log", "-1", "--format=%s").stdout.trim();
 }
 
+/** The repository root as git itself spells it - the oracle for the index's
+ *  `root:` line. Not compared against `repo.dir` directly: git prints the
+ *  physical path (macOS resolves /var -> /private/var, Git-Bash expands an 8.3
+ *  short name), which is the same directory under another spelling. */
+function toplevelOf(repo: GitRepo): string {
+  const result = repo.git("rev-parse", "--show-toplevel");
+  assert.equal(result.status, 0, `rev-parse --show-toplevel failed: ${result.stderr}`);
+  return result.stdout.trim();
+}
+
+/** Separators normalised, any trailing slash dropped and a Windows drive
+ *  letter upper-cased, so a path printed by the script compares equal to the
+ *  same path spelled by Node or by another git call. */
+function normaliseAbs(value: string): string {
+  return slash(value.trim())
+    .replace(/\/+$/, "")
+    .replace(/^([a-z]):/, (_match, drive: string) => `${drive.toUpperCase()}:`);
+}
+
+function indexValue(stdout: string, label: string): string | undefined {
+  const line = stdout.split("\n").find((l) => l.startsWith(`${label}: `));
+  return line === undefined ? undefined : line.slice(label.length + 2).trim();
+}
+
+/** Every path in the last commit, one per line. */
+function committedPaths(repo: GitRepo): string[] {
+  const result = repo.git("show", "--name-only", "--pretty=format:", "HEAD");
+  assert.equal(result.status, 0, `git show failed: ${result.stderr}`);
+  return result.stdout
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+}
+
 // --- happy path ----------------------------------------------------------
 
 test("happy path (default prefix): builds the full tree, prints a clean index, commits with the default prefix", () => {
@@ -140,6 +175,7 @@ test("happy path (default prefix): builds the full tree, prints a clean index, c
         result.stdout,
         [
           `workdir: ${dir}`,
+          `root: ${toplevelOf(repo)}`,
           "status: none",
           `base: ${base}`,
           `plan-header: ${header}`,
@@ -232,6 +268,99 @@ test("superbuild track: criteria/out-of-scope/constraints are sourced from the s
       const task1Text = fs.readFileSync(path.join(repo.dir, dir, "tasks", "task-01.md"), "utf-8");
       assert.match(task1Text, /### Covered criteria\n1\. Spec-sourced criterion\.\n$/);
     });
+  });
+});
+
+// --- the commit stages the run directory alone ---------------------------
+
+test("a dirty working tree: a pre-existing modified tracked file and an untracked stray file are not part of the decomposition commit", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    // the user's own work, sitting in the tree before the build starts
+    fs.writeFileSync(path.join(repo.dir, "README.md"), "seed\nmy own edit\n");
+    fs.writeFileSync(path.join(repo.dir, "stray.txt"), "my own untracked file\n");
+
+    withTempDir("p2p2-decompose-dirty-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Dirty Tree Plan",
+          criteria: ["One."],
+          tasks: [taskBlock("Task 1 - do it", [1])],
+        }),
+      );
+
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+      const dir = `docs/.workflows/${todayISO()}-dirty-tree-plan`;
+      assert.equal(subjectOf(repo), "chore(simplebuild): decompose plan dirty-tree-plan");
+
+      // the commit carries the run directory and nothing else
+      const committed = committedPaths(repo);
+      assert.ok(
+        committed.includes(`${dir}/plan.md`),
+        `expected the run directory in the commit, got:\n${committed.join("\n")}`,
+      );
+      for (const p of committed) {
+        assert.ok(
+          p.startsWith("docs/.workflows/"),
+          `foreign path swept into the decomposition commit: ${p}`,
+        );
+      }
+
+      // the user's changes stay in the working tree, uncommitted and untouched
+      const status = repo.git("status", "--porcelain", "--untracked-files=all").stdout;
+      assert.match(status, /^ ?M README\.md$/m);
+      assert.match(status, /^\?\? stray\.txt$/m);
+      assert.equal(fs.readFileSync(path.join(repo.dir, "README.md"), "utf-8"), "seed\nmy own edit\n");
+    });
+  });
+});
+
+// --- cwd independence ----------------------------------------------------
+
+test("run from a subdirectory of the repo: the working dir is created under the repo root and the index prints root:", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    const sub = path.join(repo.dir, "sub");
+    fs.mkdirSync(sub, { recursive: true });
+    // the plan sits at the repo root, so the argument is relative to the
+    // SUBDIRECTORY the script is started in - the caller's cwd, not the root
+    fs.writeFileSync(
+      path.join(repo.dir, "plan.md"),
+      simplePlan({
+        title: "Subdir Plan",
+        criteria: ["One."],
+        tasks: [taskBlock("Task 1 - do it", [1])],
+      }),
+    );
+
+    const result = runScript(SUT, ["../plan.md"], { cwd: sub, env: repo.env, shell: "bash" });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+    const dir = `docs/.workflows/${todayISO()}-subdir-plan`;
+    assert.match(result.stdout, new RegExp(`^workdir: ${dir}$`, "m"));
+
+    // built under the repo root, never under the cwd the run started in
+    assert.ok(fs.existsSync(path.join(repo.dir, dir, "tasks", "task-01.md")));
+    assert.equal(fs.existsSync(path.join(sub, "docs")), false);
+
+    // root: names the repository root itself, not that cwd
+    const root = indexValue(result.stdout, "root");
+    assert.ok(root, `expected a root: line in:\n${result.stdout}`);
+    assert.equal(normaliseAbs(root!), normaliseAbs(toplevelOf(repo)));
+    assert.ok(
+      normaliseAbs(root!).endsWith(`/${path.basename(repo.dir)}`),
+      `expected root: to end at the repository directory, got: ${root}`,
+    );
+    assert.doesNotMatch(normaliseAbs(root!), /\/sub$/);
+
+    // and the commit still carries only the run directory
+    for (const p of committedPaths(repo)) {
+      assert.ok(p.startsWith("docs/.workflows/"), `foreign path in the commit: ${p}`);
+    }
   });
 });
 
@@ -774,6 +903,9 @@ test("edge: outside a git repository the tree is built and the commit is skipped
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       assert.match(result.stderr, /decompose: not a git repository - skipping commit/);
       assert.match(result.stdout, /^base: none$/m);
+      // no repository root to move to: root: falls back to the absolute cwd,
+      // whatever spelling this platform's shell gives it
+      assert.match(result.stdout, /^root: \S.*$/m);
 
       // the decomposition itself is complete and SURVIVES - the cleanup trap is
       // disarmed before the commit section, so nothing rolls the working dir back.
