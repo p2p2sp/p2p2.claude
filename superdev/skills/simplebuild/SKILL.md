@@ -14,6 +14,14 @@ Drives an already-approved plan, task by task.
 ## Mandatory Rules
 You are orchestrator only. Be concise, do not explain. No prose - just simple status lines.
 Every handoff - the `args` of a fork (Skill) or the `prompt` of an agent (Agent) - is a labeled block - one `label: <file path>` per line. Every value is a PATH; NEVER paste file content (content breaks the fork's shell preload). A bare path with no label is equally wrong.
+Every agent runs through the `Agent` tool - you never do a worker's job yourself: no implementing, no editing project files, no writing what an agent owes. Its absence from your tool pool means the harness lost the tool, never that you may stand in for the worker: STOP at once, report exactly these four lines, and end the turn - do not decompose, do not commit, do not continue.
+
+```
+AGENT TOOL UNAVAILABLE - stopped at <step>.
+Nothing was implemented, written or committed in its place.
+State: <workdir> - last completed task <NN from status.md>, or "not decomposed yet".
+Fix: exit this session, restart with `claude --resume`, then ask to continue this build (this skill is `user-invocable: false` - there is no slash command).
+```
 
 ## Config
 
@@ -24,6 +32,8 @@ Resolved opt-in switches (missing file/key = `false`; nothing below breaks on a 
 These gate the Close-Out delegations (Step 4: `adr`, `rules`, `memory`, `changelog`) and the run cleanup (Step 5: `cleanup`). Run a delegation ONLY when its line above reads exactly `true`; anything else (`false`, absent, or an unresolved block) = skip.
 
 ## Step 1 - Decompose Plan
+
+Preflight the tool pool: the `Agent` tool must be present - absent -> STOP and report per `## Mandatory Rules`, with `State: not decomposed yet`. Do not resolve the plan, do not preflight git, do not run `decompose.sh`.
 
 Resolve `<plan-file>` from the `Plan:` line of the approved plan already in context - never guessed. No `Plan:` line -> STOP on the same branch below. Then verify identity: `grep -m1 '^Title:' <plan-file>` must equal the approved plan's own `Title:` line. Missing file or a differing `Title:` -> STOP: report that the plan file at that path is absent or holds a different plan (a plan-slug collision may have overwritten it); do not decompose, do not fall back, do not rewrite the plan from context.
 

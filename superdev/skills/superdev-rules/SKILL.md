@@ -15,6 +15,15 @@ Discovers the host project's coding conventions (naming, testing, error-handling
 
 **Frozen `_` convention.** A basename with a leading underscore (`_{topic}.md`) is frozen: the native loader still loads it, but this skill never reads, scores, audits, or proposes it - reserved for hand-authored or bootstrap meta-rules that must stay immutable. Never emit a capture slug starting with `_`.
 
+**The `superdev:rules-writer` agent writes this skill's output - you never write a rule file yourself.** The `Agent` tool missing from your tool pool means the harness lost the tool, never that you may stand in for the writer: STOP at once, report exactly these four lines, and end the turn.
+
+```
+AGENT TOOL UNAVAILABLE - stopped at <step>.
+Nothing was written in its place.
+State: .temp/superdev/rules/capture-<RUN_ID>.md, or "no capture written yet".
+Fix: exit this session, restart with `claude --resume`, then run `superdev-rules` again.
+```
+
 ## Run ID
 
 !`date +%Y%m%d-%H%M%S`
@@ -24,6 +33,10 @@ The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture
 ## Workflow
 
 ```
+0. Preflight
+   `Agent` tool present in your tool pool? Absent → STOP and report per `## Core Principle`
+   (State: no capture written yet). Do not run the scripts, do not start the interview.
+
 1. Detect state
    scripts/detect_state.sh /path/to/project
    → Returns: none | partial | complete

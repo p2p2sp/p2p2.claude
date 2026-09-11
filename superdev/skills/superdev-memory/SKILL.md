@@ -13,6 +13,15 @@ Hierarchical CLAUDE.md infrastructure so CLAUDE navigate codebases like senior e
 
 **Keep exactly ONE root context file** (`CLAUDE.md`) at the project root - do not split root-level memory across competing files. Child `CLAUDE.md` files in subdirectories are encouraged for complex subsystems.
 
+**The `superdev:memory-writer` agent writes this skill's output - you never write a node yourself.** The `Agent` tool missing from your tool pool means the harness lost the tool, never that you may stand in for the writer: STOP at once, report exactly these four lines, and end the turn.
+
+```
+AGENT TOOL UNAVAILABLE - stopped at <step>.
+Nothing was written in its place.
+State: .temp/superdev/memory/capture-<RUN_ID>.md, or "no capture written yet".
+Fix: exit this session, restart with `claude --resume`, then run `superdev-memory` again.
+```
+
 ## Run ID
 
 !`date +%Y%m%d-%H%M%S`
@@ -22,6 +31,10 @@ The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture
 ## Workflow
 
 ```
+0. Preflight
+   `Agent` tool present in your tool pool? Absent → STOP and report per `## Core Principle`
+   (State: no capture written yet). Do not run the scripts, do not start the interview.
+
 1. Detect state
    scripts/detect_state.sh /path/to/project
    → Returns: none | partial | complete
