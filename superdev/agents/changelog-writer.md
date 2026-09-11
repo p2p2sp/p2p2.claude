@@ -4,6 +4,7 @@ description: Invoked only by superbuild, simplebuild, superdev-memory or superde
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
 effort: low
+color: yellow
 ---
 
 # SuperDev Changelog Writer

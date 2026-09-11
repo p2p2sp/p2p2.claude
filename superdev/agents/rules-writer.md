@@ -4,6 +4,7 @@ description: Invoked only by superbuild, simplebuild, superdev-memory or superde
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
 effort: medium
+color: yellow
 ---
 
 # SuperDev Rules Writer

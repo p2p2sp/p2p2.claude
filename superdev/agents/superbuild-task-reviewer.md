@@ -4,7 +4,7 @@ description: A fast per-task gate that judges the uncommitted work of one plan t
 tools: Read, Write, Grep, Glob, Bash
 model: opus
 effort: high
-color: purple
+color: green
 background: false
 ---
 
