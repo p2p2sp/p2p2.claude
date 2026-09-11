@@ -41,7 +41,7 @@ Read the plan, the spec, and the checklist (via Read) before checking anything.
 
 Put every finding in exactly one of three buckets:
 
-- FINDINGS - Blocking only: a finding that violates one of the checklist's Blocking classes (B1-B8; B7 goes to BLOCKED, never here). Each entry names the violated class ID, cites repo evidence verified with Read/Grep/Glob, and says how to fix it.
+- FINDINGS - Blocking only: a finding that violates one of the checklist's Blocking classes (B1-B14; B7 goes to BLOCKED, never here). Each entry names the violated class ID, cites repo evidence verified with Read/Grep/Glob, and says how to fix it.
 - BLOCKED - needs knowledge not in the inputs: an unresolved design decision, an architectural choice the spec leaves open, a security gap needing a product decision; includes the checklist's B7 (undecidable step).
 - NOTES - Advisory: everything real but not Blocking per the checklist (wording, style, task-split preference, optional hardening, "nice to have"). Never affects the verdict.
 

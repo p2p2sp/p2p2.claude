@@ -5,7 +5,7 @@ Shared rubric for plan review. Authors (`simpleplan`, `superplan` self-review) a
 self-check should pass review.
 
 Stack-agnostic: every class below refers only to the plan template's own sections
-(`### Files`, `### Dependencies`, `### Test Commands`, `### Approach`, `### Edge cases`,
+(`### Files`, `### Dependencies`, `### Test Commands`, `### Approach`, `### Failure modes`,
 `### Contracts`, `### DoD`, `TDD:`, `Model:`, `Effort:`, `Covers:`) - never to a specific
 ecosystem's tools.
 
@@ -15,7 +15,7 @@ A reviewer verifies with Read/Grep/Glob ONLY and never executes a command - no b
 `git`, no shell of any kind. Path existence -> Glob; a symbol's or a command's presence in a file ->
 Grep; content -> Read.
 
-A Blocking finding must cite its class ID (B1-B8) plus concrete evidence gathered that way - quote
+A Blocking finding must cite its class ID (B1-B14) plus concrete evidence gathered that way - quote
 the file, path, or command checked. A suspicion that cannot be verified with Read/Grep/Glob is not
 Blocking: demote it to NOTES, phrased as a question.
 
@@ -49,10 +49,35 @@ evidence (see Evidence rule).
   derived rule is defined independently in the `### Approach` of two or more tasks instead of
   owned by one task and referenced by the rest. Grep the plan for the same data field or rule
   name described separately across multiple tasks' `### Approach` sections.
+- B9 - Failure branch with no decision: a `### Failure modes` bullet that omits its response, its
+  log or its test; the section left as a bare `none` with no one-word reason; or a `### Approach`
+  step that decides a failure behaviour (a `catch`, a fallback, a default on error) which no
+  `### Failure modes` bullet covers. A plan drafted before the rename still carries `### Edge cases`
+  in place of `### Failure modes`: treat that section as `### Failure modes` and apply B9 to it.
+  Settled by reading the task's `### Approach` and `### Failure modes` together.
+- B10 - Extended closed set with no consumer list: `### Approach` or `### Contracts` adds a member
+  to a closed set (an enum member, a union variant, a status, a kind) and `### Contracts` lists no
+  consumers of that set. Grep the repo for the set's type name - every hit that branches on it is a
+  consumer the plan owes a line.
+- B11 - Response mechanism changed with no matrix: a task changes how a response is produced
+  (redirect vs rewrite, proxy vs direct call, a status code family) and `### Contracts` carries no
+  method-and-status matrix for it - one line per method with the status codes before and after.
+  Settled by reading that task's `### Approach` against its `### Contracts`.
+- B12 - External value used unvalidated: a value from outside the process (a header, a path segment,
+  a query parameter, a form field, an environment variable) enters a path, a query, a command, or a
+  routing decision, and neither `### Contracts` nor `### Failure modes` states its validation rule.
+  Grep the plan for the value's name, then read both sections of the task that consumes it.
+- B13 - Test that cannot fail: a test described in `### Approach`, `### Test Commands`, or `### DoD`
+  whose assertion already holds without the change - a fixture equal to the expected value, an
+  assertion on a constant, a throttle test with no throttled call. Read the planned test against the
+  behaviour it is meant to prove.
+- B14 - Contract or shared value with no consuming task: a `### Contracts` entry that another task's
+  `### Approach` references while naming no `consumed by Task <N>`, or a value the plan describes as
+  produced and no task consumes. Grep the plan for the contract's name across all tasks.
 
 ## Advisory (NOTES)
 
-Everything real but not in B1-B8: wording, phrasing, style preferences, task-split preference
+Everything real but not in B1-B14: wording, phrasing, style preferences, task-split preference
 (one task vs. two), optional hardening not required by any acceptance criterion, "nice to have"
 suggestions, and a `Model:` / `Effort:` that reads too low for what the task's `### Approach`
 has to reason about (an algorithm, a state machine, a contract other tasks consume, a hard-to-undo
@@ -80,5 +105,15 @@ Before submitting a plan for review, verify in the repo:
   task covers at least one criterion or is traceable to the Goal/spec.
 - Every task carries `TDD:`, `Model:` and `Effort:` with values from their allowed sets, and no
   `TDD: required` task sits on `Model: sonnet`.
+- Every `### Failure modes` bullet carries its response, its log and its test; a `none` carries its
+  one-word reason; no `### Approach` step decides a failure behaviour of its own.
+- Every closed set a task extends lists that set's consumers under `### Contracts` (Grep the type
+  name to find them).
+- Every change of the response mechanism carries its method-and-status matrix under `### Contracts`.
+- Every external value entering a path, query, command or routing decision carries its validation
+  rule under `### Contracts` or `### Failure modes`.
+- Every planned test can fail before the change it proves.
+- Every contract another task consumes names that task (`consumed by Task <N>`), and no value the
+  plan produces is left unconsumed.
 
 Fix any violation inline before submitting - do not rely on the reviewer to catch it.

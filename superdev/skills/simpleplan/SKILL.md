@@ -38,6 +38,15 @@ Before defining tasks, map out which files will be created or modified and what 
 - Files that change together should live together. Split by responsibility, not by technical layer.
 - In existing codebases, follow established patterns. If the codebase uses large files, don't unilaterally restructure - but if a file you're modifying has grown unwieldy, including a split in the plan is reasonable.
 
+Then write each task's sections so the checklist's Blocking classes B9-B14 have nothing to flag:
+- Every failure branch the task decides goes under `### Failure modes` in the fixed shape `when <X fails | input is invalid | two <X> run concurrently> -> response <Y>, log <Z>, test <T>`; nothing to handle is `none - <one-word reason>`, never a bare `none`.
+- `### Approach` carries symbol, signature and algorithm only - never line-by-line code, never a failure decision (a `catch`, a fallback, a default on error lives under `### Failure modes`).
+- A task that extends a closed set (an enum member, a variant, a status, a kind) lists that set's consumers under `### Contracts`; Grep the type name to find them.
+- A task that changes how a response is produced (redirect vs rewrite, proxy vs direct, a status code family) carries a method-and-status matrix under `### Contracts`, one line per method with the status codes before and after.
+- A value from outside the process (a header, a path segment, a query parameter, a form field, an environment variable) that enters a path, query, command or routing decision carries its validation rule under `### Contracts` or `### Failure modes`.
+- Every contract another task consumes names that task as `consumed by Task <N>`; a value produced and consumed by nobody does not belong in the plan.
+- Every planned test must be able to fail before the change it proves - no fixture already equal to the expected value, no assertion on a constant.
+
 This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
 
 **Task Sizing**
@@ -65,7 +74,7 @@ Every task carries `Model:` (`sonnet` | `opus`) and `Effort:` (`low` | `medium` 
 - Undecided between two levels -> the higher one, for both markers; lost quality costs more than tokens.
 
 ### Self-Review
-Once you have written a complete plan and before final review, MUST fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B8 plus `## Author self-check`) - the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:
+Once you have written a complete plan and before final review, MUST fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B14 plus `## Author self-check`) - the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:
 - Verify in the repo (Read/Grep/Glob) every `### Files` path and symbol, and every `### Test Commands` command against the repo's real build/test tooling.
 - Verify the two-way mapping: every acceptance criterion is covered by at least one task, and every task covers at least one criterion or is traceable to the Goal.
 - Verify every task carries a `TDD:` marker, that each `required` one meets the criteria above, and that every task carries `Model:` and `Effort:` with values from the allowed sets - a `TDD: required` task on `Model: sonnet` is a violation.
