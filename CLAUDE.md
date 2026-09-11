@@ -187,9 +187,10 @@ docs/.workflows/     Per-run working directories of superdev builds executed ON 
                      intent.md, spec.md, plan copy, tasks and implementation reports live together inside
                      docs/.workflows/<run>/, with base.md and checkpoint.md (the last closed review round)
                      at the run root and implementation/ holding the task and fix notes, one report per
-                     review round (checkpoint-NN.md, review-01*.md and their -reN re-reviews), debt.md
-                     (every round's Minor findings) and decisions.md (criteria the user accepted when a
-                     reviewer returned BLOCKED) - removed by `cleanup-run.sh` after a completed build when
+                     review round (checkpoint-KK.md, review-01*.md and their -reN re-reviews), debt.md
+                     (every round's Minor findings) and decisions.md (findings and criteria the user
+                     accepted - at a BLOCKED verdict or when closing a round with findings still open)
+                     - removed by `cleanup-run.sh` after a completed build when
                      `cleanup: true`; the changelog is the history. A run too large for one spec also gets
                      a roadmap.md and one phases/NN-<slug>/ nested workdir per phase, each holding its own
                      intent.md, plan and tasks; cleanup-run.sh removes a completed phase's directory, and

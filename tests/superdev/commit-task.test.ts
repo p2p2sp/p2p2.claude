@@ -1,6 +1,6 @@
 /*
  * commit-task.test.ts - proves commit-task.sh's contract: `commit-task.sh
- * <message> [task-file] [--notes <notes-file>] [--path <pathspec>]...`
+ * <message> [task-file] [--notes <notes-file>] [--path <path>]...`
  * delegates to status-update.sh first (so a bumped status.md rides IN the same
  * commit as the task's work), then stages ONLY the declared set - the task
  * file's `### Files` paths, the notes file's `touched:` paths, every `--path`

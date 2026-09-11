@@ -15,7 +15,8 @@
 #
 # Any missing argument -> usage on stderr, exit 1.
 #
-# Overwrites <workdir>/checkpoint.md with exactly two lines:
+# Creates <workdir> when it is missing, then overwrites
+# <workdir>/checkpoint.md with exactly two lines:
 #   since: <since-sha>
 #   prior: <prior-report>
 # decompose.sh already preserves any file in an existing run directory other
@@ -39,6 +40,11 @@ dir="${raw_workdir%/}"
 [[ "$dir" == ./* ]] && dir="${dir#./}"
 
 checkpoint="$dir/checkpoint.md"
+
+# The run directory normally exists (decompose.sh built it); creating it here
+# keeps a missing one from surfacing as a raw redirection error, exactly as
+# record-decision.sh does for its own directory.
+mkdir -p "$dir"
 
 {
   printf 'since: %s\n' "$since_sha"

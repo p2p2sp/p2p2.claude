@@ -3,7 +3,7 @@
 # commit-task.sh - commits one task's work, staging only the declared set.
 #
 # Usage:
-#   commit-task.sh <message> [task-file] [--notes <notes-file>] [--path <pathspec>]...
+#   commit-task.sh <message> [task-file] [--notes <notes-file>] [--path <path>]...
 #
 # Parameters:
 #   message     (required) - the commit message.
@@ -13,7 +13,10 @@
 #   --notes     (optional) - a notes file; every "touched: <path>" line in it
 #               joins the declared set.
 #   --path      (optional, repeatable) - one more path for the declared set; a
-#               directory declares everything below it. A fresh repository's
+#               directory declares everything below it. A literal path, never a
+#               git pathspec: it is normalised, checked for existence and
+#               matched by prefix, so a magic pathspec (":(exclude)x", a glob)
+#               is dropped as a path that does not exist. A fresh repository's
 #               initial commit declares its whole tree with `--path .`; there is
 #               no flag that stages without a declared path.
 #
@@ -54,7 +57,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
-  echo "usage: commit-task.sh <message> [task-file] [--notes <notes-file>] [--path <pathspec>]..." >&2
+  echo "usage: commit-task.sh <message> [task-file] [--notes <notes-file>] [--path <path>]..." >&2
 }
 
 # Strips leading and trailing whitespace.
@@ -98,7 +101,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --path)
       if [[ $# -lt 2 ]]; then
-        echo "error: --path requires a <pathspec>" >&2
+        echo "error: --path requires a <path>" >&2
         usage
         exit 1
       fi

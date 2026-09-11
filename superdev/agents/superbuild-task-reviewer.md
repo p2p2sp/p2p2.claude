@@ -25,6 +25,8 @@ Run `git status --short` with `Bash` and treat its output as the uncommitted wor
 ## Scope
 A fast per-task gate, not a full review - whole-plan conformance and deep code/architecture review are separate, later dimensions. Judge ONLY the uncommitted work (working tree vs HEAD, plus untracked files) against `## task`.
 
+One exclusion: everything under the run's own working directory - the directory holding `## task` itself (`docs/.workflows/<run>/`, its `implementation/` subdirectory included) - is build bookkeeping written by other workers: notes, review reports, `debt.md`, `decisions.md`, `checkpoint.md`, `status.md`. It is never part of this task's diff whether or not `## task` lists it, so it is never an out-of-bounds change and never a finding.
+
 ## Check
 Read the diff with fresh eyes and check, in order:
 - Meets its target: the task's `Approach` delivered, `DoD` met, the acceptance criteria under its `Covered criteria` served; `TDD: required` -> tests exist and exercise the new behavior. Any deviation justified.

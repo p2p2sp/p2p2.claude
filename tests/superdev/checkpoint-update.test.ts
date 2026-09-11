@@ -55,6 +55,18 @@ test("missing argument -> exit 1 with usage on stderr", () => {
   });
 });
 
+test("a workdir that does not exist yet is created, not reported as a redirection error", () => {
+  withTempDir("p2p2-checkpoint-update-", (dir) => {
+    const workdir = path.join(dir, "docs", ".workflows", "run");
+    const result = runScript(SUT, [workdir, "abc1234", "implementation/checkpoint-01.md"], { cwd: dir });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(
+      fs.readFileSync(path.join(workdir, "checkpoint.md"), "utf-8"),
+      "since: abc1234\nprior: implementation/checkpoint-01.md\n",
+    );
+  });
+});
+
 test("a workdir with a trailing slash and a leading './' is normalised before use", () => {
   withTempDir("p2p2-checkpoint-update-", (dir) => {
     fs.mkdirSync(path.join(dir, "sub"));

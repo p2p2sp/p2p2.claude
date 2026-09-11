@@ -903,14 +903,24 @@ test("edge: outside a git repository the tree is built and the commit is skipped
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       assert.match(result.stderr, /decompose: not a git repository - skipping commit/);
       assert.match(result.stdout, /^base: none$/m);
-      // no repository root to move to: root: falls back to the absolute cwd,
-      // whatever spelling this platform's shell gives it
-      assert.match(result.stdout, /^root: \S.*$/m);
 
       // the decomposition itself is complete and SURVIVES - the cleanup trap is
       // disarmed before the commit section, so nothing rolls the working dir back.
       const dir = `docs/.workflows/${todayISO()}-no-git-plan`;
       const absDir = path.join(projectDir, dir);
+
+      // no repository root to move to: root: falls back to the absolute cwd -
+      // and in the NATIVE spelling, because the orchestrator joins it with this
+      // index's relative paths and hands the result to workers that open files
+      // directly, not through a shell. Asserted by opening it exactly that way:
+      // under Git-Bash `pwd` alone prints "/c/Users/..." and the join below
+      // resolves nowhere.
+      const root = indexValue(result.stdout, "root");
+      assert.ok(root, `expected a root: line in:\n${result.stdout}`);
+      assert.ok(
+        fs.existsSync(path.join(root as string, dir, "status.md")),
+        `root: is not readable as a path: ${root}`,
+      );
       assert.match(result.stdout, new RegExp(`^workdir: ${dir}$`, "m"));
       assert.equal(fs.readFileSync(path.join(absDir, "status.md"), "utf-8"), "task: 00\n");
       assert.equal(fs.readFileSync(path.join(absDir, "base.md"), "utf-8"), "base: none\n");

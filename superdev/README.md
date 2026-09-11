@@ -54,15 +54,16 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    mechanism (which methods, which codes), each outside value reaching a path, query or command (validated?) and
    each new test (can it fail?).
 6. **Reviews run in rounds, each on a small delta.** After every 5th committed task, while tasks remain, a
-   checkpoint review reads `git diff <since>..HEAD` and writes `implementation/checkpoint-NN.md`. The final
+   checkpoint review reads `git diff <since>..HEAD` and writes `implementation/checkpoint-KK.md`. The final
    review is the last round of that same chain and adds the integration mandate over the whole build: contracts
    another task consumes, the `CARRY:` lines implementors left behind, failure branches that cross tasks. Every
    round carries one budget - one fix dispatch and one re-review scoped to that fix - and then the decision is
    yours (another round / accept with open findings / abort). Findings keep stable IDs (`C1`, `I2`, `M3`) for the
    life of the build, a re-review opens with an `ADDRESSED` / `NOT ADDRESSED` table per ID, and Minor findings go
    to `implementation/debt.md` without touching any verdict. A reviewer returns `VERDICT: BLOCKED` when a
-   criterion is unmet because of a decision, not because code is missing: you answer once, and the accepted
-   wording is recorded in `implementation/decisions.md`, which binds every later round like plan text. The
+   criterion is unmet because of a decision, not because code is missing: you answer once, and every
+   acceptance - there, or when you close a round with findings still open - is recorded in
+   `implementation/decisions.md`, which binds every later round like plan text. The
    orchestrator writes no file at any step (agents, forks and the bundled scripts do) and escalates every
    interruption to you - a spend or session limit, a reviewer that returned no report, an undeclared change in
    your working tree - instead of finishing the work itself.

@@ -33,7 +33,7 @@ or a short token (a SHA, a stage name, an ID list), never a body of text - text 
 - `prior: <path>` - the previous report of this same reviewer. Required for `stage: re-review` and
   for any round that follows an earlier report; omitted only in the build's first review round.
 - `decisions: <path>` - optional; the run's decisions file (see `## Decisions file`). Every line in
-  it is a criterion change the user accepted and carries the force of the plan.
+  it is a finding or a criterion change the user accepted and carries the force of the plan.
 - `refs: <absolute path>` - the plugin's references directory, i.e. where this contract lives. An
   agent reads `<refs>/review-contract.md` before acting.
 - `more: <path>` - implementor fix mode only; optional and repeatable. One additional findings
@@ -69,7 +69,8 @@ BLOCKED alike. That path is the reviewer's only output file; any scratch file it
   `no e2e or integration suite in this host` when the host documents none; one line saying the
   review is unbounded over the working tree when `since` is `none`.
 - `## Prior findings` - only when `prior` was given: a table `| ID | Verdict | Evidence |` with one
-  row per ID in `prior`, the verdict `ADDRESSED` or `NOT ADDRESSED`, and a `file:line` as evidence.
+  row per ID in `prior`, the verdict `ADDRESSED`, `NOT ADDRESSED` or `ACCEPTED`, and a `file:line`
+  as evidence - for `ACCEPTED`, the decisions-file line that closed it instead.
 - `## Findings` - holding `### Critical` and `### Important`, one bullet per finding in the shape
   `- <ID> - file:line - what is wrong - why it matters - how to fix`; then `### Needs decision`,
   one bullet per BLOCKED item naming its ID, the criterion or plan task it belongs to, and why no
@@ -122,6 +123,12 @@ Per stage:
   a Critical or Important from `prior` is `NOT ADDRESSED` or when the fix introduced a new Critical
   or Important; anything else is PASS, unless a BLOCKED condition below holds.
 
+At `checkpoint` and at `final` the delta bounds where a defect is hunted, never which requirements
+are verdicted. A reviewer that owns requirement coverage - the spec dimension, one verdict per
+acceptance criterion - judges every criterion against the repository state, those whose code landed
+before `since` included: after a closed round `since` is that round's SHA, not the build's first
+commit, so a criterion left to the delta would go unchecked for the rest of the build.
+
 At every stage:
 
 - `VERDICT: BLOCKED` is returned when a criterion or requirement is unmet because of a decision
@@ -131,6 +138,10 @@ At every stage:
   still lists its Critical and Important findings.
 - A behaviour recorded under a task's `### Failure modes` is a decision. Disagreement with it is a
   `NOTE: plan defect - <what>` line in the notes section, never a Critical and never an Important.
+- A prior ID covered by a line in the decisions file is verdicted `ACCEPTED` in the prior findings
+  table, is never raised again and never makes the verdict FAIL - the user closed it. A prior
+  Critical or Important that is `NOT ADDRESSED` and has no such line makes the verdict FAIL, at
+  `checkpoint` and at `final` as at `re-review`.
 - Minor findings never affect the verdict.
 
 Return channel to the orchestrator - the only channel, the report itself stays on disk:
@@ -151,7 +162,8 @@ directory and disappears with it, so it needs no separate cleanup.
 
 ## Decisions file
 
-`<workdir>/implementation/decisions.md`. One line per criterion change the user accepted:
+`<workdir>/implementation/decisions.md`. One line per finding or criterion change the user accepted,
+whether at a BLOCKED verdict or when closing a review round with findings still open:
 
 `- <ID> - <criterion or task> - accepted: <what the user accepted> - <date>`
 

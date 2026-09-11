@@ -15,8 +15,11 @@
 # The plan file is resolved to an absolute path and, inside a git repository,
 # the script moves to the repository root before deriving anything - so a run
 # started from a subdirectory builds the same working dir, prints the same
-# index and commits the same paths as one started from the root. Outside a
-# repository the cwd stays put and paths resolve against it, as before.
+# index and commits the same paths as one started from the root. The plan's own
+# "Spec:" and "Intent:" values are read AFTER that move, so a relative one of
+# either resolves against the repository root, never against the caller's cwd
+# (a spec named relative to the cwd is then "spec file not found", exit 4).
+# Outside a repository the cwd stays put and paths resolve against it, as before.
 #
 # Działanie:
 #   - katalog roboczy: gdy linia "Intent:" planu (albo, w jej braku, "Spec:")
@@ -53,12 +56,14 @@
 #   - wypisuje na stdout indeks tasków dla pętli implementacji:
 #       workdir: <ścieżka do docs/.workflows/<data>-<slug>/>
 #       root: <absolute path of the repository root the paths above are
-#              relative to; outside a repository, the absolute cwd. The
-#              orchestrator joins it with the relative paths of this index to
-#              build the absolute path of every fork / agent label, so a build
-#              started from any cwd hands its workers the same files. workdir:
-#              itself stays repository-relative - cleanup-run.sh needs it that
-#              way>
+#              relative to; outside a repository, the absolute cwd. Always in
+#              the platform's native spelling (under Git-Bash "C:/...", never
+#              "/c/..."), because the consumer joining it opens the result with
+#              a file reader, not through a shell. The orchestrator joins it
+#              with the relative paths of this index to build the absolute path
+#              of every fork / agent label, so a build started from any cwd
+#              hands its workers the same files. workdir: itself stays
+#              repository-relative - cleanup-run.sh needs it that way>
 #       status: <numer-ostatniego-taska | none>
 #       base: <SHA | none>
 #       plan-header: <ścieżka>
@@ -111,7 +116,14 @@ repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 if [[ -n "$repo_root" && -d "$repo_root" ]]; then
   CDPATH= cd -- "$repo_root"
 else
-  repo_root="$(pwd)"
+  # The printed "root:" is joined with this index's relative paths by consumers
+  # that open files DIRECTLY - an agent's file reader - not through this shell,
+  # so it must carry the platform's native spelling. Git prints one itself
+  # ("C:/..." under Git-Bash); plain `pwd` there prints the shell's own form
+  # ("/c/..."), which no such reader can open. `pwd -W` gives the native form
+  # where the shell offers it and fails everywhere else, where `pwd` is already
+  # native.
+  repo_root="$(pwd -W 2>/dev/null || pwd)"
 fi
 
 # --- slug z tytułu planu ---

@@ -42,10 +42,10 @@ A plan with no `Test Commands` and no command documented anywhere: say so in the
 You own ONE dimension: does the delivered implementation satisfy the spec and consume the plan? Code quality, style, and architecture are a separate review dimension - flag them only when they break spec conformance.
 
 ## Review
-Judge the current repository state against `## spec` and `## plan`, bounded by the change set `git diff --name-status <Since>..HEAD`.
+Judge the current repository state against `## spec` and `## plan`. The change set `git diff --name-status <Since>..HEAD` is evidence of what moved most recently, never a bound on the criteria you verdict - the contract's `## Verdict rules` sets that scope per stage.
 
 What you judge is set by `Stage`:
-- `checkpoint` / `final` - every acceptance criterion, scenario and constraint, over that change set and the repository state.
+- `checkpoint` / `final` - every acceptance criterion, scenario and constraint, each against the repository state as a whole, a criterion whose code landed before `Since` exactly like one inside the change set.
 - `re-review` - verdict every ID from `Prior report` first, in the report's prior findings table with a `file:line` as evidence; then re-check only the criteria those IDs map to, over `git diff <Since>..HEAD`. A new Critical or Important only for a defect the fix itself introduced, and an ID raised as `M<n>` never returns as `I<n>` or `C<n>`.
 
 **Acceptance criteria (the core):**
