@@ -54,7 +54,11 @@ skill/agent list. This file is orientation for the assistant.
   interview synthesis to `docs/.workflows/<run>/intent.md`, lets the user stop there and resume later
   with `intent <path>`, and reads prior changelog entries and ADRs through an explicit history Explore agent
   as decision context (never as requirements). A `cleanup` config switch makes both build orchestrators remove
-  a completed run's working directory after close-out via `scripts/cleanup-run.sh`. Every plan task
+  a completed run's working directory after close-out via `scripts/cleanup-run.sh`. When an intent is too
+  large for one spec, the `roadmap` skill splits it into phases, gates the split on `roadmap-reviewer` (a
+  read-only fork), and saves `docs/.workflows/<run>/roadmap.md` plus one `phases/NN-<slug>/intent.md` per
+  phase, each resuming through the normal `intent <path>` entry; `roadmap-status.sh` computes phase status
+  for `roadmap <roadmap.md>` to resume the run. Every plan task
   carries a build strength - `Model:` (`sonnet` | `opus`) and `Effort:` (`low` | `medium` | `high` |
   `xhigh`) - chosen by the planner (the user's own, usually strongest, model) for that task's
   reasoning load, rounded up when in doubt; `decompose.sh` prints both as index columns and the build
@@ -168,7 +172,10 @@ README.md            User-facing catalog page (what the repo is, install, one ro
 docs/.workflows/     Per-run working directories of superdev builds executed ON this repo - each run's
                      intent.md, spec.md, plan copy, tasks and implementation reports live together inside
                      docs/.workflows/<run>/ - removed by `cleanup-run.sh` after a completed build when
-                     `cleanup: true`; the changelog is the history. Ships with no plugin
+                     `cleanup: true`; the changelog is the history. A run too large for one spec also gets
+                     a roadmap.md and one phases/NN-<slug>/ nested workdir per phase, each holding its own
+                     intent.md, plan and tasks; cleanup-run.sh removes a completed phase's directory, and
+                     the run root once no phase remains. Ships with no plugin
 tests/               Dev-time regression suites for plugin scripts, run from the repo root with
                      `node --test "tests/**/*.test.ts"` (a bare directory argument, e.g. `tests/superui/`,
                      does not work - `node --test` resolves it as a module path, not a glob)
@@ -233,7 +240,9 @@ The invariants below hold across the repo.
   `docs/.workflows/<run>/` - the intent file the `intent` skill persists (`intent.md`), the spec
   (`spec.md`), the plan copy written by `decompose.sh`, task files and implementation reports all live
   inside it; marked `linguist-generated` in `.gitattributes` so GitHub collapses them in review, and removed
-  by `cleanup-run.sh` after a completed build when the `cleanup` switch is on), `docs/business/<idea-slug>/`
+  by `cleanup-run.sh` after a completed build when the `cleanup` switch is on. When the run is a roadmap,
+  `roadmap.md` sits alongside `intent.md` at the run root and each phase gets its own nested workdir,
+  `phases/NN-<slug>/`, carrying that phase's own `intent.md`, plan and tasks), `docs/business/<idea-slug>/`
   (superbiz's `idea-validator`, its `report.html` deliverable only - the run's working files 00-13 live in
   `.temp/superbiz/`, not here). These are version-controlled deliverables the user reads and edits.
   `supercc` writes no `docs/<layer>/` of its own and never will: `skill-designer`'s deliverable is the skill or

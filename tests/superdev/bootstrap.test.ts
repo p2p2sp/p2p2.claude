@@ -99,7 +99,7 @@ test("idempotence: running twice reports 'already present' for every item on the
         "rules:     false   # Rules system -> .claude/rules/",
         "memory:    false   # Memory system -> CLAUDE.md cascade",
         "changelog: false   # Changelog -> docs/changelog/",
-        "cleanup:   false   # Remove the run's working dir (docs/.workflows/<run>) after a completed build",
+        "cleanup:   false   # Remove the run's (or phase's) working dir after a completed build",
         ".gitattributes: linguist-generated rule already present",
         "",
       ].join("\n"),
