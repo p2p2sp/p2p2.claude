@@ -46,6 +46,18 @@
 #     katalogu workdir bez wiodącego "YYYY-MM-DD-") i "CLEANUP: <workdir>
 #     (removed)". Szum gita idzie na stderr, stdout niesie wyłącznie jedną
 #     linię CLEANUP.
+#   - faza roadmapu (workdir, którego katalog nadrzędny nazywa się "phases"):
+#     usuwany jest wyłącznie katalog tej fazy, a slug commita to
+#     "<nazwa katalogu runu bez wiodącego YYYY-MM-DD->-<nazwa katalogu fazy>"
+#     (np. "roadmap-skill-01-layout"); gdy po usunięciu fazy w "phases/" nie
+#     został już ŻADEN podkatalog (luźne pliki się nie liczą), w tym samym
+#     commicie usuwany jest także korzeń runu (katalog z intent.md i
+#     roadmap.md) razem z "phases/", a linia CLEANUP przyjmuje wariant
+#     "CLEANUP: <workdir> (removed - last phase, run root removed)" -
+#     odpowiednio "(removed - last phase, run root removed - nothing to
+#     commit)" i "(removed - last phase, run root removed - no git
+#     repository)" w dwóch pozostałych gałęziach. Płaski run (rodzic inny niż
+#     "phases") zachowuje slug i komunikaty opisane wyżej.
 #
 set -euo pipefail
 
@@ -108,14 +120,44 @@ fi
 [[ -n "$spec" && -f "$spec" ]] || spec=""
 [[ -n "$intent" && -f "$intent" ]] || intent=""
 
-slug="$(basename "$dir" | sed -e 's/^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}-//')"
+# --- wykrycie fazy roadmapu (katalog nadrzędny nazywa się "phases") ---
+parent="$(dirname -- "$dir")"
+is_phase=0
+root=""
+if [[ "$(basename -- "$parent")" == "phases" ]]; then
+  is_phase=1
+  root="$(dirname -- "$parent")"
+  slug="$(basename -- "$root" | sed -e 's/^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}-//')-$(basename -- "$dir")"
+else
+  slug="$(basename -- "$dir" | sed -e 's/^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}-//')"
+fi
+
+# zwraca 0, gdy w podanym katalogu "phases/" nie ma już żadnego podkatalogu
+# (luźne pliki nie blokują usunięcia korzenia runu)
+phases_empty() {
+  local p
+  for p in "$1"/*/; do
+    [[ -d "$p" ]] && return 1
+  done
+  return 0
+}
+
+root_removed=0
 
 # --- usuwanie ---
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
   rm -rf "$dir"
   [[ -n "$spec" ]] && rm -f "$spec"
   [[ -n "$intent" ]] && rm -f "$intent"
-  echo "CLEANUP: $dir (removed - no git repository)"
+  if (( is_phase )) && phases_empty "$parent"; then
+    rm -rf "$root"
+    root_removed=1
+  fi
+  if (( root_removed )); then
+    echo "CLEANUP: $dir (removed - last phase, run root removed - no git repository)"
+  else
+    echo "CLEANUP: $dir (removed - no git repository)"
+  fi
   exit 0
 fi
 
@@ -128,9 +170,18 @@ for t in "${targets[@]}"; do
   rm -rf "$t"
 done
 
+if (( is_phase )) && phases_empty "$parent"; then
+  git rm -r -f -q --ignore-unmatch -- "$root" >&2
+  rm -rf "$root"
+  root_removed=1
+fi
+
+suffix=""
+(( root_removed )) && suffix=" - last phase, run root removed"
+
 if git diff --cached --quiet; then
-  echo "CLEANUP: $dir (removed - nothing to commit)"
+  echo "CLEANUP: $dir (removed$suffix - nothing to commit)"
 else
   git commit -q -m "chore($prefix): clean up run $slug" >&2
-  echo "CLEANUP: $dir (removed)"
+  echo "CLEANUP: $dir (removed$suffix)"
 fi

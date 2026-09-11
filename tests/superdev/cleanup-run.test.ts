@@ -7,6 +7,11 @@
  * docs/.workflows/ - printing exactly one `CLEANUP: ...` line on stdout in
  * every case, with all git noise on stderr.
  *
+ * A roadmap phase (a workdir whose parent directory is named `phases`) is the
+ * second shape: only that phase directory goes, under the commit slug
+ * `<run slug without the date>-<phase dir>`, and the run root follows it in
+ * the same commit once no phase directory is left.
+ *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
  *   node --test tests/superdev/cleanup-run.test.ts
@@ -93,16 +98,73 @@ function buildRunFiles(root: string, opts: BuildOpts = {}): BuiltRun {
   return { dir, specPath, intentPath };
 }
 
-/** Same as buildRunFiles, but commits everything first - the baseline every
- *  git-repo test starts from (so the removal below has something tracked to
- *  stage and commit). */
-function buildRun(repo: GitRepo, opts: BuildOpts = {}): BuiltRun {
-  const built = buildRunFiles(repo.dir, opts);
+/** Commits whatever the fixture builders wrote - the baseline every git-repo
+ *  test starts from (so the removal below has something tracked to stage and
+ *  commit). */
+function seedCommit(repo: GitRepo): void {
   const add = repo.git("add", "-A");
   assert.equal(add.status, 0, `seed add failed: ${add.stderr}`);
   const commit = repo.git("commit", "-m", "seed run");
   assert.equal(commit.status, 0, `seed commit failed: ${commit.stderr}`);
+}
+
+/** Same as buildRunFiles, but commits everything first. */
+function buildRun(repo: GitRepo, opts: BuildOpts = {}): BuiltRun {
+  const built = buildRunFiles(repo.dir, opts);
+  seedCommit(repo);
   return built;
+}
+
+// --- phase fixture builder -------------------------------------------------
+
+interface PhaseOpts {
+  /** Task numbers to create under the phase's tasks/, ascending. Default ["01", "02"]. */
+  taskNums?: string[];
+  /** status.md's "task: NN" value. Default: the highest task number (a complete phase). */
+  lastTask?: string;
+}
+
+interface BuiltPhase {
+  /** The phase workdir, e.g. docs/.workflows/2026-01-02-demo/phases/01-a. */
+  dir: string;
+  /** The run root holding intent.md, roadmap.md and phases/. */
+  runRoot: string;
+  /** The phase's own intent.md - named by its plan-header.md, and living INSIDE dir. */
+  intentPath: string;
+}
+
+/** Writes a roadmap run root (intent.md + roadmap.md) plus one phase workdir
+ *  under phases/<phaseName>/ - WITHOUT committing anything. Call it once per
+ *  phase to grow a multi-phase run. */
+function buildPhaseFiles(root: string, phaseName: string, opts: PhaseOpts = {}): BuiltPhase {
+  const runRoot = RUN_DIR;
+  fs.mkdirSync(path.join(root, runRoot), { recursive: true });
+  fs.writeFileSync(path.join(root, runRoot, "intent.md"), "# run intent\n");
+  fs.writeFileSync(path.join(root, runRoot, "roadmap.md"), "# roadmap\n");
+
+  const dir = `${runRoot}/phases/${phaseName}`;
+  const abs = path.join(root, dir);
+  fs.mkdirSync(path.join(abs, "tasks"), { recursive: true });
+  fs.mkdirSync(path.join(abs, "implementation"), { recursive: true });
+
+  const taskNums = opts.taskNums ?? ["01", "02"];
+  for (const n of taskNums) {
+    fs.writeFileSync(path.join(abs, "tasks", `task-${n}.md`), `## Task ${n}\nDo the work.\n`);
+  }
+
+  const highest = taskNums.length > 0 ? taskNums[taskNums.length - 1] : "00";
+  fs.writeFileSync(path.join(abs, "status.md"), `task: ${opts.lastTask ?? highest}\n`);
+
+  // the phase's intent lives inside the phase dir, so cleanup resolves an
+  // "Intent:" target that its own workdir removal has already taken away
+  const intentPath = `${dir}/intent.md`;
+  fs.writeFileSync(path.join(root, intentPath), "# phase intent\n");
+  fs.writeFileSync(
+    path.join(abs, "plan-header.md"),
+    ['Title: "Demo Phase"', `Intent: ${intentPath} <!-- resume with: intent <path> -->`, ""].join("\n"),
+  );
+
+  return { dir, runRoot, intentPath };
 }
 
 function run(repo: GitRepo, args: string[]): RunResult {
@@ -312,5 +374,85 @@ test("edge: an untracked run directory is removed with nothing to commit", () =>
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, `CLEANUP: ${dir} (removed - nothing to commit)\n`);
     assert.equal(fs.existsSync(path.join(repo.dir, dir)), false);
+  });
+});
+
+// --- roadmap phases --------------------------------------------------------
+
+test("phase: only the completed phase dir is removed while another phase remains", () => {
+  withGitRepo((repo) => {
+    const first = buildPhaseFiles(repo.dir, "01-a");
+    const second = buildPhaseFiles(repo.dir, "02-b");
+    seedCommit(repo);
+
+    const result = run(repo, [first.dir]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, `CLEANUP: ${first.dir} (removed)\n`);
+    assert.equal(fs.existsSync(path.join(repo.dir, first.dir)), false);
+    assert.ok(fs.existsSync(path.join(repo.dir, second.dir)));
+    assert.ok(fs.existsSync(path.join(repo.dir, first.runRoot, "intent.md")));
+    assert.ok(fs.existsSync(path.join(repo.dir, first.runRoot, "roadmap.md")));
+    // slug: the run dir without its date, then the phase dir
+    assert.equal(subjectOf(repo), "chore(simplebuild): clean up run demo-01-a");
+  });
+});
+
+test("phase: the last remaining phase takes phases/ and the run root with it, in the same commit", () => {
+  withGitRepo((repo) => {
+    const only = buildPhaseFiles(repo.dir, "01-a");
+    seedCommit(repo);
+
+    const result = run(repo, [only.dir]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, `CLEANUP: ${only.dir} (removed - last phase, run root removed)\n`);
+    assert.equal(fs.existsSync(path.join(repo.dir, only.runRoot)), false);
+    assert.equal(subjectOf(repo), "chore(simplebuild): clean up run demo-01-a");
+    // one commit carries both the phase and the run root
+    assert.equal(repo.git("ls-files", "--", only.runRoot).stdout.trim(), "");
+    const removed = repo.git("show", "--name-only", "--format=", "HEAD").stdout;
+    assert.match(removed, new RegExp(`${only.runRoot}/intent\.md`));
+    assert.match(removed, new RegExp(`${only.runRoot}/roadmap\.md`));
+    assert.match(removed, new RegExp(`${only.dir}/status\.md`));
+  });
+});
+
+test("phase: an incomplete phase is skipped and neither it nor the run root is touched", () => {
+  withGitRepo((repo) => {
+    const only = buildPhaseFiles(repo.dir, "01-a", { lastTask: "01" });
+    seedCommit(repo);
+
+    const result = run(repo, [only.dir]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, `CLEANUP: ${only.dir} (skipped - build not complete: task 01 of 02)\n`);
+    assert.ok(fs.existsSync(path.join(repo.dir, only.dir)));
+    assert.ok(fs.existsSync(path.join(repo.dir, only.runRoot, "roadmap.md")));
+  });
+});
+
+test("phase: outside a git repository the last phase still removes the run root, commit skipped", () => {
+  withTempDir("p2p2-cleanup-phase-nonrepo-", (projectDir) => {
+    const only = buildPhaseFiles(projectDir, "01-a");
+    const result = runScript(SUT, [only.dir], { cwd: projectDir, shell: "bash" });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(
+      result.stdout,
+      `CLEANUP: ${only.dir} (removed - last phase, run root removed - no git repository)\n`,
+    );
+    assert.equal(fs.existsSync(path.join(projectDir, only.runRoot)), false);
+  });
+});
+
+test("edge: a phase path with './' and a trailing slash is detected, and stray files in phases/ count as empty", () => {
+  withGitRepo((repo) => {
+    const only = buildPhaseFiles(repo.dir, "01-a");
+    // a loose file is not a phase: the run root must still go
+    fs.writeFileSync(path.join(repo.dir, only.runRoot, "phases", "notes.txt"), "stray\n");
+    seedCommit(repo);
+
+    const result = run(repo, [`./${only.dir}/`]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, `CLEANUP: ${only.dir} (removed - last phase, run root removed)\n`);
+    assert.equal(fs.existsSync(path.join(repo.dir, only.runRoot)), false);
+    assert.equal(subjectOf(repo), "chore(simplebuild): clean up run demo-01-a");
   });
 });
