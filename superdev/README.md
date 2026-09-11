@@ -47,9 +47,26 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    then you approve it yourself.
 5. **The build runs task by task.** The orchestrator (`simplebuild` / `superbuild`) decomposes the plan into
    `docs/.workflows/<run>/tasks/task-NN.md`, runs an implementor agent per task at the model and effort the plan
-   assigned to that task (`Model:` / `Effort:` markers), on the Super track gates each task with a reviewer agent
-   dispatched at that same strength, commits each task separately, and ends with the final review round.
-6. **Close Out** runs two waves: `adr`, `memory` and `rules` in parallel, then `changelog` (which also links
+   assigned to that task (`Model:` / `Effort:` markers), and commits each task on its own, staging only the files
+   that task and its notes declared. On the Super track every task also passes a reviewer agent dispatched at
+   that same strength, whose **failure pass** interrogates the task's own diff: each new `catch` or fallback
+   branch (what comes back, what gets logged), each widened closed set (who consumes it), each changed response
+   mechanism (which methods, which codes), each outside value reaching a path, query or command (validated?) and
+   each new test (can it fail?).
+6. **Reviews run in rounds, each on a small delta.** After every 5th committed task, while tasks remain, a
+   checkpoint review reads `git diff <since>..HEAD` and writes `implementation/checkpoint-NN.md`. The final
+   review is the last round of that same chain and adds the integration mandate over the whole build: contracts
+   another task consumes, the `CARRY:` lines implementors left behind, failure branches that cross tasks. Every
+   round carries one budget - one fix dispatch and one re-review scoped to that fix - and then the decision is
+   yours (another round / accept with open findings / abort). Findings keep stable IDs (`C1`, `I2`, `M3`) for the
+   life of the build, a re-review opens with an `ADDRESSED` / `NOT ADDRESSED` table per ID, and Minor findings go
+   to `implementation/debt.md` without touching any verdict. A reviewer returns `VERDICT: BLOCKED` when a
+   criterion is unmet because of a decision, not because code is missing: you answer once, and the accepted
+   wording is recorded in `implementation/decisions.md`, which binds every later round like plan text. The
+   orchestrator writes no file at any step (agents, forks and the bundled scripts do) and escalates every
+   interruption to you - a spend or session limit, a reviewer that returned no report, an undeclared change in
+   your working tree - instead of finishing the work itself.
+7. **Close Out** runs two waves: `adr`, `memory` and `rules` in parallel, then `changelog` (which also links
    the ADR when one was written), and commits what they touched; when `cleanup: true` it then removes the
    run's working directory and commits that removal.
 
@@ -92,9 +109,9 @@ never called by hand.
 | --- | --- |
 | `simpleplan` | Writes the plan (`How`) from the confirmed understanding - no spec, the plan carries its own DoD. Self-reviews, then calls the reviewer. |
 | `simpleplan-reviewer` | Fork - read-only plan review against the checklist; returns `VERDICT: PASS` / `FAIL` plus findings. Max 3 rounds. |
-| `simplebuild` | Sonnet orchestrator - decomposes the approved plan and drives the task loop; status lines only, no prose. |
-| `superdev:simplebuild-task-implementor` | Agent - implements one task, reviews its own work, runs build + tests (up to 5 rounds); dispatched with the `Agent` tool at the task's `Model:` / `Effort:` (frontmatter default `sonnet` / `high`). |
-| `simplebuild-reviewer` | Fork - one final review of the whole change; `FAIL` sends it back to the implementor (max 2 rounds). |
+| `simplebuild` | Sonnet orchestrator - decomposes the approved plan, drives the task loop, runs the checkpoint and final review rounds; writes no file itself and escalates every interruption to you; status lines only, no prose. |
+| `superdev:simplebuild-task-implementor` | Agent - implements one task, reviews its own work, runs build + tests (up to 5 rounds); dispatched with the `Agent` tool at the task's `Model:` / `Effort:` (frontmatter default `sonnet` / `high`). In fix mode it works a review report: every Critical and Important ID, each proven by a test that failed before the fix, and one `touched:` line per file it changed. |
+| `simplebuild-reviewer` | Fork - the Simple track's code reviewer, run as the checkpoint every 5 committed tasks, as the final integration round, and as the re-review after a fix (`stage: checkpoint\|final\|re-review`, plus `since:`, `prior:` and `decisions:`); returns `PASS`, `FAIL` or `BLOCKED` and one report per round. |
 
 ### Super track
 
@@ -105,11 +122,11 @@ never called by hand.
 | `superspec-refine` | Evolves an existing spec instead of writing a new one. |
 | `superplan` | Writes the plan (`How`) from the approved spec, marking each task `TDD: required` or `TDD: none` and assigning it a build strength - `Model:` (`sonnet` / `opus`) and `Effort:` (`low` … `xhigh`), rounded up when in doubt. |
 | `superplan-reviewer` | Fork - checks the plan against the spec and the repo; `needs-discovery` routes back to `intent` rather than looping. |
-| `superbuild` | Sonnet orchestrator - decomposes the approved plan (requires a `spec:` line, otherwise the plan belongs to `simplebuild`) and drives the task loop. |
-| `superdev:superbuild-task-implementor` | Agent - implements one task; on `TDD: required` it goes test-first and must see RED; dispatched with the `Agent` tool at the task's `Model:` / `Effort:` (frontmatter default `opus` / `high`). |
-| `superdev:superbuild-task-reviewer` | Agent - reviews every single task; `FAIL` sends the implementor back (max 3 rounds per task); dispatched with the `Agent` tool at the task's `Model:` / `Effort:`, the same values as the implementor (frontmatter default `opus` / `high`). |
-| `superbuild-reviewer-spec` | Fork - final review of the whole change against the spec. |
-| `superbuild-reviewer-change` | Fork - final review of the whole change since the base commit, run after the spec reviewer passes. |
+| `superbuild` | Sonnet orchestrator - decomposes the approved plan (requires a `spec:` line, otherwise the plan belongs to `simplebuild`), drives the task loop, runs the checkpoint and final review rounds; writes no file itself and escalates every interruption to you. |
+| `superdev:superbuild-task-implementor` | Agent - implements one task; on `TDD: required` it goes test-first and must see RED; dispatched with the `Agent` tool at the task's `Model:` / `Effort:` (frontmatter default `opus` / `high`). In fix mode it works a review report: every Critical and Important ID, each proven by a test that failed before the fix, and one `touched:` line per file it changed. |
+| `superdev:superbuild-task-reviewer` | Agent - reviews every single task and runs the failure pass over its diff; `FAIL` sends the implementor back (max 3 rounds per task); dispatched with the `Agent` tool at the task's `Model:` / `Effort:`, the same values as the implementor (frontmatter default `opus` / `high`). Behaviour the task's `### Failure modes` recorded is a decision - disagreeing with it is a `NOTE: plan defect` line, never a finding. |
+| `superbuild-reviewer-spec` | Fork - final review of the whole change against the spec; runs the full suite before reading any code and returns `BLOCKED` when a criterion is unmet by decision rather than by missing code. |
+| `superbuild-reviewer-change` | Fork - the Super track's code reviewer, run as the checkpoint every 5 committed tasks, as the final integration round over the whole build, and as the re-review after a fix (`stage: checkpoint\|final\|re-review`, plus `since:`, `prior:` and `decisions:`); returns `PASS`, `FAIL` or `BLOCKED` and one report per round. |
 
 ### Knowledge layers (also runnable on their own)
 

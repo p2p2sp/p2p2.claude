@@ -42,7 +42,7 @@ Date: !`date +%F`
 - Enter with Explore's findings and the Step 1 answers already in hand. Never re-ask what either settled; expect fewer open decisions than before Step 1 existed.
 - Walk the design tree branch by branch, resolving dependencies one decision at a time - early answers reshape later branches, so do not batch.
 - Ask ONE question per turn so the user can pause, push back, or revisit any earlier choice without losing the thread.
-- For each decision, propose 2–3 approaches with trade-offs, lead with your recommendation, and explain why it wins.
+- For each decision, propose 2-3 approaches with trade-offs, lead with your recommendation, and explain why it wins.
 - Treat answers as living. If a later answer invalidates an earlier branch, surface it and re-open that decision instead of pressing forward.
 - Prefer multiple choice questions when possible, but open-ended is fine too.
 - Must number the options (`1`, `2`, `3`, and sub-options `1.1`, `1.1.1`, `1.2`, `1.2.1...` when the choice branches) so the user can point to an answer without re-typing it.
@@ -78,7 +78,7 @@ Date: !`date +%F`
 
 ## Synthesis
 - Close the interview when every **load-bearing** branch has a confirmed answer. A branch is load-bearing if a different answer would change which files are touched, which library or pattern is chosen, the data shape, or a contract between components. Branches whose answer only affects local style or naming are NOT load-bearing - do not gate the handoff on them.
-- Present the synthesis as ~3–5 bullets capturing the chosen approach, key constraints, and explicit out-of-scope items. Wait for the user's confirmation before handing off.
+- Present the synthesis as ~3-5 bullets capturing the chosen approach, key constraints, and explicit out-of-scope items. Wait for the user's confirmation before handing off.
 - After the user confirms:
   - Fresh run (no resume): the run directory is `docs/.workflows/<Date>-<slug>/` (`<Date>` from `## Run`; `<slug>` = short title as slug). `Glob` `docs/.workflows/<Date>-<slug>*` first - if `docs/.workflows/<Date>-<slug>/` already exists, append `-2`, `-3`, ... to the directory name until one is free. Then `Write` the synthesis to `<run-dir>/intent.md` - the `Write` call itself creates the run directory; never `mkdir` it.
   - Resume: overwrite the resumed file's own `intent.md` in place.

@@ -63,7 +63,20 @@ skill/agent list. This file is orientation for the assistant.
   `xhigh`) - chosen by the planner (the user's own, usually strongest, model) for that task's
   reasoning load, rounded up when in doubt; `decompose.sh` prints both as index columns and the build
   orchestrator dispatches the implementor agent - and, on the Super track, the per-task reviewer agent -
-  at exactly those values.
+  at exactly those values. The build itself is a chain of review rounds with disjoint mandates: the Super
+  track's per-task gate, whose failure pass interrogates that task's own diff; a checkpoint review after
+  every 5th committed task on both tracks, while tasks remain, reading only `git diff <since>..HEAD`; and
+  the final review, the last round of that chain, which adds the integration mandate over the whole build
+  (contracts another task consumes, `CARRY:` lines, failure branches crossing tasks). Each round is bounded
+  by one fix dispatch plus one re-review scoped to that fix, after which the user decides. The three build
+  reviewers take `stage:` / `since:` / `prior:` / `decisions:` labels, keep stable finding IDs across rounds,
+  append Minor to `implementation/debt.md` without affecting a verdict, and return `VERDICT: BLOCKED` when a
+  criterion is unmet by a recorded decision rather than by missing code - the accepted wording is written to
+  `implementation/decisions.md` through `record-decision.sh` and binds later rounds like plan text.
+  `superdev/references/review-contract.md` owns that whole vocabulary; both orchestrators carry
+  `Edit`/`Write`/`NotebookEdit` in `disallowed-tools`, write no file themselves and escalate every
+  interruption (a spend or session limit, a reviewer that returned no report, an undeclared change in the
+  working tree) to the user.
 - **superui** - the design / frontend ecosystem, pairing Claude Code CLI (measurement, agentic fan-out) and
   Claude Design (live, inline-styled Design Components), via a **two-stage** screenshots-to-handoff-bundle
   pipeline: `/superui:design-extractor <screenshots-dir> [<target>]` turns a folder of UI screenshots into the
@@ -112,7 +125,8 @@ scripts under `<plugin>/hooks/scripts/` (only `superdev` has hooks; `superui` / 
 `superbiz` / `supercc` ship none), plus deterministic helper scripts bundled either under an individual skill's own
 `scripts/` dir or, when shared across a plugin's skills, at plugin level. `supergh` keeps its shared scripts
 under `<plugin>/shared/` (a `scripts/` subdir); `superdev` keeps its shared scripts and references at the
-plugin root (`superdev/scripts/`, `superdev/references/`), and `superui` keeps its shared scripts and its
+plugin root (`superdev/scripts/`, `superdev/references/` - the latter owning `review-contract.md`, the one
+source of the build review loop's labels, finding IDs, report shape and verdict rules), and `superui` keeps its shared scripts and its
 seven agents at the plugin root (`superui/scripts/`, `superui/agents/`), both with no `shared/` subdir.
 `superui` has no `references/` or `assets/` dir at the plugin root - only `pro-designer` and
 `component-extractor` need a `references/` dir, and each keeps its own rather than sharing one at the plugin
@@ -171,7 +185,11 @@ README.md            User-facing catalog page (what the repo is, install, one ro
 .claude/rules/       Development-only conventions for this repo
 docs/.workflows/     Per-run working directories of superdev builds executed ON this repo - each run's
                      intent.md, spec.md, plan copy, tasks and implementation reports live together inside
-                     docs/.workflows/<run>/ - removed by `cleanup-run.sh` after a completed build when
+                     docs/.workflows/<run>/, with base.md and checkpoint.md (the last closed review round)
+                     at the run root and implementation/ holding the task and fix notes, one report per
+                     review round (checkpoint-NN.md, review-01*.md and their -reN re-reviews), debt.md
+                     (every round's Minor findings) and decisions.md (criteria the user accepted when a
+                     reviewer returned BLOCKED) - removed by `cleanup-run.sh` after a completed build when
                      `cleanup: true`; the changelog is the history. A run too large for one spec also gets
                      a roadmap.md and one phases/NN-<slug>/ nested workdir per phase, each holding its own
                      intent.md, plan and tasks; cleanup-run.sh removes a completed phase's directory, and
@@ -323,9 +341,17 @@ The invariants below hold across the repo.
   implementors - `superbuild-task-implementor`, `simplebuild-task-implementor` - live there, dispatched per
   task by `superbuild` / `simplebuild` with the `Agent` tool at the task's `Model:` / `Effort:` markers
   (the `Agent` tool's per-call `model` is honored; `effort` is passed the same way on the assumption
-  the harness will honor it too - the agent's frontmatter is the fallback for both), superdev's per-task
+  the harness will honor it too - the agent's frontmatter is the fallback for both; in fix mode, on a review
+  report, both run with neither parameter set), superdev's per-task
   reviewer - `superbuild-task-reviewer` - lives there too, dispatched by `superbuild` after each
-  implementor run at that task's same `Model:` / `Effort:`, and superdev's four closeout writers -
+  implementor run at that task's same `Model:` / `Effort:` and running its failure pass over that task's
+  diff (behaviour recorded in the task's `### Failure modes` is a decision: a `NOTE: plan defect` line,
+  never a Critical or an Important) - while the three build reviewers
+  (`superbuild-reviewer-spec`, `superbuild-reviewer-change`, `simplebuild-reviewer`) stay forks in
+  `skills[]`, invoked with the `Skill` tool under one shared stage contract
+  (`stage: checkpoint|final|re-review` plus `since:` / `prior:` / `decisions:`, verdict
+  `PASS` / `FAIL` / `BLOCKED`) that `superdev/references/review-contract.md` owns,
+  and superdev's four closeout writers -
   `adr-writer`, `memory-writer`, `rules-writer`, `changelog-writer` - live there too:
   `superbuild` and `simplebuild` dispatch `adr-writer` / `memory-writer` / `rules-writer` together as
   wave 1 with the `Agent` tool in one message, then `changelog-writer` alone as wave 2, and
