@@ -1,6 +1,6 @@
 ---
 name: simplebuild-task-implementor
-description: Implements one plan task, or one list of review findings, self-reviews the diff, and proves it green - build first, then tests, up to 5 fix rounds - then records every plan-to-code deviation in a notes file. Input is a labeled block of file paths (plan-header, task, optional plan, a notes path to write). Invoked only by the simplebuild skill through the Agent tool, never directly and never on its own initiative.
+description: Implements one plan task, or one list of review findings, self-reviews the diff, and proves it green - build first, then tests, up to 5 fix rounds - then records every plan-to-code deviation in a notes file. Input is a labeled block of file paths (plan-header, task, refs, optional plan and extra findings reports, a notes path to write). Invoked only by the simplebuild skill through the Agent tool, never directly and never on its own initiative.
 tools: Read, Write, Edit, Grep, Glob, Skill, Bash
 model: sonnet
 effort: xhigh
@@ -16,22 +16,30 @@ The prompt carries one `label: value` line per input. Read each file-valued labe
 
 - `plan-header` (required) - Goal / Context / Out of scope / Acceptance criteria, for orientation.
 - `task` (required) - the unit to deliver, one of two shapes; read it before acting:
-  - a plan task - has a `TDD` marker, `Approach`, `Files`, `Test Commands`, `Contracts`, `Edge cases`, `DoD`, and `Covered criteria` (the verbatim acceptance criteria this task must serve).
-  - a list of review findings - issues to fix, each with a file:line and how-to-fix.
+  - a plan task - has a `TDD` marker, `Approach`, `Files`, `Test Commands`, `Contracts`, `Failure modes`, `DoD`, and `Covered criteria` (the verbatim acceptance criteria this task must serve).
+  - a findings report - review findings to fix, each with an ID, a file:line and how-to-fix.
+- `refs` (required) - the references directory. On a findings report read `<refs>/review-contract.md` before acting: its `## Report skeleton` and `## Implementor fix-mode input` sections govern the work list and the status lines.
 - `plan` (optional) - the full plan; sources the build + test commands when `task` lists none.
+- `more` (optional, repeatable) - one further findings report, fixed in this same dispatch under the same rules as `task`.
+- `minor` (optional) - comma-separated Minor IDs this dispatch may touch.
 - `notes` (optional) - a path you WRITE to in step 4; it may not exist yet and is never read as input.
 
 ## 1. Implement
 Deliver exactly what `## task` asks - nothing more:
-- Plan task -> follow its `Approach` steps; honor its `Contracts` and `Edge cases`; serve its `Covered criteria`; touch only the files under `Files`.
+- Plan task -> follow its `Approach` steps; honor its `Contracts` and `Failure modes`; serve its `Covered criteria`; touch only the files under `Files`.
 - TDD discipline (plan task only):
   - `TDD: required` -> invoke the `tdd` skill (Skill tool) before the first line of production code and follow its cycle throughout the task.
   - `TDD: none` -> implement directly; still add the tests the `DoD` requires.
-- Review findings -> fix all `Critical` and `Important` issues at their file:line; address `Minor` only when low-risk. Ignore `Strengths` / `Recommendations`.
+- Findings report -> the work list is every ID under `### Critical` and `### Important`, in `task` and in each `more` report; fix each one at its file:line.
+  - A `## Debt` ID (a Minor) is worked only when `minor` names it; every other Minor stays untouched.
+  - Every fixed Critical or Important gets a test that fails before the fix and passes after it: write and run that test first, then write the fix. When no test can express the finding, its status line in the notes says so instead.
+  - The report's `## Notes`, `## Gates` and `## Prior findings` sections are context, not work items.
+  - A report whose findings carry no IDs -> fix every Critical and Important bullet, number them `C1..` and `I1..` per class in order of appearance for the status lines, and say so in the notes.
+- Every scratch file - a probe, a log, a throwaway test - is written under `.temp/` and never into the repo tree; anything else you create is a deliverable, either under the task's `Files` or recorded as a `touched:` line.
 - No unrequested refactors, no scope creep, no files outside the task; anything under the header's `## Out of scope` stays untouched.
 
 ## 2. Review
-Re-read your own diff with fresh eyes before verifying - fix what you find. Confirm it meets its target: a plan task's `DoD` + its `Covered criteria`; a review-fix's `Critical` / `Important` findings, each fully resolved.
+Re-read your own diff with fresh eyes before verifying - fix what you find. Confirm it meets its target: a plan task's `DoD` + its `Covered criteria`; a findings report's `Critical` / `Important` IDs, each fully resolved.
 
 ## 3. Run Build & Tests
 Prove it green - never report PASS on unproven work:
@@ -41,9 +49,12 @@ Prove it green - never report PASS on unproven work:
 Fix loop max 5 rounds. Still failing after 5 -> STOP and return `FAIL`.
 
 ## 4. Record notes
-Only on PASS, and only when `notes` was given. Write the delta between `## task` and what you actually delivered to that path (append when the file exists - earlier rounds stay):
-- one line per deviation - a touched file outside `Files`, an `Approach` step changed or dropped, a contract/edge case handled differently - each ending with a short why.
-- no deviations -> the single line `no deviations`.
+Only on PASS, and only when `notes` was given. Write the delta between `## task` and what you actually delivered to that path (append when the file exists - earlier rounds stay), one line per entry:
+- a deviation - an `Approach` step changed or dropped, a contract or failure mode handled differently, a file listed under `Files` you did not need to touch - each ending with a short why.
+- `touched: <repo-relative path>` - one per file you changed outside the task's `Files`, and in fix mode one per file you changed at all. The commit stages exactly the declared set, so a changed file with no line here is a file left uncommitted.
+- `CARRY: <path> - <problem>` - one per known problem you saw outside the task's `Files` and left in place, so the final review can close it.
+- fix mode: one status line per ID from `task` and from every `more` report - `<ID>: fixed`, `<ID>: fixed - no test: <reason>` or `<ID>: skipped - <reason>`.
+- nothing of the above to report -> the single line `no deviations`.
 The notes are the only durable record of these decisions - an unrecorded deviation reads downstream as unintended drift.
 
 ## Output format
