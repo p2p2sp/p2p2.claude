@@ -392,6 +392,43 @@ test("adoption: an Intent: file already under docs/.workflows/<run>/ becomes the
   });
 });
 
+test("adoption: an Intent: file under docs/.workflows/<run>/phases/01-<slug>/ adopts the phase directory, not the run root", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    const runDir = "docs/.workflows/2026-01-02-roadmapped";
+    const phaseDir = `${runDir}/phases/01-layout`;
+    fs.mkdirSync(path.join(repo.dir, phaseDir), { recursive: true });
+    fs.writeFileSync(path.join(repo.dir, runDir, "intent.md"), "# Intent\n\nWhole endeavour.\n");
+    fs.writeFileSync(path.join(repo.dir, runDir, "roadmap.md"), "# Roadmap\n\n## Phases\n");
+    const intentRel = `${phaseDir}/intent.md`;
+    fs.writeFileSync(path.join(repo.dir, intentRel), "# Intent\n\nPhase 01 synthesis.\n");
+
+    withTempDir("p2p2-decompose-adopt-phase-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Phase One Plan",
+          criteria: ["Only criterion."],
+          tasks: [taskBlock("Task 1 - do it", [1])],
+          intentPath: intentRel,
+        }),
+      );
+
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      // the full dirname is adopted - the phase dir, not its first level
+      assert.match(result.stdout, new RegExp(`^workdir: ${phaseDir}$`, "m"));
+
+      const absPhase = path.join(repo.dir, phaseDir);
+      assert.ok(fs.existsSync(path.join(absPhase, "plan-header.md")));
+      assert.ok(fs.existsSync(path.join(absPhase, "tasks", "task-01.md")));
+      // the run root stays exactly as seeded - no build artifacts leak into it
+      assert.deepEqual(fs.readdirSync(path.join(repo.dir, runDir)).sort(), ["intent.md", "phases", "roadmap.md"]);
+    });
+  });
+});
+
 test("adoption: a Spec: file alone (no Intent:) under docs/.workflows/<run>/ becomes the working dir", () => {
   withGitRepo((repo) => {
     seedInitialCommit(repo);

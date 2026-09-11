@@ -14,15 +14,18 @@
 #
 # Działanie:
 #   - katalog roboczy: gdy linia "Intent:" planu (albo, w jej braku, "Spec:")
-#     wskazuje na plik już leżący pod docs/.workflows/<data>-<slug>/, TEN
-#     katalog jest ADOPTOWANY jako katalog roboczy - intent.md i spec.md
-#     lądują obok plan-header.md/plan.md/tasks/. W przeciwnym razie (żadna
-#     ścieżka nie leży pod docs/.workflows/, np. stary bieg sprzed tej zmiany)
-#     wracamy do dotychczasowej nazwy pochodnej od tytułu planu,
-#     docs/.workflows/<data>-<slug>/. Ścieżka absolutna z segmentem
-#     docs/.workflows/ jest normalizowana do postaci względem repo; ścieżka
-#     zagnieżdżona głębiej niż jeden poziom adoptuje sam katalog biegu, nie
-#     jego podkatalog. Adoptowany katalog zawsze istniał przed tym biegiem,
+#     wskazuje na plik już leżący pod docs/.workflows/, ADOPTOWANY jako katalog
+#     roboczy jest PEŁNY katalog tego pliku - intent.md i spec.md lądują obok
+#     plan-header.md/plan.md/tasks/. Dotyczy to każdego poziomu zagnieżdżenia:
+#     dla fazy roadmapu, czyli docs/.workflows/<bieg>/phases/NN-<slug>/intent.md,
+#     katalogiem roboczym jest docs/.workflows/<bieg>/phases/NN-<slug>, a korzeń
+#     biegu pozostaje nietknięty (superspec zapisuje spec.md obok przekazanego
+#     intentu, więc spec fazy ląduje w tym samym katalogu bez żadnej zmiany).
+#     W przeciwnym razie (żadna ścieżka nie leży pod docs/.workflows/, np. stary
+#     bieg sprzed tej zmiany) wracamy do dotychczasowej nazwy pochodnej od
+#     tytułu planu, docs/.workflows/<data>-<slug>/. Ścieżka absolutna
+#     z segmentem docs/.workflows/ jest normalizowana do postaci względem repo.
+#     Adoptowany katalog zawsze istniał przed tym biegiem,
 #     więc gwarancja poniżej (trap nie usuwa katalogu, który biegowi nie
 #     przynależy) obejmuje go automatycznie: błąd dekompozycji nigdy nie
 #     kasuje cudzego intent.md/spec.md.
@@ -125,9 +128,9 @@ fi
 # katalog roboczy przynależny do ścieżki $1: dirname z normalizacją "\" -> "/"
 # (żeby ścieżka windowsowa też trafiła); pusty argument albo dirname bez
 # segmentu docs/.workflows/ -> pusty wynik (żaden trap, nigdy exit != 0).
-# Gdy segment jest obecny, adoptujemy WYŁĄCZNIE jego pierwszy poziom (tail po
-# OSTATNIM "docs/.workflows/", ucięty do pierwszego "/") - katalog biegu, nie
-# jego podkatalog, i nigdy nie ta część ścieżki sprzed docs/.workflows/.
+# Gdy segment jest obecny, adoptujemy PEŁNY katalog pliku Intent:/Spec: (tail
+# po OSTATNIM "docs/.workflows/", bez ucinania) - nigdy zaś tej części ścieżki,
+# która leży sprzed docs/.workflows/.
 run_dir_of() {
   local p="$1"
   [[ -z "$p" ]] && return 0
@@ -139,8 +142,7 @@ run_dir_of() {
     *) return 0 ;;
   esac
   local tail="${d##*docs/.workflows/}"
-  local first="${tail%%/*}"
-  printf '%s\n' "docs/.workflows/${first}"
+  printf '%s\n' "docs/.workflows/${tail}"
 }
 
 # Intent: wygrywa nad Spec: (jest zapisywany pierwszy, w tym samym katalogu
