@@ -14,6 +14,17 @@
 # etykiecie na linię). Najpierw waliduje wszystkie etykiety i pliki, dopiero
 # potem wypisuje nagłówek + zawartość każdego pliku.
 #
+# PATH RESOLUTION: a label's value is used as given whenever it resolves against
+# the caller's cwd; only when it does not, and the caller sits inside a git
+# repository, is a RELATIVE value retried against the repository root
+# (`git rev-parse --show-toplevel`) - so a fork started with cwd `src/` still
+# reads `docs/.workflows/<run>/plan.md`. An absolute value (POSIX `/x/y.md`, a
+# Windows drive letter `C:/x/y.md`) is never joined with the root, and outside a
+# repository only the cwd is tried, exactly as before. The cwd candidate always
+# wins, so every caller that already resolved correctly keeps its file. The
+# heading printed for a label shows the value AS GIVEN, never the resolved path,
+# and so does a "not found" error - the resolution stays invisible to the fork.
+#
 # FAIL-SOFT przy braku WYMAGANEJ etykiety lub pliku: skrypt NIE pada z exit != 0,
 # tylko wypisuje na stdout wyraźnie oznaczony blok `## INPUT ERROR` (i ZERO
 # częściowej treści plików) oraz kończy exit 0. Powód: ten skrypt biegnie jako
@@ -48,12 +59,34 @@ value_of() {
     | head -n1
 }
 
+# Repository root, resolved once: the fallback base for a relative label value
+# that does not resolve against the caller's cwd. Empty outside a repository (and
+# in one with no working tree, where --show-toplevel prints nothing), which keeps
+# the pure cwd behaviour. git's absence is not an error here either - the
+# resolution is a best effort on top of the cwd, never a precondition.
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+repo_root="${repo_root%/}"
+
+# True for a value that must never be joined with the repository root: POSIX
+# absolute, backslash-rooted, or carrying a Windows drive letter ("C:/x", "C:\x").
+is_absolute() {
+  case "$1" in
+    /* | \\*) return 0 ;;
+    [A-Za-z]:*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # przebieg 1: walidacja wszystkich etykiet i plików (nic nie idzie na stdout).
 # etykieta z prefiksem '?' jest opcjonalna: brak etykiety/pliku -> pusta ścieżka
 # (pomijana w przebiegu 2), bez błędu. brak WYMAGANEJ etykiety/pliku -> zbieramy
 # komunikat do `errors` (fail-soft), NIE przerywamy skryptu.
+#
+# paths[] carries the path actually READ, shown[] the value as GIVEN - they
+# differ only for a value resolved against the repository root.
 labels=()
 paths=()
+shown=()
 errors=()
 for spec in "$@"; do
   optional=0
@@ -63,10 +96,17 @@ for spec in "$@"; do
     label="${spec#\?}"
   fi
   p="$(value_of "$label")"
-  if [[ -z "$p" || ! -f "$p" ]]; then
+  # cwd first (so an already-correct caller is untouched), repository root only
+  # as the fallback for a relative value that did not resolve there.
+  resolved="$p"
+  if [[ -n "$p" && ! -f "$p" && -n "$repo_root" ]] && ! is_absolute "$p"; then
+    resolved="$repo_root/$p"
+  fi
+  labels+=("$label")
+  if [[ -z "$p" || ! -f "$resolved" ]]; then
+    paths+=("")
+    shown+=("")
     if [[ $optional -eq 1 ]]; then
-      labels+=("$label")
-      paths+=("")
       continue
     fi
     if [[ -z "$p" ]]; then
@@ -74,12 +114,10 @@ for spec in "$@"; do
     else
       errors+=("file for '$label:' not found: $p")
     fi
-    labels+=("$label")
-    paths+=("")
     continue
   fi
-  labels+=("$label")
-  paths+=("$p")
+  paths+=("$resolved")
+  shown+=("$p")
 done
 
 # fail-soft: jakikolwiek brak wymaganego wejścia -> tylko blok błędu na stdout,
@@ -101,9 +139,10 @@ fi
 i=0
 for label in "${labels[@]}"; do
   p="${paths[$i]}"
+  s="${shown[$i]}"
   i=$((i + 1))
   [[ -z "$p" ]] && continue
-  printf '## %s (%s)\n\n' "$label" "$p"
+  printf '## %s (%s)\n\n' "$label" "$s"
   cat "$p"
   printf '\n'
 done

@@ -6,6 +6,10 @@
  * with zero partial file content (exit 0 either way); calling it with no
  * labels at all is a wiring bug and exits 1 with a usage line on stderr.
  *
+ * A relative value is read from the caller's cwd when it resolves there and
+ * from the repository root otherwise, while the heading keeps showing the value
+ * as given either way.
+ *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
  *   node --test tests/superdev/resolve-input.test.ts
@@ -17,7 +21,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { runScript } from "../harness/run.ts";
-import { withTempDir } from "../harness/tmp.ts";
+import { withGitRepo, withTempDir } from "../harness/tmp.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../superdev/scripts/resolve-input.sh");
 
@@ -183,6 +187,35 @@ test("a label containing '/' breaks value_of's sed delimiter - observed failure,
     // itself (not a graceful "missing label" fail-soft path).
     assert.notEqual(result.status, 0, `expected a hard failure, got status ${result.status}, stdout: ${result.stdout}`);
     assert.ok(result.stderr.length > 0, "sed's error should surface on stderr");
+  });
+});
+
+test("inside a git repo, run from a subdirectory: a repo-root-relative path resolves and injects its content", () => {
+  withGitRepo((repo) => {
+    fs.mkdirSync(path.join(repo.dir, "docs"));
+    fs.writeFileSync(path.join(repo.dir, "docs", "plan.md"), "plan body\n");
+    const sub = path.join(repo.dir, "sub");
+    fs.mkdirSync(sub);
+    const block = "plan: docs/plan.md\n";
+    // The value resolves against nothing in `sub`, so the repository root is
+    // the only place it can come from - and the heading still shows it as given.
+    const result = runScript(SUT, [block, "plan"], { cwd: sub, env: repo.env });
+    assert.equal(result.status, 0);
+    assert.equal(result.stdout, "## plan (docs/plan.md)\n\nplan body\n\n");
+  });
+});
+
+test("a cwd-relative path that exists is preferred over the repo-root candidate", () => {
+  withGitRepo((repo) => {
+    fs.mkdirSync(path.join(repo.dir, "docs"));
+    fs.writeFileSync(path.join(repo.dir, "docs", "plan.md"), "root copy\n");
+    const sub = path.join(repo.dir, "sub");
+    fs.mkdirSync(path.join(sub, "docs"), { recursive: true });
+    fs.writeFileSync(path.join(sub, "docs", "plan.md"), "cwd copy\n");
+    const block = "plan: docs/plan.md\n";
+    const result = runScript(SUT, [block, "plan"], { cwd: sub, env: repo.env });
+    assert.equal(result.status, 0);
+    assert.equal(result.stdout, "## plan (docs/plan.md)\n\ncwd copy\n\n");
   });
 });
 
