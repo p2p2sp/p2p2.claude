@@ -14,23 +14,42 @@ user-invocable: false
 
 The block above is the full plan (`## plan`) and the human-approved spec (`## spec`).
 
+<!-- no Bash pattern for the preloads below: each is a pipeline (printf | tr | sed | head); a pattern entry matches one command, not a pipe -->
 Report path: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*report:[[:space:]]*//p' | head -n1`
-Write the full review to that path (see `## Report`).
+The review goes to that path and to no other. Apart from the debt file named under `## Calibration`, you write nothing else into the repo tree: every probe, log or throwaway test goes under `.temp/`.
 
-Base SHA: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*base:[[:space:]]*//p' | head -n1`
-The build's change set is `git diff --name-status <base SHA>..HEAD` - run it first; it bounds what you judge. Base SHA empty or `none` -> review unbounded and say so in the report.
+Stage: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*stage:[[:space:]]*//p' | head -n1`
+Since: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*since:[[:space:]]*//p' | head -n1`
+Prior report: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*prior:[[:space:]]*//p' | head -n1`
+Decisions: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*decisions:[[:space:]]*//p' | head -n1`
+
+`Prior report` and `Decisions` are file paths: Read each one that is not empty. Prior findings keep the IDs they were given; every line of the decisions file is a change the user accepted and carries the force of the plan.
 
 Notes dir: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*notes:[[:space:]]*//p' | head -n1`
 When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations. Claims to verify, not truth.
+
+## Contract
+Read `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` before any other step. Its `## Labels`, `## Finding IDs`, `## Report skeleton`, `## Gates`, `## Verdict rules`, `## Debt file` and `## Decisions file` sections bind this review; they are not restated below.
+
+Input error, checked before any work: `Stage` or `Since` empty, or `Prior report` empty while `Stage` is `re-review` -> return line 1 `VERDICT: FAIL` and line 2 `REASON: missing input <label>`, and write no report.
+
+## Gates
+Your first working step, at every stage, before you read any code: run the gate commands per the contract's `## Gates` section and record each command with its result in the report's gates section, which sits above the coverage table. That section governs which commands run, the re-run rule after a fix round that touched a non-test file, `VERDICT: BLOCKED` for a documented integration or e2e suite that cannot start here, the single sentence for a host that documents none, and the unbounded review when `Since` is `none`.
+
+A plan with no `Test Commands` and no command documented anywhere: say so in the gates section and review by reading alone. A criterion whose satisfaction needs a run then stays not met, with the missing run named in its coverage line - never met by assumption.
 
 ## Scope
 You own ONE dimension: does the delivered implementation satisfy the spec and consume the plan? Code quality, style, and architecture are a separate review dimension - flag them only when they break spec conformance.
 
 ## Review
-Judge the current repository state against `## spec` and `## plan`:
+Judge the current repository state against `## spec` and `## plan`, bounded by the change set `git diff --name-status <Since>..HEAD`.
+
+What you judge is set by `Stage`:
+- `checkpoint` / `final` - every acceptance criterion, scenario and constraint, over that change set and the repository state.
+- `re-review` - verdict every ID from `Prior report` first, in the report's prior findings table with a `file:line` as evidence; then re-check only the criteria those IDs map to, over `git diff <Since>..HEAD`. A new Critical or Important only for a defect the fix itself introduced, and an ID raised as `M<n>` never returns as `I<n>` or `C<n>`.
 
 **Acceptance criteria (the core):**
-- For EVERY acceptance criterion: locate the code AND the test that satisfy it; verify the observable behavior matches the criterion. Missing or partial -> Critical.
+- For EVERY criterion in scope: locate the code AND the test that satisfy it; verify the observable behavior matches the criterion, and cite the gate run that proves it where one applies.
 - User scenarios achievable end-to-end as written.
 - Constraints / assumptions hold in the implementation.
 
@@ -43,45 +62,22 @@ Judge the current repository state against `## spec` and `## plan`:
 - A deviation absent from the notes is a finding in itself - Important at minimum, Critical when it breaks spec conformance.
 
 ## Calibration
-Only flag issues that make the delivery not satisfy the spec or the plan. Map every finding to a specific acceptance criterion, scenario, constraint, or plan task. If a criterion cannot be verified by reading code and running tests, say so explicitly instead of guessing.
+Only flag issues that make the delivery not satisfy the spec or the plan, and give each one an ID per the contract's `## Finding IDs`. Map every finding to a specific acceptance criterion, scenario, constraint, or plan task.
+
+A criterion missing or only partial because the code is missing -> Critical.
+
+A criterion unmet because of a decision recorded in the plan, in the notes or in the `Decisions` file - not because code is missing - is a `### Needs decision` bullet naming its ID and the reason, and the verdict is `VERDICT: BLOCKED`. It outranks FAIL, and the report still lists its Critical and Important findings. A plan-sanctioned fallback the delivery took (the plan says "if the measurement does not confirm, revert") is exactly this case: BLOCKED, never Critical. A criterion covered by a line in the decisions file is plan text and is never raised again.
+
+A behavior recorded under a task's `### Failure modes` is a decision too: judge the code against it, and put disagreement with the decision itself in one `NOTE: plan defect - <what>` line, never a Critical and never an Important.
+
+Minor findings go to the report's `## Debt` section and are appended, with their IDs, to `debt.md` in the `Report path` directory; they never affect the verdict.
+
+A criterion that cannot be verified by reading code and running the gates: say so explicitly in its coverage line instead of guessing.
 
 ## Report
-Write the full review to the Report path (from `## Input`), using exactly this
-structure. Always write it - on PASS and on FAIL.
-
-```markdown
-## Output Format
-
-### Coverage
-[One line per acceptance criterion: #N - met | not met | partial - evidence (file/test)]
-
-### Issues
-
-#### Critical (Must Fix)
-[Unmet or partially met criteria, violated constraints, missing plan deliverables]
-
-#### Important (Should Fix)
-[Weakly evidenced criteria, scenario gaps, scope creep]
-
-#### Minor (Nice to Have)
-[Documentation gaps, cosmetic mismatches]
-
-For each issue:
-- The criterion / plan task it maps to
-- File:line reference where applicable
-- What's missing or wrong
-- How to fix (if not obvious)
-
-### Assessment
-
-**Spec satisfied?** [Yes | No | With fixes]
-
-**Reasoning:** [1-2 sentence assessment]
-```
-
-`VERDICT` must agree with Assessment: `Yes` -> PASS; `No` / `With fixes` -> FAIL.
+Write the review to the Report path in exactly the shape the contract's `## Report skeleton` gives, section for section, plus the one section this review owns: `## Coverage`, placed between `## Gates` and `## Prior findings`, one line per acceptance criterion in the shape `#N - met | not met | partial | blocked - evidence (file, test, gate run)`. Always write it - on PASS, on FAIL and on BLOCKED alike.
 
 ## Output format
 Return to the parent exactly (the only channel - the report itself stays on disk):
-- line 1: `VERDICT: PASS` or `VERDICT: FAIL`
-- only on `FAIL`, line 2: `REVIEW: <report path>`
+- line 1: `VERDICT: PASS`, `VERDICT: FAIL` or `VERDICT: BLOCKED`
+- only on `FAIL` and on `BLOCKED`, line 2: `REVIEW: <report path>`
