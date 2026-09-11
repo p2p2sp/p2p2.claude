@@ -1,0 +1,56 @@
+# Intent: superdev - pętla recenzji i bramki jakości w superbuild/simplebuild
+Date: 2026-09-11
+
+## Request
+Przebudowa bramek jakości i pętli recenzji w pluginie `superdev` (oba tory: superbuild i simplebuild) tak, aby duże buildy nie kończyły się 2-5 rundami końcowej recenzji kodu trwającymi tyle co budowa, a najpoważniejsze błędy (utrata danych, 404 zamieniane w 500, brak walidacji wartości z zewnątrz, szwy między zadaniami, regresje z rund poprawek) były łapane wcześniej: w planie, w bramce per-task i w recenzjach kontrolnych w trakcie builda. Punkt wyjścia to `docs/handoff-superdev-review-loop.md` (diagnoza i osiem obszarów zmian), rozszerzony o dowody z ok. 50 buildów w ośmiu projektach na tej maszynie. Model i effort nie są przyczyną; celem jest przebudowa bramek, pętli i skryptów, nie dokładanie mocy.
+
+## Decisions
+### 1. Czy worktree wchodzi w zakres tego runu?
+Nie. Izolacja builda w git worktree zostaje poza zakresem; ochronę przed obcymi zmianami i śmieciami agentów daje stagowanie po zakresie w `commit-task.sh` (decyzja 6).
+
+### 2. Kształt bramek w trakcie builda: failure pass w bramce per-task, recenzja kontrolna w połowie builda, czy jedno i drugie?
+Jedno i drugie. Bramka per-task (`agents/superbuild-task-reviewer.md`) zostaje i dostaje sekcję „failure pass” na diffie zadania: każda nowa gałąź `catch`/fallback (co wraca, co się loguje), każdy nowy wariant zamkniętego zbioru (grep po konsumentach), każda zmiana mechanizmu odpowiedzi (metody i kody), każda wartość z nagłówka/parametru wchodząca w ścieżkę, zapytanie lub polecenie (walidacja), każdy nowy test (czy może paść). Dodatkowo co 5 zacommitowanych zadań orkiestrator uruchamia checkpoint: ten sam recenzent kodu (`superbuild-reviewer-change` na torze superbuild, `simplebuild-reviewer` na torze simplebuild) na `git diff <ostatni checkpoint>..HEAD`, z tą samą pętlą poprawek co recenzja końcowa. Liczba 5 jest stałą zapisaną w `superbuild/SKILL.md` i `simplebuild/SKILL.md`; build na 5 lub mniej zadań nie ma checkpointu, a recenzja końcowa jest wtedy rundą 1. Tor simplebuild pozostaje bez bramki per-task.
+
+### 3. Mandat i budżet recenzji końcowej?
+Recenzja końcowa jest kolejną rundą tego samego łańcucha co checkpointy, z mandatem integracyjnym: szwy między zadaniami (kontrakty z `### Contracts` konsumowane przez inne zadania, wartości oznaczone `CARRY:` w notatkach), gałęzie awaryjne przecinające zadania, uruchomienie pełnego zestawu testów z e2e/integracją, weryfikacja znalezisk poprzednich rund po ID. Nie szuka stylu ani polerki. Budżet: 1 dyspozycja poprawek + 1 zawężona re-recenzja (werdykt per ID, nowe znaleziska wyłącznie z diffu poprawki); wszystko, co zostaje, idzie do `AskUserQuestion` z listą do rozstrzygnięcia. Sekcja `Strengths` znika z raportów.
+
+### 4. Jak poprzednie znaleziska i zakres rundy trafiają do recenzenta?
+Orkiestrator przekazuje recenzentom buildu dwie nowe etykiety-ścieżki: `prior: <ścieżka poprzedniego raportu>` i `since: <SHA commitu, na którym poprzedni raport został wydany>`; brak obu oznacza rundę 1. Recenzent nadaje każdemu znalezisku stałe ID (`C1`, `I3`, `M7`) i zapisuje je w raporcie. Runda 2+ zaczyna od tabeli werdyktów per ID (`ADDRESSED` / `NOT ADDRESSED` z file:line), potem recenzuje wyłącznie `git diff <since>..HEAD`; nowe Critical/Important tylko gdy wprowadziła je poprawka, reszta do długu; zakaz podnoszenia rangi znaleziska, które wcześniej było Minor; FAIL tylko na Critical i na Important wprowadzone przez poprawkę. Implementor poprawek raportuje w notatkach status per ID oraz linie `touched: <ścieżka>` z dotkniętymi plikami. `scripts/commit-task.sh` dopisuje linię `commit: <sha>` do wyjścia, z której orkiestrator bierze `since`. Ten sam kontrakt obsługuje przejścia checkpoint → checkpoint → recenzja końcowa.
+
+### 5. Gdzie w planie żyją decyzje o zachowaniu awaryjnym?
+W obu szablonach (`skills/superplan/templates/plan.md`, `skills/simpleplan/templates/plan.md`) sekcja `### Edge cases` zostaje zastąpiona sekcją `### Failure modes` o stałym kształcie punktu: „gdy X zawiedzie / wejście jest złe / dwa X biegną równolegle → odpowiedź Y, log Z, test T”; „none” dozwolone tylko z jednosłownym uzasadnieniem. `### Contracts` zyskuje obowiązkową macierz metod i kodów dla zmiany transportu, listę konsumentów dla rozszerzonego zamkniętego zbioru oraz nazwę zadania-konsumenta przy każdym kontrakcie używanym przez inne zadanie. `### Approach` nazywa symbole, sygnatury i algorytm, bez kodu linia po linii i bez decyzji awaryjnych. `references/plan-review-checklist.md` dostaje klasy Blocking B9 (gałąź awaryjna bez odpowiedzi i logu), B10 (rozszerzony zamknięty zbiór bez wyliczenia konsumentów, Grep po nazwie typu), B11 (zmiana mechanizmu odpowiedzi bez macierzy metod/kodów), B12 (wartość z zewnątrz w ścieżce/zapytaniu/poleceniu bez walidacji), B13 (test, który nie może paść), B14 (kontrakt lub wartość bez zadania-konsumenta), wszystkie rozstrzygalne przez Read/Grep/Glob. Recenzent kodu dostaje regułę: zachowanie zapisane w `### Failure modes` i zatwierdzone to decyzja; niezgoda to `NOTE: plan defect`, nigdy Important.
+
+### 6. Co `commit-task.sh` stawia w indeksie?
+Wyłącznie zbiór zadeklarowany: ścieżki z `### Files` pliku zadania (commit zadania), linie `touched: <ścieżka>` z pliku notatek (commit zadania i commit poprawek) oraz katalog runu `docs/.workflows/<run>/`. Każda inna zmiana w drzewie (zmodyfikowany lub usunięty plik śledzony, plik nieśledzony poza `.gitignore`) powoduje, że skrypt nic nie commituje, wypisuje listę i kończy się niezerowo; orkiestrator eskaluje przez `AskUserQuestion` (dołącz / odrzuć / przerwij). `scripts/decompose.sh` stawia w indeksie tylko katalog, który sam utworzył. Commity close-outu dostają pathspec z linii `NODE:`/`RULE:`/`ADR:`/`CHANGELOG:` zwracanych przez writerów. Nigdzie nie zostaje bare `git add -A`. Żadnych heurystyk rozpoznawania plików testowych ani konfiguracyjnych.
+
+### 7. Co robi recenzent spec, gdy kryterium nie da się spełnić ani sprawdzić?
+Recenzent spec (`superbuild-reviewer-spec`) i `simplebuild-reviewer` zyskują trzeci wynik `VERDICT: BLOCKED` + `REVIEW: <ścieżka>`. Kryterium niespełnione przez decyzję zapisaną w planie lub notatkach (nie przez brak kodu) albo niesprawdzalne w tym środowisku (komenda z `Test Commands` lub e2e nie rusza) trafia do sekcji `### Needs decision` raportu z powodem, nie do Critical. Orkiestrator na `BLOCKED` nie dispatchuje implementora, tylko `AskUserQuestion` (zaakceptuj kryterium jako zmienione / napraw / przerwij); akceptacja jest zapisywana w notatkach runu i w kolejnej rundzie traktowana jak plan. Pierwszym krokiem recenzji spec jest uruchomienie pełnego zestawu (build + wszystkie testy, także integracyjne i e2e, gdy środowisko jest), wynik do raportu; brak środowiska nigdy nie daje PASS.
+
+### 8. Gdzie żyje dług (Minor) z recenzji?
+W ulotnym pliku `implementation/debt.md` w katalogu runu. Recenzenci dopisują tam Minor z ID bez wpływu na werdykt, implementor poprawek go nie czyta, `cleanup-run.sh` usuwa go razem z runem. Superdev nie prowadzi trwałej księgi długu; `changelog-writer` i format wpisu changelogu pozostają bez zmian.
+
+## Constraints
+- Zakres obejmuje oba tory: `superbuild` i `simplebuild` oraz ich agentów (`superbuild-task-implementor`, `simplebuild-task-implementor`, `superbuild-task-reviewer`) i recenzentów (`superbuild-reviewer-spec`, `superbuild-reviewer-change`, `simplebuild-reviewer`) dostają te same zmiany, o ile dana warstwa istnieje na danym torze.
+- Implementor poprawek (tryb „lista znalezisk”): każde Critical/Important dostaje test, który pada przed poprawką i przechodzi po niej, albo zapis w notatkach, dlaczego test jest niemożliwy; zakaz ruszania Minor poza jawnie wskazaną listą; status per ID i linie `touched:` w notatkach.
+- Znacznik `CARRY:` w notatkach implementora zadania (znany problem poza `### Files` zadania, do domknięcia w recenzji końcowej), czytany przez recenzentów i implementora poprawek.
+- Recenzja końcowa ponawia e2e/integrację po każdej rundzie poprawek, która dotknęła kod, nie tylko testy; brak środowiska to jawny wpis w raporcie (i `BLOCKED`), nigdy pominięcie.
+- Orkiestratory (`superbuild/SKILL.md`, `simplebuild/SKILL.md`): `Edit`, `Write`, `NotebookEdit` usunięte z `allowed-tools` i dodane do `disallowed-tools`; notatki i raporty piszą agenci i skrypty. Na `VERDICT: FAIL` implementora, przerwanie limitem lub brak odpowiedzi wyłącznie eskalacja `AskUserQuestion` (retry po resecie / abort), nigdy dokańczanie z dysku; eskalacja po każdej rundzie ponad budżet, nie tylko pierwszej; fork recenzenta bez raportu lub bez linii `VERDICT:` to eskalacja, nie recenzja własnoręczna.
+- Wykrywanie limitu wydatków jako osobny stan: wynik narzędzia Agent ma postać powiadomienia `<status>failed</status>` z tekstem „Agent terminated early due to an API error: You've hit your monthly spend limit …” lub „You've hit your session limit …” (error type rate_limit, HTTP 429); po resecie harness sam wstrzykuje komunikat „Your claude.ai usage limit has reset. Continue the task…”.
+- Orkiestrator nie używa `cd` w Bash (ścieżki absolutne, `-C`/`--prefix`); `scripts/resolve-input.sh` i pozostałe preloady rozwiązują ścieżki względne względem `git rev-parse --show-toplevel`, nie cwd. Pliki robocze recenzentów i implementorów wyłącznie w `.temp/`.
+- Zwrot recenzentów do orkiestratora zostaje w postaci linii `VERDICT:` (+ `REVIEW:`); format raportu na dysku można zmieniać swobodnie, bo jedynym jego konsumentem jest implementor poprawek (`changelog-writer` czyta tylko `*-notes.md`, `plan.md`, `base.md`).
+- Zadania planu mają nakazać implementorowi użycie `supercc:skill-designer` do tworzenia i zmiany plików skilli i agentów.
+- Konwencje repo: pliki CLAUDE.md i skrypty po angielsku; skille stack-agnostic (żadnych założeń o dotnet/pnpm w treści); żadnych em/en dashów w żadnym pliku; testy skryptów w `tests/superdev/` uruchamiane `node --test "tests/**/*.test.ts"`, pod bash i Git-Bash; `allowed-tools` nie ogranicza puli narzędzi, do zakazu służy `disallowed-tools`; skrypty preloadowane z exec bitem i shebangiem `#!/usr/bin/env bash`, wywoływane bezpośrednio.
+- Zmiana `Model:`/`Effort:` w planach i modeli/effortu orkiestratorów nie jest tematem tej pracy (effort spada na frontmatter, świadomie akceptowane).
+- Każda zmiana skilla/agenta aktualizuje `superdev/.claude-plugin/plugin.json` i właściwe `CLAUDE.md`; manifest `superdev/hooks/content/manifest.md` tylko, gdy zmienia się grupa lub udokumentowany łańcuch.
+- Bez ADR w tym repo.
+- Dowody z innych maszyn (seo-cms faza 14, workteam.one faza 1) przyjęte z opisu w handoffie; dostępne lokalnie raporty w `docs/.workflows/` projektów seo-cms, storulo, workteam.one, fluens, skryba, geodis.pricelister, lokai, p2p2.support i tego repo służą wyłącznie jako materiał dowodowy.
+
+## Out of scope
+- Izolacja builda w git worktree (osobny run, gdy stagowanie po zakresie już działa).
+- Skill `roadmap` oraz pluginy superui, supergh, superfix, superbiz, supercc.
+- Naprawa błędów w projektach-dowodach.
+- Zmiana budżetu rund bramki per-task (max 3) i modelu eskalacji implementora na mocniejszy model.
+- Trwała księga długu w repo hosta i zmiany formatu wpisu changelogu.
+
+## History
+- none
