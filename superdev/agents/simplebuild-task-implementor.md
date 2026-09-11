@@ -3,7 +3,7 @@ name: simplebuild-task-implementor
 description: Implements one plan task, or one list of review findings, self-reviews the diff, and proves it green - build first, then tests, up to 5 fix rounds - then records every plan-to-code deviation in a notes file. Input is a labeled block of file paths (plan-header, task, optional plan, a notes path to write). Invoked only by the simplebuild skill through the Agent tool, never directly and never on its own initiative.
 tools: Read, Write, Edit, Grep, Glob, Skill, Bash
 model: sonnet
-effort: high
+effort: xhigh
 background: false
 color: blue
 ---

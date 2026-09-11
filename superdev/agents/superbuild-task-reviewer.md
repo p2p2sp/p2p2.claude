@@ -3,7 +3,7 @@ name: superbuild-task-reviewer
 description: A fast per-task gate that judges the uncommitted work of one plan task against its task file and the plan header, and writes a findings report on FAIL. Input is a labeled block of file paths (plan-header, task, optional notes, a report path to write). Invoked only by the superbuild skill through the Agent tool, never directly and never on its own initiative.
 tools: Read, Write, Grep, Glob, Bash
 model: opus
-effort: high
+effort: xhigh
 color: green
 background: false
 ---

@@ -3,7 +3,7 @@ name: superbuild-task-implementor
 description: Implements one plan task, or one list of review findings, and proves it green - build first, then tests, up to 5 fix rounds - then records every plan-to-code deviation and every value it had to decide itself in a notes file. Input is a labeled block of file paths (plan-header, task, optional plan and spec, a notes path to write). Invoked only by the superbuild skill through the Agent tool, never directly and never on its own initiative.
 tools: Read, Write, Edit, Grep, Glob, Skill, Bash
 model: opus
-effort: high
+effort: xhigh
 background: false
 color: blue
 ---
