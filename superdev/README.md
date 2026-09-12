@@ -59,7 +59,7 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    another task consumes, the `CARRY:` lines implementors left behind, failure branches that cross tasks. Every
    round carries one budget - one fix dispatch and one re-review scoped to that fix - and then the decision is
    yours (another round / accept with open findings / abort). Findings keep stable IDs (`C1`, `I2`, `M3`) for the
-   life of the build, a re-review opens with an `ADDRESSED` / `NOT ADDRESSED` table per ID, and Minor findings go
+   life of the build, a re-review opens with an `ADDRESSED` / `NOT ADDRESSED` / `ACCEPTED` table per ID, and Minor findings go
    to `implementation/debt.md` without touching any verdict. A reviewer returns `VERDICT: BLOCKED` when a
    criterion is unmet because of a decision, not because code is missing: you answer once, and every
    acceptance - there, or when you close a round with findings still open - is recorded in

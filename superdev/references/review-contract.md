@@ -6,9 +6,11 @@ owner - this file - so every consumer applies the same rules instead of restatin
 
 Consumed by the three build reviewers (`skills/superbuild-reviewer-spec`,
 `skills/superbuild-reviewer-change`, `skills/simplebuild-reviewer`), the two task implementors
-(`agents/superbuild-task-implementor.md`, `agents/simplebuild-task-implementor.md`), the task
-reviewer (`agents/superbuild-task-reviewer.md`) and the two orchestrators (`skills/superbuild`,
-`skills/simplebuild`).
+(`agents/superbuild-task-implementor.md`, `agents/simplebuild-task-implementor.md`) and the two
+orchestrators (`skills/superbuild`, `skills/simplebuild`) - each of them reads this file. The task
+reviewer (`agents/superbuild-task-reviewer.md`) is never handed a `refs:` label and never reads it:
+it carries its own reduced copy of the report skeleton and the ID scheme inline, for the one report
+shape its gate writes, and any change to those two sections here is mirrored there by hand.
 
 Stack-agnostic: every rule below refers only to the plan template's own sections (`### Files`,
 `### Test Commands`, `### Contracts`, `### Failure modes`, `### DoD`), to the run's working
@@ -90,15 +92,15 @@ the prior findings section; no consumer adds any other section.
 Run before reading any code, at every stage, and record each command with its result in the
 report's gates section:
 
-- the plan's build command or commands (the `#### Build` block of the task's `### Test Commands`,
-  and the plan's build block when it has one);
+- the plan's build command or commands (the `#### Build` block of every plan task's
+  `### Test Commands`, and the plan's own build block when it has one);
 - every `Test Commands` block of the plan;
 - the host's integration or e2e command, when the plan or the host's memory files document one.
 
 Rules:
 
-- On `stage: re-review`, when the fix round touched any file other than a test, the integration or
-  e2e command is run again.
+- On `stage: re-review` the integration or e2e command is run again whatever the fix round changed:
+  a result carried over from the prior round proves nothing about the fixed tree.
 - A documented integration or e2e command that cannot start in this environment is BLOCKED, with
   the reason as a `### Needs decision` bullet. Never PASS.
 - A host with no such command documented gets the single sentence
@@ -155,6 +157,10 @@ Return channel to the orchestrator - the only channel, the report itself stays o
 it, one line per Minor raised in the round:
 
 `- <ID> - <round report basename> - file:line - <what>`
+
+The writing tool truncates, so the append is done in two steps: Read the file when it exists, then
+write back its existing lines followed by this round's, in one write. A round that writes only its
+own lines silently deletes every earlier round's - the same loss the append rule exists to prevent.
 
 The fix implementor never reads it: a Minor is worked only when the dispatch names it on a `minor:`
 line (see `## Implementor fix-mode input`). The file is run bookkeeping - it lives in the run

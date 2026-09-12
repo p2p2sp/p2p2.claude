@@ -34,7 +34,7 @@ Read `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` before any other step
 Input error, checked before any work: `Stage` or `Since` empty, or `Prior report` empty while `Stage` is `re-review` -> return line 1 `VERDICT: FAIL` and line 2 `REASON: missing input <label>`, and write no report.
 
 ## Gates
-Your first working step, at every stage, before you read any code: run the gate commands per the contract's `## Gates` section and record each command with its result in the report's gates section, which sits above the coverage table. That section governs which commands run, the re-run rule after a fix round that touched a non-test file, `VERDICT: BLOCKED` for a documented integration or e2e suite that cannot start here, the single sentence for a host that documents none, and the unbounded review when `Since` is `none`.
+Your first working step, at every stage, before you read any code: run the gate commands per the contract's `## Gates` section and record each command with its result in the report's gates section, which sits above the coverage table. That section governs which commands run, the re-run of the integration or e2e command on `re-review`, `VERDICT: BLOCKED` for a documented integration or e2e suite that cannot start here, the single sentence for a host that documents none, and the unbounded review when `Since` is `none`.
 
 A plan with no `Test Commands` and no command documented anywhere: say so in the gates section and review by reading alone. A criterion whose satisfaction needs a run then stays not met, with the missing run named in its coverage line - never met by assumption.
 
@@ -45,7 +45,7 @@ You own ONE dimension: does the delivered implementation satisfy the spec and co
 Judge the current repository state against `## spec` and `## plan`. The change set `git diff --name-status <Since>..HEAD` is evidence of what moved most recently, never a bound on the criteria you verdict - the contract's `## Verdict rules` sets that scope per stage.
 
 What you judge is set by `Stage`:
-- `checkpoint` / `final` - every acceptance criterion, scenario and constraint, each against the repository state as a whole, a criterion whose code landed before `Since` exactly like one inside the change set.
+- `final` - every acceptance criterion, scenario and constraint, each against the repository state as a whole, a criterion whose code landed before `Since` exactly like one inside the change set. `checkpoint` is reserved and never dispatched here: mid-build the criteria of the tasks still unwritten are unmet by construction, so this dimension runs once the build is complete.
 - `re-review` - verdict every ID from `Prior report` first, in the report's prior findings table with a `file:line` as evidence; then re-check only the criteria those IDs map to, over `git diff <Since>..HEAD`. A new Critical or Important only for a defect the fix itself introduced, and an ID raised as `M<n>` never returns as `I<n>` or `C<n>`.
 
 **Acceptance criteria (the core):**

@@ -8,7 +8,9 @@
  * `commit: <sha>` as its last line. Any other change in the working tree (a
  * modified tracked file, an untracked file outside .gitignore) stops the run
  * with one `undeclared: <path>` line per path and exit 2, nothing committed;
- * .temp/ is ignored on both sides. Reports "Nothing to commit." on an empty
+ * .temp/ is ignored on both sides. `--path .` is the one mode that declares the
+ * whole tree and switches that gate off - the fresh-repository initial commit -
+ * and .temp/ stays out even there. Reports "Nothing to commit." on an empty
  * index, skips the commit outside a git repository, and exits 1 on a missing
  * message.
  *
@@ -283,6 +285,42 @@ test("--path <dir> declares every file below it, including a new one", () => {
     const result = run(repo.dir, repo.env, ["add the package", "--path", "pkg"]);
     assert.equal(result.status, 0, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
     assert.deepEqual(committedFiles(repo), ["pkg/nested/new.txt"]);
+  });
+});
+
+test("--path . declares the whole tree - the fresh-repository initial commit - and still leaves .temp/ out", () => {
+  withGitRepo((repo) => {
+    // No commit yet and an untracked tree: exactly what the orchestrators' git
+    // preflight hands over after `git init`. The harness's own .gitconfig-global
+    // sits in that tree undeclared - under `--path .` it rides along instead of
+    // stopping the run with exit 2.
+    write(repo.dir, "src/app.txt", "source\n");
+    write(repo.dir, ".temp/superdev/scratch.md", "machine state\n");
+
+    const result = run(repo.dir, repo.env, ["chore: initial commit", "--path", "."]);
+    assert.equal(result.status, 0, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stdout, /^undeclared: /m);
+
+    // ls-tree, not `git show`: this is a root commit, so the tree itself is the
+    // only statement of what the commit carries.
+    const tracked = repo
+      .git("ls-tree", "-r", "--name-only", "HEAD")
+      .stdout.trim()
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .sort();
+    assert.ok(tracked.includes("src/app.txt"), `tracked: ${tracked.join(", ")}`);
+    assert.ok(tracked.includes(".gitconfig-global"), `tracked: ${tracked.join(", ")}`);
+    assert.ok(
+      !tracked.some((file) => file === ".temp" || file.startsWith(".temp/")),
+      `tracked: ${tracked.join(", ")}`,
+    );
+    // still on disk, just never staged
+    assert.ok(fs.existsSync(path.join(repo.dir, ".temp/superdev/scratch.md")));
+
+    const head = repo.git("rev-parse", "HEAD").stdout.trim();
+    assert.equal(lastStdoutLine(result.stdout), `commit: ${head}`);
   });
 });
 

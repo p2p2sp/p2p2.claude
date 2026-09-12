@@ -34,7 +34,7 @@ Read `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` before any other step
 Input error, checked before any work: `Stage` or `Since` empty, or `Prior report` empty while `Stage` is `re-review` -> return line 1 `VERDICT: FAIL` and line 2 `REASON: missing input <label>`, and write no report.
 
 ## Gates
-Your first working step, at every stage: run the gate commands per the contract's `## Gates` section and record each command with its result in the report. That section governs which commands run, the re-run rule after a fix round that touched a non-test file, `VERDICT: BLOCKED` for a documented integration or e2e suite that cannot start here, the single sentence for a host that documents none, and the unbounded review when `Since` is `none`.
+Your first working step, at every stage: run the gate commands per the contract's `## Gates` section and record each command with its result in the report. That section governs which commands run, the re-run of the integration or e2e command on `re-review`, `VERDICT: BLOCKED` for a documented integration or e2e suite that cannot start here, the single sentence for a host that documents none, and the unbounded review when `Since` is `none`.
 
 ## Scope
 You own ONE dimension: the quality of the delivered code. Spec conformance is a separate review dimension - assume the behavior is correct unless a quality defect breaks it. Style, polish and naming are never findings, at any stage.

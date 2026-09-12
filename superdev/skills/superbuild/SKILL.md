@@ -73,6 +73,8 @@ Track four values for the rest of the build:
 
 On a resume (`status:` is `NN`): read `head` from one `git rev-parse HEAD`, and `since` / `prior` from the `since:` / `prior:` lines of `<workdir>/checkpoint.md` when that file exists - otherwise `since` is `base:` and there is no `prior`, so no task committed after the last closed round is skipped by the next one.
 
+Every report and notes ordinal below (`KK`, the fix `NN`, each re-review `R`, each task's review `R`) is likewise read off disk, never from memory: one `Glob` over `<workdir>/implementation/` at the start of the build and again on every resume, and each next ordinal is one past the highest already there for its own name shape - `checkpoint-KK.md`, `fix-NN-notes.md`, `<report basename>-reR.md`, `task-NN-review-R.md`. So a resumed build never overwrites a closed round's report and never hands the implementor a `fix-NN-notes.md` an earlier round already filled (both implementors append to an existing notes file, and `commit-task.sh --notes` would then declare that stale round's `touched:` paths too).
+
 ## Step 2 - Run Implementation Loop
 
 ### Build task list
@@ -139,7 +141,7 @@ Shared by the checkpoint above (`stage: checkpoint`) and by each round of Step 3
 
 1. `TaskUpdate` -> start
 2. Wave 1 - gated by Config; dispatch only the enabled ones with the `Agent` tool - all of them as multiple tool uses in ONE single message so they run concurrently - and await all before moving on.
-    - `adr: true`    -> `Agent` with `subagent_type: superdev:adr-writer` and a labeled-line prompt - `plan: <plan-copy path>`, `adr: docs/adr` (the target DIRECTORY - it timestamps the filename itself), and `spec: <spec path>` on separate lines. Its `ADR:` line carries the written path, or `none` when the plan holds no significant architectural decision and no file was written.
+    - `adr: true`    -> `Agent` with `subagent_type: superdev:adr-writer` and a labeled-line prompt - `plan: <plan-copy path>`, `adr: <root>/docs/adr` (the target DIRECTORY, joined with the index's `root:` like every other path, so the ADR lands at the repository root whatever directory this session started in - it timestamps the filename itself), and `spec: <spec path>` on separate lines. Its `ADR:` line carries the written path, or `none` when the plan holds no significant architectural decision and no file was written.
     - `memory: true` -> `Agent` with `subagent_type: superdev:memory-writer` and a labeled-line prompt - `capture: <plan-copy path>`, `notes: <workdir>/implementation/`, `refs: <refs>`, and `spec: <spec path>` on separate lines.
     - `rules: true`  -> `Agent` with `subagent_type: superdev:rules-writer` and a labeled-line prompt - `capture: <plan-copy path>`, `notes: <workdir>/implementation/`, and `refs: <refs>` on separate lines.
 3. Wave 2 - `changelog: true` -> after wave 1 completes, `Agent` with `subagent_type: superdev:changelog-writer` and a labeled-line prompt - `capture: <plan-copy path>`, `workdir: <workdir>`, `notes: <workdir>/implementation/`, and `refs: <refs>` on separate lines, plus `intent: <intent path>` only when the decompose index printed an `intent:` line, `spec: <spec path>` (superbuild only), and `adr: <path>` only when wave 1 returned `ADR: <path>` other than `none`.

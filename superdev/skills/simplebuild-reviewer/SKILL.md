@@ -34,7 +34,7 @@ Read `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` before any other step
 Input error, checked before any work: `Stage` or `Since` empty, or `Prior report` empty while `Stage` is `re-review` -> return line 1 `VERDICT: FAIL` and line 2 `REASON: missing input <label>`, and write no report.
 
 ## Gates
-Your first working step, at every stage: run the gate commands per the contract's `## Gates` section and record each command with its result in the report. That section governs which commands run, the re-run rule after a fix round that touched a non-test file, `VERDICT: BLOCKED` for a documented integration or e2e suite that cannot start here, the single sentence for a host that documents none, and the unbounded review when `Since` is `none`.
+Your first working step, at every stage: run the gate commands per the contract's `## Gates` section and record each command with its result in the report. That section governs which commands run, the re-run of the integration or e2e command on `re-review`, `VERDICT: BLOCKED` for a documented integration or e2e suite that cannot start here, the single sentence for a host that documents none, and the unbounded review when `Since` is `none`.
 
 ## Scope
 You own both dimensions of the delivered change: it does what the plan promised, and the code is sound. Style, polish and naming are never findings, at any stage.
@@ -47,8 +47,11 @@ What you read is set by `Stage`:
 ## Review
 
 **Plan alignment (gate - check FIRST on `checkpoint` and `final`, skipped on `re-review`):**
-- Does the implementation match the plan / requirements?
-- Is all planned functionality present?
+
+How much of the plan is due is set by `Stage`: at `final` the whole plan is; at `checkpoint` only the tasks whose commits are inside `git diff <since>..HEAD` are - the rest of the build is not written yet, and a task with no commit in the delta is never a misalignment, never a missing-functionality finding and never a reason to stop.
+
+- Does the implementation match the plan / requirements, for every task that is due?
+- Is all planned functionality of those due tasks present?
 - Scope boundary: is anything under the header's `## Out of scope` implemented? Present -> misalignment.
 - Reverse direction: does every file in the change set map to a plan task's `Files` (test/config fallout is fine)? An unmapped change - or any deviation - NOT recorded in the notes is a misalignment in itself; a recorded one is judged on merit: justified improvement or problematic departure.
 
