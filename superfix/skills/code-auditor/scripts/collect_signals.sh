@@ -4,7 +4,7 @@
 # stdout (JSONL). These are PRIORS for the scouts, not the score itself.
 #
 # Usage:
-#   bash collect_signals.sh [window_days] [repo_root] [--with-dependents]
+#   bash collect_signals.sh [window_days] [repo_root] [--with-dependents] [--scope <dir>]
 #
 # Signals per file:
 #   churn         commits touching the file within the window
@@ -58,22 +58,84 @@
 # --with-dependents is stripped out of the positional stream before
 # window_days/repo_root are bound, so it may appear anywhere on the command
 # line and either positional argument may be omitted.
+#
+# --scope <dir> narrows the EMITTED RECORD SET to the files under <dir>, and
+# nothing else about the sweep: pass 1 (extension discovery) and every
+# per-file probe (churn, fix_commits, recency, loc, dependents) keep running
+# over the whole repo, so a scoped file's record is byte-identical to the one
+# an unscoped run emits for it. A path `p` is kept iff `p` equals <dir> or
+# starts with `<dir>/`, so a sibling sharing the prefix (srcx next to src) is
+# never swept in. <dir> is repo-root-relative: a leading `./` and any trailing
+# `/` are tolerated, and `.` (or an empty value) means the whole repo. An
+# absolute path (a bare `/` or `//` included - a root is never read as "no
+# scope"), a `..` segment, or a `--scope` with no value is rejected with
+# exit 2 and no stdout. A scope matching zero tracked files is a valid empty
+# sweep - exit 0, empty stdout - because the caller validates the directory's
+# existence before invoking this script. Like --with-dependents, `--scope` is
+# read out of the positional stream (as two tokens) before window_days and
+# repo_root are bound, so it may appear anywhere on the command line.
 
 set -euo pipefail
 
 WITH_DEPENDENTS="no"
+SCOPE=""
 positional=()
-for arg in "$@"; do
+args=("$@")
+i=0
+while [ $i -lt ${#args[@]} ]; do
+  arg="${args[$i]}"
   if [ "$arg" = "--with-dependents" ]; then
     WITH_DEPENDENTS="yes"
+  elif [ "$arg" = "--scope" ]; then
+    i=$((i + 1))
+    if [ $i -ge ${#args[@]} ]; then
+      echo 'collect_signals.sh: --scope requires a directory argument' >&2
+      exit 2
+    fi
+    SCOPE="${args[$i]}"
   else
     positional+=("$arg")
   fi
+  i=$((i + 1))
 done
 WINDOW_DAYS="${positional[0]:-30}"
 ROOT="${positional[1]:-.}"
 
 cd "$ROOT"
+
+# Validate and normalise the scope before any repo work, so a bad --scope
+# always exits 2 with nothing on stdout, whatever state the repo is in.
+# Rejected: an absolute path (POSIX `/...` or a Windows drive `C:...`) and any
+# `..` segment - both name something outside the repo-root-relative subtree the
+# scope is defined over.
+scope_reject() {
+  printf 'collect_signals.sh: --scope must be a repo-root-relative directory: %s\n' "$1" >&2
+  exit 2
+}
+
+# The absolute half runs on the RAW value, BEFORE normalisation: the
+# trailing-slash strip below collapses a bare root (`/`, `//`) to the empty
+# string, which the guards downstream read as "no scope" - so a bare root
+# would fail open into a whole-repo sweep with exit 0 instead of being
+# rejected. The raw value is also what the message names, since the
+# normalised one can be empty.
+case "$SCOPE" in
+  /* | [A-Za-z]:*) scope_reject "$SCOPE" ;;
+esac
+
+# A leading `./` and every trailing `/` are noise, and `.` is the whole repo,
+# i.e. no scope at all.
+while [ "${SCOPE#./}" != "$SCOPE" ]; do SCOPE="${SCOPE#./}"; done
+while [ "${SCOPE%/}" != "$SCOPE" ]; do SCOPE="${SCOPE%/}"; done
+if [ "$SCOPE" = "." ]; then SCOPE=""; fi
+if [ -n "$SCOPE" ]; then
+  # The `..` patterns are checked on the normalised value; the absolute ones
+  # are repeated here because normalisation can produce an absolute path the
+  # raw check never saw (`.//foo` -> `/foo`).
+  case "$SCOPE" in
+    /* | [A-Za-z]:* | .. | ../* | */../* | */..) scope_reject "$SCOPE" ;;
+  esac
+fi
 
 # An unborn HEAD (a repo with no commits yet) has no churn, fix, or recency
 # data to compute - a sweep of it would be meaningless rather than merely
@@ -105,6 +167,21 @@ noise_filter() {
   grep -Ev '(^|/)(node_modules|dist|build|out|vendor|third_party)(/|$)|\.min\.|(^|/)package-lock\.json$|(^|/)yarn\.lock$' || true
 }
 
+# Keeps only the paths under $SCOPE (the path itself, or anything below it),
+# and is a plain `cat` when no scope was given. It sits at the very END of
+# pass 2, after the extension filter, so pass 1 and every per-file probe still
+# see the whole repo - the scope shrinks the emitted record set, nothing else.
+# `awk -v` is safe for this value: a scope carrying a newline cannot reach
+# here (a `..`-free, non-absolute single argument), which is the only input
+# BSD/macOS awk aborts on.
+scope_filter() {
+  if [ -z "$SCOPE" ]; then
+    cat
+  else
+    awk -v d="$SCOPE" '$0 == d || index($0, d "/") == 1'
+  fi
+}
+
 # Pass 1 - discover the repo's own extension set, minus the deny-list.
 # `-c core.quotePath=false`: never let a non-ASCII path reach us C-quoted.
 kept_exts="$(
@@ -118,72 +195,96 @@ printf 'sweep extensions:%s\n' "$(printf '%s' "$kept_exts" | tr '\n' ' ' | sed '
 # Pass 2 - candidates: files whose extension was kept, plus extensionless files.
 # kept_exts is handed to awk via ENVIRON, not `-v` - a `-v` value containing a
 # newline (any multi-extension repo) aborts BSD/macOS awk outright.
-git -c core.quotePath=false ls-files | noise_filter \
-  | KEPT_EXTS="$kept_exts" awk '
-      BEGIN { n = split(ENVIRON["KEPT_EXTS"], a, "\n"); for (i = 1; i <= n; i++) if (a[i] != "") keep[a[i]] = 1 }
-      {
-        if (substr($0, 1, 1) == "\"") {
-          printf "collect_signals.sh: warning: skipping quoted path %s\n", $0 > "/dev/stderr"
-          next
-        }
-        base = $0; sub(/.*\//, "", base)
-        if (base ~ /\./) { ext = base; sub(/.*\./, "", ext); ext = tolower(ext) }
-        else ext = ""
-        if (ext == "" || (ext in keep)) print
-      }' \
-  | while IFS= read -r f; do
-      [ -f "$f" ] || continue
+# The result is materialised instead of streamed straight into the probe loop
+# so the scoped file count is known before the first record is written, which
+# is what lets the `scope:` line below sit next to the `sweep extensions:` one.
+candidates="$(
+  git -c core.quotePath=false ls-files | noise_filter \
+    | KEPT_EXTS="$kept_exts" awk '
+        BEGIN { n = split(ENVIRON["KEPT_EXTS"], a, "\n"); for (i = 1; i <= n; i++) if (a[i] != "") keep[a[i]] = 1 }
+        {
+          if (substr($0, 1, 1) == "\"") {
+            printf "collect_signals.sh: warning: skipping quoted path %s\n", $0 > "/dev/stderr"
+            next
+          }
+          base = $0; sub(/.*\//, "", base)
+          if (base ~ /\./) { ext = base; sub(/.*\./, "", ext); ext = tolower(ext) }
+          else ext = ""
+          if (ext == "" || (ext in keep)) print
+        }' \
+    | scope_filter
+)"
 
-      # Each probe below is guarded individually: a failure (e.g. an
-      # unreadable tracked file) warns on stderr, naming the file, and skips
-      # straight to the next one - it must not abort the whole stream under
-      # `set -euo pipefail`.
-      if ! churn="$(git log --since="$SINCE" --oneline -- "$f" 2>/dev/null | wc -l | tr -d ' ')"; then
-        printf 'collect_signals.sh: warning: skipping %s (churn probe failed)\n' "$f" >&2
-        continue
-      fi
-      if ! fix_commits="$(git log --since="$SINCE" -i \
-                       --grep='fix' --grep='hotfix' --grep='revert' \
-                       --oneline -- "$f" 2>/dev/null | wc -l | tr -d ' ')"; then
-        printf 'collect_signals.sh: warning: skipping %s (fix_commits probe failed)\n' "$f" >&2
-        continue
-      fi
+# One honest line about the narrowed coverage, mirroring `sweep extensions:`.
+# A zero here is a legitimate empty sweep, not an error.
+if [ -n "$SCOPE" ]; then
+  if [ -n "$candidates" ]; then
+    scoped_files="$(printf '%s\n' "$candidates" | wc -l | tr -d ' ')"
+  else
+    scoped_files=0
+  fi
+  printf 'scope: %s (%s files)\n' "$SCOPE" "$scoped_files" >&2
+fi
 
-      if ! last_ct="$(git log -1 --format=%ct -- "$f" 2>/dev/null)"; then
-        printf 'collect_signals.sh: warning: skipping %s (last_ct probe failed)\n' "$f" >&2
-        continue
-      fi
-      if [ "${last_ct:-0}" -gt 0 ] 2>/dev/null; then
-        recency_days=$(( (NOW - last_ct) / 86400 ))
-      else
-        recency_days=-1
-      fi
+# An empty candidate list still feeds this loop one empty line (`<<<` on an
+# empty string), hence the explicit emptiness guard ahead of the `-f` test.
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  [ -f "$f" ] || continue
 
-      if ! loc="$(wc -l 2>/dev/null < "$f" | tr -d ' ')"; then
-        printf 'collect_signals.sh: warning: skipping %s (loc probe failed)\n' "$f" >&2
-        continue
-      fi
+  # Each probe below is guarded individually: a failure (e.g. an
+  # unreadable tracked file) warns on stderr, naming the file, and skips
+  # straight to the next one - it must not abort the whole stream under
+  # `set -euo pipefail`.
+  if ! churn="$(git log --since="$SINCE" --oneline -- "$f" 2>/dev/null | wc -l | tr -d ' ')"; then
+    printf 'collect_signals.sh: warning: skipping %s (churn probe failed)\n' "$f" >&2
+    continue
+  fi
+  if ! fix_commits="$(git log --since="$SINCE" -i \
+                   --grep='fix' --grep='hotfix' --grep='revert' \
+                   --oneline -- "$f" 2>/dev/null | wc -l | tr -d ' ')"; then
+    printf 'collect_signals.sh: warning: skipping %s (fix_commits probe failed)\n' "$f" >&2
+    continue
+  fi
 
-      dependents=-1
-      if [ "$WITH_DEPENDENTS" = "yes" ]; then
-        base="$(basename "$f")"
-        stem="${base%.*}"
-        # A leading-dot basename with no other dot (.gitignore) strips to the
-        # empty string via `${base%.*}` - fall back to the full basename so
-        # the grep below searches for something, not everything.
-        [ -n "$stem" ] || stem="$base"
-        # files that mention the stem, minus the file itself.
-        # `|| true` guards each stage: a no-match git grep / grep returns rc=1,
-        # which would otherwise trip `set -e` + `pipefail` and abort the sweep.
-        # An empty stem (should not occur once the fallback above applies)
-        # skips the probe entirely rather than matching every tracked file.
-        if [ -n "$stem" ]; then
-          dependents="$( { git -c core.quotePath=false grep -lI -- "$stem" 2>/dev/null || true; } \
-                         | { grep -vxF "$f" || true; } \
-                         | wc -l | tr -d ' ')"
-        fi
-      fi
+  if ! last_ct="$(git log -1 --format=%ct -- "$f" 2>/dev/null)"; then
+    printf 'collect_signals.sh: warning: skipping %s (last_ct probe failed)\n' "$f" >&2
+    continue
+  fi
+  if [ "${last_ct:-0}" -gt 0 ] 2>/dev/null; then
+    recency_days=$(( (NOW - last_ct) / 86400 ))
+  else
+    recency_days=-1
+  fi
 
-      printf '{"path":"%s","churn":%s,"fix_commits":%s,"recency_days":%s,"loc":%s,"dependents":%s}\n' \
-        "$(esc "$f")" "$churn" "$fix_commits" "$recency_days" "$loc" "$dependents"
-    done
+  if ! loc="$(wc -l 2>/dev/null < "$f" | tr -d ' ')"; then
+    printf 'collect_signals.sh: warning: skipping %s (loc probe failed)\n' "$f" >&2
+    continue
+  fi
+
+  dependents=-1
+  if [ "$WITH_DEPENDENTS" = "yes" ]; then
+    base="$(basename "$f")"
+    stem="${base%.*}"
+    # A leading-dot basename with no other dot (.gitignore) strips to the
+    # empty string via `${base%.*}` - fall back to the full basename so
+    # the grep below searches for something, not everything.
+    [ -n "$stem" ] || stem="$base"
+    # files that mention the stem, minus the file itself. The grep is
+    # deliberately repo-wide even under --scope: a dependent outside the
+    # scope still depends on the file, so narrowing it here would make a
+    # scoped record disagree with the unscoped one.
+    # `|| true` guards each stage: a no-match git grep / grep returns rc=1,
+    # which would otherwise trip `set -e` + `pipefail` and abort the sweep.
+    # An empty stem (should not occur once the fallback above applies)
+    # skips the probe entirely rather than matching every tracked file.
+    if [ -n "$stem" ]; then
+      dependents="$( { git -c core.quotePath=false grep -lI -- "$stem" 2>/dev/null || true; } \
+                     | { grep -vxF "$f" || true; } \
+                     | wc -l | tr -d ' ')"
+    fi
+  fi
+
+  printf '{"path":"%s","churn":%s,"fix_commits":%s,"recency_days":%s,"loc":%s,"dependents":%s}\n' \
+    "$(esc "$f")" "$churn" "$fix_commits" "$recency_days" "$loc" "$dependents"
+done <<< "$candidates"

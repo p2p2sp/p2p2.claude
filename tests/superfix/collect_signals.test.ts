@@ -1,9 +1,11 @@
 /*
  * collect_signals.test.ts - proves collect_signals.sh's
- * `collect_signals.sh [window_days] [repo_root] [--with-dependents]`
+ * `collect_signals.sh [window_days] [repo_root] [--with-dependents] [--scope <dir>]`
  * contract: one JSONL record per tracked file with keys path/churn/
  * fix_commits/recency_days/loc/dependents, --with-dependents position-
- * agnostic, the kept-extension list + per-file warnings on stderr only,
+ * agnostic, --scope narrowing the record set only (every probe value stays
+ * the unscoped one) and rejecting a non-repo-relative directory with exit 2,
+ * the kept-extension list + per-file warnings on stderr only,
  * and exit 1 with no stdout on an unborn HEAD.
  *
  * collect_signals.sh ships mode 100644 (git ls-files) - the skill invokes it
@@ -88,6 +90,29 @@ function buildDependentsFixture(repo: GitRepo): void {
   fs.writeFileSync(path.join(repo.dir, "widget.ts"), "export const widget = 1;\n");
   fs.writeFileSync(path.join(repo.dir, "consumer.md"), "See widget.ts for the implementation.\n");
   commitAt(repo, 0, "seed dependents fixture");
+}
+
+/** Two files under src/ (one of them nested), one under lib/, one under the
+ *  prefix-sharing sibling srcx/, and a README mentioning the alpha and gamma
+ *  stems - so a `--scope src` run can be checked for exactly the right subtree
+ *  (srcx/ excluded) and for dependents counted repo-wide (README.md is outside
+ *  the scope yet still counts towards src/alpha.ts). */
+function buildScopeFixture(repo: GitRepo): void {
+  fs.mkdirSync(path.join(repo.dir, "src", "deep"), { recursive: true });
+  fs.mkdirSync(path.join(repo.dir, "lib"), { recursive: true });
+  fs.mkdirSync(path.join(repo.dir, "srcx"), { recursive: true });
+  fs.writeFileSync(path.join(repo.dir, "src", "alpha.ts"), "export const alpha = 1;\n");
+  fs.writeFileSync(path.join(repo.dir, "src", "deep", "beta.ts"), "export const beta = 2;\n");
+  fs.writeFileSync(path.join(repo.dir, "lib", "gamma.ts"), "export const gamma = 3;\n");
+  fs.writeFileSync(path.join(repo.dir, "srcx", "delta.ts"), "export const delta = 4;\n");
+  fs.writeFileSync(path.join(repo.dir, "README.md"), "Docs for alpha and gamma.\n");
+  commitAt(repo, 1, "seed scope fixture");
+}
+
+function pathsOf(result: RunResult): string[] {
+  return recordsOf(result)
+    .map((r) => r.path as string)
+    .sort();
 }
 
 // --- record shape --------------------------------------------------------
@@ -194,6 +219,115 @@ test("--with-dependents may appear in any argument position and still binds wind
         assert.equal(recordFor(result, "consumer.md").dependents, 0, `args=${args.join(" ")}`);
       });
     }
+  });
+});
+
+// --- --scope ---------------------------------------------------------------
+
+test("--scope <dir> emits records for that subtree only, never for a sibling sharing its prefix", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      buildScopeFixture(repo);
+      const result = run(bash, repo, ["--scope", "src"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.deepEqual(pathsOf(result), ["src/alpha.ts", "src/deep/beta.ts"]);
+      assert.match(result.stderr, /^scope: src \(2 files\)$/m);
+    });
+  });
+});
+
+test("a --scope value tolerates a leading ./ and a trailing / and resolves to the same subtree", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      buildScopeFixture(repo);
+      const plain = run(bash, repo, ["--scope", "src"]);
+      const decorated = run(bash, repo, ["--scope", "./src/"]);
+      assert.equal(decorated.status, 0, `stderr: ${decorated.stderr}`);
+      assert.deepEqual(pathsOf(decorated), pathsOf(plain));
+      assert.match(decorated.stderr, /^scope: src \(2 files\)$/m);
+    });
+  });
+});
+
+test("a scoped record carries exactly the values the unscoped run computes for that same file", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      buildScopeFixture(repo);
+      const unscoped = run(bash, repo, ["30", "--with-dependents"]);
+      assert.equal(unscoped.status, 0, `stderr: ${unscoped.stderr}`);
+      const scoped = run(bash, repo, ["30", "--scope", "src", "--with-dependents"]);
+      assert.equal(scoped.status, 0, `stderr: ${scoped.stderr}`);
+
+      const before = recordFor(unscoped, "src/alpha.ts");
+      const after = recordFor(scoped, "src/alpha.ts");
+      // README.md sits OUTSIDE the scope and must still count - dependents is
+      // a repo-wide probe, narrowed by nothing.
+      assert.equal(before.dependents, 1, "README.md mentions the alpha stem");
+      for (const key of ["path", "churn", "fix_commits", "recency_days", "loc", "dependents"]) {
+        assert.equal(after[key], before[key], `field ${key} must not change under --scope`);
+      }
+    });
+  });
+});
+
+test("--scope may appear before or after the positionals and still binds window_days/repo_root correctly", () => {
+  assertBash((bash) => {
+    const positions: string[][] = [
+      ["30", "--scope", "src"],
+      ["--scope", "src", "30", "."],
+    ];
+    for (const args of positions) {
+      withGitRepo((repo) => {
+        buildScopeFixture(repo);
+        const result = run(bash, repo, args);
+        assert.equal(result.status, 0, `args=${args.join(" ")} stderr: ${result.stderr}`);
+        assert.deepEqual(pathsOf(result), ["src/alpha.ts", "src/deep/beta.ts"], `args=${args.join(" ")}`);
+      });
+    }
+  });
+});
+
+test("a --scope matching zero tracked files is a valid empty sweep, not an error", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      buildScopeFixture(repo);
+      const result = run(bash, repo, ["--scope", "nowhere"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, /^scope: nowhere \(0 files\)$/m);
+    });
+  });
+});
+
+test("an absolute or ..-bearing --scope value exits 2 with no stdout and one stderr line naming it", () => {
+  assertBash((bash) => {
+    for (const scope of ["/etc", "/", "//", "C:/tmp", "..", "../sibling", "src/../lib", "src/.."]) {
+      withGitRepo((repo) => {
+        buildScopeFixture(repo);
+        const result = run(bash, repo, ["--scope", scope]);
+        assert.equal(result.status, 2, `scope=${scope} stderr: ${result.stderr}`);
+        assert.equal(result.stdout, "", `scope=${scope}`);
+        const stderrLines = result.stderr.split("\n").filter((line) => line.length > 0);
+        assert.equal(stderrLines.length, 1, `scope=${scope} stderr: ${result.stderr}`);
+        assert.ok(
+          stderrLines[0].startsWith("collect_signals.sh: --scope must be a repo-root-relative directory: "),
+          `scope=${scope} stderr: ${result.stderr}`,
+        );
+        assert.ok(stderrLines[0].endsWith(scope.replace(/\/+$/, "")), `scope=${scope} stderr: ${result.stderr}`);
+      });
+    }
+  });
+});
+
+test("a trailing --scope with no value exits 2 with no stdout", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      buildScopeFixture(repo);
+      const result = run(bash, repo, ["30", ".", "--scope"]);
+      assert.equal(result.status, 2, `stderr: ${result.stderr}`);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, /^collect_signals\.sh: --scope requires a directory argument$/m);
+    });
   });
 });
 
