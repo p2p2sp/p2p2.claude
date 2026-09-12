@@ -7,12 +7,15 @@
 #   bash collect_signals.sh [window_days] [repo_root] [--with-dependents] [--scope <dir>]
 #
 # Signals per file:
-#   churn         commits touching the file within the window
-#   fix_commits   commits in the window messaged fix/hotfix/revert touching it
-#   recency_days  days since the file was last touched (-1 if unknown)
-#   loc           line count
-#   dependents    rough count of tracked files referencing the file's basename
-#                 (only computed with --with-dependents; it is O(n) git-greps)
+#   churn            commits touching the file within the window
+#   fix_commits      commits in the window messaged fix/hotfix/revert touching it
+#   recency_days     days since the file was last touched (-1 if unknown)
+#   loc              line count
+#   dependents       rough count of tracked files referencing the file's counting
+#                    literal (only computed with --with-dependents; it is O(n)
+#                    git-greps), -1 when it was not computed or the file has no
+#                    literal of its own
+#   dependents_stem  the literal dependents was counted by (null when -1)
 #
 # A per-file probe (churn, fix_commits, recency, loc) that fails - e.g. an
 # unreadable tracked file - emits one stderr warning naming the file and
@@ -21,11 +24,24 @@
 # compute at all, so the script exits non-zero with one explanatory stderr
 # message and no stdout output before doing any work.
 #
-# --with-dependents on a dotfile (a basename with no dot other than its
-# leading one, e.g. .gitignore) uses the full basename as the search stem
-# instead of the empty string a naive `${base%.*}` would produce - an empty
-# stem would make `git grep` match every tracked file, inflating dependents
-# to a near-maximal count instead of a meaningful one.
+# --with-dependents counts by a LOCKSTEP-UNIQUE LITERAL, not by a bare basename
+# stem. The literal is decided over the whole noise-filtered tracked set,
+# repo-wide and regardless of --scope, so a scoped record stays byte-identical
+# to the unscoped one. A file's starting literal is its basename with the last
+# extension stripped - a dotfile (a basename with no dot other than its leading
+# one, e.g. .gitignore) keeps its full basename, because the empty string a
+# naive `${base%.*}` produces would make `git grep` match every tracked file.
+# Literals are compared as WHOLE STRINGS, never as suffixes. When two or more
+# files land on the same literal, every member of that colliding group extends
+# its literal by one further directory segment from the right in the same round
+# (`index` -> `a/index` -> `lib/a/index`) and the comparison is repeated over
+# the group (lockstep); a member whose literal has become unique is finalised,
+# a member whose path has no segment left drops out with `dependents: -1` and
+# `dependents_stem: null`, and the remaining members keep extending. A path the
+# map does not know (a file that appeared between the two `git ls-files`
+# passes) warns on stderr and is emitted with -1/null as well. The map is built
+# once per run into a `mktemp` file removed by an EXIT trap; when `mktemp`
+# fails the script exits 1 with one stderr line and no stdout.
 #
 # Candidate selection is DISCOVERED, not hardcoded: pass 1 scans the tracked tree
 # for every extension actually present, drops a deny-list of no-value ones
@@ -49,7 +65,9 @@
 # leading `"` and warns-and-skips it before the extension test, since a quoted
 # line's parsed extension (e.g. `md"`) never matches a real kept extension
 # anyway. As a result, `esc()` below never sees a raw `"` or `\` in a path
-# today - both are filtered out upstream.
+# today - both are filtered out upstream. The literal map skips such a path the
+# same way, which is also what keeps its TAB-separated records unambiguous (a
+# path carrying a TAB is C-quoted by git too).
 #
 # The `--with-dependents` `git grep` also runs with `-c core.quotePath=false`
 # so its output stays directly comparable (via `grep -vxF`) to the raw `$f`
@@ -79,6 +97,7 @@ set -euo pipefail
 
 WITH_DEPENDENTS="no"
 SCOPE=""
+literal_map_file=""
 positional=()
 args=("$@")
 i=0
@@ -192,6 +211,79 @@ kept_exts="$(
 )"
 printf 'sweep extensions:%s\n' "$(printf '%s' "$kept_exts" | tr '\n' ' ' | sed 's/[[:space:]]*$//; s/^/ /')" >&2
 
+# The literal map - one `path<TAB>literal` line per tracked, noise-filtered
+# path (the literal empty when that path exhausted itself while still
+# colliding). Built over the UNSCOPED universe on purpose: uniqueness is a
+# property of the repo, not of the slice being emitted. Only --with-dependents
+# needs it, so an ordinary sweep pays nothing for it.
+if [ "$WITH_DEPENDENTS" = "yes" ]; then
+  if ! literal_map_file="$(mktemp)"; then
+    echo 'collect_signals.sh: cannot create literal map temp file' >&2
+    exit 1
+  fi
+  trap 'rm -f "$literal_map_file"' EXIT
+  git -c core.quotePath=false ls-files | noise_filter \
+    | awk '
+        # The starting literal of a path: its last segment with the final
+        # extension stripped, a dotfile keeping its whole basename (the
+        # `${base%.*}` rule the probe used before the map existed).
+        function stem_of(b,   t) {
+          t = b
+          sub(/\.[^.]*$/, "", t)
+          if (t == "") t = b
+          return t
+        }
+        # The literal of path i at depth d: its last d+1 segments joined by
+        # "/", only the last of them stripped of its extension.
+        function literal_of(i, d,   start, s, j) {
+          start = nseg[i] - d
+          if (start < 1) start = 1
+          s = ""
+          for (j = start; j <= nseg[i]; j++) {
+            if (j < nseg[i]) s = s segs[i, j] "/"
+            else s = s stem_of(segs[i, j])
+          }
+          return s
+        }
+        {
+          # A C-quoted path is skipped exactly as pass 2 skips it, which also
+          # guarantees no TAB can reach a map record.
+          if (substr($0, 1, 1) == "\"") next
+          n++
+          paths[n] = $0
+          nseg[n] = split($0, part, "/")
+          for (j = 1; j <= nseg[n]; j++) segs[n, j] = part[j]
+          active[n] = 1
+        }
+        END {
+          remaining = n
+          depth = 0
+          # Lockstep: every still-colliding path extends by one segment per
+          # round, so a whole colliding group is always compared at one depth.
+          while (remaining > 0) {
+            split("", cnt)
+            for (i = 1; i <= n; i++) {
+              if (!active[i]) continue
+              lit[i] = literal_of(i, depth)
+              cnt[lit[i]]++
+            }
+            for (i = 1; i <= n; i++) {
+              if (!active[i]) continue
+              if (cnt[lit[i]] == 1) {
+                result[i] = lit[i]; active[i] = 0; remaining--
+              } else if (nseg[i] <= depth + 1) {
+                # No segment left to add - this one leaves the group with no
+                # literal at all; the others keep extending.
+                result[i] = ""; active[i] = 0; remaining--
+              }
+            }
+            depth++
+          }
+          for (i = 1; i <= n; i++) printf "%s\t%s\n", paths[i], result[i]
+        }
+      ' > "$literal_map_file"
+fi
+
 # Pass 2 - candidates: files whose extension was kept, plus extensionless files.
 # kept_exts is handed to awk via ENVIRON, not `-v` - a `-v` value containing a
 # newline (any multi-extension repo) aborts BSD/macOS awk outright.
@@ -263,28 +355,41 @@ while IFS= read -r f; do
   fi
 
   dependents=-1
+  dependents_stem_json='null'
   if [ "$WITH_DEPENDENTS" = "yes" ]; then
-    base="$(basename "$f")"
-    stem="${base%.*}"
-    # A leading-dot basename with no other dot (.gitignore) strips to the
-    # empty string via `${base%.*}` - fall back to the full basename so
-    # the grep below searches for something, not everything.
-    [ -n "$stem" ] || stem="$base"
-    # files that mention the stem, minus the file itself. The grep is
+    # The counting literal was decided repo-wide before this loop (the
+    # lockstep rule in the header). An empty literal is not a probe failure:
+    # it means the path ran out of segments while still colliding, which the
+    # contract reports as -1 / null.
+    lit_line="$(awk -F'\t' -v p="$f" '$1 == p { print "=" $2; exit }' "$literal_map_file")"
+    if [ -z "$lit_line" ]; then
+      # Only reachable when a file appeared between the two `git ls-files`
+      # passes, i.e. it was never offered a literal at all.
+      printf 'collect_signals.sh: warning: no literal for %s\n' "$f" >&2
+      stem=""
+    else
+      stem="${lit_line#=}"
+    fi
+    # files that mention the literal, minus the file itself. The grep is
     # deliberately repo-wide even under --scope: a dependent outside the
     # scope still depends on the file, so narrowing it here would make a
     # scoped record disagree with the unscoped one.
     # `|| true` guards each stage: a no-match git grep / grep returns rc=1,
     # which would otherwise trip `set -e` + `pipefail` and abort the sweep.
-    # An empty stem (should not occur once the fallback above applies)
-    # skips the probe entirely rather than matching every tracked file.
+    # An empty literal skips the probe entirely rather than matching every
+    # tracked file.
     if [ -n "$stem" ]; then
       dependents="$( { git -c core.quotePath=false grep -lI -- "$stem" 2>/dev/null || true; } \
                      | { grep -vxF "$f" || true; } \
                      | wc -l | tr -d ' ')"
     fi
+    # The two fields move together: a counted record always names the literal
+    # it was counted by, an uncounted one always carries null.
+    if [ "$dependents" != "-1" ]; then
+      dependents_stem_json="\"$(esc "$stem")\""
+    fi
   fi
 
-  printf '{"path":"%s","churn":%s,"fix_commits":%s,"recency_days":%s,"loc":%s,"dependents":%s}\n' \
-    "$(esc "$f")" "$churn" "$fix_commits" "$recency_days" "$loc" "$dependents"
+  printf '{"path":"%s","churn":%s,"fix_commits":%s,"recency_days":%s,"loc":%s,"dependents":%s,"dependents_stem":%s}\n' \
+    "$(esc "$f")" "$churn" "$fix_commits" "$recency_days" "$loc" "$dependents" "$dependents_stem_json"
 done <<< "$candidates"

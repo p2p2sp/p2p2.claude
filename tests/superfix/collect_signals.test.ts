@@ -2,11 +2,12 @@
  * collect_signals.test.ts - proves collect_signals.sh's
  * `collect_signals.sh [window_days] [repo_root] [--with-dependents] [--scope <dir>]`
  * contract: one JSONL record per tracked file with keys path/churn/
- * fix_commits/recency_days/loc/dependents, --with-dependents position-
- * agnostic, --scope narrowing the record set only (every probe value stays
- * the unscoped one) and rejecting a non-repo-relative directory with exit 2,
- * the kept-extension list + per-file warnings on stderr only,
- * and exit 1 with no stdout on an unborn HEAD.
+ * fix_commits/recency_days/loc/dependents/dependents_stem (dependents counted
+ * by a lockstep-unique literal, echoed back as dependents_stem),
+ * --with-dependents position-agnostic, --scope narrowing the record set only
+ * (every probe value stays the unscoped one) and rejecting a non-repo-relative
+ * directory with exit 2, the kept-extension list + per-file warnings on stderr
+ * only, and exit 1 with no stdout on an unborn HEAD.
  *
  * collect_signals.sh ships mode 100644 (git ls-files) - the skill invokes it
  * explicitly as `bash "${CLAUDE_SKILL_DIR}/scripts/collect_signals.sh" ...`,
@@ -132,6 +133,7 @@ test("one JSONL record per tracked file, with exactly the documented keys", () =
         assert.deepEqual(Object.keys(record).sort(), [
           "churn",
           "dependents",
+          "dependents_stem",
           "fix_commits",
           "loc",
           "path",
@@ -143,6 +145,7 @@ test("one JSONL record per tracked file, with exactly the documented keys", () =
       assert.equal((byPath["b.md"] as any).loc, 1);
       // no --with-dependents -> the field is always -1
       assert.equal((byPath["a.txt"] as any).dependents, -1);
+      assert.equal((byPath["a.txt"] as any).dependents_stem, null);
     });
   });
 });
@@ -263,7 +266,7 @@ test("a scoped record carries exactly the values the unscoped run computes for t
       // README.md sits OUTSIDE the scope and must still count - dependents is
       // a repo-wide probe, narrowed by nothing.
       assert.equal(before.dependents, 1, "README.md mentions the alpha stem");
-      for (const key of ["path", "churn", "fix_commits", "recency_days", "loc", "dependents"]) {
+      for (const key of ["path", "churn", "fix_commits", "recency_days", "loc", "dependents", "dependents_stem"]) {
         assert.equal(after[key], before[key], `field ${key} must not change under --scope`);
       }
     });
@@ -327,6 +330,120 @@ test("a trailing --scope with no value exits 2 with no stdout", () => {
       assert.equal(result.status, 2, `stderr: ${result.stderr}`);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /^collect_signals\.sh: --scope requires a directory argument$/m);
+    });
+  });
+});
+
+// --- dependents_stem ------------------------------------------------------
+
+/** Four files sharing the basename stem `index`, plus the mentions that make
+ *  each surviving literal countable. a/index.ts and lib/a/index.ts both reach
+ *  `a/index` in the first extension round, so only lib/a/index.ts has a
+ *  segment left to add; a/index.ts and the root index.ts run out of path.
+ *  widget.ts is the control - a stem unique from the start. */
+function buildCollisionFixture(repo: GitRepo): void {
+  fs.mkdirSync(path.join(repo.dir, "a"), { recursive: true });
+  fs.mkdirSync(path.join(repo.dir, "b"), { recursive: true });
+  fs.mkdirSync(path.join(repo.dir, "lib", "a"), { recursive: true });
+  fs.writeFileSync(path.join(repo.dir, "a", "index.ts"), "export const value = 1;\n");
+  fs.writeFileSync(path.join(repo.dir, "b", "index.ts"), "export const value = 2;\n");
+  fs.writeFileSync(path.join(repo.dir, "lib", "a", "index.ts"), "export const value = 3;\n");
+  fs.writeFileSync(path.join(repo.dir, "index.ts"), "export const value = 0;\n");
+  for (const name of ["use1.md", "use2.md", "use3.md"]) {
+    fs.writeFileSync(path.join(repo.dir, name), "imports a/index for the value\n");
+  }
+  fs.writeFileSync(path.join(repo.dir, "use4.md"), "imports b/index for the value\n");
+  fs.writeFileSync(path.join(repo.dir, "use5.md"), "imports lib/a/index for the value\n");
+  fs.writeFileSync(path.join(repo.dir, "widget.ts"), "export const widget = 1;\n");
+  fs.writeFileSync(path.join(repo.dir, "consumer.md"), "See widget for the implementation.\n");
+  commitAt(repo, 1, "seed collision fixture");
+}
+
+/** Criterion 9 verbatim: a/index.ts, b/index.ts, three files mentioning the
+ *  literal a/index and one mentioning b/index, none of them named index.ts. */
+function buildTwoIndexFixture(repo: GitRepo): void {
+  fs.mkdirSync(path.join(repo.dir, "a"), { recursive: true });
+  fs.mkdirSync(path.join(repo.dir, "b"), { recursive: true });
+  fs.writeFileSync(path.join(repo.dir, "a", "index.ts"), "export const value = 1;\n");
+  fs.writeFileSync(path.join(repo.dir, "b", "index.ts"), "export const value = 2;\n");
+  for (const name of ["u1.md", "u2.md", "u3.md"]) {
+    fs.writeFileSync(path.join(repo.dir, name), "imports a/index for the value\n");
+  }
+  fs.writeFileSync(path.join(repo.dir, "u4.md"), "imports b/index for the value\n");
+  commitAt(repo, 1, "seed two-index fixture");
+}
+
+test("a repeated stem is counted by the literal the colliding group lockstep-extends to", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      buildCollisionFixture(repo);
+      const result = run(bash, repo, ["--with-dependents"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+      const b = recordFor(result, "b/index.ts");
+      assert.equal(b.dependents_stem, "b/index", "one segment is enough to make b unique");
+      assert.equal(b.dependents, 1);
+
+      const libA = recordFor(result, "lib/a/index.ts");
+      assert.equal(libA.dependents_stem, "lib/a/index", "a/index still collided, so lib/ extends again");
+      assert.equal(libA.dependents, 1, "use5.md is the only file carrying the full literal");
+
+      const widget = recordFor(result, "widget.ts");
+      assert.equal(widget.dependents_stem, "widget", "a stem unique from the start never extends");
+      assert.equal(widget.dependents, 1);
+    });
+  });
+});
+
+test("a path that runs out of segments while still colliding gets dependents -1 and dependents_stem null", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      buildCollisionFixture(repo);
+      const result = run(bash, repo, ["--with-dependents"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+      const a = recordFor(result, "a/index.ts");
+      assert.equal(a.dependents, -1, "a/index still collides with lib/a/index.ts and a has nothing left");
+      assert.equal(a.dependents_stem, null);
+
+      const root = recordFor(result, "index.ts");
+      assert.equal(root.dependents, -1, "a root file with a repeated stem has no segment to add at all");
+      assert.equal(root.dependents_stem, null);
+    });
+  });
+});
+
+test("two same-stem files in different directories each count by their own one-segment literal", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      buildTwoIndexFixture(repo);
+      const result = run(bash, repo, ["--with-dependents"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+      const a = recordFor(result, "a/index.ts");
+      assert.equal(a.dependents, 3);
+      assert.equal(a.dependents_stem, "a/index");
+
+      const b = recordFor(result, "b/index.ts");
+      assert.equal(b.dependents, 1);
+      assert.equal(b.dependents_stem, "b/index");
+    });
+  });
+});
+
+test("the counting literal is judged repo-wide, so --scope does not shrink it back to the bare stem", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      buildTwoIndexFixture(repo);
+      const result = run(bash, repo, ["--scope", "b", "--with-dependents"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.deepEqual(pathsOf(result), ["b/index.ts"]);
+
+      const b = recordFor(result, "b/index.ts");
+      // a/index.ts is outside the scope and still collides with this file -
+      // judging uniqueness on the scoped set alone would yield a bare `index`.
+      assert.equal(b.dependents_stem, "b/index");
+      assert.equal(b.dependents, 1);
     });
   });
 });

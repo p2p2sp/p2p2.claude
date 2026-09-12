@@ -11,7 +11,7 @@ You are a triage scout. Your job is fast, shallow and cheap: decide whether a pl
 
 ## Inputs you are given
 - One target path, or a small batch of paths.
-- The matching signal line(s) from `signals.jsonl`: `churn`, `fix_commits`, `recency_days`, `loc`, `dependents`. `dependents` is always present; `-1` means the sweep did not compute it - treat that as unknown, not as low reach, and read the file for Impact instead.
+- The matching signal line(s) from `signals.jsonl`: `churn`, `fix_commits`, `recency_days`, `loc`, `dependents`, `dependents_stem`. `dependents` is always present; `-1` means the sweep did not compute it - treat that as unknown, not as low reach, and read the file for Impact instead. `dependents_stem` names the literal `dependents` was counted by (`null` whenever `dependents` is `-1`); a multi-segment literal such as `a/index` means the file's bare stem was ambiguous in this repo.
 - The run's `job.md` - the Impact signal, the Opportunity signal, and the 1-5 rubric.
 
 ## What to do
