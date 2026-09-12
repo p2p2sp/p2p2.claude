@@ -6,7 +6,7 @@
 # (never `vias`) verbatim into its own gate output, edges.json / edges.md.
 #
 # Usage:
-#   bash collect_edges.sh [repo_root] [--max-fanout K]
+#   bash collect_edges.sh [repo_root] [--max-fanout K] [--scope <dir>]
 #
 # A pair is two swept files that both mention the same path-like literal
 # (a filename token such as "user.dto.ts" or "schema.sql") - the literal is
@@ -54,10 +54,32 @@
 # bound, the same way collect_signals.sh strips --with-dependents, so it may
 # appear anywhere on the command line and repo_root may still be omitted.
 #
+# --scope <dir> narrows the EMITTED PAIRS to those with at least one endpoint
+# under <dir>, and nothing else about the sweep: candidate discovery, literal
+# counting, the ambient --max-fanout drop and the via/vias scoring all keep
+# running over the whole repo, so a surviving pair's `fanout`, `shared`, `via`
+# and `vias` are identical to the ones an unscoped run emits for that same
+# pair. A pair survives iff `a` or `b` equals <dir> or starts with `<dir>/`,
+# which is deliberate: an edge whose other endpoint sits outside the scope is
+# exactly the contract a scoped audit must still see. Narrowing any earlier -
+# at candidate discovery - would instead lower a kept pair's fanout and hide
+# the outside endpoint entirely. A sibling sharing the prefix (srcx next to
+# src) is never read as being under the scope. <dir> is repo-root-relative and
+# is normalised and validated exactly as in collect_signals.sh: a leading `./`
+# and any trailing `/` are tolerated, `.` (or an empty value) means the whole
+# repo, and an absolute path (a bare `/` or `//` included - a root is never
+# read as "no scope"), a `..` segment, or a `--scope` with no value is
+# rejected with exit 2 and no stdout. Like --max-fanout, `--scope` is read out
+# of the positional stream (as two tokens) before repo_root is bound, so it
+# may appear anywhere on the command line.
+#
 # Edge cases:
 #   - Unborn HEAD (no commits yet) - one explanatory stderr line, exit 1, no
 #     stdout, before any work - same contract as collect_signals.sh.
 #   - No pairs found - empty stdout, exit 0. A valid result, not an error.
+#   - A --scope matching no pair - the same empty result (exit 0, empty
+#     stdout), reported as one `scope: <dir> (0 pairs)` line on stderr; the
+#     caller validates that the directory exists before invoking this script.
 #   - A file grep cannot read - one stderr warning naming the file, the
 #     stream continues instead of aborting.
 #   - Every grep / pipeline stage is guarded so a no-match rc=1 does not trip
@@ -75,6 +97,7 @@
 set -euo pipefail
 
 MAX_FANOUT=8
+SCOPE=""
 positional=()
 args=("$@")
 i=0
@@ -83,6 +106,13 @@ while [ $i -lt ${#args[@]} ]; do
   if [ "$arg" = "--max-fanout" ]; then
     i=$((i + 1))
     MAX_FANOUT="${args[$i]:-8}"
+  elif [ "$arg" = "--scope" ]; then
+    i=$((i + 1))
+    if [ $i -ge ${#args[@]} ]; then
+      echo 'collect_edges.sh: --scope requires a directory argument' >&2
+      exit 2
+    fi
+    SCOPE="${args[$i]}"
   else
     positional+=("$arg")
   fi
@@ -91,6 +121,40 @@ done
 ROOT="${positional[0]:-.}"
 
 cd "$ROOT"
+
+# Validate and normalise the scope before any repo work, so a bad --scope
+# always exits 2 with nothing on stdout, whatever state the repo is in -
+# the unborn-HEAD check below included. Rejected: an absolute path (POSIX
+# `/...` or a Windows drive `C:...`) and any `..` segment, both naming
+# something outside the repo-root-relative subtree the scope is defined over.
+scope_reject() {
+  printf 'collect_edges.sh: --scope must be a repo-root-relative directory: %s\n' "$1" >&2
+  exit 2
+}
+
+# The absolute half runs on the RAW value, BEFORE normalisation: the
+# trailing-slash strip below collapses a bare root (`/`, `//`) to the empty
+# string, which the guards downstream read as "no scope" - so a bare root
+# would fail open into a whole-repo sweep with exit 0 instead of being
+# rejected. The raw value is also what the message names, since the
+# normalised one can be empty.
+case "$SCOPE" in
+  /* | [A-Za-z]:*) scope_reject "$SCOPE" ;;
+esac
+
+# A leading `./` and every trailing `/` are noise, and `.` is the whole repo,
+# i.e. no scope at all.
+while [ "${SCOPE#./}" != "$SCOPE" ]; do SCOPE="${SCOPE#./}"; done
+while [ "${SCOPE%/}" != "$SCOPE" ]; do SCOPE="${SCOPE%/}"; done
+if [ "$SCOPE" = "." ]; then SCOPE=""; fi
+if [ -n "$SCOPE" ]; then
+  # The `..` patterns are checked on the normalised value; the absolute ones
+  # are repeated here because normalisation can produce an absolute path the
+  # raw check never saw (`.//foo` -> `/foo`).
+  case "$SCOPE" in
+    /* | [A-Za-z]:* | .. | ../* | */../* | */..) scope_reject "$SCOPE" ;;
+  esac
+fi
 
 # An unborn HEAD (a repo with no commits yet) has nothing tracked worth
 # pairing in a meaningful, repeatable way - fail fast with one message and
@@ -306,6 +370,28 @@ pair_tsv="$(
     }
   ' <<< "$sorted_pairs" | sort
 )"
+
+# --scope, applied HERE and nowhere earlier: every pair is discovered, scored
+# and capped repo-wide first, then the emitted set is narrowed to the pairs
+# with at least one endpoint under $SCOPE. A pair with both endpoints outside
+# it is dropped; a surviving pair keeps the `fanout`, `shared`, `via` and
+# `vias` the unscoped run computed for it. `awk -v` is safe for this value: a
+# scope carrying a newline cannot reach here (a `..`-free, non-absolute single
+# argument), which is the only input BSD/macOS awk aborts on.
+if [ -n "$SCOPE" ]; then
+  pair_tsv="$(
+    printf '%s\n' "$pair_tsv" \
+      | awk -F'\t' -v d="$SCOPE" '$1 == d || index($1, d "/") == 1 || $2 == d || index($2, d "/") == 1'
+  )"
+  # One honest line about the narrowed coverage, next to the `literals:` one.
+  # A zero here is a legitimate empty result, not an error.
+  if [ -n "$pair_tsv" ]; then
+    scoped_pairs="$(printf '%s\n' "$pair_tsv" | wc -l | tr -d ' ')"
+  else
+    scoped_pairs=0
+  fi
+  printf 'scope: %s (%s pairs)\n' "$SCOPE" "$scoped_pairs" >&2
+fi
 
 [ -n "$pair_tsv" ] || exit 0
 

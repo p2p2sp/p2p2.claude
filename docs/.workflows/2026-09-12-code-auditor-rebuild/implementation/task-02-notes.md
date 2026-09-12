@@ -1,0 +1,3 @@
+UNDERSPECIFIED: order of the --scope validation vs. the unborn-HEAD check - validation runs first (right after `cd "$ROOT"`, before `git rev-parse`), so a bad --scope on an unborn HEAD exits 2, not 1; mirrors collect_signals.sh, where the same ordering is what lets the invalid-value test assert exactly one stderr line.
+Added one test case beyond Approach step 6's (a)-(d) list: `--scope ./src/` resolving to the same pair set as `--scope src` - the header now documents that normalisation for this script too, so it is asserted here rather than only in collect_signals.test.ts.
+Extended the test file's top-of-file contract comment with the `[--scope <dir>]` usage and the at-least-one-endpoint rule (same file as the listed test changes, not a new file).

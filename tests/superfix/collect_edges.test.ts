@@ -1,10 +1,13 @@
 /*
  * collect_edges.test.ts - proves collect_edges.sh's
- * `collect_edges.sh [repo_root] [--max-fanout K]` contract: one JSONL
- * record per candidate pair with keys a/b/via/vias/fanout/shared,
+ * `collect_edges.sh [repo_root] [--max-fanout K] [--scope <dir>]` contract:
+ * one JSONL record per candidate pair with keys a/b/via/vias/fanout/shared,
  * --max-fanout capping a linking literal as ambient once its fanout exceeds
- * it, exit 1 with no stdout on an unborn HEAD, and exit 0 with EMPTY stdout
- * (not an error) when no pairs are found.
+ * it, --scope keeping exactly the pairs with at least one endpoint under it
+ * (a surviving pair's fanout staying the repo-wide one) and rejecting a
+ * non-repo-relative directory with exit 2, exit 1 with no stdout on an
+ * unborn HEAD, and exit 0 with EMPTY stdout (not an error) when no pairs
+ * are found.
  *
  * collect_edges.sh is `#!/usr/bin/env bash` and the skill invokes it
  * explicitly as `bash "${CLAUDE_SKILL_DIR}/scripts/collect_edges.sh" ...`,
@@ -71,6 +74,29 @@ function buildPairFixture(repo: GitRepo): void {
   commitAt(repo, 0, "seed pair fixture");
 }
 
+/** shared.md and other.md are tracked artifacts, never endpoints themselves -
+ *  collect_edges.sh pairs the files that MENTION a literal. src/a.ts, src/b.ts
+ *  and lib/c.ts all mention shared.md (fanout 3, a clique of 3 pairs, two of
+ *  them straddling the src/ boundary), while lib/c.ts and lib/d.ts share
+ *  other.md - the one pair with both endpoints outside src/. */
+function buildScopedPairFixture(repo: GitRepo): void {
+  fs.mkdirSync(path.join(repo.dir, "src"), { recursive: true });
+  fs.mkdirSync(path.join(repo.dir, "lib"), { recursive: true });
+  fs.writeFileSync(path.join(repo.dir, "shared.md"), "shared config\n");
+  fs.writeFileSync(path.join(repo.dir, "other.md"), "other config\n");
+  fs.writeFileSync(path.join(repo.dir, "src", "a.ts"), "// reads shared.md at startup\n");
+  fs.writeFileSync(path.join(repo.dir, "src", "b.ts"), "// also reads shared.md at startup\n");
+  fs.writeFileSync(path.join(repo.dir, "lib", "c.ts"), "// depends on shared.md and other.md\n");
+  fs.writeFileSync(path.join(repo.dir, "lib", "d.ts"), "// also reads other.md\n");
+  commitAt(repo, 0, "seed scoped pair fixture");
+}
+
+function pairKeysOf(result: RunResult): string[] {
+  return recordsOf(result)
+    .map((r) => [r.a, r.b].join("|"))
+    .sort();
+}
+
 // --- record shape ----------------------------------------------------------
 
 test("JSONL records carry a, b, via, vias, fanout, shared - a always < b", () => {
@@ -128,6 +154,134 @@ test("[repo_root] may differ from cwd, and --max-fanout may appear before or aft
         assert.equal(after.status, 0, `stderr: ${after.stderr}`);
         assert.equal(recordsOf(after).length, 3);
       });
+    });
+  });
+});
+
+// --- --scope ----------------------------------------------------------------
+
+test("--scope <dir> keeps a pair iff at least one endpoint lies under it", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      buildScopedPairFixture(repo);
+      const result = run(bash, repo, ["--scope", "src"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      // The last two straddle the boundary - an edge whose other endpoint sits
+      // outside src/ is exactly the contract a scoped audit must still see.
+      assert.deepEqual(pairKeysOf(result), [
+        "lib/c.ts|src/a.ts",
+        "lib/c.ts|src/b.ts",
+        "src/a.ts|src/b.ts",
+      ]);
+      assert.ok(
+        !pairKeysOf(result).includes("lib/c.ts|lib/d.ts"),
+        "a pair with BOTH endpoints outside the scope must never be emitted",
+      );
+      assert.match(result.stderr, /^scope: src \(3 pairs\)$/m);
+    });
+  });
+});
+
+test("a scoped pair carries exactly the values the unscoped run computes for it", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      buildScopedPairFixture(repo);
+      const unscoped = run(bash, repo, []);
+      assert.equal(unscoped.status, 0, `stderr: ${unscoped.stderr}`);
+      const scoped = run(bash, repo, ["--scope", "src"]);
+      assert.equal(scoped.status, 0, `stderr: ${scoped.stderr}`);
+
+      const beforeRecords = recordsOf(unscoped);
+      for (const record of recordsOf(scoped)) {
+        const before = beforeRecords.find((r) => r.a === record.a && r.b === record.b);
+        assert.ok(before, `expected ${record.a}|${record.b} in the unscoped run too`);
+        assert.deepEqual(record, before, "the scope must narrow the pair set and nothing else");
+        // Counting literals repo-wide is what keeps this at 3: a filter
+        // applied BEFORE pairing would leave only src/a.ts and src/b.ts
+        // mentioning shared.md, reporting fanout 2.
+        assert.equal(record.fanout, 3, `${record.a}|${record.b} must keep the repo-wide fanout`);
+      }
+    });
+  });
+});
+
+test("a --scope value tolerates a leading ./ and a trailing / and resolves to the same subtree", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      buildScopedPairFixture(repo);
+      const plain = run(bash, repo, ["--scope", "src"]);
+      const decorated = run(bash, repo, ["--scope", "./src/"]);
+      assert.equal(decorated.status, 0, `stderr: ${decorated.stderr}`);
+      assert.deepEqual(pairKeysOf(decorated), pairKeysOf(plain));
+      assert.match(decorated.stderr, /^scope: src \(3 pairs\)$/m);
+    });
+  });
+});
+
+test("--scope may appear before or after [repo_root] and --max-fanout", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      buildScopedPairFixture(repo);
+      withTempDir("p2p2-collect-edges-scope-cwd-", (cwd) => {
+        const positions: string[][] = [
+          ["--scope", "src", repo.dir, "--max-fanout", "8"],
+          [repo.dir, "--max-fanout", "8", "--scope", "src"],
+          [repo.dir, "--scope", "src", "--max-fanout", "8"],
+        ];
+        for (const args of positions) {
+          const result = runScript(SUT, args, { shell: bash, cwd, env: repo.env });
+          assert.equal(result.status, 0, `args=${args.join(" ")} stderr: ${result.stderr}`);
+          assert.deepEqual(
+            pairKeysOf(result),
+            ["lib/c.ts|src/a.ts", "lib/c.ts|src/b.ts", "src/a.ts|src/b.ts"],
+            `args=${args.join(" ")}`,
+          );
+        }
+      });
+    });
+  });
+});
+
+test("a --scope no pair reaches is a valid empty result, not an error", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      buildScopedPairFixture(repo);
+      const result = run(bash, repo, ["--scope", "nowhere"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, /^scope: nowhere \(0 pairs\)$/m);
+    });
+  });
+});
+
+test("an absolute or ..-bearing --scope value exits 2 with no stdout and one stderr line naming it", () => {
+  assertBash((bash) => {
+    for (const scope of ["/etc", "/", "//", "C:/tmp", "..", "../sibling", "src/../lib", "src/.."]) {
+      withGitRepo((repo) => {
+        buildScopedPairFixture(repo);
+        const result = run(bash, repo, ["--scope", scope]);
+        assert.equal(result.status, 2, `scope=${scope} stderr: ${result.stderr}`);
+        assert.equal(result.stdout, "", `scope=${scope}`);
+        const stderrLines = result.stderr.split("\n").filter((line) => line.length > 0);
+        assert.equal(stderrLines.length, 1, `scope=${scope} stderr: ${result.stderr}`);
+        assert.ok(
+          stderrLines[0].startsWith("collect_edges.sh: --scope must be a repo-root-relative directory: "),
+          `scope=${scope} stderr: ${result.stderr}`,
+        );
+        assert.ok(stderrLines[0].endsWith(scope.replace(/\/+$/, "")), `scope=${scope} stderr: ${result.stderr}`);
+      });
+    }
+  });
+});
+
+test("a trailing --scope with no value exits 2 with no stdout", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      buildScopedPairFixture(repo);
+      const result = run(bash, repo, [".", "--scope"]);
+      assert.equal(result.status, 2, `stderr: ${result.stderr}`);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, /^collect_edges\.sh: --scope requires a directory argument$/m);
     });
   });
 });
