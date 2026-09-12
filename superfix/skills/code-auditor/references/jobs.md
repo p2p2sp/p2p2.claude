@@ -25,3 +25,4 @@ Impact = how much pain it touches if we fix it. Opportunity = how bad it is righ
 - Security or bug audit of a large codebase: run Reliability/Bugs as the primary job and Code/Tech debt as a secondary lens. A file that is both a bug magnet and high-churn debt is the strongest hotspot.
 - Growth and Cost jobs need telemetry the repo alone does not contain. Without those signals, say so and fall back to a Code or Reliability job - never invent numbers.
 - Two jobs in one sweep: scouts emit two impact/opportunity pairs, each job ranks separately, then union the hotlists.
+- Whichever job you pick, the run's repo profile narrows its Opportunity signal: `job.md`'s `## Repo profile` section lists under `## Bug classes from history` the classes this repo actually keeps re-fixing, so score Opportunity against those recurring classes rather than against generic badness.
