@@ -21,12 +21,15 @@ superfix/
   .claude-plugin/plugin.json   The plugin manifest - skills[] + agents[] are the catalog of record
   skills/            One user-invoked skill code-auditor/ (disable-model-invocation); bundles
                      references/ (jobs.md, scoring.md, synthesis.md) + scripts/ (check_node.sh,
-                     collect_signals.sh, rank.ts - the file track; collect_edges.sh, rank_edges.ts - the
-                     edge track; worktree.sh - the verification-checkout lifecycle shared by detective and
-                     critic) - all addressed via `${CLAUDE_SKILL_DIR}/...`
-  agents/            Four plugin agents: scout.md (cheap haiku file triage) + edge-scout.md (cheap haiku
-                     pair triage) + detective.md (frontier opus deep-dive) + critic.md (frontier opus
-                     independent verifier)
+                     collect_signals.sh, rank.ts - the file track, collect_signals.sh also accepting
+                     `--scope <area-dir>` and emitting `dependents_stem`, the lockstep-unique literal
+                     `dependents` was counted by; collect_edges.sh, rank_edges.ts - the edge track,
+                     collect_edges.sh also accepting `--scope <area-dir>`; worktree.sh - the
+                     verification-checkout lifecycle shared by detective and critic) - all addressed via
+                     `${CLAUDE_SKILL_DIR}/...`
+  agents/            Five plugin agents: profiler.md (session-model repo profiler, Phase 0) + scout.md
+                     (cheap haiku file triage) + edge-scout.md (cheap haiku pair triage) + detective.md
+                     (session-model deep-dive) + critic.md (session-model refuter)
 ```
 
 ## Components (qualified `superfix:<name>`)
@@ -61,18 +64,27 @@ superfix/
     the one place superfix's env-check differs from superui's `pro-designer` (whose contrast-script fallback
     degrades with a note pointing at `/superui:setup` rather than hard-stopping) - superui's other
     script-dependent skill, `design-extractor-builder`, hard-stops on `NODE_MISSING` exactly like superfix; it
-    is also why the check sits in Phase 0 rather than next to the ranking steps it guards.
-- `scout` / `edge-scout` / `detective` / `critic` - the four **plugin agents** (`agents/*.md`, listed in
-  `plugin.json` `agents[]`, dispatched via the Agent tool with `subagent_type: superfix:<name>`). `scout` is
+    is also why the check sits in Phase 0 rather than next to the ranking steps it guards. Phase 0 dispatches
+    `profiler` alongside the Phase 1 scripts, so the repo profile is written while the sweep runs; `job.md`
+    carries the result under `## Repo profile`, and Phase 2 waits for it - or for the second miss that records
+    its absence - before the first scout fires. Phase 0 also validates the optional area-dir argument into this
+    run's scope: a scoped run's records and pairs shrink to the area, a pair keeps a partner lying outside it
+    because a contract crossing the boundary is what a scoped audit exists to catch, while every signal inside a
+    record stays repo-wide, so a scoped record is byte-identical to the one an unscoped run emits for the same
+    file.
+- `profiler` / `scout` / `edge-scout` / `detective` / `critic` - the five **plugin agents** (`agents/*.md`,
+  listed in `plugin.json` `agents[]`, dispatched via the Agent tool with `subagent_type: superfix:<name>`).
+  `profiler` runs once per run, in Phase 0, reading the target's own `CLAUDE.md` / `.claude/rules/` and its fix
+  history to write `profile.md`, the calibration every later agent carries in `job.md`; `scout` is
   cheap-tier breadth-first per-file triage (spawn many); `edge-scout` is the same cheap tier applied to a
   candidate pair instead of a file - its job is narrower (a four-way verdict on whether both endpoints agree on
   a shared contract, judged on the strongest real contract among the pair's `via` and `vias` candidates), and
   its `UNCLEAR` verdict is itself a dispatch reason for Phase 4, not a rejection;
-  `detective` is frontier-tier depth-first investigation (spawn few) - a detective dispatched from an edge
-  receives both endpoints as entry points, per `synthesis.md`'s pair-capable `ENTRY:` field; `critic` is
-  frontier-tier independent verification, one instance per detective report, replaying its claim on
-  a fresh checkout and returning a tagged verdict (schema in `references/synthesis.md`) rather than a file.
-  Bare-named because they are genuine agents, not fork-skills.
+  `detective` is depth-first investigation (spawn few) - a detective dispatched from an edge
+  receives both endpoints as entry points, per `synthesis.md`'s pair-capable `ENTRY:` field; `critic` reads
+  only the claim sidecar, never the detective's report, its mandate is to refute the claim rather than confirm
+  it, and a missing verdict earns exactly one retry in its own `-retry` worktree before folding as
+  `INCONCLUSIVE`. Bare-named because they are genuine agents, not fork-skills.
 
 **Plugin-specific invariant: thin harness, model does the judgment.** Deterministic code stays confined to
 cheap signal collection, the two gates, and the worktree lifecycle; all reasoning stays with the agents. Do not
@@ -100,5 +112,13 @@ file (how cheap/safe a fix there is); a pair defect's Impact is already computed
 is no single file whose Opportunity could stand for the pair, and inventing one would silently reintroduce the
 same file-shaped assumption that made the original per-file gate blind to this class of defect in the first
 place. The edge gate therefore ranks by verdict class + pair-Impact only, never a 2×2 quadrant.
+
+**Plugin-specific invariant: the critic never sees the detective's reasoning.** The critic is dispatched with
+the claim sidecar alone - `LOCATION`, `CLASS`, `## Reproduce` - and never the detective's own report, because a
+verifier that reads the discoverer's reasoning confirms that framing instead of testing it independently. The
+sidecar is the claim with the argument stripped out; only the critic's own reproduction settles the verdict.
+
+`detective`, `critic` and `profiler` all carry `model: inherit`, so the session model is also the reproduction
+model: a weaker session model means weaker verification, not just a weaker sweep.
 
 `superfix` declares no cross-plugin chains.

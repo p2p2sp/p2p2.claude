@@ -97,10 +97,12 @@ skill/agent list. This file is orientation for the assistant.
   executor, Conventional-Commits commits, and template-driven issue / PR creation. Ships **no hooks and no
   manifest** - its skills route purely via CSO `description:`. (→ `supergh/CLAUDE.md`)
 - **superfix** - prioritized multi-agent codebase investigation (one user-invoked skill, no hooks/manifest):
-  the `code-auditor` skill sweeps a repo on two tracks - files, scored Impact × Opportunity, and
-  producer/consumer artifact pairs, triaged `MATCH` / `MISMATCH` / `UNCLEAR` / `NO_CONTRACT` (the gate keeps
-  `MATCH` and `NO_CONTRACT` out of dispatch) - and dispatches cheap-triage / deep-dive agents into the union of
-  both. (→ `superfix/CLAUDE.md`)
+  `/superfix:code-auditor [<repo-path>] [<area-dir>]` sweeps a repo on two tracks - files, scored Impact ×
+  Opportunity, and producer/consumer artifact pairs, triaged `MATCH` / `MISMATCH` / `UNCLEAR` / `NO_CONTRACT`
+  (the gate keeps `MATCH` and `NO_CONTRACT` out of dispatch) - and dispatches cheap-triage / deep-dive agents
+  into the union of both. A Phase 0 profiler step reads the target's own memory, tooling and fix history into
+  the run's repo profile before either track's scouts fire, and the optional `[<area-dir>]` argument scopes a
+  run to one subtree. (→ `superfix/CLAUDE.md`)
 - **superbiz** - the business analysis ecosystem: **one skill**, `idea-validator`
   (`disable-model-invocation: true`, argument `[idea text | path/to/idea.md] [--quick]`). It answers one
   question - is this idea worth turning into a side project - judging it as a side-income product that runs on
@@ -334,7 +336,7 @@ The invariants below hold across the repo.
   superfix's for the `code-auditor` skill, superbiz's for the `idea-validator` skill, supercc's for the
   `skill-designer` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
-  (superfix's `scout` / `edge-scout` / `detective` / `critic` live there, not in `skills[]`; superui's seven
+  (superfix's `profiler` / `scout` / `edge-scout` / `detective` / `critic` live there, not in `skills[]`; superui's seven
   agents live there too, split 2+5 across its four pipeline skills - `design-extractor` dispatches
   `source-scout`; `design-extractor-builder` dispatches `foundation-analyst` and `design-synthesizer`;
   `component-extractor` dispatches `source-scout` again and `component-scout`; `component-extractor-builder`
