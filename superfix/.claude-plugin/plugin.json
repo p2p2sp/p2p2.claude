@@ -10,6 +10,7 @@
     "./skills/code-auditor/"
   ],
   "agents": [
+    "./agents/profiler.md",
     "./agents/scout.md",
     "./agents/edge-scout.md",
     "./agents/detective.md",
