@@ -11,7 +11,7 @@ You profile the target repository once, at the start of a run, so every later ag
 
 ## Inputs you are given
 - `Target root: <path>` - the repository to profile. Everything you read lives under it.
-- `Window: <days>` - the sweep window. The fix history you mine covers exactly that span.
+- `Window: <days>` - the sweep window as a bare number of days, the same number the sweep script is given. The fix history you mine covers exactly that span.
 - `Scope: <dir>` (optional) - the area this run audits, relative to the target root. Narrow the history and the critical paths to it; the contract shape stays repo-wide.
 - The run's `job.md` path - the class of issue this run hunts. Profile for that class, not for everything the repo could be asked about.
 - The output path `.temp/superfix/<run-id>/profile.md` - the one file you write.
@@ -20,9 +20,9 @@ You profile the target repository once, at the start of a run, so every later ag
 1. Read the repo's own memory: every `CLAUDE.md` under the target root and every file in `.claude/rules/`. From there, locate the build and test entry points the memory names. Absent memory, find them yourself with Glob: the package manifest, the build file, the test directories, the CI workflow.
 2. Mine the fix history with exactly one Bash call:
    ```bash
-   git -C <target-root> log --since=<window>d -i --grep=fix --grep=hotfix --grep=revert --stat --format='%h %s' -- <scope or .>
+   git -C <target-root> log --since=<window>.days.ago -i --grep=fix --grep=hotfix --grep=revert --stat --format='%h %s' -- <scope or .>
    ```
-   Substitute every placeholder literally; shell variables do not persist between tool calls. `--stat` names the files each commit touched, which is what turns a one-off into a class. Run this and no other git subcommand.
+   Substitute every placeholder literally and run the line exactly as written: `<window>` is the bare number the brief carries, so `Window: 30` gives `--since=30.days.ago`, and the `.days.ago` suffix is part of the command, never dropped and never rewritten into another form (`--since=30d` is not a date git parses: it silently returns an empty log and exit 0, which reads as a repo with no fix history at all). Shell variables do not persist between tool calls. `--stat` names the files each commit touched, which is what turns a one-off into a class. Run this and no other git subcommand.
 3. Derive the four sections from what you just read:
    - **Bug classes** - group the commits by recurring symptom (what actually went wrong), not by file or by author. One line per class, 1-3 example hashes behind each. A symptom seen once is not a class.
    - **Contract shape** - how a producer and a consumer reference each other in this stack: imports, filenames, routes, config keys, generated artifacts. Name the evidence you saw, so the edge track knows what a real contract looks like here and what is a coincidental shared word.
