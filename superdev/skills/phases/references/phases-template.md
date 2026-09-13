@@ -1,13 +1,13 @@
-# Roadmap file - template and content rules
+# Phases file - template and content rules
 
-Loaded by the `roadmap` skill only at write time - right before the `Write` (or overwrite) of
-`<intent dir>/roadmap.md`. Not needed while proposing or discussing the split.
+Loaded by the `phases` skill only at write time - right before the `Write` (or overwrite) of
+`<intent dir>/phases.md`. Not needed while proposing or discussing the split.
 
 ## Content rules
 - Write the file in the interview's language, in the exact structure below - one `###` block per
   phase, nothing else.
-- `Dir:` is the machine-read contract: `roadmap-status.sh`, and every later resume, join it to the
-  roadmap file's OWN directory. Always write it relative to that directory - `phases/<NN>-<slug>` -
+- `Dir:` is the machine-read contract: `phases-status.sh`, and every later resume, join it to the
+  phases file's OWN directory. Always write it relative to that directory - `phases/<NN>-<slug>` -
   never absolute, never repo-relative, never with a `./` prefix. That relative form is what keeps
   the whole run movable.
 - `<NN>` is the phase number, zero-padded to two digits (`01`, `02`, … `10`), consecutive from `01`,
@@ -29,7 +29,7 @@ Loaded by the `roadmap` skill only at write time - right before the `Write` (or 
 ## Template
 
 ```markdown
-# Roadmap: <title>
+# Phases: <title>
 Date: <YYYY-MM-DD>
 Intent: <repo-relative path to the master intent.md>
 

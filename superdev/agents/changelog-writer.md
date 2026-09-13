@@ -32,7 +32,7 @@ When `Notes dir:` is set, Read its `*-notes.md` files - the recorded plan->code 
 ## Derive
 
 - Missing `Workdir:` or missing `## capture` -> `VERDICT: FAIL` with `REASON:`; stop.
-- Run id: basename of Workdir (strip a trailing slash first; already `<YYYY-MM-DD>-<slug>`, per the workdir naming convention). Exception - when the parent directory of Workdir is named `phases` (a roadmap phase, the same detection rule `cleanup-run.sh` uses), run id = `<basename of Workdir's grandparent>-<basename of Workdir>` (e.g. `2026-09-11-roadmap-skill-01-layout`).
+- Run id: basename of Workdir (strip a trailing slash first; already `<YYYY-MM-DD>-<slug>`, per the workdir naming convention). Exception - when the parent directory of Workdir is named `phases` (a phase of a split run, the same detection rule `cleanup-run.sh` uses), run id = `<basename of Workdir's grandparent>-<basename of Workdir>` (e.g. `2026-09-11-phases-skill-01-layout`).
 - Entry file: `docs/changelog/<run id>.md`.
 - Entry file already exists -> `VERDICT: FAIL`, `REASON: entry exists - changelog entries are append-only`; stop. Entries are write-once.
 - `base`: the value of `base:` in `<Workdir>/base.md`; file missing or value empty/`none` -> `none`.

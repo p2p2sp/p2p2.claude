@@ -1,8 +1,8 @@
 ### Evidence rule
 
-The reviewer reads the roadmap and the master intent with Read / Grep / Glob only - no command, no
+The reviewer reads the phases file and the master intent with Read / Grep / Glob only - no command, no
 build, no test, no file system probing beyond those three tools. A Blocking finding must cite the
-violated rule below plus a direct quote from the roadmap (or from the intent it contradicts) that
+violated rule below plus a direct quote from the phases file (or from the intent it contradicts) that
 shows the violation. A suspicion with no quotable text behind it is not Blocking: demote it to NOTES,
 phrased as a question.
 
@@ -33,7 +33,7 @@ phrased as a question.
 - The number of phases, or that the work could have been cut into more or fewer.
 - Phase naming, slug wording, or title phrasing preferences.
 - Granularity preferences - that a phase feels large or small - when R1-R5 all hold.
-- An alternative split to the one the roadmap has already fixed; the cut was confirmed with the user.
-- The absence of estimates, dates, owners, risks, or task-level detail - a roadmap carries none of
+- An alternative split to the one the phases file has already fixed; the cut was confirmed with the user.
+- The absence of estimates, dates, owners, risks, or task-level detail - a phases file carries none of
   these by design.
 - Content that already satisfies the rules as written.

@@ -7,7 +7,7 @@
  * docs/.workflows/ - printing exactly one `CLEANUP: ...` line on stdout in
  * every case, with all git noise on stderr.
  *
- * A roadmap phase (a workdir whose parent directory is named `phases`) is the
+ * A run phase (a workdir whose parent directory is named `phases`) is the
  * second shape: only that phase directory goes, under the commit slug
  * `<run slug without the date>-<phase dir>`, and the run root follows it in
  * the same commit once no phase directory is left.
@@ -127,20 +127,20 @@ interface PhaseOpts {
 interface BuiltPhase {
   /** The phase workdir, e.g. docs/.workflows/2026-01-02-demo/phases/01-a. */
   dir: string;
-  /** The run root holding intent.md, roadmap.md and phases/. */
+  /** The run root holding intent.md, phases.md and phases/. */
   runRoot: string;
   /** The phase's own intent.md - named by its plan-header.md, and living INSIDE dir. */
   intentPath: string;
 }
 
-/** Writes a roadmap run root (intent.md + roadmap.md) plus one phase workdir
+/** Writes a split run root (intent.md + phases.md) plus one phase workdir
  *  under phases/<phaseName>/ - WITHOUT committing anything. Call it once per
  *  phase to grow a multi-phase run. */
 function buildPhaseFiles(root: string, phaseName: string, opts: PhaseOpts = {}): BuiltPhase {
   const runRoot = RUN_DIR;
   fs.mkdirSync(path.join(root, runRoot), { recursive: true });
   fs.writeFileSync(path.join(root, runRoot, "intent.md"), "# run intent\n");
-  fs.writeFileSync(path.join(root, runRoot, "roadmap.md"), "# roadmap\n");
+  fs.writeFileSync(path.join(root, runRoot, "phases.md"), "# phases\n");
 
   const dir = `${runRoot}/phases/${phaseName}`;
   const abs = path.join(root, dir);
@@ -377,7 +377,7 @@ test("edge: an untracked run directory is removed with nothing to commit", () =>
   });
 });
 
-// --- roadmap phases --------------------------------------------------------
+// --- run phases ------------------------------------------------------------
 
 test("phase: only the completed phase dir is removed while another phase remains", () => {
   withGitRepo((repo) => {
@@ -391,7 +391,7 @@ test("phase: only the completed phase dir is removed while another phase remains
     assert.equal(fs.existsSync(path.join(repo.dir, first.dir)), false);
     assert.ok(fs.existsSync(path.join(repo.dir, second.dir)));
     assert.ok(fs.existsSync(path.join(repo.dir, first.runRoot, "intent.md")));
-    assert.ok(fs.existsSync(path.join(repo.dir, first.runRoot, "roadmap.md")));
+    assert.ok(fs.existsSync(path.join(repo.dir, first.runRoot, "phases.md")));
     // slug: the run dir without its date, then the phase dir
     assert.equal(subjectOf(repo), "chore(simplebuild): clean up run demo-01-a");
   });
@@ -411,7 +411,7 @@ test("phase: the last remaining phase takes phases/ and the run root with it, in
     assert.equal(repo.git("ls-files", "--", only.runRoot).stdout.trim(), "");
     const removed = repo.git("show", "--name-only", "--format=", "HEAD").stdout;
     assert.match(removed, new RegExp(`${only.runRoot}/intent\.md`));
-    assert.match(removed, new RegExp(`${only.runRoot}/roadmap\.md`));
+    assert.match(removed, new RegExp(`${only.runRoot}/phases\.md`));
     assert.match(removed, new RegExp(`${only.dir}/status\.md`));
   });
 });
@@ -425,7 +425,7 @@ test("phase: an incomplete phase is skipped and neither it nor the run root is t
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, `CLEANUP: ${only.dir} (skipped - build not complete: task 01 of 02)\n`);
     assert.ok(fs.existsSync(path.join(repo.dir, only.dir)));
-    assert.ok(fs.existsSync(path.join(repo.dir, only.runRoot, "roadmap.md")));
+    assert.ok(fs.existsSync(path.join(repo.dir, only.runRoot, "phases.md")));
   });
 });
 

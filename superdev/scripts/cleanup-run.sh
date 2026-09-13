@@ -46,13 +46,13 @@
 #     katalogu workdir bez wiodącego "YYYY-MM-DD-") i "CLEANUP: <workdir>
 #     (removed)". Szum gita idzie na stderr, stdout niesie wyłącznie jedną
 #     linię CLEANUP.
-#   - faza roadmapu (workdir, którego katalog nadrzędny nazywa się "phases"):
+#   - faza biegu (workdir, którego katalog nadrzędny nazywa się "phases"):
 #     usuwany jest wyłącznie katalog tej fazy, a slug commita to
 #     "<nazwa katalogu runu bez wiodącego YYYY-MM-DD->-<nazwa katalogu fazy>"
-#     (np. "roadmap-skill-01-layout"); gdy po usunięciu fazy w "phases/" nie
+#     (np. "phases-skill-01-layout"); gdy po usunięciu fazy w "phases/" nie
 #     został już ŻADEN podkatalog (luźne pliki się nie liczą), w tym samym
 #     commicie usuwany jest także korzeń runu (katalog z intent.md i
-#     roadmap.md) razem z "phases/", a linia CLEANUP przyjmuje wariant
+#     phases.md) razem z "phases/", a linia CLEANUP przyjmuje wariant
 #     "CLEANUP: <workdir> (removed - last phase, run root removed)" -
 #     odpowiednio "(removed - last phase, run root removed - nothing to
 #     commit)" i "(removed - last phase, run root removed - no git
@@ -120,7 +120,7 @@ fi
 [[ -n "$spec" && -f "$spec" ]] || spec=""
 [[ -n "$intent" && -f "$intent" ]] || intent=""
 
-# --- wykrycie fazy roadmapu (katalog nadrzędny nazywa się "phases") ---
+# --- wykrycie fazy biegu (katalog nadrzędny nazywa się "phases") ---
 parent="$(dirname -- "$dir")"
 is_phase=0
 root=""

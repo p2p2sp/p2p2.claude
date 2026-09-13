@@ -26,7 +26,7 @@
 #     wskazuje na plik już leżący pod docs/.workflows/, ADOPTOWANY jako katalog
 #     roboczy jest PEŁNY katalog tego pliku - intent.md i spec.md lądują obok
 #     plan-header.md/plan.md/tasks/. Dotyczy to każdego poziomu zagnieżdżenia:
-#     dla fazy roadmapu, czyli docs/.workflows/<bieg>/phases/NN-<slug>/intent.md,
+#     dla fazy biegu, czyli docs/.workflows/<bieg>/phases/NN-<slug>/intent.md,
 #     katalogiem roboczym jest docs/.workflows/<bieg>/phases/NN-<slug>, a korzeń
 #     biegu pozostaje nietknięty (superspec zapisuje spec.md obok przekazanego
 #     intentu, więc spec fazy ląduje w tym samym katalogu bez żadnej zmiany).

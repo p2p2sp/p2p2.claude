@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 #
-# roadmap-status.sh - reports the build status of every phase listed in a
-# roadmap file, plus the phase to start next.
+# phases-status.sh - reports the build status of every phase listed in a
+# phases file, plus the phase to start next.
 #
 # Usage:
-#   roadmap-status.sh <roadmap-file>
+#   phases-status.sh <phases-file>
 #
-# roadmap-file  (required) - path to a roadmap.md written by the roadmap
-#               skill. Every phase contributes exactly one "- Dir: <value>"
-#               line (in its "## Phases" block); <value> is relative to the
-#               roadmap file's OWN directory, which is what makes the roadmap
-#               movable as a whole.
+# phases-file  (required) - path to a phases.md written by the phases skill.
+#              Every phase contributes exactly one "- Dir: <value>" line (in
+#              its "## Phases" block); <value> is relative to the phases
+#              file's OWN directory, which is what makes the whole run
+#              movable.
 #
 # Behaviour:
 #   - missing argument, or a path that is not a file -> error + usage on
@@ -18,9 +18,9 @@
 #   - no "- Dir:" line anywhere in the file -> error on stderr, exit 3
 #   - one stdout line per "- Dir:" line, in file order:
 #       "<dir><TAB><status>"
-#     where <dir> = dirname(roadmap-file) + "/" + the trimmed Dir: value
-#     (backslashes normalised to "/", a leading "./" stripped, so a roadmap
-#     passed as "./docs/..." prints "docs/...")
+#     where <dir> = dirname(phases-file) + "/" + the trimmed Dir: value
+#     (backslashes normalised to "/", a leading "./" stripped, so a phases
+#     file passed as "./docs/..." prints "docs/...")
 #   - <status> of <dir>:
 #       directory absent                                     -> done
 #         (a cleaned-up phase: cleanup-run.sh removed it)
@@ -37,27 +37,27 @@
 #
 set -euo pipefail
 
-roadmap="${1:-}"
+phases_file="${1:-}"
 
-if [[ -z "$roadmap" ]]; then
-  echo "error: missing required parameter 'roadmap-file'" >&2
-  echo "usage: roadmap-status.sh <roadmap-file>" >&2
+if [[ -z "$phases_file" ]]; then
+  echo "error: missing required parameter 'phases-file'" >&2
+  echo "usage: phases-status.sh <phases-file>" >&2
   exit 1
 fi
 
-if [[ ! -f "$roadmap" ]]; then
-  echo "error: roadmap file not found: $roadmap" >&2
-  echo "usage: roadmap-status.sh <roadmap-file>" >&2
+if [[ ! -f "$phases_file" ]]; then
+  echo "error: phases file not found: $phases_file" >&2
+  echo "usage: phases-status.sh <phases-file>" >&2
   exit 1
 fi
 
-# base = the roadmap's own directory, separator- and "./"-normalised. The two
+# base = the phases file's own directory, separator- and "./"-normalised. The two
 # separator literals are held in variables on purpose: spelled inline, the
 # backslash pattern of ${var//.../...} is read by bash as an escaped "/" and
 # the expansion silently deletes every separator instead of converting it.
 backslash='\'
 forwardslash='/'
-base="${roadmap//"$backslash"/"$forwardslash"}"
+base="${phases_file//"$backslash"/"$forwardslash"}"
 base="$(dirname -- "$base")"
 [[ "$base" == ./* ]] && base="${base#./}"
 [[ "$base" == "." ]] && base=""
@@ -110,7 +110,7 @@ phase_status() {
   return 0
 }
 
-# --- phase directories from the roadmap ------------------------------------
+# --- phase directories from the phases file --------------------------------
 
 # `count` rather than ${#values[@]}: an empty array under `set -u` is a trap in
 # older bash (3.2 still ships as /bin/bash on macOS), and the counter keeps the
@@ -124,10 +124,10 @@ while IFS= read -r raw; do
   fi
   values+=("$value")
   count=$((count + 1))
-done < <(sed -n 's/^-[[:space:]]*Dir:[[:space:]]*//p' "$roadmap")
+done < <(sed -n 's/^-[[:space:]]*Dir:[[:space:]]*//p' "$phases_file")
 
 if (( count == 0 )); then
-  echo "error: no '- Dir:' lines found in $roadmap" >&2
+  echo "error: no '- Dir:' lines found in $phases_file" >&2
   exit 3
 fi
 

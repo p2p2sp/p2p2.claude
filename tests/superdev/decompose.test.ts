@@ -524,11 +524,11 @@ test("adoption: an Intent: file already under docs/.workflows/<run>/ becomes the
 test("adoption: an Intent: file under docs/.workflows/<run>/phases/01-<slug>/ adopts the phase directory, not the run root", () => {
   withGitRepo((repo) => {
     seedInitialCommit(repo);
-    const runDir = "docs/.workflows/2026-01-02-roadmapped";
+    const runDir = "docs/.workflows/2026-01-02-phased";
     const phaseDir = `${runDir}/phases/01-layout`;
     fs.mkdirSync(path.join(repo.dir, phaseDir), { recursive: true });
     fs.writeFileSync(path.join(repo.dir, runDir, "intent.md"), "# Intent\n\nWhole endeavour.\n");
-    fs.writeFileSync(path.join(repo.dir, runDir, "roadmap.md"), "# Roadmap\n\n## Phases\n");
+    fs.writeFileSync(path.join(repo.dir, runDir, "phases.md"), "# Phases\n\n## Phases\n");
     const intentRel = `${phaseDir}/intent.md`;
     fs.writeFileSync(path.join(repo.dir, intentRel), "# Intent\n\nPhase 01 synthesis.\n");
 
@@ -553,7 +553,7 @@ test("adoption: an Intent: file under docs/.workflows/<run>/phases/01-<slug>/ ad
       assert.ok(fs.existsSync(path.join(absPhase, "plan-header.md")));
       assert.ok(fs.existsSync(path.join(absPhase, "tasks", "task-01.md")));
       // the run root stays exactly as seeded - no build artifacts leak into it
-      assert.deepEqual(fs.readdirSync(path.join(repo.dir, runDir)).sort(), ["intent.md", "phases", "roadmap.md"]);
+      assert.deepEqual(fs.readdirSync(path.join(repo.dir, runDir)).sort(), ["intent.md", "phases", "phases.md"]);
     });
   });
 });
