@@ -30,7 +30,7 @@ Deliver exactly what `## task` asks - nothing more:
 - Plan task -> follow its `Approach` steps; honor its `Contracts` and `Failure modes`; serve its `Covered criteria`; touch only the files under `Files`.
 - Respect the header's boundaries: its constraints hold; anything under its out-of-scope list stays untouched.
 - TDD discipline (plan task only):
-  - `TDD: required` -> invoke the `tdd` skill (Skill tool) before the first line of production code and follow its cycle throughout the task.
+  - `TDD: required` -> invoke the `tdd` skill (Skill tool) before the first line of production code and follow its cycle throughout the task; every VERIFY RED and VERIFY GREEN run goes through `superdev:executor` the same way, with `expect:` naming the test and the missing behaviour it must fail on (RED) or the green state it must show (GREEN).
   - `TDD: none` -> implement directly; still add the tests the `DoD` requires.
 - Findings report -> the work list is every ID under `### Critical` and `### Important`, in `task` and in each `more` report; fix each one at its file:line.
   - A `## Debt` ID (a Minor) is worked only when `minor` names it; every other Minor stays untouched.
@@ -42,7 +42,8 @@ Deliver exactly what `## task` asks - nothing more:
 
 ## 2. Build + Test
 Prove it green - never report PASS on unproven work:
-1. Run the task's `Test Commands` - Build first, then Tests. If the task lists none, run every `Test Commands` block from `## plan`; if there is no plan either, the project's standard build + test commands.
+1. Run the task's `Test Commands` - Build first, then Tests - each one through the `executor` skill (`Skill` tool, `superdev:executor`), one command per invocation, `command:` copied verbatim from the task's `Test Commands` and `expect:` naming the outcome this run must show. If the task lists none, run every `Test Commands` block from `## plan` the same way; if there is no plan either, the project's standard build + test commands, still through `executor`. Read the reply's `VERDICT:` and `EXPECT:` lines; open its `LOG:` path with `Read` only when `FAILURES:` is not enough to act.
+- Build, test, lint, type-check, formatter and script runs never go through raw `Bash`; raw `Bash` is for `git`, file inspection and other read-only work.
 2. Any red -> fix, then re-run from step 1.
 
 Fix loop max 5 rounds. Still failing after 5 -> STOP and return `FAIL`.

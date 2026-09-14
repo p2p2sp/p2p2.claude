@@ -76,7 +76,9 @@ skill/agent list. This file is orientation for the assistant.
   `superdev/references/review-contract.md` owns that whole vocabulary; both orchestrators carry
   `Edit`/`Write`/`NotebookEdit` in `disallowed-tools`, write no file themselves and escalate every
   interruption (a spend or session limit, a reviewer that returned no report, an undeclared change in the
-  working tree) to the user.
+  working tree) to the user. Both task implementors run build, test, lint and type-check commands only
+  through the `executor` fork skill (haiku), which keeps full tool logs out of the implementor's context
+  and returns a short verdict instead; `executor` is itself model-invocable via its own `description:`.
 - **superui** - the design / frontend ecosystem, pairing Claude Code CLI (measurement, agentic fan-out) and
   Claude Design (live, inline-styled Design Components), via a **two-stage** screenshots-to-handoff-bundle
   pipeline: `/superui:design-extractor <screenshots-dir> [<target>]` turns a folder of UI screenshots into the
@@ -274,7 +276,8 @@ The invariants below hold across the repo.
   persisted user-facing knowledge (above), `.claude/` for configuration the user owns and edits
   (superdev's opt-in switches live in `.claude/superdev.yml`, read by `scripts/read-config.sh`; rules in
   `.claude/rules/`), and `.temp/` for every temporary artifact, grouped in per-plugin subdirs
-  (`.temp/superdev/{memory,rules}/capture-<RUN_ID>.md`, superui run dirs,
+  (`.temp/superdev/{memory,rules}/capture-<RUN_ID>.md`, `.temp/superdev/logs/<timestamp>-<slug>-<pid>.log`
+  (the `executor` fork's command logs), superui run dirs,
   `.temp/superbiz/<slug>-<YYYY-MM-DD>/` for `idea-validator`'s working files 00-13). A new persisted
   user-facing artifact means a new `docs/<layer>/`; new machine state means `.temp/<plugin>/` - never a
   dot-dir at the host root.
