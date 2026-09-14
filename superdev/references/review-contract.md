@@ -182,7 +182,9 @@ line there is neither raised as a Critical nor returned as BLOCKED again.
 Lines the implementors write into their `*-notes.md` file under `<workdir>/implementation/`:
 
 - `touched: <repo-relative path>` - one per file changed outside the task's `### Files`, and in fix
-  mode one per file changed at all. Consumed by `commit-task.sh --notes` as the declared set.
+  mode one per file changed at all. Consumed by `commit-task.sh --notes` as the declared set. The
+  line is machine-read and carries the path alone - no backticks, no reason - with the reason on
+  its own line above it.
 - `CARRY: <path> - <known problem outside this task's Files, left in place>` - one per known problem
   the implementor saw outside its `### Files` and did not fix. Read by the final review, which
   closes it under the integration mandate, and by the fix implementor when a report points at it.
