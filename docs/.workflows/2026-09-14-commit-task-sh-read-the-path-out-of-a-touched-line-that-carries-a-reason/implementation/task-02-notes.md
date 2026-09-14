@@ -1,0 +1,3 @@
+- Approach step 1 said to bind the remainder to a `local value`; the `--notes` reading loop runs at script top level, not inside a function, where `local` is a syntax error - plain `value=` assignment, same effect.
+- Approach step 4 added the four cases; I also extended the test file's own header contract comment with the cut rule, so the file's stated contract matches what it now proves (same file, already under `Files`).
+- The header `--notes` paragraph also states the accepted trade-off from the plan header's `## Out of scope` (a path whose own name carries ` - ` or ` (` is cut there too), so a reader of the contract is not surprised by it.

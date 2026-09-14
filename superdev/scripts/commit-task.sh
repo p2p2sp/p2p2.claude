@@ -11,7 +11,13 @@
 #               first (so the status bump rides in this same commit) and every
 #               path under its "### Files" section joins the declared set.
 #   --notes     (optional) - a notes file; every "touched: <path>" line in it
-#               joins the declared set.
+#               joins the declared set. The declared path is what stands
+#               between "touched:" and the first " - " or " (" on that line,
+#               whichever comes first, so a reason written after the path on
+#               the same line does not corrupt the declaration; a value that
+#               cuts to nothing declares nothing. A path whose own name carries
+#               " - " or " (" is cut there too - a reason is the far likelier
+#               reading.
 #   --path      (optional, repeatable) - one more path for the declared set; a
 #               directory declares everything below it. A literal path, never a
 #               git pathspec: it is normalised, checked for existence and
@@ -235,7 +241,17 @@ if [[ -n "$notes" && -f "$notes" ]]; then
     esac
     case "$entry" in
       touched:*)
-        add_declared "$(trim "${entry#touched:}")"
+        # The path ends at the first " - " or " (" - an implementor who appends
+        # a reason to the line must still get the file staged. "%%" strips the
+        # longest matching suffix, so each cut lands on the first occurrence of
+        # its own separator and the pair leaves whatever came before the
+        # earlier one. Both cuts run BEFORE trim, so a value that is nothing
+        # but a separator and a reason reduces to empty rather than to the
+        # reason itself.
+        value="${entry#touched:}"
+        value="${value%% - *}"
+        value="${value%% (*}"
+        add_declared "$(trim "$value")"
         ;;
     esac
   done < "$notes"
