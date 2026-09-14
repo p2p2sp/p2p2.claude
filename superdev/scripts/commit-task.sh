@@ -39,7 +39,12 @@
 #     reported as one "undeclared: <path>" line per path on stdout, with
 #     "error: undeclared changes in the working tree - nothing committed" on
 #     stderr and exit 2: nothing is staged and nothing is committed. Paths under
-#     .temp/ are ignored here whatever the host's .gitignore says.
+#     .temp/ are ignored here whatever the host's .gitignore says. That refusal
+#     also lists every declared path that was dropped (see "Declared set"
+#     above), one "dropped: <path>" line per path on stdout after the
+#     "undeclared:" lines and before the stderr error - so the reader can tell a
+#     malformed declaration from a missing one. A run that gets as far as
+#     staging prints no such line.
 #   - otherwise stage the declared set only, never .temp/; an empty index ->
 #     "Nothing to commit.", else `git commit -m <message>` followed by the line
 #     "commit: <sha>" as the last line on stdout.
@@ -249,9 +254,11 @@ for extra in ${extra_paths[@]+"${extra_paths[@]}"}; do
 done
 
 # A declared path that git cannot take: never created, or ignored and untracked.
-# Dropping it here keeps `git add` from aborting the whole commit over it.
+# Dropping it here keeps `git add` from aborting the whole commit over it. Each
+# one is remembered so a refused commit can name it below.
 stageable=()
 stageable_count=0
+dropped=()
 for p in ${declared[@]+"${declared[@]}"}; do
   if git -C "$root" ls-files --error-unmatch -- "$p" >/dev/null 2>&1; then
     stageable+=("$p")
@@ -259,9 +266,11 @@ for p in ${declared[@]+"${declared[@]}"}; do
     continue
   fi
   if [[ ! -e "$root/$p" ]]; then
+    dropped+=("$p")
     continue
   fi
   if git -C "$root" check-ignore -q -- "$p" >/dev/null 2>&1; then
+    dropped+=("$p")
     continue
   fi
   stageable+=("$p")
@@ -311,6 +320,12 @@ done < <(git -C "$root" status --porcelain=v1 --untracked-files=all -z)
 if [[ $undeclared_count -gt 0 ]]; then
   for p in "${undeclared[@]}"; do
     echo "undeclared: $p"
+  done
+  # Nothing gets committed now, so name the declarations that could not be
+  # staged either: a path that matched no file is usually a declaration whose
+  # line shape was wrong, not one the implementor forgot to write.
+  for p in ${dropped[@]+"${dropped[@]}"}; do
+    echo "dropped: $p"
   done
   echo "error: undeclared changes in the working tree - nothing committed" >&2
   exit 2

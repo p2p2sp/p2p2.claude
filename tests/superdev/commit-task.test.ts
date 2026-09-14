@@ -7,8 +7,9 @@
  * value and the run directory - and commits with <message>, printing
  * `commit: <sha>` as its last line. Any other change in the working tree (a
  * modified tracked file, an untracked file outside .gitignore) stops the run
- * with one `undeclared: <path>` line per path and exit 2, nothing committed;
- * .temp/ is ignored on both sides. `--path .` is the one mode that declares the
+ * with one `undeclared: <path>` line per path and exit 2, nothing committed -
+ * followed by one `dropped: <path>` line per declared path that matched no
+ * file, printed on that refusal only; .temp/ is ignored on both sides. `--path .` is the one mode that declares the
  * whole tree and switches that gate off - the fresh-repository initial commit -
  * and .temp/ stays out even there. Reports "Nothing to commit." on an empty
  * index, skips the commit outside a git repository, and exits 1 on a missing
@@ -211,9 +212,53 @@ test("a tracked file modified outside the declared set -> exit 2, the path liste
     assert.equal(result.status, 2, `stdout: ${result.stdout}`);
     assert.match(result.stdout, /^undeclared: foreign\.txt$/m);
     assert.match(result.stderr, /undeclared changes in the working tree - nothing committed/);
+    // every declaration here matched a real file, so the refusal names none
+    assert.doesNotMatch(result.stdout, /^dropped:/m);
     // nothing committed and nothing staged: HEAD is still the baseline
     assert.equal(repo.git("log", "-1", "--format=%s").stdout.trim(), "seed");
     assert.equal(repo.git("diff", "--cached", "--name-only").stdout.trim(), "");
+  });
+});
+
+test("a refused commit also names every declared path that matched no file", () => {
+  withGitRepo((repo) => {
+    seedRun(repo, { "foreign.txt": "theirs\n" });
+    // the task declares a second file it planned but never created ...
+    write(repo.dir, TASK_REL, taskBody("work.txt", "planned/never.txt"));
+    // ... and a parallel worker's edit forces the refusal
+    write(repo.dir, "foreign.txt", "their change\n");
+
+    const result = run(repo.dir, repo.env, ["task 1", TASK_REL]);
+    assert.equal(result.status, 2, `stdout: ${result.stdout}`);
+    assert.match(result.stdout, /^undeclared: foreign\.txt$/m);
+    assert.match(result.stdout, /^dropped: planned\/never\.txt$/m);
+    // the dropped list comes after the undeclared one, never interleaved
+    assert.ok(
+      result.stdout.indexOf("dropped: planned/never.txt") >
+        result.stdout.indexOf("undeclared: foreign.txt"),
+      `stdout: ${result.stdout}`,
+    );
+    assert.match(result.stderr, /undeclared changes in the working tree - nothing committed/);
+    // still fail-closed: nothing committed, nothing staged
+    assert.equal(repo.git("log", "-1", "--format=%s").stdout.trim(), "seed");
+    assert.equal(repo.git("diff", "--cached", "--name-only").stdout.trim(), "");
+  });
+});
+
+test("a declared path that matched no file is dropped silently on a run that commits", () => {
+  withGitRepo((repo) => {
+    seedRun(repo);
+    // same never-created declaration as above, but no foreign change this time
+    write(repo.dir, TASK_REL, taskBody("work.txt", "planned/never.txt"));
+
+    const result = run(repo.dir, repo.env, ["task 1", TASK_REL]);
+    assert.equal(result.status, 0, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stdout, /^dropped:/m);
+    assert.deepEqual(committedFiles(repo), [
+      "docs/.workflows/run/status.md",
+      "docs/.workflows/run/tasks/task-01.md",
+      "work.txt",
+    ]);
   });
 });
 
