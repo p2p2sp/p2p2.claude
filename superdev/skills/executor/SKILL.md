@@ -4,6 +4,7 @@ description: Runs one build, test, lint, type-check or any other shell command i
 context: fork
 background: false
 model: haiku
+user-invocable: false
 allowed-tools: Read, Grep, Bash(${CLAUDE_PLUGIN_ROOT}/skills/executor/scripts/run.sh:*)
 disallowed-tools: Edit, Write, NotebookEdit, Agent, AskUserQuestion, WebFetch, WebSearch, Skill
 ---
