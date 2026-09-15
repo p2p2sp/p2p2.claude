@@ -1,6 +1,6 @@
 ---
 name: simpleplan
-description: Writes the implementation plan (the How) for a small, contained change from an understanding already confirmed in context - an intent interview or a proven bug diagnosis - as small, independently testable tasks with exact files, commands, contracts, a TDD marker and a per-task build strength (Model and Effort), self-checks it against the plan-review checklist, and gates ExitPlanMode on a forked reviewer's VERDICT PASS. Invoked by the intent or simpledebug skill, or by explicit user command only - never spontaneously, never before an interview.
+description: Writes the implementation plan for a small, contained change already understood in context - an intent interview or a proven bug diagnosis. Invoked by the intent or simpledebug skill, or by explicit user command only - never spontaneously, never before an interview.
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, EnterPlanMode, ExitPlanMode, AskUserQuestion
 disallowed-tools: NotebookEdit, Task, Agent, WebFetch, WebSearch
 user-invocable: true

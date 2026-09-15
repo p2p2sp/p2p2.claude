@@ -1,6 +1,6 @@
 ---
 name: superplan
-description: Writes the implementation plan (the How) for a human-approved spec (the What and Why) as small, independently testable tasks with exact files, commands, contracts, a TDD marker and a per-task build strength (Model and Effort), gives every shared value one owning task, self-checks the plan against the plan-review checklist, and gates ExitPlanMode on a forked reviewer's VERDICT PASS. Invoked by the superspec skill only, with the spec path as its argument - never directly, never without a reviewed spec.
+description: Writes the implementation plan for a reviewed spec. Invoked by the superspec skill only, with the spec path as its argument - never directly, never without a reviewed spec.
 allowed-tools: Read, Write, Edit, Grep, Glob, Skill, EnterPlanMode, ExitPlanMode, AskUserQuestion
 disallowed-tools: NotebookEdit, Task, Agent, WebFetch, WebSearch
 user-invocable: false
