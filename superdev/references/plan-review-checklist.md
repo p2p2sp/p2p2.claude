@@ -26,7 +26,11 @@ evidence (see Evidence rule).
 
 - B1 - File path or symbol wrong or missing: a path listed in `### Files` does not exist in the
   repo (for an `add` entry, its parent directory must exist); a named symbol does not exist in the
-  file it is claimed to modify. Existence is settled with Glob, the symbol with Grep.
+  file it is claimed to modify. Existence is settled with Glob, the symbol with Grep. A path that is
+  not literal - it carries `<`, `>`, `*` or `?` - is B1 too, whatever exists around it: the commit
+  script matches `### Files` by prefix, so a placeholder declares nothing and the real file lands as
+  an undeclared change. A generated name (a migration timestamp, a snapshot hash, a dated file) is
+  declared by its parent directory with a trailing slash instead.
 - B2 - Build/test command mismatch: a command in `### Test Commands` contradicts the repo's actual
   build/test tooling as documented in a config or memory file read with Read/Grep. Tooling that
   cannot be confirmed that way is not B2 - it goes to NOTES.
@@ -99,7 +103,8 @@ block - they ride along as NOTES on a PASS.
 Before submitting a plan for review, verify in the repo:
 
 - Every `### Files` path and symbol referenced actually exists (or, for `add`, its parent directory
-  does).
+  does), and every path is literal - no `<…>`, `*` or `?`; a generated name is declared by its
+  parent directory with a trailing slash.
 - Every `### Test Commands` entry matches the repo's real build/test tooling.
 - The two-way mapping holds: every acceptance criterion is covered by at least one task, and every
   task covers at least one criterion or is traceable to the Goal/spec.

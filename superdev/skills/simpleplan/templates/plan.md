@@ -39,7 +39,7 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 
 ### Files
 - <add | modify | delete> - <path> (<symbol>)
-<one line per file touched>
+<one line per file touched; <path> is literal - commit-task.sh matches it by prefix, so no placeholders, globs or angle brackets; a file whose name is generated at build time (a migration timestamp, a snapshot hash, a dated file) is declared by its parent directory with a trailing slash, e.g. `add - src/Migrations/ (EF migration + designer)`>
 
 ### Test Commands
 #### Build
