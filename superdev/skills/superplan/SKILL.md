@@ -79,7 +79,7 @@ Every task carries `Model:` (`sonnet` | `opus`) and `Effort:` (`low` | `medium` 
 
 ### Self-Review
 Once you have written a complete plan and before final review, fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B15 plus `## Author self-check`) - the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:
-- Verify in the repo (Read/Grep/Glob) every `### Files` path and symbol, and every `### Test Commands` command against the repo's real build/test tooling.
+- Verify in the repo (Read/Grep/Glob) every `### Files` path and symbol, and every `### Test Commands` and `### TDD Commands` command against the repo's real build/test tooling.
 - Verify the two-way mapping: every acceptance criterion is covered by at least one task, and every task covers at least one criterion or is traceable to the Goal/spec.
 - Verify every task carries `TDD:`, `Model:` and `Effort:` with values from the allowed sets, that each `TDD: required` meets the criteria above, and that no `TDD: required` task sits on `Model: sonnet`.
 - Fix any violation inline. No need to re-review - just fix and move on. If you find a spec requirement with no task, add the task.

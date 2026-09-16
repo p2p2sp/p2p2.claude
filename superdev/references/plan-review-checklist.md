@@ -5,9 +5,9 @@ Shared rubric for plan review. Authors (`simpleplan`, `superplan` self-review) a
 self-check should pass review.
 
 Stack-agnostic: every class below refers only to the plan template's own sections
-(`### Files`, `### Dependencies`, `### Test Commands`, `### Approach`, `### Failure modes`,
-`### Contracts`, `### DoD`, `TDD:`, `Model:`, `Effort:`, `Covers:`) - never to a specific
-ecosystem's tools.
+(`### Files`, `### Dependencies`, `### Test Commands`, `### TDD Commands`, `### Approach`,
+`### Failure modes`, `### Contracts`, `### DoD`, `TDD:`, `Model:`, `Effort:`, `Covers:`) - never
+to a specific ecosystem's tools.
 
 ## Evidence rule
 
@@ -31,9 +31,10 @@ evidence (see Evidence rule).
   script matches `### Files` by prefix, so a placeholder declares nothing and the real file lands as
   an undeclared change. A generated name (a migration timestamp, a snapshot hash, a dated file) is
   declared by its parent directory with a trailing slash instead.
-- B2 - Build/test command mismatch: a command in `### Test Commands` contradicts the repo's actual
-  build/test tooling as documented in a config or memory file read with Read/Grep. Tooling that
-  cannot be confirmed that way is not B2 - it goes to NOTES.
+- B2 - Build/test command mismatch: a command in `### Test Commands` or in `### TDD Commands`
+  contradicts the repo's actual build/test tooling as documented in a config or memory file read
+  with Read/Grep - a `### TDD Commands` command is checked on the same terms, its file-scoping
+  form included. Tooling that cannot be confirmed that way is not B2 - it goes to NOTES.
 - B3 - Criteria/task mapping broken: an acceptance criterion has no task covering it, or a task
   covers no acceptance criterion and is not traceable to the Goal or spec (scope creep beyond
   Goal-or-spec), or a task delivers something the `## Out of scope` list excludes.
@@ -45,7 +46,11 @@ evidence (see Evidence rule).
 - B6 - Missing or invalid task marker: the template requires `TDD:`, `Model:` and `Effort:` on
   every task; one is absent, or carries a value outside its allowed set (`TDD:` `required` |
   `none`; `Model:` `sonnet` | `opus`; `Effort:` `low` | `medium` | `high` | `xhigh`), or a
-  `TDD: required` task is marked `Model: sonnet`. Settled by reading the task's marker lines.
+  `TDD: required` task is marked `Model: sonnet`. The `TDD:` marker also governs
+  `### TDD Commands`: a `TDD: required` task carrying no `### TDD Commands` section, a `TDD: none`
+  task carrying one, or a `### TDD Commands` line whose test file path is not declared under that
+  task's `### Files`, is B6 too. Settled by reading the task's marker lines against its
+  `### TDD Commands` and `### Files` sections.
 - B7 - Undecidable step: an implementer cannot execute a step without a decision that is absent
   from the plan. Report B7 under BLOCKED, never under FINDINGS - it needs a decision, not a fix
   the reviewer can point at.
@@ -117,11 +122,15 @@ Before submitting a plan for review, verify in the repo:
 - Every `### Files` path and symbol referenced actually exists (or, for `add`, its parent directory
   does), and every path is literal - no `<…>`, `*` or `?`; a generated name is declared by its
   parent directory with a trailing slash.
-- Every `### Test Commands` entry matches the repo's real build/test tooling.
+- Every `### Test Commands` and `### TDD Commands` entry matches the repo's real build/test
+  tooling.
 - The two-way mapping holds: every acceptance criterion is covered by at least one task, and every
   task covers at least one criterion or is traceable to the Goal/spec.
 - Every task carries `TDD:`, `Model:` and `Effort:` with values from their allowed sets, and no
   `TDD: required` task sits on `Model: sonnet`.
+- Every `TDD: required` task carries a `### TDD Commands` section and every `TDD: none` task
+  carries none, and every `### TDD Commands` line names a test file path declared under that
+  task's `### Files`.
 - Every `### Failure modes` bullet carries its response, its log and its test; a `none` carries its
   one-word reason; no `### Approach` step decides a failure behaviour of its own.
 - Every closed set a task extends lists that set's consumers under `### Contracts` (Grep the type
