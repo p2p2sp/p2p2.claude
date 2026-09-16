@@ -31,6 +31,16 @@ Comprehensive understanding of the user's request is in your context. Missing kn
 - The spec's `Intent:` line resolves to a file carrying a `## ADR` section -> the plan's Task 1 is the ADR task of `${CLAUDE_PLUGIN_ROOT}/references/adr-task.md`, filled by that file's `## Fill rules`, and every other task is renumbered after it. `Read` that intent file for its `## ADR` section alone; everything else it holds is the spec's job, not yours. A spec with no `Intent:` line, or one whose `Intent:` path no longer resolves to a file, counts exactly as an intent with no `## ADR` section -> no such task.
 - Write every reference to a criterion or a task in the reference form `` `<title>` (<pointer>) `` that `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` (`## Naming`) owns: a `Covers:` entry as `` `<criterion short name>` (#<n>) ``, a `### Dependencies` bullet and a `consumed by` clause as `` `<task title>` (Task <N>) ``. A bare number is Blocking class B15. Take the title verbatim from the spec's criterion line or the task's heading; a spec whose criteria carry no short name -> cite that criterion's first clause instead, and never put `#` in a title, because `Covers:` is parsed for every `#<n>` token on the line.
 
+**Gate commands**
+The header's `## Gate commands` block is the gate of the whole build - what a review round runs over everything the plan has produced - and never what one task runs. Fill its three subsections (`#### Build`, `#### Tests`, `#### Integration`) by judgment:
+- Start from what the plan moves: the projects, packages and paths its tasks touch.
+- Name the suites the host's own memory records over those files (`CLAUDE.md`, `.claude/rules/`), and take the one that covers what moved.
+- Weigh proof against cost: a command whose result would tell a reviewer this build is sound earns its runtime; one that reruns work the tasks already proved does not.
+- Take the narrowest scope that still proves the change - one project, one path, one suite rather than the whole repository, wherever the host's runner offers it.
+- A subsection with nothing worth running carries `none - <reason>`.
+
+A build command runs only where you judge its result proof for this plan, and no rule mandates one: a plan that moves only documentation, prompts or configuration can carry `none - <reason>` in all three subsections.
+
 **File Structure**
 Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
 
@@ -56,13 +66,22 @@ This structure informs the task decomposition. Each task should produce self-con
 **Task Sizing**
 A task is the smallest unit that carries its own test cycle and is worth a fresh reviewer's gate. When drawing task boundaries: fold setup, configuration, scaffolding, and documentation steps into the task whose deliverable needs them; split only where a reviewer could meaningfully reject one task while approving its neighbor. Each task ends with an independently testable deliverable.
 
-Size each task against that bound: a `TDD: required` task writes exactly one test file and only the production code that file drives, so a second `### Task Tests` line on such a task is the signal to split it; a `TDD: none` task aims at one behaviour and a few files.
+Size each task against that bound: a `TDD: required` task writes exactly one test file and only the production code that file drives, so a second test-file line under `### Task Checks` on such a task is the signal to split it; a `TDD: none` task aims at one behaviour and a few files.
 
 **Remember**
 - Small, independently testable tasks.
 - Exact file paths always.
 - Exact commands with expected output
 - DRY, YAGNI, SRP, SOLID
+
+**Task Checks**
+`### Task Checks` holds only what the implementor runs as this one task's own proof - the deliverable works - and nothing the header's gate already covers. Judge every line by four criteria:
+- The narrowest scope the host's runner offers: one test file, one project, one path. The host's whole suite belongs to the gate, never here.
+- Seconds, in memory. A test in which a process or service the application connects to takes part - a database, the network, a browser, to name three - is an integration or e2e test: it stays out of this section and runs through the host's integration or e2e command at the final review.
+- Which suite of a host is its fast in-memory suite is settled by that host's own memory files (`CLAUDE.md`, `.claude/rules/`), never by the examples here.
+- Proof, not coverage: a single test proving the task is enough, and a task with no test to run carries the proof it does have - a compile, a type-check, a lint, a grep - or the single line `none - <reason>`.
+
+One example in each direction: a task that only rewrites a document carries one grep asserting the new wording and nothing else; a `TDD: required` task carries the one test file its cycle drives, written `<test file path> - <command that runs only that file>`.
 
 **TDD Discipline**
 Every task gets `TDD: none` by default. Mark `TDD: required` ONLY when the task's code owns a decision of its own:
@@ -73,19 +92,23 @@ Every task gets `TDD: none` by default. Mark `TDD: required` ONLY when the task'
 
 Never `TDD: required` when the task's code touches the outside world directly (I/O, network, DB, filesystem, UI, framework wiring) - that yields integration tests, not a TDD cycle.
 
-`### Task Tests` and the TDD cycle hold only tests that run fast in memory. A test in which a process or service the application connects to takes part - a database, the network, a browser, to name three - is an integration or e2e test: it goes in neither `### Task Tests` nor the `#### Tests` block of `### Test Commands`, and runs only through the host's integration or e2e command at the final review. Which suite of a host is its fast in-memory suite is settled by that host's own memory files (`CLAUDE.md`, `.claude/rules/`), never by the examples here.
+A `TDD: required` task's cycle runs on one `### Task Checks` line: the line naming the test file that cycle writes, whose command runs that file alone.
 
 **Build strength**
-Every task carries `Model:` (`sonnet` | `opus`) and `Effort:` (`low` | `medium` | `high` | `xhigh`) - the model and effort the task's implementor runs at. The implementor is a weaker model than you, so judge each task on what it has to reason about, not on its line count:
-- `Model: sonnet` only when the task follows an existing pattern step by step - wiring, configuration, a mirror of a named symbol, tests for behaviour already specified - and its `Approach` leaves nothing to design. Anything else, and every `TDD: required` task, is `Model: opus`.
-- `Effort: low` only for a mechanical task on `Model: sonnet`; `medium` for a pattern-following task with a real test cycle; `high` for a task that owns a decision - an algorithm, a contract other tasks consume, a state machine; `xhigh` for a task where a wrong choice is expensive to undo - concurrency, security, data migration, a public interface.
-- Undecided between two levels -> the higher one, for both markers; lost quality costs more than tokens.
+Every task carries `Model:` (`sonnet` | `opus`) and `Effort:` (`low` | `medium` | `high` | `xhigh`) - the model and effort the task's implementor runs at. You plan on the strongest model the user has; the implementor may not, so read each task for the reasoning it demands of whoever executes it, never for its line or file count:
+- Nothing left to reason about - the `### Approach` fixes the symbol, the place and the wording, and the task only puts it there -> `Model: sonnet`, `Effort: low`. A text edit, a configuration line, a mirror of a named symbol are the usual shape.
+- A decision the task owns - an algorithm, a state machine, a contract other tasks consume, an `### Approach` that states an outcome rather than the steps to it -> `Model: opus`, `Effort: high`.
+- A choice expensive to undo - concurrency, security, a data migration, a public interface -> `Effort: xhigh`.
+- Between those poles sits `Effort: medium`: a task following a pattern already in the repo while running a real test cycle of its own.
+- A `TDD: required` task never sits on `Model: sonnet`: judging its own red and green is reasoning the task owns.
+
+`Review:` is optional on a task and takes the same two value sets, as `Review: <model> <effort>` - the strength that task's reviewer runs at. Reviewing reads a finished diff against a written task instead of designing the change, so its load is usually lower than the implementor's: set the marker where that gap is real, and leave it absent otherwise, in which case the reviewer agent's own frontmatter applies.
 
 ### Self-Review
 Once you have written a complete plan and before final review, fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B16 plus `## Author self-check`) - the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:
-- Verify in the repo (Read/Grep/Glob) every `### Files` path and symbol, and every `### Test Commands` and `### Task Tests` command against the repo's real build/test tooling.
+- Verify in the repo (Read/Grep/Glob) every `### Files` path and symbol, and every command of the header's `## Gate commands` block and of each task's `### Task Checks` against the repo's real build/test tooling; each of the three gate subsections holds a runnable command or `none - <reason>`.
 - Verify the two-way mapping: every acceptance criterion is covered by at least one task, and every task covers at least one criterion or is traceable to the Goal/spec.
-- Verify every task carries `TDD:`, `Model:` and `Effort:` with values from the allowed sets, that every task carries `### Task Tests`, that a `TDD: required` task's section carries exactly one file line, that every line names a test file declared under that task's `### Files` or reads `none - <reason>`, and that no `TDD: required` task sits on `Model: sonnet`.
+- Verify every task carries `TDD:`, `Model:` and `Effort:` with values from the allowed sets, that a `Review:` marker, where present, takes values from those same sets, that every task carries `### Task Checks`, that a `TDD: required` task's section carries exactly one test-file line, that every test-file line names a file declared under that task's `### Files`, that a section with nothing to run reads `none - <reason>`, and that no `TDD: required` task sits on `Model: sonnet`.
 - Fix any violation inline. No need to re-review - just fix and move on. If you find a spec requirement with no task, add the task.
 
 ## Final Review
