@@ -32,6 +32,10 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 -  <test command which agent can run to verify tests>
 <one line per test command>
 
+### TDD Commands
+- <test file path> - <command that runs only that file>
+<one line per test file this task writes; present ONLY on a `TDD: required` task and omitted entirely on `TDD: none`; every path is one this task declares under `### Files`; the command is literal and runnable as written - no placeholder, no filter to be filled in later - and where the host's runner cannot scope to a single file it carries the narrowest scope that does exist>
+
 ### Approach
 <2-5 imperative steps - symbol + signature, algorithm (name the symbol, never a line number). No prose, no "figure out", no line-by-line code, no failure decision (a catch, a fallback, a default on error belongs under Failure modes)>
 
