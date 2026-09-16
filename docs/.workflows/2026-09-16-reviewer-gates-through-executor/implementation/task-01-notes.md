@@ -4,4 +4,6 @@ CARRY: superdev/references/review-contract.md - `## Verdict rules` still names t
 CARRY: superdev/skills/superbuild-reviewer-spec/SKILL.md - its `## Gates` summary of what the contract governs still reads "`VERDICT: BLOCKED` for a documented integration or e2e suite that cannot start here", narrower than the contract's new mapping over every gate command.
 CARRY: superdev/skills/superbuild-reviewer-change/SKILL.md - same narrowed clause in its `## Gates` section.
 CARRY: superdev/skills/simplebuild-reviewer/SKILL.md - same narrowed clause in its `## Gates` section.
-CARRY: docs/.workflows/20260908-intent-spec-in-run-dir-intent.md - the working tree carries an unexplained deletion of this file, present before this task ran and not caused by it; left in place and deliberately not declared, so the task commit does not stage it.
+The user was asked at the commit gate about two pre-existing working-tree changes - `docs/.workflows/2026-09-16-adr-in-planning/spec.md` (modified) and `docs/.workflows/20260908-intent-spec-in-run-dir-intent.md` (deleted) - and chose to include both in this task's commit via --path; `git show 8761271 --name-status` confirms both were staged and committed alongside this task's own change to `superdev/references/review-contract.md`. See `implementation/decisions.md` (C1) for the accepted record.
+touched: docs/.workflows/2026-09-16-adr-in-planning/spec.md
+touched: docs/.workflows/20260908-intent-spec-in-run-dir-intent.md
