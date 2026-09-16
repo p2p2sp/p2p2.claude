@@ -8,7 +8,7 @@
 - Date: <YYYY-MM-DD>
 - Run: <workdir basename>
 - Commits: <base SHA>..<HEAD SHA>
-- ADR: <path>            (only when an ADR was written for this run)
+- ADR: <path>            (one line per ADR written for this run; omit when none)
 - Areas: <a>, <b>
 
 ## What changed

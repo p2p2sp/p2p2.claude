@@ -34,7 +34,6 @@
     "./agents/superbuild-task-implementor.md",
     "./agents/simplebuild-task-implementor.md",
     "./agents/superbuild-task-reviewer.md",
-    "./agents/adr-writer.md",
     "./agents/memory-writer.md",
     "./agents/rules-writer.md",
     "./agents/changelog-writer.md"
