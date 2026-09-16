@@ -2,7 +2,7 @@
 name: superdev-rules
 description: Use ALWAYS when the user wants to discover, capture, or maintain project coding conventions as .claude/rules files - learn the codebase's conventions, set up path-scoped rules, teach Claude the project's style. Triggers include "create rules", "set up .claude/rules", "capture coding conventions", "learn our conventions", "add naming/testing/error-handling rules", "audit rules". Discovers dominant patterns from the host code with real examples, confirms each in an interview, and writes MANY SMALL path-scoped rule files (one convention area per file, YAML paths: gating) instead of a monolith, plus a maintenance mode to audit existing rules against the actual code and find new candidates.
 user-invocable: true
-allowed-tools: Read, Write, AskUserQuestion, Skill, Agent, Bash, Bash(date:*)
+allowed-tools: Read, Write, AskUserQuestion, Skill, Agent, Task, Bash, Bash(date:*)
 ---
 
 # SuperDev Rules

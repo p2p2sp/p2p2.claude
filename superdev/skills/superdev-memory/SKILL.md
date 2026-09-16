@@ -2,7 +2,7 @@
 name: superdev-memory
 description: Use ALWAYS when the user wants to create, initialize, regenerate, bootstrap, or maintain CLAUDE.md project-memory for a repository - set up project memory, add a memory layer, or make Claude understand the codebase. Triggers include "create CLAUDE.md", "initialize project memory", "bootstrap Claude context", "set up CLAUDE.md", "add memory layer". Generates a hierarchical CASCADE of CLAUDE.md files (one general root plus progressively more specific child nodes in genuine architectural units), not a single root file, and offers a maintenance mode to audit existing nodes and find new candidates.
 user-invocable: true
-allowed-tools: Read, Write, AskUserQuestion, Skill, Agent, Bash, Bash(date:*)
+allowed-tools: Read, Write, AskUserQuestion, Skill, Agent, Task, Bash, Bash(date:*)
 ---
 
 # SuperDev Memory

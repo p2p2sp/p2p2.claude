@@ -1,8 +1,8 @@
 ---
 name: simpleplan
 description: Writes the implementation plan for a small, contained change already understood in context - an intent interview or a proven bug diagnosis. Invoked by the intent or simpledebug skill, or by explicit user command only - never spontaneously, never before an interview.
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, EnterPlanMode, ExitPlanMode, AskUserQuestion
-disallowed-tools: NotebookEdit, Task, Agent, WebFetch, WebSearch
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, EnterPlanMode, ExitPlanMode, AskUserQuestion, Task, Agent
+disallowed-tools: NotebookEdit, WebFetch, WebSearch
 user-invocable: true
 ---
 

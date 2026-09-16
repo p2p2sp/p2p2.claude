@@ -1,7 +1,7 @@
 ---
 name: superplan
 description: Writes the implementation plan for a reviewed spec. Invoked by the superspec skill only, with the spec path as its argument - never directly, never without a reviewed spec.
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, EnterPlanMode, ExitPlanMode, AskUserQuestion
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Agent, Task, EnterPlanMode, ExitPlanMode, AskUserQuestion
 disallowed-tools: NotebookEdit, Task, Agent, WebFetch, WebSearch
 user-invocable: false
 ---

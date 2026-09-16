@@ -2,7 +2,7 @@
 name: intent
 description: You MUST ALWAYS use this skill every time a user wants to do something creative - a new idea, a new feature, build something from scratch, a change to an existing solution. Do not trigger when user want to implement something here and now or fast.
 argument-hint: [path-to-intent.md]
-allowed-tools: Read, Grep, Glob, Agent, AskUserQuestion, Skill, ExitPlanMode, Write, Bash(date:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh:*)
+allowed-tools: Read, Grep, Glob, Agent, Task, AskUserQuestion, Skill, ExitPlanMode, Write, Bash(date:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh:*)
 ---
 
 CRITICAL: Run `ExitPlanMode` first, if plan mode is active.

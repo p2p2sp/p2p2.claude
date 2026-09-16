@@ -3,7 +3,7 @@ name: simplebuild
 description: Build orchestrator for an approved SimplePlan (a plan without a Spec line). Use it ONLY when the approved plan's body says to build it with the simplebuild skill - never for a plan that names superbuild, never without an approved plan.
 model: sonnet
 effort: low
-allowed-tools: Read, Bash, Grep, Glob, Skill, Agent, AskUserQuestion, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh:*)
+allowed-tools: Read, Bash, Grep, Glob, Skill, Agent, Task, AskUserQuestion, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh:*)
 disallowed-tools: Edit, Write, NotebookEdit
 user-invocable: false
 ---

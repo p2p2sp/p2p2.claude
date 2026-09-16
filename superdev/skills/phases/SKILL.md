@@ -3,7 +3,7 @@ name: phases
 description: Splits one confirmed intent into ordered phases. Invoked from the intent skill's handoff gate (Phases option) or by the user command `phases` on an existing intent.md or phases.md - never spontaneously, never before an intent interview.
 argument-hint: <path-to-intent.md | path-to-phases.md>
 user-invocable: true
-allowed-tools: Read, Grep, Glob, Agent, AskUserQuestion, Skill, ExitPlanMode, Write, Edit, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/phases-status.sh:*), Bash(date:*), Bash(printf:*)
+allowed-tools: Read, Grep, Glob, Agent, Task, AskUserQuestion, Skill, ExitPlanMode, Write, Edit, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/phases-status.sh:*), Bash(date:*), Bash(printf:*)
 ---
 
 CRITICAL: Run `ExitPlanMode` first, if plan mode is active.
