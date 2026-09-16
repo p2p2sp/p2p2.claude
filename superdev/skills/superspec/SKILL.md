@@ -31,7 +31,7 @@ What should be delivered:
 ## Hard rules for the draft
 - User stories: INVEST.
 - Spec the area of change, not the whole system.
-- Acceptance criteria = single declarative outcome statement (observable business outcome). NO Given/When/Then, NO UI mechanics. Good: "Checking out an empty cart ends with a validation error visible to the user."
+- Acceptance criteria = one line each, `<n>. <short name> - <condition>`: the condition is a single declarative outcome statement (observable business outcome), the short name is that criterion's title (a few words, no `#`, never changed afterwards - every later reference cites it). NO Given/When/Then, NO UI mechanics. Good: "3. Empty cart blocked - Checking out an empty cart ends with a validation error visible to the user."
 - Max 3 AC per story; 4+ → split the story.
 - Every AC testable - sketch its failing test; if you can't, fix the AC.
 - Spec = `What & Why` - the specific persona who benefits + the concrete observable change for them + business value. No How. If you think "we'll do it via X", that belongs in superplan.

@@ -24,10 +24,10 @@ Users lose track of work because tasks live in scattered notes.
 <As a <role> I want <goal> so that <value>. Concrete, observable.>
 
 ## Acceptance criteria
-<Numbered, TESTABLE, unambiguous. Each = one observable true/false condition.>
-1. A signed-in user can add a task with a title and an optional due date.
-2. The task appears immediately at the top of their task list and persists across page reloads.
-3. An empty title is rejected with a visible error.
+<Numbered, TESTABLE, unambiguous. Each line `<n>. <short name> - <condition>`: the condition is one observable true/false outcome; the short name is this criterion's title - a few words, no `#` - and stays unchanged, because every later reference cites the criterion by it.>
+1. Add a task - A signed-in user can add a task with a title and an optional due date.
+2. Task visible and persisted - The task appears immediately at the top of their task list and persists across page reloads.
+3. Empty title rejected - An empty title is rejected with a visible error.
 4. …
 
 ## Constraints / assumptions

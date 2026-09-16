@@ -7,7 +7,9 @@
   an Out of Scope list with fewer than 2 entries; a requirement that is untestable or ambiguous; a
   success criterion that is unmeasurable or names an implementation detail; a missing acceptance
   scenario or unidentified edge case; scope not bounded on both sides; an unidentified dependency or
-  assumption the spec relies on.
+  assumption the spec relies on; an acceptance criterion that is not written as
+  `<n>. <short name> - <condition>` - no short name before the ` - ` separator, or a short name
+  containing `#`.
 
   Carve-out on the first criterion: naming an existing artifact as part of the starting state inside
   `## Problem / context (Why)` is not that leak. The leak is prescribing how the change will be

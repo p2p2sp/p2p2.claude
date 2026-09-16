@@ -19,8 +19,9 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 <max 5 bullets; nothing to exclude -> the single bullet "none">
 
 ## Acceptance criteria
-1. <numbered, testable, observable true/false condition>
+1. <short name> - <numbered, testable, observable true/false condition>
 2. …
+<short name = this criterion's title: a few words, no `#`, unchanged once written - every later reference cites the criterion by it>
 
 <!-- /HEADER -->
 

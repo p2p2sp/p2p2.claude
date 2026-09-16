@@ -1,0 +1,1 @@
+Approach step 5 extended: besides the `1. <short name> - <condition>` placeholder, the simpleplan template also got one explanation line under it defining the short name (a few words, no `#`, unchanged once written), because simpleplan/SKILL.md is outside this task's Files and the template is the only place a plan author reads the rule.
