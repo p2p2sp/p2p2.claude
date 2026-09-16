@@ -32,18 +32,33 @@ In both states your only action is `AskUserQuestion` (retry after the reset / ab
 ## Mandatory rules
 
 - Orchestrator only: never do a worker's job yourself - no implementing, no editing project files, no writing what an agent owes. Be concise, no prose - just simple status lines.
-- You write no file, by any means, a shell redirect included. Notes, reports, `status.md`, `debt.md`, `decisions.md` and `checkpoint.md` come from the agents, the forks and the bundled scripts, at every step.
+- You write no file, by any means, a shell redirect included. Notes, reports, `status.md`, `decisions.md` and `checkpoint.md` come from the agents, the forks and the bundled scripts, at every step.
 - Every handoff - a fork's `args` (Skill) or an agent's `prompt` (Agent) - is a labeled block, one `label: <file path>` per line. Every value is a PATH; never paste file content (it breaks the fork's shell preload), and a bare path with no label is equally wrong.
 - Never `cd`, and never pass on a relative path: join the decompose index's `root:` value with every relative path that index printed, so every fork, agent and script receives an absolute path and the build behaves identically whatever directory the session started in. `<workdir>` below is therefore that joined absolute run directory, as is every path under it - for agents, forks and scripts alike, `checkpoint-update.sh` and `record-decision.sh` included (`commit-task.sh` normalises either form against the repository root). One single exception: `cleanup-run.sh` in Step 5.
 - Name every task, criterion and finding you put in front of the user - a status line, an `AskUserQuestion` label or its text, an escalation, a `record-decision.sh` subject - in the reference form `` `<title>` (<pointer>) `` that `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` (`## Naming`) owns, never a bare number or ID: the task title from the decompose index's `<title>` column, the criterion short name from the plan header, the finding title from its report bullet. A report bullet carrying no title - written by a reviewer from before that contract - is named by its "what is wrong" clause plus the ID instead.
+- Every `model:` / `effort:` parameter you pass to any dispatch is decided by `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` (`## Dispatch strength`) - it owns the two strength scales, which column or task set each dispatch reads, and the fact that passing no parameter is not a level but a handover to the dispatched worker's own frontmatter. Never invent a strength, never carry one over from a previous dispatch.
 
 ## Config
 
-Resolved opt-in switches, gating the Step 4 close-out delegations (`rules`, `memory`, `changelog`) and the Step 5 run cleanup - the `adr` line is printed too but gates nothing here, it gates the `intent` skill:
+Resolved opt-in switches, gating the Step 4 close-out delegations (`rules`, `memory`, `changelog`), the Step 5 run cleanup (`cleanup`) and every stats call of this build (`stats`) - the `adr` line is printed too but gates nothing here, it gates the `intent` skill:
 
 !`"${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh"`
 
 Run a gated step ONLY when its line above reads exactly `true`; anything else - `false`, absent, an unresolved block, a missing config file - means skip, and nothing below breaks on it.
+
+### Stats
+
+`stats` not reading exactly `true` -> make no `stats-record.sh` and no `stats-report.sh` call at all, anywhere in this build, and log nothing. Otherwise record one event per item below, in one Bash call each, right after the thing it measures:
+
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/stats-record.sh" <workdir> <kind> <label> <model> <effort> <tokens> <tool_uses> <duration_ms> <verdict> <note>` - positional, trailing arguments droppable, `-` for a gap in the middle, every argument double-quoted so a label or a note bearing spaces stays one field.
+
+- Copy every value from the harness notification of the dispatch that just returned, or from the call you just made. Compute nothing, estimate nothing, sum nothing, and pass `-` in every position the notification left unreported.
+- `start` right after `decompose.sh` - `resume` instead when its `status:` line was `NN` - label the workdir basename, every other field `-`.
+- Every awaited `Agent` completion: kind `implementor`, `fix-implementor` or `writer`; label the task file basename (`fix-NN` for a fix dispatch, the `subagent_type` for a close-out writer); the `model:` / `effort:` you dispatched at; the notification's `subagent_tokens`, `tool_uses` and `duration_ms`; the `VERDICT:` it returned.
+- Every `Skill` fork return: kind `fork`, label the fork name plus its report basename, verdict its `VERDICT:` line, `-` in all five usage fields - a fork result carries no usage data.
+- Every `commit-task.sh` run: kind `commit`, label the commit title, verdict the SHA of its `commit:` line, `nothing` when it had nothing to commit, `undeclared` on its exit 2.
+- Every escalation: kind `escalation`, label what was escalated in the `` `<title>` (<pointer>) `` form, note the interruption and the user's answer. That same note field carries a `VERDICT: FAIL` with its `REASON:`, a `BLOCKED`, a re-dispatch, an undeclared working-tree change, an agent that returned no report, and a session or spend limit.
+- A stats call exiting non-zero is noted for the Step 5 summary and the build carries on - never retried, never escalated, never a reason to stop or to ask the user.
 
 ## Step 1 - Decompose Plan
 
@@ -57,11 +72,11 @@ Then preflight git: run `git rev-parse --git-dir`. A non-zero exit means this is
 
 Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/decompose.sh" <plan-file>` with the resolved plan path. It creates the run's working dir and prints the task index:
 - `workdir:` the run dir, `root:` the absolute repository root every relative path of this index is relative to, `status:` last processed task or `none`, `base:` the build's base SHA or `none`, `plan-header:` path, `plan:` full-plan copy path, `intent:` intent path (optional).
-- then one `<task-file>\t<title>\t<model>\t<effort>` line per task - `<model>` / `<effort>` verbatim from that task's `Model:` / `Effort:` markers, `-` when absent.
+- then one `<task-file>\t<title>\t<model>\t<effort>\t<review>` line per task - `<model>` / `<effort>` / `<review>` verbatim from that task's `Model:` / `Effort:` / `Review:` markers, `-` when absent. `<model>` / `<effort>` are the implementor's strength; `<review>` is a per-task reviewer's, and this track runs none - ignore that fifth column everywhere below, whatever it holds.
 
 Drive the whole build off that index, joining every path you hand on with `root:` as `## Mandatory rules` directs. Non-zero exit (e.g. a `Covers:` criterion absent from the plan's `## Acceptance criteria`) -> STOP and show the error.
 
-Two things under `<workdir>` you address yourself: `checkpoint.md` (the last closed review round's `since:` / `prior:` lines, written by `checkpoint-update.sh`, absent until the first round closes) and `implementation/` (implementor deviation notes `task-NN-notes.md` / `fix-NN-notes.md`, the review reports `checkpoint-KK.md` / `review-01.md`, plus `debt.md` and `decisions.md`). Everything else reaches you as a path on the index.
+Two things under `<workdir>` you address yourself: `checkpoint.md` (the last closed review round's `since:` / `prior:` lines, written by `checkpoint-update.sh`, absent until the first round closes) and `implementation/` (implementor deviation notes `task-NN-notes.md` / `fix-NN-notes.md`, the review reports `checkpoint-KK.md` / `review-01.md`, plus `decisions.md`). Everything else reaches you as a path on the index.
 
 Run `printf '%s\n' "${CLAUDE_PLUGIN_ROOT}/references"` once and keep its output as `<refs>` - the absolute references dir carried by every agent dispatch below.
 
@@ -106,7 +121,7 @@ Shared by the checkpoint above (`stage: checkpoint`) and by each round of Step 3
 - `VERDICT: PASS` -> close the round: `since` := `head`, `prior` := `<report>`, then run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/checkpoint-update.sh" <workdir> <since> <prior>` so a resume finds both. Continue.
 - `VERDICT: BLOCKED` + `REVIEW: <report>` -> no implementor runs. One `AskUserQuestion` per bullet under the report's `### Needs decision`, naming that bullet's finding `` `<title>` (<ID>) ``: **accept as changed** / **fix it** / **abort**. Per accepted bullet run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/record-decision.sh" <workdir> "<ID>" "<criterion or task>" "<what the user accepted>"` - its `<criterion or task>` argument in the reference form too, `` `<title>` (criterion N) `` or `` `<title>` (Task N) ``, read off the same bullet - then re-run the same reviewer call with the same `report:` and `decisions: <workdir>/implementation/decisions.md` added - that re-run is not a round. **fix it** on any bullet -> take the FAIL branch instead.
 - `VERDICT: FAIL` + `REVIEW: <report>`:
-    1. Dispatch `simplebuild-task-implementor` (`Agent`, no `model:` / `effort:` parameters) with `refs: <refs>`, `plan-header: <path>`, `plan: <plan-copy path>`, `task: <report>`, and `notes: <workdir>/implementation/fix-NN-notes.md` on separate lines (NN = the fix ordinal across the whole build, `01` upward). Await it.
+    1. Dispatch `simplebuild-task-implementor` (`Agent`) at the highest `<model>` and the highest `<effort>` among the tasks whose `### Files` names a file some finding in `<report>` points at - the two picked independently, `opus` over `sonnet` and `xhigh` over `high` over `medium` over `low`: read the findings' `file:line` paths off `<report>`, then those tasks' `### Files` off the task files the index lists. No task matches -> pass neither parameter. Labels: `refs: <refs>`, `plan-header: <path>`, `plan: <plan-copy path>`, `task: <report>`, and `notes: <workdir>/implementation/fix-NN-notes.md` on separate lines (NN = the fix ordinal across the whole build, `01` upward). Await it.
        - `VERDICT: FAIL` + `REASON:` -> escalate via `AskUserQuestion` (retry / accept / abort); act on the answer.
     2. `VERDICT: PASS` -> keep the current `head` as `fix_since`, then commit the fix: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<fix title>" --notes <workdir>/implementation/fix-NN-notes.md` (exit 2 handled exactly as in the loop above), and `head` := the SHA of its `commit:` line.
     3. Re-review: the same reviewer with the same labels, except `stage: re-review`, `since: <fix_since>`, `prior: <report>`, and `report: <report basename>-reR.md` (R = this report's re-review ordinal, `1` first).
@@ -136,8 +151,10 @@ Shared by the checkpoint above (`stage: checkpoint`) and by each round of Step 3
 
 ## Step 5 - Done
 
-1. `cleanup: true` -> run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-run.sh" <workdir> simplebuild` - here alone `<workdir>` is the index's `workdir:` value verbatim, repository-relative and never joined with `root:`, because the script's safety gate rejects every path outside `docs/.workflows/`, an absolute one included, and silently skips it as not a run dir. Keep its `CLEANUP:` line; the script verifies completion itself - never re-check, never retry.
-2. Cleanup the task list and display short summary of work. Max ~3-5 sentences plus the relayed lines. Include:
+1. `stats: true` -> run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/stats-report.sh" <workdir>` - before the cleanup below, which takes the run dir the report reads. Keep its `stats:` line for the summary; a non-zero exit is noted there instead.
+2. `cleanup: true` -> run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-run.sh" <workdir> simplebuild` - here alone `<workdir>` is the index's `workdir:` value verbatim, repository-relative and never joined with `root:`, because the script's safety gate rejects every path outside `docs/.workflows/`, an absolute one included, and silently skips it as not a run dir. Keep its `CLEANUP:` line; the script verifies completion itself - never re-check, never retry.
+3. Cleanup the task list and display short summary of work. Max ~3-5 sentences plus the relayed lines. Include:
     - Step 4's `NODE:` / `RULE:` / `CHANGELOG:` / `INDEX:` lines verbatim (or the noted failure / disabled), plus the noted `git diff` failure when Step 4 hit one
+    - the `stats:` line verbatim (or "disabled" when `stats` is off), plus every stats call noted as failing
     - the `CLEANUP:` line verbatim (or "disabled" when `cleanup` is off)
     - every `GAP:` line verbatim, each followed by `-> run superdev-memory`
