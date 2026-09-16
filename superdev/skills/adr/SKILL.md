@@ -1,6 +1,6 @@
 ---
 name: adr
-description: Judges the confirmed decisions of an intent interview against the three ADR criteria (hard to reverse, surprising without context, the result of a real trade-off) and offers the user a one-paragraph architecture decision record for every decision that passes all three, returning the accepted drafts as a ready `## ADR` section. Invoked by the `intent` skill only, right after the user confirms the synthesis and before the intent file is written; never directly, never by the user, never at any other point of the interview.
+description: Judges an intent interview's confirmed decisions against the three ADR criteria (hard to reverse, surprising without context, the result of a real trade-off) and offers the user a one-paragraph architecture decision record for each decision passing all three, returning the accepted drafts as a ready `## ADR` section. Invoked by the `intent` skill only, at its two ADR points: no argument on a fresh run, once the synthesis is confirmed and before the intent file is written; or a single `decision:` line on a resume, naming the one reopened decision. Fires nowhere else - never directly, never by the user, never mid-interview, never from a spec, plan, build or review, never when the `adr:` config line is anything but `true`.
 user-invocable: false
 allowed-tools: Read, Glob
 ---

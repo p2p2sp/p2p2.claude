@@ -1,6 +1,6 @@
 ---
 name: executor
-description: Runs one build, test, lint, type-check or any other shell command in a forked context and returns a short structured result (verdict, the tool's own summary line, the failures, a log path) instead of the full output. Use whenever a command's outcome must be judged but its output must not enter the caller's context - a build, a full or filtered test suite, a lint or type-check run, a script, a TDD verify-red or verify-green run. Input is a labeled block: `command:` (required), `expect:`, `cwd:`, `timeout:`.
+description: Runs ONE build, test, lint, type-check or other shell command in a forked context and returns a short structured result - verdict, the tool's own aggregate line, the failures, a log path - instead of the output itself. Use whenever a command's outcome must be judged but its output must not enter the caller's context: a build, a full or filtered test suite, a lint or type-check run, a script, a TDD verify-red or verify-green run, any gate a task or review must pass. One command per invocation, run verbatim. Input is a labeled block: `command:` (required), `expect:`, `cwd:`, `timeout:`. Not for output the caller wants raw (`git diff`, `git log`, `ls`, `cat`), for anything that edits, fixes, installs or commits, or for an interactive command - it is read-only and cannot prompt.
 context: fork
 background: false
 model: haiku
