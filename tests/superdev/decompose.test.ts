@@ -183,8 +183,8 @@ test("happy path (default prefix): builds the full tree, prints a clean index, c
           `base: ${base}`,
           `plan-header: ${header}`,
           `plan: ${planCopy}`,
-          `${task1}\tTask 1 - build widget\t-\t-`,
-          `${task2}\tTask 2 - ship widget\t-\t-`,
+          `${task1}\tTask 1 - build widget\t-\t-\t-`,
+          `${task2}\tTask 2 - ship widget\t-\t-\t-`,
           "",
         ].join("\n"),
       );
@@ -896,7 +896,7 @@ test("the heading's <N> is not checked against the file index: a mismatched numb
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       const dir = `docs/.workflows/${todayISO()}-renumbered-plan`;
       const rows = result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`));
-      assert.deepEqual(rows, [`${dir}/tasks/task-01.md\tTask 7 - do it\t-\t-`]);
+      assert.deepEqual(rows, [`${dir}/tasks/task-01.md\tTask 7 - do it\t-\t-\t-`]);
     });
   });
 });
@@ -1155,15 +1155,15 @@ test("edge: a task title containing a tab breaks the tab-separated index row (do
       const dir = `docs/.workflows/${todayISO()}-tabbed-title-plan`;
       const indexLine = result.stdout.split("\n").find((l) => l.startsWith(`${dir}/tasks/task-01.md`));
       assert.ok(indexLine, `expected the task-01 index row, got:\n${result.stdout}`);
-      // tabs separate path, title, model and effort in the well-formed case (4
-      // fields); the embedded tab in the title itself yields a FIFTH field,
-      // breaking any \t-split parse.
-      assert.equal(indexLine!.split("\t").length, 5);
+      // tabs separate path, title, model, effort and review in the well-formed
+      // case (5 fields); the embedded tab in the title itself yields a SIXTH
+      // field, breaking any \t-split parse.
+      assert.equal(indexLine!.split("\t").length, 6);
     });
   });
 });
 
-test("task Model:/Effort: markers land verbatim in the index columns; a task without them prints '-'", () => {
+test("task Model:/Effort:/Review: markers land verbatim in the index columns; a task without them prints '-'", () => {
   withGitRepo((repo) => {
     seedInitialCommit(repo);
     withTempDir("p2p2-decompose-plan-", (planDir) => {
@@ -1172,10 +1172,16 @@ test("task Model:/Effort: markers land verbatim in the index columns; a task wit
         plan,
         simplePlan({
           title: "Marked Plan",
-          criteria: ["One.", "Two."],
+          criteria: ["One.", "Two.", "Three."],
           tasks: [
-            taskBlock("Task 1 - marked", [1], "- TDD: none\n- Model: sonnet\n- Effort: xhigh  \nDo the work."),
+            taskBlock(
+              "Task 1 - marked",
+              [1],
+              "- TDD: none\n- Model: sonnet\n- Effort: xhigh  \n- Review: sonnet high\nDo the work.",
+            ),
             taskBlock("Task 2 - unmarked", [2]),
+            // an empty "- Review:" value is an absent marker: the column reads "-"
+            taskBlock("Task 3 - empty review", [3], "- Model: opus\n- Effort: low\n- Review:\nDo the work."),
           ],
         }),
       );
@@ -1184,13 +1190,15 @@ test("task Model:/Effort: markers land verbatim in the index columns; a task wit
       const dir = `docs/.workflows/${todayISO()}-marked-plan`;
       const rows = result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`));
       assert.deepEqual(rows, [
-        `${dir}/tasks/task-01.md\tTask 1 - marked\tsonnet\txhigh`,
-        `${dir}/tasks/task-02.md\tTask 2 - unmarked\t-\t-`,
+        `${dir}/tasks/task-01.md\tTask 1 - marked\tsonnet\txhigh\tsonnet high`,
+        `${dir}/tasks/task-02.md\tTask 2 - unmarked\t-\t-\t-`,
+        `${dir}/tasks/task-03.md\tTask 3 - empty review\topus\tlow\t-`,
       ]);
       // the marker lines stay in the task file - the implementor reads them there too
       const task1Text = fs.readFileSync(path.join(repo.dir, dir, "tasks", "task-01.md"), "utf-8");
       assert.match(task1Text, /^- Model: sonnet$/m);
       assert.match(task1Text, /^- Effort: xhigh/m);
+      assert.match(task1Text, /^- Review: sonnet high$/m);
     });
   });
 });
@@ -1234,8 +1242,8 @@ test("whole-line markers: a task body quoting the TASK markers in prose still de
       assert.deepEqual(fs.readdirSync(absTasks).sort(), ["task-01.md", "task-02.md"]);
       const rows = result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`));
       assert.deepEqual(rows, [
-        `${dir}/tasks/task-01.md\tTask 1 - write about the markers\t-\t-`,
-        `${dir}/tasks/task-02.md\tTask 2 - ship it\t-\t-`,
+        `${dir}/tasks/task-01.md\tTask 1 - write about the markers\t-\t-\t-`,
+        `${dir}/tasks/task-02.md\tTask 2 - ship it\t-\t-\t-`,
       ]);
 
       // the quoted line is ordinary content: verbatim in the task file, opening nothing
