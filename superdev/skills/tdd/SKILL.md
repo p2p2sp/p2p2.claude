@@ -46,9 +46,10 @@ Execute the cycle in this exact order for each delivered behavior. **VERIFY RED*
 - Only enough code to pass THIS test. No over-engineering, no anticipating future tests, no opportunistic refactor of existing code.
 - A hardcoded return is acceptable on the first cycle; the next RED forces generalization.
 
-### VERIFY GREEN - confirm all tests pass, output pristine (mandatory)
+### VERIFY GREEN - confirm the cycle's own test file passes, output pristine (mandatory)
 
-- The target test passes; every previously-passing test still passes - no regressions.
+- The target test passes, and so does every test already sitting in that same test file - that file, not the whole suite, is what a cycle proves green.
+- The whole suite is promised once, at the end of the task: every test everywhere passes there, and a regression the cycles hid surfaces then and is fixed before the task is done.
 - Output is pristine: no new warnings, no new lint errors, no stray prints, no flaky failures hidden behind retries.
 - Not pristine? Something broke - fix it before the next cycle. A "small" regression is still a regression.
 
@@ -65,7 +66,7 @@ After each RED → VERIFY-RED → GREEN → VERIFY-GREEN → (optional REFACTOR)
 - [ ] The test uses the public interface only - no internal-collaborator mocks, no private-method calls, no asserting call counts or order.
 - [ ] I watched the test fail in VERIFY RED and confirmed the failure reason was the missing behavior (not a typo, import miss, or harness error).
 - [ ] I wrote the simplest possible code to turn the test green - no speculative features, no anticipating the next test.
-- [ ] VERIFY GREEN passed: target test green, all other tests still green, output pristine.
+- [ ] VERIFY GREEN passed: the target test and the rest of its own test file green, output pristine - the whole suite is the end-of-task run's business.
 - [ ] Any refactor preserved green at every step and removed real duplication.
 
 **Can't check every box? TDD skipped. Delete the new code, start over.**
