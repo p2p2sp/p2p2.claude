@@ -1,6 +1,6 @@
 ---
 name: phases
-description: Splits one confirmed intent into ordered phases. Invoked from the intent skill's handoff gate (Phases option) or by the user command `phases` on an existing intent.md or phases.md - never spontaneously, never before an intent interview.
+description: Cuts one confirmed intent into ordered phases, saves phases.md plus one intent.md per phase, and resumes a phased run. Use when an intent is too large for a single spec or plan, when the user asks to split the work into phases, stages, milestones or chunks, when they ask which phase comes next, what the phase status is, or to resume, continue or reopen a phased undertaking. Invoked from the intent skill's handoff gate (Phases option) or by the user command `phases` on an existing intent.md or phases.md - never spontaneously, never before an intent interview, never on a spec or a plan.
 argument-hint: <path-to-intent.md | path-to-phases.md>
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Agent, Task, AskUserQuestion, Skill, ExitPlanMode, Write, Edit, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/phases-status.sh:*), Bash(date:*), Bash(printf:*)
@@ -16,7 +16,7 @@ One confirmed intent, too big for a single run, becomes an ordered list of phase
 Date: !`date +%F`
 
 ## Input
-`$ARGUMENTS` is either a line `intent: <path>` (from the intent skill's handoff) or a bare path. Take the path from it and dispatch on that path alone:
+`$ARGUMENTS` is either a line `intent: <path>` or a bare path. Take the path from it and dispatch on that path alone:
 
 - basename `phases.md` -> go to `## Resume`.
 - basename `intent.md` whose path contains a `phases/` segment -> tell the user that a phase is already one unit of work and cannot be split again into nested phases; if the phase turned out too big, the fix is to reopen the master phase split and re-cut it there. STOP - write nothing.
@@ -27,18 +27,18 @@ Never continue without a path - this skill never runs from context alone, and ne
 
 ## Fresh
 1. Read the intent file. Its `## Decisions` numbering is the contract every phase's `Covers:` line refers to - never renumber it.
-2. When the cut depends on the host code's structure (which modules exist, what depends on what, what is already in place), launch `Explore` agents in parallel, in one batch, to map it. Skip when the intent already answers it.
-3. Propose the split in plain prose as a numbered list - one block per phase:
+2. `Glob` `<intent dir>/phases.md` before proposing anything. A hit means this undertaking was already cut and reviewed: say so, point at `phases <that phases.md>` as the resume, and ask whether to re-cut and overwrite it instead. Anything but a clear yes -> STOP, write nothing.
+3. When the cut depends on the host code's structure (which modules exist, what depends on what, what is already in place), launch `Explore` agents in parallel, in one batch, to map it. Skip when the intent already answers it.
+4. Propose the split in plain prose as a numbered list - one block per phase:
    - the phase title,
    - its goal in one sentence,
    - `Covers` - the master decisions it absorbs, each as `` `<decision question>` (decision <n>) ``, never a bare number,
    - what is checkable at the end of it,
    - what it depends on, each as `` `<phase title>` (phase <NN>) `` (earlier phases only, `none` for the first).
    Close with one line of rationale for the cut - what the order follows (dependencies, value, or both).
-4. Run the conversation one round per turn - the user merges, splits, reorders or renames phases; re-present the full list after each round. Plain prose only, never `AskUserQuestion` - this is a discussion, not a form. Continue until the user confirms the list.
-5. The intent carries a single decision, or the user rejects the split entirely -> tell them the work fits one run and point them back to `intent <path to that intent.md>` to pick a track there. STOP - write nothing.
-6. A `phases.md` already exists next to the intent -> ask the user before overwriting it (an existing phases file means this is a resume, not a fresh split, so `phases <that phases.md>` is usually what they want). No answer to overwrite -> STOP.
-7. Only now Read `references/phases-template.md` (relative to this skill's directory) and `Write` the confirmed list to `<intent dir>/phases.md` exactly as it prescribes - `Date:` from `## Run`, `Intent:` the repo-relative path of the intent file just read. Then go to `## Review gate`.
+5. Run the conversation one round per turn - the user merges, splits, reorders or renames phases; re-present the full list after each round. Plain prose only, never `AskUserQuestion` - this is a discussion, not a form. Continue until the user confirms the list.
+6. The intent carries a single decision, or the user rejects the split entirely -> tell them the work fits one run and point them back to `intent <path to that intent.md>` to pick a track there. STOP - write nothing.
+7. Only now Read `${CLAUDE_SKILL_DIR}/references/phases-template.md` and `Write` the confirmed list to `<intent dir>/phases.md` exactly as it prescribes - `Date:` from `## Run`, `Intent:` the repo-relative path of the intent file just read. Then go to `## Review gate`.
 
 ## Review gate
 Immediately after saving - and BEFORE writing any phase intent - run the reviewer and act on its verdict. Never write a phase intent from a phases file that has not returned `VERDICT: PASS`. Track which invocation this is (round 1, round 2, …).
@@ -61,20 +61,9 @@ The reviewer is read-only: it edits nothing and returns issues derivable from th
    - **`FINDINGS`** -> edit the phases file as each one directs; touch nothing else. Exception - a Blocking finding whose evidence you can show is factually wrong (the intent or the repo state already in your context contradicts it) -> do not re-loop on it; present that single finding plus your counterargument to the user in plain prose and apply their ruling.
    - **`BLOCKED` items present** -> resolve each from the intent and the confirmed conversation already in your context; an item that reopens the cut itself -> put it to the user in prose and apply their answer.
 5. **Round cap:** after round 3 without PASS, STOP looping - show the user the remaining findings and let them decide how to proceed.
-- Do not write a single phase intent until the reviewer returns `VERDICT: PASS`.
 
 ## Phase intents
-After `VERDICT: PASS` only. Read `${CLAUDE_PLUGIN_ROOT}/skills/intent/references/intent-template.md`, then `Write` one full intent file per phase at `<intent dir>/phases/<NN>-<slug>/intent.md` (the `Dir:` value of that phase, joined to the phases file's own directory). The `Write` call itself creates the directory - never `mkdir`. Each file is a complete intent in the template's structure, in the master's language:
-
-- `# Intent: <phase title>` and `Date:` from `## Run`.
-- `## Request` - the phase's goal, written in the master's framing, as the ask for this phase alone.
-- `## Decisions` - the master's decision blocks named in that phase's `Covers:` line, copied **verbatim**, keeping their master numbers (so `#5` stays `### 5.`). Copy no other decision.
-- `## Constraints` - the master constraints that apply to this phase, plus one bullet `` `<phase title>` (phase <NN>) of <repo-relative phases file path> `` - the title from that phase's own `###` heading - plus one bullet per earlier phase it depends on, naming it the same way and its `Delivers:` as already in place.
-- `## Out of scope` - the other phases' goals, as non-goals of this phase (they are built in their own runs), plus the master's own out-of-scope entries.
-- `## ADR` - phase `01` only: the master's `## ADR` section copied verbatim when the master has one; every other phase intent has no `## ADR` section, whatever its `Covers:` names.
-- `## History` - the master's, verbatim.
-
-Each phase intent must stand on its own: a later phase's run reads only its own file, never the master intent.
+After `VERDICT: PASS` only. Read `${CLAUDE_PLUGIN_ROOT}/skills/intent/references/intent-template.md` for the file structure and `${CLAUDE_SKILL_DIR}/references/phase-intent.md` for where each phase intent goes and what its sections carry, then `Write` one file per phase exactly as those two prescribe. Then go to `## Handoff`.
 
 ## Handoff [GATE]
 Handoff is not the conversation - use `AskUserQuestion`. The user's choice is the gate; never route yourself past it. Show the phases file path and the phase list first.
