@@ -98,22 +98,14 @@ skill/agent list. This file is orientation for the assistant.
   only on `RESULT: DEVIATION`, in analysis mode over the log `run.sh` already wrote rather than running the
   command a second time; the fork keeps full tool logs out of the caller's context and returns a short
   verdict instead, and is itself model-invocable via its own `description:`.
-- **superui** - the design / frontend ecosystem, pairing Claude Code CLI (measurement, agentic fan-out) and
-  Claude Design (live, inline-styled Design Components), via a **two-stage** screenshots-to-handoff-bundle
-  pipeline: `/superui:design-extractor <screenshots-dir> [<target>]` turns a folder of UI screenshots into the
-  pure, platform-neutral design system alone - `DESIGN.md` (YAML front-matter tokens + a prose body) at the
-  host repo's `docs/design-system/` (or `docs/design-system/<target>/`), via an internal fork worker
-  (`design-extractor-builder`) - then loops to offer chaining `/superui:component-extractor <screenshots-dir>
-  <platform> [<target>]` (`platform`: `web-app` | `mobile` | `website`) once per platform, which reads that
-  `DESIGN.md` and builds the platform component/pattern bundle (`DESIGN.components.md` /
-  `DESIGN.patterns.md` spec satellites plus canonical screens) at `docs/design-system/[<target>/]<platform>/`,
-  via its own internal fork worker (`component-extractor-builder`); `component-extractor` also runs standalone
-  against an already-extracted `DESIGN.md`, any number of times, one platform per run. Also ships a
-  professional UI/UX standards advisor (`pro-designer`) and a user-only `setup` diagnostic. Ships **no hooks
-  and no manifest** - `pro-designer` routes purely via CSO `description:`; `design-extractor` and `setup` are
-  user-only commands; `component-extractor` is a deliberate exception - model-invocable behind its own guarded
-  CSO `description:` so `design-extractor`'s ending loop can chain it via the `Skill` tool, while a user can
-  also invoke it directly. (→ `superui/CLAUDE.md`)
+- **superui** - the design / frontend ecosystem: **one skill**, `pro-designer`, the professional UI/UX
+  standards advisor (visual hierarchy, color systems and dark mode, type ramps, 4/8pt spacing,
+  accessibility, component states, form-validation UX, conversion psychology with hard anti-dark-pattern
+  rules, motion, and the anti-AI-slop aesthetic direction its `references/anti-slop.md` opens every
+  invocation with). Advisory only - it proposes and critiques, writes no knowledge layer of its own, and
+  dispatches nothing; its one script step is the bundled WCAG contrast checker, which degrades to a
+  skip-with-note when Node is absent. Ships **no hooks, no manifest and no agents** - `pro-designer` routes
+  purely via CSO `description:`. (→ `superui/CLAUDE.md`)
 - **supergh** - the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation
   executor, Conventional-Commits commits, and template-driven issue / PR creation. Ships **no hooks and no
   manifest** - its skills route purely via CSO `description:`. (→ `supergh/CLAUDE.md`)
@@ -149,11 +141,9 @@ scripts under `<plugin>/hooks/scripts/` (only `superdev` has hooks; `superui` / 
 `scripts/` dir or, when shared across a plugin's skills, at plugin level. `supergh` keeps its shared scripts
 under `<plugin>/shared/` (a `scripts/` subdir); `superdev` keeps its shared scripts and references at the
 plugin root (`superdev/scripts/`, `superdev/references/` - the latter owning `review-contract.md`, the one
-source of the build review loop's labels, finding IDs, report shape and verdict rules), and `superui` keeps its shared scripts and its
-seven agents at the plugin root (`superui/scripts/`, `superui/agents/`), both with no `shared/` subdir.
-`superui` has no `references/` or `assets/` dir at the plugin root - only `pro-designer` and
-`component-extractor` need a `references/` dir, and each keeps its own rather than sharing one at the plugin
-root. `superbiz` ships no plugin-root dirs at all - its one skill, `idea-validator`, bundles its own
+source of the build review loop's labels, finding IDs, report shape and verdict rules). `superui` ships no
+plugin-root dirs at all - its one skill, `pro-designer`, bundles its own `references/` and `scripts/`;
+`superbiz` ships none either - its one skill, `idea-validator`, bundles its own
 `references/` (including a `references/council/` subdir), `scripts/`, `assets/` and `evals/`; `supercc`
 ships none either - its one skill, `skill-designer`, bundles its own `references/` and `scripts/`. Its
 `build_report.py` is the repo's only **Python** script (stdlib only), every other bundled script being bash
@@ -179,8 +169,8 @@ codebase-investigation tool (`superfix`), just the idea validation tool
 (frontmatter `description:`) and - for the sole manifest-bearing plugin (`superdev`) - that plugin's single
 injected manifest documents its routing (e.g. superdev's interview-first decision flow); `superui`, `supergh`,
 `superfix`, `superbiz` and `supercc` ship no manifest (superfix's sole skill is user-only; supergh routes purely
-via CSO descriptions; superui routes `pro-designer` the same way while its `design-extractor` skill is a user-only
-command; superbiz's sole skill is a user-only command too, so nothing routes there at all; supercc's sole skill
+via CSO descriptions; superui's sole skill routes the same way and dispatches nothing;
+superbiz's sole skill is a user-only command too, so nothing routes there at all; supercc's sole skill
 is model-invocable but has nothing to dispatch, so its own `description:` is the whole routing story).
 Each is **self-contained**: its `plugin.json` declares **no `dependencies`** - installing it gives that whole
 ecosystem. Cross-plugin chains are **soft and optional** by design: any CSO composition that names another
@@ -196,7 +186,8 @@ Each plugin's own internal layout lives in its `<plugin>/CLAUDE.md` (`superdev` 
   marketplace.json   Marketplace catalog - co-lists superdev "./superdev", superui "./superui", supergh "./supergh", superfix "./superfix", superbiz "./superbiz", supercc "./supercc"
 superdev/            The superdev plugin (project memory, planning, dev pipeline; carries agents/ for its
                      two task implementors, one task reviewer and three closeout writers)
-superui/             The superui plugin (design / frontend; NO hooks, NO manifest)  → superui/CLAUDE.md
+superui/             The superui plugin (design / frontend; one model-invocable skill, NO hooks, NO manifest,
+                     NO agents)                                                     → superui/CLAUDE.md
 supergh/             The supergh plugin (GitHub / git; NO hooks, NO manifest)       → supergh/CLAUDE.md
 superfix/            The superfix plugin (codebase investigation; NO hooks/manifest) → superfix/CLAUDE.md
 superbiz/            The superbiz plugin (idea validation; one user-only skill, NO hooks, NO manifest, NO agents) → superbiz/CLAUDE.md
@@ -248,8 +239,8 @@ docs/assets/         Images embedded in a README so they render publicly on GitH
 
 Each plugin dir carries a `.claude-plugin/plugin.json` (its `skills[]` (+ `agents[]`) is the catalog of record).
 `superdev` alone also carries `hooks/` (one injected dispatcher manifest + hook scripts); plugin-level shared
-scripts live in `superdev/scripts/`, `superdev/references/` and `superui/scripts/` (no `shared/` subdir);
-`supergh` carries `shared/` only; `superdev`, `superui` and `superfix` carry `agents/`. `superbiz` and
+scripts live in `superdev/scripts/` and `superdev/references/` (no `shared/` subdir);
+`supergh` carries `shared/` only; `superdev` and `superfix` carry `agents/`. `superui`, `superbiz` and
 `supercc` carry `skills/` and nothing else at the plugin root - their single skill bundles everything it needs.
 
 ## Versioning
@@ -277,8 +268,7 @@ The invariants below hold across the repo.
   plugin writes into the consuming repo lands under `docs/<layer>/`, never in a host-root dot-dir and never
   in a plugin-named dir: `docs/adr/` (superdev's `adr` skill plus the plan's first task it seeds, gated by
   the `adr` config switch),
-  `docs/design-system/` (superui's `design-extractor`; `docs/design-system/<target>/` with the optional
-  `<target>` argument), `docs/changelog/` (superdev's changelog layer, gated by the `changelog` switch -
+  `docs/changelog/` (superdev's changelog layer, gated by the `changelog` switch -
   `superdev:changelog-writer` appends one entry per completed build plus one index line in
   `docs/changelog/README.md`), `docs/.workflows/` (superdev's per-run working directory
   `docs/.workflows/<run>/` - the intent file the `intent` skill persists (`intent.md`), the `refresh.md`
@@ -299,7 +289,7 @@ The invariants below hold across the repo.
   (superdev's opt-in switches live in `.claude/superdev.yml`, read by `scripts/read-config.sh`; rules in
   `.claude/rules/`), and `.temp/` for every temporary artifact, grouped in per-plugin subdirs
   (`.temp/superdev/{memory,rules}/capture-<RUN_ID>.md`, `.temp/superdev/logs/<timestamp>-<slug>-<pid>.log`
-  (the `executor` fork's command logs), superui run dirs,
+  (the `executor` fork's command logs),
   `.temp/superbiz/<slug>-<YYYY-MM-DD>/` for `idea-validator`'s working files 00-13). A new persisted
   user-facing artifact means a new `docs/<layer>/`; new machine state means `.temp/<plugin>/` - never a
   dot-dir at the host root.
@@ -309,8 +299,8 @@ The invariants below hold across the repo.
   rendering - the manifest is injected as-is, identically for every project. This holds for `superdev` only;
   **`superui`, `supergh`, `superfix`, `superbiz` and `supercc` ship no `hooks/` and no manifest at all**
   (superfix's sole skill is user-only with nothing to auto-route; supergh stays fully model-routable via CSO
-  `description:`; superui routes `pro-designer` the same way while `design-extractor` is a user-only command
-  with an internal fork worker behind it; superbiz's sole skill is a user-only command with nothing to
+  `description:`; superui's sole skill routes the same way and dispatches nothing;
+  superbiz's sole skill is a user-only command with nothing to
   auto-route; supercc's sole skill is model-routable via its own `description:` and dispatches nothing).
   A manifest-less plugin is valid whenever a `SessionStart`-injected dispatcher would add no
   routing value over the skill descriptions.
@@ -361,11 +351,8 @@ The invariants below hold across the repo.
   superfix's for the `code-auditor` skill, superbiz's for the `idea-validator` skill, supercc's for the
   `skill-designer` skill);
   any **agent** add / remove / rename MUST likewise update that plugin's `agents[]`
-  (superfix's `profiler` / `scout` / `edge-scout` / `detective` / `critic` live there, not in `skills[]`; superui's seven
-  agents live there too, split 2+5 across its four pipeline skills - `design-extractor` dispatches
-  `source-scout`; `design-extractor-builder` dispatches `foundation-analyst` and `design-synthesizer`;
-  `component-extractor` dispatches `source-scout` again and `component-scout`; `component-extractor-builder`
-  dispatches `spec-writer`, `component-synthesizer` and `bundle-reviewer`; superdev's two task
+  (superfix's `profiler` / `scout` / `edge-scout` / `detective` / `critic` live there, not in `skills[]`;
+  superui ships no agents at all - its one skill dispatches nothing; superdev's two task
   implementors - `superbuild-task-implementor`, `simplebuild-task-implementor` - live there, dispatched per
   task by `superbuild` / `simplebuild` with the `Agent` tool at the task's `Model:` / `Effort:` markers
   (the `Agent` tool's per-call `model` is honored; `effort` is passed the same way on the assumption
@@ -386,7 +373,7 @@ The invariants below hold across the repo.
   `superdev-memory` / `superdev-rules` each dispatch their matching writer (`memory-writer` /
   `rules-writer`) the same way; superbiz ships no agents at all - its council members are
   `general-purpose` subagents prompted from `references/council/`, not declared agents; supercc ships none
-  either - `skill-designer` dispatches nothing) - and the
+  either - `skill-designer` dispatches nothing; superui ships none either) - and the
   relevant `CLAUDE.md`
   (that plugin's, and this root file when the change is repo-wide) in either case. They must stay in sync, and a
   worker must never appear in both `skills[]` and `agents[]`.
@@ -395,7 +382,8 @@ The invariants below hold across the repo.
   only when a change adds/removes a group, shifts a group's scope, or alters a documented chain or config-gated
   area - not for every per-skill change. `superui` / `supergh` / `superfix` / `superbiz` / `supercc` have no
   manifest, so nothing of the sort to sync.
-  **Exception:** a user-only one-time command (`disable-model-invocation: true`, e.g. `setup`) does not
+  **Exception:** a user-only command (`disable-model-invocation: true`, e.g. superbiz's `idea-validator`)
+  does not
   participate in routing and stays out of the manifest entirely - do not "fix" that gap.
 
 ## Where contracts live

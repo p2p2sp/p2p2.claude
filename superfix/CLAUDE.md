@@ -62,8 +62,7 @@ superfix/
     what makes the cut reproducible, so a run that cannot rank must not pay for the sweep and the scout fan-out
     first (this now covers both tracks' gates, both driven by the same Node runtime). This is
     the one place superfix's env-check differs from superui's `pro-designer` (whose contrast-script fallback
-    degrades with a note pointing at `/superui:setup` rather than hard-stopping) - superui's other
-    script-dependent skill, `design-extractor-builder`, hard-stops on `NODE_MISSING` exactly like superfix; it
+    degrades with a note that Node.js >= 22.6 is required rather than hard-stopping, since it is advisory); it
     is also why the check sits in Phase 0 rather than next to the ranking steps it guards. Phase 0 dispatches
     `profiler` alongside the Phase 1 scripts, so the repo profile is written while the sweep runs; `job.md`
     carries the result under `## Repo profile`, and Phase 2 waits for it - or for the second miss that records

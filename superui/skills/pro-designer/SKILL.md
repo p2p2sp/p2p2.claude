@@ -1,7 +1,7 @@
 ---
 name: pro-designer
-description: Professional UI/UX design standards for web apps, SaaS products and mobile apps - visual hierarchy, color systems, dark mode, type scales, 8pt spacing, accessibility, component states, form validation UX, conversion psychology, anti-dark-pattern rules, motion and micro-interactions, and aesthetic direction that avoids the generic AI look. Use whenever creating, styling or reviewing ANY user interface - a page, screen, dashboard, form, onboarding or pricing flow, landing page, navigation, or a single component - even if the user only says "build/add/fix" and never says "design". Also use when critiquing existing UI, adding animations, making a static page feel alive, choosing colors, fonts, spacing, or layout, or when a UI looks generic, templated, or AI-generated.
-allowed-tools: Bash(sh:*), Bash(node:*)
+description: Professional UI/UX design standards to avoid AI slop. ALWAYS use whenever creating, styling or reviewing ANY user interface - a page, screen, dashboard, form, onboarding or pricing flow, landing page, navigation, or a single component - even if the user only says "build/add/fix" and never says "design". Also use when critiquing existing UI, adding animations, making a static page feel alive, choosing colors, fonts, spacing, or layout, or when a UI looks generic, templated, or AI-generated.
+allowed-tools: Read, Grep, Glob, Bash(sh:*), Bash(node:*)
 ---
 
 # Professional UI Design
@@ -43,7 +43,7 @@ Before any design decision, name what the visitor's success looks like on THIS s
 ## Non-negotiables - every screen
 
 - One primary CTA per screen; the accent color appears **only** where interaction is required - a scarce functional signal, not a surface fill.
-- Text contrast ≥ 4.5:1 (≥ 3:1 for large text and UI components), verified in **every theme the surface ships** - dark mode is a second set of pairs to check, never an inversion that inherits the light-mode result. Run `"${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.ts"` with the command `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_node.sh"` resolves - never eyeball it. `NODE_MISSING` -> skip the check with a clear note and point the user at `/superui:setup`.
+- Text contrast ≥ 4.5:1 (≥ 3:1 for large text and UI components), verified in **every theme the surface ships** - dark mode is a second set of pairs to check, never an inversion that inherits the light-mode result. Run `"${CLAUDE_SKILL_DIR}/scripts/check_contrast.ts"` with the command `sh "${CLAUDE_SKILL_DIR}/scripts/check_node.sh"` resolves - never eyeball it. `NODE_MISSING` -> skip the check with a clear note and tell the user Node.js >= 22.6 is required for it.
 - Every spacing and component size sits on the 4/8px scale. Space between groups > space within groups; padding ≤ surrounding margin.
 - Font sizes only from the type ramp. Body 16px / line-height 1.5, line length ≤ 75ch. Hierarchy via size + weight + color - never by adding typefaces.
 - Red and green are reserved for system error/success states. Never decorative, never red logout.
@@ -90,7 +90,7 @@ A token set binds palette, typography, radii and spacing - it is not a compositi
 ## Final QA
 
 - **Squint test**: blur your eyes - the primary CTA must be the only element that pops.
-- **Contrast**: resolve the `node` command via `sh "${CLAUDE_PLUGIN_ROOT}/scripts/check_node.sh"` first (`NODE_MISSING` -> skip with a note and point at `/superui:setup`), then run `<resolved node cmd> "${CLAUDE_PLUGIN_ROOT}/scripts/check_contrast.ts" FG BG [TYPE] [FG BG [TYPE] ...]` for every text/background and component/background pair. TYPE = `normal` (default, 4.5:1) | `large` (3:1) | `ui` (borders/icons/focus, 3:1) - exit 1 means a pair failed the AA threshold for its own type; exit 2 means bad input or usage (an out-of-range color, a malformed JSON record, or no args).
+- **Contrast**: resolve the `node` command via `sh "${CLAUDE_SKILL_DIR}/scripts/check_node.sh"` first (`NODE_MISSING` -> skip with a note that Node.js >= 22.6 is required), then run `<resolved node cmd> "${CLAUDE_SKILL_DIR}/scripts/check_contrast.ts" FG BG [TYPE] [FG BG [TYPE] ...]` for every text/background and component/background pair. TYPE = `normal` (default, 4.5:1) | `large` (3:1) | `ui` (borders/icons/focus, 3:1) - exit 1 means a pair failed the AA threshold for its own type; exit 2 means bad input or usage (an out-of-range color, a malformed JSON record, or no args).
 - **States inventory**: hover, focus, disabled, loading, empty, error - all present?
 - **Detail rule**: if a detail is too small or too faint to notice, delete it instead of keeping it faint.
 - **Template test** (new surfaces only): would this exact palette + type + hero combination ship for any similar brief? If yes, it is a default, not a decision - revise the generic part (`references/distinctiveness.md`).

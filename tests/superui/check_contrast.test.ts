@@ -15,7 +15,7 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { parseColor, main } from "../../superui/scripts/check_contrast.ts";
+import { parseColor, main } from "../../superui/skills/pro-designer/scripts/check_contrast.ts";
 
 // ---------------------------------------------------------------------------
 // parseColor - out-of-range rgb() components

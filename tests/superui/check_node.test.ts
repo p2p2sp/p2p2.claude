@@ -1,5 +1,5 @@
 /*
- * check_node.test.ts - proves superui/scripts/check_node.sh's single-line
+ * check_node.test.ts - proves superui/skills/pro-designer/scripts/check_node.sh's single-line
  * contract across every documented Node version threshold: `NODE_OK <cmd>`
  * (node, or node --experimental-strip-types) below the type-stripping
  * cutover, or `NODE_MISSING` when node is absent, unparsable, or too old -
@@ -26,7 +26,7 @@ import { runScript, type RunResult } from "../harness/run.ts";
 import { withStub } from "../harness/stub.ts";
 import { forEachShell, type Shell } from "../harness/shells.ts";
 
-const SUT = path.resolve(import.meta.dirname, "../../superui/scripts/check_node.sh");
+const SUT = path.resolve(import.meta.dirname, "../../superui/skills/pro-designer/scripts/check_node.sh");
 const SUPERFIX_SUT = path.resolve(
   import.meta.dirname,
   "../../superfix/skills/code-auditor/scripts/check_node.sh",

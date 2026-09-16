@@ -15,6 +15,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { inflateSync } from "node:zlib";
 
 import { runScript } from "./harness/run.ts";
 import { withTempDir, withGitRepo } from "./harness/tmp.ts";
@@ -22,7 +23,6 @@ import { canDenyRead, denyRead, restoreRead } from "./harness/perms.ts";
 import { withStub } from "./harness/stub.ts";
 import { forEachShell, shellBin } from "./harness/shells.ts";
 import { writePng } from "./harness/png.ts";
-import { decodePng } from "../superui/scripts/vendor/png-decode.ts";
 
 test("runScript round-trips stdout and stderr and reports the real exit status", () => {
   withTempDir("p2p2-harness-run-", (dir) => {
@@ -110,7 +110,7 @@ test('forEachShell("posix", ...) yields at least one shell and never throws when
   }
 });
 
-test("writePng output round-trips through the vendor PNG decoder", () => {
+test("writePng emits a decodable 8-bit RGBA PNG carrying the pixels it was given", () => {
   const width = 3;
   const height = 2;
   const rgba = new Uint8Array(width * height * 4);
@@ -127,15 +127,46 @@ test("writePng output round-trips through the vendor PNG decoder", () => {
   });
 
   const png = writePng(width, height, rgba);
-  const decoded = decodePng(png);
 
-  assert.equal(decoded.width, width);
-  assert.equal(decoded.height, height);
-  pixels.forEach(([r, g, b], i) => {
+  // Decoded here rather than through a plugin's decoder: the harness must not
+  // depend on any one plugin's scripts, and writePng only ever emits the
+  // simplest form - 8-bit depth, color type 6, non-interlaced, filter 0.
+  assert.deepEqual(
+    [...png.subarray(0, 8)],
+    [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+    "the file should open with the PNG signature",
+  );
+  assert.equal(png.subarray(12, 16).toString("ascii"), "IHDR", "IHDR should be the first chunk");
+  assert.equal(png.readUInt32BE(16), width, "IHDR should carry the requested width");
+  assert.equal(png.readUInt32BE(20), height, "IHDR should carry the requested height");
+  assert.equal(png[24], 8, "bit depth should be 8");
+  assert.equal(png[25], 6, "color type should be 6 (RGBA)");
+  assert.equal(png[28], 0, "interlace should be off");
+
+  // Walk the chunks, concatenate every IDAT payload, inflate it, then strip
+  // the leading per-scanline filter byte (always 0 here).
+  const idat: Buffer[] = [];
+  let offset = 8;
+  while (offset < png.length) {
+    const length = png.readUInt32BE(offset);
+    const type = png.subarray(offset + 4, offset + 8).toString("ascii");
+    if (type === "IDAT") idat.push(png.subarray(offset + 8, offset + 8 + length));
+    offset += 12 + length;
+  }
+  assert.ok(idat.length > 0, "the file should carry at least one IDAT chunk");
+
+  const raw = inflateSync(Buffer.concat(idat));
+  const stride = width * 4;
+  assert.equal(raw.length, height * (stride + 1), "each scanline should carry one filter byte");
+
+  pixels.forEach(([r, g, b, a], i) => {
+    const row = Math.floor(i / width);
+    const at = row * (stride + 1) + 1 + (i % width) * 4;
+    assert.equal(raw[row * (stride + 1)], 0, `scanline ${row} should use filter 0 (None)`);
     assert.deepEqual(
-      [decoded.rgb[i * 3], decoded.rgb[i * 3 + 1], decoded.rgb[i * 3 + 2]],
-      [r, g, b],
-      `pixel ${i} should round-trip its RGB channels (alpha dropped)`,
+      [raw[at], raw[at + 1], raw[at + 2], raw[at + 3]],
+      [r, g, b, a],
+      `pixel ${i} should round-trip all four channels`,
     );
   });
 });

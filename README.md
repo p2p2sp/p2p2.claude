@@ -37,7 +37,7 @@ only.
 | Plugin | What it is for | Details |
 | --- | --- | --- |
 | **superdev** | Agentic development end to end: a design interview before any code, project memory (`CLAUDE.md` cascade, `.claude/rules/`, a build changelog), specs and plans that must pass a reviewer, then a task-by-task build with a commit per task. | [superdev/README.md](superdev/README.md) |
-| **superui** | Design and frontend: professional UI/UX standards on every interface you build, plus a screenshots-to-design-system pipeline that Claude Design consumes to build live components. | [superui/README.md](superui/README.md) |
+| **superui** | Design and frontend: professional UI/UX standards on every interface you build - visual hierarchy, color, type, spacing, accessibility, motion, and an aesthetic direction that refuses the generated look. | [superui/README.md](superui/README.md) |
 | **supergh** | GitHub and git: Conventional-Commits commits, template-driven issues and draft PRs, and a `gh` CLI/REST/GraphQL reference so the model stops guessing which API layer to use. | [supergh/README.md](supergh/README.md) |
 | **superfix** | Codebase investigation: sweeps the whole repo with cheap agents, ranks findings by Impact x Opportunity, and sends frontier investigators only into the hotspots. | [superfix/README.md](superfix/README.md) |
 | **superbiz** | Idea validation: web research, a nine-dimension scorecard and a seven-member council debating over two rounds decide whether an idea is worth turning into a side project, ending in one self-contained HTML report. | [superbiz/README.md](superbiz/README.md) |
@@ -47,9 +47,9 @@ Each plugin's README carries its own description, a short usage guide, and the l
 
 ## Requirements
 
-- **superui** and **superfix** need **Node.js >= 22.6** (their scripts are TypeScript run directly by
-  Node's native type stripping - no packages, no build step). Run `/superui:setup` after install to
-  diagnose.
+- **superfix** needs **Node.js >= 22.6** (its scripts are TypeScript run directly by Node's native type
+  stripping - no packages, no build step); **superui** uses the same runtime for its optional contrast
+  check and degrades with a note when it is absent.
 - **supergh** needs the `gh` CLI installed and authenticated.
 - **superbiz** needs web access, plus **Python 3** (any maintained version, standard library only) to render
   `idea-validator`'s report.

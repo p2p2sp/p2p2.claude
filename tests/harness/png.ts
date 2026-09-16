@@ -1,6 +1,5 @@
 /*
- * png.ts - a dependency-free PNG encoder over `node:zlib`, the write-side
- * counterpart to `superui/scripts/vendor/png-decode.ts`. Used to synthesise
+ * png.ts - a dependency-free PNG encoder over `node:zlib`. Used to synthesise
  * real PNG fixtures for scripts that read image files, without pulling in an
  * image library.
  *
