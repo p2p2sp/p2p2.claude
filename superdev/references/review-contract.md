@@ -315,8 +315,13 @@ line there is neither raised as a Critical nor returned as BLOCKED again.
 
 ## Notes line formats
 
-Lines the implementors write into their `*-notes.md` file under `<workdir>/implementation/`:
+Lines and sections the implementors write into their `*-notes.md` file under
+`<workdir>/implementation/`:
 
+- `## Runs` - a section rather than a line, written on every PASS above that round's other lines:
+  one line per command of the last green pass of the implementor's build-and-test step, in run
+  order, each shaped `- <command verbatim> -> <summary line | exit <n>>` - the tool's own summary
+  line, or `exit <n>` when it printed none.
 - `touched: <repo-relative path>` - one per file changed outside the task's `### Files`, and in fix
   mode one per file changed at all. Consumed by `commit-task.sh --notes` as the declared set. The
   line is machine-read and carries the path alone - no backticks, no reason - with the reason on
@@ -341,5 +346,5 @@ In fix mode the `task:` file, and every `more:` file, is a report in the `## Rep
 - Every fixed Critical or Important gets a test that fails before the fix and passes after it -
   written and run before the fix - or, when no test can express it, the status line
   `<ID>: fixed - no test: <reason>`.
-- Every ID from the reports gets exactly one status line, and every file the round changed gets one
-  `touched:` line, both in the shapes from `## Notes line formats`.
+- The round's notes carry a `## Runs` section, exactly one status line per ID from the reports, and
+  one `touched:` line per file the round changed, all in the shapes from `## Notes line formats`.

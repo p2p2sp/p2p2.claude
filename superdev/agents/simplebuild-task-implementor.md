@@ -53,6 +53,7 @@ Prove it green - never report PASS on unproven work:
    - The `#### Tests` block of `### Test Commands` never runs here - it is the build reviewer's gate over the whole plan - and neither does the host's integration or e2e command, which belongs to the final review.
    - Fix mode (`task` is a findings report): run `#### Build` plus the `### Task Tests` lines of every plan task in `## plan` whose `### Files` names a path that prefix-matches a file the fix touched; when no task matches, the build alone.
    - A command that cannot start at all - command not found, a shell error - is not a red to fix: stop there and return `VERDICT: FAIL`, its `REASON:` naming that command and the shell's message, and retry nothing.
+   - Every call carries an explicit timeout, generous enough for the host's slowest documented command - left to the default, a slow suite comes back as a false failure. A run the tool cuts off at its timeout is not a red to fix: re-run that command once with a larger timeout, and if it is cut off again stop there and return `VERDICT: FAIL`, its `REASON:` naming that command and the timeout it was given.
 2. Any red -> fix, then re-run from step 1.
 
 `Bash` runs the build, the task tests, `git` and file inspection; nothing else.
