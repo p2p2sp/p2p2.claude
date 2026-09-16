@@ -103,6 +103,12 @@ block - they ride along as NOTES on a PASS.
   in review).
 - Anything the build/test commands will deterministically catch during implementation (that is the
   build/test step's job, not review's).
+- The `Write ADR` task built from `superdev/references/adr-task.md`, on all three counts: its
+  `### Approach` carrying each ADR's text in full and verbatim (that text is the task's deliverable,
+  not prose a planner failed to compress), its `Covers:` naming the intent's `## ADR` section
+  instead of a numbered acceptance criterion (exempt from B3 and from B15's reference form alike),
+  and its `### Files` declaring `docs/adr/` by directory because the file names are stamped at write
+  time.
 
 ## Author self-check
 
