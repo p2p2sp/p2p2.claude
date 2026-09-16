@@ -17,10 +17,15 @@
 #     stderr, exit 1
 #   - no "- Dir:" line anywhere in the file -> error on stderr, exit 3
 #   - one stdout line per "- Dir:" line, in file order:
-#       "<dir><TAB><status>"
+#       "<dir><TAB><status><TAB><title>"
 #     where <dir> = dirname(phases-file) + "/" + the trimmed Dir: value
 #     (backslashes normalised to "/", a leading "./" stripped, so a phases
 #     file passed as "./docs/..." prints "docs/...")
+#   - <title> of <dir>: the text after the number of the nearest preceding
+#     "### NN. <title>" heading, trailing whitespace trimmed and any inner tab
+#     turned into a space (the columns are tab-separated); "-" when no such
+#     heading precedes that "- Dir:" line - a title-less phases file still
+#     reports, one column wider
 #   - <status> of <dir>:
 #       directory absent                                     -> done
 #         (a cleaned-up phase: cleanup-run.sh removed it)
@@ -30,8 +35,8 @@
 #       no status.md, but spec.md or plan.md present          -> planned
 #       otherwise                                             -> pending
 #     (the done/building rule is exactly cleanup-run.sh's completeness check)
-#   - last stdout line: "next: <dir>" for the first phase whose status is not
-#     done, or "next: none" when every phase is done
+#   - last stdout line: "next: <dir><TAB><title>" for the first phase whose
+#     status is not done, or "next: none" when every phase is done
 #
 # stdout carries the report only; every error goes to stderr.
 #
@@ -110,21 +115,41 @@ phase_status() {
   return 0
 }
 
-# --- phase directories from the phases file --------------------------------
+# --- phase directories and titles from the phases file ---------------------
 
+# One awk pass emits "<dir value><TAB><title>" per "- Dir:" line: a
+# "### NN. <title>" heading arms the title, the next "- Dir:" line spends it
+# and disarms it again - so a phase whose "- Dir:" line has no heading of its
+# own gets "-" rather than the previous phase's title. A tab inside a title is
+# turned into a space here, because the tab is this script's column separator.
 # `count` rather than ${#values[@]}: an empty array under `set -u` is a trap in
 # older bash (3.2 still ships as /bin/bash on macOS), and the counter keeps the
 # empty case away from any array expansion at all.
 values=()
+titles=()
 count=0
-while IFS= read -r raw; do
-  value="$(printf '%s' "$raw" | sed -e 's/[[:space:]]*$//')"
-  if [[ -z "$value" ]]; then
-    continue
-  fi
+while IFS=$'\t' read -r value title; do
   values+=("$value")
+  titles+=("$title")
   count=$((count + 1))
-done < <(sed -n 's/^-[[:space:]]*Dir:[[:space:]]*//p' "$phases_file")
+done < <(awk '
+  /^###[[:space:]]+[0-9]+\./ {
+    heading = $0
+    sub(/^###[[:space:]]+[0-9]+\.[[:space:]]*/, "", heading)
+    sub(/[[:space:]]+$/, "", heading)
+    gsub(/\t/, " ", heading)
+    title = heading
+    next
+  }
+  match($0, /^-[[:space:]]*Dir:[[:space:]]*/) {
+    value = substr($0, RLENGTH + 1)
+    sub(/[[:space:]]+$/, "", value)
+    if (value != "") {
+      printf "%s\t%s\n", value, (title == "" ? "-" : title)
+    }
+    title = ""
+  }
+' "$phases_file")
 
 if (( count == 0 )); then
   echo "error: no '- Dir:' lines found in $phases_file" >&2
@@ -133,16 +158,24 @@ fi
 
 # --- report ----------------------------------------------------------------
 
-next="none"
+next=""
+next_title=""
 next_found=0
-for value in "${values[@]}"; do
+for (( i = 0; i < count; i++ )); do
+  value="${values[$i]}"
+  title="${titles[$i]}"
   dir="${base:+$base/}$value"
   status="$(phase_status "$dir")"
-  printf '%s\t%s\n' "$dir" "$status"
+  printf '%s\t%s\t%s\n' "$dir" "$status" "$title"
   if (( next_found == 0 )) && [[ "$status" != "done" ]]; then
     next="$dir"
+    next_title="$title"
     next_found=1
   fi
 done
 
-printf 'next: %s\n' "$next"
+if (( next_found == 1 )); then
+  printf 'next: %s\t%s\n' "$next" "$next_title"
+else
+  printf 'next: none\n'
+fi

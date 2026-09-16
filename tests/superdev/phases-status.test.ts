@@ -1,13 +1,15 @@
 /*
  * phases-status.test.ts - proves phases-status.sh's contract: given a
- * phases.md it prints one "<dir><TAB><status>" line per "- Dir:" line, in
- * file order, with <dir> resolved against the phases file's OWN directory, and
- * closes with "next: <dir>" for the first phase that is not done (or
- * "next: none"). Statuses: an absent directory is done (cleaned up); a
- * status.md whose "task: NN" matches the highest tasks/task-NN.md is done,
- * any other status.md is building; spec.md or plan.md without status.md is
- * planned; anything else is pending. Exits 1 on a missing argument or a
- * nonexistent file, 3 on a phases file carrying no "- Dir:" line.
+ * phases.md it prints one "<dir><TAB><status><TAB><title>" line per "- Dir:"
+ * line, in file order, with <dir> resolved against the phases file's OWN
+ * directory and <title> taken from the "### NN. <title>" heading above that
+ * line ("-" when there is none), and closes with "next: <dir><TAB><title>" for
+ * the first phase that is not done (or "next: none"). Statuses: an absent
+ * directory is done (cleaned up); a status.md whose "task: NN" matches the
+ * highest tasks/task-NN.md is done, any other status.md is building; spec.md
+ * or plan.md without status.md is planned; anything else is pending. Exits 1
+ * on a missing argument or a nonexistent file, 3 on a phases file carrying no
+ * "- Dir:" line.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -55,14 +57,24 @@ function makePhase(root: string, rel: string, opts: PhaseOpts = {}): void {
   }
 }
 
-/** Writes <root>/run/phases.md with one phase block per entry of `dirs`
- *  (each passed through verbatim, so a caller can exercise odd spacing) and
- *  returns the phases file's path relative to `root`. */
-function writePhases(root: string, dirs: string[]): string {
+/** One phase to list in phases.md: a bare Dir: value (which gets the default
+ *  "### NN. Phase NN" heading), or an entry carrying its own heading title -
+ *  `null` for a phase written with no "###" heading at all. */
+type PhaseRef = string | { dir: string; title: string | null };
+
+/** Writes <root>/run/phases.md with one phase block per entry of `phases`
+ *  (dir value and title each passed through verbatim, so a caller can exercise
+ *  odd spacing) and returns the phases file's path relative to `root`. */
+function writePhases(root: string, phases: PhaseRef[]): string {
   const lines = ["# Phases: demo", "", "## Goal", "Ship it in phases.", "", "## Phases"];
-  dirs.forEach((dir, index) => {
+  phases.forEach((phase, index) => {
     const nn = String(index + 1).padStart(2, "0");
-    lines.push(`### ${nn}. Phase ${nn}`, `- Dir: ${dir}`, `- Goal: deliver ${nn}`, "- Depends on: none", "");
+    const dir = typeof phase === "string" ? phase : phase.dir;
+    const title = typeof phase === "string" ? `Phase ${nn}` : phase.title;
+    if (title !== null) {
+      lines.push(`### ${nn}. ${title}`);
+    }
+    lines.push(`- Dir: ${dir}`, `- Goal: deliver ${nn}`, "- Depends on: none", "");
   });
   lines.push("## Out of scope", "- nothing");
   const file = path.join(root, RUN_DIR, "phases.md");
@@ -87,7 +99,10 @@ test("a phase directory with no working file yet -> pending", () => {
     makePhase(root, "phases/01-a");
     const result = run(root, [writePhases(root, ["phases/01-a"])]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.deepEqual(outLines(result.stdout), ["run/phases/01-a\tpending", "next: run/phases/01-a"]);
+    assert.deepEqual(outLines(result.stdout), [
+      "run/phases/01-a\tpending\tPhase 01",
+      "next: run/phases/01-a\tPhase 01",
+    ]);
   });
 });
 
@@ -98,9 +113,9 @@ test("a phase holding spec.md or plan.md but no status.md -> planned", () => {
     const result = run(root, [writePhases(root, ["phases/01-a", "phases/02-b"])]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(outLines(result.stdout), [
-      "run/phases/01-a\tplanned",
-      "run/phases/02-b\tplanned",
-      "next: run/phases/01-a",
+      "run/phases/01-a\tplanned\tPhase 01",
+      "run/phases/02-b\tplanned\tPhase 02",
+      "next: run/phases/01-a\tPhase 01",
     ]);
   });
 });
@@ -110,7 +125,10 @@ test("a phase whose status.md lags the highest task -> building", () => {
     makePhase(root, "phases/01-a", { lastTask: "01", tasks: ["01", "02", "03"], files: ["plan.md"] });
     const result = run(root, [writePhases(root, ["phases/01-a"])]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.deepEqual(outLines(result.stdout), ["run/phases/01-a\tbuilding", "next: run/phases/01-a"]);
+    assert.deepEqual(outLines(result.stdout), [
+      "run/phases/01-a\tbuilding\tPhase 01",
+      "next: run/phases/01-a\tPhase 01",
+    ]);
   });
 });
 
@@ -121,9 +139,9 @@ test("a status.md with no tasks/ dir at all -> building (highest stays 00)", () 
     const result = run(root, [writePhases(root, ["phases/01-a", "phases/02-b"])]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(outLines(result.stdout), [
-      "run/phases/01-a\tbuilding",
-      "run/phases/02-b\tbuilding",
-      "next: run/phases/01-a",
+      "run/phases/01-a\tbuilding\tPhase 01",
+      "run/phases/02-b\tbuilding\tPhase 02",
+      "next: run/phases/01-a\tPhase 01",
     ]);
   });
 });
@@ -133,7 +151,7 @@ test("a status.md whose task equals the highest tasks/task-NN.md -> done", () =>
     makePhase(root, "phases/01-a", { lastTask: "03", tasks: ["01", "02", "03"] });
     const result = run(root, [writePhases(root, ["phases/01-a"])]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.deepEqual(outLines(result.stdout), ["run/phases/01-a\tdone", "next: none"]);
+    assert.deepEqual(outLines(result.stdout), ["run/phases/01-a\tdone\tPhase 01", "next: none"]);
   });
 });
 
@@ -141,7 +159,40 @@ test("an absent phase directory (cleaned up after its build) -> done", () => {
   withTempDir("p2p2-phases-status-", (root) => {
     const result = run(root, [writePhases(root, ["phases/01-a"])]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.deepEqual(outLines(result.stdout), ["run/phases/01-a\tdone", "next: none"]);
+    assert.deepEqual(outLines(result.stdout), ["run/phases/01-a\tdone\tPhase 01", "next: none"]);
+  });
+});
+
+// --- the title column ------------------------------------------------------
+
+test("a '- Dir:' line with no '### NN.' heading before it -> title '-'", () => {
+  withTempDir("p2p2-phases-status-", (root) => {
+    makePhase(root, "phases/01-a", { files: ["plan.md"] });
+    makePhase(root, "phases/02-b");
+    // 02-b is written with no heading at all: its title falls back to "-"
+    // rather than inheriting 01-a's.
+    const phases = writePhases(root, ["phases/01-a", { dir: "phases/02-b", title: null }]);
+    const result = run(root, [phases]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(outLines(result.stdout), [
+      "run/phases/01-a\tplanned\tPhase 01",
+      "run/phases/02-b\tpending\t-",
+      "next: run/phases/01-a\tPhase 01",
+    ]);
+  });
+});
+
+test("a multi-word heading title padded with trailing spaces is trimmed", () => {
+  withTempDir("p2p2-phases-status-", (root) => {
+    makePhase(root, "phases/01-a");
+    const title = "Groundwork and the naming contract   ";
+    const phases = writePhases(root, [{ dir: "phases/01-a", title }]);
+    const result = run(root, [phases]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(outLines(result.stdout), [
+      "run/phases/01-a\tpending\tGroundwork and the naming contract",
+      "next: run/phases/01-a\tGroundwork and the naming contract",
+    ]);
   });
 });
 
@@ -149,17 +200,18 @@ test("an absent phase directory (cleaned up after its build) -> done", () => {
 
 test("a mixed phases file keeps file order and points next: at the first non-done phase", () => {
   withTempDir("p2p2-phases-status-", (root) => {
-    // Listed 03, 01, 02 on purpose: the report follows the FILE's order.
+    // Listed 03, 01, 02 on purpose: the report follows the FILE's order - and
+    // so do the default headings, so phases/03-c carries the title "Phase 01".
     makePhase(root, "phases/03-c", { lastTask: "02", tasks: ["01", "02"] });
     makePhase(root, "phases/01-a", { lastTask: "01", tasks: ["01", "02"] });
     makePhase(root, "phases/02-b", { files: ["spec.md"] });
     const result = run(root, [writePhases(root, ["phases/03-c", "phases/01-a", "phases/02-b"])]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(outLines(result.stdout), [
-      "run/phases/03-c\tdone",
-      "run/phases/01-a\tbuilding",
-      "run/phases/02-b\tplanned",
-      "next: run/phases/01-a",
+      "run/phases/03-c\tdone\tPhase 01",
+      "run/phases/01-a\tbuilding\tPhase 02",
+      "run/phases/02-b\tplanned\tPhase 03",
+      "next: run/phases/01-a\tPhase 02",
     ]);
     assert.equal(result.stderr, "");
   });
@@ -171,8 +223,8 @@ test("every phase done -> next: none", () => {
     const result = run(root, [writePhases(root, ["phases/01-a", "phases/02-b"])]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(outLines(result.stdout), [
-      "run/phases/01-a\tdone",
-      "run/phases/02-b\tdone",
+      "run/phases/01-a\tdone\tPhase 01",
+      "run/phases/02-b\tdone\tPhase 02",
       "next: none",
     ]);
   });
@@ -186,7 +238,10 @@ test("a phases path with a './' prefix prints its phases without it", () => {
     const phasesFile = writePhases(root, ["phases/01-a"]);
     const result = run(root, [`./${phasesFile}`]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.deepEqual(outLines(result.stdout), ["run/phases/01-a\tpending", "next: run/phases/01-a"]);
+    assert.deepEqual(outLines(result.stdout), [
+      "run/phases/01-a\tpending\tPhase 01",
+      "next: run/phases/01-a\tPhase 01",
+    ]);
   });
 });
 
@@ -198,7 +253,7 @@ test("an absolute phases path prefixes every phase with the phases file's own di
     const result = runScript(SUT, [phasesFile], { shell: "bash" });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const expected = slash(path.join(root, RUN_DIR, "phases", "01-a"));
-    assert.deepEqual(outLines(slash(result.stdout)), [`${expected}\tdone`, "next: none"]);
+    assert.deepEqual(outLines(slash(result.stdout)), [`${expected}\tdone\tPhase 01`, "next: none"]);
   });
 });
 
@@ -207,7 +262,10 @@ test("a Dir: value padded with trailing whitespace is trimmed", () => {
     makePhase(root, "phases/01-a", { files: ["plan.md"] });
     const result = run(root, [writePhases(root, ["phases/01-a   "])]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.deepEqual(outLines(result.stdout), ["run/phases/01-a\tplanned", "next: run/phases/01-a"]);
+    assert.deepEqual(outLines(result.stdout), [
+      "run/phases/01-a\tplanned\tPhase 01",
+      "next: run/phases/01-a\tPhase 01",
+    ]);
   });
 });
 
