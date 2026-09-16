@@ -71,27 +71,6 @@ Then implement it.
 Do not add unnecessary elements.
 Prioritize clarity and consistency.
 
-### Fix
-I have this error:
-[PASTE ERROR]
-
-Context:
-[WHAT I WAS DOING]
-
-Relevant code:
-[PASTE CODE]
-
-Debug this systematically.
-
-1. Identify the root cause.
-2. Explain why it is happening.
-3. Identify the exact file/component responsible.
-4. Propose the smallest correct fix.
-5. Implement the fix.
-6. Verify that the fix doesn't introduce another issue.
-
-Do not rewrite unrelated code.
-
 ### Change UI
 Modify the existing design.
 

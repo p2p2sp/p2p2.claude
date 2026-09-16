@@ -35,6 +35,11 @@
       "name": "supercc",
       "source": "./supercc",
       "description": "Super Claude Code ecosystem - authoring skills and agents."
+    },
+    {
+      "name": "supervibe",
+      "source": "./supervibe",
+      "description": "Super Vibe ecosystem for Claude Code."
     }
   ]
 }
