@@ -1,0 +1,7 @@
+Added `## Naming` to the `## Contract` binding list of superbuild-reviewer-spec/SKILL.md, a section outside the two named in `Files` - without it the reference form the needs-decision bullet and the coverage line now point at does not bind that reviewer at all.
+Added `## Naming` to the `## Contract` binding list of simplebuild-reviewer/SKILL.md, same section and same reason - the needs-decision bullet cites a contract section the skill was not told to read.
+`## Report skeleton`'s `## Debt` bullet now says "with its ID and title", beyond the four sections Approach step 3 names - it states the debt lines are the same lines appended to the debt file, so leaving it title-less contradicted the new `## Debt file` shape.
+Approach step 3's `## Finding IDs` change also carries the failure mode's log requirement ("say so in the report's notes section") for a prior finding with an ID but no title, so the no-title case is handled exactly like the existing no-ID case.
+Lint WARNs left standing on all three linted files (5-to-8-word `description`, `possible italics with *...*`): pre-existing, and both are deliberate repo conventions - a routing guard description, and `**bold**` headings the linter cannot tell from italics. FAIL=0 on every run.
+CARRY: docs/handoff-superdev-review-loop.md - deleted in the working tree before this task started; not mine, left in place and not declared for staging.
+CARRY: docs/notes.md - modified in the working tree before this task started; not mine, left in place and not declared for staging.

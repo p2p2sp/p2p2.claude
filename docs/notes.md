@@ -8,9 +8,9 @@ Intent -> Spec -> [Plan -> Build] -> History
 - Spec - formalny i ustrukturalizowany zapis
 - Plan - Rozpisane zadania dla agenta
 - Build - Proces budowy według planu (+ ewentualnie spec)
-- History - dokumentacja zawierająca opis podsumowujący intent+spec+wnioski z fazy build jeśli powstały odchyłki od planu - jeden dokument
+- Changelog - dokumentacja zawierająca opis podsumowujący intent+spec+wnioski z fazy build jeśli powstały odchyłki od planu - jeden dokument
 
-History buduje żywą dokumentację projektu: co, kiedy i jak zostało zbudowane/dodane/zmienione/naprawione w projekcie.
+Changelog buduje żywą dokumentację projektu: co, kiedy i jak zostało zbudowane/dodane/zmienione/naprawione w projekcie.
 
 ## superui
 Są lepsze skile do ui, więc w ui można by zostawić extractory oraz dodać komendy dla zorganizwoania pracy z innymi skilami.

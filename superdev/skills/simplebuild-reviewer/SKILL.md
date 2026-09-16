@@ -29,7 +29,7 @@ Notes dir: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*note
 When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations and `CARRY:` lines. Claims to verify, not truth.
 
 ## Contract
-Read `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` before any other step. Its `## Labels`, `## Finding IDs`, `## Report skeleton`, `## Gates`, `## Verdict rules`, `## Debt file` and `## Decisions file` sections bind this review; they are not restated below.
+Read `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` before any other step. Its `## Labels`, `## Naming`, `## Finding IDs`, `## Report skeleton`, `## Gates`, `## Verdict rules`, `## Debt file` and `## Decisions file` sections bind this review; they are not restated below.
 
 Input error, checked before any work: `Stage` or `Since` empty, or `Prior report` empty while `Stage` is `re-review` -> return line 1 `VERDICT: FAIL` and line 2 `REASON: missing input <label>`, and write no report.
 
@@ -72,7 +72,7 @@ Minor findings go to the report's `## Debt` section and are appended, with their
 
 A behavior recorded under a task's `### Failure modes` is a decision: judge whether the code matches it. Disagreement with the decision itself is one `NOTE: plan defect - <what>` line, never a Critical and never an Important. The same holds for a line in the decisions file, which is never raised again.
 
-An acceptance criterion of `## plan-header` left unmet by a decision recorded in the plan, in the notes or in the decisions file - not by missing code - is a `### Needs decision` bullet naming its ID and the reason, and the verdict is `VERDICT: BLOCKED` - it outranks FAIL, and the report still lists its Critical and Important findings.
+An acceptance criterion of `## plan-header` left unmet by a decision recorded in the plan, in the notes or in the decisions file - not by missing code - is a `### Needs decision` bullet naming the finding and the criterion in the contract's reference form (`## Naming`) plus the reason, and the verdict is `VERDICT: BLOCKED` - it outranks FAIL, and the report still lists its Critical and Important findings.
 
 Grep the changed files for a repeated pattern accessing the same field (`??`, `||`, a default literal, an error-shape literal) across more than one file; any hit -> read both locations in full before judging whether they agree.
 

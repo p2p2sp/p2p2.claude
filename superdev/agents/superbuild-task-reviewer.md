@@ -59,7 +59,7 @@ A behaviour recorded under the task's `### Failure modes` is a decision, not a c
 
 The report is written to the `report` path and carries these sections, in this order and no others:
 - the title line `# task review - <report basename>`.
-- `## Findings`, holding `### Critical` then `### Important`, one bullet per finding in the shape `- <ID> - file:line - what is wrong - why it matters - how to fix`. An ID is `C<n>` for a Critical and `I<n>` for an Important, numbered per class from 1.
+- `## Findings`, holding `### Critical` then `### Important`, one bullet per finding in the shape `- <ID> - <title> - file:line - what is wrong - why it matters - how to fix`. An ID is `C<n>` for a Critical and `I<n>` for an Important, numbered per class from 1. A title is a few words naming the finding, with no `#` and no backticks inside; it is assigned with the ID and travels with it, so a later round that reopens the finding reuses it.
 - `## Notes` - advisory lines only.
 - `## Assessment` - one or two sentences, ending with the bare line `VERDICT: FAIL`, or `VERDICT: PASS` in a notes-only report.
 

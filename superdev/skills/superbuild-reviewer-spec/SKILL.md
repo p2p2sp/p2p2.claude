@@ -29,7 +29,7 @@ Notes dir: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*note
 When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations. Claims to verify, not truth.
 
 ## Contract
-Read `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` before any other step. Its `## Labels`, `## Finding IDs`, `## Report skeleton`, `## Gates`, `## Verdict rules`, `## Debt file` and `## Decisions file` sections bind this review; they are not restated below.
+Read `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` before any other step. Its `## Labels`, `## Naming`, `## Finding IDs`, `## Report skeleton`, `## Gates`, `## Verdict rules`, `## Debt file` and `## Decisions file` sections bind this review; they are not restated below.
 
 Input error, checked before any work: `Stage` or `Since` empty, or `Prior report` empty while `Stage` is `re-review` -> return line 1 `VERDICT: FAIL` and line 2 `REASON: missing input <label>`, and write no report.
 
@@ -66,7 +66,7 @@ Only flag issues that make the delivery not satisfy the spec or the plan, and gi
 
 A criterion missing or only partial because the code is missing -> Critical.
 
-A criterion unmet because of a decision recorded in the plan, in the notes or in the `Decisions` file - not because code is missing - is a `### Needs decision` bullet naming its ID and the reason, and the verdict is `VERDICT: BLOCKED`. It outranks FAIL, and the report still lists its Critical and Important findings. A plan-sanctioned fallback the delivery took (the plan says "if the measurement does not confirm, revert") is exactly this case: BLOCKED, never Critical. A criterion covered by a line in the decisions file is plan text and is never raised again.
+A criterion unmet because of a decision recorded in the plan, in the notes or in the `Decisions` file - not because code is missing - is a `### Needs decision` bullet naming the finding and the criterion in the contract's reference form (`## Naming`) plus the reason, and the verdict is `VERDICT: BLOCKED`. It outranks FAIL, and the report still lists its Critical and Important findings. A plan-sanctioned fallback the delivery took (the plan says "if the measurement does not confirm, revert") is exactly this case: BLOCKED, never Critical. A criterion covered by a line in the decisions file is plan text and is never raised again.
 
 A behavior recorded under a task's `### Failure modes` is a decision too: judge the code against it, and put disagreement with the decision itself in one `NOTE: plan defect - <what>` line, never a Critical and never an Important.
 
@@ -75,7 +75,7 @@ Minor findings go to the report's `## Debt` section and are appended, with their
 A criterion that cannot be verified by reading code and running the gates: say so explicitly in its coverage line instead of guessing.
 
 ## Report
-Write the review to the Report path in exactly the shape the contract's `## Report skeleton` gives, section for section, plus the one section this review owns: `## Coverage`, placed between `## Gates` and `## Prior findings`, one line per acceptance criterion in the shape `#N - met | not met | partial | blocked - evidence (file, test, gate run)`. Always write it - on PASS, on FAIL and on BLOCKED alike.
+Write the review to the Report path in exactly the shape the contract's `## Report skeleton` gives, section for section, plus the one section this review owns: `## Coverage`, placed between `## Gates` and `## Prior findings`, one line per acceptance criterion in the shape `` `<title>` (#N) - met | not met | partial | blocked - evidence (file, test, gate run) ``, the title being the criterion's short name per the contract's `## Naming`. Always write it - on PASS, on FAIL and on BLOCKED alike.
 
 ## Output format
 Return to the parent exactly (the only channel - the report itself stays on disk):

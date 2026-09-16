@@ -49,6 +49,38 @@ Input errors, checked before any work: a build reviewer call with no `stage` or 
 
 The old `base:` label is retired; `since` replaces it everywhere.
 
+## Naming
+
+Every item a human is pointed at carries a title next to its number. The number stays the pointer
+agents and scripts key on; the title is what a human reads. Where each kind takes its title from:
+
+- decision - the question of its `### <n>. <question>` heading.
+- phase - the title of its `### NN. <title>` heading.
+- plan task - the title of its `## Task <N> - <title>` heading.
+- acceptance criterion - the `<short name>` of `<n>. <short name> - <condition>`.
+- finding - the `<title>` of its report bullet (see `## Report skeleton`).
+- checklist class or rule - the name that follows its `B<n> -` or `R<n> -` prefix.
+
+The reference form is identical in chat and in files: `` `<title>` (<pointer>) ``, the pointer being
+`decision 3`, `phase 01`, `Task 3`, `criterion 3`, `C2`, `B3`, or - inside a `Covers:` line - `#3`.
+
+- A bare pointer never appears in anything a human reads: not in narration, not in an
+  `AskUserQuestion` label, not in an escalation, not in a report, not in a `Covers:`,
+  `Depends on:`, `consumed by` or `## Impact on decisions` line.
+- A heading keeps its own form and is never rewritten into the reference form - the heading is
+  where the title comes from.
+
+Title rules: a few words, no `#`, no backticks inside, and unchanged for the item's life. A title is
+assigned once, with the number, and travels with it.
+
+Legacy fallback: an item written before this contract carries no title. Cite it by the first clause
+of its own text, verbatim - for a finding bullet that is its "what is wrong" clause, never its
+`file:line`. Never invent a title the item does not have.
+
+Machine contracts are untouched by this section: a `Covers:` line is still parsed for its `#<n>`
+tokens, and `task: NN`, `tasks/task-NN.md`, `phases/NN-<slug>` and finding-ID stability stay exactly
+as they are.
+
 ## Finding IDs
 
 Every finding carries an ID: `C<n>` for Critical, `I<n>` for Important, `M<n>` for Minor, numbered
@@ -56,9 +88,15 @@ per class from 1. An ID is assigned in the round that raises the finding and is 
 later round continues numbering from the highest `<n>` per class found in `prior`. An ID keeps its
 class for the life of the build - a finding raised as `M<n>` never comes back as `I<n>` or `C<n>`.
 
+A title is assigned with the ID, per `## Naming`, and is kept across rounds unchanged: every later
+mention of that finding - a prior findings row, a `### Needs decision` bullet, a debt line, an
+orchestrator's question to the user - reuses the same title.
+
 A `prior` report written before this contract (bullets with no IDs): treat every bullet under its
 Critical and Important sections as one unnumbered prior finding, assign fresh IDs in the verdict
-table in order of appearance, and say so in the report's notes section.
+table in order of appearance, and say so in the report's notes section. A prior finding that has an
+ID but no title is handled the same way: title it by the legacy fallback of `## Naming` - its
+"what is wrong" clause - keep that title like any other, and say so in the report's notes section.
 
 ## Report skeleton
 
@@ -70,15 +108,17 @@ BLOCKED alike. That path is the reviewer's only output file; any scratch file it
 - `## Gates` - one line per command run, with its result (see `## Gates`); the single sentence
   `no e2e or integration suite in this host` when the host documents none; one line saying the
   review is unbounded over the working tree when `since` is `none`.
-- `## Prior findings` - only when `prior` was given: a table `| ID | Verdict | Evidence |` with one
-  row per ID in `prior`, the verdict `ADDRESSED`, `NOT ADDRESSED` or `ACCEPTED`, and a `file:line`
-  as evidence - for `ACCEPTED`, the decisions-file line that closed it instead.
+- `## Prior findings` - only when `prior` was given: a table `| ID | Title | Verdict | Evidence |`
+  with one row per ID in `prior`, its title carried over from `prior`, the verdict `ADDRESSED`,
+  `NOT ADDRESSED` or `ACCEPTED`, and a `file:line` as evidence - for `ACCEPTED`, the decisions-file
+  line that closed it instead.
 - `## Findings` - holding `### Critical` and `### Important`, one bullet per finding in the shape
-  `- <ID> - file:line - what is wrong - why it matters - how to fix`; then `### Needs decision`,
-  one bullet per BLOCKED item naming its ID, the criterion or plan task it belongs to, and why no
-  code change can clear it.
-- `## Debt` - this round's Minor, one bullet per finding with its ID; the same lines are appended to
-  the debt file (see `## Debt file`).
+  `- <ID> - <title> - file:line - what is wrong - why it matters - how to fix`, the title a few
+  words per `## Naming`; then `### Needs decision`, one bullet per BLOCKED item, naming the finding
+  as `` `<title>` (<ID>) ``, the criterion or plan task it belongs to in the same reference form,
+  and why no code change can clear it.
+- `## Debt` - this round's Minor, one bullet per finding with its ID and title; the same lines are
+  appended to the debt file (see `## Debt file`).
 - `## Notes` - advisory lines only, including `NOTE: plan defect - <what>`.
 - `## Assessment` - one or two sentences, ending with the bare line `VERDICT: PASS`,
   `VERDICT: FAIL` or `VERDICT: BLOCKED`.
@@ -156,7 +196,10 @@ Return channel to the orchestrator - the only channel, the report itself stays o
 `<workdir>/implementation/debt.md`. The reviewer appends to it, never overwrites and never prunes
 it, one line per Minor raised in the round:
 
-`- <ID> - <round report basename> - file:line - <what>`
+`- <ID> - <title> - <round report basename> - file:line - <what>`
+
+The title is the one the finding was given when it was raised, per `## Naming`, so the same Minor
+reads the same way in the report and in this file.
 
 The writing tool truncates, so the append is done in two steps: Read the file when it exists, then
 write back its existing lines followed by this round's, in one write. A round that writes only its
@@ -172,6 +215,10 @@ directory and disappears with it, so it needs no separate cleanup.
 whether at a BLOCKED verdict or when closing a review round with findings still open:
 
 `- <ID> - <criterion or task> - accepted: <what the user accepted> - <date>`
+
+The line shape is unchanged. `<criterion or task>` is written in the reference form of `## Naming`,
+`` `<title>` (criterion 3) `` or `` `<title>` (Task 3) ``, so the line names what was accepted
+without the reader opening the plan.
 
 Written only through `scripts/record-decision.sh` - no orchestrator, fork or agent writes it by
 hand. A reviewer handed `decisions:` treats every line in it as plan text: a criterion covered by a
