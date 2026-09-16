@@ -30,13 +30,14 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 <!-- TASK -->
 
 ## Task <N> - <title which become a commit message>
-- Covers: criteria #<n>[, #<m>]
+- Covers: `<criterion short name>` (#<n>)[, `<criterion short name>` (#<m>)]
 - TDD: <marker>
 - Model: <sonnet | opus>
 - Effort: <low | medium | high | xhigh>
 
 ### Dependencies
-- <task N> - blocks: <…>
+- `<task title>` (Task <N>) - blocks: <…>
+<every reference to a criterion or a task is written `<title>` (<pointer>): the criterion's short name from `## Acceptance criteria` with (#<n>), the task's heading title with (Task <N>) - never a bare number. Only the #<n> tokens of `Covers:` are parsed, so no title contains `#`>
 
 ### Files
 - <add | modify | delete> - <path> (<symbol>)
@@ -57,7 +58,7 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 <one bullet per failure branch, fixed shape: when <X fails | input is invalid | two <X> run concurrently> -> response <Y>, log <Z>, test <T>. Nothing to handle -> the single bullet "none - <one-word reason>", never a bare "none">
 
 ### Contracts
-<data shapes / signatures this task introduces or consumes, one bullet each. A contract another task consumes ends with "consumed by Task <N>". A closed set this task extends (enum member, variant, status, kind) adds the list of that set's consumers, found by Grep. A change of the response mechanism (redirect vs rewrite, proxy vs direct, status code family) adds a method-and-status matrix, one line per method with the status codes before and after. An external value (header, path segment, query, form field, environment) entering a path, query, command or routing decision adds its validation rule. (or "none")>
+<data shapes / signatures this task introduces or consumes, one bullet each. A contract another task consumes ends with "consumed by `<task title>` (Task <N>)". A closed set this task extends (enum member, variant, status, kind) adds the list of that set's consumers, found by Grep. A change of the response mechanism (redirect vs rewrite, proxy vs direct, status code family) adds a method-and-status matrix, one line per method with the status codes before and after. An external value (header, path segment, query, form field, environment) entering a path, query, command or routing decision adds its validation rule. (or "none")>
 
 ### DoD
 <observable done condition; impl = code + related tests green>.

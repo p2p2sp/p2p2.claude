@@ -15,7 +15,7 @@ A reviewer verifies with Read/Grep/Glob ONLY and never executes a command - no b
 `git`, no shell of any kind. Path existence -> Glob; a symbol's or a command's presence in a file ->
 Grep; content -> Read.
 
-A Blocking finding must cite its class ID (B1-B14) plus concrete evidence gathered that way - quote
+A Blocking finding must cite its class ID (B1-B15) plus concrete evidence gathered that way - quote
 the file, path, or command checked. A suspicion that cannot be verified with Read/Grep/Glob is not
 Blocking: demote it to NOTES, phrased as a question.
 
@@ -76,12 +76,18 @@ evidence (see Evidence rule).
   assertion on a constant, a throttle test with no throttled call. Read the planned test against the
   behaviour it is meant to prove.
 - B14 - Contract or shared value with no consuming task: a `### Contracts` entry that another task's
-  `### Approach` references while naming no `consumed by Task <N>`, or a value the plan describes as
-  produced and no task consumes. Grep the plan for the contract's name across all tasks.
+  `### Approach` references while naming no consuming task
+  (`` consumed by `<task title>` (Task <N>) ``), or a value the plan describes as produced and no
+  task consumes. Grep the plan for the contract's name across all tasks.
+- B15 - Reference with a bare number: a `Covers:`, `### Dependencies` or `consumed by` entry that
+  names a criterion or task by number alone, or whose title differs from the heading or criterion
+  line it points at; settled by reading the entry against the plan's task headings and the criteria
+  source (the spec, or the plan's own `## Acceptance criteria`). A legacy criteria source with no
+  short names is cited by the first clause of the criterion, per `review-contract.md`'s `## Naming`.
 
 ## Advisory (NOTES)
 
-Everything real but not in B1-B14: wording, phrasing, style preferences, task-split preference
+Everything real but not in B1-B15: wording, phrasing, style preferences, task-split preference
 (one task vs. two), optional hardening not required by any acceptance criterion, "nice to have"
 suggestions, and a `Model:` / `Effort:` that reads too low for what the task's `### Approach`
 has to reason about (an algorithm, a state machine, a contract other tasks consume, a hard-to-undo
@@ -118,7 +124,10 @@ Before submitting a plan for review, verify in the repo:
 - Every external value entering a path, query, command or routing decision carries its validation
   rule under `### Contracts` or `### Failure modes`.
 - Every planned test can fail before the change it proves.
-- Every contract another task consumes names that task (`consumed by Task <N>`), and no value the
-  plan produces is left unconsumed.
+- Every contract another task consumes names that task (`` consumed by `<task title>` (Task <N>) ``),
+  and no value the plan produces is left unconsumed.
+- Every `Covers:`, `### Dependencies` and `consumed by` entry names its criterion or task in the
+  reference form `` `<title>` (<pointer>) `` - the criterion's short name with `(#<n>)`, the task's
+  heading title with `(Task <N>)` - never a bare number, and the title matches the line it points at.
 
 Fix any violation inline before submitting - do not rely on the reviewer to catch it.

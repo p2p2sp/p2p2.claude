@@ -36,7 +36,7 @@ Read the plan and the checklist (via Read) before checking anything.
 
 Put every finding in exactly one of three buckets:
 
-- FINDINGS - Blocking only: a finding that violates one of the checklist's Blocking classes (B1-B14; B7 goes to BLOCKED, never here). Each entry names the violated class ID, cites repo evidence verified with Read/Grep/Glob, and says how to fix it.
+- FINDINGS - Blocking only: a finding that violates one of the checklist's Blocking classes (B1-B15; B7 goes to BLOCKED, never here). Each entry names the violated class as `` `<class name>` (<ID>) `` - the name the checklist writes after that ID - cites repo evidence verified with Read/Grep/Glob, and says how to fix it.
 - BLOCKED - needs knowledge not in the inputs: an unresolved design decision, an ambiguous requirement, a missing acceptance criterion whose intent is not derivable from the plan itself; includes the checklist's B7 (undecidable step).
 - NOTES - Advisory: everything real but not Blocking per the checklist (wording, style, task-split preference, optional hardening, "nice to have"). Never affects the verdict.
 
@@ -62,6 +62,6 @@ RETURN exactly these sections (your only channel to the parent). The verdict MUS
 VERDICT: PASS
 
 - Use `FAIL` in place of `PASS` when FINDINGS or BLOCKED has an entry. Value bare on its own line - no bold, no back-ticks, no list marker, no text before it.
-- FINDINGS: one line each - checklist class ID, where it is, what's wrong, how to fix - or "none".
+- FINDINGS: one line each - checklist class name and ID, e.g. `` `Leftover placeholder` (B5) ``, where it is, what's wrong, how to fix - or "none".
 - BLOCKED: findings needing a decision or context not in the inputs (includes B7) - or "none".
 - NOTES: Advisory observations, one line each - or "none".

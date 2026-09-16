@@ -32,6 +32,7 @@ Comprehensive understanding of the user's request is in your context. Missing kn
 - Read review checklist from `${CLAUDE_PLUGIN_ROOT}/references/plan-review-checklist.md`.
 - Save the plan to the file path given in the plan mode tool's own message - never a hardcoded or assumed directory - and pass that same path to the reviewer as `plan:`. Write that same path into the plan's `Plan:` preamble line while drafting, before the reviewer is invoked - never after a `VERDICT: PASS`, because a post-verdict write re-arms the approval gate.
 - Write the handoff's `intent:` path (when given) into the plan's `Intent:` preamble line while drafting, same timing as `Plan:` above - before the reviewer is invoked, never after a `VERDICT: PASS`. When the handoff carries no `intent:`, omit the line.
+- Write every reference to a criterion or a task in the reference form `` `<title>` (<pointer>) `` that `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` (`## Naming`) owns: a `Covers:` entry as `` `<criterion short name>` (#<n>) ``, a `### Dependencies` bullet and a `consumed by` clause as `` `<task title>` (Task <N>) ``. A bare number is Blocking class B15. Take the title verbatim from the criterion's short name in `## Acceptance criteria` or the task's heading, and never put `#` in a title, because `Covers:` is parsed for every `#<n>` token on the line.
 
 Stick to the template structure. Don't invent or add your own points. Adapt all content to the template structure and stick to it.
 
@@ -49,7 +50,7 @@ Then write each task's sections so the checklist's Blocking classes B9-B14 have 
 - A task that extends a closed set (an enum member, a variant, a status, a kind) lists that set's consumers under `### Contracts`; Grep the type name to find them.
 - A task that changes how a response is produced (redirect vs rewrite, proxy vs direct, a status code family) carries a method-and-status matrix under `### Contracts`, one line per method with the status codes before and after.
 - A value from outside the process (a header, a path segment, a query parameter, a form field, an environment variable) that enters a path, query, command or routing decision carries its validation rule under `### Contracts` or `### Failure modes`.
-- Every contract another task consumes names that task as `consumed by Task <N>`; a value produced and consumed by nobody does not belong in the plan.
+- Every contract another task consumes names that task as `` consumed by `<task title>` (Task <N>) ``; a value produced and consumed by nobody does not belong in the plan.
 - Every planned test must be able to fail before the change it proves - no fixture already equal to the expected value, no assertion on a constant.
 
 This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
@@ -79,7 +80,7 @@ Every task carries `Model:` (`sonnet` | `opus`) and `Effort:` (`low` | `medium` 
 - Undecided between two levels -> the higher one, for both markers; lost quality costs more than tokens.
 
 ### Self-Review
-Once you have written a complete plan and before final review, MUST fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B14 plus `## Author self-check`) - the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:
+Once you have written a complete plan and before final review, MUST fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B15 plus `## Author self-check`) - the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:
 - Verify in the repo (Read/Grep/Glob) every `### Files` path and symbol, and every `### Test Commands` command against the repo's real build/test tooling.
 - Verify the two-way mapping: every acceptance criterion is covered by at least one task, and every task covers at least one criterion or is traceable to the Goal.
 - Verify every task carries a `TDD:` marker, that each `required` one meets the criteria above, and that every task carries `Model:` and `Effort:` with values from the allowed sets - a `TDD: required` task on `Model: sonnet` is a violation.
