@@ -59,6 +59,8 @@ This structure informs the task decomposition. Each task should produce self-con
 **Task Sizing**
 A task is the smallest unit that carries its own test cycle and is worth a fresh reviewer's gate. When drawing task boundaries: fold setup, configuration, scaffolding, and documentation steps into the task whose deliverable needs them; split only where a reviewer could meaningfully reject one task while approving its neighbor. Each task ends with an independently testable deliverable.
 
+Size each task against that bound: a `TDD: required` task writes exactly one test file and only the production code that file drives, so a second `### Task Tests` line on such a task is the signal to split it; a `TDD: none` task aims at one behaviour and a few files.
+
 **Remember**
 - Small, independently testable tasks.
 - Exact file paths always.
@@ -74,6 +76,8 @@ Every task gets `TDD: none` by default. Mark `TDD: required` ONLY when the task'
 
 Never `TDD: required` when the task's code touches the outside world directly (I/O, network, DB, filesystem, UI, framework wiring) - that yields integration tests, not a TDD cycle.
 
+`### Task Tests` and the TDD cycle hold only tests that run fast in memory. A test in which a process or service the application connects to takes part - a database, the network, a browser, to name three - is an integration or e2e test: it goes in neither `### Task Tests` nor the `#### Tests` block of `### Test Commands`, and runs only through the host's integration or e2e command at the final review. Which suite of a host is its fast in-memory suite is settled by that host's own memory files (`CLAUDE.md`, `.claude/rules/`), never by the examples here.
+
 **Build strength**
 Every task carries `Model:` (`sonnet` | `opus`) and `Effort:` (`low` | `medium` | `high` | `xhigh`) - the model and effort the task's implementor runs at. The implementor is a weaker model than you, so judge each task on what it has to reason about, not on its line count:
 - `Model: sonnet` only when the task follows an existing pattern step by step - wiring, configuration, a mirror of a named symbol, tests for behaviour already specified - and its `Approach` leaves nothing to design. Anything else, and every `TDD: required` task, is `Model: opus`.
@@ -82,9 +86,9 @@ Every task carries `Model:` (`sonnet` | `opus`) and `Effort:` (`low` | `medium` 
 
 ### Self-Review
 Once you have written a complete plan and before final review, MUST fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B15 plus `## Author self-check`) - the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:
-- Verify in the repo (Read/Grep/Glob) every `### Files` path and symbol, and every `### Test Commands` and `### TDD Commands` command against the repo's real build/test tooling.
+- Verify in the repo (Read/Grep/Glob) every `### Files` path and symbol, and every `### Test Commands` and `### Task Tests` command against the repo's real build/test tooling.
 - Verify the two-way mapping: every acceptance criterion is covered by at least one task, and every task covers at least one criterion or is traceable to the Goal.
-- Verify every task carries a `TDD:` marker, that each `required` one meets the criteria above, and that every task carries `Model:` and `Effort:` with values from the allowed sets - a `TDD: required` task on `Model: sonnet` is a violation.
+- Verify every task carries a `TDD:` marker, that every task carries `### Task Tests`, that a `TDD: required` task's section carries exactly one file line, that every line names a test file declared under that task's `### Files` or reads `none - <reason>`, and that every task carries `Model:` and `Effort:` with values from the allowed sets - a `TDD: required` task on `Model: sonnet` is a violation.
 - Fix any violation inline. No need to re-review - just fix and move on. If you find a requirement with no task, add the task.
 
 ### Final Review
