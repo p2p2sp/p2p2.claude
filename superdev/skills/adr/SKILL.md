@@ -29,7 +29,7 @@ All three criteria hold, or there is no offer. One of them missing -> drop the d
 
 Calibration: most runs end with zero ADRs, and one is already a lot. Several offers in a single run means the bar slipped - judge again and keep only what a reader would still ask about a year from now. Feature behaviour, naming, validation rules, wiring and anything re-derivable from the code never qualify, whatever the effort behind them.
 
-# Offer
+# Offer ADRs sparingly
 
 One decision at a time, one plain-prose message each - `AskUserQuestion` turns a judgement call into a form and is never used here. Wait for the answer before judging the next decision.
 

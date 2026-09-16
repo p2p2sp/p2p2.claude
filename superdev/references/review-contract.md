@@ -13,9 +13,9 @@ it carries its own reduced copy of the report skeleton and the ID scheme inline,
 shape its gate writes, and any change to those two sections here is mirrored there by hand.
 
 Stack-agnostic: every rule below refers only to the plan template's own sections (`### Files`,
-`### Test Commands`, `### Contracts`, `### Failure modes`, `### DoD`), to the run's working
-directory, and to `git` - never to a specific ecosystem's tools and never to a heuristic for
-recognising a test file.
+`### Test Commands`, `### TDD Commands`, `### Contracts`, `### Failure modes`, `### DoD`), to the
+run's working directory, and to `git` - never to a specific ecosystem's tools and never to a
+heuristic for recognising a test file.
 
 `<workdir>` throughout is the run's working directory (`docs/.workflows/<run>/`), the directory the
 plan, the tasks and the `implementation/` reports live in.
@@ -139,6 +139,10 @@ each in the report's gates section. The commands:
   `### Test Commands`, and the plan's own build block when it has one);
 - every `Test Commands` block of the plan;
 - the host's integration or e2e command, when the plan or the host's memory files document one.
+
+A task's `### TDD Commands` section is never a gate: it belongs to the TDD cycle of the implementor
+writing that task, no stage collects it, and a command appearing there and nowhere else runs at no
+stage of a review.
 
 Two of them are the same command only when their strings match exactly, and each distinct string
 runs once per stage however many tasks declared it - a second run of the same string proves nothing
