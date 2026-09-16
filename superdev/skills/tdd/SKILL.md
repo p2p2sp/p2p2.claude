@@ -9,7 +9,7 @@ user-invocable: false
 
 ## Overview
 
-Write the test first. Watch it fail. Write the minimal code that passes.
+Write the test first. Watch it fail. Write the minimal code that passes. Refactor.
 
 **Core principle:** if you didn't watch the test fail, you don't know whether it tests the right thing.
 

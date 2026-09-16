@@ -39,6 +39,10 @@
 #
 set -euo pipefail
 
+# Label parser: the one library, shared with label.sh (the reviewers' preload),
+# so the two paths over the same $ARGUMENTS block can never drift apart.
+source "$(dirname "${BASH_SOURCE[0]}")/lib_label.sh"
+
 block="${1:-}"
 shift || true
 
@@ -52,11 +56,7 @@ fi
 
 # wartość etykiety: pierwsza linia "label: value" z bloku, bez CR i skrajnych spacji.
 value_of() {
-  printf '%s\n' "$block" \
-    | tr -d '\r' \
-    | sed -n "s/^[[:space:]]*$1:[[:space:]]*//p" \
-    | sed -e 's/[[:space:]]*$//' \
-    | head -n1
+  label_value "$1" "$block"
 }
 
 # Repository root, resolved once: the fallback base for a relative label value

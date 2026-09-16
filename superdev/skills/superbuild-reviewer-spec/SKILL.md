@@ -5,7 +5,7 @@ context: fork
 background: false
 model: sonnet
 effort: high
-allowed-tools: Read, Write, Grep, Glob, Skill, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
+allowed-tools: Read, Write, Grep, Glob, Skill, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/label.sh:*)
 user-invocable: false
 ---
 
@@ -14,18 +14,17 @@ user-invocable: false
 
 The block above is the full plan (`## plan`) and the human-approved spec (`## spec`).
 
-<!-- no Bash pattern for the preloads below: each is a pipeline (printf | tr | sed | head); a pattern entry matches one command, not a pipe -->
-Report path: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*report:[[:space:]]*//p' | head -n1`
+Report path: !`"${CLAUDE_PLUGIN_ROOT}/scripts/label.sh" "$ARGUMENTS" report`
 The review goes to that path and to no other: you write nothing else into the repo tree, and every probe, log or throwaway test goes under `.temp/`.
 
-Stage: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*stage:[[:space:]]*//p' | head -n1`
-Since: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*since:[[:space:]]*//p' | head -n1`
-Prior report: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*prior:[[:space:]]*//p' | head -n1`
-Decisions: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*decisions:[[:space:]]*//p' | head -n1`
+Stage: !`"${CLAUDE_PLUGIN_ROOT}/scripts/label.sh" "$ARGUMENTS" stage`
+Since: !`"${CLAUDE_PLUGIN_ROOT}/scripts/label.sh" "$ARGUMENTS" since`
+Prior report: !`"${CLAUDE_PLUGIN_ROOT}/scripts/label.sh" "$ARGUMENTS" prior`
+Decisions: !`"${CLAUDE_PLUGIN_ROOT}/scripts/label.sh" "$ARGUMENTS" decisions`
 
 `Prior report` and `Decisions` are file paths: Read each one that is not empty. Prior findings keep the IDs they were given; every line of the decisions file is a change the user accepted and carries the force of the plan.
 
-Notes dir: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*notes:[[:space:]]*//p' | head -n1`
+Notes dir: !`"${CLAUDE_PLUGIN_ROOT}/scripts/label.sh" "$ARGUMENTS" notes`
 When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations. Claims to verify, not truth.
 
 ## Contract
