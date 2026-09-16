@@ -45,10 +45,10 @@ When `Notes dir:` is set, Read its `*-notes.md` files - the recorded plan->code 
 
 Format exactly per `<refs>/changelog-entry-format.md`.
 
-- ADR: one header bullet `- ADR: <path>` per `adr:` value, in the order given, between the `Commits:` and `Areas:` lines; no `adr:` value -> no such bullet at all.
+- ADR: one header bullet `- ADR: <path>` per `adr:` value, in the order given, between the `Commits:` and `Areas:` lines; no `adr:` value -> no such bullet at all. The `adr:` value is absolute so you can Read the file, but the bullet carries the path repository-relative - the value from its `docs/adr/` segment onward, i.e. `- ADR: docs/adr/<filename>` - never the absolute value: the entry is committed and read from other clones and other machines.
 - What changed: from `## capture`, confirmed against the actual code - Read/Grep the files it names; a described change the code does not show is not recorded.
 - Why: from `## intent` when present - its Request and the confirmed answers; falls back to `## spec`'s Why, then the plan's Goal/Context. No `## intent` -> add a bullet `Intent: not recorded`.
-- Decisions: the load-bearing choices only (new contracts, module boundaries, technology/pattern choices) - never task-by-task narration. One line each. A decision one of the ADRs records may cite it as `(ADR: <path>)`.
+- Decisions: the load-bearing choices only (new contracts, module boundaries, technology/pattern choices) - never task-by-task narration. One line each. A decision one of the ADRs records may cite it as `(ADR: <path>)`, carrying the same repository-relative path as the header bullet.
 - Deviations from plan: from `<Notes dir>/*-notes.md`. Every note says "no deviations" (or the dir is empty/absent) -> write `no deviations`. Otherwise one line per recorded deviation with its why.
 - Index (`docs/changelog/README.md`): absent -> create it with `# Changelog` heading followed by a blank line. Insert the new index line directly after that heading block, above every existing line - newest entries stay first. Never touch other entries.
 
@@ -57,6 +57,7 @@ Format exactly per `<refs>/changelog-entry-format.md`.
 - Entry is under 2k tokens (`wc -c` bytes / 4).
 - Every section (`## What changed`, `## Why`, `## Decisions`, `## Deviations from plan`) is present and non-empty.
 - No raw plan copy - the entry is written prose, not the task list re-pasted.
+- Every ADR path in the entry - each header bullet and each `(ADR: ...)` citation - starts with `docs/adr/`, never with the absolute prefix of an `adr:` value.
 
 ## Output format
 
