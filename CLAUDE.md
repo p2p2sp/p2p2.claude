@@ -1,31 +1,14 @@
 # P2P2 Claude Code plugins (one per subdir) + marketplace catalog
 
-> Always in English: all CLAUDE.MD files, scripts
+> Always in English: all CLAUDE.MD files, scripts, etc.
 
-> **These are the plugins' SOURCE files, not the live plugins.** This repo is the source
-> of the `superdev`, `superui`, `supergh`, `superfix`, `superbiz`, and `supercc` plugins (the first three are *also installed* in this session). Editing files here (skills,
-> manifests, hooks, the `plugin.json` of any plugin) does **NOT** change the behavior of the currently loaded
-> plugins - the routing manifests and skill instructions active in this session were loaded at install/session
-> start and stay frozen regardless of edits. Your changes take effect only after the **user publishes** them
-> (commit + push to the marketplace source, then `/plugin update`). So: do not expect an edit to alter how skills
-> route or behave in the current session, and do not "test" a change by trying to trigger the edited skill
-> here - it will run the old, installed version.
->
-> **Likewise, this repo's own `CLAUDE.md` files and `.claude/rules/` are NOT plugin inputs.** They are dev-time
-> orientation for editing the source (and conventions for working *in this repo*) - they never reach the
-> skills, manifests, or hooks as runtime data. All six plugins are stack-agnostic and read host-project memory
-> from the **consuming** repo's `CLAUDE.md` + `.claude/rules/` only when they run there, and every host has
-> different ones. So when reasoning about how any skill / manifest / hook behaves, do NOT factor in this
-> repo's `CLAUDE.md` files or rules as though they shaped that behavior - they don't ship, they don't travel, and
-> the plugins will execute against entirely different memory files elsewhere. Treat them strictly as guidance
-> for working on the source, never as a runtime signal the plugins consume.
->
-> **Per-plugin detail lives in `<plugin>/CLAUDE.md`.** `superui`, `supergh`, `superfix`, `superbiz`,
-> and `supercc` each keep their own dev-time orientation file - `superui/CLAUDE.md`, `supergh/CLAUDE.md`,
-> `superfix/CLAUDE.md`, `superbiz/CLAUDE.md`, `supercc/CLAUDE.md` - with that plugin's skill taxonomy, internal
-> layout, and plugin-specific architecture invariants; `superdev` currently has none.
-> Claude Code auto-loads the one for whichever plugin dir you're editing under. **This root file holds only the repo-wide facts** (the catalog,
-> versioning, and the cross-plugin invariants); go to the plugin's own file for anything specific to it.
+> Keep in mind that these plugins are generic and universal. They will be used across various types of projects and technology stacks—with or without custom code or compilation, and so on. Always bear this in mind when designing new skills or modifying existing ones.
+
+> **These are the plugins' SOURCE files, not the live plugins.** This repo is the source. Editing files here does **NOT** change the behavior of the currently loaded plugins - the routing manifests and skill instructions active in this session were loaded at install/session start and stay frozen regardless of edits. Your changes take effect only after the **user publishes** them.
+
+> **Likewise, this repo's own `CLAUDE.md` files and `.claude/rules/` are NOT plugin inputs.** They are dev-time orientation for editing the source.
+
+> **Per-plugin detail lives in `<plugin>/CLAUDE.md`.**
 
 ## Environment
 - The dev shell varies per machine - bash / Git-Bash on Windows, **zsh on macOS**, bash on Linux - so do NOT
