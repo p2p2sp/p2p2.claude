@@ -1,0 +1,2 @@
+- M1 - Re-review title breaks the stage lookup - checkpoint-01.md - superdev/references/review-contract.md:113 - the skeleton title `# <stage> review` spells a re-review report `# re-review review`, which the re-review stage-set lookup on `prior` has no branch for.
+- M2 - No blocking class for a missing gate block - checkpoint-01.md - superdev/references/plan-review-checklist.md:84 - neither B6 nor B17 covers a plan whose header carries no `## Gate commands` block or is missing one of its three subsections.

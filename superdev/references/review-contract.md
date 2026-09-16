@@ -146,10 +146,11 @@ the prior findings section; no consumer adds any other section.
 
 ## Gates
 
-The gate commands come from the plan's `## Gate commands` block - the one in the plan header, above
-the first task block, copied into `plan-header.md` - and from nowhere else. That block holds three
-subsections, `#### Build`, `#### Tests` and `#### Integration`, each carrying its commands one per
-line or the single line `none - <reason>`. Which subsections this stage runs:
+The gate commands come from the plan's `## Gate commands` block - the one above the first task
+block in the run's plan copy, `<workdir>/plan.md`, the file every reviewer is handed on its
+`plan:` input line - and from nowhere else; `plan-header.md` does not carry that block. It holds
+three subsections, `#### Build`, `#### Tests` and `#### Integration`, each carrying its commands
+one per line or the single line `none - <reason>`. Which subsections this stage runs:
 
 - `stage: checkpoint` - `#### Build` and `#### Tests`. `#### Integration` is not run and has no line
   in the report.
