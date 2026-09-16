@@ -45,7 +45,7 @@ test("seed-when-absent: a fresh project root seeds every item and prints one lin
       [
         ".temp: created",
         ".gitignore: created from template",
-        "superdev.yml: seeded from template - defaults: adr=false, rules=false, memory=false, changelog=false, cleanup=false",
+        "superdev.yml: seeded from template - defaults: adr=false, rules=false, memory=false, changelog=false, cleanup=false, stats=false",
         ".gitattributes: created with linguist-generated rule",
         "",
       ].join("\n"),
@@ -100,6 +100,7 @@ test("idempotence: running twice reports 'already present' for every item on the
         "memory:    false   # Memory system -> CLAUDE.md cascade",
         "changelog: false   # Changelog -> docs/changelog/",
         "cleanup:   false   # Remove the run's (or phase's) working dir after a completed build",
+        "stats:     false   # Workflow execution stats -> .temp/superdev/stats/",
         ".gitattributes: linguist-generated rule already present",
         "",
       ].join("\n"),

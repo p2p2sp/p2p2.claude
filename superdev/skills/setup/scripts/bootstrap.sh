@@ -25,10 +25,11 @@
 #   stdout: one human-readable line per result; the SKILL.md "Output" step and
 #           the config-switch step read these lines verbatim. The config line is
 #           either "superdev.yml: seeded from template - defaults: adr=false,
-#           rules=false, memory=false, changelog=false, cleanup=false" (fresh seed) or
+#           rules=false, memory=false, changelog=false, cleanup=false, stats=false"
+#           (fresh seed) or
 #           "superdev.yml: already present (left untouched) - current switches:"
 #           followed by the grep'd switch lines (limited to the documented keys:
-#           adr, rules, memory, changelog, cleanup).
+#           adr, rules, memory, changelog, cleanup, stats).
 #           The .gitattributes line is one of ".gitattributes: created with
 #           linguist-generated rule", ".gitattributes: linguist-generated rule
 #           appended", or ".gitattributes: linguist-generated rule already
@@ -57,10 +58,10 @@ fi
 
 if [ -f ".claude/superdev.yml" ]; then
   echo "superdev.yml: already present (left untouched) - current switches:"
-  grep -E '^[[:space:]]*(adr|rules|memory|changelog|cleanup)[[:space:]]*:' .claude/superdev.yml
+  grep -E '^[[:space:]]*(adr|rules|memory|changelog|cleanup|stats)[[:space:]]*:' .claude/superdev.yml
 elif [ -f "$src_config" ]; then
   mkdir -p .claude && cp "$src_config" .claude/superdev.yml \
-    && echo "superdev.yml: seeded from template - defaults: adr=false, rules=false, memory=false, changelog=false, cleanup=false"
+    && echo "superdev.yml: seeded from template - defaults: adr=false, rules=false, memory=false, changelog=false, cleanup=false, stats=false"
 else
   echo "superdev.yml: template missing at $src_config - skipped"
 fi

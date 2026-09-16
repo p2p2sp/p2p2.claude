@@ -4,3 +4,4 @@ rules:     false   # Rules system -> .claude/rules/
 memory:    false   # Memory system -> CLAUDE.md cascade
 changelog: false   # Changelog -> docs/changelog/
 cleanup:   false   # Remove the run's (or phase's) working dir after a completed build
+stats:     false   # Workflow execution stats -> .temp/superdev/stats/
