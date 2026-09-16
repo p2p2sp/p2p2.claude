@@ -13,7 +13,7 @@ Loaded by the `intent` skill only at write time - right before the `Write` (or o
   - `## Delivered state` - what the repo actually shows for the claims the intent rests on: every earlier phase's `Delivers:` named in its `## Constraints`, and every other `## Constraints` bullet, each either confirmed or reported in the shape it really has.
   - `## Other movement` - topics from the commits since `Baseline:` that no changelog entry records.
   - `## Impact on decisions` - one line per decision of the intent the delta touches.
-- `## Impact on decisions` names the intent's own decision numbers (`decision #3`) and nothing else - each line says what about that decision is now worth re-reading. A decision the delta leaves alone is not listed; no decision touched -> the single bullet `none`.
+- `## Impact on decisions` names each touched decision of the intent as `` `<question>` (decision <n>) `` - the question copied from its `### <n>.` heading, never a bare number - and nothing else; each line says what about that decision is now worth re-reading. A decision the delta leaves alone is not listed; no decision touched -> the single bullet `none`.
 - This file is a delta report, never a requirement list: it records what moved since `Baseline:`, never what the change should now do, and nothing in it overrides a confirmed decision of the intent.
 - Two fixed fillings, both written in this same shape:
   - Nothing to compare -> every section is the single bullet `none`, and `## Impact on decisions` reads `none - no change since <Baseline>`.
@@ -37,5 +37,5 @@ Baseline: <the Date: value of that intent file, or `unknown`>
 - <a topic from the commits since the baseline that no changelog entry records> (or `none`)
 
 ## Impact on decisions
-- <decision #<n> - what about it the delta makes worth re-reading> (or `none`)
+- `<question>` (decision <n>) - <what about it the delta makes worth re-reading> (or `none`)
 ```
