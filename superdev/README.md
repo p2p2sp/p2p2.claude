@@ -109,7 +109,7 @@ never called by hand.
 | `setup` | `/superdev:setup` - one-time, user-only repository bootstrap and config-switch picker. Idempotent. |
 | `simpledebug` | Fires on any bug, crash, regression or "it behaves wrong". Traces the whole flow instead of guessing, proves the diagnosis with a failing (RED) test, then hands the fix plan to `simpleplan`. Fixes nothing itself. |
 | `tdd` | Red-Green-Refactor discipline for a task marked `TDD: required` (or when you ask for test-first work). No production code without a failing test first. |
-| `executor` | Fork - runs one build, test, lint or any other command on haiku and returns a short result (`VERDICT:`, `EXPECT:`, the tool's summary line, the failures, a `LOG:` path under `.temp/superdev/logs/`) instead of the full output; both task implementors route every build and test run through it, and you can call it yourself with a `command:` line. |
+| `executor` | Fork - runs one build, test, lint or any other command on haiku and returns a short result (`VERDICT:`, `EXPECT:`, the tool's summary line, the failures, a `LOG:` path under `.temp/superdev/logs/`) instead of the full output; the two task implementors and the three build reviewers route every gate command through it, and you can call it yourself with a `command:` line. |
 
 ### Simple track
 

@@ -85,9 +85,10 @@ skill/agent list. This file is orientation for the assistant.
   criterion and finding is named in; both orchestrators carry
   `Edit`/`Write`/`NotebookEdit` in `disallowed-tools`, write no file themselves and escalate every
   interruption (a spend or session limit, a reviewer that returned no report, an undeclared change in the
-  working tree) to the user. Both task implementors run build, test, lint and type-check commands only
-  through the `executor` fork skill (haiku), which keeps full tool logs out of the implementor's context
-  and returns a short verdict instead; `executor` is itself model-invocable via its own `description:`.
+  working tree) to the user. Both task implementors and the three build reviewers run build, test, lint and
+  type-check commands only through the `executor` fork skill (haiku), which keeps full tool logs out of the
+  caller's context and returns a short verdict instead; `executor` is itself model-invocable via its own
+  `description:`.
 - **superui** - the design / frontend ecosystem, pairing Claude Code CLI (measurement, agentic fan-out) and
   Claude Design (live, inline-styled Design Components), via a **two-stage** screenshots-to-handoff-bundle
   pipeline: `/superui:design-extractor <screenshots-dir> [<target>]` turns a folder of UI screenshots into the
