@@ -30,10 +30,13 @@ function acceptanceCriteria(items: string[]): string {
   return items.map((text, i) => `${i + 1}. ${text}`).join("\n");
 }
 
-function taskBlock(heading: string, covers: number[], body = "Do the work."): string {
-  return ["<!-- TASK -->", "", `## ${heading}`, `- Covers: #${covers.join(", #")}`, body, "<!-- /TASK -->", ""].join(
-    "\n",
-  );
+function taskBlock(heading: string, covers: number[] | string, body = "Do the work."): string {
+  // a plain number[] renders the bare-number grammar most fixtures use;
+  // a string is the already-titled `Covers:` content, e.g. "`First criterion` (#1)",
+  // verbatim after "- Covers: " - decompose.sh parses either the same way,
+  // it only ever greps out the #<n> tokens.
+  const coversLine = typeof covers === "string" ? `- Covers: ${covers}` : `- Covers: #${covers.join(", #")}`;
+  return ["<!-- TASK -->", "", `## ${heading}`, coversLine, body, "<!-- /TASK -->", ""].join("\n");
 }
 
 function simplePlan(opts: { title: string; criteria: string[]; tasks: string[]; intentPath?: string }): string {
@@ -771,6 +774,30 @@ test("a task's 'Covers:' criterion absent from the source -> exit 5", () => {
       const result = run(repo, [plan]);
       assert.equal(result.status, 5);
       assert.match(result.stderr, /covers criterion #99, absent from source/);
+      // the error names the task by its heading title, not just the file name
+      assert.match(result.stderr, /`Task 1 - do it`/);
+    });
+  });
+});
+
+test("guard: a task's 'Covers:' line in the titled grammar still decomposes and the criterion lands verbatim", () => {
+  withGitRepo((repo) => {
+    withTempDir("p2p2-decompose-plan-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Titled Covers Plan",
+          criteria: ["First criterion text."],
+          tasks: [taskBlock("Task 1 - do it", "`First criterion` (#1)")],
+        }),
+      );
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const dir = `docs/.workflows/${todayISO()}-titled-covers-plan`;
+      const task1Text = fs.readFileSync(path.join(repo.dir, dir, "tasks", "task-01.md"), "utf-8");
+      assert.match(task1Text, /- Covers: `First criterion` \(#1\)/);
+      assert.match(task1Text, /### Covered criteria\n1\. First criterion text\.\n$/);
     });
   });
 });

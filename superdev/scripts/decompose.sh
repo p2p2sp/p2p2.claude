@@ -48,7 +48,9 @@
 #   - do każdego taska dopisywana jest sekcja "### Covered criteria" z verbatim
 #     treścią kryteriów wskazanych w jego linii "Covers:"; źródło to spec
 #     (tor superbuild) albo sekcja "## Acceptance criteria" z nagłówka planu
-#     (tor simplebuild); kryterium nieobecne w źródle -> exit 5
+#     (tor simplebuild); kryterium nieobecne w źródle -> exit 5, a komunikat
+#     (jak i ostrzeżenie o braku "Covers:") nazywa task tytułem z jego
+#     nagłówka "## " w formie `<tytuł>` (<nazwa-pliku>)
 #   - tor superbuild (plan z linią "Spec:"): dodatkowo waliduje istnienie pliku
 #     speca (brak -> exit 4) i dopisuje do plan-header.md sekcje "## Out of scope"
 #     i "## Constraints / assumptions" ze speca
@@ -355,17 +357,18 @@ awk -v dir="$dir" -v hdr="$header" '
 # per-taskowe forki nie muszą wtedy skanować całości. Kryterium wskazane
 # w "Covers:", a nieobecne w źródle, to rozjazd -> twardy błąd.
 for task_file in "$dir"/tasks/task-*.md; do
+  task_title="$(sed -n 's/^##[[:space:]]*//p' "$task_file" | head -n 1)"
   covers="$(grep -m1 '^-[[:space:]]*Covers:' "$task_file" || true)"
   nums="$(printf '%s\n' "$covers" | grep -o '#[0-9][0-9]*' | tr -d '#' || true)"
   if [[ -z "$nums" ]]; then
-    echo "warning: $(basename "$task_file") has no 'Covers:' criteria - none appended" >&2
+    printf 'warning: `%s` (%s) has no '"'"'Covers:'"'"' criteria - none appended\n' "$task_title" "$(basename "$task_file")" >&2
     continue
   fi
   crit_block=""
   for n in $nums; do
     text="$(criterion_of "$n")"
     if [[ -z "${text//[[:space:]]/}" ]]; then
-      echo "error: $(basename "$task_file") covers criterion #$n, absent from source: $crit_source" >&2
+      printf 'error: `%s` (%s) covers criterion #%s, absent from source: %s\n' "$task_title" "$(basename "$task_file")" "$n" "$crit_source" >&2
       exit 5
     fi
     crit_block+="$text"$'\n'
