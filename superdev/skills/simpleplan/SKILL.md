@@ -106,7 +106,7 @@ Every task carries `Model:` (`sonnet` | `opus`) and `Effort:` (`low` | `medium` 
 - A `TDD: required` task never sits on `Model: sonnet`: judging its own red and green is reasoning the task owns.
 
 ### Self-Review
-Once you have written a complete plan and before final review, MUST fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B16 plus `## Author self-check`) - the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:
+Once you have written a complete plan and before final review, MUST fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B17 plus `## Author self-check`) - the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:
 - Verify in the repo (Read/Grep/Glob) every `### Files` path and symbol, and every command of the header's `## Gate commands` block and of each task's `### Task Checks` against the repo's real build/test tooling; each of the three gate subsections holds a runnable command or `none - <reason>`.
 - Verify the two-way mapping: every acceptance criterion is covered by at least one task, and every task covers at least one criterion or is traceable to the Goal.
 - Verify every task carries a `TDD:` marker, that every task carries `### Task Checks`, that a `TDD: required` task's section carries exactly one test-file line, that every test-file line names a file declared under that task's `### Files`, that a section with nothing to run reads `none - <reason>`, and that every task carries `Model:` and `Effort:` with values from the allowed sets - a `TDD: required` task on `Model: sonnet` is a violation.
