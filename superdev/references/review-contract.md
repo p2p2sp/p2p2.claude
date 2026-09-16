@@ -105,8 +105,10 @@ BLOCKED alike. That path is the reviewer's only output file; any scratch file it
 `.temp/` and never in the repo tree. The report carries exactly these sections, in this order:
 
 - title line `# <stage> review - <report basename>`, e.g. `# checkpoint review - checkpoint-01.md`.
-- `## Gates` - one line per distinct gate command (see `## Gates`), carrying that command's
-  `VERDICT:` and `SUMMARY:` verbatim and the plan tasks that declared it; the single sentence
+- `## Gates` - one line per distinct gate command (see `## Gates`), carrying its result verbatim and
+  the plan tasks that declared it: on a command that never reached the fork, `run.sh`'s own
+  `RESULT:`, `EXIT:` and `TAIL:` lines - there is no executor reply to quote on that path - and on a
+  command that was dispatched, the fork's `VERDICT:` and `SUMMARY:`; the single sentence
   `no e2e or integration suite in this host` when the host documents none; one line saying the
   review is unbounded over the working tree when `since` is `none`.
 - `## Prior findings` - only when `prior` was given: a table `| ID | Title | Verdict | Evidence |`
@@ -143,37 +145,81 @@ runs once per stage however many tasks declared it - a second run of the same st
 the first did not. A filtered or narrowed variant of a suite is a distinct string: it runs on its
 own and never stands in for the full suite.
 
-Transport - every gate command goes through the `superdev:executor` skill with the `Skill` tool:
+Transport - every gate command goes out as a direct `Bash` call to `run.sh`, the executor skill's
+own runner at `skills/executor/scripts/run.sh` under the plugin root (a fork spells that path with
+`${CLAUDE_PLUGIN_ROOT}`; an agent uses the absolute path its dispatch handed it). A gate that passes
+costs that one call and no fork at all. One command per call, its labels fed in on stdin through a
+single-quoted heredoc so the command line travels byte for byte, with no expansion and no quoting
+fix-up on the way:
 
-- one `command:` per invocation, the string verbatim, with `expect:` naming the outcome that run
-  must show and an explicit `timeout:` generous enough for the host's slowest documented suite -
-  left to a default, a slow suite comes back as a false TIMEOUT.
+```bash
+"<run.sh>" <<'EOF'
+command: <the gate command, verbatim>
+expect-exit: 0
+timeout: <seconds>
+EOF
+```
+
+- The `EOF` terminator sits at column 0, unindented, or `bash` never closes the heredoc.
+- `command:` is the plan's string verbatim - never rewritten, never narrowed. `expect-exit:` is `0`
+  on a gate command: a gate is a run that must pass. `timeout:` is always explicit and generous
+  enough for the host's slowest documented suite - left to the default, a slow suite comes back as a
+  false timeout.
+- `expect:` is not a `run.sh` label. It is the sentence naming the outcome a run must show, and it
+  travels only on the `superdev:executor` dispatch below, which is what judges it.
 - raw `Bash` stays for `git` reads and for the reviewer's own probes under `.temp/`, never for a
-  build, test, lint or type-check run: the whole point of the fork is that such a run's full output
-  stays out of the review's context.
+  build, test, lint or type-check run outside `run.sh`: the point of the script is that such a run's
+  full output goes to a log file instead of into the review's context.
 
-The executor's reply is the gate's result, mapped:
+The block `run.sh` prints is the gate's result. Read it in this order - the first case that matches
+settles the command, and nothing below it is consulted:
 
-- `VERDICT: PASS` - the gate is green.
-- `VERDICT: FAIL` - the gate is red; its `FAILURES:` bullets are evidence for findings exactly as a
-  failing run's output is, and the `LOG:` path carries what they leave out.
-- `VERDICT: ERROR` or `VERDICT: TIMEOUT`, on any gate command whatever its kind - `VERDICT: BLOCKED`
-  with a `### Needs decision` bullet naming that command and the executor's own reason. Never PASS,
-  and never a finding against the code: a command that produced no result says nothing about the
-  tree.
+1. `STATUS: error` or `STATUS: timeout`, on any gate command whatever its kind -> `VERDICT: BLOCKED`
+   with a `### Needs decision` bullet naming that command and `run.sh`'s own `REASON:` line, or the
+   timeout and the seconds it was given. Settled here, before any dispatch: nothing is forked and no
+   log is read. Never PASS, and never a finding against the code - a command that produced no result
+   says nothing about the tree. A documented integration or e2e command that cannot run in this
+   environment at all - its runner is not installed, the service it needs is absent - is BLOCKED on
+   these same terms: `run.sh` usually reports it as `STATUS: error` and settles it here, and where
+   it comes back as a deviation instead, a case-3 `VERDICT: FAIL` whose failures say only that is
+   recorded as BLOCKED too, never as a finding against the code.
+2. `RESULT: SUCCESS` - the gate is green and that command is done. No fork, no log read: the command
+   ran to completion and its exit code satisfied `expect-exit:`, which is the whole question a
+   passing gate asks.
+3. `RESULT: DEVIATION` - the command ran and came back with an exit code that is not the expected
+   one. Dispatch `superdev:executor` in analysis mode over the log that run already wrote - `log:`
+   from the `LOG:` line, `exit:` from `EXIT:`, `duration:` from `DURATION:`, plus the `expect:`
+   sentence - and take its reply as the gate's result: `VERDICT: PASS`, the gate is green;
+   `VERDICT: FAIL`, the gate is red and its `FAILURES:` bullets are evidence for findings exactly as
+   a failing run's output is. The command is never run a second time to produce a log that already
+   exists, and a `VERDICT: ERROR` there is a malformed dispatch rather than a result about the tree:
+   correct the labels and dispatch again.
 
 Evidence:
 
-- the executor's `SUMMARY:` line is the tool's own aggregate line; it is carried into the report
-  verbatim, never paraphrased and never recomputed.
-- a non-zero skip count on that line, on a run some criterion's proof depends on, sends the reviewer
-  to the `LOG:` path before that criterion may be marked met - the skipped case may be the one that
-  would have proved it.
-- the rule reads only the figure that aggregate line carries. A line reporting no skips at all
-  leaves nothing to infer, and the rules below stand unchanged there.
+- on `RESULT: SUCCESS` the evidence is the printed block itself - its `RESULT:`, `EXIT:` and `TAIL:`
+  lines, carried into the report verbatim. There is no executor reply on that path, and none is
+  manufactured.
+- `TAIL:` is the log's last non-empty line, usually the tool's own closing word, and is never
+  relabelled `SUMMARY:`: `SUMMARY:` names the aggregate line the fork found by reading the log, and
+  the last line of a file is not that. A `TAIL:` carrying no recognisable aggregate line, or absent
+  because the log held none, leaves the gate passing on its exit code all the same - the report then
+  quotes `RESULT:` and `EXIT:` instead, and the `LOG:` path is recorded unread.
+- on a dispatched command the evidence is the fork's reply: its `SUMMARY:` line is the tool's own
+  aggregate line, carried into the report verbatim, never paraphrased and never recomputed.
+- reaching the log always goes through the fork. It is dispatched on `RESULT: DEVIATION` and on a
+  `SUCCESS` whose `TAIL:` carries a non-zero skip count on a run some criterion's proof depends on -
+  the skipped case may be the one that would have proved it, so that criterion stays unmet until
+  `superdev:executor` has read the log in analysis mode. No consumer of this contract opens a `LOG:`
+  path with `Read` itself.
+- that rule reads only the figure `TAIL:` carries. A `TAIL:` reporting no skips at all, or carrying
+  no skip figure, leaves nothing to infer, and the rules below stand unchanged there.
 
 Rules:
 
+- This section is the sole owner of the gate-command BLOCKED conditions: the mapping above is the
+  whole list, and `## Verdict rules` and every consumer's own gates paragraph point here instead of
+  carrying a summary of their own.
 - On `stage: re-review` the integration or e2e command is run again whatever the fix round changed:
   a result carried over from the prior round proves nothing about the fixed tree.
 - A host with no integration or e2e command documented gets the single sentence
@@ -207,10 +253,10 @@ commit, so a criterion left to the delta would go unchecked for the rest of the 
 At every stage:
 
 - `VERDICT: BLOCKED` is returned when a criterion or requirement is unmet because of a decision
-  recorded in the plan, in the notes or in the decisions file (not because code is missing), or when
-  a documented integration or e2e command exists but cannot run in this environment. BLOCKED
-  outranks FAIL: with both conditions present the return line is `VERDICT: BLOCKED` and the report
-  still lists its Critical and Important findings.
+  recorded in the plan, in the notes or in the decisions file - not because code is missing. Every
+  other BLOCKED condition comes from a gate command, and `## Gates` owns that list in full; this
+  section states none of its own. BLOCKED outranks FAIL: with both conditions present the return
+  line is `VERDICT: BLOCKED` and the report still lists its Critical and Important findings.
 - A behaviour recorded under a task's `### Failure modes` is a decision. Disagreement with it is a
   `NOTE: plan defect - <what>` line in the notes section, never a Critical and never an Important.
 - A prior ID covered by a line in the decisions file is verdicted `ACCEPTED` in the prior findings
