@@ -1,5 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "disableWorkflows": true,
-  "disableRemoteControl": true
+  "disableRemoteControl": true,
+  "modelOverrides": {
+    "opus": "claude-opus-4-8"
+  }
 }

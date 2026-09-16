@@ -269,8 +269,6 @@ No `runner` token remains in either orchestrator, every implementor dispatch sti
 - modify - superdev/agents/superbuild-task-reviewer.md (`## Input`, `## Check`)
 
 ### Test Commands
-#### Build
-- node --test "tests/**/*.test.ts"
 
 #### Tests
 - grep -c 'Runs recorded' superdev/agents/superbuild-task-reviewer.md - prints `1`
@@ -312,8 +310,6 @@ The reviewer's `## Check` carries the runs bullet with its Important severity an
 - modify - CLAUDE.md (superdev bullet, the "Both task implementors and the three build reviewers" sentence)
 
 ### Test Commands
-#### Build
-- node --test "tests/**/*.test.ts"
 
 #### Tests
 - grep -rl 'superdev:executor' superdev/ | sort - prints exactly `superdev/references/review-contract.md`, `superdev/skills/executor/scripts/run.sh`, `superdev/skills/simplebuild-reviewer/SKILL.md`, `superdev/skills/superbuild-reviewer-change/SKILL.md`, `superdev/skills/superbuild-reviewer-spec/SKILL.md`

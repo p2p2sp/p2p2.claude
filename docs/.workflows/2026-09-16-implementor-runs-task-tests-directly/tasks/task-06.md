@@ -12,9 +12,6 @@
 - modify - superdev/agents/superbuild-task-reviewer.md (`## Input`, `## Check`)
 
 ### Test Commands
-#### Build
-- node --test "tests/**/*.test.ts"
-
 #### Tests
 - grep -c 'Runs recorded' superdev/agents/superbuild-task-reviewer.md - prints `1`
 - ! grep -Eq 'run\.sh|superdev:executor' superdev/agents/superbuild-task-reviewer.md - exits 0

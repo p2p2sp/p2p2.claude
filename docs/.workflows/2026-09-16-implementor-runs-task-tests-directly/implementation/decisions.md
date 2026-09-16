@@ -1,0 +1,1 @@
+- C1 - `Check the implementor's recorded runs in the per-task reviewer` (Task 6) - accepted: User approved keeping the .claude/settings.json modelOverrides (opus -> claude-opus-4-8) block and including it in Task 6's commit, rather than reverting it. - 2026-09-16

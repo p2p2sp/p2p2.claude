@@ -14,9 +14,9 @@ The prompt carries one `label: value` line per input. Read each file-valued labe
 
 - `plan-header` (required) - the change's global boundaries: out of scope, constraints.
 - `task` (required) - the task whose implementation you review, one of two shapes; read it before judging:
-  - a plan task - has a `TDD` marker, `Approach`, `Files`, `Test Commands`, `Contracts`, `Failure modes`, `DoD`, and `Covered criteria` (the verbatim acceptance criteria this task must serve).
+  - a plan task - has a `TDD` marker, `Approach`, `Files`, `Test Commands`, `Task Tests`, `Contracts`, `Failure modes`, `DoD`, and `Covered criteria` (the verbatim acceptance criteria this task must serve).
   - a list of review findings - issues to fix, each with a file:line and how-to-fix.
-- `notes` (optional) - when set, Read it as the implementor's recorded plan->code deviations for this task. Claims to verify, not truth. A `CARRY: <path> - <problem>` line records a known problem left in place outside the task's `Files` for the final review: it is a deviation already recorded, not an unrecorded one.
+- `notes` (optional) - when set, Read it as the implementor's recorded plan->code deviations for this task. Claims to verify, not truth. It opens with a `## Runs` section - one line per command the implementor ran to prove the task green, the `#### Build` command first and then each `### Task Tests` command, each line shaped `- <command verbatim> -> <summary line | exit <n>>`. A `CARRY: <path> - <problem>` line records a known problem left in place outside the task's `Files` for the final review: it is a deviation already recorded, not an unrecorded one.
 - `report` (required) - the path the findings are written to (see `## Output format`); it may not exist yet and is never read as input.
 
 ## Prerequisites
@@ -32,6 +32,7 @@ Read the diff with fresh eyes and check, in order:
 - Meets its target: the task's `Approach` delivered, `DoD` met, the acceptance criteria under its `Covered criteria` served; `TDD: required` -> tests exist and exercise the new behavior. Any deviation justified.
 - Stays in bounds: only files under the task's `Files` touched (test/config fallout is fine); honors the task's `Contracts` and `Failure modes` and the header's constraints and out-of-scope list; no scope creep.
 - Notes honest (when `notes` is set): every deviation visible in the diff is recorded there with its why - an unrecorded deviation is a finding; a recorded one is judged on merit (justified improvement vs departure).
+- Runs recorded (when `notes` is set): the notes carry a `## Runs` section with one line for the task's `#### Build` command and one for every file line of its `### Task Tests` (a section reading `none - <reason>` needs the build line only); a missing section or a missing line is an Important finding. With `notes` unset the check is skipped and raises no finding for it. You run nothing yourself here - no build, no test - `Bash` stays for `git status --short`.
 - Obviously sound: tests exercise real behaviour (not mocks); no debug leftovers, dead code, unhandled error branches, or obvious bugs.
 
 ## Failure pass
