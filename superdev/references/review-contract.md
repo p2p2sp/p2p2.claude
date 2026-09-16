@@ -1,8 +1,9 @@
 # Review Contract
 
 Shared vocabulary for the build review loop: the input labels, the finding IDs, the report shape,
-the gate procedure, the verdict rules, the two run bookkeeping files and the note lines. It has one
-owner - this file - so every consumer applies the same rules instead of restating them.
+the gate procedure, the verdict rules, the run's decisions file, the note lines and the strength
+every dispatch runs at. It has one owner - this file - so every consumer applies the same rules
+instead of restating them.
 
 Consumed by the three build reviewers (`skills/superbuild-reviewer-spec`,
 `skills/superbuild-reviewer-change`, `skills/simplebuild-reviewer`), the two task implementors
@@ -12,10 +13,10 @@ reviewer (`agents/superbuild-task-reviewer.md`) is never handed a `refs:` label 
 it carries its own reduced copy of the report skeleton and the ID scheme inline, for the one report
 shape its gate writes, and any change to those two sections here is mirrored there by hand.
 
-Stack-agnostic: every rule below refers only to the plan template's own sections (`### Files`,
-`### Test Commands`, `### Task Tests`, `### Contracts`, `### Failure modes`, `### DoD`), to the
-run's working directory, and to `git` - never to a specific ecosystem's tools and never to a
-heuristic for recognising a test file.
+Stack-agnostic: every rule below refers only to the plan template's own sections (the header's
+`## Gate commands` block, `### Files`, `### Task Checks`, `### Contracts`, `### Failure modes`,
+`### DoD`), to the run's working directory, and to `git` - never to a specific ecosystem's tools and
+never to a heuristic for recognising a test file.
 
 `<workdir>` throughout is the run's working directory (`docs/.workflows/<run>/`), the directory the
 plan, the tasks and the `implementation/` reports live in.
@@ -40,8 +41,8 @@ or a short token (a SHA, a stage name, an ID list), never a body of text - text 
   agent reads `<refs>/review-contract.md` before acting.
 - `more: <path>` - implementor fix mode only; optional and repeatable. One additional findings
   report handled in the same dispatch.
-- `minor: <ID>[, <ID>]` - implementor fix mode only; optional. The only Minor IDs that dispatch may
-  touch (see `## Implementor fix-mode input`).
+- `minor: <ID>[, <ID>]` - implementor fix mode only; optional. The only Minor IDs from a report's
+  `## Debt` section that dispatch may touch (see `## Implementor fix-mode input`).
 
 Input errors, checked before any work: a build reviewer call with no `stage` or no `since`, or with
 `stage: re-review` and no `prior`, returns line 1 `VERDICT: FAIL` and line 2
@@ -89,8 +90,8 @@ later round continues numbering from the highest `<n>` per class found in `prior
 class for the life of the build - a finding raised as `M<n>` never comes back as `I<n>` or `C<n>`.
 
 A title is assigned with the ID, per `## Naming`, and is kept across rounds unchanged: every later
-mention of that finding - a prior findings row, a `### Needs decision` bullet, a debt line, an
-orchestrator's question to the user - reuses the same title.
+mention of that finding - a prior findings row, a `### Needs decision` bullet, a `## Debt` bullet,
+an orchestrator's question to the user - reuses the same title.
 
 A `prior` report written before this contract (bullets with no IDs): treat every bullet under its
 Critical and Important sections as one unnumbered prior finding, assign fresh IDs in the verdict
@@ -102,16 +103,24 @@ ID but no title is handled the same way: title it by the legacy fallback of `## 
 
 Every build reviewer writes its report to the `report:` path - always, on PASS, on FAIL and on
 BLOCKED alike. That path is the reviewer's only output file; any scratch file it needs lives under
-`.temp/` and never in the repo tree. The report carries exactly these sections, in this order:
+`.temp/` and never in the repo tree.
 
-- title line `# <stage> review - <report basename>`, e.g. `# checkpoint review - checkpoint-01.md`.
-- `## Gates` - one line per distinct gate command (see `## Gates`), carrying its result verbatim and
-  the plan tasks that declared it: on a command that never reached the fork, `run.sh`'s own
-  `RESULT:`, `EXIT:` and `TAIL:` lines - there is no executor reply to quote on that path - and on a
-  command that was dispatched, the fork's `VERDICT:` and `SUMMARY:`; the single sentence
-  `integration and e2e deferred to final` on `stage: checkpoint`; the single sentence
-  `no e2e or integration suite in this host` when the host documents none; one line saying the
-  review is unbounded over the working tree when `since` is `none`.
+The report carries new information and nothing else. A section with nothing to say is omitted
+entirely - an empty heading, a "none" placeholder and a restatement of the plan all cost a reader
+the same as a finding and carry none. The closing `VERDICT:` line is the only part that always
+appears. The sections, in this order:
+
+- title line `# <stage> review`, e.g. `# checkpoint review`. No file name: the reader opened the
+  file.
+- `## Gates` - one line per subsection this stage ran (see `## Gates`), shaped
+  `<subsection> - <result> - <wall time>`, e.g. `Build - pass - 42s`, the wall time taken from
+  `run.sh`'s `DURATION:`. On a red result that same line adds the tool's own summary line and the
+  `LOG:` path of the run that failed. The commands themselves are never written out - the plan holds
+  them. A subsection whose block reads `none - <reason>` carries that reason in place of the result
+  and no wall time, e.g. `Integration - none - <reason>`; a subsection this stage does not run has
+  no line at all. One extra line says the review is unbounded over the working tree when `since` is
+  `none`. A subsection holding several commands still carries one line: its result is red when any
+  of them is red and its wall time is their sum.
 - `## Prior findings` - only when `prior` was given: a table `| ID | Title | Verdict | Evidence |`
   with one row per ID in `prior`, its title carried over from `prior`, the verdict `ADDRESSED`,
   `NOT ADDRESSED` or `ACCEPTED`, and a `file:line` as evidence - for `ACCEPTED`, the decisions-file
@@ -121,11 +130,15 @@ BLOCKED alike. That path is the reviewer's only output file; any scratch file it
   words per `## Naming`; then `### Needs decision`, one bullet per BLOCKED item, naming the finding
   as `` `<title>` (<ID>) ``, the criterion or plan task it belongs to in the same reference form,
   and why no code change can clear it.
-- `## Debt` - this round's Minor, one bullet per finding with its ID and title; the same lines are
-  appended to the debt file (see `## Debt file`).
+- `## Debt` - this round's Minor, one bullet per finding with its ID and title. It is the only home
+  of a Minor: nothing is appended anywhere else and no later round copies it forward.
 - `## Notes` - advisory lines only, including `NOTE: plan defect - <what>`.
-- `## Assessment` - one or two sentences, ending with the bare line `VERDICT: PASS`,
-  `VERDICT: FAIL` or `VERDICT: BLOCKED`.
+- `## Assessment` - one sentence saying why the verdict is what it is, then the bare line
+  `VERDICT: PASS`, `VERDICT: FAIL` or `VERDICT: BLOCKED`. No acceptance criterion, DoD or plan task
+  is restated here; a criterion that needs saying something is said in `## Findings`.
+
+A re-review writes this same skeleton: its own `## Gates` lines for its own re-run, one per
+subsection, never a copy of the prior round's block.
 
 No `Strengths` section and no `Recommendations` section exists - praise and polish suggestions are
 not part of a report. The spec reviewer adds its own coverage table between the gates section and
@@ -133,23 +146,24 @@ the prior findings section; no consumer adds any other section.
 
 ## Gates
 
-Collect the gate commands first, run them all before reading any code, and record the result of
-each in the report's gates section. The commands:
+The gate commands come from the plan's `## Gate commands` block - the one in the plan header, above
+the first task block, copied into `plan-header.md` - and from nowhere else. That block holds three
+subsections, `#### Build`, `#### Tests` and `#### Integration`, each carrying its commands one per
+line or the single line `none - <reason>`. Which subsections this stage runs:
 
-- the plan's build command or commands (the `#### Build` block of every plan task's
-  `### Test Commands`, and the plan's own build block when it has one);
-- every `Test Commands` block of the plan;
-- on `stage: final` and `stage: re-review` only, the host's integration or e2e command, when the
-  plan or the host's memory files document one; a checkpoint never runs it.
+- `stage: checkpoint` - `#### Build` and `#### Tests`. `#### Integration` is not run and has no line
+  in the report.
+- `stage: final` - all three.
+- `stage: re-review` - the set of the round it closes, read off the first line of the report on
+  `prior`: a `# checkpoint review` -> the two subsections above, a `# final review` -> all three.
 
-A task's `### Task Tests` section is never a gate: it belongs to the implementor writing that task
-(its TDD cycle and its end-of-task run), no stage collects it, and a command appearing there and
-nowhere else runs at no stage of a review.
+A subsection reading `none - <reason>` is not run; that reason is carried into the report's line for
+it, and the review never returns BLOCKED for it. No command is collected from a task section:
+`### Task Checks` belongs to the implementor writing that task, no stage collects it, and a command
+appearing there and nowhere else runs at no stage of a review.
 
-Two of them are the same command only when their strings match exactly, and each distinct string
-runs once per stage however many tasks declared it - a second run of the same string proves nothing
-the first did not. A filtered or narrowed variant of a suite is a distinct string: it runs on its
-own and never stands in for the full suite.
+Run every command of the stage's set before reading any code, and record the result of each in the
+report's gates section.
 
 Transport - every gate command goes out as a direct `Bash` call to `run.sh`, the executor skill's
 own runner at `skills/executor/scripts/run.sh` under the plugin root (a fork spells that path with
@@ -204,15 +218,15 @@ settles the command, and nothing below it is consulted:
 Evidence:
 
 - on `RESULT: SUCCESS` the evidence is the printed block itself - its `RESULT:`, `EXIT:` and `TAIL:`
-  lines, carried into the report verbatim. There is no executor reply on that path, and none is
-  manufactured.
+  lines, read as they stand. There is no executor reply on that path, and none is manufactured.
 - `TAIL:` is the log's last non-empty line, usually the tool's own closing word, and is never
   relabelled `SUMMARY:`: `SUMMARY:` names the aggregate line the fork found by reading the log, and
   the last line of a file is not that. A `TAIL:` carrying no recognisable aggregate line, or absent
-  because the log held none, leaves the gate passing on its exit code all the same - the report then
-  quotes `RESULT:` and `EXIT:` instead, and the `LOG:` path is recorded unread.
+  because the log held none, leaves the gate passing on its exit code all the same, and the `LOG:`
+  path is recorded unread.
 - on a dispatched command the evidence is the fork's reply: its `SUMMARY:` line is the tool's own
-  aggregate line, carried into the report verbatim, never paraphrased and never recomputed.
+  aggregate line, carried verbatim into the report's line for a red subsection, never paraphrased
+  and never recomputed.
 - reaching the log always goes through the fork. It is dispatched on `RESULT: DEVIATION` and on a
   `SUCCESS` whose `TAIL:` carries a non-zero skip count on a run some criterion's proof depends on -
   the skipped case may be the one that would have proved it, so that criterion stays unmet until
@@ -226,14 +240,8 @@ Rules:
 - This section is the sole owner of the gate-command BLOCKED conditions: the mapping above is the
   whole list, and `## Verdict rules` and every consumer's own gates paragraph point here instead of
   carrying a summary of their own.
-- On `stage: checkpoint` the integration or e2e command is not collected at all: the gates section
-  carries the single sentence `integration and e2e deferred to final` in place of that command's
-  line.
-- On `stage: re-review` the integration or e2e command is run again whatever the fix round changed:
-  a result carried over from the prior round proves nothing about the fixed tree.
-- On `stage: final` and `stage: re-review` alone, a host with no integration or e2e command
-  documented gets the single sentence `no e2e or integration suite in this host`, and is never
-  BLOCKED for that reason.
+- Every command of the stage's set runs in the round that needs it, a re-review included: a result
+  carried over from the prior round proves nothing about the fixed tree.
 - A criterion or behaviour that needs a run to be confirmed and got none is never marked met; the
   report says which run is missing.
 - `since: none` -> the review is unbounded over the working tree; the gates section says so.
@@ -280,24 +288,6 @@ Return channel to the orchestrator - the only channel, the report itself stays o
 - line 1: `VERDICT: PASS`, `VERDICT: FAIL` or `VERDICT: BLOCKED`
 - line 2, on FAIL and on BLOCKED: `REVIEW: <report path>`
 
-## Debt file
-
-`<workdir>/implementation/debt.md`. The reviewer appends to it, never overwrites and never prunes
-it, one line per Minor raised in the round:
-
-`- <ID> - <title> - <round report basename> - file:line - <what>`
-
-The title is the one the finding was given when it was raised, per `## Naming`, so the same Minor
-reads the same way in the report and in this file.
-
-The writing tool truncates, so the append is done in two steps: Read the file when it exists, then
-write back its existing lines followed by this round's, in one write. A round that writes only its
-own lines silently deletes every earlier round's - the same loss the append rule exists to prevent.
-
-The fix implementor never reads it: a Minor is worked only when the dispatch names it on a `minor:`
-line (see `## Implementor fix-mode input`). The file is run bookkeeping - it lives in the run
-directory and disappears with it, so it needs no separate cleanup.
-
 ## Decisions file
 
 `<workdir>/implementation/decisions.md`. One line per finding or criterion change the user accepted,
@@ -315,13 +305,23 @@ line there is neither raised as a Critical nor returned as BLOCKED again.
 
 ## Notes line formats
 
-Lines and sections the implementors write into their `*-notes.md` file under
-`<workdir>/implementation/`:
+Lines and sections written into a task's `*-notes.md` file under `<workdir>/implementation/` - by
+the implementor that wrote the task, and for `## Review notes` by the reviewer that read it.
+
+Notes never restate the task or a report. An `### Approach` step is cited by its number, a finding
+by its ID, a file by its path - never by copying the text back. They are written LLM to LLM:
+concrete, unexplained, no justification of a rule the reader already holds and no summary of what
+the task asked for. A note the next reader could reconstruct from the task file is not worth
+writing.
 
 - `## Runs` - a section rather than a line, written on every PASS above that round's other lines:
-  one line per command of the last green pass of the implementor's build-and-test step, in run
-  order, each shaped `- <command verbatim> -> <summary line | exit <n>>` - the tool's own summary
-  line, or `exit <n>` when it printed none.
+  one line per `### Task Checks` line the implementor ran in its last green pass, in run order, each
+  shaped `- <command verbatim> -> <summary line | exit <n>>` - the tool's own summary line, or
+  `exit <n>` when it printed none. A `### Task Checks` section reading `none - <reason>` yields the
+  single line `none - <reason>` instead.
+- `## Review notes` - a section a per-task reviewer appends when it holds the task and raised notes
+  and nothing else: one `NOTE: <what>` line per note, and no report file of its own. The writing
+  tool truncates, so the reviewer reads the file and writes it back with this section appended.
 - `touched: <repo-relative path>` - one per file changed outside the task's `### Files`, and in fix
   mode one per file changed at all. Consumed by `commit-task.sh --notes` as the declared set. The
   line is machine-read and carries the path alone - no backticks, no reason - with the reason on
@@ -329,10 +329,12 @@ Lines and sections the implementors write into their `*-notes.md` file under
 - `CARRY: <path> - <known problem outside this task's Files, left in place>` - one per known problem
   the implementor saw outside its `### Files` and did not fix. Read by the final review, which
   closes it under the integration mandate, and by the fix implementor when a report points at it.
-- fix mode, one line per finding ID from the reports: `<ID>: fixed`,
-  `<ID>: fixed - no test: <reason>` or `<ID>: skipped - <reason>`.
-- `UNDERSPECIFIED: <value> - <the decision made>` - unchanged, one per value the task left open.
-- `no deviations` - unchanged, the single line written when there is nothing else to report.
+- `UNDERSPECIFIED: <value> - <the decision made>` - one per value the task left open.
+- `no deviations` - the single line written when there is nothing else to report.
+
+Fix-mode notes are three things and nothing more: the `## Runs` section, exactly one status line per
+finding ID from the reports handed in - `<ID>: fixed`, `<ID>: fixed - no test: <reason>` or
+`<ID>: skipped - <reason>` - and one `touched:` line per file the round changed.
 
 ## Implementor fix-mode input
 
@@ -340,11 +342,28 @@ In fix mode the `task:` file, and every `more:` file, is a report in the `## Rep
 
 - The IDs under `### Critical` and `### Important`, in every report handed in, are the whole work
   list; each one is fixed.
-- A `## Debt` ID (a Minor) is touched only when the dispatch lists it explicitly on a
-  `minor: <ID>[, <ID>]` line. Every other Minor stays untouched.
+- An ID under a report's `## Debt` section (a Minor) is touched only when the dispatch lists it
+  explicitly on a `minor: <ID>[, <ID>]` line. That section is the only place a Minor lives, and
+  every Minor the dispatch does not name stays untouched.
 - The gates, prior findings and notes sections are context, not work items.
 - Every fixed Critical or Important gets a test that fails before the fix and passes after it -
   written and run before the fix - or, when no test can express it, the status line
   `<ID>: fixed - no test: <reason>`.
 - The round's notes carry a `## Runs` section, exactly one status line per ID from the reports, and
   one `touched:` line per file the round changed, all in the shapes from `## Notes line formats`.
+
+## Dispatch strength
+
+Two ordered scales, strongest first: `opus` over `sonnet`, and `xhigh` over `high` over `medium`
+over `low`. "Highest" below means the first of these that appears in the set being compared, and
+`Model:` and `Effort:` are picked independently of each other. Passing no parameter is not a level
+on either scale: it hands the choice to the dispatched worker's own frontmatter.
+
+- A per-task review runs at that task's `Review:` marker - its first token the `model`, its second
+  the `effort`. A task carrying no `Review:` marker is dispatched with no `model` and no `effort`
+  parameter at all.
+- A fix dispatch after a task review runs at that task's own `Model:` and `Effort:`.
+- A fix dispatch after a checkpoint or a final round runs at the highest `Model:` and the highest
+  `Effort:` among the tasks whose `### Files` names a file some finding in that round's report
+  points at. No such task - no finding names a file any task declared - dispatches with no `model`
+  and no `effort` parameter at all.
