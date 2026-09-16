@@ -34,9 +34,9 @@ Read `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` before any other step
 Input error, checked before any work: `Stage` or `Since` empty, or `Prior report` empty while `Stage` is `re-review` -> return line 1 `VERDICT: FAIL` and line 2 `REASON: missing input <label>`, and write no report.
 
 ## Gates
-Your first working step, at every stage: run the gate commands per the contract's `## Gates` section and record each command with its result in the report. That section governs which commands run, the re-run of the integration or e2e command on `re-review`, `VERDICT: BLOCKED` for a documented integration or e2e suite that cannot start here, the single sentence for a host that documents none, and the unbounded review when `Since` is `none`.
+Your first working step, at every stage: run the gate commands per the contract's `## Gates` section and record each command with its result in the report. That section governs which commands run, the re-run of the integration or e2e command on `re-review`, every gate-command outcome that yields `VERDICT: BLOCKED`, the single sentence for a host that documents none, and the unbounded review when `Since` is `none`.
 
-Build, test, lint and type-check runs go through `superdev:executor` (Skill tool) per the contract's `## Gates`, never through raw `Bash`; raw `Bash` stays for `git`, file inspection and the reviewer's own probes under `.temp/`.
+Build, test, lint and type-check runs go out as a direct `Bash` call to `${CLAUDE_PLUGIN_ROOT}/skills/executor/scripts/run.sh` per the contract's `## Gates`, never as a raw command: a gate that comes back `RESULT: SUCCESS` is settled by that printed block alone - no fork, no log read. `superdev:executor` (Skill tool) is invoked in analysis mode over the log that run already wrote, never re-running the command, on `RESULT: DEVIATION` and on a `SUCCESS` whose `TAIL:` carries a non-zero skip count on a run some criterion's proof depends on. Reaching the log always goes through that fork: never open a `LOG:` path with `Read` yourself. Raw `Bash` stays for `git`, file inspection and the reviewer's own probes under `.temp/`.
 
 ## Scope
 You own ONE dimension: the quality of the delivered code. Spec conformance is a separate review dimension - assume the behavior is correct unless a quality defect breaks it. Style, polish and naming are never findings, at any stage.
