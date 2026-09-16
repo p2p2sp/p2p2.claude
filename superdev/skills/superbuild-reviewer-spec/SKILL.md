@@ -5,7 +5,7 @@ context: fork
 background: false
 model: sonnet
 effort: high
-allowed-tools: Read, Write, Grep, Glob, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
+allowed-tools: Read, Write, Grep, Glob, Skill, Bash, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh:*)
 user-invocable: false
 ---
 
@@ -37,6 +37,8 @@ Input error, checked before any work: `Stage` or `Since` empty, or `Prior report
 Your first working step, at every stage, before you read any code: run the gate commands per the contract's `## Gates` section and record each command with its result in the report's gates section, which sits above the coverage table. That section governs which commands run, the re-run of the integration or e2e command on `re-review`, `VERDICT: BLOCKED` for a documented integration or e2e suite that cannot start here, the single sentence for a host that documents none, and the unbounded review when `Since` is `none`.
 
 A plan with no `Test Commands` and no command documented anywhere: say so in the gates section and review by reading alone. A criterion whose satisfaction needs a run then stays not met, with the missing run named in its coverage line - never met by assumption.
+
+Build, test, lint and type-check runs go through `superdev:executor` (Skill tool) per the contract's `## Gates`, never through raw `Bash`; raw `Bash` stays for `git`, file inspection and the reviewer's own probes under `.temp/`.
 
 ## Scope
 You own ONE dimension: does the delivered implementation satisfy the spec and consume the plan? Code quality, style, and architecture are a separate review dimension - flag them only when they break spec conformance.
