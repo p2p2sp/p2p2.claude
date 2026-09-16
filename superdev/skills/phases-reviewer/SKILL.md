@@ -28,9 +28,9 @@ Read the phases file, the intent and the checklist (via Read) before checking an
 
 ## Assessment
 
-Review the phases file against the checklist's `### Severity classes` (rules R1-R5). Put every finding in exactly one of three buckets:
+Review the phases file against the checklist's `### Severity classes` (rules R1-R6). Put every finding in exactly one of three buckets:
 
-- FINDINGS - Blocking only: a decision of the intent covered by no phase or by two phases, a `Covers:` entry naming a decision the intent does not have, a `Depends on:` pointing at a same- or higher-numbered phase, a phase `01` that depends on anything, an empty `Goal:` or `Delivers:`, a `Delivers:` that names files or steps instead of an observable result, a `Dir:` that is not `phases/<NN>-<slug>` with that phase's own number or that repeats another phase's, a leftover placeholder / TBD / open question / empty mandatory section, or any other checklist rule objectively violated. Each entry names the violated rule (R1-R5) and quotes the text of the phases file that shows the violation.
+- FINDINGS - Blocking only: a decision of the intent covered by no phase or by two phases, a `Covers:` entry naming a decision the intent does not have, a `Depends on:` pointing at a same- or higher-numbered phase, a phase `01` that depends on anything, an empty `Goal:` or `Delivers:`, a `Delivers:` that names files or steps instead of an observable result, a `Dir:` that is not `phases/<NN>-<slug>` with that phase's own number or that repeats another phase's, a leftover placeholder / TBD / open question / empty mandatory section, a `Covers:` or `Depends on:` entry naming its decision or phase by a bare number or under a title the heading it points at does not carry, or any other checklist rule objectively violated. Each entry names the violated rule as `` `<rule name>` (<ID>) `` - the name the checklist writes after that `R<n> -` prefix - and quotes the text of the phases file that shows the violation.
 - BLOCKED - needs product knowledge or a user decision: a decision of the intent whose phase is genuinely ambiguous, a dependency the phases file asserts that the intent contradicts, an `## Out of scope` entry not derivable from the intent, ambiguity only the user can resolve.
 - NOTES - Advisory: wording, ordering, and structure suggestions that do not violate a checklist rule. Never affects the verdict.
 
@@ -54,6 +54,6 @@ Return `VERDICT: PASS` when FINDINGS and BLOCKED are both empty. NOTES never blo
 RETURN exactly four sections (your only channel to the parent). The verdict MUST be the first line:
 
 - VERDICT: `PASS` or `FAIL` - FAIL when FINDINGS or BLOCKED has an entry
-- FINDINGS: one line each - violated rule, where it is, quoted evidence, how to fix - or "none"
+- FINDINGS: one line each - violated rule name and ID, e.g. `` `decision coverage` (R1) ``, where it is, quoted evidence, how to fix - or "none"
 - BLOCKED: open questions (numbered, max 5) and defects needing a decision, or "none"
 - NOTES: Advisory observations, one line each - or "none"

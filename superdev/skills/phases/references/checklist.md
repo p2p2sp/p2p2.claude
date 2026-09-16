@@ -25,6 +25,11 @@ phrased as a question.
   - **R5 - no placeholders.** Any leftover `< ... >` placeholder, `TBD`, "later", "details to
     follow", open question, or empty mandatory section (`## Goal`, `## Phases`, `## Out of scope`,
     the `Intent:` line) is Blocking.
+  - **R6 - reference with a bare number.** Every `Covers:` and `Depends on:` entry names its
+    decision or phase in the reference form `` `<title>` (<pointer>) `` - the decision's question
+    with `(decision <n>)`, the phase's title with `(phase <NN>)`. An entry naming a decision or
+    phase by number alone, or whose title differs from the heading it points at (the intent's
+    `### <n>.` heading, the phases file's own `### <NN>.` heading), is Blocking.
 - Advisory (NOTES on a PASS, never blocks): wording, ordering, and structure suggestions that do not
   violate a Blocking rule above.
 
@@ -32,7 +37,7 @@ phrased as a question.
 
 - The number of phases, or that the work could have been cut into more or fewer.
 - Phase naming, slug wording, or title phrasing preferences.
-- Granularity preferences - that a phase feels large or small - when R1-R5 all hold.
+- Granularity preferences - that a phase feels large or small - when R1-R6 all hold.
 - An alternative split to the one the phases file has already fixed; the cut was confirmed with the user.
 - The absence of estimates, dates, owners, risks, or task-level detail - a phases file carries none of
   these by design.
