@@ -50,6 +50,9 @@ path verbatim; no `Supersedes:` line anywhere -> drop it>
 - `ls docs/adr/ | grep -c -- '-<slug>.md$'` - prints `1`
 <one line per `<slug>`, the slug written out literally>
 
+### Task Tests
+- none - documentation only
+
 ### Approach
 1. Run `date +%Y-%m-%d-%H%M%S` once and keep its output as `<stamp>`; every file this task writes
    carries that same stamp.

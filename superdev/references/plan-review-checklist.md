@@ -5,7 +5,7 @@ Shared rubric for plan review. Authors (`simpleplan`, `superplan` self-review) a
 self-check should pass review.
 
 Stack-agnostic: every class below refers only to the plan template's own sections
-(`### Files`, `### Dependencies`, `### Test Commands`, `### TDD Commands`, `### Approach`,
+(`### Files`, `### Dependencies`, `### Test Commands`, `### Task Tests`, `### Approach`,
 `### Failure modes`, `### Contracts`, `### DoD`, `TDD:`, `Model:`, `Effort:`, `Covers:`) - never
 to a specific ecosystem's tools.
 
@@ -15,7 +15,7 @@ A reviewer verifies with Read/Grep/Glob ONLY and never executes a command - no b
 `git`, no shell of any kind. Path existence -> Glob; a symbol's or a command's presence in a file ->
 Grep; content -> Read.
 
-A Blocking finding must cite its class ID (B1-B15) plus concrete evidence gathered that way - quote
+A Blocking finding must cite its class ID (B1-B16) plus concrete evidence gathered that way - quote
 the file, path, or command checked. A suspicion that cannot be verified with Read/Grep/Glob is not
 Blocking: demote it to NOTES, phrased as a question.
 
@@ -31,9 +31,9 @@ evidence (see Evidence rule).
   script matches `### Files` by prefix, so a placeholder declares nothing and the real file lands as
   an undeclared change. A generated name (a migration timestamp, a snapshot hash, a dated file) is
   declared by its parent directory with a trailing slash instead.
-- B2 - Build/test command mismatch: a command in `### Test Commands` or in `### TDD Commands`
+- B2 - Build/test command mismatch: a command in `### Test Commands` or in `### Task Tests`
   contradicts the repo's actual build/test tooling as documented in a config or memory file read
-  with Read/Grep - a `### TDD Commands` command is checked on the same terms, its file-scoping
+  with Read/Grep - a `### Task Tests` command is checked on the same terms, its file-scoping
   form included. Tooling that cannot be confirmed that way is not B2 - it goes to NOTES.
 - B3 - Criteria/task mapping broken: an acceptance criterion has no task covering it, or a task
   covers no acceptance criterion and is not traceable to the Goal or spec (scope creep beyond
@@ -46,11 +46,11 @@ evidence (see Evidence rule).
 - B6 - Missing or invalid task marker: the template requires `TDD:`, `Model:` and `Effort:` on
   every task; one is absent, or carries a value outside its allowed set (`TDD:` `required` |
   `none`; `Model:` `sonnet` | `opus`; `Effort:` `low` | `medium` | `high` | `xhigh`), or a
-  `TDD: required` task is marked `Model: sonnet`. The `TDD:` marker also governs
-  `### TDD Commands`: a `TDD: required` task carrying no `### TDD Commands` section, a `TDD: none`
-  task carrying one, or a `### TDD Commands` line whose test file path is not declared under that
+  `TDD: required` task is marked `Model: sonnet`. `### Task Tests` is required on every task
+  whatever `TDD:` says: a task carrying no such section, a section holding neither a test file
+  line nor `none - <reason>`, or a file line whose test file path is not declared under that
   task's `### Files`, is B6 too. Settled by reading the task's marker lines against its
-  `### TDD Commands` and `### Files` sections.
+  `### Task Tests` and `### Files` sections.
 - B7 - Undecidable step: an implementer cannot execute a step without a decision that is absent
   from the plan. Report B7 under BLOCKED, never under FINDINGS - it needs a decision, not a fix
   the reviewer can point at.
@@ -89,15 +89,34 @@ evidence (see Evidence rule).
   line it points at; settled by reading the entry against the plan's task headings and the criteria
   source (the spec, or the plan's own `## Acceptance criteria`). A legacy criteria source with no
   short names is cited by the first clause of the criterion, per `review-contract.md`'s `## Naming`.
+- B16 - Oversized TDD task: a `TDD: required` task whose `### Task Tests` carries more than one
+  file line, or whose `### Task Tests` reads `none - <reason>`. Such a task writes more than the
+  one test file a TDD cycle drives, or drives none at all - it is split per test file, or its
+  marker is wrong. Settled by reading that task's `TDD:` marker line against its `### Task Tests`
+  section.
 
 ## Advisory (NOTES)
 
-Everything real but not in B1-B15: wording, phrasing, style preferences, task-split preference
+Everything real but not in B1-B16: wording, phrasing, style preferences, task-split preference
 (one task vs. two), optional hardening not required by any acceptance criterion, "nice to have"
 suggestions, and a `Model:` / `Effort:` that reads too low for what the task's `### Approach`
 has to reason about (an algorithm, a state machine, a contract other tasks consume, a hard-to-undo
 change) - the author rounds up, never down, but the choice itself is not Blocking. These never
 block - they ride along as NOTES on a PASS.
+
+Two named items ride here too, each real but never Blocking:
+
+- Oversized `TDD: none` task: a `TDD: none` task whose `### Approach` delivers more than one
+  behaviour, or whose `### Files` runs well past the few files one behaviour needs. The size rule
+  aims such a task at one behaviour and a few files, so name the split it invites - but the marker
+  is valid and the task is buildable, so it never blocks (a `TDD: required` task oversized the same
+  way is B16, not this).
+- Integration or e2e test in a task's own commands: a `### Task Tests` or `#### Tests` line whose
+  command or file path names the integration or e2e command or directory the host's memory files
+  (`CLAUDE.md`, `.claude/rules/`) document. Such a test runs only through the host's integration or
+  e2e command at the final review, so a task listing it there is running it at the wrong stage.
+  Grep the memory files for that command or directory first: a suite the memory files do not
+  document that way is not this item.
 
 ## Never flag
 
@@ -122,15 +141,16 @@ Before submitting a plan for review, verify in the repo:
 - Every `### Files` path and symbol referenced actually exists (or, for `add`, its parent directory
   does), and every path is literal - no `<…>`, `*` or `?`; a generated name is declared by its
   parent directory with a trailing slash.
-- Every `### Test Commands` and `### TDD Commands` entry matches the repo's real build/test
+- Every `### Test Commands` and `### Task Tests` entry matches the repo's real build/test
   tooling.
 - The two-way mapping holds: every acceptance criterion is covered by at least one task, and every
   task covers at least one criterion or is traceable to the Goal/spec.
 - Every task carries `TDD:`, `Model:` and `Effort:` with values from their allowed sets, and no
   `TDD: required` task sits on `Model: sonnet`.
-- Every `TDD: required` task carries a `### TDD Commands` section and every `TDD: none` task
-  carries none, and every `### TDD Commands` line names a test file path declared under that
-  task's `### Files`.
+- Every task carries a `### Task Tests` section: a `TDD: required` task carries exactly one file
+  line in it, a `TDD: none` task carries one line per test file it writes or changes or the single
+  line `none - <reason>`, and every file line names a test file path declared under that task's
+  `### Files`.
 - Every `### Failure modes` bullet carries its response, its log and its test; a `none` carries its
   one-word reason; no `### Approach` step decides a failure behaviour of its own.
 - Every closed set a task extends lists that set's consumers under `### Contracts` (Grep the type
