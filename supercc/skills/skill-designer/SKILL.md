@@ -1,6 +1,6 @@
 ---
 name: skill-designer
-description: Design, create, refactor, split, shrink or audit skills and agents (SKILL.md files, agent .md files, their scripts and references). Use whenever the user wants a new skill or agent, asks to improve, clean up, compress, optymize or fix an existing one, complains a skill is too long, drifts or triggers badly, wants a skill split into forks, or asks for a review of skill files, even when they only say "make a skill for X" or "this agent does too much".
+description: Design, create, refactor, split, shrink or audit skills and agents. Always use whenever the user wants a new skill or agent, asks to improve, clean up, compress, optymize or fix an existing one, complains a skill is too long, drifts or triggers badly, wants a skill split into forks, or asks for a review of skill files, even when they only say "make a skill for X" or "this agent does too much".
 ---
 
 # skill-designer
