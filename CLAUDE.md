@@ -76,11 +76,13 @@ skill/agent list. This file is orientation for the assistant.
   the final review, the last round of that chain, which adds the integration mandate over the whole build
   (contracts another task consumes, `CARRY:` lines, failure branches crossing tasks). Each round is bounded
   by one fix dispatch plus one re-review scoped to that fix, after which the user decides. The three build
-  reviewers take `stage:` / `since:` / `prior:` / `decisions:` labels, keep stable finding IDs across rounds,
-  append Minor to `implementation/debt.md` without affecting a verdict, and return `VERDICT: BLOCKED` when a
-  criterion is unmet by a recorded decision rather than by missing code - the accepted wording is written to
-  `implementation/decisions.md` through `record-decision.sh` and binds later rounds like plan text.
-  `superdev/references/review-contract.md` owns that whole vocabulary; both orchestrators carry
+  reviewers take `stage:` / `since:` / `prior:` / `decisions:` labels, keep stable finding IDs and a short
+  title across rounds, append Minor to `implementation/debt.md` without affecting a verdict, and return
+  `VERDICT: BLOCKED` when a criterion is unmet by a recorded decision rather than by missing code - the
+  accepted wording is written to `implementation/decisions.md` through `record-decision.sh` and binds later
+  rounds like plan text. `superdev/references/review-contract.md` owns that whole vocabulary - its
+  `## Naming` section is the one owner of the `` `<title>` (<pointer>) `` reference form every task,
+  criterion and finding is named in; both orchestrators carry
   `Edit`/`Write`/`NotebookEdit` in `disallowed-tools`, write no file themselves and escalate every
   interruption (a spend or session limit, a reviewer that returned no report, an undeclared change in the
   working tree) to the user. Both task implementors run build, test, lint and type-check commands only

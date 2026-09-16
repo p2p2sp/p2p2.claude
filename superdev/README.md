@@ -45,7 +45,8 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    - **Phases** - work too large for one spec. `phases` proposes a phase split, gates it on a reviewer,
      then saves `docs/.workflows/<run>/phases.md` plus one `phases/NN-<slug>/intent.md` per phase; each
      phase starts with `intent <phase intent>` and runs its own Simple or Super track, and
-     `phases <phases.md>` resumes the run by showing phase status and proposing the next one.
+     `phases <phases.md>` resumes the run by showing each phase's title and status and proposing the
+     next one by title.
 4. **Approve the plan.** A forked reviewer must return `VERDICT: PASS` before `ExitPlanMode` is even allowed;
    then you approve it yourself.
 5. **The build runs task by task.** The orchestrator (`simplebuild` / `superbuild`) decomposes the plan into
@@ -61,9 +62,11 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    review is the last round of that same chain and adds the integration mandate over the whole build: contracts
    another task consumes, the `CARRY:` lines implementors left behind, failure branches that cross tasks. Every
    round carries one budget - one fix dispatch and one re-review scoped to that fix - and then the decision is
-   yours (another round / accept with open findings / abort). Findings keep stable IDs (`C1`, `I2`, `M3`) for the
-   life of the build, a re-review opens with an `ADDRESSED` / `NOT ADDRESSED` / `ACCEPTED` table per ID, and Minor findings go
-   to `implementation/debt.md` without touching any verdict. A reviewer returns `VERDICT: BLOCKED` when a
+   yours (another round / accept with open findings / abort). Findings keep stable IDs and a short title
+   (`` `Missing timeout test` (C1) ``) for the life of the build, a re-review opens with an `ADDRESSED` /
+   `NOT ADDRESSED` / `ACCEPTED` table per ID, and Minor findings go to `implementation/debt.md` without
+   touching any verdict. Every escalation names a task or a finding that same way, never by a bare number
+   or ID. A reviewer returns `VERDICT: BLOCKED` when a
    criterion is unmet because of a decision, not because code is missing: you answer once, and every
    acceptance - there, or when you close a round with findings still open - is recorded in
    `implementation/decisions.md`, which binds every later round like plan text. The
