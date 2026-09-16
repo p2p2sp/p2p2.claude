@@ -16,7 +16,7 @@ The block above is the full plan (`## plan`) and the human-approved spec (`## sp
 
 <!-- no Bash pattern for the preloads below: each is a pipeline (printf | tr | sed | head); a pattern entry matches one command, not a pipe -->
 Report path: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*report:[[:space:]]*//p' | head -n1`
-The review goes to that path and to no other. Apart from the debt file named under `## Calibration`, you write nothing else into the repo tree: every probe, log or throwaway test goes under `.temp/`.
+The review goes to that path and to no other: you write nothing else into the repo tree, and every probe, log or throwaway test goes under `.temp/`.
 
 Stage: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*stage:[[:space:]]*//p' | head -n1`
 Since: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*since:[[:space:]]*//p' | head -n1`
@@ -29,12 +29,12 @@ Notes dir: !`printf '%s' "$ARGUMENTS" | tr -d '\r' | sed -n 's/^[[:space:]]*note
 When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations and `CARRY:` lines. Claims to verify, not truth.
 
 ## Contract
-Read `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` before any other step. Its `## Labels`, `## Finding IDs`, `## Report skeleton`, `## Gates`, `## Verdict rules`, `## Debt file` and `## Decisions file` sections bind this review; they are not restated below.
+Read `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` before any other step. Its `## Labels`, `## Finding IDs`, `## Report skeleton`, `## Gates`, `## Verdict rules` and `## Decisions file` sections bind this review; they are not restated below.
 
 Input error, checked before any work: `Stage` or `Since` empty, or `Prior report` empty while `Stage` is `re-review` -> return line 1 `VERDICT: FAIL` and line 2 `REASON: missing input <label>`, and write no report.
 
 ## Gates
-Your first working step, at every stage: run the gate commands per the contract's `## Gates` section and record each command with its result in the report. That section governs which commands run, the re-run of the integration or e2e command on `re-review`, every gate-command outcome that yields `VERDICT: BLOCKED`, the single sentence for a host that documents none, and the unbounded review when `Since` is `none`.
+Your first working step, at every stage: run the gate commands the plan's `## Gate commands` block carries, and record one line per subsection you ran in the report's gates section. The contract's `## Gates` section decides which of that block's subsections this stage runs, and governs a subsection reading `none - <reason>`, every gate-command outcome that yields `VERDICT: BLOCKED`, and the unbounded review when `Since` is `none`.
 
 Build, test, lint and type-check runs go out as a direct `Bash` call to `${CLAUDE_PLUGIN_ROOT}/skills/executor/scripts/run.sh` per the contract's `## Gates`, never as a raw command: a gate that comes back `RESULT: SUCCESS` is settled by that printed block alone - no fork, no log read. `superdev:executor` (Skill tool) is invoked in analysis mode over the log that run already wrote, never re-running the command, on `RESULT: DEVIATION` and on a `SUCCESS` whose `TAIL:` carries a non-zero skip count on a run some criterion's proof depends on. Reaching the log always goes through that fork: never open a `LOG:` path with `Read` yourself. Raw `Bash` stays for `git`, file inspection and the reviewer's own probes under `.temp/`.
 
@@ -59,7 +59,7 @@ What you read is set by `Stage`:
 ## Calibration
 Categorize issues by actual severity and give each one an ID per the contract's `## Finding IDs`. Not everything is Critical.
 
-Minor findings go to the report's `## Debt` section and are appended, with their IDs, to `debt.md` in the `Report path` directory; they never affect the verdict.
+Minor findings go to the report's `## Debt` section with their IDs and never affect the verdict.
 
 A behavior recorded under a task's `### Failure modes` is a decision: judge whether the code matches it. Disagreement with the decision itself is one `NOTE: plan defect - <what>` line, never a Critical and never an Important. The same holds for a line in the decisions file, which is never raised again.
 
