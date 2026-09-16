@@ -42,16 +42,9 @@ below from that section and copy the result into the plan as Task 1.
 <the modify line repeats once per `Supersedes:` line in the `## ADR` section, carrying that line's
 path verbatim; no `Supersedes:` line anywhere -> drop it>
 
-### Test Commands
-#### Build
-- none - documentation only
-
-#### Tests
-- `ls docs/adr/ | grep -c -- '-<slug>.md$'` - prints `1`
+### Task Checks
+- ls docs/adr/ | grep -q -- '-<slug>.md$'
 <one line per `<slug>`, the slug written out literally>
-
-### Task Tests
-- none - documentation only
 
 ### Approach
 1. Run `date +%Y-%m-%d-%H%M%S` once and keep its output as `<stamp>`; every file this task writes

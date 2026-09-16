@@ -6,6 +6,19 @@ Spec: <full/path/to/spec.md> <!-- `What & Why` specification -->
 Intent: <path copied from the spec's Intent: line; omit when the spec has none>
 Plan: <absolute path of this plan file, exactly as given by plan mode>
 
+## Gate commands
+<the gate of the whole build, never of a single task: the commands a review round runs over everything the build has produced. The planner fills each subsection's scope from the host's memory and from what this plan moves - the whole repository, one project, one path, one suite - and writes a command only where the planner judges its result proof for this plan>
+
+#### Build
+- <command that builds the scope this plan moves>
+
+#### Tests
+- <command that runs the host's automated tests over that scope>
+
+#### Integration
+- <command that runs the host's integration or end-to-end suite over that scope>
+<one line per command in each of the three subsections; every command is literal and runnable as written, with no placeholder and no filter to be filled in later, and a subsection with nothing to run carries the single line `none - <reason>`>
+
 ---
 
 <!-- TASK -->
@@ -14,7 +27,9 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 - TDD: <marker>
 - Model: <sonnet | opus>
 - Effort: <low | medium | high | xhigh>
+- Review: <model> <effort>
 - Covers: `<criterion short name>` (#<n>)[, `<criterion short name>` (#<m>)]
+<`Review:` is optional on any task and takes the same two value sets as `Model:` and `Effort:`; absent, the per-task reviewer runs at its own frontmatter default>
 
 ### Dependencies
 - `<task title>` (Task <N>) - blocks: <…>
@@ -24,17 +39,10 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 - <add | modify | delete> - <path> (<symbol>)
 <one line per file touched; <path> is literal - commit-task.sh matches it by prefix, so no placeholders, globs or angle brackets; a file whose name is generated at build time (a migration timestamp, a snapshot hash, a dated file) is declared by its parent directory with a trailing slash, e.g. `add - src/Migrations/ (EF migration + designer)`>
 
-### Test Commands
-#### Build
-- <build command which agent can run to verify build>
-
-#### Tests
--  <test command which agent can run to verify tests>
-<one line per test command>
-
-### Task Tests
+### Task Checks
 - <test file path> - <command that runs only that file>
-<present on every task, whatever `TDD:` says; one line per test file this task writes or changes, and a task that writes or changes none carries the single line `none - <reason>`; every path is one this task declares under `### Files`; the command is literal and runnable as written - no placeholder, no filter to be filled in later - and where the host's runner cannot scope to a single file it carries the narrowest scope that does exist; only a test that runs fast in memory belongs here, never one in which a process or service the application connects to takes part>
+- <command>
+<present on every task, whatever `TDD:` says; one line per check the implementor runs as this task's own proof. A check that runs a test file this task declares under `### Files` opens with that path, then " - ", then the command that runs only that file; every other check - a compile, a type-check, a lint, a grep, any other proof - is the bare command on its own line. Nothing to run -> the single line `none - <reason>`. Every command is literal and runnable as written - no placeholder, no filter to be filled in later - and carries the narrowest scope the host's runner offers; only a check that finishes in seconds, without connecting to a process or service outside the application, belongs here>
 
 ### Approach
 <2-5 imperative steps - symbol + signature, algorithm (name the symbol, never a line number). No prose, no "figure out", no line-by-line code, no failure decision (a catch, a fallback, a default on error belongs under Failure modes)>
