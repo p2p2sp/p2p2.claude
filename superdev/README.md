@@ -113,7 +113,7 @@ never called by hand.
 | `setup` | `/superdev:setup` - one-time, user-only repository bootstrap and config-switch picker. Idempotent. |
 | `simpledebug` | Fires on any bug, crash, regression or "it behaves wrong". Traces the whole flow instead of guessing, proves the diagnosis with a failing (RED) test, then hands the fix plan to `simpleplan`. Fixes nothing itself. |
 | `tdd` | Red-Green-Refactor discipline for a task marked `TDD: required` (or when you ask for test-first work). No production code without a failing test first. |
-| `executor` | Fork - runs one build, test, lint or any other command on haiku and returns a short result (`VERDICT:`, `EXPECT:`, the tool's summary line, the failures, a `LOG:` path under `.temp/superdev/logs/`) instead of the full output; the two task implementors and the three build reviewers route every gate command through it, and you can call it yourself with a `command:` line. |
+| `executor` | Fork, two modes, one reply shape (`VERDICT:`, `EXPECT:`, the tool's summary line, the failures, a `LOG:` path under `.temp/superdev/logs/`) instead of the full output. Run mode executes one build, test, lint or any other command on haiku, for you calling it yourself with a `command:` line. Analysis mode takes `log:` + `exit:` + `duration:` and runs nothing, reading a log an earlier direct `run.sh` call already wrote. The two task implementors and the three build reviewers call `run.sh` directly for every gate command first - a passing gate costs that one call and no fork at all - and dispatch `executor` in analysis mode only when that call comes back `RESULT: DEVIATION`. |
 
 ### Simple track
 

@@ -93,9 +93,11 @@ skill/agent list. This file is orientation for the assistant.
   `Edit`/`Write`/`NotebookEdit` in `disallowed-tools`, write no file themselves and escalate every
   interruption (a spend or session limit, a reviewer that returned no report, an undeclared change in the
   working tree) to the user. Both task implementors and the three build reviewers run build, test, lint and
-  type-check commands only through the `executor` fork skill (haiku), which keeps full tool logs out of the
-  caller's context and returns a short verdict instead; `executor` is itself model-invocable via its own
-  `description:`.
+  type-check commands through a direct `run.sh` Bash call first - a passing gate costs that one call and no
+  fork at all, settled by its own `RESULT: SUCCESS` line - and dispatch the `executor` fork skill (haiku)
+  only on `RESULT: DEVIATION`, in analysis mode over the log `run.sh` already wrote rather than running the
+  command a second time; the fork keeps full tool logs out of the caller's context and returns a short
+  verdict instead, and is itself model-invocable via its own `description:`.
 - **superui** - the design / frontend ecosystem, pairing Claude Code CLI (measurement, agentic fan-out) and
   Claude Design (live, inline-styled Design Components), via a **two-stage** screenshots-to-handoff-bundle
   pipeline: `/superui:design-extractor <screenshots-dir> [<target>]` turns a folder of UI screenshots into the
