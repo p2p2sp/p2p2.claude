@@ -48,7 +48,7 @@ What you read is set by `Stage`:
 
 ## Review
 
-**Plan alignment (gate - check FIRST on `checkpoint` and `final`, skipped on `re-review`):**
+**Plan alignment (check FIRST on `checkpoint` and `final`, skipped on `re-review`):**
 
 How much of the plan is due is set by `Stage`: at `final` the whole plan is; at `checkpoint` only the tasks whose commits are inside `git diff <since>..HEAD` are - the rest of the build is not written yet, and a task with no commit in the delta is never a misalignment, never a missing-functionality finding and never a reason to stop.
 
@@ -57,7 +57,7 @@ How much of the plan is due is set by `Stage`: at `final` the whole plan is; at 
 - Scope boundary: is anything under the header's `## Out of scope` implemented? Present -> misalignment.
 - Reverse direction: does every file in the change set map to a plan task's `Files` (test/config fallout is fine)? An unmapped change - or any deviation - NOT recorded in the notes is a misalignment in itself; a recorded one is judged on merit: justified improvement or problematic departure.
 
-On any misalignment: STOP. Write the report (misalignment under Critical), emit the verdict line, and return immediately - do not run the checks below. They only apply once the plan is met.
+A misalignment is an ordinary Critical finding: record it under `### Critical` with its ID and title per the contract, then carry on through every axis below and through the stage's own mandate. There is no early return on this axis - the Simple track sweeps the whole change in one pass, exactly as the Super track's reviewers do. Where a misalignment leaves a later axis genuinely unreviewable - the code that axis would judge is slated to be thrown away - say so for that axis in the report's `## Notes` section and review the rest; a shortened review is never the answer.
 
 **Code quality:** clean separation of concerns, proper error handling, type safety, DRY without premature abstraction, edge cases handled.
 
