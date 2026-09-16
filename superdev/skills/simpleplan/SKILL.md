@@ -22,6 +22,11 @@ This plan workflow is better, extended and more accurate version of default inst
 ### Initial Understanding
 Comprehensive understanding of the user's request is in your context. Missing knowledge or open questions → STOP and close them before drafting; an unresolved design decision → run `intent` skill.
 
+- **Refreshed-intent gate** - evaluated before anything else, and before any file is created or modified. Three branches, and only the last one continues:
+  - an `intent:` value that does not resolve to an existing file -> the gate is not evaluated: report that exact path back as not found and STOP. Never fall through into your own flow - the `intent` skill's own not-found branch does fall through and treats the argument as a request, but here there is no interview to fall into.
+  - a resolved path under `docs/.workflows/` -> `Glob` `<that path's own directory>/refresh.md` (the value is only ever used to derive its own directory's `refresh.md`, never joined with any other segment). No hit -> create and modify NOTHING, run the `intent` Skill with that same path as its sole argument, and STOP. This cannot loop: the `intent` skill writes `refresh.md` on every path that writes an `intent.md`, fresh and resumed alike, and ends at its own handoff, so a bounced run comes back with the file present and the user re-picks the track there.
+  - a hit, a resolved path outside `docs/.workflows/`, or no `intent:` line at all -> pass through untouched and carry on. Presence alone is the whole check - the file's content is never read.
+
 ### Rules
 - Load `templates/plan.md` and fill by sticking to the following rules.
 - Read review checklist from `${CLAUDE_PLUGIN_ROOT}/references/plan-review-checklist.md`.

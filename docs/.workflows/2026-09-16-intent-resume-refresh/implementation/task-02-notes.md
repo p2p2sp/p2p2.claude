@@ -1,0 +1,1 @@
+Approach step 3: the contrast is worded as "the `intent` skill's own not-found branch" instead of naming `superdev/skills/intent/SKILL.md` - why: a shipped skill body addresses its reader by skill name, and a plugin-internal source path means nothing to the model reading the gate at runtime.
