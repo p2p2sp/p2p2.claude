@@ -8,6 +8,10 @@
   success criterion that is unmeasurable or names an implementation detail; a missing acceptance
   scenario or unidentified edge case; scope not bounded on both sides; an unidentified dependency or
   assumption the spec relies on.
+
+  Carve-out on the first criterion: naming an existing artifact as part of the starting state inside
+  `## Problem / context (Why)` is not that leak. The leak is prescribing how the change will be
+  built, or naming an artifact inside a goal, a user scenario or an acceptance criterion.
 - Advisory (NOTES on a PASS, never blocks): wording, structure, and right-sizing suggestions that
   do not violate a Blocking criterion above.
 
@@ -17,6 +21,7 @@
 - Naming or phrasing preferences with no effect on testability or clarity.
 - A hypothetical gap with no quoted spec text behind it.
 - An alternative to a decision the spec has already fixed.
+- An existing artifact named in `## Problem / context (Why)` as the state the change starts from.
 
 ### Evidence rule
 

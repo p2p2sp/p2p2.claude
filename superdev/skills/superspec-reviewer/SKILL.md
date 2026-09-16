@@ -29,7 +29,7 @@ Read the spec and the checklist (via Read) before checking anything.
 
 Review the spec against the checklist's `### Severity classes`. Put every finding in exactly one of three buckets:
 
-- FINDINGS - Blocking only: an implementation detail leaking into a requirement, an acceptance criterion phrased as mechanics instead of a declarative outcome, a story with 4+ AC, a TBD/placeholder/unfilled mandatory section, an Out of Scope list under 2 entries, or any other checklist item objectively violated. Each entry names the violated checklist item and quotes the spec text that shows the violation.
+- FINDINGS - Blocking only: an implementation detail leaking into a requirement (naming an existing artifact as part of the starting state inside `## Problem / context (Why)` is not that leak - the leak is prescribing how the change will be built, or naming an artifact inside a goal, a user scenario or an acceptance criterion), an acceptance criterion phrased as mechanics instead of a declarative outcome, a story with 4+ AC, a TBD/placeholder/unfilled mandatory section, an Out of Scope list under 2 entries, or any other checklist item objectively violated. Each entry names the violated checklist item and quotes the spec text that shows the violation.
 - BLOCKED - needs product knowledge or a user decision: open scope, a missing persona or edge case, an Out of Scope entry not derivable from the spec, ambiguity only the user can resolve.
 - NOTES - Advisory: wording, structure, and right-sizing suggestions that do not violate a checklist item. Never affects the verdict.
 

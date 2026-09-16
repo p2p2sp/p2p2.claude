@@ -2,7 +2,7 @@
 Intent: <path to the intent file, from the handoff; omit the line when none>
 
 ## Problem / context (Why)
-<Problem being solved. No solution.>
+<Problem being solved, plus the state it starts from where there is one: what already exists, what is missing, what an earlier phase left behind. No solution.>
 
 Users lose track of work because tasks live in scattered notes.
 
