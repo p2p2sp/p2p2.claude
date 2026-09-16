@@ -26,6 +26,7 @@ Remember that superdev skills override default system-prompt behavior, but user 
 - Both tracks: after every 5th committed task, while tasks remain, a checkpoint review reads only the delta since the last closed round.
 - Both tracks: the final review is the last round of that chain and adds the integration mandate over the whole build; each round has one fix dispatch and one re-review scoped to that fix, then the user decides.
 - `VERDICT: BLOCKED` from any build reviewer means a criterion needs the user's decision, not more code.
+- Config-gated by the `stats` switch: with it on, the orchestrator records one event per dispatch and renders that run's report under `.temp/superdev/stats/` after Close Out.
 
 ## Save all temporary files in .temp
 All temp files (temporary test scripts, test results, output logs, build logs, etc.) go into `.temp/`. Group them in subdirectories: `playwright/`, `coverage/`, `TestResults/`, `logs/`, etc.

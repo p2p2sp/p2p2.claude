@@ -51,23 +51,40 @@ skill/agent list. This file is orientation for the assistant.
   and `simpleplan` gate on that file: an `intent:` path under `docs/.workflows/` with no `refresh.md` next to
   it means neither creates nor modifies anything - it runs `intent` on that same path and stops. A `cleanup`
   config switch makes both build orchestrators remove
-  a completed run's working directory after close-out via `scripts/cleanup-run.sh`. When an intent is too
+  a completed run's working directory after close-out via `scripts/cleanup-run.sh`. A `stats` config switch
+  makes both of them record one event per dispatch through `scripts/stats-record.sh`
+  (`.temp/superdev/stats/<run>.events`) and render that run's report through `scripts/stats-report.sh`
+  (`.temp/superdev/stats/<run>.md`, from `references/stats-template.md`) at Close Out, before any cleanup
+  removes the run directory that report reads; every call is one Bash call with arguments copied from the
+  harness notification, the orchestrator computing nothing, and a failing call is noted in the final summary
+  rather than retried. When an intent is too
   large for one spec, the `phases` skill splits it into phases, gates the split on `phases-reviewer` (a
   read-only fork), and saves `docs/.workflows/<run>/phases.md` plus one `phases/NN-<slug>/intent.md` per
   phase, each resuming through the normal `intent <path>` entry; `phases-status.sh` computes phase status
-  for `phases <phases.md>` to resume the run. Every plan task
+  for `phases <phases.md>` to resume the run. A plan carries its gate in its header: the `## Gate commands`
+  block above the first task, three fixed subsections (`#### Build`, `#### Tests`, `#### Integration`), each
+  holding command lines or the single line `none - <reason>`, filled by the planner's judgment of what proves
+  the whole build; a task's own `### Task Checks` section is its private proof, run by the implementor and
+  collected by no review stage. Every plan task
   carries a build strength - `Model:` (`sonnet` | `opus`) and `Effort:` (`low` | `medium` | `high` |
-  `xhigh`) - chosen by the planner (the user's own, usually strongest, model) for that task's
-  reasoning load, rounded up when in doubt; `decompose.sh` prints both as index columns and the build
-  orchestrator dispatches the implementor agent - and, on the Super track, the per-task reviewer agent -
-  at exactly those values. The build itself is a chain of review rounds with disjoint mandates: the Super
+  `xhigh`) - chosen by the planner (the user's own, usually strongest, model) for the reasoning that task
+  demands of whoever executes it, never for its line or file count, plus an optional
+  `Review: <model> <effort>` marker setting that task's reviewer strength on its own; `decompose.sh` prints
+  all three as index columns and the build orchestrator dispatches the implementor agent at
+  `Model:` / `Effort:` and, on the Super track, the per-task
+  reviewer agent at `Review:` - at neither parameter, so at the agent's own frontmatter, when that column is
+  `-`. A fix dispatch after a task review runs at that task's own strength; after a checkpoint or a final
+  round, at the highest strength among the tasks whose `### Files` a finding in that report points at. The
+  build itself is a chain of review rounds with disjoint mandates: the Super
   track's per-task gate, whose failure pass interrogates that task's own diff; a checkpoint review after
   every 5th committed task on both tracks, while tasks remain, reading only `git diff <since>..HEAD`; and
   the final review, the last round of that chain, which adds the integration mandate over the whole build
   (contracts another task consumes, `CARRY:` lines, failure branches crossing tasks). Each round is bounded
   by one fix dispatch plus one re-review scoped to that fix, after which the user decides. The three build
-  reviewers take `stage:` / `since:` / `prior:` / `decisions:` labels, keep stable finding IDs and a short
-  title across rounds, append Minor to `implementation/debt.md` without affecting a verdict, and return
+  reviewers take `stage:` / `since:` / `prior:` / `decisions:` labels, run the gate subsections their stage
+  owns before reading any code, keep stable finding IDs and a short title across rounds, write reports that
+  carry new information only (a section with nothing to say is left out), keep every Minor in the round's own
+  report under `## Debt` without affecting a verdict, and return
   `VERDICT: BLOCKED` when a criterion is unmet by a recorded decision rather than by missing code - the
   accepted wording is written to `implementation/decisions.md` through `record-decision.sh` and binds later
   rounds like plan text. `superdev/references/review-contract.md` owns that whole vocabulary - its
@@ -81,9 +98,9 @@ skill/agent list. This file is orientation for the assistant.
   only on `RESULT: DEVIATION`, in analysis mode over the log `run.sh` already wrote rather than running the
   command a second time; the fork keeps full tool logs out of the caller's context and returns a short
   verdict instead, and is itself model-invocable via its own `description:`. Both task implementors instead
-  run the task's `#### Build` block and its `### Task Tests` lines directly with `Bash`, reading the output
-  themselves - never the full suite and never the executor - and record every run under a `## Runs` section
-  in the task's notes, which the per-task reviewer checks. The host's integration or e2e command is a gate
+  run the task's `### Task Checks` lines directly with `Bash`, reading the output themselves - never the
+  plan's gate, never the full suite and never the executor - and record every run under a `## Runs` section
+  in the task's notes, which the per-task reviewer checks. The gate's `#### Integration` subsection runs
   at the final review and its re-review only, the checkpoint round deferring it.
 - **superui** - the design / frontend ecosystem: **one skill**, `pro-designer`, the professional UI/UX
   standards advisor (visual hierarchy, color systems and dark mode, type ramps, 4/8pt spacing,
@@ -189,8 +206,9 @@ docs/.workflows/     Per-run working directories of superdev builds executed ON 
                      spec.md, plan copy, tasks and implementation reports live together inside
                      docs/.workflows/<run>/, with base.md and checkpoint.md (the last closed review round)
                      at the run root and implementation/ holding the task and fix notes, one report per
-                     review round (checkpoint-KK.md, review-01*.md and their -reN re-reviews), debt.md
-                     (every round's Minor findings) and decisions.md (findings and criteria the user
+                     review round (checkpoint-KK.md, review-01*.md and their -reN re-reviews - each round's
+                     Minor findings stay in its own report, under its `## Debt` section) and decisions.md
+                     (findings and criteria the user
                      accepted - at a BLOCKED verdict or when closing a round with findings still open)
                      - removed by `cleanup-run.sh` after a completed build when
                      `cleanup: true`; the changelog is the history. A run too large for one spec also gets
@@ -276,7 +294,8 @@ The invariants below hold across the repo.
   (superdev's opt-in switches live in `.claude/superdev.yml`, read by `scripts/read-config.sh`; rules in
   `.claude/rules/`), and `.temp/` for every temporary artifact, grouped in per-plugin subdirs
   (`.temp/superdev/{memory,rules}/capture-<RUN_ID>.md`, `.temp/superdev/logs/<timestamp>-<slug>-<pid>.log`
-  (the `executor` fork's command logs),
+  (the `executor` fork's command logs), `.temp/superdev/stats/<run>.events` and `.temp/superdev/stats/<run>.md`
+  (the build's execution stats, gated by the `stats` switch),
   `.temp/superbiz/<slug>-<YYYY-MM-DD>/` for `idea-validator`'s working files 00-13). A new persisted
   user-facing artifact means a new `docs/<layer>/`; new machine state means `.temp/<plugin>/` - never a
   dot-dir at the host root.

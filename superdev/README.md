@@ -55,20 +55,26 @@ Same interview on the way in, two execution tracks, one shared Close Out.
 5. **The build runs task by task.** The orchestrator (`simplebuild` / `superbuild`) decomposes the plan into
    `docs/.workflows/<run>/tasks/task-NN.md`, runs an implementor agent per task at the model and effort the plan
    assigned to that task (`Model:` / `Effort:` markers), and commits each task on its own, staging only the files
-   that task and its notes declared. On the Super track every task also passes a reviewer agent dispatched at
-   that same strength, whose **failure pass** interrogates the task's own diff: each new `catch` or fallback
+   that task and its notes declared. An implementor runs that task's own `### Task Checks` and nothing else - the
+   whole-build gate belongs to the review rounds. On the Super track every task also passes a reviewer agent
+   dispatched at the task's optional `Review: <model> <effort>` marker (absent, the reviewer's own `sonnet` /
+   `high` default), whose **failure pass** interrogates the task's own diff: each new `catch` or fallback
    branch (what comes back, what gets logged), each widened closed set (who consumes it), each changed response
    mechanism (which methods, which codes), each outside value reaching a path, query or command (validated?) and
    each new test (can it fail?).
-6. **Reviews run in rounds, each on a small delta.** After every 5th committed task, while tasks remain, a
+6. **Reviews run in rounds, each on a small delta.** Every round first runs the `## Gate commands` block the
+   plan carries above its first task - the whole build's gate: `#### Build` and `#### Tests` at a checkpoint,
+   plus `#### Integration` at the final round and its re-review - and only then reads code. After every 5th
+   committed task, while tasks remain, a
    checkpoint review reads `git diff <since>..HEAD` and writes `implementation/checkpoint-KK.md`. The final
    review is the last round of that same chain and adds the integration mandate over the whole build: contracts
    another task consumes, the `CARRY:` lines implementors left behind, failure branches that cross tasks. Every
    round carries one budget - one fix dispatch and one re-review scoped to that fix - and then the decision is
    yours (another round / accept with open findings / abort). Findings keep stable IDs and a short title
    (`` `Missing timeout test` (C1) ``) for the life of the build, a re-review opens with an `ADDRESSED` /
-   `NOT ADDRESSED` / `ACCEPTED` table per ID, and Minor findings go to `implementation/debt.md` without
-   touching any verdict. Every escalation names a task or a finding that same way, never by a bare number
+   `NOT ADDRESSED` / `ACCEPTED` table per ID, and Minor findings stay in the round's own report under its
+   `## Debt` section without touching any verdict. A report carries new information only - a section with
+   nothing to say is left out. Every escalation names a task or a finding that same way, never by a bare number
    or ID. A reviewer returns `VERDICT: BLOCKED` when a
    criterion is unmet because of a decision, not because code is missing: you answer once, and every
    acceptance - there, or when you close a round with findings still open - is recorded in
@@ -77,7 +83,8 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    interruption to you - a spend or session limit, a reviewer that returned no report, an undeclared change in
    your working tree - instead of finishing the work itself.
 7. **Close Out** runs two waves: `memory` and `rules` in parallel, then `changelog` (which links every ADR
-   the build wrote), and commits what they touched; when `cleanup: true` it then removes the run's working
+   the build wrote), and commits what they touched; with `stats: true` it renders the run's execution report
+   to `.temp/superdev/stats/<run>.md`, and when `cleanup: true` it then removes the run's working
    directory and commits that removal.
 
 Reporting a bug instead? Just say so - `simpledebug` fires first, traces the flow step by step, proves the
@@ -94,6 +101,7 @@ diagnosis with a failing test, and hands the proven fix plan to `simpleplan`.
 | `rules` | refreshes the path-scoped `.claude/rules/` convention files |
 | `changelog` | writes one append-only entry at `docs/changelog/<run>.md` (intent, decisions, ADR link, deviations, areas) plus an index line in `docs/changelog/README.md` |
 | `cleanup` | removes the run's working directory after a completed build (a phase's directory, and the run root after its last phase) and commits the removal |
+| `stats` | records one event per dispatch of the build (model, effort, tokens, tool uses, duration, verdict) to `.temp/superdev/stats/<run>.events` and renders that run's report to `.temp/superdev/stats/<run>.md` after Close Out |
 
 A failing delegation never blocks the build - it lands in the final summary instead.
 
@@ -113,16 +121,16 @@ never called by hand.
 | `setup` | `/superdev:setup` - one-time, user-only repository bootstrap and config-switch picker. Idempotent. |
 | `simpledebug` | Fires on any bug, crash, regression or "it behaves wrong". Traces the whole flow instead of guessing, proves the diagnosis with a failing (RED) test, then hands the fix plan to `simpleplan`. Fixes nothing itself. |
 | `tdd` | Red-Green-Refactor discipline for a task marked `TDD: required` (or when you ask for test-first work). No production code without a failing test first. |
-| `executor` | Fork, two modes, one reply shape (`VERDICT:`, `EXPECT:`, the tool's summary line, the failures, a `LOG:` path under `.temp/superdev/logs/`) instead of the full output. Run mode executes one build, test, lint or any other command on haiku, for you calling it yourself with a `command:` line. Analysis mode takes `log:` + `exit:` + `duration:` and runs nothing, reading a log an earlier direct `run.sh` call already wrote. The three build reviewers call `run.sh` directly for every gate command first - a passing gate costs that one call and no fork at all - and dispatch `executor` in analysis mode only when that call comes back `RESULT: DEVIATION`; the two task implementors never call it, running the task's `#### Build` and `### Task Tests` lines directly with `Bash` and reading the output themselves. |
+| `executor` | Fork, two modes, one reply shape (`VERDICT:`, `EXPECT:`, the tool's summary line, the failures, a `LOG:` path under `.temp/superdev/logs/`) instead of the full output. Run mode executes one build, test, lint or any other command on haiku, for you calling it yourself with a `command:` line. Analysis mode takes `log:` + `exit:` + `duration:` and runs nothing, reading a log an earlier direct `run.sh` call already wrote. The three build reviewers call `run.sh` directly for every command of the plan's `## Gate commands` block first - a passing gate costs that one call and no fork at all - and dispatch `executor` in analysis mode only when that call comes back `RESULT: DEVIATION`; the two task implementors never call it, running the task's `### Task Checks` lines directly with `Bash` and reading the output themselves. |
 
 ### Simple track
 
 | Skill | Role |
 | --- | --- |
-| `simpleplan` | Writes the plan (`How`) from the confirmed understanding - no spec, the plan carries its own DoD; every task carries `### Task Tests`, one command per test file, and a `TDD: required` task owns exactly one test file. Self-reviews, then calls the reviewer. |
+| `simpleplan` | Writes the plan (`How`) from the confirmed understanding - no spec, the plan carries its own DoD; the header's `## Gate commands` block (`#### Build`, `#### Tests`, `#### Integration`) is the whole build's gate, every task carries `### Task Checks` holding only its own proof, and a `TDD: required` task owns exactly one test file. Self-reviews, then calls the reviewer. |
 | `simpleplan-reviewer` | Fork - read-only plan review against the checklist; returns `VERDICT: PASS` / `FAIL` plus findings. Max 3 rounds. |
 | `simplebuild` | Sonnet orchestrator - decomposes the approved plan, drives the task loop, runs the checkpoint and final review rounds; writes no file itself and escalates every interruption to you; status lines only, no prose. |
-| `superdev:simplebuild-task-implementor` | Agent - implements one task, reviews its own work, runs the task's `#### Build` block and its `### Task Tests` lines directly with `Bash` (up to 5 rounds), never the full suite, and records every run under `## Runs` in its notes; dispatched with the `Agent` tool at the task's `Model:` / `Effort:` (frontmatter default `sonnet` / `high`). In fix mode it works a review report: every Critical and Important ID, each proven by a test that failed before the fix, and one `touched:` line per file it changed. |
+| `superdev:simplebuild-task-implementor` | Agent - implements one task, reviews its own work, runs the task's `### Task Checks` lines directly with `Bash` (up to 5 rounds), never the plan's gate and never the full suite, and records every run under `## Runs` in its notes; dispatched with the `Agent` tool at the task's `Model:` / `Effort:` (frontmatter default `sonnet` / `high`). In fix mode it works a review report: every Critical and Important ID, each proven by a test that failed before the fix, and one `touched:` line per file it changed. |
 | `simplebuild-reviewer` | Fork - the Simple track's code reviewer, run as the checkpoint every 5 committed tasks, as the final integration round, and as the re-review after a fix (`stage: checkpoint\|final\|re-review`, plus `since:`, `prior:` and `decisions:`); returns `PASS`, `FAIL` or `BLOCKED` and one report per round. |
 
 ### Super track
@@ -132,12 +140,12 @@ never called by hand.
 | `superspec` | Writes the `What & Why` spec (INVEST stories, max 3 acceptance criteria each, zero TBDs) to `docs/.workflows/<run>/spec.md`, then gates on continuing to the plan. |
 | `superspec-reviewer` | Fork - spec review; no handoff without `VERDICT: PASS`. |
 | `superspec-refine` | Evolves an existing spec instead of writing a new one. |
-| `superplan` | Writes the plan (`How`) from the approved spec, marking each task `TDD: required` or `TDD: none` and assigning it a build strength - `Model:` (`sonnet` / `opus`) and `Effort:` (`low` … `xhigh`), rounded up when in doubt; every task carries `### Task Tests`, one command per test file, and a `TDD: required` task owns exactly one test file. |
+| `superplan` | Writes the plan (`How`) from the approved spec, marking each task `TDD: required` or `TDD: none` and assigning it a build strength - `Model:` (`sonnet` / `opus`) and `Effort:` (`low` … `xhigh`) - read off the reasoning the task demands, never off its line count; the optional `Review: <model> <effort>` marker sets that task's reviewer strength separately and absent it the reviewer keeps its own `sonnet` / `high` default. The header's `## Gate commands` block is the whole build's gate, every task carries `### Task Checks` holding only its own proof, and a `TDD: required` task owns exactly one test file. |
 | `superplan-reviewer` | Fork - checks the plan against the spec and the repo; `needs-discovery` routes back to `intent` rather than looping. |
 | `superbuild` | Sonnet orchestrator - decomposes the approved plan (requires a `spec:` line, otherwise the plan belongs to `simplebuild`), drives the task loop, runs the checkpoint and final review rounds; writes no file itself and escalates every interruption to you. |
-| `superdev:superbuild-task-implementor` | Agent - implements one task; on `TDD: required` it goes test-first and must see RED; runs the task's `#### Build` block and its `### Task Tests` lines directly with `Bash` (up to 5 rounds), never the full suite, and records every run under `## Runs` in its notes; dispatched with the `Agent` tool at the task's `Model:` / `Effort:` (frontmatter default `opus` / `high`). In fix mode it works a review report: every Critical and Important ID, each proven by a test that failed before the fix, and one `touched:` line per file it changed. |
-| `superdev:superbuild-task-reviewer` | Agent - reviews every single task and runs the failure pass over its diff; `FAIL` sends the implementor back (max 3 rounds per task); dispatched with the `Agent` tool at the task's `Model:` / `Effort:`, the same values as the implementor (frontmatter default `opus` / `high`). Behaviour the task's `### Failure modes` recorded is a decision - disagreeing with it is a `NOTE: plan defect` line, never a finding. |
-| `superbuild-reviewer-spec` | Fork - final review of the whole change against the spec; runs the full suite before reading any code and returns `BLOCKED` when a criterion is unmet by decision rather than by missing code. |
+| `superdev:superbuild-task-implementor` | Agent - implements one task; on `TDD: required` it goes test-first and must see RED; runs the task's `### Task Checks` lines directly with `Bash` (up to 5 rounds), never the plan's gate and never the full suite, and records every run under `## Runs` in its notes; dispatched with the `Agent` tool at the task's `Model:` / `Effort:` (frontmatter default `opus` / `high`). In fix mode it works a review report: every Critical and Important ID, each proven by a test that failed before the fix, and one `touched:` line per file it changed. |
+| `superdev:superbuild-task-reviewer` | Agent - reviews every single task and runs the failure pass over its diff; `FAIL` sends the implementor back (max 3 rounds per task); dispatched with the `Agent` tool at the task's optional `Review: <model> <effort>` marker, and at its own frontmatter default (`sonnet` / `high`) when the plan sets none - reviewing a finished diff usually costs less than writing it. It holds the task instead when it has only notes to add, appending them as `## Review notes` and writing no report. Behaviour the task's `### Failure modes` recorded is a decision - disagreeing with it is a `NOTE: plan defect` line, never a finding. |
+| `superbuild-reviewer-spec` | Fork - final review of the whole change against the spec; runs the plan's `## Gate commands` block for its stage before reading any code and returns `BLOCKED` when a criterion is unmet by decision rather than by missing code. |
 | `superbuild-reviewer-change` | Fork - the Super track's code reviewer, run as the checkpoint every 5 committed tasks, as the final integration round over the whole build, and as the re-review after a fix (`stage: checkpoint\|final\|re-review`, plus `since:`, `prior:` and `decisions:`); returns `PASS`, `FAIL` or `BLOCKED` and one report per round. |
 
 ### Knowledge layers (also runnable on their own)
