@@ -50,7 +50,14 @@ skill/agent list. This file is orientation for the assistant.
   knowledge layer, the changelog - `superdev:changelog-writer` (an agent, no interactive front) writes
   one append-only entry per completed build to the host repo's `docs/changelog/<run>.md` (intent, decisions
   with the ADR link, deviations, areas) plus one index line in `docs/changelog/README.md`, wired into both
-  build close-outs behind an opt-in `changelog` config switch. The `intent` skill persists its confirmed
+  build close-outs behind an opt-in `changelog` config switch. A main-context `adr` skill
+  (`superdev/skills/adr/`), invoked by `intent` only at the synthesis when `adr: true`, judges each
+  confirmed decision against three criteria - hard to reverse, surprising without context, the result of a
+  real trade-off - and offers a one-paragraph draft for every decision that passes all three; accepted
+  drafts land in `intent.md`'s `## ADR` section and become the plan's first task, written to
+  `docs/adr/<YYYY-MM-DD-HHMMSS>-<slug>.md` from the template at `superdev/references/adr-task.md`, with
+  `changelog-writer` finding and linking every ADR the build wrote through `git diff` over `docs/adr/`
+  rather than writing there itself. The `intent` skill persists its confirmed
   interview synthesis to `docs/.workflows/<run>/intent.md`, lets the user stop there and resume later
   with `intent <path>`, and reads prior changelog entries and ADRs through an explicit history Explore agent
   as decision context (never as requirements). Every write of `intent.md`, fresh or resumed, also writes
@@ -186,7 +193,7 @@ Each plugin's own internal layout lives in its `<plugin>/CLAUDE.md` (`superdev` 
 .claude-plugin/
   marketplace.json   Marketplace catalog - co-lists superdev "./superdev", superui "./superui", supergh "./supergh", superfix "./superfix", superbiz "./superbiz", supercc "./supercc"
 superdev/            The superdev plugin (project memory, planning, dev pipeline; carries agents/ for its
-                     two task implementors, one task reviewer and four closeout writers)
+                     two task implementors, one task reviewer and three closeout writers)
 superui/             The superui plugin (design / frontend; NO hooks, NO manifest)  → superui/CLAUDE.md
 supergh/             The supergh plugin (GitHub / git; NO hooks, NO manifest)       → supergh/CLAUDE.md
 superfix/            The superfix plugin (codebase investigation; NO hooks/manifest) → superfix/CLAUDE.md
@@ -266,7 +273,8 @@ The invariants below hold across the repo.
 
 - **Host-repo `docs/` is the one home for user-facing persisted knowledge.** Every long-lived document a
   plugin writes into the consuming repo lands under `docs/<layer>/`, never in a host-root dot-dir and never
-  in a plugin-named dir: `docs/adr/` (superdev's `superdev:adr-writer` agent, gated by the `adr` config switch),
+  in a plugin-named dir: `docs/adr/` (superdev's `adr` skill plus the plan's first task it seeds, gated by
+  the `adr` config switch),
   `docs/design-system/` (superui's `design-extractor`; `docs/design-system/<target>/` with the optional
   `<target>` argument), `docs/changelog/` (superdev's changelog layer, gated by the `changelog` switch -
   `superdev:changelog-writer` appends one entry per completed build plus one index line in
@@ -369,9 +377,9 @@ The invariants below hold across the repo.
   `skills[]`, invoked with the `Skill` tool under one shared stage contract
   (`stage: checkpoint|final|re-review` plus `since:` / `prior:` / `decisions:`, verdict
   `PASS` / `FAIL` / `BLOCKED`) that `superdev/references/review-contract.md` owns,
-  and superdev's four closeout writers -
-  `adr-writer`, `memory-writer`, `rules-writer`, `changelog-writer` - live there too:
-  `superbuild` and `simplebuild` dispatch `adr-writer` / `memory-writer` / `rules-writer` together as
+  and superdev's three closeout writers -
+  `memory-writer`, `rules-writer`, `changelog-writer` - live there too:
+  `superbuild` and `simplebuild` dispatch `memory-writer` / `rules-writer` together as
   wave 1 with the `Agent` tool in one message, then `changelog-writer` alone as wave 2, and
   `superdev-memory` / `superdev-rules` each dispatch their matching writer (`memory-writer` /
   `rules-writer`) the same way; superbiz ships no agents at all - its council members are

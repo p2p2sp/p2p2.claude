@@ -33,7 +33,10 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    then interviews you in prose - one question per turn, 2-3 numbered options with a recommendation - until
    every load-bearing decision is settled.
 3. **Confirm the synthesis and pick a track, or stop here** (this gate is yours, the model never routes past
-   it) - the confirmed synthesis is saved to `docs/.workflows/<run>/intent.md` and `intent <path>`
+   it) - with `adr: true`, after the confirmation the `adr` skill judges each decision against the three
+   criteria and offers a one-paragraph ADR only for the ones that pass; accepted drafts land in `intent.md`'s
+   `## ADR` section and become the plan's first task, written to `docs/adr/<YYYY-MM-DD-HHMMSS>-<slug>.md`
+   during the build. The confirmed synthesis is saved to `docs/.workflows/<run>/intent.md` and `intent <path>`
    resumes it later, refreshing the context first: a `refresh.md` written beside `intent.md` (changelog
    entries and ADRs since the intent's date, the delivered state, movement in git) before it shows you the
    decisions; `superspec` and `simpleplan` refuse an `intent:` path under `docs/.workflows/` with no
@@ -73,9 +76,9 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    orchestrator writes no file at any step (agents, forks and the bundled scripts do) and escalates every
    interruption to you - a spend or session limit, a reviewer that returned no report, an undeclared change in
    your working tree - instead of finishing the work itself.
-7. **Close Out** runs two waves: `adr`, `memory` and `rules` in parallel, then `changelog` (which also links
-   the ADR when one was written), and commits what they touched; when `cleanup: true` it then removes the
-   run's working directory and commits that removal.
+7. **Close Out** runs two waves: `memory` and `rules` in parallel, then `changelog` (which links every ADR
+   the build wrote), and commits what they touched; when `cleanup: true` it then removes the run's working
+   directory and commits that removal.
 
 Reporting a bug instead? Just say so - `simpledebug` fires first, traces the flow step by step, proves the
 diagnosis with a failing test, and hands the proven fix plan to `simpleplan`.
@@ -84,9 +87,9 @@ diagnosis with a failing test, and hands the proven fix plan to `simpleplan`.
 
 `.claude/superdev.yml` in the consuming repo, all `false` by default, set once via `/superdev:setup`:
 
-| Switch | When `true`, Close Out also… |
+| Switch | When `true`… |
 | --- | --- |
-| `adr` | records an architectural decision at `docs/adr/<timestamp>-<title-slug>.md` (no file when the plan holds no real decision) |
+| `adr` | offers an ADR in the intent synthesis for a decision that is hard to reverse, surprising without context and a real trade-off; the plan's first task writes it to `docs/adr/<YYYY-MM-DD-HHMMSS>-<slug>.md` |
 | `memory` | refreshes the `CLAUDE.md` project-memory cascade |
 | `rules` | refreshes the path-scoped `.claude/rules/` convention files |
 | `changelog` | writes one append-only entry at `docs/changelog/<run>.md` (intent, decisions, ADR link, deviations, areas) plus an index line in `docs/changelog/README.md` |
@@ -104,6 +107,7 @@ never called by hand.
 | Skill | Role |
 | --- | --- |
 | `intent` | The always-on entry skill. Explores the codebase (including prior changelog entries and ADRs), puts the gap questions to you in short rounds of up to three, runs the design interview, persists the confirmed synthesis to `docs/.workflows/<run>/intent.md`, then gates on your track choice or stopping there - `intent <path>` resumes a saved synthesis later. Every write of `intent.md`, fresh or resumed, also writes `refresh.md` beside it: a resume refreshes the context with the delta since the intent's `Date:` (changelog entries and their ADRs, a check of its `Delivers:` and `## Constraints` against the repo, movement in git) before presenting the decisions; a fresh run writes the same file from what `## Explore first` already found. `superspec` and `simpleplan` gate on that file being present next to an `intent:` path under `docs/.workflows/`, bouncing back into `intent` with the same path when it is missing. Writes no code and no plan. |
+| `adr` | Invoked by `intent` at the synthesis, never by you - judges each confirmed decision against three criteria (hard to reverse, surprising without context, the result of a real trade-off) and offers a one-paragraph ADR draft for every decision that passes all three; accepted drafts become `intent.md`'s `## ADR` section and the plan's first task, which writes each one to `docs/adr/<YYYY-MM-DD-HHMMSS>-<slug>.md` during the build. |
 | `phases` | Splits a confirmed intent too large for one spec into phases, refines the split in conversation, gates it on `phases-reviewer`, then saves `docs/.workflows/<run>/phases.md` and one `phases/NN-<slug>/intent.md` per phase; also resumes a run from `phases <phases.md>` by showing phase status and proposing the next phase. |
 | `phases-reviewer` | Fork - read-only review of the phases file against the checklist; returns `VERDICT: PASS` / `FAIL` plus findings. Max 3 rounds. |
 | `setup` | `/superdev:setup` - one-time, user-only repository bootstrap and config-switch picker. Idempotent. |
@@ -143,5 +147,4 @@ never called by hand.
 | `superdev-memory` | Builds or audits the hierarchical `CLAUDE.md` cascade - one general root plus more specific child nodes in genuine architectural units, never a single monolith. |
 | `superdev-rules` | Discovers the codebase's real conventions with examples, confirms each with you, and writes many small path-scoped files under `.claude/rules/`. |
 | `superdev:changelog-writer` | Agent - writes one append-only build changelog entry at `docs/changelog/<run>.md` plus its index line at Close Out when `changelog: true`; never edits an existing entry. For a phase of a split run, the entry id is `<run>-<phase>`. |
-| `superdev:memory-writer` / `superdev:rules-writer` | Agents - the writing half of each layer; also invoked at Close Out when the matching switch is on. Close Out dispatches these two alongside `superdev:adr-writer` with the `Agent` tool in a single message, so they run in parallel. |
-| `superdev:adr-writer` | Agent - records the architectural decision at Close Out when `adr: true`; writes no file when the plan commits to none. |
+| `superdev:memory-writer` / `superdev:rules-writer` | Agents - the writing half of each layer; also invoked at Close Out when the matching switch is on. Close Out dispatches these two with the `Agent` tool in a single message, so they run in parallel. |
