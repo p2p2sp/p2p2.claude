@@ -53,7 +53,14 @@ skill/agent list. This file is orientation for the assistant.
   build close-outs behind an opt-in `changelog` config switch. The `intent` skill persists its confirmed
   interview synthesis to `docs/.workflows/<run>/intent.md`, lets the user stop there and resume later
   with `intent <path>`, and reads prior changelog entries and ADRs through an explicit history Explore agent
-  as decision context (never as requirements). A `cleanup` config switch makes both build orchestrators remove
+  as decision context (never as requirements). Every write of `intent.md`, fresh or resumed, also writes
+  `refresh.md` beside it: a resume dispatches a history Explore agent (changelog entries newer than the
+  intent's `Date:` and their ADRs) and a code Explore agent (its `Delivers:` and `## Constraints` claims
+  checked against the repo, plus `git log --since` movement the changelog does not record) before presenting
+  the decisions; a fresh run writes the same file from what its own exploration already found. `superspec`
+  and `simpleplan` gate on that file: an `intent:` path under `docs/.workflows/` with no `refresh.md` next to
+  it means neither creates nor modifies anything - it runs `intent` on that same path and stops. A `cleanup`
+  config switch makes both build orchestrators remove
   a completed run's working directory after close-out via `scripts/cleanup-run.sh`. When an intent is too
   large for one spec, the `phases` skill splits it into phases, gates the split on `phases-reviewer` (a
   read-only fork), and saves `docs/.workflows/<run>/phases.md` plus one `phases/NN-<slug>/intent.md` per
@@ -188,7 +195,8 @@ README.md            User-facing catalog page (what the repo is, install, one ro
 .github/             CI: scripts/release.sh + workflows/ (release-version.yml - manual dispatch only)
 .claude/rules/       Development-only conventions for this repo
 docs/.workflows/     Per-run working directories of superdev builds executed ON this repo - each run's
-                     intent.md, spec.md, plan copy, tasks and implementation reports live together inside
+                     intent.md (with its refresh.md written beside it on every write, fresh or resumed),
+                     spec.md, plan copy, tasks and implementation reports live together inside
                      docs/.workflows/<run>/, with base.md and checkpoint.md (the last closed review round)
                      at the run root and implementation/ holding the task and fix notes, one report per
                      review round (checkpoint-KK.md, review-01*.md and their -reN re-reviews), debt.md
@@ -260,7 +268,8 @@ The invariants below hold across the repo.
   `<target>` argument), `docs/changelog/` (superdev's changelog layer, gated by the `changelog` switch -
   `superdev:changelog-writer` appends one entry per completed build plus one index line in
   `docs/changelog/README.md`), `docs/.workflows/` (superdev's per-run working directory
-  `docs/.workflows/<run>/` - the intent file the `intent` skill persists (`intent.md`), the spec
+  `docs/.workflows/<run>/` - the intent file the `intent` skill persists (`intent.md`), the `refresh.md`
+  it writes beside that file on every write, fresh or resumed, the spec
   (`spec.md`), the plan copy written by `decompose.sh`, task files and implementation reports all live
   inside it; marked `linguist-generated` in `.gitattributes` so GitHub collapses them in review, and removed
   by `cleanup-run.sh` after a completed build when the `cleanup` switch is on. When the run is split into

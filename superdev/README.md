@@ -34,7 +34,10 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    every load-bearing decision is settled.
 3. **Confirm the synthesis and pick a track, or stop here** (this gate is yours, the model never routes past
    it) - the confirmed synthesis is saved to `docs/.workflows/<run>/intent.md` and `intent <path>`
-   resumes it later:
+   resumes it later, refreshing the context first: a `refresh.md` written beside `intent.md` (changelog
+   entries and ADRs since the intent's date, the delivered state, movement in git) before it shows you the
+   decisions; `superspec` and `simpleplan` refuse an `intent:` path under `docs/.workflows/` with no
+   `refresh.md` next to it and run `intent` on that same path instead:
    - **Simple** - small, contained, reversible changes. `simpleplan` writes the plan; the plan carries its
      own acceptance criteria, no spec.
    - **Super** - medium/large, cross-cutting or hard-to-reverse changes. `superspec` writes the
@@ -97,7 +100,7 @@ never called by hand.
 
 | Skill | Role |
 | --- | --- |
-| `intent` | The always-on entry skill. Explores the codebase (including prior changelog entries and ADRs), puts the gap questions to you in short rounds of up to three, runs the design interview, persists the confirmed synthesis to `docs/.workflows/<run>/intent.md`, then gates on your track choice or stopping there - `intent <path>` resumes a saved synthesis later. Writes no code and no plan. |
+| `intent` | The always-on entry skill. Explores the codebase (including prior changelog entries and ADRs), puts the gap questions to you in short rounds of up to three, runs the design interview, persists the confirmed synthesis to `docs/.workflows/<run>/intent.md`, then gates on your track choice or stopping there - `intent <path>` resumes a saved synthesis later. Every write of `intent.md`, fresh or resumed, also writes `refresh.md` beside it: a resume refreshes the context with the delta since the intent's `Date:` (changelog entries and their ADRs, a check of its `Delivers:` and `## Constraints` against the repo, movement in git) before presenting the decisions; a fresh run writes the same file from what `## Explore first` already found. `superspec` and `simpleplan` gate on that file being present next to an `intent:` path under `docs/.workflows/`, bouncing back into `intent` with the same path when it is missing. Writes no code and no plan. |
 | `phases` | Splits a confirmed intent too large for one spec into phases, refines the split in conversation, gates it on `phases-reviewer`, then saves `docs/.workflows/<run>/phases.md` and one `phases/NN-<slug>/intent.md` per phase; also resumes a run from `phases <phases.md>` by showing phase status and proposing the next phase. |
 | `phases-reviewer` | Fork - read-only review of the phases file against the checklist; returns `VERDICT: PASS` / `FAIL` plus findings. Max 3 rounds. |
 | `setup` | `/superdev:setup` - one-time, user-only repository bootstrap and config-switch picker. Idempotent. |

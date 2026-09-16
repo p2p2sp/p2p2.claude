@@ -1,0 +1,1 @@
+Task's Test Commands list none for both Build and Tests; ran the repo's standard suite `node --test "tests/**/*.test.ts"` through executor anyway (698 passed) - why: PASS must be proven green through executor rather than asserted, matching Task 3's precedent for a documentation-only task.
