@@ -13,7 +13,7 @@ it carries its own reduced copy of the report skeleton and the ID scheme inline,
 shape its gate writes, and any change to those two sections here is mirrored there by hand.
 
 Stack-agnostic: every rule below refers only to the plan template's own sections (`### Files`,
-`### Test Commands`, `### TDD Commands`, `### Contracts`, `### Failure modes`, `### DoD`), to the
+`### Test Commands`, `### Task Tests`, `### Contracts`, `### Failure modes`, `### DoD`), to the
 run's working directory, and to `git` - never to a specific ecosystem's tools and never to a
 heuristic for recognising a test file.
 
@@ -109,6 +109,7 @@ BLOCKED alike. That path is the reviewer's only output file; any scratch file it
   the plan tasks that declared it: on a command that never reached the fork, `run.sh`'s own
   `RESULT:`, `EXIT:` and `TAIL:` lines - there is no executor reply to quote on that path - and on a
   command that was dispatched, the fork's `VERDICT:` and `SUMMARY:`; the single sentence
+  `integration and e2e deferred to final` on `stage: checkpoint`; the single sentence
   `no e2e or integration suite in this host` when the host documents none; one line saying the
   review is unbounded over the working tree when `since` is `none`.
 - `## Prior findings` - only when `prior` was given: a table `| ID | Title | Verdict | Evidence |`
@@ -138,11 +139,12 @@ each in the report's gates section. The commands:
 - the plan's build command or commands (the `#### Build` block of every plan task's
   `### Test Commands`, and the plan's own build block when it has one);
 - every `Test Commands` block of the plan;
-- the host's integration or e2e command, when the plan or the host's memory files document one.
+- on `stage: final` and `stage: re-review` only, the host's integration or e2e command, when the
+  plan or the host's memory files document one; a checkpoint never runs it.
 
-A task's `### TDD Commands` section is never a gate: it belongs to the TDD cycle of the implementor
-writing that task, no stage collects it, and a command appearing there and nowhere else runs at no
-stage of a review.
+A task's `### Task Tests` section is never a gate: it belongs to the implementor writing that task
+(its TDD cycle and its end-of-task run), no stage collects it, and a command appearing there and
+nowhere else runs at no stage of a review.
 
 Two of them are the same command only when their strings match exactly, and each distinct string
 runs once per stage however many tasks declared it - a second run of the same string proves nothing
@@ -224,10 +226,14 @@ Rules:
 - This section is the sole owner of the gate-command BLOCKED conditions: the mapping above is the
   whole list, and `## Verdict rules` and every consumer's own gates paragraph point here instead of
   carrying a summary of their own.
+- On `stage: checkpoint` the integration or e2e command is not collected at all: the gates section
+  carries the single sentence `integration and e2e deferred to final` in place of that command's
+  line.
 - On `stage: re-review` the integration or e2e command is run again whatever the fix round changed:
   a result carried over from the prior round proves nothing about the fixed tree.
-- A host with no integration or e2e command documented gets the single sentence
-  `no e2e or integration suite in this host`, and is never BLOCKED for that reason.
+- On `stage: final` and `stage: re-review` alone, a host with no integration or e2e command
+  documented gets the single sentence `no e2e or integration suite in this host`, and is never
+  BLOCKED for that reason.
 - A criterion or behaviour that needs a run to be confirmed and got none is never marked met; the
   report says which run is missing.
 - `since: none` -> the review is unbounded over the working tree; the gates section says so.
