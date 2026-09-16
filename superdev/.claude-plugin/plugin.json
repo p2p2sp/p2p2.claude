@@ -9,6 +9,7 @@
   "skills": [
     "./skills/setup/",
     "./skills/intent/",
+    "./skills/adr/",
     "./skills/phases/",
     "./skills/phases-reviewer/",
     "./skills/superspec/",
