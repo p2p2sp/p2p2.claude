@@ -2,15 +2,16 @@
 name: intent
 description: You MUST ALWAYS use this skill every time a user wants to do something creative - a new idea, a new feature, build something from scratch, a change to an existing solution. Do not trigger when user want to implement something here and now or fast.
 argument-hint: [path-to-intent.md]
-allowed-tools: Read, Grep, Glob, Agent, Task, AskUserQuestion, Skill, ExitPlanMode, Write, Bash(date:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh:*)
+allowed-tools: Read, Grep, Glob, Agent, Task, AskUserQuestion, Skill, ExitPlanMode, Write, Bash(date:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/last-commit-date.sh:*)
 ---
 
 CRITICAL: Run `ExitPlanMode` first, if plan mode is active.
 
-Help turn ideas into fully formed designs and specs through natural collaborative dialogue. First thing to do is reach a shared understanding of `What` the user wants and `How` to build something, before any plan or code is drafted.
+Help turn ideas into fully formed designs and specs through natural collaborative dialogue. First thing to do is reach a shared understanding of `What` and `Why` the user wants and `How` to build something, before any plan or code is drafted.
 
 ## Run
 Date: !`date +%F`
+Last commit: !`"${CLAUDE_PLUGIN_ROOT}/scripts/last-commit-date.sh"`
 
 ## Config
 
@@ -33,11 +34,11 @@ The ADR step below runs ONLY when the `adr:` line above reads exactly `true`; an
 Reached only from `## Resume from a file`, and never skipped there. Its mandate is one question - **what changed since this intent was written** - and its output is one file, `refresh.md`, written next to the resumed intent on every pass through this section, the pass that finds nothing included. Never leave this section without that `Write`.
 
 1. **Baseline.** Read the resumed file's `Date:` line. A line matching `^Date: \d{4}-\d{2}-\d{2}` -> its value is `<Baseline>`. No such line, or a value in any other shape -> `<Baseline>` is `unknown`: keep going with no date bound anywhere (the whole `docs/changelog/` index in scope, `git log` without `--since`) and record `Baseline: unknown` in the file.
-2. **Is there anything to compare?** Decide it with `Glob` / `Read` / `Grep` alone - this skill runs no `git` command of its own. There is something to compare when ANY of these holds:
+2. **Is there anything to compare?** Decide it with `Glob` / `Read` / `Grep` and the `## Run` block alone - this step runs no command of its own, and the only git fact it uses is the `Last commit:` value the preload already resolved. There is something to compare when ANY of these holds:
    - `docs/changelog/` holds an entry dated after `<Baseline>` (`Glob` `docs/changelog/*.md` - the entry filenames carry their date - or read the index `docs/changelog/README.md`);
    - the resumed file sits under a `phases/<NN>-<slug>/` directory whose parent `phases/` also holds a LOWER-numbered phase directory;
-   - `<Baseline>` is `unknown`, or it is earlier than today's date under `## Run` - a day or more of repo life has passed, so commits no changelog entry records may exist.
-   None of them holds -> dispatch nothing, skip step 3, and go to step 4 with every section empty. This is the phase-01 case: nothing was built before it, so nothing is worth an agent.
+   - `<Baseline>` is `unknown`, or it is earlier than the `Last commit:` date under `## Run` - the repo moved after this intent was written, so commits no changelog entry records may exist. `Last commit:` reads `none` (no git, not a repository, no commit yet) -> this bullet HOLDS: an unknown repo state is never read as a static one. Today's date is NOT the bound here - a resume on a later day into a repo that has not moved is exactly the case this bullet must not fire on.
+   None of them holds -> dispatch nothing, skip step 3, and go to step 4 with every section empty. This covers the phase-01 case (nothing was built before it) and the untouched-repo case (nothing was built since): either way nothing is worth an agent.
 3. **Delta.** Launch both `Explore` agents in parallel, in ONE batch (one message, two `Agent` calls). Each reports findings only - neither proposes a change, and nothing either returns overrides a confirmed decision of the intent.
    - **History agent** - dispatched only when `docs/changelog/` or `docs/adr/` exists; neither present -> do not dispatch it at all and its section is `none`. Grep `docs/changelog/README.md` and the entry filenames for dates after `<Baseline>`, open every match, follow each entry's `ADR:` link, and independently `Grep docs/adr/` for the areas this intent's decisions rest on. The resumed file sits under a `phases/` segment -> also open the entries of this run's earlier phases, whatever their date. Report one line per entry or ADR: what it changed, its repo-relative path, and which area of this intent it touches.
    - **Code agent** - verify against the repo what the intent treats as already in place: every earlier phase's `Delivers:` named in its `## Constraints`, and every other `## Constraints` bullet - each reported as confirmed, or in the shape the repo really has. It also runs `git log --since=<Baseline> --oneline` ITSELF to catch movement no changelog entry records, and reports the topics it finds rather than the raw log. `<Baseline>` enters that command only when it matches `^\d{4}-\d{2}-\d{2}$` exactly; otherwise the command runs without `--since`. Not a git repository, no commits, or the command fails -> skip the log and verify by `Read` / `Grep` / `Glob` alone.
