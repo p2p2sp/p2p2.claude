@@ -44,7 +44,13 @@
 #     istniejący status.md jest zachowywany (wznowienie)
 #   - zapisuje bazowy SHA builda (HEAD sprzed commita dekompozycji) do base.md;
 #     istniejący base.md jest zachowywany (wznowienie); brak commitów -> none
-#   - rozdziela taski (sekcje TASK) do plików tasks/task-NN.md
+#   - rozdziela taski (sekcje TASK) do plików tasks/task-NN.md; each of the four
+#     block markers (the HEADER open/close and TASK open/close HTML comments)
+#     opens or closes a block ONLY when it is the whole line, trailing
+#     whitespace (a CR included) allowed. A marker quoted inside a longer line -
+#     a plan whose prose or task body talks about the markers themselves, even
+#     in backticks - is ordinary content: it opens nothing and is copied into
+#     the task file verbatim
 #   - do każdego taska dopisywana jest sekcja "### Covered criteria" z verbatim
 #     treścią kryteriów wskazanych w jego linii "Covers:"; źródło to spec
 #     (tor superbuild) albo sekcja "## Acceptance criteria" z nagłówka planu
@@ -329,12 +335,14 @@ echo "plan: $plan_copy"
 [[ -n "$spec_path" ]] && echo "spec: $spec_path"
 [[ -n "$intent_path" ]] && echo "intent: $intent_path"
 awk -v dir="$dir" -v hdr="$header" '
-  /<!-- HEADER -->/   { inhdr=1; next }
-  /<!-- \/HEADER -->/ { inhdr=0; next }
-  inhdr               { print >> hdr; next }
+  # a marker delimits a block only as a WHOLE line (trailing whitespace, a CR
+  # included, absorbed) - a plan quoting a marker mid-line is ordinary content
+  /^<!-- HEADER -->[[:space:]]*$/   { inhdr=1; next }
+  /^<!-- \/HEADER -->[[:space:]]*$/ { inhdr=0; next }
+  inhdr                             { print >> hdr; next }
 
-  /<!-- TASK -->/     { intask=1; n++; f=sprintf("%s/tasks/task-%02d.md", dir, n); files[n]=f; next }
-  /<!-- \/TASK -->/   { intask=0; next }
+  /^<!-- TASK -->[[:space:]]*$/     { intask=1; n++; f=sprintf("%s/tasks/task-%02d.md", dir, n); files[n]=f; next }
+  /^<!-- \/TASK -->[[:space:]]*$/   { intask=0; next }
   intask {
     print > f
     if (title[n] == "" && $0 ~ /^##[[:space:]]/) { t=$0; sub(/^##[[:space:]]*/, "", t); title[n]=t }

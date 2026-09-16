@@ -1093,3 +1093,57 @@ test("task Model:/Effort: markers land verbatim in the index columns; a task wit
     });
   });
 });
+
+test("whole-line markers: a task body quoting the TASK markers in prose still decomposes into the real block count", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-plan-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      // the line this anchoring is about: a task whose body talks about the
+      // markers. Matched unanchored, the backticked mention opened a third
+      // block and the run produced a phantom index row with an empty title.
+      const quoted = "The splitter opens a block on `<!-- TASK -->` and closes it on `<!-- /TASK -->`.";
+      const quotingBlock = [
+        // trailing spaces on the opening marker: it is still the whole line, so
+        // the block opens exactly as it does without them
+        "<!-- TASK -->   ",
+        "",
+        "## Task 1 - write about the markers",
+        "- Covers: #1",
+        quoted,
+        "<!-- /TASK -->",
+        "",
+      ].join("\n");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Marker Prose Plan",
+          criteria: ["One.", "Two."],
+          tasks: [quotingBlock, taskBlock("Task 2 - ship it", [2])],
+        }),
+      );
+
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+      const dir = `docs/.workflows/${todayISO()}-marker-prose-plan`;
+      const absTasks = path.join(repo.dir, dir, "tasks");
+
+      // exactly two real blocks -> two task files and two index rows, both titled
+      assert.deepEqual(fs.readdirSync(absTasks).sort(), ["task-01.md", "task-02.md"]);
+      const rows = result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`));
+      assert.deepEqual(rows, [
+        `${dir}/tasks/task-01.md\tTask 1 - write about the markers\t-\t-`,
+        `${dir}/tasks/task-02.md\tTask 2 - ship it\t-\t-`,
+      ]);
+
+      // the quoted line is ordinary content: verbatim in the task file, opening nothing
+      const task1Text = fs.readFileSync(path.join(absTasks, "task-01.md"), "utf-8");
+      assert.ok(
+        task1Text.split("\n").includes(quoted),
+        `expected the quoted marker line verbatim in task-01.md, got:\n${task1Text}`,
+      );
+      assert.match(task1Text, /### Covered criteria\n1\. One\.\n$/);
+    });
+  });
+});
