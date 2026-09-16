@@ -8,13 +8,14 @@ ADR w superdev powstaje dziś w close-oucie buildu: agent `adr-writer` czyta got
 - Osąd „czy to zasługuje na ADR” i szkic treści padają w skillu `intent` po potwierdzeniu syntezy, wyłącznie gdy przełącznik `adr` w `.claude/superdev.yml` jest włączony, i wyłącznie dla decyzji spełniających wszystkie trzy kryteria: trudna do odwrócenia, zaskakująca bez kontekstu, wynik realnego trade-offu.
 - Użytkownik akceptuje lub odrzuca każdą propozycję; zaakceptowany szkic trafia do `intent.md` w sekcji `## ADR`.
 - Plan napisany z takiego intentu zaczyna się jednym zadaniem zapisującym pliki ADR; build zapisuje je do `docs/adr/<YYYY-MM-DD-HHMMSS>-<slug>.md` ze stemplem chwili zapisu.
-- Wpis changelogu po buildzie nadal linkuje zapisany ADR.
+- Wpis changelogu po buildzie nadal linkuje każdy zapisany ADR.
 - Agent `adr-writer` znika z pluginu i z close-outu buildu; nowy skill `superdev:adr` jest zarejestrowany i udokumentowany.
 
 ## Out of scope
 - `docs/assets/superdev-flow.svg` (ręczny diagram, nie odświeżany w tej zmianie).
 - Agent historii w `intent` (dalej czyta `docs/adr/` i linki `ADR:` changelogu, bez zmian).
-- `superspec`, `superspec-refine`, `changelog-writer` i format wpisu changelogu (`changelog-entry-format.md`).
+- `superspec` i `superspec-refine`.
+- Format wpisu changelogu (`changelog-entry-format.md`) poza jednym punktem: bullet `ADR:` może wystąpić raz na każdy plik ADR zapisany w buildzie.
 - Migracja istniejących ADR nazwanych stemplem `YYYYMMDDHHMMSS`.
 - Usunięcie klucza `adr` z konfiguracji, `read-config.sh`, `config.yml`, `bootstrap.sh` i ich testów: klucz zostaje.
 
@@ -28,17 +29,17 @@ ADR w superdev powstaje dziś w close-oucie buildu: agent `adr-writer` czyta got
 ## Acceptance criteria
 Scenariusz 1:
 1. Trzy kryteria - przy `adr: true`, po potwierdzeniu syntezy, użytkownik otrzymuje propozycję ADR wyłącznie dla decyzji spełniających wszystkie trzy kryteria (trudna do odwrócenia, zaskakująca bez kontekstu, realny trade-off); run, w którym żadna decyzja ich nie spełnia, kończy się bez propozycji i bez sekcji `## ADR` w `intent.md`.
-2. Bramka konfiguracji - przy `adr: false` lub braku `.claude/superdev.yml` skill `adr` nie jest ładowany do kontekstu i żadna propozycja ADR nie pada.
-3. Kształt szkicu - zaakceptowany ADR ląduje w `intent.md` w sekcji `## ADR` jako `# <krótki tytuł decyzji>` plus 1-3 zdania (kontekst, decyzja, powód); sekcje `status`, `Considered Options`, `Consequences` pojawiają się tylko gdy wnoszą realną wartość, a odrzucona propozycja nie zostawia w `intent.md` żadnego śladu.
+2. Bramka konfiguracji - przy `adr: false` lub braku `.claude/superdev.yml` żadna propozycja ADR nie pada i `intent.md` nie ma sekcji `## ADR`.
+3. Kształt szkicu - każdy zaakceptowany ADR w sekcji `## ADR` pliku `intent.md` składa się obowiązkowo z nagłówka `# <krótki tytuł decyzji>` i 1-3 zdań (kontekst, decyzja, powód); frontmatter `status` występuje tylko gdy ADR zastępuje lub uchyla wcześniejszy ADR z `docs/adr/`, `Considered Options` tylko gdy wywiad ważył więcej niż jedną opcję, którą użytkownik chce zapamiętać, `Consequences` tylko gdy użytkownik wskazał w wywiadzie skutek downstream do zapamiętania; brak każdej z tych sekcji jest poprawny, a odrzucona propozycja nie zostawia w `intent.md` żadnego śladu.
 
 Scenariusz 2:
-4. Zadanie ADR w planie - plan napisany przez `simpleplan` lub `superplan` z intentu zawierającego `## ADR` zaczyna się zadaniem „Write ADR `<title>`” z `Model: sonnet`, `Effort: low`, `TDD: none`, niosącym pełną treść każdego ADR i ścieżkę `docs/adr/<YYYY-MM-DD-HHMMSS>-<slug>.md` w `### Files`; wiele ADR to wiele plików w tym jednym zadaniu.
+4. Zadanie ADR w planie - plan napisany przez `simpleplan` lub `superplan` z intentu zawierającego `## ADR` zaczyna się zadaniem „Write ADR `<title>`” z `Model: sonnet`, `Effort: low`, `TDD: none`, którego `### Files` deklaruje katalog `docs/adr/` (nazwa pliku jest generowana w buildzie, więc zgodnie z regułą B1 checklisty planu deklaruje ją katalog nadrzędny z ukośnikiem), a `### Approach` niesie pełną treść każdego ADR i wzór nazwy `docs/adr/<YYYY-MM-DD-HHMMSS>-<slug>.md`; wiele ADR to wiele plików w tym jednym zadaniu.
 5. Brak ADR, brak zadania - plan napisany z intentu bez sekcji `## ADR` nie zawiera zadania „Write ADR”.
 6. Reviewerzy planu - `simpleplan-reviewer` i `superplan-reviewer` nie zgłaszają pełnej treści ADR w `### Approach` zadania „Write ADR” jako blokującego naruszenia reguły „no prose in Approach”.
 
 Scenariusz 3:
 7. Plik ADR - po buildzie każdy ADR z zadania istnieje pod `docs/adr/<YYYY-MM-DD-HHMMSS>-<slug>.md`, gdzie stempel to data i czas (godzina, minuty, sekundy) chwili zapisu pliku, a treść pliku jest identyczna z treścią w zadaniu planu.
-8. Link w changelogu - przy `changelog: true` wpis changelogu tego buildu niesie bullet `ADR: <ścieżka>` wskazujący każdy plik zapisany w buildzie pod `docs/adr/`; build, który nie zapisał tam żadnego pliku, daje wpis bez bulletu `ADR:`.
+8. Link w changelogu - przy `changelog: true` wpis changelogu tego buildu niesie jeden bullet `ADR: <ścieżka>` na każdy plik zapisany w buildzie pod `docs/adr/`; build, który nie zapisał tam żadnego pliku, daje wpis bez bulletu `ADR:`.
 
 Scenariusz 4:
 9. Agent usunięty - `superdev/agents/adr-writer.md` nie istnieje, a nazwa `adr-writer` nie występuje w `superdev/.claude-plugin/plugin.json`, `superbuild/SKILL.md`, `simplebuild/SKILL.md`, `superdev/README.md` ani root `CLAUDE.md`; wave 1 close-outu obu orkiestratorów wysyła wyłącznie `memory-writer` i `rules-writer`.
@@ -46,11 +47,13 @@ Scenariusz 4:
 11. Konfiguracja nietknięta - `tests/superdev/read-config.test.ts` i `tests/superdev/bootstrap.test.ts` przechodzą bez zmian w treści testów, a `adr` pozostaje pierwszym kluczem w wyjściu `read-config.sh`.
 
 Scenariusz 5:
-12. Resume - wznowienie intentu bez otwierania decyzji zachowuje sekcję `## ADR` bez zmian; otwarcie decyzji ponownie poddaje ją osądowi trzech kryteriów, a sekcja `## ADR` odzwierciedla nowy wynik.
+12. Resume - wznowienie intentu bez otwierania decyzji zachowuje sekcję `## ADR` bez zmian, niezależnie od aktualnej wartości przełącznika `adr`; otwarcie decyzji przy `adr: true` ponownie poddaje ją osądowi trzech kryteriów i sekcja `## ADR` odzwierciedla nowy wynik, a otwarcie decyzji przy `adr: false` zostawia sekcję bez zmian.
 13. Fazy - po podziale intentu przez `phases` sekcja `## ADR` występuje wyłącznie w `phases/01-<slug>/intent.md`; intenty pozostałych faz jej nie mają.
 
 ## Constraints / assumptions
-- Skill `adr` działa w głównym kontekście sesji (musi rozmawiać z użytkownikiem), jest wywoływany tylko przez `intent` i nie jest wywoływalny przez użytkownika.
+- Skill `adr` działa w głównym kontekście sesji (musi rozmawiać z użytkownikiem), jest wywoływany tylko przez `intent` i nie jest wywoływalny przez użytkownika. Przy `adr: false` `intent` w ogóle go nie ładuje.
+- `superplan` dostaje spec, nie intent; do sekcji `## ADR` dociera przez linię `Intent:` speca, która wskazuje plik intentu.
+- `changelog-writer` przyjmuje etykietę `adr:` powtórzoną raz na każdy plik ADR; poza tym jego kontrakt nie zmienia się.
 - Treść plików skilli, agentów i CLAUDE.md po angielsku; `intent.md` i ADR w języku wywiadu.
 - Bez em dash i en dash w żadnym pliku.
 - Plugin pozostaje stack-agnostic: żadnych założeń o ekosystemie hosta w treści skilla.

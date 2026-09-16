@@ -105,7 +105,8 @@ BLOCKED alike. That path is the reviewer's only output file; any scratch file it
 `.temp/` and never in the repo tree. The report carries exactly these sections, in this order:
 
 - title line `# <stage> review - <report basename>`, e.g. `# checkpoint review - checkpoint-01.md`.
-- `## Gates` - one line per command run, with its result (see `## Gates`); the single sentence
+- `## Gates` - one line per distinct gate command (see `## Gates`), carrying that command's
+  `VERDICT:` and `SUMMARY:` verbatim and the plan tasks that declared it; the single sentence
   `no e2e or integration suite in this host` when the host documents none; one line saying the
   review is unbounded over the working tree when `since` is `none`.
 - `## Prior findings` - only when `prior` was given: a table `| ID | Title | Verdict | Evidence |`
@@ -129,21 +130,53 @@ the prior findings section; no consumer adds any other section.
 
 ## Gates
 
-Run before reading any code, at every stage, and record each command with its result in the
-report's gates section:
+Collect the gate commands first, run them all before reading any code, and record the result of
+each in the report's gates section. The commands:
 
 - the plan's build command or commands (the `#### Build` block of every plan task's
   `### Test Commands`, and the plan's own build block when it has one);
 - every `Test Commands` block of the plan;
 - the host's integration or e2e command, when the plan or the host's memory files document one.
 
+Two of them are the same command only when their strings match exactly, and each distinct string
+runs once per stage however many tasks declared it - a second run of the same string proves nothing
+the first did not. A filtered or narrowed variant of a suite is a distinct string: it runs on its
+own and never stands in for the full suite.
+
+Transport - every gate command goes through the `superdev:executor` skill with the `Skill` tool:
+
+- one `command:` per invocation, the string verbatim, with `expect:` naming the outcome that run
+  must show and an explicit `timeout:` generous enough for the host's slowest documented suite -
+  left to a default, a slow suite comes back as a false TIMEOUT.
+- raw `Bash` stays for `git` reads and for the reviewer's own probes under `.temp/`, never for a
+  build, test, lint or type-check run: the whole point of the fork is that such a run's full output
+  stays out of the review's context.
+
+The executor's reply is the gate's result, mapped:
+
+- `VERDICT: PASS` - the gate is green.
+- `VERDICT: FAIL` - the gate is red; its `FAILURES:` bullets are evidence for findings exactly as a
+  failing run's output is, and the `LOG:` path carries what they leave out.
+- `VERDICT: ERROR` or `VERDICT: TIMEOUT`, on any gate command whatever its kind - `VERDICT: BLOCKED`
+  with a `### Needs decision` bullet naming that command and the executor's own reason. Never PASS,
+  and never a finding against the code: a command that produced no result says nothing about the
+  tree.
+
+Evidence:
+
+- the executor's `SUMMARY:` line is the tool's own aggregate line; it is carried into the report
+  verbatim, never paraphrased and never recomputed.
+- a non-zero skip count on that line, on a run some criterion's proof depends on, sends the reviewer
+  to the `LOG:` path before that criterion may be marked met - the skipped case may be the one that
+  would have proved it.
+- the rule reads only the figure that aggregate line carries. A line reporting no skips at all
+  leaves nothing to infer, and the rules below stand unchanged there.
+
 Rules:
 
 - On `stage: re-review` the integration or e2e command is run again whatever the fix round changed:
   a result carried over from the prior round proves nothing about the fixed tree.
-- A documented integration or e2e command that cannot start in this environment is BLOCKED, with
-  the reason as a `### Needs decision` bullet. Never PASS.
-- A host with no such command documented gets the single sentence
+- A host with no integration or e2e command documented gets the single sentence
   `no e2e or integration suite in this host`, and is never BLOCKED for that reason.
 - A criterion or behaviour that needs a run to be confirmed and got none is never marked met; the
   report says which run is missing.
