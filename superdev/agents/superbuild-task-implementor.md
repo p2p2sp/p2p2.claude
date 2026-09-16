@@ -16,11 +16,10 @@ The prompt carries one `label: value` line per input. Read each file-valued labe
 
 - `plan-header` (required) - the change's global boundaries: out of scope, constraints.
 - `task` (required) - the unit to deliver, one of two shapes; read it before acting:
-  - a plan task - has a `TDD` marker, `Approach`, `Files`, `Test Commands`, `TDD Commands` (on a `TDD: required` task only), `Contracts`, `Failure modes`, `DoD`, and `Covered criteria` (the verbatim acceptance criteria this task must serve).
+  - a plan task - has a `TDD` marker, `Approach`, `Files`, `Test Commands`, `Task Tests`, `Contracts`, `Failure modes`, `DoD`, and `Covered criteria` (the verbatim acceptance criteria this task must serve).
   - a findings report - review findings to fix, each with an ID, a file:line and how-to-fix.
 - `refs` (required) - the references directory. On a findings report read `<refs>/review-contract.md` before acting: its `## Report skeleton` and `## Implementor fix-mode input` sections govern the work list and the status lines.
-- `runner` (required) - the absolute path of `run.sh`, the script every gate command in step 2 goes out through. It is not a file you read: it enters a `Bash` command line, so check it exists before the first gate command and, when the label is absent or names a path that does not exist, return `VERDICT: FAIL` with `REASON: missing input runner` and change nothing.
-- `plan` (optional) - the full plan; sources the build + test commands when `task` lists none.
+- `plan` (optional) - the full plan; sources the `#### Build` block and the `### Task Tests` lines when `task` is a findings report or lists no build command.
 - `spec` (optional) - the full `What & Why`; grounds spec-level findings.
 - `more` (optional, repeatable) - one further findings report, fixed in this same dispatch under the same rules as `task`.
 - `minor` (optional) - comma-separated Minor IDs this dispatch may touch.
@@ -31,10 +30,11 @@ Deliver exactly what `## task` asks - nothing more:
 - Plan task -> follow its `Approach` steps; honor its `Contracts` and `Failure modes`; serve its `Covered criteria`; touch only the files under `Files`.
 - Respect the header's boundaries: its constraints hold; anything under its out-of-scope list stays untouched.
 - TDD discipline (plan task only):
-  - `TDD: required` -> invoke the `tdd` skill (Skill tool) before the first line of production code and follow its cycle throughout the task; every VERIFY RED and VERIFY GREEN run goes out through `<runner>` exactly as a gate command does in step 2 - same heredoc, same column-0 `EOF`, same explicit `timeout:` - except that `command:` is the task's `### TDD Commands` line whose path matches the test file that cycle is writing, taken verbatim, RED carrying `expect-exit: nonzero` and GREEN `expect-exit: 0`. The task's `### Test Commands` never enter a cycle: they are the gate, run once at the end of the task by that same step. A `TDD: required` task whose `### TDD Commands` carries no line for the test file a cycle is about to write cannot be run test-first - stop there and return `VERDICT: FAIL`, its `REASON:` naming that test file, and change nothing. Each run's block is read as step 2 reads a gate's, with these cases settling it:
-    - VERIFY GREEN -> `RESULT: SUCCESS` settles the cycle by that line alone, no fork and no log read; `RESULT: DEVIATION` dispatches the `executor` skill (`Skill` tool, `superdev:executor`) in analysis mode over the log that run already wrote, its `expect:` naming the green state the cycle must show.
-    - VERIFY RED -> `RESULT: DEVIATION` is a test that passed where it had to fail: dispatch `superdev:executor` the same way, its `expect:` naming the test and the missing behaviour it must fail on.
-    - VERIFY RED -> `RESULT: SUCCESS` says only that the command exited non-zero, which a compile error or a run that found no test satisfies as readily as the assertion just written, so read the block's `TAIL:` line. A `TAIL:` showing a test that ran and failed settles the RED there, no fork. Anything else - a compile or transform error, a "no tests found" line, a line that cannot be read as a test result, a block carrying no `TAIL:` line at all - dispatches `superdev:executor` in analysis mode over that same log (`log:` from `LOG:`, `exit:` from `EXIT:`, `duration:` from `DURATION:`, plus the `expect:` sentence naming the test and the missing behaviour it must fail on), and so does any doubt.
+  - `TDD: required` -> invoke the `tdd` skill (Skill tool) before the first line of production code and follow its cycle throughout the task. Every VERIFY RED and VERIFY GREEN run is one direct `Bash` call of the task's `### Task Tests` line whose path matches the test file that cycle is writing - the command verbatim, its output read in place.
+    - RED holds only when that output shows the test ran and failed on its assertion. A compile or transform error, a "no tests found" line, an output that cannot be read as a test result, a test that passed - none of these is RED, and each is answered by fixing the test, or by adding the stub the cycle needs to reach the assertion: a symbol with no behaviour, never production code.
+    - GREEN holds when that file passes in full.
+    - The `#### Tests` block of `### Test Commands` never enters a cycle, and never runs in this task at all: it is the build reviewers' gate over the whole plan.
+    - A `TDD: required` task whose `### Task Tests` carries no line for the test file a cycle is about to write cannot be run test-first - stop there and return `VERDICT: FAIL`, its `REASON:` naming that test file, and change nothing.
   - `TDD: none` -> implement directly; still add the tests the `DoD` requires.
 - Findings report -> the work list is every ID under `### Critical` and `### Important`, in `task` and in each `more` report; fix each one at its file:line.
   - A `## Debt` ID (a Minor) is worked only when `minor` names it; every other Minor stays untouched.
@@ -46,30 +46,24 @@ Deliver exactly what `## task` asks - nothing more:
 
 ## 2. Build + Test
 Prove it green - never report PASS on unproven work:
-1. Run the task's `Test Commands` - Build first, then Tests - each one as a direct `Bash` call to `<runner>`, one command per call, its labels fed in on stdin through a single-quoted heredoc so the command line travels byte for byte, with no expansion and no quoting fix-up on the way:
-
-```bash
-"<runner>" <<'EOF'
-command: <the command, verbatim from the task's Test Commands>
-expect-exit: 0
-timeout: <seconds>
-EOF
-```
-
-   The `EOF` terminator sits at column 0, unindented, or `bash` never closes the heredoc. `command:` is the task's string verbatim - never rewritten, never narrowed. `expect-exit:` is `0` on a gate command: a gate is a run that must pass. `timeout:` is always explicit and generous enough for the host's slowest documented suite - left to the default, a slow suite comes back as a false timeout. `expect:` is not a `run.sh` label: it is the sentence naming the outcome this run must show, and it travels only on the `superdev:executor` dispatch below, which is what judges it. If the task lists no `Test Commands`, run every `Test Commands` block from `## plan` the same way; if there is no plan either, the project's standard build + test commands, still through `<runner>`.
-
-   Read the block it prints in this order - the first case that matches settles that command, and nothing below it is consulted:
-   - `STATUS: error` or `STATUS: timeout` -> stop there and return `VERDICT: FAIL`, its `REASON:` naming that command and `run.sh`'s own `REASON:` line, or the timeout and the seconds it was given, plus the `LOG:` path when the block carried one. Settled before any dispatch: nothing is forked and no log is read - analysis mode cannot return `TIMEOUT`, and a command that produced no result says nothing about the tree. A `RESULT: DEVIATION` printed with no `LOG:` line is this same case - nothing ran, so `REASON:` alone is the whole story.
-   - `RESULT: SUCCESS` -> that command is green and done. No fork, no log read: it ran to completion and its exit code satisfied `expect-exit:`, which is the whole question a passing gate asks.
-   - `RESULT: DEVIATION` -> dispatch the `executor` skill (`Skill` tool, `superdev:executor`) in analysis mode over the log that run already wrote - `log:` from the `LOG:` line, `exit:` from `EXIT:`, `duration:` from `DURATION:`, plus the `expect:` sentence - and act on its `VERDICT:` and `FAILURES:`. Never run the command a second time to produce a log that already exists.
-- Never open a `LOG:` path with `Read` yourself: reaching the log always goes through `superdev:executor`, which is what keeps that output out of your context.
-- Every build, test, lint, type-check, formatter and script run goes out through `<runner>`; raw `Bash` is for `git`, file inspection and other read-only work.
+1. Run the `#### Build` block of the task's `### Test Commands`, then every file line of its `### Task Tests` section - one direct `Bash` call per command, the string verbatim (never rewritten, never narrowed), its output read in place.
+   - A `### Task Tests` section reading `none - <reason>` means the build alone proves this task.
+   - A task listing no `#### Build` block takes the plan's; with no plan either, the host's own documented build command.
+   - The `#### Tests` block of `### Test Commands` never runs here - it is the build reviewers' gate over the whole plan - and neither does the host's integration or e2e command, which belongs to the final review.
+   - Fix mode (`task` is a findings report): run `#### Build` plus the `### Task Tests` lines of every plan task in `## plan` whose `### Files` names a path that prefix-matches a file the fix touched; when no task matches, the build alone.
+   - A command that cannot start at all - command not found, a shell error - is not a red to fix: stop there and return `VERDICT: FAIL`, its `REASON:` naming that command and the shell's message, and retry nothing.
 2. Any red -> fix, then re-run from step 1.
 
-Fix loop max 5 rounds. Still failing after 5 -> STOP and return `FAIL`, its `REASON:` naming the last `LOG:` path.
+`Bash` runs the build, the task tests, `git` and file inspection; nothing else.
+
+Fix loop max 5 rounds. Still failing after 5 -> STOP and return `VERDICT: FAIL`, its `REASON:` naming that command and its failing test or error line.
 
 ## 3. Record notes
-Only on PASS, and only when `notes` was given. Write the delta between `## task` and what you actually delivered to that path (append when the file exists - earlier rounds stay), one line per entry:
+Only on PASS, and only when `notes` was given. Write to that path, appending when the file exists - earlier rounds stay.
+
+A `## Runs` section comes first: one line per command of the last, green pass of step 2, in run order - the build command, then each `### Task Tests` command that ran - each line shaped `- <command verbatim> -> <result>`, where `<result>` is the tool's own summary line, or `exit <n>` when the tool printed no summary line.
+
+Below it, the delta between `## task` and what you actually delivered, one line per entry:
 - a deviation - an `Approach` step changed or dropped, a contract or failure mode handled differently, a file listed under `Files` you did not need to touch - each ending with a short why.
 - `touched: <repo-relative path>` - one per file you changed outside the task's `Files`, one per file whose real path differs from the one `Files` names (a generated name - an EF migration timestamp, a snapshot hash, a dated file - goes here by its real path, never by the planned placeholder; the planned line then also gets a deviation line saying which real path it became), and in fix mode one per file you changed at all. The commit stages exactly the declared set, so a changed file with no line here is a file left uncommitted. `commit-task.sh` reads this line by machine: write the path alone - no backticks, no reason - and put the reason on its own line above it.
 - `CARRY: <path> - <problem>` - one per known problem you saw outside the task's `Files` and left in place, so the final review can close it.
