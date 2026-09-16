@@ -71,6 +71,7 @@ After `VERDICT: PASS` only. Read `${CLAUDE_PLUGIN_ROOT}/skills/intent/references
 - `## Decisions` - the master's decision blocks named in that phase's `Covers:` line, copied **verbatim**, keeping their master numbers (so `#5` stays `### 5.`). Copy no other decision.
 - `## Constraints` - the master constraints that apply to this phase, plus one bullet `` `<phase title>` (phase <NN>) of <repo-relative phases file path> `` - the title from that phase's own `###` heading - plus one bullet per earlier phase it depends on, naming it the same way and its `Delivers:` as already in place.
 - `## Out of scope` - the other phases' goals, as non-goals of this phase (they are built in their own runs), plus the master's own out-of-scope entries.
+- `## ADR` - phase `01` only: the master's `## ADR` section copied verbatim when the master has one; every other phase intent has no `## ADR` section, whatever its `Covers:` names.
 - `## History` - the master's, verbatim.
 
 Each phase intent must stand on its own: a later phase's run reads only its own file, never the master intent.
