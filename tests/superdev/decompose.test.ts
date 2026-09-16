@@ -6,7 +6,7 @@
  * was started in, prints a clean stdout index (all git noise on stderr) whose
  * `root:` line names that root, commits the run directory ALONE - skipping
  * only that commit, and keeping the built tree, outside a git repository - and
- * exits 1/4/5 on its documented error paths.
+ * exits 1/4/5/6 on its documented error paths.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -802,6 +802,105 @@ test("guard: a task's 'Covers:' line in the titled grammar still decomposes and 
   });
 });
 
+test("task blocks with no task heading -> exit 6, one error line each, no index rows, no working directory", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-plan-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      // both blocks open with "## Notes" - a heading, but not the
+      // "## Task <N> - <title>" one the splitter reads the task's title from
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Headless Plan",
+          criteria: ["One.", "Two."],
+          tasks: [taskBlock("Notes", [1]), taskBlock("Notes", [2])],
+        }),
+      );
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 6);
+
+      // one error line per offending block, each naming its own task file
+      const errors = result.stderr
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l.includes("has no task heading"));
+      assert.deepEqual(errors, [
+        "error: task-01.md has no task heading",
+        "error: task-02.md has no task heading",
+      ]);
+
+      // the run aborts ahead of the index: not a single task row on stdout
+      const dir = `docs/.workflows/${todayISO()}-headless-plan`;
+      assert.deepEqual(
+        result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`)),
+        [],
+      );
+      // ... and the cleanup trap removes the directory this run created
+      assert.equal(fs.existsSync(path.join(repo.dir, dir)), false);
+    });
+  });
+});
+
+test("a conforming task heading below a prose line is not the block's opening -> exit 6", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-plan-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      // the heading is present and well-formed, but a prose line precedes it:
+      // only the block's FIRST non-empty line may carry the task's title
+      const lateHeadingBlock = [
+        "<!-- TASK -->",
+        "",
+        "A note that slipped in above the heading.",
+        "",
+        "## Task 1 - do it",
+        "- Covers: #1",
+        "Do the work.",
+        "<!-- /TASK -->",
+        "",
+      ].join("\n");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Late Heading Plan",
+          criteria: ["One."],
+          tasks: [lateHeadingBlock],
+        }),
+      );
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 6);
+      assert.match(result.stderr, /error: task-01\.md has no task heading/);
+      const dir = `docs/.workflows/${todayISO()}-late-heading-plan`;
+      assert.equal(fs.existsSync(path.join(repo.dir, dir)), false);
+    });
+  });
+});
+
+test("the heading's <N> is not checked against the file index: a mismatched number still decomposes", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-plan-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      // "## Task 7 ..." in the FIRST block: the heading shape is all the
+      // splitter requires - pairing <N> with the file index is not its job
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Renumbered Plan",
+          criteria: ["One."],
+          tasks: [taskBlock("Task 7 - do it", [1])],
+        }),
+      );
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const dir = `docs/.workflows/${todayISO()}-renumbered-plan`;
+      const rows = result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`));
+      assert.deepEqual(rows, [`${dir}/tasks/task-01.md\tTask 7 - do it\t-\t-`]);
+    });
+  });
+});
+
 // --- no orphaned working directory on failure -------------------------
 
 test("exit 3 (no TASK blocks): no working directory is left behind", () => {
@@ -1046,7 +1145,9 @@ test("edge: a task title containing a tab breaks the tab-separated index row (do
         simplePlan({
           title: "Tabbed Title Plan",
           criteria: ["One."],
-          tasks: [taskBlock("Task 1\tTabbed", [1])],
+          // the tab sits INSIDE the title of an otherwise conforming
+          // "## Task <N> - <title>" heading - the shape the splitter requires
+          tasks: [taskBlock("Task 1 - Tab\tbed", [1])],
         }),
       );
       const result = run(repo, [plan]);

@@ -51,6 +51,14 @@
 #     a plan whose prose or task body talks about the markers themselves, even
 #     in backticks - is ordinary content: it opens nothing and is copied into
 #     the task file verbatim
+#   - every task block MUST open, on its FIRST non-empty line, with a
+#     "## Task <N> - <title>" heading carrying a non-empty title - the one
+#     source of that task's title, both for the stdout index column and for the
+#     "Covers:" messages below. <N> is NOT checked against the file's own index
+#     number, and a "## " heading further down the block is ordinary body, never
+#     the title. A block without such an opening heading prints
+#     "error: task-NN.md has no task heading" on stderr - one line per offending
+#     block - and exits 6 before a single task index row is printed
 #   - do każdego taska dopisywana jest sekcja "### Covered criteria" z verbatim
 #     treścią kryteriów wskazanych w jego linii "Covers:"; źródło to spec
 #     (tor superbuild) albo sekcja "## Acceptance criteria" z nagłówka planu
@@ -345,7 +353,19 @@ awk -v dir="$dir" -v hdr="$header" '
   /^<!-- \/TASK -->[[:space:]]*$/   { intask=0; next }
   intask {
     print > f
-    if (title[n] == "" && $0 ~ /^##[[:space:]]/) { t=$0; sub(/^##[[:space:]]*/, "", t); title[n]=t }
+    # the FIRST non-empty line of the block is the ONLY candidate for its task
+    # heading: it must be "## Task <N> - <title>" with a non-empty title (the
+    # <N> is not checked against the file index), otherwise the title stays
+    # empty and END below aborts the run. A "## " line further down the block
+    # is a section of the task body and never fills the slot.
+    # (no apostrophe in this comment on purpose - the awk program is a
+    # single-quoted shell string)
+    if (!seen[n] && $0 ~ /[^[:space:]]/) {
+      seen[n]=1
+      if ($0 ~ /^##[[:space:]]+Task[[:space:]]+[0-9]+[[:space:]]*-[[:space:]]*[^[:space:]]/) {
+        t=$0; sub(/^##[[:space:]]*/, "", t); title[n]=t
+      }
+    }
     # per-task build-strength markers: first "- Model:" / "- Effort:" line wins;
     # value trimmed, passed through verbatim (validity belongs to the plan reviewer)
     if (model[n] == "" && $0 ~ /^-[[:space:]]*Model:/) { m=$0; sub(/^-[[:space:]]*Model:[[:space:]]*/, "", m); sub(/[[:space:]]+$/, "", m); model[n]=m }
@@ -355,6 +375,17 @@ awk -v dir="$dir" -v hdr="$header" '
 
   END {
     if (n == 0) { print "error: no <!-- TASK --> blocks found in plan" > "/dev/stderr"; exit 3 }
+    # a task nobody can name is not a task: report EVERY heading-less block,
+    # then abort - before any index row reaches stdout, so no consumer ever
+    # sees a row with an empty title column
+    headless=0
+    for (i = 1; i <= n; i++) {
+      if (title[i] == "") {
+        printf("error: task-%02d.md has no task heading\n", i) > "/dev/stderr"
+        headless=1
+      }
+    }
+    if (headless) exit 6
     for (i = 1; i <= n; i++) printf "%s\t%s\t%s\t%s\n", files[i], title[i], (model[i] == "" ? "-" : model[i]), (effort[i] == "" ? "-" : effort[i])
   }
 ' "$plan"

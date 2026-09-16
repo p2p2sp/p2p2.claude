@@ -1,0 +1,1 @@
+Approach step 5 asked for two new tests; a third was added - "the heading's <N> is not checked against the file index: a mismatched number still decomposes" - because covered criterion 3's second clause (the number need not equal the file index) and the header's out-of-scope boundary had no test locking them in.
