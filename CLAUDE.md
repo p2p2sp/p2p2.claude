@@ -217,7 +217,8 @@ Each plugin's own internal layout lives in its `<plugin>/CLAUDE.md` (`superdev` 
 .claude-plugin/
   marketplace.json   Marketplace catalog - co-lists superdev "./superdev", superui "./superui", supergh "./supergh", superfix "./superfix", superbiz "./superbiz", supercc "./supercc"
 superdev/            The superdev plugin (project memory, planning, dev pipeline; carries agents/ for its
-                     two task implementors, one task reviewer and three closeout writers)
+                     two task implementors, one task reviewer, three closeout writers and the vibe
+                     track's own implementor)
 superui/             The superui plugin (design / frontend; one model-invocable skill, NO hooks, NO manifest,
                      NO agents)                                                     → superui/CLAUDE.md
 supergh/             The supergh plugin (GitHub / git; NO hooks, NO manifest)       → supergh/CLAUDE.md

@@ -31,7 +31,22 @@
       "AskUserQuestion",
       "ExitPlanMode",
       "EnterPlanMode",
-      "Bash"
+      "Bash",
+      "BashOutput",
+      "KillShell",
+      "ToolSearch",
+      "WebSearch",
+      "WebFetch",
+      "LSP",
+      "Monitor",
+      "SendMessage",
+      "ListAgents",
+      "EnterWorktree",
+      "ExitWorktree",
+      "ListMcpResourcesTool",
+      "ReadMcpResourceTool",
+      "ReadMcpResourceDirTool",
+      "mcp__plugin_microsoft-docs_microsoft-learn"
     ],
     "ask": [],
     "deny": [
