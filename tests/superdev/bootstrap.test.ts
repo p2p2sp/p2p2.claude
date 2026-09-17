@@ -45,7 +45,7 @@ test("seed-when-absent: a fresh project root seeds every item and prints one lin
       [
         ".temp: created",
         ".gitignore: created from template",
-        "superdev.yml: seeded from template - defaults: adr=false, rules=false, memory=false, changelog=false, cleanup=false, stats=false",
+        "superdev.yml: seeded from template - defaults: adr=false, rules=false, memory=false, changelog=false, cleanup=false, stats=false, qa=false, e2e-ui=false, e2e-api=false",
         ".gitattributes: created with linguist-generated rule",
         "",
       ].join("\n"),
@@ -101,6 +101,9 @@ test("idempotence: running twice reports 'already present' for every item on the
         "changelog: false   # Changelog -> docs/changelog/",
         "cleanup:   false   # Remove the run's (or phase's) working dir after a completed build",
         "stats:     false   # Workflow execution stats -> .temp/superdev/stats/",
+        "qa:        false   # Manual QA scenarios -> docs/qa/",
+        "e2e-ui:    false   # Playwright UI test handoff -> docs/qa/<run>.e2e.md",
+        "e2e-api:   false   # Playwright API test handoff -> docs/qa/<run>.e2e.md",
         ".gitattributes: linguist-generated rule already present",
         "",
       ].join("\n"),

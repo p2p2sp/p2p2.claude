@@ -161,6 +161,12 @@ otherwise enforced by humans reading carefully.
 All six plugins are **stack-agnostic on purpose**: skills read project-specific knowledge (test framework, build
 tool, naming, how to launch the app) from the **host** project's `CLAUDE.md` + `.claude/rules/`, never from
 the plugin sources. Do not bake ecosystem assumptions (dotnet, npm, pytest…) into skill prompts.
+**Scope of that rule: it is about the projects being planned and built, not about the plugins' own tooling.**
+A plugin may depend on a specific tool for its own work when that tool is the plugin's deliberate, documented
+choice (`node` for superui's contrast checker, Python for superbiz's report builder, `playwright-cli` for a
+superdev opt-in switch that writes UI tests). Such a dependency is always behind an opt-in config switch or
+a skip-with-note fallback, is named in the owning `<plugin>/CLAUDE.md`, and still never assumes anything
+about the host's own build, test or runtime stack.
 
 DO NOT USE ADR capture for this project. The plugins are constantly refactored.
 
