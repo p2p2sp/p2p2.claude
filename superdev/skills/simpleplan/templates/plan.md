@@ -45,6 +45,7 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 ## Task <N> - <title which become a commit message>
 - Covers: `<criterion short name>` (#<n>)[, `<criterion short name>` (#<m>)]
 - TDD: <marker>
+- Kind: <code | scaffold | text>
 - Model: <sonnet | opus>
 - Effort: <low | medium | high | xhigh>
 
