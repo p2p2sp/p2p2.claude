@@ -39,6 +39,7 @@
     "./agents/rules-writer.md",
     "./agents/changelog-writer.md",
     "./agents/qa-writer.md",
-    "./agents/e2e-writer.md"
+    "./agents/e2e-writer.md",
+    "./agents/vibe-implementor.md"
   ]
 }
