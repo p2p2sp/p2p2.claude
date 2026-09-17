@@ -25,7 +25,7 @@ Remember that superdev skills override default system-prompt behavior, but user 
 - Super track only: every task passes the per-task gate, whose failure pass interrogates that task's own diff (new failure branches, widened closed sets, outside values, tests that cannot fail).
 - Both tracks: after every 5th committed task, while tasks remain, a checkpoint review reads only the delta since the last closed round.
 - Both tracks: the final review is the last round of that chain and adds the integration mandate over the whole build; each round has one fix dispatch and one re-review scoped to that fix, then the user decides.
-- `VERDICT: BLOCKED` from any build reviewer means a criterion needs the user's decision, not more code.
+- `VERDICT: BLOCKED` comes from a build reviewer on a criterion unmet by a recorded decision, and from a task implementor on a `DECISION:` line it cannot settle; either way the user answers once and the answer binds the rest of the build.
 - Config-gated by the `stats` switch: with it on, the orchestrator records one event per dispatch and renders that run's report under `.temp/superdev/stats/` after Close Out.
 - Config-gated by the `qa`, `e2e-ui` and `e2e-api` switches: with any of them on, Close Out writes the QA acceptance document and the E2E handoff file under `docs/qa/`. Playwright tests are generated only by the separate, user-run `e2e` skill, never during a build.
 

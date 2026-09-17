@@ -62,10 +62,19 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    `high` default), whose **failure pass** interrogates the task's own diff: each new `catch` or fallback
    branch (what comes back, what gets logged), each widened closed set (who consumes it), each changed response
    mechanism (which methods, which codes), each outside value reaching a path, query or command (validated?) and
-   each new test (can it fail?).
+   each new test (can it fail?). A value the task text, its `### Contracts`, its `### Failure modes` and the
+   plan header all leave open is either settled or stopped on: a defensible answer - an existing repo pattern, a
+   covered criterion, a host convention - is written to the task's notes as `UNDERSPECIFIED: <value> - <the
+   decision made>`, judged at the per-task gate and listed at the final review's `## Decisions taken` section;
+   no defensible answer is a hard stop, `DECISION: <what> - <why> - <options>` plus a `VERDICT: BLOCKED` return,
+   and the orchestrator asks you one question per line, records your answer to `implementation/decisions.md`,
+   and re-dispatches the same task or fix with it.
 6. **Reviews run in rounds, each on a small delta.** Every round first runs the `## Gate commands` block the
    plan carries above its first task - the whole build's gate: `#### Build` and `#### Tests` at a checkpoint,
-   plus `#### Integration` at the final round and its re-review - and only then reads code. After every 5th
+   plus `#### Integration` at the final round and its re-review - and only then reads code. `#### Build` and
+   `#### Tests` carry each check at its narrowest proving scope - one project, one path, one suite - never a
+   command that builds or tests the whole repository, solution or workspace; that full-scope command, when it
+   is worth running at all, belongs under `#### Integration` alone. After every 5th
    committed task, while tasks remain, a
    checkpoint review reads `git diff <since>..HEAD` and writes `implementation/checkpoint-KK.md`. The final
    review is the last round of that same chain and adds the integration mandate over the whole build: contracts
@@ -79,7 +88,11 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    or ID. A reviewer returns `VERDICT: BLOCKED` when a
    criterion is unmet because of a decision, not because code is missing: you answer once, and every
    acceptance - there, or when you close a round with findings still open - is recorded in
-   `implementation/decisions.md`, which binds every later round like plan text. The
+   `implementation/decisions.md`, which binds every later round like plan text. The final review and its
+   re-review also write a `## Decisions taken` section, one line per `UNDERSPECIFIED:` value an implementor
+   settled itself across the whole build - informational only, it never moves a verdict, and a checkpoint
+   report never carries it; with `stats: true`, that run's report counts a matching `DECISION` column
+   alongside `UNDERSPECIFIED` in its per-task and per-fix rows. The
    orchestrator writes no file at any step (agents, forks and the bundled scripts do) and escalates every
    interruption to you - a spend or session limit, a reviewer that returned no report, an undeclared change in
    your working tree - instead of finishing the work itself.

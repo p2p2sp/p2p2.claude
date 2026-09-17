@@ -87,7 +87,10 @@ skill/agent list. This file is orientation for the assistant.
   report under `## Debt` without affecting a verdict, and return
   `VERDICT: BLOCKED` when a criterion is unmet by a recorded decision rather than by missing code - the
   accepted wording is written to `implementation/decisions.md` through `record-decision.sh` and binds later
-  rounds like plan text. `superdev/references/review-contract.md` owns that whole vocabulary - its
+  rounds like plan text. A task implementor returns that same `VERDICT: BLOCKED` on a `DECISION:` line it
+  cannot settle, versus `UNDERSPECIFIED: <value> - <decision>` for one it can - judged at the per-task gate
+  and listed once, across the whole build, in the final review's `## Decisions taken` section.
+  `superdev/references/review-contract.md` owns that whole vocabulary - its
   `## Naming` section is the one owner of the `` `<title>` (<pointer>) `` reference form every task,
   criterion and finding is named in; both orchestrators carry
   `Edit`/`Write`/`NotebookEdit` in `disallowed-tools`, write no file themselves and escalate every
@@ -397,7 +400,8 @@ The invariants below hold across the repo.
   task by `superbuild` / `simplebuild` with the `Agent` tool at the task's `Model:` / `Effort:` markers
   (the `Agent` tool's per-call `model` is honored; `effort` is passed the same way on the assumption
   the harness will honor it too - the agent's frontmatter is the fallback for both; in fix mode, on a review
-  report, both run with neither parameter set), superdev's per-task
+  report, both run with neither parameter set), and both return `VERDICT: BLOCKED` on a re-dispatch carrying
+  a `decisions:` label when a task or fix raises a `DECISION:` it cannot settle, superdev's per-task
   reviewer - `superbuild-task-reviewer` - lives there too, dispatched by `superbuild` after each
   implementor run at that task's same `Model:` / `Effort:` and running its failure pass over that task's
   diff (behaviour recorded in the task's `### Failure modes` is a decision: a `NOTE: plan defect` line,
