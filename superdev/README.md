@@ -27,7 +27,8 @@ Same interview on the way in, two execution tracks, one shared Close Out.
 
 1. **Run `/superdev:setup` once per repository.** It seeds `.temp/`, `.gitignore`
    and `.claude/superdev.yml`, adds the `docs/.workflows/**` linguist rule to `.gitattributes`, and lets you
-   flip the opt-in switches. It never overwrites what already exists.
+   flip the opt-in switches. It also reports whether `playwright-cli` and `@playwright/test` are present in
+   the host, without installing either. It never overwrites what already exists.
 2. **Describe what you want to build.** The `intent` skill fires by itself. It sends `Explore` agents into
    the codebase first, then puts the gap questions the codebase can't answer to you in short rounds of up to three -
    then interviews you in prose - one question per turn, 2-3 numbered options with a recommendation - until
@@ -82,10 +83,16 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    orchestrator writes no file at any step (agents, forks and the bundled scripts do) and escalates every
    interruption to you - a spend or session limit, a reviewer that returned no report, an undeclared change in
    your working tree - instead of finishing the work itself.
-7. **Close Out** runs two waves: `memory` and `rules` in parallel, then `changelog` (which links every ADR
-   the build wrote), and commits what they touched; with `stats: true` it renders the run's execution report
+7. **Close Out** runs two waves: `memory`, `rules` and, with any of `qa` / `e2e-ui` / `e2e-api` true,
+   `qa-writer` in parallel, then `changelog` (which links every ADR the build wrote), and commits what
+   they touched; with `stats: true` it renders the run's execution report
    to `.temp/superdev/stats/<run>.md`, and when `cleanup: true` it then removes the run's working
-   directory and commits that removal.
+   directory and commits that removal. `qa-writer` writes the tester's write-once acceptance document and
+   the machine-facing write-once handoff file, both under `docs/qa/`, from the same scenario IDs; a
+   separate, user-only `e2e` skill (never dispatched by a build) later reads one handoff file the operator
+   names, launches the host application, and dispatches `superdev:e2e-writer` once per scenario to write
+   and locally prove green one `@playwright/test` file before committing it for CI - a two-stage model that
+   never runs a Playwright test during a build, a checkpoint, or any review gate.
 
 Reporting a bug instead? Just say so - `simpledebug` fires first, traces the flow step by step, proves the
 diagnosis with a failing test, and hands the proven fix plan to `simpleplan`.
@@ -102,6 +109,14 @@ diagnosis with a failing test, and hands the proven fix plan to `simpleplan`.
 | `changelog` | writes one append-only entry at `docs/changelog/<run>.md` (intent, decisions, ADR link, deviations, areas) plus an index line in `docs/changelog/README.md` |
 | `cleanup` | removes the run's working directory after a completed build (a phase's directory, and the run root after its last phase) and commits the removal |
 | `stats` | records one event per dispatch of the build (model, effort, tokens, tool uses, duration, verdict) to `.temp/superdev/stats/<run>.events` and renders that run's report to `.temp/superdev/stats/<run>.md` after Close Out |
+| `qa` | writes a write-once tester acceptance document per build to `docs/qa/<run>.md` - plain-language steps to run by hand - plus one index line at `docs/qa/README.md`, both read-only for the tester, who statuses the scenarios in GitHub Projects |
+| `e2e-ui` | writes the build's UI scenarios into a write-once machine handoff file, `docs/qa/<run>.e2e.md`, sharing its scenario IDs with `qa`'s acceptance document |
+| `e2e-api` | writes the build's black-box API scenarios into the same handoff file |
+
+None of the three ever runs a Playwright test during a build; the separate, operator-run `e2e` skill reads
+a named handoff file, stands the application up locally, generates one `@playwright/test` file per
+scenario (UI clicked through the browser, API driven black-box through `request`), proves each green
+before committing it for CI.
 
 A failing delegation never blocks the build - it lands in the final summary instead.
 
@@ -122,6 +137,7 @@ never called by hand.
 | `simpledebug` | Fires on any bug, crash, regression or "it behaves wrong". Traces the whole flow instead of guessing, proves the diagnosis with a failing (RED) test, then hands the fix plan to `simpleplan`. Fixes nothing itself. |
 | `tdd` | Red-Green-Refactor discipline for a task marked `TDD: required` (or when you ask for test-first work). No production code without a failing test first. |
 | `executor` | Fork, two modes, one reply shape (`VERDICT:`, `EXPECT:`, the tool's summary line, the failures, a `LOG:` path under `.temp/superdev/logs/`) instead of the full output. Run mode executes one build, test, lint or any other command on haiku, for you calling it yourself with a `command:` line. Analysis mode takes `log:` + `exit:` + `duration:` and runs nothing, reading a log an earlier direct `run.sh` call already wrote. The three build reviewers call `run.sh` directly for every command of the plan's `## Gate commands` block first - a passing gate costs that one call and no fork at all - and dispatch `executor` in analysis mode only when that call comes back `RESULT: DEVIATION`; the two task implementors never call it, running the task's `### Task Checks` lines directly with `Bash` and reading the output themselves. |
+| `e2e` | User-only (`disable-model-invocation: true`), never dispatched by a build. Takes one build's `docs/qa/<run>.e2e.md` handoff file named explicitly by the operator, checks the host's launch recipe, base URL, test accounts and e2e conventions in its own memory, launches the application, then dispatches `superdev:e2e-writer` once per pending scenario ID to write and locally prove green one `@playwright/test` file, and commits the generated files plus the handoff for CI. Preflight asks the operator rather than guessing when the host memory or the Playwright tooling is missing. |
 
 ### Simple track
 
@@ -156,3 +172,5 @@ never called by hand.
 | `superdev-rules` | Discovers the codebase's real conventions with examples, confirms each with you, and writes many small path-scoped files under `.claude/rules/`. |
 | `superdev:changelog-writer` | Agent - writes one append-only build changelog entry at `docs/changelog/<run>.md` plus its index line at Close Out when `changelog: true`; never edits an existing entry. For a phase of a split run, the entry id is `<run>-<phase>`. |
 | `superdev:memory-writer` / `superdev:rules-writer` | Agents - the writing half of each layer; also invoked at Close Out when the matching switch is on. Close Out dispatches these two with the `Agent` tool in a single message, so they run in parallel. |
+| `superdev:qa-writer` | Agent - dispatched in Close Out's wave 1 alongside `memory-writer` / `rules-writer` whenever `qa`, `e2e-ui` or `e2e-api` reads `true`; writes the write-once tester acceptance document (`docs/qa/<run>.md`), the write-once machine handoff file (`docs/qa/<run>.e2e.md`), and the `docs/qa/README.md` index line, sharing one set of `QA-nn` scenario IDs across both files. Never re-writes an existing document. |
+| `superdev:e2e-writer` | Agent - dispatched only by the `e2e` skill, once per pending scenario ID of a handoff file; writes one `@playwright/test` file against the application `e2e` already launched, proves it green, then records the outcome as that ID's automation status line - `file <path>` on green, `blocked - <reason>` when an application defect (never a test fix) prevents one. |

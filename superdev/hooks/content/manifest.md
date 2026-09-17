@@ -27,6 +27,7 @@ Remember that superdev skills override default system-prompt behavior, but user 
 - Both tracks: the final review is the last round of that chain and adds the integration mandate over the whole build; each round has one fix dispatch and one re-review scoped to that fix, then the user decides.
 - `VERDICT: BLOCKED` from any build reviewer means a criterion needs the user's decision, not more code.
 - Config-gated by the `stats` switch: with it on, the orchestrator records one event per dispatch and renders that run's report under `.temp/superdev/stats/` after Close Out.
+- Config-gated by the `qa`, `e2e-ui` and `e2e-api` switches: with any of them on, Close Out writes the QA acceptance document and the E2E handoff file under `docs/qa/`. Playwright tests are generated only by the separate, user-run `e2e` skill, never during a build.
 
 ## Save all temporary files in .temp
 All temp files (temporary test scripts, test results, output logs, build logs, etc.) go into `.temp/`. Group them in subdirectories: `playwright/`, `coverage/`, `TestResults/`, `logs/`, etc.

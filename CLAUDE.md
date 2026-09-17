@@ -101,7 +101,20 @@ skill/agent list. This file is orientation for the assistant.
   run the task's `### Task Checks` lines directly with `Bash`, reading the output themselves - never the
   plan's gate, never the full suite and never the executor - and record every run under a `## Runs` section
   in the task's notes, which the per-task reviewer checks. The gate's `#### Integration` subsection runs
-  at the final review and its re-review only, the checkpoint round deferring it.
+  at the final review and its re-review only, the checkpoint round deferring it. Three further opt-in
+  switches - `qa`, `e2e-ui`, `e2e-api`, all `false` by default - add a fourth knowledge layer, gating a
+  fourth Close Out agent dispatched in wave 1 alongside `memory-writer` and `rules-writer`:
+  `superdev:qa-writer` turns the finished build into two write-once documents under `docs/qa/`, both keyed
+  to the same `QA-nn` scenario IDs - a tester's plain-language acceptance document (`docs/qa/<run>.md`,
+  `qa: true` and UI changed) and a machine-facing handoff file (`docs/qa/<run>.e2e.md`, `e2e-ui: true` and
+  UI changed, or `e2e-api: true` and endpoints changed) - plus one index line per build at
+  `docs/qa/README.md`. Playwright tests are never generated or run inside a build, a checkpoint, or any
+  review gate; a separate, user-only `e2e` skill (`disable-model-invocation: true`) instead takes one
+  handoff file the operator names explicitly, checks the host's own memory for the launch recipe, base
+  URL, test accounts and e2e conventions, launches the application, and dispatches the
+  `superdev:e2e-writer` agent once per pending scenario ID to write one `@playwright/test` file, prove it
+  green against that running application, and commit it for CI - the build's tester-facing and CI-facing
+  layers stay two stages, run at two different times, by two different agents.
 - **superui** - the design / frontend ecosystem: **one skill**, `pro-designer`, the professional UI/UX
   standards advisor (visual hierarchy, color systems and dark mode, type ramps, 4/8pt spacing,
   accessibility, component states, form-validation UX, conversion psychology with hard anti-dark-pattern
@@ -144,8 +157,10 @@ scripts under `<plugin>/hooks/scripts/` (only `superdev` has hooks; `superui` / 
 `superbiz` / `supercc` ship none), plus deterministic helper scripts bundled either under an individual skill's own
 `scripts/` dir or, when shared across a plugin's skills, at plugin level. `supergh` keeps its shared scripts
 under `<plugin>/shared/` (a `scripts/` subdir); `superdev` keeps its shared scripts and references at the
-plugin root (`superdev/scripts/`, `superdev/references/` - the latter owning `review-contract.md`, the one
-source of the build review loop's labels, finding IDs, report shape and verdict rules). `superui` ships no
+plugin root (`superdev/scripts/`, including `check-playwright.sh` - reports whether `playwright-cli` and
+`@playwright/test` are present in the host, installing neither, called by both `setup`'s `bootstrap.sh`
+and the `e2e` skill's own `!` preload; `superdev/references/` - the latter owning `review-contract.md`,
+the one source of the build review loop's labels, finding IDs, report shape and verdict rules). `superui` ships no
 plugin-root dirs at all - its one skill, `pro-designer`, bundles its own `references/` and `scripts/`;
 `superbiz` ships none either - its one skill, `idea-validator`, bundles its own
 `references/` (including a `references/council/` subdir), `scripts/`, `assets/` and `evals/`; `supercc`
@@ -281,7 +296,12 @@ The invariants below hold across the repo.
   the `adr` config switch),
   `docs/changelog/` (superdev's changelog layer, gated by the `changelog` switch -
   `superdev:changelog-writer` appends one entry per completed build plus one index line in
-  `docs/changelog/README.md`), `docs/.workflows/` (superdev's per-run working directory
+  `docs/changelog/README.md`), `docs/qa/` (superdev's QA layer, gated by the `qa`, `e2e-ui` and `e2e-api`
+  switches - `superdev:qa-writer` writes one write-once tester acceptance document per build
+  (`docs/qa/<run>.md`) and one write-once machine handoff file (`docs/qa/<run>.e2e.md`), plus one index
+  line per build in `docs/qa/README.md`; the `e2e` skill later appends that handoff file's own
+  `## Automation` status lines and commits the `@playwright/test` files `superdev:e2e-writer` generates
+  into the host's own e2e test directory, not under `docs/qa/`), `docs/.workflows/` (superdev's per-run working directory
   `docs/.workflows/<run>/` - the intent file the `intent` skill persists (`intent.md`), the `refresh.md`
   it writes beside that file on every write, fresh or resumed, the spec
   (`spec.md`), the plan copy written by `decompose.sh`, task files and implementation reports all live
@@ -378,12 +398,15 @@ The invariants below hold across the repo.
   `skills[]`, invoked with the `Skill` tool under one shared stage contract
   (`stage: checkpoint|final|re-review` plus `since:` / `prior:` / `decisions:`, verdict
   `PASS` / `FAIL` / `BLOCKED`) that `superdev/references/review-contract.md` owns,
-  and superdev's three closeout writers -
-  `memory-writer`, `rules-writer`, `changelog-writer` - live there too:
+  and superdev's four closeout writers -
+  `memory-writer`, `rules-writer`, `qa-writer`, `changelog-writer` - live there too:
   `superbuild` and `simplebuild` dispatch `memory-writer` / `rules-writer` together as
-  wave 1 with the `Agent` tool in one message, then `changelog-writer` alone as wave 2, and
+  wave 1 with the `Agent` tool in one message, joined by `qa-writer` in that same wave whenever `qa`,
+  `e2e-ui` or `e2e-api` reads `true`, then `changelog-writer` alone as wave 2, and
   `superdev-memory` / `superdev-rules` each dispatch their matching writer (`memory-writer` /
-  `rules-writer`) the same way; superbiz ships no agents at all - its council members are
+  `rules-writer`) the same way; superdev's `e2e-writer` agent is not a closeout writer at all - the
+  user-only `e2e` skill alone dispatches it, once per pending scenario, never at Close Out and never
+  during a build; superbiz ships no agents at all - its council members are
   `general-purpose` subagents prompted from `references/council/`, not declared agents; supercc ships none
   either - `skill-designer` dispatches nothing; superui ships none either) - and the
   relevant `CLAUDE.md`

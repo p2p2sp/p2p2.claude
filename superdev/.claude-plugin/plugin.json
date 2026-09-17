@@ -28,7 +28,8 @@
     "./skills/superdev-rules/",
     "./skills/tdd/",
     "./skills/executor/",
-    "./skills/simpledebug/"
+    "./skills/simpledebug/",
+    "./skills/e2e/"
   ],
   "agents": [
     "./agents/superbuild-task-implementor.md",
@@ -36,6 +37,8 @@
     "./agents/superbuild-task-reviewer.md",
     "./agents/memory-writer.md",
     "./agents/rules-writer.md",
-    "./agents/changelog-writer.md"
+    "./agents/changelog-writer.md",
+    "./agents/qa-writer.md",
+    "./agents/e2e-writer.md"
   ]
 }
