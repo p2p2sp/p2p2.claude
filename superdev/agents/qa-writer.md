@@ -64,9 +64,14 @@ Run `date +%F` for `Date`.
   hyphen, then the basename of Workdir.
 - Acceptance document: `docs/qa/<run id>.md`. Handoff file: `docs/qa/<run id>.e2e.md`.
 - Title: the `Title:` line of `## capture`, quotes stripped.
-- Areas: derived exactly as `changelog-writer` derives them - for each path under every task's
-  `### Files` line, the top-level segment, one segment deeper when that segment is a plugin or suite root;
-  a path with no `/` is itself the area; dedupe, first-seen order.
+- Areas: the rule `changelog-writer` applies, stated here in full so the two indexes group one build under
+  the same names - for each path under every task's `### Files` line (add/modify/delete) in `## capture`,
+  take the top-level path segment (before the first `/`); when that segment is a plugin or suite root
+  (`superdev`, `superui`, `supergh`, `superfix`, `superbiz`, `tests`), go one segment deeper instead (e.g.
+  `superdev/skills`, `tests/superdev`) so the area names the actual module, not the whole plugin. A path
+  with no `/` (e.g. `README.md`) is itself the area. Dedupe, keep first-seen order. This paragraph and the
+  `Areas:` line of `agents/changelog-writer.md` are one rule in two files: a change to either is made to
+  both, the root list included.
 - Language: the language `## intent` is written in; absent -> `## spec`'s; absent -> `## capture`'s. It
   governs the acceptance document only - the handoff file's keys and headings stay English.
 - Criteria: the `## Acceptance criteria` of `## spec`; absent -> the `## Acceptance criteria` of the plan
@@ -100,9 +105,11 @@ E2E flow, which appends it later.
    `api` for one observable through an endpoint. A criterion observable both ways yields two scenarios and
    two IDs, one of each tag, never one scenario carrying both. The numbering is fixed here and never
    renumbered, re-sorted or reused afterwards.
-2. Write-once check, before any file is written: every artifact this run would write whose path already
-   exists -> `VERDICT: FAIL`, `REASON: entry exists - docs/qa documents are write-once`; stop, having
-   written nothing at all.
+2. Write-once check, before any file is written, over exactly two paths - the acceptance document and the
+   handoff file. Either of the two this run would write whose path already exists -> `VERDICT: FAIL`,
+   `REASON: entry exists - docs/qa documents are write-once`; stop, having written nothing at all. The
+   index `docs/qa/README.md` is never part of this check and is never write-once: it is appended to (step
+   6), so an existing index is the normal case from the second build onward, not an error.
 3. Acceptance document `docs/qa/<run id>.md` - written only when `qa` is `true` **and** UI changed. It
    carries `ui` scenarios only, in the document's language:
    - Every criterion gets at least one scenario whose `Covers:` line names it in the reference form. A

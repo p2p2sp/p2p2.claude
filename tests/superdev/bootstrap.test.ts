@@ -18,6 +18,7 @@ import path from "node:path";
 
 import { runScript } from "../harness/run.ts";
 import { withTempDir } from "../harness/tmp.ts";
+import { coreUtilsPath } from "../harness/stub.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../superdev/skills/setup/scripts/bootstrap.sh");
 const ASSETS_DIR = path.resolve(import.meta.dirname, "../../superdev/skills/setup/assets");
@@ -28,23 +29,13 @@ function run(dir: string) {
   return runScript(SUT, [], { cwd: dir });
 }
 
-/** The one real PATH directory that resolves `grep` - core utilities only,
- *  no `playwright-cli`, no `git`. bootstrap.sh now shells out to
- *  check-playwright.sh, whose "not found" lines would flip on a host that
- *  actually has playwright-cli/git reachable; see check-playwright.test.ts's
- *  own header for the full rationale. Used only by the two cases below that
- *  assert bootstrap.sh's exact, full stdout. */
-function grepOnlyPath(): string {
-  const names = process.platform === "win32" ? ["grep.exe", "grep"] : ["grep"];
-  const dirs = (process.env.PATH ?? "").split(path.delimiter).filter(Boolean);
-  for (const dir of dirs) {
-    if (names.some((name) => fs.existsSync(path.join(dir, name)))) return dir;
-  }
-  throw new Error("bootstrap.test.ts: no directory on PATH resolves grep");
-}
-
+/** bootstrap.sh now shells out to check-playwright.sh, whose two tooling lines
+ *  would read "found" on a host that has playwright-cli reachable - so the two
+ *  cases below that assert bootstrap.sh's exact, full stdout run on the
+ *  harness's minimal PATH (`coreUtilsPath`, which carries its own rationale).
+ *  Every other case matches single lines and is indifferent to the host. */
 function runIsolated(dir: string) {
-  return runScript(SUT, [], { cwd: dir, env: { PATH: grepOnlyPath() } });
+  return runScript(SUT, [], { cwd: dir, env: { PATH: coreUtilsPath() } });
 }
 
 function readIfExists(file: string): string | undefined {

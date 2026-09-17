@@ -5,14 +5,10 @@
  *
  * PATH isolation: `stubDirs` only PREPENDS to the real PATH, so on a host
  * that already has a real `playwright-cli` on PATH the "not found" cases
- * would flip. Every case therefore pins `opts.env.PATH` to the single real
- * PATH directory that resolves `grep` (or `grep.exe`) - the one directory
- * Git-for-Windows' `usr/bin` (or a POSIX box's `/usr/bin`) ships every
- * coreutil bootstrap.sh/check-playwright.sh need (bash, grep, head, printf)
- * alongside `bash` itself, which the harness needs to invoke the SUT's
- * `#!/usr/bin/env bash` shebang by name on win32 - while still starving out
- * `playwright-cli` and `git`. Losing `git` is fine: check-playwright.sh
- * falls back to `pwd` for `root` exactly per its own contract.
+ * would flip. Every case therefore pins `opts.env.PATH` to the harness's
+ * minimal PATH (`coreUtilsPath` in tests/harness/stub.ts, which carries the
+ * full rationale, `git` included), and the found cases prepend one `withStub`
+ * dir on top of it.
  *
  * Repo reality: no build, no lint, no npm, no package.json (for THIS repo) -
  * this file is run directly by Node's native test runner + TypeScript type
@@ -27,26 +23,15 @@ import path from "node:path";
 
 import { runScript } from "../harness/run.ts";
 import { withTempDir } from "../harness/tmp.ts";
-import { withStub } from "../harness/stub.ts";
+import { coreUtilsPath, withStub } from "../harness/stub.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../superdev/scripts/check-playwright.sh");
 
 const STUB_VERSION_1_2_3 = 'echo "1.2.3"';
 const STUB_VERSION_FAILS = "exit 1";
 
-/** The one real PATH directory that resolves `grep` - core utilities only,
- *  no `playwright-cli`, no `git`. See file header. */
-function grepOnlyPath(): string {
-  const names = process.platform === "win32" ? ["grep.exe", "grep"] : ["grep"];
-  const dirs = (process.env.PATH ?? "").split(path.delimiter).filter(Boolean);
-  for (const dir of dirs) {
-    if (names.some((name) => fs.existsSync(path.join(dir, name)))) return dir;
-  }
-  throw new Error("check-playwright.test.ts: no directory on PATH resolves grep");
-}
-
 function run(dir: string, stubDirs: string[] = []) {
-  return runScript(SUT, [], { cwd: dir, env: { PATH: grepOnlyPath() }, stubDirs });
+  return runScript(SUT, [], { cwd: dir, env: { PATH: coreUtilsPath() }, stubDirs });
 }
 
 test("not found: no playwright-cli on PATH, no package.json -> both lines not found, exit 0", () => {

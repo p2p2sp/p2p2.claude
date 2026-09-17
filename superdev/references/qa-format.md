@@ -7,8 +7,10 @@ an acceptance document).
 
 `<run id>` is derived exactly as `changelog-writer` derives it: the basename of the run workdir, or
 `<grandparent basename>-<basename>` when the workdir's parent directory is named `phases`. Both files of
-a build are write-once: an existing target path is an error, never an overwrite. The single exception is
-the `## Automation` section of the handoff file, appended later by the E2E flow.
+a build - the acceptance document and the handoff file, never the index - are write-once: an existing
+target path is an error, never an overwrite. The single exception is the `## Automation` section of the
+handoff file, appended later by the E2E flow. The index is the opposite by design: every build that wrote
+an acceptance document appends to it, so `docs/qa/README.md` already existing is never an error.
 
 ## Scenario IDs
 
@@ -257,8 +259,11 @@ handoff file alone leaves the index untouched.
 
 ### Rules
 
-- Areas are derived exactly as `changelog-writer` derives them. The area is carried by the group
-  heading, not repeated in the line; a build spanning several areas gets the same line under each group.
+- Areas are derived exactly as `changelog-writer` derives them; `agents/qa-writer.md` states that rule in
+  full - the enumerated plugin and suite roots included - and the two statements are kept identical, so a
+  build is grouped under the same names in this index and in `docs/changelog/README.md`. The area is
+  carried by the group heading, not repeated in the line; a build spanning several areas gets the same
+  line under each group.
 - Newest first inside a group. A group that does not exist yet is appended after the last existing
   group; existing groups keep their order.
 - The ID range spans the first and the last ID assigned in that build, whether or not every ID in
