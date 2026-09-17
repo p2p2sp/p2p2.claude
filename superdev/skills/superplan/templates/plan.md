@@ -25,11 +25,12 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 
 ## Task <N> - <title which become a commit message>
 - TDD: <marker>
+- Kind: <code | scaffold | text>
 - Model: <sonnet | opus>
 - Effort: <low | medium | high | xhigh>
-- Review: <model> <effort>
+- Review: <none | <model> <effort>>
 - Covers: `<criterion short name>` (#<n>)[, `<criterion short name>` (#<m>)]
-<`Review:` is optional on any task and takes the same two value sets as `Model:` and `Effort:`; absent, the per-task reviewer runs at its own frontmatter default>
+<`Review:` is optional on any task and reads one of three states: absent - the reviewer agent's own frontmatter default applies; `none` - the per-task reviewer is not dispatched at all; `<model> <effort>` - that model runs the per-task review, the effort half signal only>
 
 ### Dependencies
 - `<task title>` (Task <N>) - blocks: <…>
