@@ -1,23 +1,12 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "disableWorkflows": true,
-  "disableRemoteControl": true,
-  "modelOverrides": {
-    "default": "claude-opus-4-8",
-    "opus": "claude-opus-4-8"
-  },
   "permissions": {
     "defaultMode": "acceptEdits",
-    "additionalDirectories": [
-      "C:/Users/dariu/.claude-p2p2/plugins"
-    ],
+    "disableAutoMode": "disable",
     "allow": [
       "Read",
       "Glob",
       "Grep",
-      "Edit",
-      "Write",
-      "NotebookEdit",
       "Skill",
       "Agent",
       "Task",
@@ -45,25 +34,40 @@
       "ExitWorktree",
       "ListMcpResourcesTool",
       "ReadMcpResourceTool",
-      "ReadMcpResourceDirTool",
-      "mcp__plugin_microsoft-docs_microsoft-learn"
+      "ReadMcpResourceDirTool"
     ],
-    "ask": [],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh release create:*)",
+      "Bash(gh repo create:*)",
+      "Bash(bash:*)",
+      "Bash(sh:*)"
+    ],
     "deny": [
       "Bash(rm -rf:*)",
       "Bash(rm -fr:*)",
+      "Bash(rm *-rf*)",
+      "Bash(rm *-fr*)",
+      "Bash(rm *-r *-f*)",
+      "Bash(rm *-f *-r*)",
       "Bash(rm -r /:*)",
       "Bash(rmdir /s:*)",
+      "Bash(find * -delete*)",
+      "Bash(find * -exec rm *)",
       "Bash(sudo:*)",
       "Bash(dd:*)",
       "Bash(mkfs:*)",
       "Bash(shutdown:*)",
       "Bash(reboot:*)",
-      "Bash(chmod 777:*)",
-      "Bash(chmod -R 777:*)",
+      "Bash(chmod *777*)",
 
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
+      "Bash(git * --force*)",
+      "Bash(git push * -f)",
+      "Bash(git push * -f *)",
+      "Bash(git -c *)",
       "Bash(git push --delete:*)",
       "Bash(git push --mirror:*)",
       "Bash(git reset --hard:*)",
@@ -115,9 +119,12 @@
       "Read(**/.env.*)",
       "Read(**/*.pem)",
       "Read(**/*.pfx)",
+      "Read(**/*.key)",
       "Read(**/id_rsa*)",
+      "Read(**/.npmrc)",
       "Read(~/.ssh/**)",
       "Read(~/.aws/**)",
+      "Read(~/.gnupg/**)",
       "Read(~/.config/gh/**)",
       "Edit(./.env)",
       "Edit(**/.env)",
