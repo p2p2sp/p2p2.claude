@@ -89,6 +89,13 @@ mechanics against `.github/scripts/release.sh` before restating them.
   needs `disallowed-tools:` (bare names, never `Tool(pattern)`) PLUS a body line naming its only
   tools. The agent-side equivalent is the `tools:` frontmatter field. A skill that both
   `!`-preloads a script and denies bare `Bash` is undefined behavior.
+- **No orphan closing tag in a written file.** A writer agent sometimes ends a file it creates
+  with a bare `</content>` - the closing tag of its own write call leaking into the value. It is
+  an emission artifact, not content the agent chose, so the read-back guard every `Write`/`Edit`
+  agent carries lowers the rate and never removes it. `tests/orphan-tags.test.ts` is the
+  enforcement: it fails CI on any tracked file outside `docs/` holding a self-standing closing
+  tag with no opener. Without it nothing catches one - the repo has no build and no lint - and
+  one did ship, inside a format reference an agent reads as its authority.
 - **Self-documentation.** Any skill add/remove/rename updates the owning plugin's
   `plugin.json` `skills[]`; any agent add/remove/rename updates that plugin's `agents[]`. A
   worker must NEVER appear in both. Update the owning `<plugin>/CLAUDE.md` (and this root file

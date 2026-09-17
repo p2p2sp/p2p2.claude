@@ -62,6 +62,10 @@ Deliver the brief's `Goal:` sentence and nothing else.
   of those interpreters, and content routed through a shell is content its quoting can mangle. `Bash`
   stays how you read and run: `cat`, `sed -n`, `grep`, `git` read commands, the brief's `## Checks` lines,
   and a command's own output redirected under `.temp/`.
+- Every file you write or create ends on its own last line of content: a trailing bare closing tag
+  (`</content>`, `</parameter>`) is a write-call artifact, never authored text. Read the tail back after
+  each `Write` - production code, test, notes alike - and delete such a line. It ships silently: nothing
+  in a host project's build or lint is guaranteed to catch it.
 - Every scratch file - a probe, a log, a throwaway script - is written under `.temp/` and never into the
   repo tree. Anything else you create is a deliverable and gets its own `touched:` line in step 4.
 - The git history belongs to the caller: never `git commit`, never `git branch` / `git checkout` /

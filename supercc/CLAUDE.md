@@ -30,6 +30,14 @@ plugin-root dirs - the single skill bundles its own `references/` and `scripts/`
   description trigger? is this line caller narrative?) stays with the model. Never migrate a
   judgment call into the script - a false FAIL on a judgment call is worse than no check, since
   the skill is instructed to fix every FAIL.
+- A FILE target lints that file ALONE; only a directory (or a file literally named `SKILL.md`,
+  which names its own skill root) sweeps siblings and bundled dirs. Reporting another file's
+  violation under this file's run sends the skill to edit a file the request never named.
+- The CLAUDE.md-read check is a WARN, never a FAIL, and it skips a host/target-qualified line.
+  Naming a CLAUDE.md read is only wrong for the worker's OWN project; it is correct for a repo
+  the worker was pointed at (`superfix/agents/profiler.md`, `superdev/agents/qa-writer.md`) and
+  it is not an instruction at all inside a template body (`superdev/references/memory-templates.md`).
+  As a FAIL it was wrong on all three of the repo's own hits and right on none.
 - Bundled paths are addressed via `${CLAUDE_SKILL_DIR}/...`, never relatively - a relative
   `references/x.md` does not resolve from the invoking session's cwd.
 - supercc writes NO `docs/<layer>/` of its own and never will. Its deliverable is the skill/

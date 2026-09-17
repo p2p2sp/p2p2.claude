@@ -87,6 +87,9 @@ never into the host tree. The one file written into the host tree is the spec fi
      govern the file name, which keeps the ID so the status line's path carries it.
    - That spec file is the whole write. No new shared helper, no edit to an existing one, no config file,
      no `package.json` - the E2E commit declares the generated spec files and the handoff, nothing else.
+   - The file ends on its own last line of code: a trailing bare closing tag (`</content>`,
+     `</parameter>`) is a write-call artifact, never authored text, and it makes the spec unparsable.
+     Read the tail back after the write and delete such a line.
    - A `ui` entry drives the UI for its `Steps`; Playwright `request` is used for `Seed` where the entry
      gives one, for an `Assert` side effect the entry states through an endpoint, and to clean up what
      the seed created. An `api` entry is `request` only, black box.

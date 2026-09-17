@@ -50,6 +50,7 @@ Beyond that, a change qualifies only when it alters DURABLE knowledge of an area
 - One root; root carries the READ-FIRST directive (Memory Layer section).
 - < 4k tokens per node (bytes/4 via `wc -c`).
 - Downlinks use relative paths; no duplication with ancestor nodes.
+- A node ends on its own last line of content: a trailing bare closing tag (`</content>`, `</parameter>`) is a write-call artifact, never authored text. Read back the tail of every node you wrote and delete such a line. The same tag at the end of `<refs>/memory-templates.md` is that artifact too, never part of the template - never copy it through.
 
 ## Output format
 

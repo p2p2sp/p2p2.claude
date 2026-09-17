@@ -6,7 +6,7 @@
 # <Title>
 
 - Date: <YYYY-MM-DD>
-- Run: <workdir basename>
+- Run: <run id>
 - Commits: <base SHA>..<HEAD SHA>
 - ADR: <path>            (one line per ADR written for this run; omit when none)
 - Areas: <a>, <b>
@@ -25,13 +25,24 @@
 <one line per deviation with its why, or "no deviations">
 ```
 
+`<run id>` is whatever the writer's own `## Derive` step computed, and that step is its only
+definition. ONE value fills three slots: this `Run:` line, the entry file name
+`docs/changelog/<run id>.md`, and the index link below. Never re-derive it per slot and never
+substitute the workdir basename - for a roadmap phase that basename is `01-layout`, which is
+neither unique across roadmaps nor the name of any entry file.
+
 ## Index line
 
 Prepended to `docs/changelog/README.md`, directly after the `# Changelog` heading block:
 
 ```
-- <YYYY-MM-DD> - [<Title>](<YYYY-MM-DD>-<slug>.md) - <areas>
+- <YYYY-MM-DD> - [<Title>](<run id>.md) - <areas>
 ```
+
+`<YYYY-MM-DD>` is the entry's own `Date:` value, and the link target is the entry file name, so
+the two are read off the entry rather than rebuilt from the workdir. For an ordinary run the run
+id already is `<YYYY-MM-DD>-<slug>`, so a link written this way is byte-identical to one written
+before this rule.
 
 ## Worked example
 

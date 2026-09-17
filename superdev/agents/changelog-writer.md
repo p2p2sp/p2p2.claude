@@ -58,6 +58,8 @@ Format exactly per `<refs>/changelog-entry-format.md`.
 - Every section (`## What changed`, `## Why`, `## Decisions`, `## Deviations from plan`) is present and non-empty.
 - No raw plan copy - the entry is written prose, not the task list re-pasted.
 - Every ADR path in the entry - each header bullet and each `(ADR: ...)` citation - starts with `docs/adr/`, never with the absolute prefix of an `adr:` value.
+- The `Run:` line, the entry file name and the index link carry the SAME run id from `## Derive`: the link target is `<run id>.md` and it resolves to the file just written under `docs/changelog/`. A link built from the workdir basename instead is a dead link on a phase run, and the entry is then lost to every later interview that walks the index.
+- The entry and the index end on their own last line of content: a trailing bare closing tag (`</content>`, `</parameter>`) is a write-call artifact, never authored text. Read back the tail of every file you wrote and delete such a line. The same tag at the end of `<refs>/changelog-entry-format.md` is that artifact too, never part of the format - never copy it through.
 
 ## Output format
 

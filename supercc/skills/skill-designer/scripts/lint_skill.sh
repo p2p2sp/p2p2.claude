@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # Lint a skill directory (containing SKILL.md) or a single agent/skill .md file.
 # Prints FAIL / WARN lines. Exit 1 when any FAIL, 0 otherwise. Plain bash only.
+#
+# A DIRECTORY target lints every .md under it plus its bundled scripts/ and
+# references/. A FILE target lints THAT file and nothing else - passing an agent
+# .md must never report a sibling agent's violations under this file's run. The
+# one exception is a file literally named SKILL.md: its directory IS the skill
+# root, so naming it is the same request as naming the directory.
 
 set -u
 
@@ -15,14 +21,17 @@ warns=0
 fail() { echo "FAIL $1"; fails=$((fails + 1)); }
 warn() { echo "WARN $1"; warns=$((warns + 1)); }
 
+# sweep_dir non-empty -> lint every .md under it and its bundled dirs; empty ->
+# lint "$main" alone.
+sweep_dir=""
 if [ -d "$target" ]; then
   main="$target/SKILL.md"
-  root="$target"
+  sweep_dir="$target"
   [ -f "$main" ] || { fail "$target: SKILL.md missing"; echo "FAIL=$fails WARN=$warns"; exit 1; }
 else
   main="$target"
-  root="$(dirname "$target")"
   [ -f "$main" ] || { fail "$target: file not found"; echo "FAIL=$fails WARN=$warns"; exit 1; }
+  [ "$(basename "$main")" = "SKILL.md" ] && sweep_dir="$(dirname "$target")"
 fi
 
 # --- frontmatter ---------------------------------------------------------
@@ -96,8 +105,17 @@ check_file() {
   # italics: single *x* or _x_ not part of ** / __ / identifiers
   grep -nEq '(^|[^*[:alnum:]])\*[^* ][^*]*[^* ]\*([^*[:alnum:]]|$)' "$f" && warn "$f: possible italics with *...*"
   grep -nEq '(^|[[:space:]])_[^_ ][^_]*[^_ ]_([[:space:][:punct:]]|$)' "$f" && warn "$f: possible italics with _..._"
-  # project instruction file reads
-  grep -nEiq '(read|load|check|consult)[^.]*CLAUDE\.md' "$f" && fail "$f: instructs to read CLAUDE.md, the harness injects it"
+  # Project instruction file reads. A WARN, not a FAIL: pointing a worker at its
+  # OWN project's CLAUDE.md is wrong (the harness injects that), but the same
+  # sentence is CORRECT when the memory belongs to a repo the worker was pointed
+  # AT, and it is not an instruction at all inside a template whose body gets
+  # written into a generated CLAUDE.md. Telling those apart is judgment, and a
+  # false FAIL on a judgment call is worse than no check. The qualifier filter
+  # drops the foreign-repo reading, which is the one shape decidable from a line.
+  if grep -nEi '(read|load|check|consult)[^.]*CLAUDE\.md' "$f" \
+    | grep -Eiqv '(host|target|audited|under audit|repo you were given)'; then
+    warn "$f: names a CLAUDE.md read, the harness injects the worker's own project memory"
+  fi
   # shouting
   shouts="$(grep -oE '\b(MUST|NEVER|ALWAYS|CRITICAL|IMPORTANT)\b' "$f" | wc -l | tr -d ' ')"
   [ "$shouts" -gt 5 ] && warn "$f: $shouts all-caps directives, replace with a short why"
@@ -108,15 +126,19 @@ check_file() {
   grep -nEq '(^|[[:space:]|;(])(jq|bc)([[:space:]]|$)' "$f" && warn "$f: uses jq or bc, keep to clean bash"
 }
 
-while IFS= read -r f; do
-  [ -n "$f" ] && check_file "$f"
-done <<EOF
-$(find "$root" -type f -name '*.md' 2>/dev/null)
+if [ -n "$sweep_dir" ]; then
+  while IFS= read -r f; do
+    [ -n "$f" ] && check_file "$f"
+  done <<EOF
+$(find "$sweep_dir" -type f -name '*.md' 2>/dev/null)
 EOF
+else
+  check_file "$main"
+fi
 
 # --- scripts -------------------------------------------------------------
-if [ -d "$root/scripts" ]; then
-  for s in "$root"/scripts/*; do
+if [ -n "$sweep_dir" ] && [ -d "$sweep_dir/scripts" ]; then
+  for s in "$sweep_dir"/scripts/*; do
     [ -f "$s" ] || continue
     [ "$(basename "$s")" = "lint_skill.sh" ] && continue
     grep -nEq '(^|[[:space:]|;(])(jq|bc)([[:space:]]|$)' "$s" && warn "$s: uses jq or bc, keep to clean bash"
@@ -127,8 +149,8 @@ if [ -d "$root/scripts" ]; then
 fi
 
 # --- references ----------------------------------------------------------
-if [ -d "$root/references" ]; then
-  for r in "$root"/references/*.md; do
+if [ -n "$sweep_dir" ] && [ -d "$sweep_dir/references" ]; then
+  for r in "$sweep_dir"/references/*.md; do
     [ -f "$r" ] || continue
     rl="$(wc -l < "$r" | tr -d ' ')"
     if [ "$rl" -gt 100 ]; then

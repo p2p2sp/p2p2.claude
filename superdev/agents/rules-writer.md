@@ -74,6 +74,7 @@ For each qualified convention, first match wins:
 - Every glob narrow: carries a literal directory segment or extension - never bare `**/*`, `**` or `*`.
 - < 1k tokens per file (bytes/4 via `wc -c`).
 - No duplication or contradiction with sibling rule files on overlapping paths (Grep the other rules).
+- A rule file ends on its own last line of content: a trailing bare closing tag (`</content>`, `</parameter>`) is a write-call artifact, never authored text. Read back the tail of every file you wrote and delete such a line. The same tag at the end of `<refs>/rule-format.md` is that artifact too, never part of the format - never copy it through.
 
 ## Output format
 

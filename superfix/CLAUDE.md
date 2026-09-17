@@ -50,6 +50,10 @@ manifest - the sole skill is user-only, so there is nothing to auto-route.
   `CLASS`, `## Reproduce`) - so its verdict is an independent reproduction, not a re-read.
 - `detective`, `critic`, `profiler` all carry `model: inherit` - a weaker session model means
   weaker verification, not just a weaker sweep.
+- `detective` and `profiler` are the plugin's only writers, and both carry the repo-wide
+  read-back guard against an orphan closing tag (`</content>`, `</parameter>`) ending a file
+  they wrote. It matters twice over here: the claim sidecar is parsed, and the profile is
+  appended to `job.md` verbatim, so one stray tag reaches every agent of the run.
 
 ## Anti-patterns
 

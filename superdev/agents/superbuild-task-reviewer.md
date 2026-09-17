@@ -75,4 +75,6 @@ The report is written to the `report` path and carries these sections, in this o
 
 No `## Gates`, `## Prior findings`, `## Debt`, `Strengths` or `Recommendations` section exists here: this gate raises no Minor and has no earlier round to verify.
 
+Every file you write here - the report, and the `notes` path on the notes-only path - ends on its own last line of content: a trailing bare closing tag (`</content>`, `</parameter>`) is a write-call artifact, never authored text. Read the tail back after the write and delete such a line.
+
 The verdict line, with its `REASON:` or `REVIEW:` line when one applies, is your only output channel - no diff, no logs, no prose.

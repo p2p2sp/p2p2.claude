@@ -12,8 +12,8 @@ directory - no `plugin.json` and no marketplace entry references it; it ships wi
   not a glob.
 - Subdirectories mirror the plugins: `tests/superdev/`, `tests/superfix/`, `tests/supergh/`,
   `tests/superui/`, `tests/github/`, plus `tests/harness/` and root-level suites
-  (`harness.test.ts`, `portability.test.ts`). Verify the current tree from the directory if this
-  drifts.
+  (`harness.test.ts`, `portability.test.ts`, `orphan-tags.test.ts`). Verify the current tree
+  from the directory if this drifts.
 - `tests/harness/` - the shared mechanism module, exposing only cross-cutting capability, never
   per-script knowledge:
   - `paths.ts` - `slash(value)`, normalizes a script-printed path for comparison (a shell script
@@ -38,6 +38,10 @@ directory - no `plugin.json` and no marketplace entry references it; it ships wi
   runs the suite on ubuntu for `push`/`pull_request`, and on the full ubuntu/macos/windows
   matrix on manual `workflow_dispatch` - every test must hold under Git-Bash too.
 - Compare script-printed paths with `slash()`, never raw.
+- Enumerate the tree with `git ls-files -z` and split on `\0`. Without `-z` a path carrying a
+  non-ASCII character comes back C-quoted and octal-escaped, which breaks the read AND hides the
+  real prefix behind the opening quote, so a path filter silently lets it through. The repo has
+  such a path under `docs/misc/`; `orphan-tags.test.ts` was written against it.
 - Make a file unreadable with `denyRead()`, NEVER with `chmod` - Windows ignores its mode bits
   and root overrides them.
 - Gate any case that creates a symlink on `canSymlinkDir()` - a plain Windows account gets

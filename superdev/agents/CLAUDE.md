@@ -40,6 +40,12 @@ the user - a change here means checking the agent's own `description:` still say
 - The verdict vocabulary (`VERDICT: BLOCKED`, `UNDERSPECIFIED:`, `DECISION:`,
   `NOTE: plan defect`) is owned by `../references/review-contract.md`. This node points at that
   file; it never redefines the terms.
+- Every agent with `Write`/`Edit` in `tools:` carries a read-back guard against an ORPHAN
+  closing tag (`</content>`, `</parameter>`) landing as the last line of a file it wrote - the
+  closing tag of its own write call leaking into the value. It is an emission artifact, not a
+  content decision, so the guard reduces it and never eliminates it; `tests/orphan-tags.test.ts`
+  is the deterministic half and the only thing that stops one from shipping again (one did, in
+  `superdev/references/changelog-entry-format.md`, release 0.46.1).
 
 ## Anti-patterns
 

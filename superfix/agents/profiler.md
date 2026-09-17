@@ -68,3 +68,4 @@ Return one line in your final message: `profile written: <output path>`. If the 
 - Never invent history. A class needs commits behind it, a critical path needs memory or the `--stat` output behind it. With neither memory nor rules present, derive the contract shape and the critical paths from the manifest and the test layout and say so in `## Contract shape`.
 - Keep the file under one page. It is appended to `job.md` verbatim and every agent of the run carries it.
 - Write the whole file in English, whatever language the repo's memory is in.
+- The profile ends on its own last line of content: a trailing bare closing tag (`</content>`, `</parameter>`) is a write-call artifact, never authored text. Read the tail back after the write and delete such a line - the file is appended to `job.md` verbatim, so the tag would reach every agent of the run.

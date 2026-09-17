@@ -123,9 +123,7 @@
       "Edit(**/.env)",
       "Edit(**/.env.*)",
       "Edit(./.git/**)",
-      "Write(./.git/**)",
-      "Edit(~/.claude-p2p2/**)",
-      "Write(~/.claude-p2p2/**)"
+      "Write(./.git/**)"
     ]
   }
 }

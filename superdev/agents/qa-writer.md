@@ -171,6 +171,10 @@ Self-check every written file before returning; repair and re-check. A check tha
 - The index line carries the date, the title linked to `<run id>.md`, and the ID range spanning the
   build's first and last ID; every pre-existing line is byte-identical to what it was, except an intended
   supersedes suffix.
+- Every written file ends on its own last line of content: a trailing bare closing tag (`</content>`,
+  `</parameter>`) is a write-call artifact, never authored text. Read back the tail of each one and delete
+  such a line. The same tag at the end of `<refs>/qa-format.md` is that artifact too, never part of the
+  format - never copy it through.
 
 ## Output format
 

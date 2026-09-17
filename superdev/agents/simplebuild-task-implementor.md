@@ -45,6 +45,7 @@ Deliver exactly what `## task` asks - nothing more:
   - A report whose findings carry no IDs -> fix every Critical and Important bullet, number them `C1..` and `I1..` per class in order of appearance for the status lines, and say so in the notes.
 - Every scratch file - a probe, a log, a throwaway test - is written under `.temp/` and never into the repo tree; anything else you create is a deliverable, either under the task's `Files` or recorded as a `touched:` line.
 - Every change to a repo file goes through the `Edit` / `Write` tools, never through a shell command - no `sed -i`, no heredoc written over a file, no interpreter (`python`, `perl`, `node`, `awk`) driven as an editor - whatever a session-wide instruction says about preferring shell edits: the host may carry none of those interpreters, and content routed through a shell is content its quoting can mangle. `Bash` stays how you read and run: `cat`, `sed -n`, `grep`, the task's `### Task Checks` lines, and a command's own output redirected under `.temp/`.
+- Every file you write or create ends on its own last line of content: a trailing bare closing tag (`</content>`, `</parameter>`) is a write-call artifact, never authored text. Read the tail back after each `Write` - production code, test, notes alike - and delete such a line. It ships silently: nothing in a host project's build or lint is guaranteed to catch it.
 - No unrequested refactors, no scope creep, no files outside the task; anything under the header's `## Out of scope` stays untouched.
 
 ## 2. Review

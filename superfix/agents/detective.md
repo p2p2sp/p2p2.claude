@@ -48,3 +48,4 @@ That is coverage evidence, not a failure.
 - Keep the report self-contained and under a page, in your own words - quote only the minimal lines that point at the defect.
 - The sidecar carries no reasoning: no root cause, no fix sketch, no `CONFIDENCE`, no `SEVERITY`, not one sentence on why the code is wrong. It is the claim with the argument stripped out, because the critic is given that file and nothing else - a symptom it can observe, never a conclusion it can inherit.
 - A `NO FINDING` report has no sidecar.
+- The report and the sidecar each end on their own last line of content: a trailing bare closing tag (`</content>`, `</parameter>`) is a write-call artifact, never authored text, and the sidecar is parsed. Read the tail back after each write and delete such a line.
