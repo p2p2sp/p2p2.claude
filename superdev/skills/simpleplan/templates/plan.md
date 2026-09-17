@@ -26,7 +26,7 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 <!-- /HEADER -->
 
 ## Gate commands
-<the gate of the whole build, never of a single task: the commands a review round runs over everything the build has produced. The planner fills each subsection's scope from the host's memory and from what this plan moves - the whole repository, one project, one path, one suite - and writes a command only where the planner judges its result proof for this plan>
+<the gate of the whole build, never of a single task: the commands a review round runs over everything the build has produced. The planner fills each subsection's scope from the host's memory and from what this plan moves - the whole repository, one project, one path, one suite - and writes a command only where the planner judges its result proof for this plan. `#### Build` and `#### Tests` run at every checkpoint, so each carries the narrowest scope that still proves what this plan moves; a whole repository, solution or workspace build, or a full suite, belongs under `#### Integration` alone, which runs at the final review and its re-review only>
 
 #### Build
 - <command that builds the scope this plan moves>
@@ -65,10 +65,10 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 <2-5 imperative steps - symbol + signature, algorithm (name the symbol, never a line number). No prose, no "figure out", no line-by-line code, no failure decision (a catch, a fallback, a default on error belongs under Failure modes)>
 
 ### Failure modes
-<one bullet per failure branch, fixed shape: when <X fails | input is invalid | two <X> run concurrently> -> response <Y>, log <Z>, test <T>. Nothing to handle -> the single bullet "none - <one-word reason>", never a bare "none">
+<one bullet per failure branch, fixed shape: when <X fails | input is invalid | two <X> run concurrently> -> response <Y>, log <Z>, test <T>. A step made of a persisted write followed by an outside action (a send, a call, a job hand-off) carries the bullet for the failure between the two - the write landed, the outside action did not. Nothing to handle -> the single bullet "none - <one-word reason>", never a bare "none">
 
 ### Contracts
-<data shapes / signatures this task introduces or consumes, one bullet each. A contract another task consumes ends with "consumed by `<task title>` (Task <N>)". A closed set this task extends (enum member, variant, status, kind) adds the list of that set's consumers, found by Grep. A change of the response mechanism (redirect vs rewrite, proxy vs direct, status code family) adds a method-and-status matrix, one line per method with the status codes before and after. An external value (header, path segment, query, form field, environment) entering a path, query, command or routing decision adds its validation rule. (or "none")>
+<data shapes / signatures this task introduces or consumes, one bullet each. A contract another task consumes ends with "consumed by `<task title>` (Task <N>)". A closed set this task extends (enum member, variant, status, kind) adds the list of that set's consumers, found by Grep. A change of the response mechanism (redirect vs rewrite, proxy vs direct, status code family) adds a method-and-status matrix, one line per method with the status codes before and after. An external value (header, path segment, query, form field, environment) entering a path, query, command or routing decision adds its validation rule. A new HTTP endpoint, route or handler adds its request shape, its response shape and its status codes. Text a person reads (a message, a screen, an error message, a text resource) is carried here verbatim, or delegated with one "copy: implementor, after <existing key or file>" line naming the existing wording the implementor follows. (or "none")>
 
 ### DoD
 <observable done condition; impl = code + related tests green>.

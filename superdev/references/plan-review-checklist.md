@@ -15,7 +15,7 @@ A reviewer verifies with Read/Grep/Glob ONLY and never executes a command - no b
 `git`, no shell of any kind. Path existence -> Glob; a symbol's or a command's presence in a file ->
 Grep; content -> Read.
 
-A Blocking finding must cite its class ID (B1-B17) plus concrete evidence gathered that way - quote
+A Blocking finding must cite its class ID (B1-B21) plus concrete evidence gathered that way - quote
 the file, path, or command checked. A suspicion that cannot be verified with Read/Grep/Glob is not
 Blocking: demote it to NOTES, phrased as a question.
 
@@ -101,10 +101,33 @@ evidence (see Evidence rule).
   `### Task Checks` section at all is B17 too, as is a test-file line whose path is not declared
   under that task's `### Files`. Settled by reading those sections against `### Files` and the
   memory files.
+- B18 - New endpoint with no contract: a task whose `### Approach` adds an HTTP endpoint, route or
+  handler while its `### Contracts` carries no request shape, no response shape and no status codes
+  for it. The implementor otherwise invents all three, and the task consuming that endpoint is
+  written against an invention. Settled by reading that task's `### Approach` against its
+  `### Contracts`.
+- B19 - User-visible text with no owner: a task whose `### Approach` or `### Files` produces text a
+  person reads (a message, a screen, an error message, a text resource) while neither section carries
+  that text nor `### Contracts` carries a `copy: implementor, after <existing key or file>` line for
+  it. That line is the one delegation form: it names the existing key or file whose wording the
+  implementor follows, so unwritten text is a decision the plan hands over deliberately rather than
+  one it forgot. Settled by reading those three sections.
+- B20 - Mid-operation failure with no decision: a task whose `### Approach` has a step made of a
+  persisted write followed by an outside action (a send, a call, a job hand-off) while its
+  `### Failure modes` carries no bullet for a failure between the two - the write landed, the outside
+  action did not. Settled by reading that task's `### Approach` against its `### Failure modes`.
+- B21 - Whole-repository command outside the final gate: a `#### Build` or `#### Tests` line, or a
+  task's `### Task Checks` line, that builds or tests the whole repository, solution or workspace
+  while the host's runner and memory files (`CLAUDE.md`, `.claude/rules/`) offer a narrower scope -
+  one project, one path, one suite - covering what the plan moves. Those two subsections run at every
+  checkpoint and that section runs on every task, so the cost is paid over and over; a whole-repository
+  build or a full suite belongs under `#### Integration` alone, which runs at the final review and its
+  re-review only. Settled by reading the command against the host's memory files and the plan's
+  `### Files`.
 
 ## Advisory (NOTES)
 
-Everything real but not in B1-B17: wording, phrasing, style preferences, task-split preference
+Everything real but not in B1-B21: wording, phrasing, style preferences, task-split preference
 (one task vs. two), optional hardening not required by any acceptance criterion, "nice to have"
 suggestions, and a `Model:` / `Effort:` / `Review:` that reads too low for what the task's
 `### Approach` has to reason about (an algorithm, a state machine, a contract other tasks consume, a
@@ -177,5 +200,14 @@ Before submitting a plan for review, verify in the repo:
 - Every `Covers:`, `### Dependencies` and `consumed by` entry names its criterion or task in the
   reference form `` `<title>` (<pointer>) `` - the criterion's short name with `(#<n>)`, the task's
   heading title with `(Task <N>)` - never a bare number, and the title matches the line it points at.
+- Every task that adds an endpoint, route or handler carries that endpoint's request shape, response
+  shape and status codes under `### Contracts`.
+- Every task producing text a person reads carries that text itself, or delegates it under
+  `### Contracts` with one `copy: implementor, after <existing key or file>` line.
+- Every `### Approach` step made of a persisted write followed by an outside action carries a
+  `### Failure modes` bullet for the failure between the two.
+- No `#### Build` line, `#### Tests` line or `### Task Checks` line builds or tests the whole
+  repository, solution or workspace while the host's runner offers a narrower scope covering what the
+  plan moves; a full build or a full suite rides under `#### Integration` alone.
 
 Fix any violation inline before submitting - do not rely on the reviewer to catch it.

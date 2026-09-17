@@ -43,6 +43,7 @@ The header's `## Gate commands` block is the gate of the whole build - what a re
 - Name the suites the host's own memory records over those files (`CLAUDE.md`, `.claude/rules/`), and take the one that covers what moved.
 - Weigh proof against cost: a command whose result would tell a reviewer this build is sound earns its runtime; one that reruns work the tasks already proved does not.
 - Take the narrowest scope that still proves the change - one project, one path, one suite rather than the whole repository, wherever the host's runner offers it.
+- `#### Build` and `#### Tests` run at every checkpoint, so they never carry a whole repository, solution or workspace command while a narrower scope exists - a full build or a full suite, when its result is worth having at all, goes under `#### Integration`, the final review's own gate.
 - A subsection with nothing worth running carries `none - <reason>`.
 
 A build command runs only where you judge its result proof for this plan, and no rule mandates one: a plan that moves only documentation, prompts or configuration can carry `none - <reason>` in all three subsections.
@@ -55,7 +56,7 @@ Before defining tasks, map out which files will be created or modified and what 
 - Files that change together should live together. Split by responsibility, not by technical layer.
 - In existing codebases, follow established patterns. If the codebase uses large files, don't unilaterally restructure - but if a file you're modifying has grown unwieldy, including a split in the plan is reasonable.
 
-Then write each task's sections so the checklist's Blocking classes B9-B14 have nothing to flag:
+Then write each task's sections so the checklist's Blocking classes B9-B14 and B18-B21 have nothing to flag:
 - Every failure branch the task decides goes under `### Failure modes` in the fixed shape `when <X fails | input is invalid | two <X> run concurrently> -> response <Y>, log <Z>, test <T>`; nothing to handle is `none - <one-word reason>`, never a bare `none`.
 - `### Approach` carries symbol, signature and algorithm only - never line-by-line code, never a failure decision (a `catch`, a fallback, a default on error lives under `### Failure modes`). The ADR task above is the one exemption: its `### Approach` carries every ADR's text in full and verbatim, and is never shrunk to fit this rule.
 - A task that extends a closed set (an enum member, a variant, a status, a kind) lists that set's consumers under `### Contracts`; Grep the type name to find them.
@@ -63,6 +64,9 @@ Then write each task's sections so the checklist's Blocking classes B9-B14 have 
 - A value from outside the process (a header, a path segment, a query parameter, a form field, an environment variable) that enters a path, query, command or routing decision carries its validation rule under `### Contracts` or `### Failure modes`.
 - Every contract another task consumes names that task as `` consumed by `<task title>` (Task <N>) ``; a value produced and consumed by nobody does not belong in the plan.
 - Every planned test must be able to fail before the change it proves - no fixture already equal to the expected value, no assertion on a constant.
+- A task that adds an HTTP endpoint, route or handler carries that endpoint's request shape, response shape and status codes under `### Contracts` - otherwise the implementor invents all three and the consuming task is written against an invention.
+- A task that produces text a person reads (a message, a screen, an error message, a text resource) carries that text itself, or delegates it under `### Contracts` with one `copy: implementor, after <existing key or file>` line naming the existing wording the implementor follows. Those are the only two options - text left unmentioned is not delegation.
+- A step made of a persisted write followed by an outside action (a send, a call, a job hand-off) carries a `### Failure modes` bullet for the failure between the two - the write landed, the outside action did not - in that section's fixed shape.
 
 This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
 
@@ -79,7 +83,7 @@ Size each task against that bound: a `TDD: required` task writes exactly one tes
 
 **Task Checks**
 `### Task Checks` holds only what the implementor runs as this one task's own proof - the deliverable works - and nothing the header's gate already covers. Judge every line by four criteria:
-- The narrowest scope the host's runner offers: one test file, one project, one path. The host's whole suite belongs to the gate, never here.
+- The narrowest scope the host's runner offers: one test file, one project, one path. The host's whole suite belongs to the gate, never here. A command that builds or tests the whole repository, solution or workspace never appears here, whatever the task moves.
 - Seconds, in memory. A test in which a process or service the application connects to takes part - a database, the network, a browser, to name three - is an integration or e2e test: it stays out of this section and runs through the host's integration or e2e command at the final review.
 - Which suite of a host is its fast in-memory suite is settled by that host's own memory files (`CLAUDE.md`, `.claude/rules/`), never by the examples here.
 - Proof, not coverage: a single test proving the task is enough, and a task with no test to run carries the proof it does have - a compile, a type-check, a lint, a grep - or the single line `none - <reason>`.
@@ -106,7 +110,7 @@ Every task carries `Model:` (`sonnet` | `opus`) and `Effort:` (`low` | `medium` 
 - A `TDD: required` task never sits on `Model: sonnet`: judging its own red and green is reasoning the task owns.
 
 ### Self-Review
-Once you have written a complete plan and before final review, MUST fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B17 plus `## Author self-check`) - the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:
+Once you have written a complete plan and before final review, MUST fast review it with your fresh eyes against the checklist loaded above (`## Blocking classes` B1-B21 plus `## Author self-check`) - the exact rubric the reviewer applies, so a clean self-check is expected to PASS round 1:
 - Verify in the repo (Read/Grep/Glob) every `### Files` path and symbol, and every command of the header's `## Gate commands` block and of each task's `### Task Checks` against the repo's real build/test tooling; each of the three gate subsections holds a runnable command or `none - <reason>`.
 - Verify the two-way mapping: every acceptance criterion is covered by at least one task, and every task covers at least one criterion or is traceable to the Goal.
 - Verify every task carries a `TDD:` marker, that every task carries `### Task Checks`, that a `TDD: required` task's section carries exactly one test-file line, that every test-file line names a file declared under that task's `### Files`, that a section with nothing to run reads `none - <reason>`, and that every task carries `Model:` and `Effort:` with values from the allowed sets - a `TDD: required` task on `Model: sonnet` is a violation.
