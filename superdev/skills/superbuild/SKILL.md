@@ -40,7 +40,7 @@ In both states your only action is `AskUserQuestion` (retry after the reset / ab
 
 ## Config
 
-Resolved opt-in switches, gating the Step 4 close-out delegations (`rules`, `memory`, `changelog`), the Step 5 run cleanup (`cleanup`) and every stats call of this build (`stats`) - the `adr` line is printed too but gates nothing here, it gates the `intent` skill:
+Resolved opt-in switches, gating the Step 4 close-out delegations (`rules`, `memory`, `changelog`, `qa`, `e2e-ui`, `e2e-api`), the Step 5 run cleanup (`cleanup`) and every stats call of this build (`stats`) - the `adr` line is printed too but gates nothing here, it gates the `intent` skill:
 
 !`"${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh"`
 
@@ -152,11 +152,12 @@ Shared by the checkpoint above (`stage: checkpoint`) and by each round of Step 3
 2. Wave 1 - gated by Config; dispatch only the enabled ones with the `Agent` tool - all of them as multiple tool uses in ONE single message so they run concurrently - and await all before moving on.
     - `memory: true` -> `subagent_type: superdev:memory-writer`, labeled-line prompt: `capture: <plan-copy path>`, `notes: <workdir>/implementation/`, `refs: <refs>`, `spec: <spec path>`.
     - `rules: true`  -> `subagent_type: superdev:rules-writer`, labeled-line prompt: `capture: <plan-copy path>`, `notes: <workdir>/implementation/`, `refs: <refs>`.
+    - any of `qa`, `e2e-ui`, `e2e-api` reading `true` -> `subagent_type: superdev:qa-writer`, labeled-line prompt: `capture: <plan-copy path>`, `workdir: <workdir>`, `notes: <workdir>/implementation/`, `reports: <workdir>/implementation/`, `refs: <refs>`, `qa: <value>`, `e2e-ui: <value>`, `e2e-api: <value>` copied verbatim from the Config block, `spec: <spec path>`, plus `intent: <intent path>` only when the decompose index printed an `intent:` line.
 3. Wave 2 - `changelog: true` -> after wave 1 completes, first collect the ADRs this build wrote: the index's `base:` is a SHA -> run `git diff --name-only --diff-filter=A <base>..HEAD -- <root>/docs/adr/` with the Bash tool - the pathspec joined with the index's `root:` because you never `cd` and the session may have started in a subdirectory, and `--diff-filter=A` so an older ADR this build only marked superseded stays off the list. Each path it prints is repository-root-relative like every other path of the index, so join it with `root:` and carry it as one `adr: <root>/<printed path>` line, in the printed order; nothing printed -> no `adr:` line. The index's `base:` is `none` -> run no `git diff` and pass no `adr:` line. The command exits non-zero -> pass no `adr:` line and note the failure in the Step 5 summary.
    Then dispatch `subagent_type: superdev:changelog-writer`, labeled-line prompt: `capture: <plan-copy path>`, `workdir: <workdir>`, `notes: <workdir>/implementation/`, `refs: <refs>`, `spec: <spec path>`, plus `intent: <intent path>` only when the decompose index printed an `intent:` line, and the `adr:` lines collected above (repeatable, one per ADR).
    Nothing enabled in either wave -> skip to the commit.
-4. Keep each delegation's `NODE:` / `RULE:` / `CHANGELOG:` / `INDEX:` / `GAP:` lines verbatim for the Step 5 summary. Any delegation failing is non-fatal -> note it there too, do not block.
-5. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(superbuild): close out memory, rules and changelog" --path <workdir>` with one further `--path <path>` per path the writers relayed on their `NODE:` / `RULE:` / `CHANGELOG:` / `INDEX:` lines (a line reading `none` declares nothing) - that is the whole declared set of this commit; its exit 2 is handled as in Step 2.
+4. Keep each delegation's `NODE:` / `RULE:` / `CHANGELOG:` / `INDEX:` / `GAP:` / `QA:` / `E2E:` / `QA-INDEX:` lines verbatim for the Step 5 summary. Any delegation failing is non-fatal -> note it there too, do not block.
+5. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(superbuild): close out memory, rules, changelog and qa" --path <workdir>` with one further `--path <path>` per path the writers relayed on their `NODE:` / `RULE:` / `CHANGELOG:` / `INDEX:` / `QA:` / `E2E:` / `QA-INDEX:` lines (a line reading `none` or `skipped - <reason>` declares nothing) - that is the whole declared set of this commit; its exit 2 is handled as in Step 2.
 6. `TaskStop` -> completed
 
 ## Step 5 - Done
@@ -165,6 +166,7 @@ Shared by the checkpoint above (`stage: checkpoint`) and by each round of Step 3
 2. `cleanup: true` -> run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-run.sh" <workdir> superbuild` - here alone `<workdir>` is the index's `workdir:` value verbatim, repository-relative and never joined with `root:`, because the script's safety gate rejects every path outside `docs/.workflows/`, an absolute one included, and silently skips it as not a run dir. Keep its `CLEANUP:` line; the script verifies completion itself - never re-check, never retry.
 3. Cleanup the task list and display short summary of work. Max ~3-5 sentences plus the relayed lines. Include:
     - Step 4's `NODE:` / `RULE:` / `CHANGELOG:` / `INDEX:` lines verbatim (or the noted failure / disabled), plus the noted `git diff` failure when Step 4 hit one
+    - the `QA:` / `E2E:` / `QA-INDEX:` lines verbatim, a `skipped - <reason>` line included, or "disabled" when `qa`, `e2e-ui` and `e2e-api` are all off
     - the `stats:` line verbatim (or "disabled" when `stats` is off), plus every stats call noted as failing
     - the `CLEANUP:` line verbatim (or "disabled" when `cleanup` is off)
     - every `GAP:` line verbatim, each followed by `-> run superdev-memory`
