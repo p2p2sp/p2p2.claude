@@ -104,10 +104,10 @@ function seedInitialCommit(repo: GitRepo): string {
   return repo.git("rev-parse", "HEAD").stdout.trim();
 }
 
-// decompose.sh ships mode 100644 (git ls-files) - every SKILL.md invokes it
-// explicitly as `bash "${CLAUDE_PLUGIN_ROOT}/scripts/decompose.sh" ...`, never
-// bare, so the portability sweep does not require an exec bit here; the
-// harness must invoke it the same way.
+// decompose.sh ships mode 100755 (git ls-files) - orchestrators invoke it
+// directly as `"${CLAUDE_PLUGIN_ROOT}/scripts/decompose.sh" ...`, never
+// through bash; the harness below still runs it via shell: "bash" because it
+// is testing the script's content, not its exec bit.
 function run(repo: GitRepo, args: string[]): RunResult {
   return runScript(SUT, args, { cwd: repo.dir, env: repo.env, shell: "bash" });
 }
