@@ -1,0 +1,22 @@
+# Cięcie kosztu budowy superdev - Review: none, oś Kind, jedna postać wywołań skryptów, uprawnienia w setup
+
+- Date: 2026-09-17
+- Run: 2026-09-17-build-cost-cuts
+- Commits: 4c8fd661f853f92aea03ef658bbfa2c858a5b530..79794bfb7e6c6318dfda3750de234bae53025853
+- Areas: superdev/scripts, tests/superdev, superdev/references, superdev/skills, superdev/agents, CLAUDE.md, superdev/README.md, superdev/CLAUDE.md, superdev/hooks
+
+## What changed
+Zadanie planu toru Super może teraz nieść marker `Review: none`: `superdev-task-reviewer` per zadanie nie jest wtedy dispatchowany, a zadanie idzie prosto do commitu po `VERDICT: PASS` implementora, bez zdarzenia `task-reviewer` w stats. `plan-review-checklist.md` dostał nową klasę B22 i wymagany marker `Kind: code | scaffold | text`, rozstrzygany z kształtu `### Task Checks` zadania; superplan i simpleplan przypisują z niego domyślną siłę (`scaffold`/`text` -> `Model: sonnet`, na torze Super też `Review: none`), a oba task-implementory dostały osobną dyscyplinę wykonania na `Kind: scaffold` (uruchom generator/narzędzie, nie pisz jego wyjścia ręcznie) i `Kind: text` (jedno przejście, tylko pliki z `### Files`/`### Approach`, bez sond i bez szukania precedensów). Marker `Effort:` przestał być przekazywany do narzędzia `Agent` w superbuild i simplebuild - dispatch niesie tylko `model`, `stats-record.sh`/`stats-report.sh` renderują pole effort jako `-` albo pomijają je w wyświetlanej sile. Osiem skryptów runtime (`commit-task.sh`, `decompose.sh`, `cleanup-run.sh`, `stats-record.sh`, `stats-report.sh`, `checkpoint-update.sh`, `record-decision.sh`, `vibe-guard.sh`) ma teraz tryb `100755` w indeksie git, a superbuild, simplebuild, trzy recenzenty budowy, `e2e` i `vibe` wołają je jedną bezpośrednią postacią (`"${CLAUDE_PLUGIN_ROOT}/scripts/x.sh" ...`, bez `bash`, bez `cd`, bez `;`) z odpowiadającym wzorcem w `allowed-tools`. Skill `setup` dostał nowy krok `## Permissions`: za zgodą użytkownika (`AskUserQuestion`) woła nowy `superdev/skills/setup/scripts/merge-settings.sh`, który scala szablon `assets/settings.json` (listy `allow`/`deny`, `defaultMode: acceptEdits`) z `.claude/settings.json` hosta deterministycznie i idempotentnie, z fallbackiem skip-with-note przy braku `node` na PATH.
+
+## Why
+Pomiar przebiegu `2026-09-17-vibe-track` pokazał, że ~97% czasu ściany budowy to generowanie modelu, sterownikiem jest liczba tur (nie siła modelu), recenzent per zadanie kosztuje stałe ~3,5 min niezależnie od rozmiaru zadania, marker `Effort:` nigdy nie działał (narzędzie `Agent` nie przyjmuje `effort`), a każde wywołanie bundlowanego skryptu w różnej postaci odpalało klasyfikator uprawnień auto mode. Cel: dać planiście sposób pominięcia recenzenta tam, gdzie `### Task Checks` już dowodzi zadanie, dać zadaniom nie-kodowym lżejszą domyślną dyscyplinę, przestać udawać przekazywanie effortu i uczynić wywołania skryptów jednorazowo pre-approved, plus deterministyczne scalenie uprawnień w setup zamiast ręcznej edycji `.claude/settings.json`.
+
+## Decisions
+- `Review: none` jest jawnym markerem czytanym dosłownie przez `decompose.sh`; brak marker = frontmatter recenzenta, `Review: <model> <effort>` = model przekazany, `Review: none` = recenzent pominięty - trzy stany opisane raz w `references/review-contract.md` i cytowane przez README oraz oba CLAUDE.md.
+- `Kind:` jest czwartym wymaganym markerem zadania, rozstrzyganym wyłącznie z `### Task Checks` (nigdy z treści `### Approach`), żeby derywacja rodzaju została jednoznaczna i sprawdzalna przez B22 recenzenta planu.
+- Zmiana droga do cofnięcia (współbieżność, bezpieczeństwo, migracja danych, publiczny interfejs) przypisuje `Model: opus` plus `Review: opus high`, nigdy poziom effortu - effort zostaje czystym sygnałem planisty bez wpływu na dispatch.
+- Wywołania bundlowanych skryptów w runtime mają dokładnie jedną literalną postać (`"${CLAUDE_PLUGIN_ROOT}/.../x.sh" ...`) z jednym wzorcem `allowed-tools` na skrypt, żeby klasyfikator uprawnień auto mode dopasowywał je bez ponownej klasyfikacji przy każdej odmiennej formie tej samej komendy.
+- Scalenie uprawnień setup jest deterministycznym skryptem Node (bez zależności pakietowych), nie ręczną instrukcją - unia list `allow`/`deny` z zachowaniem kolejności hosta, `defaultMode` ustawiany tylko gdy go brak, zapis atomowy przez `.tmp` + rename, z jawnym fallbackiem skip-with-note bez `node` na PATH.
+
+## Deviations from plan
+no deviations

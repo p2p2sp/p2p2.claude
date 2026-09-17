@@ -10,7 +10,13 @@ the user - a change here means checking the agent's own `description:` still say
 
 - `superbuild-task-implementor.md` / `simplebuild-task-implementor.md` - dispatched per task by
   `superbuild` / `simplebuild` with the `Agent` tool, at that task's `Model:` marker; the tool
-  takes no `effort` parameter, so the agent's own frontmatter supplies it.
+  takes no `effort` parameter, so the agent's own frontmatter supplies it. The task's `Kind:`
+  marker (`code` | `scaffold` | `text`) sets the implementor's own discipline: `code` is today's
+  unchanged behavior, `text` is one pass over only `### Files` and the files `### Approach`
+  names (no probe, no repo-wide precedent search), `scaffold` writes generated output only by
+  running the generator/tool `### Approach` names - unless that `### Approach` carries the
+  output verbatim, which both implementors also accept. A task carrying no `Kind:` marker (a
+  pre-axis plan) is treated as `code`. Detail lives in the agents' own bodies, never here.
 - `superbuild-task-reviewer.md` - dispatched by `superbuild` after each implementor run, at that
   task's `Review:` marker in three states: no marker uses the reviewer's own frontmatter
   default, `Review: <model> <effort>` passes only `<model>`, and literally `Review: none` skips
