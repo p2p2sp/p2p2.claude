@@ -1,8 +1,8 @@
 # Review Contract
 
 Shared vocabulary for the build review loop: the input labels, the finding IDs, the report shape,
-the gate procedure, the verdict rules, the run's decisions file, the note lines and the strength
-every dispatch runs at. It has one owner - this file - so every consumer applies the same rules
+the gate procedure, the verdict rules, the run's decisions file, the note lines, the implementor
+stop and the strength every dispatch runs at. It has one owner - this file - so every consumer applies the same rules
 instead of restating them.
 
 Consumed by the three build reviewers (`skills/superbuild-reviewer-spec`,
@@ -36,7 +36,8 @@ or a short token (a SHA, a stage name, an ID list), never a body of text - text 
 - `prior: <path>` - the previous report of this same reviewer. Required for `stage: re-review` and
   for any round that follows an earlier report; omitted only in the build's first review round.
 - `decisions: <path>` - optional; the run's decisions file (see `## Decisions file`). Every line in
-  it is a finding or a criterion change the user accepted and carries the force of the plan.
+  it is an answer the user gave - a finding, a criterion change, a matter closed at an implementor
+  stop - and carries the force of the plan.
 - `refs: <absolute path>` - the plugin's references directory, i.e. where this contract lives. An
   agent reads `<refs>/review-contract.md` before acting.
 - `more: <path>` - implementor fix mode only; optional and repeatable. One additional findings
@@ -93,6 +94,16 @@ A title is assigned with the ID, per `## Naming`, and is kept across rounds unch
 mention of that finding - a prior findings row, a `### Needs decision` bullet, a `## Debt` bullet,
 an orchestrator's question to the user - reuses the same title.
 
+`D<n>` is the one ID class no reviewer ever assigns: it identifies an implementor stop
+(`## Implementor stop`), one per `DECISION:` line. The stop's first line takes the number after the
+highest `D<n>` in the decisions file handed in on `decisions:` - `D1` when there is no such file or
+no such line in it - and the stop's further lines continue from there, in the order the stop wrote
+them. Nothing carries the ID as a field: implementor and orchestrator both read it off those same
+two facts. A `D<n>` is unique for the life of the build and is never renumbered - the decisions-file
+line recording the user's answer and the question that asked for it carry that same ID. It is not a
+finding: it never appears in `## Findings`, in `## Debt` or in a prior-findings table, and it never
+moves a review verdict.
+
 A `prior` report written before this contract (bullets with no IDs): treat every bullet under its
 Critical and Important sections as one unnumbered prior finding, assign fresh IDs in the verdict
 table in order of appearance, and say so in the report's notes section. A prior finding that has an
@@ -125,6 +136,14 @@ appears. The sections, in this order:
   with one row per ID in `prior`, its title carried over from `prior`, the verdict `ADDRESSED`,
   `NOT ADDRESSED` or `ACCEPTED`, and a `file:line` as evidence - for `ACCEPTED`, the decisions-file
   line that closed it instead.
+- `## Decisions taken` - written at `stage: final`, and at the re-review of a final report, by the
+  reviewer that owns requirement coverage on its track (`superbuild-reviewer-spec` on Super,
+  `simplebuild-reviewer` on Simple) - at no other stage, by no other reviewer, and never in a
+  checkpoint report. One line per `UNDERSPECIFIED:` line found across every `*-notes.md` file of the
+  notes directory, in file order, shaped `- <notes file basename> - <value> - <decision>`. The
+  section is informational: it is the one place the user sees what the implementors settled
+  themselves, it repeats no finding and it never moves the verdict. No such line anywhere in the
+  notes directory - the section is omitted, like any other section with nothing to say.
 - `## Findings` - holding `### Critical` and `### Important`, one bullet per finding in the shape
   `- <ID> - <title> - file:line - what is wrong - why it matters - how to fix`, the title a few
   words per `## Naming`; then `### Needs decision`, one bullet per BLOCKED item, naming the finding
@@ -141,8 +160,9 @@ A re-review writes this same skeleton: its own `## Gates` lines for its own re-r
 subsection, never a copy of the prior round's block.
 
 No `Strengths` section and no `Recommendations` section exists - praise and polish suggestions are
-not part of a report. The spec reviewer adds its own coverage table between the gates section and
-the prior findings section; no consumer adds any other section.
+not part of a report. Two sections are owned rather than shared: the spec reviewer's coverage table,
+which it adds between the gates section and the prior findings section, and the final reviewer's
+`## Decisions taken` above. No consumer adds any other section.
 
 ## Gates
 
@@ -291,14 +311,16 @@ Return channel to the orchestrator - the only channel, the report itself stays o
 
 ## Decisions file
 
-`<workdir>/implementation/decisions.md`. One line per finding or criterion change the user accepted,
-whether at a BLOCKED verdict or when closing a review round with findings still open:
+`<workdir>/implementation/decisions.md`. One line per answer the user gave: a finding or criterion
+change accepted at a BLOCKED verdict, a finding accepted when closing a review round with findings
+still open, or the answer to an implementor stop (`## Implementor stop`), whose `<ID>` is that
+stop's `D<n>`:
 
 `- <ID> - <criterion or task> - accepted: <what the user accepted> - <date>`
 
 The line shape is unchanged. `<criterion or task>` is written in the reference form of `## Naming`,
-`` `<title>` (criterion 3) `` or `` `<title>` (Task 3) ``, so the line names what was accepted
-without the reader opening the plan.
+`` `<title>` (criterion 3) ``, `` `<title>` (Task 3) `` or - for a stop raised in a fix round -
+`` `<title>` (fix 02) ``, so the line names what was accepted without the reader opening the plan.
 
 Written only through `scripts/record-decision.sh` - no orchestrator, fork or agent writes it by
 hand. A reviewer handed `decisions:` treats every line in it as plan text: a criterion covered by a
@@ -330,12 +352,30 @@ writing.
 - `CARRY: <path> - <known problem outside this task's Files, left in place>` - one per known problem
   the implementor saw outside its `### Files` and did not fix. Read by the final review, which
   closes it under the integration mandate, and by the fix implementor when a report points at it.
-- `UNDERSPECIFIED: <value> - <the decision made>` - one per value the task left open.
 - `no deviations` - the single line written when there is nothing else to report.
 
-Fix-mode notes are three things and nothing more: the `## Runs` section, exactly one status line per
-finding ID from the reports handed in - `<ID>: fixed`, `<ID>: fixed - no test: <reason>` or
-`<ID>: skipped - <reason>` - and one `touched:` line per file the round changed.
+Two further lines record what the task did not pin down, and one test decides which of them is
+written: a defensible answer exists -> take it, write `UNDERSPECIFIED:` and carry on; none exists ->
+write `DECISION:` and stop.
+
+- `UNDERSPECIFIED: <value> - <the decision made>` - one per value the task's own text, its
+  `### Contracts`, its `### Failure modes` and the plan header all left open, and for which the
+  implementor had a defensible answer - a pattern the repo already uses for that kind of value, a
+  criterion under `Covered criteria`, a host convention - and used it. The build does not stop for
+  it; the line is what the value's reader is given instead.
+- `DECISION: <what> - <why it cannot be settled here> - <options seen, or none>` - one per matter the
+  implementor cannot settle at all: a contradiction with a line in the decisions file, with the
+  spec, with another section of the plan, or a criterion it cannot meet without changing a recorded
+  decision. `<options seen, or none>` is written even when it reads `none`. The line is identified by
+  a `D<n>` (see `## Finding IDs`) and is never written on its own: it goes to `notes` together with
+  the `VERDICT: BLOCKED` return of `## Implementor stop`. An answer the implementor could defend is
+  never written as a `DECISION:` - the stop is for the matters nobody but the user can close.
+
+Fix-mode notes are the `## Runs` section, exactly one status line per finding ID from the reports
+handed in - `<ID>: fixed`, `<ID>: fixed - no test: <reason>` or `<ID>: skipped - <reason>` - one
+`touched:` line per file the round changed, and the two decision lines above, under that same split
+rule, whenever a report left a value open or two findings ask for contradicting things. Nothing else
+goes there.
 
 ## Implementor fix-mode input
 
@@ -350,8 +390,44 @@ In fix mode the `task:` file, and every `more:` file, is a report in the `## Rep
 - Every fixed Critical or Important gets a test that fails before the fix and passes after it -
   written and run before the fix - or, when no test can express it, the status line
   `<ID>: fixed - no test: <reason>`.
-- The round's notes carry a `## Runs` section, exactly one status line per ID from the reports, and
-  one `touched:` line per file the round changed, all in the shapes from `## Notes line formats`.
+- The round's notes carry a `## Runs` section, exactly one status line per ID from the reports, one
+  `touched:` line per file the round changed, and an `UNDERSPECIFIED:` or `DECISION:` line wherever
+  the split rule calls for one - a value a finding left open, two findings asking for contradicting
+  things - all in the shapes from `## Notes line formats`.
+- A fix round stops exactly as a task does: a matter it cannot settle is a `DECISION:` line and a
+  `VERDICT: BLOCKED` return per `## Implementor stop`, with the fix as the subject of the
+  decisions-file line.
+
+## Implementor stop
+
+The implementor's third return shape, beside `VERDICT: PASS` and `VERDICT: FAIL`: the task or fix
+holds a matter it cannot settle, so it is handed back to the user unclosed rather than guessed at.
+
+- line 1: `VERDICT: BLOCKED`
+- line 2: `REASON: ` followed by the `<what>` of the first `DECISION:` line this stop wrote
+
+Every `DECISION:` line goes to `notes` before the return - the return line names the first of them,
+the notes carry them all, and a return with no such line in `notes` is not a stop at all. The stop is
+raised before a single file is edited whenever the matter is visible from the task's own text; a
+matter that only surfaces mid-work is raised where it surfaced, with the working tree left exactly as
+it stands - nothing is reverted, nothing is committed, and the re-dispatch continues from that state.
+
+What the orchestrator does with a stop:
+
+1. one question to the user per `DECISION:` line in `notes` that the decisions file does not already
+   answer - a notes file appended to across re-dispatches keeps the earlier stop's lines, and those
+   are closed - naming the task or the fix in the reference form of `## Naming` and carrying that
+   line's `<what>`, its `<why>` and its `<options>`.
+2. each answer recorded through `scripts/record-decision.sh`, with `<id>` the line's `D<n>`,
+   `<subject>` `` `<task title>` (Task <N>) `` - `` `<fix title>` (fix <NN>) `` for a fix round -
+   and `<accepted-text>` the user's answer. No orchestrator, fork or agent writes that file by hand.
+3. the same implementor call dispatched again, with the labels it already carried plus
+   `decisions: <workdir>/implementation/decisions.md`. The re-dispatch is neither a review round nor
+   a fix round, and a stop coming back from it is a new matter taking these same three steps.
+
+A `decisions` file handed to an implementor is plan text, exactly as it is for a reviewer: a matter
+a line there already answers is settled for the rest of the build - never raised as a `DECISION:`
+again, never asked of the user a second time, and never reopened as a deviation.
 
 ## Dispatch strength
 
