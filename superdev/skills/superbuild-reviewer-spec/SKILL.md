@@ -25,7 +25,7 @@ Decisions: !`"${CLAUDE_PLUGIN_ROOT}/scripts/label.sh" "$ARGUMENTS" decisions`
 `Prior report` and `Decisions` are file paths: Read each one that is not empty. Prior findings keep the IDs they were given; every line of the decisions file is a change the user accepted and carries the force of the plan.
 
 Notes dir: !`"${CLAUDE_PLUGIN_ROOT}/scripts/label.sh" "$ARGUMENTS" notes`
-When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations. Claims to verify, not truth.
+When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations. Claims to verify, not truth. Two of their lines record what a task did not pin down, in the shapes the contract's `## Notes line formats` owns. An `UNDERSPECIFIED: <value> - <the decision made>` line is a decision the implementor was entitled to take: judge the code against it exactly as against plan text, never the decision itself, and carry it into `## Decisions taken`. A `DECISION: <what> - <why> - <options>` line belongs to a task that stopped and was answered before it went on, so one sitting in the notes of a task this build has closed with no line of the `Decisions` file answering its matter is an Important finding - the build passed a stop the user never answered.
 
 ## Contract
 Read `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` before any other step. Its `## Labels`, `## Naming`, `## Finding IDs`, `## Report skeleton`, `## Gates`, `## Verdict rules` and `## Decisions file` sections bind this review; they are not restated below.
@@ -76,7 +76,11 @@ Minor findings go to the report's `## Debt` section with their IDs and never aff
 A criterion that cannot be verified by reading code and running the gates: say so explicitly in its coverage line instead of guessing.
 
 ## Report
-Write the review to the Report path in exactly the shape the contract's `## Report skeleton` gives, section for section, plus the one section this review owns: `## Coverage`, placed between `## Gates` and `## Prior findings`, one line per acceptance criterion in the shape `` `<title>` (#N) - met | not met | partial | blocked - evidence (file, test, gate run) ``, the title being the criterion's short name per the contract's `## Naming`. Always write it - on PASS, on FAIL and on BLOCKED alike.
+Write the review to the Report path in exactly the shape the contract's `## Report skeleton` gives, section for section, plus the two sections this review owns.
+
+`## Coverage`, placed between `## Gates` and `## Prior findings`, one line per acceptance criterion in the shape `` `<title>` (#N) - met | not met | partial | blocked - evidence (file, test, gate run) ``, the title being the criterion's short name per the contract's `## Naming`. Always write it - on PASS, on FAIL and on BLOCKED alike.
+
+`## Decisions taken`, in the position and line shape the contract's `## Report skeleton` gives it: one line per `UNDERSPECIFIED:` line found across every `*-notes.md` file of `Notes dir`, in file order, informational only and never a mover of the verdict. Write it at `Stage` `final`, and at `Stage` `re-review` when the first line of `Prior report` reads `# final review`; at `checkpoint`, and at a `re-review` closing a checkpoint report, never. With no such line anywhere in the notes directory, or with `Notes dir` unset, the section is omitted like any other section with nothing to say.
 
 ## Output format
 Return to the parent exactly (the only channel - the report itself stays on disk):

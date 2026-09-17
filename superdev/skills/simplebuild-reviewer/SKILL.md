@@ -25,7 +25,7 @@ Decisions: !`"${CLAUDE_PLUGIN_ROOT}/scripts/label.sh" "$ARGUMENTS" decisions`
 `Prior report` and `Decisions` are file paths: Read each one that is not empty. Prior findings keep the IDs they were given; every line of the decisions file is a change the user accepted and carries the force of the plan.
 
 Notes dir: !`"${CLAUDE_PLUGIN_ROOT}/scripts/label.sh" "$ARGUMENTS" notes`
-When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations and `CARRY:` lines. Claims to verify, not truth.
+When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations and `CARRY:` lines. Claims to verify, not truth. Two further lines record what a task did not pin down, in the shapes the contract's `## Notes line formats` owns. An `UNDERSPECIFIED: <value> - <the decision made>` line is a value the task left open and the implementor settled itself: this track has no per-task gate, so `## Calibration` below is where every one of them is judged. A `DECISION: <what> - <why> - <options>` line belongs to a task that stopped and was answered before it went on, so one sitting in the notes of a task this build has closed with no line of the `Decisions` file answering its matter is an Important finding - the build passed a stop the user never answered.
 
 ## Contract
 Read `${CLAUDE_PLUGIN_ROOT}/references/review-contract.md` before any other step. Its `## Labels`, `## Naming`, `## Finding IDs`, `## Report skeleton`, `## Gates`, `## Verdict rules` and `## Decisions file` sections bind this review; they are not restated below.
@@ -79,8 +79,17 @@ Grep the changed files for a repeated pattern accessing the same field (`??`, `|
 
 When Notes dir is set, scan the `*-notes.md` files for more than one `UNDERSPECIFIED:` line naming the same field or rule; that pair is a duplicated-derived-value defect even when the resulting code shares no syntactic pattern - read both tasks' code for that field and judge whether the decisions agree.
 
+Then judge each `UNDERSPECIFIED:` line on its own. At `checkpoint` and at `final` that is every such line in the notes of a task whose commits sit inside `git diff <Since>..HEAD`; at `re-review` the stage's own rule stands and only a line the fix round itself wrote is judged. The Super track settles these at its per-task gate and this track has none, so this round is where the three steps run. Take each line in turn and apply them in order, the first that matches settling the line:
+- (a) the value is pinned in the task's own text, in its `### Contracts`, in its `### Failure modes` or in `## plan-header` -> the implementor recorded as its own a decision the plan had already made: Important, the `how to fix` naming where the value is pinned.
+- (b) the value was open, but the decision departs from the pattern the repo already uses for that kind of value - Grep for a comparable case before judging - or from an acceptance criterion that task's `Covers:` line names -> Important, the `how to fix` naming the pattern or the criterion the decision must follow.
+- (c) the value was open and the decision holds, but it is one the planning rules require the plan itself to carry: a new endpoint's request shape, response shape or status codes (class B18), text a person reads (B19), the outcome of an infrastructure failure between a persisted write and the outside action that follows it (B20) -> one `NOTE: plan defect - <value> left to the implementor` line in this report's `## Notes`, never a finding - the task text is what failed, not the code. One exception, on text alone: a `copy: implementor, after <existing key or file>` line under that task's `### Contracts` covering the text clears B19, because it is the plan's own delegation of the wording; text such a line covers falls outside (c).
+
+A line that clears (a) and (b) and falls outside (c) raises nothing at all: it is a decision the code is judged against, like a `### Failure modes` entry, and the decision itself is not reviewed.
+
 ## Report
 Write the review to the Report path in exactly the shape the contract's `## Report skeleton` gives, section for section. Always write it - on PASS, on FAIL and on BLOCKED alike.
+
+This track has one reviewer, so `## Decisions taken` is yours: write it in the position and line shape the contract's `## Report skeleton` gives it, one line per `UNDERSPECIFIED:` line found across every `*-notes.md` file of `Notes dir`, in file order, informational only and never a mover of the verdict. Write it at `Stage` `final`, and at `Stage` `re-review` when the first line of `Prior report` reads `# final review`; at `checkpoint`, and at a `re-review` closing a checkpoint report, never. With no such line anywhere in the notes directory, or with `Notes dir` unset, the section is omitted like any other section with nothing to say.
 
 ## Output format
 Return to the parent exactly (the only channel - the report itself stays on disk):
