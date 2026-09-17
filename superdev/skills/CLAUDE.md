@@ -42,11 +42,21 @@ never this node - this node says who owns what and how they chain.
   literal; zsh's default `nomatch` aborts the WHOLE command, killing the fork preload so it loads
   with no input - invisible on bash, only surfaces on zsh. Never rely on bash-only behavior;
   assume the strictest shell. No PowerShell syntax anywhere.
-- A preload is permission-checked like any Bash call; a bare `Bash` entry in `allowed-tools`
-  does NOT cover it. Both required: the skill's `allowed-tools` carries a PATTERN entry for the
-  preload, and the bundled script is invoked DIRECTLY, never through an interpreter - so every
-  preloaded script keeps its exec bit (`100755` in the git index) and its
-  `#!/usr/bin/env bash` shebang.
+- **Pre-approved bundled-script calls (preload and runtime).** A preload is permission-checked
+  like any Bash call; a bare `Bash` entry in `allowed-tools` does NOT cover it. Both required:
+  the skill's `allowed-tools` carries a PATTERN entry for the preload, and the bundled script is
+  invoked DIRECTLY, never through an interpreter - so every preloaded script keeps its exec bit
+  (`100755` in the git index) and its `#!/usr/bin/env bash` shebang. The same two requirements
+  bind a runtime call - a bundled script a skill has the model run via the `Bash` tool
+  mid-session, not as a preload: it is one literal line,
+  `"${CLAUDE_PLUGIN_ROOT}/…/x.sh" <args>` (a `run.sh` call pipes its input through a heredoc on
+  stdin instead of an arg), never prefixed with `bash`, never assigned to a variable, never
+  preceded by `cd`, never chained with `;`; the skill declares one
+  `Bash(${CLAUDE_PLUGIN_ROOT}/…/x.sh:*)` pattern per such script; the script itself keeps the
+  same `100755` exec bit and `#!/usr/bin/env bash` shebang. Reason: the auto-mode permission
+  classifier matches a command's literal prefix, so any other form of the same call - a
+  different prefix, an added flag, an interpreter wrapper - is a new, unapproved
+  classification.
 - A worker must NEVER appear in both `plugin.json` `skills[]` and `agents[]`.
 - A user-only command (`disable-model-invocation: true`) does not participate in routing and
   stays out of the injected manifest entirely - that gap is deliberate, do not "fix" it.

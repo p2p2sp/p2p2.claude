@@ -80,10 +80,20 @@ mechanics against `.github/scripts/release.sh` before restating them.
   script. NEVER leave a `?`/`*`/`[`-bearing argument unquoted: zsh's default `nomatch` aborts the
   whole command (killing the fork load with no input) where bash would silently pass it through.
   Single-quote such arguments. No PowerShell syntax anywhere.
-- **Pre-approved `!` preload commands.** A preload is permission-checked like any Bash call; a
-  bare `Bash` allow does NOT cover it. Required: (1) `allowed-tools` carries a PATTERN entry for
-  the preload; (2) the bundled script is invoked DIRECTLY, never through an interpreter - so it
-  keeps its exec bit (`100755`) and its `#!/usr/bin/env bash` shebang.
+- **Pre-approved bundled-script calls (preload and runtime).** A preload is permission-checked
+  like any Bash call; a bare `Bash` allow does NOT cover it. Required: (1) `allowed-tools`
+  carries a PATTERN entry for the preload; (2) the bundled script is invoked DIRECTLY, never
+  through an interpreter - so it keeps its exec bit (`100755`) and its `#!/usr/bin/env bash`
+  shebang. The same two requirements bind a runtime call - a bundled script a skill has the
+  model run via the `Bash` tool mid-session, not as a preload: it is one literal line,
+  `"${CLAUDE_PLUGIN_ROOT}/…/x.sh" <args>` (a `run.sh` call pipes its input through a heredoc on
+  stdin instead of an arg), never prefixed with `bash`, never assigned to a variable, never
+  preceded by `cd`, never chained with `;`; the skill declares one
+  `Bash(${CLAUDE_PLUGIN_ROOT}/…/x.sh:*)` pattern per such script; the script itself keeps the
+  same `100755` exec bit and `#!/usr/bin/env bash` shebang. Reason: the auto-mode permission
+  classifier matches a command's literal prefix, so any other form of the same call - a
+  different prefix, an added flag, an interpreter wrapper - is a new, unapproved
+  classification.
 - **`allowed-tools` does NOT restrict the tool set** - it is a one-turn pre-approval only; every
   other tool stays callable and merely prompts the user if unlisted. A strictly read-only worker
   needs `disallowed-tools:` (bare names, never `Tool(pattern)`) PLUS a body line naming its only
