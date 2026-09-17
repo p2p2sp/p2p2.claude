@@ -1,21 +1,31 @@
-# superdev na tle ekosystemu: analiza porównawcza (stan na 2026-09-17)
+# superdev na tle ekosystemu: analiza porównawcza (stan na 2026-09-17, wersja 2, po zmianach z tego dnia)
 
 Notatka deweloperska. Nie jest częścią żadnego pluginu. Nazwy zewnętrznych projektów pojawiają się tu
 wyłącznie jako materiał porównawczy; do skilli, referencji i agentów nic z tego nie trafia dosłownie.
 
+Wersja 2 zastępuje poranną wersję tego samego pliku. Między nimi superdev przeszedł pięć buildów i dwa
+refaktory (wydania 0.46.0 - 0.46.3 plus commity po bumpie, HEAD `7747cd4`). Część zaleceń z wersji 1 została
+wdrożona, część zmieniła kształt, a kilka nowych faktów zmienia ocenę. Tam, gdzie porównanie z ekosystemem
+nie zmieniło się od rana, tekst jest skondensowany, nie przepisany.
+
 ## 1. Metoda i zakres
 
-- 10 równoległych subagentów: 1 mapował superdev z plików źródłowych, 9 badało GitHub i sieć.
-- Przebadane bezpośrednio z plików (SKILL.md, agenty, szablony, changelogi): superpowers, oficjalne
-  pluginy Anthropic, spec-kit, claude-code-spec-workflow, cc-sdd, agent-os, BMAD-METHOD,
-  claude-task-master, ruflo (claude-flow), SuperClaude, ralph i pochodne, compound-engineering,
-  humanlayer ACE-FCA, gstack, beads, tdd-guard, gsd-core, ralphex, codex-build, trzy różne "shipyard",
-  anneal, tyran, claudex-loop, flow, openspec-plus, ultrapowers i około 20 mniejszych.
-- Osobny przebieg tylko dla zmian po 2026-06-01 (nowe repozytoria, nowe wydania znanych projektów,
-  zmiany w samym Claude Code). Twierdzenia o platformie zweryfikowałem sam w CHANGELOG i docs.
-- Liczby gwiazdek są przybliżone (API GitHub i blogi rozjeżdżają się nawet 2x); traktuj je jako rząd wielkości.
+- Ekosystem: wyniki porannego przebiegu (10 subagentów, około 40 projektów przebadanych z plików SKILL.md,
+  agentów, szablonów i changelogów, osobny przebieg dla zmian po 2026-06-01) są przeniesione bez powtórnego
+  researchu. Minęło kilka godzin, nie tygodni; nic z tej listy nie wydało w tym czasie nowej wersji, którą
+  warto by sprawdzać.
+- superdev: zmapowany na nowo z plików źródłowych na HEAD: `superdev/CLAUDE.md` i oba węzły podrzędne,
+  `review-contract.md`, `plan-review-checklist.md`, `qa-format.md`, skille `superbuild`, `simplebuild`,
+  `superplan`, `intent`, `vibe`, `e2e`, `setup`, dwanaście agentów, skrypty, hooki, manifest, szablon
+  `settings.json`, changelog builda `build-cost-cuts`, intenty pięciu buildów z tego dnia i dwa raporty
+  `stats` z realnych przebiegów.
+- Fakty o Claude Code (2.1.274, ta sama wersja co rano) zweryfikowane ponownie w schemacie narzędzi tej
+  sesji: `Agent` nadal przyjmuje tylko `description`, `isolation`, `model`, `prompt`, `subagent_type`.
+- Ograniczenie projektowe zapisane przez użytkownika w `docs/notes.md` po wersji 1: zmiany wynikające z tej
+  analizy nie mogą wydłużać czasu fazy build, a praca dodatkowa może iść w tle, gdy jej wynik nie jest
+  potrzebny w następnym kroku. Sekcja 9 klasyfikuje każde zalecenie pod tym kątem.
 
-## 2. Krajobraz po czerwcu 2026
+## 2. Krajobraz po czerwcu 2026 (bez zmian od rana)
 
 | Projekt | Status | Filozofia w jednym zdaniu |
 |---|---|---|
@@ -33,412 +43,372 @@ wyłącznie jako materiał porównawczy; do skilli, referencji i agentów nic z 
 | nowe (po czerwcu): anneal, tyran, claudex-loop, flow, openspec-plus, ultrapowers | małe, ale technicznie najciekawsze | hooki jako bramy, cross-model review, script-as-coordinator, role x model x effort |
 
 Anthropic opublikował 2026-08-21 "AI-Native SDLC playbook": łańcuch intent.md -> spec.md -> plan.md -> diff ->
-findings, ludzki osąd na bramach, guardrails jako deterministyczne hooki. To dosłownie kształt superdev,
-więc kierunek jest potwierdzony z góry.
+findings, ludzki osąd na bramach, guardrails jako deterministyczne hooki. Kierunek superdev jest potwierdzony
+z góry; to, czego playbook wymaga, a superdev nadal nie ma, to guardrails jako hooki (sekcja 8).
 
-## 3. Faza planowania: esencja u innych vs superdev
+## 3. Co zmieniło się w superdev od wersji 1
 
-### Co robią inni (skondensowane)
+Pięć buildów i dwa refaktory w jednym dniu. Tabela wiąże każdą zmianę z punktem wersji 1, na który
+odpowiada, i mówi, czy odpowiedź jest pełna.
 
-1. **Triaż głębokości przed researchem.** superpowers: spike / bounded / architectural, ogłaszany na głos,
-   z eskalacją w trakcie. compound-engineering: Direct / Chat brief / Durable. BMAD v6.12: "Build decyduje
-   o ceremonii po zbadaniu zmiany, nie przed". cc-sdd: discovery ma wyjście "B: no spec needed".
-2. **Ograniczona gramatyka doprecyzowań.** spec-kit clarify: max 5 pytań, odpowiedź wielokrotnego wyboru
-   lub do 5 słów, każde logowane jako `Q -> A` pod datą sesji i od razu wpisywane do specu. superpowers: jedno
-   pytanie na wiadomość. tyran: paczki po 4 pytania, każde z rekomendacją. claudex-loop: pytaj tylko o
-   nierozstrzygnięte decyzje, które zmieniają wynik, podając koszt złego zgadnięcia.
-3. **Kontrakty między taskami w planie.** superpowers: blok `Interfaces: Consumes / Produces` per task,
-   bo "implementer widzi tylko swój task". codex-build: interfaces ledger dopisywany po każdym zielonym
-   commicie i wstrzykiwany do następnego briefu.
-4. **Mechaniczna trasowalność.** spec-kit analyze: każde FR musi mapować na task, sieroty flagowane,
-   klasa `unrequested` dla kodu, o który nikt nie prosił. gsd plan-checker: brak dowolnego ID wymagania
-   w planach = blocker. cc-sdd: "every requirement ID must appear in at least one task".
-5. **Sufit wielkości jednostki handoffu.** BMAD: spec 900-1600 tokenów, powyżej brama podziału
-   ("context rot"). gsd: 2-3 taski na plan, ~50% kontekstu. superpowers: "task = najmniejsza jednostka,
-   którą reviewer mógłby odrzucić, aprobując sąsiadów".
-6. **Wykonywalne kryteria akceptacji przed buildem.** Acendas/shipyard: każdy task musi nieść
-   `acceptance_probe`, uruchamiany PRZED implementacją i musi wtedy FAILować; bez probe task nie może być
-   wysłany. Blog "acceptance tests first, agents second": człowiek pisze testy, "done is green".
-7. **Równoległe kontr-plany.** feature-dev Anthropic: 2-3 architektów z kontrastującymi briefami
-   (minimal / clean / pragmatic) naraz, orkiestrator rekomenduje. compound-engineering v3.25: "Bake-off".
-8. **Regiony planu należące do człowieka.** BMAD: blok `<frozen-after-approval reason="human-owned intent">`
-   obok sekcji, które maszyna może zmieniać. Approval związany z SHA256 planu (claudex-loop, flow).
-9. **Budżet testów.** agent-os: 2-8 testów na grupę, reviewer flaguje "exhaustive testing". Odpowiedź na
-   skargę #75 spec-kit ("setki niepotrzebnych testów").
-10. **Decyzje z ceną błędu.** superpowers: `Ruling: <decision> - <why> - <cost if wrong>`, lista "Rulings I
-    made" na koniec. anneal: decisions.md z odrzuconymi alternatywami, żeby świeży kontekst dziedziczył "dlaczego".
+| Zmiana (build lub commit) | Co dokładnie weszło | Punkt z wersji 1 | Stopień domknięcia |
+|---|---|---|---|
+| `qa-scenarios-and-e2e` | trzy przełączniki `qa`, `e2e-ui`, `e2e-api`; agent `qa-writer` w fali 1 Close Out; dwa pliki write-once `docs/qa/<run>.md` (dla człowieka) i `docs/qa/<run>.e2e.md` (handoff dla maszyny) spięte jednymi ID `QA-nn`; indeks `docs/qa/README.md` z regułą `supersedes`; skill `e2e` (tylko user) + agent `e2e-writer` per scenariusz; `check-playwright.sh` w setup | sekcja 10 (oba dodatki), P3.19 (lista weryfikacji manualnej) | pełne dla scenariuszy manualnych; E2E dostarczone jako osobny przebieg po buildzie, nie jako ostatni task planu (sekcja 11) |
+| `underspecified-decision-lines` | rozdzielenie `UNDERSPECIFIED:` (implementor ma obronną odpowiedź, bierze ją i loguje) od `DECISION:` (twardy stop, `VERDICT: BLOCKED`, ID `D<n>`, jedno pytanie per linia, `record-decision.sh`, ponowny dispatch); reviewer per task ocenia każdą linię `UNDERSPECIFIED:` w trzech krokach; final review pisze `## Decisions taken`; trzy nowe klasy planu B18-B20 (kontrakt endpointu, tekst dla człowieka, awaria w połowie operacji) | P2.14 (autonomy ask / rule) w wariancie na poziomie implementora; P1.7 częściowo (osąd nad decyzjami implementora) | to jest "rulings, not stalls" zaimplementowane tam, gdzie powstaje najwięcej decyzji; orkiestrator nadal pyta na każdym BLOCKED reviewera |
+| `vibe-track` | trzeci tor `vibe`: jawna prośba o pominięcie ceremonii, jedno zdanie, rekonesans Grep/Glob, brief w `.temp/superdev/vibe/`, jeden agent `vibe-implementor` (sonnet/high), sprawdzenia z pamięci hosta, `vibe-guard.sh` (5 plików / 1 nowy / 200 linii / globy wrażliwe z pamięci hosta), jeden commit, trzy opcje na każdym stopie, każdy override zapisany | P2.10 (tor "Direct"), P2.11 (tripwire zakresu) | pełne dla toru; tripwire istnieje tylko na vibe, plan nadal nie ma sufitu wielkości taska poza B16 |
+| `build-cost-cuts` | `Review: none` jako trzeci stan markera; oś `Kind: code / scaffold / text` wyprowadzana z `### Task Checks` (B22), domyślnie `sonnet` + `Review: none` dla `scaffold` / `text`; effort przestał być przekazywany do `Agent` (dispatch niesie tylko `model`), stats renderuje `-`; B21 (komenda całego repo poza bramą final); osiem skryptów runtime z bitem exec i jedną literalną postacią wywołania + wzorzec w `allowed-tools`; krok `## Permissions` w setup z `merge-settings.sh` i szablonem `settings.json` | P0.1 (effort) w wariancie (b), P2 (koszt ceremonii), P0 (klasyfikator uprawnień) | effort jest teraz uczciwy, ale nie działa: marker `Effort:` pozostał wymagany (B6) i nie ma żadnego konsumenta w runtime |
+| `task-gate-blocked-on-plan-defect` | intent i spec napisane, planu i builda nie ma | nowy, poza wersją 1 | 0%: reviewer per task nadal nie dostaje `refs:` i nosi ręcznie odbitą kopię szkieletu (kontrakt to wciąż deklaruje) |
+| `refactor(intent)` | usunięty krok "gap questions" (rundy do trzech pytań o fakty); wywiad wrócił do jednego pytania na turę dla wszystkiego | punkt "mocne" z wersji 1 (rozdzielenie pytań o fakty od decyzji) | cofnięcie; ekosystem idzie w stronę ograniczonych, paczkowanych doprecyzowań (spec-kit max 5, tyran paczki po 4) |
+| `refactor(superdev): move reviewer skills to agents` | trzej recenzenci budowy (`superbuild-reviewer-spec`, `superbuild-reviewer-change`, `simplebuild-reviewer`) to agenty; usunięte `resolve-input.sh`, `label.sh`, `lib_label.sh`; wspólny `lib_touched.sh` | P0 (pomiar) pośrednio | od teraz każdy dispatch builda ma `subagent_tokens`, `duration_ms`; dwa wymiary final biegną równolegle w jednej wiadomości |
+| `chore: add orphan-tags test` | `tests/orphan-tags.test.ts` + guard read-back w każdym agencie piszącym | nowy | jedyny deterministyczny test zachowania artefaktów pisanych przez agentów |
+| `chore(settings)` (repo, nie plugin) | `disableAutoMode`, gołe `Bash` w allow, `ask` na push / PR / release, rozbudowany deny | P0 (prompty uprawnień) | opisane w `docs/auto-mode-permissions-2026-09-17.md`; deny prefiksowe jest z natury dziurawe, twarda granica to hook `PreToolUse` |
 
-### Jak wypada superdev
+Dwa liczbowe fakty z raportów `stats` (jedyne realne pomiary superdev; oba przebiegi biegły PRZED
+`Review: none` i przed przeniesieniem recenzentów do agentów, więc recenzenci budowy nie mają tokenów):
+
+| Przebieg | Tasków | Wall | Tokeny | Implementor + fix | Reviewer per task | Recenzenci budowy (rundy) | Udział review w wall |
+|---|---|---|---|---|---|---|---|
+| `build-cost-cuts` | 15 | 109:27 | 2,02 M | 44:24 (1,33 M) | 21:41 (0,69 M, 16 dispatchy, średnio 1:21) | 36:36 (7 rund) | 53% |
+| `vibe-track` | 5 | 79:54 | brak dla agentów | 39:55 | 14:42 (5 dispatchy, średnio 2:56) | 16:53 (3 rundy) | 40% |
+
+W obu przebiegach zero linii `DECISION:` i od 1 do 7 linii `UNDERSPECIFIED:` na task: reguła podziału
+działa w praktyce jako "orzekaj i loguj", stop nie zdarzył się ani razu. Review zajmuje od 40 do 53% czasu
+ściany. To jest jedyna liczba, którą trzeba mieć przed oczami przy czytaniu sekcji 9: pod ograniczeniem
+"nie wydłużać builda" każdy dodatkowy krok musi wejść do tych 40-53% albo iść w tle.
+
+## 4. Faza planowania: esencja u innych vs superdev
+
+### Co robią inni (skondensowane, bez zmian)
+
+1. Triaż głębokości przed researchem (superpowers spike / bounded / architectural; compound Direct / Chat
+   brief / Durable; BMAD "ceremonia po zbadaniu zmiany"; cc-sdd wyjście "no spec needed").
+2. Ograniczona gramatyka doprecyzowań (spec-kit clarify: max 5 pytań, odpowiedź do 5 słów, log `Q -> A`;
+   tyran paczki po 4 z rekomendacją; claudex-loop pyta tylko o decyzje zmieniające wynik, z ceną błędu).
+3. Kontrakty między taskami (superpowers `Interfaces: Consumes / Produces`; codex-build ledger interfejsów
+   dopisywany po każdym zielonym commicie).
+4. Mechaniczna trasowalność (spec-kit analyze: każde FR mapuje na task, klasa `unrequested`; gsd: brak ID
+   wymagania = blocker).
+5. Sufit wielkości jednostki (BMAD 900-1600 tokenów; gsd 2-3 taski; superpowers "najmniejsza jednostka,
+   którą reviewer mógłby odrzucić osobno").
+6. Wykonywalne kryteria akceptacji przed buildem (Acendas `acceptance_probe` uruchamiany na czerwono przed
+   implementacją; "acceptance tests first, agents second").
+7. Równoległe kontr-plany (feature-dev Anthropic: 2-3 architektów; compound "Bake-off").
+8. Regiony planu należące do człowieka i approval związany z SHA256 planu (BMAD, claudex-loop, flow).
+9. Budżet testów (agent-os 2-8 na grupę; skarga spec-kit #75 o setkach niepotrzebnych testów).
+10. Decyzje z ceną błędu (`Ruling: <decision> - <why> - <cost if wrong>`; anneal decisions.md z odrzuconymi
+    alternatywami).
+
+### Jak wypada superdev (stan na HEAD)
 
 Mocne, bez odpowiednika u innych:
-- otwarty wywiad w prozie z rozdzieleniem "pytania o fakty" i "decyzje jedna na turę", plus historia
-  (changelog, ADR) czytana jako kontekst, nigdy jako wymagania; `refresh.md` przy wznowieniu,
-- najbogatszy kształt taska w całym zbiorze: Files, Task Checks, Failure modes (stały kształt), Contracts
-  (closed-set consumer lists, matryce), DoD, Covers, TDD, Model/Effort/Review,
-- `## Gate commands` z podziałem Build / Tests / Integration i własnością per etap review,
-- reviewer planu jako read-only fork z checklistą B1-B17 i regułą dowodu; ExitPlanMode bramkowany hookiem,
-- phases bez zagnieżdżania, ADR z trzema kryteriami i kalibracją "zero ADR to norma".
+- najbogatszy kształt taska w całym zbiorze, dziś jeszcze bogatszy: Files, Task Checks, Failure modes w
+  stałym kształcie (z awarią w połowie operacji, B20), Contracts (closed-set consumer lists, matryce, kształt
+  endpointu B18, tekst dla człowieka lub jawna delegacja `copy: implementor, after ...` B19), DoD, Covers,
+  TDD, Kind, Model / Effort / Review,
+- `Kind:` wyprowadzany mechanicznie z dowodu taska (tabela B22 czytana top-down), nie wybierany dowolnie:
+  jedyny w zbiorze system, w którym rodzaj taska wynika z tego, co task uruchamia jako proof,
+- `## Gate commands` z podziałem Build / Tests / Integration, B21 wypycha komendy całego repo do bramy final,
+- reviewer planu jako read-only fork z checklistą B1-B22 i regułą dowodu; ExitPlanMode bramkowany hookiem,
+- historia (changelog, ADR) czytana jako kontekst, nigdy jako wymaganie; `refresh.md` przy wznowieniu,
+- tor `vibe` jako świadomy trzeci tor: wchodzi tylko na jawną prośbę, nigdy jako skrót wybrany przez
+  model, i jest jedynym w zbiorze torem bez planu, który ma deterministyczny strażnik zakresu ze stopem
+  trzyopcjowym i zapisanym override.
 
-Słabsze niż u najlepszych:
-- brak trzeciego, lżejszego toru poniżej Simple (jedno zdanie diffu nadal przechodzi przez intent + plan
-  + reviewer); docs Anthropic mówią wprost "if you could describe the diff in one sentence, skip the plan",
-- wywiad bez limitu pytań i bez logu `Q -> A`; rejected options celowo nie są zapisywane (to jest decyzja
-  projektowa, ale odbiera świeżemu kontekstowi "dlaczego"),
-- kontrakty między taskami: `### Contracts` + `CARRY:` są prozą, brak jawnego Consumes / Produces
-  i brak mechanicznego ledgera interfejsów,
-- brak sufitu wielkości taska i brak tripwire'a rozrostu zakresu (gstack: 8+ plików lub 2+ nowe klasy),
-- brak kryteriów akceptacji jako wykonywalnych testów pisanych na czerwono zanim ruszy build,
-- hook ExitPlanMode jest heurystyczny i fail-open, a superbuild ufa mu jako jedynemu punktowi kontroli
-  planu; nic po stronie decompose.sh nie sprawdza, że plan, który buduje, to ten, który przeszedł review.
+Słabsze niż u najlepszych (nadal):
+- wywiad bez limitu pytań i bez logu `Q -> A`; po usunięciu kroku gap-questions każde pytanie o fakt znów
+  kosztuje jedną turę; rejected options nadal nie są zapisywane,
+- kontrakty między taskami: `### Contracts` + `consumed by` + `CARRY:` są prozą; brak jawnego Consumes /
+  Produces i ledgera interfejsów,
+- brak sufitu wielkości taska w planie (B16 dotyczy tylko `TDD: required`; oversized `TDD: none` jest tylko
+  NOTĄ) i brak tripwire'a rozrostu poza torem vibe,
+- brak kryteriów akceptacji jako testów czerwonych zanim ruszy build; E2E weszło jako przebieg PO buildzie,
+- hook ExitPlanMode nadal heurystyczny i fail-open; `decompose.sh` nadal nie sprawdza, że buduje plan, który
+  przeszedł review (brak hasha),
+- `Effort:` jest markerem wymaganym przez B6, którego nie czyta żaden konsument w runtime: planista go
+  wypełnia, reviewer planu go sprawdza, dispatch go ignoruje. Uczciwość została przywrócona, zdolność nie.
 
-## 4. Faza build: esencja u innych vs superdev
+## 5. Faza build: esencja u innych vs superdev
 
-### Co robią inni
+### Co robią inni (skondensowane, bez zmian)
 
-1. **Świeży kontekst per jednostka + commit per task** to standard (superpowers, gsd, cc-sdd, ralphex,
-   Acendas, codex-build). superdev jest tu w głównym nurcie.
-2. **Orkiestrator sprawdza prawdę z gruntu, nie raport.** Acendas: `git cat-file -e <sha>`, `PROBE_EXIT: 0`,
-   skan stubów, "at most one extra iteration". codex-build: orkiestrator sam uruchamia testy, "red gate ->
-   no commit", allowlist plików egzekwowany skryptem dwa razy. tyran: SubagentStop przepuszcza raport
-   tylko z cyfrą obok słowa kluczowego (`12 passed`, `EXIT=0`); reviewer "odrzuca na widok raport bez
-   surowego outputu". gstack: ledger dowodów związany z fingerprintem drzewa roboczego, FRESH / STALE / MISSING,
-   `/ship` cytuje świeże dowody zamiast ponownie uruchamiać suite.
-3. **Reviewer nie uruchamia ponownie testów.** superpowers v6: czyta dowody implementera i zgłasza ich
-   nieczytelność jako lukę; dwa reviewery per task scalono w jeden (~50% mniej tokenów). BMAD: lenses
-   dostają `{diff_file}` + `{claims_file}`, triage weryfikuje każde znalezisko w miejscu.
-4. **Filtr fałszywych pozytywów.** Oficjalny code-review Anthropic: 4 reviewery równolegle, potem osobny
-   subagent na każde znalezisko "udowodnij albo wyrzuć", próg pewności 80/100, jawna lista wykluczeń.
-   BMAD: severity `high | medium | low | false | maybe-false` z obowiązkowym tekstem obalenia.
-   compound-engineering: znalezisko, które tylko woli inne podejście, jest odrzucane; prawdziwa wada
-   w ustalonym podejściu zachowuje pełną wagę.
-5. **Ograniczone pętle napraw z eskalacją siły.** superpowers: rundy 1-3 wznawiają tego samego
-   implementera (SendMessage), 4-5 świeży na mocniejszym modelu, potem kontroler orzeka. cc-sdd:
-   2 rundy fix -> debugger w czystym kontekście -> 2 rundy -> `_Blocked_`. claudex-loop: MAX_FIX 2.
-6. **"Rulings, not stalls".** superpowers v6.3 (po sesji zablokowanej 9 godzin na pytaniu): kontroler
-   zatrzymuje się tylko przy operacjach nieodwracalnych, bezpieczeństwie, efektach poza worktree i planie
-   "tak zepsutym, że każda ścieżka to zgadywanie"; resztę orzeka i loguje. anneal: "the human is not
-   watching", Inbox tylko dla naprawdę blokujących decyzji.
-7. **Blind review i zakaz samoaprobaty.** anneal: drugi reviewer nie może czytać znalezisk pierwszego.
-   tyran: jeśli dotknąłeś diffu, APPROVE nie jest dla ciebie dostępne. claude-code-guardrails: reviewer
-   nigdy nie widzi briefu taska.
-8. **Cross-model review jako domyślne.** gstack (Codex default-on), compound (cross-model peers),
-   claudex-loop (inspector zawsze drugi dostawca), flow ("same-model subagent does not satisfy").
-9. **Worktree per task i fale równoległe.** gsd: "same-wave tasks must have zero file overlap".
-   anneal: 8 równoległych dzieci, jedno długożyjące jako merger. compound v3.23: fale w wspólnym workspace
-   ze sprawdzaniem wierności snapshotu.
-10. **Script-as-coordinator.** ultrapowers przeniósł pętlę superpowers do deterministycznego skryptu na
-    Workflow tool: okno koordynatora 52K vs 184K tokenów, ~2x taniej przy 12-24 taskach.
-11. **Detektory młócenia.** ralph-cursor: ta sama komenda pada 3x z rzędu, plik pisany 5+ razy w 10 min,
-    rotacja kontekstu przy 80k. gstack: budżet "WTF-likelihood" (+15% per revert, twardy cap).
-12. **Wykrywanie stubów i "istnienie to nie integracja".** gsd verifier: exists -> substantive -> wired,
-    "Do NOT trust SUMMARY.md", integration-checker śledzi Component -> API -> DB -> Response -> Display.
+1. Świeży kontekst per jednostka + commit per task (standard).
+2. Orkiestrator sprawdza prawdę z gruntu (Acendas `PROBE_EXIT: 0`, codex-build allowlist egzekwowany
+   skryptem, tyran SubagentStop przepuszcza tylko raport z cyfrą, gstack ledger FRESH / STALE / MISSING).
+3. Reviewer nie uruchamia testów ponownie (superpowers v6 czyta dowody implementera; BMAD `{claims_file}`).
+4. Filtr fałszywych pozytywów (Anthropic code-review: subagent per znalezisko "udowodnij albo wyrzuć", próg
+   80/100; BMAD severity `false | maybe-false` z tekstem obalenia).
+5. Ograniczone pętle napraw z eskalacją siły (superpowers rundy 4-5 na mocniejszym modelu; cc-sdd debugger w
+   czystym kontekście; claudex-loop MAX_FIX 2).
+6. "Rulings, not stalls" (superpowers v6.3 po sesji zablokowanej 9 godzin; anneal Inbox tylko dla naprawdę
+   blokujących).
+7. Blind review i zakaz samoaprobaty (anneal, tyran, claude-code-guardrails).
+8. Cross-model review jako domyślne (gstack, compound, claudex-loop, flow).
+9. Worktree per task i fale równoległe (gsd zero file overlap; anneal 8 dzieci + merger).
+10. Script-as-coordinator (ultrapowers: 52K vs 184K okna koordynatora, ~2x taniej).
+11. Detektory młócenia (ralph-cursor; gstack budżet "WTF-likelihood").
+12. Wykrywanie stubów i "istnienie to nie integracja" (gsd verifier exists -> substantive -> wired).
 
-### Jak wypada superdev
+### Jak wypada superdev (stan na HEAD)
 
 Mocne, unikalne albo najlepsze w zbiorze:
-- słownik review w jednym pliku-kontrakcie: stabilne ID C/I/M przez rundy, `## Debt` jako jedyny dom
-  Minorów, raport "tylko nowa informacja", rozłączne mandaty per etap (task / checkpoint / final z mandatem
-  integracyjnym), `VERDICT: BLOCKED` = decyzja użytkownika zapisana w `decisions.md` i wiążąca później
-  jak tekst planu. Nikt inny nie ma tak czystej semantyki BLOCKED,
-- orkiestrator nie pisze żadnego pliku, `commit-task.sh` stage'uje tylko zadeklarowany zbiór, każda
-  niezadeklarowana zmiana eskaluje. To jest odpowiednik "allowlist" codex-build, tylko po fakcie,
-- checkpoint co 5 tasków na oknie diffu: nikt inny nie ma cadence między task-gate a final,
-- executor jako fork haiku tylko na DEVIATION, logi poza kontekstem reviewera,
-- Model/Effort/Review dobierane przez planistę per task: w całym zbiorze rzadkość (inni robią tiery per rola).
+- słownik review w jednym pliku-kontrakcie: stabilne ID C/I/M, `## Debt` jako jedyny dom Minorów, raport
+  "tylko nowa informacja", rozłączne mandaty per etap, `VERDICT: BLOCKED` jako decyzja użytkownika zapisana
+  w `decisions.md` i wiążąca później jak tekst planu. Dziś dochodzi `D<n>` dla stopu implementora i
+  `## Decisions taken` na final. Nikt inny nie ma tak czystej semantyki decyzji,
+- reguła podziału `UNDERSPECIFIED:` / `DECISION:` po stronie implementora to najlepsza w zbiorze wersja
+  "rulings, not stalls": decyzja z obronną odpowiedzią jest brana i logowana, stop jest tylko dla spraw,
+  których nikt poza użytkownikiem nie zamknie, a reviewer per task ma jawny mandat, żeby złą decyzję
+  odesłać jako Important, a decyzję należącą do planu jako `NOTE: plan defect`. Pomiar potwierdza: 0 stopów,
+  1-7 orzeczeń per task,
+- `Review: none` + `Kind:` to pierwsze realne skalowanie ceremonii w dół wewnątrz jednego planu (inni robią
+  tiery per rola albo per cały przebieg),
+- orkiestrator nie pisze żadnego pliku, `commit-task.sh` stage'uje tylko zadeklarowany zbiór, wszystkie
+  wywołania skryptów w jednej literalnej postaci pre-approved przez wzorce; checkpoint co 5 tasków; executor
+  jako fork haiku tylko na DEVIATION,
+- dwa wymiary final review (spec i change) jako dwa agenty w jednej wiadomości, blind względem siebie: to
+  jest "blind review" z anneal, zrobiony tanio,
+- `stats: true` mierzy każdy dispatch (model, tokeny, tool uses, czas, werdykt) i renderuje anomalie
+  (UNDERSPECIFIED / DECISION / CARRY / touched / plan defect / dodatkowe rundy). Poza gstack i ultrapowers
+  nikt w zbiorze nie mierzy własnej pętli; superdev jako jedyny mierzy ją per dispatch.
 
 Słabsze:
-- **Effort per task nie jest w ogóle stosowany przy dispatchu** (szczegóły w sekcji 6). To defekt, nie wybór.
-- dowód wykonania Task Checks to proza w `## Runs`; reviewer ma je "sprawdzić", ale nie ma stampa
-  związanego z drzewem; checkpoint i final uruchamiają gate ponownie zamiast cytować świeże dowody,
-- brak jakiegokolwiek filtru fałszywych pozytywów poza severity; przy "review theater" (badania:
-  reviewery LLM błędnie klasyfikują poprawny kod, quoty produkują 54% odrzuconych znalezisk w BMAD)
-  to najdroższa dziura,
-- 20 punktów pytania użytkownika; ekosystem poszedł w "orzekaj i loguj, pytaj o nieodwracalne",
-- brak eskalacji siły modelu w pętli napraw (5 rund tego samego implementera, potem FAIL), brak etapu
-  debuggera przed pytaniem użytkownika, brak detektora młócenia,
-- brak równoległości i worktree: `### Dependencies` i `### Files` już są, więc fale dałoby się policzyć
-  skryptem, ale nic tego nie robi,
-- egzekwowanie prawie wyłącznie prozą: jedyny hook to ExitPlanMode; "a skill is advice, a hook is a gate",
-- reviewer per task nosi ręcznie mirrorowaną kopię skeletonu raportu (sam kontrakt to przyznaje).
+- dowód wykonania to nadal proza w `## Runs`, bez stampa związanego z drzewem; checkpoint i final uruchamiają
+  gate ponownie, a na final dwa wymiary uruchamiają go równolegle dwa razy. W `build-cost-cuts` rundy
+  recenzentów budowy to 36 minut ze 109,
+- brak filtru fałszywych pozytywów poza severity; przy 0,69 M tokenów recenzenta per task w jednym buildzie
+  to nadal najdroższa dziura jakościowa,
+- brak eskalacji siły w pętli napraw (5 rund tego samego implementora, potem FAIL), brak etapu debuggera,
+  brak detektora młócenia,
+- brak równoległości i worktree; `### Dependencies` i `### Files` już są, nic ich nie liczy,
+- egzekwowanie prawie wyłącznie prozą: nadal dwa hooki (SessionStart, ExitPlanMode); `vibe-guard.sh` jest
+  skryptem doradczym wołanym przez skill, nie hookiem; szablon `settings.json` przenosi twardą granicę do
+  statycznego deny, które sam raport z `docs/auto-mode-permissions-2026-09-17.md` nazywa dziurawym,
+- reviewer per task nadal nosi ręcznie mirrorowaną kopię szkieletu (intent `task-gate-blocked-on-plan-defect`
+  ma to naprawić, ale nie został zbudowany),
+- `Review: none` jako domyślne dla `text` jest ślepe na stack: w tym repo `text` (markdown skilli) jest
+  kodem produkcyjnym, a domyślna reguła zdejmuje z niego bramę per task; planista może dopisać `Review:`
+  z jednym zdaniem uzasadnienia, ale nic w pamięci hosta nie może tego domyślnego ustawić inaczej,
+- tor Simple nie ma bramy per task w ogóle (tylko checkpoint i final); to jest wybór, nie defekt, ale po
+  wejściu `Review: none` różnica między "Simple" a "Super z `Review: none` na każdym tasku" sprowadza się
+  do specu i dwóch wymiarów final.
 
-## 5. Rozwiązania w kontrze do superdev i ich najsilniejsze argumenty
+## 6. Rozwiązania w kontrze do superdev i ich najsilniejsze argumenty
 
-| Kontr-teza | Najsilniejszy argument | Co superdev ma na to |
+| Kontr-teza | Najsilniejszy argument | Co superdev ma na to (HEAD) |
 |---|---|---|
-| **Ralph loop**: 3 pliki (prd.json, progress.txt, AGENTS.md) + cap, testy jako backpressure | $297 API za kontrakt $50k; fresh context per iteracja; "files and git are a better memory than context" | dokładnie ten sam rdzeń (fresh implementor, commit per task), plus review; ale Ralph pisze learnings co iterację, superdev tylko na close-out |
-| **Agent OS 3.0**: porzucić spec i orkiestrację, zostawić standardy | "plan mode, extended thinking i lepsze modele załatwiają scaffolding" | plan mode nie daje gate commands, siły per task, łańcucha review ani decisions.md; ale argument o wygasaniu założeń harnessu jest prawdziwy: każdy etap powinien być wyłączalny |
-| **gstack**: brama na wyniku, nie na diffie | browser QA, regression test per fix, evidence ledger; "6 z 35 komend przeżyło miesiąc" | superdev nie ma żadnej bramy wynikowej; `#### Integration` mógłby ją nieść, gdy host deklaruje przepis uruchomienia |
-| **beads**: graf zamiast planu liniowego | "konkurujące dokumenty = demencja"; discovered-from; decay pamięci | superdev eskaluje odkrytą pracę do użytkownika zamiast filować węzeł; changelog i rules tylko rosną, nic nie wygasa |
-| **hooks-first** (tyran, shapeup, specforge, guardrails) | "a skill is advice, a hook is a gate"; hook widzi akt, review widzi diff (osłabienie asercji, edycja przez Bash są niewidoczne w review) | superdev ma jeden hook; wszystko inne to instrukcja, którą model może "zracjonalizować" |
-| **script-as-coordinator** (ultrapowers, anneal) | koordynator 52K zamiast 184K, ~2x taniej, deterministyczne bramy | superbuild jest skillem na sonnet/low, więc tani, ale nadal LLM parsuje `VERDICT:` z prozy |
-| **Krytyka "plany gniją, review je pompuje"** | agent-infra #790: 11 cykli review planu dało 11,10,7,11,7,12,10,18,16,17,17 znalezisk, plan urósł do 1050 linii, "długość to dominujące źródło defektów" | cap 3 rund istnieje, ale brak reguły "kasuj powtórzenia zamiast poprawiać" i "znalezisko, którego jedyne remedium to rozszerzenie zakresu, to rozmowa o zakresie, nie fix" |
+| **Ralph loop**: 3 pliki + cap, testy jako backpressure | $297 API za kontrakt $50k; "files and git are a better memory than context" | ten sam rdzeń plus review; tor vibe to Ralph bez pętli (jeden przebieg, jeden commit); learnings nadal tylko na close-out |
+| **Agent OS 3.0**: porzucić spec i orkiestrację | "plan mode i lepsze modele załatwiają scaffolding"; każdy etap harnessu powinien być wyłączalny | dziś wyłączalne: reviewer per task (`Review: none`), cały plan (vibe), każdy writer (config). Niewyłączalne: gate re-run na checkpoint, dwa wymiary final |
+| **gstack**: brama na wyniku, nie na diffie | browser QA, evidence ledger; "6 z 35 komend przeżyło miesiąc" | `e2e` istnieje, ale poza buildem i nigdy jako brama; `#### Integration` może wskazać komendę e2e hosta, nic tego nie sugeruje planiście |
+| **beads**: graf zamiast planu liniowego | "konkurujące dokumenty = demencja"; decay pamięci | bez zmian: odkryta praca eskaluje do użytkownika, nic nie wygasa; QA dostało regułę `supersedes`, to pierwszy mechanizm wygaszania w superdev |
+| **hooks-first** (tyran, shapeup, specforge, guardrails) | "a skill is advice, a hook is a gate"; hook widzi akt, review widzi diff | dwa hooki, reszta proza; zamiast hooka weszło statyczne deny w `settings.json` (szybkie, deterministyczne, prefiksowe, dziurawe) |
+| **script-as-coordinator** (ultrapowers, anneal) | koordynator 52K zamiast 184K, deterministyczne bramy | superbuild na sonnet/low, skrypty pre-approved jedną postacią: prompt jest już blisko skryptu, ale `VERDICT:` nadal parsuje LLM |
+| **"plany gniją, review je pompuje"** | agent-infra #790: 11 cykli, plan urósł do 1050 linii | cap 3 rund istnieje; B-klas jest już 22 i rośnie; brak reguły "kasuj powtórzenie" i sufitu długości planu |
 
-Najlepsza synteza w źródłach (Mason, compound, ACE) to nie "bez planu", tylko: mały plan, twarde testy,
-reviewer z czystym kontekstem, wiedza zapisywana z powrotem. superdev ma trzy z czterech i jest
-najcięższy dokładnie tam, gdzie dowody są najsłabsze (osąd reviewera zamiast dowodu maszynowego).
+Synteza z wersji 1 stoi: mały plan, twarde testy, reviewer z czystym kontekstem, wiedza zapisywana z
+powrotem. superdev ma trzy z czterech i nadal jest najcięższy tam, gdzie dowody są najsłabsze (osąd
+reviewera zamiast dowodu maszynowego). Nowe od rana: superdev jako jedyny mierzy, ile ta ciężkość kosztuje.
 
-## 6. Fakty o Claude Code, które zmieniają ocenę (zweryfikowane)
+## 7. Fakty o Claude Code, które zmieniają ocenę (zweryfikowane ponownie)
 
-1. **Agent tool nie ma parametru `effort`.** Schemat narzędzia w tej sesji: description, isolation, model,
-   prompt, subagent_type. Docs opisują per-call `model`, ale per-call `effort` nie istnieje.
-   `effort:` we frontmatterze agenta działa (v2.1.266 naprawiło jego ignorowanie). Skutek: superbuild
-   przekazuje `effort:` z kolumny planu do wywołania, które go nie przyjmuje. Każdy implementor biegnie
-   na `xhigh` z frontmatteru, każdy reviewer per task na `high`. Marker `Effort:` w planie i cała sekcja
-   `## Dispatch strength` są dziś fikcją po stronie effort (model działa).
-2. **Fork mode jest domyślnie włączony w sesji interaktywnej i wtedy każdy subagent biegnie w tle.** Wynik
-   przychodzi jako powiadomienie, orkiestrator czeka. Sekwencyjna pętla działa. Subagenty w tle dostają
-   okrojony zestaw narzędzi, ale Read/Grep/Glob/Bash/Edit/Write/Skill zostają, więc implementory
-   i reviewery superdev nie tracą niczego. `background: false` we frontmatterze nie ma znaczenia przy
-   fork mode on. Fork mode NIE sprawia, że zwykły subagent dziedziczy kontekst (ta teza jednego z agentów
-   była błędna).
-3. **Dostępne i niewykorzystane**: `memory: project` na agencie (reviewer pamiętający powtarzalne znaleziska
-   w projekcie), `isolation: worktree` per wywołanie, `hooks:` we frontmatterze agenta (wymaga zaufania
-   folderu), hooki `SubagentStop` z matcherem `^superdev:superbuild-task-implementor$` z hooks.json pluginu
-   (hooki pluginu odpalają się wewnątrz subagentów, z `agent_type` w inpucie), wznowienie subagenta przez
-   SendMessage z pełną historią i ciepłym cache, zagnieżdżanie subagentów do 3 poziomów (reviewer może
-   wysłać weryfikatora per znalezisko).
-4. **Nowe wbudowane**: `claude plugin eval` (v2.1.269, gradery, baseline bez pluginu, brama CI),
-   `/skill-doctor` (v2.1.261), `maxEffortLevel` (v2.1.266), `/code-review`, dynamic workflows, `/goal`,
-   cross-session messaging. `claude plugin eval` jest najważniejsze: repo ma tylko `node --test` skryptów,
-   zero ewaluacji zachowania skilli.
-5. Codex CLI od v0.146 (lipiec) jest plugin-native z tym samym układem plugin.json / skills, więc
-   jeden layout może celować w oba CLI. Nie priorytet, ale zdejmuje część ryzyka "tylko Claude Code".
+1. **Agent tool nie ma parametru `effort`** (schemat bez zmian). superdev przestał go przekazywać i
+   dokumentuje to w kontrakcie, README i obu CLAUDE.md. Otwarte: marker `Effort:` nadal wymagany (B6), a
+   frontmatter każdego agenta jest statyczny (implementor Super opus/xhigh, implementor Simple sonnet/xhigh,
+   reviewer per task sonnet/high, reviewer change opus/high, reviewer spec sonnet/high, vibe sonnet/high,
+   qa-writer i e2e-writer opus/high). Jedyny sposób na siłę per task poza modelem to warianty agenta
+   (wersja 1, P0.1 wariant a), nadal nie zrobiony.
+2. **Fork mode**: subagenty biegną w tle, wynik jako powiadomienie. Siedem z dwunastu agentów nadal nosi
+   `background: false`, które przy fork mode nic nie znaczy; CLAUDE.md nadal tego nie opisuje.
+3. **Dostępne i niewykorzystane** (bez zmian): `memory: project` na agencie, `isolation: worktree` per
+   wywołanie, `hooks:` we frontmatterze agenta, `SubagentStop` z matcherem agenta z hooks.json pluginu,
+   wznowienie subagenta przez SendMessage, zagnieżdżanie do 3 poziomów.
+4. **`claude plugin eval`** nadal niewykorzystane. Zestaw `tests/` urósł (22 suity dla skryptów superdev plus
+   `orphan-tags` i `portability`), ale to nadal testy skryptów, nie zachowania skilli.
+5. **Klasyfikator auto mode** (nowa wiedza z `docs/auto-mode-permissions-2026-09-17.md`): każdy subagent
+   płaci trzy dodatkowe punkty kontrolne (opis zadania przed spawnem, każda akcja, raport końcowy), gołe
+   `Bash` w allow pod auto mode kieruje każdą komendę do klasyfikatora, a blok `autoMode` czytany jest tylko
+   z user settings. Szablon setup wyłącza auto mode w repo hosta i daje gołe `Bash` w allow: spójne z tą
+   wiedzą, szybkie, ale bezpieczeństwo zależy wtedy wyłącznie od listy deny.
 
-## 7. Ocena: lepiej czy gorzej
+## 8. Ocena: lepiej czy gorzej
 
-Skala 1-10 względem najlepszego zaobserwowanego rozwiązania w danym wymiarze.
+Skala 1-10 względem najlepszego zaobserwowanego rozwiązania w danym wymiarze. Kolumna "rano" to wersja 1.
 
-| Wymiar | superdev | Najlepszy w zbiorze | Komentarz |
-|---|---|---|---|
-| Zbieranie wymagań | 8 | superpowers / spec-kit clarify | otwarty wywiad z historią jako kontekstem; brak limitu, logu Q->A, toru bez planu |
-| Artefakt planu | 9 | superdev | najbogatszy kształt taska; brakuje Consumes/Produces, sufitu wielkości, testów akceptacyjnych RED |
-| Review planu | 8 | gsd plan-checker / superdev | checklista B1-B17 + fork read-only; hook fail-open, brak kontr-planu |
-| Wykonanie | 6 | codex-build / Acendas | fresh context i declared-set commits tak; Effort nie działa, brak bramy mechanicznej, brak równoległości |
-| Review kodu | 8 | superdev (słownik) / Anthropic code-review (filtr) | najlepsza semantyka verdictów; brak filtra fałszywych pozytywów, gate uruchamiany ponownie per etap |
-| Human-in-the-loop | 6 | superpowers v6.3 | 20 punktów pytania; BLOCKED jest dobre, reszta to "stalls" |
-| Wiedza po buildzie | 8 | compound-engineering | jedyny z memory/rules/changelog jako agentami; brak decay/refresh i przechwytywania per task |
-| Koszt i skalowanie ceremonii | 5 | BMAD v6.12 / superpowers 6.3 | brak toru "Direct", gate re-runs, każda runda to kilka dispatchy |
-| Egzekwowanie (hooki) | 3 | tyran / shapeup | jeden hook, reszta proza |
-| Ewaluacja pluginu | 2 | superpowers / compound / `claude plugin eval` | tylko testy skryptów |
-| Przenośność i zależności | 8 | superdev / gstack | bash-only, stack-agnostic, zero runtime deps; tylko Claude Code |
+| Wymiar | rano | teraz | Najlepszy w zbiorze | Co zmieniło ocenę |
+|---|---|---|---|---|
+| Zbieranie wymagań | 8 | 8 | superpowers / spec-kit clarify | usunięcie gap-questions upraszcza, ale cofa rozdział faktów od decyzji; nadal bez limitu i logu |
+| Artefakt planu | 9 | 9 | superdev | B18-B22 i `Kind:` wzmacniają; nadal bez Consumes / Produces, sufitu, testów RED |
+| Review planu | 8 | 8 | gsd plan-checker / superdev | B22 i B21 dodane; hook fail-open i brak hasha bez zmian |
+| Wykonanie | 6 | 7 | codex-build / Acendas | dyscyplina per `Kind:`, stop implementora, uczciwy dispatch; nadal bez bramy mechanicznej i równoległości |
+| Review kodu | 8 | 8 | superdev (słownik) / Anthropic code-review (filtr) | osąd nad `UNDERSPECIFIED:` i `## Decisions taken` w plusie; brak filtru FP i gate re-run w minusie |
+| Human-in-the-loop | 6 | 7 | superpowers v6.3 | reguła podziału to "rulings, not stalls" u implementora (0 stopów w pomiarze); orkiestrator pyta jak dawniej |
+| Wiedza po buildzie | 8 | 8 | compound-engineering | nowa warstwa `docs/qa/` z `supersedes`; nadal bez decay dla memory / rules / changelog |
+| Koszt i skalowanie ceremonii | 5 | 7 | BMAD v6.12 / superpowers 6.3 | vibe, `Review: none`, `Kind:` -> sonnet, uprawnienia bez promptów; gate re-runs i podwójny gate na final zostały |
+| Egzekwowanie (hooki) | 3 | 4 | tyran / shapeup | `vibe-guard.sh` i `commit-task.sh` to skrypty, nie hooki; deny w settings jest deterministyczne, ale prefiksowe |
+| Ewaluacja pluginu | 2 | 3 | superpowers / compound / `claude plugin eval` | `orphan-tags` i nowe suity skryptów; nadal zero ewaluacji zachowania skilli |
+| Pomiar własnej pętli | (brak) | 8 | gstack / ultrapowers | jedyny w zbiorze pomiar per dispatch z tokenami i anomaliami; brak: koszt bram, porównanie między przebiegami |
+| Przenośność i zależności | 8 | 8 | superdev / gstack | Node dla merge-settings i Playwright dla e2e: obie opt-in ze skip-with-note, zgodnie z regułą repo |
 
-Werdykt: superdev jest w ścisłej czołówce w projektowaniu artefaktów i słownika review (tu jest lepszy
-od każdego przebadanego projektu), a za czołówką w tym, co ekosystem robił od czerwca: mechaniczne
-dowody zamiast osądu, hooki zamiast instrukcji, skalowanie ceremonii w dół, eskalacja siły w pętlach,
-ewaluacje pluginu. Jedna rzecz jest po prostu zepsuta (Effort).
+Werdykt: superdev pozostaje w ścisłej czołówce w projektowaniu artefaktów i słownika review, a od rana
+domknął trzy z pięciu luk, które ekosystem uznał za najważniejsze w 2026: tor bez planu, skalowanie
+ceremonii w dół wewnątrz planu i "orzekaj i loguj" u implementora. Dwie największe luki zostały: dowód
+maszynowy zamiast osądu (stampy, hooki) i ewaluacja pluginu. Jedna rzecz jest nadal na wpół zrobiona:
+effort per task ma uczciwy opis i martwy marker.
 
-## 8. Co poprawić, zmienić, dodać (priorytetyzowane)
+## 9. Co poprawić, zmienić, dodać (przeliczone pod ograniczenie "nie wydłużać builda")
+
+Reguła z `docs/notes.md`: zmiana nie może wydłużyć fazy build; praca, której wynik nie jest potrzebny w
+następnym kroku, idzie w tle. Każdy punkt niesie etykietę: **skraca**, **neutralne** (poza buildem albo
+sub-sekundowe), **w tle** (równolegle z krokiem, który i tak trwa), **wydłuża** (odrzucone albo tylko jako
+opt-in).
+
+### Zrobione od wersji 1 (do wykreślenia z listy)
+
+- P0.1 effort: wariant (b), uczciwy opis. Reszta punktu przechodzi do P0.1 poniżej.
+- P2.10 tor Direct: `vibe`. P2.11 tripwire zakresu: `vibe-guard.sh` (tylko vibe).
+- P2.14 autonomy: reguła podziału `UNDERSPECIFIED:` / `DECISION:` u implementora.
+- P3.19 lista weryfikacji manualnej: `qa-writer` i `docs/qa/<run>.md`.
+- Sekcja 10 (QA i E2E): oba dodatki, rozliczenie w sekcji 11.
+- Klasyfikator uprawnień: jedna postać wywołań skryptów + szablon `settings.json` w setup.
 
 ### P0: defekty i fałszywe założenia
 
-1. **Effort per task.** Trzy drogi: (a) warianty agenta per siła (np. implementor-standard = high,
-   implementor-deep = xhigh; reviewer analogicznie) i dispatch po `subagent_type`, przy uproszczeniu skali
-   `Effort:` do dwóch wartości; (b) zostawić `Effort:` jako sygnał dla planisty, a przy dispatchu stosować
-   tylko `model`; (c) czekać na parametr w harnessie. Rekomendacja: (a) dla implementora, (b) dla reszty.
-   W każdym wariancie `review-contract.md ## Dispatch strength` i CLAUDE.md muszą przestać twierdzić, że
-   effort jest przekazywany. Bez tej zmiany `stats` też raportuje nieprawdziwy effort.
-2. **Związać build z zaaprobowanym planem.** Reviewer planu (albo hook review-plan.sh po PASS) zapisuje
-   w nagłówku `Reviewed: <sha256 pliku planu>`; `decompose.sh` liczy hash i odmawia przy niezgodności.
-   Zamyka lukę "fail-open hook + superbuild nie sprawdza planu". Wzorzec: claudex-loop i flow wiążą
-   aprobatę z SHA256.
-3. **Udokumentować fork mode / background.** W CLAUDE.md i w superbuild: subagenty biegną w tle, wynik
-   to powiadomienie; `background: false` we frontmatterze nic nie daje przy fork mode on. Nic do naprawy,
-   ale opis "Await it" powinien odpowiadać rzeczywistości.
+1. **Domknąć effort per task** (neutralne). Dwie drogi, każda lepsza od dzisiejszej: (a) warianty agenta
+   per siła (`superbuild-task-implementor` = xhigh, `superbuild-task-implementor-std` = high; reviewer per
+   task analogicznie) i dispatch po `subagent_type` z uproszczoną skalą `Effort: std | deep`, albo (b) usunąć
+   `Effort:` z wymaganych markerów B6 i z szablonów, skoro nikt go nie czyta. Dzisiejszy stan (marker
+   wymagany, sprawdzany przez reviewera planu, ignorowany w runtime) jest gorszy od obu, bo kosztuje uwagę
+   planisty i reviewera za nic.
+2. **Zbudować `task-gate-blocked-on-plan-defect`** (neutralne). Intent i spec leżą gotowe. Zamyka dwie
+   rzeczy z wersji 1 naraz: mirrorowaną kopię szkieletu u recenzenta per task i brak drogi dla `NOTE: plan
+   defect`, którego dziś nikt nie realizuje.
+3. **Związać build z zaaprobowanym planem** (neutralne, sub-sekundowe). Reviewer planu (albo hook po PASS)
+   zapisuje `Reviewed: <sha256 planu>`; `decompose.sh` liczy hash i odmawia przy niezgodności. Bez zmian od
+   wersji 1.
+4. **Udokumentować fork mode** i usunąć martwe `background: false` z siedmiu agentów (neutralne).
+5. **`Review: none` dla `text` z możliwością nadpisania przez hosta** (neutralne). Host, w którym tekst jest
+   produktem (to repo), deklaruje to w pamięci; planista czyta i nie stosuje domyślnego `Review: none` dla
+   `text`. Bez tego plugin ocenia własne buildy słabiej niż cudze.
 
-### P1: dowód maszynowy zamiast osądu (największy zysk jakości na token)
+### P1: dowód maszynowy zamiast osądu, ale bez wydłużania builda
 
-4. **Stamp dowodowy z run.sh / Task Checks.** Każde uruchomienie zapisuje rekord (komenda, exit, czas,
-   fingerprint drzewa: `git write-tree` po tymczasowym `add -A` w skrypcie albo hash `git diff HEAD` + HEAD)
-   do `implementation/task-NN-runs.jsonl`. Reviewer per task i checkpoint porównują fingerprint z bieżącym
-   drzewem zamiast wierzyć prozie `## Runs` i zamiast uruchamiać gate ponownie; gate biegnie realnie tylko
-   w final i re-review. Wzorce: gstack evidence ledger (FRESH/STALE), tyran, agent-verification-kit.
-5. **Hook SubagentStop na implementorze** (matcher `^superdev:.*-task-implementor$`): odmawia zakończenia,
-   gdy brak stampa dla każdej linii Task Checks z exit 0 świeższego niż ostatnia edycja. Deterministyczny,
-   sub-sekundowy, "blokuje milczenie, nie fałszerstwo". Nigdy nie uruchamia suite w hooku (wszystkie
-   raporty o hookach z suite na Stop kończą się pętlami i kosztem).
-6. **Hook PreToolUse zakresu plików** dla implementora: deny Edit/Write poza `### Files` + ścieżką notatek
-   + `.temp/`, plus skan komend Bash pod kątem ścieżek spoza zbioru (bez tego brama jest teatrem, bo
-   `sed -i` omija Write). `commit-task.sh` zostaje jako kontrola po fakcie. Edycja istniejącego pliku
-   testowego, którego task nie tworzy, wymaga deklaracji w Task Checks; inaczej Critical (reguła "read the
-   test change first").
-7. **Walidator per znalezisko.** Zanim reviewer zwróci raport z Critical/Important, każdy taki punkt
-   dostaje zagnieżdżony subagent haiku "udowodnij w kodzie albo wyrzuć" (zagnieżdżanie jest dostępne).
-   Do kontraktu: werdykt `false | maybe-false` z obowiązkowym tekstem obalenia (BMAD) i reguła
-   "znalezisko, którego jedyne remedium to zmiana specu/planu, nie jest fixem" (#66, BMAD "reject any
-   finding whose fix edits the spec"). Do stats: findings opened / closed / reopened per runda oraz odsetek
-   Task Checks zielonych za pierwszym razem; superdev jako jedyny ma stabilne ID, więc to jest darmowe
-   i unikalne w ekosystemie.
-8. **Testy akceptacyjne jako pierwszy task (tor Super).** Planista, dla każdego kryterium ze specu, każe
-   Taskowi 1 napisać test czerwony i wpisuje jego komendę do `#### Tests`/`#### Integration`. Ten sam
-   mechanizm co ADR-jako-Task-1. Zamienia "test, który nie może paść" (B13) z heurystyki reviewera
-   w artefakt VERIFY-RED w gicie. Wzorce: Acendas acceptance_probe (bez probe brak dispatchu),
-   "acceptance tests first, agents second".
-9. **Consumes / Produces + ledger interfejsów.** Pole `### Interfaces` (Consumes / Produces z nazwami
-   i typami) w szablonie taska; klasa checklisty: każde Consumes ma Produces we wcześniejszym tasku.
-   Implementor dopisuje `PROVIDES:` do notatek; `commit-task.sh` agreguje je do
-   `implementation/interfaces.md`, przekazywanego kolejnym implementorom przez `refs:`. `CARRY:` zostaje
-   dla problemów, nie dla kontraktów.
+6. **Stamp dowodowy z Task Checks i `run.sh`** (skraca). Każde uruchomienie zapisuje rekord (komenda, exit,
+   czas, fingerprint drzewa: `git write-tree` po tymczasowym `add -A` w skrypcie) do
+   `implementation/task-NN-runs.jsonl`. Checkpoint porównuje fingerprint z bieżącym drzewem i NIE uruchamia
+   `#### Build` / `#### Tests`, gdy stampy są FRESH dla całego okna; gate biegnie realnie tylko w final i w
+   re-review. To zdejmuje większość z 36 minut rund recenzentów budowy w `build-cost-cuts`. Wzorce: gstack
+   evidence ledger, tyran, agent-verification-kit.
+7. **Jeden gate na final zamiast dwóch** (skraca). Dwa wymiary final biegną równolegle i każdy uruchamia
+   pełny zestaw. Z P1.6 wymiar spec czyta stampy wymiaru change (albo orkiestrator uruchamia gate raz przez
+   `run.sh` przed dispatchem obu i podaje `LOG:` etykietą). Kontrakt już przewiduje, że host może zabronić
+   równoległego uruchomienia; to jest ten sam problem rozwiązany od strony kosztu.
+8. **Reviewer per task w tle** (skraca, największa pojedyncza dźwignia). Dziś reviewer per task blokuje
+   pętlę na 1:20-3:00 per task, czyli 20% wall. Wariant: commit taska od razu po `VERDICT: PASS`
+   implementora, dispatch reviewera na ten commit (etykieta `commit: <sha>`, czyta `git show`, nie drzewo
+   robocze) w tej samej wiadomości co implementor następnego taska. FAIL reviewera trafia do kolejki fixów
+   zamykanej na najbliższym checkpoint (albo od razu, gdy Critical). To zamienia bramę w zwiadowcę
+   checkpointu i zdejmuje jej czas z pętli. Ryzyko: fix po fakcie zamiast przed commitem; przy
+   deklarowanym stage'owaniu i stabilnych ID koszt jest znany. Wymaga zmiany kontraktu reviewera per task z
+   "diff drzewa roboczego" na "diff commitu".
+9. **Hook `SubagentStop` na implementorze** (neutralne, sub-sekundowe): odmawia zakończenia bez stampa z
+   exit 0 dla każdej linii Task Checks świeższego niż ostatnia edycja. Nigdy nie uruchamia suite.
+10. **Hook `PreToolUse` zakresu plików** dla implementora (neutralne, sub-sekundowe): deny Edit / Write poza
+    `### Files` + notatki + `.temp/` + skan komend Bash pod kątem ścieżek spoza zbioru. `commit-task.sh`
+    zostaje jako kontrola po fakcie. Ten sam hook zamyka dziurę z `docs/auto-mode-permissions`: twarda
+    granica na pełnym tekście komendy, nie prefiks deny.
+11. **Walidator per znalezisko** (w tle). Zanim reviewer zwróci Critical / Important, każdy taki punkt dostaje
+    zagnieżdżony subagent haiku "udowodnij w kodzie albo wyrzuć". Biegnie wewnątrz reviewera, który i tak
+    trwa; koszt to tokeny haiku, nie wall pętli. Do kontraktu werdykt `false | maybe-false` z tekstem
+    obalenia i reguła "znalezisko, którego jedyne remedium to zmiana specu / planu, nie jest fixem". Do
+    stats: findings opened / closed / reopened per runda.
 
-### P2: skalowanie ceremonii i koszt
+### P2: plan i ceremonia
 
-10. **Tor "Direct".** Czwarta opcja na bramie intent (albo przed intentem, jak superpowers "spike / bounded"):
-    brak pliku planu, tylko Task Checks + cap rund + commit; reviewer tylko przy dotknięciu ścieżek
-    oznaczonych w host CLAUDE.md jako wrażliwe. Kryterium jak w docs: diff opisywalny jednym zdaniem.
-    Superpowers, compound, BMAD i cc-sdd wszystkie dołożyły ten tor w 2026.
-11. **Reguły zbieżności review planu.** Do checklisty: sufit długości planu (linie lub tokeny), "kasuj
-    powtórzenie zamiast je poprawiać", "znalezisko wymagające rozszerzenia zakresu = rozmowa o zakresie".
-    Tripwire zakresu jak gstack: >N plików lub >M nowych klas w jednym tasku = FINDING podziału.
-12. **Sufit wielkości taska.** Klasa B18: task powyżej progu (np. >8 plików w Files lub plik taska >N linii)
-    do podziału. BMAD mierzy to tokenami (900-1600) z powodu context rot; superpowers "najmniejsza
-    jednostka, którą reviewer może odrzucić osobno".
-13. **Eskalacja siły w pętlach.** Implementor: po 3 nieudanych rundach Task Checks wznowienie na wyższej
-    sile (SendMessage zachowuje historię i cache) zamiast 5 rund tego samego. Reviewer per task: po
-    2 FAIL dispatch `simpledebug` jako fork w czystym kontekście przed pytaniem użytkownika (drabina
-    cc-sdd). Detektor młócenia: ta sama komenda pada 3x z rzędu lub ten sam plik pisany 5+ razy =
-    przerwanie i eskalacja, nie kolejna runda.
-14. **Przełącznik `autonomy: ask | rule`.** Domyślnie `ask` (dzisiejsze zachowanie). Przy `rule`
-    orkiestrator na BLOCKED bez elementu nieodwracalnego zapisuje `Ruling: <decision> - <why> - <cost if
-    wrong>` przez record-decision.sh i jedzie dalej; lista orzeczeń trafia do podsumowania close-out
-    i do changelogu. Cztery warunki stopu z superpowers (nieodwracalne, bezpieczeństwo, efekty poza
-    repo, plan bez sensownej ścieżki) zostają twarde.
-15. **Zdjąć re-run gate z checkpointu**, gdy stampy z P1.4 są FRESH dla całego okna diffu. Gate biegnie
-    w final i w re-review. Superpowers i gstack poszły dokładnie tą drogą z powodu kosztu.
+12. **Consumes / Produces + ledger interfejsów** (neutralne). Pole `### Interfaces` w szablonie taska,
+    klasa checklisty "każde Consumes ma Produces we wcześniejszym tasku", `PROVIDES:` w notatkach
+    agregowane przez `commit-task.sh` do `implementation/interfaces.md`. Bez zmian od wersji 1.
+13. **Sufit wielkości taska i reguły zbieżności review planu** (neutralne): klasa B23 dla taska powyżej
+    progu (>8 plików w Files lub >N linii), sufit długości planu, "kasuj powtórzenie zamiast poprawiać",
+    "znalezisko wymagające rozszerzenia zakresu = rozmowa o zakresie".
+14. **Eskalacja siły w pętlach** (neutralne lub skraca): po 3 nieudanych rundach Task Checks wznowienie
+    implementora przez SendMessage na wyższej sile zamiast 5 rund tej samej; detektor młócenia (ta sama
+    komenda pada 3x, ten sam plik pisany 5+ razy) przerywa zamiast dokładać rundę.
+15. **Testy akceptacyjne jako Task 1 na torze Super** (wydłuża implementację, skraca review; opt-in). Dla
+    każdego kryterium Task 1 pisze test czerwony, komenda trafia do `#### Tests`. Zamienia B13 z heurystyki
+    w artefakt VERIFY-RED w gicie. Pod ograniczeniem z `notes.md` tylko jako przełącznik `acceptance-first`.
+16. **Doprecyzowania z limitem** (poza buildem): powrót paczkowanych pytań o fakty w wersji z limitem
+    (max 3 w paczce, max 2 paczki) i log `Q -> A` w `intent.md`. Ekosystem zgadza się tu jednogłośnie.
 
-### P3: wiedza i pamięć
+### P3: wiedza i pamięć (poza buildem albo w fali Close Out, która i tak biegnie)
 
-16. **Przechwytywanie per task.** Linie `LEARNED:` w notatkach implementora (jak progress.txt Ralpha),
-    promowane na close-out przez memory-writer z bramą kontrfaktyczną compound: "gdyby ten zapis zniknął,
-    czy przyszły inżynier powtórzyłby błąd?" (wszystkie trzy: nieoczywiste, trwałe, istotne).
-17. **Pas odświeżania.** `superdev-memory` i `superdev-rules` dostają tryb audytu: Keep / Update /
-    Consolidate / Delete względem obecnego kodu (compound-refresh, beads decay). Rules mają próg
-    tworzenia, ale nie mają progu usuwania; "bez okresowego przejścia magazyn bardziej myli niż pomaga".
-18. **Retro z kontrolą poprzedniego.** changelog-writer zapisuje liczbę otwartych Debt i orzeczeń;
-    History agent w następnym intent podnosi Debt z poprzednich buildów i sprawdza, czy action items
-    z poprzedniego wpisu zostały zrobione (BMAD). Do changelogu opcjonalny rekord błędu z polem
-    "Why Missed" (SuperClaude pm-agent), gdy final review znalazł Critical.
-19. **Lista weryfikacji manualnej dla człowieka** w final review (humanlayer: Automated / Manual
-    Verification). Superdev ma Task Checks i gate, ale nigdy nie mówi użytkownikowi, co ma kliknąć sam.
+17. **Przechwytywanie per task** (w tle): linie `LEARNED:` w notatkach implementora, promowane na close-out
+    przez memory-writer z bramą kontrfaktyczną "gdyby ten zapis zniknął, czy przyszły inżynier powtórzyłby
+    błąd?".
+18. **Pas odświeżania** (poza buildem): `superdev-memory` i `superdev-rules` w trybie audytu Keep / Update /
+    Consolidate / Delete. `docs/qa/` dostało już `supersedes`; memory i rules nadal tylko rosną.
+19. **Retro z kontrolą poprzedniego** (w tle): changelog-writer zapisuje liczbę otwartych Debt i orzeczeń;
+    History agent w następnym intent sprawdza, czy zostały zrobione.
 
 ### P4: platforma
 
-20. **`claude plugin eval` dla superdev.** Zestaw fixture'ów: intent -> oczekiwane pytania, plan -> werdykt
-    reviewera z klasami B-x, diff -> stabilne ID i severity. Baseline bez pluginu. Brama CI. Compound,
-    superpowers i gstack już to mają; tdd-guard padł na wycofaniu modelu bez ewaluacji.
-21. **`memory: project` na reviewerach** (powtarzalne znaleziska per projekt) i **`isolation: worktree`**
-    jako przełącznik `parallel: true`: decompose.sh liczy fale z `### Dependencies` przy zerowym
-    nakładaniu `### Files` w fali, orkiestrator wysyła falę w jednej wiadomości. To jest największa zmiana
-    architektoniczna i wymaga rozwiązania merge'y; zaczynać od fal tylko dla tasków bez wspólnych plików.
-22. **Prototyp script-as-coordinator** dla pętli build na dynamic workflows (agent()/pipeline()), gdy
-    P1 dostarczy deterministyczne bramy. Zysk mierzony przez ultrapowers to ~2x. Nie teraz; po P0-P2.
+20. **`claude plugin eval` dla superdev** (poza buildem, CI). Fixture'y: intent -> oczekiwane pytania, plan
+    -> werdykt reviewera z klasami B-x, diff -> stabilne ID i severity. Baseline bez pluginu. Nadal
+    największa luka względem compound, superpowers i gstack.
+21. **Stats między przebiegami** (poza buildem): `stats-report.sh` renderuje jeden przebieg; brak porównania
+    "ten sam host, kolejne buildy" (udział review w wall, tokeny per task, rundy per task). Dane już są w
+    `.events`; brakuje agregatu. To jest tani sposób, żeby ograniczenie z `notes.md` było sprawdzalne
+    liczbą, a nie wrażeniem.
+22. **`memory: project` na reviewerach i `isolation: worktree` jako `parallel: true`** (skraca, największa
+    zmiana architektoniczna): fale liczone z `### Dependencies` przy zerowym nakładaniu `### Files`. Po
+    P1.6-P1.8, nie przed.
 
-### Czego nie robić (ekosystem to już przetestował)
+### Czego nie robić (bez zmian od wersji 1, plus jedno nowe)
 
-- Fan-out 4-7 reviewerów per task: koszt 4-7x za przypomnienie, które jeden validator per znalezisko daje taniej.
-- Quoty znalezisk ("znajdź co najmniej dziesięć"): 54% odrzuconych, spadek do 106 P3 w czwartym przejściu.
-- Walidator LLM na każdą edycję (tdd-guard): autor sam go wycofuje; hook ma być deterministyczny i sub-sekundowy.
-- Uruchamianie całego suite w hooku Stop: pętle, koszt, osłabianie asercji "żeby przeszło".
-- Zależności runtime (Python/uv, MCP w repo, drugi dostawca): superdev bash-only to realny wyróżnik.
-- Plany z pełnym kodem w krokach (superpowers): precyzja kosztem odporności na dryf; obecny kształt
-  Files + Task Checks + Failure modes jest lepszy.
-- Zmiany nazewnictwa: BMAD zmienił nazwę pętli trzy razy w rok; jeden plik-kontrakt superdev chronić.
+- Fan-out 4-7 reviewerów per task; quoty znalezisk; walidator LLM na każdą edycję (tdd-guard); pełny
+  suite w hooku Stop; zależności runtime bez opt-in; plany z pełnym kodem w krokach; zmiany nazewnictwa
+  kontraktu.
+- Nowe: nie przywracać przekazywania `effort` "gdy harness doda parametr" jako planu awaryjnego w
+  dokumentacji. Albo warianty agenta dziś, albo marker znika; oczekiwanie na harness to trzecia wersja tej
+  samej fikcji.
 
-## 9. Trendy do obserwowania
+## 10. Trendy do obserwowania (bez zmian)
 
-- Cross-model review jako brama finalna (Codex/Grok jako inspector). Dziś poza zasięgiem bash-only,
-  ale `Review:` marker mógłby w przyszłości przyjąć dostawcę.
+- Cross-model review jako brama finalna; `Review:` mógłby w przyszłości przyjąć dostawcę.
 - Codex CLI plugin-native: jeden layout dla dwóch CLI.
-- Permission rules dopasowujące parametry narzędzia (`Agent(model:opus)`): jeden agent twierdził, że
-  istnieją, w CHANGELOG nie znalazłem; jeśli się pojawią, dadzą twardy sufit siły z poziomu settings.
-- Dynamic workflows i agent teams jako natywna orkiestracja: gdy dojrzeją, superbuild jako skill
-  stanie się cieńszą warstwą nad nimi.
+- Permission rules dopasowujące parametry narzędzia (`Agent(model:opus)`): nadal nie w CHANGELOG.
+- Dynamic workflows i agent teams jako natywna orkiestracja: superbuild jako skill stanie się cieńszą
+  warstwą nad nimi. Sekcja 3 pokazuje, że superbuild już dziś jest promptem, w którym każda gałąź to
+  deterministyczna decyzja na literalnym werdykcie; przeniesienie na skrypt jest bliżej niż rano.
 
-## 10. Dwa nowe dodatki (propozycja użytkownika): ocena i miejsce w pipeline
+## 11. QA i E2E: co dostarczono względem propozycji z wersji 1
 
-Oba włączane w `.claude/superdev.yml`, jak `adr`, `changelog`, `stats`.
+Wersja 1 oceniała propozycję scenariuszy manualnych na 8/10, a E2E na 6/10 w wersji "osobny dodatek,
+Playwright na sztywno" i 8/10 po przeformułowaniu na "ostatni task planu z komendą w `#### Integration`".
+Zostawiła pięć pytań. Odpowiedzi, które padły w intencie `qa-scenarios-and-e2e`:
 
-### 10.1 Scenariusze testów manualnych dla działu QA
+| Pytanie z wersji 1 | Decyzja | Skutek |
+|---|---|---|
+| Protokół odbioru per build czy żyjący zbiór regresji? | Write-once per build (jak changelog) + indeks `docs/qa/README.md` grupowany po obszarach + reguła `supersedes` (dokładna równość Route lub Endpoint i tytułu kryterium między plikami `.e2e.md`) | zbiór ma wygaszanie bez edycji starych plików; to lepsze niż obie opcje z pytania |
+| E2E na close-out czy jako ostatni task planu? | Osobny, ręcznie uruchamiany skill `e2e` po buildzie; testy nigdy nie biegną w buildzie ani jako brama review | model dwuetapowy z wcześniejszego projektu użytkownika (upheld); cena: testy E2E nie są weryfikowane przez review tego builda i nigdy nie stają się bramą, chyba że host sam wpisze komendę e2e do `#### Integration` w kolejnym planie |
+| Playwright na sztywno czy `e2e` z frameworkiem hosta? | Playwright (`playwright-cli` do eksploracji, `@playwright/test` jako artefakt CI) na sztywno, jako narzędzie pluginu za przełącznikiem opt-in, nie założenie o stacku hosta | zgodne z regułą repo o narzędziach pluginu; host nadal deklaruje przepis startu, URL, konta, katalog i konwencje, brak deklaracji = pytanie do operatora, nigdy zgadywanie |
+| Jedna lista scenariuszy z ID? | Tak: `QA-nn` numerowane raz per build przez oba pliki, jeden tag `ui` / `api` per ID wyrażony miejscem wpisu; tytuł testu `QA-nn <title> (covers: <criterion>)` | trasowalność kryterium -> scenariusz manualny -> test w CI, której nie ma nikt w przebadanym zbiorze |
+| Zakres bez UI? | `qa` i `e2e-ui` skip-with-note; `e2e-api` dla endpointów; manualne API poza zakresem | poprawne |
 
-**Czym jest.** Krok po kroku wykonywalny przez człowieka scenariusz: ID, tytuł, warunki wstępne, dane
-testowe, kroki "akcja -> oczekiwany wynik", pokrywane kryterium akceptacji (`Covers:`), wynik
-(pass / fail / blocked) do wypełnienia przez testera.
-
-**Pozycja na tle ekosystemu.** Nikt tego nie robi jako warstwy wiedzy. Najbliżej: humanlayer (lista
-"Manual Verification" per faza dla człowieka), cc-sdd (`MANUAL_VERIFY_REQUIRED`), gsd
-(`checkpoint:human-verify`), BMAD ("passing tests do not substitute for running the system"). Wszystkie
-to jednorazowe listy w czacie lub w planie, żadna nie jest artefaktem dla działu testów z trasowalnością
-do kryteriów. Ocena jako wyróżnik: 8/10. Tanie (jeden agent close-out, proza), stack-agnostic, pasuje
-do modelu "docs/<layer>/ = wiedza dla ludzi".
-
-**Źródło prawdy.** Kryteria akceptacji ze specu (Super) lub z nagłówka planu (Simple), sekcja
-`## User scenarios` specu, `### Failure modes` i `### Contracts` z planu (dają przypadki negatywne),
-tabela `## Coverage` z raportu `superbuild-reviewer-spec` (mówi, które kryteria są met / partial), plus
-kod po buildzie (realne ścieżki UI, nazwy ekranów, komunikaty). Dlatego generacja musi być PO buildzie:
-tester potrzebuje "otwórz X, kliknij Y", a to istnieje dopiero po implementacji.
-
-**Miejsce.** Czwarty writer close-out (`qa-writer`), wave 1 obok memory-writer i rules-writer, gated
-`qa: true`. Wyjście: `docs/qa/<feature-slug>.md` (jeden plik per build; przy phases jeden per faza)
-plus linia indeksu w `docs/qa/README.md`, analogicznie do changelogu. Commit przez `commit-task.sh --path`.
-
-**Reguły warte ustalenia od razu.**
-- Jeden scenariusz na kryterium plus jeden negatywny na każdy `### Failure modes`, którego użytkownik
-  może wywołać z UI; nic dla wewnętrznych trybów awarii.
-- Krok = jedna akcja i jeden obserwowalny wynik; zakaz "sprawdź, że działa poprawnie".
-- Brak UI w zakresie buildu (biblioteka, migracja, API bez klienta) = skip-with-note, nie scenariusze
-  "uruchom curl". Ewentualnie tryb API z krokami "wyślij żądanie / oczekiwana odpowiedź", jeśli QA takie wykonuje.
-- Dokument write-once per build jak changelog, albo aktualizowany per feature? To rozstrzyga, czy QA
-  ma "regresję" (żyjący zbiór) czy "protokół odbioru" (per build). Wymaga decyzji użytkownika.
-- Podlega pasowi odświeżania z P3.17: scenariusz, którego ekran zniknął, ma zostać usunięty.
-
-**Ryzyka.** Jakość kroków zależy od tego, czy agent zna realny UI (musi czytać kod widoków i routing,
-nie tylko spec); dryf po kolejnych buildach; dla Simple track bez `## User scenarios` scenariusze będą
-uboższe. Żadne z tych nie jest blokerem.
-
-### 10.2 Testy maszynowe E2E (Playwright) uruchamiane w CI
-
-**Czym jest.** Skrypty testów end-to-end generowane z tych samych kryteriów, uruchamiane w CI hosta.
-Narzędzie wskazane przez użytkownika: playwright-cli (CLI Microsoftu dla agentów kodujących: `open`,
-`snapshot`, `click`, `fill`, tryb `plan / generate / heal` generujący testy Playwright ze specu, tańszy
-tokenowo od Playwright MCP). Artefaktem do CI są pliki `@playwright/test` uruchamiane `npx playwright test`;
-playwright-cli jest narzędziem agenta do eksploracji UI i generacji, nie tym, co biegnie w CI.
-
-**Pozycja na tle ekosystemu.** Agenty piszące testy Playwright to codzienność (Playwright MCP, gstack
-`/qa`, Ralph "frontend story not complete until browser verification"). Nikt jednak nie robi dwóch rzeczy
-naraz: nie wiąże testów E2E z kryteriami akceptacji specu przez stabilne ID i nie czyni ich bramą
-`#### Integration` w tym samym buildzie. Ocena jak zaproponowano (osobny dodatek, playwright-cli
-na sztywno): 6/10. Ocena po przeformułowaniu poniżej: 8/10.
-
-**Dwa napięcia z zasadami superdev.**
-1. Stack-agnostic: plugin nie może zakładać Playwrighta ani nawet aplikacji webowej. Rozwiązanie: switch
-   nazywa się `e2e`, a host deklaruje w CLAUDE.md framework, katalog testów, komendę uruchomienia
-   i przepis startu aplikacji z użytkownikiem testowym. Playwright jest domyślnym odniesieniem
-   w referencji, nie założeniem w skillu. Brak deklaracji = skip-with-note (jak kontrast checker w superui).
-2. Kiedy generować: close-out (jak changelog) czy task planu? Test wygenerowany na close-out nie jest
-   nigdy zweryfikowany przez review tego buildu. Rekomendacja: ostatni task planu ("napisz testy E2E dla
-   kryteriów #1..#n, uruchom je"), a jego komenda trafia do `#### Integration`. Wtedy final review
-   uruchamia je jako bramę i "test, który nie może paść" (B13) dotyczy też E2E. To jest wariant P1.8
-   (testy akceptacyjne jako task) dla warstwy UI, tylko na końcu planu zamiast na początku, bo UI musi
-   istnieć. Mechanizm dokładnie jak ADR-jako-Task-1: szablon taska w `references/`, planista dokleja.
-
-**Wspólny szkielet z 10.1.** Oba dodatki powinny czytać jedną listę scenariuszy z ID (`QA-01`, `QA-02`)
-mapowaną na kryteria. Scenariusz manualny i test E2E o tym samym ID to ten sam przypadek w dwóch
-renderach. Daje to trasowalność kryterium -> przypadek manualny -> test w CI, której nie ma nikt
-w przebadanym zbiorze, i pozwala QA wiedzieć, co CI już pokrywa, a co trzeba kliknąć ręcznie.
-Praktycznie: `qa-writer` na close-out generuje scenariusze manualne z tej listy, a task E2E w planie
-implementuje te z listy, które są automatyzowalne, i oznacza resztę `manual-only`.
-
-**Ryzyka.** Testy E2E wymagają uruchomionej aplikacji, danych i użytkownika testowego w CI: to jest
-praca hosta, nie pluginu; bez tego switch generuje testy, których CI nie odpali. Flaky tests: reguła
-"assert semantic postcondition, nie sam klik" i tryb `heal` z playwright-cli pomagają, ale utrzymanie
-zostaje po stronie hosta. Implementor piszący E2E musi mieć narzędzie do eksploracji UI (playwright-cli
-lub MCP) dostępne w sesji; jeśli nie ma, generuje na ślepo z kodu, co obniża jakość.
-
-### 10.3 Pytania do rozstrzygnięcia przed planowaniem
-
-1. Scenariusze manualne: protokół odbioru per build (write-once, jak changelog) czy żyjący zbiór
-   regresji per feature (aktualizowany kolejnymi buildami, z pasem odświeżania)?
-2. E2E: osobny dodatek na close-out (jak proponowano) czy ostatni task planu z komendą w
-   `#### Integration` (rekomendacja)?
-3. E2E: Playwright na sztywno czy `e2e` z frameworkiem deklarowanym przez hosta i Playwrightem jako
-   domyślnym odniesieniem (rekomendacja, wynika z zasady stack-agnostic)?
-4. Czy oba dodatki mają dzielić jedną listę scenariuszy z ID (rekomendacja), czy pozostać niezależne?
-5. Zakres bez UI (API, biblioteka): skip-with-note czy tryb API dla scenariuszy manualnych?
+Ocena dostarczonego stanu:
+- scenariusze manualne: 9/10. Kształt dokumentu (jedna akcja i jeden obserwowalny wynik per wiersz, zakaz
+  słownika automatyzacji, brak kolumny wyniku, język intentu, "ustal z zespołem" zamiast placeholderów)
+  jest bardziej rygorystyczny niż propozycja i niż cokolwiek w zbiorze. Brakujący punkt: writer generuje
+  na close-out z kodu widoków, ale nie ma żadnego sprawdzenia, że ścieżki, które cytuje w krokach,
+  istnieją (grep po routing / etykietach jako Validate).
+- E2E: 7/10. Dwuetapowy model jest czysty (writer nigdy nie edytuje aplikacji, `blocked` usuwa plik, status
+  per ID, re-run pomija `file` i ponawia `blocked`), ale jest poza pętlą jakości builda. Dwie rzeczy do
+  zrobienia, obie poza buildem, więc zgodne z `notes.md`:
+  1. Planista (superplan / simpleplan) czyta `docs/qa/*.e2e.md`: gdy istnieją linie `file` dla tras albo
+     endpointów, których dotyka plan, `#### Integration` wskazuje komendę e2e zadeklarowaną w pamięci
+     hosta. Wtedy testy z poprzedniego builda stają się bramą final następnego, bez uruchamiania czegokolwiek
+     w trakcie tasków.
+  2. `e2e` po commicie proponuje jednym pytaniem dopisanie komendy do pamięci hosta, gdy jej tam nie ma.
+- wspólne: 0 realnych przebiegów `qa-writer` i `e2e`. W tym repo przełączniki `qa`, `e2e-ui` i `e2e-api`
+  nie są ustawione w `.claude/superdev.yml`, więc `qa-writer` nie był dispatchowany w żadnym buildzie od
+  rana (w stats jest tylko `memory-writer`); włączony skończyłby skip-with-note, bo repo nie ma UI ani
+  endpointów. Ocena obu dodatków opiera się na czytaniu źródeł, nie na pomiarze; pierwszy host z UI
+  zweryfikuje jakość kroków i lokatorów.
