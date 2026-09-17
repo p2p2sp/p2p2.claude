@@ -3,7 +3,7 @@ name: vibe
 description: >-
   Use when the user explicitly asks to skip the planning ceremony and have a small change made right away - signals such as "vibe", "od ręki", "just do it", "bez planu", "no plan", or the command /superdev:vibe. That list is illustrative, never exhaustive: what routes here is the explicit demand to drop the ceremony, not the word "now" or "fast" inside an ordinary change request. "vibe: zmień etykietę przycisku na Zapisz" enters this track; "dodaj teraz eksport do CSV" goes to intent. It takes a small bug fix too, but only when the user asks for vibe explicitly. It never fires for a request the user wants designed, discussed, specified or planned, and never as a shortcut you choose for them.
 argument-hint: [one-sentence change]
-allowed-tools: Read, Grep, Glob, Write, Bash, Agent, AskUserQuestion, Skill, ExitPlanMode, Bash(date:*)
+allowed-tools: Read, Grep, Glob, Write, Bash, Agent, AskUserQuestion, Skill, ExitPlanMode, Bash(date:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/vibe-guard.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*)
 disallowed-tools: Edit, NotebookEdit, WebFetch, WebSearch
 user-invocable: true
 ---
@@ -155,7 +155,7 @@ Re-dispatch on the BLOCKED branch alone, once, and never finish the agent's work
 
 ## Guard
 
-`bash "${CLAUDE_PLUGIN_ROOT}/scripts/vibe-guard.sh" <run dir>/notes.md` plus one `--sensitive '<glob>'`
+`"${CLAUDE_PLUGIN_ROOT}/scripts/vibe-guard.sh" <run dir>/notes.md` plus one `--sensitive '<glob>'`
 argument per surviving glob: one glob per argument, each inside its own single quotes, never joined into
 one argument and never left unquoted.
 
@@ -207,7 +207,7 @@ A reduced path that resolves outside `<root>` or still carries a `..` segment is
 
 ## Commit
 
-`bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<goal sentence>" --notes <run dir>/notes.md` - the
+`"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<goal sentence>" --notes <run dir>/notes.md` - the
 goal sentence exactly as the brief carries it, as one quoted argument, never interpolated into any other
 command. One commit, on the current branch: never branch, never switch, never tag, never push. The script
 stages the declared set only and drops everything under `.temp/`, so `brief.md` and `notes.md` never land
