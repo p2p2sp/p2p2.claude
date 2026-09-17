@@ -22,3 +22,10 @@ as this track's judgment site.
 UNDERSPECIFIED: behaviour of the three-step judgment at `stage: re-review` - the DoD pins `checkpoint` and
 `final` only; written as "only a line the fix round itself wrote is judged", following the contract's
 `## Verdict rules` re-review clause (a new Critical or Important only for a defect the fix introduced).
+
+Commit 1a332c6 also carries `docs/.workflows/2026-09-17-vibe-track/intent.md`, `.../refresh.md` and
+`.../spec.md` - a separate run's workdir that no step of this task wrote. Those files were already present
+in the working tree when the commit ran; `commit-task.sh` never stages outside the declared set, so it
+reported them as `undeclared:` and refused, and they entered the commit only through the loop's step-4
+**include named ones** answer (a re-run with one `--path` per file). Not scope creep and deliberately not
+`touched:` lines - a later `commit-task.sh --notes` run over this file must not declare those paths again.

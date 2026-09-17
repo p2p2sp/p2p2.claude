@@ -152,7 +152,7 @@ Shared by the checkpoint above (`stage: checkpoint`) and by each round of Step 3
 3. Run `### Fix loop` on the two verdicts, with three adjustments for the two dimensions:
     - a BLOCKED report takes the BLOCKED branch for that report first; its re-run is that reviewer's same `stage: final` call with `decisions:` set, and both verdicts are read again afterwards.
     - one single implementor dispatch carries every failed report: `task: <code report>` plus `more: <spec report>` when both failed, `task: <spec report>` alone when only the spec failed.
-    - after its one fix commit, every reviewer that raised a Critical or an Important runs its own re-review - `stage: re-review`, `since: <fix_since>`, `prior: <its own report>`, `report: <its own report basename>-reR.md`.
+    - after its one fix commit, `superbuild-reviewer-spec` runs its own re-review whenever the round dispatched a fix at all - whichever report failed, and whether or not it raised a Critical or an Important of its own: it is the only writer of `## Decisions taken`, and the fix just committed may have written `UNDERSPECIFIED:` lines no earlier report could list. `superbuild-reviewer-change` runs its own re-review when it raised a Critical or an Important. Each of them: `stage: re-review`, `since: <fix_since>`, `prior: <its own report>`, `report: <its own report basename>-reR.md`.
    Continue once the round closes - both dimensions `PASS`, or the user accepting open findings.
 4. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "chore(superbuild): final review reports" --path <workdir>` - saves the review reports (also on an accepted FAIL); its exit 2 is handled as in Step 2.
 5. `TaskStop` -> completed

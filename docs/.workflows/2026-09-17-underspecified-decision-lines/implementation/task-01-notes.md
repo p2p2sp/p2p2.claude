@@ -29,6 +29,13 @@ of the same section.
 header: its inline copy covers only the `C<n>`/`I<n>` finding shape it writes itself, and neither
 `D<n>` nor `## Decisions taken` enters that shape.
 
+Commit 20a2275 also carries `docs/notes.md`, which no step of this task wrote. It was already
+modified in the working tree when the commit ran; `commit-task.sh` never stages outside the declared
+set, so it reported the file as `undeclared:` and refused, and the path entered the commit only
+through the loop's step-4 **include named ones** answer (a re-run with `--path docs/notes.md`). Not
+scope creep and deliberately not a `touched:` line - a later `commit-task.sh --notes` run over this
+file must not declare that path again.
+
 ## Review notes
 
 NOTE: `## Report skeleton`'s closing sentence names the final reviewer's owned section literally
