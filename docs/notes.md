@@ -1,6 +1,5 @@
 # Pomysły/Zmiany/Błędy
 
-Zauważyłem, że subagent czasami czyta cały plan.md. Zupełnie niepotrzebnie bo właśnie po to na początku jest faza dekompozycji, aby subagent nie zapychał sobie kontekstu całym planem, ale ma się skupić tylko na swoim zadaniu.
+Wprowadzanie zmian z analizy konkurencji musi być wykonane tak, aby nie wydłużać czasu działania fazy build.
 
-
-Przywróć poprzednie działanie intent jeśli chodzi o zadawanie pytań. Obecna forma gdzie wrzuca 5 pytań na raz nie sprawdza się.
+Agent może wykonać dodatkowe prace w tle kiedy wynik jego pracy nie jest koniecznie wymagany w następnym kroku.
