@@ -1,2 +1,2 @@
-since: 510dd4d40dd9438d715db1dfd3afd77be14bb17d
-prior: C:/Projects/p2p2.claude/docs/.workflows/2026-09-17-build-cost-cuts/implementation/checkpoint-02.md
+since: 2109c92a0d62ad1102af6043292096c84641222f
+prior: C:/Projects/p2p2.claude/docs/.workflows/2026-09-17-build-cost-cuts/implementation/review-01-spec-re1.md
