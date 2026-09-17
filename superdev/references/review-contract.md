@@ -5,8 +5,8 @@ the gate procedure, the verdict rules, the run's decisions file, the note lines,
 stop and the strength every dispatch runs at. It has one owner - this file - so every consumer applies the same rules
 instead of restating them.
 
-Consumed by the three build reviewers (`skills/superbuild-reviewer-spec`,
-`skills/superbuild-reviewer-change`, `skills/simplebuild-reviewer`), the two task implementors
+Consumed by the three build reviewers (`agents/superbuild-reviewer-spec.md`,
+`agents/superbuild-reviewer-change.md`, `agents/simplebuild-reviewer.md`), the two task implementors
 (`agents/superbuild-task-implementor.md`, `agents/simplebuild-task-implementor.md`) and the two
 orchestrators (`skills/superbuild`, `skills/simplebuild`) - each of them reads this file. The task
 reviewer (`agents/superbuild-task-reviewer.md`) is never handed a `refs:` label and never reads it:
@@ -23,9 +23,10 @@ plan, the tasks and the `implementation/` reports live in.
 
 ## Labels
 
-Input lines the orchestrator passes to a fork or an agent, on top of the existing `plan:`, `spec:`,
+Input lines the orchestrator passes to an agent, on top of the existing `plan:`, `spec:`,
 `plan-header:`, `task:`, `notes:` and `report:` lines. One label per line; a value is always a path
-or a short token (a SHA, a stage name, an ID list), never a body of text - text breaks the preload.
+or a short token (a SHA, a stage name, an ID list), never a body of text - the worker opens what it
+is pointed at, so pasted content only duplicates a file it could read and crowds out its own reading.
 
 - `stage: checkpoint|final|re-review` - required on every build reviewer call. Names the round and
   selects the rules in `## Verdict rules`.
@@ -39,7 +40,11 @@ or a short token (a SHA, a stage name, an ID list), never a body of text - text 
   it is an answer the user gave - a finding, a criterion change, a matter closed at an implementor
   stop - and carries the force of the plan.
 - `refs: <absolute path>` - the plugin's references directory, i.e. where this contract lives. An
-  agent reads `<refs>/review-contract.md` before acting.
+  agent reads `<refs>/review-contract.md` before acting. Required on every build reviewer call.
+- `runner: <absolute path>` - the executor's runner script (`skills/executor/scripts/run.sh` under
+  the plugin root), resolved by the orchestrator because an agent carries no `${CLAUDE_PLUGIN_ROOT}`.
+  Every gate command of `## Gates` goes out as a direct `Bash` call to this path. Required on every
+  build reviewer call.
 - `more: <path>` - implementor fix mode only; optional and repeatable. One additional findings
   report handled in the same dispatch.
 - `minor: <ID>[, <ID>]` - implementor fix mode only; optional. The only Minor IDs from a report's
@@ -187,8 +192,9 @@ Run every command of the stage's set before reading any code, and record the res
 report's gates section.
 
 Transport - every gate command goes out as a direct `Bash` call to `run.sh`, the executor skill's
-own runner at `skills/executor/scripts/run.sh` under the plugin root (a fork spells that path with
-`${CLAUDE_PLUGIN_ROOT}`; an agent uses the absolute path its dispatch handed it). A gate that passes
+own runner at `skills/executor/scripts/run.sh` under the plugin root. Every consumer of this
+contract is an agent and carries no `${CLAUDE_PLUGIN_ROOT}`, so it uses the absolute path its
+dispatch handed it on the `runner:` label and never spells the path itself. A gate that passes
 costs that one call and no fork at all. One command per call, its labels fed in on stdin through a
 single-quoted heredoc so the command line travels byte for byte, with no expansion and no quoting
 fix-up on the way:
@@ -266,6 +272,14 @@ Rules:
 - A criterion or behaviour that needs a run to be confirmed and got none is never marked met; the
   report says which run is missing.
 - `since: none` -> the review is unbounded over the working tree; the gates section says so.
+- At `stage: final` on the Super track the two dimensions are dispatched concurrently, so both run
+  this same set against the same working tree at the same time. Each reads only the block its own
+  call printed and records it in its own report; neither waits for the other and neither borrows the
+  other's result. `run.sh` names its log file with its own pid, so two concurrent runs never share
+  one. What the two runs do share is whatever the commands themselves touch - a build output
+  directory, a test database, a fixed port - so a host whose gate commands cannot run twice at once
+  says so in the plan's `## Gate commands` block, by naming a single command per subsection that
+  tolerates it or by reading `none - <reason>`.
 
 ## Verdict rules
 

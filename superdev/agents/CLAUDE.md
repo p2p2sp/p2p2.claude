@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The agent layer of superdev: 9 agent `.md` files. Verify the current list from the directory
+The agent layer of superdev: 12 agent `.md` files. Verify the current list from the directory
 itself if this drifts; each is dispatched by exactly ONE caller and never invoked directly by
 the user - a change here means checking the agent's own `description:` still says so.
 
@@ -21,6 +21,16 @@ the user - a change here means checking the agent's own `description:` still say
   task's `Review:` marker in three states: no marker uses the reviewer's own frontmatter
   default, `Review: <model> <effort>` passes only `<model>`, and literally `Review: none` skips
   the dispatch entirely; where it runs, it runs a failure pass over the task's diff.
+- `superbuild-reviewer-spec.md`, `superbuild-reviewer-change.md` - the Super track's two build
+  review dimensions, dispatched by `superbuild` under the shared stage contract
+  (`stage: checkpoint|final|re-review`). The code dimension runs the checkpoint round every 5
+  committed tasks, the final round and the re-review after a fix; the spec dimension runs at
+  `final` and at its own re-review only - mid-build the criteria of the tasks still unwritten are
+  unmet by construction. At `final` both are dispatched as TWO `Agent` tool uses in ONE message
+  and run concurrently: neither reads the other's report, so the only thing they share is the
+  working tree their gate commands run against.
+- `simplebuild-reviewer.md` - the Simple track's single build reviewer, dispatched by
+  `simplebuild`, owning both dimensions at once. One per round, never a concurrent pair.
 - `memory-writer.md`, `rules-writer.md`, `qa-writer.md` - Close Out wave 1, dispatched together
   in ONE message: `memory-writer` + `rules-writer` always, `qa-writer` joins that wave whenever
   `qa`, `e2e-ui` or `e2e-api` reads `true`.
@@ -37,10 +47,20 @@ the user - a change here means checking the agent's own `description:` still say
 - Agents are dispatched with the `Agent` tool; the per-call `model` is honored, but the tool
   takes no `effort` parameter at all - the agent's frontmatter decides. In fix mode, on a
   re-dispatch against a review report, both task agents run with no `model` parameter set.
-- Why agent and not fork skill: the build reviewers stay forks in `plugin.json` `skills[]` under
-  a shared stage contract (`superbuild-reviewer-spec`, `superbuild-reviewer-change`,
-  `simplebuild-reviewer`); the task implementors, the task reviewer and the four closeout
-  writers are agents. Verify this split against current bodies before restating it.
+- Why agent and not fork skill: EVERY worker a build orchestrator dispatches is an agent, and the
+  reason is the `Skill` tool's two hard limits. It takes no `model` parameter, so a fork runs at
+  one static strength whoever calls it - that is what moved the task implementors and the task
+  reviewer here. And fork invocations are serialized with no way to await a pair, so two
+  independent workers cost the sum of their times - that is what moved the four closeout writers
+  here, and then the three build reviewers. A fork also returns no usage figures at all, so a run
+  measured under `stats: true` cannot see what a fork cost; an agent's completion notification
+  carries `subagent_tokens`, `tool_uses` and `duration_ms`, which is why every dispatch of a build
+  is measurable today. The one fork left anywhere in a build round is `skills/executor`, and a
+  reviewer invokes it - the orchestrator never does.
+- An agent carries no `${CLAUDE_PLUGIN_ROOT}`, so anything it needs from inside the plugin arrives
+  as a label value its dispatch resolved: `refs:` for the references directory, and `runner:` for
+  the executor's `run.sh` that every gate command goes through. An agent that spells a plugin path
+  itself is broken wherever the plugin is installed.
 - A task implementor or the task reviewer returns `VERDICT: BLOCKED` on a re-dispatch carrying a
   `decisions:` label when a task/fix raises a `DECISION:` it cannot settle. Behaviour recorded
   in a task's `### Failure modes` is itself a decision - a `NOTE: plan defect` line, never a

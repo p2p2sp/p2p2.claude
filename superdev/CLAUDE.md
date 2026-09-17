@@ -64,7 +64,6 @@ covers what is true across the whole plugin.
 - `decompose.sh` - renders a plan's task index (incl. `Model:`/`Effort:`/`Review:` columns);
   `Effort:` is rendered only - the `Agent` tool takes no `effort` parameter, so it is never
   applied at dispatch.
-- `label.sh`, `lib_label.sh` - shared labeling helpers for review/report artifacts.
 - `last-commit-date.sh` - resolves the last-commit boundary a checkpoint review reads since.
 - `lib_find_excludes.sh`, `lib_touched.sh` - shared helpers for scoping a diff/review to touched
   paths.
@@ -72,7 +71,6 @@ covers what is true across the whole plugin.
 - `read-config.sh` - resolves `.claude/superdev.yml` switches (see above).
 - `record-decision.sh` - persists an accepted BLOCKED/decision wording to
   `implementation/decisions.md`, binding later review rounds.
-- `resolve-input.sh` - resolves a skill's optional-label `?arg` inputs.
 - `stats-record.sh`, `stats-report.sh` - per-dispatch event log and rendered run report under
   `.temp/superdev/stats/<run>.*`, gated by `stats: true`.
 - `vibe-guard.sh` - the vibe track's advisory scope guard.

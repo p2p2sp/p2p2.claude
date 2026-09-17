@@ -304,14 +304,14 @@ test("self-check: bashismViolations skips a comment line and a #!/usr/bin/env ba
 });
 
 test("self-check: preloadQuotingViolations fires on an unquoted '?plan' glob argument", () => {
-  const content = 'name: foo\n---\n\nRun: !`"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh" ?plan`\n';
+  const content = 'name: foo\n---\n\nRun: !`"${CLAUDE_PLUGIN_ROOT}/scripts/take-input.sh" ?plan`\n';
   const violations = preloadQuotingViolations("plugin/skills/foo/SKILL.md", content);
   assert.equal(violations.length, 1);
   assert.match(violations[0], /SKILL\.md:4: unquoted '\?' in argument "\?plan"/);
 });
 
-test("self-check: preloadQuotingViolations does not fire on the quoted '?plan' precedent", () => {
-  const content = "Run: !`\"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-input.sh\" '?plan'`\n";
+test("self-check: preloadQuotingViolations does not fire on a single-quoted '?plan' argument", () => {
+  const content = "Run: !`\"${CLAUDE_PLUGIN_ROOT}/scripts/take-input.sh\" '?plan'`\n";
   assert.deepEqual(preloadQuotingViolations("plugin/skills/foo/SKILL.md", content), []);
 });
 

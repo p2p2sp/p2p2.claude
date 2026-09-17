@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The skill layer of superdev: 24 skill directories. Grouped here by role rather than listed
+The skill layer of superdev: 21 skill directories. Grouped here by role rather than listed
 flatly - derive the grouping from each skill's actual `description:` and body when it drifts.
 The authoritative contract of a skill is its own body (`# Input contract` / `# Output format`),
 never this node - this node says who owns what and how they chain.
@@ -14,9 +14,8 @@ never this node - this node says who owns what and how they chain.
 - **Planning reviewers** (read-only forks, invoked only by their front end): `phases-reviewer`,
   `superspec-reviewer`, `superplan-reviewer`, `simpleplan-reviewer`.
 - **Build orchestrators** (main context): `superbuild` (Super track), `simplebuild` (Simple
-  track).
-- **Build reviewers** (forks under the shared stage contract): `superbuild-reviewer-spec`,
-  `superbuild-reviewer-change`, `simplebuild-reviewer`.
+  track). Every worker they dispatch is an agent - the build reviewers moved to `../agents/`
+  with the rest, so no skill in this layer takes part in a build round.
 - **Support forks**: `executor` (runs one shell command out of context, returns a short
   verdict), `adr` (judges confirmed decisions against the three ADR criteria), `e2e` (user-only,
   generates/verifies Playwright tests from a QA handoff file).
@@ -38,10 +37,12 @@ never this node - this node says who owns what and how they chain.
   with no preload.
 - Shell portability of `!` preloads (top trap, confirmed by the user): the host shell varies per
   machine (zsh/macOS, bash/Linux, bash-Git-Bash/Windows). Single-quote any argument bearing `?`,
-  `*` or `[` (e.g. `resolve-input.sh`'s `'?plan'`, `'?spec'`). bash leaves an unmatched glob as a
-  literal; zsh's default `nomatch` aborts the WHOLE command, killing the fork preload so it loads
-  with no input - invisible on bash, only surfaces on zsh. Never rely on bash-only behavior;
-  assume the strictest shell. No PowerShell syntax anywhere.
+  `*` or `[`. bash leaves an unmatched glob as a literal; zsh's default `nomatch` aborts the WHOLE
+  command, killing the fork preload so it loads with no input - invisible on bash, only surfaces
+  on zsh. Never rely on bash-only behavior; assume the strictest shell. No PowerShell syntax
+  anywhere. No preload in the repo carries such an argument today (the optional-label
+  `resolve-input.sh` that did is gone with the build reviewers), so `tests/portability.test.ts`
+  is the only thing standing between a future author and this trap.
 - **Pre-approved bundled-script calls (preload and runtime).** A preload is permission-checked
   like any Bash call; a bare `Bash` entry in `allowed-tools` does NOT cover it. Both required:
   the skill's `allowed-tools` carries a PATTERN entry for the preload, and the bundled script is
