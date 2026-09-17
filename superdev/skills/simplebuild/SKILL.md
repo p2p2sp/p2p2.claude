@@ -94,7 +94,7 @@ Read every report and notes ordinal below (`KK`, the fix `NN`, each re-review `R
 
 ### Build task list
 
-`TaskCreate` from the task index + one task for Final Review + one for Close Out. `status:` is `NN` (not `none`) -> mark tasks `01`..`NN` completed at creation and start the loop at the first task numbered above `NN`; `status: none` -> start at the first task.
+`TaskCreate` from the task index, plus one task `Checkpoint review KK` right after every task whose number is a multiple of 5 and smaller than `total` (KK = `01`, `02`, ... in order), + one task for Final Review + one for Close Out. `status:` is `NN` (not `none`) -> mark tasks `01`..`NN` and every checkpoint task placed after one of them completed at creation and start the loop at the first task numbered above `NN`; `status: none` -> start at the first task.
 
 ### Loop
 
@@ -109,7 +109,7 @@ For each remaining task file (in order):
        - exit 2 with `undeclared: <path>` lines -> `AskUserQuestion` quoting those paths: **remove or stash them** (the user clears them, then re-run the same command), **include named ones** (re-run it with one `--path <path>` per path the user named), or **abort**. Never stage anything yourself.
        - `Nothing to commit.` or `Not a git repository - skipping commit.` -> `head` is unchanged.
   4. `TaskStop` -> completed
-  5. This task's number `N` is a multiple of 5, `N` is smaller than `total`, and `head` moved in step 3 -> run `### Checkpoint` before starting the next task.
+  5. This task's number `N` is a multiple of 5 and `N` is smaller than `total` -> `head` moved in step 3: run `### Checkpoint` before starting the next task; `head` did not move: `TaskStop` -> completed on that checkpoint task, no round runs and `since` stays.
 
 ### Implementor stop
 
@@ -122,7 +122,7 @@ An implementor returning `VERDICT: BLOCKED` + `REASON: <line>` - from the loop a
 
 ### Checkpoint
 
-Invoke `simplebuild-reviewer` (Skill) with a labeled-line `args` block - `stage: checkpoint`, `since: <since>`, `prior: <prior>` (omit the line when there is none), `decisions: <workdir>/implementation/decisions.md` (only when that file exists), `plan-header: <path>`, `plan: <plan-copy path>`, `notes: <workdir>/implementation/`, and `report: <workdir>/implementation/checkpoint-KK.md` (KK = this checkpoint's ordinal, `01`, `02`, ...) on separate lines. Then run `### Fix loop` on what it returns.
+`TaskUpdate` -> start on this checkpoint's task. Invoke `simplebuild-reviewer` (Skill) with a labeled-line `args` block - `stage: checkpoint`, `since: <since>`, `prior: <prior>` (omit the line when there is none), `decisions: <workdir>/implementation/decisions.md` (only when that file exists), `plan-header: <path>`, `plan: <plan-copy path>`, `notes: <workdir>/implementation/`, and `report: <workdir>/implementation/checkpoint-KK.md` (KK = this checkpoint's ordinal, `01`, `02`, ...) on separate lines. Then run `### Fix loop` on what it returns, and `TaskStop` -> completed on the checkpoint task once that loop has ended - closed, accepted or aborted alike.
 
 ### Fix loop
 

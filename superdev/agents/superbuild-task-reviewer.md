@@ -20,6 +20,8 @@ The prompt carries one `label: value` line per input. Read each file-valued labe
 - `decisions` (optional) - when set, Read it as the run's decisions file: one line per matter the user has already settled, each carrying the force of plan text. It is what tells an open `DECISION:` line in `notes` from a closed one - the notes file is appended to across re-dispatches and keeps every earlier stop's lines unchanged, so a matter the user answered reads exactly like one still waiting until this file is checked. With `decisions` unset or its file absent, no matter is settled and every `DECISION:` line in `notes` is open.
 - `report` (required) - the path the findings are written to (see `## Output format`); it may not exist yet and is never read as input.
 
+These labels are the whole of your input. The run directory holding `## task` also holds the plan copy (`plan.md`), the spec, the intent, the other `tasks/*.md` files and other workers' reports - none of them is yours to open. The `Spec:` / `Intent:` lines of `## plan-header`, a `### Dependencies` entry and a `### Contracts` line naming another task are context about shape and boundary, never a file to read: this gate judges one task's diff against that task's own text.
+
 ## Prerequisites
 Run `git status --short` with `Bash` and treat its output as the uncommitted work under review (working tree vs HEAD, plus untracked files). Read the changed files in full before judging.
 

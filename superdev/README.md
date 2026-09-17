@@ -30,9 +30,8 @@ Same interview on the way in, two execution tracks, one shared Close Out.
    flip the opt-in switches. It also reports whether `playwright-cli` and `@playwright/test` are present in
    the host, without installing either. It never overwrites what already exists.
 2. **Describe what you want to build.** The `intent` skill fires by itself. It sends `Explore` agents into
-   the codebase first, then puts the gap questions the codebase can't answer to you in short rounds of up to three -
-   then interviews you in prose - one question per turn, 2-3 numbered options with a recommendation - until
-   every load-bearing decision is settled.
+   the codebase first, then interviews you in prose - one question per turn, 2-3 numbered options with a
+   recommendation - until every load-bearing decision is settled.
 3. **Confirm the synthesis and pick a track, or stop here** (this gate is yours, the model never routes past
    it) - with `adr: true`, after the confirmation the `adr` skill judges each decision against the three
    criteria and offers a one-paragraph ADR only for the ones that pass; accepted drafts land in `intent.md`'s
@@ -142,7 +141,7 @@ never called by hand.
 
 | Skill | Role |
 | --- | --- |
-| `intent` | The always-on entry skill. Explores the codebase (including prior changelog entries and ADRs), puts the gap questions to you in short rounds of up to three, runs the design interview, persists the confirmed synthesis to `docs/.workflows/<run>/intent.md`, then gates on your track choice or stopping there - `intent <path>` resumes a saved synthesis later. Every write of `intent.md`, fresh or resumed, also writes `refresh.md` beside it: a resume refreshes the context with the delta since the intent's `Date:` (changelog entries and their ADRs, a check of its `Delivers:` and `## Constraints` against the repo, movement in git) before presenting the decisions; a fresh run writes the same file from what `## Explore first` already found. `superspec` and `simpleplan` gate on that file being present next to an `intent:` path under `docs/.workflows/`, bouncing back into `intent` with the same path when it is missing. Writes no code and no plan. |
+| `intent` | The always-on entry skill. Explores the codebase (including prior changelog entries and ADRs), runs the design interview one question per turn, persists the confirmed synthesis to `docs/.workflows/<run>/intent.md`, then gates on your track choice or stopping there - `intent <path>` resumes a saved synthesis later. Every write of `intent.md`, fresh or resumed, also writes `refresh.md` beside it: a resume refreshes the context with the delta since the intent's `Date:` (changelog entries and their ADRs, a check of its `Delivers:` and `## Constraints` against the repo, movement in git) before presenting the decisions; a fresh run writes the same file from what `## Explore first` already found. `superspec` and `simpleplan` gate on that file being present next to an `intent:` path under `docs/.workflows/`, bouncing back into `intent` with the same path when it is missing. Writes no code and no plan. |
 | `adr` | Invoked by `intent` at the synthesis, never by you - judges each confirmed decision against three criteria (hard to reverse, surprising without context, the result of a real trade-off) and offers a one-paragraph ADR draft for every decision that passes all three; accepted drafts become `intent.md`'s `## ADR` section and the plan's first task, which writes each one to `docs/adr/<YYYY-MM-DD-HHMMSS>-<slug>.md` during the build. |
 | `phases` | Splits a confirmed intent too large for one spec into phases, refines the split in conversation, gates it on `phases-reviewer`, then saves `docs/.workflows/<run>/phases.md` and one `phases/NN-<slug>/intent.md` per phase; also resumes a run from `phases <phases.md>` by showing phase status and proposing the next phase. |
 | `phases-reviewer` | Fork - read-only review of the phases file against the checklist; returns `VERDICT: PASS` / `FAIL` plus findings. Max 3 rounds. |

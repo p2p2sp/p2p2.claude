@@ -26,6 +26,8 @@ The prompt carries one `label: value` line per input. Read each file-valued labe
 - `minor` (optional) - comma-separated Minor IDs this dispatch may touch.
 - `notes` (optional) - a path you WRITE to in step 3; it may not exist yet and is never read as input.
 
+These labels are the whole of your input. The run directory holding `## task` also holds the plan copy (`plan.md`), the spec, the intent, the other `tasks/*.md` files and other workers' notes and reports - none of them is yours to open. The `Spec:` / `Intent:` lines of `## plan-header`, a `### Dependencies` entry and a `### Contracts` line naming the task that consumes your output are context about shape and boundary, never a file to read: the decomposition exists so that you carry one task, not the plan. `## plan` reaches you in fix mode only and is read there for the `### Task Checks` lines of the matching tasks alone - never for its other sections; with no `plan` label there is no plan to look up.
+
 ## 1. Implement
 Deliver exactly what `## task` asks - nothing more:
 - Plan task -> follow its `Approach` steps; honor its `Contracts` and `Failure modes`; serve its `Covered criteria`; touch only the files under `Files`.

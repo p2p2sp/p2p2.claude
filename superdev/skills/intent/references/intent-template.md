@@ -1,12 +1,12 @@
 # Intent file - template and content rules
 
-Loaded by the `intent` skill only at write time - right before the `Write` (or overwrite) of `<run-dir>/intent.md`. Not needed during exploration, the gap questions or the interview.
+Loaded by the `intent` skill only at write time - right before the `Write` (or overwrite) of `<run-dir>/intent.md`. Not needed during exploration or the interview.
 
 ## Content rules
 - Write the file in the interview's language, in the exact structure below - one `###` block per decision, carrying the question as it was asked and the confirmed answer, nothing else.
 - NEVER record a rejected option, nor why it lost, nor the reasoning behind the winning one. Alternatives belong to the live interview; in the file they only crowd the context and the judgement of every downstream reader (spec, plan, build, changelog). `## Out of scope` is not a loophole for them: it lists non-goals - areas this change deliberately does not touch - never the losing alternative to a decision under `## Decisions`.
 - `## ADR` is present only when the `adr` skill returned at least one accepted block, and carries those blocks copied verbatim, in the order it returned them. It is the single exception to the no-rationale rule above and covers the ADR text alone - nothing else in the file gains a justification or an alternative. On an overwrite it is carried over unchanged unless the `adr` skill re-judged its decision.
-- Step 1 answers are input, not decisions: fold each into `## Request` (the sharpened goal), `## Constraints` (limits, existing state, stated preferences), or `## Out of scope` (a boundary the user drew). Every Step 1 answer that shapes the solution MUST land in one of those three; one that shapes nothing is dropped. `## Decisions` carries interview rulings only.
+- A factual answer (a name, an existing limit, a stated preference) is input, not a decision: fold it into `## Request` (the sharpened goal), `## Constraints` (limits, existing state, stated preferences), or `## Out of scope` (a boundary the user drew); one that shapes nothing is dropped. `## Decisions` carries interview rulings only.
 - Use repo-relative paths when referencing files, never absolute paths.
 
 ## Template
