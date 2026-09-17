@@ -20,6 +20,7 @@ The prompt carries one `label: value` line per input. Read each file-valued labe
   - a findings report - review findings to fix, each with an ID, a file:line and how-to-fix.
 - `refs` (required) - the references directory. On a findings report read `<refs>/review-contract.md` before acting: its `## Report skeleton` and `## Implementor fix-mode input` sections govern the work list and the status lines.
 - `plan` (optional) - the full plan; in fix mode it sources the `### Task Checks` lines of the tasks whose files the fix touched.
+- `decisions` (optional) - the run's decisions file. Every line in it is an answer the user gave and carries the force of the plan: a matter a line there answers is settled for the rest of the build, never raised as a `DECISION:` again, never asked of the user a second time and never reopened as a deviation. A `DECISION:` you do write is numbered `D<n>`, continuing from the highest `D<n>` in this file - `D1` when the label is absent or its file holds no `D<n>` line.
 - `more` (optional, repeatable) - one further findings report, fixed in this same dispatch under the same rules as `task`.
 - `minor` (optional) - comma-separated Minor IDs this dispatch may touch.
 - `notes` (optional) - a path you WRITE to in step 4; it may not exist yet and is never read as input.
@@ -27,6 +28,7 @@ The prompt carries one `label: value` line per input. Read each file-valued labe
 ## 1. Implement
 Deliver exactly what `## task` asks - nothing more:
 - Plan task -> follow its `Approach` steps; honor its `Contracts` and `Failure modes`; serve its `Covered criteria`; touch only the files under `Files`.
+- Before you edit a single file, read `## task` against `## plan-header`, `## decisions` (when given) and the task's own sections. A matter the notes step's split rule sends to `DECISION:` - one you cannot settle at all - stops the work here: write its `DECISION:` lines to `notes` and return per `## Output format` with nothing edited. A matter that only surfaces mid-work stops you at the point it surfaced instead: leave the working tree exactly as it stands - revert nothing, commit nothing - then write the lines and return the same way. Either way the re-dispatch continues from that state. No `notes` path to write them to -> return `VERDICT: FAIL` with `REASON: DECISION needs a notes path - <what>`.
 - TDD discipline (plan task only):
   - `TDD: required` -> invoke the `tdd` skill (Skill tool) before the first line of production code and follow its cycle throughout the task. Every VERIFY RED and VERIFY GREEN run is one direct `Bash` call of the task's `### Task Checks` line whose path matches the test file that cycle is writing - the command after that path's ` - `, verbatim, its output read in place.
     - RED holds only when that output shows the test ran and failed on its assertion. A compile or transform error, a "no tests found" line, an output that cannot be read as a test result, a test that passed - none of these is RED, and each is answered by fixing the test, or by adding the stub the cycle needs to reach the assertion: a symbol with no behaviour, never production code.
@@ -62,7 +64,7 @@ Prove it green - never report PASS on unproven work:
 Fix loop max 5 rounds. Still failing after 5 -> STOP and return `VERDICT: FAIL`, its `REASON:` naming that command and its failing test or error line.
 
 ## 4. Record notes
-Only on PASS, and only when `notes` was given. Write to that path, appending when the file exists - earlier rounds stay.
+Only on PASS, and only when `notes` was given - with one exception: the stop of `## 1. Implement` writes its `DECISION:` lines here, and nothing else, before its `VERDICT: BLOCKED` return. Write to that path, appending when the file exists - earlier rounds stay.
 
 Notes are written LLM to LLM: concrete, unexplained, and never a restatement of the task or a report. An `### Approach` step is cited by its number, a finding by its ID, a file by its path - a line the next reader could reconstruct from the files already in front of it is not worth writing.
 
@@ -72,12 +74,18 @@ Below it, the delta between `## task` and what you actually delivered, one line 
 - a deviation - an `Approach` step changed or dropped, a contract or failure mode handled differently, a file listed under `Files` you did not need to touch - each ending with a short why.
 - `touched: <repo-relative path>` - one per file you changed outside the task's `Files`, one per file whose real path differs from the one `Files` names (a generated name - an EF migration timestamp, a snapshot hash, a dated file - goes here by its real path, never by the planned placeholder; the planned line then also gets a deviation line saying which real path it became), and in fix mode one per file you changed at all. The commit stages exactly the declared set, so a changed file with no line here is a file left uncommitted. `commit-task.sh` reads this line by machine: write the path alone - no backticks, no reason - and put the reason on its own line above it.
 - `CARRY: <path> - <problem>` - one per known problem you saw outside the task's `Files` and left in place, so the final review can close it.
+- a value or a matter the task left open -> one of the two lines of the split rule below, never an ordinary deviation line.
 - nothing of the above to report -> the single line `no deviations`.
 The notes are the only durable record of these decisions - an unrecorded deviation reads downstream as unintended drift.
 
-Fix-mode notes are three things and nothing more: the `## Runs` section, exactly one status line per ID from `task` and from every `more` report - `<ID>: fixed`, `<ID>: fixed - no test: <reason>` or `<ID>: skipped - <reason>` - and one `touched:` line per file the round changed.
+Two further lines record what the task did not pin down, and one test decides which of them you write: you hold a defensible answer -> take it, write `UNDERSPECIFIED:` and carry on; you hold none -> write `DECISION:` and stop.
+- `UNDERSPECIFIED: <value> - <the decision made>` - one per value the task's own text, its `Contracts`, its `Failure modes` and `## plan-header` all left open (a default, a formula, a threshold, an error shape) and for which you had a defensible answer - a pattern the repo already uses for that kind of value, a criterion under `Covered criteria`, a host convention - and used it. The build does not stop for it; the line is what the value's reader is given instead.
+- `DECISION: <what> - <why it cannot be settled here> - <options seen, or none>` - one per matter you cannot settle at all: a contradiction with a line in `## decisions`, with the spec, with another section of the plan, or a criterion you cannot meet without changing a recorded decision. `<options seen, or none>` is written even when it reads `none`. The line is identified by a `D<n>` per `## Input`'s `decisions` label, and is never written on its own: it goes to `notes` together with the `VERDICT: BLOCKED` return of `## Output format`. An answer you could defend is never a `DECISION:` - the stop is for the matters nobody but the user can close.
+
+Fix-mode notes are the `## Runs` section, exactly one status line per ID from `task` and from every `more` report - `<ID>: fixed`, `<ID>: fixed - no test: <reason>` or `<ID>: skipped - <reason>` - one `touched:` line per file the round changed, and the two lines above under that same split rule, whenever a report left a value open or two findings ask for contradicting things. Nothing else goes there.
 
 ## Output format
 Return exactly this - your only output channel (do not print the diff, logs, or prose):
-- line 1: `VERDICT: PASS` or `VERDICT: FAIL`
+- line 1: `VERDICT: PASS`, `VERDICT: FAIL` or `VERDICT: BLOCKED`
 - on `FAIL` only, line 2: `REASON: <one line>`
+- on `BLOCKED` only, line 2: `REASON: <one line>` - the `<what>` of the first `DECISION:` line this stop wrote. Every one of those lines is in `notes` before you return; a `VERDICT: BLOCKED` with no `DECISION:` line there is not a stop at all.
