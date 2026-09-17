@@ -43,6 +43,16 @@ covers what is true across the whole plugin.
   to merge the recommended `.claude/settings.json` template; missing Node is a skip-with-note
   (the merge is skipped, the recommended block printed for a manual merge), never a hard stop -
   the deliberate, documented Node dependency the root's stack-agnostic rule allows.
+- That template (`skills/setup/assets/settings.json`) is designed for a session with auto mode
+  OFF: it seeds `permissions.disableAutoMode: "disable"`, so no classifier runs and the static
+  `deny` -> `ask` -> `allow` order decides every call. Consequences baked into its shape:
+  `acceptEdits` already covers in-tree edits, so a bare `Edit`/`Write` in `allow` would only
+  widen the rules to paths outside the working dir (and pre-approve shell redirects there), and
+  is deliberately absent; `ask` is the only human checkpoint left, so it carries the
+  outward-facing commands; `deny` carries wildcard forms (`Bash(git * --force*)`), because a
+  `*` matches at any position and plain prefixes miss `git push origin main --force`. The merge
+  only ever appends, so dropping an entry from the template never removes it from a host that
+  already carries it.
 
 ## Scripts inventory (`superdev/scripts/`)
 

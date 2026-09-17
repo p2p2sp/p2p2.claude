@@ -13,12 +13,13 @@
 #
 # Merge rules (applied by the embedded node program, only when the target
 # already exists):
-#   - permissions.allow / permissions.deny keep the host's entries in the
-#     host's order; template entries missing from a list are appended at its
-#     end, each exactly once. A list that is not an array is replaced by the
-#     merged array.
-#   - permissions.defaultMode is set from the template only when the host has
-#     none; any existing mode is reported, never overwritten.
+#   - permissions.allow / permissions.ask / permissions.deny keep the host's
+#     entries in the host's order; template entries missing from a list are
+#     appended at its end, each exactly once. A list that is not an array is
+#     replaced by the merged array.
+#   - permissions.defaultMode and permissions.disableAutoMode are set from the
+#     template only when the host has none; any existing value is reported,
+#     never overwritten.
 #   - permissions is created when absent; every other key of the file
 #     (host-specific ones included) is left exactly as it was.
 #   - a semantically unchanged file is not rewritten at all, so a second run
@@ -29,8 +30,8 @@
 # Output (stdout, exactly one line - plus the template body on the node-skip
 # case, which is the block a user merges by hand):
 #   settings.json: created from template
-#   settings.json: merged - added <n> allow, <m> deny, defaultMode set
-#   settings.json: merged - added <n> allow, <m> deny, defaultMode already <x> (left untouched)
+#   settings.json: merged - added <n> allow, <a> ask, <m> deny, defaultMode set, autoMode disabled
+#   settings.json: merged - added <n> allow, <a> ask, <m> deny, defaultMode already <x> (left untouched), autoMode already <y> (left untouched)
 #   settings.json: already up to date
 #   settings.json: node not found - merge skipped, recommended block:
 #   settings.json: template missing at <path> - skipped
@@ -146,18 +147,29 @@ function mergeList(name) {
 }
 
 const addedAllow = mergeList("allow");
+const addedAsk = mergeList("ask");
 const addedDeny = mergeList("deny");
 
-let modeClause;
-if (perms.defaultMode === undefined) {
-  if (typeof templatePerms.defaultMode === "string") {
-    perms.defaultMode = templatePerms.defaultMode;
+/** A scalar the template only seeds. The host's own value always wins, so a
+ *  project that deliberately runs another mode - or that deliberately leaves
+ *  auto mode on - is reported, never overridden. Returns the host's value, or
+ *  undefined when the template's was taken. */
+function mergeScalar(name) {
+  if (perms[name] !== undefined) return oneLine(perms[name]);
+  if (typeof templatePerms[name] === "string") {
+    perms[name] = templatePerms[name];
     changed = true;
   }
-  modeClause = "defaultMode set";
-} else {
-  modeClause = `defaultMode already ${oneLine(perms.defaultMode)} (left untouched)`;
+  return undefined;
 }
+
+const hostMode = mergeScalar("defaultMode");
+const modeClause =
+  hostMode === undefined ? "defaultMode set" : `defaultMode already ${hostMode} (left untouched)`;
+
+const hostAutoMode = mergeScalar("disableAutoMode");
+const autoClause =
+  hostAutoMode === undefined ? "autoMode disabled" : `autoMode already ${hostAutoMode} (left untouched)`;
 
 if (!changed) {
   console.log("settings.json: already up to date");
@@ -174,6 +186,8 @@ try {
   stop(`settings.json: write failed (${oneLine(error.message)})`, 2);
 }
 
-console.log(`settings.json: merged - added ${addedAllow} allow, ${addedDeny} deny, ${modeClause}`);
+console.log(
+  `settings.json: merged - added ${addedAllow} allow, ${addedAsk} ask, ${addedDeny} deny, ${modeClause}, ${autoClause}`,
+);
 NODE
 exit $?

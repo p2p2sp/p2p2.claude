@@ -23,8 +23,9 @@ and prints one result line per item. Trust those lines - do not re-verify.
 ## Permissions
 
 One `AskUserQuestion`: "Merge superdev's recommended permissions into .claude/settings.json? It
-adds the tool allow-list with Bash, a deny-list of destructive commands and defaultMode
-acceptEdits, keeping every entry you already have." - **Merge (Recommended)** (deterministic
+adds the tool allow-list with Bash, an ask-list for outward-facing commands, a deny-list of
+destructive ones, defaultMode acceptEdits and auto mode turned off, keeping every entry you
+already have." - **Merge (Recommended)** (deterministic
 merge, your own entries and other keys stay untouched; needs node on PATH, otherwise the block is
 printed for manual merge) / **Skip** (leave .claude/settings.json untouched).
 
