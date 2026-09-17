@@ -1,7 +1,7 @@
 ---
 name: tdd
 description: >-
-  Test-Driven Development discipline expert. Use for a plan task marked `TDD: required`, or when the user explicitly asks for test-first work. Enforces Red-Green-Refactor (iron law: no production code without a failing test first - violations are deleted and restarted), mandatory VERIFY-RED and VERIFY-GREEN checkpoints, no horizontal slicing, and a per-cycle stop-condition checklist. Triggers include "TDD", "test first", "red-green-refactor", "RGR". Do NOT use for a task marked `TDD: none`, for adding tests to already-written code, or as a default gate on every code change.
+  Test-Driven Development discipline expert. Use for a plan task marked `TDD: required`, or when the user explicitly asks for test-first work. Enforces Red-Green-Refactor (iron law: no production code without a failing test first - violations are deleted and restarted), mandatory VERIFY-RED and VERIFY-GREEN checkpoints, no horizontal slicing, and a per-cycle stop-condition checklist. Triggers include "TDD", "test first", "red-green-refactor", "RGR". Do NOT use for a task marked `TDD: none`, for adding tests to already-written code, or as a default gate on every code change, or for a change the user explicitly asked for as a vibe change.
 user-invocable: false
 ---
 

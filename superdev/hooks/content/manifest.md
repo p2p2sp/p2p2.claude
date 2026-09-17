@@ -15,7 +15,7 @@ Remember that superdev skills override default system-prompt behavior, but user 
 
 ## Four rules that always override convenience
 - Plan mode does not replace the interview - the gate is drafting a plan, not entering plan mode.
-- No code before an approved plan - write it, get approval, THEN implement.
+- No code before an approved plan - write it, get approval, THEN implement. The one exception is the vibe track: an explicit request to skip planning for a one-sentence change runs the vibe skill, which needs no plan.
 - Do not create any new git branch unless the user explicitly requests it.
 - The interview is prose, not a quick picker or form.
 - NEVER append summary/recap sections describing work just completed.
@@ -28,6 +28,7 @@ Remember that superdev skills override default system-prompt behavior, but user 
 - `VERDICT: BLOCKED` comes from a build reviewer on a criterion unmet by a recorded decision, and from a task implementor on a `DECISION:` line it cannot settle; either way the user answers once and the answer binds the rest of the build.
 - Config-gated by the `stats` switch: with it on, the orchestrator records one event per dispatch and renders that run's report under `.temp/superdev/stats/` after Close Out.
 - Config-gated by the `qa`, `e2e-ui` and `e2e-api` switches: with any of them on, Close Out writes the QA acceptance document and the E2E handoff file under `docs/qa/`. Playwright tests are generated only by the separate, user-run `e2e` skill, never during a build.
+- Vibe track: an explicit "vibe" / "just do it" request for a one-sentence change runs the vibe skill - one implementor agent, host-declared checks, an advisory scope guard (5 files / 1 new file / 200 lines / host-declared sensitive paths) and one commit; no interview, no plan, no reviewer, no knowledge writer. Every stop of that guard is a recommendation the user may override.
 
 ## Save all temporary files in .temp
 All temp files (temporary test scripts, test results, output logs, build logs, etc.) go into `.temp/`. Group them in subdirectories: `playwright/`, `coverage/`, `TestResults/`, `logs/`, etc.
