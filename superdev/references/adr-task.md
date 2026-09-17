@@ -19,6 +19,10 @@ below from that section and copy the result into the plan as Task 1.
   content, and shrinking it here loses the record.
 - Marker order follows the plan template in use: `Covers:` sits above `TDD:` in `simpleplan`'s
   template and below `Effort:` in `superplan`'s. The marker values are identical either way.
+- `Kind: scaffold` stays exactly as the block writes it: B22 derives that kind from this task's
+  `### Task Checks` existence check, and an `### Approach` carrying its output verbatim - step 2's
+  fenced body - is output the implementors' scaffold discipline writes as given. It is not a missing
+  generator and never a reason to retype the marker as `text`.
 - The task is always Task 1, and every other task of the plan is renumbered after it. No task ever
   lists it under `### Dependencies` - nothing in the build reads an ADR file.
 - Angle-bracket annotation lines are fill instructions in the plan template's own convention: obey

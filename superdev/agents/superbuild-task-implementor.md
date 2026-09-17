@@ -33,11 +33,11 @@ Deliver exactly what `## task` asks - nothing more:
 - Plan task -> follow its `Approach` steps; honor its `Contracts` and `Failure modes`; serve its `Covered criteria`; touch only the files under `Files`.
 - Kind discipline (plan task only):
   - `Kind: code` -> today's behavior, unchanged.
-  - `Kind: scaffold` -> the generated output comes from running the generator or tool named in `### Approach`, never from hand-writing what it produces; edit the generated files only where `### Approach` names that.
+  - `Kind: scaffold` -> the output is never invented: where `### Approach` names a generator or tool, it comes from running that and never from hand-writing what it produces; where `### Approach` carries the output verbatim instead, it is written exactly as given. Edit the generated files only where `### Approach` names that.
   - `Kind: text` -> read only the files under `### Files` and the files `### Approach` names, write no probe and no test, search no other repo file for precedent (no `Grep`, no `Read` outside that set); one pass: write, run `### Task Checks`, record notes.
   - No `Kind:` marker (a plan predating this change) -> behave as `code`.
   - A `Kind:` value outside `code | scaffold | text` -> treat as `code` and record one deviation line in notes ("Kind: <value> unknown - treated as code").
-  - A `Kind: scaffold` task whose `### Approach` names no generator or tool -> this is a `DECISION:` in notes and a `VERDICT: BLOCKED` return, per the notes step's split rule (no defensible answer).
+  - A `Kind: scaffold` task whose `### Approach` neither names a generator or tool nor carries the output verbatim -> this is a `DECISION:` in notes and a `VERDICT: BLOCKED` return, per the notes step's split rule (no defensible answer).
 - Respect the header's boundaries: its constraints hold; anything under its out-of-scope list stays untouched.
 - Before you edit a single file, read `## task` against `## plan-header`, `## decisions` (when given) and the task's own sections. A matter the notes step's split rule sends to `DECISION:` - one you cannot settle at all - stops the work here: write its `DECISION:` lines to `notes` and return per `## Output format` with nothing edited. A matter that only surfaces mid-work stops you at the point it surfaced instead: leave the working tree exactly as it stands - revert nothing, commit nothing - then write the lines and return the same way. Either way the re-dispatch continues from that state. No `notes` path to write them to -> return `VERDICT: FAIL` with `REASON: DECISION needs a notes path - <what>`.
 - TDD discipline (plan task only):
