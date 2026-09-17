@@ -431,16 +431,26 @@ again, never asked of the user a second time, and never reopened as a deviation.
 
 ## Dispatch strength
 
-Two ordered scales, strongest first: `opus` over `sonnet`, and `xhigh` over `high` over `medium`
-over `low`. "Highest" below means the first of these that appears in the set being compared, and
-`Model:` and `Effort:` are picked independently of each other. Passing no parameter is not a level
-on either scale: it hands the choice to the dispatched worker's own frontmatter.
+One scale: `opus` over `sonnet`. "Highest" below means the first of these that appears in the set
+being compared. The `Agent` tool takes no `effort` parameter: no `effort` parameter is passed on
+any dispatch; the agent's frontmatter decides its effort. `Effort:` in the plan and the `<effort>`
+token in a task's `Review:` marker are the planner's own signal for that frontmatter, never a
+dispatch parameter. Passing no `model` parameter is not a level on the scale either: it hands the
+choice to the dispatched worker's own frontmatter.
 
-- A per-task review runs at that task's `Review:` marker - its first token the `model`, its second
-  the `effort`. A task carrying no `Review:` marker is dispatched with no `model` and no `effort`
-  parameter at all.
-- A fix dispatch after a task review runs at that task's own `Model:` and `Effort:`.
-- A fix dispatch after a checkpoint or a final round runs at the highest `Model:` and the highest
-  `Effort:` among the tasks whose `### Files` names a file some finding in that round's report
-  points at. No such task - no finding names a file any task declared - dispatches with no `model`
-  and no `effort` parameter at all.
+Three states of a Super-track task's `Review:` marker:
+
+- no marker - the per-task reviewer is dispatched with no `model` parameter at all.
+- `Review: <model> <effort>` - the per-task reviewer is dispatched with `model` set to the
+  marker's first token; its second token is never passed.
+- `Review: none` - the per-task reviewer is not dispatched at all. The task goes from the
+  implementor's `VERDICT: PASS` straight to commit, with no substitute check standing in for the
+  review, and its notes are handed to the `notes:` label of the next round exactly like any other
+  task's.
+
+Fix dispatch rules:
+
+- A fix dispatch after a per-task review runs at that task's own `Model:`.
+- A fix dispatch after a checkpoint or a final round runs at the highest `Model:` among the tasks
+  whose `### Files` names a file some finding in that round's report points at. No such task - no
+  finding names a file any task declared - dispatches with no `model` parameter at all.
