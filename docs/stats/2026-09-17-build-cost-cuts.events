@@ -1,0 +1,60 @@
+1789666556	start	2026-09-17-build-cost-cuts	-	-	-	-	-	-	-
+1789666695	implementor	task-01.md	sonnet	-	50036	21	109167	FAIL	Edit/Write tools disabled in session - test comments not edited
+1789666826	implementor	task-01.md	sonnet	-	50581	19	109224	PASS	retry after Edit/Write re-enabled
+1789666907	task-reviewer	task-01.md	-	-	29521	10	73985	PASS	-
+1789666913	commit	Task 1 - Give the three runtime-invoked scripts the exec bit	-	-	-	-	-	a59b1d2fe0119ccaaf0a1c2753e0ee1f096603b7	-
+1789666999	implementor	task-02.md	sonnet	-	56027	15	79037	PASS	-
+1789667036	task-reviewer	task-02.md	-	-	29140	10	30048	PASS	-
+1789667041	commit	Task 2 - Rewrite the dispatch strength rules in the review contract	-	-	-	-	-	015db4fb17c495c489b6981cb6c11fba3dd244d2	-
+1789667207	implementor	task-03.md	opus	-	58674	24	158670	PASS	-
+1789667328	task-reviewer	task-03.md	-	-	50548	16	113467	PASS	-
+1789667333	commit	Task 3 - Extend the plan review checklist with Review: none, Kind and B22	-	-	-	-	-	b0eff2dc5e0600272aa3ca1ec5980e547f01424b	-
+1789667497	implementor	task-04.md	sonnet	-	71239	16	156040	PASS	-
+1789667608	task-reviewer	task-04.md	-	-	44263	12	105280	PASS	-
+1789667614	commit	Task 4 - Add the Kind axis and honest strength rules to superplan	-	-	-	-	-	c617e7d9ea07c93c06a586e6c5b1a86ef0970910	-
+1789667721	implementor	task-05.md	sonnet	-	72921	21	102329	PASS	-
+1789667805	task-reviewer	task-05.md	-	-	37835	11	79166	PASS	-
+1789667810	commit	Task 5 - Add the Kind axis and honest strength rules to simpleplan	-	-	-	-	-	4e3d3023af5d1d73d3c35f5c08c479a44bc41e50	-
+1789668073	fork	superbuild-reviewer-change checkpoint-01.md	-	-	-	-	-	FAIL	-
+1789668248	fix-implementor	fix-01	opus	-	107387	25	160271	PASS	-
+1789668254	commit	fix: checkpoint 01 findings	-	-	-	-	-	e8d2e9d067623668150dae88fc3f648bff121649	-
+1789668384	fork	superbuild-reviewer-change checkpoint-01-re1.md	-	-	-	-	-	PASS	-
+1789668511	implementor	task-06.md	sonnet	-	64545	20	122318	PASS	-
+1789668572	task-reviewer	task-06.md	-	-	33491	9	55598	PASS	-
+1789668636	commit	Task 6 - Add the per-kind discipline to both task implementors	-	-	-	-	-	c3049bcd2ca45acb699429abdaf716ce25ec51d1	-
+1789668725	implementor	task-07.md	sonnet	-	52182	16	84382	PASS	-
+1789668765	task-reviewer	task-07.md	-	-	29187	9	34409	PASS	-
+1789668768	commit	Task 7 - Extend the pre-approval invariant to runtime script calls	-	-	-	-	-	1db3bd53c48595049f0cbd9d7bccd59ef1f85a03	-
+1789669003	implementor	task-08.md	opus	-	72262	37	229065	PASS	-
+1789669143	task-reviewer	task-08.md	-	-	78079	11	134716	PASS	-
+1789669146	commit	Task 8 - Rewrite superbuild for Review: none, no effort passing and direct script calls	-	-	-	-	-	736d22143b5dec91979c956cb45dd1c29418af28	-
+1789669378	implementor	task-09.md	sonnet	-	110604	30	226451	PASS	-
+1789669495	task-reviewer	task-09.md	-	-	67496	14	111336	PASS	-
+1789669498	commit	Task 9 - Rewrite simplebuild for no effort passing and direct script calls	-	-	-	-	-	2f61ffe879a1e092fbfdd71edbe0ae81f65be220	-
+1789669561	implementor	task-10.md	sonnet	-	59455	21	57149	PASS	-
+1789669601	task-reviewer	task-10.md	-	-	30464	9	34742	PASS	-
+1789669606	commit	Task 10 - Move the build reviewers and e2e to direct script calls with patterns	-	-	-	-	-	510dd4d40dd9438d715db1dfd3afd77be14bb17d	-
+1789669920	fork	superbuild-reviewer-change checkpoint-02.md	-	-	-	-	-	PASS	-
+1789669973	implementor	task-11.md	sonnet	-	58508	9	48389	PASS	-
+1789669999	task-reviewer	task-11.md	-	-	24442	5	20787	PASS	-
+1789670003	commit	Task 11 - Render model-only strength in the stats report	-	-	-	-	-	c985c3004e68965dfd8c8628be8c6b451d3ce761	-
+1789670380	implementor	task-12.md	opus	-	90269	25	371685	PASS	-
+1789670620	task-reviewer	task-12.md	-	-	70425	16	231052	FAIL	-
+1789670704	implementor	task-12-fix	opus	-	49495	8	74217	PASS	-
+1789670855	task-reviewer	task-12.md	-	-	63480	15	145856	PASS	-
+1789670860	commit	Task 12 - Add the settings template and the deterministic merge script	-	-	-	-	-	366c35375667e45e311895e3652f6a30a416ddc6	-
+1789670951	implementor	task-13.md	sonnet	-	64567	22	85693	PASS	-
+1789671022	task-reviewer	task-13.md	-	-	39878	13	66442	PASS	-
+1789671026	commit	Task 13 - Add the setup permissions step	-	-	-	-	-	0114ffa3a584e6b454e80815d528310c71c88f12	-
+1789671309	implementor	task-14.md	sonnet	-	107704	32	278566	PASS	-
+1789671352	task-reviewer	task-14.md	-	-	38314	20	37278	PASS	-
+1789671357	commit	Task 14 - Sync README, plugin memory nodes and the manifest	-	-	-	-	-	2c53b34532485f39658fe7b86d47310169a64cf0	-
+1789671394	implementor	task-15.md	sonnet	-	46252	12	32416	PASS	-
+1789671427	task-reviewer	task-15.md	-	-	26039	10	27602	PASS	-
+1789671432	commit	Task 15 - Move vibe to direct script calls with patterns	-	-	-	-	-	bad43ebb66e95bb655c3de51cf2b2cdba0196da8	-
+1789671838	fork	superbuild-reviewer-spec review-01-spec.md	-	-	-	-	-	PASS	-
+1789672282	fork	superbuild-reviewer-change review-01-code.md	-	-	-	-	-	FAIL	-
+1789672478	fix-implementor	fix-02	-	-	85246	24	181489	PASS	-
+1789672484	commit	fix: final review I3	-	-	-	-	-	2109c92a0d62ad1102af6043292096c84641222f	-
+1789673123	fork	superbuild-reviewer-change review-01-code-re1.md	-	-	-	-	-	PASS	-
+1789673123	fork	superbuild-reviewer-spec review-01-spec-re1.md	-	-	-	-	-	FAIL	-
