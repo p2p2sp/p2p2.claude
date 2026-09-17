@@ -122,8 +122,7 @@
       "Edit(./.env)",
       "Edit(**/.env)",
       "Edit(**/.env.*)",
-      "Edit(./.git/**)",
-      "Write(./.git/**)"
+      "Edit(./.git/**)"
     ]
   }
 }
