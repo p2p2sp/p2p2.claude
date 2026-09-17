@@ -22,7 +22,7 @@ Remember that superdev skills override default system-prompt behavior, but user 
 - NEVER restate decisions the user did not question, unless the user explicitly asks.
 
 ## Build chain
-- Super track only: every task passes the per-task gate, whose failure pass interrogates that task's own diff (new failure branches, widened closed sets, outside values, tests that cannot fail).
+- Super track only: every task without `Review: none` passes the per-task gate, whose failure pass interrogates that task's own diff (new failure branches, widened closed sets, outside values, tests that cannot fail).
 - Both tracks: after every 5th committed task, while tasks remain, a checkpoint review reads only the delta since the last closed round.
 - Both tracks: the final review is the last round of that chain and adds the integration mandate over the whole build; each round has one fix dispatch and one re-review scoped to that fix, then the user decides.
 - `VERDICT: BLOCKED` comes from a build reviewer on a criterion unmet by a recorded decision, and from a task implementor on a `DECISION:` line it cannot settle; either way the user answers once and the answer binds the rest of the build.

@@ -39,6 +39,10 @@ covers what is true across the whole plugin.
 - Script vs fork: a step collapses to a deterministic bundled script when it operates on a
   known, fixed tool/format; it stays an LLM fork when it must interpret heterogeneous,
   stack-specific output. A self-verifying script is TRUSTED by its caller - never re-verified.
+- `setup`'s permissions step (`skills/setup/scripts/merge-settings.sh`) depends on Node on PATH
+  to merge the recommended `.claude/settings.json` template; missing Node is a skip-with-note
+  (the merge is skipped, the recommended block printed for a manual merge), never a hard stop -
+  the deliberate, documented Node dependency the root's stack-agnostic rule allows.
 
 ## Scripts inventory (`superdev/scripts/`)
 
@@ -47,7 +51,9 @@ covers what is true across the whole plugin.
 - `checkpoint-update.sh`, `status-update.sh` - update run/task status files during a build.
 - `cleanup-run.sh` - removes a completed run's `docs/.workflows/<run>/` dir when `cleanup: true`.
 - `commit-task.sh` - the per-task commit step used by both build orchestrators.
-- `decompose.sh` - renders a plan's task index (incl. `Model:`/`Effort:`/`Review:` columns).
+- `decompose.sh` - renders a plan's task index (incl. `Model:`/`Effort:`/`Review:` columns);
+  `Effort:` is rendered only - the `Agent` tool takes no `effort` parameter, so it is never
+  applied at dispatch.
 - `label.sh`, `lib_label.sh` - shared labeling helpers for review/report artifacts.
 - `last-commit-date.sh` - resolves the last-commit boundary a checkpoint review reads since.
 - `lib_find_excludes.sh`, `lib_touched.sh` - shared helpers for scoping a diff/review to touched

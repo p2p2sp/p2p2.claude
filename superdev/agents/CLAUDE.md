@@ -9,10 +9,12 @@ the user - a change here means checking the agent's own `description:` still say
 ## Entry points
 
 - `superbuild-task-implementor.md` / `simplebuild-task-implementor.md` - dispatched per task by
-  `superbuild` / `simplebuild` with the `Agent` tool, at that task's `Model:` / `Effort:`
-  markers (agent frontmatter is the fallback for both).
+  `superbuild` / `simplebuild` with the `Agent` tool, at that task's `Model:` marker; the tool
+  takes no `effort` parameter, so the agent's own frontmatter supplies it.
 - `superbuild-task-reviewer.md` - dispatched by `superbuild` after each implementor run, at that
-  task's same `Model:` / `Effort:`, running a failure pass over the task's diff.
+  task's `Review:` marker in three states: no marker uses the reviewer's own frontmatter
+  default, `Review: <model> <effort>` passes only `<model>`, and literally `Review: none` skips
+  the dispatch entirely; where it runs, it runs a failure pass over the task's diff.
 - `memory-writer.md`, `rules-writer.md`, `qa-writer.md` - Close Out wave 1, dispatched together
   in ONE message: `memory-writer` + `rules-writer` always, `qa-writer` joins that wave whenever
   `qa`, `e2e-ui` or `e2e-api` reads `true`.
@@ -26,9 +28,9 @@ the user - a change here means checking the agent's own `description:` still say
 
 - The hard tool allowlist for an agent is its `tools:` frontmatter field (the agent-side
   equivalent of a skill's `disallowed-tools`).
-- Agents are dispatched with the `Agent` tool; the per-call `model` is honored and `effort` is
-  passed the same way, with the agent's own frontmatter as the fallback for both. In fix mode,
-  on a re-dispatch against a review report, both task agents run with neither parameter set.
+- Agents are dispatched with the `Agent` tool; the per-call `model` is honored, but the tool
+  takes no `effort` parameter at all - the agent's frontmatter decides. In fix mode, on a
+  re-dispatch against a review report, both task agents run with no `model` parameter set.
 - Why agent and not fork skill: the build reviewers stay forks in `plugin.json` `skills[]` under
   a shared stage contract (`superbuild-reviewer-spec`, `superbuild-reviewer-change`,
   `simplebuild-reviewer`); the task implementors, the task reviewer and the four closeout

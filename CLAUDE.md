@@ -94,6 +94,14 @@ mechanics against `.github/scripts/release.sh` before restating them.
   classifier matches a command's literal prefix, so any other form of the same call - a
   different prefix, an added flag, an interpreter wrapper - is a new, unapproved
   classification.
+- **Dispatch strength.** A plan task carries `Kind:`, `Model:`, `Effort:` and an optional
+  `Review:` marker in three literal states: no marker (the per-task reviewer's own frontmatter
+  default), `Review: <model> <effort>` (only the reviewer's `model` is passed), or literally
+  `Review: none` (the per-task reviewer is skipped entirely, straight to commit). An
+  orchestrator's dispatch passes only `model` on every call - the `Agent` tool takes no `effort`
+  parameter, so the agent's frontmatter decides. `Effort:` and a `Review:` marker's second token
+  are the planner's own signal for that frontmatter, never a dispatch parameter. Source:
+  `superdev/references/review-contract.md` `## Dispatch strength`.
 - **`allowed-tools` does NOT restrict the tool set** - it is a one-turn pre-approval only; every
   other tool stays callable and merely prompts the user if unlisted. A strictly read-only worker
   needs `disallowed-tools:` (bare names, never `Tool(pattern)`) PLUS a body line naming its only
