@@ -16,7 +16,7 @@ The prompt carries one `label: value` line per input. Read each file-valued labe
 
 - `plan-header` (required) - Goal / Context / Out of scope / Acceptance criteria, for orientation.
 - `task` (required) - the unit to deliver, one of two shapes; read it before acting:
-  - a plan task - has a `TDD` marker, `Approach`, `Files`, `Task Checks`, `Contracts`, `Failure modes`, `DoD`, and `Covered criteria` (the verbatim acceptance criteria this task must serve).
+  - a plan task - has a `TDD` marker, a `Kind` marker, `Approach`, `Files`, `Task Checks`, `Contracts`, `Failure modes`, `DoD`, and `Covered criteria` (the verbatim acceptance criteria this task must serve).
   - a findings report - review findings to fix, each with an ID, a file:line and how-to-fix.
 - `refs` (required) - the references directory. On a findings report read `<refs>/review-contract.md` before acting: its `## Report skeleton` and `## Implementor fix-mode input` sections govern the work list and the status lines.
 - `plan` (optional) - the full plan; in fix mode it sources the `### Task Checks` lines of the tasks whose files the fix touched.
@@ -30,6 +30,13 @@ These labels are the whole of your input. The run directory holding `## task` al
 ## 1. Implement
 Deliver exactly what `## task` asks - nothing more:
 - Plan task -> follow its `Approach` steps; honor its `Contracts` and `Failure modes`; serve its `Covered criteria`; touch only the files under `Files`.
+- Kind discipline (plan task only):
+  - `Kind: code` -> today's behavior, unchanged.
+  - `Kind: scaffold` -> the generated output comes from running the generator or tool named in `### Approach`, never from hand-writing what it produces; edit the generated files only where `### Approach` names that.
+  - `Kind: text` -> read only the files under `### Files` and the files `### Approach` names, write no probe and no test, search no other repo file for precedent (no `Grep`, no `Read` outside that set); one pass: write, run `### Task Checks`, record notes.
+  - No `Kind:` marker (a plan predating this change) -> behave as `code`.
+  - A `Kind:` value outside `code | scaffold | text` -> treat as `code` and record one deviation line in notes ("Kind: <value> unknown - treated as code").
+  - A `Kind: scaffold` task whose `### Approach` names no generator or tool -> this is a `DECISION:` in notes and a `VERDICT: BLOCKED` return, per the notes step's split rule (no defensible answer).
 - Before you edit a single file, read `## task` against `## plan-header`, `## decisions` (when given) and the task's own sections. A matter the notes step's split rule sends to `DECISION:` - one you cannot settle at all - stops the work here: write its `DECISION:` lines to `notes` and return per `## Output format` with nothing edited. A matter that only surfaces mid-work stops you at the point it surfaced instead: leave the working tree exactly as it stands - revert nothing, commit nothing - then write the lines and return the same way. Either way the re-dispatch continues from that state. No `notes` path to write them to -> return `VERDICT: FAIL` with `REASON: DECISION needs a notes path - <what>`.
 - TDD discipline (plan task only):
   - `TDD: required` -> invoke the `tdd` skill (Skill tool) before the first line of production code and follow its cycle throughout the task. Every VERIFY RED and VERIFY GREEN run is one direct `Bash` call of the task's `### Task Checks` line whose path matches the test file that cycle is writing - the command after that path's ` - `, verbatim, its output read in place.
