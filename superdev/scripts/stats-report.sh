@@ -43,11 +43,12 @@
 #
 # PER TASK: one row per label - the caller's own name for the dispatch (a task
 # file, a writer, a review round) - in first-appearance order, carrying the
-# implementor's and the reviewer's <model>/<effort>, the count of review
-# events, the summed wall time and the summed tokens. A label enters this
-# table when one of its events carries a model or has a kind naming an
-# implementor or a review; every other label is a run marker, a commit or a
-# fork and lives in the kind table alone.
+# implementor's and the reviewer's strength - <model> alone when its effort is
+# "-" (every event the orchestrators record from this change on), else
+# <model>/<effort> - the count of review events, the summed wall time and the
+# summed tokens. A label enters this table when one of its events carries a
+# model or has a kind naming an implementor or a review; every other label is
+# a run marker, a commit or a fork and lives in the kind table alone.
 #
 # PER KIND: one row per kind, in first-appearance order, with its event count,
 # summed wall time and summed tokens.
@@ -141,6 +142,7 @@ function mmss(secs,   mins) {
 }
 function strength(model, effort) {
   if (model == "-" && effort == "-") return "-"
+  if (effort == "-") return model
   return model "/" effort
 }
 function tokens_cell(seen, sum) { return (seen ? sum "" : "-") }

@@ -160,6 +160,34 @@ test("a run with several events renders both tables and the totals", () => {
   });
 });
 
+test("an event with effort '-' renders the model alone in the strength cell, not 'model/-'", () => {
+  withTempDir("p2p2-stats-report-", (dir) => {
+    writeEvents(dir, "run-a", [
+      { stamp: 1700000000, kind: "start", label: "plan" },
+      {
+        stamp: 1700000100,
+        kind: "implementor",
+        label: "tasks/task-01.md",
+        model: "opus",
+        effort: "-",
+        tokens: "12000",
+        durationMs: "95000",
+        verdict: "PASS",
+      },
+    ]);
+
+    const result = runScript(SUT, ["docs/.workflows/run-a"], { cwd: dir });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+    const report = readReport(dir, "run-a");
+    assert.deepEqual(section(report, "Per task"), [
+      "| Task | Implementor | Review | Rounds | Wall | Tokens |",
+      "| --- | --- | --- | --- | --- | --- |",
+      "| tasks/task-01.md | opus | - | 0 | 01:35 | 12000 |",
+    ]);
+  });
+});
+
 test("a fork event, carrying no usage figures, is timed from the previous event's stamp", () => {
   withTempDir("p2p2-stats-report-", (dir) => {
     writeEvents(dir, "run-a", [
