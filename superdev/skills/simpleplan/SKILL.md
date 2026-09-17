@@ -104,7 +104,12 @@ A `TDD: required` task's cycle runs on one `### Task Checks` line: the line nami
 **Build strength**
 Every task carries `Kind:` (`code` | `scaffold` | `text`), `Model:` (`sonnet` | `opus`) and `Effort:` (`low` | `medium` | `high` | `xhigh`) - the kind of proof the task's own `### Task Checks` produces, and the model and effort the task's implementor runs at. You plan on the strongest model the user has; the implementor may not, so read each task for the reasoning it demands of whoever executes it, never for its line or file count.
 
-`Kind:` is derived from the task's own `### Task Checks`, never chosen freely: a line opening with a test file path, or `none - manual verification: <what>`, or `none - covered by gate <Build|Tests|Integration>` is `code`; a tool command carrying no test file path - a build, install, validate or generator command, `ls` of a directory, `grep` over paths or file names - is `scaffold`; any other `none - <reason>`, or a bare `grep` whose pattern is about file content, is `text`. `${CLAUDE_PLUGIN_ROOT}/references/plan-review-checklist.md`'s B22 owns the full table with its exact rows - read it there, never copy it here.
+`Kind:` is derived from the task's own `### Task Checks`, never chosen freely:
+- a test-file line -> `code`
+- a tool command -> `scaffold`
+- a reading command -> `text`
+
+`${CLAUDE_PLUGIN_ROOT}/references/plan-review-checklist.md`'s B22 owns the full table - its exact rows, the `none - <reason>` forms it recognises and the top-down precedence that settles a section matching more than one row. Read it there before you assign a `Kind:`, and never copy it here.
 
 Default strength by `Kind:`: a `code` task follows today's rules - nothing left to reason about, the `### Approach` fixes the symbol, the place and the wording, and the task only puts it there -> `Model: sonnet`, `Effort: low`; a decision the task owns - an algorithm, a state machine, a contract other tasks consume, an `### Approach` that states an outcome rather than the steps to it -> `Model: opus`, `Effort: high`; a `TDD: required` task never sits on `Model: sonnet`, since judging its own red and green is reasoning the task owns. The Simple track carries no per-task reviewer, so a `scaffold` or `text` task simply defaults to `Model: sonnet`; a higher `Model:` on either kind needs one sentence stating its reason in `### Approach`. Whatever the `Kind:`, a change expensive to undo - concurrency, security, a data migration, a public interface - takes `Model: opus`.
 

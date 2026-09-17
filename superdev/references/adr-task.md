@@ -30,6 +30,7 @@ below from that section and copy the result into the plan as Task 1.
 ## Task 1 - Write ADR `<title>`
 - Covers: `ADR` (intent `## ADR`)
 - TDD: none
+- Kind: scaffold
 - Model: sonnet
 - Effort: low
 
