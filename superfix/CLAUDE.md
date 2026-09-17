@@ -1,123 +1,64 @@
-# superfix - prioritized multi-agent codebase investigation
+# superfix
 
-> Dev-time orientation for **editing this plugin's source**. Like the repo root `CLAUDE.md`, it is **not a
-> plugin input** - it never reaches the skill / agents as runtime data. See the root `CLAUDE.md` for the
-> repo-wide warnings and cross-plugin invariants; this file holds only what is specific to `superfix`.
+## Purpose
 
-`superfix` is the codebase-investigation plugin: one user-invoked skill that sweeps a repo on **two tracks** -
-files, scored Impact × Opportunity, and producer/consumer artifact pairs, triaged `MATCH` / `MISMATCH` /
-`UNCLEAR` / `NO_CONTRACT` - and dispatches cheap-triage / deep-dive agents into the union of both tracks'
-hotspots. It ships **no `hooks/` and no injected manifest**. Its single skill `code-auditor` is `disable-model-invocation:
-true` (user-only, invoked solely via `/superfix:code-auditor`), so there is nothing to auto-route - a dispatcher
-manifest would be dead weight, and the manifest is what the `SessionStart` hook injects, so dropping the
-manifest drops the hook too. This is the plugin-scale analogue of superdev's `setup`: a user-only command
-deliberately outside any routing manifest. The **per-skill** catalog of record is `.claude-plugin/plugin.json`
-`skills[]` + `agents[]`.
+Prioritized multi-agent codebase investigation. ONE user-invoked skill, `code-auditor`
+(`disable-model-invocation: true`), plus five agents in `agents[]`. Ships NO hooks and NO
+manifest - the sole skill is user-only, so there is nothing to auto-route.
 
-## Layout (superfix internals)
+## Entry points
 
-```
-superfix/
-  .claude-plugin/plugin.json   The plugin manifest - skills[] + agents[] are the catalog of record
-  skills/            One user-invoked skill code-auditor/ (disable-model-invocation); bundles
-                     references/ (jobs.md, scoring.md, synthesis.md) + scripts/ (check_node.sh,
-                     collect_signals.sh, rank.ts - the file track, collect_signals.sh also accepting
-                     `--scope <area-dir>` and emitting `dependents_stem`, the lockstep-unique literal
-                     `dependents` was counted by; collect_edges.sh, rank_edges.ts - the edge track,
-                     collect_edges.sh also accepting `--scope <area-dir>`; worktree.sh - the
-                     verification-checkout lifecycle shared by detective and critic) - all addressed via
-                     `${CLAUDE_SKILL_DIR}/...`
-  agents/            Five plugin agents: profiler.md (session-model repo profiler, Phase 0) + scout.md
-                     (cheap haiku file triage) + edge-scout.md (cheap haiku pair triage) + detective.md
-                     (session-model deep-dive) + critic.md (session-model refuter)
-```
+- `skills/code-auditor/SKILL.md` - `/superfix:code-auditor [<repo-path>] [<area-dir>]`. Runs TWO
+  tracks every time, unconditionally:
+  - **File track**: `score = Impact x Opportunity`. Deterministic sweep
+    (`scripts/collect_signals.sh`, accepts `--scope <area-dir>`) -> cheap `scout` scoring
+    fan-out -> deterministic gate/rank (`scripts/rank.ts`), which also flags a `degenerate` run
+    (no file clears the Opportunity gate).
+  - **Edge track**: a contract defect between two individually-correct files, invisible to a
+    per-file scout. Deterministic pair discovery (`scripts/collect_edges.sh`, reuses
+    `collect_signals.sh`'s deny-list/noise filter) scores linking literals artifact-first,
+    emits `via`/`vias` -> cheap `edge-scout` fan-out returns `MATCH`/`MISMATCH`/`UNCLEAR`/
+    `NO_CONTRACT` per pair -> deterministic gate/rank (`scripts/rank_edges.ts`) keeps `MATCH`
+    and `NO_CONTRACT` OUT of dispatch, orders `MISMATCH` before `UNCLEAR`, writes its own
+    `hotlist/edges.json` + `hotlist/edges.md` (never appended into `hotlist.md`, which
+    `rank.ts` overwrites wholesale).
+  - Phase 0 dispatches `profiler` (reads the target's own memory/tooling/fix history into the
+    run's profile) and resolves the Node runtime via `scripts/check_node.sh`, HARD-STOPPING on
+    `NODE_MISSING` (unlike superui's advisory skip - both gates depend on the same runtime).
+  - Detectives dispatch into the UNION of file hotspots, edge dispatch rows, and a small
+    structural budget from `edges.json`'s `degree[]` - never either track alone.
+- `agents/` - `profiler` (once per run, Phase 0), `scout` (cheap per-file triage),
+  `edge-scout` (cheap pair triage, `UNCLEAR` is a dispatch reason not a rejection),
+  `detective` (deep-dive; a pair-sourced detective gets both endpoints as entry points),
+  `critic` (refuter - reads only the claim sidecar, never the detective's report; a missing
+  verdict earns one retry before folding as `INCONCLUSIVE`).
 
-## Components (qualified `superfix:<name>`)
+## Contracts & invariants
 
-- `code-auditor` (skill, main context, user-only) - prioritized multi-agent codebase investigation, run as
-  **two tracks** every time, unconditionally:
-  - **File track** (unchanged in shape) - `score = Impact × Opportunity`: a deterministic sweep
-    (`scripts/collect_signals.sh`) → cheap `scout` scoring fan-out → deterministic gate/rank
-    (`scripts/rank.ts`, TypeScript run by Node's native type stripping), which now also reports an
-    `opportunity_histogram` and a `degenerate` flag - a run where no file's Opportunity clears the gate names
-    itself instead of reading as "all clear".
-  - **Edge track** (new) - a contract defect between two individually-correct files is invisible to a
-    per-file scout, so pairs get their own sweep: a deterministic pair discovery (`scripts/collect_edges.sh`,
-    reusing `collect_signals.sh`'s deny-list and noise filter, no language-specific parsing) scores every
-    linking literal artifact-first (a real tracked file both sides touch outranks a same-named syntax token),
-    emits `via` as the top-scoring literal and `vias` as up to 3 candidates ranked the same way, best first →
-    cheap `edge-scout` fan-out judging the pair on the strongest real contract among those candidates and
-    returning `MATCH` / `MISMATCH` / `UNCLEAR` / `NO_CONTRACT` per pair (`NO_CONTRACT` when the shared literal
-    is coincidental - no real contract to check) → deterministic gate/rank (`scripts/rank_edges.ts`) that keeps
-    `MATCH` and `NO_CONTRACT` out of both `dispatch` and `overflow`, orders the rest by verdict class
-    (`MISMATCH` before `UNCLEAR`) then a pair-Impact computed only from both endpoints' signals, caps dispatch
-    at `--top-edges`, and writes its own `hotlist/edges.json` + `hotlist/edges.md` (a separate file from
-    `hotlist.md`, not an appended section - appending is not idempotent on a re-run, and `rank.ts` overwrites
-    `hotlist.md` wholesale).
-  - Detectives are dispatched into the **union** of file hotspots, edge dispatch rows, and a small structural
-    budget (2 highest-degree files from `edges.json`'s `degree[]` not already in that union) - never into
-    either track's hotspots alone → verified, severity-ranked synthesis. State lives under a
-    `.temp/superfix/<run-id>/` workspace, not the main context. Bundles `references/{jobs,scoring,synthesis}.md`.
-    Phase 0 resolves the runtime via `scripts/check_node.sh` and HARD-STOPS on `NODE_MISSING` - the gate is
-    what makes the cut reproducible, so a run that cannot rank must not pay for the sweep and the scout fan-out
-    first (this now covers both tracks' gates, both driven by the same Node runtime). This is
-    the one place superfix's env-check differs from superui's `pro-designer` (whose contrast-script fallback
-    degrades with a note that Node.js >= 22.6 is required rather than hard-stopping, since it is advisory); it
-    is also why the check sits in Phase 0 rather than next to the ranking steps it guards. Phase 0 dispatches
-    `profiler` alongside the Phase 1 scripts, so the repo profile is written while the sweep runs; `job.md`
-    carries the result under `## Repo profile`, and Phase 2 waits for it - or for the second miss that records
-    its absence - before the first scout fires. Phase 0 also validates the optional area-dir argument into this
-    run's scope: a scoped run's records and pairs shrink to the area, a pair keeps a partner lying outside it
-    because a contract crossing the boundary is what a scoped audit exists to catch, while every signal inside a
-    record stays repo-wide, so a scoped record is byte-identical to the one an unscoped run emits for the same
-    file.
-- `profiler` / `scout` / `edge-scout` / `detective` / `critic` - the five **plugin agents** (`agents/*.md`,
-  listed in `plugin.json` `agents[]`, dispatched via the Agent tool with `subagent_type: superfix:<name>`).
-  `profiler` runs once per run, in Phase 0, reading the target's own `CLAUDE.md` / `.claude/rules/` and its fix
-  history to write `profile.md`, the calibration every later agent carries in `job.md`; `scout` is
-  cheap-tier breadth-first per-file triage (spawn many); `edge-scout` is the same cheap tier applied to a
-  candidate pair instead of a file - its job is narrower (a four-way verdict on whether both endpoints agree on
-  a shared contract, judged on the strongest real contract among the pair's `via` and `vias` candidates), and
-  its `UNCLEAR` verdict is itself a dispatch reason for Phase 4, not a rejection;
-  `detective` is depth-first investigation (spawn few) - a detective dispatched from an edge
-  receives both endpoints as entry points, per `synthesis.md`'s pair-capable `ENTRY:` field; `critic` reads
-  only the claim sidecar, never the detective's report, its mandate is to refute the claim rather than confirm
-  it, and a missing verdict earns exactly one retry in its own `-retry` worktree before folding as
-  `INCONCLUSIVE`. Bare-named because they are genuine agents, not fork-skills.
+- Thin harness, model does the judgment: deterministic code stays confined to signal
+  collection, the two gates, and the worktree lifecycle; all reasoning stays with the agents.
+- Agents receive bundled-script paths as ARGUMENTS in the dispatch brief, never as env
+  expansions - `${CLAUDE_SKILL_DIR}` resolves inside the skill, not inside an `agents/*.md`.
+- `scripts/worktree.sh` owns every clean-checkout recovery for detective/critic verification;
+  self-verifying (`WORKTREE_READY`/`WORKTREE_REMOVED` only after the end state is confirmed,
+  `WORKTREE_FAILED` otherwise) and trusted by both callers. `WORKTREE_FAILED` is a verification
+  verdict (`NO FINDING` / `INCONCLUSIVE`), not a retry prompt.
+- The edge track carries NO Opportunity axis - a pair's Impact already comes from both
+  endpoints; inventing a pair-Opportunity would reintroduce the file-shaped blindness the edge
+  track exists to fix. Ranks by verdict class + pair-Impact only, never a 2x2 quadrant.
+- The critic never sees the detective's reasoning - only the claim sidecar (`LOCATION`,
+  `CLASS`, `## Reproduce`) - so its verdict is an independent reproduction, not a re-read.
+- `detective`, `critic`, `profiler` all carry `model: inherit` - a weaker session model means
+  weaker verification, not just a weaker sweep.
 
-**Plugin-specific invariant: thin harness, model does the judgment.** Deterministic code stays confined to
-cheap signal collection, the two gates, and the worktree lifecycle; all reasoning stays with the agents. Do not
-grow elaborate scaffolding around them - the next model release tends to make a clever harness unnecessary, and
-an over-specified harness becomes a cage. This is dev-time guidance for whoever edits the plugin: the runtime
-files carry no such rationale, they only carry what changes behaviour.
+## Anti-patterns
 
-**Plugin-specific invariant: agents receive bundled-script paths as arguments, never as env expansions.**
-`${CLAUDE_SKILL_DIR}` resolves inside the skill, not inside an `agents/*.md` file, so `code-auditor` hands
-`detective` and `critic` the expanded `scripts/worktree.sh` path in the dispatch brief - the same way it already
-hands them `job.md`, the report-schema path and the output path. Any future bundled script an agent needs
-travels the same route; an agent file must never try to expand a plugin path itself.
+- Growing elaborate scaffolding around the agents - a clever harness tends to become a cage the
+  next model release makes unnecessary.
+- Letting `code-auditor` skip either track, or letting a detective dispatch from only one track.
 
-**Plugin-specific invariant: `worktree.sh` owns every clean-checkout recovery.** The detective and the critic
-both verify claims on a fresh checkout, and every failure mode there (a stale registration, a leftover
-directory, replay artifacts a bare `worktree remove` refuses to delete) is git-error-message-driven recovery -
-fixed tool, fixed format, so it collapses to a script per the repo-wide script-vs-fork principle. The script is
-self-verifying (`WORKTREE_READY` / `WORKTREE_REMOVED` only after the end state is confirmed, `WORKTREE_FAILED`
-otherwise) and is trusted by its callers: neither agent re-checks, retries or branches on git output. Both
-commands are idempotent. A `WORKTREE_FAILED` is a verification verdict, not a retry prompt - it means
-`NO FINDING` for the detective and `INCONCLUSIVE` for the critic.
+## Related context
 
-**Plugin-specific invariant: the edge track carries no Opportunity axis.** Opportunity is a property of one
-file (how cheap/safe a fix there is); a pair defect's Impact is already computed from both endpoints, but there
-is no single file whose Opportunity could stand for the pair, and inventing one would silently reintroduce the
-same file-shaped assumption that made the original per-file gate blind to this class of defect in the first
-place. The edge gate therefore ranks by verdict class + pair-Impact only, never a 2×2 quadrant.
-
-**Plugin-specific invariant: the critic never sees the detective's reasoning.** The critic is dispatched with
-the claim sidecar alone - `LOCATION`, `CLASS`, `## Reproduce` - and never the detective's own report, because a
-verifier that reads the discoverer's reasoning confirms that framing instead of testing it independently. The
-sidecar is the claim with the argument stripped out; only the critic's own reproduction settles the verdict.
-
-`detective`, `critic` and `profiler` all carry `model: inherit`, so the session model is also the reproduction
-model: a weaker session model means weaker verification, not just a weaker sweep.
-
-`superfix` declares no cross-plugin chains.
+- Root cross-plugin invariants: `../CLAUDE.md`
+- Shares a byte-identical `check_node.sh` with superui: `../superui/CLAUDE.md`
+- superfix declares no cross-plugin chains.

@@ -1,7 +1,7 @@
 # SuperDev Config
 adr:       false   # ADR capture
-rules:     false   # Rules system
+rules:     true    # Rules system
 memory:    true    # Memory system
-changelog: false   # Changelog
-cleanup:   false   # Run cleanup
+changelog: true    # Changelog
+cleanup:   true    # Run cleanup
 stats:     true

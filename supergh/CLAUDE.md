@@ -1,76 +1,53 @@
-# supergh - the GitHub / git ecosystem
+# supergh
 
-> Dev-time orientation for **editing this plugin's source**. Like the repo root `CLAUDE.md`, it is **not a
-> plugin input** - it never reaches the skills as runtime data. See the root `CLAUDE.md` for the repo-wide
-> warnings and cross-plugin invariants; this file holds only what is specific to `supergh`.
+## Purpose
 
-`supergh` is the GitHub / git ecosystem: the `gh` CLI/REST/GraphQL reference, a fully-specified operation
-executor, Conventional-Commits commits, and template-driven issue / PR creation. It is a **single-domain**
-plugin, so its skills carry **no group prefix** (the plugin name is the group) and are flat-named. It ships
-**no `hooks/` and no injected manifest** - unlike `superdev`, its skills route purely via their CSO
-`description:` (the always-on guardrail formerly carried by a manifest now lives in each skill's "Do NOT call
-gh… directly" description clause). A `SessionStart`-injected dispatcher would add no routing value over the
-skill descriptions, so there is none. The **per-skill** catalog of record is `.claude-plugin/plugin.json`
-`skills[]`.
+The GitHub/git plugin: the `gh` CLI/REST/GraphQL reference, a fully-specified operation
+executor, Conventional-Commits commits, and template-driven issue/PR creation. Single-domain, so
+skills carry no group prefix (the plugin name is the group) and are flat-named. Ships NO hooks
+and NO manifest - skills route purely via CSO `description:` (the always-on "do NOT call gh
+directly" guardrail lives in each consumer skill's own description clause instead).
 
-## Layout (supergh internals)
+## Entry points (qualified `supergh:<name>`)
 
-```
-supergh/
-  .claude-plugin/plugin.json   The plugin manifest - skills[] is the catalog of record
-  shared/            Plugin-level shared scripts:
-                     scripts/preflight.sh - `!`-injected read-only auth+git fact block (replacing the old
-                     per-skill 2–5 gh/git probes; shared by create-issue / create-pr / cli-executor);
-                     scripts/body-path.sh - deterministic timestamp+slugify body-path builder (ends the
-                     slugify-prose duplication between create-issue and create-pr; called in their Step 8)
-  skills/            Flat-named skills (cli, cli-executor, commit, create-issue, create-pr).
-                     The commit skill (haiku fork) bundles scripts/{commit.sh (self-verifying stage+commit+verify),
-                     commit-context.sh (injects recent-style + status/diff scoped to the selector),
-                     commit-selfcheck.sh (HEAD-moved check), commit-args.sh (sourced selector helper)} +
-                     references/commit-conventions.md (the Conventional-Commits subject/footer rules, injected
-                     into the fork). This machinery is skill-local - no longer shared - since agent-committer is gone.
-                     create-issue bundles scripts/create.sh (gh issue create + URL parse + tolerant type-PATCH
-                     in one self-verifying call). create-pr bundles scripts/{check-base.sh (base-exists +
-                     open-PR probe), pr-facts.sh (issue title + first subject + closes-refs + changed files +
-                     raw commits in one block), create.sh (gh pr create with --draft/--body-file hardcoded +
-                     URL parse)}.
-```
+- `cli` - GitHub CLI reference (which layer - subcommand / `gh api` REST / `gh api graphql` - an
+  operation needs). Reference-only, never executes.
+- `cli-executor` - fork-only sub-worker (dispatched via the `Skill` tool by a consumer skill,
+  never invoked directly): runs ONE fully-specified gh/REST/GraphQL operation out of context,
+  returns a single tagged line, guards every GraphQL mutation against the silent-200 error case.
+- `commit` - a haiku fork (CSO-routed) owning the whole commit end-to-end by selector
+  (`all`/`staged`/a path). Bundles `scripts/commit-context.sh` (recent-style + scoped
+  status/diff), authors the Conventional-Commits message from bundled
+  `references/commit-conventions.md`, then `scripts/commit.sh` does the staging+commit+verify
+  (never an LLM `git commit`) and `scripts/commit-selfcheck.sh` confirms HEAD moved before the
+  fork reports its `<sha> | <message>` line.
+- `create-issue` / `create-pr` - interactive, template-driven creators (`gh issue create` /
+  `gh pr create --draft`); every gh/git call runs through bundled `scripts/` plus the shared
+  `shared/scripts/preflight.sh` (`!`-injected read-only auth+git facts) and
+  `shared/scripts/body-path.sh` (timestamp+slugify body-path builder). Out-of-scope API
+  follow-ups (e.g. draft->ready) go to `cli-executor`.
 
-## Skills (qualified `supergh:<name>`)
+## Contracts & invariants
 
-- `cli` - GitHub CLI **reference** (which layer - `gh` subcommand / `gh api` REST / `gh api graphql` - a given
-  operation needs); reference-only, never executes.
-- `cli-executor` - **fork-only sub-worker** (dispatched by a consumer skill via the `Skill` tool, never
-  invoked directly) that runs ONE fully-specified gh/REST/GraphQL operation out of context and returns a
-  single tagged line; guards every GraphQL mutation against the silent-200 error case.
-- `commit` - a **haiku fork** (CSO-routed, runs out of the main context) that owns the whole commit
-  end-to-end by selector (`all` / `staged` / a path): `commit-context.sh` injects the recent-commit style +
-  `git status`/diff scoped to that selector, the fork authors the Conventional-Commits message (rules injected
-  from its `references/commit-conventions.md`), then `commit.sh` does the staging+commit+verify (never an LLM
-  `git commit`) and `commit-selfcheck.sh` confirms HEAD moved. `commit.sh` proves HEAD advanced before the fork
-  reports its `<sha> | <message>` line, closing the verify-before-claim gap - the fork does the commit AND the
-  check itself, so there is no LLM relay hop to distrust and no separate git-truth backstop is needed.
-- `create-issue` / `create-pr` - interactive, template-driven creators (`gh issue create` / `gh pr create
-  --draft`); every `gh`/`git` call runs through bundled per-skill `scripts/` (plus the shared `preflight.sh` /
-  `body-path.sh`); out-of-scope API follow-ups (e.g. draft→ready) go to `cli-executor`.
+- Keeps shared scripts under `supergh/shared/scripts/` - this plugin's own convention, differs
+  from superdev's plugin-root layout.
+- No manifest, no hooks - deliberately dropped; the 1%-rule guardrail folds into each skill's
+  own "do NOT ... directly" description clause instead.
+- Script vs fork (the `commit` case): `commit.sh` proves HEAD moved and cannot fabricate a
+  landed commit; `commit-selfcheck.sh` re-derives VERIFIED/FAILED from HEAD before/after. The
+  verify-before-claim guarantee lives in those scripts; the fork's returned line is trusted by
+  its caller.
+- Verify the current skill list from `supergh/.claude-plugin/plugin.json` `skills[]` before
+  restating it.
 
-`commit` is a fork reachable from the main session (CSO-routed), not a fork-only sub-worker - it absorbed the
-former `agent-committer`. `cli-executor` is supergh's one fork-only skill: consumer skills hand it a
-fully-specified operation via the `Skill` tool; its `description:` carries the "invoked only by another skill,
-never directly" guard.
+## Anti-patterns
 
-## Architecture invariants (supergh-specific)
+- The `cli` skill executing a gh command itself instead of staying reference-only.
+- An LLM running `git commit` directly instead of going through `commit.sh`.
 
-- **No manifest, no hooks.** supergh deliberately dropped its manifest; its skills stay model-routable via CSO
-  `description:`, with the 1%-rule guardrail folded into each skill's "Do NOT … directly" description clause.
-- **Script vs. fork (the `commit` case).** The one haiku `commit` fork runs `commit.sh` (which cannot fabricate
-  a landed commit - it proves HEAD moved) and then `commit-selfcheck.sh` (re-derives `VERIFIED`/`FAILED` from
-  HEAD before/after), reporting a single `<sha> | <message> (<verification>)` line. The verify-before-claim
-  guarantee lives in those scripts; the fork's returned line is trusted by its caller - a fabricating fork is
-  not separately backstopped (the former main-context `verify-landed.sh` was dropped when `agent-committer` was
-  folded in, the same "not yet hardened" caveat as the superdev pipeline's per-task commit twin).
+## Related context
 
-## Soft cross-plugin chains
-
-`superdev:superspec → supergh:create-issue` and `superdev:superbuild-reviewer → supergh:create-pr` are CSO-only
-compositions that engage only when both plugins are installed. `supergh` declares no dependencies.
+- Root cross-plugin invariants: `../CLAUDE.md`
+- Soft chains (CSO-only, engage only when both plugins installed):
+  `superdev:superspec -> supergh:create-issue`, `superdev:superbuild-reviewer -> supergh:create-pr`.
+  supergh declares no dependencies.

@@ -71,4 +71,3 @@ no deviations
 - A file-by-file listing - that duplicates `## capture`'s `### Files` blocks and adds nothing; describe behavior instead.
 - Marketing tone ("blazing fast", "seamless", "powerful") - flat, factual prose only.
 - Links to run files that will be cleaned up (`docs/.workflows/...` paths, the intent file, the spec) - those are removed once the run is gated closed; link only to durable artifacts (an ADR under `docs/adr/`).
-</content>
