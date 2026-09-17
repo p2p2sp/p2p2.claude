@@ -54,8 +54,8 @@
 #
 # ANOMALIES: two sources. One line per event carrying a note, shaped
 # "<mm:ss offset from start> <kind> <label> - <note>", then a counter table
-# per task counting the "UNDERSPECIFIED:", "CARRY:", "touched:" and
-# "NOTE: plan defect" lines of <workdir>/implementation/*.md (each at the
+# per task counting the "UNDERSPECIFIED:", "DECISION:", "CARRY:", "touched:"
+# and "NOTE: plan defect" lines of <workdir>/implementation/*.md (each at the
 # start of its line, a leading "- " tolerated) plus that task's review rounds
 # past the first (its task-NN-review-R.md files). A file's task is the
 # "<name>-<NN>" head of its basename, or the whole basename when it has none.
@@ -270,6 +270,7 @@ FNR == 1 {
   if (basename_of(FILENAME) ~ /^task-[0-9]+-review-[0-9]+$/) reviews[task]++
 }
 /^(- )?UNDERSPECIFIED:/ { under[task]++ }
+/^(- )?DECISION:/ { decision[task]++ }
 /^(- )?CARRY:/ { carry[task]++ }
 /^(- )?touched:/ { touched[task]++ }
 /^(- )?NOTE: plan defect/ { defect[task]++ }
@@ -278,14 +279,14 @@ END {
   for (i = 1; i <= n; i++) {
     task = order[i]
     extra = (reviews[task] > 1 ? reviews[task] - 1 : 0)
-    if (under[task] + carry[task] + touched[task] + defect[task] + extra == 0) continue
+    if (under[task] + decision[task] + carry[task] + touched[task] + defect[task] + extra == 0) continue
     if (rows == 0) {
-      print "| Task | UNDERSPECIFIED | CARRY | touched | NOTE: plan defect | Extra review rounds |" > (out)
-      print "| --- | --- | --- | --- | --- | --- |" > (out)
+      print "| Task | UNDERSPECIFIED | DECISION | CARRY | touched | NOTE: plan defect | Extra review rounds |" > (out)
+      print "| --- | --- | --- | --- | --- | --- | --- |" > (out)
     }
     rows++
-    printf "| %s | %d | %d | %d | %d | %d |\n", \
-      task, under[task] + 0, carry[task] + 0, touched[task] + 0, defect[task] + 0, extra > (out)
+    printf "| %s | %d | %d | %d | %d | %d | %d |\n", \
+      task, under[task] + 0, decision[task] + 0, carry[task] + 0, touched[task] + 0, defect[task] + 0, extra > (out)
   }
   close(out)
 }

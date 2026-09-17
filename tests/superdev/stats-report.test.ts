@@ -242,6 +242,7 @@ test("the counters are read out of the run's implementation/ dir, one row per ta
         "- node --test -> pass 4",
         "",
         "UNDERSPECIFIED: the retry cap - fixed at 5, nothing named one",
+        "DECISION: the retry cap - two findings contradict each other - none",
         "CARRY: superdev/scripts/decompose.sh - the header block never reaches plan-header.md",
         "reason for the extra file",
         "touched: superdev/scripts/decompose.sh",
@@ -257,9 +258,9 @@ test("the counters are read out of the run's implementation/ dir, one row per ta
 
     // task-02 has every counter at zero, so it gets no row at all.
     assert.deepEqual(section(readReport(dir, "run-a"), "Anomalies"), [
-      "| Task | UNDERSPECIFIED | CARRY | touched | NOTE: plan defect | Extra review rounds |",
-      "| --- | --- | --- | --- | --- | --- |",
-      "| task-01 | 1 | 1 | 2 | 1 | 1 |",
+      "| Task | UNDERSPECIFIED | DECISION | CARRY | touched | NOTE: plan defect | Extra review rounds |",
+      "| --- | --- | --- | --- | --- | --- | --- |",
+      "| task-01 | 1 | 1 | 1 | 2 | 1 | 1 |",
     ]);
   });
 });
@@ -280,9 +281,9 @@ test("a noted event and a counter row are both rendered, the notes first", () =>
     assert.deepEqual(section(readReport(dir, "run-a"), "Anomalies"), [
       "01:00 escalation round-01 - agent returned no report",
       "",
-      "| Task | UNDERSPECIFIED | CARRY | touched | NOTE: plan defect | Extra review rounds |",
-      "| --- | --- | --- | --- | --- | --- |",
-      "| fix-01 | 0 | 0 | 1 | 0 | 0 |",
+      "| Task | UNDERSPECIFIED | DECISION | CARRY | touched | NOTE: plan defect | Extra review rounds |",
+      "| --- | --- | --- | --- | --- | --- | --- |",
+      "| fix-01 | 0 | 0 | 0 | 1 | 0 | 0 |",
     ]);
   });
 });
