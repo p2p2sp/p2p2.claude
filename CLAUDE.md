@@ -117,7 +117,11 @@ skill/agent list. This file is orientation for the assistant.
   URL, test accounts and e2e conventions, launches the application, and dispatches the
   `superdev:e2e-writer` agent once per pending scenario ID to write one `@playwright/test` file, prove it
   green against that running application, and commit it for CI - the build's tester-facing and CI-facing
-  layers stay two stages, run at two different times, by two different agents.
+  layers stay two stages, run at two different times, by two different agents. A third, plan-less vibe
+  track skips all of that for an explicit one-sentence change: the `vibe` skill dispatches one
+  `vibe-implementor` agent against the host's own declared checks and an advisory scope guard
+  (`scripts/vibe-guard.sh`), then makes one commit - no plan, no reviewer, no knowledge layer, its machine
+  state living under `.temp/superdev/vibe/`.
 - **superui** - the design / frontend ecosystem: **one skill**, `pro-designer`, the professional UI/UX
   standards advisor (visual hierarchy, color systems and dark mode, type ramps, 4/8pt spacing,
   accessibility, component states, form-validation UX, conversion psychology with hard anti-dark-pattern
@@ -326,6 +330,7 @@ The invariants below hold across the repo.
   (`.temp/superdev/{memory,rules}/capture-<RUN_ID>.md`, `.temp/superdev/logs/<timestamp>-<slug>-<pid>.log`
   (the `executor` fork's command logs), `.temp/superdev/stats/<run>.events` and `.temp/superdev/stats/<run>.md`
   (the build's execution stats, gated by the `stats` switch),
+  `.temp/superdev/vibe/<timestamp>-<slug>/` (the vibe track's brief and notes),
   `.temp/superbiz/<slug>-<YYYY-MM-DD>/` for `idea-validator`'s working files 00-13). A new persisted
   user-facing artifact means a new `docs/<layer>/`; new machine state means `.temp/<plugin>/` - never a
   dot-dir at the host root.
@@ -418,7 +423,8 @@ The invariants below hold across the repo.
   `superdev-memory` / `superdev-rules` each dispatch their matching writer (`memory-writer` /
   `rules-writer`) the same way; superdev's `e2e-writer` agent is not a closeout writer at all - the
   user-only `e2e` skill alone dispatches it, once per pending scenario, never at Close Out and never
-  during a build; superbiz ships no agents at all - its council members are
+  during a build; superdev's `vibe-implementor` agent is dispatched by the `vibe` skill alone, never at
+  Close Out; superbiz ships no agents at all - its council members are
   `general-purpose` subagents prompted from `references/council/`, not declared agents; supercc ships none
   either - `skill-designer` dispatches nothing; superui ships none either) - and the
   relevant `CLAUDE.md`
