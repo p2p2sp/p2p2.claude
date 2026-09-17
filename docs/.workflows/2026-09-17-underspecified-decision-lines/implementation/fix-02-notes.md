@@ -15,3 +15,12 @@ touched: superdev/skills/superbuild/SKILL.md
 touched: docs/.workflows/2026-09-17-underspecified-decision-lines/implementation/task-01-notes.md
 touched: docs/.workflows/2026-09-17-underspecified-decision-lines/implementation/task-06-notes.md
 touched: docs/.workflows/2026-09-17-underspecified-decision-lines/implementation/task-07-notes.md
+
+Added by fix 03 for I2 of `review-01-spec-re1.md`. Commit 45117b2 changed `docs/notes.md` content no
+step of this round wrote (845b682..a4024c1: "czyta" to "czasami czyta" plus one appended paragraph,
+the user's own scratch text). The file was already modified in the working tree when the commit ran;
+`commit-task.sh` never stages outside the declared set, so it entered through the loop's step-4
+**include named ones** answer. Declared because `## Notes line formats` asks for one `touched:` line
+per file a fix round changed, whoever authored the content - and this file is spent (its round is
+committed), so no later `commit-task.sh --notes` run re-declares the path.
+touched: docs/notes.md
