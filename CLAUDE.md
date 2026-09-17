@@ -315,7 +315,8 @@ The invariants below hold across the repo.
   agent file itself, which belongs wherever the request puts it (`.claude/skills/`, a plugin's `skills/`,
   an `agents/` dir) - a knowledge layer would be a copy of the artifact, not a record about it.
 - **No plugin ever creates a plugin-named dot-dir in the host repo** - no `.superdev/`, no `.superui/`,
-  no equivalent for any future plugin. Only three host-repo locations are writable: `docs/<layer>/` for
+  no equivalent for any future plugin. Only three host-repo locations are writable at a plugin's own
+  choosing: `docs/<layer>/` for
   persisted user-facing knowledge (above), `.claude/` for configuration the user owns and edits
   (superdev's opt-in switches live in `.claude/superdev.yml`, read by `scripts/read-config.sh`; rules in
   `.claude/rules/`), and `.temp/` for every temporary artifact, grouped in per-plugin subdirs
@@ -325,6 +326,13 @@ The invariants below hold across the repo.
   `.temp/superbiz/<slug>-<YYYY-MM-DD>/` for `idea-validator`'s working files 00-13). A new persisted
   user-facing artifact means a new `docs/<layer>/`; new machine state means `.temp/<plugin>/` - never a
   dot-dir at the host root.
+  One fourth location is writable, and only because the **host names it**: the host's own e2e test
+  directory, written by `superdev:e2e-writer` under the user-run `e2e` skill. Its path comes from the
+  host's memory (`CLAUDE.md`, `.claude/rules/`) or from the operator when the memory is silent - the
+  plugin picks no path there, invents no directory, and writes nowhere else in the host's source tree.
+  Generated `@playwright/test` files belong next to the host's other tests because CI runs them, which
+  `docs/qa/` (the human-readable layer) could not do. That is the whole exception: a plugin gaining a
+  new host-source write location needs the host to name it the same way, not a rule change here.
 - **One injected manifest per manifest-bearing plugin.** A single `SessionStart` hook force-injects
   `hooks/content/manifest.md` **verbatim** once per session; `source == "resume"` is excluded by the matcher;
   fail-open (an unreadable manifest = banner only, no `additionalContext`). The hook does no per-project

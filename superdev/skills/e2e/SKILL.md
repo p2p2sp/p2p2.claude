@@ -4,7 +4,7 @@ description: Generate and locally verify Playwright tests for the scenarios of o
 argument-hint: "handoff: <path to the build's docs/qa/<run id>.e2e.md>"
 user-invocable: true
 disable-model-invocation: true
-allowed-tools: Read, Grep, Glob, Bash, Agent, AskUserQuestion, TaskCreate, TaskUpdate, TaskStop, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/check-playwright.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*)
+allowed-tools: Read, Grep, Glob, Bash, Agent, AskUserQuestion, TaskCreate, TaskUpdate, TaskStop, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/check-playwright.sh:*)
 disallowed-tools: Edit, Write, NotebookEdit
 ---
 
