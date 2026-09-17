@@ -14,13 +14,13 @@ Default plan mode content drifts: missing files, hidden assumptions. SimplePlan 
 
 - Input: the confirmed understanding already in context - a design interview, or a proven bug diagnosis with its fix plan. No spec - the plan carries its own DoD / acceptance criteria.
 - Optionally `intent: <path>` from the handoff, naming the persisted intent file - when present, write it verbatim into the plan's `Intent:` line; when absent, omit that line.
-- Plan = `How`. Derive goal + acceptance criteria from that input. Do not re-interview, do not re-investigate.
+- Plan = `How` & `Why`. Derive goal + acceptance criteria from that input. Do not re-interview, do not re-investigate.
 
 ## Plan Workflow
 This plan workflow is better, extended and more accurate version of default instruction injected by harnes.
 
 ### Initial Understanding
-Comprehensive understanding of the user's request is in your context. Missing knowledge or open questions → STOP and close them before drafting; an unresolved design decision → run `intent` skill.
+Comprehensive understanding of the user's request is in your king context. Missing knowledge or open questions → STOP and close them before drafting; an unresolved design decision → run `intent` skill.
 
 - **Refreshed-intent gate** - evaluated before anything else, and before any file is created or modified. Three branches, and only the last one continues:
   - an `intent:` value that does not resolve to an existing file -> the gate is not evaluated: report that exact path back as not found and STOP. Never fall through into your own flow - the `intent` skill's own not-found branch does fall through and treats the argument as a request, but here there is no interview to fall into.
