@@ -6,8 +6,8 @@ self-check should pass review.
 
 Stack-agnostic: every class below refers only to the plan template's own sections
 (`## Gate commands`, `### Files`, `### Dependencies`, `### Task Checks`, `### Approach`,
-`### Failure modes`, `### Contracts`, `### DoD`, `TDD:`, `Model:`, `Effort:`, `Review:`,
-`Covers:`) - never to a specific ecosystem's tools.
+`### Failure modes`, `### Contracts`, `### DoD`, `TDD:`, `Kind:`, `Model:`, `Effort:`,
+`Review:`, `Covers:`) - never to a specific ecosystem's tools.
 
 ## Evidence rule
 
@@ -15,7 +15,7 @@ A reviewer verifies with Read/Grep/Glob ONLY and never executes a command - no b
 `git`, no shell of any kind. Path existence -> Glob; a symbol's or a command's presence in a file ->
 Grep; content -> Read.
 
-A Blocking finding must cite its class ID (B1-B21) plus concrete evidence gathered that way - quote
+A Blocking finding must cite its class ID (B1-B22) plus concrete evidence gathered that way - quote
 the file, path, or command checked. A suspicion that cannot be verified with Read/Grep/Glob is not
 Blocking: demote it to NOTES, phrased as a question.
 
@@ -44,13 +44,16 @@ evidence (see Evidence rule).
   orders a task before one it depends on.
 - B5 - Leftover placeholder: a TODO, an unfilled `<placeholder>` template token, or a mandatory
   template section left empty survives in the submitted plan.
-- B6 - Missing or invalid task marker: the template requires `TDD:`, `Model:` and `Effort:` on
-  every task; one is absent, or carries a value outside its allowed set (`TDD:` `required` |
-  `none`; `Model:` `sonnet` | `opus`; `Effort:` `low` | `medium` | `high` | `xhigh`), or a
-  `TDD: required` task is marked `Model: sonnet`. `Review:` is optional on a task of either track
-  and never required, but where present it carries one `Model:` value and one `Effort:` value from
-  those same two sets. Settled by reading the task's marker lines alone - what a task runs as its
-  own proof is B17, not this.
+- B6 - Missing or invalid task marker: the template requires `TDD:`, `Kind:`, `Model:` and
+  `Effort:` on every task; one is absent, or carries a value outside its allowed set (`TDD:`
+  `required` | `none`; `Kind:` `code` | `scaffold` | `text`; `Model:` `sonnet` | `opus`;
+  `Effort:` `low` | `medium` | `high` | `xhigh`), or a `TDD: required` task is marked
+  `Model: sonnet`. `Review:` is optional on a task of either track and never required, but where
+  present it reads either `none` - the per-task reviewer is not dispatched at all - or one
+  `Model:` value followed by one `Effort:` value from those same two sets; every other spelling of
+  that skip (`None`, `skip`, `-`, an empty value) is B6. Settled by reading the task's marker
+  lines alone - what a task runs as its own proof is B17, and whether its `Kind:` matches that
+  proof is B22, not this.
 - B7 - Undecidable step: an implementer cannot execute a step without a decision that is absent
   from the plan. Report B7 under BLOCKED, never under FINDINGS - it needs a decision, not a fix
   the reviewer can point at.
@@ -124,14 +127,32 @@ evidence (see Evidence rule).
   build or a full suite belongs under `#### Integration` alone, which runs at the final review and its
   re-review only. Settled by reading the command against the host's memory files and the plan's
   `### Files`.
+- B22 - Task kind contradicts its proof: a task whose `Kind:` value differs from the kind its own
+  `### Task Checks` derives, or a `Kind: text` or `Kind: scaffold` task carrying `TDD: required` -
+  neither of those two kinds writes the production code a TDD cycle drives. This table is the one
+  owner of that derivation; the planning skills and the task implementors cite it, never copy it.
+  Its rows are read top down - the first row matching any line of the section settles the kind:
+
+  | `### Task Checks` holds | kind |
+  | --- | --- |
+  | a line opening with a test file path | `code` |
+  | `none - manual verification: <what>` | `code` |
+  | `none - covered by gate <Build\|Tests\|Integration>` | `code` |
+  | a tool command with no test file path - a build, install, validate or generator command, `ls` of a directory, `grep` over paths or file names (`ls src/generated`, `grep -c '^superdev/' .gitattributes`) | `scaffold` |
+  | any other `none - <reason>`, or `grep` alone whose pattern is about file content (`-l` included) | `text` |
+
+  Settled by reading the task's `Kind:` and `TDD:` marker lines against its `### Task Checks`
+  section.
 
 ## Advisory (NOTES)
 
-Everything real but not in B1-B21: wording, phrasing, style preferences, task-split preference
+Everything real but not in B1-B22: wording, phrasing, style preferences, task-split preference
 (one task vs. two), optional hardening not required by any acceptance criterion, "nice to have"
-suggestions, and a `Model:` / `Effort:` / `Review:` that reads too low for what the task's
-`### Approach` has to reason about (an algorithm, a state machine, a contract other tasks consume, a
-hard-to-undo change) - the author rounds up, never down, but the choice itself is not Blocking.
+suggestions, a `Model:` or `Review:` that reads too low for what the task's `### Approach` has to
+reason about (an algorithm, a state machine, a contract other tasks consume, a hard-to-undo
+change), and a `scaffold` or `text` task carrying `Model: opus` or a per-task reviewer that its
+`### Approach` gives no reason for - strength that reads too low or too high is named here and
+never Blocking, and where it is too low the author rounds up, never down.
 These never block - they ride along as NOTES on a PASS.
 
 Three named items ride here too, each real but never Blocking:
@@ -180,9 +201,12 @@ Before submitting a plan for review, verify in the repo:
   `none - <reason>` whose reason the repo does not contradict.
 - The two-way mapping holds: every acceptance criterion is covered by at least one task, and every
   task covers at least one criterion or is traceable to the Goal/spec.
-- Every task carries `TDD:`, `Model:` and `Effort:` with values from their allowed sets, no
-  `TDD: required` task sits on `Model: sonnet`, and a `Review:` marker, where present, takes its
-  two values from those same sets.
+- Every task carries `TDD:`, `Kind:`, `Model:` and `Effort:` with values from their allowed sets,
+  no `TDD: required` task sits on `Model: sonnet`, and a `Review:` marker, where present, reads
+  either `none` or one `Model:` value followed by one `Effort:` value from those same sets - no
+  other spelling of the skip.
+- Every task's `Kind:` is the kind B22's table derives from that task's own `### Task Checks`, and
+  no `text` or `scaffold` task carries `TDD: required`.
 - Every task carries a `### Task Checks` section: a `TDD: required` task carries exactly one line
   opening with a test file path, a `TDD: none` task carries one such line per test file it writes or
   changes, every test-file line names a path declared under that task's `### Files`, and a section
