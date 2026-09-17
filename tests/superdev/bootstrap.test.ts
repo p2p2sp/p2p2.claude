@@ -28,6 +28,25 @@ function run(dir: string) {
   return runScript(SUT, [], { cwd: dir });
 }
 
+/** The one real PATH directory that resolves `grep` - core utilities only,
+ *  no `playwright-cli`, no `git`. bootstrap.sh now shells out to
+ *  check-playwright.sh, whose "not found" lines would flip on a host that
+ *  actually has playwright-cli/git reachable; see check-playwright.test.ts's
+ *  own header for the full rationale. Used only by the two cases below that
+ *  assert bootstrap.sh's exact, full stdout. */
+function grepOnlyPath(): string {
+  const names = process.platform === "win32" ? ["grep.exe", "grep"] : ["grep"];
+  const dirs = (process.env.PATH ?? "").split(path.delimiter).filter(Boolean);
+  for (const dir of dirs) {
+    if (names.some((name) => fs.existsSync(path.join(dir, name)))) return dir;
+  }
+  throw new Error("bootstrap.test.ts: no directory on PATH resolves grep");
+}
+
+function runIsolated(dir: string) {
+  return runScript(SUT, [], { cwd: dir, env: { PATH: grepOnlyPath() } });
+}
+
 function readIfExists(file: string): string | undefined {
   try {
     return fs.readFileSync(file, "utf-8");
@@ -38,7 +57,7 @@ function readIfExists(file: string): string | undefined {
 
 test("seed-when-absent: a fresh project root seeds every item and prints one line each, in order, exit 0", () => {
   withTempDir("p2p2-bootstrap-", (dir) => {
-    const result = run(dir);
+    const result = runIsolated(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
       result.stdout,
@@ -47,6 +66,8 @@ test("seed-when-absent: a fresh project root seeds every item and prints one lin
         ".gitignore: created from template",
         "superdev.yml: seeded from template - defaults: adr=false, rules=false, memory=false, changelog=false, cleanup=false, stats=false, qa=false, e2e-ui=false, e2e-api=false",
         ".gitattributes: created with linguist-generated rule",
+        "playwright-cli: not found",
+        "@playwright/test: not found",
         "",
       ].join("\n"),
     );
@@ -79,14 +100,14 @@ test("never-overwrite-when-present: a pre-existing superdev.yml (flipped switch)
 
 test("idempotence: running twice reports 'already present' for every item on the second run and leaves file bytes unchanged", () => {
   withTempDir("p2p2-bootstrap-", (dir) => {
-    const first = run(dir);
+    const first = runIsolated(dir);
     assert.equal(first.status, 0, `stderr: ${first.stderr}`);
 
     const beforeGitignore = fs.readFileSync(path.join(dir, ".gitignore"), "utf-8");
     const beforeConfig = fs.readFileSync(path.join(dir, ".claude", "superdev.yml"), "utf-8");
     const beforeGitattributes = fs.readFileSync(path.join(dir, ".gitattributes"), "utf-8");
 
-    const second = run(dir);
+    const second = runIsolated(dir);
 
     assert.equal(second.status, 0, `stderr: ${second.stderr}`);
     assert.equal(
@@ -105,6 +126,8 @@ test("idempotence: running twice reports 'already present' for every item on the
         "e2e-ui:    false   # Playwright UI test handoff -> docs/qa/<run>.e2e.md",
         "e2e-api:   false   # Playwright API test handoff -> docs/qa/<run>.e2e.md",
         ".gitattributes: linguist-generated rule already present",
+        "playwright-cli: not found",
+        "@playwright/test: not found",
         "",
       ].join("\n"),
     );

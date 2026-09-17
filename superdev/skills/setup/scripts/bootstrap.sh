@@ -34,7 +34,11 @@
 #           The .gitattributes line is one of ".gitattributes: created with
 #           linguist-generated rule", ".gitattributes: linguist-generated rule
 #           appended", or ".gitattributes: linguist-generated rule already
-#           present" - also asserted verbatim by bootstrap.test.sh.
+#           present" - also asserted verbatim by bootstrap.test.sh. Output
+#           ends with check-playwright.sh's own two lines, passed through
+#           verbatim: "playwright-cli: found <version> | found (version
+#           unknown) | not found" and "@playwright/test: found | not found" -
+#           setup installs neither tool, it only reports on them.
 #   exit : always 0 (fail-soft; missing templates are reported, not fatal).
 
 set -u
@@ -84,5 +88,7 @@ else
   printf '%s\n' "$ga_line" >> .gitattributes
   echo ".gitattributes: linguist-generated rule appended"
 fi
+
+"${skill_dir}/../../scripts/check-playwright.sh"
 
 exit 0
