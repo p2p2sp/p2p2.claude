@@ -4,7 +4,7 @@ description: Generate and locally verify Playwright tests for the scenarios of o
 argument-hint: "handoff: <path to the build's docs/qa/<run id>.e2e.md>"
 user-invocable: true
 disable-model-invocation: true
-allowed-tools: Read, Grep, Glob, Bash, Agent, AskUserQuestion, TaskCreate, TaskUpdate, TaskStop, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/check-playwright.sh:*)
+allowed-tools: Read, Grep, Glob, Bash, Agent, AskUserQuestion, TaskCreate, TaskUpdate, TaskStop, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/check-playwright.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*)
 disallowed-tools: Edit, Write, NotebookEdit
 ---
 
@@ -147,7 +147,7 @@ No ID processed at all in `## Loop` -> skip to `## Done`; nothing new is in the 
 Otherwise one Bash call:
 
 ```
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "test(e2e): <run id>" --path <handoff path> --path <FILE path> ...
+"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "test(e2e): <run id>" --path <handoff path> --path <FILE path> ...
 ```
 
 - `<run id>` is the handoff's `Run:` line, its own basename without `.e2e.md` when that line is absent.
