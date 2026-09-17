@@ -29,6 +29,15 @@ Nie. Żaden writer nie jest dispatchowany; commit jest jedynym zapisem. Brief i 
 ### 8. Co skill robi na wejściu z plan mode?
 Jak `intent`: sprawdza, czy plan mode jest aktywny, i wychodzi z niego przez `ExitPlanMode` przed czymkolwiek innym.
 
+### 9. Co robi `vibe`, gdy drzewo robocze jest już brudne na starcie?
+Rusza bez migawki. Strażnik mierzy tylko pliki z `touched:` agenta, a "cofnij" przywraca dotknięte pliki do HEAD (nowe pliki usuwa); wcześniejsze niezacommitowane edycje w tym samym pliku giną i skill mówi o tym w opisie opcji. `vibe` jest dla świadomych użytkowników.
+
+### 10. Skąd tor wie, które ścieżki hosta są wrażliwe?
+Model czyta dowolnie sformułowaną pamięć hosta (`CLAUDE.md`, `.claude/rules/`) i wyciąga z niej listę globów; nie ma stałego markera ani sekcji, której host musiałby użyć. Deterministyczny jest tylko matcher w `vibe-guard.sh`, który dostaje tę listę argumentem, i to on ma testy.
+
+### 11. Co się dzieje, gdy subagent skończy bez werdyktu?
+Limit, przerwanie lub brak raportu traktowane jak przekroczenie: strażnik i tak liczy deltę, nic nie jest commitowane automatycznie, użytkownik dostaje ten sam trzyopcjowy przystanek (zatwierdź i commituj / cofnij / zostaw diff i przejdź do `intent`).
+
 ## Constraints
 - Nazwa toru i skilla: `vibe` (`superdev/skills/vibe/`). Osobny skill, bez przełącznika w `.claude/superdev.yml`, dostępny zawsze.
 - Tor obejmuje też drobne poprawki zgłoszonych błędów; o wyborze toru decyduje użytkownik, bez zawężenia w skillu.

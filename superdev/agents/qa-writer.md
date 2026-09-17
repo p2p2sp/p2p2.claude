@@ -31,13 +31,17 @@ and `## Out of scope` are scenario sources.
 `## intent` (when present) is the confirmed interview synthesis - it decides the acceptance document's
 language and says in plain words what the build is for.
 
-Workdir: the `workdir:` value from the prompt.
+Workdir: the `workdir:` value from the prompt. Read `<workdir>/implementation/decisions.md` when it
+exists - every line there is the user's own answer and outranks the plan's wording and the notes alike;
+absent, nothing is read and nothing is an error.
 Refs dir: the `refs:` value from the prompt. Read `<refs>/qa-format.md` before writing anything: it owns
 the templates, the section order, the ID rules, the supersedes rule and the never-write list of all three
 artifacts, and this agent adds no format of its own.
 Notes dir: the `notes:` value from the prompt. Read its `*-notes.md` files - the recorded plan->code
-deviations. Where a note records one, the delivered behaviour is what a scenario describes, never the
-behaviour the plan asked for.
+deviations. A note records a deviation as a deviation line, an `UNDERSPECIFIED: <value> - <decision>`
+line, or a `DECISION:` line answered in the decisions file; in each case the delivered behaviour a
+scenario describes is the recorded decision or the user's recorded answer, never the plan's wording, for
+the acceptance document and the handoff file alike.
 Reports dir: the `reports:` value from the prompt (when present). Read the newest final spec review
 there - `review-NN-spec.md`, or its highest `-reR` re-review when one exists - for its `## Coverage`
 table: one line per criterion, verdicted `met`, `not met`, `partial` or `blocked` with its evidence. A
