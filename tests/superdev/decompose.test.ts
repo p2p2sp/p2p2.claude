@@ -6,7 +6,9 @@
  * was started in, prints a clean stdout index (all git noise on stderr) whose
  * `root:` line names that root, commits the run directory ALONE - skipping
  * only that commit, and keeping the built tree, outside a git repository - and
- * exits 1/4/5/6 on its documented error paths.
+ * exits 1/4/5/6/7 on its documented error paths - 7 being the reviewed-plan
+ * guard: a `<plan>.sha256` sidecar (written by the ExitPlanMode hook) whose
+ * digest differs from the plan's bytes refuses the decomposition outright.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -17,6 +19,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 
 import { runScript, type RunResult } from "../harness/run.ts";
 import { withTempDir, withGitRepo, type GitRepo } from "../harness/tmp.ts";
@@ -183,8 +186,8 @@ test("happy path (default prefix): builds the full tree, prints a clean index, c
           `base: ${base}`,
           `plan-header: ${header}`,
           `plan: ${planCopy}`,
-          `${task1}\tTask 1 - build widget\t-\t-\t-`,
-          `${task2}\tTask 2 - ship widget\t-\t-\t-`,
+          `${task1}\tTask 1 - build widget\t-\t-`,
+          `${task2}\tTask 2 - ship widget\t-\t-`,
           "",
         ].join("\n"),
       );
@@ -896,7 +899,7 @@ test("the heading's <N> is not checked against the file index: a mismatched numb
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       const dir = `docs/.workflows/${todayISO()}-renumbered-plan`;
       const rows = result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`));
-      assert.deepEqual(rows, [`${dir}/tasks/task-01.md\tTask 7 - do it\t-\t-\t-`]);
+      assert.deepEqual(rows, [`${dir}/tasks/task-01.md\tTask 7 - do it\t-\t-`]);
     });
   });
 });
@@ -1155,15 +1158,15 @@ test("edge: a task title containing a tab breaks the tab-separated index row (do
       const dir = `docs/.workflows/${todayISO()}-tabbed-title-plan`;
       const indexLine = result.stdout.split("\n").find((l) => l.startsWith(`${dir}/tasks/task-01.md`));
       assert.ok(indexLine, `expected the task-01 index row, got:\n${result.stdout}`);
-      // tabs separate path, title, model, effort and review in the well-formed
-      // case (5 fields); the embedded tab in the title itself yields a SIXTH
+      // tabs separate path, title, model and review in the well-formed case
+      // (4 fields); the embedded tab in the title itself yields a FIFTH
       // field, breaking any \t-split parse.
-      assert.equal(indexLine!.split("\t").length, 6);
+      assert.equal(indexLine!.split("\t").length, 5);
     });
   });
 });
 
-test("task Model:/Effort:/Review: markers land verbatim in the index columns; a task without them prints '-'", () => {
+test("task Model:/Review: markers land verbatim in the index columns, an Effort: line is body text only; a task without them prints '-'", () => {
   withGitRepo((repo) => {
     seedInitialCommit(repo);
     withTempDir("p2p2-decompose-plan-", (planDir) => {
@@ -1190,11 +1193,12 @@ test("task Model:/Effort:/Review: markers land verbatim in the index columns; a 
       const dir = `docs/.workflows/${todayISO()}-marked-plan`;
       const rows = result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`));
       assert.deepEqual(rows, [
-        `${dir}/tasks/task-01.md\tTask 1 - marked\tsonnet\txhigh\tsonnet high`,
-        `${dir}/tasks/task-02.md\tTask 2 - unmarked\t-\t-\t-`,
-        `${dir}/tasks/task-03.md\tTask 3 - empty review\topus\tlow\t-`,
+        `${dir}/tasks/task-01.md\tTask 1 - marked\tsonnet\tsonnet high`,
+        `${dir}/tasks/task-02.md\tTask 2 - unmarked\t-\t-`,
+        `${dir}/tasks/task-03.md\tTask 3 - empty review\topus\t-`,
       ]);
-      // the marker lines stay in the task file - the implementor reads them there too
+      // the marker lines stay in the task file - the implementor reads them there
+      // too, the Effort: line included, which the index never carries
       const task1Text = fs.readFileSync(path.join(repo.dir, dir, "tasks", "task-01.md"), "utf-8");
       assert.match(task1Text, /^- Model: sonnet$/m);
       assert.match(task1Text, /^- Effort: xhigh/m);
@@ -1242,8 +1246,8 @@ test("whole-line markers: a task body quoting the TASK markers in prose still de
       assert.deepEqual(fs.readdirSync(absTasks).sort(), ["task-01.md", "task-02.md"]);
       const rows = result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`));
       assert.deepEqual(rows, [
-        `${dir}/tasks/task-01.md\tTask 1 - write about the markers\t-\t-\t-`,
-        `${dir}/tasks/task-02.md\tTask 2 - ship it\t-\t-\t-`,
+        `${dir}/tasks/task-01.md\tTask 1 - write about the markers\t-\t-`,
+        `${dir}/tasks/task-02.md\tTask 2 - ship it\t-\t-`,
       ]);
 
       // the quoted line is ordinary content: verbatim in the task file, opening nothing
@@ -1253,6 +1257,76 @@ test("whole-line markers: a task body quoting the TASK markers in prose still de
         `expected the quoted marker line verbatim in task-01.md, got:\n${task1Text}`,
       );
       assert.match(task1Text, /### Covered criteria\n1\. One\.\n$/);
+    });
+  });
+});
+
+// --- reviewed-plan guard: the `<plan>.sha256` sidecar the ExitPlanMode hook
+// writes binds the build to the bytes the plan reviewer approved. ---
+
+function sha256Hex(file: string): string {
+  return createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+}
+
+function reviewedPlanFixture(planDir: string): { plan: string; sidecar: string } {
+  const plan = path.join(planDir, "plan.md");
+  fs.writeFileSync(
+    plan,
+    simplePlan({
+      title: "Reviewed Plan",
+      criteria: ["One."],
+      tasks: [taskBlock("Task 1 - do it", [1])],
+    }),
+  );
+  return { plan, sidecar: `${plan}.sha256` };
+}
+
+test("a sidecar whose digest matches the plan's bytes decomposes silently (no hash warning, exit 0)", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-plan-", (planDir) => {
+      const { plan, sidecar } = reviewedPlanFixture(planDir);
+      fs.writeFileSync(sidecar, `${sha256Hex(plan)}\n`);
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.doesNotMatch(result.stderr, /reviewed hash|reviewed plan|sha256/);
+      const dir = `docs/.workflows/${todayISO()}-reviewed-plan`;
+      assert.ok(fs.existsSync(path.join(repo.dir, dir, "tasks", "task-01.md")));
+    });
+  });
+});
+
+test("a sidecar whose digest differs from the plan's bytes refuses with exit 7 naming the sidecar, and creates no working dir (a plan edited after its approval is never built as approved)", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-plan-", (planDir) => {
+      const { plan, sidecar } = reviewedPlanFixture(planDir);
+      // the digest of the plan as it stood BEFORE an edit
+      fs.writeFileSync(sidecar, `${sha256Hex(plan)}\n`);
+      fs.appendFileSync(plan, "\nAn edit the reviewer never saw.\n");
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 7, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
+      assert.match(result.stderr, /error: plan differs from the reviewed plan \(/);
+      assert.ok(result.stderr.includes(slash(sidecar)) || result.stderr.includes(sidecar), `stderr must name the sidecar:\n${result.stderr}`);
+      assert.match(result.stderr, /re-run the plan reviewer and ExitPlanMode/);
+      assert.equal(result.stdout, "");
+      assert.ok(!fs.existsSync(path.join(repo.dir, "docs", ".workflows")), "no working dir may be created on a refusal");
+      assert.equal(subjectOf(repo), "seed");
+    });
+  });
+});
+
+test("no sidecar beside the plan decomposes with a stderr warning naming the absent sidecar (exit 0 - a plan that never went through the hook stays buildable)", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-plan-", (planDir) => {
+      const { plan, sidecar } = reviewedPlanFixture(planDir);
+      assert.ok(!fs.existsSync(sidecar));
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match(result.stderr, /warning: no reviewed hash beside the plan \(.*absent\) - decomposing an unverified plan/);
+      const dir = `docs/.workflows/${todayISO()}-reviewed-plan`;
+      assert.ok(fs.existsSync(path.join(repo.dir, dir, "tasks", "task-01.md")));
     });
   });
 });

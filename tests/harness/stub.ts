@@ -34,14 +34,18 @@ export function withStub<T>(name: string, body: string, fn: (stubDir: string) =>
   });
 }
 
-/** A PATH value holding exactly one directory: the first on the current PATH
- *  that resolves `grep` - `/usr/bin` on a POSIX box, Git-for-Windows'
- *  `usr/bin` on win32. That directory ships the utilities a shell script under
- *  test needs to run at all (bash, grep, head, printf) and nothing a developer
- *  installed on top of them, so a host that happens to carry a real
- *  `playwright-cli`, `gh` or `npm` cannot answer - and flip - a "not found"
- *  case. `RunOpts.stubDirs` only PREPENDS to the inherited PATH, which is why
- *  starving it first is the only way to assert absence.
+/** A minimal PATH value: the first directory on the current PATH that
+ *  resolves `grep` - `/usr/bin` on a POSIX box, Git-for-Windows' `usr/bin` on
+ *  win32 - plus, only when that directory does not also resolve `bash`, the
+ *  first directory that does (`/bin` on macOS, where `/usr/bin` ships grep and
+ *  `/bin` ships bash; ubuntu and Git-Bash keep both in one directory and get a
+ *  single entry). Those directories ship the utilities a shell script under
+ *  test needs to run at all (bash for its `#!/usr/bin/env bash` shebang, grep,
+ *  head, printf) and nothing a developer installed on top of them, so a host
+ *  that happens to carry a real `playwright-cli`, `gh` or `npm` cannot answer -
+ *  and flip - a "not found" case. `RunOpts.stubDirs` only PREPENDS to the
+ *  inherited PATH, which is why starving it first is the only way to assert
+ *  absence.
  *
  *  It is not a coreutils-only guarantee: that same directory ships `git` on a
  *  POSIX box (the CI ubuntu leg included), so a script whose behaviour branches
@@ -50,10 +54,13 @@ export function withStub<T>(name: string, body: string, fn: (stubDir: string) =>
  *  whether or not `git` resolves and `root` lands on the cwd through either
  *  branch. */
 export function coreUtilsPath(): string {
-  const names = process.platform === "win32" ? ["grep.exe", "grep"] : ["grep"];
+  const exe = (name: string) => (process.platform === "win32" ? [`${name}.exe`, name] : [name]);
   const dirs = (process.env.PATH ?? "").split(path.delimiter).filter(Boolean);
-  for (const dir of dirs) {
-    if (names.some((name) => fs.existsSync(path.join(dir, name)))) return dir;
-  }
-  throw new Error("tests/harness/stub.ts: no directory on PATH resolves grep");
+  const resolves = (dir: string, name: string) => exe(name).some((n) => fs.existsSync(path.join(dir, n)));
+  const grepDir = dirs.find((dir) => resolves(dir, "grep"));
+  if (!grepDir) throw new Error("tests/harness/stub.ts: no directory on PATH resolves grep");
+  if (resolves(grepDir, "bash")) return grepDir;
+  const bashDir = dirs.find((dir) => resolves(dir, "bash"));
+  if (!bashDir) throw new Error("tests/harness/stub.ts: no directory on PATH resolves bash");
+  return [grepDir, bashDir].join(path.delimiter);
 }

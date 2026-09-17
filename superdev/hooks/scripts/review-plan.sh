@@ -43,6 +43,16 @@
 # Failure policy: any parse miss / missing transcript -> allow (fail-open). We
 # prefer letting ExitPlanMode through over wrongly blocking the user when the hook
 # itself is broken. JSON is parsed with pure POSIX grep/sed (no jq).
+#
+# Reviewed-plan record: on the FINAL allow only - the W -> R -> S(PASS) sequence
+# satisfied and no post-approval tamper - the hook writes the sha256 of the plan
+# file's bytes, as one "<hex>\n" line, to the sidecar "<plan path>.sha256" beside
+# the plan (e.g. .claude/plans/foo.md.sha256). decompose.sh recomputes the digest
+# of the plan it is handed and refuses (exit 7) one that differs, so a plan edited
+# between this approval and the build is never decomposed as approved. The digest
+# comes from scripts/lib_sha256.sh (the one spelling both sides share). Every
+# early fail-open allow writes NO sidecar, and a failure here - no digest tool,
+# an unwritable directory - is swallowed: the decision stays "allow".
 
 set -u
 # NB: no `set -e` -- fail-open requires us to swallow non-zero exits.
@@ -338,4 +348,16 @@ if [ -n "$plan_base" ]; then
 fi
 
 # Sequence W -> R -> S(PASS) satisfied, no post-approval tamper -> allow.
+# Record the approved plan's digest beside it for decompose.sh (see the header);
+# every failure on this path is swallowed so the decision stays "allow".
+if [ -n "$plan_path" ] && [ -f "$plan_path" ]; then
+  lib_sha256="$(dirname "${BASH_SOURCE[0]}")/../../scripts/lib_sha256.sh"
+  if [ -f "$lib_sha256" ]; then
+    # shellcheck source=../../scripts/lib_sha256.sh
+    . "$lib_sha256" 2>/dev/null || true
+    if reviewed_digest="$(sha256_of "$plan_path" 2>/dev/null)" && [ -n "$reviewed_digest" ]; then
+      printf '%s\n' "$reviewed_digest" > "${plan_path}.sha256" 2>/dev/null || true
+    fi
+  fi
+fi
 emit_allow

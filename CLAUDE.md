@@ -94,14 +94,18 @@ mechanics against `.github/scripts/release.sh` before restating them.
   classifier matches a command's literal prefix, so any other form of the same call - a
   different prefix, an added flag, an interpreter wrapper - is a new, unapproved
   classification.
-- **Dispatch strength.** A plan task carries `Kind:`, `Model:`, `Effort:` and an optional
-  `Review:` marker in three literal states: no marker (the per-task reviewer's own frontmatter
-  default), `Review: <model> <effort>` (only the reviewer's `model` is passed), or literally
-  `Review: none` (the per-task reviewer is skipped entirely, straight to commit). An
-  orchestrator's dispatch passes only `model` on every call - the `Agent` tool takes no `effort`
-  parameter, so the agent's frontmatter decides. `Effort:` and a `Review:` marker's second token
-  are the planner's own signal for that frontmatter, never a dispatch parameter. Source:
-  `superdev/references/review-contract.md` `## Dispatch strength`.
+- **Dispatch strength.** A plan task carries `Kind:`, `Model:` and an optional `Review:` marker
+  in three literal states: no marker (the per-task reviewer's own frontmatter default),
+  `Review: <model>` (that model is passed), or literally `Review: none` (the per-task reviewer is
+  skipped entirely, straight to commit). An orchestrator's dispatch passes only `model` on every
+  call - the `Agent` tool takes no `effort` parameter, so the agent's frontmatter is the only
+  place an effort is set; the plan carries no effort marker, and a `Review:` second token left by
+  an older plan is never read. Source: `superdev/references/review-contract.md`
+  `## Dispatch strength`.
+- **Text is the product in THIS repo.** Skill, agent and reference markdown plus the JSON
+  manifests are production code here, so a superdev plan built on this repo never gives a
+  `Kind: text` task the default `Review: none`: the per-task reviewer runs on it (marker absent or
+  `Review: <model>`). This line is the host declaration `superplan` reads for that override.
 - **`allowed-tools` does NOT restrict the tool set** - it is a one-turn pre-approval only; every
   other tool stays callable and merely prompts the user if unlisted. A strictly read-only worker
   needs `disallowed-tools:` (bare names, never `Tool(pattern)`) PLUS a body line naming its only

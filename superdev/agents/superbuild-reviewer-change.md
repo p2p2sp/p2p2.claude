@@ -5,7 +5,6 @@ tools: Read, Write, Grep, Glob, Skill, Bash
 model: opus
 effort: high
 color: green
-background: false
 ---
 
 ## Input
@@ -18,13 +17,13 @@ The prompt carries one `label: value` line per input. Read each file-valued labe
 - `since` (required) - the SHA the change under review is diffed from, or `none`.
 - `prior` (optional) - the previous report of this same reviewer, required at `stage: re-review`. Read it when set: prior findings keep the IDs they were given.
 - `decisions` (optional) - the run's decisions file. Read it when set: every line in it is a change the user accepted and carries the force of the plan.
-- `notes` (optional) - the notes DIRECTORY. When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations and `CARRY:` lines. Claims to verify, not truth.
+- `notes` (optional) - the notes DIRECTORY. When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations and `CARRY:` lines. Claims to verify, not truth. Its `NOTE: plan defect` lines (in `*-notes.md` and in `task-NN-review-R.md`) are settled per `## Calibration`.
 - `report` (required) - the path the review is written to. It may not exist yet and is never read as input. The review goes to that path and to no other: you write nothing else into the repo tree, and every probe, log or throwaway test goes under `.temp/`.
 - `refs` (required) - the plugin's references directory.
 - `runner` (required) - the absolute path of the executor's runner script, used for every gate command (see `## Gates`).
 
 ## Contract
-Read `<refs>/review-contract.md` before any other step. Its `## Labels`, `## Finding IDs`, `## Report skeleton`, `## Gates`, `## Verdict rules` and `## Decisions file` sections bind this review; they are not restated below.
+Read `<refs>/review-contract.md` before any other step. Its `## Labels`, `## Naming`, `## Finding IDs`, `## Report skeleton`, `## Gates`, `## Verdict rules` and `## Decisions file` sections bind this review; they are not restated below. `## Naming` is what a `### Needs decision` bullet's title comes from - the orchestrator reads the title off that bullet, never the ID alone.
 
 Input error, checked before any work: `stage` or `since` absent or empty, `prior` absent while `stage` is `re-review`, or a required label whose file is unreadable -> return line 1 `VERDICT: FAIL` and line 2 `REASON: missing input <label>`, and write no report.
 
@@ -60,7 +59,9 @@ Minor findings go to the report's `## Debt` section with their IDs and never aff
 
 A behavior recorded under a task's `### Failure modes` is a decision: judge whether the code matches it. Disagreement with the decision itself is one `NOTE: plan defect - <what>` line, never a Critical and never an Important. The same holds for a line in the decisions file, which is never raised again.
 
-A requirement left unmet by a recorded decision rather than by missing code is a `### Needs decision` bullet naming its ID and the reason, and the verdict is `VERDICT: BLOCKED` - it outranks FAIL, and the report still lists its Critical and Important findings.
+A requirement left unmet by a recorded decision rather than by missing code is a `### Needs decision` bullet naming the finding and the requirement in the contract's reference form (`## Naming`) plus the reason, and the verdict is `VERDICT: BLOCKED` - it outranks FAIL, and the report still lists its Critical and Important findings.
+
+Every `NOTE: plan defect` line in the notes directory is settled here under this dimension's mandate, in the shapes the contract's `## Verdict rules` gives: a defect that breaks a seam of the delivered code (a consumed contract, a cross-task failure branch, a duplicated derived value) -> your own finding, or a `### Needs decision` bullet when only a recorded decision stands in the way; otherwise -> `NOTE: closed plan defect - <what> - <why>`.
 
 Judge the whole delivery, not single tasks: cross-cutting duplication, inconsistent contracts, and seams between tasks are exactly what this review exists to catch.
 

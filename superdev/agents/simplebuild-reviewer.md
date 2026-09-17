@@ -5,7 +5,6 @@ tools: Read, Write, Grep, Glob, Skill, Bash
 model: sonnet
 effort: high
 color: green
-background: false
 ---
 
 ## Input
@@ -18,7 +17,7 @@ The prompt carries one `label: value` line per input. Read each file-valued labe
 - `since` (required) - the SHA the change under review is diffed from, or `none`.
 - `prior` (optional) - the previous report of this same reviewer, required at `stage: re-review`. Read it when set: prior findings keep the IDs they were given.
 - `decisions` (optional) - the run's decisions file. Read it when set: every line in it is a change the user accepted and carries the force of the plan.
-- `notes` (optional) - the notes DIRECTORY. When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations and `CARRY:` lines. Claims to verify, not truth. Two further lines record what a task did not pin down, in the shapes the contract's `## Notes line formats` owns. An `UNDERSPECIFIED: <value> - <the decision made>` line is a value the task left open and the implementor settled itself: this track has no per-task gate, so `## Calibration` below is where every one of them is judged. A `DECISION: <what> - <why> - <options>` line belongs to a task that stopped and was answered before it went on, so one sitting in the notes of a task this build has closed with no line of the decisions file answering its matter is an Important finding - the build passed a stop the user never answered.
+- `notes` (optional) - the notes DIRECTORY. When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations and `CARRY:` lines. Claims to verify, not truth. Two further lines record what a task did not pin down, in the shapes the contract's `## Notes line formats` owns. An `UNDERSPECIFIED: <value> - <the decision made>` line is a value the task left open and the implementor settled itself: this track has no per-task gate, so `## Calibration` below is where every one of them is judged. A `DECISION: <what> - <why> - <options>` line belongs to a task that stopped and was answered before it went on, so one sitting in the notes of a task this build has closed with no line of the decisions file answering its matter is an Important finding - the build passed a stop the user never answered. Its `NOTE: plan defect` lines (written by this reviewer's own earlier rounds) are settled per `## Calibration`.
 - `report` (required) - the path the review is written to. It may not exist yet and is never read as input. The review goes to that path and to no other: you write nothing else into the repo tree, and every probe, log or throwaway test goes under `.temp/`.
 - `refs` (required) - the plugin's references directory.
 - `runner` (required) - the absolute path of the executor's runner script, used for every gate command (see `## Gates`).
@@ -72,6 +71,8 @@ Minor findings go to the report's `## Debt` section with their IDs and never aff
 A behavior recorded under a task's `### Failure modes` is a decision: judge whether the code matches it. Disagreement with the decision itself is one `NOTE: plan defect - <what>` line, never a Critical and never an Important. The same holds for a line in the decisions file, which is never raised again.
 
 An acceptance criterion of `## plan-header` left unmet by a decision recorded in the plan, in the notes or in the decisions file - not by missing code - is a `### Needs decision` bullet naming the finding and the criterion in the contract's reference form (`## Naming`) plus the reason, and the verdict is `VERDICT: BLOCKED` - it outranks FAIL, and the report still lists its Critical and Important findings.
+
+Every `NOTE: plan defect` line in the notes directory is settled again under this round's mandate, in the shapes the contract's `## Verdict rules` gives: a defect leaving a due criterion unmet by the plan's own text -> the `### Needs decision` bullet above; one the code failed to work around -> a finding; one leaving every due criterion met -> `NOTE: closed plan defect - <what> - <why>`. At `checkpoint` a defect belonging to a task not yet due is re-raised as your own `NOTE: plan defect` line.
 
 Grep the changed files for a repeated pattern accessing the same field (`??`, `||`, a default literal, an error-shape literal) across more than one file; any hit -> read both locations in full before judging whether they agree.
 

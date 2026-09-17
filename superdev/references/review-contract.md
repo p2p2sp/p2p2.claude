@@ -6,12 +6,19 @@ stop and the strength every dispatch runs at. It has one owner - this file - so 
 instead of restating them.
 
 Consumed by the three build reviewers (`agents/superbuild-reviewer-spec.md`,
-`agents/superbuild-reviewer-change.md`, `agents/simplebuild-reviewer.md`), the two task implementors
+`agents/superbuild-reviewer-change.md`, `agents/simplebuild-reviewer.md`), the per-task reviewer
+(`agents/superbuild-task-reviewer.md`), the two task implementors
 (`agents/superbuild-task-implementor.md`, `agents/simplebuild-task-implementor.md`) and the two
-orchestrators (`skills/superbuild`, `skills/simplebuild`) - each of them reads this file. The task
-reviewer (`agents/superbuild-task-reviewer.md`) is never handed a `refs:` label and never reads it:
-it carries its own reduced copy of the report skeleton and the ID scheme inline, for the one report
-shape its gate writes, and any change to those two sections here is mirrored there by hand.
+orchestrators (`skills/superbuild`, `skills/simplebuild`) - each of them reads this file, handed in
+on a `refs:` label. No consumer carries a copy of any section.
+
+The per-task gate (`agents/superbuild-task-reviewer.md`) is bound by a subset, named here once:
+`## Labels` (`refs`, `prior`, `decisions` and `report`), `## Naming`, `## Finding IDs`,
+`## Report skeleton` for the sections it writes, `## Verdict rules` for the one BLOCKED condition
+of `## Per-task gate`, `## Decisions file` and `## Notes line formats`. It writes `## Findings`
+(with `### Needs decision`), `## Notes` and `## Assessment` under the title line `# task review`,
+and never `## Gates`, `## Prior findings`, `## Decisions taken`, `## Debt` or a coverage table: it
+runs no gate command, raises no Minor and verdicts no earlier round.
 
 Stack-agnostic: every rule below refers only to the plan template's own sections (the header's
 `## Gate commands` block, `### Files`, `### Task Checks`, `### Contracts`, `### Failure modes`,
@@ -35,12 +42,17 @@ is pointed at, so pasted content only duplicates a file it could read and crowds
   decompose index. The value `none` (a build without git) means the review is unbounded over the
   working tree, stated in the report's gates section.
 - `prior: <path>` - the previous report of this same reviewer. Required for `stage: re-review` and
-  for any round that follows an earlier report; omitted only in the build's first review round.
+  for any round that follows an earlier report; omitted only in the build's first review round. On
+  the per-task gate it is the previous round's report of this same task (`task-NN-review-<R-1>.md`),
+  present from the task's second review round on, and read for two things only: the numbering its
+  own findings continue from, and the title of a finding still open, so that one is never raised
+  again under a new ID. It carries no verdict table and no re-review mandate there.
 - `decisions: <path>` - optional; the run's decisions file (see `## Decisions file`). Every line in
   it is an answer the user gave - a finding, a criterion change, a matter closed at an implementor
   stop - and carries the force of the plan.
 - `refs: <absolute path>` - the plugin's references directory, i.e. where this contract lives. An
-  agent reads `<refs>/review-contract.md` before acting. Required on every build reviewer call.
+  agent reads `<refs>/review-contract.md` before acting. Required on every build reviewer call and
+  on every per-task reviewer call.
 - `runner: <absolute path>` - the executor's runner script (`skills/executor/scripts/run.sh` under
   the plugin root), resolved by the orchestrator because an agent carries no `${CLAUDE_PLUGIN_ROOT}`.
   Every gate command of `## Gates` goes out as a direct `Bash` call to this path. Required on every
@@ -168,6 +180,12 @@ No `Strengths` section and no `Recommendations` section exists - praise and poli
 not part of a report. Two sections are owned rather than shared: the spec reviewer's coverage table,
 which it adds between the gates section and the prior findings section, and the final reviewer's
 `## Decisions taken` above. No consumer adds any other section.
+
+The per-task gate writes this same skeleton reduced to the sections it has something to say in -
+`# task review`, `## Findings`, `## Notes`, `## Assessment` - with `### Needs decision` inside
+`## Findings` on BLOCKED exactly as above. It writes a report only on FAIL and on BLOCKED, and on
+the notes-only PASS path it appends a `## Review notes` section to the task's notes file instead
+(`## Notes line formats`).
 
 ## Gates
 
@@ -312,6 +330,15 @@ At every stage:
   line is `VERDICT: BLOCKED` and the report still lists its Critical and Important findings.
 - A behaviour recorded under a task's `### Failure modes` is a decision. Disagreement with it is a
   `NOTE: plan defect - <what>` line in the notes section, never a Critical and never an Important.
+  The line is reserved for a plan defect that leaves every criterion the reviewer verdicts met; a
+  defect that leaves one unmet is the BLOCKED condition above, and where both readings hold,
+  BLOCKED wins and no note is written for it.
+- A build reviewer handed a `notes:` directory reads every `NOTE: plan defect` line in it - the
+  `## Review notes` sections of the `*-notes.md` files and the `## Notes` sections of the
+  `task-NN-review-R.md` reports the per-task gate wrote - and settles each one under its own
+  build-wide mandate: it becomes that reviewer's own finding or `### Needs decision` bullet where
+  its mandate raises it, or one `NOTE: closed plan defect - <what> - <why>` line in its report
+  otherwise. No such line is left unread, and none is copied forward as it stands.
 - A prior ID covered by a line in the decisions file is verdicted `ACCEPTED` in the prior findings
   table, is never raised again and never makes the verdict FAIL - the user closed it. A prior
   Critical or Important that is `NOT ADDRESSED` and has no such line makes the verdict FAIL, at
@@ -323,10 +350,47 @@ Return channel to the orchestrator - the only channel, the report itself stays o
 - line 1: `VERDICT: PASS`, `VERDICT: FAIL` or `VERDICT: BLOCKED`
 - line 2, on FAIL and on BLOCKED: `REVIEW: <report path>`
 
+## Per-task gate
+
+The Super track's per-task reviewer judges one task's diff against that task's own text, and its
+one BLOCKED condition is the same rule as above, narrowed to what it can see: a criterion under the
+task's `### Covered criteria` that stays unmet while the diff matches the task's text - the plan
+described too little, described the wrong thing, or recorded a behaviour under `### Failure modes`
+or `### Contracts` that makes the criterion unreachable - and that no line in the decisions file
+already covers. Missing or wrong code against text that would have met the criterion is a Critical,
+never BLOCKED.
+
+The report carries one `### Needs decision` bullet per such criterion, in the shape of
+`## Report skeleton`: the finding as `` `<title>` (<ID>) `` with an ID from the Critical class, the
+criterion as `` `<title>` (criterion N) ``, and why no code change clears it. The return is
+`VERDICT: BLOCKED` plus `REVIEW: <report path>`; BLOCKED outranks FAIL here as everywhere.
+
+What the orchestrator does with it - no implementor runs first:
+
+1. one `AskUserQuestion` per `### Needs decision` bullet, naming the finding and the criterion in
+   the reference form, with three answers: **accept as is** - the gap stays and the task goes on;
+   **fix the plan** - the user dictates the rule the task follows instead, in their own words;
+   **abort**.
+2. either of the first two is recorded through `scripts/record-decision.sh`, `<id>` the bullet's
+   ID, `<subject>` the criterion in the reference form, `<accepted-text>` the words the user gave -
+   for **accept as is** what was accepted, for **fix the plan** the rule dictated. The plan file is
+   never edited: the decisions file is where a plan correction lives, and it binds every later
+   dispatch of the build that reads `decisions:`.
+3. **accept as is** on every bullet -> the same reviewer call again with the same `report:` path
+   and `decisions:` added. That re-run is not a review round.
+   **fix the plan** on any bullet -> the task's implementor call again - the same `task:`, the same
+   `model:` or absence of one, the same `notes:` - with `decisions:` added, exactly as an
+   implementor-stop re-dispatch: it continues from the working tree as it stands and applies the
+   dictated rule. Its `VERDICT: PASS` is followed by the reviewer with the next `R` and `decisions:`
+   set. Neither dispatch counts toward the task's review rounds.
+4. a BLOCKED coming back from either re-run is a new matter and takes these same steps; a bullet the
+   decisions file already covers is never asked again.
+
 ## Decisions file
 
 `<workdir>/implementation/decisions.md`. One line per answer the user gave: a finding or criterion
-change accepted at a BLOCKED verdict, a finding accepted when closing a review round with findings
+change accepted at a BLOCKED verdict of a build round or of the per-task gate (`## Per-task gate`),
+a plan rule the user dictated there, a finding accepted when closing a review round with findings
 still open, or the answer to an implementor stop (`## Implementor stop`), whose `<ID>` is that
 stop's `D<n>`:
 
@@ -357,8 +421,9 @@ writing.
   `exit <n>` when it printed none. A `### Task Checks` section reading `none - <reason>` yields the
   single line `none - <reason>` instead.
 - `## Review notes` - a section a per-task reviewer appends when it holds the task and raised notes
-  and nothing else: one `NOTE: <what>` line per note, and no report file of its own. The writing
-  tool truncates, so the reviewer reads the file and writes it back with this section appended.
+  and nothing else: one `NOTE: <what>` line per note, `NOTE: plan defect - <what>` among them, and
+  no report file of its own. The writing tool truncates, so the reviewer reads the file and writes
+  it back with this section appended. The build reviewers read these lines (`## Verdict rules`).
 - `touched: <repo-relative path>` - one per file changed outside the task's `### Files`, and in fix
   mode one per file changed at all. Consumed by `commit-task.sh --notes` as the declared set. The
   line is machine-read and carries the path alone - no backticks, no reason - with the reason on
@@ -447,16 +512,17 @@ again, never asked of the user a second time, and never reopened as a deviation.
 
 One scale: `opus` over `sonnet`. "Highest" below means the first of these that appears in the set
 being compared. The `Agent` tool takes no `effort` parameter: no `effort` parameter is passed on
-any dispatch; the agent's frontmatter decides its effort. `Effort:` in the plan and the `<effort>`
-token in a task's `Review:` marker are the planner's own signal for that frontmatter, never a
-dispatch parameter. Passing no `model` parameter is not a level on the scale either: it hands the
-choice to the dispatched worker's own frontmatter.
+any dispatch, and the plan carries no effort marker - the dispatched agent's own frontmatter is
+the only place an effort is set. A plan task's `Model:` is the whole of what the planner decides
+about its implementor's strength. Passing no `model` parameter is not a level on the scale either:
+it hands the choice to the dispatched worker's own frontmatter.
 
 Three states of a Super-track task's `Review:` marker:
 
 - no marker - the per-task reviewer is dispatched with no `model` parameter at all.
-- `Review: <model> <effort>` - the per-task reviewer is dispatched with `model` set to the
-  marker's first token; its second token is never passed.
+- `Review: <model>` - the per-task reviewer is dispatched with `model` set to the marker's first
+  token. A plan written before the effort marker was retired may carry a second token there; it is
+  never passed and never read.
 - `Review: none` - the per-task reviewer is not dispatched at all. The task goes from the
   implementor's `VERDICT: PASS` straight to commit, with no substitute check standing in for the
   review, and its notes are handed to the `notes:` label of the next round exactly like any other

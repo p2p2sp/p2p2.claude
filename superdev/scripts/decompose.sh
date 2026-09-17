@@ -21,6 +21,21 @@
 # (a spec named relative to the cwd is then "spec file not found", exit 4).
 # Outside a repository the cwd stays put and paths resolve against it, as before.
 #
+# Reviewed-plan guard (before anything is created): the ExitPlanMode hook
+# (hooks/scripts/review-plan.sh) records the sha256 of the plan it approved
+# as one "<hex>" line in the sidecar "<plan-file>.sha256" beside the plan.
+# This script recomputes the digest of the plan it is handed through
+# scripts/lib_sha256.sh and compares:
+#   - sidecar present, digests equal   -> silent, continue
+#   - sidecar present, digests differ  -> stderr "error: plan differs from the
+#     reviewed plan (<sidecar>) - re-run the plan reviewer and ExitPlanMode",
+#     exit 7, nothing created on disk
+#   - sidecar present, no digest tool  -> stderr "warning: cannot compute
+#     sha256 - reviewed-plan check skipped", continue
+#   - sidecar absent                   -> stderr "warning: no reviewed hash
+#     beside the plan (<sidecar> absent) - decomposing an unverified plan",
+#     continue (a plan that never went through the hook is still buildable)
+#
 # Działanie:
 #   - katalog roboczy: gdy linia "Intent:" planu (albo, w jej braku, "Spec:")
 #     wskazuje na plik już leżący pod docs/.workflows/, ADOPTOWANY jako katalog
@@ -86,16 +101,18 @@
 #       plan: <ścieżka>
 #       spec: <ścieżka>          (tylko gdy plan ma linię "Spec:")
 #       intent: <path>   (only when the plan has an Intent: line naming an existing file)
-#       <task-path><TAB><title><TAB><model><TAB><effort><TAB><review>
-#     model / effort / review come verbatim from the task's own "- Model:" /
-#     "- Effort:" / "- Review:" marker lines (the plan template's per-task
-#     build-strength markers, the last of them the strength that task's own
-#     reviewer runs at, optional on both tracks); a task carrying no such
-#     marker prints "-" in that column, and the orchestrator then passes
-#     nothing, so the frontmatter default of the dispatched agent applies (the
-#     implementor for model / effort, the per-task reviewer for review). The
-#     script never validates the values - the plan reviewer owns that
-#     (checklist class B6)
+#       <task-path><TAB><title><TAB><model><TAB><review>
+#     model / review come verbatim from the task's own "- Model:" /
+#     "- Review:" marker lines (the plan template's per-task build-strength
+#     markers, the second the strength that task's own reviewer runs at,
+#     optional on both tracks); a task carrying no such marker prints "-" in
+#     that column, and the orchestrator then passes nothing, so the
+#     frontmatter default of the dispatched agent applies (the implementor
+#     for model, the per-task reviewer for review). There is NO effort
+#     column: the Agent tool takes no effort parameter, so a "- Effort:" line
+#     a plan still carries is ordinary body text copied into the task file
+#     and never indexed. The script never validates the values - the plan
+#     reviewer owns that (checklist class B6)
 #   - commituje dekompozycję (git add -A -- <katalog roboczy> + commit)
 #     komunikatem
 #     "chore(<commit-prefix>): decompose plan <slug>"; w indeksie ląduje
@@ -130,6 +147,28 @@ fi
 # cwd stays put and every derived path resolves against it, exactly as before.
 plan_dir="$(CDPATH= cd -- "$(dirname -- "$plan")" && pwd)"
 plan="${plan_dir%/}/$(basename -- "$plan")"
+
+# --- reviewed-plan guard ---
+# The sidecar sits beside the plan, so this runs on the absolute plan path and
+# BEFORE the repository-root cd and before anything is created: a refusal
+# leaves no trace on disk. See the header for the four outcomes.
+# shellcheck source=lib_sha256.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib_sha256.sh"
+reviewed_sidecar="${plan}.sha256"
+if [[ -f "$reviewed_sidecar" ]]; then
+  reviewed_digest="$(head -n1 -- "$reviewed_sidecar" 2>/dev/null || true)"
+  reviewed_digest="${reviewed_digest%%[[:space:]]*}"
+  if actual_digest="$(sha256_of "$plan")"; then
+    if [[ "$actual_digest" != "$reviewed_digest" ]]; then
+      echo "error: plan differs from the reviewed plan ($reviewed_sidecar) - re-run the plan reviewer and ExitPlanMode" >&2
+      exit 7
+    fi
+  else
+    echo "warning: cannot compute sha256 - reviewed-plan check skipped" >&2
+  fi
+else
+  echo "warning: no reviewed hash beside the plan ($reviewed_sidecar absent) - decomposing an unverified plan" >&2
+fi
 
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 if [[ -n "$repo_root" && -d "$repo_root" ]]; then
@@ -369,11 +408,10 @@ awk -v dir="$dir" -v hdr="$header" '
         t=$0; sub(/^##[[:space:]]*/, "", t); title[n]=t
       }
     }
-    # per-task build-strength markers: first "- Model:" / "- Effort:" /
-    # "- Review:" line wins; value trimmed, passed through verbatim (validity
-    # belongs to the plan reviewer)
+    # per-task build-strength markers: first "- Model:" / "- Review:" line
+    # wins; value trimmed, passed through verbatim (validity belongs to the
+    # plan reviewer). No "- Effort:" capture: that line is body text only.
     if (model[n] == "" && $0 ~ /^-[[:space:]]*Model:/) { m=$0; sub(/^-[[:space:]]*Model:[[:space:]]*/, "", m); sub(/[[:space:]]+$/, "", m); model[n]=m }
-    if (effort[n] == "" && $0 ~ /^-[[:space:]]*Effort:/) { e=$0; sub(/^-[[:space:]]*Effort:[[:space:]]*/, "", e); sub(/[[:space:]]+$/, "", e); effort[n]=e }
     if (review[n] == "" && $0 ~ /^-[[:space:]]*Review:/) { r=$0; sub(/^-[[:space:]]*Review:[[:space:]]*/, "", r); sub(/[[:space:]]+$/, "", r); review[n]=r }
     next
   }
@@ -391,7 +429,7 @@ awk -v dir="$dir" -v hdr="$header" '
       }
     }
     if (headless) exit 6
-    for (i = 1; i <= n; i++) printf "%s\t%s\t%s\t%s\t%s\n", files[i], title[i], (model[i] == "" ? "-" : model[i]), (effort[i] == "" ? "-" : effort[i]), (review[i] == "" ? "-" : review[i])
+    for (i = 1; i <= n; i++) printf "%s\t%s\t%s\t%s\n", files[i], title[i], (model[i] == "" ? "-" : model[i]), (review[i] == "" ? "-" : review[i])
   }
 ' "$plan"
 

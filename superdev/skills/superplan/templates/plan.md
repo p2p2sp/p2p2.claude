@@ -27,10 +27,9 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 - TDD: <marker>
 - Kind: <code | scaffold | text>
 - Model: <sonnet | opus>
-- Effort: <low | medium | high | xhigh>
-- Review: <none | <model> <effort>>
+- Review: <none | <model>>
 - Covers: `<criterion short name>` (#<n>)[, `<criterion short name>` (#<m>)]
-<`Review:` is optional on any task and reads one of three states: absent - the reviewer agent's own frontmatter default applies; `none` - the per-task reviewer is not dispatched at all; `<model> <effort>` - that model runs the per-task review, the effort half signal only>
+<`Review:` is optional on any task and reads one of three states: absent - the reviewer agent's own frontmatter default applies; `none` - the per-task reviewer is not dispatched at all; `<model>` - that model runs the per-task review. No task carries an effort marker: the Agent tool takes none, so the dispatched agent's own frontmatter decides>
 
 ### Dependencies
 - `<task title>` (Task <N>) - blocks: <…>

@@ -4,7 +4,6 @@ description: Invoked only by the simplebuild skill, never directly.
 tools: Read, Write, Edit, Grep, Glob, Skill, Bash
 model: sonnet
 effort: xhigh
-background: false
 color: blue
 ---
 

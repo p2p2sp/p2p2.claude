@@ -61,17 +61,18 @@ track for one-sentence changes.
 4. **Approve the plan.** A forked reviewer must return `VERDICT: PASS` before `ExitPlanMode` is even allowed;
    then you approve it yourself.
 5. **The build runs task by task.** The orchestrator (`simplebuild` / `superbuild`) decomposes the plan into
-   `docs/.workflows/<run>/tasks/task-NN.md`, runs an implementor agent per task at the model the plan assigned to
-   that task (`Model:` marker - the `Agent` tool takes no `effort` parameter, so the agent's own frontmatter
-   decides effort; `Effort:` stays the planner's own signal for that frontmatter), and commits each task on its
-   own, staging only the files that task and its notes declared. Each task also carries a `Kind: code | scaffold |
+   `docs/.workflows/<run>/tasks/task-NN.md` - refusing a plan file that differs from the one the reviewer
+   approved (the `ExitPlanMode` gate records the approved plan's sha256 beside it) - runs an implementor agent
+   per task at the model the plan assigned to that task (`Model:` marker - the `Agent` tool takes no `effort`
+   parameter, so the agent's own frontmatter decides effort and the plan carries no effort marker), and commits
+   each task on its own, staging only the files that task and its notes declared. Each task also carries a `Kind: code | scaffold |
    text` marker the planner reads off its own `### Task Checks` evidence - a test-file line is `code`, a tool
    command with no test file is `scaffold`, anything else is `text` - and `scaffold` / `text` tasks default to
-   `sonnet` with no per-task reviewer. An implementor runs that task's own `### Task Checks` and nothing else - the
+   `sonnet` with no per-task reviewer, unless your memory files declare that text is your product, in which case
+   a `text` task keeps its reviewer. An implementor runs that task's own `### Task Checks` and nothing else - the
    whole-build gate belongs to the review rounds. On the Super track a `code` task's `Review:` marker carries three
    literal states: no marker dispatches the reviewer at its own `sonnet` / `high` frontmatter default,
-   `Review: <model> <effort>` passes only `<model>` to the dispatch (the second token, like `Effort:`, is the
-   planner's own signal, never a dispatch parameter), and literally `Review: none` skips the per-task reviewer
+   `Review: <model>` passes that model to the dispatch, and literally `Review: none` skips the per-task reviewer
    entirely - the task goes from the implementor's `VERDICT: PASS` straight to commit, with no substitute check
    standing in for the review. Where it runs, the reviewer's **failure pass** interrogates the task's own diff:
    each new `catch` or fallback
@@ -83,7 +84,11 @@ track for one-sentence changes.
    decision made>`, judged at the per-task gate and listed at the final review's `## Decisions taken` section;
    no defensible answer is a hard stop, `DECISION: <what> - <why> - <options>` plus a `VERDICT: BLOCKED` return,
    and the orchestrator asks you one question per line, records your answer to `implementation/decisions.md`,
-   and re-dispatches the same task or fix with it.
+   and re-dispatches the same task or fix with it. The per-task reviewer has a stop of its own: a criterion the
+   task covers that the plan's own text left unreachable comes back as `VERDICT: BLOCKED`, and you decide per
+   criterion - accept the gap as is, dictate the rule the task follows instead (recorded to
+   `implementation/decisions.md`, then built and re-reviewed), or abort. A plan defect that leaves the task's
+   criteria met stays a `NOTE: plan defect` line, which the build reviewers read and settle.
 6. **Reviews run in rounds, each on a small delta.** Every round first runs the `## Gate commands` block the
    plan carries above its first task - the whole build's gate: `#### Build` and `#### Tests` at a checkpoint,
    plus `#### Integration` at the final round and its re-review - and only then reads code. `#### Build` and
@@ -191,11 +196,11 @@ never called by hand.
 | `superspec` | Writes the `What & Why` spec (INVEST stories, max 3 acceptance criteria each, zero TBDs) to `docs/.workflows/<run>/spec.md`, then gates on continuing to the plan. |
 | `superspec-reviewer` | Fork - spec review; no handoff without `VERDICT: PASS`. |
 | `superspec-refine` | Evolves an existing spec instead of writing a new one. |
-| `superplan` | Writes the plan (`How`) from the approved spec, marking each task `TDD: required` or `TDD: none`, a `Kind: code \| scaffold \| text` axis read off its own `### Task Checks` evidence, and a build strength - `Model:` (`sonnet` / `opus`) and `Effort:` (`low` … `xhigh`) - read off the reasoning the task demands, never off its line count; `Effort:` and a `Review:` marker's second token are the planner's own signal for a dispatched agent's frontmatter, since the `Agent` tool takes no `effort` parameter. The optional `Review:` marker sets that task's reviewer strength in three literal states: absent (the reviewer's own `sonnet` / `high` default), `<model> <effort>` (only `<model>` passed), or literally `Review: none` (the per-task reviewer skipped entirely - the default for `scaffold` and `text` tasks). The header's `## Gate commands` block is the whole build's gate, every task carries `### Task Checks` holding only its own proof, and a `TDD: required` task owns exactly one test file. |
+| `superplan` | Writes the plan (`How`) from the approved spec, marking each task `TDD: required` or `TDD: none`, a `Kind: code \| scaffold \| text` axis read off its own `### Task Checks` evidence, and a build strength - `Model:` (`sonnet` / `opus`) - read off the reasoning the task demands, never off its line count; there is no effort marker, since the `Agent` tool takes no `effort` parameter and the dispatched agent's own frontmatter is the only place an effort is set. The optional `Review:` marker sets that task's reviewer strength in three literal states: absent (the reviewer's own `sonnet` / `high` default), `<model>` (that model passed), or literally `Review: none` (the per-task reviewer skipped entirely - the default for `scaffold` and `text` tasks, unless the host's memory files declare text as its product). The header's `## Gate commands` block is the whole build's gate, every task carries `### Task Checks` holding only its own proof, and a `TDD: required` task owns exactly one test file. |
 | `superplan-reviewer` | Fork - checks the plan against the spec and the repo; `needs-discovery` routes back to `intent` rather than looping. |
 | `superbuild` | Sonnet orchestrator - decomposes the approved plan (requires a `spec:` line, otherwise the plan belongs to `simplebuild`), drives the task loop, runs the checkpoint and final review rounds; writes no file itself and escalates every interruption to you. |
 | `superdev:superbuild-task-implementor` | Agent - implements one task; on `TDD: required` it goes test-first and must see RED; runs the task's `### Task Checks` lines directly with `Bash` (up to 5 rounds), never the plan's gate and never the full suite, and records every run under `## Runs` in its notes; dispatched with the `Agent` tool at the task's `Model:` marker - the tool takes no `effort` parameter, so the agent's own frontmatter (default `opus` / `xhigh`) supplies it. In fix mode it works a review report: every Critical and Important ID, each proven by a test that failed before the fix, and one `touched:` line per file it changed. |
-| `superdev:superbuild-task-reviewer` | Agent - reviews every single task and runs the failure pass over its diff; `FAIL` sends the implementor back (max 3 rounds per task); dispatched with the `Agent` tool at the task's `Review:` marker in three literal states - no marker uses the reviewer's own frontmatter default (`sonnet` / `high`), `Review: <model> <effort>` passes only `<model>` to the dispatch, and literally `Review: none` skips the dispatch entirely, sending the task from the implementor's `VERDICT: PASS` straight to commit. It holds the task instead when it has only notes to add, appending them as `## Review notes` and writing no report. Behaviour the task's `### Failure modes` recorded is a decision - disagreeing with it is a `NOTE: plan defect` line, never a finding. |
+| `superdev:superbuild-task-reviewer` | Agent - reviews every single task and runs the failure pass over its diff; `FAIL` sends the implementor back (max 3 rounds per task); `BLOCKED` stops the task on a covered criterion the plan's own text left unreachable and hands you the choice (accept as is / fix the plan / abort); dispatched with the `Agent` tool at the task's `Review:` marker in three literal states - no marker uses the reviewer's own frontmatter default (`sonnet` / `high`), `Review: <model>` passes that model to the dispatch, and literally `Review: none` skips the dispatch entirely, sending the task from the implementor's `VERDICT: PASS` straight to commit. It reads the shared review contract through `refs:` and the previous round's report through `prior:`, so finding IDs stay unique across a task's rounds. It holds the task instead when it has only notes to add, appending them as `## Review notes` and writing no report. Behaviour the task's `### Failure modes` recorded is a decision - disagreeing with it while the task's criteria stay met is a `NOTE: plan defect` line, never a finding. |
 | `superdev:superbuild-reviewer-spec` | Agent - final review of the whole change against the spec, one verdict per acceptance criterion; runs the plan's `## Gate commands` block for its stage before reading any code and returns `BLOCKED` when a criterion is unmet by decision rather than by missing code. It owns the report's coverage table and its `## Decisions taken` section. Dispatched with the `Agent` tool at no `model:` parameter, so its own frontmatter (`sonnet` / `high`) decides. |
 | `superdev:superbuild-reviewer-change` | Agent - the Super track's code reviewer, run as the checkpoint every 5 committed tasks, as the final integration round over the whole build, and as the re-review after a fix (`stage: checkpoint\|final\|re-review`, plus `since:`, `prior:`, `decisions:`, `refs:` and `runner:`); dispatched with the `Agent` tool at no `model:` parameter, so its own frontmatter (`opus` / `high`) decides. Returns `PASS`, `FAIL` or `BLOCKED` and one report per round. At the final round it and the spec dimension go out as two `Agent` calls in ONE message and run concurrently - neither reads the other's report. |
 

@@ -6,8 +6,8 @@ self-check should pass review.
 
 Stack-agnostic: every class below refers only to the plan template's own sections
 (`## Gate commands`, `### Files`, `### Dependencies`, `### Task Checks`, `### Approach`,
-`### Failure modes`, `### Contracts`, `### DoD`, `TDD:`, `Kind:`, `Model:`, `Effort:`,
-`Review:`, `Covers:`) - never to a specific ecosystem's tools.
+`### Failure modes`, `### Contracts`, `### DoD`, `TDD:`, `Kind:`, `Model:`, `Review:`,
+`Covers:`) - never to a specific ecosystem's tools.
 
 ## Evidence rule
 
@@ -15,7 +15,7 @@ A reviewer verifies with Read/Grep/Glob ONLY and never executes a command - no b
 `git`, no shell of any kind. Path existence -> Glob; a symbol's or a command's presence in a file ->
 Grep; content -> Read.
 
-A Blocking finding must cite its class ID (B1-B22) plus concrete evidence gathered that way - quote
+A Blocking finding must cite its class ID (B1-B23) plus concrete evidence gathered that way - quote
 the file, path, or command checked. A suspicion that cannot be verified with Read/Grep/Glob is not
 Blocking: demote it to NOTES, phrased as a question.
 
@@ -44,16 +44,16 @@ evidence (see Evidence rule).
   orders a task before one it depends on.
 - B5 - Leftover placeholder: a TODO, an unfilled `<placeholder>` template token, or a mandatory
   template section left empty survives in the submitted plan.
-- B6 - Missing or invalid task marker: the template requires `TDD:`, `Kind:`, `Model:` and
-  `Effort:` on every task; one is absent, or carries a value outside its allowed set (`TDD:`
-  `required` | `none`; `Kind:` `code` | `scaffold` | `text`; `Model:` `sonnet` | `opus`;
-  `Effort:` `low` | `medium` | `high` | `xhigh`), or a `TDD: required` task is marked
-  `Model: sonnet`. `Review:` is optional on a task of either track and never required, but where
-  present it reads either `none` - the per-task reviewer is not dispatched at all - or one
-  `Model:` value followed by one `Effort:` value from those same two sets; every other spelling of
-  that skip (`None`, `skip`, `-`, an empty value) is B6. Settled by reading the task's marker
-  lines alone - what a task runs as its own proof is B17, and whether its `Kind:` matches that
-  proof is B22, not this.
+- B6 - Missing or invalid task marker: the template requires `TDD:`, `Kind:` and `Model:` on
+  every task; one is absent, or carries a value outside its allowed set (`TDD:` `required` |
+  `none`; `Kind:` `code` | `scaffold` | `text`; `Model:` `sonnet` | `opus`), or a
+  `TDD: required` task is marked `Model: sonnet`. `Review:` is optional on a task of either track
+  and never required, but where present it reads either `none` - the per-task reviewer is not
+  dispatched at all - or one `Model:` value; every other spelling of that skip (`None`, `skip`,
+  `-`, an empty value) is B6. An `Effort:` line is not a marker: the `Agent` tool takes no effort
+  parameter and no consumer reads one, so a task carrying it is neither required to nor flagged
+  for it. Settled by reading the task's marker lines alone - what a task runs as its own proof is
+  B17, and whether its `Kind:` matches that proof is B22, not this.
 - B7 - Undecidable step: an implementer cannot execute a step without a decision that is absent
   from the plan. Report B7 under BLOCKED, never under FINDINGS - it needs a decision, not a fix
   the reviewer can point at.
@@ -143,16 +143,29 @@ evidence (see Evidence rule).
 
   Settled by reading the task's `Kind:` and `TDD:` marker lines against its `### Task Checks`
   section.
+- B23 - Gate over an outside value written as a deny-list: the validation rule B12 requires for a
+  value from outside the process - under `### Contracts` or `### Failure modes` - is written as an
+  enumeration of what is rejected (a list of forbidden characters, patterns, prefixes, names or
+  shapes) rather than as the closed set of what is accepted (a grammar, a whitelist, a fixed
+  vocabulary, a bounded range). A deny-list is a plan that leaks by construction: every form the
+  author did not think of passes, and the build discovers them one review round at a time. The
+  plan defines the accepted set and treats everything outside it as rejected; the same rule read
+  as "accept these, reject the rest" is not B23. Settled by reading the rule's own wording in the
+  task that consumes the value.
 
 ## Advisory (NOTES)
 
-Everything real but not in B1-B22: wording, phrasing, style preferences, task-split preference
+Everything real but not in B1-B23: wording, phrasing, style preferences, task-split preference
 (one task vs. two), optional hardening not required by any acceptance criterion, "nice to have"
 suggestions, a `Model:` or `Review:` that reads too low for what the task's `### Approach` has to
 reason about (an algorithm, a state machine, a contract other tasks consume, a hard-to-undo
 change), and a `scaffold` or `text` task carrying `Model: opus` or a per-task reviewer that its
 `### Approach` gives no reason for - strength that reads too low or too high is named here and
-never Blocking, and where it is too low the author rounds up, never down.
+never Blocking, and where it is too low the author rounds up, never down. One exception to that
+last item: a host whose memory files (`CLAUDE.md`, `.claude/rules/`) declare that text is its
+product - prompts, skill files, documentation shipped as the deliverable - has given every `text`
+task its reason for a per-task reviewer, so a `Review:` marker on such a task is never noted and a
+`Review: none` on it is what the note names instead.
 These never block - they ride along as NOTES on a PASS.
 
 Three named items ride here too, each real but never Blocking:
@@ -201,10 +214,9 @@ Before submitting a plan for review, verify in the repo:
   `none - <reason>` whose reason the repo does not contradict.
 - The two-way mapping holds: every acceptance criterion is covered by at least one task, and every
   task covers at least one criterion or is traceable to the Goal/spec.
-- Every task carries `TDD:`, `Kind:`, `Model:` and `Effort:` with values from their allowed sets,
-  no `TDD: required` task sits on `Model: sonnet`, and a `Review:` marker, where present, reads
-  either `none` or one `Model:` value followed by one `Effort:` value from those same sets - no
-  other spelling of the skip.
+- Every task carries `TDD:`, `Kind:` and `Model:` with values from their allowed sets, no
+  `TDD: required` task sits on `Model: sonnet`, and a `Review:` marker, where present, reads
+  either `none` or one `Model:` value - no other spelling of the skip.
 - Every task's `Kind:` is the kind B22's table derives from that task's own `### Task Checks`, and
   no `text` or `scaffold` task carries `TDD: required`.
 - Every task carries a `### Task Checks` section: a `TDD: required` task carries exactly one line
@@ -217,7 +229,8 @@ Before submitting a plan for review, verify in the repo:
   name to find them).
 - Every change of the response mechanism carries its method-and-status matrix under `### Contracts`.
 - Every external value entering a path, query, command or routing decision carries its validation
-  rule under `### Contracts` or `### Failure modes`.
+  rule under `### Contracts` or `### Failure modes`, written as the closed set of what is accepted,
+  never as a list of what is rejected.
 - Every planned test can fail before the change it proves.
 - Every contract another task consumes names that task (`` consumed by `<task title>` (Task <N>) ``),
   and no value the plan produces is left unconsumed.

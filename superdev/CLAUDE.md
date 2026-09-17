@@ -21,7 +21,11 @@ covers what is true across the whole plugin.
 
 - The ONLY plugin in the repo that ships `hooks/` and an injected manifest. One `SessionStart`
   hook force-injects `hooks/content/manifest.md` verbatim once per session; `source == "resume"`
-  is excluded; fail-open (unreadable manifest = banner only).
+  is excluded; fail-open (unreadable manifest = banner only). The other hook, `PreToolUse` on
+  `ExitPlanMode` (`hooks/scripts/review-plan.sh`), gates the plan on the reviewer's
+  `VERDICT: PASS` and, on its final allow, records the approved plan's sha256 beside the plan as
+  `<plan>.sha256`; `scripts/decompose.sh` recomputes it and refuses (exit 7) a plan that differs
+  from the one approved, warns and continues when no sidecar exists. Both hooks stay fail-open.
 - Plugin-level shared scripts live at `superdev/scripts/`, shared references at
   `superdev/references/` - no `shared/` subdir (that is supergh's convention).
 - `superdev/references/review-contract.md` is the single owner of the build review loop's
@@ -61,12 +65,14 @@ covers what is true across the whole plugin.
 - `checkpoint-update.sh`, `status-update.sh` - update run/task status files during a build.
 - `cleanup-run.sh` - removes a completed run's `docs/.workflows/<run>/` dir when `cleanup: true`.
 - `commit-task.sh` - the per-task commit step used by both build orchestrators.
-- `decompose.sh` - renders a plan's task index (incl. `Model:`/`Effort:`/`Review:` columns);
-  `Effort:` is rendered only - the `Agent` tool takes no `effort` parameter, so it is never
-  applied at dispatch.
+- `decompose.sh` - renders a plan's task index (`<task-file>\t<title>\t<model>\t<review>`, four
+  columns - no effort column, the plan carries no such marker); checks the plan against the
+  `<plan>.sha256` sidecar the `ExitPlanMode` hook wrote (mismatch = exit 7, absent = warning).
 - `last-commit-date.sh` - resolves the last-commit boundary a checkpoint review reads since.
 - `lib_find_excludes.sh`, `lib_touched.sh` - shared helpers for scoping a diff/review to touched
   paths.
+- `lib_sha256.sh` - `sha256_of <file>` through `sha256sum` / `shasum -a 256` / `openssl`, sourced
+  by `decompose.sh` and by `hooks/scripts/review-plan.sh`; no tool available = prints nothing.
 - `phases-status.sh` - computes phase status for resuming a `phases <phases.md>` run.
 - `read-config.sh` - resolves `.claude/superdev.yml` switches (see above).
 - `record-decision.sh` - persists an accepted BLOCKED/decision wording to

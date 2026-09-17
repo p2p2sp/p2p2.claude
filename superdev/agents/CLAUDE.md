@@ -19,8 +19,15 @@ the user - a change here means checking the agent's own `description:` still say
   pre-axis plan) is treated as `code`. Detail lives in the agents' own bodies, never here.
 - `superbuild-task-reviewer.md` - dispatched by `superbuild` after each implementor run, at that
   task's `Review:` marker in three states: no marker uses the reviewer's own frontmatter
-  default, `Review: <model> <effort>` passes only `<model>`, and literally `Review: none` skips
-  the dispatch entirely; where it runs, it runs a failure pass over the task's diff.
+  default, `Review: <model>` passes that model, and literally `Review: none` skips the dispatch
+  entirely; where it runs, it runs a failure pass over the task's diff. It reads the review
+  contract through `refs:` like every other reviewer (no inline copy of the skeleton or the ID
+  scheme any more), takes `prior:` for finding-ID continuity across a task's rounds, and returns
+  `VERDICT: BLOCKED` when a criterion under the task's `### Covered criteria` is left unmet by the
+  plan's own text - the contract's `## Per-task gate` owns that protocol and `superbuild`'s
+  `### Task gate blocked` runs it (accept as is / fix the plan through `record-decision.sh` /
+  abort). `NOTE: plan defect` is now reserved for a defect that leaves every covered criterion
+  met; the three build reviewers read those lines from the notes directory and settle them.
 - `superbuild-reviewer-spec.md`, `superbuild-reviewer-change.md` - the Super track's two build
   review dimensions, dispatched by `superbuild` under the shared stage contract
   (`stage: checkpoint|final|re-review`). The code dimension runs the checkpoint round every 5
@@ -45,8 +52,15 @@ the user - a change here means checking the agent's own `description:` still say
 - The hard tool allowlist for an agent is its `tools:` frontmatter field (the agent-side
   equivalent of a skill's `disallowed-tools`).
 - Agents are dispatched with the `Agent` tool; the per-call `model` is honored, but the tool
-  takes no `effort` parameter at all - the agent's frontmatter decides. In fix mode, on a
-  re-dispatch against a review report, both task agents run with no `model` parameter set.
+  takes no `effort` parameter at all - the agent's frontmatter decides, and since the plan no
+  longer carries an effort marker, that frontmatter is the ONLY place an effort is set. In fix
+  mode, on a re-dispatch against a review report, both task agents run with no `model` parameter
+  set.
+- Fork mode: every `Agent` dispatch runs in the background and its result arrives as a task
+  notification, whether the orchestrator awaits one worker or a concurrent pair. The frontmatter
+  field `background:` therefore decides nothing and no agent carries it; the seven that carried
+  `background: false` had it removed. A dispatch of several workers in ONE message is how they run
+  concurrently; the orchestrator reads each notification off its own dispatch.
 - Why agent and not fork skill: EVERY worker a build orchestrator dispatches is an agent, and the
   reason is the `Skill` tool's two hard limits. It takes no `model` parameter, so a fork runs at
   one static strength whoever calls it - that is what moved the task implementors and the task

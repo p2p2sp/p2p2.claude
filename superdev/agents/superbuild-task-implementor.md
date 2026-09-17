@@ -4,7 +4,6 @@ description: Invoked only by the superbuild skill, never directly.
 tools: Read, Write, Edit, Grep, Glob, Skill, Bash
 model: opus
 effort: xhigh
-background: false
 color: blue
 ---
 

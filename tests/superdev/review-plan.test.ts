@@ -3,7 +3,8 @@
  * gate, replacing the retired superdev/hooks/scripts/review-plan.test.sh
  * (every case that bash harness asserted, run through the shared subprocess
  * harness instead of a bespoke bash test runner), plus the fail-open matrix
- * and edge cases from the task spec.
+ * and edge cases from the task spec, plus the reviewed-plan record the final
+ * allow leaves beside the plan (`<plan>.sha256`) for decompose.sh.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -14,6 +15,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 
 import { runScript } from "../harness/run.ts";
 import { withTempDir } from "../harness/tmp.ts";
@@ -790,5 +792,33 @@ test("TM4 - a re-review AFTER the out-of-band edit clears the mtime tamper -> al
     // post-dates the plan file: the gate must reopen.
     const f = writeFixtureFile(dir, "t.jsonl", [lw, lr, passAt(stale), lr, passAt(fresh)]);
     assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+// --- Reviewed-plan record: the final allow writes `<plan>.sha256` beside the
+// plan, holding the digest of the approved bytes, for decompose.sh to verify.
+// Every deny and every early fail-open allow writes nothing. ---
+
+function sha256Hex(file: string): string {
+  return createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+}
+
+test("SC1 - the full allow path writes <plan>.sha256 holding the plan's digest", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const { plan, lw, lr } = realPlan(dir, "recorded.md");
+    const f = writeFixtureFile(dir, "t.jsonl", [lw, lr, LPASS]);
+    assert.equal(runCase(f).decision, "allow");
+    const sidecar = `${plan}.sha256`;
+    assert.ok(fs.existsSync(sidecar), `expected ${sidecar} beside the plan`);
+    assert.equal(fs.readFileSync(sidecar, "utf-8"), `${sha256Hex(plan)}\n`);
+  });
+});
+
+test("SC2 - a deny path writes no <plan>.sha256 (only an approved plan is recorded)", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const { plan, lw, lr } = realPlan(dir, "denied.md");
+    const f = writeFixtureFile(dir, "t.jsonl", [lw, lr, LFAIL]);
+    assert.equal(runCase(f).decision, "deny");
+    assert.ok(!fs.existsSync(`${plan}.sha256`), "a FAIL verdict must record no digest");
   });
 });

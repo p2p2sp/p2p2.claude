@@ -4,7 +4,6 @@ description: Invoked only by the vibe skill, never directly.
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
 effort: high
-background: false
 color: green
 ---
 

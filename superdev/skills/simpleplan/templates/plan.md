@@ -47,7 +47,7 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 - TDD: <marker>
 - Kind: <code | scaffold | text>
 - Model: <sonnet | opus>
-- Effort: <low | medium | high | xhigh>
+<no task carries an effort marker: the Agent tool takes none, so the dispatched agent's own frontmatter decides>
 
 ### Dependencies
 - `<task title>` (Task <N>) - blocks: <…>

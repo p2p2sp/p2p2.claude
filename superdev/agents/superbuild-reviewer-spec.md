@@ -5,7 +5,6 @@ tools: Read, Write, Grep, Glob, Skill, Bash
 model: sonnet
 effort: high
 color: green
-background: false
 ---
 
 ## Input
@@ -18,7 +17,7 @@ The prompt carries one `label: value` line per input. Read each file-valued labe
 - `since` (required) - the SHA the change under review is diffed from, or `none`.
 - `prior` (optional) - the previous report of this same reviewer, required at `stage: re-review`. Read it when set: prior findings keep the IDs they were given.
 - `decisions` (optional) - the run's decisions file. Read it when set: every line in it is a change the user accepted and carries the force of the plan.
-- `notes` (optional) - the notes DIRECTORY. When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations. Claims to verify, not truth. Two of their lines record what a task did not pin down, in the shapes the contract's `## Notes line formats` owns. An `UNDERSPECIFIED: <value> - <the decision made>` line is a decision the implementor was entitled to take: judge the code against it exactly as against plan text, never the decision itself, and carry it into `## Decisions taken`. A `DECISION: <what> - <why> - <options>` line belongs to a task that stopped and was answered before it went on, so one sitting in the notes of a task this build has closed with no line of the decisions file answering its matter is an Important finding - the build passed a stop the user never answered.
+- `notes` (optional) - the notes DIRECTORY. When set, Read its `*-notes.md` files - the implementor's recorded plan->code deviations. Claims to verify, not truth. Two of their lines record what a task did not pin down, in the shapes the contract's `## Notes line formats` owns. An `UNDERSPECIFIED: <value> - <the decision made>` line is a decision the implementor was entitled to take: judge the code against it exactly as against plan text, never the decision itself, and carry it into `## Decisions taken`. A `DECISION: <what> - <why> - <options>` line belongs to a task that stopped and was answered before it went on, so one sitting in the notes of a task this build has closed with no line of the decisions file answering its matter is an Important finding - the build passed a stop the user never answered. Its `NOTE: plan defect` lines (in `*-notes.md` and in `task-NN-review-R.md`) are settled per `## Calibration`.
 - `report` (required) - the path the review is written to. It may not exist yet and is never read as input. The review goes to that path and to no other: you write nothing else into the repo tree, and every probe, log or throwaway test goes under `.temp/`.
 - `refs` (required) - the plugin's references directory.
 - `runner` (required) - the absolute path of the executor's runner script, used for every gate command (see `## Gates`).
@@ -68,6 +67,8 @@ A criterion missing or only partial because the code is missing -> Critical.
 A criterion unmet because of a decision recorded in the plan, in the notes or in the decisions file - not because code is missing - is a `### Needs decision` bullet naming the finding and the criterion in the contract's reference form (`## Naming`) plus the reason, and the verdict is `VERDICT: BLOCKED`. It outranks FAIL, and the report still lists its Critical and Important findings. A plan-sanctioned fallback the delivery took (the plan says "if the measurement does not confirm, revert") is exactly this case: BLOCKED, never Critical. A criterion covered by a line in the decisions file is plan text and is never raised again.
 
 A behavior recorded under a task's `### Failure modes` is a decision too: judge the code against it, and put disagreement with the decision itself in one `NOTE: plan defect - <what>` line, never a Critical and never an Important.
+
+Every `NOTE: plan defect` line in the notes directory is settled here under this dimension's mandate, in the shapes the contract's `## Verdict rules` gives: a defect leaving a criterion, scenario or constraint unmet -> your own finding, or the `### Needs decision` bullet above when a recorded decision is what stands in the way; one leaving them all met -> `NOTE: closed plan defect - <what> - <why>`.
 
 Minor findings go to the report's `## Debt` section with their IDs and never affect the verdict.
 
