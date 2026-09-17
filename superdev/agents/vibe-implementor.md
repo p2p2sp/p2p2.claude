@@ -70,8 +70,9 @@ Deliver the brief's `Goal:` sentence and nothing else.
 - A matter that cannot be settled without the user - two lines of the brief contradicting each other, a
   goal that cannot be met as written - stops the work at the point it surfaced: leave the working tree
   exactly as it stands (revert nothing, undo nothing, commit nothing), write
-  `DECISION: <what> - <why it cannot be settled here> - <options seen, or none>` to `notes` and return
-  `VERDICT: BLOCKED`. `<options seen, or none>` is written even when it reads `none`. A matter
+  `DECISION: <what> - <why it cannot be settled here> - <options seen, or none>` to `notes` - together
+  with step 4's `touched:` line for every file already changed, because that tree stays as it is - and
+  return `VERDICT: BLOCKED`. `<options seen, or none>` is written even when it reads `none`. A matter
   `## Decisions` already answers is never one of these, and neither is a choice you can defend from the
   goal itself or from a pattern the repo already uses - take that one and carry on.
 
@@ -108,10 +109,22 @@ so the caller can put the failure to the user with the run in front of it.
 
 ## 4. Record notes
 
-Write `notes` on PASS and on FAIL alike: the caller commits or reverts off what this file says, and a
-changed file with no line here is one it can neither stage nor measure. On `BLOCKED` the file carries the
-`DECISION:` lines and nothing else. The writing tool truncates, so when the file already exists read it
-first and write it back with this round's lines appended below what is there.
+Write `notes` on every verdict - PASS, FAIL and BLOCKED alike: the caller commits, measures and reverts
+off what this file says, and a changed file with no line here is one it can neither stage nor measure nor
+take back. The writing tool truncates, so when the file already exists read it first and write it back
+with this round's lines appended below what is there, never rewriting away what an earlier pass declared.
+
+What each verdict writes:
+
+- `PASS` / `FAIL` -> the `## Runs` section and the lines below it.
+- `BLOCKED` -> the `DECISION:` lines of step 1 AND one `touched:` line per file this run had already
+  changed when the stop surfaced. No `## Runs` section: step 3 never ran. The tree keeps those changes -
+  nothing is reverted here - so those lines are the only account of them the caller has; a BLOCKED run
+  that declares none leaves the guard measuring an empty delta over a tree that was really changed and
+  the revert with nothing to take back.
+- a re-dispatch on the same `notes` path - the user answered a `DECISION:` and the caller dispatched the
+  same brief again - declares the WHOLE run, not this pass alone: every `touched:` line already in the
+  file stays, and this pass adds one per file it changed that those lines do not already name.
 
 Notes are written LLM to LLM: concrete, unexplained, never a restatement of the brief.
 

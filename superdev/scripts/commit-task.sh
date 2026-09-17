@@ -17,7 +17,9 @@
 #               the same line does not corrupt the declaration; a value that
 #               cuts to nothing declares nothing. A path whose own name carries
 #               " - " or " (" is cut there too - a reason is the far likelier
-#               reading.
+#               reading. That cut lives in lib_touched.sh, the one reader this
+#               script and vibe-guard.sh share, so the guard measures exactly
+#               the set staged here.
 #   --path      (optional, repeatable) - one more path for the declared set; a
 #               directory declares everything below it. A literal path, never a
 #               git pathspec: it is normalised, checked for existence and
@@ -67,16 +69,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# The declared set's reader - `trim`, `normalise_path` and `touched_paths` -
+# shared with vibe-guard.sh, so that guard measures exactly the paths this
+# script stages. The "touched:" cut rule documented above lives there.
+source "$(dirname "${BASH_SOURCE[0]}")/lib_touched.sh"
+
 usage() {
   echo "usage: commit-task.sh <message> [task-file] [--notes <notes-file>] [--path <path>]..." >&2
-}
-
-# Strips leading and trailing whitespace.
-trim() {
-  local s="$1"
-  s="${s#"${s%%[![:space:]]*}"}"
-  s="${s%"${s##*[![:space:]]}"}"
-  printf '%s' "$s"
 }
 
 message="${1:-}"
@@ -151,30 +150,6 @@ fi
 declared=()
 declare_all=0
 
-# Repository-root relative form of a declared path: separators normalised, a
-# surrounding backtick and a "./" prefix dropped, the repository root itself
-# reduced to ".".
-normalise_path() {
-  local p
-  p="$(trim "$1")"
-  p="${p//\\//}"
-  p="${p#\`}"
-  p="${p%\`}"
-  p="$(trim "$p")"
-  if [[ "$p" == "$root" ]]; then
-    p="."
-  elif [[ "$p" == "$root"/* ]]; then
-    p="${p#"$root"/}"
-  fi
-  while [[ "$p" == ./* ]]; do
-    p="${p#./}"
-  done
-  while [[ "$p" == */ ]]; do
-    p="${p%/}"
-  done
-  printf '%s' "$p"
-}
-
 add_declared() {
   local p
   p="$(normalise_path "$1")"
@@ -230,31 +205,13 @@ if [[ -n "$task" && -f "$task" ]]; then
   done < "$task"
 fi
 
-# Every "touched: <path>" line of the notes file.
-if [[ -n "$notes" && -f "$notes" ]]; then
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    entry="$(trim "$line")"
-    case "$entry" in
-      -\ *|\*\ *)
-        entry="$(trim "${entry#?}")"
-        ;;
-    esac
-    case "$entry" in
-      touched:*)
-        # The path ends at the first " - " or " (" - an implementor who appends
-        # a reason to the line must still get the file staged. "%%" strips the
-        # longest matching suffix, so each cut lands on the first occurrence of
-        # its own separator and the pair leaves whatever came before the
-        # earlier one. Both cuts run BEFORE trim, so a value that is nothing
-        # but a separator and a reason reduces to empty rather than to the
-        # reason itself.
-        value="${entry#touched:}"
-        value="${value%% - *}"
-        value="${value%% (*}"
-        add_declared "$(trim "$value")"
-        ;;
-    esac
-  done < "$notes"
+# Every "touched: <path>" line of the notes file, read by the shared parser;
+# the .temp/ drop and the "." handling above are this script's own policy on
+# top of it.
+if [[ -n "$notes" ]]; then
+  while IFS= read -r declared_path; do
+    add_declared "$declared_path"
+  done < <(touched_paths "$notes")
 fi
 
 # The run directory itself - reports and status.md live there.

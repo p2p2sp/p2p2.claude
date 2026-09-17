@@ -12,10 +12,10 @@
 #               "touched: <path>" line in it declares one path of the measured
 #               set. The declared path is what stands between "touched:" and
 #               the first " - " or " (" on that line, whichever comes first -
-#               the cut rule commit-task.sh's header documents, so one notes
-#               file measures here exactly as it stages there; a value that
-#               cuts to nothing declares nothing. Duplicates collapse, first
-#               occurrence order kept.
+#               the cut rule lib_touched.sh implements for this script and for
+#               commit-task.sh alike, so one notes file measures here exactly
+#               as it stages there; a value that cuts to nothing declares
+#               nothing. Duplicates collapse, first occurrence order kept.
 #   --sensitive (optional, repeatable) - one shell glob, read by the caller out
 #               of the host's own memory. It is matched as a bash `case`
 #               pattern against a repository-relative path ("*" crosses "/",
@@ -78,6 +78,11 @@
 #
 set -u
 
+# The declared set's reader - `trim`, `normalise_path` and `touched_paths` -
+# shared with commit-task.sh, so this script measures exactly the paths that
+# one stages. The cut rule documented above lives there and nowhere else.
+source "$(dirname "${BASH_SOURCE[0]}")/lib_touched.sh"
+
 MAX_FILES=5
 MAX_NEW=1
 MAX_LINES=200
@@ -86,14 +91,6 @@ MAX_LINES=200
 fail() {
   echo "RESULT: ERROR - $1"
   exit 1
-}
-
-# Strips leading and trailing whitespace.
-trim() {
-  local s="$1"
-  s="${s#"${s%%[![:space:]]*}"}"
-  s="${s%"${s##*[![:space:]]}"}"
-  printf '%s' "$s"
 }
 
 notes=""
@@ -146,30 +143,6 @@ fi
 
 declared=()
 
-# Repository-root relative form of a declared path: separators normalised, a
-# surrounding backtick and a "./" prefix dropped, the repository root itself
-# reduced to ".".
-normalise_path() {
-  local p
-  p="$(trim "$1")"
-  p="${p//\\//}"
-  p="${p#\`}"
-  p="${p%\`}"
-  p="$(trim "$p")"
-  if [[ "$p" == "$root" ]]; then
-    p="."
-  elif [[ "$p" == "$root"/* ]]; then
-    p="${p#"$root"/}"
-  fi
-  while [[ "$p" == ./* ]]; do
-    p="${p#./}"
-  done
-  while [[ "$p" == */ ]]; do
-    p="${p%/}"
-  done
-  printf '%s' "$p"
-}
-
 add_declared() {
   local p d
   p="$(normalise_path "$1")"
@@ -184,27 +157,11 @@ add_declared() {
   declared+=("$p")
 }
 
-# Every "touched: <path>" line of the notes file, bulleted or bare.
-while IFS= read -r line || [[ -n "$line" ]]; do
-  entry="$(trim "$line")"
-  case "$entry" in
-    -\ * | \*\ *)
-      entry="$(trim "${entry#?}")"
-      ;;
-  esac
-  case "$entry" in
-    touched:*)
-      # Both cuts run BEFORE trim, so a value that is nothing but a separator
-      # and a reason reduces to empty rather than to the reason itself. "%%"
-      # strips the longest matching suffix, so each cut lands on the first
-      # occurrence of its own separator.
-      value="${entry#touched:}"
-      value="${value%% - *}"
-      value="${value%% (*}"
-      add_declared "$(trim "$value")"
-      ;;
-  esac
-done < "$notes"
+# Every "touched: <path>" line of the notes file, bulleted or bare, read by the
+# shared parser; the dedupe above is this script's own policy on top of it.
+while IFS= read -r declared_path; do
+  add_declared "$declared_path"
+done < <(touched_paths "$notes")
 
 # The added plus the deleted column of every numstat record for one tracked
 # path. A "-" column is git's own mark for a file it diffs as binary, and
