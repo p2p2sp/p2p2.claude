@@ -221,10 +221,12 @@ Transport - the orchestrator runs the stage's whole set once per round, through
 code and records the result of each entry in the report's gates section. However many reviewers the
 round dispatches, each command of the set ran once, and they all read that one result.
 
-The block carries one entry per command of the set, each naming the command's subsection and
-carrying the lines `run.sh` printed for that command - `RESULT`, `STATUS`, `EXIT`, `DURATION` and
-`LOG`, plus `TAIL` and `REASON` where the run printed them. A green entry costs the reviewer the
-read and nothing else: no call, no fork, no log.
+The block carries one entry per command of the set, each opening on the `COMMAND: <command>` line
+`run-gate.sh` writes under that command's subsection heading and then carrying the lines `run.sh`
+printed for it - `RESULT`, `STATUS`, `EXIT`, `DURATION`, `LOG` and `LINES`, plus `TAIL` and
+`REASON` where the run printed them. That `COMMAND` line is where case 1 below takes the failing
+command from: a subsection may carry several commands and its heading names none of them. A green
+entry costs the reviewer the read and nothing else: no call, no fork, no log.
 
 - `expect:` is not a label of the block. It is the sentence naming the outcome a run must show, and
   it travels only on the `superdev:executor` dispatch below, which is what judges it.

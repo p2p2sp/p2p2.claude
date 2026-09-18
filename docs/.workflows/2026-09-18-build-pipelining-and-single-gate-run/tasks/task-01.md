@@ -30,7 +30,7 @@ none - this task defines the vocabulary every later task consumes
 - when `gates:` names a file that does not exist or cannot be read -> response return line 1 `VERDICT: FAIL` and line 2 `REASON: missing input gates`, writing no report, exactly as every other missing required label, log the return line itself, test none - contract prose
 
 ### Contracts
-- `gates: <path>` - the round's gate block written by the orchestrator, one entry per command with its subsection, `RESULT`, `STATUS`, `EXIT`, `DURATION` and `LOG` lines - consumed by `Read the handed gate block in the three build reviewers` (Task 5), `Pipeline the per-task review and make the checkpoint agent conditional in superbuild` (Task 6), `Hand the gate block to the Simple track reviewer` (Task 7)
+- `gates: <path>` - the round's gate block written by the orchestrator, one entry per command opening on its own `COMMAND` line under that command's subsection, then the `RESULT`, `STATUS`, `EXIT`, `DURATION`, `LOG` and `LINES` lines - consumed by `Read the handed gate block in the three build reviewers` (Task 5), `Pipeline the per-task review and make the checkpoint agent conditional in superbuild` (Task 6), `Hand the gate block to the Simple track reviewer` (Task 7)
 - `range: <SHA>..<SHA>` - repeatable; one commit range the reviewed task owns, the review judging their union, and the whole set absent in a build without git - consumed by `Judge a commit range in the per-task reviewer` (Task 4), `Pipeline the per-task review and make the checkpoint agent conditional in superbuild` (Task 6)
 
 ### DoD
