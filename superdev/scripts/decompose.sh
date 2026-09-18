@@ -101,7 +101,7 @@
 #       plan: <ścieżka>
 #       spec: <ścieżka>          (tylko gdy plan ma linię "Spec:")
 #       intent: <path>   (only when the plan has an Intent: line naming an existing file)
-#       <task-path><TAB><title><TAB><model><TAB><review>
+#       <task-path><TAB><title><TAB><model><TAB><review><TAB><concurrent>
 #     model / review come verbatim from the task's own "- Model:" /
 #     "- Review:" marker lines (the plan template's per-task build-strength
 #     markers, the second the strength that task's own reviewer runs at,
@@ -113,6 +113,22 @@
 #     a plan still carries is ordinary body text copied into the task file
 #     and never indexed. The script never validates the values - the plan
 #     reviewer owns that (checklist class B6)
+#     concurrent reads exactly "yes" or "no" and is DERIVED, never read from
+#     a marker: "yes" says this task may be started while the PRECEDING task
+#     is still being reviewed, so the orchestrator never has to judge that
+#     itself. It is "yes" only when every one of these holds, and "no"
+#     otherwise:
+#       - the task is not task 1 (task 1 has no preceding review to overlap);
+#       - it carries both a "### Dependencies" and a "### Files" section, and
+#         the preceding task carries a "### Files" section - a task the plan
+#         does not describe completely never qualifies;
+#       - its "### Dependencies" carries no "(Task <N>)" token naming the
+#         immediately preceding task number;
+#       - no path of its "### Files" lines equals a path of the preceding
+#         task's. A path is the field after the " - " that follows the
+#         "add | modify | delete" verb, cut before any " (" annotation, and
+#         compared as the literal token it stands as - so a non-literal path
+#         (a placeholder, a glob) only ever makes the column "no".
 #   - commituje dekompozycję (git add -A -- <katalog roboczy> + commit)
 #     komunikatem
 #     "chore(<commit-prefix>): decompose plan <slug>"; w indeksie ląduje
@@ -391,7 +407,7 @@ awk -v dir="$dir" -v hdr="$header" '
   /^<!-- \/HEADER -->[[:space:]]*$/ { inhdr=0; next }
   inhdr                             { print >> hdr; next }
 
-  /^<!-- TASK -->[[:space:]]*$/     { intask=1; n++; f=sprintf("%s/tasks/task-%02d.md", dir, n); files[n]=f; next }
+  /^<!-- TASK -->[[:space:]]*$/     { intask=1; n++; sec=""; f=sprintf("%s/tasks/task-%02d.md", dir, n); files[n]=f; next }
   /^<!-- \/TASK -->[[:space:]]*$/   { intask=0; next }
   intask {
     print > f
@@ -407,6 +423,32 @@ awk -v dir="$dir" -v hdr="$header" '
       if ($0 ~ /^##[[:space:]]+Task[[:space:]]+[0-9]+[[:space:]]*-[[:space:]]*[^[:space:]]/) {
         t=$0; sub(/^##[[:space:]]*/, "", t); title[n]=t
       }
+    }
+    # concurrency inputs, collected from this block only: sec tracks which of
+    # the two sections the reader stands in, is reset when the block opens and
+    # is closed by the next heading of any depth - so a "(Task 3)" token in
+    # "### Approach" prose is never read as a dependency.
+    if ($0 ~ /^###[[:space:]]+Dependencies[[:space:]]*$/) { sec="deps"; hasdeps[n]=1; next }
+    if ($0 ~ /^###[[:space:]]+Files[[:space:]]*$/)        { sec="files"; hasfiles[n]=1; next }
+    if ($0 ~ /^#/)                                        { sec=""; next }
+    if (sec == "deps") {
+      # every "(Task <N>)" pointer of the section, leading zeros dropped
+      s=$0
+      while (match(s, /\(Task[[:space:]]+[0-9]+\)/)) {
+        d=substr(s, RSTART, RLENGTH); gsub(/[^0-9]/, "", d)
+        deps[n]=deps[n] " " (d+0) " "
+        s=substr(s, RSTART+RLENGTH)
+      }
+    }
+    else if (sec == "files" && $0 ~ /^-[[:space:]]*(add|modify|delete)[[:space:]]*-[[:space:]]*/) {
+      # "- <verb> - <path> (<symbol>)" -> the path alone, the annotation cut,
+      # kept verbatim otherwise (a non-literal path stays the token it is)
+      p=$0
+      sub(/^-[[:space:]]*(add|modify|delete)[[:space:]]*-[[:space:]]*/, "", p)
+      q=index(p, " (")
+      if (q > 0) p=substr(p, 1, q-1)
+      sub(/[[:space:]]+$/, "", p)
+      if (p != "") fpaths[n]=fpaths[n] p "\n"
     }
     # per-task build-strength markers: first "- Model:" / "- Review:" line
     # wins; value trimmed, passed through verbatim (validity belongs to the
@@ -429,7 +471,23 @@ awk -v dir="$dir" -v hdr="$header" '
       }
     }
     if (headless) exit 6
-    for (i = 1; i <= n; i++) printf "%s\t%s\t%s\t%s\n", files[i], title[i], (model[i] == "" ? "-" : model[i]), (review[i] == "" ? "-" : review[i])
+    for (i = 1; i <= n; i++) {
+      # fifth column: may this task be started while the PRECEDING one is
+      # still under review? Read conservatively - anything unknown is "no".
+      prev=i-1
+      conc="no"
+      if (i > 1 && hasdeps[i] && hasfiles[i] && hasfiles[prev] && index(deps[i], " " prev " ") == 0) {
+        conc="yes"
+        cnt=split(fpaths[i], cur, "\n")
+        for (j = 1; j <= cnt; j++) {
+          if (cur[j] == "") continue
+          # both sides are newline-delimited, so the search is for a WHOLE
+          # entry: "b/c.sh" never matches inside "a/b/c.sh"
+          if (index("\n" fpaths[prev], "\n" cur[j] "\n") > 0) { conc="no"; break }
+        }
+      }
+      printf "%s\t%s\t%s\t%s\t%s\n", files[i], title[i], (model[i] == "" ? "-" : model[i]), (review[i] == "" ? "-" : review[i]), conc
+    }
   }
 ' "$plan"
 

@@ -42,6 +42,35 @@ function taskBlock(heading: string, covers: number[] | string, body = "Do the wo
   return ["<!-- TASK -->", "", `## ${heading}`, coversLine, body, "<!-- /TASK -->", ""].join("\n");
 }
 
+/** The two task sections the `concurrent` column is derived from, rendered in
+ *  the plan template's grammar and handed to `taskBlock` as its body. `deps`
+ *  left out drops the whole `### Dependencies` section, `deps: []` renders the
+ *  template's "- none" line and every entry becomes one "(Task <N>)" pointer;
+ *  `files` left out drops `### Files`, every entry is a "- modify - " line
+ *  written verbatim (annotation included, when the case wants one). The
+ *  trailing `### Approach` is deliberate: a heading must close the section
+ *  above it, so nothing below keeps feeding either capture. */
+function taskSections(opts: { deps?: Array<number | string>; files?: string[]; approach?: string }): string {
+  const lines: string[] = [];
+  if (opts.deps !== undefined) {
+    lines.push("### Dependencies");
+    lines.push(
+      ...(opts.deps.length === 0
+        ? ["- none"]
+        : opts.deps.map((n) => `- \`a preceding task\` (Task ${n}) - blocks: this task reads its output`)),
+    );
+    lines.push("");
+  }
+  if (opts.files !== undefined) {
+    lines.push("### Files");
+    lines.push(...opts.files.map((f) => `- modify - ${f}`));
+    lines.push("");
+  }
+  lines.push("### Approach");
+  lines.push(opts.approach ?? "1. Do the work.");
+  return lines.join("\n");
+}
+
 function simplePlan(opts: { title: string; criteria: string[]; tasks: string[]; intentPath?: string }): string {
   return [
     `Title: "${opts.title}"`,
@@ -186,8 +215,8 @@ test("happy path (default prefix): builds the full tree, prints a clean index, c
           `base: ${base}`,
           `plan-header: ${header}`,
           `plan: ${planCopy}`,
-          `${task1}\tTask 1 - build widget\t-\t-`,
-          `${task2}\tTask 2 - ship widget\t-\t-`,
+          `${task1}\tTask 1 - build widget\t-\t-\tno`,
+          `${task2}\tTask 2 - ship widget\t-\t-\tno`,
           "",
         ].join("\n"),
       );
@@ -899,7 +928,7 @@ test("the heading's <N> is not checked against the file index: a mismatched numb
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       const dir = `docs/.workflows/${todayISO()}-renumbered-plan`;
       const rows = result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`));
-      assert.deepEqual(rows, [`${dir}/tasks/task-01.md\tTask 7 - do it\t-\t-`]);
+      assert.deepEqual(rows, [`${dir}/tasks/task-01.md\tTask 7 - do it\t-\t-\tno`]);
     });
   });
 });
@@ -1158,10 +1187,10 @@ test("edge: a task title containing a tab breaks the tab-separated index row (do
       const dir = `docs/.workflows/${todayISO()}-tabbed-title-plan`;
       const indexLine = result.stdout.split("\n").find((l) => l.startsWith(`${dir}/tasks/task-01.md`));
       assert.ok(indexLine, `expected the task-01 index row, got:\n${result.stdout}`);
-      // tabs separate path, title, model and review in the well-formed case
-      // (4 fields); the embedded tab in the title itself yields a FIFTH
-      // field, breaking any \t-split parse.
-      assert.equal(indexLine!.split("\t").length, 5);
+      // tabs separate path, title, model, review and concurrent in the
+      // well-formed case (5 fields); the embedded tab in the title itself
+      // yields a SIXTH field, breaking any \t-split parse.
+      assert.equal(indexLine!.split("\t").length, 6);
     });
   });
 });
@@ -1193,9 +1222,9 @@ test("task Model:/Review: markers land verbatim in the index columns, an Effort:
       const dir = `docs/.workflows/${todayISO()}-marked-plan`;
       const rows = result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`));
       assert.deepEqual(rows, [
-        `${dir}/tasks/task-01.md\tTask 1 - marked\tsonnet\tsonnet high`,
-        `${dir}/tasks/task-02.md\tTask 2 - unmarked\t-\t-`,
-        `${dir}/tasks/task-03.md\tTask 3 - empty review\topus\t-`,
+        `${dir}/tasks/task-01.md\tTask 1 - marked\tsonnet\tsonnet high\tno`,
+        `${dir}/tasks/task-02.md\tTask 2 - unmarked\t-\t-\tno`,
+        `${dir}/tasks/task-03.md\tTask 3 - empty review\topus\t-\tno`,
       ]);
       // the marker lines stay in the task file - the implementor reads them there
       // too, the Effort: line included, which the index never carries
@@ -1203,6 +1232,172 @@ test("task Model:/Review: markers land verbatim in the index columns, an Effort:
       assert.match(task1Text, /^- Model: sonnet$/m);
       assert.match(task1Text, /^- Effort: xhigh/m);
       assert.match(task1Text, /^- Review: sonnet high$/m);
+    });
+  });
+});
+
+// --- the concurrent column -------------------------------------------------
+// The fifth index column is DERIVED, never read from a marker: it says whether
+// a task may be started while the PRECEDING task is still under review, so the
+// build orchestrator never judges that itself.
+
+test("the concurrent column: an independent successor reads yes, a dependent one and a file-sharing one read no, and task 1 always reads no", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-concurrent-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Concurrent Plan",
+          criteria: ["One.", "Two.", "Three.", "Four."],
+          tasks: [
+            // task 1 has no preceding review to overlap with, however complete
+            taskBlock("Task 1 - foundation", [1], taskSections({ deps: [], files: ["src/a.ts (widget)"] })),
+            // no dependency on task 1 and no file shared with it; the "(Task 1)"
+            // in ### Approach is prose - only the ### Dependencies section feeds
+            // the dependency capture
+            taskBlock(
+              "Task 2 - independent",
+              [2],
+              taskSections({
+                deps: [],
+                files: ["src/b.ts (gadget)"],
+                approach: "1. Mirror what (Task 1) did, in this file.",
+              }),
+            ),
+            // the pointer is zero-padded on purpose: "(Task 02)" names task 2
+            // exactly as "(Task 2)" does
+            taskBlock("Task 3 - dependent", [3], taskSections({ deps: ["02"], files: ["src/c.ts (thing)"] })),
+            // no declared dependency, but src/c.ts is task 3's file too
+            taskBlock(
+              "Task 4 - file sharing",
+              [4],
+              taskSections({ deps: [], files: ["src/d.ts (other)", "src/c.ts (thing)"] }),
+            ),
+          ],
+        }),
+      );
+
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const dir = `docs/.workflows/${todayISO()}-concurrent-plan`;
+      const rows = result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`));
+      assert.deepEqual(rows, [
+        `${dir}/tasks/task-01.md\tTask 1 - foundation\t-\t-\tno`,
+        `${dir}/tasks/task-02.md\tTask 2 - independent\t-\t-\tyes`,
+        `${dir}/tasks/task-03.md\tTask 3 - dependent\t-\t-\tno`,
+        `${dir}/tasks/task-04.md\tTask 4 - file sharing\t-\t-\tno`,
+      ]);
+    });
+  });
+});
+
+test("the concurrent column reads no for a task missing either section, and for one whose PREDECESSOR carries no '### Files' (incomplete task text never qualifies)", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-concurrent-partial-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Partial Sections Plan",
+          criteria: ["One.", "Two.", "Three.", "Four.", "Five."],
+          tasks: [
+            taskBlock("Task 1 - complete", [1], taskSections({ deps: [], files: ["src/a.ts"] })),
+            // no ### Dependencies section at all
+            taskBlock("Task 2 - no dependencies section", [2], taskSections({ files: ["src/b.ts"] })),
+            // no ### Files section at all
+            taskBlock("Task 3 - no files section", [3], taskSections({ deps: [] })),
+            // complete itself, but the overlap with task 3 is unknowable
+            taskBlock("Task 4 - complete after a fileless one", [4], taskSections({ deps: [], files: ["src/d.ts"] })),
+            // the control: the same shape, this time after a complete task
+            taskBlock("Task 5 - complete after a complete one", [5], taskSections({ deps: [], files: ["src/e.ts"] })),
+          ],
+        }),
+      );
+
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const dir = `docs/.workflows/${todayISO()}-partial-sections-plan`;
+      const rows = result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`));
+      assert.deepEqual(rows, [
+        `${dir}/tasks/task-01.md\tTask 1 - complete\t-\t-\tno`,
+        `${dir}/tasks/task-02.md\tTask 2 - no dependencies section\t-\t-\tno`,
+        `${dir}/tasks/task-03.md\tTask 3 - no files section\t-\t-\tno`,
+        `${dir}/tasks/task-04.md\tTask 4 - complete after a fileless one\t-\t-\tno`,
+        `${dir}/tasks/task-05.md\tTask 5 - complete after a complete one\t-\t-\tyes`,
+      ]);
+    });
+  });
+});
+
+test("a non-literal '### Files' path is compared as the token it stands as: two identical placeholders overlap, two different ones do not", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-concurrent-nonliteral-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Placeholder Paths Plan",
+          criteria: ["One.", "Two.", "Three."],
+          tasks: [
+            taskBlock("Task 1 - placeholder", [1], taskSections({ deps: [], files: ["src/<module>/thing.ts"] })),
+            // byte-identical to task 1's token -> an overlap, so "no"
+            taskBlock("Task 2 - same placeholder", [2], taskSections({ deps: [], files: ["src/<module>/thing.ts"] })),
+            // a different token -> no overlap the script can see, so "yes"
+            taskBlock("Task 3 - other placeholder", [3], taskSections({ deps: [], files: ["src/<other>/thing.ts"] })),
+          ],
+        }),
+      );
+
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const dir = `docs/.workflows/${todayISO()}-placeholder-paths-plan`;
+      const rows = result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`));
+      assert.deepEqual(rows, [
+        `${dir}/tasks/task-01.md\tTask 1 - placeholder\t-\t-\tno`,
+        `${dir}/tasks/task-02.md\tTask 2 - same placeholder\t-\t-\tno`,
+        `${dir}/tasks/task-03.md\tTask 3 - other placeholder\t-\t-\tyes`,
+      ]);
+    });
+  });
+});
+
+test("the ' (<symbol>)' annotation is cut before paths are compared: the same directory under two different annotations still overlaps", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-concurrent-annotated-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Annotated Paths Plan",
+          criteria: ["One.", "Two."],
+          tasks: [
+            taskBlock(
+              "Task 1 - first migration",
+              [1],
+              taskSections({ deps: [], files: ["src/Migrations/ (EF migration + designer)"] }),
+            ),
+            taskBlock(
+              "Task 2 - second migration",
+              [2],
+              taskSections({ deps: [], files: ["src/Migrations/ (a second migration)"] }),
+            ),
+          ],
+        }),
+      );
+
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const dir = `docs/.workflows/${todayISO()}-annotated-paths-plan`;
+      const rows = result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`));
+      assert.deepEqual(rows, [
+        `${dir}/tasks/task-01.md\tTask 1 - first migration\t-\t-\tno`,
+        `${dir}/tasks/task-02.md\tTask 2 - second migration\t-\t-\tno`,
+      ]);
     });
   });
 });
@@ -1246,8 +1441,8 @@ test("whole-line markers: a task body quoting the TASK markers in prose still de
       assert.deepEqual(fs.readdirSync(absTasks).sort(), ["task-01.md", "task-02.md"]);
       const rows = result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`));
       assert.deepEqual(rows, [
-        `${dir}/tasks/task-01.md\tTask 1 - write about the markers\t-\t-`,
-        `${dir}/tasks/task-02.md\tTask 2 - ship it\t-\t-`,
+        `${dir}/tasks/task-01.md\tTask 1 - write about the markers\t-\t-\tno`,
+        `${dir}/tasks/task-02.md\tTask 2 - ship it\t-\t-\tno`,
       ]);
 
       // the quoted line is ordinary content: verbatim in the task file, opening nothing
@@ -1307,7 +1502,16 @@ test("a sidecar whose digest differs from the plan's bytes refuses with exit 7 n
       const result = run(repo, [plan]);
       assert.equal(result.status, 7, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
       assert.match(result.stderr, /error: plan differs from the reviewed plan \(/);
-      assert.ok(result.stderr.includes(slash(sidecar)) || result.stderr.includes(sidecar), `stderr must name the sidecar:\n${result.stderr}`);
+      // the message names the sidecar by the path the SCRIPT resolved, so its
+      // spelling is the shell's: under Git-Bash the Node temp root comes back
+      // as "/tmp/<name>" where Node spells it "C:/Users/.../Temp/<name>" - the
+      // same directory, and an equality on either form fails on one platform.
+      // The two trailing segments are what both spellings share.
+      const sidecarTail = `${path.basename(planDir)}/${path.basename(sidecar)}`;
+      assert.ok(
+        slash(result.stderr).includes(sidecarTail),
+        `stderr must name the sidecar (${sidecarTail}):\n${result.stderr}`,
+      );
       assert.match(result.stderr, /re-run the plan reviewer and ExitPlanMode/);
       assert.equal(result.stdout, "");
       assert.ok(!fs.existsSync(path.join(repo.dir, "docs", ".workflows")), "no working dir may be created on a refusal");
