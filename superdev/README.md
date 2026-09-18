@@ -70,13 +70,14 @@ track for one-sentence changes.
    command with no test file is `scaffold`, anything else is `text` - and `scaffold` / `text` tasks default to
    `sonnet` with no per-task reviewer, unless your memory files declare that text is your product, in which case
    a `text` task keeps its reviewer. An implementor runs that task's own `### Task Checks` and nothing else - the
-   whole-build gate is the orchestrator's own single run per review round. On the Super track a `code` task's `Review:` marker carries three
-   literal states: no marker dispatches the reviewer at its own `sonnet` / `high` frontmatter default,
-   `Review: <model>` passes that model to the dispatch, and literally `Review: none` skips the per-task reviewer
-   entirely, with no substitute check standing in for the review. Every task goes from the implementor's
-   `VERDICT: PASS` straight to commit: where a reviewer does run, it judges that task's committed range and is
-   dispatched beside the next task's implementor wherever the plan lets the two run side by side, its verdict
-   read once that next task is committed. Where it runs, the reviewer's **failure pass** interrogates that diff:
+   whole-build gate is the orchestrator's own single run per review round. On the Super track a `code` task's
+   `Review:` marker carries three literal states: no marker dispatches the reviewer at its own
+   `sonnet` / `high` frontmatter default, `Review: <model>` passes that model to the dispatch, and literally
+   `Review: none` skips the per-task reviewer entirely, with no substitute check standing in for the review.
+   Every task goes from the implementor's `VERDICT: PASS` straight to commit: where a reviewer does run, it
+   judges that task's committed range and is dispatched beside the next task's implementor wherever the plan
+   lets the two run side by side, its verdict read once that next task is committed. Where it runs, the
+   reviewer's **failure pass** interrogates that diff:
    each new `catch` or fallback
    branch (what comes back, what gets logged), each widened closed set (who consumes it), each changed response
    mechanism (which methods, which codes), each outside value reaching a path, query or command (validated?) and

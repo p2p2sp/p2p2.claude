@@ -31,23 +31,36 @@
 #   checkpoint, re-review:checkpoint  ->  Build, Tests
 #   final, re-review:final            ->  Build, Tests, Integration
 # A selected subsection whose single entry reads "none - <reason>" is not run
-# and carries that reason; so is one the block does not hold at all, whose
-# reason is then "none - absent from the plan's ## Gate commands block". A
-# subsection the stage does not select gets no line and no detail block.
+# and carries that reason: the plan decided it has nothing to run and said why.
+# One the block does not hold AT ALL is a different case and carries a
+# different word - "absent - <reason>", counted red - because nothing was
+# decided about it and the stage's gate is short a whole subsection; the
+# contract's "## Gates" is what turns that into a BLOCKED. A subsection the
+# stage does not select gets no line and no detail block.
 # Every other entry is one command, its "- " or "* " bullet stripped; a "---"
 # rule and a blank line are skipped.
 #
 # Behaviour:
 #   - each collected command runs through the sibling runner
 #     skills/executor/scripts/run.sh, resolved from THIS script's own location,
-#     one invocation per command, fed `command:`, `expect-exit: 0` and
-#     `timeout: 1800` on stdin. The commands run in the CALLER's working
-#     directory (the runner's own `cwd:` default), so the orchestrator calls
-#     this script from the host repository root.
-#   - 1800 is a fixed constant of this script, never an input: a deterministic
-#     caller cannot judge how slow a host's suite is, and the runner's own
-#     default of 600 is too short for a slow one. Half an hour is the generous
-#     bound that still names a hung command within one round.
+#     one invocation per command, fed `command:`, `expect-exit: 0` and a
+#     `timeout:` on stdin. The commands run in the CALLER's working directory
+#     (the runner's own `cwd:` default), so the orchestrator calls this script
+#     from the host repository root.
+#   - GATE_BUDGET bounds the WHOLE run, not one command: each command is fed
+#     what is left of it, and one that would start with nothing left is not
+#     run at all - its entry carries a RESULT / STATUS / REASON triple naming
+#     the spent budget and counts red, so the round says what it did not get
+#     to rather than leaving a silent gap.
+#   - the budget exists because the orchestrator calls this script through its
+#     own tool, whose timeout caps at 600 s: a per-command bound cannot keep
+#     three slow commands inside that, and a script the caller kills writes no
+#     block and prints no RED: line at all. 540 leaves the caller its headroom.
+#     The runner's own default of 600 is never used here - too short for one
+#     slow suite, too long for a set of them.
+#   - GATE_BUDGET is read from the environment only so this script's own tests
+#     can exercise the spent-budget path in a second; no caller of a build ever
+#     sets it, and it is not a parameter of the contract.
 #   - a command whose run comes back on the runner's pre-launch error path
 #     (exit 2, the RESULT / STATUS / REASON triple) does not stop the round:
 #     the remaining commands still run, that triple is carried into the block
@@ -57,30 +70,41 @@
 #   # <closing stage> review          "checkpoint" or "final"
 #
 #   ## Gates
-#   <subsection> - pass|red - <n>s    one line per selected subsection, in
-#   <subsection> - none - <reason>    Build, Tests, Integration order; the wall
-#                                     time is the sum of its commands'
-#                                     DURATION values
+#   <subsection> - pass|red - <n>s      one line per selected subsection, in
+#   <subsection> - none - <reason>      Build, Tests, Integration order; the
+#   <subsection> - absent - <reason>    wall time is the sum of its commands'
+#                                       DURATION values
 #
-#   ### <subsection>                  one detail block per command run, in the
-#   COMMAND: <the command>            same order, carrying every line the
-#   RESULT: ...                       runner printed for it, verbatim and in
-#   STATUS: ...                       its order - RESULT, STATUS, EXIT,
-#   EXIT: ...                         DURATION, LOG, LINES and TAIL where the
-#   DURATION: ...                     runner printed one, or the shorter
-#   LOG: ...                          RESULT / STATUS / REASON triple of its
-#   LINES: ...                        pre-launch error path. Nothing is
-#   TAIL: ...                         filtered: a reviewer's evidence rules
-#                                     read TAIL and LOG off this block, and the
-#                                     COMMAND line is what names the entry when
-#                                     a subsection holds several commands.
+#   ### <subsection>                  one detail block per command, in the
+#   COMMAND: <the command>            same order. COMMAND and TIMEOUT are
+#   TIMEOUT: <n>s                     written by THIS script - the command it
+#   RESULT: ...                       ran and the bound it gave that run - and
+#   STATUS: ...                       then every line the runner printed for
+#   EXIT: ...                         it, verbatim and in its order: RESULT,
+#   DURATION: ...                     STATUS, EXIT, DURATION, LOG, LINES and
+#   LOG: ...                          TAIL where the runner printed one, or
+#   LINES: ...                        the shorter RESULT / STATUS / REASON
+#   TAIL: ...                         triple of its pre-launch error path.
+#                                     Nothing is filtered: a reviewer's
+#                                     evidence rules read TAIL and LOG off this
+#                                     block, the COMMAND line is what names the
+#                                     entry when a subsection holds several
+#                                     commands, and a BLOCKED bullet on a
+#                                     timeout names the TIMEOUT seconds. A
+#                                     command the budget left no room for
+#                                     carries COMMAND plus a RESULT / STATUS /
+#                                     REASON triple and no TIMEOUT: it was
+#                                     never given one.
 #
 # STDOUT - nothing at all on any non-zero exit; on exit 0, in this order:
-#   <subsection>: pass|red|none   one line per selected subsection
+#   <subsection>: pass|red|       one line per selected subsection
+#                 none|absent
 #   GATES: <out-file>             the path exactly as it was given
 #   RED: yes|no                   yes when any command came back anything other
 #                                 than "RESULT: SUCCESS", a pre-launch error
-#                                 included; a "none - <reason>" subsection is
+#                                 and a command the budget left no room for
+#                                 included, and yes for an "absent"
+#                                 subsection; a "none - <reason>" subsection is
 #                                 never red. ALWAYS the last line.
 #
 # EXIT CODE: 0 whatever the gate commands returned - a command's outcome is
@@ -99,8 +123,13 @@
 #
 set -uo pipefail
 
-# The bound every gate command gets, in seconds. See "Behaviour" above.
-GATE_TIMEOUT=1800
+# The bound on the WHOLE run, in seconds - not on one command. See "Behaviour"
+# above for why it is a whole-run budget and why the environment may override
+# it (this script's own tests, and nothing else).
+GATE_BUDGET="${GATE_BUDGET:-540}"
+# A value that is not a positive integer is not an error worth a round: fall
+# back rather than let bash arithmetic read it as 0 and skip every command.
+[[ "$GATE_BUDGET" =~ ^[1-9][0-9]*$ ]] || GATE_BUDGET=540
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -238,12 +267,25 @@ red=0
 for subsection in "${selected[@]}"; do
   select_entries "$subsection"
   none_reason=""
+  absent=0
   if [[ ${#current_entries[@]} -eq 0 ]]; then
-    none_reason="none - absent from the plan's ## Gate commands block"
+    absent=1
   elif [[ ${#current_entries[@]} -eq 1 ]]; then
     case "${current_entries[0]}" in
       none | none\ -\ *) none_reason="${current_entries[0]}" ;;
     esac
+  fi
+
+  if [[ $absent -eq 1 ]]; then
+    # NOT a "none - <reason>" subsection: there the plan decided the
+    # subsection has nothing to run and said why. Here the plan says nothing
+    # about it at all, so the stage's gate is short a whole subsection and
+    # nobody chose that. It counts red, so a checkpoint round whose only
+    # fault is this still dispatches the reviewer that settles it.
+    summary+=("$subsection - absent - the plan's ## Gate commands block holds no such subsection")
+    printed+=("$subsection: absent")
+    red=1
+    continue
   fi
 
   if [[ -n "$none_reason" ]]; then
@@ -255,8 +297,24 @@ for subsection in "${selected[@]}"; do
   subsection_red=0
   subsection_seconds=0
   for gate_command in "${current_entries[@]}"; do
-    block="$(printf 'command: %s\nexpect-exit: 0\ntimeout: %s\n' "$gate_command" "$GATE_TIMEOUT" | "$RUNNER")"
     details+=("" "### $subsection" "COMMAND: $gate_command")
+    # SECONDS counts from this script's own start, so it IS the elapsed run.
+    remaining=$((GATE_BUDGET - SECONDS))
+    if (( remaining < 1 )); then
+      # Reported, never started: the caller's own timeout is what the budget
+      # protects, and an entry the contract's case 1 settles as BLOCKED says
+      # more about the round than a command killed from outside ever could.
+      details+=("RESULT: DEVIATION" "STATUS: error" \
+        "REASON: gate budget of ${GATE_BUDGET}s spent before this command ran")
+      subsection_red=1
+      red=1
+      continue
+    fi
+    # The bound this command actually got. The runner never prints it back, and
+    # a reviewer's BLOCKED bullet on a timeout has to name the seconds it was
+    # given - which is no longer a constant anyone could infer from the script.
+    details+=("TIMEOUT: ${remaining}s")
+    block="$(printf 'command: %s\nexpect-exit: 0\ntimeout: %s\n' "$gate_command" "$remaining" | "$RUNNER")"
     command_result=""
     while IFS= read -r reply_line; do
       reply_line="${reply_line%$'\r'}"

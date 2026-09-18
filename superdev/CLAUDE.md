@@ -68,10 +68,11 @@ covers what is true across the whole plugin.
 - `decompose.sh` - renders a plan's task index
   (`<task-file>\t<title>\t<model>\t<review>\t<concurrent>`, five columns - no effort column, the
   plan carries no such marker). `concurrent` is derived, never read from a marker: `yes` only
-  when the task is not task 1, carries both `### Dependencies` and `### Files` (as does its
-  predecessor), names no `(Task <N>)` pointer to the preceding task and shares no `### Files`
-  path with it - anything less complete reads `no`. Also checks the plan against the
-  `<plan>.sha256` sidecar the `ExitPlanMode` hook wrote (mismatch = exit 7, absent = warning).
+  when the task is not task 1, carries both `### Dependencies` and `### Files`, has a predecessor
+  carrying `### Files` (that predecessor's own dependencies are never read), names no
+  `(Task <N>)` pointer to the preceding task and shares no `### Files` path with it - anything
+  less complete reads `no`. Also checks the plan against the `<plan>.sha256` sidecar the
+  `ExitPlanMode` hook wrote (mismatch = exit 7, absent = warning).
 - `last-commit-date.sh` - resolves the last-commit boundary a checkpoint review reads since.
 - `lib_find_excludes.sh`, `lib_touched.sh` - shared helpers for scoping a diff/review to touched
   paths.
@@ -85,7 +86,10 @@ covers what is true across the whole plugin.
   once per round with the round's stage (`checkpoint` / `final` / `re-review:<stage>`), it runs
   that stage's subsections of the plan's `## Gate commands` block through the executor's
   `run.sh` and writes the round's gate block, which every reviewer of the round then reads
-  instead of running a gate command itself.
+  instead of running a gate command itself. Its `GATE_BUDGET` bounds the WHOLE run (540 s), not
+  one command, because the caller reaches it through the `Bash` tool, whose timeout caps at
+  600 s and defaults to 120 - so both build skills give that one call `timeout: 600000`, and a
+  command the budget leaves no room for is reported red rather than started.
 - `stats-record.sh`, `stats-report.sh` - per-dispatch event log and rendered run report under
   `.temp/superdev/stats/<run>.*`, gated by `stats: true`.
 - `vibe-guard.sh` - the vibe track's advisory scope guard.

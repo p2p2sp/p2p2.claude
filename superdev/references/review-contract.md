@@ -52,9 +52,11 @@ is pointed at, so pasted content only duplicates a file it could read and crowds
   present from the task's second review round on, and read for two things only: the numbering its
   own findings continue from, and the title of a finding still open, so that one is never raised
   again under a new ID. It carries no verdict table and no re-review mandate there. A review round
-  closed with no reviewer dispatch at all hands its gate block on this label instead of a report,
-  and such a block carries no finding ID, so the round that reads it omits the prior findings
-  table.
+  closed with no reviewer dispatch at all wrote no report, and leaves this label pointing at the
+  last report there was - dropping that one would restart the finding IDs and re-raise a still-open
+  finding under a new one. Only a build that has produced no report yet hands such a round's gate
+  block here instead, and that block carries no finding ID, so the round reading it omits the prior
+  findings table.
 - `decisions: <path>` - optional; the run's decisions file (see `## Decisions file`). Every line in
   it is an answer the user gave - a finding, a criterion change, a matter closed at an implementor
   stop - and carries the force of the plan.
@@ -153,11 +155,11 @@ appears. The sections, in this order:
   `<subsection> - <result> - <wall time>`, e.g. `Build - pass - 42s`, the wall time taken from
   `run.sh`'s `DURATION:`. On a red result that same line adds the tool's own summary line and the
   `LOG:` path of the run that failed. The commands themselves are never written out - the plan holds
-  them. A subsection whose block reads `none - <reason>` carries that reason in place of the result
-  and no wall time, e.g. `Integration - none - <reason>`; a subsection this stage does not run has
-  no line at all. One extra line says the review is unbounded over the working tree when `since` is
-  `none`. A subsection holding several commands still carries one line: its result is red when any
-  of them is red and its wall time is their sum.
+  them. A subsection whose block reads `none - <reason>` or `absent - <reason>` carries that word
+  and reason in place of the result and no wall time, e.g. `Integration - none - <reason>`; a
+  subsection this stage does not run has no line at all. One extra line says the review is unbounded
+  over the working tree when `since` is `none`. A subsection holding several commands still carries
+  one line: its result is red when any of them is red and its wall time is their sum.
 - `## Prior findings` - only when `prior` was given: a table `| ID | Title | Verdict | Evidence |`
   with one row per ID in `prior`, its title carried over from `prior`, the verdict `ADDRESSED`,
   `NOT ADDRESSED` or `ACCEPTED`, and a `file:line` as evidence - for `ACCEPTED`, the decisions-file
@@ -211,7 +213,13 @@ one per line or the single line `none - <reason>`. Which subsections this stage 
   `prior`: a `# checkpoint review` -> the two subsections above, a `# final review` -> all three.
 
 A subsection reading `none - <reason>` is not run; that reason is carried into the report's line for
-it, and the review never returns BLOCKED for it. No command is collected from a task section:
+it, and the review never returns BLOCKED for it: the plan decided that subsection has nothing to run
+and said why. A subsection the plan's block does not hold AT ALL is the opposite case and comes back
+under its own word, `absent - <reason>`: nothing was decided about it, the stage's gate is short a
+whole subsection, and no run says anything about the tree there. It is `VERDICT: BLOCKED` with a
+`### Needs decision` bullet naming the subsection, at every stage that covers it - the plan is what
+has to change, and only the user can say whether it gains a command or a `none - <reason>` line. No
+command is collected from a task section:
 `### Task Checks` belongs to the implementor writing that task, no stage collects it, and a command
 appearing there and nowhere else runs at no stage of a review.
 
@@ -221,12 +229,17 @@ Transport - the orchestrator runs the stage's whole set once per round, through
 code and records the result of each entry in the report's gates section. However many reviewers the
 round dispatches, each command of the set ran once, and they all read that one result.
 
-The block carries one entry per command of the set, each opening on the `COMMAND: <command>` line
-`run-gate.sh` writes under that command's subsection heading and then carrying the lines `run.sh`
-printed for it - `RESULT`, `STATUS`, `EXIT`, `DURATION`, `LOG` and `LINES`, plus `TAIL` and
-`REASON` where the run printed them. That `COMMAND` line is where case 1 below takes the failing
-command from: a subsection may carry several commands and its heading names none of them. A green
-entry costs the reviewer the read and nothing else: no call, no fork, no log.
+The block carries one entry per command of the set, each opening on the `COMMAND: <command>` and
+`TIMEOUT: <n>s` lines `run-gate.sh` writes under that command's subsection heading - the command it
+ran and the bound it gave that run - and then carrying the lines `run.sh` printed for it: `RESULT`,
+`STATUS`, `EXIT`, `DURATION`, `LOG` and `LINES`, plus `TAIL` and `REASON` where the run printed
+them. That `COMMAND` line is where case 1 below takes the failing command from, and that `TIMEOUT`
+line the seconds it names on a timeout: a subsection may carry several commands and its heading
+names none of them, and the bound is not a constant, being what was left of the round's own budget.
+A command that budget left no room for carries `COMMAND` plus a `RESULT` / `STATUS` / `REASON`
+triple and no `TIMEOUT` - it was never given one - and case 1 settles it like any other
+`STATUS: error`. A green entry costs the reviewer the read and nothing else: no call, no fork, no
+log.
 
 - `expect:` is not a label of the block. It is the sentence naming the outcome a run must show, and
   it travels only on the `superdev:executor` dispatch below, which is what judges it.
@@ -238,8 +251,9 @@ Each entry of that block is its command's result. Read it in this order - the fi
 matches settles the command, and nothing below it is consulted:
 
 1. `STATUS: error` or `STATUS: timeout`, on any gate command whatever its kind -> `VERDICT: BLOCKED`
-   with a `### Needs decision` bullet naming that command and `run.sh`'s own `REASON:` line, or the
-   timeout and the seconds it was given. Settled here, before any dispatch: nothing is forked and no
+   with a `### Needs decision` bullet naming that command (its `COMMAND:` line) and `run.sh`'s own
+   `REASON:` line, or the timeout and the seconds it was given (its `TIMEOUT:` line). Settled here,
+   before any dispatch: nothing is forked and no
    log is read. Never PASS, and never a finding against the code - a command that produced no result
    says nothing about the tree. A documented integration or e2e command that cannot run in this
    environment at all - its runner is not installed, the service it needs is absent - is BLOCKED on
@@ -359,8 +373,8 @@ Because it reads committed ranges and not the working tree, the orchestrator may
 per-task review in the same message as the next task's implementor: the review is in flight while
 that task is written, and its verdict is read and acted on after that task's own commit.
 
-Its one BLOCKED condition is the same rule as above, narrowed to what it can see: a criterion under the
-task's `### Covered criteria` that stays unmet while the diff matches the task's text - the plan
+Its one BLOCKED condition is the same rule as above, narrowed to what it can see: a criterion
+under the task's `### Covered criteria` that stays unmet while the diff matches the task's text - the plan
 described too little, described the wrong thing, or recorded a behaviour under `### Failure modes`
 or `### Contracts` that makes the criterion unreachable - and that no line in the decisions file
 already covers. Missing or wrong code against text that would have met the criterion is a Critical,

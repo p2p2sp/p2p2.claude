@@ -14,6 +14,11 @@
  * unwritable out-file, and on every one of them stdout is empty, so an empty
  * stdout can never be misread as a green round.
  *
+ * GATE_BUDGET bounds the WHOLE run rather than one command, so the script
+ * always returns inside the timeout of the tool its caller invokes it through.
+ * The two budget cases below set it from the environment, which is a hook for
+ * these tests alone - no caller of a build ever sets it.
+ *
  * The gate commands here are one-liners (printf, exit) run through the real
  * runner, so the runner's log files land under <temp dir>/.temp/superdev/logs
  * and go away with the temp dir.
@@ -59,12 +64,23 @@ function planText(sections: GateSections): string {
 }
 
 /** Writes <dir>/plan.md and runs the script over it, from <dir>, with the
- *  out-file at <dir>/gates.md unless `out` says otherwise. */
-function runGate(dir: string, stage: string, sections: GateSections | null, out?: string): RunResult {
+ *  out-file at <dir>/gates.md unless `out` says otherwise. `budget` sets
+ *  GATE_BUDGET, the whole-run bound, which only this file ever overrides. */
+function runGate(
+  dir: string,
+  stage: string,
+  sections: GateSections | null,
+  out?: string,
+  budget?: string,
+): RunResult {
   if (sections !== null) fs.writeFileSync(path.join(dir, "plan.md"), planText(sections));
   const outFile = out ?? `${slash(dir)}/gates.md`;
   // Generous: every command goes through the runner's one-second poll loop.
-  return runScript(SUT, [slash(dir), stage, outFile], { cwd: dir, timeout: 180000 });
+  return runScript(SUT, [slash(dir), stage, outFile], {
+    cwd: dir,
+    timeout: 180000,
+    ...(budget === undefined ? {} : { env: { GATE_BUDGET: budget } }),
+  });
 }
 
 /** The printed block as its non-empty lines, in order. */
@@ -183,14 +199,24 @@ test("a 'none - <reason>' subsection carries its reason, runs nothing and stays 
   });
 });
 
-test("a selected subsection the gate block does not hold at all is carried as 'none' with that reason, never as red", () => {
+test("a selected subsection the gate block does not hold at all is 'absent', not 'none', and reds the round (the plan decided nothing about it)", () => {
   withTempDir("p2p2-run-gate-", (dir) => {
     const result = runGate(dir, "final", { build: [GREEN], tests: [GREEN] });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const text = fs.readFileSync(path.join(dir, "gates.md"), "utf-8");
-    assert.equal(gateLines(text)[2], "Integration - none - absent from the plan's ## Gate commands block");
-    assert.equal(stdoutLines(result)[2], "Integration: none");
-    assert.equal(stdoutLines(result).at(-1), "RED: no");
+    assert.equal(
+      gateLines(text)[2],
+      "Integration - absent - the plan's ## Gate commands block holds no such subsection",
+    );
+    assert.equal(stdoutLines(result)[2], "Integration: absent");
+    // red, so a checkpoint round whose only fault is the hole still dispatches
+    // the reviewer - which is what turns it into a BLOCKED.
+    assert.equal(stdoutLines(result).at(-1), "RED: yes");
+    assert.deepEqual(
+      detailBlocks(text).map((block) => block.subsection),
+      ["Build", "Tests"],
+      "a subsection that is not run gets no detail block, absent as much as none",
+    );
   });
 });
 
@@ -205,21 +231,24 @@ test("a green run prints RED: no and carries every line the runner printed into 
     assert.equal(blocks.length, 1);
     const lines = blocks[0].lines;
     assert.equal(lines[0], `COMMAND: ${GREEN}`);
-    assert.equal(lines[1], "RESULT: SUCCESS");
-    assert.equal(lines[2], "STATUS: ok");
-    assert.equal(lines[3], "EXIT: 0");
-    assert.match(lines[4], /^DURATION: \d+s$/);
-    assert.match(lines[5], /^LOG: \S/);
-    assert.equal(lines[6], "LINES: 1");
-    assert.equal(lines[7], "TAIL: ok 1", "the evidence rules read TAIL off this block, so it is never filtered");
-    assert.equal(lines.length, 8);
+    // written by run-gate.sh, not the runner: the bound this command got, which
+    // a BLOCKED bullet on a timeout has to name and can no longer infer.
+    assert.match(lines[1], /^TIMEOUT: \d+s$/);
+    assert.equal(lines[2], "RESULT: SUCCESS");
+    assert.equal(lines[3], "STATUS: ok");
+    assert.equal(lines[4], "EXIT: 0");
+    assert.match(lines[5], /^DURATION: \d+s$/);
+    assert.match(lines[6], /^LOG: \S/);
+    assert.equal(lines[7], "LINES: 1");
+    assert.equal(lines[8], "TAIL: ok 1", "the evidence rules read TAIL off this block, so it is never filtered");
+    assert.equal(lines.length, 9);
     // The LOG: path the reviewer is pointed at is the log that run actually
     // wrote. Read by its basename out of the known directory, never by the
     // printed path itself: a shell prints it in its own form (Git-Bash hands
     // back "/tmp/..." for the Windows temp dir), which Node would resolve
     // against the current drive.
-    assert.match(lines[5], /^LOG: \S.*\/\.temp\/superdev\/logs\/[^/]+\.log$/);
-    const log = path.join(dir, ".temp/superdev/logs", path.posix.basename(lines[5]));
+    assert.match(lines[6], /^LOG: \S.*\/\.temp\/superdev\/logs\/[^/]+\.log$/);
+    const log = path.join(dir, ".temp/superdev/logs", path.posix.basename(lines[6]));
     assert.equal(fs.readFileSync(log, "utf-8"), "ok 1\n");
     const out = stdoutLines(result);
     assert.equal(out.at(-2), `GATES: ${slash(dir)}/gates.md`);
@@ -242,12 +271,11 @@ test("one red command flips RED: yes, reds only its own subsection, and still ex
       ["Build", "Tests", "Tests", "Integration"],
       "one detail block per command, in the order they ran",
     );
-    assert.deepEqual(blocks[2].lines.slice(0, 4), [
-      `COMMAND: ${RED}`,
-      "RESULT: DEVIATION",
-      "STATUS: ok",
-      "EXIT: 3",
-    ]);
+    assert.deepEqual(
+      [blocks[2].lines[0], ...blocks[2].lines.slice(2, 5)],
+      [`COMMAND: ${RED}`, "RESULT: DEVIATION", "STATUS: ok", "EXIT: 3"],
+    );
+    assert.match(blocks[2].lines[1], /^TIMEOUT: \d+s$/);
     assert.deepEqual(stdoutLines(result), [
       "Build: pass",
       "Tests: red",
@@ -268,11 +296,58 @@ test("a command the runner refuses on its pre-launch error path keeps the round 
     const text = fs.readFileSync(path.join(dir, "gates.md"), "utf-8");
     const blocks = detailBlocks(text);
     assert.equal(blocks.length, 2, "the second command still ran after the first never launched");
-    assert.deepEqual(blocks[0].lines.slice(0, 3), [`COMMAND: ${GREEN}`, "RESULT: DEVIATION", "STATUS: error"]);
-    assert.match(blocks[0].lines[3], /^REASON: cannot write log: /);
-    assert.equal(blocks[0].lines.length, 4, "the pre-launch path is the shorter triple, with no EXIT/DURATION/LOG");
+    assert.equal(blocks[0].lines[0], `COMMAND: ${GREEN}`);
+    assert.match(blocks[0].lines[1], /^TIMEOUT: \d+s$/);
+    assert.deepEqual(blocks[0].lines.slice(2, 4), ["RESULT: DEVIATION", "STATUS: error"]);
+    assert.match(blocks[0].lines[4], /^REASON: cannot write log: /);
+    assert.equal(blocks[0].lines.length, 5, "the pre-launch path is the shorter triple, with no EXIT/DURATION/LOG");
     assert.deepEqual(stdoutLines(result).slice(0, 2), ["Build: red", "Tests: red"]);
     assert.equal(stdoutLines(result).at(-1), "RED: yes");
+  });
+});
+
+test("the budget bounds the whole run, not one command: a command it leaves no room for is reported red and never started", () => {
+  withTempDir("p2p2-run-gate-budget-", (dir) => {
+    // GATE_BUDGET=1: the Build command alone spends it (the runner polls once
+    // a second and kills at the bound), so the Tests command starts with
+    // nothing left. Without a whole-run budget this pair would run to
+    // completion and the caller's own timeout would be the thing that stopped
+    // it - killing the script before it writes any block at all.
+    const result = runGate(dir, "checkpoint", { build: ["sleep 30"], tests: [GREEN] }, undefined, "1");
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    const text = fs.readFileSync(path.join(dir, "gates.md"), "utf-8");
+    const blocks = detailBlocks(text);
+    assert.deepEqual(
+      blocks.map((block) => block.subsection),
+      ["Build", "Tests"],
+      "the skipped command still opens its own entry - a silent gap would read as a subsection nobody selected",
+    );
+    assert.deepEqual(blocks[1].lines, [
+      `COMMAND: ${GREEN}`,
+      "RESULT: DEVIATION",
+      "STATUS: error",
+      "REASON: gate budget of 1s spent before this command ran",
+    ], "no TIMEOUT line: the command the budget skipped was never given one");
+    // STATUS: error is what the contract's case 1 settles as BLOCKED, so the
+    // round says what it did not get to rather than passing on a short set.
+    assert.deepEqual(stdoutLines(result), [
+      "Build: red",
+      "Tests: red",
+      `GATES: ${slash(dir)}/gates.md`,
+      "RED: yes",
+    ]);
+    // The log of the command that DID run is still reachable: only the one
+    // with no room left was never launched.
+    assert.ok(blocks[0].lines.some((line) => line.startsWith("LOG: ")), "the first command ran and logged");
+  });
+});
+
+test("a GATE_BUDGET that is not a positive integer falls back to the default instead of skipping every command", () => {
+  withTempDir("p2p2-run-gate-budget-bad-", (dir) => {
+    const result = runGate(dir, "checkpoint", { build: [GREEN], tests: [GREEN] }, undefined, "not-a-number");
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(stdoutLines(result).slice(0, 2), ["Build: pass", "Tests: pass"]);
+    assert.equal(stdoutLines(result).at(-1), "RED: no");
   });
 });
 
