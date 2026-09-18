@@ -5,7 +5,7 @@
 This repo is the **source** for six independently-installable Claude Code plugins -
 `superdev`, `superui`, `supergh`, `superfix`, `superbiz`, `supercc` - co-listed by the root
 `.claude-plugin/marketplace.json`. Editing a file here does NOT change the behavior of the
-currently loaded plugins: routing manifests and skill instructions active in a session were
+currently loaded plugins: the injected manifest and the skill instructions active in a session were
 frozen at install / session start and change only after the user **publishes**. This repo's own
 `CLAUDE.md` files and `.claude/rules/` are dev-time orientation for editing the source, never
 plugin inputs, never read at runtime.
@@ -67,8 +67,9 @@ mechanics against `.github/scripts/release.sh` before restating them.
   `e2e` skill.
 - **One injected manifest per manifest-bearing plugin.** Only `superdev` ships `hooks/` + an
   injected `SessionStart` manifest (verbatim, once per session, `source == "resume"` excluded,
-  fail-open). The other five ship NO hooks and NO manifest - a dispatcher would add no routing
-  value over their skills' own CSO `description:`.
+  fail-open). It is a MANDATORY-RULES manifest, not a dispatcher: it names no skill, no group and
+  no chain, and routing is left to each skill's own CSO `description:`. The other five ship NO
+  hooks and NO manifest, for the same reason - there is nothing a dispatcher would add.
 - **No `"hooks"` field in `plugin.json`.** Claude Code auto-loads `hooks/hooks.json` from that
   path; adding a `hooks` field to `plugin.json` is a hard install error.
 - **Script vs. fork.** A step collapses to a deterministic bundled script when it operates on a

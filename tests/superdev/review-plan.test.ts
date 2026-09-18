@@ -253,6 +253,49 @@ test("B - genuine FAIL only -> deny", () => {
   });
 });
 
+/** The same call shape with an explicit ExitPlanMode `plan` argument - the four
+ *  skills that OPEN by leaving plan mode pass the routing-exit marker there. */
+function runCaseWithPlanArg(transcriptPath: string, plan: string): Decision {
+  const result = runScript(SUT, [], {
+    shell: "bash",
+    input: JSON.stringify({ transcript_path: transcriptPath, tool_name: "ExitPlanMode", tool_input: { plan } }),
+  });
+  assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+  const out = JSON.parse(result.stdout).hookSpecificOutput;
+  return { decision: out.permissionDecision, reason: out.permissionDecisionReason };
+}
+
+test("a routing exit clears a standing FAIL: the marker opening the plan argument -> allow (intent/superspec/phases/vibe must be able to start)", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const f = writeFixtureFile(dir, "t.jsonl", [LW, LR, LFAIL]);
+    // without the marker the standing FAIL denies - that is the gate working
+    assert.equal(runCase(f).decision, "deny");
+    assert.equal(
+      runCaseWithPlanArg(f, "superdev:routing-exit - the plan reviewer returned BLOCKED, routing to intent").decision,
+      "allow",
+    );
+  });
+});
+
+test("a routing exit writes no approval sidecar - nothing was approved", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const plan = writePlanFile(dir, "p.md", "# SuperPlan\nPlan: p.md\n");
+    const f = writeFixtureFile(dir, "t.jsonl", [LW, LR, LFAIL]);
+    assert.equal(runCaseWithPlanArg(f, "superdev:routing-exit").decision, "allow");
+    assert.equal(fs.existsSync(`${plan}.sha256`), false, "a routing exit approves nothing");
+  });
+});
+
+test("the marker only counts where it OPENS the plan argument - a plan that merely mentions it is still gated", () => {
+  withTempDir("p2p2-review-plan-", (dir) => {
+    const f = writeFixtureFile(dir, "t.jsonl", [LW, LR, LFAIL]);
+    assert.equal(
+      runCaseWithPlanArg(f, "# SuperPlan\nStep 1 - document the superdev:routing-exit marker.").decision,
+      "deny",
+    );
+  });
+});
+
 test("G - reviewer FAIL then a later pasted 'Verdict: PASS' -> deny (no false-allow)", () => {
   withTempDir("p2p2-review-plan-", (dir) => {
     const f = writeFixtureFile(dir, "t.jsonl", [LW, LR, LFAIL, LPASTE]);

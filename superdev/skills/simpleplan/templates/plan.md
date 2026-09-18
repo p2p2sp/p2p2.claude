@@ -43,6 +43,7 @@ Plan: <absolute path of this plan file, exactly as given by plan mode>
 <!-- TASK -->
 
 ## Task <N> - <title which become a commit message>
+<the title is spent as a double-quoted shell argument by the commit step, so it never carries a backtick, `$`, `"` or `\`>
 - Covers: `<criterion short name>` (#<n>)[, `<criterion short name>` (#<m>)]
 - TDD: <marker>
 - Kind: <code | scaffold | text>

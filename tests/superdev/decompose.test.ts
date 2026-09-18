@@ -874,6 +874,83 @@ test("task blocks with no task heading -> exit 6, one error line each, no index 
   });
 });
 
+test("a task title carrying a shell metacharacter -> exit 8, one error line each, no index rows, no working directory (both orchestrators spend the title as a double-quoted shell argument)", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-plan-", (planDir) => {
+      const plan = path.join(planDir, "plan.md");
+      fs.writeFileSync(
+        plan,
+        simplePlan({
+          title: "Unsafe Title Plan",
+          criteria: ["One.", "Two.", "Three."],
+          tasks: [
+            // the shape adr-task.md used to prescribe: the title in backticks
+            taskBlock("Task 1 - Write ADR `Make clean builds reproducible`", [1]),
+            taskBlock('Task 2 - say "hello"', [2]),
+            taskBlock("Task 3 - harmless title", [3]),
+          ],
+        }),
+      );
+      const result = run(repo, [plan]);
+      assert.equal(result.status, 8);
+
+      // one error line per offending block; the clean third task is not named
+      const errors = result.stderr
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l.includes("shell metacharacter"));
+      assert.equal(errors.length, 2);
+      assert.match(errors[0], /^error: task-01\.md title carries a shell metacharacter/);
+      assert.match(errors[1], /^error: task-02\.md title carries a shell metacharacter/);
+
+      // the run aborts ahead of the index: not a single task row on stdout
+      const dir = `docs/.workflows/${todayISO()}-unsafe-title-plan`;
+      assert.deepEqual(
+        result.stdout.split("\n").filter((l) => l.startsWith(`${dir}/tasks/`)),
+        [],
+      );
+      assert.equal(fs.existsSync(path.join(repo.dir, dir)), false);
+    });
+  });
+});
+
+test("a task title carrying a dollar sign or a backslash is refused too, and an apostrophe is not (it is safe inside double quotes)", () => {
+  withGitRepo((repo) => {
+    seedInitialCommit(repo);
+    withTempDir("p2p2-decompose-plan-", (planDir) => {
+      const unsafe = path.join(planDir, "unsafe.md");
+      fs.writeFileSync(
+        unsafe,
+        simplePlan({
+          title: "Dollar Plan",
+          criteria: ["One.", "Two."],
+          tasks: [taskBlock("Task 1 - read $HOME", [1]), taskBlock("Task 2 - escape a \\ backslash", [2])],
+        }),
+      );
+      const unsafeResult = run(repo, [unsafe]);
+      assert.equal(unsafeResult.status, 8);
+      assert.equal(
+        unsafeResult.stderr.split("\n").filter((l) => l.includes("shell metacharacter")).length,
+        2,
+      );
+
+      const safe = path.join(planDir, "safe.md");
+      fs.writeFileSync(
+        safe,
+        simplePlan({
+          title: "Apostrophe Plan",
+          criteria: ["One."],
+          tasks: [taskBlock("Task 1 - fix the user's profile", [1])],
+        }),
+      );
+      const safeResult = run(repo, [safe]);
+      assert.equal(safeResult.status, 0);
+      assert.match(safeResult.stdout, /\tTask 1 - fix the user's profile\t/);
+    });
+  });
+});
+
 test("a conforming task heading below a prose line is not the block's opening -> exit 6", () => {
   withGitRepo((repo) => {
     seedInitialCommit(repo);

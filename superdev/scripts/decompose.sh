@@ -74,6 +74,13 @@
 #     the title. A block without such an opening heading prints
 #     "error: task-NN.md has no task heading" on stderr - one line per offending
 #     block - and exits 6 before a single task index row is printed
+#   - a task title carrying one of ` $ " \ is refused the same way: both
+#     orchestrators spend the title column as a double-quoted shell argument to
+#     commit-task.sh, so a backtick or a "$(" in it would be executed in the
+#     host repo root and a double quote would split the argument. The script
+#     prints "error: task-NN.md title carries a shell metacharacter ..." on
+#     stderr - one line per offending block - and exits 8 before a single task
+#     index row is printed (plan-review-checklist class B24)
 #   - do każdego taska dopisywana jest sekcja "### Covered criteria" z verbatim
 #     treścią kryteriów wskazanych w jego linii "Covers:"; źródło to spec
 #     (tor superbuild) albo sekcja "## Acceptance criteria" z nagłówka planu
@@ -471,6 +478,18 @@ awk -v dir="$dir" -v hdr="$header" '
       }
     }
     if (headless) exit 6
+    # a title the orchestrator spends as a double-quoted shell argument to
+    # commit-task.sh: a backtick or a "$(" in it would be executed in the host
+    # repo root, a double quote would split the argument. Report EVERY
+    # offending block, then abort before any index row reaches stdout.
+    unsafe=0
+    for (i = 1; i <= n; i++) {
+      if (title[i] ~ /[`$"\\]/) {
+        printf("error: task-%02d.md title carries a shell metacharacter (one of ` $ \" \\): %s\n", i, title[i]) > "/dev/stderr"
+        unsafe=1
+      }
+    }
+    if (unsafe) exit 8
     for (i = 1; i <= n; i++) {
       # fifth column: may this task be started while the PRECEDING one is
       # still under review? Read conservatively - anything unknown is "no".

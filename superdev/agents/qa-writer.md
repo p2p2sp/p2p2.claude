@@ -167,7 +167,10 @@ Self-check every written file before returning; repair and re-check. A check tha
   contains none of them, and no execution-status column, no file path, no code identifier and no link
   into `docs/.workflows/`.
 - Every handoff UI entry has all seven fields and every API entry all five, each present and non-empty.
-- IDs are identical across both files - same number, same title - and each appears once per artifact.
+- Each ID appears once per artifact, and the two files agree on the IDs they share, per
+  `<refs>/qa-format.md`. They are NOT the same set: the acceptance document carries `ui` scenarios
+  only, so any `api` ID lives in the handoff alone and its absence from the acceptance document is
+  the format, not a defect.
 - The index line carries the date, the title linked to `<run id>.md`, and the ID range spanning the
   build's first and last ID; every pre-existing line is byte-identical to what it was, except an intended
   supersedes suffix.

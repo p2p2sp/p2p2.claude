@@ -15,7 +15,7 @@ covers what is true across the whole plugin.
 - `skills/simplebuild/` and `skills/superbuild/` - build orchestrators.
 - `skills/vibe/` - plan-less track for one explicit, one-sentence change.
 - `skills/superdev-memory/` and `skills/superdev-rules/` - the memory/rules maintenance fronts.
-- `hooks/content/manifest.md` - the injected `SessionStart` routing manifest.
+- `hooks/content/manifest.md` - the injected `SessionStart` mandatory-rules manifest.
 
 ## Contracts & invariants
 
@@ -25,7 +25,12 @@ covers what is true across the whole plugin.
   `ExitPlanMode` (`hooks/scripts/review-plan.sh`), gates the plan on the reviewer's
   `VERDICT: PASS` and, on its final allow, records the approved plan's sha256 beside the plan as
   `<plan>.sha256`; `scripts/decompose.sh` recomputes it and refuses (exit 7) a plan that differs
-  from the one approved, warns and continues when no sidecar exists. Both hooks stay fail-open.
+  from the one approved, warns and continues when no sidecar exists. One escape: an
+  `ExitPlanMode` call whose `plan` argument OPENS with `superdev:routing-exit` is a routing exit -
+  `intent`, `superspec`, `phases` and `vibe` all begin by leaving plan mode - and is allowed
+  unconditionally, writing no sidecar; without it a plan standing at `VERDICT: FAIL` denies those
+  four skills, the BLOCKED-to-intent route both plan writers prescribe included. Both hooks stay
+  fail-open.
 - Plugin-level shared scripts live at `superdev/scripts/`, shared references at
   `superdev/references/` - no `shared/` subdir (that is supergh's convention).
 - `superdev/references/review-contract.md` is the single owner of the build review loop's
@@ -72,7 +77,9 @@ covers what is true across the whole plugin.
   carrying `### Files` (that predecessor's own dependencies are never read), names no
   `(Task <N>)` pointer to the preceding task and shares no `### Files` path with it - anything
   less complete reads `no`. Also checks the plan against the `<plan>.sha256` sidecar the
-  `ExitPlanMode` hook wrote (mismatch = exit 7, absent = warning).
+  `ExitPlanMode` hook wrote (mismatch = exit 7, absent = warning), and refuses (exit 8, before
+  any index row) a task title carrying `` ` ``, `$`, `"` or `\` - both orchestrators spend that
+  column as a double-quoted shell argument to `commit-task.sh`.
 - `last-commit-date.sh` - resolves the last-commit boundary a checkpoint review reads since.
 - `lib_find_excludes.sh`, `lib_touched.sh` - shared helpers for scoping a diff/review to touched
   paths.

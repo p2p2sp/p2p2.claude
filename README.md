@@ -58,7 +58,7 @@ Each plugin's README carries its own description, a short usage guide, and the l
 ## How they fit together
 
 Within a plugin, skills compose through their `description:` triggers, and the model routes to them by
-itself. `superdev` is the only plugin shipping hooks: one `SessionStart` hook injects its dispatcher
+itself. `superdev` is the only plugin shipping hooks: one `SessionStart` hook injects its mandatory-rules
 manifest, and one `PreToolUse` hook gates `ExitPlanMode` on a reviewed plan. The other five ship no hooks
 and no manifest.
 

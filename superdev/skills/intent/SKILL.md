@@ -5,7 +5,7 @@ argument-hint: [path-to-intent.md]
 allowed-tools: Read, Grep, Glob, Agent, Task, AskUserQuestion, Skill, ExitPlanMode, Write, Bash(date:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/last-commit-date.sh:*)
 ---
 
-CRITICAL: Run `ExitPlanMode` first, if plan mode is active.
+CRITICAL: Run `ExitPlanMode` first, if plan mode is active. That call presents no plan and asks for no approval, so pass the literal marker `superdev:routing-exit` as the OPENING of its `plan` argument (a one-line reason may follow it): the `ExitPlanMode` gate allows a call shaped that way and writes no approval sidecar. Without the marker an earlier plan of the same session standing at `VERDICT: FAIL` denies this call and the skill cannot start.
 
 Help turn ideas into fully formed designs and specs through natural collaborative dialogue. First thing to do is reach a shared understanding of `What` and `Why` the user wants and `How` to build something, before any plan or code is drafted.
 

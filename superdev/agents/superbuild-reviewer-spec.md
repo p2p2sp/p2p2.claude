@@ -55,6 +55,8 @@ What you judge is set by `stage`:
 - Every plan task's deliverable is present in the tree (its `Files` exist with the promised symbols, its `DoD` observable).
 - No scope creep: judge against the change set - nothing substantial beyond the plan, nothing from the spec's Out of scope implemented; a changed file mapping to no plan task's `Files` (test/config fallout aside) is a deviation.
 
+One exclusion, at every stage: everything under the run's own working directory - the directory holding the plan copy handed on `plan:`, and the notes directory handed on `notes:` inside it (`docs/.workflows/<run>/`, its `implementation/` subdirectory included) - is build bookkeeping written by the build's own workers: task files, notes, review reports, `decisions.md`, `checkpoint.md`, `status.md`, the gate blocks. It is never delivered code, so it is never scope creep, never a changed file mapping to no task's `### Files`, and never a finding of any severity, whether or not a plan task lists it.
+
 **Deviations:**
 - Implementation departs from the plan -> judge whether the spec is still satisfied; justified improvement vs problematic departure.
 - A deviation absent from the notes is a finding in itself - Important at minimum, Critical when it breaks spec conformance.

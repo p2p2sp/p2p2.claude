@@ -16,7 +16,14 @@
 #                 caller owns its content; this script only checks it is not
 #                 empty.
 #   cwd:          (optional) an existing directory to run it in. Default: $PWD.
-#   timeout:      (optional) positive integer seconds. Default: 600.
+#   timeout:      (optional) positive integer seconds. Default: 600. The
+#                 command runs in a process group of its own, and a timeout
+#                 signals that whole group (TERM, then KILL a second later),
+#                 so the command's own children die with it rather than
+#                 outliving the block this script prints. The block is held
+#                 back until the group is gone (up to 3 s more), because
+#                 LINES: and TAIL: are read off the log a survivor would still
+#                 be writing to.
 #   expect-exit:  (optional) the exit code that counts as a success: `nonzero`,
 #                 or one plain decimal code (0, 1, 2 ...). Default: 0.
 # A trailing CR (a CRLF block) and trailing whitespace are stripped from every
@@ -215,31 +222,59 @@ main() {
   : >"$log" 2>/dev/null || emit_error "cannot write log: $log"
 
   local start=$SECONDS
-  ( cd "$cwd" && bash -c "$label_command" ) >"$log" 2>&1 &
-  local pid=$!
-  local status="ok"
-  local exit_code=0
+  local pid status="ok" exit_code=0 grace
+  # The launch, the poll and the kill live inside one stderr-silenced block:
+  # `set -m` is what puts the command in a process group of its own, and a
+  # shell running with job control reports an abnormally terminated job on ITS
+  # OWN stderr ("Terminated: 15"), which the OUTPUT contract above forbids.
+  # Nothing in this script writes to stderr on purpose, so silencing the region
+  # hides no diagnostic of ours.
+  {
+    set -m
+    # `exec` so the subshell IS the command's shell rather than its parent, and
+    # </dev/null so a command that reads stdin cannot be stopped by SIGTTIN now
+    # that it sits outside the terminal's foreground group (stdin is spent -
+    # parse_labels drained it before this point).
+    ( cd "$cwd" && exec bash -c "$label_command" ) <"/dev/null" >"$log" 2>&1 &
+    pid=$!
+    set +m
 
-  # Polled rather than blocked on, so the timeout is enforced by this script
-  # alone - timeout(1) is not on every macOS box.
-  while kill -0 "$pid" 2>/dev/null; do
-    if (( SECONDS - start >= timeout )); then
-      kill -TERM "$pid" 2>/dev/null
+    # Polled rather than blocked on, so the timeout is enforced by this script
+    # alone - timeout(1) is not on every macOS box.
+    while kill -0 "$pid" 2>/dev/null; do
+      if (( SECONDS - start >= timeout )); then
+        status="timeout"
+        break
+      fi
       sleep 1
-      kill -KILL "$pid" 2>/dev/null
-      status="timeout"
-      break
-    fi
-    sleep 1
-  done
+    done
 
-  if [[ "$status" == "timeout" ]]; then
-    wait "$pid" 2>/dev/null
-    exit_code=124
-  else
-    wait "$pid"
-    exit_code=$?
-  fi
+    if [[ "$status" == "timeout" ]]; then
+      # Signal the GROUP, never the pid alone: `$pid` is the wrapper subshell,
+      # and its `bash -c` descendants are what actually do the work - signalled
+      # one at a time they are missed, reparented to init and left running past
+      # the block this script is about to print. The negative form can never
+      # reach this script's own group (our pgid is not a pid we just forked);
+      # where job control did not take, it simply finds no such group and the
+      # plain-pid form runs instead.
+      kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+      sleep 1
+      kill -KILL -"$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
+      # reaps the wrapper, so the confirmation below cannot see its zombie
+      wait "$pid"
+      exit_code=124
+      # Confirm the group is gone before the block is printed: LINES: and TAIL:
+      # are read off the log, and a survivor is still writing to it.
+      grace=0
+      while (( grace < 3 )) && kill -0 -"$pid" 2>/dev/null; do
+        sleep 1
+        grace=$(( grace + 1 ))
+      done
+    else
+      wait "$pid"
+      exit_code=$?
+    fi
+  } 2>/dev/null
   local duration=$(( SECONDS - start ))
 
   local lines=0

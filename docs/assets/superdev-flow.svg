@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1340 2192" width="1340" height="2192" role="img" aria-labelledby="svgTitle svgDesc">
   <title id="svgTitle">superdev - flow: the Simple track and the Super track</title>
-  <desc id="svgDesc">Flow diagram of the superdev plugin: entry (an idea or a bug), the interview in the intent skill, the track-selection gate, the Simple track (simpleplan, simpleplan-reviewer, hook, simplebuild) and the Super track (superspec, superplan, superbuild with a review after every task), and a shared Close Out with optional adr, memory, rules and changelog delegations, followed by an optional cleanup step.</desc>
+  <desc id="svgDesc">Flow diagram of the superdev plugin: entry (an idea or a bug), the interview in the intent skill, the track-selection gate, the Simple track (simpleplan, simpleplan-reviewer, hook, simplebuild) and the Super track (superspec, superplan, superbuild with a review after every task), and a shared Close Out with optional memory, rules, QA/e2e and changelog delegations, followed by an optional cleanup step.</desc>
 
   <style>
     :root {
@@ -411,7 +411,7 @@
   <rect x="1146" y="1652" width="64" height="16" rx="8" class="badge"/>
   <text x="1178" y="1664" class="badge-t" text-anchor="middle">fork ×2</text>
   <text x="800" y="1668" class="title">Final review: spec → code</text>
-  <text x="800" y="1690" class="desc">superbuild-reviewer-spec, then on PASS superbuild-reviewer-change.</text>
+  <text x="800" y="1690" class="desc">superbuild-reviewer-spec and -change, dispatched together, awaited together.</text>
   <text x="800" y="1707" class="desc-s">FAIL → task-implementor fixes, the review starts over (max. 2 rounds)</text>
 
   <path d="M1000 1714 L1000 1804 Q1000 1822 982 1822 L688 1822 Q670 1822 670 1840 L670 1844" class="link l-u" marker-end="url(#ar-u)"/>
@@ -423,19 +423,20 @@
   <rect x="800" y="1858" width="80" height="16" rx="8" class="badge"/>
   <text x="840" y="1870" class="badge-t" text-anchor="middle">opt-in</text>
   <text x="470" y="1876" class="title">Close Out</text>
-  <text x="470" y="1898" class="desc">adr: true → superdev:adr-writer</text>
-  <text x="470" y="1916" class="desc">memory: true → superdev:memory-writer</text>
-  <text x="470" y="1934" class="desc">rules: true → superdev:rules-writer</text>
-  <text x="470" y="1952" class="desc">changelog: true → superdev:changelog-writer (after adr)</text>
+  <text x="470" y="1898" class="desc">memory: true → superdev:memory-writer</text>
+  <text x="470" y="1916" class="desc">rules: true → superdev:rules-writer</text>
+  <text x="470" y="1934" class="desc">qa / e2e-ui / e2e-api: true → superdev:qa-writer</text>
+  <text x="470" y="1952" class="desc">changelog: true → superdev:changelog-writer (wave 2)</text>
   <text x="470" y="1972" class="desc-s">wave 1 in parallel, changelog after it · a failed delegation does not block</text>
 
   <!-- config card -->
   <rect x="940" y="1848" width="360" height="138" rx="10" fill="var(--panel2)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="958" y="1884" class="title" style="font-size:13px">Switches</text>
   <text x="958" y="1908" class="mono">.claude/superdev.yml</text>
-  <text x="958" y="1930" class="desc">adr · rules · memory · changelog · cleanup</text>
-  <text x="958" y="1950" class="desc">all false by default</text>
-  <text x="958" y="1968" class="desc-s">set once via /superdev:setup</text>
+  <text x="958" y="1928" class="desc">adr · rules · memory · changelog · cleanup</text>
+  <text x="958" y="1944" class="desc">stats · qa · e2e-ui · e2e-api</text>
+  <text x="958" y="1960" class="desc-s">all false by default · adr gates intent, not Close Out</text>
+  <text x="958" y="1976" class="desc-s">set once via /superdev:setup</text>
 
   <path d="M938 1917 L894 1917" class="link l-a" marker-end="url(#ar-a)"/>
   <path d="M938 1917 L894 1917" class="flow l-a"/>
@@ -453,6 +454,6 @@
 
   <rect x="450" y="2086" width="440" height="72" rx="10" fill="var(--simple-bg)" stroke="var(--simple)" stroke-width="1.5"/>
   <text x="470" y="2112" class="title" fill="var(--simple)">Done</text>
-  <text x="470" y="2134" class="desc">Summary · ADR: / NODE: / RULE: / CHANGELOG: / INDEX: verbatim.</text>
+  <text x="470" y="2134" class="desc">Summary · NODE: / RULE: / CHANGELOG: / INDEX: / QA: / E2E: verbatim.</text>
   <text x="470" y="2151" class="desc-s">every GAP: → run superdev-memory or -rules</text>
 </svg>

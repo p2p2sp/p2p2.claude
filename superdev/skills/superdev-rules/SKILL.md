@@ -2,7 +2,7 @@
 name: superdev-rules
 description: Use ALWAYS when the user wants to discover, capture, or maintain project coding conventions as .claude/rules files - learn the codebase's conventions, set up path-scoped rules, teach Claude the project's style. Triggers include "create rules", "set up .claude/rules", "capture coding conventions", "learn our conventions", "add naming/testing/error-handling rules", "audit rules". Discovers dominant patterns from the host code with real examples, confirms each in an interview, and writes MANY SMALL path-scoped rule files (one convention area per file, YAML paths: gating) instead of a monolith, plus a maintenance mode to audit existing rules against the actual code and find new candidates.
 user-invocable: true
-allowed-tools: Read, Write, AskUserQuestion, Skill, Agent, Task, Bash, Bash(date:*)
+allowed-tools: Read, Write, AskUserQuestion, Skill, Agent, Task, Bash, Bash(date:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/superdev-rules/scripts/detect_state.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/superdev-rules/scripts/scan_conventions.sh:*)
 ---
 
 # SuperDev Rules
@@ -38,7 +38,7 @@ The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture
    (State: no capture written yet). Do not run the scripts, do not start the interview.
 
 1. Detect state
-   scripts/detect_state.sh /path/to/project
+   "${CLAUDE_PLUGIN_ROOT}/skills/superdev-rules/scripts/detect_state.sh" /path/to/project
    → Returns: none | partial | complete
 
 2. Route
@@ -46,7 +46,7 @@ The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture
    complete     → Maintenance (step 6)
 
 3. Scan [gate - show findings first]
-   scripts/scan_conventions.sh /path/to/project
+   "${CLAUDE_PLUGIN_ROOT}/skills/superdev-rules/scripts/scan_conventions.sh" /path/to/project
    Then Read 2-3 representative files per candidate area - a convention is
    proposable only with a dominant pattern + a real example; never invent one.
    Show: | Area | Discovered convention (real example) | Proposed paths: |
@@ -99,5 +99,5 @@ Per candidate area:
 ## Resources
 
 **Scripts:**
-- `scripts/detect_state.sh` - Check .claude/rules state (none/partial/complete, per-file paths: presence)
-- `scripts/scan_conventions.sh` - Deterministic convention signals (languages, naming styles, test patterns, tool configs, layout)
+- `${CLAUDE_PLUGIN_ROOT}/skills/superdev-rules/scripts/detect_state.sh` - Check .claude/rules state (none/partial/complete, per-file paths: presence)
+- `${CLAUDE_PLUGIN_ROOT}/skills/superdev-rules/scripts/scan_conventions.sh` - Deterministic convention signals (languages, naming styles, test patterns, tool configs, layout)

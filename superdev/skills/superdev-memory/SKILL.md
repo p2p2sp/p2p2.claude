@@ -2,7 +2,7 @@
 name: superdev-memory
 description: Use ALWAYS when the user wants to create, initialize, regenerate, bootstrap, or maintain CLAUDE.md project-memory for a repository - set up project memory, add a memory layer, or make Claude understand the codebase. Triggers include "create CLAUDE.md", "initialize project memory", "bootstrap Claude context", "set up CLAUDE.md", "add memory layer". Generates a hierarchical CASCADE of CLAUDE.md files (one general root plus progressively more specific child nodes in genuine architectural units), not a single root file, and offers a maintenance mode to audit existing nodes and find new candidates.
 user-invocable: true
-allowed-tools: Read, Write, AskUserQuestion, Skill, Agent, Task, Bash, Bash(date:*)
+allowed-tools: Read, Write, AskUserQuestion, Skill, Agent, Task, Bash, Bash(date:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/superdev-memory/scripts/detect_state.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/superdev-memory/scripts/analyze_structure.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/superdev-memory/scripts/estimate_tokens.sh:*)
 ---
 
 # SuperDev Memory
@@ -36,7 +36,7 @@ The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture
    (State: no capture written yet). Do not run the scripts, do not start the interview.
 
 1. Detect state
-   scripts/detect_state.sh /path/to/project
+   "${CLAUDE_PLUGIN_ROOT}/skills/superdev-memory/scripts/detect_state.sh" /path/to/project
    → Returns: none | partial | complete
 
 2. Route
@@ -44,8 +44,8 @@ The line above is `<RUN_ID>` - use it verbatim. Every run writes a fresh capture
    complete     → Maintenance (step 6)
 
 3. Measure [gate - show list first]
-   scripts/analyze_structure.sh /path/to/project
-   scripts/estimate_tokens.sh /path/to/each/source/dir
+   "${CLAUDE_PLUGIN_ROOT}/skills/superdev-memory/scripts/analyze_structure.sh" /path/to/project
+   "${CLAUDE_PLUGIN_ROOT}/skills/superdev-memory/scripts/estimate_tokens.sh" /path/to/each/source/dir
    Report per directory, one line each: directory - tokens - threshold - needs node?
    Thresholds:
    - <20k tokens → No node needed
@@ -110,6 +110,6 @@ When documenting existing code, ask:
 ## Resources
 
 **Scripts:**
-- `scripts/detect_state.sh` - Check Memory Layer state (none/partial/complete)
-- `scripts/analyze_structure.sh` - Find semantic boundaries
-- `scripts/estimate_tokens.sh` - Measure directory complexity
+- `${CLAUDE_PLUGIN_ROOT}/skills/superdev-memory/scripts/detect_state.sh` - Check Memory Layer state (none/partial/complete)
+- `${CLAUDE_PLUGIN_ROOT}/skills/superdev-memory/scripts/analyze_structure.sh` - Find semantic boundaries
+- `${CLAUDE_PLUGIN_ROOT}/skills/superdev-memory/scripts/estimate_tokens.sh` - Measure directory complexity

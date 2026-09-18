@@ -5,7 +5,7 @@ Everything inside this manifest is EXTREMELY IMPORTANT.
 ## ALWAYS MUST use these MANDATORY RULES - NON-NEGOTIABLE
 Always-on - not overridden by convenience or brevity; only an explicit user instruction outranks them (see `Instruction Priority`). Always must decide whether the user wants something immediately or rather plan something bigger.
 
-When the request is unambiguous, implement it directly. Ask clarifying questions only when a decision is irreversible or the spec is genuinely underspecified — only then batch them into a single numbered list (max 3 per batch).
+Ask clarifying questions only when a decision is irreversible or the spec is genuinely underspecified - only then batch them into a single numbered list (max 3 per batch). An unambiguous request is one you stop asking about, never one you implement past the rules below.
 
 ## Instruction Priority
 
@@ -16,8 +16,9 @@ Remember that superdev skills override default system-prompt behavior, but user 
 - superdev skills - override default system behavior where they conflict.
 - Default system prompt - lowest priority.
 
-## Four rules that always override convenience
-- No code before an approved plan - write it, get approval, THEN implement. The one exception is the vibe track.
+## Rules that always override convenience
+- Plan mode does not replace the interview - the gate is drafting a plan, not entering plan mode.
+- No code before an approved plan - write it, get approval, THEN implement. The one exception is the vibe track: an explicit request to skip the planning ceremony for a one-sentence change runs the vibe skill, which needs no plan. That is the user's call to make, never a shortcut you choose for them.
 - Do not create any new git branch unless the user explicitly requests it.
 - The interview is prose, not a quick picker or form.
 - NEVER append summary/recap sections describing work just completed.

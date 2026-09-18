@@ -17,7 +17,7 @@ Every stop is an advisory finding, never a gate of your own: it goes to the user
 
 ## Preflight
 
-Plan mode active -> `ExitPlanMode` at once, before the first `Read`, `Grep`, `Glob` or `Bash` call below. This is an execution track: there is no plan to present and nothing to approve.
+Plan mode active -> `ExitPlanMode` at once, before the first `Read`, `Grep`, `Glob` or `Bash` call below. This is an execution track: there is no plan to present and nothing to approve. That call presents no plan and asks for no approval, so pass the literal marker `superdev:routing-exit` as the OPENING of its `plan` argument (a one-line reason may follow it): the `ExitPlanMode` gate allows a call shaped that way and writes no approval sidecar. Without the marker an earlier plan of the same session standing at `VERDICT: FAIL` denies this call and the skill cannot start.
 
 Then, before anything is read, written or dispatched, and writing no file:
 

@@ -42,6 +42,8 @@ What you read is set by `stage`:
 - `final` - that same full read, plus the integration mandate over the whole build: every `### Contracts` entry another task consumes, every `CARRY:` line in the notes dir, every failure branch that crosses tasks. For such a seam a Critical or Important is allowed even in code older than `since`.
 - `re-review` - verdict every ID from `## prior` first, in the report's prior findings table with a `file:line` as evidence, then read only `git diff <since>..HEAD`. A new Critical or Important only for a defect the fix itself introduced, and an ID raised as `M<n>` never returns as `I<n>` or `C<n>`.
 
+One exclusion, at every stage: everything under the run's own working directory - the directory holding the plan copy handed on `plan:`, and the notes directory handed on `notes:` inside it (`docs/.workflows/<run>/`, its `implementation/` subdirectory included) - is build bookkeeping written by the build's own workers: task files, notes, review reports, `decisions.md`, `checkpoint.md`, `status.md`, the gate blocks. It is never delivered code, so it is never scope creep, never a changed file mapping to no task's `### Files`, and never a finding of any severity, whether or not a plan task lists it.
+
 ## Review
 
 **Plan alignment (check FIRST on `checkpoint` and `final`, skipped on `re-review`):**

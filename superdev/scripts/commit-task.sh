@@ -37,11 +37,9 @@
 #   created file does not abort the commit; anything under .temp/ is dropped too.
 #
 # Behaviour:
-#   - task-file given -> status-update.sh <task-file> first (writes the task
-#     number to <workdir>/status.md, so the bump lands in this commit)
-#   - outside a git repository (or with no working tree) -> "Not a git
-#     repository - skipping commit." and exit 0 (the status bump above has
-#     already been written)
+#   - outside a git repository (or with no working tree) -> the status bump
+#     (see below) is written, then "Not a git repository - skipping commit."
+#     and exit 0
 #   - any change in the working tree outside the declared set - a modified or
 #     deleted tracked file, an untracked file .gitignore does not cover - is
 #     reported as one "undeclared: <path>" line per path on stdout, with
@@ -53,6 +51,12 @@
 #     "undeclared:" lines and before the stderr error - so the reader can tell a
 #     malformed declaration from a missing one. A run that gets as far as
 #     staging prints no such line.
+#   - task-file given -> status-update.sh <task-file> (writes the task number
+#     to <workdir>/status.md) runs only once the run is past the undeclared
+#     check and about to stage, so the bump lands in this commit and never
+#     survives a refusal: status.md is the build's only resume marker, and a
+#     bump left behind by an exit 2 marks a task done that was never committed
+#     and never reviewed
 #   - otherwise stage the declared set only, never .temp/; an empty index ->
 #     "Nothing to commit.", else `git commit -m <message>` followed by the line
 #     "commit: <sha>" as the last line on stdout.
@@ -126,16 +130,18 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -n "$task" ]]; then
-  "$SCRIPT_DIR/status-update.sh" "$task"
-fi
-
 # The commit is best-effort. Outside a git repository there is nothing to commit
 # to and the task's work is already on disk - so skip it and exit clean, instead
 # of letting `set -e` turn git's exit 128 into a failed task that stops the
 # implementation loop mid-build. A repository with no working tree (a bare one)
 # takes the same exit: there is nothing to stage from.
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
+  # No commit will ever record this task here, so the resume marker is the only
+  # record there is - and this path ends clean, so writing it cannot outlive a
+  # refusal the way the old unconditional bump did.
+  if [[ -n "$task" ]]; then
+    "$SCRIPT_DIR/status-update.sh" "$task"
+  fi
   echo "Not a git repository - skipping commit."
   exit 0
 fi
@@ -302,6 +308,17 @@ if [[ $undeclared_count -gt 0 ]]; then
   done
   echo "error: undeclared changes in the working tree - nothing committed" >&2
   exit 2
+fi
+
+# The resume marker is written HERE, past the exit 2 above and before the
+# staging below: status.md is the build's only resume marker, and a bump that
+# survives a refused commit leaves the task marked done, never committed and
+# never reviewed - decompose.sh reads it back and both orchestrators then start
+# above that number. Writing it now still puts it in this commit: status.md
+# sits under the run directory, which is already in the declared set, and the
+# undeclared scan above has already run, so its own change is never flagged.
+if [[ -n "$task" ]]; then
+  "$SCRIPT_DIR/status-update.sh" "$task"
 fi
 
 if [[ $declare_all -eq 1 ]]; then

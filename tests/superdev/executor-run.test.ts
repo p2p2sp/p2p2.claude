@@ -106,6 +106,42 @@ test("a command that outruns its timeout is killed: STATUS timeout, EXIT 124, sc
   });
 });
 
+/** Blocks the test thread, so a temp dir stays alive across the wait. */
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+test("a timed-out command's own children die with it (the status block alone never proved the process was gone)", () => {
+  withTempDir("p2p2-executor-", (dir) => {
+    // the command's real work happens in a CHILD of the `bash -c` shell, so a
+    // kill aimed at the wrapper subshell alone misses it: the sleep would be
+    // reparented to init, outlive the script, and touch the marker long after
+    // the block said `STATUS: timeout`
+    const marker = path.join(dir, "escaped-the-timeout");
+    const result = run([
+      `command: sleep 5 && touch ${slash(marker)}`,
+      `cwd: ${slash(dir)}`,
+      `timeout: 1`,
+    ]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(lines(result)[1], "STATUS: timeout");
+    assert.equal(fs.existsSync(marker), false, "the marker must not exist the moment the block is printed");
+
+    // ... and it must still not exist once the sleep's own wall time is up
+    sleepSync(7_000);
+    assert.equal(fs.existsSync(marker), false, "the command outlived its own timeout");
+  });
+});
+
+test("run.sh writes nothing to stderr on a timeout (the job-control notice of its own process group must stay hidden)", () => {
+  withTempDir("p2p2-executor-", (dir) => {
+    const result = run([`command: sleep 30`, `cwd: ${slash(dir)}`, `timeout: 1`]);
+    assert.equal(result.status, 0);
+    assert.equal(lines(result)[1], "STATUS: timeout");
+    assert.equal(result.stderr, "", `stderr must stay empty, got: ${result.stderr}`);
+  });
+});
+
 test("no command: line -> RESULT DEVIATION, STATUS error with a one-line REASON, exit 2, and no log at all", () => {
   withTempDir("p2p2-executor-", (dir) => {
     const result = run([`cwd: ${slash(dir)}`]);

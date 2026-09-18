@@ -8,9 +8,13 @@ below from that section and copy the result into the plan as Task 1.
 
 - One task per plan, never one per ADR. A single task writes every `### <slug>` block the intent's
   `## ADR` section carries.
-- Title: one block -> `Write ADR` followed by that block's title in backticks; two or more blocks ->
-  `Write ADRs`, with no title. The title is the `# <Short title of the decision>` heading of the
-  block's fenced body, without its leading `#`.
+- Title: one block -> `Write ADR` followed by that block's title as plain text, no backticks and no
+  quotes of any kind; two or more blocks -> `Write ADRs`, with no title. The title is the
+  `# <Short title of the decision>` heading of the block's fenced body, without its leading `#`.
+- The task heading is spent by both orchestrators as a double-quoted shell argument to
+  `commit-task.sh`, so it NEVER carries `` ` ``, `$`, `"` or `\`. A block title carrying one of
+  those four characters has it dropped here (the surrounding words are kept, no substitute
+  punctuation added); the ADR body itself is copied verbatim and is never edited for this.
 - `<slug>`: the block's own `### <slug>` heading, one per block.
 - `Supersedes:`: a block carrying that line contributes its path to `### Files` and its own step to
   `### Approach`; a block without one contributes neither.
@@ -32,7 +36,7 @@ below from that section and copy the result into the plan as Task 1.
 ## Task block
 
 ````text
-## Task 1 - Write ADR `<title>`
+## Task 1 - Write ADR <title>
 - Covers: `ADR` (intent `## ADR`)
 - TDD: none
 - Kind: scaffold

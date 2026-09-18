@@ -59,9 +59,9 @@ the user - a change here means checking the agent's own `description:` still say
   equivalent of a skill's `disallowed-tools`).
 - Agents are dispatched with the `Agent` tool; the per-call `model` is honored, but the tool
   takes no `effort` parameter at all - the agent's frontmatter decides, and since the plan no
-  longer carries an effort marker, that frontmatter is the ONLY place an effort is set. In fix
-  mode, on a re-dispatch against a review report, both task agents run with no `model` parameter
-  set.
+  longer carries an effort marker, that frontmatter is the ONLY place an effort is set.
+  Fix-dispatch strength is owned by `../references/review-contract.md` `## Dispatch strength` -
+  read it there, never from a copy here.
 - Fork mode: every `Agent` dispatch runs in the background and its result arrives as a task
   notification, whether the orchestrator awaits one worker or a concurrent pair. The frontmatter
   field `background:` therefore decides nothing and no agent carries it; the seven that carried

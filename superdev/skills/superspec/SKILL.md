@@ -4,7 +4,7 @@ description: Invoked by intent skill only.
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill, AskUserQuestion, ExitPlanMode, Bash(date:*), Bash(printf:*), WebFetch, WebSearch, Agent, Task
 ---
 
-CRITICAL: Run `ExitPlanMode` first, if plan mode is active.
+CRITICAL: Run `ExitPlanMode` first, if plan mode is active. That call presents no plan and asks for no approval, so pass the literal marker `superdev:routing-exit` as the OPENING of its `plan` argument (a one-line reason may follow it): the `ExitPlanMode` gate allows a call shaped that way and writes no approval sidecar. Without the marker an earlier plan of the same session standing at `VERDICT: FAIL` denies this call and the skill cannot start.
 
 # SuperSpec
 Write a specification document using the superspec template. Leverage the information gathered during the interview. A good specification is short enough that anyone can read it in one sitting, yet precise enough to be implemented without guesswork. Never describes `How` (that is superplan).

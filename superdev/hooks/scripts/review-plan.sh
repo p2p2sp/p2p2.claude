@@ -33,6 +33,14 @@
 # superbuild trusts this gate as the single plan-review checkpoint and does
 # not re-review the plan itself.
 #
+# Routing exit: an ExitPlanMode call whose "plan" value OPENS with the literal
+# "superdev:routing-exit" is allowed unconditionally and writes no sidecar. It
+# is how the four skills that begin by leaving plan mode (intent, superspec,
+# phases, vibe) get out when an earlier plan of the same session is standing at
+# VERDICT: FAIL - including the BLOCKED-to-intent route both plan writers
+# prescribe. Those calls present no plan and ask for no approval, so there is
+# nothing for this gate to gate.
+#
 # Contract:
 #   stdin  : JSON with at least { "transcript_path": "<abs-path>" }
 #   stdout : { "hookSpecificOutput": { "hookEventName": "PreToolUse",
@@ -75,6 +83,22 @@ emit_deny() {
 # Read stdin payload.
 input="$(cat)"
 [ -z "$input" ] && emit_allow
+
+# Routing exit: four skills (intent, superspec, phases, vibe) open by LEAVING
+# plan mode - they present no plan and ask for no approval, so the review gate
+# below has nothing to gate. Without this escape a plan reviewed earlier in the
+# session with VERDICT: FAIL denies them, and the route the plan writers
+# themselves prescribe for a BLOCKED finding ("run the intent Skill first")
+# cannot be taken: the plan skill is told to go to intent, and intent's own
+# first call is refused by this hook. Such a call passes the literal marker
+# "superdev:routing-exit" as the OPENING of the ExitPlanMode plan argument, and
+# it is allowed here before anything else is read. The marker must open the
+# value, not merely appear in it, so a real plan cannot trip it: a plan file
+# always opens with "# SimplePlan" / "# SuperPlan". No sidecar is written on
+# this path - nothing was approved.
+if printf '%s' "$input" | grep -qE '"plan"[[:space:]]*:[[:space:]]*"superdev:routing-exit'; then
+  emit_allow
+fi
 
 # Extract transcript_path from the JSON payload, pure POSIX (no jq). Matches the
 # first  "transcript_path": "value"  occurrence and prints the unquoted value; a

@@ -6,7 +6,7 @@ user-invocable: true
 allowed-tools: Read, Grep, Glob, Agent, Task, AskUserQuestion, Skill, ExitPlanMode, Write, Edit, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/phases-status.sh:*), Bash(date:*), Bash(printf:*)
 ---
 
-CRITICAL: Run `ExitPlanMode` first, if plan mode is active.
+CRITICAL: Run `ExitPlanMode` first, if plan mode is active. That call presents no plan and asks for no approval, so pass the literal marker `superdev:routing-exit` as the OPENING of its `plan` argument (a one-line reason may follow it): the `ExitPlanMode` gate allows a call shaped that way and writes no approval sidecar. Without the marker an earlier plan of the same session standing at `VERDICT: FAIL` denies this call and the skill cannot start.
 
 # Phases
 

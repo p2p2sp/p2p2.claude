@@ -70,9 +70,10 @@ never this node - this node says who owns what and how they chain.
 - A worker must NEVER appear in both `plugin.json` `skills[]` and `agents[]`.
 - A user-only command (`disable-model-invocation: true`) does not participate in routing and
   stays out of the injected manifest entirely - that gap is deliberate, do not "fix" it.
-- The injected manifest (`hooks/content/manifest.md`) lists groups/roles and chains, not
-  individual skills. Update it only when a change adds/removes a group, shifts a group's scope,
-  or alters a documented chain/config-gated area - not for every per-skill change.
+- The injected manifest (`hooks/content/manifest.md`) carries MANDATORY RULES only - the
+  instruction priority, the always-override rules, the `.temp/` rule. It names no skill, no group
+  and no chain, so routing lives entirely in each skill's own CSO `description:`. A per-skill
+  change never touches it; only a change to one of those standing rules does.
 
 ## Anti-patterns
 

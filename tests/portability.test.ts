@@ -200,13 +200,33 @@ interface CorpusHit {
   explicit: boolean;
 }
 
+interface InvocationPattern {
+  text: string;
+  /** When set, only corpus files under this directory are searched. A bare,
+   *  skill-relative call reads as "relative to whoever wrote the line", so it
+   *  must never be attributed to a same-named script in another skill. */
+  ownerDir?: string;
+  /** When set, the match counts only where it BEGINS a whitespace-delimited
+   *  token. A bare relative path is a substring of every absolute spelling of
+   *  the same script (`"${CLAUDE_SKILL_DIR}/scripts/x.sh"`) and of every prose
+   *  mention of it (`` the bundled `scripts/x.sh` ``); counted there it would
+   *  both double-report the absolute call and lose the `bash`/`sh` word that
+   *  makes it explicit. */
+  standalone?: boolean;
+}
+
 /** Every occurrence, across all SKILL.md files and hooks.json, of `pattern`
- *  (the literal `${CLAUDE_PLUGIN_ROOT}/...` or `${CLAUDE_SKILL_DIR}/...`
- *  invocation text for one script) - classified as `explicit` (the word
- *  immediately before the opening quote is `bash`/`sh`/`node`) or bare. */
-function findInvocations(pattern: string, corpus: Array<{ file: string; content: string }>): CorpusHit[] {
+ *  (the literal `${CLAUDE_PLUGIN_ROOT}/...`, `${CLAUDE_SKILL_DIR}/...` or
+ *  bare skill-relative invocation text for one script) - classified as
+ *  `explicit` (the word immediately before the opening quote is
+ *  `bash`/`sh`/`node`) or bare. */
+function findInvocations(
+  { text: pattern, ownerDir, standalone }: InvocationPattern,
+  corpus: Array<{ file: string; content: string }>,
+): CorpusHit[] {
   const hits: CorpusHit[] = [];
   for (const { file, content } of corpus) {
+    if (ownerDir !== undefined && !file.startsWith(`${ownerDir}/`)) continue;
     const lines = content.split("\n");
     lines.forEach((line, idx) => {
       let searchFrom = 0;
@@ -214,6 +234,7 @@ function findInvocations(pattern: string, corpus: Array<{ file: string; content:
         const at = line.indexOf(pattern, searchFrom);
         if (at === -1) break;
         searchFrom = at + pattern.length;
+        if (standalone && at > 0 && !/\s/.test(line[at - 1])) continue;
         const before = line.slice(0, at - 1).trimEnd();
         // Strip a wrapping inline-code backtick (`` `bash "..." `` `` in
         // prose) so the interpreter word compares cleanly.
@@ -225,17 +246,24 @@ function findInvocations(pattern: string, corpus: Array<{ file: string; content:
   return hits;
 }
 
-/** The `${CLAUDE_PLUGIN_ROOT}/...`/`${CLAUDE_SKILL_DIR}/...` invocation
- *  text(s) a script would appear under in a SKILL.md/hooks.json, derived
- *  from its repo-relative path (`<plugin>/...` and, when it lives under
- *  `<plugin>/skills/<name>/...`, also `<plugin>/skills/<name>/...`). */
-function invocationPatterns(repoRelativePath: string): string[] {
+/** The invocation text(s) a script would appear under in a SKILL.md/hooks.json,
+ *  derived from its repo-relative path: the `${CLAUDE_PLUGIN_ROOT}/...` form
+ *  and, when it lives under `<plugin>/skills/<name>/...`, the
+ *  `${CLAUDE_SKILL_DIR}/...` form plus the BARE skill-relative path
+ *  (`scripts/x.sh`). That last one is the wrong path form for a bundled
+ *  script - it resolves against the host project, not the plugin - but it is
+ *  exactly how a skill has shipped such a call before, and a rule that only
+ *  searches the `${CLAUDE_PLUGIN_ROOT}` corpus treats the script as
+ *  unreferenced and lets a 100644 mode through. It is searched only inside the
+ *  owning skill's own directory: two skills may carry a same-named script. */
+function invocationPatterns(repoRelativePath: string): InvocationPattern[] {
   const segments = repoRelativePath.split("/");
   const pluginRelative = segments.slice(1).join("/");
-  const patterns = [`\${CLAUDE_PLUGIN_ROOT}/${pluginRelative}`];
+  const patterns: InvocationPattern[] = [{ text: `\${CLAUDE_PLUGIN_ROOT}/${pluginRelative}` }];
   if (segments[1] === "skills" && segments.length > 3) {
     const skillRelative = segments.slice(3).join("/");
-    patterns.push(`\${CLAUDE_SKILL_DIR}/${skillRelative}`);
+    patterns.push({ text: `\${CLAUDE_SKILL_DIR}/${skillRelative}` });
+    patterns.push({ text: skillRelative, ownerDir: segments.slice(0, 3).join("/"), standalone: true });
   }
   return patterns;
 }
@@ -353,6 +381,22 @@ test("self-check: execBitViolations does not fire on an explicit bash-invoked sc
     { file: "plugin/skills/foo/SKILL.md", content: 'bash "${CLAUDE_PLUGIN_ROOT}/scripts/wrapped.sh"\n' },
   ];
   assert.deepEqual(execBitViolations("plugin/scripts/wrapped.sh", "100644", corpus), []);
+});
+
+test("self-check: execBitViolations fires on a bare skill-relative call with mode 100644 (the form that shipped unguarded)", () => {
+  const corpus = [
+    { file: "plugin/skills/foo/SKILL.md", content: "1. Detect state\n   scripts/detect_state.sh /path/to/project\n" },
+  ];
+  const violations = execBitViolations("plugin/skills/foo/scripts/detect_state.sh", "100644", corpus);
+  assert.equal(violations.length, 1);
+  assert.match(violations[0], /invoked bare at plugin\/skills\/foo\/SKILL\.md:2 but git mode is 100644/);
+});
+
+test("self-check: a bare skill-relative call is never attributed to a same-named script in another skill", () => {
+  const corpus = [
+    { file: "plugin/skills/foo/SKILL.md", content: "   scripts/detect_state.sh /path/to/project\n" },
+  ];
+  assert.deepEqual(execBitViolations("plugin/skills/bar/scripts/detect_state.sh", "100644", corpus), []);
 });
 
 test("self-check: execBitViolations does not fire on a script absent from the corpus", () => {

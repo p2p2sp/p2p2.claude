@@ -1,8 +1,10 @@
 /*
  * commit-task.test.ts - proves commit-task.sh's contract: `commit-task.sh
  * <message> [task-file] [--notes <notes-file>] [--path <path>]...`
- * delegates to status-update.sh first (so a bumped status.md rides IN the same
- * commit as the task's work), then stages ONLY the declared set - the task
+ * delegates to status-update.sh once the run is past the undeclared check and
+ * about to stage (so a bumped status.md rides IN the same commit as the task's
+ * work, and a refused run leaves no marker behind claiming an uncommitted task
+ * is done), then stages ONLY the declared set - the task
  * file's `### Files` paths, the notes file's `touched:` paths (each cut at the
  * first ` - ` or ` (` on its line, so an appended reason does not corrupt the
  * declaration), every `--path`
@@ -219,6 +221,42 @@ test("a tracked file modified outside the declared set -> exit 2, the path liste
     // nothing committed and nothing staged: HEAD is still the baseline
     assert.equal(repo.git("log", "-1", "--format=%s").stdout.trim(), "seed");
     assert.equal(repo.git("diff", "--cached", "--name-only").stdout.trim(), "");
+  });
+});
+
+test("a refused commit leaves status.md untouched (the bump is a resume marker: written before the refusal it would mark an uncommitted task done)", () => {
+  withGitRepo((repo) => {
+    seedRun(repo, { "foreign.txt": "theirs\n" });
+    const statusFile = path.join(repo.dir, "docs/.workflows/run/status.md");
+    const before = fs.existsSync(statusFile) ? fs.readFileSync(statusFile, "utf-8") : null;
+    write(repo.dir, "foreign.txt", "their change\n");
+
+    const result = run(repo.dir, repo.env, ["task 1", TASK_REL]);
+    assert.equal(result.status, 2, `stdout: ${result.stdout}`);
+    const after = fs.existsSync(statusFile) ? fs.readFileSync(statusFile, "utf-8") : null;
+    assert.equal(after, before, "status.md must not record a task the refusal never committed");
+  });
+});
+
+test("a committing run does bump status.md, and the bump rides in that same commit", () => {
+  withGitRepo((repo) => {
+    seedRun(repo);
+    const result = run(repo.dir, repo.env, ["task 1", TASK_REL]);
+    assert.equal(result.status, 0, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
+    assert.equal(fs.readFileSync(path.join(repo.dir, "docs/.workflows/run/status.md"), "utf-8"), "task: 01\n");
+    const committed = repo.git("show", "--name-only", "--format=", "HEAD").stdout;
+    assert.match(committed, /^docs\/\.workflows\/run\/status\.md$/m);
+  });
+});
+
+test("outside a git repository the bump is still written - no commit will ever record that task", () => {
+  withTempDir("p2p2-commit-task-", (dir) => {
+    write(dir, TASK_REL, taskBody("work.txt"));
+    write(dir, "work.txt", "done\n");
+    const result = run(dir, {}, ["task 1", TASK_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /Not a git repository - skipping commit\./);
+    assert.equal(fs.readFileSync(path.join(dir, "docs/.workflows/run/status.md"), "utf-8"), "task: 01\n");
   });
 });
 

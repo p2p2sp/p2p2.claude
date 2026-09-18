@@ -6,10 +6,16 @@
  *   - scan_conventions.sh <path> -> the five `##`-headed sections (integer
  *     counts only) plus the final "Read 2-3 representative files..." hint
  *
- * Both are bash scripts shipped at mode 100644 (no exec bit - every SKILL.md
- * invokes them as `scripts/<name>.sh <path>`, i.e. through bash), so every
- * case here runs under forEachShell("bash", ...) via opts.shell, never
- * executed directly. Only scan_conventions.sh sources the shared
+ * Both ship at mode 100755 and are invoked DIRECTLY by the skill, as
+ * `"${CLAUDE_PLUGIN_ROOT}/skills/superdev-rules/scripts/<name>.sh" <path>` -
+ * never through an interpreter word, which is what the repo's pre-approval
+ * contract requires. (An earlier header claimed the opposite, reading the
+ * SKILL.md's then-bare `scripts/<name>.sh` line as "through bash"; it was
+ * neither - the path resolved against the host project and the file had no
+ * exec bit.) The cases here still run under forEachShell("bash", ...) via
+ * opts.shell, because what they prove is the script's CONTENT under every
+ * bash variant, not its exec bit - tests/portability.test.ts owns that.
+ * Only scan_conventions.sh sources the shared
  * superdev/scripts/lib_find_excludes.sh (detect_state.sh scans the fixed
  * .claude/rules subdir directly, with no gitignore-derived pruning).
  *

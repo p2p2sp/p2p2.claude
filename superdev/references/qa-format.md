@@ -339,7 +339,7 @@ written after the build.
 ```
 ## Automation
 - QA-01: file tests/e2e/qa-01-zatwierdzenie-karty-pracy.spec.ts
-- QA-02: file tests/e2e/qa-02-odrzucenie-bez-powodu.spec.ts
+- QA-02: file tests/e2e/qa-02-odrzucenie-bez-powodu-jest-blokowane.spec.ts
 - QA-04: file tests/e2e/qa-04-karta-widoczna-dla-kadr.spec.ts
 - QA-05: blocked - the endpoint answers 500 on an empty reason; the field error this entry expects is never produced
 ```

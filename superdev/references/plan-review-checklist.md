@@ -15,7 +15,7 @@ A reviewer verifies with Read/Grep/Glob ONLY and never executes a command - no b
 `git`, no shell of any kind. Path existence -> Glob; a symbol's or a command's presence in a file ->
 Grep; content -> Read.
 
-A Blocking finding must cite its class ID (B1-B23) plus concrete evidence gathered that way - quote
+A Blocking finding must cite its class ID (B1-B24) plus concrete evidence gathered that way - quote
 the file, path, or command checked. A suspicion that cannot be verified with Read/Grep/Glob is not
 Blocking: demote it to NOTES, phrased as a question.
 
@@ -152,10 +152,15 @@ evidence (see Evidence rule).
   plan defines the accepted set and treats everything outside it as rejected; the same rule read
   as "accept these, reject the rest" is not B23. Settled by reading the rule's own wording in the
   task that consumes the value.
+- B24 - Task heading carrying a shell metacharacter: a `## Task <N> - <title>` heading whose title
+  holds `` ` ``, `$`, `"` or `\`. Both orchestrators spend that title as a double-quoted argument
+  to `commit-task.sh`, so a backtick or a `$(…)` in it is executed in the host repo root before the
+  commit runs, and a `"` splits the argument. Settled by reading the plan's task headings - the
+  characters are the whole test, and the fix is to drop them from the title.
 
 ## Advisory (NOTES)
 
-Everything real but not in B1-B23: wording, phrasing, style preferences, task-split preference
+Everything real but not in B1-B24: wording, phrasing, style preferences, task-split preference
 (one task vs. two), optional hardening not required by any acceptance criterion, "nice to have"
 suggestions, a `Model:` or `Review:` that reads too low for what the task's `### Approach` has to
 reason about (an algorithm, a state machine, a contract other tasks consume, a hard-to-undo
@@ -214,6 +219,8 @@ Before submitting a plan for review, verify in the repo:
   `none - <reason>` whose reason the repo does not contradict.
 - The two-way mapping holds: every acceptance criterion is covered by at least one task, and every
   task covers at least one criterion or is traceable to the Goal/spec.
+- Every task heading's title is free of `` ` ``, `$`, `"` and `\` - it is spent as a double-quoted
+  shell argument by the commit step, so those four characters execute or split there (B24).
 - Every task carries `TDD:`, `Kind:` and `Model:` with values from their allowed sets, no
   `TDD: required` task sits on `Model: sonnet`, and a `Review:` marker, where present, reads
   either `none` or one `Model:` value - no other spelling of the skip.
