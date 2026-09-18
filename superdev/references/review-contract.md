@@ -13,7 +13,7 @@ orchestrators (`skills/superbuild`, `skills/simplebuild`) - each of them reads t
 on a `refs:` label. No consumer carries a copy of any section.
 
 The per-task gate (`agents/superbuild-task-reviewer.md`) is bound by a subset, named here once:
-`## Labels` (`refs`, `prior`, `decisions` and `report`), `## Naming`, `## Finding IDs`,
+`## Labels` (`refs`, `range`, `prior`, `decisions` and `report`), `## Naming`, `## Finding IDs`,
 `## Report skeleton` for the sections it writes, `## Verdict rules` for the one BLOCKED condition
 of `## Per-task gate`, `## Decisions file` and `## Notes line formats`. It writes `## Findings`
 (with `### Needs decision`), `## Notes` and `## Assessment` under the title line `# task review`,
@@ -41,32 +41,41 @@ is pointed at, so pasted content only duplicates a file it could read and crowds
   `git diff <since>..HEAD`. For the build's first review round it is the `base:` value from the
   decompose index. The value `none` (a build without git) means the review is unbounded over the
   working tree, stated in the report's gates section.
+- `range: <SHA>..<SHA>` - required on every per-task reviewer call in a build with git, and
+  repeatable: one line per commit range the reviewed task owns, the review judging the union of
+  them (`## Per-task gate`). The one exception is a build whose decompose index printed
+  `base: none`: no `range:` line is passed there, and the per-task reviewer judges the working tree
+  against HEAD as before.
 - `prior: <path>` - the previous report of this same reviewer. Required for `stage: re-review` and
   for any round that follows an earlier report; omitted only in the build's first review round. On
   the per-task gate it is the previous round's report of this same task (`task-NN-review-<R-1>.md`),
   present from the task's second review round on, and read for two things only: the numbering its
   own findings continue from, and the title of a finding still open, so that one is never raised
-  again under a new ID. It carries no verdict table and no re-review mandate there.
+  again under a new ID. It carries no verdict table and no re-review mandate there. A review round
+  closed with no reviewer dispatch at all hands its gate block on this label instead of a report,
+  and such a block carries no finding ID, so the round that reads it omits the prior findings
+  table.
 - `decisions: <path>` - optional; the run's decisions file (see `## Decisions file`). Every line in
   it is an answer the user gave - a finding, a criterion change, a matter closed at an implementor
   stop - and carries the force of the plan.
 - `refs: <absolute path>` - the plugin's references directory, i.e. where this contract lives. An
   agent reads `<refs>/review-contract.md` before acting. Required on every build reviewer call and
   on every per-task reviewer call.
-- `runner: <absolute path>` - the executor's runner script (`skills/executor/scripts/run.sh` under
-  the plugin root), resolved by the orchestrator because an agent carries no `${CLAUDE_PLUGIN_ROOT}`.
-  Every gate command of `## Gates` goes out as a direct `Bash` call to this path. Required on every
-  build reviewer call.
+- `gates: <path>` - the gate block the orchestrator's own gate run wrote for this round
+  (`## Gates`), read in place of running the stage's set. Required on every build reviewer call.
 - `more: <path>` - implementor fix mode only; optional and repeatable. One additional findings
   report handled in the same dispatch.
 - `minor: <ID>[, <ID>]` - implementor fix mode only; optional. The only Minor IDs from a report's
   `## Debt` section that dispatch may touch (see `## Implementor fix-mode input`).
 
-Input errors, checked before any work: a build reviewer call with no `stage` or no `since`, or with
+Input errors, checked before any work: a build reviewer call with no `stage`, no `since` or no
+`gates`, one whose `gates:` names a file that does not exist or cannot be read, or one with
 `stage: re-review` and no `prior`, returns line 1 `VERDICT: FAIL` and line 2
 `REASON: missing input <label>`, and writes no report.
 
-The old `base:` label is retired; `since` replaces it everywhere.
+The old `base:` label is retired; `since` replaces it everywhere. `runner:` is retired too: a call
+that still carries one is served by `gates:` all the same, and the round's report logs one
+`NOTE: plan defect - stale runner label` line for it.
 
 ## Naming
 
@@ -206,38 +215,25 @@ it, and the review never returns BLOCKED for it. No command is collected from a 
 `### Task Checks` belongs to the implementor writing that task, no stage collects it, and a command
 appearing there and nowhere else runs at no stage of a review.
 
-Run every command of the stage's set before reading any code, and record the result of each in the
-report's gates section.
+Transport - the orchestrator runs the stage's whole set once per round, through
+`scripts/run-gate.sh`, and hands the block that run wrote to every reviewer of the round on its
+`gates:` label. A reviewer runs no gate command itself: it reads the handed block before reading any
+code and records the result of each entry in the report's gates section. However many reviewers the
+round dispatches, each command of the set ran once, and they all read that one result.
 
-Transport - every gate command goes out as a direct `Bash` call to `run.sh`, the executor skill's
-own runner at `skills/executor/scripts/run.sh` under the plugin root. Every consumer of this
-contract is an agent and carries no `${CLAUDE_PLUGIN_ROOT}`, so it uses the absolute path its
-dispatch handed it on the `runner:` label and never spells the path itself. A gate that passes
-costs that one call and no fork at all. One command per call, its labels fed in on stdin through a
-single-quoted heredoc so the command line travels byte for byte, with no expansion and no quoting
-fix-up on the way:
+The block carries one entry per command of the set, each naming the command's subsection and
+carrying the lines `run.sh` printed for that command - `RESULT`, `STATUS`, `EXIT`, `DURATION` and
+`LOG`, plus `TAIL` and `REASON` where the run printed them. A green entry costs the reviewer the
+read and nothing else: no call, no fork, no log.
 
-```bash
-"<run.sh>" <<'EOF'
-command: <the gate command, verbatim>
-expect-exit: 0
-timeout: <seconds>
-EOF
-```
+- `expect:` is not a label of the block. It is the sentence naming the outcome a run must show, and
+  it travels only on the `superdev:executor` dispatch below, which is what judges it.
+- raw `Bash` stays for `git` reads and for the reviewer's own probes under `.temp/`; a build, test,
+  lint or type-check run is never launched from a review at all - the round's one run already
+  happened and its block is on `gates:`.
 
-- The `EOF` terminator sits at column 0, unindented, or `bash` never closes the heredoc.
-- `command:` is the plan's string verbatim - never rewritten, never narrowed. `expect-exit:` is `0`
-  on a gate command: a gate is a run that must pass. `timeout:` is always explicit and generous
-  enough for the host's slowest documented suite - left to the default, a slow suite comes back as a
-  false timeout.
-- `expect:` is not a `run.sh` label. It is the sentence naming the outcome a run must show, and it
-  travels only on the `superdev:executor` dispatch below, which is what judges it.
-- raw `Bash` stays for `git` reads and for the reviewer's own probes under `.temp/`, never for a
-  build, test, lint or type-check run outside `run.sh`: the point of the script is that such a run's
-  full output goes to a log file instead of into the review's context.
-
-The block `run.sh` prints is the gate's result. Read it in this order - the first case that matches
-settles the command, and nothing below it is consulted:
+Each entry of that block is its command's result. Read it in this order - the first case that
+matches settles the command, and nothing below it is consulted:
 
 1. `STATUS: error` or `STATUS: timeout`, on any gate command whatever its kind -> `VERDICT: BLOCKED`
    with a `### Needs decision` bullet naming that command and `run.sh`'s own `REASON:` line, or the
@@ -262,7 +258,7 @@ settles the command, and nothing below it is consulted:
 
 Evidence:
 
-- on `RESULT: SUCCESS` the evidence is the printed block itself - its `RESULT:`, `EXIT:` and `TAIL:`
+- on `RESULT: SUCCESS` the evidence is the handed entry itself - its `RESULT:`, `EXIT:` and `TAIL:`
   lines, read as they stand. There is no executor reply on that path, and none is manufactured.
 - `TAIL:` is the log's last non-empty line, usually the tool's own closing word, and is never
   relabelled `SUMMARY:`: `SUMMARY:` names the aggregate line the fork found by reading the log, and
@@ -285,19 +281,17 @@ Rules:
 - This section is the sole owner of the gate-command BLOCKED conditions: the mapping above is the
   whole list, and `## Verdict rules` and every consumer's own gates paragraph point here instead of
   carrying a summary of their own.
-- Every command of the stage's set runs in the round that needs it, a re-review included: a result
-  carried over from the prior round proves nothing about the fixed tree.
+- Every command of the stage's set runs in the round that needs it, a re-review included: the
+  orchestrator's run happens once per round and a result carried over from the prior round proves
+  nothing about the fixed tree.
 - A criterion or behaviour that needs a run to be confirmed and got none is never marked met; the
   report says which run is missing.
 - `since: none` -> the review is unbounded over the working tree; the gates section says so.
-- At `stage: final` on the Super track the two dimensions are dispatched concurrently, so both run
-  this same set against the same working tree at the same time. Each reads only the block its own
-  call printed and records it in its own report; neither waits for the other and neither borrows the
-  other's result. `run.sh` names its log file with its own pid, so two concurrent runs never share
-  one. What the two runs do share is whatever the commands themselves touch - a build output
-  directory, a test database, a fixed port - so a host whose gate commands cannot run twice at once
-  says so in the plan's `## Gate commands` block, by naming a single command per subsection that
-  tolerates it or by reading `none - <reason>`.
+- At `stage: final` on the Super track the two dimensions are dispatched concurrently, and neither
+  runs the set: the orchestrator's single run precedes both dispatches and both are handed its
+  block on `gates:`, each recording it in its own report. Nothing is shared between the two
+  dimensions, so a host whose gate commands cannot run twice at once needs no special shape in the
+  plan's `## Gate commands` block for them.
 
 ## Verdict rules
 
@@ -352,8 +346,18 @@ Return channel to the orchestrator - the only channel, the report itself stays o
 
 ## Per-task gate
 
-The Super track's per-task reviewer judges one task's diff against that task's own text, and its
-one BLOCKED condition is the same rule as above, narrowed to what it can see: a criterion under the
+The Super track's per-task reviewer judges one task's change against that task's own text. The
+change is the union of the `range:` lines it was handed (`## Labels`), each one a commit range the
+task owns: its own commit first, then one further range per fix commit the task's later rounds
+produced. No range ever spans a commit of another task, so a task reviewed after the next task is
+already committed still sees only its own. Handed no `range:` line - a build without git - it reads
+the working tree against HEAD instead.
+
+Because it reads committed ranges and not the working tree, the orchestrator may dispatch a task's
+per-task review in the same message as the next task's implementor: the review is in flight while
+that task is written, and its verdict is read and acted on after that task's own commit.
+
+Its one BLOCKED condition is the same rule as above, narrowed to what it can see: a criterion under the
 task's `### Covered criteria` that stays unmet while the diff matches the task's text - the plan
 described too little, described the wrong thing, or recorded a behaviour under `### Failure modes`
 or `### Contracts` that makes the criterion unreachable - and that no line in the decisions file
