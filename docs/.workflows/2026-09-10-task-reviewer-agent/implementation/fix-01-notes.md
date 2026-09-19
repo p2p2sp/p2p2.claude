@@ -1,1 +1,0 @@
-- Reverted `color: blue` from `superdev/agents/simplebuild-task-implementor.md` and `color: orange` from `superdev/agents/superbuild-task-implementor.md` - the review's Critical finding: these additions were out of every task's declared `### Files` scope, based on the plan's inaccurate parenthetical rather than an actual instruction to edit those files.

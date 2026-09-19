@@ -1,2 +1,0 @@
-- M1 - review-01.md - superdev/skills/executor/scripts/run.sh:179-188 - the poll loop's `sleep 1` between `kill -0` checks adds roughly one second of latency to every invocation regardless of how fast the command itself finishes
-- M2 - review-01.md - superdev/skills/executor/scripts/run.sh:199-202 - `LINES:` via `wc -l` undercounts a log whose last line has no trailing newline

@@ -1,7 +1,0 @@
-# Task 4 notes - resolve-input.sh resolves relative paths against the repository root
-
-- Every comment added to `superdev/scripts/resolve-input.sh` (header paragraph, `repo_root`, `is_absolute`, the two pass-1 notes) is in English while the file's existing header stays Polish, because the repo convention for scripts is English and translating the untouched parts would be an unrequested rewrite of the whole header.
-- `repo_root` is stripped of a trailing "/" after `git rev-parse --show-toplevel`, which the Approach does not mention, so a repository checked out at a filesystem root cannot produce a doubled separator in the joined candidate.
-- `shown[]` gets an empty entry alongside every empty `paths[]` entry (missing or optional-absent label), so the two arrays stay index-parallel with `labels[]` in pass 2; the Approach only describes the resolved case.
-- The test file's top docblock gained one sentence about the cwd/root order; it is inside the declared `Files`, and the block is that file's contract summary.
-- UNDERSPECIFIED: which values count as absolute and are therefore never joined with the repository root. The task pins a leading "/" and a drive-letter prefix like `C:`; decided `is_absolute` also treats a leading backslash (`\x\y.md`) as absolute and accepts any drive letter (`[A-Za-z]:`), not only a drive letter followed by a separator, so no Windows-native spelling of an absolute path can be turned into a root-relative join.

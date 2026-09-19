@@ -1,6 +1,0 @@
-# Task 8 notes
-
-Updated the frontmatter `description:` parenthetical of both agents (a section not named under `### Files`) to list `refs` and the extra findings reports, because the old enumeration of input labels became stale the moment the labels were added.
-Approach step 2 asked for the literal `no test:` status line inside the `## 1. Implement` fix-mode rules; that clause instead reads "its status line in the notes says so", with the literal `no test:` shape kept only in the notes step, because the task's own test command requires exactly one `no test:` hit per file.
-Renamed the second `task` shape from "a list of review findings" to "a findings report" (and, in simplebuild, the matching phrase in `## 2. Review`, a section not named under `### Files`), because fix mode now consumes reports in the `## Report skeleton` shape with IDs, and the old wording did not name IDs.
-UNDERSPECIFIED: behaviour when `refs` is absent on a plan-task dispatch - `refs` is declared required in both modes, so the existing missing-input rule returns `VERDICT: FAIL` / `REASON: missing input refs` even though a plan task never reads the contract; the task text pinned the label as required but not its per-mode error shape.

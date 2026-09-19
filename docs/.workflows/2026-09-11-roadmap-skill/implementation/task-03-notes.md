@@ -1,4 +1,0 @@
-- Approach step 2's inline remaining-subdirectory loop became a small `phases_empty()` helper in cleanup-run.sh - the same `"$parent"/*/` glob rule is needed in both removal branches (git and no-git), so one function avoids duplicating it.
-- Approach step 5 asked for four phase tests; a fifth was added ("edge: a phase path with './' and a trailing slash ... stray files in phases/ count as empty") to cover two of the task's listed edge cases that the four do not reach.
-- tests/superdev/cleanup-run.test.ts: the add+commit block inside `buildRun` was extracted into a `seedCommit(repo)` helper so the multi-phase fixture can seed several builder calls in one commit; `buildRun` behaviour and every existing test are unchanged.
-- Header contract comment (step 4) is written in Polish, matching the rest of that file's header rather than the English wording of the approach.

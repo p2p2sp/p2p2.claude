@@ -7,5 +7,7 @@ The model does not need a history of decisions to execute one. The prose is for 
 
 Do not bloat the skills, agents or any referenced files. The instructions are intended to guide the agent on how to operate within the plugin while simultaneously allowing it the freedom to decide how to execute planned tasks within certain parameters.
 
+When work with skills or agents ALWAYS use skill-designer rules.
+
 # DURING PLAN MODE
 When user ask and you need to decide how to design a solution for this repository and plan implementation, always find out what the functional scope of claude code harnes is for today using exited precedent or use `claude-code-guide`.

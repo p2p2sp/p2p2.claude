@@ -1,2 +1,0 @@
-Approach step 3 - simplebuild's `### Loop` has no reviewer step, so only its implementor-FAIL escalation was retitled; the reviewer-FAIL-after-three-rounds and missing-reviewer-input escalations exist in superbuild alone.
-The Fix loop's own implementor-FAIL escalation (branch step 1) names no item - that dispatch carries a whole report, not one task or finding; the new `## Mandatory rules` bullet governs it if a name is ever needed.

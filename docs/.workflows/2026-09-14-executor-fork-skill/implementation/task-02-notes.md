@@ -1,1 +1,0 @@
-Added one sentence beyond Approach step 4(a) ("The `EOF` terminator sits at column 0, unindented"): the heredoc example sits in a column-0 fence, and an indented terminator would silently never close the heredoc for a haiku fork that copies the block.

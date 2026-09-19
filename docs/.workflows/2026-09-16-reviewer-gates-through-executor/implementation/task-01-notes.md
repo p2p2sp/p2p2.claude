@@ -1,9 +1,0 @@
-Approach step 1 - the `supercc:skill-designer` skill was invoked and its editing discipline followed, but its own workflow step 6 (`lint_skill.sh`) was skipped: that script validates the frontmatter of a SKILL.md or an agent .md, and the target here is a plain reference file with no frontmatter, so the lint would report FAIL on a file it does not cover. The task's Test Commands list no lint either.
-
-CARRY: superdev/references/review-contract.md - `## Verdict rules` still names the BLOCKED condition as "a documented integration or e2e command exists but cannot run in this environment", narrower than the `## Gates` mapping this task added, which blocks on `VERDICT: ERROR` or `VERDICT: TIMEOUT` from any gate command whatever its kind; the clause sits outside the two sections this task's Files scope names, and no later task in this plan touches it.
-CARRY: superdev/skills/superbuild-reviewer-spec/SKILL.md - its `## Gates` summary of what the contract governs still reads "`VERDICT: BLOCKED` for a documented integration or e2e suite that cannot start here", narrower than the contract's new mapping over every gate command.
-CARRY: superdev/skills/superbuild-reviewer-change/SKILL.md - same narrowed clause in its `## Gates` section.
-CARRY: superdev/skills/simplebuild-reviewer/SKILL.md - same narrowed clause in its `## Gates` section.
-The user was asked at the commit gate about two pre-existing working-tree changes - `docs/.workflows/2026-09-16-adr-in-planning/spec.md` (modified) and `docs/.workflows/20260908-intent-spec-in-run-dir-intent.md` (deleted) - and chose to include both in this task's commit via --path; `git show 8761271 --name-status` confirms both were staged and committed alongside this task's own change to `superdev/references/review-contract.md`. See `implementation/decisions.md` (C1) for the accepted record.
-touched: docs/.workflows/2026-09-16-adr-in-planning/spec.md
-touched: docs/.workflows/20260908-intent-spec-in-run-dir-intent.md
