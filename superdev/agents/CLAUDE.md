@@ -23,7 +23,12 @@ the user - a change here means checking the agent's own `description:` still say
   entirely; where it runs, it runs a failure pass over the union of the commit ranges handed on
   `range:` - one line per range that task owns - and the decompose index's `concurrent` column
   decides whether that dispatch goes out in the same message as the next task's implementor, its
-  verdict read and acted on after that next task's own commit. It reads the review
+  verdict read and acted on after that next task's own commit. The task's `Kind:` marker has a
+  second reader here: it selects which of three failure-pass variants that gate runs (`code` the
+  five original points, `scaffold` the generator-provenance pair, `text` the three prose-drift
+  points judged only against the files the task names), so one marker sets both the implementor's
+  discipline and the checks its diff is answerable to; no marker, or a value outside the set, runs
+  `code`. It reads the review
   contract through `refs:` like every other reviewer (no inline copy of the skeleton or the ID
   scheme any more), takes `prior:` for finding-ID continuity across a task's rounds, and returns
   `VERDICT: BLOCKED` when a criterion under the task's `### Covered criteria` is left unmet by the

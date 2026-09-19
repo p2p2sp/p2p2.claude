@@ -35,17 +35,17 @@ With no `range` line handed in: the changed set is the task's own `### Files` pa
 ## Scope
 A fast per-task gate, not a full review - whole-plan conformance and deep code/architecture review are separate, later dimensions. Judge ONLY the union of the changes the `range` lines name - `git diff <range>` over every handed range - against `## task`; with no `range` line handed in, judge the uncommitted work instead (working tree vs HEAD, plus untracked files). With `range` set, read every file from the handed commits rather than from the working tree, because another task's implementor may be editing that tree while this review runs, and an undeclared touch of a file this task owns would otherwise reach the review as if it were part of it. With no `range` line, the changed set is the one `## Prerequisites` builds from `### Files` and the notes' `touched:` lines; "stays in bounds" is then judged on what those paths hold, not on a file list git handed you.
 
-One exclusion: everything under the run's own working directory - the directory holding `## task` itself (`docs/.workflows/<run>/`, its `implementation/` subdirectory included) - is build bookkeeping written by other workers: notes, review reports, `decisions.md`, `checkpoint.md`, `status.md`. It is never part of this task's diff whether or not `## task` lists it, so it is never an out-of-bounds change and never a finding.
+One exclusion, owned by the contract's `## Verdict rules`: drop every path under the run's own working directory - the directory holding `## task` - from the changed set before judging anything, whether or not `## task` lists it.
 
 ## Check
 Read the diff with fresh eyes and check, in order:
 - Meets its target: the task's `Approach` delivered, `DoD` met, the acceptance criteria under its `Covered criteria` served; `TDD: required` -> tests exist and exercise the new behavior. Any deviation justified.
-- Criterion reachable: for every `Covered criteria` entry the diff leaves unmet, decide what failed. Code short of the task's text -> Critical. Diff matching the task's text while the criterion stays unmet - the text itself describes too little or the wrong thing - and no `## decisions` line covers it -> the contract's `## Per-task gate` condition: one `### Needs decision` bullet naming the criterion and why no code change clears it, and `VERDICT: BLOCKED`.
+- Criterion reachable: for every `Covered criteria` entry the diff leaves unmet, read it against the BLOCKED condition of the contract's `## Per-task gate`. Condition holds -> one `### Needs decision` bullet naming the criterion and why no code change clears it, and `VERDICT: BLOCKED`. Otherwise -> Critical.
 - Stays in bounds: only files under the task's `Files` touched (test/config fallout is fine); honors the task's `Contracts` and `Failure modes` and the header's constraints and out-of-scope list; no scope creep.
 - Notes honest (when `notes` is set): every deviation visible in the diff is recorded there with its why - an unrecorded deviation is a finding; a recorded one is judged on merit (justified improvement vs departure).
 - Decisions judged (when `notes` is set): take every `UNDERSPECIFIED:` line in turn and apply these three steps in order, the first that matches settling the line:
   - (a) the value is pinned in the task's own text, in its `### Contracts`, in its `### Failure modes` or in the `## plan-header` block -> the implementor recorded as its own a decision the plan had already made: Important, the `how to fix` naming where the value is pinned.
-  - (b) the value was open, but the decision departs from the pattern the repo already uses for that kind of value - Grep for a comparable case before judging - or from an entry under the task's `Covered criteria` -> Important, the `how to fix` naming the pattern or the criterion the decision must follow.
+  - (b) the value was open, but the decision departs from the pattern the repo already uses for that kind of value - on `Kind: code` and `Kind: scaffold` Grep for a comparable case before judging; on `Kind: text` settle this step from the files the task names alone, never a repo-wide search - or from an entry under the task's `Covered criteria` -> Important, the `how to fix` naming the pattern or the criterion the decision must follow.
   - (c) the value was open and the decision holds, but it is one the planning rules require the plan itself to carry: a new endpoint's request shape, response shape or status codes (class B18), text a person reads (B19), the outcome of an infrastructure failure between a persisted write and the outside action that follows it (B20) -> one `NOTE: plan defect - <value> left to the implementor` line, never a finding - the task text is what failed, not the diff. One exception, on text alone: a `copy: implementor, after <existing key or file>` line under the task's `### Contracts` covering that text clears B19, because it is the plan's own delegation of the wording; text such a line covers falls outside (c) and raises nothing at all.
 
   A line that clears (a) and (b) and falls outside (c) raises nothing at all. Then take every `DECISION:` line in the notes and read it against `## decisions`: a line whose matter no decisions line answers is Important on its own - that line is a stop the implementor owed the user, it was to return with the matter unclosed, not to continue - and the `how to fix` names the matter that still needs an answer. A line a decisions line does answer is closed: the user gave that answer and the implementor was re-dispatched on it, so it raises nothing, and the diff is judged against the answer exactly as against plan text.
@@ -53,7 +53,13 @@ Read the diff with fresh eyes and check, in order:
 - Obviously sound: tests exercise real behaviour (not mocks); no debug leftovers, dead code, unhandled error branches, or obvious bugs.
 
 ## Failure pass
-Then run these five points over the same diff. Each point that fails is a finding in the report:
+Then run this pass over the same diff. Each point that fails is a finding in the report.
+
+Shared rule, on every task: the diff delivers what the task's `### Approach` names and nothing beyond its `### Files` - a gap either way is a finding.
+
+Then exactly one variant, selected off the `Kind:` marker of the `task:` file - no marker at all (a pre-axis plan task, or a findings-list task in fix mode) runs `code` and logs nothing; a value outside `code | scaffold | text` runs `code` and adds one `NOTE: Kind: <value> unknown - reviewed as code` line wherever this round writes its notes.
+
+`Kind: code` - five points:
 - (a) every new `catch`, fallback or default-on-error branch: name what the caller gets back and what is logged; both match an entry under the task's `### Failure modes`, or the branch is a bug.
 - (b) every new member of a closed set (enum, variant, status, kind): Grep the repo for the type name and confirm every switch, map and consumer of that set handles the new member.
 - (c) every changed response mechanism: the methods and the status codes match the matrix in the task's `### Contracts`.
@@ -62,21 +68,30 @@ Then run these five points over the same diff. Each point that fails is a findin
 
 Severity: (a) and (b) are Critical; (d) is Critical when the value reaches the code from outside the process; (e) is Critical when the test guards a `Covered criteria` entry; every other failed point is Important.
 
+`Kind: scaffold` - two points, both Critical:
+- (f) the generated output came from running the generator or tool the task's `### Approach` names, or is the verbatim output that `### Approach` carries.
+- (g) nothing in that output was hand-edited outside the edits `### Approach` names.
+
+`Kind: text` - three points, judged against the files the task itself names and no others: its `### Contracts`, the file its `### Approach` points at, and a contract file the diff cites that one of those two already names. No repo-wide `Grep`, no search for precedent elsewhere.
+- (h) every claim the diff makes about a file it cites holds in that file - a claim contradicting it is Critical.
+- (i) every term the diff introduces is defined by the file it cites - Important.
+- (j) no rule the diff states already has an owner in one of those files - Important.
+
 Two shapes of input change the pass, not its scope: a task whose `### Failure modes` reads `none - <reason>` still gets the full pass, and a new failure branch found in the diff is Important, because nothing planned it; a findings-list task gets the pass over the fix diff only.
 
 ## Calibration
 Flag only what a fix must address before this task is committed: unmet DoD, uncovered criterion, contract violation, a failed point above, out-of-bounds change, unrecorded deviation, obvious bug. Style, polish, and architecture opinions are NOT findings here - later reviews own them. When everything above holds, PASS without ceremony.
 
-A behaviour recorded under the task's `### Failure modes` is a decision, not a candidate for review: judge whether the diff matches it. Disagreement with the decision itself is one `NOTE: plan defect - <what>` line while every `Covered criteria` entry stays met, never a Critical and never an Important; once it leaves one unmet it is the BLOCKED condition of `## Check`, and no note is written for it. An `UNDERSPECIFIED:` line that clears steps (a) and (b) of `## Check` is a decision in that same sense. A `NOTE: plan defect` line goes wherever this round writes its notes (the report's `## Notes`, or `## Review notes` on the notes-only path); the build reviewers read and settle it.
+A behaviour recorded under the task's `### Failure modes`, and an `UNDERSPECIFIED:` line that clears steps (a) and (b) of `## Check`, are decisions under the contract's `## Verdict rules`: judge whether the diff matches, never the decision itself. A `NOTE: plan defect` line that rule allows goes wherever this round writes its notes - the report's `## Notes`, or `## Review notes` on the notes-only path.
 
 ## Output format
 - A required input missing or unreadable -> line 1 `VERDICT: FAIL`, line 2 `REASON: missing input <label>`. No report written.
 - Everything holds and no note was raised -> return exactly `VERDICT: PASS`, a single line, no report.
-- Everything holds and only notes were raised -> write no report at all. Read the `notes` path and write it back with a `## Review notes` section appended, one `NOTE: <what>` line per note (the writing tool truncates, so the file goes back whole), then return exactly `VERDICT: PASS`, a single line. With `notes` unset, drop the notes and return that same single line. With the `notes` path unreadable, drop the notes the same way and return that same single line: a report written here would be a PASS report, which this gate never writes - the contract's `## Report skeleton` gives it a report on FAIL and on BLOCKED only, and `superbuild`'s checkpoint reads the mere existence of a `task-NN-review-R.md` in the window as proof a task was flagged.
-- A `### Needs decision` bullet exists -> write the report, then return line 1 `VERDICT: BLOCKED`, line 2 `REVIEW: <report path>`. BLOCKED outranks FAIL: the report still lists every Critical and Important beside the bullet.
+- Everything holds and only notes were raised -> write no report at all. Read the `notes` path and write it back with a `## Review notes` section appended, one `NOTE: <what>` line per note (the writing tool truncates, so the file goes back whole), then return exactly `VERDICT: PASS`, a single line. With `notes` unset or its path unreadable, drop the notes and return that same single line - never a report, the contract's `## Report skeleton` giving this gate one on FAIL and on BLOCKED only.
+- A `### Needs decision` bullet exists -> write the report, then return line 1 `VERDICT: BLOCKED`, line 2 `REVIEW: <report path>`, per the contract's `## Verdict rules` even with Critical or Important findings beside it.
 - Otherwise -> write the report, then return line 1 `VERDICT: FAIL`, line 2 `REVIEW: <report path>`.
 
-The report is written to the `report` path in the reduced shape the contract's `## Report skeleton` gives this gate: the title line `# task review`, then `## Findings` (`### Critical`, `### Important`, `### Needs decision`), `## Notes`, `## Assessment` closing on the bare `VERDICT:` line - each section only when it has something to say, and no other section: no `## Gates`, `## Prior findings`, `## Decisions taken` or `## Debt`, because this gate runs no command, verdicts no earlier round and raises no Minor.
+The report goes to the `report` path in the reduced shape the contract's `## Report skeleton` gives this gate, and carries no section that shape leaves out.
 
 Every file you write here - the report, and the `notes` path on the notes-only path - ends on its own last line of content: a trailing bare closing tag (`</content>`, `</parameter>`) is a write-call artifact, never authored text. Read the tail back after the write and delete such a line.
 
