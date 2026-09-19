@@ -13,7 +13,7 @@ Trzecia wada to duplikacja u konsumentów. Preambuła kontraktu deklaruje, że �
 
 ## Goal (What)
 
-- Kontrakt czytany przed każdym dispatchem jest około jednej trzeciej dzisiejszej objętości, bez utraty choćby jednej reguły.
+- Kontrakt czytany przed każdym dispatchem jest wielokrotnie krótszy, bez utraty choćby jednej reguły.
 - Brama per task uruchamia sprawdzenia dobrane do rodzaju pracy, którą zadanie dostarczyło, więc proza i wygenerowany output po raz pierwszy dostają cele, które mogą wystrzelić.
 - Recenzenci budowy przestają nosić kopie reguł mających właściciela gdzie indziej i przestają powtarzać osie review, które model już zna.
 - Każda reguła usunięta po drodze jest rozliczona: zachowana, przeniesiona albo świadomie porzucona z podanym powodem.
@@ -39,15 +39,16 @@ Trzecia wada to duplikacja u konsumentów. Preambuła kontraktu deklaruje, że �
 1. Kontrakt skrócony - Kontrakt czytany przez pracownika budowy liczy najwyżej 230 linii wobec dzisiejszych 587.
 2. Jedna reguła, jedno miejsce - Każda reguła słownika review istnieje w dokładnie jednym miejscu w całym pluginie i żaden recenzent nie nosi jej drugiej kopii.
 3. Bez dodatkowej pracy na dispatch - Żaden dispatch review nie czyta więcej plików, nie uruchamia więcej komend ani nie wykonuje więcej kroków niż przed zmianą.
-4. Sprawdzenia dobrane do rodzaju pracy - Recenzja zadania uruchamia sprawdzenia, które mogą wystrzelić na tym, co zadanie dostarczyło, wybrane deterministycznie z rodzaju pracy, który zadanie już deklaruje.
+4. Sprawdzenia dobrane do rodzaju pracy - Recenzja zadania uruchamia sprawdzenia, które mogą wystrzelić na tym, co zadanie dostarczyło, a to samo zadanie dostaje ten sam zestaw w każdym biegu.
 5. Rozjazd w prozie złapany - Zadanie dostarczające prozę jest flagowane, gdy jego tekst przeczy plikowi, na który się powołuje, wprowadza słownictwo, którego ten plik nie definiuje, albo powtarza regułę mającą już swoje miejsce.
-6. Żadne sprawdzenie nie żąda zakazanego narzędzia - Żaden krok recenzji nie wymaga dowodu z narzędzia, którego autorowi tego zadania zabroniono.
-7. Reguły bez historii - Kontrakt podaje każdą regułę bez relacji z tego, dlaczego została przyjęta.
-8. Każda reguła rozliczona - Każda reguła, którą kontrakt niósł przed zmianą, jest odnotowana jako zachowana, przeniesiona albo świadomie porzucona z podanym powodem.
+6. Wygenerowany output sprawdzony u źródła - Zadanie dostarczające wygenerowany output jest flagowane, gdy output nie powstał z uruchomienia narzędzia, które zadanie nazywa, albo został po wygenerowaniu zmieniony ręcznie.
+7. Żadne sprawdzenie nie żąda zakazanego narzędzia - Żaden krok recenzji nie wymaga dowodu z narzędzia, którego autorowi tego zadania zabroniono.
+8. Reguły bez historii - Kontrakt podaje każdą regułę bez relacji z tego, dlaczego została przyjęta.
+9. Każda reguła rozliczona - Każda reguła, którą kontrakt niósł przed zmianą, jest odnotowana jako zachowana, przeniesiona albo świadomie porzucona z podanym powodem.
 
 ## Constraints / assumptions
 
-- Zmiana nie może wydłużyć fazy build. Review zajmuje dziś od 40 do 53 procent czasu ściany, więc każdy dodany krok musi zmieścić się w tym budżecie albo iść w tle.
+- Zmiana nie może wydłużyć fazy build. Review zajmuje dziś od 40 do 53 procent czasu ściany. Sam dispatch review nie zyskuje kroku w żadnym wariancie (kryterium 3); praca dokładana gdziekolwiek indziej w biegu musi zmieścić się w dzisiejszym budżecie albo iść w tle.
 - Markdown i JSON są produktem tego repozytorium. Nie ma builda ani lintu na żadnym poziomie, więc jedyną bramą jakości jest review, a błąd w tekście jest błędem produkcyjnym.
 - W tym repozytorium tekst jest produktem, więc zadania dostarczające prozę zachowują bramę per task; domyślne pomijanie recenzenta dla takich zadań pozostaje wyłączone.
 - Wyłączna własność słownika review jest przypisana do jednej nazwy pliku przez pięć wcześniej zapisanych decyzji, a dziesiątki plików celowo na tę ścieżkę wskazują. Nazwa i własność pozostają bez zmian.
