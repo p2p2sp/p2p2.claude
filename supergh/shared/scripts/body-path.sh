@@ -11,6 +11,12 @@
 #      $2 = title (raw, may contain spaces / Polish diacritics / punctuation / embedded
 #           newlines - any \n or \r is collapsed to a space before slugify, so a multi-
 #           line title can never split the OUT contract below across multiple lines)
+# CWD: the caller's working directory is the base the emitted path is relative
+#      to, deliberately: the skill that calls this writes the body file and
+#      then hands the same path to `gh --body-file` from that same directory,
+#      so a relative path stays self-consistent. Nothing here reads the
+#      repository root, and a session started in a subdirectory keeps its
+#      `.temp/` there.
 # OUT: exactly one line on stdout - the ready body path:
 #        .temp/<prefix>/<YYYYmmdd-HHMMSS>-<slug>.md
 #      The parent dir `.temp/<prefix>/` is `mkdir -p`'d before the line is printed.

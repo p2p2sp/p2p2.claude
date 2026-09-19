@@ -35,9 +35,12 @@ the user - a change here means checking the agent's own `description:` still say
   review dimensions, dispatched by `superbuild` under the shared stage contract
   (`stage: checkpoint|final|re-review`). The code dimension serves the checkpoint round after
   every 5 committed tasks, the final round and the re-review after a fix; a checkpoint round
-  always runs its gate set, but dispatches this agent only on one of three conditions - a gate
-  command that deviated from its expectation, a task in the window the per-task gate reported
-  faulty, or a task in the window no per-task review covered. The spec dimension runs at `final`
+  always runs its gate set, but dispatches this agent only on one of three conditions - the run's
+  `RED: yes` line, which covers every entry that is not a plain success (a deviation, a timeout,
+  a pre-launch error, a command the budget left no room for, and a subsection the plan does not
+  hold at all, which `run-gate.sh` deliberately counts red) rather than a deviation alone; a task
+  in the window the per-task gate reported faulty; or a task in the window no per-task review
+  covered. The spec dimension runs at `final`
   and at its own re-review only - mid-build the criteria of the tasks still unwritten are unmet
   by construction. At `final` both are dispatched as TWO `Agent` tool uses in ONE message and run
   concurrently: neither reads the other's report, and neither runs a gate command - each records

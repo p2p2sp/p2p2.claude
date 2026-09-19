@@ -43,8 +43,8 @@ covers what is true across the whole plugin.
 - Knowledge layers superdev writes into a HOST repo live under `docs/<layer>/`: `docs/adr/`,
   `docs/changelog/`, `docs/qa/`, `docs/.workflows/`. Verify which switch gates which layer
   against the skill/agent bodies.
-- Temporary machine state goes under `.temp/superdev/` in per-purpose subdirs (`memory/`,
-  `rules/`, `logs/`, `stats/`, `vibe/`). NEVER a plugin-named dot-dir at the host root.
+- Temporary machine state goes under `.temp/superdev/` in per-purpose subdirs (`e2e/`, `logs/`,
+  `memory/`, `rules/`, `stats/`, `vibe/`). NEVER a plugin-named dot-dir at the host root.
 - Script vs fork: a step collapses to a deterministic bundled script when it operates on a
   known, fixed tool/format; it stays an LLM fork when it must interpret heterogeneous,
   stack-specific output. A self-verifying script is TRUSTED by its caller - never re-verified.
@@ -69,9 +69,12 @@ covers what is true across the whole plugin.
   host (installs neither); called by `setup`'s bootstrap and the `e2e` skill's own preload.
 - `checkpoint-update.sh`, `status-update.sh` - update run/task status files during a build.
 - `cleanup-run.sh` - removes a completed run's `docs/.workflows/<run>/` dir when `cleanup: true`.
+  It takes the index's `workdir:` value in its repository-relative form (its safety gate rejects an
+  absolute path) and resolves it against the repository root itself - the one call in a build that
+  is not handed an absolute path, and cwd-independent all the same.
 - `commit-task.sh` - the per-task commit step used by both build orchestrators.
 - `decompose.sh` - renders a plan's task index
-  (`<task-file>\t<title>\t<model>\t<review>\t<concurrent>`, five columns - no effort column, the
+  (`<task-file>\t<heading>\t<model>\t<review>\t<concurrent>`, five columns - no effort column, the
   plan carries no such marker). `concurrent` is derived, never read from a marker: `yes` only
   when the task is not task 1, carries both `### Dependencies` and `### Files`, has a predecessor
   carrying `### Files` (that predecessor's own dependencies are never read), names no
@@ -80,13 +83,16 @@ covers what is true across the whole plugin.
   `ExitPlanMode` hook wrote (mismatch = exit 7, absent = warning), and refuses (exit 8, before
   any index row) a task title carrying `` ` ``, `$`, `"` or `\` - both orchestrators spend that
   column as a double-quoted shell argument to `commit-task.sh`.
-- `last-commit-date.sh` - resolves the last-commit boundary a checkpoint review reads since.
+- `last-commit-date.sh` - prints HEAD's committer date as `YYYY-MM-DD`, or `none` when no date can
+  be established; the `intent` skill's refresh-step preload, its only caller.
 - `lib_find_excludes.sh`, `lib_touched.sh` - shared helpers for scoping a diff/review to touched
   paths.
 - `lib_sha256.sh` - `sha256_of <file>` through `sha256sum` / `shasum -a 256` / `openssl`, sourced
   by `decompose.sh` and by `hooks/scripts/review-plan.sh`; no tool available = prints nothing.
 - `phases-status.sh` - computes phase status for resuming a `phases <phases.md>` run.
-- `read-config.sh` - resolves `.claude/superdev.yml` switches (see above).
+- `read-config.sh` - resolves `.claude/superdev.yml` switches (see above), reading that file from
+  the repository root rather than the caller's cwd, so a session started in a subdirectory does not
+  fail open with every switch off.
 - `record-decision.sh` - persists an accepted BLOCKED/decision wording to
   `implementation/decisions.md`, binding later review rounds.
 - `run-gate.sh` - the single runner of one review round's gate set: the orchestrator calls it
@@ -96,9 +102,13 @@ covers what is true across the whole plugin.
   instead of running a gate command itself. Its `GATE_BUDGET` bounds the WHOLE run (540 s), not
   one command, because the caller reaches it through the `Bash` tool, whose timeout caps at
   600 s and defaults to 120 - so both build skills give that one call `timeout: 600000`, and a
-  command the budget leaves no room for is reported red rather than started.
+  command the budget leaves no room for is reported red rather than started. It resolves the
+  repository root itself and passes it to the runner on a `cwd:` line, so every gate command runs
+  at that root whatever directory the session started in - a gate command is written against the
+  root, and both orchestrators are told never to `cd`.
 - `stats-record.sh`, `stats-report.sh` - per-dispatch event log and rendered run report under
-  `.temp/superdev/stats/<run>.*`, gated by `stats: true`.
+  `<repo root>/.temp/superdev/stats/<run>.*` (both anchor on the root, not on the caller's cwd),
+  gated by `stats: true`.
 - `vibe-guard.sh` - the vibe track's advisory scope guard.
 
 Do not invent scripts and do not omit ones that exist - re-derive this list from the directory

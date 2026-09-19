@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1340 2192" width="1340" height="2192" role="img" aria-labelledby="svgTitle svgDesc">
   <title id="svgTitle">superdev - flow: the Simple track and the Super track</title>
-  <desc id="svgDesc">Flow diagram of the superdev plugin: entry (an idea or a bug), the interview in the intent skill, the track-selection gate, the Simple track (simpleplan, simpleplan-reviewer, hook, simplebuild) and the Super track (superspec, superplan, superbuild with a review after every task), and a shared Close Out with optional memory, rules, QA/e2e and changelog delegations, followed by an optional cleanup step.</desc>
+  <desc id="svgDesc">Flow diagram of the superdev plugin: entry (an idea or a bug), the interview in the intent skill, the track-selection gate, the Simple track (simpleplan, simpleplan-reviewer, hook, simplebuild) and the Super track (superspec, superplan, superbuild with a review after every task), the checkpoint round both tracks run every 5 committed tasks and their final review round, and a shared Close Out with optional memory, rules, QA/e2e and changelog delegations, followed by an optional cleanup step.</desc>
 
   <style>
     :root {
@@ -256,12 +256,12 @@
   <path d="M340 1302 L340 1322" class="link l-s" marker-end="url(#ar-s)"/>
   <path d="M340 1302 L340 1322" class="flow l-s"/>
 
-  <rect x="120" y="1326" width="440" height="72" rx="10" class="node fork"/>
-  <rect x="492" y="1336" width="58" height="16" rx="8" class="badge"/>
-  <text x="521" y="1348" class="badge-t" text-anchor="middle">fork</text>
+  <rect x="120" y="1326" width="440" height="72" rx="10" class="node agent"/>
+  <rect x="486" y="1336" width="64" height="16" rx="8" class="badge"/>
+  <text x="518" y="1348" class="badge-t" text-anchor="middle">agent</text>
   <text x="140" y="1352" class="title">simplebuild-reviewer</text>
-  <text x="140" y="1374" class="desc">Final review. FAIL → the implementor fixes (max. 2 rounds).</text>
-  <text x="140" y="1391" class="desc-s">review reports land in the commit</text>
+  <text x="140" y="1374" class="desc">Checkpoint every 5 tasks, then the final round over the whole build.</text>
+  <text x="140" y="1391" class="desc-s">FAIL → one fix + one re-review, then the user decides · reports land in the commit</text>
 
   <!-- Simple -> shared tail, through the left channel -->
   <path d="M340 1398 L340 1416 Q340 1434 322 1434 L88 1434 Q70 1434 70 1452 L70 1804 Q70 1822 88 1822 L652 1822 Q670 1822 670 1840 L670 1844" class="link l-s" marker-end="url(#ar-s)"/>
@@ -273,10 +273,10 @@
 
   <text x="140" y="1520" class="hdr-t" fill="var(--simple)">SIMPLE</text>
   <text x="140" y="1542" class="desc">• no spec - the plan carries its own acceptance criteria</text>
-  <text x="140" y="1562" class="desc">• tasks with no TDD markers</text>
+  <text x="140" y="1562" class="desc">• every task carries TDD:, mostly TDD: none</text>
   <text x="140" y="1582" class="desc">• implementor agent at plan strength, reviews itself</text>
-  <text x="140" y="1602" class="desc">• no review after every task</text>
-  <text x="140" y="1622" class="desc">• a single reviewer at the end</text>
+  <text x="140" y="1602" class="desc">• no review after every task - the checkpoint is the gate</text>
+  <text x="140" y="1622" class="desc">• one reviewer, at each checkpoint and at the end</text>
 
   <text x="140" y="1656" class="hdr-t" fill="var(--super)">SUPER</text>
   <text x="140" y="1678" class="desc">• spec What &amp; Why + its own reviewer, then the plan</text>
@@ -407,12 +407,12 @@
   <path d="M1000 1618 L1000 1638" class="link l-u" marker-end="url(#ar-u)"/>
   <path d="M1000 1618 L1000 1638" class="flow l-u"/>
 
-  <rect x="780" y="1642" width="440" height="72" rx="10" class="node fork"/>
-  <rect x="1146" y="1652" width="64" height="16" rx="8" class="badge"/>
-  <text x="1178" y="1664" class="badge-t" text-anchor="middle">fork ×2</text>
+  <rect x="780" y="1642" width="440" height="72" rx="10" class="node agent"/>
+  <rect x="1140" y="1652" width="70" height="16" rx="8" class="badge"/>
+  <text x="1175" y="1664" class="badge-t" text-anchor="middle">agent ×2</text>
   <text x="800" y="1668" class="title">Final review: spec → code</text>
   <text x="800" y="1690" class="desc">superbuild-reviewer-spec and -change, dispatched together, awaited together.</text>
-  <text x="800" y="1707" class="desc-s">FAIL → task-implementor fixes, the review starts over (max. 2 rounds)</text>
+  <text x="800" y="1707" class="desc-s">A checkpoint round runs every 5 tasks first · FAIL → one fix + one re-review</text>
 
   <path d="M1000 1714 L1000 1804 Q1000 1822 982 1822 L688 1822 Q670 1822 670 1840 L670 1844" class="link l-u" marker-end="url(#ar-u)"/>
   <path d="M1000 1714 L1000 1804 Q1000 1822 982 1822 L688 1822 Q670 1822 670 1840 L670 1844" class="flow l-u"/>

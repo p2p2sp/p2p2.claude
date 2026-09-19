@@ -456,3 +456,47 @@ test("edge: a phase path with './' and a trailing slash is detected, and stray f
     assert.equal(subjectOf(repo), "chore(simplebuild): clean up run demo-01-a");
   });
 });
+
+// --- cwd independence ------------------------------------------------------
+
+test("run from a subdirectory of the repo: the repo-relative workdir still resolves and is removed", () => {
+  withGitRepo((repo) => {
+    const { dir, specPath, intentPath } = buildRun(repo);
+    const sub = path.join(repo.dir, "sub");
+    fs.mkdirSync(sub, { recursive: true });
+
+    // the argument is the repo-relative "workdir:" value decompose.sh printed,
+    // passed verbatim - it must not be resolved against the caller's cwd
+    const result = runScript(SUT, [dir], { cwd: sub, env: repo.env, shell: "bash" });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, `CLEANUP: ${dir} (removed)\n`);
+    assert.equal(fs.existsSync(path.join(repo.dir, dir)), false);
+    assert.equal(fs.existsSync(path.join(repo.dir, specPath!)), false);
+    assert.equal(fs.existsSync(path.join(repo.dir, intentPath!)), false);
+    assert.equal(subjectOf(repo), "chore(simplebuild): clean up run demo");
+  });
+});
+
+test("run from a subdirectory: an absolute path still falls through the safety gate untouched", () => {
+  withGitRepo((repo) => {
+    const { dir } = buildRun(repo);
+    const sub = path.join(repo.dir, "sub");
+    fs.mkdirSync(sub, { recursive: true });
+    const abs = path.join(repo.dir, dir);
+
+    const result = runScript(SUT, [abs], { cwd: sub, env: repo.env, shell: "bash" });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, `CLEANUP: ${abs} (skipped - not a superdev run dir)\n`);
+    assert.equal(fs.existsSync(abs), true);
+  });
+});
+
+test("outside a git repository the cwd stays the base every path resolves against", () => {
+  withTempDir("p2p2-cleanup-cwd-nonrepo-", (projectDir) => {
+    const { dir } = buildRunFiles(projectDir, {});
+    const result = runScript(SUT, [dir], { cwd: projectDir, shell: "bash" });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, `CLEANUP: ${dir} (removed - no git repository)\n`);
+    assert.equal(fs.existsSync(path.join(projectDir, dir)), false);
+  });
+});

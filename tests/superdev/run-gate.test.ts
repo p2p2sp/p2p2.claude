@@ -34,7 +34,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { runScript, type RunResult } from "../harness/run.ts";
-import { withTempDir } from "../harness/tmp.ts";
+import { withGitRepo, withTempDir } from "../harness/tmp.ts";
 import { slash } from "../harness/paths.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../superdev/scripts/run-gate.sh");
@@ -399,5 +399,41 @@ test("an <out-file> whose directory does not exist exits 2 with the reason on st
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /^error: cannot write gate block: /);
     assert.equal(fs.existsSync(path.join(dir, ".temp")), false, "the out-file is probed before the first command runs");
+  });
+});
+
+// --- cwd independence ------------------------------------------------------
+
+test("inside a repository every gate command runs at the REPOSITORY ROOT, whatever directory the caller started in", () => {
+  withGitRepo((repo) => {
+    const sub = path.join(repo.dir, "sub");
+    fs.mkdirSync(sub, { recursive: true });
+    // the command prints its own working directory; the marker file sits at
+    // the repo root alone, so `ls` naming it proves where the command ran
+    fs.writeFileSync(path.join(repo.dir, "ROOT-MARKER"), "x\n");
+    fs.writeFileSync(
+      path.join(repo.dir, "plan.md"),
+      planText({ build: ["ls ROOT-MARKER"], tests: [GREEN] }),
+    );
+
+    const result = runScript(
+      SUT,
+      [slash(repo.dir), "checkpoint", `${slash(repo.dir)}/gates.md`],
+      { cwd: sub, env: repo.env, timeout: 180000 },
+    );
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    // green: `ls` found the root-only marker, so the command did not run in sub/
+    assert.match(result.stdout, /^Build: pass$/m);
+    assert.match(result.stdout, /^RED: no$/m);
+  });
+});
+
+test("outside a repository the caller's cwd stays the base every gate command runs in", () => {
+  withTempDir("p2p2-run-gate-nonrepo-", (dir) => {
+    fs.writeFileSync(path.join(dir, "CWD-MARKER"), "x\n");
+    const result = runGate(dir, "checkpoint", { build: ["ls CWD-MARKER"], tests: [GREEN] });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^Build: pass$/m);
+    assert.match(result.stdout, /^RED: no$/m);
   });
 });

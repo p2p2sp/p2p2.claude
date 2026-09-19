@@ -1,31 +1,37 @@
 #!/usr/bin/env bash
 #
-# commit-args.sh - wspolna normalizacja argumentow skilla commit.
-# Sourcuj i wywolaj: resolve_commit_selector "<raw>"
+# commit-args.sh - the shared argument normalisation of the commit skill.
+# Source it and call: resolve_commit_selector "<raw>"
 #
-# Ustawia zmienne:
+# It exists because commit-context.sh (which MEASURES the selected set) and
+# commit.sh (which STAGES it) each parsed the selector themselves and drifted:
+# one treated a file named "all" as a path, the other as the keyword.
+#
+# Sets these variables:
 #   COMMIT_MODE       - all | staged | path
-#   COMMIT_PATH       - sciezka (tylko dla mode=path), inaczej pusty string
-#   COMMIT_ISSUE_REFS - numery issue podane w argumentach - z linkow GitHub
-#                       oraz z golych referencji w stylu "#123" (tak issue
-#                       podaje user w promptcie) - unikalne, w kolejnosci
-#                       wystapienia ("42" / "42 7"), pusty string gdy zadnej
-#                       referencji nie bylo
+#   COMMIT_PATH       - the path (only for mode=path), otherwise an empty
+#                       string
+#   COMMIT_ISSUE_REFS - the issue numbers given in the arguments - from GitHub
+#                       links and from bare "#123" references (the way a user
+#                       names an issue in a prompt) - unique, in order of
+#                       appearance ("42" / "42 7"), an empty string when there
+#                       was no reference at all
 #
-# Selektor (case-insensitive dla slow kluczowych; istniejaca sciezka wygrywa
-# ze slowem kluczowym - plik/katalog o nazwie "all"/"staged" jest sciezka):
-#   istniejaca sciezka -> path   (na dysku lub w indeksie gita)
-#   ""   / all         -> all    (wszystkie zmiany)
-#   staged             -> staged (tylko zmiany staged)
-#   cokolwiek innego   -> all    (fallback: tekst nie bedacy istniejaca sciezka,
-#                                 np. prozowy opis omylkowo podany zamiast selektora)
+# The selector (keywords are case-insensitive; an existing path WINS over a
+# keyword - a file or directory named "all"/"staged" is a path):
+#   an existing path -> path   (on disk or in the git index)
+#   "" / all         -> all    (every change)
+#   staged           -> staged (only staged changes)
+#   anything else    -> all    (fallback: text that is not an existing path,
+#                               e.g. a prose description passed by mistake in
+#                               place of a selector)
 #
-# Sciezka jest przekazywana do gita VERBATIM. Git na kazdej platformie resolvuje
-# natywnie formaty POSIX (src/foo), Windows drive (C:/foo, C:\foo) i MSYS (/c/foo),
-# wiec zadna reczna konwersja separatorow nie jest potrzebna.
+# The path is handed to git VERBATIM. On every platform git natively resolves
+# the POSIX (src/foo), Windows-drive (C:/foo, C:\foo) and MSYS (/c/foo) forms,
+# so no manual separator conversion is needed.
 #
-# Referencje do issue sa wycinane z argumentow PRZED rozpoznaniem selektora,
-# wiec "src/foo #42" nadal rozwiazuje sie do path=src/foo.
+# Issue references are cut out of the arguments BEFORE the selector is
+# recognised, so "src/foo #42" still resolves to path=src/foo.
 add_issue_ref() {
   local num="$1"
   case " $COMMIT_ISSUE_REFS " in

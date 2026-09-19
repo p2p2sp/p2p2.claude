@@ -67,9 +67,12 @@ track for one-sentence changes.
    parameter, so the agent's own frontmatter decides effort and the plan carries no effort marker), and commits
    each task on its own, staging only the files that task and its notes declared. Each task also carries a `Kind: code | scaffold |
    text` marker the planner reads off its own `### Task Checks` evidence - a test-file line is `code`, a tool
-   command with no test file is `scaffold`, anything else is `text` - and `scaffold` / `text` tasks default to
-   `sonnet` with no per-task reviewer, unless your memory files declare that text is your product, in which case
-   a `text` task keeps its reviewer. An implementor runs that task's own `### Task Checks` and nothing else - the
+   command with no test file is `scaffold`, anything else is `text` - which decides that task's `Model:`, with
+   `scaffold` and `text` defaulting to `sonnet`. Only the Super track pairs that marker with a per-task
+   reviewer, and there `scaffold` / `text` default to none, unless your memory files declare that text is your
+   product, in which case a `text` task keeps its reviewer; the Simple track's plan template carries no
+   `Review:` marker at all, so `Kind:` steers `Model:` alone and no task of it is per-task reviewed either way.
+   An implementor runs that task's own `### Task Checks` and nothing else - the
    whole-build gate is the orchestrator's own single run per review round. On the Super track a `code` task's
    `Review:` marker carries three literal states: no marker dispatches the reviewer at its own
    `sonnet` / `high` frontmatter default, `Review: <model>` passes that model to the dispatch, and literally

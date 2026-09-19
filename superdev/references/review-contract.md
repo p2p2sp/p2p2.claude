@@ -68,7 +68,12 @@ is pointed at, so pasted content only duplicates a file it could read and crowds
 - `more: <path>` - implementor fix mode only; optional and repeatable. One additional findings
   report handled in the same dispatch.
 - `minor: <ID>[, <ID>]` - implementor fix mode only; optional. The only Minor IDs from a report's
-  `## Debt` section that dispatch may touch (see `## Implementor fix-mode input`).
+  `## Debt` section that dispatch may touch (see `## Implementor fix-mode input`). NEITHER build
+  orchestrator ever sends it, and that gap is deliberate, not drift: a round's budget is one fix
+  dispatch and it is spent on what moves the verdict, which a Minor by definition does not. The
+  label's one producer is a dispatch a HUMAN directs - the user naming debt to clear, in this
+  build or a later one - and an implementor handed no `minor:` line leaves every Minor of every
+  report untouched, which is the whole of what a build round wants.
 
 Input errors, checked before any work: a build reviewer call with no `stage`, no `since` or no
 `gates`, one whose `gates:` names a file that does not exist or cannot be read, or one with
@@ -131,6 +136,14 @@ two facts. A `D<n>` is unique for the life of the build and is never renumbered 
 line recording the user's answer and the question that asked for it carry that same ID. It is not a
 finding: it never appears in `## Findings`, in `## Debt` or in a prior-findings table, and it never
 moves a review verdict.
+
+`G<n>` is the second ID class no reviewer ever assigns: it identifies a gate hole the user
+accepted at a gate-sourced BLOCKED (`## Gates` case 1, and the `absent - <reason>` subsection), one
+per accepted `### Needs decision` gate bullet. The orchestrator assigns it when it records the
+answer, taking the number after the highest `G<n>` in the decisions file - `G1` when there is no
+such file or no such line in it. Like `D<n>` it is not a finding: it never appears in `## Findings`,
+in `## Debt` or in a prior-findings table, and the bullet it closes carried no ID of its own, which
+is exactly what tells the orchestrator's fix loop the two bullet shapes apart.
 
 A `prior` report written before this contract (bullets with no IDs): treat every bullet under its
 Critical and Important sections as one unnumbered prior finding, assign fresh IDs in the verdict
@@ -247,6 +260,14 @@ log.
   lint or type-check run is never launched from a review at all - the round's one run already
   happened and its block is on `gates:`.
 
+Before any entry is read, the block must cover the stage. A subsection this stage runs that the
+block carries NO line for at all - a truncated block, the run killed or the file cut short - is
+`VERDICT: BLOCKED` with a `### Needs decision` bullet naming that subsection, on the same terms as
+the `absent - <reason>` case above and for the same reason: nothing ran there and nothing says
+anything about the tree. The two differ only in where the hole is (the plan's block, or the run's),
+and a reviewer tells them apart by which file is short. A `none - <reason>` line is neither: the
+plan decided that subsection has nothing to run.
+
 Each entry of that block is its command's result. Read it in this order - the first case that
 matches settles the command, and nothing below it is consulted:
 
@@ -297,6 +318,14 @@ Rules:
 - This section is the sole owner of the gate-command BLOCKED conditions: the mapping above is the
   whole list, and `## Verdict rules` and every consumer's own gates paragraph point here instead of
   carrying a summary of their own.
+- A gate-sourced BLOCKED bullet carries NO finding ID and no criterion pointer: it names the
+  command (its `COMMAND:` line) or the subsection, and it is raised against the PLAN, never against
+  the code. Nothing in it is an implementor's to fix, so the orchestrator's fix loop answers it
+  under its own branch - retry the set, accept the hole against a `G<n>`, or abort - and never
+  through the finding branch, whose `record-decision.sh` call has no ID to take here. A decisions
+  line naming a gate command or a subsection closes that entry for every later round exactly as a
+  criterion line does: the reviewer reads it as plan text and does not return BLOCKED for it again,
+  while the block itself stays as it was written - it is the round's evidence, not its verdict.
 - Every command of the stage's set runs in the round that needs it, a re-review included: the
   orchestrator's run happens once per round and a result carried over from the prior round proves
   nothing about the fixed tree.
@@ -411,7 +440,9 @@ What the orchestrator does with it - no implementor runs first:
 `<workdir>/implementation/decisions.md`. One line per answer the user gave: a finding or criterion
 change accepted at a BLOCKED verdict of a build round or of the per-task gate (`## Per-task gate`),
 a plan rule the user dictated there, a finding accepted when closing a review round with findings
-still open, or the answer to an implementor stop (`## Implementor stop`), whose `<ID>` is that
+still open, a gate hole accepted at a gate-sourced BLOCKED, whose `<ID>` is that acceptance's
+`G<n>` and whose `<criterion or task>` is `gate <command>` or `gate subsection <name>` in place of
+a reference form, or the answer to an implementor stop (`## Implementor stop`), whose `<ID>` is that
 stop's `D<n>`:
 
 `- <ID> - <criterion or task> - accepted: <what the user accepted> - <date>`

@@ -15,7 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { runScript } from "../harness/run.ts";
-import { withTempDir } from "../harness/tmp.ts";
+import { withGitRepo, withTempDir } from "../harness/tmp.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../superdev/scripts/read-config.sh");
 
@@ -215,5 +215,32 @@ test("output always carries the header line, then adr/rules/memory/changelog/cle
         "e2e-api: false",
       ],
     );
+  });
+});
+
+// --- cwd independence ------------------------------------------------------
+
+test("run from a subdirectory of the repo: the config is read from the REPOSITORY ROOT, not the cwd", () => {
+  withGitRepo((repo) => {
+    writeConfig(repo.dir, "adr: true\nstats: true\n");
+    const sub = path.join(repo.dir, "sub");
+    fs.mkdirSync(sub, { recursive: true });
+
+    const result = runScript(SUT, [], { cwd: sub, env: repo.env });
+    assert.equal(result.status, 0);
+    assert.equal(
+      bodyOf(result.stdout),
+      expectedBody(true, false, false, false, false, true, false, false, false),
+      "a subdirectory cwd must not silently fail open with every switch off",
+    );
+  });
+});
+
+test("outside a repository the cwd stays the base the config is resolved against", () => {
+  withTempDir("p2p2-read-config-nonrepo-", (dir) => {
+    writeConfig(dir, "cleanup: true\n");
+    const result = runScript(SUT, [], { cwd: dir });
+    assert.equal(result.status, 0);
+    assert.equal(bodyOf(result.stdout), expectedBody(false, false, false, false, true, false, false, false, false));
   });
 });

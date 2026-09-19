@@ -43,10 +43,16 @@
 # Behaviour:
 #   - each collected command runs through the sibling runner
 #     skills/executor/scripts/run.sh, resolved from THIS script's own location,
-#     one invocation per command, fed `command:`, `expect-exit: 0` and a
-#     `timeout:` on stdin. The commands run in the CALLER's working directory
-#     (the runner's own `cwd:` default), so the orchestrator calls this script
-#     from the host repository root.
+#     one invocation per command, fed `command:`, `expect-exit: 0`, a
+#     `timeout:` and - inside a git repository - a `cwd:` naming the
+#     REPOSITORY ROOT on stdin. A gate command is written against that root
+#     ("npm test", "dotnet build"), and the orchestrator is told never to `cd`,
+#     so a session started in a subdirectory would otherwise run the whole gate
+#     set there and report a red suite that says nothing about the tree. This
+#     script resolves the root itself, exactly as decompose.sh, commit-task.sh
+#     and cleanup-run.sh do, and the caller's cwd stops mattering. Outside a
+#     repository no `cwd:` is sent and the runner's own $PWD default stands,
+#     which is then the only base there is.
 #   - GATE_BUDGET bounds the WHOLE run, not one command: each command is fed
 #     what is left of it, and one that would start with nothing left is not
 #     run at all - its entry carries a RESULT / STATUS / REASON triple naming
@@ -134,6 +140,12 @@ GATE_BUDGET="${GATE_BUDGET:-540}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 RUNNER="$PLUGIN_ROOT/skills/executor/scripts/run.sh"
+
+# The directory every gate command runs in: the host repository root, resolved
+# from the caller's cwd once. Empty outside a repository, where the runner's
+# own $PWD default is the only base available.
+GATE_CWD="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+[[ -n "$GATE_CWD" && -d "$GATE_CWD" ]] || GATE_CWD=""
 
 usage() {
   echo "usage: run-gate.sh <workdir> <stage> <out-file>" >&2
@@ -314,7 +326,11 @@ for subsection in "${selected[@]}"; do
     # a reviewer's BLOCKED bullet on a timeout has to name the seconds it was
     # given - which is no longer a constant anyone could infer from the script.
     details+=("TIMEOUT: ${remaining}s")
-    block="$(printf 'command: %s\nexpect-exit: 0\ntimeout: %s\n' "$gate_command" "$remaining" | "$RUNNER")"
+    if [[ -n "$GATE_CWD" ]]; then
+      block="$(printf 'command: %s\ncwd: %s\nexpect-exit: 0\ntimeout: %s\n' "$gate_command" "$GATE_CWD" "$remaining" | "$RUNNER")"
+    else
+      block="$(printf 'command: %s\nexpect-exit: 0\ntimeout: %s\n' "$gate_command" "$remaining" | "$RUNNER")"
+    fi
     command_result=""
     while IFS= read -r reply_line; do
       reply_line="${reply_line%$'\r'}"

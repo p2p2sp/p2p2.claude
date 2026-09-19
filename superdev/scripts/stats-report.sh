@@ -16,8 +16,10 @@
 # by "-", and the basename when the workdir carries no such segment - so both
 # scripts always name the same run.
 #
-# INPUT:  .temp/superdev/stats/<run>.events, relative to the current working
-#         directory (the host repo root, where the orchestrator runs). One
+# INPUT:  <repo root>/.temp/superdev/stats/<run>.events - the root is
+#         resolved here from the caller's cwd, so this script reads exactly
+#         the file stats-record.sh wrote whatever directory either was called
+#         from; outside a repository the path is relative to the cwd. One
 #         event is one tab-separated line of ten fields:
 #           <epoch seconds> kind label model effort tokens tool_uses
 #           duration_ms verdict note
@@ -27,7 +29,7 @@
 #         five placeholders - {{RUN}}, {{TASKS_TABLE}}, {{KINDS_TABLE}},
 #         {{TOTALS}}, {{ANOMALIES}} - each appear exactly once and are
 #         substituted here; nothing else in the rendered file varies.
-# OUTPUT: .temp/superdev/stats/<run>.md, written whole on every run, plus the
+# OUTPUT: <repo root>/.temp/superdev/stats/<run>.md, written whole on every run, plus the
 #         single machine line "stats: <path>" on stdout.
 #
 # WALL TIME: one event's wall time is its own duration_ms rounded to whole
@@ -100,7 +102,17 @@ else
   run="${dir##*/}"
 fi
 
-stats_dir=".temp/superdev/stats"
+# Anchor the stats directory on the REPOSITORY ROOT rather than on the
+# caller's cwd: the root's own invariant puts every temporary artifact under
+# <host repo>/.temp/<plugin>/, and a session started in a subdirectory would
+# otherwise scatter a run's events into a second, nested .temp tree. Outside a
+# repository the cwd is the only base there is.
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -n "$repo_root" && -d "$repo_root" ]]; then
+  stats_dir="$repo_root/.temp/superdev/stats"
+else
+  stats_dir=".temp/superdev/stats"
+fi
 events="$stats_dir/$run.events"
 report="$stats_dir/$run.md"
 

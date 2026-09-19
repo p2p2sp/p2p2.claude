@@ -40,9 +40,11 @@
 # ("<run>-phases-01-slug"). A workdir carrying no "docs/.workflows/" segment
 # falls back to its basename.
 #
-# OUTPUT FILE: .temp/superdev/stats/<run>.events, relative to the current
-# working directory (the host repo root, where the orchestrator runs); the
-# directory and the file are created as needed. One event is exactly one
+# OUTPUT FILE: <repo root>/.temp/superdev/stats/<run>.events - the root is
+# resolved here from the caller's cwd, so a session started in a subdirectory
+# writes the same file as one started at the root; outside a repository the
+# path is relative to the cwd. The directory and the file are created as
+# needed. One event is exactly one
 # tab-separated line, ten fields in this order:
 #   <epoch seconds> kind label model effort tokens tool_uses duration_ms
 #   verdict note
@@ -102,7 +104,17 @@ else
   run="${dir##*/}"
 fi
 
-stats_dir=".temp/superdev/stats"
+# Anchor the stats directory on the REPOSITORY ROOT rather than on the
+# caller's cwd: the root's own invariant puts every temporary artifact under
+# <host repo>/.temp/<plugin>/, and a session started in a subdirectory would
+# otherwise scatter a run's events into a second, nested .temp tree. Outside a
+# repository the cwd is the only base there is.
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -n "$repo_root" && -d "$repo_root" ]]; then
+  stats_dir="$repo_root/.temp/superdev/stats"
+else
+  stats_dir=".temp/superdev/stats"
+fi
 mkdir -p "$stats_dir"
 events="$stats_dir/$run.events"
 

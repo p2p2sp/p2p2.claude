@@ -5,6 +5,13 @@
 # Usage:
 #   commit-task.sh <message> [task-file] [--notes <notes-file>] [--path <path>]...
 #
+# cwd: irrelevant. The repository root is resolved here and EVERY git call
+#      goes through `git -C <root>`, so a session started in a subdirectory
+#      stages and commits exactly what one started at the root would. Declared
+#      paths are normalised against that same root, absolute and relative
+#      forms alike. Outside a repository the commit is skipped with a note on
+#      stdout and exit 0, and no cwd matters there either.
+#
 # Parameters:
 #   message     (required) - the commit message.
 #   task-file   (optional, positional) - when given, status-update.sh runs on it

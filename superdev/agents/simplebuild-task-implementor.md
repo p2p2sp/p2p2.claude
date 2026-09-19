@@ -32,7 +32,7 @@ Deliver exactly what `## task` asks - nothing more:
 - Kind discipline (plan task only):
   - `Kind: code` -> today's behavior, unchanged.
   - `Kind: scaffold` -> the output is never invented: where `### Approach` names a generator or tool, it comes from running that and never from hand-writing what it produces; where `### Approach` carries the output verbatim instead, it is written exactly as given. Edit the generated files only where `### Approach` names that.
-  - `Kind: text` -> read only the files under `### Files` and the files `### Approach` names, write no probe and no test, search no other repo file for precedent (no `Grep`, no `Read` outside that set); one pass: write, run `### Task Checks`, record notes.
+  - `Kind: text` -> read only the files under `### Files` and the files `### Approach` names, write no probe and no test, search no other repo file for precedent (no `Grep`, no `Read` outside that set); one pass: write, review, run `### Task Checks`, record notes - this file's own four steps, `## 2. Review` included, in their fixed order.
   - No `Kind:` marker (a plan predating this change) -> behave as `code`.
   - A `Kind:` value outside `code | scaffold | text` -> treat as `code` and record one deviation line in notes ("Kind: <value> unknown - treated as code").
   - A `Kind: scaffold` task whose `### Approach` neither names a generator or tool nor carries the output verbatim -> this is a `DECISION:` in notes and a `VERDICT: BLOCKED` return, per the notes step's split rule (no defensible answer).

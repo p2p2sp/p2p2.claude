@@ -806,8 +806,9 @@ test("a task's 'Covers:' criterion absent from the source -> exit 5", () => {
       const result = run(repo, [plan]);
       assert.equal(result.status, 5);
       assert.match(result.stderr, /covers criterion #99, absent from source/);
-      // the error names the task by its heading title, not just the file name
-      assert.match(result.stderr, /`Task 1 - do it`/);
+      // the error names the task in the contract's reference form - the bare
+      // title, the pointer supplied by the "(task-NN.md)" that follows it
+      assert.match(result.stderr, /`do it` \(task-01\.md\)/);
     });
   });
 });

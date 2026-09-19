@@ -34,13 +34,10 @@
       "ExitWorktree",
       "ListMcpResourcesTool",
       "ReadMcpResourceTool",
-      "ReadMcpResourceDirTool"
-    ],
-    "ask": [
+      "ReadMcpResourceDirTool",
       "Bash(git push:*)",
       "Bash(gh pr create:*)",
       "Bash(gh release create:*)",
-      "Bash(gh repo create:*)",
       "Bash(bash:*)",
       "Bash(sh:*)"
     ],

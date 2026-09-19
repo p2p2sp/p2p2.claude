@@ -1,30 +1,51 @@
 #!/usr/bin/env bash
-# read-config.sh - rozwiązuje przełączniki .claude/superdev.yml do stałego bloku
-# wstrzykiwanego do simplebuild / superbuild przy ładowaniu skila.
+# read-config.sh - resolves the .claude/superdev.yml switches into the fixed
+# block injected into simplebuild / superbuild when the skill loads.
 #
-# Powstał, bo parser YAML z grep|sed to komenda złożona - a Claude Code rozbija
-# komendy złożone i pyta o zgodę na KAŻDY człon (patrz setup/bootstrap.sh), co
-# zabija krok na trybach uprawnień, które nie auto-akceptują wszystkiego.
-# Zamknięcie w jednym skrypcie sprawia, że silnik uprawnień widzi JEDNĄ komendę.
+# It exists because a grep|sed YAML parser is a compound command, and Claude
+# Code splits a compound command and asks for approval on EVERY member (see
+# setup/bootstrap.sh) - which kills the step on any permission mode that does
+# not auto-accept everything. One script is ONE command to the permission
+# engine.
 #
-# Kontrakt:
-#   argv : brak.
-#   cwd  : root projektu (blok `!` w SKILL.md wykonuje się przy ładowaniu tam).
-#   env  : brak.
-#   plik : .claude/superdev.yml (opcjonalny). Brak pliku -> wszystko false.
-#   klucze: adr, rules, memory, changelog, cleanup, stats, qa, e2e-ui, e2e-api. Klucz jest `true` WYŁĄCZNIE gdy plik ma linię
-#           pasującą do `^\s*<klucz>\s*:\s*true` (koniec wartości ograniczony
-#           spacją/komentarzem/końcem linii). Brak klucza -> false.
-#   stdout: nagłówek + jedna linia `<klucz>: <true|false>` na każdy klucz,
-#           w stałej kolejności. Wartości znormalizowane do true/false.
-#   exit : zawsze 0 (fail-open - brak pliku/klucza nigdy nie wywala mechanizmu).
+# The config file is resolved against the REPOSITORY ROOT, not the caller's
+# cwd. A `!` preload runs wherever the session started, and a session started
+# in a subdirectory would otherwise find no file there and fail open with
+# every switch false - silently turning off every opt-in layer the user
+# configured. Outside a repository the cwd is the only base there is and the
+# path resolves against it, as before.
+#
+# Contract:
+#   argv   : none.
+#   cwd    : any directory inside the host project - the repository root is
+#            resolved here. Outside a repository, the cwd is the base.
+#   env    : none.
+#   file   : <repo root>/.claude/superdev.yml (optional). No file -> every key
+#            false.
+#   keys   : adr, rules, memory, changelog, cleanup, stats, qa, e2e-ui,
+#            e2e-api. A key is `true` ONLY when the file holds a line matching
+#            `^\s*<key>\s*:\s*true` (the value ended by a space, a comment or
+#            the end of the line). A key that is absent -> false.
+#   stdout : a header line plus one `<key>: <true|false>` line per key, in a
+#            fixed order. Values normalised to true/false.
+#   exit   : ALWAYS 0 (fail-open - a missing file or key never breaks the
+#            mechanism, and a non-zero exit in a `!` preload would abort the
+#            whole skill load).
 
 set -u
 
-cfg=".claude/superdev.yml"
+# Resolve the repository root ONCE. `|| true` and the -d guard keep this
+# fail-open: a git that is absent, or a cwd outside any repository, leaves the
+# relative path standing rather than aborting the preload.
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -n "$repo_root" ] && [ -d "$repo_root" ]; then
+  cfg="$repo_root/.claude/superdev.yml"
+else
+  cfg=".claude/superdev.yml"
+fi
 
-# true wtw. gdy w configu jest linia `^\s*<klucz>\s*:\s*true` (wartość ograniczona
-# spacją / `#` / końcem linii). Brak pliku lub brak dopasowania -> false.
+# true iff the config holds a line `^\s*<key>\s*:\s*true` (the value ended by a
+# space, a `#` or the end of the line). No file or no match -> false.
 resolve() {
   key="$1"
   if [ -f "$cfg" ] && grep -qiE "^[[:space:]]*${key}[[:space:]]*:[[:space:]]*true([[:space:]]|#|$)" "$cfg"; then

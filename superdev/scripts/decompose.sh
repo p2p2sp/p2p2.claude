@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 #
-# decompose.sh - parsuje zatwierdzony plan i rozbija go na pliki robocze.
+# decompose.sh - parses an approved plan and splits it into the run's working
+# files.
 #
-# Użycie:
+# Usage:
 #   decompose.sh <plan-file> [commit-prefix]
 #
-# commit-prefix (opcjonalny, domyślnie "simplebuild") - prefiks komunikatu
-# commita dekompozycji, np. "superbuild".
+# commit-prefix (optional, default "simplebuild") - the prefix of the
+# decomposition commit's message, e.g. "superbuild".
 #
-# Obsługuje oba szablony planów:
-#   - simpleplan: nagłówek to Title + sekcja HEADER (Goal/Context/Acceptance)
-#   - superplan:  nagłówek to Title + Spec (brak sekcji HEADER)
+# It handles both plan templates:
+#   - simpleplan: the header is Title + the HEADER section (Goal/Context/
+#                 Acceptance)
+#   - superplan:  the header is Title + Spec (no HEADER section)
 #
 # The plan file is resolved to an absolute path and, inside a git repository,
 # the script moves to the repository root before deriving anything - so a run
@@ -36,30 +38,31 @@
 #     beside the plan (<sidecar> absent) - decomposing an unverified plan",
 #     continue (a plan that never went through the hook is still buildable)
 #
-# Działanie:
-#   - katalog roboczy: gdy linia "Intent:" planu (albo, w jej braku, "Spec:")
-#     wskazuje na plik już leżący pod docs/.workflows/, ADOPTOWANY jako katalog
-#     roboczy jest PEŁNY katalog tego pliku - intent.md i spec.md lądują obok
-#     plan-header.md/plan.md/tasks/. Dotyczy to każdego poziomu zagnieżdżenia:
-#     dla fazy biegu, czyli docs/.workflows/<bieg>/phases/NN-<slug>/intent.md,
-#     katalogiem roboczym jest docs/.workflows/<bieg>/phases/NN-<slug>, a korzeń
-#     biegu pozostaje nietknięty (superspec zapisuje spec.md obok przekazanego
-#     intentu, więc spec fazy ląduje w tym samym katalogu bez żadnej zmiany).
-#     W przeciwnym razie (żadna ścieżka nie leży pod docs/.workflows/, np. stary
-#     bieg sprzed tej zmiany) wracamy do dotychczasowej nazwy pochodnej od
-#     tytułu planu, docs/.workflows/<data>-<slug>/. Ścieżka absolutna
-#     z segmentem docs/.workflows/ jest normalizowana do postaci względem repo.
-#     Adoptowany katalog zawsze istniał przed tym biegiem,
-#     więc gwarancja poniżej (trap nie usuwa katalogu, który biegowi nie
-#     przynależy) obejmuje go automatycznie: błąd dekompozycji nigdy nie
-#     kasuje cudzego intent.md/spec.md.
-#   - zapisuje nagłówek planu do plan-header.md
-#   - kopiuje pełny plan obok nagłówka jako plan.md
-#   - tworzy status.md z numerem ostatnio przetworzonego taska (start: 00);
-#     istniejący status.md jest zachowywany (wznowienie)
-#   - zapisuje bazowy SHA builda (HEAD sprzed commita dekompozycji) do base.md;
-#     istniejący base.md jest zachowywany (wznowienie); brak commitów -> none
-#   - rozdziela taski (sekcje TASK) do plików tasks/task-NN.md; each of the four
+# What it does:
+#   - working directory: when the plan's "Intent:" line (or, without one, its
+#     "Spec:" line) names a file that already lies under docs/.workflows/, the
+#     directory ADOPTED as the working dir is that file's WHOLE directory -
+#     intent.md and spec.md end up beside plan-header.md/plan.md/tasks/. This
+#     holds at every nesting level: for a run phase, i.e.
+#     docs/.workflows/<run>/phases/NN-<slug>/intent.md, the working directory
+#     is docs/.workflows/<run>/phases/NN-<slug> and the run root stays
+#     untouched (superspec writes spec.md beside the intent it was handed, so
+#     a phase's spec lands in that same directory with no change at all).
+#     Otherwise (neither path lies under docs/.workflows/, e.g. a run from
+#     before this change) it falls back to the name derived from the plan's
+#     title, docs/.workflows/<date>-<slug>/. An absolute path carrying a
+#     docs/.workflows/ segment is normalised to its repository-relative form.
+#     An adopted directory always existed before this run, so the guarantee
+#     below (the trap never removes a directory the run does not own) covers
+#     it for free: a failed decomposition never deletes someone else's
+#     intent.md/spec.md.
+#   - writes the plan's header to plan-header.md
+#   - copies the whole plan beside that header as plan.md
+#   - creates status.md holding the number of the last processed task (start:
+#     00); an existing status.md is kept (a resume)
+#   - writes the build's base SHA (HEAD before the decomposition commit) to
+#     base.md; an existing base.md is kept (a resume); no commits -> none
+#   - splits the tasks (the TASK sections) into tasks/task-NN.md; each of the four
 #     block markers (the HEADER open/close and TASK open/close HTML comments)
 #     opens or closes a block ONLY when it is the whole line, trailing
 #     whitespace (a CR included) allowed. A marker quoted inside a longer line -
@@ -68,31 +71,35 @@
 #     the task file verbatim
 #   - every task block MUST open, on its FIRST non-empty line, with a
 #     "## Task <N> - <title>" heading carrying a non-empty title - the one
-#     source of that task's title, both for the stdout index column and for the
-#     "Covers:" messages below. <N> is NOT checked against the file's own index
-#     number, and a "## " heading further down the block is ordinary body, never
-#     the title. A block without such an opening heading prints
+#     source of both the stdout index's <heading> column (the whole heading,
+#     "## " stripped) and the bare <title> the "Covers:" messages below name the
+#     task by. <N> is NOT checked against the file's own index number, and a
+#     "## " heading further down the block is ordinary body, never the
+#     heading. A block without such an opening heading prints
 #     "error: task-NN.md has no task heading" on stderr - one line per offending
 #     block - and exits 6 before a single task index row is printed
 #   - a task title carrying one of ` $ " \ is refused the same way: both
-#     orchestrators spend the title column as a double-quoted shell argument to
+#     orchestrators spend the heading column as a double-quoted shell argument to
 #     commit-task.sh, so a backtick or a "$(" in it would be executed in the
 #     host repo root and a double quote would split the argument. The script
 #     prints "error: task-NN.md title carries a shell metacharacter ..." on
 #     stderr - one line per offending block - and exits 8 before a single task
 #     index row is printed (plan-review-checklist class B24)
-#   - do każdego taska dopisywana jest sekcja "### Covered criteria" z verbatim
-#     treścią kryteriów wskazanych w jego linii "Covers:"; źródło to spec
-#     (tor superbuild) albo sekcja "## Acceptance criteria" z nagłówka planu
-#     (tor simplebuild); kryterium nieobecne w źródle -> exit 5, a komunikat
-#     (jak i ostrzeżenie o braku "Covers:") nazywa task tytułem z jego
-#     nagłówka "## " w formie `<tytuł>` (<nazwa-pliku>)
-#   - tor superbuild (plan z linią "Spec:"): dodatkowo waliduje istnienie pliku
-#     speca (brak -> exit 4) i dopisuje do plan-header.md sekcje "## Out of scope"
-#     i "## Constraints / assumptions" ze speca
-#   - tworzy pusty katalog implementation/ na raporty reviewera (Final Review)
-#   - wypisuje na stdout indeks tasków dla pętli implementacji:
-#       workdir: <ścieżka do docs/.workflows/<data>-<slug>/>
+#   - every task gains a "### Covered criteria" section carrying, verbatim,
+#     the text of the criteria its "Covers:" line names; the source is the
+#     spec (the superbuild track) or the plan header's "## Acceptance
+#     criteria" section (the simplebuild track); a criterion absent from the
+#     source -> exit 5, and that message (like the warning about a missing
+#     "Covers:") names the task by the title in its "## " heading, in the form
+#     `<title>` (<file name>)
+#   - the superbuild track (a plan carrying a "Spec:" line) additionally
+#     validates that the spec file exists (absent -> exit 4) and appends the
+#     spec's "## Out of scope" and "## Constraints / assumptions" sections to
+#     plan-header.md
+#   - creates an empty implementation/ directory for the reviewer's reports
+#     (Final Review)
+#   - prints the task index for the implementation loop on stdout:
+#       workdir: <path to docs/.workflows/<date>-<slug>/>
 #       root: <absolute path of the repository root the paths above are
 #              relative to; outside a repository, the absolute cwd. Always in
 #              the platform's native spelling (under Git-Bash "C:/...", never
@@ -102,13 +109,18 @@
 #              of every fork / agent label, so a build started from any cwd
 #              hands its workers the same files. workdir: itself stays
 #              repository-relative - cleanup-run.sh needs it that way>
-#       status: <numer-ostatniego-taska | none>
+#       status: <last task number | none>
 #       base: <SHA | none>
-#       plan-header: <ścieżka>
-#       plan: <ścieżka>
-#       spec: <ścieżka>          (tylko gdy plan ma linię "Spec:")
+#       plan-header: <path>
+#       plan: <path>
+#       spec: <path>             (only when the plan has a "Spec:" line)
 #       intent: <path>   (only when the plan has an Intent: line naming an existing file)
-#       <task-path><TAB><title><TAB><model><TAB><review><TAB><concurrent>
+#       <task-path><TAB><heading><TAB><model><TAB><review><TAB><concurrent>
+#     the second column is the task's whole "## Task <N> - <title>" heading with
+#     "## " stripped, pointer included, because both orchestrators spend it raw
+#     as the commit subject ("Task 7 - Add the parser"). It is NOT the title the
+#     review contract's "## Naming" names a task by: that is what follows
+#     "Task <N> - " in it, and stripping the pointer is the consumer's step.
 #     model / review come verbatim from the task's own "- Model:" /
 #     "- Review:" marker lines (the plan template's per-task build-strength
 #     markers, the second the strength that task's own reviewer runs at,
@@ -136,12 +148,11 @@
 #         "add | modify | delete" verb, cut before any " (" annotation, and
 #         compared as the literal token it stands as - so a non-literal path
 #         (a placeholder, a glob) only ever makes the column "no".
-#   - commituje dekompozycję (git add -A -- <katalog roboczy> + commit)
-#     komunikatem
-#     "chore(<commit-prefix>): decompose plan <slug>"; w indeksie ląduje
-#     WYŁĄCZNIE katalog roboczy zbudowany przez ten bieg, nigdy inne zmiany
-#     z drzewa roboczego; szum gita idzie na stderr,
-#     więc stdout pozostaje czystym indeksem. Outside a git repository the commit
+#   - commits the decomposition (git add -A -- <working dir> + commit) under
+#     the message "chore(<commit-prefix>): decompose plan <slug>"; what lands
+#     in the index is ONLY the working directory this run built, never any
+#     other working-tree change; git noise goes to stderr, so stdout stays a
+#     clean index. Outside a git repository the commit
 #     is skipped (note on stderr, exit 0) - the working dir is already complete,
 #     so a missing repo must never fail the decomposition
 #
@@ -207,7 +218,7 @@ else
   repo_root="$(pwd -W 2>/dev/null || pwd)"
 fi
 
-# --- slug z tytułu planu ---
+# --- slug from the plan's title ---
 title_line="$(grep -m1 '^Title:' "$plan" || true)"
 raw_title="${title_line#Title:}"
 raw_title="$(printf '%s' "$raw_title" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//')"
@@ -220,28 +231,31 @@ slug="$(printf '%s' "$raw_title" \
   | LC_ALL=C sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-*//' -e 's/-*$//')"
 [[ -z "$slug" ]] && slug="plan"
 
-# --- ścieżka speca (linia "Spec:", szablon superplan) ---
-# preambuła: Title zawsze, Spec tylko w szablonie superplan; sekcję HEADER
-# (jeśli jest) dopisze awk poniżej. Trailing HTML-comment przy Spec usuwamy.
-# Ekstrakcja jedzie PRZED utworzeniem katalogu roboczego (patrz run_dir_of
-# niżej: dir może adoptować katalog speca) - błąd "spec nie istnieje" nie
-# zostawia więc żadnego katalogu na dysku.
+# --- spec path (the "Spec:" line, superplan template) ---
+# Preamble: Title always, Spec only in the superplan template; the HEADER
+# section (where there is one) is appended by the awk below. A trailing HTML
+# comment on the Spec line is dropped.
+# The extraction runs BEFORE the working directory is created (see run_dir_of
+# below: dir may adopt the spec's directory) - so a "spec does not exist"
+# error leaves no directory behind on disk.
 spec_line="$(grep -m1 '^Spec:' "$plan" || true)"
 spec_line="$(printf '%s' "$spec_line" | sed -e 's/[[:space:]]*<!--.*-->[[:space:]]*$//')"
 
-# ścieżka speca (szablon superplan): z linii "Spec: <ścieżka>", bez skrajnych
-# spacji; niepusta ścieżka MUSI istnieć - ekstrakcja wycinka speca poniżej
-# jest bez niej niemożliwa, więc rozjazd wybucha tu, nie w środku builda.
+# The spec path (superplan template): from the "Spec: <path>" line, outer
+# whitespace trimmed; a non-empty path MUST exist - extracting the spec's
+# excerpt below is impossible without it, so the drift blows up here rather
+# than in the middle of a build.
 spec_path="$(printf '%s' "${spec_line#Spec:}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
 if [[ -n "$spec_path" && ! -f "$spec_path" ]]; then
   echo "error: spec file not found: $spec_path (from plan's 'Spec:' line)" >&2
   exit 4
 fi
 
-# --- ścieżka zapisanej syntezy intent (opcjonalna preambuła "Intent:", oba
-# tory) --- w przeciwieństwie do Spec: brak pliku NIE jest błędem builda: linia
-# trafia do nagłówka wyłącznie gdy plik istnieje, w przeciwnym razie ostrzeżenie
-# na stderr i pomijamy zarówno linię w nagłówku, jak i wpis w indeksie stdout.
+# --- path of the saved intent synthesis (the optional "Intent:" preamble
+# line, both tracks) --- unlike Spec:, a missing file is NOT a build error:
+# the line reaches the header only when the file exists, and otherwise a
+# warning goes to stderr and both the header line and the stdout index entry
+# are skipped.
 intent_line="$(grep -m1 '^Intent:' "$plan" || true)"
 intent_line="$(printf '%s' "$intent_line" | sed -e 's/[[:space:]]*<!--.*-->[[:space:]]*$//')"
 
@@ -251,12 +265,12 @@ if [[ -n "$intent_path" && ! -f "$intent_path" ]]; then
   intent_path=""
 fi
 
-# katalog roboczy przynależny do ścieżki $1: dirname z normalizacją "\" -> "/"
-# (żeby ścieżka windowsowa też trafiła); pusty argument albo dirname bez
-# segmentu docs/.workflows/ -> pusty wynik (żaden trap, nigdy exit != 0).
-# Gdy segment jest obecny, adoptujemy PEŁNY katalog pliku Intent:/Spec: (tail
-# po OSTATNIM "docs/.workflows/", bez ucinania) - nigdy zaś tej części ścieżki,
-# która leży sprzed docs/.workflows/.
+# The working directory belonging to path $1: its dirname with "\" normalised
+# to "/" (so a Windows path lands too); an empty argument, or a dirname with
+# no docs/.workflows/ segment -> an empty result (no trap, never exit != 0).
+# When the segment IS there, the WHOLE directory of the Intent:/Spec: file is
+# adopted (the tail after the LAST "docs/.workflows/", untruncated) - never
+# the part of the path that lies before docs/.workflows/.
 run_dir_of() {
   local p="$1"
   [[ -z "$p" ]] && return 0
@@ -271,27 +285,27 @@ run_dir_of() {
   printf '%s\n' "docs/.workflows/${tail}"
 }
 
-# Intent: wygrywa nad Spec: (jest zapisywany pierwszy, w tym samym katalogu
-# biegu); w braku obu (albo gdy żadna nie leży pod docs/.workflows/) wracamy
-# do dotychczasowej nazwy pochodnej od tytułu planu.
+# Intent: wins over Spec: (it is written first, in the same run directory);
+# with neither (or with neither lying under docs/.workflows/) it falls back to
+# the name derived from the plan's title.
 dir="$(run_dir_of "$intent_path")"
 [[ -z "$dir" ]] && dir="$(run_dir_of "$spec_path")"
 [[ -z "$dir" ]] && dir="docs/.workflows/$(date +%F)-${slug}"
 
-# zapamiętaj, czy katalog roboczy istniał PRZED tym biegiem - trap poniżej
-# wolno mu usunąć wyłącznie katalog utworzony w TYM biegu; wznowienie
-# (katalog już istniejący) zostaje nietknięte nawet przy błędzie. Adoptowany
-# katalog ZAWSZE istniał wcześniej (zawiera przynajmniej intent.md albo
-# spec.md), więc dziedziczy tę gwarancję za darmo - błąd dekompozycji nigdy
-# go nie kasuje.
+# Remember whether the working directory existed BEFORE this run - the trap
+# below may remove only a directory THIS run created; a resume (a directory
+# that was already there) stays untouched even on an error. An adopted
+# directory ALWAYS existed earlier (it holds at least intent.md or spec.md),
+# so it inherits that guarantee for free - a failed decomposition never
+# deletes it.
 dir_preexisted=0
 [[ -d "$dir" ]] && dir_preexisted=1
 
-# sprzątanie na wszelkie niezerowe wyjście przed commitem dekompozycji:
-# usuwamy katalog roboczy tylko gdy ten bieg go utworzył, żeby nie zostawiać
-# osieroconego drzewa po błędzie (brak sekcji TASK, brakujący spec, itp.).
-# trap jest rozbrajany tuż przed sekcją commita - błąd gita po tym punkcie
-# ma zostawić w pełni zbudowany katalog roboczy, nie go zniszczyć.
+# Cleanup on any non-zero exit before the decomposition commit: the working
+# directory is removed only when THIS run created it, so an error (no TASK
+# section, a missing spec, and so on) leaves no orphaned tree behind. The trap
+# is disarmed just before the commit section - a git error past that point
+# must leave the fully built working directory in place, not destroy it.
 cleanup_on_failure() {
   local status=$?
   if [[ "$status" -ne 0 && "$dir_preexisted" -eq 0 ]]; then
@@ -301,23 +315,24 @@ cleanup_on_failure() {
 }
 trap cleanup_on_failure EXIT
 
-# świeży katalog tasks (usuń pozostałości po poprzednim biegu)
+# a fresh tasks directory (drop whatever an earlier run left behind)
 rm -rf "$dir/tasks"
 mkdir -p "$dir/tasks"
 
-# katalog na raporty reviewera; zachowujemy istniejące przy wznowieniu
+# the directory for the reviewer's reports; an existing one is kept on a resume
 mkdir -p "$dir/implementation"
 
-# źródło kryteriów dla per-taskowej sekcji "### Covered criteria": spec (tor
-# superbuild) albo sam plan - jego HEADER "## Acceptance criteria" (tor
-# simplebuild). Zawsze ustawione, więc kryteria dopisywane są w obu torach.
+# The criteria source for the per-task "### Covered criteria" section: the
+# spec (the superbuild track) or the plan itself - its HEADER's "## Acceptance
+# criteria" (the simplebuild track). Always set, so criteria are appended on
+# both tracks.
 if [[ -n "$spec_path" ]]; then
   crit_source="$spec_path"
 else
   crit_source="$plan"
 fi
 
-# sekcja speca (nagłówek + treść, do następnego "## " lub EOF)
+# one section of the spec (its heading plus its body, up to the next "## " or EOF)
 spec_section() {
   awk -v h="$1" '
     index($0, h) == 1 { insec=1; print; next }
@@ -326,8 +341,9 @@ spec_section() {
   ' "$spec_path"
 }
 
-# treść kryterium akceptacji nr $1 ze źródła crit_source (linia "N. ..." +
-# kontynuacje, do następnego numeru, pustej linii lub końca sekcji)
+# the text of acceptance criterion number $1, read from crit_source (the
+# "N. ..." line plus its continuations, up to the next number, a blank line or
+# the end of the section)
 criterion_of() {
   awk -v n="$1" '
     /^## Acceptance criteria/ { insec=1; next }
@@ -340,7 +356,7 @@ criterion_of() {
   ' "$crit_source"
 }
 
-# --- nagłówek planu ---
+# --- the plan's header ---
 header="$dir/plan-header.md"
 {
   [[ -n "$title_line" ]] && printf '%s\n' "$title_line"
@@ -349,8 +365,9 @@ header="$dir/plan-header.md"
   printf '\n'
 } > "$header"
 
-# tor superbuild: globalne sekcje speca trafiają do nagłówka planu - jedyny
-# fragment speca, jaki widzą per-taskowe forki (implementor / task-reviewer).
+# The superbuild track: the spec's global sections go into the plan header -
+# the only part of the spec the per-task forks (implementor / task-reviewer)
+# ever see.
 if [[ -n "$spec_path" ]]; then
   for sec in "## Out of scope" "## Constraints / assumptions"; do
     content="$(spec_section "$sec")"
@@ -360,15 +377,15 @@ if [[ -n "$spec_path" ]]; then
   done
 fi
 
-# --- kopia pełnego planu ---
-# pełny plan trafia obok nagłówka jako plan.md; commit dekompozycji czyni
-# katalog roboczy samodzielnym, zacommitowanym zapisem builda.
+# --- a copy of the whole plan ---
+# The whole plan lands beside the header as plan.md; the decomposition commit
+# makes the working directory a self-contained, committed record of the build.
 plan_copy="$dir/plan.md"
 cp "$plan" "$plan_copy"
 
-# --- plik statusu: numer ostatnio przetworzonego taska (00 = brak) ---
-# aktualizowany przez status-update.sh po każdym ukończonym tasku.
-# istniejący status zachowujemy (wznowienie); brak pliku -> inicjujemy na 00.
+# --- the status file: the number of the last processed task (00 = none) ---
+# Updated by status-update.sh after every finished task. An existing status is
+# kept (a resume); no file -> it is initialised to 00.
 status="$dir/status.md"
 last="00"
 if [[ -f "$status" ]]; then
@@ -379,22 +396,25 @@ else
 fi
 
 # --- bazowy SHA builda: HEAD sprzed commita dekompozycji ---
-# granica diffa dla Final Review (git diff <base>..HEAD); istniejący base.md
-# zachowujemy (wznowienie nie przesuwa bazy). brak commitów w repo -> none.
+# The diff boundary for the Final Review (git diff <base>..HEAD); an existing
+# base.md is kept (a resume never moves the base). No commit in the repository
+# -> none.
 basefile="$dir/base.md"
 if [[ -f "$basefile" ]]; then
   base="$(sed -n 's/^base:[[:space:]]*//p' "$basefile" | head -n1)"
   if [[ -z "$base" ]]; then base="none"; fi
 else
-  # --verify -q: w repo bez commitów zwykłe rev-parse HEAD drukuje literalne
-  # "HEAD" na stdout mimo błędu; wariant -q milczy i pozwala podstawić none.
+  # --verify -q: in a repository with no commit, a plain rev-parse HEAD prints
+  # the literal "HEAD" on stdout despite the error; the -q form stays silent
+  # and lets none be substituted.
   base="$(git rev-parse --verify -q HEAD 2>/dev/null || true)"
   if [[ -z "$base" ]]; then base="none"; fi
   printf 'base: %s\n' "$base" > "$basefile"
 fi
 
-# --- podział na pliki tasków + indeks na stdout ---
-# workdir: katalog roboczy; status: numer ostatniego taska (lub none); potem nagłówek + taski.
+# --- the split into task files + the index on stdout ---
+# workdir: the working directory; status: the last task's number (or none);
+# then the header and the tasks.
 echo "workdir: $dir"
 echo "root: $repo_root"
 if [[ "$((10#$last))" -gt 0 ]]; then
@@ -469,7 +489,7 @@ awk -v dir="$dir" -v hdr="$header" '
     if (n == 0) { print "error: no <!-- TASK --> blocks found in plan" > "/dev/stderr"; exit 3 }
     # a task nobody can name is not a task: report EVERY heading-less block,
     # then abort - before any index row reaches stdout, so no consumer ever
-    # sees a row with an empty title column
+    # sees a row with an empty heading column
     headless=0
     for (i = 1; i <= n; i++) {
       if (title[i] == "") {
@@ -510,13 +530,17 @@ awk -v dir="$dir" -v hdr="$header" '
   }
 ' "$plan"
 
-# --- kryteria akceptacji do plików tasków (oba tory) ---
-# każdy task dostaje verbatim treść kryteriów z jego linii "Covers:" ze źródła
-# crit_source (spec w torze superbuild, HEADER planu w torze simplebuild) -
-# per-taskowe forki nie muszą wtedy skanować całości. Kryterium wskazane
-# w "Covers:", a nieobecne w źródle, to rozjazd -> twardy błąd.
+# --- acceptance criteria into the task files (both tracks) ---
+# Every task gets, verbatim, the text of the criteria its "Covers:" line names,
+# read from crit_source (the spec on the superbuild track, the plan's HEADER on
+# the simplebuild track) - so a per-task fork never has to scan the whole
+# thing. A criterion named in "Covers:" and absent from the source is drift ->
+# a hard error.
 for task_file in "$dir"/tasks/task-*.md; do
-  task_title="$(sed -n 's/^##[[:space:]]*//p' "$task_file" | head -n 1)"
+  # the messages below are human-facing prose, so they name the task in the
+  # review contract's reference form - the bare title, the pointer supplied by
+  # the "(task-NN.md)" that follows it - never the whole heading
+  task_title="$(sed -n 's/^##[[:space:]]*//p' "$task_file" | head -n 1 | sed -e 's/^Task[[:space:]]*[0-9][0-9]*[[:space:]]*-[[:space:]]*//')"
   covers="$(grep -m1 '^-[[:space:]]*Covers:' "$task_file" || true)"
   nums="$(printf '%s\n' "$covers" | grep -o '#[0-9][0-9]*' | tr -d '#' || true)"
   if [[ -z "$nums" ]]; then
@@ -535,8 +559,8 @@ for task_file in "$dir"/tasks/task-*.md; do
   printf '\n### Covered criteria\n%s' "$crit_block" >> "$task_file"
 done
 
-# katalog roboczy jest teraz w pełni zbudowany - błąd gita poniżej ma zostawić
-# go na miejscu, nie zniszczyć, więc rozbrajamy trap sprzątający.
+# The working directory is fully built now - a git error below must leave it
+# in place rather than destroy it, so the cleanup trap is disarmed.
 trap - EXIT
 
 # --- commit dekompozycji ---

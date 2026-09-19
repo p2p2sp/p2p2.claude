@@ -12,6 +12,11 @@
 #              file's OWN directory, which is what makes the whole run
 #              movable.
 #
+# cwd: only ever resolves a relative <phases-file> argument. Every other path
+#      this script prints or tests derives from that file's OWN directory, so
+#      an absolute argument makes the call fully cwd-independent - which is
+#      what keeps a whole run movable.
+#
 # Behaviour:
 #   - missing argument, or a path that is not a file -> error + usage on
 #     stderr, exit 1

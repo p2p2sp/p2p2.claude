@@ -22,8 +22,16 @@ below from that section and copy the result into the plan as Task 1.
   and all - never summarised, never re-wrapped, never trimmed. That body is the ADR file's whole
   content, and shrinking it here loses the record.
 - Marker order follows the plan template in use: `Covers:` sits above `TDD:` in `simpleplan`'s
-  template and below `Model:` (and the optional `Review:`) in `superplan`'s. The marker values are
-  identical either way.
+  template and below `Model:` (and the optional `Review:`) in `superplan`'s. Every marker the two
+  templates share carries the same value either way; the `Review:` marker is the one they do not
+  share, and the rule below settles it.
+- `Review: none` is written directly under `Model: sonnet` in the `superplan`-track block, and
+  nowhere in the `simpleplan`-track one. It is not an option here: `superplan` defaults a `scaffold`
+  task to `Model: sonnet` AND `Review: none`, so a block carrying only the first half would have
+  `decompose.sh` print `-` in the `<review>` column, which `superbuild` reads as "dispatch the
+  per-task reviewer with no `model` parameter" - the opposite of the default this block is meant to
+  encode. The Simple track has no `Review:` slot in its template and runs no per-task reviewer at
+  all, so the marker is left out there rather than set to anything.
 - `Kind: scaffold` stays exactly as the block writes it: B22 derives that kind from this task's
   `### Task Checks` existence check, and an `### Approach` carrying its output verbatim - step 2's
   fenced body - is output the implementors' scaffold discipline writes as given. It is not a missing
@@ -41,6 +49,9 @@ below from that section and copy the result into the plan as Task 1.
 - TDD: none
 - Kind: scaffold
 - Model: sonnet
+- Review: none
+<the `Review:` line is `superplan`'s alone - drop it in the `simpleplan`-track block, whose template
+has no such slot>
 
 ### Dependencies
 - none
