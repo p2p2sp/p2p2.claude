@@ -63,7 +63,9 @@ verdict, or a plan edited after its own verdict all deny the exit with the next 
 
 ### 3. `implementor` - the build
 
-Lands the plan under `docs/plans/`, then profiles every task by the nature of its work: mechanical and
+Lands the plan in its own dated directory, `docs/plans/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md`, stamped at the
+moment it lands - a second run of the same plan never overwrites the first. Then profiles every task by the
+nature of its work: mechanical and
 bounded goes to `haiku` with no review, ordinary feature work to `sonnet` with review, a load-bearing task
 that defines a contract others consume to `opus` with review.
 
@@ -90,13 +92,14 @@ re-reading the plan: done tasks are skipped, the rest continue.
 | Agent | `task-coder` | Implements one task, or fixes one report, and proves it green. |
 | Agent | `task-reviewer` | Gates one implemented task. Writes only its report. |
 | Agent | `test-runner` | One full suite run, one-line verdict, log stays out of the caller. |
+| Script | `plan-path.sh` | Resolves the plan's dated directory - a new run or the one already open. |
 | Script | `plan-index.sh` | Validates the plan, returns the compact task index. |
 | Script | `commit-task.sh` | Stages the task's files, commits, records progress in the plan. |
 | Hook | `plan-gate.sh` | `PreToolUse` on `ExitPlanMode` - the review gate. |
 
 ## Where it writes
 
-- `docs/plans/<slug>.md` - the plan, carrying its own progress.
-- `.temp/viber/<plan-slug>/` - review and test reports.
+- `docs/plans/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md` - the plan, carrying its own progress.
+- `.temp/viber/<yyyy-mm-dd-HH-mm-ss>_<slug>/` - review and test reports of that run.
 
 Nothing else. No plugin-named dot-dir in your repo, no state file.

@@ -3,9 +3,10 @@
 ## Purpose
 
 The three-step vibe track: understand, plan, build. THREE skills (`idea`, `planner`,
-`implementor`), FOUR agents, TWO plugin-level scripts and ONE `PreToolUse` hook. Everything a
-run produces lives in the host repo's `docs/plans/` (the plan, which carries its own progress)
-and `.temp/viber/` (review and test reports) - no plugin-named dot-dir, no state file.
+`implementor`), FOUR agents, THREE plugin-level scripts and ONE `PreToolUse` hook. Everything a
+run produces lives in the host repo's `docs/plans/<stamp>_<slug>/plan.md` (the plan, which carries
+its own progress) and `.temp/viber/` (review and test reports) - no plugin-named dot-dir, no state
+file.
 
 ## Entry points
 
@@ -17,8 +18,9 @@ and `.temp/viber/` (review and test reports) - no plugin-named dot-dir, no state
   `scripts/plan-index.sh`, then gates on `viber:planner-review` until `VERDICT: PASS` before
   `ExitPlanMode`.
 - `skills/implementor/SKILL.md` - orchestrator, `[plan-path]` argument. Lands the
-  plan under `docs/plans/`, profiles each task into a model tier (haiku / sonnet / opus) and a
-  review decision, dispatches `viber:task-coder` in the widest batch the dependency and
+  plan in the dated directory `scripts/plan-path.sh` resolves, profiles each task into a model
+  tier (haiku / sonnet / opus) and a review decision, dispatches `viber:task-coder` in the
+  widest batch the dependency and
   file-collision rules allow, gates each reviewed task on `viber:task-reviewer`, commits it with
   `scripts/commit-task.sh`, and closes on `viber:test-runner`.
 - `agents/` - `planner-review` (plan gate, read-only), `task-coder` (one task or one report,
@@ -38,10 +40,16 @@ and `.temp/viber/` (review and test reports) - no plugin-named dot-dir, no state
   progress, so a build resumes after a context reset with no sidecar. `commit-task.sh` is what
   advances both, and it stages ONLY the task's `Files:` list - anything written outside the file
   map stays uncommitted and visible.
-- **Two deterministic scripts, both self-verifying.** `plan-index.sh` (validate + compact index)
-  and `commit-task.sh` (stage, commit, record) carry their I/O contract in their header comment
-  and are TRUSTED by the caller - never re-verified, never retried. Both are invoked as one
-  literal line, `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" <args>`, never through an interpreter,
+- **One plan, one dated directory.** `plan-path.sh` owns the layout
+  `docs/plans/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md` and is the only place a plan path is formed:
+  the stamp is taken when the plan lands, so a re-run of the same slug never overwrites an earlier
+  plan, and a run already open for that slug comes back as `state: existing` instead. That
+  directory name is also the `<plan-key>` of the run's report dir, `.temp/viber/<plan-key>/`.
+- **Three deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path),
+  `plan-index.sh` (validate + compact index) and `commit-task.sh` (stage, commit, record) carry
+  their I/O contract in their header comment and are TRUSTED by the caller - never re-verified,
+  never retried. All are invoked as one literal line,
+  `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" <args>`, never through an interpreter,
   and each has its own `Bash(${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh:*)` entry in the calling
   skill's `allowed-tools`.
 - **The orchestrator never reads code.** `implementor` carries `disallowed-tools: Read, Edit,
