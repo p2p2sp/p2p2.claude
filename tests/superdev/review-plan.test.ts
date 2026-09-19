@@ -265,7 +265,7 @@ function runCaseWithPlanArg(transcriptPath: string, plan: string): Decision {
   return { decision: out.permissionDecision, reason: out.permissionDecisionReason };
 }
 
-test("a routing exit clears a standing FAIL: the marker opening the plan argument -> allow (intent/superspec/phases/vibe must be able to start)", () => {
+test("a routing exit clears a standing FAIL: the marker opening the plan argument -> allow (intent/superspec/phases must be able to start)", () => {
   withTempDir("p2p2-review-plan-", (dir) => {
     const f = writeFixtureFile(dir, "t.jsonl", [LW, LR, LFAIL]);
     // without the marker the standing FAIL denies - that is the gate working

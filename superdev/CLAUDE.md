@@ -3,8 +3,8 @@
 ## Purpose
 
 Project memory, rules, planning and the agentic-development pipeline. Largest plugin in the
-repo. Owns three build tracks - a plan-less **vibe** track, a **Simple** track, and a **Super**
-track - plus four knowledge layers (memory, rules, changelog, QA/e2e). Detail on individual
+repo. Owns two build tracks - a **Simple** track and a **Super** track - plus four knowledge
+layers (memory, rules, changelog, QA/e2e). Detail on individual
 skills/agents lives one level down, in `skills/CLAUDE.md` and `agents/CLAUDE.md` - this node
 covers what is true across the whole plugin.
 
@@ -13,7 +13,6 @@ covers what is true across the whole plugin.
 - `skills/intent/` - the interview front end most creative requests enter through.
 - `skills/simpleplan/` and `skills/superplan/` - plan writers for the Simple / Super tracks.
 - `skills/simplebuild/` and `skills/superbuild/` - build orchestrators.
-- `skills/vibe/` - plan-less track for one explicit, one-sentence change.
 - `skills/superdev-memory/` and `skills/superdev-rules/` - the memory/rules maintenance fronts.
 - `hooks/content/manifest.md` - the injected `SessionStart` mandatory-rules manifest.
 
@@ -27,9 +26,9 @@ covers what is true across the whole plugin.
   `<plan>.sha256`; `scripts/decompose.sh` recomputes it and refuses (exit 7) a plan that differs
   from the one approved, warns and continues when no sidecar exists. One escape: an
   `ExitPlanMode` call whose `plan` argument OPENS with `superdev:routing-exit` is a routing exit -
-  `intent`, `superspec`, `phases` and `vibe` all begin by leaving plan mode - and is allowed
+  `intent`, `superspec` and `phases` all begin by leaving plan mode - and is allowed
   unconditionally, writing no sidecar; without it a plan standing at `VERDICT: FAIL` denies those
-  four skills, the BLOCKED-to-intent route both plan writers prescribe included. Both hooks stay
+  three skills, the BLOCKED-to-intent route both plan writers prescribe included. Both hooks stay
   fail-open.
 - Plugin-level shared scripts live at `superdev/scripts/`, shared references at
   `superdev/references/` - no `shared/` subdir (that is supergh's convention).
@@ -54,7 +53,7 @@ covers what is true across the whole plugin.
   `docs/changelog/`, `docs/qa/`, `docs/.workflows/`. Verify which switch gates which layer
   against the skill/agent bodies.
 - Temporary machine state goes under `.temp/superdev/` in per-purpose subdirs (`e2e/`, `logs/`,
-  `memory/`, `rules/`, `stats/`, `vibe/`). NEVER a plugin-named dot-dir at the host root.
+  `memory/`, `rules/`, `stats/`). NEVER a plugin-named dot-dir at the host root.
 - Script vs fork: a step collapses to a deterministic bundled script when it operates on a
   known, fixed tool/format; it stays an LLM fork when it must interpret heterogeneous,
   stack-specific output. A self-verifying script is TRUSTED by its caller - never re-verified.
@@ -119,7 +118,6 @@ covers what is true across the whole plugin.
 - `stats-record.sh`, `stats-report.sh` - per-dispatch event log and rendered run report under
   `<repo root>/.temp/superdev/stats/<run>.*` (both anchor on the root, not on the caller's cwd),
   gated by `stats: true`.
-- `vibe-guard.sh` - the vibe track's advisory scope guard.
 
 Do not invent scripts and do not omit ones that exist - re-derive this list from the directory
 if it drifts.

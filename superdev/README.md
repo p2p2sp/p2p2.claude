@@ -21,8 +21,7 @@ No runtime dependencies - the plugin is Markdown, JSON and bash scripts.
 
 ![superdev flow - the Simple track and the Super track](../docs/assets/superdev-flow.svg)
 
-Same interview on the way in, two execution tracks, one shared Close Out - plus a third, plan-less vibe
-track for one-sentence changes.
+Same interview on the way in, two execution tracks, one shared Close Out.
 
 ## Quick start
 
@@ -51,13 +50,6 @@ track for one-sentence changes.
      phase starts with `intent <phase intent>` and runs its own Simple or Super track, and
      `phases <phases.md>` resumes the run by showing each phase's title and status and proposing the
      next one by title.
-
-   **Or skip all of it for a one-sentence change.** Say "vibe: <change>" (or run /superdev:vibe <change>)
-   and the vibe skill does it with one implementor agent, the checks your CLAUDE.md declares for that area,
-   an advisory scope guard and one commit - no interview, no plan, no reviewer, no knowledge writer. The
-   guard stops on more than 5 files, more than 1 new file, more than 200 changed lines, or a path your
-   memory calls sensitive, and on a failed check; every stop offers approve-and-commit, revert, or hand the
-   diff to intent - the choice is yours.
 4. **Approve the plan.** A forked reviewer must return `VERDICT: PASS` before `ExitPlanMode` is even allowed;
    then you approve it yourself.
 5. **The build runs task by task.** The orchestrator (`simplebuild` / `superbuild`) decomposes the plan into
@@ -189,13 +181,6 @@ never called by hand.
 | `simplebuild` | Sonnet orchestrator - decomposes the approved plan, drives the task loop, runs the checkpoint and final review rounds; writes no file itself and escalates every interruption to you; status lines only, no prose. |
 | `superdev:simplebuild-task-implementor` | Agent - implements one task, reviews its own work, runs the task's `### Task Checks` lines directly with `Bash` (up to 5 rounds), never the plan's gate and never the full suite, and records every run under `## Runs` in its notes; dispatched with the `Agent` tool at the task's `Model:` marker - the tool takes no `effort` parameter, so the agent's own frontmatter (default `sonnet` / `xhigh`) supplies it. In fix mode it works a review report: every Critical and Important ID, each proven by a test that failed before the fix, and one `touched:` line per file it changed. |
 | `superdev:simplebuild-reviewer` | Agent - the Simple track's single build reviewer, owning plan alignment and code quality at once, run as the checkpoint every 5 committed tasks, as the final integration round, and as the re-review after a fix (`stage: checkpoint\|final\|re-review`, plus `since:`, `prior:`, `decisions:`, `refs:` and `gates:`); dispatched with the `Agent` tool at no `model:` parameter, so its own frontmatter (`sonnet` / `high`) decides. Returns `PASS`, `FAIL` or `BLOCKED` and one report per round. |
-
-### Vibe track
-
-| Skill | Role |
-| --- | --- |
-| `vibe` | The skill: entry, reconnaissance, entry guard, brief under `.temp/superdev/vibe/<timestamp>-<slug>/`, dispatch, `vibe-guard.sh`, commit through `commit-task.sh`, the three-option stop, every override recorded as an `OVERRIDE:` line in that run's `brief.md`. |
-| `superdev:vibe-implementor` | The agent: brief in, checks run directly with `Bash`, max 3 fix rounds, notes with `## Runs` and `touched:` lines, `VERDICT:` out. |
 
 ### Super track
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The agent layer of superdev: 12 agent `.md` files. Verify the current list from the directory
+The agent layer of superdev: 11 agent `.md` files. Verify the current list from the directory
 itself if this drifts; each is dispatched by exactly ONE caller and never invoked directly by
 the user - a change here means checking the agent's own `description:` still says so.
 
@@ -64,7 +64,6 @@ the user - a change here means checking the agent's own `description:` still say
   `changelog: true`.
 - `e2e-writer.md` - dispatched by the user-only `e2e` skill alone, once per pending QA scenario
   ID; NEVER at Close Out, never during a build.
-- `vibe-implementor.md` - dispatched by the `vibe` skill alone; never at Close Out.
 
 ## Contracts & invariants
 
@@ -114,8 +113,7 @@ the user - a change here means checking the agent's own `description:` still say
 - Adding, removing or renaming an agent without updating `superdev/.claude-plugin/plugin.json`
   `agents[]` and this node.
 - Letting an agent appear in both `skills[]` and `agents[]`.
-- Dispatching `e2e-writer` or `vibe-implementor` from Close Out - both are single-caller agents
-  outside that flow.
+- Dispatching `e2e-writer` from Close Out - it is a single-caller agent outside that flow.
 
 ## Related context
 

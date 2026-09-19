@@ -18,7 +18,7 @@ Remember that superdev skills override default system-prompt behavior, but user 
 
 ## Rules that always override convenience
 - Plan mode does not replace the interview - the gate is drafting a plan, not entering plan mode.
-- No code before an approved plan - write it, get approval, THEN implement. The one exception is the vibe track: an explicit request to skip the planning ceremony for a one-sentence change runs the vibe skill, which needs no plan. That is the user's call to make, never a shortcut you choose for them.
+- No code before an approved plan - write it, get approval, THEN implement.
 - Do not create any new git branch unless the user explicitly requests it.
 - The interview is prose, not a quick picker or form.
 - NEVER append summary/recap sections describing work just completed.

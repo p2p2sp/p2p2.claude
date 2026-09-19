@@ -1,6 +1,6 @@
 ---
 name: simpledebug
-description: Use when the user reports a bug, error, crash, regression, unexpected behavior OR MUST USE when asks to fix, repair, investigate, debug, diagnose, apply the fix from review, trace a value, or verify that code works correctly. Fires before diagnosing - enforces tracing the entire code flow step by step instead of guessing the cause, proving the diagnosis with a failing test, then handing the proven fix plan to `simpleplan`. Do not trigger when the user explicitly asks for the fix as a vibe change ("vibe: fix ...") - the vibe skill owns that request and the user has chosen to skip tracing.
+description: Use when the user reports a bug, error, crash, regression, unexpected behavior OR MUST USE when asks to fix, repair, investigate, debug, diagnose, apply the fix from review, trace a value, or verify that code works correctly. Fires before diagnosing - enforces tracing the entire code flow step by step instead of guessing the cause, proving the diagnosis with a failing test, then handing the proven fix plan to `simpleplan`.
 ---
 
 # SimpleDebug

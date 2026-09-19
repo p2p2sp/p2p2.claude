@@ -24,9 +24,9 @@
 #               the same line does not corrupt the declaration; a value that
 #               cuts to nothing declares nothing. A path whose own name carries
 #               " - " or " (" is cut there too - a reason is the far likelier
-#               reading. That cut lives in lib_touched.sh, the one reader this
-#               script and vibe-guard.sh share, so the guard measures exactly
-#               the set staged here.
+#               reading. That cut lives in lib_touched.sh, the one reader of a
+#               notes file's declarations, so the parse behind the staged set
+#               has a single home and a test of its own.
 #   --path      (optional, repeatable) - one more path for the declared set; a
 #               directory declares everything below it. A literal path, never a
 #               git pathspec: it is normalised, checked for existence and
@@ -80,9 +80,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# The declared set's reader - `trim`, `normalise_path` and `touched_paths` -
-# shared with vibe-guard.sh, so that guard measures exactly the paths this
-# script stages. The "touched:" cut rule documented above lives there.
+# The declared set's reader - `trim`, `normalise_path` and `touched_paths`.
+# The "touched:" cut rule documented above lives there.
 source "$(dirname "${BASH_SOURCE[0]}")/lib_touched.sh"
 
 usage() {

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The skill layer of superdev: 21 skill directories. Grouped here by role rather than listed
+The skill layer of superdev: 20 skill directories. Grouped here by role rather than listed
 flatly - derive the grouping from each skill's actual `description:` and body when it drifts.
 The authoritative contract of a skill is its own body (`# Input contract` / `# Output format`),
 never this node - this node says who owns what and how they chain.
@@ -21,11 +21,6 @@ never this node - this node says who owns what and how they chain.
   generates/verifies Playwright tests from a QA handoff file).
 - **Memory and rules fronts**: `superdev-memory`, `superdev-rules`.
 - **User-only commands** (`disable-model-invocation: true`, never routed): `setup`, `e2e`.
-- **Plan-less track**: `vibe` (model-invocable). Two ways in, and no third: an explicit "skip the
-  planning ceremony" request, or the user picking the Vibe path at `intent`'s handoff gate. That
-  gate hands it ONE sentence, never the `intent.md` path - `vibe` takes a one-sentence change,
-  not a file - and its own entry guard is what refuses a request too large for the track and
-  offers `intent` back.
 
 ## Contracts & invariants
 
@@ -64,9 +59,9 @@ never this node - this node says who owns what and how they chain.
 - `AskUserQuestion` takes at most FOUR options per question. A gate that has to offer more picks
   one of two shapes, never a fifth option: make two of them mutually exclusive by condition, or
   keep the least-used one out of the option list and name it in one prose line under the question
-  (the user reaches it through **Other**). `intent`'s handoff gate is the worked example - Phases
-  only when the intent path has no `phases/` segment, `Stop here` in prose whenever Phases took
-  the fourth slot.
+  (the user reaches it through **Other**). `intent`'s handoff gate is the worked example - Simple,
+  Spec, Phases and `Stop here` fill exactly four slots, and Phases is offered only when the intent
+  path has no `phases/` segment.
 - A worker must NEVER appear in both `plugin.json` `skills[]` and `agents[]`.
 - A user-only command (`disable-model-invocation: true`) does not participate in routing and
   stays out of the injected manifest entirely - that gap is deliberate, do not "fix" it.

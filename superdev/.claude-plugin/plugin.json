@@ -26,7 +26,6 @@
     "./skills/tdd/",
     "./skills/executor/",
     "./skills/simpledebug/",
-    "./skills/vibe/",
     "./skills/e2e/"
   ],
   "agents": [
@@ -40,7 +39,6 @@
     "./agents/rules-writer.md",
     "./agents/changelog-writer.md",
     "./agents/qa-writer.md",
-    "./agents/e2e-writer.md",
-    "./agents/vibe-implementor.md"
+    "./agents/e2e-writer.md"
   ]
 }

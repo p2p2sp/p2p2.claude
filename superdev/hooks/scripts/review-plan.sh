@@ -35,8 +35,8 @@
 #
 # Routing exit: an ExitPlanMode call whose "plan" value OPENS with the literal
 # "superdev:routing-exit" is allowed unconditionally and writes no sidecar. It
-# is how the four skills that begin by leaving plan mode (intent, superspec,
-# phases, vibe) get out when an earlier plan of the same session is standing at
+# is how the three skills that begin by leaving plan mode (intent, superspec,
+# phases) get out when an earlier plan of the same session is standing at
 # VERDICT: FAIL - including the BLOCKED-to-intent route both plan writers
 # prescribe. Those calls present no plan and ask for no approval, so there is
 # nothing for this gate to gate.
@@ -84,7 +84,7 @@ emit_deny() {
 input="$(cat)"
 [ -z "$input" ] && emit_allow
 
-# Routing exit: four skills (intent, superspec, phases, vibe) open by LEAVING
+# Routing exit: three skills (intent, superspec, phases) open by LEAVING
 # plan mode - they present no plan and ask for no approval, so the review gate
 # below has nothing to gate. Without this escape a plan reviewed earlier in the
 # session with VERDICT: FAIL denies them, and the route the plan writers

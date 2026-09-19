@@ -2,14 +2,11 @@
 # superdev / scripts - lib_touched.sh
 #
 # The ONE reader of a notes file's "touched:" declarations, plus the path
-# normalisation and the trim behind it. Both consumers source it:
-# commit-task.sh (the declared set it STAGES) and vibe-guard.sh (the declared
-# set it MEASURES). It exists so those two can never drift: the vibe track's
-# guarantee is that the guard measures exactly what the commit stages, and
-# before this file each script carried its own copy of the cut rule, the
-# separator folding and the trim - two copies no test bound together, where a
-# change to one silently left the other staging a path the guard had never
-# counted.
+# normalisation and the trim behind it. Its consumer sources it: commit-task.sh,
+# the declared set it STAGES. The cut rule, the separator folding and the trim
+# live here rather than inside that script so the parse has one home and one
+# test file of its own, and so a second consumer never starts from a private
+# copy that silently drifts from what the commit stages.
 #
 # Contract:
 #   trim <string>
@@ -38,15 +35,14 @@
 #        means is the caller's decision.
 #        The output is NOT normalised and NOT deduplicated: each caller applies
 #        its own policy (commit-task.sh drops .temp/ and reads "." as the whole
-#        tree, vibe-guard.sh collapses duplicates) to every path this prints.
+#        tree) to every path this prints.
 #
 #   usage  : source "$(dirname "${BASH_SOURCE[0]}")/lib_touched.sh"
 #            while IFS= read -r p; do add_declared "$p"; done \
 #              < <(touched_paths "$notes")
 #   note   : self-contained; does NOT enable set -e/-u/pipefail, and needs no
 #            external command - a caller running under `set -euo pipefail`
-#            (commit-task.sh) or under `set -u` alone (vibe-guard.sh) is never
-#            aborted by it.
+#            (commit-task.sh) or under `set -u` alone is never aborted by it.
 
 # Strips leading and trailing whitespace.
 trim() {

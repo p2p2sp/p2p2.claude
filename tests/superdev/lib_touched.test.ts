@@ -1,17 +1,17 @@
 /*
  * lib_touched.test.ts - proves lib_touched.sh, the ONE reader of a notes
- * file's `touched:` declarations, and binds its two consumers to it.
+ * file's `touched:` declarations, and binds its consumer to it.
  *
- * The vibe track's whole guarantee is that vibe-guard.sh measures exactly the
- * set commit-task.sh stages, so the cut rule (`touched: <path>` up to the
- * first ` - ` or ` (`), the path normalisation (backslash, backtick, "./",
- * a repository-absolute path) and the trim behind both must exist ONCE. Three
- * layers here: the library's own contract, driven through a bash wrapper that
- * sources it (it is sourced, never executed, and needs bash arrays/BASH_SOURCE,
- * so every case runs under `forEachShell("bash", ...)`); the structural bind -
- * both scripts source the library and carry no private copy; and one live
- * parity case - the same notes file, one repository, the guard's counted set
- * and the commit's staged set asserted equal.
+ * What commit-task.sh stages is decided entirely by this parse, so the cut
+ * rule (`touched: <path>` up to the first ` - ` or ` (`), the path
+ * normalisation (backslash, backtick, "./", a repository-absolute path) and
+ * the trim behind both must exist ONCE. Three layers here: the library's own
+ * contract, driven through a bash wrapper that sources it (it is sourced,
+ * never executed, and needs bash arrays/BASH_SOURCE, so every case runs under
+ * `forEachShell("bash", ...)`); the structural bind - the script sources the
+ * library and carries no private copy; and one live case - that same notes
+ * file of awkward declarations, one repository, the commit's staged set
+ * asserted equal to what the declarations mean.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -30,7 +30,6 @@ import { slash } from "../harness/paths.ts";
 
 const SCRIPTS = path.resolve(import.meta.dirname, "../../superdev/scripts");
 const LIB = path.join(SCRIPTS, "lib_touched.sh");
-const GUARD = path.join(SCRIPTS, "vibe-guard.sh");
 const COMMIT = path.join(SCRIPTS, "commit-task.sh");
 
 // ---------------------------------------------------------------------------
@@ -202,46 +201,24 @@ test("touched_paths on a file that does not exist prints nothing and returns 0",
 });
 
 // ---------------------------------------------------------------------------
-// The bind - one parser, no private copy on either side.
+// The bind - one parser, no private copy on the consumer's side.
 // ---------------------------------------------------------------------------
 
-test("vibe-guard.sh and commit-task.sh both source lib_touched.sh and carry no copy of its three pieces", () => {
+test("commit-task.sh sources lib_touched.sh and carries no copy of its three pieces", () => {
   assert.ok(fs.existsSync(LIB), `the shared parser must exist at ${LIB}`);
-  for (const script of [GUARD, COMMIT]) {
-    const content = fs.readFileSync(script, "utf-8");
-    assert.match(content, /^\s*source\s+.*lib_touched\.sh"/m, `${script} must source lib_touched.sh`);
-    assert.doesNotMatch(content, /^\s*trim\(\)\s*\{/m, `${script} must not define its own trim()`);
-    assert.doesNotMatch(content, /^\s*normalise_path\(\)\s*\{/m, `${script} must not define its own normalise_path()`);
-    assert.doesNotMatch(content, /\$\{entry#touched:\}/, `${script} must not cut a touched: line itself`);
-  }
+  const content = fs.readFileSync(COMMIT, "utf-8");
+  assert.match(content, /^\s*source\s+.*lib_touched\.sh"/m, `${COMMIT} must source lib_touched.sh`);
+  assert.doesNotMatch(content, /^\s*trim\(\)\s*\{/m, `${COMMIT} must not define its own trim()`);
+  assert.doesNotMatch(content, /^\s*normalise_path\(\)\s*\{/m, `${COMMIT} must not define its own normalise_path()`);
+  assert.doesNotMatch(content, /\$\{entry#touched:\}/, `${COMMIT} must not cut a touched: line itself`);
 });
 
 // ---------------------------------------------------------------------------
-// Live parity - one notes file, one repository: what the guard counts is what
+// Live - one notes file, one repository: what the declarations mean is what
 // the commit stages.
 // ---------------------------------------------------------------------------
 
 const NOTES_REL = "run/impl/notes.md";
-
-/** Every path the guard COUNTED: `--sensitive '*'` makes it name each one on
- *  its own `sensitive:` line. */
-function guardCounted(stdout: string): string[] {
-  return stdout
-    .replace(/\r/g, "")
-    .split("\n")
-    .filter((line) => line.startsWith("sensitive: "))
-    .map((line) => line.slice("sensitive: ".length))
-    .sort();
-}
-
-function guardDropped(stdout: string): string[] {
-  return stdout
-    .replace(/\r/g, "")
-    .split("\n")
-    .filter((line) => line.startsWith("dropped: "))
-    .map((line) => line.slice("dropped: ".length))
-    .sort();
-}
 
 function committedFiles(repo: GitRepo): string[] {
   return repo
@@ -259,7 +236,7 @@ function write(root: string, rel: string, content: string): void {
   fs.writeFileSync(file, content);
 }
 
-test("the guard counts exactly the paths the commit stages, over one notes file of awkward declarations", () => {
+test("the commit stages exactly the declared paths, over one notes file of awkward declarations", () => {
   withGitRepo((repo) => {
     const files = [
       "sub/extra.txt",
@@ -310,16 +287,7 @@ test("the guard counts exactly the paths the commit stages, over one notes file 
       "sub/two words.txt",
     ];
 
-    const guard = runScript(GUARD, [NOTES_REL, "--sensitive", "*"], {
-      cwd: repo.dir,
-      env: { ...repo.env, MSYS: "noglob" },
-      shell: "bash",
-    });
-    assert.equal(guard.status, 0, `stdout: ${guard.stdout}\nstderr: ${guard.stderr}`);
-    assert.deepEqual(guardCounted(guard.stdout), declared);
-    assert.deepEqual(guardDropped(guard.stdout), ["gone/missing.txt"]);
-
-    const commit = runScript(COMMIT, ["a vibe change", "--notes", NOTES_REL], {
+    const commit = runScript(COMMIT, ["a small change", "--notes", NOTES_REL], {
       cwd: repo.dir,
       env: repo.env,
       shell: "bash",

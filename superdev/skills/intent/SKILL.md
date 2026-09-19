@@ -1,6 +1,6 @@
 ---
 name: intent
-description: You MUST ALWAYS use this skill every time a user wants to do something creative - a new idea, a new feature, build something from scratch, a change to an existing solution. Do not trigger when the user explicitly asks for a vibe change (skip planning, do it right away) - that request belongs to the vibe skill.
+description: You MUST ALWAYS use this skill every time a user wants to do something creative - a new idea, a new feature, build something from scratch, a change to an existing solution.
 argument-hint: [path-to-intent.md]
 allowed-tools: Read, Grep, Glob, Agent, Task, AskUserQuestion, Skill, ExitPlanMode, Write, Bash(date:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/read-config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/last-commit-date.sh:*)
 ---
@@ -105,5 +105,4 @@ Handoff is not the interview. After the user confirms the synthesis (and the int
 - **Simple path** - run `simpleplan`, passing `intent: <path to the intent file>` as the argument line. No spec; the plan carries its own DoD / acceptance criteria. Fits small, contained, reversible changes.
 - **Spec path** - run `superspec`, passing `intent: <path to the intent file>` as the argument line. The spec (`What & Why`) is written first, then auto-chains into the plan. Fits medium/large, cross-cutting, or hard-to-reverse changes.
 - **Phases path** - run `phases`, passing `intent: <path to the intent file>` as the argument line. Fits work too large for one spec: it is split into ordered phases, each built later as its own Simple or Spec run. Offer this option ONLY when the intent file's path has no `phases/` segment - a phase intent is already one slice of a split run.
-- **Vibe path** - run `vibe`, passing the confirmed goal as ONE sentence in the user's own language, never the intent path: that track takes a one-sentence change, not a file. It skips spec, plan and review entirely - one subagent, one commit. Offer it on every gate, whatever the size of the intent: the user's choice is the gate here too, and `vibe`'s own entry guard is what refuses a request too large for it and offers this skill back. Say in the option's description that the intent file stays on disk either way, so a refusal or a later change of mind resumes with `intent <path>`.
-- **Stop here** - STOP. Reply with the intent file path and tell the user they can resume this interview anytime with `intent <path>`. `AskUserQuestion` takes at most four options: when Phases is offered the four slots are taken, so name this option in ONE prose line under the question instead (the user reaches it through **Other**); when Phases is not offered it takes the free slot as a normal option.
+- **Stop here** - STOP. Reply with the intent file path and tell the user they can resume this interview anytime with `intent <path>`. With Phases offered the question holds exactly the four options `AskUserQuestion` allows; when Phases is not offered it holds three.
