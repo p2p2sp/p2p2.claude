@@ -1,6 +1,6 @@
 {
   "name": "p2p2",
-  "version": "3.4.0",
+  "version": "3.5.0",
   "owner": {
     "name": "P2P2",
     "email": "dariusz.lenartowicz@p2p2.com.pl"
@@ -35,6 +35,11 @@
       "name": "supercc",
       "source": "./supercc",
       "description": "Super Claude Code ecosystem - authoring skills and agents."
+    },
+    {
+      "name": "viber",
+      "source": "./viber",
+      "description": "Viber ecosystem for Claude Code - interview, plan, build."
     }
   ]
 }

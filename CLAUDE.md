@@ -2,8 +2,8 @@
 
 > Always in English: all CLAUDE.md files, scripts, etc.
 
-This repo is the **source** for six independently-installable Claude Code plugins -
-`superdev`, `superui`, `supergh`, `superfix`, `superbiz`, `supercc` - co-listed by the root
+This repo is the **source** for seven independently-installable Claude Code plugins -
+`superdev`, `superui`, `supergh`, `superfix`, `superbiz`, `supercc`, `viber` - co-listed by the root
 `.claude-plugin/marketplace.json`. Editing a file here does NOT change the behavior of the
 currently loaded plugins: the injected manifest and the skill instructions active in a session were
 frozen at install / session start and change only after the user **publishes**. This repo's own
@@ -11,11 +11,11 @@ frozen at install / session start and change only after the user **publishes**. 
 plugin inputs, never read at runtime.
 
 They ship no application code: artifacts are markdown (skills/agents) + JSON (manifests) +
-per-plugin hook scripts (`superdev` only). Editing markdown/JSON IS shipping - no build step, no
+per-plugin hook scripts (`superdev` and `viber`). Editing markdown/JSON IS shipping - no build step, no
 lint at any level, no test tooling inside any plugin. Contracts between files are enforced by
 humans reading carefully.
 
-All six plugins are **stack-agnostic on purpose**: skills read project-specific knowledge (test
+All seven plugins are **stack-agnostic on purpose**: skills read project-specific knowledge (test
 framework, build tool, naming, how to launch the app) from the HOST project's `CLAUDE.md` /
 `.claude/rules/`, never from plugin sources. Never bake ecosystem assumptions (dotnet, npm,
 pytest) into skill prompts. Scope: this is about projects being planned/built, not the plugins'
@@ -30,8 +30,8 @@ ADRs here and do not suggest them.
 ## Layout (top level)
 
 ```
-.claude-plugin/marketplace.json   Co-lists all six plugins by subdir source
-superdev/   superui/   supergh/   superfix/   superbiz/   supercc/    One dir per plugin
+.claude-plugin/marketplace.json   Co-lists all seven plugins by subdir source
+superdev/  superui/  supergh/  superfix/  superbiz/  supercc/  viber/    One dir per plugin
 README.md            Catalog page; each plugin also has its own README.md
 .github/             CI + release workflow (manual dispatch only, tag-driven)
 .claude/rules/       Dev-time conventions for this repo
@@ -42,14 +42,14 @@ docs/assets/         Images embedded in READMEs (e.g. superdev-flow.svg)
 ```
 
 Each plugin dir carries `.claude-plugin/plugin.json` (`skills[]` + optional `agents[]` = catalog
-of record). Only `superdev` and `superfix` carry `agents/`; only `superdev` carries `hooks/`.
+of record). `superdev`, `superfix` and `viber` carry `agents/`; `superdev` and `viber` carry `hooks/`.
 
 ## Versioning
 
-Tag-driven, one shared namespace across all six plugins (`MAJOR.MINOR.PATCH`, no `v` prefix, seed
+Tag-driven, one shared namespace across all seven plugins (`MAJOR.MINOR.PATCH`, no `v` prefix, seed
 `0.1.0`). The only versioning workflow is `.github/workflows/release-version.yml` - a **manual**
 `workflow_dispatch` (no automatic bump on push to main) running `.github/scripts/release.sh`,
-which computes the next version, writes it into all six `plugin.json` files, commits, tags,
+which computes the next version, writes it into all seven `plugin.json` files, commits, tags,
 pushes, and publishes a GitHub Release. The tag is the source of truth; verify exact script
 mechanics against `.github/scripts/release.sh` before restating them.
 
@@ -65,11 +65,18 @@ mechanics against `.github/scripts/release.sh` before restating them.
   (every temporary artifact, grouped per plugin). A fourth is writable only because the HOST
   names it: the host's own e2e test dir, written by superdev's `e2e-writer` under the user-run
   `e2e` skill.
-- **One injected manifest per manifest-bearing plugin.** Only `superdev` ships `hooks/` + an
-  injected `SessionStart` manifest (verbatim, once per session, `source == "resume"` excluded,
-  fail-open). It is a MANDATORY-RULES manifest, not a dispatcher: it names no skill, no group and
-  no chain, and routing is left to each skill's own CSO `description:`. The other five ship NO
-  hooks and NO manifest, for the same reason - there is nothing a dispatcher would add.
+- **One injected manifest per manifest-bearing plugin.** Only `superdev` ships an injected
+  `SessionStart` manifest (verbatim, once per session, `source == "resume"` excluded, fail-open).
+  It is a MANDATORY-RULES manifest, not a dispatcher: it names no skill, no group and no chain,
+  and routing is left to each skill's own CSO `description:`. No other plugin ships a manifest,
+  for the same reason - there is nothing a dispatcher would add.
+- **Two plugins ship `hooks/`, and their `ExitPlanMode` gates do not compose.** `superdev`'s
+  `review-plan.sh` and `viber`'s `plan-gate.sh` both match `ExitPlanMode`, both fail open, and each
+  recognizes only its own plan format - superdev's denies a plan under `.claude/plans/*.md`
+  declaring neither `# SimplePlan` nor `# SuperPlan`, which is exactly what a viber plan looks
+  like. The two tracks are therefore alternatives, not companions; say so in any doc that lists
+  both, and never "fix" one gate by teaching it the other's format without deciding which plugin
+  owns the exit.
 - **No `"hooks"` field in `plugin.json`.** Claude Code auto-loads `hooks/hooks.json` from that
   path; adding a `hooks` field to `plugin.json` is a hard install error.
 - **Script vs. fork.** A step collapses to a deterministic bundled script when it operates on a
@@ -158,4 +165,5 @@ header comments of `hooks/scripts/*.sh`.
 | `superfix/CLAUDE.md` | `code-auditor` and its five agents - the two-track investigation sweep |
 | `superbiz/CLAUDE.md` | `idea-validator` - the side-project viability workflow |
 | `supercc/CLAUDE.md` | `skill-designer` - authoring/refactoring/splitting/linting skills and agents |
+| `viber/CLAUDE.md` | `idea` / `planner` / `implementor`, their four agents, the two plan scripts and the plan gate |
 | `tests/CLAUDE.md` | any `*.test.ts` under `tests/` - harness contract, cross-platform rules |

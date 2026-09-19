@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # release.sh - tag-driven version bump for the superdev + superui + supergh + superfix + superbiz
-# + supercc plugins.
+# + supercc + viber plugins.
 #
 # Computes the next MAJOR.MINOR.PATCH version (no "v" prefix) from the highest
-# existing git tag, syncs it into ALL SIX subdir plugin manifests' .version
-# (superdev/, superui/, supergh/, superfix/, superbiz/, supercc/ .claude-plugin/plugin.json - shared version,
-# one tag namespace), commits the bump (`chore(bump): …`, no
+# existing git tag, syncs it into ALL SEVEN subdir plugin manifests' .version
+# (superdev/, superui/, supergh/, superfix/, superbiz/, supercc/, viber/ .claude-plugin/plugin.json -
+# shared version, one tag namespace), commits the bump (`chore(bump): …`, no
 # [skip ci]), creates + pushes the tag, then publishes a GitHub Release whose
 # notes are built from the commits since the previous tag (grouped by conventional
 # type) with GitHub's auto-generated notes appended.
@@ -24,7 +24,7 @@
 set -euo pipefail
 
 part="${1:?usage: release.sh <major|minor|patch>}"
-manifests=(superdev/.claude-plugin/plugin.json superui/.claude-plugin/plugin.json supergh/.claude-plugin/plugin.json superfix/.claude-plugin/plugin.json superbiz/.claude-plugin/plugin.json supercc/.claude-plugin/plugin.json)
+manifests=(superdev/.claude-plugin/plugin.json superui/.claude-plugin/plugin.json supergh/.claude-plugin/plugin.json superfix/.claude-plugin/plugin.json superbiz/.claude-plugin/plugin.json supercc/.claude-plugin/plugin.json viber/.claude-plugin/plugin.json)
 seed="0.1.0"
 
 current="$(git tag --list --sort=-v:refname \

@@ -59,4 +59,5 @@ directory - no `plugin.json` and no marketplace entry references it; it ships wi
 - Root cross-plugin invariants: `../CLAUDE.md`
 - Each plugin's own node for what its scripts are supposed to do:
   `../superdev/CLAUDE.md`, `../superui/CLAUDE.md`, `../supergh/CLAUDE.md`,
-  `../superfix/CLAUDE.md`, `../superbiz/CLAUDE.md`, `../supercc/CLAUDE.md`
+  `../superfix/CLAUDE.md`, `../superbiz/CLAUDE.md`, `../supercc/CLAUDE.md`,
+  `../viber/CLAUDE.md`

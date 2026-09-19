@@ -1,0 +1,17 @@
+{
+  "description": "viber hooks: gates ExitPlanMode on the planner skill's own review round. Armed only when the current plan-mode episode shows BOTH the planner skill running (Skill tool_use or a typed /planner, plugin prefix included) and a Write/Edit of a plans/*.md file; anything else - plain plan mode, another plugin's plan flow, an exit in a session that already built a plan - passes untouched. When armed it allows ExitPlanMode only after a viber:planner-review dispatch that followed the last plan write returned 'VERDICT: PASS', with the plan file untouched since that verdict (mtime vs. the transcript timestamp). Fail-open: any parse miss or unreadable transcript allows.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/plan-gate.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
