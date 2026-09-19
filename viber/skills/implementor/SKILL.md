@@ -9,7 +9,7 @@ effort: medium
 
 # implementor
 
-You orchestrate. Every piece of work happens inside a subagent, because this context has to last the whole build: the plan file is the only one you ever write, you never write code, never run a build or a test.
+You orchestrate and delegate. Every piece of work happens inside a subagent, because this context has to last the whole build: the plan file is the only one you ever write, you never write code, never run a build or a test.
 
 Output discipline: one status line per event. No prose, no explanation, no restating what an agent returned.
 
@@ -65,7 +65,7 @@ Per task, once its coder returns:
 
 1. `VERDICT: FAIL` -> `AskUserQuestion`: retry / skip / abort. Abort ends the run; skip drops that task and every task depending on it.
 2. Profile says review -> dispatch `viber:task-reviewer` with the plan path, the task id and a report path `.temp/viber/<plan-slug>/review-<id>-<round>.md`, round starting at 1. `<plan-slug>` is the plan filename without its extension.
-   - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with the plan path, the task id and the returned `REVIEW` path, then re-review with the next round. After 2 rounds -> `AskUserQuestion`: retry / accept / abort.
+   - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with the plan path, the task id and the returned `REVIEW` path, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort.
 3. `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id> "<task title>"`. It stages only the task's files, commits, and records the task as done in the plan. A warning about files left outside the commit goes into the final summary.
 4. `TaskUpdate` -> completed.
 
