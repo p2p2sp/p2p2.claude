@@ -12,11 +12,11 @@ and `.temp/viber/` (review and test reports) - no plugin-named dot-dir, no state
 - `skills/idea/SKILL.md` - `/viber:idea`, user-only (`disable-model-invocation: true`). A prose
   interview, one question at a time, ending in a confirmed summary that hands over to
   `viber:planner`. Writes nothing.
-- `skills/planner/SKILL.md` - model-invocable, enters plan mode itself. Fills
+- `skills/planner/SKILL.md` - enters plan mode itself. Fills
   `skills/planner/templates/plan.md` into the plan file plan mode names, validates it with
   `scripts/plan-index.sh`, then gates on `viber:planner-review` until `VERDICT: PASS` before
   `ExitPlanMode`.
-- `skills/implementor/SKILL.md` - model-invocable orchestrator, `[plan-path]` argument. Lands the
+- `skills/implementor/SKILL.md` - orchestrator, `[plan-path]` argument. Lands the
   plan under `docs/plans/`, profiles each task into a model tier (haiku / sonnet / opus) and a
   review decision, dispatches `viber:task-coder` in the widest batch the dependency and
   file-collision rules allow, gates each reviewed task on `viber:task-reviewer`, commits it with
@@ -29,6 +29,11 @@ and `.temp/viber/` (review and test reports) - no plugin-named dot-dir, no state
 
 ## Contracts & invariants
 
+- **The track is entered by hand, never by CSO.** All three skills carry a one-line
+  `description:` with no trigger list, because the user starts the chain (`/viber:idea`,
+  `/viber:planner`) and each step then names the next. `planner` and `implementor` stay
+  model-invocable only so that handover call works - do not "fix" their descriptions back into
+  routing prose, and do not add `disable-model-invocation` to them, which would break the chain.
 - **The plan file is the state.** `<!-- done: ... -->` plus the `## Tasks (x/N)` header carry
   progress, so a build resumes after a context reset with no sidecar. `commit-task.sh` is what
   advances both, and it stages ONLY the task's `Files:` list - anything written outside the file

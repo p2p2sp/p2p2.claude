@@ -1,9 +1,10 @@
 ---
 name: implementor
-description: Executes an approved plan by orchestrating subagents - it lands the plan in docs/plans/, dispatches task-coder and task-reviewer per task, picks each task's model tier and whether it needs review, commits every finished task, and closes with a test run. Use whenever the user wants an approved plan built - "implement it", "build the plan", "execute the plan", "go ahead", "make it happen" - right after a plan is approved in plan mode, and when a plan file names the implementor as its builder. Takes the plan path as argument, and otherwise works from the approved plan in context or the newest plan in docs/plans/. Not for writing a plan - that is the planner skill.
+description: Builds an approved plan task by task. Requires an existing plan; without one, use the planner skill.
 argument-hint: [plan-path]
 allowed-tools: Glob, Write, Agent, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*)
 disallowed-tools: Read, Edit, NotebookEdit
+model: sonnet
 effort: medium
 ---
 

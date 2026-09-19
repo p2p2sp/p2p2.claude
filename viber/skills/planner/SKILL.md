@@ -1,6 +1,6 @@
 ---
 name: planner
-description: Writes the implementation plan for an understood change into the plan file, gates it through the planner-review agent, and only then calls ExitPlanMode. Use whenever the user wants a plan, a spec or a task breakdown - "plan it", "write a plan", "break this down", "split this into tasks", "how would you implement this" - and right after an idea interview closes. Also use when the user enters plan mode for a change to this codebase. The plan carries goal, acceptance criteria, file map, contracts and small dependency-ordered tasks with TDD markers. Not for executing a plan - that is the implementor skill.
+description: Writes and reviews the implementation plan for an understood change.
 allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(git log:*), Bash(git status:*)
 ---
 
