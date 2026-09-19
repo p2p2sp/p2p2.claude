@@ -9,13 +9,17 @@ per rule, grouped under the contract section that states it, in file order. The 
 block is inventoried first, under `## Preamble`, because it carries obligations of its own and
 criterion 9 admits no unaccounted rule; the twelve `## ` sections follow.
 
+The compression has been executed. A fourth verdict, `added - <reason>`, marks a rule the compressed
+file gained that the pre-compression contract did not carry, so every row still matches what
+`superdev/references/review-contract.md` and `superdev/CLAUDE.md` now hold.
+
 ## Preamble
 
 - this file is the single owner of the loop's vocabulary, so every consumer applies these rules instead of restating them, and no consumer carries a copy of any section - kept
 - the opening sentence's own restatement of that ownership (lines 5 to 6) - dropped - repeats the same rule the consumer paragraph states four lines later, and `superdev/CLAUDE.md` already carries the ownership fact for a human editor
 - the enumerated consumer list (three build reviewers, the per-task reviewer, the two implementors, the two orchestrators) - moved -> superdev/CLAUDE.md - a runtime reader never needs to know which other agents share the file; an editor changing a section needs exactly that list
 - each consumer reads this file, handed in on a `refs:` label - dropped - restated as an obligation by the `refs:` entry of `## Labels`, which is where a consumer looks for it
-- the per-task gate is bound by a named subset of sections (`## Labels` for `refs`, `range`, `prior`, `decisions`, `report`, plus `## Naming`, `## Finding IDs`, `## Report skeleton`, the one `## Verdict rules` BLOCKED condition, `## Decisions file`, `## Notes line formats`) - kept - stated nowhere else
+- the per-task gate is bound by a named subset of sections (`## Labels` for `refs`, `range`, `prior`, `decisions`, `report`, plus `## Naming`, `## Finding IDs`, `## Report skeleton`, `## Verdict rules` for its one BLOCKED condition and for the working-directory exclusion, `## Decisions file`, `## Notes line formats`) - kept - stated nowhere else; widened on execution, the gate binding `## Verdict rules` for the exclusion rule as well as for the BLOCKED condition
 - the sections the per-task gate writes and the ones it never writes (`## Gates`, `## Prior findings`, `## Decisions taken`, `## Debt`, a coverage table) - dropped - `## Report skeleton` states the same reduced shape, and it owns what a report carries
 - the per-task gate runs no gate command, raises no Minor and verdicts no earlier round - dropped - the reason clause of the row above, and each of the three is an obligation `## Gates`, `## Report skeleton` and `## Verdict rules` already carry
 - every rule refers only to the plan template's own sections, to the run's working directory and to `git`, never to an ecosystem's tools and never to a heuristic for recognising a test file - kept - binds the consumer as much as the editor: no reviewer may invent a test-file heuristic
@@ -181,6 +185,7 @@ criterion 9 admits no unaccounted rule; the twelve `## ` sections follow.
 - at `checkpoint` and at `final` the delta bounds where a defect is hunted, never which requirements are verdicted - kept
 - a reviewer that owns requirement coverage judges every criterion against the repository state, those whose code landed before `since` included - kept
 - the reason for that (after a closed round `since` is that round's SHA, so a criterion left to the delta would go unchecked) - dropped - mechanism rationale behind the rule above
+- everything under the run's own working directory (`<workdir>`, its `implementation/` subdirectory included) is build bookkeeping written by the build's own workers: never part of a task's diff, never scope creep, never a changed file mapping to no task's `### Files`, never a finding of any severity, whether or not a plan task lists it - added - the rule this section gains as owner, replacing the copy the three build reviewers and the per-task gate each carried
 - `VERDICT: BLOCKED` is returned when a criterion or requirement is unmet because of a decision recorded in the plan, in the notes or in the decisions file, not because code is missing - kept
 - every other BLOCKED condition comes from a gate command and `## Gates` owns that list in full - dropped - the sole-owner rule is stated in `## Gates`, and a pointer to it is not a rule of its own
 - BLOCKED outranks FAIL: with both conditions present the return line is `VERDICT: BLOCKED` and the report still lists its Critical and Important findings - kept

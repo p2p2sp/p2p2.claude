@@ -35,7 +35,17 @@ covers what is true across the whole plugin.
   `superdev/references/` - no `shared/` subdir (that is supergh's convention).
 - `superdev/references/review-contract.md` is the single owner of the build review loop's
   vocabulary: labels, finding IDs, report shape, verdict rules, and the reference form every
-  task/criterion/finding is named in.
+  task/criterion/finding is named in. It carries rules only - the reason a rule exists belongs
+  here, not there. Its consumers are the three build reviewers (`agents/superbuild-reviewer-spec.md`,
+  `agents/superbuild-reviewer-change.md`, `agents/simplebuild-reviewer.md`), the per-task reviewer
+  (`agents/superbuild-task-reviewer.md`), the two task implementors
+  (`agents/superbuild-task-implementor.md`, `agents/simplebuild-task-implementor.md`) and the two
+  orchestrators (`skills/superbuild`, `skills/simplebuild`) - each reads the file itself, handed in
+  on a `refs:` label, so a section changed there changes all eight readers at once.
+- Neither build orchestrator ever sends the contract's `minor:` label, and that gap is deliberate,
+  not drift: a round's budget is one fix dispatch and it is spent on what moves the verdict, which
+  a Minor by definition does not. The label's one producer is a dispatch a HUMAN directs - the user
+  naming debt to clear, in this build or a later one.
 - Config switches are opt-in, read from the host's `.claude/superdev.yml` via
   `scripts/read-config.sh` (fail-open: missing file/key = false). Current keys: `adr`, `rules`,
   `memory`, `changelog`, `cleanup`, `stats`, `qa`, `e2e-ui`, `e2e-api`. Verify against that

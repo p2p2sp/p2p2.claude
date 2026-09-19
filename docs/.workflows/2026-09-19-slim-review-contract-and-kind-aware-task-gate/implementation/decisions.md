@@ -1,0 +1,1 @@
+- C1 - `Inventory every rule the review contract carries today` (Task 1) - accepted: The 535 deleted docs/.workflows/ files and the .claude/rules/_common.md line are the user's own pre-build working-tree state, folded into this commit on the user's explicit instruction; not scope creep, not to be reverted. - 2026-09-19
