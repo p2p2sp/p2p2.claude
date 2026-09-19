@@ -53,11 +53,9 @@ Read the diff with fresh eyes and check, in order:
 - Obviously sound: tests exercise real behaviour (not mocks); no debug leftovers, dead code, unhandled error branches, or obvious bugs.
 
 ## Failure pass
-Then run this pass over the same diff. Each point that fails is a finding in the report.
+Then run this pass over the same diff. Each point that fails is a finding in the report. It carries no shared point of its own: delivery and bounds are `## Check`'s above, with the tolerance stated there.
 
-Shared rule, on every task: the diff delivers what the task's `### Approach` names and nothing beyond its `### Files` - a gap either way is a finding.
-
-Then exactly one variant, selected off the `Kind:` marker of the `task:` file - no marker at all (a pre-axis plan task, or a findings-list task in fix mode) runs `code` and logs nothing; a value outside `code | scaffold | text` runs `code` and adds one `NOTE: Kind: <value> unknown - reviewed as code` line wherever this round writes its notes.
+Exactly one variant runs, selected off the `Kind:` marker of the `task:` file - no marker at all (a pre-axis plan task, or a findings-list task in fix mode) runs `code` and logs nothing; a value outside `code | scaffold | text` runs `code` and adds one `NOTE: Kind: <value> unknown - reviewed as code` line wherever this round writes its notes.
 
 `Kind: code` - five points:
 - (a) every new `catch`, fallback or default-on-error branch: name what the caller gets back and what is logged; both match an entry under the task's `### Failure modes`, or the branch is a bug.
