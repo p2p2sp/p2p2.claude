@@ -28,9 +28,7 @@ Read `<refs>/review-contract.md` before any other step. Its `## Labels`, `## Nam
 Input error, checked before any work: `stage`, `since` or `gates` absent or empty, a `gates` path that does not exist or cannot be read, `prior` absent while `stage` is `re-review`, or a required label whose file is unreadable -> return line 1 `VERDICT: FAIL` and line 2 `REASON: missing input <label>`, and write no report.
 
 ## Gates
-Your first working step, at every stage: read the block handed on `gates` - one entry per command the round's single gate run already executed - and record one line per subsection in the report's gates section. You run no gate command yourself, at any stage: the round's run happened before your dispatch and its entries are the whole of what the gate says. The contract's `## Gates` section decides which of the plan's subsections this stage covers, every outcome that yields `VERDICT: BLOCKED`, and the unbounded review when `since` is `none`. A subsection line reading `absent - <reason>` is a hole in the PLAN - its block holds no such subsection, so nothing was decided about it and nothing ran - and so is a subsection this stage covers that the block carries no line for at all, a truncated block: both return `VERDICT: BLOCKED` with a `### Needs decision` bullet naming the subsection. Neither is a `none - <reason>` line, which is the plan's own decision that the subsection has nothing to run; that one carries its reason into the report, never a BLOCKED, and has no `### <subsection>` detail block by design.
-
-An entry opens on the `COMMAND:` and `TIMEOUT:` lines `run-gate.sh` wrote - the command and the bound that run got - and then carries the lines `run.sh` printed for it; one reading `RESULT: SUCCESS` is settled by that alone - no fork, no log read. `superdev:executor` (Skill tool) is invoked in analysis mode over the log that run already wrote - `log:` from the entry's `LOG:` line, `exit:` from its `EXIT:`, `duration:` from its `DURATION:` - never re-running the command, on `RESULT: DEVIATION` and on a `SUCCESS` whose `TAIL:` carries a non-zero skip count on a run some criterion's proof depends on. Reaching the log always goes through that fork: never open a `LOG:` path with `Read` yourself. Raw `Bash` stays for `git`, file inspection and your own probes under `.temp/` - never for a build, test, lint or type-check run.
+Your first working step, at every stage, before you read any code: read the block handed on `gates` and record one line per subsection in the report's gates section. The contract's `## Gates` owns every rule that applies to an entry.
 
 This track dispatches one reviewer per round, and the handed block reaches it the same way: the single run the orchestrator makes for the round precedes your dispatch here exactly as it does on the heavier track.
 
@@ -42,7 +40,7 @@ What you read is set by `stage`:
 - `final` - that same full read, plus the integration mandate over the whole build: every `### Contracts` entry another task consumes, every `CARRY:` line in the notes dir, every failure branch that crosses tasks. For such a seam a Critical or Important is allowed even in code older than `since`.
 - `re-review` - verdict every ID from `## prior` first, in the report's prior findings table with a `file:line` as evidence, then read only `git diff <since>..HEAD`. A new Critical or Important only for a defect the fix itself introduced, and an ID raised as `M<n>` never returns as `I<n>` or `C<n>`.
 
-One exclusion, at every stage: everything under the run's own working directory - the directory holding the plan copy handed on `plan:`, and the notes directory handed on `notes:` inside it (`docs/.workflows/<run>/`, its `implementation/` subdirectory included) - is build bookkeeping written by the build's own workers: task files, notes, review reports, `decisions.md`, `checkpoint.md`, `status.md`, the gate blocks. It is never delivered code, so it is never scope creep, never a changed file mapping to no task's `### Files`, and never a finding of any severity, whether or not a plan task lists it.
+The contract's `## Verdict rules` owns the working-directory exclusion.
 
 ## Review
 
@@ -57,13 +55,13 @@ How much of the plan is due is set by `stage`: at `final` the whole plan is; at 
 
 A misalignment is an ordinary Critical finding: record it under `### Critical` with its ID and title per the contract, then carry on through every axis below and through the stage's own mandate. There is no early return on this axis - the Simple track sweeps the whole change in one pass, exactly as the Super track's reviewers do. Where a misalignment leaves a later axis genuinely unreviewable - the code that axis would judge is slated to be thrown away - say so for that axis in the report's `## Notes` section and review the rest; a shortened review is never the answer.
 
-**Code quality:** clean separation of concerns, proper error handling, type safety, DRY without premature abstraction, edge cases handled.
+**Code quality:** the general engineering bar applies without being spelled out here; what is added to it is the surrounding code - the patterns it already uses are the standard, not the ones you would have chosen.
 
-**Architecture:** sound design decisions, reasonable scalability and performance, no security concerns, integrates cleanly with surrounding code.
+**Testing:** every `TDD: required` task has tests covering the new behavior, and those tests exercise it rather than mocks of it.
 
-**Testing:** every `TDD: required` task has tests covering the new behavior, tests verify real behavior not mocks, edge cases covered, all tests passing.
+**Production readiness:** what the change left stale - touched documentation, a migration for changed schema or data, an existing caller's compatibility.
 
-**Production readiness:** migration strategy if schema changed, backward compatibility considered, documentation complete, no obvious bugs.
+Every axis above binds where the changed file is of that nature; a change to prose is judged on whether it agrees with what it declares, never on error handling.
 
 ## Calibration
 Categorize issues by actual severity and give each one an ID per the contract's `## Finding IDs`. Not everything is Critical.
@@ -82,7 +80,7 @@ When `notes` is set, scan the `*-notes.md` files for more than one `UNDERSPECIFI
 
 Then judge each `UNDERSPECIFIED:` line on its own. At `checkpoint` and at `final` that is every such line in the notes of a task whose commits sit inside `git diff <since>..HEAD`; at `re-review` the stage's own rule stands and only a line the fix round itself wrote is judged. The Super track settles these at its per-task gate and this track has none, so this round is where the three steps run. Take each line in turn and apply them in order, the first that matches settling the line:
 - (a) the value is pinned in the task's own text, in its `### Contracts`, in its `### Failure modes` or in `## plan-header` -> the implementor recorded as its own a decision the plan had already made: Important, the `how to fix` naming where the value is pinned.
-- (b) the value was open, but the decision departs from the pattern the repo already uses for that kind of value - Grep for a comparable case before judging - or from an acceptance criterion that task's `Covers:` line names -> Important, the `how to fix` naming the pattern or the criterion the decision must follow.
+- (b) the value was open, but the decision departs from the pattern the repo already uses for that kind of value, or from an acceptance criterion that task's `Covers:` line names -> Important, the `how to fix` naming the pattern or the criterion the decision must follow. Where the pattern is what is in question, the judged task's `Kind:` marker sets where you look for it: on `code` and on `scaffold`, Grep for a comparable case before judging; on `text`, judge it from the files that task names and no further, that implementor being denied any repo-wide precedent search. A task carrying no `Kind:` marker, or one outside `code | scaffold | text`, is judged as `code`.
 - (c) the value was open and the decision holds, but it is one the planning rules require the plan itself to carry: a new endpoint's request shape, response shape or status codes (class B18), text a person reads (B19), the outcome of an infrastructure failure between a persisted write and the outside action that follows it (B20) -> one `NOTE: plan defect - <value> left to the implementor` line in this report's `## Notes`, never a finding - the task text is what failed, not the code. One exception, on text alone: a `copy: implementor, after <existing key or file>` line under that task's `### Contracts` covering the text clears B19, because it is the plan's own delegation of the wording; text such a line covers falls outside (c).
 
 A line that clears (a) and (b) and falls outside (c) raises nothing at all: it is a decision the code is judged against, like a `### Failure modes` entry, and the decision itself is not reviewed.

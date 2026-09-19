@@ -51,7 +51,12 @@ the user - a change here means checking the agent's own `description:` still say
   concurrently: neither reads the other's report, and neither runs a gate command - each records
   the one block the round's gate run wrote.
 - `simplebuild-reviewer.md` - the Simple track's single build reviewer, dispatched by
-  `simplebuild`, owning both dimensions at once. One per round, never a concurrent pair.
+  `simplebuild`, owning both dimensions at once. One per round, never a concurrent pair. The
+  task's `Kind:` marker has a third reader here: this track has no per-task gate, so its
+  `UNDERSPECIFIED:` ladder is where the narrowing lands - step (b) of that ladder judges a
+  `Kind: text` task from the files that task names instead of Grepping the repo for precedent,
+  the same search that task's implementor was denied; `code`, `scaffold`, no marker and an
+  unknown value all keep the repo-wide search.
 - `memory-writer.md`, `rules-writer.md`, `qa-writer.md` - Close Out wave 1, dispatched together
   in ONE message: `memory-writer` + `rules-writer` always, `qa-writer` joins that wave whenever
   `qa`, `e2e-ui` or `e2e-api` reads `true`.

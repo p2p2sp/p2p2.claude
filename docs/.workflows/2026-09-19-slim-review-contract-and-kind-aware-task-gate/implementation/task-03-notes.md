@@ -13,3 +13,7 @@ Step 5 also turned the "BLOCKED outranks FAIL" clause of `## Output format` into
 Variant points carry the labels (f)(g) scaffold and (h)(i)(j) text, continuing (a)-(e), so `## Calibration`'s "a failed point above" stays referable across all three variants.
 
 `skill-designer` step 6 lint on the agent file: FAIL=0, one WARN on `description` word count, left standing - `.claude/rules/agent-frontmatter.md` fixes that field as the routing guard alone, and frontmatter is outside the sections `### Files` names.
+
+## Review notes
+
+NOTE: plan defect - the shared rule Approach step 2 prescribes ("the diff delivers what the task's `### Approach` names and nothing beyond its `### Files` - a gap either way is a finding") duplicates two `## Check` bullets and contradicts one of them: `## Check`'s "Stays in bounds" allows test/config fallout outside `### Files`, the shared rule allows none and carries no severity of its own. A later gate can raise a finding on fallout the same file calls fine.
