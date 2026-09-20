@@ -26,8 +26,9 @@ Then ask once - ONE `AskUserQuestion` carrying both questions:
    - `qa` - the build closes by writing its QA scenarios into the run directory, which
      `/viber:e2e` then turns into Playwright tests.
 2. Single-select, the recommended permissions: merge viber's `.claude/settings.json` block (the
-   tool allow-list, an ask-list for outward-facing commands, a deny-list of destructive ones,
-   `defaultMode` acceptEdits, auto mode off), keeping every entry the project already has - or
+   tool allow-list, a deny-list of destructive ones, `defaultMode` acceptEdits, auto mode off,
+   the clear-context offer on plan accept), keeping every entry and every setting the project
+   already has - or
    skip it and leave the file untouched.
 
 `Edit` `.claude/viber.yml` for whatever the user turned off, changing only those values. A file

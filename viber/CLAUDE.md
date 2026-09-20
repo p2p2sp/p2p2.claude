@@ -163,8 +163,9 @@ file.
   `assets/gitignore.txt` becomes the host's `.gitignore` when it has none, otherwise the file is
   the user's and the single edit is the `.temp/` rule, appended on its own line. The permissions
   template `assets/settings.json` goes through `skills/setup/scripts/merge-settings.sh`, which is
-  additive (host order and host-only keys survive, `defaultMode`/`disableAutoMode` are seeded but
-  never overwritten) and idempotent. It needs Node on PATH - the one deliberate, documented tool
+  additive (host order and host-only keys survive; `defaultMode`, `disableAutoMode` and every
+  top-level key beside `permissions` are seeded when absent, never overwritten and never walked
+  into) and idempotent. It needs Node on PATH - the one deliberate, documented tool
   dependency in this plugin, and a skip-with-note rather than a stop: without Node the block is
   printed for a manual merge and the run continues.
 - **The host's `CLAUDE.md` is reported, never seeded, and the onboarding text is printed, never

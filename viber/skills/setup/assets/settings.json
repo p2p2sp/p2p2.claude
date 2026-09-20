@@ -1,5 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "showClearContextOnPlanAccept": true,
   "permissions": {
     "defaultMode": "acceptEdits",
     "disableAutoMode": "disable",
@@ -35,14 +36,6 @@
       "ListMcpResourcesTool",
       "ReadMcpResourceTool",
       "ReadMcpResourceDirTool"
-    ],
-    "ask": [
-      "Bash(git push:*)",
-      "Bash(gh pr create:*)",
-      "Bash(gh release create:*)",
-      "Bash(gh repo create:*)",
-      "Bash(bash:*)",
-      "Bash(sh:*)"
     ],
     "deny": [
       "Bash(rm -rf:*)",

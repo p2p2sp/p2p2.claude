@@ -5,7 +5,11 @@
  * once), idempotently (a second run rewrites nothing) and safely (a target that
  * is not valid JSON, or a host with no `node`, is left untouched and reported),
  * plus the shape of the shipped template itself - the single source of the
- * recommended allow/ask/deny lists /viber:setup offers.
+ * recommended allow/deny lists /viber:setup offers.
+ *
+ * A top-level key of the template other than `permissions` is SEEDED, never
+ * merged into: it is added only when the host has none, so a host value wins
+ * whatever its shape.
  *
  * The template is designed for a session with auto mode OFF: it seeds
  * permissions.disableAutoMode, so there is no classifier and every outcome is
@@ -34,6 +38,7 @@ const ASSET_TEMPLATE = path.resolve(import.meta.dirname, "../../viber/skills/set
  *  shipped asset itself (creation, the no-node block, its own shape). */
 const FIXTURE_TEMPLATE = {
   $schema: "https://json.schemastore.org/claude-code-settings.json",
+  showClearContextOnPlanAccept: true,
   permissions: {
     defaultMode: "acceptEdits",
     disableAutoMode: "disable",
@@ -103,7 +108,7 @@ test("partial coverage: only the missing template entries are appended, after th
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
       result.stdout,
-      "settings.json: merged - added 2 allow, 1 ask, 1 deny, defaultMode set, autoMode disabled\n",
+      "settings.json: merged - added 2 allow, 1 ask, 1 deny, 1 top-level, defaultMode set, autoMode disabled\n",
     );
 
     const merged = readJson(target);
@@ -115,6 +120,8 @@ test("partial coverage: only the missing template entries are appended, after th
     // Host-only keys, at both levels, are carried over untouched.
     assert.equal(merged.disableWorkflows, true);
     assert.deepEqual(merged.permissions.additionalDirectories, ["C:/somewhere"]);
+    // The template's own top-level key is seeded beside them.
+    assert.equal(merged.showClearContextOnPlanAccept, true);
     // The atomic rewrite leaves no scratch file behind.
     assert.equal(fs.existsSync(`${target}.tmp`), false);
   });
@@ -137,7 +144,7 @@ test("an existing defaultMode: plan is reported and left in place, never overwri
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
       result.stdout,
-      "settings.json: merged - added 1 allow, 0 ask, 0 deny, defaultMode already plan (left untouched), autoMode disabled\n",
+      "settings.json: merged - added 1 allow, 0 ask, 0 deny, 2 top-level, defaultMode already plan (left untouched), autoMode disabled\n",
     );
     const merged = readJson(target);
     assert.equal(merged.permissions.defaultMode, "plan");
@@ -162,9 +169,37 @@ test("an existing disableAutoMode is reported and left in place (a host that del
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
       result.stdout,
-      "settings.json: merged - added 0 allow, 0 ask, 0 deny, defaultMode set, autoMode already allow (left untouched)\n",
+      "settings.json: merged - added 0 allow, 0 ask, 0 deny, 2 top-level, defaultMode set, autoMode already allow (left untouched)\n",
     );
     assert.equal(readJson(target).permissions.disableAutoMode, "allow");
+  });
+});
+
+test("a top-level key the host already carries is reported as not seeded and keeps the host's value (a deliberate false is never flipped back to the template's true)", () => {
+  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+    const target = targetPath(dir);
+    writeJson(target, {
+      $schema: "https://example.invalid/other-schema.json",
+      showClearContextOnPlanAccept: false,
+      permissions: {
+        defaultMode: "acceptEdits",
+        disableAutoMode: "disable",
+        allow: ["Read", "Write"],
+        ask: ["Bash(git push:*)"],
+        deny: ["Bash(sudo:*)", "Bash(rm -rf:*)"],
+      },
+    });
+
+    const result = run(dir, fixtureTemplate(dir), target);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(
+      result.stdout,
+      "settings.json: merged - added 1 allow, 0 ask, 0 deny, 0 top-level, defaultMode already acceptEdits (left untouched), autoMode already disable (left untouched)\n",
+    );
+    const merged = readJson(target);
+    assert.equal(merged.showClearContextOnPlanAccept, false);
+    assert.equal(merged.$schema, "https://example.invalid/other-schema.json");
   });
 });
 
@@ -178,7 +213,7 @@ test("idempotence: the second run reports 'already up to date' and leaves the fi
     assert.equal(first.status, 0, `stderr: ${first.stderr}`);
     assert.equal(
       first.stdout,
-      "settings.json: merged - added 3 allow, 1 ask, 2 deny, defaultMode set, autoMode disabled\n",
+      "settings.json: merged - added 3 allow, 1 ask, 2 deny, 2 top-level, defaultMode set, autoMode disabled\n",
     );
     const afterFirst = fs.readFileSync(target, "utf-8");
 
@@ -243,16 +278,19 @@ test("a template path that does not exist reports the missing template and exits
 test("the shipped template carries the recommended block only: built-in tools, destructive denies, no host-specific key", () => {
   const template = readJson(ASSET_TEMPLATE);
 
-  assert.deepEqual(Object.keys(template), ["$schema", "permissions"]);
+  assert.deepEqual(Object.keys(template), ["$schema", "showClearContextOnPlanAccept", "permissions"]);
   assert.equal(template.$schema, "https://json.schemastore.org/claude-code-settings.json");
-  assert.deepEqual(Object.keys(template.permissions), ["defaultMode", "disableAutoMode", "allow", "ask", "deny"]);
+  assert.equal(template.showClearContextOnPlanAccept, true);
+  assert.deepEqual(Object.keys(template.permissions), ["defaultMode", "disableAutoMode", "allow", "deny"]);
   assert.equal(template.permissions.defaultMode, "acceptEdits");
   // "disable" is the literal the harness reads; a boolean is silently inert.
   assert.equal(template.permissions.disableAutoMode, "disable");
+  // No ask list at all: the recommended block prompts on nothing, and every
+  // outcome is decided by allow and deny alone.
+  assert.equal(template.permissions.ask, undefined);
 
-  const { allow, ask, deny } = template.permissions;
+  const { allow, deny } = template.permissions;
   assert.equal(new Set(allow).size, allow.length, "no duplicate allow entry");
-  assert.equal(new Set(ask).size, ask.length, "no duplicate ask entry");
   assert.equal(new Set(deny).size, deny.length, "no duplicate deny entry");
   // Built-in tool names only: an mcp__* entry names a server of one host.
   assert.deepEqual(
@@ -267,11 +305,6 @@ test("the shipped template carries the recommended block only: built-in tools, d
   // and would pre-approve every shell redirect to such a path as well.
   for (const unwanted of ["Edit", "Write", "NotebookEdit"]) {
     assert.ok(!allow.includes(unwanted), `allow should not carry a bare ${unwanted}`);
-  }
-  // With no classifier, ask is the only human checkpoint left: outward-facing
-  // operations, plus an interpreter as a command (the `curl … | sh` shape).
-  for (const expected of ["Bash(git push:*)", "Bash(gh pr create:*)", "Bash(bash:*)", "Bash(sh:*)"]) {
-    assert.ok(ask.includes(expected), `ask should carry ${expected}`);
   }
   for (const expected of [
     "Bash(rm -rf:*)",

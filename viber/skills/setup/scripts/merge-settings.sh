@@ -20,8 +20,11 @@
 #   - permissions.defaultMode and permissions.disableAutoMode are set from the
 #     template only when the host has none; any existing value is reported,
 #     never overwritten.
-#   - permissions is created when absent; every other key of the file
-#     (host-specific ones included) is left exactly as it was.
+#   - every other TOP-LEVEL key of the template is seeded the same way: added
+#     only when the host has none, never merged into and never walked, so a
+#     host value wins outright whatever its shape.
+#   - permissions is created when absent; no key of the host file is ever
+#     changed or removed - host-specific ones included.
 #   - a semantically unchanged file is not rewritten at all, so a second run
 #     leaves it byte-identical.
 #   - the rewrite is atomic: the result is written to <target>.tmp and
@@ -30,8 +33,8 @@
 # Output (stdout, exactly one line - plus the template body on the node-skip
 # case, which is the block a user merges by hand):
 #   settings.json: created from template
-#   settings.json: merged - added <n> allow, <a> ask, <m> deny, defaultMode set, autoMode disabled
-#   settings.json: merged - added <n> allow, <a> ask, <m> deny, defaultMode already <x> (left untouched), autoMode already <y> (left untouched)
+#   settings.json: merged - added <n> allow, <a> ask, <m> deny, <k> top-level, defaultMode set, autoMode disabled
+#   settings.json: merged - added <n> allow, <a> ask, <m> deny, <k> top-level, defaultMode already <x> (left untouched), autoMode already <y> (left untouched)
 #   settings.json: already up to date
 #   settings.json: node not found - merge skipped, recommended block:
 #   settings.json: template missing at <path> - skipped
@@ -150,6 +153,23 @@ const addedAllow = mergeList("allow");
 const addedAsk = mergeList("ask");
 const addedDeny = mergeList("deny");
 
+/** Every other top-level key of the template is SEEDED, never merged into: a
+ *  key the host already carries wins outright, whatever its value, and no
+ *  nested object is walked - permissions is the one key with merge rules of
+ *  its own. Returns how many were added. */
+function seedTopLevel() {
+  let added = 0;
+  for (const key of Object.keys(template)) {
+    if (key === "permissions" || Object.prototype.hasOwnProperty.call(current, key)) continue;
+    current[key] = template[key];
+    changed = true;
+    added += 1;
+  }
+  return added;
+}
+
+const addedTop = seedTopLevel();
+
 /** A scalar the template only seeds. The host's own value always wins, so a
  *  project that deliberately runs another mode - or that deliberately leaves
  *  auto mode on - is reported, never overridden. Returns the host's value, or
@@ -187,7 +207,7 @@ try {
 }
 
 console.log(
-  `settings.json: merged - added ${addedAllow} allow, ${addedAsk} ask, ${addedDeny} deny, ${modeClause}, ${autoClause}`,
+  `settings.json: merged - added ${addedAllow} allow, ${addedAsk} ask, ${addedDeny} deny, ${addedTop} top-level, ${modeClause}, ${autoClause}`,
 );
 NODE
 exit $?
