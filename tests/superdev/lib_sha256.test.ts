@@ -3,7 +3,8 @@
  * behind the reviewed-plan check: the ExitPlanMode hook records a plan's
  * digest beside it, decompose.sh recomputes it, and both must spell it the
  * same way whatever digest tool the host machine offers (`sha256sum`,
- * `shasum -a 256`, `openssl`). The library is sourced, never executed, so it
+ * `shasum -a 256`, `openssl`) - and refuse to answer, out loud, when it offers
+ * none. The library is sourced, never executed, so it
  * runs through a bash wrapper under `forEachShell("bash", ...)`. The oracle is
  * Node's own `crypto.createHash("sha256")`.
  *
@@ -43,12 +44,12 @@ function wrapperScript(libPath: string): string {
   );
 }
 
-function runLib(bash: Shell, file: string): RunResult {
+function runLib(bash: Shell, file: string, env?: Record<string, string>): RunResult {
   return withTempDir("p2p2-lib-sha256-wrapper-", (dir) => {
     const wrapper = path.join(dir, "wrapper.sh");
     fs.writeFileSync(wrapper, wrapperScript(LIB), { mode: 0o755 });
     fs.chmodSync(wrapper, 0o755);
-    return runScript(wrapper, [file], { shell: bash });
+    return runScript(wrapper, [file], { shell: bash, env });
   });
 }
 
@@ -89,6 +90,45 @@ test("sha256_of on a file that does not exist prints nothing and returns 1 (the 
       const { value, rc } = parsed(runLib(bash, path.join(dir, "nowhere", "plan.md")));
       assert.equal(rc, "1");
       assert.equal(value, "");
+    });
+  });
+});
+
+// A checksum tool never sees the file's NAME - the library feeds it the bytes
+// on stdin - because GNU coreutils escapes a line whose filename carries a
+// backslash: it prefixes the whole line with `\` and doubles the backslashes,
+// which put a 65th character in front of the digest. Windows hits it on every
+// call (`C:\Users\...\plan.md` is what both callers are handed); a POSIX box
+// only through a filename that carries one, which is what this case builds.
+test(
+  "a file whose NAME carries a backslash digests the same as any other (a checksum tool escapes such a line)",
+  { skip: process.platform === "win32" ? "a Windows filename cannot carry a backslash" : false },
+  () => {
+    assertBash((bash) => {
+      withTempDir("p2p2-lib-sha256-backslash-", (dir) => {
+        const file = path.join(dir, "pl\\an.md");
+        fs.writeFileSync(file, "# SuperPlan\nbody");
+        const expected = createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+        const { value, rc } = parsed(runLib(bash, file));
+        assert.equal(rc, "0");
+        assert.equal(value, expected);
+      });
+    });
+  },
+);
+
+test("no digest tool on PATH at all -> nothing on stdout, one named line on stderr, rc 1 (an absent tool is told apart from a failed digest)", () => {
+  assertBash((bash) => {
+    withTempDir("p2p2-lib-sha256-notool-", (dir) => {
+      const file = path.join(dir, "plan.md");
+      fs.writeFileSync(file, "# SuperPlan\nbody");
+      const starved = path.join(dir, "empty-path");
+      fs.mkdirSync(starved);
+      const result = runLib(bash, file, { PATH: starved });
+      const { value, rc } = parsed(result);
+      assert.equal(rc, "1");
+      assert.equal(value, "");
+      assert.match(result.stderr, /lib_sha256: no sha256 tool on PATH/);
     });
   });
 });

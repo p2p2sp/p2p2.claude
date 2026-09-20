@@ -11,15 +11,29 @@
 # `openssl` as the last resort), and two scripts each picking their own tool
 # would differ in the exact place the comparison has to hold.
 #
+# The file is fed to the tool on STDIN, never named as an argument. GNU
+# coreutils escapes a checksum line whose filename carries a backslash or a
+# newline: it prefixes the whole line with `\` and doubles the backslashes, so
+# a Windows plan path - `C:\Users\...\plan.md`, exactly what both callers are
+# handed under Git-Bash - came back as `\<hex> *C:\\Users\\...`, its first
+# field then failed the hex check, and every digest on Windows silently
+# returned 1. That left the hook writing no sidecar and decompose.sh skipping
+# the reviewed-plan check on every run there. Reading stdin prints `<hex>  -`
+# whatever the path looks like.
+#
 # Contract:
 #   sha256_of <file>
 #     -> the lowercase hex sha256 digest of the file's bytes, on stdout,
 #        followed by a newline; returns 0. Tools tried in order: `sha256sum`,
-#        `shasum -a 256`, `openssl dgst -sha256` (its "SHA256(x)= <hex>" /
-#        "SHA2-256(x)= <hex>" output is reduced to the hex alone). A missing
-#        or unreadable file, an empty argument, or no digest tool on PATH at
-#        all -> prints nothing and returns 1; the caller decides what that
-#        means (the hook swallows it, decompose.sh warns and skips the check).
+#        `shasum -a 256`, `openssl dgst -sha256` (its "SHA256(stdin)= <hex>" /
+#        "SHA2-256(stdin)= <hex>" output is reduced to the hex alone). A
+#        missing or unreadable file, an empty argument, or a tool answering
+#        with anything that is not 64 hex characters -> nothing on stdout,
+#        returns 1. No digest tool on PATH at all -> nothing on stdout, ONE
+#        `lib_sha256: no sha256 tool on PATH ...` line on stderr, returns 1,
+#        so an absent tool is told apart from a failed digest. The caller
+#        decides what a missing digest means (the hook swallows both,
+#        decompose.sh warns and skips the check).
 #
 #   usage  : source "$(dirname "${BASH_SOURCE[0]}")/lib_sha256.sh"
 #            digest="$(sha256_of "$plan")" || echo "no digest" >&2
@@ -33,16 +47,21 @@ sha256_of() {
   if [[ -z "$file" || ! -f "$file" || ! -r "$file" ]]; then
     return 1
   fi
+  # stdin, never an argument - see the header for what a filename in the
+  # tool's own output costs on Windows
   if command -v sha256sum >/dev/null 2>&1; then
-    out="$(sha256sum -- "$file" 2>/dev/null)" || out=""
+    out="$(sha256sum < "$file" 2>/dev/null)" || out=""
   elif command -v shasum >/dev/null 2>&1; then
-    out="$(shasum -a 256 -- "$file" 2>/dev/null)" || out=""
+    out="$(shasum -a 256 < "$file" 2>/dev/null)" || out=""
   elif command -v openssl >/dev/null 2>&1; then
-    out="$(openssl dgst -sha256 -- "$file" 2>/dev/null)" || out=""
-    # "SHA256(file)= <hex>" - keep what follows the last "= "
+    out="$(openssl dgst -sha256 < "$file" 2>/dev/null)" || out=""
+    # "SHA2-256(stdin)= <hex>" - keep what follows the last "= "
     out="${out##*= }"
+  else
+    echo "lib_sha256: no sha256 tool on PATH (sha256sum, shasum, openssl)" >&2
+    return 1
   fi
-  # sha256sum / shasum print "<hex>  <file>": the first field is the digest
+  # sha256sum / shasum print "<hex>  -": the first field is the digest
   out="${out%%[[:space:]]*}"
   case "$out" in
     *[!0-9a-fA-F]* | "") return 1 ;;

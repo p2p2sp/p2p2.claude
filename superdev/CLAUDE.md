@@ -98,7 +98,11 @@ covers what is true across the whole plugin.
 - `lib_find_excludes.sh`, `lib_touched.sh` - shared helpers for scoping a diff/review to touched
   paths.
 - `lib_sha256.sh` - `sha256_of <file>` through `sha256sum` / `shasum -a 256` / `openssl`, sourced
-  by `decompose.sh` and by `hooks/scripts/review-plan.sh`; no tool available = prints nothing.
+  by `decompose.sh` and by `hooks/scripts/review-plan.sh`. The file goes in on stdin, never named
+  as an argument: coreutils escapes a checksum line whose filename carries a backslash, which put
+  a 65th character in front of the digest and silently killed every digest on Windows (no sidecar
+  written, the reviewed-plan check skipped on every run). No tool at all = nothing on stdout, one
+  named line on stderr, return 1.
 - `phases-status.sh` - computes phase status for resuming a `phases <phases.md>` run.
 - `read-config.sh` - resolves `.claude/superdev.yml` switches (see above), reading that file from
   the repository root rather than the caller's cwd, so a session started in a subdirectory does not
