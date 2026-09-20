@@ -60,10 +60,7 @@ NAPRAWIONE
 
 ### 7. Naprawa po `test-runner` nie ma ścieżki dla pliku spoza mapy zadań
 
-- `implementor/SKILL.md:95` zakłada, że `<id>` wynika z kolumny `files` w indeksie.
-- Gdy padnie test, którego pliku nie ma w żadnym `Files:` (regresja w kodzie nietkniętym przez
-  plan), mapowanie nie ma rozwiązania, a `--chore` nie pasuje, bo wyprowadza subject tylko z
-  `CLAUDE.md` i `.claude/rules/`.
+NAPRAWIONE
 
 ### 8. `fixer` jest obcy względem reszty pluginu
 

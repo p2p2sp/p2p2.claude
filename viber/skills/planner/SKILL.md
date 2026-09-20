@@ -2,6 +2,7 @@
 name: planner
 description: Writes and reviews the implementation plan for an understood change.
 allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(date:*), Bash(git log:*), Bash(git status:*)
+user-invocable: false
 ---
 
 ```!

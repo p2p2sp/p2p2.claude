@@ -5,11 +5,12 @@
 # Usage:
 #   commit-task.sh <plan-file> <task-id>
 #   commit-task.sh <plan-file> <task-id> <fix-number> <file> [<file>...]
+#   commit-task.sh --repair <plan-file> <round> <file> [<file>...]
 #   commit-task.sh --chore <file> [<file>...]
 #
-# Both forms take the commit subject from the task's own heading line
-# ("### T1 - <title>") in the plan, so the plan's title is literally what lands
-# in the history and no caller ever composes or paraphrases it.
+# The two positional forms take the commit subject from the task's own heading
+# line ("### T1 - <title>") in the plan, so the plan's title is literally what
+# lands in the history and no caller ever composes or paraphrases it.
 #
 # Two arguments commit the task itself, subject "T1 - <title>", staging ONLY the
 # paths on that task's "Files:" line - parallel tasks cannot pull each other's
@@ -19,11 +20,17 @@
 # post-test fix), subject "T1(2) - <title>", staging only the files the caller
 # names and leaving the plan's progress counter alone.
 #
-# --chore commits what the run produced OUTSIDE the plan's task map - the project
-# memory and rule files written at the close of a build. It takes no plan and no
-# task id, because no task owns those files, and its subject is DERIVED from the
-# paths (a CLAUDE.md -> memory, a .claude/rules/ file -> rules, both -> both), so
-# the caller never composes a commit subject here either.
+# --repair commits a post-test fix that lands OUTSIDE the plan's file map - a
+# regression in a file no task's "Files:" line names, so there is no task id to
+# attribute it to. It takes the plan for its Refs footer only, leaves progress
+# alone, and its subject is DERIVED ("fix(viber): post-test repair (round 2)"),
+# so no caller borrows another task's heading to get the fix committed.
+#
+# --chore commits the knowledge files a build's close produced - the project
+# memory and rule files. It takes no plan and no task id, because no task owns
+# those files, and its subject is DERIVED from the paths (a CLAUDE.md -> memory,
+# a .claude/rules/ file -> rules, both -> both), so the caller never composes a
+# commit subject here either.
 #
 # No form ever stages a path the caller did not name, and every form commits
 # through its own pathspec, so a path staged before or beside the run stays in
@@ -39,8 +46,8 @@
 # be skipped forever on resume. Either the commit exists and the marker is set, or
 # neither is.
 #
-# stdout: "committed: <sha>" and "progress: x/N" - or, for --chore, the derived
-#         "subject: <line>"
+# stdout: "committed: <sha>" and "progress: x/N" ("unchanged" for a fix) - plus,
+#         for --repair and --chore, the derived "subject: <line>"
 # stderr: a warning listing anything left outside the commit
 #
 # exit != 0:
@@ -53,13 +60,35 @@
 set -euo pipefail
 
 usage() {
-  echo "error: usage: commit-task.sh <plan-file> <task-id> [<fix-number> <file> [<file>...]] | --chore <file> [<file>...]" >&2
+  echo "error: usage: commit-task.sh <plan-file> <task-id> [<fix-number> <file> [<file>...]] | --repair <plan-file> <round> <file> [<file>...] | --chore <file> [<file>...]" >&2
   exit 2
 }
 
-# --- the run's own knowledge files: no task, no plan, no progress ---
-if [[ "${1:-}" == "--chore" ]]; then
+warn_dirty() {
+  local dirty
+  dirty="$(git status --short)"
+  [[ -n "$dirty" ]] || return 0
+  echo "warning: left outside the commit (not in $1):" >&2
+  printf '%s\n' "$dirty" >&2
+}
+
+# --- the two forms no task owns: a post-test fix outside the plan's file map,
+# --- and the run's own knowledge files ---
+if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" ]]; then
+  form="$1"
   shift
+
+  round=""
+  if [[ "$form" == "--repair" ]]; then
+    plan="${1:-}"
+    round="${2:-}"
+    [[ -n "$plan" && "$round" =~ ^[0-9]+$ ]] || usage
+    if [[ ! -f "$plan" ]]; then
+      echo "error: plan file not found: $plan" >&2
+      exit 2
+    fi
+    shift 2
+  fi
   [[ $# -gt 0 ]] || usage
 
   paths=()
@@ -83,24 +112,34 @@ if [[ "${1:-}" == "--chore" ]]; then
     exit 4
   fi
 
-  # the subject follows the paths, so nothing composes it
-  mem=0
-  rul=0
-  for f in "${paths[@]}"; do
-    case "$f" in
-      CLAUDE.md|*/CLAUDE.md)         mem=1 ;;
-      .claude/rules/*|*/.claude/rules/*) rul=1 ;;
-    esac
-  done
-  if   [[ $mem -eq 1 && $rul -eq 1 ]]; then subject="chore(viber): update project memory and rules"
-  elif [[ $mem -eq 1 ]];               then subject="chore(viber): update project memory"
-  elif [[ $rul -eq 1 ]];               then subject="chore(viber): update project rules"
-  else                                      subject="chore(viber): update project knowledge"
+  # the subject follows the form and the paths, so nothing composes it
+  if [[ "$form" == "--repair" ]]; then
+    subject="fix(viber): post-test repair (round $round)"
+    git commit -m "$subject" -m "Refs: $plan post-test fix $round" -- "${paths[@]}" >&2 || exit 5
+  else
+    mem=0
+    rul=0
+    for f in "${paths[@]}"; do
+      case "$f" in
+        CLAUDE.md|*/CLAUDE.md)         mem=1 ;;
+        .claude/rules/*|*/.claude/rules/*) rul=1 ;;
+      esac
+    done
+    if   [[ $mem -eq 1 && $rul -eq 1 ]]; then subject="chore(viber): update project memory and rules"
+    elif [[ $mem -eq 1 ]];               then subject="chore(viber): update project memory"
+    elif [[ $rul -eq 1 ]];               then subject="chore(viber): update project rules"
+    else                                      subject="chore(viber): update project knowledge"
+    fi
+
+    git commit -m "$subject" -- "${paths[@]}" >&2 || exit 5
   fi
 
-  git commit -m "$subject" -- "${paths[@]}" >&2 || exit 5
   echo "committed: $(git rev-parse --short HEAD)"
   echo "subject: $subject"
+  if [[ "$form" == "--repair" ]]; then
+    echo "progress: unchanged"
+    warn_dirty "the repair's file list"
+  fi
   exit 0
 fi
 
@@ -198,14 +237,6 @@ if [[ ${#paths[@]} -eq 0 ]] || git diff --cached --quiet -- "${paths[@]}"; then
   fi
   exit 4
 fi
-
-warn_dirty() {
-  local dirty
-  dirty="$(git status --short)"
-  [[ -n "$dirty" ]] || return 0
-  echo "warning: left outside the commit (not in $1):" >&2
-  printf '%s\n' "$dirty" >&2
-}
 
 # --- a repair of an already committed task: no marker, no counter ---
 if [[ -n "$fix_n" ]]; then

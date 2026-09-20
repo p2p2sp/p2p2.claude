@@ -92,7 +92,11 @@ Per task, once its coder returns:
 Dispatch `viber:test-runner` with a report path `.temp/viber/<plan-key>/tests-<round>.md`.
 
 - `VERDICT: PASS` or `VERDICT: SKIP` -> `TaskUpdate` -> completed.
-- `VERDICT: FAIL` -> dispatch `viber:task-coder` (model `sonnet`) with `spec:`, the returned `REPORT` path as `report:` and `notes: .temp/viber/<plan-key>/repair-<round>-coder.md`, commit its `FILES:` line with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id> <round> <file> [<file>...]` - `<id>` is the task the failure belongs to, which the index's `files` column resolves, one call per task when the fix spans several. The script stages nothing it was not given and takes the subject from that task's heading. Then run `viber:test-runner` again with the next round. After 2 rounds -> `AskUserQuestion`: retry / accept / abort.
+- `VERDICT: FAIL` -> dispatch `viber:task-coder` (model `sonnet`) with `spec:`, the returned `REPORT` path as `report:` and `notes: .temp/viber/<plan-key>/repair-<round>-coder.md`. Commit every path on its `FILES:` line, each one through the form that owns it:
+  - a path the index's `files` column claims -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id> <round> <file> [<file>...]`, one call per task.
+  - a path no column claims - a regression in code the plan never touched -> one `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --repair <plan> <round> <file> [<file>...]` for all of them. Never borrow a task id to get such a file committed.
+
+  Both stage nothing they were not given and derive their own subject. Then run `viber:test-runner` again with the next round. After 2 rounds -> `AskUserQuestion`: retry / accept / abort.
 
 ## 6. Record what the build taught
 

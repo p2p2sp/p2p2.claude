@@ -21,6 +21,13 @@
  * heading, the plan untouched, and nothing the caller did not name - `.temp/`
  * reports above all - reaching the history.
  *
+ * `commit-task.sh --repair <plan-file> <round> <file>...` is that same repair when
+ * the failing file belongs to no task at all: a DERIVED subject
+ * (`fix(viber): post-test repair (round 2)`) instead of a borrowed heading, so a
+ * regression in code the plan never touched is committable without inventing a
+ * task id. It shares its staging loop with `--chore`, whose cases below prove the
+ * `.temp/` refusal for both.
+ *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
  *   node --test tests/viber/commit-task.test.ts
@@ -429,6 +436,48 @@ test("a plan path that does not exist exits 2 (never a half-run against a typo'd
     const result = run(repo.dir, repo.env, ["docs/_specs/nope/plan.md", "T1"]);
     assert.equal(result.status, 2);
     assert.match(result.stderr, /plan file not found/);
+    assert.deepEqual(subjects(repo), ["seed"]);
+  });
+});
+
+// --- --repair: a post-test fix outside the plan's file map ------------------
+
+test("--repair commits a fix in a file no task's map names, under a derived subject and with the plan untouched", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/legacy.ts", "the regression the suite caught\n");
+    const before = readPlan(repo);
+
+    const result = run(repo.dir, repo.env, ["--repair", PLAN_REL, "2", "src/legacy.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^committed: [0-9a-f]{7,}\n/);
+    assert.match(result.stdout, /^subject: fix\(viber\): post-test repair \(round 2\)$/m);
+    assert.match(result.stdout, /^progress: unchanged$/m);
+
+    assert.equal(subjects(repo)[0], "fix(viber): post-test repair (round 2)");
+    assert.deepEqual(committedFiles(repo), ["src/legacy.ts"]);
+    assert.match(repo.git("log", "-1", "--format=%b").stdout, /Refs: docs\/_specs\/\S+ post-test fix 2/);
+    assert.equal(readPlan(repo), before);
+  });
+});
+
+test("--repair without a numeric round, without a file, or against a missing plan exits 2 (the fallback never becomes a way to commit anything at all)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/legacy.ts", "the regression the suite caught\n");
+
+    const noRound = run(repo.dir, repo.env, ["--repair", PLAN_REL, "src/legacy.ts"]);
+    assert.equal(noRound.status, 2);
+    assert.match(noRound.stderr, /usage: commit-task\.sh/);
+
+    const noFiles = run(repo.dir, repo.env, ["--repair", PLAN_REL, "1"]);
+    assert.equal(noFiles.status, 2);
+    assert.match(noFiles.stderr, /usage: commit-task\.sh/);
+
+    const noPlan = run(repo.dir, repo.env, ["--repair", "docs/_specs/nope/plan.md", "1", "src/legacy.ts"]);
+    assert.equal(noPlan.status, 2);
+    assert.match(noPlan.stderr, /plan file not found/);
+
     assert.deepEqual(subjects(repo), ["seed"]);
   });
 });

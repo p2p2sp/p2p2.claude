@@ -75,11 +75,13 @@ plugin-named dot-dir, no state file.
   subject and the history reads like the plan. The id is also the name of the task's own file, so
   `plan-index.sh` refuses one carrying anything but letters, digits, `-` and `_`. A post-test repair
   is a second commit against the same task (`<plan> <id> <round> <file>...`), subject
-  `T<n>(<round>) - <title>`, progress untouched. `--chore <file>...` is the third and last form:
-  the memory and rule files the close produced, which no task owns, under a subject the script
-  DERIVES from the paths. No form runs `git add -A` over the tree and no form commits the index as
-  a whole - all three pass their own paths to `git commit` - and a `.temp/` entry is refused
-  outright.
+  `T<n>(<round>) - <title>`, progress untouched. Two flag forms cover what the task map does not:
+  `--repair <plan> <round> <file>...` for a post-test fix in code no task's `Files:` names (subject
+  `fix(viber): post-test repair (round <n>)`), so a regression outside the plan is never attributed
+  to a borrowed task id, and `--chore <file>...` for the memory and rule files the close produced.
+  Both DERIVE their subject rather than take one. No form runs `git add -A` over the tree and no
+  form commits the index as a whole - all four pass their own paths to `git commit` - and a
+  `.temp/` entry is refused outright.
 - **`Files:` is a machine-readable map, not prose.** Comma-separated exact repo-relative paths on
   one line, no globs, no directories, no annotations. `commit-task.sh` stages that list literally,
   and `plan-index.sh` compares it across tasks: a plan where two tasks with no dependency path
