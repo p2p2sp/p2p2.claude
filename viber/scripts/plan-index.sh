@@ -12,9 +12,19 @@
 #   plan: <path>
 #   title: <plan title>
 #   progress: <done>/<total>
+#   skipped: T4                     only when the plan carries the marker
+#   unreviewed: T3                  only when the plan carries the marker
+#   closed: memory rules            only when the plan carries the marker
 #   tasks: id | state | tdd | deps | files | title
 #   T1 | done | none     | -  | .claude/settings.json | chore: ...
 #   T2 | todo | required | T1 | src/a.ts,src/b.ts     | feat: ...
+#   dirty: T2 | src/a.ts            only for a task whose own files are dirty
+#
+# The three markers and the "dirty" lines are what a session that did not start
+# the build needs. "state" is "done", "skipped" or "todo"; a "dirty" line means
+# that task's own files carry uncommitted work, so an earlier session was cut off
+# mid-task and a fresh coder would land on top of it. Everything else a resume
+# needs is already derivable, so nothing here is stored twice.
 #
 # "Files:" is a comma-separated list of exact repo-relative file paths - no globs,
 # no directories, no annotations - so the same list drives the commit and the
@@ -76,26 +86,51 @@ if [[ "$mode" == "--split" ]] && { [[ "${plan##*/}" != "plan.md" ]] || [[ "$dir"
   exit 2
 fi
 
+# Uncommitted work, so a task a previous session left half-finished can be told
+# apart from one nobody has started. Read once here rather than per task, and
+# empty outside a git repository - the index still has to come out.
+#   -z   no C-quoting, so a non-ASCII path still compares to a "Files:" entry
+changed=""
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  skiprec=0
+  while IFS= read -r -d '' rec; do
+    # a rename/copy record is followed by a second one carrying the old path
+    if [[ $skiprec -eq 1 ]]; then skiprec=0; continue; fi
+    if [[ "${rec:0:2}" == *[RC]* ]]; then skiprec=1; fi
+    changed="$changed${rec:3}"$'\n'
+  done < <(git status --porcelain --untracked-files=all -z 2>/dev/null)
+fi
+
 # The path travels through ENVIRON, not -v: awk -v expands escape sequences and
 # would mangle a Windows path containing backslashes.
-plan="$plan" awk '
+plan="$plan" changed="$changed" awk '
 function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
 function val(s)  { sub(/^[^:]*:/, "", s); return trim(s) }
 function fail(msg) { printf "error: %s\n", msg > "/dev/stderr"; err = 1 }
 
-BEGIN { n = 0; ncrit = 0; err = 0; title = ""; done = ""; plan = ENVIRON["plan"] }
+BEGIN {
+  n = 0; ncrit = 0; err = 0; title = ""
+  done = ""; skipped = ""; unrev = ""; closed = ""
+  plan = ENVIRON["plan"]
+  m = split(ENVIRON["changed"], ch, /\n/)
+  for (k = 1; k <= m; k++) if (ch[k] != "") chg[ch[k]] = 1
+}
 
 # plan title: the first H1
 /^#[[:space:]]/ && title == "" { title = trim(substr($0, 2)); next }
 
-# completed tasks: <!-- done: 01 02 -->
-/<!--[[:space:]]*done:/ {
-  s = $0
-  sub(/.*<!--[[:space:]]*done:/, "", s)
+# the plan carries its own state: what is committed, and the two decisions plus
+# the close that no later session could read off the tree
+function marker(s) {
+  sub(/.*<!--[[:space:]]*[A-Za-z]+:/, "", s)
   sub(/-->.*/, "", s)
-  done = trim(s)
-  next
+  s = trim(s)
+  return (s == "-" ? "" : s)
 }
+/<!--[[:space:]]*done:/       { done    = marker($0); next }
+/<!--[[:space:]]*skipped:/    { skipped = marker($0); next }
+/<!--[[:space:]]*unreviewed:/ { unrev   = marker($0); next }
+/<!--[[:space:]]*closed:/     { closed  = marker($0); next }
 
 # acceptance criteria: the numbered list inside its own section
 /^##[[:space:]]/ { incrit = ($0 ~ /Acceptance criteria/) ? 1 : 0 }
@@ -220,20 +255,36 @@ END {
 
   if (err) exit 4
 
-  # task state from the done list
+  # task state from the done list, and the tasks the user dropped from the
+  # skipped one - both are settled, neither is dispatched again
   ndone = 0
   split(done, dlist, /[[:space:]]+/)
   for (k in dlist) if (dlist[k] != "" && dlist[k] != "-") isdone[dlist[k]] = 1
+  split(skipped, slist, /[[:space:]]+/)
+  for (k in slist) if (slist[k] != "" && slist[k] != "-") isskipped[slist[k]] = 1
   for (i = 1; i <= n; i++) if (id[i] in isdone) ndone++
 
   printf "plan: %s\n", plan
   printf "title: %s\n", title
   printf "progress: %d/%d\n", ndone, n
+  if (skipped != "") printf "skipped: %s\n", skipped
+  if (unrev   != "") printf "unreviewed: %s\n", unrev
+  if (closed  != "") printf "closed: %s\n", closed
   printf "tasks: id | state | tdd | deps | files | title\n"
   for (i = 1; i <= n; i++) {
     f = ""
     for (k = 1; k <= nf[i]; k++) f = (f == "" ? fpath[i, k] : f "," fpath[i, k])
-    printf "%s | %s | %s | %s | %s | %s\n", id[i], (id[i] in isdone ? "done" : "todo"), tdd[i], dnorm[i], f, ttl[i]
+    state = (id[i] in isdone ? "done" : (id[i] in isskipped ? "skipped" : "todo"))
+    printf "%s | %s | %s | %s | %s | %s\n", id[i], state, tdd[i], dnorm[i], f, ttl[i]
+  }
+
+  # a task whose own files carry uncommitted work: an earlier session was cut
+  # off inside it, and a fresh coder would land on top of what it left
+  for (i = 1; i <= n; i++) {
+    d = ""
+    for (k = 1; k <= nf[i]; k++)
+      if (fpath[i, k] in chg) d = (d == "" ? fpath[i, k] : d "," fpath[i, k])
+    if (d != "") printf "dirty: %s | %s\n", id[i], d
   }
 }
 ' "$plan"

@@ -3,11 +3,12 @@
 # commit-task.sh - commits one finished plan task and records it in the plan.
 #
 # Usage:
-#   commit-task.sh <plan-file> <task-id>
+#   commit-task.sh <plan-file> <task-id> [--unreviewed]
 #   commit-task.sh <plan-file> <task-id> <fix-number> <file> [<file>...]
+#   commit-task.sh --skip <plan-file> <task-id>
 #   commit-task.sh --repair <plan-file> <round> <file> [<file>...]
-#   commit-task.sh --chore <file> [<file>...]
-#   commit-task.sh --qa <file> [<file>...]
+#   commit-task.sh --chore <plan-file> <file> [<file>...]
+#   commit-task.sh --qa <plan-file> <file> [<file>...]
 #   commit-task.sh --e2e <file> [<file>...]
 #
 # The two positional forms take the commit subject from the task's own heading
@@ -29,17 +30,17 @@
 # so no caller borrows another task's heading to get the fix committed.
 #
 # --chore commits the knowledge files a build's close produced - the project
-# memory and rule files. It takes no plan and no task id, because no task owns
-# those files, and its subject is DERIVED from the paths (a CLAUDE.md -> memory,
-# a .claude/rules/ file -> rules, both -> both), so the caller never composes a
-# commit subject here either.
+# memory and rule files. It takes no task id, because no task owns those files,
+# and its subject is DERIVED from the paths (a CLAUDE.md -> memory, a
+# .claude/rules/ file -> rules, both -> both), so the caller never composes a
+# commit subject here either. It takes the plan to record what it closed.
 #
 # --qa commits the QA documents a build's close produced, and --e2e the
 # Playwright specs a later e2e pass generated plus the handoff file it updated.
-# Both take no plan and no task id for the same reason --chore does not, and
-# both carry a FIXED derived subject ("docs(viber): qa scenarios",
-# "test(viber): e2e specs") - no form of this script ever takes a subject from
-# its caller.
+# Neither takes a task id for the same reason --chore does not, and both carry a
+# FIXED derived subject ("docs(viber): qa scenarios", "test(viber): e2e specs") -
+# no form of this script ever takes a subject from its caller. --e2e takes no
+# plan either: the e2e pass runs after the build, so nothing resumes on it.
 #
 # No form ever stages a path the caller did not name, and every form commits
 # through its own pathspec, so a path staged before or beside the run stays in
@@ -55,9 +56,26 @@
 # be skipped forever on resume. Either the commit exists and the marker is set, or
 # neither is.
 #
+# Three more markers are created on demand beside it, so a plan that never needed
+# one never grows it and a plan written before they existed still works. They
+# carry what a later session cannot derive from the tree:
+#   <!-- skipped: T4 -->        --skip, the user dropped that task
+#   <!-- unreviewed: T7 -->     --unreviewed, the user waived the review gate
+#   <!-- closed: memory qa -->  --chore / --qa, that part of the close is done
+# Only --skip writes without committing: it has no commit of its own to ride in,
+# so the marker waits in the plan for whichever commit comes next.
+#
+# Every form also stages the run's own trail - the notes and reports under
+# <run-dir>/work/ - with the commit it belongs to, so the trail travels with the
+# code it describes and reaches another machine. The paths are DERIVED from the
+# task id or the round, never taken from the caller, so a parallel task's notes
+# cannot ride along.
+#
 # stdout: "committed: <sha>" and "progress: x/N" ("unchanged" for a fix) - plus,
 #         for every flag form, the derived "subject: <line>"
-# stderr: a warning listing changed paths no task in the plan claims
+# stderr: a warning listing changed paths no task in the plan claims, the run's
+#         own directory excluded - it holds the plan, the decomposition and the
+#         trail, which no "Files:" line names and every form commits itself
 #
 # exit != 0:
 #   2 - bad arguments / missing plan
@@ -67,10 +85,95 @@
 #       (the named files stay staged, so the call can be retried as is)
 #
 set -euo pipefail
+shopt -s nullglob
 
 usage() {
-  echo "error: usage: commit-task.sh <plan-file> <task-id> [<fix-number> <file> [<file>...]] | --repair <plan-file> <round> <file> [<file>...] | --chore <file> [<file>...] | --qa <file> [<file>...] | --e2e <file> [<file>...]" >&2
+  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed | <fix-number> <file> [<file>...]] | --skip <plan-file> <task-id> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...]" >&2
   exit 2
+}
+
+# The run directory of a plan, empty for a plan with no directory part.
+run_dir() {
+  [[ "$1" == */* ]] || return 0
+  printf '%s\n' "${1%/*}"
+}
+
+# The run's trail files matching the given basename globs, one per line. The
+# globs are formed from a task id or a round, so what comes back is always the
+# trail of the commit being made - never another task's work in progress.
+trail_paths() {
+  local dir="$1" g f
+  shift
+  [[ -n "$dir" && -d "$dir/work" ]] || return 0
+  for g in "$@"; do
+    for f in "$dir/work/"$g; do
+      [[ -f "$f" ]] && printf '%s\n' "$f"
+    done
+  done
+}
+
+# Appends a value to one of the plan's markers, creating the marker line right
+# below <!-- done: --> when the plan does not carry it yet. Appending the same
+# value twice is a no-op, and "done" also recomputes the "## Tasks (x/N)" header.
+# stdout: "x/N" for done, nothing for the other markers.
+mark_plan() {
+  local plan="$1" name="$2" want="$3" tmp="$1.tmp.$$"
+  awk -v name="$name" -v want="$want" '
+function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
+/<!--[[:space:]]*TASK[[:space:]]*-->/ { ntask++ }
+{ lines[NR] = $0 }
+$0 ~ ("<!--[[:space:]]*" name ":") && row == 0 { row = NR }
+/<!--[[:space:]]*done:/ && donerow == 0 { donerow = NR }
+/^##[[:space:]]*Tasks/ && hdrrow == 0 { hdrrow = NR }
+END {
+  d = ""
+  if (row) {
+    s = lines[row]
+    sub(/.*<!--[[:space:]]*[A-Za-z]+:/, "", s); sub(/-->.*/, "", s)
+    d = trim(s)
+    if (d == "-") d = ""
+  }
+  already = 0
+  m = split(d, cur, /[[:space:]]+/)
+  for (k = 1; k <= m; k++) if (cur[k] == want) already = 1
+  if (!already) d = trim(d " " want)
+
+  marker = "<!-- " name ": " (d == "" ? "-" : d) " -->"
+  if (row) lines[row] = marker
+
+  if (name == "done") {
+    ndone = 0
+    m = split(d, cur, /[[:space:]]+/)
+    for (k = 1; k <= m; k++) if (cur[k] != "") ndone++
+    if (hdrrow) lines[hdrrow] = sprintf("## Tasks (%d/%d)", ndone, ntask)
+  }
+
+  # a marker the plan does not carry is inserted below the done line, or below
+  # the task header when the plan has neither
+  anchor = (donerow ? donerow : hdrrow)
+  for (i = 1; i <= NR; i++) {
+    print lines[i]
+    if (!row && i == anchor) print marker
+  }
+  if (!row && !anchor) print marker
+
+  if (name == "done") printf "%d/%d\n", ndone, ntask > "/dev/stderr"
+}
+' "$plan" > "$tmp" 2> "$tmp.progress"
+  mv -f "$tmp" "$plan"
+  cat "$tmp.progress"
+  rm -f "$tmp.progress"
+}
+
+# A marker is written BEFORE the commit it has to ride in, so every failure from
+# that point on puts the plan back: a plan claiming what the history does not
+# show would mislead every later session.
+backup=""
+restore_note="nothing was recorded"
+restore_plan() {
+  [[ -n "$backup" && -f "$backup" ]] || return 0
+  mv -f "$backup" "$plan"
+  echo "error: not committed - plan rolled back, $restore_note" >&2
 }
 
 # Every path the plan's tasks claim, one per line - the whole map, not this
@@ -98,19 +201,45 @@ intask && /^-[[:space:]]*Files:/ {
 #                "dir/", which no "Files:" entry could match
 #   -z           no C-quoting, so a non-ASCII path still compares
 warn_unclaimed() {
-  local claimed unclaimed="" rec p skip=0
+  local claimed unclaimed="" rec p skip=0 dir
   claimed="$(plan_files "$1")"
+  dir="$(run_dir "$1")"
   while IFS= read -r -d '' rec; do
     # a rename/copy record is followed by a second one carrying the old path
     if [[ $skip -eq 1 ]]; then skip=0; continue; fi
     if [[ "${rec:0:2}" == *[RC]* ]]; then skip=1; fi
     p="${rec:3}"
+    # the run's own directory is not part of the file map and is committed by
+    # the forms that write it, so it is never "unclaimed"
+    [[ -n "$dir" && "$p" == "$dir/"* ]] && continue
     printf '%s\n' "$claimed" | grep -Fxq -- "$p" || unclaimed="$unclaimed$p"$'\n'
   done < <(git status --porcelain --untracked-files=all -z)
   [[ -n "$unclaimed" ]] || return 0
   echo "warning: changed, claimed by no task in the plan:" >&2
   printf '%s' "$unclaimed" >&2
 }
+
+# --- the one form that records a decision instead of a commit ---
+# The user dropped this task, which no later session can read off the tree: an
+# untouched task and an abandoned one look exactly alike. The marker has no
+# commit of its own to ride in and waits in the plan for the next one.
+if [[ "${1:-}" == "--skip" ]]; then
+  plan="${2:-}"
+  task_id="${3:-}"
+  [[ -n "$plan" && -n "$task_id" && $# -eq 3 ]] || usage
+  if [[ ! -f "$plan" ]]; then
+    echo "error: plan file not found: $plan" >&2
+    exit 2
+  fi
+  if ! grep -qE "^###[[:space:]]+$task_id[[:space:]]+-[[:space:]]" "$plan"; then
+    echo "error: no task '$task_id' in $plan" >&2
+    exit 3
+  fi
+  mark_plan "$plan" skipped "$task_id" >/dev/null
+  echo "skipped: $task_id"
+  echo "progress: unchanged"
+  exit 0
+fi
 
 # --- the forms no task owns: a post-test fix outside the plan's file map, and
 # --- the knowledge, QA and test files a run produced beside its task map ---
@@ -119,15 +248,20 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
   shift
 
   round=""
-  if [[ "$form" == "--repair" ]]; then
+  plan=""
+  if [[ "$form" != "--e2e" ]]; then
     plan="${1:-}"
-    round="${2:-}"
-    [[ -n "$plan" && "$round" =~ ^[0-9]+$ ]] || usage
+    [[ -n "$plan" ]] || usage
     if [[ ! -f "$plan" ]]; then
       echo "error: plan file not found: $plan" >&2
       exit 2
     fi
-    shift 2
+    shift
+    if [[ "$form" == "--repair" ]]; then
+      round="${1:-}"
+      [[ "$round" =~ ^[0-9]+$ ]] || usage
+      shift
+    fi
   fi
   [[ $# -gt 0 ]] || usage
 
@@ -152,11 +286,21 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
     exit 4
   fi
 
-  # the subject follows the form and the paths, so nothing composes it
+  # a post-test round leaves its own trail: the run's test report and the notes
+  # of the coder that repaired it
+  if [[ "$form" == "--repair" ]]; then
+    while IFS= read -r t; do
+      [[ -n "$t" ]] || continue
+      git add -A -- "$t" 2>/dev/null && paths+=("$t")
+    done < <(trail_paths "$(run_dir "$plan")" "tests-$round.md" "repair-$round-coder.md")
+  fi
+
+  # the subject follows the form and the paths, so nothing composes it, and the
+  # close records in the plan which half of it is now done
+  closed=""
   case "$form" in
     --repair)
       subject="fix(viber): post-test repair (round $round)"
-      git commit -m "$subject" -m "Refs: $plan post-test fix $round" -- "${paths[@]}" >&2 || exit 5
       ;;
     --chore)
       mem=0
@@ -167,23 +311,43 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
           .claude/rules/*|*/.claude/rules/*) rul=1 ;;
         esac
       done
-      if   [[ $mem -eq 1 && $rul -eq 1 ]]; then subject="chore(viber): update project memory and rules"
-      elif [[ $mem -eq 1 ]];               then subject="chore(viber): update project memory"
-      elif [[ $rul -eq 1 ]];               then subject="chore(viber): update project rules"
-      else                                      subject="chore(viber): update project knowledge"
+      if   [[ $mem -eq 1 && $rul -eq 1 ]]; then subject="chore(viber): update project memory and rules"; closed="memory rules"
+      elif [[ $mem -eq 1 ]];               then subject="chore(viber): update project memory";           closed="memory"
+      elif [[ $rul -eq 1 ]];               then subject="chore(viber): update project rules";            closed="rules"
+      else                                      subject="chore(viber): update project knowledge";        closed="memory rules"
       fi
-
-      git commit -m "$subject" -- "${paths[@]}" >&2 || exit 5
       ;;
     --qa)
       subject="docs(viber): qa scenarios"
-      git commit -m "$subject" -- "${paths[@]}" >&2 || exit 5
+      closed="qa"
       ;;
     --e2e)
       subject="test(viber): e2e specs"
-      git commit -m "$subject" -- "${paths[@]}" >&2 || exit 5
       ;;
   esac
+
+  if [[ -n "$closed" ]]; then
+    backup="$plan.bak.$$"
+    restore_note="the close is NOT recorded"
+    trap restore_plan EXIT
+    cp -p "$plan" "$backup"
+    for c in $closed; do
+      mark_plan "$plan" closed "$c" >/dev/null
+    done
+    git add -- "$plan" || exit 5
+    paths+=("$plan")
+  fi
+
+  case "$form" in
+    --repair)     git commit -m "$subject" -m "Refs: $plan post-test fix $round" -- "${paths[@]}" >&2 || exit 5 ;;
+    --chore|--qa) git commit -m "$subject" -m "Refs: $plan close" -- "${paths[@]}" >&2 || exit 5 ;;
+    --e2e)        git commit -m "$subject" -- "${paths[@]}" >&2 || exit 5 ;;
+  esac
+
+  if [[ -n "$backup" ]]; then
+    rm -f "$backup"
+    backup=""
+  fi
 
   echo "committed: $(git rev-parse --short HEAD)"
   echo "subject: $subject"
@@ -202,9 +366,13 @@ if [[ -z "$plan" || -z "$task_id" ]]; then
 fi
 
 # A fix names its round and every file it touched; a plain task commit takes both
-# from the plan.
+# from the plan. --unreviewed is the user waiving the review gate on that commit.
 fix_n=""
-if [[ $# -gt 2 ]]; then
+unreviewed=0
+if [[ "${3:-}" == "--unreviewed" ]]; then
+  [[ $# -eq 3 ]] || usage
+  unreviewed=1
+elif [[ $# -gt 2 ]]; then
   fix_n="${3:-}"
   if [[ ! "$fix_n" =~ ^[0-9]+$ ]] || [[ $# -lt 4 ]]; then
     usage
@@ -289,6 +457,19 @@ if [[ ${#paths[@]} -eq 0 ]] || git diff --cached --quiet -- "${paths[@]}"; then
   exit 4
 fi
 
+# --- the run's own trail, derived from the task or the round it belongs to ---
+# A plain commit carries the task's notes and every review report it spent; a fix
+# carries its round's test report and the notes of the coder that repaired it.
+if [[ -n "$fix_n" ]]; then
+  trail=("tests-$fix_n.md" "repair-$fix_n-coder.md")
+else
+  trail=("$task_id-coder.md" "review-$task_id-*.md")
+fi
+while IFS= read -r t; do
+  [[ -n "$t" ]] || continue
+  git add -A -- "$t" 2>/dev/null && paths+=("$t")
+done < <(trail_paths "$(run_dir "$plan")" "${trail[@]}")
+
 # --- a repair of an already committed task: no marker, no counter ---
 if [[ -n "$fix_n" ]]; then
   git commit -m "$subject" -m "Refs: $plan task $task_id fix $fix_n" -- "${paths[@]}" >&2 || exit 5
@@ -302,49 +483,14 @@ fi
 # Written before the commit so it lands in it, and undone by the trap on any
 # failure from here on, so "done" never outlives a commit that did not happen.
 backup="$plan.bak.$$"
-restore_plan() {
-  [[ -n "$backup" && -f "$backup" ]] || return 0
-  mv -f "$backup" "$plan"
-  echo "error: not committed - plan rolled back, task $task_id is NOT marked done" >&2
-}
+restore_note="task $task_id is NOT marked done"
 trap restore_plan EXIT
 cp -p "$plan" "$backup"
 
-tmp="$plan.tmp.$$"
-awk -v want="$task_id" '
-function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
-/<!--[[:space:]]*TASK[[:space:]]*-->/ { ntask++ }
-{ lines[NR] = $0 }
-/<!--[[:space:]]*done:/ && donerow == 0 { donerow = NR }
-/^##[[:space:]]*Tasks/ && hdrrow == 0 { hdrrow = NR }
-END {
-  d = ""
-  if (donerow) {
-    s = lines[donerow]
-    sub(/.*<!--[[:space:]]*done:/, "", s); sub(/-->.*/, "", s)
-    d = trim(s)
-    if (d == "-") d = ""
-  }
-  already = 0
-  m = split(d, cur, /[[:space:]]+/)
-  for (k = 1; k <= m; k++) if (cur[k] == want) already = 1
-  if (!already) d = trim(d " " want)
-
-  ndone = 0
-  m = split(d, cur, /[[:space:]]+/)
-  for (k = 1; k <= m; k++) if (cur[k] != "") ndone++
-
-  if (donerow) lines[donerow] = "<!-- done: " d " -->"
-  if (hdrrow)  lines[hdrrow]  = sprintf("## Tasks (%d/%d)", ndone, ntask)
-
-  for (i = 1; i <= NR; i++) print lines[i]
-  printf "%d/%d\n", ndone, ntask > "/dev/stderr"
-}
-' "$plan" > "$tmp" 2> "$tmp.progress"
-
-mv -f "$tmp" "$plan"
-progress="$(cat "$tmp.progress")"
-rm -f "$tmp.progress"
+progress="$(mark_plan "$plan" done "$task_id")"
+if [[ $unreviewed -eq 1 ]]; then
+  mark_plan "$plan" unreviewed "$task_id" >/dev/null
+fi
 
 git add -- "$plan" || exit 5
 

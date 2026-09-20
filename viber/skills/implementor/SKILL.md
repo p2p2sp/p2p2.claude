@@ -30,7 +30,7 @@ Every plan gets its own dated directory, `docs/_specs/<yyyy-mm-dd-HH-mm-ss>_<slu
 2. The path plan mode named for the approved plan, when this context still holds it.
 3. Neither - `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh"` with no argument returns the plan most recently worked on. Exit 3 means nothing has landed yet: `AskUserQuestion` for the approved plan's full path, then land that.
 
-Every path this run spends is derived from the printed one: `<dir>` is the plan's own directory and `<plan-key>` its name, the `key:` line.
+Every path this run spends is derived from the printed one: `<dir>` is the plan's own directory, and `<dir>/work/` holds every note and report the run produces - committed with the task it belongs to, so it reaches the next session and the next machine.
 
 ## 2. Validate and decompose
 
@@ -40,7 +40,11 @@ That index is your whole view of the plan; the task files are the agents'. Each 
 
 Non-zero exit means the plan itself is broken: report the error and stop, repairing it belongs to the planner. A zero exit guarantees that no two tasks without a dependency path between them share a file, so `deps` is the only thing that keeps two tasks apart.
 
-Tasks in state `done` are already committed - skip them. That is also how a build resumes after a context reset.
+State `done` is committed and `skipped` was dropped by the user - neither is dispatched again. That is how a build resumes after a context reset, in this session or a later one, and the rest of what an interrupted session left comes off the same index:
+
+- `dirty: <id> | <paths>` - that task's own files hold uncommitted work. Before dispatching it, `AskUserQuestion` naming the task and those paths: continue on that work (dispatch its coder with `resume: <paths>` added to its lines), start it over (dispatch unchanged - the coder rewrites what it finds), or drop it (`"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, then handle it as a skip in step 4).
+- `unreviewed: <ids>` - committed with the gate waived; carry them to the final summary.
+- `closed: <parts>` - which halves of step 6 are already recorded.
 
 `TaskCreate` the remaining tasks, a final test run, and one entry per switch the config block above reports as `true`.
 
@@ -67,7 +71,7 @@ Dispatch: one `viber:task-coder` per task (Agent tool, `model` = that task's tie
 ```
 spec: <dir>/spec.md
 task: <dir>/tasks/<id>.md
-notes: .temp/viber/<plan-key>/<id>-coder.md
+notes: <dir>/work/<id>-coder.md
 ```
 
 `TaskUpdate` -> in progress.
@@ -81,18 +85,18 @@ Aim for:
 
 Per task, once its coder returns:
 
-1. `VERDICT: FAIL` -> `AskUserQuestion` naming the task and its `REASON:` line: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its three lines plus `reason: <the returned REASON>`. Abort ends the run; skip drops that task and every task depending on it, and leaves its half-finished files uncommitted in the tree - name them in the final summary.
-2. Profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier) with the same `spec:` and `task:` lines plus `report: .temp/viber/<plan-key>/review-<id>-<round>.md`, round starting at 1.
-   - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its three lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort. `accept` is the user overriding the gate: go to step 3 and commit the task as it stands, and name it in the final summary as unreviewed.
-3. `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`. It takes the commit subject from the task's own heading in the plan, stages only the task's files, commits, and records the task as done. Its warning names changed paths no task in the plan claims - the same split step 5 commits by, so carry those paths to the final summary. A non-zero exit means nothing was committed and nothing recorded -> `AskUserQuestion`: retry / skip / abort.
+1. `VERDICT: FAIL` -> `AskUserQuestion` naming the task and its `REASON:` line: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its three lines plus `reason: <the returned REASON>`. Abort ends the run; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it, and leaves its half-finished files uncommitted in the tree - name them in the final summary.
+2. Profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier) with the same `spec:` and `task:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
+   - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its three lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort. `accept` is the user overriding the gate: go to step 3, commit with `--unreviewed` appended, and name the task in the final summary as unreviewed.
+3. `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`. It takes the commit subject from the task's own heading in the plan, stages only the task's files and its own notes and reports, commits, and records the task as done. Its warning names changed paths no task in the plan claims - the same split step 5 commits by, so carry those paths to the final summary. A non-zero exit means nothing was committed and nothing recorded -> `AskUserQuestion`: retry / skip / abort.
 4. `TaskUpdate` -> completed.
 
 ## 5. Close
 
-Dispatch `viber:test-runner` with a report path `.temp/viber/<plan-key>/tests-<round>.md`.
+Dispatch `viber:test-runner` with a report path `<dir>/work/tests-<round>.md`.
 
 - `VERDICT: PASS` or `VERDICT: SKIP` -> `TaskUpdate` -> completed.
-- `VERDICT: FAIL` -> dispatch `viber:task-coder` (model `sonnet`) with `spec:`, the returned `REPORT` path as `report:` and `notes: .temp/viber/<plan-key>/repair-<round>-coder.md`. Commit every path on its `FILES:` line, each one through the form that owns it:
+- `VERDICT: FAIL` -> dispatch `viber:task-coder` (model `sonnet`) with `spec:`, the returned `REPORT` path as `report:` and `notes: <dir>/work/repair-<round>-coder.md`. Commit every path on its `FILES:` line, each one through the form that owns it:
   - a path the index's `files` column claims -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id> <round> <file> [<file>...]`, one call per task.
   - a path no column claims - a regression in code the plan never touched -> one `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --repair <plan> <round> <file> [<file>...]` for all of them. Never borrow a task id to get such a file committed.
 
@@ -100,12 +104,12 @@ Dispatch `viber:test-runner` with a report path `.temp/viber/<plan-key>/tests-<r
 
 ## 6. Record what the build taught
 
-Only for the switches the config block above reports as `true`, all of them dispatched in one message - they write in separate places and never wait for each other:
+Only for the switches the config block above reports as `true` and not already named on the index's `closed:` line, all of them dispatched in one message - they write in separate places and never wait for each other:
 
-- `memory: true` -> `viber:memory-writer`, carrying `spec: <dir>/spec.md` and `notes: .temp/viber/<plan-key>/`, the directory the coders left their conclusions in.
+- `memory: true` -> `viber:memory-writer`, carrying `spec: <dir>/spec.md` and `notes: <dir>/work/`, the directory the coders left their conclusions in.
 - `rules: true` -> `viber:rules-writer`, carrying those same two lines.
 - `qa: true` -> `viber:qa-writer`, carrying those two plus `refs: ${CLAUDE_PLUGIN_ROOT}/references` and `out: <dir>`, the run directory its QA documents land in.
 
-Commit what they return, one call per form and each deriving its own subject: the memory and rule paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore <file> [<file>...]`, the QA paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa <file> [<file>...]`. A form whose agents returned nothing, or only `VERDICT: NONE` -> no call for it. Then `TaskUpdate` -> completed.
+Commit what they return, one call per form and each deriving its own subject: the memory and rule paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore <plan> <file> [<file>...]`, the QA paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa <plan> <file> [<file>...]`. Both record the close in the plan. A form whose agents returned nothing, or only `VERDICT: NONE` -> no call for it. Then `TaskUpdate` -> completed.
 
 Final summary, max 5 lines: tasks committed, review rounds spent, test verdict, what memory, rules and QA recorded, anything left for the user to decide. A `qa.e2e.md` among the QA paths earns one more line - `/viber:e2e` turns it into Playwright tests.

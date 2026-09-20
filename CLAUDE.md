@@ -57,7 +57,9 @@ mechanics against `.github/scripts/release.sh` before restating them.
 
 - **Host-repo `docs/` is the one home for persisted, user-facing knowledge.** `docs/changelog/`,
   `docs/qa/`, `docs/.workflows/` (all superdev), `docs/_specs/<stamp>_<slug>/` (viber's run
-  directory: the plan, its decomposition and the build's two QA documents),
+  directory: the plan, its decomposition, the build's two QA documents and `work/`, the run's own
+  notes and reports - committed, because a build resumes from them in another session or on another
+  machine),
   `docs/business/<slug>/` (superbiz's rendered report
   only), and `docs/adr/`, the one layer TWO plugins write - superdev through its `adr` skill, viber
   through a plan task - because a host repo has one decision log, not one per track.
@@ -177,5 +179,5 @@ header comments of `hooks/scripts/*.sh`.
 | `superfix/CLAUDE.md` | `code-auditor` and its five agents - the two-track investigation sweep |
 | `superbiz/CLAUDE.md` | `idea-validator` - the side-project viability workflow |
 | `supercc/CLAUDE.md` | `skill-designer` - authoring/refactoring/splitting/linting skills and agents |
-| `viber/CLAUDE.md` | `setup` / `idea` / `planner` / `implementor` / `fixer` / `tdd` / `e2e`, their eight agents, the run directory with its decomposition and QA documents, the five plugin scripts, the QA format reference, the config switches and the plan gate |
+| `viber/CLAUDE.md` | `setup` / `idea` / `planner` / `implementor` / `fixer` / `tdd` / `e2e`, their eight agents, the run directory with its decomposition, QA documents and trail, how a build resumes, the five plugin scripts, the QA format reference, the config switches and the plan gate |
 | `tests/CLAUDE.md` | any `*.test.ts` under `tests/` - harness contract, cross-platform rules |

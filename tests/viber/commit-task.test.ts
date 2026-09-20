@@ -34,9 +34,18 @@
  *
  * `--chore`, `--qa` and `--e2e` are the three forms for what a run produces beside
  * its task map - the knowledge files a close wrote, that close's QA documents, and
- * the Playwright specs a later e2e pass generated. None takes a plan, a task id or
- * a subject: each DERIVES its own, so the plan's progress is never touched and no
- * caller can get a hand-written subject into the history through them.
+ * the Playwright specs a later e2e pass generated. None takes a task id or a
+ * subject: each DERIVES its own, so the plan's progress is never touched and no
+ * caller can get a hand-written subject into the history through them. The first
+ * two take the plan to record the close in it; `--e2e` runs after the build, when
+ * nothing resumes any more, and takes none.
+ *
+ * What a later session cannot derive from the tree is recorded in the plan beside
+ * the done marker, created on demand: `--skip` (the user dropped a task),
+ * `--unreviewed` (the user waived the review gate) and the close markers above.
+ * Every commit form also carries the run's own trail - the notes and reports
+ * under `<run-dir>/work/` - derived from the task id or the round, so a parallel
+ * task's notes never ride along and the trail reaches another machine.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -535,12 +544,12 @@ test("--chore derives its subject from the paths, so the orchestrator composes n
       seed(repo);
       for (const f of files) write(repo.dir, f, "written by the close\n");
 
-      const result = run(repo.dir, repo.env, ["--chore", ...files]);
+      const result = run(repo.dir, repo.env, ["--chore", PLAN_REL, ...files]);
       assert.equal(result.status, 0, `${files.join(",")} -> stderr: ${result.stderr}`);
       assert.match(result.stdout, /^committed: [0-9a-f]{7,}\n/);
       assert.match(result.stdout, new RegExp(`^subject: ${subject.replace(/[()]/g, "\\$&")}$`, "m"));
       assert.equal(subjects(repo)[0], subject);
-      assert.deepEqual(committedFiles(repo), [...files].sort());
+      assert.deepEqual(committedFiles(repo), [...files, PLAN_REL].sort());
     });
   }
 });
@@ -552,11 +561,12 @@ test("--chore commits nothing it was not given, and refuses a .temp/ path outrig
     write(repo.dir, ".temp/viber/run/T1-coder.md", "the notes memory was written from\n");
     write(repo.dir, "src/a.ts", "a coder left this behind\n");
 
-    const result = run(repo.dir, repo.env, ["--chore", "CLAUDE.md", ".temp/viber/run/T1-coder.md"]);
+    const result = run(repo.dir, repo.env, ["--chore", PLAN_REL, "CLAUDE.md", ".temp/viber/run/T1-coder.md"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stderr, /refused \.temp\/viber\/run\/T1-coder\.md/);
 
-    assert.deepEqual(committedFiles(repo), ["CLAUDE.md"]);
+    // the plan rides along because the close records itself there, nothing else
+    assert.deepEqual(committedFiles(repo), ["CLAUDE.md", PLAN_REL].sort());
     // git collapses an untracked directory in --short, so both show as the dir
     const dirty = repo.git("status", "--short").stdout;
     assert.match(dirty, /\?\? \.temp\//);
@@ -564,20 +574,24 @@ test("--chore commits nothing it was not given, and refuses a .temp/ path outrig
   });
 });
 
-test("--chore with nothing changed exits 4, and with no file at all exits 2", () => {
+test("--chore with nothing changed exits 4, and without a plan or a file exits 2", () => {
   withGitRepo((repo) => {
     seed(repo);
     write(repo.dir, "CLAUDE.md", "memory\n");
     repo.git("add", "-A");
     repo.git("commit", "-m", "already recorded");
 
-    const unchanged = run(repo.dir, repo.env, ["--chore", "CLAUDE.md"]);
+    const unchanged = run(repo.dir, repo.env, ["--chore", PLAN_REL, "CLAUDE.md"]);
     assert.equal(unchanged.status, 4);
     assert.match(unchanged.stderr, /no changes to commit/);
 
-    const noFiles = run(repo.dir, repo.env, ["--chore"]);
+    const noFiles = run(repo.dir, repo.env, ["--chore", PLAN_REL]);
     assert.equal(noFiles.status, 2);
     assert.match(noFiles.stderr, /usage: commit-task\.sh/);
+
+    const noPlan = run(repo.dir, repo.env, ["--chore"]);
+    assert.equal(noPlan.status, 2);
+    assert.match(noPlan.stderr, /usage: commit-task\.sh/);
   });
 });
 
@@ -585,6 +599,12 @@ test("--chore with nothing changed exits 4, and with no file at all exits 2", ()
 // --- later e2e pass generated, neither of which any task's map names ----------
 
 const RUN_DIR = "docs/_specs/2026-09-20-10-00-00_feat-x";
+
+/** --qa records the close in the plan and so takes it; --e2e runs after the
+ *  build, when nothing resumes any more, and takes no plan at all. */
+function closeArgs(form: string, files: string[]): string[] {
+  return form === "--e2e" ? [form, ...files] : [form, PLAN_REL, ...files];
+}
 
 test("--qa and --e2e each carry a fixed derived subject, so no caller composes a commit subject here either", () => {
   const cases: Array<[form: string, files: string[], subject: string]> = [
@@ -597,28 +617,32 @@ test("--qa and --e2e each carry a fixed derived subject, so no caller composes a
       seed(repo);
       for (const f of files) write(repo.dir, f, "written after the build\n");
 
-      const result = run(repo.dir, repo.env, [form, ...files]);
+      const result = run(repo.dir, repo.env, closeArgs(form, files));
       assert.equal(result.status, 0, `${form} -> stderr: ${result.stderr}`);
       assert.match(result.stdout, /^committed: [0-9a-f]{7,}\n/);
       assert.match(result.stdout, new RegExp(`^subject: ${subject.replace(/[()]/g, "\\$&")}$`, "m"));
       assert.equal(subjects(repo)[0], subject);
-      assert.deepEqual(committedFiles(repo), [...files].sort());
+      const expected = form === "--e2e" ? [...files] : [...files, PLAN_REL];
+      assert.deepEqual(committedFiles(repo), expected.sort());
     });
   }
 });
 
-test("--qa and --e2e leave the plan's progress alone (they close out no task, so nothing may be marked done)", () => {
+test("--qa and --e2e close out no task, so neither ever touches the progress counter", () => {
   for (const form of ["--qa", "--e2e"]) {
     withGitRepo((repo) => {
       seed(repo);
       const before = readPlan(repo);
       write(repo.dir, `${RUN_DIR}/qa.e2e.md`, "Base: unknown\n");
 
-      const result = run(repo.dir, repo.env, [form, `${RUN_DIR}/qa.e2e.md`]);
+      const result = run(repo.dir, repo.env, closeArgs(form, [`${RUN_DIR}/qa.e2e.md`]));
       assert.equal(result.status, 0, `${form} -> stderr: ${result.stderr}`);
       assert.doesNotMatch(result.stdout, /progress:/);
-      assert.equal(readPlan(repo), before);
-      assert.deepEqual(committedFiles(repo), [`${RUN_DIR}/qa.e2e.md`]);
+      assert.match(readPlan(repo), /<!-- done: - -->/);
+      assert.match(readPlan(repo), /^## Tasks \(0\/2\)$/m);
+      // --e2e records nothing at all; --qa adds only its closed marker
+      if (form === "--e2e") assert.equal(readPlan(repo), before);
+      else assert.match(readPlan(repo), /<!-- closed: qa -->/);
     });
   }
 });
@@ -631,11 +655,12 @@ test("--qa and --e2e commit nothing they were not given, and refuse a .temp/ pat
       write(repo.dir, ".temp/viber/e2e/launch.log", "the log the run redirected\n");
       write(repo.dir, "src/a.ts", "a coder left this behind\n");
 
-      const result = run(repo.dir, repo.env, [form, `${RUN_DIR}/qa.md`, ".temp/viber/e2e/launch.log"]);
+      const result = run(repo.dir, repo.env, closeArgs(form, [`${RUN_DIR}/qa.md`, ".temp/viber/e2e/launch.log"]));
       assert.equal(result.status, 0, `${form} -> stderr: ${result.stderr}`);
       assert.match(result.stderr, /refused \.temp\/viber\/e2e\/launch\.log/);
 
-      assert.deepEqual(committedFiles(repo), [`${RUN_DIR}/qa.md`]);
+      const expected = form === "--e2e" ? [`${RUN_DIR}/qa.md`] : [`${RUN_DIR}/qa.md`, PLAN_REL];
+      assert.deepEqual(committedFiles(repo), expected.sort());
       const dirty = repo.git("status", "--short").stdout;
       assert.match(dirty, /\?\? \.temp\//);
       assert.match(dirty, /\?\? src\//);
@@ -651,13 +676,141 @@ test("--qa and --e2e with nothing changed exit 4, and with no file at all exit 2
       repo.git("add", "-A");
       repo.git("commit", "-m", "already recorded");
 
-      const unchanged = run(repo.dir, repo.env, [form, `${RUN_DIR}/qa.md`]);
+      const unchanged = run(repo.dir, repo.env, closeArgs(form, [`${RUN_DIR}/qa.md`]));
       assert.equal(unchanged.status, 4, `${form} -> stderr: ${unchanged.stderr}`);
       assert.match(unchanged.stderr, /no changes to commit/);
 
-      const noFiles = run(repo.dir, repo.env, [form]);
+      const noFiles = run(repo.dir, repo.env, closeArgs(form, []));
       assert.equal(noFiles.status, 2);
       assert.match(noFiles.stderr, /usage: commit-task\.sh/);
     });
   }
+});
+
+// --- the run's own state: the two decisions and the trail -------------------
+
+test("a task commit carries its own trail and no other task's, so the notes travel with the code they describe", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "the work\n");
+    write(repo.dir, `${RUN_DIR}/work/T1-coder.md`, "what the diff does not say\n");
+    write(repo.dir, `${RUN_DIR}/work/review-T1-1.md`, "round 1 findings\n");
+    write(repo.dir, `${RUN_DIR}/work/T2-coder.md`, "another coder, still working\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(
+      committedFiles(repo),
+      ["src/a.ts", PLAN_REL, `${RUN_DIR}/work/T1-coder.md`, `${RUN_DIR}/work/review-T1-1.md`].sort(),
+    );
+    // the run's own directory is not part of any task's map, so it is never
+    // reported as an unclaimed change either
+    assert.doesNotMatch(result.stderr, /claimed by no task/);
+  });
+});
+
+test("a post-test fix carries its round's trail, not the task's", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "the work\n");
+    run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+
+    write(repo.dir, "src/a.ts", "the repair\n");
+    write(repo.dir, `${RUN_DIR}/work/tests-2.md`, "the failing run\n");
+    write(repo.dir, `${RUN_DIR}/work/repair-2-coder.md`, "what the repair changed\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "2", "src/a.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(
+      committedFiles(repo),
+      ["src/a.ts", `${RUN_DIR}/work/tests-2.md`, `${RUN_DIR}/work/repair-2-coder.md`].sort(),
+    );
+    assert.match(result.stdout, /^progress: unchanged$/m);
+  });
+});
+
+test("--unreviewed records the waived review gate in the same commit that marks the task done", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "accepted as it stands\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--unreviewed"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^progress: 1\/2$/m);
+
+    const plan = readPlan(repo);
+    assert.match(plan, /<!-- done: T1 -->/);
+    assert.match(plan, /<!-- unreviewed: T1 -->/);
+    // the marker is created on demand, so it rides in that same commit
+    assert.deepEqual(committedFiles(repo), ["src/a.ts", PLAN_REL].sort());
+    assert.match(repo.git("show", "HEAD:" + PLAN_REL).stdout, /<!-- unreviewed: T1 -->/);
+  });
+});
+
+test("--skip records a dropped task without a commit, because it has none to ride in", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+
+    const result = run(repo.dir, repo.env, ["--skip", PLAN_REL, "T2"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^skipped: T2$/m);
+    assert.match(result.stdout, /^progress: unchanged$/m);
+
+    const plan = readPlan(repo);
+    assert.match(plan, /<!-- skipped: T2 -->/);
+    assert.match(plan, /<!-- done: - -->/);
+    assert.match(plan, /^## Tasks \(0\/2\)$/m);
+    assert.deepEqual(subjects(repo), ["seed"]);
+    // it waits in the plan for whichever commit comes next
+    assert.deepEqual(stagedFiles(repo), []);
+    assert.match(repo.git("status", "--short").stdout, new RegExp(`M {1,2}${PLAN_REL}`));
+  });
+});
+
+test("--skip twice does not duplicate the id, and an unknown id exits 3 without touching the plan", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    run(repo.dir, repo.env, ["--skip", PLAN_REL, "T2"]);
+    run(repo.dir, repo.env, ["--skip", PLAN_REL, "T2"]);
+    assert.match(readPlan(repo), /<!-- skipped: T2 -->/);
+
+    const before = readPlan(repo);
+    const unknown = run(repo.dir, repo.env, ["--skip", PLAN_REL, "T9"]);
+    assert.equal(unknown.status, 3);
+    assert.match(unknown.stderr, /no task 'T9'/);
+    assert.equal(readPlan(repo), before);
+  });
+});
+
+test("--chore and --qa record which half of the close is done, so a resumed run does not repeat it", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "CLAUDE.md", "memory\n");
+    write(repo.dir, `${RUN_DIR}/qa.md`, "the acceptance document\n");
+
+    run(repo.dir, repo.env, ["--chore", PLAN_REL, "CLAUDE.md"]);
+    assert.match(readPlan(repo), /<!-- closed: memory -->/);
+
+    run(repo.dir, repo.env, ["--qa", PLAN_REL, `${RUN_DIR}/qa.md`]);
+    assert.match(readPlan(repo), /<!-- closed: memory qa -->/);
+    assert.match(repo.git("log", "--format=%b", "-1").stdout, new RegExp(`Refs: ${PLAN_REL} close`));
+  });
+});
+
+test("a refused close commit rolls the closed marker back, so the plan never claims a close the history does not show", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    const before = readPlan(repo);
+    write(repo.dir, "CLAUDE.md", "memory\n");
+    breakCommit(repo);
+
+    const result = run(repo.dir, repo.env, ["--chore", PLAN_REL, "CLAUDE.md"]);
+    assert.equal(result.status, 5);
+    assert.match(result.stderr, /plan rolled back, the close is NOT recorded/);
+    assert.equal(readPlan(repo), before);
+    assert.deepEqual(subjects(repo), ["seed"]);
+    assert.deepEqual(planDirEntries(repo), ["plan.md"]);
+
+    fixCommit(repo);
+  });
 });

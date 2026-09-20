@@ -7,6 +7,12 @@
  * defect nothing else in the track can see. A non-zero exit must print nothing
  * on stdout and leave nothing on disk.
  *
+ * That index is also what a session which did not start the build resumes from:
+ * the plan's own markers (`skipped`, `unreviewed`, `closed`) pass through, and a
+ * `dirty:` line names a task whose files carry uncommitted work from a session
+ * that was cut off inside it. A missing dirty line sends a fresh coder onto
+ * another one's half-finished work.
+ *
  * `plan-index.sh <plan> --split` additionally decomposes the plan in place:
  * `spec.md` (everything above `## Tasks`) plus one `tasks/<id>.md` per task,
  * carrying the block verbatim and the text of the criteria its `Covers:` line
@@ -145,6 +151,73 @@ test("state and the progress counter come from the plan's own done marker, which
     assert.match(result.stdout, /^progress: 1\/2$/m);
     assert.match(result.stdout, /^T1 \| done \|/m);
     assert.match(result.stdout, /^T2 \| todo \|/m);
+  });
+});
+
+test("the plan's other markers pass through, and a skipped task is settled rather than todo", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(
+      dir,
+      planBody(TWO_TASKS).replace(
+        "<!-- done: - -->",
+        ["<!-- done: T1 -->", "<!-- skipped: T2 -->", "<!-- unreviewed: T1 -->", "<!-- closed: memory qa -->"].join(
+          "\n",
+        ),
+      ),
+    );
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^progress: 1\/2$/m);
+    assert.match(result.stdout, /^skipped: T2$/m);
+    assert.match(result.stdout, /^unreviewed: T1$/m);
+    assert.match(result.stdout, /^closed: memory qa$/m);
+    assert.match(result.stdout, /^T2 \| skipped \|/m);
+  });
+});
+
+test("a plan carrying none of those markers reports none of them, so a run that needed no decision stays quiet", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody(TWO_TASKS));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    for (const line of [/^skipped:/m, /^unreviewed:/m, /^closed:/m, /^dirty:/m]) {
+      assert.doesNotMatch(result.stdout, line);
+    }
+  });
+});
+
+test("a task whose own files carry uncommitted work is reported dirty - that is a session cut off mid-task", () => {
+  withGitRepo((repo) => {
+    seed(repo.dir, planBody(TWO_TASKS));
+    write(repo.dir, "src/login.ts", "committed\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "seed");
+
+    // T1's file edited but not committed, T2's created but never staged
+    write(repo.dir, "src/login.ts", "half a coder's work\n");
+    write(repo.dir, "src/reject.ts", "and another\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^dirty: T1 \| src\/login\.ts$/m);
+    assert.match(result.stdout, /^dirty: T2 \| src\/reject\.ts$/m);
+    // the state itself still comes from the plan, never from the tree
+    assert.match(result.stdout, /^T1 \| todo \|/m);
+  });
+});
+
+test("a clean tree reports no dirty line, so a build that starts normally sees no resume noise", () => {
+  withGitRepo((repo) => {
+    seed(repo.dir, planBody(TWO_TASKS));
+    write(repo.dir, "src/login.ts", "committed\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "seed");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stdout, /^dirty:/m);
   });
 });
 

@@ -54,8 +54,10 @@ does not name them, every agent in the run has to guess. Write them down once.
 ## Where it writes
 
 `docs/_specs/<date>_<slug>/` holds the plan and its own progress, so a build interrupted halfway
-resumes by re-reading it. With `qa` on, the build's test scenarios land there too. Generated
+resumes by re-reading it - in a new session, or on another computer, because the notes and reports
+the run produced are committed beside the plan. With `qa` on, the build's test scenarios land there
+too. Generated
 Playwright tests go into the e2e directory your own project already uses - `/viber:e2e` asks if
-nothing names one, and creates no directory of its own. Working files go to `.temp/viber/`. Your
+nothing names one, and creates no directory of its own. Scratch files go to `.temp/viber/`. Your
 `.gitignore` and `.claude/settings.json` are only ever added to, never rewritten. Nothing else, and
 no state file.

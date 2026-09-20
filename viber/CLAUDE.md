@@ -9,9 +9,11 @@ The vibe track: understand, plan, build, then record what the build taught. SEVE
 `idea`, `planner`, `implementor`, `tdd`, `fixer`, `e2e`), EIGHT agents, FIVE plugin-level scripts, TWO
 skill-level setup scripts, ONE plugin-level reference and TWO hooks - one `PreToolUse`, one
 `SessionStart`. Everything a run produces lives in the host repo's
-`docs/_specs/<stamp>_<slug>/` (the plan carrying its own progress, the decomposition every
-agent reads, and the QA documents the close writes) and `.temp/viber/<plan-key>/` (review reports,
-test reports, the coders' notes) - no plugin-named dot-dir, no state file.
+`docs/_specs/<stamp>_<slug>/`: the plan carrying its own progress and decisions, the decomposition
+every agent reads, the QA documents the close writes, and `work/` - the coders' notes, the review
+reports and the test reports, committed with the task they belong to. Only true scratch stays in
+`.temp/viber/` (the e2e pass's launch logs and probe output) - no plugin-named dot-dir, no state
+file.
 
 ## Entry points
 
@@ -29,8 +31,9 @@ test reports, the coders' notes) - no plugin-named dot-dir, no state file.
   `ExitPlanMode`.
 - `skills/implementor/SKILL.md` - model-invocable orchestrator, `[plan-path]` argument. Lands the approved plan in the
   dated directory with `scripts/plan-path.sh --land`, decomposes it with `plan-index.sh --split`, profiles
-  each task into a model tier (haiku / sonnet / opus) and a review decision, dispatches
-  `viber:task-coder` in the widest batch the dependency and file-collision rules allow, gates each
+  each task into a model tier (haiku / sonnet / opus) and a review decision, settles with the user
+  whatever an interrupted session left half-finished,
+  dispatches `viber:task-coder` in the widest batch the dependency and file-collision rules allow, gates each
   reviewed task on `viber:task-reviewer`, commits it with `scripts/commit-task.sh`, closes on
   `viber:test-runner` and then, per switch, on `viber:memory-writer`, `viber:rules-writer` and
   `viber:qa-writer`.
@@ -61,9 +64,10 @@ test reports, the coders' notes) - no plugin-named dot-dir, no state file.
 - **One run, one directory.** `plan-path.sh` owns the layout
   `docs/_specs/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md` and is the only place a plan path is formed:
   the stamp is taken when the plan lands, so a re-run of the same slug never overwrites an earlier
-  plan, and a run already open for that slug comes back as `state: existing` instead. That directory
-  name is also the `<plan-key>` of the run's report dir, `.temp/viber/<plan-key>/`, and it holds the
-  decomposition too - one key names everything the run touches.
+  plan, and a run already open for that slug comes back as `state: existing` instead. That one
+  directory holds everything the run touches: the plan, the decomposition, `work/` and the QA
+  documents. Nothing of a run lives outside it, which is what lets another machine pick it up from
+  the history alone.
 - **`--land` moves the plan, not the model.** Plan mode writes the plan into its own directory - a
   user-level `plansDirectory`, so normally outside this repository - and approving it may clear the
   planning context. `plan-path.sh --land <src>` therefore COPIES that file into the run directory,
@@ -79,11 +83,19 @@ test reports, the coders' notes) - no plugin-named dot-dir, no state file.
   anyway. `idea` keeps writing nothing: an interview is cheap to repeat with the user who answered
   it.
 - **The plan file is the state.** `<!-- done: ... -->` plus the `## Tasks (x/N)` header carry
-  progress, so a build resumes after a context reset with no sidecar. `commit-task.sh` is what
-  advances both, and it stages ONLY the task's `Files:` list and commits through that same
-  pathspec - anything outside the file map stays uncommitted and visible, including a path
-  someone else left staged. Its stderr warning subtracts the WHOLE plan's map, not the one
-  task's: coders run in parallel, so a warning naming their work in progress would fire on
+  progress, so a build resumes after a context reset with no sidecar. Three more markers are
+  created on demand beside it, for the only things a later session cannot derive from the tree:
+  `<!-- skipped: -->` (the user dropped a task, `--skip`), `<!-- unreviewed: -->` (the user waived
+  the review gate, `--unreviewed`) and `<!-- closed: -->` (which half of the close is recorded,
+  written by `--chore` and `--qa`). Everything else a resume needs IS derivable and is therefore
+  never stored: `plan-index.sh` intersects `git status` with each task's `Files:` map and reports
+  the difference as `dirty:`, which is how an interrupted task is told from one nobody started.
+  Only `--skip` writes without a commit to ride in; its marker waits in the plan for the next one.
+  `commit-task.sh` is what advances all of this, and it stages ONLY the task's `Files:` list plus
+  the run's own trail and commits through that same pathspec - anything outside the file map stays
+  uncommitted and visible, including a path someone else left staged. Its stderr warning subtracts the WHOLE plan's map, not the one
+  task's, and the run's own directory with it: coders run in parallel, so a warning naming their
+  work in progress would fire on
   every commit, and what survives the subtraction is a change no task accounted for - the same
   split the close commits by (`--repair`). Two close-outs never run at once, because both
   rewrite the git index and the plan's progress line and nothing else in the run touches
@@ -106,13 +118,17 @@ test reports, the coders' notes) - no plugin-named dot-dir, no state file.
   `T<n>(<round>) - <title>`, progress untouched. Four flag forms cover what the task map does not:
   `--repair <plan> <round> <file>...` for a post-test fix in code no task's `Files:` names (subject
   `fix(viber): post-test repair (round <n>)`), so a regression outside the plan is never attributed
-  to a borrowed task id, and `--chore`, `--qa` and `--e2e <file>...` for the three kinds of file a
+  to a borrowed task id, and `--chore <plan>`, `--qa <plan>` and `--e2e <file>...` for the three
+  kinds of file a
   run produces beside its task map - the memory and rule files of the close, that close's QA
   documents (`docs(viber): qa scenarios`) and the Playwright specs a later `/viber:e2e` pass
-  generated plus the handoff it updated (`test(viber): e2e specs`).
+  generated plus the handoff it updated (`test(viber): e2e specs`). The first two take the plan
+  because they record the close in it; `--e2e` runs after the build, when nothing resumes any more,
+  and takes none.
   All four DERIVE their subject rather than take one. No form runs `git add -A` over the tree and no
   form commits the index as a whole - all six pass their own paths to `git commit` - and a
-  `.temp/` entry is refused outright.
+  `.temp/` entry is refused outright. A seventh form, `--skip <plan> <id>`, is the one that commits
+  nothing at all: it only records the user's decision in the plan.
 - **`Files:` is a machine-readable map, not prose.** Comma-separated exact repo-relative paths on
   one line, no globs, no directories, no annotations. `commit-task.sh` stages that list literally,
   and `plan-index.sh` compares it across tasks: a plan where two tasks with no dependency path
@@ -156,11 +172,20 @@ test reports, the coders' notes) - no plugin-named dot-dir, no state file.
   `plan-index.sh`'s output, which is what lets one context outlast a full build, and every byte
   that reaches the tree comes from a script or an agent.
 - **The coders' notes are the input of the close.** `task-coder` leaves at most 8 lines in
-  `.temp/viber/<plan-key>/<id>-coder.md` - what the diff does not say - and `memory-writer`,
+  `<dir>/work/<id>-coder.md` - what the diff does not say - and `memory-writer`,
   `rules-writer` and `qa-writer` read that directory. All three run in one dispatch and never wait
   for each other, because their scopes do not overlap: `CLAUDE.md` nodes belong to the first,
   `.claude/rules/` to the second, the run directory's QA documents to the third. The notes are what
   makes a scenario describe the behaviour that was DELIVERED rather than the one that was planned.
+- **The trail is committed, each slice with the commit that owns it.** A task's commit carries
+  `work/<id>-coder.md` and `work/review-<id>-*.md`, a post-test round carries `work/tests-<n>.md`
+  and `work/repair-<n>-coder.md` - `commit-task.sh` DERIVES those paths from the id or the round
+  and never takes them from its caller, so a parallel coder's work in progress cannot ride along.
+  That is what lets another machine read a run out of the history. The price is granularity: an
+  interrupted task's trail is committed only when the task is, so what crosses machines is whole
+  tasks, never a half-spent review round. No form sweeps `work/`, and the close does not either;
+  what a dropped or abandoned task left there is picked up by the next `--split`, which commits the
+  run directory whole.
 - **The QA documents live in the run directory, and that is what makes the close idempotent.**
   `qa-writer` writes `qa.md` (a person performs it by hand) and `qa.e2e.md` (an agent automates it)
   into `docs/_specs/<stamp>_<slug>/`, never into a `docs/qa/` of their own. That directory is
