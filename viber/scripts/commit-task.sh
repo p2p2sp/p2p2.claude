@@ -5,6 +5,7 @@
 # Usage:
 #   commit-task.sh <plan-file> <task-id>
 #   commit-task.sh <plan-file> <task-id> <fix-number> <file> [<file>...]
+#   commit-task.sh --chore <file> [<file>...]
 #
 # Both forms take the commit subject from the task's own heading line
 # ("### T1 - <title>") in the plan, so the plan's title is literally what lands
@@ -18,6 +19,12 @@
 # post-test fix), subject "T1(2) - <title>", staging only the files the caller
 # names and leaving the plan's progress counter alone.
 #
+# --chore commits what the run produced OUTSIDE the plan's task map - the project
+# memory and rule files written at the close of a build. It takes no plan and no
+# task id, because no task owns those files, and its subject is DERIVED from the
+# paths (a CLAUDE.md -> memory, a .claude/rules/ file -> rules, both -> both), so
+# the caller never composes a commit subject here either.
+#
 # Neither form ever stages a path the caller did not name, and a ".temp/" entry
 # is refused outright, so machine state and anything written outside the file
 # map stay uncommitted and visible.
@@ -30,7 +37,8 @@
 # be skipped forever on resume. Either the commit exists and the marker is set, or
 # neither is.
 #
-# stdout: "committed: <sha>" and "progress: x/N"
+# stdout: "committed: <sha>" and "progress: x/N" - or, for --chore, the derived
+#         "subject: <line>"
 # stderr: a warning listing anything left outside the commit
 #
 # exit != 0:
@@ -42,13 +50,57 @@
 #
 set -euo pipefail
 
-plan="${1:-}"
-task_id="${2:-}"
-
 usage() {
-  echo "error: usage: commit-task.sh <plan-file> <task-id> [<fix-number> <file> [<file>...]]" >&2
+  echo "error: usage: commit-task.sh <plan-file> <task-id> [<fix-number> <file> [<file>...]] | --chore <file> [<file>...]" >&2
   exit 2
 }
+
+# --- the run's own knowledge files: no task, no plan, no progress ---
+if [[ "${1:-}" == "--chore" ]]; then
+  shift
+  [[ $# -gt 0 ]] || usage
+
+  paths=()
+  for f in "$@"; do
+    [[ -z "$f" ]] && continue
+    case "$f" in
+      .temp|.temp/*)
+        echo "warning: refused $f - .temp is machine state, never committed" >&2
+        continue
+        ;;
+    esac
+    paths+=("$f")
+    git add -A -- "$f" 2>/dev/null || echo "warning: could not stage $f" >&2
+  done
+
+  if [[ ${#paths[@]} -eq 0 ]] || git diff --cached --quiet -- "${paths[@]}"; then
+    echo "error: the named files produced no changes to commit" >&2
+    exit 4
+  fi
+
+  # the subject follows the paths, so nothing composes it
+  mem=0
+  rul=0
+  for f in "${paths[@]}"; do
+    case "$f" in
+      CLAUDE.md|*/CLAUDE.md)         mem=1 ;;
+      .claude/rules/*|*/.claude/rules/*) rul=1 ;;
+    esac
+  done
+  if   [[ $mem -eq 1 && $rul -eq 1 ]]; then subject="chore(viber): update project memory and rules"
+  elif [[ $mem -eq 1 ]];               then subject="chore(viber): update project memory"
+  elif [[ $rul -eq 1 ]];               then subject="chore(viber): update project rules"
+  else                                      subject="chore(viber): update project knowledge"
+  fi
+
+  git commit -m "$subject" -- "${paths[@]}" >&2 || exit 5
+  echo "committed: $(git rev-parse --short HEAD)"
+  echo "subject: $subject"
+  exit 0
+fi
+
+plan="${1:-}"
+task_id="${2:-}"
 
 if [[ -z "$plan" || -z "$task_id" ]]; then
   usage

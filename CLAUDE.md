@@ -55,9 +55,12 @@ mechanics against `.github/scripts/release.sh` before restating them.
 
 ## Cross-plugin architecture invariants
 
-- **Host-repo `docs/` is the one home for persisted, user-facing knowledge.** `docs/adr/`,
-  `docs/changelog/`, `docs/qa/`, `docs/.workflows/` (all superdev), `docs/business/<slug>/`
-  (superbiz's rendered report only). `supercc` writes no `docs/<layer>/` of its own and never
+- **Host-repo `docs/` is the one home for persisted, user-facing knowledge.** `docs/changelog/`,
+  `docs/qa/`, `docs/.workflows/` (all superdev), `docs/_specs/<stamp>_<slug>/` (viber's run
+  directory: the plan plus its decomposition), `docs/business/<slug>/` (superbiz's rendered report
+  only), and `docs/adr/`, the one layer TWO plugins write - superdev through its `adr` skill, viber
+  through a plan task - because a host repo has one decision log, not one per track.
+  `supercc` writes no `docs/<layer>/` of its own and never
   will - its deliverable is the skill/agent file itself, not a record about it.
 - **No plugin ever creates a plugin-named dot-dir in the host repo** (no `.superdev/`, no
   `.superui/`, etc). Only three host-repo locations are writable at a plugin's own choosing:
@@ -165,5 +168,5 @@ header comments of `hooks/scripts/*.sh`.
 | `superfix/CLAUDE.md` | `code-auditor` and its five agents - the two-track investigation sweep |
 | `superbiz/CLAUDE.md` | `idea-validator` - the side-project viability workflow |
 | `supercc/CLAUDE.md` | `skill-designer` - authoring/refactoring/splitting/linting skills and agents |
-| `viber/CLAUDE.md` | `idea` / `planner` / `implementor`, their four agents, the two plan scripts and the plan gate |
+| `viber/CLAUDE.md` | `setup` / `idea` / `planner` / `implementor` / `fixer` / `tdd`, their six agents, the run directory and its decomposition, the four plugin scripts, the config switches and the plan gate |
 | `tests/CLAUDE.md` | any `*.test.ts` under `tests/` - harness contract, cross-platform rules |

@@ -79,7 +79,7 @@ function runCase(transcriptPath: string, cwd?: string): Decision {
 /** The dated plan layout plan-path.sh owns; `plans` is the directory segment the
  *  gate anchors on. A path that never exists on disk is fine for every case but
  *  the mtime guard - the guard is skipped when the file cannot be read. */
-const PLAN = "/repo/docs/plans/2026-09-20-10-00-00_feat-x/plan.md";
+const PLAN = "/repo/.claude/plans/2026-09-20-10-00-00_feat-x/plan.md";
 
 /** Signal 1a: the planner skill invoked through the Skill tool. */
 function skillUse(skill = "viber:planner"): string {
@@ -129,7 +129,7 @@ function permissionMode(mode: string): string {
 }
 
 /** A plan file that really exists, so the mtime guard has something to stat. */
-function realPlan(dir: string, rel = "docs/plans/2026-09-20-10-00-00_feat-x/plan.md"): string {
+function realPlan(dir: string, rel = ".claude/plans/2026-09-20-10-00-00_feat-x/plan.md"): string {
   const file = path.join(dir, rel);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, "# Plan\n");
@@ -468,7 +468,7 @@ test("a re-review after the out-of-band edit clears the mtime tamper -> allow", 
 
 test("a relative plan file_path resolves against the session cwd -> the mtime guard still fires", () => {
   withTempDir("p2p2-plan-gate-", (dir) => {
-    const rel = "docs/plans/2026-09-20-10-00-00_feat-x/plan.md";
+    const rel = ".claude/plans/2026-09-20-10-00-00_feat-x/plan.md";
     realPlan(dir, rel);
     const stale = new Date(Date.now() - 3600_000).toISOString();
     const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(rel), dispatch(), verdict("PASS", { timestamp: stale })]);
@@ -505,7 +505,7 @@ test("thousands of noise lines around the signals still resolve the happy path -
 
 test("the last of several plan writes is the one that must be reviewed", () => {
   withTempDir("p2p2-plan-gate-", (dir) => {
-    const first = "/repo/docs/plans/2026-09-20-09-00-00_a/plan.md";
+    const first = "/repo/.claude/plans/2026-09-20-09-00-00_a/plan.md";
     const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(first), dispatch(), PASS, planWrite(PLAN), dispatch(), PASS]);
     assert.equal(runCase(f).decision, "allow");
   });

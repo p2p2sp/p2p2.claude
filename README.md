@@ -43,7 +43,7 @@ only.
 | **superfix** | Codebase investigation: sweeps the whole repo with cheap agents, ranks findings by Impact x Opportunity, and sends frontier investigators only into the hotspots. | [superfix/README.md](superfix/README.md) |
 | **superbiz** | Idea validation: web research, a nine-dimension scorecard and a seven-member council debating over two rounds decide whether an idea is worth turning into a side project, ending in one self-contained HTML report. | [superbiz/README.md](superbiz/README.md) |
 | **supercc** | Claude Code itself: designing skills and agents - creating them, splitting an overloaded one, shrinking a bloated one, fixing one that never triggers, auditing a whole set. | [supercc/README.md](supercc/README.md) |
-| **viber** | The short track from idea to committed code: an interview that refuses to leave an unknown open, a reviewed plan, then an orchestrated build where every task is coded, gated and committed by its own agent. | [viber/README.md](viber/README.md) |
+| **viber** | The short track from idea to committed code: an interview that refuses to leave an unknown open, a reviewed plan split so each agent sees only its own task, an orchestrated build with a commit per task, and a close that folds what the build taught back into the project's memory and rules. | [viber/README.md](viber/README.md) |
 
 Each plugin's README carries its own description, a short usage guide, and the list of its skills.
 

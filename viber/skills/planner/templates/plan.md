@@ -2,6 +2,9 @@
 
 Build: skill `implementor`
 
+<!-- two parts: everything above "## Tasks" is the specification - WHAT and WHY - and is split off as
+     spec.md; the tasks below are the implementation plan - HOW - one file each under tasks/ -->
+
 ## Goal
 
 <2-4 sentences: what gets built and why. No description of the solution.>

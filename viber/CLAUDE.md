@@ -1,41 +1,56 @@
 # viber
 
+A programming assistant that gives the agent greater freedom when performing tasks, enabling the
+highest quality and speed of work.
+
 ## Purpose
 
-The three-step vibe track: understand, plan, build. THREE skills (`idea`, `planner`,
-`implementor`), FOUR agents, THREE plugin-level scripts and ONE `PreToolUse` hook. Everything a
-run produces lives in the host repo's `docs/plans/<stamp>_<slug>/plan.md` (the plan, which carries
-its own progress) and `.temp/viber/` (review and test reports) - no plugin-named dot-dir, no state
-file.
+The vibe track: understand, plan, build, then record what the build taught. SIX skills (`setup`,
+`idea`, `planner`, `implementor`, `tdd`, `fixer`), SIX agents, FOUR plugin-level scripts, one
+skill-level bootstrap and ONE `PreToolUse` hook. Everything a run produces lives in the host repo's
+`docs/_specs/<stamp>_<slug>/` (the plan carrying its own progress, plus the decomposition every
+agent reads) and `.temp/viber/<plan-key>/` (review reports, test reports, the coders' notes) - no
+plugin-named dot-dir, no state file.
 
 ## Entry points
 
-- `skills/idea/SKILL.md` - `/viber:idea`, user-only (`disable-model-invocation: true`). A prose
-  interview, one question at a time, ending in a confirmed summary that hands over to
-  `viber:planner`. Writes nothing.
-- `skills/planner/SKILL.md` - enters plan mode itself. Fills
-  `skills/planner/templates/plan.md` into the plan file plan mode names, validates it with
-  `scripts/plan-index.sh`, then gates on `viber:planner-review` until `VERDICT: PASS` before
+- `skills/setup/SKILL.md` - `/viber:setup`, user-only (`disable-model-invocation: true`). Seeds
+  `.claude/viber.yml` and `.gitignore` through `skills/setup/scripts/bootstrap.sh`, then asks which
+  of the three switches stay on.
+- `skills/idea/SKILL.md` - `/viber:idea`, user-only. A prose interview, one question at a time,
+  ending in a confirmed summary that hands over to `viber:planner`. Under `adr: true` it also puts
+  the decisions worth recording to the user and carries the accepted ones into that summary. Writes
+  nothing.
+- `skills/planner/SKILL.md` - enters plan mode itself. Fills `skills/planner/templates/plan.md` into
+  the plan file plan mode names, turns each accepted ADR into a first task, validates the result
+  with `scripts/plan-index.sh`, then gates on `viber:planner-review` until `VERDICT: PASS` before
   `ExitPlanMode`.
-- `skills/implementor/SKILL.md` - orchestrator, `[plan-path]` argument. Lands the
-  plan in the dated directory `scripts/plan-path.sh` resolves, profiles each task into a model
-  tier (haiku / sonnet / opus) and a review decision, dispatches `viber:task-coder` in the
-  widest batch the dependency and
-  file-collision rules allow, gates each reviewed task on `viber:task-reviewer`, commits it with
-  `scripts/commit-task.sh`, and closes on `viber:test-runner`.
-- `agents/` - `planner-review` (plan gate, read-only), `task-coder` (one task or one report,
-  proves it green, never commits), `task-reviewer` (per-task gate, writes only its report),
-  `test-runner` (one full suite run, keeps the log out of the caller's context).
+- `skills/implementor/SKILL.md` - orchestrator, `[plan-path]` argument. Lands the plan in the dated
+  directory `scripts/plan-path.sh` resolves, decomposes it with `plan-index.sh --split`, profiles
+  each task into a model tier (haiku / sonnet / opus) and a review decision, dispatches
+  `viber:task-coder` in the widest batch the dependency and file-collision rules allow, gates each
+  reviewed task on `viber:task-reviewer`, commits it with `scripts/commit-task.sh`, closes on
+  `viber:test-runner` and then, per switch, on `viber:memory-writer` and `viber:rules-writer`.
+- `skills/fixer/SKILL.md` - the only CSO-routed skill here: it fires on a bug report, forces a
+  traced diagnosis proven by a failing test, and hands the fix plan to `planner`. It never applies
+  a fix itself.
+- `skills/tdd/SKILL.md` - the Red-Green-Refactor discipline a `TDD: required` task is built under.
+  Not user-invocable; it is read, not run.
+- `agents/` - `planner-review` (plan gate, read-only), `task-coder` (one task or one report, proves
+  it green, never commits), `task-reviewer` (per-task gate, writes only its report), `test-runner`
+  (one full suite run, keeps the log out of the caller's context), `memory-writer` and
+  `rules-writer` (the close: the project's `CLAUDE.md` nodes and `.claude/rules/`).
 - `hooks/hooks.json` -> `hooks/scripts/plan-gate.sh`: the review gate, enforced by the harness
   rather than by the model.
 
 ## Contracts & invariants
 
-- **The track is entered by hand, never by CSO.** All three skills carry a one-line
-  `description:` with no trigger list, because the user starts the chain (`/viber:idea`,
-  `/viber:planner`) and each step then names the next. `planner` and `implementor` stay
-  model-invocable only so that handover call works - do not "fix" their descriptions back into
-  routing prose, and do not add `disable-model-invocation` to them, which would break the chain.
+- **One run, one directory.** `plan-path.sh` owns the layout
+  `docs/_specs/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md` and is the only place a plan path is formed:
+  the stamp is taken when the plan lands, so a re-run of the same slug never overwrites an earlier
+  plan, and a run already open for that slug comes back as `state: existing` instead. That directory
+  name is also the `<plan-key>` of the run's report dir, `.temp/viber/<plan-key>/`, and it holds the
+  decomposition too - one key names everything the run touches.
 - **The plan file is the state.** `<!-- done: ... -->` plus the `## Tasks (x/N)` header carry
   progress, so a build resumes after a context reset with no sidecar. `commit-task.sh` is what
   advances both, and it stages ONLY the task's `Files:` list - anything written outside the file
@@ -43,32 +58,46 @@ file.
   first so it rides in the commit, and rolled back from a backup if staging or committing fails
   (exit 5). A task marked done that was never committed would be skipped forever on resume, so
   this is the one place in the plugin where a script undoes its own write.
-- **One plan, one dated directory.** `plan-path.sh` owns the layout
-  `docs/plans/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md` and is the only place a plan path is formed:
-  the stamp is taken when the plan lands, so a re-run of the same slug never overwrites an earlier
-  plan, and a run already open for that slug comes back as `state: existing` instead. That
-  directory name is also the `<plan-key>` of the run's report dir, `.temp/viber/<plan-key>/`.
+- **The decomposition is what the agents see; the index is what the orchestrator sees.**
+  `plan-index.sh --split` writes `spec.md` (everything above `## Tasks`) and one `tasks/<id>.md`
+  per task, carrying the task block verbatim plus the text of the criteria its `Covers:` names. A
+  coder handed `tasks/T3.md` cannot read another task, so it cannot drift into another task's
+  files - that isolation is the reason the split exists, not the token saving. `tasks/` is rebuilt
+  on every call, and the script commits its own output because no task's `Files:` list names it and
+  `commit-task.sh` stages nothing it was not given.
 - **Task ids are `T1`, `T2`, … and the heading line IS the commit subject.** `commit-task.sh` reads
   `### T<n> - <title>` out of the plan and commits it verbatim, so the orchestrator never composes a
-  subject and the history reads like the plan. A post-test repair is a second commit against the
-  same task (`<plan> <id> <round> <file>...`), subject `T<n>(<round>) - <title>`, progress
-  untouched: it stages only the paths the caller names. Neither form runs `git add -A`, and a
-  `.temp/` entry is refused outright.
+  subject and the history reads like the plan. The id is also the name of the task's own file, so
+  `plan-index.sh` refuses one carrying anything but letters, digits, `-` and `_`. A post-test repair
+  is a second commit against the same task (`<plan> <id> <round> <file>...`), subject
+  `T<n>(<round>) - <title>`, progress untouched. `--chore <file>...` is the third and last form:
+  the memory and rule files the close produced, which no task owns, under a subject the script
+  DERIVES from the paths. No form runs `git add -A` over the tree, and a `.temp/` entry is refused
+  outright.
 - **`Files:` is a machine-readable map, not prose.** Comma-separated exact repo-relative paths on
   one line, no globs, no directories, no annotations. `commit-task.sh` stages that list literally,
   and `plan-index.sh` compares it across tasks: a plan where two tasks with no dependency path
   between them list the same file is rejected at validation time. No skill and no agent re-checks
   that by hand - the graph plus the file lists make it fully deterministic.
-- **Three deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path),
-  `plan-index.sh` (validate + compact index) and `commit-task.sh` (stage, commit, record) carry
-  their I/O contract in their header comment and are TRUSTED by the caller - never re-verified,
-  never retried. All are invoked as one literal line,
-  `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" <args>`, never through an interpreter,
-  and each has its own `Bash(${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh:*)` entry in the calling
-  skill's `allowed-tools`.
+- **Four deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path),
+  `plan-index.sh` (validate, index, optionally decompose), `commit-task.sh` (stage, commit, record)
+  and `config.sh` (resolve the switches) carry their I/O contract in their header comment and are
+  TRUSTED by the caller - never re-verified, never retried. All are invoked as one literal line,
+  `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" <args>`, never through an interpreter, and each has its
+  own `Bash(${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh:*)` entry in the calling skill's `allowed-tools`.
+- **The switches are read through `config.sh` alone.** `adr`, `memory` and `rules` live in
+  `.claude/viber.yml`, resolved against the repository root, fail-open: no file means all three off,
+  and the script always exits 0 because it runs as a `!` preload, where a non-zero exit would abort
+  the whole skill load. `implementor` carries `disallowed-tools: Read`, so the preload is not a
+  convenience there but the only way it can know the values at all.
 - **The orchestrator never reads code.** `implementor` carries `disallowed-tools: Read, Edit,
   NotebookEdit`: its whole view of the plan is `plan-index.sh`'s output, which is what lets one
   context outlast a full build.
+- **The coders' notes are the input of the close.** `task-coder` leaves at most 8 lines in
+  `.temp/viber/<plan-key>/<id>-coder.md` - what the diff does not say - and `memory-writer` /
+  `rules-writer` read that directory. They run in one dispatch and never wait for each other,
+  because their scopes do not overlap: `CLAUDE.md` nodes belong to the first, `.claude/rules/` to
+  the second.
 - **Strength is `model` alone.** The `Agent` tool takes no `effort` parameter, so an agent's own
   frontmatter is the only place one is set. `task-coder` carries `effort: high` and is dispatched at
   all three tiers: on `haiku` that setting is dead, because Haiku 4.5 has no effort control. It stays
@@ -80,8 +109,10 @@ file.
   dispatch detector accepts both the bare and the prefixed spelling, so a plan-gate run is not
   tied to the install form.
 - **The gate arms on two signals only** - the planner skill running, and a Write/Edit of a
-  `plans/*.md` file in the same plan-mode episode - and fails open on everything else. A broken
-  gate must never trap the user in plan mode.
+  `plans/*.md` file in the same plan-mode episode - and fails open on everything else. That path is
+  the HARNESS plan directory, the one plan mode names itself, not `docs/_specs/`: the gate fires
+  while the plan is still a draft, long before the implementor lands it. A broken gate must never
+  trap the user in plan mode.
 - **Known conflict: superdev's own ExitPlanMode gate.** Both plugins hook the same tool, and
   superdev's `review-plan.sh` denies a plan under `.claude/plans/*.md` that declares neither
   `# SimplePlan` nor `# SuperPlan`. A viber plan declares neither, so with both plugins installed
@@ -94,6 +125,8 @@ file.
   (`skills[]` / `agents[]`) and this node. A worker must never appear in both arrays.
 - Letting the orchestrator do a worker's job: reading source, running a test, writing code. Every
   such step is a dispatch.
+- Handing an agent the plan file when the decomposition exists. The whole plan in a coder's context
+  is the drift the split was built to remove.
 - Teaching a skill a host project's stack. Test and build commands are read from the host's own
   instructions at runtime - `test-runner` falls back to whichever manifest is actually present.
 

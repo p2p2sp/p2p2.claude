@@ -2,11 +2,15 @@
 name: implementor
 description: Builds an approved plan task by task. Requires an existing plan; without one, use the planner skill.
 argument-hint: [plan-path]
-allowed-tools: Write, Agent, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*)
+allowed-tools: Write, Agent, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*)
 disallowed-tools: Read, Edit, NotebookEdit
 model: sonnet
 effort: medium
 ---
+
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/config.sh"
+```
 
 # implementor
 
@@ -18,7 +22,7 @@ Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scrip
 
 ## 1. Land the plan
 
-Every plan gets its own dated directory, `docs/plans/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md`, stamped when it lands. `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" "<slug>"` resolves that path and prints `path:`, `key:` and `state:`.
+Every plan gets its own dated directory, `docs/_specs/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md`, stamped when it lands. `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" "<slug>"` resolves that path and prints `path:`, `key:` and `state:`.
 
 Plan path, first match wins:
 
@@ -26,15 +30,19 @@ Plan path, first match wins:
 2. The approved plan already in this context - run the script with the `<slug>` from its title. `state: existing` is a build under way carrying its own progress, so take it as is; `state: new` -> `Write` the plan to the printed `path:` verbatim, every task block and HTML marker intact.
 3. Neither - the script with no argument returns the plan most recently worked on.
 
-## 2. Index the plan
+Every path this run spends is derived from that one: `<dir>` is the plan's own directory and `<plan-key>` its name - the `key:` line, or that directory's name when the plan came in as an argument.
 
-Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan>`. It returns the title, the progress counter and one line per task: id, state, TDD marker, dependencies, files, title. That index is your whole view of the plan.
+## 2. Validate and decompose
+
+Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan> --split`. It validates the plan, writes `<dir>/spec.md` and one `<dir>/tasks/<id>.md` per task, commits that decomposition, and returns the title, the progress counter and one line per task: id, state, TDD marker, dependencies, files, title.
+
+That index is your whole view of the plan; the task files are the agents'. Each of them sees the specification and its own task, and no other task at all.
 
 Non-zero exit means the plan itself is broken: report the error and stop, repairing it belongs to the planner. A zero exit guarantees that no two tasks without a dependency path between them share a file, so `deps` is the only thing that keeps two tasks apart.
 
 Tasks in state `done` are already committed - skip them. That is also how a build resumes after a context reset.
 
-`TaskCreate` the remaining tasks plus a final test run.
+`TaskCreate` the remaining tasks, a final test run, and one entry per switch the config block above reports as `true`.
 
 ## 3. Profile the tasks
 
@@ -54,7 +62,15 @@ Never break:
 - Close out one task at a time - review and commit both read the working tree.
 - Tasks whose verification needs an exclusive resource - one build output, a fixed port, a single test database - never run together.
 
-Dispatch: one `viber:task-coder` per task (Agent tool, `model` = that task's tier), each carrying the plan path and its task id, nothing else, all in a single message. `TaskUpdate` -> in progress.
+Dispatch: one `viber:task-coder` per task (Agent tool, `model` = that task's tier), all in a single message, each carrying three labelled lines and nothing else:
+
+```
+spec: <dir>/spec.md
+task: <dir>/tasks/<id>.md
+notes: .temp/viber/<plan-key>/<id>-coder.md
+```
+
+`TaskUpdate` -> in progress.
 
 Aim for:
 
@@ -66,8 +82,8 @@ Aim for:
 Per task, once its coder returns:
 
 1. `VERDICT: FAIL` -> `AskUserQuestion`: retry / skip / abort. Abort ends the run; skip drops that task and every task depending on it.
-2. Profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier) with the plan path, the task id and a report path `.temp/viber/<plan-key>/review-<id>-<round>.md`, round starting at 1. `<plan-key>` is the `key:` from step 1, or the plan's directory name when the plan came in as an argument.
-   - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with the plan path, the task id and the returned `REVIEW` path, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort.
+2. Profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier) with the same `spec:` and `task:` lines plus `report: .temp/viber/<plan-key>/review-<id>-<round>.md`, round starting at 1.
+   - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its three lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort.
 3. `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`. It takes the commit subject from the task's own heading in the plan, stages only the task's files, commits, and records the task as done. A warning about files left outside the commit goes into the final summary. A non-zero exit means nothing was committed and nothing recorded -> `AskUserQuestion`: retry / skip / abort.
 4. `TaskUpdate` -> completed.
 
@@ -76,6 +92,17 @@ Per task, once its coder returns:
 Dispatch `viber:test-runner` with a report path `.temp/viber/<plan-key>/tests-<round>.md`.
 
 - `VERDICT: PASS` or `VERDICT: SKIP` -> `TaskUpdate` -> completed.
-- `VERDICT: FAIL` -> dispatch `viber:task-coder` (model `sonnet`) with the plan path and the returned `REPORT` path, commit its `FILES:` line with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id> <round> <file> [<file>...]` - `<id>` is the task the failure belongs to, which the index's `files` column resolves, one call per task when the fix spans several. The script stages nothing it was not given and takes the subject from that task's heading. Then run `viber:test-runner` again with the next round. After 2 rounds -> `AskUserQuestion`: retry / accept / abort.
+- `VERDICT: FAIL` -> dispatch `viber:task-coder` (model `sonnet`) with `spec:`, the returned `REPORT` path as `report:` and `notes: .temp/viber/<plan-key>/repair-<round>-coder.md`, commit its `FILES:` line with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id> <round> <file> [<file>...]` - `<id>` is the task the failure belongs to, which the index's `files` column resolves, one call per task when the fix spans several. The script stages nothing it was not given and takes the subject from that task's heading. Then run `viber:test-runner` again with the next round. After 2 rounds -> `AskUserQuestion`: retry / accept / abort.
 
-Final summary, max 5 lines: tasks committed, review rounds spent, test verdict, anything left for the user to decide.
+## 6. Record what the build taught
+
+Only for the switches the config block above reports as `true`, both dispatched in one message - they write in separate places and never wait for each other:
+
+- `memory: true` -> `viber:memory-writer`
+- `rules: true` -> `viber:rules-writer`
+
+Each carries two labelled lines: `spec: <dir>/spec.md` and `notes: .temp/viber/<plan-key>/`, the directory the coders left their conclusions in.
+
+Commit every path they return, all of them in one call: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore <file> [<file>...]`, which derives its own subject. Nothing returned, or both `VERDICT: NONE` -> no call. Then `TaskUpdate` -> completed.
+
+Final summary, max 5 lines: tasks committed, review rounds spent, test verdict, what memory and rules recorded, anything left for the user to decide.

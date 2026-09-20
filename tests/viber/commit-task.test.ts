@@ -42,8 +42,8 @@ function run(dir: string, env: Record<string, string>, args: string[]) {
   return runScript(SUT, args, { cwd: dir, env, shell: "bash" });
 }
 
-/** The dated directory layout plan-path.sh owns - the plan lives in the repo. */
-const PLAN_REL = "docs/plans/2026-09-20-10-00-00_feat-x/plan.md";
+/** The dated run directory plan-path.sh owns - the plan lives in the repo. */
+const PLAN_REL = "docs/_specs/2026-09-20-10-00-00_feat-x/plan.md";
 
 function write(root: string, rel: string, content: string): void {
   const file = path.join(root, rel);
@@ -377,9 +377,71 @@ test("a missing argument exits 2 with usage on stderr", () => {
 test("a plan path that does not exist exits 2 (never a half-run against a typo'd path)", () => {
   withGitRepo((repo) => {
     seed(repo);
-    const result = run(repo.dir, repo.env, ["docs/plans/nope/plan.md", "T1"]);
+    const result = run(repo.dir, repo.env, ["docs/_specs/nope/plan.md", "T1"]);
     assert.equal(result.status, 2);
     assert.match(result.stderr, /plan file not found/);
     assert.deepEqual(subjects(repo), ["seed"]);
+  });
+});
+
+// --- --chore: what the close produced, which no task owns -------------------
+
+test("--chore derives its subject from the paths, so the orchestrator composes no commit subject here either", () => {
+  const cases: Array<[files: string[], subject: string]> = [
+    [["CLAUDE.md"], "chore(viber): update project memory"],
+    [["src/CLAUDE.md"], "chore(viber): update project memory"],
+    [[".claude/rules/naming.md"], "chore(viber): update project rules"],
+    [["CLAUDE.md", ".claude/rules/naming.md"], "chore(viber): update project memory and rules"],
+    [["docs/notes.md"], "chore(viber): update project knowledge"],
+  ];
+
+  for (const [files, subject] of cases) {
+    withGitRepo((repo) => {
+      seed(repo);
+      for (const f of files) write(repo.dir, f, "written by the close\n");
+
+      const result = run(repo.dir, repo.env, ["--chore", ...files]);
+      assert.equal(result.status, 0, `${files.join(",")} -> stderr: ${result.stderr}`);
+      assert.match(result.stdout, /^committed: [0-9a-f]{7,}\n/);
+      assert.match(result.stdout, new RegExp(`^subject: ${subject.replace(/[()]/g, "\\$&")}$`, "m"));
+      assert.equal(subjects(repo)[0], subject);
+      assert.deepEqual(committedFiles(repo), [...files].sort());
+    });
+  }
+});
+
+test("--chore commits nothing it was not given, and refuses a .temp/ path outright", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "CLAUDE.md", "memory\n");
+    write(repo.dir, ".temp/viber/run/T1-coder.md", "the notes memory was written from\n");
+    write(repo.dir, "src/a.ts", "a coder left this behind\n");
+
+    const result = run(repo.dir, repo.env, ["--chore", "CLAUDE.md", ".temp/viber/run/T1-coder.md"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /refused \.temp\/viber\/run\/T1-coder\.md/);
+
+    assert.deepEqual(committedFiles(repo), ["CLAUDE.md"]);
+    // git collapses an untracked directory in --short, so both show as the dir
+    const dirty = repo.git("status", "--short").stdout;
+    assert.match(dirty, /\?\? \.temp\//);
+    assert.match(dirty, /\?\? src\//);
+  });
+});
+
+test("--chore with nothing changed exits 4, and with no file at all exits 2", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "CLAUDE.md", "memory\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "already recorded");
+
+    const unchanged = run(repo.dir, repo.env, ["--chore", "CLAUDE.md"]);
+    assert.equal(unchanged.status, 4);
+    assert.match(unchanged.stderr, /no changes to commit/);
+
+    const noFiles = run(repo.dir, repo.env, ["--chore"]);
+    assert.equal(noFiles.status, 2);
+    assert.match(noFiles.stderr, /usage: commit-task\.sh/);
   });
 });

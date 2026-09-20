@@ -1,41 +1,78 @@
 #!/usr/bin/env bash
 #
-# plan-index.sh - compact task index for the orchestrator, plus plan structure validation.
+# plan-index.sh - compact task index for the orchestrator, plus plan structure
+# validation and, on demand, the decomposition the per-task agents read.
 #
 # Usage:
-#   plan-index.sh <plan-file>
+#   plan-index.sh <plan-file>            validate + index (the planner's call)
+#   plan-index.sh <plan-file> --split    ... and decompose (the orchestrator's call)
 #
-# stdout (the orchestrator's only view of the plan - the full body is read by agents):
+# stdout (the orchestrator's only view of the plan - the decomposed files are read
+# by agents):
 #   plan: <path>
 #   title: <plan title>
 #   progress: <done>/<total>
 #   tasks: id | state | tdd | deps | files | title
-#   01 | done | none     | -  | .claude/settings.json | chore: ...
-#   02 | todo | required | 01 | src/a.ts,src/b.ts     | feat: ...
+#   T1 | done | none     | -  | .claude/settings.json | chore: ...
+#   T2 | todo | required | T1 | src/a.ts,src/b.ts     | feat: ...
 #
 # "Files:" is a comma-separated list of exact repo-relative file paths - no globs,
 # no directories, no annotations - so the same list drives the commit and the
 # collision check below.
 #
-# Validation (exit != 0, nothing on stdout) - catches plan drift before a build starts:
-#   2 - plan file missing or unusable
+# --split writes, into the plan's OWN directory (docs/_specs/<stamp>_<slug>/):
+#   spec.md        - everything above "## Tasks": goal, acceptance criteria, scope,
+#                    contracts. The whole specification, and all of it every agent
+#                    working on the run needs.
+#   tasks/<id>.md  - one task block verbatim, plus a "## Covered criteria" section
+#                    carrying the text of the criteria its "Covers:" line names.
+# A coder handed tasks/T3.md CANNOT see the other tasks, so it cannot drift into
+# their files - that isolation is the point, not the token saving. tasks/ is
+# rebuilt from scratch on every call, so a re-run after a plan edit carries no
+# stale task file, and the decomposition is committed together with the plan
+# (pathspec-scoped, best-effort): it lives under docs/, so leaving it uncommitted
+# would have every later commit-task.sh run report it as left behind.
+#
+# Validation (exit != 0, nothing on stdout, nothing written) - catches plan drift
+# before a build starts:
+#   2 - plan file missing or unusable, a second argument that is not --split, or
+#       a --split pointed at anything but the run's own <dir>/plan.md
 #   3 - no <!-- TASK --> blocks
-#   4 - broken task contract (duplicate id, missing field, illegal dependency,
-#       a "Covers:" criterion absent from the acceptance criteria, an unparseable
-#       "Files:" entry, or the same file listed by two tasks with no dependency
-#       path between them - they would run at the same time)
+#   4 - broken task contract (duplicate id, an id that is not [A-Za-z0-9_-]+,
+#       missing field, illegal dependency, a "Covers:" criterion absent from the
+#       acceptance criteria, an unparseable "Files:" entry, or the same file listed
+#       by two tasks with no dependency path between them - they would run at the
+#       same time)
+#
+# Contract:
+#   argv   : the plan file, optionally --split.
+#   cwd    : the repository root - the plan path and every path in the index are
+#            relative to it.
+#   env    : none.
+#   exit   : 0 on a valid plan; a git failure during the --split commit never
+#            changes that, the decomposed files are already on disk.
 #
 set -euo pipefail
 
 plan="${1:-}"
+mode="${2:-}"
 
-if [[ -z "$plan" ]]; then
-  echo "error: usage: plan-index.sh <plan-file>" >&2
+if [[ -z "$plan" ]] || { [[ -n "$mode" ]] && [[ "$mode" != "--split" ]]; }; then
+  echo "error: usage: plan-index.sh <plan-file> [--split]" >&2
   exit 2
 fi
 
 if [[ ! -f "$plan" ]]; then
   echo "error: plan file not found: $plan" >&2
+  exit 2
+fi
+
+# --split rebuilds <dir>/tasks from scratch, so it only ever accepts the run's
+# own <dir>/plan.md: pointed at a plan sitting loose in a repository it would
+# delete a "tasks" directory belonging to the project.
+dir="$(dirname -- "$plan")"
+if [[ "$mode" == "--split" ]] && { [[ "${plan##*/}" != "plan.md" ]] || [[ "$dir" == "." || "$dir" == "/" ]]; }; then
+  echo "error: --split expects the run's own <dir>/plan.md, got: $plan" >&2
   exit 2
 fi
 
@@ -98,9 +135,11 @@ intask {
 END {
   if (n == 0) { printf "error: no <!-- TASK --> blocks in %s\n", plan > "/dev/stderr"; exit 3 }
 
-  # id -> ordinal; a duplicate id is fatal
+  # id -> ordinal; a duplicate id is fatal, and the id also names the task file
+  # --split writes, so it stays a bare token
   for (i = 1; i <= n; i++) {
     if (id[i] == "") { fail("task #" i " has no id"); continue }
+    if (id[i] !~ /^[A-Za-z0-9_-]+$/) fail("task id \"" id[i] "\": letters, digits, \"-\" and \"_\" only - it names the task file")
     if (id[i] in seen) fail("duplicate task id: " id[i])
     seen[id[i]] = i
   }
@@ -190,3 +229,83 @@ END {
   }
 }
 ' "$plan"
+
+[[ "$mode" == "--split" ]] || exit 0
+
+# --- the decomposition, beside the plan ---
+# A second pass over a file the first one just proved well-formed: every id is
+# present, unique and a bare token, so nothing here has to guard against drift.
+rm -rf -- "$dir/tasks"
+mkdir -p -- "$dir/tasks"
+
+dir="$dir" awk '
+function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
+
+BEGIN { dir = ENVIRON["dir"] }
+{ line[NR] = $0 }
+
+END {
+  # the cut: everything above the task list is the specification
+  for (i = 1; i <= NR; i++) if (line[i] ~ /^##[[:space:]]*Tasks/) { cut = i; break }
+  if (!cut) cut = NR + 1
+
+  spec = dir "/spec.md"
+  for (i = 1; i < cut; i++) print line[i] > spec
+  close(spec)
+
+  # acceptance criteria by number: the "N." line plus its continuations, ended by
+  # the next number, a blank line or the end of the section
+  for (i = 1; i < cut; i++) {
+    s = line[i]
+    if (s ~ /^##[[:space:]]/) { incrit = (s ~ /Acceptance criteria/); cur = 0; continue }
+    if (!incrit) continue
+    if (s ~ /^[0-9]+\./)    { c = s; sub(/\..*/, "", c); cur = c + 0; crit[cur] = s; continue }
+    if (trim(s) == "")      { cur = 0; continue }
+    if (cur) crit[cur] = crit[cur] "\n" s
+  }
+
+  # one file per task: the block verbatim, then the text of the criteria it covers
+  for (i = cut; i <= NR; i++) {
+    if (line[i] ~ /<!--[[:space:]]*TASK[[:space:]]*-->/)   { intask = 1; body = ""; id = ""; cov = ""; continue }
+    if (line[i] ~ /<!--[[:space:]]*\/TASK[[:space:]]*-->/) {
+      intask = 0
+      if (id == "") continue
+      f = dir "/tasks/" id ".md"
+      printf "%s", body > f
+      m = split(cov, cn, /[[:space:]]+/)
+      if (m > 0) {
+        printf "\n## Covered criteria\n" > f
+        for (k = 1; k <= m; k++) if (cn[k] != "" && (cn[k] + 0) in crit) printf "%s\n", crit[cn[k] + 0] > f
+      }
+      close(f)
+      n++
+      continue
+    }
+    if (!intask) continue
+    body = body line[i] "\n"
+    if (id == "" && line[i] ~ /^###[[:space:]]/) {
+      h = trim(substr(line[i], 4)); p = index(h, " - ")
+      id = (p ? trim(substr(h, 1, p - 1)) : trim(h))
+    }
+    if (line[i] ~ /^-[[:space:]]*Covers:/) {
+      c = line[i]; sub(/^[^:]*:/, "", c); gsub(/[^0-9]+/, " ", c); cov = trim(c)
+    }
+  }
+  printf "decomposed: %d tasks into %s\n", n, dir > "/dev/stderr"
+}
+' "$plan"
+
+# --- and into the history ---
+# The decomposition lives under docs/, so it has to be committed by somebody: no
+# task's "Files:" list names it, and commit-task.sh stages nothing it was not
+# given. The pathspec keeps this to the run's own directory even when the caller
+# left something else staged, and every failure here is swallowed - the files are
+# on disk either way, and a build must not stop because git refused a chore commit.
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  git add -A -- "$dir" >/dev/null 2>&1 || true
+  if ! git diff --cached --quiet -- "$dir" 2>/dev/null; then
+    git commit -m "chore(viber): decompose plan ${dir##*/}" -- "$dir" >&2 || true
+  fi
+fi
+
+exit 0

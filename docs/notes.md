@@ -20,3 +20,5 @@ Jeśli trzeba dodać jakikolwiek ADR to powinny się one znaleźć w planie jako
     - rules
 
 - `memory` i `rules` implementor powinien osobno umieścić na liście tasków (`TaskCreate`)
+
+Całość trzeba zaimplementować trzymając się konwencji w jakiej zrobiony jest plugin viber i używając reguł `skill-designer`.

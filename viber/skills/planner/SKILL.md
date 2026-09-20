@@ -1,8 +1,12 @@
 ---
 name: planner
 description: Writes and reviews the implementation plan for an understood change.
-allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(git log:*), Bash(git status:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(date:*), Bash(git log:*), Bash(git status:*)
 ---
+
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/config.sh"
+```
 
 CRITICAL: call `EnterPlanMode` first unless plan mode is already active.
 
@@ -35,6 +39,12 @@ Task rules:
 - `TDD: required` by default. `TDD: none` only where the task changes no runtime behaviour: config, docs, mechanical rename, scaffolding.
 - Every acceptance criterion is covered by at least one task's `Covers`.
 - The whole heading line, `T<n> - <title>`, is committed verbatim as the commit subject, so the title is one short imperative summary of what the task delivers.
+
+ADR tasks, when `adr: true` above and the handover names accepted decisions - one task per decision, ahead of every other task:
+
+- `Files: docs/adr/<yyyy-mm-dd>-<slug>.md`, the date from `date +%Y-%m-%d` so the path is exact - it is a commit file map, not a pattern. `TDD: none`, `Depends-on: none`, and nothing ever depends on it.
+- `Delivers` carries the record itself, because the task file is all its writer gets: the title, `Status: accepted` with the date, then Context, Decision, Alternatives (what it beat and why not) and Consequences.
+- Add one acceptance criterion for the record and point every ADR task's `Covers` at it.
 
 Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan-path>` as one literal Bash line, no interpreter word in front - any other form is an unapproved call that stalls on a permission prompt. It must exit 0 - it validates ids, required fields, dependency direction, that every `Covers` points at a real criterion, the `Files` format, and that no two tasks without a dependency path between them list the same file. Fix whatever it reports and re-run.
 

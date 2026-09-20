@@ -7,6 +7,7 @@
     "email": "dariusz.lenartowicz@p2p2.com.pl"
   },
   "skills": [
+    "./skills/setup/",
     "./skills/idea/",
     "./skills/planner/",
     "./skills/implementor/",
@@ -17,6 +18,8 @@
     "./agents/planner-review.md",
     "./agents/task-coder.md",
     "./agents/task-reviewer.md",
-    "./agents/test-runner.md"
+    "./agents/test-runner.md",
+    "./agents/memory-writer.md",
+    "./agents/rules-writer.md"
   ]
 }

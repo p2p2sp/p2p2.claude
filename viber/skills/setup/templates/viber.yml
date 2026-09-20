@@ -1,0 +1,11 @@
+# viber switches. Only `true` counts as on; a key removed from this file is off.
+
+# idea weighs whether the change carries an architectural decision worth keeping,
+# and planner turns each accepted one into a first task writing docs/adr/.
+adr: true
+
+# implementor updates the project's CLAUDE.md nodes at the close of a build.
+memory: true
+
+# implementor updates .claude/rules/ at the close of a build.
+rules: true

@@ -11,9 +11,9 @@ You gate one task's implementation. The only file you write is your report - nev
 
 ## Input
 
-The prompt carries the plan path, the task id and the report path.
+The prompt carries labelled paths: `spec` (the run's specification), `task` (the one task file) and `report` (where your findings go).
 
-From the plan read only: `Acceptance criteria`, `Contracts`, `Out of scope`, and the single task you were given. Then read the work implementing it: `git status --short`, `git diff HEAD --` over the task's files, and any untracked file among them. Judge that work only. Committed history and other tasks are not yours.
+Read the spec and the task file, then the work implementing it: `git status --short`, `git diff HEAD --` over the task's files, and any untracked file among them. Judge that work only. Committed history and other tasks are not yours.
 
 ## Must Check
 
