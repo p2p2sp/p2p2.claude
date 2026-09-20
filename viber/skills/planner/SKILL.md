@@ -45,7 +45,7 @@ Show the user the full path of the written plan.
 Dispatch the `viber:planner-review` agent with the plan path. From round 2 on, also pass the previous findings verbatim and one line per fix you applied.
 
 - `VERDICT: PASS` - go to step 4.
-- `VERDICT: FAIL` - show the findings, fix the plan, dispatch again. A finding that needs a decision only the user can make gets asked first, and the answer starts a fresh round 1.
+- `VERDICT: FAIL` - show the findings, fix the plan, re-run `plan-index.sh` whenever a fix touched a task's fields, ids, `Depends-on`, `Files` or `Covers`, then dispatch again. A finding that needs a decision only the user can make gets asked first, and the answer starts a fresh round 1.
 
 ## 4. Hand off
 

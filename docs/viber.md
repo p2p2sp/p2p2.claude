@@ -93,15 +93,7 @@ ZAIMPLEMENTOWANE
 
 ## Drobne
 
-- `idea/SKILL.md:21` mówi "3 concrete options", `README.md:45` mówi "2-4 concrete options".
-- `idea/SKILL.md:21` ("Every question carries 3 concrete options") jest sprzeczne z linią 26
-  ("Prefer multiple choice questions when possible, but open-ended is fine too").
-- `planner/SKILL.md` krok 3 nie każe ponownie uruchomić `plan-index.sh` po naprawach wynikających
-  z recenzji. Strukturalna wywrotka wprowadzona przy fixie wyjdzie dopiero u implementora, który
-  zatrzyma build i odeśle użytkownika do plannera.
-- `.claude/rules/plugin-manifests.md` jest nieaktualny: mówi "all six manifests" oraz "Only
-  `superdev` and `superfix` carry an `agents[]` key", podczas gdy pluginów jest siedem, a viber ma
-  `agents[]`.
+ZAIMPLEMENTOWANE
 
 ## Co jest solidne
 

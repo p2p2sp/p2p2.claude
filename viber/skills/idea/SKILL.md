@@ -23,7 +23,6 @@ Do not use `AskUserQuestion`. Interview is a prose - a conversation with a perso
 - Each answer narrows the next question. An answer that opens a new unknown makes that unknown the next question.
 - Challenge weak reasoning out loud. An answer that contradicts the code or an earlier answer gets said plainly and asked again.
 - Walk the design tree branch by branch, resolving dependencies one decision at a time - early answers reshape later branches.
-- Prefer multiple choice questions when possible, but open-ended is fine too.
 - Must number the options (`1`, `2`, `3`, and sub-options `1.1`, `1.1.1`, `1.2`, `1.2.1...` when the choice branches) so the user can point to an answer without re-typing it.
 - Skip anything a competent implementer decides on its own.
 

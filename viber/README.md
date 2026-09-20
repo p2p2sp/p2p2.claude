@@ -42,7 +42,7 @@ plan", "go ahead"), not on a command. `idea` is user-only: `/viber:idea` is the 
 ### 1. `idea` - the interview
 
 Reads the repo first, so no question is spent on something the code already states. Then one question at a
-time, each with 2-4 concrete options and a recommendation, in dependency order: the problem, the
+time, each with 3 concrete options and a recommendation, in dependency order: the problem, the
 done-condition, the boundaries, the binding constraints, the unknowns. It challenges a weak answer out loud
 and asks again. It stops when nothing is open, shows a summary under 15 lines, and hands over to the planner
 on your confirmation. It writes nothing.
