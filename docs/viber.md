@@ -82,15 +82,7 @@ message zawierający wszystkie dispatche, które są już legalne.
 
 ### 5. Taski w locie są niewidoczne przy wznowieniu (5/10)
 
-`implementor/SKILL.md:43` każe pomijać tylko `done`. Task, który był w locie w momencie resetu
-kontekstu, wraca jako `todo`, dostaje świeży dispatch bez linii `reason:`, a `task-coder.md:14`
-kontynuuje zamiast restartować wyłącznie wtedy, gdy `reason` jest obecny. Szeroki dispatch mnoży
-ten problem, bo w drzewie leży wtedy więcej niedokończonej roboty. `TaskUpdate -> in progress`
-(`:72`) już to zapisuje na zewnątrz, tylko krok 2 nigdy tego nie odczytuje.
-
-Root `CLAUDE.md` ma dla superdev jawną deklarację hosta na ten wypadek ("Text is the product in THIS
-repo ... This line is the host declaration `superplan` reads for that override"). Viber nie czyta
-żadnej deklaracji hosta.
+ZAIMPLEMENTOWANE
 
 Wedle dokumentacji harnessu limit to 20 subagentów na sesję, a 21. dispatch kończy się błędem,
 nie kolejkowaniem. `implementor/SKILL.md:77` mówi "the widest dispatch the rules allow", a w locie
@@ -122,4 +114,37 @@ Punkt 2 rozwidla się i obie gałęzie są uczciwe:
   kodu i mniej bloatu, ale zostawia stacki kompilowane z realnym ryzykiem kolizji na katalogu
   wyjściowym.
 
-Nierozstrzygnięte.
+ZAIMPLEMENTOWANE
+
+## Co jest solidne
+
+Bramka planu, po wyłączeniu punktu 4, robi dokładnie to, co obiecuje. Potwierdzone na syntetycznych
+transkryptach:
+
+| Scenariusz | Wynik |
+| --- | --- |
+| Zwykły plan mode bez skilla planner | allow (fail-open, zgodnie z kontraktem) |
+| Planner plus zapis planu, brak recenzji | deny |
+| Planner plus zapis plus `VERDICT: PASS` w `tool_result` | allow |
+| Planner plus zapis plus `VERDICT: FAIL` | deny |
+| FAIL, poprawka, ponowna recenzja PASS | allow |
+| PASS dostarczony jako `<result>` agenta w tle | allow |
+| Plan zmodyfikowany po własnym PASS | deny (kontrola mtime) |
+| Wpisane ręcznie `/viber:planner` zamiast wywołania Skill | deny (bramka uzbrojona) |
+| Plan zatwierdzony wcześniej w tej samej sesji | allow (okno epizodu działa) |
+| Nieprefiksowane `subagent_type: planner-review` | allow (obie pisownie rozpoznane) |
+| `VERDICT: PASS` zacytowane przez model w prozie, bez agenta | deny (nie daje się nabrać) |
+
+Poza tym:
+
+- Izolacja orkiestratora przez `disallowed-tools: Read, Edit, NotebookEdit` jest prawdziwym
+  ograniczeniem, nie deklaracją. To jest najmocniejszy element projektu.
+- `plan-index.sh` waliduje solidnie: duplikaty ID, brakujące pola, kierunek zależności,
+  `Covers` wskazujące nieistniejące kryterium. Jego wyjście jest wystarczająco kompaktowe, żeby
+  jeden kontekst przeżył cały build.
+- Zwykła ścieżka `commit-task.sh` (z ID zadania) stageuje wyłącznie pliki z mapy zadania i raportuje
+  na stderr wszystko, co zostało poza commitem. Potwierdzone.
+- Wznowienie po resecie kontekstu działa, o ile plan jest już w `docs/plans/`: stan `done` jest
+  poprawnie odczytywany z markera, a licznik postępu przeliczany.
+- Wszystkie pliki przechodzą `orphan-tags.test.ts` i `portability.test.ts` (30 testów, 0 porażek).
+  Oba skrypty pluginu i hook mają bit `100755` i shebang `#!/usr/bin/env bash`.
