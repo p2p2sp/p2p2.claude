@@ -68,7 +68,7 @@ Per task, once its coder returns:
 1. `VERDICT: FAIL` -> `AskUserQuestion`: retry / skip / abort. Abort ends the run; skip drops that task and every task depending on it.
 2. Profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier) with the plan path, the task id and a report path `.temp/viber/<plan-key>/review-<id>-<round>.md`, round starting at 1. `<plan-key>` is the `key:` from step 1, or the plan's directory name when the plan came in as an argument.
    - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with the plan path, the task id and the returned `REVIEW` path, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort.
-3. `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id> "<task title>"`. It stages only the task's files, commits, and records the task as done in the plan. A warning about files left outside the commit goes into the final summary. A non-zero exit means nothing was committed and nothing recorded -> `AskUserQuestion`: retry / skip / abort.
+3. `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`. It takes the commit subject from the task's own heading in the plan, stages only the task's files, commits, and records the task as done. A warning about files left outside the commit goes into the final summary. A non-zero exit means nothing was committed and nothing recorded -> `AskUserQuestion`: retry / skip / abort.
 4. `TaskUpdate` -> completed.
 
 ## 5. Close
@@ -76,6 +76,6 @@ Per task, once its coder returns:
 Dispatch `viber:test-runner` with a report path `.temp/viber/<plan-key>/tests-<round>.md`.
 
 - `VERDICT: PASS` or `VERDICT: SKIP` -> `TaskUpdate` -> completed.
-- `VERDICT: FAIL` -> dispatch `viber:task-coder` (model `sonnet`) with the plan path and the returned `REPORT` path, commit the fix with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> - "<fix subject>"`, then run `viber:test-runner` again with the next round. After 2 rounds -> `AskUserQuestion`: retry / accept / abort.
+- `VERDICT: FAIL` -> dispatch `viber:task-coder` (model `sonnet`) with the plan path and the returned `REPORT` path, commit its `FILES:` line with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id> <round> <file> [<file>...]` - `<id>` is the task the failure belongs to, which the index's `files` column resolves, one call per task when the fix spans several. The script stages nothing it was not given and takes the subject from that task's heading. Then run `viber:test-runner` again with the next round. After 2 rounds -> `AskUserQuestion`: retry / accept / abort.
 
 Final summary, max 5 lines: tasks committed, review rounds spent, test verdict, anything left for the user to decide.

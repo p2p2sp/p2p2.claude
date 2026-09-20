@@ -3,17 +3,26 @@
 # commit-task.sh - commits one finished plan task and records it in the plan.
 #
 # Usage:
-#   commit-task.sh <plan-file> <task-id> <commit-subject>
-#   commit-task.sh <plan-file> -         <commit-subject>
+#   commit-task.sh <plan-file> <task-id>
+#   commit-task.sh <plan-file> <task-id> <fix-number> <file> [<file>...]
 #
-# Stages ONLY the files from that task's "Files:" list, so parallel tasks cannot
-# pull each other's work into a commit and anything written outside the file map
-# stays uncommitted and visible.
+# Both forms take the commit subject from the task's own heading line
+# ("### T1 - <title>") in the plan, so the plan's title is literally what lands
+# in the history and no caller ever composes or paraphrases it.
 #
-# A task-id of "-" commits a fix that is not in the task list (a post-test repair):
-# it stages the whole tree, commits, and leaves the plan's progress counter alone.
+# Two arguments commit the task itself, subject "T1 - <title>", staging ONLY the
+# paths on that task's "Files:" line - parallel tasks cannot pull each other's
+# work into a commit.
 #
-# It appends the task id to the <!-- done: ... --> marker and recomputes the
+# A fix number commits a repair of that task after it was already committed (a
+# post-test fix), subject "T1(2) - <title>", staging only the files the caller
+# names and leaving the plan's progress counter alone.
+#
+# Neither form ever stages a path the caller did not name, and a ".temp/" entry
+# is refused outright, so machine state and anything written outside the file
+# map stay uncommitted and visible.
+#
+# A plain task commit appends the task id to the <!-- done: ... --> marker and recomputes the
 # "## Tasks (x/N)" header, so the plan carries its own progress and a build resumes
 # after a context reset without a separate state file. The marker has to ride IN
 # the commit, so it is written first and rolled back from a backup if staging or
@@ -27,19 +36,32 @@
 # exit != 0:
 #   2 - bad arguments / missing plan
 #   3 - no task with that id in the plan
-#   4 - the task produced no change to the working tree
+#   4 - the named files produced no change to the working tree
 #   5 - staging or committing failed; the plan is restored, nothing is recorded
-#       (the task's files stay staged, so the call can be retried as is)
+#       (the named files stay staged, so the call can be retried as is)
 #
 set -euo pipefail
 
 plan="${1:-}"
 task_id="${2:-}"
-subject="${3:-}"
 
-if [[ -z "$plan" || -z "$task_id" || -z "$subject" ]]; then
-  echo "error: usage: commit-task.sh <plan-file> <task-id> <commit-subject>" >&2
+usage() {
+  echo "error: usage: commit-task.sh <plan-file> <task-id> [<fix-number> <file> [<file>...]]" >&2
   exit 2
+}
+
+if [[ -z "$plan" || -z "$task_id" ]]; then
+  usage
+fi
+
+# A fix names its round and every file it touched; a plain task commit takes both
+# from the plan.
+fix_n=""
+if [[ $# -gt 2 ]]; then
+  fix_n="${3:-}"
+  if [[ ! "$fix_n" =~ ^[0-9]+$ ]] || [[ $# -lt 4 ]]; then
+    usage
+  fi
 fi
 
 if [[ ! -f "$plan" ]]; then
@@ -47,49 +69,87 @@ if [[ ! -f "$plan" ]]; then
   exit 2
 fi
 
-# --- fix outside the task list ---
-if [[ "$task_id" == "-" ]]; then
-  git add -A
-  if git diff --cached --quiet; then
-    echo "error: nothing to commit" >&2
-    exit 4
-  fi
-  git commit -m "$subject" -m "Refs: $plan" >&2
-  echo "committed: $(git rev-parse --short HEAD)"
-  echo "progress: unchanged"
-  exit 0
-fi
-
-# --- the task's files, from its "Files:" map ---
-files="$(awk -v want="$task_id" '
+# --- the task's heading and file map ---
+parsed="$(awk -v want="$task_id" '
 function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
 /<!--[[:space:]]*TASK[[:space:]]*-->/   { intask = 1; cur = ""; next }
 /<!--[[:space:]]*\/TASK[[:space:]]*-->/ { intask = 0; next }
 intask && /^###[[:space:]]/ {
   h = trim(substr($0, 4)); p = index(h, " - ")
   cur = (p ? trim(substr(h, 1, p - 1)) : trim(h))
+  if (cur == want) print "head\t" h
   next
 }
 intask && cur == want && /^-[[:space:]]*Files:/ {
-  s = $0; sub(/^[^:]*:/, "", s); gsub(/,/, "\n", s)
-  print trim(s)
+  s = $0; sub(/^[^:]*:/, "", s)
+  m = split(s, fl, /,/)
+  for (k = 1; k <= m; k++) if (trim(fl[k]) != "") print "file\t" trim(fl[k])
 }
-' "$plan" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d')"
+' "$plan")"
 
-if [[ -z "$files" ]]; then
-  echo "error: no task '$task_id' with a Files list in $plan" >&2
+heading=""
+files=""
+while IFS=$'\t' read -r kind value; do
+  case "$kind" in
+    head) heading="$value" ;;
+    file) files="$files$value"$'\n' ;;
+  esac
+done <<< "$parsed"
+
+if [[ -z "$heading" ]]; then
+  echo "error: no task '$task_id' in $plan" >&2
   exit 3
 fi
 
-# --- stage the task's files only ---
+if [[ -n "$fix_n" ]]; then
+  # the repair's own files, and the task's title carrying the round: "T1(2) - ..."
+  shift 3
+  files="$(printf '%s\n' "$@")"
+  subject="$task_id($fix_n) - ${heading#* - }"
+else
+  if [[ -z "$files" ]]; then
+    echo "error: no task '$task_id' with a Files list in $plan" >&2
+    exit 3
+  fi
+  subject="$heading"
+fi
+
+# --- stage the named files only ---
 while IFS= read -r f; do
   [[ -z "$f" ]] && continue
+  case "$f" in
+    .temp|.temp/*)
+      echo "warning: refused $f - .temp is machine state, never committed" >&2
+      continue
+      ;;
+  esac
   git add -A -- "$f" 2>/dev/null || echo "warning: could not stage $f" >&2
 done <<< "$files"
 
 if git diff --cached --quiet; then
-  echo "error: task $task_id produced no changes to commit" >&2
+  if [[ -n "$fix_n" ]]; then
+    echo "error: the fix for task $task_id produced no changes to commit" >&2
+  else
+    echo "error: task $task_id produced no changes to commit" >&2
+  fi
   exit 4
+fi
+
+warn_dirty() {
+  local dirty
+  dirty="$(git status --short)"
+  [[ -n "$dirty" ]] || return 0
+  echo "warning: left outside the commit (not in $1):" >&2
+  printf '%s\n' "$dirty" >&2
+}
+
+# --- a repair of an already committed task: no marker, no counter ---
+if [[ -n "$fix_n" ]]; then
+  git commit -m "$subject" -m "Refs: $plan task $task_id fix $fix_n" >&2 || exit 5
+  echo "committed: $(git rev-parse --short HEAD)"
+  echo "progress: unchanged"
+  warn_dirty "the fix's file list"
+  exit 0
 fi
 
 # --- plan progress: done marker plus the header counter ---
@@ -150,8 +210,4 @@ backup=""
 echo "committed: $(git rev-parse --short HEAD)"
 echo "progress: $progress"
 
-dirty="$(git status --short)"
-if [[ -n "$dirty" ]]; then
-  echo "warning: left outside the commit (not in task $task_id file map):" >&2
-  printf '%s\n' "$dirty" >&2
-fi
+warn_dirty "task $task_id file map"

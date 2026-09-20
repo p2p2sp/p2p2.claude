@@ -30,7 +30,7 @@ Build: skill `implementor`
 <!-- done: - -->
 
 <!-- TASK -->
-### 01 - <title = commit subject, Conventional Commits>
+### T1 - <title>
 - TDD: required | none
 - Covers: #1, #2
 - Depends-on: none
@@ -41,10 +41,10 @@ Build: skill `implementor`
 <!-- /TASK -->
 
 <!-- TASK -->
-### 02 - <title>
+### T2 - <title>
 - TDD: required | none
 - Covers: #<n>
-- Depends-on: 01
+- Depends-on: T1
 - Files: <repo-relative path>
 - Delivers: <...>
 - Verification: <...>
@@ -52,3 +52,4 @@ Build: skill `implementor`
 <!-- /TASK -->
 
 <!-- one TASK block per unit of work; leave every HTML marker intact -->
+<!-- the whole heading line, "T<n> - <title>", is committed verbatim as the commit subject -->

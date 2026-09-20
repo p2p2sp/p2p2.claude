@@ -52,7 +52,8 @@ on your confirmation. It writes nothing.
 Maps the files before writing a single task - locked-in file boundaries are what lets tasks run in parallel
 later. Then a plan carrying the goal, numbered acceptance criteria, the file map, the contracts, and small
 dependency-ordered tasks, each with a TDD marker, a `Covers` list, a runnable `Verification` and an
-observable `DoD`. The task title is its commit subject.
+observable `DoD`. Task ids run `T1`, `T2`, … and the whole heading line, `T<n> - <title>`, is the commit
+subject.
 
 `plan-index.sh` validates the structure - duplicate ids, missing fields, a dependency pointing forward, a
 `Covers` naming a criterion that does not exist, and the same file claimed by two tasks that have no
@@ -73,8 +74,10 @@ that defines a contract others consume to `opus` with review.
 Dispatch is as wide as the rules allow - a task waits only for its real dependencies, and the validated plan
 already guarantees that two tasks running at once never share a file. Each finished task is reviewed by `task-reviewer` against its own
 definition, sent back to the coder on a FAIL (two rounds, then it asks you), and committed by
-`commit-task.sh`, which stages **only** that task's files, so nothing outside the file map slips into a
-commit. The run closes with `test-runner` on the full suite.
+`commit-task.sh`, which stages **only** that task's files and takes the commit subject from the task's own
+heading, so nothing outside the file map slips into a commit and the history reads like the plan. The run
+closes with `test-runner` on the full suite; a repair it triggers is committed against the task it belongs
+to, under `T<n>(<round>) - <title>`, so a fix is never an anonymous commit.
 
 ## Resuming
 

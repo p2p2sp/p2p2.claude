@@ -39,20 +39,11 @@ Konsekwencje:
   zatwierdzenie może ten kontekst wyczyścić. Krok 1.3 implementora szuka wtedy `docs/plans/*.md`,
   którego jeszcze nie ma, bo nikt go tam nie zapisał.
 
-Naprawa do rozważenia: niech `planner` zapisuje plan od razu do `docs/plans/<slug>.md` (o ile plan
-mode na to pozwala), albo niech `commit-task.sh` odmawiał pracy na planie spoza repo z czytelnym
-błędem, zanim cokolwiek zmieni.
+Naprawa do przemyślenia.
 
 ### 3. `commit-task.sh:45-54` (`task_id = "-"`) robi `git add -A` i wciąga `.temp/viber/**` do historii
 
-Potwierdzone: commit naprawczy po nieudanych testach zawierał `.temp/viber/feat-x/review-01-1.md`
-oraz niezwiązany `src/UNRELATED.ts`.
-
-To wprost łamie deklarację z README ("anything written outside the file map stays uncommitted and
-visible") i z węzła CLAUDE.md. Dla kontrastu `superdev/scripts/commit-task.sh:177` ma jawne
-wykluczenie `.temp/` "whatever the host's .gitignore says", a superdev ma dodatkowo skill `setup`,
-który zasiewa `.gitignore` w repozytorium hosta. Viber nie ma ani jednego, ani drugiego, więc w
-świeżym projekcie `.temp/viber/` jest nieśledzony i nieignorowany.
+ZAIMPLEMENTOWANE
 
 ## Ważne
 

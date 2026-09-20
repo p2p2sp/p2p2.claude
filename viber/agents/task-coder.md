@@ -38,3 +38,4 @@ Your only output channel - no diff, no logs, no prose:
 
 - line 1: `VERDICT: PASS` or `VERDICT: FAIL`
 - on FAIL, line 2: `REASON: <one line>`
+- on PASS without a task id, line 2: `FILES: <every repo-relative path you changed, comma-separated>` - nothing outside that list gets committed, so an omitted path is lost work.

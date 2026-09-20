@@ -26,7 +26,7 @@ Fill `${CLAUDE_SKILL_DIR}/templates/plan.md` into the plan file plan mode names 
 Task rules:
 
 - Smallest unit that carries its own verification and is worth a reviewer's gate. Fold setup, config and docs into the task whose deliverable needs them.
-- Number tasks in order. `Depends-on` may reference lower-numbered tasks only, which keeps the graph acyclic.
+- Task ids are `T1`, `T2`, … in order. `Depends-on` may reference lower-numbered tasks only, which keeps the graph acyclic.
 - Declare a dependency only for a real ordering constraint - one task consuming what another produces. Every false dependency costs parallelism.
 - `Files` is the task's complete file map, comma-separated on one line: exact repo-relative paths, no globs, no directories, no annotations. It is what gets staged for the commit and what the collision check compares.
 - Tasks with no dependency path between them must not list the same file - they run at the same time.
@@ -34,7 +34,7 @@ Task rules:
 - `Verification` is a runnable command plus the result that counts as proof.
 - `TDD: required` by default. `TDD: none` only where the task changes no runtime behaviour: config, docs, mechanical rename, scaffolding.
 - Every acceptance criterion is covered by at least one task's `Covers`.
-- The task title is the commit subject, in Conventional Commits form.
+- The whole heading line, `T<n> - <title>`, is committed verbatim as the commit subject, so the title is one short imperative summary of what the task delivers.
 
 Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan-path>` as one literal Bash line, no interpreter word in front - any other form is an unapproved call that stalls on a permission prompt. It must exit 0 - it validates ids, required fields, dependency direction, that every `Covers` points at a real criterion, the `Files` format, and that no two tasks without a dependency path between them list the same file. Fix whatever it reports and re-run.
 

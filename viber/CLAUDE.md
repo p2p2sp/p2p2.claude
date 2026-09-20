@@ -48,6 +48,12 @@ file.
   the stamp is taken when the plan lands, so a re-run of the same slug never overwrites an earlier
   plan, and a run already open for that slug comes back as `state: existing` instead. That
   directory name is also the `<plan-key>` of the run's report dir, `.temp/viber/<plan-key>/`.
+- **Task ids are `T1`, `T2`, … and the heading line IS the commit subject.** `commit-task.sh` reads
+  `### T<n> - <title>` out of the plan and commits it verbatim, so the orchestrator never composes a
+  subject and the history reads like the plan. A post-test repair is a second commit against the
+  same task (`<plan> <id> <round> <file>...`), subject `T<n>(<round>) - <title>`, progress
+  untouched: it stages only the paths the caller names. Neither form runs `git add -A`, and a
+  `.temp/` entry is refused outright.
 - **`Files:` is a machine-readable map, not prose.** Comma-separated exact repo-relative paths on
   one line, no globs, no directories, no annotations. `commit-task.sh` stages that list literally,
   and `plan-index.sh` compares it across tasks: a plan where two tasks with no dependency path

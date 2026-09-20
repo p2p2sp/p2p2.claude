@@ -1,10 +1,10 @@
 /*
  * commit-task.test.ts - proves viber/scripts/commit-task.sh's contract:
- * `commit-task.sh <plan-file> <task-id> <commit-subject>` stages ONLY the paths
- * on that task's `- Files:` line, writes the `<!-- done: ... -->` marker and the
- * `## Tasks (x/N)` header, and commits both together, printing `committed: <sha>`
- * and `progress: x/N` on stdout with anything left outside the commit named on
- * stderr.
+ * `commit-task.sh <plan-file> <task-id>` stages ONLY the paths on that task's
+ * `- Files:` line, commits them under the task's own heading line
+ * (`### T1 - <title>`) as the subject, writes the `<!-- done: ... -->` marker and
+ * the `## Tasks (x/N)` header, and prints `committed: <sha>` and `progress: x/N`
+ * on stdout with anything left outside the commit named on stderr.
  *
  * The marker and the commit are ATOMIC: the marker is written first so it rides
  * IN the commit, and any failure from there on (a refused `git commit`, a plan
@@ -14,7 +14,10 @@
  * reset, and the orchestrator never re-verifies the script - so this is the one
  * invariant the suite exists for.
  *
- * A task-id of `-` is the post-test repair path: whole tree, plan untouched.
+ * `commit-task.sh <plan-file> <task-id> <fix-number> <file>...` is the post-test
+ * repair of an already committed task: subject `T1(2) - <title>` off the same
+ * heading, the plan untouched, and nothing the caller did not name - `.temp/`
+ * reports above all - reaching the history.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -50,8 +53,9 @@ function write(root: string, rel: string, content: string): void {
 
 /** A plan in the template's shape: the `<!-- done: - -->` marker, the
  *  `## Tasks (0/N)` header, and one `<!-- TASK -->` block per task whose
- *  `- Files:` line is the machine-readable map the script stages literally. */
-function planBody(tasks: Array<[id: string, files: string]>): string {
+ *  `- Files:` line is the machine-readable map the script stages literally and
+ *  whose `### T<n> - <title>` heading is the commit subject it reads. */
+function planBody(tasks: Array<[id: string, files: string, title?: string]>): string {
   return [
     "# Plan - feat x",
     "",
@@ -59,9 +63,9 @@ function planBody(tasks: Array<[id: string, files: string]>): string {
     "",
     `## Tasks (0/${tasks.length})`,
     "",
-    ...tasks.flatMap(([id, files]) => [
+    ...tasks.flatMap(([id, files, title]) => [
       "<!-- TASK -->",
-      `### ${id} - task ${id}`,
+      `### ${id} - ${title ?? `task ${id}`}`,
       `- Files: ${files}`,
       "<!-- /TASK -->",
       "",
@@ -69,14 +73,14 @@ function planBody(tasks: Array<[id: string, files: string]>): string {
   ].join("\n");
 }
 
-const TWO_TASKS: Array<[string, string]> = [
-  ["01", "src/a.ts"],
-  ["02", "src/b.ts"],
+const TWO_TASKS: Array<[string, string, string?]> = [
+  ["T1", "src/a.ts"],
+  ["T2", "src/b.ts"],
 ];
 
 /** Commits the plan and a README so the only pending change a test sees is the
  *  one the test makes. */
-function seed(repo: GitRepo, tasks: Array<[string, string]> = TWO_TASKS): void {
+function seed(repo: GitRepo, tasks: Array<[string, string, string?]> = TWO_TASKS): void {
   write(repo.dir, PLAN_REL, planBody(tasks));
   write(repo.dir, "README.md", "seed\n");
   repo.git("add", "-A");
@@ -127,19 +131,30 @@ test("a task commits only its own Files: paths, with the done marker and the cou
     seed(repo);
     write(repo.dir, "src/a.ts", "work\n");
 
-    const result = run(repo.dir, repo.env, [PLAN_REL, "01", "feat: task 01"]);
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^committed: [0-9a-f]{7,}\nprogress: 1\/2\n$/);
 
-    assert.match(readPlan(repo), /<!-- done: 01 -->/);
+    assert.match(readPlan(repo), /<!-- done: T1 -->/);
     assert.match(readPlan(repo), /^## Tasks \(1\/2\)$/m);
     assert.deepEqual(committedFiles(repo), [PLAN_REL, "src/a.ts"].sort());
 
     // Read back out of history, not out of the working tree: a resume after a
     // context reset must find the marker in the commit itself.
     const fromHistory = repo.git("show", `HEAD:${PLAN_REL}`).stdout;
-    assert.match(fromHistory, /<!-- done: 01 -->/);
+    assert.match(fromHistory, /<!-- done: T1 -->/);
     assert.match(fromHistory, /^## Tasks \(1\/2\)$/m);
+  });
+});
+
+test("the commit subject is the task's whole heading line, taken from the plan (the orchestrator never composes or paraphrases it)", () => {
+  withGitRepo((repo) => {
+    seed(repo, [["T1", "src/a.ts", "add the plan index"], ["T2", "src/b.ts"]]);
+    write(repo.dir, "src/a.ts", "work\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(subjects(repo)[0], "T1 - add the plan index");
   });
 });
 
@@ -149,10 +164,10 @@ test("a file outside the task's map stays out of the commit and is named on stde
     write(repo.dir, "src/a.ts", "work\n");
     write(repo.dir, "src/UNRELATED.ts", "not mine\n");
 
-    const result = run(repo.dir, repo.env, [PLAN_REL, "01", "feat: task 01"]);
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(committedFiles(repo), [PLAN_REL, "src/a.ts"].sort());
-    assert.match(result.stderr, /left outside the commit \(not in task 01 file map\)/);
+    assert.match(result.stderr, /left outside the commit \(not in task T1 file map\)/);
     assert.match(result.stderr, /src\/UNRELATED\.ts/);
   });
 });
@@ -164,10 +179,10 @@ test("a refused git commit leaves the plan byte-for-byte unchanged and exits 5 (
     const before = readPlan(repo);
     breakCommit(repo);
 
-    const result = run(repo.dir, repo.env, [PLAN_REL, "01", "feat: task 01"]);
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
     assert.equal(result.status, 5);
     assert.equal(result.stdout, "");
-    assert.match(result.stderr, /plan rolled back, task 01 is NOT marked done/);
+    assert.match(result.stderr, /plan rolled back, task T1 is NOT marked done/);
 
     assert.equal(readPlan(repo), before);
     assert.deepEqual(subjects(repo), ["seed"]);
@@ -180,7 +195,7 @@ test("a refused git commit leaves no backup or temp file next to the plan", () =
     write(repo.dir, "src/a.ts", "work\n");
     breakCommit(repo);
 
-    run(repo.dir, repo.env, [PLAN_REL, "01", "feat: task 01"]);
+    run(repo.dir, repo.env, [PLAN_REL, "T1"]);
     assert.deepEqual(planDirEntries(repo), ["plan.md"]);
   });
 });
@@ -191,15 +206,15 @@ test("a refused git commit leaves the task's work staged, so the same call retri
     write(repo.dir, "src/a.ts", "work\n");
     breakCommit(repo);
 
-    const refused = run(repo.dir, repo.env, [PLAN_REL, "01", "feat: task 01"]);
+    const refused = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
     assert.equal(refused.status, 5);
     assert.ok(stagedFiles(repo).includes("src/a.ts"), `staged: ${stagedFiles(repo).join(", ")}`);
 
     fixCommit(repo);
-    const retried = run(repo.dir, repo.env, [PLAN_REL, "01", "feat: task 01"]);
+    const retried = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
     assert.equal(retried.status, 0, `stderr: ${retried.stderr}`);
     assert.match(retried.stdout, /progress: 1\/2\n$/);
-    assert.match(readPlan(repo), /<!-- done: 01 -->/);
+    assert.match(readPlan(repo), /<!-- done: T1 -->/);
     assert.deepEqual(committedFiles(repo), [PLAN_REL, "src/a.ts"].sort());
   });
 });
@@ -215,7 +230,7 @@ test("a plan outside the repository fails while staging and still rolls the mark
       fs.writeFileSync(plan, planBody(TWO_TASKS));
       const before = fs.readFileSync(plan, "utf-8");
 
-      const result = run(repo.dir, repo.env, [plan, "01", "feat: task 01"]);
+      const result = run(repo.dir, repo.env, [plan, "T1"]);
       assert.equal(result.status, 5);
       assert.equal(result.stdout, "");
       assert.equal(fs.readFileSync(plan, "utf-8"), before);
@@ -229,13 +244,13 @@ test("the second task advances the counter to 2/2 and appends to the marker", ()
   withGitRepo((repo) => {
     seed(repo);
     write(repo.dir, "src/a.ts", "work\n");
-    run(repo.dir, repo.env, [PLAN_REL, "01", "feat: task 01"]);
+    run(repo.dir, repo.env, [PLAN_REL, "T1"]);
     write(repo.dir, "src/b.ts", "more\n");
 
-    const result = run(repo.dir, repo.env, [PLAN_REL, "02", "feat: task 02"]);
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T2"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /progress: 2\/2\n$/);
-    assert.match(readPlan(repo), /<!-- done: 01 02 -->/);
+    assert.match(readPlan(repo), /<!-- done: T1 T2 -->/);
     assert.match(readPlan(repo), /^## Tasks \(2\/2\)$/m);
   });
 });
@@ -244,28 +259,81 @@ test("committing the same task id twice does not duplicate it in the marker or d
   withGitRepo((repo) => {
     seed(repo);
     write(repo.dir, "src/a.ts", "work\n");
-    run(repo.dir, repo.env, [PLAN_REL, "01", "feat: task 01"]);
+    run(repo.dir, repo.env, [PLAN_REL, "T1"]);
     write(repo.dir, "src/a.ts", "more work\n");
 
-    const result = run(repo.dir, repo.env, [PLAN_REL, "01", "fix: task 01 again"]);
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /progress: 1\/2\n$/);
-    assert.match(readPlan(repo), /<!-- done: 01 -->/);
+    assert.match(readPlan(repo), /<!-- done: T1 -->/);
     assert.match(readPlan(repo), /^## Tasks \(1\/2\)$/m);
   });
 });
 
-test("task id '-' commits the whole tree and leaves the plan's progress alone", () => {
+test("a fix number commits a repair of that task under 'T<n>(<round>) - <title>', naming the task it repairs and leaving the plan's progress alone", () => {
   withGitRepo((repo) => {
-    seed(repo);
-    write(repo.dir, "src/a.ts", "repair\n");
+    seed(repo, [["T1", "src/a.ts", "add the plan index"], ["T2", "src/b.ts"]]);
+    write(repo.dir, "src/a.ts", "work\n");
+    run(repo.dir, repo.env, [PLAN_REL, "T1"]);
     const before = readPlan(repo);
+    write(repo.dir, "src/a.ts", "repair\n");
+    write(repo.dir, "src/UNRELATED.ts", "not part of the fix\n");
 
-    const result = run(repo.dir, repo.env, [PLAN_REL, "-", "fix: post-test repair"]);
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "2", "src/a.ts"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^committed: [0-9a-f]{7,}\nprogress: unchanged\n$/);
     assert.equal(readPlan(repo), before);
     assert.deepEqual(committedFiles(repo), ["src/a.ts"]);
+    assert.equal(subjects(repo)[0], "T1(2) - add the plan index");
+    assert.match(result.stderr, /left outside the commit \(not in the fix's file list\)/);
+    assert.match(result.stderr, /src\/UNRELATED\.ts/);
+  });
+});
+
+test("a fix refuses a .temp path instead of writing machine state into the history", () => {
+  // The whole point of the explicit list: a run's own review and test reports
+  // live under .temp/viber/ and must never reach a commit.
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "repair\n");
+    write(repo.dir, ".temp/viber/2026-09-20-10-00-00_feat-x/tests-1.md", "one failure\n");
+
+    const result = run(repo.dir, repo.env, [
+      PLAN_REL,
+      "T1",
+      "1",
+      "src/a.ts",
+      ".temp/viber/2026-09-20-10-00-00_feat-x/tests-1.md",
+    ]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(committedFiles(repo), ["src/a.ts"]);
+    assert.match(result.stderr, /refused \.temp\/viber/);
+  });
+});
+
+test("a fix number without a file list exits 2 rather than falling back to the whole tree", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "repair\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "1"]);
+    assert.equal(result.status, 2);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /usage: commit-task\.sh <plan-file> <task-id>/);
+    assert.deepEqual(subjects(repo), ["seed"]);
+  });
+});
+
+test("a third argument that is not a fix number exits 2 (a caller passing a hand-written subject is refused, never committed under it)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "repair\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "fix: post-test repair", "src/a.ts"]);
+    assert.equal(result.status, 2);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /usage: commit-task\.sh <plan-file> <task-id>/);
+    assert.deepEqual(subjects(repo), ["seed"]);
   });
 });
 
@@ -275,9 +343,9 @@ test("a task id that is not in the plan exits 3 without touching the plan or the
     write(repo.dir, "src/a.ts", "work\n");
     const before = readPlan(repo);
 
-    const result = run(repo.dir, repo.env, [PLAN_REL, "99", "feat: nowhere"]);
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T9"]);
     assert.equal(result.status, 3);
-    assert.match(result.stderr, /no task '99' with a Files list/);
+    assert.match(result.stderr, /no task 'T9' in/);
     assert.equal(readPlan(repo), before);
     assert.deepEqual(subjects(repo), ["seed"]);
   });
@@ -288,9 +356,9 @@ test("a task whose files produced no change exits 4 without touching the plan", 
     seed(repo);
     const before = readPlan(repo);
 
-    const result = run(repo.dir, repo.env, [PLAN_REL, "01", "feat: task 01"]);
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
     assert.equal(result.status, 4);
-    assert.match(result.stderr, /task 01 produced no changes to commit/);
+    assert.match(result.stderr, /task T1 produced no changes to commit/);
     assert.equal(readPlan(repo), before);
     assert.deepEqual(subjects(repo), ["seed"]);
   });
@@ -299,17 +367,17 @@ test("a task whose files produced no change exits 4 without touching the plan", 
 test("a missing argument exits 2 with usage on stderr", () => {
   withGitRepo((repo) => {
     seed(repo);
-    const result = run(repo.dir, repo.env, [PLAN_REL, "01"]);
+    const result = run(repo.dir, repo.env, [PLAN_REL]);
     assert.equal(result.status, 2);
     assert.equal(result.stdout, "");
-    assert.match(result.stderr, /usage: commit-task\.sh <plan-file> <task-id> <commit-subject>/);
+    assert.match(result.stderr, /usage: commit-task\.sh <plan-file> <task-id>/);
   });
 });
 
 test("a plan path that does not exist exits 2 (never a half-run against a typo'd path)", () => {
   withGitRepo((repo) => {
     seed(repo);
-    const result = run(repo.dir, repo.env, ["docs/plans/nope/plan.md", "01", "feat: task 01"]);
+    const result = run(repo.dir, repo.env, ["docs/plans/nope/plan.md", "T1"]);
     assert.equal(result.status, 2);
     assert.match(result.stderr, /plan file not found/);
     assert.deepEqual(subjects(repo), ["seed"]);
