@@ -6,6 +6,7 @@ allowed-tools: Write, Agent, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLA
 disallowed-tools: Read, Edit, NotebookEdit
 model: sonnet
 effort: medium
+user-invocable: false
 ---
 
 ```!
