@@ -34,12 +34,15 @@ gate blocks viber's plan approval. Run one track at a time.
 ```
 /viber:setup           once per project: the switches, the ignore rules and the permissions
 /viber:idea            an interview about a raw idea, one question at a time
+/viber:fixer           a bug traced to its root cause and proven, then handed to the planner
 plan it                the planner, straight from an understood change
 implement it           the orchestrator, straight from an approved plan
 ```
 
 `planner` and `implementor` are model-invocable - they fire on the intent ("break this down", "build the
-plan", "go ahead"), not on a command. `idea` and `setup` are user-only: the slash command is the only way in.
+plan", "go ahead"), not on a command. `setup`, `idea` and `fixer` are user-only: the slash command is the
+only way in. `tdd` is neither - `task-coder` invokes it through the `Skill` tool, and you never call it
+yourself.
 
 `setup` writes `.claude/viber.yml`, three switches that are all on there and all off when the file is
 absent: `adr` (decisions worth keeping become the plan's first tasks), `memory` and `rules` (the build

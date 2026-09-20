@@ -52,17 +52,11 @@ NAPRAWIONE
 
 ### 5. `hooks/content/manifest.md` jest pusty
 
-- Hook jest fail-open, więc wstrzykuje sam baner i nic więcej.
-- `README.md:15` obiecuje wstrzykiwanie manifestu, a `viber/CLAUDE.md:126` opisuje jego treść
-  ("It carries standing rules only") w czasie teraźniejszym.
-- Do decyzji: napisać manifest albo usunąć go z dokumentacji do czasu, aż powstanie.
+NAPRAWIONE
 
 ### 6. `viber/CLAUDE.md:36` mówi, że `fixer` to "the only CSO-routed skill here"
 
-- Nieprawda: `planner`, `implementor` i `tdd` też nie mają `disable-model-invocation`, więc też
-  są model-invocable.
-- `README.md:41` mówi wprost coś przeciwnego: "planner and implementor are model-invocable".
-  Węzeł pamięci i README się rozjeżdżają.
+NAPRAWIONE
 
 ### 7. Naprawa po `test-runner` nie ma ścieżki dla pliku spoza mapy zadań
 

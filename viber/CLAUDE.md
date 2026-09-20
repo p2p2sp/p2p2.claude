@@ -23,17 +23,17 @@ plugin-named dot-dir, no state file.
   ending in a confirmed summary that hands over to `viber:planner`. Under `adr: true` it also puts
   the decisions worth recording to the user and carries the accepted ones into that summary. Writes
   nothing.
-- `skills/planner/SKILL.md` - enters plan mode itself. Fills `skills/planner/templates/plan.md` into
+- `skills/planner/SKILL.md` - model-invocable, and enters plan mode itself. Fills `skills/planner/templates/plan.md` into
   the plan file plan mode names, turns each accepted ADR into a first task, validates the result
   with `scripts/plan-index.sh`, then gates on `viber:planner-review` until `VERDICT: PASS` before
   `ExitPlanMode`.
-- `skills/implementor/SKILL.md` - orchestrator, `[plan-path]` argument. Lands the plan in the dated
+- `skills/implementor/SKILL.md` - model-invocable orchestrator, `[plan-path]` argument. Lands the plan in the dated
   directory `scripts/plan-path.sh` resolves, decomposes it with `plan-index.sh --split`, profiles
   each task into a model tier (haiku / sonnet / opus) and a review decision, dispatches
   `viber:task-coder` in the widest batch the dependency and file-collision rules allow, gates each
   reviewed task on `viber:task-reviewer`, commits it with `scripts/commit-task.sh`, closes on
   `viber:test-runner` and then, per switch, on `viber:memory-writer` and `viber:rules-writer`.
-- `skills/fixer/SKILL.md` - the only CSO-routed skill here: it fires on a bug report, forces a
+- `skills/fixer/SKILL.md` - `/viber:fixer`, user-only. Invoked on a bug report, it forces a
   traced diagnosis proven by a failing test, and hands the fix plan to `planner`, leaving that test
   RED in the tree for the fixing task's `Files:`. It never applies a fix itself.
 - `skills/tdd/SKILL.md` - the Red-Green-Refactor discipline a `TDD: required` task is built under.
