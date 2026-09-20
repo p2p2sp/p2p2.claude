@@ -156,11 +156,15 @@ if [ "$verdict_line" = "0" ]; then
   emit_deny "Next step: let the review finish. The viber:planner-review agent was dispatched (transcript line ${last_dispatch}, after the last write of ${plan_name} on line ${plan_write_line}) but returned no 'VERDICT:' line - dispatch it again and read its verdict, then retry ExitPlanMode. (This is the planner's review gate, not an error.)"
 fi
 
+# The SAME pattern that selected the line above, trailing delimiter included:
+# read the value with a looser one and a qualified "VERDICT: PASS is not
+# warranted" ahead of the real FAIL is picked up as the verdict - a false allow
+# on the gate. The two patterns must stay identical.
 verdict_value=$(
   awk -v ln="$verdict_line" 'NR==ln {
-    if (match($0, /(\\n|"(text|content)":"|<result>)[[:space:]]*VERDICT:[[:space:]]+`?(PASS|FAIL)`?/)) {
-      v = substr($0, RSTART, RLENGTH); gsub(/`/, "", v)
-      n = split(v, a, " "); print a[n]
+    if (match($0, /(\\n|"(text|content)":"|<result>)[[:space:]]*VERDICT:[[:space:]]+`?(PASS|FAIL)`?[[:space:]]*(\\n|"|<)/)) {
+      v = substr($0, RSTART, RLENGTH)
+      if (match(v, /PASS|FAIL/)) print substr(v, RSTART, RLENGTH)
     }
   }' "$transcript_path" 2>/dev/null
 )

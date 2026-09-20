@@ -1,0 +1,512 @@
+/*
+ * plan-gate.test.ts - proves viber/hooks/scripts/plan-gate.sh, the PreToolUse
+ * gate on ExitPlanMode: the planner's review round, enforced by the harness
+ * rather than by the model.
+ *
+ * What it must do: arm ONLY when the current plan-mode episode carries both
+ * signals of the planner skill driving the plan (a Skill tool_use for `planner`
+ * or a typed `/planner`, plus a Write/Edit of a `plans/*.md` file), then allow
+ * ExitPlanMode only for a `viber:planner-review` dispatch that FOLLOWED the last
+ * plan write, returned `VERDICT: PASS`, and whose plan file has not been touched
+ * since (mtime vs. the verdict's transcript timestamp). Everything else - plain
+ * plan mode, an episode that already built a plan, an unreadable transcript -
+ * passes untouched: a broken gate must never trap the user in plan mode, so every
+ * case here also asserts exit 0 and parseable JSON.
+ *
+ * Fixture lines are built as JS objects and serialized with JSON.stringify, so
+ * quotes, backslashes and newlines are escaped exactly the way the real
+ * transcript author encodes them - the script reads that text with grep/sed/awk
+ * and never parses JSON, so hand-escaped fixtures would prove the wrong thing.
+ * The line shapes (`"type":"permission-mode"`, `"name":"Skill","input":{"skill":`,
+ * `"subagent_type":`) are taken from real transcripts.
+ *
+ * Repo reality: no build, no lint, no npm, no package.json - this file is run
+ * directly by Node's native test runner + TypeScript type stripping:
+ *   node --test tests/viber/plan-gate.test.ts
+ */
+
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+
+import { runScript } from "../harness/run.ts";
+import { withTempDir } from "../harness/tmp.ts";
+
+const SUT = path.resolve(import.meta.dirname, "../../viber/hooks/scripts/plan-gate.sh");
+
+// --- fixture builders -------------------------------------------------
+
+function line(obj: unknown): string {
+  return JSON.stringify(obj);
+}
+
+function writeTranscript(dir: string, name: string, lines: string[]): string {
+  const file = path.join(dir, name);
+  fs.writeFileSync(file, lines.map((l) => `${l}\n`).join(""));
+  return file;
+}
+
+interface Decision {
+  decision: string;
+  reason?: string;
+}
+
+// plan-gate.sh ships mode 100755, but hooks.json invokes it as
+// `bash "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/plan-gate.sh"` - the harness runs it
+// the same way, because this file tests the script's content, not its exec bit.
+function runPayload(payload: Record<string, unknown>): Decision {
+  const result = runScript(SUT, [], { shell: "bash", input: JSON.stringify(payload) });
+  assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+  let json: { hookSpecificOutput?: { hookEventName?: string; permissionDecision?: string; permissionDecisionReason?: string } };
+  try {
+    json = JSON.parse(result.stdout);
+  } catch {
+    throw new Error(`expected parseable JSON stdout, got: ${result.stdout}`);
+  }
+  const out = json.hookSpecificOutput;
+  assert.ok(out, `expected hookSpecificOutput, got: ${result.stdout}`);
+  assert.equal(out.hookEventName, "PreToolUse");
+  return { decision: out.permissionDecision ?? "", reason: out.permissionDecisionReason };
+}
+
+function runCase(transcriptPath: string, cwd?: string): Decision {
+  const payload: Record<string, unknown> = { transcript_path: transcriptPath, tool_name: "ExitPlanMode" };
+  if (cwd) payload.cwd = cwd;
+  return runPayload(payload);
+}
+
+/** The dated plan layout plan-path.sh owns; `plans` is the directory segment the
+ *  gate anchors on. A path that never exists on disk is fine for every case but
+ *  the mtime guard - the guard is skipped when the file cannot be read. */
+const PLAN = "/repo/docs/plans/2026-09-20-10-00-00_feat-x/plan.md";
+
+/** Signal 1a: the planner skill invoked through the Skill tool. */
+function skillUse(skill = "viber:planner"): string {
+  return line({ type: "assistant", message: { content: [{ type: "tool_use", name: "Skill", input: { skill } }] } });
+}
+
+/** Signal 1b: the user typing `/viber:planner`, which loads the skill with no
+ *  Skill tool_use at all. */
+function typedCommand(command = "/viber:planner"): string {
+  return line({ type: "user", message: { content: `<command-name>${command}</command-name>` } });
+}
+
+/** Signal 2: the plan file itself, written by Write or Edit. */
+function planWrite(filePath = PLAN, name: "Write" | "Edit" = "Write"): string {
+  return line({ type: "assistant", message: { content: [{ type: "tool_use", name, input: { file_path: filePath, content: "# Plan" } }] } });
+}
+
+function dispatch(id?: string): string {
+  const use: Record<string, unknown> = {
+    type: "tool_use",
+    name: "Agent",
+    input: { subagent_type: "viber:planner-review", prompt: `review ${PLAN}` },
+  };
+  if (id) use.id = id;
+  return line({ type: "assistant", message: { content: [use] } });
+}
+
+interface VerdictOpts {
+  id?: string;
+  timestamp?: string;
+  body?: string;
+}
+
+function verdict(value: "PASS" | "FAIL", opts: VerdictOpts = {}): string {
+  const block: Record<string, unknown> = {
+    type: "tool_result",
+    content: opts.body ?? `## Plan Review\nVERDICT: ${value}\nnotes.`,
+  };
+  if (opts.id) block.tool_use_id = opts.id;
+  const obj: Record<string, unknown> = { type: "user", message: { content: [block] } };
+  if (opts.timestamp) obj.timestamp = opts.timestamp;
+  return line(obj);
+}
+
+function permissionMode(mode: string): string {
+  return line({ type: "permission-mode", permissionMode: mode, sessionId: "s" });
+}
+
+/** A plan file that really exists, so the mtime guard has something to stat. */
+function realPlan(dir: string, rel = "docs/plans/2026-09-20-10-00-00_feat-x/plan.md"): string {
+  const file = path.join(dir, rel);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, "# Plan\n");
+  return file;
+}
+
+const PASS = verdict("PASS");
+const FAIL = verdict("FAIL");
+
+// --- fail-open matrix -------------------------------------------------
+
+test("empty stdin -> allow (a broken gate must never trap the user in plan mode)", () => {
+  const result = runScript(SUT, [], { shell: "bash", input: "" });
+  assert.equal(result.status, 0);
+  assert.equal(JSON.parse(result.stdout).hookSpecificOutput.permissionDecision, "allow");
+});
+
+test("a payload with no transcript_path key -> allow", () => {
+  assert.equal(runPayload({ tool_name: "ExitPlanMode" }).decision, "allow");
+});
+
+test("transcript_path pointing at a file that does not exist -> allow", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    assert.equal(runCase(path.join(dir, "gone.jsonl")).decision, "allow");
+  });
+});
+
+test("a transcript that is not JSONL at all -> allow, no crash", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = path.join(dir, "garbage.jsonl");
+    fs.writeFileSync(f, "not json at all\n{{{ random garbage\n");
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+// --- arming: both signals, inside the episode -------------------------
+
+test("plain plan mode with no planner skill -> allow (the gate is not armed)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [planWrite()]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("the planner skill running with no plan write yet -> allow (nothing to review)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse()]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("both signals but no review dispatch -> deny naming the plan file", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite()]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /plan\.md/);
+    assert.match(reason ?? "", /planner-review agent has not run on this version/);
+  });
+});
+
+test("the unprefixed skill spelling 'planner' arms the gate too (the install form must not decide)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse("planner"), planWrite()]);
+    assert.equal(runCase(f).decision, "deny");
+  });
+});
+
+test("a typed /viber:planner arms the gate (a typed command loads the skill with no Skill tool_use)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [typedCommand(), planWrite()]);
+    assert.equal(runCase(f).decision, "deny");
+  });
+});
+
+test("an Edit of the plan counts as the plan write, not only a Write", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(PLAN, "Edit")]);
+    assert.equal(runCase(f).decision, "deny");
+  });
+});
+
+test("a Windows plan path (backslashes) arms the gate the same way", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const win = "C:\\Users\\dariu\\repo\\docs\\plans\\2026-09-20_feat-x\\plan.md";
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(win)]);
+    assert.equal(runCase(f).decision, "deny");
+  });
+});
+
+test("a plan path merely quoted inside another tool's payload does not arm the gate -> allow", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    // A Write whose CONTENT quotes a planner Skill call: every marker is present
+    // as text, but escaped one level deeper, so neither grep can match it.
+    const quoted = line({
+      type: "assistant",
+      message: {
+        content: [
+          {
+            type: "tool_use",
+            name: "Write",
+            input: { file_path: "/repo/notes.md", content: `example: {"name":"Skill","input":{"skill":"planner"}} writing ${PLAN}` },
+          },
+        ],
+      },
+    });
+    const f = writeTranscript(dir, "t.jsonl", [quoted]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("a plan read back rather than written does not arm the gate -> allow", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const read = line({ type: "assistant", message: { content: [{ type: "tool_use", name: "Read", input: { file_path: PLAN } }] } });
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), read]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("a plan written outside a directory literally named 'plans' does not arm the gate -> allow (known gap: a viber plan declares no format marker, so there is no fallback like superdev's)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite("/repo/specs/j.md")]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+// --- the episode window -----------------------------------------------
+
+test("a non-plan permission mode recorded after both signals closes the episode -> allow (a plan approved and built earlier cannot re-arm the gate)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const armed = writeTranscript(dir, "armed.jsonl", [skillUse(), planWrite()]);
+    assert.equal(runCase(armed).decision, "deny", "control: these two lines do arm the gate");
+
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), permissionMode("default")]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("a permission mode of 'plan' does not close the episode -> still gated", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), permissionMode("plan")]);
+    assert.equal(runCase(f).decision, "deny");
+  });
+});
+
+test("signals recorded after the last non-plan permission mode are inside the episode -> gated", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [permissionMode("acceptEdits"), skillUse(), planWrite()]);
+    assert.equal(runCase(f).decision, "deny");
+  });
+});
+
+// --- the verdict ------------------------------------------------------
+
+test("dispatch + VERDICT: PASS -> allow", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(), PASS]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("dispatch + VERDICT: FAIL -> deny naming the verdict it read", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(), FAIL]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /returned 'VERDICT: FAIL'/);
+    assert.match(reason ?? "", /verdict on line 4/);
+  });
+});
+
+test("a dispatch that returned no verdict at all -> deny naming the dispatch line", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch()]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /returned no 'VERDICT:' line/);
+    assert.match(reason ?? "", /transcript line 3/);
+  });
+});
+
+test("the unprefixed subagent spelling 'planner-review' is recognized -> allow", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const bare = line({
+      type: "assistant",
+      message: { content: [{ type: "tool_use", name: "Agent", input: { subagent_type: "planner-review", prompt: "review" } }] },
+    });
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), bare, PASS]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("a review that ran BEFORE the last plan write does not count -> deny (the current version was never reviewed)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(), PASS, planWrite()]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /has not run on this version/);
+  });
+});
+
+test("FAIL then a re-review PASS -> allow (the newest completed pair binds)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(), FAIL, dispatch(), PASS]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("PASS then a re-review FAIL -> deny (the newest completed pair binds both ways)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(), PASS, dispatch(), FAIL]);
+    assert.equal(runCase(f).decision, "deny");
+  });
+});
+
+test("a 'VERDICT: PASS' quoted in prose with no dispatch before it -> deny (the gate does not take the model's word for it)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const quoted = line({ type: "assistant", message: { content: "The reviewer would say VERDICT: PASS here.\n" } });
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), quoted]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /has not run on this version/);
+  });
+});
+
+test("a qualified 'VERDICT: PASS is not warranted' does not read as a PASS -> deny on the real FAIL below it", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const mixed = verdict("FAIL", { body: "VERDICT: PASS is not warranted; see below.\nVERDICT: FAIL\nfix task 3." });
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(), mixed]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /returned 'VERDICT: FAIL'/);
+  });
+});
+
+test("a back-ticked `VERDICT: `PASS`` -> allow (the agent's own markdown must not gate the user)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const ticked = verdict("PASS", { body: "## Plan Review\nVERDICT: `PASS`\nall good." });
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(), ticked]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("a verdict delivered inside a background agent's <result> element -> allow", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const bg = line({ type: "user", message: { content: "agent finished: <result>VERDICT: PASS</result>" } });
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(), bg]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+// --- dispatch-id binding ----------------------------------------------
+
+test("a verdict carrying the dispatch's own tool-use id is the one that binds -> allow", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const id = "toolu_01AbCdEf";
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(id), verdict("PASS", { id })]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("a sibling agent's PASS cannot stand in for this dispatch's own FAIL -> deny", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const id = "toolu_01Mine";
+    const f = writeTranscript(dir, "t.jsonl", [
+      skillUse(),
+      planWrite(),
+      dispatch(id),
+      verdict("PASS", { id: "toolu_01Other" }),
+      verdict("FAIL", { id }),
+    ]);
+    assert.equal(runCase(f).decision, "deny");
+  });
+});
+
+test("a sibling agent's FAIL after this dispatch's own PASS does not clobber it -> allow", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const id = "toolu_01Mine";
+    const f = writeTranscript(dir, "t.jsonl", [
+      skillUse(),
+      planWrite(),
+      dispatch(id),
+      verdict("PASS", { id }),
+      verdict("FAIL", { id: "toolu_01Other" }),
+    ]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+// --- the mtime guard: a PASS approves the plan AS REVIEWED -------------
+
+test("a plan modified after its own PASS -> deny (catches an edit made through a channel the transcript scan cannot see)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const plan = realPlan(dir);
+    const stale = new Date(Date.now() - 3600_000).toISOString();
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(plan), dispatch(), verdict("PASS", { timestamp: stale })]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /was modified after its 'VERDICT: PASS'/);
+  });
+});
+
+test("a plan older than its own PASS -> allow (no false tamper)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const plan = realPlan(dir);
+    const fresh = new Date(Date.now() + 3600_000).toISOString();
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(plan), dispatch(), verdict("PASS", { timestamp: fresh })]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("a verdict line with no timestamp skips the mtime check -> allow (fail-open)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const plan = realPlan(dir);
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(plan), dispatch(), PASS]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("a re-review after the out-of-band edit clears the mtime tamper -> allow", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const plan = realPlan(dir);
+    const stale = new Date(Date.now() - 3600_000).toISOString();
+    const fresh = new Date(Date.now() + 3600_000).toISOString();
+    const f = writeTranscript(dir, "t.jsonl", [
+      skillUse(),
+      planWrite(plan),
+      dispatch(),
+      verdict("PASS", { timestamp: stale }),
+      dispatch(),
+      verdict("PASS", { timestamp: fresh }),
+    ]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("a relative plan file_path resolves against the session cwd -> the mtime guard still fires", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const rel = "docs/plans/2026-09-20-10-00-00_feat-x/plan.md";
+    realPlan(dir, rel);
+    const stale = new Date(Date.now() - 3600_000).toISOString();
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(rel), dispatch(), verdict("PASS", { timestamp: stale })]);
+    assert.equal(runCase(f, dir).decision, "deny");
+    // Without the cwd the path resolves to nothing and the guard is skipped.
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+// --- transcript shape edge cases --------------------------------------
+
+test("a transcript with CRLF line endings still resolves the happy path -> allow", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = path.join(dir, "crlf.jsonl");
+    fs.writeFileSync(f, [skillUse(), planWrite(), dispatch(), PASS].join("\r\n") + "\r\n");
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("thousands of noise lines around the signals still resolve the happy path -> allow", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const noise = line({ type: "user", message: { content: "noise line, not relevant to the gate" } });
+    const f = writeTranscript(dir, "t.jsonl", [
+      ...Array(3000).fill(noise),
+      skillUse(),
+      planWrite(),
+      ...Array(1000).fill(noise),
+      dispatch(),
+      PASS,
+    ]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("the last of several plan writes is the one that must be reviewed", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const first = "/repo/docs/plans/2026-09-20-09-00-00_a/plan.md";
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(first), dispatch(), PASS, planWrite(PLAN), dispatch(), PASS]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});

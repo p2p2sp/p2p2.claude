@@ -81,14 +81,11 @@ repo ... This line is the host declaration `superplan` reads for that override")
 
 ### 6. Zero testów regresyjnych
 
-`tests/` ma suity dla superdev (24 pliki), superfix, supergh i superui. Viber wnosi 483 linie bash
-i awk, w tym 197-liniowy hook parsujący transkrypt regexami, i nie ma ani jednego testu.
-`portability.test.ts` oraz `orphan-tags.test.ts` przechodzą, ale nie dotykają logiki, sprawdzają
-tylko shebangi, bity wykonywalne, cytowanie preloadów i osierocone tagi.
-
-Suita dla `plan-gate.sh` jest tu obowiązkowa. Wzorzec jest gotowy w
-`tests/superdev/review-plan.test.ts`, łącznie z budowaniem linii transkryptu przez
-`JSON.stringify`, macierzą fail-open i harnessem `runScript`.
+ZAIMPLEMENTOWANE (`tests/viber/commit-task.test.ts`, `tests/viber/plan-gate.test.ts`).
+Suita dla `plan-gate.sh` wykryła przy okazji fałszywe `allow`: wzorzec wyciągający wartość
+werdyktu nie miał zamykającego ogranicznika, który ma wzorzec wybierający linię, więc
+zakwalifikowane "VERDICT: PASS is not warranted" stojące przed prawdziwym `VERDICT: FAIL`
+przechodziło jako PASS. Naprawione, oba wzorce są teraz identyczne.
 
 ### 7. `plan-index.sh` nie sprawdza kolizji plików między niezależnymi zadaniami
 
