@@ -6,7 +6,8 @@ template planu, manifest, README i węzeł pamięci.
 ## Co trzyma się dobrze
 
 - Kontrakty `implementor` <-> agenci są ścisłe. Etykiety `spec:` / `task:` / `report:` / `notes:`
-  zgadzają się co do joty z sekcjami `## Input` u wszystkich czterech agentów.
+  zgadzają się co do joty z sekcjami `## Input` u wszystkich czterech agentów (plus `reason:` u
+  codera, przy ponownym dispatchu po FAIL).
 - `VERDICT:` jest wszędzie jedynym kanałem wyjściowym, a druga linia (`REVIEW:` / `REPORT:` /
   `FILES:`) jest konsumowana dokładnie tam, gdzie jest produkowana.
 - Ścieżka naprawcza (coder bez `task:`, z samym `report:`) jest obsłużona po obu stronach.
@@ -87,5 +88,4 @@ NAPRAWIONE
 
 ### 12. `VERDICT: FAIL` od codera: nie wiadomo, z czym retry
 
-- Implementor pyta "retry / skip / abort", ale nie mówi, czy to ten sam prompt, czy plus
-  `REASON:`, czy mocniejszy model. Przy FAIL od reviewera jest to opisane precyzyjnie.
+NAPRAWIONE

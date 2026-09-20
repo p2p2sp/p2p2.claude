@@ -118,7 +118,10 @@ plugin-named dot-dir, no state file.
   frontmatter is the only place one is set. `task-coder` carries `effort: high` and is dispatched at
   all three tiers: on `haiku` that setting is dead, because Haiku 4.5 has no effort control. It stays
   that way on purpose - the haiku tier is picked for mechanical work that needs no thinking budget,
-  and a second coder file would duplicate the body for nothing. `task-reviewer` is dispatched with
+  and a second coder file would duplicate the body for nothing. A coder's `VERDICT: FAIL` the user
+  retries is the one place a tier moves: the re-dispatch goes out one step up, carrying the returned
+  `REASON:` as a `reason:` line, because an identical re-run of a coder that already spent its five
+  verification rounds is a coin flip. `task-reviewer` is dispatched with
   `model` set to its task's own tier, its `model: opus` frontmatter being only the fallback, and
   never lands on `haiku` because the mechanical tier carries no review.
 - **Agent names are dispatched with the plugin prefix** (`viber:task-coder`, …). The hook's
