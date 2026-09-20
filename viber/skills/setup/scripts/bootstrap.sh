@@ -18,6 +18,8 @@
 #            <root>/.gitignore        (seeded from assets/gitignore.txt when the
 #                                      project has none, otherwise ".temp/" is
 #                                      appended only when no rule ignores it)
+#   reads  : <root>/CLAUDE.md         (existence only, never written - the agents
+#                                      take the build and test commands from it)
 #   stdout : one result line per item - the skill carries them into its report
 #            verbatim and never re-verifies them.
 #   exit   : ALWAYS 0. A preload that exits non-zero aborts the whole skill load,
@@ -75,6 +77,15 @@ else
   else
     echo ".gitignore: could not write $ignore"
   fi
+fi
+
+# Reported, never seeded: the build and test commands every agent reads live
+# here, and a stub written by a script would be exactly the file that names
+# none of them.
+if [ -f "$root/CLAUDE.md" ]; then
+  echo "CLAUDE.md: present - check it names the build and test commands"
+else
+  echo "CLAUDE.md: missing - run /init, then add the build and test commands"
 fi
 
 exit 0

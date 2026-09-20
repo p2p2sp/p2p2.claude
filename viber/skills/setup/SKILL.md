@@ -40,4 +40,8 @@ retried; a non-zero exit is trusted the same way:
 
 Skip chosen -> carry `settings.json: merge declined (left untouched)` instead; no call.
 
-Close with one line per item, the resulting switch values and the settings line. Nothing else.
+Close with one line per item, the resulting switch values and the settings line.
+
+Then `Read` `${CLAUDE_SKILL_DIR}/assets/usage.md` and print it verbatim, whole and unedited, as
+the last thing in the reply - it is the project's onboarding text, not a source to summarise from.
+Add nothing after it.

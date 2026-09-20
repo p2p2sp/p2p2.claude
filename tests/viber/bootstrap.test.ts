@@ -4,7 +4,9 @@
  * project already has: `.claude/viber.yml` from templates/viber.yml, and
  * `.gitignore` from assets/gitignore.txt when the project has none - otherwise
  * the file stays the user's and the single edit is the `.temp/` rule, appended
- * on its own line even when the file ends without one.
+ * on its own line even when the file ends without one. `CLAUDE.md` is the one
+ * item it only REPORTS: the agents read the host's build and test commands from
+ * it, and a stub written here would be exactly the file that names none.
  *
  * Two properties carry the design. It resolves the REPOSITORY ROOT itself, so a
  * session started in a subdirectory still seeds the root rather than scattering
@@ -51,6 +53,7 @@ test("a fresh repository seeds both files from the bundled ones and prints one l
       [
         "viber.yml: seeded from template - adr, memory and rules all on",
         ".gitignore: created from template (ignores .temp/)",
+        "CLAUDE.md: missing - run /init, then add the build and test commands",
         "",
       ].join("\n"),
     );
@@ -77,7 +80,12 @@ test("running twice leaves both files byte-identical and reports them as already
     assert.equal(second.status, 0, `stderr: ${second.stderr}`);
     assert.equal(
       second.stdout,
-      ["viber.yml: already present (left untouched)", ".gitignore: already ignores .temp/", ""].join("\n"),
+      [
+        "viber.yml: already present (left untouched)",
+        ".gitignore: already ignores .temp/",
+        "CLAUDE.md: missing - run /init, then add the build and test commands",
+        "",
+      ].join("\n"),
     );
     assert.equal(read(configPath(dir)), afterFirstConfig);
     assert.equal(read(path.join(dir, ".gitignore")), afterFirstIgnore);
@@ -148,6 +156,43 @@ test("a pre-existing viber.yml is the user's: byte-unchanged even with every swi
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^viber\.yml: already present \(left untouched\)$/m);
     assert.equal(read(cfg), before);
+  });
+});
+
+test("a project with a CLAUDE.md is told to check it, and the file is left byte-unchanged", () => {
+  withGitRepo(({ dir, env }) => {
+    const memory = path.join(dir, "CLAUDE.md");
+    const before = "# project\n\nBuild: make\nTest: make test\n";
+    fs.writeFileSync(memory, before);
+
+    const result = run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^CLAUDE\.md: present - check it names the build and test commands$/m);
+    assert.equal(read(memory), before);
+  });
+});
+
+test("a project without a CLAUDE.md gets the /init prompt and no stub (a seeded file would name no commands)", () => {
+  withGitRepo(({ dir, env }) => {
+    const result = run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^CLAUDE\.md: missing - run \/init, then add the build and test commands$/m);
+    assert.equal(fs.existsSync(path.join(dir, "CLAUDE.md")), false);
+  });
+});
+
+test("the CLAUDE.md check resolves at the repository root, not at the cwd it was called from", () => {
+  withGitRepo(({ dir, env }) => {
+    fs.writeFileSync(path.join(dir, "CLAUDE.md"), "# root\n");
+    const nested = path.join(dir, "src", "deep");
+    fs.mkdirSync(nested, { recursive: true });
+
+    const result = run(nested, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^CLAUDE\.md: present/m);
   });
 });
 

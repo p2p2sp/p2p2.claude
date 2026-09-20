@@ -18,7 +18,8 @@ plugin-named dot-dir, no state file.
 - `skills/setup/SKILL.md` - `/viber:setup`, user-only (`disable-model-invocation: true`). Seeds
   `.claude/viber.yml` and `.gitignore` through `skills/setup/scripts/bootstrap.sh`, then asks in one
   `AskUserQuestion` which of the three switches stay on and whether to merge the recommended
-  permissions (`skills/setup/scripts/merge-settings.sh` over `skills/setup/assets/settings.json`).
+  permissions (`skills/setup/scripts/merge-settings.sh` over `skills/setup/assets/settings.json`),
+  and closes by printing `skills/setup/assets/usage.md` verbatim.
 - `skills/idea/SKILL.md` - `/viber:idea`, user-only. A prose interview, one question at a time,
   ending in a confirmed summary that hands over to `viber:planner`. Writes nothing.
 - `skills/planner/SKILL.md` - model-invocable, and enters plan mode itself. Fills `skills/planner/templates/plan.md` into
@@ -108,6 +109,13 @@ plugin-named dot-dir, no state file.
   never overwritten) and idempotent. It needs Node on PATH - the one deliberate, documented tool
   dependency in this plugin, and a skip-with-note rather than a stop: without Node the block is
   printed for a manual merge and the run continues.
+- **The host's `CLAUDE.md` is reported, never seeded, and the onboarding text is printed, never
+  paraphrased.** `bootstrap.sh` only states whether the file is there, because the build and test
+  commands every agent reads belong to the user: a stub written by a script would be exactly the
+  `CLAUDE.md` that names none of them. The last thing `setup` emits is
+  `skills/setup/assets/usage.md`, read and printed whole - the four entries, the switches, and why
+  those commands have to be written down. It is an asset rather than body text so the skill, pinned
+  to `model: haiku`, copies it instead of composing it.
 - **The switches are read through `config.sh` alone.** `adr`, `memory` and `rules` live in
   `.claude/viber.yml`, resolved against the repository root, fail-open: no file means all three off,
   and the script always exits 0 because it runs as a `!` preload, where a non-zero exit would abort

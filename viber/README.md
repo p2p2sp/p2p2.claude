@@ -49,6 +49,8 @@ absent: `adr` (decisions worth keeping become the plan's first tasks), `memory` 
 closes by updating the project's `CLAUDE.md` nodes and `.claude/rules/`). It also seeds a `.gitignore` when
 the project has none, appends the `.temp/` rule when it has one, and offers to merge a recommended
 permissions block into `.claude/settings.json` - additively, so every entry already there survives.
+It ends by printing the short usage card, and it tells you whether the project has a `CLAUDE.md`:
+that file is where the build and test commands come from, and every agent reads them there.
 
 ## The steps
 
