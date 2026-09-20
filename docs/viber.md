@@ -81,11 +81,7 @@ repo ... This line is the host declaration `superplan` reads for that override")
 
 ### 6. Zero testów regresyjnych
 
-ZAIMPLEMENTOWANE (`tests/viber/commit-task.test.ts`, `tests/viber/plan-gate.test.ts`).
-Suita dla `plan-gate.sh` wykryła przy okazji fałszywe `allow`: wzorzec wyciągający wartość
-werdyktu nie miał zamykającego ogranicznika, który ma wzorzec wybierający linię, więc
-zakwalifikowane "VERDICT: PASS is not warranted" stojące przed prawdziwym `VERDICT: FAIL`
-przechodziło jako PASS. Naprawione, oba wzorce są teraz identyczne.
+ZAIMPLEMENTOWANE
 
 ### 7. `plan-index.sh` nie sprawdza kolizji plików między niezależnymi zadaniami
 
@@ -93,12 +89,7 @@ ZAIMPLEMENTOWANE
 
 ### 8. Rozjazd tierów modeli
 
-- `task-reviewer` działa zawsze na opus, bo `implementor` nie przekazuje mu `model` w dispatchu.
-  Kontrastuje to ze starannie dobieranymi tierami dla codera i wygląda raczej na przeoczenie niż na
-  decyzję. Jeśli to decyzja (bramka zawsze na najmocniejszym modelu), powinna być zapisana wprost
-  w węźle CLAUDE.md.
-- `task-coder` dispatchowany na haiku dziedziczy `effort: high` z własnego frontmattera, bo Agent
-  nie przyjmuje parametru `effort`. Dla haiku to kombinacja bez sensu.
+ZAIMPLEMENTOWANE
 
 ## Drobne
 

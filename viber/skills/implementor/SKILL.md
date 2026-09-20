@@ -66,7 +66,7 @@ Aim for:
 Per task, once its coder returns:
 
 1. `VERDICT: FAIL` -> `AskUserQuestion`: retry / skip / abort. Abort ends the run; skip drops that task and every task depending on it.
-2. Profile says review -> dispatch `viber:task-reviewer` with the plan path, the task id and a report path `.temp/viber/<plan-key>/review-<id>-<round>.md`, round starting at 1. `<plan-key>` is the `key:` from step 1, or the plan's directory name when the plan came in as an argument.
+2. Profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier) with the plan path, the task id and a report path `.temp/viber/<plan-key>/review-<id>-<round>.md`, round starting at 1. `<plan-key>` is the `key:` from step 1, or the plan's directory name when the plan came in as an argument.
    - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with the plan path, the task id and the returned `REVIEW` path, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort.
 3. `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id> "<task title>"`. It stages only the task's files, commits, and records the task as done in the plan. A warning about files left outside the commit goes into the final summary. A non-zero exit means nothing was committed and nothing recorded -> `AskUserQuestion`: retry / skip / abort.
 4. `TaskUpdate` -> completed.

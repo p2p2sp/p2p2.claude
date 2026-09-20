@@ -63,6 +63,13 @@ file.
 - **The orchestrator never reads code.** `implementor` carries `disallowed-tools: Read, Edit,
   NotebookEdit`: its whole view of the plan is `plan-index.sh`'s output, which is what lets one
   context outlast a full build.
+- **Strength is `model` alone.** The `Agent` tool takes no `effort` parameter, so an agent's own
+  frontmatter is the only place one is set. `task-coder` carries `effort: high` and is dispatched at
+  all three tiers: on `haiku` that setting is dead, because Haiku 4.5 has no effort control. It stays
+  that way on purpose - the haiku tier is picked for mechanical work that needs no thinking budget,
+  and a second coder file would duplicate the body for nothing. `task-reviewer` is dispatched with
+  `model` set to its task's own tier, its `model: opus` frontmatter being only the fallback, and
+  never lands on `haiku` because the mechanical tier carries no review.
 - **Agent names are dispatched with the plugin prefix** (`viber:task-coder`, …). The hook's
   dispatch detector accepts both the bare and the prefixed spelling, so a plan-gate run is not
   tied to the install form.
