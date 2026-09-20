@@ -4,9 +4,9 @@ The agentic-development ecosystem for Claude Code: project memory, planning, and
 pipeline. Every creative request - a new idea, a feature, a change to an existing solution - enters through
 the same design interview, and nothing gets implemented before you approve a reviewed plan.
 
-superdev is the only plugin in this repo that ships hooks: a `SessionStart` hook injects its dispatcher
-manifest once per session, and a `PreToolUse` hook (`review-plan.sh`) blocks `ExitPlanMode` until the plan
-reviewer returns `VERDICT: PASS`. That gate is the single entrance to code on both tracks.
+superdev ships two hooks: a `SessionStart` hook injects its dispatcher manifest once per session, and a
+`PreToolUse` hook (`review-plan.sh`) blocks `ExitPlanMode` until the plan reviewer returns `VERDICT: PASS`.
+That gate is the single entrance to code on both tracks.
 
 ## Install
 

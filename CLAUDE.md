@@ -68,11 +68,12 @@ mechanics against `.github/scripts/release.sh` before restating them.
   (every temporary artifact, grouped per plugin). A fourth is writable only because the HOST
   names it: the host's own e2e test dir, written by superdev's `e2e-writer` under the user-run
   `e2e` skill.
-- **One injected manifest per manifest-bearing plugin.** Only `superdev` ships an injected
-  `SessionStart` manifest (verbatim, once per session, `source == "resume"` excluded, fail-open).
-  It is a MANDATORY-RULES manifest, not a dispatcher: it names no skill, no group and no chain,
-  and routing is left to each skill's own CSO `description:`. No other plugin ships a manifest,
-  for the same reason - there is nothing a dispatcher would add.
+- **One injected manifest per manifest-bearing plugin.** `superdev` and `viber` each ship ONE
+  injected `SessionStart` manifest (`hooks/content/manifest.md`, verbatim, once per session,
+  `source == "resume"` excluded, fail-open: an empty or unreadable file injects nothing and
+  leaves only the version banner). Neither is a dispatcher: it names no skill, no group and no
+  chain, and routing is left to each skill's own CSO `description:`. The other five plugins ship
+  no manifest, for the same reason - there is nothing a dispatcher would add.
 - **Two plugins ship `hooks/`, and their `ExitPlanMode` gates do not compose.** `superdev`'s
   `review-plan.sh` and `viber`'s `plan-gate.sh` both match `ExitPlanMode`, both fail open, and each
   recognizes only its own plan format - superdev's denies a plan under `.claude/plans/*.md`

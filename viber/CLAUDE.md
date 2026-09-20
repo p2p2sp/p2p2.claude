@@ -6,8 +6,9 @@ highest quality and speed of work.
 ## Purpose
 
 The vibe track: understand, plan, build, then record what the build taught. SIX skills (`setup`,
-`idea`, `planner`, `implementor`, `tdd`, `fixer`), SIX agents, FOUR plugin-level scripts, one
-skill-level bootstrap and ONE `PreToolUse` hook. Everything a run produces lives in the host repo's
+`idea`, `planner`, `implementor`, `tdd`, `fixer`), SIX agents, FOUR plugin-level scripts, TWO
+skill-level setup scripts and TWO hooks - one `PreToolUse`, one `SessionStart`. Everything a run
+produces lives in the host repo's
 `docs/_specs/<stamp>_<slug>/` (the plan carrying its own progress, plus the decomposition every
 agent reads) and `.temp/viber/<plan-key>/` (review reports, test reports, the coders' notes) - no
 plugin-named dot-dir, no state file.
@@ -15,8 +16,9 @@ plugin-named dot-dir, no state file.
 ## Entry points
 
 - `skills/setup/SKILL.md` - `/viber:setup`, user-only (`disable-model-invocation: true`). Seeds
-  `.claude/viber.yml` and `.gitignore` through `skills/setup/scripts/bootstrap.sh`, then asks which
-  of the three switches stay on.
+  `.claude/viber.yml` and `.gitignore` through `skills/setup/scripts/bootstrap.sh`, then asks in one
+  `AskUserQuestion` which of the three switches stay on and whether to merge the recommended
+  permissions (`skills/setup/scripts/merge-settings.sh` over `skills/setup/assets/settings.json`).
 - `skills/idea/SKILL.md` - `/viber:idea`, user-only. A prose interview, one question at a time,
   ending in a confirmed summary that hands over to `viber:planner`. Under `adr: true` it also puts
   the decisions worth recording to the user and carries the accepted ones into that summary. Writes
@@ -41,7 +43,8 @@ plugin-named dot-dir, no state file.
   (one full suite run, keeps the log out of the caller's context), `memory-writer` and
   `rules-writer` (the close: the project's `CLAUDE.md` nodes and `.claude/rules/`).
 - `hooks/hooks.json` -> `hooks/scripts/plan-gate.sh`: the review gate, enforced by the harness
-  rather than by the model.
+  rather than by the model; and `hooks/scripts/session-start.sh`, which injects
+  `hooks/content/manifest.md`.
 
 ## Contracts & invariants
 
@@ -85,6 +88,14 @@ plugin-named dot-dir, no state file.
   TRUSTED by the caller - never re-verified, never retried. All are invoked as one literal line,
   `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" <args>`, never through an interpreter, and each has its
   own `Bash(${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh:*)` entry in the calling skill's `allowed-tools`.
+- **`setup` seeds from `assets/`, and only into what the project does not already have.**
+  `assets/gitignore.txt` becomes the host's `.gitignore` when it has none, otherwise the file is
+  the user's and the single edit is the `.temp/` rule, appended on its own line. The permissions
+  template `assets/settings.json` goes through `skills/setup/scripts/merge-settings.sh`, which is
+  additive (host order and host-only keys survive, `defaultMode`/`disableAutoMode` are seeded but
+  never overwritten) and idempotent. It needs Node on PATH - the one deliberate, documented tool
+  dependency in this plugin, and a skip-with-note rather than a stop: without Node the block is
+  printed for a manual merge and the run continues.
 - **The switches are read through `config.sh` alone.** `adr`, `memory` and `rules` live in
   `.claude/viber.yml`, resolved against the repository root, fail-open: no file means all three off,
   and the script always exits 0 because it runs as a `!` preload, where a non-zero exit would abort
@@ -108,6 +119,13 @@ plugin-named dot-dir, no state file.
 - **Agent names are dispatched with the plugin prefix** (`viber:task-coder`, …). The hook's
   dispatch detector accepts both the bare and the prefixed spelling, so a plan-gate run is not
   tied to the install form.
+- **The manifest is injected, never routed to.** `session-start.sh` writes
+  `hooks/content/manifest.md` verbatim into the main session at `startup|clear|compact` (`resume`
+  is excluded by the matcher, since the prior injection reloads with the transcript) and is
+  fail-open: an empty or unreadable file emits the `viber loaded <version>` banner alone, with no
+  `additionalContext`, so nothing half-written ever leaks into the context. It carries standing
+  rules only - it names no skill and no chain, because routing lives in each skill's own
+  `description:`.
 - **The gate arms on two signals only** - the planner skill running, and a Write/Edit of a
   `plans/*.md` file in the same plan-mode episode - and fails open on everything else. That path is
   the HARNESS plan directory, the one plan mode names itself, not `docs/_specs/`: the gate fires

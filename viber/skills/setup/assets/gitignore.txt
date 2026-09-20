@@ -315,11 +315,6 @@ userfiles/
 # Docker
 .infrastructure/docker/data
 
-# P2P2
-appsettings.DevMachine.json
-help/build
-help/src/retype.manifest
-
 # Data/Keys Encryption Keys
 *.kek
 *.dek
@@ -376,5 +371,5 @@ logs/
 # Playwright MCP
 .playwright-mcp/
 
-# superdev
-.temp
+# Claude
+.temp/

@@ -18,7 +18,8 @@ covers what is true across the whole plugin.
 
 ## Contracts & invariants
 
-- The ONLY plugin in the repo that ships `hooks/` and an injected manifest. One `SessionStart`
+- One of the two plugins that ship `hooks/` and an injected manifest (`viber` is the other, with
+  the same pair of hook events). One `SessionStart`
   hook force-injects `hooks/content/manifest.md` verbatim once per session; `source == "resume"`
   is excluded; fail-open (unreadable manifest = banner only). The other hook, `PreToolUse` on
   `ExitPlanMode` (`hooks/scripts/review-plan.sh`), gates the plan on the reviewer's

@@ -15,7 +15,9 @@
 #            resolved here. Outside a repository, the cwd is the base.
 #   env    : none.
 #   writes : <root>/.claude/viber.yml (from templates/viber.yml, only when absent)
-#            <root>/.gitignore        (appends ".temp/" only when absent)
+#            <root>/.gitignore        (seeded from assets/gitignore.txt when the
+#                                      project has none, otherwise ".temp/" is
+#                                      appended only when no rule ignores it)
 #   stdout : one result line per item - the skill carries them into its report
 #            verbatim and never re-verifies them.
 #   exit   : ALWAYS 0. A preload that exits non-zero aborts the whole skill load,
@@ -25,6 +27,7 @@ set -u
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 template="$here/../templates/viber.yml"
+asset_gitignore="$here/../assets/gitignore.txt"
 
 root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 if [ -z "$root" ] || [ ! -d "$root" ]; then
@@ -45,13 +48,33 @@ else
   fi
 fi
 
+# A project with no .gitignore gets the bundled one, which already carries
+# .temp/. One that has its own keeps it: the only edit is the .temp/ rule the
+# run needs, appended on its own line even when the file ends without one.
 ignore="$root/.gitignore"
-if [ -f "$ignore" ] && grep -qE '^[[:space:]]*\.temp/?[[:space:]]*$' "$ignore"; then
+if [ ! -f "$ignore" ]; then
+  if [ ! -f "$asset_gitignore" ]; then
+    if printf '.temp/\n' > "$ignore" 2>/dev/null; then
+      echo ".gitignore: created with .temp/ - template missing at $asset_gitignore"
+    else
+      echo ".gitignore: could not write $ignore"
+    fi
+  elif cp "$asset_gitignore" "$ignore" 2>/dev/null; then
+    echo ".gitignore: created from template (ignores .temp/)"
+  else
+    echo ".gitignore: could not write $ignore"
+  fi
+elif grep -qE '^[[:space:]]*\.temp/?[[:space:]]*$' "$ignore"; then
   echo ".gitignore: already ignores .temp/"
-elif printf '.temp/\n' >> "$ignore" 2>/dev/null; then
-  echo ".gitignore: .temp/ appended"
 else
-  echo ".gitignore: could not write $ignore"
+  if [ -s "$ignore" ] && [ -n "$(tail -c1 "$ignore")" ]; then
+    printf '\n' >> "$ignore" 2>/dev/null
+  fi
+  if printf '.temp/\n' >> "$ignore" 2>/dev/null; then
+    echo ".gitignore: .temp/ appended"
+  else
+    echo ".gitignore: could not write $ignore"
+  fi
 fi
 
 exit 0

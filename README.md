@@ -60,9 +60,10 @@ Each plugin's README carries its own description, a short usage guide, and the l
 ## How they fit together
 
 Within a plugin, skills compose through their `description:` triggers, and the model routes to them by
-itself. Two plugins ship hooks: `superdev` (a `SessionStart` hook injecting its mandatory-rules manifest,
-plus a `PreToolUse` hook gating `ExitPlanMode` on a reviewed plan) and `viber` (a `PreToolUse` hook gating
-`ExitPlanMode` on its own plan review). The other five ship no hooks and no manifest.
+itself. Two plugins ship hooks, each with the same pair: `superdev` (a `SessionStart` hook injecting its
+mandatory-rules manifest, plus a `PreToolUse` hook gating `ExitPlanMode` on a reviewed plan) and `viber` (a
+`SessionStart` hook injecting its own manifest, plus a `PreToolUse` hook gating `ExitPlanMode` on its own
+plan review). The other five ship no hooks and no manifest.
 
 Because both of those gates match `ExitPlanMode` and each recognizes only its own plan format, **`superdev`
 and `viber` are not meant to run side by side**: superdev's gate denies a viber plan, which declares neither

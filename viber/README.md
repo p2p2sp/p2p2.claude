@@ -11,7 +11,8 @@ an interview that will not stop while an unknown is open, and the second by keep
 it never reads a file, never runs a test, never writes a line of code - every piece of work happens inside a
 subagent, and the plan file itself carries the progress.
 
-Ships one `PreToolUse` hook: the planner's review gate, enforced by the harness rather than by the model.
+Ships two hooks: a `PreToolUse` gate on the planner's review, enforced by the harness rather than by the
+model, and a `SessionStart` hook that injects viber's manifest once per session.
 
 ## Install
 
@@ -20,7 +21,9 @@ claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
 claude plugin install viber@p2p2 --scope user
 ```
 
-No runtime dependencies - every bundled script is plain bash and awk.
+No runtime dependencies - every bundled script is plain bash and awk. The one optional tool is Node, used
+by `/viber:setup` to merge the recommended permissions into `.claude/settings.json`; without it that one
+step prints the block for a manual merge and the setup continues.
 
 **One caveat:** `superdev` gates `ExitPlanMode` too, and its gate denies a plan that declares neither
 `# SimplePlan` nor `# SuperPlan`. A viber plan declares neither, so with both plugins installed the superdev
@@ -29,7 +32,7 @@ gate blocks viber's plan approval. Run one track at a time.
 ## Quick start
 
 ```
-/viber:setup           once per project: the switches and the ignore rules
+/viber:setup           once per project: the switches, the ignore rules and the permissions
 /viber:idea            an interview about a raw idea, one question at a time
 plan it                the planner, straight from an understood change
 implement it           the orchestrator, straight from an approved plan
@@ -40,7 +43,9 @@ plan", "go ahead"), not on a command. `idea` and `setup` are user-only: the slas
 
 `setup` writes `.claude/viber.yml`, three switches that are all on there and all off when the file is
 absent: `adr` (decisions worth keeping become the plan's first tasks), `memory` and `rules` (the build
-closes by updating the project's `CLAUDE.md` nodes and `.claude/rules/`).
+closes by updating the project's `CLAUDE.md` nodes and `.claude/rules/`). It also seeds a `.gitignore` when
+the project has none, appends the `.temp/` rule when it has one, and offers to merge a recommended
+permissions block into `.claude/settings.json` - additively, so every entry already there survives.
 
 ## The steps
 
@@ -113,7 +118,7 @@ re-reading the plan: done tasks are skipped, the rest continue.
 
 | Kind | Name | Role |
 | --- | --- | --- |
-| Skill | `setup` | The switches and the ignore rules. User-only, once per project. |
+| Skill | `setup` | The switches, the ignore rules and the permissions. User-only, once per project. |
 | Skill | `idea` | The interview. User-only, writes nothing. |
 | Skill | `planner` | The plan plus its review gate. |
 | Skill | `implementor` | The orchestrator. Reads no code, runs no tests. |
@@ -130,6 +135,7 @@ re-reading the plan: done tasks are skipped, the rest continue.
 | Script | `commit-task.sh` | Stages the task's files, commits, records progress in the plan. |
 | Script | `config.sh` | Resolves the three switches. Fail-open: no file, nothing on. |
 | Hook | `plan-gate.sh` | `PreToolUse` on `ExitPlanMode` - the review gate. |
+| Hook | `session-start.sh` | `SessionStart` - injects `hooks/content/manifest.md` once per session. |
 
 ## Where it writes
 
@@ -137,6 +143,8 @@ re-reading the plan: done tasks are skipped, the rest continue.
   `tasks/T<n>.md` the agents read.
 - `.temp/viber/<yyyy-mm-dd-HH-mm-ss>_<slug>/` - review reports, test reports and the coders' notes.
 - `.claude/viber.yml` - the three switches, written once by `setup`.
+- `.gitignore` and `.claude/settings.json` - only through `setup`, only additively: a file you already
+  have keeps its own entries.
 - `docs/adr/`, your `CLAUDE.md` nodes and `.claude/rules/` - only through a task or an agent, only with the
   matching switch on.
 
