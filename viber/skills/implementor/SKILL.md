@@ -63,7 +63,7 @@ Pick each task's profile from the nature of its work, not from its position:
 Never break:
 
 - A task dispatches only once every id in its `deps` is done.
-- Close out one task at a time - committing rewrites the git index and the plan's progress line, and nothing else in the run touches either.
+- Never two `commit-task.sh` calls in one message - a commit rewrites the git index and the plan's progress line, and nothing else in the run touches either. A second task ready to commit waits for the next message; everything else in this step waits for nothing.
 
 Dispatch: one `viber:task-coder` per task (Agent tool, `model` = that task's tier), all in a single message, each carrying four labelled lines and nothing else:
 
@@ -78,20 +78,15 @@ out: .temp/viber/<id>/
 
 `TaskUpdate` -> in progress.
 
-Aim for:
+Then work the loop: on every return, answer with ONE message carrying every dispatch that is now legal - a reviewer for each coder that just returned, a coder for each task whose `deps` just closed - plus at most one commit. Idle capacity is lost time: never wait for a batch to drain before refilling, and when a constraint forces a choice, start whatever unblocks the most tasks.
 
-- The widest dispatch the rules allow - idle capacity is lost time.
-- Refill as results come back, not once a batch drains.
-- When a constraint forces a choice, start whatever unblocks the most tasks.
-- Close-outs running alongside coders still working on other files, so a queued review never stalls the next dispatch.
+What a return means:
 
-Per task, once its coder returns:
-
-1. `VERDICT: FAIL` -> `AskUserQuestion` naming the task and its `REASON:` line: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its three lines plus `reason: <the returned REASON>`. Abort ends the run; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it, and leaves its half-finished files uncommitted in the tree - name them in the final summary.
-2. Profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier) with the same `spec:`, `task:` and `out:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
+1. Coder `VERDICT: FAIL` -> `AskUserQuestion` naming the task and its `REASON:` line: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its three lines plus `reason: <the returned REASON>`. Abort ends the run; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it, and leaves its half-finished files uncommitted in the tree - name them in the final summary.
+2. Coder returned and the profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier) with the same `spec:`, `task:` and `out:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
    - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its three lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort. `accept` is the user overriding the gate: go to step 3, commit with `--unreviewed` appended, and name the task in the final summary as unreviewed.
-3. `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`. It takes the commit subject from the task's own heading in the plan, stages only the task's files and its own notes and reports, commits, and records the task as done. Its warning names changed paths no task in the plan claims - the same split step 5 commits by, so carry those paths to the final summary. A non-zero exit means nothing was committed and nothing recorded -> `AskUserQuestion`: retry / skip / abort.
-4. `TaskUpdate` -> completed.
+3. Coder returned with no review due, or its reviewer returned `VERDICT: PASS` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`. It takes the commit subject from the task's own heading in the plan, stages only the task's files and its own notes and reports, commits, and records the task as done. Its warning names changed paths no task in the plan claims - the same split step 5 commits by, so carry those paths to the final summary. A non-zero exit means nothing was committed and nothing recorded -> `AskUserQuestion`: retry / skip / abort.
+4. Commit recorded -> `TaskUpdate` -> completed.
 
 ## 5. Close
 

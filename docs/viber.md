@@ -38,15 +38,7 @@ ZAIMPLEMENTOWANE
 
 ### 4. Procedura per task czyta się jak sekwencja, a "close out" nie jest zdefiniowane (6/10)
 
-Blok "Aim for" (`implementor/SKILL.md:75-80`) deklaruje równoległość, ale operatywna lista 1-4
-(`:82-88`) to pipeline jednego taska. Do tego `:62` mówi "Close out one task at a time" i nigdzie
-nie definiuje, czym jest close-out. Model czytający to jako "review + commit" zserializuje także
-recenzje, choć reviewery są read-only poza własnym raportem i mogłyby lecieć hurtem. Uzasadnienie
-w tej samej linii wskazuje na commit, ale podmiotem zdania jest close-out.
-
-Naprawa: nazwać commit jedynym punktem serializacji (nigdy dwa `commit-task.sh` w jednym message)
-i zastąpić aspirację mechaniką: zbiory done / in flight / ready, a na każde przebudzenie jeden
-message zawierający wszystkie dispatche, które są już legalne.
+ZAIMPLEMENTOWANE
 
 ### 5. Taski w locie są niewidoczne przy wznowieniu (5/10)
 
