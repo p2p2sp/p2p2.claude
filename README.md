@@ -26,7 +26,7 @@ it to install for the current repository only. From inside a running session,
 
 | Plugin | Use it for |
 | --- | --- |
-| [superdev](superdev/README.md) | Building a feature end to end: an interview, a reviewed plan, then a task-by-task build with one commit per task. The thorough track. |
+| [superdev](superdev/README.md) | This plugin is obsolete - use `viber` instead |
 | [viber](viber/README.md) | The same trip, shorter: understand it, plan it, build it, remember it. |
 | [superui](superui/README.md) | Any interface you build, held to professional design standards. Fires by itself. |
 | [supergh](supergh/README.md) | Commits, issues and pull requests. |
