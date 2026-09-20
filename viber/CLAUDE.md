@@ -9,7 +9,8 @@ The vibe track: understand, plan, build, then record what the build taught. SEVE
 `idea`, `planner`, `implementor`, `tdd`, `fixer`, `e2e`), EIGHT agents, FIVE plugin-level scripts, TWO
 skill-level setup scripts, ONE plugin-level reference and TWO hooks - one `PreToolUse`, one
 `SessionStart`. Everything a run produces lives in the host repo's
-`docs/_specs/<stamp>_<slug>/`: the plan carrying its own progress and decisions, the decomposition
+`docs/_specs/<stamp>_<slug>/`: the plan as it landed, `status.md` carrying its progress and
+decisions, the decomposition
 every agent reads, the QA documents the close writes, and `work/` - the coders' notes, the review
 reports and the test reports, committed with the task they belong to. Only true scratch stays in
 `.temp/viber/` (the e2e pass's launch logs and probe output) - no plugin-named dot-dir, no state
@@ -25,12 +26,15 @@ file.
 - `skills/idea/SKILL.md` - `/viber:idea`, user-only. A prose interview, one question at a time,
   ending in a confirmed summary that hands over to `viber:planner`. Writes nothing.
 - `skills/planner/SKILL.md` - model-invocable, and enters plan mode itself. Fills `skills/planner/templates/plan.md` into
-  the plan file plan mode names, under `adr: true` puts the decisions worth recording to the user and
+  the plan file plan mode names, that path written into the plan's own `<!-- source: -->` marker,
+  under `adr: true` puts the decisions worth recording to the user and
   turns each accepted one into a first task, validates the result
   with `scripts/plan-index.sh`, then gates on `viber:planner-review` until `VERDICT: PASS` before
   `ExitPlanMode`.
 - `skills/implementor/SKILL.md` - model-invocable orchestrator, `[plan-path]` argument. Lands the approved plan in the
-  dated directory with `scripts/plan-path.sh --land`, decomposes it with `plan-index.sh --split`, profiles
+  dated directory with `scripts/plan-path.sh --land` - the source path taken from the argument, else
+  from the plan text's own `<!-- source: -->` marker, else from the script's no-argument resolution -
+  decomposes it with `plan-index.sh --split`, profiles
   each task into a model tier (haiku / sonnet / opus) and a review decision, settles with the user
   whatever an interrupted session left half-finished,
   dispatches `viber:task-coder` in the widest batch the dependency and file-collision rules allow, gates each
@@ -73,8 +77,20 @@ file.
   planning context. `plan-path.sh --land <src>` therefore COPIES that file into the run directory,
   derives the slug from the plan's own first H1, leaves the source untouched, and is idempotent: a
   `<src>` already landed, or a slug whose run is open, comes back `existing` with nothing written
-  over the progress markers. The orchestrator never carries the plan's TEXT, only its path, which
+  over the progress. The orchestrator never carries the plan's TEXT, only its path, which
   is why `implementor` needs no `Write` at all.
+- **The plan carries the path it was written to, because the approval may take it away.**
+  `showClearContextOnPlanAccept` is seeded by `setup` and recommended, so the normal path leaves
+  `implementor` holding the approved plan's TEXT with no path and no planner message beside it. The
+  template's `<!-- source: <abs path> -->` marker, written by `planner` and carried in that text, is
+  the whole handover: the skill reads the path out of what it holds and hands it to `--land`, which
+  copies the file. Nothing discovers a plan by scanning the harness plans directory, and
+  `implementor` never writes the text it is holding - it has no `Write`.
+- **What lands is the plan, not the template's advice.** `--land` strips the guidance comments on
+  the way in, keeping only the markers the run itself reads (`<!-- TASK -->`, `<!-- /TASK -->`,
+  `<!-- source: -->`). They are instructions for whoever writes the plan; left in, they ride into
+  `spec.md`, into every task file and through the whole build. The source in the plans directory
+  keeps them - it is never written to.
 - **Only that handoff is hardened; the front links are context-only on purpose.** `idea` and
   `fixer` reach `planner` inside one context, with no mode change and no harness gate between
   them, so both restate their payload verbatim at the invocation and neither writes a handoff
@@ -82,15 +98,18 @@ file.
   core rides in the reproduction test's header comment - a file the fixing task's `Files:` commits
   anyway. `idea` keeps writing nothing: an interview is cheap to repeat with the user who answered
   it.
-- **The plan file is the state.** `<!-- done: ... -->` plus the `## Tasks (x/N)` header carry
-  progress, so a build resumes after a context reset with no sidecar. Three more markers are
-  created on demand beside it, for the only things a later session cannot derive from the tree:
-  `<!-- skipped: -->` (the user dropped a task, `--skip`), `<!-- unreviewed: -->` (the user waived
-  the review gate, `--unreviewed`) and `<!-- closed: -->` (which half of the close is recorded,
-  written by `--chore` and `--qa`). Everything else a resume needs IS derivable and is therefore
+- **`status.md` is the state, and the plan is frozen.** The run's progress lives in
+  `<dir>/status.md` - `progress: x/N`, `done:`, plus the three things a later session cannot derive
+  from the tree: `skipped:` (the user dropped a task, `--skip`), `unreviewed:` (the user waived the
+  review gate, `--unreviewed`) and `closed:` (which half of the close is recorded, written by
+  `--chore` and `--qa`). One key per line, `none` for an empty one. `plan-index.sh --split` creates
+  it with the decomposition and `commit-task.sh` is its only other writer, which is what lets the
+  plan and the specification stay exactly as they landed: the document that DEFINES the work is
+  never edited to record how the work is going. A run with no `status.md` has simply done nothing
+  yet. Everything else a resume needs IS derivable and is therefore
   never stored: `plan-index.sh` intersects `git status` with each task's `Files:` map and reports
   the difference as `dirty:`, which is how an interrupted task is told from one nobody started.
-  Only `--skip` writes without a commit to ride in; its marker waits in the plan for the next one.
+  Only `--skip` writes without a commit to ride in; its entry waits in `status.md` for the next one.
   `commit-task.sh` is what advances all of this, and it stages ONLY the task's `Files:` list plus
   the run's own trail and commits through that same pathspec - anything outside the file map stays
   uncommitted and visible, including a path someone else left staged. Its stderr warning subtracts the WHOLE plan's map, not the one
@@ -98,8 +117,8 @@ file.
   work in progress would fire on
   every commit, and what survives the subtraction is a change no task accounted for - the same
   split the close commits by (`--repair`). Two commits never run at once, because both
-  rewrite the git index and the plan's progress line and nothing else in the run touches
-  either - the commit is the run's only serialization point, and reviews go out in a batch. The marker and the commit are atomic: the marker is written
+  rewrite the git index and `status.md` and nothing else in the run touches
+  either - the commit is the run's only serialization point, and reviews go out in a batch. The entry and the commit are atomic: the entry is written
   first so it rides in the commit, and rolled back from a backup if staging or committing fails
   (exit 5). A task marked done that was never committed would be skipped forever on resume, so
   this is the one place in the plugin where a script undoes its own write.
@@ -151,8 +170,9 @@ file.
   two verifications may run together. A `Verification` hanging on a fixed port or one shared
   database is out of that reach and is a `planner-review` finding rather than something the run
   schedules around: isolating a test is the stack's job.
-- **Five deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path, and
-  on `--land` put the approved plan there),
+- **Five deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path, report
+  every other unfinished run as an `open:` line, and on `--land` put the approved plan there,
+  stripped of the template's guidance),
   `plan-index.sh` (validate, index, optionally decompose), `commit-task.sh` (stage, commit, record),
   `config.sh` (resolve the switches) and `check-playwright.sh` (report the e2e tooling, install
   nothing) carry their I/O contract in their header comment and are

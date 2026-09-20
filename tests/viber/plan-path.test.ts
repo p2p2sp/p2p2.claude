@@ -12,11 +12,16 @@
  * normalization would reach a directory name and a git path. And `--land`
  * COPIES: plan mode writes the plan into a user-level `plansDirectory`,
  * normally outside the repository, so the source must survive untouched and
- * the landed plan - which carries the build's own progress markers - must
- * never be written over.
+ * the landed plan - whose progress lives in the status.md beside it - must
+ * never be written over. On the way in the copy loses the template's guidance
+ * comments, keeping only the markers the run itself reads.
+ *
+ * Every resolution also lists, as `open:` lines, the OTHER runs still holding a
+ * task that is neither done nor skipped: that is what tells the orchestrator a
+ * fresh plan is being landed on top of unfinished work.
  *
  * The caller is trusted to take this output as it stands - the skill never
- * re-verifies it - which makes the three-line block and the exit codes (2:
+ * re-verifies it - which makes the printed block and the exit codes (2:
  * unusable argv, 3: nothing to resume, 5: the copy failed) the whole interface.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
@@ -94,6 +99,37 @@ function sourcePlan(dir: string, name: string, body: string): string {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, body);
   return file;
+}
+
+/** The `open:` lines of one resolution, in the order printed. */
+function openLines(stdout: string): string[] {
+  return slash(stdout)
+    .trim()
+    .split("\n")
+    .filter((line) => line.startsWith("open: "))
+    .map((line) => line.slice("open: ".length));
+}
+
+/** A run's state file, as --split writes it and commit-task.sh advances it. */
+function landStatus(root: string, key: string, entries: Record<string, string>, mtime?: string): void {
+  const file = path.join(root, "docs", "_specs", key, "status.md");
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, ["# status", "", ...Object.entries(entries).map(([k, v]) => `${k}: ${v}`), ""].join("\n"));
+  if (mtime) {
+    const seconds = Date.parse(mtime) / 1000;
+    fs.utimesSync(file, seconds, seconds);
+  }
+}
+
+/** A landed plan carrying N task blocks, so a run has something to be open about. */
+function planWithTasks(title: string, ids: string[]): string {
+  return [
+    `# ${title}`,
+    "",
+    "## Tasks",
+    "",
+    ...ids.flatMap((id) => ["<!-- TASK -->", `### ${id} - do ${id}`, `- Files: src/${id}.ts`, "<!-- /TASK -->", ""]),
+  ].join("\n");
 }
 
 /** The run directories on disk, so a test can assert that a second one was -
@@ -477,5 +513,109 @@ test("a copy the filesystem refuses: exit 5, nothing on stdout and no half-made 
       assert.match(result.stderr, /could not land the plan/);
       assert.deepEqual(runDirs(dir), [], "a failed copy must not leave an empty run directory");
     });
+  });
+});
+
+// --- the guidance the template carries for whoever writes the plan ----------
+
+test("--land keeps the markers the run reads and drops the template's guidance, leaving the source untouched", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const body = [
+      "# Add Login",
+      "",
+      "<!-- source: /elsewhere/plans/drifting-dolphin.md -->",
+      "",
+      "Build: skill `implementor`",
+      "",
+      "<!-- two parts: everything above \"## Tasks\" is the specification",
+      "     and is split off as spec.md -->",
+      "",
+      "## Tasks",
+      "",
+      "<!-- TASK -->",
+      "### T1 - do the thing",
+      "- Files: src/a.ts",
+      "<!-- /TASK -->",
+      "",
+      "<!--",
+      "One TASK block per unit of work; leave every HTML marker intact.",
+      "-->",
+      "",
+    ].join("\n");
+    const src = sourcePlan(dir, "outside/drifting-dolphin.md", body);
+
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+    const landed = fs.readFileSync(path.join(dir, parse(result.stdout).path), "utf-8");
+    assert.match(landed, /<!-- source: \/elsewhere\/plans\/drifting-dolphin\.md -->/);
+    assert.match(landed, /<!-- TASK -->/);
+    assert.match(landed, /<!-- \/TASK -->/);
+    assert.doesNotMatch(landed, /two parts/);
+    assert.doesNotMatch(landed, /One TASK block per unit of work/);
+    assert.doesNotMatch(landed, /\n\n\n/, "a dropped comment must not leave a double blank line behind");
+
+    // the plans directory is the user's, and a re-land has to find it as it was
+    assert.equal(fs.readFileSync(src, "utf-8"), body);
+  });
+});
+
+// --- open runs: unfinished work the caller cannot see for itself ------------
+
+test("landing a fresh plan while another run is unfinished reports that run as an open: line", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    landPlan(dir, "2026-09-01-09-00-00_earlier", "2026-09-01T09:00:00Z", planWithTasks("Earlier", ["T1", "T2", "T3"]));
+    landStatus(dir, "2026-09-01-09-00-00_earlier", { progress: "1/3", done: "T1" });
+
+    const src = sourcePlan(dir, "outside/add-login.md", PLAN_BODY);
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(parse(result.stdout).state, "new");
+    assert.deepEqual(openLines(result.stdout), ["docs/_specs/2026-09-01-09-00-00_earlier/plan.md | 1/3"]);
+  });
+});
+
+test("a run whose tasks are all done or all skipped is not open, and the resolved run is never listed as one", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    landPlan(dir, "2026-09-01-09-00-00_finished", "2026-09-01T09:00:00Z", planWithTasks("Finished", ["T1", "T2"]));
+    landStatus(dir, "2026-09-01-09-00-00_finished", { progress: "2/2", done: "T1 T2" }, "2026-09-01T10:00:00Z");
+    landPlan(dir, "2026-09-02-09-00-00_dropped", "2026-09-02T09:00:00Z", planWithTasks("Dropped", ["T1", "T2"]));
+    landStatus(dir, "2026-09-02-09-00-00_dropped", { progress: "1/2", done: "T1", skipped: "T2" }, "2026-09-02T10:00:00Z");
+    landPlan(dir, "2026-09-03-09-00-00_current", "2026-09-03T09:00:00Z", planWithTasks("Current", ["T1", "T2"]));
+    landStatus(dir, "2026-09-03-09-00-00_current", { progress: "0/2", done: "none" }, "2026-09-03T10:00:00Z");
+
+    const result = run(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(parse(result.stdout).key, "2026-09-03-09-00-00_current");
+    assert.deepEqual(openLines(result.stdout), []);
+  });
+});
+
+test("a run that never reached its first commit carries no status file and is open with nothing done", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    landPlan(dir, "2026-09-01-09-00-00_untouched", "2026-09-01T09:00:00Z", planWithTasks("Untouched", ["T1", "T2"]));
+    landPlan(dir, "2026-09-02-09-00-00_current", "2026-09-02T09:00:00Z", planWithTasks("Current", ["T1"]));
+    landStatus(dir, "2026-09-02-09-00-00_current", { progress: "1/1", done: "T1" });
+
+    const result = run(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(parse(result.stdout).key, "2026-09-02-09-00-00_current");
+    assert.deepEqual(openLines(result.stdout), ["docs/_specs/2026-09-01-09-00-00_untouched/plan.md | 0/2"]);
+  });
+});
+
+test("no argument: a frozen plan.md does not age its run out - the status file beside it is what counts as worked on", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    // both plans landed long ago and are never written to again; only one run
+    // has been committing since
+    landPlan(dir, "2026-01-01-09-00-00_older", "2026-01-01T09:00:00Z", planWithTasks("Older", ["T1"]));
+    landStatus(dir, "2026-01-01-09-00-00_older", { progress: "1/1", done: "T1" }, "2026-09-20T18:00:00Z");
+    landPlan(dir, "2026-02-01-09-00-00_newer", "2026-02-01T09:00:00Z", planWithTasks("Newer", ["T1"]));
+    landStatus(dir, "2026-02-01-09-00-00_newer", { progress: "0/1", done: "none" }, "2026-02-01T09:00:00Z");
+
+    const result = run(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(parse(result.stdout).key, "2026-01-01-09-00-00_older");
+    assert.deepEqual(openLines(result.stdout), ["docs/_specs/2026-02-01-09-00-00_newer/plan.md | 0/1"]);
   });
 });

@@ -28,6 +28,8 @@ Before writing a single task, decide which files get created, modified or delete
 
 Fill `${CLAUDE_SKILL_DIR}/templates/plan.md` into the plan file plan mode names in its system message - while planning it is the only file you may write. Keep every section and every HTML marker from the template, add no sections of your own.
 
+The `<!-- source: -->` marker carries that same path, absolute and written out in full. Approving the plan may clear this context and leave the implementor holding the plan's TEXT alone, so that line is the only way back to the file it has to land.
+
 Task rules:
 
 - Smallest unit that carries its own verification and is worth a reviewer's gate. Fold setup, config and docs into the task whose deliverable needs them.

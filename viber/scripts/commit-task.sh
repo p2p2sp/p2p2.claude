@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
-# commit-task.sh - commits one finished plan task and records it in the plan.
+# commit-task.sh - commits one finished plan task and records it in the run's
+# status file.
 #
 # Usage:
 #   commit-task.sh <plan-file> <task-id> [--unreviewed]
@@ -48,22 +49,26 @@
 # machine state and anything written outside the file map stay uncommitted and
 # visible.
 #
-# A plain task commit appends the task id to the <!-- done: ... --> marker and recomputes the
-# "## Tasks (x/N)" header, so the plan carries its own progress and a build resumes
-# after a context reset without a separate state file. The marker has to ride IN
-# the commit, so it is written first and rolled back from a backup if staging or
-# committing fails: a plan claiming a task is done that was never committed would
-# be skipped forever on resume. Either the commit exists and the marker is set, or
-# neither is.
+# The run's state lives in status.md beside the plan, and this script is its only
+# writer: the plan and the specification are frozen the moment they land, so a
+# task's progress is never recorded by editing the document that defines it.
 #
-# Three more markers are created on demand beside it, so a plan that never needed
-# one never grows it and a plan written before they existed still works. They
-# carry what a later session cannot derive from the tree:
-#   <!-- skipped: T4 -->        --skip, the user dropped that task
-#   <!-- unreviewed: T7 -->     --unreviewed, the user waived the review gate
-#   <!-- closed: memory qa -->  --chore / --qa, that part of the close is done
-# Only --skip writes without committing: it has no commit of its own to ride in,
-# so the marker waits in the plan for whichever commit comes next.
+#   progress: 3/8        recomputed from the done list and the plan's TASK blocks
+#   done: T1 T2 T4       committed, never dispatched again
+#   skipped: T3          --skip, the user dropped that task
+#   unreviewed: T7       --unreviewed, the user waived the review gate
+#   closed: memory qa    --chore / --qa, that part of the close is done
+#
+# An absent key is "none". The file is created here when the run has none yet
+# (plan-index.sh --split normally writes it with the decomposition), so a task
+# commit never fails for the lack of it.
+#
+# The entry has to ride IN the commit, so it is written first and rolled back
+# from a backup if staging or committing fails: a status claiming a task is done
+# that was never committed would be skipped forever on resume. Either the commit
+# exists and the entry is set, or neither is. Only --skip writes without
+# committing: it has no commit of its own to ride in, so the entry waits in
+# status.md for whichever commit comes next.
 #
 # Every form also stages the run's own trail - the notes and reports under
 # <run-dir>/work/ - with the commit it belongs to, so the trail travels with the
@@ -74,14 +79,15 @@
 # stdout: "committed: <sha>" and "progress: x/N" ("unchanged" for a fix) - plus,
 #         for every flag form, the derived "subject: <line>"
 # stderr: a warning listing changed paths no task in the plan claims, the run's
-#         own directory excluded - it holds the plan, the decomposition and the
-#         trail, which no "Files:" line names and every form commits itself
+#         own directory excluded - it holds the plan, the decomposition, the
+#         status file and the trail, which no "Files:" line names and every form
+#         commits itself
 #
 # exit != 0:
 #   2 - bad arguments / missing plan
 #   3 - no task with that id in the plan
 #   4 - the named files produced no change to the working tree
-#   5 - staging or committing failed; the plan is restored, nothing is recorded
+#   5 - staging or committing failed; status.md is restored, nothing is recorded
 #       (the named files stay staged, so the call can be retried as is)
 #
 set -euo pipefail
@@ -112,68 +118,94 @@ trail_paths() {
   done
 }
 
-# Appends a value to one of the plan's markers, creating the marker line right
-# below <!-- done: --> when the plan does not carry it yet. Appending the same
-# value twice is a no-op, and "done" also recomputes the "## Tasks (x/N)" header.
-# stdout: "x/N" for done, nothing for the other markers.
-mark_plan() {
-  local plan="$1" name="$2" want="$3" tmp="$1.tmp.$$"
-  awk -v name="$name" -v want="$want" '
+# The run's state file, beside the plan.
+status_of() {
+  local dir
+  dir="$(run_dir "$1")"
+  printf '%s\n' "${dir:+$dir/}status.md"
+}
+
+# How many tasks the plan defines - the denominator of "progress", read from the
+# plan and never stored twice.
+task_total() {
+  local n
+  n="$(grep -cE '<!--[[:space:]]*TASK[[:space:]]*-->' -- "$1" 2>/dev/null || true)"
+  printf '%s\n' "${n:-0}"
+}
+
+# Appends a value to one of status.md's keys, creating the file when the run has
+# none yet and the key when the file does not carry it. Appending the same value
+# twice is a no-op, and every call recomputes "progress: x/N" off the done list.
+# stdout: "x/N" for done, nothing for the other keys.
+mark_status() {
+  local plan="$1" name="$2" want="$3" status tmp
+  status="$(status_of "$plan")"
+  tmp="$status.tmp.$$"
+  [[ -f "$status" ]] || write_status "$status" "$(task_total "$plan")"
+  awk -v name="$name" -v want="$want" -v ntask="$(task_total "$plan")" '
 function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
-/<!--[[:space:]]*TASK[[:space:]]*-->/ { ntask++ }
+function value(s) { sub(/^[A-Za-z]+:/, "", s); s = trim(s); return (s == "none" || s == "-" ? "" : s) }
 { lines[NR] = $0 }
-$0 ~ ("<!--[[:space:]]*" name ":") && row == 0 { row = NR }
-/<!--[[:space:]]*done:/ && donerow == 0 { donerow = NR }
-/^##[[:space:]]*Tasks/ && hdrrow == 0 { hdrrow = NR }
+$0 ~ ("^" name ":") && row == 0 { row = NR }
+/^progress:/ && prow == 0 { prow = NR }
+/^done:/ && drow == 0 { drow = NR }
 END {
-  d = ""
-  if (row) {
-    s = lines[row]
-    sub(/.*<!--[[:space:]]*[A-Za-z]+:/, "", s); sub(/-->.*/, "", s)
-    d = trim(s)
-    if (d == "-") d = ""
-  }
+  d = (row ? value(lines[row]) : "")
   already = 0
   m = split(d, cur, /[[:space:]]+/)
   for (k = 1; k <= m; k++) if (cur[k] == want) already = 1
   if (!already) d = trim(d " " want)
 
-  marker = "<!-- " name ": " (d == "" ? "-" : d) " -->"
-  if (row) lines[row] = marker
+  entry = name ": " (d == "" ? "none" : d)
+  if (row) lines[row] = entry
 
-  if (name == "done") {
-    ndone = 0
-    m = split(d, cur, /[[:space:]]+/)
-    for (k = 1; k <= m; k++) if (cur[k] != "") ndone++
-    if (hdrrow) lines[hdrrow] = sprintf("## Tasks (%d/%d)", ndone, ntask)
-  }
+  # progress follows the done list whichever key was just written
+  dl = (name == "done" ? d : (drow ? value(lines[drow]) : ""))
+  ndone = 0
+  m = split(dl, cur, /[[:space:]]+/)
+  for (k = 1; k <= m; k++) if (cur[k] != "") ndone++
+  if (prow) lines[prow] = sprintf("progress: %d/%d", ndone, ntask)
 
-  # a marker the plan does not carry is inserted below the done line, or below
-  # the task header when the plan has neither
-  anchor = (donerow ? donerow : hdrrow)
-  for (i = 1; i <= NR; i++) {
-    print lines[i]
-    if (!row && i == anchor) print marker
-  }
-  if (!row && !anchor) print marker
+  for (i = 1; i <= NR; i++) print lines[i]
+  if (!row)  print entry
+  if (!prow) printf "progress: %d/%d\n", ndone, ntask
 
   if (name == "done") printf "%d/%d\n", ndone, ntask > "/dev/stderr"
 }
-' "$plan" > "$tmp" 2> "$tmp.progress"
-  mv -f "$tmp" "$plan"
+' "$status" > "$tmp" 2> "$tmp.progress"
+  mv -f "$tmp" "$status"
   cat "$tmp.progress"
   rm -f "$tmp.progress"
 }
 
-# A marker is written BEFORE the commit it has to ride in, so every failure from
-# that point on puts the plan back: a plan claiming what the history does not
+# A fresh state file: every key present, nothing done.
+write_status() {
+  {
+    printf '# status\n\n'
+    printf 'progress: 0/%s\n' "$2"
+    printf 'done: none\n'
+    printf 'skipped: none\n'
+    printf 'unreviewed: none\n'
+    printf 'closed: none\n'
+  } > "$1"
+}
+
+# An entry is written BEFORE the commit it has to ride in, so every failure from
+# that point on puts status.md back: a state claiming what the history does not
 # show would mislead every later session.
 backup=""
+status_created=0
 restore_note="nothing was recorded"
-restore_plan() {
+restore_status() {
   [[ -n "$backup" && -f "$backup" ]] || return 0
-  mv -f "$backup" "$plan"
-  echo "error: not committed - plan rolled back, $restore_note" >&2
+  if [[ $status_created -eq 1 ]]; then
+    # this call is what created the file; rolling back means the run has none
+    # again, exactly as before the call
+    rm -f -- "$(status_of "$plan")" "$backup"
+  else
+    mv -f "$backup" "$(status_of "$plan")"
+  fi
+  echo "error: not committed - status rolled back, $restore_note" >&2
 }
 
 # Every path the plan's tasks claim, one per line - the whole map, not this
@@ -235,7 +267,7 @@ if [[ "${1:-}" == "--skip" ]]; then
     echo "error: no task '$task_id' in $plan" >&2
     exit 3
   fi
-  mark_plan "$plan" skipped "$task_id" >/dev/null
+  mark_status "$plan" skipped "$task_id" >/dev/null
   echo "skipped: $task_id"
   echo "progress: unchanged"
   exit 0
@@ -327,15 +359,20 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
   esac
 
   if [[ -n "$closed" ]]; then
-    backup="$plan.bak.$$"
+    status="$(status_of "$plan")"
+    backup="$status.bak.$$"
     restore_note="the close is NOT recorded"
-    trap restore_plan EXIT
-    cp -p "$plan" "$backup"
+    trap restore_status EXIT
+    if [[ ! -f "$status" ]]; then
+      write_status "$status" "$(task_total "$plan")"
+      status_created=1
+    fi
+    cp -p "$status" "$backup"
     for c in $closed; do
-      mark_plan "$plan" closed "$c" >/dev/null
+      mark_status "$plan" closed "$c" >/dev/null
     done
-    git add -- "$plan" || exit 5
-    paths+=("$plan")
+    git add -- "$status" || exit 5
+    paths+=("$status")
   fi
 
   case "$form" in
@@ -479,22 +516,27 @@ if [[ -n "$fix_n" ]]; then
   exit 0
 fi
 
-# --- plan progress: done marker plus the header counter ---
+# --- the run's progress: the done entry and the recomputed counter ---
 # Written before the commit so it lands in it, and undone by the trap on any
 # failure from here on, so "done" never outlives a commit that did not happen.
-backup="$plan.bak.$$"
+status="$(status_of "$plan")"
+backup="$status.bak.$$"
 restore_note="task $task_id is NOT marked done"
-trap restore_plan EXIT
-cp -p "$plan" "$backup"
+trap restore_status EXIT
+if [[ ! -f "$status" ]]; then
+  write_status "$status" "$(task_total "$plan")"
+  status_created=1
+fi
+cp -p "$status" "$backup"
 
-progress="$(mark_plan "$plan" done "$task_id")"
+progress="$(mark_status "$plan" done "$task_id")"
 if [[ $unreviewed -eq 1 ]]; then
-  mark_plan "$plan" unreviewed "$task_id" >/dev/null
+  mark_status "$plan" unreviewed "$task_id" >/dev/null
 fi
 
-git add -- "$plan" || exit 5
+git add -- "$status" || exit 5
 
-git commit -m "$subject" -m "Refs: $plan task $task_id" -- "${paths[@]}" "$plan" >&2 || exit 5
+git commit -m "$subject" -m "Refs: $plan task $task_id" -- "${paths[@]}" "$status" >&2 || exit 5
 
 rm -f "$backup"
 backup=""

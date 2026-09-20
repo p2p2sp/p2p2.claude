@@ -22,13 +22,20 @@ Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scrip
 
 ## 1. Land the plan
 
-Every plan gets its own dated directory, `docs/_specs/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md`, stamped when it lands. `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<src>"` copies the approved plan there and prints `path:`, `key:` and `state:`. `state: existing` is a run already open, carrying its own progress - take it as it stands, nothing was overwritten.
+Every plan gets its own dated directory, `docs/_specs/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md`, stamped when it lands. `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<src>"` copies the approved plan there and prints `path:`, `key:`, `state:` and one `open:` line per OTHER run whose tasks are not all settled. `state: existing` is a run already open, carrying its own progress - take it as it stands, nothing was overwritten.
 
 `<src>` is the approved plan file, normally outside this repository. First match wins:
 
 1. The argument, when one came in.
-2. The path plan mode named for the approved plan, when this context still holds it.
-3. Neither - `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh"` with no argument returns the plan most recently worked on. Exit 3 means nothing has landed yet: `AskUserQuestion` for the approved plan's full path, then land that.
+2. The `<!-- source: <path> -->` line of the approved plan this context holds - approving a plan may clear the planning context and leave its TEXT behind with no path, and that marker is the path. You write nothing yourself: never offer to save the text you are holding, the script copies the file.
+3. `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh"` with no argument returns the run most recently worked on. Exit 3 means nothing has landed yet: `AskUserQuestion` for the approved plan's full path, then land that.
+
+Then ask only where that output leaves a real choice:
+
+- `state: new` with any `open:` line - a fresh plan landed while another run is unfinished. `AskUserQuestion` naming both: build the plan just landed, or resume that run instead, its path becoming this run's plan.
+- Resolved through 3 with any `open:` line - several runs are unfinished. `AskUserQuestion` for which one to resume.
+
+Everything else proceeds without a question: `state: existing` is this plan's own run, and one unfinished run is the resume the build is built for.
 
 Every path this run spends is derived from the printed one: `<dir>` is the plan's own directory, and `<dir>/work/` holds every note and report the run produces - committed with the task it belongs to, so it reaches the next session and the next machine.
 
@@ -63,7 +70,7 @@ Pick each task's profile from the nature of its work, not from its position:
 Never break:
 
 - A task dispatches only once every id in its `deps` is done.
-- Never two `commit-task.sh` calls in one message - a commit rewrites the git index and the plan's progress line, and nothing else in the run touches either. A second task ready to commit waits for the next message; everything else in this step waits for nothing.
+- Never two `commit-task.sh` calls in one message - a commit rewrites the git index and the run's `status.md`, and nothing else in the run touches either. A second task ready to commit waits for the next message; everything else in this step waits for nothing.
 
 Dispatch: one `viber:task-coder` per task (Agent tool, `model` = that task's tier), all in a single message, each carrying four labelled lines and nothing else:
 

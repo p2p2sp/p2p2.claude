@@ -12,19 +12,24 @@
 #   plan: <path>
 #   title: <plan title>
 #   progress: <done>/<total>
-#   skipped: T4                     only when the plan carries the marker
-#   unreviewed: T3                  only when the plan carries the marker
-#   closed: memory rules            only when the plan carries the marker
+#   skipped: T4                     only when status.md carries the entry
+#   unreviewed: T3                  only when status.md carries the entry
+#   closed: memory rules            only when status.md carries the entry
 #   tasks: id | state | tdd | deps | files | title
 #   T1 | done | none     | -  | .claude/settings.json | chore: ...
 #   T2 | todo | required | T1 | src/a.ts,src/b.ts     | feat: ...
 #   dirty: T2 | src/a.ts            only for a task whose own files are dirty
 #
-# The three markers and the "dirty" lines are what a session that did not start
-# the build needs. "state" is "done", "skipped" or "todo"; a "dirty" line means
-# that task's own files carry uncommitted work, so an earlier session was cut off
-# mid-task and a fresh coder would land on top of it. Everything else a resume
-# needs is already derivable, so nothing here is stored twice.
+# The run's state is read from status.md beside the plan - "done", "skipped",
+# "unreviewed" and "closed", one key per line, "none" for an empty one. The plan
+# itself is never written to after it lands, so nothing here parses it for
+# progress; a plan with no status.md beside it (one being validated before it
+# ever landed, a run whose first commit has not happened) simply has nothing
+# done. The three state lines and the "dirty" lines are what a session that did
+# not start the build needs. "state" is "done", "skipped" or "todo"; a "dirty"
+# line means that task's own files carry uncommitted work, so an earlier session
+# was cut off mid-task and a fresh coder would land on top of it. Everything else
+# a resume needs is already derivable, so nothing here is stored twice.
 #
 # "Files:" is a comma-separated list of exact repo-relative file paths - no globs,
 # no directories, no annotations - so the same list drives the commit and the
@@ -36,6 +41,10 @@
 #                    working on the run needs.
 #   tasks/<id>.md  - one task block verbatim, plus a "## Covered criteria" section
 #                    carrying the text of the criteria its "Covers:" line names.
+#   status.md      - the run's state, created empty and only when it is not there
+#                    yet: an existing one carries progress and is never rewritten
+#                    here. From then on commit-task.sh is the only writer, which
+#                    is what keeps the plan and the specification frozen.
 # A coder handed tasks/T3.md CANNOT see the other tasks, so it cannot drift into
 # their files - that isolation is the point, not the token saving. tasks/ is
 # rebuilt from scratch on every call, so a re-run after a plan edit carries no
@@ -101,36 +110,51 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   done < <(git status --porcelain --untracked-files=all -z 2>/dev/null)
 fi
 
+# The run's state, beside the plan. One key per line, "none" for an empty one;
+# a run with no status.md yet has nothing done, which is also the answer for a
+# plan validated before it ever landed.
+st_done=""
+st_skipped=""
+st_unreviewed=""
+st_closed=""
+if [[ -f "$dir/status.md" ]]; then
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    case "$line" in
+      done:*)       st_done="${line#done:}" ;;
+      skipped:*)    st_skipped="${line#skipped:}" ;;
+      unreviewed:*) st_unreviewed="${line#unreviewed:}" ;;
+      closed:*)     st_closed="${line#closed:}" ;;
+    esac
+  done < "$dir/status.md"
+fi
+
 # The path travels through ENVIRON, not -v: awk -v expands escape sequences and
 # would mangle a Windows path containing backslashes.
-plan="$plan" changed="$changed" awk '
+plan="$plan" changed="$changed" \
+st_done="$st_done" st_skipped="$st_skipped" st_unreviewed="$st_unreviewed" st_closed="$st_closed" \
+awk '
 function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
 function val(s)  { sub(/^[^:]*:/, "", s); return trim(s) }
 function fail(msg) { printf "error: %s\n", msg > "/dev/stderr"; err = 1 }
 
+function listed(s) { s = trim(s); return (s == "none" || s == "-" ? "" : s) }
+
 BEGIN {
   n = 0; ncrit = 0; err = 0; title = ""
-  done = ""; skipped = ""; unrev = ""; closed = ""
   plan = ENVIRON["plan"]
+  # what is committed, plus the two decisions and the close that no later
+  # session could read off the tree, all of it out of the status file
+  done    = listed(ENVIRON["st_done"])
+  skipped = listed(ENVIRON["st_skipped"])
+  unrev   = listed(ENVIRON["st_unreviewed"])
+  closed  = listed(ENVIRON["st_closed"])
   m = split(ENVIRON["changed"], ch, /\n/)
   for (k = 1; k <= m; k++) if (ch[k] != "") chg[ch[k]] = 1
 }
 
 # plan title: the first H1
 /^#[[:space:]]/ && title == "" { title = trim(substr($0, 2)); next }
-
-# the plan carries its own state: what is committed, and the two decisions plus
-# the close that no later session could read off the tree
-function marker(s) {
-  sub(/.*<!--[[:space:]]*[A-Za-z]+:/, "", s)
-  sub(/-->.*/, "", s)
-  s = trim(s)
-  return (s == "-" ? "" : s)
-}
-/<!--[[:space:]]*done:/       { done    = marker($0); next }
-/<!--[[:space:]]*skipped:/    { skipped = marker($0); next }
-/<!--[[:space:]]*unreviewed:/ { unrev   = marker($0); next }
-/<!--[[:space:]]*closed:/     { closed  = marker($0); next }
 
 # acceptance criteria: the numbered list inside its own section
 /^##[[:space:]]/ { incrit = ($0 ~ /Acceptance criteria/) ? 1 : 0 }
@@ -353,6 +377,22 @@ END {
   printf "decomposed: %d tasks into %s\n", n, dir > "/dev/stderr"
 }
 ' "$plan"
+
+# --- the run's state file ---
+# Created here, with the run, and only when it is not there yet: a resume splits
+# again and must find its progress untouched. commit-task.sh is its only other
+# writer, and the plan beside it is never written to again at all.
+if [[ ! -f "$dir/status.md" ]]; then
+  total="$(grep -cE '<!--[[:space:]]*TASK[[:space:]]*-->' -- "$plan" || true)"
+  {
+    printf '# status\n\n'
+    printf 'progress: 0/%s\n' "${total:-0}"
+    printf 'done: none\n'
+    printf 'skipped: none\n'
+    printf 'unreviewed: none\n'
+    printf 'closed: none\n'
+  } > "$dir/status.md"
+fi
 
 # --- and into the history ---
 # The decomposition lives under docs/, so it has to be committed by somebody: no

@@ -1,5 +1,7 @@
 # <change title>
 
+<!-- source: <absolute path of THIS plan file, the one plan mode named> -->
+
 Build: skill `implementor`
 
 <!-- two parts: everything above "## Tasks" is the specification - WHAT and WHY - and is split off as
@@ -28,9 +30,7 @@ Build: skill `implementor`
 
 <signatures, data shapes, endpoints, schemas this change introduces or consumes - or "none">
 
-## Tasks (0/<N>)
-
-<!-- done: - -->
+## Tasks
 
 <!-- TASK -->
 ### T1 - <title>

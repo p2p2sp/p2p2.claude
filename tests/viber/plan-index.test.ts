@@ -8,7 +8,7 @@
  * on stdout and leave nothing on disk.
  *
  * That index is also what a session which did not start the build resumes from:
- * the plan's own markers (`skipped`, `unreviewed`, `closed`) pass through, and a
+ * the run's own status.md (`done`, `skipped`, `unreviewed`, `closed`) passes through, and a
  * `dirty:` line names a task whose files carry uncommitted work from a session
  * that was cut off inside it. A missing dirty line sends a fresh coder onto
  * another one's half-finished work.
@@ -81,9 +81,7 @@ function planBody(tasks: TaskFields[], criteria = 2): string {
     "",
     "POST /login -> 200 | 401",
     "",
-    `## Tasks (0/${tasks.length})`,
-    "",
-    "<!-- done: - -->",
+    "## Tasks",
     "",
     ...tasks.flatMap((t) => [
       "<!-- TASK -->",
@@ -108,6 +106,16 @@ const TWO_TASKS: TaskFields[] = [
 
 function seed(dir: string, body: string): void {
   write(dir, PLAN_REL, body);
+}
+
+/** The run's state file, as --split writes it and commit-task.sh advances it.
+ *  Every key is optional here: what the file does not carry is simply not set. */
+function seedStatus(dir: string, entries: Record<string, string>): void {
+  write(
+    dir,
+    `${PLAN_DIR}/status.md`,
+    ["# status", "", ...Object.entries(entries).map(([k, v]) => `${k}: ${v}`), ""].join("\n"),
+  );
 }
 
 function readRun(dir: string, rel: string): string {
@@ -142,9 +150,10 @@ test("the index carries one row per task: id, state, TDD marker, normalised deps
   });
 });
 
-test("state and the progress counter come from the plan's own done marker, which is how a build resumes", () => {
+test("state and the progress counter come from the run's own status.md, which is how a build resumes", () => {
   withTempDir("p2p2-viber-", (dir) => {
-    seed(dir, planBody(TWO_TASKS).replace("<!-- done: - -->", "<!-- done: T1 -->"));
+    seed(dir, planBody(TWO_TASKS));
+    seedStatus(dir, { progress: "1/2", done: "T1" });
 
     const result = run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
@@ -154,17 +163,10 @@ test("state and the progress counter come from the plan's own done marker, which
   });
 });
 
-test("the plan's other markers pass through, and a skipped task is settled rather than todo", () => {
+test("the status file's other entries pass through, and a skipped task is settled rather than todo", () => {
   withTempDir("p2p2-viber-", (dir) => {
-    seed(
-      dir,
-      planBody(TWO_TASKS).replace(
-        "<!-- done: - -->",
-        ["<!-- done: T1 -->", "<!-- skipped: T2 -->", "<!-- unreviewed: T1 -->", "<!-- closed: memory qa -->"].join(
-          "\n",
-        ),
-      ),
-    );
+    seed(dir, planBody(TWO_TASKS));
+    seedStatus(dir, { progress: "1/2", done: "T1", skipped: "T2", unreviewed: "T1", closed: "memory qa" });
 
     const result = run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
@@ -176,13 +178,28 @@ test("the plan's other markers pass through, and a skipped task is settled rathe
   });
 });
 
-test("a plan carrying none of those markers reports none of them, so a run that needed no decision stays quiet", () => {
+test("a run whose status file carries none of those entries reports none of them, so a run that needed no decision stays quiet", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody(TWO_TASKS));
+    seedStatus(dir, { progress: "0/2", done: "none", skipped: "none", unreviewed: "none", closed: "none" });
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    for (const line of [/^skipped:/m, /^unreviewed:/m, /^closed:/m, /^dirty:/m]) {
+      assert.doesNotMatch(result.stdout, line);
+    }
+  });
+});
+
+test("a plan with no status file beside it reports nothing done, which is the state of a run that never started", () => {
   withTempDir("p2p2-viber-", (dir) => {
     seed(dir, planBody(TWO_TASKS));
 
     const result = run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    for (const line of [/^skipped:/m, /^unreviewed:/m, /^closed:/m, /^dirty:/m]) {
+    assert.match(result.stdout, /^progress: 0\/2$/m);
+    assert.match(result.stdout, /^T1 \| todo \|/m);
+    for (const line of [/^skipped:/m, /^unreviewed:/m, /^closed:/m]) {
       assert.doesNotMatch(result.stdout, line);
     }
   });
@@ -440,6 +457,7 @@ test("the decomposition is committed with the plan, and nothing outside the run 
     assert.deepEqual(committed, [
       PLAN_REL,
       `${PLAN_DIR}/spec.md`,
+      `${PLAN_DIR}/status.md`,
       `${PLAN_DIR}/tasks/T1.md`,
       `${PLAN_DIR}/tasks/T2.md`,
     ].sort());
@@ -448,6 +466,24 @@ test("the decomposition is committed with the plan, and nothing outside the run 
     assert.equal(fs.readFileSync(path.join(repo.dir, "README.md"), "utf-8"), "edited\n");
     assert.match(repo.git("status", "--short").stdout, /README\.md/);
     assert.match(repo.git("status", "--short").stdout, /src\/other\.ts/);
+  });
+});
+
+test("--split writes the run's state file, and a later --split leaves the progress in it untouched", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody(TWO_TASKS));
+
+    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.equal(
+      readRun(dir, "status.md"),
+      "# status\n\nprogress: 0/2\ndone: none\nskipped: none\nunreviewed: none\nclosed: none\n",
+    );
+
+    // a resume splits again: the file is the build's progress, never reset by it
+    seedStatus(dir, { progress: "1/2", done: "T1", skipped: "none", unreviewed: "none", closed: "none" });
+    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.match(readRun(dir, "status.md"), /^done: T1$/m);
+    assert.match(run(dir, {}, [PLAN_REL]).stdout, /^progress: 1\/2$/m);
   });
 });
 

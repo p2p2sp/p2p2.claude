@@ -16,7 +16,10 @@
 # it is copied, never moved, and the source is left untouched. The slug comes
 # from the plan's own first H1, falling back to its file name, and is normalized
 # here - lowercased, every other run of characters collapsed to "-", 60 chars
-# max - so no caller has to form one.
+# max - so no caller has to form one. The copy is stripped of the template's
+# guidance comments on the way in: everything the run itself reads stays
+# (<!-- TASK -->, <!-- /TASK -->, <!-- source: -->), the rest would only ride
+# through spec.md and every task file into the build.
 #
 # Contract:
 #   argv   : --land and the source plan, or nothing.
@@ -27,16 +30,27 @@
 #     path: docs/_specs/2026-09-19-17-30-00_add-login/plan.md
 #     key: 2026-09-19-17-30-00_add-login
 #     state: new | existing
+#     open: docs/_specs/2026-09-18-09-12-44_add-search/plan.md | 2/6
 #   exit != 0:
 #     2 - unusable argv: an unknown first argument, --land without a source, a
 #         source that is not a file, or a slug that normalizes to nothing
 #     3 - no argument and docs/_specs/ holds no plan
 #     5 - the copy failed; nothing was landed
 #
+# One "open:" line per OTHER run still holding a task that is neither committed
+# nor skipped - the resolved run is never among them, and a repository with
+# nothing else half-built prints none. The counter shown is committed over total,
+# so a run closed by dropping its last task reads as finished and disappears.
+# A build resumes from the plan it was given; a second run left unfinished is the
+# one thing the caller cannot see for itself, and it decides whether landing this
+# plan is a switch or a fresh start. Progress is read the same way everywhere: the
+# done list out of the run's status.md, the total out of the plan's own TASK
+# blocks.
+#
 # "new"      - the plan was just copied in, so this run starts here.
 # "existing" - a run already open for that slug, carrying its own progress in the
-#              plan's own done markers. It is NEVER overwritten: a source edited
-#              after the build started does not reach it, because the landed plan
+#              status.md beside its plan. It is NEVER overwritten: a source edited
+#              after the build started does not reach it, because the landed run
 #              is the state. A <src> that already IS a landed plan answers the
 #              same way, which makes --land idempotent.
 #
@@ -45,15 +59,25 @@ shopt -s nullglob
 
 specs_dir="docs/_specs"
 
+# Modification time of a file, 0 when it is missing or unreadable.
+mtime() {
+  t="$(stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0)"
+  case "$t" in ''|*[!0-9]*) t=0 ;; esac
+  printf '%s\n' "$t"
+}
+
 # Newest by mtime of the paths on stdin; non-files are skipped, so a non-matching
-# glob and a name that does not exist both drop out here.
+# glob and a name that does not exist both drop out here. A landed plan is frozen,
+# so "most recently worked on" is the later of the plan and the status file beside
+# it - the one file every commit of that run rewrites.
 newest() {
   best=""
   best_t=-1
   while IFS= read -r f; do
     [[ -f "$f" ]] || continue
-    t="$(stat -c %Y "$f" 2>/dev/null || stat -f %m "$f" 2>/dev/null || echo 0)"
-    case "$t" in ''|*[!0-9]*) t=0 ;; esac
+    t="$(mtime "$f")"
+    s="$(mtime "${f%/*}/status.md")"
+    if [[ "$s" -gt "$t" ]]; then t="$s"; fi
     if [[ "$t" -gt "$best_t" ]]; then
       best_t="$t"
       best="$f"
@@ -62,11 +86,75 @@ newest() {
   printf '%s\n' "$best"
 }
 
+# "<done> <settled> <total>" for one run: the done and skipped lists out of the
+# status file beside the plan, the total out of the plan's own TASK blocks. A run
+# that never reached its first commit carries no status file and comes back with
+# nothing done. "settled" counts the dropped tasks too - a run whose every task
+# is either committed or skipped has nothing left to build.
+progress_of() {
+  awk -v st="${1%/*}/status.md" '
+/<!--[[:space:]]*TASK[[:space:]]*-->/ { n++ }
+END {
+  while ((getline line < st) > 0) {
+    if (line !~ /^done:/ && line !~ /^skipped:/) continue
+    isdone = (line ~ /^done:/)
+    sub(/^[A-Za-z]+:/, "", line)
+    m = split(line, v, /[[:space:]]+/)
+    for (k = 1; k <= m; k++) {
+      if (v[k] == "" || v[k] == "none" || v[k] == "-") continue
+      s++
+      if (isdone) d++
+    }
+  }
+  close(st)
+  printf "%d %d %d\n", d + 0, s + 0, n + 0
+}
+' "$1"
+}
+
+# The landed plan, without the guidance the template carries for whoever writes
+# it: those comments have done their work by the time the plan is approved, and
+# they would otherwise ride into spec.md, into every task file and through the
+# whole build. Only the markers the run itself reads survive - <!-- TASK -->,
+# <!-- /TASK --> and <!-- source: --> - and a comment block spanning several
+# lines goes whole. Blank runs left behind collapse to one, so the result reads
+# like a plan written without them. In place, on the COPY only.
+strip_guidance() {
+  tmp="$1.tmp.$$"
+  awk '
+function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
+{
+  t = trim($0)
+  if (inblock) { if (t ~ /-->/) inblock = 0; next }
+  if (t ~ /^<!--/ && t !~ /^<!--[[:space:]]*\/?TASK[[:space:]]*-->$/ && t !~ /^<!--[[:space:]]*source:/) {
+    if (t !~ /-->/) inblock = 1
+    next
+  }
+  if (t == "") { blank = 1; next }
+  if (blank && NR > 1 && kept) print ""
+  blank = 0; kept = 1
+  print
+}
+' "$1" > "$tmp" && mv -f "$tmp" "$1"
+  rm -f "$tmp"
+}
+
 emit() {
   d="${1%/*}"
   printf 'path: %s\n' "$1"
   printf 'key: %s\n' "${d##*/}"
   printf 'state: %s\n' "$2"
+  # every OTHER run still holding unfinished tasks, so the caller can tell a
+  # switch from a fresh start without reading a single file itself
+  for f in "$specs_dir"/*/plan.md; do
+    [[ -f "$f" ]] || continue
+    [[ "$f" == "$1" ]] && continue
+    read -r pdone psettled ptotal <<<"$(progress_of "$f")"
+    if [[ "$psettled" -lt "$ptotal" ]]; then
+      printf 'open: %s | %s/%s\n' "$f" "$pdone" "$ptotal"
+    fi
+  done
+  return 0
 }
 
 mode="${1:-}"
@@ -142,4 +230,5 @@ if ! mkdir -p -- "${dest%/*}" || ! cp -- "$src" "$dest"; then
   echo "error: could not land the plan at $dest" >&2
   exit 5
 fi
+strip_guidance "$dest"
 emit "$dest" new

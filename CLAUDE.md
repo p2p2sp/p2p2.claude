@@ -57,7 +57,7 @@ mechanics against `.github/scripts/release.sh` before restating them.
 
 - **Host-repo `docs/` is the one home for persisted, user-facing knowledge.** `docs/changelog/`,
   `docs/qa/`, `docs/.workflows/` (all superdev), `docs/_specs/<stamp>_<slug>/` (viber's run
-  directory: the plan, its decomposition, the build's two QA documents and `work/`, the run's own
+  directory: the plan, its `status.md`, its decomposition, the build's two QA documents and `work/`, the run's own
   notes and reports - committed, because a build resumes from them in another session or on another
   machine),
   `docs/business/<slug>/` (superbiz's rendered report
