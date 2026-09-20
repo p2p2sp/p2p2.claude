@@ -20,7 +20,7 @@
 #            resolved here. Outside a repository, the cwd is the base.
 #   env    : none.
 #   file   : <repo root>/.claude/viber.yml (optional). No file -> every key false.
-#   keys   : adr, memory, rules. A key is `true` ONLY when the file holds a line
+#   keys   : adr, memory, rules, qa. A key is `true` ONLY when the file holds a line
 #            matching `^\s*<key>\s*:\s*true` (the value ended by a space, a
 #            comment or the end of the line). An absent key -> false.
 #   stdout : a header line plus one `<key>: <true|false>` line per key, in a
@@ -47,7 +47,7 @@ resolve() {
 }
 
 echo "# viber config (resolved)"
-for key in adr memory rules; do
+for key in adr memory rules qa; do
   printf '%s: %s\n' "$key" "$(resolve "$key")"
 done
 

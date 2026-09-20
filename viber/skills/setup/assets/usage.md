@@ -19,10 +19,16 @@ how to launch the app, the required env, the migrations.
 
 `idea` and `fixer` both end at the planner, and nothing is built before you approve its plan.
 
+## After a build
+
+- `/viber:e2e` - turns the QA scenarios a build wrote into Playwright tests, run against your
+  own application and committed once they are green. Needs the `qa` switch to have been on.
+
 ## The switches (`.claude/viber.yml`)
 
 - `adr` - decisions worth keeping become the plan's first tasks, under `docs/adr/`.
 - `memory` - the build closes by updating this project's `CLAUDE.md` nodes.
 - `rules` - the build closes by updating `.claude/rules/`.
+- `qa` - the build closes by writing its QA scenarios into the run directory.
 
 Re-run `/viber:setup` to change them.

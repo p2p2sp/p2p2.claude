@@ -100,13 +100,12 @@ Dispatch `viber:test-runner` with a report path `.temp/viber/<plan-key>/tests-<r
 
 ## 6. Record what the build taught
 
-Only for the switches the config block above reports as `true`, both dispatched in one message - they write in separate places and never wait for each other:
+Only for the switches the config block above reports as `true`, all of them dispatched in one message - they write in separate places and never wait for each other:
 
-- `memory: true` -> `viber:memory-writer`
-- `rules: true` -> `viber:rules-writer`
+- `memory: true` -> `viber:memory-writer`, carrying `spec: <dir>/spec.md` and `notes: .temp/viber/<plan-key>/`, the directory the coders left their conclusions in.
+- `rules: true` -> `viber:rules-writer`, carrying those same two lines.
+- `qa: true` -> `viber:qa-writer`, carrying those two plus `refs: ${CLAUDE_PLUGIN_ROOT}/references` and `out: <dir>`, the run directory its QA documents land in.
 
-Each carries two labelled lines: `spec: <dir>/spec.md` and `notes: .temp/viber/<plan-key>/`, the directory the coders left their conclusions in.
+Commit what they return, one call per form and each deriving its own subject: the memory and rule paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore <file> [<file>...]`, the QA paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa <file> [<file>...]`. A form whose agents returned nothing, or only `VERDICT: NONE` -> no call for it. Then `TaskUpdate` -> completed.
 
-Commit every path they return, all of them in one call: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore <file> [<file>...]`, which derives its own subject. Nothing returned, or both `VERDICT: NONE` -> no call. Then `TaskUpdate` -> completed.
-
-Final summary, max 5 lines: tasks committed, review rounds spent, test verdict, what memory and rules recorded, anything left for the user to decide.
+Final summary, max 5 lines: tasks committed, review rounds spent, test verdict, what memory, rules and QA recorded, anything left for the user to decide. A `qa.e2e.md` among the QA paths earns one more line - `/viber:e2e` turns it into Playwright tests.

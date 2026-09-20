@@ -7,6 +7,8 @@
 #   commit-task.sh <plan-file> <task-id> <fix-number> <file> [<file>...]
 #   commit-task.sh --repair <plan-file> <round> <file> [<file>...]
 #   commit-task.sh --chore <file> [<file>...]
+#   commit-task.sh --qa <file> [<file>...]
+#   commit-task.sh --e2e <file> [<file>...]
 #
 # The two positional forms take the commit subject from the task's own heading
 # line ("### T1 - <title>") in the plan, so the plan's title is literally what
@@ -32,6 +34,13 @@
 # a .claude/rules/ file -> rules, both -> both), so the caller never composes a
 # commit subject here either.
 #
+# --qa commits the QA documents a build's close produced, and --e2e the
+# Playwright specs a later e2e pass generated plus the handoff file it updated.
+# Both take no plan and no task id for the same reason --chore does not, and
+# both carry a FIXED derived subject ("docs(viber): qa scenarios",
+# "test(viber): e2e specs") - no form of this script ever takes a subject from
+# its caller.
+#
 # No form ever stages a path the caller did not name, and every form commits
 # through its own pathspec, so a path staged before or beside the run stays in
 # the index instead of riding along. A ".temp/" entry is refused outright, so
@@ -47,7 +56,7 @@
 # neither is.
 #
 # stdout: "committed: <sha>" and "progress: x/N" ("unchanged" for a fix) - plus,
-#         for --repair and --chore, the derived "subject: <line>"
+#         for every flag form, the derived "subject: <line>"
 # stderr: a warning listing changed paths no task in the plan claims
 #
 # exit != 0:
@@ -60,7 +69,7 @@
 set -euo pipefail
 
 usage() {
-  echo "error: usage: commit-task.sh <plan-file> <task-id> [<fix-number> <file> [<file>...]] | --repair <plan-file> <round> <file> [<file>...] | --chore <file> [<file>...]" >&2
+  echo "error: usage: commit-task.sh <plan-file> <task-id> [<fix-number> <file> [<file>...]] | --repair <plan-file> <round> <file> [<file>...] | --chore <file> [<file>...] | --qa <file> [<file>...] | --e2e <file> [<file>...]" >&2
   exit 2
 }
 
@@ -103,9 +112,9 @@ warn_unclaimed() {
   printf '%s' "$unclaimed" >&2
 }
 
-# --- the two forms no task owns: a post-test fix outside the plan's file map,
-# --- and the run's own knowledge files ---
-if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" ]]; then
+# --- the forms no task owns: a post-test fix outside the plan's file map, and
+# --- the knowledge, QA and test files a run produced beside its task map ---
+if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "${1:-}" == "--e2e" ]]; then
   form="$1"
   shift
 
@@ -144,26 +153,37 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" ]]; then
   fi
 
   # the subject follows the form and the paths, so nothing composes it
-  if [[ "$form" == "--repair" ]]; then
-    subject="fix(viber): post-test repair (round $round)"
-    git commit -m "$subject" -m "Refs: $plan post-test fix $round" -- "${paths[@]}" >&2 || exit 5
-  else
-    mem=0
-    rul=0
-    for f in "${paths[@]}"; do
-      case "$f" in
-        CLAUDE.md|*/CLAUDE.md)         mem=1 ;;
-        .claude/rules/*|*/.claude/rules/*) rul=1 ;;
-      esac
-    done
-    if   [[ $mem -eq 1 && $rul -eq 1 ]]; then subject="chore(viber): update project memory and rules"
-    elif [[ $mem -eq 1 ]];               then subject="chore(viber): update project memory"
-    elif [[ $rul -eq 1 ]];               then subject="chore(viber): update project rules"
-    else                                      subject="chore(viber): update project knowledge"
-    fi
+  case "$form" in
+    --repair)
+      subject="fix(viber): post-test repair (round $round)"
+      git commit -m "$subject" -m "Refs: $plan post-test fix $round" -- "${paths[@]}" >&2 || exit 5
+      ;;
+    --chore)
+      mem=0
+      rul=0
+      for f in "${paths[@]}"; do
+        case "$f" in
+          CLAUDE.md|*/CLAUDE.md)         mem=1 ;;
+          .claude/rules/*|*/.claude/rules/*) rul=1 ;;
+        esac
+      done
+      if   [[ $mem -eq 1 && $rul -eq 1 ]]; then subject="chore(viber): update project memory and rules"
+      elif [[ $mem -eq 1 ]];               then subject="chore(viber): update project memory"
+      elif [[ $rul -eq 1 ]];               then subject="chore(viber): update project rules"
+      else                                      subject="chore(viber): update project knowledge"
+      fi
 
-    git commit -m "$subject" -- "${paths[@]}" >&2 || exit 5
-  fi
+      git commit -m "$subject" -- "${paths[@]}" >&2 || exit 5
+      ;;
+    --qa)
+      subject="docs(viber): qa scenarios"
+      git commit -m "$subject" -- "${paths[@]}" >&2 || exit 5
+      ;;
+    --e2e)
+      subject="test(viber): e2e specs"
+      git commit -m "$subject" -- "${paths[@]}" >&2 || exit 5
+      ;;
+  esac
 
   echo "committed: $(git rev-parse --short HEAD)"
   echo "subject: $subject"

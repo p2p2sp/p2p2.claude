@@ -29,8 +29,14 @@
  * the failing file belongs to no task at all: a DERIVED subject
  * (`fix(viber): post-test repair (round 2)`) instead of a borrowed heading, so a
  * regression in code the plan never touched is committable without inventing a
- * task id. It shares its staging loop with `--chore`, whose cases below prove the
- * `.temp/` refusal for both.
+ * task id. It shares its staging loop with `--chore`, `--qa` and `--e2e`, whose
+ * cases below prove the `.temp/` refusal for all of them.
+ *
+ * `--chore`, `--qa` and `--e2e` are the three forms for what a run produces beside
+ * its task map - the knowledge files a close wrote, that close's QA documents, and
+ * the Playwright specs a later e2e pass generated. None takes a plan, a task id or
+ * a subject: each DERIVES its own, so the plan's progress is never touched and no
+ * caller can get a hand-written subject into the history through them.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -573,4 +579,85 @@ test("--chore with nothing changed exits 4, and with no file at all exits 2", ()
     assert.equal(noFiles.status, 2);
     assert.match(noFiles.stderr, /usage: commit-task\.sh/);
   });
+});
+
+// --- --qa and --e2e: the QA documents a build's close wrote, and the specs a
+// --- later e2e pass generated, neither of which any task's map names ----------
+
+const RUN_DIR = "docs/_specs/2026-09-20-10-00-00_feat-x";
+
+test("--qa and --e2e each carry a fixed derived subject, so no caller composes a commit subject here either", () => {
+  const cases: Array<[form: string, files: string[], subject: string]> = [
+    ["--qa", [`${RUN_DIR}/qa.md`, `${RUN_DIR}/qa.e2e.md`], "docs(viber): qa scenarios"],
+    ["--e2e", ["tests/e2e/qa-01-approve-a-timesheet.spec.ts", `${RUN_DIR}/qa.e2e.md`], "test(viber): e2e specs"],
+  ];
+
+  for (const [form, files, subject] of cases) {
+    withGitRepo((repo) => {
+      seed(repo);
+      for (const f of files) write(repo.dir, f, "written after the build\n");
+
+      const result = run(repo.dir, repo.env, [form, ...files]);
+      assert.equal(result.status, 0, `${form} -> stderr: ${result.stderr}`);
+      assert.match(result.stdout, /^committed: [0-9a-f]{7,}\n/);
+      assert.match(result.stdout, new RegExp(`^subject: ${subject.replace(/[()]/g, "\\$&")}$`, "m"));
+      assert.equal(subjects(repo)[0], subject);
+      assert.deepEqual(committedFiles(repo), [...files].sort());
+    });
+  }
+});
+
+test("--qa and --e2e leave the plan's progress alone (they close out no task, so nothing may be marked done)", () => {
+  for (const form of ["--qa", "--e2e"]) {
+    withGitRepo((repo) => {
+      seed(repo);
+      const before = readPlan(repo);
+      write(repo.dir, `${RUN_DIR}/qa.e2e.md`, "Base: unknown\n");
+
+      const result = run(repo.dir, repo.env, [form, `${RUN_DIR}/qa.e2e.md`]);
+      assert.equal(result.status, 0, `${form} -> stderr: ${result.stderr}`);
+      assert.doesNotMatch(result.stdout, /progress:/);
+      assert.equal(readPlan(repo), before);
+      assert.deepEqual(committedFiles(repo), [`${RUN_DIR}/qa.e2e.md`]);
+    });
+  }
+});
+
+test("--qa and --e2e commit nothing they were not given, and refuse a .temp/ path outright", () => {
+  for (const form of ["--qa", "--e2e"]) {
+    withGitRepo((repo) => {
+      seed(repo);
+      write(repo.dir, `${RUN_DIR}/qa.md`, "the acceptance document\n");
+      write(repo.dir, ".temp/viber/e2e/launch.log", "the log the run redirected\n");
+      write(repo.dir, "src/a.ts", "a coder left this behind\n");
+
+      const result = run(repo.dir, repo.env, [form, `${RUN_DIR}/qa.md`, ".temp/viber/e2e/launch.log"]);
+      assert.equal(result.status, 0, `${form} -> stderr: ${result.stderr}`);
+      assert.match(result.stderr, /refused \.temp\/viber\/e2e\/launch\.log/);
+
+      assert.deepEqual(committedFiles(repo), [`${RUN_DIR}/qa.md`]);
+      const dirty = repo.git("status", "--short").stdout;
+      assert.match(dirty, /\?\? \.temp\//);
+      assert.match(dirty, /\?\? src\//);
+    });
+  }
+});
+
+test("--qa and --e2e with nothing changed exit 4, and with no file at all exit 2", () => {
+  for (const form of ["--qa", "--e2e"]) {
+    withGitRepo((repo) => {
+      seed(repo);
+      write(repo.dir, `${RUN_DIR}/qa.md`, "already committed\n");
+      repo.git("add", "-A");
+      repo.git("commit", "-m", "already recorded");
+
+      const unchanged = run(repo.dir, repo.env, [form, `${RUN_DIR}/qa.md`]);
+      assert.equal(unchanged.status, 4, `${form} -> stderr: ${unchanged.stderr}`);
+      assert.match(unchanged.stderr, /no changes to commit/);
+
+      const noFiles = run(repo.dir, repo.env, [form]);
+      assert.equal(noFiles.status, 2);
+      assert.match(noFiles.stderr, /usage: commit-task\.sh/);
+    });
+  }
 });

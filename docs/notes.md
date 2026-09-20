@@ -1,4 +1,4 @@
 # viber
 
 - scenariusz testowe QA
-- testy playwright-cli
+- testy playwright-cli (tylko chromium)

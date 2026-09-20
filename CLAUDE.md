@@ -57,7 +57,8 @@ mechanics against `.github/scripts/release.sh` before restating them.
 
 - **Host-repo `docs/` is the one home for persisted, user-facing knowledge.** `docs/changelog/`,
   `docs/qa/`, `docs/.workflows/` (all superdev), `docs/_specs/<stamp>_<slug>/` (viber's run
-  directory: the plan plus its decomposition), `docs/business/<slug>/` (superbiz's rendered report
+  directory: the plan, its decomposition and the build's two QA documents),
+  `docs/business/<slug>/` (superbiz's rendered report
   only), and `docs/adr/`, the one layer TWO plugins write - superdev through its `adr` skill, viber
   through a plan task - because a host repo has one decision log, not one per track.
   `supercc` writes no `docs/<layer>/` of its own and never
@@ -66,8 +67,9 @@ mechanics against `.github/scripts/release.sh` before restating them.
   `.superui/`, etc). Only three host-repo locations are writable at a plugin's own choosing:
   `docs/<layer>/` (persisted knowledge), `.claude/` (user-owned config/rules), `.temp/<plugin>/`
   (every temporary artifact, grouped per plugin). A fourth is writable only because the HOST
-  names it: the host's own e2e test dir, written by superdev's `e2e-writer` under the user-run
-  `e2e` skill.
+  names it: the host's own e2e test dir, written by the `e2e-writer` of superdev and of viber, each
+  under its own user-run `e2e` skill, into the directory the host's instructions name and never a
+  sibling either of them invented.
 - **`viber` is the only manifest-bearing plugin.** It ships ONE injected `SessionStart` manifest
   (`hooks/content/manifest.md`, verbatim, once per session, `source == "resume"` excluded,
   fail-open: an empty or unreadable file injects nothing and leaves only the banner). It is not a
@@ -170,5 +172,5 @@ header comments of `hooks/scripts/*.sh`.
 | `superfix/CLAUDE.md` | `code-auditor` and its five agents - the two-track investigation sweep |
 | `superbiz/CLAUDE.md` | `idea-validator` - the side-project viability workflow |
 | `supercc/CLAUDE.md` | `skill-designer` - authoring/refactoring/splitting/linting skills and agents |
-| `viber/CLAUDE.md` | `setup` / `idea` / `planner` / `implementor` / `fixer` / `tdd`, their six agents, the run directory and its decomposition, the four plugin scripts, the config switches and the plan gate |
+| `viber/CLAUDE.md` | `setup` / `idea` / `planner` / `implementor` / `fixer` / `tdd` / `e2e`, their eight agents, the run directory with its decomposition and QA documents, the five plugin scripts, the QA format reference, the config switches and the plan gate |
 | `tests/CLAUDE.md` | any `*.test.ts` under `tests/` - harness contract, cross-platform rules |

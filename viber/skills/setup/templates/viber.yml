@@ -9,3 +9,7 @@ memory: true
 
 # implementor updates .claude/rules/ at the close of a build.
 rules: true
+
+# implementor writes the build's QA scenarios at the close: an acceptance
+# document a person performs and a handoff file /viber:e2e turns into tests.
+qa: true

@@ -1,6 +1,6 @@
 /*
  * config.test.ts - proves viber/scripts/config.sh's contract: it resolves the
- * three `.claude/viber.yml` switches into the block a skill preloads.
+ * four `.claude/viber.yml` switches into the block a skill preloads.
  *
  * Two properties carry the whole design. It is FAIL-OPEN and always exits 0,
  * because it runs as a `!` preload where a non-zero exit aborts the entire skill
@@ -34,7 +34,7 @@ function writeConfig(root: string, body: string): void {
   fs.writeFileSync(path.join(root, ".claude", "viber.yml"), body);
 }
 
-/** The three switches, in the fixed order the script prints them. */
+/** The four switches, in the fixed order the script prints them. */
 function switches(stdout: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const line of stdout.trim().split("\n").slice(1)) {
@@ -49,36 +49,36 @@ test("no config file: every switch is off and the exit is still 0", () => {
     const result = run(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout.split("\n")[0], "# viber config (resolved)");
-    assert.deepEqual(switches(result.stdout), { adr: "false", memory: "false", rules: "false" });
+    assert.deepEqual(switches(result.stdout), { adr: "false", memory: "false", rules: "false", qa: "false" });
   });
 });
 
 test("only `true` counts as on - false, a missing key, a commented-out line and a near-miss value are all off", () => {
   withTempDir("p2p2-viber-", (dir) => {
-    writeConfig(dir, ["adr: false", "# memory: true", "rules: truthy", "extra: true", ""].join("\n"));
+    writeConfig(dir, ["adr: false", "# memory: true", "rules: truthy", "qa: yes", "extra: true", ""].join("\n"));
 
     const result = run(dir);
     assert.equal(result.status, 0);
-    assert.deepEqual(switches(result.stdout), { adr: "false", memory: "false", rules: "false" });
+    assert.deepEqual(switches(result.stdout), { adr: "false", memory: "false", rules: "false", qa: "false" });
   });
 });
 
-test("the seeded template turns all three on, comments, indentation and case notwithstanding", () => {
+test("the seeded template turns all four on, comments, indentation and case notwithstanding", () => {
   withTempDir("p2p2-viber-", (dir) => {
-    writeConfig(dir, ["# viber switches", "adr: true  # the decisions worth keeping", "  memory: TRUE", "rules: true", ""].join("\n"));
+    writeConfig(dir, ["# viber switches", "adr: true  # the decisions worth keeping", "  memory: TRUE", "rules: true", "qa: true", ""].join("\n"));
 
     const result = run(dir);
     assert.equal(result.status, 0);
-    assert.deepEqual(switches(result.stdout), { adr: "true", memory: "true", rules: "true" });
+    assert.deepEqual(switches(result.stdout), { adr: "true", memory: "true", rules: "true", qa: "true" });
   });
 });
 
-test("the shipped template is what setup seeds, and it turns all three on", () => {
+test("the shipped template is what setup seeds, and it turns all four on", () => {
   withTempDir("p2p2-viber-", (dir) => {
     const template = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/viber.yml");
     writeConfig(dir, fs.readFileSync(template, "utf-8"));
 
-    assert.deepEqual(switches(run(dir).stdout), { adr: "true", memory: "true", rules: "true" });
+    assert.deepEqual(switches(run(dir).stdout), { adr: "true", memory: "true", rules: "true", qa: "true" });
   });
 });
 
@@ -90,7 +90,7 @@ test("the file is resolved against the repository root, so a session started in 
 
     const result = runScript(SUT, [], { cwd: nested, env: repo.env, shell: "bash" });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.deepEqual(switches(result.stdout), { adr: "false", memory: "true", rules: "false" });
+    assert.deepEqual(switches(result.stdout), { adr: "false", memory: "true", rules: "false", qa: "false" });
   });
 });
 
@@ -100,6 +100,6 @@ test("an unreadable or malformed config never fails the preload", () => {
 
     const result = run(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.deepEqual(switches(result.stdout), { adr: "false", memory: "false", rules: "false" });
+    assert.deepEqual(switches(result.stdout), { adr: "false", memory: "false", rules: "false", qa: "false" });
   });
 });

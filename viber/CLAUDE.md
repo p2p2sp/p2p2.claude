@@ -5,13 +5,13 @@ highest quality and speed of work.
 
 ## Purpose
 
-The vibe track: understand, plan, build, then record what the build taught. SIX skills (`setup`,
-`idea`, `planner`, `implementor`, `tdd`, `fixer`), SIX agents, FOUR plugin-level scripts, TWO
-skill-level setup scripts and TWO hooks - one `PreToolUse`, one `SessionStart`. Everything a run
-produces lives in the host repo's
-`docs/_specs/<stamp>_<slug>/` (the plan carrying its own progress, plus the decomposition every
-agent reads) and `.temp/viber/<plan-key>/` (review reports, test reports, the coders' notes) - no
-plugin-named dot-dir, no state file.
+The vibe track: understand, plan, build, then record what the build taught. SEVEN skills (`setup`,
+`idea`, `planner`, `implementor`, `tdd`, `fixer`, `e2e`), EIGHT agents, FIVE plugin-level scripts, TWO
+skill-level setup scripts, ONE plugin-level reference and TWO hooks - one `PreToolUse`, one
+`SessionStart`. Everything a run produces lives in the host repo's
+`docs/_specs/<stamp>_<slug>/` (the plan carrying its own progress, the decomposition every
+agent reads, and the QA documents the close writes) and `.temp/viber/<plan-key>/` (review reports,
+test reports, the coders' notes) - no plugin-named dot-dir, no state file.
 
 ## Entry points
 
@@ -32,7 +32,13 @@ plugin-named dot-dir, no state file.
   each task into a model tier (haiku / sonnet / opus) and a review decision, dispatches
   `viber:task-coder` in the widest batch the dependency and file-collision rules allow, gates each
   reviewed task on `viber:task-reviewer`, commits it with `scripts/commit-task.sh`, closes on
-  `viber:test-runner` and then, per switch, on `viber:memory-writer` and `viber:rules-writer`.
+  `viber:test-runner` and then, per switch, on `viber:memory-writer`, `viber:rules-writer` and
+  `viber:qa-writer`.
+- `skills/e2e/SKILL.md` - `/viber:e2e`, user-only. Turns each scenario of one run's `qa.e2e.md` into a
+  `@playwright/test` file: it preloads `scripts/check-playwright.sh`, resolves the run (its argument,
+  else `plan-path.sh`), offers the install, launches the host's application, dispatches
+  `viber:e2e-writer` one ID at a time and commits the result with `commit-task.sh --e2e`. It carries
+  `disallowed-tools: Write, Edit, NotebookEdit` - not one byte of the tree is written here.
 - `skills/fixer/SKILL.md` - `/viber:fixer`, user-only. Invoked on a bug report, it forces a
   traced diagnosis proven by a failing test, and hands the fix plan to `planner`, leaving that test
   RED in the tree for the fixing task's `Files:`, its header comment carrying the root cause. It
@@ -43,7 +49,9 @@ plugin-named dot-dir, no state file.
 - `agents/` - `planner-review` (plan gate, read-only), `task-coder` (one task or one report, proves
   it green, never commits), `task-reviewer` (per-task gate, writes only its report), `test-runner`
   (one full suite run, keeps the log out of the caller's context), `memory-writer` and
-  `rules-writer` (the close: the project's `CLAUDE.md` nodes and `.claude/rules/`).
+  `rules-writer` (the close: the project's `CLAUDE.md` nodes and `.claude/rules/`), `qa-writer` (the
+  close: the run's two QA documents) and `e2e-writer` (one scenario -> one Playwright spec, proven
+  green against the running application).
 - `hooks/hooks.json` -> `hooks/scripts/plan-gate.sh`: the review gate, enforced by the harness
   rather than by the model; and `hooks/scripts/session-start.sh`, which injects
   `hooks/content/manifest.md`.
@@ -95,12 +103,15 @@ plugin-named dot-dir, no state file.
   subject and the history reads like the plan. The id is also the name of the task's own file, so
   `plan-index.sh` refuses one carrying anything but letters, digits, `-` and `_`. A post-test repair
   is a second commit against the same task (`<plan> <id> <round> <file>...`), subject
-  `T<n>(<round>) - <title>`, progress untouched. Two flag forms cover what the task map does not:
+  `T<n>(<round>) - <title>`, progress untouched. Four flag forms cover what the task map does not:
   `--repair <plan> <round> <file>...` for a post-test fix in code no task's `Files:` names (subject
   `fix(viber): post-test repair (round <n>)`), so a regression outside the plan is never attributed
-  to a borrowed task id, and `--chore <file>...` for the memory and rule files the close produced.
-  Both DERIVE their subject rather than take one. No form runs `git add -A` over the tree and no
-  form commits the index as a whole - all four pass their own paths to `git commit` - and a
+  to a borrowed task id, and `--chore`, `--qa` and `--e2e <file>...` for the three kinds of file a
+  run produces beside its task map - the memory and rule files of the close, that close's QA
+  documents (`docs(viber): qa scenarios`) and the Playwright specs a later `/viber:e2e` pass
+  generated plus the handoff it updated (`test(viber): e2e specs`).
+  All four DERIVE their subject rather than take one. No form runs `git add -A` over the tree and no
+  form commits the index as a whole - all six pass their own paths to `git commit` - and a
   `.temp/` entry is refused outright.
 - **`Files:` is a machine-readable map, not prose.** Comma-separated exact repo-relative paths on
   one line, no globs, no directories, no annotations. `commit-task.sh` stages that list literally,
@@ -110,10 +121,11 @@ plugin-named dot-dir, no state file.
   `Covers:` in BOTH directions - every reference names a real acceptance criterion, and every
   criterion is named by some task - because nothing later gates the specification as a whole: a
   criterion no task implements would otherwise ride through the build into a green close.
-- **Four deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path, and
+- **Five deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path, and
   on `--land` put the approved plan there),
-  `plan-index.sh` (validate, index, optionally decompose), `commit-task.sh` (stage, commit, record)
-  and `config.sh` (resolve the switches) carry their I/O contract in their header comment and are
+  `plan-index.sh` (validate, index, optionally decompose), `commit-task.sh` (stage, commit, record),
+  `config.sh` (resolve the switches) and `check-playwright.sh` (report the e2e tooling, install
+  nothing) carry their I/O contract in their header comment and are
   TRUSTED by the caller - never re-verified, never retried. All are invoked as one literal line,
   `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" <args>`, never through an interpreter, and each has its
   own `Bash(${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh:*)` entry in the calling skill's `allowed-tools`.
@@ -132,8 +144,8 @@ plugin-named dot-dir, no state file.
   `skills/setup/assets/usage.md`, read and printed whole - the four entries, the switches, and why
   those commands have to be written down. It is an asset rather than body text so the skill, pinned
   to `model: haiku`, copies it instead of composing it.
-- **The switches are read through `config.sh` alone.** `adr`, `memory` and `rules` live in
-  `.claude/viber.yml`, resolved against the repository root, fail-open: no file means all three off,
+- **The switches are read through `config.sh` alone.** `adr`, `memory`, `rules` and `qa` live in
+  `.claude/viber.yml`, resolved against the repository root, fail-open: no file means all four off,
   and the script always exits 0 because it runs as a `!` preload, where a non-zero exit would abort
   the whole skill load. `adr` is weighed in `planner` and nowhere else: `planner` is the one funnel
   all three entries pass through (`idea`, `fixer`, and "plan it" straight from an understood change),
@@ -144,10 +156,38 @@ plugin-named dot-dir, no state file.
   `plan-index.sh`'s output, which is what lets one context outlast a full build, and every byte
   that reaches the tree comes from a script or an agent.
 - **The coders' notes are the input of the close.** `task-coder` leaves at most 8 lines in
-  `.temp/viber/<plan-key>/<id>-coder.md` - what the diff does not say - and `memory-writer` /
-  `rules-writer` read that directory. They run in one dispatch and never wait for each other,
-  because their scopes do not overlap: `CLAUDE.md` nodes belong to the first, `.claude/rules/` to
-  the second.
+  `.temp/viber/<plan-key>/<id>-coder.md` - what the diff does not say - and `memory-writer`,
+  `rules-writer` and `qa-writer` read that directory. All three run in one dispatch and never wait
+  for each other, because their scopes do not overlap: `CLAUDE.md` nodes belong to the first,
+  `.claude/rules/` to the second, the run directory's QA documents to the third. The notes are what
+  makes a scenario describe the behaviour that was DELIVERED rather than the one that was planned.
+- **The QA documents live in the run directory, and that is what makes the close idempotent.**
+  `qa-writer` writes `qa.md` (a person performs it by hand) and `qa.e2e.md` (an agent automates it)
+  into `docs/_specs/<stamp>_<slug>/`, never into a `docs/qa/` of their own. That directory is
+  unique to its build, so there is no index to maintain and no older entry to supersede - the two
+  rules superdev's equivalent layer needed both fall away. An existing `qa.md` is the resume signal:
+  the writer returns `VERDICT: NONE` rather than overwrite scenarios a tester may already have
+  worked through. `qa.md` is rendered in the language the user is conversing in (the language the
+  run's own specification carries); the handoff's headings and fields stay English, because only an
+  agent reads them.
+- **"Chromium only" is carried by the generated file, not by a flag.** Every spec `e2e-writer`
+  produces opens with `test.use({ browserName: 'chromium' })`, which holds whatever the host's
+  Playwright config declares and whoever runs the file later. On the exploration side the rule is
+  the absence of a flag: `playwright-cli` defaults to chromium, so `--browser` is never passed. The
+  install path matches - `npx playwright install chromium`, one browser, not three.
+- **`references/` is the one thing two workers share.** `viber/references/qa-format.md` has two
+  readers, `qa-writer` (writes the two documents) and `e2e-writer` (reads the handoff, appends the
+  automation lines), which is the whole reason the directory exists rather than the format living
+  inside one agent. Neither reads it off a hardcoded path: both take it as a `refs:` label, passed
+  as the literal `${CLAUDE_PLUGIN_ROOT}/references` by `implementor` and by `e2e`. `implementor`
+  carries `disallowed-tools: Read`, so it hands over that path without ever opening what is behind it.
+- **The host's e2e test directory is the fourth writable location, and only because the host names
+  it.** The three a plugin may write at its own choosing stay `docs/<layer>/`, `.claude/` and
+  `.temp/<plugin>/`. A generated spec lands outside all three, in whatever directory the project's
+  own instructions call its e2e directory - the `e2e` skill resolves it, asks the user when nothing
+  names it, and never invents a sibling. `e2e-writer` writes exactly one file there per dispatch and
+  touches no config, no helper and no `package.json`; application code is never edited at all, so a
+  red that is the application's fault comes back as `blocked` and stays a finding.
 - **Strength is `model` alone.** The `Agent` tool takes no `effort` parameter, so an agent's own
   frontmatter is the only place one is set. `task-coder` carries `effort: high` and is dispatched at
   all three tiers: on `haiku` that setting is dead, because Haiku 4.5 has no effort control. It stays
