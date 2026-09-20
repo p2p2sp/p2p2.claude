@@ -48,7 +48,7 @@
 #
 # stdout: "committed: <sha>" and "progress: x/N" ("unchanged" for a fix) - plus,
 #         for --repair and --chore, the derived "subject: <line>"
-# stderr: a warning listing anything left outside the commit
+# stderr: a warning listing changed paths no task in the plan claims
 #
 # exit != 0:
 #   2 - bad arguments / missing plan
@@ -64,12 +64,43 @@ usage() {
   exit 2
 }
 
-warn_dirty() {
-  local dirty
-  dirty="$(git status --short)"
-  [[ -n "$dirty" ]] || return 0
-  echo "warning: left outside the commit (not in $1):" >&2
-  printf '%s\n' "$dirty" >&2
+# Every path the plan's tasks claim, one per line - the whole map, not this
+# task's slice.
+plan_files() {
+  awk '
+function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
+/<!--[[:space:]]*TASK[[:space:]]*-->/   { intask = 1; next }
+/<!--[[:space:]]*\/TASK[[:space:]]*-->/ { intask = 0; next }
+intask && /^-[[:space:]]*Files:/ {
+  s = $0; sub(/^[^:]*:/, "", s)
+  m = split(s, fl, /,/)
+  for (k = 1; k <= m; k++) if (trim(fl[k]) != "") print trim(fl[k])
+}
+' "$1"
+}
+
+# Scoped to what the plan does NOT claim: at the widest dispatch the tree always
+# holds other tasks' work in progress, so an unscoped status would fire on every
+# commit and mean nothing. What survives the subtraction is the one thing the
+# caller acts on - a change no task accounted for.
+#   --porcelain  paths from the repo root whatever the cwd ("--short" honours
+#                status.relativePaths and would stop matching "Files:")
+#   -u all       an untracked directory listed file by file, never collapsed to
+#                "dir/", which no "Files:" entry could match
+#   -z           no C-quoting, so a non-ASCII path still compares
+warn_unclaimed() {
+  local claimed unclaimed="" rec p skip=0
+  claimed="$(plan_files "$1")"
+  while IFS= read -r -d '' rec; do
+    # a rename/copy record is followed by a second one carrying the old path
+    if [[ $skip -eq 1 ]]; then skip=0; continue; fi
+    if [[ "${rec:0:2}" == *[RC]* ]]; then skip=1; fi
+    p="${rec:3}"
+    printf '%s\n' "$claimed" | grep -Fxq -- "$p" || unclaimed="$unclaimed$p"$'\n'
+  done < <(git status --porcelain --untracked-files=all -z)
+  [[ -n "$unclaimed" ]] || return 0
+  echo "warning: changed, claimed by no task in the plan:" >&2
+  printf '%s' "$unclaimed" >&2
 }
 
 # --- the two forms no task owns: a post-test fix outside the plan's file map,
@@ -138,7 +169,7 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" ]]; then
   echo "subject: $subject"
   if [[ "$form" == "--repair" ]]; then
     echo "progress: unchanged"
-    warn_dirty "the repair's file list"
+    warn_unclaimed "$plan"
   fi
   exit 0
 fi
@@ -243,7 +274,7 @@ if [[ -n "$fix_n" ]]; then
   git commit -m "$subject" -m "Refs: $plan task $task_id fix $fix_n" -- "${paths[@]}" >&2 || exit 5
   echo "committed: $(git rev-parse --short HEAD)"
   echo "progress: unchanged"
-  warn_dirty "the fix's file list"
+  warn_unclaimed "$plan"
   exit 0
 fi
 
@@ -305,4 +336,4 @@ backup=""
 echo "committed: $(git rev-parse --short HEAD)"
 echo "progress: $progress"
 
-warn_dirty "task $task_id file map"
+warn_unclaimed "$plan"

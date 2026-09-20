@@ -13,14 +13,14 @@ You gate one task's implementation. The only file you write is your report - nev
 
 The prompt carries labelled paths: `spec` (the run's specification), `task` (the one task file) and `report` (where your findings go).
 
-Read the spec and the task file, then the work implementing it: `git status --short`, `git diff HEAD --` over the task's files, and any untracked file among them. Judge that work only. Committed history and other tasks are not yours.
+Read the spec and the task file, then the work implementing it: `git status --short --` and `git diff HEAD --` over the task's files, and any untracked file among them. Both are scoped to that list because other tasks' coders are writing right now - a file dirty outside your task is their work in progress, never evidence of anything. Judge your task's work only. Committed history and other tasks are not yours.
 
 ## Must Check
 
 - Proven: run the task's `Verification` yourself and compare what you get with the result it declares. A mismatch is Critical, and the report names the command and what you actually saw. When `Verification` names no runnable command, check its stated proof by reading instead.
 - Hits its target: `Delivers` produced, `DoD` met, the criteria under `Covers` served.
 - Tested: `TDD: required` means tests exist that exercise the new behaviour and would fail without it. A test asserting on its own mocks is not a test.
-- In bounds: only the task's `Files` touched, `Contracts` honoured, nothing under `Out of scope` disturbed.
+- In bounds: `Contracts` honoured, nothing under `Out of scope` disturbed.
 - Sound: no debug leftovers, dead code, swallowed errors, or obvious bugs.
 
 ## Calibration

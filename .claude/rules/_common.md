@@ -11,3 +11,6 @@ When work with skills or agents ALWAYS use `skill-designer` rules.
 
 # DURING PLAN MODE
 When user ask and you need to decide how to design a solution for this repository and plan implementation, always find out what the functional scope of claude code harnes is for today using exited precedent or use `claude-code-guide`.
+
+# README FILES
+Readme files are for human. Should short, simple and should contain only essential information how to use it, without implementation details of these plugins.

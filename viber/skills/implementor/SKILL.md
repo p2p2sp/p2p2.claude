@@ -60,7 +60,7 @@ Pick each task's profile from the nature of its work, not from its position:
 Never break:
 
 - A task dispatches only once every id in its `deps` is done.
-- Close out one task at a time - review and commit both read the working tree.
+- Close out one task at a time - committing rewrites the git index and the plan's progress line, and nothing else in the run touches either.
 - Tasks whose verification needs an exclusive resource - one build output, a fixed port, a single test database - never run together.
 
 Dispatch: one `viber:task-coder` per task (Agent tool, `model` = that task's tier), all in a single message, each carrying three labelled lines and nothing else:
@@ -85,7 +85,7 @@ Per task, once its coder returns:
 1. `VERDICT: FAIL` -> `AskUserQuestion` naming the task and its `REASON:` line: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its three lines plus `reason: <the returned REASON>`. Abort ends the run; skip drops that task and every task depending on it, and leaves its half-finished files uncommitted in the tree - name them in the final summary.
 2. Profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier) with the same `spec:` and `task:` lines plus `report: .temp/viber/<plan-key>/review-<id>-<round>.md`, round starting at 1.
    - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its three lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort.
-3. `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`. It takes the commit subject from the task's own heading in the plan, stages only the task's files, commits, and records the task as done. A warning about files left outside the commit goes into the final summary. A non-zero exit means nothing was committed and nothing recorded -> `AskUserQuestion`: retry / skip / abort.
+3. `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`. It takes the commit subject from the task's own heading in the plan, stages only the task's files, commits, and records the task as done. Its warning names changed paths no task in the plan claims - the same split step 5 commits by, so carry those paths to the final summary. A non-zero exit means nothing was committed and nothing recorded -> `AskUserQuestion`: retry / skip / abort.
 4. `TaskUpdate` -> completed.
 
 ## 5. Close

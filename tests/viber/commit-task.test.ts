@@ -6,7 +6,11 @@
  * task's own heading line
  * (`### T1 - <title>`) as the subject, writes the `<!-- done: ... -->` marker and
  * the `## Tasks (x/N)` header, and prints `committed: <sha>` and `progress: x/N`
- * on stdout with anything left outside the commit named on stderr.
+ * on stdout. Its stderr warning is scoped by subtracting the WHOLE plan's file
+ * map, not the one task's slice: coders run in parallel, so another task's work
+ * in progress is always in the tree and a warning naming it would fire on every
+ * commit and mean nothing. What survives the subtraction is a change no task
+ * accounted for.
  *
  * The marker and the commit are ATOMIC: the marker is written first so it rides
  * IN the commit, and any failure from there on (a refused `git commit`, a plan
@@ -167,7 +171,7 @@ test("the commit subject is the task's whole heading line, taken from the plan (
   });
 });
 
-test("a file outside the task's map stays out of the commit and is named on stderr", () => {
+test("a changed file no task in the plan claims stays out of the commit and is named on stderr", () => {
   withGitRepo((repo) => {
     seed(repo);
     write(repo.dir, "src/a.ts", "work\n");
@@ -176,8 +180,35 @@ test("a file outside the task's map stays out of the commit and is named on stde
     const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(committedFiles(repo), [PLAN_REL, "src/a.ts"].sort());
-    assert.match(result.stderr, /left outside the commit \(not in task T1 file map\)/);
+    assert.match(result.stderr, /changed, claimed by no task in the plan/);
     assert.match(result.stderr, /src\/UNRELATED\.ts/);
+  });
+});
+
+test("another task's work in progress is not named on stderr (coders run in parallel, so a warning scoped to one task's map would fire on every commit)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "src/b.ts", "T2's coder, still running\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(committedFiles(repo), [PLAN_REL, "src/a.ts"].sort());
+    assert.doesNotMatch(result.stderr, /claimed by no task/);
+    assert.doesNotMatch(result.stderr, /src\/b\.ts/);
+  });
+});
+
+test("a wholly untracked directory holding another task's file is not warned about (git collapses it to 'dir/' unless every untracked file is listed)", () => {
+  withGitRepo((repo) => {
+    seed(repo, [["T1", "src/a.ts"], ["T2", "lib/b.ts"]]);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "lib/b.ts", "T2's coder, in a directory git has never seen\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stderr, /claimed by no task/);
+    assert.doesNotMatch(result.stderr, /lib/);
   });
 });
 
@@ -325,7 +356,7 @@ test("a fix number commits a repair of that task under 'T<n>(<round>) - <title>'
     assert.equal(readPlan(repo), before);
     assert.deepEqual(committedFiles(repo), ["src/a.ts"]);
     assert.equal(subjects(repo)[0], "T1(2) - add the plan index");
-    assert.match(result.stderr, /left outside the commit \(not in the fix's file list\)/);
+    assert.match(result.stderr, /changed, claimed by no task in the plan/);
     assert.match(result.stderr, /src\/UNRELATED\.ts/);
   });
 });

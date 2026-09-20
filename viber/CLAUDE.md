@@ -66,7 +66,12 @@ plugin-named dot-dir, no state file.
   progress, so a build resumes after a context reset with no sidecar. `commit-task.sh` is what
   advances both, and it stages ONLY the task's `Files:` list and commits through that same
   pathspec - anything outside the file map stays uncommitted and visible, including a path
-  someone else left staged. The marker and the commit are atomic: the marker is written
+  someone else left staged. Its stderr warning subtracts the WHOLE plan's map, not the one
+  task's: coders run in parallel, so a warning naming their work in progress would fire on
+  every commit, and what survives the subtraction is a change no task accounted for - the same
+  split the close commits by (`--repair`). Two close-outs never run at once, because both
+  rewrite the git index and the plan's progress line and nothing else in the run touches
+  either. The marker and the commit are atomic: the marker is written
   first so it rides in the commit, and rolled back from a backup if staging or committing fails
   (exit 5). A task marked done that was never committed would be skipped forever on resume, so
   this is the one place in the plugin where a script undoes its own write.

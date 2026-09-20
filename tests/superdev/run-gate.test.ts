@@ -308,12 +308,17 @@ test("a command the runner refuses on its pre-launch error path keeps the round 
 
 test("the budget bounds the whole run, not one command: a command it leaves no room for is reported red and never started", () => {
   withTempDir("p2p2-run-gate-budget-", (dir) => {
-    // GATE_BUDGET=1: the Build command alone spends it (the runner polls once
+    // GATE_BUDGET=5: the Build command alone spends it (the runner polls once
     // a second and kills at the bound), so the Tests command starts with
     // nothing left. Without a whole-run budget this pair would run to
     // completion and the caller's own timeout would be the thing that stopped
     // it - killing the script before it writes any block at all.
-    const result = runGate(dir, "checkpoint", { build: ["sleep 30"], tests: [GREEN] }, undefined, "1");
+    // The budget is 5 rather than 1 because the script bounds the run with
+    // bash's SECONDS, which ticks on wall-clock boundaries rather than a full
+    // second after the shell started: a 1s budget could already be spent
+    // during the script's own startup, skipping the FIRST command too and
+    // leaving a block with no LOG line (a flake seen on CI and locally).
+    const result = runGate(dir, "checkpoint", { build: ["sleep 30"], tests: [GREEN] }, undefined, "5");
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const text = fs.readFileSync(path.join(dir, "gates.md"), "utf-8");
     const blocks = detailBlocks(text);
@@ -326,7 +331,7 @@ test("the budget bounds the whole run, not one command: a command it leaves no r
       `COMMAND: ${GREEN}`,
       "RESULT: DEVIATION",
       "STATUS: error",
-      "REASON: gate budget of 1s spent before this command ran",
+      "REASON: gate budget of 5s spent before this command ran",
     ], "no TIMEOUT line: the command the budget skipped was never given one");
     // STATUS: error is what the contract's case 1 settles as BLOCKED, so the
     // round says what it did not get to rather than passing on a short set.

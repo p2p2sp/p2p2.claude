@@ -59,21 +59,7 @@ kryterium to exit 4 czy ostrzeżenie dla plannera.
 
 ### 5. `warn_dirty` nie jest przeskalowane do pracy równoległej
 
-`viber/scripts/commit-task.sh:67-73` woła `git status --short` bez zakresu i wypisuje wszystko jako
-"left outside the commit". Przy najszerszym dispatchu (`implementor/SKILL.md:78`) w drzewie zawsze
-leżą pliki innych trwających zadań, więc ostrzeżenie odpala przy każdym commicie.
-`implementor/SKILL.md:88` każe je nieść do finalnego podsumowania, które przez to będzie złożone
-głównie z fałszywych alarmów. Ostrzeżenie przestaje cokolwiek znaczyć dokładnie wtedy, gdy jest
-potrzebne.
-
-Przy okazji uzasadnienie serializacji w `implementor/SKILL.md:63` ("review and commit both read the
-working tree") jest sprzeczne z `implementor/SKILL.md:81` ("Close-outs running alongside coders still
-working on other files"). Jeśli powodem jest współdzielone drzewo, to kodery piszące w tle łamią go
-tak samo. Sama zasada jest w porządku, ale uzasadnienie trzeba przepisać na to, co naprawdę chroni:
-`git diff HEAD` i staging czytają cały index, a nie tylko mapę plików zadania.
-
-Naprawa: zawęzić `warn_dirty` do sąsiedztwa mapy plików zadania, albo przestać nieść je do
-podsumowania.
+NAPRAWIONE (wchłonęło też niezawężone `git status --short` w `task-reviewer`)
 
 ### 6. `tdd` każe pytać użytkownika wewnątrz agenta, który użytkownika nie ma
 
