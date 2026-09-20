@@ -49,7 +49,7 @@ Execute the cycle in this exact order for each delivered behavior. **VERIFY RED*
 ### VERIFY GREEN - confirm the cycle's own test file passes, output pristine (mandatory)
 
 - The target test passes, and so does every test already sitting in that same test file - that file, not the whole suite, is what a cycle proves green.
-- The whole suite is promised once, at the end of the task: every test everywhere passes there, and a regression the cycles hid surfaces then and is fixed before the task is done.
+- The task's own `Verification` is the end-of-task proof, and the widest run a cycle ever triggers. The whole suite belongs to whoever closes the run: other tasks are live in the same tree, so a suite run from here reports failures that are not yours to fix.
 - Output is pristine: no new warnings, no new lint errors, no stray prints, no flaky failures hidden behind retries.
 - Not pristine? Something broke - fix it before the next cycle. A "small" regression is still a regression.
 
@@ -66,7 +66,7 @@ After each RED → VERIFY-RED → GREEN → VERIFY-GREEN → (optional REFACTOR)
 - [ ] The test uses the public interface only - no internal-collaborator mocks, no private-method calls, no asserting call counts or order.
 - [ ] I watched the test fail in VERIFY RED and confirmed the failure reason was the missing behavior (not a typo, import miss, or harness error).
 - [ ] I wrote the simplest possible code to turn the test green - no speculative features, no anticipating the next test.
-- [ ] VERIFY GREEN passed: the target test and the rest of its own test file green, output pristine - the whole suite is the end-of-task run's business.
+- [ ] VERIFY GREEN passed: the target test and the rest of its own test file green, output pristine - the task's `Verification` closes the task, the whole suite is the run's business.
 - [ ] Any refactor preserved green at every step and removed real duplication.
 
 **Can't check every box? TDD skipped. Delete the new code, start over.**
