@@ -77,8 +77,7 @@ NAPRAWIONE
 
 ### 10. `test-runner` jako jedyny z szóstki nie ma `effort:`
 
-- Uzasadnienie (haiku nie ma kontroli effortu) jest sensowne, ale `task-coder` ma `effort: high`
-  i też jeździ na haiku. Dwie konwencje na ten sam przypadek.
+NAPRAWIONE
 
 ### 11. Przy `adr: true` i wejściu z pominięciem `idea` przełącznik jest martwy
 
