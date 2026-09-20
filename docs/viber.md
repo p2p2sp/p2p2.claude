@@ -88,7 +88,9 @@ kontynuuje zamiast restartować wyłącznie wtedy, gdy `reason` jest obecny. Sze
 ten problem, bo w drzewie leży wtedy więcej niedokończonej roboty. `TaskUpdate -> in progress`
 (`:72`) już to zapisuje na zewnątrz, tylko krok 2 nigdy tego nie odczytuje.
 
-### 6. Sufit 20 współbieżnych subagentów nie jest uwzględniony (4/10)
+Root `CLAUDE.md` ma dla superdev jawną deklarację hosta na ten wypadek ("Text is the product in THIS
+repo ... This line is the host declaration `superplan` reads for that override"). Viber nie czyta
+żadnej deklaracji hosta.
 
 Wedle dokumentacji harnessu limit to 20 subagentów na sesję, a 21. dispatch kończy się błędem,
 nie kolejkowaniem. `implementor/SKILL.md:77` mówi "the widest dispatch the rules allow", a w locie

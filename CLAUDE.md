@@ -118,9 +118,14 @@ mechanics against `.github/scripts/release.sh` before restating them.
   an older plan is never read. Source: `superdev/references/review-contract.md`
   `## Dispatch strength`.
 - **Text is the product in THIS repo.** Skill, agent and reference markdown plus the JSON
-  manifests are production code here, so a superdev plan built on this repo never gives a
-  `Kind: text` task the default `Review: none`: the per-task reviewer runs on it (marker absent or
-  `Review: <model>`). This line is the host declaration `superplan` reads for that override.
+  manifests are production code here, so no task that edits them ever skips its per-task review,
+  however mechanical it looks. This line is the host declaration both planning tracks read for
+  that override:
+  - superdev: a `superplan` built on this repo never gives a `Kind: text` task the default
+    `Review: none`; the per-task reviewer runs on it (marker absent or `Review: <model>`).
+  - viber: `implementor` never profiles a task touching this repo's markdown or `plugin.json` as
+    mechanical/no-review; such a task gets at least the `sonnet` plus review profile, and
+    `task-reviewer` gates it before `commit-task.sh`.
 - **`allowed-tools` does NOT restrict the tool set** - it is a one-turn pre-approval only; every
   other tool stays callable and merely prompts the user if unlisted. A strictly read-only worker
   needs `disallowed-tools:` (bare names, never `Tool(pattern)`) PLUS a body line naming its only
