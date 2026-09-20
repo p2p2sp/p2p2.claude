@@ -39,7 +39,10 @@ file.
 - **The plan file is the state.** `<!-- done: ... -->` plus the `## Tasks (x/N)` header carry
   progress, so a build resumes after a context reset with no sidecar. `commit-task.sh` is what
   advances both, and it stages ONLY the task's `Files:` list - anything written outside the file
-  map stays uncommitted and visible.
+  map stays uncommitted and visible. The marker and the commit are atomic: the marker is written
+  first so it rides in the commit, and rolled back from a backup if staging or committing fails
+  (exit 5). A task marked done that was never committed would be skipped forever on resume, so
+  this is the one place in the plugin where a script undoes its own write.
 - **One plan, one dated directory.** `plan-path.sh` owns the layout
   `docs/plans/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md` and is the only place a plan path is formed:
   the stamp is taken when the plan lands, so a re-run of the same slug never overwrites an earlier

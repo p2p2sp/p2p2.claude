@@ -20,20 +20,7 @@ dziury, z których dwie potwierdziłem odtwarzalnie.
 
 ### 1. `commit-task.sh:114-128` zapisuje `done` PRZED commitem
 
-Skrypt aktualizuje `<!-- done: ... -->` i nagłówek `## Tasks (x/N)`, dopiero potem robi
-`git commit`. Gdy commit padnie (pre-commit hook, podpis GPG, plan spoza repo), zadanie jest
-zapisane jako zrobione, a kod niezacommitowany.
-
-Potwierdzone: `exit 128`, plan pokazuje `## Tasks (1/1)` i `<!-- done: 01 -->`, `git log` zawiera
-tylko `init`, zmiany zostają w indeksie.
-
-Dlaczego to jest bloker, a nie usterka: orkiestrator z definicji ufa skryptowi i nigdy go nie
-weryfikuje ("Two deterministic scripts, both self-verifying ... TRUSTED by the caller, never
-re-verified, never retried"). Resume po resecie kontekstu pominie to zadanie na zawsze, bo plan
-twierdzi, że jest zrobione.
-
-Naprawa: najpierw commit, marker dopiero po udanym commicie. Alternatywnie zachowaj kopię planu
-i przywróć ją, gdy `git commit` zwróci błąd.
+ZAIMPLEMENTOWANE
 
 ### 2. Przekazanie planu z plan mode do implementora jest ślepym zaułkiem po resecie kontekstu
 

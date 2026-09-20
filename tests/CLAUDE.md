@@ -11,7 +11,7 @@ directory - no `plugin.json` and no marketplace entry references it; it ships wi
   argument such as `tests/superui/` does NOT work: `node --test` resolves it as a module path,
   not a glob.
 - Subdirectories mirror the plugins: `tests/superdev/`, `tests/superfix/`, `tests/supergh/`,
-  `tests/superui/`, `tests/github/`, plus `tests/harness/` and root-level suites
+  `tests/superui/`, `tests/viber/`, `tests/github/`, plus `tests/harness/` and root-level suites
   (`harness.test.ts`, `portability.test.ts`, `orphan-tags.test.ts`). Verify the current tree
   from the directory if this drifts.
 - `tests/harness/` - the shared mechanism module, exposing only cross-cutting capability, never

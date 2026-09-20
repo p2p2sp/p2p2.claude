@@ -13,9 +13,13 @@
 # A task-id of "-" commits a fix that is not in the task list (a post-test repair):
 # it stages the whole tree, commits, and leaves the plan's progress counter alone.
 #
-# After committing it appends the task id to the <!-- done: ... --> marker and
-# recomputes the "## Tasks (x/N)" header, so the plan carries its own progress and
-# a build resumes after a context reset without a separate state file.
+# It appends the task id to the <!-- done: ... --> marker and recomputes the
+# "## Tasks (x/N)" header, so the plan carries its own progress and a build resumes
+# after a context reset without a separate state file. The marker has to ride IN
+# the commit, so it is written first and rolled back from a backup if staging or
+# committing fails: a plan claiming a task is done that was never committed would
+# be skipped forever on resume. Either the commit exists and the marker is set, or
+# neither is.
 #
 # stdout: "committed: <sha>" and "progress: x/N"
 # stderr: a warning listing anything left outside the commit
@@ -24,6 +28,8 @@
 #   2 - bad arguments / missing plan
 #   3 - no task with that id in the plan
 #   4 - the task produced no change to the working tree
+#   5 - staging or committing failed; the plan is restored, nothing is recorded
+#       (the task's files stay staged, so the call can be retried as is)
 #
 set -euo pipefail
 
@@ -87,6 +93,17 @@ if git diff --cached --quiet; then
 fi
 
 # --- plan progress: done marker plus the header counter ---
+# Written before the commit so it lands in it, and undone by the trap on any
+# failure from here on, so "done" never outlives a commit that did not happen.
+backup="$plan.bak.$$"
+restore_plan() {
+  [[ -n "$backup" && -f "$backup" ]] || return 0
+  mv -f "$backup" "$plan"
+  echo "error: not committed - plan rolled back, task $task_id is NOT marked done" >&2
+}
+trap restore_plan EXIT
+cp -p "$plan" "$backup"
+
 tmp="$plan.tmp.$$"
 awk -v want="$task_id" '
 function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
@@ -123,9 +140,12 @@ mv -f "$tmp" "$plan"
 progress="$(cat "$tmp.progress")"
 rm -f "$tmp.progress"
 
-git add -- "$plan"
+git add -- "$plan" || exit 5
 
-git commit -m "$subject" -m "Refs: $plan task $task_id" >&2
+git commit -m "$subject" -m "Refs: $plan task $task_id" >&2 || exit 5
+
+rm -f "$backup"
+backup=""
 
 echo "committed: $(git rev-parse --short HEAD)"
 echo "progress: $progress"
