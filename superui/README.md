@@ -1,10 +1,7 @@
 # superui
 
-The design / frontend ecosystem for Claude Code. One thing it does: hold every interface you build to
-professional UI/UX standards.
-
-Ships no hooks, no manifest and no agents - one skill, `pro-designer`, reached automatically whenever you
-touch an interface.
+Holds every interface you build to professional design standards, so what comes out does not look
+generated.
 
 ## Install
 
@@ -13,26 +10,21 @@ claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
 claude plugin install superui@p2p2 --scope user
 ```
 
-**Node.js >= 22.6** (`node` on PATH) is optional - it powers the bundled WCAG contrast checker, a TypeScript
-script run directly by Node's native type stripping (on 22.6-23.5 the skill adds `--experimental-strip-types`
-automatically; from 23.6 plain `node` suffices). No `npm install`, no packages, no build step. Without Node
-the contrast check is skipped with a note and the rest of the review continues.
+Node.js 22.6 or newer is optional: it powers the contrast checker. Without it that one check is
+skipped with a note and the rest of the review continues. Nothing to install with `npm`.
 
-## Quick start
+## How to use it
 
-Just build. `pro-designer` fires by itself whenever you create, style or review any interface - a page,
-screen, dashboard, form, onboarding flow, landing page, navigation or a single component - even when you
-only say "add a settings page" and never mention design. It also fires when you ask for a critique, add
-animations, or say a UI looks generic or AI-generated.
+There is nothing to invoke. It fires by itself whenever you create, style or review an interface -
+a page, a screen, a dashboard, a form, an onboarding flow, a landing page, a single component -
+even when all you said was "add a settings page". It also fires when you ask for a critique, add
+animation, or say a UI looks generic.
 
-It is advisory: visual hierarchy, color discipline, type ramps, 4/8pt spacing, accessibility, component
-states, form-validation UX, evidence-based conversion psychology with hard anti-dark-pattern rules,
-purposeful motion, and aesthetic direction that refuses the recognizable generated look.
+What it holds you to:
 
-## Skills
+- visual hierarchy, color discipline, type ramps, 4/8pt spacing
+- accessibility, component states, form-validation UX
+- conversion psychology with hard anti-dark-pattern rules
+- motion with a purpose, and an aesthetic direction that refuses the templated look
 
-| Skill | Role |
-| --- | --- |
-| `pro-designer` | Professional UI/UX standards - fires when creating, styling or reviewing any interface. Advisory only. |
-
-See `CLAUDE.md` in this directory for the architecture.
+It only advises: it proposes and critiques, and leaves every decision to you.

@@ -1,20 +1,10 @@
 # P2P2 Claude Code Plugins
 
-A Claude Code **plugin marketplace**: seven independent plugins in one repository, each in its own
-subdirectory, co-listed by the catalog at `.claude-plugin/marketplace.json`. Install any subset - none
-declares another as a dependency, and installing one gives you that whole ecosystem.
-
-The plugins ship no application code. They are Markdown skills, JSON manifests, a few agents, and
-deterministic bash / TypeScript / Python helper scripts - there is no build step. All seven are **stack-agnostic on
-purpose**: they read project-specific knowledge (test framework, build tool, naming, how to launch the app)
-from the consuming repository's own `CLAUDE.md` and `.claude/rules/`, never from the plugin sources.
-
-All seven share one version namespace, driven by the git tag.
+Seven Claude Code plugins in one marketplace. Each installs on its own and none depends on
+another. There is nothing to build and nothing to configure per language: each plugin picks up
+your project's conventions from your own `CLAUDE.md` and `.claude/rules/`.
 
 ## Install
-
-Run these from a terminal to install at **user scope** - available across all your projects, not just
-whichever repo you happen to be in:
 
 ```
 claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
@@ -27,47 +17,36 @@ claude plugin install supercc@p2p2 --scope user
 claude plugin install viber@p2p2 --scope user
 ```
 
-`--scope user` is the default for both commands (it writes to `~/.claude/settings.json`); it is spelled out
-above for clarity. Inside an active Claude Code session you can instead run
-`/plugin marketplace add https://github.com/p2p2sp/p2p2.claude` followed by `/plugin install superdev@p2p2`
-and pick **User scope** when prompted - `project` or `local` scope installs the plugin for the current repo
-only.
+Install only the ones you want. `--scope user` makes a plugin available in all your projects; drop
+it to install for the current repository only. From inside a running session,
+`/plugin marketplace add https://github.com/p2p2sp/p2p2.claude` followed by
+`/plugin install superdev@p2p2` does the same thing.
 
 ## The plugins
 
-| Plugin | What it is for | Details |
-| --- | --- | --- |
-| **superdev** | Agentic development end to end: a design interview before any code, project memory (`CLAUDE.md` cascade, `.claude/rules/`, a build changelog), specs and plans that must pass a reviewer, then a task-by-task build with a commit per task. | [superdev/README.md](superdev/README.md) |
-| **superui** | Design and frontend: professional UI/UX standards on every interface you build - visual hierarchy, color, type, spacing, accessibility, motion, and an aesthetic direction that refuses the generated look. | [superui/README.md](superui/README.md) |
-| **supergh** | GitHub and git: Conventional-Commits commits, template-driven issues and draft PRs, and a `gh` CLI/REST/GraphQL reference so the model stops guessing which API layer to use. | [supergh/README.md](supergh/README.md) |
-| **superfix** | Codebase investigation: sweeps the whole repo with cheap agents, ranks findings by Impact x Opportunity, and sends frontier investigators only into the hotspots. | [superfix/README.md](superfix/README.md) |
-| **superbiz** | Idea validation: web research, a nine-dimension scorecard and a seven-member council debating over two rounds decide whether an idea is worth turning into a side project, ending in one self-contained HTML report. | [superbiz/README.md](superbiz/README.md) |
-| **supercc** | Claude Code itself: designing skills and agents - creating them, splitting an overloaded one, shrinking a bloated one, fixing one that never triggers, auditing a whole set. | [supercc/README.md](supercc/README.md) |
-| **viber** | The short track from idea to committed code: an interview that refuses to leave an unknown open, a reviewed plan split so each agent sees only its own task, an orchestrated build with a commit per task, and a close that folds what the build taught back into the project's memory and rules. | [viber/README.md](viber/README.md) |
-
-Each plugin's README carries its own description, a short usage guide, and the list of its skills.
+| Plugin | Use it for |
+| --- | --- |
+| [superdev](superdev/README.md) | Building a feature end to end: an interview, a reviewed plan, then a task-by-task build with one commit per task. The thorough track. |
+| [viber](viber/README.md) | The same trip, shorter: understand it, plan it, build it, remember it. |
+| [superui](superui/README.md) | Any interface you build, held to professional design standards. Fires by itself. |
+| [supergh](supergh/README.md) | Commits, issues and pull requests. |
+| [superfix](superfix/README.md) | Finding what is actually worth fixing in a codebase. |
+| [superbiz](superbiz/README.md) | Deciding whether a side-project idea is worth building. |
+| [supercc](supercc/README.md) | Writing and fixing your own Claude Code skills and agents. |
 
 ## Requirements
 
-- **superfix** needs **Node.js >= 22.6** (its scripts are TypeScript run directly by Node's native type
-  stripping - no packages, no build step); **superui** uses the same runtime for its optional contrast
-  check and degrades with a note when it is absent.
-- **supergh** needs the `gh` CLI installed and authenticated.
-- **superbiz** needs web access, plus **Python 3** (any maintained version, standard library only) to render
-  `idea-validator`'s report.
-- **superdev**, **supercc** and **viber** have no runtime dependencies.
+| Plugin | Needs |
+| --- | --- |
+| supergh | the `gh` CLI, logged in (`gh auth login`) |
+| superfix | Node.js 22.6 or newer |
+| superbiz | web access and Python 3 |
+| superui | Node.js 22.6 or newer, optional: only for the contrast check |
+| superdev, supercc, viber | nothing |
 
-## How they fit together
+## superdev or viber, not both
 
-Within a plugin, skills compose through their `description:` triggers, and the model routes to them by
-itself. Two plugins ship hooks, each with the same pair: `superdev` (a `SessionStart` hook injecting its
-mandatory-rules manifest, plus a `PreToolUse` hook gating `ExitPlanMode` on a reviewed plan) and `viber` (a
-`SessionStart` hook injecting its own manifest, plus a `PreToolUse` hook gating `ExitPlanMode` on its own
-plan review). The other five ship no hooks and no manifest.
-
-Because both of those gates match `ExitPlanMode` and each recognizes only its own plan format, **`superdev`
-and `viber` are not meant to run side by side**: superdev's gate denies a viber plan, which declares neither
-`# SimplePlan` nor `# SuperPlan`. Install one of the two tracks at a time.
-
-Cross-plugin chains are soft and optional: a skill that names another plugin's skill engages only when that
-plugin is also installed, and simply does not fire otherwise.
+Both answer the same question - how to get from an idea to committed code without the agent
+guessing - superdev thoroughly, viber quickly. Both also stop the agent from leaving plan mode
+until the plan has passed a review, and each recognizes only its own plan format, so with both
+installed one blocks the other. Pick one track at a time.

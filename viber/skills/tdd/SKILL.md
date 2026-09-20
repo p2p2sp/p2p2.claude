@@ -1,7 +1,7 @@
 ---
 name: tdd
 description: >-
-  Test-Driven Development discipline expert. Use for a plan task marked `TDD: required`, or when the user explicitly asks for test-first work. Enforces Red-Green-Refactor (iron law: no production code without a failing test first - violations are deleted and restarted), mandatory VERIFY-RED and VERIFY-GREEN checkpoints, no horizontal slicing, and a per-cycle stop-condition checklist. Triggers include "TDD", "test first", "red-green-refactor", "RGR". Do NOT use for a task marked `TDD: none`, for adding tests to already-written code, or as a default gate on every code change.
+  Red-Green-Refactor discipline for a plan task marked `TDD: required`: iron law (no production code without a failing test first - violations are deleted and restarted), mandatory VERIFY-RED and VERIFY-GREEN checkpoints, no horizontal slicing, per-cycle stop-condition checklist. Invoked by `viber:task-coder` before the first line of production code, never directly.
 user-invocable: false
 ---
 
@@ -22,6 +22,8 @@ Write the test first. Watch it fail. Write the minimal code that passes. Refacto
 Production code that exists before a failing test for it MUST be deleted in its entirety - no keeping it as reference, no adapting it line-by-line, no "just looking at it" while writing the test, no exceptions. The only way back to compliance is **delete-then-restart**: drop the unguarded code, write the failing test, watch it fail for the right reason, then rewrite the production code minimally to turn the test green.
 
 Applies to every production language and every layer (backend, frontend, infrastructure, scripts) - whether adding, changing, fixing, or restoring behavior.
+
+`TDD: required` on the task IS the authorization, decided before this skill loads: nothing reopens it here. "It's just a quick fix", "the change is trivial", "no one will notice" are refused, not weighed.
 
 ## Red-Green-Refactor cycle (mandatory)
 
@@ -73,7 +75,7 @@ After each RED → VERIFY-RED → GREEN → VERIFY-GREEN → (optional REFACTOR)
 
 ## Anti-patterns (forbidden)
 
-Wrong *moves and structures* - distinct from the willpower excuses below.
+Wrong moves and structures, distinct from the excuses the Iron Law refuses.
 
 - **Horizontal slicing** - writing ALL tests first, then ALL implementation. This produces tests for *imagined* behavior, decoupled from the code that will actually exist. Always work vertical: one test → one implementation → repeat, each test responding to the previous cycle's findings.
 
@@ -88,21 +90,9 @@ Wrong *moves and structures* - distinct from the willpower excuses below.
 - **Mocking internal collaborators** - couples tests to implementation; they break on refactor without behavior change. Mock only at system boundaries.
 - **Testing implementation details** - private methods, call counts, call order, internal data shapes. Test observable behavior through the public interface. The diagnostic: a test that breaks on an internal refactor with no behavior change was testing implementation, not behavior.
 
-## Bypass authorization
-
-The Iron Law applies always - **UNLESS** the user explicitly authorizes a specific bypass for a specific change, with reasoning. Implicit signals ("it's just a quick fix", "we're behind schedule", "no one will notice") do not count and MUST be refused.
-
-Acceptable bypass authorization:
-> "Skip TDD for this one-line constant rename - no behavior change, just propagating the new name."
-
-Unacceptable:
-> "Just write it, we don't need tests for this."
-
-If the request is ambiguous, stop and ask. Never assume authorization.
-
 ## Workflow
 
-1. **Plan.** Decide the public interface and which behaviors matter *before* coding. Design for testability and for deep modules - small interface, deep implementation. List the behaviors to test (not implementation steps); you can't test everything, so prioritize critical paths and complex logic, not every edge case. Working interactively, confirm the interface and priorities with the user and get approval.
+1. **Plan.** Decide the public interface and which behaviors matter *before* coding. Design for testability and for deep modules - small interface, deep implementation. List the behaviors to test (not implementation steps); you can't test everything, so prioritize critical paths and complex logic, not every edge case. The spec and the task file are the approval: where they leave a choice open, take it; where they leave the behavior under test unnameable, stop and report the task failed with that reason instead of guessing an interface.
 2. **Tracer bullet.** Run the full cycle on ONE test for ONE behavior first - it proves the path works end-to-end before scaling up.
 3. **Loop.** Repeat the full cycle for each remaining behavior, running the stop-condition checklist after each.
 4. **Refactor.** Once all tests are green, look for refactor candidates and consider what the new code reveals about existing code.

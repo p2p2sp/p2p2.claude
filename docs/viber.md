@@ -63,24 +63,11 @@ NAPRAWIONE (wchłonęło też niezawężone `git status --short` w `task-reviewe
 
 ### 6. `tdd` każe pytać użytkownika wewnątrz agenta, który użytkownika nie ma
 
-`viber/skills/tdd/SKILL.md:101` ("If the request is ambiguous, stop and ask") i
-`viber/skills/tdd/SKILL.md:105` ("Working interactively, confirm the interface and priorities with
-the user and get approval"). Jedynym wywołującym jest `task-coder` (`task-coder.md:25`), który
-działa headless. Skill jest napisany dla sesji interaktywnej, a używany wyłącznie w forku.
-
-Naprawa: w torze codera bypass ma być niedostępny, a niejednoznaczność ma kończyć się
-`VERDICT: FAIL` z linią `REASON:`.
+NAPRAWIONE (cała sekcja `Bypass authorization` była martwa: bypassu nie miał kto udzielić)
 
 ### 7. Opisy CSO `planner` i `implementor` nie pokrywają tego, co obiecuje README
 
-`viber/README.md:42` twierdzi, że oba "fire on the intent ('break this down', 'build the plan', 'go
-ahead')". `planner/SKILL.md:3` to jedno zdanie o dziewięciu słowach, `implementor/SKILL.md:3` dwa
-zdania. Żadnej z tych fraz tam nie ma. Manifest celowo nie routuje, więc `description:` jest jedyną
-powierzchnią routingu, a dwa skille w samym środku łańcucha mają ją najcieńszą z całego pluginu.
-Dla porównania `fixer` i `tdd` niosą pełne listy triggerów.
-
-Naprawa: dopisać do obu opisów frazy wyzwalające, tak jak w `fixer`, albo poprawić README, żeby nie
-obiecywało routingu, którego nie ma.
+NAPRAWIONE
 
 ### 8. Pierwsze ogniwo łańcucha jest nieutwardzone
 
