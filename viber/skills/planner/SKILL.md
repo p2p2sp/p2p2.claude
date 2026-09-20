@@ -39,7 +39,7 @@ Task rules:
 - `Verification` is a runnable command plus the result that counts as proof. A task with no runtime behaviour verifies its artefact instead: the file exists and its required content greps, never "read it and judge".
 - `TDD: required` by default. `TDD: none` only where the task changes no runtime behaviour: config, docs, mechanical rename, scaffolding.
 - A reproduction test already RED in the tree goes into the fixing task's `Files:` - nothing outside a file map gets committed - and that task carries `TDD: none`: its RED cycle is done.
-- Every acceptance criterion is covered by at least one task's `Covers`.
+- Every acceptance criterion is covered by at least one task's `Covers` - an uncovered one is rejected at validation. A condition no single task delivers, like the suite staying green, is not an acceptance criterion: that is the build's own close.
 - The whole heading line, `T<n> - <title>`, is committed verbatim as the commit subject, so the title is one short imperative summary of what the task delivers.
 
 ADR tasks, only with `adr: true` above; otherwise skip the rest of this section entirely.
@@ -51,7 +51,7 @@ ADR tasks, only with `adr: true` above; otherwise skip the rest of this section 
 - `Verification: test -f <path> && grep -q '^Status: accepted' <path> -> exit 0`, that path written out in full both times; `DoD`: the record exists there and carries every part `Delivers` lists.
 - Add one acceptance criterion for the record and point every ADR task's `Covers` at it.
 
-Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan-path>` as one literal Bash line, no interpreter word in front - any other form is an unapproved call that stalls on a permission prompt. It must exit 0 - it validates ids, required fields, dependency direction, that every `Covers` points at a real criterion, the `Files` format, and that no two tasks without a dependency path between them list the same file. Fix whatever it reports and re-run.
+Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan-path>` as one literal Bash line, no interpreter word in front - any other form is an unapproved call that stalls on a permission prompt. It must exit 0 - it validates ids, required fields, dependency direction, `Covers` in both directions (every reference points at a real criterion, every criterion is reached by some task), the `Files` format, and that no two tasks without a dependency path between them list the same file. Fix whatever it reports and re-run.
 
 Show the user the full path of the written plan.
 

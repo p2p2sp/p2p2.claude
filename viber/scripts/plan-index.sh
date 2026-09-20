@@ -40,9 +40,9 @@
 #   3 - no <!-- TASK --> blocks
 #   4 - broken task contract (duplicate id, an id that is not [A-Za-z0-9_-]+,
 #       missing field, illegal dependency, a "Covers:" criterion absent from the
-#       acceptance criteria, an unparseable "Files:" entry, or the same file listed
-#       by two tasks with no dependency path between them - they would run at the
-#       same time)
+#       acceptance criteria, an acceptance criterion no task's "Covers:" names, an
+#       unparseable "Files:" entry, or the same file listed by two tasks with no
+#       dependency path between them - they would run at the same time)
 #
 # Contract:
 #   argv   : the plan file, optionally --split.
@@ -167,13 +167,15 @@ END {
       fpath[i, ++nf[i]] = p
     }
 
-    # Covers must point at an existing acceptance criterion
+    # Covers must point at an existing acceptance criterion; the reverse direction
+    # is checked once, after this loop
     cv = covers[i]
     gsub(/[^0-9]+/, " ", cv)
     m = split(trim(cv), cnums, /[[:space:]]+/)
     if (m == 0) fail("task " id[i] ": Covers references no acceptance criterion")
     for (k = 1; k <= m; k++)
       if (!(cnums[k] + 0 in crit)) fail("task " id[i] ": Covers #" cnums[k] ", absent from acceptance criteria")
+      else covered[cnums[k] + 0] = 1
 
     # a dependency may only point at an earlier existing task, which makes the graph acyclic by construction
     d = deps[i]
@@ -209,6 +211,12 @@ END {
             fail("tasks " id[i] " and " id[j] " both list " fpath[i, k] ", with no dependency path between them")
       }
   }
+
+  # a criterion no task covers would run through the whole build unnoticed -
+  # nothing downstream gates the specification as a whole. Walked by number, not
+  # with "for (c in crit)", which awk iterates in no defined order.
+  for (c = 1; c <= ncrit; c++)
+    if ((c in crit) && !(c in covered)) fail("acceptance criterion #" c " is covered by no task")
 
   if (err) exit 4
 

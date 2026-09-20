@@ -230,7 +230,9 @@ test("a broken task contract exits 4 and names the task", () => {
 
   for (const [name, tasks, expected] of cases) {
     withTempDir("p2p2-viber-", (dir) => {
-      seed(dir, planBody(tasks));
+      // one criterion, which every default Covers names: each case has to fail
+      // for the defect it carries, not for an uncovered criterion
+      seed(dir, planBody(tasks, 1));
 
       const result = run(dir, {}, [PLAN_REL]);
       assert.equal(result.status, 4, `${name} -> stdout: ${result.stdout} stderr: ${result.stderr}`);
@@ -238,6 +240,18 @@ test("a broken task contract exits 4 and names the task", () => {
       assert.match(result.stderr, expected, name);
     });
   }
+});
+
+test("an acceptance criterion no task's Covers names exits 4 (nothing downstream gates the spec as a whole)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    // both criteria present, every task pointing at the first one
+    seed(dir, planBody([{ id: "T1", covers: "#1" }]));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /criterion #2 is covered by no task/);
+  });
 });
 
 test("a rejected plan is never decomposed - --split writes nothing when validation fails", () => {
@@ -301,7 +315,7 @@ test("tasks/ is rebuilt from scratch, so a task dropped from the plan leaves no 
     assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
     assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
 
-    seed(dir, planBody([TWO_TASKS[0]!]));
+    seed(dir, planBody([TWO_TASKS[0]!], 1));
     assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
     assert.deepEqual(taskFiles(dir), ["T1.md"]);
   });

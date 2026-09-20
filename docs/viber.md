@@ -43,17 +43,10 @@ istnieje, już umie zwrócić `SKIP`, koszt zerowy.
 
 ### 4. Nikt nie sprawdza, czy każde kryterium akceptacji zostało pokryte
 
-`viber/scripts/plan-index.sh:170-176` weryfikuje jeden kierunek: że każde `Covers:` wskazuje
-istniejące kryterium. Odwrotności (każde kryterium pokryte przez jakieś zadanie) nie sprawdza nikt
-deterministycznie: obiecują ją `planner/SKILL.md:42` i `agents/planner-review.md:22`, czyli LLM.
-Nie łapie tego też nic później, bo nie ma końcowej bramki na spec jako całość. `task-reviewer`
-patrzy tylko na kryteria spod `Covers` swojego zadania, `test-runner` uruchamia suite. Kryterium,
-którego nikt nie pokrył, przechodzi przez cały pipeline niezauważone i build kończy się sukcesem.
-
-To sprzeczne z zasadą repo, że krok deterministyczny nad znanym formatem zwija się do skryptu.
-
-Naprawa: pętla po `crit[]` w bloku END `plan-index.sh`, kilkanaście linii, plus decyzja czy sierote
-kryterium to exit 4 czy ostrzeżenie dla plannera.
+NAPRAWIONE (odwrotny kierunek jest w `plan-index.sh`, exit 4 jak każda inna wada kontraktu;
+`planner-review` przestał sprawdzać numery, został mu sam fit zadania do kryterium, a `planner`
+dostał regułę kształtu kryterium: warunek, którego nie dostarcza żadne pojedyncze zadanie, nie jest
+kryterium akceptacji)
 
 ## Średnie
 

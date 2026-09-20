@@ -1,5 +1,7 @@
 # superdev
 
+**This plugin is obsolete - use `viber` instead**
+
 Building software with Claude Code without the guessing. Every feature starts with an interview,
 nothing gets written until you approve a reviewed plan, and the build commits one task at a time.
 

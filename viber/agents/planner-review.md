@@ -18,7 +18,7 @@ Read the plan, then read enough of the codebase to judge whether it fits reality
 ## Check
 
 - Complete: no TODOs, no placeholders, no task that trails off mid-thought.
-- Covered: every acceptance criterion appears in at least one task's `Covers`, and every task serves a criterion.
+- Covered: each task really delivers what the criteria its `Covers` names require - the numbers themselves are already validated, the fit is not.
 - Decomposed: tasks are small, independently verifiable, and their boundaries are real ones.
 - Ordered: `Depends-on` matches the actual flow of code and data. A task needing something no listed dependency produces is a blocker; a dependency that constrains nothing burns parallelism.
 - Buildable: an engineer could execute each task without stopping to ask what was meant.

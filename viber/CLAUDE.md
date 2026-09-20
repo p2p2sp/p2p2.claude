@@ -106,7 +106,10 @@ plugin-named dot-dir, no state file.
   one line, no globs, no directories, no annotations. `commit-task.sh` stages that list literally,
   and `plan-index.sh` compares it across tasks: a plan where two tasks with no dependency path
   between them list the same file is rejected at validation time. No skill and no agent re-checks
-  that by hand - the graph plus the file lists make it fully deterministic.
+  that by hand - the graph plus the file lists make it fully deterministic. The same pass checks
+  `Covers:` in BOTH directions - every reference names a real acceptance criterion, and every
+  criterion is named by some task - because nothing later gates the specification as a whole: a
+  criterion no task implements would otherwise ride through the build into a green close.
 - **Four deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path, and
   on `--land` put the approved plan there),
   `plan-index.sh` (validate, index, optionally decompose), `commit-task.sh` (stage, commit, record)
