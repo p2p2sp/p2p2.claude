@@ -71,9 +71,7 @@ NAPRAWIONE
 
 ### 9. `planner-review` deklaruje read-only, ale ma Bash
 
-- Ciało mówi "Read-only: you change no files", frontmatter daje `tools: Read, Grep, Glob, Bash`.
-- Reguła repo mówi, że agent read-only wymienia same czytniki (porównaj
-  `superfix/agents/scout.md`). `tools:` nie przyjmuje wzorców, więc to pełny Bash.
+NAPRAWIONE
 
 ### 10. `test-runner` jako jedyny z szóstki nie ma `effort:`
 
