@@ -63,12 +63,12 @@ never this node - this node says who owns what and how they chain.
   Spec, Phases and `Stop here` fill exactly four slots, and Phases is offered only when the intent
   path has no `phases/` segment.
 - A worker must NEVER appear in both `plugin.json` `skills[]` and `agents[]`.
-- A user-only command (`disable-model-invocation: true`) does not participate in routing and
-  stays out of the injected manifest entirely - that gap is deliberate, do not "fix" it.
-- The injected manifest (`hooks/content/manifest.md`) carries MANDATORY RULES only - the
-  instruction priority, the always-override rules, the `.temp/` rule. It names no skill, no group
-  and no chain, so routing lives entirely in each skill's own CSO `description:`. A per-skill
-  change never touches it; only a change to one of those standing rules does.
+- A user-only command (`disable-model-invocation: true`) does not participate in routing - that
+  gap is deliberate, do not "fix" it.
+- superdev injects NOTHING at session start: there is no manifest and no `hooks/content/` dir
+  (the `SessionStart` hook only prints the obsolescence banner). Routing lives entirely in each
+  skill's own CSO `description:`, and standing rules belong to `viber`'s manifest, not here - do
+  not reintroduce one.
 
 ## Anti-patterns
 

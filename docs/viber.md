@@ -98,9 +98,8 @@ NAPRAWIONE (detektor pokrywał też cudze `/xyz:planner`, więc usunięcie zamkn
 
 ### 12. `Plan: <path-to-plan>` w templatce staje się nieprawdą po wylądowaniu
 
-`viber/skills/planner/templates/plan.md:4`. Planner wpisuje ścieżkę z katalogu plan mode,
-`plan-path.sh --land` kopiuje plik gdzie indziej, nikt tej linii nie aktualizuje. Ląduje w `spec.md`,
-czyli w kontekście każdego agenta w runie. Albo usunąć pole, albo niech `--land` je przepisze.
+NAPRAWIONE (pole usunięte: nie czytał go żaden skrypt, agent ani hook, a jedyne, co robiło, to
+wnosiło martwą ścieżkę do `spec.md`, czyli do kontekstu każdego agenta)
 
 ### 13. `argument-hint` przy `user-invocable: false`
 
@@ -108,5 +107,5 @@ NAPRAWIONE
 
 ### 14. Gałąź `accept` po dwóch nieudanych rundach review jest niezdefiniowana
 
-`implementor/SKILL.md:87`. Domyślnie "przejdź do kroku 3 i commituj", ale to jedyne miejsce, gdzie
-człowiek nadpisuje bramkę, więc powinno być napisane wprost.
+NAPRAWIONE (domknięte w obu miejscach: `accept` po review commituje zadanie jako nieprzejrzane,
+`accept` po testach zamyka build z czerwonym suitem - obie gałęzie nazywane w podsumowaniu)

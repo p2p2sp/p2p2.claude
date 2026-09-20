@@ -14,14 +14,15 @@ covers what is true across the whole plugin.
 - `skills/simpleplan/` and `skills/superplan/` - plan writers for the Simple / Super tracks.
 - `skills/simplebuild/` and `skills/superbuild/` - build orchestrators.
 - `skills/superdev-memory/` and `skills/superdev-rules/` - the memory/rules maintenance fronts.
-- `hooks/content/manifest.md` - the injected `SessionStart` mandatory-rules manifest.
 
 ## Contracts & invariants
 
-- One of the two plugins that ship `hooks/` and an injected manifest (`viber` is the other, with
-  the same pair of hook events). One `SessionStart`
-  hook force-injects `hooks/content/manifest.md` verbatim once per session; `source == "resume"`
-  is excluded; fail-open (unreadable manifest = banner only). The other hook, `PreToolUse` on
+- Ships `hooks/` but NO manifest and no context injection of any kind: the plugin is obsolete,
+  superseded by `viber` (the other plugin with the same pair of hook events, and the only
+  manifest-bearing one). The `SessionStart` hook (`hooks/scripts/session-start.sh`) prints one
+  constant `systemMessage` - `!!! superdev is obsolete - use viber instead !!!` - carries no
+  version and never emits `additionalContext`; there is no `hooks/content/` dir. The other hook,
+  `PreToolUse` on
   `ExitPlanMode` (`hooks/scripts/review-plan.sh`), gates the plan on the reviewer's
   `VERDICT: PASS` and, on its final allow, records the approved plan's sha256 beside the plan as
   `<plan>.sha256`; `scripts/decompose.sh` recomputes it and refuses (exit 7) a plan that differs
