@@ -82,9 +82,7 @@ NAPRAWIONE
 
 ### 11. Przy `adr: true` i wejściu z pominięciem `idea` przełącznik jest martwy
 
-- Kandydatów waży wyłącznie `idea`, a `planner` tworzy zadania ADR tylko gdy handover je nazywa.
-- Ścieżka "plan it, straight from an understood change" z README oraz `fixer` -> `planner` nigdy
-  nie wyprodukują ADR-a mimo włączonego przełącznika.
+NAPRAWIONE
 
 ### 12. `VERDICT: FAIL` od codera: nie wiadomo, z czym retry
 

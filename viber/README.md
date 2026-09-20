@@ -60,17 +60,18 @@ done-condition, the boundaries, the binding constraints, the unknowns. It challe
 and asks again. It stops when nothing is open, shows a summary under 15 lines, and hands over to the planner
 on your confirmation. It writes nothing.
 
-With `adr` on it does one more pass before that summary: which decision made here is significant enough and
-lasting enough to be worth an architecture decision record. You accept or drop each candidate, and the
-accepted ones reach the planner.
-
 ### 2. `planner` - the plan, and the gate
 
 Maps the files before writing a single task - locked-in file boundaries are what lets tasks run in parallel
 later. Then a plan carrying the goal, numbered acceptance criteria, the file map, the contracts, and small
 dependency-ordered tasks, each with a TDD marker, a `Covers` list, a runnable `Verification` and an
 observable `DoD`. Task ids run `T1`, `T2`, … and the whole heading line, `T<n> - <title>`, is the commit
-subject. An accepted decision record comes first, one task per ADR, carrying the record's own text.
+subject.
+
+With `adr` on it does one pass before the tasks: which decision settled here is significant enough and
+lasting enough to be worth an architecture decision record. You accept or drop each candidate, and each
+accepted one comes first, one task per ADR, carrying the record's own text. The pass runs on every entry -
+after the interview, after a `fixer` handoff, or straight from an understood change.
 
 `plan-index.sh` validates the structure - duplicate ids, missing fields, a dependency pointing forward, a
 `Covers` naming a criterion that does not exist, and the same file claimed by two tasks that have no

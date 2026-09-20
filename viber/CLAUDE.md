@@ -20,11 +20,10 @@ plugin-named dot-dir, no state file.
   `AskUserQuestion` which of the three switches stay on and whether to merge the recommended
   permissions (`skills/setup/scripts/merge-settings.sh` over `skills/setup/assets/settings.json`).
 - `skills/idea/SKILL.md` - `/viber:idea`, user-only. A prose interview, one question at a time,
-  ending in a confirmed summary that hands over to `viber:planner`. Under `adr: true` it also puts
-  the decisions worth recording to the user and carries the accepted ones into that summary. Writes
-  nothing.
+  ending in a confirmed summary that hands over to `viber:planner`. Writes nothing.
 - `skills/planner/SKILL.md` - model-invocable, and enters plan mode itself. Fills `skills/planner/templates/plan.md` into
-  the plan file plan mode names, turns each accepted ADR into a first task, validates the result
+  the plan file plan mode names, under `adr: true` puts the decisions worth recording to the user and
+  turns each accepted one into a first task, validates the result
   with `scripts/plan-index.sh`, then gates on `viber:planner-review` until `VERDICT: PASS` before
   `ExitPlanMode`.
 - `skills/implementor/SKILL.md` - model-invocable orchestrator, `[plan-path]` argument. Lands the plan in the dated
@@ -104,7 +103,9 @@ plugin-named dot-dir, no state file.
 - **The switches are read through `config.sh` alone.** `adr`, `memory` and `rules` live in
   `.claude/viber.yml`, resolved against the repository root, fail-open: no file means all three off,
   and the script always exits 0 because it runs as a `!` preload, where a non-zero exit would abort
-  the whole skill load. `implementor` carries `disallowed-tools: Read`, so the preload is not a
+  the whole skill load. `adr` is weighed in `planner` and nowhere else: `planner` is the one funnel
+  all three entries pass through (`idea`, `fixer`, and "plan it" straight from an understood change),
+  so weighing in `idea` would leave the switch dead on the other two. `implementor` carries `disallowed-tools: Read`, so the preload is not a
   convenience there but the only way it can know the values at all.
 - **The orchestrator never reads code.** `implementor` carries `disallowed-tools: Read, Edit,
   NotebookEdit`: its whole view of the plan is `plan-index.sh`'s output, which is what lets one

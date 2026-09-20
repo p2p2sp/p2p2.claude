@@ -19,7 +19,7 @@ stand, never re-check them.
 Then ask once - ONE `AskUserQuestion` carrying both questions:
 
 1. Multi-select, the three switches and what each costs, which stay on:
-   - `adr` - `idea` proposes an ADR for a decision worth keeping, `planner` writes each accepted
+   - `adr` - `planner` proposes an ADR for a decision worth keeping and writes each accepted
      one as a first task under `docs/adr/`.
    - `memory` - the build closes by updating the project's `CLAUDE.md` nodes.
    - `rules` - the build closes by updating `.claude/rules/`.

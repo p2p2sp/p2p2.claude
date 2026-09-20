@@ -1,14 +1,10 @@
 ---
 name: idea
 description: Interviews the user about a raw idea until it is ready to plan - one question at a time.
-allowed-tools: Read, Grep, Glob, Skill, Bash(git log:*), Bash(git status:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*)
+allowed-tools: Read, Grep, Glob, Skill, Bash(git log:*), Bash(git status:*)
 user-invocable: true
 disable-model-invocation: true
 ---
-
-```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/config.sh"
-```
 
 # idea
 
@@ -57,14 +53,6 @@ Do not use `AskUserQuestion`. Interview is a prose - a conversation with a perso
 5. Unknowns - what neither of you knows yet, and how it gets resolved.
 
 Solution shape comes last and only where the user holds an opinion. Design decisions belong to the planner.
-
-## Decisions worth keeping
-
-Only with `adr: true` above; otherwise skip this section entirely.
-
-Before the summary, look back over the interview for a decision that is architecturally significant and lasting: it constrains work that comes after it, reversing it is expensive, and `docs/adr/` does not record it yet. A choice the code already implies is not one, and neither is a preference.
-
-Put each candidate to the user in one line - the decision, the alternative it beat - and let them accept or drop it. Accepted ones enter the summary under `ADR:`, one `<slug> - <decision>` per line. The planner turns each into a task of its own.
 
 ## Done
 

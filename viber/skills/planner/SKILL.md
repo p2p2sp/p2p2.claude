@@ -42,8 +42,10 @@ Task rules:
 - Every acceptance criterion is covered by at least one task's `Covers`.
 - The whole heading line, `T<n> - <title>`, is committed verbatim as the commit subject, so the title is one short imperative summary of what the task delivers.
 
-ADR tasks, when `adr: true` above and the handover names accepted decisions - one task per decision, ahead of every other task:
+ADR tasks, only with `adr: true` above; otherwise skip the rest of this section entirely.
 
+- Before writing the tasks, look over the change and the design decisions this plan settles for one that is architecturally significant and lasting: it constrains work that comes after it, reversing it is expensive, and `docs/adr/` does not record it yet. A choice the code already implies is not one, and neither is a preference. No candidate means no question and no ADR task.
+- Put each candidate to the user in prose, one line each - the decision, the alternative it beat - and let them accept or drop it. Each accepted one becomes a task of its own, ahead of every other task.
 - `Files: docs/adr/<yyyy-mm-dd>-<slug>.md`, the date from `date +%Y-%m-%d` so the path is exact - it is a commit file map, not a pattern. `TDD: none`, `Depends-on: none`, and nothing ever depends on it.
 - `Delivers` carries the record itself, because the task file is all its writer gets: the title, `Status: accepted` with the date, then Context, Decision, Alternatives (what it beat and why not) and Consequences.
 - Add one acceptance criterion for the record and point every ADR task's `Covers` at it.
