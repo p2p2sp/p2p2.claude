@@ -30,21 +30,7 @@ ZAIMPLEMENTOWANE
 
 ### 2. Reguła o zasobie wyłącznym nie ma pod sobą danych (7/10)
 
-`implementor/SKILL.md:63` zabrania puszczać razem taski, których weryfikacja potrzebuje zasobu
-wyłącznego. Orkiestrator ma jednak `disallowed-tools: Read` (`implementor/SKILL.md:5`), a indeks to
-`id | state | tdd | deps | files | title` (`plan-index.sh:232`). Skrypt parsuje `Verification:`
-(`plan-index.sh:131`), sprawdza tylko że nie jest puste (`plan-index.sh:151`) i wyrzuca do kosza.
-Orkiestrator fizycznie nie widzi komend weryfikacyjnych, więc albo zignoruje własną regułę
-(kolizje), albo zserializuje wszystko na wszelki wypadek (koniec równoległości). Reguła
-nieegzekwowalna jest gorsza niż jej brak, bo wygląda na załatwioną.
-
-Drugi konsument tego samego zasobu jest niewidoczny: reguła mówi o "taskach", a weryfikację
-uruchamia też reviewer (`task-reviewer.md:20`), którego linijkę wyżej (`implementor/SKILL.md:80`)
-ten sam plik wprost zachęca do pracy obok wciąż kodujących agentów. To jest sprzeczność w jednym
-bloku "Never break".
-
-Precedens rozwiązania istnieje w repo: `superdev/scripts/decompose.sh:135-150` wystawia wyliczaną
-kolumnę `concurrent`, żeby orkiestrator nie musiał tego oceniać sam.
+ZAIMPLEMENTOWANE
 
 ### 3. `AskUserQuestion` zatrzymuje całą budowę (7/10)
 
@@ -83,20 +69,13 @@ jej do skilla.
 - `isolation: worktree` per koder (3/10). Rozwiązałoby izolację buildu naprawdę, ale
   `commit-task.sh` commituje z głównego drzewa, więc padłby cały model commitu i progresu.
 
-## Otwarta decyzja
+## Decyzja zamknięta
 
-Punkt 2 rozwidla się i obie gałęzie są uczciwe:
-
-- **A. Deklaracja na poziomie planu.** Planner czyta stack z `CLAUDE.md` hosta, więc może wpisać
-  w spec jedną linię o tym, czy weryfikacja tego projektu jest bezpieczna współbieżnie;
-  `plan-index.sh` wystawia to jako pole, `implementor` przełącza się między trybem szerokim
-  a szeregowym. Uczciwe, ale dla .NET oznacza faktycznie budowę szeregową, bo dwa `dotnet test`
-  dzielą `obj/`.
-- **B. Tylko zawężenie `Verification` z punktu 1, a regułę o zasobie wyłącznym usunąć.** Mniej
-  kodu i mniej bloatu, ale zostawia stacki kompilowane z realnym ryzykiem kolizji na katalogu
-  wyjściowym.
-
-ZAIMPLEMENTOWANE
+Ani A (deklaracja współbieżności w planie), ani B (samo usunięcie reguły). Kolizja na katalogu
+wyjściowym jest argumentem wywołania, nie problemem harmonogramu: każdy task dostaje
+`out: .temp/viber/<id>/`, koder i reviewer tego samego taska dzielą ten katalog, a sposób
+przekierowania należy do `CLAUDE.md` hosta. Reguła o zasobie wyłącznym zniknęła w całości, bo
+stały port i wspólna baza to wady projektu testów, bramkowane teraz przez `planner-review`.
 
 ## Co jest solidne
 

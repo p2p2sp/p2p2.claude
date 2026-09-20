@@ -143,8 +143,14 @@ file.
   one contract: `planner` writes `Verification` over the task's own files only, `planner-review`
   treats a whole-project run as a finding, and `task-coder` and `task-reviewer` both drop a red they
   can trace outside their `Files`. What escapes belongs to `test-runner` in the close, committed
-  through `--repair`. On a stack that compiles the whole project to run one test the narrowing is
-  partial, and that residual is real rather than solved.
+  through `--repair`. What the narrowing leaves on a stack that compiles the whole project to run
+  one test is handled by a directory, never by a schedule: `implementor` hands every coder and
+  reviewer an `out: .temp/viber/<id>/` line, per task rather than per agent, and both redirect their
+  build output there when the host's own instructions name a way - the flags belong to the host,
+  which is where the build commands already live. The orchestrator therefore never judges whether
+  two verifications may run together. A `Verification` hanging on a fixed port or one shared
+  database is out of that reach and is a `planner-review` finding rather than something the run
+  schedules around: isolating a test is the stack's job.
 - **Five deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path, and
   on `--land` put the approved plan there),
   `plan-index.sh` (validate, index, optionally decompose), `commit-task.sh` (stage, commit, record),

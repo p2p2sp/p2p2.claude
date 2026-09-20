@@ -23,7 +23,7 @@ Read the plan, then read enough of the codebase to judge whether it fits reality
 - Ordered: `Depends-on` matches the actual flow of code and data. A task needing something no listed dependency produces is a blocker; a dependency that constrains nothing burns parallelism.
 - Buildable: an engineer could execute each task without stopping to ask what was meant.
 - Grounded: paths exist or are plausibly new, and the approach fits how this codebase actually works rather than how such code usually looks.
-- Provable: `Verification` runs, states its expected result and is scoped to the task's own files - a whole-project suite run is a finding, and on a task with no runtime behaviour it is a check on the artefact it writes - and `DoD` is observable.
+- Provable: `Verification` runs, states its expected result and is scoped to the task's own files - a whole-project suite run is a finding, and on a task with no runtime behaviour it is a check on the artefact it writes - and `DoD` is observable. A `Verification` hanging on a fixed shared resource, a pinned port or one common database, is a finding too: tasks verify in parallel, and the isolation is the stack's to supply.
 
 ## Calibration
 
