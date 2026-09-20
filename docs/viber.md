@@ -67,12 +67,7 @@ NAPRAWIONE
 
 ### 8. `fixer` jest obcy względem reszty pluginu
 
-- H1 brzmi `# SimpleDebug`, nie `# fixer`: leftover po nazwie z rodziny superdev
-  (`superdev/skills/CLAUDE.md:13` wymienia `simpledebug`).
-- Jedyna skilla w viberze bez `allowed-tools`, mimo że pisze plik i uruchamia testy przez Bash,
-  więc zbiera prompty uprawnień tam, gdzie reszta pluginu ma pre-approved.
-- Odwołuje się do "`planner` (Skill)" bez prefiksu, podczas gdy `idea/SKILL.md:73` używa
-  `viber:planner`, a implementor konsekwentnie prefiksuje wszystko.
+NAPRAWIONE
 
 ## Drobne
 

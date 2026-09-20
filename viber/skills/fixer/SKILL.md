@@ -1,11 +1,12 @@
 ---
 name: fixer
-description: Use when the user reports a bug, error, crash, regression, unexpected behavior OR MUST USE when asks to fix, repair, investigate, debug, diagnose, apply the fix from review, trace a value, or verify that code works correctly. Fires before diagnosing - enforces tracing the entire code flow step by step instead of guessing the cause, proving the diagnosis with a failing test, then handing the proven fix plan to `planner`.
+description: Traces a reported bug to its root cause and proves it with a failing test, then hands the fix plan to the planner - it applies no fix itself.
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill
 user-invocable: true
 disable-model-invocation: true
 ---
 
-# SimpleDebug
+# fixer
 
 ## Overview
 Investigate by tracing, not guessing. Pattern-matching a symptom to a "likely" cause is what makes debugging slow and wrong. Then prove it: a diagnosis you never watched fail in a test is a hypothesis, not a root cause. The proven diagnosis plus a fix plan is the output - the fix itself is planned and built downstream.
@@ -18,7 +19,7 @@ Three laws, in this order. None substitutes for another.
 
 **2. NO FIX PLAN WITHOUT A FAILING TEST THAT REPRODUCES THE DIVERGENCE.** Reading code proves what it says, never what it does. Until a test fails on the divergence you found, the root cause is unconfirmed and the fix has nothing to verify it. Reasoning is not evidence - a failing test is. A test that passes on its first run proves nothing - return to tracing, do not move on.
 
-**3. NEVER APPLY THE FIX HERE.** Edit nothing but the reproduction test. The fix leaves this skill as a plan and is built through `planner` -> `implementor`, never by hand - that route is what commits the work and records project memory. A hand-applied fix, however small, loses both. Skipping the handoff because the fix "is trivial" or "is one line" is the same violation.
+**3. NEVER APPLY THE FIX HERE.** Edit nothing but the reproduction test. The fix leaves this skill as a plan and is built through `viber:planner` -> `viber:implementor`, never by hand - that route is what commits the work and records project memory. A hand-applied fix, however small, loses both. Skipping the handoff because the fix "is trivial" or "is one line" is the same violation.
 
 ## The Process
 1. Locate the exact entry point that triggers the behavior - the call, request, or event.
@@ -49,7 +50,7 @@ The handoff payload - state it in context, in this order. No file, no report.
 - **Done condition** - repro test GREEN, every previously-passing test still green.
 
 ## Handoff [GATE]
-Invoke `planner` (Skill) with the fix plan in context. Stop there - do not implement, do not "just apply the one-liner first".
+Invoke the `viber:planner` skill with the fix plan in context. Stop there - do not implement, do not "just apply the one-liner first".
 
 ## Bypass authorization
 The reproduction test is unconditional. When reproduction is genuinely infeasible (hard race, rendering artifact, unreachable third-party state), STOP and ask the user for explicit authorization to hand off without it, stating what blocks reproduction. Never decide this alone; "hard to test" is not infeasible.
