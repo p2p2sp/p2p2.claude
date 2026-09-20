@@ -34,8 +34,8 @@ plugin-named dot-dir, no state file.
   reviewed task on `viber:task-reviewer`, commits it with `scripts/commit-task.sh`, closes on
   `viber:test-runner` and then, per switch, on `viber:memory-writer` and `viber:rules-writer`.
 - `skills/fixer/SKILL.md` - the only CSO-routed skill here: it fires on a bug report, forces a
-  traced diagnosis proven by a failing test, and hands the fix plan to `planner`. It never applies
-  a fix itself.
+  traced diagnosis proven by a failing test, and hands the fix plan to `planner`, leaving that test
+  RED in the tree for the fixing task's `Files:`. It never applies a fix itself.
 - `skills/tdd/SKILL.md` - the Red-Green-Refactor discipline a `TDD: required` task is built under.
   Not user-invocable: `viber:task-coder` invokes it through the `Skill` tool before the first line
   of production code.

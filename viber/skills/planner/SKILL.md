@@ -37,6 +37,7 @@ Task rules:
 - `Delivers` states WHAT the task produces. Never how to code it, never a line number.
 - `Verification` is a runnable command plus the result that counts as proof.
 - `TDD: required` by default. `TDD: none` only where the task changes no runtime behaviour: config, docs, mechanical rename, scaffolding.
+- A reproduction test already RED in the tree goes into the fixing task's `Files:` - nothing outside a file map gets committed - and that task carries `TDD: none`: its RED cycle is done.
 - Every acceptance criterion is covered by at least one task's `Covers`.
 - The whole heading line, `T<n> - <title>`, is committed verbatim as the commit subject, so the title is one short imperative summary of what the task delivers.
 

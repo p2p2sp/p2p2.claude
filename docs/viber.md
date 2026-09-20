@@ -18,7 +18,7 @@ template planu, manifest, README i węzeł pamięci.
 
 ## Poważne
 
-### 1. Skilla `tdd` jest sierotą, nikt w torze viber nie może jej wczytać - NAPRAWIONE
+### 1. Skilla `tdd` jest sierotą, nikt w torze viber nie może jej wczytać
 
 NAPRAWIONE
 
@@ -42,17 +42,7 @@ NAPRAWIONE
 
 ### 3. `fixer` -> `planner` -> `implementor`: test reprodukcyjny nie ma właściciela
 
-- `fixer` zostawia w drzewie czerwony test i deklaruje "The test stays in the repo ... It is the
-  regression guard for this bug afterwards" (`fixer/SKILL.md:38`).
-- `planner` nie ma ani jednej reguły o pliku, który już istnieje w drzewie.
-- Bez wpisania ścieżki repro-testu do `Files:` zadania naprawczego: `commit-task.sh` go nie
-  zastage'uje (stage'uje listę literalnie), `warn_dirty` wypisuje go przy każdym kolejnym
-  commicie, i zostaje niezacommitowany do końca biegu.
-- Z wpisaniem, ale przy domyślnym `TDD: required`: `task-coder` dostaje sprzeczną instrukcję
-  "write the failing test first, run it, see it fail", podczas gdy test już jest i już jest
-  czerwony.
-- Fix: jedno zdanie w `planner`, że repro-test z fixera wchodzi do `Files:` zadania naprawczego,
-  a to zadanie dostaje `TDD: none`, bo cykl RED wykonał już fixer.
+NAPRAWIONE
 
 ### 4. `commit-task.sh` stage'uje po pathspec, ale commituje cały index
 
@@ -128,11 +118,3 @@ NAPRAWIONE
 
 - Implementor pyta "retry / skip / abort", ale nie mówi, czy to ten sam prompt, czy plus
   `REASON:`, czy mocniejszy model. Przy FAIL od reviewera jest to opisane precyzyjnie.
-
-## Ocena
-
-- Warstwa kontraktów między skillami a agentami: 8/10.
-- Pipeline end-to-end od pomysłu do implementacji: 6/10.
-- Różnica to dokładnie trzy pęknięcia na stykach: sierota `tdd`, luka w przekazaniu planu i
-  bezpański repro-test z fixera. Żadne nie jest problemem projektu, tylko niedokończonym
-  połączeniem, każde do zamknięcia zmianą rzędu jednej do trzech linii plus jednym polem `tools:`.
