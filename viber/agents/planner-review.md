@@ -21,14 +21,13 @@ Read the plan, then read enough of the codebase to judge whether it fits reality
 - Covered: every acceptance criterion appears in at least one task's `Covers`, and every task serves a criterion.
 - Decomposed: tasks are small, independently verifiable, and their boundaries are real ones.
 - Ordered: `Depends-on` matches the actual flow of code and data. A task needing something no listed dependency produces is a blocker; a dependency that constrains nothing burns parallelism.
-- Disjoint: tasks with no dependency path between them do not list the same file - they will run at the same time.
 - Buildable: an engineer could execute each task without stopping to ask what was meant.
 - Grounded: paths exist or are plausibly new, and the approach fits how this codebase actually works rather than how such code usually looks.
 - Provable: `Verification` is a runnable command with a stated expected result, and `DoD` is observable.
 
 ## Calibration
 
-Flag only what would send the implementation wrong or stall it: a missing criterion, a contradiction, a placeholder, a wrong or missing dependency, a file collision between parallel tasks, a task too vague to act on. Wording, style and nice-to-haves are not findings - the coder handles those.
+Flag only what would send the implementation wrong or stall it: a missing criterion, a contradiction, a placeholder, a wrong or missing dependency, a task too vague to act on. Wording, style and nice-to-haves are not findings - the coder handles those.
 
 When previous findings are in the prompt, verify each one was addressed and do not re-raise what the fixes resolved.
 

@@ -30,7 +30,7 @@ Plan path, first match wins:
 
 Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan>`. It returns the title, the progress counter and one line per task: id, state, TDD marker, dependencies, files, title. That index is your whole view of the plan.
 
-Non-zero exit means the plan itself is broken: report the error and stop, repairing it belongs to the planner.
+Non-zero exit means the plan itself is broken: report the error and stop, repairing it belongs to the planner. A zero exit guarantees that no two tasks without a dependency path between them share a file, so `deps` is the only thing that keeps two tasks apart.
 
 Tasks in state `done` are already committed - skip them. That is also how a build resumes after a context reset.
 
@@ -51,7 +51,6 @@ Pick each task's profile from the nature of its work, not from its position:
 Never break:
 
 - A task dispatches only once every id in its `deps` is done.
-- Two tasks listing the same file never run at the same time.
 - Close out one task at a time - review and commit both read the working tree.
 - Tasks whose verification needs an exclusive resource - one build output, a fixed port, a single test database - never run together.
 

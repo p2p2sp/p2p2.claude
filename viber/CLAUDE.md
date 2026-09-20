@@ -45,6 +45,11 @@ file.
   the stamp is taken when the plan lands, so a re-run of the same slug never overwrites an earlier
   plan, and a run already open for that slug comes back as `state: existing` instead. That
   directory name is also the `<plan-key>` of the run's report dir, `.temp/viber/<plan-key>/`.
+- **`Files:` is a machine-readable map, not prose.** Comma-separated exact repo-relative paths on
+  one line, no globs, no directories, no annotations. `commit-task.sh` stages that list literally,
+  and `plan-index.sh` compares it across tasks: a plan where two tasks with no dependency path
+  between them list the same file is rejected at validation time. No skill and no agent re-checks
+  that by hand - the graph plus the file lists make it fully deterministic.
 - **Three deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path),
   `plan-index.sh` (validate + compact index) and `commit-task.sh` (stage, commit, record) carry
   their I/O contract in their header comment and are TRUSTED by the caller - never re-verified,

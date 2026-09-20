@@ -105,13 +105,7 @@ Suita dla `plan-gate.sh` jest tu obowiązkowa. Wzorzec jest gotowy w
 
 ### 7. `plan-index.sh` nie sprawdza kolizji plików między niezależnymi zadaniami
 
-Sprawdzenie "dwa zadania bez ścieżki zależności nie mogą wymieniać tego samego pliku" jest w 100%
-deterministyczne: graf `Depends-on` plus listy `Files`. Dziś pilnują go dwa LLM-y, agent
-`planner-review` (checklista "Disjoint") i orkiestrator czytający indeks. Zasada "Script vs. fork"
-z root `CLAUDE.md` mówi dokładnie odwrotnie: krok na znanym, stałym formacie zapada się do skryptu.
-
-To jednocześnie jedyny mechanizm chroniący przed dwoma agentami piszącymi równolegle do tego samego
-pliku, więc koszt pomyłki jest wysoki.
+ZAIMPLEMENTOWANE
 
 ### 8. Rozjazd tierów modeli
 

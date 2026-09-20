@@ -55,8 +55,9 @@ dependency-ordered tasks, each with a TDD marker, a `Covers` list, a runnable `V
 observable `DoD`. The task title is its commit subject.
 
 `plan-index.sh` validates the structure - duplicate ids, missing fields, a dependency pointing forward, a
-`Covers` naming a criterion that does not exist. Then the `planner-review` agent reads the plan against the
-actual codebase and returns PASS or blocking findings.
+`Covers` naming a criterion that does not exist, and the same file claimed by two tasks that have no
+dependency path between them, which would put two coders in one file at once. Then the `planner-review` agent
+reads the plan against the actual codebase and returns PASS or blocking findings.
 
 `ExitPlanMode` is gated on that PASS by the hook, not by the model's good intentions: no verdict, a FAIL
 verdict, or a plan edited after its own verdict all deny the exit with the next step spelled out.
@@ -69,8 +70,8 @@ nature of its work: mechanical and
 bounded goes to `haiku` with no review, ordinary feature work to `sonnet` with review, a load-bearing task
 that defines a contract others consume to `opus` with review.
 
-Dispatch is as wide as the rules allow - a task waits only for its real dependencies, and two tasks never run
-at once if they list the same file. Each finished task is reviewed by `task-reviewer` against its own
+Dispatch is as wide as the rules allow - a task waits only for its real dependencies, and the validated plan
+already guarantees that two tasks running at once never share a file. Each finished task is reviewed by `task-reviewer` against its own
 definition, sent back to the coder on a FAIL (two rounds, then it asks you), and committed by
 `commit-task.sh`, which stages **only** that task's files, so nothing outside the file map slips into a
 commit. The run closes with `test-runner` on the full suite.

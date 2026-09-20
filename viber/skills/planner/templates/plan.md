@@ -34,7 +34,7 @@ Build: skill `implementor`
 - TDD: required | none
 - Covers: #1, #2
 - Depends-on: none
-- Files: <path>, <path>
+- Files: <repo-relative path>, <repo-relative path>
 - Delivers: <what the task produces - WHAT, never HOW>
 - Verification: <command> -> <result that counts as proof>
 - DoD: <observable done condition>
@@ -45,7 +45,7 @@ Build: skill `implementor`
 - TDD: required | none
 - Covers: #<n>
 - Depends-on: 01
-- Files: <path>
+- Files: <repo-relative path>
 - Delivers: <...>
 - Verification: <...>
 - DoD: <...>

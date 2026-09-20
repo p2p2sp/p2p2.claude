@@ -13,11 +13,17 @@
 #   01 | done | none     | -  | .claude/settings.json | chore: ...
 #   02 | todo | required | 01 | src/a.ts,src/b.ts     | feat: ...
 #
+# "Files:" is a comma-separated list of exact repo-relative file paths - no globs,
+# no directories, no annotations - so the same list drives the commit and the
+# collision check below.
+#
 # Validation (exit != 0, nothing on stdout) - catches plan drift before a build starts:
 #   2 - plan file missing or unusable
 #   3 - no <!-- TASK --> blocks
 #   4 - broken task contract (duplicate id, missing field, illegal dependency,
-#       a "Covers:" criterion absent from the acceptance criteria)
+#       a "Covers:" criterion absent from the acceptance criteria, an unparseable
+#       "Files:" entry, or the same file listed by two tasks with no dependency
+#       path between them - they would run at the same time)
 #
 set -euo pipefail
 
@@ -106,6 +112,22 @@ END {
     if (verif[i] == "") fail("task " id[i] ": missing Verification")
     if (dod[i] == "")   fail("task " id[i] ": missing DoD")
 
+    # Files: bare repo-relative paths, so commit-task.sh can stage them and the
+    # collision check below can compare them literally
+    nf[i] = 0
+    m = split(files[i], fl, /,/)
+    for (k = 1; k <= m; k++) {
+      p = trim(fl[k])
+      sub(/^\.\//, "", p)
+      if (p == "")                     { fail("task " id[i] ": empty entry in Files"); continue }
+      if (p ~ /[*?]/ || index(p, "[")) { fail("task " id[i] ": Files entry \"" p "\" is a glob, list exact paths"); continue }
+      if (p ~ /^\// || p ~ /^~/)       { fail("task " id[i] ": Files entry \"" p "\" must be repo-relative"); continue }
+      if (p ~ /\/$/)                   { fail("task " id[i] ": Files entry \"" p "\" is a directory, list each file"); continue }
+      if (p ~ /[[:space:]]/)           { fail("task " id[i] ": Files entry \"" p "\" is not a bare path, drop the annotation"); continue }
+      fset[i, p] = 1
+      fpath[i, ++nf[i]] = p
+    }
+
     # Covers must point at an existing acceptance criterion
     cv = covers[i]
     gsub(/[^0-9]+/, " ", cv)
@@ -128,6 +150,27 @@ END {
     dnorm[i] = (out == "" ? "-" : out)
   }
 
+  # tasks with no dependency path between them run at the same time, so they may not
+  # share a file; deps point backwards only, so one forward pass resolves ancestry
+  if (!err) {
+    for (i = 1; i <= n; i++) {
+      if (dnorm[i] == "-") continue
+      m = split(dnorm[i], dn, /,/)
+      for (k = 1; k <= m; k++) {
+        j = seen[dn[k]]
+        anc[i, j] = 1
+        for (t = 1; t < j; t++) if ((j, t) in anc) anc[i, t] = 1
+      }
+    }
+    for (i = 1; i <= n; i++)
+      for (j = i + 1; j <= n; j++) {
+        if ((j, i) in anc) continue
+        for (k = 1; k <= nf[i]; k++)
+          if ((j, fpath[i, k]) in fset)
+            fail("tasks " id[i] " and " id[j] " both list " fpath[i, k] ", with no dependency path between them")
+      }
+  }
+
   if (err) exit 4
 
   # task state from the done list
@@ -141,8 +184,8 @@ END {
   printf "progress: %d/%d\n", ndone, n
   printf "tasks: id | state | tdd | deps | files | title\n"
   for (i = 1; i <= n; i++) {
-    f = files[i]
-    gsub(/,[[:space:]]+/, ",", f)
+    f = ""
+    for (k = 1; k <= nf[i]; k++) f = (f == "" ? fpath[i, k] : f "," fpath[i, k])
     printf "%s | %s | %s | %s | %s | %s\n", id[i], (id[i] in isdone ? "done" : "todo"), tdd[i], dnorm[i], f, ttl[i]
   }
 }
