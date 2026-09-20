@@ -13,7 +13,7 @@ You describe what the finished build does from the user's side. Input is fully r
 
 The prompt carries `spec` (the run's specification), `notes` (the run's report directory), `refs` (the reference directory) and `out` (the run directory both documents land in).
 
-Read `<refs>/qa-format.md` before anything else: it owns the templates, the ID rules and the never-write list, and you add no format of your own. Then the spec - its acceptance criteria, its file map and its contracts - and every `*-coder.md` in the notes directory, which carry the deviations the build made from the plan. A scenario describes the behaviour that was delivered, never the behaviour that was planned.
+Read `<refs>/qa-format.md` before anything else: it owns the templates, the ID rules and the never-write list, and you add no format of your own. Then the spec - its goal, its acceptance criteria and its file map - and every `*-coder.md` in the notes directory, which carry the deviations the build made from the plan. A scenario describes the behaviour that was delivered, never the behaviour that was planned.
 
 ## Classify
 

@@ -19,6 +19,8 @@ Read the plan, then read enough of the codebase to judge whether it fits reality
 
 - Complete: no TODOs, no placeholders, no task that trails off mid-thought.
 - Covered: each task really delivers what the criteria its `Covers` names require - the numbers themselves are already validated, the fit is not.
+- Split right: everything above `## Tasks` is WHAT and WHY. A signature, type, endpoint, error code or dictionary key up there is a finding - it belongs in a `## Contracts` block, which is the only thing a coder can be handed.
+- Supplied: each task's `Uses` names every contract block its work actually touches. The references themselves are already validated; a task consuming a shape it does not list is a blocker, because the task file is the coder's whole input and that shape reaches it nowhere else.
 - Decomposed: tasks are small, independently verifiable, and their boundaries are real ones.
 - Ordered: `Depends-on` matches the actual flow of code and data. A task needing something no listed dependency produces is a blocker; a dependency that constrains nothing burns parallelism.
 - Buildable: an engineer could execute each task without stopping to ask what was meant.

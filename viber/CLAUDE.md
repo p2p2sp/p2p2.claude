@@ -124,11 +124,26 @@ file.
   this is the one place in the plugin where a script undoes its own write.
 - **The decomposition is what the agents see; the index is what the orchestrator sees.**
   `plan-index.sh --split` writes `spec.md` (everything above `## Tasks`) and one `tasks/<id>.md`
-  per task, carrying the task block verbatim plus the text of the criteria its `Covers:` names. A
+  per task, carrying the task block verbatim plus the plan's `## Goal`, the text of the criteria
+  its `Covers:` names, the `## Contracts` blocks its `Uses:` names and the plan's
+  `### Out of scope`. A
   coder handed `tasks/T3.md` cannot read another task, so it cannot drift into another task's
-  files - that isolation is the reason the split exists, not the token saving. `tasks/` is rebuilt
+  files - that isolation is the reason the split exists, not the token saving. It is handed
+  nothing else either: the file is self-contained, so neither `task-coder` nor `task-reviewer`
+  gets a `spec:` line at all, and the one exception is a post-test repair, which has no task file
+  and takes the spec instead. `tasks/` is rebuilt
   on every call, and the script commits its own output because no task's `Files:` list names it and
   `commit-task.sh` stages nothing it was not given.
+- **The plan has three parts, and a shape belongs to exactly one task file.** Above `## Tasks` is
+  WHAT and WHY and nothing else - a signature, type, endpoint, error code or dictionary key up
+  there rides into `spec.md`, which is read whole. Every shape is a `### C<n> - <name>` block in
+  the `## Contracts` appendix BELOW the tasks, and reaches a coder only through that task's
+  `Uses:` line, validated in both directions like `Covers:`: a reference must name a real block,
+  and a block no task names is rejected, because the slicing would leave it unreachable. `Uses:`
+  is mandatory and says `none` out loud - a task missing the line and one that touches no shape
+  would otherwise look the same. Which side of a block a task is on is never written down: the
+  task whose `Files:` holds the block's own file writes it, every other one calls it as it
+  stands.
 - **Task ids are `T1`, `T2`, … and the heading line IS the commit subject.** `commit-task.sh` reads
   `### T<n> - <title>` out of the plan and commits it verbatim, so the orchestrator never composes a
   subject and the history reads like the plan. The id is also the name of the task's own file, so

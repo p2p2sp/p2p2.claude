@@ -43,7 +43,7 @@ Every path this run spends is derived from the printed one: `<dir>` is the plan'
 
 Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan> --split`. It validates the plan, writes `<dir>/spec.md` and one `<dir>/tasks/<id>.md` per task, commits that decomposition, and returns the title, the progress counter and one line per task: id, state, TDD marker, dependencies, files, title.
 
-That index is your whole view of the plan; the task files are the agents'. Each of them sees the specification and its own task, and no other task at all.
+That index is your whole view of the plan; the task files are the agents'. Each one is self-contained - the task, the run's goal, the criteria it covers, the contracts it uses and the boundary it must not cross - so a coder is handed that one path and never the specification.
 
 Non-zero exit means the plan itself is broken: report the error and stop, repairing it belongs to the planner. A zero exit guarantees that no two tasks without a dependency path between them share a file, so `deps` is the only thing that keeps two tasks apart.
 
@@ -72,10 +72,9 @@ Never break:
 - A task dispatches only once every id in its `deps` is done.
 - Never two `commit-task.sh` calls in one message - a commit rewrites the git index and the run's `status.md`, and nothing else in the run touches either. A second task ready to commit waits for the next message; everything else in this step waits for nothing.
 
-Dispatch: one `viber:task-coder` per task (Agent tool, `model` = that task's tier), all in a single message, each carrying four labelled lines and nothing else:
+Dispatch: one `viber:task-coder` per task (Agent tool, `model` = that task's tier), all in a single message, each carrying three labelled lines and nothing else:
 
 ```
-spec: <dir>/spec.md
 task: <dir>/tasks/<id>.md
 notes: <dir>/work/<id>-coder.md
 out: .temp/viber/<id>/
@@ -90,7 +89,7 @@ Then work the loop: on every return, answer with ONE message carrying every disp
 What a return means:
 
 1. Coder `VERDICT: FAIL` -> `AskUserQuestion` naming the task and its `REASON:` line: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its three lines plus `reason: <the returned REASON>`. Abort ends the run; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it, and leaves its half-finished files uncommitted in the tree - name them in the final summary.
-2. Coder returned and the profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier) with the same `spec:`, `task:` and `out:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
+2. Coder returned and the profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier) with the same `task:` and `out:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
    - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its three lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort. `accept` is the user overriding the gate: go to step 3, commit with `--unreviewed` appended, and name the task in the final summary as unreviewed.
 3. Coder returned with no review due, or its reviewer returned `VERDICT: PASS` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`. It takes the commit subject from the task's own heading in the plan, stages only the task's files and its own notes and reports, commits, and records the task as done. Its warning names changed paths no task in the plan claims - the same split step 5 commits by, so carry those paths to the final summary. A non-zero exit means nothing was committed and nothing recorded -> `AskUserQuestion`: retry / skip / abort.
 4. Commit recorded -> `TaskUpdate` -> completed.

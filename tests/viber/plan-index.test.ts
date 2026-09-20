@@ -15,9 +15,11 @@
  *
  * `plan-index.sh <plan> --split` additionally decomposes the plan in place:
  * `spec.md` (everything above `## Tasks`) plus one `tasks/<id>.md` per task,
- * carrying the block verbatim and the text of the criteria its `Covers:` line
- * names. That file IS a coder's input - it cannot see the plan - so a task file
- * that loses a field or picks up a neighbour's is silent, uncatchable drift.
+ * carrying the block verbatim, the plan's goal, the text of the criteria its
+ * `Covers:` line names, the contract blocks its `Uses:` line names and the plan's
+ * out-of-scope list. That file IS a coder's WHOLE input - it gets no `spec:` line
+ * at all - so a task file that loses a field, loses a contract or picks up a
+ * neighbour's is silent, uncatchable drift.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -53,14 +55,21 @@ interface TaskFields {
   title?: string;
   tdd?: string;
   covers?: string;
+  /** `null` omits the line entirely - the shape a plan written before `Uses:` has. */
+  uses?: string | null;
   deps?: string;
   files?: string;
 }
 
+/** The `## Contracts` appendix every default task names through `Uses: C1`. It
+ *  sits BELOW the tasks, so it never reaches spec.md - only the task files whose
+ *  `Uses:` line asks for it. */
+const CONTRACT = ["### C1 - Login endpoint", "", "POST /login -> 200 | 401", "", "Body: `{ user, pass }`"];
+
 /** A plan in the template's shape. The header carries two acceptance criteria,
  *  the first of them wrapped over two lines - a criterion's continuation is
  *  part of its text and has to reach the task file with it. */
-function planBody(tasks: TaskFields[], criteria = 2): string {
+function planBody(tasks: TaskFields[], criteria = 2, contracts: string[] = CONTRACT): string {
   const crit = [
     "1. A user with valid credentials gets a session.",
     "   The session survives a reload.",
@@ -72,14 +81,22 @@ function planBody(tasks: TaskFields[], criteria = 2): string {
     "## Goal",
     "",
     "Users can log in.",
+    "The session is durable.",
     "",
     "## Acceptance criteria",
     "",
     ...crit,
     "",
-    "## Contracts",
+    "## Scope",
     "",
-    "POST /login -> 200 | 401",
+    "### File map",
+    "",
+    "- add - src/login.ts - the handler",
+    "",
+    "### Out of scope",
+    "",
+    "- Password reset.",
+    "- OAuth.",
     "",
     "## Tasks",
     "",
@@ -88,6 +105,7 @@ function planBody(tasks: TaskFields[], criteria = 2): string {
       `### ${t.id ?? "T1"} - ${t.title ?? "do the thing"}`,
       `- TDD: ${t.tdd ?? "required"}`,
       `- Covers: ${t.covers ?? "#1"}`,
+      ...(t.uses === null ? [] : [`- Uses: ${t.uses ?? "C1"}`]),
       `- Depends-on: ${t.deps ?? "none"}`,
       `- Files: ${t.files ?? "src/a.ts"}`,
       "- Delivers: the thing",
@@ -96,12 +114,21 @@ function planBody(tasks: TaskFields[], criteria = 2): string {
       "<!-- /TASK -->",
       "",
     ]),
+    ...(contracts.length ? ["## Contracts", "", ...contracts, ""] : []),
   ].join("\n");
 }
 
+/** T1 names the one contract block, T2 names none: the split has to be selective. */
 const TWO_TASKS: TaskFields[] = [
   { id: "T1", title: "Add the login handler", files: "src/login.ts" },
-  { id: "T2", title: "Reject a bad password", covers: "#2", deps: "T1", files: "src/reject.ts" },
+  {
+    id: "T2",
+    title: "Reject a bad password",
+    covers: "#2",
+    uses: "none",
+    deps: "T1",
+    files: "src/reject.ts",
+  },
 ];
 
 function seed(dir: string, body: string): void {
@@ -282,7 +309,7 @@ test("a plan with no task blocks exits 3", () => {
 });
 
 test("a broken task contract exits 4 and names the task", () => {
-  const cases: Array<[string, TaskFields[], RegExp]> = [
+  const cases: Array<[string, TaskFields[], RegExp, string[]?]> = [
     [
       "duplicate id",
       [
@@ -297,6 +324,16 @@ test("a broken task contract exits 4 and names the task", () => {
       /task id "T 1\/x"/,
     ],
     ["a Covers pointing at a criterion that does not exist", [{ id: "T1", covers: "#9" }], /Covers #9/],
+    [
+      "a task with no Uses line - the one a plan written before the field looks like",
+      [{ id: "T1", uses: null }],
+      /task T1: missing Uses/,
+    ],
+    [
+      "a Uses pointing at a contract block that does not exist",
+      [{ id: "T1", uses: "C9" }],
+      /task T1: Uses C9, no such contract block/,
+    ],
     ["a glob in Files", [{ id: "T1", files: "src/*.ts" }], /is a glob/],
     ["a directory in Files", [{ id: "T1", files: "src/" }], /is a directory/],
     ["a TDD marker that is neither required nor none", [{ id: "T1", tdd: "maybe" }], /TDD must be/],
@@ -316,13 +353,25 @@ test("a broken task contract exits 4 and names the task", () => {
       ],
       /both list src\/a\.ts/,
     ],
+    [
+      "two contract blocks sharing an id - the id is what a Uses line resolves",
+      [{ id: "T1" }],
+      /duplicate contract id: C1/,
+      [...CONTRACT, "", "### C1 - Login endpoint again", "", "POST /login -> 204"],
+    ],
+    [
+      "a contract heading with no id in front of the name",
+      [{ id: "T1", uses: "none" }],
+      /contract heading must be "### <id> - <name>", got: Login endpoint/,
+      ["### Login endpoint", "", "POST /login -> 200 | 401"],
+    ],
   ];
 
-  for (const [name, tasks, expected] of cases) {
+  for (const [name, tasks, expected, contracts] of cases) {
     withTempDir("p2p2-viber-", (dir) => {
       // one criterion, which every default Covers names: each case has to fail
       // for the defect it carries, not for an uncovered criterion
-      seed(dir, planBody(tasks, 1));
+      seed(dir, planBody(tasks, 1, contracts));
 
       const result = run(dir, {}, [PLAN_REL]);
       assert.equal(result.status, 4, `${name} -> stdout: ${result.stdout} stderr: ${result.stderr}`);
@@ -341,6 +390,29 @@ test("an acceptance criterion no task's Covers names exits 4 (nothing downstream
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /criterion #2 is covered by no task/);
+  });
+});
+
+test("a contract block no task's Uses names exits 4 (the split would leave it unreachable)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    // the block is in the appendix and every task says it touches no shape, so
+    // nothing would ever carry it to a coder
+    seed(dir, planBody([{ id: "T1", uses: "none" }], 1));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /contract C1 is used by no task/);
+  });
+});
+
+test("a plan that introduces no shape at all validates with every task on Uses: none", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody([{ id: "T1", uses: "none" }], 1, []));
+
+    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(readRun(dir, "tasks/T1.md"), /## Contracts/);
   });
 });
 
@@ -366,12 +438,15 @@ test("--split writes the specification and one file per task, and still prints t
 
     assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
 
-    // spec.md is everything ABOVE the task list, verbatim - and no task at all.
+    // spec.md is everything ABOVE the task list, verbatim: WHAT and WHY, no task
+    // and - because the appendix sits below the tasks - no contract either.
     const spec = readRun(dir, "spec.md");
     assert.match(spec, /^# Add login$/m);
-    assert.match(spec, /^POST \/login -> 200 \| 401$/m);
+    assert.match(spec, /^- add - src\/login\.ts - the handler$/m);
+    assert.match(spec, /^### Out of scope$/m);
     assert.doesNotMatch(spec, /## Tasks/);
     assert.doesNotMatch(spec, /Add the login handler/);
+    assert.doesNotMatch(spec, /## Contracts|POST \/login/);
   });
 });
 
@@ -396,6 +471,38 @@ test("a task file carries its own block verbatim, the text of the criteria it co
     assert.doesNotMatch(t1, /An invalid password is rejected/);
 
     assert.match(readRun(dir, "tasks/T2.md"), /^## Covered criteria\n2\. An invalid password is rejected\.$/m);
+  });
+});
+
+test("a task file carries the run's goal and its out-of-scope list, so a coder needs no second file", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody(TWO_TASKS));
+    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+
+    for (const id of ["T1", "T2"]) {
+      const body = readRun(dir, `tasks/${id}.md`);
+      assert.match(body, /^## Goal\nUsers can log in\.\nThe session is durable\.$/m, id);
+      assert.match(body, /^## Out of scope\n- Password reset\.\n- OAuth\.$/m, id);
+      // the file map is the planner's decomposition artefact and the closing
+      // writer's input - never a coder's, which is bounded by its own Files
+      assert.doesNotMatch(body, /## Scope|### File map/, id);
+    }
+  });
+});
+
+test("a contract block reaches the tasks whose Uses names it and no others", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody(TWO_TASKS));
+    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+
+    // T1 uses C1: the whole block arrives, heading and body
+    assert.match(
+      readRun(dir, "tasks/T1.md"),
+      /^## Contracts\n\n### C1 - Login endpoint\n\nPOST \/login -> 200 \| 401\n\nBody: `\{ user, pass \}`$/m,
+    );
+    // T2 says none: not the section, not one line of the shape
+    const t2 = readRun(dir, "tasks/T2.md");
+    assert.doesNotMatch(t2, /## Contracts|C1|POST \/login/);
   });
 });
 

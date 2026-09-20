@@ -4,8 +4,10 @@
 
 Build: skill `implementor`
 
-<!-- two parts: everything above "## Tasks" is the specification - WHAT and WHY - and is split off as
-     spec.md; the tasks below are the implementation plan - HOW - one file each under tasks/ -->
+<!-- three parts: everything above "## Tasks" is the specification - WHAT and WHY - and is split
+     off as spec.md; the tasks are the implementation plan - HOW - one file each under tasks/;
+     the "## Contracts" appendix carries the shapes, sliced into those task files by each task's
+     "Uses:" line. A signature never appears above "## Tasks". -->
 
 ## Goal
 
@@ -26,16 +28,13 @@ Build: skill `implementor`
 
 - <what this change does not touch>
 
-## Contracts
-
-<signatures, data shapes, endpoints, schemas this change introduces or consumes - or "none">
-
 ## Tasks
 
 <!-- TASK -->
 ### T1 - <title>
 - TDD: required | none
 - Covers: #1, #2
+- Uses: C1 | none
 - Depends-on: none
 - Files: <repo-relative path>, <repo-relative path>
 - Delivers: <what the task produces - WHAT, never HOW>
@@ -47,6 +46,7 @@ Build: skill `implementor`
 ### T2 - <title>
 - TDD: required | none
 - Covers: #<n>
+- Uses: C1, C2
 - Depends-on: T1
 - Files: <repo-relative path>
 - Delivers: <...>
@@ -58,3 +58,19 @@ Build: skill `implementor`
 One TASK block per unit of work; leave every HTML marker intact.
 The whole heading line, "T<n> - <title>", is committed verbatim as the commit subject.
 -->
+
+## Contracts
+
+<!-- One block per shape this change introduces or consumes: signature, type, endpoint, schema,
+     error code, dictionary key. Every block is named by at least one task's "Uses:" - a block
+     nobody names reaches no coder and is rejected at validation. Whether a task writes its
+     block or only calls it is read off its own "Files:", so no second field says so.
+     No contract at all -> drop this section and every task carries "Uses: none". -->
+
+### C1 - <name>
+
+<the shape itself>
+
+### C2 - <name>
+
+<...>

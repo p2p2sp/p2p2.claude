@@ -36,21 +36,26 @@
 # collision check below.
 #
 # --split writes, into the plan's OWN directory (docs/_specs/<stamp>_<slug>/):
-#   spec.md        - everything above "## Tasks": goal, acceptance criteria, scope,
-#                    contracts. The whole specification, and all of it every agent
-#                    working on the run needs.
-#   tasks/<id>.md  - one task block verbatim, plus a "## Covered criteria" section
-#                    carrying the text of the criteria its "Covers:" line names.
+#   spec.md        - everything above "## Tasks": goal, acceptance criteria, scope.
+#                    WHAT and WHY, read by the user and by the closing writers.
+#   tasks/<id>.md  - the whole job of one coder: its task block verbatim, then the
+#                    plan's "## Goal", the text of the criteria its "Covers:" line
+#                    names, the "## Contracts" blocks its "Uses:" line names, and
+#                    the plan's "### Out of scope".
 #   status.md      - the run's state, created empty and only when it is not there
 #                    yet: an existing one carries progress and is never rewritten
 #                    here. From then on commit-task.sh is the only writer, which
 #                    is what keeps the plan and the specification frozen.
 # A coder handed tasks/T3.md CANNOT see the other tasks, so it cannot drift into
-# their files - that isolation is the point, not the token saving. tasks/ is
-# rebuilt from scratch on every call, so a re-run after a plan edit carries no
-# stale task file, and the decomposition is committed together with the plan
-# (pathspec-scoped, best-effort): it lives under docs/, so leaving it uncommitted
-# would have every later commit-task.sh run report it as left behind.
+# their files - that isolation is the point, not the token saving. It is handed
+# nothing else either: the file is self-contained, which is why the "## Contracts"
+# appendix sits BELOW the tasks and reaches a coder only through "Uses:" - a
+# shared contracts section in the specification would put every route, type and
+# error code of the whole plan into the context of a task that touches one.
+# tasks/ is rebuilt from scratch on every call, so a re-run after a plan edit
+# carries no stale task file, and the decomposition is committed together with the
+# plan (pathspec-scoped, best-effort): it lives under docs/, so leaving it
+# uncommitted would have every later commit-task.sh run report it as left behind.
 #
 # Validation (exit != 0, nothing on stdout, nothing written) - catches plan drift
 # before a build starts:
@@ -59,9 +64,11 @@
 #   3 - no <!-- TASK --> blocks
 #   4 - broken task contract (duplicate id, an id that is not [A-Za-z0-9_-]+,
 #       missing field, illegal dependency, a "Covers:" criterion absent from the
-#       acceptance criteria, an acceptance criterion no task's "Covers:" names, an
-#       unparseable "Files:" entry, or the same file listed by two tasks with no
-#       dependency path between them - they would run at the same time)
+#       acceptance criteria, an acceptance criterion no task's "Covers:" names, a
+#       "Uses:" contract absent from the appendix, a contract block no task's
+#       "Uses:" names, a malformed or duplicate contract heading, an unparseable
+#       "Files:" entry, or the same file listed by two tasks with no dependency
+#       path between them - they would run at the same time)
 #
 # Contract:
 #   argv   : the plan file, optionally --split.
@@ -141,7 +148,7 @@ function fail(msg) { printf "error: %s\n", msg > "/dev/stderr"; err = 1 }
 function listed(s) { s = trim(s); return (s == "none" || s == "-" ? "" : s) }
 
 BEGIN {
-  n = 0; ncrit = 0; err = 0; title = ""
+  n = 0; ncrit = 0; ncon = 0; err = 0; title = ""
   plan = ENVIRON["plan"]
   # what is committed, plus the two decisions and the close that no later
   # session could read off the tree, all of it out of the status file
@@ -156,19 +163,33 @@ BEGIN {
 # plan title: the first H1
 /^#[[:space:]]/ && title == "" { title = trim(substr($0, 2)); next }
 
-# acceptance criteria: the numbered list inside its own section
-/^##[[:space:]]/ { incrit = ($0 ~ /Acceptance criteria/) ? 1 : 0 }
+# acceptance criteria: the numbered list inside its own section; contract blocks:
+# the "### <id> - <name>" headings inside theirs
+/^##[[:space:]]/ {
+  incrit = ($0 ~ /Acceptance criteria/) ? 1 : 0
+  incon  = ($0 ~ /Contracts/) ? 1 : 0
+}
 incrit && /^[0-9]+\./ {
   c = $0
   sub(/\..*/, "", c)
   crit[c + 0] = 1
   if (c + 0 > ncrit) ncrit = c + 0
 }
+incon && !intask && /^###[[:space:]]/ {
+  h = trim(substr($0, 4))
+  p = index(h, " - ")
+  if (p == 0) { fail("contract heading must be \"### <id> - <name>\", got: " h); next }
+  cid = trim(substr(h, 1, p - 1))
+  if (cid !~ /^[A-Za-z0-9_-]+$/) fail("contract id \"" cid "\": letters, digits, \"-\" and \"_\" only - a Uses line references it by name")
+  else if (cid in con)           fail("duplicate contract id: " cid)
+  else { con[cid] = 1; corder[++ncon] = cid }
+  next
+}
 
 /<!--[[:space:]]*TASK[[:space:]]*-->/ {
   intask = 1; n++
   id[n] = ""; ttl[n] = ""; tdd[n] = ""; deps[n] = ""; files[n] = ""
-  covers[n] = ""; deliv[n] = ""; verif[n] = ""; dod[n] = ""
+  covers[n] = ""; uses[n] = ""; deliv[n] = ""; verif[n] = ""; dod[n] = ""
   next
 }
 /<!--[[:space:]]*\/TASK[[:space:]]*-->/ { intask = 0; next }
@@ -184,6 +205,7 @@ intask {
   }
   if ($0 ~ /^-[[:space:]]*TDD:/)          { tdd[n]    = val($0); next }
   if ($0 ~ /^-[[:space:]]*Covers:/)       { covers[n] = val($0); next }
+  if ($0 ~ /^-[[:space:]]*Uses:/)         { uses[n]   = val($0); next }
   if ($0 ~ /^-[[:space:]]*Depends-on:/)   { deps[n]   = val($0); next }
   if ($0 ~ /^-[[:space:]]*Files:/)        { files[n]  = val($0); next }
   if ($0 ~ /^-[[:space:]]*Delivers:/)     { deliv[n]  = val($0); next }
@@ -236,6 +258,19 @@ END {
       if (!(cnums[k] + 0 in crit)) fail("task " id[i] ": Covers #" cnums[k] ", absent from acceptance criteria")
       else covered[cnums[k] + 0] = 1
 
+    # Uses is what carries a contract block into the task file, so it is
+    # mandatory and says "none" out loud: a task silently missing the line and
+    # one that genuinely touches no shape would otherwise look the same
+    u = uses[i]
+    if (u == "") fail("task " id[i] ": missing Uses - name its contract blocks, or \"none\"")
+    else if (u != "none" && u != "-") {
+      gsub(/,/, " ", u)
+      m = split(trim(u), unums, /[[:space:]]+/)
+      for (k = 1; k <= m; k++)
+        if (!(unums[k] in con)) fail("task " id[i] ": Uses " unums[k] ", no such contract block")
+        else usedcon[unums[k]] = 1
+    }
+
     # a dependency may only point at an earlier existing task, which makes the graph acyclic by construction
     d = deps[i]
     if (d == "" || d == "none" || d == "-") { dnorm[i] = "-"; continue }
@@ -276,6 +311,12 @@ END {
   # with "for (c in crit)", which awk iterates in no defined order.
   for (c = 1; c <= ncrit; c++)
     if ((c in crit) && !(c in covered)) fail("acceptance criterion #" c " is covered by no task")
+
+  # a contract block reaches a coder only through a "Uses:" line - one no task
+  # names sits in the plan unreachable, and the shape it describes is then
+  # whatever each coder invents
+  for (c = 1; c <= ncon; c++)
+    if (!(corder[c] in usedcon)) fail("contract " corder[c] " is used by no task")
 
   if (err) exit 4
 
@@ -324,6 +365,25 @@ mkdir -p -- "$dir/tasks"
 dir="$dir" awk '
 function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
 
+# the body under a heading, up to the next heading of any level: leading blank
+# lines dropped, interior ones kept, trailing ones collapsed away
+function section(pat,   i, started, out, pend) {
+  started = 0; out = ""; pend = 0
+  for (i = 1; i <= NR; i++) {
+    if (!started) { if (line[i] ~ pat) started = 1; continue }
+    if (line[i] ~ /^##/) break
+    if (trim(line[i]) == "") { if (out != "") pend++; continue }
+    while (pend > 0) { out = out "\n"; pend-- }
+    out = out line[i] "\n"
+  }
+  return out
+}
+
+function rstrip(s) {
+  while (s ~ /\n[[:space:]]*\n$/) sub(/\n[[:space:]]*\n$/, "\n", s)
+  return s
+}
+
 BEGIN { dir = ENVIRON["dir"] }
 { line[NR] = $0 }
 
@@ -336,6 +396,27 @@ END {
   for (i = 1; i < cut; i++) print line[i] > spec
   close(spec)
 
+  # the standing context every task file carries: what the run is for, and the
+  # boundary none of its coders may cross. A coder is handed its task file and
+  # nothing else, so both travel with it rather than sitting in a spec it reads.
+  goal = section("^##[[:space:]]*Goal[[:space:]]*$")
+  oos  = section("^###[[:space:]]*Out of scope[[:space:]]*$")
+
+  # contract blocks by id: the heading line plus everything under it, sliced into
+  # the task files their "Uses:" names and nowhere else
+  for (i = 1; i <= NR; i++) {
+    s = line[i]
+    if (s ~ /^##[[:space:]]/) { incon = (s ~ /Contracts/); cid = ""; continue }
+    if (!incon) continue
+    if (s ~ /^###[[:space:]]/) {
+      h = trim(substr(s, 4)); p = index(h, " - ")
+      cid = (p ? trim(substr(h, 1, p - 1)) : trim(h))
+      cbody[cid] = s "\n"
+      continue
+    }
+    if (cid != "") cbody[cid] = cbody[cid] s "\n"
+  }
+
   # acceptance criteria by number: the "N." line plus its continuations, ended by
   # the next number, a blank line or the end of the section
   for (i = 1; i < cut; i++) {
@@ -347,19 +428,29 @@ END {
     if (cur) crit[cur] = crit[cur] "\n" s
   }
 
-  # one file per task: the block verbatim, then the text of the criteria it covers
+  # one file per task, and it is the whole job: the block verbatim, the run goal,
+  # the criteria it covers, the contracts it uses, the boundary it must not cross
   for (i = cut; i <= NR; i++) {
-    if (line[i] ~ /<!--[[:space:]]*TASK[[:space:]]*-->/)   { intask = 1; body = ""; id = ""; cov = ""; continue }
+    if (line[i] ~ /<!--[[:space:]]*TASK[[:space:]]*-->/)   { intask = 1; body = ""; id = ""; cov = ""; use = ""; continue }
     if (line[i] ~ /<!--[[:space:]]*\/TASK[[:space:]]*-->/) {
       intask = 0
       if (id == "") continue
       f = dir "/tasks/" id ".md"
       printf "%s", body > f
+      if (goal != "") printf "\n## Goal\n%s", goal > f
       m = split(cov, cn, /[[:space:]]+/)
       if (m > 0) {
         printf "\n## Covered criteria\n" > f
         for (k = 1; k <= m; k++) if (cn[k] != "" && (cn[k] + 0) in crit) printf "%s\n", crit[cn[k] + 0] > f
       }
+      m = split(use, un, /[[:space:]]+/)
+      opened = 0
+      for (k = 1; k <= m; k++) {
+        if (un[k] == "" || !(un[k] in cbody)) continue
+        if (!opened) { printf "\n## Contracts\n" > f; opened = 1 }
+        printf "\n%s", rstrip(cbody[un[k]]) > f
+      }
+      if (oos != "") printf "\n## Out of scope\n%s", oos > f
       close(f)
       n++
       continue
@@ -372,6 +463,10 @@ END {
     }
     if (line[i] ~ /^-[[:space:]]*Covers:/) {
       c = line[i]; sub(/^[^:]*:/, "", c); gsub(/[^0-9]+/, " ", c); cov = trim(c)
+    }
+    if (line[i] ~ /^-[[:space:]]*Uses:/) {
+      u = line[i]; sub(/^[^:]*:/, "", u); gsub(/,/, " ", u); use = trim(u)
+      if (use == "none" || use == "-") use = ""
     }
   }
   printf "decomposed: %d tasks into %s\n", n, dir > "/dev/stderr"
