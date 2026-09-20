@@ -158,7 +158,10 @@ plugin-named dot-dir, no state file.
   rules only - it names no skill and no chain, because routing lives in each skill's own
   `description:`.
 - **The gate arms on two signals only** - the planner skill running, and a Write/Edit of a
-  `plans/*.md` file in the same plan-mode episode - and fails open on everything else. That path is
+  `plans/*.md` file in the same plan-mode episode - and fails open on everything else. Signal 1 is
+  a `Skill` tool_use and nothing else: `planner` is `user-invocable: false`, so no typed command
+  loads it, and a model dispatch leaves no `<command-name>` line in the transcript. A detector on
+  that line would be dead for viber and live for any OTHER plugin shipping a typeable `planner`. That path is
   the HARNESS plan directory, the one plan mode names itself, not `docs/_specs/`: the gate fires
   while the plan is still a draft, long before the implementor lands it. A broken gate must never
   trap the user in plan mode.

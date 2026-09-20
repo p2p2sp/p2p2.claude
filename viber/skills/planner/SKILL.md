@@ -36,7 +36,7 @@ Task rules:
 - `Files` is the task's complete file map, comma-separated on one line: exact repo-relative paths, no globs, no directories, no annotations. It is what gets staged for the commit and what the collision check compares.
 - Tasks with no dependency path between them must not list the same file - they run at the same time.
 - `Delivers` states WHAT the task produces. Never how to code it, never a line number.
-- `Verification` is a runnable command plus the result that counts as proof.
+- `Verification` is a runnable command plus the result that counts as proof. A task with no runtime behaviour verifies its artefact instead: the file exists and its required content greps, never "read it and judge".
 - `TDD: required` by default. `TDD: none` only where the task changes no runtime behaviour: config, docs, mechanical rename, scaffolding.
 - A reproduction test already RED in the tree goes into the fixing task's `Files:` - nothing outside a file map gets committed - and that task carries `TDD: none`: its RED cycle is done.
 - Every acceptance criterion is covered by at least one task's `Covers`.
@@ -48,6 +48,7 @@ ADR tasks, only with `adr: true` above; otherwise skip the rest of this section 
 - Put each candidate to the user in prose, one line each - the decision, the alternative it beat - and let them accept or drop it. Each accepted one becomes a task of its own, ahead of every other task.
 - `Files: docs/adr/<yyyy-mm-dd>-<slug>.md`, the date from `date +%Y-%m-%d` so the path is exact - it is a commit file map, not a pattern. `TDD: none`, `Depends-on: none`, and nothing ever depends on it.
 - `Delivers` carries the record itself, because the task file is all its writer gets: the title, `Status: accepted` with the date, then Context, Decision, Alternatives (what it beat and why not) and Consequences.
+- `Verification: test -f <path> && grep -q '^Status: accepted' <path> -> exit 0`, that path written out in full both times; `DoD`: the record exists there and carries every part `Delivers` lists.
 - Add one acceptance criterion for the record and point every ADR task's `Covers` at it.
 
 Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan-path>` as one literal Bash line, no interpreter word in front - any other form is an unapproved call that stalls on a permission prompt. It must exit 0 - it validates ids, required fields, dependency direction, that every `Covers` points at a real criterion, the `Files` format, and that no two tasks without a dependency path between them list the same file. Fix whatever it reports and re-run.

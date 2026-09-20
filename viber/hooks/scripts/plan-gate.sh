@@ -4,7 +4,8 @@
 #
 # Armed only when the CURRENT plan-mode episode shows both signals of the planner
 # skill driving the plan:
-#   - a Skill tool_use for "planner", and
+#   - a Skill tool_use for "planner" - the skill is user-invocable: false, so a
+#     model dispatch is the only way it runs, and
 #   - a Write/Edit of a plans/*.md file - plan mode names that path itself, so it
 #     is the harness plans directory unless the project redirects it.
 # Anything else - plain plan mode, a plan-mode exit in a session that already
@@ -71,16 +72,15 @@ episode_start=$(
 )
 episode_start="${episode_start:-0}"
 
-# Signal 1: the planner skill is running - invoked through the Skill tool, or typed
-# by the user as /planner, which loads the skill with no Skill tool_use at all.
-# An escaped mention inside some other tool's payload cannot match the first form:
+# Signal 1: the planner skill is running. A Skill tool_use is the only form it can
+# take - the skill is user-invocable: false, so no typed command ever loads it.
+# An escaped mention inside some other tool's payload cannot match:
 # `\"skill\":\"planner\"` carries a backslash where the pattern needs the quote.
 skill_line=$(
-  {
-    grep -nE '"name":"Skill"' "$transcript_path" 2>/dev/null \
-      | grep -E '"skill":"([a-zA-Z0-9_.-]+:)?planner"'
-    grep -nE '<command-name>/([a-zA-Z0-9_.-]+:)?planner</command-name>' "$transcript_path" 2>/dev/null
-  } | cut -d: -f1 | sort -n | tail -n1
+  grep -nE '"name":"Skill"' "$transcript_path" 2>/dev/null \
+    | grep -E '"skill":"([a-zA-Z0-9_.-]+:)?planner"' \
+    | tail -n1 \
+    | cut -d: -f1
 )
 [ -n "$skill_line" ] && [ "$skill_line" -gt "$episode_start" ] || emit_allow
 

@@ -1,7 +1,6 @@
 ---
 name: implementor
 description: Builds an approved plan task by task. Requires an existing plan; without one, use the planner skill.
-argument-hint: [plan-path]
 allowed-tools: Agent, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*)
 disallowed-tools: Read, Write, Edit, NotebookEdit
 model: sonnet

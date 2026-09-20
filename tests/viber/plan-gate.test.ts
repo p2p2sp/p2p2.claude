@@ -4,8 +4,8 @@
  * rather than by the model.
  *
  * What it must do: arm ONLY when the current plan-mode episode carries both
- * signals of the planner skill driving the plan (a Skill tool_use for `planner`
- * or a typed `/planner`, plus a Write/Edit of a `plans/*.md` file), then allow
+ * signals of the planner skill driving the plan (a Skill tool_use for `planner`,
+ * the only form it can take, plus a Write/Edit of a `plans/*.md` file), then allow
  * ExitPlanMode only for a `viber:planner-review` dispatch that FOLLOWED the last
  * plan write, returned `VERDICT: PASS`, and whose plan file has not been touched
  * since (mtime vs. the verdict's transcript timestamp). Everything else - plain
@@ -86,8 +86,9 @@ function skillUse(skill = "viber:planner"): string {
   return line({ type: "assistant", message: { content: [{ type: "tool_use", name: "Skill", input: { skill } }] } });
 }
 
-/** Signal 1b: the user typing `/viber:planner`, which loads the skill with no
- *  Skill tool_use at all. */
+/** NOT a signal: a typed command. The planner skill is user-invocable: false, so
+ *  `/viber:planner` cannot be typed at all, and a `planner` command that IS typeable
+ *  belongs to some other plugin. */
 function typedCommand(command = "/viber:planner"): string {
   return line({ type: "user", message: { content: `<command-name>${command}</command-name>` } });
 }
@@ -198,10 +199,17 @@ test("the unprefixed skill spelling 'planner' arms the gate too (the install for
   });
 });
 
-test("a typed /viber:planner arms the gate (a typed command loads the skill with no Skill tool_use)", () => {
+test("a typed /viber:planner does NOT arm the gate (planner is user-invocable: false; a typeable 'planner' is another plugin's)", () => {
   withTempDir("p2p2-plan-gate-", (dir) => {
     const f = writeTranscript(dir, "t.jsonl", [typedCommand(), planWrite()]);
-    assert.equal(runCase(f).decision, "deny");
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("another plugin's /xyz:planner over a plan write stays out of viber's way -> allow", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [typedCommand("/xyz:planner"), planWrite()]);
+    assert.equal(runCase(f).decision, "allow");
   });
 });
 

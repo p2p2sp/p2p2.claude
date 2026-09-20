@@ -95,24 +95,15 @@ Naprawa: jedno zdanie w `planner`, co zrobić, gdy plan mode nie nazwie pliku.
 
 ### 10. `Verification` i `DoD` nie pasują do zadań, które viber sam generuje
 
-`planner/SKILL.md:39` wymaga "a runnable command plus the result that counts as proof". Sekcja ADR
-(`planner/SKILL.md:45-51`) definiuje zadanie, którego produktem jest plik markdown, i nie mówi, co
-wpisać w `Verification` ani `DoD`. `plan-index.sh` sprawdza wyłącznie niepustość, więc przejdzie
-dowolny wymysł. To samo dotyczy każdego zadania `TDD: none` typu dokumentacja. superdev ma na to
-`Kind:`, viber nie ma odpowiednika.
-
-Naprawa: albo dopisać w sekcji ADR wzorzec `Verification` i `DoD`, albo dopuścić w regule zadaniowej
-weryfikację nieuruchamialną dla zadań bez zachowania runtime'owego.
+NAPRAWIONE (weryfikacją zadania bez zachowania runtime'owego jest check na artefakcie, nie
+rozluźniona reguła; wyrównało też `planner-review`, który wymagał runnable command tam, gdzie
+`task-reviewer` już dopuszczał proof do przeczytania)
 
 ## Drobne
 
 ### 11. Martwa gałąź `/planner` w bramie planu
 
-`viber/hooks/scripts/plan-gate.sh:82` i opis w `viber/hooks/hooks.json:2` uzbrajają sygnał 1 także
-na wpisane `<command-name>/planner</command-name>`. `planner/SKILL.md:5` ma `user-invocable: false`,
-a `README.md:42-43` potwierdza, że to celowe. Tej komendy nie da się wpisać, więc połowa detektora
-nigdy nie zadziała. Nieszkodliwe, bo hook jest fail-open, ale wprowadza w błąd przy następnym
-czytaniu.
+NAPRAWIONE (detektor pokrywał też cudze `/xyz:planner`, więc usunięcie zamknęło fałszywe uzbrojenie)
 
 ### 12. `Plan: <path-to-plan>` w templatce staje się nieprawdą po wylądowaniu
 
@@ -122,14 +113,9 @@ czyli w kontekście każdego agenta w runie. Albo usunąć pole, albo niech `--l
 
 ### 13. `argument-hint` przy `user-invocable: false`
 
-`implementor/SKILL.md:4` w parze z `implementor/SKILL.md:9`. To jedyny taki przypadek w repo,
-pozostałe 8 wystąpień `argument-hint` siedzi na skillach user-invocable.
+NAPRAWIONE
 
 ### 14. Gałąź `accept` po dwóch nieudanych rundach review jest niezdefiniowana
 
 `implementor/SKILL.md:87`. Domyślnie "przejdź do kroku 3 i commituj", ale to jedyne miejsce, gdzie
 człowiek nadpisuje bramkę, więc powinno być napisane wprost.
-
-### 15. `.temp/viber/<plan-key>/` nigdy nie jest sprzątane
-
-Nie boli, bo katalog jest w gitignore, ale nikt tego nie deklaruje ani w węźle pamięci, ani w README.
