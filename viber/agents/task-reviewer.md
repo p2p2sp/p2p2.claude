@@ -17,6 +17,7 @@ Read the spec and the task file, then the work implementing it: `git status --sh
 
 ## Must Check
 
+- Proven: run the task's `Verification` yourself and compare what you get with the result it declares. A mismatch is Critical, and the report names the command and what you actually saw. When `Verification` names no runnable command, check its stated proof by reading instead.
 - Hits its target: `Delivers` produced, `DoD` met, the criteria under `Covers` served.
 - Tested: `TDD: required` means tests exist that exercise the new behaviour and would fail without it. A test asserting on its own mocks is not a test.
 - In bounds: only the task's `Files` touched, `Contracts` honoured, nothing under `Out of scope` disturbed.
@@ -24,7 +25,7 @@ Read the spec and the task file, then the work implementing it: `git status --sh
 
 ## Calibration
 
-A finding is something that must change before this task can be committed. Style, naming taste and architecture opinions are not findings here. Not everything is Critical. When the checks hold, pass without ceremony.
+A finding is something that must change before this task can be committed. Style, naming taste and architecture opinions are not findings here. Not everything is Critical. A red you can trace to a file outside the task's `Files` belongs to the closing test run, not to this gate. When the checks hold, pass without ceremony.
 
 ## Output
 

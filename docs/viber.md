@@ -29,14 +29,7 @@ NAPRAWIONE
 
 ### 2. `task-reviewer` nigdy nie uruchamia weryfikacji zadania
 
-`viber/agents/task-reviewer.md:4` daje agentowi `Bash`, ale ciało używa go wyłącznie do
-`git status --short` i `git diff HEAD --`. Sprawdzenie "Tested" (`task-reviewer.md:21`) opiera się na
-czytaniu kodu. Efekt: jedyna niezależna bramka przed commitem ufa deklaracji kodera, że jest zielono.
-Pole `Verification:` wypełnia planner, `plan-index.sh` sprawdza tylko jego niepustość, a uruchamia je
-jedynie ten, kto ma interes w wyniku.
-
-Naprawa: jedna pozycja w `## Must Check` nakazująca uruchomić `Verification` z pliku zadania i uznać
-niezgodny wynik za finding Critical. To najtańsza do zamknięcia luka w całym pluginie.
+NAPRAWIONE
 
 ### 3. Brak baseline'u testów przed buildem
 
