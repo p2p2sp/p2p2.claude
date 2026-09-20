@@ -10,7 +10,8 @@
     "./skills/idea/",
     "./skills/planner/",
     "./skills/implementor/",
-    "./skills/tdd/"
+    "./skills/tdd/",
+    "./skills/fixer/"
   ],
   "agents": [
     "./agents/planner-review.md",
