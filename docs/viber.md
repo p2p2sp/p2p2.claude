@@ -46,22 +46,7 @@ NAPRAWIONE
 
 ### 4. `commit-task.sh` stage'uje po pathspec, ale commituje cały index
 
-- Linie 257 i 200: `git commit -m "$subject" -m "Refs: ..."` bez pathspec. Stage'owanie jest
-  ograniczone do `Files:`, ale commit zabiera wszystko, co w indeksie.
-- Forma `--chore` (linia 96) robi to poprawnie, z pathspec. Trzy formy jednego skryptu nie są ze
-  sobą spójne.
-- Scenariusz a: użytkownik miał coś zastage'owane przed startem builda. Implementor nigdy nie
-  sprawdza `git status`, bo nie ma na to Bash, więc to wpada do commita T1 po cichu.
-- Scenariusz b: exit 5 celowo zostawia pliki w indeksie ("the named files stay staged, so the
-  call can be retried as is"), implementor pyta retry/skip/abort, i na "skip" następne zadanie
-  zgarnia tamte pliki do swojego commita.
-- Łamie nagłówek samego skryptu ("Neither form ever stages a path the caller did not name") i
-  invariant z `viber/CLAUDE.md:82` o commitach zadań równoległych.
-- Testy tego nie łapią: `tests/viber/commit-task.test.ts:161` tworzy plik poza mapą, ale go nie
-  stage'uje, a test z linii 203 retry'uje to samo zadanie.
-- Status weryfikacji: wniosek z lektury kodu. Eksperyment odpalający git w scratchpadzie został
-  odrzucony na uprawnieniach, więc nie potwierdzony uruchomieniem.
-- Fix: `git commit ... -- "${paths[@]}" "$plan"` w formie zadaniowej i `-- "$@"` w naprawczej.
+NAPRAWIONE
 
 ## Średnie
 

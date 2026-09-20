@@ -1,7 +1,9 @@
 /*
  * commit-task.test.ts - proves viber/scripts/commit-task.sh's contract:
  * `commit-task.sh <plan-file> <task-id>` stages ONLY the paths on that task's
- * `- Files:` line, commits them under the task's own heading line
+ * `- Files:` line and commits through that same pathspec - a file staged before
+ * or beside the run stays in the index instead of riding along - under the
+ * task's own heading line
  * (`### T1 - <title>`) as the subject, writes the `<!-- done: ... -->` marker and
  * the `## Tasks (x/N)` header, and prints `committed: <sha>` and `progress: x/N`
  * on stdout with anything left outside the commit named on stderr.
@@ -172,6 +174,20 @@ test("a file outside the task's map stays out of the commit and is named on stde
   });
 });
 
+test("a file staged before the run stays staged and out of the task's commit (the orchestrator has no Bash to notice a dirty index)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "src/PRESTAGED.ts", "staged by the user before the build\n");
+    repo.git("add", "--", "src/PRESTAGED.ts");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(committedFiles(repo), [PLAN_REL, "src/a.ts"].sort());
+    assert.deepEqual(stagedFiles(repo), ["src/PRESTAGED.ts"]);
+  });
+});
+
 test("a refused git commit leaves the plan byte-for-byte unchanged and exits 5 (a task marked done but never committed is skipped forever on resume)", () => {
   withGitRepo((repo) => {
     seed(repo);
@@ -216,6 +232,23 @@ test("a refused git commit leaves the task's work staged, so the same call retri
     assert.match(retried.stdout, /progress: 1\/2\n$/);
     assert.match(readPlan(repo), /<!-- done: T1 -->/);
     assert.deepEqual(committedFiles(repo), [PLAN_REL, "src/a.ts"].sort());
+  });
+});
+
+test("work left staged by a refused commit does not ride along in the next task's commit (the user answered 'skip', not 'retry')", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    breakCommit(repo);
+    assert.equal(run(repo.dir, repo.env, [PLAN_REL, "T1"]).status, 5);
+    fixCommit(repo);
+
+    write(repo.dir, "src/b.ts", "the task after the skipped one\n");
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T2"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(committedFiles(repo), [PLAN_REL, "src/b.ts"].sort());
+    assert.deepEqual(stagedFiles(repo), ["src/a.ts"]);
+    assert.match(readPlan(repo), /<!-- done: T2 -->/);
   });
 });
 
@@ -287,6 +320,22 @@ test("a fix number commits a repair of that task under 'T<n>(<round>) - <title>'
     assert.equal(subjects(repo)[0], "T1(2) - add the plan index");
     assert.match(result.stderr, /left outside the commit \(not in the fix's file list\)/);
     assert.match(result.stderr, /src\/UNRELATED\.ts/);
+  });
+});
+
+test("a fix commits only the files it names, even when other work is already staged", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    write(repo.dir, "src/a.ts", "repair\n");
+    write(repo.dir, "src/b.ts", "another task's work, staged and not yet committed\n");
+    repo.git("add", "--", "src/b.ts");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "2", "src/a.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(committedFiles(repo), ["src/a.ts"]);
+    assert.deepEqual(stagedFiles(repo), ["src/b.ts"]);
   });
 });
 

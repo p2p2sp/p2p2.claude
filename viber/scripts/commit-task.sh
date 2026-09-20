@@ -25,9 +25,11 @@
 # paths (a CLAUDE.md -> memory, a .claude/rules/ file -> rules, both -> both), so
 # the caller never composes a commit subject here either.
 #
-# Neither form ever stages a path the caller did not name, and a ".temp/" entry
-# is refused outright, so machine state and anything written outside the file
-# map stay uncommitted and visible.
+# No form ever stages a path the caller did not name, and every form commits
+# through its own pathspec, so a path staged before or beside the run stays in
+# the index instead of riding along. A ".temp/" entry is refused outright, so
+# machine state and anything written outside the file map stay uncommitted and
+# visible.
 #
 # A plain task commit appends the task id to the <!-- done: ... --> marker and recomputes the
 # "## Tasks (x/N)" header, so the plan carries its own progress and a build resumes
@@ -69,8 +71,11 @@ if [[ "${1:-}" == "--chore" ]]; then
         continue
         ;;
     esac
-    paths+=("$f")
-    git add -A -- "$f" 2>/dev/null || echo "warning: could not stage $f" >&2
+    if git add -A -- "$f" 2>/dev/null; then
+      paths+=("$f")
+    else
+      echo "warning: could not stage $f" >&2
+    fi
   done
 
   if [[ ${#paths[@]} -eq 0 ]] || git diff --cached --quiet -- "${paths[@]}"; then
@@ -167,6 +172,9 @@ else
 fi
 
 # --- stage the named files only ---
+# The same list is the commit's pathspec below: a file staged by someone else
+# before the run, or left staged by an earlier exit 5, must not ride along.
+paths=()
 while IFS= read -r f; do
   [[ -z "$f" ]] && continue
   case "$f" in
@@ -175,10 +183,14 @@ while IFS= read -r f; do
       continue
       ;;
   esac
-  git add -A -- "$f" 2>/dev/null || echo "warning: could not stage $f" >&2
+  if git add -A -- "$f" 2>/dev/null; then
+    paths+=("$f")
+  else
+    echo "warning: could not stage $f" >&2
+  fi
 done <<< "$files"
 
-if git diff --cached --quiet; then
+if [[ ${#paths[@]} -eq 0 ]] || git diff --cached --quiet -- "${paths[@]}"; then
   if [[ -n "$fix_n" ]]; then
     echo "error: the fix for task $task_id produced no changes to commit" >&2
   else
@@ -197,7 +209,7 @@ warn_dirty() {
 
 # --- a repair of an already committed task: no marker, no counter ---
 if [[ -n "$fix_n" ]]; then
-  git commit -m "$subject" -m "Refs: $plan task $task_id fix $fix_n" >&2 || exit 5
+  git commit -m "$subject" -m "Refs: $plan task $task_id fix $fix_n" -- "${paths[@]}" >&2 || exit 5
   echo "committed: $(git rev-parse --short HEAD)"
   echo "progress: unchanged"
   warn_dirty "the fix's file list"
@@ -254,7 +266,7 @@ rm -f "$tmp.progress"
 
 git add -- "$plan" || exit 5
 
-git commit -m "$subject" -m "Refs: $plan task $task_id" >&2 || exit 5
+git commit -m "$subject" -m "Refs: $plan task $task_id" -- "${paths[@]}" "$plan" >&2 || exit 5
 
 rm -f "$backup"
 backup=""

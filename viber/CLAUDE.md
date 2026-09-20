@@ -57,8 +57,9 @@ plugin-named dot-dir, no state file.
   decomposition too - one key names everything the run touches.
 - **The plan file is the state.** `<!-- done: ... -->` plus the `## Tasks (x/N)` header carry
   progress, so a build resumes after a context reset with no sidecar. `commit-task.sh` is what
-  advances both, and it stages ONLY the task's `Files:` list - anything written outside the file
-  map stays uncommitted and visible. The marker and the commit are atomic: the marker is written
+  advances both, and it stages ONLY the task's `Files:` list and commits through that same
+  pathspec - anything outside the file map stays uncommitted and visible, including a path
+  someone else left staged. The marker and the commit are atomic: the marker is written
   first so it rides in the commit, and rolled back from a backup if staging or committing fails
   (exit 5). A task marked done that was never committed would be skipped forever on resume, so
   this is the one place in the plugin where a script undoes its own write.
@@ -76,7 +77,8 @@ plugin-named dot-dir, no state file.
   is a second commit against the same task (`<plan> <id> <round> <file>...`), subject
   `T<n>(<round>) - <title>`, progress untouched. `--chore <file>...` is the third and last form:
   the memory and rule files the close produced, which no task owns, under a subject the script
-  DERIVES from the paths. No form runs `git add -A` over the tree, and a `.temp/` entry is refused
+  DERIVES from the paths. No form runs `git add -A` over the tree and no form commits the index as
+  a whole - all three pass their own paths to `git commit` - and a `.temp/` entry is refused
   outright.
 - **`Files:` is a machine-readable map, not prose.** Comma-separated exact repo-relative paths on
   one line, no globs, no directories, no annotations. `commit-task.sh` stages that list literally,
