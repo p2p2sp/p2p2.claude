@@ -1,18 +1,23 @@
 /*
  * plan-path.test.ts - proves viber/scripts/plan-path.sh's contract: it is the
- * ONE place a plan path is formed, so every rule about the run directory
+ * ONE place a plan path is formed AND the one place the approved plan is put
+ * there, so every rule about the run directory
  * `docs/_specs/<yyyy-mm-dd-HH-mm-ss>_<slug>/` lives here and nowhere else.
  *
- * Two properties carry the design. The stamp is taken when the plan LANDS, so
- * a second run of the same slug can never overwrite an earlier plan - it either
- * reports the open run as `state: existing` or mints a fresh stamp. And the key
- * it prints also names `.temp/viber/<plan-key>/` and the decomposition beside
- * the plan, so anything but `[a-z0-9-]` leaking out of the slug normalization
- * would reach a directory name and a git path.
+ * Three properties carry the design. The stamp is taken when the plan LANDS,
+ * so a second run of the same slug can never overwrite an earlier plan - it
+ * either reports the open run as `state: existing` or mints a fresh stamp. The
+ * key it prints also names `.temp/viber/<plan-key>/` and the decomposition
+ * beside the plan, so anything but `[a-z0-9-]` leaking out of the slug
+ * normalization would reach a directory name and a git path. And `--land`
+ * COPIES: plan mode writes the plan into a user-level `plansDirectory`,
+ * normally outside the repository, so the source must survive untouched and
+ * the landed plan - which carries the build's own progress markers - must
+ * never be written over.
  *
  * The caller is trusted to take this output as it stands - the skill never
- * re-verifies it - which makes the three-line block and the exit codes (2: the
- * slug normalizes to nothing, 3: no slug and no plan) the whole interface.
+ * re-verifies it - which makes the three-line block and the exit codes (2:
+ * unusable argv, 3: nothing to resume, 5: the copy failed) the whole interface.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -72,25 +77,49 @@ function stampAge(key: string): number {
 
 /** A landed plan: the run directory plus its plan.md, with a pinned mtime so
  *  "most recently worked on" is decided by the test, not by the filesystem. */
-function landPlan(root: string, key: string, mtime = "2026-01-01T00:00:00Z"): string {
+function landPlan(root: string, key: string, mtime = "2026-01-01T00:00:00Z", body?: string): string {
   const file = path.join(root, "docs", "_specs", key, "plan.md");
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, `# ${key}\n`);
+  fs.writeFileSync(file, body ?? `# ${key}\n`);
   const seconds = Date.parse(mtime) / 1000;
   fs.utimesSync(file, seconds, seconds);
   return file;
 }
 
-test("no slug and nothing under docs/_specs: exit 3, an empty stdout and the reason on stderr", () => {
+/** A source plan the way plan mode leaves one: any directory, any file name,
+ *  its title on the first H1. Returned as an absolute path, because that is
+ *  what a `plansDirectory` outside the repository hands over. */
+function sourcePlan(dir: string, name: string, body: string): string {
+  const file = path.join(dir, name);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, body);
+  return file;
+}
+
+/** The run directories on disk, so a test can assert that a second one was -
+ *  or was not - minted. */
+function runDirs(root: string): string[] {
+  const specs = path.join(root, "docs", "_specs");
+  return fs.existsSync(specs) ? fs.readdirSync(specs).sort() : [];
+}
+
+const PLAN_BODY = ["# Add Login", "", "## Goal", "", "Let people sign in.", ""].join("\n");
+
+// --- no argument: resume the run in progress ---
+
+test("no argument and nothing under docs/_specs: exit 3, an empty stdout and the next step on stderr", () => {
   withTempDir("p2p2-viber-", (dir) => {
     const result = run(dir);
     assert.equal(result.status, 3);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /no plan under docs\/_specs/);
+    // The dead end this exit used to be is the whole reason --land exists, so
+    // the message has to name the way out.
+    assert.match(result.stderr, /--land/);
   });
 });
 
-test("no slug and one landed plan: the three-line block, verbatim and in order", () => {
+test("no argument and one landed plan: the three-line block, verbatim and in order", () => {
   withTempDir("p2p2-viber-", (dir) => {
     landPlan(dir, "2026-09-19-17-30-00_add-login");
 
@@ -108,7 +137,7 @@ test("no slug and one landed plan: the three-line block, verbatim and in order",
   });
 });
 
-test("no slug: the plan touched most recently wins, not the first on disk and not the newest stamp", () => {
+test("no argument: the plan touched most recently wins, not the first on disk and not the newest stamp", () => {
   withTempDir("p2p2-viber-", (dir) => {
     landPlan(dir, "2026-01-01-09-00-00_alpha", "2026-01-01T09:00:00Z");
     landPlan(dir, "2026-02-01-09-00-00_beta", "2026-09-01T09:00:00Z");
@@ -133,12 +162,6 @@ test("a run directory with no plan.md, and a plan.md that is a directory, are bo
     assert.equal(empty.status, 3, `stdout: ${empty.stdout}`);
     assert.equal(empty.stdout, "");
 
-    // The same guard in the slug branch: an aborted run must not be resumed,
-    // it must mint a fresh stamp.
-    const aborted = run(dir, ["abandoned"]);
-    assert.equal(aborted.status, 0, `stderr: ${aborted.stderr}`);
-    assert.equal(parse(aborted.stdout).state, "new");
-
     landPlan(dir, "2026-08-01-09-00-00_real", "2026-08-01T09:00:00Z");
     const found = run(dir);
     assert.equal(found.status, 0, `stderr: ${found.stderr}`);
@@ -146,7 +169,24 @@ test("a run directory with no plan.md, and a plan.md that is a directory, are bo
   });
 });
 
-test("an empty argument is no argument: it resolves the plan most recently worked on rather than failing as an empty slug", () => {
+test("--land beside an aborted run of the same slug mints a fresh stamp rather than adopting the empty directory", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const aborted = "2026-09-01-09-00-00_abandoned";
+    fs.mkdirSync(path.join(dir, "docs", "_specs", aborted), { recursive: true });
+
+    const src = sourcePlan(dir, "outside/abandoned.md", "# Abandoned\n");
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+    const resolved = parse(result.stdout);
+    assert.equal(resolved.state, "new");
+    assert.equal(slugOf(resolved.key), "abandoned");
+    assert.notEqual(resolved.key, aborted);
+    assert.deepEqual(runDirs(dir), [aborted, resolved.key].sort());
+  });
+});
+
+test("an empty argument is no argument: it resolves the plan most recently worked on rather than failing as a usage error", () => {
   withTempDir("p2p2-viber-", (dir) => {
     landPlan(dir, "2026-09-19-17-30-00_add-login");
 
@@ -157,126 +197,6 @@ test("an empty argument is no argument: it resolves the plan most recently worke
       key: "2026-09-19-17-30-00_add-login",
       state: "existing",
     });
-  });
-});
-
-test("a slug whose run is already open comes back as existing, at that run's own path and key", () => {
-  withTempDir("p2p2-viber-", (dir) => {
-    landPlan(dir, "2026-09-19-17-30-00_add-login");
-    landPlan(dir, "2026-09-20-08-00-00_other-thing", "2026-09-20T08:00:00Z");
-
-    const result = run(dir, ["Add Login"]);
-    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.deepEqual(parse(result.stdout), {
-      path: "docs/_specs/2026-09-19-17-30-00_add-login/plan.md",
-      key: "2026-09-19-17-30-00_add-login",
-      state: "existing",
-    });
-  });
-});
-
-test("a slug with no open run comes back as new, at a freshly stamped path, and nothing is written to disk", () => {
-  withTempDir("p2p2-viber-", (dir) => {
-    const result = run(dir, ["add-login"]);
-    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-
-    const resolved = parse(result.stdout);
-    assert.equal(resolved.state, "new");
-    assert.equal(slugOf(resolved.key), "add-login");
-    assert.equal(resolved.path, `docs/_specs/${resolved.key}/plan.md`);
-    assert.equal(fs.existsSync(path.join(dir, "docs")), false, "resolving a path must not create one");
-
-    // The stamp is taken NOW, which is the whole reason a second run of one
-    // slug cannot overwrite an earlier plan. The window is wide on purpose: it
-    // has to catch a fixed or epoch-derived stamp (off by years), not to
-    // measure the clock, and a DST-ambiguous local hour must never flip it.
-    assert.ok(Math.abs(stampAge(resolved.key)) < 90 * 60_000, `the stamp must be the landing moment: ${resolved.key}`);
-  });
-});
-
-test("the slug is normalized here, so the caller may hand over the plan title as it stands", () => {
-  const cases: Array<[string, string]> = [
-    ["Add Login", "add-login"],
-    ["  --Add / LOGIN!!  ", "add-login"],
-    ["add__login", "add-login"],
-    ["Add-Login", "add-login"],
-    ["...add...login...", "add-login"],
-    ["Refactor 2 Auth", "refactor-2-auth"],
-  ];
-  withTempDir("p2p2-viber-", (dir) => {
-    for (const [title, expected] of cases) {
-      const result = run(dir, [title]);
-      assert.equal(result.status, 0, `${title} -> stderr: ${result.stderr}`);
-      assert.equal(slugOf(parse(result.stdout).key), expected, `title: ${title}`);
-    }
-  });
-});
-
-test("a non-ASCII title still yields an ASCII-only slug (the key becomes a directory name and a git path)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
-    const result = run(dir, ["Dodaj obsługę płatności"]);
-    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-
-    // slugOf asserts the [a-z0-9-] shape; the leading word proves the title
-    // was carried over rather than dropped.
-    const slug = slugOf(parse(result.stdout).key);
-    assert.ok(slug.startsWith("dodaj"), `slug: ${slug}`);
-  });
-});
-
-test("a slug longer than 60 characters is cut to 60 and never keeps a trailing hyphen", () => {
-  withTempDir("p2p2-viber-", (dir) => {
-    const midWord = run(dir, ["b".repeat(70)]);
-    assert.equal(midWord.status, 0, `stderr: ${midWord.stderr}`);
-    assert.equal(slugOf(parse(midWord.stdout).key), "b".repeat(60));
-
-    // The cut lands exactly on the separator: 59 a's, then "-bbb".
-    const onSeparator = run(dir, [`${"A".repeat(59)} bbb`]);
-    assert.equal(onSeparator.status, 0, `stderr: ${onSeparator.stderr}`);
-    assert.equal(slugOf(parse(onSeparator.stdout).key), "a".repeat(59));
-  });
-});
-
-test("a slug that normalizes to nothing: exit 2, an empty stdout and the raw input on stderr", () => {
-  withTempDir("p2p2-viber-", (dir) => {
-    landPlan(dir, "2026-09-19-17-30-00_add-login");
-
-    // No bare "*" here: on Git-Bash the MSYS runtime expands it against the
-    // cwd before argv ever reaches the script. A glob character that survives
-    // into the slug is covered by the whole-slug case below.
-    for (const argument of ["!!!", "---", "   "]) {
-      const result = run(dir, [argument]);
-      assert.equal(result.status, 2, `${argument} -> stdout: ${result.stdout}`);
-      assert.equal(result.stdout, "", `a rejected slug must resolve to no path: ${argument}`);
-      assert.match(result.stderr, /slug is empty after normalization/);
-      assert.ok(result.stderr.includes(argument), `stderr must echo the raw input: ${argument}`);
-    }
-  });
-});
-
-test("an open run answers for its whole slug only, so neither a longer name nor a glob character can hand back a foreign run", () => {
-  withTempDir("p2p2-viber-", (dir) => {
-    landPlan(dir, "2026-09-19-17-30-00_add-login-v2");
-    landPlan(dir, "2026-09-19-18-00-00_add-zzz-login");
-
-    for (const argument of ["add-login", "add*login", "add?login"]) {
-      const result = run(dir, [argument]);
-      assert.equal(result.status, 0, `${argument} -> stderr: ${result.stderr}`);
-      const resolved = parse(result.stdout);
-      assert.equal(resolved.state, "new", `${argument} must not resume a foreign run`);
-      assert.equal(slugOf(resolved.key), "add-login");
-    }
-  });
-});
-
-test("two runs open for one slug: the one touched most recently is the one resumed", () => {
-  withTempDir("p2p2-viber-", (dir) => {
-    landPlan(dir, "2026-09-19-17-30-00_add-login", "2026-09-30T09:00:00Z");
-    landPlan(dir, "2026-09-25-11-00-00_add-login", "2026-09-26T09:00:00Z");
-
-    const result = run(dir, ["add-login"]);
-    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.equal(parse(result.stdout).key, "2026-09-19-17-30-00_add-login");
   });
 });
 
@@ -296,5 +216,266 @@ test("a host whose stat is missing, or answers with something that is not a time
         assert.ok(landed.includes(parse(result.stdout).path), `stdout: ${result.stdout}`);
       });
     }
+  });
+});
+
+// --- --land: the approved plan into the run directory ---
+
+test("--land copies a plan from outside the repository into a freshly stamped directory and leaves the source untouched", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    withTempDir("p2p2-plans-", (plans) => {
+      const src = sourcePlan(plans, "2026-09-20-fancy-name.md", PLAN_BODY);
+
+      const result = run(dir, ["--land", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+      const resolved = parse(result.stdout);
+      assert.equal(resolved.state, "new");
+      assert.equal(slugOf(resolved.key), "add-login");
+      assert.equal(resolved.path, `docs/_specs/${resolved.key}/plan.md`);
+
+      // The landed plan is the source, byte for byte - the orchestrator never
+      // retypes it out of its context.
+      assert.equal(fs.readFileSync(path.join(dir, resolved.path), "utf-8"), PLAN_BODY);
+      // ... and the source is still where plan mode left it.
+      assert.equal(fs.readFileSync(src, "utf-8"), PLAN_BODY);
+
+      // The stamp is taken NOW, which is the whole reason a second run of one
+      // slug cannot overwrite an earlier plan. The window is wide on purpose:
+      // it has to catch a fixed or epoch-derived stamp (off by years), not to
+      // measure the clock, and a DST-ambiguous local hour must never flip it.
+      assert.ok(Math.abs(stampAge(resolved.key)) < 90 * 60_000, `the stamp must be the landing moment: ${resolved.key}`);
+    });
+  });
+});
+
+test("--land takes the slug from the plan's own first H1, never from its file name and never from an H2", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const src = sourcePlan(dir, "outside/scratch-plan-7.md", "## Not The Title\n\n# Add Login\n\n## Goal\n");
+
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(slugOf(parse(result.stdout).key), "add-login");
+  });
+});
+
+test("--land falls back to the file name when the plan carries no H1 at all", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const src = sourcePlan(dir, "outside/Add Login.md", "## Goal\n\nNo title line here.\n");
+
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(slugOf(parse(result.stdout).key), "add-login");
+  });
+});
+
+test("the title is normalized here, so no caller ever has to form a slug", () => {
+  const cases: Array<[string, string]> = [
+    ["Add Login", "add-login"],
+    ["  --Add / LOGIN!!  ", "add-login"],
+    ["add__login", "add-login"],
+    ["Add-Login", "add-login"],
+    ["...add...login...", "add-login"],
+    ["Refactor 2 Auth", "refactor-2-auth"],
+  ];
+  // One repository per case: two titles that normalize alike would otherwise
+  // have the second resume the first's run instead of landing its own.
+  for (const [title, expected] of cases) {
+    withTempDir("p2p2-viber-", (dir) => {
+      const src = sourcePlan(dir, "outside/plan.md", `# ${title}\n`);
+      const result = run(dir, ["--land", src]);
+      assert.equal(result.status, 0, `${title} -> stderr: ${result.stderr}`);
+      assert.equal(parse(result.stdout).state, "new", `title: ${title}`);
+      assert.equal(slugOf(parse(result.stdout).key), expected, `title: ${title}`);
+    });
+  }
+});
+
+test("a CRLF plan yields the same slug as an LF one (the title carries the carriage return)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const src = sourcePlan(dir, "outside/crlf.md", "# Add Login\r\n\r\n## Goal\r\n");
+
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(slugOf(parse(result.stdout).key), "add-login");
+  });
+});
+
+test("a non-ASCII title still yields an ASCII-only slug (the key becomes a directory name and a git path)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const src = sourcePlan(dir, "outside/pl.md", "# Dodaj obsługę płatności\n");
+
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+    // slugOf asserts the [a-z0-9-] shape; the leading word proves the title
+    // was carried over rather than dropped.
+    const slug = slugOf(parse(result.stdout).key);
+    assert.ok(slug.startsWith("dodaj"), `slug: ${slug}`);
+  });
+});
+
+test("a title longer than 60 characters is cut to 60 and never keeps a trailing hyphen", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const long = sourcePlan(dir, "outside/long.md", `# ${"b".repeat(70)}\n`);
+    const midWord = run(dir, ["--land", long]);
+    assert.equal(midWord.status, 0, `stderr: ${midWord.stderr}`);
+    assert.equal(slugOf(parse(midWord.stdout).key), "b".repeat(60));
+
+    // The cut lands exactly on the separator: 59 a's, then "-bbb".
+    const edge = sourcePlan(dir, "outside/edge.md", `# ${"A".repeat(59)} bbb\n`);
+    const onSeparator = run(dir, ["--land", edge]);
+    assert.equal(onSeparator.status, 0, `stderr: ${onSeparator.stderr}`);
+    assert.equal(slugOf(parse(onSeparator.stdout).key), "a".repeat(59));
+  });
+});
+
+test("a title that normalizes to nothing, over a file name that does too: exit 2, an empty stdout and nothing landed", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    // The file name is the fallback, so it has to normalize to nothing as
+    // well for the rejection to be the title's. No bare "*" here: on Git-Bash
+    // the MSYS runtime expands it against the cwd before argv ever reaches the
+    // script. A glob character that survives into the slug is covered by the
+    // whole-slug case below.
+    for (const [index, title] of ["!!!", "---", "   "].entries()) {
+      const src = sourcePlan(dir, path.join("outside", String(index), "!!!.md"), `# ${title}\n`);
+      const result = run(dir, ["--land", src]);
+      assert.equal(result.status, 2, `${title} -> stdout: ${result.stdout}`);
+      assert.equal(result.stdout, "", `a rejected title must resolve to no path: ${title}`);
+      assert.match(result.stderr, /slug is empty after normalization/);
+      assert.deepEqual(runDirs(dir), [], `a rejected title must land nothing: ${title}`);
+    }
+  });
+});
+
+test("a whitespace-only H1 is no title, so the file name answers instead", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const src = sourcePlan(dir, "outside/Add Login.md", "#    \n\n## Goal\n");
+
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(slugOf(parse(result.stdout).key), "add-login");
+  });
+});
+
+test("a run already open for that slug comes back existing, and its progress is not written over", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const inProgress = ["# Add Login", "", "## Tasks (1/2)", "", "<!-- done: T1 -->", ""].join("\n");
+    landPlan(dir, "2026-09-19-17-30-00_add-login", "2026-09-19T17:30:00Z", inProgress);
+    landPlan(dir, "2026-09-20-08-00-00_other-thing", "2026-09-20T08:00:00Z");
+
+    // The same plan, edited after the build started: the landed copy is the
+    // state, so the edit must NOT reach it.
+    const src = sourcePlan(dir, "outside/add-login.md", PLAN_BODY);
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(parse(result.stdout), {
+      path: "docs/_specs/2026-09-19-17-30-00_add-login/plan.md",
+      key: "2026-09-19-17-30-00_add-login",
+      state: "existing",
+    });
+    assert.equal(
+      fs.readFileSync(path.join(dir, "docs", "_specs", "2026-09-19-17-30-00_add-login", "plan.md"), "utf-8"),
+      inProgress,
+    );
+  });
+});
+
+test("--land pointed at a plan that is already landed is a no-op, so re-running the orchestrator never forks a second run", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const src = sourcePlan(dir, "outside/add-login.md", PLAN_BODY);
+    const first = parse(run(dir, ["--land", src]).stdout);
+
+    for (const again of [first.path, path.join(dir, first.path)]) {
+      const result = run(dir, ["--land", again]);
+      assert.equal(result.status, 0, `${again} -> stderr: ${result.stderr}`);
+      assert.deepEqual(parse(result.stdout), { path: first.path, key: first.key, state: "existing" });
+      assert.deepEqual(runDirs(dir), [first.key], `${again} minted a second run`);
+    }
+  });
+});
+
+test("an open run answers for its whole slug only, so neither a longer name nor a glob character can hand back a foreign run", () => {
+  // One repository per case: landing writes, so a case that shares a tree
+  // with the one before it would resume that one's fresh run instead of
+  // proving the glob is inert.
+  for (const title of ["add-login", "add*login", "add?login"]) {
+    withTempDir("p2p2-viber-", (dir) => {
+      landPlan(dir, "2026-09-19-17-30-00_add-login-v2");
+      landPlan(dir, "2026-09-19-18-00-00_add-zzz-login");
+
+      const src = sourcePlan(dir, "outside/glob.md", `# ${title}\n`);
+      const result = run(dir, ["--land", src]);
+      assert.equal(result.status, 0, `${title} -> stderr: ${result.stderr}`);
+      const resolved = parse(result.stdout);
+      assert.equal(resolved.state, "new", `${title} must not resume a foreign run`);
+      assert.equal(slugOf(resolved.key), "add-login");
+    });
+  }
+});
+
+test("two runs open for one slug: the one touched most recently is the one resumed", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    landPlan(dir, "2026-09-19-17-30-00_add-login", "2026-09-30T09:00:00Z");
+    landPlan(dir, "2026-09-25-11-00-00_add-login", "2026-09-26T09:00:00Z");
+
+    const src = sourcePlan(dir, "outside/add-login.md", PLAN_BODY);
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(parse(result.stdout).key, "2026-09-19-17-30-00_add-login");
+  });
+});
+
+// --- unusable argv, and a copy the filesystem refused ---
+
+test("--land with no source: exit 2, the usage line, nothing created", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    for (const args of [["--land"], ["--land", ""]]) {
+      const result = run(dir, args);
+      assert.equal(result.status, 2, `${args.join(" ")} -> stdout: ${result.stdout}`);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, /usage: plan-path\.sh --land <src>/);
+      assert.equal(fs.existsSync(path.join(dir, "docs")), false);
+    }
+  });
+});
+
+test("--land with a source that is not a file: exit 2, the path echoed back", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    fs.mkdirSync(path.join(dir, "outside"), { recursive: true });
+
+    for (const src of ["outside/nope.md", "outside"]) {
+      const result = run(dir, ["--land", src]);
+      assert.equal(result.status, 2, `${src} -> stdout: ${result.stdout}`);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, /plan file not found/);
+      assert.ok(result.stderr.includes(src), `stderr must echo the source: ${src}`);
+    }
+  });
+});
+
+test("a bare first argument is a usage error, not a slug (the slug form is gone, and guessing one would land the wrong plan)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    for (const argument of ["add-login", "--split", "-land"]) {
+      const result = run(dir, [argument]);
+      assert.equal(result.status, 2, `${argument} -> stdout: ${result.stdout}`);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, /usage: plan-path\.sh \[--land <src>\]/);
+      assert.equal(fs.existsSync(path.join(dir, "docs")), false);
+    }
+  });
+});
+
+test("a copy the filesystem refuses: exit 5, nothing on stdout and no half-made run directory left behind", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const src = sourcePlan(dir, "outside/add-login.md", PLAN_BODY);
+
+    withStub("cp", "exit 1", (stubDir) => {
+      const result = run(dir, ["--land", src], [stubDir]);
+      assert.equal(result.status, 5, `stdout: ${result.stdout}`);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, /could not land the plan/);
+      assert.deepEqual(runDirs(dir), [], "a failed copy must not leave an empty run directory");
+    });
   });
 });

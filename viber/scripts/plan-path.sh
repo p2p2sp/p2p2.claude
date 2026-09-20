@@ -1,33 +1,44 @@
 #!/usr/bin/env bash
 #
-# plan-path.sh - resolves the plan file of a build. One dated directory per run:
+# plan-path.sh - resolves the plan file of a build, and on --land puts the
+# approved plan there. One dated directory per run:
 # docs/_specs/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md, the stamp being the moment
 # the plan is landed. The decomposition plan-index.sh --split writes (spec.md
 # and tasks/T<n>.md) lands in that same directory, so one run is one directory
 # and one key.
 #
 # Usage:
-#   plan-path.sh <slug>   a plan to land: the run already open for that slug, or a new one
-#   plan-path.sh          no slug: the plan most recently worked on
+#   plan-path.sh --land <src>   land <src> as this run's plan
+#   plan-path.sh                no argument: the plan most recently worked on
 #
-# <slug> is normalized here - lowercased, every other run of characters collapsed to
-# "-", 60 chars max - so the caller may hand over the plan title as it stands.
+# <src> is the approved plan as plan mode wrote it. Its directory is a user-level
+# setting ("plansDirectory"), so the file normally sits OUTSIDE this repository:
+# it is copied, never moved, and the source is left untouched. The slug comes
+# from the plan's own first H1, falling back to its file name, and is normalized
+# here - lowercased, every other run of characters collapsed to "-", 60 chars
+# max - so no caller has to form one.
 #
 # Contract:
-#   argv   : the plan's slug, or nothing.
+#   argv   : --land and the source plan, or nothing.
 #   cwd    : the repository root - every path printed is relative to it, and the
-#            caller writes and stages those paths from there.
+#            caller splits and stages those paths from there.
 #   env    : none.
 #   stdout :
 #     path: docs/_specs/2026-09-19-17-30-00_add-login/plan.md
 #     key: 2026-09-19-17-30-00_add-login
 #     state: new | existing
 #   exit != 0:
-#     2 - the slug normalizes to nothing
-#     3 - no slug given and docs/_specs/ holds no plan
+#     2 - unusable argv: an unknown first argument, --land without a source, a
+#         source that is not a file, or a slug that normalizes to nothing
+#     3 - no argument and docs/_specs/ holds no plan
+#     5 - the copy failed; nothing was landed
 #
-# "new"      - nothing on disk yet: the caller writes the plan to that path.
-# "existing" - a run under way carrying its own progress: take it as it stands.
+# "new"      - the plan was just copied in, so this run starts here.
+# "existing" - a run already open for that slug, carrying its own progress in the
+#              plan's own done markers. It is NEVER overwritten: a source edited
+#              after the build started does not reach it, because the landed plan
+#              is the state. A <src> that already IS a landed plan answers the
+#              same way, which makes --land idempotent.
 #
 set -euo pipefail
 shopt -s nullglob
@@ -58,21 +69,55 @@ emit() {
   printf 'state: %s\n' "$2"
 }
 
-slug_in="${1:-}"
+mode="${1:-}"
 
-# --- no slug: whichever plan was touched last ---
-if [[ -z "$slug_in" ]]; then
+# --- no argument: whichever plan was touched last ---
+if [[ -z "$mode" ]]; then
   found="$(printf '%s\n' "$specs_dir"/*/plan.md | newest)"
   if [[ -z "$found" ]]; then
-    echo "error: no plan under $specs_dir" >&2
+    echo "error: no plan under $specs_dir - land the approved plan first: plan-path.sh --land <src>" >&2
     exit 3
   fi
   emit "$found" existing
   exit 0
 fi
 
+if [[ "$mode" != "--land" ]]; then
+  echo "error: usage: plan-path.sh [--land <src>], got: $mode" >&2
+  exit 2
+fi
+
+src="${2:-}"
+if [[ -z "$src" ]]; then
+  echo "error: usage: plan-path.sh --land <src>" >&2
+  exit 2
+fi
+if [[ ! -f "$src" ]]; then
+  echo "error: plan file not found: $src" >&2
+  exit 2
+fi
+
+# Already landed? The source's own directory, resolved, against docs/_specs - so
+# a relative, an absolute and a native Windows path all answer alike, and
+# re-landing a plan that is already in place is a no-op rather than a second run.
+src_dir="$(cd -- "$(dirname -- "$src")" 2>/dev/null && pwd -P || true)"
+if [[ "$(basename -- "$src")" == "plan.md" && -n "$src_dir" && -d "$specs_dir" ]]; then
+  specs_abs="$(cd -- "$specs_dir" 2>/dev/null && pwd -P || true)"
+  if [[ -n "$specs_abs" && "${src_dir%/*}" == "$specs_abs" ]]; then
+    emit "$specs_dir/${src_dir##*/}/plan.md" existing
+    exit 0
+  fi
+fi
+
+# The slug: the plan's own title, or its file name when it carries no H1.
+title="$(awk '/^#[[:space:]]/ { sub(/^#[[:space:]]+/, ""); sub(/\r$/, ""); print; exit }' "$src")"
+if [[ -z "$title" ]]; then
+  base="$(basename -- "$src")"
+  title="${base%.md}"
+fi
+
 slug="$(
-  printf '%s' "$slug_in" \
+  printf '%s' "$title" \
     | tr '[:upper:]' '[:lower:]' \
     | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-*//' -e 's/-*$//' \
     | cut -c1-60 \
@@ -80,15 +125,21 @@ slug="$(
 )"
 
 if [[ -z "$slug" ]]; then
-  echo "error: slug is empty after normalization: $slug_in" >&2
+  echo "error: slug is empty after normalization: $title" >&2
   exit 2
 fi
 
-# --- a run already open for that slug ---
+# --- a run already open for that slug: its progress is the state, leave it ---
 found="$(printf '%s\n' "$specs_dir"/*_"$slug"/plan.md | newest)"
 if [[ -n "$found" ]]; then
   emit "$found" existing
   exit 0
 fi
 
-emit "$specs_dir/$(date +%Y-%m-%d-%H-%M-%S)_$slug/plan.md" new
+dest="$specs_dir/$(date +%Y-%m-%d-%H-%M-%S)_$slug/plan.md"
+if ! mkdir -p -- "${dest%/*}" || ! cp -- "$src" "$dest"; then
+  rmdir -- "${dest%/*}" 2>/dev/null || true
+  echo "error: could not land the plan at $dest" >&2
+  exit 5
+fi
+emit "$dest" new

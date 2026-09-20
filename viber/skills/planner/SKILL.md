@@ -63,4 +63,4 @@ Dispatch the `viber:planner-review` agent with the plan path. From round 2 on, a
 
 ## 4. Hand off
 
-Call `ExitPlanMode` only after a PASS - the user approves a reviewed plan, not a draft. Name `viber:implementor` as the next step, because the approval may clear this context.
+Call `ExitPlanMode` only after a PASS - the user approves a reviewed plan, not a draft. Name `viber:implementor` as the next step and repeat the plan file's full path with it: the approval may clear this context, and that path is the whole handover.

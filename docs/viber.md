@@ -25,21 +25,7 @@ NAPRAWIONE
 
 ### 2. Luka w przekazaniu planu z `planner` do `implementor`
 
-- `planner` pisze plan tam, gdzie każe plan mode (`.claude/plans/*.md`), i kończy zdaniem
-  "the approval may clear this context" (`planner/SKILL.md:62`).
-- `implementor` ma `disallowed-tools: Read`, a jego ścieżka 2 wymaga, żeby plan był w kontekście,
-  bo musi go `Write` verbatim do `docs/_specs/`.
-- Kontekst pada po zatwierdzeniu, a przed wylądowaniem planu: plan leży w `.claude/plans/`,
-  implementor nie może go przeczytać, a ścieżka 3 (`plan-path.sh` bez argumentu) przeszukuje
-  wyłącznie `docs/_specs/` i kończy exit 3. Ślepa uliczka w scenariuszu, który `planner` sam
-  przewiduje.
-- Ścieżka 1 jest gorsza: użytkownik poda argument, ale jedyna ścieżka, jaką widział, to ta z
-  `.claude/plans/`. Wtedy krok 2 odpala `plan-index.sh <plan> --split`, który dla
-  nie-`<dir>/plan.md` zwraca exit 2 (`plan-index.sh:74`), a `implementor/SKILL.md:41` każe to
-  zinterpretować jako "the plan itself is broken ... repairing it belongs to the planner".
-  Komunikat całkowicie mylący: plan jest poprawny, zła jest tylko lokalizacja.
-- Łamie regułę repo "Script vs. fork": przeniesienie pliku z A do B na znanym formacie to robota
-  dla skryptu (`plan-path.sh --land <src>`), nie dla modelu przepisującego treść z kontekstu.
+NAPRAWIONE
 
 ### 3. `fixer` -> `planner` -> `implementor`: test reprodukcyjny nie ma właściciela
 

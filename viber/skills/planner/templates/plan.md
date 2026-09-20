@@ -1,6 +1,7 @@
 # <change title>
 
 Build: skill `implementor`
+Plan: <path-to-plan>
 
 <!-- two parts: everything above "## Tasks" is the specification - WHAT and WHY - and is split off as
      spec.md; the tasks below are the implementation plan - HOW - one file each under tasks/ -->
@@ -54,5 +55,7 @@ Build: skill `implementor`
 - DoD: <...>
 <!-- /TASK -->
 
-<!-- one TASK block per unit of work; leave every HTML marker intact -->
-<!-- the whole heading line, "T<n> - <title>", is committed verbatim as the commit subject -->
+<!--
+One TASK block per unit of work; leave every HTML marker intact.
+The whole heading line, "T<n> - <title>", is committed verbatim as the commit subject.
+-->

@@ -83,8 +83,10 @@ verdict, or a plan edited after its own verdict all deny the exit with the next 
 
 ### 3. `implementor` - the build
 
-Lands the plan in its own dated directory, `docs/_specs/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md`, stamped at the
-moment it lands - a second run of the same plan never overwrites the first. Then splits it in place:
+Copies the approved plan into its own dated directory, `docs/_specs/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md`, stamped at
+the moment it lands - a second run of the same plan never overwrites the first, and the plan file plan mode wrote is
+left where it was. All it needs from you is that file's path, which is why the planner ends by repeating it. Then it
+splits the plan in place:
 `spec.md` carries the goal, the criteria, the scope and the contracts, and `tasks/T1.md`, `tasks/T2.md`, …
 carry one task each, with the criteria it covers copied in. A coder gets the spec and its own task file and
 nothing else, so it has no way to wander into a task another agent is holding open right now.
@@ -134,7 +136,7 @@ re-reading the plan: done tasks are skipped, the rest continue.
 | Agent | `test-runner` | One full suite run, one-line verdict, log stays out of the caller. |
 | Agent | `memory-writer` | Folds what the build taught into the project's `CLAUDE.md` nodes. |
 | Agent | `rules-writer` | Records a convention the build confirmed in `.claude/rules/`. |
-| Script | `plan-path.sh` | Resolves the run's dated directory - a new run or the one already open. |
+| Script | `plan-path.sh` | Resolves the run's dated directory and lands the approved plan in it. |
 | Script | `plan-index.sh` | Validates the plan, returns the task index, and on `--split` decomposes it. |
 | Script | `commit-task.sh` | Stages the task's files, commits, records progress in the plan. |
 | Script | `config.sh` | Resolves the three switches. Fail-open: no file, nothing on. |

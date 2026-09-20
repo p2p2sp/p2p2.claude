@@ -26,8 +26,8 @@ plugin-named dot-dir, no state file.
   turns each accepted one into a first task, validates the result
   with `scripts/plan-index.sh`, then gates on `viber:planner-review` until `VERDICT: PASS` before
   `ExitPlanMode`.
-- `skills/implementor/SKILL.md` - model-invocable orchestrator, `[plan-path]` argument. Lands the plan in the dated
-  directory `scripts/plan-path.sh` resolves, decomposes it with `plan-index.sh --split`, profiles
+- `skills/implementor/SKILL.md` - model-invocable orchestrator, `[plan-path]` argument. Lands the approved plan in the
+  dated directory with `scripts/plan-path.sh --land`, decomposes it with `plan-index.sh --split`, profiles
   each task into a model tier (haiku / sonnet / opus) and a review decision, dispatches
   `viber:task-coder` in the widest batch the dependency and file-collision rules allow, gates each
   reviewed task on `viber:task-reviewer`, commits it with `scripts/commit-task.sh`, closes on
@@ -54,6 +54,13 @@ plugin-named dot-dir, no state file.
   plan, and a run already open for that slug comes back as `state: existing` instead. That directory
   name is also the `<plan-key>` of the run's report dir, `.temp/viber/<plan-key>/`, and it holds the
   decomposition too - one key names everything the run touches.
+- **`--land` moves the plan, not the model.** Plan mode writes the plan into its own directory - a
+  user-level `plansDirectory`, so normally outside this repository - and approving it may clear the
+  planning context. `plan-path.sh --land <src>` therefore COPIES that file into the run directory,
+  derives the slug from the plan's own first H1, leaves the source untouched, and is idempotent: a
+  `<src>` already landed, or a slug whose run is open, comes back `existing` with nothing written
+  over the progress markers. The orchestrator never carries the plan's TEXT, only its path, which
+  is why `implementor` needs no `Write` at all.
 - **The plan file is the state.** `<!-- done: ... -->` plus the `## Tasks (x/N)` header carry
   progress, so a build resumes after a context reset with no sidecar. `commit-task.sh` is what
   advances both, and it stages ONLY the task's `Files:` list and commits through that same
@@ -86,7 +93,8 @@ plugin-named dot-dir, no state file.
   and `plan-index.sh` compares it across tasks: a plan where two tasks with no dependency path
   between them list the same file is rejected at validation time. No skill and no agent re-checks
   that by hand - the graph plus the file lists make it fully deterministic.
-- **Four deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path),
+- **Four deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path, and
+  on `--land` put the approved plan there),
   `plan-index.sh` (validate, index, optionally decompose), `commit-task.sh` (stage, commit, record)
   and `config.sh` (resolve the switches) carry their I/O contract in their header comment and are
   TRUSTED by the caller - never re-verified, never retried. All are invoked as one literal line,
@@ -107,9 +115,10 @@ plugin-named dot-dir, no state file.
   all three entries pass through (`idea`, `fixer`, and "plan it" straight from an understood change),
   so weighing in `idea` would leave the switch dead on the other two. `implementor` carries `disallowed-tools: Read`, so the preload is not a
   convenience there but the only way it can know the values at all.
-- **The orchestrator never reads code.** `implementor` carries `disallowed-tools: Read, Edit,
-  NotebookEdit`: its whole view of the plan is `plan-index.sh`'s output, which is what lets one
-  context outlast a full build.
+- **The orchestrator never reads code, and writes nothing.** `implementor` carries
+  `disallowed-tools: Read, Write, Edit, NotebookEdit`: its whole view of the plan is
+  `plan-index.sh`'s output, which is what lets one context outlast a full build, and every byte
+  that reaches the tree comes from a script or an agent.
 - **The coders' notes are the input of the close.** `task-coder` leaves at most 8 lines in
   `.temp/viber/<plan-key>/<id>-coder.md` - what the diff does not say - and `memory-writer` /
   `rules-writer` read that directory. They run in one dispatch and never wait for each other,

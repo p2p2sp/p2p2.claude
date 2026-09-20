@@ -2,8 +2,8 @@
 name: implementor
 description: Builds an approved plan task by task. Requires an existing plan; without one, use the planner skill.
 argument-hint: [plan-path]
-allowed-tools: Write, Agent, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*)
-disallowed-tools: Read, Edit, NotebookEdit
+allowed-tools: Agent, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*)
+disallowed-tools: Read, Write, Edit, NotebookEdit
 model: sonnet
 effort: medium
 user-invocable: false
@@ -15,7 +15,7 @@ user-invocable: false
 
 # implementor
 
-You orchestrate and delegate. Every piece of work happens inside a subagent, because this context has to last the whole build: the plan file is the only one you ever write, you never write code, never run a build or a test.
+You orchestrate and delegate. Every piece of work happens inside a subagent, because this context has to last the whole build: you write no file at all, never write code, never run a build or a test. The scripts and the agents touch the tree, you read their output.
 
 Output discipline: one status line per event. No prose, no explanation, no restating what an agent returned.
 
@@ -23,15 +23,15 @@ Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scrip
 
 ## 1. Land the plan
 
-Every plan gets its own dated directory, `docs/_specs/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md`, stamped when it lands. `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" "<slug>"` resolves that path and prints `path:`, `key:` and `state:`.
+Every plan gets its own dated directory, `docs/_specs/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md`, stamped when it lands. `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<src>"` copies the approved plan there and prints `path:`, `key:` and `state:`. `state: existing` is a run already open, carrying its own progress - take it as it stands, nothing was overwritten.
 
-Plan path, first match wins:
+`<src>` is the approved plan file, normally outside this repository. First match wins:
 
 1. The argument, when one came in.
-2. The approved plan already in this context - run the script with the `<slug>` from its title. `state: existing` is a build under way carrying its own progress, so take it as is; `state: new` -> `Write` the plan to the printed `path:` verbatim, every task block and HTML marker intact.
-3. Neither - the script with no argument returns the plan most recently worked on.
+2. The path plan mode named for the approved plan, when this context still holds it.
+3. Neither - `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh"` with no argument returns the plan most recently worked on. Exit 3 means nothing has landed yet: `AskUserQuestion` for the approved plan's full path, then land that.
 
-Every path this run spends is derived from that one: `<dir>` is the plan's own directory and `<plan-key>` its name - the `key:` line, or that directory's name when the plan came in as an argument.
+Every path this run spends is derived from the printed one: `<dir>` is the plan's own directory and `<plan-key>` its name, the `key:` line.
 
 ## 2. Validate and decompose
 
