@@ -18,22 +18,9 @@ template planu, manifest, README i węzeł pamięci.
 
 ## Poważne
 
-### 1. Skilla `tdd` jest sierotą, nikt w torze viber nie może jej wczytać
+### 1. Skilla `tdd` jest sierotą, nikt w torze viber nie może jej wczytać - NAPRAWIONE
 
-- `plan.md` ma pole `TDD:`, `plan-index.sh` je waliduje, `planner/SKILL.md:39` stawia
-  `TDD: required` domyślnie, `task-reviewer.md:21` sprawdza jego spełnienie.
-- Jedyny wykonawca, `task-coder`, ma `tools: Read, Write, Edit, Grep, Glob, Bash`
-  (`task-coder.md:4`), bez `Skill`. Nie może wywołać `tdd` i nigdzie o niej nie wspomina: cała
-  dyscyplina RGR to u niego jedna linia (`task-coder.md:25`).
-- Precedens w tym samym repo: `superdev/agents/superbuild-task-implementor.md:4` ma
-  `tools: ..., Skill, Bash`, a linia 43 mówi wprost "TDD: required -> invoke the `tdd` skill
-  (Skill tool) before the first line of production code".
-- `tdd` ma `user-invocable: false` i brak `disable-model-invocation`, więc odpalić ją może tylko
-  główna sesja przez CSO. Główna sesja w torze viber nigdy nie pisze kodu (`implementor` ma
-  `disallowed-tools: Read, Edit, NotebookEdit`), więc skilla ładuje się wyłącznie poza torem.
-- `viber/CLAUDE.md:39` twierdzi "the Red-Green-Refactor discipline a `TDD: required` task is
-  built under". W obecnym stanie to nieprawda.
-- Fix: dodać `Skill` do `tools:` task-codera plus jedna linia w jego sekcji Implement.
+NAPRAWIONE
 
 ### 2. Luka w przekazaniu planu z `planner` do `implementor`
 
@@ -149,4 +136,3 @@ template planu, manifest, README i węzeł pamięci.
 - Różnica to dokładnie trzy pęknięcia na stykach: sierota `tdd`, luka w przekazaniu planu i
   bezpański repro-test z fixera. Żadne nie jest problemem projektu, tylko niedokończonym
   połączeniem, każde do zamknięcia zmianą rzędu jednej do trzech linii plus jednym polem `tools:`.
-- Kolejność naprawy: 1, 2, 3, 4, potem 5 i 6 (dokumentacja kłamie, a tekst jest tu produktem).

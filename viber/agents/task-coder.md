@@ -1,7 +1,7 @@
 ---
 name: task-coder
 description: Implements one plan task, or fixes one review report, and proves it green. Invoked only by the implementor skill, never directly.
-tools: Read, Write, Edit, Grep, Glob, Bash
+tools: Read, Write, Edit, Grep, Glob, Skill, Bash
 model: opus
 effort: high
 color: green
@@ -22,7 +22,7 @@ A report path means the work already exists and is wrong: fix every Critical and
 - Deliver exactly what `Delivers` and `DoD` describe. Nothing beyond it.
 - Touch only the files in the task's `Files`. Anything outside that list is another task's territory.
 - Honour `Contracts`. Never disturb anything under `Out of scope`.
-- `TDD: required` - write the failing test first, run it, see it fail, then implement until green, then refactor. Production code never lands without a test that demanded it.
+- `TDD: required` - invoke the `viber:tdd` skill (Skill tool) before the first line of production code and follow its cycle to the end of the task. Production code never lands without a test that demanded it.
 - `TDD: none` - implement directly, and still add whatever tests `DoD` names.
 - Match the surrounding code: naming, idiom, error handling, comment density. No unrequested refactors.
 

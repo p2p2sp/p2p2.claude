@@ -37,7 +37,8 @@ plugin-named dot-dir, no state file.
   traced diagnosis proven by a failing test, and hands the fix plan to `planner`. It never applies
   a fix itself.
 - `skills/tdd/SKILL.md` - the Red-Green-Refactor discipline a `TDD: required` task is built under.
-  Not user-invocable; it is read, not run.
+  Not user-invocable: `viber:task-coder` invokes it through the `Skill` tool before the first line
+  of production code.
 - `agents/` - `planner-review` (plan gate, read-only), `task-coder` (one task or one report, proves
   it green, never commits), `task-reviewer` (per-task gate, writes only its report), `test-runner`
   (one full suite run, keeps the log out of the caller's context), `memory-writer` and
