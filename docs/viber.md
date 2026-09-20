@@ -44,12 +44,19 @@ ZAIMPLEMENTOWANE
 
 ZAIMPLEMENTOWANE
 
-Wedle dokumentacji harnessu limit to 20 subagentów na sesję, a 21. dispatch kończy się błędem,
-nie kolejkowaniem. `implementor/SKILL.md:77` mówi "the widest dispatch the rules allow", a w locie
-są jednocześnie kodery i reviewery, więc przy dużym planie to jest osiągalne.
+### 6. Sufit 20 współbieżnych subagentów nie jest uwzględniony (4/10)
 
-Liczba pochodzi z dokumentacji harnessu, nie z testu w tym repo. Do potwierdzenia przed wpisaniem
-jej do skilla.
+ODRZUCONE
+
+Liczba potwierdzona w dokumentacji harnessu, ale inna niż zakładał przegląd: to 20 subagentów
+RÓWNOLEGLE, nie kumulatywnie na sesję. 21. dispatch kończy się błędem narzędzia `Agent`
+(`Concurrent subagent limit reached`), nie kolejkowaniem, a slot zwalnia się z powrotem, gdy
+agent wróci. Limit jest konfigurowalny przez `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` w `env`
+w `settings.json`, domyślnie 20.
+
+Przy takim kształcie limitu sufit jest poza zasięgiem realnego planu: reviewer startuje dopiero
+po powrocie swojego kodera, więc 20 równoległych agentów wymagałoby planu o ponad 20 taskach bez
+zależności. Linia o sufcie w `implementor/SKILL.md:81` kosztowałaby więcej niż chroni.
 
 ## Rozważone i odrzucone
 
