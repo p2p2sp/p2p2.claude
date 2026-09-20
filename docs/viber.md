@@ -71,18 +71,9 @@ NAPRAWIONE
 
 ### 8. Pierwsze ogniwo łańcucha jest nieutwardzone
 
-Przejście `planner` -> `implementor` jest zabezpieczone trzykrotnie: ścieżka powtórzona w handoffie
-(`planner/SKILL.md:66`), `--land` odporne na utratę kontekstu, markery `done` w pliku planu.
-Przejście `idea` -> `planner` nie jest zabezpieczone wcale, bo `idea` z definicji nic nie zapisuje
-(`idea/SKILL.md:11,61`). Utrata kontekstu między potwierdzeniem podsumowania a wejściem plannera
-kasuje cały wywiad. To samo dotyczy `fixer`, którego payload (`fixer/SKILL.md:44`: "No file, no
-report") żyje tylko w kontekście, mimo że dowód w postaci czerwonego testu leży już na dysku.
-
-Asymetria jest świadoma, ale najsłabsze ogniwo jest teraz na początku, nie na końcu.
-
-Naprawa do rozważenia, nie oczywista: wywiad i diagnoza są tanie do powtórzenia, więc plik może być
-przesadą. Minimum to zapisanie payloadu `fixer` obok testu reprodukcyjnego, skoro ten i tak zostaje
-w drzewie.
+NAPRAWIONE (bez pliku handoffu: oba wejścia powtarzają payload dosłownie przy wywołaniu plannera, a
+diagnoza `fixer` dostała trwały nośnik w nagłówku testu reprodukcyjnego, który i tak jest
+commitowany; `idea` zostaje przy "writes nothing", bo wywiad jest tani do powtórzenia)
 
 ### 9. Brak fallbacku, gdy plan mode nie nazwie pliku planu
 

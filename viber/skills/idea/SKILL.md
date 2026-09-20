@@ -58,4 +58,4 @@ Solution shape comes last and only where the user holds an opinion. Design decis
 
 Stop when you can state, without guessing: the problem, the acceptance criteria, what is out of scope, the binding constraints. All unknowns must be known and no open questions left.
 
-Show that as a summary under 15 lines and ask for confirmation. On confirmation invoke the `viber:planner` skill. On a correction, fix the summary and confirm again.
+Show that as a summary under 15 lines and ask for confirmation. On confirmation invoke the `viber:planner` skill, restating the confirmed summary verbatim in that invocation - repeated in the newest turn it survives a compaction the interview behind it does not. On a correction, fix the summary and confirm again.

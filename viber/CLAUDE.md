@@ -35,7 +35,8 @@ plugin-named dot-dir, no state file.
   `viber:test-runner` and then, per switch, on `viber:memory-writer` and `viber:rules-writer`.
 - `skills/fixer/SKILL.md` - `/viber:fixer`, user-only. Invoked on a bug report, it forces a
   traced diagnosis proven by a failing test, and hands the fix plan to `planner`, leaving that test
-  RED in the tree for the fixing task's `Files:`. It never applies a fix itself.
+  RED in the tree for the fixing task's `Files:`, its header comment carrying the root cause. It
+  never applies a fix itself.
 - `skills/tdd/SKILL.md` - the Red-Green-Refactor discipline a `TDD: required` task is built under.
   Not user-invocable: `viber:task-coder` invokes it through the `Skill` tool before the first line
   of production code.
@@ -62,6 +63,13 @@ plugin-named dot-dir, no state file.
   `<src>` already landed, or a slug whose run is open, comes back `existing` with nothing written
   over the progress markers. The orchestrator never carries the plan's TEXT, only its path, which
   is why `implementor` needs no `Write` at all.
+- **Only that handoff is hardened; the front links are context-only on purpose.** `idea` and
+  `fixer` reach `planner` inside one context, with no mode change and no harness gate between
+  them, so both restate their payload verbatim at the invocation and neither writes a handoff
+  file. The one piece expensive enough to lose is the trace behind a `fixer` diagnosis, and its
+  core rides in the reproduction test's header comment - a file the fixing task's `Files:` commits
+  anyway. `idea` keeps writing nothing: an interview is cheap to repeat with the user who answered
+  it.
 - **The plan file is the state.** `<!-- done: ... -->` plus the `## Tasks (x/N)` header carry
   progress, so a build resumes after a context reset with no sidecar. `commit-task.sh` is what
   advances both, and it stages ONLY the task's `Files:` list and commits through that same

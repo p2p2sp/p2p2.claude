@@ -39,9 +39,10 @@ Three laws, in this order. None substitutes for another.
 - It MUST fail because the defect is present - not from a syntax error, missing import, typo in the test, harness misconfig, or wrong fixture path.
 - Passes immediately? The diagnosis is wrong or the test misses it. Return to step 2 - do NOT weaken the assertion to force a failure.
 - The test stays in the repo, RED, as the handoff evidence. It is the regression guard for this bug afterwards.
+- It opens with a header comment of at most 5 lines: root cause as file + symbol, actual vs expected at the diverging step, fix direction. That is the only part of the diagnosis that outlives this context, and it tells a later reader what the guard guards. Nothing else goes in - no trace, no blast radius, no done condition.
 
 ## The fix plan
-The handoff payload - state it in context, in this order. No file, no report.
+The handoff payload - state it in context, in this order. No report file: the part worth keeping already rides in the reproduction test's header.
 - **Root cause** - file + symbol, the diverging step, actual vs expected state at that step.
 - **Symptom link** - how that divergence produces what the user reported.
 - **Reproduction test** - its path, the exact command that runs it, and the RED output observed. It is already in the tree; the fix must turn it GREEN, not rewrite it.
@@ -50,7 +51,7 @@ The handoff payload - state it in context, in this order. No file, no report.
 - **Done condition** - repro test GREEN, every previously-passing test still green.
 
 ## Handoff [GATE]
-Invoke the `viber:planner` skill with the fix plan in context. Stop there - do not implement, do not "just apply the one-liner first".
+Invoke the `viber:planner` skill, restating all six parts of the fix plan verbatim in that invocation - repeated in the newest turn they survive a compaction the trace behind them does not. Stop there - do not implement, do not "just apply the one-liner first".
 
 ## Bypass authorization
 The reproduction test is unconditional. When reproduction is genuinely infeasible (hard race, rendering artifact, unreachable third-party state), STOP and ask the user for explicit authorization to hand off without it, stating what blocks reproduction. Never decide this alone; "hard to test" is not infeasible.
