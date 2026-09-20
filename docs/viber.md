@@ -1,128 +1,152 @@
-# Review pluginu viber
+# viber: analiza spójności skills i agents (od pomysłu do implementacji)
 
-Data: 2026-09-19. Zakres: `viber/` w całości (3 skille, 4 agenty, 2 skrypty pluginu, 1 hook,
-manifest, README, węzeł CLAUDE.md). Wersja pluginu: 0.48.1, commit bazowy `84ce7c6`.
+Zakres przeglądu: 6 skilli, 6 agentów, 4 skrypty pluginowe, 2 skrypty setupu, 2 hooki,
+template planu, manifest, README i węzeł pamięci.
 
-Metoda: lektura wszystkich plików plus weryfikacja wykonawcza. Oba skrypty pluginu uruchomione na
-piaskownicowych repozytoriach git (zadanie normalne, zadanie z plikiem spoza mapy, ścieżka
-naprawcza `-`, plan spoza repo). Hook przepuszczony przez 13 syntetycznych transkryptów zbudowanych
-na wzór `tests/superdev/review-plan.test.ts`. Kształt realnego transkryptu sprawdzony na
-`~/.claude-dario/projects/`.
+## Co trzyma się dobrze
 
-## Ocena: 7/10
+- Kontrakty `implementor` <-> agenci są ścisłe. Etykiety `spec:` / `task:` / `report:` / `notes:`
+  zgadzają się co do joty z sekcjami `## Input` u wszystkich czterech agentów.
+- `VERDICT:` jest wszędzie jedynym kanałem wyjściowym, a druga linia (`REVIEW:` / `REPORT:` /
+  `FILES:`) jest konsumowana dokładnie tam, gdzie jest produkowana.
+- Ścieżka naprawcza (coder bez `task:`, z samym `report:`) jest obsłużona po obu stronach.
+- Glob `*-coder.md` u memory-writera i rules-writera łapie także `repair-<round>-coder.md`.
+- Izolacja przez dekompozycję jest spójna od template'u przez `plan-index.sh --split` po
+  `task-coder`.
+- Walidacja kolizji plików w `plan-index.sh` domyka regułę równoległości, którą `planner`
+  deklaruje tylko słownie, i której żaden agent nie musi sprawdzać ręcznie.
 
-Architektura jest spójna i dobrze przemyślana: pusty orkiestrator, plan jako jedyny nośnik stanu,
-bramka egzekwowana przez harness a nie przez dobre intencje modelu. Bramka planu działa w 12 na 13
-przetestowanych scenariuszy. Natomiast ścieżka "od zatwierdzonego planu do commita" ma trzy realne
-dziury, z których dwie potwierdziłem odtwarzalnie.
+## Poważne
 
-## Blokery
+### 1. Skilla `tdd` jest sierotą, nikt w torze viber nie może jej wczytać
 
-### 1. `commit-task.sh:114-128` zapisuje `done` PRZED commitem
+- `plan.md` ma pole `TDD:`, `plan-index.sh` je waliduje, `planner/SKILL.md:39` stawia
+  `TDD: required` domyślnie, `task-reviewer.md:21` sprawdza jego spełnienie.
+- Jedyny wykonawca, `task-coder`, ma `tools: Read, Write, Edit, Grep, Glob, Bash`
+  (`task-coder.md:4`), bez `Skill`. Nie może wywołać `tdd` i nigdzie o niej nie wspomina: cała
+  dyscyplina RGR to u niego jedna linia (`task-coder.md:25`).
+- Precedens w tym samym repo: `superdev/agents/superbuild-task-implementor.md:4` ma
+  `tools: ..., Skill, Bash`, a linia 43 mówi wprost "TDD: required -> invoke the `tdd` skill
+  (Skill tool) before the first line of production code".
+- `tdd` ma `user-invocable: false` i brak `disable-model-invocation`, więc odpalić ją może tylko
+  główna sesja przez CSO. Główna sesja w torze viber nigdy nie pisze kodu (`implementor` ma
+  `disallowed-tools: Read, Edit, NotebookEdit`), więc skilla ładuje się wyłącznie poza torem.
+- `viber/CLAUDE.md:39` twierdzi "the Red-Green-Refactor discipline a `TDD: required` task is
+  built under". W obecnym stanie to nieprawda.
+- Fix: dodać `Skill` do `tools:` task-codera plus jedna linia w jego sekcji Implement.
 
-ZAIMPLEMENTOWANE
+### 2. Luka w przekazaniu planu z `planner` do `implementor`
 
-### 2. Przekazanie planu z plan mode do implementora jest ślepym zaułkiem po resecie kontekstu
+- `planner` pisze plan tam, gdzie każe plan mode (`.claude/plans/*.md`), i kończy zdaniem
+  "the approval may clear this context" (`planner/SKILL.md:62`).
+- `implementor` ma `disallowed-tools: Read`, a jego ścieżka 2 wymaga, żeby plan był w kontekście,
+  bo musi go `Write` verbatim do `docs/_specs/`.
+- Kontekst pada po zatwierdzeniu, a przed wylądowaniem planu: plan leży w `.claude/plans/`,
+  implementor nie może go przeczytać, a ścieżka 3 (`plan-path.sh` bez argumentu) przeszukuje
+  wyłącznie `docs/_specs/` i kończy exit 3. Ślepa uliczka w scenariuszu, który `planner` sam
+  przewiduje.
+- Ścieżka 1 jest gorsza: użytkownik poda argument, ale jedyna ścieżka, jaką widział, to ta z
+  `.claude/plans/`. Wtedy krok 2 odpala `plan-index.sh <plan> --split`, który dla
+  nie-`<dir>/plan.md` zwraca exit 2 (`plan-index.sh:74`), a `implementor/SKILL.md:41` każe to
+  zinterpretować jako "the plan itself is broken ... repairing it belongs to the planner".
+  Komunikat całkowicie mylący: plan jest poprawny, zła jest tylko lokalizacja.
+- Łamie regułę repo "Script vs. fork": przeniesienie pliku z A do B na znanym formacie to robota
+  dla skryptu (`plan-path.sh --land <src>`), nie dla modelu przepisującego treść z kontekstu.
 
-W realnym transkrypcie tego repozytorium plan mode nazywa plik
-`~/.claude-dario/plans/staged-yawning-starfish.md`, czyli **poza repozytorium projektu** i pod losową
-nazwą, która nie odpowiada slugowi z tytułu planu.
+### 3. `fixer` -> `planner` -> `implementor`: test reprodukcyjny nie ma właściciela
 
-Konsekwencje:
+- `fixer` zostawia w drzewie czerwony test i deklaruje "The test stays in the repo ... It is the
+  regression guard for this bug afterwards" (`fixer/SKILL.md:38`).
+- `planner` nie ma ani jednej reguły o pliku, który już istnieje w drzewie.
+- Bez wpisania ścieżki repro-testu do `Files:` zadania naprawczego: `commit-task.sh` go nie
+  zastage'uje (stage'uje listę literalnie), `warn_dirty` wypisuje go przy każdym kolejnym
+  commicie, i zostaje niezacommitowany do końca biegu.
+- Z wpisaniem, ale przy domyślnym `TDD: required`: `task-coder` dostaje sprzeczną instrukcję
+  "write the failing test first, run it, see it fail", podczas gdy test już jest i już jest
+  czerwony.
+- Fix: jedno zdanie w `planner`, że repro-test z fixera wchodzi do `Files:` zadania naprawczego,
+  a to zadanie dostaje `TDD: none`, bo cykl RED wykonał już fixer.
 
-- `implementor` ma `disallowed-tools: Read`, więc nie odczyta tego pliku, żeby przepisać go do
-  `docs/plans/`.
-- Podanie tej ścieżki jako argumentu też nie ratuje sytuacji: `plan-index.sh` przechodzi poprawnie,
-  ale `commit-task.sh` pada na `git add -- <ścieżka poza repo>` (fatal, exit 128), po uprzednim
-  oznaczeniu zadania jako done (patrz bloker 1).
-- Jedyna działająca droga to "plan jeszcze w kontekście", a `planner/SKILL.md:51` sam ostrzega, że
-  zatwierdzenie może ten kontekst wyczyścić. Krok 1.3 implementora szuka wtedy `docs/plans/*.md`,
-  którego jeszcze nie ma, bo nikt go tam nie zapisał.
+### 4. `commit-task.sh` stage'uje po pathspec, ale commituje cały index
 
-Naprawa do przemyślenia.
+- Linie 257 i 200: `git commit -m "$subject" -m "Refs: ..."` bez pathspec. Stage'owanie jest
+  ograniczone do `Files:`, ale commit zabiera wszystko, co w indeksie.
+- Forma `--chore` (linia 96) robi to poprawnie, z pathspec. Trzy formy jednego skryptu nie są ze
+  sobą spójne.
+- Scenariusz a: użytkownik miał coś zastage'owane przed startem builda. Implementor nigdy nie
+  sprawdza `git status`, bo nie ma na to Bash, więc to wpada do commita T1 po cichu.
+- Scenariusz b: exit 5 celowo zostawia pliki w indeksie ("the named files stay staged, so the
+  call can be retried as is"), implementor pyta retry/skip/abort, i na "skip" następne zadanie
+  zgarnia tamte pliki do swojego commita.
+- Łamie nagłówek samego skryptu ("Neither form ever stages a path the caller did not name") i
+  invariant z `viber/CLAUDE.md:82` o commitach zadań równoległych.
+- Testy tego nie łapią: `tests/viber/commit-task.test.ts:161` tworzy plik poza mapą, ale go nie
+  stage'uje, a test z linii 203 retry'uje to samo zadanie.
+- Status weryfikacji: wniosek z lektury kodu. Eksperyment odpalający git w scratchpadzie został
+  odrzucony na uprawnieniach, więc nie potwierdzony uruchomieniem.
+- Fix: `git commit ... -- "${paths[@]}" "$plan"` w formie zadaniowej i `-- "$@"` w naprawczej.
 
-### 3. `commit-task.sh:45-54` (`task_id = "-"`) robi `git add -A` i wciąga `.temp/viber/**` do historii
+## Średnie
 
-ZAIMPLEMENTOWANE
+### 5. `hooks/content/manifest.md` jest pusty
 
-## Ważne
+- Hook jest fail-open, więc wstrzykuje sam baner i nic więcej.
+- `README.md:15` obiecuje wstrzykiwanie manifestu, a `viber/CLAUDE.md:126` opisuje jego treść
+  ("It carries standing rules only") w czasie teraźniejszym.
+- Do decyzji: napisać manifest albo usunąć go z dokumentacji do czasu, aż powstanie.
 
-### 4. `plan-gate.sh:91` wymaga katalogu dosłownie o nazwie `plans`
+### 6. `viber/CLAUDE.md:36` mówi, że `fixer` to "the only CSO-routed skill here"
 
-Host z własnym `plansDirectory` pod inną nazwą powoduje ciche fail-open. Potwierdzone testem: plan
-zapisany do `specs/j.md` daje `ALLOW` bez żadnej recenzji.
+- Nieprawda: `planner`, `implementor` i `tdd` też nie mają `disable-model-invocation`, więc też
+  są model-invocable.
+- `README.md:41` mówi wprost coś przeciwnego: "planner and implementor are model-invocable".
+  Węzeł pamięci i README się rozjeżdżają.
 
-`superdev/hooks/scripts/review-plan.sh:143-169` ma na to fallback: gdy stała ścieżka nie trafia,
-bierze ostatni zapis `*.md` i wymaga, żeby plik deklarował swój format w pierwszej linii. Plan
-vibera nie deklaruje żadnego markera formatu, więc takiego fallbacku dziś nie da się zbudować.
+### 7. Naprawa po `test-runner` nie ma ścieżki dla pliku spoza mapy zadań
 
-To ta sama luka, która powoduje konflikt z superdev opisany w README i w węźle CLAUDE.md: dodanie
-markera formatu do szablonu planu rozwiązałoby oba problemy naraz (viber odzyskałby fallback,
-a superdev mógłby rozpoznać cudzy plan i ustąpić).
+- `implementor/SKILL.md:95` zakłada, że `<id>` wynika z kolumny `files` w indeksie.
+- Gdy padnie test, którego pliku nie ma w żadnym `Files:` (regresja w kodzie nietkniętym przez
+  plan), mapowanie nie ma rozwiązania, a `--chore` nie pasuje, bo wyprowadza subject tylko z
+  `CLAUDE.md` i `.claude/rules/`.
 
-### 5. Brak host-override dla decyzji "bez review"
+### 8. `fixer` jest obcy względem reszty pluginu
 
-`implementor/SKILL.md:41` wysyła docs, config, scaffolding i mechaniczne zmiany na haiku bez
-recenzji. W repozytorium, w którym tekst jest produktem (jak to), wyłącza to bramkę dokładnie na
-tym, co jest produktem.
-
-Root `CLAUDE.md` ma dla superdev jawną deklarację hosta na ten wypadek ("Text is the product in THIS
-repo ... This line is the host declaration `superplan` reads for that override"). Viber nie czyta
-żadnej deklaracji hosta, więc tej decyzji nie da się nadpisać bez edycji skilla.
-
-### 6. Zero testów regresyjnych
-
-ZAIMPLEMENTOWANE
-
-### 7. `plan-index.sh` nie sprawdza kolizji plików między niezależnymi zadaniami
-
-ZAIMPLEMENTOWANE
-
-### 8. Rozjazd tierów modeli
-
-ZAIMPLEMENTOWANE
+- H1 brzmi `# SimpleDebug`, nie `# fixer`: leftover po nazwie z rodziny superdev
+  (`superdev/skills/CLAUDE.md:13` wymienia `simpledebug`).
+- Jedyna skilla w viberze bez `allowed-tools`, mimo że pisze plik i uruchamia testy przez Bash,
+  więc zbiera prompty uprawnień tam, gdzie reszta pluginu ma pre-approved.
+- Odwołuje się do "`planner` (Skill)" bez prefiksu, podczas gdy `idea/SKILL.md:73` używa
+  `viber:planner`, a implementor konsekwentnie prefiksuje wszystko.
 
 ## Drobne
 
-ZAIMPLEMENTOWANE
+### 9. `planner-review` deklaruje read-only, ale ma Bash
 
-## Co jest solidne
+- Ciało mówi "Read-only: you change no files", frontmatter daje `tools: Read, Grep, Glob, Bash`.
+- Reguła repo mówi, że agent read-only wymienia same czytniki (porównaj
+  `superfix/agents/scout.md`). `tools:` nie przyjmuje wzorców, więc to pełny Bash.
 
-Bramka planu, po wyłączeniu punktu 4, robi dokładnie to, co obiecuje. Potwierdzone na syntetycznych
-transkryptach:
+### 10. `test-runner` jako jedyny z szóstki nie ma `effort:`
 
-| Scenariusz | Wynik |
-| --- | --- |
-| Zwykły plan mode bez skilla planner | allow (fail-open, zgodnie z kontraktem) |
-| Planner plus zapis planu, brak recenzji | deny |
-| Planner plus zapis plus `VERDICT: PASS` w `tool_result` | allow |
-| Planner plus zapis plus `VERDICT: FAIL` | deny |
-| FAIL, poprawka, ponowna recenzja PASS | allow |
-| PASS dostarczony jako `<result>` agenta w tle | allow |
-| Plan zmodyfikowany po własnym PASS | deny (kontrola mtime) |
-| Wpisane ręcznie `/viber:planner` zamiast wywołania Skill | deny (bramka uzbrojona) |
-| Plan zatwierdzony wcześniej w tej samej sesji | allow (okno epizodu działa) |
-| Nieprefiksowane `subagent_type: planner-review` | allow (obie pisownie rozpoznane) |
-| `VERDICT: PASS` zacytowane przez model w prozie, bez agenta | deny (nie daje się nabrać) |
+- Uzasadnienie (haiku nie ma kontroli effortu) jest sensowne, ale `task-coder` ma `effort: high`
+  i też jeździ na haiku. Dwie konwencje na ten sam przypadek.
 
-Poza tym:
+### 11. Przy `adr: true` i wejściu z pominięciem `idea` przełącznik jest martwy
 
-- Izolacja orkiestratora przez `disallowed-tools: Read, Edit, NotebookEdit` jest prawdziwym
-  ograniczeniem, nie deklaracją. To jest najmocniejszy element projektu.
-- `plan-index.sh` waliduje solidnie: duplikaty ID, brakujące pola, kierunek zależności,
-  `Covers` wskazujące nieistniejące kryterium. Jego wyjście jest wystarczająco kompaktowe, żeby
-  jeden kontekst przeżył cały build.
-- Zwykła ścieżka `commit-task.sh` (z ID zadania) stageuje wyłącznie pliki z mapy zadania i raportuje
-  na stderr wszystko, co zostało poza commitem. Potwierdzone.
-- Wznowienie po resecie kontekstu działa, o ile plan jest już w `docs/plans/`: stan `done` jest
-  poprawnie odczytywany z markera, a licznik postępu przeliczany.
-- Wszystkie pliki przechodzą `orphan-tags.test.ts` i `portability.test.ts` (30 testów, 0 porażek).
-  Oba skrypty pluginu i hook mają bit `100755` i shebang `#!/usr/bin/env bash`.
+- Kandydatów waży wyłącznie `idea`, a `planner` tworzy zadania ADR tylko gdy handover je nazywa.
+- Ścieżka "plan it, straight from an understood change" z README oraz `fixer` -> `planner` nigdy
+  nie wyprodukują ADR-a mimo włączonego przełącznika.
 
-## Kolejność napraw
+### 12. `VERDICT: FAIL` od codera: nie wiadomo, z czym retry
 
-1. Bloker 1 (kolejność commit vs marker `done`), bo psuje jedyny nośnik stanu.
-2. Bloker 2 (przekazanie planu), bo wywraca najczęstszy scenariusz użycia.
-3. Bloker 3 (`git add -A` na ścieżce naprawczej).
-4. Punkt 6 (testy), zanim pojawi się kolejna zmiana w tych skryptach.
-5. Punkt 4 (marker formatu planu), który przy okazji odblokowuje współistnienie z superdev.
+- Implementor pyta "retry / skip / abort", ale nie mówi, czy to ten sam prompt, czy plus
+  `REASON:`, czy mocniejszy model. Przy FAIL od reviewera jest to opisane precyzyjnie.
+
+## Ocena
+
+- Warstwa kontraktów między skillami a agentami: 8/10.
+- Pipeline end-to-end od pomysłu do implementacji: 6/10.
+- Różnica to dokładnie trzy pęknięcia na stykach: sierota `tdd`, luka w przekazaniu planu i
+  bezpański repro-test z fixera. Żadne nie jest problemem projektu, tylko niedokończonym
+  połączeniem, każde do zamknięcia zmianą rzędu jednej do trzech linii plus jednym polem `tools:`.
+- Kolejność naprawy: 1, 2, 3, 4, potem 5 i 6 (dokumentacja kłamie, a tekst jest tu produktem).
