@@ -137,6 +137,14 @@ file.
   `Covers:` in BOTH directions - every reference names a real acceptance criterion, and every
   criterion is named by some task - because nothing later gates the specification as a whole: a
   criterion no task implements would otherwise ride through the build into a green close.
+- **A task's `Verification` is scoped to the task; the whole suite belongs to the close.** N coders
+  share one working tree, so a project-wide run turns another coder's half-written file into this
+  task's red - a red the coder may not fix, because it is outside its `Files`. Four files carry the
+  one contract: `planner` writes `Verification` over the task's own files only, `planner-review`
+  treats a whole-project run as a finding, and `task-coder` and `task-reviewer` both drop a red they
+  can trace outside their `Files`. What escapes belongs to `test-runner` in the close, committed
+  through `--repair`. On a stack that compiles the whole project to run one test the narrowing is
+  partial, and that residual is real rather than solved.
 - **Five deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path, and
   on `--land` put the approved plan there),
   `plan-index.sh` (validate, index, optionally decompose), `commit-task.sh` (stage, commit, record),

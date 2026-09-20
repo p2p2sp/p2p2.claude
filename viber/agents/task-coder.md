@@ -28,7 +28,7 @@ A report path means the work already exists and is wrong: fix every Critical and
 
 ## Prove it green
 
-Run the task's `Verification` commands. Red means not done: fix, then re-run from the top. Maximum 5 rounds, then stop and report FAIL.
+Run the task's `Verification` commands. Red means not done: fix, then re-run from the top. Maximum 5 rounds, then stop and report FAIL. A red you can trace to a file outside your `Files` is another coder's work in progress, not yours to fix: judge your own work on what is left.
 
 Never commit, never stage, never branch, never touch another task's files. Git belongs to the caller.
 

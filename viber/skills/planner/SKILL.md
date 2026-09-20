@@ -36,7 +36,7 @@ Task rules:
 - `Files` is the task's complete file map, comma-separated on one line: exact repo-relative paths, no globs, no directories, no annotations. It is what gets staged for the commit and what the collision check compares.
 - Tasks with no dependency path between them must not list the same file - they run at the same time.
 - `Delivers` states WHAT the task produces. Never how to code it, never a line number.
-- `Verification` is a runnable command plus the result that counts as proof. A task with no runtime behaviour verifies its artefact instead: the file exists and its required content greps, never "read it and judge".
+- `Verification` is a runnable command plus the result that counts as proof, scoped to the task's own `Files` and the tests covering them, never a whole-project suite: other tasks are being written in the same tree at the same time, and the full run is the build's close. A task with no runtime behaviour verifies its artefact instead: the file exists and its required content greps, never "read it and judge".
 - `TDD: required` by default. `TDD: none` only where the task changes no runtime behaviour: config, docs, mechanical rename, scaffolding.
 - A reproduction test already RED in the tree goes into the fixing task's `Files:` - nothing outside a file map gets committed - and that task carries `TDD: none`: its RED cycle is done.
 - Every acceptance criterion is covered by at least one task's `Covers` - an uncovered one is rejected at validation. A condition no single task delivers, like the suite staying green, is not an acceptance criterion: that is the build's own close.

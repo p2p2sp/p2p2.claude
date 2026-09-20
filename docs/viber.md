@@ -26,16 +26,7 @@ obrócić przeciwko sobie.
 
 ### 1. `Verification` może być pełnym suitem, co zabija szeroki dispatch (8/10)
 
-`planner/SKILL.md:39` wymaga tylko "runnable command plus the result". Nic nie zabrania wpisania
-`npm test` albo `dotnet test` na cały projekt. Przy N koderach w jednym drzewie roboczym wystarczy
-jeden na wpół zapisany plik innego taska, żeby w języku kompilowanym build był czerwony dla
-wszystkich. Wtedy `task-coder.md:31` każe "fix, then re-run", a `task-coder.md:23` zabrania dotykać
-plików spoza własnego `Files`, więc koder nie może naprawić tego czerwonego: przepala 5 rund
-i zwraca FAIL. Im szerszy dispatch, tym pewniejsze. Ten sam czerwony trafia potem w bramkę, bo
-`task-reviewer.md:20` uruchamia tę samą komendę jeszcze raz.
-
-Naprawa: jedna klauzula w regułach tasków plannera (`Verification` zawężone do plików taska, pełny
-suite należy do close'u) plus jedna linia w checku `Provable` w `planner-review.md:26`.
+ZAIMPLEMENTOWANE
 
 ### 2. Reguła o zasobie wyłącznym nie ma pod sobą danych (7/10)
 
@@ -57,16 +48,7 @@ kolumnę `concurrent`, żeby orkiestrator nie musiał tego oceniać sam.
 
 ### 3. `AskUserQuestion` zatrzymuje całą budowę (7/10)
 
-Cztery miejsca: `implementor/SKILL.md:84`, `:86`, `:87`, `:99`. Pytanie kończy turę, a kolejny
-dispatch nie pójdzie, dopóki człowiek nie odpowie. Koder wywalający się w 2. minucie budowy zamraża
-cały pozostały graf na czas nieobecności użytkownika.
-
-Naprawa: jedna linia mówiąca, że pytanie nigdy nie jedzie samo, w tym samym message lecą wszystkie
-dispatche, które reguły i tak dopuszczają.
-
-Do potwierdzenia: czy tool calls z tego samego message odpalają się przed zablokowaniem tury, nie
-jest udokumentowane. Wymaga jednego testu na żywo, ale ryzyko jest zerowe: jeśli nie zadziała, nic
-nie tracimy.
+ZAIMPLEMENTOWANE
 
 ### 4. Procedura per task czyta się jak sekwencja, a "close out" nie jest zdefiniowane (6/10)
 
