@@ -301,11 +301,13 @@ test("the shipped template carries the recommended block only: built-in tools, d
     assert.ok(allow.includes(expected), `allow should carry ${expected}`);
   }
   // The write tools are allowed outright. Every byte viber puts in the tree
-  // comes from a dispatched agent - task-coder, qa-writer, e2e-writer and the
-  // two closing writers - and a coder that stops on a permission prompt
-  // strands the batch it was dispatched in. defaultMode: acceptEdits covers
-  // only the working directory, which is why the bare entries are here on top
-  // of it; the deny list is what keeps .env, .git/ and the key files out.
+  // comes from a dispatched agent - seven of the eight carry Write or Edit -
+  // and none of them declares a permissionMode, so each starts in the asking
+  // default instead of inheriting the session's acceptEdits. That mode would
+  // not cover them anyway: it is scoped to the working directory. A coder
+  // stopped on a permission prompt strands the batch it was dispatched in,
+  // which is why the bare entries are here; the deny list is what keeps .env,
+  // .git/ and the key files out.
   for (const expected of ["Edit", "Write", "NotebookEdit"]) {
     assert.ok(allow.includes(expected), `allow should carry ${expected} - viber's coders write through it`);
   }

@@ -285,6 +285,12 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   into) and idempotent. It needs Node on PATH - the one deliberate, documented tool
   dependency in this plugin, and a skip-with-note rather than a stop: without Node the block is
   printed for a manual merge and the run continues.
+- **The template allows the write tools outright, because a subagent does not inherit the
+  session's permission mode.** Seven of the eight agents carry `Write` or `Edit` and none declares
+  a `permissionMode`, so each starts in the asking default; `defaultMode: acceptEdits` would not
+  cover them anyway, being scoped to the working directory. Hence the bare `Edit`, `Write` and
+  `NotebookEdit` entries in `allow` - a coder stopped on a prompt strands its whole batch - and
+  hence `deny` is the layer that holds the line on `.env`, `.git/` and the key files.
 - **The host's `CLAUDE.md` is reported, never seeded, and the onboarding text is printed, never
   paraphrased.** `bootstrap.sh` only states whether the file is there, because the build and test
   commands every agent reads belong to the user: a stub written by a script would be exactly the
