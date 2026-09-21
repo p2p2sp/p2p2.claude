@@ -19,6 +19,8 @@ The plan answers HOW. It carries every detail, acceptance criterion and DoD the 
 
 ## 1. Map the files first
 
+Read `${CLAUDE_PLUGIN_ROOT}/references/test-strategy.md` first: it decides how the work is sliced, where each criterion's proof lives, and which deliverables carry no test at all.
+
 Before writing a single task, decide which files get created, modified or deleted and what each one owns. Locked-in file boundaries are what lets tasks run in parallel later.
 
 - One responsibility per file. Files that change together live together.
@@ -69,7 +71,7 @@ Show the user the full path of the written plan.
 
 ## 3. Review gate
 
-Dispatch the `viber:planner-review` agent with the plan path. From round 2 on, also pass the previous findings verbatim and one line per fix you applied.
+Dispatch the `viber:planner-review` agent with the plan path and `refs: ${CLAUDE_PLUGIN_ROOT}/references`. From round 2 on, also pass the previous findings verbatim and one line per fix you applied.
 
 - `VERDICT: PASS` - go to step 4.
 - `VERDICT: FAIL` - show the findings, fix the plan, re-run `plan-index.sh` whenever a fix touched a task's fields, ids, `Depends-on`, `Files` or `Covers`, then dispatch again. A finding that needs a decision only the user can make gets asked first, and the answer starts a fresh round 1.

@@ -11,7 +11,7 @@ You review one implementation plan and return a verdict. Read-only: you change n
 
 ## Input
 
-The prompt carries the plan path, and on a re-review the previous findings plus the fixes applied since.
+The prompt carries the plan path, `refs` (the reference directory), and on a re-review the previous findings plus the fixes applied since.
 
 Read the plan, then read enough of the codebase to judge whether it fits reality.
 
@@ -28,6 +28,7 @@ Read the plan, then read enough of the codebase to judge whether it fits reality
 - Grounded: paths exist or are plausibly new, and the approach fits how this codebase actually works rather than how such code usually looks. A `modify` entry has to be a change the file can actually take: a dependency edge a task adds must not reverse one that already exists.
 - Provable: `Verification` runs, states its expected result and is scoped to the task's own files - a whole-project suite run is a finding, and on a task with no runtime behaviour it is a check on the artefact it writes - and `DoD` is observable. A `Verification` hanging on a fixed shared resource, a pinned port or one common database, is a finding unless that task carries `Exclusive: true`: tasks verify in parallel, so the constraint is declared there or it is not handled at all. An `Exclusive: true` on a task needing nothing of the sort is the opposite finding - it stops the whole build for its duration.
 - Layered: a `TDD: required` task whose `Verification` needs a database, queue, broker or network is a finding - that behaviour belongs behind a seam a unit test substitutes. An integration task proving what the unit tests already cover is the same finding from the other side. Integration tasks come last, carry `TDD: none` and `Exclusive: true`, depend on the tasks they exercise, and their `Verification` compiles the test without running a suite that needs an external service: the integration layer runs once, in the build's close.
+- Sliced right: read `<refs>/test-strategy.md` before this check. Every blocking finding it lists is a finding here.
 
 ## Calibration
 

@@ -73,12 +73,13 @@ Never break:
 - A task whose `excl` column says `yes` runs alone: nothing else may be in flight when it goes out, and nothing new goes out until it is committed. Its work cannot share the tree or a machine-wide resource, and the plan is where that is declared - never infer it from a task's looks and never override it.
 - Never two `commit-task.sh` calls in one message - a commit rewrites the git index and the run's `status.md`, and nothing else in the run touches either. A second task ready to commit waits for the next message; everything else in this step waits for nothing.
 
-Dispatch: one `viber:task-coder` per task (Agent tool, `model` = that task's tier), all in a single message, each carrying three labelled lines and nothing else:
+Dispatch: one `viber:task-coder` per task (Agent tool, `model` = that task's tier), all in a single message, each carrying four labelled lines and nothing else:
 
 ```
 task: <dir>/tasks/<id>.md
 notes: <dir>/work/<id>-coder.md
 out: .temp/viber/<id>/
+refs: ${CLAUDE_PLUGIN_ROOT}/references
 ```
 
 `out` is that task's own build output directory, which is what keeps parallel verifications off each other. It is per task, not per agent: the reviewer of a task runs after its coder returned, so both spend the same path.
@@ -89,9 +90,9 @@ Then work the loop: on every return, answer with ONE message carrying every disp
 
 What a return means:
 
-1. Coder `VERDICT: FAIL` -> `AskUserQuestion` naming the task and its `REASON:` line: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its three lines plus `reason: <the returned REASON>`. Abort ends the run; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it, and leaves its half-finished files uncommitted in the tree - name them in the final summary.
-2. Coder returned and the profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier) with the same `task:` and `out:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
-   - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its three lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort. `accept` is the user overriding the gate: go to step 3, commit with `--unreviewed` appended, and name the task in the final summary as unreviewed.
+1. Coder `VERDICT: FAIL` -> `AskUserQuestion` naming the task and its `REASON:` line: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its four lines plus `reason: <the returned REASON>`. Abort ends the run; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it, and leaves its half-finished files uncommitted in the tree - name them in the final summary.
+2. Coder returned and the profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier) with the same `task:`, `out:` and `refs:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
+   - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its four lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort. `accept` is the user overriding the gate: go to step 3, commit with `--unreviewed` appended, and name the task in the final summary as unreviewed.
 3. Coder returned with no review due, or its reviewer returned `VERDICT: PASS` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`, with `--with <path> [<path>...]` appended for every path an `EXTRA:` line of that task's coder or reviewer returned. Those are files the task could not work without and the plan gave no owner; left out, the commit that lands the task is not the whole task. It takes the commit subject from the task's own heading in the plan, stages what it was given plus the task's own notes and reports, commits, and records the task as done. A non-zero exit means nothing was committed and nothing recorded -> `AskUserQuestion`: retry / skip / abort.
 
    Two warnings come off that call and neither stops the build. `refused <path> - claimed by task <id>` means the path is in that task's own map and rides in its commit, so leave it and name it in the final summary. `changed, claimed by no task in the plan` names paths nobody reported - a leftover, a stray edit, a regression outside the plan; that is the same split step 5 commits by, so carry them to the final summary rather than acting on them per commit.
@@ -102,7 +103,7 @@ What a return means:
 Dispatch `viber:test-runner` with a report path `<dir>/work/tests-<round>.md`.
 
 - `VERDICT: PASS` or `VERDICT: SKIP` -> `TaskUpdate` -> completed.
-- `VERDICT: FAIL` -> dispatch `viber:task-coder` (model `sonnet`) with `spec:`, the returned `REPORT` path as `report:` and `notes: <dir>/work/repair-<round>-coder.md`. Commit every path on its `FILES:` line, each one through the form that owns it:
+- `VERDICT: FAIL` -> dispatch `viber:task-coder` (model `sonnet`) with `spec:`, the returned `REPORT` path as `report:`, `notes: <dir>/work/repair-<round>-coder.md` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`. Commit every path on its `FILES:` line, each one through the form that owns it:
   - a path the index's `files` column claims -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id> <round> <file> [<file>...]`, one call per task.
   - a path no column claims - a regression in code the plan never touched -> one `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --repair <plan> <round> <file> [<file>...]` for all of them. Never borrow a task id to get such a file committed.
 

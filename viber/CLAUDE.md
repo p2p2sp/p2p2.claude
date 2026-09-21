@@ -7,7 +7,7 @@ highest quality and speed of work.
 
 The vibe track: understand, plan, build, then record what the build taught. SEVEN skills (`setup`,
 `idea`, `planner`, `implementor`, `tdd`, `fixer`, `e2e`), EIGHT agents, FIVE plugin-level scripts, TWO
-skill-level setup scripts, ONE plugin-level reference, ONE skill-level reference and TWO hooks -
+skill-level setup scripts, TWO plugin-level references, ONE skill-level reference and TWO hooks -
 one `PreToolUse`, one `SessionStart`. Everything a run produces lives in the host repo's
 `docs/_specs/<stamp>_<slug>/`: the plan as it landed, `status.md` carrying its progress and
 decisions, the decomposition
@@ -241,7 +241,9 @@ file.
   and makes `implementor` dispatch that task alone. It is a declaration, never a judgement: the
   orchestrator still decides nothing about whether two verifications may run together, which is why
   `planner-review` gates it in both directions - a shared resource left unmarked, and a marker on a
-  task that needs none and would stop the build for nothing.
+  task that needs none and would stop the build for nothing. What the layers mean for slicing, for
+  which deliverable carries no test at all and for what an integration test runs against lives in
+  `references/test-strategy.md`, read at runtime by the four workers that decide it.
 - **Source files change through `Edit`/`Write`, and git never moves under a running build.** Both
   agents that share the working tree carry it: `task-coder` rewrites a file with the file tools and
   spends `Bash` on reading, searching, building and testing, because a scripted substitution that
@@ -316,12 +318,18 @@ file.
   Playwright config declares and whoever runs the file later. On the exploration side the rule is
   the absence of a flag: `playwright-cli` defaults to chromium, so `--browser` is never passed. The
   install path matches - `npx playwright install chromium`, one browser, not three.
-- **`references/` is the one thing two workers share.** `viber/references/qa-format.md` has two
-  readers, `qa-writer` (writes the two documents) and `e2e-writer` (reads the handoff, appends the
-  automation lines), which is the whole reason the directory exists rather than the format living
-  inside one agent. Neither reads it off a hardcoded path: both take it as a `refs:` label, passed
-  as the literal `${CLAUDE_PLUGIN_ROOT}/references` by `implementor` and by `e2e`. `implementor`
-  carries `disallowed-tools: Read`, so it hands over that path without ever opening what is behind it.
+- **`references/` holds what several workers share.** `qa-format.md` has two readers, `qa-writer`
+  (writes the two documents) and `e2e-writer` (reads the handoff, appends the automation lines).
+  `test-strategy.md` has four - `planner` slices the work by it, `planner-review` and
+  `task-reviewer` gate on the blocking findings it lists, `task-coder` writes tests under it - and
+  that is what keeps `PRODUCT.md`'s test layering in one file instead of four copies drifting
+  apart. A shared file is the whole reason the directory exists rather than each format living
+  inside one agent. No reader has the path hardcoded: each takes it as a `refs:` label, passed as
+  the literal `${CLAUDE_PLUGIN_ROOT}/references` by `implementor`, by `planner` and by `e2e`.
+  `implementor` carries `disallowed-tools: Read`, so it hands over that path without ever opening
+  what is behind it; `planner` is the one reader that is a skill rather than an agent, so it reads
+  `test-strategy.md` itself. Both files are read at the step that consumes them - a coder on a
+  `TDD: none` task with no tests in its `DoD` never opens either.
 - **The host's e2e test directory is the fourth writable location, and only because the host names
   it.** The three a plugin may write at its own choosing stay `docs/<layer>/`, `.claude/` and
   `.temp/<plugin>/`. A generated spec lands outside all three, in whatever directory the project's
