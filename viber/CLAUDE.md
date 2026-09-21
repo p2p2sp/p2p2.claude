@@ -120,9 +120,11 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   constraint the split is built on - each subproject consumes only what earlier ones produced, and
   two pieces that cannot be ordered that way belong to one subproject.
 - **`status.md` is the state, and the plan is frozen.** The run's progress lives in
-  `<dir>/status.md` - `progress: x/N`, `done:`, plus the three things a later session cannot derive
+  `<dir>/status.md` - `progress: x/N`, `done:`, plus the four things a later session cannot derive
   from the tree: `skipped:` (the user dropped a task, `--skip`), `unreviewed:` (the user waived the
-  review gate, `--unreviewed`) and `closed:` (which half of the close is recorded, written by
+  review gate, `--unreviewed`), `deferred:` (`<task-id>:<path>`, code one task left without its own
+  test because the criterion proving it belongs to that later task, written by `--defer`) and
+  `closed:` (which half of the close is recorded, written by
   `--chore` and `--qa`). One key per line, `none` for an empty one. `plan-index.sh --split` creates
   it with the decomposition and `commit-task.sh` is its only other writer, which is what lets the
   plan and the specification stay exactly as they landed: the document that DEFINES the work is
@@ -147,7 +149,11 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   `plan-index.sh --split` writes `spec.md` (everything above `## Tasks`) and one `tasks/<id>.md`
   per task, carrying the task block verbatim plus the plan's `## Goal`, the text of the criteria
   its `Covers:` names, the `## Contracts` blocks its `Uses:` names and the plan's
-  `### Out of scope`. A
+  `### Out of scope`. Verbatim but for one line: `- DoD:` is cut on `;` into one
+  `- DoD.<k>: <clause>` line per clause (no `;` gives `DoD.1`, an empty clause is dropped), because
+  a coder answers for each clause and a reviewer gates each one, which a seven-clause sentence
+  gated as one does not allow. The plan keeps the single line it was written as - the decomposition
+  is the only place the DoD is cut, so the frozen plan and every other reader are untouched. A
   coder handed `tasks/T3.md` cannot read another task, so it cannot drift into another task's
   files - that isolation is the reason the split exists, not the token saving. It is handed
   nothing else either: the file is self-contained, so neither `task-coder` nor `task-reviewer`
@@ -221,6 +227,18 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   `Covers:` in BOTH directions - every reference names a real acceptance criterion, and every
   criterion is named by some task - because nothing later gates the specification as a whole: a
   criterion no task implements would otherwise ride through the build into a green close.
+- **Untested code is owned by the task that will prove it, or it is unfinished.** A coder leaving
+  a path without its own test because the criterion that proves it belongs to a LATER task returns
+  `DEFERRED: <path> -> <task id>`, one line per path, `-> none` when its task file names no id.
+  `implementor` turns each line into a `--defer <target-id>:<path>` argument on that task's
+  `commit-task.sh` call, resolving a `none` to the earliest unfinished task whose `files` column
+  claims the path and naming any path no task claims in the final summary instead of recording it.
+  `commit-task.sh` writes the entry through `mark_status` inside the same backup-and-trap window
+  as `done:`, so it rides in the commit or is rolled back with it, and refuses an id no task in the
+  plan carries. `plan-index.sh` echoes the key like `skipped:` and `unreviewed:`, which is what
+  lets a session in another context hand that path to its owning task's coder and reviewer as a
+  `deferred:` line and gate it there. Anything else a coder left untested is not deferred, it is
+  unfinished, and it fails its own DoD clause.
 - **A task's `Verification` is scoped to the task; the whole suite belongs to the close.** N coders
   share one working tree, so a project-wide run turns another coder's half-written file into this
   task's red - a red the coder may not fix, because it is outside its `Files`. Five files carry the
@@ -309,9 +327,16 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   `disallowed-tools: Read, Write, Edit, NotebookEdit`: its whole view of the plan is
   `plan-index.sh`'s output, which is what lets one context outlast a full build, and every byte
   that reaches the tree comes from a script or an agent.
-- **The coders' notes are the input of the close.** `task-coder` leaves at most 8 lines in
+- **The coders' notes are the input of the close, and of the gate beside them.** `task-coder`
+  leaves at most 8 lines in
   `<dir>/work/<id>-coder.md` - what the diff does not say - and `memory-writer`,
-  `rules-writer` and `qa-writer` read that directory. All three run in one dispatch and never wait
+  `rules-writer` and `qa-writer` read that directory. Two readers come earlier: that task's own
+  `task-reviewer`, handed the same `notes:` path, where what the coder wrote is a hypothesis to
+  disprove and never evidence - a note saying a `DoD` clause was unbuildable or narrowed by a
+  `Contracts` block is Critical unless `Out of scope` says so, and a decision the task left open is
+  a finding only when no test pins it down; and the coder of each task that depends on this one,
+  handed those files as `prior:`, which is what carries a decision forward deterministically
+  instead of relying on somebody reading a return message before the next dispatch. All three run in one dispatch and never wait
   for each other, because their scopes do not overlap: `CLAUDE.md` nodes belong to the first,
   `.claude/rules/` to the second, the run directory's QA documents to the third. The notes are what
   makes a scenario describe the behaviour that was DELIVERED rather than the one that was planned.
@@ -366,7 +391,10 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   `REASON:` as a `reason:` line, because an identical re-run of a coder that already spent its five
   verification rounds is a coin flip. `task-reviewer` is dispatched with
   `model` set to its task's own tier, its `model: opus` frontmatter being only the fallback, and
-  never lands on `haiku` because the mechanical tier carries no review.
+  never lands on `haiku`: a reviewed mechanical task gets its reviewer at `sonnet`, the lowest tier
+  that can read a document against its DoD. Whether it is reviewed at all is a second decision,
+  independent of the tier - only a `Verification` running the project's build or its tests waives
+  the gate, because a `grep` or a `test -f` passes on invented content just as well.
 - **Agent names are dispatched with the plugin prefix** (`viber:task-coder`, …). The hook's
   dispatch detector accepts both the bare and the prefixed spelling, so a plan-gate run is not
   tied to the install form.

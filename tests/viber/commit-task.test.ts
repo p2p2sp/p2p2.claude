@@ -44,7 +44,8 @@
  *
  * What a later session cannot derive from the tree is recorded in `status.md`
  * beside the done entry: `--skip` (the user dropped a task),
- * `--unreviewed` (the user waived the review gate) and the close entries above.
+ * `--unreviewed` (the user waived the review gate), `--defer` (this task left a
+ * path for a later one to prove, `<task-id>:<path>`) and the close entries above.
  * Every commit form also carries the run's own trail - the notes and reports
  * under `<run-dir>/work/` - derived from the task id or the round, so a parallel
  * task's notes never ride along and the trail reaches another machine.
@@ -108,7 +109,7 @@ function planBody(tasks: Array<[id: string, files: string, title?: string]>): st
 
 /** The state file as --split leaves it: every key present, nothing done. */
 function statusBody(total: number): string {
-  return `# status\n\nprogress: 0/${total}\ndone: none\nskipped: none\nunreviewed: none\nclosed: none\n`;
+  return `# status\n\nprogress: 0/${total}\ndone: none\nskipped: none\nunreviewed: none\ndeferred: none\nclosed: none\n`;
 }
 
 const TWO_TASKS: Array<[string, string, string?]> = [
@@ -336,6 +337,81 @@ test("--with combines with --unreviewed in either order, and --with alone with n
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(readStatus(repo), /^unreviewed: T1$/m);
     assert.deepEqual(committedFiles(repo), [STATUS_REL, "src/a.ts", "src/wiring.ts"].sort());
+  });
+});
+
+test("--defer records who owes a path its test, and that entry rides in the task's own commit", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--defer", "T2:src/a.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(readStatus(repo), /^deferred: T2:src\/a\.ts$/m);
+
+    // read back out of history: a resumed session in another context still
+    // knows which task owes the proof
+    const fromHistory = repo.git("show", `HEAD:${STATUS_REL}`).stdout;
+    assert.match(fromHistory, /^deferred: T2:src\/a\.ts$/m);
+    // the path is already in the task's own map - --defer stages nothing
+    assert.deepEqual(committedFiles(repo), [STATUS_REL, "src/a.ts"].sort());
+  });
+});
+
+test("--defer takes several entries and appends each one once, so a repeated deferral does not pile up", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+
+    assert.equal(
+      run(repo.dir, repo.env, [PLAN_REL, "T1", "--defer", "T2:src/a.ts", "T2:src/wiring.ts"]).status,
+      0,
+    );
+    assert.match(readStatus(repo), /^deferred: T2:src\/a\.ts T2:src\/wiring\.ts$/m);
+
+    // the same entry on the next commit is a no-op, like every other key
+    write(repo.dir, "src/b.ts", "work\n");
+    assert.equal(run(repo.dir, repo.env, [PLAN_REL, "T2", "--defer", "T2:src/a.ts"]).status, 0);
+    assert.match(readStatus(repo), /^deferred: T2:src\/a\.ts T2:src\/wiring\.ts$/m);
+  });
+});
+
+test("--defer refuses an entry no task in the plan owns and commits anyway (untested code with no owner is unfinished, not deferred)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+
+    const result = run(repo.dir, repo.env, [
+      PLAN_REL,
+      "T1",
+      "--defer",
+      "T9:src/a.ts",
+      "src/a.ts",
+      "T2:src/a.ts",
+    ]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /refused T9:src\/a\.ts - no task T9 in the plan/);
+    assert.match(result.stderr, /refused src\/a\.ts - a --defer entry is <task-id>:<path>/);
+    assert.match(readStatus(repo), /^deferred: T2:src\/a\.ts$/m);
+    assert.match(readStatus(repo), /^done: T1$/m);
+
+    // and it is a flag like the others: no entry at all is a usage error
+    assert.equal(run(repo.dir, repo.env, [PLAN_REL, "T2", "--defer"]).status, 2);
+    assert.equal(run(repo.dir, repo.env, [PLAN_REL, "T2", "--defer", "--unreviewed"]).status, 2);
+  });
+});
+
+test("a refused git commit rolls the deferred entry back with the done entry - neither outlives a commit that did not happen", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    const before = readStatus(repo);
+    breakCommit(repo);
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--defer", "T2:src/a.ts"]);
+    assert.equal(result.status, 5);
+    assert.equal(readStatus(repo), before);
+    assert.deepEqual(subjects(repo), ["seed"]);
   });
 });
 

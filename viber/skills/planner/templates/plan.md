@@ -44,7 +44,7 @@ Part <n> of <N> - <this subproject>
 - Files: <repo-relative path>, <repo-relative path>
 - Delivers: <what the task produces - WHAT, never HOW>
 - Verification: <command> -> <result that counts as proof>
-- DoD: <observable done condition>
+- DoD: <observable done condition>; <the next one>; <each clause observable on its own>
 <!-- /TASK -->
 
 <!-- TASK -->

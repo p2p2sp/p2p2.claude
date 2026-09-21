@@ -57,17 +57,22 @@ State `done` is committed and `skipped` was dropped by the user - neither is dis
 
 - `dirty: <id> | <paths>` - that task's own files hold uncommitted work. Before dispatching it, `AskUserQuestion` naming the task and those paths: continue on that work (dispatch its coder with `resume: <paths>` added to its lines), start it over (dispatch unchanged - the coder rewrites what it finds), or drop it (`"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, then handle it as a skip in step 4).
 - `unreviewed: <ids>` - committed with the gate waived; carry them to the final summary.
+- `deferred: <id>:<path>` - an earlier task left that path for `<id>` to prove; it becomes that task's `deferred:` line in step 4.
 - `closed: <parts>` - which halves of step 6 are already recorded.
 
 `TaskCreate` the remaining tasks, a final test run, and one entry per switch the config block above reports as `true`.
 
 ## 3. Profile the tasks
 
-Pick each task's profile from the nature of its work, not from its position:
+Two decisions per task, both taken from the nature of its work, not from its position.
 
-- Mechanical and bounded - config, scaffolding, a rename, docs, `TDD: none` over one or two files: model `haiku`, no review.
-- Ordinary feature work - `TDD: required`, contained within its own files: model `sonnet`, review.
-- Load-bearing - defines a contract other tasks consume, spans many files, or several tasks depend on it: model `opus`, review.
+The tier:
+
+- Mechanical and bounded - config, scaffolding, a rename, docs, `TDD: none` over one or two files: model `haiku`.
+- Ordinary feature work - `TDD: required`, contained within its own files: model `sonnet`.
+- Load-bearing - defines a contract other tasks consume, spans many files, or several tasks depend on it: model `opus`.
+
+The review is its own rule: only a `Verification` that runs the project's build or its tests waives the reviewer. A task proved by `grep`, `test -f` or any other check on a file's presence or content is reviewed whatever its tier, because that command passes on invented content just as well. A reviewed `haiku` task gets its reviewer at `sonnet` - the lowest tier that can read a document against its DoD.
 
 ## 4. Run the plan
 
@@ -79,16 +84,20 @@ Never break:
 - A task whose `excl` column says `yes` runs alone: nothing else may be in flight when it goes out, and nothing new goes out until it is committed. Its work cannot share the tree or a machine-wide resource, and the plan is where that is declared - never infer it from a task's looks and never override it.
 - Never two `commit-task.sh` calls in one message - a commit rewrites the git index and the run's `status.md`, and nothing else in the run touches either. A second task ready to commit waits for the next message; everything else in this step waits for nothing.
 
-Dispatch: one `viber:task-coder` per task (Agent tool, `model` = that task's tier), all in a single message, each carrying four labelled lines and nothing else:
+Dispatch: one `viber:task-coder` per task (Agent tool, `model` = that task's tier), all in a single message, each carrying these labelled lines and nothing else:
 
 ```
 task: <dir>/tasks/<id>.md
 notes: <dir>/work/<id>-coder.md
 out: .temp/viber/<id>/
 refs: ${CLAUDE_PLUGIN_ROOT}/references
+deferred: <paths>
+prior: <dir>/work/<dep-id>-coder.md, ...
 ```
 
 `out` is that task's own build output directory, which is what keeps parallel verifications off each other. It is per task, not per agent: the reviewer of a task runs after its coder returned, so both spend the same path.
+
+The last two lines are omitted when they would be empty: `deferred` carries the index entries naming this id, `prior` the notes of the tasks its `deps` names - which is what gets an earlier coder's decision into this one deterministically, instead of depending on somebody re-reading a return message.
 
 `TaskUpdate` -> in progress.
 
@@ -96,10 +105,10 @@ Then work the loop: on every return, answer with ONE message carrying every disp
 
 What a return means:
 
-1. Coder `VERDICT: FAIL` -> `AskUserQuestion` naming the task and its `REASON:` line: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its four lines plus `reason: <the returned REASON>`. Abort ends the run; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it, and leaves its half-finished files uncommitted in the tree - name them in the final summary.
-2. Coder returned and the profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier) with the same `task:`, `out:` and `refs:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
-   - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its four lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort. `accept` is the user overriding the gate: go to step 3, commit with `--unreviewed` appended, and name the task in the final summary as unreviewed.
-3. Coder returned with no review due, or its reviewer returned `VERDICT: PASS` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`, with `--with <path> [<path>...]` appended for every path an `EXTRA:` line of that task's coder or reviewer returned. Those are files the task could not work without and the plan gave no owner; left out, the commit that lands the task is not the whole task. It takes the commit subject from the task's own heading in the plan, stages what it was given plus the task's own notes and reports, commits, and records the task as done. A non-zero exit means nothing was committed and nothing recorded -> `AskUserQuestion`: retry / skip / abort.
+1. Coder `VERDICT: FAIL`, or a `PASS` whose `DOD:` line is short of its total -> `AskUserQuestion` naming the task and its `REASON:` line, the short `DOD:` line standing in for one: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its own dispatch lines plus `reason: <the returned REASON>`. Abort ends the run; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it, and leaves its half-finished files uncommitted in the tree - name them in the final summary.
+2. Coder returned and the profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier, `sonnet` where that tier is `haiku`) with the same `task:`, `notes:`, `out:`, `refs:` and `deferred:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
+   - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its own dispatch lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort. `accept` is the user overriding the gate: go to step 3, commit with `--unreviewed` appended, and name the task in the final summary as unreviewed.
+3. Coder returned with no review due, or its reviewer returned `VERDICT: PASS` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`, with `--with <path> [<path>...]` appended for every path an `EXTRA:` line of that task's coder or reviewer returned, and `--defer <target-id>:<path> [...]` for every `DEFERRED:` line its coder returned. Those are files the task could not work without and the plan gave no owner; left out, the commit that lands the task is not the whole task. A `DEFERRED` path returned as `-> none` takes the earliest unfinished task whose `files` column claims it; one no task claims is recorded nowhere and named in the final summary. It takes the commit subject from the task's own heading in the plan, stages what it was given plus the task's own notes and reports, commits, and records the task as done. A non-zero exit means nothing was committed and nothing recorded -> `AskUserQuestion`: retry / skip / abort.
 
    Two warnings come off that call and neither stops the build. `refused <path> - claimed by task <id>` means the path is in that task's own map and rides in its commit, so leave it and name it in the final summary. `changed, claimed by no task in the plan` names paths nobody reported - a leftover, a stray edit, a regression outside the plan; that is the same split step 5 commits by, so carry them to the final summary rather than acting on them per commit.
 4. Commit recorded -> `TaskUpdate` -> completed.

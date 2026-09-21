@@ -5,6 +5,7 @@
 #
 # Usage:
 #   commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]]
+#                                        [--defer <task-id>:<path> [...]]
 #   commit-task.sh <plan-file> <task-id> <fix-number> <file> [<file>...]
 #   commit-task.sh --skip <plan-file> <task-id>
 #   commit-task.sh --repair <plan-file> <round> <file> [<file>...]
@@ -24,6 +25,15 @@
 # commit that lands a task is the whole task and builds on its own. A path ANOTHER
 # task's "Files:" claims is refused with a warning rather than taken: that task
 # may have a coder writing the file right now, and its own commit stages it whole.
+#
+# --defer records code this task left without its own test because the criterion
+# that proves it belongs to a LATER task, one "<task-id>:<path>" entry per path.
+# It stages nothing - the path is already in the task's own map - and only names
+# who owes the proof, so the deferral survives a context reset and reaches that
+# task's coder and its reviewer. An entry naming no task in the plan is refused
+# with a warning, the shape --with already uses: untested code with no owner is
+# not deferred, it is unfinished, and recording it against an id nobody will
+# dispatch would hide exactly that.
 #
 # A fix number commits a repair of that task after it was already committed (a
 # post-test fix), subject "T1(2) - <title>", staging only the files the caller
@@ -69,6 +79,7 @@
 #   done: T1 T2 T4       committed, never dispatched again
 #   skipped: T3          --skip, the user dropped that task
 #   unreviewed: T7       --unreviewed, the user waived the review gate
+#   deferred: T7:src/a.ts   --defer, T7 owes that path the test that proves it
 #   closed: memory qa    --chore / --qa, that part of the close is done
 #
 # An absent key is "none". The file is created here when the run has none yet
@@ -110,7 +121,7 @@ shopt -s nullglob
 export GIT_LITERAL_PATHSPECS=1
 
 usage() {
-  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...]" >&2
+  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] [--defer <task-id>:<path> [...]] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...]" >&2
   exit 2
 }
 
@@ -207,6 +218,7 @@ write_status() {
     printf 'done: none\n'
     printf 'skipped: none\n'
     printf 'unreviewed: none\n'
+    printf 'deferred: none\n'
     printf 'closed: none\n'
   } > "$1"
 }
@@ -446,13 +458,15 @@ fi
 
 # A fix names its round and every file it touched; a plain task commit takes both
 # from the plan. --unreviewed is the user waiving the review gate on that commit,
-# and --with names the paths the task forced outside its own map.
+# --with names the paths the task forced outside its own map, and --defer the
+# paths it left for a later task to prove.
 fix_n=""
 unreviewed=0
 extra=""
+deferred=""
 case "${3:-}" in
   "") ;;
-  --unreviewed|--with)
+  --unreviewed|--with|--defer)
     set -- "${@:3}"
     while [[ $# -gt 0 ]]; do
       case "$1" in
@@ -462,6 +476,14 @@ case "${3:-}" in
           [[ $# -gt 0 && "$1" != --* ]] || usage
           while [[ $# -gt 0 && "$1" != --* ]]; do
             extra="$extra$1"$'\n'
+            shift
+          done
+          ;;
+        --defer)
+          shift
+          [[ $# -gt 0 && "$1" != --* ]] || usage
+          while [[ $# -gt 0 && "$1" != --* ]]; do
+            deferred="$deferred$1"$'\n'
             shift
           done
           ;;
@@ -607,6 +629,24 @@ progress="$(mark_status "$plan" done "$task_id")"
 if [[ $unreviewed -eq 1 ]]; then
   mark_status "$plan" unreviewed "$task_id" >/dev/null
 fi
+
+# What this task left for a later one to prove. The path is in this task's own
+# map and is committed with it; the entry only names who owes the test, so it
+# rides in the same commit and is rolled back with it. An id no task carries is
+# refused the way --with refuses an owned path: an entry waiting on a dispatch
+# that never comes would hide untested code instead of naming it.
+while IFS= read -r d; do
+  [[ -n "$d" ]] || continue
+  if [[ "$d" != *:* || -z "${d%%:*}" || -z "${d#*:}" ]]; then
+    echo "warning: refused $d - a --defer entry is <task-id>:<path>" >&2
+    continue
+  fi
+  if ! grep -qE "^###[[:space:]]+${d%%:*}[[:space:]]+-[[:space:]]" "$plan"; then
+    echo "warning: refused $d - no task ${d%%:*} in the plan" >&2
+    continue
+  fi
+  mark_status "$plan" deferred "$d" >/dev/null
+done <<< "$deferred"
 
 git add -- "$status" || exit 5
 

@@ -8,7 +8,8 @@
  * on stdout and leave nothing on disk.
  *
  * That index is also what a session which did not start the build resumes from:
- * the run's own status.md (`done`, `skipped`, `unreviewed`, `closed`) passes through, and a
+ * the run's own status.md (`done`, `skipped`, `unreviewed`, `deferred`,
+ * `closed`) passes through, and a
  * `dirty:` line names a task whose files carry uncommitted work from a session
  * that was cut off inside it. A missing dirty line sends a fresh coder onto
  * another one's half-finished work.
@@ -19,7 +20,10 @@
  * `Covers:` line names, the contract blocks its `Uses:` line names and the plan's
  * out-of-scope list. That file IS a coder's WHOLE input - it gets no `spec:` line
  * at all - so a task file that loses a field, loses a contract or picks up a
- * neighbour's is silent, uncatchable drift.
+ * neighbour's is silent, uncatchable drift. The one line it does NOT carry
+ * verbatim is `- DoD:`, cut on `;` into one numbered `- DoD.<k>:` line per
+ * clause: a coder answers for each clause and a reviewer gates each one, which
+ * the single sentence the plan keeps does not allow.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -61,6 +65,8 @@ interface TaskFields {
   uses?: string | null;
   deps?: string;
   files?: string;
+  /** Semicolon-separated clauses; the decomposition numbers them one per line. */
+  dod?: string;
 }
 
 /** The `## Contracts` appendix every default task names through `Uses: C1`. It
@@ -129,7 +135,7 @@ function planBody(tasks: TaskFields[], criteria = 2, contracts: string[] = CONTR
       `- Files: ${t.files ?? "src/a.ts"}`,
       "- Delivers: the thing",
       "- Verification: npm test -> green",
-      "- DoD: it works",
+      `- DoD: ${t.dod ?? "it works"}`,
       "<!-- /TASK -->",
       "",
     ]),
@@ -247,13 +253,23 @@ test("state and the progress counter come from the run's own status.md, which is
 test("the status file's other entries pass through, and a skipped task is settled rather than todo", () => {
   withTempDir("p2p2-viber-", (dir) => {
     seed(dir, planBody(TWO_TASKS));
-    seedStatus(dir, { progress: "1/2", done: "T1", skipped: "T2", unreviewed: "T1", closed: "memory qa" });
+    seedStatus(dir, {
+      progress: "1/2",
+      done: "T1",
+      skipped: "T2",
+      unreviewed: "T1",
+      deferred: "T2:src/reject.ts",
+      closed: "memory qa",
+    });
 
     const result = run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^progress: 1\/2$/m);
     assert.match(result.stdout, /^skipped: T2$/m);
     assert.match(result.stdout, /^unreviewed: T1$/m);
+    // who owes a test for code an earlier task left unproved - no later session
+    // could read that off the tree
+    assert.match(result.stdout, /^deferred: T2:src\/reject\.ts$/m);
     assert.match(result.stdout, /^closed: memory qa$/m);
     assert.match(result.stdout, /^T2 \| skipped \|/m);
   });
@@ -262,11 +278,18 @@ test("the status file's other entries pass through, and a skipped task is settle
 test("a run whose status file carries none of those entries reports none of them, so a run that needed no decision stays quiet", () => {
   withTempDir("p2p2-viber-", (dir) => {
     seed(dir, planBody(TWO_TASKS));
-    seedStatus(dir, { progress: "0/2", done: "none", skipped: "none", unreviewed: "none", closed: "none" });
+    seedStatus(dir, {
+      progress: "0/2",
+      done: "none",
+      skipped: "none",
+      unreviewed: "none",
+      deferred: "none",
+      closed: "none",
+    });
 
     const result = run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    for (const line of [/^skipped:/m, /^unreviewed:/m, /^closed:/m, /^dirty:/m]) {
+    for (const line of [/^skipped:/m, /^unreviewed:/m, /^deferred:/m, /^closed:/m, /^dirty:/m]) {
       assert.doesNotMatch(result.stdout, line);
     }
   });
@@ -280,7 +303,7 @@ test("a plan with no status file beside it reports nothing done, which is the st
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^progress: 0\/2$/m);
     assert.match(result.stdout, /^T1 \| todo \|/m);
-    for (const line of [/^skipped:/m, /^unreviewed:/m, /^closed:/m]) {
+    for (const line of [/^skipped:/m, /^unreviewed:/m, /^deferred:/m, /^closed:/m]) {
       assert.doesNotMatch(result.stdout, line);
     }
   });
@@ -685,7 +708,7 @@ test("a task file carries its own block verbatim, the text of the criteria it co
     const t1 = readRun(dir, "tasks/T1.md");
     assert.match(t1, /^### T1 - Add the login handler$/m);
     assert.match(t1, /^- Files: src\/login\.ts$/m);
-    assert.match(t1, /^- DoD: it works$/m);
+    assert.match(t1, /^- DoD\.1: it works$/m);
     assert.doesNotMatch(t1, /<!-- TASK -->/);
     // the neighbour, its file and its title stay out of this context entirely
     assert.doesNotMatch(t1, /T2|Reject a bad password|src\/reject\.ts/);
@@ -698,6 +721,33 @@ test("a task file carries its own block verbatim, the text of the criteria it co
     assert.doesNotMatch(t1, /An invalid password is rejected/);
 
     assert.match(readRun(dir, "tasks/T2.md"), /^## Covered criteria\n2\. An invalid password is rejected\.$/m);
+  });
+});
+
+test("the DoD is cut into one numbered line per semicolon clause, and the plan keeps the single line it was written as", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const body = planBody([
+      { ...TWO_TASKS[0]!, dod: "the endpoint answers 200;  a bad password answers 401 ; " },
+      TWO_TASKS[1]!,
+    ]);
+    seed(dir, body);
+    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+
+    // a coder answers for each clause and a reviewer gates each one, which the
+    // one sentence carrying all of them does not allow
+    const t1 = readRun(dir, "tasks/T1.md");
+    assert.match(t1, /^- DoD\.1: the endpoint answers 200$/m);
+    assert.match(t1, /^- DoD\.2: a bad password answers 401$/m);
+    // the empty trailing clause is dropped, so the numbers stay contiguous and
+    // both sides cite the same one
+    assert.doesNotMatch(t1, /^- DoD\.3:/m);
+    assert.doesNotMatch(t1, /^- DoD: /m);
+
+    // no semicolon is still one numbered clause, not an unnumbered line
+    assert.match(readRun(dir, "tasks/T2.md"), /^- DoD\.1: it works$/m);
+
+    // the decomposition is the only place the DoD is cut
+    assert.equal(fs.readFileSync(path.join(dir, PLAN_REL), "utf-8"), body);
   });
 });
 
@@ -810,11 +860,18 @@ test("--split writes the run's state file, and a later --split leaves the progre
     assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
     assert.equal(
       readRun(dir, "status.md"),
-      "# status\n\nprogress: 0/2\ndone: none\nskipped: none\nunreviewed: none\nclosed: none\n",
+      "# status\n\nprogress: 0/2\ndone: none\nskipped: none\nunreviewed: none\ndeferred: none\nclosed: none\n",
     );
 
     // a resume splits again: the file is the build's progress, never reset by it
-    seedStatus(dir, { progress: "1/2", done: "T1", skipped: "none", unreviewed: "none", closed: "none" });
+    seedStatus(dir, {
+      progress: "1/2",
+      done: "T1",
+      skipped: "none",
+      unreviewed: "none",
+      deferred: "none",
+      closed: "none",
+    });
     assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
     assert.match(readRun(dir, "status.md"), /^done: T1$/m);
     assert.match(run(dir, {}, [PLAN_REL]).stdout, /^progress: 1\/2$/m);

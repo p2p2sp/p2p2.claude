@@ -14,6 +14,7 @@
 #   progress: <done>/<total>
 #   skipped: T4                     only when status.md carries the entry
 #   unreviewed: T3                  only when status.md carries the entry
+#   deferred: T7:src/a.ts           only when status.md carries the entry
 #   closed: memory rules            only when status.md carries the entry
 #   tasks: id | state | tdd | excl | deps | files | title
 #   T1 | done | none     | -   | -  | .claude/settings.json | chore: ...
@@ -21,12 +22,16 @@
 #   dirty: T2 | src/a.ts            only for a task whose own files are dirty
 #
 # The run's state is read from status.md beside the plan - "done", "skipped",
-# "unreviewed" and "closed", one key per line, "none" for an empty one. The plan
+# "unreviewed", "deferred" and "closed", one key per line, "none" for an empty
+# one. The plan
 # itself is never written to after it lands, so nothing here parses it for
 # progress; a plan with no status.md beside it (one being validated before it
 # ever landed, a run whose first commit has not happened) simply has nothing
-# done. The three state lines and the "dirty" lines are what a session that did
-# not start the build needs. "state" is "done", "skipped" or "todo"; a "dirty"
+# done. The four state lines and the "dirty" lines are what a session that did
+# not start the build needs. A "deferred" entry is "<task-id>:<path>" - code an
+# earlier task left without its own test because the criterion that proves it
+# belongs to that task, which is how a resumed session still knows who owes the
+# proof. "state" is "done", "skipped" or "todo"; a "dirty"
 # line means that task's own files carry uncommitted work, so an earlier session
 # was cut off mid-task and a fresh coder would land on top of it. Everything else
 # a resume needs is already derivable, so nothing here is stored twice.
@@ -49,10 +54,17 @@
 # --split writes, into the plan's OWN directory (docs/_specs/<stamp>_<slug>/):
 #   spec.md        - everything above "## Tasks": goal, acceptance criteria, scope.
 #                    WHAT and WHY, read by the user and by the closing writers.
-#   tasks/<id>.md  - the whole job of one coder: its task block verbatim, then the
+#   tasks/<id>.md  - the whole job of one coder: its task block, then the
 #                    plan's "## Goal", the text of the criteria its "Covers:" line
 #                    names, the "## Contracts" blocks its "Uses:" line names, and
-#                    the plan's "### Out of scope".
+#                    the plan's "### Out of scope". The block is verbatim but for
+#                    its "- DoD:" line, which is cut on ";" into one
+#                    "- DoD.<k>: <clause>" line per clause (no ";" -> "DoD.1",
+#                    an empty trailing clause dropped): a coder answers for each
+#                    clause and a reviewer gates each one, which a single
+#                    sentence carrying seven of them does not allow. The plan
+#                    keeps the one line it was written as - the decomposition is
+#                    the only place the DoD is cut.
 #   status.md      - the run's state, created empty and only when it is not there
 #                    yet: an existing one carries progress and is never rewritten
 #                    here. From then on commit-task.sh is the only writer, which
@@ -157,6 +169,7 @@ fi
 st_done=""
 st_skipped=""
 st_unreviewed=""
+st_deferred=""
 st_closed=""
 if [[ -f "$dir/status.md" ]]; then
   while IFS= read -r line || [[ -n "$line" ]]; do
@@ -165,6 +178,7 @@ if [[ -f "$dir/status.md" ]]; then
       done:*)       st_done="${line#done:}" ;;
       skipped:*)    st_skipped="${line#skipped:}" ;;
       unreviewed:*) st_unreviewed="${line#unreviewed:}" ;;
+      deferred:*)   st_deferred="${line#deferred:}" ;;
       closed:*)     st_closed="${line#closed:}" ;;
     esac
   done < "$dir/status.md"
@@ -173,7 +187,8 @@ fi
 # The path travels through ENVIRON, not -v: awk -v expands escape sequences and
 # would mangle a Windows path containing backslashes.
 plan="$plan" changed="$changed" \
-st_done="$st_done" st_skipped="$st_skipped" st_unreviewed="$st_unreviewed" st_closed="$st_closed" \
+st_done="$st_done" st_skipped="$st_skipped" st_unreviewed="$st_unreviewed" \
+st_deferred="$st_deferred" st_closed="$st_closed" \
 awk '
 function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
 function val(s)  { sub(/^[^:]*:/, "", s); return trim(s) }
@@ -217,6 +232,7 @@ BEGIN {
   done    = listed(ENVIRON["st_done"])
   skipped = listed(ENVIRON["st_skipped"])
   unrev   = listed(ENVIRON["st_unreviewed"])
+  defer   = listed(ENVIRON["st_deferred"])
   closed  = listed(ENVIRON["st_closed"])
   m = split(ENVIRON["changed"], ch, /\n/)
   for (k = 1; k <= m; k++) if (ch[k] != "") chg[ch[k]] = 1
@@ -452,6 +468,7 @@ END {
   printf "progress: %d/%d\n", ndone, n
   if (skipped != "") printf "skipped: %s\n", skipped
   if (unrev   != "") printf "unreviewed: %s\n", unrev
+  if (defer   != "") printf "deferred: %s\n", defer
   if (closed  != "") printf "closed: %s\n", closed
   printf "tasks: id | state | tdd | excl | deps | files | title\n"
   for (i = 1; i <= n; i++) {
@@ -501,6 +518,24 @@ function section(pat,   i, started, out, pend) {
 function rstrip(s) {
   while (s ~ /\n[[:space:]]*\n$/) sub(/\n[[:space:]]*\n$/, "\n", s)
   return s
+}
+
+# The "- DoD:" line, cut on ";" into one numbered line per clause. A coder
+# answers for each clause and a reviewer gates each one, which a single sentence
+# carrying seven of them does not allow. Empty clauses are dropped, so the
+# numbers stay contiguous and both sides cite the same one; a DoD that cuts into
+# nothing at all is left exactly as it was written.
+function dodlines(s,   v, m, cl, k, c, out, j) {
+  v = s
+  sub(/^[^:]*:/, "", v)
+  m = split(v, cl, /;/)
+  out = ""; j = 0
+  for (k = 1; k <= m; k++) {
+    c = trim(cl[k])
+    if (c == "") continue
+    out = out "- DoD." (++j) ": " c "\n"
+  }
+  return (j ? out : s "\n")
 }
 
 BEGIN { dir = ENVIRON["dir"] }
@@ -575,6 +610,7 @@ END {
       continue
     }
     if (!intask) continue
+    if (line[i] ~ /^-[[:space:]]*DoD:/) { body = body dodlines(line[i]); continue }
     body = body line[i] "\n"
     if (id == "" && line[i] ~ /^###[[:space:]]/) {
       h = trim(substr(line[i], 4)); p = index(h, " - ")
@@ -604,6 +640,7 @@ if [[ ! -f "$dir/status.md" ]]; then
     printf 'done: none\n'
     printf 'skipped: none\n'
     printf 'unreviewed: none\n'
+    printf 'deferred: none\n'
     printf 'closed: none\n'
   } > "$dir/status.md"
 fi

@@ -35,11 +35,8 @@
       "ListMcpResourcesTool",
       "ReadMcpResourceTool",
       "ReadMcpResourceDirTool",
-      "Bash(git push:*)",
-      "Bash(gh pr create:*)",
-      "Bash(gh release create:*)",
-      "Bash(bash:*)",
-      "Bash(sh:*)"
+      "Edit",
+      "Write"
     ],
     "deny": [
       "Bash(rm -rf:*)",
