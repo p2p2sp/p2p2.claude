@@ -300,11 +300,14 @@ test("the shipped template carries the recommended block only: built-in tools, d
   for (const expected of ["Read", "Glob", "Bash", "Skill", "Agent", "Task"]) {
     assert.ok(allow.includes(expected), `allow should carry ${expected}`);
   }
-  // acceptEdits already auto-approves edits inside the working directory, so a
-  // bare write tool in allow would only widen the rules to paths outside it -
-  // and would pre-approve every shell redirect to such a path as well.
-  for (const unwanted of ["Edit", "Write", "NotebookEdit"]) {
-    assert.ok(!allow.includes(unwanted), `allow should not carry a bare ${unwanted}`);
+  // The write tools are allowed outright. Every byte viber puts in the tree
+  // comes from a dispatched agent - task-coder, qa-writer, e2e-writer and the
+  // two closing writers - and a coder that stops on a permission prompt
+  // strands the batch it was dispatched in. defaultMode: acceptEdits covers
+  // only the working directory, which is why the bare entries are here on top
+  // of it; the deny list is what keeps .env, .git/ and the key files out.
+  for (const expected of ["Edit", "Write", "NotebookEdit"]) {
+    assert.ok(allow.includes(expected), `allow should carry ${expected} - viber's coders write through it`);
   }
   for (const expected of [
     "Bash(rm -rf:*)",
