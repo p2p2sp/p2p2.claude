@@ -193,6 +193,42 @@ test("a task commits only its own Files: paths, with the done entry and the coun
   });
 });
 
+test("a Files path made of bracketed segments is staged literally - the App Router route lands, the sibling its character class covers does not", () => {
+  withGitRepo((repo) => {
+    // Every Next.js App Router route carries brackets in its own name. Git reads
+    // "[id]" in a pathspec as a wildmatch character class, so without
+    // GIT_LITERAL_PATHSPECS the neighbouring "src/app/i/page.tsx" - one char out
+    // of {i,d} - is a candidate for the same commit.
+    const route = "src/app/[id]/page.tsx";
+    seed(repo, [["T1", route]]);
+    write(repo.dir, route, "work\n");
+    write(repo.dir, "src/app/i/page.tsx", "someone else\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^committed: [0-9a-f]{7,}\nprogress: 1\/1\n$/);
+    assert.deepEqual(committedFiles(repo), [STATUS_REL, route].sort());
+    assert.match(result.stderr, /src\/app\/i\/page\.tsx/);
+  });
+});
+
+test("a bracketed Files path its own coder never wrote commits nothing - it does not fall back to the sibling its character class covers", () => {
+  withGitRepo((repo) => {
+    // The case the literal pathspec is FOR: git only prefers an exact match when
+    // the exact path is there. With T1's file still unwritten, "src/app/[id]/..."
+    // read as a pattern matches a parallel coder's "src/app/i/..." instead, and
+    // that work would land under T1's subject with T1 marked done.
+    seed(repo, [["T1", "src/app/[id]/page.tsx"]]);
+    write(repo.dir, "src/app/i/page.tsx", "another coder, mid-task\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 4, `stdout: ${result.stdout} stderr: ${result.stderr}`);
+    assert.deepEqual(subjects(repo), ["seed"]);
+    assert.deepEqual(stagedFiles(repo), []);
+    assert.match(readStatus(repo), /^done: none$/m);
+  });
+});
+
 test("a run whose status file is missing gets one created inside the task's own commit (a build that never split still commits)", () => {
   withGitRepo((repo) => {
     seed(repo);

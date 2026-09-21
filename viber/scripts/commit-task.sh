@@ -54,6 +54,13 @@
 # machine state and anything written outside the file map stay uncommitted and
 # visible.
 #
+# Those pathspecs are LITERAL, which GIT_LITERAL_PATHSPECS below enforces for
+# every git call here. Git otherwise reads "*", "?" and "[...]" in a pathspec as
+# wildmatch, and a Next.js App Router path carries brackets as part of its own
+# name ("src/app/[id]/page.tsx"): the exact file still matches, but a sibling
+# the character class happens to cover would be staged with it. "Stages the list
+# literally" is the contract, so the literal mode is what makes it true.
+#
 # The run's state lives in status.md beside the plan, and this script is its only
 # writer: the plan and the specification are frozen the moment they land, so a
 # task's progress is never recorded by editing the document that defines it.
@@ -97,6 +104,10 @@
 #
 set -euo pipefail
 shopt -s nullglob
+
+# every pathspec in this script is one exact path the caller named - never a
+# pattern. See the header: an App Router path is made of bracketed segments.
+export GIT_LITERAL_PATHSPECS=1
 
 usage() {
   echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...]" >&2

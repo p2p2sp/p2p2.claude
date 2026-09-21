@@ -195,7 +195,14 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   one line, no globs, no directories, no annotations. `commit-task.sh` stages that list literally,
   and `plan-index.sh` compares it across tasks: a plan where two tasks with no dependency path
   between them list the same file is rejected at validation time. No skill and no agent re-checks
-  that by hand - the graph plus the file lists make it fully deterministic.
+  that by hand - the graph plus the file lists make it fully deterministic. A pattern is decided by
+  SHAPE, not by a character: a bracket wrapping a WHOLE segment (`[id]`, `[...slug]`,
+  `[[...slug]]`) is a Next.js App Router directory name and passes, one inside a segment
+  (`src/a[bc].ts`) is a character class and is refused - an App Router repository has a bracket in
+  the path of every route it owns, so the character alone would lock the whole stack out. The same
+  shape test guards a contract block's `File:`. Literally is also what `commit-task.sh` means:
+  it exports `GIT_LITERAL_PATHSPECS=1`, because git otherwise reads those brackets as wildmatch and
+  would stage a sibling the character class happens to cover.
 - **Disjoint is checked, complete is not, so completeness is carried by three layers.** Nothing
   can decide mechanically that a task's map names everything its work forces - the registration
   of a new type, the declaration and migration of a new persisted shape, the test asserting a

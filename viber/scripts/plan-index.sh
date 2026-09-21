@@ -37,9 +37,14 @@
 # this script only carries it: nothing here decides whether two tasks may run
 # together.
 #
-# "Files:" is a comma-separated list of exact repo-relative file paths - no globs,
-# no directories, no annotations - so the same list drives the commit and the
-# collision check below.
+# "Files:" is a comma-separated list of exact repo-relative file paths - no
+# patterns, no directories, no annotations - so the same list drives the commit
+# and the collision check below. A pattern is decided by SHAPE, not by the mere
+# presence of a bracket: "*" and "?" are always one, and a "[" is one unless it
+# wraps a WHOLE path segment as "[name]", "[...name]" or "[[...name]]" - the
+# three Next.js App Router dynamic segments, where the brackets are part of the
+# file's own name. A bracket inside a segment ("src/a[bc].ts") stays a glob
+# character class and is still refused.
 #
 # --split writes, into the plan's OWN directory (docs/_specs/<stamp>_<slug>/):
 #   spec.md        - everything above "## Tasks": goal, acceptance criteria, scope.
@@ -87,6 +92,11 @@
 #       holders never name the block in "Uses:", an unparseable "Files:" entry,
 #       or the same file listed by two tasks with no dependency path between
 #       them - they would run at the same time)
+#
+#       An unparseable "Files:" entry is an empty one, one carrying "*" or "?",
+#       one whose bracket does not wrap a whole segment in one of the three App
+#       Router shapes above, an absolute or "~" path, one ending in "/" (a
+#       directory), or one carrying whitespace (a path plus an annotation).
 #
 # Contract:
 #   argv   : the plan file, optionally --split.
@@ -174,6 +184,30 @@ function listed(s) { s = trim(s); return (s == "none" || s == "-" ? "" : s) }
 # a path already in the tree: a contract may describe a shape this change only
 # consumes, and nothing has to create what is already written
 function present(p,   r) { r = (getline _ < p); close(p); return (r >= 0) }
+
+# one Next.js App Router dynamic segment: "[id]", "[...slug]", "[[...slug]]".
+# The brackets are part of the directory name there, not a pattern. A literal
+# bracket is written as the bracket expression "[[]" / "[]]" rather than "\[" -
+# the POSIX form every awk parses alike, and no script here relies on the escape.
+function dynseg(s) {
+  return (s ~ /^[[][A-Za-z0-9_-]+[]]$/ ||
+          s ~ /^[[]\.\.\.[A-Za-z0-9_-]+[]]$/ ||
+          s ~ /^[[][[]\.\.\.[A-Za-z0-9_-]+[]][]]$/)
+}
+
+# a "Files:" or "File:" entry that is a pattern rather than one exact path.
+# Decided by shape: "*" and "?" always, a bracket only when it does NOT wrap a
+# whole segment - an App-Router repository has a bracket in the path of every
+# route it owns, so rejecting the character itself locks the whole stack out.
+# m, seg and k are parameters, hence local: both call sites sit inside a loop
+# using the globals of those names.
+function patterned(p,   m, seg, k) {
+  if (p ~ /[*?]/) return 1
+  m = split(p, seg, "/")
+  for (k = 1; k <= m; k++)
+    if ((index(seg[k], "[") || index(seg[k], "]")) && !dynseg(seg[k])) return 1
+  return 0
+}
 
 BEGIN {
   n = 0; ncrit = 0; ncon = 0; err = 0; title = ""
@@ -287,7 +321,7 @@ END {
       p = trim(fl[k])
       sub(/^\.\//, "", p)
       if (p == "")                     { fail("task " id[i] ": empty entry in Files"); continue }
-      if (p ~ /[*?]/ || index(p, "[")) { fail("task " id[i] ": Files entry \"" p "\" is a glob, list exact paths"); continue }
+      if (patterned(p))                { fail("task " id[i] ": Files entry \"" p "\" is a glob, list exact paths"); continue }
       if (p ~ /^\// || p ~ /^~/)       { fail("task " id[i] ": Files entry \"" p "\" must be repo-relative"); continue }
       if (p ~ /\/$/)                   { fail("task " id[i] ": Files entry \"" p "\" is a directory, list each file"); continue }
       if (p ~ /[[:space:]]/)           { fail("task " id[i] ": Files entry \"" p "\" is not a bare path, drop the annotation"); continue }
@@ -383,7 +417,7 @@ END {
         p = trim(cl[k])
         sub(/^\.\//, "", p)
         if (p == "") { fail("contract " cn ": empty entry in File"); continue }
-        if (p ~ /[*?]/ || index(p, "[") || p ~ /^\// || p ~ /^~/ || p ~ /\/$/ || p ~ /[[:space:]]/) {
+        if (patterned(p) || p ~ /^\// || p ~ /^~/ || p ~ /\/$/ || p ~ /[[:space:]]/) {
           fail("contract " cn ": File entry \"" p "\" must be one bare repo-relative file path")
           continue
         }

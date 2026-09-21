@@ -408,6 +408,14 @@ test("a broken task contract exits 4 and names the task", () => {
       /task T1: Uses C9, no such contract block/,
     ],
     ["a glob in Files", [{ id: "T1", files: "src/*.ts" }], /is a glob/],
+    ["a recursive glob in Files", [{ id: "T1", files: "src/**/*.ts" }], /is a glob/],
+    [
+      // the bracket does not wrap the segment, so it is a character class and
+      // not an App Router directory name - the one case the shape test keeps out
+      "a character class inside a segment of a Files entry",
+      [{ id: "T1", files: "src/a[bc].ts" }],
+      /Files entry "src\/a\[bc\]\.ts" is a glob/,
+    ],
     ["a directory in Files", [{ id: "T1", files: "src/" }], /is a directory/],
     ["a TDD marker that is neither required nor none", [{ id: "T1", tdd: "maybe" }], /TDD must be/],
     [
@@ -462,6 +470,26 @@ test("a broken task contract exits 4 and names the task", () => {
       assert.match(result.stderr, expected, name);
     });
   }
+});
+
+test("a Files entry whose brackets wrap whole segments is an exact path and reaches the index untouched", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    // the three Next.js App Router dynamic segments - a dynamic one, a catch-all
+    // and an optional catch-all - plus a route group in parentheses. Every route
+    // of such a project carries one, so rejecting the bracket itself would leave
+    // no plan touching a route able to validate at all.
+    const files = [
+      "src/app/(public)/site-render/[host]/preview-draft/[token]/[[...path]]/page.tsx",
+      "src/app/api/admin/sites/[siteId]/contents/[contentId]/route.ts",
+      "src/app/blog/[...slug]/page.tsx",
+    ].join(",");
+    seed(dir, planBody([{ id: "T1", files }], 1));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^T1 \| todo \| required \| - \| - \| (.+) \| do the thing$/m);
+    assert.ok(result.stdout.includes(`| ${files} |`), `stdout: ${result.stdout}`);
+  });
 });
 
 test("an acceptance criterion no task's Covers names exits 4 (nothing downstream gates the spec as a whole)", () => {
@@ -583,9 +611,19 @@ test("one holder naming the block is enough - a file several tasks in one chain 
   });
 });
 
+test("a File entry whose bracket wraps a whole segment is a path, not a glob - like a Files entry", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const route = "src/app/api/sites/[siteId]/route.ts";
+    seed(dir, planBody([{ id: "T1", files: route }], 1, ownedContract(route)));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+  });
+});
+
 test("a File entry that is a glob, a directory or an absolute path exits 4, like a Files entry", () => {
   withTempDir("p2p2-viber-", (dir) => {
-    for (const entry of ["src/*.ts", "src/", "/abs/login.ts"]) {
+    for (const entry of ["src/*.ts", "src/", "/abs/login.ts", "src/a[bc].ts"]) {
       seed(dir, planBody([{ id: "T1" }], 1, ownedContract(entry)));
 
       const result = run(dir, {}, [PLAN_REL]);
