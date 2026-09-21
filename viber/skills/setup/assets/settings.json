@@ -9,7 +9,6 @@
       "AskUserQuestion",
       "Bash",
       "BashOutput",
-      "Edit",
       "EnterPlanMode",
       "EnterWorktree",
       "ExitPlanMode",
@@ -21,7 +20,6 @@
       "ListAgents",
       "ListMcpResourcesTool",
       "Monitor",
-      "NotebookEdit",
       "Read",
       "ReadMcpResourceDirTool",
       "ReadMcpResourceTool",
@@ -37,8 +35,7 @@
       "TodoWrite",
       "ToolSearch",
       "WebFetch",
-      "WebSearch",
-      "Write"
+      "WebSearch"
     ],
     "deny": [
       "Bash(aws:*)",

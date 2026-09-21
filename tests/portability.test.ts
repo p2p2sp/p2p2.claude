@@ -46,6 +46,76 @@ const BASHISMS: Array<{ name: string; test: (line: string) => boolean }> = [
   { name: "function NAME (bash function keyword)", test: (l) => /\bfunction\s+[A-Za-z_]/.test(l) },
 ];
 
+/** GNU-only constructs a shipped script must not depend on. macOS ships BSD
+ *  userland, `/usr/bin/awk` is the one-true-awk rather than gawk, and
+ *  `/bin/bash` is 3.2 - so each of these runs on Linux and Git-Bash and fails,
+ *  often silently, on a Mac.
+ *
+ *  `pairedBy` marks the forms that are legitimate once the file ALSO carries
+ *  its BSD counterpart, which is the shape every guarded site in this repo
+ *  already has (`stat -c %Y … || stat -f %m …`, a `date -v-1d` probe in front
+ *  of `date -d`). The pair is looked for file-wide rather than on the same
+ *  line, because that probe sits four lines above the call it guards; the
+ *  price is that a file mixing one guarded and one bare `stat -c` reads as
+ *  clean. Everything without `pairedBy` has no BSD spelling at all and is a
+ *  violation wherever it appears.
+ *
+ *  Regexes are deliberately non-global: a /g/ regex carries lastIndex between
+ *  calls and would skip every other match of the same rule. */
+const GNUISMS: Array<{ name: string; test: RegExp; pairedBy?: RegExp }> = [
+  // --- coreutils: no BSD spelling ---
+  { name: "grep -P (BSD grep has no PCRE)", test: /\bgrep\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*P\b|--perl-regexp/ },
+  { name: "sed -r (BSD sed spells it -E)", test: /\bsed\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*r\b/ },
+  { name: "sed -i with no backup suffix (BSD sed requires one, e.g. -i '')", test: /\bsed\b[^\n]*\s-i(?![A-Za-z])\s*(?!''|"")/ },
+  { name: "readlink -f/-e (absent from BSD readlink)", test: /\breadlink\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*[fe]\b/ },
+  { name: "sort -V (BSD sort has no version sort)", test: /\bsort\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*V\b|--version-sort/ },
+  { name: "find -printf (GNU-only predicate)", test: /\bfind\b[^\n]*\s-printf\b/ },
+  { name: "cp --parents (GNU-only)", test: /--parents\b/ },
+  { name: "mktemp -p (BSD mktemp has no -p)", test: /\bmktemp\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*p\b/ },
+  { name: "xargs -r (BSD xargs already skips empty input)", test: /\bxargs\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*r\b|--no-run-if-empty/ },
+  { name: "echo -e/-n (BSD echo prints the flag)", test: /\becho\s+-[en]\b/ },
+  {
+    // lib_sha256.sh is the shape this allows: sha256sum probed with
+    // `command -v`, shasum and openssl behind it as the macOS path
+    name: "md5sum/sha1sum/sha256sum (macOS has md5, shasum and openssl)",
+    test: /\b(?:md5sum|sha1sum|sha256sum)\b/,
+    pairedBy: /\b(?:shasum|openssl|md5)\b/,
+  },
+  { name: "tac (macOS has tail -r)", test: /(?:^|[\s;&|(])tac(?:\s|$)/ },
+  { name: "nproc (macOS has sysctl -n hw.ncpu)", test: /(?:^|[\s;&|(=$])nproc(?:\s|$|\))/ },
+  { name: "timeout (GNU coreutils, not on macOS)", test: /(?:^|[\s;&|(])timeout\s+[-\d]/ },
+  { name: "realpath (added to macOS only in 12.3)", test: /(?:^|[\s;&|(=$])realpath(?:\s|$|\))/ },
+  { name: "date +%N (BSD date has no nanoseconds)", test: /\bdate\b[^\n]*%s?%N/ },
+  // --- coreutils: fine once the file carries the BSD form too ---
+  {
+    name: "stat -c (BSD stat spells it -f)",
+    test: /\bstat\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*c\b/,
+    pairedBy: /\bstat\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*f\b/,
+  },
+  {
+    // anchored on `date` as the command word, because `--date=` also belongs to
+    // `git log --date=short`, which has nothing to do with date(1)
+    name: "date -d (BSD date spells it -j -f, or -v for relative)",
+    test: /(?:^|[\s;&|($])date\s+(?:-[A-Za-z]+\s+)*(?:-d\s|--date[= ])/,
+    pairedBy: /\bdate\s+(?:-[A-Za-z]+\s+)*-[jv]/,
+  },
+  // --- gawk extensions: the one-true-awk on macOS knows none of these ---
+  {
+    name: "gawk-only function or variable",
+    test: /\b(?:gensub|asorti?|patsplit|systime|strftime|mktime)\s*\(|\b(?:IGNORECASE|PROCINFO|FIELDWIDTHS|FPAT|BEGINFILE|ENDFILE|RT)\b|\bnextfile\b/,
+  },
+  { name: "GNU word-boundary escape in a regex (\\< \\> \\y \\B)", test: /\\[<>yB]/ },
+  // --- bash 4+: macOS /bin/bash is 3.2 ---
+  { name: "declare/local -A or -n (bash 4 associative array / nameref)", test: /\b(?:declare|local|typeset)\s+-[A-Za-z]*[An]\b/ },
+  { name: "mapfile/readarray (bash 4)", test: /\b(?:mapfile|readarray)\b/ },
+  { name: "${var^^} / ${var,,} case modification (bash 4)", test: /\$\{[A-Za-z_][A-Za-z0-9_]*(?:\[[^\]]*\])?(?:\^\^?|,,?)\}/ },
+  { name: "shopt -s globstar (bash 4)", test: /\bglobstar\b/ },
+  { name: ";;& or ;& case fall-through (bash 4)", test: /;;&|;&\s*$/ },
+  { name: "wait -n (bash 4.3)", test: /\bwait\s+-n\b/ },
+  { name: "[[ -v (bash 4.2)", test: /\[\[\s+-v\s/ },
+  { name: "coproc (bash 4)", test: /\bcoproc\b/ },
+];
+
 // ---------------------------------------------------------------------------
 // Detectors - each is a pure function over file text (or mode+path), so each
 // gets its own synthetic self-check below with no filesystem/git involved.
@@ -86,6 +156,27 @@ function bashismViolations(filePath: string, content: string): string[] {
       if (bashism.test(line)) {
         violations.push(`${filePath}:${i + 1}: bashism under #!/bin/sh - ${bashism.name}`);
       }
+    }
+  }
+  return violations;
+}
+
+/** Sweeps a shell script for GNU-only constructs, comment-only lines stripped
+ *  first (the shebang is one, so line 1 drops out with them). A `pairedBy`
+ *  rule is suppressed when the file carries its BSD counterpart anywhere -
+ *  see GNUISMS for why the pair is file-wide rather than per line. */
+function gnuismViolations(filePath: string, content: string): string[] {
+  if (!filePath.endsWith(".sh")) return [];
+  // a comment-only line becomes empty rather than disappearing, so the index
+  // of every surviving line still IS its line number
+  const code = content.split("\n").map((line) => (line.trim().startsWith("#") ? "" : line));
+  const codeText = code.join("\n");
+  const violations: string[] = [];
+  for (let i = 0; i < code.length; i++) {
+    for (const rule of GNUISMS) {
+      if (!rule.test.test(code[i])) continue;
+      if (rule.pairedBy && rule.pairedBy.test(codeText)) continue;
+      violations.push(`${filePath}:${i + 1}: GNU-only, breaks on macOS - ${rule.name}`);
     }
   }
   return violations;
@@ -331,6 +422,53 @@ test("self-check: bashismViolations skips a comment line and a #!/usr/bin/env ba
   assert.deepEqual(bashismViolations("plugin/scripts/foo.sh", bashScript), []);
 });
 
+test("self-check: gnuismViolations fires on grep -P, ${x^^} and a gawk-only function", () => {
+  const bad = ["#!/usr/bin/env bash", 'grep -oP "x" f', 'echo "${name^^}"', "awk '{ print gensub(/a/, \"b\", 1) }'"].join("\n");
+  const found = gnuismViolations("s.sh", bad);
+  assert.equal(found.length, 3, found.join("\n"));
+  assert.match(found[0], /^s\.sh:2: .*grep -P/);
+  assert.match(found[1], /^s\.sh:3: .*case modification/);
+  assert.match(found[2], /^s\.sh:4: .*gawk-only/);
+});
+
+test("self-check: gnuismViolations accepts a GNU form the file pairs with its BSD counterpart", () => {
+  // the shape every guarded site in this repo has: same line for stat, and a
+  // probe several lines up for date - both must read as clean
+  const paired = [
+    "#!/usr/bin/env bash",
+    't="$(stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null)"',
+    "if date -v-1d >/dev/null 2>&1; then",
+    '  since="$(date -v-7d +%F)"',
+    "else",
+    '  since="$(date -d "-7 days" +%F)"',
+    "fi",
+    'if command -v sha256sum >/dev/null 2>&1; then out="$(sha256sum < "$f")"',
+    'else out="$(shasum -a 256 < "$f")"; fi',
+  ].join("\n");
+  assert.deepEqual(gnuismViolations("s.sh", paired), []);
+});
+
+test("self-check: gnuismViolations does not read git's own --date= flag as date(1)", () => {
+  // the false positive the rule shipped with: `git log --date=short` has
+  // nothing to do with date(1), so the rule anchors on the command word
+  const gitLog = ["#!/usr/bin/env bash", 'stamp="$(git log -1 --date=short --format=%cd)"'].join("\n");
+  assert.deepEqual(gnuismViolations("s.sh", gitLog), []);
+});
+
+test("self-check: gnuismViolations fires on the same two forms when the file carries no BSD counterpart", () => {
+  const bare = ["#!/usr/bin/env bash", 't="$(stat -c %Y "$1")"', 'since="$(date -d "-7 days" +%F)"'].join("\n");
+  const found = gnuismViolations("s.sh", bare);
+  assert.equal(found.length, 2, found.join("\n"));
+  assert.match(found[0], /^s\.sh:2: .*stat -c/);
+  assert.match(found[1], /^s\.sh:3: .*date -d/);
+});
+
+test("self-check: gnuismViolations skips a comment mentioning a GNU-ism, and skips .ts files entirely", () => {
+  const commented = ["#!/usr/bin/env bash", "# a mutation (a redirect, sed -i, an external editor)", "printf 'ok\\n'"].join("\n");
+  assert.deepEqual(gnuismViolations("s.sh", commented), []);
+  assert.deepEqual(gnuismViolations("m.ts", "const x = `grep -P foo`;\n"), []);
+});
+
 test("self-check: preloadQuotingViolations fires on an unquoted '?plan' glob argument", () => {
   const content = 'name: foo\n---\n\nRun: !`"${CLAUDE_PLUGIN_ROOT}/scripts/take-input.sh" ?plan`\n';
   const violations = preloadQuotingViolations("plugin/skills/foo/SKILL.md", content);
@@ -468,6 +606,15 @@ test("every #!/bin/sh script contains no bash-only syntax", () => {
     violations.push(...bashismViolations(repoRelativePath, content));
   }
   assert.equal(violations.length, 0, `bashism violations:\n${violations.join("\n")}`);
+});
+
+test("no shipped script depends on a GNU-only utility, gawk extension or bash 4 feature (it has to run on macOS too)", () => {
+  const violations: string[] = [];
+  for (const { repoRelativePath } of shippedScripts) {
+    const content = fs.readFileSync(path.join(root, repoRelativePath), "utf-8");
+    violations.push(...gnuismViolations(repoRelativePath, content));
+  }
+  assert.equal(violations.length, 0, `GNU-only constructs:\n${violations.join("\n")}`);
 });
 
 test("every script invoked bare from a SKILL.md/hooks.json line carries the 100755 exec bit", () => {
