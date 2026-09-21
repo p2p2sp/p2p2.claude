@@ -4,7 +4,7 @@ Read only under `adr: true`, before the tasks are written. Each accepted decisio
 
 ## 1. Find the candidates
 
-A decision this plan settles is a candidate only when all three hold; one missing drops it silently, with no message to the user:
+A decision this plan settles is a candidate only when all three hold; one missing drops it silently, with no message to the user.
 
 1. Hard to Reverse - Undoing it requires a costly migration, rewritten boundaries, or breaking changes across callers, rather than a simple code edit.
 2. Surprising Without Context - The choice is not the obvious default. A competent engineer looking at the system cold would wonder why it was done this way.
