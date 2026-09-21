@@ -66,10 +66,14 @@ covers what is true across the whole plugin.
 - That template (`skills/setup/assets/settings.json`) is designed for a session with auto mode
   OFF: it seeds `permissions.disableAutoMode: "disable"`, so no classifier runs and the static
   `deny` -> `ask` -> `allow` order decides every call. Consequences baked into its shape:
-  `acceptEdits` already covers in-tree edits, so a bare `Edit`/`Write` in `allow` would only
-  widen the rules to paths outside the working dir (and pre-approve shell redirects there), and
-  is deliberately absent; `ask` is the only human checkpoint left, so it carries the
-  outward-facing commands; `deny` carries wildcard forms (`Bash(git * --force*)`), because a
+  `allow` carries the write tools outright (`Edit`, `Write`, `NotebookEdit`), because every file
+  a build leaves behind is written by a dispatched agent, none of the eleven declares a
+  `permissionMode`, and `acceptEdits` is both uninherited by a subagent and scoped to the working
+  directory - an implementor stopped on a prompt strands its batch, and `deny` is the layer that
+  holds the line on `.env`, `.git/` and the key files; `ask` is the only human checkpoint left,
+  so it carries the outward-facing commands that publish beyond the local repository
+  (`git push`, `gh release create`, `gh repo create`); `deny` carries wildcard forms
+  (`Bash(git * --force*)`), because a
   `*` matches at any position and plain prefixes miss `git push origin main --force`. The merge
   only ever appends, so dropping an entry from the template never removes it from a host that
   already carries it.

@@ -311,7 +311,7 @@ test("the shipped template carries the recommended block only: built-in tools, d
   assert.equal(template.permissions.disableAutoMode, "disable");
 
   const { allow, ask, deny } = template.permissions;
-  assert.equal(allow.length, 31);
+  assert.equal(allow.length, 34);
   assert.equal(new Set(allow).size, allow.length, "no duplicate allow entry");
   assert.equal(new Set(ask).size, ask.length, "no duplicate ask entry");
   assert.equal(new Set(deny).size, deny.length, "no duplicate deny entry");
@@ -320,15 +320,20 @@ test("the shipped template carries the recommended block only: built-in tools, d
   for (const expected of ["Read", "Glob", "Bash", "Skill", "Task", "ReadMcpResourceDirTool"]) {
     assert.ok(allow.includes(expected), `allow should carry ${expected}`);
   }
-  // acceptEdits already auto-approves edits inside the working directory, so a
-  // bare write tool in allow would only widen the rules to paths outside it -
-  // and would pre-approve every shell redirect to such a path as well.
-  for (const unwanted of ["Edit", "Write", "NotebookEdit"]) {
-    assert.ok(!allow.includes(unwanted), `allow should not carry a bare ${unwanted}`);
+  // The write tools are allowed outright. Every file a build leaves behind is
+  // written by a dispatched agent - all eleven carry Write - and none of them
+  // declares a permissionMode, so each starts in the asking default instead of
+  // inheriting the session's acceptEdits. That mode would not cover them
+  // anyway: it is scoped to the working directory. An implementor stopped on a
+  // permission prompt strands the batch it was dispatched in, which is why the
+  // bare entries are here; the deny list is what keeps .env, .git/ and the key
+  // files out.
+  for (const expected of ["Edit", "Write", "NotebookEdit"]) {
+    assert.ok(allow.includes(expected), `allow should carry ${expected} - superdev's writers write through it`);
   }
-  // With no classifier, ask is the only human checkpoint left: outward-facing
-  // operations, plus an interpreter as a command (the `curl … | sh` shape).
-  for (const expected of ["Bash(git push:*)", "Bash(gh pr create:*)", "Bash(bash:*)", "Bash(sh:*)"]) {
+  // With no classifier, ask is the only human checkpoint left: the outward-facing
+  // operations, the ones that publish beyond the local repository.
+  for (const expected of ["Bash(git push:*)", "Bash(gh release create:*)", "Bash(gh repo create:*)"]) {
     assert.ok(ask.includes(expected), `ask should carry ${expected}`);
   }
   for (const expected of [
