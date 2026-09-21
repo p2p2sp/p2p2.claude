@@ -4,19 +4,13 @@
 
 Build: skill `implementor`
 
-<!-- three parts: everything above "## Tasks" is the specification - WHAT and WHY - and is split
-     off as spec.md; the tasks are the implementation plan - HOW - one file each under tasks/;
-     the "## Contracts" appendix carries the shapes, sliced into those task files by each task's
-     "Uses:" line. A signature never appears above "## Tasks". -->
-
 ## Goal
 
 <2-4 sentences: what gets built and why. No description of the solution.>
 
 ## Roadmap
 
-<!-- Only when the idea was split into subprojects: the ordered list with this plan's entry marked,
-     every later entry repeated under "### Out of scope". Not split -> drop this section. -->
+<!-- Only when the idea was split into subprojects; otherwise drop this section. -->
 
 Part <n> of <N> - <this subproject>
 
@@ -66,22 +60,13 @@ Part <n> of <N> - <this subproject>
 - DoD: <...>
 <!-- /TASK -->
 
-<!--
-One TASK block per unit of work; leave every HTML marker intact.
-The whole heading line, "T<n> - <title>", is committed verbatim as the commit subject.
-"Exclusive: true" is the one optional line and the only value it takes - "false" and "none" are
-rejected at validation. Leave it out unless the task genuinely cannot share the working tree or a
-machine-wide resource (a fixed port, one database, a suite that has to run alone); the orchestrator
-dispatches such a task on its own, so every one of them costs the build its parallelism.
--->
+<!-- One TASK block per unit of work; leave every HTML marker intact. "Exclusive: true" is the one
+     optional line and the only value it takes. -->
 
 ## Contracts
 
 <!-- One block per shape this change introduces or consumes: signature, type, endpoint, schema,
-     error code, dictionary key. Every block is named by at least one task's "Uses:" - a block
-     nobody names reaches no coder and is rejected at validation. "File:" says where the shape
-     is declared, which is what decides who writes it: the task holding that path. A path no
-     task creates and no holder naming the block are both rejected at validation.
+     error code, dictionary key. "File:" says where the shape is declared, or "none".
      No contract at all -> drop this section and every task carries "Uses: none". -->
 
 ### C1 - <name>

@@ -1,7 +1,7 @@
 ---
 name: idea
 description: Interviews the user about a raw idea until it is ready to plan - one question at a time, splitting an idea too broad for one cycle into ordered subprojects first.
-allowed-tools: Read, Grep, Glob, Skill, Bash(git log:*), Bash(git status:*)
+allowed-tools: Read, Grep, Glob, Skill
 user-invocable: true
 disable-model-invocation: true
 ---

@@ -1,6 +1,6 @@
 ---
 name: skill-designer
-description: Design, create, refactor, split, shrink or audit skills and agents. Always use whenever the user wants a new skill or agent, asks to improve, clean up, compress, optymize or fix an existing one, complains a skill is too long, drifts or triggers badly, wants a skill split into forks, or asks for a review of skill files, even when they only say "make a skill for X" or "this agent does too much".
+description: Authoring doctrine for Claude Code skills and agents: one responsibility per skill, triggering description, progressive disclosure, fork placement, lint.
 ---
 
 # skill-designer
@@ -31,6 +31,8 @@ One skill = one concern. Extra concerns become noise and drift, so each one goes
 
 - `description:` is the primary triggering mechanism and the only place for "when to use". Put none of it in the body.
 - Skills undertrigger, so write the description pushy: what it does, then explicit contexts and phrasings that should fire it, including indirect ones.
+- Pushy only while nothing else owns the intent. Where a bundled or sibling skill already covers the generic request, state what the skill is and stop, accepting the misses: two pushy descriptions over one intent fire the wrong skill, and the user can still name the one they want.
+- A skill is consulted only for work the model cannot already do in one step. A trivial request will not fire it however well the description matches, so spend the description on the multi-step case and never try to buy the one-shot one.
 - Routing guards ("invoked only by X, never directly") live here and nowhere else.
 - Metadata (name + description) is always in context: aim for about 100 words.
 - Hard platform caps, not style: name 64 chars, lowercase letters, digits and single hyphens, no reserved word (anthropic, claude); description 1024 chars, no angle brackets. Everything past 1024 is truncated, so the trigger words in the tail vanish with no error.

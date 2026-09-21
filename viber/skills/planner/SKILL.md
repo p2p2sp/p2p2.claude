@@ -1,7 +1,7 @@
 ---
 name: planner
 description: Turns an understood change into a reviewed implementation plan - acceptance criteria, file map, then tasks carrying dependencies, contracts, verification and DoD. Invoked by viber:idea with a confirmed interview or by viber:fixer with a diagnosis; any other input goes to viber:idea first.
-allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(date:*), Bash(git log:*), Bash(git status:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(date:*)
 user-invocable: false
 ---
 
@@ -51,8 +51,7 @@ Task rules:
 - `Verification` is a runnable command plus the result that counts as proof, scoped to the task's own `Files` and the tests covering them, never a whole-project suite: other tasks are being written in the same tree at the same time. A task with no runtime behaviour verifies its artefact instead - the file exists and its required content greps, never "read it and judge".
 - `TDD: required` by default. `TDD: none` only where the task changes no runtime behaviour: config, docs, mechanical rename, scaffolding.
 - A reproduction test already RED in the tree goes into the fixing task's `Files:` - nothing outside a file map gets committed - and that task carries `TDD: none`: its RED cycle is done.
-- Shape the work so its behaviour is provable without an external service: the database, queue, clock or network call it needs sits behind a seam a unit test substitutes. That is a plan decision, mapped in step 1, and it is what keeps a task verifiable in a tree other coders are writing in at the same time.
-- An integration test proves only what a unit test cannot reach - real routing, real serialization, real SQL and migration, the real auth pipeline - so there is one integration task per boundary the change crosses, never one per acceptance criterion. They are the last tasks in the plan, each `TDD: none`, `Exclusive: true` and depending on the tasks whose work it exercises, and each `Verification` compiles the test and stops there: the integration layer runs exactly once, in the build's closing test run.
+- Integration tasks are the last tasks in the plan, each `TDD: none`, `Exclusive: true` and depending on the tasks whose work it exercises, and each `Verification` compiles the test and stops there: the integration layer runs exactly once, in the build's closing test run.
 - Every acceptance criterion is covered by at least one task's `Covers`. A condition no single task delivers, like the suite staying green, is not an acceptance criterion: that is the build's own close.
 - The heading line is committed verbatim as the commit subject, so the title is one short imperative summary of what the task delivers.
 
@@ -65,7 +64,7 @@ Contract rules:
 
 With `adr: true` above, read `${CLAUDE_SKILL_DIR}/references/adr-tasks.md` before writing the tasks and follow it; otherwise skip it entirely.
 
-Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan-path>` as one literal Bash line, no interpreter word in front - any other form is an unapproved call that stalls on a permission prompt. It must exit 0 - it validates ids, required fields, the `Exclusive` value where the line is present, dependency direction, `Covers` and `Uses` in both directions (every reference points at a real criterion or contract block, every criterion and every block is reached by some task), the `Files` and `File` formats, that every contract file has a task creating it and a holder naming its block, and that no two tasks without a dependency path between them list the same file. Fix whatever it reports and re-run.
+Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan-path>` as one literal Bash line, no interpreter word in front - any other form is an unapproved call that stalls on a permission prompt. It validates every rule above and must exit 0: fix whatever it reports and re-run.
 
 Show the user the full path of the written plan.
 

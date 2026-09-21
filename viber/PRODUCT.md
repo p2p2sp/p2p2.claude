@@ -1,17 +1,23 @@
-# Założenia
+# Product assumptions
 
-- Plugin `viber` musi poprawnie działać na wszelakiego rodzaju projektach. Jeśli zadania nie są programistyczne lub kod nie jest testowalny to plan i proces implementacji musi o uwzględniać.
+- The `viber` plugin must work correctly on projects of every kind. Where the tasks are not
+  programming tasks, or the code is not testable, the plan and the implementation process have to
+  account for that.
 
-- Kod przez codera musi być pisany tak, aby TDD i testy pokrywały przypadki w taki sposób, aby nie był wymagany test integracyjny z zewnętrznymi usługami takimi jak baza danych.
+- A coder must write code so that TDD and its tests cover the cases without requiring an
+  integration test against an external service such as a database.
 
-- Testy integracyjne są tylko uzupełnieniem do testów jednostkowych, które pokrywają kilka warstw, a nie bazą potwierdzającą działanie danej funkcji.
+- Integration tests only supplement the unit tests by covering several layers at once; they are
+  never the base proof that a given function works.
 
-- Testy integracyjne uruchamiane tylko i wyłącznie raz w finalnym kroku "Finalne uruchomienie testów".
+- Integration tests run once and only once, in the final step "final test run".
 
-- Testy integracyjne uruchamiane jako ostatnie zadania raczej szeregowo - nałożenie się ciężkich zadań z testami integracyjnymi może być ciężkie.
+- Integration tests run as the last tasks and rather serially - heavy tasks carrying integration
+  tests overlapping each other can be costly.
 
-- Testów jednostkowych czy TDD powinna być znaczna przewaga nad ilością testów integracyjnych.
+- Unit tests and TDD must outnumber integration tests by a wide margin.
 
-- Testy integracyjne powinny używać test-containers kiedy to tylko możliwe.
+- Integration tests should use test containers wherever possible.
 
-- Zachowanie założeń testowania od szczegółu do ogółu (najpierw testy jednostkowe - na koniec integracyjne) wspomaga implementację współbieżną zadań.
+- Keeping the testing order from detail to whole (unit tests first, integration tests last)
+  supports building the tasks concurrently.

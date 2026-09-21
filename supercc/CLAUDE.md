@@ -24,6 +24,15 @@ plugin-root dirs - the single skill bundles its own `references/` and `scripts/`
 
 ## Contracts & invariants
 
+- **`skill-designer`'s own `description:` stays short and deliberately undertriggers.** Anthropic's
+  bundled `skill-creator` is present in most sessions and already owns the generic "make me a
+  skill" intent; skill-designer does not compete for it and never tries to win by a pushier CSO.
+  Its description says what the skill is, not which phrasings should fire it: no "always use
+  whenever", no enumerated near-synonyms, no "even if the user only says X". Missing a borderline
+  invocation is the accepted cost - the user names the skill when they want this doctrine - and a
+  CSO arms race would fire it on every passing mention of a skill file. This is not an exception
+  to the skill's own "descriptions undertrigger, write them pushy" rule but its scope: pushy
+  applies while nothing else owns the intent, and here something does.
 - The linter checks form, the skill judges substance. `lint_skill.sh` owns only what is
   mechanically decidable (frontmatter presence/field caps, name charset, reserved words, body
   length, orphaned bundled files). Everything requiring judgment (one responsibility? does the
