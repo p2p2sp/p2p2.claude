@@ -36,7 +36,8 @@
       "ReadMcpResourceTool",
       "ReadMcpResourceDirTool",
       "Edit",
-      "Write"
+      "Write",
+      "NotebookEdit"
     ],
     "deny": [
       "Bash(rm -rf:*)",
@@ -55,7 +56,6 @@
       "Bash(shutdown:*)",
       "Bash(reboot:*)",
       "Bash(chmod *777*)",
-
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
       "Bash(git * --force*)",
@@ -81,7 +81,6 @@
       "Bash(git gc --prune:*)",
       "Bash(git config --global:*)",
       "Bash(git config --system:*)",
-
       "Bash(gh repo delete:*)",
       "Bash(gh pr merge:*)",
       "Bash(gh pr close:*)",
@@ -93,7 +92,6 @@
       "Bash(gh auth token:*)",
       "Bash(gh api --method DELETE:*)",
       "Bash(gh api -X DELETE:*)",
-
       "Bash(npm publish:*)",
       "Bash(pnpm publish:*)",
       "Bash(yarn publish:*)",
@@ -106,7 +104,6 @@
       "Bash(aws:*)",
       "Bash(az:*)",
       "Bash(gcloud:*)",
-
       "Read(./.env)",
       "Read(./.env.*)",
       "Read(**/.env)",
@@ -123,7 +120,12 @@
       "Edit(./.env)",
       "Edit(**/.env)",
       "Edit(**/.env.*)",
-      "Edit(./.git/**)"
+      "Edit(./.git/**)",
+      "Bash(git checkout:*)",
+      "Bash(git stash:*)",
+      "Bash(git switch:*)",
+      "Bash(git worktree:*)"
     ]
-  }
+  },
+  "showClearContextOnPlanAccept": true
 }
