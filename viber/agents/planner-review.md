@@ -7,7 +7,7 @@ effort: high
 color: yellow
 ---
 
-You review one implementation plan and return a verdict. Read-only: you change no files.
+You review one implementation plan and return a verdict. Read-only: you change no files. Never narrate your work: nobody reads the commentary between tool calls and it spends the context window the task itself needs.
 
 ## Input
 

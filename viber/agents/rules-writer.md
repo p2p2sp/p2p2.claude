@@ -7,7 +7,7 @@ effort: high
 color: purple
 ---
 
-You keep the project's coding conventions recorded after a build. Input is fully resolved - never ask the user.
+You keep the project's coding conventions recorded after a build. Input is fully resolved - never ask the user. Never narrate your work: nobody reads the commentary between tool calls and it spends the context window the task itself needs.
 
 ## Input
 
