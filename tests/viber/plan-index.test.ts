@@ -54,6 +54,8 @@ interface TaskFields {
   id?: string;
   title?: string;
   tdd?: string;
+  /** Omitted entirely unless set - an absent line is what an ordinary task looks like. */
+  exclusive?: string;
   covers?: string;
   /** `null` omits the line entirely - the shape a plan written before `Uses:` has. */
   uses?: string | null;
@@ -120,6 +122,7 @@ function planBody(tasks: TaskFields[], criteria = 2, contracts: string[] = CONTR
       "<!-- TASK -->",
       `### ${t.id ?? "T1"} - ${t.title ?? "do the thing"}`,
       `- TDD: ${t.tdd ?? "required"}`,
+      ...(t.exclusive === undefined ? [] : [`- Exclusive: ${t.exclusive}`]),
       `- Covers: ${t.covers ?? "#1"}`,
       ...(t.uses === null ? [] : [`- Uses: ${t.uses ?? "C1"}`]),
       `- Depends-on: ${t.deps ?? "none"}`,
@@ -172,7 +175,7 @@ function taskFiles(dir: string): string[] {
 
 // --- the index -------------------------------------------------------------
 
-test("the index carries one row per task: id, state, TDD marker, normalised deps, files and title", () => {
+test("the index carries one row per task: id, state, TDD marker, exclusivity, normalised deps, files and title", () => {
   withTempDir("p2p2-viber-", (dir) => {
     seed(dir, planBody(TWO_TASKS));
 
@@ -184,9 +187,44 @@ test("the index carries one row per task: id, state, TDD marker, normalised deps
         `plan: ${PLAN_REL}`,
         "title: Add login",
         "progress: 0/2",
-        "tasks: id | state | tdd | deps | files | title",
-        "T1 | todo | required | - | src/login.ts | Add the login handler",
-        "T2 | todo | required | T1 | src/reject.ts | Reject a bad password",
+        "tasks: id | state | tdd | excl | deps | files | title",
+        "T1 | todo | required | - | - | src/login.ts | Add the login handler",
+        "T2 | todo | required | - | T1 | src/reject.ts | Reject a bad password",
+        "",
+      ].join("\n"),
+    );
+  });
+});
+
+test("Exclusive: true reaches the orchestrator as excl yes, and an absent line as '-' (the plan declares the constraint, the script only carries it)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(
+      dir,
+      planBody([
+        { id: "T1", title: "Add the login handler", files: "src/login.ts" },
+        {
+          id: "T2",
+          title: "Prove the endpoint against a real server",
+          covers: "#2",
+          uses: "none",
+          deps: "T1",
+          files: "test/login.api.ts",
+          exclusive: "true",
+        },
+      ]),
+    );
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(
+      result.stdout,
+      [
+        `plan: ${PLAN_REL}`,
+        "title: Add login",
+        "progress: 0/2",
+        "tasks: id | state | tdd | excl | deps | files | title",
+        "T1 | todo | required | - | - | src/login.ts | Add the login handler",
+        "T2 | todo | required | yes | T1 | test/login.api.ts | Prove the endpoint against a real server",
         "",
       ].join("\n"),
     );
@@ -372,6 +410,16 @@ test("a broken task contract exits 4 and names the task", () => {
     ["a glob in Files", [{ id: "T1", files: "src/*.ts" }], /is a glob/],
     ["a directory in Files", [{ id: "T1", files: "src/" }], /is a directory/],
     ["a TDD marker that is neither required nor none", [{ id: "T1", tdd: "maybe" }], /TDD must be/],
+    [
+      "an Exclusive line spelled false rather than left out",
+      [{ id: "T1", exclusive: "false" }],
+      /task T1: Exclusive must be "true" or the line left out, got: "false"/,
+    ],
+    [
+      "an Exclusive line spelled none - the mandatory fields' convention, borrowed where it does not hold",
+      [{ id: "T1", exclusive: "none" }],
+      /task T1: Exclusive must be "true" or the line left out, got: "none"/,
+    ],
     [
       "a dependency pointing forward",
       [
@@ -575,7 +623,7 @@ test("--split writes the specification and one file per task, and still prints t
 
     const result = run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.match(result.stdout, /^T2 \| todo \| required \| T1 \| src\/reject\.ts \| Reject a bad password$/m);
+    assert.match(result.stdout, /^T2 \| todo \| required \| - \| T1 \| src\/reject\.ts \| Reject a bad password$/m);
 
     assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
 

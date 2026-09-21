@@ -56,6 +56,7 @@ Part <n> of <N> - <this subproject>
 <!-- TASK -->
 ### T2 - <title>
 - TDD: required | none
+- Exclusive: true
 - Covers: #<n>
 - Uses: C1, C2
 - Depends-on: T1
@@ -68,6 +69,10 @@ Part <n> of <N> - <this subproject>
 <!--
 One TASK block per unit of work; leave every HTML marker intact.
 The whole heading line, "T<n> - <title>", is committed verbatim as the commit subject.
+"Exclusive: true" is the one optional line and the only value it takes - "false" and "none" are
+rejected at validation. Leave it out unless the task genuinely cannot share the working tree or a
+machine-wide resource (a fixed port, one database, a suite that has to run alone); the orchestrator
+dispatches such a task on its own, so every one of them costs the build its parallelism.
 -->
 
 ## Contracts

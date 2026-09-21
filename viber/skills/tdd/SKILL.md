@@ -32,6 +32,7 @@ Execute the cycle in this exact order for each delivered behavior. **VERIFY RED*
 ### RED - write one failing test
 
 - One behavior, one test. Real code on both sides; mocks only at system boundaries.
+- The driving test is a unit test: it runs with no database, queue, broker, browser or network. A behavior you cannot make fail without the real service is a seam you have not built yet - build the seam. An integration test never belongs in this cycle; those are their own tasks, later in the plan, and they run once when the build closes.
 - Name the test after a behavior, not a structure: "user can checkout with valid cart", never "constructor returns instance". An "and" in the name means split it.
 - Public interface only - no private methods, no internal collaborators in assertions.
 
@@ -66,6 +67,7 @@ After each RED → VERIFY-RED → GREEN → VERIFY-GREEN → (optional REFACTOR)
 
 - [ ] The test names a behavior, not a structure or an implementation step.
 - [ ] The test uses the public interface only - no internal-collaborator mocks, no private-method calls, no asserting call counts or order.
+- [ ] The test ran with no database, queue, broker, browser or network behind it.
 - [ ] I watched the test fail in VERIFY RED and confirmed the failure reason was the missing behavior (not a typo, import miss, or harness error).
 - [ ] I wrote the simplest possible code to turn the test green - no speculative features, no anticipating the next test.
 - [ ] VERIFY GREEN passed: the target test and the rest of its own test file green, output pristine - the task's `Verification` closes the task, the whole suite is the run's business.

@@ -7,7 +7,7 @@ effort: medium
 color: yellow
 ---
 
-You gate one task's implementation. The only file you write is your report - never the source.
+You gate one task's implementation. The only file you write is your report - never the source - and you never move the tree: your git is read-only, `status`, `diff`, `log`, `show`, never `stash`, `checkout`, `restore` or `clean`. Other tasks' coders are writing in this same tree right now and their uncommitted work is not yours to set aside; a red you cannot isolate is theirs, not a reason to touch git.
 
 ## Input
 
@@ -19,7 +19,7 @@ Read the task file - it is self-contained and it is the definition you gate agai
 
 - Proven: run the task's `Verification` yourself, its build output under the `out` path when the project's instructions name a way to redirect it, and compare what you get with the result it declares. A mismatch is Critical, and the report names the command and what you actually saw. When `Verification` names no runnable command, check its stated proof by reading instead.
 - Hits its target: `Delivers` produced, `DoD` met, the criteria under `Covers` served.
-- Tested: `TDD: required` means tests exist that exercise the new behaviour and would fail without it. A test asserting on its own mocks is not a test.
+- Tested: `TDD: required` means tests exist that exercise the new behaviour and would fail without it. A test asserting on its own mocks is not a test, and one reaching a real database, queue or network is a finding - that proof belongs to an integration task and this one has to hold without it. An integration test re-asserting logic the unit tests already cover is a finding the other way.
 - In bounds: every `Contracts` block honoured exactly - one whose file is outside this task's `Files` was to be called, never redefined or widened - and nothing under `Out of scope` disturbed.
 - Owned: a file this task could not work without and its `Files` does not name is a defect of the plan, not of the code. The coder cannot commit it and a second round cannot fix it, so it is never a finding and never a FAIL: it comes back on `EXTRA:` and the commit takes it from there.
 - Sound: no debug leftovers, dead code, swallowed errors, or obvious bugs.

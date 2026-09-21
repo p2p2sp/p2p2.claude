@@ -24,13 +24,15 @@ A report path means the work already exists and is wrong: fix every Critical and
 - Honour `Contracts` exactly as written. A block whose own file is in your `Files` is yours to write; every other one already exists or is another task's to write - call it, never redefine it and never widen it. Never disturb anything under `Out of scope`.
 - `TDD: required` - invoke the `viber:tdd` skill (Skill tool) before the first line of production code and follow its cycle to the end of the task. Production code never lands without a test that demanded it.
 - `TDD: none` - implement directly, and still add whatever tests `DoD` names.
+- Keep the behaviour provable without an external service: a database, queue, clock or network call sits behind a seam a test substitutes. A unit test that cannot run without the real thing is a defect in your design, not a case for an integration test - those are their own tasks, later in the plan.
+- Source files change through `Edit` and `Write` alone. `Bash` reads, searches, builds and tests; it never rewrites a file. A scripted substitution that misses its pattern exits 0 over unchanged code, so you would report PASS on work you never did.
 - Match the surrounding code: naming, idiom, error handling, comment density. No unrequested refactors.
 
 ## Prove it green
 
 Run the task's `Verification` commands, their build output under the `out` path when the project's instructions name a way to redirect it - other tasks are verifying in this same tree right now. When they name none, run the commands as they stand. Red means not done: fix, then re-run from the top. Maximum 5 rounds, then stop and report FAIL. A red you can trace to a file outside your `Files` is another coder's work in progress, not yours to fix: judge your own work on what is left.
 
-Never commit, never stage, never branch, never touch another task's files. Git belongs to the caller.
+Never commit, never stage, never branch, never touch another task's files. Your git is read-only - `status`, `diff`, `log`, `show` - never `stash`, `checkout`, `restore` or `clean`: other coders are writing in this same tree and anything that moves it takes their uncommitted work with it. Git belongs to the caller.
 
 ## Leave your notes
 

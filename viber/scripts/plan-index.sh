@@ -15,9 +15,9 @@
 #   skipped: T4                     only when status.md carries the entry
 #   unreviewed: T3                  only when status.md carries the entry
 #   closed: memory rules            only when status.md carries the entry
-#   tasks: id | state | tdd | deps | files | title
-#   T1 | done | none     | -  | .claude/settings.json | chore: ...
-#   T2 | todo | required | T1 | src/a.ts,src/b.ts     | feat: ...
+#   tasks: id | state | tdd | excl | deps | files | title
+#   T1 | done | none     | -   | -  | .claude/settings.json | chore: ...
+#   T2 | todo | required | yes | T1 | src/a.ts,src/b.ts     | feat: ...
 #   dirty: T2 | src/a.ts            only for a task whose own files are dirty
 #
 # The run's state is read from status.md beside the plan - "done", "skipped",
@@ -30,6 +30,12 @@
 # line means that task's own files carry uncommitted work, so an earlier session
 # was cut off mid-task and a fresh coder would land on top of it. Everything else
 # a resume needs is already derivable, so nothing here is stored twice.
+#
+# "excl" is "yes" for a task the plan marked "Exclusive: true" - work that cannot
+# share the working tree or a machine-wide resource (a fixed port, one database),
+# so the orchestrator dispatches it alone. The plan declares the constraint and
+# this script only carries it: nothing here decides whether two tasks may run
+# together.
 #
 # "Files:" is a comma-separated list of exact repo-relative file paths - no globs,
 # no directories, no annotations - so the same list drives the commit and the
@@ -71,7 +77,8 @@
 #       a --split pointed at anything but the run's own <dir>/plan.md
 #   3 - no <!-- TASK --> blocks
 #   4 - broken task contract (duplicate id, an id that is not [A-Za-z0-9_-]+,
-#       missing field, illegal dependency, a "Covers:" criterion absent from the
+#       missing field, illegal dependency, an "Exclusive:" value other than
+#       "true", a "Covers:" criterion absent from the
 #       acceptance criteria, an acceptance criterion no task's "Covers:" names, a
 #       "Uses:" contract absent from the appendix, a contract block no task's
 #       "Uses:" names, a malformed or duplicate contract heading, a contract
@@ -224,6 +231,7 @@ incon && !intask && cid != "" && trim($0) != "" { cfresh = 0 }
   intask = 1; n++
   id[n] = ""; ttl[n] = ""; tdd[n] = ""; deps[n] = ""; files[n] = ""
   covers[n] = ""; uses[n] = ""; deliv[n] = ""; verif[n] = ""; dod[n] = ""
+  excl[n] = ""
   next
 }
 /<!--[[:space:]]*\/TASK[[:space:]]*-->/ { intask = 0; next }
@@ -238,6 +246,7 @@ intask {
     next
   }
   if ($0 ~ /^-[[:space:]]*TDD:/)          { tdd[n]    = val($0); next }
+  if ($0 ~ /^-[[:space:]]*Exclusive:/)    { excl[n]   = val($0); next }
   if ($0 ~ /^-[[:space:]]*Covers:/)       { covers[n] = val($0); next }
   if ($0 ~ /^-[[:space:]]*Uses:/)         { uses[n]   = val($0); next }
   if ($0 ~ /^-[[:space:]]*Depends-on:/)   { deps[n]   = val($0); next }
@@ -261,6 +270,10 @@ END {
 
   for (i = 1; i <= n; i++) {
     if (tdd[i] != "required" && tdd[i] != "none") fail("task " id[i] ": TDD must be \"required\" or \"none\", got: \"" tdd[i] "\"")
+    # Exclusive is the one optional field: absent means an ordinary task. Two
+    # states only - a third spelling would start the same drift the mandatory
+    # "Uses: none" was written to close.
+    if (excl[i] != "" && excl[i] != "true") fail("task " id[i] ": Exclusive must be \"true\" or the line left out, got: \"" excl[i] "\"")
     if (files[i] == "") fail("task " id[i] ": missing Files")
     if (deliv[i] == "") fail("task " id[i] ": missing Delivers")
     if (verif[i] == "") fail("task " id[i] ": missing Verification")
@@ -406,12 +419,13 @@ END {
   if (skipped != "") printf "skipped: %s\n", skipped
   if (unrev   != "") printf "unreviewed: %s\n", unrev
   if (closed  != "") printf "closed: %s\n", closed
-  printf "tasks: id | state | tdd | deps | files | title\n"
+  printf "tasks: id | state | tdd | excl | deps | files | title\n"
   for (i = 1; i <= n; i++) {
     f = ""
     for (k = 1; k <= nf[i]; k++) f = (f == "" ? fpath[i, k] : f "," fpath[i, k])
     state = (id[i] in isdone ? "done" : (id[i] in isskipped ? "skipped" : "todo"))
-    printf "%s | %s | %s | %s | %s | %s\n", id[i], state, tdd[i], dnorm[i], f, ttl[i]
+    x = (excl[i] == "true" ? "yes" : "-")
+    printf "%s | %s | %s | %s | %s | %s | %s\n", id[i], state, tdd[i], x, dnorm[i], f, ttl[i]
   }
 
   # a task whose own files carry uncommitted work: an earlier session was cut

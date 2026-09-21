@@ -227,6 +227,30 @@ file.
   two verifications may run together. A `Verification` hanging on a fixed port or one shared
   database is out of that reach and is a `planner-review` finding rather than something the run
   schedules around: isolating a test is the stack's job.
+- **The test layers are ordered, and `Exclusive:` is what serialises the last one.** A
+  `TDD: required` task proves its behaviour with unit tests alone: the database, queue, clock or
+  network it needs sits behind a seam the test substitutes, decided by `planner` in the file map
+  rather than improvised by a coder. An integration test never rides inside a TDD cycle. They are
+  the plan's last tasks, one per boundary the change crosses rather than one per criterion, each
+  `TDD: none` and `Exclusive: true`, each depending on the tasks it exercises, and each
+  `Verification` compiles the test without running it - so the whole integration layer runs exactly
+  once, in `test-runner`'s closing pass. `Exclusive: true` is the plan's one OPTIONAL task field
+  and its only accepted value (`plan-index.sh` exits 4 on `false` and on `none`, the mandatory
+  fields' convention borrowed where it does not hold). It declares that a task cannot share the
+  working tree or a machine-wide resource, reaches the orchestrator as the index's `excl` column
+  and makes `implementor` dispatch that task alone. It is a declaration, never a judgement: the
+  orchestrator still decides nothing about whether two verifications may run together, which is why
+  `planner-review` gates it in both directions - a shared resource left unmarked, and a marker on a
+  task that needs none and would stop the build for nothing.
+- **Source files change through `Edit`/`Write`, and git never moves under a running build.** Both
+  agents that share the working tree carry it: `task-coder` rewrites a file with the file tools and
+  spends `Bash` on reading, searching, building and testing, because a scripted substitution that
+  misses its pattern exits 0 over unchanged code and the agent reports PASS on work it never did.
+  Git is read-only for both - `status`, `diff`, `log`, `show` - never `stash`, `checkout`, `restore`
+  or `clean`: N coders write in one tree, so anything that moves it takes their uncommitted work
+  with it. `setup`'s permissions template denies those four verbs outright, because a prompt rule
+  alone is a known non-compliance and this failure mode is silent until a coder notices its files
+  are gone.
 - **Five deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path, report
   every other unfinished run as an `open:` line, and on `--land` put the approved plan there,
   stripped of the template's guidance),
@@ -352,4 +376,8 @@ file.
 
 ## Related context
 
+- `PRODUCT.md` - the product assumptions this plugin is built to hold: what viber must do on any
+  project, how the test layers are supposed to stack, and what runs when. Read it before changing
+  anything about planning, TDD or the test layers; a change that contradicts it is a change to the
+  product, not to the wording.
 - Repo-wide invariants, versioning, catalog layer: `../CLAUDE.md`

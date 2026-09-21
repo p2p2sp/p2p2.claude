@@ -41,7 +41,7 @@ Every path this run spends is derived from the printed one: `<dir>` is the plan'
 
 ## 2. Validate and decompose
 
-Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan> --split`. It validates the plan, writes `<dir>/spec.md` and one `<dir>/tasks/<id>.md` per task, commits that decomposition, and returns the title, the progress counter and one line per task: id, state, TDD marker, dependencies, files, title.
+Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan> --split`. It validates the plan, writes `<dir>/spec.md` and one `<dir>/tasks/<id>.md` per task, commits that decomposition, and returns the title, the progress counter and one line per task: id, state, TDD marker, exclusivity, dependencies, files, title.
 
 That index is your whole view of the plan; the task files are the agents'. Each one is self-contained - the task, the run's goal, the criteria it covers, the contracts it uses and the boundary it must not cross - so a coder is handed that one path and never the specification.
 
@@ -70,6 +70,7 @@ Pick each task's profile from the nature of its work, not from its position:
 Never break:
 
 - A task dispatches only once every id in its `deps` is done.
+- A task whose `excl` column says `yes` runs alone: nothing else may be in flight when it goes out, and nothing new goes out until it is committed. Its work cannot share the tree or a machine-wide resource, and the plan is where that is declared - never infer it from a task's looks and never override it.
 - Never two `commit-task.sh` calls in one message - a commit rewrites the git index and the run's `status.md`, and nothing else in the run touches either. A second task ready to commit waits for the next message; everything else in this step waits for nothing.
 
 Dispatch: one `viber:task-coder` per task (Agent tool, `model` = that task's tier), all in a single message, each carrying three labelled lines and nothing else:
