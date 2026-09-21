@@ -26,14 +26,21 @@ recognizes only its own plan format, so one blocks the other. Run one track at a
 | "implement it" | The approved plan gets built. |
 | `/viber:e2e` | The build's QA scenarios become Playwright tests, run against your app. |
 
-The last two are not commands: "break this down", "go ahead" or anything else meaning the same works
-too. A typical run is `/viber:setup` once, then `/viber:idea`, "plan it", "implement it" - and you
-can skip the interview whenever the change is already clear.
+"plan it" and "implement it" are not commands: "break this down", "go ahead" or anything else
+meaning the same works too. A typical run is `/viber:setup` once, then `/viber:idea`, "plan it", "implement it". The
+interview is not a step you can skip: ask for a plan without one behind it and the interview starts
+first, however clear the change already reads. A bug goes the same way through `/viber:fixer`.
 
 The interview asks one question at a time, with three concrete options and a recommendation, and
-says so out loud when your answer is weak. You approve the plan yourself, but only after a reviewer
+says so out loud when your answer is weak. An idea too big for one cycle, a whole application or a
+platform of several independent subsystems, is split into ordered parts before any detail question,
+and the interview then covers the first part only. Each part gets its own plan and its own build,
+and nothing is faked in between: what a later part brings is out of scope until its turn, never a
+stub. You approve the plan yourself, but only after a reviewer
 has read it against your actual codebase. Then the build runs task by task, reviews each one,
 commits it, and finishes on the full test suite.
+
+![How viber works](../docs/assets/viber-flow.svg)
 
 ## Optional switches
 

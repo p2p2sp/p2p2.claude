@@ -98,10 +98,15 @@ usage() {
   exit 2
 }
 
-# The run directory of a plan, empty for a plan with no directory part.
+# The run directory of a plan, empty for a plan with no directory part. Both
+# separators are split on: on Windows the plan path can arrive backslashed
+# ("C:\...\plan.md"), and splitting on "/" alone would report NO directory part
+# for it - putting status.md in the working directory and blinding trail_paths,
+# instead of failing on a plan the repository does not hold.
 run_dir() {
-  [[ "$1" == */* ]] || return 0
-  printf '%s\n' "${1%/*}"
+  local p="${1//\\//}"
+  [[ "$p" == */* ]] || return 0
+  printf '%s\n' "${p%/*}"
 }
 
 # The run's trail files matching the given basename globs, one per line. The

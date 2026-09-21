@@ -13,7 +13,7 @@ CRITICAL: call `EnterPlanMode` first unless plan mode is already active.
 
 # planner
 
-Input: an understood change, already in context. Anything still open - the goal, the done-condition, the boundaries - means the input is not ready: run the `viber:idea` skill, then come back.
+Input: an understood change, already in context, and it arrived one of two ways - a confirmed `viber:idea` interview or a `viber:fixer` diagnosis with its fix plan. Anything else is unresolved input however clear it reads: invoke the `viber:idea` skill, then come back with what it confirms. Never size the scope yourself - splitting an idea too broad for one cycle happens in that interview, before its first detail question.
 
 The plan answers HOW. It carries every detail, acceptance criterion and DoD the implementation needs, and says nothing about the way a task should be coded - that choice belongs to whoever implements it.
 
@@ -30,7 +30,9 @@ Fill `${CLAUDE_SKILL_DIR}/templates/plan.md` into the plan file plan mode names 
 
 The `<!-- source: -->` marker carries that same path, absolute and written out in full. Approving the plan may clear this context and leave the implementor holding the plan's TEXT alone, so that line is the only way back to the file it has to land.
 
-Everything above `## Tasks` is WHAT and WHY: goal, acceptance criteria, file map, boundary. Not one signature, type, endpoint, error code or dictionary key belongs there - every shape lives in a `## Contracts` block below the tasks and reaches a coder through its `Uses:` line. That half is split off as `spec.md` and read whole by whoever reads it; a contract parked in it is the whole plan's detail in the context of a task that touches one line of it.
+An input carrying a roadmap, the ordered subprojects the interview split the idea into, fills `## Roadmap` with that list, marks the entry this plan covers and repeats every later entry under `### Out of scope`. The plan file is the only place the roadmap survives, because the next cycle starts in a context this one never reaches. What a later entry brings stays absent: no task delivers a stand-in for it, no acceptance criterion depends on it, and nothing is stubbed, mocked or temporarily substituted to make this plan look finished. No roadmap in the input means no such section.
+
+Everything above `## Tasks` is WHAT and WHY: goal, roadmap, acceptance criteria, file map, boundary. Not one signature, type, endpoint, error code or dictionary key belongs there - every shape lives in a `## Contracts` block below the tasks and reaches a coder through its `Uses:` line. That half is split off as `spec.md` and read whole by whoever reads it; a contract parked in it is the whole plan's detail in the context of a task that touches one line of it.
 
 Task rules:
 

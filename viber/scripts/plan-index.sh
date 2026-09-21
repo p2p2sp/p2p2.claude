@@ -93,6 +93,12 @@ if [[ ! -f "$plan" ]]; then
   exit 2
 fi
 
+# Windows hands over a backslashed path ("docs\_specs\...\plan.md"). `dirname`
+# splits it, the shell's own "${x##*/}" below does not, so the two would disagree
+# on the very same path - the basename check seeing ONE segment and refusing a
+# legitimate --split. Normalized once here, every later split reads alike.
+plan="${plan//\\//}"
+
 # --split rebuilds <dir>/tasks from scratch, so it only ever accepts the run's
 # own <dir>/plan.md: pointed at a plan sitting loose in a repository it would
 # delete a "tasks" directory belonging to the project.

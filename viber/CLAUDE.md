@@ -24,8 +24,11 @@ file.
   permissions (`skills/setup/scripts/merge-settings.sh` over `skills/setup/assets/settings.json`),
   and closes by printing `skills/setup/assets/usage.md` verbatim.
 - `skills/idea/SKILL.md` - `/viber:idea`, user-only. A prose interview, one question at a time,
-  ending in a confirmed summary that hands over to `viber:planner`. Writes nothing.
-- `skills/planner/SKILL.md` - model-invocable, and enters plan mode itself. Fills `skills/planner/templates/plan.md` into
+  opening on a scope check that splits an idea spanning several independent subsystems into ordered
+  subprojects and then interviews the first one alone, ending in a confirmed summary that hands over
+  to `viber:planner`. Writes nothing.
+- `skills/planner/SKILL.md` - model-invocable, and enters plan mode itself. Checks its input came
+  from a confirmed `idea` interview or a `fixer` diagnosis and invokes `idea` when it did not, fills `skills/planner/templates/plan.md` into
   the plan file plan mode names, that path written into the plan's own `<!-- source: -->` marker,
   under `adr: true` puts the decisions worth recording to the user and
   turns each accepted one into a first task, validates the result
@@ -98,6 +101,22 @@ file.
   core rides in the reproduction test's header comment - a file the fixing task's `Files:` commits
   anyway. `idea` keeps writing nothing: an interview is cheap to repeat with the user who answered
   it.
+- **The scope gate is `idea`'s alone, and the roadmap survives only inside the plan.** An idea
+  spanning several independent subsystems is split into ordered subprojects BEFORE the interview's
+  first detail question, because the alternative is dozens of questions and one plan of forty tasks;
+  the first subproject is then interviewed alone and the rest wait for their own cycle. `planner`
+  never sizes scope. It checks only that its input came from a confirmed interview or a `fixer`
+  diagnosis and invokes `idea` when it did not, which is what closed the old third entry, "plan it"
+  straight from an understood change. The accepted roadmap rides in the interview's summary into
+  `planner`, which writes it as `## Roadmap` and repeats every later subproject under
+  `### Out of scope`; `idea` still writes nothing, so the plan is the whole persistence and the next
+  cycle, starting in a context this one never reaches, reads it there. `--split` carries the
+  roadmap into `spec.md` alone, which is exactly why the later subprojects are repeated under
+  `### Out of scope`: that is the one of the two sections a task file gets, and it is how a coder
+  sees that a later subproject's element does not exist. A subproject boundary is not a delivery: nothing there is
+  stubbed, mocked or temporarily substituted, and what makes that possible is the ordering
+  constraint the split is built on - each subproject consumes only what earlier ones produced, and
+  two pieces that cannot be ordered that way belong to one subproject.
 - **`status.md` is the state, and the plan is frozen.** The run's progress lives in
   `<dir>/status.md` - `progress: x/N`, `done:`, plus the three things a later session cannot derive
   from the tree: `skipped:` (the user dropped a task, `--skip`), `unreviewed:` (the user waived the
@@ -214,8 +233,8 @@ file.
   `.claude/viber.yml`, resolved against the repository root, fail-open: no file means all four off,
   and the script always exits 0 because it runs as a `!` preload, where a non-zero exit would abort
   the whole skill load. `adr` is weighed in `planner` and nowhere else: `planner` is the one funnel
-  all three entries pass through (`idea`, `fixer`, and "plan it" straight from an understood change),
-  so weighing in `idea` would leave the switch dead on the other two. `implementor` carries `disallowed-tools: Read`, so the preload is not a
+  both entries pass through (`idea` and `fixer`),
+  so weighing in `idea` would leave the switch dead on the other. `implementor` carries `disallowed-tools: Read`, so the preload is not a
   convenience there but the only way it can know the values at all.
 - **The orchestrator never reads code, and writes nothing.** `implementor` carries
   `disallowed-tools: Read, Write, Edit, NotebookEdit`: its whole view of the plan is

@@ -14,7 +14,8 @@ how to launch the app, the required env, the migrations.
 
 - `/viber:idea` - an interview about a raw idea, one question at a time. Writes nothing.
 - `/viber:fixer` - a bug traced to its root cause and proven by a failing test.
-- "plan it" - the planner, straight from an understood change.
+- "plan it" - the planner, on what one of those two confirmed. Ask for it with neither behind it
+  and the interview starts first.
 - "implement it" - the orchestrator: task by task, one reviewed commit each.
 
 `idea` and `fixer` both end at the planner, and nothing is built before you approve its plan.

@@ -13,6 +13,17 @@ Build: skill `implementor`
 
 <2-4 sentences: what gets built and why. No description of the solution.>
 
+## Roadmap
+
+<!-- Only when the idea was split into subprojects: the ordered list with this plan's entry marked,
+     every later entry repeated under "### Out of scope". Not split -> drop this section. -->
+
+Part <n> of <N> - <this subproject>
+
+1. <subproject> (built)
+2. <subproject> (this plan)
+3. <subproject>
+
 ## Acceptance criteria
 
 1. <observable condition that can be checked>

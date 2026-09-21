@@ -298,6 +298,25 @@ test("--split refuses any plan but the run's own <dir>/plan.md - it rebuilds <di
   });
 });
 
+test(
+  "--split accepts the run's own plan.md handed over with Windows separators (dirname splits a backslash, the shell's own expansion does not - disagreeing, they refuse a legitimate plan)",
+  {
+    skip:
+      process.platform === "win32"
+        ? false
+        : "off Windows a backslash is a legal filename character, so the argument names no file",
+  },
+  () => {
+    withTempDir("p2p2-viber-", (dir) => {
+      seed(dir, planBody(TWO_TASKS));
+
+      const result = run(dir, {}, [PLAN_REL.replace(/\//g, "\\"), "--split"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
+    });
+  },
+);
+
 test("a plan with no task blocks exits 3", () => {
   withTempDir("p2p2-viber-", (dir) => {
     seed(dir, planBody([]).replace(/<!-- \/?TASK -->/g, ""));

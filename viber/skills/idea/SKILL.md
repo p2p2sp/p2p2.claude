@@ -1,6 +1,6 @@
 ---
 name: idea
-description: Interviews the user about a raw idea until it is ready to plan - one question at a time.
+description: Interviews the user about a raw idea until it is ready to plan - one question at a time, splitting an idea too broad for one cycle into ordered subprojects first.
 allowed-tools: Read, Grep, Glob, Skill, Bash(git log:*), Bash(git status:*)
 user-invocable: true
 disable-model-invocation: true
@@ -13,6 +13,17 @@ Turn a raw idea into an understanding a planner can act on. You write no files a
 ## Before the first question
 
 Read the repo where the answer already lives: the modules the idea touches, the existing patterns for that kind of work, how similar things are already solved here. Never spend a question on something the code states.
+
+## Size the scope first
+
+Decide this before the first detail question. Refining the details of an idea that spans several independent subsystems burns dozens of questions and ends in one plan of forty tasks.
+
+- One coherent capability: interview it whole and skip the rest of this section.
+- Several independent subsystems, the shape of "build the whole application" or "a platform with chat, file storage, billing and analytics": ask no detail question yet. Propose the split in prose, one line per subproject - what it owns, what it consumes from the ones before it - plus the order, and correct it until the user accepts it.
+- Order the subprojects so each one consumes only what earlier ones produced. Two pieces that cannot be ordered that way are not independent and belong to one subproject.
+- A subproject boundary is not a delivery. What a later subproject brings is absent until its own cycle, never replaced by a stub, a mock, a hardcoded value or a temporary alternative. So never ask what to use instead, and never let an answer invent one: the absence belongs in the boundaries, as out of scope.
+
+Then interview the FIRST subproject only. The rest wait for their own cycle.
 
 ## The interview
 
@@ -58,4 +69,4 @@ Solution shape comes last and only where the user holds an opinion. Design decis
 
 Stop when you can state, without guessing: the problem, the acceptance criteria, what is out of scope, the binding constraints. All unknowns must be known and no open questions left.
 
-Show that as a summary under 15 lines and ask for confirmation. On confirmation invoke the `viber:planner` skill, restating the confirmed summary verbatim in that invocation - repeated in the newest turn it survives a compaction the interview behind it does not. On a correction, fix the summary and confirm again.
+Show that as a summary under 15 lines and ask for confirmation. A split idea opens its summary with the accepted roadmap, one line per subproject plus which one this cycle covers, and names every later one among the boundaries: the plan is the only place that list outlives this context, and it gets there through the summary alone. On confirmation invoke the `viber:planner` skill, restating the confirmed summary verbatim in that invocation - repeated in the newest turn it survives a compaction the interview behind it does not. On a correction, fix the summary and confirm again.
