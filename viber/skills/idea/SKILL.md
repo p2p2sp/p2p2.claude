@@ -54,6 +54,7 @@ Do not use `AskUserQuestion`. Interview is a prose - a conversation with a perso
 - DO NOT simplify your decisions, do not use abbreviations or substitutes in a language other than the one being interviewed.
 - "This is too simple to need a design" is an anti-pattern. If the user came here, the scope is non-trivial; honor that.
 - Do not use abbreviations or acronyms - write out the full name.
+- If you are referring to bullet points, do not use only their numbers; instead, briefly explain their meaning to the user.
 
 ## Cover, in order
 

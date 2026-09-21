@@ -32,4 +32,5 @@ how to launch the app, the required env, the migrations.
 - `rules` - the build closes by updating `.claude/rules/`.
 - `qa` - the build closes by writing its QA scenarios into the run directory.
 
-Re-run `/viber:setup` to change them.
+All four start on. Edit `.claude/viber.yml` to change that - every key is commented there, and
+only `true` counts as on: a key removed from the file is off.

@@ -7,8 +7,8 @@ highest quality and speed of work.
 
 The vibe track: understand, plan, build, then record what the build taught. SEVEN skills (`setup`,
 `idea`, `planner`, `implementor`, `tdd`, `fixer`, `e2e`), EIGHT agents, FIVE plugin-level scripts, TWO
-skill-level setup scripts, ONE plugin-level reference and TWO hooks - one `PreToolUse`, one
-`SessionStart`. Everything a run produces lives in the host repo's
+skill-level setup scripts, ONE plugin-level reference, ONE skill-level reference and TWO hooks -
+one `PreToolUse`, one `SessionStart`. Everything a run produces lives in the host repo's
 `docs/_specs/<stamp>_<slug>/`: the plan as it landed, `status.md` carrying its progress and
 decisions, the decomposition
 every agent reads, the QA documents the close writes, and `work/` - the coders' notes, the review
@@ -19,10 +19,11 @@ file.
 ## Entry points
 
 - `skills/setup/SKILL.md` - `/viber:setup`, user-only (`disable-model-invocation: true`). Seeds
-  `.claude/viber.yml` and `.gitignore` through `skills/setup/scripts/bootstrap.sh`, then asks in one
-  `AskUserQuestion` which of the three switches stay on and whether to merge the recommended
-  permissions (`skills/setup/scripts/merge-settings.sh` over `skills/setup/assets/settings.json`),
-  and closes by printing `skills/setup/assets/usage.md` verbatim.
+  `.claude/viber.yml` and `.gitignore` through `skills/setup/scripts/bootstrap.sh`, merges the
+  recommended permissions (`skills/setup/scripts/merge-settings.sh` over
+  `skills/setup/assets/settings.json`) and closes by printing `skills/setup/assets/usage.md`
+  verbatim. It asks nothing: both steps are additive and idempotent, and the switches are changed
+  by editing `.claude/viber.yml`.
 - `skills/idea/SKILL.md` - `/viber:idea`, user-only. A prose interview, one question at a time,
   opening on a scope check that splits an idea spanning several independent subsystems into ordered
   subprojects and then interviews the first one alone, ending in a confirmed summary that hands over
@@ -30,8 +31,8 @@ file.
 - `skills/planner/SKILL.md` - model-invocable, and enters plan mode itself. Checks its input came
   from a confirmed `idea` interview or a `fixer` diagnosis and invokes `idea` when it did not, fills `skills/planner/templates/plan.md` into
   the plan file plan mode names, that path written into the plan's own `<!-- source: -->` marker,
-  under `adr: true` puts the decisions worth recording to the user and
-  turns each accepted one into a first task, validates the result
+  under `adr: true` reads `skills/planner/references/adr-tasks.md` and follows it - the decisions
+  worth recording go to the user and each accepted one becomes a first task, validates the result
   with `scripts/plan-index.sh`, then gates on `viber:planner-review` until `VERDICT: PASS` before
   `ExitPlanMode`.
 - `skills/implementor/SKILL.md` - model-invocable orchestrator, `[plan-path]` argument. Lands the approved plan in the

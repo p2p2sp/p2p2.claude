@@ -44,7 +44,8 @@ commits it, and finishes on the full test suite.
 
 ## Optional switches
 
-`/viber:setup` writes `.claude/viber.yml`. Without that file all four are off.
+`/viber:setup` writes `.claude/viber.yml` with all four on. Edit that file to turn one off - only
+`true` counts as on. Without the file all four are off.
 
 | Switch | When on |
 | --- | --- |
