@@ -26,8 +26,8 @@ it to install for the current repository only. From inside a running session,
 
 | Plugin | Use it for |
 | --- | --- |
-| [superdev](superdev/README.md) | This plugin is obsolete - use `viber` instead |
-| [viber](viber/README.md) | The same trip, shorter: understand it, plan it, build it, remember it. |
+| [superdev](superdev/README.md) | This plugin is **obsolete** - use **[viber](viber/README.md)** instead. |
+| [viber](viber/README.md) | The same trip, shorter & faster: understand it, plan it, build it, remember it. |
 | [superui](superui/README.md) | Any interface you build, held to professional design standards. Fires by itself. |
 | [supergh](supergh/README.md) | Commits, issues and pull requests. |
 | [superfix](superfix/README.md) | Finding what is actually worth fixing in a codebase. |
