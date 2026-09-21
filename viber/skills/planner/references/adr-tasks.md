@@ -4,11 +4,11 @@ Read only under `adr: true`, before the tasks are written. Each accepted decisio
 
 ## 1. Find the candidates
 
-A decision this plan settles is a candidate only when all three hold; one missing drops it silently, with no message to the user.
+A decision this plan settles is a candidate only when all three hold; one missing drops it silently, with no message to the user:
 
-1. Hard to reverse - undoing it costs a migration, a rewritten boundary, a change across every caller. A one-line edit next month fails this.
-2. Surprising without context - a competent reader meeting the result cold asks why it was done this way. The obvious default fails this.
-3. A real trade-off - genuine alternatives were on the table and one won for reasons the user stated. Nothing to weigh against fails this.
+1. Hard to Reverse - Undoing it requires a costly migration, rewritten boundaries, or breaking changes across callers, rather than a simple code edit.
+2. Surprising Without Context - The choice is not the obvious default. A competent engineer looking at the system cold would wonder why it was done this way.
+3. A Real Trade-off - Multiple genuine alternatives were on the table, and the choice required weighing distinct pros and cons.
 
 One `docs/adr/` already records is not a candidate. Most plans have none: feature behaviour, naming, validation rules, wiring and anything re-derivable from the code never qualify, and several candidates in one run means the bar slipped. No candidate means no question and no ADR task.
 
