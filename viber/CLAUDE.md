@@ -130,9 +130,9 @@ file.
   never stored: `plan-index.sh` intersects `git status` with each task's `Files:` map and reports
   the difference as `dirty:`, which is how an interrupted task is told from one nobody started.
   Only `--skip` writes without a commit to ride in; its entry waits in `status.md` for the next one.
-  `commit-task.sh` is what advances all of this, and it stages ONLY the task's `Files:` list plus
-  the run's own trail and commits through that same pathspec - anything outside the file map stays
-  uncommitted and visible, including a path someone else left staged. Its stderr warning subtracts the WHOLE plan's map, not the one
+  `commit-task.sh` is what advances all of this, and it stages ONLY the task's `Files:` list, the
+  paths `--with` named and the run's own trail, and commits through that same pathspec - anything
+  else stays uncommitted and visible, including a path someone else left staged. Its stderr warning subtracts the WHOLE plan's map, not the one
   task's, and the run's own directory with it: coders run in parallel, so a warning naming their
   work in progress would fire on
   every commit, and what survives the subtraction is a change no task accounted for - the same
@@ -163,7 +163,15 @@ file.
   is mandatory and says `none` out loud - a task missing the line and one that touches no shape
   would otherwise look the same. Which side of a block a task is on is never written down: the
   task whose `Files:` holds the block's own file writes it, every other one calls it as it
-  stands.
+  stands. That rule is only worth anything if the two halves of the plan meet, so the block
+  opens with `File:` - the paths the shape is declared in, or `none` - and `plan-index.sh`
+  rejects a path no task creates and the tree does not already hold (the shape would be invented
+  at compile time) and a path whose holders never name the block (its writer would never see the
+  shape, and a consumer would write it outside its own file map). One holder naming it is
+  enough: a file several tasks of one chain touch is not everyone's shape. An appendix where NO
+  block carries `File:` predates the field and the whole layer stays off for it - a plan is
+  frozen once it lands, so a run resumed after an upgrade has no way to grow the line and must
+  still validate.
 - **Task ids are `T1`, `T2`, … and the heading line IS the commit subject.** `commit-task.sh` reads
   `### T<n> - <title>` out of the plan and commits it verbatim, so the orchestrator never composes a
   subject and the history reads like the plan. The id is also the name of the task's own file, so
@@ -187,7 +195,21 @@ file.
   one line, no globs, no directories, no annotations. `commit-task.sh` stages that list literally,
   and `plan-index.sh` compares it across tasks: a plan where two tasks with no dependency path
   between them list the same file is rejected at validation time. No skill and no agent re-checks
-  that by hand - the graph plus the file lists make it fully deterministic. The same pass checks
+  that by hand - the graph plus the file lists make it fully deterministic.
+- **Disjoint is checked, complete is not, so completeness is carried by three layers.** Nothing
+  can decide mechanically that a task's map names everything its work forces - the registration
+  of a new type, the declaration and migration of a new persisted shape, the test asserting a
+  count over what changed - because naming those files is knowing the host's stack, and no
+  bundled script here may. So: `planner` maps what the change forces before it writes a task,
+  `planner-review` gates a map a coder could not build from, and what still slips through is
+  reported rather than lost. `task-coder` may make the smallest edit outside its `Files` that
+  compiles and MUST return it on `EXTRA:`; `task-reviewer` returns the same and never turns it
+  into a finding, because the coder cannot commit it and a second round cannot fix it;
+  `implementor` passes those paths to `commit-task.sh --with`, which takes a path no other task
+  claims and refuses one that has an owner - that task may have a coder writing the file right
+  now, and its own commit stages it whole. Without that channel the danger is silent: the stderr
+  warning subtracts the WHOLE plan map, so a file belonging to another task never appears in it
+  and rides into whichever commit picks it up next. The same pass checks
   `Covers:` in BOTH directions - every reference names a real acceptance criterion, and every
   criterion is named by some task - because nothing later gates the specification as a whole: a
   criterion no task implements would otherwise ride through the build into a green close.

@@ -52,6 +52,14 @@
 # appendix sits BELOW the tasks and reaches a coder only through "Uses:" - a
 # shared contracts section in the specification would put every route, type and
 # error code of the whole plan into the context of a task that touches one.
+#
+# Each contract block opens with "File:" - the paths its shape is declared in, or
+# "none" - which is what makes the appendix checkable against the task map: the
+# task holding that path is the block's writer, so a path no task creates and a
+# path whose holders never name the block are both plan defects caught here
+# rather than by a coder editing a file outside its own map. An appendix where no
+# block carries the line at all predates it and is left alone: a plan is frozen
+# once it lands, so a run resumed after an upgrade must still validate.
 # tasks/ is rebuilt from scratch on every call, so a re-run after a plan edit
 # carries no stale task file, and the decomposition is committed together with the
 # plan (pathspec-scoped, best-effort): it lives under docs/, so leaving it
@@ -66,9 +74,12 @@
 #       missing field, illegal dependency, a "Covers:" criterion absent from the
 #       acceptance criteria, an acceptance criterion no task's "Covers:" names, a
 #       "Uses:" contract absent from the appendix, a contract block no task's
-#       "Uses:" names, a malformed or duplicate contract heading, an unparseable
-#       "Files:" entry, or the same file listed by two tasks with no dependency
-#       path between them - they would run at the same time)
+#       "Uses:" names, a malformed or duplicate contract heading, a contract
+#       block with no "File:" line, a contract file that no task's "Files:"
+#       creates and the tree does not already hold, a contract file whose
+#       holders never name the block in "Uses:", an unparseable "Files:" entry,
+#       or the same file listed by two tasks with no dependency path between
+#       them - they would run at the same time)
 #
 # Contract:
 #   argv   : the plan file, optionally --split.
@@ -153,6 +164,10 @@ function fail(msg) { printf "error: %s\n", msg > "/dev/stderr"; err = 1 }
 
 function listed(s) { s = trim(s); return (s == "none" || s == "-" ? "" : s) }
 
+# a path already in the tree: a contract may describe a shape this change only
+# consumes, and nothing has to create what is already written
+function present(p,   r) { r = (getline _ < p); close(p); return (r >= 0) }
+
 BEGIN {
   n = 0; ncrit = 0; ncon = 0; err = 0; title = ""
   plan = ENVIRON["plan"]
@@ -174,6 +189,7 @@ BEGIN {
 /^##[[:space:]]/ {
   incrit = ($0 ~ /Acceptance criteria/) ? 1 : 0
   incon  = ($0 ~ /Contracts/) ? 1 : 0
+  cid = ""
 }
 incrit && /^[0-9]+\./ {
   c = $0
@@ -182,6 +198,7 @@ incrit && /^[0-9]+\./ {
   if (c + 0 > ncrit) ncrit = c + 0
 }
 incon && !intask && /^###[[:space:]]/ {
+  cid = ""
   h = trim(substr($0, 4))
   p = index(h, " - ")
   if (p == 0) { fail("contract heading must be \"### <id> - <name>\", got: " h); next }
@@ -189,8 +206,19 @@ incon && !intask && /^###[[:space:]]/ {
   if (cid !~ /^[A-Za-z0-9_-]+$/) fail("contract id \"" cid "\": letters, digits, \"-\" and \"_\" only - a Uses line references it by name")
   else if (cid in con)           fail("duplicate contract id: " cid)
   else { con[cid] = 1; corder[++ncon] = cid }
+  cfresh = 1
   next
 }
+
+# where the shape lives, which is what ties the appendix to the task map. Only
+# the opening line of a block counts, so a "File:" inside the shape stays shape
+incon && !intask && cid != "" && cfresh && /^-?[[:space:]]*File:/ {
+  cfile[cid] = val($0)
+  ncfile++
+  cfresh = 0
+  next
+}
+incon && !intask && cid != "" && trim($0) != "" { cfresh = 0 }
 
 /<!--[[:space:]]*TASK[[:space:]]*-->/ {
   intask = 1; n++
@@ -274,7 +302,7 @@ END {
       m = split(trim(u), unums, /[[:space:]]+/)
       for (k = 1; k <= m; k++)
         if (!(unums[k] in con)) fail("task " id[i] ": Uses " unums[k] ", no such contract block")
-        else usedcon[unums[k]] = 1
+        else { usedcon[unums[k]] = 1; usesset[i, unums[k]] = 1 }
     }
 
     # a dependency may only point at an earlier existing task, which makes the graph acyclic by construction
@@ -321,8 +349,45 @@ END {
   # a contract block reaches a coder only through a "Uses:" line - one no task
   # names sits in the plan unreachable, and the shape it describes is then
   # whatever each coder invents
-  for (c = 1; c <= ncon; c++)
+  for (c = 1; c <= ncon; c++) {
     if (!(corder[c] in usedcon)) fail("contract " corder[c] " is used by no task")
+    if (ncfile > 0 && !(corder[c] in cfile)) fail("contract " corder[c] ": missing File - name the paths the shape is declared in, or \"none\"")
+  }
+
+  # the file of a block decides who writes it, so the two halves of the plan
+  # have to meet: a path nothing creates leaves the shape to be invented by
+  # whoever needs it first, and a path whose holders never name the block leaves
+  # its writer blind to it while a consumer writes it outside its own file map.
+  # An appendix where NO block carries "File:" predates the field - a plan that
+  # landed before this check and is being resumed - and the layer stays off for
+  # it, because a frozen plan cannot grow the line and a build must not stall.
+  if (!err && ncfile > 0) {
+    for (c = 1; c <= ncon; c++) {
+      cn = corder[c]
+      if (cfile[cn] == "none" || cfile[cn] == "-") continue
+      m = split(cfile[cn], cl, /,/)
+      for (k = 1; k <= m; k++) {
+        p = trim(cl[k])
+        sub(/^\.\//, "", p)
+        if (p == "") { fail("contract " cn ": empty entry in File"); continue }
+        if (p ~ /[*?]/ || index(p, "[") || p ~ /^\// || p ~ /^~/ || p ~ /\/$/ || p ~ /[[:space:]]/) {
+          fail("contract " cn ": File entry \"" p "\" must be one bare repo-relative file path")
+          continue
+        }
+        held = ""
+        named = 0
+        for (i = 1; i <= n; i++)
+          if ((i, p) in fset) {
+            held = (held == "" ? id[i] : held "," id[i])
+            if ((i, cn) in usesset) named = 1
+          }
+        if (held == "") {
+          if (!present(p)) fail("contract " cn " declares " p ", which no task creates - put it in the Files of the task that writes the shape")
+        }
+        else if (!named) fail("contract " cn " declares " p ", held by " held ", but no holder names " cn " in Uses - its writer would never see the shape")
+      }
+    }
+  }
 
   if (err) exit 4
 

@@ -235,6 +235,74 @@ test("a changed file no task in the plan claims stays out of the commit and is n
   });
 });
 
+test("--with adds a path no task claims to the task's own commit, so the commit that lands a task is the whole task", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    // the file the task's own work forced: the plan gave it no owner
+    write(repo.dir, "src/wiring.ts", "register\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--with", "src/wiring.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(committedFiles(repo), [STATUS_REL, "src/a.ts", "src/wiring.ts"].sort());
+    assert.doesNotMatch(result.stderr, /claimed by no task in the plan/);
+  });
+});
+
+test("--with refuses a path another task's Files claims and commits the rest (that task may have a coder writing the file right now)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "src/b.ts", "another task's file\n");
+    write(repo.dir, "src/wiring.ts", "register\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--with", "src/b.ts", "src/wiring.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /refused src\/b\.ts - claimed by task T2/);
+    assert.deepEqual(committedFiles(repo), [STATUS_REL, "src/a.ts", "src/wiring.ts"].sort());
+  });
+});
+
+test("--with a path the task already claims commits it once, not twice", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--with", "src/a.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(committedFiles(repo), [STATUS_REL, "src/a.ts"].sort());
+  });
+});
+
+test("--with a .temp path is refused, like any other form (machine state never reaches the history)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, ".temp/viber/T1/build.log", "noise\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--with", ".temp/viber/T1/build.log"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /refused \.temp\/viber\/T1\/build\.log/);
+    assert.deepEqual(committedFiles(repo), [STATUS_REL, "src/a.ts"].sort());
+  });
+});
+
+test("--with combines with --unreviewed in either order, and --with alone with no path exits 2", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "src/wiring.ts", "register\n");
+
+    assert.equal(run(repo.dir, repo.env, [PLAN_REL, "T1", "--with"]).status, 2);
+    assert.equal(run(repo.dir, repo.env, [PLAN_REL, "T1", "--with", "--unreviewed"]).status, 2);
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--unreviewed", "--with", "src/wiring.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(readStatus(repo), /^unreviewed: T1$/m);
+    assert.deepEqual(committedFiles(repo), [STATUS_REL, "src/a.ts", "src/wiring.ts"].sort());
+  });
+});
+
 test("another task's work in progress is not named on stderr (coders run in parallel, so a warning scoped to one task's map would fire on every commit)", () => {
   withGitRepo((repo) => {
     seed(repo);

@@ -21,6 +21,7 @@ Read the task file - it is self-contained and it is the definition you gate agai
 - Hits its target: `Delivers` produced, `DoD` met, the criteria under `Covers` served.
 - Tested: `TDD: required` means tests exist that exercise the new behaviour and would fail without it. A test asserting on its own mocks is not a test.
 - In bounds: every `Contracts` block honoured exactly - one whose file is outside this task's `Files` was to be called, never redefined or widened - and nothing under `Out of scope` disturbed.
+- Owned: a file this task could not work without and its `Files` does not name is a defect of the plan, not of the code. The coder cannot commit it and a second round cannot fix it, so it is never a finding and never a FAIL: it comes back on `EXTRA:` and the commit takes it from there.
 - Sound: no debug leftovers, dead code, swallowed errors, or obvious bugs.
 
 ## Calibration
@@ -33,5 +34,6 @@ A finding is something that must change before this task can be committed. Style
 - Otherwise write the findings to the report path - one item per finding: file:line, what is wrong, how to fix, Critical first then Important - and return exactly:
   - line 1: `VERDICT: FAIL`
   - line 2: `REVIEW: <report path>`
+- On either verdict, one more line when the task changed or needed a file its `Files` does not name: `EXTRA: <those repo-relative paths, comma-separated>`. Omit it otherwise.
 
 That is your only output channel. No diff, no logs, no prose.

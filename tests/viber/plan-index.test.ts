@@ -63,8 +63,24 @@ interface TaskFields {
 
 /** The `## Contracts` appendix every default task names through `Uses: C1`. It
  *  sits BELOW the tasks, so it never reaches spec.md - only the task files whose
- *  `Uses:` line asks for it. */
-const CONTRACT = ["### C1 - Login endpoint", "", "POST /login -> 200 | 401", "", "Body: `{ user, pass }`"];
+ *  `Uses:` line asks for it. Its `File:` line says `none` - a wire shape declared
+ *  in no file of this plan - which keeps the ownership rules out of every case
+ *  that is not about them; the cases that are build their own appendix. */
+const CONTRACT = [
+  "### C1 - Login endpoint",
+  "",
+  "File: none",
+  "",
+  "POST /login -> 200 | 401",
+  "",
+  "Body: `{ user, pass }`",
+];
+
+/** An appendix whose shape lives in a file, which is what ties it to the task
+ *  map: the task holding that path is the block's writer. */
+function ownedContract(file: string): string[] {
+  return ["### C1 - Login endpoint", "", `File: ${file}`, "", "POST /login -> 200 | 401"];
+}
 
 /** A plan in the template's shape. The header carries two acceptance criteria,
  *  the first of them wrapped over two lines - a criterion's continuation is
@@ -425,6 +441,112 @@ test("a contract block no task's Uses names exits 4 (the split would leave it un
   });
 });
 
+test("an appendix where no block carries File validates untouched (a plan that landed before the field is frozen and still has to resume)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    // the old shape: a block with no File line, naming a file no task owns -
+    // exactly what the ownership rules reject, and exactly what a run started
+    // under an earlier version carries
+    seed(dir, planBody([{ id: "T1" }], 1, ["### C1 - Login endpoint", "", "POST /login -> 200 | 401"]));
+
+    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+  });
+});
+
+test("one block carrying File makes the line mandatory for the rest (a half-filled appendix is drift, not an older plan)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(
+      dir,
+      planBody([{ id: "T1", uses: "C1, C2" }], 1, [
+        ...ownedContract("src/a.ts"),
+        "",
+        "### C2 - Session cookie",
+        "",
+        "Set-Cookie: sid",
+      ]),
+    );
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /contract C2: missing File/);
+  });
+});
+
+test("a contract file no task creates and the tree does not hold exits 4 (the shape would be invented by whoever needs it first)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    // the task writes src/a.ts; the shape is declared in a file nobody owns, so
+    // its coder would discover it missing and write it outside its own Files
+    seed(dir, planBody([{ id: "T1" }], 1, ownedContract("src/session.ts")));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /contract C1 declares src\/session\.ts, which no task creates/);
+  });
+});
+
+test("a contract file already in the tree needs no owner - a shape this change only consumes is already written", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    write(dir, "src/session.ts", "export type Session = { id: string };\n");
+    seed(dir, planBody([{ id: "T1" }], 1, ownedContract("src/session.ts")));
+
+    assert.equal(run(dir, {}, [PLAN_REL]).status, 0);
+  });
+});
+
+test("a contract file whose holders never name the block exits 4 (its writer would never see the shape)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    // T1 holds the file the shape lives in but says it touches no shape; only
+    // T2, which does not hold it, names C1 - so the block reaches the consumer
+    // and never the writer
+    seed(
+      dir,
+      planBody(
+        [
+          { id: "T1", uses: "none", files: "src/login.ts" },
+          { id: "T2", covers: "#2", uses: "C1", deps: "T1", files: "src/reject.ts" },
+        ],
+        2,
+        ownedContract("src/login.ts"),
+      ),
+    );
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /contract C1 declares src\/login\.ts, held by T1, but no holder names C1 in Uses/);
+  });
+});
+
+test("one holder naming the block is enough - a file several tasks in one chain touch is not everyone's shape", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(
+      dir,
+      planBody(
+        [
+          { id: "T1", uses: "C1", files: "src/login.ts" },
+          { id: "T2", covers: "#2", uses: "none", deps: "T1", files: "src/login.ts" },
+        ],
+        2,
+        ownedContract("src/login.ts"),
+      ),
+    );
+
+    assert.equal(run(dir, {}, [PLAN_REL]).status, 0);
+  });
+});
+
+test("a File entry that is a glob, a directory or an absolute path exits 4, like a Files entry", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    for (const entry of ["src/*.ts", "src/", "/abs/login.ts"]) {
+      seed(dir, planBody([{ id: "T1" }], 1, ownedContract(entry)));
+
+      const result = run(dir, {}, [PLAN_REL]);
+      assert.equal(result.status, 4, `${entry}: ${result.stderr}`);
+      assert.match(result.stderr, /must be one bare repo-relative file path/, entry);
+    }
+  });
+});
+
 test("a plan that introduces no shape at all validates with every task on Uses: none", () => {
   withTempDir("p2p2-viber-", (dir) => {
     seed(dir, planBody([{ id: "T1", uses: "none" }], 1, []));
@@ -517,7 +639,7 @@ test("a contract block reaches the tasks whose Uses names it and no others", () 
     // T1 uses C1: the whole block arrives, heading and body
     assert.match(
       readRun(dir, "tasks/T1.md"),
-      /^## Contracts\n\n### C1 - Login endpoint\n\nPOST \/login -> 200 \| 401\n\nBody: `\{ user, pass \}`$/m,
+      /^## Contracts\n\n### C1 - Login endpoint\n\nFile: none\n\nPOST \/login -> 200 \| 401\n\nBody: `\{ user, pass \}`$/m,
     );
     // T2 says none: not the section, not one line of the shape
     const t2 = readRun(dir, "tasks/T2.md");

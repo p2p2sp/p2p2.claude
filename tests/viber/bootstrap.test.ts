@@ -51,7 +51,7 @@ test("a fresh repository seeds both files from the bundled ones and prints one l
     assert.equal(
       result.stdout,
       [
-        "viber.yml: seeded from template - adr, memory and rules all on",
+        "viber.yml: seeded from template - adr, memory, rules and qa all on",
         ".gitignore: created from template (ignores .temp/)",
         "CLAUDE.md: missing - run /init, then add the build and test commands",
         "",

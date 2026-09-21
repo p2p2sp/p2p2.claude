@@ -74,14 +74,19 @@ The whole heading line, "T<n> - <title>", is committed verbatim as the commit su
 
 <!-- One block per shape this change introduces or consumes: signature, type, endpoint, schema,
      error code, dictionary key. Every block is named by at least one task's "Uses:" - a block
-     nobody names reaches no coder and is rejected at validation. Whether a task writes its
-     block or only calls it is read off its own "Files:", so no second field says so.
+     nobody names reaches no coder and is rejected at validation. "File:" says where the shape
+     is declared, which is what decides who writes it: the task holding that path. A path no
+     task creates and no holder naming the block are both rejected at validation.
      No contract at all -> drop this section and every task carries "Uses: none". -->
 
 ### C1 - <name>
 
+File: <repo-relative path>, <repo-relative path> | none
+
 <the shape itself>
 
 ### C2 - <name>
+
+File: <...>
 
 <...>

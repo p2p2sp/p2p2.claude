@@ -4,7 +4,7 @@
 # status file.
 #
 # Usage:
-#   commit-task.sh <plan-file> <task-id> [--unreviewed]
+#   commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]]
 #   commit-task.sh <plan-file> <task-id> <fix-number> <file> [<file>...]
 #   commit-task.sh --skip <plan-file> <task-id>
 #   commit-task.sh --repair <plan-file> <round> <file> [<file>...]
@@ -19,6 +19,11 @@
 # Two arguments commit the task itself, subject "T1 - <title>", staging ONLY the
 # paths on that task's "Files:" line - parallel tasks cannot pull each other's
 # work into a commit.
+#
+# --with adds paths the task's own work forced and the plan gave no owner, so the
+# commit that lands a task is the whole task and builds on its own. A path ANOTHER
+# task's "Files:" claims is refused with a warning rather than taken: that task
+# may have a coder writing the file right now, and its own commit stages it whole.
 #
 # A fix number commits a repair of that task after it was already committed (a
 # post-test fix), subject "T1(2) - <title>", staging only the files the caller
@@ -94,7 +99,7 @@ set -euo pipefail
 shopt -s nullglob
 
 usage() {
-  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed | <fix-number> <file> [<file>...]] | --skip <plan-file> <task-id> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...]" >&2
+  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...]" >&2
   exit 2
 }
 
@@ -224,6 +229,27 @@ intask && /^-[[:space:]]*Files:/ {
   s = $0; sub(/^[^:]*:/, "", s)
   m = split(s, fl, /,/)
   for (k = 1; k <= m; k++) if (trim(fl[k]) != "") print trim(fl[k])
+}
+' "$1"
+}
+
+# The ids of the tasks whose "Files:" claims one path, one per line. What decides
+# whether an extra path may ride in this commit: a path with another owner waits
+# for that owner instead.
+claimants() {
+  awk -v want="$2" '
+function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
+/<!--[[:space:]]*TASK[[:space:]]*-->/   { intask = 1; cur = ""; next }
+/<!--[[:space:]]*\/TASK[[:space:]]*-->/ { intask = 0; next }
+intask && /^###[[:space:]]/ {
+  h = trim(substr($0, 4)); p = index(h, " - ")
+  cur = (p ? trim(substr(h, 1, p - 1)) : trim(h))
+  next
+}
+intask && /^-[[:space:]]*Files:/ {
+  s = $0; sub(/^[^:]*:/, "", s)
+  m = split(s, fl, /,/)
+  for (k = 1; k <= m; k++) if (trim(fl[k]) == want) print cur
 }
 ' "$1"
 }
@@ -408,18 +434,37 @@ if [[ -z "$plan" || -z "$task_id" ]]; then
 fi
 
 # A fix names its round and every file it touched; a plain task commit takes both
-# from the plan. --unreviewed is the user waiving the review gate on that commit.
+# from the plan. --unreviewed is the user waiving the review gate on that commit,
+# and --with names the paths the task forced outside its own map.
 fix_n=""
 unreviewed=0
-if [[ "${3:-}" == "--unreviewed" ]]; then
-  [[ $# -eq 3 ]] || usage
-  unreviewed=1
-elif [[ $# -gt 2 ]]; then
-  fix_n="${3:-}"
-  if [[ ! "$fix_n" =~ ^[0-9]+$ ]] || [[ $# -lt 4 ]]; then
-    usage
-  fi
-fi
+extra=""
+case "${3:-}" in
+  "") ;;
+  --unreviewed|--with)
+    set -- "${@:3}"
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --unreviewed) unreviewed=1; shift ;;
+        --with)
+          shift
+          [[ $# -gt 0 && "$1" != --* ]] || usage
+          while [[ $# -gt 0 && "$1" != --* ]]; do
+            extra="$extra$1"$'\n'
+            shift
+          done
+          ;;
+        *) usage ;;
+      esac
+    done
+    ;;
+  *)
+    fix_n="${3:-}"
+    if [[ ! "$fix_n" =~ ^[0-9]+$ ]] || [[ $# -lt 4 ]]; then
+      usage
+    fi
+    ;;
+esac
 
 if [[ ! -f "$plan" ]]; then
   echo "error: plan file not found: $plan" >&2
@@ -470,6 +515,19 @@ else
   fi
   subject="$heading"
 fi
+
+# --- what the task forced outside its own map ---
+# Taken only when no OTHER task claims the path: a shared file is committed by
+# whichever task declares it, never pulled out from under a coder still writing it.
+while IFS= read -r f; do
+  [[ -n "$f" ]] || continue
+  owner="$(claimants "$plan" "$f" | grep -vFx -- "$task_id" | head -n 1 || true)"
+  if [[ -n "$owner" ]]; then
+    echo "warning: refused $f - claimed by task $owner" >&2
+    continue
+  fi
+  printf '%s\n' "$files" | grep -Fxq -- "$f" || files="$files$f"$'\n'
+done <<< "$extra"
 
 # --- stage the named files only ---
 # The same list is the commit's pathspec below: a file staged by someone else

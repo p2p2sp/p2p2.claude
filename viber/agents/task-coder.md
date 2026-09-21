@@ -20,7 +20,7 @@ A report path means the work already exists and is wrong: fix every Critical and
 ## Implement
 
 - Deliver exactly what `Delivers` and `DoD` describe. Nothing beyond it.
-- Touch only the files in the task's `Files`. Anything outside that list is another task's territory.
+- Touch only the files in the task's `Files`. Anything outside that list is another task's territory. The one exception is a file your own work forces and the plan gave no owner - where your new type is registered, the declaration your new shape needs, a test asserting a count you just changed: make the smallest edit that makes your own work whole and report it on `EXTRA:`. Never widen into another task's work because it is convenient, and never rewrite a file that already carries what you need.
 - Honour `Contracts` exactly as written. A block whose own file is in your `Files` is yours to write; every other one already exists or is another task's to write - call it, never redefine it and never widen it. Never disturb anything under `Out of scope`.
 - `TDD: required` - invoke the `viber:tdd` skill (Skill tool) before the first line of production code and follow its cycle to the end of the task. Production code never lands without a test that demanded it.
 - `TDD: none` - implement directly, and still add whatever tests `DoD` names.
@@ -43,3 +43,4 @@ Your only output channel - no diff, no logs, no prose:
 - line 1: `VERDICT: PASS` or `VERDICT: FAIL`
 - on FAIL, line 2: `REASON: <one line>`
 - on PASS without a task file, line 2: `FILES: <every repo-relative path you changed, comma-separated>` - nothing outside that list gets committed, so an omitted path is lost work.
+- `EXTRA: <every repo-relative path you changed that the task file map does not name, comma-separated>` - omit the line when there is none. Nothing outside the file map is committed otherwise, so an unreported path breaks the commit it belonged to.

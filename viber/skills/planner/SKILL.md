@@ -22,6 +22,7 @@ The plan answers HOW. It carries every detail, acceptance criterion and DoD the 
 Before writing a single task, decide which files get created, modified or deleted and what each one owns. Locked-in file boundaries are what lets tasks run in parallel later.
 
 - One responsibility per file. Files that change together live together.
+- Map what the change FORCES, not only what it introduces: where a new type is registered, exported or wired up for anything to resolve it, where a new persisted shape is declared and migrated, every test asserting an aggregate over what you touch - a count, an enumeration, a snapshot. Read the codebase for them now. Left off the map they surface mid-build, inside a coder bounded by a file list that does not name them.
 - In an existing codebase follow its established patterns instead of restructuring around them. A file you have to touch that has grown unwieldy may be split - say so as a task.
 
 ## 2. Write the plan
@@ -40,6 +41,7 @@ Task rules:
 - Task ids are `T1`, `T2`, … in order. `Depends-on` may reference lower-numbered tasks only, which keeps the graph acyclic.
 - Declare a dependency only for a real ordering constraint - one task consuming what another produces. Every false dependency costs parallelism.
 - `Files` is the task's complete file map, comma-separated on one line: exact repo-relative paths, no globs, no directories, no annotations. It is what gets staged for the commit and what the collision check compares.
+- Complete means nothing outside that list has to change for the task to deliver and its `Verification` to pass. A file the task's own work forces - its registration, its schema, the aggregate test its change invalidates - belongs to that task, not to whichever task happens to own the neighbourhood. A shape two tasks need is written by the first one that cannot deliver without it.
 - Tasks with no dependency path between them must not list the same file - they run at the same time.
 - `Uses` names every contract block the task touches, the ones it writes and the ones it only calls, or `none`. It is mandatory, because the task file is a coder's whole input: a shape left off the line reaches nobody and gets invented instead.
 - `Delivers` states WHAT the task produces. Never how to code it, never a line number.
@@ -52,13 +54,13 @@ Task rules:
 Contract rules:
 
 - One `### C<n> - <name>` block per shape the change introduces or consumes, ids `C1`, `C2`, … in order, all under the `## Contracts` appendix below the tasks. A change that introduces no shape has no appendix and every task carries `Uses: none`.
-- The block carries the shape itself and nothing else - no rationale, no history, no instruction on how to build it.
+- The block opens with `File:` - the repo-relative paths the shape is declared in, or `none` for one that lives in no file of its own - then the shape itself and nothing else: no rationale, no history, no instruction on how to build it.
 - Every block is named by at least one task's `Uses`; one nobody names is rejected at validation, because no coder would ever see it.
-- Never say which task writes a block and which only calls it: the task whose `Files` holds the block's own file writes it, every other one takes it exactly as written.
+- Never say which task writes a block and which only calls it: the task whose `Files` holds the block's own file writes it, every other one takes it exactly as written. So every `File:` path is in some task's `Files` unless the tree already holds it, and at least one task holding it names the block - otherwise its writer never sees the shape and a consumer writes it outside its own file map. Both are rejected at validation.
 
 With `adr: true` above, read `${CLAUDE_SKILL_DIR}/references/adr-tasks.md` before writing the tasks and follow it; otherwise skip it entirely.
 
-Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan-path>` as one literal Bash line, no interpreter word in front - any other form is an unapproved call that stalls on a permission prompt. It must exit 0 - it validates ids, required fields, dependency direction, `Covers` and `Uses` in both directions (every reference points at a real criterion or contract block, every criterion and every block is reached by some task), the `Files` format, and that no two tasks without a dependency path between them list the same file. Fix whatever it reports and re-run.
+Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan-path>` as one literal Bash line, no interpreter word in front - any other form is an unapproved call that stalls on a permission prompt. It must exit 0 - it validates ids, required fields, dependency direction, `Covers` and `Uses` in both directions (every reference points at a real criterion or contract block, every criterion and every block is reached by some task), the `Files` and `File` formats, that every contract file has a task creating it and a holder naming its block, and that no two tasks without a dependency path between them list the same file. Fix whatever it reports and re-run.
 
 Show the user the full path of the written plan.
 
