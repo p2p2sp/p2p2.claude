@@ -6,7 +6,7 @@ highest quality and speed of work.
 ## Purpose
 
 The vibe track: understand, plan, build, then record what the build taught. SEVEN skills (`setup`,
-`idea`, `planner`, `implementor`, `tdd`, `fixer`, `e2e`), EIGHT agents, FIVE plugin-level scripts, TWO
+`idea`, `planner`, `implementor`, `tdd`, `fixer`, `e2e`), EIGHT agents, SIX plugin-level scripts, TWO
 skill-level setup scripts, TWO plugin-level references, ONE skill-level reference and TWO hooks -
 one `PreToolUse`, one `SessionStart`. Everything a run produces lives in the host repo's
 `docs/_specs/<stamp>_<slug>/`: the plan as it landed, `status.md` carrying its progress and
@@ -44,7 +44,8 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   dispatches `viber:task-coder` in the widest batch the dependency and file-collision rules allow, gates each
   reviewed task on `viber:task-reviewer`, commits it with `scripts/commit-task.sh`, closes on
   `viber:test-runner` and then, per switch, on `viber:memory-writer`, `viber:rules-writer` and
-  `viber:qa-writer`.
+  `viber:qa-writer`. It closes by reporting how long the session ran, the mark taken by
+  `scripts/run-clock.sh` at load and handed back to it at the summary.
 - `skills/e2e/SKILL.md` - `/viber:e2e`, user-only. Turns each scenario of one run's `qa.e2e.md` into a
   `@playwright/test` file: it preloads `scripts/check-playwright.sh`, resolves the run (its argument,
   else `plan-path.sh`), offers the install, launches the host's application, dispatches
@@ -264,11 +265,13 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   with it. `setup`'s permissions template denies those four verbs outright, because a prompt rule
   alone is a known non-compliance and this failure mode is silent until a coder notices its files
   are gone.
-- **Five deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path, report
+- **Six deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path, report
   every other unfinished run as an `open:` line, and on `--land` put the approved plan there,
   stripped of the template's guidance),
   `plan-index.sh` (validate, index, optionally decompose), `commit-task.sh` (stage, commit, record),
-  `config.sh` (resolve the switches) and `check-playwright.sh` (report the e2e tooling, install
+  `config.sh` (resolve the switches), `run-clock.sh` (the start mark, and the elapsed time of the
+  session that took it - it writes nothing, so a run resumed elsewhere simply starts a new clock)
+  and `check-playwright.sh` (report the e2e tooling, install
   nothing) carry their I/O contract in their header comment and are
   TRUSTED by the caller - never re-verified, never retried. All are invoked as one literal line,
   `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" <args>`, never through an interpreter, and each has its

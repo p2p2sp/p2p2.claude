@@ -1,7 +1,7 @@
 ---
 name: implementor
 description: Builds an approved plan task by task. Requires an existing plan; without one, use the planner skill.
-allowed-tools: Agent, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*)
+allowed-tools: Agent, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh:*)
 disallowed-tools: Read, Write, Edit, NotebookEdit
 model: sonnet
 effort: medium
@@ -11,6 +11,12 @@ user-invocable: false
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/config.sh"
 ```
+
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh"
+```
+
+The `started:` line above is this run's start mark. Carry it unchanged to step 6.
 
 # implementor
 
@@ -119,4 +125,6 @@ Only for the switches the config block above reports as `true` and not already n
 
 Commit what they return, one call per form and each deriving its own subject: the memory and rule paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore <plan> <file> [<file>...]`, the QA paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa <plan> <file> [<file>...]`. Both record the close in the plan. A form whose agents returned nothing, or only `VERDICT: NONE` -> no call for it. Then `TaskUpdate` -> completed.
 
-Final summary, max 5 lines: tasks committed, review rounds spent, test verdict, what memory, rules and QA recorded, anything left for the user to decide. A `qa.e2e.md` among the QA paths earns one more line - `/viber:e2e` turns it into Playwright tests.
+Then `"${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh" "<started>"`, the mark preloaded above - one call, and its `elapsed:` line is how long this session ran.
+
+Final summary, max 6 lines: tasks committed, review rounds spent, test verdict, how long the run took, what memory, rules and QA recorded, anything left for the user to decide. `elapsed: unknown` - the mark is gone - drops that line; never estimate one. A `qa.e2e.md` among the QA paths earns one more line - `/viber:e2e` turns it into Playwright tests.
