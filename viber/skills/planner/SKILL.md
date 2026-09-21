@@ -51,7 +51,7 @@ Task rules:
 - `Verification` is a runnable command plus the result that counts as proof, scoped to the task's own `Files` and the tests covering them, never a whole-project suite: other tasks are being written in the same tree at the same time. A task with no runtime behaviour verifies its artefact instead - the file exists and its required content greps, never "read it and judge".
 - `TDD: required` by default. `TDD: none` only where the task changes no runtime behaviour: config, docs, mechanical rename, scaffolding.
 - A reproduction test already RED in the tree goes into the fixing task's `Files:` - nothing outside a file map gets committed - and that task carries `TDD: none`: its RED cycle is done.
-- Integration tasks are the last tasks in the plan, each `TDD: none`, `Exclusive: true` and depending on the tasks whose work it exercises, and each `Verification` compiles the test and stops there: the integration layer runs exactly once, in the build's closing test run.
+- Integration tasks are the last tasks in the plan, each `TDD: none`, `Exclusive: true` and depending on the tasks whose work it exercises, and each `Verification` runs that task's own integration test and nothing wider: the `Exclusive` slot is what makes running the real dependency safe, and the layer as a whole runs again in the build's closing test run.
 - Every acceptance criterion is covered by at least one task's `Covers`. A condition no single task delivers, like the suite staying green, is not an acceptance criterion: that is the build's own close.
 - The heading line is committed verbatim as the commit subject, so the title is one short imperative summary of what the task delivers.
 

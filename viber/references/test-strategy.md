@@ -10,6 +10,11 @@ Where a change's proof lives, how tasks are sliced so it can live there, and wha
 - Detail before whole: unit tasks first, integration tasks last. That ordering is what lets the unit tasks run concurrently, because none of them holds an external resource.
 - A host with no test layer - no test tooling, or nothing with runtime behaviour to assert - gets `TDD: none` on every task and artefact checks for `Verification`. Never introduce a test framework the project does not have; name the boundary as unproven instead.
 
+## What runs when
+
+- A task runs its own `Verification` and nothing wider. The full suite belongs to the build's close: other tasks are live in the same tree, so a broader run reports failures that are not this task's to fix.
+- An integration task runs its own integration test, alone in its `Exclusive` slot. The integration layer as a whole runs once more in the close.
+
 ## Slicing
 
 - Slice by behaviour, never by layer. One task carries one behaviour through every layer it needs, inside its own file map. A plan cut as "all of layer X, then all of layer Y" proves no criterion until its last task lands, forces dependencies between tasks that share nothing, and serialises the build.

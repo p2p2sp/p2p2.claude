@@ -13,8 +13,8 @@ one `PreToolUse`, one `SessionStart`. Everything a run produces lives in the hos
 decisions, the decomposition
 every agent reads, the QA documents the close writes, and `work/` - the coders' notes, the review
 reports and the test reports, committed with the task they belong to. Only true scratch stays in
-`.temp/viber/` (the e2e pass's launch logs and probe output) - no plugin-named dot-dir, no state
-file.
+`.temp/viber/` (one `<id>/` per task, holding the build output its coder and its reviewer redirect
+there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-dir, no state file.
 
 ## Entry points
 
@@ -215,9 +215,10 @@ file.
   criterion no task implements would otherwise ride through the build into a green close.
 - **A task's `Verification` is scoped to the task; the whole suite belongs to the close.** N coders
   share one working tree, so a project-wide run turns another coder's half-written file into this
-  task's red - a red the coder may not fix, because it is outside its `Files`. Four files carry the
+  task's red - a red the coder may not fix, because it is outside its `Files`. Five files carry the
   one contract: `planner` writes `Verification` over the task's own files only, `planner-review`
-  treats a whole-project run as a finding, and `task-coder` and `task-reviewer` both drop a red they
+  treats a whole-project run as a finding, `references/test-strategy.md` states the run scope for
+  whoever writes a test, and `task-coder` and `task-reviewer` both drop a red they
   can trace outside their `Files`. What escapes belongs to `test-runner` in the close, committed
   through `--repair`. What the narrowing leaves on a stack that compiles the whole project to run
   one test is handled by a directory, never by a schedule: `implementor` hands every coder and
@@ -233,8 +234,11 @@ file.
   rather than improvised by a coder. An integration test never rides inside a TDD cycle. They are
   the plan's last tasks, one per boundary the change crosses rather than one per criterion, each
   `TDD: none` and `Exclusive: true`, each depending on the tasks it exercises, and each
-  `Verification` compiles the test without running it - so the whole integration layer runs exactly
-  once, in `test-runner`'s closing pass. `Exclusive: true` is the plan's one OPTIONAL task field
+  `Verification` runs that task's own integration test and nothing wider - the `Exclusive` slot is
+  what makes running the real dependency safe, and the layer as a WHOLE runs again in
+  `test-runner`'s closing pass. Proving that test green inside its own task keeps a broken one in a
+  `task-reviewer` round instead of surfacing it in the close, where the repair coder has no task
+  file and no file map. `Exclusive: true` is the plan's one OPTIONAL task field
   and its only accepted value (`plan-index.sh` exits 4 on `false` and on `none`, the mandatory
   fields' convention borrowed where it does not hold). It declares that a task cannot share the
   working tree or a machine-wide resource, reaches the orchestrator as the index's `excl` column

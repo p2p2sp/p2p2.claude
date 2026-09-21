@@ -18,6 +18,8 @@ plugin-root dirs - the single skill bundles its own `references/` and `scripts/`
   stages, reusing an existing skill instead of restating it.
 - `skills/skill-designer/references/split-patterns.md` - the split catalogue (fork sub-workers,
   mode-router script, independent co-occurring specialists).
+- `skills/skill-designer/references/example.md` - one task written badly and well, read before a
+  body is written from scratch.
 - `skills/skill-designer/scripts/lint_skill.sh` - lints a skill dir or a single agent/skill
   `.md` file; prints FAIL/WARN lines, exit 1 on any FAIL. Plain bash only, invoked THROUGH
   `bash` in the body (so it needs no exec bit, unlike a `!`-preloaded script).
@@ -34,8 +36,10 @@ plugin-root dirs - the single skill bundles its own `references/` and `scripts/`
   to the skill's own "descriptions undertrigger, write them pushy" rule but its scope: pushy
   applies while nothing else owns the intent, and here something does.
 - The linter checks form, the skill judges substance. `lint_skill.sh` owns only what is
-  mechanically decidable (frontmatter presence/field caps, name charset, reserved words, body
-  length, orphaned bundled files). Everything requiring judgment (one responsibility? does the
+  mechanically decidable: frontmatter presence and field caps, name charset, reserved words, body
+  length, the banned surface forms (emoji, em/en dash, markdown table - all FAIL) and the
+  `references/` checks (a file past 100 lines with no table of contents, a file `SKILL.md` never
+  names). Everything requiring judgment (one responsibility? does the
   description trigger? is this line caller narrative?) stays with the model. Never migrate a
   judgment call into the script - a false FAIL on a judgment call is worse than no check, since
   the skill is instructed to fix every FAIL.
@@ -54,7 +58,7 @@ plugin-root dirs - the single skill bundles its own `references/` and `scripts/`
   (`.claude/skills/`, a plugin's `skills/`, an `agents/` dir) - a knowledge layer here would be a
   copy of the artifact, not a record about it.
 - This plugin's own sources are its first test case: every rule `skill-designer` states is one
-  the repo's other five plugins already follow. A rule its own `SKILL.md` violates is a bug in
+  the repo's other six plugins already follow. A rule its own `SKILL.md` violates is a bug in
   the rule or in the file - fix one of them, never document the exception.
 
 ## Anti-patterns

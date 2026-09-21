@@ -2,7 +2,7 @@
 
 From an idea to committed code in four steps: understand it, plan it, build it, remember it.
 
-Nothing is written before you approve a plan that a reviewer has already passed, and every task
+No code is written before you approve a plan that a reviewer has already passed, and every task
 lands as its own commit, so the history reads like the plan.
 
 ## Install
