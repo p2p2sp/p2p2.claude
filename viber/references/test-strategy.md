@@ -24,13 +24,15 @@ Where a change's proof lives, how tasks are sliced so it can live there, and wha
 ## Writing tests
 
 - Never tested: accessors, trivial constructors, data holders without behaviour, 1:1 mappings, framework behaviour, third-party library internals, an assertion true by construction. The check is one sentence: name the regression this test would catch. No answer means no test.
-- Isolation: no sleep, no shared mutable state between tests, no dependence on execution order, no fixed port, no shared database. Several coders verify in the same tree at once, so a test coupled to anything machine-wide fails for whoever is unlucky rather than for whoever broke it.
-- Never pay for deliberately slow code the test does not assert - key derivation, retry backoff, waits. Lower its cost through configuration and keep its behaviour; the one test that asserts that cost uses the real thing.
+- Isolation: no sleep, no shared mutable state between tests, no dependence on execution order, no fixed port, no database shared with another task's run. Several coders verify in the same tree at once, so a test coupled to anything machine-wide fails for whoever is unlucky rather than for whoever broke it.
+- Never pay for deliberately slow code the test does not assert - key derivation, retry backoff, waits. In a unit test lower its cost through configuration and keep its behaviour; the one test that asserts that cost uses the real thing.
 - One act per test, and every test asserts something. Several actions in one test body means several tests.
 - No control flow in a test body - no branch, no loop, no switch. Cases belong in the framework's parameterised form, one row each, so a failure names the row that broke.
 - Assert on what a caller observes: the returned value, the public state, the side effect through its own surface, the raised error. Never on log output, and never on data the test did not arrange itself.
 - Construct whatever can be constructed. A double for a value, a record or a single config lookup buys nothing and hides the real shape.
 - An integration test runs against the real dependency, started disposable per run - containers wherever the host has them. An in-process substitute standing in for the real thing proves nothing the unit tests did not.
+- Real only at the boundary under test. The database, queue or network the task exists to exercise stays real; every other collaborator the path drags in is substituted by its cheapest honest stand-in - deliberately slow work first, and nothing that could simply be constructed. An integration test pays for the wiring it asserts and for nothing else.
+- Build the expensive fixture once per run and reuse it across the tests it fits, resetting state between them instead of rebuilding. The `Exclusive` slot is what makes that safe: the layer runs alone, so reuse inside it is not the machine-wide sharing the isolation rule forbids.
 
 ## Blocking findings
 
@@ -42,6 +44,7 @@ Beyond each reviewer's own checks:
 - Control flow inside a test body.
 - An assertion on log output, or on data the test never arranged.
 - An integration test against an in-process substitute.
+- An integration test paying full cost for a collaborator it does not assert.
 - A test carrying a sleep, a fixture mutated across tests, or a fixed machine-wide resource.
 
 Three shapes are none of those findings: an end-to-end scenario whose steps model one user flow, a snapshot assertion, and a loop inside a property-based generator - control flow in the property body still counts. A test taking one of these carries a comment naming which; an undocumented one is a finding.
