@@ -31,8 +31,9 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
 - `skills/planner/SKILL.md` - model-invocable, and enters plan mode itself. Checks its input came
   from a confirmed `idea` interview or a `fixer` diagnosis and invokes `idea` when it did not, fills `skills/planner/templates/plan.md` into
   the plan file plan mode names, that path written into the plan's own `<!-- source: -->` marker,
-  under `adr: true` reads `skills/planner/references/adr-tasks.md` and follows it - the decisions
-  worth recording go to the user and each accepted one becomes a first task, validates the result
+  under `adr: true` reads `skills/planner/references/adr-tasks.md` and follows it - only a decision
+  passing all three ADR criteria goes to the user, usually none, and each accepted one becomes a
+  first task, validates the result
   with `scripts/plan-index.sh`, then gates on `viber:planner-review` until `VERDICT: PASS` before
   `ExitPlanMode`.
 - `skills/implementor/SKILL.md` - model-invocable orchestrator, `[plan-path]` argument. Lands the approved plan in the

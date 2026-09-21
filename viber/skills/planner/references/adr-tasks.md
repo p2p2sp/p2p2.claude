@@ -4,7 +4,13 @@ Read only under `adr: true`, before the tasks are written. Each accepted decisio
 
 ## 1. Find the candidates
 
-Look over the change and the design decisions this plan settles for one that is architecturally significant and lasting: it constrains work that comes after it, reversing it is expensive, and `docs/adr/` does not record it yet. A choice the code already implies is not one, and neither is a preference. No candidate means no question and no ADR task.
+A decision this plan settles is a candidate only when all three hold; one missing drops it silently, with no message to the user.
+
+1. Hard to reverse - undoing it costs a migration, a rewritten boundary, a change across every caller. A one-line edit next month fails this.
+2. Surprising without context - a competent reader meeting the result cold asks why it was done this way. The obvious default fails this.
+3. A real trade-off - genuine alternatives were on the table and one won for reasons the user stated. Nothing to weigh against fails this.
+
+One `docs/adr/` already records is not a candidate. Most plans have none: feature behaviour, naming, validation rules, wiring and anything re-derivable from the code never qualify, and several candidates in one run means the bar slipped. No candidate means no question and no ADR task.
 
 ## 2. Ask
 
