@@ -1,6 +1,6 @@
 <viber:manifest>
 
-Everything inside this manifest is EXTREMELY IMPORTANT.
+# Everything inside this manifest is **EXTREMELY IMPORTANT**.
 
 - No code before an approved plan - write it, get approval from the user, THEN implement.
 - Do not create any new git branch unless the user explicitly requests it.

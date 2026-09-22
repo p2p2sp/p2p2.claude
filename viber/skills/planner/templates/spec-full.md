@@ -16,6 +16,10 @@ Build: skill `implementor`
 
 <How the area behaves today, in plain language. "Nothing yet" for a new capability.>
 
+<!-- Every line under the next heading travels into EVERY task file, so it is a
+     coder's standing boundary rather than a wish: name only behaviour this
+     plan's own file map could break, and keep the list short. -->
+
 ### Must not change
 
 - <behaviour that already works and has to keep working>

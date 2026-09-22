@@ -97,10 +97,15 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   wraps the same content in problem, current behaviour with its `### Must not change`, `## Behaviour`
   as `### S<n>` scenarios in Given/When/Then plus `### Edge cases`, a glossary and constraints. The
   task half is `tasks.md` under either. Four anchors are identical character for character in both
-  shapes - `## Goal`, `## Acceptance criteria`, `### File map`, `### Out of scope` - and they are
-  the only things `plan-index.sh` reads above `## Tasks`, which is why it never learned the shapes
-  and why a task file is byte-identical whichever shape produced it. Everything the big shape adds
-  rides into `spec.md` and nowhere else, so the choice costs a coder nothing. A glossary term a
+  shapes - `## Goal`, `## Acceptance criteria`, `### File map`, `### Out of scope` - and a fifth,
+  `### Must not change`, only the big shape carries. Those five are the only things `plan-index.sh`
+  reads above `## Tasks`, which is why it never learned the shapes: the fifth one absent prints
+  nothing, so a task file built from `spec-lite` is what it always was and one built from
+  `spec-full` differs by that one block alone. That block is the exception to everything else the
+  big shape adds, which rides into `spec.md` and nowhere else: a regression guard is the one thing
+  every coder in the run has to hold, because the criterion channel would hand it to one task while
+  five others could break it. It is also why the template caps it - every line costs context in
+  every task file. A glossary term a
   coder has to spell reaches it ONLY as a `### C<n>` block through that task's `Uses:` - `File: none`
   being a valid answer - because the glossary is above `## Tasks` and is written for a person. The
   scenario ids `S<n>` and the QA documents' `QA-<nn>` are two numbering spaces that never collide;
@@ -131,11 +136,16 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   the whole handover: the skill reads the path out of what it holds and hands it to `--land`, which
   copies the file. Nothing discovers a plan by scanning the harness plans directory, and
   `implementor` never writes the text it is holding - it has no `Write`.
-- **What lands is the plan, not the template's advice.** `--land` strips the guidance comments on
+- **What lands is the plan, not the template's advice, and the specification keeps neither.**
+  `--land` strips the guidance comments on
   the way in, keeping only the markers the run itself reads (`<!-- TASK -->`, `<!-- /TASK -->`,
   `<!-- source: -->`). They are instructions for whoever writes the plan; left in, they ride into
   `spec.md`, into every task file and through the whole build. The source in the plans directory
-  keeps them - it is never written to.
+  keeps them - it is never written to. The one marker that survives the landing is cut one step
+  later: `--split` writes `spec.md` with every HTML comment removed, the `<!-- source: -->` line
+  included, because that line is the run's plumbing and `spec.md` outlives the run - archived, it
+  would point at a plan mode file that is already gone. The two cuts are therefore layered rather
+  than duplicated, and `plan.md` keeps the marker for as long as anything resumes from it.
 - **Only that handoff is hardened; the front links are context-only on purpose.** `idea` and
   `fixer` reach `planner` inside one context, with no mode change and no harness gate between
   them, so both restate their payload verbatim at the invocation and neither writes a handoff
@@ -186,7 +196,8 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   (exit 5). A task marked done that was never committed would be skipped forever on resume, so
   this is the one place in the plugin where a script undoes its own write.
 - **The decomposition is what the agents see; the index is what the orchestrator sees.**
-  `plan-index.sh --split` writes `spec.md` (everything above `## Tasks`) and one `tasks/<id>.md`
+  `plan-index.sh --split` writes `spec.md` (everything above `## Tasks`, minus every HTML comment
+  in it) and one `tasks/<id>.md`
   per task, carrying the task block verbatim plus the plan's `## Goal`, the text of the criteria
   its `Covers:` names, the `## Contracts` blocks its `Uses:` names and the plan's
   `### Out of scope`. Verbatim but for one line: `- DoD:` is cut on `;` into one

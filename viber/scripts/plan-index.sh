@@ -54,11 +54,15 @@
 # --split writes, into the plan's OWN directory (docs/_specs/<stamp>_<slug>/):
 #   spec.md        - everything above "## Tasks": goal, acceptance criteria, scope.
 #                    WHAT and WHY, read by the user and by the closing writers.
+#                    Every HTML comment is cut out of it, the plan's own
+#                    "<!-- source: -->" marker included: it belongs to the run,
+#                    not to the specification the archive keeps.
 #   tasks/<id>.md  - the whole job of one coder: its task block, then the
 #                    plan's "## Goal", the text of the criteria its "Covers:" line
-#                    names, the "## Contracts" blocks its "Uses:" line names, and
-#                    the plan's "### Out of scope". The block is verbatim but for
-#                    its "- DoD:" line, which is cut on ";" into one
+#                    names, the "## Contracts" blocks its "Uses:" line names, the
+#                    plan's "### Must not change" when the big shape has one,
+#                    and the plan's "### Out of scope". The block is verbatim but
+#                    for its "- DoD:" line, which is cut on ";" into one
 #                    "- DoD.<k>: <clause>" line per clause (no ";" -> "DoD.1",
 #                    an empty trailing clause dropped): a coder answers for each
 #                    clause and a reviewer gates each one, which a single
@@ -546,14 +550,37 @@ END {
   for (i = 1; i <= NR; i++) if (line[i] ~ /^##[[:space:]]*Tasks/) { cut = i; break }
   if (!cut) cut = NR + 1
 
+  # The specification: everything above the task list, minus every HTML comment
+  # still in it. --land already strips the guidance the template carries, but the
+  # <!-- source: --> marker has to survive there - it is how the implementor finds
+  # the file again - and it is plumbing of the run rather than specification:
+  # carried through, it rides into the archived spec.md as a pointer to a plan
+  # mode file that is already gone. Nothing above the cut is read by anything, so
+  # the cut takes them all, single-line and block alike, and collapses the blank
+  # runs they leave so the head reads like a document written without them.
+  # (No apostrophe anywhere in here: this comment sits INSIDE the single-quoted
+  # awk program, where one would close the quote.)
   spec = dir "/spec.md"
-  for (i = 1; i < cut; i++) print line[i] > spec
+  for (i = 1; i < cut; i++) {
+    t = trim(line[i])
+    if (incom) { if (t ~ /-->/) incom = 0; continue }
+    if (t ~ /^<!--/) { if (t !~ /-->/) incom = 1; continue }
+    if (t == "") { sblank = 1; continue }
+    if (sblank && skept) print "" > spec
+    sblank = 0; skept = 1
+    print line[i] > spec
+  }
   close(spec)
 
   # the standing context every task file carries: what the run is for, and the
-  # boundary none of its coders may cross. A coder is handed its task file and
-  # nothing else, so both travel with it rather than sitting in a spec it reads.
+  # two boundaries none of its coders may cross - the behaviour that has to keep
+  # working, where the spec shape names any, and the area the change does not
+  # touch. A coder is handed its task file and nothing else, so all three travel
+  # with it rather than sitting in a spec it reads. "### Must not change" is the
+  # one anchor only the big shape carries: absent, it prints nothing, which is
+  # why this stays one script over both shapes.
   goal = section("^##[[:space:]]*Goal[[:space:]]*$")
+  mnc  = section("^###[[:space:]]*Must not change[[:space:]]*$")
   oos  = section("^###[[:space:]]*Out of scope[[:space:]]*$")
 
   # contract blocks by id: the heading line plus everything under it, sliced into
@@ -583,7 +610,7 @@ END {
   }
 
   # one file per task, and it is the whole job: the block verbatim, the run goal,
-  # the criteria it covers, the contracts it uses, the boundary it must not cross
+  # the criteria it covers, the contracts it uses, the boundaries it may not cross
   for (i = cut; i <= NR; i++) {
     if (line[i] ~ /<!--[[:space:]]*TASK[[:space:]]*-->/)   { intask = 1; body = ""; id = ""; cov = ""; use = ""; continue }
     if (line[i] ~ /<!--[[:space:]]*\/TASK[[:space:]]*-->/) {
@@ -604,6 +631,7 @@ END {
         if (!opened) { printf "\n## Contracts\n" > f; opened = 1 }
         printf "\n%s", rstrip(cbody[un[k]]) > f
       }
+      if (mnc != "") printf "\n## Must not change\n%s", mnc > f
       if (oos != "") printf "\n## Out of scope\n%s", oos > f
       close(f)
       n++

@@ -17,7 +17,8 @@
  * `plan-index.sh <plan> --split` additionally decomposes the plan in place:
  * `spec.md` (everything above `## Tasks`) plus one `tasks/<id>.md` per task,
  * carrying the block verbatim, the plan's goal, the text of the criteria its
- * `Covers:` line names, the contract blocks its `Uses:` line names and the plan's
+ * `Covers:` line names, the contract blocks its `Uses:` line names, the big
+ * shape's `### Must not change` where the plan has one, and the plan's
  * out-of-scope list. That file IS a coder's WHOLE input - it gets no `spec:` line
  * at all - so a task file that loses a field, loses a contract or picks up a
  * neighbour's is silent, uncatchable drift. The one line it does NOT carry
@@ -768,8 +769,8 @@ test("--split writes the specification and one file per task, and still prints t
 
     assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
 
-    // spec.md is everything ABOVE the task list, verbatim: WHAT and WHY, no task
-    // and - because the appendix sits below the tasks - no contract either.
+    // spec.md is everything ABOVE the task list: WHAT and WHY, no task and -
+    // because the appendix sits below the tasks - no contract either.
     const spec = readRun(dir, "spec.md");
     assert.match(spec, /^# Add login$/m);
     assert.match(spec, /^- add - src\/login\.ts - the handler$/m);
@@ -777,6 +778,44 @@ test("--split writes the specification and one file per task, and still prints t
     assert.doesNotMatch(spec, /## Tasks/);
     assert.doesNotMatch(spec, /Add the login handler/);
     assert.doesNotMatch(spec, /## Contracts|POST \/login/);
+  });
+});
+
+test("spec.md carries no HTML comment - the plan's own source marker least of all", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    // A landed plan still carries the marker plan-path.sh deliberately kept:
+    // the implementor reads the path out of it to land the file at all. It is
+    // the run's plumbing, and spec.md outlives the run - archived, it would
+    // point at a plan mode file that no longer exists. The block comment is what
+    // a plan that never went through --land brings with it.
+    const body = planBody(TWO_TASKS).replace(
+      "# Add login\n",
+      [
+        "# Add login",
+        "",
+        "<!-- source: /home/u/.claude/plans/add-login.md -->",
+        "",
+        "Build: skill `implementor`",
+        "",
+        "<!-- Guidance for whoever writes the plan:",
+        "     it spans several lines and ends here. -->",
+        "",
+      ].join("\n"),
+    );
+    seed(dir, body);
+
+    const r = run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+    const spec = readRun(dir, "spec.md");
+    assert.doesNotMatch(spec, /<!--/);
+    assert.doesNotMatch(spec, /add-login\.md|Guidance for whoever/);
+    // and what the cut leaves behind reads like a document written without them:
+    // one blank line between the title and the next kept line, never two
+    assert.match(spec, /^# Add login\n\nBuild: skill `implementor`\n\n## Goal\n/);
+    assert.doesNotMatch(spec, /\n\n\n/);
+    // the plan itself is untouched - it is the file the run resumes from
+    assert.match(fs.readFileSync(path.join(dir, PLAN_REL), "utf-8"), /<!-- source: /);
   });
 });
 
@@ -892,6 +931,15 @@ test("both spec templates carry the four anchors, so the shape is a choice and n
       );
     }
   }
+  // the fifth anchor is the big shape's alone: it reaches a task file the same
+  // way the four do, and its absence from spec-lite is what keeps that shape's
+  // task file exactly what it always was
+  assert.ok(
+    shapes[1]!.split("\n").some((line) => line === "### Must not change"),
+    'spec-full.md is missing the anchor line "### Must not change"',
+  );
+  assert.ok(!shapes[0]!.includes("Must not change"), "spec-lite.md must not carry a regression boundary");
+
   // the task half is one file for both shapes
   const tasks = fs.readFileSync(path.join(TEMPLATES, "tasks.md"), "utf-8");
   assert.match(tasks, /^## Tasks$/m);
@@ -899,7 +947,13 @@ test("both spec templates carry the four anchors, so the shape is a choice and n
   assert.ok(!fs.existsSync(path.join(TEMPLATES, "plan.md")), "plan.md was replaced by the three templates");
 });
 
-test("a plan built from spec-full plus tasks decomposes into the same task file as one built from spec-lite", () => {
+/** A task file with the one block only the big shape contributes removed, which
+ *  is what makes everything else comparable across the two shapes. */
+function stripBoundary(body: string): string {
+  return body.replace(/\n## Must not change\n[\s\S]*?(?=\n## Out of scope\n)/, "");
+}
+
+test("a plan built from spec-full plus tasks decomposes into the same task file as one built from spec-lite, but for the regression boundary", () => {
   const files: Record<string, Record<string, string>> = {};
   for (const shape of ["lite", "full"] as const) {
     withTempDir("p2p2-viber-", (dir) => {
@@ -910,16 +964,48 @@ test("a plan built from spec-full plus tasks decomposes into the same task file 
       assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"], shape);
 
       files[shape] = { T1: readRun(dir, "tasks/T1.md"), T2: readRun(dir, "tasks/T2.md") };
-      // the sections the big shape adds are WHAT and WHY: they ride into
+      // every OTHER section the big shape adds is WHAT and WHY: it rides into
       // spec.md, never into a coder's file
       assert.match(readRun(dir, "spec.md"), shape === "full" ? /^## Glossary$/m : /^## Scope$/m, shape);
     });
   }
 
   for (const id of ["T1", "T2"]) {
-    assert.deepEqual(headings(files.full![id]!), headings(files.lite![id]!), `${id} sections differ by shape`);
-    assert.equal(files.full![id], files.lite![id], `${id} differs by shape`);
+    // the regression boundary every coder of the run holds, ahead of the
+    // out-of-scope list: the one thing the big shape hands a task file
+    assert.match(
+      files.full![id]!,
+      /\n## Must not change\n- The public catalogue stays reachable without an account\.\n\n## Out of scope\n/,
+      id,
+    );
+    assert.doesNotMatch(files.lite![id]!, /Must not change/, id);
+    assert.doesNotMatch(files.lite![id]!, /public catalogue/, id);
+
+    // and nothing else differs by shape
+    const full = stripBoundary(files.full![id]!);
+    assert.deepEqual(headings(full), headings(files.lite![id]!), `${id} sections differ beyond the boundary`);
+    assert.equal(full, files.lite![id], `${id} differs beyond the boundary`);
   }
+});
+
+test("a spec-full plan carrying no Must not change section decomposes exactly like spec-lite", () => {
+  const files: Record<string, string> = {};
+  for (const shape of ["lite", "full"] as const) {
+    withTempDir("p2p2-viber-", (dir) => {
+      // the big shape with that one section dropped: the script reads an anchor,
+      // never a shape, so an absent one contributes nothing rather than failing
+      const body = planBody(TWO_TASKS, 2, CONTRACT, shape).replace(
+        "### Must not change\n\n- The public catalogue stays reachable without an account.\n\n",
+        "",
+      );
+      assert.ok(shape === "lite" || !body.includes("Must not change"), "the fixture still carries the section");
+      seed(dir, body);
+
+      assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0, shape);
+      files[shape] = readRun(dir, "tasks/T1.md");
+    });
+  }
+  assert.equal(files.full, files.lite);
 });
 
 test("tasks/ is rebuilt from scratch, so a task dropped from the plan leaves no stale file behind", () => {
