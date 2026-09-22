@@ -37,7 +37,8 @@ plugin-root dirs - the single skill bundles its own `references/` and `scripts/`
   applies while nothing else owns the intent, and here something does.
 - The linter checks form, the skill judges substance. `lint_skill.sh` owns only what is
   mechanically decidable: frontmatter presence and field caps, name charset, reserved words, body
-  length, the banned surface forms (emoji, em/en dash, markdown table - all FAIL) and the
+  length, the banned surface forms (emoji, em/en dash, markdown table - all FAIL), the tone
+  counters (all-caps directives past five, any hedge phrase - both WARN) and the
   `references/` checks (a file past 100 lines with no table of contents, a file `SKILL.md` never
   names). Everything requiring judgment (one responsibility? does the
   description trigger? is this line caller narrative?) stays with the model. Never migrate a

@@ -1,6 +1,6 @@
 ---
 name: skill-designer
-description: Authoring doctrine for Claude Code skills and agents: one responsibility per skill, triggering description, progressive disclosure, fork placement, lint.
+description: Authoring doctrine for Claude Code skills and agents: one responsibility per skill, triggering description, imperative body, progressive disclosure, fork placement, lint. Also for auditing or shrinking an existing SKILL.md or agent file.
 ---
 
 # skill-designer
@@ -32,7 +32,7 @@ One skill = one concern. Extra concerns become noise and drift, so each one goes
 - `description:` is the primary triggering mechanism and the only place for "when to use". Put none of it in the body.
 - Skills undertrigger, so write the description pushy: what it does, then explicit contexts and phrasings that should fire it, including indirect ones.
 - Pushy only while nothing else owns the intent. Where a bundled or sibling skill already covers the generic request, state what the skill is and stop, accepting the misses: two pushy descriptions over one intent fire the wrong skill, and the user can still name the one they want.
-- A skill is consulted only for work the model cannot already do in one step. A trivial request will not fire it however well the description matches, so spend the description on the multi-step case and never try to buy the one-shot one.
+- A skill is consulted only for work the model cannot already do in one step. A trivial request will not fire it however well the description matches, so spend the description on the multi-step case, never on the one-shot one.
 - Routing guards ("invoked only by X, never directly") live here and nowhere else.
 - Metadata (name + description) is always in context: aim for about 100 words.
 - Hard platform caps, not style: name 64 chars, lowercase letters, digits and single hyphens, no reserved word (anthropic, claude); description 1024 chars, no angle brackets. Everything past 1024 is truncated, so the trigger words in the tail vanish with no error.
@@ -47,7 +47,10 @@ Write `input -> work -> output`. The skill receives input, works, returns output
 - Document only the delta from sensible defaults. Always skip what the model already knows or a competent developer would do anyway.
 - Most critical and most frequent instructions first, under clear headings. Mid-paragraph content gets unreliable attention.
 - Prevention over correction: put constraints, profiles and negative examples into the generation step. A separate fixer pass costs more and never converges.
-- Imperative form. One short why per constraint beats an all-caps MUST.
+- Address the model in the imperative, one rule per line: "Run X", "Never Y". No hedges ("try to", "if possible", "consider", "you may want"), no politeness, no narration of how.
+- One rule, one short why. A clause of rationale lets the model generalize to the unlisted case; a paragraph of rationale is narrative and gets cut.
+- Emphasis budget: ALWAYS, NEVER and CRITICAL only on the few rules whose violation is irreversible or breaks a caller contract. Current models overtrigger on shouted rules, and shouting everything ranks nothing.
+- State the action and the fallback in the rule itself; "or ask the user" appears only where asking is the designed behaviour.
 - Bullets and sub-points over prose, closer to code than narrative. Shortening never reduces precision.
 
 ## Progressive disclosure
@@ -82,6 +85,7 @@ Replace reasoning with a script wherever the step is deterministic: parsing JSON
 Review like a codebase and remove mercilessly, everything costs context. Beyond the Frontmatter, Body and Progressive disclosure rules above, hunt for:
 
 - Contradicting instructions.
+- Hedged, polite or narrated instructions: rewrite each as one imperative line.
 - Situation-specific guidance never scoped to its situation.
 - Documentation for tools or patterns no longer used.
 - Information repeated within or across files.

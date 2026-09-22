@@ -119,6 +119,10 @@ check_file() {
   # shouting
   shouts="$(grep -oE '\b(MUST|NEVER|ALWAYS|CRITICAL|IMPORTANT)\b' "$f" | wc -l | tr -d ' ')"
   [ "$shouts" -gt 5 ] && warn "$f: $shouts all-caps directives, replace with a short why"
+  # hedges: an instruction the model may read as optional. A quoted phrase is a
+  # mention (a negative example), not an instruction, so it is not counted.
+  hedges="$(grep -oEi '(^|[^"])\b(try to|if possible|feel free to|you might want to|you may want to|please)\b' "$f" | wc -l | tr -d ' ')"
+  [ "$hedges" -gt 0 ] && warn "$f: $hedges hedged phrases (try to, if possible, please...), state the rule in the imperative"
   # caller narrative cues
   grep -nEiq '(you are (invoked|called|spawned) by|is (invoked|called) by the|as part of the .* pipeline|the caller (passes|sends|gives))' "$f" \
     && warn "$f: caller narrative cue in body, keep routing in description: only"
