@@ -16,7 +16,7 @@ user-invocable: false
 "${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh"
 ```
 
-The `started:` line above is this run's start mark. Carry it unchanged to step 6.
+The `started:` line above is this run's start mark. Carry it unchanged to step 7.
 
 # implementor
 
@@ -103,17 +103,16 @@ The last two lines are omitted when they would be empty: `deferred` carries the 
 
 `TaskUpdate` -> in progress.
 
-Then work the loop: on every return, answer with ONE message carrying every dispatch that is now legal - a reviewer for each coder that just returned, a coder for each task whose `deps` just closed - plus at most one commit. Idle capacity is lost time: never wait for a batch to drain before refilling, and when a constraint forces a choice, start whatever unblocks the most tasks.
+Then work the loop: on every return, answer with ONE message carrying every dispatch that is now legal - a reviewer for each coder that just returned, a coder for each task whose `deps` just closed - plus at most one commit and that commit's own `TaskUpdate`. Idle capacity is lost time: never wait for a batch to drain before refilling, and when a constraint forces a choice, start whatever unblocks the most tasks.
 
 What a return means:
 
-1. Coder `VERDICT: FAIL`, or a `PASS` whose `DOD:` line is short of its total -> `AskUserQuestion` naming the task and its `REASON:` line, the short `DOD:` line standing in for one: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its own dispatch lines plus `reason: <the returned REASON>`. Abort ends the run; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it, and leaves its half-finished files uncommitted in the tree - name them in the final summary.
+1. Coder `VERDICT: FAIL`, or a `PASS` whose `DOD:` line is short of its total -> `AskUserQuestion` naming the task and its `REASON:` line, the short `DOD:` line standing in for one: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its own dispatch lines plus `reason: <the returned REASON>`. Abort ends the run; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it (`TaskUpdate` -> completed for each), and leaves its half-finished files uncommitted in the tree - name them in the final summary.
 2. Coder returned and the profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier, `sonnet` where that tier is `haiku`) with the same `task:`, `notes:`, `out:`, `refs:` and `deferred:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
    - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its own dispatch lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort. `accept` is the user overriding the gate: go to step 3, commit with `--unreviewed` appended, and name the task in the final summary as unreviewed.
-3. Coder returned with no review due, or its reviewer returned `VERDICT: PASS` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`, with `--with <path> [<path>...]` appended for every path an `EXTRA:` line of that task's coder or reviewer returned, and `--defer <target-id>:<path> [...]` for every `DEFERRED:` line its coder returned. Those are files the task could not work without and the plan gave no owner; left out, the commit that lands the task is not the whole task. A `DEFERRED` path returned as `-> none` takes the earliest unfinished task whose `files` column claims it; one no task claims is recorded nowhere and named in the final summary. It takes the commit subject from the task's own heading in the plan, stages what it was given plus the task's own notes and reports, commits, and records the task as done. A non-zero exit means nothing was committed and nothing recorded -> `AskUserQuestion`: retry / skip / abort.
+3. Coder returned with no review due, or its reviewer returned `VERDICT: PASS` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`, with `--with <path> [<path>...]` appended for every path an `EXTRA:` line of that task's coder or reviewer returned, and `--defer <target-id>:<path> [...]` for every `DEFERRED:` line its coder returned. Those are files the task could not work without and the plan gave no owner; left out, the commit that lands the task is not the whole task. A `DEFERRED` path returned as `-> none` takes the earliest unfinished task whose `files` column claims it; one no task claims is recorded nowhere and named in the final summary. It takes the commit subject from the task's own heading in the plan, stages what it was given plus the task's own notes and reports, commits, and records the task as done. That call and this task's `TaskUpdate` -> completed go in the SAME message: the next one already answers another return, and an entry left open there is never closed. A non-zero exit means nothing was committed and nothing recorded -> put that entry back to in progress and `AskUserQuestion`: retry / skip / abort.
 
    Two warnings come off that call and neither stops the build. `refused <path> - claimed by task <id>` means the path is in that task's own map and rides in its commit, so leave it and name it in the final summary. `changed, claimed by no task in the plan` names paths nobody reported - a leftover, a stray edit, a regression outside the plan; that is the same split step 5 commits by, so carry them to the final summary rather than acting on them per commit.
-4. Commit recorded -> `TaskUpdate` -> completed.
 
 ## 5. Close
 
@@ -136,9 +135,9 @@ Only for the switches the config block above reports as `true` and not already n
 
 Commit what they return, one call per form and each deriving its own subject: the memory and rule paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore <plan> <file> [<file>...]`, the QA paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa <plan> <file> [<file>...]`. Both record the close in the plan. A form whose agents returned nothing, or only `VERDICT: NONE` -> no call for it. An `OVER:` line a writer returned is committed like any other path it named and repeated verbatim in the final summary - a knowledge file past its budget is the user's call to make, never something the run silently absorbs. Then `TaskUpdate` -> completed.
 
-## 7. Archive the run
+## 7. Archive and close
 
-Only when the config block above reports `cleanup: true`, and only after step 6 is done. One dispatch, `viber:closeup` (Agent tool, no `model:` - its own frontmatter is its strength), carrying one line and nothing else:
+The archive runs only when the config block above reports `cleanup: true`, and only after step 6 is done; the clock, the list and the summary below always run. One dispatch, `viber:closeup` (Agent tool, no `model:` - its own frontmatter is its strength), carrying one line and nothing else:
 
 ```
 run: <dir>
@@ -149,5 +148,7 @@ It marks on `spec.md` whatever the build delivers that the specification does no
 `VERDICT: BLOCKED` does not stop anything: the run directory stays exactly where it is and the agent returned the reason. Name it in the summary and close the build.
 
 Then `"${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh" "<started>"`, the mark preloaded above - one call, and its `elapsed:` line is how long this session ran.
+
+Set the task list against the last `progress: <n>/<total>` a commit printed: every task the run settled, committed or skipped, is completed there. Close whatever is still open, then leave the list standing - it is this run's own record and nothing deletes it.
 
 Final summary, max 7 lines: tasks committed, review rounds spent, test verdict, how long the run took, what memory, rules and QA recorded, where the run was archived and what drift that took, anything left for the user to decide. `elapsed: unknown` - the mark is gone - drops that line; never estimate one. A `qa.e2e.md` among the QA paths earns one more line - `/viber:e2e` turns it into Playwright tests.
