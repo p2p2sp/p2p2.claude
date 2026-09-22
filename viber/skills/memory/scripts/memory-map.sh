@@ -80,10 +80,12 @@ fi
 # --- the tracked tree ------------------------------------------------------
 # Read with -z: without it git C-quotes and octal-escapes any path carrying a
 # non-ASCII character, which would hide that path behind an opening quote.
-tracked=""
-while IFS= read -r -d '' entry; do
-  tracked="$tracked$entry$NL"
-done < <(git ls-files -z 2>/dev/null || true)
+# One tr pass rather than a read loop appending entry by entry: every append
+# copies the whole string, which bash 3.2 (the macOS system shell) turns into
+# seconds on a repository of a few thousand files. The command substitution
+# strips the final newline, so it is put back: every entry ends in $NL.
+tracked="$(git ls-files -z 2>/dev/null | tr '\0' '\n')"
+[ -z "$tracked" ] || tracked="$tracked$NL"
 
 is_tracked() {
   case "$NL$tracked" in
@@ -112,16 +114,17 @@ chars_of() {
 # the repository root). A node is an orphan when nothing does: it documents
 # no subtree, not even one held in a directory below it.
 holds_other() {
-  # The node's own entry is cut out of the blob and the rest matched in one
-  # shell pattern rather than looped over: a host repository holds thousands
-  # of tracked files, and this runs once per node. The trailing "?" is what
-  # keeps the root node (prefix "") from matching the separator alone.
-  rest="${NL}${tracked}"
-  rest="${rest/"${NL}${2}${NL}"/$NL}"
-  case "$rest" in
-    *"${NL}${1}"?*) return 0 ;;
-  esac
-  return 1
+  # One awk pass over the list rather than a shell substitution on it: a host
+  # repository holds thousands of tracked files, and bash 3.2 (the macOS
+  # system shell) takes seconds to minutes for one ${var/pattern/} over a blob
+  # that size, once per node. The prefix is compared with substr() because
+  # index() with an empty needle (the root node) answers 1 in BWK awk and 0 in
+  # gawk. A prefix ends in "/", so no tracked file ever equals it. awk reads
+  # to the end instead of exiting on the first match: an early exit breaks the
+  # pipe under printf, which can then print a write error on stderr.
+  printf '%s' "$tracked" | awk -v p="$1" -v n="$2" '
+    !found && $0 != "" && $0 != n && substr($0, 1, length(p)) == p { found = 1 }
+    END { exit !found }'
 }
 
 # The nodes carrying uncommitted work, as "<path> modified" / "<path>
