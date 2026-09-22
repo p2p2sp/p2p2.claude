@@ -30,6 +30,8 @@ Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scrip
 
 Every plan gets its own dated directory, `docs/_specs/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md`, stamped when it lands. `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<src>"` copies the approved plan there and prints `path:`, `key:`, `state:` and one `open:` line per OTHER run whose tasks are not all settled. `state: existing` is a run already open, carrying its own progress - take it as it stands, nothing was overwritten.
 
+`state: draft` is a specification with no task in it. Stop there: report the path and that `viber:planner` is what finishes the run by adding its task half. Nothing is decomposed, nothing is dispatched, no question is asked.
+
 `<src>` is the approved plan file, normally outside this repository. First match wins:
 
 1. The argument, when one came in.

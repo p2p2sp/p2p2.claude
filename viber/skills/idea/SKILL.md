@@ -10,6 +10,10 @@ disable-model-invocation: true
 
 Turn a raw idea into an understanding a planner can act on. You write no files and no code.
 
+## Returning to a draft
+
+A draft the user points at - a landed plan carrying a specification and not one task block - is resumed, not interviewed again. Read that file first, then ask only about what the round of remarks changed: everything the draft already states is settled and costs no question. Close on the same confirmed summary, naming the draft's run key so the next round lands in its own directory.
+
 ## Before the first question
 
 Read the repo where the answer already lives: the modules the idea touches, the existing patterns for that kind of work, how similar things are already solved here. Never spend a question on something the code states.
@@ -24,6 +28,17 @@ Decide this before the first detail question. Refining the details of an idea th
 - A subproject boundary is not a delivery. What a later subproject brings is absent until its own cycle, never replaced by a stub, a mock, a hardcoded value or a temporary alternative. So never ask what to use instead, and never let an answer invent one: the absence belongs in the boundaries, as out of scope.
 
 Then interview the FIRST subproject only. The rest wait for their own cycle.
+
+## Propose the spec shape
+
+The plan's specification half comes in two shapes. Propose one before the first detail question, in a single sentence saying why. It is a proposal: the user confirms it in the closing summary and may take the other one, so never spend a numbered question on it.
+
+- `spec-full` - problem, current behaviour, scenarios, edge cases and a glossary - when any of these holds: a new application or a new subsystem; an accepted roadmap; behaviour with more than one path through it, or with edge cases worth naming; new domain concepts the code will have to name; an interview that runs past six questions.
+- `spec-lite` - goal, criteria, file map - for everything else, and always for a `fixer` diagnosis, a refactor that changes no behaviour, configuration, documentation and a rename.
+
+An interview proposed as `spec-lite` that runs past the sixth question escalates on the spot: say the shape changed and carry on.
+
+The draft mode is the user's alone. A user asking to stop at a specification - something to hand a team before any task exists - has that request carried verbatim into the planner invocation. Never offer it and never ask for it.
 
 ## The interview
 
@@ -70,4 +85,4 @@ Solution shape comes last and only where the user holds an opinion. Design decis
 
 Stop when you can state, without guessing: the problem, the acceptance criteria, what is out of scope, the binding constraints. All unknowns must be known and no open questions left.
 
-Show that as a summary under 15 lines and ask for confirmation. A split idea opens its summary with the accepted roadmap, one line per subproject plus which one this cycle covers, and names every later one among the boundaries: the plan is the only place that list outlives this context, and it gets there through the summary alone. On confirmation invoke the `viber:planner` skill, restating the confirmed summary verbatim in that invocation - repeated in the newest turn it survives a compaction the interview behind it does not. On a correction, fix the summary and confirm again.
+Show that as a summary under 15 lines and ask for confirmation. It closes on the spec shape and, when the user asked for one, the draft mode. A split idea opens its summary with the accepted roadmap, one line per subproject plus which one this cycle covers, and names every later one among the boundaries: the plan is the only place that list outlives this context, and it gets there through the summary alone. On confirmation invoke the `viber:planner` skill, restating the confirmed summary verbatim in that invocation - repeated in the newest turn it survives a compaction the interview behind it does not. On a correction, fix the summary and confirm again.

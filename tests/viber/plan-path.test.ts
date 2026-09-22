@@ -57,6 +57,8 @@ interface Resolved {
 function parse(stdout: string): Resolved {
   const out: Record<string, string> = {};
   for (const line of slash(stdout).trim().split("\n")) {
+    // the open: lines are a list, not a field - openLines() reads those
+    if (line.startsWith("open: ")) continue;
     const at = line.indexOf(": ");
     if (at > 0) out[line.slice(0, at)] = line.slice(at + 2);
   }
@@ -85,7 +87,7 @@ function stampAge(key: string): number {
 function landPlan(root: string, key: string, mtime = "2026-01-01T00:00:00Z", body?: string): string {
   const file = path.join(root, "docs", "_specs", key, "plan.md");
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, body ?? `# ${key}\n`);
+  fs.writeFileSync(file, body ?? planWithTasks(key, ["T1"]));
   const seconds = Date.parse(mtime) / 1000;
   fs.utimesSync(file, seconds, seconds);
   return file;
@@ -139,7 +141,26 @@ function runDirs(root: string): string[] {
   return fs.existsSync(specs) ? fs.readdirSync(specs).sort() : [];
 }
 
-const PLAN_BODY = ["# Add Login", "", "## Goal", "", "Let people sign in.", ""].join("\n");
+/** A plan the way one lands for a build: a head, then the task half. A plan
+ *  carrying no TASK block at all is a draft, which is its own state. */
+const PLAN_BODY = [
+  "# Add Login",
+  "",
+  "## Goal",
+  "",
+  "Let people sign in.",
+  "",
+  "## Tasks",
+  "",
+  "<!-- TASK -->",
+  "### T1 - do T1",
+  "- Files: src/T1.ts",
+  "<!-- /TASK -->",
+  "",
+].join("\n");
+
+/** The same plan with its task half left off: the shape of a landed draft. */
+const DRAFT_BODY = ["# Add Login", "", "## Goal", "", "Let people sign in.", ""].join("\n");
 
 // --- no argument: resume the run in progress ---
 
@@ -210,7 +231,7 @@ test("--land beside an aborted run of the same slug mints a fresh stamp rather t
     const aborted = "2026-09-01-09-00-00_abandoned";
     fs.mkdirSync(path.join(dir, "docs", "_specs", aborted), { recursive: true });
 
-    const src = sourcePlan(dir, "outside/abandoned.md", "# Abandoned\n");
+    const src = sourcePlan(dir, "outside/abandoned.md", planWithTasks("Abandoned", ["T1"]));
     const result = run(dir, ["--land", src]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
 
@@ -318,7 +339,7 @@ test("the title is normalized here, so no caller ever has to form a slug", () =>
   // have the second resume the first's run instead of landing its own.
   for (const [title, expected] of cases) {
     withTempDir("p2p2-viber-", (dir) => {
-      const src = sourcePlan(dir, "outside/plan.md", `# ${title}\n`);
+      const src = sourcePlan(dir, "outside/plan.md", planWithTasks(title, ["T1"]));
       const result = run(dir, ["--land", src]);
       assert.equal(result.status, 0, `${title} -> stderr: ${result.stderr}`);
       assert.equal(parse(result.stdout).state, "new", `title: ${title}`);
@@ -396,7 +417,7 @@ test("a whitespace-only H1 is no title, so the file name answers instead", () =>
 
 test("a run already open for that slug comes back existing, and its progress is not written over", () => {
   withTempDir("p2p2-viber-", (dir) => {
-    const inProgress = ["# Add Login", "", "## Tasks (1/2)", "", "<!-- done: T1 -->", ""].join("\n");
+    const inProgress = [planWithTasks("Add Login", ["T1", "T2"]), "<!-- done: T1 -->", ""].join("\n");
     landPlan(dir, "2026-09-19-17-30-00_add-login", "2026-09-19T17:30:00Z", inProgress);
     landPlan(dir, "2026-09-20-08-00-00_other-thing", "2026-09-20T08:00:00Z");
 
@@ -440,7 +461,7 @@ test("an open run answers for its whole slug only, so neither a longer name nor 
       landPlan(dir, "2026-09-19-17-30-00_add-login-v2");
       landPlan(dir, "2026-09-19-18-00-00_add-zzz-login");
 
-      const src = sourcePlan(dir, "outside/glob.md", `# ${title}\n`);
+      const src = sourcePlan(dir, "outside/glob.md", planWithTasks(title, ["T1"]));
       const result = run(dir, ["--land", src]);
       assert.equal(result.status, 0, `${title} -> stderr: ${result.stderr}`);
       const resolved = parse(result.stdout);
@@ -620,6 +641,136 @@ test("no argument: a frozen plan.md does not age its run out - the status file b
   });
 });
 
+// --- the draft state, and the round that lands into it ---------------------
+
+/** A run's plan file, as a native path. */
+function planIn(root: string, key: string): string {
+  return path.join(root, "docs", "_specs", key, "plan.md");
+}
+
+test("a plan carrying no TASK block is a draft, in every path the script answers on", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    landPlan(dir, "2026-09-19-17-30-00_add-login", "2026-09-19T17:30:00Z", DRAFT_BODY);
+
+    // resolved with no argument, where a plan with tasks reads "existing"
+    assert.equal(parse(run(dir).stdout).state, "draft");
+
+    // and on the landing that creates it, where one reads "new"
+    const src = sourcePlan(dir, "outside/other.md", DRAFT_BODY.replace("# Add Login", "# Other Thing"));
+    const landed = run(dir, ["--land", src]);
+    assert.equal(landed.status, 0, `stderr: ${landed.stderr}`);
+    assert.equal(parse(landed.stdout).state, "draft");
+  });
+});
+
+test("a draft is not an open run: there is no task in it to resume, and the user points at it by name", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    landPlan(dir, "2026-09-01-09-00-00_still-talking", "2026-09-01T09:00:00Z", DRAFT_BODY);
+    landPlan(dir, "2026-09-02-09-00-00_current", "2026-09-02T09:00:00Z", planWithTasks("Current", ["T1"]));
+
+    const result = run(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(parse(result.stdout).key, "2026-09-02-09-00-00_current");
+    assert.deepEqual(openLines(result.stdout), []);
+  });
+});
+
+test("--into lands the next round into the named draft, keeping its directory and dropping the guidance", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const key = "2026-09-19-17-30-00_add-login";
+    landPlan(dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
+
+    const round2 = [
+      "# Add Login",
+      "",
+      "<!-- 2-4 sentences: what gets built and why -->",
+      "",
+      "## Goal",
+      "",
+      "Let people sign in, and stay signed in.",
+      "",
+    ].join("\n");
+    const src = sourcePlan(dir, "outside/round-2.md", round2);
+
+    const result = run(dir, ["--land", src, "--into", key]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(parse(result.stdout), { path: `docs/_specs/${key}/plan.md`, key, state: "draft" });
+
+    // the round replaced the draft in place: one directory, the same stamp
+    assert.deepEqual(runDirs(dir), [key]);
+    const landed = fs.readFileSync(planIn(dir, key), "utf-8");
+    assert.match(landed, /stay signed in/);
+    assert.doesNotMatch(landed, /2-4 sentences/);
+    // the plans directory is the user's and is never written to
+    assert.equal(fs.readFileSync(src, "utf-8"), round2);
+  });
+});
+
+test("--into landing a plan that carries its task half turns the draft into a run the build can take", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const key = "2026-09-19-17-30-00_add-login";
+    landPlan(dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
+
+    const src = sourcePlan(dir, "outside/full.md", PLAN_BODY);
+    const result = run(dir, ["--land", src, "--into", key]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(parse(result.stdout), { path: `docs/_specs/${key}/plan.md`, key, state: "new" });
+    assert.equal(fs.readFileSync(planIn(dir, key), "utf-8"), PLAN_BODY);
+  });
+});
+
+test("--into refuses a target that is not a draft: exit 4, nothing on stdout and the plan left alone", () => {
+  const cases: Array<[string, (root: string, key: string) => void]> = [
+    ["a plan carrying a task block", (root, key) => fs.writeFileSync(planIn(root, key), PLAN_BODY)],
+    [
+      "a decomposition",
+      (root, key) => fs.mkdirSync(path.join(root, "docs", "_specs", key, "tasks"), { recursive: true }),
+    ],
+    ["a status file", (root, key) => landStatus(root, key, { progress: "0/1", done: "none" })],
+  ];
+  for (const [what, start] of cases) {
+    withTempDir("p2p2-viber-", (dir) => {
+      const key = "2026-09-19-17-30-00_add-login";
+      landPlan(dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
+      start(dir, key);
+      const before = fs.readFileSync(planIn(dir, key), "utf-8");
+
+      const src = sourcePlan(dir, "outside/round-2.md", DRAFT_BODY);
+      const result = run(dir, ["--land", src, "--into", key]);
+      assert.equal(result.status, 4, `${what} -> stdout: ${result.stdout}`);
+      assert.equal(result.stdout, "", what);
+      assert.match(result.stderr, /not a draft/, what);
+      assert.equal(fs.readFileSync(planIn(dir, key), "utf-8"), before, what);
+    });
+  }
+});
+
+test("--into takes one existing directory name and nothing else: exit 2, nothing on stdout and nothing written", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const key = "2026-09-19-17-30-00_add-login";
+    landPlan(dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
+    const before = fs.readFileSync(planIn(dir, key), "utf-8");
+    const src = sourcePlan(dir, "outside/round-2.md", DRAFT_BODY);
+
+    const keys = ["", "2026-01-01-00-00-00_never-landed", ".", "..", "a/b", `../${key}`];
+    for (const bad of keys) {
+      const result = run(dir, ["--land", src, "--into", bad]);
+      assert.equal(result.status, 2, `"${bad}" -> stdout: ${result.stdout}`);
+      assert.equal(result.stdout, "", `"${bad}"`);
+      assert.equal(fs.readFileSync(planIn(dir, key), "utf-8"), before, `"${bad}"`);
+    }
+
+    // the flag itself has one spelling, and it never stands without --land
+    for (const args of [["--land", src, "--onto", key], ["--land", src, "--into"], ["--into", key]]) {
+      const result = run(dir, args);
+      assert.equal(result.status, 2, `${args.join(" ")} -> stdout: ${result.stdout}`);
+      assert.equal(result.stdout, "", args.join(" "));
+    }
+
+    assert.deepEqual(runDirs(dir), [key]);
+  });
+});
+
 // --- the runs directory is configurable ---
 
 /** `.claude/viber.yml` carrying the `directories:` group, read here relative to
@@ -650,7 +801,7 @@ test("directories.runs renames the directory: both the resolution and --land fol
     assert.equal(resolved.status, 0, `stderr: ${resolved.stderr}`);
     assert.equal(parse(resolved.stdout).path, "docs/builds/2026-09-19-17-30-00_add-login/plan.md");
 
-    const src = sourcePlan(dir, "src/other-thing.md", "# Other Thing\n");
+    const src = sourcePlan(dir, "src/other-thing.md", planWithTasks("Other Thing", ["T1"]));
     const landed = run(dir, ["--land", src]);
     assert.equal(landed.status, 0, `stderr: ${landed.stderr}`);
     const info = parse(landed.stdout);

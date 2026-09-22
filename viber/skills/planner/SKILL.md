@@ -1,7 +1,7 @@
 ---
 name: planner
 description: Turns an understood change into a reviewed implementation plan - acceptance criteria, file map, then tasks carrying dependencies, contracts, verification and DoD. Invoked by viber:idea with a confirmed interview or by viber:fixer with a diagnosis; any other input goes to viber:idea first.
-allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(date:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(date:*)
 user-invocable: false
 ---
 
@@ -15,11 +15,13 @@ CRITICAL: call `EnterPlanMode` first unless plan mode is already active.
 
 Input: an understood change already in context, arriving one of two ways - a confirmed `viber:idea` interview, or a `viber:fixer` diagnosis with its fix plan. Anything else is unresolved input however clear it reads: invoke the `viber:idea` skill, then come back with what it confirms. Never size the scope yourself - splitting an idea too broad for one cycle happens in that interview.
 
+The input carries three decisions already taken: the spec shape, whether this plan stops at a draft, and - on a round continuing an earlier draft - that draft's run key. Take all three as given and never reopen them. A round continuing a draft opens by asking the user which round it is: another draft to circulate, or the task half on top of a settled specification.
+
 The plan answers HOW. It carries every detail, acceptance criterion and DoD the implementation needs, and says nothing about the way a task should be coded.
 
 ## 1. Map the files first
 
-Read `${CLAUDE_PLUGIN_ROOT}/references/test-strategy.md` first: it decides how the work is sliced, where each criterion's proof lives, and which deliverables carry no test at all.
+Read `${CLAUDE_PLUGIN_ROOT}/references/test-strategy.md` first: it decides how the work is sliced, where each criterion's proof lives, and which deliverables carry no test at all. A plan stopping at a draft skips it - nothing is sliced yet.
 
 Before writing a single task, decide which files get created, modified or deleted and what each one owns. Locked-in file boundaries are what lets tasks run in parallel later.
 
@@ -29,13 +31,17 @@ Before writing a single task, decide which files get created, modified or delete
 
 ## 2. Write the plan
 
-Fill `${CLAUDE_SKILL_DIR}/templates/plan.md` into the plan file plan mode names in its system message - while planning it is the only file you may write. Keep every section and every HTML marker from the template, add no sections of your own.
+The plan is two halves. The specification is `${CLAUDE_SKILL_DIR}/templates/spec-lite.md` or `${CLAUDE_SKILL_DIR}/templates/spec-full.md`, whichever shape the input names; the task half is `${CLAUDE_SKILL_DIR}/templates/tasks.md`, the same file behind either shape. Fill the chosen spec, append the task half under it, and write the result into the plan file plan mode names in its system message - while planning it is the only file you may write. Keep every section and every HTML marker from both templates, add no sections of your own.
 
 Write that plan file's own path, absolute and in full, into the `<!-- source: -->` marker. Approving the plan may clear this context and leave the implementor holding the plan's TEXT alone, so that line is the only way back to the file.
 
 An input carrying a roadmap fills `## Roadmap` with the ordered subprojects, marks the entry this plan covers and repeats every later entry under `### Out of scope`; no roadmap in the input means no such section. The plan file is the only place the roadmap survives, because the next cycle starts in a context this one never reaches. What a later entry brings stays absent: no task delivers a stand-in for it, no acceptance criterion depends on it, and nothing is stubbed, mocked or temporarily substituted to make this plan look finished.
 
-Everything above `## Tasks` is WHAT and WHY: goal, roadmap, acceptance criteria, file map, boundary. Not one signature, type, endpoint, error code or dictionary key belongs there - every shape lives in a `## Contracts` block below the tasks and reaches a coder through its `Uses:` line. That half is split off as `spec.md` and read whole by whoever reads it.
+Everything above `## Tasks` is WHAT and WHY: goal, problem, current behaviour, roadmap, scenarios, glossary, acceptance criteria, file map, boundary, constraints. Not one signature, type, endpoint, error code or dictionary key belongs there - every shape lives in a `## Contracts` block below the tasks and reaches a coder through its `Uses:` line. That half is split off as `spec.md` and read whole by whoever reads it.
+
+A `## Glossary` term the code has to name - one that becomes an identifier, a field, a state or a value a coder writes - therefore gets its own `### C<n>` block as well, named by the `Uses:` of every task that writes or reads it. The glossary explains the concept to a person and reaches no coder; the block is the only way the term arrives spelled. `File: none` is the right answer for a term living in no file of its own.
+
+A plan stopping at a draft ends the step here: the specification half alone, no `## Tasks`, no `## Contracts` appendix and no `plan-index.sh` to validate them. The rest of this step is the round that adds them; go to step 3.
 
 Task rules:
 
@@ -71,11 +77,23 @@ Show the user the full path of the written plan.
 
 ## 3. Review gate
 
-Dispatch the `viber:planner-review` agent with the plan path and `refs: ${CLAUDE_PLUGIN_ROOT}/references`. From round 2 on, also pass the previous findings verbatim and one line per fix you applied.
+Dispatch the `viber:planner-review` agent with the plan path and `refs: ${CLAUDE_PLUGIN_ROOT}/references`. A draft adds the line `scope: spec`, which gates the specification alone. From round 2 on, also pass the previous findings verbatim and one line per fix you applied.
 
 - `VERDICT: PASS` - go to step 4.
 - `VERDICT: FAIL` - show the findings, fix the plan, re-run `plan-index.sh` whenever a fix touched a task's fields, ids, `Depends-on`, `Files` or `Covers`, then dispatch again. A finding that needs a decision only the user can make gets asked first, and the answer starts a fresh round 1.
 
 ## 4. Hand off
 
-Call `ExitPlanMode` only after a PASS - the user approves a reviewed plan, not a draft. Name `viber:implementor` as the next step and repeat the plan file's full path with it: the approval may clear this context, and that path is the whole handover.
+Call `ExitPlanMode` only after a PASS - the user approves a reviewed plan, not an unreviewed one.
+
+A plan with its task half, on a change no draft preceded: name `viber:implementor` as the next step and repeat the plan file's full path with it. The approval may clear this context, and that path is the whole handover. Nothing runs here.
+
+A change that went through a draft lands here instead, because nothing downstream lands a plan carrying no task. One literal Bash line, every argument double-quoted, no interpreter word in front, nothing chained to it - and it is the only thing this step executes:
+
+`"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<plan-path>"`
+
+A round continuing an earlier draft adds `--into "<key>"`, the key its input carries, so every round of one discussion lands in the directory the first one made. Then rewrite the landed file's `<!-- source: -->` marker to the landed path: the plan-mode file it names is gone by the next round. Show the user the landed path.
+
+You never commit and never run git - the landed draft is the user's to commit.
+
+A round still carrying no task half ends there, and never names `viber:implementor`: a build refuses a draft. A round that added the task half ends like any full plan, with the LANDED path as the handover.

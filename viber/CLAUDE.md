@@ -28,16 +28,22 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   by editing `.claude/viber.yml`.
 - `skills/idea/SKILL.md` - `/viber:idea`, user-only. A prose interview, one question at a time,
   opening on a scope check that splits an idea spanning several independent subsystems into ordered
-  subprojects and then interviews the first one alone, ending in a confirmed summary that hands over
-  to `viber:planner`. Writes nothing.
+  subprojects and then interviews the first one alone, proposing one of the two spec shapes before
+  the first detail question, ending in a confirmed summary that hands over
+  to `viber:planner`. A draft the user points at is resumed instead: it reads that file and asks
+  only what the round of remarks changed. Writes nothing.
 - `skills/planner/SKILL.md` - model-invocable, and enters plan mode itself. Checks its input came
-  from a confirmed `idea` interview or a `fixer` diagnosis and invokes `idea` when it did not, fills `skills/planner/templates/plan.md` into
+  from a confirmed `idea` interview or a `fixer` diagnosis and invokes `idea` when it did not,
+  composes the plan out of two templates - `skills/planner/templates/spec-lite.md` or
+  `spec-full.md` for the specification half, `tasks.md` for the task half - into
   the plan file plan mode names, that path written into the plan's own `<!-- source: -->` marker,
   under `adr: true` reads `skills/planner/references/adr-tasks.md` and follows it - only a decision
   passing all three ADR criteria goes to the user, usually none, and each accepted one becomes a
   first task, validates the result
   with `scripts/plan-index.sh`, then gates on `viber:planner-review` until `VERDICT: PASS` before
-  `ExitPlanMode`.
+  `ExitPlanMode`. A plan stopping at a draft is the specification half alone: no task half, no
+  contracts appendix, no `plan-index.sh`, the gate carrying `scope: spec`, and `scripts/plan-path.sh`
+  called by the skill itself after the exit.
 - `skills/implementor/SKILL.md` - model-invocable orchestrator, `[plan-path]` argument. Lands the approved plan in the
   dated directory with `scripts/plan-path.sh --land` - the source path taken from the argument, else
   from the plan text's own `<!-- source: -->` marker, else from the script's no-argument resolution -
@@ -86,6 +92,31 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   directory holds everything the run touches: the plan, the decomposition, `work/` and the QA
   documents. Nothing of a run lives outside it, which is what lets another machine pick it up from
   the history alone.
+- **Two spec shapes, one task half, one decomposition.** The specification half of a plan comes
+  from `spec-lite.md` (goal, roadmap, acceptance criteria, scope) or from `spec-full.md`, which
+  wraps the same content in problem, current behaviour with its `### Must not change`, `## Behaviour`
+  as `### S<n>` scenarios in Given/When/Then plus `### Edge cases`, a glossary and constraints. The
+  task half is `tasks.md` under either. Four anchors are identical character for character in both
+  shapes - `## Goal`, `## Acceptance criteria`, `### File map`, `### Out of scope` - and they are
+  the only things `plan-index.sh` reads above `## Tasks`, which is why it never learned the shapes
+  and why a task file is byte-identical whichever shape produced it. Everything the big shape adds
+  rides into `spec.md` and nowhere else, so the choice costs a coder nothing. A glossary term a
+  coder has to spell reaches it ONLY as a `### C<n>` block through that task's `Uses:` - `File: none`
+  being a valid answer - because the glossary is above `## Tasks` and is written for a person. The
+  scenario ids `S<n>` and the QA documents' `QA-<nn>` are two numbering spaces that never collide;
+  the overlap between a scenario and a QA case is accepted rather than removed, since one describes
+  what was promised and the other what was delivered.
+- **A draft is a run with no task in it, and it is the one plan that is not frozen.**
+  `plan-path.sh` answers `state: draft` for a run whose plan carries not one `<!-- TASK -->` block,
+  replacing both `new` and `existing`, and `implementor` stops on it rather than decomposing a
+  specification nobody sliced. It is landed by `planner` itself, because nothing downstream lands a
+  plan with no task; the commit stays the user's. The rounds are what the state exists for: the
+  user circulates the landed file, comes back through `idea` pointing at it, and the next round
+  lands with `--land <src> --into <key>` into the directory the first round made - same key, same
+  stamp - which is refused (exit 4) the moment that run carries a task block, a `tasks/` directory
+  or a `status.md`. So a draft is changeable exactly until its task half lands and frozen from
+  then on, like every other plan. A draft is never an `open:` line either: it holds no task to
+  resume, and the user names the one they mean.
 - **`--land` moves the plan, not the model.** Plan mode writes the plan into its own directory - a
   user-level `plansDirectory`, so normally outside this repository - and approving it may clear the
   planning context. `plan-path.sh --land <src>` therefore COPIES that file into the run directory,
@@ -292,9 +323,10 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   with it. `setup`'s permissions template denies those four verbs outright, because a prompt rule
   alone is a known non-compliance and this failure mode is silent until a coder notices its files
   are gone.
-- **Seven deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path, report
+- **Seven deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path and its
+  `state:` - `new`, `existing` or `draft` - report
   every other unfinished run as an `open:` line, and on `--land` put the approved plan there,
-  stripped of the template's guidance),
+  stripped of the template's guidance, `--into <key>` aiming that landing at an existing draft),
   `plan-index.sh` (validate, index, optionally decompose), `commit-task.sh` (stage, commit, record),
   `config.sh` (resolve the switches and the two directory names), `run-clock.sh` (the start mark,
   and the elapsed time of the

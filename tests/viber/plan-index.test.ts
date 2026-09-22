@@ -90,15 +90,19 @@ function ownedContract(file: string): string[] {
   return ["### C1 - Login endpoint", "", `File: ${file}`, "", "POST /login -> 200 | 401"];
 }
 
-/** A plan in the template's shape. The header carries two acceptance criteria,
- *  the first of them wrapped over two lines - a criterion's continuation is
- *  part of its text and has to reach the task file with it. */
-function planBody(tasks: TaskFields[], criteria = 2, contracts: string[] = CONTRACT): string {
-  const crit = [
+/** The acceptance criteria both spec shapes carry: two of them, the first
+ *  wrapped over two lines - a criterion's continuation is part of its text and
+ *  has to reach the task file with it. */
+function criteriaLines(criteria: number): string[] {
+  return [
     "1. A user with valid credentials gets a session.",
     "   The session survives a reload.",
     "2. An invalid password is rejected.",
   ].slice(0, criteria === 1 ? 2 : 3);
+}
+
+/** The head of a plan built from `templates/spec-lite.md`. */
+function liteHead(criteria: number): string[] {
   return [
     "# Add login",
     "",
@@ -109,7 +113,7 @@ function planBody(tasks: TaskFields[], criteria = 2, contracts: string[] = CONTR
     "",
     "## Acceptance criteria",
     "",
-    ...crit,
+    ...criteriaLines(criteria),
     "",
     "## Scope",
     "",
@@ -122,6 +126,82 @@ function planBody(tasks: TaskFields[], criteria = 2, contracts: string[] = CONTR
     "- Password reset.",
     "- OAuth.",
     "",
+  ];
+}
+
+/** The head of a plan built from `templates/spec-full.md`: the same four
+ *  anchors, wrapped in the sections the big shape adds around them. */
+function fullHead(criteria: number): string[] {
+  return [
+    "# Add login",
+    "",
+    "## Goal",
+    "",
+    "Users can log in.",
+    "The session is durable.",
+    "",
+    "## Problem",
+    "",
+    "Anyone can read another person's orders.",
+    "",
+    "## Current behaviour",
+    "",
+    "Every page is public.",
+    "",
+    "### Must not change",
+    "",
+    "- The public catalogue stays reachable without an account.",
+    "",
+    "## Behaviour",
+    "",
+    "### S1 - Signing in [NEW]",
+    "",
+    "A returning customer reaches their own orders.",
+    "",
+    "Given a registered customer",
+    "When they submit their credentials",
+    "Then they see their own orders",
+    "",
+    "### Edge cases",
+    "",
+    "- An empty password -> the form is rejected before anything is checked.",
+    "",
+    "## Glossary",
+    "",
+    "- Session - the proof that this visitor signed in, held until they leave.",
+    "",
+    "## Acceptance criteria",
+    "",
+    ...criteriaLines(criteria),
+    "",
+    "## Scope",
+    "",
+    "### File map",
+    "",
+    "- add - src/login.ts - the handler",
+    "",
+    "### Out of scope",
+    "",
+    "- Password reset.",
+    "- OAuth.",
+    "",
+    "## Constraints",
+    "",
+    "- The existing session cookie name has to survive.",
+    "",
+  ];
+}
+
+/** A plan in the template's shape: one of the two spec heads, then the task
+ *  half every shape shares. */
+function planBody(
+  tasks: TaskFields[],
+  criteria = 2,
+  contracts: string[] = CONTRACT,
+  shape: "lite" | "full" = "lite",
+): string {
+  return [
+    ...(shape === "full" ? fullHead(criteria) : liteHead(criteria)),
     "## Tasks",
     "",
     ...tasks.flatMap((t) => [
@@ -781,6 +861,65 @@ test("a contract block reaches the tasks whose Uses names it and no others", () 
     const t2 = readRun(dir, "tasks/T2.md");
     assert.doesNotMatch(t2, /## Contracts|C1|POST \/login/);
   });
+});
+
+// --- the two spec shapes ---------------------------------------------------
+
+/** The four anchors `plan-index.sh` reads out of a plan head. Both spec
+ *  templates carry them character for character, which is what lets one script
+ *  decompose either shape. */
+const ANCHORS = ["## Goal", "## Acceptance criteria", "### File map", "### Out of scope"];
+
+const TEMPLATES = path.resolve(import.meta.dirname, "../../viber/skills/planner/templates");
+
+/** The `## ` and `### ` headings of a decomposed task file, in order. */
+function headings(body: string): string[] {
+  return body
+    .split("\n")
+    .filter((l) => /^#{2,3} /.test(l))
+    .map((l) => l.trim());
+}
+
+test("both spec templates carry the four anchors, so the shape is a choice and never a second script", () => {
+  const shapes = ["spec-lite.md", "spec-full.md"].map((name) =>
+    fs.readFileSync(path.join(TEMPLATES, name), "utf-8"),
+  );
+  for (const [index, body] of shapes.entries()) {
+    for (const anchor of ANCHORS) {
+      assert.ok(
+        body.split("\n").some((line) => line === anchor),
+        `${index === 0 ? "spec-lite" : "spec-full"}.md is missing the anchor line "${anchor}"`,
+      );
+    }
+  }
+  // the task half is one file for both shapes
+  const tasks = fs.readFileSync(path.join(TEMPLATES, "tasks.md"), "utf-8");
+  assert.match(tasks, /^## Tasks$/m);
+  assert.match(tasks, /^## Contracts$/m);
+  assert.ok(!fs.existsSync(path.join(TEMPLATES, "plan.md")), "plan.md was replaced by the three templates");
+});
+
+test("a plan built from spec-full plus tasks decomposes into the same task file as one built from spec-lite", () => {
+  const files: Record<string, Record<string, string>> = {};
+  for (const shape of ["lite", "full"] as const) {
+    withTempDir("p2p2-viber-", (dir) => {
+      seed(dir, planBody(TWO_TASKS, 2, CONTRACT, shape));
+
+      const result = run(dir, {}, [PLAN_REL, "--split"]);
+      assert.equal(result.status, 0, `${shape} -> stderr: ${result.stderr}`);
+      assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"], shape);
+
+      files[shape] = { T1: readRun(dir, "tasks/T1.md"), T2: readRun(dir, "tasks/T2.md") };
+      // the sections the big shape adds are WHAT and WHY: they ride into
+      // spec.md, never into a coder's file
+      assert.match(readRun(dir, "spec.md"), shape === "full" ? /^## Glossary$/m : /^## Scope$/m, shape);
+    });
+  }
+
+  for (const id of ["T1", "T2"]) {
+    assert.deepEqual(headings(files.full![id]!), headings(files.lite![id]!), `${id} sections differ by shape`);
+    assert.equal(files.full![id], files.lite![id], `${id} differs by shape`);
+  }
 });
 
 test("tasks/ is rebuilt from scratch, so a task dropped from the plan leaves no stale file behind", () => {

@@ -13,8 +13,10 @@
 # example below reads docs/<runs>/ for a project that set the key.
 #
 # Usage:
-#   plan-path.sh --land <src>   land <src> as this run's plan
-#   plan-path.sh                no argument: the plan most recently worked on
+#   plan-path.sh --land <src>              land <src> as this run's plan
+#   plan-path.sh --land <src> --into <key> land <src> into that existing draft
+#   plan-path.sh                           no argument: the plan most recently
+#                                          worked on
 #
 # <src> is the approved plan as plan mode wrote it. Its directory is a user-level
 # setting ("plansDirectory"), so the file normally sits OUTSIDE this repository:
@@ -26,8 +28,16 @@
 # (<!-- TASK -->, <!-- /TASK -->, <!-- source: -->), the rest would only ride
 # through spec.md and every task file into the build.
 #
+# --into names ONE directory under docs/<runs>/ - no slash, no "." and no ".." -
+# and that directory has to be a DRAFT: a run whose plan carries not one task
+# block, so nothing was ever built from it. The round lands over it in place,
+# keeping the key and the stamp, which is what lets a draft go through several
+# rounds of remarks and still be one run. A target that already started building
+# is refused rather than overwritten.
+#
 # Contract:
-#   argv   : --land and the source plan, or nothing.
+#   argv   : --land and the source plan, optionally --into and a run key, or
+#            nothing.
 #   cwd    : the repository root - every path printed is relative to it, and the
 #            caller splits and stages those paths from there. The config file is
 #            read from there too, as .claude/viber.yml.
@@ -35,12 +45,15 @@
 #   stdout :
 #     path: docs/_specs/2026-09-19-17-30-00_add-login/plan.md
 #     key: 2026-09-19-17-30-00_add-login
-#     state: new | existing
+#     state: new | existing | draft
 #     open: docs/_specs/2026-09-18-09-12-44_add-search/plan.md | 2/6
 #   exit != 0:
 #     2 - unusable argv: an unknown first argument, --land without a source, a
-#         source that is not a file, or a slug that normalizes to nothing
+#         source that is not a file, a slug that normalizes to nothing, or an
+#         --into key that is empty, carries a slash or a traversal, or names no
+#         directory under docs/<runs>/
 #     3 - no argument and docs/_specs/ holds no plan
+#     4 - --into on a target that is not a draft; nothing was written
 #     5 - the copy failed; nothing was landed
 #
 # One "open:" line per OTHER run still holding a task that is neither committed
@@ -59,6 +72,12 @@
 #              after the build started does not reach it, because the landed run
 #              is the state. A <src> that already IS a landed plan answers the
 #              same way, which makes --land idempotent.
+# "draft"    - "state: draft", the run's plan carrying not one task block, so
+#              there is nothing to build yet: a specification still being
+#              discussed and rounds away from a task list. It replaces both
+#              answers above, because what a caller does with a draft is the same
+#              whether it was just landed or found in place. A draft is also never
+#              an "open:" line - it holds no task to resume.
 #
 set -euo pipefail
 shopt -s nullglob
@@ -166,11 +185,20 @@ function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); ret
   rm -f "$tmp"
 }
 
+# Does that plan carry at least one task block? A plan without one is a draft:
+# the head alone, still being discussed. "<!-- /TASK -->" cannot match here - the
+# slash sits where the pattern wants "TASK".
+has_tasks() {
+  grep -q '<!--[[:space:]]*TASK[[:space:]]*-->' "$1" 2>/dev/null
+}
+
 emit() {
   d="${1%/*}"
+  state="$2"
+  has_tasks "$1" || state="draft"
   printf 'path: %s\n' "$1"
   printf 'key: %s\n' "${d##*/}"
-  printf 'state: %s\n' "$2"
+  printf 'state: %s\n' "$state"
   # every OTHER run still holding unfinished tasks, so the caller can tell a
   # switch from a fresh start without reading a single file itself
   for f in "$specs_dir"/*/plan.md; do
@@ -210,6 +238,48 @@ fi
 if [[ ! -f "$src" ]]; then
   echo "error: plan file not found: $src" >&2
   exit 2
+fi
+
+# --- --into: the next round of a draft, into the directory it already has ---
+if [[ $# -gt 2 ]]; then
+  if [[ "${3:-}" != "--into" || $# -gt 4 ]]; then
+    echo "error: usage: plan-path.sh --land <src> [--into <key>]" >&2
+    exit 2
+  fi
+  into="${4:-}"
+  case "$into" in
+    ''|.|..|*[!A-Za-z0-9._-]*)
+      echo "error: --into takes one directory name under $specs_dir, got: $into" >&2
+      exit 2
+      ;;
+  esac
+  dest="$specs_dir/$into/plan.md"
+  if [[ ! -d "$specs_dir/$into" ]]; then
+    echo "error: no run directory to land into: $specs_dir/$into" >&2
+    exit 2
+  fi
+  # A target that already started building is the state; a round landed over it
+  # would drop work the tree cannot give back.
+  if [[ -e "$specs_dir/$into/status.md" || -d "$specs_dir/$into/tasks" ]] \
+    || { [[ -f "$dest" ]] && has_tasks "$dest"; }; then
+    echo "error: $specs_dir/$into is not a draft - it carries tasks, a decomposition or progress" >&2
+    exit 4
+  fi
+  # the round landed from the run's own plan: nothing to copy, and cp would
+  # refuse the file onto itself
+  src_dir="$(cd -- "$(dirname -- "$src")" 2>/dev/null && pwd -P || true)"
+  dest_dir="$(cd -- "$specs_dir/$into" 2>/dev/null && pwd -P || true)"
+  if [[ "$(basename -- "$src")" == "plan.md" && -n "$src_dir" && "$src_dir" == "$dest_dir" ]]; then
+    emit "$dest" existing
+    exit 0
+  fi
+  if ! cp -- "$src" "$dest"; then
+    echo "error: could not land the plan at $dest" >&2
+    exit 5
+  fi
+  strip_guidance "$dest"
+  emit "$dest" new
+  exit 0
 fi
 
 # Already landed? The source's own directory, resolved, against docs/_specs - so
