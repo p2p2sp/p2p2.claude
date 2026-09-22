@@ -273,6 +273,13 @@ there.
 - **Known conflict: superdev's own ExitPlanMode gate.** Both plugins hook the same tool, and
   superdev's `review-plan.sh` denies a plan declaring neither `# SimplePlan` nor `# SuperPlan` -
   which is what a viber plan looks like. Install one track at a time.
+- **A harness refusal is its own verdict, never worked around.** `task-coder`, `task-reviewer`
+  and `test-runner` return `VERDICT: DENIED` with the refused tool and the exact refused call as
+  `REASON:` when the harness blocks one of their tool calls; `task-coder` never reaches that
+  call's effect through another command, and `task-reviewer` writes no findings report on it.
+  `implementor` answers every `DENIED` with one `AskUserQuestion` naming the refused call, whose
+  first option re-dispatches the same agent on the same model and the same round - the automatic
+  one-tier-up retry never applies to a refusal.
 
 ## Anti-patterns
 

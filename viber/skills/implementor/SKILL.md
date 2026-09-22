@@ -108,8 +108,11 @@ Then work the loop: on every return, answer with ONE message carrying every disp
 What a return means:
 
 1. Coder `VERDICT: FAIL`, or a `PASS` whose `DOD:` line is short of its total -> `AskUserQuestion` naming the task and its `REASON:` line, the short `DOD:` line standing in for one: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its own dispatch lines plus `reason: <the returned REASON>`, and a `TaskUpdate` in the same message rewrites its subject with the new tiers. Abort stops every dispatch and goes to step 7, steps 5 and 6 skipped; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it (`TaskUpdate` -> completed for each), and leaves its half-finished files uncommitted in the tree - name them in the final summary.
+
+   Coder `VERDICT: DENIED` -> `AskUserQuestion` naming the task and the `REASON:` line's refused call: permission added and retry / skip / abort. `retry` re-dispatches the same coder on the same model with its own dispatch lines plus `reason: <the returned REASON>`, the tier unchanged; `skip` and `abort` proceed exactly as they do for a FAIL answer above.
 2. Coder returned and the profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's review tier) with the same `task:`, `notes:`, `out:`, `refs:` and `deferred:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
    - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its own dispatch lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort. `accept` is the user overriding the gate: commit as in 3 below with `--unreviewed` appended, and name the task in the final summary as unreviewed.
+   - `VERDICT: DENIED` -> `AskUserQuestion` naming the task and the `REASON:` line's refused call: permission added and retry / accept / abort. `retry` re-dispatches the reviewer on the same model with the same `report:` round; `accept` commits as in 3 below with `--unreviewed` appended and names the task in the final summary as unreviewed; `abort` stops every dispatch and goes to step 7, steps 5 and 6 skipped.
 3. Coder returned with no review due, or its reviewer returned `VERDICT: PASS` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`, with:
 
    - `--with <path> [<path>...]` for every path an `EXTRA:` line of that task's coder or reviewer returned. Those are files the task could not work without and the plan gave no owner; left out, the commit that lands the task is not the whole task.
@@ -129,6 +132,9 @@ Dispatch `viber:test-runner` with a report path `<dir>/work/tests-<round>.md`, t
   - a path no column claims - a regression in code the plan never touched -> one `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --repair <plan> <round> <file> [<file>...]` for all of them. Never borrow a task id to get such a file committed.
 
   Both stage nothing they were not given and derive their own subject. Then run `viber:test-runner` again with the next round. After 2 rounds -> `AskUserQuestion`: retry / accept / abort. `accept` closes the build with the suite still red: go to step 6 and name the failing run in the final summary.
+
+  A repair coder returning `VERDICT: DENIED` -> `AskUserQuestion` naming the refused call: permission added and retry / accept / abort, nothing committed on that return. `retry` re-dispatches the repair coder on `sonnet` with the same `spec:`, `report:`, `notes:` and `refs:` lines; `accept` closes the build as the test-run `VERDICT: DENIED` accept below does; `abort` stops every dispatch and goes to step 7, steps 5 and 6 skipped.
+- `VERDICT: DENIED` -> `AskUserQuestion` naming the refused call: permission added and retry / accept / abort, no repair coder dispatched. `retry` re-dispatches `viber:test-runner` with the same report round; `accept` closes the build as the FAIL branch's accept above does; `abort` stops every dispatch and goes to step 7, steps 5 and 6 skipped.
 
 ## 6. Record what the build taught
 
