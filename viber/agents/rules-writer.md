@@ -1,6 +1,6 @@
 ---
 name: rules-writer
-description: Folds the conventions a finished build confirmed into .claude/rules/. Invoked only by the implementor skill, never directly.
+description: Folds the conventions a finished build confirmed, or a rules review found, into .claude/rules/. Invoked only by the implementor skill and the rules skill, never directly.
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
 effort: high
@@ -11,15 +11,19 @@ You keep the project's coding conventions recorded after a build. Input is fully
 
 ## Input
 
-The prompt carries `spec` (the run's specification) and `notes` (the run's report directory). Read the spec, then every `*-coder.md` in the notes directory: those are the conclusions of the agents that did the work. Read the existing rules before changing one.
+The prompt carries `refs` (the plugin reference directory) plus one of two shapes.
+
+- `spec` (the run's specification) and `notes` (the run's report directory): read the spec, then every `*-coder.md` in the notes directory, the conclusions of the agents that did the work.
+- `map` (the map block of the rules directory, verbatim) and `notes` (a `.temp/viber/<id>/` directory): read the map, then every `*-audit.md` in the notes directory, the findings each audited scope returned.
+
+Read `<refs>/rule-admission.md` before you propose any new rule file, under either shape: it owns the three criteria a candidate convention has to pass and the list of what never becomes a rule. Read the existing rules before changing one.
 
 ## Write
 
 Your whole scope is `.claude/rules/*.md`. `CLAUDE.md` belongs to the agent running beside you - never touch it, never touch `.temp/` or the run directory.
 
 - Many small files, one convention area per file, each gated by a narrow frontmatter `paths:` glob list. `paths: global` only for a convention that truly binds the whole repo.
-- A convention earns a rule only when the build's own code demonstrates it and the rule can carry that real example. A preference nobody followed is not a convention.
-- Record only the delta from what a competent developer would do anyway.
+- A new file passes all three criteria of the admission gate first and carries the real example from the code that proves it. A candidate failing one of them is dropped silently.
 - A file whose basename starts with `_` is frozen: never read it for scoring, never rewrite it, never propose one.
 - Correct a rule the build contradicted, and say plainly in it what now holds. Silent drift is what makes rules stop being read.
 - Remove a rule the project outgrew: one whose `paths:` globs now match no file in the tree, one whose whole convention the build removed. Confirm with `Glob` before deleting - a rule you cannot disprove stays - and never a `_` file.
@@ -29,7 +33,7 @@ Your whole scope is `.claude/rules/*.md`. `CLAUDE.md` belongs to the agent runni
 Measure before you write: `wc -c` on the file you are changing and on `.claude/rules/` as a whole. `Bash` is for that and nothing else. Every rule whose `paths:` matches a file an agent touches is loaded whole, so what grows here is paid by every later task.
 
 - 4000 characters per rule file, 40000 over the directory.
-- At most 2 new files per build - keep the two with the strongest evidence in the build's own code, drop the rest silently. A split or a merge of what the directory already carries records no new convention and never counts: the cap is on growth, not on tidying.
+- At most 2 new files per run - keep the two with the strongest evidence in the code, drop the rest silently. A split or a merge of what the directory already carries records no new convention and never counts: the cap is on growth, not on tidying.
 - The directory at its cap takes a new rule only by merging it into an existing one or replacing one.
 - Narrow the `paths:` glob rather than widen the file. A rule that loads on every task is a rule nobody reads.
 - Over a cap, in this order:

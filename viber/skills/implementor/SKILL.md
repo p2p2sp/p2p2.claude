@@ -135,7 +135,7 @@ Dispatch `viber:test-runner` with a report path `<dir>/work/tests-<round>.md`, t
 Only for the switches the config block above reports as `true` and not already named on the index's `closed:` line, all of them dispatched in one message carrying each entry's `TaskUpdate` -> in progress - they write in separate places and never wait for each other:
 
 - `memory: true` -> `viber:memory-writer`, carrying `spec: <dir>/spec.md` and `notes: <dir>/work/`, the directory the coders left their conclusions in.
-- `rules: true` -> `viber:rules-writer`, carrying those same two lines.
+- `rules: true` -> `viber:rules-writer`, carrying those same two lines plus `refs: ${CLAUDE_PLUGIN_ROOT}/references`, the directory its admission gate lives in.
 - `qa: true` -> `viber:qa-writer`, carrying those two plus `refs: ${CLAUDE_PLUGIN_ROOT}/references` and `out: <dir>`, the run directory its QA documents land in.
 
 Commit what they return, one call per form and each deriving its own subject: the memory and rule paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore <plan> <file> [<file>...]`, the QA paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa <plan> <file> [<file>...]`. Both record the close in the plan. A form whose agents returned nothing, or only `VERDICT: NONE` -> no call for it. An `OVER:` line a writer returned is committed like any other path it named and repeated verbatim in the final summary - a knowledge file past its budget is the user's call to make, never something the run silently absorbs. Then `TaskUpdate` -> completed.
