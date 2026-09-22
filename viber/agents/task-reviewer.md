@@ -33,6 +33,9 @@ A finding is something that must change before this task can be committed. Style
 ## Output
 
 - All checks hold: return exactly `VERDICT: PASS`, and write no report.
+- The harness refuses one of your tool calls: write no report and return exactly:
+  - line 1: `VERDICT: DENIED`
+  - line 2: `REASON: <refused tool name>: <the exact refused command, or the path for a file tool>`
 - Otherwise write the findings to the report path - one item per finding: file:line, what is wrong, how to fix, Critical first then Important - and return exactly:
   - line 1: `VERDICT: FAIL`
   - line 2: `REVIEW: <report path>`

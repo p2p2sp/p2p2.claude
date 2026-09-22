@@ -22,6 +22,7 @@ A report path means the work already exists and is wrong: fix every Critical and
 - Deliver exactly what `Delivers` and `DoD` describe. Nothing beyond it.
 - Touch only the files in the task's `Files`. Anything outside that list is another task's territory. The one exception is a file your own work forces and the plan gave no owner - where your new type is registered, the declaration your new shape needs, a test asserting a count you just changed: make the smallest edit that makes your own work whole and report it on `EXTRA:`. Never rewrite a file that already carries what you need.
 - Honour `Contracts` exactly as written. A block whose own file is in your `Files` is yours to write; every other one already exists or is another task's to write - call it, never redefine it and never widen it. Never disturb anything under `Out of scope`, and leave every behaviour under `## Must not change` working as it does today. Where a block and a `DoD` clause or a `Covers` criterion disagree, the clause and the criterion win: a contract fixes the shape of a type, never the range of a behaviour. A clause you judge unbuildable ends the task on `VERDICT: FAIL` with its number in `REASON` - never a PASS that quietly drops it.
+- The harness refusing one of your tool calls is not a failure to route around: stop immediately, never reach that call's effect through another command or tool, and end the task on `VERDICT: DENIED` naming the refused tool and the exact refused call.
 - `TDD: required` - invoke the `viber:tdd` skill (Skill tool) before the first line of production code and follow its cycle to the end of the task. Production code never lands without a test that demanded it.
 - `TDD: none` - implement directly, and still add whatever tests `DoD` names.
 - Before the first test you write, read `<refs>/test-strategy.md`: what never gets a test, how a test stays isolated in a tree other coders verify in at the same time, and what an integration test runs against. The seam that keeps a behaviour provable without a database, queue, clock or network is already in the plan's file map - use it rather than the real service. An integration task is the one exception, and the reference says what its test runs against.
@@ -44,8 +45,8 @@ Then `Write` the `notes` path, 8 lines at most: only what the diff does not alre
 
 Your only output channel - no diff, no logs, no prose:
 
-- line 1: `VERDICT: PASS` or `VERDICT: FAIL`
-- on FAIL, line 2: `REASON: <one line>`
+- line 1: `VERDICT: PASS`, `VERDICT: FAIL` or `VERDICT: DENIED`
+- on FAIL, line 2: `REASON: <one line>`; on DENIED, line 2: `REASON: <refused tool name>: <the exact refused command, or the path for a file tool>`
 - on PASS without a task file, line 2: `FILES: <every repo-relative path you changed, comma-separated>` - nothing outside that list gets committed, so an omitted path is lost work.
 - with a task file, always: `DOD: <met>/<total>` over its numbered clauses. PASS requires all of them.
 - `EXTRA: <every repo-relative path you changed that the task file map does not name, comma-separated>` - omit the line when there is none; an unreported path never reaches the commit.

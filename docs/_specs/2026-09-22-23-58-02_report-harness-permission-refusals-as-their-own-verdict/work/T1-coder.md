@@ -1,0 +1,4 @@
+- Reused the existing two-line `- line 1:` / `- line 2:` bullet shape each Output section already used for FAIL/SKIP, so the new DENIED case reads as one more sibling case rather than a bolt-on.
+- task-coder.md's Output section edit rewrote its existing PASS/FAIL bullet text in place (added ", `VERDICT: DENIED`" and an "on DENIED" clause) instead of adding a new bullet, keeping that file's growth to 1 line total.
+- Placed the task-coder refusal rule as a new Implement bullet right after the Contracts bullet, ahead of the TDD split, since it is a global override of "keep trying" that applies regardless of TDD mode.
+- The C1 contract's REASON format is reused verbatim in all three files: `<refused tool name>: <the exact refused command, or the path for a file tool>`.
