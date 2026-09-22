@@ -114,7 +114,7 @@ Echo the final content first (mandatory, unconditional): before any `Write` or c
    sh "${CLAUDE_PLUGIN_ROOT}/skills/create-issue/scripts/create.sh" "<body_path>" "<title>" \
      [--type "<frontmatter.type>"] [--label "<L>"]... [--assignee "<A>"]... [--project "<P>"]...
    ```
-   Flag values come verbatim from the template's top-level frontmatter; omit absent ones. The script wraps `gh issue create --title --body-file` (`gh issue create` has no `--type` flag - the script applies the type via REST PATCH after creation; the `cli` skill documents that layer choice) and prints `ISSUE_URL` / `ISSUE_NUMBER` / `TYPE` (+ `TYPE_ERROR`). Trust the block - do not re-verify.
+   Flag values come verbatim from the template's top-level frontmatter; omit absent ones. The script wraps `gh issue create --title --body-file` (`gh issue create` has no `--type` flag - the script applies the type via REST PATCH `repos/{owner}/{repo}/issues/{n}` after creation) and prints `ISSUE_URL` / `ISSUE_NUMBER` / `TYPE` (+ `TYPE_ERROR`). Trust the block - do not re-verify.
 4. Script exit != 0 -> STOP with its stderr line. Otherwise branch on `TYPE`:
    - `applied` / `none` -> Step 9.
    - `dropped` -> one-line warning that the type was dropped -> Step 9 (the issue exists; never roll back).

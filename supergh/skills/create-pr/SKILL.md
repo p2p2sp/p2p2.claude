@@ -190,7 +190,7 @@ Rules:
 (Deltas only - invariants already stated above are not repeated.)
 
 - NEVER pass the body inline to any `gh` call - it always travels as the Step 8 tempfile through `create.sh` `--body-file` (inline escaping of newlines/quotes/backticks under bash is a footgun).
-- NEVER create a non-draft PR - `scripts/create.sh` hardcodes `--draft`. Draft -> ready is a follow-up the user does via `gh pr ready` or the UI; the API-level conversion and resolving review threads are GraphQL-only - the `cli` skill owns the layer choice, and the fully-specified operation goes to `cli-executor`.
+- NEVER create a non-draft PR - `scripts/create.sh` hardcodes `--draft`. Draft -> ready is a follow-up the user does via `gh pr ready` or the UI; the API-level conversion and resolving review threads are GraphQL-only and out of this plugin's scope.
 - NEVER widen the sandbox - `git push`, labels/reviewers/assignees collection, `gh pr edit`, `gh pr ready`, `gh pr view --web` are deliberate "no"s; the only surfaces are `Bash(sh:*)` (bundled scripts) and the two preflight probes.
 - NEVER assume the template, branch naming, or routing reality match the current repo - this skill ships stack-agnostic; GitFlow routing is an opinionated default kept in check by always-confirm and Edge A. Behavior derives entirely from the template, the actual branch name, and the script-gathered facts at runtime.
 - NEVER bypass the Step 7 preview or the Step 8 echo - auto-fill ratio is irrelevant; the user always sees the Save / Edit field / Cancel triad and the exact persisted content before it is written.

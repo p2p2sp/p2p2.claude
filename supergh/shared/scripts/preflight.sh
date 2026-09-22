@@ -1,8 +1,8 @@
 #!/bin/sh
 # supergh - shared/scripts/preflight.sh
 # Plugin-level read-only preflight, `!`-injected at skill-load by every supergh skill
-# that otherwise opens with 2-5 sequential gh/git probes (create-issue, create-pr,
-# cli-executor). It collects the start-of-flow facts ONCE so the skill reads a single
+# that otherwise opens with 2-5 sequential gh/git probes (create-issue, create-pr).
+# It collects the start-of-flow facts ONCE so the skill reads a single
 # injected block instead of round-tripping `gh --version` -> `gh auth status` ->
 # `git rev-parse …`. STOP logic stays in the skill (it reads these facts and decides);
 # this script only reports - it never prints a message, never halts a flow.

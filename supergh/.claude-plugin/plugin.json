@@ -7,8 +7,6 @@
     "email": "dariusz.lenartowicz@p2p2.com.pl"
   },
   "skills": [
-    "./skills/cli/",
-    "./skills/cli-executor/",
     "./skills/commit/",
     "./skills/create-issue/",
     "./skills/create-pr/"
