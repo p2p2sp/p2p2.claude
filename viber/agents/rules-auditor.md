@@ -22,7 +22,7 @@ out: .temp/viber/<id>/
 refs: <the plugin reference directory>
 ```
 
-`target` names a path or reads the literal `none`, never anything else, and that value decides the direction below. Read `<refs>/rule-admission.md` before any `MISS` line, in either direction: it owns the three criteria a candidate has to pass, and a candidate failing one of them is dropped with no line at all, no message, no findings-file entry.
+`target` names a path or reads the literal `none`, never anything else, and that value decides the direction below. Read `<refs>/rule-admission.md` before you score any line, in either direction: it owns the three criteria and the `Never a rule` list every line of a rule has to pass. A candidate failing it is dropped with no line at all, no message, no findings-file entry; an existing line failing it comes back as `DROP`.
 
 A rule file whose basename starts with `_` is frozen: never open it as `target`, never score it against the code, never propose one for a scope it already gates.
 
@@ -34,12 +34,13 @@ Read the rule, then `Grep`/`Glob` for the tracked files `scope`'s globs match. C
 - `STALE` when the matched files do something else now.
 - `GONE` when `scope`'s globs match no tracked file at all.
 - `UNVERIFIABLE` when the matched files neither follow nor break the line, a claim about intent, a decision with no trace in the code.
+- `DROP` when the line is true but fails the gate: name the criterion or the `Never a rule` entry it fails. A line failing as a fact about one place also names the `CLAUDE.md` path of the directory it belongs to, whether that node exists yet or not. A false line stays `STALE`, a line the code neither follows nor breaks stays `UNVERIFIABLE`.
 
-Add one `MISS` line per convention the matched files show that the rule is silent on and that passes all three criteria of the gate. Write the findings file always, one line per rule line checked plus every admitted `MISS`, even when every line reads `OK` and no `MISS` follows.
+Add one `MISS` line per convention the matched files show that the rule is silent on and that passes the gate. Write the findings file always, one line per rule line checked plus every admitted `MISS`, even when every line reads `OK` and no `MISS` follows.
 
 ## Propose - target reads none
 
-`scope` names a directory with no rule file gating it. This is the discovery direction: only `MISS` lines can appear, one per convention worth a rule, each carrying the example from the code that proves it and each having passed all three criteria of the gate, never `STALE`, `GONE`, `UNVERIFIABLE` or `OK`, since there is no existing line to score. Read the tracked files under `scope` and weigh what rises to a rule against what a competent developer would write anyway and against what a formatter, linter, type, schema or test already enforces.
+`scope` names a directory with no rule file gating it. This is the discovery direction: only `MISS` lines can appear, one per convention worth a rule, each carrying the example from the code that proves it and each having passed the gate, never `STALE`, `GONE`, `UNVERIFIABLE`, `DROP` or `OK`, since there is no existing line to score. Read the tracked files under `scope` and weigh what rises to a rule against what a competent developer would write anyway and against what a formatter, linter, type, schema or test already enforces.
 
 When nothing passes the gate, write no findings file at all: the scope earns no rule.
 
@@ -51,6 +52,8 @@ Path: `<out><slug>-audit.md`, `<slug>` being the target's basename without its e
 STALE: <quoted line of the rule> -> <what the matched files do instead>
 GONE: <the rule's globs match no tracked file>
 UNVERIFIABLE: <quoted line the matched files neither follow nor break>
+DROP: <quoted line of the rule> -> <the criterion or entry it fails>
+DROP: <quoted line of the rule> -> a fact about one place -> move <CLAUDE.md path>
 MISS: <a convention worth a rule, carrying the example from the code that proves it>
 OK
 ```
@@ -60,7 +63,7 @@ OK
 Exactly one line, nothing else:
 
 ```
-AUDIT: <target|scope> stale <n> gone <n> unverifiable <n> miss <n> -> <path of the findings file> | none
+AUDIT: <target|scope> stale <n> gone <n> unverifiable <n> drop <n> miss <n> -> <path of the findings file> | none
 ```
 
-Identify the audited area by `target` when it names a path, by `scope` when `target` reads `none`. The four counters are the count of `STALE`, `GONE`, `UNVERIFIABLE` and `MISS` lines in the findings file, `OK` counts toward none of them. The path is the literal `none` exactly when you wrote no findings file; otherwise it is the findings file's own repo-relative path.
+Identify the audited area by `target` when it names a path, by `scope` when `target` reads `none`. The five counters are the count of `STALE`, `GONE`, `UNVERIFIABLE`, `DROP` and `MISS` lines in the findings file, `OK` counts toward none of them. The path is the literal `none` exactly when you wrote no findings file; otherwise it is the findings file's own repo-relative path.

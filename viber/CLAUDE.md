@@ -244,9 +244,12 @@ there.
 - **`references/` holds what several workers share.** `qa-format.md` has two readers,
   `test-strategy.md` four (`planner`, `planner-review`, `task-reviewer`, `task-coder`), which keeps
   the test layering in one runtime file instead of four copies drifting apart. `rule-admission.md`
-  has two readers, `rules-auditor` and `rules-writer`, the three criteria a candidate convention
-  has to pass held in one place rather than repeated in both. No reader hardcodes the path: each
-  takes a `refs:` label and reads the file at the step that consumes it.
+  has two readers, `rules-auditor` and `rules-writer`, the three criteria and the `Never a rule`
+  list a candidate convention has to pass held in one place rather than repeated in both. The gate
+  guards every line entering the layer, and `rules-auditor` applies it again to existing lines on
+  review (`DROP`), because a line older than the gate or appended as a bullet would otherwise never
+  leave. No reader hardcodes the path: each takes a `refs:` label and reads the file at the step
+  that consumes it.
 - **The host's e2e test directory is the fourth writable location, and only because the host names
   it.** The three a plugin may write at its own choosing stay `docs/<layer>/`, `.claude/` and
   `.temp/<plugin>/`. The `e2e` skill resolves the host's directory, asks when nothing names it and

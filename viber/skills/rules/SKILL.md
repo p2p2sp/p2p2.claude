@@ -86,14 +86,14 @@ refs: ${CLAUDE_PLUGIN_ROOT}/references
 Each call returns exactly one line:
 
 ```
-AUDIT: <area> stale <n> gone <n> unverifiable <n> miss <n> -> <findings file> | none
+AUDIT: <area> stale <n> gone <n> unverifiable <n> drop <n> miss <n> -> <findings file> | none
 ```
 
-Report one line per target: how many of its lines came back false, gone or unverifiable, how many conventions are missing, and where the findings went. Read none of those files - the writer does.
+Report one line per target: how many of its lines came back false, gone, unverifiable or true but inadmissible, how many conventions are missing, and where the findings went. Read none of those files - the writer does.
 
 ## 6. Confirm, then the writer
 
-Every returned line carrying four zero counters, or `-> none`, means the layer is already true and no scope earned a new rule. That is the ordinary outcome of a healthy project, not a failure and not a retry: say so in one line, dispatch no writer, and stop.
+Every returned line carrying five zero counters, or `-> none`, means the layer is already true and no scope earned a new rule. That is the ordinary outcome of a healthy project, not a failure and not a retry: say so in one line, dispatch no writer, and stop.
 
 Otherwise one `AskUserQuestion` over the counters just reported: fold them in, or stop. Only on approval, one `Agent` call, `subagent_type: viber:rules-writer`, no `model:` line, three labelled lines and nothing else:
 
@@ -103,7 +103,7 @@ notes: .temp/viber/<id>/
 refs: ${CLAUDE_PLUGIN_ROOT}/references
 ```
 
-The map is what tells it which rule is at which size and which scope; the notes directory is where the auditors left their findings; `refs` is where the admission gate every new rule has to pass lives.
+The map is what tells it which rule is at which size and which scope; the notes directory is where the auditors left their findings; `refs` is where the admission gate every line entering a rule has to pass lives.
 
 ## 7. Report
 
@@ -111,6 +111,7 @@ Repeat what the writer returned and add nothing to it:
 
 - `FILES:` -> the rules it created, corrected or removed, one path per line.
 - `OVER:` -> repeat each line verbatim. A rule left above a budget is the user's call to make, never something this run absorbs in silence.
+- `MOVE:` -> repeat each line verbatim: a fact removed from a rule that its `CLAUDE.md` node does not hold yet. This run never writes that node; `/viber:memory` over those paths records it.
 - `VERDICT: NONE` -> nothing in the layer needed changing, which is an outcome like any other.
 
 Close on one line: those files sit in the working tree, unstaged and uncommitted, and committing them is the user's next step.
