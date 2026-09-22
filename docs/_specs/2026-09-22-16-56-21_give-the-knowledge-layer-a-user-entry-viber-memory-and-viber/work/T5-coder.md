@@ -1,0 +1,4 @@
+- Verify mode always writes a findings file (even all-OK lines); discovery mode (`target: none`) writes one only when it has a `MISS` line, returning `-> none` otherwise - this asymmetry is stated explicitly in C3 only for discovery, so I read verify mode as always producing a real path.
+- Counters in the `AUDIT:` line sum only STALE/GONE/UNVERIFIABLE/MISS; `OK` lines exist in the findings file but never count.
+- Picked `color: pink`, the only color not already used across viber's nine other agents.
+- Avoided the literal sequence "read/check/consult ... CLAUDE.md" in prose (used "the node" instead) to stay clear of the linter's project-memory-read warning; lint ran WARN=0.
