@@ -11,6 +11,8 @@ user-invocable: false
 
 CRITICAL: call `EnterPlanMode` first unless plan mode is already active.
 
+Display the full path to the plan file to the user.
+
 # planner
 
 Input: an understood change already in context, arriving one of two ways - a confirmed `viber:idea` interview, or a `viber:fixer` diagnosis with its fix plan. Anything else is unresolved input however clear it reads: invoke the `viber:idea` skill, then come back with what it confirms. Never size the scope yourself - splitting an idea too broad for one cycle happens in that interview.
