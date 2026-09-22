@@ -62,8 +62,6 @@ State `done` is committed and `skipped` was dropped by the user - neither is dis
 - `deferred: <id>:<path>` - an earlier task left that path for `<id>` to prove; it becomes that task's `deferred:` line in step 4.
 - `closed: <parts>` - which halves of step 6 are already recorded.
 
-`TaskCreate` the remaining tasks, a final test run, and one entry per switch the config block above reports as `true`.
-
 ## 3. Profile the tasks
 
 Two decisions per task, both taken from the nature of its work, not from its position.
@@ -75,6 +73,8 @@ The tier:
 - Load-bearing - defines a contract other tasks consume, spans many files, or several tasks depend on it: model `opus`.
 
 The review is its own rule: only a `Verification` that runs the project's build or its tests waives the reviewer. A task proved by `grep`, `test -f` or any other check on a file's presence or content is reviewed whatever its tier, because that command passes on invented content just as well. Its reviewer runs at the task's own tier, raised to `sonnet` where that tier is `haiku` - the lowest tier that can read a document against its DoD.
+
+Then `TaskCreate` the remaining tasks, a final test run, and one entry per switch the config block above reports as `true`. A task's subject is `<id> - <title> (<tier>)`, or `(<tier>, review <review tier>)` when it is reviewed, so the list shows what each dispatch runs on.
 
 ## 4. Run the plan
 
@@ -107,7 +107,7 @@ Then work the loop: on every return, answer with ONE message carrying every disp
 
 What a return means:
 
-1. Coder `VERDICT: FAIL`, or a `PASS` whose `DOD:` line is short of its total -> `AskUserQuestion` naming the task and its `REASON:` line, the short `DOD:` line standing in for one: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its own dispatch lines plus `reason: <the returned REASON>`. Abort stops every dispatch and goes to step 7, steps 5 and 6 skipped; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it (`TaskUpdate` -> completed for each), and leaves its half-finished files uncommitted in the tree - name them in the final summary.
+1. Coder `VERDICT: FAIL`, or a `PASS` whose `DOD:` line is short of its total -> `AskUserQuestion` naming the task and its `REASON:` line, the short `DOD:` line standing in for one: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its own dispatch lines plus `reason: <the returned REASON>`, and a `TaskUpdate` in the same message rewrites its subject with the new tiers. Abort stops every dispatch and goes to step 7, steps 5 and 6 skipped; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it (`TaskUpdate` -> completed for each), and leaves its half-finished files uncommitted in the tree - name them in the final summary.
 2. Coder returned and the profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's review tier) with the same `task:`, `notes:`, `out:`, `refs:` and `deferred:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
    - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its own dispatch lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort. `accept` is the user overriding the gate: commit as in 3 below with `--unreviewed` appended, and name the task in the final summary as unreviewed.
 3. Coder returned with no review due, or its reviewer returned `VERDICT: PASS` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`, with:
