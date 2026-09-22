@@ -341,6 +341,34 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   for each other, because their scopes do not overlap: `CLAUDE.md` nodes belong to the first,
   `.claude/rules/` to the second, the run directory's QA documents to the third. The notes are what
   makes a scenario describe the behaviour that was DELIVERED rather than the one that was planned.
+- **The knowledge layer is capped, because the two writers that grow it run after every build.**
+  Nothing else in the plugin shrinks what they wrote, so without a cap each build makes every later
+  one more expensive: a `CLAUDE.md` node is loaded whole by every agent that opens a file under it,
+  its ancestors with it, and a rule is loaded whole by every task its `paths:` glob matches.
+  `memory-writer` holds 12000 characters per node and 32000 over the chain a reader loads (the root
+  node, every ancestor, the node itself); `rules-writer` holds 4000 per rule file, 40000 over
+  `.claude/rules/` and at most 2 new files per build. Both carry `Bash` for the `wc -c` that
+  measures it and for nothing else, both measure BEFORE writing rather than validating after, both
+  carry the ORDER in which content leaves a file that is full - which is the half a bare limit
+  lacks, since a node already over its cap would otherwise only fail a check nothing acts on - and
+  both report what they could not get under budget on an `OVER:` line that `implementor` repeats
+  verbatim in the final summary. A cap is what makes folding in a fact a trade rather than an
+  append.
+- **A full file has three ways out, in this order: compact, split, write over budget and say so.**
+  Compacting alone would make deletion the only escape from a node that outgrew its cap, which
+  spends real knowledge to buy back context; splitting spends none, because a sibling node is never
+  loaded beside the one a reader opened - only the ancestors on its own path are. So a block of
+  facts already belonging to one existing subdirectory moves into that subdirectory's node
+  (`memory-writer`, and only into a directory owning its own contracts, never a passthrough), and
+  a rule file over its cap splits along its convention areas into narrower `paths:`
+  (`rules-writer`, where a ONE-area file still over is too wordy rather than too broad and gets
+  compacted further instead). A split records no new convention, so it is explicitly exempt from
+  the 2-new-files cap - that cap is on growth, never on tidying. Both writers may also DELETE what
+  the project no longer has, a node whose directory is gone and a rule whose globs match nothing,
+  each confirmed with `Glob` first and never a frozen `_` rule; `commit-task.sh --chore` stages a
+  removal correctly because it stages every path with `git add -A`, and a path that never existed
+  is warned about and skipped rather than failing the commit. Hence `FILES:` names what the writer
+  wrote OR deleted - a deletion left off that line stays in the tree.
 - **The trail is committed, each slice with the commit that owns it.** A task's commit carries
   `work/<id>-coder.md` and `work/review-<id>-*.md`, a post-test round carries `work/tests-<n>.md`
   and `work/repair-<n>-coder.md` - `commit-task.sh` DERIVES those paths from the id or the round
