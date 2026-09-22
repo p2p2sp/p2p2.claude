@@ -781,19 +781,25 @@ test("--split writes the specification and one file per task, and still prints t
   });
 });
 
-test("spec.md carries no HTML comment - the plan's own source marker least of all", () => {
+test("spec.md carries neither the frontmatter nor one HTML comment - the run plumbing stops at plan.md", () => {
   withTempDir("p2p2-viber-", (dir) => {
-    // A landed plan still carries the marker plan-path.sh deliberately kept:
-    // the implementor reads the path out of it to land the file at all. It is
-    // the run's plumbing, and spec.md outlives the run - archived, it would
-    // point at a plan mode file that no longer exists. The block comment is what
-    // a plan that never went through --land brings with it.
-    const body = planBody(TWO_TASKS).replace(
+    // The frontmatter is how the implementor finds the plan file again, and a
+    // landed plan keeps it. It is the run plumbing, and spec.md outlives the
+    // run - archived, the path it names is a plan mode file that is already
+    // gone. The legacy comment marker is what a plan written before the key
+    // moved carries, and the block comment is what a plan that never went
+    // through --land brings with it.
+    const body = [
+      "---",
+      "source: /home/u/.claude/plans/add-login.md",
+      "---",
+      "",
+    ].join("\n") + planBody(TWO_TASKS).replace(
       "# Add login\n",
       [
         "# Add login",
         "",
-        "<!-- source: /home/u/.claude/plans/add-login.md -->",
+        "<!-- source: /legacy/plans/add-login.md -->",
         "",
         "Build: skill `implementor`",
         "",
@@ -806,16 +812,35 @@ test("spec.md carries no HTML comment - the plan's own source marker least of al
 
     const r = run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+    // the title is read off the H1, which the frontmatter above it does not move
+    assert.match(r.stdout, /^title: Add login$/m);
 
     const spec = readRun(dir, "spec.md");
-    assert.doesNotMatch(spec, /<!--/);
+    assert.doesNotMatch(spec, /<!--|^---$|source:/m);
     assert.doesNotMatch(spec, /add-login\.md|Guidance for whoever/);
-    // and what the cut leaves behind reads like a document written without them:
-    // one blank line between the title and the next kept line, never two
+    // and what the cut leaves behind reads like a document written without any
+    // of it: one blank line between kept lines, never two
     assert.match(spec, /^# Add login\n\nBuild: skill `implementor`\n\n## Goal\n/);
     assert.doesNotMatch(spec, /\n\n\n/);
     // the plan itself is untouched - it is the file the run resumes from
-    assert.match(fs.readFileSync(path.join(dir, PLAN_REL), "utf-8"), /<!-- source: /);
+    const plan = fs.readFileSync(path.join(dir, PLAN_REL), "utf-8");
+    assert.match(plan, /^---\nsource: \/home\/u/m);
+  });
+});
+
+test("<!-- TASK --> blocks under no \"## Tasks\" heading are refused, not silently left out of the decomposition", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    // The cut is that heading, so without it the whole task half rides into
+    // spec.md and tasks/ comes out empty - while the index still lists every
+    // task, which sends the orchestrator after a task file that was never
+    // written. A translated or renamed heading is the way it happens.
+    seed(dir, planBody(TWO_TASKS).replace("## Tasks", "## Zadania"));
+
+    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 4);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /no "## Tasks" heading/);
+    assert.deepEqual(fs.readdirSync(path.join(dir, PLAN_DIR)), ["plan.md"]);
   });
 });
 

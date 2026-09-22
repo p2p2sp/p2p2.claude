@@ -33,7 +33,7 @@ Before writing a single task, decide which files get created, modified or delete
 
 The plan is two halves. The specification is `${CLAUDE_SKILL_DIR}/templates/spec-lite.md` or `${CLAUDE_SKILL_DIR}/templates/spec-full.md`, whichever shape the input names; the task half is `${CLAUDE_SKILL_DIR}/templates/tasks.md`, the same file behind either shape. Fill the chosen spec, append the task half under it, and write the result into the plan file plan mode names in its system message - while planning it is the only file you may write. Keep every section and every HTML marker from both templates, add no sections of your own.
 
-Write that plan file's own path, absolute and in full, into the `<!-- source: -->` marker. Approving the plan may clear this context and leave the implementor holding the plan's TEXT alone, so that line is the only way back to the file.
+Write that plan file's own path, absolute and in full, into the frontmatter's `source:` key. Approving the plan may clear this context and leave the implementor holding the plan's TEXT alone, so that line is the only way back to the file.
 
 An input carrying a roadmap fills `## Roadmap` with the ordered subprojects, marks the entry this plan covers and repeats every later entry under `### Out of scope`; no roadmap in the input means no such section. The plan file is the only place the roadmap survives, because the next cycle starts in a context this one never reaches. What a later entry brings stays absent: no task delivers a stand-in for it, no acceptance criterion depends on it, and nothing is stubbed, mocked or temporarily substituted to make this plan look finished.
 
@@ -92,7 +92,7 @@ A change that went through a draft lands here instead, because nothing downstrea
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<plan-path>"`
 
-A round continuing an earlier draft adds `--into "<key>"`, the key its input carries, so every round of one discussion lands in the directory the first one made. Then rewrite the landed file's `<!-- source: -->` marker to the landed path: the plan-mode file it names is gone by the next round. Show the user the landed path.
+A round continuing an earlier draft adds `--into "<key>"`, the key its input carries, so every round of one discussion lands in the directory the first one made. Then rewrite the landed file's frontmatter `source:` to the landed path: the plan-mode file it names is gone by the next round. Show the user the landed path.
 
 You never commit and never run git - the landed draft is the user's to commit.
 

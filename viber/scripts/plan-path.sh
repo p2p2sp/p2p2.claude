@@ -25,8 +25,10 @@
 # here - lowercased, every other run of characters collapsed to "-", 60 chars
 # max - so no caller has to form one. The copy is stripped of the template's
 # guidance comments on the way in: everything the run itself reads stays
-# (<!-- TASK -->, <!-- /TASK -->, <!-- source: -->), the rest would only ride
-# through spec.md and every task file into the build.
+# (<!-- TASK -->, <!-- /TASK -->, and <!-- source: --> for a plan written before
+# that path moved into the frontmatter), the rest would only ride through
+# spec.md and every task file into the build. The frontmatter is not a comment
+# and is never touched here.
 #
 # --into names ONE directory under docs/<runs>/ - no slash, no "." and no ".." -
 # and that directory has to be a DRAFT: a run whose plan carries not one task
@@ -162,9 +164,12 @@ END {
 # it: those comments have done their work by the time the plan is approved, and
 # they would otherwise ride into spec.md, into every task file and through the
 # whole build. Only the markers the run itself reads survive - <!-- TASK -->,
-# <!-- /TASK --> and <!-- source: --> - and a comment block spanning several
-# lines goes whole. Blank runs left behind collapse to one, so the result reads
-# like a plan written without them. In place, on the COPY only.
+# <!-- /TASK --> and <!-- source: -->, the last one only for a plan written
+# before the source path moved into the frontmatter - and a comment block
+# spanning several lines goes whole. Blank runs left behind collapse to one, so
+# the result reads like a plan written without them. Nothing that is not a
+# comment is touched, which is how the frontmatter comes through whole.
+# In place, on the COPY only.
 strip_guidance() {
   tmp="$1.tmp.$$"
   awk '

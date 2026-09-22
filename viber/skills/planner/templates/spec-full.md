@@ -1,6 +1,8 @@
-# <change title>
+---
+source: <absolute path of THIS plan file, the one plan mode named>
+---
 
-<!-- source: <absolute path of THIS plan file, the one plan mode named> -->
+# <change title>
 
 Build: skill `implementor`
 

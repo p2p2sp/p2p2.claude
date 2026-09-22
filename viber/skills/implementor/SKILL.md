@@ -35,7 +35,7 @@ Every plan gets its own dated directory, `docs/_specs/<yyyy-mm-dd-HH-mm-ss>_<slu
 `<src>` is the approved plan file, normally outside this repository. First match wins:
 
 1. The argument, when one came in.
-2. The `<!-- source: <path> -->` line of the approved plan this context holds - approving a plan may clear the planning context and leave its TEXT behind with no path, and that marker is the path. You write nothing yourself: never offer to save the text you are holding, the script copies the file.
+2. The `source:` line of the approved plan's frontmatter (an older plan carries it as a `<!-- source: <path> -->` comment instead) - approving a plan may clear the planning context and leave its TEXT behind with no path, and that line is the path. You write nothing yourself: never offer to save the text you are holding, the script copies the file.
 3. `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh"` with no argument returns the run most recently worked on. Exit 3 means nothing has landed yet: `AskUserQuestion` for the approved plan's full path, then land that.
 
 Then ask only where that output leaves a real choice:

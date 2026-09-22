@@ -36,7 +36,7 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   from a confirmed `idea` interview or a `fixer` diagnosis and invokes `idea` when it did not,
   composes the plan out of two templates - `skills/planner/templates/spec-lite.md` or
   `spec-full.md` for the specification half, `tasks.md` for the task half - into
-  the plan file plan mode names, that path written into the plan's own `<!-- source: -->` marker,
+  the plan file plan mode names, that path written into the plan's own frontmatter `source:` key,
   under `adr: true` reads `skills/planner/references/adr-tasks.md` and follows it - only a decision
   passing all three ADR criteria goes to the user, usually none, and each accepted one becomes a
   first task, validates the result
@@ -46,7 +46,7 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   called by the skill itself after the exit.
 - `skills/implementor/SKILL.md` - model-invocable orchestrator, `[plan-path]` argument. Lands the approved plan in the
   dated directory with `scripts/plan-path.sh --land` - the source path taken from the argument, else
-  from the plan text's own `<!-- source: -->` marker, else from the script's no-argument resolution -
+  from the plan text's own frontmatter `source:`, else from the script's no-argument resolution -
   decomposes it with `plan-index.sh --split`, profiles
   each task into a model tier (haiku / sonnet / opus) and a review decision, settles with the user
   whatever an interrupted session left half-finished,
@@ -98,7 +98,10 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   as `### S<n>` scenarios in Given/When/Then plus `### Edge cases`, a glossary and constraints. The
   task half is `tasks.md` under either. Four anchors are identical character for character in both
   shapes - `## Goal`, `## Acceptance criteria`, `### File map`, `### Out of scope` - and a fifth,
-  `### Must not change`, only the big shape carries. Those five are the only things `plan-index.sh`
+  `### Must not change`, only the big shape carries. A sixth, `## Tasks`, is the cut itself and is
+  validated as such: a plan carrying `<!-- TASK -->` blocks under any other heading is refused
+  (exit 4) rather than decomposed, because the cut would leave `tasks/` empty while the index still
+  listed every task and the orchestrator would dispatch a coder onto a file that was never written. Those five are the only things `plan-index.sh`
   reads above `## Tasks`, which is why it never learned the shapes: the fifth one absent prints
   nothing, so a task file built from `spec-lite` is what it always was and one built from
   `spec-full` differs by that one block alone. That block is the exception to everything else the
@@ -132,20 +135,24 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
 - **The plan carries the path it was written to, because the approval may take it away.**
   `showClearContextOnPlanAccept` is seeded by `setup` and recommended, so the normal path leaves
   `implementor` holding the approved plan's TEXT with no path and no planner message beside it. The
-  template's `<!-- source: <abs path> -->` marker, written by `planner` and carried in that text, is
+  template's `source: <abs path>` frontmatter key, written by `planner` and carried in that text, is
   the whole handover: the skill reads the path out of what it holds and hands it to `--land`, which
-  copies the file. Nothing discovers a plan by scanning the harness plans directory, and
+  copies the file. It is frontmatter rather than an HTML comment because the plan head is a document
+  a person reads and `spec.md` is archived from it: metadata declared as metadata is cut by
+  structure instead of by a filter, and `implementor` still recognizes the older comment spelling so
+  a plan that landed before the move keeps resuming. Nothing discovers a plan by scanning the harness plans directory, and
   `implementor` never writes the text it is holding - it has no `Write`.
 - **What lands is the plan, not the template's advice, and the specification keeps neither.**
   `--land` strips the guidance comments on
-  the way in, keeping only the markers the run itself reads (`<!-- TASK -->`, `<!-- /TASK -->`,
-  `<!-- source: -->`). They are instructions for whoever writes the plan; left in, they ride into
+  the way in, keeping only the markers the run itself reads (`<!-- TASK -->`, `<!-- /TASK -->`, and
+  `<!-- source: -->` for a plan written before that path moved into the frontmatter, which is not a
+  comment and is never touched there). They are instructions for whoever writes the plan; left in, they ride into
   `spec.md`, into every task file and through the whole build. The source in the plans directory
-  keeps them - it is never written to. The one marker that survives the landing is cut one step
-  later: `--split` writes `spec.md` with every HTML comment removed, the `<!-- source: -->` line
-  included, because that line is the run's plumbing and `spec.md` outlives the run - archived, it
-  would point at a plan mode file that is already gone. The two cuts are therefore layered rather
-  than duplicated, and `plan.md` keeps the marker for as long as anything resumes from it.
+  keeps them - it is never written to. What survives the landing is cut one step later: `--split`
+  writes `spec.md` without the frontmatter and without one HTML comment, because both are the run's
+  plumbing and `spec.md` outlives the run - archived, the `source:` path names a plan mode file that
+  is already gone. The two cuts are layered rather than duplicated, and `plan.md` keeps everything
+  for as long as anything resumes from it.
 - **Only that handoff is hardened; the front links are context-only on purpose.** `idea` and
   `fixer` reach `planner` inside one context, with no mode change and no harness gate between
   them, so both restate their payload verbatim at the invocation and neither writes a handoff
@@ -196,8 +203,8 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   (exit 5). A task marked done that was never committed would be skipped forever on resume, so
   this is the one place in the plugin where a script undoes its own write.
 - **The decomposition is what the agents see; the index is what the orchestrator sees.**
-  `plan-index.sh --split` writes `spec.md` (everything above `## Tasks`, minus every HTML comment
-  in it) and one `tasks/<id>.md`
+  `plan-index.sh --split` writes `spec.md` (everything above `## Tasks`, minus the frontmatter and
+  every HTML comment in it) and one `tasks/<id>.md`
   per task, carrying the task block verbatim plus the plan's `## Goal`, the text of the criteria
   its `Covers:` names, the `## Contracts` blocks its `Uses:` names and the plan's
   `### Out of scope`. Verbatim but for one line: `- DoD:` is cut on `;` into one

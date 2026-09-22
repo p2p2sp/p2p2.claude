@@ -581,6 +581,44 @@ test("--land keeps the markers the run reads and drops the template's guidance, 
   });
 });
 
+test("--land carries the frontmatter through whole - it is the source path, not guidance", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    // The comment stripper only ever looks at comments, so the block the plan
+    // opens with comes through untouched, above the H1 the slug is read from.
+    // plan-index.sh --split is what keeps it out of spec.md.
+    const body = [
+      "---",
+      "source: /elsewhere/plans/drifting-dolphin.md",
+      "---",
+      "",
+      "# Add Login",
+      "",
+      "<!-- guidance that has done its work by now -->",
+      "",
+      "## Tasks",
+      "",
+      "<!-- TASK -->",
+      "### T1 - do the thing",
+      "- Files: src/a.ts",
+      "<!-- /TASK -->",
+      "",
+    ].join("\n");
+    const src = sourcePlan(dir, "outside/drifting-dolphin.md", body);
+
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+    const parsed = parse(result.stdout);
+    // the slug still comes off the H1, which the frontmatter above it does not move
+    assert.match(parsed.key!, /_add-login$/);
+
+    const landed = fs.readFileSync(path.join(dir, parsed.path), "utf-8");
+    assert.match(landed, /^---\nsource: \/elsewhere\/plans\/drifting-dolphin\.md\n---\n/);
+    assert.doesNotMatch(landed, /guidance that has done its work/);
+    assert.doesNotMatch(landed, /\n\n\n/);
+  });
+});
+
 // --- open runs: unfinished work the caller cannot see for itself ------------
 
 test("landing a fresh plan while another run is unfinished reports that run as an open: line", () => {

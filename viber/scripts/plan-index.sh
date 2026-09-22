@@ -54,9 +54,9 @@
 # --split writes, into the plan's OWN directory (docs/_specs/<stamp>_<slug>/):
 #   spec.md        - everything above "## Tasks": goal, acceptance criteria, scope.
 #                    WHAT and WHY, read by the user and by the closing writers.
-#                    Every HTML comment is cut out of it, the plan's own
-#                    "<!-- source: -->" marker included: it belongs to the run,
-#                    not to the specification the archive keeps.
+#                    The frontmatter and every HTML comment are cut out of it:
+#                    both belong to the run, not to the specification the
+#                    archive keeps.
 #   tasks/<id>.md  - the whole job of one coder: its task block, then the
 #                    plan's "## Goal", the text of the criteria its "Covers:" line
 #                    names, the "## Contracts" blocks its "Uses:" line names, the
@@ -97,7 +97,9 @@
 #   2 - plan file missing or unusable, a second argument that is not --split, or
 #       a --split pointed at anything but the run's own <dir>/plan.md
 #   3 - no <!-- TASK --> blocks
-#   4 - broken task contract (duplicate id, an id that is not [A-Za-z0-9_-]+,
+#   4 - broken task contract (<!-- TASK --> blocks under no "## Tasks" heading,
+#       where the cut would leave tasks/ empty while the index still lists
+#       them; duplicate id, an id that is not [A-Za-z0-9_-]+,
 #       missing field, illegal dependency, an "Exclusive:" value other than
 #       "true", a "Covers:" criterion absent from the
 #       acceptance criteria, an acceptance criterion no task's "Covers:" names, a
@@ -245,6 +247,10 @@ BEGIN {
 # plan title: the first H1
 /^#[[:space:]]/ && title == "" { title = trim(substr($0, 2)); next }
 
+# the heading --split cuts the plan in two at, matched by the SAME pattern the
+# cut uses: a plan that validates is a plan that splits where this says it will
+/^##[[:space:]]*Tasks/ { hastasks = 1 }
+
 # acceptance criteria: the numbered list inside its own section; contract blocks:
 # the "### <id> - <name>" headings inside theirs
 /^##[[:space:]]/ {
@@ -312,6 +318,11 @@ intask {
 
 END {
   if (n == 0) { printf "error: no <!-- TASK --> blocks in %s\n", plan > "/dev/stderr"; exit 3 }
+  # The cut is a heading, so a plan carrying blocks under any other one would
+  # decompose into an empty tasks/ while this index still lists every task -
+  # the orchestrator would then dispatch a coder onto a task file that does not
+  # exist. Caught at validation, so the planner sees it before its own gate.
+  if (!hastasks) { printf "error: %s carries <!-- TASK --> blocks but no \"## Tasks\" heading - that heading is where the specification is cut off\n", plan > "/dev/stderr"; exit 4 }
 
   # id -> ordinal; a duplicate id is fatal, and the id also names the task file
   # --split writes, so it stays a bare token
@@ -550,18 +561,25 @@ END {
   for (i = 1; i <= NR; i++) if (line[i] ~ /^##[[:space:]]*Tasks/) { cut = i; break }
   if (!cut) cut = NR + 1
 
-  # The specification: everything above the task list, minus every HTML comment
-  # still in it. --land already strips the guidance the template carries, but the
-  # <!-- source: --> marker has to survive there - it is how the implementor finds
-  # the file again - and it is plumbing of the run rather than specification:
-  # carried through, it rides into the archived spec.md as a pointer to a plan
-  # mode file that is already gone. Nothing above the cut is read by anything, so
+  # The specification: everything above the task list, minus the frontmatter and
+  # minus every HTML comment. --land already strips the guidance the template
+  # carries, and a plan that never went through it still carries all of it;
+  # a plan written before the source path moved into the frontmatter carries that
+  # marker as a comment too. Nothing above the cut is read by anything here, so
   # the cut takes them all, single-line and block alike, and collapses the blank
   # runs they leave so the head reads like a document written without them.
   # (No apostrophe anywhere in here: this comment sits INSIDE the single-quoted
   # awk program, where one would close the quote.)
   spec = dir "/spec.md"
-  for (i = 1; i < cut; i++) {
+  # The frontmatter is run plumbing too - it carries the source path, the one
+  # key the implementor reads out of the plan text - so the specification starts
+  # after it. No closing marker means no frontmatter: the whole head is kept
+  # rather than swallowed.
+  sfrom = 1
+  if (trim(line[1]) == "---") {
+    for (i = 2; i < cut; i++) if (trim(line[i]) == "---") { sfrom = i + 1; break }
+  }
+  for (i = sfrom; i < cut; i++) {
     t = trim(line[i])
     if (incom) { if (t ~ /-->/) incom = 0; continue }
     if (t ~ /^<!--/) { if (t !~ /-->/) incom = 1; continue }
