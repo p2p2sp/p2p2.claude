@@ -16,7 +16,12 @@ A draft the user points at - a landed plan carrying a specification and not one 
 
 ## Before the first question
 
-Read the repo where the answer already lives: the modules the idea touches, the existing patterns for that kind of work, how similar things are already solved here. Never spend a question on something the code states.
+Two sources already hold answers, and a question spent on either is wasted.
+
+- The conversation that led here. Whatever the user already stated - the problem, a constraint, a boundary, the scope, an approach they chose - is an answer given and costs no question. What gets asked is an ambiguity in it or a contradiction with the code, never a restatement.
+- The repo where the answer lives: the modules the idea touches, the existing patterns for that kind of work, how similar things are already solved here. Never spend a question on something the code states.
+
+Open the first question with one line naming what you take as settled from the conversation, so a misreading is corrected before the next branches are built on it.
 
 ## Size the scope first
 

@@ -30,8 +30,10 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   opening on a scope check that splits an idea spanning several independent subsystems into ordered
   subprojects and then interviews the first one alone, proposing one of the two spec shapes before
   the first detail question, ending in a confirmed summary that hands over
-  to `viber:planner`. A draft the user points at is resumed instead: it reads that file and asks
-  only what the round of remarks changed. Writes nothing.
+  to `viber:planner`. Whatever the conversation before the invocation already settled is harvested
+  rather than re-asked, and named in one line at the first question. A draft the user points at is
+  resumed instead: it reads that file and asks only what the round of remarks changed. Writes
+  nothing.
 - `skills/planner/SKILL.md` - model-invocable, and enters plan mode itself. Checks its input came
   from a confirmed `idea` interview or a `fixer` diagnosis and invokes `idea` when it did not,
   composes the plan out of two templates - `skills/planner/templates/spec-lite.md` or
