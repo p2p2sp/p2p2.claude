@@ -13,7 +13,9 @@
     "./skills/implementor/",
     "./skills/tdd/",
     "./skills/fixer/",
-    "./skills/e2e/"
+    "./skills/e2e/",
+    "./skills/memory/",
+    "./skills/rules/"
   ],
   "agents": [
     "./agents/planner-review.md",
@@ -21,7 +23,9 @@
     "./agents/task-reviewer.md",
     "./agents/test-runner.md",
     "./agents/memory-writer.md",
+    "./agents/memory-auditor.md",
     "./agents/rules-writer.md",
+    "./agents/rules-auditor.md",
     "./agents/qa-writer.md",
     "./agents/e2e-writer.md",
     "./agents/closeup.md"

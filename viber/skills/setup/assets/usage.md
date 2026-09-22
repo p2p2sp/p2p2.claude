@@ -26,6 +26,16 @@ how to launch the app, the required env, the migrations.
   own application and committed once they are green. Needs the `qa` switch to have been on during
   that build, and it starts off - turn it on before the build, not after.
 
+## On your own schedule
+
+- `/viber:memory` - maps this project's `CLAUDE.md` cascade, verifies it against the code through
+  a dispatched auditor, and hands what changed to the same writer the build close uses.
+- `/viber:rules` - maps `.claude/rules/`, verifies it the same way, and hands what changed to the
+  same writer the build close uses.
+
+Both ask before writing anything and leave the result unstaged, same as the close. Neither needs a
+build in progress - run them whenever the layer might have drifted.
+
 ## The switches (`.claude/viber.yml`)
 
 - `adr` - decisions worth keeping become the plan's first tasks, under `docs/adr/`.

@@ -25,6 +25,8 @@ recognizes only its own plan format, so one blocks the other. Run one track at a
 | "plan it" | The plan gets written and reviewed. |
 | "implement it" | The approved plan gets built. |
 | `/viber:e2e` | The build's QA scenarios become Playwright tests, run against your app. |
+| `/viber:memory` | Reviews or extends your project's `CLAUDE.md` cascade on your own schedule. |
+| `/viber:rules` | Reviews or extends your project's `.claude/rules/` on your own schedule. |
 
 "plan it" and "implement it" are not commands: "break this down", "go ahead" or anything else
 meaning the same works too. A typical run is `/viber:setup` once, then `/viber:idea`, "plan it", "implement it". The
@@ -88,3 +90,7 @@ Playwright tests go into the e2e directory your own project already uses - `/vib
 nothing names one, and creates no directory of its own. Scratch files go to `.temp/viber/`. Your
 `.claude/viber.yml`, your `.gitignore` and your `.claude/settings.json` are only ever added to,
 never rewritten. Nothing else, nowhere else.
+
+`/viber:memory` and `/viber:rules` write the same `CLAUDE.md` cascade and the same
+`.claude/rules/` a build closes with, on your own schedule instead of a build's. Either one asks
+before writing and leaves the result unstaged, exactly like the close does.

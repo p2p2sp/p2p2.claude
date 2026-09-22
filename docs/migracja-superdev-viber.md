@@ -56,7 +56,7 @@ Stare komendy znikają razem z pluginem:
 | `/superdev:intent` | `/viber:idea` |
 | `simpleplan` / `superplan` | „plan it" (skill `planner` wywołuje się sam) |
 | `simplebuild` / `superbuild` | „implement it" (skill `implementor`) |
-| `superdev-memory` / `superdev-rules` | automatycznie w zamknięciu builda (`memory`, `rules`) |
+| `superdev-memory` / `superdev-rules` | automatycznie w zamknięciu builda (`memory`, `rules`) albo na żądanie, `/viber:memory` i `/viber:rules` |
 | `qa` / `e2e` | `/viber:e2e` po buildzie (wymaga `qa: true`) |
 | (brak odpowiednika) | `/viber:fixer` - bug z diagnozą i czerwonym testem |
 

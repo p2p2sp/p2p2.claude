@@ -5,10 +5,10 @@ highest quality and speed of work.
 
 ## Purpose
 
-The vibe track: understand, plan, build, then record what the build taught. SEVEN skills (`setup`,
-`idea`, `planner`, `implementor`, `tdd`, `fixer`, `e2e`), NINE agents, SEVEN plugin-level scripts,
-TWO skill-level setup scripts, TWO plugin-level references, ONE skill-level reference and TWO hooks
-(one `PreToolUse`, one `SessionStart`).
+The vibe track: understand, plan, build, then record what the build taught. NINE skills (`setup`,
+`idea`, `planner`, `implementor`, `tdd`, `fixer`, `e2e`, `memory`, `rules`), ELEVEN agents, SEVEN
+plugin-level scripts, FOUR skill-level scripts, THREE plugin-level references, ONE skill-level
+reference and TWO hooks (one `PreToolUse`, one `SessionStart`).
 
 ## Entry points
 
@@ -29,8 +29,15 @@ Each skill's contract is its own body and each script's is its header comment; t
 - `fixer` - `/viber:fixer`, user-only. A traced diagnosis proven by a failing test, handed to
   `planner`. Never applies a fix.
 - `tdd` - the Red-Green-Refactor discipline, invoked by `task-coder` through the `Skill` tool.
+- `memory` - `/viber:memory`, user-only. Maps the host's `CLAUDE.md` cascade, routes on what it
+  finds, dispatches `memory-auditor` per approved target, then `memory-writer` on approval. Opens
+  no file and writes none itself.
+- `rules` - `/viber:rules`, user-only. Maps `.claude/rules/`, routes on what it finds, dispatches
+  `rules-auditor` per approved target, then `rules-writer` on approval. Opens no file and writes
+  none itself.
 - `agents/` - `planner-review` (plan gate), `task-coder`, `task-reviewer`, `test-runner`,
-  `memory-writer` and `rules-writer` (the close), `qa-writer`, `e2e-writer`, `closeup`.
+  `memory-writer` and `memory-auditor`, `rules-writer` and `rules-auditor`, `qa-writer`,
+  `e2e-writer`, `closeup`.
 - `hooks/` - `plan-gate.sh` (the review gate, enforced by the harness) and `session-start.sh`,
   which injects `hooks/content/manifest.md`.
 
@@ -162,7 +169,7 @@ there.
   dependency here: without it the block is printed for a manual merge and the run continues.
 - **The permissions template allows the write tools outright.** A subagent does not inherit the
   session's permission mode and `defaultMode: acceptEdits` is scoped to the working directory, so
-  eight of the nine agents would start on an asking default and a stopped coder strands its whole
+  ten of the eleven agents would start on an asking default and a stopped coder strands its whole
   batch. `deny` is therefore the layer that holds the line on `.env`, `.git/` and the key files.
 - **The host's `CLAUDE.md` is reported, never seeded.** The build and test commands every agent
   reads belong to the user, and a stub written by a script is exactly the file that names none of
@@ -187,6 +194,13 @@ there.
   hypothesis to disprove and never evidence, and the coder of each dependent task, handed them as
   `prior:` so a decision carries forward deterministically. The close's first three run in one
   dispatch; `closeup` cannot join them, because it archives the directory they read and write.
+- **The knowledge layer has two entries, never a third.** The build close dispatches
+  `memory-writer` and `rules-writer` after every build; `/viber:memory` and `/viber:rules` dispatch
+  the same two writers on the user's own schedule, each mapping its layer, routing on what it
+  finds and gating on an `AskUserQuestion` the close never asks. `memory-auditor` and
+  `rules-auditor` sit beside them and are read-only - `Read, Write, Grep, Glob` where `Write` never
+  leaves `.temp/viber/<id>/` - so verifying the layer against the code never becomes a second way
+  to change it. One writer per layer, reached from two entries.
 - **The knowledge layer is capped, because its two writers run after every build.** Nothing else
   shrinks what they wrote, and a node is loaded whole by every agent that opens a file under it,
   its ancestors with it. `memory-writer`: 12000 characters per node, 32000 over the chain.
@@ -226,8 +240,10 @@ there.
   flag, `playwright-cli` defaulting to chromium, and the install matches: one browser, not three.
 - **`references/` holds what several workers share.** `qa-format.md` has two readers,
   `test-strategy.md` four (`planner`, `planner-review`, `task-reviewer`, `task-coder`), which keeps
-  the test layering in one runtime file instead of four copies drifting apart. No reader hardcodes
-  the path: each takes a `refs:` label and reads the file at the step that consumes it.
+  the test layering in one runtime file instead of four copies drifting apart. `rule-admission.md`
+  has two readers, `rules-auditor` and `rules-writer`, the three criteria a candidate convention
+  has to pass held in one place rather than repeated in both. No reader hardcodes the path: each
+  takes a `refs:` label and reads the file at the step that consumes it.
 - **The host's e2e test directory is the fourth writable location, and only because the host names
   it.** The three a plugin may write at its own choosing stay `docs/<layer>/`, `.claude/` and
   `.temp/<plugin>/`. The `e2e` skill resolves the host's directory, asks when nothing names it and
