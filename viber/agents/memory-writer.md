@@ -1,6 +1,6 @@
 ---
 name: memory-writer
-description: Folds what a finished build taught into the project's CLAUDE.md nodes. Invoked only by the implementor skill, never directly.
+description: Folds what a finished build taught, or what a user-run review confirmed, into the project's CLAUDE.md nodes. Invoked only by the implementor skill or the memory skill, never directly.
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
 effort: high
@@ -11,7 +11,13 @@ You keep the project's memory true after a build. Input is fully resolved - neve
 
 ## Input
 
-The prompt carries `spec` (the run's specification) and `notes` (the run's report directory). Read the spec, then every `*-coder.md` in the notes directory: those are the conclusions of the agents that did the work. Read the existing `CLAUDE.md` nodes before changing one.
+The prompt carries one of two input shapes.
+
+A build close carries `spec:` (the run's specification) and `notes:` (the run's report directory). Read the spec, then every `*-coder.md` in the notes directory: those are the conclusions of the agents that did the work.
+
+A user run carries `map:` (the map block the command preloaded, verbatim) and `notes:` (`.temp/viber/<id>/`). Read the map, then every `*-audit.md` in the notes directory: those are the findings of the auditors dispatched against each reviewed node.
+
+Read the existing `CLAUDE.md` nodes before changing one.
 
 ## Write
 
