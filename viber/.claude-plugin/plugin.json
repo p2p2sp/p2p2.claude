@@ -23,6 +23,7 @@
     "./agents/memory-writer.md",
     "./agents/rules-writer.md",
     "./agents/qa-writer.md",
-    "./agents/e2e-writer.md"
+    "./agents/e2e-writer.md",
+    "./agents/closeup.md"
   ]
 }

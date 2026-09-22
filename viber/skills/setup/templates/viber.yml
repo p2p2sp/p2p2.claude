@@ -12,4 +12,18 @@ rules: true
 
 # implementor writes the build's QA scenarios at the close: an acceptance
 # document a person performs and a handoff file /viber:e2e turns into tests.
-qa: true
+qa: false
+
+# implementor ends the build by noting on the specification whatever the build
+# delivered that it does not promise, then moving the run's lasting work into
+# the archive below and dropping the plan, the state file and the trail - git
+# keeps them.
+cleanup: true
+
+# The two directories under docs/: where an open run lives, and where the
+# archive of a finished one lands. Directory NAMES, not paths - a value with a
+# slash in it is ignored and the default stands. Both are read only from inside
+# this group.
+directories:
+  runs: _specs
+  specifications: specs

@@ -619,3 +619,99 @@ test("no argument: a frozen plan.md does not age its run out - the status file b
     assert.deepEqual(openLines(result.stdout), ["docs/_specs/2026-02-01-09-00-00_newer/plan.md | 0/1"]);
   });
 });
+
+// --- the runs directory is configurable ---
+
+/** `.claude/viber.yml` carrying the `directories:` group, read here relative to
+ *  the cwd - which the contract pins to the repository root. The group is where
+ *  the name has to sit: a `runs:` key at the top level is a different key. */
+function writeRunsDir(root: string, value: string): void {
+  fs.mkdirSync(path.join(root, ".claude"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".claude", "viber.yml"), ["directories:", `  runs: ${value}`, ""].join("\n"));
+}
+
+/** A landed plan under an arbitrary runs directory, with a pinned mtime so
+ *  "most recently worked on" is decided by the test, not by the filesystem. */
+function landUnder(root: string, runs: string, key: string, body: string, mtime = "2026-01-01T00:00:00Z"): string {
+  const file = path.join(root, "docs", runs, key, "plan.md");
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, body);
+  const seconds = Date.parse(mtime) / 1000;
+  fs.utimesSync(file, seconds, seconds);
+  return file;
+}
+
+test("directories.runs renames the directory: both the resolution and --land follow it", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeRunsDir(dir, "builds");
+    landUnder(dir, "builds", "2026-09-19-17-30-00_add-login", planWithTasks("Add Login", ["T1"]));
+
+    const resolved = run(dir);
+    assert.equal(resolved.status, 0, `stderr: ${resolved.stderr}`);
+    assert.equal(parse(resolved.stdout).path, "docs/builds/2026-09-19-17-30-00_add-login/plan.md");
+
+    const src = sourcePlan(dir, "src/other-thing.md", "# Other Thing\n");
+    const landed = run(dir, ["--land", src]);
+    assert.equal(landed.status, 0, `stderr: ${landed.stderr}`);
+    const info = parse(landed.stdout);
+    assert.equal(info.state, "new");
+    assert.equal(slugOf(info.key), "other-thing");
+    assert.equal(info.path, `docs/builds/${info.key}/plan.md`);
+    assert.ok(fs.existsSync(path.join(dir, "docs", "builds", info.key, "plan.md")));
+    assert.ok(!fs.existsSync(path.join(dir, "docs", "_specs")));
+  });
+});
+
+test("directories.runs is the ONLY place the script looks, so a plan under the old default is not resolved", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeRunsDir(dir, "builds");
+    landPlan(dir, "2026-09-19-17-30-00_add-login");
+
+    const result = run(dir);
+    assert.equal(result.status, 3);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /no plan under docs\/builds/);
+  });
+});
+
+test("an unusable directories.runs value is ignored and docs/_specs stands, the way config.sh ignores one", () => {
+  for (const value of ["../escape", "/absolute", "a/b", "..", ""]) {
+    withTempDir("p2p2-viber-", (dir) => {
+      writeRunsDir(dir, value);
+      landPlan(dir, "2026-09-19-17-30-00_add-login");
+
+      const result = run(dir);
+      assert.equal(result.status, 0, `stderr for "${value}": ${result.stderr}`);
+      assert.equal(parse(result.stdout).path, "docs/_specs/2026-09-19-17-30-00_add-login/plan.md");
+    });
+  }
+});
+
+test("the open: lines are listed from the configured runs directory too", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeRunsDir(dir, "builds");
+    landUnder(dir, "builds", "2026-09-01-09-00-00_earlier", planWithTasks("Earlier", ["T1", "T2"]), "2026-09-01T09:00:00Z");
+    landUnder(dir, "builds", "2026-09-02-09-00-00_current", planWithTasks("Current", ["T1"]), "2026-09-02T09:00:00Z");
+    fs.writeFileSync(
+      path.join(dir, "docs", "builds", "2026-09-02-09-00-00_current", "status.md"),
+      ["# status", "", "progress: 1/1", "done: T1", ""].join("\n"),
+    );
+
+    const result = run(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(parse(result.stdout).key, "2026-09-02-09-00-00_current");
+    assert.deepEqual(openLines(result.stdout), ["docs/builds/2026-09-01-09-00-00_earlier/plan.md | 0/2"]);
+  });
+});
+
+test("a top-level runs: key is not directories.runs, so the default still names the directory", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    fs.mkdirSync(path.join(dir, ".claude"), { recursive: true });
+    fs.writeFileSync(path.join(dir, ".claude", "viber.yml"), "runs: builds\n");
+    landPlan(dir, "2026-09-19-17-30-00_add-login");
+
+    const result = run(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(parse(result.stdout).path, "docs/_specs/2026-09-19-17-30-00_add-login/plan.md");
+  });
+});

@@ -44,7 +44,7 @@ elif [ ! -f "$template" ]; then
 else
   mkdir -p "$root/.claude" 2>/dev/null
   if cp "$template" "$cfg" 2>/dev/null; then
-    echo "viber.yml: seeded from template - adr, memory, rules and qa all on"
+    echo "viber.yml: seeded from template - every switch is commented in it"
   else
     echo "viber.yml: could not write $cfg"
   fi

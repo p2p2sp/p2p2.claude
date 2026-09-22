@@ -6,13 +6,15 @@ highest quality and speed of work.
 ## Purpose
 
 The vibe track: understand, plan, build, then record what the build taught. SEVEN skills (`setup`,
-`idea`, `planner`, `implementor`, `tdd`, `fixer`, `e2e`), EIGHT agents, SIX plugin-level scripts, TWO
+`idea`, `planner`, `implementor`, `tdd`, `fixer`, `e2e`), NINE agents, SEVEN plugin-level scripts, TWO
 skill-level setup scripts, TWO plugin-level references, ONE skill-level reference and TWO hooks -
 one `PreToolUse`, one `SessionStart`. Everything a run produces lives in the host repo's
 `docs/_specs/<stamp>_<slug>/`: the plan as it landed, `status.md` carrying its progress and
 decisions, the decomposition
 every agent reads, the QA documents the close writes, and `work/` - the coders' notes, the review
-reports and the test reports, committed with the task they belong to. Only true scratch stays in
+reports and the test reports, committed with the task they belong to. Under `cleanup: true` that
+directory does not survive the build: what is worth reading later moves to
+`docs/specs/<stamp>_<slug>/` and the scaffolding goes. Only true scratch stays in
 `.temp/viber/` (one `<id>/` per task, holding the build output its coder and its reviewer redirect
 there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-dir, no state file.
 
@@ -45,11 +47,14 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   dispatches `viber:task-coder` in the widest batch the dependency and file-collision rules allow, gates each
   reviewed task on `viber:task-reviewer`, commits it with `scripts/commit-task.sh`, closes on
   `viber:test-runner` and then, per switch, on `viber:memory-writer`, `viber:rules-writer` and
-  `viber:qa-writer`. It closes by reporting how long the session ran, the mark taken by
+  `viber:qa-writer`, and last, under `cleanup`, on `viber:closeup`. It closes by reporting how
+  long the session ran, the mark taken by
   `scripts/run-clock.sh` at load and handed back to it at the summary.
 - `skills/e2e/SKILL.md` - `/viber:e2e`, user-only. Turns each scenario of one run's `qa.e2e.md` into a
-  `@playwright/test` file: it preloads `scripts/check-playwright.sh`, resolves the run (its argument,
-  else `plan-path.sh`), offers the install, launches the host's application, dispatches
+  `@playwright/test` file: it preloads `scripts/check-playwright.sh` and `scripts/config.sh`,
+  resolves the run (its argument, else `plan-path.sh`, else - once `cleanup` archived it - the
+  newest `qa.e2e.md` under the archive directory), offers the install, launches the host's
+  application, dispatches
   `viber:e2e-writer` one ID at a time and commits the result with `commit-task.sh --e2e`. It carries
   `disallowed-tools: Write, Edit, NotebookEdit` - not one byte of the tree is written here.
 - `skills/fixer/SKILL.md` - `/viber:fixer`, user-only. Invoked on a bug report, it forces a
@@ -63,8 +68,9 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   it green, never commits), `task-reviewer` (per-task gate, writes only its report), `test-runner`
   (one full suite run, keeps the log out of the caller's context), `memory-writer` and
   `rules-writer` (the close: the project's `CLAUDE.md` nodes and `.claude/rules/`), `qa-writer` (the
-  close: the run's two QA documents) and `e2e-writer` (one scenario -> one Playwright spec, proven
-  green against the running application).
+  close: the run's two QA documents), `e2e-writer` (one scenario -> one Playwright spec, proven
+  green against the running application) and `closeup` (the last step: the specification's
+  drift, then the archive).
 - `hooks/hooks.json` -> `hooks/scripts/plan-gate.sh`: the review gate, enforced by the harness
   rather than by the model; and `hooks/scripts/session-start.sh`, which injects
   `hooks/content/manifest.md`.
@@ -72,7 +78,9 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
 ## Contracts & invariants
 
 - **One run, one directory.** `plan-path.sh` owns the layout
-  `docs/_specs/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md` and is the only place a plan path is formed:
+  `docs/<runs>/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md` - `_specs` being the default name of that
+  directory rather than a fixed one, since `directories.runs` renames it - and is the only place a
+  plan path is formed:
   the stamp is taken when the plan lands, so a re-run of the same slug never overwrites an earlier
   plan, and a run already open for that slug comes back as `state: existing` instead. That one
   directory holds everything the run touches: the plan, the decomposition, `work/` and the QA
@@ -284,17 +292,26 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   with it. `setup`'s permissions template denies those four verbs outright, because a prompt rule
   alone is a known non-compliance and this failure mode is silent until a coder notices its files
   are gone.
-- **Six deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path, report
+- **Seven deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path, report
   every other unfinished run as an `open:` line, and on `--land` put the approved plan there,
   stripped of the template's guidance),
   `plan-index.sh` (validate, index, optionally decompose), `commit-task.sh` (stage, commit, record),
-  `config.sh` (resolve the switches), `run-clock.sh` (the start mark, and the elapsed time of the
-  session that took it - it writes nothing, so a run resumed elsewhere simply starts a new clock)
+  `config.sh` (resolve the switches and the two directory names), `run-clock.sh` (the start mark,
+  and the elapsed time of the
+  session that took it - it writes nothing, so a run resumed elsewhere simply starts a new clock),
+  `archive-run.sh` (move a finished run into the archive, drop the scaffolding, commit the move)
   and `check-playwright.sh` (report the e2e tooling, install
   nothing) carry their I/O contract in their header comment and are
   TRUSTED by the caller - never re-verified, never retried. All are invoked as one literal line,
   `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" <args>`, never through an interpreter, and each has its
   own `Bash(${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh:*)` entry in the calling skill's `allowed-tools`.
+  `archive-run.sh` is the one called by an AGENT rather than by a skill, so it has no such entry
+  anywhere: a subagent does not inherit the session's permission mode and carries no
+  `allowed-tools` of its own, and what covers it is the bare `Bash` the permissions template
+  already allows - the same mechanism every `task-coder` build command runs through. That is a
+  deliberate departure from `qa-writer` handing its paths back for `implementor` to commit: the
+  archive is one move of one directory, and routing it through the orchestrator would mean
+  teaching a skill that carries `disallowed-tools: Read` which files of the run are scaffolding.
 - **`setup` seeds from `assets/`, and only into what the project does not already have.**
   `assets/gitignore.txt` becomes the host's `.gitignore` when it has none, otherwise the file is
   the user's and the single edit is the `.temp/` rule, appended on its own line. The permissions
@@ -305,7 +322,7 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   dependency in this plugin, and a skip-with-note rather than a stop: without Node the block is
   printed for a manual merge and the run continues.
 - **The template allows the write tools outright, because a subagent does not inherit the
-  session's permission mode.** Seven of the eight agents carry `Write` or `Edit` and none declares
+  session's permission mode.** Eight of the nine agents carry `Write` or `Edit` and none declares
   a `permissionMode`, so each starts in the asking default; `defaultMode: acceptEdits` would not
   cover them anyway, being scoped to the working directory. Hence the bare `Edit`, `Write` and
   `NotebookEdit` entries in `allow` - a coder stopped on a prompt strands its whole batch - and
@@ -317,10 +334,23 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   `skills/setup/assets/usage.md`, read and printed whole - the four entries, the switches, and why
   those commands have to be written down. It is an asset rather than body text so the skill, pinned
   to `model: haiku`, copies it instead of composing it.
-- **The switches are read through `config.sh` alone.** `adr`, `memory`, `rules` and `qa` live in
-  `.claude/viber.yml`, resolved against the repository root, fail-open: no file means all four off,
+- **The switches are read through `config.sh` alone; the two directory keys have three readers.**
+  `adr`, `memory`, `rules`, `qa` and `cleanup` live in
+  `.claude/viber.yml`, resolved against the repository root, fail-open: no file means all five off,
   and the script always exits 0 because it runs as a `!` preload, where a non-zero exit would abort
-  the whole skill load. `adr` is weighed in `planner` and nowhere else: `planner` is the one funnel
+  the whole skill load. The directory names live in a `directories:` GROUP - `runs` and
+  `specifications` - and the group is a contract, not a presentation: each reader tracks it and
+  ignores a same-named key outside it, because `runs` alone reads like a count and `specs` like a
+  switch, where `directories.runs` cannot be read as anything else. `config.sh` prints them dotted
+  for the same reason. They are also the exception to "through `config.sh` alone", because they
+  name a directory rather than carrying a decision and the two scripts that have to form a path
+  (`plan-path.sh`, `archive-run.sh`) run with no skill above them to hand the value down. Each
+  parses the group itself, ~10 lines, with the same sanitization: one path SEGMENT matching
+  `[A-Za-z0-9._-]+` and neither `.` nor `..`, so a slash, a traversal or an absolute path silently
+  leaves the default standing and no configuration error can move a run out of `docs/`. The
+  duplication is deliberate and stays until a fourth reader appears, when it takes the
+  `lib_viber_config.sh` shape `.claude/rules/shell-lib-scripts.md` describes. `adr` is weighed in
+  `planner` and nowhere else: `planner` is the one funnel
   both entries pass through (`idea` and `fixer`),
   so weighing in `idea` would leave the switch dead on the other. `implementor` carries `disallowed-tools: Read`, so the preload is not a
   convenience there but the only way it can know the values at all.
@@ -331,15 +361,16 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
 - **The coders' notes are the input of the close, and of the gate beside them.** `task-coder`
   leaves at most 8 lines in
   `<dir>/work/<id>-coder.md` - what the diff does not say - and `memory-writer`,
-  `rules-writer` and `qa-writer` read that directory. Two readers come earlier: that task's own
+  `rules-writer`, `qa-writer` and `closeup` read that directory. Two readers come earlier: that task's own
   `task-reviewer`, handed the same `notes:` path, where what the coder wrote is a hypothesis to
   disprove and never evidence - a note saying a `DoD` clause was unbuildable or narrowed by a
   `Contracts` block is Critical unless `Out of scope` says so, and a decision the task left open is
   a finding only when no test pins it down; and the coder of each task that depends on this one,
   handed those files as `prior:`, which is what carries a decision forward deterministically
-  instead of relying on somebody reading a return message before the next dispatch. All three run in one dispatch and never wait
+  instead of relying on somebody reading a return message before the next dispatch. The close's first three run in one dispatch and never wait
   for each other, because their scopes do not overlap: `CLAUDE.md` nodes belong to the first,
-  `.claude/rules/` to the second, the run directory's QA documents to the third. The notes are what
+  `.claude/rules/` to the second, the run directory's QA documents to the third. `closeup` is
+  the one that cannot join them - it archives the directory the other three read and write. The notes are what
   makes a scenario describe the behaviour that was DELIVERED rather than the one that was planned.
 - **The knowledge layer is capped, because the two writers that grow it run after every build.**
   Nothing else in the plugin shrinks what they wrote, so without a cap each build makes every later
@@ -386,7 +417,30 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   the writer returns `VERDICT: NONE` rather than overwrite scenarios a tester may already have
   worked through. `qa.md` is rendered in the language the user is conversing in (the language the
   run's own specification carries); the handoff's headings and fields stay English, because only an
-  agent reads them.
+  agent reads them. Both documents OUTLIVE the run: they are not scaffolding, so `archive-run.sh`
+  carries them into the archive untouched, which is what keeps `/viber:e2e` usable after a cleanup
+  and what makes the archive worth opening months later.
+- **The run directory is scaffolding; the archive is the product.** Under `cleanup: true`
+  `implementor`'s last step dispatches `closeup`, which corrects `spec.md` and then calls
+  `archive-run.sh`. The script `git mv`s the WHOLE run directory to `docs/<specs>/<key>` - the same
+  key, so a second build of the same area lands beside this one and nothing is ever merged - and
+  then removes an ENUMERATED list, `plan.md`, `status.md`, `tasks/` and `work/`: everything else
+  the run left rides along without the script knowing what it is. Those four are dropped because
+  they are a second copy of what git already holds, and keeping them buries the two things worth
+  reading. Two gates decide whether it runs at all, and both refuse rather than correct: the path
+  must lie under `docs/<runs>/` and hold a `status.md`, and every `<!-- TASK -->` block of
+  `plan.md` must be settled in `status.md` - an unfinished run still resumes from that scaffolding.
+  There is no changelog and there will not be one: the agent edits `spec.md` BEFORE the move, so
+  the commit reads as rename plus modification and the drift is an ordinary diff.
+- **Drift is what the specification now gets WRONG, never how the work went.** `closeup`
+  records a deviation only where a sentence of `spec.md` is false for someone who cannot see the
+  code - the spec promises P, the build delivers Q, and P and Q differ from the outside. A
+  criterion met to the letter through other mechanics (another seam, another shape of test) is not
+  drift and belongs to the coder's notes, which `memory-writer` and `rules-writer` already read.
+  The marker is a footnote `[D<n>]` on the sentence plus one line per marker in a section at the
+  end of the file, and the whole of it is written in the spec's own language - `D<n>` is the single
+  neutral token, because it is an anchor rather than text. `qa.md` and `qa.e2e.md` are never
+  touched: `qa-writer` wrote them from the delivered behaviour, so they are already true.
 - **"Chromium only" is carried by the generated file, not by a flag.** Every spec `e2e-writer`
   produces opens with `test.use({ browserName: 'chromium' })`, which holds whatever the host's
   Playwright config declares and whoever runs the file later. On the exploration side the rule is

@@ -1,0 +1,240 @@
+#!/usr/bin/env bash
+#
+# archive-run.sh - moves a finished run's lasting work out of the runs
+# directory and into the archive, dropping the scaffolding the build needed
+# only while it was running, and commits the move.
+#
+# A run directory is two things at once: the specification and the QA documents,
+# which are worth reading months later, and the plan, the state file, the task
+# decomposition and the trail - all of which duplicate what git already holds.
+# Left whole, the second half buries the first. This script keeps the first and
+# removes the second in one commit, so the archive reads like a specification
+# rather than like a process log.
+#
+# It exists as a script rather than as a few lines in an agent for the reason
+# every deterministic step here does: the operation is fixed (git, a basename,
+# an enumerated list of paths), and a hand-composed `git mv` plus `git rm` is
+# exactly the composition that deletes the wrong tree when the run is not shaped
+# the way the caller assumed. The two gates below are the whole point - the
+# caller is refused rather than corrected.
+#
+# The directory is MOVED, never copied file by file, and the caller edits
+# spec.md BEFORE calling, so both sides of the move land in ONE commit and what
+# the build changed about the specification is an ordinary diff in the history.
+# That is why there is no changelog here - the history is the changelog. Git's
+# rename detection then pairs the two sides whenever the edit left the file
+# recognisably itself, which a few markers and a closing section on a real
+# specification do; a very short spec rewritten more than half over falls under
+# git's own 50% threshold and reads as an add plus a delete until `git log -M30`
+# or `--follow` is asked for it. The commit is the same either way.
+#
+# Contract:
+#   argv   : $1 run directory (REQUIRED), repository-relative, exactly as
+#            plan-path.sh printed its `path:` line minus `/plan.md`. The safety
+#            gate rejects every path outside docs/<runs>/, an absolute one and
+#            one carrying a `..` segment included: that is not a typo to fix up,
+#            it is the signal that the caller is outside this script's contract.
+#   cwd    : any directory inside the host repository - the script moves to the
+#            repository root itself, because the argument is relative to it.
+#            Outside a repository the cwd is the base every path resolves
+#            against and is left untouched.
+#   env    : none. GIT_LITERAL_PATHSPECS is exported here, never read.
+#   file   : <repo root>/.claude/viber.yml (optional) - `runs` and
+#            `specifications` inside its `directories:` group, resolved and
+#            sanitized exactly as config.sh resolves them, defaulting to
+#            `_specs` and `specs`. An unusable value is ignored.
+#   stdout : ALWAYS exactly one line, and never anything else - every byte of
+#            git noise goes to stderr:
+#              ARCHIVED: docs/specs/<key> (<n> files)
+#              ARCHIVED: docs/specs/<key> (<n> files - no git repository)
+#            <key> is the run directory's own name, kept unchanged, so a second
+#            build of the same area lands beside this one and nothing is ever
+#            merged or overwritten. <n> counts the files the archive holds after
+#            the scaffolding is gone.
+#   exit != 0:
+#     2 - unusable argv: no argument, more than one, a directory that does not
+#         exist, or one the safety gate refuses (outside docs/<runs>/, carrying
+#         a `..` segment, or holding no status.md)
+#     3 - the destination already exists; nothing is touched
+#     4 - the run is unfinished: a task of plan.md is in neither `done:` nor
+#         `skipped:` of status.md; nothing is touched
+#     5 - a git step failed. A failing `git mv` is the realistic one and leaves
+#         the run exactly where it was; a failure after it leaves the directory
+#         moved and the move uncommitted, which `git status` shows.
+#
+# The scaffolding is an enumerated list - plan.md, status.md, tasks/, work/ -
+# so anything else the run left behind travels into the archive on its own,
+# without this script having to know what it is.
+#
+set -euo pipefail
+
+# Every pathspec here is one exact path derived from the argument - never a
+# pattern. A run key is a stamp and a slug, but the archive lives beside
+# whatever else the host keeps under docs/, and git otherwise reads "*", "?"
+# and "[...]" in a pathspec as wildmatch.
+export GIT_LITERAL_PATHSPECS=1
+
+usage() {
+  echo "error: usage: archive-run.sh <run-dir>" >&2
+  exit 2
+}
+
+[[ $# -eq 1 ]] || usage
+raw="${1:-}"
+[[ -n "$raw" ]] || usage
+
+# The argument is repository-relative, so resolve it against the repository
+# root, never against the caller's cwd: this script is called by an agent,
+# whose cwd is less certain than a skill's. Outside a repository the cwd stays.
+in_git=0
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  in_git=1
+  repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  if [[ -n "$repo_root" && -d "$repo_root" ]]; then
+    CDPATH= cd -- "$repo_root"
+  fi
+fi
+
+# Normalization, before the gate and before anything is printed: a native
+# Windows path arrives backslashed, and a trailing "/" or a leading "./" is
+# how a path gets typed rather than how it differs.
+dir="${raw//\\//}"
+dir="${dir%/}"
+[[ "$dir" == ./* ]] && dir="${dir#./}"
+
+# --- the two directory keys ---
+# Read here rather than taken from the caller: the caller that knows the run
+# directory is an agent, and a third reader of the same group is ~10 lines. Only
+# inside `directories:`, exactly as config.sh reads it.
+read_dir_key() {
+  local key="$1" fallback="$2" value=""
+  if [[ -f .claude/viber.yml ]]; then
+    value="$(awk -v key="$key" '
+/^[^[:space:]#]/ { ingroup = ($0 ~ /^directories[[:space:]]*:/); next }
+ingroup && $0 ~ "^[[:space:]]+" key "[[:space:]]*:" {
+  sub(/^[^:]*:[[:space:]]*/, "")
+  sub(/[[:space:]#].*$/, "")
+  print
+  exit
+}
+' .claude/viber.yml)"
+  fi
+  case "$value" in
+    ''|.|..|*[!A-Za-z0-9._-]*) value="$fallback" ;;
+  esac
+  printf '%s\n' "$value"
+}
+
+runs_dir="$(read_dir_key runs _specs)"
+specs_dir="$(read_dir_key specifications specs)"
+
+# --- safety gate: only a real viber run directory ---
+case "/$dir/" in
+  */../*)
+    echo "error: refused $dir - a run directory carries no '..' segment" >&2
+    exit 2
+    ;;
+esac
+
+if [[ "$dir" != "docs/$runs_dir/"* ]]; then
+  echo "error: refused $dir - a run directory lives under docs/$runs_dir/" >&2
+  exit 2
+fi
+
+if [[ ! -d "$dir" ]]; then
+  echo "error: run directory not found: $dir" >&2
+  exit 2
+fi
+
+if [[ ! -f "$dir/status.md" ]]; then
+  echo "error: refused $dir - no status.md, so this is not a run directory" >&2
+  exit 2
+fi
+
+# --- completeness gate ---
+# Every task the plan defines has to be settled - committed or dropped by the
+# user. An unfinished run still resumes from its own scaffolding, so archiving
+# it would take the state the resume reads. Counted the way plan-path.sh counts
+# it: the done and skipped lists out of status.md, the total out of the plan's
+# own TASK blocks.
+settled=0
+total=0
+if [[ -f "$dir/plan.md" ]]; then
+  read -r settled total <<<"$(
+    awk -v st="$dir/status.md" '
+/<!--[[:space:]]*TASK[[:space:]]*-->/ { n++ }
+END {
+  while ((getline line < st) > 0) {
+    if (line !~ /^done:/ && line !~ /^skipped:/) continue
+    sub(/^[A-Za-z]+:/, "", line)
+    m = split(line, v, /[[:space:]]+/)
+    for (k = 1; k <= m; k++) {
+      if (v[k] == "" || v[k] == "none" || v[k] == "-") continue
+      s++
+    }
+  }
+  close(st)
+  printf "%d %d\n", s + 0, n + 0
+}
+' "$dir/plan.md"
+  )"
+fi
+
+if [[ "$settled" -lt "$total" ]]; then
+  echo "error: refused $dir - the run is unfinished: $settled of $total tasks settled" >&2
+  exit 4
+fi
+
+key="${dir##*/}"
+archive_root="docs/$specs_dir"
+dest="$archive_root/$key"
+
+if [[ -e "$dest" ]]; then
+  echo "error: $dest already exists - nothing was moved" >&2
+  exit 3
+fi
+
+scaffold=(plan.md status.md tasks work)
+
+mkdir -p -- "$archive_root"
+
+# --- outside a repository: the same result, without the history ---
+if [[ $in_git -eq 0 ]]; then
+  mv -- "$dir" "$dest"
+  for leaf in "${scaffold[@]}"; do
+    rm -rf -- "$dest/$leaf"
+  done
+  n="$(find "$dest" -type f | awk 'END { print NR + 0 }')"
+  echo "ARCHIVED: $dest ($n files - no git repository)"
+  exit 0
+fi
+
+# --- inside a repository: one rename, one removal, one commit ---
+# `git mv` on the whole directory is what makes the archive a rename in the
+# history: the caller's edit of spec.md is already in the working tree, so the
+# commit reads as rename plus modification and the drift is a plain diff.
+if ! git mv -- "$dir" "$dest" >&2; then
+  echo "error: could not move $dir to $dest - nothing was moved" >&2
+  exit 5
+fi
+
+for leaf in "${scaffold[@]}"; do
+  git rm -r -f -q --ignore-unmatch -- "$dest/$leaf" >&2
+  rm -rf -- "$dest/$leaf"
+done
+
+n="$(find "$dest" -type f | awk 'END { print NR + 0 }')"
+
+# The pathspec is the archive and the run directory it came from, and nothing
+# else: a path staged before or beside this call stays in the index.
+paths=("$dir")
+if [[ "$n" -gt 0 ]]; then
+  git add -A -- "$dest" >&2 || exit 5
+  paths+=("$dest")
+else
+  rmdir -- "$dest" 2>/dev/null || true
+fi
+
+git commit -q -m "docs(viber): archive run $key" -- "${paths[@]}" >&2 || exit 5
+
+echo "ARCHIVED: $dest ($n files)"

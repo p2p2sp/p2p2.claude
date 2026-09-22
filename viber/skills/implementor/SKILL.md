@@ -134,6 +134,18 @@ Only for the switches the config block above reports as `true` and not already n
 
 Commit what they return, one call per form and each deriving its own subject: the memory and rule paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore <plan> <file> [<file>...]`, the QA paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa <plan> <file> [<file>...]`. Both record the close in the plan. A form whose agents returned nothing, or only `VERDICT: NONE` -> no call for it. An `OVER:` line a writer returned is committed like any other path it named and repeated verbatim in the final summary - a knowledge file past its budget is the user's call to make, never something the run silently absorbs. Then `TaskUpdate` -> completed.
 
+## 7. Archive the run
+
+Only when the config block above reports `cleanup: true`, and only after step 6 is done. One dispatch, `viber:closeup` (Agent tool, no `model:` - its own frontmatter is its strength), carrying one line and nothing else:
+
+```
+run: <dir>
+```
+
+It marks on `spec.md` whatever the build delivers that the specification does not promise, then moves the run's lasting work into the archive directory, drops the scaffolding the build is finished with, and commits both as one rename. Carry its `DRIFT:` and `PATH:` lines to the final summary.
+
+`VERDICT: BLOCKED` does not stop anything: the run directory stays exactly where it is and the agent returned the reason. Name it in the summary and close the build.
+
 Then `"${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh" "<started>"`, the mark preloaded above - one call, and its `elapsed:` line is how long this session ran.
 
-Final summary, max 6 lines: tasks committed, review rounds spent, test verdict, how long the run took, what memory, rules and QA recorded, anything left for the user to decide. `elapsed: unknown` - the mark is gone - drops that line; never estimate one. A `qa.e2e.md` among the QA paths earns one more line - `/viber:e2e` turns it into Playwright tests.
+Final summary, max 7 lines: tasks committed, review rounds spent, test verdict, how long the run took, what memory, rules and QA recorded, where the run was archived and what drift that took, anything left for the user to decide. `elapsed: unknown` - the mark is gone - drops that line; never estimate one. A `qa.e2e.md` among the QA paths earns one more line - `/viber:e2e` turns it into Playwright tests.

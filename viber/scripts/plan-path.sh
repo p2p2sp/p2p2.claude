@@ -7,6 +7,11 @@
 # and tasks/T<n>.md) lands in that same directory, so one run is one directory
 # and one key.
 #
+# `_specs` is the DEFAULT name of that directory, not a fixed one: `runs` inside
+# the `directories:` group of .claude/viber.yml renames it, resolved here the
+# same way config.sh resolves it and fail-open on anything unusable, so every
+# example below reads docs/<runs>/ for a project that set the key.
+#
 # Usage:
 #   plan-path.sh --land <src>   land <src> as this run's plan
 #   plan-path.sh                no argument: the plan most recently worked on
@@ -24,7 +29,8 @@
 # Contract:
 #   argv   : --land and the source plan, or nothing.
 #   cwd    : the repository root - every path printed is relative to it, and the
-#            caller splits and stages those paths from there.
+#            caller splits and stages those paths from there. The config file is
+#            read from there too, as .claude/viber.yml.
 #   env    : none.
 #   stdout :
 #     path: docs/_specs/2026-09-19-17-30-00_add-login/plan.md
@@ -57,7 +63,28 @@
 set -euo pipefail
 shopt -s nullglob
 
-specs_dir="docs/_specs"
+# The runs directory, named by `runs` inside the `directories:` group of
+# .claude/viber.yml and defaulting to `_specs`. Read exactly as config.sh reads
+# it: only inside that group, and one path segment rather than a path, so a
+# value carrying a slash, a traversal or an absolute path leaves the default
+# standing instead of moving the run directory out of docs/.
+runs_dir="_specs"
+if [[ -f .claude/viber.yml ]]; then
+  configured="$(awk '
+/^[^[:space:]#]/ { ingroup = ($0 ~ /^directories[[:space:]]*:/); next }
+ingroup && /^[[:space:]]+runs[[:space:]]*:/ {
+  sub(/^[^:]*:[[:space:]]*/, "")
+  sub(/[[:space:]#].*$/, "")
+  print
+  exit
+}
+' .claude/viber.yml)"
+  case "$configured" in
+    ''|.|..|*[!A-Za-z0-9._-]*) ;;
+    *) runs_dir="$configured" ;;
+  esac
+fi
+specs_dir="docs/$runs_dir"
 
 # Modification time of a file, 0 when it is missing or unreadable.
 mtime() {

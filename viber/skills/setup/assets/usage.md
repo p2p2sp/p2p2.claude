@@ -23,7 +23,8 @@ how to launch the app, the required env, the migrations.
 ## After a build
 
 - `/viber:e2e` - turns the QA scenarios a build wrote into Playwright tests, run against your
-  own application and committed once they are green. Needs the `qa` switch to have been on.
+  own application and committed once they are green. Needs the `qa` switch to have been on during
+  that build, and it starts off - turn it on before the build, not after.
 
 ## The switches (`.claude/viber.yml`)
 
@@ -31,6 +32,15 @@ how to launch the app, the required env, the migrations.
 - `memory` - the build closes by updating this project's `CLAUDE.md` nodes.
 - `rules` - the build closes by updating `.claude/rules/`.
 - `qa` - the build closes by writing its QA scenarios into the run directory.
+- `cleanup` - the build ends by noting on the specification anything it delivered that the
+  specification does not promise, then archiving the run and dropping the plan, the state file
+  and the trail. They are all in git, which is where the history belongs.
 
-All four start on. Edit `.claude/viber.yml` to change that - every key is commented there, and
-only `true` counts as on: a key removed from the file is off.
+Four of the five start on; `qa` starts off, because a build that needs acceptance scenarios is the
+exception rather than the rule. Edit `.claude/viber.yml` to change that - every key is commented
+there, and only `true` counts as on: a key removed from the file is off.
+
+A `directories:` group names two directories rather than switches: `runs` (`_specs`) is where an
+open run lives under `docs/`, `specifications` (`specs`) is where `cleanup` archives a finished
+one. Both are plain directory names, read only from inside that group - a value carrying a slash
+is ignored and the default stands.

@@ -1,6 +1,6 @@
 /*
  * config.test.ts - proves viber/scripts/config.sh's contract: it resolves the
- * four `.claude/viber.yml` switches into the block a skill preloads.
+ * `.claude/viber.yml` keys into the block a skill preloads.
  *
  * Two properties carry the whole design. It is FAIL-OPEN and always exits 0,
  * because it runs as a `!` preload where a non-zero exit aborts the entire skill
@@ -9,6 +9,15 @@
  * preload runs wherever the session started, so a session opened in a
  * subdirectory would otherwise silently report every switch off and turn off
  * every layer the user configured.
+ *
+ * Two kinds of key, told apart by WHERE they sit. A SWITCH is a top-level key
+ * and is on only when it literally says `true`. A DIRECTORY key lives inside the
+ * `directories:` group and names one directory under docs/, never a path. The
+ * group is a contract rather than a presentation: a same-named key outside it is
+ * ignored, which is the whole reason it exists - `runs` alone reads like a count
+ * and `specs` like a switch. And the value is sanitized, because the invariant
+ * that "docs/ is the one home for persisted knowledge" rests on it: a slash, a
+ * traversal or an absolute path leaves the default standing.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -25,6 +34,11 @@ import { withGitRepo, withTempDir } from "../harness/tmp.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/config.sh");
 
+/** Every switch off and both directory keys at their default - what a project
+ *  with no config file, and every unusable value, resolves to. */
+const OFF = { adr: "false", memory: "false", rules: "false", qa: "false", cleanup: "false" };
+const DEFAULT_DIRS = { runs: "_specs", specifications: "specs" };
+
 function run(dir: string, env: Record<string, string> = {}) {
   return runScript(SUT, [], { cwd: dir, env, shell: "bash" });
 }
@@ -34,8 +48,13 @@ function writeConfig(root: string, body: string): void {
   fs.writeFileSync(path.join(root, ".claude", "viber.yml"), body);
 }
 
-/** The four switches, in the fixed order the script prints them. */
-function switches(stdout: string): Record<string, string> {
+/** The `directories:` group as the template writes it. */
+function group(entries: Record<string, string>): string {
+  return ["directories:", ...Object.entries(entries).map(([key, value]) => `  ${key}: ${value}`), ""].join("\n");
+}
+
+/** Every key the script printed, in the fixed order it prints them. */
+function config(stdout: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const line of stdout.trim().split("\n").slice(1)) {
     const [key, value] = line.split(":").map((s) => s.trim());
@@ -44,53 +63,95 @@ function switches(stdout: string): Record<string, string> {
   return out;
 }
 
-test("no config file: every switch is off and the exit is still 0", () => {
+/** The switches alone, so a case about a switch need not restate the two
+ *  directory names. */
+function switches(stdout: string): Record<string, string> {
+  const all = config(stdout);
+  delete all["directories.runs"];
+  delete all["directories.specifications"];
+  return all;
+}
+
+/** The two directory keys alone, under their short names. The script prints
+ *  them dotted, which is itself asserted below. */
+function dirs(stdout: string): Record<string, string> {
+  const all = config(stdout);
+  return { runs: all["directories.runs"], specifications: all["directories.specifications"] };
+}
+
+test("no config file: every switch is off, both directories default, and the exit is still 0", () => {
   withTempDir("p2p2-viber-", (dir) => {
     const result = run(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout.split("\n")[0], "# viber config (resolved)");
-    assert.deepEqual(switches(result.stdout), { adr: "false", memory: "false", rules: "false", qa: "false" });
+    assert.deepEqual(switches(result.stdout), OFF);
+    assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS);
+  });
+});
+
+test("the directory keys are printed dotted, so no reader can take one for a switch", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const printed = run(dir).stdout.trim().split("\n");
+    assert.deepEqual(printed.slice(-2), ["directories.runs: _specs", "directories.specifications: specs"]);
   });
 });
 
 test("only `true` counts as on - false, a missing key, a commented-out line and a near-miss value are all off", () => {
   withTempDir("p2p2-viber-", (dir) => {
-    writeConfig(dir, ["adr: false", "# memory: true", "rules: truthy", "qa: yes", "extra: true", ""].join("\n"));
+    writeConfig(dir, ["adr: false", "# memory: true", "rules: truthy", "qa: yes", "cleanup: on", "extra: true", ""].join("\n"));
 
     const result = run(dir);
     assert.equal(result.status, 0);
-    assert.deepEqual(switches(result.stdout), { adr: "false", memory: "false", rules: "false", qa: "false" });
+    assert.deepEqual(switches(result.stdout), OFF);
   });
 });
 
-test("the seeded template turns all four on, comments, indentation and case notwithstanding", () => {
+test("the seeded template turns every switch on, comments, indentation and case notwithstanding", () => {
   withTempDir("p2p2-viber-", (dir) => {
-    writeConfig(dir, ["# viber switches", "adr: true  # the decisions worth keeping", "  memory: TRUE", "rules: true", "qa: true", ""].join("\n"));
+    writeConfig(
+      dir,
+      ["# viber switches", "adr: true  # the decisions worth keeping", "  memory: TRUE", "rules: true", "qa: true", "cleanup: true", ""].join("\n"),
+    );
 
     const result = run(dir);
     assert.equal(result.status, 0);
-    assert.deepEqual(switches(result.stdout), { adr: "true", memory: "true", rules: "true", qa: "true" });
+    assert.deepEqual(switches(result.stdout), {
+      adr: "true",
+      memory: "true",
+      rules: "true",
+      qa: "true",
+      cleanup: "true",
+    });
   });
 });
 
-test("the shipped template is what setup seeds, and it turns all four on", () => {
+test("the shipped template is what setup seeds: four switches on, qa off, and both directories named", () => {
   withTempDir("p2p2-viber-", (dir) => {
     const template = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/viber.yml");
     writeConfig(dir, fs.readFileSync(template, "utf-8"));
 
-    assert.deepEqual(switches(run(dir).stdout), { adr: "true", memory: "true", rules: "true", qa: "true" });
+    const result = run(dir);
+    assert.deepEqual(switches(result.stdout), {
+      adr: "true",
+      memory: "true",
+      rules: "true",
+      qa: "false",
+      cleanup: "true",
+    });
+    assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS);
   });
 });
 
-test("the file is resolved against the repository root, so a session started in a subdirectory reads the same switches", () => {
+test("the file is resolved against the repository root, so a session started in a subdirectory reads the same config", () => {
   withGitRepo((repo) => {
-    writeConfig(repo.dir, "memory: true\n");
+    writeConfig(repo.dir, `memory: true\n${group({ specifications: "archive" })}`);
     const nested = path.join(repo.dir, "src", "deep");
     fs.mkdirSync(nested, { recursive: true });
 
     const result = runScript(SUT, [], { cwd: nested, env: repo.env, shell: "bash" });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.deepEqual(switches(result.stdout), { adr: "false", memory: "true", rules: "false", qa: "false" });
+    assert.deepEqual(switches(result.stdout), { ...OFF, memory: "true" });
+    assert.deepEqual(dirs(result.stdout), { runs: "_specs", specifications: "archive" });
   });
 });
 
@@ -100,6 +161,99 @@ test("an unreadable or malformed config never fails the preload", () => {
 
     const result = run(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.deepEqual(switches(result.stdout), { adr: "false", memory: "false", rules: "false", qa: "false" });
+    assert.deepEqual(switches(result.stdout), OFF);
+    assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS);
+  });
+});
+
+// --- the directories group ---
+
+test("a directory key takes the name it was given, extra indentation and a trailing comment notwithstanding", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(
+      dir,
+      ["directories:", "    runs: work-in-progress   # where an open run lives", "  specifications: docs_archive.v2", ""].join("\n"),
+    );
+
+    const result = run(dir);
+    assert.equal(result.status, 0);
+    assert.deepEqual(dirs(result.stdout), { runs: "work-in-progress", specifications: "docs_archive.v2" });
+  });
+});
+
+test("the group is a contract: a same-named key at the top level is NOT this key", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, "runs: builds\nspecifications: archive\n");
+
+    const result = run(dir);
+    assert.equal(result.status, 0);
+    assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS);
+  });
+});
+
+test("the group ends at the next top-level key, so an indented line below one is out of it", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, ["directories:", "  runs: builds", "qa: true", "  specifications: archive", ""].join("\n"));
+
+    const result = run(dir);
+    assert.equal(result.status, 0);
+    assert.deepEqual(dirs(result.stdout), { runs: "builds", specifications: "specs" });
+    assert.deepEqual(switches(result.stdout), { ...OFF, qa: "true" });
+  });
+});
+
+test("a blank line and a column-0 comment leave the group open, because that is how it gets written", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(
+      dir,
+      ["directories:", "  runs: builds", "", "# where the archive lands", "  specifications: archive", ""].join("\n"),
+    );
+
+    assert.deepEqual(dirs(run(dir).stdout), { runs: "builds", specifications: "archive" });
+  });
+});
+
+test("a value that is a path rather than a name is refused, and the default stands", () => {
+  const refused = ["../escape", "/absolute", "a/b", "./here", ".", "..", "", "   ", "two;words", "quoted'name"];
+  for (const value of refused) {
+    withTempDir("p2p2-viber-", (dir) => {
+      writeConfig(dir, group({ runs: value, specifications: value }));
+
+      const result = run(dir);
+      assert.equal(result.status, 0, `stderr for "${value}": ${result.stderr}`);
+      assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS, `"${value}" must not name a directory`);
+    });
+  }
+});
+
+test("a directory value is cut at the first space, the way a trailing comment is - the first word is the name", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, group({ runs: "work in progress" }));
+
+    assert.deepEqual(dirs(run(dir).stdout), { runs: "work", specifications: "specs" });
+  });
+});
+
+test("the first assignment inside the group wins, so a later duplicate cannot quietly override it", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, ["directories:", "  runs: first", "  runs: second", ""].join("\n"));
+
+    assert.deepEqual(dirs(run(dir).stdout), { runs: "first", specifications: "specs" });
+  });
+});
+
+test("a commented-out directory key is not an assignment, so the default stands", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, ["directories:", "  # runs: commented", "  specifications: kept", ""].join("\n"));
+
+    assert.deepEqual(dirs(run(dir).stdout), { runs: "_specs", specifications: "kept" });
+  });
+});
+
+test("cleanup is a switch like the other four and nothing about it is special", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, "cleanup: true\n");
+
+    assert.deepEqual(switches(run(dir).stdout), { ...OFF, cleanup: "true" });
   });
 });

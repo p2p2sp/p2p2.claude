@@ -44,15 +44,25 @@ commits it, and finishes on the full test suite.
 
 ## Optional switches
 
-`/viber:setup` writes `.claude/viber.yml` with all four on. Edit that file to turn one off - only
-`true` counts as on. Without the file all four are off.
+`/viber:setup` writes `.claude/viber.yml` with four of the five on and `qa` off. Edit that file to
+change any of them - only `true` counts as on. Without the file all five are off.
 
-| Switch | When on |
-| --- | --- |
-| `adr` | A decision worth keeping becomes an architecture decision record in `docs/adr/`. |
-| `memory` | The build closes by updating your project's `CLAUDE.md` with what it learned. |
-| `rules` | The build closes by recording a convention it confirmed in `.claude/rules/`. |
-| `qa` | The build closes by writing test scenarios for what it delivered, which `/viber:e2e` can then automate. |
+| Switch | Default | When on |
+| --- | --- | --- |
+| `adr` | on | A decision worth keeping becomes an architecture decision record in `docs/adr/`. |
+| `memory` | on | The build closes by updating your project's `CLAUDE.md` with what it learned. |
+| `rules` | on | The build closes by recording a convention it confirmed in `.claude/rules/`. |
+| `qa` | **off** | The build closes by writing test scenarios for what it delivered, which `/viber:e2e` can then automate. |
+| `cleanup` | on | The build ends by noting anything it delivered that the specification does not promise, then archiving the run and dropping the working files. |
+
+The same file carries a `directories:` group with two names, both under `docs/`: `runs`
+(`_specs`) for a run in progress and `specifications` (`specs`) for the archive.
+
+```yaml
+directories:
+  runs: _specs
+  specifications: specs
+```
 
 ## Before your first run
 
@@ -66,7 +76,12 @@ the run's progress, so a build interrupted halfway
 resumes by re-reading it - in a new session, or on another computer, because the notes and reports
 the run produced are committed beside the plan. The plan itself is never edited once it lands.
 With `qa` on, the build's test scenarios land there
-too. Generated
+too.
+
+With `cleanup` on, the build ends by moving what is worth keeping - the specification and the test
+scenarios - to `docs/specs/<date>_<slug>/`, and dropping the plan, the progress file and the
+working notes. They are all in git, so nothing is lost; the archive is simply the half you would
+want to read a year later. Generated
 Playwright tests go into the e2e directory your own project already uses - `/viber:e2e` asks if
 nothing names one, and creates no directory of its own. Scratch files go to `.temp/viber/`. Your
 `.gitignore` and `.claude/settings.json` are only ever added to, never rewritten. Nothing else,

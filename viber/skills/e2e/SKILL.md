@@ -2,11 +2,15 @@
 name: e2e
 description: Generates and locally verifies Playwright tests for the QA scenarios of one viber run, then commits them. Use it after a build closed with a qa.e2e.md handoff file in its run directory.
 argument-hint: "[run directory, or a path to qa.e2e.md]"
-allowed-tools: Read, Grep, Glob, Bash, Agent, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/check-playwright.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*)
+allowed-tools: Read, Grep, Glob, Bash, Agent, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/check-playwright.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*)
 disallowed-tools: Write, Edit, NotebookEdit
 user-invocable: true
 disable-model-invocation: true
 ---
+
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/config.sh"
+```
 
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/check-playwright.sh"
@@ -22,13 +26,15 @@ Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scrip
 
 ## 1. Resolve the run
 
-The argument names either the run directory or the `qa.e2e.md` inside it; `<dir>` is that directory either way. With no argument, `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh"` returns the plan most recently worked on and `<dir>` is its directory.
+The argument names either the run directory or the `qa.e2e.md` inside it; `<dir>` is that directory either way.
 
-No `<dir>/qa.e2e.md` -> stop with one line naming the directory and saying it carries no handoff file. That build wrote no automatable scenario, and nothing here invents one.
+With no argument, `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh"` returns the plan most recently worked on and `<dir>` is its directory. Two of its answers send you to the archive instead, because a build whose run was cleaned up leaves nothing to resolve: exit 3 - no open run at all - and a run it resolved that holds no `qa.e2e.md`. Then `Glob` `docs/<specs>/*/qa.e2e.md`, `<specs>` being the `directories.specifications` value on the config block above, and take the newest by directory name - that name opens with the run's stamp, so it sorts. `<dir>` is that file's own directory.
+
+No `<dir>/qa.e2e.md`, and no archived one either -> stop with one line naming the directory and saying it carries no handoff file. That build wrote no automatable scenario, and nothing here invents one.
 
 ## 2. Preflight
 
-The two lines above are the state of this host: trust them, never re-probe either. Both reading `found` -> go on.
+The playwright block's two lines above are the state of this host: trust them, never re-probe either. Both reading `found` -> go on.
 
 A `not found` -> one `AskUserQuestion` naming what is missing: install it now, or abort. Abort stops the run with nothing generated. On install, one Bash call each, an explicit generous timeout on every one of them, the package names exactly as written here and never re-derived from a binary name:
 
