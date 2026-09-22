@@ -34,6 +34,8 @@ Run the task's `Verification` commands, their build output under the `out` path 
 
 Never commit, never stage, never branch, never touch another task's files. Your git is read-only - `status`, `diff`, `log`, `show` - never `stash`, `checkout`, `restore` or `clean`: anything that moves the tree takes another coder's uncommitted work with it. Git belongs to the caller.
 
+Never leave a process or a background shell you started running when you return: it outlives you and lands in the caller's session. Anything you start disposable, you stop.
+
 ## Leave your notes
 
 Then `Write` the `notes` path, 8 lines at most: only what the diff does not already say - a convention this codebase forced on you, a constraint you discovered, a decision you made where the task left the choice open, a trap the next person would walk into. The project's memory and rule files are written from these notes when the build closes. Nothing worth saying means no file.

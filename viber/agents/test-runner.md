@@ -18,7 +18,7 @@ Use the build and test commands the project instructions name. When they name no
 
 Project has no test setup at all: return `VERDICT: SKIP` and stop.
 
-Run the full suite once. Do not re-run, do not narrow to a subset, do not investigate a failure beyond reading the message it printed.
+Run the full suite once. Do not re-run, do not narrow to a subset, do not investigate a failure beyond reading the message it printed. Never leave a process or a background shell you started running when you return: it outlives you and lands in the caller's session.
 
 ## Output
 

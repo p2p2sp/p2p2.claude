@@ -41,7 +41,7 @@ Exactly one file, `<spec-dir>/<qa-id>-<slug>.spec.ts`, where `<qa-id>` is the ID
 
 ## Run
 
-`npx playwright test <file>`, one Bash call with an explicit generous timeout measured in minutes: a browser run left at a default timeout comes back as a false red. Redirect the output under `.temp/viber/e2e/` and read it there.
+`npx playwright test <file>`, one Bash call with an explicit generous timeout measured in minutes: a browser run left at a default timeout comes back as a false red. Redirect the output under `.temp/viber/e2e/` and read it there. Never leave a process or a background shell you started running when you return: it outlives you and lands in the caller's session, and the application was launched by the skill above you.
 
 Red is classified before anything is touched:
 

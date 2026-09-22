@@ -107,16 +107,16 @@ Then work the loop: on every return, answer with ONE message carrying every disp
 
 What a return means:
 
-1. Coder `VERDICT: FAIL`, or a `PASS` whose `DOD:` line is short of its total -> `AskUserQuestion` naming the task and its `REASON:` line, the short `DOD:` line standing in for one: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its own dispatch lines plus `reason: <the returned REASON>`. Abort ends the run; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it (`TaskUpdate` -> completed for each), and leaves its half-finished files uncommitted in the tree - name them in the final summary.
+1. Coder `VERDICT: FAIL`, or a `PASS` whose `DOD:` line is short of its total -> `AskUserQuestion` naming the task and its `REASON:` line, the short `DOD:` line standing in for one: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its own dispatch lines plus `reason: <the returned REASON>`. Abort stops every dispatch and goes to step 7, steps 5 and 6 skipped; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it (`TaskUpdate` -> completed for each), and leaves its half-finished files uncommitted in the tree - name them in the final summary.
 2. Coder returned and the profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier, `sonnet` where that tier is `haiku`) with the same `task:`, `notes:`, `out:`, `refs:` and `deferred:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
-   - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its own dispatch lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort. `accept` is the user overriding the gate: go to step 3, commit with `--unreviewed` appended, and name the task in the final summary as unreviewed.
+   - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its own dispatch lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort. `accept` is the user overriding the gate: commit as in 3 below with `--unreviewed` appended, and name the task in the final summary as unreviewed.
 3. Coder returned with no review due, or its reviewer returned `VERDICT: PASS` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`, with `--with <path> [<path>...]` appended for every path an `EXTRA:` line of that task's coder or reviewer returned, and `--defer <target-id>:<path> [...]` for every `DEFERRED:` line its coder returned. Those are files the task could not work without and the plan gave no owner; left out, the commit that lands the task is not the whole task. A `DEFERRED` path returned as `-> none` takes the earliest unfinished task whose `files` column claims it; one no task claims is recorded nowhere and named in the final summary. It takes the commit subject from the task's own heading in the plan, stages what it was given plus the task's own notes and reports, commits, and records the task as done. That call and this task's `TaskUpdate` -> completed go in the SAME message: the next one already answers another return, and an entry left open there is never closed. A non-zero exit means nothing was committed and nothing recorded -> put that entry back to in progress and `AskUserQuestion`: retry / skip / abort.
 
    Two warnings come off that call and neither stops the build. `refused <path> - claimed by task <id>` means the path is in that task's own map and rides in its commit, so leave it and name it in the final summary. `changed, claimed by no task in the plan` names paths nobody reported - a leftover, a stray edit, a regression outside the plan; that is the same split step 5 commits by, so carry them to the final summary rather than acting on them per commit.
 
 ## 5. Close
 
-Dispatch `viber:test-runner` with a report path `<dir>/work/tests-<round>.md`.
+Dispatch `viber:test-runner` with a report path `<dir>/work/tests-<round>.md`, that entry's `TaskUpdate` -> in progress in the same message.
 
 - `VERDICT: PASS` or `VERDICT: SKIP` -> `TaskUpdate` -> completed.
 - `VERDICT: FAIL` -> dispatch `viber:task-coder` (model `sonnet`) with `spec:`, the returned `REPORT` path as `report:`, `notes: <dir>/work/repair-<round>-coder.md` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`. Commit every path on its `FILES:` line, each one through the form that owns it:
@@ -127,7 +127,7 @@ Dispatch `viber:test-runner` with a report path `<dir>/work/tests-<round>.md`.
 
 ## 6. Record what the build taught
 
-Only for the switches the config block above reports as `true` and not already named on the index's `closed:` line, all of them dispatched in one message - they write in separate places and never wait for each other:
+Only for the switches the config block above reports as `true` and not already named on the index's `closed:` line, all of them dispatched in one message carrying each entry's `TaskUpdate` -> in progress - they write in separate places and never wait for each other:
 
 - `memory: true` -> `viber:memory-writer`, carrying `spec: <dir>/spec.md` and `notes: <dir>/work/`, the directory the coders left their conclusions in.
 - `rules: true` -> `viber:rules-writer`, carrying those same two lines.

@@ -322,7 +322,13 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   or `clean`: N coders write in one tree, so anything that moves it takes their uncommitted work
   with it. `setup`'s permissions template denies those four verbs outright, because a prompt rule
   alone is a known non-compliance and this failure mode is silent until a coder notices its files
-  are gone.
+  are gone. The four agents that run commands - `task-coder`, `task-reviewer`, `test-runner`,
+  `e2e-writer` - each carry one more line: nothing they started may still be running when they
+  return, because a background shell outlives its agent and reports into the CALLER's session,
+  where it reads as a second return from a task already settled. Whatever an integration
+  `Verification` starts disposable, the same agent stops. The one legitimate background call in the
+  plugin belongs to the `e2e` SKILL, which launches the host's application in the main session and
+  owns it there.
 - **Seven deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path and its
   `state:` - `new`, `existing` or `draft` - report
   every other unfinished run as an `open:` line, and on `--land` put the approved plan there,
