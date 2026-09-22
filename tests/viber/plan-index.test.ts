@@ -12,7 +12,9 @@
  * `closed`) passes through, and a
  * `dirty:` line names a task whose files carry uncommitted work from a session
  * that was cut off inside it. A missing dirty line sends a fresh coder onto
- * another one's half-finished work.
+ * another one's half-finished work; a spurious one - the fixer's RED
+ * reproduction test, named on the task's `Repro:` line and uncommitted by
+ * design - stops every fix build on a question with one right answer.
  *
  * `plan-index.sh <plan> --split` additionally decomposes the plan in place:
  * `spec.md` (everything above `## Tasks`) plus one `tasks/<id>.md` per task,
@@ -61,6 +63,8 @@ interface TaskFields {
   tdd?: string;
   /** Omitted entirely unless set - an absent line is what an ordinary task looks like. */
   exclusive?: string;
+  /** Omitted entirely unless set - only a fixing task carries the fixer's RED test. */
+  repro?: string;
   covers?: string;
   /** `null` omits the line entirely - the shape a plan written before `Uses:` has. */
   uses?: string | null;
@@ -210,6 +214,7 @@ function planBody(
       `### ${t.id ?? "T1"} - ${t.title ?? "do the thing"}`,
       `- TDD: ${t.tdd ?? "required"}`,
       ...(t.exclusive === undefined ? [] : [`- Exclusive: ${t.exclusive}`]),
+      ...(t.repro === undefined ? [] : [`- Repro: ${t.repro}`]),
       `- Covers: ${t.covers ?? "#1"}`,
       ...(t.uses === null ? [] : [`- Uses: ${t.uses ?? "C1"}`]),
       `- Depends-on: ${t.deps ?? "none"}`,
@@ -423,6 +428,37 @@ test("a clean tree reports no dirty line, so a build that starts normally sees n
   });
 });
 
+test("the Repro path is uncommitted by design and never reported dirty, while the rest of that task's files still are", () => {
+  const FIX: TaskFields[] = [
+    {
+      id: "T1",
+      title: "Fix the rejected login",
+      tdd: "none",
+      repro: "test/login.test.ts",
+      files: "src/login.ts, test/login.test.ts",
+    },
+  ];
+  withGitRepo((repo) => {
+    seed(repo.dir, planBody(FIX, 1));
+    write(repo.dir, "src/login.ts", "committed\n");
+    write(repo.dir, "test/login.test.ts", "committed\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "seed");
+
+    // the fixer's RED test, appended to an existing test file and left uncommitted
+    write(repo.dir, "test/login.test.ts", "committed\nand a RED reproduction\n");
+    let result = run(repo.dir, repo.env, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stdout, /^dirty:/m);
+
+    // a session cut off inside the fix still shows, the Repro path left out
+    write(repo.dir, "src/login.ts", "half a coder's fix\n");
+    result = run(repo.dir, repo.env, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^dirty: T1 \| src\/login\.ts$/m);
+  });
+});
+
 // --- validation ------------------------------------------------------------
 
 test("a missing argument, a missing plan and an unknown second argument all exit 2 with nothing on stdout", () => {
@@ -531,6 +567,16 @@ test("a broken task contract exits 4 and names the task", () => {
       "an Exclusive line spelled none - the mandatory fields' convention, borrowed where it does not hold",
       [{ id: "T1", exclusive: "none" }],
       /task T1: Exclusive must be "true" or the line left out, got: "none"/,
+    ],
+    [
+      "a Repro path outside the task's own Files - it would be committed by nobody",
+      [{ id: "T1", tdd: "none", repro: "test/other.test.ts", files: "src/a.ts" }],
+      /task T1: Repro "test\/other\.test\.ts" must be one path of its own Files/,
+    ],
+    [
+      "a Repro on a TDD: required task - the reproduction test already is the RED cycle",
+      [{ id: "T1", repro: "src/a.ts", files: "src/a.ts" }],
+      /task T1: Repro needs "TDD: none"/,
     ],
     [
       "a dependency pointing forward",

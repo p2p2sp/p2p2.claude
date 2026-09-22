@@ -20,6 +20,7 @@
 #   T1 | done | none     | -   | -  | .claude/settings.json | chore: ...
 #   T2 | todo | required | yes | T1 | src/a.ts,src/b.ts     | feat: ...
 #   dirty: T2 | src/a.ts            only for a task whose own files are dirty
+#                                   (its "Repro:" path excepted)
 #
 # The run's state is read from status.md beside the plan - "done", "skipped",
 # "unreviewed", "deferred" and "closed", one key per line, "none" for an empty
@@ -35,6 +36,13 @@
 # line means that task's own files carry uncommitted work, so an earlier session
 # was cut off mid-task and a fresh coder would land on top of it. Everything else
 # a resume needs is already derivable, so nothing here is stored twice.
+#
+# "Repro:" is the second optional field: the one path of a fixing task that the
+# fixer skill left in the tree as a RED reproduction test, deliberately
+# uncommitted. It is always uncommitted when the build starts, so counted as
+# dirty it would read as an interrupted session and stop the build on a
+# question with only one right answer. It never enters a "dirty" line; every
+# other path of that task still does.
 #
 # "excl" is "yes" for a task the plan marked "Exclusive: true" - work that cannot
 # share the working tree or a machine-wide resource (a fixed port, one database),
@@ -101,7 +109,8 @@
 #       where the cut would leave tasks/ empty while the index still lists
 #       them; duplicate id, an id that is not [A-Za-z0-9_-]+,
 #       missing field, illegal dependency, an "Exclusive:" value other than
-#       "true", a "Covers:" criterion absent from the
+#       "true", a "Repro:" that is not one path of the same task's "Files:" or
+#       sits on a task not marked "TDD: none", a "Covers:" criterion absent from the
 #       acceptance criteria, an acceptance criterion no task's "Covers:" names, a
 #       "Uses:" contract absent from the appendix, a contract block no task's
 #       "Uses:" names, a malformed or duplicate contract heading, a contract
@@ -291,7 +300,7 @@ incon && !intask && cid != "" && trim($0) != "" { cfresh = 0 }
   intask = 1; n++
   id[n] = ""; ttl[n] = ""; tdd[n] = ""; deps[n] = ""; files[n] = ""
   covers[n] = ""; uses[n] = ""; deliv[n] = ""; verif[n] = ""; dod[n] = ""
-  excl[n] = ""
+  excl[n] = ""; repro[n] = ""
   next
 }
 /<!--[[:space:]]*\/TASK[[:space:]]*-->/ { intask = 0; next }
@@ -307,6 +316,7 @@ intask {
   }
   if ($0 ~ /^-[[:space:]]*TDD:/)          { tdd[n]    = val($0); next }
   if ($0 ~ /^-[[:space:]]*Exclusive:/)    { excl[n]   = val($0); next }
+  if ($0 ~ /^-[[:space:]]*Repro:/)        { repro[n]  = val($0); next }
   if ($0 ~ /^-[[:space:]]*Covers:/)       { covers[n] = val($0); next }
   if ($0 ~ /^-[[:space:]]*Uses:/)         { uses[n]   = val($0); next }
   if ($0 ~ /^-[[:space:]]*Depends-on:/)   { deps[n]   = val($0); next }
@@ -335,7 +345,7 @@ END {
 
   for (i = 1; i <= n; i++) {
     if (tdd[i] != "required" && tdd[i] != "none") fail("task " id[i] ": TDD must be \"required\" or \"none\", got: \"" tdd[i] "\"")
-    # Exclusive is the one optional field: absent means an ordinary task. Two
+    # Exclusive is optional: absent means an ordinary task. Two
     # states only - a third spelling would start the same drift the mandatory
     # "Uses: none" was written to close.
     if (excl[i] != "" && excl[i] != "true") fail("task " id[i] ": Exclusive must be \"true\" or the line left out, got: \"" excl[i] "\"")
@@ -358,6 +368,15 @@ END {
       if (p ~ /[[:space:]]/)           { fail("task " id[i] ": Files entry \"" p "\" is not a bare path, drop the annotation"); continue }
       fset[i, p] = 1
       fpath[i, ++nf[i]] = p
+    }
+
+    # Repro: the reproduction test the fixer left RED, one path the task already
+    # stages - so it is compared against the parsed Files, never trusted alone.
+    # Its RED cycle is done, which is what "TDD: none" on the task says.
+    if (repro[i] != "") {
+      sub(/^\.\//, "", repro[i])
+      if (!((i, repro[i]) in fset)) fail("task " id[i] ": Repro \"" repro[i] "\" must be one path of its own Files")
+      if (tdd[i] != "none")        fail("task " id[i] ": Repro needs \"TDD: none\" - the reproduction test is already RED")
     }
 
     # Covers must point at an existing acceptance criterion; the reverse direction
@@ -495,11 +514,12 @@ END {
   }
 
   # a task whose own files carry uncommitted work: an earlier session was cut
-  # off inside it, and a fresh coder would land on top of what it left
+  # off inside it, and a fresh coder would land on top of what it left. The
+  # Repro path is uncommitted by design, so it is never that evidence
   for (i = 1; i <= n; i++) {
     d = ""
     for (k = 1; k <= nf[i]; k++)
-      if (fpath[i, k] in chg) d = (d == "" ? fpath[i, k] : d "," fpath[i, k])
+      if (fpath[i, k] in chg && fpath[i, k] != repro[i]) d = (d == "" ? fpath[i, k] : d "," fpath[i, k])
     if (d != "") printf "dirty: %s | %s\n", id[i], d
   }
 }

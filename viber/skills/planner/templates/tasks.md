@@ -25,8 +25,10 @@
 - DoD: <...>
 <!-- /TASK -->
 
-<!-- One TASK block per unit of work; leave every HTML marker intact. "Exclusive: true" is the one
-     optional line and the only value it takes. -->
+<!-- One TASK block per unit of work; leave every HTML marker intact. Two lines are optional:
+     "Exclusive: true", the only value it takes, and "Repro: <path>" on the task fixing a bug whose
+     reproduction test is already RED in the tree - that path, also listed in "Files:", on a
+     "TDD: none" task. -->
 
 ## Contracts
 

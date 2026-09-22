@@ -89,7 +89,9 @@ there.
   things a later session cannot derive (`skipped:`, `unreviewed:`, `deferred:`, `closed:`);
   `plan-index.sh --split` creates it and `commit-task.sh` is its only other writer. The document
   that DEFINES the work is never edited to record how the work is going, and what IS derivable is
-  never stored - `dirty:` comes from intersecting `git status` with each task's `Files:`.
+  never stored - `dirty:` comes from intersecting `git status` with each task's `Files:`, minus
+  its `Repro:` path: `fixer` leaves that test RED and uncommitted on purpose, so counting it would
+  stop every fix build on a resume question with one right answer.
 - **The commit is the run's only serialization point.** Two `commit-task.sh` calls never run at
   once: both rewrite the git index and `status.md`. Reviews go out in a batch instead. The status
   entry and the commit are atomic, because a task marked done but never committed is skipped
@@ -138,8 +140,9 @@ there.
   rather than a schedule: every coder and reviewer gets an `out: .temp/viber/<id>/` line, per task.
 - **`Exclusive:` serialises the last test layer.** The doctrine lives in
   `references/test-strategy.md`, read at runtime by the four workers that decide it; the wiring is
-  here. `Exclusive: true` is the plan's one OPTIONAL field and its only accepted value, reaches the
-  orchestrator as the index's `excl` column and makes `implementor` dispatch that task alone. It is
+  here. `Exclusive: true` is one of the plan's two OPTIONAL fields (`Repro:` the other) and its
+  only accepted value, reaches the orchestrator as the index's `excl` column and makes
+  `implementor` dispatch that task alone. It is
   a declaration, never a judgement, which is why `planner-review` gates it in both directions.
 - **Source files change through `Edit`/`Write`, and git never moves under a running build.** A
   scripted substitution that misses its pattern exits 0 over unchanged code, so the agent would
