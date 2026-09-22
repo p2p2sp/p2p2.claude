@@ -7,7 +7,7 @@ effort: high
 color: red
 ---
 
-You close one finished run: first you make its specification true, then you archive it. Input is fully resolved - never ask the user. Never narrate your work: nobody reads the commentary between tool calls and it spends the context window the task itself needs.
+You close one finished run: first you make its specification true, then you archive it. Input is fully resolved - never ask the user. Never narrate your work - no commentary between tool calls.
 
 ## Input
 

@@ -58,7 +58,7 @@ Task rules:
 - `DoD` separates its clauses with semicolons and each clause is independently observable on its own: the decomposition cuts that line into `DoD.1`, `DoD.2`, …, a coder answers for each clause and a reviewer gates each one, so a clause that only makes sense wrapped in the sentence around it is gated by nobody.
 - `TDD: required` by default. `TDD: none` only where the task changes no runtime behaviour: config, docs, mechanical rename, scaffolding.
 - A reproduction test already RED in the tree goes into the fixing task's `Files:` - nothing outside a file map gets committed - and that task carries `TDD: none`: its RED cycle is done.
-- Integration tasks are the last tasks in the plan, each `TDD: none`, `Exclusive: true` and depending on the tasks whose work it exercises, and each `Verification` runs that task's own integration test and nothing wider: the `Exclusive` slot is what makes running the real dependency safe, and the layer as a whole runs again in the build's closing test run.
+- Integration tasks are the plan's last tasks, each `TDD: none`, `Exclusive: true`, depending on the tasks whose work it exercises, and each `Verification` runs that task's own integration test and nothing wider.
 - Every acceptance criterion is covered by at least one task's `Covers`. A condition no single task delivers, like the suite staying green, is not an acceptance criterion: that is the build's own close.
 - The heading line is committed verbatim as the commit subject, so the title is one short imperative summary of what the task delivers.
 
@@ -86,7 +86,7 @@ Dispatch the `viber:planner-review` agent with the plan path and `refs: ${CLAUDE
 
 Call `ExitPlanMode` only after a PASS - the user approves a reviewed plan, not an unreviewed one.
 
-A plan with its task half, on a change no draft preceded: name `viber:implementor` as the next step and repeat the plan file's full path with it. The approval may clear this context, and that path is the whole handover. Nothing runs here.
+A plan with its task half, on a change no draft preceded: name `viber:implementor` as the next step and repeat the plan file's full path with it - that path is the whole handover. Nothing runs here.
 
 A change that went through a draft lands here instead, because nothing downstream lands a plan carrying no task. One literal Bash line, every argument double-quoted, no interpreter word in front, nothing chained to it - and it is the only thing this step executes:
 

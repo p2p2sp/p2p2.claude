@@ -6,559 +6,254 @@ highest quality and speed of work.
 ## Purpose
 
 The vibe track: understand, plan, build, then record what the build taught. SEVEN skills (`setup`,
-`idea`, `planner`, `implementor`, `tdd`, `fixer`, `e2e`), NINE agents, SEVEN plugin-level scripts, TWO
-skill-level setup scripts, TWO plugin-level references, ONE skill-level reference and TWO hooks -
-one `PreToolUse`, one `SessionStart`. Everything a run produces lives in the host repo's
-`docs/_specs/<stamp>_<slug>/`: the plan as it landed, `status.md` carrying its progress and
-decisions, the decomposition
-every agent reads, the QA documents the close writes, and `work/` - the coders' notes, the review
-reports and the test reports, committed with the task they belong to. Under `cleanup: true` that
-directory does not survive the build: what is worth reading later moves to
-`docs/specs/<stamp>_<slug>/` and the scaffolding goes. Only true scratch stays in
-`.temp/viber/` (one `<id>/` per task, holding the build output its coder and its reviewer redirect
-there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-dir, no state file.
+`idea`, `planner`, `implementor`, `tdd`, `fixer`, `e2e`), NINE agents, SEVEN plugin-level scripts,
+TWO skill-level setup scripts, TWO plugin-level references, ONE skill-level reference and TWO hooks
+(one `PreToolUse`, one `SessionStart`).
 
 ## Entry points
 
-- `skills/setup/SKILL.md` - `/viber:setup`, user-only (`disable-model-invocation: true`). Seeds
-  `.claude/viber.yml` and `.gitignore` through `skills/setup/scripts/bootstrap.sh`, merges the
-  recommended permissions (`skills/setup/scripts/merge-settings.sh` over
-  `skills/setup/assets/settings.json`) and closes by printing `skills/setup/assets/usage.md`
-  verbatim. It asks nothing: both steps are additive and idempotent, and the switches are changed
-  by editing `.claude/viber.yml`.
-- `skills/idea/SKILL.md` - `/viber:idea`, user-only. A prose interview, one question at a time,
-  opening on a scope check that splits an idea spanning several independent subsystems into ordered
-  subprojects and then interviews the first one alone, proposing one of the two spec shapes before
-  the first detail question, ending in a confirmed summary that hands over
-  to `viber:planner`. Whatever the conversation before the invocation already settled is harvested
-  rather than re-asked, and named in one line at the first question. A draft the user points at is
-  resumed instead: it reads that file and asks only what the round of remarks changed. Writes
-  nothing.
-- `skills/planner/SKILL.md` - model-invocable, and enters plan mode itself. Checks its input came
-  from a confirmed `idea` interview or a `fixer` diagnosis and invokes `idea` when it did not,
-  composes the plan out of two templates - `skills/planner/templates/spec-lite.md` or
-  `spec-full.md` for the specification half, `tasks.md` for the task half - into
-  the plan file plan mode names, that path written into the plan's own frontmatter `source:` key,
-  under `adr: true` reads `skills/planner/references/adr-tasks.md` and follows it - only a decision
-  passing all three ADR criteria goes to the user, usually none, and each accepted one becomes a
-  first task, validates the result
-  with `scripts/plan-index.sh`, then gates on `viber:planner-review` until `VERDICT: PASS` before
-  `ExitPlanMode`. A plan stopping at a draft is the specification half alone: no task half, no
-  contracts appendix, no `plan-index.sh`, the gate carrying `scope: spec`, and `scripts/plan-path.sh`
-  called by the skill itself after the exit.
-- `skills/implementor/SKILL.md` - model-invocable orchestrator, `[plan-path]` argument. Lands the approved plan in the
-  dated directory with `scripts/plan-path.sh --land` - the source path taken from the argument, else
-  from the plan text's own frontmatter `source:`, else from the script's no-argument resolution -
-  decomposes it with `plan-index.sh --split`, profiles
-  each task into a model tier (haiku / sonnet / opus) and a review decision, settles with the user
-  whatever an interrupted session left half-finished,
-  dispatches `viber:task-coder` in the widest batch the dependency and file-collision rules allow, gates each
-  reviewed task on `viber:task-reviewer`, commits it with `scripts/commit-task.sh`, closes on
-  `viber:test-runner` and then, per switch, on `viber:memory-writer`, `viber:rules-writer` and
-  `viber:qa-writer`, and last, under `cleanup`, on `viber:closeup`. It closes by reporting how
-  long the session ran, the mark taken by
-  `scripts/run-clock.sh` at load and handed back to it at the summary.
-- `skills/e2e/SKILL.md` - `/viber:e2e`, user-only. Turns each scenario of one run's `qa.e2e.md` into a
-  `@playwright/test` file: it preloads `scripts/check-playwright.sh` and `scripts/config.sh`,
-  resolves the run (its argument, else `plan-path.sh`, else - once `cleanup` archived it - the
-  newest `qa.e2e.md` under the archive directory), offers the install, launches the host's
-  application, dispatches
-  `viber:e2e-writer` one ID at a time and commits the result with `commit-task.sh --e2e`. It carries
-  `disallowed-tools: Write, Edit, NotebookEdit` - not one byte of the tree is written here.
-- `skills/fixer/SKILL.md` - `/viber:fixer`, user-only. Invoked on a bug report, it forces a
-  traced diagnosis proven by a failing test, and hands the fix plan to `planner`, leaving that test
-  RED in the tree for the fixing task's `Files:`, its header comment carrying the root cause. It
-  never applies a fix itself.
-- `skills/tdd/SKILL.md` - the Red-Green-Refactor discipline a `TDD: required` task is built under.
-  Not user-invocable: `viber:task-coder` invokes it through the `Skill` tool before the first line
-  of production code.
-- `agents/` - `planner-review` (plan gate, read-only), `task-coder` (one task or one report, proves
-  it green, never commits), `task-reviewer` (per-task gate, writes only its report), `test-runner`
-  (one full suite run, keeps the log out of the caller's context), `memory-writer` and
-  `rules-writer` (the close: the project's `CLAUDE.md` nodes and `.claude/rules/`), `qa-writer` (the
-  close: the run's two QA documents), `e2e-writer` (one scenario -> one Playwright spec, proven
-  green against the running application) and `closeup` (the last step: the specification's
-  drift, then the archive).
-- `hooks/hooks.json` -> `hooks/scripts/plan-gate.sh`: the review gate, enforced by the harness
-  rather than by the model; and `hooks/scripts/session-start.sh`, which injects
-  `hooks/content/manifest.md`.
+Each skill's contract is its own body and each script's is its header comment; this is the map.
+
+- `setup` - `/viber:setup`, user-only. `bootstrap.sh` (config, `.gitignore`), `merge-settings.sh`
+  (permissions), then `assets/usage.md` printed verbatim. Asks nothing.
+- `idea` - `/viber:idea`, user-only. Prose interview, one question at a time, scope check first,
+  ends in a confirmed summary that invokes `planner`. Writes nothing.
+- `planner` - model-invocable, enters plan mode itself. Refuses input that came from neither `idea`
+  nor `fixer`, composes the plan from `templates/`, validates with `plan-index.sh`, gates on
+  `planner-review` until PASS, then `ExitPlanMode`.
+- `implementor` - model-invocable orchestrator. Lands, decomposes, profiles, dispatches coders in
+  the widest legal batch, gates on reviewers, commits, closes on `test-runner` and the per-switch
+  writers, archives under `cleanup`.
+- `e2e` - `/viber:e2e`, user-only. One run's `qa.e2e.md` into Playwright specs, one ID at a time
+  against the application it launched. Carries `disallowed-tools: Write, Edit, NotebookEdit`.
+- `fixer` - `/viber:fixer`, user-only. A traced diagnosis proven by a failing test, handed to
+  `planner`. Never applies a fix.
+- `tdd` - the Red-Green-Refactor discipline, invoked by `task-coder` through the `Skill` tool.
+- `agents/` - `planner-review` (plan gate), `task-coder`, `task-reviewer`, `test-runner`,
+  `memory-writer` and `rules-writer` (the close), `qa-writer`, `e2e-writer`, `closeup`.
+- `hooks/` - `plan-gate.sh` (the review gate, enforced by the harness) and `session-start.sh`,
+  which injects `hooks/content/manifest.md`.
 
 ## Contracts & invariants
 
-- **One run, one directory.** `plan-path.sh` owns the layout
-  `docs/<runs>/<yyyy-mm-dd-HH-mm-ss>_<slug>/plan.md` - `_specs` being the default name of that
-  directory rather than a fixed one, since `directories.runs` renames it - and is the only place a
-  plan path is formed:
-  the stamp is taken when the plan lands, so a re-run of the same slug never overwrites an earlier
-  plan, and a run already open for that slug comes back as `state: existing` instead. That one
-  directory holds everything the run touches: the plan, the decomposition, `work/` and the QA
-  documents. Nothing of a run lives outside it, which is what lets another machine pick it up from
-  the history alone.
-- **Two spec shapes, one task half, one decomposition.** The specification half of a plan comes
-  from `spec-lite.md` (goal, roadmap, acceptance criteria, scope) or from `spec-full.md`, which
-  wraps the same content in problem, current behaviour with its `### Must not change`, `## Behaviour`
-  as `### S<n>` scenarios in Given/When/Then plus `### Edge cases`, a glossary and constraints. The
-  task half is `tasks.md` under either. Four anchors are identical character for character in both
-  shapes - `## Goal`, `## Acceptance criteria`, `### File map`, `### Out of scope` - and a fifth,
-  `### Must not change`, only the big shape carries. A sixth, `## Tasks`, is the cut itself and is
-  validated as such: a plan carrying `<!-- TASK -->` blocks under any other heading is refused
-  (exit 4) rather than decomposed, because the cut would leave `tasks/` empty while the index still
-  listed every task and the orchestrator would dispatch a coder onto a file that was never written. Those five are the only things `plan-index.sh`
-  reads above `## Tasks`, which is why it never learned the shapes: the fifth one absent prints
-  nothing, so a task file built from `spec-lite` is what it always was and one built from
-  `spec-full` differs by that one block alone. That block is the exception to everything else the
-  big shape adds, which rides into `spec.md` and nowhere else: a regression guard is the one thing
-  every coder in the run has to hold, because the criterion channel would hand it to one task while
-  five others could break it. It is also why the template caps it - every line costs context in
-  every task file. A glossary term a
-  coder has to spell reaches it ONLY as a `### C<n>` block through that task's `Uses:` - `File: none`
-  being a valid answer - because the glossary is above `## Tasks` and is written for a person. The
-  scenario ids `S<n>` and the QA documents' `QA-<nn>` are two numbering spaces that never collide;
-  the overlap between a scenario and a QA case is accepted rather than removed, since one describes
-  what was promised and the other what was delivered.
-- **A draft is a run with no task in it, and it is the one plan that is not frozen.**
-  `plan-path.sh` answers `state: draft` for a run whose plan carries not one `<!-- TASK -->` block,
-  replacing both `new` and `existing`, and `implementor` stops on it rather than decomposing a
-  specification nobody sliced. It is landed by `planner` itself, because nothing downstream lands a
-  plan with no task; the commit stays the user's. The rounds are what the state exists for: the
-  user circulates the landed file, comes back through `idea` pointing at it, and the next round
-  lands with `--land <src> --into <key>` into the directory the first round made - same key, same
-  stamp - which is refused (exit 4) the moment that run carries a task block, a `tasks/` directory
-  or a `status.md`. So a draft is changeable exactly until its task half lands and frozen from
-  then on, like every other plan. A draft is never an `open:` line either: it holds no task to
-  resume, and the user names the one they mean.
-- **`--land` moves the plan, not the model.** Plan mode writes the plan into its own directory - a
-  user-level `plansDirectory`, so normally outside this repository - and approving it may clear the
-  planning context. `plan-path.sh --land <src>` therefore COPIES that file into the run directory,
-  derives the slug from the plan's own first H1, leaves the source untouched, and is idempotent: a
-  `<src>` already landed, or a slug whose run is open, comes back `existing` with nothing written
-  over the progress. The orchestrator never carries the plan's TEXT, only its path, which
-  is why `implementor` needs no `Write` at all.
-- **The plan carries the path it was written to, because the approval may take it away.**
-  `showClearContextOnPlanAccept` is seeded by `setup` and recommended, so the normal path leaves
-  `implementor` holding the approved plan's TEXT with no path and no planner message beside it. The
-  template's `source: <abs path>` frontmatter key, written by `planner` and carried in that text, is
-  the whole handover: the skill reads the path out of what it holds and hands it to `--land`, which
-  copies the file. It is frontmatter rather than an HTML comment because the plan head is a document
-  a person reads and `spec.md` is archived from it: metadata declared as metadata is cut by
-  structure instead of by a filter, and `implementor` still recognizes the older comment spelling so
-  a plan that landed before the move keeps resuming. Nothing discovers a plan by scanning the harness plans directory, and
-  `implementor` never writes the text it is holding - it has no `Write`.
-- **What lands is the plan, not the template's advice, and the specification keeps neither.**
-  `--land` strips the guidance comments on
-  the way in, keeping only the markers the run itself reads (`<!-- TASK -->`, `<!-- /TASK -->`, and
-  `<!-- source: -->` for a plan written before that path moved into the frontmatter, which is not a
-  comment and is never touched there). They are instructions for whoever writes the plan; left in, they ride into
-  `spec.md`, into every task file and through the whole build. The source in the plans directory
-  keeps them - it is never written to. What survives the landing is cut one step later: `--split`
-  writes `spec.md` without the frontmatter and without one HTML comment, because both are the run's
-  plumbing and `spec.md` outlives the run - archived, the `source:` path names a plan mode file that
-  is already gone. The two cuts are layered rather than duplicated, and `plan.md` keeps everything
-  for as long as anything resumes from it.
+Only what spans several files. A rule that lives in one script header or one skill body stays
+there.
+
+- **One run, one directory.** `plan-path.sh` owns `docs/<runs>/<stamp>_<slug>/plan.md` and is the
+  only place a plan path is formed. The stamp is taken when the plan lands, so a re-run of the same
+  slug never overwrites an earlier one, and everything the run touches lives in that directory:
+  the plan, `status.md`, the decomposition, the QA documents and `work/`. That is what lets another
+  machine pick a build up from the history alone. Scratch goes to `.temp/viber/<id>/`, never a
+  plugin-named dot-dir and never a state file.
+- **Two spec shapes, one task half.** `spec-lite.md` or `spec-full.md` above, `tasks.md` under
+  either. `plan-index.sh` reads five anchors above `## Tasks` (`## Goal`, `## Acceptance criteria`,
+  `### File map`, `### Out of scope`, plus `### Must not change` in the big shape alone), which is
+  why it never learned the shapes. A sixth, `## Tasks`, is the cut itself: `<!-- TASK -->` blocks
+  under any other heading are refused rather than decomposed.
+- **`### Must not change` is the one thing every coder holds.** It is the exception to everything
+  else the big shape adds, which rides into `spec.md` and nowhere else: the criterion channel would
+  hand a regression guard to one task while five others could break it. Every line costs context in
+  every task file, so the template caps it.
+- **A glossary term reaches a coder only as a contract block.** The glossary sits above `## Tasks`
+  and is written for a person; a term the code has to spell gets its own `### C<n>` named by a
+  task's `Uses:`, `File: none` being valid.
+- **A draft is a run with no task in it, and the one plan that is not frozen.** `plan-path.sh`
+  answers `state: draft`, `implementor` stops on it, and `planner` lands it itself because nothing
+  downstream lands a plan with no task. Later rounds land `--into <key>`, refused once that run
+  carries a task block, a `tasks/` directory or a `status.md`. A draft is never an `open:` line.
+- **The plan carries the path it was written to.** `showClearContextOnPlanAccept` is seeded and
+  recommended, so approval normally leaves `implementor` holding the plan's TEXT with no path; the
+  frontmatter `source:` key is the whole handover. It is frontmatter rather than a comment because
+  `spec.md` is archived from that head, so metadata declared as metadata is cut by structure.
+  `implementor` still reads the older `<!-- source: -->` spelling.
+- **Two layered cuts, never duplicated.** `--land` strips the templates' guidance comments, keeping
+  only the markers the run reads; `--split` then writes `spec.md` without the frontmatter and
+  without any HTML comment. `plan.md` keeps everything for as long as anything resumes from it.
 - **Only that handoff is hardened; the front links are context-only on purpose.** `idea` and
-  `fixer` reach `planner` inside one context, with no mode change and no harness gate between
-  them, so both restate their payload verbatim at the invocation and neither writes a handoff
-  file. The one piece expensive enough to lose is the trace behind a `fixer` diagnosis, and its
-  core rides in the reproduction test's header comment - a file the fixing task's `Files:` commits
-  anyway. `idea` keeps writing nothing: an interview is cheap to repeat with the user who answered
-  it.
-- **The scope gate is `idea`'s alone, and the roadmap survives only inside the plan.** An idea
-  spanning several independent subsystems is split into ordered subprojects BEFORE the interview's
-  first detail question, because the alternative is dozens of questions and one plan of forty tasks;
-  the first subproject is then interviewed alone and the rest wait for their own cycle. `planner`
-  never sizes scope. It checks only that its input came from a confirmed interview or a `fixer`
-  diagnosis and invokes `idea` when it did not, which is what closed the old third entry, "plan it"
-  straight from an understood change. The accepted roadmap rides in the interview's summary into
-  `planner`, which writes it as `## Roadmap` and repeats every later subproject under
-  `### Out of scope`; `idea` still writes nothing, so the plan is the whole persistence and the next
-  cycle, starting in a context this one never reaches, reads it there. `--split` carries the
-  roadmap into `spec.md` alone, which is exactly why the later subprojects are repeated under
-  `### Out of scope`: that is the one of the two sections a task file gets, and it is how a coder
-  sees that a later subproject's element does not exist. A subproject boundary is not a delivery: nothing there is
-  stubbed, mocked or temporarily substituted, and what makes that possible is the ordering
-  constraint the split is built on - each subproject consumes only what earlier ones produced, and
-  two pieces that cannot be ordered that way belong to one subproject.
-- **`status.md` is the state, and the plan is frozen.** The run's progress lives in
-  `<dir>/status.md` - `progress: x/N`, `done:`, plus the four things a later session cannot derive
-  from the tree: `skipped:` (the user dropped a task, `--skip`), `unreviewed:` (the user waived the
-  review gate, `--unreviewed`), `deferred:` (`<task-id>:<path>`, code one task left without its own
-  test because the criterion proving it belongs to that later task, written by `--defer`) and
-  `closed:` (which half of the close is recorded, written by
-  `--chore` and `--qa`). One key per line, `none` for an empty one. `plan-index.sh --split` creates
-  it with the decomposition and `commit-task.sh` is its only other writer, which is what lets the
-  plan and the specification stay exactly as they landed: the document that DEFINES the work is
-  never edited to record how the work is going. A run with no `status.md` has simply done nothing
-  yet. Everything else a resume needs IS derivable and is therefore
-  never stored: `plan-index.sh` intersects `git status` with each task's `Files:` map and reports
-  the difference as `dirty:`, which is how an interrupted task is told from one nobody started.
-  Only `--skip` writes without a commit to ride in; its entry waits in `status.md` for the next one.
-  `commit-task.sh` is what advances all of this, and it stages ONLY the task's `Files:` list, the
-  paths `--with` named and the run's own trail, and commits through that same pathspec - anything
-  else stays uncommitted and visible, including a path someone else left staged. Its stderr warning subtracts the WHOLE plan's map, not the one
-  task's, and the run's own directory with it: coders run in parallel, so a warning naming their
-  work in progress would fire on
-  every commit, and what survives the subtraction is a change no task accounted for - the same
-  split the close commits by (`--repair`). Two commits never run at once, because both
-  rewrite the git index and `status.md` and nothing else in the run touches
-  either - the commit is the run's only serialization point, and reviews go out in a batch. The entry and the commit are atomic: the entry is written
-  first so it rides in the commit, and rolled back from a backup if staging or committing fails
-  (exit 5). A task marked done that was never committed would be skipped forever on resume, so
-  this is the one place in the plugin where a script undoes its own write.
-- **The decomposition is what the agents see; the index is what the orchestrator sees.**
-  `plan-index.sh --split` writes `spec.md` (everything above `## Tasks`, minus the frontmatter and
-  every HTML comment in it) and one `tasks/<id>.md`
-  per task, carrying the task block verbatim plus the plan's `## Goal`, the text of the criteria
-  its `Covers:` names, the `## Contracts` blocks its `Uses:` names and the plan's
-  `### Out of scope`. Verbatim but for one line: `- DoD:` is cut on `;` into one
-  `- DoD.<k>: <clause>` line per clause (no `;` gives `DoD.1`, an empty clause is dropped), because
-  a coder answers for each clause and a reviewer gates each one, which a seven-clause sentence
-  gated as one does not allow. The plan keeps the single line it was written as - the decomposition
-  is the only place the DoD is cut, so the frozen plan and every other reader are untouched. A
-  coder handed `tasks/T3.md` cannot read another task, so it cannot drift into another task's
-  files - that isolation is the reason the split exists, not the token saving. It is handed
-  nothing else either: the file is self-contained, so neither `task-coder` nor `task-reviewer`
-  gets a `spec:` line at all, and the one exception is a post-test repair, which has no task file
-  and takes the spec instead. `tasks/` is rebuilt
-  on every call, and the script commits its own output because no task's `Files:` list names it and
-  `commit-task.sh` stages nothing it was not given.
+  `fixer` reach `planner` inside one context, so both restate their payload verbatim and neither
+  writes a handoff file. The one piece expensive to lose is a `fixer` trace, and its core rides in
+  the reproduction test's header comment, which the fixing task commits anyway.
+- **The scope gate is `idea`'s alone.** An idea spanning several independent subsystems is split
+  into ordered subprojects before the first detail question; `planner` never sizes scope. The
+  roadmap survives only inside the plan, later subprojects repeated under `### Out of scope`. A
+  subproject boundary is not a delivery: nothing is stubbed, mocked or temporarily substituted,
+  which works only because each subproject consumes what earlier ones produced.
+- **`status.md` is the state, and the plan is frozen.** It carries `progress:`, `done:` and the four
+  things a later session cannot derive (`skipped:`, `unreviewed:`, `deferred:`, `closed:`);
+  `plan-index.sh --split` creates it and `commit-task.sh` is its only other writer. The document
+  that DEFINES the work is never edited to record how the work is going, and what IS derivable is
+  never stored - `dirty:` comes from intersecting `git status` with each task's `Files:`.
+- **The commit is the run's only serialization point.** Two `commit-task.sh` calls never run at
+  once: both rewrite the git index and `status.md`. Reviews go out in a batch instead. The status
+  entry and the commit are atomic, because a task marked done but never committed is skipped
+  forever on resume.
+- **The decomposition is what the agents see; the index is what the orchestrator sees.** A task file
+  carries its task block verbatim plus the plan's `## Goal`, its `Covers:` criteria, its `Uses:`
+  contracts and `### Out of scope` - self-contained, so no agent gets a `spec:` line except on a
+  post-test repair, which has no task file. `- DoD:` is cut on `;` into one clause per line, because
+  a coder answers for each clause and a reviewer gates each one; the plan keeps the single line.
+  A coder cannot read another task, and that isolation is the reason the split exists.
 - **The plan has three parts, and a shape belongs to exactly one task file.** Above `## Tasks` is
-  WHAT and WHY and nothing else - a signature, type, endpoint, error code or dictionary key up
-  there rides into `spec.md`, which is read whole. Every shape is a `### C<n> - <name>` block in
-  the `## Contracts` appendix BELOW the tasks, and reaches a coder only through that task's
-  `Uses:` line, validated in both directions like `Covers:`: a reference must name a real block,
-  and a block no task names is rejected, because the slicing would leave it unreachable. `Uses:`
-  is mandatory and says `none` out loud - a task missing the line and one that touches no shape
-  would otherwise look the same. Which side of a block a task is on is never written down: the
-  task whose `Files:` holds the block's own file writes it, every other one calls it as it
-  stands. That rule is only worth anything if the two halves of the plan meet, so the block
-  opens with `File:` - the paths the shape is declared in, or `none` - and `plan-index.sh`
-  rejects a path no task creates and the tree does not already hold (the shape would be invented
-  at compile time) and a path whose holders never name the block (its writer would never see the
-  shape, and a consumer would write it outside its own file map). One holder naming it is
-  enough: a file several tasks of one chain touch is not everyone's shape. An appendix where NO
-  block carries `File:` predates the field and the whole layer stays off for it - a plan is
-  frozen once it lands, so a run resumed after an upgrade has no way to grow the line and must
-  still validate.
-- **Task ids are `T1`, `T2`, … and the heading line IS the commit subject.** `commit-task.sh` reads
-  `### T<n> - <title>` out of the plan and commits it verbatim, so the orchestrator never composes a
-  subject and the history reads like the plan. The id is also the name of the task's own file, so
-  `plan-index.sh` refuses one carrying anything but letters, digits, `-` and `_`. A post-test repair
-  is a second commit against the same task (`<plan> <id> <round> <file>...`), subject
-  `T<n>(<round>) - <title>`, progress untouched. Four flag forms cover what the task map does not:
-  `--repair <plan> <round> <file>...` for a post-test fix in code no task's `Files:` names (subject
-  `fix(viber): post-test repair (round <n>)`), so a regression outside the plan is never attributed
-  to a borrowed task id, and `--chore <plan>`, `--qa <plan>` and `--e2e <file>...` for the three
-  kinds of file a
-  run produces beside its task map - the memory and rule files of the close, that close's QA
-  documents (`docs(viber): qa scenarios`) and the Playwright specs a later `/viber:e2e` pass
-  generated plus the handoff it updated (`test(viber): e2e specs`). The first two take the plan
-  because they record the close in it; `--e2e` runs after the build, when nothing resumes any more,
-  and takes none.
-  All four DERIVE their subject rather than take one. No form runs `git add -A` over the tree and no
-  form commits the index as a whole - all six pass their own paths to `git commit` - and a
-  `.temp/` entry is refused outright. A seventh form, `--skip <plan> <id>`, is the one that commits
-  nothing at all: it only records the user's decision in the plan.
-- **`Files:` is a machine-readable map, not prose.** Comma-separated exact repo-relative paths on
-  one line, no globs, no directories, no annotations. `commit-task.sh` stages that list literally,
-  and `plan-index.sh` compares it across tasks: a plan where two tasks with no dependency path
-  between them list the same file is rejected at validation time. No skill and no agent re-checks
-  that by hand - the graph plus the file lists make it fully deterministic. A pattern is decided by
-  SHAPE, not by a character: a bracket wrapping a WHOLE segment (`[id]`, `[...slug]`,
-  `[[...slug]]`) is a Next.js App Router directory name and passes, one inside a segment
-  (`src/a[bc].ts`) is a character class and is refused - an App Router repository has a bracket in
-  the path of every route it owns, so the character alone would lock the whole stack out. The same
-  shape test guards a contract block's `File:`. Literally is also what `commit-task.sh` means:
-  it exports `GIT_LITERAL_PATHSPECS=1`, because git otherwise reads those brackets as wildmatch and
-  would stage a sibling the character class happens to cover.
-- **Disjoint is checked, complete is not, so completeness is carried by three layers.** Nothing
-  can decide mechanically that a task's map names everything its work forces - the registration
-  of a new type, the declaration and migration of a new persisted shape, the test asserting a
-  count over what changed - because naming those files is knowing the host's stack, and no
-  bundled script here may. So: `planner` maps what the change forces before it writes a task,
-  `planner-review` gates a map a coder could not build from, and what still slips through is
-  reported rather than lost. `task-coder` may make the smallest edit outside its `Files` that
-  compiles and MUST return it on `EXTRA:`; `task-reviewer` returns the same and never turns it
-  into a finding, because the coder cannot commit it and a second round cannot fix it;
-  `implementor` passes those paths to `commit-task.sh --with`, which takes a path no other task
-  claims and refuses one that has an owner - that task may have a coder writing the file right
-  now, and its own commit stages it whole. Without that channel the danger is silent: the stderr
-  warning subtracts the WHOLE plan map, so a file belonging to another task never appears in it
-  and rides into whichever commit picks it up next. The same pass checks
-  `Covers:` in BOTH directions - every reference names a real acceptance criterion, and every
-  criterion is named by some task - because nothing later gates the specification as a whole: a
-  criterion no task implements would otherwise ride through the build into a green close.
-- **Untested code is owned by the task that will prove it, or it is unfinished.** A coder leaving
-  a path without its own test because the criterion that proves it belongs to a LATER task returns
-  `DEFERRED: <path> -> <task id>`, one line per path, `-> none` when its task file names no id.
-  `implementor` turns each line into a `--defer <target-id>:<path>` argument on that task's
-  `commit-task.sh` call, resolving a `none` to the earliest unfinished task whose `files` column
-  claims the path and naming any path no task claims in the final summary instead of recording it.
-  `commit-task.sh` writes the entry through `mark_status` inside the same backup-and-trap window
-  as `done:`, so it rides in the commit or is rolled back with it, and refuses an id no task in the
-  plan carries. `plan-index.sh` echoes the key like `skipped:` and `unreviewed:`, which is what
-  lets a session in another context hand that path to its owning task's coder and reviewer as a
-  `deferred:` line and gate it there. Anything else a coder left untested is not deferred, it is
-  unfinished, and it fails its own DoD clause.
+  WHAT and WHY: a signature, type, endpoint, error code or dictionary key up there rides into
+  `spec.md`. Shapes live in `### C<n>` blocks below the tasks and reach a coder only through
+  `Uses:`, validated in both directions like `Covers:` and mandatory, saying `none` out loud. Which
+  side of a block a task is on is never written down: the task whose `Files:` holds the block's own
+  file writes it, every other one calls it as it stands.
+- **The heading line IS the commit subject.** `commit-task.sh` reads `### T<n> - <title>` out of the
+  plan, so no caller composes a subject and the history reads like the plan. Every other form
+  derives its subject the same way and stages only what it was given; a regression outside the plan
+  goes through `--repair` and never borrows a task id.
+- **`Files:` is a machine-readable map, not prose.** Comma-separated exact repo-relative paths, no
+  globs, no directories, no annotations. `plan-index.sh` rejects a plan where two tasks with no
+  dependency path between them list the same file, so `deps` plus the file lists make parallelism
+  deterministic and nothing re-checks it by hand. A bracket is read by SHAPE: wrapping a whole
+  segment (`[id]`, `[...slug]`) it is an App Router directory and passes, inside a segment it is a
+  character class and is refused. The same test guards a contract block's `File:`.
+- **Disjoint is checked, complete is not, so three layers carry completeness.** No script can decide
+  that a map names everything the work forces - a registration, a migration, a test asserting a
+  count - because that is knowing the host's stack. `planner` maps what the change forces,
+  `planner-review` gates a map a coder could not build from, and the rest is reported rather than
+  lost: `task-coder` makes the smallest outside edit that compiles and returns it on `EXTRA:`,
+  `task-reviewer` returns the same and never makes it a finding, `implementor` passes it to
+  `--with`. Without that channel the loss is silent, because the commit script's warning subtracts
+  the WHOLE plan map. The same pass checks `Covers:` in both directions, since nothing later gates
+  the specification as a whole.
+- **Untested code is owned by the task that will prove it, or it is unfinished.** A coder returns
+  `DEFERRED: <path> -> <task id>` (or `-> none`) for a path whose proving criterion belongs to a
+  later task; `implementor` turns it into `--defer` and `plan-index.sh` echoes the key, so another
+  context can gate it there. Anything else left untested fails its own DoD clause.
 - **A task's `Verification` is scoped to the task; the whole suite belongs to the close.** N coders
-  share one working tree, so a project-wide run turns another coder's half-written file into this
-  task's red - a red the coder may not fix, because it is outside its `Files`. Five files carry the
-  one contract: `planner` writes `Verification` over the task's own files only, `planner-review`
-  treats a whole-project run as a finding, `references/test-strategy.md` states the run scope for
-  whoever writes a test, and `task-coder` and `task-reviewer` both drop a red they
-  can trace outside their `Files`. What escapes belongs to `test-runner` in the close, committed
-  through `--repair`. What the narrowing leaves on a stack that compiles the whole project to run
-  one test is handled by a directory, never by a schedule: `implementor` hands every coder and
-  reviewer an `out: .temp/viber/<id>/` line, per task rather than per agent, and both redirect their
-  build output there when the host's own instructions name a way - the flags belong to the host,
-  which is where the build commands already live. The orchestrator therefore never judges whether
-  two verifications may run together. A `Verification` hanging on a fixed port or one shared
-  database is out of that reach and is a `planner-review` finding rather than something the run
-  schedules around: isolating a test is the stack's job.
-- **The test layers are ordered, and `Exclusive:` is what serialises the last one.** A
-  `TDD: required` task proves its behaviour with unit tests alone: the database, queue, clock or
-  network it needs sits behind a seam the test substitutes, decided by `planner` in the file map
-  rather than improvised by a coder. An integration test never rides inside a TDD cycle. They are
-  the plan's last tasks, one per boundary the change crosses rather than one per criterion, each
-  `TDD: none` and `Exclusive: true`, each depending on the tasks it exercises, and each
-  `Verification` runs that task's own integration test and nothing wider - the `Exclusive` slot is
-  what makes running the real dependency safe, and the layer as a WHOLE runs again in
-  `test-runner`'s closing pass. Proving that test green inside its own task keeps a broken one in a
-  `task-reviewer` round instead of surfacing it in the close, where the repair coder has no task
-  file and no file map. `Exclusive: true` is the plan's one OPTIONAL task field
-  and its only accepted value (`plan-index.sh` exits 4 on `false` and on `none`, the mandatory
-  fields' convention borrowed where it does not hold). It declares that a task cannot share the
-  working tree or a machine-wide resource, reaches the orchestrator as the index's `excl` column
-  and makes `implementor` dispatch that task alone. It is a declaration, never a judgement: the
-  orchestrator still decides nothing about whether two verifications may run together, which is why
-  `planner-review` gates it in both directions - a shared resource left unmarked, and a marker on a
-  task that needs none and would stop the build for nothing. What the layers mean for slicing, for
-  which deliverable carries no test at all and for what an integration test runs against lives in
-  `references/test-strategy.md`, read at runtime by the four workers that decide it.
-- **Source files change through `Edit`/`Write`, and git never moves under a running build.** Both
-  agents that share the working tree carry it: `task-coder` rewrites a file with the file tools and
-  spends `Bash` on reading, searching, building and testing, because a scripted substitution that
-  misses its pattern exits 0 over unchanged code and the agent reports PASS on work it never did.
-  Git is read-only for both - `status`, `diff`, `log`, `show` - never `stash`, `checkout`, `restore`
-  or `clean`: N coders write in one tree, so anything that moves it takes their uncommitted work
-  with it. `setup`'s permissions template denies those four verbs outright, because a prompt rule
-  alone is a known non-compliance and this failure mode is silent until a coder notices its files
-  are gone. The four agents that run commands - `task-coder`, `task-reviewer`, `test-runner`,
-  `e2e-writer` - each carry one more line: nothing they started may still be running when they
-  return, because a background shell outlives its agent and reports into the CALLER's session,
-  where it reads as a second return from a task already settled. Whatever an integration
-  `Verification` starts disposable, the same agent stops. The one legitimate background call in the
-  plugin belongs to the `e2e` SKILL, which launches the host's application in the main session and
-  owns it there.
-- **Seven deterministic scripts, all self-verifying.** `plan-path.sh` (resolve the plan path and its
-  `state:` - `new`, `existing` or `draft` - report
-  every other unfinished run as an `open:` line, and on `--land` put the approved plan there,
-  stripped of the template's guidance, `--into <key>` aiming that landing at an existing draft),
-  `plan-index.sh` (validate, index, optionally decompose), `commit-task.sh` (stage, commit, record),
-  `config.sh` (resolve the switches and the two directory names), `run-clock.sh` (the start mark,
-  and the elapsed time of the
-  session that took it - it writes nothing, so a run resumed elsewhere simply starts a new clock),
-  `archive-run.sh` (move a finished run into the archive, drop the scaffolding, commit the move)
-  and `check-playwright.sh` (report the e2e tooling, install
-  nothing) carry their I/O contract in their header comment and are
-  TRUSTED by the caller - never re-verified, never retried. All are invoked as one literal line,
-  `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" <args>`, never through an interpreter, and each has its
-  own `Bash(${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh:*)` entry in the calling skill's `allowed-tools`.
-  `archive-run.sh` is the one called by an AGENT rather than by a skill, so it has no such entry
-  anywhere: a subagent does not inherit the session's permission mode and carries no
-  `allowed-tools` of its own, and what covers it is the bare `Bash` the permissions template
-  already allows - the same mechanism every `task-coder` build command runs through. That is a
-  deliberate departure from `qa-writer` handing its paths back for `implementor` to commit: the
-  archive is one move of one directory, and routing it through the orchestrator would mean
-  teaching a skill that carries `disallowed-tools: Read` which files of the run are scaffolding.
-- **`setup` seeds from `assets/`, and only into what the project does not already have.**
-  `assets/gitignore.txt` becomes the host's `.gitignore` when it has none, otherwise the file is
-  the user's and the single edit is the `.temp/` rule, appended on its own line. The permissions
-  template `assets/settings.json` goes through `skills/setup/scripts/merge-settings.sh`, which is
-  additive (host order and host-only keys survive; `defaultMode`, `disableAutoMode` and every
-  top-level key beside `permissions` are seeded when absent, never overwritten and never walked
-  into) and idempotent. It needs Node on PATH - the one deliberate, documented tool
-  dependency in this plugin, and a skip-with-note rather than a stop: without Node the block is
-  printed for a manual merge and the run continues.
-- **The template allows the write tools outright, because a subagent does not inherit the
-  session's permission mode.** Eight of the nine agents carry `Write` or `Edit` and none declares
-  a `permissionMode`, so each starts in the asking default; `defaultMode: acceptEdits` would not
-  cover them anyway, being scoped to the working directory. Hence the bare `Edit`, `Write` and
-  `NotebookEdit` entries in `allow` - a coder stopped on a prompt strands its whole batch - and
-  hence `deny` is the layer that holds the line on `.env`, `.git/` and the key files.
-- **The host's `CLAUDE.md` is reported, never seeded, and the onboarding text is printed, never
-  paraphrased.** `bootstrap.sh` only states whether the file is there, because the build and test
-  commands every agent reads belong to the user: a stub written by a script would be exactly the
-  `CLAUDE.md` that names none of them. The last thing `setup` emits is
-  `skills/setup/assets/usage.md`, read and printed whole - the four entries, the switches, and why
-  those commands have to be written down. It is an asset rather than body text so the skill, pinned
-  to `model: haiku`, copies it instead of composing it.
+  share one tree, so a project-wide run turns another coder's half-written file into this task's
+  red. Five files carry it: `planner` writes it narrow, `planner-review` treats a whole-project run
+  as a finding, `references/test-strategy.md` states the scope, and both `task-coder` and
+  `task-reviewer` drop a red they can trace outside their `Files`. What escapes belongs to
+  `test-runner`, committed through `--repair`. Parallel build output is separated by a directory
+  rather than a schedule: every coder and reviewer gets an `out: .temp/viber/<id>/` line, per task.
+- **`Exclusive:` serialises the last test layer.** The doctrine lives in
+  `references/test-strategy.md`, read at runtime by the four workers that decide it; the wiring is
+  here. `Exclusive: true` is the plan's one OPTIONAL field and its only accepted value, reaches the
+  orchestrator as the index's `excl` column and makes `implementor` dispatch that task alone. It is
+  a declaration, never a judgement, which is why `planner-review` gates it in both directions.
+- **Source files change through `Edit`/`Write`, and git never moves under a running build.** A
+  scripted substitution that misses its pattern exits 0 over unchanged code, so the agent would
+  report PASS on work it never did. Git is read-only for both tree-sharing agents (`status`,
+  `diff`, `log`, `show`, never `stash`, `checkout`, `restore`, `clean`) and the permissions template
+  denies those four verbs outright, because a prompt rule alone is a known non-compliance and the
+  failure is silent until a coder notices its files are gone. The four agents that run commands
+  leave nothing running when they return: a background shell outlives its agent and reports into the
+  CALLER's session. The one legitimate background call belongs to the `e2e` SKILL.
+- **Seven deterministic scripts, all self-verifying and all TRUSTED** - never re-verified, never
+  retried. Each is invoked as one literal line, `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" <args>`,
+  never through an interpreter, with its own `allowed-tools` pattern in the calling skill.
+  `archive-run.sh` is the exception, called by an AGENT: a subagent carries no `allowed-tools` and
+  does not inherit the session's permission mode, so the bare `Bash` of the permissions template is
+  what covers it. That is a deliberate departure from `qa-writer` handing paths back for
+  `implementor` to commit, because routing one directory move through a skill that cannot `Read`
+  would mean teaching it which files of the run are scaffolding.
+- **`setup` seeds from `assets/` and merges in one direction only.** `.gitignore` is seeded when
+  absent, otherwise the single edit is the `.temp/` rule. `.claude/viber.yml` is seeded when absent
+  and MERGED when present: a top-level key the template has and the file lacks is appended with its
+  own comment and default, a missing child of `directories:` is inserted inside that group, and
+  every key already declared keeps its value, comment and position. That is how a new version's
+  switches reach an old project, and it is why `false` is the one way to turn a switch off - a key
+  deleted or commented out comes back at the template's default. `templates/viber.yml`,
+  `assets/usage.md` and the README all say so, and a change there changes all four.
+  `merge-settings.sh` is additive in the same sense and needs Node, the one deliberate tool
+  dependency here: without it the block is printed for a manual merge and the run continues.
+- **The permissions template allows the write tools outright.** A subagent does not inherit the
+  session's permission mode and `defaultMode: acceptEdits` is scoped to the working directory, so
+  eight of the nine agents would start on an asking default and a stopped coder strands its whole
+  batch. `deny` is therefore the layer that holds the line on `.env`, `.git/` and the key files.
+- **The host's `CLAUDE.md` is reported, never seeded.** The build and test commands every agent
+  reads belong to the user, and a stub written by a script is exactly the file that names none of
+  them. `assets/usage.md` is likewise printed whole rather than paraphrased, which is why it is an
+  asset: the skill is pinned to `model: haiku` and copies it instead of composing it.
 - **The switches are read through `config.sh` alone; the two directory keys have three readers.**
-  `adr`, `memory`, `rules`, `qa` and `cleanup` live in
-  `.claude/viber.yml`, resolved against the repository root, fail-open: no file means all five off,
-  and the script always exits 0 because it runs as a `!` preload, where a non-zero exit would abort
-  the whole skill load. The directory names live in a `directories:` GROUP - `runs` and
-  `specifications` - and the group is a contract, not a presentation: each reader tracks it and
-  ignores a same-named key outside it, because `runs` alone reads like a count and `specs` like a
-  switch, where `directories.runs` cannot be read as anything else. `config.sh` prints them dotted
-  for the same reason. They are also the exception to "through `config.sh` alone", because they
-  name a directory rather than carrying a decision and the two scripts that have to form a path
-  (`plan-path.sh`, `archive-run.sh`) run with no skill above them to hand the value down. Each
-  parses the group itself, ~10 lines, with the same sanitization: one path SEGMENT matching
-  `[A-Za-z0-9._-]+` and neither `.` nor `..`, so a slash, a traversal or an absolute path silently
-  leaves the default standing and no configuration error can move a run out of `docs/`. The
-  duplication is deliberate and stays until a fourth reader appears, when it takes the
-  `lib_viber_config.sh` shape `.claude/rules/shell-lib-scripts.md` describes. `adr` is weighed in
-  `planner` and nowhere else: `planner` is the one funnel
-  both entries pass through (`idea` and `fixer`),
-  so weighing in `idea` would leave the switch dead on the other. `implementor` carries `disallowed-tools: Read`, so the preload is not a
-  convenience there but the only way it can know the values at all.
-- **The orchestrator never reads code, and writes nothing.** `implementor` carries
-  `disallowed-tools: Read, Write, Edit, NotebookEdit`: its whole view of the plan is
-  `plan-index.sh`'s output, which is what lets one context outlast a full build, and every byte
-  that reaches the tree comes from a script or an agent.
-- **The coders' notes are the input of the close, and of the gate beside them.** `task-coder`
-  leaves at most 8 lines in
-  `<dir>/work/<id>-coder.md` - what the diff does not say - and `memory-writer`,
-  `rules-writer`, `qa-writer` and `closeup` read that directory. Two readers come earlier: that task's own
-  `task-reviewer`, handed the same `notes:` path, where what the coder wrote is a hypothesis to
-  disprove and never evidence - a note saying a `DoD` clause was unbuildable or narrowed by a
-  `Contracts` block is Critical unless `Out of scope` says so, and a decision the task left open is
-  a finding only when no test pins it down; and the coder of each task that depends on this one,
-  handed those files as `prior:`, which is what carries a decision forward deterministically
-  instead of relying on somebody reading a return message before the next dispatch. The close's first three run in one dispatch and never wait
-  for each other, because their scopes do not overlap: `CLAUDE.md` nodes belong to the first,
-  `.claude/rules/` to the second, the run directory's QA documents to the third. `closeup` is
-  the one that cannot join them - it archives the directory the other three read and write. The notes are what
-  makes a scenario describe the behaviour that was DELIVERED rather than the one that was planned.
-- **The knowledge layer is capped, because the two writers that grow it run after every build.**
-  Nothing else in the plugin shrinks what they wrote, so without a cap each build makes every later
-  one more expensive: a `CLAUDE.md` node is loaded whole by every agent that opens a file under it,
-  its ancestors with it, and a rule is loaded whole by every task its `paths:` glob matches.
-  `memory-writer` holds 12000 characters per node and 32000 over the chain a reader loads (the root
-  node, every ancestor, the node itself); `rules-writer` holds 4000 per rule file, 40000 over
-  `.claude/rules/` and at most 2 new files per build. Both carry `Bash` for the `wc -c` that
-  measures it and for nothing else, both measure BEFORE writing rather than validating after, both
-  carry the ORDER in which content leaves a file that is full - which is the half a bare limit
-  lacks, since a node already over its cap would otherwise only fail a check nothing acts on - and
-  both report what they could not get under budget on an `OVER:` line that `implementor` repeats
-  verbatim in the final summary. A cap is what makes folding in a fact a trade rather than an
-  append.
-- **A full file has three ways out, in this order: compact, split, write over budget and say so.**
-  Compacting alone would make deletion the only escape from a node that outgrew its cap, which
-  spends real knowledge to buy back context; splitting spends none, because a sibling node is never
-  loaded beside the one a reader opened - only the ancestors on its own path are. So a block of
-  facts already belonging to one existing subdirectory moves into that subdirectory's node
-  (`memory-writer`, and only into a directory owning its own contracts, never a passthrough), and
-  a rule file over its cap splits along its convention areas into narrower `paths:`
-  (`rules-writer`, where a ONE-area file still over is too wordy rather than too broad and gets
-  compacted further instead). A split records no new convention, so it is explicitly exempt from
-  the 2-new-files cap - that cap is on growth, never on tidying. Both writers may also DELETE what
-  the project no longer has, a node whose directory is gone and a rule whose globs match nothing,
-  each confirmed with `Glob` first and never a frozen `_` rule; `commit-task.sh --chore` stages a
-  removal correctly because it stages every path with `git add -A`, and a path that never existed
-  is warned about and skipped rather than failing the commit. Hence `FILES:` names what the writer
-  wrote OR deleted - a deletion left off that line stays in the tree.
-- **The trail is committed, each slice with the commit that owns it.** A task's commit carries
-  `work/<id>-coder.md` and `work/review-<id>-*.md`, a post-test round carries `work/tests-<n>.md`
-  and `work/repair-<n>-coder.md` - `commit-task.sh` DERIVES those paths from the id or the round
-  and never takes them from its caller, so a parallel coder's work in progress cannot ride along.
-  That is what lets another machine read a run out of the history. The price is granularity: an
-  interrupted task's trail is committed only when the task is, so what crosses machines is whole
-  tasks, never a half-spent review round. No form sweeps `work/`, and the close does not either;
-  what a dropped or abandoned task left there is picked up by the next `--split`, which commits the
-  run directory whole.
-- **The QA documents live in the run directory, and that is what makes the close idempotent.**
-  `qa-writer` writes `qa.md` (a person performs it by hand) and `qa.e2e.md` (an agent automates it)
-  into `docs/_specs/<stamp>_<slug>/`, never into a `docs/qa/` of their own. That directory is
-  unique to its build, so there is no index to maintain and no older entry to supersede - the two
-  rules superdev's equivalent layer needed both fall away. An existing `qa.md` is the resume signal:
-  the writer returns `VERDICT: NONE` rather than overwrite scenarios a tester may already have
-  worked through. `qa.md` is rendered in the language the user is conversing in (the language the
-  run's own specification carries); the handoff's headings and fields stay English, because only an
-  agent reads them. Both documents OUTLIVE the run: they are not scaffolding, so `archive-run.sh`
-  carries them into the archive untouched, which is what keeps `/viber:e2e` usable after a cleanup
-  and what makes the archive worth opening months later.
-- **The run directory is scaffolding; the archive is the product.** Under `cleanup: true`
-  `implementor`'s last step dispatches `closeup`, which corrects `spec.md` and then calls
-  `archive-run.sh`. The script `git mv`s the WHOLE run directory to `docs/<specs>/<key>` - the same
-  key, so a second build of the same area lands beside this one and nothing is ever merged - and
-  then removes an ENUMERATED list, `plan.md`, `status.md`, `tasks/` and `work/`: everything else
-  the run left rides along without the script knowing what it is. Those four are dropped because
-  they are a second copy of what git already holds, and keeping them buries the two things worth
-  reading. Two gates decide whether it runs at all, and both refuse rather than correct: the path
-  must lie under `docs/<runs>/` and hold a `status.md`, and every `<!-- TASK -->` block of
-  `plan.md` must be settled in `status.md` - an unfinished run still resumes from that scaffolding.
-  There is no changelog and there will not be one: the agent edits `spec.md` BEFORE the move, so
-  the commit reads as rename plus modification and the drift is an ordinary diff.
-- **Drift is what the specification now gets WRONG, never how the work went.** `closeup`
-  records a deviation only where a sentence of `spec.md` is false for someone who cannot see the
-  code - the spec promises P, the build delivers Q, and P and Q differ from the outside. A
-  criterion met to the letter through other mechanics (another seam, another shape of test) is not
-  drift and belongs to the coder's notes, which `memory-writer` and `rules-writer` already read.
-  The marker is a footnote `[D<n>]` on the sentence plus one line per marker in a section at the
-  end of the file, and the whole of it is written in the spec's own language - `D<n>` is the single
-  neutral token, because it is an anchor rather than text. `qa.md` and `qa.e2e.md` are never
-  touched: `qa-writer` wrote them from the delivered behaviour, so they are already true.
-- **"Chromium only" is carried by the generated file, not by a flag.** Every spec `e2e-writer`
-  produces opens with `test.use({ browserName: 'chromium' })`, which holds whatever the host's
-  Playwright config declares and whoever runs the file later. On the exploration side the rule is
-  the absence of a flag: `playwright-cli` defaults to chromium, so `--browser` is never passed. The
-  install path matches - `npx playwright install chromium`, one browser, not three.
-- **`references/` holds what several workers share.** `qa-format.md` has two readers, `qa-writer`
-  (writes the two documents) and `e2e-writer` (reads the handoff, appends the automation lines).
-  `test-strategy.md` has four - `planner` slices the work by it, `planner-review` and
-  `task-reviewer` gate on the blocking findings it lists, `task-coder` writes tests under it - and
-  that is what keeps `PRODUCT.md`'s test layering in one file instead of four copies drifting
-  apart. A shared file is the whole reason the directory exists rather than each format living
-  inside one agent. No reader has the path hardcoded: each takes it as a `refs:` label, passed as
-  the literal `${CLAUDE_PLUGIN_ROOT}/references` by `implementor`, by `planner` and by `e2e`.
-  `implementor` carries `disallowed-tools: Read`, so it hands over that path without ever opening
-  what is behind it; `planner` is the one reader that is a skill rather than an agent, so it reads
-  `test-strategy.md` itself. Both files are read at the step that consumes them - a coder on a
-  `TDD: none` task with no tests in its `DoD` never opens either.
+  Five switches, fail-open (no file means all off) and always exit 0, because a preload that exits
+  non-zero aborts the skill load. The directory names live in a `directories:` GROUP, a contract
+  rather than a presentation: every reader ignores a same-named key outside it, since `runs` alone
+  reads like a count. They are the exception to "through `config.sh` alone" because `plan-path.sh`
+  and `archive-run.sh` run with no skill above them; each parses the group itself, ~10 lines,
+  sanitizing to one path segment so no configuration error can move a run out of `docs/`. That
+  duplication stays until a fourth reader appears, when it takes the `lib_viber_config.sh` shape
+  `.claude/rules/shell-lib-scripts.md` describes. `adr` is weighed in `planner` alone, the one
+  funnel both entries pass through.
+- **The orchestrator never reads code and writes nothing.** `implementor` carries
+  `disallowed-tools: Read, Write, Edit, NotebookEdit`: its whole view is `plan-index.sh`'s output,
+  which is what lets one context outlast a full build.
+- **The coders' notes are the input of the close, and of the gate beside them.** `task-coder` leaves
+  at most 8 lines of what the diff does not say; the close's writers and `closeup` read that
+  directory. Two readers come earlier: that task's own `task-reviewer`, for whom a note is a
+  hypothesis to disprove and never evidence, and the coder of each dependent task, handed them as
+  `prior:` so a decision carries forward deterministically. The close's first three run in one
+  dispatch; `closeup` cannot join them, because it archives the directory they read and write.
+- **The knowledge layer is capped, because its two writers run after every build.** Nothing else
+  shrinks what they wrote, and a node is loaded whole by every agent that opens a file under it,
+  its ancestors with it. `memory-writer`: 12000 characters per node, 32000 over the chain.
+  `rules-writer`: 4000 per file, 40000 over `.claude/rules/`, at most 2 new files per build. Both
+  measure before writing, both carry the order in which content leaves a full file (compact, split,
+  write over budget and say so), and both report an `OVER:` line the orchestrator repeats verbatim.
+  The same discipline binds this node: it is a viber file like any other.
+- **A split is exempt from the growth cap.** Splitting a full file spends no knowledge, because a
+  sibling node is never loaded beside the one a reader opened, so it beats deleting; a one-area rule
+  file still over its cap is too wordy rather than too broad and gets compacted instead. Both
+  writers may also DELETE what the project no longer has, confirmed with `Glob` first and never a
+  frozen `_` rule, which is why `FILES:` names what was written OR deleted.
+- **The trail is committed, each slice with the commit that owns it.** `commit-task.sh` DERIVES
+  those paths from the id or the round rather than taking them from its caller, so a parallel
+  coder's work in progress cannot ride along. The price is granularity: what crosses machines is
+  whole tasks. Nothing sweeps `work/`; what a dropped task left there is picked up by the next
+  `--split`, which commits the run directory whole.
+- **The QA documents live in the run directory, which is what makes the close idempotent.** `qa.md`
+  (performed by hand) and `qa.e2e.md` (automated by `/viber:e2e`) never land in a `docs/qa/` of
+  their own: the run directory is unique to its build, so there is no index to maintain and no older
+  entry to supersede. An existing `qa.md` is the resume signal, answered with `VERDICT: NONE` rather
+  than an overwrite. `qa.md` is written in the user's language, the handoff's headings stay English
+  because only an agent reads them, and both outlive the run.
+- **The run directory is scaffolding; the archive is the product.** `archive-run.sh` moves the WHOLE
+  directory to `docs/<specs>/<key>` (same key, so a second build lands beside this one and nothing
+  is merged), then removes an ENUMERATED list - `plan.md`, `status.md`, `tasks/`, `work/` - because
+  those four are a second copy of what git holds and keeping them buries the two things worth
+  reading. Everything else rides along. Two gates decide whether it runs at all and both refuse
+  rather than correct. There is no changelog and there will not be one: `closeup` edits `spec.md`
+  BEFORE the move, so the drift is an ordinary diff.
+- **Drift is what the specification now gets WRONG, never how the work went.** `closeup` marks a
+  sentence of `spec.md` only where the spec promises P, the build delivers Q, and the two differ
+  from the outside. A criterion met through other mechanics belongs to the notes the knowledge
+  writers already read. `qa.md` and `qa.e2e.md` are never touched: they describe what was delivered.
+- **"Chromium only" is carried by the generated file, not by a flag.** Every generated spec opens
+  with `test.use({ browserName: 'chromium' })`. On the exploration side the rule is the absence of a
+  flag, `playwright-cli` defaulting to chromium, and the install matches: one browser, not three.
+- **`references/` holds what several workers share.** `qa-format.md` has two readers,
+  `test-strategy.md` four (`planner`, `planner-review`, `task-reviewer`, `task-coder`), which keeps
+  the test layering in one runtime file instead of four copies drifting apart. No reader hardcodes
+  the path: each takes a `refs:` label and reads the file at the step that consumes it.
 - **The host's e2e test directory is the fourth writable location, and only because the host names
   it.** The three a plugin may write at its own choosing stay `docs/<layer>/`, `.claude/` and
-  `.temp/<plugin>/`. A generated spec lands outside all three, in whatever directory the project's
-  own instructions call its e2e directory - the `e2e` skill resolves it, asks the user when nothing
-  names it, and never invents a sibling. `e2e-writer` writes exactly one file there per dispatch and
-  touches no config, no helper and no `package.json`; application code is never edited at all, so a
-  red that is the application's fault comes back as `blocked` and stays a finding.
+  `.temp/<plugin>/`. The `e2e` skill resolves the host's directory, asks when nothing names it and
+  never invents a sibling; `e2e-writer` writes exactly one file there per dispatch and never edits
+  application code, so a red that is the application's fault comes back as `blocked`.
 - **Strength is `model` alone.** The `Agent` tool takes no `effort` parameter, so an agent's own
-  frontmatter is the only place one is set. `task-coder` carries `effort: high` and is dispatched at
-  all three tiers: on `haiku` that setting is dead, because Haiku 4.5 has no effort control. It stays
-  that way on purpose - the haiku tier is picked for mechanical work that needs no thinking budget,
-  and a second coder file would duplicate the body for nothing. A coder's `VERDICT: FAIL` the user
-  retries is the one place a tier moves: the re-dispatch goes out one step up, carrying the returned
-  `REASON:` as a `reason:` line, because an identical re-run of a coder that already spent its five
-  verification rounds is a coin flip. `task-reviewer` is dispatched with
-  `model` set to its task's own tier, its `model: opus` frontmatter being only the fallback, and
-  never lands on `haiku`: a reviewed mechanical task gets its reviewer at `sonnet`, the lowest tier
-  that can read a document against its DoD. Whether it is reviewed at all is a second decision,
-  independent of the tier - only a `Verification` running the project's build or its tests waives
-  the gate, because a `grep` or a `test -f` passes on invented content just as well.
-- **Agent names are dispatched with the plugin prefix** (`viber:task-coder`, …). The hook's
-  dispatch detector accepts both the bare and the prefixed spelling, so a plan-gate run is not
-  tied to the install form.
+  frontmatter is the only place one is set; `task-coder` carries `effort: high` and is dispatched at
+  all three tiers, dead on `haiku` on purpose. A retried coder goes out one tier up carrying its own
+  `REASON:`, since an identical re-run after five spent verification rounds is a coin flip.
+  `task-reviewer` takes its task's tier (`model: opus` being only the fallback) and never lands on
+  `haiku`. Whether a task is reviewed at all is independent of its tier: only a `Verification`
+  running the build or the tests waives the gate, because a `grep` passes on invented content too.
+- **Agent names are dispatched with the plugin prefix** (`viber:task-coder`, …). The hook's dispatch
+  detector accepts both spellings, so a plan-gate run is not tied to the install form.
 - **The manifest is injected, never routed to.** `session-start.sh` writes
-  `hooks/content/manifest.md` verbatim into the main session at `startup|clear|compact` (`resume`
-  is excluded by the matcher, since the prior injection reloads with the transcript) and is
-  fail-open: an empty or unreadable file emits the `viber loaded <version>` banner alone, with no
-  `additionalContext`, so nothing half-written ever leaks into the context. It carries standing
-  rules only - it names no skill and no chain, because routing lives in each skill's own
-  `description:`.
+  `hooks/content/manifest.md` verbatim at `startup|clear|compact` (`resume` excluded, the prior
+  injection reloading with the transcript) and is fail-open: an unreadable file emits the banner
+  alone. It names no skill and no chain, because routing lives in each skill's own `description:`.
 - **The gate arms on two signals only** - the planner skill running, and a Write/Edit of a
-  `plans/*.md` file in the same plan-mode episode - and fails open on everything else. Signal 1 is
-  a `Skill` tool_use and nothing else: `planner` is `user-invocable: false`, so no typed command
-  loads it, and a model dispatch leaves no `<command-name>` line in the transcript. A detector on
-  that line would be dead for viber and live for any OTHER plugin shipping a typeable `planner`. That path is
-  the HARNESS plan directory, the one plan mode names itself, not `docs/_specs/`: the gate fires
-  while the plan is still a draft, long before the implementor lands it. A broken gate must never
-  trap the user in plan mode.
+  `plans/*.md` file in the same plan-mode episode - and fails open on everything else. Signal 1 is a
+  `Skill` tool_use and nothing else, since `planner` is `user-invocable: false` and a model dispatch
+  leaves no `<command-name>` line. That path is the HARNESS plan directory, not `docs/_specs/`. A
+  broken gate must never trap the user in plan mode.
 - **Known conflict: superdev's own ExitPlanMode gate.** Both plugins hook the same tool, and
-  superdev's `review-plan.sh` denies a plan under `.claude/plans/*.md` that declares neither
-  `# SimplePlan` nor `# SuperPlan`. A viber plan declares neither, so with both plugins installed
-  the superdev gate blocks viber's `ExitPlanMode`. Install one track at a time until one of the
-  two gates learns to stand down for the other's plan format.
+  superdev's `review-plan.sh` denies a plan declaring neither `# SimplePlan` nor `# SuperPlan` -
+  which is what a viber plan looks like. Install one track at a time.
 
 ## Anti-patterns
 
@@ -570,6 +265,8 @@ there, plus the e2e pass's launch logs and probe output) - no plugin-named dot-d
   is the drift the split was built to remove.
 - Teaching a skill a host project's stack. Test and build commands are read from the host's own
   instructions at runtime - `test-runner` falls back to whichever manifest is actually present.
+- Restating a script's mechanics or a skill's own steps here. The header comment and the skill body
+  are the contract; what belongs in this node is what spans files, and a second copy is what drifts.
 
 ## Related context
 

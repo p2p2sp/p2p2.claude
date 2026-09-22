@@ -45,7 +45,9 @@ commits it, and finishes on the full test suite.
 ## Optional switches
 
 `/viber:setup` writes `.claude/viber.yml` with four of the five on and `qa` off. Edit that file to
-change any of them - only `true` counts as on. Without the file all five are off.
+change any of them - only `true` counts as on, so turn a switch off with `false` rather than by
+deleting it. Without the file all five are off. Run `/viber:setup` again after an upgrade and any
+switch the new version added is merged into your file, with every value you set left as it is.
 
 | Switch | Default | When on |
 | --- | --- | --- |
@@ -84,5 +86,5 @@ working notes. They are all in git, so nothing is lost; the archive is simply th
 want to read a year later. Generated
 Playwright tests go into the e2e directory your own project already uses - `/viber:e2e` asks if
 nothing names one, and creates no directory of its own. Scratch files go to `.temp/viber/`. Your
-`.gitignore` and `.claude/settings.json` are only ever added to, never rewritten. Nothing else,
-nowhere else.
+`.claude/viber.yml`, your `.gitignore` and your `.claude/settings.json` are only ever added to,
+never rewritten. Nothing else, nowhere else.

@@ -1,7 +1,9 @@
-# viber switches. Only `true` counts as on; a key removed from this file is off.
+# viber switches. Only `true` counts as on. Turn one off with `false`: a key you
+# delete or comment out is restored at its default here the next time
+# `/viber:setup` runs, which is how a new version's switches reach this file.
 
-# idea weighs whether the change carries an architectural decision worth keeping,
-# and planner turns each accepted one into a first task writing docs/adr/.
+# planner weighs whether the change carries an architectural decision worth
+# keeping, and turns each accepted one into a first task writing docs/adr/.
 adr: true
 
 # implementor updates the project's CLAUDE.md nodes at the close of a build.

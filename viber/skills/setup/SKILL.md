@@ -17,8 +17,9 @@ The lines above are the result. They are idempotent and self-verifying: report t
 stand, never re-check them.
 
 Nothing here is a choice. The switches land on in `.claude/viber.yml` - every key carries its
-own comment and the user edits that file to turn one off. A file that was already present is
-the user's: the preload says so and nothing writes over it.
+own comment and the user edits that file to turn one off with `false`. A file that was already
+present keeps every value in it; only a switch this version added is appended to it, which the
+preload's line names.
 
 Then run the merge once - additive and idempotent, the project's own entries and settings all
 survive it. Its line is carried into the close literally, never re-verified, never retried; a

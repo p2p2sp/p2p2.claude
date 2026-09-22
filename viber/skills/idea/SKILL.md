@@ -70,11 +70,10 @@ Do not use `AskUserQuestion`. Interview is a prose - a conversation with a perso
   > Indicate: (2.1 / 2.2 / 2.3)?
 
 ## Keep this discipline
-- ALWAYS use simple natural language.
-- DO NOT simplify your decisions, do not use abbreviations or substitutes in a language other than the one being interviewed.
+- Simple natural language, in the language the user is writing in. No abbreviation and no acronym - every name written out in full.
+- Never drop a decision to keep a question short.
 - "This is too simple to need a design" is an anti-pattern. If the user came here, the scope is non-trivial; honor that.
-- Do not use abbreviations or acronyms - write out the full name.
-- If you are referring to bullet points, do not use only their numbers; instead, briefly explain their meaning to the user.
+- Referring back to an option means naming what it was, never its number alone.
 
 ## Cover, in order
 

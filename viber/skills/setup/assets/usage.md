@@ -38,7 +38,10 @@ how to launch the app, the required env, the migrations.
 
 Four of the five start on; `qa` starts off, because a build that needs acceptance scenarios is the
 exception rather than the rule. Edit `.claude/viber.yml` to change that - every key is commented
-there, and only `true` counts as on: a key removed from the file is off.
+there, and only `true` counts as on. Turn a switch off with `false` rather than by deleting it:
+running `/viber:setup` again merges in whatever the current version's template carries and your
+file does not, which is how a new switch reaches a project set up by an older one, and a deleted
+key is restored at its default by that same merge. Every value you already set survives it.
 
 A `directories:` group names two directories rather than switches: `runs` (`_specs`) is where an
 open run lives under `docs/`, `specifications` (`specs`) is where `cleanup` archives a finished

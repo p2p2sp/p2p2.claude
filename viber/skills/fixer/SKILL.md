@@ -9,17 +9,17 @@ disable-model-invocation: true
 # fixer
 
 ## Overview
-Investigate by tracing, not guessing. Pattern-matching a symptom to a "likely" cause is what makes debugging slow and wrong. Then prove it: a diagnosis you never watched fail in a test is a hypothesis, not a root cause. The proven diagnosis plus a fix plan is the output - the fix itself is planned and built downstream.
+A traced diagnosis, proven by a failing test, plus a fix plan: that is the output. The fix itself is planned and built downstream.
 
 ## The Iron Law
 
 Three laws, in this order. None substitutes for another.
 
-**1. Trace the entire code flow, step by step - no assumptions, no shortcuts.** The bug sits at the first point where actual behavior diverges from what you assumed; the only way to find that point is to walk every step, because the step you skip is the one where you'd have stopped guessing and started seeing. ALWAYS find root cause before proposing a fix. Symptom fixes are failure. Never describe runtime behavior as "should", "probably", or "likely" - state the actual observed value.
+**1. Trace the entire code flow, step by step - no assumptions, no shortcuts.** The bug sits at the first point where actual behavior diverges from what you assumed, and the step you skip is the one where you would have stopped guessing and started seeing. Symptom fixes are failure. Never describe runtime behavior as "should", "probably", or "likely" - state the actual observed value.
 
-**2. NO FIX PLAN WITHOUT A FAILING TEST THAT REPRODUCES THE DIVERGENCE.** Reading code proves what it says, never what it does. Until a test fails on the divergence you found, the root cause is unconfirmed and the fix has nothing to verify it. Reasoning is not evidence - a failing test is. A test that passes on its first run proves nothing - return to tracing, do not move on.
+**2. NO FIX PLAN WITHOUT A FAILING TEST THAT REPRODUCES THE DIVERGENCE.** Reading code proves what it says, never what it does. Until a test fails on the divergence you found, the root cause is unconfirmed and the fix has nothing to verify it. Reasoning is not evidence - a failing test is.
 
-**3. NEVER APPLY THE FIX HERE.** Edit nothing but the reproduction test. The fix leaves this skill as a plan and is built through `viber:planner` -> `viber:implementor`, never by hand - that route is what commits the work and records project memory. A hand-applied fix, however small, loses both. Skipping the handoff because the fix "is trivial" or "is one line" is the same violation.
+**3. NEVER APPLY THE FIX HERE.** Edit nothing but the reproduction test. The fix is built through `viber:planner` -> `viber:implementor`, the route that commits the work and records project memory; a hand-applied fix, however small, loses both. "It is trivial" and "it is one line" are the same violation.
 
 ## The Process
 1. Locate the exact entry point that triggers the behavior - the call, request, or event.
@@ -27,7 +27,7 @@ Three laws, in this order. None substitutes for another.
 3. At each step state the ACTUAL state (values, types, conditions), not the assumed one.
 4. Stop at the first place where actual diverges from expected - that is the root cause, not the symptom.
 5. Confirm the divergence produces the observed symptom downstream.
-6. Write the reproduction test and see it RED (below). The diagnosis is unproven until this happens.
+6. Write the reproduction test and see it RED (below).
 7. Draft the fix plan (below) from the confirmed root cause.
 8. When more than one fix approach is defensible, settle the choice with the user in prose before handing off - the plan needs decisions closed, not open.
 9. Hand off (below).

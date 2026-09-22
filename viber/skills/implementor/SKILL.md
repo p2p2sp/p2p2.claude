@@ -51,7 +51,7 @@ Every path this run spends is derived from the printed one: `<dir>` is the plan'
 
 Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan> --split`. It validates the plan, writes `<dir>/spec.md` and one `<dir>/tasks/<id>.md` per task, commits that decomposition, and returns the title, the progress counter and one line per task: id, state, TDD marker, exclusivity, dependencies, files, title.
 
-That index is your whole view of the plan; the task files are the agents'. Each one is self-contained - the task, the run's goal, the criteria it covers, the contracts it uses and the boundary it must not cross - so a coder is handed that one path and never the specification.
+That index is your whole view of the plan; the task files are the agents'. Each one is self-contained, so a coder is handed that one path and never the specification.
 
 Non-zero exit means the plan itself is broken: report the error and stop, repairing it belongs to the planner. A zero exit guarantees that no two tasks without a dependency path between them share a file, so `deps` is the only thing that keeps two tasks apart.
 
@@ -74,7 +74,7 @@ The tier:
 - Ordinary feature work - `TDD: required`, contained within its own files: model `sonnet`.
 - Load-bearing - defines a contract other tasks consume, spans many files, or several tasks depend on it: model `opus`.
 
-The review is its own rule: only a `Verification` that runs the project's build or its tests waives the reviewer. A task proved by `grep`, `test -f` or any other check on a file's presence or content is reviewed whatever its tier, because that command passes on invented content just as well. A reviewed `haiku` task gets its reviewer at `sonnet` - the lowest tier that can read a document against its DoD.
+The review is its own rule: only a `Verification` that runs the project's build or its tests waives the reviewer. A task proved by `grep`, `test -f` or any other check on a file's presence or content is reviewed whatever its tier, because that command passes on invented content just as well. Its reviewer runs at the task's own tier, raised to `sonnet` where that tier is `haiku` - the lowest tier that can read a document against its DoD.
 
 ## 4. Run the plan
 
@@ -97,7 +97,7 @@ deferred: <paths>
 prior: <dir>/work/<dep-id>-coder.md, ...
 ```
 
-`out` is that task's own build output directory, which is what keeps parallel verifications off each other. It is per task, not per agent: the reviewer of a task runs after its coder returned, so both spend the same path.
+`out` is that task's own build output directory, which is what keeps parallel verifications off each other. It is per task, not per agent: its reviewer spends the same path.
 
 The last two lines are omitted when they would be empty: `deferred` carries the index entries naming this id, `prior` the notes of the tasks its `deps` names - which is what gets an earlier coder's decision into this one deterministically, instead of depending on somebody re-reading a return message.
 
@@ -108,11 +108,16 @@ Then work the loop: on every return, answer with ONE message carrying every disp
 What a return means:
 
 1. Coder `VERDICT: FAIL`, or a `PASS` whose `DOD:` line is short of its total -> `AskUserQuestion` naming the task and its `REASON:` line, the short `DOD:` line standing in for one: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its own dispatch lines plus `reason: <the returned REASON>`. Abort stops every dispatch and goes to step 7, steps 5 and 6 skipped; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it (`TaskUpdate` -> completed for each), and leaves its half-finished files uncommitted in the tree - name them in the final summary.
-2. Coder returned and the profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's tier, `sonnet` where that tier is `haiku`) with the same `task:`, `notes:`, `out:`, `refs:` and `deferred:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
+2. Coder returned and the profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's review tier) with the same `task:`, `notes:`, `out:`, `refs:` and `deferred:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
    - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its own dispatch lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort. `accept` is the user overriding the gate: commit as in 3 below with `--unreviewed` appended, and name the task in the final summary as unreviewed.
-3. Coder returned with no review due, or its reviewer returned `VERDICT: PASS` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`, with `--with <path> [<path>...]` appended for every path an `EXTRA:` line of that task's coder or reviewer returned, and `--defer <target-id>:<path> [...]` for every `DEFERRED:` line its coder returned. Those are files the task could not work without and the plan gave no owner; left out, the commit that lands the task is not the whole task. A `DEFERRED` path returned as `-> none` takes the earliest unfinished task whose `files` column claims it; one no task claims is recorded nowhere and named in the final summary. It takes the commit subject from the task's own heading in the plan, stages what it was given plus the task's own notes and reports, commits, and records the task as done. That call and this task's `TaskUpdate` -> completed go in the SAME message: the next one already answers another return, and an entry left open there is never closed. A non-zero exit means nothing was committed and nothing recorded -> put that entry back to in progress and `AskUserQuestion`: retry / skip / abort.
+3. Coder returned with no review due, or its reviewer returned `VERDICT: PASS` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`, with:
 
-   Two warnings come off that call and neither stops the build. `refused <path> - claimed by task <id>` means the path is in that task's own map and rides in its commit, so leave it and name it in the final summary. `changed, claimed by no task in the plan` names paths nobody reported - a leftover, a stray edit, a regression outside the plan; that is the same split step 5 commits by, so carry them to the final summary rather than acting on them per commit.
+   - `--with <path> [<path>...]` for every path an `EXTRA:` line of that task's coder or reviewer returned. Those are files the task could not work without and the plan gave no owner; left out, the commit that lands the task is not the whole task.
+   - `--defer <target-id>:<path> [...]` for every `DEFERRED:` line its coder returned. One returned as `-> none` takes the earliest unfinished task whose `files` column claims that path; a path no task claims is recorded nowhere and named in the final summary.
+
+   That call and this task's `TaskUpdate` -> completed go in the SAME message: the next one already answers another return, and an entry left open there is never closed. A non-zero exit means nothing was committed and nothing recorded -> put that entry back to in progress and `AskUserQuestion`: retry / skip / abort.
+
+   Two warnings come off that call and neither stops the build. `refused <path> - claimed by task <id>` rides in that task's own commit, so leave it and name it in the final summary. `changed, claimed by no task in the plan` is a leftover, a stray edit or a regression outside the plan - the same split step 5 commits by, so carry it to the final summary rather than acting on it per commit.
 
 ## 5. Close
 
