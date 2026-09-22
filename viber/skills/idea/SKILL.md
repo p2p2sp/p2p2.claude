@@ -1,6 +1,6 @@
 ---
 name: idea
-description: Interviews the user about a raw idea until it is ready to plan.
+description: An interview about a raw idea, one question at a time.
 allowed-tools: Read, Grep, Glob, Skill
 user-invocable: true
 disable-model-invocation: false
