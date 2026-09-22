@@ -1,9 +1,9 @@
 ---
 name: fixer
-description: Traces a reported bug to its root cause and proves it with a failing test, then hands the fix plan to the planner - it applies no fix itself.
+description: Traces a reported bug to its root cause and proves it with a failing test, then hands the fix plan to the planner - it applies no fix itself. Use whenever user reports a bug and wants to fix it.
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill
 user-invocable: true
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # fixer
