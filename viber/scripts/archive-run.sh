@@ -66,6 +66,11 @@
 # so anything else the run left behind travels into the archive on its own,
 # without this script having to know what it is.
 #
+# Once the last run has left, docs/<runs>/ is removed too, before the commit:
+# git tracks no directory, so an empty one would only linger in the working
+# tree. It goes only when it holds nothing at all - a sibling run or any stray
+# file keeps it.
+#
 set -euo pipefail
 
 # Every pathspec here is one exact path derived from the argument - never a
@@ -204,6 +209,7 @@ if [[ $in_git -eq 0 ]]; then
   for leaf in "${scaffold[@]}"; do
     rm -rf -- "$dest/$leaf"
   done
+  rmdir -- "docs/$runs_dir" 2>/dev/null || true
   n="$(find "$dest" -type f | awk 'END { print NR + 0 }')"
   echo "ARCHIVED: $dest ($n files - no git repository)"
   exit 0
@@ -234,6 +240,8 @@ if [[ "$n" -gt 0 ]]; then
 else
   rmdir -- "$dest" 2>/dev/null || true
 fi
+
+rmdir -- "docs/$runs_dir" 2>/dev/null || true
 
 git commit -q -m "docs(viber): archive run $key" -- "${paths[@]}" >&2 || exit 5
 

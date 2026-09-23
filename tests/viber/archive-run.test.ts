@@ -299,6 +299,35 @@ test("the move is one commit, and a spec.md edited before the call lands as a re
   });
 });
 
+test("the last run leaving docs/<runs>/ removes that directory too (git tracks no directory, so it would linger empty)", () => {
+  withSeededRepo((repo, runDir) => {
+    assert.equal(run(repo.dir, [runDir], repo.env).status, 0);
+    assert.ok(!fs.existsSync(path.join(repo.dir, "docs", "_specs")), "an empty runs directory must be gone");
+  });
+});
+
+test("docs/<runs>/ still holding something else is kept, a sibling run or a stray file alike", () => {
+  withSeededRepo((repo, runDir) => {
+    const sibling = seedRun(repo.dir, "2026-09-20-10-00-00_other");
+    assert.equal(run(repo.dir, [runDir], repo.env).status, 0);
+    assert.ok(fs.existsSync(path.join(repo.dir, sibling, "status.md")), "the sibling run must be untouched");
+  });
+  withTempDir("p2p2-viber-", (dir) => {
+    const runDir = seedRun(dir, KEY);
+    fs.writeFileSync(path.join(dir, "docs", "_specs", "stray.md"), "kept\n");
+    assert.equal(run(dir, [runDir]).status, 0);
+    assert.ok(fs.existsSync(path.join(dir, "docs", "_specs", "stray.md")));
+  });
+});
+
+test("outside a git repository the empty docs/<runs>/ is removed the same way", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const runDir = seedRun(dir, KEY);
+    assert.equal(run(dir, [runDir]).status, 0);
+    assert.ok(!fs.existsSync(path.join(dir, "docs", "_specs")));
+  });
+});
+
 test("a path staged beside the run stays in the index: the commit's pathspec is the archive and the run alone", () => {
   withSeededRepo((repo, runDir) => {
     fs.writeFileSync(path.join(repo.dir, "unrelated.ts"), "export const a = 1;\n");
