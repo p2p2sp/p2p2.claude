@@ -146,9 +146,9 @@ Repair commit, every path on the coder's `FILES:` line through the form that own
 
 For each switch the config block reports as `true` and the index's `closed:` line does not name, all in one message:
 
-- `memory: true` -> `viber:memory-writer` with `spec: <dir>/spec.md` and `notes: <dir>/work/`.
-- `rules: true` -> `viber:rules-writer` with those two lines plus `refs: ${CLAUDE_PLUGIN_ROOT}/references`.
-- `qa: true` -> `viber:qa-writer` with those three lines plus `out: <dir>`.
+- `memory: true` -> `viber:memory-writer` with `spec: <dir>/spec.md`, `notes: <dir>/work/` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`.
+- `rules: true` -> `viber:rules-writer` with `spec: <dir>/spec.md`, `notes: <dir>/work/` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`.
+- `qa: true` -> `viber:qa-writer` with `spec: <dir>/spec.md`, `notes: <dir>/work/`, `refs: ${CLAUDE_PLUGIN_ROOT}/references` and `out: <dir>`.
 
 Commit what they return, one call per form: memory and rule paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore "<plan>" "<file>" ["<file>"...]`, QA paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa "<plan>" "<file>" ["<file>"...]`. A form whose agents returned nothing or only `VERDICT: NONE` gets no call. Commit an `OVER:` line's path like any other and repeat the line verbatim in the final summary. Then `TaskUpdate` -> completed for each entry.
 
