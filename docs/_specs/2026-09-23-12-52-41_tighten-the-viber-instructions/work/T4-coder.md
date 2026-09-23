@@ -1,0 +1,7 @@
+- implementor SKILL.md sits at 11990 of its 12000-character ceiling: any addition needs an equal cut.
+- The four answers (retry, skip, accept, abort) live in one `## Answers` section; every return line names only which answers its question offers. Never re-describe an answer inside a return line.
+- Round counting is "round 1 of 2 / round 2 of 2" per question; `retry` resets that pair while the round number in report paths keeps counting.
+- A tier is raised only by `retry`; a coder sent back after a reviewer FAIL runs on the task's current tier (the profile tier, or the one a previous retry raised it to).
+- The task-list pairing is one rule at the top ("every dispatch or call that starts or ends an entry carries its TaskUpdate"), so steps no longer repeat "TaskUpdate -> in progress in the same message".
+- The final summary lists its fixed items once; everything else reaches it through the per-step "name it in the final summary" instructions.
+- Behaviour choice: a repair coder returning FAIL is handled like PASS (commit its `FILES:` line, which is empty on FAIL, then run the next test round). The old text never defined this case.
