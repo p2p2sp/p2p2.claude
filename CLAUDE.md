@@ -183,5 +183,5 @@ header comments of `hooks/scripts/*.sh`.
 | `superfix/CLAUDE.md` | `code-auditor` and its five agents - the two-track investigation sweep |
 | `superbiz/CLAUDE.md` | `idea-validator` - the side-project viability workflow |
 | `supercc/CLAUDE.md` | `skill-designer` - authoring/refactoring/splitting/linting skills and agents |
-| `viber/CLAUDE.md` | `setup` / `idea` / `planner` / `implementor` / `fixer` / `tdd` / `e2e` / `memory` / `rules`, their eleven agents, the run directory with its decomposition, QA documents and trail, how a build resumes and how it is archived, the seven plugin scripts, the QA format and rule-admission references, the config switches and the plan gate |
+| `viber/CLAUDE.md` | `setup` / `idea` / `planner` / `implementor` / `fixer` / `tdd` / `e2e` / `memory` / `rules`, their twelve agents, the run directory with its decomposition, QA documents and trail, how a build resumes and how it is archived, the seven plugin scripts, the QA format, rule-admission and node-doctrine references, the config switches and the plan gate |
 | `tests/CLAUDE.md` | any `*.test.ts` under `tests/` - harness contract, cross-platform rules |

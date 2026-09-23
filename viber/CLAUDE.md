@@ -6,8 +6,8 @@ highest quality and speed of work.
 ## Purpose
 
 The vibe track: understand, plan, build, then record what the build taught. NINE skills (`setup`,
-`idea`, `planner`, `implementor`, `tdd`, `fixer`, `e2e`, `memory`, `rules`), ELEVEN agents, SEVEN
-plugin-level scripts, FOUR skill-level scripts, FOUR plugin-level references, ONE skill-level
+`idea`, `planner`, `implementor`, `tdd`, `fixer`, `e2e`, `memory`, `rules`), TWELVE agents, SEVEN
+plugin-level scripts, FOUR skill-level scripts, FIVE plugin-level references, ONE skill-level
 reference and TWO hooks (one `PreToolUse`, one `SessionStart`).
 
 ## Entry points
@@ -32,11 +32,12 @@ Each skill's contract is its own body and each script's is its header comment; t
   `planner`. Never applies a fix.
 - `tdd` - the Red-Green-Refactor discipline, invoked by `task-coder` through the `Skill` tool.
 - `memory` - `/viber:memory`, user-only. Maps the host's `CLAUDE.md` cascade, dispatches
-  `memory-auditor` per approved target, then `memory-writer` on approval.
+  `memory-auditor` per existing node, then `memory-node-writer` per target in top-down waves on
+  approval.
 - `rules` - `/viber:rules`, user-only. Maps `.claude/rules/`, dispatches `rules-auditor` per
   approved target, then `rules-writer` on approval.
-- `agents/` - `planner-review`, `task-coder`, `task-reviewer`, `test-runner`, `memory-writer` and
-  `memory-auditor`, `rules-writer` and `rules-auditor`, `qa-writer`, `e2e-writer`, `closeout`.
+- `agents/` - `planner-review`, `task-coder`, `task-reviewer`, `test-runner`, `memory-writer`,
+  `memory-node-writer` and `memory-auditor`, `rules-writer` and `rules-auditor`, `qa-writer`, `e2e-writer`, `closeout`.
 - `hooks/` - `plan-gate.sh` and `session-start.sh`, which injects `hooks/content/manifest.md`.
 
 ## Contracts & invariants
@@ -112,13 +113,15 @@ there.
   decision the task left open; `task-reviewer` treats it as Blocking on `TDD: required` when no
   test pins it down, and checks it against `DoD` and `Verification` alone on `TDD: none`.
 - **The knowledge layer has two entries, never a third.** The build close dispatches
-  `memory-writer` and `rules-writer` after every build; `/viber:memory` and `/viber:rules`
-  dispatch the same two on the user's schedule. `memory-auditor` and `rules-auditor` sit beside
-  them, read-only.
-- **The knowledge layer is capped, because its two writers run after every build.**
-  `memory-writer`: 12000 characters per node, 32000 over the chain. `rules-writer`: 4000 per file,
-  40000 over `.claude/rules/`, at most 2 new files per build. A split is exempt: a sibling node is
-  never loaded beside the one a reader opened. The same discipline binds this node.
+  `memory-writer` and `rules-writer` after every build; `/viber:rules` dispatches `rules-writer`
+  on the user's schedule, `/viber:memory` dispatches `memory-node-writer`, one node per dispatch.
+  `memory-auditor` and `rules-auditor` sit beside them, read-only.
+- **The knowledge layer is capped.** Memory: 12000 characters per node, 32000 over the chain.
+  `rules-writer`: 4000 per file, 40000 over `.claude/rules/`, at most 2 new files per build.
+  `memory-writer` and `rules-writer` may end over a cap and report `OVER:`; `memory-node-writer`
+  never does, reporting each left-out fact on `DROPPED:` and each deleted node on `DELETED:`. A
+  split is exempt: a sibling node is never loaded beside the one a reader opened. The same
+  discipline binds this node.
 - **The QA documents live in the run directory, which is what makes the close idempotent.**
   `qa.md` (by hand) and `qa.e2e.md` (automated by `/viber:e2e`) never land in a `docs/qa/` of
   their own; an existing `qa.md` is the resume signal, answered `VERDICT: NONE` rather than
@@ -133,7 +136,8 @@ there.
   `qa.e2e.md` are never touched.
 - **`references/` holds what several workers share.** `qa-format.md` two readers, `test-strategy.md`
   four (`planner`, `planner-review`, `task-reviewer`, `task-coder`), `rule-admission.md` two
-  (`rules-auditor`, `rules-writer`), `plan-rules.md` two (`planner`, `planner-review`), each rule
+  (`rules-auditor`, `rules-writer`), `node-doctrine.md` two (`memory-writer`,
+  `memory-node-writer`), `plan-rules.md` two (`planner`, `planner-review`), each rule
   line tagged `(script)` or `(review)` so `plan-index.sh` and the plan reviewer split the gate.
 - **Model comes from the task's tier; effort comes only from frontmatter.** The `Agent` tool takes
   no `effort` parameter, so effort is fixed per agent: `task-coder` runs `effort: high` across all
