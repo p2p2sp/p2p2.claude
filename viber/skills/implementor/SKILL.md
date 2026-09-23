@@ -83,10 +83,10 @@ Review: only a `Verification` that runs the project's build or its tests waives 
 
 ## 4. Run the plan
 
-`deps` is the only ordering the plan imposes; arrange the rest yourself and never lock a schedule up front. Never break:
+`deps` and the `excl` hold are the only ordering the plan imposes; arrange the rest yourself and never lock a schedule up front. Never break:
 
 - A task dispatches only once every id in its `deps` is done.
-- A task whose `excl` column says `yes` runs alone: nothing else in flight when it goes out, nothing new out until it is committed. Never infer or override it.
+- A task whose `excl` column says `yes` is held back while any task without `excl` is ready to dispatch or anything else is in flight; several ready `excl` tasks go out one after another as their turn comes, and each still runs alone until committed - nothing else in flight when it goes out, nothing new out until it is committed. Never infer or override it.
 - Never two `commit-task.sh` calls in one message: each rewrites the git index and `status.md`.
 
 Coder dispatch: `viber:task-coder` (Agent tool, `model` = the task's tier), carrying these labelled lines and nothing else, the last two omitted when empty:

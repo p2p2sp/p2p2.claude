@@ -90,8 +90,9 @@ there.
   `task-reviewer` drop a red traced outside their `Files`; what escapes belongs to `test-runner`,
   committed through `--repair`.
 - **`Exclusive:` serialises the last test layer.** The doctrine lives in `test-strategy.md`.
-  `Exclusive: true`, one of the plan's two optional fields (`Repro:` the other), makes
-  `implementor` dispatch that task alone - a declaration, never a judgement.
+  `Exclusive: true` marks a leaf `plan-index.sh`'s validation call enforces (skipped under
+  `--split`); `implementor` holds that task until nothing else can run - a declaration, never
+  a judgement.
 - **Git never moves under a running build, but the write tools are open by default.** A subagent
   does not inherit the session's permission mode, so `deny` alone holds the line on `.env`,
   `.git/`, the key files and `stash`/`checkout`/`restore`/`clean`.
