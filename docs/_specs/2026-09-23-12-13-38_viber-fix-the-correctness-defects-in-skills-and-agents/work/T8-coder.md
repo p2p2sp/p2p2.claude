@@ -1,0 +1,3 @@
+- Single-line fix: replaced `naming which one` with `with \`REASON: no UI or endpoint change\`` in qa-writer.md's Classify section.
+- The existing-`qa.md` idempotent branch sentence was left untouched (DoD.2), still ending its own `VERDICT: NONE`.
+- Prior attempt failed only because Edit was disabled for the session; no other blocker existed.

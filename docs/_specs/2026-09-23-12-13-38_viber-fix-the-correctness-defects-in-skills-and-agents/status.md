@@ -1,7 +1,7 @@
 # status
 
-progress: 0/8
-done: none
+progress: 1/8
+done: T8
 skipped: none
 unreviewed: none
 deferred: none

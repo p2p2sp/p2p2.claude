@@ -22,7 +22,7 @@ Two independent questions over the spec's file map, each answered from what a fi
 - Did the UI change - a view, a component, a page, a template, client-side routing?
 - Did the endpoints change - a controller, a route, a request handler, an API definition?
 
-`<out>/qa.md` is written when the UI changed. `<out>/qa.e2e.md` is written when the UI changed or the endpoints did. Neither answer yes -> `VERDICT: NONE` naming which one. An existing `<out>/qa.md` -> `VERDICT: NONE` as well: the close is idempotent, so a resumed build never overwrites scenarios a tester may already have worked through.
+`<out>/qa.md` is written when the UI changed. `<out>/qa.e2e.md` is written when the UI changed or the endpoints did. Neither answer yes -> `VERDICT: NONE` with `REASON: no UI or endpoint change`. An existing `<out>/qa.md` -> `VERDICT: NONE` as well: the close is idempotent, so a resumed build never overwrites scenarios a tester may already have worked through.
 
 ## Write
 
