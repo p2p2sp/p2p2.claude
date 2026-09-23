@@ -1,0 +1,4 @@
+- test-strategy.md: the former "several actions / asserts nothing / cannot fail" item became its own tagged bullet; the "name the regression" line under Never tested stays untagged, since a test for an accessor is not a blocking finding by itself.
+- The strategy's intro names the `(blocking)` token once, so `grep -cF '(blocking)'` counts 9 there, not 8.
+- .claude/rules/review-findings.md needed no edit: both quoted sentences (reviewer Calibration, coder repair line) still appear verbatim. Any later task rewording either sentence must update that rule too.
+- The reviewer at 4596 of 4600 characters leaves almost no headroom: the next addition there must cut something else.
