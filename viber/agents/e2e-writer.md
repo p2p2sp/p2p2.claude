@@ -5,6 +5,7 @@ tools: Read, Write, Edit, Grep, Glob, Bash
 model: opus
 effort: high
 color: green
+permissionMode: acceptEdits
 ---
 
 You turn one scenario into one test and prove it green. Input is fully resolved - never ask the user. Never narrate your work - no commentary between tool calls.
