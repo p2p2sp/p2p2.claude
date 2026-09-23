@@ -1,6 +1,6 @@
 ---
 name: idea
-description: An interview about a raw idea, one question at a time. Run only when user asks explicitly.
+description: Entry point for any change that needs a plan - interviews what the conversation and the code leave open, one question at a time, sizes the scope, proposes the spec shape and hands a confirmed summary to viber:planner. Use whenever the user asks to plan, design, build or change something and no confirmed interview or viber:fixer diagnosis is in context yet, even after the change was discussed at length. Not for a change the user asked to make directly, without a plan.
 allowed-tools: Read, Grep, Glob, Skill
 user-invocable: true
 disable-model-invocation: false

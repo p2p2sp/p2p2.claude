@@ -1,6 +1,6 @@
 ---
 name: planner
-description: Turns an understood change into a reviewed implementation plan - acceptance criteria, file map, then tasks carrying dependencies, contracts, verification and DoD. Invoked by viber:idea with a confirmed interview or by viber:fixer with a diagnosis; any other input goes to viber:idea first.
+description: Only for a confirmed viber:idea interview or a viber:fixer diagnosis already in context - never the entry point. Any other request to plan, design or build a change invokes viber:idea instead. Turns that input into a reviewed implementation plan - acceptance criteria, file map, then tasks carrying dependencies, contracts, verification and DoD.
 allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(date:*)
 user-invocable: false
 ---
@@ -9,11 +9,11 @@ user-invocable: false
 "${CLAUDE_PLUGIN_ROOT}/scripts/config.sh"
 ```
 
-CRITICAL: call `EnterPlanMode` first unless plan mode is already active.
-
 # planner
 
-Input: an understood change already in context - a confirmed `viber:idea` interview, or a `viber:fixer` diagnosis. Anything else is unresolved input however clear it reads: invoke the `viber:idea` skill, then continue with what it confirms. Never size the scope yourself.
+Input: an understood change already in context - a confirmed `viber:idea` interview, or a `viber:fixer` diagnosis. Anything else is unresolved input however clear it reads: invoke the `viber:idea` skill instead and stop here, never entering plan mode. Never size the scope yourself.
+
+CRITICAL: on valid input call `EnterPlanMode` first unless plan mode is already active.
 
 The input carries three decisions already taken: the spec shape, whether this plan stops at a draft, and, on a round continuing an earlier draft, that draft's run key. Never reopen them.
 
