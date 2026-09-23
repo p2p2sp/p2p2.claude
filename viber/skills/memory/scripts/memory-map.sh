@@ -37,11 +37,15 @@
 # state   - "none" when no CLAUDE.md is tracked anywhere, "complete" when a
 #           root node exists and every candidate directory carries its own
 #           node, "partial" otherwise.
-# node    - one line per tracked CLAUDE.md, root first then depth order. The
-#           first count is `wc -c` on the file, "chain" that plus every
-#           ancestor node up to the root - what a reader loads by the time it
-#           reaches this one. OVER-NODE past 12000 characters, OVER-CHAIN past
-#           32000 on the chain, OVER-NODE winning when both hold.
+# node    - one line per tracked CLAUDE.md still present in the working tree,
+#           root first then depth order. The first count is `wc -c` on the
+#           file, "chain" that plus every ancestor node up to the root - what
+#           a reader loads by the time it reaches this one. OVER-NODE past
+#           12000 characters, OVER-CHAIN past 32000 on the chain, OVER-NODE
+#           winning when both hold. A node deleted but not yet committed -
+#           staged with `git rm` or plainly `rm`'d - is no node at all: no
+#           line here, no dirty line, not counted toward total or state, and
+#           its directory is a plain candidate again once it qualifies.
 # orphan  - a node with no other tracked file anywhere beneath its directory:
 #           it documents nothing.
 # cand    - a directory that deserves a node and has none: tracked, at depth 1
@@ -54,7 +58,10 @@
 #           every tracked file beneath it.
 # dirty   - one line per node the git index reports modified, or present in
 #           the tree and untracked. An untracked node is no node anywhere else
-#           in the map: it is neither counted nor sized.
+#           in the map: it is neither counted nor sized. A node deleted but
+#           not yet committed carries no working-tree file either way, so it
+#           is absent rather than dirty - `--reset` alone still treats its
+#           uncommitted deletion as "modified" and refuses to touch it again.
 #
 # A section with nothing to report prints no line at all; "total:" always
 # prints. --reset judges every target before deleting the first one, so one
@@ -203,11 +210,14 @@ EOT
   exit 0
 fi
 
-# Every tracked CLAUDE.md, prefixed with its zero-padded depth so a plain
-# `sort` puts the root node first and the rest in depth order.
+# Every tracked CLAUDE.md still present in the working tree, prefixed with
+# its zero-padded depth so a plain `sort` puts the root node first and the
+# rest in depth order. One deleted but not yet committed - staged with
+# `git rm` or plainly `rm`'d - is skipped here: it is no node at all.
 node_lines="$(
   printf '%s' "$tracked" | while IFS= read -r entry; do
     is_node "$entry" || continue
+    [ -e "$entry" ] || continue
     slashes="${entry//[!\/]/}"
     printf '%03d %s\n' "${#slashes}" "$entry"
   done | sort
@@ -297,9 +307,15 @@ if [ -n "$tracked" ]; then
   [ -z "$cand_out" ] || cand_out="$cand_out$NL"
 fi
 
+# A node deleted but not yet committed carries no working-tree file either
+# way - staged with `git rm` or plainly `rm`'d - so it is no dirty entry: it
+# is absent, not modified. --reset still judges it through $dirty_nodes
+# itself, unfiltered, so its own refusal is unchanged.
 dirty_out=""
 while IFS= read -r entry; do
   [ -n "$entry" ] || continue
+  path="${entry% *}"
+  [ -e "$path" ] || continue
   dirty_out="$dirty_out$(printf 'dirty: %s' "$entry")$NL"
 done <<EOT
 $dirty_nodes

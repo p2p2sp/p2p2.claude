@@ -319,6 +319,70 @@ test("a node carrying uncommitted work is dirty, and an untracked one is no node
   });
 });
 
+test("a node deleted by --reset and left unstaged is no node, carries no dirty entry, and its directory is a candidate again", () => {
+  withGitRepo((repo) => {
+    commit(repo, {
+      "CLAUDE.md": node(40),
+      "docs/CLAUDE.md": node(40),
+      "docs/a.md": "x\n",
+      "docs/b.md": "x\n",
+      "docs/c.md": "x\n",
+    });
+
+    const reset = run(repo, ["--reset", "docs/CLAUDE.md"]);
+    assert.equal(reset.status, 0, `stderr: ${reset.stderr}`);
+
+    const result = run(repo);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    const out = lines(result.stdout);
+    assert.deepEqual(pick(out, "node:"), ["node: CLAUDE.md 40 chain 40 ok"]);
+    assert.deepEqual(pick(out, "dirty:"), []);
+    assert.deepEqual(pick(out, "cand:"), ["cand: docs files 3 bytes 6 plain"]);
+    assert.deepEqual(pick(out, "total:"), ["total: nodes 1"]);
+  });
+});
+
+test("a node deleted with git rm, staged but uncommitted, is no node, carries no dirty entry, and its directory is a candidate again", () => {
+  withGitRepo((repo) => {
+    commit(repo, {
+      "CLAUDE.md": node(40),
+      "docs/CLAUDE.md": node(40),
+      "docs/a.md": "x\n",
+      "docs/b.md": "x\n",
+      "docs/c.md": "x\n",
+    });
+    repo.git("rm", "-q", "docs/CLAUDE.md");
+
+    const result = run(repo);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    const out = lines(result.stdout);
+    assert.deepEqual(pick(out, "node:"), ["node: CLAUDE.md 40 chain 40 ok"]);
+    assert.deepEqual(pick(out, "dirty:"), []);
+    assert.deepEqual(pick(out, "cand:"), ["cand: docs files 3 bytes 6 plain"]);
+    assert.deepEqual(pick(out, "total:"), ["total: nodes 1"]);
+  });
+});
+
+test("--reset still refuses a target whose earlier deletion was left uncommitted and unstaged", () => {
+  withGitRepo((repo) => {
+    commit(repo, {
+      "CLAUDE.md": node(40),
+      "a/CLAUDE.md": node(40),
+    });
+
+    const first = run(repo, ["--reset", "a/CLAUDE.md"]);
+    assert.equal(first.status, 0, `stderr: ${first.stderr}`);
+
+    const result = run(repo, ["--reset", "a/CLAUDE.md"]);
+
+    assert.equal(result.status, 3, `stderr: ${result.stderr}`);
+    assert.deepEqual(lines(result.stdout), ["refused: a/CLAUDE.md modified"]);
+    assert.equal(fs.existsSync(path.join(repo.dir, "CLAUDE.md")), true);
+  });
+});
+
 test("a directory that is no repository at all maps as the empty layer and still exits 0", () => {
   withTempDir("p2p2-nogit-", (dir) => {
     fs.writeFileSync(path.join(dir, "CLAUDE.md"), node(40));
