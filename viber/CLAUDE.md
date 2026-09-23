@@ -147,6 +147,9 @@ there.
   and `test-runner` return `VERDICT: DENIED` with the refused tool and call as `REASON:`.
   `implementor` answers every `DENIED` with one `AskUserQuestion` whose first option re-dispatches
   the same agent, same model, same round - the one-tier-up retry never applies here.
+- **A background process never outlives its agent.** `task-coder`, `task-reviewer`, `test-runner` and `e2e-writer` kill theirs before
+  returning; `implementor` answers a notice still reporting one with a `SendMessage` to that agent.
+  Not a script: no process carries a mark of the agent that started it.
 
 ## Anti-patterns
 

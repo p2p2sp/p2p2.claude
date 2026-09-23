@@ -42,7 +42,7 @@ Exactly one file, `<spec-dir>/<qa-id>-<slug>.spec.ts`, where `<qa-id>` is the ID
 
 ## Run
 
-`npx playwright test <file>`, one Bash call with an explicit generous timeout measured in minutes: a browser run left at a default timeout comes back as a false red. Redirect the output under `.temp/viber/e2e/` and read it there. Never leave a process or a background shell you started running when you return: it outlives you and lands in the caller's session.
+`npx playwright test <file>`, one Bash call with an explicit generous timeout measured in minutes: a browser run left at a default timeout comes back as a false red. Redirect the output under `.temp/viber/e2e/` and read it there.
 
 Red is classified before anything is touched:
 
@@ -55,6 +55,10 @@ Still red after five rounds with no application defect, or a run that produced n
 ## Status line
 
 Under the handoff's `## Automation` section (created at the end of the file when absent), write this ID's one line through `Edit` alone, never a rewrite: replace an existing line for this ID or append one, never two, and never let a `blocked` line name a path.
+
+## Stop what you started
+
+Before you return, stop every process you started in the background: `kill` each PID it spawned, not just its shell, and confirm with `ps` that none is left - it outlives you and lands in the caller's session. Start such a process only through the Bash tool's `run_in_background`, never detached with `&`, `nohup`, `setsid` or `start`, which the harness cannot see.
 
 ## Output
 

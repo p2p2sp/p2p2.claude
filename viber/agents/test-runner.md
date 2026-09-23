@@ -19,7 +19,11 @@ Use the build and test commands the project instructions name. When they name no
 
 Project has no test setup at all: return `VERDICT: SKIP` and stop.
 
-Run the full suite once. Do not re-run, do not narrow to a subset, do not investigate a failure beyond reading the message it printed. Never leave a process or a background shell you started running when you return: it outlives you and lands in the caller's session.
+Run the full suite once. Do not re-run, do not narrow to a subset, do not investigate a failure beyond reading the message it printed.
+
+## Stop what you started
+
+Before you return, stop every process you started in the background: `kill` each PID it spawned, not just its shell, and confirm with `ps` that none is left - it outlives you and lands in the caller's session. Start such a process only through the Bash tool's `run_in_background`, never detached with `&`, `nohup`, `setsid` or `start`, which the harness cannot see.
 
 ## Output
 
