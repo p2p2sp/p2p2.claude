@@ -18,7 +18,7 @@ disable-model-invocation: true
 
 # e2e
 
-One run's handoff file, one pass. Every scenario of its `qa.e2e.md` becomes one `@playwright/test` file, written by `viber:e2e-writer` against the application you launched, proven green there, and committed. You resolve, launch, dispatch and commit: you generate nothing and write not one byte into the tree yourself.
+One run's handoff file, one pass. Every scenario of its `qa.e2e.md` becomes one `@playwright/test` file, written by `viber:e2e-writer` against the application you launched, proven green there, and committed. You resolve, launch, dispatch and commit: you write nothing into the tree yourself.
 
 Nothing about this project's stack is assumed. The test directory, the base URL, the launch command and the test accounts come from the project's own instructions, from the handoff's header lines, or from the user - never from a default of your own, and never carried over from another project.
 
@@ -28,9 +28,9 @@ Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scrip
 
 The argument names either the run directory or the `qa.e2e.md` inside it; `<dir>` is that directory either way.
 
-With no argument, `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh"` returns the plan most recently worked on and `<dir>` is its directory. Two of its answers send you to the archive instead, because a build whose run was cleaned up leaves nothing to resolve: exit 3 - no open run at all - and a run it resolved that holds no `qa.e2e.md`. Then `Glob` `docs/<specs>/*/qa.e2e.md`, `<specs>` being the `directories.specifications` value on the config block above, and take the newest by directory name - that name opens with the run's stamp, so it sorts. `<dir>` is that file's own directory.
+With no argument, `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh"` returns the plan most recently worked on and `<dir>` is its directory. Two of its answers send you to the archive instead: exit 3 (no open run at all) and a run it resolved that holds no `qa.e2e.md`. Then `Glob` `docs/<specs>/*/qa.e2e.md`, `<specs>` being the `directories.specifications` value on the config block above, and take the newest by directory name. `<dir>` is that file's own directory.
 
-No `<dir>/qa.e2e.md`, and no archived one either -> stop with one line naming the directory and saying it carries no handoff file. That build wrote no automatable scenario, and nothing here invents one.
+No `<dir>/qa.e2e.md`, and no archived one either -> stop with one line naming the directory and saying it carries no handoff file.
 
 ## 2. Preflight
 
@@ -39,9 +39,9 @@ The playwright block's two lines above are the state of this host: trust them, n
 A `not found` -> one `AskUserQuestion` naming what is missing: install it now, or abort. Abort stops the run with nothing generated. On install, one Bash call each, an explicit generous timeout on every one of them, the package names exactly as written here and never re-derived from a binary name:
 
 - `playwright-cli` -> `npm install -g @playwright/cli@latest`
-- `@playwright/test` -> `npm i -D @playwright/test`, then `npx playwright install chromium` - the one browser this flow uses, so the download stays a browser rather than three
+- `@playwright/test` -> `npm i -D @playwright/test`, then `npx playwright install chromium`
 
-Installing `@playwright/test` changes this project's `package.json` and its lockfile. Say so in one line before the loop starts: those two files are the user's to commit or to stash, never this command's - step 6 commits the generated specs and the handoff, and nothing else.
+Installing `@playwright/test` changes this project's `package.json` and its lockfile. Say so in one line before the loop starts: those two files are the user's to commit or to stash, never this command's.
 
 ## 3. Resolve the host values
 
@@ -60,21 +60,21 @@ Probe once with one Bash call of `curl -sf -o /dev/null "<base-url>"`. It answer
 
 Otherwise run the launch command as one background Bash call with its output redirected to `.temp/viber/e2e/launch.log`, then poll with the same probe every 2 seconds for up to 120 seconds. The first answer moves you on. No answer inside that bound -> `AskUserQuestion` quoting the last lines of that log: poll again at double the bound with the command left running, or abort.
 
-This project's launch command, its config and its ports are never edited to make the probe answer. A command that does not start the application is a fact for the user, not a file for you.
+This project's launch command, its config and its ports are never edited to make the probe answer.
 
 ## 5. Generate the tests
 
 The ID list is every `### QA-<nn> <title>` heading under `## UI scenarios` and `## API scenarios`, in file order; an ID named under `## Not automatable` gets no entry at all. Read each one's state off the handoff's `## Automation` section: a `file` line is done and this pass skips it, a `blocked` line is retried, no line at all is pending.
 
-`TaskCreate` one task per ID, the `file` ones completed at creation. Then one pending ID at a time in file order, never two at once - they share one running application and one set of data:
+`TaskCreate` one task per ID, the `file` ones completed at creation. Then one pending ID at a time in file order, never two at once:
 
 1. `TaskUpdate` -> in progress.
 2. `Agent` with `subagent_type: viber:e2e-writer`, one labelled line each and nothing else: `handoff: <dir>/qa.e2e.md`, `id: QA-<nn>`, `spec-dir: <the e2e test directory>`, `base-url: <the base URL>`, `refs: ${CLAUDE_PLUGIN_ROOT}/references`. Every path absolute. Pass no `model:` - the writer's own frontmatter is its strength.
 3. `VERDICT: PASS` plus `FILE:` -> keep that path for step 6. `TaskUpdate` -> completed.
-4. `VERDICT: BLOCKED` plus `REASON:` -> the application, not the test, prevented a green run. The writer already deleted its file and wrote that ID's `blocked` line. Keep the reason for step 7, re-dispatch nothing, and change nothing in the application: a blocked scenario is a finding, never a build. `TaskUpdate` -> completed.
+4. `VERDICT: BLOCKED` plus `REASON:` -> the application, not the test, prevented a green run. The writer already deleted its file and wrote that ID's `blocked` line. Keep the reason for step 7, re-dispatch nothing, and change nothing in the application. `TaskUpdate` -> completed.
 5. `VERDICT: FAIL` plus `REASON:` -> dispatch once more with the same lines. A second FAIL -> `AskUserQuestion` naming the scenario: retry again, skip it (keep the reason for step 7; it wrote no status line, so the ID stays pending for a later pass), or abort (go to step 6 with the IDs already processed).
 
-Never open the application, write a spec file, edit one the writer produced, or read a red run yourself. The writer owns generation, the green run and the status line; you own the order they happen in.
+Never open the application, write a spec file, edit one the writer produced, or read a red run yourself.
 
 ## 6. Commit
 
