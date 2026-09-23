@@ -16,9 +16,10 @@ Each skill's contract is its own body and each script's is its header comment; t
 
 - `setup` - `/viber:setup`, user-only. `bootstrap.sh` (config, `.gitignore`), `merge-settings.sh`
   (permissions), then `assets/usage.md` printed verbatim. Asks nothing.
-- `idea` - `/viber:idea`, and model-invocable as the one entry to planning. Prose interview, ends
+- `idea` - `/viber:idea`, and the one entry to planning. Model-invocable only on the user's
+  consent: its description has the model suggest it, never start it unasked. Prose interview, ends
   in a confirmed summary that invokes `planner`. Writes nothing.
-- `planner` - model-invocable, never the entry: its description routes a raw planning request to
+- `planner` - model-invocable, never the entry: its description points a raw planning request at
   `idea`. Refuses input from anywhere but `idea` or `fixer` BEFORE entering plan mode, composes
   the plan from `templates/`, validates with `plan-index.sh`, gates on `planner-review` until
   PASS, then `ExitPlanMode`.

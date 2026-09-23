@@ -1,6 +1,6 @@
 ---
 name: idea
-description: Entry point for any change that needs a plan - interviews what the conversation and the code leave open, one question at a time, sizes the scope, proposes the spec shape and hands a confirmed summary to viber:planner. Use whenever the user asks to plan, design, build or change something and no confirmed interview or viber:fixer diagnosis is in context yet, even after the change was discussed at length. Not for a change the user asked to make directly, without a plan.
+description: Planning interview - asks what the conversation and the code leave open, one question at a time, sizes the scope, proposes the spec shape and hands a confirmed summary to viber:planner. Never start it on your own initiative. When a change looks like it needs a plan and no confirmed interview or viber:fixer diagnosis is in context, keep talking with the user and suggest this interview in one line; invoke it only after the user agrees or asks to plan, design or be interviewed. Not for a change the user asked to make directly, without a plan.
 allowed-tools: Read, Grep, Glob, Skill
 user-invocable: true
 disable-model-invocation: false

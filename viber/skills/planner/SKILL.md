@@ -1,6 +1,6 @@
 ---
 name: planner
-description: Only for a confirmed viber:idea interview or a viber:fixer diagnosis already in context - never the entry point. Any other request to plan, design or build a change invokes viber:idea instead. Turns that input into a reviewed implementation plan - acceptance criteria, file map, then tasks carrying dependencies, contracts, verification and DoD.
+description: Only for a confirmed viber:idea interview or a viber:fixer diagnosis already in context - never the entry point. Without one, suggest the viber:idea interview and let the user decide. Turns that input into a reviewed implementation plan - acceptance criteria, file map, then tasks carrying dependencies, contracts, verification and DoD.
 allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(date:*)
 user-invocable: false
 ---
