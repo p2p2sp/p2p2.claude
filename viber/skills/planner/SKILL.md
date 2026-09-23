@@ -19,8 +19,6 @@ Input: an understood change already in context, arriving one of two ways - a con
 
 The input carries three decisions already taken: the spec shape, whether this plan stops at a draft, and - on a round continuing an earlier draft - that draft's run key. Take all three as given and never reopen them.
 
-The plan answers HOW. It carries every detail, acceptance criterion and DoD the implementation needs, and says nothing about the way a task should be coded.
-
 ## 1. Map the files first
 
 Read `${CLAUDE_PLUGIN_ROOT}/references/test-strategy.md` first: it decides how the work is sliced, where each criterion's proof lives, and which deliverables carry no test at all. A plan stopping at a draft skips it - nothing is sliced yet.
@@ -48,32 +46,32 @@ A plan stopping at a draft ends the step here: the specification half alone, no 
 Task rules:
 
 - Smallest unit that carries its own verification and is worth a reviewer's gate. Fold setup, config and docs into the task whose deliverable needs them.
-- Task ids are `T1`, `T2`, … in order. `Depends-on` may reference lower-numbered tasks only, which keeps the graph acyclic.
+- Task ids are `T1`, `T2`, … in order. `Depends-on` may reference lower-numbered tasks only (script), which keeps the graph acyclic.
 - Declare a dependency only for a real ordering constraint - one task consuming what another produces. Every false dependency costs parallelism.
-- `Files` is the task's complete file map, comma-separated on one line: exact repo-relative paths, no globs, no directories, no annotations. It is what gets staged for the commit and what the collision check compares. A bracket wrapping a whole path segment (`[id]`, `[...slug]`, `[[...slug]]`) is part of the file's own name, not a glob - write such a path exactly as it is on disk.
+- `Files` is the task's complete file map. It is comma-separated on one line: exact repo-relative paths, no globs, no directories, no annotations (script). It is what gets staged for the commit and what the collision check compares. A bracket wrapping a whole path segment (`[id]`, `[...slug]`, `[[...slug]]`) is part of the file's own name, not a glob - write such a path exactly as it is on disk.
 - Complete means nothing outside that list has to change for the task to deliver and its `Verification` to pass. A file the task's own work forces - its registration, its schema, the aggregate test its change invalidates - belongs to that task, not to whichever task happens to own the neighbourhood. A shape two tasks need is written by the first one that cannot deliver without it.
-- Tasks with no dependency path between them must not list the same file - they run at the same time.
+- Tasks with no dependency path between them must not list the same file (script) - they run at the same time.
 - `Exclusive: true` only where a task genuinely cannot share the working tree or a machine-wide resource - a fixed port, one database, a suite that has to run alone. Leave the line out everywhere else: an exclusive task stops the whole build for as long as it runs.
-- `Uses` names every contract block the task touches, the ones it writes and the ones it only calls, or `none`. It is mandatory, because the task file is a coder's whole input: a shape left off the line reaches nobody and gets invented instead.
+- `Uses` names every contract block the task touches, the ones it writes and the ones it only calls, or `none`. It is mandatory (script), because the task file is a coder's whole input: a shape left off the line reaches nobody and gets invented instead.
 - `Delivers` states WHAT the task produces. Never how to code it, never a line number.
 - `Verification` is a runnable command plus the result that counts as proof, scoped to the task's own `Files` and the tests covering them, never a whole-project suite: other tasks are being written in the same tree at the same time. A task with no runtime behaviour greps instead, for an identifier the code really declares and on both sides in one command - the document and the source file that defines the identifier. A command any file carrying the word would satisfy is not a verification, and neither is "read it and judge".
 - `DoD` separates its clauses with semicolons and each clause is independently observable on its own: the decomposition cuts that line into `DoD.1`, `DoD.2`, …, a coder answers for each clause and a reviewer gates each one, so a clause that only makes sense wrapped in the sentence around it is gated by nobody.
 - `TDD: required` by default. `TDD: none` only where the task changes no runtime behaviour: config, docs, mechanical rename, scaffolding.
 - A reproduction test already RED in the tree goes into the fixing task's `Files:` - nothing outside a file map gets committed - and on its `Repro:` line, and that task carries `TDD: none`: its RED cycle is done. Without `Repro:` the build reads that uncommitted test as an interrupted coder and stops to ask.
 - Integration tasks are the plan's last tasks, each `TDD: none`, `Exclusive: true`, depending on the tasks whose work it exercises, and each `Verification` runs that task's own integration test and nothing wider.
-- Every acceptance criterion is covered by at least one task's `Covers`. A condition no single task delivers, like the suite staying green, is not an acceptance criterion: that is the build's own close.
+- Every acceptance criterion is covered by at least one task's `Covers` (script). A condition no single task delivers, like the suite staying green, is not an acceptance criterion: that is the build's own close.
 - The heading line is committed verbatim as the commit subject, so the title is one short imperative summary of what the task delivers.
 
 Contract rules:
 
 - One `### C<n> - <name>` block per shape the change introduces or consumes, ids `C1`, `C2`, … in order, all under the `## Contracts` appendix below the tasks. A change that introduces no shape has no appendix and every task carries `Uses: none`.
 - The block opens with `File:` - the repo-relative paths the shape is declared in, or `none` for one that lives in no file of its own - then the shape itself and nothing else: no rationale, no history, no instruction on how to build it.
-- Every block is named by at least one task's `Uses`; one nobody names is rejected at validation, because no coder would ever see it.
-- Never say which task writes a block and which only calls it: the task whose `Files` holds the block's own file writes it, every other one takes it exactly as written. So every `File:` path is in some task's `Files` unless the tree already holds it, and at least one task holding it names the block - otherwise its writer never sees the shape and a consumer writes it outside its own file map. Both are rejected at validation.
+- Every block is named by at least one task's `Uses` (script); one nobody names is rejected at validation, because no coder would ever see it.
+- Never say which task writes a block and which only calls it: the task whose `Files` holds the block's own file writes it, every other one takes it exactly as written. So every `File:` path is in some task's `Files` unless the tree already holds it, and at least one task holding it names the block (script) - otherwise its writer never sees the shape and a consumer writes it outside its own file map. Both are rejected at validation.
 
 With `adr: true` above, read `${CLAUDE_SKILL_DIR}/references/adr-tasks.md` before writing the tasks and follow it; otherwise skip it entirely.
 
-Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan-path>` as one literal Bash line, no interpreter word in front - any other form is an unapproved call that stalls on a permission prompt. It validates every rule above and must exit 0: fix whatever it reports and re-run.
+Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan-path>` as one literal Bash line, no interpreter word in front - any other form is an unapproved call that stalls on a permission prompt. It validates the rules tagged `(script)` and must exit 0: fix whatever it reports and re-run. Every untagged rule is your own check.
 
 Show the user the full path of the written plan.
 
