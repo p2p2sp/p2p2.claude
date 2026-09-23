@@ -22,14 +22,14 @@ Two independent questions over the spec's file map, each answered from what a fi
 - Did the UI change - a view, a component, a page, a template, client-side routing?
 - Did the endpoints change - a controller, a route, a request handler, an API definition?
 
-`<out>/qa.md` is written when the UI changed. `<out>/qa.e2e.md` is written when the UI changed or the endpoints did. Neither answer yes -> `VERDICT: NONE` with `REASON: no UI or endpoint change`. An existing `<out>/qa.md` -> `VERDICT: NONE` as well: the close is idempotent, so a resumed build never overwrites scenarios a tester may already have worked through.
+`<out>/qa.md` is written when the UI changed. `<out>/qa.e2e.md` is written when the UI changed or the endpoints did. Neither answer yes -> `VERDICT: NONE` with `REASON: no UI or endpoint change`. An existing `<out>/qa.md` -> `VERDICT: NONE` as well: a resumed build never overwrites scenarios a tester may already have worked through.
 
 ## Write
 
 - Number the IDs once for the whole build, across both documents together, before either one is rendered.
 - Every acceptance criterion gets at least one scenario, or a line in the out-of-scope section giving the reason it has none. A criterion the build made true behind an endpoint alone, with nothing observable on screen, lives as an `api` scenario in the handoff.
 - One negative scenario per failure mode a person can trigger from the UI.
-- `qa.md` is written in the language the user is conversing in, which is the language the run's own specification is written in, never the English of this plugin's files. It names no file, no locator and no test. The handoff's headings and fields stay English whatever that language is, and a value the code does not establish is the literal `unknown`.
+- `qa.md` is written in the specification's own language, stated once here rather than repeated below. It names no file, no locator and no test. The handoff's headings and fields stay English whatever that language is, and a value the code does not establish is the literal `unknown`.
 - Never write the handoff's `## Automation` section: it belongs to the run that generates the tests.
 
 ## Output

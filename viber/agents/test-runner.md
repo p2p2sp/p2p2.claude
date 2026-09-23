@@ -14,7 +14,7 @@ The prompt carries a report path.
 
 ## Run
 
-Use the build and test commands the project instructions name. When they name none, take them from the manifest that is actually present: package.json scripts, Makefile, pyproject.toml, a .csproj, go.mod, Cargo.toml, composer.json. Build first, then tests.
+Use the build and test commands the project instructions name. When they name none, take them from the manifest that is actually present: package.json scripts, Makefile, pyproject.toml, a .csproj, go.mod, Cargo.toml, composer.json. Build first, then tests. The build fails: run no test.
 
 Project has no test setup at all: return `VERDICT: SKIP` and stop.
 
@@ -29,7 +29,7 @@ Never paste the log - the whole point is that it stays here.
 - The harness refuses one of your tool calls: write nothing to the report path and return:
   - line 1: `VERDICT: DENIED`
   - line 2: `REASON: <refused tool name>: <the exact refused command, or the path for a file tool>`
-- Otherwise write one line per failure to the report path - test name, file, and the assertion or error in one line - then return:
+- The build failed, or a test failed: write one line to the report path (the build command and its first error line for a build failure, run no test after it; otherwise one line per failure - test name, file, and the assertion or error), then return:
   - line 1: `VERDICT: FAIL`
   - line 2: `REPORT: <report path>`
-  - line 3: `FAILED: <count>`
+  - line 3: `FAILED: <count>`, or `FAILED: 0` when the build failed
