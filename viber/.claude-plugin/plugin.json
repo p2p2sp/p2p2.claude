@@ -23,6 +23,7 @@
     "./agents/task-reviewer.md",
     "./agents/test-runner.md",
     "./agents/memory-writer.md",
+    "./agents/memory-node-writer.md",
     "./agents/memory-auditor.md",
     "./agents/rules-writer.md",
     "./agents/rules-auditor.md",
