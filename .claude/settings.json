@@ -38,8 +38,7 @@
       "Edit",
       "Write",
       "NotebookEdit",
-      "Edit(**/*)",
-      "Write(**/*)"
+      "Edit(**/*)"
     ],
     "deny": [
       "Bash(rm -r /:*)",
