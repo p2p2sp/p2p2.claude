@@ -40,7 +40,8 @@
       "TodoWrite",
       "ToolSearch",
       "WebFetch",
-      "WebSearch"
+      "WebSearch",
+      "Write"
     ],
     "ask": [
       "Bash(docker system prune:*)",
