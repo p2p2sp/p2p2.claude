@@ -364,9 +364,12 @@ test("the shipped template carries the recommended block only: built-in tools, r
   // stopped on a permission prompt strands the batch it was dispatched in,
   // which is why they are allowed here; the deny list is what keeps .env,
   // .git/ and the key files out.
-  for (const expected of ["Edit(**/*)", "Write(**/*)", "NotebookEdit"]) {
+  for (const expected of ["Edit(**/*)", "NotebookEdit"]) {
     assert.ok(allow.includes(expected), `allow should carry ${expected} - viber's coders write through it`);
   }
+  // File permission checks match Edit(path) rules only: an Edit rule covers
+  // every file-editing tool, and a Write(path) rule is flagged as never matched.
+  assert.ok(!allow.includes("Write(**/*)"), "allow should not carry Write(**/*) - Edit(**/*) already covers Write");
   // Recoverable or user-judged operations stop the agent on a prompt instead
   // of ending its run: the user decides and the work continues.
   for (const expected of [
