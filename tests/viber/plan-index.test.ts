@@ -587,6 +587,14 @@ test("a broken task contract exits 4 and names the task", () => {
       /must reference an earlier task/,
     ],
     [
+      "a task depending on an Exclusive task - it runs last, so nothing may depend on it",
+      [
+        { id: "T1", exclusive: "true", files: "src/a.ts" },
+        { id: "T2", deps: "T1", files: "src/b.ts" },
+      ],
+      /task T2: Depends-on T1, an Exclusive task - it runs last, so no task may depend on it/,
+    ],
+    [
       "two tasks with no dependency path between them claiming the same file",
       [
         { id: "T1", files: "src/a.ts" },
@@ -620,6 +628,49 @@ test("a broken task contract exits 4 and names the task", () => {
       assert.match(result.stderr, expected, name);
     });
   }
+});
+
+test("a task depending on an Exclusive task validates under --split - a frozen plan resumed after the rule lands must still decompose", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(
+      dir,
+      planBody(
+        [
+          { id: "T1", exclusive: "true", files: "src/a.ts" },
+          { id: "T2", deps: "T1", files: "src/b.ts" },
+        ],
+        1,
+      ),
+    );
+
+    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
+  });
+});
+
+test("an Exclusive task depending on earlier tasks and having no dependents itself decomposes under --split", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(
+      dir,
+      planBody([
+        { id: "T1", title: "Add the login handler", files: "src/login.ts" },
+        {
+          id: "T2",
+          title: "Prove the endpoint against a real server",
+          covers: "#2",
+          uses: "none",
+          deps: "T1",
+          files: "test/login.api.ts",
+          exclusive: "true",
+        },
+      ]),
+    );
+
+    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
+  });
 });
 
 test("a Files entry whose brackets wrap whole segments is an exact path and reaches the index untouched", () => {

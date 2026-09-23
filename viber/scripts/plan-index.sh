@@ -117,8 +117,12 @@
 #       block with no "File:" line, a contract file that no task's "Files:"
 #       creates and the tree does not already hold, a contract file whose
 #       holders never name the block in "Uses:", an unparseable "Files:" entry,
-#       or the same file listed by two tasks with no dependency path between
-#       them - they would run at the same time)
+#       the same file listed by two tasks with no dependency path between
+#       them - they would run at the same time -, or a "Depends-on" naming a
+#       task marked "Exclusive: true": that task is a leaf of the dependency
+#       graph, so nothing may depend on it. Exempted under --split alone: a
+#       plan that landed before this rule is frozen, and a run resumed after
+#       the upgrade must still validate and decompose.
 #
 #       An unparseable "Files:" entry is an empty one, one carrying "*" or "?",
 #       one whose bracket does not wrap a whole segment in one of the three App
@@ -201,7 +205,7 @@ fi
 
 # The path travels through ENVIRON, not -v: awk -v expands escape sequences and
 # would mangle a Windows path containing backslashes.
-plan="$plan" changed="$changed" \
+plan="$plan" changed="$changed" mode="$mode" \
 st_done="$st_done" st_skipped="$st_skipped" st_unreviewed="$st_unreviewed" \
 st_deferred="$st_deferred" st_closed="$st_closed" \
 awk '
@@ -242,6 +246,7 @@ function patterned(p,   m, seg, k) {
 BEGIN {
   n = 0; ncrit = 0; ncon = 0; err = 0; title = ""
   plan = ENVIRON["plan"]
+  mode = ENVIRON["mode"]
   # what is committed, plus the two decisions and the close that no later
   # session could read off the tree, all of it out of the status file
   done    = listed(ENVIRON["st_done"])
@@ -411,6 +416,10 @@ END {
     for (k = 1; k <= m; k++) {
       if (!(dn[k] in seen)) { fail("task " id[i] ": Depends-on " dn[k] ", no such task"); continue }
       if (seen[dn[k]] >= i) { fail("task " id[i] ": Depends-on " dn[k] " must reference an earlier task"); continue }
+      # An Exclusive task is a leaf: it runs last, so nothing may depend on it.
+      # Skipped under --split - a plan that landed before this rule is frozen and
+      # a run resumed after the upgrade must still validate and decompose.
+      if (mode != "--split" && excl[seen[dn[k]]] == "true") { fail("task " id[i] ": Depends-on " dn[k] ", an Exclusive task - it runs last, so no task may depend on it"); continue }
       out = (out == "" ? dn[k] : out "," dn[k])
     }
     dnorm[i] = (out == "" ? "-" : out)
