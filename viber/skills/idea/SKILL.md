@@ -18,7 +18,7 @@ A draft the user points at - a landed plan carrying a specification and not one 
 
 Two sources already hold answers, and a question spent on either is wasted.
 
-- The conversation that led here - everything what's is in your context.
+- The conversation that led here - everything already in your context.
 - The repo where the answer lives - never spend a question on something the code states.
 
 Open the first question with one line naming what you take as settled from the conversation, so a misreading is corrected before the next branches are built on it.
@@ -47,9 +47,9 @@ The draft mode is the user's alone. A user asking to stop at a specification - s
 
 ## The interview
 
-Do not use `AskUserQuestion`. Interview is a prose - a conversation with a person. Never batch two questions into one call and never stack them in prose - a batched question gets a shallow answer and hides the branch the next question depends on.
+Do not use `AskUserQuestion`. Interview is a prose - a conversation with a person. Never ask more than one question in a message and never stack them in prose - a batched question gets a shallow answer and hides the branch the next question depends on.
 
-- Every question carries 3 concrete options. Your recommendation goes first, labelled "(recommended)".
+- Every question carries 3 concrete options. Your recommendation goes first, labelled `[Recommended]:`.
 - Ask in dependency order. A question whose answer is implied by an unanswered earlier one waits its turn.
 - Each answer narrows the next question. An answer that opens a new unknown makes that unknown the next question.
 - Challenge weak reasoning out loud. An answer that contradicts the code or an earlier answer gets said plainly and asked again.
@@ -59,13 +59,13 @@ Do not use `AskUserQuestion`. Interview is a prose - a conversation with a perso
 
   **Use ALWAYS this structure as an example of one question:**
 
-  > **Decision 2: where does the session token live?**
+  > **Decision 2: does the export include archived records?**
   >
-  > [Recommended]: **2.1 HttpOnly cookie** - survives reload, immune to XSS exfiltration, no client-side wiring. Trade-off: needs a CSRF strategy.
+  > [Recommended]: **2.1 Include archived records** - matches what a full export implies, avoids a silent gap the user finds only later. Trade-off: larger file, more processing time.
   >
   > Alternatives:
-  > 2.2 `localStorage` - simpler, but readable from any script on the page.
-  > 2.3 In-memory only - safest, but logs the user out on every reload.
+  > 2.2 Exclude archived records - smaller, faster, but drops data a reader may expect.
+  > 2.3 Ask again at export time - lets the moment decide, adds a step to every export.
   >
   > Indicate: (2.1 / 2.2 / 2.3)?
 
@@ -87,6 +87,6 @@ Solution shape comes last and only where the user holds an opinion. Design decis
 
 ## Done
 
-Stop when you can state, without guessing: the problem, the acceptance criteria, what is out of scope, the binding constraints. All unknowns must be known and no open questions left.
+Stop when you can state, without guessing: the problem, the acceptance criteria, what is out of scope, the binding constraints. Every unknown carries a named way to resolve it and no question to the user is left open.
 
 Show that as a summary under 15 lines and ask for confirmation. It closes on the spec shape and, when the user asked for one, the draft mode. A split idea opens its summary with the accepted roadmap, one line per subproject plus which one this cycle covers, and names every later one among the boundaries: the plan is the only place that list outlives this context, and it gets there through the summary alone. On confirmation invoke the `viber:planner` skill, restating the confirmed summary verbatim in that invocation - repeated in the newest turn it survives a compaction the interview behind it does not. On a correction, fix the summary and confirm again.
