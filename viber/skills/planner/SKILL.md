@@ -17,7 +17,7 @@ Display the full path to the plan file to the user.
 
 Input: an understood change already in context, arriving one of two ways - a confirmed `viber:idea` interview, or a `viber:fixer` diagnosis with its fix plan. Anything else is unresolved input however clear it reads: invoke the `viber:idea` skill, then come back with what it confirms. Never size the scope yourself - splitting an idea too broad for one cycle happens in that interview.
 
-The input carries three decisions already taken: the spec shape, whether this plan stops at a draft, and - on a round continuing an earlier draft - that draft's run key. Take all three as given and never reopen them. A round continuing a draft opens by asking the user which round it is: another draft to circulate, or the task half on top of a settled specification.
+The input carries three decisions already taken: the spec shape, whether this plan stops at a draft, and - on a round continuing an earlier draft - that draft's run key. Take all three as given and never reopen them.
 
 The plan answers HOW. It carries every detail, acceptance criterion and DoD the implementation needs, and says nothing about the way a task should be coded.
 

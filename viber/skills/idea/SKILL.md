@@ -12,7 +12,7 @@ Turn a raw idea into an understanding a planner can act on. You write no files a
 
 ## Returning to a draft
 
-A draft the user points at - a landed plan carrying a specification and not one task block - is resumed, not interviewed again. Read that file first, then ask only about what the round of remarks changed: everything the draft already states is settled and costs no question. Close on the same confirmed summary, naming the draft's run key so the next round lands in its own directory.
+A draft the user points at - a landed plan carrying a specification and not one task block - is resumed, not interviewed again. Read that file first, then ask only about what the round of remarks changed: everything the draft already states is settled and costs no question. Ask which this round is: another draft round to circulate, or the task half on top of the settled specification. Close on the same confirmed summary, stating that round decision and naming the draft's run key so the next round lands in its own directory.
 
 ## Before the first question
 
@@ -39,7 +39,7 @@ Then interview the FIRST subproject only. The rest wait for their own cycle.
 The plan's specification half comes in two shapes. Propose one before the first detail question, in a single sentence saying why. It is a proposal: the user confirms it in the closing summary and may take the other one, so never spend a numbered question on it.
 
 - `spec-full` - problem, current behaviour, scenarios, edge cases and a glossary - when any of these holds: a new application or a new subsystem; an accepted roadmap; behaviour with more than one path through it, or with edge cases worth naming; new domain concepts the code will have to name; an interview that runs past six questions.
-- `spec-lite` - goal, criteria, file map - for everything else, and always for a `fixer` diagnosis, a refactor that changes no behaviour, configuration, documentation and a rename.
+- `spec-lite` - goal, criteria, file map - for everything else: a refactor that changes no behaviour, configuration, documentation and a rename.
 
 An interview proposed as `spec-lite` that runs past the sixth question escalates on the spot: say the shape changed and carry on.
 

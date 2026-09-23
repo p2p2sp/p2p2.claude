@@ -49,9 +49,10 @@ The handoff payload - state it in context, in this order. No report file: the pa
 - **Fix direction** - which symbol changes and to what behavior. Name symbols, never line numbers.
 - **Blast radius** - other callers or behavior that depend on the current (wrong) behavior.
 - **Done condition** - repro test GREEN, every previously-passing test still green.
+- **Spec shape** - `spec-lite`, always: a fixer diagnosis never proposes `spec-full`.
 
 ## Handoff [GATE]
-Invoke the `viber:planner` skill, restating all six parts of the fix plan verbatim in that invocation - repeated in the newest turn they survive a compaction the trace behind them does not. Stop there - do not implement, do not "just apply the one-liner first".
+Invoke the `viber:planner` skill, restating all seven parts of the fix plan verbatim in that invocation - repeated in the newest turn they survive a compaction the trace behind them does not. Stop there - do not implement, do not "just apply the one-liner first".
 
 ## Bypass authorization
 The reproduction test is unconditional. When reproduction is genuinely infeasible (hard race, rendering artifact, unreachable third-party state), STOP and ask the user for explicit authorization to hand off without it, stating what blocks reproduction. Never decide this alone; "hard to test" is not infeasible.
