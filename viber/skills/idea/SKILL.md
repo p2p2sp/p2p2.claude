@@ -1,6 +1,6 @@
 ---
 name: idea
-description: An interview about a raw idea, one question at a time.
+description: An interview about a raw idea, one question at a time. Run only when user asks explicitly.
 allowed-tools: Read, Grep, Glob, Skill
 user-invocable: true
 disable-model-invocation: false
@@ -25,7 +25,7 @@ Open the first question with one line naming what you take as settled from the c
 
 ## Size the scope first
 
-Decide this before the first detail question. Refining the details of an idea that spans several independent subsystems burns dozens of questions and ends in one plan of forty tasks.
+Decide this before the first detail question.
 
 - One coherent capability: interview it whole and skip the rest of this section.
 - Several independent subsystems, the shape of "build the whole application" or "a platform with chat, file storage, billing and analytics": ask no detail question yet. Propose the split in prose, one line per subproject - what it owns, what it consumes from the ones before it - plus the order, and correct it until the user accepts it.
@@ -43,7 +43,7 @@ The plan's specification half comes in two shapes. Propose one before the first 
 
 An interview proposed as `spec-lite` that runs past the sixth question escalates on the spot: say the shape changed and carry on.
 
-The draft mode is the user's alone. A user asking to stop at a specification - something to hand a team before any task exists - has that request carried verbatim into the planner invocation. Never offer it and never ask for it.
+The draft mode is the user's alone: a request to stop at a specification is carried verbatim into the planner invocation. Never offer it and never ask for it.
 
 ## The interview
 
@@ -54,10 +54,10 @@ Do not use `AskUserQuestion`. Interview is a prose - a conversation with a perso
 - Each answer narrows the next question. An answer that opens a new unknown makes that unknown the next question.
 - Challenge weak reasoning out loud. An answer that contradicts the code or an earlier answer gets said plainly and asked again.
 - Walk the design tree branch by branch, resolving dependencies one decision at a time - early answers reshape later branches.
-- Must number the options (`1`, `2`, `3`, and sub-options `1.1`, `1.1.1`, `1.2`, `1.2.1...` when the choice branches) so the user can point to an answer without re-typing it.
+- Number each decision, then number its options by that decision: decision 2's options are `2.1`, `2.2`, `2.3`, and a branch goes one level deeper (`2.1.1`...), so the user can point to an answer without re-typing it.
 - Skip anything a competent implementer decides on its own.
 
-  **Use ALWAYS this structure as an example of one question:**
+  **Example question:**
 
   > **Decision 2: does the export include archived records?**
   >
@@ -89,4 +89,4 @@ Solution shape comes last and only where the user holds an opinion. Design decis
 
 Stop when you can state, without guessing: the problem, the acceptance criteria, what is out of scope, the binding constraints. Every unknown carries a named way to resolve it and no question to the user is left open.
 
-Show that as a summary under 15 lines and ask for confirmation. It closes on the spec shape and, when the user asked for one, the draft mode. A split idea opens its summary with the accepted roadmap, one line per subproject plus which one this cycle covers, and names every later one among the boundaries: the plan is the only place that list outlives this context, and it gets there through the summary alone. On confirmation invoke the `viber:planner` skill, restating the confirmed summary verbatim in that invocation - repeated in the newest turn it survives a compaction the interview behind it does not. On a correction, fix the summary and confirm again.
+Show that as a summary under 15 lines and ask for confirmation. It closes on the spec shape and, when the user asked for one, the draft mode. A split idea opens its summary with the accepted roadmap, one line per subproject plus which one this cycle covers, and names every later one among the boundaries. On confirmation invoke the `viber:planner` skill, restating the confirmed summary verbatim in that invocation - repeated in the newest turn it survives a compaction the interview behind it does not. On a correction, fix the summary and confirm again.

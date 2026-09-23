@@ -1,0 +1,6 @@
+- idea's numbering rule now reads "number options by the decision" (2.1/2.2/2.3, one level deeper on branch), matching the existing example verbatim - the old rule (`1`,`2`,`3` plus `1.1`) contradicted it.
+- Kept idea's uncommitted frontmatter `description:` ("Run only when user asks explicitly.") exactly as found in the tree per the reason note; did not touch it.
+- Fixer: merged the old Process steps 1-5 (locate entry, walk execution, state actual, stop at divergence, confirm symptom) into Law 1's own sentence, so Process step 1 now just says "Trace per Law 1" - the trace rule is stated once.
+- De-capitalized laws 2 and 3 to sentence case; trimmed law 3's rationale clause ("the route that commits... loses both") as caller-facing narrative, criterion 13.
+- Both files landed under ceiling directly (idea 6769/6800, fixer 3961/4200), so no DoD.7 notes-escape needed; trims came from cutting rationale-only clauses (draft-mode aside, roadmap-outlives-context aside, "burns dozens of questions" aside), not from any law/part/rule content.
+- Fixer's "Handoff [GATE]" lost the "repeated in the newest turn..." compaction-rationale clause (present verbatim in idea's own handoff, kept there) - DoD.4 only required the handoff mechanics survive, not that clause.
