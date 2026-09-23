@@ -78,4 +78,4 @@ Wrong moves and structures, distinct from the excuses the Iron Law refuses.
 1. Plan. Decide the public interface and which behaviors matter before coding. Design for testability and for deep modules - small interface, deep implementation. List the behaviors to test, not implementation steps; you cannot test everything, so prioritize critical paths and complex logic over every edge case. The spec and the task file are the approval: where they leave a choice open, take it; where they leave the behavior under test unnameable, stop and report the task failed with that reason instead of guessing an interface.
 2. Tracer bullet. Run the full cycle on ONE test for ONE behavior first - it proves the path works end to end before scaling up.
 3. Loop. Repeat the full cycle for each remaining behavior, running the stop-condition checklist after each.
-4. Refactor. Once all tests are green, look for refactor candidates and consider what the new code reveals about existing code.
+4. Refactor. Once all tests are green, refactor only code this task wrote. Record what the new code reveals about existing code in the coder's notes file, not as a refactor.
