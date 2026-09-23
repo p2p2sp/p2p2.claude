@@ -1,4 +1,0 @@
-- The generic form in the quoting rule (step intro) became `"<name>.sh" "<arg>" ...`: the verification grep flags any bare `<` after `.sh"`, so the rule's own example had to comply too.
-- Optional repeats are written `["<file>"...]`, brackets outside the quotes; `--with`/`--defer` fragments were quoted as well although the grep cannot see them (no `.sh"` on their span).
-- The close's `abort` reuses step 1's wording ("goes to step 7, step 6 skipped"); step 7 still says the archive runs "only after step 6 is done" - read as ordering, not as a precondition. Untouched here.
-- Repair-coder retry goes straight to `opus` because the repair coder is dispatched at `sonnet`.

@@ -1,4 +1,0 @@
-- One Blocking/Minor definition sentence added to each reviewer's Calibration section (not a bullet list) - kept the existing prose style rather than adding new structure.
-- "written only into a report a Blocking finding already forces" lives in task-reviewer's own definition sentence, satisfying DoD.3's report-gating half; planner-review's half was already true since it never writes a report file at all (tools: Read, Grep, Glob).
-- test-strategy.md's own "blocking findings" (lowercase) references in both files were left untouched - that phrase names a different list, not the Critical/Important/Major severity vocabulary this task replaces.
-- qa-writer.md's half of criterion #9 (VERDICT: NONE wording) is out of this task's Files and was left alone; only planner-review's contract-block sentence was in scope here.
