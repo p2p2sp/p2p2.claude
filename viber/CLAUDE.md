@@ -212,10 +212,11 @@ there.
 - **The knowledge layer is capped, because its two writers run after every build.** Nothing else
   shrinks what they wrote, and a node is loaded whole by every agent that opens a file under it,
   its ancestors with it. `memory-writer`: 12000 characters per node, 32000 over the chain.
-  `rules-writer`: 4000 per file, 40000 over `.claude/rules/`, at most 2 new files per build. Both
-  measure before writing, both carry the order in which content leaves a full file (compact, split,
-  write over budget and say so), and both report an `OVER:` line the orchestrator repeats verbatim.
-  The same discipline binds this node: it is a viber file like any other.
+  `rules-writer`: 4000 per file, 40000 over `.claude/rules/`, at most 2 new files per build owned by `rule-admission.md`.
+  Both measure before writing, both carry the order in which content leaves a full file (compact,
+  split, write over budget and say so), both delete an obsolete file through `rm`, and both report
+  an `OVER:` line the orchestrator repeats verbatim. The same discipline binds this node: it is a
+  viber file like any other.
 - **A split is exempt from the growth cap.** Splitting a full file spends no knowledge, because a
   sibling node is never loaded beside the one a reader opened, so it beats deleting; a one-area rule
   file still over its cap is too wordy rather than too broad and gets compacted instead. Both

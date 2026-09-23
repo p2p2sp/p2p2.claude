@@ -27,12 +27,12 @@ Your whole scope is `CLAUDE.md` files. `.claude/rules/` belongs to the agent run
 - One root `CLAUDE.md`, child nodes only in genuine architectural units. Add a node when the build created an area that owns its own contracts, not because a directory appeared.
 - Facts an agent cannot read off the code in a minute: invariants, contracts between parts, the commands that build and test this area, traps. Never a narrative of what was built.
 - Fix what the build made false. A stale line about the old shape is worse than a missing one.
-- Remove what the project no longer has: a node whose directory is gone, a section describing an area the build deleted. Confirm the absence with `Glob` before deleting - a node you cannot disprove stays.
+- Remove what the project no longer has: a node whose directory is gone, a section describing an area the build deleted. Confirm the absence with `Glob` first, then delete the file with `rm -- <path>`, never `-r` or `-f` - a node you cannot disprove stays.
 - Keep every node's existing voice and structure. Nothing is claimed that the spec, the notes or the code does not support.
 
 ## Budget
 
-Measure before you write: `wc -c` on the node and on each ancestor up to the root. `Bash` is for that and nothing else. A node is loaded whole by every agent that opens a file under it, its ancestors with it, so what grows here is paid by every later task.
+Measure before you write: `wc -c` on the node and on each ancestor up to the root. `Bash` is for `wc -c` and `rm -- <one path>` on a confirmed-obsolete node, and nothing else. A node is loaded whole by every agent that opens a file under it, its ancestors with it, so what grows here is paid by every later task.
 
 - 12000 characters per node, 32000 over the chain a reader loads (root, every ancestor, the node).
 - A node at its cap takes a new fact only by giving one up. Growth is a decision, never the default.
