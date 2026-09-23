@@ -1,6 +1,6 @@
 ---
 name: fixer
-description: Traces a reported bug to its root cause and proves it with a failing test, then hands the fix plan to the planner - it applies no fix itself. Use whenever user reports a bug and wants to fix it.
+description: Traces a reported bug to its root cause and proves it with a failing test, then hands the diagnosis to the planner - it applies no fix itself. Use whenever user reports a bug and wants to fix it.
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill
 user-invocable: true
 disable-model-invocation: false
@@ -9,7 +9,7 @@ disable-model-invocation: false
 # fixer
 
 ## Overview
-A traced diagnosis, proven by a failing test, plus a fix plan: that is the output. The fix itself is planned and built downstream.
+A traced diagnosis, proven by a failing test: that is the output. The plan and the fix are made downstream.
 
 ## The Iron Law
 
@@ -17,14 +17,14 @@ Three laws, in this order. None substitutes for another.
 
 **1. Trace the entire code flow, step by step - no assumptions, no shortcuts.** Locate the entry point, follow execution line by line reading the code (never infer it), and at each step state the actual value, type or condition - never "should", "probably" or "likely". Stop at the first point where actual diverges from expected: that is the root cause, not the symptom. Confirm the divergence produces the reported symptom downstream. Symptom fixes are failure.
 
-**2. No fix plan without a failing test that reproduces the divergence.** Reading code proves what it says, never what it does. Until a test fails on the divergence found, the root cause is unconfirmed and the fix has nothing to verify it.
+**2. No handoff without a failing test that reproduces the divergence.** Reading code proves what it says, never what it does. Until a test fails on the divergence found, the root cause is unconfirmed and the fix has nothing to verify it.
 
 **3. Never apply the fix here.** Edit nothing but the reproduction test. The fix is built through `viber:planner` -> `viber:implementor`. "It is trivial" and "it is one line" are the same violation.
 
 ## The Process
 1. Trace per Law 1 to the confirmed divergence.
 2. Write the reproduction test and see it RED (below).
-3. Draft the fix plan (below) from the confirmed root cause.
+3. Write up the diagnosis (below) from the confirmed root cause.
 4. When more than one fix approach is defensible, settle the choice with the user in prose before handing off.
 5. Hand off (below).
 
@@ -37,7 +37,7 @@ Three laws, in this order. None substitutes for another.
 - The test stays in the repo, RED, as the handoff evidence and the regression guard afterwards.
 - It opens with a header comment of at most 5 lines: root cause as file + symbol, actual vs expected at the diverging step, fix direction. Nothing else goes in.
 
-## The fix plan
+## The diagnosis
 The handoff payload - state it in context, in this order. No report file: the part worth keeping already rides in the reproduction test's header.
 - **Root cause** - file + symbol, the diverging step, actual vs expected state at that step.
 - **Symptom link** - how that divergence produces what the user reported.
@@ -48,7 +48,7 @@ The handoff payload - state it in context, in this order. No report file: the pa
 - **Spec shape** - `spec-lite`, always: a fixer diagnosis never proposes `spec-full`.
 
 ## Handoff [GATE]
-Invoke the `viber:planner` skill, restating all seven parts of the fix plan verbatim in that invocation. Stop there - do not implement, do not "just apply the one-liner first".
+Invoke the `viber:planner` skill, restating all seven parts of the diagnosis verbatim in that invocation. Stop there - do not implement, do not "just apply the one-liner first".
 
 ## Bypass authorization
 The reproduction test is unconditional. When reproduction is genuinely infeasible (hard race, rendering artifact, unreachable third-party state), stop and ask the user for explicit authorization to hand off without it, stating what blocks reproduction. Never decide this alone; "hard to test" is not infeasible.
