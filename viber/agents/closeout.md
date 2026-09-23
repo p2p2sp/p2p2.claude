@@ -1,5 +1,5 @@
 ---
-name: closeup
+name: closeout
 description: Records where a finished build delivered something the run's specification does not promise, then archives the run directory. Invoked only by the implementor skill, never directly.
 tools: Read, Edit, Grep, Glob, Bash
 model: opus

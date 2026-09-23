@@ -153,7 +153,7 @@ Commit what they return, one call per form: memory and rule paths through `"${CL
 
 ## 7. Archive and close
 
-Only when the config block reports `cleanup: true` and step 6 ran: dispatch `viber:closeup` (Agent tool, no `model:`) carrying one line and nothing else:
+Only when the config block reports `cleanup: true` and step 6 ran: dispatch `viber:closeout` (Agent tool, no `model:`) carrying one line and nothing else:
 
 ```
 run: <dir>

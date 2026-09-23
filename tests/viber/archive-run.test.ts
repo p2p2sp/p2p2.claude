@@ -264,7 +264,7 @@ test("a file the run left outside the enumerated scaffolding rides into the arch
 
 test("the move is one commit, and a spec.md edited before the call lands as a rename plus a modification", () => {
   withSeededRepo((repo, runDir) => {
-    // what closeup does just before calling: the drift, marked in place
+    // what closeout does just before calling: the drift, marked in place
     const spec = path.join(repo.dir, runDir, "spec.md");
     fs.writeFileSync(
       spec,

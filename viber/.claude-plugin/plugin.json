@@ -28,6 +28,6 @@
     "./agents/rules-auditor.md",
     "./agents/qa-writer.md",
     "./agents/e2e-writer.md",
-    "./agents/closeup.md"
+    "./agents/closeout.md"
   ]
 }

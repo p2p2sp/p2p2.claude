@@ -34,7 +34,7 @@ Each skill's contract is its own body and each script's is its header comment; t
 - `rules` - `/viber:rules`, user-only. Maps `.claude/rules/`, dispatches `rules-auditor` per
   approved target, then `rules-writer` on approval.
 - `agents/` - `planner-review`, `task-coder`, `task-reviewer`, `test-runner`, `memory-writer` and
-  `memory-auditor`, `rules-writer` and `rules-auditor`, `qa-writer`, `e2e-writer`, `closeup`.
+  `memory-auditor`, `rules-writer` and `rules-auditor`, `qa-writer`, `e2e-writer`, `closeout`.
 - `hooks/` - `plan-gate.sh` and `session-start.sh`, which injects `hooks/content/manifest.md`.
 
 ## Contracts & invariants
@@ -100,7 +100,7 @@ there.
   Five switches, fail-open, always exit 0. `plan-path.sh` and `archive-run.sh` parse the
   `directories:` group themselves, running with no skill above them.
 - **The coders' notes are the input of the close, and of the gate beside them.** `task-coder`
-  leaves at most 8 lines of what the diff does not say; the close's writers, `closeup`,
+  leaves at most 8 lines of what the diff does not say; the close's writers, `closeout`,
   `task-reviewer` (a hypothesis to disprove, never evidence) and each dependent task's coder,
   handed them as `prior:`, all read that directory.
 - **A retry keeps existing work, never restarts it.** `implementor` carries `resume`/`reason` into
@@ -123,10 +123,10 @@ there.
   overwritten.
 - **The run directory is scaffolding; the archive is the product.** `archive-run.sh` moves the
   WHOLE directory to `docs/<specs>/<key>`, then removes `plan.md`, `status.md`, `tasks/` and
-  `work/` - a second copy of what git holds. `closeup` edits `spec.md` BEFORE the move, so the
+  `work/` - a second copy of what git holds. `closeout` edits `spec.md` BEFORE the move, so the
   drift is an ordinary diff. Nothing sweeps `work/`: a dropped task's leftovers are picked up by
   the next `--split`.
-- **Drift is what the specification now gets WRONG, never how the work went.** `closeup` marks a
+- **Drift is what the specification now gets WRONG, never how the work went.** `closeout` marks a
   sentence of `spec.md` only where the spec promises P and the build delivers Q; `qa.md` and
   `qa.e2e.md` are never touched.
 - **`references/` holds what several workers share.** `qa-format.md` two readers, `test-strategy.md`
@@ -136,7 +136,7 @@ there.
 - **Model comes from the task's tier; effort comes only from frontmatter.** The `Agent` tool takes
   no `effort` parameter, so effort is fixed per agent: `task-coder` runs `effort: high` across all
   three tiers, dead on `haiku` on purpose; `task-reviewer` takes its task's own model tier (`opus`
-  only as fallback) at `effort: medium`. Three more agents - `closeup`, `memory-auditor`,
+  only as fallback) at `effort: medium`. Three more agents - `closeout`, `memory-auditor`,
   `rules-auditor` - are pinned to `effort: medium` too. A retried coder goes out one tier up
   carrying its own `REASON:`.
 - **The gate arms on two signals** - the planner skill running, and a Write/Edit of a
