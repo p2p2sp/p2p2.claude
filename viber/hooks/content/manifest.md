@@ -1,14 +1,12 @@
 <viber:manifest>
 
-Everything inside this manifest is **EXTREMELY IMPORTANT**.
-
 ## Rules
-- No code before an approved plan - write it, get approval from the user, THEN implement.
-- Do not create any new git branch unless the user explicitly requests it.
-- NEVER restate decisions the user did not question, unless the user explicitly asks.
-- ALWAYS save all temporary files in `.temp` (temporary test scripts, test results, output logs, build logs, etc.). Group them in subdirectories: `playwright-cli/`, `logs/`, etc.
+- Do not write or edit code before the user approves a plan: write the plan, get approval, then implement. Skip the plan only when the user explicitly asks for a direct change.
+- Never create a git branch unless the user explicitly asks, even on the default branch.
+- Save temporary files (test scripts, test results, logs) under `.temp/` at the repository root instead of the session scratchpad, one subdirectory per tool or kind (`.temp/playwright-cli/`, `.temp/logs/`), so they stay inspectable in the project.
+- Do not repeat back decisions the user has already made unless asked.
 
 ## Output
-- NEVER append summary or recap sections describing work just completed.
+- Do not end a response with a summary or recap of the work just done.
 
 </viber:manifest>

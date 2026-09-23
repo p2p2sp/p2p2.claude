@@ -2,8 +2,8 @@
  * commit-args.test.ts - proves commit-args.sh's `resolve_commit_selector <raw>`
  * contract: it is a library meant to be SOURCED (not executed), so every case
  * here drives it through a tiny bash wrapper that sources it, calls
- * `resolve_commit_selector "$1"` and prints COMMIT_MODE / COMMIT_PATH /
- * COMMIT_ISSUE_REFS, one per line. commit-args.sh is `#!/usr/bin/env bash`
+ * `resolve_commit_selector "$1"` and prints COMMIT_MODE / COMMIT_PATHS (joined
+ * with "|") / COMMIT_ISSUE_REFS, one per line. commit-args.sh is `#!/usr/bin/env bash`
  * and uses bash-only constructs (BASH_REMATCH, [[ ]]), so every case runs
  * under `forEachShell("bash", ...)` - never a POSIX shell.
  *
@@ -29,7 +29,7 @@ function wrapperScript(libPath: string): string {
     `source "${libPath}"`,
     'resolve_commit_selector "$1"',
     "printf '%s\\n' \"$COMMIT_MODE\"",
-    "printf '%s\\n' \"$COMMIT_PATH\"",
+    "IFS='|'; printf '%s\\n' \"${COMMIT_PATHS[*]}\"",
     "printf '%s\\n' \"$COMMIT_ISSUE_REFS\"",
   ].join("\n") + "\n";
 }
@@ -75,21 +75,21 @@ test("empty input resolves to mode 'all' with no path", () => {
   });
 });
 
-test("'staged' resolves to mode 'staged' with no path", () => {
+test("'staged' is no longer a keyword: with no such path it falls back to mode 'all'", () => {
   assertBash((bash) => {
     withTempDir("p2p2-commit-args-", (dir) => {
       const sel = resolve(bash, dir, "staged");
-      assert.deepEqual(sel, { mode: "staged", path: "", issueRefs: "" });
+      assert.deepEqual(sel, { mode: "all", path: "", issueRefs: "" });
     });
   });
 });
 
-test("an existing path resolves to mode 'path' with the path passed verbatim", () => {
+test("an existing path resolves to mode 'paths' with the path passed verbatim", () => {
   assertBash((bash) => {
     withTempDir("p2p2-commit-args-", (dir) => {
       fs.writeFileSync(path.join(dir, "foo.txt"), "content\n");
       const sel = resolve(bash, dir, "foo.txt");
-      assert.deepEqual(sel, { mode: "path", path: "foo.txt", issueRefs: "" });
+      assert.deepEqual(sel, { mode: "paths", path: "foo.txt", issueRefs: "" });
     });
   });
 });
@@ -103,22 +103,12 @@ test("a path that does not exist falls back to mode 'all' (avoids a silent no-op
   });
 });
 
-test("an existing path named 'staged' resolves to mode 'path' - existing path wins over the keyword", () => {
-  assertBash((bash) => {
-    withTempDir("p2p2-commit-args-", (dir) => {
-      fs.writeFileSync(path.join(dir, "staged"), "content\n");
-      const sel = resolve(bash, dir, "staged");
-      assert.deepEqual(sel, { mode: "path", path: "staged", issueRefs: "" });
-    });
-  });
-});
-
-test("an existing path named 'all' resolves to mode 'path' - existing path wins over the keyword", () => {
+test("an existing path named 'all' resolves to mode 'paths' - existing path wins over the keyword", () => {
   assertBash((bash) => {
     withTempDir("p2p2-commit-args-", (dir) => {
       fs.writeFileSync(path.join(dir, "all"), "content\n");
       const sel = resolve(bash, dir, "all");
-      assert.deepEqual(sel, { mode: "path", path: "all", issueRefs: "" });
+      assert.deepEqual(sel, { mode: "paths", path: "all", issueRefs: "" });
     });
   });
 });
@@ -152,14 +142,14 @@ test("a repeated issue URL is deduplicated to one reference", () => {
   });
 });
 
-test("an issue URL plus an existing path resolves to mode 'path' with the issue ref captured separately", () => {
+test("an issue URL plus an existing path resolves to mode 'paths' with the issue ref captured separately", () => {
   assertBash((bash) => {
     withTempDir("p2p2-commit-args-", (dir) => {
       fs.mkdirSync(path.join(dir, "src"));
       fs.writeFileSync(path.join(dir, "src", "foo"), "content\n");
       const raw = "src/foo https://github.com/owner/repo/issues/42";
       const sel = resolve(bash, dir, raw);
-      assert.deepEqual(sel, { mode: "path", path: "src/foo", issueRefs: "42" });
+      assert.deepEqual(sel, { mode: "paths", path: "src/foo", issueRefs: "42" });
     });
   });
 });
@@ -191,13 +181,13 @@ test("a bare reference next to punctuation is still recognised", () => {
   });
 });
 
-test("a bare reference plus an existing path resolves to mode 'path' with the ref captured separately", () => {
+test("a bare reference plus an existing path resolves to mode 'paths' with the ref captured separately", () => {
   assertBash((bash) => {
     withTempDir("p2p2-commit-args-", (dir) => {
       fs.mkdirSync(path.join(dir, "src"));
       fs.writeFileSync(path.join(dir, "src", "foo"), "content\n");
       const sel = resolve(bash, dir, "src/foo #42");
-      assert.deepEqual(sel, { mode: "path", path: "src/foo", issueRefs: "42" });
+      assert.deepEqual(sel, { mode: "paths", path: "src/foo", issueRefs: "42" });
     });
   });
 });
@@ -232,12 +222,63 @@ test("a URL fragment after the issue number does not leak a second reference", (
   });
 });
 
-test("a path containing a space resolves to mode 'path' with the space preserved verbatim", () => {
+test("a path containing a space resolves to mode 'paths' with the space preserved verbatim", () => {
   assertBash((bash) => {
     withTempDir("p2p2-commit-args-", (dir) => {
       fs.writeFileSync(path.join(dir, "my file.txt"), "content\n");
       const sel = resolve(bash, dir, "my file.txt");
-      assert.deepEqual(sel, { mode: "path", path: "my file.txt", issueRefs: "" });
+      assert.deepEqual(sel, { mode: "paths", path: "my file.txt", issueRefs: "" });
+    });
+  });
+});
+
+test("several space-separated existing paths resolve to mode 'paths' with every path kept in order", () => {
+  assertBash((bash) => {
+    withTempDir("p2p2-commit-args-", (dir) => {
+      fs.writeFileSync(path.join(dir, "a.txt"), "a\n");
+      fs.mkdirSync(path.join(dir, "src"));
+      const sel = resolve(bash, dir, "a.txt src");
+      assert.deepEqual(sel, { mode: "paths", path: "a.txt|src", issueRefs: "" });
+    });
+  });
+});
+
+test("a comma-separated list is split like a space-separated one", () => {
+  assertBash((bash) => {
+    withTempDir("p2p2-commit-args-", (dir) => {
+      fs.writeFileSync(path.join(dir, "a.txt"), "a\n");
+      fs.writeFileSync(path.join(dir, "b.txt"), "b\n");
+      const sel = resolve(bash, dir, "a.txt, b.txt");
+      assert.deepEqual(sel, { mode: "paths", path: "a.txt|b.txt", issueRefs: "" });
+    });
+  });
+});
+
+test("a list mixing existing and missing paths keeps only the existing ones", () => {
+  assertBash((bash) => {
+    withTempDir("p2p2-commit-args-", (dir) => {
+      fs.writeFileSync(path.join(dir, "a.txt"), "a\n");
+      const sel = resolve(bash, dir, "a.txt missing.txt #7");
+      assert.deepEqual(sel, { mode: "paths", path: "a.txt", issueRefs: "7" });
+    });
+  });
+});
+
+test("a list with no existing path falls back to mode 'all' (a prose description is not a selector)", () => {
+  assertBash((bash) => {
+    withTempDir("p2p2-commit-args-", (dir) => {
+      const sel = resolve(bash, dir, "fix the manifest wording");
+      assert.deepEqual(sel, { mode: "all", path: "", issueRefs: "" });
+    });
+  });
+});
+
+test("a glob token in a list is never expanded by the shell (only a literal existing path counts)", () => {
+  assertBash((bash) => {
+    withTempDir("p2p2-commit-args-", (dir) => {
+      fs.writeFileSync(path.join(dir, "a.txt"), "a\n");
+      const sel = resolve(bash, dir, "*.txt nothing");
+      assert.deepEqual(sel, { mode: "all", path: "", issueRefs: "" });
     });
   });
 });

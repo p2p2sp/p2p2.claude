@@ -23,7 +23,8 @@ Requires the `gh` CLI, logged in: `gh auth login`. Nothing else.
 
 ## Committing
 
-Scope it with a word: everything (`all`), only what is staged (`staged`), or a single path.
+With no scope everything is committed: modified, new and deleted files. Name one or more paths to
+commit only those.
 Mention an issue - `#42` or a link to it - and it lands in the message as a `Refs: #42` footer.
 
 It never creates a branch, and it reports back only after confirming the commit actually landed.

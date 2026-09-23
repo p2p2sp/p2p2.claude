@@ -1,6 +1,6 @@
 /*
  * commit.test.ts - proves commit.sh's `commit.sh <message> [selector]`
- * contract: stages according to the selector (all/staged/path) then commits,
+ * contract: stages according to the selector (all/paths) then commits,
  * reports "Nothing to commit." on a clean scope, and exits 1 on a missing
  * message. commit.sh is `#!/usr/bin/env bash`, so every case runs through
  * `forEachShell("bash", ...)` via opts.shell.
@@ -57,25 +57,20 @@ test("mode 'all' (no selector): stages and commits every pending change, includi
   });
 });
 
-test("mode 'staged': commits only what is already staged, leaves the rest of the index untouched by add", () => {
+test("mode 'all' (no selector): a deleted tracked file is committed as a deletion", () => {
   assertBash((bash) => {
     withGitRepo((repo) => {
-      commitFile(repo, "base.txt", "base\n");
-      fs.writeFileSync(path.join(repo.dir, "staged.txt"), "staged\n");
-      const add = repo.git("add", "staged.txt");
-      assert.equal(add.status, 0, `git add should succeed: ${add.stderr}`);
-
-      const result = runCommit(bash, repo, ["commit staged", "staged"]);
+      commitFile(repo, "gone.txt", "gone\n");
+      fs.rmSync(path.join(repo.dir, "gone.txt"));
+      const result = runCommit(bash, repo, ["drop gone"]);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      const subject = repo.git("log", "-1", "--format=%s");
-      assert.equal(subject.stdout.trim(), "commit staged");
-      const nameOnly = repo.git("show", "--name-only", "--format=", "HEAD");
-      assert.equal(nameOnly.stdout.trim(), "staged.txt");
+      const nameStatus = repo.git("show", "--name-status", "--format=", "HEAD");
+      assert.equal(nameStatus.stdout.trim(), "D\tgone.txt");
     });
   });
 });
 
-test("mode path: commits only the given path, other staged changes are left uncommitted", () => {
+test("mode paths: commits only the given path, other changes are left uncommitted", () => {
   assertBash((bash) => {
     withGitRepo((repo) => {
       commitFile(repo, "a.txt", "a\n");
@@ -93,8 +88,46 @@ test("mode path: commits only the given path, other staged changes are left unco
       // b.txt's change is neither staged nor committed - the path selector
       // must isolate it from the rest of the working tree. (Do not
       // `.trim()` - porcelain status lines carry a meaningful leading space.)
-      const status = repo.git("status", "--porcelain", "--", "b.txt");
-      assert.equal(status.stdout.replace(/\n$/, ""), " M b.txt");
+      const status = repo.git("status", "--porcelain", "--", "b.txt");      assert.equal(status.stdout.replace(/\n$/, ""), " M b.txt");
+    });
+  });
+});
+
+test("mode paths with a list: commits a modified, a new and a deleted path together and nothing else", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      commitFile(repo, "a.txt", "a\n");
+      commitFile(repo, "gone.txt", "gone\n");
+      commitFile(repo, "c.txt", "c\n");
+      fs.writeFileSync(path.join(repo.dir, "a.txt"), "a, changed\n");
+      fs.writeFileSync(path.join(repo.dir, "new.txt"), "new\n");
+      fs.rmSync(path.join(repo.dir, "gone.txt"));
+      fs.writeFileSync(path.join(repo.dir, "c.txt"), "c, changed\n");
+
+      const result = runCommit(bash, repo, ["three paths", "a.txt new.txt gone.txt"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const nameStatus = repo.git("show", "--name-status", "--format=", "HEAD");
+      assert.deepEqual(nameStatus.stdout.trim().split("\n").sort(), ["A\tnew.txt", "D\tgone.txt", "M\ta.txt"]);
+      const status = repo.git("status", "--porcelain");
+      assert.equal(status.stdout.replace(/\n$/, ""), " M c.txt");
+    });
+  });
+});
+
+test("mode paths with the list split across several argv entries: same result as one space-joined string", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      commitFile(repo, "a.txt", "a\n");
+      commitFile(repo, "b.txt", "b\n");
+      commitFile(repo, "c.txt", "c\n");
+      fs.writeFileSync(path.join(repo.dir, "a.txt"), "a, changed\n");
+      fs.writeFileSync(path.join(repo.dir, "b.txt"), "b, changed\n");
+      fs.writeFileSync(path.join(repo.dir, "c.txt"), "c, changed\n");
+
+      const result = runCommit(bash, repo, ["two paths", "a.txt", "b.txt"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const nameOnly = repo.git("show", "--name-only", "--format=", "HEAD");
+      assert.deepEqual(nameOnly.stdout.trim().split("\n").sort(), ["a.txt", "b.txt"]);
     });
   });
 });
@@ -108,7 +141,7 @@ test("missing message -> exit 1 with usage on stderr, nothing committed", () => 
       assert.equal(result.status, 1);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /missing required parameter 'message'/);
-      assert.match(result.stderr, /usage: commit\.sh <message> \[selector\]/);
+      assert.match(result.stderr, /usage: commit\.sh <message> \[selector\.\.\.\]/);
     });
   });
 });
@@ -148,23 +181,6 @@ test("nothing staged, mode 'all', no working-tree changes -> 'Nothing to commit.
       assert.equal(result.stdout, "Nothing to commit.\n");
       const subject = repo.git("log", "-1", "--format=%s");
       assert.equal(subject.stdout.trim(), "seed a.txt");
-    });
-  });
-});
-
-test("mode 'staged' with an empty index -> 'Nothing to commit.' on stdout, exit 0, no add performed", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
-      commitFile(repo, "a.txt", "content\n");
-      fs.writeFileSync(path.join(repo.dir, "a.txt"), "content, unstaged change\n");
-      const result = runCommit(bash, repo, ["no-op", "staged"]);
-      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      assert.equal(result.stdout, "Nothing to commit.\n");
-      // the unstaged change on disk must remain untouched and uncommitted.
-      // (Do not `.trim()` - porcelain status lines carry a meaningful
-      // leading space.)
-      const status = repo.git("status", "--porcelain");
-      assert.equal(status.stdout.replace(/\n$/, ""), " M a.txt");
     });
   });
 });

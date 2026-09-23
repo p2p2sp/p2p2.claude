@@ -1,6 +1,6 @@
 /*
  * commit-context.test.ts - proves commit-context.sh's context block: for
- * every selector mode (all / staged / path) it emits, in order, a resolved
+ * every selector mode (all / paths) it emits, in order, a resolved
  * "## Selector:" line, "## Current branch", "## Recent commit subjects",
  * a git-status section and a diff section (capped at MAX_LINES=400), and
  * degrades rather than aborting when a probe fails (the script deliberately
@@ -81,7 +81,7 @@ test("a bare '#42' in the arguments emits the explicit Issue-footer block and st
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       assert.match(result.stdout, /## Issue footer \(explicit, from a #N reference or GitHub issue link/);
       assert.match(result.stdout, /^Refs: #42$/m);
-      assert.match(result.stdout, /## Selector: path - run commit\.sh with 2nd arg "src\/foo\.txt"/);
+      assert.match(result.stdout, /## Selector: paths - run commit\.sh with 2nd arg "src\/foo\.txt"/);
     });
   });
 });
@@ -100,31 +100,9 @@ test("no issue reference in the arguments: the Issue-footer block is absent enti
   });
 });
 
-// --- selector mode: staged -----------------------------------------------------
+// --- selector mode: paths -------------------------------------------------------
 
-test("mode 'staged': diff section is scoped to --cached only, unstaged changes are excluded", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
-      commitFile(repo, "a.txt", "original\n");
-      fs.writeFileSync(path.join(repo.dir, "a.txt"), "staged change\n");
-      const add = repo.git("add", "-A");
-      assert.equal(add.status, 0, `git add should succeed: ${add.stderr}`);
-      fs.appendFileSync(path.join(repo.dir, "a.txt"), "unstaged tail\n");
-
-      const result = runContext(bash, repo, "staged");
-      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      assert.match(result.stdout, /## Selector: staged - run commit\.sh with 2nd arg "staged"/);
-      assert.match(result.stdout, /## Overview \(git diff --cached --stat\)/);
-      assert.match(result.stdout, /## Diff \(staged only\)/);
-      assert.match(result.stdout, /staged change/);
-      assert.doesNotMatch(result.stdout, /unstaged tail/);
-    });
-  });
-});
-
-// --- selector mode: path --------------------------------------------------------
-
-test("mode path: Selector/status/diff sections are all scoped to the given path", () => {
+test("mode paths: Selector/status/diff sections are all scoped to the given path", () => {
   assertBash((bash) => {
     withGitRepo((repo) => {
       commitFile(repo, "keep.txt", "kept\n");
@@ -133,11 +111,30 @@ test("mode path: Selector/status/diff sections are all scoped to the given path"
 
       const result = runContext(bash, repo, "keep.txt");
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      assert.match(result.stdout, /## Selector: path - run commit\.sh with 2nd arg "keep\.txt"/);
-      assert.match(result.stdout, /## Changes \(git status for path: keep\.txt\)/);
-      assert.match(result.stdout, /## Overview \(git diff HEAD --stat for path: keep\.txt\)/);
-      assert.match(result.stdout, /## Diff \(changes vs HEAD for path: keep\.txt;/);
+      assert.match(result.stdout, /## Selector: paths - run commit\.sh with 2nd arg "keep\.txt"/);
+      assert.match(result.stdout, /## Changes \(git status for paths: keep\.txt\)/);
+      assert.match(result.stdout, /## Overview \(git diff HEAD --stat for paths: keep\.txt\)/);
+      assert.match(result.stdout, /## Diff \(changes vs HEAD for paths: keep\.txt;/);
       assert.match(result.stdout, /kept, modified/);
+      assert.doesNotMatch(result.stdout, /unrelated/);
+    });
+  });
+});
+
+test("mode paths with a list: the Selector line carries every path and status/diff cover all of them only", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      commitFile(repo, "a.txt", "a\n");
+      commitFile(repo, "b.txt", "b\n");
+      fs.writeFileSync(path.join(repo.dir, "a.txt"), "a, modified\n");
+      fs.writeFileSync(path.join(repo.dir, "b.txt"), "b, modified\n");
+      fs.writeFileSync(path.join(repo.dir, "other.txt"), "unrelated\n");
+
+      const result = runContext(bash, repo, "a.txt b.txt");
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match(result.stdout, /## Selector: paths - run commit\.sh with 2nd arg "a\.txt b\.txt"/);
+      assert.match(result.stdout, /a, modified/);
+      assert.match(result.stdout, /b, modified/);
       assert.doesNotMatch(result.stdout, /unrelated/);
     });
   });

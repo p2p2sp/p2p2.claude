@@ -14,7 +14,7 @@ directly" guardrail lives in each consumer skill's own description clause instea
 ## Entry points (qualified `supergh:<name>`)
 
 - `commit` - a haiku fork (CSO-routed) owning the whole commit end-to-end by selector
-  (`all`/`staged`/a path). Bundles `scripts/commit-context.sh` (recent-style + scoped
+  (none or `all` = every change, or a list of paths). Bundles `scripts/commit-context.sh` (recent-style + scoped
   status/diff), authors the Conventional-Commits message from bundled
   `references/commit-conventions.md`, then `scripts/commit.sh` does the staging+commit+verify
   (never an LLM `git commit`) and `scripts/commit-selfcheck.sh` confirms HEAD moved before the
