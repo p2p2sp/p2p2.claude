@@ -24,7 +24,7 @@ You orchestrate and delegate. Every piece of work happens inside a subagent, bec
 
 Output discipline: one status line per event. No prose, no explanation, no restating what an agent returned.
 
-Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" <args>`, every argument double-quoted: never prefixed with an interpreter word, never assigned to a variable, never preceded by `cd`, never chained with `;`. The permission classifier matches the literal prefix, so any other form stalls the build on a prompt.
+Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" "<arg>" ...`, every argument double-quoted: never prefixed with an interpreter word, never assigned to a variable, never preceded by `cd`, never chained with `;`. The permission classifier matches the literal prefix, so any other form stalls the build on a prompt.
 
 ## 1. Land the plan
 
@@ -49,7 +49,7 @@ Every path this run spends is derived from the printed one: `<dir>` is the plan'
 
 ## 2. Validate and decompose
 
-Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan> --split`. It validates the plan, writes `<dir>/spec.md` and one `<dir>/tasks/<id>.md` per task, commits that decomposition, and returns the title, the progress counter and one line per task: id, state, TDD marker, exclusivity, dependencies, files, title.
+Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan>" --split`. It validates the plan, writes `<dir>/spec.md` and one `<dir>/tasks/<id>.md` per task, commits that decomposition, and returns the title, the progress counter and one line per task: id, state, TDD marker, exclusivity, dependencies, files, title.
 
 That index is your whole view of the plan; the task files are the agents'. Each one is self-contained, so a coder is handed that one path and never the specification.
 
@@ -57,7 +57,7 @@ Non-zero exit means the plan itself is broken: report the error and stop, repair
 
 State `done` is committed and `skipped` was dropped by the user - neither is dispatched again. That is how a build resumes after a context reset, in this session or a later one, and the rest of what an interrupted session left comes off the same index:
 
-- `dirty: <id> | <paths>` - that task's own files hold uncommitted work. Before dispatching it, `AskUserQuestion` naming the task and those paths: continue on that work (dispatch its coder with `resume: <paths>` added to its lines), start it over (dispatch unchanged - the coder rewrites what it finds), or drop it (`"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, then handle it as a skip in step 4).
+- `dirty: <id> | <paths>` - that task's own files hold uncommitted work. Before dispatching it, `AskUserQuestion` naming the task and those paths: continue on that work (dispatch its coder with `resume: <paths>` added to its lines), start it over (dispatch unchanged - the coder rewrites what it finds), or drop it (`"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip "<plan>" "<id>"`, then handle it as a skip in step 4).
 - `unreviewed: <ids>` - committed with the gate waived; carry them to the final summary.
 - `deferred: <id>:<path>` - an earlier task left that path for `<id>` to prove; it becomes that task's `deferred:` line in step 4.
 - `closed: <parts>` - which halves of step 6 are already recorded.
@@ -107,16 +107,16 @@ Then work the loop: on every return, answer with ONE message carrying every disp
 
 What a return means:
 
-1. Coder `VERDICT: FAIL`, or a `PASS` whose `DOD:` line is short of its total -> `AskUserQuestion` naming the task and its `REASON:` line, the short `DOD:` line standing in for one: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its own dispatch lines plus `reason: <the returned REASON>`, and a `TaskUpdate` in the same message rewrites its subject with the new tiers. Abort stops every dispatch and goes to step 7, steps 5 and 6 skipped; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip <plan> <id>`, drops that task and every task depending on it (`TaskUpdate` -> completed for each), and leaves its half-finished files uncommitted in the tree - name them in the final summary.
+1. Coder `VERDICT: FAIL`, or a `PASS` whose `DOD:` line is short of its total -> `AskUserQuestion` naming the task and its `REASON:` line, the short `DOD:` line standing in for one: retry / skip / abort. `retry` re-dispatches the same coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with its own dispatch lines plus `reason: <the returned REASON>`, and a `TaskUpdate` in the same message rewrites its subject with the new tiers. Abort stops every dispatch and goes to step 7, steps 5 and 6 skipped; skip records the drop with `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip "<plan>" "<id>"`, drops that task and every task depending on it (`TaskUpdate` -> completed for each), and leaves its half-finished files uncommitted in the tree - name them in the final summary.
 
    Coder `VERDICT: DENIED` -> `AskUserQuestion` naming the task and the `REASON:` line's refused call: permission added and retry / skip / abort. `retry` re-dispatches the same coder on the same model with its own dispatch lines plus `reason: <the returned REASON>`, the tier unchanged; `skip` and `abort` proceed exactly as they do for a FAIL answer above.
 2. Coder returned and the profile says review -> dispatch `viber:task-reviewer` (Agent tool, `model` = that task's review tier) with the same `task:`, `notes:`, `out:`, `refs:` and `deferred:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
-   - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its own dispatch lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort. `accept` is the user overriding the gate: commit as in 3 below with `--unreviewed` appended, and name the task in the final summary as unreviewed.
+   - `VERDICT: FAIL` -> dispatch `viber:task-coder` again with its own dispatch lines plus the returned `REVIEW` path as `report:`, then re-review with the next round. After 2 failed rounds -> `AskUserQuestion`: retry / accept / abort. `retry` re-dispatches the task's coder one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays) with the last `REVIEW` path as `report:`; the round counter continues, and 2 more rounds run before the next question. `accept` is the user overriding the gate: commit as in 3 below with `--unreviewed` appended, and name the task in the final summary as unreviewed.
    - `VERDICT: DENIED` -> `AskUserQuestion` naming the task and the `REASON:` line's refused call: permission added and retry / accept / abort. `retry` re-dispatches the reviewer on the same model with the same `report:` round; `accept` commits as in 3 below with `--unreviewed` appended and names the task in the final summary as unreviewed; `abort` stops every dispatch and goes to step 7, steps 5 and 6 skipped.
-3. Coder returned with no review due, or its reviewer returned `VERDICT: PASS` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id>`, with:
+3. Coder returned with no review due, or its reviewer returned `VERDICT: PASS` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<plan>" "<id>"`, with:
 
-   - `--with <path> [<path>...]` for every path an `EXTRA:` line of that task's coder or reviewer returned. Those are files the task could not work without and the plan gave no owner; left out, the commit that lands the task is not the whole task.
-   - `--defer <target-id>:<path> [...]` for every `DEFERRED:` line its coder returned. One returned as `-> none` takes the earliest unfinished task whose `files` column claims that path; a path no task claims is recorded nowhere and named in the final summary.
+   - `--with "<path>" ["<path>"...]` for every path an `EXTRA:` line of that task's coder or reviewer returned. Those are files the task could not work without and the plan gave no owner; left out, the commit that lands the task is not the whole task.
+   - `--defer "<target-id>:<path>" [...]` for every `DEFERRED:` line its coder returned. One returned as `-> none` takes the earliest unfinished task whose `files` column claims that path; a path no task claims is recorded nowhere and named in the final summary.
 
    That call and this task's `TaskUpdate` -> completed go in the SAME message: the next one already answers another return, and an entry left open there is never closed. A non-zero exit means nothing was committed and nothing recorded -> put that entry back to in progress and `AskUserQuestion`: retry / skip / abort.
 
@@ -127,13 +127,13 @@ What a return means:
 Dispatch `viber:test-runner` with a report path `<dir>/work/tests-<round>.md`, that entry's `TaskUpdate` -> in progress in the same message.
 
 - `VERDICT: PASS` or `VERDICT: SKIP` -> `TaskUpdate` -> completed.
-- `VERDICT: FAIL` -> dispatch `viber:task-coder` (model `sonnet`) with `spec:`, the returned `REPORT` path as `report:`, `notes: <dir>/work/repair-<round>-coder.md` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`. Commit every path on its `FILES:` line, each one through the form that owns it:
-  - a path the index's `files` column claims -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" <plan> <id> <round> <file> [<file>...]`, one call per task.
-  - a path no column claims - a regression in code the plan never touched -> one `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --repair <plan> <round> <file> [<file>...]` for all of them. Never borrow a task id to get such a file committed.
+- `VERDICT: FAIL` -> dispatch `viber:task-coder` (model `sonnet`) with `spec: <dir>/spec.md`, the returned `REPORT` path as `report:`, `notes: <dir>/work/repair-<round>-coder.md`, `out: .temp/viber/repair-<round>/` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`. Commit every path on its `FILES:` line, each one through the form that owns it:
+  - a path the index's `files` column claims -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<plan>" "<id>" "<round>" "<file>" ["<file>"...]`, one call per task.
+  - a path no column claims - a regression in code the plan never touched -> one `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --repair "<plan>" "<round>" "<file>" ["<file>"...]` for all of them. Never borrow a task id to get such a file committed.
 
-  Both stage nothing they were not given and derive their own subject. Then run `viber:test-runner` again with the next round. After 2 rounds -> `AskUserQuestion`: retry / accept / abort. `accept` closes the build with the suite still red: go to step 6 and name the failing run in the final summary.
+  Both stage nothing they were not given and derive their own subject. Then run `viber:test-runner` again with the next round. After 2 rounds -> `AskUserQuestion`: retry / accept / abort. `retry` re-dispatches the repair coder on `opus` with the last `REPORT` path as `report:`; the test round continues, and 2 more rounds run before the next question. `accept` closes the build with the suite still red: go to step 6 and name the failing run in the final summary. `abort` stops every dispatch and goes to step 7, step 6 skipped.
 
-  A repair coder returning `VERDICT: DENIED` -> `AskUserQuestion` naming the refused call: permission added and retry / accept / abort, nothing committed on that return. `retry` re-dispatches the repair coder on `sonnet` with the same `spec:`, `report:`, `notes:` and `refs:` lines; `accept` closes the build as the test-run `VERDICT: DENIED` accept below does; `abort` stops every dispatch and goes to step 7, steps 5 and 6 skipped.
+  A repair coder returning `VERDICT: DENIED` -> `AskUserQuestion` naming the refused call: permission added and retry / accept / abort, nothing committed on that return. `retry` re-dispatches the repair coder on `sonnet` with the same `spec:`, `report:`, `notes:`, `out:` and `refs:` lines; `accept` closes the build as the test-run `VERDICT: DENIED` accept below does; `abort` stops every dispatch and goes to step 7, steps 5 and 6 skipped.
 - `VERDICT: DENIED` -> `AskUserQuestion` naming the refused call: permission added and retry / accept / abort, no repair coder dispatched. `retry` re-dispatches `viber:test-runner` with the same report round; `accept` closes the build as the FAIL branch's accept above does; `abort` stops every dispatch and goes to step 7, steps 5 and 6 skipped.
 
 ## 6. Record what the build taught
@@ -144,7 +144,7 @@ Only for the switches the config block above reports as `true` and not already n
 - `rules: true` -> `viber:rules-writer`, carrying those same two lines plus `refs: ${CLAUDE_PLUGIN_ROOT}/references`, the directory its admission gate lives in.
 - `qa: true` -> `viber:qa-writer`, carrying those two plus `refs: ${CLAUDE_PLUGIN_ROOT}/references` and `out: <dir>`, the run directory its QA documents land in.
 
-Commit what they return, one call per form and each deriving its own subject: the memory and rule paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore <plan> <file> [<file>...]`, the QA paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa <plan> <file> [<file>...]`. Both record the close in the plan. A form whose agents returned nothing, or only `VERDICT: NONE` -> no call for it. An `OVER:` line a writer returned is committed like any other path it named and repeated verbatim in the final summary - a knowledge file past its budget is the user's call to make, never something the run silently absorbs. Then `TaskUpdate` -> completed.
+Commit what they return, one call per form and each deriving its own subject: the memory and rule paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore "<plan>" "<file>" ["<file>"...]`, the QA paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa "<plan>" "<file>" ["<file>"...]`. Both record the close in the plan. A form whose agents returned nothing, or only `VERDICT: NONE` -> no call for it. An `OVER:` line a writer returned is committed like any other path it named and repeated verbatim in the final summary - a knowledge file past its budget is the user's call to make, never something the run silently absorbs. Then `TaskUpdate` -> completed.
 
 ## 7. Archive and close
 
