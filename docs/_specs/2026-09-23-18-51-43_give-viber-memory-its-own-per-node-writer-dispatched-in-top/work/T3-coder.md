@@ -1,6 +1,0 @@
-- The budget numbers (12000 / 32000) are deliberately absent from `memory-node-writer`: DoD.3 forbids restating the doctrine, so DoD.8 is phrased as "the doctrine's node cap / chain cap".
-- DoD.10 overrides the doctrine's "a node carrying an index gains the new one in the same write": the list stays equal to `planned:` even after a split creates a node outside it, because the memory skill's root reconcile dispatch passes the nodes that exist as `planned:`.
-- A split may create a node outside `planned:`; the memory skill already counts any `FILES:` path outside the planned set as a created node.
-- `UNVERIFIABLE` is kept, not deleted: a node exists to carry decisions the code cannot show, so it is only the first thing to leave under budget pressure.
-- The agent cannot tell which ancestors are "outside this run"; it returns `CHAIN:` for every ancestor when the ancestors alone leave no room.
-- The body reads no ancestor node explicitly: the harness injects them when the agent reads files under them.

@@ -1,6 +1,0 @@
-- The auditor now always writes a findings file (verify only), so its `AUDIT:` line dropped the `| none` alternative; the skill's copy of that line matches.
-- Planned set = every `node:` line of the map in use plus the node of each kept create target, root first then depth; "nodes that now exist" = planned set minus create targets not returning UPDATED, minus DELETED, plus created paths outside the planned set.
-- The re-map after reset is the bare preload line, covered by the existing `memory-map.sh:*` allowed-tools pattern; no new pattern added.
-- An empty layer (`state: none`), `extend` and `reset` skip audit and confirm, going from target approval straight to the waves.
-- Lint WARN "possible italics" on SKILL.md is the `:*` in allowed-tools, a false positive that predates this task.
-- `viber:memory-node-writer` is dispatched by name only; its file is T3's.

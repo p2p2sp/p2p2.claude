@@ -1,4 +1,0 @@
-- `node-doctrine.md` stops at compact and split on purpose: "write over budget and report it" stays in `memory-writer` alone, because `memory-node-writer` (T3) reads the same reference and must never write over budget.
-- The split's "a node carrying an index of nodes gains the new one in the same write" moved into the reference with the rest of the split step.
-- The linter's one WARN on `memory-writer` (a named CLAUDE.md read) came from the unchanged "Read the existing `CLAUDE.md` nodes" line, not from this task.
-- `memory-writer` still names `.claude/rules/` as the neighbour writer's scope; that line is scope, not doctrine, so it stayed.
