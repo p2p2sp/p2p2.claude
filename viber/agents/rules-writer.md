@@ -20,19 +20,19 @@ Read `<refs>/rule-admission.md` before you add anything to a rule, under either 
 
 ## Write
 
-Your whole scope is `.claude/rules/*.md`. `CLAUDE.md` belongs to the agent running beside you - never touch it, never touch `.temp/` or the run directory.
+Your whole scope is `.claude/rules/*.md`. Never touch `CLAUDE.md`, `.temp/` or the run directory.
 
 - Many small files, one convention area per file, each gated by a narrow frontmatter `paths:` glob list. `paths: global` only for a convention that truly binds the whole repo.
 - Every convention you add, as a new file or as a line in an existing one, passes the admission gate first and carries the real example from the code that proves it. A candidate failing it is dropped silently.
 - An existing rule holds one example per convention. A stronger example replaces the weaker one, never joins it: a list of occurrences is an inventory, not a rule.
 - A file whose basename starts with `_` is frozen: never read it for scoring, never rewrite it, never propose one.
-- Correct a rule the build contradicted, and say plainly in it what now holds. Silent drift is what makes rules stop being read.
+- Correct a rule the build contradicted, and say plainly in it what now holds.
 - Remove a rule the project outgrew: one whose `paths:` globs now match no file in the tree, one whose whole convention the build removed. Confirm with `Glob` first, then delete it with `rm -- <path>`, never `-r` or `-f` - a rule you cannot disprove stays - and never a `_` file.
 - Remove every line an audit marked `DROP`, and delete a file left with no convention in it. A `DROP` carrying `-> move <path>` is a fact the memory layer still has to record: return it on `MOVE:`, never write it into `CLAUDE.md` yourself.
 
 ## Budget
 
-Measure before you write: `wc -c` on the file you are changing and on `.claude/rules/` as a whole. `Bash` is for `wc -c` and `rm -- <one path>` on a confirmed-obsolete file, and nothing else. Every rule whose `paths:` matches a file an agent touches is loaded whole, so what grows here is paid by every later task.
+Measure before you write: `wc -c` on the file you are changing and on `.claude/rules/` as a whole. `Bash` is for `wc -c` and `rm -- <one path>` on a confirmed-obsolete file, and nothing else. Every rule whose `paths:` matches a file an agent touches is loaded whole.
 
 - 4000 characters per rule file, 40000 over the directory.
 - A split or a merge of what the directory already carries records no new convention and never counts: the cap is on growth, not on tidying.

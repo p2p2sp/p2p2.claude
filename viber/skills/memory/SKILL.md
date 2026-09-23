@@ -16,9 +16,9 @@ disable-model-invocation: true
 
 The block above is this host project's memory layer as the script measured it: the run's `id:`, the `state:`, one `node:` line per tracked `CLAUDE.md` with its own character count, the count of the chain a reader loads with it and its budget flag, one `orphan:` line per node whose area is gone, one `cand:` line per directory that carries no node, one `dirty:` line per node holding uncommitted work, and the total. A section with nothing to report printed no line at all.
 
-It is self-verifying and trusted. Never re-measure a node, never walk the tree for a candidate of your own, never run git to decide what is dirty: every fact you route on is already above, and a second opinion here is a slower answer, not a better one.
+It is self-verifying and trusted. Never re-measure a node, never walk the tree for a candidate of your own, never run git to decide what is dirty: every fact you route on is already above.
 
-Your whole tool set is `AskUserQuestion`, `Agent` and the one reset line in step 3. You open no file and you write none: every byte of the cascade is written by `viber:memory-writer`, nothing here is staged and nothing is committed - that stays the user's call.
+Your whole tool set is `AskUserQuestion`, `Agent` and the one reset line in step 3. You open no file and you write none: every byte of the cascade is written by `viber:memory-writer`, nothing here is staged and nothing is committed.
 
 ## 1. Report the layer
 
@@ -27,7 +27,7 @@ Before any question, one line per fact worth deciding on:
 - each `node:` line with its two sizes and its flag. `OVER-NODE` is past 12000 characters, `OVER-CHAIN` past 32000 over the chain. A node already over a budget is reported here and split by the writer, never by you.
 - each `orphan:` line, named as a node left alone in a directory whose other files are gone.
 - each `dirty:` line with its `modified` or `untracked` word.
-- each `cand:` line with its file count, its byte count and its `toolchain` or `plain` signal. A directory carrying its own build manifest is a reason to look at it, never a reason to give it a node.
+- each `cand:` line with its file count, its byte count and its `toolchain` or `plain` signal. A directory carrying its own build manifest earns a look, never an automatic node.
 
 ## 2. Route on the state, then the mode
 
@@ -40,13 +40,13 @@ Otherwise one `AskUserQuestion`, the four modes in that single call:
 - `both` - the nodes and the candidates in one pass.
 - `reset` - delete nodes, then start from zero.
 
-An argument naming one of the four is that answer already: take it and ask nothing. On `state: complete` lead with the flags and the orphans, a complete layer being reviewed rather than extended; on `state: partial` lead with how many candidates carry no node.
+An argument naming one of the four is that answer already: take it and ask nothing. On `state: complete` lead with the flags and the orphans; on `state: partial` lead with how many candidates carry no node.
 
 `reset` goes to step 3. Every other mode goes to step 4, its target list being the `node:` lines on `review`, the `cand:` lines on `extend`, and both on `both`.
 
 ## 3. Reset
 
-The list is every `node:` line, or the ones the user named. Print it whole, one path per line: a reset deletes this project's memory and that list is the last sight of it.
+The list is every `node:` line, or the ones the user named. Print it whole, one path per line: a reset deletes this project's memory.
 
 A path in the list that also carries a `dirty:` line refuses the whole call. Name each offending path with its own word, say the user commits or discards that work and runs the command again, and stop there. A refusal is never narrowed into a smaller reset that goes ahead, and uncommitted work is never corrected into something deletable.
 
@@ -78,7 +78,7 @@ scope: <the directory the target describes>
 out: .temp/viber/<id>/
 ```
 
-`<id>` is the `id:` value of the map above, which is what keeps this run's findings apart from every other. A node's scope is the directory holding it, the root node's being the repository root. A candidate is the discovery direction: `target: none`, `scope` that directory, and only missing facts can come back.
+`<id>` is the `id:` value of the map above. A node's scope is the directory holding it, the root node's being the repository root. A candidate is the discovery direction: `target: none`, `scope` that directory, and only missing facts can come back.
 
 Each call returns exactly one line:
 
@@ -86,11 +86,11 @@ Each call returns exactly one line:
 AUDIT: <area> stale <n> gone <n> unverifiable <n> miss <n> -> <findings file> | none
 ```
 
-Report one line per target: how many of its statements came back false, gone or unverifiable, how many facts are missing, and where the findings went. Read none of those files - the writer does.
+Report the `AUDIT:` line for each target verbatim. Read none of those files - the writer does.
 
 ## 6. Confirm, then the writer
 
-Every returned line carrying four zero counters, or `-> none`, means the layer is already true. Say so in one line, dispatch no writer, and stop: a writer with nothing to fold in is a rewrite nobody asked for.
+Every returned line carrying four zero counters, or `-> none`, means the layer is already true. Say so in one line, dispatch no writer, and stop.
 
 Otherwise one `AskUserQuestion` over the counters just reported: fold them in, or stop. Only on approval, one `Agent` call, `subagent_type: viber:memory-writer`, no `model:` line, two labelled lines and nothing else:
 
@@ -99,14 +99,12 @@ map: <every line of the map block above, verbatim>
 notes: .temp/viber/<id>/
 ```
 
-The map is what tells it which node is at which size and which chain it sits in; the notes directory is where the auditors left their findings.
-
 ## 7. Report
 
 Repeat what the writer returned and add nothing to it:
 
 - `FILES:` -> the nodes it created or corrected, one path per line.
-- `OVER:` -> repeat each line verbatim. A node left above a budget is the user's call to make, never something this run absorbs in silence.
+- `OVER:` -> repeat each line verbatim.
 - `VERDICT: NONE` -> nothing in the layer needed changing.
 
 Close on one line: those files sit in the working tree, unstaged and uncommitted, and committing them is the user's next step.

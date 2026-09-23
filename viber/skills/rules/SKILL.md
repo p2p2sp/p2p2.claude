@@ -16,9 +16,9 @@ disable-model-invocation: true
 
 The block above is this host project's rules layer as the script measured it: the run's `id:`, the `state:`, one `rule:` line per scored rule with its character count, its declared globs, the tracked files they match and its budget flag, one `frozen:` line per rule held out of scoring, one `dead:` line per rule whose scope matches nothing, one `dirty:` line per file holding uncommitted work, and the directory total. A section with nothing to report printed no line at all.
 
-It is self-verifying and trusted. Never re-count a rule, never glob the tree to check what a scope matches, never run git to decide what is dirty: every fact you route on is already above, and a second opinion here is a slower answer, not a better one.
+It is self-verifying and trusted. Never re-count a rule, never glob the tree to check what a scope matches, never run git to decide what is dirty: every fact you route on is already above.
 
-Your whole tool set is `AskUserQuestion`, `Agent` and the one reset line in step 3. You open no file and you write none: every byte of the layer is written by `viber:rules-writer`, nothing here is staged and nothing is committed - that stays the user's call.
+Your whole tool set is `AskUserQuestion`, `Agent` and the one reset line in step 3. You open no file and you write none: every byte of the layer is written by `viber:rules-writer`, nothing here is staged and nothing is committed.
 
 ## 1. Report the layer
 
@@ -48,7 +48,7 @@ An argument naming one of the four is that answer already: take it and ask nothi
 
 ## 3. Reset
 
-The list is every `rule:` line, or the ones the user named. A `frozen:` line never enters it, whatever the user names. Print the list whole, one path per line: a reset deletes this project's rules and that list is the last sight of them.
+The list is every `rule:` line, or the ones the user named. A `frozen:` line never enters it, whatever the user names. Print the list whole, one path per line: a reset deletes this project's rules.
 
 A path in the list that also carries a `dirty:` line refuses the whole call. Name each offending path with its own word, say the user commits or discards that work and runs the command again, and stop there. A refusal is never narrowed into a smaller reset that goes ahead, and uncommitted work is never corrected into something deletable.
 
@@ -81,7 +81,7 @@ out: .temp/viber/<id>/
 refs: ${CLAUDE_PLUGIN_ROOT}/references
 ```
 
-`<id>` is the `id:` value of the map above, which is what keeps this run's findings apart from every other. A rule whose `paths` field reads `none` or `global` gates the whole repository: pass the repository root as its scope. A scope with no rule is the proposing direction: `target: none`, `scope` that directory, and only missing conventions can come back.
+`<id>` is the `id:` value of the map above. A rule whose `paths` field reads `none` or `global` gates the whole repository: pass the repository root as its scope. A scope with no rule is the proposing direction: `target: none`, `scope` that directory, and only missing conventions can come back.
 
 Each call returns exactly one line:
 
@@ -89,11 +89,11 @@ Each call returns exactly one line:
 AUDIT: <area> stale <n> gone <n> unverifiable <n> drop <n> miss <n> -> <findings file> | none
 ```
 
-Report one line per target: how many of its lines came back false, gone, unverifiable or true but inadmissible, how many conventions are missing, and where the findings went. Read none of those files - the writer does.
+Report the `AUDIT:` line for each target verbatim. Read none of those files - the writer does.
 
 ## 6. Confirm, then the writer
 
-Every returned line carrying five zero counters, or `-> none`, means the layer is already true and no scope earned a new rule. That is the ordinary outcome of a healthy project, not a failure and not a retry: say so in one line, dispatch no writer, and stop.
+Every returned line carrying five zero counters, or `-> none`, means the layer is already true and no scope earned a new rule. Say so in one line, dispatch no writer, and stop.
 
 Otherwise one `AskUserQuestion` over the counters just reported: fold them in, or stop. Only on approval, one `Agent` call, `subagent_type: viber:rules-writer`, no `model:` line, three labelled lines and nothing else:
 
@@ -103,15 +103,13 @@ notes: .temp/viber/<id>/
 refs: ${CLAUDE_PLUGIN_ROOT}/references
 ```
 
-The map is what tells it which rule is at which size and which scope; the notes directory is where the auditors left their findings; `refs` is where the admission gate every line entering a rule has to pass lives.
-
 ## 7. Report
 
 Repeat what the writer returned and add nothing to it:
 
 - `FILES:` -> the rules it created, corrected or removed, one path per line.
-- `OVER:` -> repeat each line verbatim. A rule left above a budget is the user's call to make, never something this run absorbs in silence.
+- `OVER:` -> repeat each line verbatim.
 - `MOVE:` -> repeat each line verbatim: a fact removed from a rule that its `CLAUDE.md` node does not hold yet. This run never writes that node; `/viber:memory` over those paths records it.
-- `VERDICT: NONE` -> nothing in the layer needed changing, which is an outcome like any other.
+- `VERDICT: NONE` -> nothing in the layer needed changing.
 
 Close on one line: those files sit in the working tree, unstaged and uncommitted, and committing them is the user's next step.
