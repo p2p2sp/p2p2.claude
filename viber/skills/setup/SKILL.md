@@ -21,9 +21,9 @@ own comment and the user edits that file to turn one off with `false`. A file th
 present keeps every value in it; only a switch this version added is appended to it, which the
 preload's line names.
 
-Then run the merge once - additive and idempotent, the project's own entries and settings all
-survive it except a deny entry the template now asks for. Its line is carried into the close literally, never re-verified, never retried; a
-non-zero exit is trusted the same way:
+Then run the merge once - key by key and idempotent: the template's value wins a conflict, lists
+only gain entries, and a key the template lacks is never touched. Its line is carried into the
+close literally, never re-verified, never retried; a non-zero exit is trusted the same way:
 
 ```
 "${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/merge-settings.sh" "${CLAUDE_PLUGIN_ROOT}/skills/setup/assets/settings.json"

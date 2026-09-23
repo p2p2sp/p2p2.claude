@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # merge-settings.sh - merges the bundled permissions template into the host
-# project's .claude/settings.json, additively and idempotently.
+# project's .claude/settings.json key by key, idempotently.
 #
 # Usage:
 #   merge-settings.sh <template> [<target>]
@@ -12,23 +12,20 @@
 #                       .claude/settings.json relative to the current dir.
 #
 # Merge rules (applied by the embedded node program, only when the target
-# already exists):
-#   - permissions.allow / permissions.ask / permissions.deny keep the host's
-#     entries in the host's order; template entries missing from a list are
-#     appended at its end, each exactly once. A list that is not an array is
-#     replaced by the merged array.
+# already exists), walked recursively over every key of the template:
+#   - a key the host lacks is added with the template's value.
+#   - an object on both sides is merged key by key, at any depth.
+#   - an array on both sides keeps the host's entries in the host's order;
+#     template entries missing from it are appended at its end, each exactly
+#     once. Arrays only ever gain entries.
+#   - anything else (a scalar, or a type mismatch) takes the template's value
+#     when it differs. The template wins because a project's own override
+#     belongs in .claude/settings.local.json, which this merge never touches.
 #   - the one removal: an entry the template carries in permissions.ask is
 #     dropped from the host's permissions.deny. deny outranks ask, so a rule
 #     the template moved from deny to ask would otherwise stay a hard block in
 #     every project set up before the move.
-#   - permissions.defaultMode and permissions.disableAutoMode are set from the
-#     template only when the host has none; any existing value is reported,
-#     never overwritten.
-#   - every other TOP-LEVEL key of the template is seeded the same way: added
-#     only when the host has none, never merged into and never walked, so a
-#     host value wins outright whatever its shape.
-#   - permissions is created when absent; beyond that deny removal, no key of
-#     the host file is ever changed or removed - host-specific ones included.
+#   - a key the template does not carry is never changed or removed.
 #   - a semantically unchanged file is not rewritten at all, so a second run
 #     leaves it byte-identical.
 #   - the rewrite is atomic: the result is written to <target>.tmp and
@@ -37,8 +34,7 @@
 # Output (stdout, exactly one line - plus the template body on the node-skip
 # case, which is the block a user merges by hand):
 #   settings.json: created from template
-#   settings.json: merged - added <n> allow, <a> ask, <m> deny, <k> top-level, moved <d> deny to ask, defaultMode set, autoMode disabled
-#   settings.json: merged - added <n> allow, <a> ask, <m> deny, <k> top-level, moved <d> deny to ask, defaultMode already <x> (left untouched), autoMode already <y> (left untouched)
+#   settings.json: merged - added <k> keys, <e> list entries, updated <u> values, moved <d> deny to ask
 #   settings.json: already up to date
 #   settings.json: node not found - merge skipped, recommended block:
 #   settings.json: template missing at <path> - skipped
@@ -123,94 +119,40 @@ if (!isObject(current)) {
   stop("settings.json: not valid JSON - left untouched (top-level value is not an object)", 2);
 }
 
-const templatePerms = isObject(template.permissions) ? template.permissions : {};
-let changed = false;
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const counts = { keys: 0, entries: 0, values: 0, moved: 0 };
 
-if (!isObject(current.permissions)) {
-  current.permissions = {};
-  changed = true;
-}
-const perms = current.permissions;
-
-/** Host order first, then the template entries that list does not already
- *  carry. Returns how many were appended. */
-function mergeList(name) {
-  const additions = Array.isArray(templatePerms[name]) ? templatePerms[name] : [];
-  const hostValue = perms[name];
-  const hostIsArray = Array.isArray(hostValue);
-  const hostList = hostIsArray ? hostValue : [];
-  const seen = new Set(hostList.filter((entry) => typeof entry === "string"));
-  const missing = [];
-  for (const entry of additions) {
-    if (typeof entry !== "string" || seen.has(entry)) continue;
-    seen.add(entry);
-    missing.push(entry);
+function mergeInto(host, tpl) {
+  for (const [key, value] of Object.entries(tpl)) {
+    if (!Object.prototype.hasOwnProperty.call(host, key)) {
+      host[key] = value;
+      counts.keys += 1;
+    } else if (isObject(host[key]) && isObject(value)) {
+      mergeInto(host[key], value);
+    } else if (Array.isArray(host[key]) && Array.isArray(value)) {
+      for (const entry of value) {
+        if (host[key].some((existing) => same(existing, entry))) continue;
+        host[key].push(entry);
+        counts.entries += 1;
+      }
+    } else if (!same(host[key], value)) {
+      host[key] = value;
+      counts.values += 1;
+    }
   }
-  if (missing.length > 0 || (!hostIsArray && hostValue !== undefined)) {
-    perms[name] = [...hostList, ...missing];
-    changed = true;
-  }
-  return missing.length;
 }
 
-const addedAllow = mergeList("allow");
-const addedAsk = mergeList("ask");
-const addedDeny = mergeList("deny");
+mergeInto(current, template);
 
-/** deny outranks ask, so a host deny entry the template now asks for is
- *  dropped. Returns how many were dropped. */
-function dropDenyAskedFor() {
-  const asked = new Set(Array.isArray(templatePerms.ask) ? templatePerms.ask : []);
-  const kept = perms.deny.filter((entry) => !asked.has(entry));
-  const dropped = perms.deny.length - kept.length;
-  if (dropped > 0) {
-    perms.deny = kept;
-    changed = true;
-  }
-  return dropped;
+const asked = template.permissions?.ask;
+const deny = current.permissions?.deny;
+if (Array.isArray(asked) && Array.isArray(deny)) {
+  const kept = deny.filter((entry) => !asked.includes(entry));
+  counts.moved = deny.length - kept.length;
+  current.permissions.deny = kept;
 }
 
-const movedDeny = Array.isArray(perms.deny) ? dropDenyAskedFor() : 0;
-
-/** Every other top-level key of the template is SEEDED, never merged into: a
- *  key the host already carries wins outright, whatever its value, and no
- *  nested object is walked - permissions is the one key with merge rules of
- *  its own. Returns how many were added. */
-function seedTopLevel() {
-  let added = 0;
-  for (const key of Object.keys(template)) {
-    if (key === "permissions" || Object.prototype.hasOwnProperty.call(current, key)) continue;
-    current[key] = template[key];
-    changed = true;
-    added += 1;
-  }
-  return added;
-}
-
-const addedTop = seedTopLevel();
-
-/** A scalar the template only seeds. The host's own value always wins, so a
- *  project that deliberately runs another mode - or that deliberately leaves
- *  auto mode on - is reported, never overridden. Returns the host's value, or
- *  undefined when the template's was taken. */
-function mergeScalar(name) {
-  if (perms[name] !== undefined) return oneLine(perms[name]);
-  if (typeof templatePerms[name] === "string") {
-    perms[name] = templatePerms[name];
-    changed = true;
-  }
-  return undefined;
-}
-
-const hostMode = mergeScalar("defaultMode");
-const modeClause =
-  hostMode === undefined ? "defaultMode set" : `defaultMode already ${hostMode} (left untouched)`;
-
-const hostAutoMode = mergeScalar("disableAutoMode");
-const autoClause =
-  hostAutoMode === undefined ? "autoMode disabled" : `autoMode already ${hostAutoMode} (left untouched)`;
-
-if (!changed) {
+if (counts.keys + counts.entries + counts.values + counts.moved === 0) {
   console.log("settings.json: already up to date");
   process.exit(0);
 }
@@ -226,7 +168,7 @@ try {
 }
 
 console.log(
-  `settings.json: merged - added ${addedAllow} allow, ${addedAsk} ask, ${addedDeny} deny, ${addedTop} top-level, moved ${movedDeny} deny to ask, ${modeClause}, ${autoClause}`,
+  `settings.json: merged - added ${counts.keys} keys, ${counts.entries} list entries, updated ${counts.values} values, moved ${counts.moved} deny to ask`,
 );
 NODE
 exit $?

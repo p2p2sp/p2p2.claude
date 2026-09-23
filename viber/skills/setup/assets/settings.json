@@ -1,6 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "showClearContextOnPlanAccept": true,
+  "subagentDefaults": {
+    "inheritParentPermissions": true
+  },
   "permissions": {
     "defaultMode": "acceptEdits",
     "disableAutoMode": "disable",
@@ -9,7 +12,7 @@
       "AskUserQuestion",
       "Bash",
       "BashOutput",
-      "Edit",
+      "Edit(**/*)",
       "EnterPlanMode",
       "EnterWorktree",
       "ExitPlanMode",
@@ -38,7 +41,7 @@
       "ToolSearch",
       "WebFetch",
       "WebSearch",
-      "Write"
+      "Write(**/*)"
     ],
     "ask": [
       "Bash(docker system prune:*)",
