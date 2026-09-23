@@ -8,11 +8,11 @@ Every rule a plan's task half and contract appendix must hold. A rule tagged `(s
 
 ## Tasks
 
-- Size: each task is the smallest unit that carries its own verification and is worth a reviewer's gate; setup, config and docs fold into the task whose deliverable needs them. (review)
+- Size: each task is the smallest unit that carries its own verification and is worth a reviewer's gate; setup, config and docs fold into the task whose deliverable needs them. One behaviour per task: a task whose `Delivers` names behaviours a person can observe independently is split, one task each. (review)
 - Title: the heading line `### T<n> - <title>` is committed verbatim as the commit subject, so the title is one short imperative summary of what the task delivers. (review)
 - Ids: task ids are `T1`, `T2`, … in order. (review)
 - Depends: `Depends-on` references lower-numbered tasks only, which keeps the graph acyclic. (script)
-- Ordered: `Depends-on` matches the actual flow of code and data - a dependency only where one task consumes what another produces. A task needing something no listed dependency produces is a finding, and so is a dependency that constrains nothing: it burns parallelism. (review)
+- Ordered: `Depends-on` matches the actual flow of code and data - a dependency only where one task consumes what another produces, or where both write the same file. A task needing something no listed dependency produces is a finding, and so is a dependency that constrains nothing: it burns parallelism. (review)
 - Paths: `Files` is one comma-separated line of exact repo-relative file paths, no globs, no directories, no annotations; a bracket wrapping a whole path segment (`[id]`, `[...slug]`, `[[...slug]]`) is part of the file's own name, written exactly as on disk. (script)
 - Owned: `Files` is the task's complete map, staged for its commit and compared by the collision check: nothing outside it has to change for the task to deliver and pass its `Verification`. It holds every file the task's own work forces - where a new type is registered, exported or wired up, the declaration and migration a new persisted shape needs, every test asserting a count, an enumeration or a snapshot over what it changes. A shape two tasks need is written by the first one that cannot deliver without it. A contract on `File: none` whose shape plainly has a home is the same finding. (review)
 - Disjoint: tasks with no dependency path between them never list the same file, since they run at the same time. (script)

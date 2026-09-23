@@ -78,7 +78,7 @@ Tier:
 - Ordinary feature work, `TDD: required`, contained within its own files -> `sonnet`.
 - Load-bearing: defines a contract other tasks consume, spans many files, or several tasks depend on it -> `opus`.
 
-Review: only a `Verification` that runs the project's build or its tests waives the reviewer. A task proved by `grep`, `test -f` or any other content check is reviewed whatever its tier. Its review tier is the task's tier, raised to `sonnet` from `haiku`.
+Review: only a `Verification` that runs the project's build or its tests waives the reviewer, and never on an `opus` task. A task proved by `grep`, `test -f` or any other content check is reviewed whatever its tier. Its review tier is the task's tier, raised to `sonnet` from `haiku`.
 
 `TaskCreate` the remaining tasks, a final test run, and one entry for each of the `memory`, `rules`, `qa` and `cleanup` switches the config block reports as `true`. Task subject: `<id> - <title> (<tier>)`, or `(<tier>, review <review tier>)` when reviewed.
 
