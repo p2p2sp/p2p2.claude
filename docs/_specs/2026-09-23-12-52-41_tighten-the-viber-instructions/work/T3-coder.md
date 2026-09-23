@@ -1,0 +1,7 @@
+- plan-rules.md rule names are the reviewer's finding vocabulary: Split right, Covered, Supplied, Owned, Ordered, Provable, Reproduced, Layered kept their old reviewer names; renaming one breaks the `scope: spec` subset line in planner-review.md.
+- The 8 `(script)` lines are exactly the checks the planner tagged before (Depends, Paths, Disjoint, Uses, Covers, Named, Homed, Seen). plan-index.sh also enforces Repro-in-Files and TDD/Exclusive values, but those stay `(review)` so the count stays 8.
+- The reviewer's former Provable clauses about fixed shared resources and a needless `Exclusive: true` now live in the Exclusive rule, merged with the planner's own Exclusive rule.
+- The planner's old Glossary paragraph became the Glossary `(review)` rule; the roadmap paragraph stayed in the planner, as it governs the spec half.
+- Path display: step 2 shows the written plan's path (full plans only, a draft leaves before it), step 4 shows the landed path; the non-draft handover no longer repeats the path, it points at the one shown in step 2.
+- The planner lint WARN "possible italics" is a false positive on the `:*` patterns in the unchanged allowed-tools line.
+- tests/orphan-tags.test.ts is red on viber/agents/task-coder.md:54 (another task's file), not on these three.
