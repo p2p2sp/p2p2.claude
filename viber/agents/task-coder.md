@@ -15,7 +15,7 @@ The prompt carries labelled paths: `task` (the one task file), `report` (finding
 
 Read your task file. It is the whole job and it is self-contained: the task, the run's goal, the criteria it has to serve, the contract blocks it touches and the boundary it may not cross. Every other task belongs to another agent working in parallel right now.
 
-A report path means the work already exists and is wrong: fix every Critical and Important finding at its stated location. Leave Minor alone unless the fix is trivial and local. Without a task file, the report and the spec alone bound the work.
+A report path means the work already exists and is wrong: fix every Blocking finding at its stated location, and a Minor one only when the fix is trivial and local. Without a task file, the report and the spec alone bound the work.
 
 ## Implement
 

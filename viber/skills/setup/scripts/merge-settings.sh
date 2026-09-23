@@ -17,14 +17,18 @@
 #     entries in the host's order; template entries missing from a list are
 #     appended at its end, each exactly once. A list that is not an array is
 #     replaced by the merged array.
+#   - the one removal: an entry the template carries in permissions.ask is
+#     dropped from the host's permissions.deny. deny outranks ask, so a rule
+#     the template moved from deny to ask would otherwise stay a hard block in
+#     every project set up before the move.
 #   - permissions.defaultMode and permissions.disableAutoMode are set from the
 #     template only when the host has none; any existing value is reported,
 #     never overwritten.
 #   - every other TOP-LEVEL key of the template is seeded the same way: added
 #     only when the host has none, never merged into and never walked, so a
 #     host value wins outright whatever its shape.
-#   - permissions is created when absent; no key of the host file is ever
-#     changed or removed - host-specific ones included.
+#   - permissions is created when absent; beyond that deny removal, no key of
+#     the host file is ever changed or removed - host-specific ones included.
 #   - a semantically unchanged file is not rewritten at all, so a second run
 #     leaves it byte-identical.
 #   - the rewrite is atomic: the result is written to <target>.tmp and
@@ -33,8 +37,8 @@
 # Output (stdout, exactly one line - plus the template body on the node-skip
 # case, which is the block a user merges by hand):
 #   settings.json: created from template
-#   settings.json: merged - added <n> allow, <a> ask, <m> deny, <k> top-level, defaultMode set, autoMode disabled
-#   settings.json: merged - added <n> allow, <a> ask, <m> deny, <k> top-level, defaultMode already <x> (left untouched), autoMode already <y> (left untouched)
+#   settings.json: merged - added <n> allow, <a> ask, <m> deny, <k> top-level, moved <d> deny to ask, defaultMode set, autoMode disabled
+#   settings.json: merged - added <n> allow, <a> ask, <m> deny, <k> top-level, moved <d> deny to ask, defaultMode already <x> (left untouched), autoMode already <y> (left untouched)
 #   settings.json: already up to date
 #   settings.json: node not found - merge skipped, recommended block:
 #   settings.json: template missing at <path> - skipped
@@ -153,6 +157,21 @@ const addedAllow = mergeList("allow");
 const addedAsk = mergeList("ask");
 const addedDeny = mergeList("deny");
 
+/** deny outranks ask, so a host deny entry the template now asks for is
+ *  dropped. Returns how many were dropped. */
+function dropDenyAskedFor() {
+  const asked = new Set(Array.isArray(templatePerms.ask) ? templatePerms.ask : []);
+  const kept = perms.deny.filter((entry) => !asked.has(entry));
+  const dropped = perms.deny.length - kept.length;
+  if (dropped > 0) {
+    perms.deny = kept;
+    changed = true;
+  }
+  return dropped;
+}
+
+const movedDeny = Array.isArray(perms.deny) ? dropDenyAskedFor() : 0;
+
 /** Every other top-level key of the template is SEEDED, never merged into: a
  *  key the host already carries wins outright, whatever its value, and no
  *  nested object is walked - permissions is the one key with merge rules of
@@ -207,7 +226,7 @@ try {
 }
 
 console.log(
-  `settings.json: merged - added ${addedAllow} allow, ${addedAsk} ask, ${addedDeny} deny, ${addedTop} top-level, ${modeClause}, ${autoClause}`,
+  `settings.json: merged - added ${addedAllow} allow, ${addedAsk} ask, ${addedDeny} deny, ${addedTop} top-level, moved ${movedDeny} deny to ask, ${modeClause}, ${autoClause}`,
 );
 NODE
 exit $?

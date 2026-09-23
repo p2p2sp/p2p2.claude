@@ -89,7 +89,8 @@ want to read a year later. Generated
 Playwright tests go into the e2e directory your own project already uses - `/viber:e2e` asks if
 nothing names one, and creates no directory of its own. Scratch files go to `.temp/viber/`. Your
 `.claude/viber.yml`, your `.gitignore` and your `.claude/settings.json` are only ever added to,
-never rewritten. Nothing else, nowhere else.
+never rewritten - with one exception: a permission viber moved from `deny` to `ask` is moved in
+your settings too, so the agent asks you instead of stopping. Nothing else, nowhere else.
 
 `/viber:memory` and `/viber:rules` write the same `CLAUDE.md` cascade and the same
 `.claude/rules/` a build closes with, on your own schedule instead of a build's. Either one asks

@@ -20,7 +20,7 @@ Read the plan, then read enough of the codebase to judge whether it fits reality
 
 - Complete: no TODOs, no placeholders, no task that trails off mid-thought.
 - Covered: each task really delivers what the criteria its `Covers` names require - the numbers themselves are already validated, the fit is not.
-- Split right: everything above `## Tasks` is WHAT and WHY. A signature, type, endpoint, error code or dictionary key up there is a finding - it belongs in a `## Contracts` block, which is the only thing a coder can be handed.
+- Split right: everything above `## Tasks` is WHAT and WHY. A signature, type, endpoint, error code or dictionary key up there is a finding - it belongs in a `## Contracts` block, the only way a shape reaches a coder.
 - Supplied: each task's `Uses` names every contract block its work actually touches. The references themselves are already validated; a task consuming a shape it does not list is a blocker, because the task file is the coder's whole input and that shape reaches it nowhere else.
 - Owned: each task's `Files` holds every file its own work forces - where its new type is registered, exported or wired up, the declaration and migration a new persisted shape needs, the tests asserting a count, an enumeration or a snapshot over what it changes. A task whose coder would have to edit a file outside that list to deliver it or pass its `Verification` is a blocker: either the file belongs in its `Files` or the boundary is wrong. A contract on `File: none` whose shape plainly has a home is the same finding.
 - Decomposed: tasks are small, independently verifiable, and their boundaries are real ones.
@@ -42,7 +42,7 @@ Check when the specification carries `## Behaviour` and `## Glossary`, in either
 
 ## Calibration
 
-Flag only what would send the implementation wrong or stall it: a missing criterion, a contradiction, a placeholder, a wrong or missing dependency, a task too vague to act on. Wording, style, formatting and nice-to-haves are not findings - the coder handles those.
+A finding is Blocking when it would send the implementation wrong or stall it - a missing criterion, a contradiction, a placeholder, a wrong or missing dependency, a task too vague to act on - and that alone produces FAIL; it is Minor otherwise and never fails the plan on its own. Wording, style, formatting and nice-to-haves are Minor at most - the coder handles those.
 
 When previous findings are in the prompt, verify each one was addressed and do not re-raise what the fixes resolved.
 
@@ -51,4 +51,4 @@ When previous findings are in the prompt, verify each one was addressed and do n
 Return exactly two sections and nothing else:
 
 - `VERDICT: PASS` or `VERDICT: FAIL`
-- `FINDINGS:` grouped Critical then Major, one line each - where, what is wrong, what to change. `none` when there are none.
+- `FINDINGS:` grouped Blocking then Minor, one line each - where, what is wrong, what to change. `none` when there are none.

@@ -169,11 +169,16 @@ there.
   deleted or commented out comes back at the template's default. `templates/viber.yml`,
   `assets/usage.md` and the README all say so, and a change there changes all four.
   `merge-settings.sh` is additive in the same sense and needs Node, the one deliberate tool
-  dependency here: without it the block is printed for a manual merge and the run continues.
+  dependency here: without it the block is printed for a manual merge and the run continues. Its
+  one removal is a host `deny` entry the template carries in `ask`: `deny` outranks `ask`, so
+  without it a rule moved from deny to ask would stay a hard block in every older project.
 - **The permissions template allows the write tools outright.** A subagent does not inherit the
   session's permission mode and `defaultMode: acceptEdits` is scoped to the working directory, so
   ten of the eleven agents would start on an asking default and a stopped coder strands its whole
   batch. `deny` is therefore the layer that holds the line on `.env`, `.git/` and the key files.
+  `deny` keeps only what is irreversible or leaks a secret; a recoverable or user-judged command
+  (`rm -rf`, `git stash`, `git reset --hard`, `gh pr merge`) sits in `ask`, because a denied
+  command ends an agent's run where an asked one pauses it for the user's decision.
 - **The host's `CLAUDE.md` is reported, never seeded.** The build and test commands every agent
   reads belong to the user, and a stub written by a script is exactly the file that names none of
   them. `assets/usage.md` is likewise printed whole rather than paraphrased, which is why it is an

@@ -5,7 +5,10 @@
  * once), idempotently (a second run rewrites nothing) and safely (a target that
  * is not valid JSON, or a host with no `node`, is left untouched and reported),
  * plus the shape of the shipped template itself - the single source of the
- * recommended allow/deny lists /viber:setup offers.
+ * recommended allow/ask/deny lists /viber:setup offers.
+ *
+ * The one removal: a host deny entry the template carries in ask is dropped,
+ * because deny outranks ask and the move would never reach an older project.
  *
  * A top-level key of the template other than `permissions` is SEEDED, never
  * merged into: it is added only when the host has none, so a host value wins
@@ -108,7 +111,7 @@ test("partial coverage: only the missing template entries are appended, after th
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
       result.stdout,
-      "settings.json: merged - added 2 allow, 1 ask, 1 deny, 1 top-level, defaultMode set, autoMode disabled\n",
+      "settings.json: merged - added 2 allow, 1 ask, 1 deny, 1 top-level, moved 0 deny to ask, defaultMode set, autoMode disabled\n",
     );
 
     const merged = readJson(target);
@@ -144,7 +147,7 @@ test("an existing defaultMode: plan is reported and left in place, never overwri
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
       result.stdout,
-      "settings.json: merged - added 1 allow, 0 ask, 0 deny, 2 top-level, defaultMode already plan (left untouched), autoMode disabled\n",
+      "settings.json: merged - added 1 allow, 0 ask, 0 deny, 2 top-level, moved 0 deny to ask, defaultMode already plan (left untouched), autoMode disabled\n",
     );
     const merged = readJson(target);
     assert.equal(merged.permissions.defaultMode, "plan");
@@ -169,7 +172,7 @@ test("an existing disableAutoMode is reported and left in place (a host that del
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
       result.stdout,
-      "settings.json: merged - added 0 allow, 0 ask, 0 deny, 2 top-level, defaultMode set, autoMode already allow (left untouched)\n",
+      "settings.json: merged - added 0 allow, 0 ask, 0 deny, 2 top-level, moved 0 deny to ask, defaultMode set, autoMode already allow (left untouched)\n",
     );
     assert.equal(readJson(target).permissions.disableAutoMode, "allow");
   });
@@ -195,11 +198,40 @@ test("a top-level key the host already carries is reported as not seeded and kee
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
       result.stdout,
-      "settings.json: merged - added 1 allow, 0 ask, 0 deny, 0 top-level, defaultMode already acceptEdits (left untouched), autoMode already disable (left untouched)\n",
+      "settings.json: merged - added 1 allow, 0 ask, 0 deny, 0 top-level, moved 0 deny to ask, defaultMode already acceptEdits (left untouched), autoMode already disable (left untouched)\n",
     );
     const merged = readJson(target);
     assert.equal(merged.showClearContextOnPlanAccept, false);
     assert.equal(merged.$schema, "https://example.invalid/other-schema.json");
+  });
+});
+
+test("a host deny entry the template now carries in ask is dropped from deny and lands in ask once (deny outranks ask, so a project set up before the move would stay hard-blocked)", () => {
+  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+    const target = targetPath(dir);
+    const template = fixtureTemplate(dir);
+    writeJson(target, {
+      permissions: {
+        defaultMode: "acceptEdits",
+        disableAutoMode: "disable",
+        allow: ["Read", "Write", "Bash"],
+        deny: ["Bash(hostonly:*)", "Bash(git push:*)", "Bash(sudo:*)", "Bash(rm -rf:*)"],
+      },
+    });
+
+    const result = run(dir, template, target);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(
+      result.stdout,
+      "settings.json: merged - added 0 allow, 1 ask, 0 deny, 2 top-level, moved 1 deny to ask, defaultMode already acceptEdits (left untouched), autoMode already disable (left untouched)\n",
+    );
+    const merged = readJson(target);
+    assert.deepEqual(merged.permissions.ask, ["Bash(git push:*)"]);
+    assert.deepEqual(merged.permissions.deny, ["Bash(hostonly:*)", "Bash(sudo:*)", "Bash(rm -rf:*)"]);
+
+    const second = run(dir, template, target);
+    assert.equal(second.stdout, "settings.json: already up to date\n");
   });
 });
 
@@ -213,7 +245,7 @@ test("idempotence: the second run reports 'already up to date' and leaves the fi
     assert.equal(first.status, 0, `stderr: ${first.stderr}`);
     assert.equal(
       first.stdout,
-      "settings.json: merged - added 3 allow, 1 ask, 2 deny, 2 top-level, defaultMode set, autoMode disabled\n",
+      "settings.json: merged - added 3 allow, 1 ask, 2 deny, 2 top-level, moved 0 deny to ask, defaultMode set, autoMode disabled\n",
     );
     const afterFirst = fs.readFileSync(target, "utf-8");
 
@@ -275,23 +307,27 @@ test("a template path that does not exist reports the missing template and exits
   });
 });
 
-test("the shipped template carries the recommended block only: built-in tools, destructive denies, no host-specific key", () => {
+test("the shipped template carries the recommended block only: built-in tools, recoverable operations asked, irreversible ones denied, no host-specific key", () => {
   const template = readJson(ASSET_TEMPLATE);
 
   assert.deepEqual(Object.keys(template), ["$schema", "showClearContextOnPlanAccept", "permissions"]);
   assert.equal(template.$schema, "https://json.schemastore.org/claude-code-settings.json");
   assert.equal(template.showClearContextOnPlanAccept, true);
-  assert.deepEqual(Object.keys(template.permissions), ["defaultMode", "disableAutoMode", "allow", "deny"]);
+  assert.deepEqual(Object.keys(template.permissions), ["defaultMode", "disableAutoMode", "allow", "ask", "deny"]);
   assert.equal(template.permissions.defaultMode, "acceptEdits");
   // "disable" is the literal the harness reads; a boolean is silently inert.
   assert.equal(template.permissions.disableAutoMode, "disable");
-  // No ask list at all: the recommended block prompts on nothing, and every
-  // outcome is decided by allow and deny alone.
-  assert.equal(template.permissions.ask, undefined);
 
-  const { allow, deny } = template.permissions;
+  const { allow, ask, deny } = template.permissions;
   assert.equal(new Set(allow).size, allow.length, "no duplicate allow entry");
+  assert.equal(new Set(ask).size, ask.length, "no duplicate ask entry");
   assert.equal(new Set(deny).size, deny.length, "no duplicate deny entry");
+  // An entry in both lists would be a dead ask: deny outranks it, and the
+  // merge drops every asked-for entry from the host's deny anyway.
+  assert.deepEqual(
+    ask.filter((entry: string) => deny.includes(entry)),
+    [],
+  );
   // Built-in tool names only: an mcp__* entry names a server of one host.
   assert.deepEqual(
     allow.filter((entry: string) => entry.startsWith("mcp__")),
@@ -311,15 +347,28 @@ test("the shipped template carries the recommended block only: built-in tools, d
   for (const expected of ["Edit", "Write", "NotebookEdit"]) {
     assert.ok(allow.includes(expected), `allow should carry ${expected} - viber's coders write through it`);
   }
+  // Recoverable or user-judged operations stop the agent on a prompt instead
+  // of ending its run: the user decides and the work continues.
   for (const expected of [
     "Bash(rm -rf:*)",
-    "Bash(sudo:*)",
-    // Prefix matching alone misses `git push origin main --force` and the
-    // `git -c <k>=<v>` form, which makes git run a program it is handed.
-    "Bash(git * --force*)",
+    // The `git -c <k>=<v>` form makes git run a program it is handed, so the
+    // user sees every one.
     "Bash(git -c *)",
+    "Bash(git * --force*)",
     "Bash(git reset --hard:*)",
+    "Bash(git stash:*)",
+    "Read(**/.env.*)",
+  ]) {
+    assert.ok(ask.includes(expected), `ask should carry ${expected}`);
+  }
+  for (const expected of [
+    "Bash(sudo:*)",
+    // Prefix matching alone misses `git push origin main --force`, which the
+    // asked-for `git * --force*` would otherwise let through on a click.
+    "Bash(git push * --force*)",
+    "Bash(git push --force:*)",
     "Bash(gh repo delete:*)",
+    "Bash(gh auth token:*)",
     "Read(**/.env)",
     "Edit(./.git/**)",
   ]) {
