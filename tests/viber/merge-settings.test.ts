@@ -330,7 +330,7 @@ test("a template path that does not exist reports the missing template and exits
 test("the shipped template carries the recommended block only: built-in tools, recoverable operations asked, irreversible ones denied, no host-specific key", () => {
   const template = readJson(ASSET_TEMPLATE);
 
-  assert.deepEqual(Object.keys(template), ["$schema", "showClearContextOnPlanAccept", "subagentDefaults", "permissions"]);
+  assert.deepEqual(Object.keys(template), ["$schema", "showClearContextOnPlanAccept", "permissions"]);
   assert.equal(template.$schema, "https://json.schemastore.org/claude-code-settings.json");
   assert.equal(template.showClearContextOnPlanAccept, true);
   assert.deepEqual(Object.keys(template.permissions), ["defaultMode", "disableAutoMode", "allow", "ask", "deny"]);
