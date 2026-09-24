@@ -21,27 +21,29 @@ Read `<refs>/rule-admission.md` before you add anything to a rule, under either 
 
 ## Write
 
-Your whole scope is `.claude/rules/*.md`. Never touch `CLAUDE.md`, `.temp/` or the run directory.
+Your whole scope is `.claude/rules/**/*.md`. Never touch `CLAUDE.md`, `.temp/` or the run directory.
 
-- Many small files, one convention area per file, each gated by a narrow frontmatter `paths:` glob list. `paths: global` only for a convention that truly binds the whole repo.
+- Many small files, one convention per file, each gated by a narrow frontmatter `paths:` glob list. `paths: global` only for a convention that truly binds the whole repo.
+- Group by directory, never by a name prefix. A convention bound to one area of the project lives in `.claude/rules/<area>/<topic>.md`, one level deep, `<area>` named after that area of the code (`frontend`, `backend`, a module). One that crosses areas or binds the whole repo stays at the root. The area never repeats in the basename: `backend/pagination.md`, not `backend-pagination.md` nor `backend/backend-pagination.md`.
+- Under the map shape, restructure the existing layer too: a root file whose `paths:` stays inside one area moves into that area's directory, and a basename carrying its area as a prefix loses it. Move by writing the new path, then `rm -- <old path>`, both on `FILES:`. Under the spec shape, place only what you create and leave existing files where they stand.
 - Every convention you add, as a new file or as a line in an existing one, passes the admission gate first and carries the real example from the code that proves it. A candidate failing it is dropped silently.
 - An existing rule holds one example per convention. A stronger example replaces the weaker one, never joins it: a list of occurrences is an inventory, not a rule.
-- A file whose basename starts with `_` is frozen: never read it for scoring, never rewrite it, never propose one.
+- A file whose basename starts with `_` is frozen: never read it for scoring, never rewrite or move it, never propose one.
 - Correct a rule the build contradicted, and say plainly in it what now holds.
 - Remove a rule the project outgrew: one whose `paths:` globs now match no file in the tree, one whose whole convention the build removed. Confirm with `Glob` first, then delete it with `rm -- <path>`, never `-r` or `-f` - a rule you cannot disprove stays - and never a `_` file.
-- Remove every line an audit marked `DROP`, and delete a file left with no convention in it. A `DROP` carrying `-> move <path>` is a fact the memory layer still has to record: return it on `MOVE:`, never write it into `CLAUDE.md` yourself.
+- Remove every line an audit marked `DROP`, and delete a file left with no convention in it. An area directory left with no file goes with `rmdir -- <dir>`. A `DROP` carrying `-> move <path>` is a fact the memory layer still has to record: return it on `MOVE:`, never write it into `CLAUDE.md` yourself.
 
 ## Budget
 
-Measure before you write: `wc -c` on the file you are changing and on `.claude/rules/` as a whole. `Bash` is for `wc -c` and `rm -- <one path>` on a confirmed-obsolete file, and nothing else. Every rule whose `paths:` matches a file an agent touches is loaded whole.
+Measure before you write: `wc -c` on the file you are changing and on `.claude/rules/` as a whole, subdirectories included. `Bash` is for `wc -c`, `rm -- <one path>` on a confirmed-obsolete or moved file and `rmdir -- <dir>` on an emptied area, and nothing else. Every rule whose `paths:` matches a file an agent touches is loaded whole.
 
 - 4000 characters per rule file, 40000 over the directory.
-- A split or a merge of what the directory already carries records no new convention and never counts: the cap is on growth, not on tidying.
+- A split, a merge or a move of what the directory already carries records no new convention and never counts: the cap is on growth, not on tidying.
 - The directory at its cap takes a new rule only by merging it into an existing one or replacing one.
 - Narrow the `paths:` glob rather than widen the file. A rule that loads on every task is a rule nobody reads.
 - Over a cap, in this order:
   1. Compact: drop a second example where one carries the rule, a bullet a competent developer would write anyway, a convention a type or a lint rule now enforces, a bullet the build contradicted.
-  2. Split along convention areas, one file per area, each with its own narrower `paths:`. A file carrying ONE area and still over is too wordy rather than too broad - compact it further instead.
+  2. Split into one file per convention, each in its own area's directory with its own narrower `paths:`. A file carrying ONE convention and still over is too wordy rather than too broad - compact it further instead.
   3. Write it over budget and report it.
 
 ## Output

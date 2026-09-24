@@ -233,6 +233,39 @@ test("map mode names every rule holding uncommitted work", () => {
   });
 });
 
+test("map mode scores the rules of every area subdirectory beside the shared root ones (a nested rule is loaded, so it costs the budget)", () => {
+  withGitRepo((repo) => {
+    const shared = rule(["**/*.ts"]);
+    const api = rule(["server/*.ts"]);
+    const frozen = rule(["web/*.ts"]);
+    seed(repo, {
+      "server/a.ts": "a\n",
+      "web/b.ts": "b\n",
+      ".claude/rules/shared.md": shared,
+      ".claude/rules/backend/api.md": api,
+      ".claude/rules/frontend/_frozen.md": frozen,
+      ".claude/rules/frontend/gone.md": rule(["legacy/*.ts"]),
+    });
+
+    const result = run(repo);
+
+    assert.equal(result.status, 0);
+    assert.deepEqual(section(result.stdout, "rule").map((line) => line.split(" ")[0]), [
+      ".claude/rules/backend/api.md",
+      ".claude/rules/frontend/gone.md",
+      ".claude/rules/shared.md",
+    ]);
+    assert.equal(
+      section(result.stdout, "rule")[0],
+      `.claude/rules/backend/api.md ${Buffer.byteLength(api)} paths server/*.ts matches 1 ok`,
+    );
+    assert.deepEqual(section(result.stdout, "frozen"), [
+      `.claude/rules/frontend/_frozen.md ${Buffer.byteLength(frozen)}`,
+    ]);
+    assert.deepEqual(section(result.stdout, "dead"), [".claude/rules/frontend/gone.md"]);
+  });
+});
+
 test("map mode reports outside a git repository, every rule untracked and none dead", () => {
   withTempDir("p2p2-rules-", (dir) => {
     const body = rule(["src/*.ts"]);
@@ -266,6 +299,47 @@ test("reset deletes every clean rule it is given", () => {
     ]);
     assert.equal(fs.existsSync(path.join(repo.dir, ".claude", "rules", "one.md")), false);
     assert.equal(fs.existsSync(path.join(repo.dir, ".claude", "rules", "two.md")), false);
+  });
+});
+
+test("reset deletes a rule inside an area subdirectory and removes the area once it is empty", () => {
+  withGitRepo((repo) => {
+    seed(repo, {
+      "src/a.ts": "a\n",
+      ".claude/rules/backend/api.md": rule(["src/*.ts"]),
+      ".claude/rules/frontend/one.md": rule(["src/*.ts"]),
+      ".claude/rules/frontend/two.md": rule(["src/*.ts"]),
+    });
+
+    const result = run(repo, [
+      "--reset",
+      ".claude/rules/backend/api.md",
+      ".claude/rules/frontend/one.md",
+    ]);
+
+    assert.equal(result.status, 0);
+    assert.deepEqual(lines(result.stdout), [
+      "removed: .claude/rules/backend/api.md",
+      "removed: .claude/rules/frontend/one.md",
+      "removed: 2",
+    ]);
+    assert.equal(fs.existsSync(path.join(repo.dir, ".claude", "rules", "backend")), false);
+    assert.equal(fs.existsSync(path.join(repo.dir, ".claude", "rules", "frontend", "two.md")), true);
+  });
+});
+
+test("reset refuses a target escaping the rules directory through a parent segment", () => {
+  withGitRepo((repo) => {
+    seed(repo, {
+      "docs/loose.md": "# not a rule\n",
+      ".claude/rules/one.md": rule(["docs/*.md"]),
+    });
+
+    const result = run(repo, ["--reset", ".claude/rules/one.md", ".claude/rules/../../docs/loose.md"]);
+
+    assert.equal(result.status, 3);
+    assert.deepEqual(lines(result.stdout), ["refused: .claude/rules/../../docs/loose.md not-a-rule"]);
+    assert.equal(fs.existsSync(path.join(repo.dir, "docs", "loose.md")), true);
   });
 });
 

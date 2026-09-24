@@ -26,12 +26,14 @@
 #            resolved here and every printed path is relative to it. Outside a
 #            repository the cwd IS the root and nothing is tracked there.
 #   env    : none.
-#   reads  : <root>/.claude/rules/*.md - every file, its frontmatter and its
-#            size; the git index - which of them are tracked, modified or
+#   reads  : <root>/.claude/rules/**/*.md - every file at any depth, the root
+#            holding the shared rules and each subdirectory one area's, its
+#            frontmatter and its size; the git index - which of them are tracked, modified or
 #            untracked, and how many tracked paths a rule's globs match.
 #   writes : nothing at all in map mode. In reset mode, and only once every
 #            target has passed, the given files are deleted from the working
-#            tree. Nothing is ever staged and nothing is ever committed.
+#            tree, and a subdirectory left empty by them is removed with it.
+#            Nothing is ever staged and nothing is ever committed.
 #   stdout : map mode, in this order. A section with nothing to report prints
 #            no line at all; `total:` always prints.
 #              # viber rules map
@@ -48,7 +50,8 @@
 #            `state` is `none` when the directory is absent or holds no
 #            non-frozen `.md`, `complete` when every non-frozen rule declares a
 #            frontmatter `paths:` key, `partial` otherwise.
-#            `rule:` is one line per non-frozen `.md`, alphabetical. `paths`
+#            `rule:` is one line per non-frozen `.md`, alphabetical by full
+#            path, so an area's rules print together. `paths`
 #            carries the declared globs comma-separated, or `none` when the key
 #            is absent or declares nothing usable. Then either `matches <n>`,
 #            the tracked files those globs really match, or the single word
@@ -227,11 +230,12 @@ if [ "$#" -gt 0 ]; then
       "$rules_dir"/*) rest="${target#"$rules_dir"/}" ;;
       *) rest=""; reason="not-a-rule" ;;
     esac
-    # `rest` has to be a plain file name ending in `.md`: a `/` or a `..` in it
-    # means the path only looks like a rule and lands somewhere else entirely.
+    # `rest` has to be a relative path ending in `.md`, subdirectories allowed:
+    # a `..` segment or an empty one means the path only looks like a rule and
+    # lands somewhere else entirely.
     if [ -z "$reason" ]; then
       case "$rest" in
-        "" | */* | ..*) reason="not-a-rule" ;;
+        "" | /* | ..* | */..* | *//*) reason="not-a-rule" ;;
         *.md) ;;
         *) reason="not-a-rule" ;;
       esac
@@ -262,6 +266,12 @@ if [ "$#" -gt 0 ]; then
   removed=0
   for target in "$@"; do
     rm -f "$target"
+    # An area whose last rule just went is no area any more. `rmdir` refuses
+    # a directory still holding anything, and the rules root itself is kept.
+    parent="${target%/*}"
+    if [ "$parent" != "$rules_dir" ]; then
+      rmdir "$parent" 2>/dev/null || true
+    fi
     printf 'removed: %s\n' "$target"
     removed=$(( removed + 1 ))
   done
@@ -269,13 +279,15 @@ if [ "$#" -gt 0 ]; then
   exit 0
 fi
 
+# Recursive: Claude Code loads every `.md` under the rules directory at any
+# depth, so a rule the map skipped would still cost every reader it loads for.
+# A symlink is listed like a file when it resolves to one.
 listing=""
-for candidate in "$rules_dir"/*.md; do
-  [ -f "$candidate" ] || continue
-  listing="$listing$candidate
-"
-done
-listing="$(printf '%s' "$listing" | LC_ALL=C sort)"
+if [ -d "$rules_dir" ]; then
+  listing="$(find "$rules_dir" \( -type f -o -type l \) -name '*.md' 2>/dev/null |
+    while IFS= read -r candidate; do [ -f "$candidate" ] && printf '%s\n' "$candidate"; done |
+    LC_ALL=C sort || true)"
+fi
 
 rule_lines=""
 frozen_lines=""

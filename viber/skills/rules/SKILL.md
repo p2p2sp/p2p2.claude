@@ -28,6 +28,8 @@ Before any question, one line per fact worth deciding on:
 - each `dead:` line, named as a rule whose declared scope matches no tracked file.
 - each `dirty:` line with its `modified` or `untracked` word.
 
+The root of the directory holds the shared rules, each subdirectory one area's. Name each root `rule:` line whose globs all stay inside one area, or whose basename carries an area as a prefix: the writer moves it into that area's directory.
+
 A `rule:` line whose `paths` field reads `none` declares no scope: it is loaded on every task and is never dead. One reading `global` in both its `paths` and its match field binds the whole repository and is never dead either.
 
 ## 2. Route on the state, then the mode
@@ -43,7 +45,7 @@ Otherwise one `AskUserQuestion`, the four modes in that single call:
 
 An argument naming one of the four is that answer already: take it and ask nothing. On `state: complete` lead with the flags and the dead rules, every rule declaring a scope; on `state: partial` lead with how many rules declare no scope at all.
 
-`reset` goes to step 3. Every other mode goes to step 4, its target list being the `rule:` lines on `review`, the scopes to propose for on `extend`, and both on `both`. The map lists no candidate scope, this layer being one directory of globs rather than a tree: on `extend` ask the user which directories to propose for, the repository root standing in when they name none.
+`reset` goes to step 3. Every other mode goes to step 4, its target list being the `rule:` lines on `review`, the scopes to propose for on `extend`, and both on `both`. The map lists no candidate scope, a rule's reach being its globs rather than where its file sits: on `extend` ask the user which directories to propose for, the repository root standing in when they name none.
 
 ## 3. Reset
 
@@ -92,9 +94,9 @@ Report the `AUDIT:` line for each target verbatim. Read none of those files - th
 
 ## 6. Confirm, then the writer
 
-Every returned line carrying five zero counters, or `-> none`, means the layer is already true and no scope earned a new rule. Say so in one line, dispatch no writer, and stop.
+Every returned line carrying five zero counters, or `-> none`, with no root rule named in step 1 as misplaced, means the layer is already true and no scope earned a new rule. Say so in one line, dispatch no writer, and stop.
 
-Otherwise one `AskUserQuestion` over the counters just reported: fold them in, or stop. Only on approval, one `Agent` call, `subagent_type: viber:rules-writer`, no `model:` line, three labelled lines and nothing else:
+Otherwise one `AskUserQuestion` over the counters just reported and the moves named in step 1: fold them in, or stop. Only on approval, one `Agent` call, `subagent_type: viber:rules-writer`, no `model:` line, three labelled lines and nothing else:
 
 ```
 map: <every line of the map block above, verbatim>
@@ -106,7 +108,7 @@ refs: ${CLAUDE_PLUGIN_ROOT}/references
 
 Repeat what the writer returned and add nothing to it:
 
-- `FILES:` -> the rules it created, corrected or removed, one path per line.
+- `FILES:` -> the rules it created, corrected, moved or removed, one path per line.
 - `OVER:` -> repeat each line verbatim.
 - `MOVE:` -> repeat each line verbatim: a fact removed from a rule that its `CLAUDE.md` node does not hold yet. This run never writes that node; `/viber:memory` over those paths records it.
 - `VERDICT: NONE` -> nothing in the layer needed changing.

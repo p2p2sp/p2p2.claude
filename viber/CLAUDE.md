@@ -135,6 +135,10 @@ there.
   with the `memory` switch on, whatever the host's own instructions ask: that layer belongs to
   the build's close alone. `planner` passes the resolved `memory:` value to `planner-review` so
   the rule has something to gate.
+- **`.claude/rules/` groups by directory, never by name prefix.** Shared rules at the root, one
+  area per subdirectory, one level deep. `rules-map.sh` reads it recursively, `rules-auditor`'s
+  slug keeps the subdirectory, and only `/viber:rules` moves an existing file; a build places
+  only what it creates.
 - **The QA documents live in the run directory, which is what makes the close idempotent.**
   `qa.md` (by hand) and `qa.e2e.md` (automated by `/viber:e2e`) never land in a `docs/qa/` of
   their own; an existing `qa.md` is the resume signal, answered `VERDICT: NONE` rather than
