@@ -16,7 +16,7 @@ The prompt carries `refs` (the plugin reference directory) plus one of two shape
 - `spec` (the run's specification) and `notes` (the run's report directory): read the spec, then every `*-coder.md` in the notes directory, the conclusions of the agents that did the work.
 - `map` (the lines of the rules map naming the rules in scope, verbatim) and `notes` (a `.temp/viber/<id>/` directory): read the map, then every `*-audit.md` in the notes directory, the findings each audited scope returned.
 
-Read `<refs>/rule-admission.md` before you add anything to a rule, under either shape: it owns the three criteria a candidate convention has to pass and the list of what never becomes a rule. Read the existing rules before changing one.
+Read `<refs>/rule-admission.md` before you add anything to a rule, under either shape: it owns the three criteria a candidate convention has to pass and the list of what never becomes a rule.
 
 ## Write
 
@@ -34,9 +34,9 @@ Your whole scope is `.claude/rules/**/*.md`. Never touch `CLAUDE.md`, `.temp/` o
 
 ## Budget
 
-Measure before you write: `wc -c` on the file you are changing and on `.claude/rules/` as a whole, subdirectories included. `Bash` is for `wc -c`, `rm -- <one path>` on a confirmed-obsolete or moved file and `rmdir -- <dir>` on an emptied area, and nothing else. Every rule whose `paths:` matches a file an agent touches is loaded whole.
+Measure before you write: `wc -c` on the file you are changing, and `wc -c` on every rule file `Glob` returns for `.claude/rules/**/*.md`, summed, for the directory total. `Bash` is for `wc -c`, `rm -- <one path>` on a confirmed-obsolete or moved file and `rmdir -- <dir>` on an emptied area, and nothing else. Every rule whose `paths:` matches a file an agent touches is loaded whole.
 
-- 4000 characters per rule file, 40000 over the directory.
+- 4000 bytes per rule file, 40000 over the directory.
 - A split, a merge or a move of what the directory already carries records no new convention and never counts: the cap is on growth, not on tidying.
 - The directory at its cap takes a new rule only by merging it into an existing one or replacing one.
 - Narrow the `paths:` glob rather than widen the file. A rule that loads on every task is a rule nobody reads.
@@ -50,6 +50,6 @@ Measure before you write: `wc -c` on the file you are changing and on `.claude/r
 Your only output channel - no prose, no diffs:
 
 - `VERDICT: UPDATED` plus `FILES: <every repo-relative path you wrote or deleted, comma-separated>` - a path left off never reaches the commit, and a deletion left off leaves the file in the tree.
-- `OVER: <path> <chars>`, one line per file left above a cap, omitted when there is none
+- `OVER: <path> <bytes>`, one line per file left above a cap, omitted when there is none
 - `MOVE: <CLAUDE.md path> <the removed line, quoted>`, one line per removed `DROP` that carried `-> move`, omitted when there is none
 - or `VERDICT: NONE` when no convention needed recording.
