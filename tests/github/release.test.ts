@@ -34,7 +34,7 @@ import { bashShells } from "../harness/shells.ts";
 
 const RELEASE_SH = path.resolve(import.meta.dirname, "../../.github/scripts/release.sh");
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
-const PLUGINS = ["superdev", "superui", "supergh", "superfix", "superbiz", "supercc", "viber"];
+const PLUGINS = ["superui", "supergh", "superfix", "superbiz", "supercc", "viber"];
 
 function commandAvailable(cmd: string): boolean {
   return !spawnSync(cmd, ["--version"]).error;
@@ -74,7 +74,7 @@ function manifestPath(repoDir: string, plugin: string): string {
   return path.join(repoDir, plugin, ".claude-plugin", "plugin.json");
 }
 
-/** Writes the seven fixture manifests release.sh bumps. `superdev`'s is
+/** Writes the six fixture manifests release.sh bumps. `superui`'s is
  *  deliberately written WITHOUT a trailing newline, to prove jq's rewrite
  *  still leaves the file newline-terminated (jq always appends one). */
 function writeManifests(repoDir: string, version = "0.1.0"): void {
@@ -83,7 +83,7 @@ function writeManifests(repoDir: string, version = "0.1.0"): void {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     const body = { name: plugin, version, description: `${plugin} release-fixture plugin` };
     const json = JSON.stringify(body, null, 2);
-    fs.writeFileSync(file, plugin === "superdev" ? json : `${json}\n`);
+    fs.writeFileSync(file, plugin === "superui" ? json : `${json}\n`);
   }
 }
 
@@ -104,7 +104,7 @@ interface Fixture {
   releaseFlag: string;
 }
 
-/** Builds a work repo (seven fixture manifests, an initial commit already
+/** Builds a work repo (six fixture manifests, an initial commit already
  *  pushed to `main` on its own `--bare` `origin`) plus a stubbed `gh` - the
  *  full fixture every release.sh scenario below runs against. Nested
  *  `withGitRepo`/`withStub`/`withTempDir` calls guarantee every piece is
@@ -317,7 +317,7 @@ if (!jqAvailable || !bashPath) {
     });
   });
 
-  test("bumps all seven manifests' version and nothing else in them, commits with the exact chore(bump) subject, tags and pushes to origin, and creates the GitHub release", () => {
+  test("bumps all six manifests' version and nothing else in them, commits with the exact chore(bump) subject, tags and pushes to origin, and creates the GitHub release", () => {
     withReleaseFixture((fx) => {
       fx.repo.git("tag", "1.2.3");
       const before = readManifests(fx.repo.dir);
@@ -333,7 +333,7 @@ if (!jqAvailable || !bashPath) {
         assert.equal(after[plugin].name, before[plugin].name, `${plugin}: only .version should change`);
         assert.equal(after[plugin].description, before[plugin].description, `${plugin}: only .version should change`);
         // jq always emits a trailing newline, whether or not the source had one
-        // (superdev's fixture manifest was written without one).
+        // (superui's fixture manifest was written without one).
         assert.ok(fs.readFileSync(manifestPath(fx.repo.dir, plugin), "utf-8").endsWith("\n"), `${plugin}: manifest must end with a newline`);
       }
 

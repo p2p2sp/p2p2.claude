@@ -1,10 +1,10 @@
 /*
  * portability.test.ts - a static cross-OS invariant sweep over every shipped
- * script (`*.sh` / `*.ts` outside `tests/`, enumerated from the git index so
+ * script (`*.sh` / `*.ts` outside `tests/` and `docs/`, enumerated from the git index so
  * only tracked, shipped files count): every script has a shebang on line 1
  * (`.ts` exempt - a module with none is only ever `import`ed, never
  * executed), no CRLF line ending anywhere, and the `100755` exec bit
- * whenever a `SKILL.md` or `superdev/hooks/hooks.json` invokes it without an
+ * whenever a `SKILL.md` or a plugin's `hooks/hooks.json` invokes it without an
  * interpreter word (`bash …`/`sh …`) in front. Every `!` preload line and
  * every ```! ``` fenced block in every `SKILL.md` gets its own sweep: a glob
  * character (`?`, `*`, `[`) in a bare (unquoted) argument aborts a whole
@@ -581,13 +581,17 @@ function listIndexed(root: string, pathspecs: string[]): IndexEntry[] {
 }
 
 const root = repoRoot();
+// `docs/` holds archived, never-shipped plugin sources (docs/archive/) - out of scope.
+const shipped = (p: string): boolean => !p.startsWith("docs/");
 const shippedScripts = listIndexed(root, ["*.sh", "*.ts"]).filter(
-  (entry) => !entry.repoRelativePath.startsWith("tests/"),
+  (entry) => !entry.repoRelativePath.startsWith("tests/") && shipped(entry.repoRelativePath),
 );
 const skillMdFiles = listIndexed(root, ["*.md"])
   .map((entry) => entry.repoRelativePath)
-  .filter((p) => path.basename(p) === "SKILL.md");
-const hooksJsonFiles = listIndexed(root, ["hooks.json"]).map((entry) => entry.repoRelativePath);
+  .filter((p) => path.basename(p) === "SKILL.md" && shipped(p));
+const hooksJsonFiles = listIndexed(root, ["hooks.json"])
+  .map((entry) => entry.repoRelativePath)
+  .filter(shipped);
 
 test("every shipped script has a shebang (or is an exempt .ts module) and no CRLF line ending", () => {
   const violations: string[] = [];

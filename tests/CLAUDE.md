@@ -10,7 +10,7 @@ directory - no `plugin.json` and no marketplace entry references it; it ships wi
 - Run from the repo root: `node --test "tests/**/*.test.ts"` - a QUOTED glob. A bare directory
   argument such as `tests/superui/` does NOT work: `node --test` resolves it as a module path,
   not a glob.
-- Subdirectories mirror the plugins: `tests/superdev/`, `tests/superfix/`, `tests/supergh/`,
+- Subdirectories mirror the plugins: `tests/superfix/`, `tests/supergh/`,
   `tests/superui/`, `tests/viber/`, `tests/github/`, plus `tests/harness/` and root-level suites
   (`harness.test.ts`, `portability.test.ts`, `orphan-tags.test.ts`). Verify the current tree
   from the directory if this drifts.
@@ -58,6 +58,6 @@ directory - no `plugin.json` and no marketplace entry references it; it ships wi
 
 - Root cross-plugin invariants: `../CLAUDE.md`
 - Each plugin's own node for what its scripts are supposed to do:
-  `../superdev/CLAUDE.md`, `../superui/CLAUDE.md`, `../supergh/CLAUDE.md`,
+  `../superui/CLAUDE.md`, `../supergh/CLAUDE.md`,
   `../superfix/CLAUDE.md`, `../superbiz/CLAUDE.md`, `../supercc/CLAUDE.md`,
   `../viber/CLAUDE.md`

@@ -9,7 +9,8 @@
  * The earliest occurrence (`19e671a`) hit all three files of a single run,
  * including a two-line notes file with no template and no injected input, so
  * the tag is a write-call artifact, not content copied from anywhere. One such
- * tag reached `superdev/references/changelog-entry-format.md` and shipped in
+ * tag reached `superdev/references/changelog-entry-format.md` (superdev, since
+ * archived under `docs/archive/`) and shipped in
  * release 0.46.1, where it sat inside the very document an agent reads as its
  * format authority. The agent prompts carry a read-back guard against it, but
  * a guard operates on what the model plans to write, and this artifact appears
@@ -17,12 +18,12 @@
  *
  * Scope: every tracked file except `docs/` and `.docs/` (dev-time working dirs
  * and never-shipped notes, which keep historical run records verbatim) and
- * except binaries. That covers all six plugins' shipped sources plus the repo's
+ * except binaries. That covers all shipped plugin sources plus the repo's
  * own `CLAUDE.md` cascade and `.claude/rules/`, the two surfaces the memory and
  * rules writers contaminated.
  *
  * Orphan, not "any closing tag on its own line": `superbiz`'s HTML report
- * template and `superdev/hooks/content/manifest.md`'s `</superdev:manifest>`
+ * template and `viber/hooks/content/manifest.md`'s `</viber:manifest>`
  * are legitimate and each has its opener in the same file.
  *
  * The detector is a pure function (path + text in, violation strings out) with

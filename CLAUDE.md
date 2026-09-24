@@ -3,26 +3,27 @@
 > Always in English: all CLAUDE.md files, scripts, etc.
 > All plugin scrit MUST work properly on Windows & MacOS.
 
-This repo is the **source** for seven independently-installable Claude Code plugins -
-`superdev`, `superui`, `supergh`, `superfix`, `superbiz`, `supercc`, `viber` - co-listed by the root
-`.claude-plugin/marketplace.json`. Editing a file here does NOT change the behavior of the
-currently loaded plugins: the injected manifest and the skill instructions active in a session were
+This repo is the **source** for six independently-installable Claude Code plugins -
+`superui`, `supergh`, `superfix`, `superbiz`, `supercc`, `viber` - co-listed by the root
+`.claude-plugin/marketplace.json`. The retired `superdev` plugin (and its test suites) sits in
+`docs/archive/superdev/` for reference only: not listed, not released, not tested, not shipped.
+Editing a file here does NOT change the behavior of the currently loaded plugins: the injected manifest and the skill instructions active in a session were
 frozen at install / session start and change only after the user **publishes**. This repo's own
 `CLAUDE.md` files and `.claude/rules/` are dev-time orientation for editing the source, never
 plugin inputs, never read at runtime.
 
 They ship no application code: artifacts are markdown (skills/agents) + JSON (manifests) +
-per-plugin hook scripts (`superdev` and `viber`). Editing markdown/JSON IS shipping - no build step, no
+hook scripts (`viber` only). Editing markdown/JSON IS shipping - no build step, no
 lint at any level, no test tooling inside any plugin. Contracts between files are enforced by
 humans reading carefully.
 
-All seven plugins are **stack-agnostic on purpose**: skills read project-specific knowledge (test
+All six plugins are **stack-agnostic on purpose**: skills read project-specific knowledge (test
 framework, build tool, naming, how to launch the app) from the HOST project's `CLAUDE.md` /
 `.claude/rules/`, never from plugin sources. Never bake ecosystem assumptions (dotnet, npm,
 pytest) into skill prompts. Scope: this is about projects being planned/built, not the plugins'
 own tooling - a plugin may depend on a specific tool for its own work when that is a deliberate,
 documented choice (Node for superui's contrast checker, Python for superbiz's report builder,
-playwright-cli for a superdev opt-in switch), always behind an opt-in switch or a skip-with-note
+playwright-cli for a viber opt-in switch), always behind an opt-in switch or a skip-with-note
 fallback, always named in the owning plugin's node.
 
 **DO NOT use ADR capture for this project.** The plugins are constantly refactored; do not write
@@ -31,33 +32,33 @@ ADRs here and do not suggest them.
 ## Layout (top level)
 
 ```
-.claude-plugin/marketplace.json   Co-lists all seven plugins by subdir source
-superdev/  superui/  supergh/  superfix/  superbiz/  supercc/  viber/    One dir per plugin
+.claude-plugin/marketplace.json   Co-lists all six plugins by subdir source
+superui/  supergh/  superfix/  superbiz/  supercc/  viber/    One dir per plugin
 README.md            Catalog page; each plugin also has its own README.md
 .github/             CI + release workflow (manual dispatch only, tag-driven)
 .claude/rules/       Dev-time conventions for this repo
-docs/.workflows/     Working dirs of superdev builds run ON this repo (removed on cleanup)
+docs/archive/        Retired plugins kept for reference (superdev), never shipped
 tests/               Dev-time regression suites for plugin scripts (outside every plugin)
-docs/assets/         Images embedded in READMEs (e.g. superdev-flow.svg)
+docs/assets/         Images embedded in READMEs (e.g. viber-flow.svg)
 .docs/               Dev-time notes/source material, never shipped, never read at runtime
 ```
 
 Each plugin dir carries `.claude-plugin/plugin.json` (`skills[]` + optional `agents[]` = catalog
-of record). `superdev`, `superfix` and `viber` carry `agents/`; `superdev` and `viber` carry `hooks/`.
+of record). `superfix` and `viber` carry `agents/`; `viber` carries `hooks/`.
 
 ## Versioning
 
-Tag-driven, one shared namespace across all seven plugins (`MAJOR.MINOR.PATCH`, no `v` prefix, seed
+Tag-driven, one shared namespace across all six plugins (`MAJOR.MINOR.PATCH`, no `v` prefix, seed
 `0.1.0`). The only versioning workflow is `.github/workflows/release-version.yml` - a **manual**
 `workflow_dispatch` (no automatic bump on push to main) running `.github/scripts/release.sh`,
-which computes the next version, writes it into all seven `plugin.json` files, commits, tags,
+which computes the next version, writes it into all six `plugin.json` files, commits, tags,
 pushes, and publishes a GitHub Release. The tag is the source of truth; verify exact script
 mechanics against `.github/scripts/release.sh` before restating them.
 
 ## Cross-plugin architecture invariants
 
-- **Host-repo `docs/` is the one home for persisted, user-facing knowledge.** `docs/changelog/`,
-  `docs/qa/`, `docs/.workflows/` (all superdev), `docs/_specs/<stamp>_<slug>/` (viber's run
+- **Host-repo `docs/` is the one home for persisted, user-facing knowledge.**
+  `docs/_specs/<stamp>_<slug>/` (viber's run
   directory: the plan, its `status.md`, its decomposition, the build's two QA documents and `work/`, the run's own
   notes and reports - committed, because a build resumes from them in another session or on another
   machine), `docs/specs/<stamp>_<slug>/` (viber again: what that run directory leaves behind once
@@ -65,31 +66,20 @@ mechanics against `.github/scripts/release.sh` before restating them.
   it does not promise, and the QA documents, with the plan, the status file, the decomposition and
   the trail dropped, git being where their history already is),
   `docs/business/<slug>/` (superbiz's rendered report
-  only), and `docs/adr/`, the one layer TWO plugins write - superdev through its `adr` skill, viber
-  through a plan task - because a host repo has one decision log, not one per track.
+  only), and `docs/adr/`, written by viber through a plan task - a host repo has one decision log.
   `supercc` writes no `docs/<layer>/` of its own and never
   will - its deliverable is the skill/agent file itself, not a record about it.
 - **No plugin ever creates a plugin-named dot-dir in the host repo** (no `.superdev/`, no
   `.superui/`, etc). Only three host-repo locations are writable at a plugin's own choosing:
   `docs/<layer>/` (persisted knowledge), `.claude/` (user-owned config/rules), `.temp/<plugin>/`
   (every temporary artifact, grouped per plugin). A fourth is writable only because the HOST
-  names it: the host's own e2e test dir, written by the `e2e-writer` of superdev and of viber, each
-  under its own user-run `e2e` skill, into the directory the host's instructions name and never a
-  sibling either of them invented.
+  names it: the host's own e2e test dir, written by viber's `e2e-writer` under its user-run `e2e`
+  skill, into the directory the host's instructions name and never a sibling it invented.
 - **`viber` is the only manifest-bearing plugin.** It ships ONE injected `SessionStart` manifest
   (`hooks/content/manifest.md`, verbatim, once per session, `source == "resume"` excluded,
   fail-open: an empty or unreadable file injects nothing and leaves only the banner). It is not a
   dispatcher: it names no skill, no group and no chain, and routing is left to each skill's own
-  CSO `description:`. The other six ship no manifest - `superdev` because it is obsolete (its
-  `SessionStart` hook prints `!!! superdev is obsolete - use viber instead !!!` and injects
-  nothing), the remaining five because there is nothing a dispatcher would add.
-- **Two plugins ship `hooks/`, and their `ExitPlanMode` gates do not compose.** `superdev`'s
-  `review-plan.sh` and `viber`'s `plan-gate.sh` both match `ExitPlanMode`, both fail open, and each
-  recognizes only its own plan format - superdev's denies a plan under `.claude/plans/*.md`
-  declaring neither `# SimplePlan` nor `# SuperPlan`, which is exactly what a viber plan looks
-  like. The two tracks are therefore alternatives, not companions; say so in any doc that lists
-  both, and never "fix" one gate by teaching it the other's format without deciding which plugin
-  owns the exit.
+  CSO `description:`. The other five ship no manifest - there is nothing a dispatcher would add.
 - **No `"hooks"` field in `plugin.json`.** Claude Code auto-loads `hooks/hooks.json` from that
   path; adding a `hooks` field to `plugin.json` is a hard install error.
 - **Script vs. fork.** A step collapses to a deterministic bundled script when it operates on a
@@ -115,20 +105,13 @@ mechanics against `.github/scripts/release.sh` before restating them.
   classifier matches a command's literal prefix, so any other form of the same call - a
   different prefix, an added flag, an interpreter wrapper - is a new, unapproved
   classification.
-- **Dispatch strength.** A plan task carries `Kind:`, `Model:` and an optional `Review:` marker
-  in three literal states: no marker (the per-task reviewer's own frontmatter default),
-  `Review: <model>` (that model is passed), or literally `Review: none` (the per-task reviewer is
-  skipped entirely, straight to commit). An orchestrator's dispatch passes only `model` on every
-  call - the `Agent` tool takes no `effort` parameter, so the agent's frontmatter is the only
-  place an effort is set; the plan carries no effort marker, and a `Review:` second token left by
-  an older plan is never read. Source: `superdev/references/review-contract.md`
-  `## Dispatch strength`.
+- **Dispatch strength.** An orchestrator's dispatch passes only `model` on every call - the
+  `Agent` tool takes no `effort` parameter, so the agent's frontmatter is the only place an
+  effort is set.
 - **Text is the product in THIS repo.** Skill, agent and reference markdown plus the JSON
   manifests are production code here, so no task that edits them ever skips its per-task review,
-  however mechanical it looks. This line is the host declaration both planning tracks read for
+  however mechanical it looks. This line is the host declaration the planning track reads for
   that override:
-  - superdev: a `superplan` built on this repo never gives a `Kind: text` task the default
-    `Review: none`; the per-task reviewer runs on it (marker absent or `Review: <model>`).
   - viber: `implementor` never profiles a task touching this repo's markdown or `plugin.json` as
     mechanical/no-review; such a task gets at least the `sonnet` plus review profile, and
     `task-reviewer` gates it before `commit-task.sh`.
@@ -175,9 +158,6 @@ header comments of `hooks/scripts/*.sh`.
 
 | Node | Read when working on |
 |---|---|
-| `superdev/CLAUDE.md` | superdev's tracks, config switches, knowledge layers, plugin-level scripts/references, hooks |
-| `superdev/skills/CLAUDE.md` | any superdev SKILL.md - fork vs orchestrator, `!` preload/`allowed-tools` mechanics, skill groups |
-| `superdev/agents/CLAUDE.md` | any superdev agent `.md` - dispatch strength, verdict vocabulary, why agent not fork |
 | `superui/CLAUDE.md` | the `pro-designer` skill (design/frontend advisory) |
 | `supergh/CLAUDE.md` | GitHub/git skills - `gh` reference, operation executor, commits, issue/PR creation |
 | `superfix/CLAUDE.md` | `code-auditor` and its five agents - the two-track investigation sweep |

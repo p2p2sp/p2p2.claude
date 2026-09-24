@@ -1,8 +1,5 @@
 ---
 paths:
-  - "superdev/scripts/*.sh"
-  - "superdev/hooks/scripts/*.sh"
-  - "superdev/skills/*/scripts/*.sh"
   - "superfix/skills/code-auditor/scripts/*.sh"
   - "supergh/shared/scripts/*.sh"
   - "supergh/skills/*/scripts/*.sh"

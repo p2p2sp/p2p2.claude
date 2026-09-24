@@ -7,11 +7,6 @@
   },
   "plugins": [
     {
-      "name": "superdev",
-      "source": "./superdev",
-      "description": "Super Developer ecosystem for Claude Code."
-    },
-    {
       "name": "superui",
       "source": "./superui",
       "description": "Super UI Designer ecosystem for Claude Code."

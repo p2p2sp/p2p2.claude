@@ -12,8 +12,7 @@ claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
 claude plugin install viber@p2p2 --scope user
 ```
 
-No dependencies. Do not install it alongside `superdev`: both gate plan approval and each
-recognizes only its own plan format, so one blocks the other. Run one track at a time.
+No dependencies.
 
 ## Quick start
 

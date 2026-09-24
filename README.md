@@ -1,6 +1,6 @@
 # P2P2 Claude Code Plugins
 
-Seven Claude Code plugins in one marketplace. Each installs on its own and none depends on
+Six Claude Code plugins in one marketplace. Each installs on its own and none depends on
 another. There is nothing to build and nothing to configure per language: each plugin picks up
 your project's conventions from your own `CLAUDE.md` and `.claude/rules/`.
 
@@ -8,7 +8,6 @@ your project's conventions from your own `CLAUDE.md` and `.claude/rules/`.
 
 ```
 claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
-claude plugin install superdev@p2p2 --scope user
 claude plugin install superui@p2p2 --scope user
 claude plugin install supergh@p2p2 --scope user
 claude plugin install superfix@p2p2 --scope user
@@ -20,13 +19,12 @@ claude plugin install viber@p2p2 --scope user
 Install only the ones you want. `--scope user` makes a plugin available in all your projects; drop
 it to install for the current repository only. From inside a running session,
 `/plugin marketplace add https://github.com/p2p2sp/p2p2.claude` followed by
-`/plugin install superdev@p2p2` does the same thing.
+`/plugin install viber@p2p2` does the same thing.
 
 ## The plugins
 
 | Plugin | Use it for |
 | --- | --- |
-| [superdev](superdev/README.md) | This plugin is **obsolete** - use **[viber](viber/README.md)** instead. |
 | [viber](viber/README.md) | The same trip, shorter & faster: understand it, plan it, build it, remember it. |
 | [superui](superui/README.md) | Any interface you build, held to professional design standards. Fires by itself. |
 | [supergh](supergh/README.md) | Commits, issues and pull requests. |
@@ -42,11 +40,4 @@ it to install for the current repository only. From inside a running session,
 | superfix | Node.js 22.6 or newer |
 | superbiz | web access and Python 3 |
 | superui | Node.js 22.6 or newer, optional: only for the contrast check |
-| superdev, supercc, viber | nothing |
-
-## superdev or viber, not both
-
-Both answer the same question - how to get from an idea to committed code without the agent
-guessing - superdev thoroughly, viber quickly. Both also stop the agent from leaving plan mode
-until the plan has passed a review, and each recognizes only its own plan format, so with both
-installed one blocks the other. Pick one track at a time.
+| supercc, viber | nothing |

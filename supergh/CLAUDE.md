@@ -28,8 +28,8 @@ directly" guardrail lives in each consumer skill's own description clause instea
 
 ## Contracts & invariants
 
-- Keeps shared scripts under `supergh/shared/scripts/` - this plugin's own convention, differs
-  from superdev's plugin-root layout.
+- Keeps shared scripts under `supergh/shared/scripts/` - this plugin's own convention, not a
+  plugin-root `scripts/` layout.
 - No manifest, no hooks - deliberately dropped; the 1%-rule guardrail folds into each skill's
   own "do NOT ... directly" description clause instead.
 - Script vs fork (the `commit` case): `commit.sh` proves HEAD moved and cannot fabricate a
@@ -48,6 +48,4 @@ directly" guardrail lives in each consumer skill's own description clause instea
 ## Related context
 
 - Root cross-plugin invariants: `../CLAUDE.md`
-- Soft chains (CSO-only, engage only when both plugins installed):
-  `superdev:superspec -> supergh:create-issue`, `superdev:superbuild-reviewer -> supergh:create-pr`.
-  supergh declares no dependencies.
+- supergh declares no dependencies.
