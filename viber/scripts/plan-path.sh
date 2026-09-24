@@ -145,10 +145,24 @@ newest() {
 # status file beside the plan, the total out of the plan's own TASK blocks. A run
 # that never reached its first commit carries no status file and comes back with
 # nothing done. "settled" counts the dropped tasks too - a run whose every task
-# is either committed or skipped has nothing left to build.
+# is either committed or skipped has nothing left to build. Per criterion #5, both
+# the total and the settled count are the SET of ids the plan actually declares:
+# an id under "done:"/"skipped:" that names no task in the plan, or repeats one
+# already counted, settles nothing - a plan drifted from its status file, or a
+# typo'd id, must never read as more finished than it is.
 progress_of() {
   awk -v st="${1%/*}/status.md" '
-/<!--[[:space:]]*TASK[[:space:]]*-->/ { n++ }
+/^[[:space:]]*<!--[[:space:]]*TASK[[:space:]]*-->[[:space:]]*$/ { intask = 1; tid = ""; next }
+/^[[:space:]]*<!--[[:space:]]*\/TASK[[:space:]]*-->[[:space:]]*$/ { intask = 0; next }
+intask && tid == "" && /^###[[:space:]]/ {
+  h = $0
+  sub(/^###[[:space:]]+/, "", h)
+  sub(/\r$/, "", h)
+  p = index(h, " - ")
+  tid = (p ? substr(h, 1, p - 1) : h)
+  gsub(/[[:space:]]+$/, "", tid)
+  if (tid != "" && !(tid in known)) { known[tid] = 1; n++ }
+}
 END {
   while ((getline line < st) > 0) {
     if (line !~ /^done:/ && line !~ /^skipped:/) continue
@@ -156,7 +170,11 @@ END {
     sub(/^[A-Za-z]+:/, "", line)
     m = split(line, v, /[[:space:]]+/)
     for (k = 1; k <= m; k++) {
-      if (v[k] == "" || v[k] == "none" || v[k] == "-") continue
+      tok = v[k]
+      if (tok == "" || tok == "none" || tok == "-") continue
+      if (!(tok in known)) continue
+      if (tok in settled) continue
+      settled[tok] = 1
       s++
       if (isdone) d++
     }
@@ -216,10 +234,12 @@ infm && /^source:/ { print "source: " ENVIRON["abs"]; next }
 }
 
 # Does that plan carry at least one task block? A plan without one is a draft:
-# the head alone, still being discussed. "<!-- /TASK -->" cannot match here - the
-# slash sits where the pattern wants "TASK".
+# the head alone, still being discussed. Per contract C3 the marker counts only
+# when it stands alone on its line, so a sentence mentioning it in prose opens
+# no task. "<!-- /TASK -->" cannot match here - the slash sits where the pattern
+# wants "TASK".
 has_tasks() {
-  grep -q '<!--[[:space:]]*TASK[[:space:]]*-->' "$1" 2>/dev/null
+  grep -Eq '^[[:space:]]*<!--[[:space:]]*TASK[[:space:]]*-->[[:space:]]*$' "$1" 2>/dev/null
 }
 
 emit() {

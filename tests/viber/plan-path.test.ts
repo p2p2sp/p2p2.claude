@@ -686,6 +686,51 @@ test("landing a fresh plan while another run is unfinished reports that run as a
   });
 });
 
+test("a plan mentioning the TASK marker in prose keeps its real task count (C3: the marker must stand alone on its line)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const withProse = [
+      "# Earlier",
+      "",
+      "## Goal",
+      "",
+      "Each block opens with a `<!-- TASK -->` comment.",
+      "",
+      "## Tasks",
+      "",
+      "<!-- TASK -->",
+      "### T1 - do T1",
+      "- Files: src/T1.ts",
+      "<!-- /TASK -->",
+      "",
+      "<!-- TASK -->",
+      "### T2 - do T2",
+      "- Files: src/T2.ts",
+      "<!-- /TASK -->",
+      "",
+    ].join("\n");
+    landPlan(dir, "2026-09-01-09-00-00_earlier", "2026-09-01T09:00:00Z", withProse);
+    landStatus(dir, "2026-09-01-09-00-00_earlier", { progress: "1/2", done: "T1" });
+
+    const src = sourcePlan(dir, "outside/add-login.md", PLAN_BODY);
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(openLines(result.stdout), ["docs/_specs/2026-09-01-09-00-00_earlier/plan.md | 1/2"]);
+  });
+});
+
+test("an unknown id or a duplicate id in done: does not settle a task - the run still reports as open", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    landPlan(dir, "2026-09-01-09-00-00_earlier", "2026-09-01T09:00:00Z", planWithTasks("Earlier", ["T1", "T2"]));
+    // T1 listed twice, plus an id the plan never declared - neither settles T2
+    landStatus(dir, "2026-09-01-09-00-00_earlier", { done: "T1 T1 T9" });
+
+    const src = sourcePlan(dir, "outside/add-login.md", PLAN_BODY);
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(openLines(result.stdout), ["docs/_specs/2026-09-01-09-00-00_earlier/plan.md | 1/2"]);
+  });
+});
+
 test("a run whose tasks are all done or all skipped is not open, and the resolved run is never listed as one", () => {
   withTempDir("p2p2-viber-", (dir) => {
     landPlan(dir, "2026-09-01-09-00-00_finished", "2026-09-01T09:00:00Z", planWithTasks("Finished", ["T1", "T2"]));
@@ -747,6 +792,27 @@ test("a plan carrying no TASK block is a draft, in every path the script answers
 
     // and on the landing that creates it, where one reads "new"
     const src = sourcePlan(dir, "outside/other.md", DRAFT_BODY.replace("# Add Login", "# Other Thing"));
+    const landed = run(dir, ["--land", src]);
+    assert.equal(landed.status, 0, `stderr: ${landed.stderr}`);
+    assert.equal(parse(landed.stdout).state, "draft");
+  });
+});
+
+test("a plan mentioning the TASK marker in prose is still a draft (C3: the marker must stand alone on its line)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const prose = [
+      "# Add Login",
+      "",
+      "## Goal",
+      "",
+      "Each block opens with a `<!-- TASK -->` comment and closes with `<!-- /TASK -->`.",
+      "",
+    ].join("\n");
+    landPlan(dir, "2026-09-19-17-30-00_add-login", "2026-09-19T17:30:00Z", prose);
+
+    assert.equal(parse(run(dir).stdout).state, "draft");
+
+    const src = sourcePlan(dir, "outside/other.md", prose.replace("# Add Login", "# Other Thing"));
     const landed = run(dir, ["--land", src]);
     assert.equal(landed.status, 0, `stderr: ${landed.stderr}`);
     assert.equal(parse(landed.stdout).state, "draft");
