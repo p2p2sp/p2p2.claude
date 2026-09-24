@@ -14,8 +14,9 @@
 # subdirectory would otherwise find no file and fail open with every switch
 # false - silently turning off every layer the user configured.
 #
-# Two kinds of key, told apart by where they sit. A switch is a top-level key
-# and is on only when it literally says `true`. A directory key lives INSIDE the
+# Two kinds of key, told apart by where they sit. A switch is a top-level key -
+# column 0, the exact key name - and is on only when its value is `true` in
+# any letter case. A directory key lives INSIDE the
 # `directories:` group and names ONE directory under docs/ - never a path. The
 # group is the disambiguation: `runs` on its own reads like a count and `specs`
 # like a switch, where `directories.runs` cannot be read as anything else, so a
@@ -32,9 +33,13 @@
 #   file   : <repo root>/.claude/viber.yml (optional). No file -> every switch
 #            false, every directory key at its default.
 #   keys   : adr, memory, rules, qa, cleanup - switches. One is `true` ONLY
-#            when the file holds a line matching `^\s*<key>\s*:\s*true` (the
-#            value ended by a space, a comment or the end of the line). An
-#            absent key -> false.
+#            when the file holds a line whose key starts at column 0, spells
+#            the key name exactly (case-sensitive, no leading indentation),
+#            and whose value is `true` in any letter case (ended by a space,
+#            a comment or the end of the line): `^<key>\s*:\s*[Tt][Rr][Uu][Ee]`.
+#            An indented key (it then belongs to some other group, never a
+#            switch) or a key differing in case -> false. An absent key ->
+#            false.
 #            directories.runs (default `_specs`) and
 #            directories.specifications (default `specs`) - the directory names
 #            under docs/ holding the open runs and the archived ones. Read ONLY
@@ -79,7 +84,7 @@ fi
 
 resolve() {
   key="$1"
-  if [ -f "$cfg" ] && grep -qiE "^[[:space:]]*${key}[[:space:]]*:[[:space:]]*true([[:space:]]|#|$)" "$cfg"; then
+  if [ -f "$cfg" ] && grep -qE "^${key}[[:space:]]*:[[:space:]]*[Tt][Rr][Uu][Ee]([[:space:]]|#|$)" "$cfg"; then
     echo "true"
   else
     echo "false"
@@ -116,7 +121,7 @@ resolve_dir() {
   echo "$value"
 }
 
-# A tier's rank, 0 for anything that is not one of the three tiers.
+# A tier's rank, 0 for anything that is not one of the four tiers.
 tier_rank() {
   case "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" in
     haiku) echo 1 ;;

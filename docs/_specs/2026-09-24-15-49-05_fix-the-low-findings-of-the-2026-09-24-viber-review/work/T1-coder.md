@@ -1,0 +1,7 @@
+# T1 - Tighten config switch resolution
+
+- `resolve()` now uses `grep -qE "^${key}[[:space:]]*:[[:space:]]*[Tt][Rr][Uu][Ee]([[:space:]]|#|$)"` per C1: key exact-match at column 0, case-sensitive; value case-insensitive via explicit char classes (no `-i` flag, which had made the whole line case-insensitive and let an indented key through).
+- Rewrote the existing "seeded template ... indentation ... notwithstanding" test: it encoded the old (now-wrong) behaviour that an indented switch counted. Removed the indentation from its fixture and its title; added three new tests for DoD.1-3 instead of folding them in, so each failure mode (indentation, value case, key case) has its own assertion.
+- The `directories:`/`tiers:` group parsing (`group_value`, `resolve_dir`, `tier_rank`/`tier_name`) is untouched; DoD.4 is a no-regression check, confirmed by the unchanged group/tier tests all staying green.
+- Did not touch `docs/reviews/2026-09-24_viber-review.md`: it is not in this task's `Files` line, and other parallel tasks in this run are already editing it (seen in `git status` mid-run) - marking findings done there is out of this task's boundary.
+- Full `tests/viber/*.test.ts` run (background, other coders' sibling T-tasks concurrently in the same tree) showed one unrelated red in `archive-run.test.ts` (a git-commit-message race under heavy parallel load) - outside T1's Files, not touched.

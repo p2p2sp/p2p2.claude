@@ -121,11 +121,11 @@ test("only `true` counts as on - false, a missing key, a commented-out line and 
   });
 });
 
-test("the seeded template turns every switch on, comments, indentation and case notwithstanding", () => {
+test("the seeded template turns every switch on, comments and case notwithstanding", () => {
   withTempDir("p2p2-viber-", (dir) => {
     writeConfig(
       dir,
-      ["# viber switches", "adr: true  # the decisions worth keeping", "  memory: TRUE", "rules: true", "qa: true", "cleanup: true", ""].join("\n"),
+      ["# viber switches", "adr: true  # the decisions worth keeping", "memory: TRUE", "rules: true", "qa: true", "cleanup: true", ""].join("\n"),
     );
 
     const result = run(dir);
@@ -137,6 +137,36 @@ test("the seeded template turns every switch on, comments, indentation and case 
       qa: "true",
       cleanup: "true",
     });
+  });
+});
+
+test("an indented `qa: true` under a group is not a column-0 switch, so it stays off", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, ["some_group:", "  qa: true", ""].join("\n"));
+
+    const result = run(dir);
+    assert.equal(result.status, 0);
+    assert.deepEqual(switches(result.stdout), OFF);
+  });
+});
+
+test("`memory: TRUE` at column 0 resolves to on - the value is matched in any letter case", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, "memory: TRUE\n");
+
+    const result = run(dir);
+    assert.equal(result.status, 0);
+    assert.deepEqual(switches(result.stdout), { ...OFF, memory: "true" });
+  });
+});
+
+test("`MEMORY: true` resolves to off - the key itself is matched case-sensitively", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, "MEMORY: true\n");
+
+    const result = run(dir);
+    assert.equal(result.status, 0);
+    assert.deepEqual(switches(result.stdout), OFF);
   });
 });
 
