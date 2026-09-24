@@ -84,7 +84,8 @@ there.
 - **Disjoint is checked, complete is not, so three layers carry completeness.** `planner` maps
   what the change forces, `planner-review` gates a map a coder could not build from, and the rest
   is reported on `EXTRA:` by `task-coder`, never a finding for `task-reviewer`, and passed to
-  `implementor`'s `--with`.
+  `implementor`'s `--with`. A path another task claims rides only once that task is done - a
+  coder may fix a `prior` task's file its tests expose, and no later commit would stage it.
 - **Untested code is owned by the task that will prove it, or it is unfinished.** A coder returns
   `DEFERRED: <path> -> <task id>` (or `-> none`); `implementor` turns it into `--defer` and
   `plan-index.sh` echoes the key. Anything else left untested fails its own DoD clause.
@@ -98,7 +99,9 @@ there.
   a judgement.
 - **Git never moves under a running build, but the write tools are open by default.** A subagent
   does not inherit the session's permission mode, so `deny` alone holds the line on `.env`,
-  `.git/`, the key files and `stash`/`checkout`/`restore`/`clean`.
+  `.git/` and the key files; `ask` stops only a hard reset, a forced git call and a recursive
+  delete. `stash`/`checkout`/`restore`/`clean` are kept out by `task-coder`'s and
+  `task-reviewer`'s own bodies, not by the template.
 - **The switches are read through `config.sh` alone; the directory keys have three readers.**
   Five switches, fail-open, always exit 0. `plan-path.sh` and `archive-run.sh` parse the
   `directories:` group themselves, running with no skill above them.

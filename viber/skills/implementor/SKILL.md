@@ -110,7 +110,7 @@ Commit: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<plan>" "<id>"` with it
 - `--with "<path>" ["<path>"...]` for every path an `EXTRA:` line of that task's coder or reviewer returned.
 - `--defer "<target-id>:<path>" [...]` for every `DEFERRED:` line its coder returned. `-> none` takes the earliest unfinished task whose `files` column claims that path; a path no task claims is named in the final summary.
 
-Warnings off the commit never stop the build: carry `refused <path> - claimed by task <id>` and `changed, claimed by no task in the plan` to the final summary.
+Warnings off the commit never stop the build: carry `refused <path> - claimed by task <id>`, `took <path> - claimed by committed task <id>` and `changed, claimed by no task in the plan` to the final summary.
 
 Start with every task whose `deps` are done, in one message. On every return, answer with ONE message carrying every dispatch now legal plus at most one commit. Never wait for a batch to drain; when a constraint forces a choice, start whatever unblocks the most tasks.
 

@@ -21,10 +21,14 @@
 # paths on that task's "Files:" line - parallel tasks cannot pull each other's
 # work into a commit.
 #
-# --with adds paths the task's own work forced and the plan gave no owner, so the
-# commit that lands a task is the whole task and builds on its own. A path ANOTHER
-# task's "Files:" claims is refused with a warning rather than taken: that task
-# may have a coder writing the file right now, and its own commit stages it whole.
+# --with adds paths the task's own work forced outside its own map, so the commit
+# that lands a task is the whole task and builds on its own. A path the plan gave
+# no owner is taken as is. A path ANOTHER task's "Files:" claims is refused with a
+# warning while that task is not done: it may have a coder writing the file right
+# now, and its own commit stages it whole. Once every other claimant is done,
+# nothing would ever stage the file again, so it is taken, with a warning naming
+# the committed task whose file changed under a later one. A skipped claimant
+# still refuses: its half-finished files stay uncommitted and visible.
 #
 # --defer records code this task left without its own test because the criterion
 # that proves it belongs to a LATER task, one "<task-id>:<path>" entry per path.
@@ -104,7 +108,8 @@
 # stderr: a warning listing changed paths no task in the plan claims, the run's
 #         own directory excluded - it holds the plan, the decomposition, the
 #         status file and the trail, which no "Files:" line names and every form
-#         commits itself
+#         commits itself; one "refused <path> - claimed by task <id>" or
+#         "took <path> - claimed by committed task <ids>" per owned --with path
 #
 # exit != 0:
 #   2 - bad arguments / missing plan
@@ -275,6 +280,23 @@ intask && /^-[[:space:]]*Files:/ {
   for (k = 1; k <= m; k++) if (trim(fl[k]) == want) print cur
 }
 ' "$1"
+}
+
+# The ids on status.md's "done:" line, one per line - nothing when the run has
+# no status file yet or nothing is done. What tells a claimant still in flight
+# from one whose commit has already landed.
+done_ids() {
+  local status
+  status="$(status_of "$1")"
+  [[ -f "$status" ]] || return 0
+  awk '
+/^done:/ {
+  s = $0; sub(/^done:/, "", s)
+  n = split(s, d, /[[:space:]]+/)
+  for (k = 1; k <= n; k++) if (d[k] != "" && d[k] != "none" && d[k] != "-") print d[k]
+  exit
+}
+' "$status"
 }
 
 # Scoped to what the plan does NOT claim: at the widest dispatch the tree always
@@ -550,14 +572,29 @@ else
 fi
 
 # --- what the task forced outside its own map ---
-# Taken only when no OTHER task claims the path: a shared file is committed by
-# whichever task declares it, never pulled out from under a coder still writing it.
+# Taken when no OTHER task claims the path, or every one that does is done: a
+# shared file is committed by whichever task declares it, never pulled out from
+# under a coder still writing it - but once its owner is committed, this commit
+# is the last one that will ever stage it.
+done_list="$(done_ids "$plan")"
 while IFS= read -r f; do
   [[ -n "$f" ]] || continue
-  owner="$(claimants "$plan" "$f" | grep -vFx -- "$task_id" | head -n 1 || true)"
-  if [[ -n "$owner" ]]; then
-    echo "warning: refused $f - claimed by task $owner" >&2
+  open=""
+  closed=""
+  while IFS= read -r o; do
+    [[ -n "$o" ]] || continue
+    if printf '%s\n' "$done_list" | grep -Fxq -- "$o"; then
+      closed="$closed $o"
+    else
+      open="${open:-$o}"
+    fi
+  done < <(claimants "$plan" "$f" | grep -vFx -- "$task_id" || true)
+  if [[ -n "$open" ]]; then
+    echo "warning: refused $f - claimed by task $open" >&2
     continue
+  fi
+  if [[ -n "$closed" ]]; then
+    echo "warning: took $f - claimed by committed task${closed}" >&2
   fi
   printf '%s\n' "$files" | grep -Fxq -- "$f" || files="$files$f"$'\n'
 done <<< "$extra"

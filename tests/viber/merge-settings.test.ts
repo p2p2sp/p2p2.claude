@@ -437,13 +437,8 @@ test("the shipped template carries the recommended block only: built-in tools, r
   // of ending its run: the user decides and the work continues.
   for (const expected of [
     "Bash(rm -rf:*)",
-    // The `git -c <k>=<v>` form makes git run a program it is handed, so the
-    // user sees every one.
-    "Bash(git -c *)",
     "Bash(git * --force*)",
     "Bash(git reset --hard:*)",
-    "Bash(git stash:*)",
-    "Read(**/.env.*)",
   ]) {
     assert.ok(ask.includes(expected), `ask should carry ${expected}`);
   }

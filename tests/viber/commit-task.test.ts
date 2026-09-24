@@ -300,6 +300,40 @@ test("--with refuses a path another task's Files claims and commits the rest (th
   });
 });
 
+test("--with takes a path claimed by a task already done and names that task on stderr (no later commit would ever stage the file)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, STATUS_REL, statusBody(2).replace("done: none", "done: T2").replace("progress: 0/2", "progress: 1/2"));
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "T2 done");
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "src/b.ts", "a defect T1's tests exposed\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--with", "src/b.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /took src\/b\.ts - claimed by committed task T2/);
+    assert.doesNotMatch(result.stderr, /refused/);
+    assert.deepEqual(committedFiles(repo), [STATUS_REL, "src/a.ts", "src/b.ts"].sort());
+    assert.match(readStatus(repo), /^done: T2 T1$/m);
+  });
+});
+
+test("--with still refuses a path whose owner was skipped (its half-finished files stay uncommitted and visible)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, STATUS_REL, statusBody(2).replace("skipped: none", "skipped: T2"));
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "T2 skipped");
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "src/b.ts", "half-finished\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--with", "src/b.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /refused src\/b\.ts - claimed by task T2/);
+    assert.deepEqual(committedFiles(repo), [STATUS_REL, "src/a.ts"].sort());
+  });
+});
+
 test("--with a path the task already claims commits it once, not twice", () => {
   withGitRepo((repo) => {
     seed(repo);

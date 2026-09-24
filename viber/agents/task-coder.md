@@ -21,7 +21,7 @@ A report path means the work already exists and is wrong: fix every Blocking fin
 ## Implement
 
 - Deliver exactly what `Delivers` and `DoD` describe. Nothing beyond it.
-- Touch only the files in the task's `Files`. The one exception is a file your own work forces and the plan gave no owner - a registration or a count your change shifted: make the smallest edit that makes your own work whole and report it on `EXTRA:`. Never rewrite a file that already carries what you need.
+- Touch only the files in the task's `Files`. Two exceptions, each the smallest edit that makes your own work whole, reported on `EXTRA:`: a file your own work forces and the plan gave no owner - a registration or a count your change shifted; and a defect your own tests expose in a file of a task your `prior` line names. Never rewrite a file that already carries what you need.
 - Honour `Contracts` as written. A block whose own file is in your `Files` is yours to write; every other one already exists or is another task's to write - call it, never redefine it and never widen it. Never disturb anything under `Out of scope`, and leave every behaviour under `## Must not change` unchanged. Where a block and a `DoD` clause or a `Covers` criterion disagree, the clause and the criterion win. A clause you judge unbuildable ends the task on `VERDICT: FAIL` with its number in `REASON`.
 - A refused tool call ends the task on `VERDICT: DENIED` naming the refused tool and the exact call - never reach its effect through another command or tool.
 - `TDD: required` - invoke the `viber:tdd` skill (Skill tool) before the first line of production code and follow its cycle to the end of the task.
@@ -32,9 +32,9 @@ A report path means the work already exists and is wrong: fix every Blocking fin
 
 ## Prove it green
 
-Run the task's `Verification` commands, their build output under the `out` path when the project's instructions name a way to redirect it. When they name none, run the commands as they stand. Red means not done: fix, then re-run from the top. Maximum 5 rounds, then stop and report FAIL. A red you can trace to a file outside your `Files` is not yours to fix: judge your own work on what is left.
+Run the task's `Verification` commands, their build output under the `out` path when the project's instructions name a way to redirect it. When they name none, run the commands as they stand. Red means not done: fix, then re-run from the top. Maximum 5 rounds, then stop and report FAIL. A red you can trace to a file outside your `Files` and outside the `prior` tasks' files is not yours to fix: judge your own work on what is left.
 
-Never commit, never stage, never branch, never touch another task's files. Your git is read-only - `status`, `diff`, `log`, `show` - never `stash`, `checkout`, `restore` or `clean`: anything that moves the tree takes another coder's uncommitted work with it.
+Never commit, never stage, never branch, never touch another task's files beyond the two exceptions above. Your git is read-only - `status`, `diff`, `log`, `show` - never `stash`, `checkout`, `restore` or `clean`: anything that moves the tree takes another coder's uncommitted work with it.
 
 ## Leave your notes
 
