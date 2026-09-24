@@ -30,7 +30,7 @@ Before any question, one line per fact worth deciding on:
 
 The root of the directory holds the shared rules, each subdirectory one area's. Name each root `rule:` line whose globs all stay inside one area, or whose basename carries an area as a prefix: the writer moves it into that area's directory.
 
-A `rule:` line whose `paths` field reads `none` declares no scope: it is loaded on every task and is never dead. One reading `global` in both its `paths` and its match field binds the whole repository and is never dead either.
+A `rule:` line whose `paths` field reads `none` declares no scope: it binds the whole repository, is loaded on every task and is never dead.
 
 ## 2. Route on the state, then the mode
 
@@ -82,7 +82,7 @@ out: .temp/viber/<id>/
 refs: ${CLAUDE_PLUGIN_ROOT}/references
 ```
 
-`<id>` is the `id:` value of the map above. A rule whose `paths` field reads `none` or `global` gates the whole repository: pass the repository root as its scope. A scope with no rule is the proposing direction: `target: none`, `scope` that directory, and only missing conventions can come back.
+`<id>` is the `id:` value of the map above. A rule whose `paths` field reads `none` gates the whole repository: pass the repository root as its scope. A scope with no rule is the proposing direction: `target: none`, `scope` that directory, and only missing conventions can come back.
 
 Each call returns exactly one line:
 

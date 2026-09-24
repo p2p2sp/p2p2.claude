@@ -53,16 +53,14 @@
 #            `rule:` is one line per non-frozen `.md`, alphabetical by full
 #            path, so an area's rules print together. `paths`
 #            carries the declared globs comma-separated, or `none` when the key
-#            is absent or declares nothing usable. Then either `matches <n>`,
-#            the tracked files those globs really match, or the single word
-#            `global` for a rule declaring `paths: global` - which is also what
-#            its `paths` field reads, the word being the declaration AND the
-#            count. The line closes on `ok`, or `OVER-FILE` past 4000
-#            characters.
+#            is absent or declares nothing usable - a rule Claude Code loads
+#            everywhere. Then `matches <n>`, the tracked files those globs
+#            really match, a `{a,b}` group matching either branch. The line
+#            closes on `ok`, or `OVER-FILE` past 4000 characters.
 #            `frozen:` is one line per `_*.md`: reported, never scored, never
 #            dead, never deleted.
 #            `dead:` is a non-frozen rule whose globs match no tracked file -
-#            never a global one, never one that declares no scope, and never
+#            never one that declares no scope, and never
 #            printed at all when the repository tracks nothing, where every
 #            rule would read dead and the count would say nothing about the
 #            rule.
@@ -101,8 +99,8 @@ cd "$root" || exit 0
 # usable `paths:` key. Only the frontmatter block is read: the first line has
 # to be the opening `---` and the scan stops at the closing one, so a `paths:`
 # line in the prose below is never taken for a declaration. Three spellings are
-# accepted - a block sequence, a flow sequence and a single scalar - because
-# all three are YAML and a user writes whichever they know.
+# accepted - a block sequence, a flow sequence and a comma-separated scalar -
+# because Claude Code reads all three and a user writes whichever they know.
 globs_of() {
   awk '
     function clean(s,   q, n) {
@@ -115,6 +113,19 @@ globs_of() {
       return s
     }
     function emit(s) { s = clean(s); if (s != "") print s }
+    # A comma inside a `{a,b}` group belongs to the glob, not to the list.
+    function emit_list(s,   i, c, d, cur) {
+      d = 0
+      cur = ""
+      for (i = 1; i <= length(s); i++) {
+        c = substr(s, i, 1)
+        if (c == "{") d++
+        else if (c == "}" && d > 0) d--
+        else if (c == "," && d == 0) { emit(cur); cur = ""; continue }
+        cur = cur c
+      }
+      emit(cur)
+    }
     NR == 1 { if ($0 !~ /^---[ \t\r]*$/) exit; next }
     /^---[ \t\r]*$/ { exit }
     collecting {
@@ -129,11 +140,8 @@ globs_of() {
       if (substr(val, 1, 1) == "[") {
         sub(/^\[/, "", val)
         sub(/\]$/, "", val)
-        n = split(val, parts, ",")
-        for (i = 1; i <= n; i++) emit(parts[i])
-        next
       }
-      emit(val)
+      emit_list(val)
       next
     }
   ' "$1"
@@ -144,15 +152,32 @@ globs_of() {
 # pattern lets `*` cross a `/` and would count `src/deep/c.ts` as a match for
 # `src/*.ts` - which would hide a dead rule behind a file it never applies to.
 # A `[` or `]` is passed through as a literal: a rule's scope is a path glob,
-# not a character class.
+# not a character class. A `{a,b}` group becomes an alternation, the brace
+# expansion Claude Code applies to `paths:`.
 count_matches() {
   awk -v globs="$1" '
-    function glob2re(g,   i, c, n, out) {
+    # Whether the `{` at position i has its closing `}`: a group without one
+    # is a literal brace.
+    function closes(g, i,   d, n, c) {
+      d = 0
+      n = length(g)
+      for (; i <= n; i++) {
+        c = substr(g, i, 1)
+        if (c == "{") d++
+        else if (c == "}" && --d == 0) return 1
+      }
+      return 0
+    }
+    function glob2re(g,   i, c, n, out, depth) {
       out = "^"
       n = length(g)
       i = 1
+      depth = 0
       while (i <= n) {
         c = substr(g, i, 1)
+        if (c == "{" && closes(g, i)) { out = out "("; depth++; i = i + 1; continue }
+        if (c == "}" && depth > 0) { out = out ")"; depth--; i = i + 1; continue }
+        if (c == "," && depth > 0) { out = out "|"; i = i + 1; continue }
         if (c == "*") {
           if (substr(g, i + 1, 1) == "*") {
             if (substr(g, i + 2, 1) == "/") { out = out "([^/]+/)*"; i = i + 3; continue }
@@ -207,8 +232,16 @@ tracked="$(git -c core.quotePath=false ls-files 2>/dev/null || true)"
 # Outside a repository both of these come back empty, which is the honest
 # answer: nothing is tracked, so every rule file is untracked and no reset can
 # be allowed to touch one.
-modified="$(git -c core.quotePath=false status --porcelain --untracked-files=all -- "$rules_dir" 2>/dev/null |
-  awk '{ if (substr($0, 1, 2) != "??") print substr($0, 4) }' || true)"
+# -z: without it a path holding a space comes back quoted and never matches.
+# A rename's second record is the old path with no status code in front,
+# recognised by the missing separator space and skipped.
+modified=""
+while IFS= read -r -d '' record; do
+  [ "${record:2:1}" = " " ] || continue
+  [ "${record:0:2}" = "??" ] && continue
+  modified="$modified${record:3}
+"
+done < <(git status --porcelain -z --untracked-files=all -- "$rules_dir" 2>/dev/null || true)
 
 # Reset mode. The whole call is judged before a single file is deleted: a
 # partial delete would leave the layer in a state neither the user nor the
@@ -326,12 +359,6 @@ while IFS= read -r file; do
     undeclared=$(( undeclared + 1 ))
     shown="none"
     scope="matches 0"
-  elif [ "$globs" = "global" ]; then
-    # The whole repository is its scope, so there is nothing to count and it
-    # can never match nothing. The word stands in both fields: it is what the
-    # frontmatter declares AND what the count would otherwise say.
-    shown="global"
-    scope="global"
   else
     shown="$(printf '%s' "$globs" | tr '\n' ',')"
     matched="$(printf '%s\n' "$tracked" | count_matches "$globs")"

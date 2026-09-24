@@ -32,7 +32,7 @@ You orchestrate and delegate: every piece of work runs inside a subagent. Open n
 Every question below offers some of these four answers, each doing exactly this wherever it is offered:
 
 - `retry`: dispatch again, with its own dispatch lines, the agent that failed or was refused; after failed review or test rounds that is the task's coder or the repair coder. After a `FAIL`: one tier up (`haiku` -> `sonnet` -> `opus` -> `fable`), never past `tiers.max`, where it stays, carrying `reason: <the returned REASON>` on a coder's own failure, or the last `REVIEW` or `REPORT` path as `report:` after failed rounds; the round counter continues, the next 2 rounds counting as 1 and 2 of 2, and a `TaskUpdate` rewrites the task's subject with the new tiers. After a `DENIED`: same model, same round, a task's coder adding `reason: <the returned REASON>`. After a failed commit: run the same call again.
-- `skip`: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip "<plan>" "<id>"`, then drop that task and every task depending on it (`TaskUpdate` -> completed for each). Its half-finished files stay uncommitted in the tree; name them in the final summary.
+- `skip`: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip "<plan>" "<id>"` for that task, then the same call for every task depending on it, directly or through another dependent, one call per message, each with its `TaskUpdate` -> completed. Its half-finished files stay uncommitted in the tree; name them in the final summary.
 - `accept`: the user overrides the gate. On a task: its commit with `--unreviewed` appended, the task named unreviewed in the final summary. On the test run: go to step 6, the failing or refused run named in the final summary.
 - `abort`: stop every dispatch, go to step 7.
 
@@ -141,7 +141,7 @@ Repair commit, every path on the coder's `FILES:` line through the form that own
 - Test-runner `VERDICT: FAIL`, round 1 of 2 -> repair dispatch.
 - Test-runner `VERDICT: FAIL`, round 2 of 2 -> `AskUserQuestion`: retry / accept / abort.
 - Test-runner `VERDICT: DENIED` -> `AskUserQuestion`: retry / accept / abort.
-- Repair coder `PASS` or `FAIL` -> repair commit, then test-runner at the next round.
+- Repair coder `PASS` or `FAIL` -> repair commit, then test-runner at the next round. No `FILES:` line -> no commit, test-runner at the next round.
 - Repair coder `VERDICT: DENIED` -> commit nothing; `AskUserQuestion`: retry / accept / abort.
 
 ## 6. Record what the build taught

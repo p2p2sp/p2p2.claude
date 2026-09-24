@@ -438,6 +438,42 @@ test("a run already open for that slug comes back existing, and its progress is 
   });
 });
 
+test("a finished run of the same slug is not resumed: the plan lands as new beside it and the old plan is left alone (a finished run would otherwise build nothing)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const finished = planWithTasks("Add Login", ["T1", "T2"]);
+    landPlan(dir, "2026-09-19-17-30-00_add-login", "2026-09-19T17:30:00Z", finished);
+    landStatus(dir, "2026-09-19-17-30-00_add-login", { progress: "1/2", done: "T1", skipped: "T2" });
+
+    const src = sourcePlan(dir, "outside/add-login.md", PLAN_BODY);
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    const resolved = parse(result.stdout);
+    assert.equal(resolved.state, "new");
+    assert.notEqual(resolved.key, "2026-09-19-17-30-00_add-login");
+    assert.equal(slugOf(resolved.key), "add-login");
+    assert.equal(
+      fs.readFileSync(path.join(dir, "docs", "_specs", "2026-09-19-17-30-00_add-login", "plan.md"), "utf-8"),
+      finished,
+    );
+  });
+});
+
+test("a draft of the same slug still answers as the draft rather than minting a second run", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    landPlan(dir, "2026-09-19-17-30-00_add-login", "2026-09-19T17:30:00Z", DRAFT_BODY);
+
+    const src = sourcePlan(dir, "outside/add-login.md", PLAN_BODY);
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(parse(result.stdout), {
+      path: "docs/_specs/2026-09-19-17-30-00_add-login/plan.md",
+      key: "2026-09-19-17-30-00_add-login",
+      state: "draft",
+    });
+    assert.deepEqual(runDirs(dir), ["2026-09-19-17-30-00_add-login"]);
+  });
+});
+
 test("--land pointed at a plan that is already landed is a no-op, so re-running the orchestrator never forks a second run", () => {
   withTempDir("p2p2-viber-", (dir) => {
     const src = sourcePlan(dir, "outside/add-login.md", PLAN_BODY);

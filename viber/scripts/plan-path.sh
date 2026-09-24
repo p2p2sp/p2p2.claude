@@ -70,7 +70,9 @@
 #
 # "new"      - the plan was just copied in, so this run starts here.
 # "existing" - a run already open for that slug, carrying its own progress in the
-#              status.md beside its plan. It is NEVER overwritten: a source edited
+#              status.md beside its plan; a run whose every task is committed or
+#              skipped is not open, and the plan lands as "new" beside it. An
+#              open run is NEVER overwritten: a source edited
 #              after the build started does not reach it, because the landed run
 #              is the state. A <src> that already IS a landed plan answers the
 #              same way, which makes --land idempotent.
@@ -320,7 +322,19 @@ if [[ -z "$slug" ]]; then
 fi
 
 # --- a run already open for that slug: its progress is the state, leave it ---
-found="$(printf '%s\n' "$specs_dir"/*_"$slug"/plan.md | newest)"
+# Only a run with something left to do answers: a draft, or a task neither
+# committed nor skipped. A finished run left in place (cleanup off) is history,
+# so a new plan under the same title gets its own directory.
+found="$(
+  for f in "$specs_dir"/*_"$slug"/plan.md; do
+    [[ -f "$f" ]] || continue
+    if has_tasks "$f"; then
+      read -r pdone psettled ptotal <<<"$(progress_of "$f")"
+      [[ "$psettled" -lt "$ptotal" ]] || continue
+    fi
+    printf '%s\n' "$f"
+  done | newest
+)"
 if [[ -n "$found" ]]; then
   emit "$found" existing
   exit 0

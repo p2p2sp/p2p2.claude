@@ -165,7 +165,7 @@ test("map mode marks the layer partial for a rule declaring no paths key and nev
   });
 });
 
-test("map mode reports a rule declaring paths global as global and never as dead", () => {
+test("map mode treats paths: global as an ordinary glob, so it matches nothing and is dead (Claude Code has no such keyword)", () => {
   withGitRepo((repo) => {
     const body = ["---", "paths: global", "---", "", "# everywhere", ""].join("\n");
     seed(repo, { "src/a.ts": "a\n", ".claude/rules/all.md": body });
@@ -173,11 +173,74 @@ test("map mode reports a rule declaring paths global as global and never as dead
     const result = run(repo);
 
     assert.equal(result.status, 0);
-    assert.deepEqual(section(result.stdout, "state"), ["complete"]);
-    assert.deepEqual(section(result.stdout, "dead"), []);
+    assert.deepEqual(section(result.stdout, "dead"), [".claude/rules/all.md"]);
     assert.deepEqual(section(result.stdout, "rule"), [
-      `.claude/rules/all.md ${Buffer.byteLength(body)} paths global global ok`,
+      `.claude/rules/all.md ${Buffer.byteLength(body)} paths global matches 0 ok`,
     ]);
+  });
+});
+
+test("map mode expands a {a,b} group in every paths spelling, a comma inside it never splitting the list", () => {
+  const spellings: Record<string, string> = {
+    block: rule(["src/**/*.{ts,tsx}"]),
+    flow: ["---", 'paths: ["src/**/*.{ts,tsx}", "lib/*.js"]', "---", "", "# rule", ""].join("\n"),
+    scalar: ["---", 'paths: "src/**/*.{ts,tsx}, lib/*.js"', "---", "", "# rule", ""].join("\n"),
+  };
+  const shown: Record<string, string> = {
+    block: "src/**/*.{ts,tsx}",
+    flow: "src/**/*.{ts,tsx},lib/*.js",
+    scalar: "src/**/*.{ts,tsx},lib/*.js",
+  };
+  for (const [name, body] of Object.entries(spellings)) {
+    withGitRepo((repo) => {
+      seed(repo, {
+        "src/a.ts": "a\n",
+        "src/deep/b.tsx": "b\n",
+        "src/c.js": "c\n",
+        ".claude/rules/code.md": body,
+      });
+
+      const result = run(repo);
+
+      assert.equal(result.status, 0, name);
+      assert.deepEqual(section(result.stdout, "dead"), [], name);
+      assert.deepEqual(
+        section(result.stdout, "rule"),
+        [`.claude/rules/code.md ${Buffer.byteLength(body)} paths ${shown[name]} matches 2 ok`],
+        name,
+      );
+    });
+  }
+});
+
+test("map mode keeps an unclosed brace literal rather than failing the whole map", () => {
+  withGitRepo((repo) => {
+    const body = rule(["src/{a.ts"]);
+    seed(repo, { "src/{a.ts": "a\n", "src/a.ts": "a\n", ".claude/rules/odd.md": body });
+
+    const result = run(repo);
+
+    assert.equal(result.status, 0);
+    assert.deepEqual(section(result.stdout, "rule"), [
+      `.claude/rules/odd.md ${Buffer.byteLength(body)} paths src/{a.ts matches 1 ok`,
+    ]);
+  });
+});
+
+test("a modified rule whose path holds a space is dirty and a reset refuses it (porcelain quotes such a path)", () => {
+  withGitRepo((repo) => {
+    const target = ".claude/rules/my rule.md";
+    seed(repo, { "src/a.ts": "a\n", [target]: rule(["src/*.ts"]) });
+    write(repo, target, rule(["src/*.ts"], "# edited\n"));
+
+    const map = run(repo);
+    assert.equal(map.status, 0);
+    assert.deepEqual(section(map.stdout, "dirty"), [`${target} modified`]);
+
+    const reset = run(repo, ["--reset", target]);
+    assert.equal(reset.status, 3);
+    assert.deepEqual(section(reset.stdout, "refused"), [`${target} modified`]);
+    assert.ok(fs.existsSync(path.join(repo.dir, target)));
   });
 });
 

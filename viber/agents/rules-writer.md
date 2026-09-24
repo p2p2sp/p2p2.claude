@@ -23,7 +23,7 @@ Read `<refs>/rule-admission.md` before you add anything to a rule, under either 
 
 Your whole scope is `.claude/rules/**/*.md`. Never touch `CLAUDE.md`, `.temp/` or the run directory.
 
-- Many small files, one convention per file, each gated by a narrow frontmatter `paths:` glob list. `paths: global` only for a convention that truly binds the whole repo.
+- Many small files, one convention per file, each gated by a narrow frontmatter `paths:` glob list. No `paths:` key only for a convention that truly binds the whole repo: such a rule loads on every session.
 - Group by directory, never by a name prefix. A convention bound to one area of the project lives in `.claude/rules/<area>/<topic>.md`, one level deep, `<area>` named after that area of the code (`frontend`, `backend`, a module). One that crosses areas or binds the whole repo stays at the root. The area never repeats in the basename: `backend/pagination.md`, not `backend-pagination.md` nor `backend/backend-pagination.md`.
 - Under the map shape, restructure the existing layer too: a root file whose `paths:` stays inside one area moves into that area's directory, and a basename carrying its area as a prefix loses it. Move by writing the new path, then `rm -- <old path>`, both on `FILES:`. Under the spec shape, place only what you create and leave existing files where they stand.
 - Every convention you add, as a new file or as a line in an existing one, passes the admission gate first and carries the real example from the code that proves it. A candidate failing it is dropped silently.

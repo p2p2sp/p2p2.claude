@@ -50,7 +50,7 @@ Your only output channel - no diff, no logs, no prose. A message with no tool ca
 
 - line 1: `VERDICT: PASS`, `VERDICT: FAIL` or `VERDICT: DENIED`
 - on FAIL, line 2: `REASON: <one line>`; on DENIED, line 2: `REASON: <refused tool name>: <the exact refused command, or the path for a file tool>`
-- on PASS without a task file, line 2: `FILES: <every repo-relative path you changed, comma-separated>` - nothing outside that list gets committed, so an omitted path is lost work.
+- on PASS or FAIL without a task file: `FILES: <every repo-relative path you changed, comma-separated>`, omitted only when you changed nothing - nothing outside that list gets committed, so an omitted path is lost work.
 - with a task file, always: `DOD: <met>/<total>` over its numbered clauses. PASS requires all of them.
 - `EXTRA: <every repo-relative path you changed that the task file map does not name, comma-separated>` - omit the line when there is none; an unreported path never reaches the commit.
 - `DEFERRED: <repo-relative path> -> <task id>`, one line per path, for code you left without its own test because the criterion that proves it belongs to a later task. Name the id only when the task file names one, otherwise `-> none`. Anything else you left untested is not deferred, it is unfinished.
