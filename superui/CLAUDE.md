@@ -1,49 +1,42 @@
-# superui
+# superui - `pro-designer`, the design/frontend advisory skill
 
-## Purpose
+One model-invoked skill, `skills/pro-designer/`: a `SKILL.md` router, fifteen on-demand
+`references/*.md` and two bundled scripts. No agents, no hooks, no preloads. It stays advisory: it
+reasons about a host's own design system and never overwrites it.
 
-The design/frontend plugin. ONE skill, `pro-designer` - the cross-cutting professional UI/UX
-standards advisor. Advisory only: it proposes and critiques, writes no knowledge layer of its
-own, and dispatches nothing. Ships NO hooks, NO manifest, NO agents; no plugin-root dirs at all
-- the single skill bundles its own `references/` and `scripts/`. Routes purely via CSO
-`description:`.
+## Skill structure
 
-## Entry points
+- `references/anti-slop.md` is the one reference loaded unconditionally, as the FIRST action of
+  every invocation, before any reasoning. It is deliberately absent from `# Reference routing`;
+  every other reference is routed on demand from there. Other references point back to it as
+  "anti-slop.md, already loaded" and never restate its catalog of tells.
+- A new reference needs a routing line in `SKILL.md`, or the skill never reads it. The design-pass
+  steps and routing lines name references by `references/<file>.md`, relative to the skill dir.
+- The skill forbids em/en dashes in everything it outputs (UI copy, code, reports), not only in
+  this repo's files.
 
-- `skills/pro-designer/SKILL.md` - the advisor itself. Step 0 loads `references/anti-slop.md`
-  in full, unconditionally, before any other reasoning (the forensic generated-UI tells
-  catalog), deliberately outside the on-demand reference routing.
-- `skills/pro-designer/references/` - fifteen on-demand reference files: visual hierarchy,
-  color-system discipline, type ramps, 4/8pt spacing, accessibility, component states,
-  form-validation UX, evidence-based conversion psychology (hard anti-dark-pattern rules),
-  concepting/distinctiveness (anti-AI-slop layout direction), tokens (primitive/semantic/
-  component layering), motion (animation doctrine). Verify the current file list and coverage
-  from the directory before restating specifics.
-- `skills/pro-designer/scripts/` - `check_contrast.ts` (WCAG 2.2 AA/large/UI contrast gate,
-  plain ESM TypeScript, `node:` builtins only, no build step) + `check_node.sh` (Node env-check
-  run as an explicit early step, no `!` preflight; a byte-identical copy lives in `superfix` -
-  any edit here must be mirrored there).
+## Bundled scripts
 
-## Contracts & invariants
-
-- No hooks, no manifest, no agents - nothing to dispatch and nothing to auto-route beyond the
-  one skill's CSO description. Do not reintroduce a manifest.
-- One skill, so everything is skill-local. No plugin-root `scripts/`/`references/`/`agents/`/
-  `shared/` dir while `pro-designer` is the only consumer - a second skill is the trigger for
-  promoting anything to plugin root, not a hypothetical one.
-- Scripts are trusted by their caller: a self-verifying script carries its I/O contract in its
-  header comment; the caller does not re-verify or retry its result.
-- A missing Node runtime is a SKIP, never a hard stop - `pro-designer` is advisory, so
-  `NODE_MISSING` costs it the contrast check plus a note; the rest of the review continues. This
-  is the deliberate, documented Node dependency the root's stack-agnostic rule allows.
-
-## Anti-patterns
-
-- Treating the contrast check as blocking when Node is absent.
-- Adding a knowledge-layer write, a dispatch, or a manifest to this plugin - it is advisory by
-  design.
-
-## Related context
-
-- Root cross-plugin invariants: `../CLAUDE.md`
-- superfix shares the byte-identical `check_node.sh`: `../superfix/CLAUDE.md`
+- The contrast check runs in two steps: `sh "${CLAUDE_SKILL_DIR}/scripts/check_node.sh"` resolves
+  the Node command, then `<resolved cmd> "${CLAUDE_SKILL_DIR}/scripts/check_contrast.ts" ...`.
+  Both go through an interpreter (`sh`, `node`), pre-approved by `Bash(sh:*), Bash(node:*)` in
+  `allowed-tools`, not the direct-invocation `${CLAUDE_PLUGIN_ROOT}` pattern. So
+  `check_contrast.ts` is 100644 and `check_node.sh` is `#!/bin/sh` (100755). Changing either call
+  form means changing `allowed-tools` in the same edit.
+- `check_node.sh` prints exactly one line and always exits 0: `NODE_OK node` (>= 23.6),
+  `NODE_OK node --experimental-strip-types` (22.6 to < 23.6), or `NODE_MISSING`. On
+  `NODE_MISSING` the skill skips the contrast check with a note (Node >= 22.6 required), never
+  halts.
+- `superfix/skills/code-auditor/scripts/check_node.sh` is a copy that must behave identically;
+  only the header comment may differ. `tests/superui/check_node.test.ts` fails on any divergence,
+  so edit both together.
+- `check_contrast.ts` exit codes: 0 all pass, 1 any pair below AA for ITS OWN type
+  (`normal` 4.5, `large` 3, `ui` 3, no AAA tier for `ui`), 2 bad input or usage (no args,
+  dangling color, out-of-range `rgb()`, a `--json` record missing/non-string `fg`/`bg`, unknown
+  type). Trap: an unreadable or unparsable `--json` FILE is deliberately uncaught and exits 1,
+  the same code as a contrast failure. `SKILL.md` restates these codes; keep it in step.
+- Its printed lines mimic Python `str`/`repr`/float formatting through the `py*` helpers
+  (`3.0`, `'#abc'`, `True`, `None`). Keep them when editing, or the output format shifts.
+- Its `main()` runs only behind the `import.meta.url` guard; `parseColor`, `contrastRatio` and
+  `main` are exports the tests import. `tests/superui/import-safety.test.ts` fails if importing
+  runs the CLI.

@@ -1,73 +1,16 @@
 # supercc
 
-## Purpose
+One skill, `skill-designer`: the authoring doctrine for skills and agents, three references read each at one workflow step, and a linter. No agents, no hooks, no preload, no `allowed-tools`.
 
-The Claude Code authoring plugin. ONE skill, `skill-designer`, whose subject is the extension
-surface itself: SKILL.md files, agent `.md` files, their frontmatter, bundled `scripts/` and
-`references/`. Creates a new skill or agent, refactors an existing one, splits an overloaded one
-into forks, shrinks a bloated one, or audits a set. Smallest plugin in the repo. Model-invocable,
-routing purely via its own CSO `description:`. Ships NO hooks, NO manifest, NO agents; no
-plugin-root dirs - the single skill bundles its own `references/` and `scripts/`.
+## Contracts between files
 
-## Entry points
+- The doctrine is host-neutral: it is fired on any repo's skills, so it never names this repo's plugins, paths or its own conventions beyond what holds for every Claude Code skill.
+- The hard platform caps are stated twice and move together: `SKILL.md` Frontmatter and Progressive disclosure (name 64 chars and its charset, reserved words, description 1024 chars, no angle brackets, body 500 lines, a reference over 100 lines carries a table of contents) and the matching checks in `scripts/lint_skill.sh`. Changing a cap in one without the other makes the linter contradict the doctrine it enforces.
+- The linter's style checks (emoji, em/en dash, tables, italics, shouting count over 5, hedges, caller-narrative cues, `jq`/`bc`) mirror the Body and Formatting rules of `SKILL.md`; a rule added to either side is added to both or deliberately left as judgment.
+- Every file in `references/` is named in `SKILL.md` at the step that reads it: the linter WARNs on a reference the body never names. A new reference gets its one-line pointer in the Workflow, never an up-front read.
+- `references/architecture.md` restates harness facts the root node also carries as invariants: `allowed-tools` pre-approves and never restricts, `disallowed-tools` never on a skill that dispatches agents, preload pattern entry, direct invocation, single-quoting `?`/`*`/`[`. A change to that harness knowledge updates both.
 
-- `skills/skill-designer/SKILL.md` - one workflow shared by four request classes (create,
-  refactor, split, shrink/audit): classify, responsibility check, placement decision, write,
-  lint, report.
-- `skills/skill-designer/references/architecture.md` - fork vs main-context placement, chaining
-  stages, reusing an existing skill instead of restating it.
-- `skills/skill-designer/references/split-patterns.md` - the split catalogue (fork sub-workers,
-  mode-router script, independent co-occurring specialists).
-- `skills/skill-designer/references/example.md` - one task written badly and well, read before a
-  body is written from scratch.
-- `skills/skill-designer/scripts/lint_skill.sh` - lints a skill dir or a single agent/skill
-  `.md` file; prints FAIL/WARN lines, exit 1 on any FAIL. Plain bash only, invoked THROUGH
-  `bash` in the body (so it needs no exec bit, unlike a `!`-preloaded script).
+## Linter
 
-## Contracts & invariants
-
-- **`skill-designer`'s own `description:` stays short and deliberately undertriggers.** Anthropic's
-  bundled `skill-creator` is present in most sessions and already owns the generic "make me a
-  skill" intent; skill-designer does not compete for it and never tries to win by a pushier CSO.
-  Its description says what the skill is, not which phrasings should fire it: no "always use
-  whenever", no enumerated near-synonyms, no "even if the user only says X". Missing a borderline
-  invocation is the accepted cost - the user names the skill when they want this doctrine - and a
-  CSO arms race would fire it on every passing mention of a skill file. This is not an exception
-  to the skill's own "descriptions undertrigger, write them pushy" rule but its scope: pushy
-  applies while nothing else owns the intent, and here something does.
-- The linter checks form, the skill judges substance. `lint_skill.sh` owns only what is
-  mechanically decidable: frontmatter presence and field caps, name charset, reserved words, body
-  length, the banned surface forms (emoji, em/en dash, markdown table - all FAIL), the tone
-  counters (all-caps directives past five, any hedge phrase - both WARN) and the
-  `references/` checks (a file past 100 lines with no table of contents, a file `SKILL.md` never
-  names). Everything requiring judgment (one responsibility? does the
-  description trigger? is this line caller narrative?) stays with the model. Never migrate a
-  judgment call into the script - a false FAIL on a judgment call is worse than no check, since
-  the skill is instructed to fix every FAIL.
-- A FILE target lints that file ALONE; only a directory (or a file literally named `SKILL.md`,
-  which names its own skill root) sweeps siblings and bundled dirs. Reporting another file's
-  violation under this file's run sends the skill to edit a file the request never named.
-- The CLAUDE.md-read check is a WARN, never a FAIL, and it skips a host/target-qualified line.
-  Naming a CLAUDE.md read is only wrong for the worker's OWN project; it is correct for a repo
-  the worker was pointed at (`superfix/agents/profiler.md`) and it is not an instruction at all
-  inside a template body. As a FAIL it was wrong on every one of the repo's own hits and right on
-  none.
-- Bundled paths are addressed via `${CLAUDE_SKILL_DIR}/...`, never relatively - a relative
-  `references/x.md` does not resolve from the invoking session's cwd.
-- supercc writes NO `docs/<layer>/` of its own and never will. Its deliverable is the skill/
-  agent file itself, which belongs wherever the request puts it
-  (`.claude/skills/`, a plugin's `skills/`, an `agents/` dir) - a knowledge layer here would be a
-  copy of the artifact, not a record about it.
-- This plugin's own sources are its first test case: every rule `skill-designer` states is one
-  the repo's other six plugins already follow. A rule its own `SKILL.md` violates is a bug in
-  the rule or in the file - fix one of them, never document the exception.
-
-## Anti-patterns
-
-- Adding a mechanical check for something that is actually a judgment call.
-- Writing a `docs/<layer>/` entry for a skill/agent it just authored.
-
-## Related context
-
-- Root cross-plugin invariants: `../CLAUDE.md`
-- supercc declares no cross-plugin chains.
+- A directory target (or a file named `SKILL.md`) sweeps every `.md` under it plus `scripts/` and `references/`; any other file target lints that file alone, so linting one agent never reports a sibling's violations.
+- Exit 1 on any FAIL, 0 otherwise; the last line is `FAIL=<n> WARN=<n>`. The CLAUDE.md-read check is a WARN on purpose: it cannot tell a worker's own memory from a host repo's.

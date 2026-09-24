@@ -1,55 +1,57 @@
-# superbiz
+# superbiz - `idea-validator`
 
-## Purpose
+One skill, no agents, no hooks, no shared dir: `skills/idea-validator/`. It is user-only
+(`disable-model-invocation: true`). It dispatches only
+`general-purpose` subagents (3 research, then 7 council members per round, round 2 on unless
+`--quick`), which cannot see the skill: every member prompt is the pasted text of its
+`references/council/<nn>-<member>.md`, never a path to it.
 
-The business-analysis plugin. ONE user-only skill, `idea-validator`
-(`disable-model-invocation: true`), argument `[idea text | path/to/idea.md] [--quick]`. Answers
-one question: is this idea worth turning into a side project - judged as a side-income product
-that runs on autopilot after launch, not a venture-scale startup, treating the build as cheap
-and therefore non-differentiating. Ships NO hooks, NO manifest, NO agents - it does not route at
-all, and fans out with the `Agent` tool using `general-purpose` subagents rather than declared
-agents or `Skill` forks.
+## Run layout
 
-## Entry points
+- Working files go to `.temp/superbiz/<slug>-<YYYY-MM-DD>/`, numbered `00-input.md` to
+  `13-experiments.md` plus `10-council-r1/`, `11-council-r2/`, `report-data.json`. The numbers are
+  a contract: council members are handed files 01-09 by path, and `council.md` names them.
+- The deliverable `report.html` is the one file outside it, at `docs/business/<slug>/` (same slug).
+- Skill instructions are English; every user-facing string (report, member output, `labels`) is in
+  the language the idea was written in.
 
-- `skills/idea-validator/SKILL.md` - fifteen fixed steps, always in the same order so two ideas
-  stay comparable. Verify the exact step list from the skill body rather than a remembered
-  count; roughly: intake (batched `AskUserQuestion`) -> Lean Canvas + hidden assumptions -> risk
-  hypotheses -> three parallel research subagents (problem/market/competition) -> business
-  model/distribution/side-project-fit/autopilot-fit analyses -> a seven-member council over two
-  rounds (round 2 skipped only with `--quick`) -> moderator synthesis (Go/Pivot/No-Go +
-  mandatory dissent) -> experiment plan + pre-committed thresholds -> `scripts/build_report.py`
-  renders `report.html`.
-- `skills/idea-validator/references/council/` - the 7 member prompts (customer, skeptic,
-  analyst, growth, operator, risk, visionary) - prompted subagents, not declared agents.
-- `skills/idea-validator/scripts/build_report.py` - the repo's only Python script (stdlib
-  only); validates the assembled JSON and exits 1 listing what is missing rather than rendering
-  a bad report.
+## The report contract (three files, edited together)
 
-## Contracts & invariants
+`references/report-schema.md` (field names) -> `scripts/build_report.py` (validator + injector) ->
+`assets/report-template.html` (JS renderer reading the injected JSON). A field renamed in one and
+not the others breaks the report silently or fails validation.
 
-- Subagents, not sibling skills: heavy work stays out of main context via the `Agent` tool (3
-  research + 7 council x 2 rounds); each receives file paths, never pasted content, and writes
-  its own numbered file into the run dir.
-- Council isolation is the product: round-1 members never see each other's output or the
-  expected verdict; unanimity without reservations is a FAILURE signal, not confidence.
-  Disagreement is preserved, never averaged - a 2+ point council dispute forces that dimension's
-  confidence to `low` and shows the range.
-- The script owns the deliverable: the HTML is never hand-written or hand-edited. A failed
-  validation is fixed in the JSON, not by patching the renderer's output.
-- Evidence or "no data found": every report number carries a source URL or is marked missing;
-  an estimate is allowed only when labelled as one with its method shown.
-- Deliverable split: numbered working files (00-13, `report-data.json`) live under
-  `.temp/superbiz/<slug>-<YYYY-MM-DD>/`; the rendered `report.html` lands under
-  `docs/business/<idea-slug>/` in the host repo - never the reverse.
+- The script replaces three placeholders in the template: `__REPORT_DATA__` (JSON, `</` escaped),
+  `__LANG__`, `__TITLE__`. It resolves the template as `../assets/report-template.html` from its
+  own path, so the two directories move together.
+- `DEFAULT_LABELS` in the script is the English fallback merged under the run's `labels` (the
+  template reads them as `L.<key>`); a label key added to the template needs an entry there too.
+- It exits 1 listing every problem, and the skill fixes the JSON and reruns, never the HTML.
+- The template holds legitimate closing tags with their openers; `tests/orphan-tags.test.ts`
+  names it as an allowed precedent.
 
-## Anti-patterns
+## Rules duplicated between markdown and the validator
 
-- Letting the moderator add arguments of its own or attribute an unsourced sentence to a member.
-- Averaging a council disagreement into a single confident number instead of showing the range.
-- Hand-editing `report.html` instead of fixing the source JSON and re-running the renderer.
+`build_report.py` hard-codes what the references state; change both in the same edit:
 
-## Related context
+- the 9 dimension keys in canonical order (`problem ... autopilot_fit`), weight 1 or 2 each, and
+  the weighted total recomputed with a 0.06 tolerance - `dimensions.md` (weights sum to 11);
+- key dimensions `problem`, `distribution`, `autopilot_fit`: Go is rejected when one scores <= 2,
+  and needs `verdict.conditional_on` when one has `low` confidence - `dimensions.md` verdict rules;
+- exactly 7 council members - the `council.md` table, the seven member files, the skill body and
+  its `description:`;
+- 3-8 experiments, `thresholds.go/pivot/no_go`, `round2_held` true unless `meta.quick_mode`.
 
-- Root cross-plugin invariants: `../CLAUDE.md`
-- superbiz declares no cross-plugin chains; its single skill has nothing to chain to in-plugin.
+## Python dependency (the deliberate tool choice)
+
+- `build_report.py` is stdlib-only Python 3, and the skill carries no fallback for a host without
+  `python3`. The root `README.md` lists Python 3 as the plugin's requirement.
+- It is NOT invoked directly like the repo's bash scripts: the skill runs
+  `python3 ${CLAUDE_SKILL_DIR}/scripts/build_report.py ...`, `allowed-tools` pre-approves exactly
+  `Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/build_report.py:*)`, and the file is tracked `100644`
+  with a `python3` shebang. The call line and the pattern change together or the call prompts.
+
+## Evals
+
+`skills/idea-validator/evals/evals.json` holds 3 expected-behaviour cases for a human or a
+skill-designer eval run. Nothing in `tests/` or CI executes them.

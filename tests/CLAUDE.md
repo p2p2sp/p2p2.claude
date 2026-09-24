@@ -1,63 +1,59 @@
-# tests
+# tests/ - dev-time regression suites for the plugin scripts
 
-## Purpose
+Node's native `node:test` runner over `.ts` files (type stripping), run by `.github/workflows/ci.yml`:
+Linux only on push/PR, the macOS + Windows legs only on a manual `workflow_dispatch`. A test that
+passes locally on one OS is not proven on the other two until that dispatch runs. How to run and how
+a file is shaped live in `.claude/rules/tests-running.md` and `tests-structure.md`.
 
-Dev-time regression suites for plugin scripts. Lives at the repo root, OUTSIDE every plugin
-directory - no `plugin.json` and no marketplace entry references it; it ships with no plugin.
+## Layout
 
-## Entry points
+- `tests/<plugin>/` (and `tests/github/` for `.github/scripts/`) - one file per tested script,
+  named after the script's basename. `tests/superui/import-safety.test.ts` is the one extra: it
+  proves `check_contrast.ts` can be `import`ed without firing its guarded `main()`.
+- `tests/harness/` - the shared helpers every script test uses; `tests/harness.test.ts` asserts
+  each helper's documented behaviour.
+- `tests/portability.test.ts`, `tests/orphan-tags.test.ts` - static sweeps over the whole repo.
+  Each rule is a pure function with a self-check test proving it fires on a synthetic bad sample;
+  a new rule gets its self-check too, or its green run proves nothing.
 
-- Run from the repo root: `node --test "tests/**/*.test.ts"` - a QUOTED glob. A bare directory
-  argument such as `tests/superui/` does NOT work: `node --test` resolves it as a module path,
-  not a glob.
-- Subdirectories mirror the plugins: `tests/superfix/`, `tests/supergh/`,
-  `tests/superui/`, `tests/viber/`, `tests/github/`, plus `tests/harness/` and root-level suites
-  (`harness.test.ts`, `portability.test.ts`, `orphan-tags.test.ts`). Verify the current tree
-  from the directory if this drifts.
-- `tests/harness/` - the shared mechanism module, exposing only cross-cutting capability, never
-  per-script knowledge:
-  - `paths.ts` - `slash(value)`, normalizes a script-printed path for comparison (a shell script
-    joins with `/` whatever native path it was handed).
-  - `perms.ts` - `denyRead(file)`, `restoreRead(file)`, `canDenyRead()` - read-denial via ACL
-    where the platform honours it; gate a case on `canDenyRead()`.
-  - `png.ts` - `writePng(width, height, rgba, opts?)` - binary PNG fixtures.
-  - `run.ts` - `runScript(script, args?, opts?)` - subprocess execution returning a
-    `RunResult`.
-  - `shells.ts` - `shellBin(shell)`, `bashShells()`, `posixShells()`,
-    `forEachShell(kind, fn)` - shell discovery across bash/posix variants.
-  - `stub.ts` - `withStub(name, body, fn)`, `coreUtilsPath()` - PATH stubs for external tools.
-  - `symlinks.ts` - `canSymlinkDir()` - directory-symlink capability gate.
-  - `tmp.ts` - `withTempDir(prefix, fn)`, `withGitRepo(fn, opts?)` - temp dirs and throwaway git
-    repos.
+## Harness contract
 
-## Contracts & invariants
+- `runScript(script, args, opts)` (`harness/run.ts`) runs a shipped script as a real subprocess
+  (a `.ts`/`.js` one through `process.execPath`). The child env is sanitised to a fixed base list (PATH, HOME, TEMP, ...): every
+  variable a script reads must be passed through `opts.env`. On win32 the script's shebang is read
+  and its interpreter resolved from PATH; an argument holding `\n`/`\r` travels through the
+  environment (`P2P2_ARGV<n>`) because no CreateProcess command line survives it - only for a
+  bash/sh script, so such a case skips for any other interpreter. Default timeout 60 s on purpose
+  (CI over-subscribes cores with `--test-concurrency=8`).
+- `forEachShell("bash" | "posix", fn)` (`harness/shells.ts`) runs a case under every shell really
+  present: each distinct bash major (macOS 3.2 vs 5.x) for a `#!/usr/bin/env bash` script; `/bin/sh`,
+  `dash`, `busybox sh`, `bash --posix` for a `#!/bin/sh` one. An absent shell is returned as a
+  `ShellSkip`, never a failure. A bash-only script is never run under `"posix"`.
+- `withTempDir` / `withGitRepo` (`harness/tmp.ts`) - every filesystem or git fixture lives in a temp
+  dir removed on return or throw. `withGitRepo` pins HOME/USERPROFILE, an empty
+  `GIT_CONFIG_GLOBAL`, `GIT_CONFIG_NOSYSTEM=1` and fixed author/committer/date: pass its `env` to
+  every call so nothing reads the developer's real `~/.gitconfig`. Never run git against this repo:
+  `tests/github/release.test.ts` snapshots its `git status --porcelain` and tag list at load and
+  fails if the suite changed either (so do not edit the tree while that file runs).
+- `withStub(name, body, fn)` + `opts.stubDirs` (`harness/stub.ts`) puts a fake `gh`/`npm`/... first
+  on PATH; a test never lets a script reach a real network-facing tool. `stubDirs` only prepends,
+  so asserting a tool is ABSENT needs `opts.env.PATH = coreUtilsPath()` first (grep's dir plus
+  bash's) - it still carries `git` on POSIX, so a git-branching script must hold either way.
+- `writePng` (`harness/png.ts`) synthesises RGBA PNG fixtures; no image library.
 
-- Fixtures, expected outputs and stub scenarios stay FILE-LOCAL to each `*.test.ts`.
-  `tests/harness/` is the single exception and never carries per-script knowledge.
-- A test that passes locally and fails on Git-Bash is the top trap (confirmed by the user). CI
-  runs the suite on ubuntu for `push`/`pull_request`, and on the full ubuntu/macos/windows
-  matrix on manual `workflow_dispatch` - every test must hold under Git-Bash too.
-- Compare script-printed paths with `slash()`, never raw.
-- Enumerate the tree with `git ls-files -z` and split on `\0`. Without `-z` a path carrying a
-  non-ASCII character comes back C-quoted and octal-escaped, which breaks the read AND hides the
-  real prefix behind the opening quote, so a path filter silently lets it through. The repo has
-  such a path under `docs/misc/`; `orphan-tags.test.ts` was written against it.
-- Make a file unreadable with `denyRead()`, NEVER with `chmod` - Windows ignores its mode bits
-  and root overrides them.
-- Gate any case that creates a symlink on `canSymlinkDir()` - a plain Windows account gets
-  EPERM from `fs.symlinkSync`, so the case must skip with a reason rather than fail before
-  asserting.
+## Cross-platform traps
 
-## Anti-patterns
-
-- Adding shared per-script fixtures/expectations into `tests/harness/` instead of keeping them
-  file-local to the one `*.test.ts` that needs them.
-- Asserting on a raw (non-`slash()`-normalized) path, or denying read access with `chmod`.
-
-## Related context
-
-- Root cross-plugin invariants: `../CLAUDE.md`
-- Each plugin's own node for what its scripts are supposed to do:
-  `../superui/CLAUDE.md`, `../supergh/CLAUDE.md`,
-  `../superfix/CLAUDE.md`, `../superbiz/CLAUDE.md`, `../supercc/CLAUDE.md`,
-  `../viber/CLAUDE.md`
+- Compare a path a script printed through `slash()` (`harness/paths.ts`) on both sides: on Windows
+  its stdout mixes native `\` with the script's own `/`.
+- Make a file unreadable with `denyRead()` / `restoreRead()` (`harness/perms.ts`), never `chmod`:
+  mode bits gate nothing on Windows (it uses an `icacls /deny` ACE) and root ignores them on POSIX.
+  Gate the case with `{ skip: canDenyRead() ? false : "<reason>" }` and restore in `finally`.
+- Gate any directory-symlink case on `canSymlinkDir()` (`harness/symlinks.ts`): a plain Windows
+  account gets EPERM.
+- Capability is always probed by doing the real thing, never by reading `process.platform`; a
+  platform check is only for a case whose meaning differs by OS (a backslash is a legal filename
+  character off Windows), and it skips with a reason string.
+- A test depending on an optional tool (`jq` for `release.sh`) registers one skipped `test()` naming
+  the reason instead of failing.
+- The static sweeps and the exec-bit checks read the git index (`git ls-files -s`), not the working
+  tree: a new script is invisible to them, and its `100755` mode unchecked, until it is staged.

@@ -1,68 +1,82 @@
-# superfix
+# superfix - code-auditor and its five agents
 
-## Purpose
+One user-only skill (`code-auditor`, `disable-model-invocation: true`: nothing routes to it) driving
+two sweep tracks at once: files (Impact x Opportunity) and producer/consumer pairs (contract
+agreement). Cheap agents score breadth, frontier agents investigate only what a deterministic gate
+let through.
 
-Prioritized multi-agent codebase investigation. ONE user-invoked skill, `code-auditor`
-(`disable-model-invocation: true`), plus five agents in `agents[]`. Ships NO hooks and NO
-manifest - the sole skill is user-only, so there is nothing to auto-route.
+## Pipeline and tiers
 
-## Entry points
+| Phase | Worker | Model | Writes |
+|---|---|---|---|
+| 0 Frame | `profiler` | inherit | `profile.md` (appended to `job.md`) |
+| 1 Sweep | `collect_signals.sh`, `collect_edges.sh` | - | `signals/signals.jsonl`, `signals/edges.jsonl` |
+| 2 Score | `scout`, `edge-scout` | haiku | JSON lines in the final message, appended by the skill to `scores/` |
+| 3 Gate | `rank.ts`, `rank_edges.ts` | - | `hotlist/hotlist.*`, `hotlist/edges.*` |
+| 4 Investigate | `detective` | inherit, `effort: high` | `reports/<rank>-<slug>.md` + `.claim.md` sidecar |
+| 5 Verify | `critic` | inherit, `effort: high` | no file: a tagged `VERDICT:` block in its final message |
 
-- `skills/code-auditor/SKILL.md` - `/superfix:code-auditor [<repo-path>] [<area-dir>]`. Runs TWO
-  tracks every time, unconditionally:
-  - **File track**: `score = Impact x Opportunity`. Deterministic sweep
-    (`scripts/collect_signals.sh`, accepts `--scope <area-dir>`) -> cheap `scout` scoring
-    fan-out -> deterministic gate/rank (`scripts/rank.ts`), which also flags a `degenerate` run
-    (no file clears the Opportunity gate).
-  - **Edge track**: a contract defect between two individually-correct files, invisible to a
-    per-file scout. Deterministic pair discovery (`scripts/collect_edges.sh`, reuses
-    `collect_signals.sh`'s deny-list/noise filter) scores linking literals artifact-first,
-    emits `via`/`vias` -> cheap `edge-scout` fan-out returns `MATCH`/`MISMATCH`/`UNCLEAR`/
-    `NO_CONTRACT` per pair -> deterministic gate/rank (`scripts/rank_edges.ts`) keeps `MATCH`
-    and `NO_CONTRACT` OUT of dispatch, orders `MISMATCH` before `UNCLEAR`, writes its own
-    `hotlist/edges.json` + `hotlist/edges.md` (never appended into `hotlist.md`, which
-    `rank.ts` overwrites wholesale).
-  - Phase 0 dispatches `profiler` (reads the target's own memory/tooling/fix history into the
-    run's profile) and resolves the Node runtime via `scripts/check_node.sh`, HARD-STOPPING on
-    `NODE_MISSING` (unlike superui's advisory skip - both gates depend on the same runtime).
-  - Detectives dispatch into the UNION of file hotspots, edge dispatch rows, and a small
-    structural budget from `edges.json`'s `degree[]` - never either track alone.
-- `agents/` - `profiler` (once per run, Phase 0), `scout` (cheap per-file triage),
-  `edge-scout` (cheap pair triage, `UNCLEAR` is a dispatch reason not a rejection),
-  `detective` (deep-dive; a pair-sourced detective gets both endpoints as entry points),
-  `critic` (refuter - reads only the claim sidecar, never the detective's report; a missing
-  verdict earns one retry before folding as `INCONCLUSIVE`).
+Everything a run produces lives under `.temp/superfix/<run-id>/`; verification worktrees go to
+`<target-root>/.temp/superfix/<run-id>/worktrees/`, one absolute path per detective or critic,
+never shared.
 
-## Contracts & invariants
+## Where each rule lives
 
-- Thin harness, model does the judgment: deterministic code stays confined to signal
-  collection, the two gates, and the worktree lifecycle; all reasoning stays with the agents.
-- Agents receive bundled-script paths as ARGUMENTS in the dispatch brief, never as env
-  expansions - `${CLAUDE_SKILL_DIR}` resolves inside the skill, not inside an `agents/*.md`.
-- `scripts/worktree.sh` owns every clean-checkout recovery for detective/critic verification;
-  self-verifying (`WORKTREE_READY`/`WORKTREE_REMOVED` only after the end state is confirmed,
-  `WORKTREE_FAILED` otherwise) and trusted by both callers. `WORKTREE_FAILED` is a verification
-  verdict (`NO FINDING` / `INCONCLUSIVE`), not a retry prompt.
-- The edge track carries NO Opportunity axis - a pair's Impact already comes from both
-  endpoints; inventing a pair-Opportunity would reintroduce the file-shaped blindness the edge
-  track exists to fix. Ranks by verdict class + pair-Impact only, never a 2x2 quadrant.
-- The critic never sees the detective's reasoning - only the claim sidecar (`LOCATION`,
-  `CLASS`, `## Reproduce`) - so its verdict is an independent reproduction, not a re-read.
-- `detective`, `critic`, `profiler` all carry `model: inherit` - a weaker session model means
-  weaker verification, not just a weaker sweep.
-- `detective` and `profiler` are the plugin's only writers, and both carry the repo-wide
-  read-back guard against an orphan closing tag (`</content>`, `</parameter>`) ending a file
-  they wrote. It matters twice over here: the claim sidecar is parsed, and the profile is
-  appended to `job.md` verbatim, so one stray tag reaches every agent of the run.
+- `references/synthesis.md` - sole authority on the report head block, the claim sidecar, the critic
+  verdict fold, dedupe, severity and the shape of `findings.md`. `SKILL.md` points at it and must not
+  restate it.
+- `references/scoring.md` - the 1-5 rubric, the 2x2 file gate, the edge verdict set.
+- `references/jobs.md` - the Impact/Opportunity signal pair per job.
+- Script headers - every flag, output schema and edge case of the four scripts.
+- `job.md` is the one self-contained brief every agent scores against: `Target root:`, `Window:`,
+  optional `Scope:`, the inlined rubric and the `## Repo profile` section.
 
-## Anti-patterns
+## Contracts between files
 
-- Growing elaborate scaffolding around the agents - a clever harness tends to become a cage the
-  next model release makes unnecessary.
-- Letting `code-auditor` skip either track, or letting a detective dispatch from only one track.
+- **Join keys.** `scout` echoes `path` and `edge-scout` echoes `a`/`b` byte-identical to the record it
+  was handed; `rank.ts` joins scores to `signals.jsonl` on `path`, `rank_edges.ts` joins verdicts to
+  `edges.jsonl` on the pair. A normalised path silently drops the row from the gate.
+- **Profile headings.** `## Bug classes from history`, `## Contract shape`, `## Critical paths`,
+  `## Severity calibration` are written by `profiler.md`, checked verbatim by the Phase 0 profile gate
+  in `SKILL.md`, and read by name in `synthesis.md`, `jobs.md` and `critic.md`. Rename in all of them
+  at once.
+- **Critic isolation.** The critic gets the sidecar, `job.md`, the worktree script and its own worktree
+  path - never the report. The sidecar carries `LOCATION`, `CLASS` and `## Reproduce` only. A sidecar
+  field change touches `detective.md`, `critic.md` and `synthesis.md` together.
+- **Verdict enums.** Edge: `MATCH | MISMATCH | UNCLEAR | NO_CONTRACT` (`edge-scout.md` -> `rank_edges.ts`,
+  only `MISMATCH`/`UNCLEAR` dispatch). Critic: `VERIFIED | REFUTED | PARTIALLY VERIFIED | INCONCLUSIVE`
+  (`critic.md` -> `synthesis.md` fold).
+- **Scope narrows output only.** With `--scope`, both sweep scripts still compute every signal
+  repo-wide, so a scoped record is byte-identical to the unscoped one; `collect_edges.sh` keeps a pair
+  with one endpoint outside the area on purpose. The skill validates the directory exists before
+  calling them; the scripts treat an empty match as exit 0.
+- **The two sweep scripts share their universe verbatim**: `DENY_EXT`, `noise_filter`, the two-pass
+  extension discovery, the quoted-path skip and the `--scope` validation are copied, not sourced. Edit
+  both or the file and edge tracks cover different files.
+- **`worktree.sh` is trusted.** It self-verifies and recovers internally, prints exactly one
+  `WORKTREE_READY|REMOVED|FAILED` line; callers never branch on a git error. `WORKTREE_FAILED` is
+  `NO FINDING` for a detective, `INCONCLUSIVE` for a critic.
+- **Node >= 22.6.** `check_node.sh` resolves the `node` command for the `.ts` gates and halts the run
+  before any spend when it prints `NODE_MISSING`. It is a copy of `superui`'s
+  `pro-designer/scripts/check_node.sh`; `tests/superui/check_node.test.ts` asserts the two behave
+  identically, so change both.
 
-## Related context
+## Traps
 
-- Root cross-plugin invariants: `../CLAUDE.md`
-- Shares a byte-identical `check_node.sh` with superui: `../superui/CLAUDE.md`
-- superfix declares no cross-plugin chains.
+- Unlike the root's direct-call invariant, `code-auditor` pre-approves bare `Bash` and calls its
+  scripts through an interpreter (`sh check_node.sh`, `bash collect_*.sh`, `node rank*.ts`,
+  `sh worktree.sh`). `check_node.sh` and `worktree.sh` are POSIX `#!/bin/sh`; the collectors need bash.
+- `rank.ts` is a behaviour-exact port of a Python original: its bespoke JSON parser/dumper
+  (`PyFloat`, key-order-preserving `Map`) and argparse-shaped usage text mirror Python output, and
+  `tests/superfix/rank.test.ts` pins it. Never swap in `JSON.parse`/`JSON.stringify`.
+  `rank_edges.ts` has no such layer.
+- `tests/superfix/profiler.test.ts` lifts the fenced `git log` block from `agents/profiler.md` verbatim
+  and runs it: editing that block edits a test input. `--since=<n>.days.ago` must stay in that form
+  (`--since=30d` parses to "now" and returns an empty log with exit 0).
+- Phase 2 (scouts) must not start until the profile gate has resolved, and the gate's second miss is not a
+  stop: the run continues uncalibrated and says `repo profile unavailable` in `findings.md`.
+
+## Tests
+
+`tests/superfix/` holds one file per script plus `profiler.test.ts`:
+`node --test "tests/superfix/*.test.ts"`.
