@@ -269,6 +269,76 @@ test("a config already carrying every template key is byte-identical after a run
   });
 });
 
+test("a rooted '/.temp/' rule counts as present - no second .temp entry is appended", () => {
+  withGitRepo(({ dir, env }) => {
+    const ignore = path.join(dir, ".gitignore");
+    const before = "node_modules/\n/.temp/\nbuild/\n";
+    fs.writeFileSync(ignore, before);
+
+    const result = run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^\.gitignore: already ignores \.temp\/$/m);
+    assert.equal(read(ignore), before);
+  });
+});
+
+test("a '.temp/**' glob rule counts as present - no second .temp entry is appended", () => {
+  withGitRepo(({ dir, env }) => {
+    const ignore = path.join(dir, ".gitignore");
+    const before = "node_modules/\n.temp/**\nbuild/\n";
+    fs.writeFileSync(ignore, before);
+
+    const result = run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^\.gitignore: already ignores \.temp\/$/m);
+    assert.equal(read(ignore), before);
+  });
+});
+
+test("a '.temp/*' glob rule counts as present - no second .temp entry is appended", () => {
+  withGitRepo(({ dir, env }) => {
+    const ignore = path.join(dir, ".gitignore");
+    const before = "node_modules/\n.temp/*\nbuild/\n";
+    fs.writeFileSync(ignore, before);
+
+    const result = run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^\.gitignore: already ignores \.temp\/$/m);
+    assert.equal(read(ignore), before);
+  });
+});
+
+test("an unanchored '**/.temp/' rule counts as present - no second .temp entry is appended", () => {
+  withGitRepo(({ dir, env }) => {
+    const ignore = path.join(dir, ".gitignore");
+    const before = "node_modules/\n**/.temp/\nbuild/\n";
+    fs.writeFileSync(ignore, before);
+
+    const result = run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^\.gitignore: already ignores \.temp\/$/m);
+    assert.equal(read(ignore), before);
+  });
+});
+
+test("a negated '!.temp/' rule does NOT count as present - the entry is still appended (a negation un-ignores, it does not ignore)", () => {
+  withGitRepo(({ dir, env }) => {
+    const ignore = path.join(dir, ".gitignore");
+    const before = "node_modules/\n!.temp/\nbuild/\n";
+    fs.writeFileSync(ignore, before);
+
+    const result = run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^\.gitignore: \.temp\/ appended$/m);
+    assert.equal(read(ignore), before + ".temp/\n");
+  });
+});
+
 test("a project with a CLAUDE.md is told to check it, and the file is left byte-unchanged", () => {
   withGitRepo(({ dir, env }) => {
     const memory = path.join(dir, "CLAUDE.md");

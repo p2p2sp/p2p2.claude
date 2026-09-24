@@ -162,7 +162,7 @@ if [ ! -f "$ignore" ]; then
   else
     echo ".gitignore: could not write $ignore"
   fi
-elif grep -qE '^[[:space:]]*\.temp/?[[:space:]]*$' "$ignore"; then
+elif grep -qE '^[[:space:]]*(\*\*/|/)?\.temp(/(\*\*?)?)?[[:space:]]*$' "$ignore"; then
   echo ".gitignore: already ignores .temp/"
 else
   if [ -s "$ignore" ] && [ -n "$(tail -c1 "$ignore")" ]; then
