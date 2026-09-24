@@ -27,7 +27,7 @@ Two independent questions over the spec's file map, each answered from what a fi
 ## Write
 
 - Number the IDs once for the whole build, across both documents together, before either one is rendered.
-- Every acceptance criterion gets at least one scenario, or a line in the out-of-scope section giving the reason it has none. A criterion the build made true behind an endpoint alone, with nothing observable on screen, lives as an `api` scenario in the handoff.
+- Every acceptance criterion gets at least one scenario, or a line in the `## Out of scope` section giving the reason it has none: `qa.md`'s when you write one, the handoff's otherwise. A criterion the build made true behind an endpoint alone, with nothing observable on screen, lives as an `api` scenario in the handoff.
 - One negative scenario per failure mode a person can trigger from the UI.
 - `qa.md` is written in the specification's own language, stated once here rather than repeated below. It names no file, no locator and no test. The handoff's headings and fields stay English whatever that language is, and a value the code does not establish is the literal `unknown`.
 - Never write the handoff's `## Automation` section: it belongs to the run that generates the tests.

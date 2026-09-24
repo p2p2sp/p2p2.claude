@@ -1,6 +1,6 @@
 # QA document formats
 
-Two documents per build, both in the run directory `docs/_specs/<stamp>_<slug>/`: `qa.md`, which a person performs by hand, and `qa.e2e.md`, which an agent turns into Playwright tests. That directory is unique to its build, so neither document ever replaces an earlier one.
+Two documents per build, both in the build's own run directory: `qa.md`, which a person performs by hand, and `qa.e2e.md`, which an agent turns into Playwright tests. That directory is unique to its build, so neither document ever replaces an earlier one.
 
 ## Scenario IDs
 
@@ -69,6 +69,9 @@ Accounts: <role> <login> - <where the passwords live> | unknown
 
 ## Not automatable
 - QA-<nn> - <reason no test can drive this scenario>
+
+## Out of scope
+- #<n> <criterion text> - <reason it has no scenario>
 ```
 
 The three header lines always come first, in that order. A UI entry carries all seven fields, an API entry all five, each on its own line in the template's order; nothing to seed is `none`. A section with no entries is left out rather than written empty, and an ID under `## Not automatable` gets no scenario entry and no automation line.
