@@ -13,7 +13,7 @@
 #                       current dir outside a repository), so a run from a
 #                       subdirectory never seeds a nested .claude/.
 #
-# Merge rules (applied by the embedded node program, only when the target
+# Merge rules (applied by the sibling merge program, only when the target
 # already exists), walked recursively over every key of the template:
 #   - a key the host lacks is added with the template's value.
 #   - an object on both sides is merged key by key, at any depth.
@@ -57,6 +57,7 @@
 #
 set -u
 
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 template="${1:-}"
 root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 if [ -z "$root" ] || [ ! -d "$root" ]; then
@@ -92,117 +93,5 @@ if [ ! -f "$target" ]; then
   exit 2
 fi
 
-node - "$template" "$target" <<'NODE'
-const fs = require("node:fs");
-
-const [templatePath, targetPath] = process.argv.slice(2);
-
-/** One stdout line is the whole contract, so a multi-line runtime message
- *  (V8 folds a JSON snippet into its parse errors) is flattened first. */
-const oneLine = (value) => String(value).replace(/\s+/g, " ").trim();
-const isObject = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
-
-function stop(line, code) {
-  console.log(line);
-  process.exit(code);
-}
-
-let template;
-try {
-  template = JSON.parse(fs.readFileSync(templatePath, "utf8"));
-} catch {
-  stop(`settings.json: template missing at ${templatePath} - skipped`, 1);
-}
-
-let raw;
-try {
-  raw = fs.readFileSync(targetPath, "utf8");
-} catch (error) {
-  stop(`settings.json: unreadable - left untouched (${oneLine(error.message)})`, 2);
-}
-
-let current;
-try {
-  current = JSON.parse(raw);
-} catch (error) {
-  stop(`settings.json: not valid JSON - left untouched (${oneLine(error.message)})`, 2);
-}
-if (!isObject(current)) {
-  stop("settings.json: not valid JSON - left untouched (top-level value is not an object)", 2);
-}
-
-const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-const counts = { keys: 0, entries: 0, values: 0, moved: 0 };
-
-const RULE_LISTS = new Set(["permissions.allow", "permissions.ask", "permissions.deny"]);
-const MATCH_ALL = new Set(["*", "**", "**/*"]);
-
-/** `Tool` or `Tool(<specifier>)` -> { tool, spec }, a match-all specifier
- *  folded to null (bare); anything else -> null. */
-function parseRule(entry) {
-  if (typeof entry !== "string") return null;
-  const match = /^([^()\s]+)(?:\((.*)\))?$/s.exec(entry);
-  if (!match) return null;
-  const spec = match[2] === undefined || MATCH_ALL.has(match[2].trim()) ? null : match[2];
-  return { tool: match[1], spec };
-}
-
-function covers(existing, entry) {
-  const have = parseRule(existing);
-  const want = parseRule(entry);
-  if (!have || !want || have.tool !== want.tool) return false;
-  return have.spec === null || have.spec === want.spec;
-}
-
-function mergeInto(host, tpl, prefix = "") {
-  for (const [key, value] of Object.entries(tpl)) {
-    const keyPath = prefix ? `${prefix}.${key}` : key;
-    if (!Object.prototype.hasOwnProperty.call(host, key)) {
-      host[key] = value;
-      counts.keys += 1;
-    } else if (isObject(host[key]) && isObject(value)) {
-      mergeInto(host[key], value, keyPath);
-    } else if (Array.isArray(host[key]) && Array.isArray(value)) {
-      const rules = RULE_LISTS.has(keyPath);
-      for (const entry of value) {
-        if (host[key].some((existing) => same(existing, entry) || (rules && covers(existing, entry)))) continue;
-        host[key].push(entry);
-        counts.entries += 1;
-      }
-    } else if (!same(host[key], value)) {
-      host[key] = value;
-      counts.values += 1;
-    }
-  }
-}
-
-mergeInto(current, template);
-
-const asked = template.permissions?.ask;
-const deny = current.permissions?.deny;
-if (Array.isArray(asked) && Array.isArray(deny)) {
-  const kept = deny.filter((entry) => !asked.includes(entry));
-  counts.moved = deny.length - kept.length;
-  current.permissions.deny = kept;
-}
-
-if (counts.keys + counts.entries + counts.values + counts.moved === 0) {
-  console.log("settings.json: already up to date");
-  process.exit(0);
-}
-
-const tmpPath = `${targetPath}.tmp`;
-try {
-  fs.writeFileSync(tmpPath, `${JSON.stringify(current, null, 2)}\n`);
-  fs.renameSync(tmpPath, targetPath);
-} catch (error) {
-  // The tmp file is deliberately left behind: the target is untouched and the
-  // merged result stays inspectable next to it.
-  stop(`settings.json: write failed (${oneLine(error.message)})`, 2);
-}
-
-console.log(
-  `settings.json: merged - added ${counts.keys} keys, ${counts.entries} list entries, updated ${counts.values} values, moved ${counts.moved} deny to ask`,
-);
-NODE
+node "$here/merge-settings.js" "$template" "$target"
 exit $?
