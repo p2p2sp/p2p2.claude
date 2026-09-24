@@ -21,15 +21,15 @@ One run's handoff file, one pass. Every scenario of its `qa.e2e.md` becomes one 
 
 Nothing about this project's stack is assumed. The test directory, the base URL, the launch command and the test accounts come from the project's own instructions, from the handoff's header lines, or from the user - never from a default of your own, and never carried over from another project.
 
-Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" <args>`, every argument double-quoted: never prefixed with an interpreter word, never assigned to a variable, never preceded by `cd`, never chained with `;`. The permission classifier matches the literal prefix, so any other form stalls the run on a prompt.
+Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" <args>`, every argument double-quoted: never prefixed with an interpreter word, never assigned to a variable, never preceded by `cd`, never chained with `;`.
 
 ## 1. Resolve the run
 
 The argument names either the run directory or the `qa.e2e.md` inside it; `<dir>` is that directory either way.
 
-With no argument, `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh"` returns the plan most recently worked on and `<dir>` is its directory. Two of its answers send you to the archive instead: exit 3 (no open run at all) and a run it resolved that holds no `qa.e2e.md`. Then `Glob` `docs/<specs>/*/qa.e2e.md`, `<specs>` being the `directories.specifications` value on the config block above, and take the newest by directory name. `<dir>` is that file's own directory.
+With no argument, `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh"` returns the plan most recently worked on and `<dir>` is its directory. Two of its answers send you to the fallback instead: exit 3 (no open run at all) and a run it resolved that holds no `qa.e2e.md`. Then `Glob` both `docs/<runs>/*/qa.e2e.md` and `docs/<specs>/*/qa.e2e.md`, `<runs>` and `<specs>` being the `directories.runs` and `directories.specifications` values on the config block above, and take the newest by directory name across both. `<dir>` is that file's own directory.
 
-No `<dir>/qa.e2e.md`, and no archived one either -> stop with one line naming the directory and saying it carries no handoff file.
+No `<dir>/qa.e2e.md`, and the fallback found none either -> stop with one line naming the directory and saying it carries no handoff file.
 
 ## 2. Preflight
 
@@ -77,7 +77,7 @@ Never open the application, write a spec file, edit one the writer produced, or 
 
 ## 6. Commit
 
-No ID processed at all -> skip to step 7, nothing new is in the tree. Otherwise one call, the handoff plus one path per `FILE:` line kept in step 5, and nothing else ever:
+No `FILE:` was kept in step 5 and no `BLOCKED` was returned there -> skip to step 7, nothing new is in the tree. Otherwise one call, the handoff plus one path per `FILE:` line kept in step 5, and nothing else ever:
 
 ```
 "${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --e2e "<dir>/qa.e2e.md" "<spec>" ...
