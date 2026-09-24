@@ -2,8 +2,8 @@
  * plan-index.test.ts - proves viber/scripts/plan-index.sh's two contracts.
  *
  * `plan-index.sh <plan>` validates the plan's structure and prints the compact
- * index that is the orchestrator's WHOLE view of it - the skill carries
- * `disallowed-tools: Read`, so a plan defect this script lets through is a
+ * index that is the orchestrator's WHOLE view of it - the skill's body forbids
+ * it to open a file, so a plan defect this script lets through is a
  * defect nothing else in the track can see. A non-zero exit must print nothing
  * on stdout and leave nothing on disk.
  *

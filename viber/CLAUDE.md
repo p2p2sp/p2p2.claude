@@ -27,7 +27,7 @@ Each skill's contract is its own body and each script's is its header comment; t
   the widest legal batch, gates on reviewers, commits, closes on `test-runner` and the per-switch
   writers, archives under `cleanup`.
 - `e2e` - `/viber:e2e`, user-only. One run's `qa.e2e.md` into Playwright specs, one ID at a time.
-  Carries `disallowed-tools: Write, Edit, NotebookEdit`.
+  Writes nothing itself: the body says so, never a `disallowed-tools:` line.
 - `fixer` - `/viber:fixer`, user-only. A traced diagnosis proven by a failing test, handed to
   `planner`. Never applies a fix.
 - `tdd` - the Red-Green-Refactor discipline, invoked by `task-coder` through the `Skill` tool.
@@ -162,6 +162,10 @@ there.
   and `test-runner` return `VERDICT: DENIED` with the refused tool and call as `REASON:`.
   `implementor` answers every `DENIED` with one `AskUserQuestion` whose first option re-dispatches
   the same agent, same model, same round - the one-tier-up retry never applies here.
+- **A dispatching skill limits itself in its body, never in `disallowed-tools:`.** `implementor`,
+  `memory`, `rules` and `e2e` dispatch writers; a skill's `disallowed-tools` strips those tools
+  from every agent dispatched in its first turn, which then starts without `Edit`/`Write` and
+  never gets them back. A retry in a later turn only works by accident.
 - **A background process never outlives its agent.** `task-coder`, `task-reviewer`, `test-runner` and `e2e-writer` kill theirs before
   returning; `implementor` answers a notice still reporting one with a `SendMessage` to that agent.
   Not a script: no process carries a mark of the agent that started it.

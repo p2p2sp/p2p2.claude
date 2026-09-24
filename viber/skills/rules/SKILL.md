@@ -3,7 +3,6 @@ name: rules
 description: Reviews and repairs the host project's .claude/rules/ directory - maps every rule with its own size, the scope it declares and the number of tracked files that scope really matches, proposes the rules a scope with none needs, verifies each existing rule against the code it gates, and resets the layer on demand. Use whenever the user wants to create, review, audit, refresh or reset the project's coding rules, or asks which rules went stale, match nothing or grew past their budget.
 argument-hint: "[review, extend, reset, or nothing]"
 allowed-tools: AskUserQuestion, Agent, Bash(${CLAUDE_SKILL_DIR}/scripts/rules-map.sh:*), Bash(${CLAUDE_SKILL_DIR}/scripts/rules-map.sh --reset:*)
-disallowed-tools: Read, Write, Edit, NotebookEdit
 user-invocable: true
 disable-model-invocation: true
 ---

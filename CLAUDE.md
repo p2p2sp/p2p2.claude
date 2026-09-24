@@ -118,7 +118,11 @@ mechanics against `.github/scripts/release.sh` before restating them.
 - **`allowed-tools` does NOT restrict the tool set** - it is a one-turn pre-approval only; every
   other tool stays callable and merely prompts the user if unlisted. A strictly read-only worker
   needs `disallowed-tools:` (bare names, never `Tool(pattern)`) PLUS a body line naming its only
-  tools. The agent-side equivalent is the `tools:` frontmatter field. A skill that both
+  tools. The agent-side equivalent is the `tools:` frontmatter field. A skill that dispatches
+  agents never carries `disallowed-tools:`: the removal holds for the whole session until the
+  next user message, subagents included, so an agent dispatched in that turn starts without the
+  tools and keeps that list for its whole run (harness: "Edit is disabled for this session, in
+  subagents as well as here"). Such a skill states its limits in its body alone. A skill that both
   `!`-preloads a script and denies bare `Bash` is undefined behavior.
 - **No orphan closing tag in a written file.** A writer agent sometimes ends a file it creates
   with a bare `</content>` - the closing tag of its own write call leaking into the value. It is

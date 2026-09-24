@@ -3,7 +3,6 @@ name: memory
 description: Reviews and repairs the host project's CLAUDE.md cascade - maps every node with its own size and the size of the chain a reader loads with it, creates the nodes a project with none needs, verifies each existing node against the code of the area it describes, brings every node within budget, and resets the layer on demand. Use whenever the user wants to create, bootstrap, initialize, refresh, audit or reset project memory, or asks which nodes went stale, lost their area or grew past their budget.
 argument-hint: "[review, extend, reset, or nothing]"
 allowed-tools: AskUserQuestion, Agent, Bash(${CLAUDE_SKILL_DIR}/scripts/memory-map.sh:*), Bash(${CLAUDE_SKILL_DIR}/scripts/memory-map.sh --reset:*)
-disallowed-tools: Read, Write, Edit, NotebookEdit
 user-invocable: true
 disable-model-invocation: true
 ---

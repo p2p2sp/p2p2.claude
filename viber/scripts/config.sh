@@ -7,7 +7,7 @@
 # Code asks for approval on every member of one - which stalls the step on any
 # permission mode that does not auto-accept everything. One script is ONE
 # command to the permission engine. It is also the only way `implementor` can
-# read the file at all: that skill carries `disallowed-tools: Read`.
+# read the file at all: that skill's body forbids it to open a file.
 #
 # The file is resolved against the REPOSITORY ROOT, not the caller's cwd: a `!`
 # preload runs wherever the session started, and a session started in a

@@ -3,7 +3,6 @@ name: e2e
 description: Generates and locally verifies Playwright tests for the QA scenarios of one viber run, then commits them. Use it after a build closed with a qa.e2e.md handoff file in its run directory.
 argument-hint: "[run directory, or a path to qa.e2e.md]"
 allowed-tools: Read, Grep, Glob, Bash, Agent, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/check-playwright.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*)
-disallowed-tools: Write, Edit, NotebookEdit
 user-invocable: true
 disable-model-invocation: true
 ---

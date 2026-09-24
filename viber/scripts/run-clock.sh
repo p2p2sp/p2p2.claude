@@ -3,8 +3,8 @@
 # run-clock.sh - the run's clock: prints the epoch second a build starts, and
 # turns that mark back into the time the build took.
 #
-# It exists because `implementor` has no other source of time. That skill
-# carries `disallowed-tools: Read`, so it cannot open a file to find a
+# It exists because `implementor` has no other source of time. That skill's
+# body forbids it to open a file, so it cannot read one to find a
 # timestamp, and the only thing it is handed at load is what its `!` preloads
 # print. The arithmetic and the formatting belong here rather than in the
 # model: a duration composed in prose is a duration that can be wrong, and the
