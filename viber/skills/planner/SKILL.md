@@ -13,7 +13,7 @@ user-invocable: false
 
 Input: an understood change already in context - a confirmed `viber:idea` interview, or a `viber:fixer` diagnosis. Anything else is unresolved input however clear it reads: invoke the `viber:idea` skill instead and stop here, never entering plan mode. Never size the scope yourself.
 
-CRITICAL: on valid input call `EnterPlanMode` first unless plan mode is already active.
+On valid input call `EnterPlanMode` first unless plan mode is already active.
 
 The input carries three decisions already taken: the spec shape, whether this plan stops at a draft, and, on a round continuing an earlier draft, that draft's run key. Never reopen them.
 

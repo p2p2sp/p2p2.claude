@@ -44,8 +44,15 @@
 #            the first such assignment, cut at the first space or `#`, and must
 #            match `[A-Za-z0-9._-]+` and be neither `.` nor `..`; anything else
 #            -> the default, silently.
-#   stdout : a header line, then one `<key>: <true|false>` line per switch and
-#            one `directories.<key>: <name>` line per directory key - dotted, so
+#            tiers.min (default `haiku`) and tiers.max (default `opus`) - the
+#            model range implementor clamps its dispatches into. Read the same
+#            group-bound way; the value is one of haiku, sonnet, opus, fable (any
+#            case). The default max stays opus: fable is reached only when a
+#            project names it. Anything else -> that key's default; min above
+#            max -> both defaults.
+#   stdout : a header line, then one `<key>: <true|false>` line per switch,
+#            one `directories.<key>: <name>` line per directory key and one
+#            `tiers.<key>: <tier>` line per tier key - dotted, so
 #            the block reads the way the file does and no reader can take a
 #            directory name for a switch - in a fixed order:
 #              # viber config (resolved)
@@ -56,7 +63,9 @@
 #              cleanup: true
 #              directories.runs: _specs
 #              directories.specifications: specs
-#   exit   : ALWAYS 0 (fail-open - a missing file or key never breaks a run, and
+#              tiers.min: haiku
+#              tiers.max: opus
+#   exit  : ALWAYS 0 (fail-open - a missing file or key never breaks a run, and
 #            a non-zero exit in a `!` preload would abort the whole skill load).
 #
 set -u
@@ -77,32 +86,54 @@ resolve() {
   fi
 }
 
-# A directory name out of the `directories:` group, or the fallback when the
-# file gives none usable. The awk tracks the group rather than matching the key
-# anywhere: a top-level line that is not `directories:` closes it, while a blank
-# line and a comment at column 0 leave it open, which is how the group is
-# written. The value is one path SEGMENT, and the rejection list is what stops a
-# slash, a traversal or an absolute path from turning a docs/ layer into
-# somewhere else.
-resolve_dir() {
-  key="$1"
-  fallback="$2"
-  value=""
-  if [ -f "$cfg" ]; then
-    value="$(awk -v key="$key" '
-/^[^[:space:]#]/ { ingroup = ($0 ~ /^directories[[:space:]]*:/); next }
+# The raw value of one key inside one group, empty when the file gives none. The
+# awk tracks the group rather than matching the key anywhere: a top-level line
+# that is not the group's own closes it, while a blank line and a comment at
+# column 0 leave it open, which is how a group is written.
+group_value() {
+  group="$1"
+  key="$2"
+  [ -f "$cfg" ] || return 0
+  awk -v group="$group" -v key="$key" '
+/^[^[:space:]#]/ { ingroup = ($0 ~ "^" group "[[:space:]]*:"); next }
 ingroup && $0 ~ "^[[:space:]]+" key "[[:space:]]*:" {
   sub(/^[^:]*:[[:space:]]*/, "")
-  sub(/[[:space:]#].*$/, "")
+  sub(/[[:space:]#\r].*$/, "")
   print
   exit
 }
-' "$cfg")"
-  fi
+' "$cfg"
+}
+
+# A directory name, or the fallback. The value is one path SEGMENT, and the
+# rejection list is what stops a slash, a traversal or an absolute path from
+# turning a docs/ layer into somewhere else.
+resolve_dir() {
+  value="$(group_value directories "$1" || true)"
   case "$value" in
-    ''|.|..|*[!A-Za-z0-9._-]*) value="$fallback" ;;
+    ''|.|..|*[!A-Za-z0-9._-]*) value="$2" ;;
   esac
   echo "$value"
+}
+
+# A tier's rank, 0 for anything that is not one of the three tiers.
+tier_rank() {
+  case "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" in
+    haiku) echo 1 ;;
+    sonnet) echo 2 ;;
+    opus) echo 3 ;;
+    fable) echo 4 ;;
+    *) echo 0 ;;
+  esac
+}
+
+tier_name() {
+  case "$1" in
+    1) echo haiku ;;
+    2) echo sonnet ;;
+    4) echo fable ;;
+    *) echo opus ;;
+  esac
 }
 
 echo "# viber config (resolved)"
@@ -111,5 +142,16 @@ for key in adr memory rules qa cleanup; do
 done
 printf 'directories.runs: %s\n' "$(resolve_dir runs _specs)"
 printf 'directories.specifications: %s\n' "$(resolve_dir specifications specs)"
+
+min="$(tier_rank "$(group_value tiers min || true)")"
+max="$(tier_rank "$(group_value tiers max || true)")"
+[ "$min" -eq 0 ] && min=1
+[ "$max" -eq 0 ] && max=3
+if [ "$min" -gt "$max" ]; then
+  min=1
+  max=3
+fi
+printf 'tiers.min: %s\n' "$(tier_name "$min")"
+printf 'tiers.max: %s\n' "$(tier_name "$max")"
 
 exit 0

@@ -26,12 +26,13 @@ You orchestrate and delegate: every piece of work runs inside a subagent. Write 
 - Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" "<arg>" ...`, every argument double-quoted: never prefixed with an interpreter, never assigned to a variable, never preceded by `cd`, never chained with `;`.
 - Every dispatch or call that starts or ends a task-list entry carries that entry's `TaskUpdate` in the same message.
 - An agent's completion notice saying it "stopped with background work of its own still running": hold its verdict and `SendMessage` that agent, once: `Stop every process you started that is still running, then return your output lines again.` Act on what it returns then. The same notice again -> act on the verdict and name that agent's task in the final summary.
+- An agent returning no `VERDICT:` line: `SendMessage` that agent, once: `Finish your task, then return your output lines.` Still none -> act as on `VERDICT: FAIL` with `REASON: no verdict returned`.
 
 ## Answers
 
 Every question below offers some of these four answers, each doing exactly this wherever it is offered:
 
-- `retry`: dispatch again, with its own dispatch lines, the agent that failed or was refused; after failed review or test rounds that is the task's coder or the repair coder. After a `FAIL`: one tier up (`haiku` -> `sonnet` -> `opus`, `opus` stays), carrying `reason: <the returned REASON>` on a coder's own failure, or the last `REVIEW` or `REPORT` path as `report:` after failed rounds; the round counter continues, the next 2 rounds counting as 1 and 2 of 2, and a `TaskUpdate` rewrites the task's subject with the new tiers. After a `DENIED`: same model, same round, a task's coder adding `reason: <the returned REASON>`. After a failed commit: run the same call again.
+- `retry`: dispatch again, with its own dispatch lines, the agent that failed or was refused; after failed review or test rounds that is the task's coder or the repair coder. After a `FAIL`: one tier up (`haiku` -> `sonnet` -> `opus` -> `fable`), never past `tiers.max`, where it stays, carrying `reason: <the returned REASON>` on a coder's own failure, or the last `REVIEW` or `REPORT` path as `report:` after failed rounds; the round counter continues, the next 2 rounds counting as 1 and 2 of 2, and a `TaskUpdate` rewrites the task's subject with the new tiers. After a `DENIED`: same model, same round, a task's coder adding `reason: <the returned REASON>`. After a failed commit: run the same call again.
 - `skip`: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip "<plan>" "<id>"`, then drop that task and every task depending on it (`TaskUpdate` -> completed for each). Its half-finished files stay uncommitted in the tree; name them in the final summary.
 - `accept`: the user overrides the gate. On a task: its commit with `--unreviewed` appended, the task named unreviewed in the final summary. On the test run: go to step 6, the failing or refused run named in the final summary.
 - `abort`: stop every dispatch, go to step 7.
@@ -79,6 +80,8 @@ Tier:
 - Load-bearing: defines a contract other tasks consume, spans many files, or several tasks depend on it -> `opus`.
 
 Review: only a `Verification` that runs the project's build or its tests waives the reviewer, and never on an `opus` task. A task proved by `grep`, `test -f` or any other content check is reviewed whatever its tier. Its review tier is the task's tier, raised to `sonnet` from `haiku`.
+
+Then clamp both tiers into the config block's `tiers.min` to `tiers.max` range (`haiku` < `sonnet` < `opus` < `fable`). The review waiver is decided before the clamp.
 
 `TaskCreate` the remaining tasks, a final test run, and one entry for each of the `memory`, `rules`, `qa` and `cleanup` switches the config block reports as `true`. Task subject: `<id> - <title> (<tier>)`, or `(<tier>, review <review tier>)` when reviewed.
 
@@ -128,7 +131,7 @@ Start with every task whose `deps` are done, in one message. On every return, an
 
 Dispatch `viber:test-runner` with report path `<dir>/work/tests-<round>.md`, round starting at 1.
 
-Repair dispatch: `viber:task-coder` (model `sonnet`, raised only by `retry`) with `spec: <dir>/spec.md`, the last `REPORT` path as `report:`, `notes: <dir>/work/repair-<round>-coder.md`, `out: .temp/viber/repair-<round>/` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`.
+Repair dispatch: `viber:task-coder` (model `sonnet` clamped into the tiers range, raised only by `retry`) with `spec: <dir>/spec.md`, the last `REPORT` path as `report:`, `notes: <dir>/work/repair-<round>-coder.md`, `out: .temp/viber/repair-<round>/` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`.
 
 Repair commit, every path on the coder's `FILES:` line through the form that owns it:
 

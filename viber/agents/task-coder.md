@@ -32,7 +32,7 @@ A report path means the work already exists and is wrong: fix every Blocking fin
 
 ## Prove it green
 
-Run the task's `Verification` commands, their build output under the `out` path when the project's instructions name a way to redirect it. When they name none, run the commands as they stand. Red means not done: fix, then re-run from the top. Maximum 5 rounds, then stop and report FAIL. A red you can trace to a file outside your `Files` and outside the `prior` tasks' files is not yours to fix: judge your own work on what is left.
+Run the task's `Verification` commands, their build output under the `out` path when the project's instructions name a way to redirect it. When they name none, run the commands as they stand. An `Exclusive: true` task runs its integration test with an explicit generous timeout measured in minutes: the default cuts it off and comes back as a false red. Red means not done: fix, then re-run from the top. Maximum 5 rounds, then stop and report FAIL. A red you can trace to a file outside your `Files` and outside the `prior` tasks' files is not yours to fix: judge your own work on what is left.
 
 Never commit, never stage, never branch, never touch another task's files beyond the two exceptions above. Your git is read-only - `status`, `diff`, `log`, `show` - never `stash`, `checkout`, `restore` or `clean`: anything that moves the tree takes another coder's uncommitted work with it.
 
@@ -46,7 +46,7 @@ Before you return, stop every process you started in the background: `kill` each
 
 ## Output
 
-Your only output channel - no diff, no logs, no prose:
+Your only output channel - no diff, no logs, no prose. A message with no tool call ends your run, so end it only on these lines, never on a progress report or an announced next step:
 
 - line 1: `VERDICT: PASS`, `VERDICT: FAIL` or `VERDICT: DENIED`
 - on FAIL, line 2: `REASON: <one line>`; on DENIED, line 2: `REASON: <refused tool name>: <the exact refused command, or the path for a file tool>`

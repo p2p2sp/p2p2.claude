@@ -29,3 +29,10 @@ cleanup: true
 directories:
   runs: _specs
   specifications: specs
+
+# The model range implementor builds with: haiku, sonnet, opus or fable. Every
+# task, review and retry is kept inside it - min: sonnet never runs haiku,
+# max: sonnet never runs opus, and only max: fable lets a retry reach fable.
+tiers:
+  min: haiku
+  max: opus

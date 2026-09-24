@@ -62,7 +62,7 @@ Before you return, stop every process you started in the background: `kill` each
 
 ## Output
 
-Your only output channel - no diff, no logs, no test output:
+Your only output channel - no diff, no logs, no test output. A message with no tool call ends your run, so end it only on these lines, never on a progress report or an announced next step:
 
 - line 1: `VERDICT: PASS`, `VERDICT: BLOCKED` or `VERDICT: FAIL`
 - on PASS, line 2: `FILE: <repo-relative path of the generated spec>`, the same path the status line carries

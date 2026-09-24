@@ -103,7 +103,7 @@ there.
   delete. `stash`/`checkout`/`restore`/`clean` are kept out by `task-coder`'s and
   `task-reviewer`'s own bodies, not by the template.
 - **The switches are read through `config.sh` alone; the directory keys have three readers.**
-  Five switches, fail-open, always exit 0. `plan-path.sh` and `archive-run.sh` parse the
+  Five switches plus the `tiers:` group, fail-open, always exit 0. `plan-path.sh` and `archive-run.sh` parse the
   `directories:` group themselves, running with no skill above them.
 - **The coders' notes are the input of the close, and of the gate beside them.** `task-coder`
   leaves at most 8 lines of what the diff does not say; the close's writers, `closeout`,
@@ -147,7 +147,12 @@ there.
   three tiers, dead on `haiku` on purpose; `task-reviewer` takes its task's own model tier (`opus`
   only as fallback) at `effort: medium`. Three more agents - `closeout`, `memory-auditor`,
   `rules-auditor` - are pinned to `effort: medium` too. A retried coder goes out one tier up
-  carrying its own `REASON:`.
+  carrying its own `REASON:`. `config.sh`'s `tiers.min`/`tiers.max` bound every tier `implementor`
+  dispatches, retries included. `fable` ranks above `opus` but the default `max` stays `opus`:
+  fable is a planning model, reached in a build only when the project names it.
+- **A subagent's run ends on its output lines, never on a report.** A message with no tool call
+  ends a subagent, so `task-coder` and `e2e-writer` forbid ending on a progress note, and
+  `implementor` answers a return with no `VERDICT:` with one `SendMessage`, then treats it as FAIL.
 - **The gate arms on two signals** - the planner skill running, and a Write/Edit of a
   `plans/*.md` file in the same episode.
 - **A harness refusal is its own verdict, never worked around.** `task-coder`, `task-reviewer`

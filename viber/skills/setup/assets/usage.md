@@ -57,3 +57,9 @@ A `directories:` group names two directories rather than switches: `runs` (`_spe
 open run lives under `docs/`, `specifications` (`specs`) is where `cleanup` archives a finished
 one. Both are plain directory names, read only from inside that group - a value carrying a slash
 is ignored and the default stands.
+
+A `tiers:` group bounds the models the build dispatches: `min` (`haiku`) and `max` (`opus`), each
+one of `haiku`, `sonnet`, `opus` or `fable`. Every task, review and retry is kept inside that
+range; fable runs only when the range names it. An unknown value falls back to its default and an
+inverted range to the default one. Planning runs on
+the session's own model and is not bound by it.

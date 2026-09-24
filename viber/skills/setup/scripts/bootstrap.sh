@@ -56,7 +56,9 @@ fi
 # comment lines directly above it - and inserts the missing children of the
 # `directories:` group inside that group, where they have to sit to be read. A
 # `directories:` carrying a value rather than a group is left untouched: only the
-# shape the template ships can be extended safely. A config written with CRLF
+# shape the template ships can be extended safely. Every other group, `tiers:`
+# among them, is appended whole when absent and never extended: a missing child
+# resolves to its default in config.sh. A config written with CRLF
 # endings comes back with one ending throughout, never a mix: an awk that hands
 # the merge its CR keeps CRLF, one reading in text mode (Git-Bash) rewrites the
 # file LF. A mixed file is the one outcome that would corrupt it, since a

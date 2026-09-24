@@ -69,8 +69,18 @@ function switches(stdout: string): Record<string, string> {
   const all = config(stdout);
   delete all["directories.runs"];
   delete all["directories.specifications"];
+  delete all["tiers.min"];
+  delete all["tiers.max"];
   return all;
 }
+
+/** The two tier keys alone, under their short names. */
+function tiers(stdout: string): Record<string, string> {
+  const all = config(stdout);
+  return { min: all["tiers.min"], max: all["tiers.max"] };
+}
+
+const DEFAULT_TIERS = { min: "haiku", max: "opus" };
 
 /** The two directory keys alone, under their short names. The script prints
  *  them dotted, which is itself asserted below. */
@@ -89,10 +99,15 @@ test("no config file: every switch is off, both directories default, and the exi
   });
 });
 
-test("the directory keys are printed dotted, so no reader can take one for a switch", () => {
+test("the group keys are printed dotted, so no reader can take one for a switch", () => {
   withTempDir("p2p2-viber-", (dir) => {
     const printed = run(dir).stdout.trim().split("\n");
-    assert.deepEqual(printed.slice(-2), ["directories.runs: _specs", "directories.specifications: specs"]);
+    assert.deepEqual(printed.slice(-4), [
+      "directories.runs: _specs",
+      "directories.specifications: specs",
+      "tiers.min: haiku",
+      "tiers.max: opus",
+    ]);
   });
 });
 
@@ -139,6 +154,7 @@ test("the shipped template is what setup seeds: four switches on, qa off, and bo
       cleanup: "true",
     });
     assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS);
+    assert.deepEqual(tiers(result.stdout), DEFAULT_TIERS);
   });
 });
 
@@ -247,6 +263,66 @@ test("a commented-out directory key is not an assignment, so the default stands"
     writeConfig(dir, ["directories:", "  # runs: commented", "  specifications: kept", ""].join("\n"));
 
     assert.deepEqual(dirs(run(dir).stdout), { runs: "_specs", specifications: "kept" });
+  });
+});
+
+// --- the tiers group ---
+
+test("the tiers group narrows the range, case and a trailing comment notwithstanding", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, ["tiers:", "  min: Sonnet  # never haiku", "  max: sonnet", ""].join("\n"));
+
+    const result = run(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(tiers(result.stdout), { min: "sonnet", max: "sonnet" });
+  });
+});
+
+test("fable is a tier above opus, reached only when the project names it", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, ["tiers:", "  min: sonnet", "  max: Fable", ""].join("\n"));
+
+    assert.deepEqual(tiers(run(dir).stdout), { min: "sonnet", max: "fable" });
+  });
+});
+
+test("an unknown tier falls back to that key's default alone", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, ["tiers:", "  min: sonnet", "  max: mythos", ""].join("\n"));
+
+    assert.deepEqual(tiers(run(dir).stdout), { min: "sonnet", max: "opus" });
+  });
+});
+
+test("fable as min above the default max is an inverted range, so both reset", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, ["tiers:", "  min: fable", ""].join("\n"));
+
+    assert.deepEqual(tiers(run(dir).stdout), DEFAULT_TIERS);
+  });
+});
+
+test("an inverted range resets both keys to the full range, so no dispatch is left without a model", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, ["tiers:", "  min: opus", "  max: haiku", ""].join("\n"));
+
+    assert.deepEqual(tiers(run(dir).stdout), DEFAULT_TIERS);
+  });
+});
+
+test("tier keys outside the tiers group are not tier keys", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, ["min: sonnet", "max: sonnet", group({ min: "sonnet" })].join("\n"));
+
+    assert.deepEqual(tiers(run(dir).stdout), DEFAULT_TIERS);
+  });
+});
+
+test("a CRLF config still yields its tiers (a stray CR is not part of the value)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, "tiers:\r\n  min: sonnet\r\n  max: sonnet\r\n");
+
+    assert.deepEqual(tiers(run(dir).stdout), { min: "sonnet", max: "sonnet" });
   });
 });
 

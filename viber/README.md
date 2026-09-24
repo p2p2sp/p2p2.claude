@@ -67,6 +67,18 @@ directories:
   specifications: specs
 ```
 
+A `tiers:` group sets the model range the build runs with (`haiku`, `sonnet`, `opus` or `fable`).
+Every task, review and retry stays inside it, so `min: sonnet` never runs Haiku and `max: sonnet`
+never runs Opus. Fable is used only when you name it, as `max: fable` (retries may climb to it) or
+`min: fable` with `max: fable` (the whole build). Planning is not affected: it runs on the model
+of your session.
+
+```yaml
+tiers:
+  min: haiku
+  max: opus
+```
+
 ## Before your first run
 
 The build and test commands come from your project's `CLAUDE.md`. If there is no such file, or it

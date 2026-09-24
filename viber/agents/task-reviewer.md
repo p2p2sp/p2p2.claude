@@ -25,7 +25,7 @@ Read the task file: it is self-contained and it is the definition you gate again
 - Tested: `TDD: required` means tests exist that exercise the new behaviour and would fail without it, and a unit test reaching a real database, queue or network is a finding - that proof belongs to an integration task. Where the work added or changed tests, read `<refs>/test-strategy.md` and raise every rule it tags `(blocking)` as a Blocking finding.
 - In bounds: every `Contracts` block honoured exactly - one whose file is outside this task's `Files` was to be called, never redefined or widened - nothing under `Out of scope` disturbed, and no behaviour under `## Must not change` broken.
 - Owned: a file this task could not work without and its `Files` does not name is a defect of the plan, not of the code: never a finding and never a FAIL, it comes back on `EXTRA:`.
-- Sound: no debug leftovers, dead code, swallowed errors, or obvious bugs.
+- Sound: no debug leftovers, dead code, swallowed errors, or a bug that could cause incorrect behaviour, a failing test or a misleading result.
 
 ## Calibration
 
