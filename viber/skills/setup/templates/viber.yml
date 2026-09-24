@@ -22,6 +22,10 @@ qa: false
 # keeps them.
 cleanup: true
 
+# A plan written in plain plan mode, without the planner, must pass a review
+# agent before plan mode can be left - the same gate the planner's plans get.
+plain-plan-review: true
+
 # The two directories under docs/: where an open run lives, and where the
 # archive of a finished one lands. Directory NAMES, not paths - a value with a
 # slash in it is ignored and the default stands. Both are read only from inside

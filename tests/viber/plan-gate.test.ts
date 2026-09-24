@@ -8,10 +8,13 @@
  * the only form it can take, plus a Write/Edit of a `plans/*.md` file), then allow
  * ExitPlanMode only for a `viber:planner-review` dispatch that FOLLOWED the last
  * plan write, returned `VERDICT: PASS`, and whose plan file has not been touched
- * since (mtime vs. the verdict's transcript timestamp). Everything else - plain
- * plan mode, an episode that already built a plan, an unreadable transcript -
- * passes untouched: a broken gate must never trap the user in plan mode, so every
- * case here also asserts exit 0 and parseable JSON.
+ * since (mtime vs. the verdict's transcript timestamp). A plain plan-mode plan
+ * (a plan write with no planner skill) is gated the same way by
+ * `viber:plain-plan-review`, but only when the session cwd's `.claude/viber.yml`
+ * turns `plain-plan-review` on. Everything else - plain-plan-review off, an episode that
+ * already built a plan, an unreadable transcript - passes untouched: a broken
+ * gate must never trap the user in plan mode, so every case here also asserts
+ * exit 0 and parseable JSON.
  *
  * Fixture lines are built as JS objects and serialized with JSON.stringify, so
  * quotes, backslashes and newlines are escaped exactly the way the real
@@ -99,11 +102,11 @@ function planWrite(filePath = PLAN, name: "Write" | "Edit" = "Write"): string {
   return line({ type: "assistant", message: { content: [{ type: "tool_use", name, input: { file_path: filePath, content: "# Plan" } }] } });
 }
 
-function dispatch(id?: string): string {
+function dispatch(id?: string, agent = "viber:planner-review"): string {
   const use: Record<string, unknown> = {
     type: "tool_use",
     name: "Agent",
-    input: { subagent_type: "viber:planner-review", prompt: `review ${PLAN}` },
+    input: { subagent_type: agent, prompt: `review ${PLAN}` },
   };
   if (id) use.id = id;
   return line({ type: "assistant", message: { content: [use] } });
@@ -169,7 +172,7 @@ test("a transcript that is not JSONL at all -> allow, no crash", () => {
 
 // --- arming: both signals, inside the episode -------------------------
 
-test("plain plan mode with no planner skill -> allow (the gate is not armed)", () => {
+test("plain plan mode with no planner skill and no session cwd -> allow (plain-plan-review cannot be read, so it is off)", () => {
   withTempDir("p2p2-plan-gate-", (dir) => {
     const f = writeTranscript(dir, "t.jsonl", [planWrite()]);
     assert.equal(runCase(f).decision, "allow");
@@ -535,5 +538,93 @@ test("the last of several plan writes is the one that must be reviewed", () => {
     const first = "/repo/.claude/plans/2026-09-20-09-00-00_a/plan.md";
     const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(first), dispatch(), PASS, planWrite(PLAN), dispatch(), PASS]);
     assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+// --- plain plan mode: plain-plan-review, behind the plain-plan-review switch --
+
+const PLAIN = "viber:plain-plan-review";
+
+/** A session cwd whose .claude/viber.yml carries the given body. */
+function sessionWithConfig(dir: string, body: string): string {
+  const cwd = path.join(dir, "session");
+  fs.mkdirSync(path.join(cwd, ".claude"), { recursive: true });
+  fs.writeFileSync(path.join(cwd, ".claude", "viber.yml"), body);
+  return cwd;
+}
+
+test("plain plan with plain-plan-review on and no review dispatch -> deny naming plain-plan-review and what to pass it", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const f = writeTranscript(dir, "t.jsonl", [planWrite()]);
+    const { decision, reason } = runCase(f, cwd);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /plain-plan-review agent has not run on this version/);
+    assert.match(reason ?? "", /one sentence stating the user's goal/);
+    assert.match(reason ?? "", /plain-plan-review in \.claude\/viber\.yml/);
+  });
+});
+
+test("plain plan with plain-plan-review off, absent, or no config file at all -> allow (the switch is the only arming signal)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [planWrite()]);
+    assert.equal(runCase(f, sessionWithConfig(path.join(dir, "a"), "plain-plan-review: false\n")).decision, "allow");
+    assert.equal(runCase(f, sessionWithConfig(path.join(dir, "b"), "adr: true\n")).decision, "allow");
+    const bare = path.join(dir, "c");
+    fs.mkdirSync(bare);
+    assert.equal(runCase(f, bare).decision, "allow");
+  });
+});
+
+test("plain plan with plain-plan-review on: plain-plan-review PASS -> allow, FAIL -> deny", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const pass = writeTranscript(dir, "pass.jsonl", [planWrite(), dispatch(undefined, PLAIN), PASS]);
+    assert.equal(runCase(pass, cwd).decision, "allow");
+    const fail = writeTranscript(dir, "fail.jsonl", [planWrite(), dispatch(undefined, PLAIN), FAIL]);
+    const { decision, reason } = runCase(fail, cwd);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /plain-plan-review agent returned 'VERDICT: FAIL'/);
+  });
+});
+
+test("the unprefixed subagent spelling 'plain-plan-review' is recognized -> allow", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const f = writeTranscript(dir, "t.jsonl", [planWrite(), dispatch(undefined, "plain-plan-review"), PASS]);
+    assert.equal(runCase(f, cwd).decision, "allow");
+  });
+});
+
+test("a planner-review PASS does not satisfy the plain gate -> deny (each path answers only to its own reviewer)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const f = writeTranscript(dir, "t.jsonl", [planWrite(), dispatch(), PASS]);
+    const { decision, reason } = runCase(f, cwd);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /plain-plan-review agent has not run on this version/);
+  });
+});
+
+test("a plain-plan-review PASS does not satisfy the planner gate -> deny, whatever plain-plan-review says", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(undefined, PLAIN), PASS]);
+    for (const [i, body] of ["plain-plan-review: true\n", "plain-plan-review: false\n"].entries()) {
+      const { decision, reason } = runCase(f, sessionWithConfig(path.join(dir, `s${i}`), body));
+      assert.equal(decision, "deny");
+      assert.match(reason ?? "", /viber:planner-review agent has not run on this version/);
+    }
+  });
+});
+
+test("plain plan modified after its plain-plan-review PASS -> deny (the mtime guard covers the plain path too)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const plan = realPlan(dir);
+    const stale = new Date(Date.now() - 3600_000).toISOString();
+    const f = writeTranscript(dir, "t.jsonl", [planWrite(plan), dispatch(undefined, PLAIN), verdict("PASS", { timestamp: stale })]);
+    const { decision, reason } = runCase(f, cwd);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /was modified after its 'VERDICT: PASS' - dispatch the viber:plain-plan-review agent/);
   });
 });

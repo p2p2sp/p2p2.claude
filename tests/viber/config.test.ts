@@ -36,7 +36,7 @@ const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/config.sh");
 
 /** Every switch off and both directory keys at their default - what a project
  *  with no config file, and every unusable value, resolves to. */
-const OFF = { adr: "false", memory: "false", rules: "false", qa: "false", cleanup: "false" };
+const OFF = { adr: "false", memory: "false", rules: "false", qa: "false", cleanup: "false", "plain-plan-review": "false" };
 const DEFAULT_DIRS = { runs: "_specs", specifications: "specs" };
 
 function run(dir: string, env: Record<string, string> = {}) {
@@ -125,7 +125,7 @@ test("the seeded template turns every switch on, comments and case notwithstandi
   withTempDir("p2p2-viber-", (dir) => {
     writeConfig(
       dir,
-      ["# viber switches", "adr: true  # the decisions worth keeping", "memory: TRUE", "rules: true", "qa: true", "cleanup: true", ""].join("\n"),
+      ["# viber switches", "adr: true  # the decisions worth keeping", "memory: TRUE", "rules: true", "qa: true", "cleanup: true", "plain-plan-review: true", ""].join("\n"),
     );
 
     const result = run(dir);
@@ -136,6 +136,7 @@ test("the seeded template turns every switch on, comments and case notwithstandi
       rules: "true",
       qa: "true",
       cleanup: "true",
+      "plain-plan-review": "true",
     });
   });
 });
@@ -170,7 +171,7 @@ test("`MEMORY: true` resolves to off - the key itself is matched case-sensitivel
   });
 });
 
-test("the shipped template is what setup seeds: four switches on, qa off, and both directories named", () => {
+test("the shipped template is what setup seeds: five switches on, qa off, and both directories named", () => {
   withTempDir("p2p2-viber-", (dir) => {
     const template = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/viber.yml");
     writeConfig(dir, fs.readFileSync(template, "utf-8"));
@@ -182,6 +183,7 @@ test("the shipped template is what setup seeds: four switches on, qa off, and bo
       rules: "true",
       qa: "false",
       cleanup: "true",
+      "plain-plan-review": "true",
     });
     assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS);
     assert.deepEqual(tiers(result.stdout), DEFAULT_TIERS);

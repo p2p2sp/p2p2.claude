@@ -32,7 +32,7 @@
 #   env    : none.
 #   file   : <repo root>/.claude/viber.yml (optional). No file -> every switch
 #            false, every directory key at its default.
-#   keys   : adr, memory, rules, qa, cleanup - switches. One is `true` ONLY
+#   keys   : adr, memory, rules, qa, cleanup, plain-plan-review - switches. One is `true` ONLY
 #            when the file holds a line whose key starts at column 0, spells
 #            the key name exactly (case-sensitive, no leading indentation),
 #            and whose value is `true` in any letter case (ended by a space,
@@ -66,6 +66,7 @@
 #              rules: true
 #              qa: true
 #              cleanup: true
+#              plain-plan-review: true
 #              directories.runs: _specs
 #              directories.specifications: specs
 #              tiers.min: haiku
@@ -142,7 +143,7 @@ tier_name() {
 }
 
 echo "# viber config (resolved)"
-for key in adr memory rules qa cleanup; do
+for key in adr memory rules qa cleanup plain-plan-review; do
   printf '%s: %s\n' "$key" "$(resolve "$key")"
 done
 printf 'directories.runs: %s\n' "$(resolve_dir runs _specs)"

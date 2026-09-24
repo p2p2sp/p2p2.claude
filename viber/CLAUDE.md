@@ -12,7 +12,7 @@ user's view of the same commands and switches; keep both in step when either cha
 ```
 skills/<name>/SKILL.md   9 skills; setup, memory, rules carry their own scripts/ (${CLAUDE_SKILL_DIR})
 skills/planner/          templates/ (spec-lite, spec-full, tasks) + references/adr-tasks.md
-agents/                  12 agents, each dispatched only by the skills its description names
+agents/                  13 agents, each dispatched only by the callers its description names
 scripts/                 7 plugin-wide scripts, shared across skills and agents
 references/              read at runtime by agents through the `refs:` dispatch line
 hooks/                   SessionStart manifest + PreToolUse plan gate
@@ -27,7 +27,8 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
   `e2e`, `memory` and `rules` are user-only commands (`disable-model-invocation: true`).
 - Dispatchers: planner -> planner-review; implementor -> task-coder, task-reviewer, test-runner,
   memory-writer, memory-auditor, memory-node-writer, rules-writer, qa-writer, closeout; memory ->
-  memory-auditor, memory-node-writer; rules -> rules-auditor, rules-writer; e2e -> e2e-writer. An
+  memory-auditor, memory-node-writer; rules -> rules-auditor, rules-writer; e2e -> e2e-writer; the
+  plan gate's deny -> plain-plan-review, dispatched by the main session. An
   agent's `description:` names its callers: update it when a skill starts or stops dispatching it.
 
 ## Orchestrator contract
@@ -138,10 +139,13 @@ touches the templates, `references/plan-rules.md` and every parser reading it.
 
 ## Plan gate
 
-`hooks/scripts/plan-gate.sh` arms on a Skill tool_use named `planner` (any plugin prefix) plus a
-write to `plans/*.md` within the current plan-mode episode, then allows `ExitPlanMode` only after a
-`planner-review` dispatch following the last plan write returned `VERDICT: PASS` and the plan's
-mtime is not newer. The names are matched literally: renaming the skill, the agent or the verdict
+`hooks/scripts/plan-gate.sh` arms on a write to `plans/*.md` within the current plan-mode episode
+and picks the reviewer: `planner-review` when a Skill tool_use named `planner` (any plugin prefix)
+ran in the episode, otherwise `plain-plan-review`, and only when `config.sh`, run in the payload's
+`cwd`, resolves `plain-plan-review: true`. It then allows `ExitPlanMode` only after a dispatch of that
+agent following the last plan write returned `VERDICT: PASS` and the plan's mtime is not newer. The
+deny reason is the plain path's only instruction channel: it tells the session what to pass the
+agent. The names are matched literally: renaming the skill, either agent, the switch or the verdict
 line disarms the gate, and fail-open means nothing reports it.
 
 ## Tool dependencies

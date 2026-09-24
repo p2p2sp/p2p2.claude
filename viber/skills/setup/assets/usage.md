@@ -45,8 +45,10 @@ build in progress - run them whenever the layer might have drifted.
 - `cleanup` - the build ends by noting on the specification anything it delivered that the
   specification does not promise, then archiving the run and dropping the plan, the state file
   and the trail. They are all in git, which is where the history belongs.
+- `plain-plan-review` - a plan written in plain plan mode, without the planner, must pass a review
+  before plan mode can be left.
 
-Four of the five start on; `qa` starts off, because a build that needs acceptance scenarios is the
+Five of the six start on; `qa` starts off, because a build that needs acceptance scenarios is the
 exception rather than the rule. Edit `.claude/viber.yml` to change that - every key is commented
 there, and only `true` counts as on. Turn a switch off with `false` rather than by deleting it:
 running `/viber:setup` again merges in whatever the current version's template carries and your

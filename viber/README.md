@@ -46,9 +46,9 @@ commits it, and finishes on the full test suite.
 
 ## Optional switches
 
-`/viber:setup` writes `.claude/viber.yml` with four of the five on and `qa` off. Edit that file to
+`/viber:setup` writes `.claude/viber.yml` with five of the six on and `qa` off. Edit that file to
 change any of them - only `true` counts as on, so turn a switch off with `false` rather than by
-deleting it. Without the file all five are off. Run `/viber:setup` again after an upgrade and any
+deleting it. Without the file all six are off. Run `/viber:setup` again after an upgrade and any
 switch the new version added is merged into your file, with every value you set left as it is.
 
 | Switch | Default | When on |
@@ -58,6 +58,7 @@ switch the new version added is merged into your file, with every value you set 
 | `rules` | on | The build closes by recording a convention it confirmed in `.claude/rules/`. |
 | `qa` | **off** | The build closes by writing test scenarios for what it delivered, which `/viber:e2e` can then automate. |
 | `cleanup` | on | The build ends by noting anything it delivered that the specification does not promise, then archiving the run and dropping the working files. |
+| `plain-plan-review` | on | A plan written in plain plan mode, without the planner, must pass a review before plan mode can be left. |
 
 The same file carries a `directories:` group with two names, both under `docs/`: `runs`
 (`_specs`) for a run in progress and `specifications` (`specs`) for the archive.

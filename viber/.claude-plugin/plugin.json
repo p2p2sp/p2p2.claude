@@ -20,6 +20,7 @@
   "agents": [
     "./agents/planner-review.md",
     "./agents/plain-plan-review.md",
+    "./agents/plain-plan-review.md",
     "./agents/task-coder.md",
     "./agents/task-reviewer.md",
     "./agents/test-runner.md",
