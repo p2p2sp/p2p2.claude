@@ -55,7 +55,7 @@ Each value still missing -> one `AskUserQuestion` naming it: provide it now, or 
 
 ## 4. Start the application
 
-Probe once with one Bash call of `curl -sf -o /dev/null "<base-url>"`. It answers -> the application is already up; run no command and go to step 5.
+Probe once with one Bash call of `curl -s -o /dev/null -w "%{http_code}" "<base-url>"`. Any code other than `000` answers, a 404 or 401 included -> the application is already up; run no command and go to step 5.
 
 Otherwise run the launch command as one background Bash call with its output redirected to `.temp/viber/e2e/launch.log`, then poll with the same probe every 2 seconds for up to 120 seconds. The first answer moves you on. No answer inside that bound -> `AskUserQuestion` quoting the last lines of that log: poll again at double the bound with the command left running, or abort.
 

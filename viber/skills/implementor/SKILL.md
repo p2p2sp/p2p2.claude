@@ -176,7 +176,7 @@ refs: ${CLAUDE_PLUGIN_ROOT}/references
 
 Any wave after the root's own (every wave, when the root is no `OVER:` path) returning a `FILES:` path other than its dispatched node, or a `DELETED:` line -> after the last wave, when the root `CLAUDE.md` exists and no `DELETED:` line named it, one more dispatch with the same lines on `node: CLAUDE.md`, `findings: none`.
 
-Commit what they return, one call per form: memory and rule paths, every `FILES:` path of the node writers among them, through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore "<plan>" "<file>" ["<file>"...]` only once every writer of this step, the last wave and any root dispatch returned; QA paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa "<plan>" "<file>" ["<file>"...]`. A form whose agents returned nothing or only `VERDICT: NONE` gets no call. Commit an `OVER:` line's path like any other.
+Commit what they return, one call per form: memory and rule paths, every `FILES:` path of the node writers among them, through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore "<plan>" "<file>" ["<file>"...]` only once every writer of this step, the last wave and any root dispatch returned; QA paths, the `FILES:` of `VERDICT: WRITTEN` or `VERDICT: KEPT`, through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa "<plan>" "<file>" ["<file>"...]`. A form whose agents returned nothing or only `VERDICT: NONE` gets no call. Commit an `OVER:` line's path like any other.
 
 Repeat verbatim in the final summary every `AUDIT:` line, every node writer's `DROPPED:`, `DELETED:`, `LIFT:` and `CHAIN:` line, every `OVER:` line whose node writer returned neither `VERDICT: UPDATED` nor `VERDICT: NONE`, and every `OVER:` line of `rules-writer`.
 
@@ -184,13 +184,13 @@ Then `TaskUpdate` -> completed for each entry, the `memory` entry only after the
 
 ## 7. Archive and close
 
-Only when the config block reports `cleanup: true` and step 6 ran: dispatch `viber:closeout` (Agent tool, no `model:`) carrying one line and nothing else:
+Only when the config block reports `cleanup: true` and the build did not end on `abort`: dispatch `viber:closeout` (Agent tool, no `model:`) carrying one line and nothing else:
 
 ```
 run: <dir>
 ```
 
-Carry its `DRIFT:` and `PATH:` lines to the final summary. `VERDICT: BLOCKED` -> the run directory stays where it is; name the reason in the final summary and continue.
+Carry its `DRIFT:` and `PATH:` lines to the final summary. `VERDICT: BLOCKED` -> no archive commit landed; name its `REASON:` in the final summary, plus, on a `DRIFT:` other than `none`, that `<dir>/spec.md` holds uncommitted drift markers, and that a failed git step may have left the run moved but uncommitted (`git status` shows it). Continue.
 
 Then `"${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh" "<started>"`, one call.
 

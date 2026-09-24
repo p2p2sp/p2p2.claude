@@ -42,7 +42,7 @@ Exactly one file, `<spec-dir>/<qa-id>-<slug>.spec.ts`, where `<qa-id>` is the ID
 
 ## Run
 
-`npx playwright test <file>`, one Bash call with an explicit generous timeout measured in minutes: a browser run left at a default timeout comes back as a false red. Redirect the output under `.temp/viber/e2e/` and read it there.
+`npx playwright test <file> --reporter=line --output=.temp/viber/e2e/test-results`, one Bash call with an explicit generous timeout measured in minutes: a browser run left at a default timeout comes back as a false red. The `line` reporter replaces an html one that serves its report on red and blocks until the timeout; `--output` keeps `test-results/` out of the project tree. Redirect the output under `.temp/viber/e2e/` and read it there.
 
 Red is classified before anything is touched:
 

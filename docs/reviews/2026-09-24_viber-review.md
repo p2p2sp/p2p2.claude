@@ -41,11 +41,11 @@ Wynik: 7 high, ok. 20 medium, reszta low. Punkty High 1-3 i 5 zweryfikowane ręc
 
 ### Zamknięcie, QA, e2e
 
-- `viber/agents/qa-writer.md:26` + `implementor/SKILL.md:177` - po wznowieniu istniejący `qa.md` daje `VERDICT: NONE`, a NONE nie dostaje commitu; dokumenty QA zapisane przed przerwanym commitem nigdy nie trafią do repo.
-- `viber/skills/implementor/SKILL.md:191` vs `archive-run.sh:61-63` - "BLOCKED -> the run directory stays where it is" jest fałszywe dla exit 5 po przeniesieniu; znaczniki `[D<n>]` w `spec.md` zostają niezacommitowane przy exit 2-4 i nie są wspominane.
-- `viber/skills/implementor/SKILL.md:185` - warunek "and step 6 ran" niejednoznaczny, gdy wszystkie przełączniki zamknięcia są wyłączone lub `closed:` już wszystko wymienia; archiwizacja może zostać pominięta. Poprawka: "unless the build ended on abort".
-- `viber/agents/e2e-writer.md:45` - `npx playwright test <file>` pisze `test-results/` do drzewa hosta (wbrew `.temp/viber/e2e/`), a reporter html blokuje przebieg do timeoutu. Poprawka: `--reporter=line --output=.temp/viber/e2e/test-results`.
-- `viber/skills/e2e/SKILL.md:58` - `curl -sf` uznaje odpowiedź 404/401 na `/` za "down"; aplikacja tylko z API uruchamia drugą instancję na zajętym porcie.
+- WYKONANE - `viber/agents/qa-writer.md:26` + `implementor/SKILL.md:177` - po wznowieniu istniejący `qa.md` daje `VERDICT: NONE`, a NONE nie dostaje commitu; dokumenty QA zapisane przed przerwanym commitem nigdy nie trafią do repo.
+- WYKONANE - `viber/skills/implementor/SKILL.md:191` vs `archive-run.sh:61-63` - "BLOCKED -> the run directory stays where it is" jest fałszywe dla exit 5 po przeniesieniu; znaczniki `[D<n>]` w `spec.md` zostają niezacommitowane przy exit 2-4 i nie są wspominane.
+- WYKONANE - `viber/skills/implementor/SKILL.md:185` - warunek "and step 6 ran" niejednoznaczny, gdy wszystkie przełączniki zamknięcia są wyłączone lub `closed:` już wszystko wymienia; archiwizacja może zostać pominięta. Poprawka: "unless the build ended on abort".
+- WYKONANE - `viber/agents/e2e-writer.md:45` - `npx playwright test <file>` pisze `test-results/` do drzewa hosta (wbrew `.temp/viber/e2e/`), a reporter html blokuje przebieg do timeoutu. Poprawka: `--reporter=line --output=.temp/viber/e2e/test-results`.
+- WYKONANE - `viber/skills/e2e/SKILL.md:58` - `curl -sf` uznaje odpowiedź 404/401 na `/` za "down"; aplikacja tylko z API uruchamia drugą instancję na zajętym porcie.
 
 ### Memory i rules
 
