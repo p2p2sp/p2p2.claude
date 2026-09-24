@@ -18,6 +18,12 @@
 #   - an array on both sides keeps the host's entries in the host's order;
 #     template entries missing from it are appended at its end, each exactly
 #     once. Arrays only ever gain entries.
+#   - in permissions.allow, permissions.ask and permissions.deny a template
+#     rule already covered by a host rule of the same list is not appended: a
+#     bare `Tool` covers every `Tool(<specifier>)`, and a match-all specifier
+#     (`*`, `**`, `**/*`) counts as bare, so a host carrying `Edit` never gains
+#     `Edit(**/*)`, and the reverse. A narrower host rule (`Edit(src/**)`)
+#     covers nothing broader, and a host rule is never removed.
 #   - anything else (a scalar, or a type mismatch) takes the template's value
 #     when it differs. The template wins because a project's own override
 #     belongs in .claude/settings.local.json, which this merge never touches.
@@ -122,16 +128,38 @@ if (!isObject(current)) {
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const counts = { keys: 0, entries: 0, values: 0, moved: 0 };
 
-function mergeInto(host, tpl) {
+const RULE_LISTS = new Set(["permissions.allow", "permissions.ask", "permissions.deny"]);
+const MATCH_ALL = new Set(["*", "**", "**/*"]);
+
+/** `Tool` or `Tool(<specifier>)` -> { tool, spec }, a match-all specifier
+ *  folded to null (bare); anything else -> null. */
+function parseRule(entry) {
+  if (typeof entry !== "string") return null;
+  const match = /^([^()\s]+)(?:\((.*)\))?$/s.exec(entry);
+  if (!match) return null;
+  const spec = match[2] === undefined || MATCH_ALL.has(match[2].trim()) ? null : match[2];
+  return { tool: match[1], spec };
+}
+
+function covers(existing, entry) {
+  const have = parseRule(existing);
+  const want = parseRule(entry);
+  if (!have || !want || have.tool !== want.tool) return false;
+  return have.spec === null || have.spec === want.spec;
+}
+
+function mergeInto(host, tpl, prefix = "") {
   for (const [key, value] of Object.entries(tpl)) {
+    const keyPath = prefix ? `${prefix}.${key}` : key;
     if (!Object.prototype.hasOwnProperty.call(host, key)) {
       host[key] = value;
       counts.keys += 1;
     } else if (isObject(host[key]) && isObject(value)) {
-      mergeInto(host[key], value);
+      mergeInto(host[key], value, keyPath);
     } else if (Array.isArray(host[key]) && Array.isArray(value)) {
+      const rules = RULE_LISTS.has(keyPath);
       for (const entry of value) {
-        if (host[key].some((existing) => same(existing, entry))) continue;
+        if (host[key].some((existing) => same(existing, entry) || (rules && covers(existing, entry)))) continue;
         host[key].push(entry);
         counts.entries += 1;
       }

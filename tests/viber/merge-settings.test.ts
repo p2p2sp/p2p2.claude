@@ -8,6 +8,9 @@
  * plus the shape of the shipped template itself - the single source of the
  * recommended allow/ask/deny lists /viber:setup offers.
  *
+ * In the three permission lists a template rule a host rule already covers
+ * (bare `Tool`, or a match-all specifier, over any `Tool(...)`) is not added.
+ *
  * The one removal: a host deny entry the template carries in ask is dropped,
  * because deny outranks ask and the move would never reach an older project.
  *
@@ -252,6 +255,66 @@ test("a host deny entry the template now carries in ask is dropped from deny and
 
     const second = run(dir, template, target);
     assert.equal(second.stdout, "settings.json: already up to date\n");
+  });
+});
+
+test("a template rule a host rule of the same list already covers is not appended: bare Tool covers Tool(<specifier>), and a match-all specifier counts as bare both ways (no Edit beside Edit(**/*))", () => {
+  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+    const target = targetPath(dir);
+    const template = path.join(dir, "template.json");
+    writeJson(template, {
+      permissions: {
+        allow: ["Edit(**/*)", "Bash(npm test:*)", "Read", "Glob(*)", "Write"],
+        ask: ["Bash(git push:*)"],
+        deny: ["Read(**/.env)"],
+      },
+    });
+    writeJson(target, {
+      permissions: { allow: ["Edit", "Bash", "Read(**)", "Glob"], ask: ["Bash"], deny: ["Read"] },
+    });
+
+    const result = run(dir, template, target);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(
+      result.stdout,
+      "settings.json: merged - added 0 keys, 1 list entries, updated 0 values, moved 0 deny to ask\n",
+    );
+    assert.deepEqual(readJson(target).permissions, {
+      allow: ["Edit", "Bash", "Read(**)", "Glob", "Write"],
+      ask: ["Bash"],
+      deny: ["Read"],
+    });
+
+    const second = run(dir, template, target);
+    assert.equal(second.stdout, "settings.json: already up to date\n");
+  });
+});
+
+test("a narrower host rule, a sibling specifier, a rule in another list or an array outside the permission lists covers nothing (Bash(sudo:*) must never keep Bash(aws:*) out of deny)", () => {
+  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+    const target = targetPath(dir);
+    const template = path.join(dir, "template.json");
+    writeJson(template, {
+      permissions: { allow: ["Edit(**/*)"], deny: ["Bash(aws:*)", "Bash(sudo:*)"] },
+      other: ["Edit(**/*)"],
+    });
+    writeJson(target, {
+      permissions: { allow: ["Edit(src/**)", "Bash"], deny: ["Bash(sudo:*)"] },
+      other: ["Edit"],
+    });
+
+    const result = run(dir, template, target);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(
+      result.stdout,
+      "settings.json: merged - added 0 keys, 3 list entries, updated 0 values, moved 0 deny to ask\n",
+    );
+    const merged = readJson(target);
+    assert.deepEqual(merged.permissions.allow, ["Edit(src/**)", "Bash", "Edit(**/*)"]);
+    assert.deepEqual(merged.permissions.deny, ["Bash(sudo:*)", "Bash(aws:*)"]);
+    assert.deepEqual(merged.other, ["Edit", "Edit(**/*)"]);
   });
 });
 
