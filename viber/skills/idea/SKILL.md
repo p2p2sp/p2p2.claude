@@ -43,7 +43,7 @@ The plan's specification half comes in two shapes. Propose one before the first 
 
 An interview proposed as `spec-lite` that runs past the sixth question escalates on the spot: say the shape changed and carry on.
 
-The draft mode is the user's alone: a request to stop at a specification is carried verbatim into the planner invocation. Never offer it and never ask for it.
+The draft mode is the user's alone: a request to stop at a specification is carried verbatim into the planner invocation. Never offer it and never ask for it, except the round question a returning draft already asks.
 
 ## The interview
 
