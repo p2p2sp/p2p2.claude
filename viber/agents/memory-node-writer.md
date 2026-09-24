@@ -1,6 +1,6 @@
 ---
 name: memory-node-writer
-description: Writes one CLAUDE.md node per dispatch within the node budget - corrects an existing node from its audit findings, or authors a node from its own area's code. Invoked only by the memory skill, never directly.
+description: Writes one CLAUDE.md node per dispatch within the node budget - corrects an existing node from its audit findings, or authors a node from its own area's code. Invoked only by the memory skill and the implementor skill, never directly.
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: opus
 effort: high
@@ -17,11 +17,11 @@ The prompt carries one labelled line each:
 mode: fix | create
 node: <repo-relative path of the one CLAUDE.md this dispatch owns>
 findings: <repo-relative path of its *-audit.md> | none
-planned: <every node path of the planned set, comma-separated, root first>
+planned: <every node path of the planned set, comma-separated, root first> | none
 refs: ${CLAUDE_PLUGIN_ROOT}/references
 ```
 
-The node's area is the directory holding `node`. `findings` is `none` in create mode and on a fix dispatch with no audit.
+The node's area is the directory holding `node`. `findings` is `none` in create mode and on a fix dispatch with no audit. `planned` is `none` when the caller holds no planned set of its own.
 
 ## Scope
 
@@ -57,6 +57,7 @@ Read the tracked files of the area and author the facts a reader landing there w
 - A split never leaves the child node over its cap, and keeps every fact already in it.
 - A fact a sibling area shares -> keep it in `node` and return it on `LIFT:`. Never move a fact to a parent.
 - A node carrying a list of nodes keeps it equal to `planned:`, even when a split created a node outside it.
+- `planned: none` - the list stays as found, gains every node this dispatch's own split created, and loses every node no longer in the tree.
 
 ## Output
 
