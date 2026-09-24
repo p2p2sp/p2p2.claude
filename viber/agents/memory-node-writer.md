@@ -27,7 +27,7 @@ The node's area is the directory holding `node`. `findings` is `none` in create 
 
 - Write only `node`. The one exception is a split into the node of a subdirectory of its area. Never touch an ancestor, a sibling, `.claude/rules/`, `.temp/` or the project's source.
 - Never read or restore content from git history: the node's truth is the code in the working tree, never an earlier version of the node.
-- `Bash` runs `wc -c` to measure sizes and `rm` on `node` when its area is gone, nothing else.
+- `Bash` runs `wc -c` to measure sizes, `rm` on `node` when its area is gone, and `git ls-files --cached --others --exclude-standard` to list the nodes in the tree, nothing else.
 
 Read `<refs>/node-doctrine.md` before you judge the first fact in either mode: it owns the budgets, what a node carries, the ancestor rule and the compact and split steps.
 
@@ -56,8 +56,9 @@ Read the tracked files of the area and author the facts a reader landing there w
 - The ancestors alone leave no room for the node -> keep `node` within its own cap and return one `CHAIN:` per ancestor with its size.
 - A split never leaves the child node over its cap, and keeps every fact already in it.
 - A fact a sibling area shares -> keep it in `node` and return it on `LIFT:`. Never move a fact to a parent.
-- A node carrying a list of nodes keeps it equal to `planned:`, even when a split created a node outside it.
-- `planned: none` - the list stays as found, gains every node this dispatch's own split created, and loses every node no longer in the tree.
+- A node carrying a list of nodes lists only the nodes below its own directory, the root's covering the whole repository.
+- `planned:` names a set -> keep that list equal to the part of `planned:` below the node's directory, even when a split created a node outside it.
+- `planned: none` -> keep that list equal to the nodes in the tree below the node's directory: run `git ls-files --cached --others --exclude-standard -- CLAUDE.md '*/CLAUDE.md'` (`Glob` also returns ignored files), add each one missing, drop each one gone.
 
 ## Output
 

@@ -49,17 +49,17 @@ Wynik: 7 high, ok. 20 medium, reszta low. Punkty High 1-3 i 5 zweryfikowane ręc
 
 ### Memory i rules
 
-- `viber/skills/memory/scripts/memory-map.sh:12-13,94` - brak `cd` do katalogu głównego; uruchomiony z podkatalogu raportuje błędną mapę (odtworzone). Poprawka jak w `rules-map.sh:94-98`.
-- `viber/skills/implementor/SKILL.md:171,175` vs `memory-node-writer.md:60` - root ponownie wywołany z `planned: none` nie dodaje do indeksu węzła, dla którego go wywołano.
-- `viber/agents/memory-node-writer.md:59` - "keeps it equal to planned:" dla każdego węzła z listą; pośredni węzeł dostałby indeks całego repo. Poprawka: tylko root lub węzły pod własnym katalogiem.
-- `viber/skills/rules/SKILL.md:62,102` - brak ponownego mapowania po resecie (w przeciwieństwie do `memory/SKILL.md:58`); writer dostaje mapę z usuniętymi plikami.
-- `viber/skills/rules/SKILL.md:97` - wczesne zakończenie ignoruje `OVER-FILE`/`OVER-DIR`; reguła ponad budżet zostaje nieskompaktowana.
-- `viber/skills/rules/SKILL.md:70,102` vs `rules-writer.md:28` - writer dostaje całą mapę i przenosi reguły, które użytkownik pominął.
-- `viber/agents/rules-auditor.md:50` (i `memory-auditor.md:38`) - slug `/` -> `-` koliduje (`frontend-pagination.md` i `frontend/pagination.md`); równoległe audyty nadpisują się.
+- WYKONANE - `viber/skills/memory/scripts/memory-map.sh:12-13,94` - brak `cd` do katalogu głównego; uruchomiony z podkatalogu raportuje błędną mapę (odtworzone). Poprawka jak w `rules-map.sh:94-98`.
+- WYKONANE - `viber/skills/implementor/SKILL.md:171,175` vs `memory-node-writer.md:60` - root ponownie wywołany z `planned: none` nie dodaje do indeksu węzła, dla którego go wywołano.
+- WYKONANE - `viber/agents/memory-node-writer.md:59` - "keeps it equal to planned:" dla każdego węzła z listą; pośredni węzeł dostałby indeks całego repo. Poprawka: tylko root lub węzły pod własnym katalogiem.
+- WYKONANE - `viber/skills/rules/SKILL.md:62,102` - brak ponownego mapowania po resecie (w przeciwieństwie do `memory/SKILL.md:58`); writer dostaje mapę z usuniętymi plikami.
+- WYKONANE - `viber/skills/rules/SKILL.md:97` - wczesne zakończenie ignoruje `OVER-FILE`/`OVER-DIR`; reguła ponad budżet zostaje nieskompaktowana.
+- WYKONANE - `viber/skills/rules/SKILL.md:70,102` vs `rules-writer.md:28` - writer dostaje całą mapę i przenosi reguły, które użytkownik pominął.
+- WYKONANE - `viber/agents/rules-auditor.md:50` (i `memory-auditor.md:38`) - slug `/` -> `-` koliduje (`frontend-pagination.md` i `frontend/pagination.md`); równoległe audyty nadpisują się.
 
 ### Setup
 
-- `viber/skills/setup/SKILL.md:29` + `merge-settings.sh:59` - domyślny cel `.claude/settings.json` względny wobec cwd; z podkatalogu powstaje `sub/.claude/settings.json` (odtworzone). Poprawka: `git rev-parse --show-toplevel`.
+- WYKONANE - `viber/skills/setup/SKILL.md:29` + `merge-settings.sh:59` - domyślny cel `.claude/settings.json` względny wobec cwd; z podkatalogu powstaje `sub/.claude/settings.json` (odtworzone). Poprawka: `git rev-parse --show-toplevel`.
 
 ## Low
 
@@ -99,7 +99,7 @@ Wynik: 7 high, ok. 20 medium, reszta low. Punkty High 1-3 i 5 zweryfikowane ręc
 - `viber/agents/rules-writer.md:38` - `wc -c` na katalogu nie działa, a Bash ograniczony do `wc -c`, `rm`, `rmdir`.
 - `viber/references/rule-admission.md:15` - "max two new rule files per run" koliduje z podziałem na plik per konwencja.
 - `viber/skills/rules/SKILL.md:85` vs `rules-auditor.md:21` - scope reguły całego repo przekazywany jako katalog zamiast globu `**`.
-- `viber/agents/memory-auditor.md:38` - slug dla roota niezdefiniowany (`.-audit.md` lub `-audit.md`).
+- WYKONANE - `viber/agents/memory-auditor.md:38` - slug dla roota niezdefiniowany (`.-audit.md` lub `-audit.md`).
 - `viber/agents/memory-writer.md:17` - zbędna linia "Read the existing CLAUDE.md nodes" (lint WARN, w treści fałszywy alarm).
 - `viber/README.md:15` - "No dependencies." nieprawda (`node` dla setup, Playwright dla e2e).
 - `viber/skills/setup/SKILL.md:24-25` - opis scalania pomija usuwanie wpisów `ask` z `deny`.

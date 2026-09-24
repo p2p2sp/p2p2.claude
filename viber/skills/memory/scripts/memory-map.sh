@@ -9,8 +9,10 @@
 # Contract:
 #   argv   : none                       -> the map.
 #            --reset <path> [<path>...] -> delete those nodes, all or none.
-#   cwd    : the repository root - every path printed is relative to it, and
-#            every path handed to --reset is read relative to it.
+#   cwd    : any directory inside the host project - the repository root is
+#            resolved here, every path printed is relative to it, and every
+#            path handed to --reset is read relative to it. Outside a
+#            repository the cwd IS the root and nothing is tracked there.
 #   env    : none.
 #   stdout : map mode, in this order, one line each:
 #              # viber memory map
@@ -83,6 +85,12 @@ if [ "$#" -gt 0 ]; then
     *) printf 'usage: memory-map.sh [--reset <path> [<path>...]]\n' >&2; exit 2 ;;
   esac
 fi
+
+root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$root" ] || [ ! -d "$root" ]; then
+  root="$(pwd)"
+fi
+cd "$root" || exit 0
 
 # --- the tracked tree ------------------------------------------------------
 # Read with -z: without it git C-quotes and octal-escapes any path carrying a

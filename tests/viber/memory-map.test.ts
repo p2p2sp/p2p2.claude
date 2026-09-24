@@ -417,6 +417,27 @@ test("--reset deletes every node it is given, in the order it was given them", (
   });
 });
 
+test("run from a subdirectory, the map and --reset still read every path relative to the repository root", () => {
+  withGitRepo((repo) => {
+    commit(repo, {
+      "CLAUDE.md": node(40),
+      "docs/CLAUDE.md": node(40),
+      "docs/guide.md": "x\n",
+    });
+    const sub = { ...repo, dir: path.join(repo.dir, "docs") };
+
+    const fromRoot = lines(run(repo).stdout).slice(2);
+    const map = run(sub);
+    assert.equal(map.status, 0, `stderr: ${map.stderr}`);
+    assert.deepEqual(lines(map.stdout).slice(2), fromRoot);
+
+    const reset = run(sub, ["--reset", "docs/CLAUDE.md"]);
+    assert.equal(reset.status, 0, `stderr: ${reset.stderr}`);
+    assert.deepEqual(lines(reset.stdout), ["removed: docs/CLAUDE.md", "removed: 1"]);
+    assert.equal(fs.existsSync(path.join(repo.dir, "docs/CLAUDE.md")), false);
+  });
+});
+
 test("one modified target among several refuses the whole --reset and deletes nothing", () => {
   withGitRepo((repo) => {
     commit(repo, {

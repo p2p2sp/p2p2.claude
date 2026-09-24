@@ -32,7 +32,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { runScript, type RunResult } from "../harness/run.ts";
-import { withTempDir } from "../harness/tmp.ts";
+import { withGitRepo, withTempDir } from "../harness/tmp.ts";
 import { coreUtilsPath } from "../harness/stub.ts";
 import { slash } from "../harness/paths.ts";
 
@@ -92,6 +92,20 @@ test("no settings.json at all: the default target is created byte-identical to t
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "settings.json: created from template\n");
     assert.equal(fs.readFileSync(targetPath(dir), "utf-8"), fs.readFileSync(ASSET_TEMPLATE, "utf-8"));
+  });
+});
+
+test("run from a subdirectory of a repository, the default target is the root's .claude/settings.json (never a nested sub/.claude/)", () => {
+  withGitRepo((repo) => {
+    const sub = path.join(repo.dir, "sub");
+    fs.mkdirSync(sub);
+
+    const result = runScript(SUT, [ASSET_TEMPLATE], { cwd: sub, env: repo.env });
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "settings.json: created from template\n");
+    assert.equal(fs.existsSync(targetPath(repo.dir)), true);
+    assert.equal(fs.existsSync(path.join(sub, ".claude")), false);
   });
 });
 

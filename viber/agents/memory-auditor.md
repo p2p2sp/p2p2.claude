@@ -35,7 +35,7 @@ Add one `MISS` line per fact a reader of this node would need and does not find 
 
 ## Findings file
 
-Path: `<out><slug>-audit.md`, `<slug>` being the `scope` path with every separator replaced by a hyphen. One finding per line, in this vocabulary and no other:
+Path: `<out><slug>-audit.md`, `<slug>` being the `scope` path with every separator replaced by two hyphens (`a/b` -> `a--b`, never colliding with `a-b`), or `root` for the repository root. One finding per line, in this vocabulary and no other:
 
 ```
 STALE: <quoted sentence from the node> -> <what holds now>

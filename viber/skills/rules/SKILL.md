@@ -17,7 +17,7 @@ The block above is this host project's rules layer as the script measured it: th
 
 It is self-verifying and trusted. Never re-count a rule, never glob the tree to check what a scope matches, never run git to decide what is dirty: every fact you route on is already above.
 
-Your whole tool set is `AskUserQuestion`, `Agent` and the one reset line in step 3. You open no file and you write none: every byte of the layer is written by `viber:rules-writer`, nothing here is staged and nothing is committed.
+Your whole tool set is `AskUserQuestion`, `Agent` and the two map lines of step 3. You open no file and you write none: every byte of the layer is written by `viber:rules-writer`, nothing here is staged and nothing is committed.
 
 ## 1. Report the layer
 
@@ -59,7 +59,7 @@ Otherwise one `AskUserQuestion` over that exact list. On anything but approval, 
 "${CLAUDE_SKILL_DIR}/scripts/rules-map.sh" --reset "<path>" "<path>"
 ```
 
-- exit 0 -> the `removed:` lines are the deletion. Report them, then continue into step 4 in the same run: the scored layer is empty now, so the target list is the scopes to propose for, the repository root among them.
+- exit 0 -> the `removed:` lines are the deletion. Report them, then map the layer again with the one literal line `"${CLAUDE_SKILL_DIR}/scripts/rules-map.sh"`. That fresh map, its `id:` included, replaces the one above for the rest of the run: the preloaded one still lists the deleted rules. Continue into step 4 with the scopes to propose for as the target list, the repository root among them.
 - exit 3 -> nothing at all was deleted. Repeat its `refused:` lines verbatim and stop.
 - exit 2 -> the call itself was unusable. Report it and stop.
 
@@ -94,12 +94,12 @@ Report the `AUDIT:` line for each target verbatim. Read none of those files - th
 
 ## 6. Confirm, then the writer
 
-Every returned line carrying five zero counters, or `-> none`, with no root rule named in step 1 as misplaced, means the layer is already true and no scope earned a new rule. Say so in one line, dispatch no writer, and stop.
+Every returned line carrying five zero counters, or `-> none`, with no kept rule named in step 1 as misplaced, no kept rule flagged `OVER-FILE` and no `OVER-DIR` on `total:`, means the layer is already true and no scope earned a new rule. Say so in one line, dispatch no writer, and stop.
 
-Otherwise one `AskUserQuestion` over the counters just reported and the moves named in step 1: fold them in, or stop. Only on approval, one `Agent` call, `subagent_type: viber:rules-writer`, no `model:` line, three labelled lines and nothing else:
+Otherwise one `AskUserQuestion` over the counters just reported, the over-budget flags and the moves named in step 1: fold them in, or stop. Only on approval, one `Agent` call, `subagent_type: viber:rules-writer`, no `model:` line, three labelled lines and nothing else:
 
 ```
-map: <every line of the map block above, verbatim>
+map: <the map's id:, state: and total: lines plus every rule: and dead: line of a kept target, verbatim>
 notes: .temp/viber/<id>/
 refs: ${CLAUDE_PLUGIN_ROOT}/references
 ```

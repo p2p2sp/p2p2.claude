@@ -9,7 +9,9 @@
 # template (required) - the bundled permissions template
 #                       (viber/skills/setup/assets/settings.json).
 # target   (optional) - the host settings file; defaults to
-#                       .claude/settings.json relative to the current dir.
+#                       .claude/settings.json at the repository root (the
+#                       current dir outside a repository), so a run from a
+#                       subdirectory never seeds a nested .claude/.
 #
 # Merge rules (applied by the embedded node program, only when the target
 # already exists), walked recursively over every key of the template:
@@ -56,7 +58,11 @@
 set -u
 
 template="${1:-}"
-target="${2:-.claude/settings.json}"
+root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$root" ] || [ ! -d "$root" ]; then
+  root="$(pwd)"
+fi
+target="${2:-$root/.claude/settings.json}"
 
 if [ -z "$template" ] || [ "$#" -gt 2 ]; then
   echo "usage: merge-settings.sh <template> [<target>]" >&2

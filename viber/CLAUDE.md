@@ -123,7 +123,11 @@ touches the templates, `references/plan-rules.md` and every parser reading it.
   audits each and has `memory-node-writer` shrink it. The `memory` command writes every node
   through `memory-node-writer`, one node per dispatch, in waves by depth with the root first, then
   re-dispatches the root when nodes appeared or vanished so its node index stays equal to
-  `planned:`.
+  `planned:`. A node's index lists only the nodes below its own directory; under `planned: none`
+  the writer reconciles it with the tree through `git ls-files`, since `Glob` also
+  returns gitignored files.
+- The `rules` command hands `rules-writer` only the map lines of the targets the user kept, and
+  the writer touches no other existing rule.
 - `rules-auditor` and `rules-writer` pass every line through `references/rule-admission.md`; a
   fact about one place leaves as `MOVE:` for the memory layer, and `rules-writer` never writes a
   `CLAUDE.md`, as `memory-writer` never touches `.claude/rules/`.

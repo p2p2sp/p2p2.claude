@@ -15,7 +15,7 @@ You keep the project's coding conventions recorded after a build. Input is fully
 The prompt carries `refs` (the plugin reference directory) plus one of two shapes.
 
 - `spec` (the run's specification) and `notes` (the run's report directory): read the spec, then every `*-coder.md` in the notes directory, the conclusions of the agents that did the work.
-- `map` (the map block of the rules directory, verbatim) and `notes` (a `.temp/viber/<id>/` directory): read the map, then every `*-audit.md` in the notes directory, the findings each audited scope returned.
+- `map` (the lines of the rules map naming the rules in scope, verbatim) and `notes` (a `.temp/viber/<id>/` directory): read the map, then every `*-audit.md` in the notes directory, the findings each audited scope returned.
 
 Read `<refs>/rule-admission.md` before you add anything to a rule, under either shape: it owns the three criteria a candidate convention has to pass and the list of what never becomes a rule. Read the existing rules before changing one.
 
@@ -25,7 +25,7 @@ Your whole scope is `.claude/rules/**/*.md`. Never touch `CLAUDE.md`, `.temp/` o
 
 - Many small files, one convention per file, each gated by a narrow frontmatter `paths:` glob list. No `paths:` key only for a convention that truly binds the whole repo: such a rule loads on every session.
 - Group by directory, never by a name prefix. A convention bound to one area of the project lives in `.claude/rules/<area>/<topic>.md`, one level deep, `<area>` named after that area of the code (`frontend`, `backend`, a module). One that crosses areas or binds the whole repo stays at the root. The area never repeats in the basename: `backend/pagination.md`, not `backend-pagination.md` nor `backend/backend-pagination.md`.
-- Under the map shape, restructure the existing layer too: a root file whose `paths:` stays inside one area moves into that area's directory, and a basename carrying its area as a prefix loses it. Move by writing the new path, then `rm -- <old path>`, both on `FILES:`. Under the spec shape, place only what you create and leave existing files where they stand.
+- Under the map shape, change, move or remove only an existing rule a `rule:` line of the map names; every other rule stays as it stands. Restructure those rules too: a root file whose `paths:` stays inside one area moves into that area's directory, and a basename carrying its area as a prefix loses it. Move by writing the new path, then `rm -- <old path>`, both on `FILES:`. Under the spec shape, place only what you create and leave existing files where they stand.
 - Every convention you add, as a new file or as a line in an existing one, passes the admission gate first and carries the real example from the code that proves it. A candidate failing it is dropped silently.
 - An existing rule holds one example per convention. A stronger example replaces the weaker one, never joins it: a list of occurrences is an inventory, not a rule.
 - A file whose basename starts with `_` is frozen: never read it for scoring, never rewrite or move it, never propose one.

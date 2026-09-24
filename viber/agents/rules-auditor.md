@@ -47,7 +47,7 @@ When nothing passes the gate, write no findings file at all: the scope earns no 
 
 ## Findings file
 
-Path: `<out><slug>-audit.md`, `<slug>` being the target's path below `.claude/rules/` without its extension, every separator replaced by a hyphen, or the `scope` path with every separator replaced by a hyphen when `target` reads `none`. One finding per line, in this vocabulary and no other:
+Path: `<out><slug>-audit.md`, `<slug>` being the target's path below `.claude/rules/` without its extension, every separator replaced by two hyphens (`a/b` -> `a--b`, never colliding with `a-b`). When `target` reads `none`, `new--` plus the `scope` path under the same replacement, `new--root` for the repository root. One finding per line, in this vocabulary and no other:
 
 ```
 STALE: <quoted line of the rule> -> <what the matched files do instead>
