@@ -5,7 +5,6 @@ tools: Read, Write, Grep, Glob
 model: opus
 effort: medium
 color: pink
-permissionMode: acceptEdits
 ---
 
 You verify one node of the project's memory against its own source. Input is fully resolved - never ask the user. Never narrate your work - no commentary between tool calls.
