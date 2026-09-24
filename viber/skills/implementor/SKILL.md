@@ -1,7 +1,7 @@
 ---
 name: implementor
 description: Builds an approved plan task by task. Requires an existing plan; without one, use the planner skill.
-allowed-tools: Agent, SendMessage, AskUserQuestion, Read, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh:*)
+allowed-tools: Agent, SendMessage, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh:*)
 model: sonnet
 effort: medium
 user-invocable: false
@@ -22,6 +22,7 @@ Carry the preloaded `started:` mark unchanged to step 7.
 You orchestrate and delegate: every piece of work runs inside a subagent. Open no file, write no file and no code, run no build and no test.
 
 - One status line per event. No prose, never restate what an agent returned.
+- Only coder, reviewer and repair-coder dispatches carry `model`; every other dispatch carries none.
 - Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" "<arg>" ...`, every argument double-quoted: never prefixed with an interpreter, never assigned to a variable, never preceded by `cd`, never chained with `;`.
 - Every dispatch or call that starts or ends a task-list entry carries that entry's `TaskUpdate` in the same message.
 - Never two `commit-task.sh` calls in one message: each rewrites the git index and `status.md`.
@@ -33,7 +34,7 @@ You orchestrate and delegate: every piece of work runs inside a subagent. Open n
 
 Every question below offers some of these four answers, each doing exactly this wherever it is offered:
 
-- `retry`: dispatch again, with its own dispatch lines, the agent that failed or was refused; after failed review or test rounds that is the task's coder or the repair coder. After a `FAIL`: one tier up (`haiku` -> `sonnet` -> `opus` -> `fable`), never past `tiers.max`, where it stays, carrying `reason: <the returned REASON>` on a coder's own failure, or the last `REVIEW` or `REPORT` path as `report:` after failed rounds; the round counter continues, the next 2 rounds counting as 1 and 2 of 2, and a `TaskUpdate` rewrites the task's subject with the new tiers. After a `DENIED`: same model, same round, a task's coder adding `reason: <the returned REASON>`. After a failed commit: run the same call again.
+- `retry`: dispatch again, with its own dispatch lines, the agent that failed or was refused; after failed review or test rounds that is the task's coder or the repair coder. After a `FAIL`, or a `PASS` with its `DOD:` line short of its total: one tier up (`haiku` -> `sonnet` -> `opus` -> `fable`), never past `tiers.max`, where it stays, carrying `reason: <the returned REASON>` on a coder's own failure, `reason: <the short DOD: line>` when no `REASON:` came, or the last `REVIEW` or `REPORT` path as `report:` after failed rounds; the round counter continues, the next 2 rounds counting as 1 and 2 of 2, and a `TaskUpdate` rewrites the task's subject with the new tiers. After a `DENIED`: same model, same round, a task's coder adding `reason: <the returned REASON>`. After a failed commit: run the same call again.
 - `skip`: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip "<plan>" "<id>"` for that task, then the same call for every task depending on it, directly or through another dependent, one call per message, each with its `TaskUpdate` -> completed. Its half-finished files stay uncommitted in the tree; name them in the final summary.
 - `accept`: the user overrides the gate. On a task: its commit with `--unreviewed` appended, the task named unreviewed in the final summary. On the test run: go to step 6, the failing or refused run named in the final summary.
 - `abort`: stop every dispatch, go to step 7.
@@ -55,7 +56,7 @@ A `VERDICT: DENIED` question names the refused call from its `REASON:` line and 
 - Resolved through 3 with any `open:` line -> `AskUserQuestion` for which run to resume.
 - Anything else -> proceed. `state: existing` is a run already open with its own progress; take it as it stands.
 
-`<dir>` is the plan's own directory; `<dir>/work/` holds every note and report the run produces.
+`<plan>` is that printed `path:` value. `<dir>` is the plan's own directory; `<dir>/work/` holds every note and report the run produces.
 
 ## 2. Validate and decompose
 
@@ -155,7 +156,7 @@ For each switch the config block reports as `true` and the index's `closed:` lin
 - `rules: true` -> `viber:rules-writer` with `spec: <dir>/spec.md`, `notes: <dir>/work/` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`.
 - `qa: true` -> `viber:qa-writer` with `spec: <dir>/spec.md`, `notes: <dir>/work/`, `refs: ${CLAUDE_PLUGIN_ROOT}/references` and `out: <dir>`.
 
-`memory-writer` (never `rules-writer`) returning one or more `OVER:` lines -> as soon as it returned, never waiting for the other writers of this step, one `viber:memory-auditor` per `OVER:` path, all in one message, no `model:`, these lines each and nothing else, `<key>` being the `key:` of step 1:
+`memory-writer` (never `rules-writer`) returning one or more `OVER:` lines -> as soon as it returned, never waiting for the other writers of this step, one `viber:memory-auditor` per `OVER:` path, all in one message, these lines each and nothing else, `<key>` being the `key:` of step 1:
 
 ```
 target: <the OVER: path>
@@ -165,7 +166,7 @@ out: .temp/viber/<key>/
 
 An auditor returns one `AUDIT:` line and no `VERDICT:`: never answer it as a missing verdict. No `AUDIT:` line -> that node's `findings` is `none`.
 
-After every auditor returned, `viber:memory-node-writer` per `OVER:` path in waves by depth: a node's depth is the number of path segments of the directory holding it, the root being 0. One wave per depth, the root's first, then ascending; every dispatch of a wave in one message, the next wave only after each of them returned. No `model:`, these lines each and nothing else:
+After every auditor returned, `viber:memory-node-writer` per `OVER:` path in waves by depth: a node's depth is the number of path segments of the directory holding it, the root being 0. One wave per depth, the root's first, then ascending; every dispatch of a wave in one message, the next wave only after each of them returned. These lines each and nothing else:
 
 ```
 mode: fix
@@ -185,7 +186,7 @@ Then `TaskUpdate` -> completed for each entry, the `memory` entry only after the
 
 ## 7. Archive and close
 
-Only when the config block reports `cleanup: true` and the build did not end on `abort`: dispatch `viber:closeout` (Agent tool, no `model:`) carrying one line and nothing else:
+Only when the config block reports `cleanup: true` and the build did not end on `abort`: dispatch `viber:closeout` (Agent tool) carrying one line and nothing else:
 
 ```
 run: <dir>

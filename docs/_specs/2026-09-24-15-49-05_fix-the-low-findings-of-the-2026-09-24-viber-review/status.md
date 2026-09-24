@@ -1,7 +1,7 @@
 # status
 
-progress: 6/23
-done: T15 T20 T4 T11 T21 T17
+progress: 7/23
+done: T15 T20 T4 T11 T21 T17 T13
 skipped: none
 unreviewed: none
 deferred: none
