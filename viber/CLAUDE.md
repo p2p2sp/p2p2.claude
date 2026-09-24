@@ -7,7 +7,7 @@ highest quality and speed of work.
 
 The vibe track: understand, plan, build, then record what the build taught. NINE skills (`setup`,
 `idea`, `planner`, `implementor`, `tdd`, `fixer`, `e2e`, `memory`, `rules`), TWELVE agents, SEVEN
-plugin-level scripts, FOUR skill-level scripts, FIVE plugin-level references, ONE skill-level
+plugin-level scripts, FOUR skill-level scripts, SIX plugin-level references, ONE skill-level
 reference and TWO hooks (one `PreToolUse`, one `SessionStart`).
 
 ## Entry points
@@ -93,7 +93,9 @@ there.
   `planner` writes it narrow, `planner-review` flags a whole-project run, `task-coder` and
   `task-reviewer` drop a red traced outside their `Files`; what escapes belongs to `test-runner`,
   committed through `--repair`.
-- **`Exclusive:` serialises the last test layer.** The doctrine lives in `test-strategy.md`.
+- **`Exclusive:` serialises the last test layer.** The doctrine lives in `test-strategy.md`; the integration layer's own rules
+  in `integration-tests.md`, read only where an `Exclusive: true` task or an integration task is
+  in play.
   `Exclusive: true` marks a leaf `plan-index.sh`'s validation call enforces (skipped under
   `--split`); `implementor` holds that task until nothing else can run - a declaration, never
   a judgement.
@@ -138,7 +140,8 @@ there.
   sentence of `spec.md` only where the spec promises P and the build delivers Q; `qa.md` and
   `qa.e2e.md` are never touched.
 - **`references/` holds what several workers share.** `qa-format.md` two readers, `test-strategy.md`
-  four (`planner`, `planner-review`, `task-reviewer`, `task-coder`), `rule-admission.md` two
+  four (`planner`, `planner-review`, `task-reviewer`, `task-coder`), `integration-tests.md` three
+  (`planner`, `task-reviewer`, `task-coder`), `rule-admission.md` two
   (`rules-auditor`, `rules-writer`), `node-doctrine.md` two (`memory-writer`,
   `memory-node-writer`), `plan-rules.md` two (`planner`, `planner-review`), each rule
   line tagged `(script)` or `(review)` so `plan-index.sh` and the plan reviewer split the gate.

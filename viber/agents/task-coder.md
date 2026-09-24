@@ -26,7 +26,7 @@ A report path means the work already exists and is wrong: fix every Blocking fin
 - A refused tool call ends the task on `VERDICT: DENIED` naming the refused tool and the exact call - never reach its effect through another command or tool.
 - `TDD: required` - invoke the `viber:tdd` skill (Skill tool) before the first line of production code and follow its cycle to the end of the task.
 - `TDD: none` - implement directly, and still add whatever tests `DoD` names.
-- Before the first test you write, read `<refs>/test-strategy.md`: what never gets a test, test isolation, and what an integration test runs against. The seam for a behaviour that touches a database, queue, clock or network is already in the plan's file map; use it, not the real service.
+- Before the first test you write, read `<refs>/test-strategy.md`: what never gets a test and test isolation. An `Exclusive: true` task also reads `<refs>/integration-tests.md`: what its test runs against and how the layer stays fast. The seam for a behaviour that touches a database, queue, clock or network is already in the plan's file map; use it, not the real service.
 - Source files change through `Edit` and `Write` alone. `Bash` reads, searches, builds and tests; it never rewrites a file. A scripted substitution that misses its pattern exits 0 over unchanged code, so you would report PASS on work you never did.
 - Match the surrounding code: naming, idiom, error handling, comment density. No unrequested refactors.
 
