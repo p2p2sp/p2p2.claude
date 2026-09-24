@@ -24,6 +24,8 @@ You orchestrate and delegate: every piece of work runs inside a subagent. Open n
 - One status line per event. No prose, never restate what an agent returned.
 - Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" "<arg>" ...`, every argument double-quoted: never prefixed with an interpreter, never assigned to a variable, never preceded by `cd`, never chained with `;`.
 - Every dispatch or call that starts or ends a task-list entry carries that entry's `TaskUpdate` in the same message.
+- Never two `commit-task.sh` calls in one message: each rewrites the git index and `status.md`.
+- A `commit-task.sh` call exiting non-zero committed nothing. Outside a task commit (step 4 owns that one): `AskUserQuestion`: retry / abort, its paths named uncommitted in the final summary on abort.
 - An agent's completion notice saying it "stopped with background work of its own still running": hold its verdict and `SendMessage` that agent, once: `Stop every process you started that is still running, then return your output lines again.` Act on what it returns then. The same notice again -> act on the verdict and name that agent's task in the final summary.
 - An agent returning no `VERDICT:` line: `SendMessage` that agent, once: `Finish your task, then return your output lines.` Still none -> act as on `VERDICT: FAIL` with `REASON: no verdict returned`.
 
@@ -77,6 +79,7 @@ Tier:
 - Mechanical and bounded: config, scaffolding, a rename, docs, `TDD: none` over one or two files -> `haiku`.
 - Ordinary feature work, `TDD: required`, contained within its own files -> `sonnet`.
 - Load-bearing: defines a contract other tasks consume, spans many files, or several tasks depend on it -> `opus`.
+- A floor the host's instructions declare for a kind of task (a minimum tier, a mandatory review) raises both decisions to it.
 
 Review: only a `Verification` that runs the project's build or its tests waives the reviewer, and never on an `opus` task. A task proved by `grep`, `test -f` or any other content check is reviewed whatever its tier. Its review tier is the task's tier, raised to `sonnet` from `haiku`.
 
@@ -90,7 +93,6 @@ Then clamp both tiers into the config block's `tiers.min` to `tiers.max` range (
 
 - A task dispatches only once every id in its `deps` is done.
 - A task whose `excl` column says `yes` is held back while any task without `excl` is ready to dispatch or anything else is in flight; several ready `excl` tasks go out one after another as their turn comes, and each still runs alone until committed - nothing else in flight when it goes out, nothing new out until it is committed. Never infer or override it.
-- Never two `commit-task.sh` calls in one message: each rewrites the git index and `status.md`.
 
 Coder dispatch: `viber:task-coder` (Agent tool, `model` = the task's tier), carrying these labelled lines and nothing else, the last two omitted when empty:
 
@@ -103,14 +105,14 @@ deferred: <paths>
 prior: <dir>/work/<dep-id>-coder.md, ...
 ```
 
-`out` is per task, shared by its reviewer. `deferred` carries the index entries naming this id, `prior` the notes of the tasks its `deps` names. A coder always runs on its task's tier; only `retry` raises it.
+`out` is per task, shared by its reviewer. `deferred` carries the index entries naming this id plus every `--defer` this build passed naming it, `prior` the notes of the tasks its `deps` names. A coder always runs on its task's tier; only `retry` raises it.
 
 Reviewer dispatch: `viber:task-reviewer` (Agent tool, `model` = the review tier) with the task's `task:`, `notes:`, `out:`, `refs:` and `deferred:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
 
 Commit: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<plan>" "<id>"` with its `TaskUpdate` -> completed, plus:
 
 - `--with "<path>" ["<path>"...]` for every path an `EXTRA:` line of that task's coder or reviewer returned.
-- `--defer "<target-id>:<path>" [...]` for every `DEFERRED:` line its coder returned. `-> none` takes the earliest unfinished task whose `files` column claims that path; a path no task claims is named in the final summary.
+- `--defer "<target-id>:<path>" [...]` for every `DEFERRED:` line its coder returned. `-> none` takes the earliest unfinished task other than this one whose `files` column claims that path; a path no task claims is named in the final summary.
 
 Warnings off the commit never stop the build: carry `refused <path> - claimed by task <id>`, `took <path> - claimed by committed task <id>` and `changed, claimed by no task in the plan` to the final summary.
 
@@ -152,7 +154,7 @@ For each switch the config block reports as `true` and the index's `closed:` lin
 - `rules: true` -> `viber:rules-writer` with `spec: <dir>/spec.md`, `notes: <dir>/work/` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`.
 - `qa: true` -> `viber:qa-writer` with `spec: <dir>/spec.md`, `notes: <dir>/work/`, `refs: ${CLAUDE_PLUGIN_ROOT}/references` and `out: <dir>`.
 
-`memory-writer` returning one or more `OVER:` lines -> as soon as it returned, never waiting for the other writers of this step, one `viber:memory-auditor` per `OVER:` path, all in one message, no `model:`, these lines each and nothing else, `<key>` being the `key:` of step 1:
+`memory-writer` (never `rules-writer`) returning one or more `OVER:` lines -> as soon as it returned, never waiting for the other writers of this step, one `viber:memory-auditor` per `OVER:` path, all in one message, no `model:`, these lines each and nothing else, `<key>` being the `key:` of step 1:
 
 ```
 target: <the OVER: path>
@@ -176,7 +178,7 @@ Any wave after the root's own (every wave, when the root is no `OVER:` path) ret
 
 Commit what they return, one call per form: memory and rule paths, every `FILES:` path of the node writers among them, through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore "<plan>" "<file>" ["<file>"...]` only once every writer of this step, the last wave and any root dispatch returned; QA paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa "<plan>" "<file>" ["<file>"...]`. A form whose agents returned nothing or only `VERDICT: NONE` gets no call. Commit an `OVER:` line's path like any other.
 
-Repeat verbatim in the final summary every `AUDIT:` line, every node writer's `DROPPED:`, `DELETED:`, `LIFT:` and `CHAIN:` line, and every `OVER:` line whose node writer returned neither `VERDICT: UPDATED` nor `VERDICT: NONE`.
+Repeat verbatim in the final summary every `AUDIT:` line, every node writer's `DROPPED:`, `DELETED:`, `LIFT:` and `CHAIN:` line, every `OVER:` line whose node writer returned neither `VERDICT: UPDATED` nor `VERDICT: NONE`, and every `OVER:` line of `rules-writer`.
 
 Then `TaskUpdate` -> completed for each entry, the `memory` entry only after the `--chore` call, when one is due, returned.
 

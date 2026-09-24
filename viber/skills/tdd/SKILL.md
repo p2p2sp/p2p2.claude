@@ -13,7 +13,7 @@ Write the test first. Watch it fail. Write the minimal code that passes. Refacto
 
 New behavior gets no production code before a failing test for it exists and has been watched to fail. `TDD: required` on the task is the authorization, decided before this skill loads: nothing reopens it here.
 
-On `resume`, `reason` or `report` input, the code already in the tree is existing work, not a violation: keep it. For each of its behaviors that no existing test covers, write that test, see it fail once by breaking its own assertion, confirm the failure names the gap, then restore the code so the test passes. Leave every test already in the tree as it is. A behavior new to this cycle still goes through red before green.
+On `resume`, `reason` or `report` input, the code already in the tree is existing work, not a violation: keep it. For each of its behaviors that no existing test covers, write that test, see it fail once by temporarily reverting the behavior it covers, never the test, confirm the failure names the gap, then restore that code so the test passes. Leave every test already in the tree as it is. A behavior new to this cycle still goes through red before green.
 
 ## Red-Green-Refactor cycle
 

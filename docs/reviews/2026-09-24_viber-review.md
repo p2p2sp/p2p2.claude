@@ -31,13 +31,13 @@ Wynik: 7 high, ok. 20 medium, reszta low. Punkty High 1-3 i 5 zweryfikowane ręc
 
 ### Budowanie
 
-- `viber/skills/implementor/SKILL.md:106` - `deferred` pochodzi z indeksu wczytanego raz w kroku 2; `DEFERRED:` z tej samej sesji nie dociera do codera i reviewera zadania-dłużnika (sprzeczne z `viber/CLAUDE.md:45-46`).
-- `viber/skills/implementor/SKILL.md:113` - `-> none` bierze "the earliest unfinished task whose files column claims that path", czyli samo zadanie robiące commit; dług nigdy nie zostanie spłacony. Poprawka: "OTHER than this one".
-- `viber/skills/implementor/SKILL.md:93,127` - "Never two commit-task.sh calls in one message" i obsługa niezerowego exit tylko w kroku 4; kroki 5 i 6 (`--repair`, `--chore`, `--qa`) bez nich. Poprawka: reguły na poziomie całego skilla.
-- `viber/skills/implementor/SKILL.md:155,179` vs `viber/agents/rules-writer.md:54` - `OVER:` i `MOVE:` z rules-writer nie są czytane ani przenoszone do podsumowania końcowego.
-- `viber/agents/task-reviewer.md:23` vs `task-coder.md:35` - brak instrukcji o długim timeoucie dla zadań `Exclusive: true`; reviewer zgłasza fałszywe FAIL.
-- `viber/skills/implementor/SKILL.md:77,81` - profilowanie (docs -> haiku, zwolnienie z review) nie uwzględnia minimalnego profilu deklarowanego przez host (root `CLAUDE.md` tego repo go wymaga).
-- `viber/skills/tdd/SKILL.md:16` - "breaking its own assertion ... then restore the code" jest sprzeczne; poprawka: tymczasowo cofnąć zachowanie, które test pokrywa, potem je przywrócić.
+- WYKONANE - `viber/skills/implementor/SKILL.md:106` - `deferred` pochodzi z indeksu wczytanego raz w kroku 2; `DEFERRED:` z tej samej sesji nie dociera do codera i reviewera zadania-dłużnika (sprzeczne z `viber/CLAUDE.md:45-46`).
+- WYKONANE - `viber/skills/implementor/SKILL.md:113` - `-> none` bierze "the earliest unfinished task whose files column claims that path", czyli samo zadanie robiące commit; dług nigdy nie zostanie spłacony. Poprawka: "OTHER than this one".
+- WYKONANE - `viber/skills/implementor/SKILL.md:93,127` - "Never two commit-task.sh calls in one message" i obsługa niezerowego exit tylko w kroku 4; kroki 5 i 6 (`--repair`, `--chore`, `--qa`) bez nich. Poprawka: reguły na poziomie całego skilla.
+- WYKONANE - `viber/skills/implementor/SKILL.md:155,179` vs `viber/agents/rules-writer.md:54` - `OVER:` i `MOVE:` z rules-writer nie są czytane ani przenoszone do podsumowania końcowego.
+- WYKONANE - `viber/agents/task-reviewer.md:23` vs `task-coder.md:35` - brak instrukcji o długim timeoucie dla zadań `Exclusive: true`; reviewer zgłasza fałszywe FAIL.
+- WYKONANE - `viber/skills/implementor/SKILL.md:77,81` - profilowanie (docs -> haiku, zwolnienie z review) nie uwzględnia minimalnego profilu deklarowanego przez host (root `CLAUDE.md` tego repo go wymaga).
+- WYKONANE - `viber/skills/tdd/SKILL.md:16` - "breaking its own assertion ... then restore the code" jest sprzeczne; poprawka: tymczasowo cofnąć zachowanie, które test pokrywa, potem je przywrócić.
 
 ### Zamknięcie, QA, e2e
 
