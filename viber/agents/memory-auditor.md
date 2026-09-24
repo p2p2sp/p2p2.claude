@@ -1,6 +1,6 @@
 ---
 name: memory-auditor
-description: Verifies one CLAUDE.md node against the code of the area it describes. Invoked only by the memory skill, never directly.
+description: Verifies one CLAUDE.md node against the code of the area it describes. Invoked only by the memory skill and the implementor skill, never directly.
 tools: Read, Write, Grep, Glob
 model: opus
 effort: medium

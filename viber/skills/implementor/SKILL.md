@@ -1,7 +1,7 @@
 ---
 name: implementor
 description: Builds an approved plan task by task. Requires an existing plan; without one, use the planner skill.
-allowed-tools: Agent, SendMessage, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh:*)
+allowed-tools: Agent, SendMessage, AskUserQuestion, Read, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh:*)
 model: sonnet
 effort: medium
 user-invocable: false
@@ -152,7 +152,33 @@ For each switch the config block reports as `true` and the index's `closed:` lin
 - `rules: true` -> `viber:rules-writer` with `spec: <dir>/spec.md`, `notes: <dir>/work/` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`.
 - `qa: true` -> `viber:qa-writer` with `spec: <dir>/spec.md`, `notes: <dir>/work/`, `refs: ${CLAUDE_PLUGIN_ROOT}/references` and `out: <dir>`.
 
-Commit what they return, one call per form: memory and rule paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore "<plan>" "<file>" ["<file>"...]`, QA paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa "<plan>" "<file>" ["<file>"...]`. A form whose agents returned nothing or only `VERDICT: NONE` gets no call. Commit an `OVER:` line's path like any other and repeat the line verbatim in the final summary. Then `TaskUpdate` -> completed for each entry.
+`memory-writer` returning one or more `OVER:` lines -> as soon as it returned, never waiting for the other writers of this step, one `viber:memory-auditor` per `OVER:` path, all in one message, no `model:`, these lines each and nothing else, `<key>` being the `key:` of step 1:
+
+```
+target: <the OVER: path>
+scope: <the directory holding it, the repository root for the root node>
+out: .temp/viber/<key>/
+```
+
+An auditor returns one `AUDIT:` line and no `VERDICT:`: never answer it as a missing verdict. No `AUDIT:` line -> that node's `findings` is `none`.
+
+After every auditor returned, `viber:memory-node-writer` per `OVER:` path in waves by depth: a node's depth is the number of path segments of the directory holding it, the root being 0. One wave per depth, the root's first, then ascending; every dispatch of a wave in one message, the next wave only after each of them returned. No `model:`, these lines each and nothing else:
+
+```
+mode: fix
+node: <the OVER: path>
+findings: <the findings file its AUDIT: line named> | none
+planned: none
+refs: ${CLAUDE_PLUGIN_ROOT}/references
+```
+
+Any wave after the root's own (every wave, when the root is no `OVER:` path) returning a `FILES:` path other than its dispatched node, or a `DELETED:` line -> after the last wave, when the root `CLAUDE.md` exists and no `DELETED:` line named it, one more dispatch with the same lines on `node: CLAUDE.md`, `findings: none`.
+
+Commit what they return, one call per form: memory and rule paths, every `FILES:` path of the node writers among them, through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore "<plan>" "<file>" ["<file>"...]` only once every writer of this step, the last wave and any root dispatch returned; QA paths through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa "<plan>" "<file>" ["<file>"...]`. A form whose agents returned nothing or only `VERDICT: NONE` gets no call. Commit an `OVER:` line's path like any other.
+
+Repeat verbatim in the final summary every `AUDIT:` line, every node writer's `DROPPED:`, `DELETED:`, `LIFT:` and `CHAIN:` line, and every `OVER:` line whose node writer returned neither `VERDICT: UPDATED` nor `VERDICT: NONE`.
+
+Then `TaskUpdate` -> completed for each entry, the `memory` entry only after the `--chore` call, when one is due, returned.
 
 ## 7. Archive and close
 
