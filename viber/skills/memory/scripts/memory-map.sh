@@ -43,7 +43,7 @@
 #           root first then depth order. The first count is `wc -c` on the
 #           file, "chain" that plus every ancestor node up to the root - what
 #           a reader loads by the time it reaches this one. OVER-NODE past
-#           12000 characters, OVER-CHAIN past 32000 on the chain, OVER-NODE
+#           12000 bytes, OVER-CHAIN past 32000 on the chain, OVER-NODE
 #           winning when both hold. A node deleted but not yet committed -
 #           staged with `git rm` or plainly `rm`'d - is no node at all: no
 #           line here, no dirty line, not counted toward total or state, and
@@ -116,7 +116,7 @@ is_node() {
   return 1
 }
 
-# The characters of one file, 0 when it cannot be read.
+# The bytes of one file, 0 when it cannot be read.
 chars_of() {
   size="$(wc -c < "$1" 2>/dev/null | tr -d '[:space:]')"
   case "$size" in
@@ -170,9 +170,7 @@ dirty_reason() {
     case "$entry" in
       "$1 "*) printf '%s' "${entry#* }"; return 0 ;;
     esac
-  done <<EOT
-$dirty_nodes
-EOT
+  done < <(printf '%s\n' "$dirty_nodes")
   return 1
 }
 
@@ -211,9 +209,7 @@ if [ "$mode" = "reset" ]; then
     rm -f "$target"
     printf 'removed: %s\n' "$target"
     removed=$(( removed + 1 ))
-  done <<EOT
-$targets
-EOT
+  done < <(printf '%s\n' "$targets")
   printf 'removed: %d\n' "$removed"
   exit 0
 fi
@@ -267,9 +263,7 @@ while IFS= read -r line; do
   if ! holds_other "${node%CLAUDE.md}" "$node"; then
     orphan_out="$orphan_out$(printf 'orphan: %s' "$node")$NL"
   fi
-done <<EOT
-$node_lines
-EOT
+done < <(printf '%s\n' "$node_lines")
 
 # --- the directories that deserve a node -----------------------------------
 # One `wc -c` pass over the whole index, attributed to depth-1 and depth-2
@@ -325,9 +319,7 @@ while IFS= read -r entry; do
   path="${entry% *}"
   [ -e "$path" ] || continue
   dirty_out="$dirty_out$(printf 'dirty: %s' "$entry")$NL"
-done <<EOT
-$dirty_nodes
-EOT
+done < <(printf '%s\n' "$dirty_nodes")
 
 # --- the state of the layer ------------------------------------------------
 # "complete" is the root node plus a node on every directory that deserves

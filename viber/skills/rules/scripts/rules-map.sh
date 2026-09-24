@@ -56,7 +56,7 @@
 #            is absent or declares nothing usable - a rule Claude Code loads
 #            everywhere. Then `matches <n>`, the tracked files those globs
 #            really match, a `{a,b}` group matching either branch. The line
-#            closes on `ok`, or `OVER-FILE` past 4000 characters.
+#            closes on `ok`, or `OVER-FILE` past 4000 bytes.
 #            `frozen:` is one line per `_*.md`: reported, never scored, never
 #            dead, never deleted.
 #            `dead:` is a non-frozen rule whose globs match no tracked file -
@@ -67,7 +67,7 @@
 #            `dirty:` covers every `.md` in the directory, frozen included:
 #            uncommitted work is a fact about the file, not a score.
 #            `total:` sums every `.md`, frozen included, and closes on `ok` or
-#            `OVER-DIR` past 40000 characters.
+#            `OVER-DIR` past 40000 bytes.
 #
 #            reset mode prints one of two blocks. Refused, nothing deleted:
 #              refused: <path> not-a-rule | frozen | missing | untracked | modified
@@ -378,9 +378,7 @@ while IFS= read -r file; do
   [ "$size" -gt "$file_cap" ] && verdict="OVER-FILE"
   rule_lines="$rule_lines"'rule: '"$file $size paths $shown $scope $verdict"'
 '
-done <<EOF
-$listing
-EOF
+done < <(printf '%s\n' "$listing")
 
 if [ "$rules_seen" -eq 0 ]; then
   state="none"
