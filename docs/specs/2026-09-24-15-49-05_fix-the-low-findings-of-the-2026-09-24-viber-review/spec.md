@@ -4,7 +4,7 @@ Build: skill `implementor`
 
 ## Goal
 
-The 2026-09-24 review of the viber plugin (`docs/reviews/2026-09-24_viber-review.md`) left 43 open Low findings: script edge cases (unanchored plan markers, count-based unfinished checks, unvalidated `--skip`, heredocs the repo forbids, a plan gate that denies where it promised to fail open), contradictions between skill, agent and reference texts, stale documentation and stale dev-time rules. Every one was re-verified on the current tree and is still present. This change fixes each one that lives outside a `CLAUDE.md` and marks it done in the review document.
+The 2026-09-24 review of the viber plugin (`docs/reviews/2026-09-24_viber-review.md`) left 43 open Low findings: script edge cases (unanchored plan markers, count-based unfinished checks, unvalidated `--skip`, heredocs the repo forbids, a plan gate that denies where it promised to fail open), contradictions between skill, agent and reference texts, stale documentation and stale dev-time rules. Every one was re-verified on the current tree and is still present. This change fixes each one that lives outside a `CLAUDE.md` and marks it done in the review document. [D1]
 
 ## Acceptance criteria
 
@@ -75,3 +75,7 @@ The 2026-09-24 review of the viber plugin (`docs/reviews/2026-09-24_viber-review
 - The "Input is fully resolved" sentence missing from `task-reviewer.md` and `test-runner.md`: not a review finding.
 - Making `plan-path.sh` and `plan-index.sh` independent of the working directory.
 - Any High or Medium item, and any change to budget values.
+
+## Deviations
+
+D1 (#22): one Low item outside a `CLAUDE.md` stays open and unmarked: the implementor skill now ties `<plan>` to `path:`, but its half stating that the scripts need the repo root as cwd was not fixed.
