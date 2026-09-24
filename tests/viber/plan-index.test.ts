@@ -265,6 +265,17 @@ function taskFiles(dir: string): string[] {
   return fs.existsSync(tasks) ? fs.readdirSync(tasks).sort() : [];
 }
 
+// --- the header documentation ------------------------------------------------
+
+test("the header's example task titles carry no Conventional Commits type - a task title is prose, never a commit subject", () => {
+  const source = fs.readFileSync(SUT, "utf-8");
+  const exampleRows = source.split("\n").filter((l) => /^#\s+T[12] \|/.test(l));
+  assert.equal(exampleRows.length, 2, `expected two example rows in the header, got: ${JSON.stringify(exampleRows)}`);
+  for (const row of exampleRows) {
+    assert.doesNotMatch(row, /\bchore:|\bfeat:/, row);
+  }
+});
+
 // --- the index -------------------------------------------------------------
 
 test("the index carries one row per task: id, state, TDD marker, exclusivity, normalised deps, files and title", () => {
@@ -285,6 +296,22 @@ test("the index carries one row per task: id, state, TDD marker, exclusivity, no
         "",
       ].join("\n"),
     );
+  });
+});
+
+test("a marker mentioned mid-sentence in prose creates no task - only a marker alone on its own line opens one", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const body = planBody(TWO_TASKS).replace(
+      "## Goal\n",
+      "## Goal\n\nMentioning <!-- TASK --> inside a sentence must not open one.\n\n",
+    );
+    seed(dir, body);
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^progress: 0\/2$/m);
+    assert.match(result.stdout, /^T1 \| todo \|/m);
+    assert.match(result.stdout, /^T2 \| todo \|/m);
   });
 });
 
@@ -730,6 +757,17 @@ test("a contract block no task's Uses names exits 4 (the split would leave it un
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /contract C1 is used by no task/);
+  });
+});
+
+test("an appendix where no block carries File fails validation outside --split (the exemption is for resuming a frozen plan, not for a fresh one)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody([{ id: "T1" }], 1, ["### C1 - Login endpoint", "", "POST /login -> 200 | 401"]));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /contract C1: missing File/);
   });
 });
 

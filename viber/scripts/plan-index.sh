@@ -17,8 +17,8 @@
 #   deferred: T7:src/a.ts           only when status.md carries the entry
 #   closed: memory rules            only when status.md carries the entry
 #   tasks: id | state | tdd | excl | deps | files | title
-#   T1 | done | none     | -   | -  | .claude/settings.json | chore: ...
-#   T2 | todo | required | yes | T1 | src/a.ts,src/b.ts     | feat: ...
+#   T1 | done | none     | -   | -  | .claude/settings.json | Tighten the settings schema
+#   T2 | todo | required | yes | T1 | src/a.ts,src/b.ts     | Add the retry loop
 #   dirty: T2 | src/a.ts            only for a task whose own files are dirty
 #                                   (its "Repro:" path excepted)
 #
@@ -114,15 +114,17 @@
 #       acceptance criteria, an acceptance criterion no task's "Covers:" names, a
 #       "Uses:" contract absent from the appendix, a contract block no task's
 #       "Uses:" names, a malformed or duplicate contract heading, a contract
-#       block with no "File:" line, a contract file that no task's "Files:"
-#       creates and the tree does not already hold, a contract file whose
-#       holders never name the block in "Uses:", an unparseable "Files:" entry,
-#       the same file listed by two tasks with no dependency path between
-#       them - they would run at the same time -, or a "Depends-on" naming a
-#       task marked "Exclusive: true": that task is a leaf of the dependency
-#       graph, so nothing may depend on it. Exempted under --split alone: a
-#       plan that landed before this rule is frozen, and a run resumed after
-#       the upgrade must still validate and decompose.
+#       block with no "File:" line (even one where no block in the whole
+#       appendix carries the line at all - exempted under --split alone,
+#       below), a contract file that no task's "Files:" creates and the tree
+#       does not already hold, a contract file whose holders never name the
+#       block in "Uses:", an unparseable "Files:" entry, the same file listed
+#       by two tasks with no dependency path between them - they would run at
+#       the same time -, or a "Depends-on" naming a task marked "Exclusive:
+#       true": that task is a leaf of the dependency graph, so nothing may
+#       depend on it. Both parenthetical cases above are exempted under
+#       --split alone: a plan that landed before the rule is frozen, and a run
+#       resumed after the upgrade must still validate and decompose.
 #
 #       An unparseable "Files:" entry is an empty one, one carrying "*" or "?",
 #       one whose bracket does not wrap a whole segment in one of the three App
@@ -313,14 +315,14 @@ incon && !intask && cid != "" && cfresh && /^-?[[:space:]]*File:/ {
 }
 incon && !intask && cid != "" && trim($0) != "" { cfresh = 0 }
 
-/<!--[[:space:]]*TASK[[:space:]]*-->/ {
+/^[[:space:]]*<!--[[:space:]]*TASK[[:space:]]*-->[[:space:]]*$/ {
   intask = 1; n++
   id[n] = ""; ttl[n] = ""; tdd[n] = ""; deps[n] = ""; files[n] = ""
   covers[n] = ""; uses[n] = ""; deliv[n] = ""; verif[n] = ""; dod[n] = ""
   excl[n] = ""; repro[n] = ""
   next
 }
-/<!--[[:space:]]*\/TASK[[:space:]]*-->/ { intask = 0; next }
+/^[[:space:]]*<!--[[:space:]]*\/TASK[[:space:]]*-->[[:space:]]*$/ { intask = 0; next }
 
 intask {
   if ($0 ~ /^###[[:space:]]/) {
@@ -469,16 +471,22 @@ END {
   # whatever each coder invents
   for (c = 1; c <= ncon; c++) {
     if (!(corder[c] in usedcon)) fail("contract " corder[c] " is used by no task")
-    if (ncfile > 0 && !(corder[c] in cfile)) fail("contract " corder[c] ": missing File - name the paths the shape is declared in, or \"none\"")
+    # missing outright, or an appendix where NO block carries the line at all -
+    # exempted under --split alone (see below), required everywhere else
+    if (!(corder[c] in cfile) && (mode == "--split" ? ncfile > 0 : 1))
+      fail("contract " corder[c] ": missing File - name the paths the shape is declared in, or \"none\"")
   }
 
   # the file of a block decides who writes it, so the two halves of the plan
   # have to meet: a path nothing creates leaves the shape to be invented by
   # whoever needs it first, and a path whose holders never name the block leaves
   # its writer blind to it while a consumer writes it outside its own file map.
-  # An appendix where NO block carries "File:" predates the field - a plan that
-  # landed before this check and is being resumed - and the layer stays off for
-  # it, because a frozen plan cannot grow the line and a build must not stall.
+  # An appendix where NO block carries "File:" is now required everywhere
+  # outside --split, caught above (which already sets err and skips this
+  # block); under --split alone it may still predate the field - a plan that
+  # landed before this check and is being resumed - so nothing here runs for
+  # it either, because a frozen plan cannot grow the line and a build must not
+  # stall mid-resume.
   if (!err && ncfile > 0) {
     for (c = 1; c <= ncon; c++) {
       cn = corder[c]
@@ -681,8 +689,8 @@ END {
   # one file per task, and it is the whole job: the block verbatim, the run goal,
   # the criteria it covers, the contracts it uses, the boundaries it may not cross
   for (i = cut; i <= NR; i++) {
-    if (line[i] ~ /<!--[[:space:]]*TASK[[:space:]]*-->/)   { intask = 1; body = ""; id = ""; cov = ""; use = ""; continue }
-    if (line[i] ~ /<!--[[:space:]]*\/TASK[[:space:]]*-->/) {
+    if (line[i] ~ /^[[:space:]]*<!--[[:space:]]*TASK[[:space:]]*-->[[:space:]]*$/)   { intask = 1; body = ""; id = ""; cov = ""; use = ""; continue }
+    if (line[i] ~ /^[[:space:]]*<!--[[:space:]]*\/TASK[[:space:]]*-->[[:space:]]*$/) {
       intask = 0
       if (id == "") continue
       f = dir "/tasks/" id ".md"
@@ -732,7 +740,7 @@ END {
 # again and must find its progress untouched. commit-task.sh is its only other
 # writer, and the plan beside it is never written to again at all.
 if [[ ! -f "$dir/status.md" ]]; then
-  total="$(grep -cE '<!--[[:space:]]*TASK[[:space:]]*-->' -- "$plan" || true)"
+  total="$(grep -cE '^[[:space:]]*<!--[[:space:]]*TASK[[:space:]]*-->[[:space:]]*$' -- "$plan" || true)"
   {
     printf '# status\n\n'
     printf 'progress: 0/%s\n' "${total:-0}"
