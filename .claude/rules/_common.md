@@ -7,7 +7,7 @@ paths:
 - When work with skills or agents ALWAYS use `skill-designer` rules.
 
 - The model does not need a history of decisions to execute one.
-- The prose is for users, not the agent, and belongs in CLAUDE.md or a script header comment—not in a contract that gets read repeatedly during execution.
+- The prose is for users, not the agent, and belongs in CLAUDE.md or a script header comment, not in a contract that gets read repeatedly during execution.
 
 - Do not bloat the skills, agents or any referenced files. The instructions are intended to guide the agent on how to operate within the plugin while simultaneously allowing it the freedom to decide how to execute planned tasks within certain parameters.
 
