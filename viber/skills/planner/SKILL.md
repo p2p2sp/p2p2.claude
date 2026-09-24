@@ -19,7 +19,7 @@ The input carries three decisions already taken: the spec shape, whether this pl
 
 ## 1. Map the files first
 
-Unless the plan stops at a draft, read `${CLAUDE_PLUGIN_ROOT}/references/test-strategy.md` first: it decides how the work is sliced, where each criterion's proof lives and which deliverables carry no test. A plan with an integration task also reads `${CLAUDE_PLUGIN_ROOT}/references/integration-tests.md`: which task owns the shared fixture.
+Unless the plan stops at a draft, read `${CLAUDE_PLUGIN_ROOT}/references/test-strategy.md` first: it decides how the work is sliced, where each criterion's proof lives and which deliverables carry no test. A plan with an integration task also reads `${CLAUDE_PLUGIN_ROOT}/references/integration-tests.md`: the layer is designed from it as a whole.
 
 Before writing a task, decide which files get created, modified or deleted and what each one owns: locked-in boundaries are what lets tasks run in parallel.
 

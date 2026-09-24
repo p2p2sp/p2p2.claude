@@ -14,4 +14,3 @@ What an integration test runs against and how the layer stays fast. The rules of
 - Reset state between tests by the cheapest honest means - a rolled-back transaction, a truncate, a namespace of its own per test - so reuse costs no test its independence. The `Exclusive` slot makes the reuse safe: the layer runs alone, so it is not the sharing the isolation rule forbids.
 - Wait for a dependency on its readiness signal, never on a fixed delay.
 - Run the tests in parallel wherever the reset keeps them independent.
-- The fixture that starts the dependencies serves every integration task, so it belongs to the file map of a task they all depend on, never to one of them.
