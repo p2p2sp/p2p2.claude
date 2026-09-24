@@ -77,7 +77,9 @@ Each plugin dir carries `.claude-plugin/plugin.json`, whose `skills[]` (and `age
   three host locations are writable at a plugin's own choosing: `docs/<layer>/`, `.claude/`
   (user-owned config/rules) and `.temp/<plugin>/` (every temporary artifact). A fourth is writable
   only because the HOST names it: the host's e2e test dir, written by viber's `e2e-writer` into
-  the directory the host's instructions name, never a sibling it invented.
+  the directory the project's own instructions name, falling back to the QA handoff's header
+  lines or a direct answer from the user - never a default of its own, never a sibling it
+  invented.
 - **`viber` is the only manifest-bearing plugin.** Its `SessionStart` hook injects
   `hooks/content/manifest.md` verbatim once per session (`resume` excluded, fail-open: an empty
   or unreadable file leaves only the banner). The manifest is not a dispatcher: it names no

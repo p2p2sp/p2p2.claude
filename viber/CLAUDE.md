@@ -38,10 +38,12 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
   (`VERDICT:`, `REASON:`, `DOD:`, `EXTRA:`, `DEFERRED:`, `REVIEW:`, `REPORT:`, `FILES:`, `OVER:`,
   `AUDIT:`, `DRIFT:`, `PATH:`) is an interface: renaming a line on one side without the branch
   that reads it on the other breaks the build with no error.
-- Only coder, reviewer and repair-coder dispatches carry `model` (the task's profiled tier, clamped
-  into `tiers.min`..`tiers.max`, ladder `haiku < sonnet < opus < fable`, `fable` only when the host
-  names it). Every other dispatch, in the close and in the `memory`, `rules` and `e2e` commands,
-  passes none: the agent's frontmatter is its strength.
+- Only coder, reviewer and repair-coder dispatches carry `model`. Coder and reviewer take the
+  task's profiled tier, clamped into `tiers.min`..`tiers.max` (ladder `haiku < sonnet < opus <
+  fable`, `fable` only when the host names it); repair-coder carries no task to profile, so it
+  always starts at `sonnet` within that same clamp, raised only by a `retry` answer. Every other
+  dispatch, in the close and in the `memory`, `rules` and `e2e` commands, passes none: the agent's
+  frontmatter is its strength.
 - Coder output feeds the commit: `EXTRA:` becomes `--with`, `DEFERRED:` becomes `--defer`, stored
   as `deferred:` in `status.md` and handed to the owing task's coder and reviewer.
 - task-coder, task-reviewer, test-runner and e2e-writer share a "Stop what you started" section
@@ -57,7 +59,8 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
   `git add` or `git commit`. `planner` leaves a landed draft uncommitted; the `memory` and `rules`
   commands leave their writes unstaged.
 - `commit-task.sh` never takes a subject from its caller: a task commit is the plan's
-  `### T<n> - <title>` line verbatim, every flag form derives its own. It stages only the paths it
+  `T<n> - <title>` heading with its `###` marker stripped and no Conventional Commits type prefix
+  added, every flag form derives its own. It stages only the paths it
   is named through literal pathspecs (`GIT_LITERAL_PATHSPECS`, for App Router `[id]` paths),
   refuses `.temp/`, and adds the run's `work/` trail by paths derived from the id or round.
 - Never two `commit-task.sh` calls at once: each rewrites the git index and `status.md`.
@@ -68,7 +71,8 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
 copies the plan-mode file and never moves it, points the copy's frontmatter `source:` at the copy
 and lands a round into the draft its frontmatter `into:` key names:
 
-- `plan.md` - frozen once landed; nothing writes it again.
+- `plan.md` - frozen once it carries a task block; a still-draft plan (no task block yet) is
+  relanded in place by `plan-path.sh --land --into <key>`, one round at a time.
 - `spec.md`, `tasks/<id>.md` - `plan-index.sh --split`, rebuilt from scratch on every call. A task
   file is a coder's whole input (its block with `DoD` cut into `DoD.<k>` lines, the Goal, its
   `Covers` criteria, its `Uses` contracts, `Must not change`, `Out of scope`); a coder never sees
@@ -144,6 +148,7 @@ line disarms the gate, and fail-open means nothing reports it.
 
 - `e2e`: `playwright-cli` and `@playwright/test`, probed by `check-playwright.sh`, which never
   installs; the skill installs only once the user agrees. Tests run chromium only.
-- `setup`: `merge-settings.sh` runs an embedded `node` program; with no `node` on PATH it prints
-  the recommended block and skips. The template wins a scalar, lists only gain entries, an `ask`
-  entry is removed from `deny`, and `.claude/settings.local.json` is never touched.
+- `setup`: `merge-settings.sh` runs its sibling `merge-settings.js` through `node`; with no `node`
+  on PATH it prints the recommended block and skips. The template wins a scalar, lists only gain
+  entries, an `ask` entry is removed from `deny`, and `.claude/settings.local.json` is never
+  touched.
