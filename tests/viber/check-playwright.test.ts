@@ -25,7 +25,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { runScript } from "../harness/run.ts";
-import { withTempDir } from "../harness/tmp.ts";
+import { withGitRepo, withTempDir } from "../harness/tmp.ts";
 import { coreUtilsPath, withStub } from "../harness/stub.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/check-playwright.sh");
@@ -35,6 +35,22 @@ const STUB_VERSION_FAILS = "exit 1";
 
 function run(dir: string, stubDirs: string[] = []) {
   return runScript(SUT, [], { cwd: dir, env: { PATH: coreUtilsPath() }, stubDirs });
+}
+
+/** coreUtilsPath() plus the directory that resolves the real `git` binary.
+ *  Git for Windows splits git.exe (mingw64/bin) away from grep and bash
+ *  (usr/bin), so coreUtilsPath() alone leaves `git ls-files` unresolved and
+ *  the nested-package.json probe would silently see no tracked files. */
+function pathWithGit(): string {
+  const exe = (name: string) => (process.platform === "win32" ? [`${name}.exe`, name] : [name]);
+  const dirs = (process.env.PATH ?? "").split(path.delimiter).filter(Boolean);
+  const gitDir = dirs.find((dir) => exe("git").some((n) => fs.existsSync(path.join(dir, n))));
+  if (!gitDir) throw new Error("check-playwright.test.ts: no directory on PATH resolves git");
+  return [coreUtilsPath(), gitDir].join(path.delimiter);
+}
+
+function runInRepo(dir: string) {
+  return runScript(SUT, [], { cwd: dir, env: { PATH: pathWithGit() } });
 }
 
 test("no playwright-cli on PATH and no package.json: both lines report not found, and the exit is still 0", () => {
@@ -74,6 +90,46 @@ test("a root package.json naming @playwright/test under devDependencies reports 
     const result = run(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "playwright-cli: not found\n@playwright/test: found\n");
+  });
+});
+
+test("a tracked nested package.json naming @playwright/test reports it found even though the root package.json names nothing", () => {
+  withGitRepo((repo) => {
+    fs.mkdirSync(path.join(repo.dir, "apps", "web"), { recursive: true });
+    fs.writeFileSync(
+      path.join(repo.dir, "apps", "web", "package.json"),
+      JSON.stringify({ name: "web", devDependencies: { "@playwright/test": "^1.40.0" } }, null, 2),
+    );
+    repo.git("add", "apps/web/package.json");
+    repo.git("commit", "-m", "add web package.json");
+    const result = runInRepo(repo.dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "playwright-cli: not found\n@playwright/test: found\n");
+  });
+});
+
+test("an untracked nested package.json naming @playwright/test is not probed and reports it not found", () => {
+  withGitRepo((repo) => {
+    fs.mkdirSync(path.join(repo.dir, "apps", "web"), { recursive: true });
+    fs.writeFileSync(
+      path.join(repo.dir, "apps", "web", "package.json"),
+      JSON.stringify({ name: "web", devDependencies: { "@playwright/test": "^1.40.0" } }, null, 2),
+    );
+    // Never `git add`-ed: the file stays untracked.
+    const result = runInRepo(repo.dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "playwright-cli: not found\n@playwright/test: not found\n");
+  });
+});
+
+test("a repo naming @playwright/test nowhere, tracked or untracked, reports it not found", () => {
+  withGitRepo((repo) => {
+    fs.writeFileSync(path.join(repo.dir, "package.json"), JSON.stringify({ name: "root" }, null, 2));
+    repo.git("add", "package.json");
+    repo.git("commit", "-m", "add root package.json");
+    const result = runInRepo(repo.dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "playwright-cli: not found\n@playwright/test: not found\n");
   });
 });
 

@@ -19,8 +19,13 @@
 #            resolved here for the package.json lookup. Outside a repository,
 #            the cwd is the base.
 #   env    : none.
-#   file   : <repo root>/package.json (optional). Absent or unreadable ->
-#            "@playwright/test: not found".
+#   file   : <repo root>/package.json plus every OTHER package.json `git
+#            ls-files` reports as tracked from the repo root (nested, any
+#            depth). Untracked ones (gitignored, new-but-unstaged) are never
+#            read. Outside a repository - or wherever `git` itself is not on
+#            PATH - only the root package.json is checked, matching the prior
+#            behaviour. Absent, untracked or unreadable -> "@playwright/test:
+#            not found".
 #   stdout : exactly two lines, always in this order -
 #              "playwright-cli: found <version>"         - `command -v
 #                playwright-cli` succeeds and `playwright-cli --version` prints
@@ -29,7 +34,7 @@
 #                succeeds but `--version` fails or prints nothing, or
 #              "playwright-cli: not found"               - not on PATH;
 #              "@playwright/test: found"                 - the root package.json
-#                exists and names `"@playwright/test"`, or
+#                or any tracked nested one names `"@playwright/test"`, or
 #              "@playwright/test: not found"             - otherwise.
 #   exit   : ALWAYS 0. It reports, it installs nothing, and a non-zero exit in a
 #            `!` preload would abort the whole skill load.
@@ -51,10 +56,21 @@ else
   echo "playwright-cli: not found"
 fi
 
+found="not found"
 if [ -f "${root}/package.json" ] && grep -q '"@playwright/test"' "${root}/package.json" 2>/dev/null; then
-  echo "@playwright/test: found"
-else
-  echo "@playwright/test: not found"
+  found="found"
 fi
+
+if [ "$found" = "not found" ] && command -v git >/dev/null 2>&1; then
+  while IFS= read -r nested; do
+    [ -z "$nested" ] && continue
+    if grep -q '"@playwright/test"' "${root}/${nested}" 2>/dev/null; then
+      found="found"
+      break
+    fi
+  done < <(git -C "$root" ls-files 2>/dev/null | grep -E '(^|/)package\.json$')
+fi
+
+echo "@playwright/test: ${found}"
 
 exit 0
