@@ -4,7 +4,7 @@ Where a change's proof lives, how tasks are sliced so it can live there, and wha
 
 ## Where the proof lives
 
-- Every acceptance criterion is proven by unit-level tests inside the task that delivers it. A criterion whose only proof is an integration task is mis-sliced: its behaviour sits behind a dependency instead of behind a seam. (blocking)
+- On a host with a test layer, every acceptance criterion carrying a decision is proven by unit-level tests inside the task that delivers it. A criterion whose only proof is an integration task is mis-sliced: its behaviour sits behind a dependency instead of behind a seam. (blocking)
 - An integration task proves wiring and nothing else. What it exercises is already green without it.
 - Unit tests outnumber integration tests by a wide margin. An integration layer growing with the criteria instead of with the boundaries the change crosses means the seams were never built.
 - Unit tasks first, integration tasks last, so the unit tasks run concurrently, none of them holding an external resource.
