@@ -10,7 +10,7 @@ A decision this plan settles is a candidate only when all three hold; one missin
 2. Surprising Without Context - The choice is not the obvious default. A competent engineer looking at the system cold would wonder why it was done this way.
 3. A Real Trade-off - Multiple genuine alternatives were on the table, and the choice required weighing distinct pros and cons.
 
-One `docs/adr/` already records is not a candidate. Most plans have none: feature behaviour, naming, validation rules, wiring and anything re-derivable from the code never qualify, and several candidates in one run means the bar slipped. No candidate means no question and no ADR task.
+One `docs/adr/` already records is not a candidate: `Glob docs/adr/*.md` and judge by the slug in each name, reading only a file whose slug names the same decision. Most plans have none: feature behaviour, naming, validation rules, wiring and anything re-derivable from the code never qualify, and several candidates in one run means the bar slipped. No candidate means no question and no ADR task.
 
 ## 2. Ask
 
