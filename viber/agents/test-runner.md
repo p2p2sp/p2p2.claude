@@ -1,6 +1,6 @@
 ---
 name: test-runner
-description: Runs the project's build and test suite once and returns a one-line verdict, keeping the log out of the caller's context. Invoked only by the implementor skill, never directly.
+description: Runs the project's build and test suite once and returns a verdict, keeping the log out of the caller's context. Invoked only by the implementor skill, never directly.
 tools: Read, Write, Grep, Glob, Bash
 model: haiku
 color: cyan
@@ -33,7 +33,6 @@ Never paste the log - the whole point is that it stays here.
 - The harness refuses one of your tool calls: write nothing to the report path and return:
   - line 1: `VERDICT: DENIED`
   - line 2: `REASON: <refused tool name>: <the exact refused command, or the path for a file tool>`
-- The build failed, or a test failed: write one line to the report path (the build command and its first error line for a build failure, run no test after it; otherwise one line per failure - test name, file, and the assertion or error), then return:
+- The build failed, or a test failed: write to the report path (the build command and its first error line for a build failure, run no test after it; otherwise one line per failure - test name, file, and the assertion or error), then return:
   - line 1: `VERDICT: FAIL`
   - line 2: `REPORT: <report path>`
-  - line 3: `FAILED: <count>`, or `FAILED: 0` when the build failed
