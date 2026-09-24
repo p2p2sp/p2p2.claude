@@ -1,5 +1,6 @@
 ---
 source: <absolute path of THIS plan file, the one plan mode named>
+into: <run key of the draft this round continues; drop the line otherwise>
 ---
 
 # <change title>

@@ -557,6 +557,9 @@ test("a broken task contract exits 4 and names the task", () => {
       /Files entry "src\/a\[bc\]\.ts" is a glob/,
     ],
     ["a directory in Files", [{ id: "T1", files: "src/" }], /is a directory/],
+    // quoting reaches commit-task.sh as part of the pathspec and stages nothing
+    ["a backticked path in Files", [{ id: "T1", files: "`src/a.ts`" }], /is not a bare path, drop the quoting/],
+    ["a double-quoted path in Files", [{ id: "T1", files: '"src/a.ts"' }], /is not a bare path, drop the quoting/],
     ["a TDD marker that is neither required nor none", [{ id: "T1", tdd: "maybe" }], /TDD must be/],
     [
       "an Exclusive line spelled false rather than left out",
@@ -702,6 +705,18 @@ test("an acceptance criterion no task's Covers names exits 4 (nothing downstream
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /criterion #2 is covered by no task/);
+  });
+});
+
+test("only the criterion tokens of Covers count, so a digit inside an annotation covers nothing", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    // "(see S2)" carries a 2, and criterion #2 is still covered by no task
+    seed(dir, planBody([{ id: "T1", covers: "#1 (see S2)" }]));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /criterion #2 is covered by no task/);
+    assert.doesNotMatch(result.stderr, /criterion #1 |Covers #/);
   });
 });
 

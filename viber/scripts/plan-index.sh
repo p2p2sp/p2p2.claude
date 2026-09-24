@@ -127,7 +127,9 @@
 #       An unparseable "Files:" entry is an empty one, one carrying "*" or "?",
 #       one whose bracket does not wrap a whole segment in one of the three App
 #       Router shapes above, an absolute or "~" path, one ending in "/" (a
-#       directory), or one carrying whitespace (a path plus an annotation).
+#       directory), one carrying whitespace (a path plus an annotation), or one
+#       carrying a backtick or a double quote (a quoted path commit-task.sh
+#       could not stage).
 #
 # Contract:
 #   argv   : the plan file, optionally --split.
@@ -214,6 +216,16 @@ function val(s)  { sub(/^[^:]*:/, "", s); return trim(s) }
 function fail(msg) { printf "error: %s\n", msg > "/dev/stderr"; err = 1 }
 
 function listed(s) { s = trim(s); return (s == "none" || s == "-" ? "" : s) }
+
+# the criterion numbers of a "Covers:" value: tokens split on commas and
+# whitespace, only "<n>" or "#<n>" counting, so an annotation like "(see S3)"
+# names no criterion. c and m are locals: the callers loop on globals.
+function covnums(s, out,   c, m, k, j) {
+  m = split(s, c, /[,[:space:]]+/)
+  j = 0
+  for (k = 1; k <= m; k++) if (c[k] ~ /^#?[0-9]+$/) { sub(/^#/, "", c[k]); out[++j] = c[k] }
+  return j
+}
 
 # a path already in the tree: a contract may describe a shape this change only
 # consumes, and nothing has to create what is already written
@@ -371,6 +383,7 @@ END {
       if (p ~ /^\// || p ~ /^~/)       { fail("task " id[i] ": Files entry \"" p "\" must be repo-relative"); continue }
       if (p ~ /\/$/)                   { fail("task " id[i] ": Files entry \"" p "\" is a directory, list each file"); continue }
       if (p ~ /[[:space:]]/)           { fail("task " id[i] ": Files entry \"" p "\" is not a bare path, drop the annotation"); continue }
+      if (p ~ /[`"]/)                  { fail("task " id[i] ": Files entry \"" p "\" is not a bare path, drop the quoting"); continue }
       fset[i, p] = 1
       fpath[i, ++nf[i]] = p
     }
@@ -386,9 +399,8 @@ END {
 
     # Covers must point at an existing acceptance criterion; the reverse direction
     # is checked once, after this loop
-    cv = covers[i]
-    gsub(/[^0-9]+/, " ", cv)
-    m = split(trim(cv), cnums, /[[:space:]]+/)
+    delete cnums
+    m = covnums(covers[i], cnums)
     if (m == 0) fail("task " id[i] ": Covers references no acceptance criterion")
     for (k = 1; k <= m; k++)
       if (!(cnums[k] + 0 in crit)) fail("task " id[i] ": Covers #" cnums[k] ", absent from acceptance criteria")
@@ -582,6 +594,16 @@ function dodlines(s,   v, m, cl, k, c, out, j) {
   return (j ? out : s "\n")
 }
 
+# the criterion numbers of a "Covers:" value: tokens split on commas and
+# whitespace, only "<n>" or "#<n>" counting, so an annotation like "(see S3)"
+# names no criterion. c and m are locals: the callers loop on globals.
+function covnums(s, out,   c, m, k, j) {
+  m = split(s, c, /[,[:space:]]+/)
+  j = 0
+  for (k = 1; k <= m; k++) if (c[k] ~ /^#?[0-9]+$/) { sub(/^#/, "", c[k]); out[++j] = c[k] }
+  return j
+}
+
 BEGIN { dir = ENVIRON["dir"] }
 { line[NR] = $0 }
 
@@ -692,7 +714,9 @@ END {
       id = (p ? trim(substr(h, 1, p - 1)) : trim(h))
     }
     if (line[i] ~ /^-[[:space:]]*Covers:/) {
-      c = line[i]; sub(/^[^:]*:/, "", c); gsub(/[^0-9]+/, " ", c); cov = trim(c)
+      c = line[i]; sub(/^[^:]*:/, "", c)
+      delete cn; m = covnums(c, cn); cov = ""
+      for (k = 1; k <= m; k++) cov = cov (k > 1 ? " " : "") cn[k]
     }
     if (line[i] ~ /^-[[:space:]]*Uses:/) {
       u = line[i]; sub(/^[^:]*:/, "", u); gsub(/,/, " ", u); use = trim(u)

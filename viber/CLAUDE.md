@@ -21,7 +21,7 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
 ## The chain
 
 - `idea` (interview) or `fixer` (RED reproduction test + diagnosis) -> `planner` -> `implementor`.
-  `planner` treats any other input as unresolved and hands back to `idea`; `implementor` refuses a
+  `planner` treats any other input as unresolved and suggests `idea`; `implementor` refuses a
   draft (a landed plan with no TASK block). `planner`, `implementor` and `tdd` are
   `user-invocable: false`, reached only through the chain (`tdd` through `task-coder`). `setup`,
   `e2e`, `memory` and `rules` are user-only commands (`disable-model-invocation: true`).
@@ -65,7 +65,8 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
 ## The run directory
 
 `docs/<runs>/<stamp>_<slug>/` (`docs/_specs/` by default), landed by `plan-path.sh --land`, which
-copies the plan-mode file and never moves it:
+copies the plan-mode file and never moves it, points the copy's frontmatter `source:` at the copy
+and lands a round into the draft its frontmatter `into:` key names:
 
 - `plan.md` - frozen once landed; nothing writes it again.
 - `spec.md`, `tasks/<id>.md` - `plan-index.sh --split`, rebuilt from scratch on every call. A task

@@ -20,14 +20,14 @@ Wynik: 7 high, ok. 20 medium, reszta low. Punkty High 1-3 i 5 zweryfikowane ręc
 
 ### Planowanie
 
-- `viber/skills/planner/SKILL.md:57,61-65` - szkic jest lądowany (`plan-path.sh --land`, przepisanie `source:`) dopiero po `ExitPlanMode`; zatwierdzenie z czyszczeniem kontekstu gubi ten krok, a plan dalej mówi "Build: skill implementor", który odrzuca szkic.
-- `viber/skills/planner/SKILL.md:18,34` - runda kontynuująca szkic dostaje tylko klucz i podsumowanie; brak polecenia przeczytania `docs/<runs>/<key>/plan.md`, więc `--into` może nadpisać ustaloną specyfikację uboższą.
-- `viber/skills/planner/SKILL.md:53` - ponowne `plan-index.sh` tylko po zmianie pól zadań; pomija `## Contracts` i kryteria akceptacji (reguły Named, Homed, Seen, Covers są `(script)`). Błąd wychodzi dopiero przy `--split` na zamrożonym planie. Poprawka: re-run po każdej poprawce.
-- `viber/skills/planner/SKILL.md:3` vs `:14` - opis: "suggest the viber:idea interview and let the user decide", treść: "invoke the viber:idea skill instead". Łamie kontrakt wyzwalania `idea`.
-- `viber/scripts/plan-index.sh:389-395` (i `:695`) - `gsub(/[^0-9]+/, " ", cv)` liczy każdą cyfrę w `Covers:`; `Covers: #1 (see S3)` pokrywa kryterium 3 (odtworzone).
-- `viber/scripts/plan-index.sh:365-376` vs `commit-task.sh:587-589` - wpisy `Files:` w backtickach przechodzą walidację, a commit zadania pada na dosłownym pathspecu (odtworzone).
-- `viber/skills/planner/references/adr-tasks.md:26` vs `viber/references/plan-rules.md:24` - weryfikacja zadania ADR (`test -f ... && grep -q '^Status: accepted'`) to dokładnie przypadek, który Provable uznaje za błąd; przy `adr: true` review zapętla się na FAIL.
-- `viber/references/plan-rules.md:25` vs `:26` - TDD pozwala na `TDD: none` tylko bez zmiany zachowania, Reproduced wymaga `TDD: none` na zadaniu naprawiającym błąd. Poprawka: "or the task carries `Repro:`".
+- WYKONANE - `viber/skills/planner/SKILL.md:57,61-65` - szkic jest lądowany (`plan-path.sh --land`, przepisanie `source:`) dopiero po `ExitPlanMode`; zatwierdzenie z czyszczeniem kontekstu gubi ten krok, a plan dalej mówi "Build: skill implementor", który odrzuca szkic.
+- WYKONANE - `viber/skills/planner/SKILL.md:18,34` - runda kontynuująca szkic dostaje tylko klucz i podsumowanie; brak polecenia przeczytania `docs/<runs>/<key>/plan.md`, więc `--into` może nadpisać ustaloną specyfikację uboższą.
+- WYKONANE - `viber/skills/planner/SKILL.md:53` - ponowne `plan-index.sh` tylko po zmianie pól zadań; pomija `## Contracts` i kryteria akceptacji (reguły Named, Homed, Seen, Covers są `(script)`). Błąd wychodzi dopiero przy `--split` na zamrożonym planie. Poprawka: re-run po każdej poprawce.
+- WYKONANE - `viber/skills/planner/SKILL.md:3` vs `:14` - opis: "suggest the viber:idea interview and let the user decide", treść: "invoke the viber:idea skill instead". Łamie kontrakt wyzwalania `idea`.
+- WYKONANE - `viber/scripts/plan-index.sh:389-395` (i `:695`) - `gsub(/[^0-9]+/, " ", cv)` liczy każdą cyfrę w `Covers:`; `Covers: #1 (see S3)` pokrywa kryterium 3 (odtworzone).
+- WYKONANE - `viber/scripts/plan-index.sh:365-376` vs `commit-task.sh:587-589` - wpisy `Files:` w backtickach przechodzą walidację, a commit zadania pada na dosłownym pathspecu (odtworzone).
+- WYKONANE - `viber/skills/planner/references/adr-tasks.md:26` vs `viber/references/plan-rules.md:24` - weryfikacja zadania ADR (`test -f ... && grep -q '^Status: accepted'`) to dokładnie przypadek, który Provable uznaje za błąd; przy `adr: true` review zapętla się na FAIL.
+- WYKONANE - `viber/references/plan-rules.md:25` vs `:26` - TDD pozwala na `TDD: none` tylko bez zmiany zachowania, Reproduced wymaga `TDD: none` na zadaniu naprawiającym błąd. Poprawka: "or the task carries `Repro:`".
 
 ### Budowanie
 

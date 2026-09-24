@@ -11,7 +11,7 @@ user-invocable: false
 
 # planner
 
-Input: an understood change already in context - a confirmed `viber:idea` interview, or a `viber:fixer` diagnosis. Anything else is unresolved input however clear it reads: invoke the `viber:idea` skill instead and stop here, never entering plan mode. Never size the scope yourself.
+Input: an understood change already in context - a confirmed `viber:idea` interview, or a `viber:fixer` diagnosis. Anything else is unresolved input however clear it reads: suggest the `viber:idea` interview in one line and stop here, never entering plan mode. Never size the scope yourself.
 
 On valid input call `EnterPlanMode` first unless plan mode is already active.
 
@@ -35,6 +35,8 @@ The specification half is `${CLAUDE_SKILL_DIR}/templates/spec-lite.md` or `${CLA
 
 Write that plan file's absolute path into the frontmatter's `source:` key: approval may clear this context, and that line is then the only way back to the file.
 
+A round continuing a draft reads `docs/<directories.runs>/<key>/plan.md` first and carries its specification over, changing only what the input's remarks change, and writes the key into the frontmatter's `into:` key; any other plan drops that line.
+
 An input carrying a roadmap fills `## Roadmap` with the ordered subprojects, marks the entry this plan covers and repeats every later entry under `### Out of scope`; no roadmap in the input means no such section. What a later entry brings stays absent: no task delivers a stand-in for it, no acceptance criterion depends on it, nothing is stubbed, mocked or temporarily substituted.
 
 A plan stopping at a draft ends the step here: the specification half alone, no `## Tasks`, no `## Contracts` appendix, no `plan-index.sh`. Go to step 3.
@@ -50,7 +52,7 @@ Show the user the full path of the written plan.
 Dispatch the `viber:planner-review` agent with the plan path, `refs: ${CLAUDE_PLUGIN_ROOT}/references` and `memory: <value>`, the `memory:` line of the config block resolved above. A draft adds the line `scope: spec`. From round 2 on, also pass the previous findings verbatim and one line per fix you applied.
 
 - `VERDICT: PASS` - go to step 4.
-- `VERDICT: FAIL` - show the findings, fix the plan, re-run `plan-index.sh` whenever a fix touched a task's fields, ids, `Depends-on`, `Files` or `Covers`, then dispatch again. A finding that needs a decision only the user can make gets asked first, and the answer starts a fresh round 1.
+- `VERDICT: FAIL` - show the findings, fix the plan, re-run `plan-index.sh` after every fix unless the plan is a draft, then dispatch again. A finding that needs a decision only the user can make gets asked first, and the answer starts a fresh round 1.
 
 ## 4. Hand off
 
@@ -62,7 +64,7 @@ A change that went through a draft lands here instead, since nothing downstream 
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<plan-path>"`
 
-A round continuing an earlier draft adds `--into "<key>"`, the key its input carries. Then rewrite the landed file's frontmatter `source:` to the landed path, since the plan-mode file is gone by the next round, and show the user the landed path.
+The script honours the plan's `into:` key and points the landed copy's `source:` at itself. Show the user the landed path.
 
 Never commit and never run git: the landed draft is the user's to commit.
 

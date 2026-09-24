@@ -617,7 +617,20 @@ test("--land keeps the markers the run reads and drops the template's guidance, 
   });
 });
 
-test("--land carries the frontmatter through whole - it is the source path, not guidance", () => {
+/** The landed copy's frontmatter `source:` value. */
+function sourceLine(text: string): string {
+  const match = /^---\r?\nsource: (.*)\r?\n/.exec(text);
+  assert.ok(match, `no frontmatter source: line in\n${text}`);
+  return match[1];
+}
+
+/** Two paths naming one file, however each spells it (short names, symlinked
+ *  temp roots, a C:/ form against a native one). */
+function sameFile(a: string, b: string): boolean {
+  return fs.realpathSync.native(a) === fs.realpathSync.native(b);
+}
+
+test("--land keeps the frontmatter and points its source: at the landed copy, since the plan-mode file is gone by the next round", () => {
   withTempDir("p2p2-viber-", (dir) => {
     // The comment stripper only ever looks at comments, so the block the plan
     // opens with comes through untouched, above the H1 the slug is read from.
@@ -649,7 +662,10 @@ test("--land carries the frontmatter through whole - it is the source path, not 
     assert.match(parsed.key!, /_add-login$/);
 
     const landed = fs.readFileSync(path.join(dir, parsed.path), "utf-8");
-    assert.match(landed, /^---\nsource: \/elsewhere\/plans\/drifting-dolphin\.md\n---\n/);
+    assert.match(landed, /^---\nsource: [^\n]+\n---\n/);
+    const source = sourceLine(landed);
+    assert.ok(path.isAbsolute(source), source);
+    assert.ok(sameFile(source, path.join(dir, parsed.path)), source);
     assert.doesNotMatch(landed, /guidance that has done its work/);
     assert.doesNotMatch(landed, /\n\n\n/);
   });
@@ -841,6 +857,51 @@ test("--into takes one existing directory name and nothing else: exit 2, nothing
       assert.equal(result.stdout, "", args.join(" "));
     }
 
+    assert.deepEqual(runDirs(dir), [key]);
+  });
+});
+
+/** A round continuing a draft, the way the planner writes it: the draft's key
+ *  in the frontmatter, so no argument has to survive a cleared context. */
+function roundInto(key: string, body: string): string {
+  return ["---", "source: /elsewhere/plans/round.md", `into: ${key}`, "---", "", body].join("\n");
+}
+
+test("a frontmatter into: key lands the round into that draft as --into would, and the copy's source: points at it", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const key = "2026-09-19-17-30-00_add-login";
+    landPlan(dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
+    const src = sourcePlan(dir, "outside/round-2.md", roundInto(key, DRAFT_BODY.replace("sign in.", "sign in, and stay.")));
+
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(parse(result.stdout), { path: `docs/_specs/${key}/plan.md`, key, state: "draft" });
+    assert.deepEqual(runDirs(dir), [key]);
+
+    const landed = fs.readFileSync(planIn(dir, key), "utf-8");
+    assert.match(landed, /and stay/);
+    assert.ok(sameFile(sourceLine(landed), planIn(dir, key)), sourceLine(landed));
+
+    // the landed plan, carrying its task half and its into: line, lands again
+    // as the run it already is rather than tripping the not-a-draft refusal
+    fs.writeFileSync(planIn(dir, key), roundInto(key, PLAN_BODY));
+    const again = run(dir, ["--land", planIn(dir, key)]);
+    assert.equal(again.status, 0, `stderr: ${again.stderr}`);
+    assert.deepEqual(parse(again.stdout), { path: `docs/_specs/${key}/plan.md`, key, state: "existing" });
+  });
+});
+
+test("a frontmatter into: key on a target that is not a draft: exit 4, nothing on stdout and the plan left alone", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const key = "2026-09-19-17-30-00_add-login";
+    landPlan(dir, key, "2026-09-19T17:30:00Z", PLAN_BODY);
+    const src = sourcePlan(dir, "outside/round-2.md", roundInto(key, DRAFT_BODY));
+
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 4, `stdout: ${result.stdout}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /not a draft/);
+    assert.equal(fs.readFileSync(planIn(dir, key), "utf-8"), PLAN_BODY);
     assert.deepEqual(runDirs(dir), [key]);
   });
 });

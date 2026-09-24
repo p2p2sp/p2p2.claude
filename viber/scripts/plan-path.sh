@@ -14,7 +14,9 @@
 #
 # Usage:
 #   plan-path.sh --land <src>              land <src> as this run's plan
-#   plan-path.sh --land <src> --into <key> land <src> into that existing draft
+#   plan-path.sh --land <src> --into <key> land <src> into that existing draft;
+#                                          without --into, a frontmatter
+#                                          "into: <key>" line in <src> does the same
 #   plan-path.sh                           no argument: the plan most recently
 #                                          worked on
 #
@@ -28,7 +30,8 @@
 # (<!-- TASK -->, <!-- /TASK -->, and <!-- source: --> for a plan written before
 # that path moved into the frontmatter), the rest would only ride through
 # spec.md and every task file into the build. The frontmatter is not a comment
-# and is never touched here.
+# and survives whole but for its "source:" line, which the copy rewrites to its
+# own absolute path.
 #
 # --into names ONE directory under docs/<runs>/ - no slash, no "." and no ".." -
 # and that directory has to be a DRAFT: a run whose plan carries not one task
@@ -40,6 +43,8 @@
 # Contract:
 #   argv   : --land and the source plan, optionally --into and a run key, or
 #            nothing.
+#   file   : <src>'s frontmatter "into:" key, read only when argv carries no
+#            --into, validated and refused exactly as --into.
 #   cwd    : the repository root - every path printed is relative to it, and the
 #            caller splits and stages those paths from there. The config file is
 #            read from there too, as .claude/viber.yml.
@@ -192,6 +197,24 @@ function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); ret
   rm -f "$tmp"
 }
 
+# The copy's frontmatter "source:" line, pointed at the copy itself: the
+# plan-mode file it named is gone by the next round, and a context cleared on
+# approval finds the landed plan through that line alone. Absolute, and in the
+# mixed C:/ form where cygpath exists, so a Windows reader opens it as written.
+# Only the frontmatter is touched; a plan without one is left as it is.
+set_source() {
+  abs="$(cd -- "${1%/*}" && pwd -P)/${1##*/}"
+  if command -v cygpath >/dev/null 2>&1; then abs="$(cygpath -m "$abs")"; fi
+  tmp="$1.tmp.$$"
+  abs="$abs" awk '
+NR == 1 { infm = ($0 ~ /^---[[:space:]]*\r?$/); print; next }
+infm && /^---[[:space:]]*\r?$/ { infm = 0 }
+infm && /^source:/ { print "source: " ENVIRON["abs"]; next }
+{ print }
+' "$1" > "$tmp" && mv -f "$tmp" "$1"
+  rm -f "$tmp"
+}
+
 # Does that plan carry at least one task block? A plan without one is a draft:
 # the head alone, still being discussed. "<!-- /TASK -->" cannot match here - the
 # slash sits where the pattern wants "TASK".
@@ -248,12 +271,25 @@ if [[ ! -f "$src" ]]; then
 fi
 
 # --- --into: the next round of a draft, into the directory it already has ---
+# Named on argv, or by the source's own frontmatter "into:" key when argv
+# carries none - the one form that survives a context cleared on approval.
+into_set=0
 if [[ $# -gt 2 ]]; then
   if [[ "${3:-}" != "--into" || $# -gt 4 ]]; then
     echo "error: usage: plan-path.sh --land <src> [--into <key>]" >&2
     exit 2
   fi
   into="${4:-}"
+  into_set=1
+else
+  into="$(awk '
+NR == 1 { if ($0 !~ /^---[[:space:]]*\r?$/) exit; next }
+/^---[[:space:]]*\r?$/ { exit }
+/^into:/ { sub(/^into:[[:space:]]*/, ""); sub(/[[:space:]]+$/, ""); print; exit }
+' "$src")"
+  if [[ -n "$into" ]]; then into_set=1; fi
+fi
+if [[ "$into_set" == 1 ]]; then
   case "$into" in
     ''|.|..|*[!A-Za-z0-9._-]*)
       echo "error: --into takes one directory name under $specs_dir, got: $into" >&2
@@ -265,6 +301,15 @@ if [[ $# -gt 2 ]]; then
     echo "error: no run directory to land into: $specs_dir/$into" >&2
     exit 2
   fi
+  # the run's own plan landed again: nothing to copy, and cp would refuse the
+  # file onto itself. Checked first, since a landed plan keeps its "into:" line
+  # and a later build lands it once more.
+  src_dir="$(cd -- "$(dirname -- "$src")" 2>/dev/null && pwd -P || true)"
+  dest_dir="$(cd -- "$specs_dir/$into" 2>/dev/null && pwd -P || true)"
+  if [[ "$(basename -- "$src")" == "plan.md" && -n "$src_dir" && "$src_dir" == "$dest_dir" ]]; then
+    emit "$dest" existing
+    exit 0
+  fi
   # A target that already started building is the state; a round landed over it
   # would drop work the tree cannot give back.
   if [[ -e "$specs_dir/$into/status.md" || -d "$specs_dir/$into/tasks" ]] \
@@ -272,19 +317,12 @@ if [[ $# -gt 2 ]]; then
     echo "error: $specs_dir/$into is not a draft - it carries tasks, a decomposition or progress" >&2
     exit 4
   fi
-  # the round landed from the run's own plan: nothing to copy, and cp would
-  # refuse the file onto itself
-  src_dir="$(cd -- "$(dirname -- "$src")" 2>/dev/null && pwd -P || true)"
-  dest_dir="$(cd -- "$specs_dir/$into" 2>/dev/null && pwd -P || true)"
-  if [[ "$(basename -- "$src")" == "plan.md" && -n "$src_dir" && "$src_dir" == "$dest_dir" ]]; then
-    emit "$dest" existing
-    exit 0
-  fi
   if ! cp -- "$src" "$dest"; then
     echo "error: could not land the plan at $dest" >&2
     exit 5
   fi
   strip_guidance "$dest"
+  set_source "$dest"
   emit "$dest" new
   exit 0
 fi
@@ -347,4 +385,5 @@ if ! mkdir -p -- "${dest%/*}" || ! cp -- "$src" "$dest"; then
   exit 5
 fi
 strip_guidance "$dest"
+set_source "$dest"
 emit "$dest" new
