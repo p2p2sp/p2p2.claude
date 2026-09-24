@@ -29,7 +29,7 @@ __COMMIT_ARGS__
 - `all` or empty args -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>"`.
 - one or more existing paths -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>" "<paths>"` with `<paths>` copied from the Selector line, to commit ONLY those paths. Do not rewrite separators - POSIX (`src/foo`), Windows (`C:/foo`, `C:\foo`) and MSYS (`/c/foo`) all work verbatim.
 - an issue reference anywhere in the args - bare `#42` or a GitHub issue link - is stripped before selector resolution (so `src/foo #42` is still mode `paths`) and surfaces as the "Issue footer (explicit…)" block in the context - copy that `Refs:` line into the message verbatim.
-- tokens that are not existing paths are dropped; when none is left the mode falls back to `all`. The Selector line in the context above states which mode was resolved.
+- tokens that are not existing paths are dropped; when none is left the mode falls back to `all`, unless a dropped token was path-shaped (holds `/` or `\`) - then the mode is `missing`: do not run `commit.sh`, return the line the Selector gives. The Selector line in the context above states which mode was resolved.
 
 ## Self-Check
 
@@ -41,6 +41,7 @@ Return only one line: `<sha> | <commit message> (<verification>)`
 ## Rules
 - If there is nothing to commit just show `Nothing to commit` and stop.
 - CRITICAL: Do not comment what you are doing - just output one line with sha and composed commit message.
+- If `commit.sh` exits non-zero, return its error output as the one line and stop. Never re-run it with a different or empty selector (that widens the commit to everything staged) and never run `git` yourself.
 - Do not push.
 - Do not add "Co-Authored-By".
 - Has something changed in the meantime? So what - MUST do what the user wants.

@@ -289,3 +289,16 @@ test("commit-context.sh runs without `set -e`: a git failure degrades in place r
     });
   });
 });
+
+test("mode missing: the Selector line tells the fork not to run commit.sh and names the missing paths, and no diff of the whole tree follows", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      commitFile(repo, "a.txt", "a\n");
+      fs.writeFileSync(path.join(repo.dir, "a.txt"), "a, changed\n");
+      const result = runContext(bash, repo, "src/nope.ts");
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match(result.stdout, /^## Selector: missing - none of the named paths exists \(src\/nope\.ts\); do NOT run commit\.sh/m);
+      assert.doesNotMatch(result.stdout, /a, changed/);
+    });
+  });
+});

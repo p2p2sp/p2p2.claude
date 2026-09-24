@@ -18,7 +18,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { runScript, type RunResult } from "../harness/run.ts";
-import { withTempDir } from "../harness/tmp.ts";
+import { withGitRepo, withTempDir } from "../harness/tmp.ts";
 import { forEachShell } from "../harness/shells.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../supergh/skills/commit/scripts/commit-args.sh");
@@ -94,11 +94,45 @@ test("an existing path resolves to mode 'paths' with the path passed verbatim", 
   });
 });
 
-test("a path that does not exist falls back to mode 'all' (avoids a silent no-op commit against a typo'd path)", () => {
+test("a path that does not exist resolves to mode 'missing', never 'all' (a typo'd or stale path must not widen the commit to every change)", () => {
   assertBash((bash) => {
     withTempDir("p2p2-commit-args-", (dir) => {
       const sel = resolve(bash, dir, "does/not/exist.txt");
-      assert.deepEqual(sel, { mode: "all", path: "", issueRefs: "" });
+      assert.deepEqual(sel, { mode: "missing", path: "", issueRefs: "" });
+    });
+  });
+});
+
+test("a list of backslashed Windows paths none of which exists resolves to mode 'missing'", () => {
+  assertBash((bash) => {
+    withTempDir("p2p2-commit-args-", (dir) => {
+      const sel = resolve(bash, dir, "src\\gone.ts lib\\old.ts");
+      assert.equal(sel.mode, "missing");
+    });
+  });
+});
+
+test("prose that happens to hold no path-shaped token still falls back to mode 'all', while one existing path among missing ones stays mode 'paths'", () => {
+  assertBash((bash) => {
+    withTempDir("p2p2-commit-args-", (dir) => {
+      fs.writeFileSync(path.join(dir, "a.txt"), "a\n");
+      assert.equal(resolve(bash, dir, "update the docs").mode, "all");
+      assert.deepEqual(resolve(bash, dir, "a.txt src/gone.ts"), { mode: "paths", path: "a.txt", issueRefs: "" });
+    });
+  });
+});
+
+test("a path already removed with git rm (gone from disk and index, still in HEAD) resolves to mode 'paths' (it used to be dropped, narrowing or widening the commit)", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      fs.mkdirSync(path.join(repo.dir, "gone"));
+      fs.writeFileSync(path.join(repo.dir, "gone", "f.txt"), "f\n");
+      fs.writeFileSync(path.join(repo.dir, "kept.txt"), "k\n");
+      repo.git("add", "-A");
+      repo.git("commit", "-m", "seed");
+      repo.git("rm", "-rq", "gone");
+      const sel = resolve(bash, repo.dir, "kept.txt gone");
+      assert.deepEqual(sel, { mode: "paths", path: "kept.txt|gone", issueRefs: "" });
     });
   });
 });

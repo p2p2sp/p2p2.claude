@@ -6,6 +6,7 @@
 # Usage:
 #   commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]]
 #                                        [--defer <task-id>:<path> [...]]
+#                                        [--landed <sha>]
 #   commit-task.sh <plan-file> <task-id> <fix-number> <file> [<file>...]
 #   commit-task.sh --skip <plan-file> <task-id>
 #   commit-task.sh --repair <plan-file> <round> <file> [<file>...]
@@ -39,6 +40,16 @@
 # not deferred, it is unfinished, and recording it against an id nobody will
 # dispatch would hide exactly that.
 #
+# --landed records a task whose work ANOTHER commit already carried - a coder
+# that committed on its own, a manual commit, a commit that swept the files in.
+# The task's files then show no change, a plain call exits 4, and nothing else
+# could ever mark the task done. It stages nothing: status.md (and the task's
+# trail) ride in a commit of their own, subject derived
+# ("chore(viber): record T3 done, landed in <short-sha>"), footer naming the
+# full sha. The sha must be in HEAD's history (else exit 2) and touch at least
+# one of the task's files, and the task's files must be clean in the tree
+# (else exit 4). It combines with --unreviewed and --defer, never with --with.
+#
 # A fix number commits a repair of that task after it was already committed (a
 # post-test fix), subject "T1(2) - <title>", staging only the files the caller
 # names and leaving the plan's progress counter alone.
@@ -64,7 +75,10 @@
 #
 # No form ever stages a path the caller did not name, and every form commits
 # through its own pathspec, so a path staged before or beside the run stays in
-# the index instead of riding along. A ".temp/" entry is refused outright, so
+# the index instead of riding along. A named path is taken in whatever state it
+# arrives: already staged, already removed with "git rm", or tracked under a
+# directory an ignore rule covers (see stage_path). An UNTRACKED path an ignore
+# rule covers is never force-added: it is warned about and left out. A ".temp/" entry is refused outright, so
 # machine state and anything written outside the file map stay uncommitted and
 # visible.
 #
@@ -104,7 +118,7 @@
 # cannot ride along.
 #
 # stdout: "committed: <sha>" and "progress: x/N" ("unchanged" for a fix) - plus,
-#         for every flag form, the derived "subject: <line>"
+#         for every flag form and --landed, the derived "subject: <line>"
 # stderr: a warning listing changed paths no task in the plan claims, the run's
 #         own directory excluded - it holds the plan, the decomposition, the
 #         status file and the trail, which no "Files:" line names and every form
@@ -114,7 +128,9 @@
 # exit != 0:
 #   2 - bad arguments / missing plan
 #   3 - no task with that id in the plan
-#   4 - the named files produced no change to the working tree
+#   4 - the named files produced no change to the working tree (a task
+#       commit's message names --landed); for --landed, the sha touches none
+#       of the task's files or those files still carry uncommitted changes
 #   5 - staging or committing failed; status.md is restored, nothing is recorded
 #       (the named files stay staged, so the call can be retried as is)
 #
@@ -126,7 +142,7 @@ shopt -s nullglob
 export GIT_LITERAL_PATHSPECS=1
 
 usage() {
-  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] [--defer <task-id>:<path> [...]] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...]" >&2
+  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] [--defer <task-id>:<path> [...]] [--landed <sha>] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...]" >&2
   exit 2
 }
 
@@ -153,6 +169,31 @@ trail_paths() {
       [[ -f "$f" ]] && printf '%s\n' "$f"
     done
   done
+}
+
+# Stages one named path whatever state it arrives in, and succeeds when git
+# knows it afterwards - in the index or in HEAD - so it can stand in the
+# commit's pathspec. A single "git add -A" is not that: it fails outright on a
+# path the coder already removed with "git rm" (gone from index and tree), and
+# exits 1 on a TRACKED file under a directory an ignore rule covers although it
+# staged the file - either way the path used to drop out of the pathspec and
+# stay staged, uncommitted. Tracked paths go through "add -u", which ignore
+# rules never touch; untracked ones only when no ignore rule covers them, so a
+# Files entry never force-adds what the repository ignores.
+stage_path() {
+  local f="$1" u
+  local -a new=()
+  if [[ -n "$(git ls-files -- "$f")" ]]; then
+    git add -u -- "$f" 2>/dev/null || return 1
+  fi
+  if [[ -e "$f" ]]; then
+    while IFS= read -r -d '' u; do new+=("$u"); done < <(git ls-files -z -o --exclude-standard -- "$f")
+    if [[ ${#new[@]} -gt 0 ]]; then
+      git add -- "${new[@]}" 2>/dev/null || return 1
+    fi
+  fi
+  [[ -n "$(git ls-files -- "$f")" ]] && return 0
+  [[ -n "$(git ls-tree -r --name-only HEAD -- "$f" 2>/dev/null)" ]]
 }
 
 # The run's state file, beside the plan.
@@ -382,7 +423,7 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
         continue
         ;;
     esac
-    if git add -A -- "$f" 2>/dev/null; then
+    if stage_path "$f"; then
       paths+=("$f")
     else
       echo "warning: could not stage $f" >&2
@@ -399,7 +440,7 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
   if [[ "$form" == "--repair" ]]; then
     while IFS= read -r t; do
       [[ -n "$t" ]] || continue
-      git add -A -- "$t" 2>/dev/null && paths+=("$t")
+      stage_path "$t" && paths+=("$t")
     done < <(trail_paths "$(run_dir "$plan")" "tests-$round.md" "repair-$round-coder.md")
   fi
 
@@ -486,13 +527,19 @@ fix_n=""
 unreviewed=0
 extra=""
 deferred=""
+landed=""
 case "${3:-}" in
   "") ;;
-  --unreviewed|--with|--defer)
+  --unreviewed|--with|--defer|--landed)
     set -- "${@:3}"
     while [[ $# -gt 0 ]]; do
       case "$1" in
         --unreviewed) unreviewed=1; shift ;;
+        --landed)
+          [[ $# -ge 2 && "$2" != --* ]] || usage
+          landed="$2"
+          shift 2
+          ;;
         --with)
           shift
           [[ $# -gt 0 && "$1" != --* ]] || usage
@@ -571,6 +618,37 @@ else
   subject="$heading"
 fi
 
+# --- a task whose work another commit already carried ---
+# Nothing is staged: the entry alone rides in a commit of its own, under a
+# derived subject, and the commit it points at has to be in HEAD's history and
+# touch at least one of the task's files - so the done entry never names work
+# the history does not show. A task file still changed in the tree is refused:
+# that change belongs in a normal task commit, not under a record-only subject.
+if [[ -n "$landed" ]]; then
+  if [[ -n "$extra" ]]; then
+    echo "error: --landed stages nothing, so it takes no --with" >&2
+    exit 2
+  fi
+  landed_sha="$(git rev-parse -q --verify "$landed^{commit}" 2>/dev/null || true)"
+  if [[ -z "$landed_sha" ]] || ! git merge-base --is-ancestor "$landed_sha" HEAD 2>/dev/null; then
+    echo "error: --landed $landed is not a commit in HEAD's history" >&2
+    exit 2
+  fi
+  task_paths=()
+  while IFS= read -r f; do
+    [[ -n "$f" ]] && task_paths+=("$f")
+  done <<< "$files"
+  if [[ -z "$(git diff-tree --root --no-commit-id --name-only -r "$landed_sha" -- "${task_paths[@]}")" ]]; then
+    echo "error: --landed $landed touches none of task $task_id's files" >&2
+    exit 4
+  fi
+  if [[ -n "$(git status --porcelain --untracked-files=all -- "${task_paths[@]}")" ]]; then
+    echo "error: task $task_id still has uncommitted changes to its files - commit them without --landed" >&2
+    exit 4
+  fi
+  subject="chore(viber): record $task_id done, landed in $(git rev-parse --short "$landed_sha")"
+fi
+
 # --- what the task forced outside its own map ---
 # Taken when no OTHER task claims the path, or every one that does is done: a
 # shared file is committed by whichever task declares it, never pulled out from
@@ -603,28 +681,30 @@ done <<< "$extra"
 # The same list is the commit's pathspec below: a file staged by someone else
 # before the run, or left staged by an earlier exit 5, must not ride along.
 paths=()
-while IFS= read -r f; do
-  [[ -z "$f" ]] && continue
-  case "$f" in
-    .temp|.temp/*)
-      echo "warning: refused $f - .temp is machine state, never committed" >&2
-      continue
-      ;;
-  esac
-  if git add -A -- "$f" 2>/dev/null; then
-    paths+=("$f")
-  else
-    echo "warning: could not stage $f" >&2
-  fi
-done <<< "$files"
+if [[ -z "$landed" ]]; then
+  while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    case "$f" in
+      .temp|.temp/*)
+        echo "warning: refused $f - .temp is machine state, never committed" >&2
+        continue
+        ;;
+    esac
+    if stage_path "$f"; then
+      paths+=("$f")
+    else
+      echo "warning: could not stage $f" >&2
+    fi
+  done <<< "$files"
 
-if [[ ${#paths[@]} -eq 0 ]] || git diff --cached --quiet -- "${paths[@]}"; then
-  if [[ -n "$fix_n" ]]; then
-    echo "error: the fix for task $task_id produced no changes to commit" >&2
-  else
-    echo "error: task $task_id produced no changes to commit" >&2
+  if [[ ${#paths[@]} -eq 0 ]] || git diff --cached --quiet -- "${paths[@]}"; then
+    if [[ -n "$fix_n" ]]; then
+      echo "error: the fix for task $task_id produced no changes to commit" >&2
+    else
+      echo "error: task $task_id produced no changes to commit - if its work already landed in another commit, record it with --landed <sha>" >&2
+    fi
+    exit 4
   fi
-  exit 4
 fi
 
 # --- the run's own trail, derived from the task or the round it belongs to ---
@@ -637,7 +717,7 @@ else
 fi
 while IFS= read -r t; do
   [[ -n "$t" ]] || continue
-  git add -A -- "$t" 2>/dev/null && paths+=("$t")
+  stage_path "$t" && paths+=("$t")
 done < <(trail_paths "$(run_dir "$plan")" "${trail[@]}")
 
 # --- a repair of an already committed task: no marker, no counter ---
@@ -687,12 +767,17 @@ done <<< "$deferred"
 
 git add -- "$status" || exit 5
 
-git commit -m "$subject" -m "Refs: $plan task $task_id" -- "${paths[@]}" "$status" >&2 || exit 5
+refs="Refs: $plan task $task_id"
+[[ -z "$landed" ]] || refs="$refs landed $landed_sha"
+# ${paths[@]+...}: a --landed commit may carry no path but status.md, and bash
+# 3.2 (macOS) treats an empty array as unbound under set -u
+git commit -m "$subject" -m "$refs" -- ${paths[@]+"${paths[@]}"} "$status" >&2 || exit 5
 
 rm -f "$backup"
 backup=""
 
 echo "committed: $(git rev-parse --short HEAD)"
+[[ -z "$landed" ]] || echo "subject: $subject"
 echo "progress: $progress"
 
 warn_unclaimed "$plan"

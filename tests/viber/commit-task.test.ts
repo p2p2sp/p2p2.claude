@@ -50,6 +50,13 @@
  * under `<run-dir>/work/` - derived from the task id or the round, so a parallel
  * task's notes never ride along and the trail reaches another machine.
  *
+ * A named path is staged in whatever state it arrives - already staged, already
+ * removed with `git rm`, tracked under a directory an ignore rule covers - so
+ * it never drops out of the pathspec and stays staged, uncommitted.
+ * `--landed <sha>` records a task whose work another commit already carried: a
+ * status-only commit under a derived subject, refused unless the sha is in
+ * HEAD's history, touches the task's files, and those files are clean.
+ *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
  *   node --test tests/viber/commit-task.test.ts
@@ -728,6 +735,141 @@ test("a task whose files produced no change exits 4 without touching the run's s
     assert.match(result.stderr, /task T1 produced no changes to commit/);
     assert.equal(readStatus(repo), before);
     assert.deepEqual(subjects(repo), ["seed"]);
+  });
+});
+
+test("a Files path its coder already removed with git rm rides in the task's commit, and another staged path stays staged (a path gone from index and tree fails 'git add')", () => {
+  withGitRepo((repo) => {
+    seed(repo, [["T1", "src/a.ts, src/gone.ts"], ["T2", "src/b.ts"]]);
+    write(repo.dir, "src/gone.ts", "old\n");
+    write(repo.dir, "src/other.ts", "old\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "base");
+    repo.git("rm", "-q", "src/gone.ts");
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "src/other.ts", "new\n");
+    repo.git("add", "src/other.ts");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stderr, /could not stage/);
+    assert.deepEqual(committedFiles(repo), [STATUS_REL, "src/a.ts", "src/gone.ts"].sort());
+    assert.deepEqual(stagedFiles(repo), ["src/other.ts"]);
+  });
+});
+
+test("a tracked file under a directory its .gitignore ignores is committed, staged or not (git add exits 1 on the ignored parent yet stages the file)", () => {
+  withGitRepo((repo) => {
+    seed(repo, [["T1", "skills/k-x/refs/a.md, skills/k-x/refs/b.md, skills/k-x/refs/c.md"], ["T2", "src/b.ts"]]);
+    write(repo.dir, "skills/.gitignore", "*\n!.gitignore\n!k-*/\n");
+    for (const f of ["a", "b", "c"]) write(repo.dir, `skills/k-x/refs/${f}.md`, "old\n");
+    repo.git("add", "-f", "skills");
+    repo.git("commit", "-m", "base");
+    write(repo.dir, "skills/k-x/refs/a.md", "new\n");
+    write(repo.dir, "skills/k-x/refs/b.md", "new\n");
+    repo.git("add", "skills/k-x/refs/b.md");
+    repo.git("rm", "-q", "skills/k-x/refs/c.md");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stderr, /could not stage/);
+    assert.deepEqual(
+      committedFiles(repo),
+      [STATUS_REL, "skills/k-x/refs/a.md", "skills/k-x/refs/b.md", "skills/k-x/refs/c.md"].sort(),
+    );
+    assert.deepEqual(stagedFiles(repo), []);
+  });
+});
+
+test("an untracked file an ignore rule covers is still refused with a warning (a Files entry never force-adds what the repo ignores)", () => {
+  withGitRepo((repo) => {
+    seed(repo, [["T1", "src/a.ts, build/out.js"], ["T2", "src/b.ts"]]);
+    write(repo.dir, ".gitignore", "build/\n");
+    repo.git("add", ".gitignore");
+    repo.git("commit", "-m", "ignore");
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "build/out.js", "gen\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /could not stage build\/out\.js/);
+    assert.deepEqual(committedFiles(repo), [STATUS_REL, "src/a.ts"].sort());
+  });
+});
+
+test("--repair stages a path already removed with git rm (the flag forms share the same staging)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "lib/x.ts", "old\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "base");
+    repo.git("rm", "-q", "lib/x.ts");
+
+    const result = run(repo.dir, repo.env, ["--repair", PLAN_REL, "1", "lib/x.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(committedFiles(repo), ["lib/x.ts"]);
+  });
+});
+
+test("the exit 4 of a task commit names --landed, so the orchestrator knows how to record work another commit already carried", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 4);
+    assert.match(result.stderr, /--landed <sha>/);
+  });
+});
+
+test("--landed marks a task done whose work another commit already carried, in a status-only commit under a derived subject", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    repo.git("add", "src/a.ts");
+    repo.git("commit", "-m", "landed elsewhere");
+    const sha = repo.git("rev-parse", "HEAD").stdout.trim();
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--landed", sha.slice(0, 7)]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^committed: [0-9a-f]{7,}\nsubject: chore\(viber\): record T1 done, landed in [0-9a-f]{7,}\nprogress: 1\/2\n$/);
+    assert.deepEqual(committedFiles(repo), [STATUS_REL]);
+    assert.match(readStatus(repo), /^done: T1$/m);
+    assert.match(repo.git("log", "-1", "--format=%b").stdout, new RegExp(`Refs: ${PLAN_REL} task T1 landed ${sha}`));
+  });
+});
+
+test("--landed refuses a commit that touches none of the task's files, and one that is not in HEAD's history, without recording anything", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    const seedSha = repo.git("rev-parse", "HEAD").stdout.trim();
+    const before = readStatus(repo);
+
+    const wrong = run(repo.dir, repo.env, [PLAN_REL, "T1", "--landed", seedSha]);
+    assert.equal(wrong.status, 4);
+    assert.match(wrong.stderr, /touches none of task T1's files/);
+
+    const unknown = run(repo.dir, repo.env, [PLAN_REL, "T1", "--landed", "deadbeef"]);
+    assert.equal(unknown.status, 2);
+    assert.match(unknown.stderr, /not a commit in HEAD's history/);
+
+    assert.equal(readStatus(repo), before);
+    assert.deepEqual(subjects(repo), ["seed"]);
+  });
+});
+
+test("--landed refuses while the task's files still carry uncommitted changes (they belong in a normal task commit)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    repo.git("add", "src/a.ts");
+    repo.git("commit", "-m", "landed elsewhere");
+    const sha = repo.git("rev-parse", "HEAD").stdout.trim();
+    write(repo.dir, "src/a.ts", "more\n");
+    const before = readStatus(repo);
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--landed", sha]);
+    assert.equal(result.status, 4);
+    assert.match(result.stderr, /still has uncommitted changes/);
+    assert.equal(readStatus(repo), before);
   });
 });
 

@@ -8,9 +8,11 @@
 # one treated a file named "all" as a path, the other as the keyword.
 #
 # Sets these variables:
-#   COMMIT_MODE       - all | paths
+#   COMMIT_MODE       - all | paths | missing
 #   COMMIT_PATHS      - array of the paths (only for mode=paths), otherwise
 #                       empty
+#   COMMIT_MISSING    - the path-shaped tokens that do not exist, space-joined
+#                       (only for mode=missing), otherwise empty
 #   COMMIT_ISSUE_REFS - the issue numbers given in the arguments - from GitHub
 #                       links and from bare "#123" references (the way a user
 #                       names an issue in a prompt) - unique, in order of
@@ -25,8 +27,12 @@
 #   a list           -> paths  (split on whitespace and commas; every token
 #                               that is an existing path is kept, the rest
 #                               dropped)
-#   no token is an existing path -> all (fallback: e.g. a prose description
-#                               passed by mistake in place of a selector)
+#   no token is an existing path, and one of them is path-shaped (holds a
+#   "/" or "\")               -> missing (nothing is committed: a caller who
+#                               named paths never gets a commit of everything)
+#   no token is an existing path, none path-shaped -> all (fallback: a prose
+#                               description passed by mistake in place of a
+#                               selector)
 #
 # A path containing a space works only as the sole selector: inside a list the
 # split cuts it apart.
@@ -82,10 +88,16 @@ extract_issue_refs() {
   COMMIT_SELECTOR_RAW="$raw"
 }
 
-# True when $1 is on disk or in the git index (a deleted tracked file is gone
-# from disk but still indexed).
+# True when $1 is on disk, in the git index (a deleted tracked file is gone
+# from disk but still indexed) or in HEAD (a path already removed with
+# "git rm" is gone from both, and its staged deletion is exactly what the
+# caller wants committed - dropping it silently narrowed a list to the paths
+# still on disk, or widened a list of only such paths to mode 'all').
 is_commit_path() {
-  [ -n "$1" ] && { [ -e "$1" ] || git ls-files --error-unmatch -- "$1" >/dev/null 2>&1; }
+  [ -n "$1" ] || return 1
+  [ -e "$1" ] && return 0
+  git ls-files --error-unmatch -- "$1" >/dev/null 2>&1 && return 0
+  [ -n "$(git --literal-pathspecs ls-tree -r --name-only HEAD -- "$1" 2>/dev/null)" ]
 }
 
 resolve_commit_selector() {
@@ -94,6 +106,7 @@ resolve_commit_selector() {
   extract_issue_refs "${1:-}"
   raw="$COMMIT_SELECTOR_RAW"
   COMMIT_PATHS=()
+  COMMIT_MISSING=""
   # Path check BEFORE the keyword: otherwise a file named "all" could never be
   # committed alone (the keyword would silently widen the commit).
   if is_commit_path "$raw"; then
@@ -106,12 +119,20 @@ resolve_commit_selector() {
   # read -a, not an unquoted expansion: a token holding * or ? must not glob.
   IFS=$' \t\n,' read -r -d '' -a toks <<<"$raw" || true
   for tok in ${toks[@]+"${toks[@]}"}; do
-    if is_commit_path "$tok"; then COMMIT_PATHS+=("$tok"); fi
+    if is_commit_path "$tok"; then
+      COMMIT_PATHS+=("$tok")
+    elif [[ "$tok" == */* || "$tok" == *\\* ]]; then
+      COMMIT_MISSING="${COMMIT_MISSING:+$COMMIT_MISSING }$tok"
+    fi
   done
-  # No existing path at all -> 'all', so the real changes are committed instead
-  # of a silent "Nothing to commit" against a path that is not there.
+  # No existing path at all: named paths that are not there are an error, never
+  # a commit of everything (a typo, a stale list or a wrong cwd would otherwise
+  # sweep the whole tree in); pure prose falls back to 'all'.
   if [ "${#COMMIT_PATHS[@]}" -gt 0 ]; then
     COMMIT_MODE="paths"
+    COMMIT_MISSING=""
+  elif [ -n "$COMMIT_MISSING" ]; then
+    COMMIT_MODE="missing"
   else
     COMMIT_MODE="all"
   fi

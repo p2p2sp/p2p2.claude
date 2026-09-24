@@ -37,6 +37,9 @@ fi
 
 if [ "$COMMIT_MODE" = "paths" ]; then
   echo "## Selector: paths - run commit.sh with 2nd arg \"$paths_label\""
+elif [ "$COMMIT_MODE" = "missing" ]; then
+  echo "## Selector: missing - none of the named paths exists ($COMMIT_MISSING); do NOT run commit.sh, return: Nothing committed - paths not found: $COMMIT_MISSING"
+  exit 0
 else
   echo "## Selector: all - run commit.sh with no 2nd arg"
 fi

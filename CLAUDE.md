@@ -1,7 +1,8 @@
 # P2P2 Claude Code plugins (one per subdir) + marketplace catalog
 
 > Always in English: all CLAUDE.md files, scripts, etc.
-> All plugin scrit MUST work properly on Windows & MacOS.
+> All plugin scripts MUST work on `Windows` & `MacOs`.
+> Do not use `heredoc` – it is unreliable.
 
 This repo is the **source** for six independently-installable Claude Code plugins -
 `superui`, `supergh`, `superfix`, `superbiz`, `supercc`, `viber` - co-listed by the root

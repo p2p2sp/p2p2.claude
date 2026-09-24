@@ -124,7 +124,7 @@ Start with every task whose `deps` are done, in one message. On every return, an
 - Reviewer `VERDICT: FAIL`, round 1 of 2 -> coder dispatch plus the returned `REVIEW` path as `report:`.
 - Reviewer `VERDICT: FAIL`, round 2 of 2 -> `AskUserQuestion` naming the task: retry / accept / abort.
 - Reviewer `VERDICT: DENIED` -> `AskUserQuestion` naming the task: retry / accept / abort.
-- Commit non-zero exit -> nothing was committed; `TaskUpdate` back to in progress and `AskUserQuestion`: retry / skip / abort.
+- Commit non-zero exit -> nothing was committed; `TaskUpdate` back to in progress and `AskUserQuestion`: retry / skip / abort. On exit 4 naming `--landed`, add a first option: already committed - the user names the commit, and the same call re-runs with `--landed "<sha>"`.
 
 ## 5. Close
 

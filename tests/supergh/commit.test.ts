@@ -132,6 +132,91 @@ test("mode paths with the list split across several argv entries: same result as
   });
 });
 
+test("mode paths with directories already removed by git rm: every one is committed, not just the one still on disk (a path gone from disk and index used to drop out of the list)", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      for (const d of ["p1", "p2", "p3"]) {
+        fs.mkdirSync(path.join(repo.dir, d));
+        fs.writeFileSync(path.join(repo.dir, d, "f.txt"), `${d}\n`);
+      }
+      commitFile(repo, "other.txt", "o\n");
+      repo.git("rm", "-rq", "p1", "p2", "p3");
+      // p1 keeps a build leftover on disk, the way bin/obj outlive a git rm
+      fs.mkdirSync(path.join(repo.dir, "p1", "obj"), { recursive: true });
+      fs.writeFileSync(path.join(repo.dir, "other.txt"), "o, changed\n");
+      repo.git("add", "other.txt");
+
+      const result = runCommit(bash, repo, ["drop three", "p1 p2 p3"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const nameStatus = repo.git("show", "--name-status", "--format=", "HEAD");
+      assert.deepEqual(nameStatus.stdout.trim().split("\n").sort(), ["D\tp1/f.txt", "D\tp2/f.txt", "D\tp3/f.txt"]);
+      const staged = repo.git("diff", "--cached", "--name-only");
+      assert.equal(staged.stdout.trim(), "other.txt");
+    });
+  });
+});
+
+test("mode paths with a tracked file under a directory its .gitignore ignores: committed with exit 0, nothing else swept in (git add exits 1 on the ignored parent)", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      fs.mkdirSync(path.join(repo.dir, "skills", "k", "refs"), { recursive: true });
+      fs.writeFileSync(path.join(repo.dir, "skills", ".gitignore"), "*\n!.gitignore\n!k/\n");
+      fs.writeFileSync(path.join(repo.dir, "skills", "k", "refs", "a.md"), "a\n");
+      fs.writeFileSync(path.join(repo.dir, "skills", "k", "refs", "b.md"), "b\n");
+      repo.git("add", "-f", "skills");
+      repo.git("commit", "-m", "seed skills");
+      commitFile(repo, "other.txt", "o\n");
+      fs.writeFileSync(path.join(repo.dir, "skills", "k", "refs", "a.md"), "a, changed\n");
+      fs.writeFileSync(path.join(repo.dir, "skills", "k", "refs", "b.md"), "b, changed\n");
+      repo.git("add", "-f", "skills/k/refs/b.md");
+      fs.writeFileSync(path.join(repo.dir, "other.txt"), "o, changed\n");
+      repo.git("add", "other.txt");
+
+      const result = runCommit(bash, repo, ["refs", "skills/k/refs/a.md skills/k/refs/b.md"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const nameOnly = repo.git("show", "--name-only", "--format=", "HEAD");
+      assert.deepEqual(nameOnly.stdout.trim().split("\n").sort(), ["skills/k/refs/a.md", "skills/k/refs/b.md"]);
+      const staged = repo.git("diff", "--cached", "--name-only");
+      assert.equal(staged.stdout.trim(), "other.txt");
+    });
+  });
+});
+
+test("mode paths with an untracked file an ignore rule covers: it is not force-added", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      commitFile(repo, ".gitignore", "build/\n");
+      fs.mkdirSync(path.join(repo.dir, "build"));
+      fs.writeFileSync(path.join(repo.dir, "build", "out.js"), "gen\n");
+      fs.writeFileSync(path.join(repo.dir, "a.txt"), "a\n");
+
+      const result = runCommit(bash, repo, ["a only", "a.txt build/out.js"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const nameOnly = repo.git("show", "--name-only", "--format=", "HEAD");
+      assert.equal(nameOnly.stdout.trim(), "a.txt");
+    });
+  });
+});
+
+test("a selector naming only paths that do not exist exits 3 and commits nothing - staged work elsewhere stays staged (it used to fall back to 'git add -A' of everything)", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      commitFile(repo, "a.txt", "a\n");
+      fs.writeFileSync(path.join(repo.dir, "a.txt"), "a, changed\n");
+      repo.git("add", "a.txt");
+      fs.writeFileSync(path.join(repo.dir, "b.txt"), "untracked\n");
+      const before = repo.git("rev-parse", "HEAD").stdout;
+
+      const result = runCommit(bash, repo, ["typo", "src/nope.ts lib/gone"]);
+      assert.equal(result.status, 3);
+      assert.match(result.stderr, /none of the named paths exists: src\/nope\.ts lib\/gone/);
+      assert.equal(repo.git("rev-parse", "HEAD").stdout, before);
+      assert.equal(repo.git("diff", "--cached", "--name-only").stdout.trim(), "a.txt");
+      assert.match(repo.git("status", "--porcelain").stdout, /^\?\? b\.txt$/m);
+    });
+  });
+});
+
 // --- exit codes and messages ------------------------------------------------------
 
 test("missing message -> exit 1 with usage on stderr, nothing committed", () => {
