@@ -117,16 +117,24 @@ there.
 - **An open decision is Blocking on a test, never on its own.** `task-coder` names in its notes a
   decision the task left open; `task-reviewer` treats it as Blocking on `TDD: required` when no
   test pins it down, and checks it against `DoD` and `Verification` alone on `TDD: none`.
-- **The knowledge layer has two entries, never a third.** The build close dispatches
+- **The knowledge layer has three write paths, never a fourth.** The build close dispatches
   `memory-writer` and `rules-writer` after every build; `/viber:rules` dispatches `rules-writer`
-  on the user's schedule, `/viber:memory` dispatches `memory-node-writer`, one node per dispatch.
-  `memory-auditor` and `rules-auditor` sit beside them, read-only.
-- **The knowledge layer is capped.** Memory: 12000 characters per node, 32000 over the chain.
-  `rules-writer`: 4000 per file, 40000 over `.claude/rules/`, at most 2 new files per build.
-  `memory-writer` and `rules-writer` may end over a cap and report `OVER:`; `memory-node-writer`
-  never does, reporting each left-out fact on `DROPPED:` and each deleted node on `DELETED:`. A
-  split is exempt: a sibling node is never loaded beside the one a reader opened. The same
-  discipline binds this node.
+  on the user's schedule, `/viber:memory` dispatches `memory-node-writer` on approval, one node
+  per dispatch; `implementor`'s own close dispatches `memory-auditor` then `memory-node-writer`
+  directly, root first by depth, to repair every `OVER:` node `memory-writer` reported in that
+  same run. `memory-auditor` and `rules-auditor` sit beside the writers, read-only.
+- **The knowledge layer is capped, and an `OVER:` line never stands.** Memory: 12000 characters
+  per node, 32000 over the chain. `rules-writer`: 4000 per file, 40000 over `.claude/rules/`, at
+  most 2 new files per build. `memory-writer` and `rules-writer` may end over a cap and report
+  `OVER:`; `memory-node-writer` never does, reporting each left-out fact on `DROPPED:`, each
+  deleted node on `DELETED:`, and accepting `planned: none` from a caller with no planned set of
+  its own. A split is exempt: a sibling node is never loaded beside the one a reader opened. The
+  same discipline binds this node. The build's own close audits and repairs an `OVER:` line in
+  the same run rather than leaving it for a later `/viber:memory` visit.
+- **A `CLAUDE.md` never rides in a task's `Files`.** `plan-rules.md`'s `(review)` rule holds this
+  with the `memory` switch on, whatever the host's own instructions ask: that layer belongs to
+  the build's close alone. `planner` passes the resolved `memory:` value to `planner-review` so
+  the rule has something to gate.
 - **The QA documents live in the run directory, which is what makes the close idempotent.**
   `qa.md` (by hand) and `qa.e2e.md` (automated by `/viber:e2e`) never land in a `docs/qa/` of
   their own; an existing `qa.md` is the resume signal, answered `VERDICT: NONE` rather than
