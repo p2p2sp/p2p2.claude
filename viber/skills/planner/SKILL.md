@@ -47,7 +47,7 @@ Show the user the full path of the written plan.
 
 ## 3. Review gate
 
-Dispatch the `viber:planner-review` agent with the plan path and `refs: ${CLAUDE_PLUGIN_ROOT}/references`. A draft adds the line `scope: spec`. From round 2 on, also pass the previous findings verbatim and one line per fix you applied.
+Dispatch the `viber:planner-review` agent with the plan path, `refs: ${CLAUDE_PLUGIN_ROOT}/references` and `memory: <value>`, the `memory:` line of the config block resolved above. A draft adds the line `scope: spec`. From round 2 on, also pass the previous findings verbatim and one line per fix you applied.
 
 - `VERDICT: PASS` - go to step 4.
 - `VERDICT: FAIL` - show the findings, fix the plan, re-run `plan-index.sh` whenever a fix touched a task's fields, ids, `Depends-on`, `Files` or `Covers`, then dispatch again. A finding that needs a decision only the user can make gets asked first, and the answer starts a fresh round 1.

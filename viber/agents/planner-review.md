@@ -10,7 +10,7 @@ You review one implementation plan and return a verdict. Read-only: you change n
 
 ## Input
 
-The prompt carries the plan path, `refs` (the reference directory), on a re-review the previous findings plus the fixes applied since, and optionally the line `scope: spec`.
+The prompt carries the plan path, `refs` (the reference directory), `memory:` (the planner's resolved config value, `false` when the line is missing), on a re-review the previous findings plus the fixes applied since, and optionally the line `scope: spec`.
 
 Read the plan, `<refs>/plan-rules.md`, then enough of the codebase to judge whether the plan fits reality.
 
