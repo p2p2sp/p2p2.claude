@@ -22,8 +22,9 @@ present keeps every value in it; only a switch this version added is appended to
 preload's line names.
 
 Then run the merge once - key by key and idempotent: the template's value wins a conflict, lists
-only gain entries, and a key the template lacks is never touched. Its line is carried into the
-close literally, never re-verified, never retried; a non-zero exit is trusted the same way:
+only gain entries, a template entry in `permissions.ask` leaves the host's `permissions.deny`, and
+a key the template lacks is never touched. Its line is carried into the close literally, never
+re-verified, never retried; a non-zero exit is trusted the same way:
 
 ```
 "${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/merge-settings.sh" "${CLAUDE_PLUGIN_ROOT}/skills/setup/assets/settings.json"

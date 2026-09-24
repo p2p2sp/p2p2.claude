@@ -12,7 +12,8 @@ claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
 claude plugin install viber@p2p2 --scope user
 ```
 
-No dependencies.
+Optional: `node`, for `/viber:setup`'s permissions merge, and Playwright, for `/viber:e2e`. Each
+step skips with a note when its tool is missing.
 
 ## Quick start
 
