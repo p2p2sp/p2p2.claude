@@ -117,8 +117,13 @@
 # task id or the round, never taken from the caller, so a parallel task's notes
 # cannot ride along.
 #
-# stdout: "committed: <sha>" and "progress: x/N" ("unchanged" for a fix) - plus,
-#         for every flag form and --landed, the derived "subject: <line>"
+# stdout by form:
+#   task (--unreviewed / --with / --defer): "committed: <sha>", "progress: x/N"
+#   --landed:                    "committed: <sha>", "subject: <line>", "progress: x/N"
+#   <fix-number>:                "committed: <sha>", "progress: unchanged"
+#   --repair:                    "committed: <sha>", "subject: <line>", "progress: unchanged"
+#   --chore, --qa, --e2e:        "committed: <sha>", "subject: <line>"
+#   --skip:                      "skipped: <id>", "progress: unchanged" (no commit)
 # stderr: a warning listing changed paths no task in the plan claims, the run's
 #         own directory excluded - it holds the plan, the decomposition, the
 #         status file and the trail, which no "Files:" line names and every form
@@ -297,7 +302,10 @@ function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); ret
 intask && /^-[[:space:]]*Files:/ {
   s = $0; sub(/^[^:]*:/, "", s)
   m = split(s, fl, /,/)
-  for (k = 1; k <= m; k++) if (trim(fl[k]) != "") print trim(fl[k])
+  for (k = 1; k <= m; k++) {
+    p = trim(fl[k]); sub(/^\.\//, "", p)
+    if (p != "") print p
+  }
 }
 ' "$1"
 }
@@ -318,7 +326,10 @@ intask && /^###[[:space:]]/ {
 intask && /^-[[:space:]]*Files:/ {
   s = $0; sub(/^[^:]*:/, "", s)
   m = split(s, fl, /,/)
-  for (k = 1; k <= m; k++) if (trim(fl[k]) == want) print cur
+  for (k = 1; k <= m; k++) {
+    p = trim(fl[k]); sub(/^\.\//, "", p)
+    if (p == want) print cur
+  }
 }
 ' "$1"
 }
@@ -436,6 +447,7 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
 
   paths=()
   for f in "$@"; do
+    f="${f#./}"
     [[ -z "$f" ]] && continue
     case "$f" in
       .temp|.temp/*)
@@ -564,7 +576,7 @@ case "${3:-}" in
           shift
           [[ $# -gt 0 && "$1" != --* ]] || usage
           while [[ $# -gt 0 && "$1" != --* ]]; do
-            extra="$extra$1"$'\n'
+            extra="$extra${1#./}"$'\n'
             shift
           done
           ;;
@@ -607,7 +619,10 @@ intask && /^###[[:space:]]/ {
 intask && cur == want && /^-[[:space:]]*Files:/ {
   s = $0; sub(/^[^:]*:/, "", s)
   m = split(s, fl, /,/)
-  for (k = 1; k <= m; k++) if (trim(fl[k]) != "") print "file\t" trim(fl[k])
+  for (k = 1; k <= m; k++) {
+    p = trim(fl[k]); sub(/^\.\//, "", p)
+    if (p != "") print "file\t" p
+  }
 }
 ' "$plan")"
 
@@ -628,7 +643,9 @@ fi
 if [[ -n "$fix_n" ]]; then
   # the repair's own files, and the task's title carrying the round: "T1(2) - ..."
   shift 3
-  files="$(printf '%s\n' "$@")"
+  fix_files=()
+  for f in "$@"; do fix_files+=("${f#./}"); done
+  files="$(printf '%s\n' "${fix_files[@]}")"
   subject="$task_id($fix_n) - ${heading#* - }"
 else
   if [[ -z "$files" ]]; then
@@ -733,7 +750,7 @@ fi
 if [[ -n "$fix_n" ]]; then
   trail=("tests-$fix_n.md" "repair-$fix_n-coder.md")
 else
-  trail=("$task_id-coder.md" "review-$task_id-*.md")
+  trail=("$task_id-coder.md" "review-$task_id-[0-9]*.md")
 fi
 while IFS= read -r t; do
   [[ -n "$t" ]] || continue
@@ -778,8 +795,11 @@ while IFS= read -r d; do
     echo "warning: refused $d - a --defer entry is <task-id>:<path>" >&2
     continue
   fi
-  if ! task_ids_of "$plan" | grep -Fxq -- "${d%%:*}"; then
-    echo "warning: refused $d - no task ${d%%:*} in the plan" >&2
+  defer_id="${d%%:*}"
+  defer_path="${d#*:}"
+  d="$defer_id:${defer_path#./}"
+  if ! task_ids_of "$plan" | grep -Fxq -- "$defer_id"; then
+    echo "warning: refused $d - no task $defer_id in the plan" >&2
     continue
   fi
   mark_status "$plan" deferred "$d" >/dev/null

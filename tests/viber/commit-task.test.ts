@@ -435,6 +435,17 @@ test("--defer records who owes a path its test, and that entry rides in the task
   });
 });
 
+test("--defer normalizes a leading './' on the path half of an entry, like every other path argument", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--defer", "T2:./src/a.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(readStatus(repo), /^deferred: T2:src\/a\.ts$/m);
+  });
+});
+
 test("--defer takes several entries and appends each one once, so a repeated deferral does not pile up", () => {
   withGitRepo((repo) => {
     seed(repo);
@@ -1302,6 +1313,61 @@ test("a plan mentioning the TASK marker in prose keeps its real task total (only
   });
 });
 
+test("committing T1 does not stage a report shaped like a different task's own (review-T1-b-1.md is not T1's review-T1-<n>.md)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, `${RUN_DIR}/work/T1-coder.md`, "notes\n");
+    write(repo.dir, `${RUN_DIR}/work/review-T1-1.md`, "T1's own round 1\n");
+    write(repo.dir, `${RUN_DIR}/work/review-T1-b-1.md`, "a different task's report\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(
+      committedFiles(repo),
+      ["src/a.ts", STATUS_REL, `${RUN_DIR}/work/T1-coder.md`, `${RUN_DIR}/work/review-T1-1.md`].sort(),
+    );
+    assert.deepEqual(stagedFiles(repo), []);
+    assert.ok(fs.existsSync(path.join(repo.dir, `${RUN_DIR}/work/review-T1-b-1.md`)));
+  });
+});
+
+test("a plan Files entry with a leading './' stages the normalized path and is recognized by claimant lookups the same as the unprefixed form", () => {
+  withGitRepo((repo) => {
+    seed(repo, [["T1", "./src/a.ts"], ["T2", "src/b.ts"]]);
+    write(repo.dir, "src/b.ts", "T2 work\n");
+    write(repo.dir, "src/a.ts", "T1's own file, not yet committed - still open\n");
+
+    // T2 tries to pull T1's file in through --with while T1 is still open: the
+    // claimant lookup must recognize "src/a.ts" as T1's "./src/a.ts" entry and
+    // refuse it, the same as if the plan had spelled it without the "./".
+    const blocked = run(repo.dir, repo.env, [PLAN_REL, "T2", "--with", "src/a.ts"]);
+    assert.equal(blocked.status, 0, `stderr: ${blocked.stderr}`);
+    assert.match(blocked.stderr, /refused src\/a\.ts - claimed by task T1/);
+    assert.deepEqual(committedFiles(repo), [STATUS_REL, "src/b.ts"].sort());
+
+    // once T1 lands, its own commit stages the normalized path, not the literal "./" one
+    write(repo.dir, "src/a.ts", "T1 work\n");
+    const landed = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(landed.status, 0, `stderr: ${landed.stderr}`);
+    assert.deepEqual(committedFiles(repo), [STATUS_REL, "src/a.ts"].sort());
+    assert.doesNotMatch(landed.stderr, /claimed by no task/);
+  });
+});
+
+test("a '--with' path with a leading './' before '.temp' is refused like its normalized form (the leading './' is not a bypass)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, ".temp/x", "noise\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--with", "./.temp/x"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /refused \.temp\/x - \.temp is machine state, never committed/);
+    assert.deepEqual(committedFiles(repo), [STATUS_REL, "src/a.ts"].sort());
+  });
+});
+
 test("--chore and --qa record which half of the close is done, so a resumed run does not repeat it", () => {
   withGitRepo((repo) => {
     seed(repo);
@@ -1332,5 +1398,33 @@ test("a refused close commit rolls the closed entry back, so the run never claim
     assert.deepEqual(planDirEntries(repo), ["plan.md", "status.md"]);
 
     fixCommit(repo);
+  });
+});
+
+test("a fix number refuses a '.temp' path even with a leading './' (the leading './' is not a bypass)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    write(repo.dir, "src/a.ts", "repair\n");
+    write(repo.dir, ".temp/x", "noise\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "2", "src/a.ts", "./.temp/x"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /refused \.temp\/x - \.temp is machine state, never committed/);
+    assert.deepEqual(committedFiles(repo), ["src/a.ts"]);
+  });
+});
+
+test("--repair refuses a '.temp' path even with a leading './' (the leading './' is not a bypass)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/legacy.ts", "the regression the suite caught\n");
+    write(repo.dir, ".temp/x", "noise\n");
+
+    const result = run(repo.dir, repo.env, ["--repair", PLAN_REL, "2", "src/legacy.ts", "./.temp/x"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /refused \.temp\/x - \.temp is machine state, never committed/);
+    assert.deepEqual(committedFiles(repo), ["src/legacy.ts"]);
   });
 });
