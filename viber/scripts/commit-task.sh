@@ -207,7 +207,7 @@ status_of() {
 # plan and never stored twice.
 task_total() {
   local n
-  n="$(grep -cE '<!--[[:space:]]*TASK[[:space:]]*-->' -- "$1" 2>/dev/null || true)"
+  n="$(grep -cE '^[[:space:]]*<!--[[:space:]]*TASK[[:space:]]*-->[[:space:]]*$' -- "$1" 2>/dev/null || true)"
   printf '%s\n' "${n:-0}"
 }
 
@@ -292,8 +292,8 @@ restore_status() {
 plan_files() {
   awk '
 function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
-/<!--[[:space:]]*TASK[[:space:]]*-->/   { intask = 1; next }
-/<!--[[:space:]]*\/TASK[[:space:]]*-->/ { intask = 0; next }
+/^[[:space:]]*<!--[[:space:]]*TASK[[:space:]]*-->[[:space:]]*$/   { intask = 1; next }
+/^[[:space:]]*<!--[[:space:]]*\/TASK[[:space:]]*-->[[:space:]]*$/ { intask = 0; next }
 intask && /^-[[:space:]]*Files:/ {
   s = $0; sub(/^[^:]*:/, "", s)
   m = split(s, fl, /,/)
@@ -308,8 +308,8 @@ intask && /^-[[:space:]]*Files:/ {
 claimants() {
   awk -v want="$2" '
 function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
-/<!--[[:space:]]*TASK[[:space:]]*-->/   { intask = 1; cur = ""; next }
-/<!--[[:space:]]*\/TASK[[:space:]]*-->/ { intask = 0; next }
+/^[[:space:]]*<!--[[:space:]]*TASK[[:space:]]*-->[[:space:]]*$/   { intask = 1; cur = ""; next }
+/^[[:space:]]*<!--[[:space:]]*\/TASK[[:space:]]*-->[[:space:]]*$/ { intask = 0; next }
 intask && /^###[[:space:]]/ {
   h = trim(substr($0, 4)); p = index(h, " - ")
   cur = (p ? trim(substr(h, 1, p - 1)) : trim(h))
@@ -319,6 +319,22 @@ intask && /^-[[:space:]]*Files:/ {
   s = $0; sub(/^[^:]*:/, "", s)
   m = split(s, fl, /,/)
   for (k = 1; k <= m; k++) if (trim(fl[k]) == want) print cur
+}
+' "$1"
+}
+
+# The ids of every task the plan defines, one per line - what "--skip" and
+# "--defer" compare their <id> against as a fixed string, never as a pattern.
+# A "## Contracts" heading is shaped exactly like a task's ("### C3 - <name>")
+# but sits outside every TASK block, so it is never mistaken for a task id.
+task_ids_of() {
+  awk '
+function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
+/^[[:space:]]*<!--[[:space:]]*TASK[[:space:]]*-->[[:space:]]*$/   { intask = 1; next }
+/^[[:space:]]*<!--[[:space:]]*\/TASK[[:space:]]*-->[[:space:]]*$/ { intask = 0; next }
+intask && /^###[[:space:]]/ {
+  h = trim(substr($0, 4)); p = index(h, " - ")
+  print (p ? trim(substr(h, 1, p - 1)) : trim(h))
 }
 ' "$1"
 }
@@ -380,9 +396,13 @@ if [[ "${1:-}" == "--skip" ]]; then
     echo "error: plan file not found: $plan" >&2
     exit 2
   fi
-  if ! grep -qE "^###[[:space:]]+$task_id[[:space:]]+-[[:space:]]" "$plan"; then
+  if ! task_ids_of "$plan" | grep -Fxq -- "$task_id"; then
     echo "error: no task '$task_id' in $plan" >&2
     exit 3
+  fi
+  if done_ids "$plan" | grep -Fxq -- "$task_id"; then
+    echo "error: task '$task_id' is already done - it cannot be skipped" >&2
+    exit 2
   fi
   mark_status "$plan" skipped "$task_id" >/dev/null
   echo "skipped: $task_id"
@@ -576,8 +596,8 @@ fi
 # --- the task's heading and file map ---
 parsed="$(awk -v want="$task_id" '
 function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
-/<!--[[:space:]]*TASK[[:space:]]*-->/   { intask = 1; cur = ""; next }
-/<!--[[:space:]]*\/TASK[[:space:]]*-->/ { intask = 0; next }
+/^[[:space:]]*<!--[[:space:]]*TASK[[:space:]]*-->[[:space:]]*$/   { intask = 1; cur = ""; next }
+/^[[:space:]]*<!--[[:space:]]*\/TASK[[:space:]]*-->[[:space:]]*$/ { intask = 0; next }
 intask && /^###[[:space:]]/ {
   h = trim(substr($0, 4)); p = index(h, " - ")
   cur = (p ? trim(substr(h, 1, p - 1)) : trim(h))
@@ -758,7 +778,7 @@ while IFS= read -r d; do
     echo "warning: refused $d - a --defer entry is <task-id>:<path>" >&2
     continue
   fi
-  if ! grep -qE "^###[[:space:]]+${d%%:*}[[:space:]]+-[[:space:]]" "$plan"; then
+  if ! task_ids_of "$plan" | grep -Fxq -- "${d%%:*}"; then
     echo "warning: refused $d - no task ${d%%:*} in the plan" >&2
     continue
   fi

@@ -134,6 +134,42 @@ function seed(repo: GitRepo, tasks: Array<[string, string, string?]> = TWO_TASKS
   repo.git("commit", "-m", "seed");
 }
 
+/** Commits a hand-written plan body verbatim, for a case `planBody`'s task
+ *  shape cannot express (a Contracts appendix, prose mentioning the marker). */
+function seedRaw(repo: GitRepo, planText: string, total: number): void {
+  write(repo.dir, PLAN_REL, planText);
+  write(repo.dir, STATUS_REL, statusBody(total));
+  write(repo.dir, "README.md", "seed\n");
+  repo.git("add", "-A");
+  repo.git("commit", "-m", "seed");
+}
+
+/** Two real tasks plus a `## Contracts` appendix whose own heading is shaped
+ *  exactly like a task's (`### C3 - <name>`) - the case `--skip`/`--defer`
+ *  must not confuse with a task id. */
+const CONTRACTS_PLAN = [
+  "# Plan - feat x",
+  "",
+  "## Tasks",
+  "",
+  "<!-- TASK -->",
+  "### T1 - task T1",
+  "- Files: src/a.ts",
+  "<!-- /TASK -->",
+  "",
+  "<!-- TASK -->",
+  "### T2 - task T2",
+  "- Files: src/b.ts",
+  "<!-- /TASK -->",
+  "",
+  "## Contracts",
+  "",
+  "### C3 - TASK marker line",
+  "",
+  "File: none",
+  "",
+].join("\n");
+
 function readPlan(repo: GitRepo): string {
   return fs.readFileSync(path.join(repo.dir, PLAN_REL), "utf-8");
 }
@@ -1184,6 +1220,85 @@ test("--skip twice does not duplicate the id, and an unknown id exits 3 without 
     assert.equal(unknown.status, 3);
     assert.match(unknown.stderr, /no task 'T9'/);
     assert.equal(readStatus(repo), before);
+  });
+});
+
+test("--skip with a contract id exits 3 (a Contracts heading is shaped like a task's, but it is not one)", () => {
+  withGitRepo((repo) => {
+    seedRaw(repo, CONTRACTS_PLAN, 2);
+
+    const result = run(repo.dir, repo.env, ["--skip", PLAN_REL, "C3"]);
+    assert.equal(result.status, 3);
+    assert.match(result.stderr, /no task 'C3' in/);
+  });
+});
+
+test("--skip with a regex metacharacter in the id exits 3 instead of matching a task heading as a pattern (the id is compared as a fixed string)", () => {
+  // "T." would match task heading "### T1 - ..." as a regex (any char after
+  // "T"), so this exiting 3 proves the id is compared literally. No bare "*"
+  // here: on Git-Bash the MSYS runtime expands it against the cwd before argv
+  // ever reaches the script (see plan-path.test.ts).
+  withGitRepo((repo) => {
+    seed(repo);
+
+    const result = run(repo.dir, repo.env, ["--skip", PLAN_REL, "T."]);
+    assert.equal(result.status, 3);
+    assert.match(result.stderr, /no task 'T\.' in/);
+  });
+});
+
+test("--skip with a task already committed as done exits 2, naming it as already done", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    const before = readStatus(repo);
+
+    const result = run(repo.dir, repo.env, ["--skip", PLAN_REL, "T1"]);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /task 'T1' is already done - it cannot be skipped/);
+    assert.equal(readStatus(repo), before);
+  });
+});
+
+test("--defer naming a contract id is refused with a warning, like an id no task owns", () => {
+  withGitRepo((repo) => {
+    seedRaw(repo, CONTRACTS_PLAN, 2);
+    write(repo.dir, "src/a.ts", "work\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--defer", "C3:src/a.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /refused C3:src\/a\.ts - no task C3 in the plan/);
+    assert.doesNotMatch(readStatus(repo), /deferred: C3/);
+  });
+});
+
+test("a plan mentioning the TASK marker in prose keeps its real task total (only a marker standing alone on its line opens or closes a block)", () => {
+  withGitRepo((repo) => {
+    const plan = [
+      "# Plan - feat x",
+      "",
+      "## Tasks",
+      "",
+      "Note: every task is bounded by an `<!-- TASK -->` marker on its own line.",
+      "",
+      "<!-- TASK -->",
+      "### T1 - task T1",
+      "- Files: src/a.ts",
+      "<!-- /TASK -->",
+      "",
+      "<!-- TASK -->",
+      "### T2 - task T2",
+      "- Files: src/b.ts",
+      "<!-- /TASK -->",
+      "",
+    ].join("\n");
+    seedRaw(repo, plan, 2);
+    write(repo.dir, "src/a.ts", "work\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /progress: 1\/2\n$/);
   });
 });
 
