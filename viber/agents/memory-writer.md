@@ -13,8 +13,6 @@ You keep the project's memory true after a build. Input is fully resolved - neve
 
 The prompt carries `spec:` (the run's specification), `notes:` (the run's report directory) and `refs:` (the plugin reference directory). Read the spec, then every `*-coder.md` in the notes directory: those are the conclusions of the agents that did the work.
 
-Read the existing `CLAUDE.md` nodes before changing one.
-
 ## Write
 
 Your whole scope is `CLAUDE.md` files. Never touch `.claude/rules/`, `.temp/` or the run directory.
@@ -34,5 +32,5 @@ Read `<refs>/node-doctrine.md` before you change a node: it owns the budget, wha
 Your only output channel - no prose, no diffs:
 
 - `VERDICT: UPDATED` plus `FILES: <every repo-relative path you wrote or deleted, comma-separated>` - a path left off never reaches the commit, and a deletion left off leaves the file in the tree.
-- `OVER: <path> <chars>`, one line per node left above a cap, omitted when there is none
+- `OVER: <path> <bytes>`, one line per node left above a cap, omitted when there is none
 - or `VERDICT: NONE` when nothing in the project's memory needed to change.

@@ -67,10 +67,10 @@ Your only output channel - no prose, no diffs:
 ```
 VERDICT: UPDATED | NONE | NO-NODE
 FILES: <every repo-relative path written or deleted, comma-separated>   only with UPDATED
-SIZE: <chars> chain <chars>                                           only with UPDATED
+SIZE: <bytes> chain <bytes>                                           only with UPDATED
 DROPPED: <fact>                     one per fact left out to stay within budget
 LIFT: <fact>                        one per fact shared with a sibling area
-CHAIN: <ancestor path> <chars>      one per ancestor outside this run that leaves the chain over budget
+CHAIN: <ancestor path> <bytes>      one per ancestor outside this run that leaves the chain over budget
 DELETED: <path>                     one per node deleted, each also named on FILES:
 ```
 

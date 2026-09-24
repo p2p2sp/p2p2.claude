@@ -23,7 +23,7 @@ Your whole tool set is `AskUserQuestion`, `Agent` and the two map lines of step 
 
 Before any question, one line per fact worth deciding on:
 
-- each `node:` line with its two sizes and its flag. `OVER-NODE` is past 12000 characters, `OVER-CHAIN` past 32000 over the chain. A node already over a budget is reported here and brought within it by its writer, never by you.
+- each `node:` line with its two sizes and its flag. `OVER-NODE` is past 12000 bytes, `OVER-CHAIN` past 32000 over the chain. A node already over a budget is reported here and brought within it by its writer, never by you.
 - each `orphan:` line, named as a node left alone in a directory whose other files are gone.
 - each `dirty:` line with its `modified` or `untracked` word.
 - each `cand:` line with its file count, its byte count and its `toolchain` or `plain` signal. A directory carrying its own build manifest earns a look, never an automatic node.

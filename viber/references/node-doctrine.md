@@ -4,7 +4,7 @@ What a `CLAUDE.md` node holds and what it can afford. A node is loaded whole by 
 
 ## Budget
 
-- 12000 characters per node, 32000 over the chain a reader loads: the root, every ancestor, the node.
+- 12000 bytes per node, 32000 over the chain a reader loads: the root, every ancestor, the node.
 - Measure before you write: `wc -c` on the node and on each ancestor up to the root.
 - A node at its cap takes a new fact only by giving one up. Growth is a decision, never the default.
 
