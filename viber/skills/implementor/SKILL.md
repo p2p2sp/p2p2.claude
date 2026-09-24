@@ -118,7 +118,8 @@ Warnings off the commit never stop the build: carry `refused <path> - claimed by
 
 Start with every task whose `deps` are done, in one message. On every return, answer with ONE message carrying every dispatch now legal plus at most one commit. Never wait for a batch to drain; when a constraint forces a choice, start whatever unblocks the most tasks.
 
-- Coder `VERDICT: FAIL`, or `PASS` with its `DOD:` line short of its total -> `AskUserQuestion` naming the task and its `REASON:` (or the short `DOD:` line): retry / skip / abort.
+- Coder `VERDICT: FAIL`, or `PASS` with its `DOD:` line short of its total, the first time for that task -> `retry` without asking, the short `DOD:` line as `reason:` when no `REASON:` came.
+- The same again for that task -> `AskUserQuestion` naming the task and its `REASON:` (or the short `DOD:` line): retry / skip / abort.
 - Coder `VERDICT: DENIED` -> `AskUserQuestion` naming the task: retry / skip / abort.
 - Coder `PASS`, review due -> reviewer dispatch at the next round.
 - Coder `PASS`, no review due -> commit.
