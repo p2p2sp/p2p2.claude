@@ -24,12 +24,21 @@
 # FAIL supersedes it, and a PASS quoted anywhere else never counts as one.
 #
 # Contract:
+#   argv   : none - every input arrives on stdin.
+#   cwd    : irrelevant to locating or reading the transcript; used only to
+#            resolve a RELATIVE plan "file_path" the transcript records,
+#            against the payload's own "cwd" key.
+#   env    : none read.
+#   reads  : the transcript file named by the payload's "transcript_path", and,
+#            once the plan write line resolves a path, the plan file itself
+#            (existence check and mtime, for the tamper guard below).
 #   stdin  : PreToolUse JSON with at least { "transcript_path": "<abs path>" }
 #   stdout : {"hookSpecificOutput":{"hookEventName":"PreToolUse",
 #             "permissionDecision":"allow"|"deny","permissionDecisionReason":"..."}}
 #   exit 0 : always. Every parse miss or unreadable file falls back to allow -
 #            a broken gate must not trap the user in plan mode. JSON is read with
-#            grep/sed/awk; jq is not assumed.
+#            grep/sed/awk; jq is not assumed. A malformed or empty result from
+#            any read (including a broken awk on PATH) fails open the same way.
 set -u
 
 emit_allow() {
@@ -119,8 +128,7 @@ plan_name="${plan_path##*[\\/]}"
 # must end the token, so a quoted "VERDICT: PASS is not..." cannot pass as one.
 # Pairing prefers the dispatch's id when both sides carry it, and falls back to the
 # first verdict after the dispatch when they do not; the later pair wins.
-read -r last_dispatch dispatch_line verdict_line <<PAIR
-$(
+pair_raw="$(
   awk -v start="$((plan_write_line + 1))" '
     NR < start { next }
     /"subagent_type":"([a-zA-Z0-9_.-]+:)?planner-review"/ {
@@ -142,11 +150,21 @@ $(
       print last_dispatch + 0, best_call + 0, best_verdict + 0
     }
   ' "$transcript_path" 2>/dev/null
-)
-PAIR
-last_dispatch="${last_dispatch:-0}"
-dispatch_line="${dispatch_line:-0}"
-verdict_line="${verdict_line:-0}"
+)"
+
+# The awk pipeline above always prints exactly three numbers on success (its
+# END block runs unconditionally). Anything else - empty output, a partial
+# line, non-numeric text - means the read itself broke (no working awk on
+# PATH, a killed process) rather than a legitimate "nothing found yet"
+# (which prints as the well-formed "0 0 0"). Fail open rather than read that
+# breakage as "no dispatch" and deny on it.
+if ! printf '%s' "$pair_raw" | grep -qE '^[0-9]+ [0-9]+ [0-9]+$'; then
+  emit_allow
+fi
+set -- $pair_raw
+last_dispatch="$1"
+dispatch_line="$2"
+verdict_line="$3"
 
 if [ "$last_dispatch" = "0" ]; then
   emit_deny "Next step: review the plan. The planner skill wrote ${plan_name} but the viber:planner-review agent has not run on this version - dispatch it with the plan path, wait for 'VERDICT: PASS', then retry ExitPlanMode. (This is the planner's review gate, not an error.)"

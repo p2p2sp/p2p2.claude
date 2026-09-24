@@ -32,6 +32,7 @@ import path from "node:path";
 
 import { runScript } from "../harness/run.ts";
 import { withTempDir } from "../harness/tmp.ts";
+import { withStub } from "../harness/stub.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/hooks/scripts/plan-gate.sh");
 
@@ -483,6 +484,24 @@ test("a relative plan file_path resolves against the session cwd -> the mtime gu
     assert.equal(runCase(f, dir).decision, "deny");
     // Without the cwd the path resolves to nothing and the guard is skipped.
     assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+// --- a malformed pairing read fails open --------------------------------
+
+test("a broken awk on PATH (the pairing read comes back malformed) -> allow, not the 'no review yet' deny", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(), PASS]);
+    withStub("awk", "exit 1", (stubDir) => {
+      const result = runScript(SUT, [], {
+        shell: "bash",
+        input: JSON.stringify({ transcript_path: f, tool_name: "ExitPlanMode" }),
+        stubDirs: [stubDir],
+      });
+      assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+      const json = JSON.parse(result.stdout);
+      assert.equal(json.hookSpecificOutput.permissionDecision, "allow");
+    });
   });
 });
 
