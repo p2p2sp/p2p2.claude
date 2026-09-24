@@ -20,7 +20,7 @@ Put each candidate to the user in prose, one line each - the decision, the alter
 
 Nothing accepted means nothing in this section applies - go straight on to the rest of the plan.
 
-- `Files: docs/adr/<yyyy-mm-dd>-<slug>.md`, the date from `date +%Y-%m-%d` so the path is exact - it is a commit file map, not a pattern.
+- `Files: docs/adr/<yyyyMMddHHmmss>-<slug>.md`, the stamp from `date +%Y%m%d%H%M%S` so the path is exact - it is a commit file map, not a pattern.
 - `TDD: none`, `Uses: none`, `Depends-on: none`, and nothing ever depends on it.
 - `Delivers` carries the record itself, because the task file is all its writer gets: the title, `Status: accepted` with the date, then Context, Decision, Alternatives (what it beat and why not) and Consequences.
 - `Verification: test -f <path> && grep -q '^Status: accepted' <path> -> exit 0`, that path written out in full both times.

@@ -67,9 +67,9 @@ path verbatim; no `Supersedes:` line anywhere -> drop it>
 <one line per `<slug>`, the slug written out literally>
 
 ### Approach
-1. Run `date +%Y-%m-%d-%H%M%S` once and keep its output as `<stamp>`; every file this task writes
+1. Run `date +%Y%m%d%H%M%S` once and keep its output as `<stamp>`; every file this task writes
    carries that same stamp.
-2. `Write` `docs/adr/<YYYY-MM-DD-HHMMSS>-<slug>.md` - the path being `docs/adr/<stamp>-<slug>.md` -
+2. `Write` `docs/adr/<yyyyMMddHHmmss>-<slug>.md` - the path being `docs/adr/<stamp>-<slug>.md` -
    with exactly this content, which the `Write` also creates `docs/adr/` for:
    ```markdown
    <the fenced body of that `### <slug>` block, verbatim>
