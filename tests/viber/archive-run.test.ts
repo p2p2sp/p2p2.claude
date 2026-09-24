@@ -28,10 +28,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 import { runScript } from "../harness/run.ts";
 import { slash } from "../harness/paths.ts";
 import { withGitRepo, withTempDir, type GitRepo } from "../harness/tmp.ts";
+import { withStub } from "../harness/stub.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/archive-run.sh");
 
@@ -222,6 +224,19 @@ test("a run with a task in neither done: nor skipped: is exit 4 and nothing is m
   );
 });
 
+test("an unknown id in place of a real task's id does not count toward settled, so the run is still refused as unfinished", () => {
+  withSeededRepo(
+    (repo, runDir) => {
+      const result = run(repo.dir, [runDir], repo.env);
+      assert.equal(result.status, 4);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, /unfinished: 1 of 2 tasks settled/);
+      assert.equal(filesUnder(repo.dir, "docs/specs").length, 0);
+    },
+    { tasks: ["T1", "T2"], done: "T1 BOGUS" },
+  );
+});
+
 test("a task the user dropped counts as settled, so a run closed by skipping its last task archives", () => {
   withSeededRepo(
     (repo, runDir) => {
@@ -231,6 +246,40 @@ test("a task the user dropped counts as settled, so a run closed by skipping its
     },
     { tasks: ["T1", "T2", "T3"], done: "T1 T2", skipped: "T3" },
   );
+});
+
+test("a TASK marker mentioned inside prose opens no block, so a heading that follows it is never mistaken for a task", () => {
+  withGitRepo((repo) => {
+    const key = KEY;
+    const runDir = seedRun(repo.dir, key, { tasks: ["T1"] });
+    const plan = path.join(repo.dir, runDir, "plan.md");
+    fs.writeFileSync(
+      plan,
+      fs.readFileSync(plan, "utf-8") +
+        [
+          "",
+          "See the <!-- TASK --> marker syntax explained above.",
+          "",
+          "### T2 - a heading that is not a task, just documentation",
+          "",
+          "More text about the marker shape.",
+          "",
+          "<!-- /TASK -->",
+          "",
+        ].join("\n"),
+    );
+    repo.git("add", "-A");
+    const commit = repo.git("commit", "-m", "seed with a prose mention");
+    assert.equal(commit.status, 0, `seed commit failed: ${commit.stderr}`);
+
+    // the plan's real total is 1 (T1, already done); an unanchored count would
+    // read the prose mention as opening a block, capture "T2" off the
+    // documentation heading that follows it, and refuse this finished run as
+    // though a second, unsettled task existed
+    const result = run(repo.dir, [runDir], repo.env);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(slash(result.stdout).trim(), new RegExp(`^ARCHIVED: docs/specs/${key} `));
+  });
 });
 
 // --- the archive itself ---
@@ -349,6 +398,31 @@ test("an existing destination is exit 3, and the run is left exactly where it wa
     assert.match(slash(result.stderr), /docs\/specs\/.* already exists/);
     assert.ok(fs.existsSync(path.join(repo.dir, runDir, "plan.md")));
     assert.equal(fs.readFileSync(path.join(repo.dir, "docs", "specs", KEY, "spec.md"), "utf-8"), "an earlier archive\n");
+  });
+});
+
+// --- a failing git step ---
+
+test("a failing 'git rm' on the scaffold removal exits 5, leaving the mv done and nothing committed", () => {
+  withSeededRepo((repo, runDir) => {
+    const realGit = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf-8" }).stdout.trim();
+    assert.ok(realGit.length > 0, "a real git must be resolvable on PATH to build the passthrough stub");
+
+    withStub(
+      "git",
+      `if [ "$1" = "rm" ]; then exit 1; fi\nexec "${realGit}" "$@"`,
+      (stubDir) => {
+        const result = runScript(SUT, [runDir], { cwd: repo.dir, env: repo.env, shell: "bash", stubDirs: [stubDir] });
+        assert.equal(result.status, 5);
+        assert.equal(result.stdout, "");
+
+        // git mv already ran through the passthrough, so the directory sits at
+        // its new name with the scaffolding not yet stripped and no commit made
+        assert.ok(!fs.existsSync(path.join(repo.dir, runDir)));
+        assert.ok(fs.existsSync(path.join(repo.dir, "docs", "specs", KEY, "plan.md")));
+        assert.equal(repo.git("log", "--format=%s", "-1").stdout.trim(), "docs(viber): decomposition");
+      },
+    );
   });
 });
 

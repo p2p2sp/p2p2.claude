@@ -159,15 +159,30 @@ fi
 # --- completeness gate ---
 # Every task the plan defines has to be settled - committed or dropped by the
 # user. An unfinished run still resumes from its own scaffolding, so archiving
-# it would take the state the resume reads. Counted the way plan-path.sh counts
-# it: the done and skipped lists out of status.md, the total out of the plan's
-# own TASK blocks.
+# it would take the state the resume reads. Settled is the SET of real task ids
+# the done: and skipped: lists of status.md name: an id the list repeats counts
+# once, and an id naming no task in the plan (a typo, a stale entry) counts for
+# nothing rather than inflating the count past what the plan actually defines.
+# Total is the distinct task ids the plan's own TASK blocks declare, and a TASK
+# marker only opens a block when it stands alone on its line - the shape C3
+# fixes, so one mentioned in prose starts nothing.
 settled=0
 total=0
 if [[ -f "$dir/plan.md" ]]; then
   read -r settled total <<<"$(
     awk -v st="$dir/status.md" '
-/<!--[[:space:]]*TASK[[:space:]]*-->/ { n++ }
+/^[[:space:]]*<!--[[:space:]]*TASK[[:space:]]*-->[[:space:]]*$/  { intask = 1; gotid = 0; next }
+/^[[:space:]]*<!--[[:space:]]*\/TASK[[:space:]]*-->[[:space:]]*$/ { intask = 0; next }
+intask && !gotid && /^###[[:space:]]/ {
+  h = $0
+  sub(/^###[[:space:]]*/, "", h)
+  p = index(h, " - ")
+  tid = (p ? substr(h, 1, p - 1) : h)
+  gsub(/[[:space:]]+$/, "", tid)
+  if (tid != "" && !(tid in ids)) { ids[tid] = 1; n++ }
+  gotid = 1
+  next
+}
 END {
   while ((getline line < st) > 0) {
     if (line !~ /^done:/ && line !~ /^skipped:/) continue
@@ -175,7 +190,7 @@ END {
     m = split(line, v, /[[:space:]]+/)
     for (k = 1; k <= m; k++) {
       if (v[k] == "" || v[k] == "none" || v[k] == "-") continue
-      s++
+      if ((v[k] in ids) && !(v[k] in settledset)) { settledset[v[k]] = 1; s++ }
     }
   }
   close(st)
@@ -225,7 +240,10 @@ if ! git mv -- "$dir" "$dest" >&2; then
 fi
 
 for leaf in "${scaffold[@]}"; do
-  git rm -r -f -q --ignore-unmatch -- "$dest/$leaf" >&2
+  if ! git rm -r -f -q --ignore-unmatch -- "$dest/$leaf" >&2; then
+    echo "error: could not remove $dest/$leaf - the move stands, nothing was committed" >&2
+    exit 5
+  fi
   rm -rf -- "$dest/$leaf"
 done
 
