@@ -34,7 +34,7 @@ The 2026-09-25 review of the viber plugin (`.temp/viber-review/report.md`) left 
 24. L19f: the root README drops the retired "same trip" comparison and names viber's optional `node` and Playwright.
 25. Informational: the `issue-facts.sh` and `issue-templates.sh` headers name their system temp file and its trap cleanup.
 26. Dev-time rules: `shell-preload-contract.md` and `shell-script-header.md` name `scripts/open-page.sh` at its real path and the `${CLAUDE_PLUGIN_ROOT}` prefix setup really uses.
-27. Dev-time rules: `shell-preload-contract.md` names `prototype` among the callers of `issue-facts.sh` and `post-comment.sh` and among the call sites.
+27. Dev-time rules: `shell-preload-contract.md` names `prototype` among the callers of `issue-facts.sh` and `post-comment.sh` and among the call sites. [D1]
 
 ## Scope
 
@@ -62,3 +62,7 @@ The 2026-09-25 review of the viber plugin (`.temp/viber-review/report.md`) left 
 - Changing the form of questions: prose questions stay.
 - `viber/CLAUDE.md`: the memory switch reserves it for the build's close, which folds in L15's dependency note, L16's `allowed-tools` change and L5's narrowed planner match on the "Plan gate" line.
 - Every plugin other than viber.
+
+## Deviations
+
+D1 (#27): `shell-preload-contract.md` names `prototype` among the callers of `issue-facts.sh` and `post-comment.sh` only; its call-site list (`e2e`, `implementor`, `planner`, `setup`, `closeout`) is unchanged and does not name `prototype`.
