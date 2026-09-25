@@ -17,8 +17,12 @@
 # has and the file lacks is appended with the template's own comment and default
 # value; every key the file already declares keeps its value, its comment and
 # its position, and a key the template dropped is left standing. Hence `false`
-# is the one way to turn a switch off: a key deleted or commented out is a key
-# the next run restores at the template's default.
+# is the one way to turn a switch off: a deleted or commented-out top-level key,
+# or a `directories:` child, is restored at the template's default the next run.
+# A child of `tiers:` or `branching:` is the exception: the merge only appends
+# one of those groups whole when it is missing entirely, never extends one
+# already present, so a deleted child there is not restored - it just resolves
+# to its default in config.sh.
 #
 # Contract:
 #   argv   : none.

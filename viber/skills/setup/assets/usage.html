@@ -717,13 +717,20 @@ exception rather than the rule. Edit <code>.claude/viber.yml</code> to change th
 there, and only <code>true</code> counts as on. Turn a switch off with <code>false</code> rather than by deleting it:
 running <code>/viber:setup</code> again merges in whatever the current version's template carries and your
 file does not, which is how a new switch reaches a project set up by an older one, and a deleted
-key is restored at its default by that same merge. Every value you already set survives it.</p>
+top-level key, or a deleted <code>directories:</code> child, is restored at its default by that same merge.
+A deleted child of <code>tiers:</code> or <code>branching:</code> is the exception: the merge only appends
+one of those groups whole when the file lacks it entirely, never extends one already present, so
+deleting a child there just resolves it to its default instead. Every value you already set survives it.</p>
 <p lang="pl">Sześć z siedmiu jest domyślnie włączonych; <code>qa</code> jest wyłączony, bo build potrzebujący
 scenariuszy akceptacyjnych to wyjątek, a nie reguła. Zmienisz to w <code>.claude/viber.yml</code>: każdy
 klucz ma tam komentarz, a za włączony liczy się tylko <code>true</code>. Przełącznik wyłączaj wartością
 <code>false</code>, a nie przez usunięcie: ponowne uruchomienie <code>/viber:setup</code> dołącza wszystko, co ma
 szablon bieżącej wersji, a czego brakuje w twoim pliku. Tak nowy przełącznik trafia do projektu
-skonfigurowanego starszą wersją i tak samo usunięty klucz wraca z wartością domyślną. Każda już ustawiona
+skonfigurowanego starszą wersją i tak samo wraca z wartością domyślną usunięty klucz najwyższego
+poziomu albo usunięte dziecko grupy <code>directories:</code>. Wyjątkiem jest usunięte dziecko grupy
+<code>tiers:</code> lub <code>branching:</code>: scalanie dodaje taką grupę w całości tylko wtedy, gdy w pliku
+jej w ogóle brakuje, nigdy nie rozszerza już istniejącej, więc usunięcie w niej klucza po prostu
+przywraca jego wartość domyślną, a nie sam klucz. Każda już ustawiona
 wartość przetrwa to scalenie.</p>
 <p lang="en">When your <code>.claude/settings.json</code> already exists, <code>/viber:setup</code> asks whether to
 merge the recommended permissions into it (viber's value wins a conflict, permission lists only gain

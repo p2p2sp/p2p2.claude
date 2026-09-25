@@ -1,6 +1,10 @@
 # viber switches. Only `true` counts as on. Turn one off with `false`: a key you
 # delete or comment out is restored at its default here the next time
 # `/viber:setup` runs, which is how a new version's switches reach this file.
+# The exception is a child of `tiers:` or `branching:`: the merge only appends
+# a missing group whole, never a missing child of one already present, so
+# deleting a child there is not restored - it resolves to its default in
+# config.sh instead.
 
 # planner weighs whether the change carries an architectural decision worth
 # keeping, and turns each accepted one into a first task writing docs/adr/.
