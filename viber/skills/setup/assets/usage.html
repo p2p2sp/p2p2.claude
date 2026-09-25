@@ -726,11 +726,13 @@ szablon bieżącej wersji, a czego brakuje w twoim pliku. Tak nowy przełącznik
 skonfigurowanego starszą wersją i tak samo usunięty klucz wraca z wartością domyślną. Każda już ustawiona
 wartość przetrwa to scalenie.</p>
 <p lang="en">When your <code>.claude/settings.json</code> already exists, <code>/viber:setup</code> asks whether to
-merge the recommended permissions into it (fill in what is missing) or reset it to the recommended file
-from scratch. A reset keeps your old file in <code>.temp/viber/setup/settings.json.bak</code>.</p>
+merge the recommended permissions into it (viber's value wins a conflict, permission lists only gain
+entries) or reset it to the recommended file from scratch. A reset keeps your old file in
+<code>.temp/viber/setup/settings.json.bak</code>.</p>
 <p lang="pl">Gdy <code>.claude/settings.json</code> już istnieje, <code>/viber:setup</code> pyta, czy scalić z nim
-zalecane uprawnienia (uzupełnić braki), czy zresetować go i zapisać zalecany plik od zera. Reset zachowuje
-stary plik w <code>.temp/viber/setup/settings.json.bak</code>.</p>
+zalecane uprawnienia (wartość viber wygrywa konflikt, listy uprawnień tylko się rozszerzają), czy
+zresetować go i zapisać zalecany plik od zera. Reset zachowuje stary plik w
+<code>.temp/viber/setup/settings.json.bak</code>.</p>
 
 <h3 class="sub"><span lang="en">Directories</span><span lang="pl">Katalogi</span></h3>
 <dl>
