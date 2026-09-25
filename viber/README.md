@@ -120,9 +120,10 @@ Playwright tests go into the e2e directory your own project already uses - `/vib
 nothing names one, and creates no directory of its own. Scratch files go to `.temp/viber/`, and
 `/viber:prototype`'s mockups to `.temp/viber/prototype/` within it. Your
 `.claude/viber.yml` and your `.gitignore` are only ever added to, never rewritten. Your
-`.claude/settings.json` gets every setting viber recommends: a value viber sets wins over yours,
-permission lists only gain entries, and a permission viber moved from `deny` to `ask` is moved in
-your settings too. Keep your own overrides in `.claude/settings.local.json`, which viber never
+`.claude/settings.json` gets every setting viber recommends. If the file already exists, setup
+asks first: merge (a value viber sets wins over yours, permission lists only gain entries, and a
+permission viber moved from `deny` to `ask` is moved in your settings too) or reset (the file is
+replaced from scratch, the old one kept in `.temp/viber/setup/settings.json.bak`). Keep your own overrides in `.claude/settings.local.json`, which viber never
 touches.
 
 `/viber:memory` and `/viber:rules` write the same `CLAUDE.md` cascade and the same

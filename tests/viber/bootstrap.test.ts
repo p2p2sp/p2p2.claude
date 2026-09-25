@@ -66,6 +66,7 @@ test("a fresh repository seeds both files from the bundled ones and prints one l
       [
         "viber.yml: seeded from template - every switch is commented in it",
         ".gitignore: created from template (ignores .temp/)",
+        "settings.json: absent",
         "CLAUDE.md: missing - run /init, then add the build and test commands",
         "gh: present",
         "",
@@ -97,6 +98,7 @@ test("running twice leaves both files byte-identical and reports them as already
       [
         "viber.yml: already present and complete (left untouched)",
         ".gitignore: already ignores .temp/",
+        "settings.json: absent",
         "CLAUDE.md: missing - run /init, then add the build and test commands",
         "gh: present",
         "",
@@ -345,6 +347,23 @@ test("a negated '!.temp/' rule does NOT count as present - the entry is still ap
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^\.gitignore: \.temp\/ appended$/m);
     assert.equal(read(ignore), before + ".temp/\n");
+  });
+});
+
+test("an existing .claude/settings.json at the repository root is reported present and left byte-unchanged (the skill asks reset or merge on this line)", () => {
+  withGitRepo(({ dir, env }) => {
+    const settings = path.join(dir, ".claude", "settings.json");
+    fs.mkdirSync(path.dirname(settings), { recursive: true });
+    const before = '{ "permissions": {} }\n';
+    fs.writeFileSync(settings, before);
+    const nested = path.join(dir, "src");
+    fs.mkdirSync(nested);
+
+    const result = run(nested, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^settings\.json: present$/m);
+    assert.equal(read(settings), before);
   });
 });
 

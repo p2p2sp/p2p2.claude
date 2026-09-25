@@ -489,14 +489,12 @@
     <li>
       <span class="step" aria-hidden="true">2</span>
       <p class="stage"><span lang="en">Plan</span><span lang="pl">Zaplanuj</span></p>
-      <p class="say"><span lang="en">"plan it"</span><span lang="pl">"zaplanuj to"</span></p>
       <p class="what" lang="en">Reviewed against your code, then approved by you.</p>
       <p class="what" lang="pl">Sprawdzony przez recenzenta na twoim kodzie, potem zatwierdzony przez ciebie.</p>
     </li>
     <li>
       <span class="step" aria-hidden="true">3</span>
       <p class="stage"><span lang="en">Build</span><span lang="pl">Zbuduj</span></p>
-      <p class="say"><span lang="en">"implement it"</span><span lang="pl">"zaimplementuj to"</span></p>
       <p class="what" lang="en">Task by task, one reviewed commit each.</p>
       <p class="what" lang="pl">Zadanie po zadaniu, każde jako jeden zrecenzowany commit.</p>
     </li>
@@ -732,6 +730,12 @@ klucz ma tam komentarz, a za włączony liczy się tylko <code>true</code>. Prze
 szablon bieżącej wersji, a czego brakuje w twoim pliku. Tak nowy przełącznik trafia do projektu
 skonfigurowanego starszą wersją i tak samo usunięty klucz wraca z wartością domyślną. Każda już ustawiona
 wartość przetrwa to scalenie.</p>
+<p lang="en">When your <code>.claude/settings.json</code> already exists, <code>/viber:setup</code> asks whether to
+merge the recommended permissions into it (fill in what is missing) or reset it to the recommended file
+from scratch. A reset keeps your old file in <code>.temp/viber/setup/settings.json.bak</code>.</p>
+<p lang="pl">Gdy <code>.claude/settings.json</code> już istnieje, <code>/viber:setup</code> pyta, czy scalić z nim
+zalecane uprawnienia (uzupełnić braki), czy zresetować go i zapisać zalecany plik od zera. Reset zachowuje
+stary plik w <code>.temp/viber/setup/settings.json.bak</code>.</p>
 
 <h3 class="sub"><span lang="en">Directories</span><span lang="pl">Katalogi</span></h3>
 <dl>

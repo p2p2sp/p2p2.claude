@@ -33,7 +33,9 @@
 #            <root>/.gitignore        (seeded from assets/gitignore.txt when the
 #                                      project has none, otherwise ".temp/" is
 #                                      appended only when no rule ignores it)
-#   reads  : <root>/CLAUDE.md         (existence only, never written - the agents
+#   reads  : <root>/.claude/settings.json (existence only, never written - the
+#                                      skill asks reset or merge when present)
+#            <root>/CLAUDE.md         (existence only, never written - the agents
 #                                      take the build and test commands from it)
 #            gh on PATH               (existence only - never run, never
 #                                      installed; viber talks to GitHub through it)
@@ -175,6 +177,14 @@ else
   else
     echo ".gitignore: could not write $ignore"
   fi
+fi
+
+# Reported, never written: merge-settings.sh owns this file, and an existing one
+# makes the skill ask whether to reset it or merge into it.
+if [ -f "$root/.claude/settings.json" ]; then
+  echo "settings.json: present"
+else
+  echo "settings.json: absent"
 fi
 
 # Reported, never seeded: the build and test commands every agent reads live

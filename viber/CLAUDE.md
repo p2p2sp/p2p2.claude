@@ -172,7 +172,10 @@ agent, the switch or the verdict line disarms the gate, and fail-open means noth
 - `e2e`: `playwright-cli` and `@playwright/test`, probed by `check-playwright.sh`, which never
   installs; the skill installs only once the user agrees. Tests run chromium only.
 - `setup`: `merge-settings.sh` needs `node` (with none it prints the recommended block and skips)
-  and never touches `.claude/settings.local.json`.
+  and never touches `.claude/settings.local.json`. Its `--reset` form is a plain copy (no `node`),
+  backing the old file up to `.temp/viber/setup/`. The skill asks merge or reset through
+  `AskUserQuestion`, not prose, on `bootstrap.sh`'s `settings.json: present` line: a prose question
+  ends the turn, and the script's `allowed-tools` pre-approval with it.
 - `open-page.sh` (`setup`'s onboarding page, `prototype`'s mockup) picks the opener by
   `uname -s`; with none (remote/headless) it prints the path to open by hand.
   `prototype-writer` soft-uses `impeccable`, else `superui:pro-designer`, when installed.

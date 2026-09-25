@@ -11,6 +11,10 @@
  * In the three permission lists a template rule a host rule already covers
  * (bare `Tool`, or a match-all specifier, over any `Tool(...)`) is not added.
  *
+ * `--reset` skips the merge: the target is replaced by the template (a plain
+ * copy, no node needed) after the old file is backed up to
+ * .temp/viber/setup/settings.json.bak.
+ *
  * The one removal: a host deny entry the template carries in ask is dropped,
  * because deny outranks ask and the move would never reach an older project.
  *
@@ -386,6 +390,62 @@ test("no node on PATH: the merge is skipped with the recommended block on stdout
       `settings.json: node not found - merge skipped, recommended block:\n${fs.readFileSync(ASSET_TEMPLATE, "utf-8")}`,
     );
     assert.equal(fs.readFileSync(target, "utf-8"), before);
+  });
+});
+
+test("--reset replaces an existing target byte-identical to the template and keeps the old file in .temp/viber/setup/, exit 0", () => {
+  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+    const target = targetPath(dir);
+    writeJson(target, { permissions: { allow: ["HostOnlyTool"] }, hostKey: 1 });
+    const before = fs.readFileSync(target, "utf-8");
+
+    const result = runScript(SUT, ["--reset", ASSET_TEMPLATE], { cwd: dir });
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(
+      result.stdout,
+      "settings.json: reset from template (previous file saved to .temp/viber/setup/settings.json.bak)\n",
+    );
+    assert.equal(fs.readFileSync(target, "utf-8"), fs.readFileSync(ASSET_TEMPLATE, "utf-8"));
+    assert.equal(fs.readFileSync(path.join(dir, ".temp", "viber", "setup", "settings.json.bak"), "utf-8"), before);
+    assert.equal(fs.existsSync(`${target}.tmp`), false);
+  });
+});
+
+test("--reset over a target that is not valid JSON still replaces it (the one way out of a broken file)", () => {
+  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+    const target = targetPath(dir);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, "{ // broken\n");
+
+    const result = runScript(SUT, ["--reset", ASSET_TEMPLATE, target], { cwd: dir });
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(fs.readFileSync(target, "utf-8"), fs.readFileSync(ASSET_TEMPLATE, "utf-8"));
+  });
+});
+
+test("--reset with no node on PATH still resets (a plain copy needs none)", () => {
+  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+    const target = targetPath(dir);
+    writeJson(target, { permissions: { allow: ["HostOnlyTool"] } });
+
+    const result = runScript(SUT, ["--reset", ASSET_TEMPLATE, target], { cwd: dir, env: { PATH: coreUtilsPath() } });
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^settings\.json: reset from template/);
+    assert.equal(fs.readFileSync(target, "utf-8"), fs.readFileSync(ASSET_TEMPLATE, "utf-8"));
+  });
+});
+
+test("--reset with no target yet creates it and writes no backup", () => {
+  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+    const result = runScript(SUT, ["--reset", ASSET_TEMPLATE], { cwd: dir });
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "settings.json: created from template\n");
+    assert.equal(fs.readFileSync(targetPath(dir), "utf-8"), fs.readFileSync(ASSET_TEMPLATE, "utf-8"));
+    assert.equal(fs.existsSync(path.join(dir, ".temp")), false);
   });
 });
 

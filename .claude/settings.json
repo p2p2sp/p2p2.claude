@@ -125,10 +125,7 @@
       "Bash(rm *-r *-f*)",
       "Bash(rm *-rf*)",
       "Bash(rm -fr:*)",
-      "Bash(rm -rf:*)",
-      "Edit(**/.env.*)",
-      "Read(**/.env.*)",
-      "Read(./.env.*)"
+      "Bash(rm -rf:*)"
     ]
   },
   "showClearContextOnPlanAccept": true

@@ -4,8 +4,14 @@
 # project's .claude/settings.json key by key, idempotently.
 #
 # Usage:
-#   merge-settings.sh <template> [<target>]
+#   merge-settings.sh [--reset] <template> [<target>]
 #
+# --reset  (optional) - replace the target with the template instead of
+#                       merging. An existing target is first copied to
+#                       <root>/.temp/viber/setup/settings.json.bak (overwritten
+#                       on every reset); a failed backup leaves the target
+#                       untouched. Needs no node: it is a plain copy, staged
+#                       in <target>.tmp and renamed over the target.
 # template (required) - the bundled permissions template
 #                       (viber/skills/setup/assets/settings.json).
 # target   (optional) - the host settings file; defaults to
@@ -42,6 +48,8 @@
 # Output (stdout, exactly one line - plus the template body on the node-skip
 # case, which is the block a user merges by hand):
 #   settings.json: created from template
+#   settings.json: reset from template (previous file saved to .temp/viber/setup/settings.json.bak)
+#   settings.json: backup failed - left untouched (<message>)
 #   settings.json: merged - added <k> keys, <e> list entries, updated <u> values, moved <d> deny to ask
 #   settings.json: already up to date
 #   settings.json: node not found - merge skipped, recommended block:
@@ -51,13 +59,19 @@
 #   settings.json: write failed (<message>)
 #
 # Exit codes:
-#   0 - merged, already up to date, created, or skipped (no node on PATH)
+#   0 - merged, already up to date, created, reset, or skipped (no node on PATH)
 #   1 - template missing/unreadable, or a wrong argument count
-#   2 - the target could not be read or parsed, or the write failed
+#   2 - the target could not be read or parsed, the backup failed, or the
+#       write failed
 #
 set -u
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+reset=0
+if [ "${1:-}" = "--reset" ]; then
+  reset=1
+  shift
+fi
 template="${1:-}"
 root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 if [ -z "$root" ] || [ ! -d "$root" ]; then
@@ -66,13 +80,39 @@ fi
 target="${2:-$root/.claude/settings.json}"
 
 if [ -z "$template" ] || [ "$#" -gt 2 ]; then
-  echo "usage: merge-settings.sh <template> [<target>]" >&2
+  echo "usage: merge-settings.sh [--reset] <template> [<target>]" >&2
   exit 1
 fi
 
 if [ ! -r "$template" ]; then
   echo "settings.json: template missing at $template - skipped"
   exit 1
+fi
+
+# A reset is a plain copy, so it runs before the node check. A target that does
+# not exist yet is simply created: there is nothing to back up.
+if [ "$reset" = 1 ]; then
+  note=""
+  if [ -f "$target" ]; then
+    backup_dir="$root/.temp/viber/setup"
+    if ! err="$(mkdir -p "$backup_dir" 2>&1 && cp "$target" "$backup_dir/settings.json.bak" 2>&1)"; then
+      echo "settings.json: backup failed - left untouched ($(printf '%s' "$err" | tr '\n' ' '))"
+      exit 2
+    fi
+    note=" (previous file saved to .temp/viber/setup/settings.json.bak)"
+  fi
+  mkdir -p "$(dirname "$target")" 2>/dev/null
+  if cp "$template" "$target.tmp" 2>/dev/null && mv -f "$target.tmp" "$target" 2>/dev/null; then
+    if [ -n "$note" ]; then
+      echo "settings.json: reset from template$note"
+    else
+      echo "settings.json: created from template"
+    fi
+    exit 0
+  fi
+  rm -f "$target.tmp" 2>/dev/null
+  echo "settings.json: write failed (cannot write $target)"
+  exit 2
 fi
 
 # node carries the merge (JSON in, JSON out); without it the step is skipped
