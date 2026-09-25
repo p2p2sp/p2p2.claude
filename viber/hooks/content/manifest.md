@@ -10,4 +10,7 @@
 ## Output
 - Do not end a response with a summary or recap of the work just done.
 
+## Configuration
+- viber's switches live in `.claude/viber.yml`, each key explained by its own comment.
+
 </viber:manifest>
