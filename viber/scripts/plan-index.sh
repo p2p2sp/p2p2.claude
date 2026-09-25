@@ -633,10 +633,23 @@ END {
   # The frontmatter is run plumbing too - it carries the source path, the one
   # key the implementor reads out of the plan text - so the specification starts
   # after it. No closing marker means no frontmatter: the whole head is kept
-  # rather than swallowed.
+  # rather than swallowed. issue: is the one frontmatter key that outlives the
+  # run - the archive keeps it - so it alone rides into spec.md as its own
+  # three-line frontmatter; source and into never leave plan.md.
   sfrom = 1
+  issueval = ""
   if (trim(line[1]) == "---") {
-    for (i = 2; i < cut; i++) if (trim(line[i]) == "---") { sfrom = i + 1; break }
+    for (i = 2; i < cut; i++) {
+      t = trim(line[i])
+      if (t == "---") { sfrom = i + 1; break }
+      if (t ~ /^issue:/) { v = t; sub(/^issue:/, "", v); issueval = trim(v) }
+    }
+  }
+  if (issueval != "") {
+    print "---" > spec
+    print "issue: " issueval > spec
+    print "---" > spec
+    print "" > spec
   }
   for (i = sfrom; i < cut; i++) {
     t = trim(line[i])

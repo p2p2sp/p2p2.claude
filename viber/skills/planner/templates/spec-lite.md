@@ -1,6 +1,7 @@
 ---
 source: <absolute path of THIS plan file, the one plan mode named>
 into: <run key of the draft this round continues; drop the line otherwise>
+issue: <full issue URL the run is tied to; drop the line otherwise>
 ---
 
 # <change title>
@@ -13,7 +14,7 @@ Build: skill `implementor`
 
 ## Roadmap
 
-<!-- Only when the idea was split into subprojects; otherwise drop this section. -->
+<!-- Only when the change was split into subprojects; otherwise drop this section. -->
 
 Part <n> of <N> - <this subproject>
 

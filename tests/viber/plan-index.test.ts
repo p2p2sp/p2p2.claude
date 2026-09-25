@@ -978,6 +978,45 @@ test("spec.md carries neither the frontmatter nor one HTML comment - the run plu
   });
 });
 
+test("a plan frontmatter issue: line makes spec.md open with its own three-line frontmatter, then the specification as today", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    // source and into ride the plan for the run's own plumbing; issue is the
+    // one key the archive keeps, so it alone survives into spec.md
+    const body = [
+      "---",
+      "source: /home/u/.claude/plans/add-login.md",
+      "into: draft-1",
+      "issue: https://github.com/acme/widgets/issues/42",
+      "---",
+      "",
+    ].join("\n") + planBody(TWO_TASKS);
+    seed(dir, body);
+
+    const r = run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+    const spec = readRun(dir, "spec.md");
+    assert.match(spec, /^---\nissue: https:\/\/github\.com\/acme\/widgets\/issues\/42\n---\n\n# Add login\n/);
+    assert.doesNotMatch(spec, /source:|into:|draft-1/);
+    // no doubled blank line where the frontmatter meets the specification
+    assert.doesNotMatch(spec, /\n\n\n/);
+  });
+});
+
+test("a plan frontmatter with no issue: line, or an empty one, reaches spec.md exactly as a plan with no frontmatter at all", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const withoutIssue = planBody(TWO_TASKS);
+    seed(dir, withoutIssue);
+    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    const baseline = readRun(dir, "spec.md");
+
+    const emptyIssue = ["---", "source: /home/u/plans/add-login.md", "issue:", "---", ""].join("\n") + withoutIssue;
+    seed(dir, emptyIssue);
+    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.equal(readRun(dir, "spec.md"), baseline);
+  });
+});
+
 test("<!-- TASK --> blocks under no \"## Tasks\" heading are refused, not silently left out of the decomposition", () => {
   withTempDir("p2p2-viber-", (dir) => {
     // The cut is that heading, so without it the whole task half rides into
