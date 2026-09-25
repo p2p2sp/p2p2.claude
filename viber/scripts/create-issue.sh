@@ -19,7 +19,7 @@
 #            --label <L>      repeatable, passed to gh verbatim
 #            --assignee <A>   repeatable, passed to gh verbatim
 #            --project <P>    repeatable, passed to gh verbatim
-#   cwd  : irrelevant to this script; gh resolves the repository itself.
+#   cwd  : gh resolves the repository from the cwd.
 #   env  : none of its own; gh reads its usual auth and host config.
 #   stdout, exit 0:
 #            ISSUE_URL=https://<host>/<owner>/<repo>/issues/<N>
