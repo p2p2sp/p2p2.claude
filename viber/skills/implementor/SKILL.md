@@ -51,7 +51,7 @@ A `VERDICT: DENIED` question names the refused call from its `REASON:` line and 
 2. The `source:` line of the approved plan's frontmatter, or an older plan's `<!-- source: <path> -->` comment. Never offer to save plan text you are holding: the script copies the file.
 3. `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh"` with no argument returns the run most recently worked on. Exit 3 -> `AskUserQuestion` for the approved plan's full path, then land that.
 
-Exit 6 - the run branch could not be set -> report the stderr reason and stop: nothing landed, and the build does not proceed to step 2.
+Exit 6 - the run branch could not be set -> report the stderr reason and stop: nothing landed, and the build does not proceed to step 2. Any other non-zero exit this step does not name by number (2, 4, 5) -> the same: report the stderr reason and stop.
 
 A `branch:` line naming a branch other than the config block's `branching.base` carries to the final summary: one line naming that branch and `branching.base` as the pull request target. No such line when there is no `branch:` line, or it names the base.
 

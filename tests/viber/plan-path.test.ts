@@ -1079,6 +1079,48 @@ test("a frontmatter into: key on a target that is not a draft: exit 4, nothing o
   });
 });
 
+test("landing the same into: source twice reports the second round as existing and leaves the target untouched", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const key = "2026-09-19-17-30-00_add-login";
+    landPlan(dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
+    // a round that turns the draft into a run, landed through its own
+    // frontmatter "into:" key rather than the run's own landed copy
+    const src = sourcePlan(dir, "outside/round-2.md", roundInto(key, PLAN_BODY));
+
+    const first = run(dir, ["--land", src]);
+    assert.equal(first.status, 0, `stderr: ${first.stderr}`);
+    assert.deepEqual(parse(first.stdout), { path: `docs/_specs/${key}/plan.md`, key, state: "new" });
+    const landedAfterFirst = fs.readFileSync(planIn(dir, key), "utf-8");
+
+    // the exact same outside file, landed again: the target already holds
+    // this plan (identical apart from its own source: line), so nothing is
+    // copied a second time and nothing is lost from having started building
+    const second = run(dir, ["--land", src]);
+    assert.equal(second.status, 0, `stderr: ${second.stderr}`);
+    assert.deepEqual(parse(second.stdout), { path: `docs/_specs/${key}/plan.md`, key, state: "existing" });
+    assert.equal(fs.readFileSync(planIn(dir, key), "utf-8"), landedAfterFirst);
+    assert.equal(fs.readFileSync(src, "utf-8"), roundInto(key, PLAN_BODY));
+    assert.deepEqual(runDirs(dir), [key]);
+  });
+});
+
+test("a changed source onto a decomposed draft still exits 4, even though the draft used to match it", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const key = "2026-09-19-17-30-00_add-login";
+    landPlan(dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
+    fs.mkdirSync(path.join(dir, "docs", "_specs", key, "tasks"), { recursive: true });
+    const before = fs.readFileSync(planIn(dir, key), "utf-8");
+
+    const src = sourcePlan(dir, "outside/round-2.md", DRAFT_BODY.replace("sign in.", "sign in, and stay."));
+    const result = run(dir, ["--land", src, "--into", key]);
+    assert.equal(result.status, 4, `stdout: ${result.stdout}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /not a draft/);
+    assert.equal(fs.readFileSync(planIn(dir, key), "utf-8"), before);
+    assert.deepEqual(runDirs(dir), [key]);
+  });
+});
+
 // --- the runs directory is configurable ---
 
 /** `.claude/viber.yml` carrying the `directories:` group, read here relative to

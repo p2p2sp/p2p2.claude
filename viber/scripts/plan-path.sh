@@ -39,11 +39,18 @@
 # which the copy rewrites to its own absolute path.
 #
 # --into names ONE directory under docs/<runs>/ - no slash, no "." and no ".." -
-# and that directory has to be a DRAFT: a run whose plan carries not one task
-# block, so nothing was ever built from it. The round lands over it in place,
-# keeping the key and the stamp, which is what lets a draft go through several
-# rounds of remarks and still be one run. A target that already started building
-# is refused rather than overwritten.
+# and that directory has to be a DRAFT, OR a run whose plan.md already holds
+# the source's own plan: a run whose plan carries not one task block, so
+# nothing was ever built from it, or one a round already turned into a run but
+# that is not yet decomposed or carrying any progress. The round lands over it
+# in place, keeping the key and the stamp, which is what lets a draft go
+# through several rounds of remarks and still be one run. Landing the SAME
+# round a second time, before anything was decomposed or committed from it,
+# copies nothing and answers "state: existing" rather than refusing it - the
+# whole point of --land's idempotence surviving a context cleared between
+# rounds. A source that actually differs from what a target with a task half
+# already holds, and any source at all once a target carries a decomposition
+# or recorded progress, is refused (exit 4) rather than overwritten.
 #
 # The run branch. Under a branching.mode other than off (config.sh, read by the
 # sourced run-branch.sh; outside a git repository it acts as off), a FIRST
@@ -103,7 +110,11 @@
 #         --into key that is empty, carries a slash or a traversal, or names no
 #         directory under docs/<runs>/, or --branch on a plan that is not a file
 #     3 - no argument and docs/_specs/ holds no plan
-#     4 - --into on a target that is not a draft; nothing was written
+#     4 - --into on a target that already carries a decomposition or recorded
+#         progress, or that differs from a source landing over its own task
+#         half; nothing was written. The same source landing over that task
+#         half again, unchanged apart from its own source: line, is exit 0
+#         with "state: existing" instead - see "existing" below
 #     5 - the copy failed; nothing was landed
 #     6 - the run branch could not be set: a switch to another commit on a
 #         dirty tree, a base missing locally, an invalid branch name, the base
@@ -130,7 +141,11 @@
 #              is the state. A <src> that already IS a landed plan answers the
 #              same way, which makes --land idempotent. A draft of that slug
 #              answers only a <src> that is itself a draft; a <src> carrying
-#              tasks lands as "new" beside it, the draft left untouched.
+#              tasks lands as "new" beside it, the draft left untouched. The
+#              same idempotence holds for --into: landing the round that
+#              already sits at a target's task half again, unchanged apart
+#              from its own source: line, answers "existing" too, whether or
+#              not that round has itself been landed before (see exit 4).
 # "draft"    - "state: draft", the run's plan carrying not one task block, so
 #              there is nothing to build yet: a specification still being
 #              discussed and rounds away from a task list. It replaces both
@@ -293,6 +308,32 @@ infm && /^source:/ { print "source: " ENVIRON["abs"]; next }
   rm -f "$tmp"
 }
 
+# True when landing <src> at <dest> would change nothing: <dest> already
+# carries this exact plan, save for its own frontmatter "source:" line, which
+# always differs on principle since it names wherever the file already sits.
+# Compared after the same guidance strip a real landing applies, so a round
+# whose only edit was prose a stripped copy already absorbed still matches.
+# What this makes possible: re-landing an unchanged "into:" round a second
+# time, before anything was built from it, answers as the run it already is
+# instead of being refused for carrying a task half of its own.
+plan_matches() {
+  base="$2.matches.$$"
+  norm="$base.src"
+  a="$base.a"
+  b="$base.b"
+  if ! cp -- "$1" "$norm" 2>/dev/null; then
+    rm -f "$norm" "$a" "$b"
+    return 1
+  fi
+  strip_guidance "$norm"
+  grep -v '^source:' "$norm" > "$a" 2>/dev/null || true
+  grep -v '^source:' "$2" > "$b" 2>/dev/null || true
+  same=1
+  if cmp -s -- "$a" "$b"; then same=0; fi
+  rm -f "$norm" "$a" "$b"
+  return "$same"
+}
+
 # Does that plan carry at least one task block? A plan without one is a draft:
 # the head alone, still being discussed. Per contract C3 the marker counts only
 # when it stands alone on its line, so a sentence mentioning it in prose opens
@@ -422,10 +463,24 @@ if [[ "$into_set" == 1 ]]; then
     emit "$dest" existing
     exit 0
   fi
-  # A target that already started building is the state; a round landed over it
-  # would drop work the tree cannot give back.
-  if [[ -e "$specs_dir/$into/status.md" || -d "$specs_dir/$into/tasks" ]] \
-    || { [[ -f "$dest" ]] && has_tasks "$dest"; }; then
+  # A decomposition or recorded progress is the state; a round landed over it
+  # would drop work the tree cannot give back. This refusal is unconditional -
+  # even a source identical to the target does not un-refuse it, since a build
+  # already reads the target as it stands.
+  if [[ -e "$specs_dir/$into/status.md" || -d "$specs_dir/$into/tasks" ]]; then
+    echo "error: $specs_dir/$into is not a draft - it carries tasks, a decomposition or progress" >&2
+    exit 4
+  fi
+  # The target already carries a task half of its own - a round turned this
+  # draft into a run - but nothing has been decomposed or committed from it
+  # yet. The round already sitting there, apart from its own source: line,
+  # answers as itself: nothing is lost by declaring it landed again. A source
+  # that actually differs is refused the same as a decomposition would be.
+  if [[ -f "$dest" ]] && has_tasks "$dest"; then
+    if plan_matches "$src" "$dest"; then
+      emit "$dest" existing
+      exit 0
+    fi
     echo "error: $specs_dir/$into is not a draft - it carries tasks, a decomposition or progress" >&2
     exit 4
   fi
