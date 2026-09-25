@@ -61,3 +61,6 @@ a file is shaped live in `.claude/rules/tests-running.md` and `tests-structure.m
   `function name(...)` definition, or any bare `((` not preceded by `$` (even from nested parens
   in an `if`), reads as bash-only under a `#!/bin/sh` shebang. A POSIX-sh script embedding an awk
   block must avoid both.
+- `tests/viber/config.test.ts` reads `config.sh`'s dotted stdout by trailing slice
+  (`printed.slice(-7, -3)`, `stdout.split("\n").slice(-4)`), not by key name: a group appended
+  after `branching` shifts every such offset, and its own assertions must move with it.
