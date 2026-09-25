@@ -19,6 +19,9 @@
 #                                          "into: <key>" line in <src> does the same
 #   plan-path.sh                           no argument: the plan most recently
 #                                          worked on
+#   plan-path.sh --branch <plan>           read-only report on the run branch
+#                                          situation for <plan> (C3); nothing
+#                                          moves, nothing is written
 #
 # <src> is the approved plan as plan mode wrote it. Its directory is a user-level
 # setting ("plansDirectory"), so the file normally sits OUTSIDE this repository:
@@ -60,14 +63,16 @@
 #
 # Contract:
 #   argv   : --land and the source plan, optionally --into and a run key, or
-#            nothing.
+#            --branch and a plan, or nothing.
 #   file   : <src>'s frontmatter "into:" key, read only when argv carries no
 #            --into, validated and refused exactly as --into. On a first
-#            landing, <src>'s frontmatter "branch:" and "issue:" keys and its
-#            task blocks' "Repro:" lines, for the run branch.
+#            landing, and on --branch, <src>'s frontmatter "branch:" and
+#            "issue:" keys and its task blocks' "Repro:" lines, for the run
+#            branch.
 #   git    : HEAD moves only in the branch step of a first landing, through
 #            one checkout; every failure before or inside that step leaves
-#            HEAD, the index and the tree as they were.
+#            HEAD, the index and the tree as they were. --branch never moves
+#            HEAD, the index or the tree - it only reads.
 #   cwd    : the repository root - every path printed is relative to it, and the
 #            caller splits and stages those paths from there. The config file is
 #            read from there too, as .claude/viber.yml.
@@ -80,11 +85,21 @@
 #     open: docs/_specs/2026-09-18-09-12-44_add-search/plan.md | 2/6
 #   The "branch:" line only when branching.mode is not off, "branch: detached
 #   (kept)" on a detached HEAD; every other form reports the current branch kept.
+#   stdout, --branch <plan>, mode allowed or required inside a git repository:
+#     mode: allowed | required
+#     base: <base>
+#     current: <branch> | detached
+#     new: <C5 name>
+#     new-exists: yes | no
+#     behind: <n> | unknown
+#     dirty: yes | no
+#   stdout, --branch <plan>, mode off or outside a git repository:
+#     mode: off
 #   exit != 0:
 #     2 - unusable argv: an unknown first argument, --land without a source, a
-#         source that is not a file, a slug that normalizes to nothing, or an
+#         source that is not a file, a slug that normalizes to nothing, an
 #         --into key that is empty, carries a slash or a traversal, or names no
-#         directory under docs/<runs>/
+#         directory under docs/<runs>/, or --branch on a plan that is not a file
 #     3 - no argument and docs/_specs/ holds no plan
 #     4 - --into on a target that is not a draft; nothing was written
 #     5 - the copy failed; nothing was landed
@@ -334,8 +349,19 @@ if [[ -z "$mode" ]]; then
   exit 0
 fi
 
+# --- --branch: the read-only C3 report, no argument beyond the plan itself ---
+if [[ "$mode" == "--branch" ]]; then
+  plan="${2:-}"
+  if [[ -z "$plan" || ! -f "$plan" ]]; then
+    echo "error: plan file not found: $plan" >&2
+    exit 2
+  fi
+  branch_report "$plan" "$(slug_of "$plan")"
+  exit 0
+fi
+
 if [[ "$mode" != "--land" ]]; then
-  echo "error: usage: plan-path.sh [--land <src>], got: $mode" >&2
+  echo "error: usage: plan-path.sh [--land <src>] [--branch <plan>], got: $mode" >&2
   exit 2
 fi
 

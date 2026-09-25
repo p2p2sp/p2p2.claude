@@ -1512,3 +1512,185 @@ test("allowed and a plan recording branch: none keeps the current branch rather 
     });
   });
 });
+
+// --- --branch: the read-only C3 report for the planner, nothing moves ---
+
+/** The --branch report's key: value lines as a plain map. */
+function reportOf(stdout: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const line of slash(stdout).trim().split("\n")) {
+    const at = line.indexOf(": ");
+    if (at > 0) out[line.slice(0, at)] = line.slice(at + 2);
+  }
+  return out;
+}
+
+test("off (no branching group configured): --branch prints only mode: off, even with a usable plan given", () => {
+  withGitRepo((repo) => {
+    withSource([], (src) => {
+      const result = runIn(repo, ["--branch", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(slash(result.stdout), "mode: off\n");
+    });
+  });
+});
+
+test("outside a git repository: --branch prints only mode: off, whatever the configured mode", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    fs.mkdirSync(path.join(dir, ".claude"), { recursive: true });
+    fs.writeFileSync(path.join(dir, ".claude", "viber.yml"), "branching:\n  mode: required\n");
+    const src = sourcePlan(dir, "plan.md", PLAN_BODY);
+    const result = run(dir, ["--branch", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(slash(result.stdout), "mode: off\n");
+  });
+});
+
+test("a missing plan file: exit 2 and nothing printed", () => {
+  withBranchRepo(["mode: required"], (repo) => {
+    const result = runIn(repo, ["--branch", path.join(repo.dir, "nope.md")]);
+    assert.equal(result.status, 2);
+    assert.equal(result.stdout, "");
+  });
+});
+
+test("HEAD already on the base: the report names the base as current and the pattern's proposed name", () => {
+  withBranchRepo(["mode: required"], (repo) => {
+    withSource([], (src) => {
+      const result = runIn(repo, ["--branch", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const report = reportOf(result.stdout);
+      assert.equal(report.mode, "required");
+      assert.equal(report.base, "main");
+      assert.equal(report.current, "main");
+      assert.equal(report.new, "feature/add-login");
+      assert.equal(report["new-exists"], "no");
+      assert.equal(report.behind, "unknown");
+      assert.equal(report.dirty, "no");
+    });
+  });
+});
+
+test("on a non-base branch: current reports that branch, not the base", () => {
+  withBranchRepo(["mode: allowed"], (repo) => {
+    repo.git("checkout", "-q", "-b", "work");
+    withSource([], (src) => {
+      const result = runIn(repo, ["--branch", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const report = reportOf(result.stdout);
+      assert.equal(report.mode, "allowed");
+      assert.equal(report.base, "main");
+      assert.equal(report.current, "work");
+    });
+  });
+});
+
+test("a detached HEAD reports current: detached", () => {
+  withBranchRepo(["mode: allowed"], (repo) => {
+    const commit = commitOf(repo);
+    repo.git("checkout", "-q", commit);
+    withSource([], (src) => {
+      const result = runIn(repo, ["--branch", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(reportOf(result.stdout).current, "detached");
+    });
+  });
+});
+
+test("a branch already at the proposed name reports new-exists: yes", () => {
+  withBranchRepo(["mode: required"], (repo) => {
+    branchAhead(repo, "feature/add-login");
+    withSource([], (src) => {
+      const result = runIn(repo, ["--branch", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const report = reportOf(result.stdout);
+      assert.equal(report.new, "feature/add-login");
+      assert.equal(report["new-exists"], "yes");
+    });
+  });
+});
+
+test("a local base behind its remote-tracking branch reports the missing commit count", () => {
+  withBranchRepo(["mode: allowed"], (repo) => {
+    repo.git("checkout", "-q", "-b", "tmp-ahead");
+    fs.writeFileSync(path.join(repo.dir, "ahead.txt"), "ahead\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-q", "-m", "ahead");
+    const ahead = commitOf(repo);
+    repo.git("checkout", "-q", "main");
+    repo.git("branch", "-D", "tmp-ahead");
+    repo.git("update-ref", "refs/remotes/origin/main", ahead);
+    repo.git("config", "remote.origin.url", "./nowhere");
+    repo.git("config", "remote.origin.fetch", "+refs/heads/*:refs/remotes/origin/*");
+    repo.git("config", "branch.main.remote", "origin");
+    repo.git("config", "branch.main.merge", "refs/heads/main");
+    withSource([], (src) => {
+      const result = runIn(repo, ["--branch", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(reportOf(result.stdout).behind, "1");
+    });
+  });
+});
+
+test("a base with no remote-tracking ref reports behind: unknown", () => {
+  withBranchRepo(["mode: required"], (repo) => {
+    withSource([], (src) => {
+      const result = runIn(repo, ["--branch", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(reportOf(result.stdout).behind, "unknown");
+    });
+  });
+});
+
+test("an untracked file in the tree reports dirty: yes", () => {
+  withBranchRepo(["mode: allowed"], (repo) => {
+    fs.writeFileSync(path.join(repo.dir, "untracked.txt"), "x\n");
+    withSource([], (src) => {
+      const result = runIn(repo, ["--branch", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(reportOf(result.stdout).dirty, "yes");
+    });
+  });
+});
+
+test("a plan carrying a Repro: line proposes the fix type", () => {
+  const body = PLAN_BODY.replace("- Files: src/T1.ts", "- Files: src/T1.ts\n- Repro: tests/login.test.ts");
+  withBranchRepo(["mode: required"], (repo) => {
+    withSource(
+      [],
+      (src) => {
+        const result = runIn(repo, ["--branch", src]);
+        assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+        assert.equal(reportOf(result.stdout).new, "fix/add-login");
+      },
+      body,
+    );
+  });
+});
+
+test("a plan carrying an issue: URL folds the issue number into the proposed name", () => {
+  withBranchRepo(["mode: required"], (repo) => {
+    withSource(["issue: https://github.com/acme/app/issues/42"], (src) => {
+      const result = runIn(repo, ["--branch", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(reportOf(result.stdout).new, "feature/42-add-login");
+    });
+  });
+});
+
+test("--branch changes neither HEAD nor the tree's status (DoD.5: read-only)", () => {
+  withBranchRepo(["mode: required"], (repo) => {
+    branchAhead(repo, "feature/add-login");
+    fs.writeFileSync(path.join(repo.dir, "untracked.txt"), "x\n");
+    withSource([], (src) => {
+      const beforeHead = headOf(repo);
+      const beforeCommit = commitOf(repo);
+      const beforeTree = treeOf(repo);
+      const result = runIn(repo, ["--branch", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(headOf(repo), beforeHead);
+      assert.equal(commitOf(repo), beforeCommit);
+      assert.equal(treeOf(repo), beforeTree);
+    });
+  });
+});

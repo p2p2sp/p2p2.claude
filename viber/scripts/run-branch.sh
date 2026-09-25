@@ -19,9 +19,13 @@
 #            moves HEAD, through one checkout, never a fetch.
 #   stdout : branch_setup and branch_land print nothing - their result is the
 #            br_* variables; the plan_* and branch_expand helpers print one
-#            value for a caller to capture.
+#            value for a caller to capture. branch_report prints the C3
+#            report (plan-path.sh --branch): "mode: off" alone under off or
+#            outside a repository, else mode/base/current/new/new-exists/
+#            behind/dirty, one "key: value" line each.
 #   return : branch_land 0, or 6 with the reason on stderr and HEAD, index
-#            and tree untouched.
+#            and tree untouched. branch_report always 0 - it is read-only and
+#            never touches HEAD, the index or the tree.
 #
 # Outside a git repository branching acts as off. No `set` line of its own: it
 # runs under plan-path.sh's.
@@ -161,4 +165,41 @@ branch_land() {
     return 6
   fi
   br_line="$target ($action)"
+}
+
+# The C3 --branch report for plan $1 (run slug $2): read-only, never touches
+# HEAD, the index or the tree. Off, or outside a repository (branch_setup
+# already forced br_mode to off there), prints only "mode: off".
+branch_report() {
+  if [[ "$br_mode" == off ]]; then
+    printf 'mode: off\n'
+    return 0
+  fi
+  local new upstream behind
+  new="$(branch_expand "$1" "$2")"
+  printf 'mode: %s\n' "$br_mode"
+  printf 'base: %s\n' "$br_base"
+  if [[ -n "$br_cur" ]]; then printf 'current: %s\n' "$br_cur"; else printf 'current: detached\n'; fi
+  printf 'new: %s\n' "$new"
+  if git show-ref --verify --quiet "refs/heads/$new" 2>/dev/null; then
+    printf 'new-exists: yes\n'
+  else
+    printf 'new-exists: no\n'
+  fi
+  # the base's configured upstream, resolved by name rather than refs/heads/
+  # so a base with no local branch (or no tracking ref) reads as unknown
+  # instead of erroring under errexit.
+  upstream="$(git rev-parse --abbrev-ref --symbolic-full-name "$br_base@{upstream}" 2>/dev/null || true)"
+  if [[ -n "$upstream" ]]; then
+    behind="$(git rev-list --count "$br_base..$upstream" 2>/dev/null || true)"
+    [[ "$behind" =~ ^[0-9]+$ ]] || behind="unknown"
+  else
+    behind="unknown"
+  fi
+  printf 'behind: %s\n' "$behind"
+  if [[ -n "$(git status --porcelain 2>/dev/null || true)" ]]; then
+    printf 'dirty: yes\n'
+  else
+    printf 'dirty: no\n'
+  fi
 }
