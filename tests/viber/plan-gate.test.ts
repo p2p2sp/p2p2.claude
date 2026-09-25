@@ -118,7 +118,7 @@ interface VerdictOpts {
   body?: string;
 }
 
-function verdict(value: "PASS" | "FAIL", opts: VerdictOpts = {}): string {
+function verdict(value: "PASS" | "FAIL" | "DENIED", opts: VerdictOpts = {}): string {
   const block: Record<string, unknown> = {
     type: "tool_result",
     content: opts.body ?? `## Plan Review\nVERDICT: ${value}\nnotes.`,
@@ -310,6 +310,18 @@ test("dispatch + VERDICT: FAIL -> deny naming the verdict it read", () => {
     assert.equal(decision, "deny");
     assert.match(reason ?? "", /returned 'VERDICT: FAIL'/);
     assert.match(reason ?? "", /verdict on line 4/);
+  });
+});
+
+test("dispatch + VERDICT: DENIED -> deny asking for the refused permission, not for findings", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const denied = verdict("DENIED", { body: "VERDICT: DENIED\nREASON: Read: /x/plan.md" });
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(), denied]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /returned 'VERDICT: DENIED'/);
+    assert.match(reason ?? "", /grant the permission/);
+    assert.doesNotMatch(reason ?? "", /fix the findings/);
   });
 });
 

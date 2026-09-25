@@ -53,6 +53,7 @@ Dispatch the `viber:planner-review` agent with the plan path, `refs: ${CLAUDE_PL
 
 - `VERDICT: PASS` - go to step 4.
 - `VERDICT: FAIL` - show the findings, fix the plan, re-run `plan-index.sh` after every fix unless the plan is a draft, then dispatch again. A finding that needs a decision only the user can make gets asked first, and the answer starts a fresh round 1.
+- `VERDICT: DENIED` - one `AskUserQuestion` naming the refused call from its `REASON:` line: permission added and retry, dispatching again in the same round, or stop with the plan unreviewed and no hand-off.
 
 ## 4. Hand off
 

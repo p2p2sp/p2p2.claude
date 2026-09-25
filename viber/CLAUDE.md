@@ -10,7 +10,8 @@ user's view of the same commands and switches; keep both in step when either cha
 ## Layout
 
 ```
-skills/<name>/SKILL.md   9 skills; setup, memory, rules carry their own scripts/ (${CLAUDE_SKILL_DIR})
+skills/<name>/SKILL.md   11 skills; setup, triage, memory, rules, commit carry their own scripts/
+                         (${CLAUDE_SKILL_DIR}; commit addresses its own through ${CLAUDE_PLUGIN_ROOT})
 skills/planner/          templates/ (spec-lite, spec-full, tasks) + references/adr-tasks.md
 agents/                  13 agents, each dispatched only by the callers its description names
 scripts/                 7 plugin-wide scripts, shared across skills and agents
@@ -24,7 +25,16 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
   `planner` treats any other input as unresolved and suggests `idea`; `implementor` refuses a
   draft (a landed plan with no TASK block). `planner`, `implementor` and `tdd` are
   `user-invocable: false`, reached only through the chain (`tdd` through `task-coder`). `setup`,
-  `e2e`, `memory` and `rules` are user-only commands (`disable-model-invocation: true`).
+  `triage`, `e2e`, `memory` and `rules` are user-only commands (`disable-model-invocation: true`).
+- `triage` sits before the chain: it assesses one issue, names `/viber:fixer`, `/viber:idea` or no
+  step, and invokes nothing. It runs inline, never forked, with `disallowed-tools: Skill, Agent,
+  Edit, NotebookEdit, AskUserQuestion`: a fork's return hands the main session a turn in which it
+  could start `fixer` itself, while the inline removal holds until the next user message. The
+  publish question is asked in prose on purpose, so the user's answer lifts that block: in the
+  publishing turn only the body's rule keeps `Skill` unused, and `post-comment.sh` is past its
+  one-turn `allowed-tools` pre-approval, so that call can prompt.
+- `commit` stands outside the chain: model-invocable, `model: haiku`, `context: fork`, used at any
+  point outside a build. A build never calls it; its commits go through `commit-task.sh`.
 - Dispatchers: planner -> planner-review; implementor -> task-coder, task-reviewer, test-runner,
   memory-writer, memory-auditor, memory-node-writer, rules-writer, qa-writer, closeout; memory ->
   memory-auditor, memory-node-writer; rules -> rules-auditor, rules-writer; e2e -> e2e-writer; the
@@ -39,6 +49,10 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
   (`VERDICT:`, `REASON:`, `DOD:`, `EXTRA:`, `DEFERRED:`, `REVIEW:`, `REPORT:`, `FILES:`, `OVER:`,
   `AUDIT:`, `DRIFT:`, `PATH:`) is an interface: renaming a line on one side without the branch
   that reads it on the other breaks the build with no error.
+- Every agent returns `VERDICT: DENIED` plus `REASON: <tool>: <call>` on a tool call the harness
+  refuses (the auditors in place of their `AUDIT:` line), and every caller, the plan gate
+  included, branches on it. A ToolSearch miss or a tool absent from a listing is no refusal: each
+  agent's opening says its tools are loaded and to call them directly.
 - Only coder, reviewer and repair-coder dispatches carry `model`. Coder and reviewer take the
   task's profiled tier, clamped into `tiers.min`..`tiers.max` (ladder `haiku < sonnet < opus <
   fable`, `fable` only when the host names it); repair-coder carries no task to profile, so it
@@ -56,7 +70,8 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
 ## Commit ownership
 
 - Only scripts commit: `plan-index.sh --split` (the decomposition), `commit-task.sh` (every task,
-  repair, close and e2e commit), `archive-run.sh` (the archive). No agent and no skill runs
+  repair, close and e2e commit), `archive-run.sh` (the archive), and outside a build the `commit`
+  skill's `commit.sh`. No agent and no skill runs
   `git add` or `git commit`. `planner` leaves a landed draft uncommitted; the `memory` and `rules`
   commands leave their writes unstaged.
 - `commit-task.sh` never takes a subject from its caller: a task commit is the plan's
@@ -65,6 +80,23 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
   is named through literal pathspecs (`GIT_LITERAL_PATHSPECS`, for App Router `[id]` paths),
   refuses `.temp/`, and adds the run's `work/` trail by paths derived from the id or round.
 - Never two `commit-task.sh` calls at once: each rewrites the git index and `status.md`.
+
+## The commit skill
+
+- `commit-args.sh` is the ONE selector parser, sourced by `commit-context.sh` (measures the set)
+  and `commit.sh` (stages it): change selector semantics there only. Issue refs (`#N` with
+  non-alnum boundaries, `/issues/N` links) are stripped first and become a `Refs:` footer; an
+  existing path (disk, index or HEAD) wins over the keyword `all`; a path-shaped token that exists
+  nowhere is mode `missing`, `commit.sh` exits 3, and the fork never retries with a wider selector.
+- The preload passes the arguments as `'$ARGUMENTS'`: Claude Code substitutes the text before the
+  shell parses the line, so single quotes are what keep `$`, backticks and backslashes literal.
+  An apostrophe breaks it, which the description rules out. `commit-context.test.ts` runs that
+  literal line.
+- Proof of landing: the `Before SHA` preload (`(none)` when unborn) goes to `commit-selfcheck.sh`,
+  which prints `VERIFIED` / `FAILED` and exits 0 on both.
+- The `git rev-parse` and `cat` preloads are inline commands under a bare `Bash` allow, not
+  bundled scripts: the one exception to the literal-script-line preload form.
+- The fork never pushes, never branches, never adds `Co-Authored-By`, returns one line.
 
 ## The run directory
 
@@ -113,6 +145,7 @@ touches the templates, `references/plan-rules.md` and every parser reading it.
   `skills/memory/SKILL.md`. Rule budget 4000 / 40000: `agents/rules-writer.md`,
   `skills/rules/scripts/rules-map.sh`, `skills/rules/SKILL.md`.
 - The frozen `_`-prefixed rule file: `rules-map.sh`, `rules-auditor`, `rules-writer`.
+- An agent's `tools:` frontmatter and the tool list its opening paragraph names.
 - `references/qa-format.md` is the one format authority for `qa-writer`, `e2e-writer` and the `e2e`
   skill, which routes on its headings (`## UI scenarios`, `## API scenarios`, `## Not automatable`,
   `## Automation`).
@@ -150,9 +183,13 @@ line disarms the gate, and fail-open means nothing reports it.
 
 ## Tool dependencies
 
+- `triage`: `gh`, called only through `issue-facts.sh` and `post-comment.sh`; without it the skill
+  reports the script's `ERROR` line, and pasted issue text still works, unpublished. The comment
+  body travels through `.temp/viber/triage/<N>.md` and `--body-file`: a multi-line body cannot
+  ride one literal Bash line.
 - `e2e`: `playwright-cli` and `@playwright/test`, probed by `check-playwright.sh`, which never
   installs; the skill installs only once the user agrees. Tests run chromium only.
 - `setup`: `merge-settings.sh` runs its sibling `merge-settings.js` through `node`; with no `node`
   on PATH it prints the recommended block and skips. The template wins a scalar, lists only gain
   entries, an `ask` entry is removed from `deny`, and `.claude/settings.local.json` is never
-  touched.
+  touched. `bootstrap.sh` reports whether `gh` is on PATH and never runs or installs it.

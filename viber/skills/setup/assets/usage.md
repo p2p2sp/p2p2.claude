@@ -10,8 +10,11 @@ No `CLAUDE.md` yet: run `/init`, then make sure the root file states the exact b
 exact test command, how to run a single test file, and whatever else a newcomer would get wrong -
 how to launch the app, the required env, the migrations.
 
-## The four ways in
+## The five ways in
 
+- `/viber:triage` - before any of them: one reported issue (a GitHub number, a link or pasted
+  text) checked against the code, with the next step named - `/viber:fixer`, `/viber:idea` or
+  none. It starts nothing itself and posts its report on the issue only when you say so.
 - `/viber:idea` - an interview about a raw idea, one question at a time. Writes nothing.
 - `/viber:fixer` - a bug traced to its root cause and proven by a failing test.
 - "plan it" - the planner, on what one of those two confirmed. Ask for it with neither behind it
@@ -35,6 +38,11 @@ how to launch the app, the required env, the migrations.
 
 Both ask before writing anything and leave the result unstaged, same as the close. Neither needs a
 build in progress - run them whenever the layer might have drifted.
+
+## Any time
+
+- "commit" - your changes, or only the paths you name, committed with a Conventional Commits
+  message. Name an issue (`#42`) and it becomes the `Refs:` footer. A build commits on its own.
 
 ## The switches (`.claude/viber.yml`)
 

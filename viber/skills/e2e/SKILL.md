@@ -72,6 +72,7 @@ The ID list is every `### QA-<nn> <title>` heading under `## UI scenarios` and `
 3. `VERDICT: PASS` plus `FILE:` -> keep that path for step 6. `TaskUpdate` -> completed.
 4. `VERDICT: BLOCKED` plus `REASON:` -> the application, not the test, prevented a green run. The writer already deleted its file and wrote that ID's `blocked` line. Keep the reason for step 7, re-dispatch nothing, and change nothing in the application. `TaskUpdate` -> completed.
 5. `VERDICT: FAIL` plus `REASON:` -> dispatch once more with the same lines. A second FAIL -> `AskUserQuestion` naming the scenario: retry again, skip it (keep the reason for step 7; it wrote no status line, so the ID stays pending for a later pass), or abort (go to step 6 with the IDs already processed).
+6. `VERDICT: DENIED` plus `REASON:` -> `AskUserQuestion` naming the scenario and the refused call from its `REASON:` line: permission added and retry, skip it (keep the reason for step 7; the ID stays pending), or abort (go to step 6 with the IDs already processed).
 
 Never open the application, write a spec file, edit one the writer produced, or read a red run yourself.
 

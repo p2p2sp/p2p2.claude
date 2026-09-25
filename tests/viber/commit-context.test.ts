@@ -7,9 +7,13 @@
  * runs without `set -e`). commit-context.sh is `#!/usr/bin/env bash`, so
  * every case runs through `forEachShell("bash", ...)` via opts.shell.
  *
+ * The last cases run SKILL.md's own preload line as Claude Code would: the
+ * argument text substituted for `$ARGUMENTS` before any shell parses it. They
+ * prove the single-quoted form keeps `$`, backticks and spaces literal.
+ *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/supergh/commit-context.test.ts
+ *   node --test tests/viber/commit-context.test.ts
  */
 
 import { test } from "node:test";
@@ -18,12 +22,14 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { runScript, type RunResult } from "../harness/run.ts";
-import { withGitRepo, type GitRepo } from "../harness/tmp.ts";
+import { withGitRepo, withTempDir, type GitRepo } from "../harness/tmp.ts";
 import { withStub } from "../harness/stub.ts";
 import { forEachShell } from "../harness/shells.ts";
 import { writePng } from "../harness/png.ts";
 
-const SUT = path.resolve(import.meta.dirname, "../../supergh/skills/commit/scripts/commit-context.sh");
+const SUT = path.resolve(import.meta.dirname, "../../viber/skills/commit/scripts/commit-context.sh");
+const PLUGIN_ROOT = path.resolve(import.meta.dirname, "../../viber");
+const SKILL = path.join(PLUGIN_ROOT, "skills", "commit", "SKILL.md");
 
 function runContext(bash: string, repo: GitRepo, selector?: string): RunResult {
   const args = selector === undefined ? [] : [selector];
@@ -299,6 +305,62 @@ test("mode missing: the Selector line tells the fork not to run commit.sh and na
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       assert.match(result.stdout, /^## Selector: missing - none of the named paths exists \(src\/nope\.ts\); do NOT run commit\.sh/m);
       assert.doesNotMatch(result.stdout, /a, changed/);
+    });
+  });
+});
+
+// --- the SKILL.md preload line -------------------------------------------------
+
+function preloadBlock(): string {
+  const block = /```!\n([\s\S]*?)\n```/.exec(fs.readFileSync(SKILL, "utf-8"));
+  assert.ok(block, "SKILL.md must carry a fenced ! block");
+  return block[1];
+}
+
+/** SKILL.md's preload line after the substitution Claude Code does before any
+ *  shell runs: the argument text replaces `$ARGUMENTS` verbatim, then
+ *  `${CLAUDE_PLUGIN_ROOT}` becomes the plugin root. */
+function preloadScript(dir: string, args: string): string {
+  const line = preloadBlock()
+    .split("$ARGUMENTS").join(args)
+    .split("${CLAUDE_PLUGIN_ROOT}").join(PLUGIN_ROOT.split(path.sep).join("/"));
+  const script = path.join(dir, "preload.sh");
+  fs.writeFileSync(script, `#!/usr/bin/env bash\n${line}\n`, { mode: 0o755 });
+  return script;
+}
+
+test("the SKILL.md preload is one literal line calling commit-context.sh, with no heredoc and no variable assignment", () => {
+  const block = preloadBlock();
+  assert.equal(block.split("\n").length, 1);
+  assert.match(block, /^"\$\{CLAUDE_PLUGIN_ROOT\}\/skills\/commit\/scripts\/commit-context\.sh" /);
+  assert.doesNotMatch(block, /<<|^\s*\w+=/);
+});
+
+test("the substituted preload line hands the script $, backticks, parentheses and spaces verbatim (Claude Code substitutes the text before the shell parses it)", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      commitFile(repo, "a.txt", "a\n");
+      const name = "odd $HOME `x` (1).txt";
+      fs.writeFileSync(path.join(repo.dir, name), "new\n");
+      withTempDir("p2p2-commit-preload-", (dir) => {
+        const result = runScript(preloadScript(dir, `${name} #42`), [], { shell: bash, cwd: repo.dir, env: repo.env });
+        assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+        assert.ok(result.stdout.includes(`## Selector: paths - run commit.sh with 2nd arg "${name}"`), result.stdout);
+        assert.match(result.stdout, /^Refs: #42$/m);
+      });
+    });
+  });
+});
+
+test("the substituted preload line with no arguments resolves mode all", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      commitFile(repo, "a.txt", "a\n");
+      withTempDir("p2p2-commit-preload-", (dir) => {
+        const result = runScript(preloadScript(dir, ""), [], { shell: bash, cwd: repo.dir, env: repo.env });
+        assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+        assert.match(result.stdout, /^## Selector: all - run commit\.sh with no 2nd arg$/m);
+      });
     });
   });
 });

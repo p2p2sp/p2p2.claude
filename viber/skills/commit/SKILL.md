@@ -1,10 +1,10 @@
 ---
 name: commit
-description: Use whenever the user wants to commit, save, or record changes to git - including "commit", "commit changes", "commit all", "commit these files". This is the ONLY path to a commit: never run git add/commit yourself, never branch, never inspect git status/diff first - a forked agent stages, writes the Conventional Commits message, commits and verifies. Arguments, all optional - no arguments commits every change (modified, new and deleted files); one or more space-separated paths (files or directories) commit only those. Append any issue reference the user mentioned (`#123` or a GitHub issue link) - it becomes the commit's `Refs:` footer.
+description: Use whenever the user wants to commit, save, or record changes to git - including "commit", "commit changes", "commit all", "commit these files". This is the ONLY path to a commit: never run git add/commit yourself, never branch, never inspect git status/diff first - a forked agent stages, writes the Conventional Commits message, commits and verifies. Arguments, all optional - no arguments commits every change (modified, new and deleted files); one or more space-separated paths (files or directories) commit only those. Append any issue reference the user mentioned (`#123` or a GitHub issue link) - it becomes the commit's `Refs:` footer. Arguments never carry an apostrophe (').
 model: haiku
 context: fork
 background: false
-allowed-tools: Bash
+allowed-tools: Bash, Bash(${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit-context.sh:*)
 ---
 
 ## Recognize what has changed and commit
@@ -18,11 +18,7 @@ Before SHA: !`git rev-parse --verify -q HEAD 2>/dev/null || echo "(none)"`
 
 ## Commit context (recent style + changes + diff)
 ```!
-ARG=$(cat <<'__COMMIT_ARGS__'
-$ARGUMENTS
-__COMMIT_ARGS__
-)
-"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit-context.sh" "$ARG" 2>&1
+"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit-context.sh" '$ARGUMENTS'
 ```
 
 ## Working mode

@@ -9,7 +9,7 @@
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/supergh/commit-args.test.ts
+ *   node --test tests/viber/commit-args.test.ts
  */
 
 import { test } from "node:test";
@@ -21,7 +21,7 @@ import { runScript, type RunResult } from "../harness/run.ts";
 import { withGitRepo, withTempDir } from "../harness/tmp.ts";
 import { forEachShell } from "../harness/shells.ts";
 
-const SUT = path.resolve(import.meta.dirname, "../../supergh/skills/commit/scripts/commit-args.sh");
+const SUT = path.resolve(import.meta.dirname, "../../viber/skills/commit/scripts/commit-args.sh");
 
 function wrapperScript(libPath: string): string {
   return [

@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Prepares a project for viber - seeds .claude/viber.yml, .gitignore and the recommended .claude/settings.json permissions.
+description: Prepares a project for viber - seeds .claude/viber.yml, .gitignore and the recommended .claude/settings.json permissions, and checks the gh CLI is installed.
 allowed-tools: Read, Bash(${CLAUDE_SKILL_DIR}/scripts/bootstrap.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/merge-settings.sh:*)
 user-invocable: true
 disable-model-invocation: true

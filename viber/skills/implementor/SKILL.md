@@ -36,7 +36,7 @@ Every question below offers some of these four answers, each doing exactly this 
 
 - `retry`: dispatch again, with its own dispatch lines, the agent that failed or was refused; after failed review or test rounds that is the task's coder or the repair coder. After a `FAIL`, or a `PASS` with its `DOD:` line short of its total: one tier up (`haiku` -> `sonnet` -> `opus` -> `fable`), never past `tiers.max`, where it stays, carrying `reason: <the returned REASON>` on a coder's own failure, `reason: <the short DOD: line>` when no `REASON:` came, or the last `REVIEW` or `REPORT` path as `report:` after failed rounds; the round counter continues, the next 2 rounds counting as 1 and 2 of 2, and a `TaskUpdate` rewrites the task's subject with the new tiers. After a `DENIED`: same model, same round, a task's coder adding `reason: <the returned REASON>`. After a failed commit: run the same call again.
 - `skip`: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip "<plan>" "<id>"` for that task, then the same call for every task depending on it, directly or through another dependent, one call per message, each with its `TaskUpdate` -> completed. Its half-finished files stay uncommitted in the tree; name them in the final summary.
-- `accept`: the user overrides the gate. On a task: its commit with `--unreviewed` appended, the task named unreviewed in the final summary. On the test run: go to step 6, the failing or refused run named in the final summary.
+- `accept`: the user overrides the gate. On a task: its commit with `--unreviewed` appended, the task named unreviewed in the final summary. On the test run: go to step 6, the failing or refused run named in the final summary. On any other agent: go on as if it returned nothing, its refused call named in the final summary.
 - `abort`: stop every dispatch, go to step 7.
 
 A `VERDICT: DENIED` question names the refused call from its `REASON:` line and its `retry` option reads `permission added and retry`.
@@ -164,7 +164,9 @@ scope: <the directory holding it, the repository root for the root node>
 out: .temp/viber/<key>/
 ```
 
-An auditor returns one `AUDIT:` line and no `VERDICT:`: never answer it as a missing verdict. No `AUDIT:` line -> that node's `findings` is `none`.
+An auditor returns one `AUDIT:` line and no `VERDICT:` other than `DENIED`: never answer the `AUDIT:` line as a missing verdict. No `AUDIT:` line -> that node's `findings` is `none`.
+
+Any agent of this step returning `VERDICT: DENIED` -> `AskUserQuestion` naming that agent: retry / accept / abort.
 
 After every auditor returned, `viber:memory-node-writer` per `OVER:` path in waves by depth: a node's depth is the number of path segments of the directory holding it, the root being 0. One wave per depth, the root's first, then ascending; every dispatch of a wave in one message, the next wave only after each of them returned. These lines each and nothing else:
 
@@ -192,7 +194,7 @@ Only when the config block reports `cleanup: true` and the build did not end on 
 run: <dir>
 ```
 
-Carry its `DRIFT:` and `PATH:` lines to the final summary. `VERDICT: BLOCKED` -> no archive commit landed; name its `REASON:` in the final summary, plus, on a `DRIFT:` other than `none`, that `<dir>/spec.md` holds uncommitted drift markers, and that a failed git step may have left the run moved but uncommitted (`git status` shows it). Continue.
+Carry its `DRIFT:` and `PATH:` lines to the final summary. `VERDICT: DENIED` -> `AskUserQuestion`: retry / accept, `accept` then read as `BLOCKED`. `VERDICT: BLOCKED` -> no archive commit landed; name its `REASON:` in the final summary, plus, on a `DRIFT:` other than `none`, that `<dir>/spec.md` holds uncommitted drift markers, and that a failed git step may have left the run moved but uncommitted (`git status` shows it). Continue.
 
 Then `"${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh" "<started>"`, one call.
 

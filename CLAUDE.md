@@ -4,8 +4,8 @@
 > Every plugin script MUST work on Windows (Git Bash) and macOS.
 > Do not use `heredoc` - it is unreliable.
 
-This repo is the **source** of six independently installable Claude Code plugins - `superui`,
-`supergh`, `superfix`, `superbiz`, `supercc`, `viber` - co-listed by the root
+This repo is the **source** of five independently installable Claude Code plugins - `superui`,
+`superfix`, `superbiz`, `supercc`, `viber` - co-listed by the root
 `.claude-plugin/marketplace.json` (marketplace name `p2p2`). The retired `superdev` plugin sits in
 `docs/archive/superdev/` for reference only: not listed, not released, not tested, not shipped.
 
@@ -21,14 +21,15 @@ no test tooling inside any plugin. The only automated checks are the dev-time su
 `tests/` (see `tests/CLAUDE.md`); every other contract between files is enforced by a human
 reading carefully.
 
-All six plugins are **stack-agnostic on purpose**: skills read project-specific knowledge (test
+All five plugins are **stack-agnostic on purpose**: skills read project-specific knowledge (test
 framework, build tool, naming, how to launch the app) from the HOST project's `CLAUDE.md` /
 `.claude/rules/`, never from plugin sources. Never bake ecosystem assumptions (dotnet, npm,
 pytest) into a skill prompt. This binds the projects being planned/built, not a plugin's own
 tooling: a plugin may depend on a specific tool for its own work as a deliberate, documented
 choice (Node for superui's contrast checker, Python for superbiz's report, playwright-cli for a
-viber opt-in switch), always behind an opt-in switch or a skip-with-note fallback, always named
-in the owning plugin's node.
+viber opt-in switch), always named in the owning plugin's node. Prefer putting such a dependency
+behind an opt-in switch or a skip-with-note fallback where that is practical - a recommendation,
+not a requirement.
 
 **DO NOT use ADR capture for this project.** The plugins are constantly refactored; never write
 ADRs here and never suggest them (`.claude/viber.yml` keeps `adr: false`).
@@ -36,8 +37,8 @@ ADRs here and never suggest them (`.claude/viber.yml` keeps `adr: false`).
 ## Layout (top level)
 
 ```
-.claude-plugin/marketplace.json   Co-lists the six plugins by subdir source
-superui/ supergh/ superfix/ superbiz/ supercc/ viber/   One dir per plugin, each with README.md
+.claude-plugin/marketplace.json   Co-lists the five plugins by subdir source
+superui/ superfix/ superbiz/ supercc/ viber/   One dir per plugin, each with README.md
 README.md            Catalog page for humans (install commands, requirements)
 .github/             CI, release workflow + scripts/release.sh, CODEOWNERS
 .claude/             Dev-time rules/, settings, viber.yml switches for building THIS repo
@@ -52,10 +53,10 @@ Each plugin dir carries `.claude-plugin/plugin.json`, whose `skills[]` (and `age
 
 ## Versioning and CI
 
-- Tag-driven, one shared namespace across all six plugins (`MAJOR.MINOR.PATCH`, no `v` prefix,
+- Tag-driven, one shared namespace across all five plugins (`MAJOR.MINOR.PATCH`, no `v` prefix,
   seed `0.1.0`). The only versioning path is `.github/workflows/release-version.yml`: a manual
   `workflow_dispatch` (patch/minor/major) on a **self-hosted** runner, running
-  `.github/scripts/release.sh`, which writes the version into all six `plugin.json`, commits
+  `.github/scripts/release.sh`, which writes the version into all five `plugin.json`, commits
   `chore(bump): ...`, tags, pushes and publishes a GitHub Release. Nothing bumps on push.
 - `release.sh` never touches `.claude-plugin/marketplace.json`: its own `version` is separate and
   hand-maintained. Verify script mechanics against `release.sh` before restating them.
@@ -83,7 +84,7 @@ Each plugin dir carries `.claude-plugin/plugin.json`, whose `skills[]` (and `age
 - **`viber` is the only manifest-bearing plugin.** Its `SessionStart` hook injects
   `hooks/content/manifest.md` verbatim once per session (`resume` excluded, fail-open: an empty
   or unreadable file leaves only the banner). The manifest is not a dispatcher: it names no
-  skill, group or chain; routing is each skill's own CSO `description:`. The other five ship no
+  skill, group or chain; routing is each skill's own CSO `description:`. The other four ship no
   manifest.
 - **Script vs. fork.** A step collapses to a deterministic bundled script when it operates on a
   known, fixed tool/format (git, a basename, paths, globs); it stays an LLM fork when it must
@@ -151,7 +152,6 @@ This file is orientation only. A skill's authoritative contract is its own body
 | `superbiz/CLAUDE.md` | `idea-validator` - the side-project viability workflow and its report |
 | `supercc/CLAUDE.md` | `skill-designer` - authoring/refactoring/splitting/linting skills and agents |
 | `superfix/CLAUDE.md` | `code-auditor` and its five agents - the investigation sweep |
-| `supergh/CLAUDE.md` | `commit` / `create-issue` / `create-pr` and their shared git/`gh` scripts |
 | `superui/CLAUDE.md` | the `pro-designer` skill (design/frontend advisory, contrast check) |
 | `tests/CLAUDE.md` | any `*.test.ts` under `tests/` - harness contract, cross-platform rules |
-| `viber/CLAUDE.md` | its nine skills (`setup` to `rules`), thirteen agents, hooks, seven plugin scripts, references, the run directory and its archive, config switches, the plan gate |
+| `viber/CLAUDE.md` | its eleven skills (`setup` to `commit`), thirteen agents, hooks, seven plugin scripts, references, the run directory and its archive, config switches, the plan gate |

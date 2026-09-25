@@ -34,7 +34,7 @@ import { bashShells } from "../harness/shells.ts";
 
 const RELEASE_SH = path.resolve(import.meta.dirname, "../../.github/scripts/release.sh");
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
-const PLUGINS = ["superui", "supergh", "superfix", "superbiz", "supercc", "viber"];
+const PLUGINS = ["superui", "superfix", "superbiz", "supercc", "viber"];
 
 function commandAvailable(cmd: string): boolean {
   return !spawnSync(cmd, ["--version"]).error;
@@ -74,7 +74,7 @@ function manifestPath(repoDir: string, plugin: string): string {
   return path.join(repoDir, plugin, ".claude-plugin", "plugin.json");
 }
 
-/** Writes the six fixture manifests release.sh bumps. `superui`'s is
+/** Writes the five fixture manifests release.sh bumps. `superui`'s is
  *  deliberately written WITHOUT a trailing newline, to prove jq's rewrite
  *  still leaves the file newline-terminated (jq always appends one). */
 function writeManifests(repoDir: string, version = "0.1.0"): void {
@@ -104,7 +104,7 @@ interface Fixture {
   releaseFlag: string;
 }
 
-/** Builds a work repo (six fixture manifests, an initial commit already
+/** Builds a work repo (five fixture manifests, an initial commit already
  *  pushed to `main` on its own `--bare` `origin`) plus a stubbed `gh` - the
  *  full fixture every release.sh scenario below runs against. Nested
  *  `withGitRepo`/`withStub`/`withTempDir` calls guarantee every piece is
@@ -317,7 +317,7 @@ if (!jqAvailable || !bashPath) {
     });
   });
 
-  test("bumps all six manifests' version and nothing else in them, commits with the exact chore(bump) subject, tags and pushes to origin, and creates the GitHub release", () => {
+  test("bumps all five manifests' version and nothing else in them, commits with the exact chore(bump) subject, tags and pushes to origin, and creates the GitHub release", () => {
     withReleaseFixture((fx) => {
       fx.repo.git("tag", "1.2.3");
       const before = readManifests(fx.repo.dir);

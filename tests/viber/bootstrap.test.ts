@@ -33,14 +33,19 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { runScript } from "../harness/run.ts";
+import { coreUtilsPath, withStub } from "../harness/stub.ts";
 import { withGitRepo, withTempDir } from "../harness/tmp.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/skills/setup/scripts/bootstrap.sh");
 const ASSET_GITIGNORE = path.resolve(import.meta.dirname, "../../viber/skills/setup/assets/gitignore.txt");
 const TEMPLATE_CONFIG = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/viber.yml");
 
+// A stub gh is always first on PATH, so the gh line never depends on whether
+// the machine running the suite has the real one installed.
 function run(dir: string, env: Record<string, string> = {}) {
-  return runScript(SUT, [], { cwd: dir, env, shell: "bash" });
+  return withStub("gh", "exit 0", (stubDir) =>
+    runScript(SUT, [], { cwd: dir, env, shell: "bash", stubDirs: [stubDir] }),
+  );
 }
 
 function read(file: string): string {
@@ -62,6 +67,7 @@ test("a fresh repository seeds both files from the bundled ones and prints one l
         "viber.yml: seeded from template - every switch is commented in it",
         ".gitignore: created from template (ignores .temp/)",
         "CLAUDE.md: missing - run /init, then add the build and test commands",
+        "gh: present",
         "",
       ].join("\n"),
     );
@@ -92,6 +98,7 @@ test("running twice leaves both files byte-identical and reports them as already
         "viber.yml: already present and complete (left untouched)",
         ".gitignore: already ignores .temp/",
         "CLAUDE.md: missing - run /init, then add the build and test commands",
+        "gh: present",
         "",
       ].join("\n"),
     );
@@ -376,6 +383,34 @@ test("the CLAUDE.md check resolves at the repository root, not at the cwd it was
     assert.match(result.stdout, /^CLAUDE\.md: present/m);
   });
 });
+
+test("a gh on PATH is reported present and never run (the stub would fail the run if it were)", () => {
+  withTempDir("p2p2-viber-bootstrap-gh-", (dir) => {
+    const result = withStub("gh", "exit 1", (stubDir) =>
+      runScript(SUT, [], { cwd: dir, env: {}, shell: "bash", stubDirs: [stubDir] }),
+    );
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^gh: present$/m);
+  });
+});
+
+const ghOnCorePath = coreUtilsPath()
+  .split(path.delimiter)
+  .some((d) => ["gh", "gh.exe"].some((n) => fs.existsSync(path.join(d, n))));
+
+test(
+  "no gh on PATH is reported as missing with the install hint, and the exit is still 0",
+  { skip: ghOnCorePath ? "a real gh sits in the core utilities directory, so its absence cannot be staged" : false },
+  () => {
+    withTempDir("p2p2-viber-bootstrap-nogh-", (dir) => {
+      const result = runScript(SUT, [], { cwd: dir, env: { PATH: coreUtilsPath() }, shell: "bash" });
+
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match(result.stdout, /^gh: missing - install the GitHub CLI \(https:\/\/cli\.github\.com\), then run gh auth login$/m);
+    });
+  },
+);
 
 test("run from a subdirectory: both files land at the repository root, not in the subdirectory", () => {
   withGitRepo(({ dir, env }) => {

@@ -1,8 +1,6 @@
 ---
 paths:
   - "superfix/skills/code-auditor/scripts/*.sh"
-  - "supergh/shared/scripts/*.sh"
-  - "supergh/skills/*/scripts/*.sh"
   - "supercc/skills/*/scripts/*.sh"
   - "superui/skills/pro-designer/scripts/*.sh"
   - "viber/scripts/*.sh"

@@ -84,13 +84,15 @@ refs: ${CLAUDE_PLUGIN_ROOT}/references
 
 `<id>` is the `id:` value of the map above. A rule whose `paths` field reads `none` gates the whole repository: pass `**` as its scope. A scope with no rule is the proposing direction: `target: none`, `scope` that directory, and only missing conventions can come back.
 
-Each call returns exactly one line:
+Each call returns one line:
 
 ```
 AUDIT: <area> stale <n> gone <n> unverifiable <n> drop <n> miss <n> -> <findings file> | none
 ```
 
 Report the `AUDIT:` line for each target verbatim. Read none of those files - the writer does.
+
+A call returning `VERDICT: DENIED` instead -> one `AskUserQuestion` naming the target and the refused call from its `REASON:` line: permission added and retry, drop that target, or stop.
 
 ## 6. Confirm, then the writer
 
@@ -104,6 +106,8 @@ notes: .temp/viber/<id>/
 refs: ${CLAUDE_PLUGIN_ROOT}/references
 ```
 
+`VERDICT: DENIED` -> one `AskUserQuestion` naming the refused call from its `REASON:` line: permission added and retry, or stop.
+
 ## 7. Report
 
 Repeat what the writer returned and add nothing to it:
@@ -112,5 +116,7 @@ Repeat what the writer returned and add nothing to it:
 - `OVER:` -> repeat each line verbatim.
 - `MOVE:` -> repeat each line verbatim: a fact removed from a rule that its `CLAUDE.md` node does not hold yet. This run never writes that node; `/viber:memory` over those paths records it.
 - `VERDICT: NONE` -> nothing in the layer needed changing.
+- `VERDICT: DENIED` -> its `REASON:` line verbatim.
+- each target dropped in step 5 on `VERDICT: DENIED`, with its `REASON:` line.
 
 Close on one line: those files sit in the working tree, unstaged and uncommitted, and committing them is the user's next step.

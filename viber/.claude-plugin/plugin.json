@@ -8,6 +8,7 @@
   },
   "skills": [
     "./skills/setup/",
+    "./skills/triage/",
     "./skills/idea/",
     "./skills/planner/",
     "./skills/implementor/",
@@ -15,11 +16,11 @@
     "./skills/fixer/",
     "./skills/e2e/",
     "./skills/memory/",
-    "./skills/rules/"
+    "./skills/rules/",
+    "./skills/commit/"
   ],
   "agents": [
     "./agents/planner-review.md",
-    "./agents/plain-plan-review.md",
     "./agents/plain-plan-review.md",
     "./agents/task-coder.md",
     "./agents/task-reviewer.md",

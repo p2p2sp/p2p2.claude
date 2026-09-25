@@ -1,22 +1,33 @@
 #!/usr/bin/env bash
 #
-# commit-context.sh - emituje kontekst do skomponowania commit message:
-#   - kilka ostatnich tematow commitow (styl/scope repo do dopasowania),
-#   - liste zmian (git status) wlasciwa dla selektora,
-#   - diff wlasciwy dla selektora (paths -> vs HEAD dla tych sciezek, inaczej ->
-#     vs HEAD), z limitem rozmiaru, by nie zalac kontekstu forka.
+# commit-context.sh - prints the context the commit fork composes its message
+# from: the resolved selector, the issue footer, the branch, the recent commit
+# subjects (the repo's type/scope style to match), and the git status and diff of
+# the selected set, the diff capped so it cannot flood the fork's context.
 #
-# Uzycie:
+# It exists so the fork gets everything in one `!` preload instead of composing
+# git calls itself, and so the set it measures is resolved by the same parser
+# (commit-args.sh) commit.sh stages with.
+#
+# Usage:
 #   commit-context.sh [selector]
 #
-# Parametry:
-#   selector (opcjonalny) - pelny string argumentow skilla. Interpretacja jak w
-#                           commit-args.sh: ""/all -> all,
-#                           lista istniejacych sciezek -> paths (kontekst
-#                           zawezony do nich), reszta -> all.
-#
-# Uwaga: swiadomie BEZ `set -e` - to best-effort kontekst; pojedyncza nieudana
-# komenda git nie moze wywalic ladowania skilla.
+# Contract:
+#   argv   : $1 selector (optional) - the skill's whole raw argument string,
+#            resolved as in commit-args.sh: ""/all -> all, existing paths ->
+#            paths (the context narrowed to them), named paths none of which
+#            exists -> missing. SKILL.md passes it single-quoted
+#            ('$ARGUMENTS'): Claude Code substitutes the text before the shell
+#            runs, so only single quotes keep $, backticks and backslashes
+#            literal - an apostrophe in the arguments breaks the preload.
+#   cwd    : the repository to commit in - every git call runs there.
+#   env    : none.
+#   stdout : markdown sections, the "## Selector:" line first; in mode missing
+#            that line alone. The diff is capped at MAX_LINES with a notice
+#            naming the real total.
+#   exit   : 0 in every data condition. Deliberately WITHOUT `set -e`: it is a
+#            best-effort preload, and one failed git call must not abort the
+#            skill load.
 set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/commit-args.sh"
 
@@ -26,9 +37,9 @@ MAX_LINES=400
 resolve_commit_selector "$mode_raw"
 paths_label="${COMMIT_PATHS[*]:-}"
 
-# Baza diffa: HEAD gdy branch ma commity, inaczej pusty obiekt drzewa (unborn
-# branch / swieze repo bez HEAD). git diff <empty-tree> pokazuje staged dodatki
-# zamiast wywalac sie fatalem "ambiguous argument 'HEAD'".
+# Diff base: HEAD when the branch has commits, otherwise the empty tree object
+# (unborn branch / fresh repo without HEAD). git diff <empty-tree> shows staged
+# additions instead of dying with "ambiguous argument 'HEAD'".
 if git rev-parse --verify -q HEAD >/dev/null 2>&1; then
   BASE="HEAD"
 else
@@ -54,7 +65,7 @@ if [ -n "$COMMIT_ISSUE_REFS" ]; then
 fi
 
 echo "## Current branch (issue-footer source)"
-# symbolic-ref: czysta nazwa brancha takze na unborn (main), bez fatala HEAD.
+# symbolic-ref: the plain branch name even when unborn (main), no HEAD fatal.
 git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --abbrev-ref HEAD 2>/dev/null || true
 echo
 

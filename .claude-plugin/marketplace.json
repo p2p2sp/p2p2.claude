@@ -12,11 +12,6 @@
       "description": "Super UI Designer ecosystem for Claude Code."
     },
     {
-      "name": "supergh",
-      "source": "./supergh",
-      "description": "Super GitHub ecosystem for Claude Code."
-    },
-    {
       "name": "superfix",
       "source": "./superfix",
       "description": "Super Fix ecosystem for Claude Code."

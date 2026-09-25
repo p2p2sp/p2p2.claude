@@ -19,7 +19,9 @@
 # AFTER the last plan write and returned "VERDICT: PASS", and the plan file has
 # not been touched since that verdict (file mtime vs. the transcript timestamp
 # on the verdict line - that catches an edit through any channel, not just
-# Write/Edit). A verdict of the other reviewer never counts.
+# Write/Edit). A verdict of the other reviewer never counts. A "VERDICT: DENIED"
+# (the reviewer's tool call was refused) denies with its own next step: grant the
+# permission, then review again.
 #
 # The verdict is read from the LAST completed (dispatch -> verdict) pair, bound by
 # the dispatch's tool-use id where the transcript carries it: a re-review after a
@@ -159,7 +161,7 @@ pair_raw="$(
       if (match($0, /"id":"toolu_[A-Za-z0-9_-]+"/)) cid = substr($0, RSTART + 6, RLENGTH - 7)
       next
     }
-    call && /(\\n|"(text|content)":"|<result>)[[:space:]]*VERDICT:[[:space:]]+`?(PASS|FAIL)`?[[:space:]]*(\\n|"|<)/ {
+    call && /(\\n|"(text|content)":"|<result>)[[:space:]]*VERDICT:[[:space:]]+`?(PASS|FAIL|DENIED)`?[[:space:]]*(\\n|"|<)/ {
       if (cid != "" && index($0, cid) == 0) {
         # Same dispatch, unlinked line (an echo, a sibling agent): remember it once,
         # but keep looking for the reply that carries this dispatch id.
@@ -203,12 +205,16 @@ fi
 # on the gate. The two patterns must stay identical.
 verdict_value=$(
   awk -v ln="$verdict_line" 'NR==ln {
-    if (match($0, /(\\n|"(text|content)":"|<result>)[[:space:]]*VERDICT:[[:space:]]+`?(PASS|FAIL)`?[[:space:]]*(\\n|"|<)/)) {
+    if (match($0, /(\\n|"(text|content)":"|<result>)[[:space:]]*VERDICT:[[:space:]]+`?(PASS|FAIL|DENIED)`?[[:space:]]*(\\n|"|<)/)) {
       v = substr($0, RSTART, RLENGTH)
-      if (match(v, /PASS|FAIL/)) print substr(v, RSTART, RLENGTH)
+      if (match(v, /PASS|FAIL|DENIED/)) print substr(v, RSTART, RLENGTH)
     }
   }' "$transcript_path" 2>/dev/null
 )
+
+if [ "$verdict_value" = "DENIED" ]; then
+  emit_deny "Next step: grant the permission. The viber:${agent} agent returned 'VERDICT: DENIED' for ${plan_name}: the harness refused one of its tool calls, the one its REASON: line names. Ask the user to allow that call, dispatch the agent again with ${dispatch_with}, then retry ExitPlanMode. (Read from the latest review: dispatch on transcript line ${dispatch_line}, verdict on line ${verdict_line}. This is ${gate}, not an error.)"
+fi
 
 if [ "$verdict_value" != "PASS" ]; then
   emit_deny "Next step: fix the findings. The viber:${agent} agent returned 'VERDICT: ${verdict_value}' for ${plan_name}, not PASS - apply its findings to the plan, dispatch the agent again with ${dispatch_with}, the previous findings and your fixes, then retry ExitPlanMode. (Read from the latest review: dispatch on transcript line ${dispatch_line}, verdict on line ${verdict_line}. This is ${gate}, not an error.)"

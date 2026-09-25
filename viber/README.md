@@ -12,14 +12,16 @@ claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
 claude plugin install viber@p2p2 --scope user
 ```
 
-Optional: `node`, for `/viber:setup`'s permissions merge, and Playwright, for `/viber:e2e`. Each
-step skips with a note when its tool is missing.
+Optional: `node`, for `/viber:setup`'s permissions merge, Playwright, for `/viber:e2e`, and the
+`gh` CLI, for the GitHub steps (`/viber:setup` checks it is installed). Each step skips with a note
+when its tool is missing.
 
 ## Quick start
 
 | Say this | What happens |
 | --- | --- |
 | `/viber:setup` | Once per project: the switches, the ignore rules, the permissions. |
+| `/viber:triage` | A reported issue (number, link or pasted text) checked against your code: can it be done, how, what it affects, how big. Names the next step and can post the report on the issue. |
 | `/viber:idea` | An interview about a raw idea, one question at a time. |
 | `/viber:fixer` | A bug traced to its root cause and proven by a failing test, then handed to the planner. |
 | "plan it" | The plan gets written and reviewed. |
@@ -27,6 +29,7 @@ step skips with a note when its tool is missing.
 | `/viber:e2e` | The build's QA scenarios become Playwright tests, run against your app. |
 | `/viber:memory` | Reviews or extends your project's `CLAUDE.md` cascade on your own schedule. |
 | `/viber:rules` | Reviews or extends your project's `.claude/rules/` on your own schedule. |
+| "commit" | Your changes, or only the paths you name, committed with a Conventional Commits message. Name an issue (`#42`) and it becomes the `Refs:` footer. |
 
 "plan it" and "implement it" are not commands: "break this down", "go ahead" or anything else
 meaning the same works too. A typical run is `/viber:setup` once, then `/viber:idea`, "plan it", "implement it". The

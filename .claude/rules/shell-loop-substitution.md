@@ -1,8 +1,6 @@
 ---
 paths:
   - "superfix/skills/code-auditor/scripts/*.sh"
-  - "supergh/shared/scripts/*.sh"
-  - "supergh/skills/*/scripts/*.sh"
   - "supercc/skills/*/scripts/*.sh"
   - "superui/skills/pro-designer/scripts/*.sh"
   - "viber/scripts/*.sh"
@@ -19,4 +17,4 @@ paths:
   `done < <(git status --porcelain -z -uall 2>/dev/null || true)` so the counters
   (`nodes`, `removed`, `total`) it sets inside the loop still hold once it exits; the same shape
   covers `viber/scripts/commit-task.sh`, `viber/scripts/check-playwright.sh` and
-  `supergh/skills/commit/scripts/commit.sh`.
+  `viber/skills/commit/scripts/commit.sh`.

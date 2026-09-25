@@ -43,19 +43,30 @@
 #
 # Issue references are cut out of the arguments BEFORE the selector is
 # recognised, so "src/foo #42" still resolves to path=src/foo.
+#
+# Contract:
+#   argv   : none - it is sourced, never run. resolve_commit_selector takes $1,
+#            the whole raw argument string of the skill; empty means mode all.
+#   cwd    : the repository the commit lands in - the existence checks run git
+#            and test paths relative to the caller's working directory.
+#   env    : none read; sets the four COMMIT_* variables above plus the
+#            internal COMMIT_SELECTOR_RAW in the sourcing shell.
+#   stdout : nothing.
+#   exit   : resolve_commit_selector always returns 0; the mode carries the
+#            result.
 add_issue_ref() {
   local num="$1"
   case " $COMMIT_ISSUE_REFS " in
-    *" $num "*) : ;;  # duplikat tego samego issue - pomijamy
+    *" $num "*) : ;;  # the same issue named twice - keep one
     *) COMMIT_ISSUE_REFS="${COMMIT_ISSUE_REFS:+$COMMIT_ISSUE_REFS }$num" ;;
   esac
 }
 
-# Wycina z $1 wszystkie dopasowania regexa $2, dopisujac numer z grupy $3 do
-# COMMIT_ISSUE_REFS; tekst bez dopasowan laduje w COMMIT_SELECTOR_RAW.
-# Petla konsumuje prefiks (out += przed-dopasowaniem, scan := po-dopasowaniu),
-# wiec skraca sie w kazdej iteracji i zawsze sie konczy - podmiana w miejscu
-# moglaby trafic wczesniejsze, niedopasowane wystapienie tego samego tekstu.
+# Cuts every match of regex $2 out of $1, adding the number from group $3 to
+# COMMIT_ISSUE_REFS; the text left without matches lands in COMMIT_SELECTOR_RAW.
+# The loop consumes a prefix (out += before-match, scan := after-match), so it
+# shrinks every iteration and always ends - an in-place replacement could hit
+# an earlier, unmatched occurrence of the same text.
 strip_issue_refs() {
   local scan="$1" re="$2" grp="$3" out="" full
   while [[ "$scan" =~ $re ]]; do
@@ -69,19 +80,18 @@ strip_issue_refs() {
 
 extract_issue_refs() {
   local raw="${1:-}"
-  # Gola referencja "#123" wymaga niealfanumerycznej granicy z obu stron, inaczej
-  # kolor hex (#1a2b3c) czy fragment URL (#issue-12x) udawalyby numer issue.
+  # A bare "#123" needs a non-alphanumeric boundary on both sides, or a hex
+  # colour (#1a2b3c) or a URL fragment (#issue-12x) would pass for an issue.
   local url_re='(https?://[^[:space:]]+/issues/([0-9]+)[^[:space:]]*)'
   local hash_re='(^|[^[:alnum:]_])(#([0-9]+))([^[:alnum:]_]|$)'
   COMMIT_ISSUE_REFS=""
-  # Linki najpierw: URL moze niesc fragment (.../issues/42#issuecomment-1),
-  # ktorego reszta po wycieciu calego linku juz nie zostanie.
+  # Links first: a URL may carry a fragment (.../issues/42#issuecomment-1),
+  # and nothing of it is left once the whole link is cut out.
   strip_issue_refs "$raw" "$url_re" 2
   strip_issue_refs "$COMMIT_SELECTOR_RAW" "$hash_re" 3
   raw="$COMMIT_SELECTOR_RAW"
-  # Po wycieciu referencji zostaja zdwojone spacje - scalamy je i przycinamy
-  # brzegi, inaczej reszta argumentow nie dopasuje sie do slowa kluczowego ani
-  # sciezki.
+  # Cutting the references leaves doubled spaces - collapse them and trim the
+  # ends, or the rest of the arguments matches neither the keyword nor a path.
   while [[ "$raw" == *"  "* ]]; do raw="${raw//  / }"; done
   raw="${raw#"${raw%%[![:space:]]*}"}"
   raw="${raw%"${raw##*[![:space:]]}"}"

@@ -35,6 +35,8 @@
 #                                      appended only when no rule ignores it)
 #   reads  : <root>/CLAUDE.md         (existence only, never written - the agents
 #                                      take the build and test commands from it)
+#            gh on PATH               (existence only - never run, never
+#                                      installed; viber talks to GitHub through it)
 #   stdout : one result line per item - the skill carries them into its report
 #            verbatim and never re-verifies them.
 #   exit   : ALWAYS 0. A preload that exits non-zero aborts the whole skill load,
@@ -182,6 +184,13 @@ if [ -f "$root/CLAUDE.md" ]; then
   echo "CLAUDE.md: present - check it names the build and test commands"
 else
   echo "CLAUDE.md: missing - run /init, then add the build and test commands"
+fi
+
+# Reported, never installed: a missing gh is a note, not a failed setup.
+if command -v gh >/dev/null 2>&1; then
+  echo "gh: present"
+else
+  echo "gh: missing - install the GitHub CLI (https://cli.github.com), then run gh auth login"
 fi
 
 exit 0

@@ -83,13 +83,15 @@ out: .temp/viber/<id>/
 
 `<id>` is the `id:` value of the map above. Create targets are never audited: their writer reads the area itself.
 
-Each call returns exactly one line:
+Each call returns one line:
 
 ```
 AUDIT: <node> stale <n> gone <n> unverifiable <n> miss <n> -> <findings file>
 ```
 
 Report the `AUDIT:` line for each target verbatim. Read none of those files - the writer does.
+
+A call returning `VERDICT: DENIED` instead -> one `AskUserQuestion` naming the target and the refused call from its `REASON:` line: permission added and retry, drop that target from the set, or stop.
 
 ## 6. Confirm
 
@@ -111,6 +113,8 @@ refs: ${CLAUDE_PLUGIN_ROOT}/references
 
 `findings` is the path its audit returned on a fix target and `none` on a create target.
 
+A dispatch returning `VERDICT: DENIED` -> before the next wave, one `AskUserQuestion` naming the node and the refused call from its `REASON:` line: permission added and retry, skip that node, or stop.
+
 Keep account while the waves return:
 
 - a node was created when its dispatch ran in create mode and returned `VERDICT: UPDATED`, or when a `FILES:` path lies outside the planned set.
@@ -127,6 +131,7 @@ Repeat what the writers returned and add nothing to it:
 
 - each `FILES:`, `DELETED:`, `DROPPED:`, `LIFT:` and `CHAIN:` line, verbatim.
 - each `NO-NODE` target, named as an area that needs no node.
+- each target skipped or dropped on `VERDICT: DENIED`, with its `REASON:` line.
 - every call returned `VERDICT: NONE` -> nothing in the layer needed changing.
 
 Close on one line: those files sit in the working tree, unstaged and uncommitted, and committing them is the user's next step.
