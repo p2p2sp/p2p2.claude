@@ -19,6 +19,10 @@
  * that "docs/ is the one home for persisted knowledge" rests on it: a slash, a
  * traversal or an absolute path leaves the default standing.
  *
+ * `--branching` prints the branching report instead of the block: the mode, the
+ * valid work entries and issue type mappings in file order, then one `error:`
+ * line per configuration problem - still exit 0 whatever the file holds.
+ *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
  *   node --test tests/viber/config.test.ts
@@ -462,3 +466,200 @@ test("cleanup is a switch like the other four and nothing about it is special", 
     assert.deepEqual(switches(run(dir).stdout), { ...OFF, cleanup: "true" });
   });
 });
+
+// --- config.sh --branching: work entries and issue type mappings ---
+
+function runBranching(dir: string) {
+  return runScript(SUT, ["--branching"], { cwd: dir, shell: "bash" });
+}
+
+/** Every line `--branching` printed, the exit asserted 0 first: no input may break the preload. */
+function report(dir: string): string[] {
+  const result = runBranching(dir);
+  assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+  return result.stdout.trim().split("\n");
+}
+
+test("--branching with no config file prints only the mode, off, and exits 0", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    assert.deepEqual(report(dir), ["mode: off"]);
+  });
+});
+
+/** A valid GitFlow-shaped group: its mappings written BEFORE its work entries, a quoted issue type holding a space. */
+const GITFLOW = [
+  "branching:",
+  "  mode: Required  # every run on its own branch",
+  "  issue-type-mappings:",
+  "    Bug: hotfix",
+  '    "Feature Request": feature',
+  "    Feature: feature",
+  "  work:",
+  "    feature:",
+  "      base: develop",
+  "      name: 'feature/{issue-number}-{slug}'",
+  "      target: develop",
+  "    hotfix:",
+  "      base: main",
+  '      name: "hotfix/{slug}"',
+  "      target: main",
+  "qa: true",
+  "",
+];
+
+test("--branching prints the mode, then every valid work entry and every mapping in file order, with no error line", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, GITFLOW.join("\n"));
+
+    assert.deepEqual(report(dir), [
+      "mode: required",
+      "entry: feature | base: develop | name: feature/{issue-number}-{slug} | target: develop",
+      "entry: hotfix | base: main | name: hotfix/{slug} | target: main",
+      "map: Bug | hotfix",
+      "map: Feature Request | feature",
+      "map: Feature | feature",
+    ]);
+  });
+});
+
+const LEGACY = "error: branching.base and branching.name are no longer read - move them into a branching.work entry";
+
+for (const legacy of ["base: develop", "name: 'feature/{issue}-{slug}'"]) {
+  test(`--branching refuses the flat ${legacy.split(":")[0]} directly under branching: with the move message, the entries still printed`, () => {
+    withTempDir("p2p2-viber-", (dir) => {
+      writeConfig(dir, ["branching:", "  mode: allowed", `  ${legacy}`, "  work:", "    fix:", "      base: main", "      name: fix/{slug}", "      target: main", ""].join("\n"));
+
+      assert.deepEqual(report(dir), ["mode: allowed", "entry: fix | base: main | name: fix/{slug} | target: main", LEGACY]);
+    });
+  });
+}
+
+/** One `fix` entry beside a valid `feature` one, its three fields as given (a null field is left out). */
+function withFix(fields: { base: string | null; name: string | null; target: string | null }): string {
+  const fix = Object.entries(fields)
+    .filter(([, value]) => value !== null)
+    .map(([key, value]) => `      ${key}: ${value}`);
+  return ["branching:", "  mode: allowed", "  work:", "    feature:", "      base: main", "      name: feat/{slug}", "      target: main", "    fix:", ...fix, ""].join("\n");
+}
+
+const FEATURE = "entry: feature | base: main | name: feat/{slug} | target: main";
+
+test("--branching drops an entry whose name uses the old {issue} placeholder and says it is now {issue-number}", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, withFix({ base: "main", name: "'fix/{issue}-{slug}'", target: "main" }));
+
+    assert.deepEqual(report(dir), ["mode: allowed", FEATURE, "error: work entry fix: {issue} is now {issue-number}"]);
+  });
+});
+
+for (const missing of ["base", "name", "target"] as const) {
+  test(`--branching drops an entry missing its ${missing} and names the missing field`, () => {
+    withTempDir("p2p2-viber-", (dir) => {
+      writeConfig(dir, withFix({ base: "main", name: "fix/{slug}", target: "main", [missing]: null }));
+
+      assert.deepEqual(report(dir), ["mode: allowed", FEATURE, `error: work entry fix: missing ${missing}`]);
+    });
+  });
+}
+
+const INVALID: Array<[string, { base: string; name: string; target: string }, string]> = [
+  ["a base read as an option", { base: "-main", name: "fix/{slug}", target: "main" }, "invalid base: -main"],
+  ["an absolute base", { base: "/main", name: "fix/{slug}", target: "main" }, "invalid base: /main"],
+  ["a base holding a range", { base: "main..develop", name: "fix/{slug}", target: "main" }, "invalid base: main..develop"],
+  ["a target with a shell metacharacter", { base: "main", name: "fix/{slug}", target: "rel;ease" }, "invalid target: rel;ease"],
+  ["a target read as an option", { base: "main", name: "fix/{slug}", target: "-x" }, "invalid target: -x"],
+  ["a name with a variable", { base: "main", name: "fix/$USER", target: "main" }, "invalid name: fix/$USER"],
+  ["a name with a tilde", { base: "main", name: "'fix/{slug}~1'", target: "main" }, "invalid name: fix/{slug}~1"],
+];
+
+for (const [label, fields, reason] of INVALID) {
+  test(`--branching drops an entry with ${label} and names the field and its value`, () => {
+    withTempDir("p2p2-viber-", (dir) => {
+      writeConfig(dir, withFix(fields));
+
+      assert.deepEqual(report(dir), ["mode: allowed", FEATURE, `error: work entry fix: ${reason}`]);
+    });
+  });
+}
+
+test("--branching drops an entry whose key is not a plain name", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, ["branching:", "  work:", "    fix;rm:", "      base: main", "      name: fix/{slug}", "      target: main", ""].join("\n"));
+
+    assert.deepEqual(report(dir), ["mode: off", "error: work entry fix;rm: invalid key: fix;rm"]);
+  });
+});
+
+test("--branching drops a mapping naming no work entry, and one naming a dropped entry, each with its own line", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(
+      dir,
+      [withFix({ base: "main", name: null, target: "main" }), "  issue-type-mappings:", "    Feature: feature", "    Bug: fix", "    Task: chore", ""].join("\n"),
+    );
+
+    assert.deepEqual(report(dir), [
+      "mode: allowed",
+      FEATURE,
+      "map: Feature | feature",
+      "error: work entry fix: missing name",
+      "error: issue-type-mappings: Bug names no work entry: fix",
+      "error: issue-type-mappings: Task names no work entry: chore",
+    ]);
+  });
+});
+
+for (const [mode, printed] of [["allowed", "allowed"], ["REQUIRED", "required"]]) {
+  test(`--branching under mode ${mode} with no valid work entry says so`, () => {
+    withTempDir("p2p2-viber-", (dir) => {
+      writeConfig(dir, ["branching:", `  mode: ${mode}`, "  work:", "    fix:", "      base: main", ""].join("\n"));
+
+      assert.deepEqual(report(dir), [
+        `mode: ${printed}`,
+        "error: work entry fix: missing name",
+        "error: work entry fix: missing target",
+        "error: no valid branching.work entry",
+      ]);
+    });
+  });
+}
+
+test("--branching reads a CRLF config the same way (a stray CR is not part of any value)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, GITFLOW.join("\r\n"));
+
+    assert.deepEqual(report(dir), [
+      "mode: required",
+      "entry: feature | base: develop | name: feature/{issue-number}-{slug} | target: develop",
+      "entry: hotfix | base: main | name: hotfix/{slug} | target: main",
+      "map: Bug | hotfix",
+      "map: Feature Request | feature",
+      "map: Feature | feature",
+    ]);
+  });
+});
+
+test("--branching reads no work entry outside the branching group", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, ["branching:", "  mode: allowed", "qa: true", "  work:", "    fix:", "      base: main", "      name: fix/{slug}", "      target: main", ""].join("\n"));
+
+    assert.deepEqual(report(dir), ["mode: allowed", "error: no valid branching.work entry"]);
+  });
+});
+
+test("--branching over a malformed config still exits 0 with the mode off", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, "\u0000\u0001 not: yaml: at: all\n");
+
+    assert.deepEqual(report(dir), ["mode: off"]);
+  });
+});
+
+for (const mode of ["off", "gitflow"]) {
+  test(`--branching under mode ${mode} asks for no work entry (only a mode other than off needs one)`, () => {
+    withTempDir("p2p2-viber-", (dir) => {
+      writeConfig(dir, ["branching:", `  mode: ${mode}`, ""].join("\n"));
+
+      assert.deepEqual(report(dir), ["mode: off"]);
+    });
+  });
+}

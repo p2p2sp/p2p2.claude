@@ -26,7 +26,9 @@
 # default stands and the run is unaffected.
 #
 # Contract:
-#   argv   : none.
+#   argv   : none -> the block below. `--branching` -> the branching report
+#            (see its own stdout paragraph) in place of the block. Anything else
+#            -> the block.
 #   cwd    : any directory inside the host project - the repository root is
 #            resolved here. Outside a repository, the cwd is the base.
 #   env    : none.
@@ -84,6 +86,36 @@
 #              branching.mode: off
 #              branching.base: main
 #              branching.name: {type}/{issue}-{slug}
+#   stdout (--branching): the `branching:` group read by indentation - its
+#            direct children are `mode`, `work` and `issue-type-mappings`; a
+#            child of `work` is one work entry, its own `base`, `name` and
+#            `target` fields below it; a child of `issue-type-mappings` maps an
+#            issue type to an entry key. Values are cut at the first space or
+#            `#`. Lines, in this order:
+#              mode: off|allowed|required
+#              entry: <key> | base: <branch> | name: <pattern> | target: <branch>
+#              map: <issue type> | <entry key>
+#              error: <reason>
+#            mode as in the block. `entry:` once per valid work entry, `map:`
+#            once per mapping naming a valid entry, each in file order. Entry
+#            key `[A-Za-z0-9._-]+`; base and target `[A-Za-z0-9._/-]+`, not
+#            starting with `-` or `/`, no `..`; name with one surrounding quote
+#            pair stripped, `[A-Za-z0-9._/{}-]+`; an issue type with one
+#            surrounding quote pair stripped, kept verbatim. `error:` lines, in
+#            this order, zero or more:
+#              branching.base and branching.name are no longer read - move them into a branching.work entry
+#                (a `base:` or `name:` directly under `branching:`)
+#              work entry <key>: invalid key: <key>
+#              work entry <key>: missing <base|name|target>
+#              work entry <key>: invalid <base|name|target>: <value>
+#              work entry <key>: {issue} is now {issue-number}
+#                (each of these drops the entry; one entry may print several,
+#                its fields checked in base, name, target order)
+#              issue-type-mappings: <type> names no work entry: <key>
+#                (the mapping is dropped)
+#              no valid branching.work entry
+#                (a mode other than off only)
+#            No file or no group -> `mode: off` alone.
 #   exit  : ALWAYS 0 (fail-open - a missing file or key never breaks a run, and
 #            a non-zero exit in a `!` preload would abort the whole skill load).
 #
@@ -154,6 +186,109 @@ tier_name() {
     *) echo opus ;;
   esac
 }
+
+# The --branching report. Nesting is told by indentation alone: the first line
+# inside the group fixes the depth of its direct children, the first line under
+# `work` or `issue-type-mappings` the depth of theirs. Everything is collected
+# first, so a mapping written above the entries it names still resolves.
+branching_report() {
+  out=""
+  if [ -f "$cfg" ]; then
+    out="$(awk -v sq="'" '
+function unquote(s,  q) {
+  q = substr(s, 1, 1)
+  if (length(s) >= 3 && (q == sq || q == "\"") && substr(s, length(s)) == q) s = substr(s, 2, length(s) - 2)
+  return s
+}
+/^[^[:space:]#]/ { ingroup = ($0 ~ /^branching[[:space:]]*:/); sec = ""; next }
+!ingroup { next }
+/^[[:space:]]*(#|$)/ { next }
+{
+  match($0, /^[[:space:]]*/)
+  ind = RLENGTH
+  line = substr($0, ind + 1)
+  q = substr(line, 1, 1)
+  close_at = 0
+  if (q == sq || q == "\"") close_at = index(substr(line, 2), q)
+  if (close_at > 0) {
+    key = substr(line, 2, close_at - 1)
+    rest = substr(line, close_at + 2)
+  } else {
+    key = line
+    sub(/[[:space:]]*:.*$/, "", key)
+    rest = substr(line, length(key) + 1)
+  }
+  val = rest
+  sub(/^[[:space:]]*:[[:space:]]*/, "", val)
+  sub(/[[:space:]#].*$/, "", val)
+
+  if (l1 == 0 || ind <= l1) {
+    if (l1 == 0) l1 = ind
+    sec = key
+    l2 = 0
+    if (key == "mode" && !modeset) { mode = tolower(val); modeset = 1 }
+    if (key == "base" || key == "name") legacy = 1
+    next
+  }
+  if (sec == "work") {
+    if (l2 == 0 || ind <= l2) {
+      if (l2 == 0) l2 = ind
+      cur = ++n
+      ekey[cur] = key
+      next
+    }
+    if ((key == "base" || key == "name" || key == "target") && !((cur, key) in field)) field[cur, key] = val
+    next
+  }
+  if (sec == "issue-type-mappings") {
+    if (l2 == 0) l2 = ind
+    if (ind > l2) next
+    m++
+    mtype[m] = key
+    mkey[m] = unquote(val)
+  }
+}
+END {
+  if (mode != "allowed" && mode != "required") mode = "off"
+  print "mode: " mode
+  if (legacy) err[++e] = "branching.base and branching.name are no longer read - move them into a branching.work entry"
+  split("base name target", fields, " ")
+  for (i = 1; i <= n; i++) {
+    bad = 0
+    if (ekey[i] !~ /^[A-Za-z0-9._-]+$/) { err[++e] = "work entry " ekey[i] ": invalid key: " ekey[i]; bad = 1 }
+    for (j = 1; j <= 3; j++) {
+      f = fields[j]
+      v = field[i, f]
+      if (f == "name") v = unquote(v)
+      if (v == "") { err[++e] = "work entry " ekey[i] ": missing " f; bad = 1; continue }
+      if (f == "name") ok = (v ~ /^[A-Za-z0-9._\/{}-]+$/)
+      else ok = (v ~ /^[A-Za-z0-9._\/-]+$/ && v !~ /^[-\/]/ && index(v, "..") == 0)
+      if (!ok) { err[++e] = "work entry " ekey[i] ": invalid " f ": " v; bad = 1; continue }
+      if (f == "name" && index(v, "{issue}")) { err[++e] = "work entry " ekey[i] ": {issue} is now {issue-number}"; bad = 1 }
+      value[f] = v
+    }
+    if (bad) continue
+    valid[ekey[i]] = 1
+    nvalid++
+    print "entry: " ekey[i] " | base: " value["base"] " | name: " value["name"] " | target: " value["target"]
+  }
+  for (i = 1; i <= m; i++) {
+    if (mkey[i] in valid) print "map: " mtype[i] " | " mkey[i]
+    else err[++e] = "issue-type-mappings: " mtype[i] " names no work entry: " mkey[i]
+  }
+  if (mode != "off" && !nvalid) err[++e] = "no valid branching.work entry"
+  for (i = 1; i <= e; i++) print "error: " err[i]
+}
+' "$cfg" 2>/dev/null || true)"
+  fi
+  [ -n "$out" ] || out="mode: off"
+  printf '%s\n' "$out"
+}
+
+if [ "${1:-}" = "--branching" ]; then
+  branching_report
+  exit 0
+fi
 
 echo "# viber config (resolved)"
 for key in adr memory rules qa cleanup plain-plan-review issues; do

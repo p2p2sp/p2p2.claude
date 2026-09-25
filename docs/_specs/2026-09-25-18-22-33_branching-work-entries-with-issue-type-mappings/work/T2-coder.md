@@ -1,0 +1,6 @@
+- `--branching` runs its own awk parser (level-1 depth fixed by the group's first line, level-2 by the first line under `work`/`issue-type-mappings`); the plain block still uses `group_value`, which grabs the first indented `base:`/`name:` anywhere in the group, so a work entry field leaks into `branching.base`/`branching.name` until T4 drops those lines.
+- `mode` in the report is read at level 1 only; a quoted mode (`"allowed"`) stays off, matching the plain block.
+- Per entry, every problem prints (fields checked base, name, target); an invalid entry key prints `work entry <k>: invalid key: <k>` (contract left the key case open).
+- A mapping naming an entry that exists but was dropped counts as naming no work entry.
+- No `\r` strip needed: every value and key is cut at `[[:space:]]`, which covers a CRLF file.
+- The awk takes the apostrophe as `-v sq="'"`: none may appear inside the single-quoted program.
