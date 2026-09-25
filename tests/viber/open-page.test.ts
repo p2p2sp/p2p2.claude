@@ -1,5 +1,5 @@
 /*
- * open-page.test.ts - proves viber/skills/setup/scripts/open-page.sh picks the
+ * open-page.test.ts - proves viber/scripts/open-page.sh picks the
  * opener for the platform `uname -s` names, hands it the file, and prints its
  * one-line report, exit 0 on every report line and 2 only on a missing argument.
  *
@@ -25,7 +25,7 @@ import { withTempDir } from "../harness/tmp.ts";
 import { coreUtilsPath, withStub } from "../harness/stub.ts";
 import { slash } from "../harness/paths.ts";
 
-const SUT = path.resolve(import.meta.dirname, "../../viber/skills/setup/scripts/open-page.sh");
+const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/open-page.sh");
 
 type Stub = [name: string, body: string];
 

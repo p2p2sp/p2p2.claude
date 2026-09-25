@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 #
-# open-page.sh - opens one local HTML file in the user's default browser, so
-# the setup skill hands over its onboarding text as a page instead of printing
-# it into the session's context, where it would cost tokens on every later turn.
+# open-page.sh - opens one local HTML file in the user's default browser, so a
+# viber skill hands the user a local page instead of printing its content into
+# the session's context, where it would cost tokens on every later turn.
+# Callers: `setup` (the onboarding page) and `prototype` (the built mockup).
 #
-# It is a bundled script because the opener differs per platform and the skill
+# It is a bundled script because the opener differs per platform and a skill
 # may only make one pre-approved literal call: `open` on macOS, the Windows
 # shell's file handler through `rundll32` from Git Bash (the path converted by
 # `cygpath -w`), `wslview` under WSL, `xdg-open` on a Linux desktop. `xdg-open`
