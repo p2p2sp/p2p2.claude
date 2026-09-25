@@ -57,3 +57,7 @@ a file is shaped live in `.claude/rules/tests-running.md` and `tests-structure.m
   the reason instead of failing.
 - The static sweeps and the exec-bit checks read the git index (`git ls-files -s`), not the working
   tree: a new script is invisible to them, and its `100755` mode unchecked, until it is staged.
+- `portability.test.ts`'s `bashismViolations` sweep is text matching, not syntax-aware: an awk
+  `function name(...)` definition, or any bare `((` not preceded by `$` (even from nested parens
+  in an `if`), reads as bash-only under a `#!/bin/sh` shebang. A POSIX-sh script embedding an awk
+  block must avoid both.
