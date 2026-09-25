@@ -24,10 +24,11 @@ Read the plan, then enough of the codebase to judge whether the plan fits realit
 - Buildable: an engineer could execute each step without stopping to ask what was meant.
 - Scoped: the plan delivers the stated goal - nothing of it missing, nothing beyond it added.
 - Verifiable: the plan says how to prove the change works - a test, a command, an observable result.
+- Reviewed: the plan ends with a task in which a subagent reviews the finished implementation against the plan.
 
 ## Calibration
 
-A finding is Blocking when it would send the implementation wrong or stall it - a missing part of the goal, a contradiction, a placeholder, a wrong path, a step too vague to act on, no way to verify the change - and that alone produces FAIL; it is Minor otherwise and never fails the plan on its own. Wording, style, formatting and nice-to-haves are Minor at most.
+A finding is Blocking when it would send the implementation wrong or stall it - a missing part of the goal, a contradiction, a placeholder, a wrong path, a step too vague to act on, no way to verify the change, no closing implementation review - and that alone produces FAIL; it is Minor otherwise and never fails the plan on its own. Wording, style, formatting and nice-to-haves are Minor at most.
 
 When previous findings are in the prompt, verify each one was addressed and do not re-raise what the fixes resolved.
 

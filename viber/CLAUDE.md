@@ -12,7 +12,7 @@ skills/<name>/           12 skills: SKILL.md plus files read at one step;
 agents/                  14 agents
 scripts/                 13 plugin-wide scripts
 references/              read at runtime by agents through the `refs:` dispatch line
-hooks/                   SessionStart manifest + PreToolUse plan gate
+hooks/                   SessionStart manifest + UserPromptSubmit plan hints + PreToolUse plan gate
 ```
 
 ## The chain
@@ -166,6 +166,10 @@ resolves `plain-plan-review: true`.
 `VERDICT: PASS` and the plan's mtime is not newer. The deny reason is the plain path's only
 instruction channel. Names match literally: renaming the skill, either agent, the switch or the
 verdict line disarms the fail-open gate silently.
+
+`hooks/scripts/plan-hints.sh` (UserPromptSubmit, soft) adds the closing-review and
+parallel-subagent rules to every prompt in plain plan mode only; its planner detection and episode
+window are copied from `plan-gate.sh`, so rename either side together.
 
 ## Tool dependencies
 
