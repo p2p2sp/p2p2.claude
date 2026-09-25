@@ -205,3 +205,5 @@ Then `"${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh" "<started>"`, one call.
 Complete every task the last `progress: <n>/<total>` settled and every entry still open. Never delete the list.
 
 Final summary, max 7 lines: tasks committed, review rounds spent, test verdict, the clock's `elapsed:` (none on `elapsed: unknown`, never estimated), what memory, rules and QA recorded, the archive path and its drift, then everything the steps carried to it. A `qa.e2e.md` among the QA paths earns one more line: `/viber:e2e` turns it into Playwright tests.
+
+If the run has more than 5 tasks propose to user run a `code-review`.
