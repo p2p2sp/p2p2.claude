@@ -16,6 +16,8 @@
 #   unreviewed: T3                  only when status.md carries the entry
 #   deferred: T7:src/a.ts           only when status.md carries the entry
 #   closed: memory rules            only when status.md carries the entry
+#   decision: T2: <text>            one per "decision:" line of status.md, in
+#                                   file order, printed as it stands there
 #   tasks: id | state | tdd | excl | deps | feeds | files | title
 #   T1 | done | none     | -   | -  | C1 | .claude/settings.json | Tighten the settings schema
 #   T2 | todo | required | yes | T1 | -  | src/a.ts,src/b.ts     | Add the retry loop
@@ -48,7 +50,10 @@
 # not start the build needs. A "deferred" entry is "<task-id>:<path>" - code an
 # earlier task left without its own test because the criterion that proves it
 # belongs to that task, which is how a resumed session still knows who owes the
-# proof. "state" is "done", "skipped" or "todo"; a "dirty"
+# proof. A "decision:" line is the owner settling a stalled task
+# (commit-task.sh --decide), "decision: <task-id>: <text>", any number of them;
+# a status.md with none prints exactly what it printed before the line existed.
+# "state" is "done", "skipped" or "todo"; a "dirty"
 # line means that task's own files carry uncommitted work, so an earlier session
 # was cut off mid-task and a fresh coder would land on top of it. Everything else
 # a resume needs is already derivable, so nothing here is stored twice.
@@ -218,6 +223,7 @@ st_skipped=""
 st_unreviewed=""
 st_deferred=""
 st_closed=""
+st_decisions=""
 if [[ -f "$dir/status.md" ]]; then
   while IFS= read -r line || [[ -n "$line" ]]; do
     line="${line%$'\r'}"
@@ -227,6 +233,7 @@ if [[ -f "$dir/status.md" ]]; then
       unreviewed:*) st_unreviewed="${line#unreviewed:}" ;;
       deferred:*)   st_deferred="${line#deferred:}" ;;
       closed:*)     st_closed="${line#closed:}" ;;
+      decision:*)   st_decisions="$st_decisions$line"$'\n' ;;
     esac
   done < "$dir/status.md"
 fi
@@ -235,7 +242,7 @@ fi
 # would mangle a Windows path containing backslashes.
 plan="$plan" changed="$changed" mode="$mode" \
 st_done="$st_done" st_skipped="$st_skipped" st_unreviewed="$st_unreviewed" \
-st_deferred="$st_deferred" st_closed="$st_closed" \
+st_deferred="$st_deferred" st_closed="$st_closed" st_decisions="$st_decisions" \
 awk '
 function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
 function val(s)  { sub(/^[^:]*:/, "", s); return trim(s) }
@@ -300,6 +307,7 @@ BEGIN {
   unrev   = listed(ENVIRON["st_unreviewed"])
   defer   = listed(ENVIRON["st_deferred"])
   closed  = listed(ENVIRON["st_closed"])
+  decisions = ENVIRON["st_decisions"]
   m = split(ENVIRON["changed"], ch, /\n/)
   for (k = 1; k <= m; k++) if (ch[k] != "") chg[ch[k]] = 1
 }
@@ -600,6 +608,7 @@ END {
   if (unrev   != "") printf "unreviewed: %s\n", unrev
   if (defer   != "") printf "deferred: %s\n", defer
   if (closed  != "") printf "closed: %s\n", closed
+  printf "%s", decisions
   printf "tasks: id | state | tdd | excl | deps | feeds | files | title\n"
   for (i = 1; i <= n; i++) {
     f = ""

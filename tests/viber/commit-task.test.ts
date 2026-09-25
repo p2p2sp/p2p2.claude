@@ -1317,6 +1317,129 @@ test("--skip with a task already committed as done exits 2, naming it as already
   });
 });
 
+test("--decide appends one decision line to status.md and prints its two lines without a commit (it has none to ride in)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    const before = readStatus(repo);
+
+    const result = run(repo.dir, repo.env, ["--decide", PLAN_REL, "T2", "keep the old parser"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "decided: T2\nprogress: unchanged\n");
+    assert.equal(readStatus(repo), `${before}decision: T2: keep the old parser\n`);
+    assert.deepEqual(subjects(repo), ["seed"]);
+    assert.deepEqual(stagedFiles(repo), []);
+  });
+});
+
+test("a decision line rides in the next task commit", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    run(repo.dir, repo.env, ["--decide", PLAN_REL, "T2", "keep the old parser"]);
+    write(repo.dir, "src/a.ts", "work\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(repo.git("show", `HEAD:${STATUS_REL}`).stdout, /^decision: T2: keep the old parser$/m);
+  });
+});
+
+test("a refused task commit rolls status.md back with its decision lines intact", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    run(repo.dir, repo.env, ["--decide", PLAN_REL, "T2", "keep the old parser"]);
+    write(repo.dir, "src/a.ts", "work\n");
+    breakCommit(repo);
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 5);
+    assert.equal(readStatus(repo), `${statusBody(2)}decision: T2: keep the old parser\n`);
+  });
+});
+
+const DECIDE_REFUSALS: Array<[name: string, args: string[], code: number, stderr: RegExp]> = [
+  ["an unknown task id exits 3", ["T9", "keep it"], 3, /no task 'T9'/],
+  ["a task on the done list exits 2", ["T1", "keep it"], 2, /task 'T1' is already done/],
+  ["a task on the skipped list exits 2", ["T2", "keep it"], 2, /task 'T2' is skipped/],
+  ["an empty text exits 2", ["T3", ""], 2, /one non-empty line/],
+  ["a whitespace-only text exits 2", ["T3", "   "], 2, /one non-empty line/],
+  ["a multi-line text exits 2", ["T3", "first\nsecond"], 2, /one non-empty line/],
+  ["a text carrying a carriage return exits 2", ["T3", "first\rsecond"], 2, /one non-empty line/],
+  ["a missing text exits 2", ["T3"], 2, /usage: commit-task\.sh/],
+];
+
+for (const [name, args, code, stderr] of DECIDE_REFUSALS) {
+  test(`--decide refuses ${name} and leaves status.md byte-for-byte unchanged`, () => {
+    withGitRepo((repo) => {
+      seed(repo, [
+        ["T1", "src/a.ts"],
+        ["T2", "src/b.ts"],
+        ["T3", "src/c.ts"],
+      ]);
+      write(repo.dir, STATUS_REL, "# status\n\nprogress: 1/3\ndone: T1\nskipped: T2\nunreviewed: none\ndeferred: none\nclosed: none\n");
+      const before = readStatus(repo);
+
+      const result = run(repo.dir, repo.env, ["--decide", PLAN_REL, ...args]);
+      assert.equal(result.status, code, `stderr: ${result.stderr}`);
+      assert.match(result.stderr, stderr);
+      assert.equal(result.stdout, "");
+      assert.equal(readStatus(repo), before);
+    });
+  });
+}
+
+test("--decide against a missing plan exits 2", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    const before = readStatus(repo);
+
+    const result = run(repo.dir, repo.env, ["--decide", `${RUN_DIR}/nope.md`, "T1", "keep it"]);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /plan file not found/);
+    assert.equal(readStatus(repo), before);
+  });
+});
+
+test("--decide with the same task id and text twice leaves one line", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    run(repo.dir, repo.env, ["--decide", PLAN_REL, "T2", "keep the old parser"]);
+
+    const result = run(repo.dir, repo.env, ["--decide", PLAN_REL, "T2", "keep the old parser"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(readStatus(repo).match(/^decision: /gm)?.length, 1);
+  });
+});
+
+test("--decide stores a text holding a colon intact", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+
+    run(repo.dir, repo.env, ["--decide", PLAN_REL, "T2", "scope: src/b.ts only, note: no retry"]);
+    assert.match(readStatus(repo), /^decision: T2: scope: src\/b\.ts only, note: no retry$/m);
+  });
+});
+
+test("--decide on a run with no status file creates it holding the decision line", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    fs.rmSync(path.join(repo.dir, STATUS_REL));
+
+    const result = run(repo.dir, repo.env, ["--decide", PLAN_REL, "T1", "keep it"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(readStatus(repo), `${statusBody(2)}decision: T1: keep it\n`);
+  });
+});
+
+test("--decide on a status file with no final newline starts its line on a line of its own", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, STATUS_REL, statusBody(2).trimEnd());
+
+    run(repo.dir, repo.env, ["--decide", PLAN_REL, "T1", "keep it"]);
+    assert.equal(readStatus(repo), `${statusBody(2)}decision: T1: keep it\n`);
+  });
+});
+
 test("--defer naming a contract id is refused with a warning, like an id no task owns", () => {
   withGitRepo((repo) => {
     seedRaw(repo, CONTRACTS_PLAN, 2);

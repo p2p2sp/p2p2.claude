@@ -412,6 +412,58 @@ test("a run whose status file carries none of those entries reports none of them
   });
 });
 
+test("every owner decision line of status.md is printed in file order between the closed line and the tasks line, a colon in its text intact", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody(TWO_TASKS));
+    write(
+      dir,
+      `${PLAN_DIR}/status.md`,
+      [
+        "# status",
+        "",
+        "progress: 0/2",
+        "done: none",
+        "decision: T2: scope: src/reject.ts only",
+        "closed: memory",
+        "decision: T1: keep the old handler",
+        "",
+      ].join("\n"),
+    );
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(
+      result.stdout,
+      /^closed: memory\ndecision: T2: scope: src\/reject\.ts only\ndecision: T1: keep the old handler\ntasks: /m,
+    );
+  });
+});
+
+test("a status file with no decision line prints the index exactly as before - the tasks line straight after the state lines", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody(TWO_TASKS));
+    seedStatus(dir, { progress: "1/2", done: "T1", closed: "memory" });
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(
+      result.stdout,
+      [
+        `plan: ${PLAN_REL}`,
+        "title: Add login",
+        "progress: 1/2",
+        "closed: memory",
+        "tasks: id | state | tdd | excl | deps | feeds | files | title",
+        "T1 | done | required | - | - | - | src/login.ts | Add the login handler",
+        "T2 | todo | required | - | T1 | - | src/reject.ts | Reject a bad password",
+        "verify: T1 | npm test",
+        "verify: T2 | npm test",
+        "",
+      ].join("\n"),
+    );
+  });
+});
+
 test("a plan with no status file beside it reports nothing done, which is the state of a run that never started", () => {
   withTempDir("p2p2-viber-", (dir) => {
     seed(dir, planBody(TWO_TASKS));

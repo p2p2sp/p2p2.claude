@@ -9,6 +9,7 @@
 #                                        [--landed <sha>]
 #   commit-task.sh <plan-file> <task-id> <fix-number> <file> [<file>...]
 #   commit-task.sh --skip <plan-file> <task-id>
+#   commit-task.sh --decide <plan-file> <task-id> <text>
 #   commit-task.sh --repair <plan-file> <round> <file> [<file>...]
 #   commit-task.sh --chore <plan-file> <file> [<file>...]
 #   commit-task.sh --qa <plan-file> <file> [<file>...]
@@ -107,6 +108,12 @@
 #   unreviewed: T7       --unreviewed, the user waived the review gate
 #   deferred: T7:src/a.ts   --defer, T7 owes that path the test that proves it
 #   closed: memory qa    --chore / --qa, that part of the close is done
+#   decision: T3: <text> --decide, how the owner settled a stalled task; one
+#                        line per decision, appended after the keys above
+#
+# --decide records the owner's decision for one task that is neither done nor
+# skipped. <text> is one non-empty line, stored verbatim (a ":" in it included);
+# the same task id and text recorded twice leaves one line.
 #
 # An absent key is "none". The file is created here when the run has none yet
 # (plan-index.sh --split normally writes it with the decomposition), so a task
@@ -115,9 +122,10 @@
 # The entry has to ride IN the commit, so it is written first and rolled back
 # from a backup if staging or committing fails: a status claiming a task is done
 # that was never committed would be skipped forever on resume. Either the commit
-# exists and the entry is set, or neither is. Only --skip writes without
-# committing: it has no commit of its own to ride in, so the entry waits in
-# status.md for whichever commit comes next.
+# exists and the entry is set, or neither is. Only --skip and --decide write
+# without committing: neither has a commit of its own to ride in, so the entry
+# waits in status.md for whichever commit comes next, and a failed commit rolls
+# status.md back with those entries intact.
 #
 # Every form also stages the run's own trail - the notes and reports under
 # <run-dir>/work/ - with the commit it belongs to, so the trail travels with the
@@ -132,6 +140,7 @@
 #   --repair:                    "committed: <sha>", "subject: <line>", "progress: unchanged"
 #   --chore, --qa, --e2e:        "committed: <sha>", "subject: <line>"
 #   --skip:                      "skipped: <id>", "progress: unchanged" (no commit)
+#   --decide:                    "decided: <id>", "progress: unchanged" (no commit)
 # stderr: a warning listing changed paths no task in the plan claims, the run's
 #         own directory excluded - it holds the plan, the decomposition, the
 #         status file and the trail, which no "Files:" line names and every form
@@ -139,7 +148,8 @@
 #         "took <path> - claimed by committed task <ids>" per owned --with path
 #
 # exit != 0:
-#   2 - bad arguments / missing plan
+#   2 - bad arguments / missing plan; for --decide also an empty or multi-line
+#       <text>, or a task on the done or skipped list (status.md untouched)
 #   3 - no task with that id in the plan
 #   4 - the named files produced no change to the working tree (a task
 #       commit's message names --landed); for --landed, the sha touches none
@@ -155,7 +165,7 @@ shopt -s nullglob
 export GIT_LITERAL_PATHSPECS=1
 
 usage() {
-  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] [--defer <task-id>:<path> [...]] [--landed <sha>] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...]" >&2
+  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] [--defer <task-id>:<path> [...]] [--landed <sha>] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --decide <plan-file> <task-id> <text> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...]" >&2
   exit 2
 }
 
@@ -397,21 +407,30 @@ intask && /^###[[:space:]]/ {
 ' "$1"
 }
 
-# The ids on status.md's "done:" line, one per line - nothing when the run has
-# no status file yet or nothing is done. What tells a claimant still in flight
-# from one whose commit has already landed.
-done_ids() {
+# The ids on one of status.md's id-list lines, one per line - nothing when the
+# run has no status file yet or the list is empty.
+status_ids() {
   local status
   status="$(status_of "$1")"
   [[ -f "$status" ]] || return 0
-  awk '
-/^done:/ {
-  s = $0; sub(/^done:/, "", s)
+  STATUS_KEY="$2:" awk '
+index($0, ENVIRON["STATUS_KEY"]) == 1 {
+  s = substr($0, length(ENVIRON["STATUS_KEY"]) + 1)
   n = split(s, d, /[[:space:]]+/)
   for (k = 1; k <= n; k++) if (d[k] != "" && d[k] != "none" && d[k] != "-") print d[k]
   exit
 }
 ' "$status"
+}
+
+# The done ids: what tells a claimant still in flight from one whose commit has
+# already landed.
+done_ids() {
+  status_ids "$1" done
+}
+
+skipped_ids() {
+  status_ids "$1" skipped
 }
 
 # Scoped to what the plan does NOT claim: at the widest dispatch the tree always
@@ -442,7 +461,7 @@ warn_unclaimed() {
   printf '%s' "$unclaimed" >&2
 }
 
-# --- the one form that records a decision instead of a commit ---
+# --- the two forms that record a decision instead of a commit ---
 # The user dropped this task, which no later session can read off the tree: an
 # untouched task and an abandoned one look exactly alike. The marker has no
 # commit of its own to ride in and waits in the plan for the next one.
@@ -464,6 +483,48 @@ if [[ "${1:-}" == "--skip" ]]; then
   fi
   mark_status "$plan" skipped "$task_id" >/dev/null
   echo "skipped: $task_id"
+  echo "progress: unchanged"
+  exit 0
+fi
+
+# --- the owner's decision on one task, recorded without a commit ---
+# How the user settled a stalled task: it reaches that task's coder and reviewer
+# through the index, survives a resumed session and ends up in the archive. Like
+# --skip it has no commit of its own and waits in status.md for the next one.
+if [[ "${1:-}" == "--decide" ]]; then
+  plan="${2:-}"
+  task_id="${3:-}"
+  [[ -n "$plan" && -n "$task_id" && $# -eq 4 ]] || usage
+  text="$4"
+  if [[ ! -f "$plan" ]]; then
+    echo "error: plan file not found: $plan" >&2
+    exit 2
+  fi
+  if [[ -z "${text//[[:space:]]/}" || "$text" == *$'\n'* || "$text" == *$'\r'* ]]; then
+    echo "error: a decision text is one non-empty line" >&2
+    exit 2
+  fi
+  if ! task_ids_of "$plan" | grep -Fxq -- "$task_id"; then
+    echo "error: no task '$task_id' in $plan" >&2
+    exit 3
+  fi
+  if done_ids "$plan" | grep -Fxq -- "$task_id"; then
+    echo "error: task '$task_id' is already done - a decision would reach no one" >&2
+    exit 2
+  fi
+  if skipped_ids "$plan" | grep -Fxq -- "$task_id"; then
+    echo "error: task '$task_id' is skipped - a decision would reach no one" >&2
+    exit 2
+  fi
+  status="$(status_of "$plan")"
+  entry="decision: $task_id: $text"
+  [[ -f "$status" ]] || write_status "$status" "$(task_total "$plan")"
+  if ! grep -Fxq -- "$entry" "$status"; then
+    # a file cut short of its last newline would glue the entry onto its last key
+    [[ ! -s "$status" || -z "$(tail -c 1 -- "$status")" ]] || printf '\n' >> "$status"
+    printf '%s\n' "$entry" >> "$status"
+  fi
+  echo "decided: $task_id"
   echo "progress: unchanged"
   exit 0
 fi
