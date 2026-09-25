@@ -24,7 +24,7 @@ it to install for the current repository only. From inside a running session,
 
 | Plugin | Use it for |
 | --- | --- |
-| [viber](viber/README.md) | The same trip, shorter & faster: understand it, plan it, build it, remember it. |
+| [viber](viber/README.md) | From an idea to committed code: understand it, plan it, build it, remember it. |
 | [superui](superui/README.md) | Any interface you build, held to professional design standards. Fires by itself. |
 | [superfix](superfix/README.md) | Finding what is actually worth fixing in a codebase. |
 | [superbiz](superbiz/README.md) | Deciding whether a side-project idea is worth building. |
@@ -38,4 +38,4 @@ it to install for the current repository only. From inside a running session,
 | superbiz | web access and Python 3 |
 | superui | Node.js 22.6 or newer, optional: only for the contrast check |
 | supercc | nothing |
-| viber | the `gh` CLI for its GitHub steps, checked by `/viber:setup` |
+| viber | the `gh` CLI for its GitHub steps, checked by `/viber:setup`; optional: `node`, for `/viber:setup`'s settings merge, and Playwright, for `/viber:e2e` |
