@@ -38,7 +38,7 @@ Two sources already hold answers, and a question spent on either is wasted.
 - The conversation that led here - everything already in your context, a fetched issue included.
 - The repo where the answer lives - never spend a question on something the code states.
 
-Open the first question with one line naming what you take as settled from the conversation, so a misreading is corrected before the next branches are built on it.
+When those two sources already answer everything `## Done` asks for, skip every question: open with the line naming what you take as settled, then go straight into `## Done`'s summary and confirmation. Otherwise, open the first question with one line naming what you take as settled from the conversation, so a misreading is corrected before the next branches are built on it.
 
 ## Size the scope first
 
@@ -89,7 +89,7 @@ Do not use `AskUserQuestion`. Interview is a prose - a conversation with a perso
 ## Keep this discipline
 - Simple natural language, in the language the user is writing in. No abbreviation and no acronym - every name written out in full.
 - Never drop a decision to keep a question short.
-- "This is too simple to need a design" is an anti-pattern. If the user came here, the scope is non-trivial; honor that.
+- "This is too simple to need a design" is an anti-pattern for skipping a question whose answer is not yet settled - never invent one because the topic looks small. It does not bar the no-question path above, which fires only once the conversation and the code have actually settled everything, never on a guess that they would.
 - Referring back to an option means naming what it was, never its number alone.
 
 ## Cover, in order
