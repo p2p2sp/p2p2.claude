@@ -1,0 +1,7 @@
+- run-branch.sh is sourced (100644 is fine, no exec bit needed) and has no `set` line: it runs under plan-path.sh's `set -euo pipefail`, so `branch_land` is always called as `branch_land ... || exit $?` (errexit off inside) and `branch_setup` guards every git call with `|| true`.
+- `branch_setup` runs once at the top of plan-path.sh and pre-sets `br_line` to "<current> (kept)"; every path that never switches (no-arg, a landed run plan, allowed with no branch) prints that line through `emit`. Only `branch_land` overwrites it.
+- `{slug}` is always the normalized TITLE of the source (`slug_of`), in the --into path too, not the draft key's slug half: that keeps the landing and the T4 report (which reads the plan alone) in agreement.
+- Dirty means `git status --porcelain` non-empty, untracked files included. The dirty-tree refusal applies only when the target commit differs from HEAD's; the same commit lets the checkout carry the work along.
+- A name is valid only when `git check-ref-format --branch` hands it back unchanged: it expands `@{-1}`, which would otherwise switch to wherever HEAD was before.
+- Branch tests put the source plan in a separate temp dir (`withSource`) and commit `.claude/viber.yml`: anything untracked in the repo makes the tree dirty and trips exit 6.
+- `plan_issue()` duplicates `issue_ref()`; viber/CLAUDE.md's duplication list now names it.

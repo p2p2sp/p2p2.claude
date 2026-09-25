@@ -40,11 +40,34 @@
 # rounds of remarks and still be one run. A target that already started building
 # is refused rather than overwritten.
 #
+# The run branch. Under a branching.mode other than off (config.sh, read by the
+# sourced run-branch.sh; outside a git repository it acts as off), a FIRST
+# landing - a plan-mode source, or a draft round through --into - validates argv
+# and the --into target first, then puts HEAD on the run branch, and only then
+# looks up runs by slug and copies: a run already open on that branch is found
+# there rather than minted again beside it. The run branch is the source's
+# frontmatter "branch:" key (up to its first whitespace; "none" is no branch):
+# kept when HEAD is on it, switched to when it exists, else created from the
+# local base. With no branch recorded, "allowed" keeps the current branch;
+# "required" keeps a non-base branch and on the base creates the branching.name
+# pattern - {type} fix when a task block carries a "Repro:" line, else feature;
+# {issue} the number of the frontmatter "issue:" URL, read as commit-task.sh's
+# issue_ref() reads it; {slug} the run slug - a run of - _ . left next to a / or
+# at either end dropped, // and -- collapsed. A switch that moves HEAD to another
+# commit is refused on a dirty tree (untracked files count); one keeping the
+# commit carries the uncommitted work along. The no-argument form and a source
+# that is itself a landed run plan never switch. Nothing is ever fetched.
+#
 # Contract:
 #   argv   : --land and the source plan, optionally --into and a run key, or
 #            nothing.
 #   file   : <src>'s frontmatter "into:" key, read only when argv carries no
-#            --into, validated and refused exactly as --into.
+#            --into, validated and refused exactly as --into. On a first
+#            landing, <src>'s frontmatter "branch:" and "issue:" keys and its
+#            task blocks' "Repro:" lines, for the run branch.
+#   git    : HEAD moves only in the branch step of a first landing, through
+#            one checkout; every failure before or inside that step leaves
+#            HEAD, the index and the tree as they were.
 #   cwd    : the repository root - every path printed is relative to it, and the
 #            caller splits and stages those paths from there. The config file is
 #            read from there too, as .claude/viber.yml.
@@ -53,7 +76,10 @@
 #     path: docs/_specs/2026-09-19-17-30-00_add-login/plan.md
 #     key: 2026-09-19-17-30-00_add-login
 #     state: new | existing | draft
+#     branch: feature/add-login (created | switched | kept)
 #     open: docs/_specs/2026-09-18-09-12-44_add-search/plan.md | 2/6
+#   The "branch:" line only when branching.mode is not off, "branch: detached
+#   (kept)" on a detached HEAD; every other form reports the current branch kept.
 #   exit != 0:
 #     2 - unusable argv: an unknown first argument, --land without a source, a
 #         source that is not a file, a slug that normalizes to nothing, or an
@@ -62,6 +88,11 @@
 #     3 - no argument and docs/_specs/ holds no plan
 #     4 - --into on a target that is not a draft; nothing was written
 #     5 - the copy failed; nothing was landed
+#     6 - the run branch could not be set: a switch to another commit on a
+#         dirty tree, a base missing locally, an invalid branch name, the base
+#         as target under required, or a detached HEAD under required with no
+#         branch recorded; stderr names the reason; nothing landed, HEAD, index
+#         and tree unchanged
 #
 # One "open:" line per OTHER run still holding a task that is neither committed
 # nor skipped - the resolved run is never among them, and a repository with
@@ -115,6 +146,11 @@ ingroup && /^[[:space:]]+runs[[:space:]]*:/ {
   esac
 fi
 specs_dir="docs/$runs_dir"
+
+# The run branch step and the branching values it reads (run-branch.sh).
+# shellcheck source=run-branch.sh
+. "$(dirname -- "${BASH_SOURCE[0]}")/run-branch.sh"
+branch_setup
 
 # Modification time of a file, 0 when it is missing or unreadable.
 mtime() {
@@ -244,6 +280,26 @@ has_tasks() {
   grep -Eq '^[[:space:]]*<!--[[:space:]]*TASK[[:space:]]*-->[[:space:]]*$' "$1" 2>/dev/null
 }
 
+# The plan's own title, or its file name when it carries no H1.
+title_of() {
+  local title base
+  title="$(awk '/^#[[:space:]]/ { sub(/^#[[:space:]]+/, ""); sub(/\r$/, ""); print; exit }' "$1")"
+  if [[ -z "$title" ]]; then
+    base="$(basename -- "$1")"
+    title="${base%.md}"
+  fi
+  printf '%s\n' "$title"
+}
+
+# The run slug of that plan: its title normalized, empty when nothing survives.
+slug_of() {
+  title_of "$1" \
+    | tr '[:upper:]' '[:lower:]' \
+    | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-*//' -e 's/-*$//' \
+    | cut -c1-60 \
+    | sed -e 's/-*$//'
+}
+
 emit() {
   d="${1%/*}"
   state="$2"
@@ -251,6 +307,7 @@ emit() {
   printf 'path: %s\n' "$1"
   printf 'key: %s\n' "${d##*/}"
   printf 'state: %s\n' "$state"
+  [[ -z "$br_line" ]] || printf 'branch: %s\n' "$br_line"
   # every OTHER run still holding unfinished tasks, so the caller can tell a
   # switch from a fresh start without reading a single file itself
   for f in "$specs_dir"/*/plan.md; do
@@ -339,6 +396,7 @@ if [[ "$into_set" == 1 ]]; then
     echo "error: $specs_dir/$into is not a draft - it carries tasks, a decomposition or progress" >&2
     exit 4
   fi
+  branch_land "$src" "$(slug_of "$src")" || exit $?
   if ! cp -- "$src" "$dest"; then
     echo "error: could not land the plan at $dest" >&2
     exit 5
@@ -361,25 +419,15 @@ if [[ "$(basename -- "$src")" == "plan.md" && -n "$src_dir" && -d "$specs_dir" ]
   fi
 fi
 
-# The slug: the plan's own title, or its file name when it carries no H1.
-title="$(awk '/^#[[:space:]]/ { sub(/^#[[:space:]]+/, ""); sub(/\r$/, ""); print; exit }' "$src")"
-if [[ -z "$title" ]]; then
-  base="$(basename -- "$src")"
-  title="${base%.md}"
-fi
-
-slug="$(
-  printf '%s' "$title" \
-    | tr '[:upper:]' '[:lower:]' \
-    | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-*//' -e 's/-*$//' \
-    | cut -c1-60 \
-    | sed -e 's/-*$//'
-)"
-
+slug="$(slug_of "$src")"
 if [[ -z "$slug" ]]; then
-  echo "error: slug is empty after normalization: $title" >&2
+  echo "error: slug is empty after normalization: $(title_of "$src")" >&2
   exit 2
 fi
+
+# The run branch, set before the lookup below: a run already open for this slug
+# may sit on that branch alone, and switching first is what finds it there.
+branch_land "$src" "$slug" || exit $?
 
 # --- a run already open for that slug: its progress is the state, leave it ---
 # Only a run with something left to do answers: a draft, or a task neither

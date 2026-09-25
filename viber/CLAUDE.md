@@ -16,7 +16,7 @@ skills/<name>/           12 skills: SKILL.md plus files read at one step (templa
                          references/, assets/); setup, memory, rules, commit bundle scripts/
 agents/                  14 agents, each dispatched only by the callers its description names
                          (update it when a skill starts or stops dispatching the agent)
-scripts/                 12 plugin-wide scripts, shared across skills and agents
+scripts/                 13 plugin-wide scripts, shared across skills and agents
 references/              read at runtime by agents through the `refs:` dispatch line
 hooks/                   SessionStart manifest + PreToolUse plan gate
 ```
@@ -123,7 +123,8 @@ The template shape (`<!-- TASK -->` markers, `### T<n> - <title>` headings, task
 
 ## Duplicated on purpose - change together
 
-- `issue_ref()` (plan frontmatter `issue:` URL to `#<N>`): `commit-task.sh`, `plan-index.sh`.
+- `issue_ref()` (plan frontmatter `issue:` URL to `#<N>`): `commit-task.sh`, `plan-index.sh`,
+  and `run-branch.sh`'s `plan_issue()` (the bare number, for `{issue}`).
 - `directories.runs` / `directories.specifications` parsing and sanitizing: `config.sh`,
   `plan-path.sh`, `archive-run.sh`.
 - Node budget 12000 / 32000: `references/node-doctrine.md`, `skills/memory/scripts/memory-map.sh`,
