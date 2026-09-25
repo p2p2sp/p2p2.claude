@@ -1,0 +1,2 @@
+- Appended one sentence to `fixer`'s description, mirroring `intent`'s exact closing pattern ("Not for a ___ the user asked to ___ directly, without a plan."), substituting "fix"/"apply" for "change"/"make" to match fixer's own domain vocabulary.
+- No other text in the description was touched, satisfying DoD.2.
