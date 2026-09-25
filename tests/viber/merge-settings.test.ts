@@ -376,6 +376,18 @@ test("a settings.json that is not valid JSON (comments) is left byte-for-byte un
   });
 });
 
+test("no node on PATH and no target yet: the target is created from the template byte-identical, exit 0 (a missing target is a plain copy, so it needs no node)", () => {
+  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+    const target = targetPath(dir);
+
+    const result = runWithoutNode(dir, TEMPLATE_SETTINGS, target);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "settings.json: created from template\n");
+    assert.equal(fs.readFileSync(target, "utf-8"), fs.readFileSync(TEMPLATE_SETTINGS, "utf-8"));
+  });
+});
+
 test("no node on PATH: the merge is skipped with the recommended block on stdout and the target untouched, exit 0", () => {
   withTempDir("p2p2-viber-merge-settings-", (dir) => {
     const target = targetPath(dir);

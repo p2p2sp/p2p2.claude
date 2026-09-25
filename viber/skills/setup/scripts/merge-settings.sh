@@ -19,6 +19,10 @@
 #                       current dir outside a repository), so a run from a
 #                       subdirectory never seeds a nested .claude/.
 #
+# A missing target (with or without --reset) is always created from the
+# template by a plain copy, needing no node. node is checked, and needed,
+# only once a real merge into an EXISTING target is due.
+#
 # Merge rules (applied by the sibling merge program, only when the target
 # already exists), walked recursively over every key of the template:
 #   - a key the host lacks is added with the template's value.
@@ -115,14 +119,8 @@ if [ "$reset" = 1 ]; then
   exit 2
 fi
 
-# node carries the merge (JSON in, JSON out); without it the step is skipped
-# with the recommended block on stdout, never guessed at with a text editor.
-if ! command -v node >/dev/null 2>&1; then
-  echo "settings.json: node not found - merge skipped, recommended block:"
-  cat "$template"
-  exit 0
-fi
-
+# A missing target is a plain copy, so it is created before the node check:
+# only a real merge (an existing target) needs node.
 if [ ! -f "$target" ]; then
   mkdir -p "$(dirname "$target")" 2>/dev/null
   if cp "$template" "$target" 2>/dev/null; then
@@ -131,6 +129,14 @@ if [ ! -f "$target" ]; then
   fi
   echo "settings.json: write failed (cannot create $target)"
   exit 2
+fi
+
+# node carries the merge (JSON in, JSON out); without it the step is skipped
+# with the recommended block on stdout, never guessed at with a text editor.
+if ! command -v node >/dev/null 2>&1; then
+  echo "settings.json: node not found - merge skipped, recommended block:"
+  cat "$template"
+  exit 0
 fi
 
 node "$here/merge-settings.js" "$template" "$target"
