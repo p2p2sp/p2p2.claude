@@ -55,6 +55,9 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   (defaults `haiku`/`opus`, `fable` only when named; `min` above `max` resets both).
 - Coder `EXTRA:` becomes `--with`, `DEFERRED:` becomes `--defer`, stored as `deferred:` in
   `status.md` and handed to the owing task's coder and reviewer.
+- `decide` (offered only on a task's second coder failure, beside retry/skip/abort, or second
+  failed review round, beside retry/accept/abort) is the owner's ruling on a stalled task,
+  overriding the task file for it and its dependents.
 - task-coder, task-reviewer, test-runner and e2e-writer share a "Stop what you started" section;
   `implementor`'s and `e2e`'s `SendMessage` on a "stopped with background work" notice, or a
   reply with no `VERDICT:` line, is its other half.
@@ -64,9 +67,9 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 ## Commit ownership
 
 - Only scripts commit: `plan-index.sh --split` (the decomposition), `commit-task.sh` (every task,
-  repair, close and e2e commit, `--skip`, and `--landed <sha>` recording a task another commit
-  carried in its own `chore(viber)` commit, never with `--with`), `archive-run.sh` (the
-  archive), and outside a build the `commit` skill's `commit.sh`. No agent or skill runs
+  repair, close and e2e commit, `--skip`, `--decide`, and `--landed <sha>` recording a task
+  another commit carried in its own `chore(viber)` commit, never with `--with`), `archive-run.sh`
+  (the archive), and outside a build the `commit` skill's `commit.sh`. No agent or skill runs
   `git add` or `git commit`. `planner` leaves a landed draft uncommitted; `memory` and `rules`
   leave their writes unstaged.
 - `commit-task.sh` never takes a subject from its caller (a task commit is the plan's
@@ -92,34 +95,12 @@ copies (never moves) the plan-mode file, a round landing into the draft its `int
 only the scaffolding it enumerates, and refuses a run with a task in neither `done` nor
 `skipped`. `closeout` edits `spec.md` first, so the drift edit and the move are one commit.
 
-## The run branch
+## Sections
 
-- `branching:` (`mode` off|allowed|required, default `off`) nests `work` entries (`base`, `name`
-  pattern, `target`) and `issue-type-mappings` (type to entry key). The flat `base`/`name` group
-  and `{issue}` are refused only when a branch must be cut, never for an existing one. The loaded
-  config block names only the mode. Schema: `viber/BRANCHING.md`.
-- `planner` reads `plan-path.sh --branch <plan>` (`suggested:`, one `entry:` per usable entry,
-  `error:` on a missing/unmapped type with mappings set), asks one question for both, writes
-  `work:` beside `branch:` (`plan_field()`). A draft round carries both; a title,
-  issue or `Repro:` change re-runs the report.
-- A first landing resolves the entry (`branch_entry`), cuts from its `base` before any lookup;
-  `implementor` learns the PR target only from the `target:` line, not config.
-- Exit 6: dirty tree; base missing locally; invalid name; a `required` breach; no entry resolves;
-  a legacy/invalid `work` group (checked only on creation).
-
-## The plan format is parsed in five places
-
-The template shape (`<!-- TASK -->` markers, `### T<n> - <title>` headings, task fields, the
-`## Contracts` appendix of `### C<n>` blocks opening on `File:`) is read by `plan-index.sh`,
-`plan-path.sh` (its comment strip must keep the TASK markers), `commit-task.sh` (subject,
-`Files:` staging), `archive-run.sh` and `run-branch.sh`'s `plan_type()` (a task's `Repro:` line,
-for `{type}`). A field or marker change touches the templates, `references/plan-rules.md` and
-every parser.
-
-- A rule switching its `plan-rules.md` tag, `(script)` or `(review)`, moves its enforcement too.
-- A landed plan is frozen, so a run resumed after an upgrade must still validate: a new
-  `plan-index.sh` check stays exempt under `--split` (the Exclusive-leaf rule) or skips a plan
-  predating it (a contract appendix with no `File:` line at all).
+- Read `CLAUDE.plan-format.md` before changing the plan template, `plan-rules.md`, a plan
+  parser or how `--split` cuts a task file.
+- Read `CLAUDE.run-branch.md` before touching `branching:`, `run-branch.sh` or `plan-path.sh --branch`.
+- Read `CLAUDE.owner-decisions.md` before touching the owner decision channel.
 
 ## Duplicated on purpose - change together
 
@@ -145,6 +126,8 @@ every parser.
   `qa` (`planner`'s e2e hand-off line).
 - End-to-end tests only on the user's own ask: `test-strategy.md`, `planner`, `intent`,
   `PRODUCT.md`.
+- "One behaviour per `DoD` clause": `task-coder.md`'s TDD bullet and `skills/tdd/SKILL.md`
+  step 1.
 
 ## Memory and rules layers
 
