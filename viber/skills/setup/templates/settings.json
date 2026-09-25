@@ -44,7 +44,8 @@
       "Bash(find * -delete*)",
       "Bash(find * -exec rm *)",
       "Bash(git * --force*)",
-      "Bash(git reset --hard:*)"
+      "Bash(git reset --hard:*)",
+      "Bash(rm -rf:*)"
     ],
     "deny": [
       "Bash(aws:*)",
