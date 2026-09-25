@@ -567,6 +567,12 @@ end-to-end, podaj takie, które je pomija: build nigdy ich nie uruchamia, chyba 
 built before you approve the plan.</p>
 <p lang="pl"><code>intent</code> i <code>fixer</code> kończą się na planiście, <code>prototype</code> kończy się na <code>intent</code>, a nic
 nie powstaje, zanim nie zatwierdzisz planu.</p>
+<p lang="en">A plan that stopped at a draft, with no tasks yet, continues the same way: point <code>/viber:intent</code>
+at it. A build interrupted halfway resumes by asking Claude to continue the build, which reopens
+the run most recently worked on.</p>
+<p lang="pl">Plan, który zatrzymał się na szkicu, jeszcze bez zadań, kontynuujesz tak samo: wskaż na niego
+<code>/viber:intent</code>. Przerwany w połowie build wznawiasz, prosząc Claude o kontynuację buildu -
+wtedy wraca do przebiegu, nad którym pracowano ostatnio.</p>
 </section>
 
 <section id="issues">

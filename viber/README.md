@@ -125,8 +125,10 @@ does not name them, every agent in the run has to guess. Write them down once.
 `docs/_specs/<date>_<slug>/` holds the plan as it was approved and a `status.md` next to it with
 the run's progress, so a build interrupted halfway
 resumes by re-reading it - in a new session, or on another computer, because the notes and reports
-the run produced are committed beside the plan. The plan itself is never edited once it lands.
-With `qa` on, the build's test scenarios land there
+the run produced are committed beside the plan: just ask Claude to continue the build, and it
+reopens the run most recently worked on. A plan that stopped at a draft, with no tasks yet, is not
+a build to resume: point `/viber:intent` at it instead to continue it. The plan itself is never
+edited once it lands. With `qa` on, the build's test scenarios land there
 too.
 
 With `cleanup` on, the build ends by moving what is worth keeping - the specification and the test
