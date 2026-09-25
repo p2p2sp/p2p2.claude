@@ -30,8 +30,10 @@ when its tool is missing.
 | `/viber:rules` | Reviews or extends your project's `.claude/rules/` on your own schedule. |
 | "commit" | Your changes, or only the paths you name, committed with a Conventional Commits message. Name an issue (`#42`) and it becomes the `Refs:` footer. |
 
-A typical run is `/viber:setup` once, then `/viber:intent`. The interview is not a step you can skip: ask for a plan without one behind it and the interview starts
-first, however clear the change already reads. A bug goes the same way through `/viber:fixer`.
+A typical run is `/viber:setup` once, then `/viber:intent`. Ask for a plan without an interview
+behind it, however clear the change already reads, and viber suggests the `viber:intent` interview
+first - you decide whether to run it or plan directly. A bug goes the same way through
+`/viber:fixer`: viber suggests it and you decide.
 
 With `issues` on, point `/viber:intent` or `/viber:fixer` at a GitHub issue - `#42`, its number
 alone, or a link - and it reads that issue instead of asking you to restate it, then keeps working
