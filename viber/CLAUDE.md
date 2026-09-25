@@ -10,7 +10,6 @@ and `references/integration-tests.md` turn into rules.
 skills/<name>/           12 skills: SKILL.md plus files read at one step;
                          setup, memory, rules, commit bundle scripts/
 agents/                  14 agents, each dispatched only by the callers its description names
-                         (update it when a skill starts or stops dispatching the agent)
 scripts/                 13 plugin-wide scripts
 references/              read at runtime by agents through the `refs:` dispatch line
 hooks/                   SessionStart manifest + PreToolUse plan gate
@@ -79,7 +78,8 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
 - `commit-args.sh` is the ONE selector parser, sourced by `commit-context.sh` and `commit.sh`;
   the fork never widens the selector.
 - The `commit` skill's `git rev-parse` and `cat` preloads are inline commands under a bare `Bash`
-  allow: the one exception to the literal-script-line preload form.
+  allow: the one exception to the literal-script-line preload form. Its bundled scripts carry
+  their own pattern instead.
 
 ## The run directory
 
@@ -108,7 +108,7 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
 - A first landing sets the branch before any run lookup or copy, so a run open there is found,
   never minted again; `implementor` names a branch other than `base` as the PR source.
 - Exit 6: branch not set (dirty tree, untracked counting; base missing locally, never fetched;
-  invalid name; a `required` breach). Nothing lands or moves; `planner` and `implementor` stop.
+  invalid name; a `required` breach). Nothing lands or moves.
 
 ## The plan format is parsed in five places
 
@@ -119,8 +119,8 @@ The template shape (`<!-- TASK -->` markers, `### T<n> - <title>` headings, task
 for `{type}`). A field or marker change touches the templates, `references/plan-rules.md` and
 every parser.
 
-- In `plan-rules.md`, `(script)` means `plan-index.sh` rejects the breach and `(review)` means
-  `planner-review` gates it: a rule moving between the two moves its enforcement with it.
+- A rule moving between `plan-rules.md`'s `(script)` and `(review)` tags moves its enforcement
+  with it.
 - A landed plan is frozen, so a run resumed after an upgrade must still validate: a new
   `plan-index.sh` check stays exempt under `--split` (the Exclusive-leaf rule) or skips a plan
   predating it (a contract appendix with no `File:` line at all).
@@ -137,8 +137,8 @@ every parser.
   `skills/rules/scripts/rules-map.sh`, `skills/rules/SKILL.md`.
 - The frozen `_`-prefixed rule file: `rules-map.sh`, `rules-auditor`, `rules-writer`.
 - An agent's `tools:` frontmatter and the tool list its opening paragraph names.
-- `references/qa-format.md` is the one format authority for `qa-writer`, `e2e-writer` and the
-  `e2e` skill, which routes on its `##` headings.
+- `references/qa-format.md` is the one format authority for `qa-writer`, `e2e-writer` and `e2e`,
+  which routes on its `##` headings.
 - A new switch: `skills/setup/templates/viber.yml` (`bootstrap.sh` appends a key an existing
   config lacks), `config.sh`'s key list and fixed output order, `README.md`, `usage.html`, and
   the consuming skill (implementor's step 3 opens one close entry per close switch).
@@ -149,9 +149,9 @@ every parser.
 ## Memory and rules layers
 
 - `memory-writer` may leave a node over budget (`OVER:`): `implementor` dispatches one
-  `memory-auditor` per path (its lone `AUDIT:` line is no missing verdict), then
-  `memory-node-writer` (`planned: none`) in waves by depth, root first; a later wave writing
-  outside its node or deleting one adds a last root dispatch, its index rebuilt from the tree.
+  `memory-auditor` per path, then `memory-node-writer` (`planned: none`) in waves by depth, root
+  first; a later wave writing outside its node or deleting one adds a last root dispatch, its
+  index rebuilt from the tree.
 - `rules-auditor` and `rules-writer` pass every line through `references/rule-admission.md`; a
   fact about one place leaves as `MOVE:` for the memory layer. `rules-writer` never writes a
   `CLAUDE.md`, `memory-writer` never touches `.claude/rules/`.
@@ -159,8 +159,9 @@ every parser.
 ## Plan gate
 
 `hooks/scripts/plan-gate.sh` arms on a write to `plans/*.md` in the current plan-mode episode and
-picks `planner-review` when a Skill tool_use named `planner` (any plugin prefix) ran in it, else
-`plain-plan-review` when `config.sh` (payload `cwd`) resolves `plain-plan-review: true`.
+picks `planner-review` when a Skill tool_use named bare `planner` or `viber:planner` ran in it
+(not another plugin's `planner`), else `plain-plan-review` when `config.sh` (payload `cwd`)
+resolves `plain-plan-review: true`.
 `ExitPlanMode` passes only after that agent, dispatched after the last plan write, returned
 `VERDICT: PASS` and the plan's mtime is not newer. The deny reason is the plain path's only
 instruction channel. Names match literally: renaming the skill, either agent, the switch or the
@@ -170,7 +171,9 @@ verdict line disarms the fail-open gate silently.
 
 - `triage`, `intent`, `fixer`, `prototype`: `gh`, only through the shared issue scripts in
   `scripts/`; without it each reports the script's `ERROR` line and pasted text still works,
-  unpublished. A create or comment exit 1 leaves the landing unknown and is never retried.
+  unpublished. A create or comment exit 1 leaves the landing unknown and is never retried. Each
+  such call, plus `planner`'s ADR-task step, runs after a prose question ends the turn, so all
+  four rely on the bare `Bash` allow `/viber:setup` installs.
 - A multi-line issue body or comment travels only as a file under `.temp/viber/<skill>/` through
   `--body-file`. `intent`'s and `prototype`'s write access there is pre-approved as
   `Edit(./.temp/viber/<skill>/**)`, not `Write(...)`: a file write matches `Edit` rules only.
