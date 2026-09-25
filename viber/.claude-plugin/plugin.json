@@ -9,6 +9,7 @@
   "skills": [
     "./skills/setup/",
     "./skills/triage/",
+    "./skills/prototype/",
     "./skills/intent/",
     "./skills/planner/",
     "./skills/implementor/",
