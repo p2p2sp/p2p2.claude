@@ -2,11 +2,15 @@
 name: triage
 description: Reviews one reported issue against the current code - whether it can be done, how, what it affects and how big the change is - classifies it and names the next viber step without taking it. Takes a GitHub issue number or URL, or pasted issue text, and can post the report as a comment on the issue.
 argument-hint: "[issue number, issue URL, or pasted issue text]"
-allowed-tools: Read, Grep, Glob, Write, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*)
+allowed-tools: Read, Grep, Glob, Write, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*)
 disallowed-tools: Skill, Agent, Edit, NotebookEdit, AskUserQuestion
 user-invocable: true
 disable-model-invocation: true
 ---
+
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/config.sh"
+```
 
 # triage
 
@@ -18,7 +22,9 @@ Every script run is one literal Bash line spelled as below: never prefixed with 
 
 ## 1. Read the issue
 
-- The argument is a single token that is a number, `#<N>` or an issue URL -> run `"${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh" "<argument>"`. Exit 0 -> its block is the issue, body and comments included: trust it, never fetch it again. Exit 1 or 2 -> report its `ERROR` line and stop.
+- The config block above carries `issues: true` or `issues: false`.
+- `issues: true` and the argument is a single token that is a number, `#<N>` or an issue URL -> run `"${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh" "<argument>"`. Exit 0 -> its block is the issue, body and comments included: trust it, never fetch it again. Exit 1 or 2 -> report its `ERROR` line and stop.
+- `issues: false` and the argument is a single token that is a number, `#<N>` or an issue URL -> say issue handling is off and ask for the pasted issue text, then stop: never fetch it.
 - Any other argument is the pasted issue text. Nothing is published for it: step 4 is skipped.
 - No argument -> say triage needs an issue number, an issue URL or the issue text, and stop.
 

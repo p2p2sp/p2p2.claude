@@ -695,12 +695,14 @@ rozjechać z kodem.</p>
   </div>
   <div>
     <dt><code>issues</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
-    <dd><span lang="en"><code>intent</code>, <code>fixer</code> and <code>prototype</code> can start from a GitHub issue by number or
+    <dd><span lang="en"><code>intent</code>, <code>fixer</code>, <code>prototype</code> and <code>triage</code> can start from a GitHub issue by number or
     link, an interview that did not start from one can save its conclusions as a new issue, and a build
-    tied to an issue ends every commit with <code>Refs: #&lt;N&gt;</code>.</span><span lang="pl"><code>intent</code>,
-    <code>fixer</code> i <code>prototype</code> mogą zacząć od issue na GitHubie, podanego numerem lub linkiem;
+    tied to an issue ends every commit with <code>Refs: #&lt;N&gt;</code>. Off, <code>triage</code> only assesses
+    pasted issue text.</span><span lang="pl"><code>intent</code>,
+    <code>fixer</code>, <code>prototype</code> i <code>triage</code> mogą zacząć od issue na GitHubie, podanego numerem lub linkiem;
     wywiad, który nie zaczął się od issue, może zapisać swoje wnioski jako nowe issue, a build powiązany
-    z issue kończy każdy commit linią <code>Refs: #&lt;N&gt;</code>.</span></dd>
+    z issue kończy każdy commit linią <code>Refs: #&lt;N&gt;</code>. Przy wyłączonym przełączniku
+    <code>triage</code> ocenia tylko wklejony tekst issue.</span></dd>
   </div>
 </dl>
 <p lang="en">Six of the seven start on; <code>qa</code> starts off, because a build that needs acceptance scenarios is the
