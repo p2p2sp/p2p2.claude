@@ -700,6 +700,84 @@ test("--land keeps the frontmatter and points its source: at the landed copy, si
   });
 });
 
+for (const [fence, other] of [["```", "~~~"], ["~~~", "```"]] as const) {
+  test(`--land copies a ${fence} fenced block under ## Contracts through whole, its comment and blank lines included, and still strips the guidance outside it (a slot in a contract shape is content, not guidance)`, () => {
+    withTempDir("p2p2-viber-", (dir) => {
+      const block = [
+        `${fence}md`,
+        "<!-- slot -->",
+        "",
+        "",
+        other,
+        "<!-- still inside: the other fence character closes nothing -->",
+        `${fence}`,
+      ].join("\n");
+      const body = [
+        "# Add Login",
+        "",
+        "## Tasks",
+        "",
+        "<!-- TASK -->",
+        "### T1 - do the thing",
+        "- Files: src/a.ts",
+        "<!-- /TASK -->",
+        "",
+        "## Contracts",
+        "",
+        "### C1 - Page shape",
+        "",
+        "File: none",
+        "",
+        block,
+        "",
+        "<!-- guidance below the shape -->",
+        "",
+      ].join("\n");
+      const src = sourcePlan(dir, "outside/fenced.md", body);
+
+      const result = run(dir, ["--land", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+      const landed = fs.readFileSync(path.join(dir, parse(result.stdout).path), "utf-8");
+      assert.ok(landed.includes(`\n${block}\n`), landed);
+      assert.doesNotMatch(landed, /guidance below the shape/);
+    });
+  });
+}
+
+test("--land still drops a comment opened outside any fence whole, a fence line inside it included (a fence inside guidance opens nothing)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const body = [
+      "# Add Login",
+      "",
+      "<!-- guidance that runs on",
+      "```",
+      "an example inside the guidance",
+      "-->",
+      "",
+      "Kept after the guidance.",
+      "",
+      "## Tasks",
+      "",
+      "<!-- TASK -->",
+      "### T1 - do the thing",
+      "- Files: src/a.ts",
+      "<!-- /TASK -->",
+      "",
+      "<!-- trailing guidance -->",
+      "",
+    ].join("\n");
+    const src = sourcePlan(dir, "outside/unclosed.md", body);
+
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+    const landed = fs.readFileSync(path.join(dir, parse(result.stdout).path), "utf-8");
+    assert.match(landed, /^# Add Login\n\nKept after the guidance\.\n\n## Tasks\n/);
+    assert.doesNotMatch(landed, /guidance that runs on|```|an example inside|trailing guidance/);
+  });
+});
+
 // --- open runs: unfinished work the caller cannot see for itself ------------
 
 test("landing a fresh plan while another run is unfinished reports that run as an open: line", () => {

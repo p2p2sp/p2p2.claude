@@ -32,9 +32,11 @@
 # guidance comments on the way in: everything the run itself reads stays
 # (<!-- TASK -->, <!-- /TASK -->, and <!-- source: --> for a plan written before
 # that path moved into the frontmatter), the rest would only ride through
-# spec.md and every task file into the build. The frontmatter is not a comment
-# and survives whole but for its "source:" line, which the copy rewrites to its
-# own absolute path.
+# spec.md and every task file into the build. A fenced block (``` or ~~~ up to
+# the closing fence of the same character) is content, not guidance: every line
+# of it, comments and blank lines included, is copied through untouched. The
+# frontmatter is not a comment and survives whole but for its "source:" line,
+# which the copy rewrites to its own absolute path.
 #
 # --into names ONE directory under docs/<runs>/ - no slash, no "." and no ".." -
 # and that directory has to be a DRAFT: a run whose plan carries not one task
@@ -246,7 +248,9 @@ END {
 # before the source path moved into the frontmatter - and a comment block
 # spanning several lines goes whole. Blank runs left behind collapse to one, so
 # the result reads like a plan written without them. Nothing that is not a
-# comment is touched, which is how the frontmatter comes through whole.
+# comment is touched, which is how the frontmatter comes through whole, and
+# nothing inside a fenced block is either: a comment opened outside a fence
+# still goes whole, a fence line inside it included.
 # In place, on the COPY only.
 strip_guidance() {
   tmp="$1.tmp.$$"
@@ -255,11 +259,14 @@ function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); ret
 {
   t = trim($0)
   if (inblock) { if (t ~ /-->/) inblock = 0; next }
-  if (t ~ /^<!--/ && t !~ /^<!--[[:space:]]*\/?TASK[[:space:]]*-->$/ && t !~ /^<!--[[:space:]]*source:/) {
-    if (t !~ /-->/) inblock = 1
-    next
-  }
-  if (t == "") { blank = 1; next }
+  if (fence == "") {
+    if (t ~ /^<!--/ && t !~ /^<!--[[:space:]]*\/?TASK[[:space:]]*-->$/ && t !~ /^<!--[[:space:]]*source:/) {
+      if (t !~ /-->/) inblock = 1
+      next
+    }
+    if (t == "") { blank = 1; next }
+    if (t ~ /^(```|~~~)/) fence = substr(t, 1, 3)
+  } else if (substr(t, 1, 3) == fence && t ~ /^(```+|~~~+)$/) fence = ""
   if (blank && NR > 1 && kept) print ""
   blank = 0; kept = 1
   print

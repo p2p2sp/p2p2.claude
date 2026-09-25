@@ -64,7 +64,9 @@
 #                    WHAT and WHY, read by the user and by the closing writers.
 #                    The frontmatter and every HTML comment are cut out of it:
 #                    both belong to the run, not to the specification the
-#                    archive keeps.
+#                    archive keeps. A fenced block (``` or ~~~ up to the
+#                    closing fence of the same character) is content and
+#                    stays whole, comments and blank lines included.
 #   tasks/<id>.md  - the whole job of one coder: its task block, then the
 #                    plan's "## Goal", the text of the criteria its "Covers:" line
 #                    names, the "## Contracts" blocks its "Uses:" line names, the
@@ -626,7 +628,8 @@ END {
   # a plan written before the source path moved into the frontmatter carries that
   # marker as a comment too. Nothing above the cut is read by anything here, so
   # the cut takes them all, single-line and block alike, and collapses the blank
-  # runs they leave so the head reads like a document written without them.
+  # runs they leave so the head reads like a document written without them. A
+  # fenced block is copied through line for line: a comment there is an example.
   # (No apostrophe anywhere in here: this comment sits INSIDE the single-quoted
   # awk program, where one would close the quote.)
   spec = dir "/spec.md"
@@ -654,8 +657,11 @@ END {
   for (i = sfrom; i < cut; i++) {
     t = trim(line[i])
     if (incom) { if (t ~ /-->/) incom = 0; continue }
-    if (t ~ /^<!--/) { if (t !~ /-->/) incom = 1; continue }
-    if (t == "") { sblank = 1; continue }
+    if (sfence == "") {
+      if (t ~ /^<!--/) { if (t !~ /-->/) incom = 1; continue }
+      if (t == "") { sblank = 1; continue }
+      if (t ~ /^(```|~~~)/) sfence = substr(t, 1, 3)
+    } else if (substr(t, 1, 3) == sfence && t ~ /^(```+|~~~+)$/) sfence = ""
     if (sblank && skept) print "" > spec
     sblank = 0; skept = 1
     print line[i] > spec

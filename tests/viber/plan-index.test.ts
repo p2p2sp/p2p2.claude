@@ -978,6 +978,55 @@ test("spec.md carries neither the frontmatter nor one HTML comment - the run plu
   });
 });
 
+for (const [fence, other] of [["```", "~~~"], ["~~~", "```"]] as const) {
+  test(`spec.md keeps a ${fence} fenced block above ## Tasks whole, its comment and blank lines included, and still cuts the comments outside it (a comment in an example is content, not guidance)`, () => {
+    withTempDir("p2p2-viber-", (dir) => {
+      const block = [
+        `${fence}html`,
+        "<!-- slot -->",
+        "",
+        "",
+        other,
+        "<!-- still inside: the other fence character closes nothing -->",
+        `${fence}`,
+      ].join("\n");
+      seed(
+        dir,
+        planBody(TWO_TASKS).replace(
+          "## Scope\n",
+          ["<!-- guidance above the example -->", "", block, "", "## Scope", ""].join("\n"),
+        ),
+      );
+
+      const r = run(dir, {}, [PLAN_REL, "--split"]);
+      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+      const spec = readRun(dir, "spec.md");
+      assert.ok(spec.includes(`\n\n${block}\n\n## Scope\n`), spec);
+      assert.doesNotMatch(spec, /guidance above the example/);
+    });
+  });
+}
+
+test("spec.md still loses a comment opened outside any fence whole, a fence line inside it included (a fence inside guidance opens nothing)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(
+      dir,
+      planBody(TWO_TASKS).replace(
+        "## Scope\n",
+        ["<!-- guidance that runs on", "```", "an example inside the guidance", "-->", "", "## Scope", ""].join("\n"),
+      ),
+    );
+
+    const r = run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+
+    const spec = readRun(dir, "spec.md");
+    assert.match(spec, /^2\. An invalid password is rejected\.\n\n## Scope\n/m);
+    assert.doesNotMatch(spec, /guidance that runs on|```|an example inside/);
+  });
+});
+
 test("a plan frontmatter issue: line makes spec.md open with its own three-line frontmatter, then the specification as today", () => {
   withTempDir("p2p2-viber-", (dir) => {
     // source and into ride the plan for the run's own plumbing; issue is the
