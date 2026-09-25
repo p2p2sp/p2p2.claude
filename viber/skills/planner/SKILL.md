@@ -39,7 +39,7 @@ A round continuing a draft reads `docs/<directories.runs>/<key>/plan.md` first a
 
 An input carrying a roadmap fills `## Roadmap` with the ordered subprojects, marks the entry this plan covers and repeats every later entry under `### Out of scope`; no roadmap in the input means no such section. What a later entry brings stays absent: no task delivers a stand-in for it, no acceptance criterion depends on it, nothing is stubbed, mocked or temporarily substituted.
 
-A plan stopping at a draft ends the step here: the specification half alone, no `## Tasks`, no `## Contracts` appendix, no `plan-index.sh`. Go to step 3.
+A plan stopping at a draft ends the step here: the specification half alone, no `## Tasks`, no `## Contracts` appendix, no `plan-index.sh`. A round continuing a draft already carries that draft's `branch:` key over (above) and asks nothing here. Otherwise, under `branching.mode` `allowed` or `required`, run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --branch "<plan-path>"` as one literal Bash line, no interpreter word in front, and read its report (`mode: off` needs no question). Ask one `AskUserQuestion`: stay on `current:` when it is not `base:`, create `new:` from `base:` - naming `base:` behind its remote when `behind:` is a number above 0, and naming the tree dirty when `dirty: yes` would block that switch - and, under `mode: allowed` only, work without a branch. Write the chosen answer into this draft's frontmatter `branch:` key: the branch name for the first two answers, `none` for the last. Go to step 3.
 
 With `adr: true` above, read `${CLAUDE_SKILL_DIR}/references/adr-tasks.md` before writing the tasks and follow it; otherwise skip it.
 
@@ -47,12 +47,14 @@ Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan-path>` as one lite
 
 Show the user the full path of the written plan.
 
+A round continuing a draft already carries that draft's `branch:` key over (above) and asks nothing here. Otherwise, once `plan-index.sh` has passed and under `branching.mode` `allowed` or `required`, run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --branch "<plan-path>"` as one literal Bash line, no interpreter word in front, and read its report (`mode: off` needs no question). Ask one `AskUserQuestion`: stay on `current:` when it is not `base:`, create `new:` from `base:` - naming `base:` behind its remote when `behind:` is a number above 0, and naming the tree dirty when `dirty: yes` would block that switch - and, under `mode: allowed` only, work without a branch. Write the chosen answer into the plan's frontmatter `branch:` key: the branch name for the first two answers, `none` for the last, before dispatching the review below.
+
 ## 3. Review gate
 
 Dispatch the `viber:planner-review` agent with the plan path, `refs: ${CLAUDE_PLUGIN_ROOT}/references` and `memory: <value>`, the `memory:` line of the config block resolved above. A draft adds the line `scope: spec`. From round 2 on, also pass the previous findings verbatim and one line per fix you applied.
 
 - `VERDICT: PASS` - go to step 4.
-- `VERDICT: FAIL` - show the findings, fix the plan, re-run `plan-index.sh` after every fix unless the plan is a draft, then dispatch again. A finding that needs a decision only the user can make gets asked first, and the answer starts a fresh round 1.
+- `VERDICT: FAIL` - show the findings, fix the plan, re-run `plan-index.sh` after every fix unless the plan is a draft, then dispatch again. A fix that changes the plan's title, issue reference or a task's `Repro:` line re-runs the branch report first; repeat the branch question only when that report's `new:` name or its offered answers actually changed, otherwise leave the recorded `branch:` key standing. A finding that needs a decision only the user can make gets asked first, and the answer starts a fresh round 1.
 - `VERDICT: DENIED` - one `AskUserQuestion` naming the refused call from its `REASON:` line: permission added and retry, dispatching again in the same round, or stop with the plan unreviewed and no hand-off.
 
 ## 4. Hand off
@@ -65,8 +67,10 @@ A change that went through a draft lands here instead, since nothing downstream 
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<plan-path>"`
 
-The script honours the plan's `into:` key and points the landed copy's `source:` at itself. Show the user the landed path.
+The script honours the plan's `into:` key and points the landed copy's `source:` at itself, and, under `branching.mode` other than `off`, puts HEAD on the run branch before copying and prints a `branch:` line (`<name> (created | switched | kept)`, or `detached (kept)`) beside `path:`, `key:` and `state:`. Show the user the landed path and that `branch:` line when it printed one.
 
-Never commit and never run git: the landed draft is the user's to commit.
+Exit 6 - the run branch could not be set -> report the stderr reason and stop: nothing landed, and no hand-off names `viber:implementor`.
+
+Never run git directly yourself: `plan-path.sh` alone moves HEAD for the branch step, and the landed draft is otherwise the user's to commit.
 
 A round still carrying no task half ends there and never names `viber:implementor`: a build refuses a draft. A round that added the task half names `viber:implementor` as the next step, the landed path being the handover.
