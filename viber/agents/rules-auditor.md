@@ -20,6 +20,7 @@ The prompt carries one labelled line each:
 ```
 target: <repo-relative path of one rule file> | none
 scope: <glob list the target gates> | <repo-relative directory to propose for>
+matches: <the tracked-file count the map measured for that rule> | none
 out: .temp/viber/<id>/
 refs: <the plugin reference directory>
 ```
@@ -30,11 +31,10 @@ A rule file whose basename starts with `_` is frozen: never open it as `target`,
 
 ## Verify - target names a path
 
-Read the rule, then `Grep`/`Glob` for the tracked files `scope`'s globs match. Classify every checkable line of the rule:
+Read the rule. `matches` already carries the tracked-file count the map measured for this rule: never re-run `Glob` to decide whether the scope is dead. When `matches` reads `0`, classify every checkable line `GONE` and skip straight to the findings file. Otherwise `Grep`/`Glob` for the tracked files `scope`'s globs match, and classify every checkable line of the rule:
 
 - `OK` when the matched files still bear it out.
 - `STALE` when the matched files do something else now.
-- `GONE` when `scope`'s globs match no tracked file at all.
 - `UNVERIFIABLE` when the matched files neither follow nor break the line, a claim about intent, a decision with no trace in the code.
 - `DROP` when the line is true but fails the gate: name the criterion or the `Never a rule` entry it fails. A line failing as a fact about one place also names the `CLAUDE.md` path of the directory it belongs to, whether that node exists yet or not. A false line stays `STALE`, a line the code neither follows nor breaks stays `UNVERIFIABLE`.
 

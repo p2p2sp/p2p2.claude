@@ -73,16 +73,17 @@ A dead rule is offered like any other: the auditor decides whether its scope rea
 
 ## 5. Audit
 
-One `Agent` call per approved target, every one of them in a single message so they run in parallel, `subagent_type: viber:rules-auditor`, no `model:` line - the agent's own frontmatter is its strength. Four labelled lines each and nothing else:
+One `Agent` call per approved target, every one of them in a single message so they run in parallel, `subagent_type: viber:rules-auditor`, no `model:` line - the agent's own frontmatter is its strength. Five labelled lines each and nothing else:
 
 ```
 target: <the rule's own path, or the literal none for a scope with no rule>
 scope: <the globs the map printed for that rule, or the directory to propose for>
+matches: <the n of that rule's `matches <n>` field, or the literal none for a scope with no rule>
 out: .temp/viber/<id>/
 refs: ${CLAUDE_PLUGIN_ROOT}/references
 ```
 
-`<id>` is the `id:` value of the map above. A rule whose `paths` field reads `none` gates the whole repository: pass `**` as its scope. A scope with no rule is the proposing direction: `target: none`, `scope` that directory, and only missing conventions can come back.
+`<id>` is the `id:` value of the map above. A rule whose `paths` field reads `none` gates the whole repository: pass `**` as its scope and `none` as its matches, that scope never being dead. A scope with no rule is the proposing direction: `target: none`, `scope` that directory, `matches: none`, and only missing conventions can come back.
 
 Each call returns one line:
 

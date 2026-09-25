@@ -1,0 +1,7 @@
+T12 - Score gone rules from the map's tracked count
+
+- SKILL.md step 5 dispatch now carries `matches: <the n of that rule's matches <n> field, or the literal none for a scope with no rule>`, "Four labelled lines" bumped to "Five".
+- For a `paths: none` (whole-repo) rule, the map still prints `matches 0` on its `rule:` line even though that rule is defined as never dead. Passing that literal `0` through would wrongly trip the auditor's new "matches 0 -> GONE" shortcut, so the dispatch and the auditor's `Propose` no-rule case both pass `matches: none` in that branch instead, mirroring the pre-existing `scope: **` carve-out for the same case. Only a genuinely scored rule with a matched-count of zero sends `matches: 0`.
+- rules-auditor.md: `Verify` section now short-circuits every checkable line to `GONE` when `matches` reads `0`, skipping the `Grep`/`Glob` sweep entirely; otherwise it Greps/Globs as before for OK/STALE/UNVERIFIABLE/DROP. The `GONE` bullet was dropped from the classification list since it is no longer decided by inspecting matched files.
+- rules-writer.md: the two "remove a rule" cases were split into one sentence each. The globs-match-nothing case now cites the map's `matches 0` / `dead:` line and explicitly forbids a `Glob` call; the "convention the build removed" case is untouched (still `Glob`-confirmed).
+- No test suite covers these markdown contracts directly; verification is the grep the task names plus a manual re-read of the three files for consistency (dispatch, auditor input/logic, writer bullet).
