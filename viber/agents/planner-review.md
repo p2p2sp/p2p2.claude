@@ -23,6 +23,7 @@ Read the plan, `<refs>/plan-rules.md`, then enough of the codebase to judge whet
 
 Gate every `(review)` rule of `plan-rules.md`, each clause of it, and report a breach under the rule's name. The `(script)` rules are already validated. Then:
 
+- Fed in order: for each task, list every file, route or symbol its `Verification`, `Delivers` or a done clause reads and the task that creates or changes it, then confirm the reading task's `Depends-on` reaches that producing task directly or transitively.
 - Complete: no TODOs, no placeholders, no task that trails off mid-thought.
 - Decomposed: tasks are independently verifiable and their boundaries are real ones.
 - Buildable: an engineer could execute each task without stopping to ask what was meant.
