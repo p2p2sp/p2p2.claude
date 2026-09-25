@@ -26,6 +26,9 @@ cleanup: true
 # agent before plan mode can be left - the same gate the planner's plans get.
 plain-plan-review: true
 
+# An interview or a diagnosis can save its conclusions as a new GitHub issue, or keep working on the one it started from.
+issues: true
+
 # The two directories under docs/: where an open run lives, and where the
 # archive of a finished one lands. Directory NAMES, not paths - a value with a
 # slash in it is ignored and the default stands. Both are read only from inside

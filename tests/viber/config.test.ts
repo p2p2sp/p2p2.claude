@@ -36,7 +36,7 @@ const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/config.sh");
 
 /** Every switch off and both directory keys at their default - what a project
  *  with no config file, and every unusable value, resolves to. */
-const OFF = { adr: "false", memory: "false", rules: "false", qa: "false", cleanup: "false", "plain-plan-review": "false" };
+const OFF = { adr: "false", memory: "false", rules: "false", qa: "false", cleanup: "false", "plain-plan-review": "false", issues: "false" };
 const DEFAULT_DIRS = { runs: "_specs", specifications: "specs" };
 
 function run(dir: string, env: Record<string, string> = {}) {
@@ -111,6 +111,17 @@ test("the group keys are printed dotted, so no reader can take one for a switch"
   });
 });
 
+test("`issues` prints directly after `plain-plan-review`, in the header's fixed order", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, "issues: true\n");
+
+    const printed = run(dir).stdout.trim().split("\n");
+    const ppr = printed.indexOf("plain-plan-review: false");
+    assert.equal(ppr >= 0, true, `plain-plan-review line missing: ${printed.join(" | ")}`);
+    assert.equal(printed[ppr + 1], "issues: true");
+  });
+});
+
 test("only `true` counts as on - false, a missing key, a commented-out line and a near-miss value are all off", () => {
   withTempDir("p2p2-viber-", (dir) => {
     writeConfig(dir, ["adr: false", "# memory: true", "rules: truthy", "qa: yes", "cleanup: on", "extra: true", ""].join("\n"));
@@ -125,7 +136,7 @@ test("the seeded template turns every switch on, comments and case notwithstandi
   withTempDir("p2p2-viber-", (dir) => {
     writeConfig(
       dir,
-      ["# viber switches", "adr: true  # the decisions worth keeping", "memory: TRUE", "rules: true", "qa: true", "cleanup: true", "plain-plan-review: true", ""].join("\n"),
+      ["# viber switches", "adr: true  # the decisions worth keeping", "memory: TRUE", "rules: true", "qa: true", "cleanup: true", "plain-plan-review: true", "issues: true", ""].join("\n"),
     );
 
     const result = run(dir);
@@ -137,6 +148,7 @@ test("the seeded template turns every switch on, comments and case notwithstandi
       qa: "true",
       cleanup: "true",
       "plain-plan-review": "true",
+      issues: "true",
     });
   });
 });
@@ -184,6 +196,7 @@ test("the shipped template is what setup seeds: five switches on, qa off, and bo
       qa: "false",
       cleanup: "true",
       "plain-plan-review": "true",
+      issues: "true",
     });
     assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS);
     assert.deepEqual(tiers(result.stdout), DEFAULT_TIERS);
