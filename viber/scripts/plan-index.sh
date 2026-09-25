@@ -825,9 +825,13 @@ fi
 # --- and into the history ---
 # The decomposition lives under docs/, so it has to be committed by somebody: no
 # task's "Files:" list names it, and commit-task.sh stages nothing it was not
-# given. The pathspec keeps this to the run's own directory even when the caller
-# left something else staged, and every failure here is swallowed - the files are
-# on disk either way, and a build must not stop because git refused a chore commit.
+# given. The pathspec names only the four paths this call itself writes or owns
+# (plan.md, spec.md, tasks/ and status.md) rather than the whole run directory:
+# a coder's own docs/<run>/work/ trail file is written later, by a different
+# actor, and must stay untracked until commit-task.sh decides it belongs in a
+# task's own commit - swept in here it would ride into a chore commit no task
+# claims. Every failure here is swallowed - the files are on disk either way,
+# and a build must not stop because git refused a chore commit.
 # A run tied to an issue (the frontmatter's "issue:" key, a full GitHub issue URL)
 # gets "Refs: #<N>" as the footer, as every commit-task.sh commit of the run does;
 # issue_ref() is a verbatim copy of commit-task.sh's, so change the two together.
@@ -858,9 +862,9 @@ issue="$(issue_ref "$plan")"
 commit_msg=(-m "chore(viber): decompose plan ${dir##*/}")
 [[ -z "$issue" ]] || commit_msg+=(-m "Refs: $issue")
 if git rev-parse --git-dir >/dev/null 2>&1; then
-  git add -A -- "$dir" >/dev/null 2>&1 || true
-  if ! git diff --cached --quiet -- "$dir" 2>/dev/null; then
-    git commit "${commit_msg[@]}" -- "$dir" >&2 || true
+  git add -A -- "$dir/plan.md" "$dir/spec.md" "$dir/tasks" "$dir/status.md" >/dev/null 2>&1 || true
+  if ! git diff --cached --quiet -- "$dir/plan.md" "$dir/spec.md" "$dir/tasks" "$dir/status.md" 2>/dev/null; then
+    git commit "${commit_msg[@]}" -- "$dir/plan.md" "$dir/spec.md" "$dir/tasks" "$dir/status.md" >&2 || true
   fi
 fi
 

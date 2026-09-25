@@ -1400,6 +1400,43 @@ test("the decomposition is committed with the plan, and nothing outside the run 
   });
 });
 
+test("an untracked work/ trail file beside the plan stays out of the decomposition commit and stays untracked", () => {
+  withGitRepo((repo) => {
+    write(repo.dir, "README.md", "seed\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "seed");
+
+    seed(repo.dir, planBody(TWO_TASKS));
+    write(repo.dir, `${PLAN_DIR}/work/T3-notes.md`, "a coder's own trail, not the decomposition\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+
+    const committed = repo
+      .git("show", "--name-only", "--format=", "HEAD")
+      .stdout.trim()
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .sort();
+    assert.deepEqual(committed, [
+      PLAN_REL,
+      `${PLAN_DIR}/spec.md`,
+      `${PLAN_DIR}/status.md`,
+      `${PLAN_DIR}/tasks/T1.md`,
+      `${PLAN_DIR}/tasks/T2.md`,
+    ].sort());
+    assert.ok(!committed.includes(`${PLAN_DIR}/work/T3-notes.md`));
+
+    // still on disk, still untracked - never staged, never committed
+    assert.equal(
+      fs.readFileSync(path.join(repo.dir, `${PLAN_DIR}/work/T3-notes.md`), "utf-8"),
+      "a coder's own trail, not the decomposition\n",
+    );
+    assert.match(repo.git("status", "--short").stdout, /\?\? .*work\//);
+  });
+});
+
 test("a plan tied to an issue gets its decomposition commit footed with Refs: #<N>, and one without an issue gets no footer", () => {
   const cases: Array<[frontmatter: string[], body: RegExp]> = [
     [["---", "source: /home/u/plans/add-login.md", "issue: https://github.com/acme/widgets/issues/42", "---", ""], /^Refs: #42\n*$/],
