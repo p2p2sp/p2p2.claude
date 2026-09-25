@@ -1,0 +1,5 @@
+- The branch paragraph in planner step 2 sits at exactly 151 words (the DoD.7 cap). Adding any word there means cutting another one first.
+- A draft round carrying `work:`/`branch:` over is now stated in that paragraph itself. The old "(above)" pointer went, because line 38 never mentioned `branch:`.
+- An entry counts as "usable" when its `entry:` line lacks `new: -`, the same rule run-branch.sh uses for `suggested:`. When the entry question is skipped, the entry is `suggested:`.
+- The branch question is written for "that entry" and never repeats per entry: its create option names the chosen entry's `new:`/`base:`, so one AskUserQuestion carries both questions.
+- Review round: the question is asked again when the `entry:` lines change, not just `new:`. `work:` stays in place beside `branch:` otherwise.

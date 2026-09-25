@@ -2,6 +2,7 @@
 source: <absolute path of THIS plan file, the one plan mode named>
 into: <run key of the draft this round continues; drop the line otherwise>
 issue: <full issue URL the run is tied to; drop the line otherwise>
+work: <branching.work entry key the run branch comes from; drop the line under branching off>
 branch: <run branch name, or none for no branch; drop the line under branching off>
 ---
 
