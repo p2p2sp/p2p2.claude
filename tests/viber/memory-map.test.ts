@@ -365,6 +365,29 @@ test("a node deleted with git rm, staged but uncommitted, is no node, carries no
   });
 });
 
+test("a tracked root CLAUDE.md deleted but not staged is absent: it does not complete the state, and measuring it prints nothing on stderr", () => {
+  withGitRepo((repo) => {
+    commit(repo, {
+      "CLAUDE.md": node(40),
+      "a/CLAUDE.md": node(40),
+      "a/b/CLAUDE.md": node(40),
+    });
+    fs.rmSync(path.join(repo.dir, "CLAUDE.md"));
+
+    const result = run(repo);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stderr, "");
+    const out = lines(result.stdout);
+    assert.notEqual(state(out), "state: complete");
+    assert.deepEqual(pick(out, "node:"), [
+      "node: a/CLAUDE.md 40 chain 40 ok",
+      "node: a/b/CLAUDE.md 40 chain 80 ok",
+    ]);
+    assert.deepEqual(pick(out, "total:"), ["total: nodes 2"]);
+  });
+});
+
 test("--reset still refuses a target whose earlier deletion was left uncommitted and unstaged", () => {
   withGitRepo((repo) => {
     commit(repo, {

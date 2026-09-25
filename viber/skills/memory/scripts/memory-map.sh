@@ -116,6 +116,13 @@ is_node() {
   return 1
 }
 
+# True for a node that is both tracked and still present in the working
+# tree - a deleted-but-uncommitted node (staged with `git rm` or plainly
+# `rm`'d) is neither: measuring it would read a missing file.
+is_present_node() {
+  is_tracked "$1" && [ -e "$1" ]
+}
+
 # The bytes of one file, 0 when it cannot be read.
 chars_of() {
   size="$(wc -c < "$1" 2>/dev/null | tr -d '[:space:]')"
@@ -246,7 +253,7 @@ while IFS= read -r line; do
       */*) parent="${parent%/*}"; ancestor="$parent/CLAUDE.md" ;;
       *) parent=""; ancestor="CLAUDE.md" ;;
     esac
-    if is_tracked "$ancestor"; then
+    if is_present_node "$ancestor"; then
       chain=$(( chain + $(chars_of "$ancestor") ))
     fi
   done
@@ -327,7 +334,7 @@ done < <(printf '%s\n' "$dirty_nodes")
 state="none"
 if [ "$nodes" -gt 0 ]; then
   state="partial"
-  if is_tracked "CLAUDE.md" && [ -z "$cand_out" ]; then
+  if is_present_node "CLAUDE.md" && [ -z "$cand_out" ]; then
     state="complete"
   fi
 fi
