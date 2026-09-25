@@ -762,6 +762,38 @@ session's own model and is not bound by it.</p>
 <code>fable</code>. Każde zadanie, recenzja i ponowienie mieści się w tym zakresie; fable działa tylko wtedy,
 gdy zakres go wymienia. Nieznana wartość wraca do domyślnej, a odwrócony zakres do zakresu
 domyślnego. Planowanie działa na modelu bieżącej sesji i zakres go nie ogranicza.</p>
+
+<h3 class="sub"><span lang="en">Branching</span><span lang="pl">Gałęzie</span></h3>
+<dl>
+  <div>
+    <dt><code>mode</code> <span class="tag">off</span></dt>
+    <dd><span lang="en">off stays on the branch the run started on, exactly as today. allowed offers a branch
+    during planning and waits for your confirmation. required always gives the run its own branch.</span><span lang="pl">off
+    zostawia bieg na gałęzi, na której się zaczął, dokładnie jak dziś. allowed proponuje gałąź podczas
+    planowania i czeka na twoje potwierdzenie. required zawsze daje biegowi własną gałąź.</span></dd>
+  </div>
+  <div>
+    <dt><code>base</code> <span class="tag">main</span></dt>
+    <dd><span lang="en">The branch the run's own branch is cut from.</span><span lang="pl">Gałąź, z której
+    wycinana jest własna gałąź biegu.</span></dd>
+  </div>
+  <div>
+    <dt><code>name</code> <span class="tag">{type}/{issue}-{slug}</span></dt>
+    <dd><span lang="en">The pattern for the run's branch name, quoted since it opens on <code>{</code>.
+    <code>{type}</code>, <code>{issue}</code> and <code>{slug}</code> are filled in from the plan.</span><span lang="pl">Wzorzec
+    nazwy gałęzi biegu, w cudzysłowie, bo zaczyna się od <code>{</code>. <code>{type}</code>, <code>{issue}</code>
+    i <code>{slug}</code> są wypełniane na podstawie planu.</span></dd>
+  </div>
+</dl>
+<p class="note" lang="en">A <code>branching:</code> group. Nothing is ever fetched, pushed, merged or deleted: a
+branch is only created, switched to and committed on. One example per strategy - trunk based
+development and GitHub Flow both cut from <code>main</code>, GitFlow from <code>develop</code> - is commented in the
+template; the strategy's own name is never itself a configuration value.</p>
+<p class="note" lang="pl">Grupa <code>branching:</code>. Nic nie jest pobierane (fetch), wypychane (push), scalane
+ani usuwane: gałąź jest tylko tworzona, na nią następuje przełączenie i na niej lądują commity. Po
+jednym przykładzie na strategię - trunk based development i GitHub Flow wycinają z <code>main</code>, GitFlow z
+<code>develop</code> - jest zakomentowany w szablonie; nazwa samej strategii nigdy nie jest wartością
+konfiguracji.</p>
 </section>
 </main>
 </div>

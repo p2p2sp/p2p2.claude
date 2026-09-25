@@ -1,0 +1,4 @@
+- `bootstrap.sh`'s merge is already generic (whole-group append when a top-level key is absent), so T2 needed no change there: adding `branching:` to the template was enough for it to be picked up as a newly-added group, same as `tiers:` was.
+- Four bootstrap.test.ts fixtures pre-dated the new key and had to gain their own `branching:` block so they kept testing what their names say (byte-identical / already-complete / directories-only insertion) rather than incidentally also asserting the new group's arrival.
+- `viber/scripts/plan-path.test.ts` sits modified and uncommitted in the tree (another task's in-flight work on the run-branch landing) - left untouched, not in T2's Files.
+- README/usage.html follow the existing Directories/Tiers subsection pattern; no new ToC anchor added since those two siblings have none either.

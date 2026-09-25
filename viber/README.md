@@ -94,6 +94,20 @@ tiers:
   max: opus
 ```
 
+A `branching:` group says whether a run works on its own git branch, cut from which base, under
+which name pattern. `mode` is `off` (stay on the branch the run started on, today's behavior),
+`allowed` (the plan offers a branch and you confirm it) or `required` (a run always gets its own
+branch). `base` is the branch the new one is cut from, and `name` is its pattern, quoted since it
+opens on `{`; `{type}`, `{issue}` and `{slug}` are filled in from the plan. Nothing is fetched,
+pushed, merged or deleted: the branch is only created, switched to and committed on.
+
+```yaml
+branching:
+  mode: off
+  base: main
+  name: '{type}/{issue}-{slug}'
+```
+
 ## Before your first run
 
 The build and test commands come from your project's `CLAUDE.md`. If there is no such file, or it
