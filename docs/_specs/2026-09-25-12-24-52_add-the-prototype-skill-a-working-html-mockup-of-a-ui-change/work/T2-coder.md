@@ -1,5 +1,0 @@
-- C2 gives the writer no way to learn a post-narrow label or the basis on revise/narrow rounds, so the agent records basis and each variant's label, title and trade-off inside the mockup (a `<meta>` or comment) and reads them back; T3 need not pass them.
-- The optional design skill is checked on every round (create, revise, narrow), not only create.
-- A brief naming a screen the code does not hold returns FAIL with the missing item in REASON; the skill's "ask in prose for what is missing" branch keys on that.
-- Color chosen: purple (shared with rules-writer; red is banned).
-- `agents[]` entry appended last, after closeout, so every existing entry keeps its order.
