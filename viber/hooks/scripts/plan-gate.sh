@@ -119,7 +119,7 @@ skill_line=$(
 if [ -n "$skill_line" ] && [ "$skill_line" -gt "$episode_start" ]; then
   agent="planner-review"
   writer="The planner skill"
-  dispatch_with="the plan path"
+  dispatch_with="the plan path, \`refs:\` (the reference directory) and \`memory:\` (the planner's resolved config value), as planner-review.md expects its input"
   gate="the planner's review gate"
 else
   # A plain plan-mode plan is gated only when the host turned plain-plan-review on.

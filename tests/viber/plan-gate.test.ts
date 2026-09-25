@@ -196,6 +196,16 @@ test("both signals but no review dispatch -> deny naming the plan file", () => {
   });
 });
 
+test("the planner refusal names refs: and memory:, as planner-review.md expects its input", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite()]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /refs:/);
+    assert.match(reason ?? "", /memory:/);
+  });
+});
+
 test("the unprefixed skill spelling 'planner' arms the gate too (the install form must not decide)", () => {
   withTempDir("p2p2-plan-gate-", (dir) => {
     const f = writeTranscript(dir, "t.jsonl", [skillUse("planner"), planWrite()]);
