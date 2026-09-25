@@ -542,6 +542,37 @@ test(
   },
 );
 
+test("a <!-- TASK --> block above the plan's own \"## Tasks\" heading is refused, naming the task, and --split writes nothing for it", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    // the cut point IS the "## Tasks" heading: a block that opens before it has
+    // ever been seen would ride into spec.md rather than decompose into its own
+    // task file, which is silent drift a coder never notices
+    const misplaced = [
+      "<!-- TASK -->",
+      "### T0 - Misplaced task",
+      "- TDD: required",
+      "- Covers: #1",
+      "- Uses: none",
+      "- Depends-on: none",
+      "- Files: src/misplaced.ts",
+      "- Delivers: the thing",
+      "- Verification: npm test -> green",
+      "- DoD: it works",
+      "<!-- /TASK -->",
+      "",
+      "",
+    ].join("\n");
+    const body = planBody(TWO_TASKS).replace("## Goal\n", `## Goal\n\n${misplaced}`);
+    seed(dir, body);
+
+    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /task T0: <!-- TASK --> block sits above the "## Tasks" heading/);
+    assert.deepEqual(fs.readdirSync(path.join(dir, PLAN_DIR)), ["plan.md"]);
+  });
+});
+
 test("a plan with no task blocks exits 3", () => {
   withTempDir("p2p2-viber-", (dir) => {
     seed(dir, planBody([]).replace(/<!-- \/?TASK -->/g, ""));

@@ -125,7 +125,9 @@
 #   3 - no <!-- TASK --> blocks
 #   4 - broken task contract (<!-- TASK --> blocks under no "## Tasks" heading,
 #       where the cut would leave tasks/ empty while the index still lists
-#       them; duplicate id, an id that is not [A-Za-z0-9_-]+,
+#       them; a <!-- TASK --> block that opens before that heading has ever
+#       been seen, which would ride into spec.md instead of its own task
+#       file while the index still lists it; duplicate id, an id that is not [A-Za-z0-9_-]+,
 #       missing field, illegal dependency, an "Exclusive:" value other than
 #       "true", a "Repro:" that is not one path of the same task's "Files:" or
 #       sits on a task not marked "TDD: none", a "Covers:" criterion absent from the
@@ -346,6 +348,10 @@ incon && !intask && cid != "" && trim($0) != "" { cfresh = 0 }
   id[n] = ""; ttl[n] = ""; tdd[n] = ""; deps[n] = ""; files[n] = ""
   covers[n] = ""; uses[n] = ""; deliv[n] = ""; verif[n] = ""; dod[n] = ""
   excl[n] = ""; repro[n] = ""
+  # the cut --split makes is the FIRST "## Tasks" heading, so a block opening
+  # before it has ever been seen would ride into spec.md instead of decomposing
+  # into its own task file, while the index above still lists it as a task
+  early[n] = (hastasks ? 0 : 1)
   next
 }
 /^[[:space:]]*<!--[[:space:]]*\/TASK[[:space:]]*-->[[:space:]]*$/ { intask = 0; next }
@@ -387,6 +393,12 @@ END {
     if (id[i] in seen) fail("duplicate task id: " id[i])
     seen[id[i]] = i
   }
+
+  # a block that opened before "## Tasks" was ever seen: --split cuts there, so
+  # this one would land in spec.md rather than tasks/<id>.md while the index
+  # above still lists it as a task the orchestrator can dispatch
+  for (i = 1; i <= n; i++)
+    if (early[i]) fail("task " id[i] ": <!-- TASK --> block sits above the \"## Tasks\" heading")
 
   for (i = 1; i <= n; i++) {
     if (tdd[i] != "required" && tdd[i] != "none") fail("task " id[i] ": TDD must be \"required\" or \"none\", got: \"" tdd[i] "\"")
