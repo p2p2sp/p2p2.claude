@@ -22,8 +22,8 @@ when its tool is missing.
 | --- | --- |
 | `/viber:setup` | Once per project: the switches, the ignore rules, the permissions. |
 | `/viber:triage` | A reported issue (number, link or pasted text) checked against your code: can it be done, how, what it affects, how big. Names the next step and can post the report on the issue. |
-| `/viber:idea` | An interview about a raw idea, one question at a time. |
-| `/viber:fixer` | A bug traced to its root cause and proven by a failing test, then handed to the planner. |
+| `/viber:intent` | An interview about a raw idea, one question at a time. Point it at an issue (`#42` or a link) to work from that issue, and an interview that did not start from one can save its conclusions as a new issue. |
+| `/viber:fixer` | A bug traced to its root cause and proven by a failing test, then handed to the planner. Point it at an issue the same way to trace from that report. |
 | "plan it" | The plan gets written and reviewed. |
 | "implement it" | The approved plan gets built. |
 | `/viber:e2e` | The build's QA scenarios become Playwright tests, run against your app. |
@@ -32,9 +32,15 @@ when its tool is missing.
 | "commit" | Your changes, or only the paths you name, committed with a Conventional Commits message. Name an issue (`#42`) and it becomes the `Refs:` footer. |
 
 "plan it" and "implement it" are not commands: "break this down", "go ahead" or anything else
-meaning the same works too. A typical run is `/viber:setup` once, then `/viber:idea`, "plan it", "implement it". The
+meaning the same works too. A typical run is `/viber:setup` once, then `/viber:intent`, "plan it", "implement it". The
 interview is not a step you can skip: ask for a plan without one behind it and the interview starts
 first, however clear the change already reads. A bug goes the same way through `/viber:fixer`.
+
+With `issues` on, point `/viber:intent` or `/viber:fixer` at a GitHub issue - `#42`, its number
+alone, or a link - and it reads that issue instead of asking you to restate it, then keeps working
+on the same issue throughout. An interview that did not start from one can, once confirmed, save
+its summary as a new issue built from your project's own issue templates; the run then names that
+issue's number, and `/viber:intent #42` resumes it.
 
 The interview asks one question at a time, with three concrete options and a recommendation, and
 says so out loud when your answer is weak. An idea too big for one cycle, a whole application or a
@@ -49,9 +55,9 @@ commits it, and finishes on the full test suite.
 
 ## Optional switches
 
-`/viber:setup` writes `.claude/viber.yml` with five of the six on and `qa` off. Edit that file to
+`/viber:setup` writes `.claude/viber.yml` with six of the seven on and `qa` off. Edit that file to
 change any of them - only `true` counts as on, so turn a switch off with `false` rather than by
-deleting it. Without the file all six are off. Run `/viber:setup` again after an upgrade and any
+deleting it. Without the file all seven are off. Run `/viber:setup` again after an upgrade and any
 switch the new version added is merged into your file, with every value you set left as it is.
 
 | Switch | Default | When on |
@@ -62,6 +68,7 @@ switch the new version added is merged into your file, with every value you set 
 | `qa` | **off** | The build closes by writing test scenarios for what it delivered, which `/viber:e2e` can then automate. |
 | `cleanup` | on | The build ends by noting anything it delivered that the specification does not promise, then archiving the run and dropping the working files. |
 | `plain-plan-review` | on | A plan written in plain plan mode, without the planner, must pass a review before plan mode can be left. |
+| `issues` | on | `/viber:intent` and `/viber:fixer` can start from a GitHub issue's number or link, and an interview that did not can save its conclusions as a new one. |
 
 The same file carries a `directories:` group with two names, both under `docs/`: `runs`
 (`_specs`) for a run in progress and `specifications` (`specs`) for the archive.

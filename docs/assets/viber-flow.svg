@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1852" width="1200" height="1852" role="img" aria-labelledby="svgTitle svgDesc">
   <title id="svgTitle">viber - from an idea to committed code</title>
-  <desc id="svgDesc">Flow diagram of the viber plugin: one-time setup, the two entries (an idea through the idea interview, a bug through the fixer diagnosis), the planner writing the plan and the planner-review agent gating it, the approval gate you pass yourself, then the implementor building the plan task by task - task-coder, task-reviewer and one commit per task - followed by the full test suite, the optional memory, rules and QA close, and the later e2e pass that turns the QA scenarios into Playwright tests.</desc>
+  <desc id="svgDesc">Flow diagram of the viber plugin: one-time setup, the two entries (an idea through the intent interview, a bug through the fixer diagnosis), the planner writing the plan and the planner-review agent gating it, the approval gate you pass yourself, then the implementor building the plan task by task - task-coder, task-reviewer and one commit per task - followed by the full test suite, the optional memory, rules and QA close, and the later e2e pass that turns the QA scenarios into Playwright tests.</desc>
 
   <style>
     :root {
@@ -99,7 +99,7 @@
   <rect x="40" y="286" width="4" height="118" rx="2" fill="var(--idea)"/>
   <rect x="478" y="296" width="58" height="16" rx="8" class="badge"/>
   <text x="507" y="308" class="badge-t" text-anchor="middle">skill</text>
-  <text x="64" y="326" class="mono-t">/viber:idea</text>
+  <text x="64" y="326" class="mono-t">/viber:intent</text>
   <text x="64" y="352" class="desc">One question at a time, with options and a recommendation.</text>
   <text x="64" y="370" class="desc">Too big for one cycle? Split into ordered parts, first part only.</text>
   <text x="64" y="388" class="desc">Writes nothing - it ends in a summary you confirm.</text>

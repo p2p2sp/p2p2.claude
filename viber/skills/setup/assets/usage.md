@@ -13,15 +13,20 @@ how to launch the app, the required env, the migrations.
 ## The five ways in
 
 - `/viber:triage` - before any of them: one reported issue (a GitHub number, a link or pasted
-  text) checked against the code, with the next step named - `/viber:fixer`, `/viber:idea` or
+  text) checked against the code, with the next step named - `/viber:fixer`, `/viber:intent` or
   none. It starts nothing itself and posts its report on the issue only when you say so.
-- `/viber:idea` - an interview about a raw idea, one question at a time. Writes nothing.
+- `/viber:intent` - an interview about a raw idea, one question at a time. Writes nothing.
 - `/viber:fixer` - a bug traced to its root cause and proven by a failing test.
 - "plan it" - the planner, on what one of those two confirmed. Ask for it with neither behind it
   and the interview starts first.
 - "implement it" - the orchestrator: task by task, one reviewed commit each.
 
-`idea` and `fixer` both end at the planner, and nothing is built before you approve its plan.
+`intent` and `fixer` both end at the planner, and nothing is built before you approve its plan.
+
+With the `issues` switch on, give `/viber:intent` or `/viber:fixer` an issue number (`#42`), a link
+or the bare number and it reads that issue instead of you restating it, then keeps working on the
+same issue. An interview that did not start from one can, once confirmed, save its summary as a
+new issue built from your project's own issue templates; `/viber:intent #42` later resumes it.
 
 ## After a build
 
@@ -55,8 +60,10 @@ build in progress - run them whenever the layer might have drifted.
   and the trail. They are all in git, which is where the history belongs.
 - `plain-plan-review` - a plan written in plain plan mode, without the planner, must pass a review
   before plan mode can be left.
+- `issues` - `intent` and `fixer` can start from a GitHub issue by number or link, and an interview
+  that did not start from one can save its conclusions as a new issue.
 
-Five of the six start on; `qa` starts off, because a build that needs acceptance scenarios is the
+Six of the seven start on; `qa` starts off, because a build that needs acceptance scenarios is the
 exception rather than the rule. Edit `.claude/viber.yml` to change that - every key is commented
 there, and only `true` counts as on. Turn a switch off with `false` rather than by deleting it:
 running `/viber:setup` again merges in whatever the current version's template carries and your
