@@ -44,13 +44,7 @@
       "Bash(find * -delete*)",
       "Bash(find * -exec rm *)",
       "Bash(git * --force*)",
-      "Bash(git reset --hard:*)",
-      "Bash(rm *-f *-r*)",
-      "Bash(rm *-fr*)",
-      "Bash(rm *-r *-f*)",
-      "Bash(rm *-rf*)",
-      "Bash(rm -fr:*)",
-      "Bash(rm -rf:*)"
+      "Bash(git reset --hard:*)"
     ],
     "deny": [
       "Bash(aws:*)",
@@ -88,6 +82,8 @@
       "Bash(pnpm publish:*)",
       "Bash(reboot:*)",
       "Bash(rm -r /:*)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf /)",
       "Bash(rmdir /s:*)",
       "Bash(shutdown:*)",
       "Bash(sudo:*)",
