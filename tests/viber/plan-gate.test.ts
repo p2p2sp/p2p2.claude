@@ -415,6 +415,21 @@ test("a verdict carrying the dispatch's own tool-use id is the one that binds ->
   });
 });
 
+test("an id-bearing dispatch with only a foreign VERDICT: PASS after it -> deny, own review still in flight", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const id = "toolu_01Mine";
+    const f = writeTranscript(dir, "t.jsonl", [
+      skillUse(),
+      planWrite(),
+      dispatch(id),
+      verdict("PASS", { id: "toolu_01Other" }),
+    ]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /let the review finish/);
+  });
+});
+
 test("a sibling agent's PASS cannot stand in for this dispatch's own FAIL -> deny", () => {
   withTempDir("p2p2-plan-gate-", (dir) => {
     const id = "toolu_01Mine";

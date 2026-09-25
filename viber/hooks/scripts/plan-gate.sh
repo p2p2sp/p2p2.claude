@@ -25,7 +25,13 @@
 #
 # The verdict is read from the LAST completed (dispatch -> verdict) pair, bound by
 # the dispatch's tool-use id where the transcript carries it: a re-review after a
-# FAIL supersedes it, and a PASS quoted anywhere else never counts as one.
+# FAIL supersedes it, and a PASS quoted anywhere else never counts as one. An
+# id-bearing dispatch binds ONLY to a verdict line carrying that same id - no
+# weaker fallback: a foreign verdict (another id, or none) arriving while the own
+# review is still running is invisible to the pairing, so ExitPlanMode stays
+# denied with "let the review finish" until the matching verdict lands. A
+# dispatch line that carries no id at all keeps the older, looser pairing: the
+# first verdict line after it.
 #
 # Contract:
 #   argv   : none - every input arrives on stdin.
@@ -151,30 +157,34 @@ plan_name="${plan_path##*[\\/]}"
 # background agent, inside the <result> of its task-notification. The verdict must
 # open a line (escaped \n), a content string, or the <result> element, and its value
 # must end the token, so a quoted "VERDICT: PASS is not..." cannot pass as one.
-# Pairing prefers the dispatch's id when both sides carry it, and falls back to the
-# first verdict after the dispatch when they do not; the later pair wins.
+# Pairing binds strictly on the dispatch's own tool-use id when it carries one: a
+# verdict line missing that id (another dispatch's, or none at all) is skipped
+# outright, never kept as a fallback, so a foreign VERDICT while the own review is
+# still in flight cannot be mistaken for it. A dispatch line with no id at all
+# falls back to the first verdict after it, as before; the later completed pair
+# wins either way.
 # A background agent's launch record ("status":"async_launched") carries the
 # dispatch id AND echoes the whole prompt, so it is never read as a verdict.
 pair_raw="$(
   awk -v start="$((plan_write_line + 1))" -v agent="$agent" '
     NR < start { next }
     $0 ~ ("\"subagent_type\":\"([a-zA-Z0-9_.-]+:)?" agent "\"") {
-      last_dispatch = NR; call = NR; weak = 0; cid = ""
+      last_dispatch = NR; call = NR; cid = ""
       if (match($0, /"id":"toolu_[A-Za-z0-9_-]+"/)) cid = substr($0, RSTART + 6, RLENGTH - 7)
       next
     }
     /"status":"async_launched"/ { next }
     call && /(\\n|"(text|content)":"|<result>)[[:space:]]*VERDICT:[[:space:]]+`?(PASS|FAIL|DENIED)`?[[:space:]]*(\\n|"|<)/ {
       if (cid != "" && index($0, cid) == 0) {
-        # Same dispatch, unlinked line (an echo, a sibling agent): remember it once,
-        # but keep looking for the reply that carries this dispatch id.
-        if (!weak) { weak = 1; weak_call = call; weak_verdict = NR }
+        # This dispatch carries its own id, and this verdict line does not -
+        # a sibling agent reply, or an echo. It cannot be this dispatch answer,
+        # so it is skipped outright, never remembered as a fallback: the own
+        # review stays in flight until a line carrying cid shows up.
         next
       }
       best_call = call; best_verdict = NR; call = 0
     }
     END {
-      if (weak_verdict > best_verdict) { best_call = weak_call; best_verdict = weak_verdict }
       print last_dispatch + 0, best_call + 0, best_verdict + 0
     }
   ' "$transcript_path" 2>/dev/null
