@@ -43,13 +43,17 @@ A `VERDICT: DENIED` question names the refused call from its `REASON:` line and 
 
 ## 1. Land the plan
 
-`"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<src>"` copies the approved plan into its own dated run directory and prints `path:`, `key:`, `state:` and one `open:` line per OTHER run whose tasks are not all settled.
+`"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<src>"` copies the approved plan into its own dated run directory and prints `path:`, `key:`, `state:`, one `branch:` line when `branching.mode` is not off, and one `open:` line per OTHER run whose tasks are not all settled.
 
 `<src>`, first match wins:
 
 1. The argument, when one came in.
 2. The `source:` line of the approved plan's frontmatter, or an older plan's `<!-- source: <path> -->` comment. Never offer to save plan text you are holding: the script copies the file.
 3. `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh"` with no argument returns the run most recently worked on. Exit 3 -> `AskUserQuestion` for the approved plan's full path, then land that.
+
+Exit 6 - the run branch could not be set -> report the stderr reason and stop: nothing landed, and the build does not proceed to step 2.
+
+A `branch:` line naming a branch other than the config block's `branching.base` carries to the final summary: one line naming that branch and `branching.base` as the pull request target. No such line when there is no `branch:` line, or it names the base.
 
 - `state: draft` -> report the path and that `/viber:intent` pointed at that draft continues it, then stop without a question.
 - `state: new` with any `open:` line -> `AskUserQuestion` naming both: build the plan just landed, or resume that run instead.
