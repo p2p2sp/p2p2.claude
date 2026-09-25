@@ -73,6 +73,11 @@
 # no form of this script ever takes a subject from its caller. --e2e takes no
 # plan either: the e2e pass runs after the build, so nothing resumes on it.
 #
+# Every form that takes the plan closes its message on a "Refs: <plan> ..." line
+# naming the run. A plan whose frontmatter carries "issue: <GitHub issue URL>"
+# (a run tied to an issue) adds "Refs: #<N>" beneath it in the same paragraph,
+# so every commit of the run links the issue; --e2e takes no plan and adds none.
+#
 # No form ever stages a path the caller did not name, and every form commits
 # through its own pathspec, so a path staged before or beside the run stays in
 # the index instead of riding along. A named path is taken in whatever state it
@@ -214,6 +219,45 @@ task_total() {
   local n
   n="$(grep -cE '^[[:space:]]*<!--[[:space:]]*TASK[[:space:]]*-->[[:space:]]*$' -- "$1" 2>/dev/null || true)"
   printf '%s\n' "${n:-0}"
+}
+
+# The issue the run is tied to, as "#<N>", or nothing. It is read from the plan's
+# frontmatter "issue:" key, which planner writes only for a run tied to an issue
+# and always as a full GitHub issue URL; a value with no "/issues/<N>" in it, a
+# key outside the frontmatter, or a frontmatter never closed yields nothing, so
+# such a plan commits exactly as one with no issue does.
+issue_ref() {
+  local line val first=1 num=""
+  local fence='^[[:space:]]*---[[:space:]]*$'
+  local key='^[[:space:]]*issue:[[:space:]]*(.*)$'
+  local url='/issues/([0-9]+)([/?#].*)?[[:space:]]*$'
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    if [[ $first -eq 1 ]]; then
+      first=0
+      [[ "$line" =~ $fence ]] || return 0
+      continue
+    fi
+    if [[ "$line" =~ $fence ]]; then
+      [[ -z "$num" ]] || printf '#%s\n' "$num"
+      return 0
+    fi
+    if [[ "$line" =~ $key ]]; then
+      num=""
+      val="${BASH_REMATCH[1]}"
+      if [[ "$val" =~ $url ]]; then num="${BASH_REMATCH[1]}"; fi
+    fi
+  done < "$1"
+}
+
+# The closing paragraph of every commit that takes a plan: the run's own "Refs:"
+# line, then the issue's "Refs: #<N>" when the plan names one. Both sit in one
+# paragraph, so git reads them as two trailers of the same commit.
+footer() {
+  local issue
+  issue="$(issue_ref "$1")"
+  printf '%s\n' "$2"
+  [[ -z "$issue" ]] || printf 'Refs: %s\n' "$issue"
 }
 
 # Appends a value to one of status.md's keys, creating the file when the run has
@@ -525,8 +569,8 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
   fi
 
   case "$form" in
-    --repair)     git commit -m "$subject" -m "Refs: $plan post-test fix $round" -- "${paths[@]}" >&2 || exit 5 ;;
-    --chore|--qa) git commit -m "$subject" -m "Refs: $plan close" -- "${paths[@]}" >&2 || exit 5 ;;
+    --repair)     git commit -m "$subject" -m "$(footer "$plan" "Refs: $plan post-test fix $round")" -- "${paths[@]}" >&2 || exit 5 ;;
+    --chore|--qa) git commit -m "$subject" -m "$(footer "$plan" "Refs: $plan close")" -- "${paths[@]}" >&2 || exit 5 ;;
     --e2e)        git commit -m "$subject" -- "${paths[@]}" >&2 || exit 5 ;;
   esac
 
@@ -759,7 +803,7 @@ done < <(trail_paths "$(run_dir "$plan")" "${trail[@]}")
 
 # --- a repair of an already committed task: no marker, no counter ---
 if [[ -n "$fix_n" ]]; then
-  git commit -m "$subject" -m "Refs: $plan task $task_id fix $fix_n" -- "${paths[@]}" >&2 || exit 5
+  git commit -m "$subject" -m "$(footer "$plan" "Refs: $plan task $task_id fix $fix_n")" -- "${paths[@]}" >&2 || exit 5
   echo "committed: $(git rev-parse --short HEAD)"
   echo "progress: unchanged"
   warn_unclaimed "$plan"
@@ -811,7 +855,7 @@ refs="Refs: $plan task $task_id"
 [[ -z "$landed" ]] || refs="$refs landed $landed_sha"
 # ${paths[@]+...}: a --landed commit may carry no path but status.md, and bash
 # 3.2 (macOS) treats an empty array as unbound under set -u
-git commit -m "$subject" -m "$refs" -- ${paths[@]+"${paths[@]}"} "$status" >&2 || exit 5
+git commit -m "$subject" -m "$(footer "$plan" "$refs")" -- ${paths[@]+"${paths[@]}"} "$status" >&2 || exit 5
 
 rm -f "$backup"
 backup=""

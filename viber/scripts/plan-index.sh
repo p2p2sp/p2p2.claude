@@ -771,10 +771,39 @@ fi
 # given. The pathspec keeps this to the run's own directory even when the caller
 # left something else staged, and every failure here is swallowed - the files are
 # on disk either way, and a build must not stop because git refused a chore commit.
+# A run tied to an issue (the frontmatter's "issue:" key, a full GitHub issue URL)
+# gets "Refs: #<N>" as the footer, as every commit-task.sh commit of the run does;
+# issue_ref() is a verbatim copy of commit-task.sh's, so change the two together.
+issue_ref() {
+  local line val first=1 num=""
+  local fence='^[[:space:]]*---[[:space:]]*$'
+  local key='^[[:space:]]*issue:[[:space:]]*(.*)$'
+  local url='/issues/([0-9]+)([/?#].*)?[[:space:]]*$'
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    if [[ $first -eq 1 ]]; then
+      first=0
+      [[ "$line" =~ $fence ]] || return 0
+      continue
+    fi
+    if [[ "$line" =~ $fence ]]; then
+      [[ -z "$num" ]] || printf '#%s\n' "$num"
+      return 0
+    fi
+    if [[ "$line" =~ $key ]]; then
+      num=""
+      val="${BASH_REMATCH[1]}"
+      if [[ "$val" =~ $url ]]; then num="${BASH_REMATCH[1]}"; fi
+    fi
+  done < "$1"
+}
+issue="$(issue_ref "$plan")"
+commit_msg=(-m "chore(viber): decompose plan ${dir##*/}")
+[[ -z "$issue" ]] || commit_msg+=(-m "Refs: $issue")
 if git rev-parse --git-dir >/dev/null 2>&1; then
   git add -A -- "$dir" >/dev/null 2>&1 || true
   if ! git diff --cached --quiet -- "$dir" 2>/dev/null; then
-    git commit -m "chore(viber): decompose plan ${dir##*/}" -- "$dir" >&2 || true
+    git commit "${commit_msg[@]}" -- "$dir" >&2 || true
   fi
 fi
 

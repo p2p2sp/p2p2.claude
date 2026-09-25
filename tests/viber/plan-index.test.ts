@@ -1292,6 +1292,27 @@ test("the decomposition is committed with the plan, and nothing outside the run 
   });
 });
 
+test("a plan tied to an issue gets its decomposition commit footed with Refs: #<N>, and one without an issue gets no footer", () => {
+  const cases: Array<[frontmatter: string[], body: RegExp]> = [
+    [["---", "source: /home/u/plans/add-login.md", "issue: https://github.com/acme/widgets/issues/42", "---", ""], /^Refs: #42\n*$/],
+    [["---", "source: /home/u/plans/add-login.md", "---", ""], /^\n*$/],
+    [["---", "issue: https://github.com/acme/widgets/pull/42", "---", ""], /^\n*$/],
+  ];
+  for (const [frontmatter, body] of cases) {
+    withGitRepo((repo) => {
+      write(repo.dir, "README.md", "seed\n");
+      repo.git("add", "-A");
+      repo.git("commit", "-m", "seed");
+      seed(repo.dir, frontmatter.join("\n") + planBody(TWO_TASKS));
+
+      const result = run(repo.dir, repo.env, [PLAN_REL, "--split"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(subjects(repo)[0], "chore(viber): decompose plan 2026-09-20-10-00-00_add-login");
+      assert.match(repo.git("log", "-1", "--format=%b").stdout, body);
+    });
+  }
+});
+
 test("--split writes the run's state file, and a later --split leaves the progress in it untouched", () => {
   withTempDir("p2p2-viber-", (dir) => {
     seed(dir, planBody(TWO_TASKS));

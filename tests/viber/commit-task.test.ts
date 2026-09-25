@@ -1416,6 +1416,99 @@ test("a fix number refuses a '.temp' path even with a leading './' (the leading 
   });
 });
 
+// --- a run tied to an issue: every commit that takes the plan links it -------
+
+const ISSUE_URL = "https://github.com/acme/widgets/issues/42";
+
+/** The run's plan behind a frontmatter, as planner writes it for a run tied to an issue. */
+function seedWithFrontmatter(repo: GitRepo, lines: string[]): void {
+  seedRaw(repo, ["---", ...lines, "---", "", planBody(TWO_TASKS)].join("\n"), TWO_TASKS.length);
+}
+
+/** The commit body's last paragraph, which is where git reads trailers from. */
+function lastParagraph(repo: GitRepo): string {
+  const paragraphs = repo.git("log", "-1", "--format=%b").stdout.trim().split(/\n\s*\n/);
+  return paragraphs[paragraphs.length - 1];
+}
+
+test("a plan whose frontmatter names an issue adds Refs: #<N> under the run's own Refs line in every form that takes the plan", () => {
+  const forms: Array<[name: string, act: (repo: GitRepo) => void, runRefs: string]> = [
+    ["task", (repo) => {
+      write(repo.dir, "src/a.ts", "work\n");
+      run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    }, `Refs: ${PLAN_REL} task T1`],
+    ["fix", (repo) => {
+      write(repo.dir, "src/a.ts", "work\n");
+      run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+      write(repo.dir, "src/a.ts", "repair\n");
+      run(repo.dir, repo.env, [PLAN_REL, "T1", "2", "src/a.ts"]);
+    }, `Refs: ${PLAN_REL} task T1 fix 2`],
+    ["--repair", (repo) => {
+      write(repo.dir, "src/legacy.ts", "regression\n");
+      run(repo.dir, repo.env, ["--repair", PLAN_REL, "2", "src/legacy.ts"]);
+    }, `Refs: ${PLAN_REL} post-test fix 2`],
+    ["--chore", (repo) => {
+      write(repo.dir, "CLAUDE.md", "memory\n");
+      run(repo.dir, repo.env, ["--chore", PLAN_REL, "CLAUDE.md"]);
+    }, `Refs: ${PLAN_REL} close`],
+    ["--qa", (repo) => {
+      write(repo.dir, `${RUN_DIR}/qa.md`, "the acceptance document\n");
+      run(repo.dir, repo.env, ["--qa", PLAN_REL, `${RUN_DIR}/qa.md`]);
+    }, `Refs: ${PLAN_REL} close`],
+  ];
+  for (const [name, act, runRefs] of forms) {
+    withGitRepo((repo) => {
+      seedWithFrontmatter(repo, [`source: /home/u/plans/feat-x.md`, `issue: ${ISSUE_URL}`]);
+      act(repo);
+      assert.notEqual(subjects(repo)[0], "seed", `${name} committed nothing`);
+      assert.equal(lastParagraph(repo), `${runRefs}\nRefs: #42`, name);
+    });
+  }
+});
+
+test("--landed also links the issue, after the landed sha", () => {
+  withGitRepo((repo) => {
+    seedWithFrontmatter(repo, [`issue: ${ISSUE_URL}`]);
+    write(repo.dir, "src/a.ts", "work\n");
+    repo.git("add", "src/a.ts");
+    repo.git("commit", "-m", "landed elsewhere");
+    const sha = repo.git("rev-parse", "HEAD").stdout.trim();
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--landed", sha]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(lastParagraph(repo), `Refs: ${PLAN_REL} task T1 landed ${sha}\nRefs: #42`);
+  });
+});
+
+test("no issue link is added for a plan without the key, a URL that is no issue, or an issue: line outside the frontmatter (a wrong #N would link an unrelated issue)", () => {
+  const plans: Array<[name: string, text: string]> = [
+    ["no key", ["---", "source: /home/u/plans/feat-x.md", "---", "", planBody(TWO_TASKS)].join("\n")],
+    ["pull request URL", ["---", "issue: https://github.com/acme/widgets/pull/42", "---", "", planBody(TWO_TASKS)].join("\n")],
+    ["no frontmatter", [`issue: ${ISSUE_URL}`, "", planBody(TWO_TASKS)].join("\n")],
+    ["unclosed frontmatter", ["---", `issue: ${ISSUE_URL}`, "", planBody(TWO_TASKS)].join("\n")],
+  ];
+  for (const [name, text] of plans) {
+    withGitRepo((repo) => {
+      seedRaw(repo, text, TWO_TASKS.length);
+      write(repo.dir, "src/a.ts", "work\n");
+      const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+      assert.equal(result.status, 0, `${name} -> stderr: ${result.stderr}`);
+      assert.equal(lastParagraph(repo), `Refs: ${PLAN_REL} task T1`, name);
+    });
+  }
+});
+
+test("a CRLF plan still yields the issue link (the key is matched with its carriage return cut)", () => {
+  withGitRepo((repo) => {
+    const text = ["---", `issue: ${ISSUE_URL}`, "---", "", planBody(TWO_TASKS)].join("\n").replace(/\n/g, "\r\n");
+    seedRaw(repo, text, TWO_TASKS.length);
+    write(repo.dir, "CLAUDE.md", "memory\n");
+    const result = run(repo.dir, repo.env, ["--chore", PLAN_REL, "CLAUDE.md"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(lastParagraph(repo), `Refs: ${PLAN_REL} close\nRefs: #42`);
+  });
+});
+
 test("--repair refuses a '.temp' path even with a leading './' (the leading './' is not a bypass)", () => {
   withGitRepo((repo) => {
     seed(repo);

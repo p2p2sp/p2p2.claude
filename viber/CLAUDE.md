@@ -34,7 +34,8 @@ its `allowed-tools` pattern in the same form. `open-page.sh` is plugin-wide inst
 - `intent` and `fixer` take an issue reference (a number, `#N` or a URL, the whole argument) only
   under `issues: true`, else it is plain text; `intent` can also save its summary as a new issue.
   Either path rides an `Issue: <full issue URL>` line on the handoff to `planner`, which writes it
-  as the plan frontmatter's `issue:` key; `plan-index.sh --split` carries it into `spec.md`.
+  as the plan frontmatter's `issue:` key; `plan-index.sh --split` carries it into `spec.md`, and
+  it and every `commit-task.sh` form taking the plan foot their commit with `Refs: #<N>`.
 - `prototype`, optional and user-only, has `prototype-writer` build a UI change into one HTML
   mockup, settles it in a UI-only conversation, then hands to `intent` with a `Prototype:` line
   kept in its summary; tied to an issue it can also comment there first. The mockup path
@@ -122,6 +123,7 @@ The template shape (`<!-- TASK -->` markers, `### T<n> - <title>` headings, task
 
 ## Duplicated on purpose - change together
 
+- `issue_ref()` (plan frontmatter `issue:` URL to `#<N>`): `commit-task.sh`, `plan-index.sh`.
 - `directories.runs` / `directories.specifications` parsing and sanitizing: `config.sh`,
   `plan-path.sh`, `archive-run.sh`.
 - Node budget 12000 / 32000: `references/node-doctrine.md`, `skills/memory/scripts/memory-map.sh`,
