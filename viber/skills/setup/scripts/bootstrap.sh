@@ -30,7 +30,7 @@
 #                                      merged text staged in a sibling temp file
 #                                      and moved over the config in one step, so
 #                                      a failed merge leaves the original)
-#            <root>/.gitignore        (seeded from assets/gitignore.txt when the
+#            <root>/.gitignore        (seeded from templates/gitignore.txt when the
 #                                      project has none, otherwise ".temp/" is
 #                                      appended only when no rule ignores it)
 #   reads  : <root>/.claude/settings.json (existence only, never written - the
@@ -48,7 +48,7 @@ set -u
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 template="$here/../templates/viber.yml"
-asset_gitignore="$here/../assets/gitignore.txt"
+template_gitignore="$here/../templates/gitignore.txt"
 
 root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 if [ -z "$root" ] || [ ! -d "$root" ]; then
@@ -155,13 +155,13 @@ fi
 # run needs, appended on its own line even when the file ends without one.
 ignore="$root/.gitignore"
 if [ ! -f "$ignore" ]; then
-  if [ ! -f "$asset_gitignore" ]; then
+  if [ ! -f "$template_gitignore" ]; then
     if printf '.temp/\n' > "$ignore" 2>/dev/null; then
-      echo ".gitignore: created with .temp/ - template missing at $asset_gitignore"
+      echo ".gitignore: created with .temp/ - template missing at $template_gitignore"
     else
       echo ".gitignore: could not write $ignore"
     fi
-  elif cp "$asset_gitignore" "$ignore" 2>/dev/null; then
+  elif cp "$template_gitignore" "$ignore" 2>/dev/null; then
     echo ".gitignore: created from template (ignores .temp/)"
   else
     echo ".gitignore: could not write $ignore"

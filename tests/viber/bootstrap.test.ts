@@ -2,7 +2,7 @@
  * bootstrap.test.ts - proves viber/skills/setup/scripts/bootstrap.sh seeds a
  * host project from the skill's own bundled files and never overwrites a value
  * the project already carries: `.claude/viber.yml` from templates/viber.yml, and
- * `.gitignore` from assets/gitignore.txt when the project has none - otherwise
+ * `.gitignore` from templates/gitignore.txt when the project has none - otherwise
  * the file stays the user's and the single edit is the `.temp/` rule, appended
  * on its own line even when the file ends without one. `CLAUDE.md` is the one
  * item it only REPORTS: the agents read the host's build and test commands from
@@ -37,7 +37,7 @@ import { coreUtilsPath, withStub } from "../harness/stub.ts";
 import { withGitRepo, withTempDir } from "../harness/tmp.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/skills/setup/scripts/bootstrap.sh");
-const ASSET_GITIGNORE = path.resolve(import.meta.dirname, "../../viber/skills/setup/assets/gitignore.txt");
+const TEMPLATE_GITIGNORE = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/gitignore.txt");
 const TEMPLATE_CONFIG = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/viber.yml");
 
 // A stub gh is always first on PATH, so the gh line never depends on whether
@@ -73,14 +73,14 @@ test("a fresh repository seeds both files from the bundled ones and prints one l
       ].join("\n"),
     );
     assert.equal(read(configPath(dir)), read(TEMPLATE_CONFIG));
-    assert.equal(read(path.join(dir, ".gitignore")), read(ASSET_GITIGNORE));
+    assert.equal(read(path.join(dir, ".gitignore")), read(TEMPLATE_GITIGNORE));
   });
 });
 
 test("the bundled .gitignore already carries the .temp/ rule, so a fresh seed needs no append", () => {
-  // The seeded file IS the asset byte for byte (asserted above), so the run's
+  // The seeded file IS the template byte for byte (asserted above), so the run's
   // own second step must recognise the rule rather than duplicate it.
-  assert.match(read(ASSET_GITIGNORE), /^\.temp\/$/m);
+  assert.match(read(TEMPLATE_GITIGNORE), /^\.temp\/$/m);
 });
 
 test("running twice leaves both files byte-identical and reports them as already present", () => {

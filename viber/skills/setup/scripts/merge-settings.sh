@@ -13,7 +13,7 @@
 #                       untouched. Needs no node: it is a plain copy, staged
 #                       in <target>.tmp and renamed over the target.
 # template (required) - the bundled permissions template
-#                       (viber/skills/setup/assets/settings.json).
+#                       (viber/skills/setup/templates/settings.json).
 # target   (optional) - the host settings file; defaults to
 #                       .claude/settings.json at the repository root (the
 #                       current dir outside a repository), so a run from a

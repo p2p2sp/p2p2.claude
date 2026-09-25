@@ -5,7 +5,7 @@ Usage: python3 build_report.py <report-data.json> <output.html>
 
 Validates the required structure (see references/report-schema.md), fills in
 English defaults for any missing UI label, injects the JSON into
-assets/report-template.html and writes a single self-contained HTML file.
+templates/report-template.html and writes a single self-contained HTML file.
 Exits 1 and lists every problem when required fields are missing, so the
 agent fixes the JSON rather than the HTML.
 """
@@ -13,7 +13,7 @@ import json
 import sys
 from pathlib import Path
 
-TEMPLATE = Path(__file__).resolve().parent.parent / "assets" / "report-template.html"
+TEMPLATE = Path(__file__).resolve().parent.parent / "templates" / "report-template.html"
 
 DIMENSION_KEYS = ["problem", "market", "competition", "advantage", "revenue",
                   "distribution", "timing", "side_project_fit", "autopilot_fit"]

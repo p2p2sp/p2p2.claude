@@ -41,11 +41,11 @@ import { coreUtilsPath } from "../harness/stub.ts";
 import { slash } from "../harness/paths.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/skills/setup/scripts/merge-settings.sh");
-const ASSET_TEMPLATE = path.resolve(import.meta.dirname, "../../viber/skills/setup/assets/settings.json");
+const TEMPLATE_SETTINGS = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/settings.json");
 
 /** A small file-local template so a merge assertion can name the exact entries
- *  and counts; the shipped asset is used only where the case is about the
- *  shipped asset itself (creation, the no-node block, its own shape). */
+ *  and counts; the shipped template is used only where the case is about the
+ *  shipped template itself (creation, the no-node block, its own shape). */
 const FIXTURE_TEMPLATE = {
   $schema: "https://json.schemastore.org/claude-code-settings.json",
   showClearContextOnPlanAccept: true,
@@ -91,11 +91,11 @@ function readJson(file: string): any {
 
 test("no settings.json at all: the default target is created byte-identical to the shipped template, exit 0", () => {
   withTempDir("p2p2-viber-merge-settings-", (dir) => {
-    const result = run(dir, ASSET_TEMPLATE);
+    const result = run(dir, TEMPLATE_SETTINGS);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "settings.json: created from template\n");
-    assert.equal(fs.readFileSync(targetPath(dir), "utf-8"), fs.readFileSync(ASSET_TEMPLATE, "utf-8"));
+    assert.equal(fs.readFileSync(targetPath(dir), "utf-8"), fs.readFileSync(TEMPLATE_SETTINGS, "utf-8"));
   });
 });
 
@@ -104,7 +104,7 @@ test("run from a subdirectory of a repository, the default target is the root's 
     const sub = path.join(repo.dir, "sub");
     fs.mkdirSync(sub);
 
-    const result = runScript(SUT, [ASSET_TEMPLATE], { cwd: sub, env: repo.env });
+    const result = runScript(SUT, [TEMPLATE_SETTINGS], { cwd: sub, env: repo.env });
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "settings.json: created from template\n");
@@ -382,12 +382,12 @@ test("no node on PATH: the merge is skipped with the recommended block on stdout
     writeJson(target, { permissions: { allow: ["HostOnlyTool"] } });
     const before = fs.readFileSync(target, "utf-8");
 
-    const result = runWithoutNode(dir, ASSET_TEMPLATE, target);
+    const result = runWithoutNode(dir, TEMPLATE_SETTINGS, target);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
       result.stdout,
-      `settings.json: node not found - merge skipped, recommended block:\n${fs.readFileSync(ASSET_TEMPLATE, "utf-8")}`,
+      `settings.json: node not found - merge skipped, recommended block:\n${fs.readFileSync(TEMPLATE_SETTINGS, "utf-8")}`,
     );
     assert.equal(fs.readFileSync(target, "utf-8"), before);
   });
@@ -399,14 +399,14 @@ test("--reset replaces an existing target byte-identical to the template and kee
     writeJson(target, { permissions: { allow: ["HostOnlyTool"] }, hostKey: 1 });
     const before = fs.readFileSync(target, "utf-8");
 
-    const result = runScript(SUT, ["--reset", ASSET_TEMPLATE], { cwd: dir });
+    const result = runScript(SUT, ["--reset", TEMPLATE_SETTINGS], { cwd: dir });
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
       result.stdout,
       "settings.json: reset from template (previous file saved to .temp/viber/setup/settings.json.bak)\n",
     );
-    assert.equal(fs.readFileSync(target, "utf-8"), fs.readFileSync(ASSET_TEMPLATE, "utf-8"));
+    assert.equal(fs.readFileSync(target, "utf-8"), fs.readFileSync(TEMPLATE_SETTINGS, "utf-8"));
     assert.equal(fs.readFileSync(path.join(dir, ".temp", "viber", "setup", "settings.json.bak"), "utf-8"), before);
     assert.equal(fs.existsSync(`${target}.tmp`), false);
   });
@@ -418,10 +418,10 @@ test("--reset over a target that is not valid JSON still replaces it (the one wa
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, "{ // broken\n");
 
-    const result = runScript(SUT, ["--reset", ASSET_TEMPLATE, target], { cwd: dir });
+    const result = runScript(SUT, ["--reset", TEMPLATE_SETTINGS, target], { cwd: dir });
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.equal(fs.readFileSync(target, "utf-8"), fs.readFileSync(ASSET_TEMPLATE, "utf-8"));
+    assert.equal(fs.readFileSync(target, "utf-8"), fs.readFileSync(TEMPLATE_SETTINGS, "utf-8"));
   });
 });
 
@@ -430,21 +430,21 @@ test("--reset with no node on PATH still resets (a plain copy needs none)", () =
     const target = targetPath(dir);
     writeJson(target, { permissions: { allow: ["HostOnlyTool"] } });
 
-    const result = runScript(SUT, ["--reset", ASSET_TEMPLATE, target], { cwd: dir, env: { PATH: coreUtilsPath() } });
+    const result = runScript(SUT, ["--reset", TEMPLATE_SETTINGS, target], { cwd: dir, env: { PATH: coreUtilsPath() } });
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^settings\.json: reset from template/);
-    assert.equal(fs.readFileSync(target, "utf-8"), fs.readFileSync(ASSET_TEMPLATE, "utf-8"));
+    assert.equal(fs.readFileSync(target, "utf-8"), fs.readFileSync(TEMPLATE_SETTINGS, "utf-8"));
   });
 });
 
 test("--reset with no target yet creates it and writes no backup", () => {
   withTempDir("p2p2-viber-merge-settings-", (dir) => {
-    const result = runScript(SUT, ["--reset", ASSET_TEMPLATE], { cwd: dir });
+    const result = runScript(SUT, ["--reset", TEMPLATE_SETTINGS], { cwd: dir });
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "settings.json: created from template\n");
-    assert.equal(fs.readFileSync(targetPath(dir), "utf-8"), fs.readFileSync(ASSET_TEMPLATE, "utf-8"));
+    assert.equal(fs.readFileSync(targetPath(dir), "utf-8"), fs.readFileSync(TEMPLATE_SETTINGS, "utf-8"));
     assert.equal(fs.existsSync(path.join(dir, ".temp")), false);
   });
 });
@@ -465,7 +465,7 @@ test("a template path that does not exist reports the missing template and exits
 });
 
 test("the shipped template carries the recommended block only: built-in tools, recoverable operations asked, irreversible ones denied, no host-specific key", () => {
-  const template = readJson(ASSET_TEMPLATE);
+  const template = readJson(TEMPLATE_SETTINGS);
 
   assert.deepEqual(Object.keys(template), ["$schema", "showClearContextOnPlanAccept", "permissions"]);
   assert.equal(template.$schema, "https://json.schemastore.org/claude-code-settings.json");

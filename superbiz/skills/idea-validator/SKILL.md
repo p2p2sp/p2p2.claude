@@ -54,7 +54,7 @@ report-data.json
 
 ## Process
 
-Read `${CLAUDE_SKILL_DIR}/references/process.md` before step 1 and `${CLAUDE_SKILL_DIR}/references/dimensions.md` before step 6; they hold the detailed protocols. All `references/…` and `assets/…` paths below are relative to `${CLAUDE_SKILL_DIR}`. What follows is the sequence and the hand-offs.
+Read `${CLAUDE_SKILL_DIR}/references/process.md` before step 1 and `${CLAUDE_SKILL_DIR}/references/dimensions.md` before step 6; they hold the detailed protocols. All `references/…` and `templates/…` paths below are relative to `${CLAUDE_SKILL_DIR}`. What follows is the sequence and the hand-offs.
 
 ### Step 0 — Intake
 Write `00-input.md`. If any of these are missing and matter, ask in one batch: target segment, geography, intended revenue model, weekly hours the user can commit, channels/audience the user already has, stage (idea / prototype / has users). Record "unknown" answers verbatim.
@@ -119,4 +119,4 @@ It does not answer "will they pay". Only the experiments in step 13 can. Say thi
 - `references/experiments.md` — experiment catalogue and threshold-setting guidance
 - `references/report-schema.md` — JSON structure consumed by `scripts/build_report.py`
 - `references/frameworks.md` — the frameworks used, with links verified at authoring time
-- `assets/report-template.html` — HTML/CSS/JS shell the script fills
+- `templates/report-template.html` — HTML/CSS/JS shell the script fills

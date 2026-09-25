@@ -34,8 +34,8 @@ Run the chosen form once. Its line is carried into the close literally, never re
 retried; a non-zero exit is trusted the same way:
 
 ```
-"${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/merge-settings.sh" "${CLAUDE_PLUGIN_ROOT}/skills/setup/assets/settings.json"
-"${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/merge-settings.sh" --reset "${CLAUDE_PLUGIN_ROOT}/skills/setup/assets/settings.json"
+"${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/merge-settings.sh" "${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/settings.json"
+"${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/merge-settings.sh" --reset "${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/settings.json"
 ```
 
 Then open the onboarding page in the user's browser, its line trusted the same way:

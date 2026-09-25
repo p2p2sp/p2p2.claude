@@ -18,11 +18,11 @@ One skill, no agents, no hooks, no shared dir: `skills/idea-validator/`. It is u
 ## The report contract (three files, edited together)
 
 `references/report-schema.md` (field names) -> `scripts/build_report.py` (validator + injector) ->
-`assets/report-template.html` (JS renderer reading the injected JSON). A field renamed in one and
+`templates/report-template.html` (JS renderer reading the injected JSON). A field renamed in one and
 not the others breaks the report silently or fails validation.
 
 - The script replaces three placeholders in the template: `__REPORT_DATA__` (JSON, `</` escaped),
-  `__LANG__`, `__TITLE__`. It resolves the template as `../assets/report-template.html` from its
+  `__LANG__`, `__TITLE__`. It resolves the template as `../templates/report-template.html` from its
   own path, so the two directories move together.
 - `DEFAULT_LABELS` in the script is the English fallback merged under the run's `labels` (the
   template reads them as `L.<key>`); a label key added to the template needs an entry there too.
