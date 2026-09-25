@@ -2,7 +2,7 @@
 name: e2e
 description: Generates and locally verifies Playwright tests for the QA scenarios of one viber run, then commits them. Use it after a build closed with a qa.e2e.md handoff file in its run directory.
 argument-hint: "[run directory, or a path to qa.e2e.md]"
-allowed-tools: Read, Grep, Glob, Bash, Agent, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/check-playwright.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*)
+allowed-tools: Read, Grep, Glob, Bash, Agent, SendMessage, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/check-playwright.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*)
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -73,6 +73,10 @@ The ID list is every `### QA-<nn> <title>` heading under `## UI scenarios` and `
 4. `VERDICT: BLOCKED` plus `REASON:` -> the application, not the test, prevented a green run. The writer already deleted its file and wrote that ID's `blocked` line. Keep the reason for step 7, re-dispatch nothing, and change nothing in the application. `TaskUpdate` -> completed.
 5. `VERDICT: FAIL` plus `REASON:` -> dispatch once more with the same lines. A second FAIL -> `AskUserQuestion` naming the scenario: retry again, skip it (keep the reason for step 7; it wrote no status line, so the ID stays pending for a later pass), or abort (go to step 6 with the IDs already processed).
 6. `VERDICT: DENIED` plus `REASON:` -> `AskUserQuestion` naming the scenario and the refused call from its `REASON:` line: permission added and retry, skip it (keep the reason for step 7; the ID stays pending), or abort (go to step 6 with the IDs already processed).
+
+The writer's completion notice saying it "stopped with background work of its own still running": hold its verdict and `SendMessage` it, once: `Stop every process you started that is still running, then return your output lines again.` Act on what it returns then. The same notice again -> act on the verdict as returned.
+
+The writer returning no `VERDICT:` line: `SendMessage` it, once: `Finish your task, then return your output lines.` Still none -> treat it as this scenario's second `FAIL`: go straight to the `AskUserQuestion` of point 5, naming the scenario, with `REASON: no verdict returned`.
 
 Never open the application, write a spec file, edit one the writer produced, or read a red run yourself.
 
