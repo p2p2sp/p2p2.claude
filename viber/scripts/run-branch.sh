@@ -35,8 +35,9 @@
 run_branch_dir="$(dirname -- "${BASH_SOURCE[0]}")"
 
 # The branching mode, the valid work entries (br_keys, br_bases, br_names,
-# br_targets, in file order) and the current branch (empty when detached).
-# br_line is what plan-path.sh prints after "branch: ", empty under off.
+# br_targets, in file order), the first config.sh error (br_err, empty with
+# none) and the current branch (empty when detached). br_line is what
+# plan-path.sh prints after "branch: ", empty under off.
 branch_setup() {
   local line rest
   br_mode=off
@@ -44,11 +45,13 @@ branch_setup() {
   br_bases=()
   br_names=()
   br_targets=()
+  br_err=""
   br_cur=""
   br_line=""
   while IFS= read -r line; do
     case "$line" in
       'mode: '*) br_mode="${line#mode: }" ;;
+      'error: '*) [[ -n "$br_err" ]] || br_err="${line#error: }" ;;
       'entry: '*)
         rest="${line#entry: }"
         br_keys+=("${rest%% | *}")
@@ -196,9 +199,19 @@ branch_expand() {
     | sed -E -e 's#[-_.]+/#/#g' -e 's#/[-_.]+#/#g' -e 's#^[-_.]+##' -e 's#[-_.]+$##' -e 's#/+#/#g' -e 's#-+#-#g' -e 's#^/+##' -e 's#/+$##'
 }
 
+# Refuses a branch creation while config.sh reports an error: return 6 with
+# the first one on stderr, 0 on a configuration it accepts.
+branch_config_ok() {
+  [[ -n "$br_err" ]] || return 0
+  echo "error: $br_err" >&2
+  return 6
+}
+
 # Puts HEAD on the run branch of plan $1 (run slug $2) and sets br_line. A
-# branch is created only from the base of the plan's work entry; the required
-# checks read that base, or every entry base while no entry resolves.
+# branch is created only from the base of the plan's work entry and only on a
+# configuration config.sh reports no error for; keeping or switching to a
+# recorded branch that exists never reads those errors. The required checks
+# read the entry base, or every entry base while no entry resolves.
 branch_land() {
   local target
   [[ "$br_mode" != off ]] || return 0
@@ -215,12 +228,14 @@ branch_land() {
       # no entry, so no base to tell: HEAD on any entry base, or no entry at
       # all, would need a branch this plan cannot name
       if [[ ${#br_keys[@]} -eq 0 ]] || branch_is_base "$br_cur"; then
+        branch_config_ok || return 6
         echo "error: $br_why" >&2
         return 6
       fi
       return 0
     fi
     [[ "$br_cur" == "$br_base" ]] || return 0
+    branch_config_ok || return 6
     if [[ "$br_pattern" == *'{issue-number}'* && -z "$(plan_issue "$1")" ]]; then
       echo "error: work entry $br_entry needs an issue for {issue-number}" >&2
       return 6
@@ -245,6 +260,7 @@ branch_land() {
   local action=switched from="refs/heads/$target" head_c to_c
   if ! git show-ref --verify --quiet "$from"; then
     action=created
+    branch_config_ok || return 6
     if [[ -z "$br_entry" ]]; then
       echo "error: $br_why" >&2
       return 6

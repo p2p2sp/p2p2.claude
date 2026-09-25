@@ -145,8 +145,11 @@
 #         not resolve ("the plan records no branching.work entry and several
 #         exist", "no valid branching.work entry", a "work:" key naming no
 #         entry) or its pattern needs the issue the plan lacks ("work entry
-#         <key> needs an issue for {issue-number}"); stderr names the reason;
-#         nothing landed, HEAD, index and tree unchanged
+#         <key> needs an issue for {issue-number}"), or a branch to create
+#         while config.sh --branching reports an error (the first one is the
+#         reason); stderr names the reason; nothing landed, HEAD, index and
+#         tree unchanged. A recorded branch that exists is kept or switched to
+#         whatever those errors are.
 #
 # One "open:" line per OTHER run still holding a task that is neither committed
 # nor skipped - the resolved run is never among them, and a repository with

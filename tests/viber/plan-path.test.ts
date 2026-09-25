@@ -1875,6 +1875,96 @@ for (const [what, frontmatter] of [
   });
 }
 
+// --- a recorded branch resumes whatever the configuration is refused for ---
+
+/** A pre-work configuration: base and name straight under branching:, no entry. */
+const LEGACY = ["mode: required", "base: main", "name: '{type}/{slug}'"];
+const LEGACY_ERROR = "branching.base and branching.name are no longer read - move them into a branching.work entry";
+
+/** ON_MAIN plus an entry config.sh drops for its missing target, so its error comes first. */
+const ONE_BROKEN = [...ON_MAIN, "  broken:", "    base: main", "    name: 'x/{slug}'"];
+const BROKEN_ERROR = "work entry broken: missing target";
+
+/** Staged and untracked changes, so a refused landing has a tree and an index to leave alone. */
+function dirtyTree(repo: GitRepo): void {
+  fs.writeFileSync(path.join(repo.dir, "README.md"), "staged\n");
+  repo.git("add", "README.md");
+  fs.writeFileSync(path.join(repo.dir, "scratch.txt"), "untracked\n");
+}
+
+test("a legacy configuration and a plan recording an existing branch at another commit: the landing switches to it (T6 DoD.1)", () => {
+  withBranchRepo(LEGACY, (repo) => {
+    branchAhead(repo, "feature/login");
+    const tip = commitOf(repo, "feature/login");
+    withSource(["branch: feature/login"], (src) => {
+      const result = runIn(repo, ["--land", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(branchLine(result.stdout), "branch: feature/login (switched)");
+      assert.deepEqual(targetLines(result.stdout), []);
+      assert.equal(headOf(repo), "feature/login");
+      assert.equal(commitOf(repo), tip);
+    });
+  });
+});
+
+test("a legacy configuration and a plan recording the branch HEAD is on: the landing keeps it (T6 DoD.1)", () => {
+  withBranchRepo(LEGACY, (repo) => {
+    repo.git("checkout", "-q", "-b", "feature/login");
+    withSource(["branch: feature/login"], (src) => {
+      const result = runIn(repo, ["--land", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(branchLine(result.stdout), "branch: feature/login (kept)");
+      assert.equal(headOf(repo), "feature/login");
+    });
+  });
+});
+
+for (const [how, prepare, expected] of [
+  ["switches to it", (repo: GitRepo) => branchAhead(repo, "feature/login"), "switched"],
+  ["keeps it", (repo: GitRepo) => repo.git("checkout", "-q", "-b", "feature/login"), "kept"],
+] as const) {
+  test(`required and a plan whose work: key names no entry but whose recorded branch exists: the landing ${how} (T6 DoD.2)`, () => {
+    withBranchRepo(["mode: required", ...ON_MAIN], (repo) => {
+      prepare(repo);
+      withSource(["work: nope", "branch: feature/login"], (src) => {
+        const result = runIn(repo, ["--land", src]);
+        assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+        assert.equal(branchLine(result.stdout), `branch: feature/login (${expected})`);
+        assert.equal(headOf(repo), "feature/login");
+      });
+    });
+  });
+}
+
+for (const [what, branching, frontmatter, first] of [
+  ["a legacy configuration and a recorded branch that does not exist", LEGACY, ["branch: feature/login"], LEGACY_ERROR],
+  ["a legacy configuration, required and no branch recorded", LEGACY, [], LEGACY_ERROR],
+  ["a dropped entry beside a valid one and a recorded branch that does not exist", ["mode: allowed", ...ONE_BROKEN], ["work: feature", "branch: feature/login"], BROKEN_ERROR],
+  ["a dropped entry beside a valid one, required and no branch recorded on the base", ["mode: required", ...ONE_BROKEN], ["work: feature"], BROKEN_ERROR],
+] as const) {
+  test(`${what}: creating the run branch exits 6 naming the first configuration error, HEAD, index and tree unchanged (T6 DoD.3, DoD.4)`, () => {
+    withBranchRepo([...branching], (repo) => {
+      dirtyTree(repo);
+      const head = commitOf(repo);
+      const tree = treeOf(repo);
+      const index = repo.git("diff", "--cached").stdout;
+      const branches = repo.git("branch", "--list").stdout;
+      withSource([...frontmatter], (src) => {
+        const result = runIn(repo, ["--land", src]);
+        assert.equal(result.status, 6, `stdout: ${result.stdout}`);
+        assert.equal(result.stdout, "");
+        assert.equal(result.stderr.trim(), `error: ${first}`);
+        assert.equal(headOf(repo), "main");
+        assert.equal(commitOf(repo), head);
+        assert.equal(treeOf(repo), tree);
+        assert.equal(repo.git("diff", "--cached").stdout, index);
+        assert.equal(repo.git("branch", "--list").stdout, branches);
+        assert.deepEqual(runDirs(repo.dir), []);
+      });
+    });
+  });
+}
+
 // --- --branch: the read-only C3 report for the planner, nothing moves ---
 
 /** The --branch report's key: value lines as a plain map. */
