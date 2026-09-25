@@ -34,15 +34,16 @@
 
 run_branch_dir="$(dirname -- "${BASH_SOURCE[0]}")"
 
-# The branching mode, the valid work entries (br_keys, br_bases, br_names, in
-# file order) and the current branch (empty when detached). br_line is what
-# plan-path.sh prints after "branch: ", empty under off.
+# The branching mode, the valid work entries (br_keys, br_bases, br_names,
+# br_targets, in file order) and the current branch (empty when detached).
+# br_line is what plan-path.sh prints after "branch: ", empty under off.
 branch_setup() {
   local line rest
   br_mode=off
   br_keys=()
   br_bases=()
   br_names=()
+  br_targets=()
   br_cur=""
   br_line=""
   while IFS= read -r line; do
@@ -55,6 +56,7 @@ branch_setup() {
         br_bases+=("${rest%% | *}")
         rest="${rest#* | name: }"
         br_names+=("${rest%% | *}")
+        br_targets+=("${rest##* | target: }")
         ;;
     esac
   done < <(bash "$run_branch_dir/config.sh" --branching 2>/dev/null || true)
@@ -76,13 +78,14 @@ $0 ~ "^" key ":" { sub(/^[^:]*:[[:space:]]*/, ""); sub(/[[:space:]].*$/, ""); pr
 }
 
 # The work entry of plan $1: its "work:" key, or the single entry when it
-# names none. Sets br_entry, br_base and br_pattern; unresolved, br_entry is
-# empty and br_why holds the exit 6 reason.
+# names none. Sets br_entry, br_base, br_pattern and br_target; unresolved,
+# br_entry is empty and br_why holds the exit 6 reason.
 branch_entry() {
   local want i n=${#br_keys[@]}
   br_entry=""
   br_base=""
   br_pattern=""
+  br_target=""
   br_why=""
   want="$(plan_field "$1" work)"
   if [[ -z "$want" ]]; then
@@ -101,6 +104,7 @@ branch_entry() {
       br_entry="$want"
       br_base="${br_bases[$i]}"
       br_pattern="${br_names[$i]}"
+      br_target="${br_targets[$i]}"
       return 0
     fi
   done

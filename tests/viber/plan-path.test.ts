@@ -1295,6 +1295,20 @@ function branchLine(stdout: string): string | undefined {
     .find((line) => line.startsWith("branch: "));
 }
 
+/** The line printed right after `branch:`, or undefined when there is none. */
+function afterBranch(stdout: string): string | undefined {
+  const lines = slash(stdout).split("\n");
+  const at = lines.findIndex((line) => line.startsWith("branch: "));
+  return at < 0 ? undefined : lines[at + 1];
+}
+
+/** The `target:` lines of one resolution, in the order printed. */
+function targetLines(stdout: string): string[] {
+  return slash(stdout)
+    .split("\n")
+    .filter((line) => line.startsWith("target: "));
+}
+
 test("branching off in a repository: a plan naming a branch lands on the current one and stdout carries no branch line", () => {
   withBranchRepo(["mode: off"], (repo) => {
     withSource(["branch: feature/login"], (src) => {
@@ -1317,7 +1331,7 @@ test("a plan naming a new branch while HEAD is on the base lands on it, created 
       const key = parse(result.stdout).key;
       assert.equal(
         slash(result.stdout),
-        [`path: docs/_specs/${key}/plan.md`, `key: ${key}`, "state: new", "branch: feature/login (created)", ""].join("\n"),
+        [`path: docs/_specs/${key}/plan.md`, `key: ${key}`, "state: new", "branch: feature/login (created)", "target: main", ""].join("\n"),
       );
       assert.equal(headOf(repo), "feature/login");
       assert.equal(commitOf(repo), commitOf(repo, "main"));
@@ -1580,6 +1594,7 @@ test("the no-argument form reports the current branch kept, right after state:, 
         "key: 2026-09-19-17-30-00_add-login",
         "state: existing",
         "branch: main (kept)",
+        "target: main",
         "",
       ].join("\n"),
     );
@@ -1597,7 +1612,13 @@ test("the approved plan re-landed from the base answers existing from the run br
 
       const again = runIn(repo, ["--land", src]);
       assert.equal(again.status, 0, `stderr: ${again.stderr}`);
-      assert.deepEqual(parse(again.stdout), { path: first.path, key: first.key, state: "existing", branch: "feature/login (switched)" });
+      assert.deepEqual(parse(again.stdout), {
+        path: first.path,
+        key: first.key,
+        state: "existing",
+        branch: "feature/login (switched)",
+        target: "main",
+      });
       assert.deepEqual(runDirs(repo.dir), [first.key]);
     });
   });
@@ -1784,6 +1805,75 @@ test("required and an entry based on develop: a plan naming main as its branch i
     });
   });
 });
+
+// --- the pull request target of the plan's work entry, right after branch: ---
+
+test("a first landing prints the target of the plan's work entry on the line right after branch: (T5 DoD.1)", () => {
+  withBranchRepo(["mode: allowed", ...TWO_BASES], (repo) => {
+    branchAhead(repo, "develop");
+    withSource(["work: feature", "branch: feature/login"], (src) => {
+      const result = runIn(repo, ["--land", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(branchLine(result.stdout), "branch: feature/login (created)");
+      assert.equal(afterBranch(result.stdout), "target: develop");
+      assert.deepEqual(targetLines(result.stdout), ["target: develop"]);
+    });
+  });
+});
+
+test("the no-argument form prints the target of the resolved run's work entry right after branch: (T5 DoD.2)", () => {
+  withBranchRepo(["mode: required", ...TWO_BASES], (repo) => {
+    const file = path.join(repo.dir, "docs", "_specs", "2026-09-19-17-30-00_add-login", "plan.md");
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, ["---", "work: hotfix", "branch: hotfix/add-login", "---", "", PLAN_BODY].join("\n"));
+    const result = runIn(repo);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(branchLine(result.stdout), "branch: main (kept)");
+    assert.equal(afterBranch(result.stdout), "target: main");
+    assert.deepEqual(targetLines(result.stdout), ["target: main"]);
+  });
+});
+
+test("mode off with a resolvable work entry: a landing prints neither a branch: nor a target: line (T5 DoD.3)", () => {
+  withBranchRepo(["mode: off", ...ON_MAIN], (repo) => {
+    withSource(["work: feature", "branch: feature/login"], (src) => {
+      const result = runIn(repo, ["--land", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(branchLine(result.stdout), undefined);
+      assert.deepEqual(targetLines(result.stdout), []);
+    });
+  });
+});
+
+test("mode off with a resolvable work entry: the no-argument form prints neither a branch: nor a target: line and HEAD stays on main (T5 DoD.3)", () => {
+  withBranchRepo(["mode: off", ...ON_MAIN], (repo) => {
+    const file = path.join(repo.dir, "docs", "_specs", "2026-09-19-17-30-00_add-login", "plan.md");
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, ["---", "work: feature", "branch: feature/login", "---", "", PLAN_BODY].join("\n"));
+    const result = runIn(repo);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(branchLine(result.stdout), undefined);
+    assert.deepEqual(targetLines(result.stdout), []);
+    assert.equal(headOf(repo), "main");
+  });
+});
+
+for (const [what, frontmatter] of [
+  ["records no work: key while several entries exist", ["branch: feature/login"]],
+  ["names a work entry the configuration lacks", ["work: nope", "branch: feature/login"]],
+] as const) {
+  test(`a plan that ${what} still switches to its existing branch but prints no target: line (T5 DoD.4)`, () => {
+    withBranchRepo(["mode: allowed", ...TWO_BASES], (repo) => {
+      branchAhead(repo, "feature/login");
+      withSource([...frontmatter], (src) => {
+        const result = runIn(repo, ["--land", src]);
+        assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+        assert.equal(branchLine(result.stdout), "branch: feature/login (switched)");
+        assert.deepEqual(targetLines(result.stdout), []);
+      });
+    });
+  });
+}
 
 // --- --branch: the read-only C3 report for the planner, nothing moves ---
 

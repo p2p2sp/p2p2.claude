@@ -80,7 +80,8 @@
 #            --into, validated and refused exactly as --into. On a first
 #            landing, and on --branch, <src>'s frontmatter "branch:", "work:"
 #            and "issue:" keys and its task blocks' "Repro:" lines, for the
-#            run branch.
+#            run branch. On every form printing "branch:", the resolved
+#            plan's "work:" key, for the "target:" line.
 #   git    : HEAD moves only in the branch step of a first landing, through
 #            one checkout; every failure before or inside that step leaves
 #            HEAD, the index and the tree as they were. --branch never moves
@@ -96,9 +97,13 @@
 #     key: 2026-09-19-17-30-00_add-login
 #     state: new | existing | draft
 #     branch: feature/add-login (created | switched | kept)
+#     target: main
 #     open: docs/_specs/2026-09-18-09-12-44_add-search/plan.md | 2/6
 #   The "branch:" line only when branching.mode is not off, "branch: detached
 #   (kept)" on a detached HEAD; every other form reports the current branch kept.
+#   "target:" follows "branch:" wherever it is printed, naming the pull request
+#   target of the resolved plan's work entry; absent when that entry does not
+#   resolve.
 #   stdout, --branch <plan>, mode allowed or required inside a git repository,
 #   read from config.sh --branching:
 #     mode: allowed | required
@@ -391,7 +396,13 @@ emit() {
   printf 'path: %s\n' "$1"
   printf 'key: %s\n' "${d##*/}"
   printf 'state: %s\n' "$state"
-  [[ -z "$br_line" ]] || printf 'branch: %s\n' "$br_line"
+  if [[ -n "$br_line" ]]; then
+    printf 'branch: %s\n' "$br_line"
+    # the pull request target of the plan's work entry, when one resolves;
+    # this overwrites br_entry/br_why with the PRINTED plan's values, not the source's
+    branch_entry "$1"
+    [[ -z "$br_entry" ]] || printf 'target: %s\n' "$br_target"
+  fi
   # every OTHER run still holding unfinished tasks, so the caller can tell a
   # switch from a fresh start without reading a single file itself
   for f in "$specs_dir"/*/plan.md; do
