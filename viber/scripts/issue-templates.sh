@@ -20,6 +20,8 @@
 #            (or with no `git` on PATH) the cwd itself is used as the root,
 #            so the templates lookup below simply finds none there.
 #   env    : none of its own; gh reads its usual auth and host config.
+#   temp   : one temp file from mktemp in system temp, falls back to $TMPDIR
+#            or /tmp, cleaned by EXIT trap.
 #   stdout : the three checks below run in order and the first one that
 #            fails ends the run right there:
 #              1. <repo root>/.github/ISSUE_TEMPLATE/*.yml or *.yaml exist,

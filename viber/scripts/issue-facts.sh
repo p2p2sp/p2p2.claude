@@ -19,6 +19,7 @@
 #   cwd    : resolves a bare number only: gh maps `<N>` to the repository of
 #            the cwd. A URL is cwd-independent.
 #   env    : none of its own; gh reads its usual auth and host config.
+#   temp   : one temp file from mktemp in system temp, cleaned by EXIT trap.
 #   stdout : on success, CR stripped, in this order:
 #              NUMBER=<N>
 #              URL=<issue url>
