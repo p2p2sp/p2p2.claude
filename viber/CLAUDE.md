@@ -4,50 +4,52 @@ Every skill, agent and script here is a stage of one run, so most edits touch a 
 three files share. `PRODUCT.md` holds the product assumptions (unit tests far outnumber
 integration tests, integration last and serial, one full-suite run at the close) that
 `references/test-strategy.md` and `references/integration-tests.md` turn into rules: a change to
-how tests are planned or run answers to it. `README.md` and `skills/setup/assets/usage.html` (the
-guide `setup` opens in the browser, hand-written, no generator) are the user's view of the same
-commands and switches. After any change to a user-facing command, its arguments, a switch, a
-`viber.yml` key or a default, re-read `usage.html` against the change and fix it in the same edit,
-since nothing else catches a stale page.
+how tests are planned or run answers to it. `README.md` and the hand-written
+`skills/setup/assets/usage.html` are the user's view of the same commands and switches: a change
+to a user-facing command, its arguments, a switch, a `viber.yml` key or a default fixes
+`usage.html` in the same edit, since nothing else catches a stale page.
 
 ## Layout
 
 ```
-skills/<name>/SKILL.md   11 skills; setup, memory, rules, commit bundle their own scripts/
-skills/<name>/           files a skill reads at one step: planner templates/ + references/adr-tasks.md,
-                         intent references/issue.md, triage assets/comment.md, commit
-                         references/commit-conventions.md, setup templates/viber.yml + assets/
-agents/                  13 agents, each dispatched only by the callers its description names
+skills/<name>/           12 skills: SKILL.md plus files read at one step (templates/,
+                         references/, assets/); setup, memory, rules, commit bundle scripts/
+agents/                  14 agents, each dispatched only by the callers its description names
                          (update it when a skill starts or stops dispatching the agent)
-scripts/                 11 plugin-wide scripts, shared across skills and agents
+scripts/                 12 plugin-wide scripts, shared across skills and agents
 references/              read at runtime by agents through the `refs:` dispatch line
 hooks/                   SessionStart manifest + PreToolUse plan gate
 ```
 
 A skill's own script is called through `${CLAUDE_SKILL_DIR}` (memory, rules, setup's
-`bootstrap.sh` and `open-page.sh`) or `${CLAUDE_PLUGIN_ROOT}/skills/<name>/` (commit, setup's `merge-settings.sh`),
-its `allowed-tools` pattern in the same form.
+`bootstrap.sh`) or `${CLAUDE_PLUGIN_ROOT}/skills/<name>/` (commit, setup's `merge-settings.sh`),
+its `allowed-tools` pattern in the same form. `open-page.sh` is plugin-wide instead, called from
+`${CLAUDE_PLUGIN_ROOT}/scripts/`.
 
 ## The chain
 
 - `intent` (interview) or `fixer` (RED reproduction test + diagnosis) -> `planner` -> `implementor`.
   `planner` treats any other input as unresolved and suggests `intent`; `implementor` refuses a
-  draft (a landed plan with no TASK block). `planner`, `implementor` and `tdd` (via `task-coder`)
-  are `user-invocable: false`; `setup`, `triage`, `e2e`, `memory` and `rules` are user-only.
+  draft (a landed plan with no TASK block).
 - `intent` and `fixer` take an issue reference (a number, `#N` or a URL, the whole argument) only
-  under `issues: true`; with `issues: false` it is plain input text (no fetch, save, comment or
-  Issue line). An `intent` run with no reference can save its confirmed summary as a new issue.
-  Either path rides an `Issue: <full issue URL>`
-  line on the handoff to `planner`, which writes it as the plan frontmatter's `issue:` key;
-  `plan-index.sh --split` carries that key into `spec.md`'s frontmatter.
+  under `issues: true`, else it is plain text; `intent` can also save its summary as a new issue.
+  Either path rides an `Issue: <full issue URL>` line on the handoff to `planner`, which writes it
+  as the plan frontmatter's `issue:` key; `plan-index.sh --split` carries it into `spec.md`.
+- `prototype`, optional and user-only, has `prototype-writer` build a UI change into one HTML
+  mockup, settles it in a UI-only conversation, then hands to `intent` with a `Prototype:` line
+  kept in its summary; tied to an issue it can also comment there first. The mockup path
+  `.temp/viber/prototype/<slug>.html` (`<N>-` prefixed when tied to issue N) stays fixed for the
+  run: `open-page.sh` runs on the first `PASS` only, later rounds just ask for a tab refresh.
+- The skill dispatches `mode:`, `round:` (`create`/`revise`/`narrow`) and `variant:` lines and
+  branches on the writer's `VERDICT:`, `FILE:`, `BASIS: design-system|code|brief` and one
+  `VARIANT: <A|B|C> - <title> - <trade-off>` per variant: renaming either side breaks the loop.
 - `triage` sits before the chain: it assesses one issue, names `/viber:fixer #N`, `/viber:intent #N`
   or a one-line summary for pasted text, and invokes nothing. It runs inline, never forked (a
-  fork's return hands the main session a turn to start `fixer`), with its `disallowed-tools:`
-  holding until the next user message. The publish question is asked in prose, so the answer
-  lifts that block: in the publishing turn only the body's rule keeps `Skill` unused, and
-  `post-comment.sh`, past its one-turn pre-approval, can prompt.
-- `commit` stands outside the chain: model-invocable, `model: haiku`, `context: fork`, used at any
-  point outside a build. A build never calls it; its commits go through `commit-task.sh`.
+  fork's return hands the main session a turn to start `fixer`). Its `disallowed-tools:` lifts at
+  the prose publish answer, so in that turn only the body keeps `Skill` unused and
+  `post-comment.sh` can prompt.
+- `commit` stands outside the chain: model-invocable, `model: haiku`, `context: fork`, used
+  outside a build. A build never calls it; its commits go through `commit-task.sh`.
 
 ## Orchestrator contract
 
@@ -76,7 +78,7 @@ its `allowed-tools` pattern in the same form.
 - `commit-task.sh` never takes a subject from its caller (a task commit is the plan's
   `T<n> - <title>` heading, no type prefix). It stages only the paths it is named, as literal
   pathspecs (App Router `[id]` paths), refuses `.temp/`, and adds the run's `work/` trail itself.
-- Never two `commit-task.sh` calls at once: each rewrites the git index and `status.md`.
+- Never two `commit-task.sh` calls at once: each rewrites the index and `status.md`.
 
 ## The commit skill
 
@@ -84,36 +86,33 @@ its `allowed-tools` pattern in the same form.
   change selector semantics there only. An existing path (disk, index or HEAD) wins over the
   keyword `all`; a path-shaped token that exists nowhere is mode `missing`, `commit.sh` exits 3,
   and the fork never retries with a wider selector.
-- The preload passes the arguments as `'$ARGUMENTS'`: Claude Code substitutes the text before the
-  shell parses the line, so single quotes keep `$`, backticks and backslashes literal. An
-  apostrophe breaks it, which the description rules out.
+- The preload passes `'$ARGUMENTS'`, substituted before the shell parses it: the quotes keep `$`,
+  backticks and backslashes literal; an apostrophe breaks it, which the description rules out.
 - The `git rev-parse` and `cat` preloads are inline commands under a bare `Bash` allow, not
   bundled scripts: the one exception to the literal-script-line preload form.
 
 ## The run directory
 
 `docs/<runs>/<stamp>_<slug>/` (`docs/_specs/` by default), landed by `plan-path.sh --land`, which
-copies the plan-mode file (never moves it), points the copy's frontmatter `source:` at the copy
-and lands a round into the draft its frontmatter `into:` key names:
+copies (never moves) the plan-mode file, a round landing into the draft its `into:` key names:
 
 - `plan.md` - frozen once it carries a task block; a draft is relanded in place, round by round.
 - `spec.md`, `tasks/<id>.md` - `plan-index.sh --split`, rebuilt from scratch on every call. A task
   file is a coder's whole input; a coder never sees the plan.
-- `status.md` - `commit-task.sh` is its only writer (`plan-index.sh` creates it empty);
-  `plan-index.sh`, `plan-path.sh` (`open:` lines) and `archive-run.sh` read it.
+- `status.md` - `commit-task.sh` is its only writer (`plan-index.sh` creates it empty).
 
 `archive-run.sh` moves the directory to `docs/<specifications>/<key>/` (`docs/specs/` by default),
-dropping the enumerated scaffolding `plan.md`, `status.md`, `tasks/`, `work/` (anything else
-travels), and refuses a run with a task in neither `done` nor `skipped`. `closeout` edits
+dropping only the scaffolding it enumerates, and refuses a run with a task in neither `done` nor
+`skipped`. `closeout` edits
 `spec.md` before calling it, so the drift edit and the move land in one commit.
 
 ## The plan format is parsed in four places
 
 The template shape (`<!-- TASK -->` markers, `### T<n> - <title>` headings, task fields, the
-`## Contracts` appendix of `### C<n>` blocks opening on `File:`) is read by `plan-index.sh` (validation, index, split), `plan-path.sh` (TASK-block count
-for `draft` and `open:`, and a comment strip that must keep the TASK markers), `commit-task.sh`
-(subject, `Files:` staging) and `archive-run.sh` (the unfinished check). A field or marker change
-touches the templates, `references/plan-rules.md` and every parser reading it.
+`## Contracts` appendix of `### C<n>` blocks opening on `File:`) is read by `plan-index.sh`,
+`plan-path.sh` (its comment strip must keep the TASK markers), `commit-task.sh` (subject,
+`Files:` staging) and `archive-run.sh`. A field or marker change touches the templates,
+`references/plan-rules.md` and every parser reading it.
 
 - In `plan-rules.md`, `(script)` means `plan-index.sh` rejects the breach and `(review)` means
   `planner-review` gates it: a rule moving between the two moves its enforcement with it.
@@ -141,10 +140,9 @@ touches the templates, `references/plan-rules.md` and every parser reading it.
 
 ## Memory and rules layers
 
-- Build close: `memory-writer` may leave a node over budget and report `OVER:`; implementor then
-  audits each and has `memory-node-writer` shrink it. The `memory` command writes every node
-  through `memory-node-writer`, one per dispatch, and re-dispatches the root when nodes appeared
-  or vanished so its index equals `planned:`.
+- `memory-writer` may leave a node over budget (`OVER:`) for `memory-node-writer` to shrink; the
+  `memory` command writes one node per `memory-node-writer` dispatch, the root last when nodes
+  appeared or vanished, so its index equals `planned:`.
 - `rules-auditor` and `rules-writer` pass every line through `references/rule-admission.md`; a
   fact about one place leaves as `MOVE:` for the memory layer, and `rules-writer` never writes a
   `CLAUDE.md`, as `memory-writer` never touches `.claude/rules/`.
@@ -161,19 +159,18 @@ agent, the switch or the verdict line disarms the gate, and fail-open means noth
 
 ## Tool dependencies
 
-- `triage`, `intent`, `fixer`: `gh`, called only through the shared `issue-facts.sh`,
-  `issue-templates.sh`, `create-issue.sh` and `post-comment.sh`; without it each reports the
-  script's `ERROR` line (`issue-templates.sh`'s `STATUS=skip REASON=no-gh` for `intent`'s save
-  preflight) and pasted/typed text still works, unpublished. `create-issue.sh` exit 0 may carry
-  `TYPE=dropped` / `TYPE=error` + `TYPE_ERROR=` (the issue stands, its type left off); a create
-  or comment exit 1 leaves the landing unknown and is never retried.
-- A multi-line issue body or comment travels only as a file under `.temp/viber/triage/<N>.md` or
-  `.temp/viber/intent/` through `--body-file`. `intent`'s write access there is pre-approved as
-  `Edit(./.temp/viber/intent/**)`, not `Write(...)`: a file-write call is matched against `Edit`
-  rules only.
+- `triage`, `intent`, `fixer`, `prototype`: `gh`, called only through the shared `issue-facts.sh`,
+  `issue-templates.sh`, `create-issue.sh` and `post-comment.sh` (`prototype` uses only the first
+  and last); without it each reports the script's `ERROR` line and pasted/typed text still works,
+  unpublished. A create or comment exit 1 leaves the landing unknown and is never retried.
+- A multi-line issue body or comment travels only as a file under `.temp/viber/triage/<N>.md`,
+  `.temp/viber/intent/` or `.temp/viber/prototype/<N>.md` through `--body-file`. `intent`'s and
+  `prototype`'s write access there is pre-approved as `Edit(./.temp/viber/<skill>/**)`, not
+  `Write(...)`: a file-write call is matched against `Edit` rules only.
 - `e2e`: `playwright-cli` and `@playwright/test`, probed by `check-playwright.sh`, which never
   installs; the skill installs only once the user agrees. Tests run chromium only.
 - `setup`: `merge-settings.sh` needs `node` (with none it prints the recommended block and skips)
-  and never touches `.claude/settings.local.json`; `bootstrap.sh` only reports whether `gh` is on
-  PATH; `open-page.sh` opens `usage.html` through `open`, `rundll32`, `wslview` or `xdg-open` by
-  `uname -s`, and with none (a remote or headless session) prints the path to open by hand.
+  and never touches `.claude/settings.local.json`.
+- `open-page.sh` (`setup`'s onboarding page, `prototype`'s mockup) picks the opener by
+  `uname -s`; with none (remote/headless) it prints the path to open by hand.
+  `prototype-writer` soft-uses `impeccable`, else `superui:pro-designer`, when installed.
