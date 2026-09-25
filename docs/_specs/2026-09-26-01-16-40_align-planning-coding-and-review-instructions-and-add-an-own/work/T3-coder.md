@@ -1,5 +1,0 @@
-- `--decide` checks run in this order: arity/plan (2), text shape (2), unknown id (3), done (2), skipped (2). A bad text on an unknown id therefore exits 2, not 3.
-- A whitespace-only text counts as empty; `\r` counts as multi-line like `\n`. The text is otherwise stored verbatim (no trimming), and dedupe is an exact whole-line match.
-- Decision lines are appended at the end of status.md, never under a key; `mark_status` leaves them in place because it only rewrites its own key line and appends missing keys after them.
-- `done_ids` now wraps a new `status_ids <plan> <key>` (key passed through ENVIRON), and `skipped_ids` is its second caller.
-- plan-index.sh prints each decision line exactly as status.md holds it (CR cut), so a hand-edited spacing variant reaches the orchestrator unnormalized.

@@ -1,3 +1,0 @@
-- task-coder.md: the test-file allowance became a third `Files` exception, so the later "beyond the two exceptions above" line now reads "three"; keep both counts in step on any future exception.
-- The self-check against test-strategy.md `(blocking)` rules sits in "Prove it green" and treats a breach as red, so it runs inside the 5-round loop rather than as a separate pass.
-- The "one behaviour per DoD clause" rule is stated in both task-coder.md (TDD bullet) and tdd SKILL.md step 1; change them together.

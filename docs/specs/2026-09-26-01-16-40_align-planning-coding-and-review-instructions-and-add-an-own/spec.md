@@ -80,7 +80,7 @@ Then the archived specification marks that sentence as a deviation naming what t
 
 - A ruling on a task already committed or skipped -> refused, nothing recorded.
 - A coder failing again after a ruling -> retried once without asking, then the owner is asked again.
-- A ruling that is empty or spans several lines -> refused, nothing recorded.
+- A ruling that is empty or spans several lines -> refused, nothing recorded. [D1]
 - The same ruling recorded twice for one task -> kept once.
 - A ruling holding a double quote, a dollar sign, a backtick or a backslash -> the orchestrator rewrites those characters into words before recording it.
 - A ruling that changes nothing the specification states -> no deviation marker.
@@ -141,3 +141,7 @@ Then the archived specification marks that sentence as a deviation naming what t
 - Every script change carries its regression tests under `tests/viber/`.
 - Instruction files do not grow beyond the rule they change: each edit replaces or extends an existing sentence where one exists.
 - The orchestrator still opens and writes no file; everything it records goes through a bundled script.
+
+## Deviations
+
+D1 (#8): the orchestrator joins a ruling the owner typed over several lines into one line and records it; only the commit script itself refuses a multi-line text.

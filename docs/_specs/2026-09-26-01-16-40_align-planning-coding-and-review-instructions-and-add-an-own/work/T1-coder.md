@@ -1,4 +1,0 @@
-- The consumer-after-writer check sits inside the contract-ownership block (`!err && ncfile > 0`), so it reuses the `anc` ancestry built by the collision check; it only runs once every earlier check passed, and never for an appendix with no `File:` line at all.
-- A writer is a task holding the block's `File:` path AND naming the block in `Uses`; a holder not naming it is not a writer here (the Seen rule already reports that case).
-- One error per consumer/writer/block triple, deduplicated when a block lists several paths held by the same writer.
-- No existing plan-index fixture needed a dependency added: every existing consumer either already depended on its writer or used a `File: none` block.

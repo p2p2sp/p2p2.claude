@@ -1,4 +1,0 @@
-- Extended existing rules in place (Provable, Owned, Ordered, Layered) rather than adding new bullets for those clauses, since each DoD names an extension of an existing rule by name; only "Consistent" and "Fed in order" needed new bullets.
-- Kept "Consistent" placed right after Provable (both `DoD`-scoped rules) rather than near Supplied/Delivers, to keep the DoD-related rules adjacent.
-- "route or symbol" appears exactly once per file by design, matching the verification grep's expectation of one line per file - avoid repeating the phrase elsewhere if this file is touched again.
-- Growth: plan-rules.md +2 lines (Consistent bullet, Ordered/Provable/Owned/Layered edited in place), planner-review.md +1 line (Fed in order bullet); no other prose added.
