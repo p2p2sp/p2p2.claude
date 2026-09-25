@@ -40,7 +40,7 @@ Never refactor while red.
 
 ## Workflow
 
-1. Decide the public interface and which behaviors matter before coding. Where the task leaves a choice open, take it; where it leaves the behavior under test unnameable, stop and report the task failed with that reason.
+1. Decide the public interface before coding. The behaviors are the plan task's numbered `DoD` clauses, one failing test each. Where the task leaves a choice open, take it; where it leaves the behavior under test unnameable, stop and report the task failed with that reason.
 2. Run the full cycle on one behavior first.
 3. Repeat for each remaining behavior.
 4. Once every test is green, refactor only code this task wrote.
