@@ -42,3 +42,4 @@ Every rule a plan's task half and contract appendix must hold. A rule tagged `(s
 - Writer: the plan never says which task writes a block and which only calls it: the task whose `Files` holds the block's own file writes it, every other one takes it exactly as written. (review)
 - Homed: every `File:` path is in some task's `Files` unless the tree already holds it. (script)
 - Seen: at least one task holding a block's `File:` path names that block in its `Uses`. (script)
+- Consumed after: a task naming a block in `Uses` depends, directly or transitively, on every lower-numbered task holding that block's `File:` path and naming it in its own `Uses`. (script)

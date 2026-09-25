@@ -140,11 +140,15 @@
 #       does not already hold, a contract file whose holders never name the
 #       block in "Uses:", an unparseable "Files:" entry, the same file listed
 #       by two tasks with no dependency path between them - they would run at
-#       the same time -, or a "Depends-on" naming a task marked "Exclusive:
-#       true": that task is a leaf of the dependency graph, so nothing may
-#       depend on it. Both parenthetical cases above are exempted under
-#       --split alone: a plan that landed before the rule is frozen, and a run
-#       resumed after the upgrade must still validate and decompose.
+#       the same time -, a task naming a contract block in "Uses:" with no
+#       dependency path, direct or transitive, to a lower-numbered task that
+#       holds the block's "File:" path and names it in its own "Uses:" (the
+#       consumer would run beside its writer; the error names both tasks), or
+#       a "Depends-on" naming a task marked "Exclusive: true": that task is a
+#       leaf of the dependency graph, so nothing may depend on it. The last
+#       two cases and the parenthetical one above are exempted under --split
+#       alone: a plan that landed before the rule is frozen, and a run resumed
+#       after the upgrade must still validate and decompose.
 #
 #       An unparseable "Files:" entry is an empty one, one carrying "*" or "?",
 #       one whose bracket does not wrap a whole segment in one of the three App
@@ -549,6 +553,20 @@ END {
           if (!present(p)) fail("contract " cn " declares " p ", which no task creates - put it in the Files of the task that writes the shape")
         }
         else if (!named) fail("contract " cn " declares " p ", held by " held ", but no holder names " cn " in Uses - its writer would never see the shape")
+
+        # a consumer of cn runs after every lower-numbered writer of it, or it
+        # would be built beside the code it calls. A writer holds p and names cn;
+        # a higher-numbered one cannot be depended on, so it raises nothing.
+        # Skipped under --split - a plan that landed before this rule is frozen.
+        if (mode != "--split")
+          for (j = 1; j <= n; j++) {
+            if (!((j, p) in fset) || !((j, cn) in usesset)) continue
+            for (i = j + 1; i <= n; i++)
+              if ((i, cn) in usesset && !((i, j) in anc) && !((i, j, cn) in unordered)) {
+                unordered[i, j, cn] = 1
+                fail("task " id[i] " uses " cn ", written by " id[j] ", but has no dependency path to " id[j] " - add " id[j] " to its Depends-on")
+              }
+          }
 
         # "feeds": a holder of this path carries cn in its own feeds column
         # once some OTHER task names cn in Uses - a shape a task declares but

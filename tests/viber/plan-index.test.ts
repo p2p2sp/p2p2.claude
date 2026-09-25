@@ -924,6 +924,88 @@ test("feeds names a contract block one task writes and another task consumes, an
   });
 });
 
+/** T1 writes C1 (it holds the block's file and names it), T2 consumes C1 with
+ *  no dependency on T1 - it would run beside its own writer. */
+const CONSUMER_WITHOUT_WRITER: TaskFields[] = [
+  { id: "T1", uses: "C1", files: "src/login.ts" },
+  { id: "T2", covers: "#2", uses: "C1", files: "src/reject.ts" },
+];
+
+test("a task using a contract block whose lower-numbered writer is not among its dependencies exits 4, naming both tasks (it would run beside the code it calls)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody(CONSUMER_WITHOUT_WRITER, 2, ownedContract("src/login.ts")));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /task T2 uses C1, written by T1, but has no dependency path to T1/);
+  });
+});
+
+test("a consumer with no dependency on its writer still decomposes under --split (a plan landed before the rule is frozen)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody(CONSUMER_WITHOUT_WRITER, 2, ownedContract("src/login.ts")));
+
+    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
+  });
+});
+
+test("a consumer reaching its writer through another task validates (a transitive dependency already orders the two)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(
+      dir,
+      planBody(
+        [
+          { id: "T1", uses: "C1", files: "src/login.ts" },
+          { id: "T2", covers: "#2", uses: "none", deps: "T1", files: "src/session.ts" },
+          { id: "T3", uses: "C1", deps: "T2", files: "src/reject.ts" },
+        ],
+        2,
+        ownedContract("src/login.ts"),
+      ),
+    );
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+  });
+});
+
+test("two tasks using a block on File: none need no dependency between them (such a block has no writer)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(
+      dir,
+      planBody([
+        { id: "T1", files: "src/login.ts" },
+        { id: "T2", covers: "#2", files: "src/reject.ts" },
+      ]),
+    );
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+  });
+});
+
+test("a consumer numbered below its only writer raises nothing from the dependency rule (no lower-numbered writer exists)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(
+      dir,
+      planBody(
+        [
+          { id: "T1", uses: "C1", files: "src/reject.ts" },
+          { id: "T2", covers: "#2", uses: "C1", files: "src/login.ts" },
+        ],
+        2,
+        ownedContract("src/login.ts"),
+      ),
+    );
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+  });
+});
+
 test("a File entry whose bracket wraps a whole segment is a path, not a glob - like a Files entry", () => {
   withTempDir("p2p2-viber-", (dir) => {
     const route = "src/app/api/sites/[siteId]/route.ts";
