@@ -145,4 +145,6 @@ touches.
 
 `/viber:memory` and `/viber:rules` write the same `CLAUDE.md` cascade and the same
 `.claude/rules/` a build closes with, on your own schedule instead of a build's. Either one asks
-before writing and leaves the result unstaged, exactly like the close does.
+before writing and leaves the result unstaged, exactly like the close does. Both also offer a
+`reset` mode, which deletes the whole layer and starts from zero; it is refused while a target
+holds uncommitted work.

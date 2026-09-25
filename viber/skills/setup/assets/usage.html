@@ -640,10 +640,13 @@ przyjmuje załącznik HTML.</p>
   </div>
 </dl>
 <p lang="en">Both ask before writing anything and leave the result unstaged, same as the close. Neither needs a
-build in progress - run them whenever the layer might have drifted.</p>
+build in progress - run them whenever the layer might have drifted. Both also offer a
+<code>reset</code> mode, which deletes the whole layer and starts from zero; it is refused while a
+target holds uncommitted work.</p>
 <p lang="pl">Oba pytają, zanim cokolwiek zapiszą, i zostawiają wynik poza indeksem gita (unstaged), tak
 jak zamknięcie buildu. Żaden nie wymaga trwającego buildu: uruchamiaj je, gdy ta warstwa mogła się
-rozjechać z kodem.</p>
+rozjechać z kodem. Oba oferują też tryb <code>reset</code>, który usuwa całą warstwę i zaczyna od
+zera; jest odrzucany, gdy cel ma niezacommitowane zmiany.</p>
 </section>
 
 <section id="any-time">
