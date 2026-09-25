@@ -1,3 +1,0 @@
-- Branching values go through the existing `group_value`, so they are cut at the first space or `#` BEFORE quote stripping: a quoted pattern holding a space loses its closing quote and falls back to the default.
-- Only `name` has quotes stripped (per C1); a quoted `base` or `mode` is unusable and resolves to its default.
-- The existing "printed dotted" test asserted the LAST four lines; it now asserts `slice(-7, -3)`, and `switches()` also drops the three `branching.*` keys. Any future group appended after branching shifts both again.
