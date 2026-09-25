@@ -25,16 +25,12 @@ when its tool is missing.
 | `/viber:intent` | An interview about a raw idea, one question at a time. Point it at an issue (`#42` or a link) to work from that issue, and an interview that did not start from one can save its conclusions as a new issue. |
 | `/viber:fixer` | A bug traced to its root cause and proven by a failing test, then handed to the planner. Point it at an issue the same way to trace from that report. |
 | `/viber:prototype` | A UI change in mind becomes one working HTML mockup in your project's own look, or three alternatives to choose from, refined with you in conversation, then carried on to `/viber:intent`, onto the GitHub issue it started from, or both. |
-| "plan it" | The plan gets written and reviewed. |
-| "implement it" | The approved plan gets built. |
 | `/viber:e2e` | The build's QA scenarios become Playwright tests, run against your app. |
 | `/viber:memory` | Reviews or extends your project's `CLAUDE.md` cascade on your own schedule. |
 | `/viber:rules` | Reviews or extends your project's `.claude/rules/` on your own schedule. |
 | "commit" | Your changes, or only the paths you name, committed with a Conventional Commits message. Name an issue (`#42`) and it becomes the `Refs:` footer. |
 
-"plan it" and "implement it" are not commands: "break this down", "go ahead" or anything else
-meaning the same works too. A typical run is `/viber:setup` once, then `/viber:intent`, "plan it", "implement it". The
-interview is not a step you can skip: ask for a plan without one behind it and the interview starts
+A typical run is `/viber:setup` once, then `/viber:intent`. The interview is not a step you can skip: ask for a plan without one behind it and the interview starts
 first, however clear the change already reads. A bug goes the same way through `/viber:fixer`.
 
 With `issues` on, point `/viber:intent` or `/viber:fixer` at a GitHub issue - `#42`, its number
