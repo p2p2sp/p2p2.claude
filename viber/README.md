@@ -16,6 +16,10 @@ Optional: `node`, for `/viber:setup`'s permissions merge, Playwright, for `/vibe
 `gh` CLI, for the GitHub steps (`/viber:setup` checks it is installed). Each step skips with a note
 when its tool is missing.
 
+`/viber:setup` also installs the bare `Bash` allow in `.claude/settings.json`, which the script
+calls that `/viber:triage`, `/viber:intent`, `/viber:prototype` and the ADR tasks make after a
+prose question rely on; without it each of those calls asks for permission once.
+
 ## Quick start
 
 | Say this | What happens |
