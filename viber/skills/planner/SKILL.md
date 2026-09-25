@@ -21,6 +21,8 @@ The input carries three decisions already taken: the spec shape, whether this pl
 
 Unless the plan stops at a draft, read `${CLAUDE_PLUGIN_ROOT}/references/test-strategy.md` first: it decides how the work is sliced, where each criterion's proof lives and which deliverables carry no test. A plan with an integration task also reads `${CLAUDE_PLUGIN_ROOT}/references/integration-tests.md`: the layer is designed from it as a whole.
 
+Never plan an end-to-end test on your own: `/viber:e2e` writes them after the build. Plan one only when the input records the user explicitly asking for it, then per the test strategy; one merely suggested, implied by a UI change or thought useful stays out of every criterion, task and `Verification`.
+
 Before writing a task, decide which files get created, modified or deleted and what each one owns: locked-in boundaries are what lets tasks run in parallel.
 
 - One responsibility per file. Files that change together live together.
@@ -62,6 +64,8 @@ Dispatch the `viber:planner-review` agent with the plan path, `refs: ${CLAUDE_PL
 Call `ExitPlanMode` only after a PASS.
 
 A plan with its task half, on a change no draft preceded: name `viber:implementor` as the next step, the path shown in step 2 being the whole handover. Nothing runs here.
+
+A plan with its task half that changes a UI or an endpoint and carries no end-to-end task adds one line to either hand-off: `/viber:e2e` writes those tests after the build, and needs `qa: true` in `.claude/viber.yml` when the config block above reads `qa: false`.
 
 A change that went through a draft lands here instead, since nothing downstream lands a plan carrying no task. Run one literal Bash line, every argument double-quoted, no interpreter word in front, nothing chained to it - the only thing this step executes:
 

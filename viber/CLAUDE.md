@@ -31,8 +31,7 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
   or a one-line summary for pasted text, and invokes nothing; under `issues: false` it never
   fetches or publishes and drops the `#<N>` form from its next-step name. Its `disallowed-tools:`
   lifts at the prose publish answer, so in that turn only the body keeps `Skill` unused.
-- `tdd` is invoked only by `task-coder` on a `TDD: required` task before the first line of
-  production code.
+- `tdd`: only `task-coder` invokes it, on a `TDD: required` task, before any production code.
 - `commit` stands outside the chain: a build never calls it.
 
 ## Orchestrator contract
@@ -41,14 +40,13 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
   preloads, `plan-path.sh`, `plan-index.sh` and `commit-task.sh` stdout (`progress: <n>/<total>`,
   exit 4 naming `--landed`, the `refused` / `took` / `claimed by no task` warnings), and agents'
   return lines. Every script's stdout and every agent's `## Output` vocabulary is an interface:
-  renaming a line on one side only breaks the build silently.
+  renaming one side only breaks the build silently.
 - `plan-index.sh`'s index prints per task id, state, TDD, `excl`, `deps`, `feeds` (contract
   blocks another task consumes), `files`, title, then a `verify:` line. `implementor` profiles
   tier from TDD, file count, `feeds` and dependents, review from `verify:` and the tier, never
   from a field the index does not print.
-- `excl` (plan `Exclusive: true`): `implementor` holds the task until nothing else is ready or in
-  flight and runs it alone until committed; outside `--split` `plan-index.sh` rejects a task
-  depending on it.
+- `excl` (plan `Exclusive: true`): `implementor` runs the task alone, once nothing else is ready
+  or in flight, until committed; outside `--split` `plan-index.sh` rejects a task depending on it.
 - Every agent returns `VERDICT: DENIED` plus `REASON: <tool>: <call>` on a refused tool call (the
   auditors in place of `AUDIT:`), and every caller, the plan gate included, branches on it.
 - Only coder, reviewer and repair-coder dispatches carry `model`: the task's profiled tier
@@ -78,8 +76,7 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
 - `commit-args.sh` is the ONE selector parser, sourced by `commit-context.sh` and `commit.sh`;
   the fork never widens the selector.
 - The `commit` skill's `git rev-parse` and `cat` preloads are inline commands under a bare `Bash`
-  allow: the one exception to the literal-script-line preload form. Its bundled scripts carry
-  their own pattern instead.
+  allow, the one exception to the literal-script-line form; its scripts carry their own pattern.
 
 ## The run directory
 
@@ -87,7 +84,7 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
 copies (never moves) the plan-mode file, a round landing into the draft its `into:` key names:
 
 - `plan.md` - frozen once it carries a task block; a draft is relanded in place each round.
-- `spec.md`, `tasks/<id>.md` - `plan-index.sh --split`, rebuilt from scratch on every call. A task
+- `spec.md`, `tasks/<id>.md` - `plan-index.sh --split`, rebuilt on every call. A task
   file is a coder's whole input; a coder never sees the plan.
 - `status.md` - `commit-task.sh` is its only writer (`plan-index.sh` creates it empty).
 
@@ -119,8 +116,7 @@ The template shape (`<!-- TASK -->` markers, `### T<n> - <title>` headings, task
 for `{type}`). A field or marker change touches the templates, `references/plan-rules.md` and
 every parser.
 
-- A rule moving between `plan-rules.md`'s `(script)` and `(review)` tags moves its enforcement
-  with it.
+- A rule switching its `plan-rules.md` tag, `(script)` or `(review)`, moves its enforcement too.
 - A landed plan is frozen, so a run resumed after an upgrade must still validate: a new
   `plan-index.sh` check stays exempt under `--split` (the Exclusive-leaf rule) or skips a plan
   predating it (a contract appendix with no `File:` line at all).
@@ -142,9 +138,11 @@ every parser.
 - A new switch: `skills/setup/templates/viber.yml` (`bootstrap.sh` appends a key an existing
   config lacks), `config.sh`'s key list and fixed output order, `README.md`, `usage.html`, and
   the consuming skill (implementor's step 3 opens one close entry per close switch).
-- The `memory` switch reaches planning twice: the Memory-owned rule of `plan-rules.md` and the
-  `memory:` line `planner` passes to `planner-review`. `adr: true` reaches only `planner`, which
-  then follows `skills/planner/references/adr-tasks.md`.
+- Switches reaching planning: `memory` (`plan-rules.md`'s Memory-owned rule, the `memory:` line
+  to `planner-review`); `adr: true` (`planner` follows `skills/planner/references/adr-tasks.md`);
+  `qa` (`planner`'s e2e hand-off line).
+- End-to-end tests only on the user's own ask: `test-strategy.md`, `planner`, `intent`,
+  `PRODUCT.md`.
 
 ## Memory and rules layers
 

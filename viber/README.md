@@ -59,7 +59,7 @@ and nothing is faked in between: what a later part brings is out of scope until 
 stub. You approve the plan yourself, but only after a reviewer
 has read it against your actual codebase. Then the build runs task by task, reviews each one,
 commits it, and finishes on the full test suite. End-to-end tests stay with your CI and
-`/viber:e2e` unless you ask for them in the request.
+`/viber:e2e` unless you explicitly ask for them.
 
 ![How viber works](../docs/assets/viber-flow.svg)
 

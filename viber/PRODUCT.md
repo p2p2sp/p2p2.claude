@@ -16,6 +16,6 @@
 
 - Integration tests should use test containers wherever possible.
 
-- End-to-end tests belong to CI and `/viber:e2e`. A build runs them only when the user asks for it, in the request or in its issue.
+- End-to-end tests belong to CI and `/viber:e2e`. A plan carries them only when the user explicitly asks for them, in the request, the interview or its issue - never on the planner's or the interview's own initiative.
 
 - Keeping the testing order from detail to whole (unit tests first, integration tests last) supports building the tasks concurrently.

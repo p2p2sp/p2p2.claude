@@ -95,7 +95,7 @@ Do not use `AskUserQuestion`. Interview is a prose - a conversation with a perso
 ## Cover, in order
 
 1. Problem and who has it - what breaks or is missing today.
-2. Done-condition - the observable behaviour that proves it works. This becomes the acceptance criteria.
+2. Done-condition - the observable behaviour that proves it works. This becomes the acceptance criteria. Never propose an end-to-end test as an option or a criterion: `/viber:e2e` writes them after the build. Carry one into the summary only when the user asks for it in their own words, stated as their explicit request.
 3. Boundaries - what this change explicitly does not touch.
 4. Constraints that bind the solution - compatibility, data, performance, deadlines.
 5. Unknowns - what neither of you knows yet, and how it gets resolved.
