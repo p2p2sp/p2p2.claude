@@ -1,0 +1,6 @@
+- `branch_setup` now reads mode and entries from `config.sh --branching` (arrays `br_keys`/`br_bases`/`br_names`); `branch_entry` resolves the plan's entry and leaves the exit-6 reason in `br_why`. `branch_report` still parses `--branching` on its own, so `--branch` runs config.sh twice.
+- `plan_branch` became `plan_field <plan> <key>` (used for `branch` and `work`); T5/T6 can read `work:` the same way.
+- Unresolved entry: the required checks compare against every entry base (`branch_is_base`); required with no branch recorded refuses when HEAD is on any entry base, or when no entry exists at all (base unknown). A recorded branch that already exists is still switched to without an entry; only creation needs one.
+- T6 is left to add "first C1 error blocks creation": today a legacy config with a valid entry still creates from that entry.
+- `{issue}` is no longer expanded; `branch_expand` needs its pattern as $3. On landing an empty placeholder can no longer occur (`{issue-number}` without an issue exits 6 first), so the dangling-separator test now uses literal edge `/` patterns, and the empty-name test uses the pattern `-/_`.
+- tests/CLAUDE.md still describes config.test.ts offsets as `slice(-7, -3)` / `slice(-4)`; they are now `slice(-5, -1)` / `slice(-2)` (the node belongs to the build close).

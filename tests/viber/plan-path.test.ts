@@ -1232,6 +1232,22 @@ function withBranchRepo(branching: string[], fn: (repo: GitRepo) => void): void 
   });
 }
 
+/** One `branching.work` entry, indented as a child of `work:` inside the group. */
+function workEntry(key: string, base: string, name: string, target: string): string[] {
+  return [`  ${key}:`, `    base: ${base}`, `    name: '${name}'`, `    target: ${target}`];
+}
+
+/** The work entries a landing case runs against unless it names its own: one
+ *  entry cut from and returning to main, named from the plan type and slug. */
+const ON_MAIN = ["work:", ...workEntry("feature", "main", "{type}/{slug}", "main")];
+
+/** GitFlow for a landing: features from develop, hotfixes from main. */
+const TWO_BASES = [
+  "work:",
+  ...workEntry("feature", "develop", "feature/{slug}", "develop"),
+  ...workEntry("hotfix", "main", "hotfix/{slug}", "main"),
+];
+
 /** plan-path.sh run inside the throwaway repository, with its pinned git identity. */
 function runIn(repo: GitRepo, args: string[] = [], stubDirs?: string[]) {
   return runScript(SUT, args, { cwd: repo.dir, shell: "bash", env: repo.env, stubDirs });
@@ -1292,7 +1308,7 @@ test("branching off in a repository: a plan naming a branch lands on the current
 });
 
 test("a plan naming a new branch while HEAD is on the base lands on it, created from the base, with the uncommitted files carried along", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
     fs.writeFileSync(path.join(repo.dir, "README.md"), "changed\n");
     fs.writeFileSync(path.join(repo.dir, "repro.test.ts"), "red\n");
     withSource(["branch: feature/login"], (src) => {
@@ -1312,7 +1328,7 @@ test("a plan naming a new branch while HEAD is on the base lands on it, created 
 });
 
 test("a plan naming the current non-base branch reports it kept and switches nothing", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
     branchAhead(repo, "feature/login");
     repo.git("checkout", "-q", "feature/login");
     withSource(["branch: feature/login"], (src) => {
@@ -1325,7 +1341,7 @@ test("a plan naming the current non-base branch reports it kept and switches not
 });
 
 test("a plan naming an existing branch at another commit switches to it on a clean tree, never recreating it", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
     branchAhead(repo, "feature/login");
     const tip = commitOf(repo, "feature/login");
     withSource(["branch: feature/login"], (src) => {
@@ -1339,7 +1355,7 @@ test("a plan naming an existing branch at another commit switches to it on a cle
 });
 
 test("allowed and a plan recording no branch: the current branch is kept", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
     withSource([], (src) => {
       const result = runIn(repo, ["--land", src]);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
@@ -1349,8 +1365,8 @@ test("allowed and a plan recording no branch: the current branch is kept", () =>
   });
 });
 
-test("required, a plan recording no branch and HEAD on the base: the pattern branch is created, the missing issue leaving no separator behind", () => {
-  withBranchRepo(["mode: required"], (repo) => {
+test("required, a plan recording no branch and HEAD on the base: the single entry's pattern branch is created", () => {
+  withBranchRepo(["mode: required", ...ON_MAIN], (repo) => {
     withSource([], (src) => {
       const result = runIn(repo, ["--land", src]);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
@@ -1360,9 +1376,9 @@ test("required, a plan recording no branch and HEAD on the base: the pattern bra
   });
 });
 
-test("required and a plan carrying a Repro: line and an issue: URL: the pattern takes the fix type and the issue number", () => {
+test("required and a plan carrying a Repro: line and an issue: URL: the entry pattern takes the fix type and the issue number", () => {
   const body = PLAN_BODY.replace("- Files: src/T1.ts", "- Files: src/T1.ts\n- Repro: tests/login.test.ts");
-  withBranchRepo(["mode: required"], (repo) => {
+  withBranchRepo(["mode: required", "work:", ...workEntry("any", "main", "{type}/{issue-number}-{slug}", "main")], (repo) => {
     withSource(
       ["issue: https://github.com/acme/app/issues/42"],
       (src) => {
@@ -1376,7 +1392,7 @@ test("required and a plan carrying a Repro: line and an issue: URL: the pattern 
 });
 
 test("required reads branch: none as no branch recorded, so HEAD on the base still gets the pattern branch", () => {
-  withBranchRepo(["mode: required"], (repo) => {
+  withBranchRepo(["mode: required", ...ON_MAIN], (repo) => {
     withSource(["branch: none"], (src) => {
       const result = runIn(repo, ["--land", src]);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
@@ -1386,7 +1402,7 @@ test("required reads branch: none as no branch recorded, so HEAD on the base sti
 });
 
 test("required, a plan recording no branch and HEAD on a non-base branch: that branch is kept", () => {
-  withBranchRepo(["mode: required"], (repo) => {
+  withBranchRepo(["mode: required", ...ON_MAIN], (repo) => {
     repo.git("checkout", "-q", "-b", "work");
     withSource([], (src) => {
       const result = runIn(repo, ["--land", src]);
@@ -1397,24 +1413,24 @@ test("required, a plan recording no branch and HEAD on a non-base branch: that b
   });
 });
 
-test("a custom name pattern whose placeholder expands to nothing never leaves a leading or trailing / on landing (DoD.1, DoD.2)", () => {
-  for (const [name, expected] of [
-    ["{issue}/{slug}", "add-login"],
-    ["{slug}/{issue}", "add-login"],
-  ] as const) {
-    withBranchRepo(["mode: required", `name: '${name}'`], (repo) => {
+for (const [name, expected] of [
+  ["/{slug}", "add-login"],
+  ["{slug}/", "add-login"],
+] as const) {
+  test(`an entry name pattern ${name} with a separator at its edge never leaves a leading or trailing / on landing`, () => {
+    withBranchRepo(["mode: required", "work:", ...workEntry("edge", "main", name, "main")], (repo) => {
       withSource([], (src) => {
         const result = runIn(repo, ["--land", src]);
-        assert.equal(result.status, 0, `pattern ${name}: stderr: ${result.stderr}`);
+        assert.equal(result.status, 0, `stderr: ${result.stderr}`);
         assert.equal(branchLine(result.stdout), `branch: ${expected} (created)`);
         assert.equal(headOf(repo), expected);
       });
     });
-  }
-});
+  });
+}
 
-test("a name pattern that expands to nothing at all makes the landing refuse the run branch, exit 6, HEAD unchanged and a reason naming the empty name (DoD.3)", () => {
-  withBranchRepo(["mode: required", "name: '{issue}'"], (repo) => {
+test("an entry name pattern that expands to nothing at all makes the landing refuse the run branch, exit 6, HEAD unchanged and a reason naming the empty name", () => {
+  withBranchRepo(["mode: required", "work:", ...workEntry("dash", "main", "-/_", "main")], (repo) => {
     withSource([], (src) => {
       const result = runIn(repo, ["--land", src]);
       assert.equal(result.status, 6, `stdout: ${result.stdout}`);
@@ -1427,7 +1443,7 @@ test("a name pattern that expands to nothing at all makes the landing refuse the
 });
 
 test("required and a plan naming the base: exit 6, nothing on stdout, nothing landed and HEAD where it was", () => {
-  withBranchRepo(["mode: required"], (repo) => {
+  withBranchRepo(["mode: required", ...ON_MAIN], (repo) => {
     repo.git("checkout", "-q", "-b", "work");
     withSource(["branch: main"], (src) => {
       const result = runIn(repo, ["--land", src]);
@@ -1441,7 +1457,7 @@ test("required and a plan naming the base: exit 6, nothing on stdout, nothing la
 });
 
 test("required, a detached HEAD and a plan recording no branch: exit 6, since a detached HEAD is no branch to stay on", () => {
-  withBranchRepo(["mode: required"], (repo) => {
+  withBranchRepo(["mode: required", ...ON_MAIN], (repo) => {
     repo.git("checkout", "-q", "--detach");
     withSource([], (src) => {
       const result = runIn(repo, ["--land", src]);
@@ -1454,7 +1470,7 @@ test("required, a detached HEAD and a plan recording no branch: exit 6, since a 
 });
 
 test("allowed, a detached HEAD and a plan recording no branch: reported as detached and kept", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
     repo.git("checkout", "-q", "--detach");
     withSource([], (src) => {
       const result = runIn(repo, ["--land", src]);
@@ -1466,7 +1482,7 @@ test("allowed, a detached HEAD and a plan recording no branch: reported as detac
 });
 
 test("a switch to a branch at another commit on a dirty tree: exit 6, no run directory, HEAD and the tree unchanged", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
     branchAhead(repo, "feature/login");
     fs.writeFileSync(path.join(repo.dir, "README.md"), "changed\n");
     const tree = treeOf(repo);
@@ -1483,7 +1499,7 @@ test("a switch to a branch at another commit on a dirty tree: exit 6, no run dir
 });
 
 test("creating the run branch from a base at another commit on a dirty tree: exit 6 and HEAD stays on its branch", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
     branchAhead(repo, "work");
     repo.git("checkout", "-q", "work");
     fs.writeFileSync(path.join(repo.dir, "README.md"), "changed\n");
@@ -1496,8 +1512,8 @@ test("creating the run branch from a base at another commit on a dirty tree: exi
   });
 });
 
-test("a base missing locally: exit 6 naming the base, nothing landed and HEAD where it was", () => {
-  withBranchRepo(["mode: allowed", "base: develop"], (repo) => {
+test("an entry base missing locally: exit 6 naming the base, nothing landed and HEAD where it was", () => {
+  withBranchRepo(["mode: allowed", "work:", ...workEntry("feature", "develop", "feature/{slug}", "develop")], (repo) => {
     withSource(["branch: feature/login"], (src) => {
       const result = runIn(repo, ["--land", src]);
       assert.equal(result.status, 6, `stdout: ${result.stdout}`);
@@ -1509,7 +1525,7 @@ test("a base missing locally: exit 6 naming the base, nothing landed and HEAD wh
 });
 
 test("a plan naming an invalid branch name: exit 6 naming it, nothing landed and HEAD where it was", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
     withSource(["branch: bad..name"], (src) => {
       const result = runIn(repo, ["--land", src]);
       assert.equal(result.status, 6, `stdout: ${result.stdout}`);
@@ -1521,7 +1537,7 @@ test("a plan naming an invalid branch name: exit 6 naming it, nothing landed and
 });
 
 test("a plan naming the previous-branch shorthand is an invalid name, never a switch to wherever HEAD was before (git would expand @{-1})", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
     repo.git("checkout", "-q", "-b", "work");
     repo.git("checkout", "-q", "main");
     withSource(["branch: @{-1}"], (src) => {
@@ -1542,7 +1558,7 @@ function landedWithBranch(repo: GitRepo, key: string, branch: string): string {
 }
 
 test("a landed run plan given as source reports the current branch kept and switches nothing, whatever branch it records", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
     const plan = landedWithBranch(repo, "2026-09-19-17-30-00_add-login", "feature/login");
     const result = runIn(repo, ["--land", plan]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
@@ -1553,7 +1569,7 @@ test("a landed run plan given as source reports the current branch kept and swit
 });
 
 test("the no-argument form reports the current branch kept, right after state:, and switches nothing", () => {
-  withBranchRepo(["mode: required"], (repo) => {
+  withBranchRepo(["mode: required", ...ON_MAIN], (repo) => {
     landedWithBranch(repo, "2026-09-19-17-30-00_add-login", "feature/login");
     const result = runIn(repo);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
@@ -1572,7 +1588,7 @@ test("the no-argument form reports the current branch kept, right after state:, 
 });
 
 test("the approved plan re-landed from the base answers existing from the run branch instead of minting a second run", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
     withSource(["branch: feature/login"], (src) => {
       const first = parse(runIn(repo, ["--land", src]).stdout);
       repo.git("add", "-A");
@@ -1588,7 +1604,7 @@ test("the approved plan re-landed from the base answers existing from the run br
 });
 
 test("a draft round landed through into: runs the branch step before the copy, carrying the uncommitted draft to the new branch", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
     const key = "2026-09-19-17-30-00_add-login";
     landPlan(repo.dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
     withSource(
@@ -1606,7 +1622,7 @@ test("a draft round landed through into: runs the branch step before the copy, c
 });
 
 test("a landing refused with exit 2 for its --into key leaves HEAD where it was and creates no branch", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
     withSource(["branch: feature/login"], (src) => {
       const result = runIn(repo, ["--land", src, "--into", "2026-01-01-00-00-00_never-landed"]);
       assert.equal(result.status, 2, `stdout: ${result.stdout}`);
@@ -1617,7 +1633,7 @@ test("a landing refused with exit 2 for its --into key leaves HEAD where it was 
 });
 
 test("a landing refused with exit 2 for a slug that normalizes to nothing leaves HEAD where it was", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
     withTempDir("p2p2-plans-", (plans) => {
       const src = sourcePlan(plans, "!!!.md", ["---", "branch: feature/login", "---", "", "# !!!", ""].join("\n"));
       const result = runIn(repo, ["--land", src]);
@@ -1628,7 +1644,7 @@ test("a landing refused with exit 2 for a slug that normalizes to nothing leaves
 });
 
 test("a landing refused with exit 4 for a target that is not a draft leaves HEAD where it was and creates no branch", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
     const key = "2026-09-19-17-30-00_add-login";
     landPlan(repo.dir, key, "2026-09-19T17:30:00Z", PLAN_BODY);
     withSource(["branch: feature/login", `into: ${key}`], (src) => {
@@ -1652,12 +1668,119 @@ test("outside a git repository branching acts as off: no branch line, whatever t
 });
 
 test("allowed and a plan recording branch: none keeps the current branch rather than creating one called none", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
     withSource(["branch: none"], (src) => {
       const result = runIn(repo, ["--land", src]);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       assert.equal(branchLine(result.stdout), "branch: main (kept)");
       assert.equal(headOf(repo), "main");
+    });
+  });
+});
+
+test("a plan naming its work entry and a new branch creates that branch from the entry base, not from main (DoD.1)", () => {
+  withBranchRepo(["mode: allowed", ...TWO_BASES], (repo) => {
+    branchAhead(repo, "develop");
+    withSource(["work: feature", "branch: feature/login"], (src) => {
+      const result = runIn(repo, ["--land", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(branchLine(result.stdout), "branch: feature/login (created)");
+      assert.equal(headOf(repo), "feature/login");
+      assert.equal(commitOf(repo), commitOf(repo, "develop"));
+    });
+  });
+});
+
+test("required, a plan naming its work entry and no branch, HEAD on that entry base: the entry pattern branch is created there (DoD.1)", () => {
+  withBranchRepo(["mode: required", ...TWO_BASES], (repo) => {
+    branchAhead(repo, "develop");
+    repo.git("checkout", "-q", "develop");
+    withSource(["work: feature"], (src) => {
+      const result = runIn(repo, ["--land", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(branchLine(result.stdout), "branch: feature/add-login (created)");
+      assert.equal(commitOf(repo), commitOf(repo, "develop"));
+    });
+  });
+});
+
+for (const [mode, frontmatter] of [
+  ["allowed", ["branch: feature/login"]],
+  ["required", []],
+] as const) {
+  test(`${mode}, several entries and a plan recording no work: key: a branch to create exits 6 naming the ambiguity, nothing landed and HEAD where it was (DoD.2)`, () => {
+    withBranchRepo([`mode: ${mode}`, ...TWO_BASES], (repo) => {
+      repo.git("branch", "develop");
+      withSource([...frontmatter], (src) => {
+        const result = runIn(repo, ["--land", src]);
+        assert.equal(result.status, 6, `stdout: ${result.stdout}`);
+        assert.equal(result.stdout, "");
+        assert.match(result.stderr, /the plan records no branching\.work entry and several exist/);
+        assert.equal(headOf(repo), "main");
+        assert.equal(repo.git("show-ref", "--verify", "--quiet", "refs/heads/feature/login").status, 1);
+        assert.deepEqual(runDirs(repo.dir), []);
+      });
+    });
+  });
+}
+
+test("several entries and a plan recording no work: key but a branch that exists: the landing switches to it, since nothing has to be created (DoD.2)", () => {
+  withBranchRepo(["mode: allowed", ...TWO_BASES], (repo) => {
+    branchAhead(repo, "feature/login");
+    withSource(["branch: feature/login"], (src) => {
+      const result = runIn(repo, ["--land", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(branchLine(result.stdout), "branch: feature/login (switched)");
+    });
+  });
+});
+
+test("required and an entry named from {issue-number} while the plan has no issue: exit 6 naming the entry, nothing landed and HEAD where it was (DoD.3)", () => {
+  withBranchRepo(["mode: required", "work:", ...workEntry("hotfix", "main", "hotfix/issue.{issue-number}", "main")], (repo) => {
+    withSource([], (src) => {
+      const result = runIn(repo, ["--land", src]);
+      assert.equal(result.status, 6, `stdout: ${result.stdout}`);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, /work entry hotfix needs an issue for \{issue-number\}/);
+      assert.equal(headOf(repo), "main");
+      assert.deepEqual(runDirs(repo.dir), []);
+    });
+  });
+});
+
+test("required and an entry based on develop: HEAD on main is not that base, so it is kept rather than branched from (DoD.4)", () => {
+  withBranchRepo(["mode: required", "work:", ...workEntry("feature", "develop", "feature/{slug}", "develop")], (repo) => {
+    repo.git("branch", "develop");
+    withSource([], (src) => {
+      const result = runIn(repo, ["--land", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(branchLine(result.stdout), "branch: main (kept)");
+      assert.equal(headOf(repo), "main");
+    });
+  });
+});
+
+test("required and an entry based on develop: a plan naming develop as its branch is refused as the base itself, HEAD where it was (DoD.4)", () => {
+  withBranchRepo(["mode: required", "work:", ...workEntry("feature", "develop", "feature/{slug}", "develop")], (repo) => {
+    repo.git("branch", "develop");
+    repo.git("checkout", "-q", "-b", "work");
+    withSource(["branch: develop"], (src) => {
+      const result = runIn(repo, ["--land", src]);
+      assert.equal(result.status, 6, `stdout: ${result.stdout}`);
+      assert.match(result.stderr, /the run branch is the base itself: develop/);
+      assert.equal(headOf(repo), "work");
+    });
+  });
+});
+
+test("required and an entry based on develop: a plan naming main as its branch is not the entry base, so the landing switches to it (DoD.4)", () => {
+  withBranchRepo(["mode: required", "work:", ...workEntry("feature", "develop", "feature/{slug}", "develop")], (repo) => {
+    repo.git("branch", "develop");
+    repo.git("checkout", "-q", "-b", "work");
+    withSource(["branch: main"], (src) => {
+      const result = runIn(repo, ["--land", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(branchLine(result.stdout), "branch: main (switched)");
     });
   });
 });
@@ -1679,11 +1802,6 @@ function linesOf(stdout: string, prefix: string): string[] {
   return slash(stdout)
     .split("\n")
     .filter((line) => line.startsWith(prefix));
-}
-
-/** One `branching.work` entry, indented as a child of `work:` inside the group. */
-function workEntry(key: string, base: string, name: string, target: string): string[] {
-  return [`  ${key}:`, `    base: ${base}`, `    name: '${name}'`, `    target: ${target}`];
 }
 
 /** One entry named from the plan type and slug, cut from and returning to main. */

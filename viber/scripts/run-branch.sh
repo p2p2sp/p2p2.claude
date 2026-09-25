@@ -12,17 +12,17 @@
 #   argv   : none - sourced. Every function takes its own arguments.
 #   cwd    : the repository root, as plan-path.sh's own contract pins it.
 #   env    : none.
-#   file   : the sibling config.sh output - the plain block (branching.mode,
-#            branching.base, branching.name) for the landing, its --branching
-#            lines for branch_report; the plan's frontmatter "branch:" and
-#            "issue:" keys and its task blocks' "Repro:" lines.
+#   file   : the sibling config.sh --branching lines (mode and work entries
+#            for the landing, all of them for branch_report); the plan's
+#            frontmatter "branch:", "work:" and "issue:" keys and its task
+#            blocks' "Repro:" lines.
 #   gh     : only through the sibling issue-facts.sh, for branch_report's
 #            issue type, and only when a mapping exists and the plan has an
 #            issue: its TYPE= line, empty on any failure.
 #   git    : reads HEAD, refs/heads/ and the tree state; branch_land alone
 #            moves HEAD, through one checkout, never a fetch.
-#   stdout : branch_setup and branch_land print nothing - their result is the
-#            br_* variables; the plan_* and branch_expand helpers print one
+#   stdout : branch_setup, branch_entry and branch_land print nothing - their
+#            result is the br_* variables; the plan_* and branch_expand helpers print one
 #            value for a caller to capture. branch_report prints the C3
 #            report of plan-path.sh --branch, whose header shows its lines.
 #   return : branch_land 0, or 6 with the reason on stderr and HEAD, index
@@ -34,35 +34,91 @@
 
 run_branch_dir="$(dirname -- "${BASH_SOURCE[0]}")"
 
-# The resolved branching values, and the current branch (empty when detached).
-# br_line is what plan-path.sh prints after "branch: ", empty under off.
+# The branching mode, the valid work entries (br_keys, br_bases, br_names, in
+# file order) and the current branch (empty when detached). br_line is what
+# plan-path.sh prints after "branch: ", empty under off.
 branch_setup() {
-  local line
+  local line rest
   br_mode=off
-  br_base=main
-  br_pattern='{type}/{issue}-{slug}'
+  br_keys=()
+  br_bases=()
+  br_names=()
   br_cur=""
   br_line=""
   while IFS= read -r line; do
     case "$line" in
-      'branching.mode: '*) br_mode="${line#branching.mode: }" ;;
-      'branching.base: '*) br_base="${line#branching.base: }" ;;
-      'branching.name: '*) br_pattern="${line#branching.name: }" ;;
+      'mode: '*) br_mode="${line#mode: }" ;;
+      'entry: '*)
+        rest="${line#entry: }"
+        br_keys+=("${rest%% | *}")
+        rest="${rest#* | base: }"
+        br_bases+=("${rest%% | *}")
+        rest="${rest#* | name: }"
+        br_names+=("${rest%% | *}")
+        ;;
     esac
-  done < <(bash "$run_branch_dir/config.sh" 2>/dev/null || true)
+  done < <(bash "$run_branch_dir/config.sh" --branching 2>/dev/null || true)
   git rev-parse --is-inside-work-tree >/dev/null 2>&1 || br_mode=off
+  [[ "$br_mode" == allowed || "$br_mode" == required ]] || br_mode=off
   [[ "$br_mode" != off ]] || return 0
   br_cur="$(git symbolic-ref --short -q HEAD 2>/dev/null || true)"
   if [[ -n "$br_cur" ]]; then br_line="$br_cur (kept)"; else br_line="detached (kept)"; fi
 }
 
-# The plan frontmatter's "branch:" value, up to its first whitespace.
-plan_branch() {
-  awk '
+# The plan frontmatter's value of key $2 ("branch", "work"), up to its first
+# whitespace.
+plan_field() {
+  awk -v key="$2" '
 NR == 1 { if ($0 !~ /^---[[:space:]]*\r?$/) exit; next }
 /^---[[:space:]]*\r?$/ { exit }
-/^branch:/ { sub(/^branch:[[:space:]]*/, ""); sub(/[[:space:]].*$/, ""); print; exit }
+$0 ~ "^" key ":" { sub(/^[^:]*:[[:space:]]*/, ""); sub(/[[:space:]].*$/, ""); print; exit }
 ' "$1"
+}
+
+# The work entry of plan $1: its "work:" key, or the single entry when it
+# names none. Sets br_entry, br_base and br_pattern; unresolved, br_entry is
+# empty and br_why holds the exit 6 reason.
+branch_entry() {
+  local want i n=${#br_keys[@]}
+  br_entry=""
+  br_base=""
+  br_pattern=""
+  br_why=""
+  want="$(plan_field "$1" work)"
+  if [[ -z "$want" ]]; then
+    if [[ $n -eq 0 ]]; then
+      br_why="no valid branching.work entry"
+      return 0
+    fi
+    if [[ $n -gt 1 ]]; then
+      br_why="the plan records no branching.work entry and several exist"
+      return 0
+    fi
+    want="${br_keys[0]}"
+  fi
+  for ((i = 0; i < n; i++)); do
+    if [[ "${br_keys[$i]}" == "$want" ]]; then
+      br_entry="$want"
+      br_base="${br_bases[$i]}"
+      br_pattern="${br_names[$i]}"
+      return 0
+    fi
+  done
+  br_why="the plan records work entry $want and branching.work has none of that name"
+}
+
+# True when branch $1 is the base of the resolved entry, or, with none
+# resolved, the base of any entry.
+branch_is_base() {
+  local b
+  if [[ -n "$br_entry" ]]; then
+    [[ "$1" == "$br_base" ]]
+    return
+  fi
+  for b in ${br_bases[@]+"${br_bases[@]}"}; do
+    [[ "$1" != "$b" ]] || return 0
+  done
+  return 1
 }
 
 # The issue number of the plan frontmatter's "issue:" URL, empty without one;
@@ -121,28 +177,29 @@ END { print (fix ? "fix" : "feature") }
 ' "$1"
 }
 
-# The name pattern $3 (the branching.name pattern when absent) expanded for
-# plan $1 and run slug $2: separators left dangling by an empty placeholder are
-# dropped, doubled ones collapsed, and a leading or trailing `/` left dangling
-# by an empty placeholder at either edge is dropped too, so the result never
-# starts or ends with `/`.
+# The work entry name pattern $3 expanded for plan $1 and run slug $2:
+# separators left dangling by an empty placeholder are dropped, doubled ones
+# collapsed, and a leading or trailing `/` at either edge is dropped too, so
+# the result never starts or ends with `/`.
 branch_expand() {
-  local name="${3-$br_pattern}" type issue
+  local name="$3" type issue
   type="$(plan_type "$1")"
   issue="$(plan_issue "$1")"
   name="${name//\{type\}/$type}"
   name="${name//\{issue-number\}/$issue}"
-  name="${name//\{issue\}/$issue}"
   name="${name//\{slug\}/$2}"
   printf '%s\n' "$name" \
     | sed -E -e 's#[-_.]+/#/#g' -e 's#/[-_.]+#/#g' -e 's#^[-_.]+##' -e 's#[-_.]+$##' -e 's#/+#/#g' -e 's#-+#-#g' -e 's#^/+##' -e 's#/+$##'
 }
 
-# Puts HEAD on the run branch of plan $1 (run slug $2) and sets br_line.
+# Puts HEAD on the run branch of plan $1 (run slug $2) and sets br_line. A
+# branch is created only from the base of the plan's work entry; the required
+# checks read that base, or every entry base while no entry resolves.
 branch_land() {
   local target
   [[ "$br_mode" != off ]] || return 0
-  target="$(plan_branch "$1")"
+  branch_entry "$1"
+  target="$(plan_field "$1" branch)"
   [[ "$target" != none ]] || target=""
   if [[ -z "$target" ]]; then
     [[ "$br_mode" == required ]] || return 0
@@ -150,15 +207,28 @@ branch_land() {
       echo "error: HEAD is detached, branching is required and the plan records no branch" >&2
       return 6
     fi
+    if [[ -z "$br_entry" ]]; then
+      # no entry, so no base to tell: HEAD on any entry base, or no entry at
+      # all, would need a branch this plan cannot name
+      if [[ ${#br_keys[@]} -eq 0 ]] || branch_is_base "$br_cur"; then
+        echo "error: $br_why" >&2
+        return 6
+      fi
+      return 0
+    fi
     [[ "$br_cur" == "$br_base" ]] || return 0
-    target="$(branch_expand "$1" "$2")"
+    if [[ "$br_pattern" == *'{issue-number}'* && -z "$(plan_issue "$1")" ]]; then
+      echo "error: work entry $br_entry needs an issue for {issue-number}" >&2
+      return 6
+    fi
+    target="$(branch_expand "$1" "$2" "$br_pattern")"
     if [[ -z "$target" ]]; then
       echo "error: the run branch name pattern expanded to an empty name" >&2
       return 6
     fi
   fi
-  if [[ "$br_mode" == required && "$target" == "$br_base" ]]; then
-    echo "error: branching is required and the run branch is the base itself: $br_base" >&2
+  if [[ "$br_mode" == required ]] && branch_is_base "$target"; then
+    echo "error: branching is required and the run branch is the base itself: $target" >&2
     return 6
   fi
   # check-ref-format --branch expands @{-n}, so a name it hands back changed is
@@ -171,6 +241,10 @@ branch_land() {
   local action=switched from="refs/heads/$target" head_c to_c
   if ! git show-ref --verify --quiet "$from"; then
     action=created
+    if [[ -z "$br_entry" ]]; then
+      echo "error: $br_why" >&2
+      return 6
+    fi
     from="refs/heads/$br_base"
     if ! git show-ref --verify --quiet "$from"; then
       echo "error: base branch $br_base does not exist locally - nothing is fetched, create it first" >&2

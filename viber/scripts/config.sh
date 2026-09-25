@@ -57,20 +57,17 @@
 #            case). The default max stays opus: fable is reached only when a
 #            project names it. Anything else -> that key's default; min above
 #            max -> both defaults.
-#            branching.mode (default `off`), branching.base (default `main`)
-#            and branching.name (default `{type}/{issue}-{slug}`) - whether a
-#            run works on its own branch, cut from which base, under which name
-#            pattern. Read the same group-bound way. mode is off, allowed or
-#            required (any case, printed lowercase). base must match
-#            `[A-Za-z0-9._/-]+`, not start with `-` or `/` and hold no `..`.
-#            name has one surrounding pair of `'` or `"` stripped, then must
-#            match `[A-Za-z0-9._/{}-]+`. Anything else -> that key's default.
+#            branching.mode (default `off`) - whether a run works on its own
+#            branch. Read the same group-bound way; off, allowed or required
+#            (any case, printed lowercase), anything else -> off. The branch
+#            bases and name patterns live in `branching.work` entries, read by
+#            `--branching` alone.
 #   stdout : a header line, then one `<key>: <true|false>` line per switch,
 #            one `directories.<key>: <name>` line per directory key, one
-#            `tiers.<key>: <tier>` line per tier key and one
-#            `branching.<key>: <value>` line per branching key - dotted, so
-#            the block reads the way the file does and no reader can take a
-#            directory name for a switch - in a fixed order:
+#            `tiers.<key>: <tier>` line per tier key and the
+#            `branching.mode: <mode>` line - dotted, so the block reads the
+#            way the file does and no reader can take a directory name for a
+#            switch - in a fixed order:
 #              # viber config (resolved)
 #              adr: true
 #              memory: true
@@ -84,8 +81,6 @@
 #              tiers.min: haiku
 #              tiers.max: opus
 #              branching.mode: off
-#              branching.base: main
-#              branching.name: {type}/{issue}-{slug}
 #   stdout (--branching): the `branching:` group read by indentation - its
 #            direct children are `mode`, `work` and `issue-type-mappings`; a
 #            child of `work` is one work entry, its own `base`, `name` and
@@ -314,24 +309,6 @@ case "$mode" in
   *) mode=off ;;
 esac
 
-base="$(group_value branching base || true)"
-case "$base" in
-  ''|-*|/*|*..*|*[!A-Za-z0-9._/-]*) base=main ;;
-esac
-
-# A pattern opening on `{` must be quoted to stay a YAML string: one surrounding
-# pair of matching quotes is stripped before the value is checked.
-name="$(group_value branching name || true)"
-case "$name" in
-  \"?*\") name="${name#\"}"; name="${name%\"}" ;;
-  \'?*\') name="${name#\'}"; name="${name%\'}" ;;
-esac
-case "$name" in
-  ''|*[!A-Za-z0-9._/{}-]*) name='{type}/{issue}-{slug}' ;;
-esac
-
 printf 'branching.mode: %s\n' "$mode"
-printf 'branching.base: %s\n' "$base"
-printf 'branching.name: %s\n' "$name"
 
 exit 0

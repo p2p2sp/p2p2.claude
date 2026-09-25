@@ -52,22 +52,25 @@
 # already holds, and any source at all once a target carries a decomposition
 # or recorded progress, is refused (exit 4) rather than overwritten.
 #
-# The run branch. Under a branching.mode other than off (config.sh, read by the
-# sourced run-branch.sh; outside a git repository it acts as off), a FIRST
-# landing - a plan-mode source, or a draft round through --into - validates argv
-# and the --into target first, then puts HEAD on the run branch, and only then
-# looks up runs by slug and copies: a run already open on that branch is found
-# there rather than minted again beside it. The run branch is the source's
-# frontmatter "branch:" key (up to its first whitespace; "none" is no branch):
-# kept when HEAD is on it, switched to when it exists, else created from the
-# local base. With no branch recorded, "allowed" keeps the current branch;
-# "required" keeps a non-base branch and on the base creates the branching.name
-# pattern - {type} fix when a task block carries a "Repro:" line, else feature;
-# {issue} the number of the frontmatter "issue:" URL, read as commit-task.sh's
-# issue_ref() reads it; {slug} the run slug - a run of - _ . left next to a / or
-# at either end dropped, // and -- collapsed. A switch that moves HEAD to another
-# commit is refused on a dirty tree (untracked files count); one keeping the
-# commit carries the uncommitted work along. The no-argument form and a source
+# The run branch. Under a branching.mode other than off (config.sh --branching,
+# read by the sourced run-branch.sh; outside a git repository it acts as off), a
+# FIRST landing - a plan-mode source, or a draft round through --into - validates
+# argv and the --into target first, then puts HEAD on the run branch, and only
+# then looks up runs by slug and copies: a run already open on that branch is
+# found there rather than minted again beside it. The plan's entry is the
+# branching.work entry its frontmatter "work:" key names, or the single entry
+# when it names none. The run branch is the source's frontmatter "branch:" key
+# (up to its first whitespace; "none" is no branch): kept when HEAD is on it,
+# switched to when it exists, else created from the local base of the plan's
+# entry. With no branch recorded, "allowed" keeps the current branch;
+# "required" keeps a branch other than the entry base and on that base creates
+# the entry name pattern - {type} fix when a task block carries a "Repro:"
+# line, else feature; {issue-number} the number of the frontmatter "issue:"
+# URL, read as commit-task.sh's issue_ref() reads it; {slug} the run slug - a
+# run of - _ . left next to a / or at either end dropped, // and -- collapsed.
+# While no entry resolves, the required checks read every entry base. A switch
+# that moves HEAD to another commit is refused on a dirty tree (untracked files
+# count); one keeping the commit carries the uncommitted work along. The no-argument form and a source
 # that is itself a landed run plan never switch. Nothing is ever fetched.
 #
 # Contract:
@@ -75,9 +78,9 @@
 #            --branch and a plan, or nothing.
 #   file   : <src>'s frontmatter "into:" key, read only when argv carries no
 #            --into, validated and refused exactly as --into. On a first
-#            landing, and on --branch, <src>'s frontmatter "branch:" and
-#            "issue:" keys and its task blocks' "Repro:" lines, for the run
-#            branch.
+#            landing, and on --branch, <src>'s frontmatter "branch:", "work:"
+#            and "issue:" keys and its task blocks' "Repro:" lines, for the
+#            run branch.
 #   git    : HEAD moves only in the branch step of a first landing, through
 #            one checkout; every failure before or inside that step leaves
 #            HEAD, the index and the tree as they were. --branch never moves
@@ -132,9 +135,13 @@
 #     5 - the copy failed; nothing was landed
 #     6 - the run branch could not be set: a switch to another commit on a
 #         dirty tree, a base missing locally, an invalid branch name, the base
-#         as target under required, or a detached HEAD under required with no
-#         branch recorded; stderr names the reason; nothing landed, HEAD, index
-#         and tree unchanged
+#         as target under required, a detached HEAD under required with no
+#         branch recorded, or a branch to create while the plan's entry does
+#         not resolve ("the plan records no branching.work entry and several
+#         exist", "no valid branching.work entry", a "work:" key naming no
+#         entry) or its pattern needs the issue the plan lacks ("work entry
+#         <key> needs an issue for {issue-number}"); stderr names the reason;
+#         nothing landed, HEAD, index and tree unchanged
 #
 # One "open:" line per OTHER run still holding a task that is neither committed
 # nor skipped - the resolved run is never among them, and a repository with
