@@ -37,9 +37,9 @@ Every script run is one literal Bash line spelled as below: never prefixed with 
 
 - Fill `${CLAUDE_SKILL_DIR}/assets/comment.md`, read at this step, in the language of your conversation with the user, whatever language the issue is written in.
 - Write in plain language a non-technical reader follows: short sentences, everyday words, the effect on users before the mechanism. Paths and symbols appear only under Affected code, each with a plain-words role; any other unavoidable technical term gets a short explanation where it first appears.
-- Print the filled report, then one line naming the next step:
-  - `bug`, anything but `not feasible` -> `/viber:fixer <one-line summary of the issue>`
-  - `feature request`, anything but `not feasible` -> `/viber:idea <one-line summary of the issue>`
+- Print the filled report, then one line naming the next step: a GitHub issue names it `#<N>`, pasted text names it with a one-line summary of the issue.
+  - `bug`, anything but `not feasible` -> `/viber:fixer #<N>` or `/viber:fixer <one-line summary of the issue>`
+  - `feature request`, anything but `not feasible` -> `/viber:intent #<N>` or `/viber:intent <one-line summary of the issue>`
   - anything else -> `none` and the reason: a duplicate, already done, too little data, not feasible.
 - The next-step line belongs to the chat only, never to the comment.
 
@@ -55,4 +55,4 @@ Every script run is one literal Bash line spelled as below: never prefixed with 
 
 ## Stop
 
-End on the report or on the publish result. Never invoke `viber:fixer`, `viber:idea` or any other skill, whatever the verdict and whatever the answer to the publish question: the user runs the next step. The turn that answers the publish question does the publishing and nothing else.
+End on the report or on the publish result. Never invoke `viber:fixer`, `viber:intent` or any other skill, whatever the verdict and whatever the answer to the publish question: the user runs the next step. The turn that answers the publish question does the publishing and nothing else.
