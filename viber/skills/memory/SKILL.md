@@ -13,7 +13,7 @@ disable-model-invocation: true
 "${CLAUDE_SKILL_DIR}/scripts/memory-map.sh"
 ```
 
-The block above is this host project's memory layer as the script measured it: the run's `id:`, the `state:`, one `node:` line per `CLAUDE.md` with its own character count, the count of the chain a reader loads with it and its budget flag, one `orphan:` line per node whose area is gone, one `cand:` line per directory that carries no node, one `dirty:` line per node holding uncommitted work, and the total. A section with nothing to report printed no line at all.
+The block above is this host project's memory layer as the script measured it: the run's `id:`, the `state:`, one `node:` line per `CLAUDE.md` with its own character count, the count of the chain a reader loads with it and its budget flag, one `section:` line per tracked `CLAUDE.<topic>.md` with its size and flag, one `unlinked:` line per section no node names, one `orphan:` line per node whose area is gone, one `cand:` line per directory that carries no node, one `dirty:` line per node or section holding uncommitted work, and the total. A kind of line with nothing to report printed none.
 
 It is self-verifying and trusted. Never re-measure a node, never walk the tree for a candidate of your own, never run git to decide what is dirty: every fact you route on is already above.
 
@@ -24,13 +24,15 @@ Your whole tool set is `AskUserQuestion`, `Agent` and the two map lines of step 
 Before any question, one line per fact worth deciding on:
 
 - each `node:` line with its two sizes and its flag. `OVER-NODE` is past 12000 bytes, `OVER-CHAIN` past 32000 over the chain. A node already over a budget is reported here and brought within it by its writer, never by you.
+- each `section:` line with its size and flag, under its node when one exists. A section never counts toward a chain.
+- each `unlinked:` line, named as a section no reader can reach.
 - each `orphan:` line, named as a node left alone in a directory whose other files are gone.
 - each `dirty:` line with its `modified` or `untracked` word.
 - each `cand:` line with its file count, its byte count and its `toolchain` or `plain` signal. A directory carrying its own build manifest earns a look, never an automatic node.
 
 ## 2. Route on the state, then the mode
 
-`state: none` means no node is tracked anywhere. Say the layer is empty, ask nothing, and go to step 4 with the `cand:` lines as the target list plus the repository root: there is nothing to review and nothing to reset.
+`state: none` means no node is tracked anywhere. Say the layer is empty, ask nothing, and go to step 4 with the `cand:` lines as the target list plus the repository root and the directory of each `unlinked:` section, each directory once: there is nothing to review and nothing to reset.
 
 Otherwise one `AskUserQuestion`, the four modes in that single call:
 
@@ -41,11 +43,11 @@ Otherwise one `AskUserQuestion`, the four modes in that single call:
 
 An argument naming one of the four is that answer already: take it and ask nothing. On `state: complete` lead with the flags and the orphans; on `state: partial` lead with how many candidates carry no node.
 
-`reset` goes to step 3. Every other mode goes to step 4, its target list being the `node:` lines on `review`, the `cand:` lines on `extend`, and both on `both`.
+`reset` goes to step 3. Every other mode goes to step 4, its target list being the `node:` lines on `review`, the `cand:` lines plus the directory of each `unlinked:` section with no `node:` line beside it on `extend`, and both on `both`, each directory once.
 
 ## 3. Reset
 
-The list is every `node:` line, or the ones the user named. Print it whole, one path per line: a reset deletes this project's memory.
+The list is every `node:` line, or the ones the user named, each followed by every `section:` line in its directory, plus, when the list is every `node:` line, every `unlinked:` section with no `node:` line beside it: a node takes its sections along. Print it whole, one path per line: a reset deletes this project's memory.
 
 A path in the list that also carries a `dirty:` line refuses the whole call. Name each offending path with its own word, say the user commits or discards that work and runs the command again, and stop there. A refusal is never narrowed into a smaller reset that goes ahead, and uncommitted work is never corrected into something deletable.
 
@@ -56,7 +58,7 @@ Otherwise one `AskUserQuestion` over that exact list. On anything but approval, 
 ```
 
 - exit 0 -> the `removed:` lines are the deletion. Report them, then map the layer again with the one literal line `"${CLAUDE_SKILL_DIR}/scripts/memory-map.sh"`. That fresh map replaces the one above for the rest of the run: the preloaded one still lists the deleted nodes. Continue into step 4 with its `cand:` lines plus every directory a `removed:` line emptied, the repository root among them.
-- exit 3 -> nothing at all was deleted. Repeat its `refused:` lines verbatim and stop.
+- exit 3 -> nothing at all was deleted. Repeat its `refused:` lines verbatim and stop. A refusal may name a section missing from the list: one deleted and not yet committed.
 - exit 2 -> the call itself was unusable. Report it and stop.
 
 ## 4. Approve the targets
@@ -65,7 +67,7 @@ Nothing is dispatched before the user has seen the target list and kept what bel
 
 Then one `AskUserQuestion` over that list: all of them, or the ones the user picks. Offer the targets themselves as options while the list is short enough to show; past that, offer all of them, none of them, and take the paths a free answer names verbatim. A target the user dropped reaches no auditor and no writer. Nothing kept -> stop, having dispatched nothing and written nothing.
 
-A `node:` target is a fix target. Every other target - a candidate, an emptied directory, the root of an empty layer - is a create target, its node being `CLAUDE.md` inside that directory. An orphan is offered like any other node: the auditor decides whether its area really went, and the writer is what removes the file.
+A `node:` target is a fix target. Every other target - a candidate, an emptied directory, the directory of a section with no node, the root of an empty layer - is a create target, its node being `CLAUDE.md` inside that directory. A directory holding a section on a `dirty:` line is never a create target: that section is the user's uncommitted work. An orphan is offered like any other node: the auditor decides whether its area really went, and the writer is what removes the file. A section is never a target of its own: it travels with the node beside it.
 
 The planned set is every `node:` line of the map in use plus the node of every kept create target, root first, then by depth.
 
@@ -95,7 +97,7 @@ A call returning `VERDICT: DENIED` instead -> one `AskUserQuestion` naming the t
 
 ## 6. Confirm
 
-A fix target with four zero counters and an `ok` flag leaves the set. One still carrying `OVER-NODE` or `OVER-CHAIN` stays, zero counters or not. Nothing left in the set -> say the layer is already true in one line and stop.
+A fix target with four zero counters and an `ok` flag leaves the set. One still flagged `OVER-NODE` or `OVER-CHAIN`, or with a `section:` line reading `OVER-NODE` or an `unlinked:` line in its directory, stays, zero counters or not. Nothing left in the set -> say the layer is already true in one line and stop.
 
 Otherwise one `AskUserQuestion` over the counters, the over-budget flags and the create targets: write them, or stop. Only on approval go on.
 
@@ -115,11 +117,11 @@ refs: ${CLAUDE_PLUGIN_ROOT}/references
 
 A dispatch returning `VERDICT: DENIED` -> before the next wave, one `AskUserQuestion` naming the node and the refused call from its `REASON:` line: permission added and retry, skip that node, or stop.
 
-Keep account while the waves return:
+Keep account while the waves return, counting only paths whose file name is `CLAUDE.md` - a section path is never a node:
 
-- a node was created when its dispatch ran in create mode and returned `VERDICT: UPDATED`, or when a `FILES:` path lies outside the planned set.
-- a node was deleted for each `DELETED:` line.
-- the nodes that now exist are the planned set, minus every create target that did not return `UPDATED`, minus every deleted node, plus every created node outside the planned set.
+- a node was created when its dispatch ran in create mode and returned `VERDICT: UPDATED` with that node on `FILES:`, or when such a `FILES:` path lies outside the planned set.
+- a node was deleted for each such `DELETED:` line.
+- the nodes that now exist are the planned set, minus every create target not created, minus every deleted node, plus every created node outside the planned set.
 
 ## 8. Reconcile the root
 

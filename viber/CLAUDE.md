@@ -9,7 +9,7 @@ and `references/integration-tests.md` turn into rules.
 ```
 skills/<name>/           12 skills: SKILL.md plus files read at one step;
                          setup, memory, rules, commit bundle scripts/
-agents/                  14 agents, each dispatched only by the callers its description names
+agents/                  14 agents
 scripts/                 13 plugin-wide scripts
 references/              read at runtime by agents through the `refs:` dispatch line
 hooks/                   SessionStart manifest + PreToolUse plan gate
@@ -31,8 +31,6 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
   or a one-line summary for pasted text, and invokes nothing; under `issues: false` it never
   fetches or publishes and drops the `#<N>` form from its next-step name. Its `disallowed-tools:`
   lifts at the prose publish answer, so in that turn only the body keeps `Skill` unused.
-- `tdd`: only `task-coder` invokes it, on a `TDD: required` task, before any production code.
-- `commit` stands outside the chain: a build never calls it.
 
 ## Orchestrator contract
 
@@ -73,8 +71,7 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
   pathspecs (App Router `[id]` paths), refuses a `.temp/` path with a warning, and adds the run's
   `work/` trail itself.
 - Never two `commit-task.sh` calls at once: each rewrites the index and `status.md`.
-- `commit-args.sh` is the ONE selector parser, sourced by `commit-context.sh` and `commit.sh`;
-  the fork never widens the selector.
+- `commit-args.sh` is the ONE selector parser; the fork never widens the selector.
 - The `commit` skill's `git rev-parse` and `cat` preloads are inline commands under a bare `Bash`
   allow, the one exception to the literal-script-line form; its scripts carry their own pattern.
 
@@ -128,8 +125,10 @@ every parser.
 - Fence-aware guidance-comment stripping: `plan-path.sh`'s landing strip and `plan-index.sh`'s
   `spec.md` cut.
 - `directories.*` parsing: `config.sh`, `plan-path.sh`, `archive-run.sh`.
-- Node budget 12000 / 32000: `references/node-doctrine.md`, `skills/memory/scripts/memory-map.sh`,
-  `skills/memory/SKILL.md`. Rule budget 4000 / 40000: `agents/rules-writer.md`,
+- Node (and section) budget 12000 / 32000: `references/node-doctrine.md`,
+  `skills/memory/scripts/memory-map.sh`, `skills/memory/SKILL.md`. Section name
+  rule (never `local`): the doctrine, `memory-map.sh` (twice), `memory-auditor`,
+  `memory-node-writer`. Rule budget 4000 / 40000: `agents/rules-writer.md`,
   `skills/rules/scripts/rules-map.sh`, `skills/rules/SKILL.md`.
 - The frozen `_`-prefixed rule file: `rules-map.sh`, `rules-auditor`, `rules-writer`.
 - An agent's `tools:` frontmatter and the tool list its opening paragraph names.
@@ -146,10 +145,13 @@ every parser.
 
 ## Memory and rules layers
 
-- `memory-writer` may leave a node over budget (`OVER:`): `implementor` dispatches one
-  `memory-auditor` per path, then `memory-node-writer` (`planned: none`) in waves by depth, root
-  first; a later wave writing outside its node or deleting one adds a last root dispatch, its
-  index rebuilt from the tree.
+- A section travels with its node: `section:` and `unlinked:` lines, never in a chain;
+  reset, audited and written with its node; only a `FILES:`/`DELETED:` path named `CLAUDE.md`
+  is a node.
+- `memory-writer` may leave a node or section over budget (`OVER:`): `implementor` dispatches
+  one `memory-auditor` per node, then `memory-node-writer` (`planned: none`) in waves by depth,
+  root first; a later wave writing outside its node or deleting one adds a last root dispatch,
+  its index rebuilt from the tree.
 - `rules-auditor` and `rules-writer` pass every line through `references/rule-admission.md`; a
   fact about one place leaves as `MOVE:` for the memory layer. `rules-writer` never writes a
   `CLAUDE.md`, `memory-writer` never touches `.claude/rules/`.
@@ -157,8 +159,8 @@ every parser.
 ## Plan gate
 
 `hooks/scripts/plan-gate.sh` arms on a write to `plans/*.md` in the current plan-mode episode and
-picks `planner-review` when a Skill tool_use named bare `planner` or `viber:planner` ran in it
-(not another plugin's `planner`), else `plain-plan-review` when `config.sh` (payload `cwd`)
+picks `planner-review` when a Skill tool_use named bare `planner` or `viber:planner` ran in it,
+else `plain-plan-review` when `config.sh` (payload `cwd`)
 resolves `plain-plan-review: true`.
 `ExitPlanMode` passes only after that agent, dispatched after the last plan write, returned
 `VERDICT: PASS` and the plan's mtime is not newer. The deny reason is the plain path's only
@@ -175,7 +177,7 @@ verdict line disarms the fail-open gate silently.
 - A multi-line issue body or comment travels only as a file under `.temp/viber/<skill>/` through
   `--body-file`. `intent`'s and `prototype`'s write access there is pre-approved as
   `Edit(./.temp/viber/<skill>/**)`, not `Write(...)`: a file write matches `Edit` rules only.
-- `e2e`: `playwright-cli`, `@playwright/test` (chromium only), probed by `check-playwright.sh`,
-  which never installs; the skill installs only once the user agrees.
-- `setup`: `merge-settings.sh` needs `node` only to merge into an existing target. Merge or reset
-  is an `AskUserQuestion`: a prose question ends the turn and the pre-approval with it.
+- `e2e`: `playwright-cli`, `@playwright/test` (chromium only), probed by `check-playwright.sh`;
+  the skill installs only once the user agrees.
+- `setup`: `node` only for a merge into an existing target; merge or reset is an
+  `AskUserQuestion`: a prose question ends the turn and the pre-approval with it.

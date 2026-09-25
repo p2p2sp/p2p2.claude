@@ -160,10 +160,10 @@ For each switch the config block reports as `true` and the index's `closed:` lin
 - `rules: true` -> `viber:rules-writer` with `spec: <dir>/spec.md`, `notes: <dir>/work/` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`.
 - `qa: true` -> `viber:qa-writer` with `spec: <dir>/spec.md`, `notes: <dir>/work/`, `refs: ${CLAUDE_PLUGIN_ROOT}/references` and `out: <dir>`.
 
-`memory-writer` (never `rules-writer`) returning one or more `OVER:` lines -> as soon as it returned, never waiting for the other writers of this step, one `viber:memory-auditor` per `OVER:` path, all in one message, these lines each and nothing else, `<key>` being the `key:` of step 1:
+`memory-writer` (never `rules-writer`) returning one or more `OVER:` lines -> as soon as it returned, never waiting for the other writers of this step, one `viber:memory-auditor` per node, all in one message, these lines each and nothing else, `<key>` being the `key:` of step 1. The node of an `OVER:` path is that path when it is a `CLAUDE.md`, else the `CLAUDE.md` in its directory; two `OVER:` paths sharing a node make one target:
 
 ```
-target: <the OVER: path>
+target: <the node>
 scope: <the directory holding it, the repository root for the root node>
 out: .temp/viber/<key>/
 ```
@@ -172,17 +172,17 @@ An auditor returns one `AUDIT:` line and no `VERDICT:` other than `DENIED`: neve
 
 Any agent of this step returning `VERDICT: DENIED` -> `AskUserQuestion` naming that agent: retry / accept / abort.
 
-After every auditor returned, `viber:memory-node-writer` per `OVER:` path in waves by depth: a node's depth is the number of path segments of the directory holding it, the root being 0. One wave per depth, the root's first, then ascending; every dispatch of a wave in one message, the next wave only after each of them returned. These lines each and nothing else:
+After every auditor returned, `viber:memory-node-writer` per node in waves by depth: a node's depth is the number of path segments of the directory holding it, the root being 0. One wave per depth, the root's first, then ascending; every dispatch of a wave in one message, the next wave only after each of them returned. These lines each and nothing else:
 
 ```
 mode: fix
-node: <the OVER: path>
+node: <the node>
 findings: <the findings file its AUDIT: line named> | none
 planned: none
 refs: ${CLAUDE_PLUGIN_ROOT}/references
 ```
 
-Any wave after the root's own (every wave, when the root is no `OVER:` path) returning a `FILES:` path other than its dispatched node, or a `DELETED:` line -> after the last wave, when the root `CLAUDE.md` exists and no `DELETED:` line named it, one more dispatch with the same lines on `node: CLAUDE.md`, `findings: none`.
+Any wave after the root's own (every wave, when the root is no target) returning a `FILES:` path whose file name is `CLAUDE.md` other than its dispatched node, or a `DELETED:` line whose file name is `CLAUDE.md` -> after the last wave, when the root `CLAUDE.md` exists and no `DELETED:` line named it, one more dispatch with the same lines on `node: CLAUDE.md`, `findings: none`. A section path never triggers it.
 
 Commit what they return, one call per form: memory and rule paths, every `FILES:` path of the node writers among them, through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore "<plan>" "<file>" ["<file>"...]` only once every writer of this step, the last wave and any root dispatch returned; QA paths, the `FILES:` of `VERDICT: WRITTEN` or `VERDICT: KEPT`, through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa "<plan>" "<file>" ["<file>"...]`. A form whose agents returned nothing or only `VERDICT: NONE` gets no call. Commit an `OVER:` line's path like any other.
 

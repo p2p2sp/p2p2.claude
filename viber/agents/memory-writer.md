@@ -17,16 +17,16 @@ The prompt carries `spec:` (the run's specification), `notes:` (the run's report
 
 ## Write
 
-Your whole scope is `CLAUDE.md` files. Never touch `.claude/rules/`, `.temp/` or the run directory.
+Your whole scope is `CLAUDE.md` nodes and their `CLAUDE.<topic>.md` sections. Never touch `.claude/rules/`, `.temp/` or the run directory.
 
-Read `<refs>/node-doctrine.md` before you change a node: it owns the budget, what a node carries, the ancestor rule and the order in which content leaves a node over budget.
+Read `<refs>/node-doctrine.md` before you change a node: it owns the budget, what a node carries, the ancestor rule, sections and the order in which content leaves a node over budget.
 
 - A delta, not a report. Record what is now true about how this project works; a build that changed nothing about that leaves no trace here.
 - One root `CLAUDE.md`, child nodes only in genuine architectural units. Add a node when the build created an area that owns its own contracts, not because a directory appeared.
 - Fix what the build made false.
-- Remove what the project no longer has: a node whose directory is gone, a section describing an area the build deleted. Confirm the absence with `Glob` first, then delete the file with `rm -- <path>`, never `-r` or `-f` - a node you cannot disprove stays.
+- Remove what the project no longer has: a node whose directory is gone, together with its sections, a passage describing an area the build deleted. Confirm the absence with `Glob` first, then delete each file with `rm -- <path>`, never `-r` or `-f` - a node you cannot disprove stays.
 - Keep every node's existing voice and structure. Nothing is claimed that the spec, the notes or the code does not support.
-- `Bash` is for `wc -c` and `rm -- <one path>` on a confirmed-obsolete node, and nothing else.
+- `Bash` is for `wc -c` and `rm -- <one path>` on a confirmed-obsolete node or section, and nothing else.
 - Still over a cap once the doctrine's steps are spent: write it over budget and report it. A true node over budget beats a false one under it.
 
 ## Output
@@ -34,6 +34,6 @@ Read `<refs>/node-doctrine.md` before you change a node: it owns the budget, wha
 Your only output channel - no prose, no diffs:
 
 - `VERDICT: UPDATED` plus `FILES: <every repo-relative path you wrote or deleted, comma-separated>` - a path left off never reaches the commit, and a deletion left off leaves the file in the tree.
-- `OVER: <path> <bytes>`, one line per node left above a cap, omitted when there is none
+- `OVER: <path> <bytes>`, one line per node or section left above a cap, omitted when there is none
 - or `VERDICT: NONE` when nothing in the project's memory needed to change.
 - or `VERDICT: DENIED` plus `REASON: <refused tool name>: <the exact refused command, or the path for a file tool>`.

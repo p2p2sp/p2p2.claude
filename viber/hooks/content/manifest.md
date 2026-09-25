@@ -13,4 +13,10 @@
 ## Configuration
 - viber's switches live in `.claude/viber.yml`, each key explained by its own comment.
 
+## Outside viber
+When you work outside the `viber` plugin's skills, follow these rules to optimize how you work:
+- Time matters.
+- Always review plan in plan mode just before executing `ExitPlanMode` tool using subagent.
+- Put in a plan file a last task to review the implementation using subagent.
+
 </viber:manifest>

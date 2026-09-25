@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 #
 # memory-map.sh - maps the host project's CLAUDE.md cascade, and on --reset
-# deletes the nodes it is handed. It is what the memory command loads before
+# deletes the nodes and sections it is handed. It is what the memory command loads before
 # it decides anything: the routing, the budgets and the uncommitted-work check
 # are deterministic, so the model is handed a map instead of walking the tree
 # itself and guessing at sizes.
 #
 # Contract:
 #   argv   : none                       -> the map.
-#            --reset <path> [<path>...] -> delete those nodes, all or none.
+#            --reset <path> [<path>...] -> delete those nodes and sections,
+#                                          all or none.
 #   cwd    : any directory inside the host project - the repository root is
 #            resolved here, every path printed is relative to it, and every
 #            path handed to --reset is read relative to it. Outside a
@@ -19,12 +20,16 @@
 #              id: 2026-09-22-17-06-39
 #              state: none | partial | complete
 #              node: docs/CLAUDE.md 4210 chain 11880 ok | OVER-NODE | OVER-CHAIN
+#              section: docs/CLAUDE.tests.md 3100 ok | OVER-NODE
+#              unlinked: docs/CLAUDE.tests.md
 #              orphan: docs/legacy/CLAUDE.md
 #              cand: src/api files 37 bytes 91204 toolchain | plain
 #              dirty: CLAUDE.md modified | untracked
 #              total: nodes 7
-#            --reset, one line per target in the order given:
+#            --reset, one line per file deleted, a node followed by its
+#            sections, targets in the order given, then the count:
 #              removed: docs/CLAUDE.md
+#              removed: docs/CLAUDE.tests.md
 #              removed: 2
 #            or, when the call is refused and NOTHING was deleted:
 #              refused: docs/CLAUDE.md modified | untracked | not-a-node
@@ -48,8 +53,15 @@
 #           staged with `git rm` or plainly `rm`'d - is no node at all: no
 #           line here, no dirty line, not counted toward total or state, and
 #           its directory is a plain candidate again once it qualifies.
-# orphan  - a node with no other tracked file anywhere beneath its directory:
-#           it documents nothing.
+# section - one line per tracked CLAUDE.<topic>.md still present, in the same
+#           order: a block of its node moved beside it, read on demand, so it
+#           never counts toward any chain. <topic> is lowercase letters,
+#           digits and hyphens; CLAUDE.local.md is the user's own auto-loaded
+#           file and never a section. OVER-NODE past 12000 bytes.
+# unlinked - a section no reader can reach: no node sits beside it, or the
+#            text of that node never names its file.
+# orphan  - a node with no other tracked file anywhere beneath its directory,
+#           its own sections not counted: it documents nothing.
 # cand    - a directory that deserves a node and has none: tracked, at depth 1
 #           or 2, no path segment starting with ".", at least three tracked
 #           files beneath it. "toolchain" when it directly holds one of
@@ -58,17 +70,19 @@
 #           composer.json, mix.exs, pubspec.yaml, CMakeLists.txt, Makefile, or
 #           any *.csproj / *.sln; "plain" otherwise. "files" and "bytes" count
 #           every tracked file beneath it.
-# dirty   - one line per node the git index reports modified, or present in
-#           the tree and untracked. An untracked node is no node anywhere else
-#           in the map: it is neither counted nor sized. A node deleted but
-#           not yet committed carries no working-tree file either way, so it
-#           is absent rather than dirty - `--reset` alone still treats its
-#           uncommitted deletion as "modified" and refuses to touch it again.
+# dirty   - one line per node or section the git index reports modified, or
+#           present in the tree and untracked. An untracked node or section
+#           is none anywhere else in the map: it is neither counted nor sized.
+#           One deleted but not yet committed carries no working-tree file
+#           either way, so it is absent rather than dirty - `--reset` alone
+#           still treats its uncommitted deletion as "modified" and refuses to
+#           touch it again.
 #
-# A section with nothing to report prints no line at all; "total:" always
-# prints. --reset judges every target before deleting the first one, so one
-# modified or untracked file in the list leaves the whole cascade untouched -
-# a user never loses half a layer.
+# A kind of line with nothing to report prints none at all; "total:" always
+# prints, counting nodes only. --reset takes a node or a section; a node
+# takes every tracked section beside it along. It judges every file it would
+# delete before deleting the first one, so one modified or untracked file
+# leaves the whole cascade untouched - a user never loses half a layer.
 #
 set -u
 
@@ -116,6 +130,32 @@ is_node() {
   return 1
 }
 
+# True for a section: CLAUDE.<topic>.md, <topic> lowercase letters, digits and
+# hyphens, never "local". The letters are spelled out rather than written as
+# a range: a range follows the locale in bash 3.2 and can take in capitals.
+is_section() {
+  base="${1##*/}"
+  case "$base" in
+    CLAUDE.local.md) return 1 ;;
+    CLAUDE.?*.md) ;;
+    *) return 1 ;;
+  esac
+  topic="${base#CLAUDE.}"
+  topic="${topic%.md}"
+  case "$topic" in
+    '' | *[!abcdefghijklmnopqrstuvwxyz0123456789-]*) return 1 ;;
+  esac
+  return 0
+}
+
+# The node a section belongs to: CLAUDE.md in the section's own directory.
+node_of() {
+  case "$1" in
+    */*) printf '%s/CLAUDE.md' "${1%/*}" ;;
+    *) printf 'CLAUDE.md' ;;
+  esac
+}
+
 # True for a node that is both tracked and still present in the working
 # tree - a deleted-but-uncommitted node (staged with `git rm` or plainly
 # `rm`'d) is neither: measuring it would read a missing file.
@@ -134,7 +174,8 @@ chars_of() {
 
 # True when some tracked file other than $2 lives under the prefix $1 ("" is
 # the repository root). A node is an orphan when nothing does: it documents
-# no subtree, not even one held in a directory below it.
+# no subtree, not even one held in a directory below it. A section directly
+# under the prefix belongs to the node itself and is no other file.
 holds_other() {
   # One awk pass over the list rather than a shell substitution on it: a host
   # repository holds thousands of tracked files, and bash 3.2 (the macOS
@@ -145,12 +186,24 @@ holds_other() {
   # to the end instead of exiting on the first match: an early exit breaks the
   # pipe under printf, which can then print a write error on stderr.
   printf '%s' "$tracked" | awk -v p="$1" -v n="$2" '
-    !found && $0 != "" && $0 != n && substr($0, 1, length(p)) == p { found = 1 }
+    !found && $0 != "" && $0 != n && substr($0, 1, length(p)) == p {
+      rest = substr($0, length(p) + 1)
+      if (rest != "CLAUDE.local.md" && rest ~ /^CLAUDE\.[abcdefghijklmnopqrstuvwxyz0123456789-]+\.md$/) next
+      found = 1
+    }
     END { exit !found }'
 }
 
-# The nodes carrying uncommitted work, as "<path> modified" / "<path>
-# untracked" lines.
+# Every tracked section, whether present or not. grep narrows the index to
+# the few CLAUDE.*.md paths first, so is_section runs on those alone.
+sections="$(
+  printf '%s' "$tracked" | grep -E '(^|/)CLAUDE\.[^/]+\.md$' 2>/dev/null | while IFS= read -r entry; do
+    is_section "$entry" && printf '%s\n' "$entry"
+  done
+)"
+
+# The nodes and sections carrying uncommitted work, as "<path> modified" /
+# "<path> untracked" lines.
 # -uall: the default collapses an untracked directory to its name alone, and
 # an untracked node would never be seen. A rename's second record is the old
 # path with no status code in front, recognised by the missing separator
@@ -161,7 +214,7 @@ while IFS= read -r -d '' record; do
   [ "${record:2:1}" = " " ] || continue
   code="${record:0:2}"
   path="${record:3}"
-  is_node "$path" || continue
+  is_node "$path" || is_section "$path" || continue
   if [ "$code" = "??" ]; then
     dirty_nodes="$dirty_nodes$path untracked$NL"
   else
@@ -181,8 +234,26 @@ dirty_reason() {
   return 1
 }
 
-# All or nothing: every target is judged before the first one is deleted, so a
-# refused call leaves the cascade exactly as it was.
+# Queues one file for deletion, once however often it is named, and records
+# why it cannot go: $2 when given, else its uncommitted work, else not being
+# tracked at all.
+queue() {
+  case "$NL$targets" in
+    *"$NL$1$NL"*) return 0 ;;
+  esac
+  targets="$targets$1$NL"
+  reason="${2:-}"
+  [ -n "$reason" ] || reason="$(dirty_reason "$1" || true)"
+  if [ -z "$reason" ] && ! is_tracked "$1"; then
+    reason="not-a-node"
+  fi
+  [ -z "$reason" ] || refused="$refused$(printf 'refused: %s %s' "$1" "$reason")$NL"
+}
+
+# All or nothing: every file is judged before the first one is deleted, so a
+# refused call leaves the cascade exactly as it was. A node takes every
+# tracked section beside it along: a section left behind would be
+# unreachable.
 if [ "$mode" = "reset" ]; then
   if [ "$#" -eq 0 ]; then
     printf 'usage: memory-map.sh --reset <path> [<path>...]\n' >&2
@@ -192,19 +263,18 @@ if [ "$mode" = "reset" ]; then
   refused=""
   for target in "$@"; do
     norm="${target#./}"
-    reason=""
-    if ! is_node "$norm"; then
-      reason="not-a-node"
+    if is_node "$norm"; then
+      queue "$norm"
+      while IFS= read -r section; do
+        [ -n "$section" ] || continue
+        [ "$(node_of "$section")" = "$norm" ] || continue
+        queue "$section"
+      done < <(printf '%s\n' "$sections")
+    elif is_section "$norm"; then
+      queue "$norm"
     else
-      reason="$(dirty_reason "$norm" || true)"
-      if [ -z "$reason" ] && ! is_tracked "$norm"; then
-        reason="not-a-node"
-      fi
+      queue "$norm" "not-a-node"
     fi
-    if [ -n "$reason" ]; then
-      refused="$refused$(printf 'refused: %s %s' "$norm" "$reason")$NL"
-    fi
-    targets="$targets$norm$NL"
   done
   if [ -n "$refused" ]; then
     printf '%s' "$refused"
@@ -271,6 +341,34 @@ while IFS= read -r line; do
     orphan_out="$orphan_out$(printf 'orphan: %s' "$node")$NL"
   fi
 done < <(printf '%s\n' "$node_lines")
+
+# --- the sections ----------------------------------------------------------
+# Every tracked section still present, in the same depth order as the nodes.
+# The owner is judged by its text alone: a section named nowhere in it is
+# out of reach, since nothing ever loads a section on its own.
+section_out=""
+unlinked_out=""
+while IFS= read -r line; do
+  [ -n "$line" ] || continue
+  section="${line#* }"
+  own="$(chars_of "$section")"
+  budget="ok"
+  if [ "$own" -gt "$NODE_BUDGET" ]; then
+    budget="OVER-NODE"
+  fi
+  section_out="$section_out$(printf 'section: %s %s %s' "$section" "$own" "$budget")$NL"
+  owner="$(node_of "$section")"
+  if ! is_present_node "$owner" || ! grep -qF -- "${section##*/}" "$owner" 2>/dev/null; then
+    unlinked_out="$unlinked_out$(printf 'unlinked: %s' "$section")$NL"
+  fi
+done < <(
+  printf '%s\n' "$sections" | while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    [ -e "$entry" ] || continue
+    slashes="${entry//[!\/]/}"
+    printf '%03d %s\n' "${#slashes}" "$entry"
+  done | sort
+)
 
 # --- the directories that deserve a node -----------------------------------
 # One `wc -c` pass over the whole index, attributed to depth-1 and depth-2
@@ -340,11 +438,13 @@ if [ "$nodes" -gt 0 ]; then
 fi
 
 # --- output ----------------------------------------------------------------
-# A section with nothing to report prints no line at all.
+# A kind of line with nothing to report prints none at all.
 printf '# viber memory map\n'
 printf 'id: %s\n' "$(date +%Y-%m-%d-%H-%M-%S)"
 printf 'state: %s\n' "$state"
 printf '%s' "$node_out"
+printf '%s' "$section_out"
+printf '%s' "$unlinked_out"
 printf '%s' "$orphan_out"
 printf '%s' "$cand_out"
 printf '%s' "$dirty_out"

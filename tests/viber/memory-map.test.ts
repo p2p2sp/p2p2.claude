@@ -2,9 +2,10 @@
  * memory-map.test.ts - proves viber/skills/memory/scripts/memory-map.sh's
  * contract: with no argument it MAPS the host repository's `CLAUDE.md`
  * cascade (one line per node with its own and its chain's character count,
- * orphan nodes, directories that deserve a node, nodes carrying uncommitted
- * work), and with `--reset` it deletes the nodes it is given - all of them or
- * none.
+ * the `CLAUDE.<topic>.md` sections beside a node and the unlinked ones,
+ * orphan nodes, directories that deserve a node, nodes and sections carrying
+ * uncommitted work), and with `--reset` it deletes the nodes and sections it
+ * is given, a node taking its sections along - all of them or none.
  *
  * Two properties carry the design. The map ALWAYS exits 0, because it is a
  * `!` preload where a non-zero exit aborts the whole skill load - a directory
@@ -533,6 +534,225 @@ test("--reset with no path at all deletes nothing and exits 2", () => {
     assert.equal(result.status, 2);
     assert.equal(result.stdout, "");
     assert.equal(fs.existsSync(path.join(repo.dir, "CLAUDE.md")), true);
+  });
+});
+
+test("a tracked section is one section line with its own size and flag, never counted toward a chain or the node total", () => {
+  withGitRepo((repo) => {
+    const root = "read CLAUDE.release.md before a release\n";
+    const docs = "read CLAUDE.tests.md before editing tests\n";
+    commit(repo, {
+      "CLAUDE.md": root,
+      "CLAUDE.release.md": node(12001),
+      "docs/CLAUDE.md": docs,
+      "docs/CLAUDE.tests.md": node(300),
+      "docs/guide.md": "x\n",
+    });
+
+    const result = run(repo);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    const out = lines(result.stdout);
+    assert.deepEqual(pick(out, "node:"), [
+      `node: CLAUDE.md ${root.length} chain ${root.length} ok`,
+      `node: docs/CLAUDE.md ${docs.length} chain ${root.length + docs.length} ok`,
+    ]);
+    assert.deepEqual(pick(out, "section:"), [
+      "section: CLAUDE.release.md 12001 OVER-NODE",
+      "section: docs/CLAUDE.tests.md 300 ok",
+    ]);
+    assert.deepEqual(pick(out, "unlinked:"), []);
+    assert.deepEqual(pick(out, "total:"), ["total: nodes 2"]);
+  });
+});
+
+test("a section with no node beside it, or one its node never names, is unlinked", () => {
+  withGitRepo((repo) => {
+    commit(repo, {
+      "CLAUDE.md": node(40),
+      "CLAUDE.tests.md": node(40),
+      "lib/CLAUDE.api.md": node(40),
+      "lib/a.ts": "x\n",
+    });
+
+    const result = run(repo);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(pick(lines(result.stdout), "unlinked:"), [
+      "unlinked: CLAUDE.tests.md",
+      "unlinked: lib/CLAUDE.api.md",
+    ]);
+  });
+});
+
+test("CLAUDE.local.md and a name outside the topic alphabet are no section (the user's own auto-loaded file is never a section)", () => {
+  withGitRepo((repo) => {
+    commit(repo, {
+      "CLAUDE.md": node(40),
+      "CLAUDE.local.md": node(40),
+      "CLAUDE.Tests.md": node(40),
+      "CLAUDE.a.b.md": node(40),
+    });
+
+    const result = run(repo);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    const out = lines(result.stdout);
+    assert.deepEqual(pick(out, "section:"), []);
+    assert.deepEqual(pick(out, "unlinked:"), []);
+  });
+});
+
+test("a node whose only other file is its own section is still an orphan", () => {
+  withGitRepo((repo) => {
+    commit(repo, {
+      "CLAUDE.md": node(40),
+      "README.md": "readme\n",
+      "lonely/CLAUDE.md": `read CLAUDE.tests.md before editing tests\n`,
+      "lonely/CLAUDE.tests.md": node(40),
+      "kept/CLAUDE.md": node(40),
+      "kept/CLAUDE.local.md": node(40),
+    });
+
+    const result = run(repo);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(pick(lines(result.stdout), "orphan:"), ["orphan: lonely/CLAUDE.md"]);
+  });
+});
+
+test("a section carrying uncommitted work is dirty, and an untracked one is no section at all", () => {
+  withGitRepo((repo) => {
+    commit(repo, {
+      "CLAUDE.md": `read CLAUDE.tests.md before editing tests\n`,
+      "CLAUDE.tests.md": node(40),
+    });
+    write(repo, {
+      "CLAUDE.tests.md": node(60),
+      "CLAUDE.release.md": node(40),
+    });
+
+    const result = run(repo);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    const out = lines(result.stdout);
+    assert.deepEqual(pick(out, "section:"), ["section: CLAUDE.tests.md 60 ok"]);
+    assert.deepEqual(pick(out, "dirty:"), [
+      "dirty: CLAUDE.tests.md modified",
+      "dirty: CLAUDE.release.md untracked",
+    ]);
+  });
+});
+
+test("--reset of a node also deletes every tracked section beside it, one removed line per file", () => {
+  withGitRepo((repo) => {
+    commit(repo, {
+      "CLAUDE.md": node(40),
+      "CLAUDE.release.md": node(40),
+      "docs/CLAUDE.md": node(40),
+      "docs/CLAUDE.tests.md": node(40),
+      "docs/api/CLAUDE.api.md": node(40),
+    });
+
+    const result = run(repo, ["--reset", "docs/CLAUDE.md", "docs/CLAUDE.tests.md"]);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(lines(result.stdout), [
+      "removed: docs/CLAUDE.md",
+      "removed: docs/CLAUDE.tests.md",
+      "removed: 2",
+    ]);
+    assert.equal(fs.existsSync(path.join(repo.dir, "docs/CLAUDE.tests.md")), false);
+    assert.equal(fs.existsSync(path.join(repo.dir, "docs/api/CLAUDE.api.md")), true);
+    assert.equal(fs.existsSync(path.join(repo.dir, "CLAUDE.release.md")), true);
+  });
+});
+
+test("a modified section beside a node refuses the whole --reset and deletes nothing", () => {
+  withGitRepo((repo) => {
+    commit(repo, {
+      "CLAUDE.md": node(40),
+      "a/CLAUDE.md": node(40),
+      "a/CLAUDE.tests.md": node(40),
+    });
+    write(repo, { "a/CLAUDE.tests.md": node(60) });
+
+    const result = run(repo, ["--reset", "CLAUDE.md", "a/CLAUDE.md"]);
+
+    assert.equal(result.status, 3, `stderr: ${result.stderr}`);
+    assert.deepEqual(lines(result.stdout), ["refused: a/CLAUDE.tests.md modified"]);
+    assert.equal(fs.existsSync(path.join(repo.dir, "CLAUDE.md")), true);
+    assert.equal(fs.existsSync(path.join(repo.dir, "a/CLAUDE.md")), true);
+  });
+});
+
+test("a tracked section deleted but not committed is no section, measuring it prints nothing on stderr, and --reset of its node is refused", () => {
+  withGitRepo((repo) => {
+    commit(repo, {
+      "CLAUDE.md": `read CLAUDE.tests.md before editing tests\n`,
+      "CLAUDE.tests.md": node(40),
+    });
+    fs.rmSync(path.join(repo.dir, "CLAUDE.tests.md"));
+
+    const result = run(repo);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stderr, "");
+    const out = lines(result.stdout);
+    assert.deepEqual(pick(out, "section:"), []);
+    assert.deepEqual(pick(out, "unlinked:"), []);
+    assert.deepEqual(pick(out, "dirty:"), []);
+
+    const reset = run(repo, ["--reset", "CLAUDE.md"]);
+    assert.equal(reset.status, 3, `stderr: ${reset.stderr}`);
+    assert.deepEqual(lines(reset.stdout), ["refused: CLAUDE.tests.md modified"]);
+    assert.equal(fs.existsSync(path.join(repo.dir, "CLAUDE.md")), true);
+  });
+});
+
+test("a section beside an untracked node is unlinked (an untracked node is no node)", () => {
+  withGitRepo((repo) => {
+    commit(repo, { "CLAUDE.tests.md": node(40), "README.md": "readme\n" });
+    write(repo, { "CLAUDE.md": `read CLAUDE.tests.md before editing tests\n` });
+
+    const result = run(repo);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(pick(lines(result.stdout), "unlinked:"), ["unlinked: CLAUDE.tests.md"]);
+  });
+});
+
+test("--reset of a node leaves an untracked section beside it, and refuses an untracked section named on its own", () => {
+  withGitRepo((repo) => {
+    commit(repo, { "CLAUDE.md": node(40), "a/CLAUDE.md": node(40) });
+    write(repo, { "a/CLAUDE.tests.md": node(40), "CLAUDE.new.md": node(40) });
+
+    const refused = run(repo, ["--reset", "CLAUDE.new.md"]);
+    assert.equal(refused.status, 3, `stderr: ${refused.stderr}`);
+    assert.deepEqual(lines(refused.stdout), ["refused: CLAUDE.new.md untracked"]);
+
+    const result = run(repo, ["--reset", "a/CLAUDE.md"]);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(lines(result.stdout), ["removed: a/CLAUDE.md", "removed: 1"]);
+    assert.equal(fs.existsSync(path.join(repo.dir, "a/CLAUDE.tests.md")), true);
+  });
+});
+
+test("--reset of a section alone deletes that section and leaves its node", () => {
+  withGitRepo((repo) => {
+    commit(repo, {
+      "CLAUDE.md": node(40),
+      "CLAUDE.tests.md": node(40),
+      "CLAUDE.release.md": node(40),
+    });
+
+    const result = run(repo, ["--reset", "CLAUDE.tests.md"]);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(lines(result.stdout), ["removed: CLAUDE.tests.md", "removed: 1"]);
+    assert.equal(fs.existsSync(path.join(repo.dir, "CLAUDE.md")), true);
+    assert.equal(fs.existsSync(path.join(repo.dir, "CLAUDE.release.md")), true);
   });
 });
 
