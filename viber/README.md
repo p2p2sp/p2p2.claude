@@ -24,6 +24,7 @@ when its tool is missing.
 | `/viber:triage` | A reported issue (number, link or pasted text) checked against your code: can it be done, how, what it affects, how big. Names the next step and can post the report on the issue. |
 | `/viber:intent` | An interview about a raw idea, one question at a time. Point it at an issue (`#42` or a link) to work from that issue, and an interview that did not start from one can save its conclusions as a new issue. |
 | `/viber:fixer` | A bug traced to its root cause and proven by a failing test, then handed to the planner. Point it at an issue the same way to trace from that report. |
+| `/viber:prototype` | A UI change in mind becomes one working HTML mockup in your project's own look, or three alternatives to choose from, refined with you in conversation, then carried on to `/viber:intent`, onto the GitHub issue it started from, or both. |
 | "plan it" | The plan gets written and reviewed. |
 | "implement it" | The approved plan gets built. |
 | `/viber:e2e` | The build's QA scenarios become Playwright tests, run against your app. |
@@ -41,6 +42,12 @@ alone, or a link - and it reads that issue instead of asking you to restate it, 
 on the same issue throughout. An interview that did not start from one can, once confirmed, save
 its summary as a new issue built from your project's own issue templates; the run then names that
 issue's number, and `/viber:intent #42` resumes it.
+
+`/viber:prototype` takes the same kind of issue reference, or a plain description of the change,
+and asks upfront whether you want one proposal or three to choose from. When it started from an
+issue, its conclusions can go back there as a comment; the mockup itself is an HTML file you
+attach to that comment yourself in the browser, since only the browser accepts an attachment. Either
+way, the conclusions carry on to `/viber:intent`.
 
 The interview asks one question at a time, with three concrete options and a recommendation, and
 says so out loud when your answer is weak. An idea too big for one cycle, a whole application or a
@@ -110,7 +117,8 @@ scenarios - to `docs/specs/<date>_<slug>/`, and dropping the plan, the progress 
 working notes. They are all in git, so nothing is lost; the archive is simply the half you would
 want to read a year later. Generated
 Playwright tests go into the e2e directory your own project already uses - `/viber:e2e` asks if
-nothing names one, and creates no directory of its own. Scratch files go to `.temp/viber/`. Your
+nothing names one, and creates no directory of its own. Scratch files go to `.temp/viber/`, and
+`/viber:prototype`'s mockups to `.temp/viber/prototype/` within it. Your
 `.claude/viber.yml` and your `.gitignore` are only ever added to, never rewritten. Your
 `.claude/settings.json` gets every setting viber recommends: a value viber sets wins over yours,
 permission lists only gain entries, and a permission viber moved from `deny` to `ask` is moved in
