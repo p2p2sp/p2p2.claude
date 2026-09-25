@@ -31,6 +31,10 @@ import { forEachShell, type Shell } from "../harness/shells.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/issue-templates.sh");
 
+const ghOnCorePath = coreUtilsPath()
+  .split(path.delimiter)
+  .some((dir) => ["gh", "gh.exe"].some((n) => fs.existsSync(path.join(dir, n))));
+
 function assertPosix(fn: (shell: Shell) => void) {
   const skips = forEachShell("posix", fn);
   for (const skip of skips) {
@@ -132,17 +136,21 @@ test("only config.yml/config.yaml and a .md file present: STATUS=skip REASON=no-
   });
 });
 
-test("templates exist but gh is not on PATH: STATUS=skip REASON=no-gh", () => {
-  assertPosix((shell) => {
-    withGitRepo((repo) => {
-      writeTemplates(repo.dir, { "bug.yml": "name: Bug\ndescription: File a bug\n" });
-      const { result, calls } = runStubbed(shell, repo.dir, repo.env, [], {}, true);
-      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      assert.equal(result.stdout, "STATUS=skip\nREASON=no-gh\n");
-      assert.equal(calls.length, 0);
+test(
+  "templates exist but gh is not on PATH: STATUS=skip REASON=no-gh",
+  { skip: ghOnCorePath ? "a real gh sits in the core utilities directory, so its absence cannot be staged" : false },
+  () => {
+    assertPosix((shell) => {
+      withGitRepo((repo) => {
+        writeTemplates(repo.dir, { "bug.yml": "name: Bug\ndescription: File a bug\n" });
+        const { result, calls } = runStubbed(shell, repo.dir, repo.env, [], {}, true);
+        assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+        assert.equal(result.stdout, "STATUS=skip\nREASON=no-gh\n");
+        assert.equal(calls.length, 0);
+      });
     });
-  });
-});
+  },
+);
 
 test("gh is on PATH but `gh repo view` resolves no repository: STATUS=skip REASON=no-repo", () => {
   assertPosix((shell) => {
