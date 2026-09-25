@@ -1,7 +1,7 @@
 # status
 
-progress: 4/10
-done: T1 T5 T2 T6
+progress: 5/10
+done: T1 T5 T2 T6 T4
 skipped: none
 unreviewed: none
 deferred: none
