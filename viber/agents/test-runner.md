@@ -20,7 +20,7 @@ Use the build and test commands the project instructions name. When they name no
 
 Project has no test setup at all: return `VERDICT: SKIP` and stop.
 
-Run the full suite once, with an explicit generous timeout measured in minutes: the integration layer runs in it, and the default cuts it off as a false red. Do not re-run, do not narrow to a subset, do not investigate a failure beyond reading the message it printed.
+Run the full suite once, with an explicit generous timeout measured in minutes: the integration layer runs in it, and the default cuts it off as a false red. Leave the end-to-end layer out - a browser, or the running application driven from outside: it belongs to CI. When the test command runs it too, exclude it through the test tool's own filter or project selection. Do not re-run, do not narrow further, do not investigate a failure beyond reading the message it printed.
 
 ## Stop what you started
 

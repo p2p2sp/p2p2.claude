@@ -14,6 +14,7 @@ Where a change's proof lives, how tasks are sliced so it can live there, and wha
 
 - A task runs its own `Verification` and nothing wider. The full suite belongs to the build's close: other tasks are live in the same tree.
 - An integration task runs its own integration test, alone in its `Exclusive` slot. The integration layer as a whole runs once more in the close.
+- The end-to-end layer - a browser, or the running application driven from outside - belongs to CI and `/viber:e2e`, never to the close. A task writes or runs an end-to-end test only under an acceptance criterion asking for one, and then as an integration task. (blocking)
 
 ## Slicing
 

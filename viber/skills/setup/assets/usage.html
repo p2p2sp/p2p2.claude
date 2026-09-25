@@ -518,11 +518,13 @@ z instrukcji tego projektu, więc bez nich <code>test-runner</code> zgaduje na p
 znajdzie, a zadanie może zostać zacommitowane na testach, które nigdy się nie uruchomiły.</p>
 <p lang="en">No <code>CLAUDE.md</code> yet: run <code>/init</code>, then make sure the root file states the exact build command, the
 exact test command, how to run a single test file, and whatever else a newcomer would get wrong -
-how to launch the app, the required env, the migrations.</p>
+how to launch the app, the required env, the migrations. When your test command also runs the
+end-to-end tests, name one that leaves them out: a build never runs them unless you ask.</p>
 <p lang="pl">Nie masz jeszcze <code>CLAUDE.md</code>? Uruchom <code>/init</code>, a potem upewnij się, że główny plik podaje
 dokładne polecenie budowania, dokładne polecenie testów, sposób uruchomienia pojedynczego pliku testów
 i wszystko inne, co nowa osoba w projekcie zrobiłaby źle: jak uruchomić aplikację, jakich zmiennych
-środowiskowych potrzeba, jak wykonać migracje.</p>
+środowiskowych potrzeba, jak wykonać migracje. Jeśli twoje polecenie testów uruchamia też testy
+end-to-end, podaj takie, które je pomija: build nigdy ich nie uruchamia, chyba że o to poprosisz.</p>
 </section>
 
 <section id="ways-in">
