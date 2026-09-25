@@ -3,6 +3,7 @@
 > Always in English: every CLAUDE.md, script, skill, agent and reference.
 > Every plugin script MUST work on Windows (Git Bash) and macOS.
 > Do not use `heredoc` - it is unreliable.
+> Do not use `red` color in agents.
 
 This repo is the **source** of five independently installable Claude Code plugins - `superui`,
 `superfix`, `superbiz`, `supercc`, `viber` - co-listed by the root
