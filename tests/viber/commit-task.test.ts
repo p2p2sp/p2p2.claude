@@ -920,6 +920,51 @@ test("--landed refuses while the task's files still carry uncommitted changes (t
   });
 });
 
+test("--landed marks a task done through a --no-ff merge commit that brought its files in on the first parent's diff", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    repo.git("checkout", "-b", "feature");
+    write(repo.dir, "src/a.ts", "work\n");
+    repo.git("add", "src/a.ts");
+    repo.git("commit", "-m", "add a.ts on feature");
+    repo.git("checkout", "main");
+    repo.git("merge", "--no-ff", "feature", "-m", "merge feature");
+    const sha = repo.git("rev-parse", "HEAD").stdout.trim();
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--landed", sha.slice(0, 7)]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(
+      result.stdout,
+      /^committed: [0-9a-f]{7,}\nsubject: chore\(viber\): record T1 done, landed in [0-9a-f]{7,}\nprogress: 1\/2\n$/,
+    );
+    assert.deepEqual(committedFiles(repo), [STATUS_REL]);
+    assert.match(readStatus(repo), /^done: T1$/m);
+  });
+});
+
+test("--landed refuses a --no-ff merge commit that brought in only files no task's map claims, even though the merge itself changed the tree", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    repo.git("checkout", "-b", "feature");
+    write(repo.dir, "src/UNRELATED.ts", "not part of any task\n");
+    repo.git("add", "src/UNRELATED.ts");
+    repo.git("commit", "-m", "add unrelated file on feature");
+    repo.git("checkout", "main");
+    repo.git("merge", "--no-ff", "feature", "-m", "merge unrelated");
+    const sha = repo.git("rev-parse", "HEAD").stdout.trim();
+    const before = readStatus(repo);
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1", "--landed", sha]);
+    assert.equal(result.status, 4);
+    assert.match(result.stderr, /touches none of task T1's files/);
+    assert.equal(readStatus(repo), before);
+    // no new commit was made recording the task done - the three from the
+    // fixture merge are all there is, in whatever order equal pinned commit
+    // dates leave them
+    assert.deepEqual(subjects(repo).sort(), ["add unrelated file on feature", "merge unrelated", "seed"]);
+  });
+});
+
 test("a missing argument exits 2 with usage on stderr", () => {
   withGitRepo((repo) => {
     seed(repo);

@@ -41,14 +41,17 @@
 # dispatch would hide exactly that.
 #
 # --landed records a task whose work ANOTHER commit already carried - a coder
-# that committed on its own, a manual commit, a commit that swept the files in.
-# The task's files then show no change, a plain call exits 4, and nothing else
-# could ever mark the task done. It stages nothing: status.md (and the task's
-# trail) ride in a commit of their own, subject derived
+# that committed on its own, a manual commit, a commit that swept the files in,
+# a --no-ff merge that brought a branch's commits in. The task's files then
+# show no change, a plain call exits 4, and nothing else could ever mark the
+# task done. It stages nothing: status.md (and the task's trail) ride in a
+# commit of their own, subject derived
 # ("chore(viber): record T3 done, landed in <short-sha>"), footer naming the
 # full sha. The sha must be in HEAD's history (else exit 2) and touch at least
-# one of the task's files, and the task's files must be clean in the tree
-# (else exit 4). It combines with --unreviewed and --defer, never with --with.
+# one of the task's files ON ITS FIRST PARENT'S DIFF, so a merge commit that
+# brought them in still counts and one that touches none of them still exits
+# 4, and the task's files must be clean in the tree (else exit 4). It combines
+# with --unreviewed and --defer, never with --with.
 #
 # A fix number commits a repair of that task after it was already committed (a
 # post-test fix), subject "T1(2) - <title>", staging only the files the caller
@@ -719,7 +722,19 @@ if [[ -n "$landed" ]]; then
   while IFS= read -r f; do
     [[ -n "$f" ]] && task_paths+=("$f")
   done <<< "$files"
-  if [[ -z "$(git diff-tree --root --no-commit-id --name-only -r "$landed_sha" -- "${task_paths[@]}")" ]]; then
+  # Compared against the FIRST parent, never a plain "diff-tree <sha>": that
+  # form shows no diff at all for a merge commit (git only computes one
+  # against a single parent, and a merge carries more than one), so every
+  # --no-ff merge would silently read as touching nothing. A root commit has
+  # no first parent, so it falls back to the --root form (diff against the
+  # empty tree) instead.
+  landed_parent="$(git rev-parse -q --verify "$landed_sha^" 2>/dev/null || true)"
+  if [[ -n "$landed_parent" ]]; then
+    landed_changed="$(git diff --name-only "$landed_parent" "$landed_sha" -- "${task_paths[@]}")"
+  else
+    landed_changed="$(git diff-tree --root --no-commit-id --name-only -r "$landed_sha" -- "${task_paths[@]}")"
+  fi
+  if [[ -z "$landed_changed" ]]; then
     echo "error: --landed $landed touches none of task $task_id's files" >&2
     exit 4
   fi
