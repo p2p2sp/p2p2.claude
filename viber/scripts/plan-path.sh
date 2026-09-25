@@ -80,7 +80,9 @@
 #              open run is NEVER overwritten: a source edited
 #              after the build started does not reach it, because the landed run
 #              is the state. A <src> that already IS a landed plan answers the
-#              same way, which makes --land idempotent.
+#              same way, which makes --land idempotent. A draft of that slug
+#              answers only a <src> that is itself a draft; a <src> carrying
+#              tasks lands as "new" beside it, the draft left untouched.
 # "draft"    - "state: draft", the run's plan carrying not one task block, so
 #              there is nothing to build yet: a specification still being
 #              discussed and rounds away from a task list. It replaces both
@@ -382,11 +384,17 @@ fi
 # --- a run already open for that slug: its progress is the state, leave it ---
 # Only a run with something left to do answers: a draft, or a task neither
 # committed nor skipped. A finished run left in place (cleanup off) is history,
-# so a new plan under the same title gets its own directory.
+# so a new plan under the same title gets its own directory. A draft answers
+# only a source that is itself a draft: a plan carrying its tasks lands as a new
+# run beside it, since landing into a draft takes an explicit into:.
+src_has_tasks=0
+if has_tasks "$src"; then src_has_tasks=1; fi
 found="$(
   for f in "$specs_dir"/*_"$slug"/plan.md; do
     [[ -f "$f" ]] || continue
-    if has_tasks "$f"; then
+    if ! has_tasks "$f"; then
+      [[ "$src_has_tasks" == 0 ]] || continue
+    else
       read -r pdone psettled ptotal <<<"$(progress_of "$f")"
       [[ "$psettled" -lt "$ptotal" ]] || continue
     fi

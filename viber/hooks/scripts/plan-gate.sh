@@ -153,6 +153,8 @@ plan_name="${plan_path##*[\\/]}"
 # must end the token, so a quoted "VERDICT: PASS is not..." cannot pass as one.
 # Pairing prefers the dispatch's id when both sides carry it, and falls back to the
 # first verdict after the dispatch when they do not; the later pair wins.
+# A background agent's launch record ("status":"async_launched") carries the
+# dispatch id AND echoes the whole prompt, so it is never read as a verdict.
 pair_raw="$(
   awk -v start="$((plan_write_line + 1))" -v agent="$agent" '
     NR < start { next }
@@ -161,6 +163,7 @@ pair_raw="$(
       if (match($0, /"id":"toolu_[A-Za-z0-9_-]+"/)) cid = substr($0, RSTART + 6, RLENGTH - 7)
       next
     }
+    /"status":"async_launched"/ { next }
     call && /(\\n|"(text|content)":"|<result>)[[:space:]]*VERDICT:[[:space:]]+`?(PASS|FAIL|DENIED)`?[[:space:]]*(\\n|"|<)/ {
       if (cid != "" && index($0, cid) == 0) {
         # Same dispatch, unlinked line (an echo, a sibling agent): remember it once,

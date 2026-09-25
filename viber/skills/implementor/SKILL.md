@@ -1,6 +1,6 @@
 ---
 name: implementor
-description: Builds an approved plan task by task. Requires an existing plan; without one, use the planner skill.
+description: Builds an approved plan task by task. Requires an existing plan; without one, suggest the viber:intent interview.
 allowed-tools: Agent, SendMessage, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh:*)
 model: sonnet
 effort: medium
@@ -51,7 +51,7 @@ A `VERDICT: DENIED` question names the refused call from its `REASON:` line and 
 2. The `source:` line of the approved plan's frontmatter, or an older plan's `<!-- source: <path> -->` comment. Never offer to save plan text you are holding: the script copies the file.
 3. `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh"` with no argument returns the run most recently worked on. Exit 3 -> `AskUserQuestion` for the approved plan's full path, then land that.
 
-- `state: draft` -> report the path and that `viber:planner` adds its tasks, then stop without a question.
+- `state: draft` -> report the path and that `/viber:intent` pointed at that draft continues it, then stop without a question.
 - `state: new` with any `open:` line -> `AskUserQuestion` naming both: build the plan just landed, or resume that run instead.
 - Resolved through 3 with any `open:` line -> `AskUserQuestion` for which run to resume.
 - Anything else -> proceed. `state: existing` is a run already open with its own progress; take it as it stands.

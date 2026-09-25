@@ -458,11 +458,34 @@ test("a finished run of the same slug is not resumed: the plan lands as new besi
   });
 });
 
-test("a draft of the same slug still answers as the draft rather than minting a second run", () => {
+test("a plan carrying tasks lands as a new run beside a draft of the same slug, the draft untouched", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const draftKey = "2026-09-19-17-30-00_add-login";
+    landPlan(dir, draftKey, "2026-09-19T17:30:00Z", DRAFT_BODY);
+    const draftPath = path.join(dir, "docs", "_specs", draftKey, "plan.md");
+    const draftBefore = fs.readFileSync(draftPath, "utf-8");
+
+    const src = sourcePlan(dir, "outside/add-login.md", PLAN_BODY);
+    const result = run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    const out = parse(result.stdout);
+    assert.equal(out.state, "new");
+    assert.notEqual(out.key, draftKey);
+    assert.match(out.key, /_add-login$/);
+    assert.equal(runDirs(dir).length, 2);
+    assert.equal(fs.readFileSync(draftPath, "utf-8"), draftBefore);
+
+    // landing the same source again finds the new run, not the draft
+    const again = parse(run(dir, ["--land", src]).stdout);
+    assert.deepEqual(again, { ...out, state: "existing" });
+  });
+});
+
+test("a draft landed beside a draft of the same slug still answers as that draft rather than minting a second run", () => {
   withTempDir("p2p2-viber-", (dir) => {
     landPlan(dir, "2026-09-19-17-30-00_add-login", "2026-09-19T17:30:00Z", DRAFT_BODY);
 
-    const src = sourcePlan(dir, "outside/add-login.md", PLAN_BODY);
+    const src = sourcePlan(dir, "outside/add-login.md", DRAFT_BODY);
     const result = run(dir, ["--land", src]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(parse(result.stdout), {

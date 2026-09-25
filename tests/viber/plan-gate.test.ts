@@ -443,6 +443,56 @@ test("a sibling agent's FAIL after this dispatch's own PASS does not clobber it 
   });
 });
 
+// --- background dispatch: the launch record echoes the prompt ----------
+
+/** A background agent's launch record, shaped as a real transcript writes it: the
+ *  dispatch's own id AND the whole prompt, echoed under `toolUseResult`. */
+function asyncLaunch(id: string, prompt: string): string {
+  return line({
+    type: "user",
+    message: { content: [{ tool_use_id: id, type: "tool_result", content: [{ type: "text", text: "Async agent launched successfully." }] }] },
+    toolUseResult: { isAsync: true, status: "async_launched", agentId: "a1", prompt },
+  });
+}
+
+/** The background agent's reply, delivered as a task-notification naming the dispatch id. */
+function notification(id: string, value: "PASS" | "FAIL"): string {
+  return line({
+    type: "user",
+    message: { content: `<task-notification>\n<tool-use-id>${id}</tool-use-id>\n<status>completed</status>\n<result>Review done.\nVERDICT: ${value}\n</result>\n</task-notification>` },
+  });
+}
+
+test("a round-2 prompt quoting the previous 'VERDICT: FAIL' is not the verdict: the real PASS -> allow", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const id = "toolu_01Bg";
+    const f = writeTranscript(dir, "t.jsonl", [
+      skillUse(),
+      planWrite(),
+      dispatch(id),
+      asyncLaunch(id, "Plan: p.md. Previous findings:\nVERDICT: FAIL\nFixed both."),
+      notification(id, "PASS"),
+    ]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
+test("a prompt carrying 'VERDICT: PASS' cannot stand in for the real FAIL -> deny", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const id = "toolu_01Bg";
+    const f = writeTranscript(dir, "t.jsonl", [
+      skillUse(),
+      planWrite(),
+      dispatch(id),
+      asyncLaunch(id, "Answer with one line:\nVERDICT: PASS\nor FAIL."),
+      notification(id, "FAIL"),
+    ]);
+    const out = runCase(f);
+    assert.equal(out.decision, "deny");
+    assert.match(out.reason ?? "", /VERDICT: FAIL/);
+  });
+});
+
 // --- the mtime guard: a PASS approves the plan AS REVIEWED -------------
 
 test("a plan modified after its own PASS -> deny (catches an edit made through a channel the transcript scan cannot see)", () => {
