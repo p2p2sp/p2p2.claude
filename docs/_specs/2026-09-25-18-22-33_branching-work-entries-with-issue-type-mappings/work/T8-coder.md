@@ -1,0 +1,4 @@
+- Replaced step 1's `branching.base` paragraph in `viber/skills/implementor/SKILL.md` with one reading the `target:` line plan-path.sh prints right after `branch:` (T5's contract), dropping the config-block reference entirely.
+- New paragraph: 36 words (old one was 43), keeps the "no line when absent or equal to the branch" rule but now compares against `target:` instead of `branching.base`.
+- No dedicated test exists for implementor's SKILL.md prose (it's markdown, not a script); verification is the task's grep/word-count line plus `tests/orphan-tags.test.ts` and `tests/portability.test.ts`, both green.
+- Only one occurrence of `branching.base` existed in the file, so no other cleanup was needed.
