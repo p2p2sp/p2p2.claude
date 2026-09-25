@@ -43,7 +43,7 @@ A plan stopping at a draft ends the step here: the specification half alone, no 
 
 With `adr: true` above, read `${CLAUDE_SKILL_DIR}/references/adr-tasks.md` before writing the tasks and follow it; otherwise skip it.
 
-Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" <plan-path>` as one literal Bash line, no interpreter word in front - any other form stalls on a permission prompt. It must exit 0: fix whatever it reports and re-run.
+Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan-path>"` as one literal Bash line, no interpreter word in front - any other form stalls on a permission prompt. It must exit 0: fix whatever it reports and re-run.
 
 Show the user the full path of the written plan.
 
