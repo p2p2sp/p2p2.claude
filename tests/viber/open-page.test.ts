@@ -44,12 +44,17 @@ function logArgs(log: string, exit = 0): string {
 /** Windows-shaped `cygpath`: `-w` marks the path, `-m` returns it unchanged. */
 const CYGPATH: Stub = ["cygpath", 'if [ "$1" = "-w" ]; then echo "WIN:$2"; else echo "$2"; fi'];
 
-function run(dir: string, stubs: Stub[], env: Record<string, string> = {}) {
+/** `settle` runs after the script exits but before the stubs are removed: an
+ *  opener the script started in the background may not have exec'd its stub
+ *  yet, and deleting the stub dir first would leave it nothing to run. */
+function run(dir: string, stubs: Stub[], env: Record<string, string> = {}, settle: () => void = () => {}) {
   const page = path.join(dir, "page.html");
   fs.writeFileSync(page, "<!doctype html>");
-  return withStubs(stubs, (stubDirs) =>
-    runScript(SUT, [page], { cwd: dir, env: { PATH: coreUtilsPath(), ...env }, stubDirs }),
-  );
+  return withStubs(stubs, (stubDirs) => {
+    const result = runScript(SUT, [page], { cwd: dir, env: { PATH: coreUtilsPath(), ...env }, stubDirs });
+    settle();
+    return result;
+  });
 }
 
 /** Polls for `file` up to 5 s: the Linux desktop branch starts its opener in the background. */
@@ -138,10 +143,16 @@ const BACKGROUND_SKIP =
 test("a Linux desktop starts xdg-open with the file and reports it opened", { skip: BACKGROUND_SKIP }, () => {
   withTempDir("p2p2-viber-open-", (dir) => {
     const log = path.join(dir, "xdg.log");
-    const result = run(dir, [["uname", "echo Linux"], ["xdg-open", logArgs(log)]], { WAYLAND_DISPLAY: "wayland-0" });
+    let logged = "";
+    const result = run(
+      dir,
+      [["uname", "echo Linux"], ["xdg-open", logArgs(log)]],
+      { WAYLAND_DISPLAY: "wayland-0" },
+      () => { logged = waitFor(log); },
+    );
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "page.html: opened in the browser\n");
-    assert.ok(waitFor(log).trim().endsWith("/page.html"));
+    assert.ok(logged.trim().endsWith("/page.html"));
   });
 });
 

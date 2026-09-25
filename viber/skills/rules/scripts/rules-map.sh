@@ -153,9 +153,12 @@ globs_of() {
 # `src/*.ts` - which would hide a dead rule behind a file it never applies to.
 # A `[` or `]` is passed through as a literal: a rule's scope is a path glob,
 # not a character class. A `{a,b}` group becomes an alternation, the brace
-# expansion Claude Code applies to `paths:`.
+# expansion Claude Code applies to `paths:`. The globs travel through ENVIRON,
+# never `awk -v`: they are one per line, and BSD/macOS awk aborts on a `-v`
+# value holding a newline ("newline in string"), which left a rule with two or
+# more globs printing an empty `matches` count.
 count_matches() {
-  awk -v globs="$1" '
+  RULES_MAP_GLOBS="$1" awk '
     # Whether the `{` at position i has its closing `}`: a group without one
     # is a literal brace.
     function closes(g, i,   d, n, c) {
@@ -199,7 +202,7 @@ count_matches() {
       return out "$"
     }
     BEGIN {
-      n = split(globs, g, "\n")
+      n = split(ENVIRON["RULES_MAP_GLOBS"], g, "\n")
       for (i = 1; i <= n; i++) if (g[i] != "") re[++m] = glob2re(g[i])
     }
     { for (i = 1; i <= m; i++) if ($0 ~ re[i]) { c = c + 1; break } }
