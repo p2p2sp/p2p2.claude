@@ -100,7 +100,9 @@ END { print (fix ? "fix" : "feature") }
 }
 
 # The name pattern expanded for plan $1 and run slug $2: separators left
-# dangling by an empty placeholder are dropped, doubled ones collapsed.
+# dangling by an empty placeholder are dropped, doubled ones collapsed, and a
+# leading or trailing `/` left dangling by an empty placeholder at either edge
+# is dropped too, so the result never starts or ends with `/`.
 branch_expand() {
   local name="$br_pattern" type issue
   type="$(plan_type "$1")"
@@ -109,7 +111,7 @@ branch_expand() {
   name="${name//\{issue\}/$issue}"
   name="${name//\{slug\}/$2}"
   printf '%s\n' "$name" \
-    | sed -E -e 's#[-_.]+/#/#g' -e 's#/[-_.]+#/#g' -e 's#^[-_.]+##' -e 's#[-_.]+$##' -e 's#/+#/#g' -e 's#-+#-#g'
+    | sed -E -e 's#[-_.]+/#/#g' -e 's#/[-_.]+#/#g' -e 's#^[-_.]+##' -e 's#[-_.]+$##' -e 's#/+#/#g' -e 's#-+#-#g' -e 's#^/+##' -e 's#/+$##'
 }
 
 # Puts HEAD on the run branch of plan $1 (run slug $2) and sets br_line.
@@ -126,6 +128,10 @@ branch_land() {
     fi
     [[ "$br_cur" == "$br_base" ]] || return 0
     target="$(branch_expand "$1" "$2")"
+    if [[ -z "$target" ]]; then
+      echo "error: the run branch name pattern expanded to an empty name" >&2
+      return 6
+    fi
   fi
   if [[ "$br_mode" == required && "$target" == "$br_base" ]]; then
     echo "error: branching is required and the run branch is the base itself: $br_base" >&2

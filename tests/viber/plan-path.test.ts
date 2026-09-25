@@ -1355,6 +1355,50 @@ test("required, a plan recording no branch and HEAD on a non-base branch: that b
   });
 });
 
+test("a custom name pattern whose placeholder expands to nothing never leaves a leading or trailing / on landing (DoD.1, DoD.2)", () => {
+  for (const [name, expected] of [
+    ["{issue}/{slug}", "add-login"],
+    ["{slug}/{issue}", "add-login"],
+  ] as const) {
+    withBranchRepo(["mode: required", `name: '${name}'`], (repo) => {
+      withSource([], (src) => {
+        const result = runIn(repo, ["--land", src]);
+        assert.equal(result.status, 0, `pattern ${name}: stderr: ${result.stderr}`);
+        assert.equal(branchLine(result.stdout), `branch: ${expected} (created)`);
+        assert.equal(headOf(repo), expected);
+      });
+    });
+  }
+});
+
+test("a custom name pattern whose placeholder expands to nothing never leaves a leading or trailing / on the --branch report's new: line (DoD.1, DoD.2)", () => {
+  for (const [name, expected] of [
+    ["{issue}/{slug}", "add-login"],
+    ["{slug}/{issue}", "add-login"],
+  ] as const) {
+    withBranchRepo(["mode: required", `name: '${name}'`], (repo) => {
+      withSource([], (src) => {
+        const result = runIn(repo, ["--branch", src]);
+        assert.equal(result.status, 0, `pattern ${name}: stderr: ${result.stderr}`);
+        assert.equal(reportOf(result.stdout).new, expected, `pattern ${name}`);
+      });
+    });
+  }
+});
+
+test("a name pattern that expands to nothing at all makes the landing refuse the run branch, exit 6, HEAD unchanged and a reason naming the empty name (DoD.3)", () => {
+  withBranchRepo(["mode: required", "name: '{issue}'"], (repo) => {
+    withSource([], (src) => {
+      const result = runIn(repo, ["--land", src]);
+      assert.equal(result.status, 6, `stdout: ${result.stdout}`);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, /empty/);
+      assert.equal(headOf(repo), "main");
+      assert.deepEqual(runDirs(repo.dir), []);
+    });
+  });
+});
+
 test("required and a plan naming the base: exit 6, nothing on stdout, nothing landed and HEAD where it was", () => {
   withBranchRepo(["mode: required"], (repo) => {
     repo.git("checkout", "-q", "-b", "work");
