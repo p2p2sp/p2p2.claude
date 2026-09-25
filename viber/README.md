@@ -32,6 +32,7 @@ prose question rely on; without it each of those calls asks for permission once.
 | `/viber:e2e` | The build's QA scenarios become Playwright tests, run against your app. |
 | `/viber:memory` | Reviews or extends your project's `CLAUDE.md` cascade on your own schedule. |
 | `/viber:rules` | Reviews or extends your project's `.claude/rules/` on your own schedule. |
+| `/viber:handoff` | The conversation so far saved as one file (where to look, what is done, the decisions, what comes next, open problems) so a fresh session picks up where this one stopped. Name a directory or a `.md` path to save it elsewhere. |
 | "commit" | Your changes, or only the paths you name, committed with a Conventional Commits message. Name an issue (`#42`) and it becomes the `Refs:` footer. |
 
 A typical run is `/viber:setup` once, then `/viber:intent`. Ask for a plan without an interview

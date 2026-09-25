@@ -7,8 +7,8 @@ and `references/integration-tests.md` turn into rules.
 ## Layout
 
 ```
-skills/<name>/           12 skills: SKILL.md plus files read at one step;
-                         setup, memory, rules, commit bundle scripts/
+skills/<name>/           13 skills: SKILL.md plus files read at one step;
+                         setup, memory, rules, handoff, commit bundle scripts/
 agents/                  14 agents
 scripts/                 13 plugin-wide scripts
 references/              read at runtime by agents through the `refs:` dispatch line
@@ -31,6 +31,9 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   or a one-line summary for pasted text, and invokes nothing; under `issues: false` it never
   fetches or publishes and drops the `#<N>` form from its next-step name. Its `disallowed-tools:`
   lifts at the prose publish answer, so in that turn only the body keeps `Skill` unused.
+- `handoff`, user-only and inline (a fork cannot see the conversation), stands outside the chain
+  like `commit`: no skill or build invokes it. It writes one file, never overwriting (`EXISTS=true`
+  stops it rather than asking, since a prose question drops the pre-approval).
 
 ## Orchestrator contract
 

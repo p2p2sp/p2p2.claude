@@ -18,6 +18,7 @@
     "./skills/e2e/",
     "./skills/memory/",
     "./skills/rules/",
+    "./skills/handoff/",
     "./skills/commit/"
   ],
   "agents": [
