@@ -24,7 +24,7 @@ a file is shaped live in `.claude/rules/tests-running.md` and `tests-structure.m
   and its interpreter resolved from PATH; an argument holding `\n`/`\r` travels through the
   environment (`P2P2_ARGV<n>`) because no CreateProcess command line survives it - only for a
   bash/sh script, so such a case skips for any other interpreter. Default timeout 60 s on purpose
-  (CI over-subscribes cores with `--test-concurrency=8`).
+  (CI over-subscribes cores with `--test-concurrency=12`).
 - `forEachShell("bash" | "posix", fn)` (`harness/shells.ts`) runs a case under every shell really
   present: each distinct bash major (macOS 3.2 vs 5.x) for a `#!/usr/bin/env bash` script; `/bin/sh`,
   `dash`, `busybox sh`, `bash --posix` for a `#!/bin/sh` one. An absent shell is returned as a
