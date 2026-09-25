@@ -33,4 +33,4 @@ jobs:
       # cores. Matters on windows-latest (4 vCPU, default concurrency 3), where
       # process creation is an order of magnitude dearer than on Linux/macOS.
       - name: Run tests
-        run: node --test --test-concurrency=8 "tests/**/*.test.ts"
+        run: node --test --test-concurrency=12 "tests/**/*.test.ts"
