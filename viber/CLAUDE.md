@@ -97,18 +97,18 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
 
 ## The run branch
 
-- `branching:` (`mode` off|allowed|required, default `off`; `base` `main`; `name`
-  `{type}/{issue}-{slug}`) is resolved by `config.sh`; `planner` reads `mode` (run the report or
-  not), `implementor` `base`, and only `plan-path.sh`, through the sourced `run-branch.sh`, moves
-  HEAD. Outside a git repository it acts as `off`.
-- `planner` asks from the read-only `plan-path.sh --branch <plan>` report and writes the answer
-  to the frontmatter `branch:` (a name, or `none` under `allowed`), read by `plan_branch()`. A
-  draft round carries it over; a fix changing the title, issue or a `Repro:` re-runs the report.
-  Renaming a report key or `branch:` breaks the step.
-- A first landing sets the branch before any run lookup or copy, so a run open there is found,
-  never minted again; `implementor` names a branch other than `base` as the PR source.
-- Exit 6: branch not set (dirty tree, untracked counting; base missing locally, never fetched;
-  invalid name; a `required` breach). Nothing lands or moves.
+- `branching:` (`mode` off|allowed|required, default `off`) nests `work` entries (`base`, `name`
+  pattern, `target`) and `issue-type-mappings` (type to entry key). The flat `base`/`name` group
+  and `{issue}` are refused only when a branch must be cut, never for an existing one. The loaded
+  config block names only the mode. Schema: `viber/BRANCHING.md`.
+- `planner` reads `plan-path.sh --branch <plan>` (`suggested:`, one `entry:` per usable entry,
+  `error:` on a missing/unmapped type with mappings set), asks one question for both, writes
+  `work:` beside `branch:` (`plan_field()`). A draft round carries both; a title,
+  issue or `Repro:` change re-runs the report.
+- A first landing resolves the entry (`branch_entry`), cuts from its `base` before any lookup;
+  `implementor` learns the PR target only from the `target:` line, not config.
+- Exit 6: dirty tree; base missing locally; invalid name; a `required` breach; no entry resolves;
+  a legacy/invalid `work` group (checked only on creation).
 
 ## The plan format is parsed in five places
 
@@ -128,7 +128,7 @@ every parser.
 ## Duplicated on purpose - change together
 
 - `issue_ref()` (plan `issue:` URL to `#<N>`): `commit-task.sh`, `plan-index.sh`, and
-  `run-branch.sh`'s `plan_issue()` (the bare number, for `{issue}`).
+  `run-branch.sh`'s `plan_issue()` (the bare number, for `{issue-number}`).
 - Fence-aware guidance-comment stripping: `plan-path.sh`'s landing strip and `plan-index.sh`'s
   `spec.md` cut.
 - `directories.*` parsing: `config.sh`, `plan-path.sh`, `archive-run.sh`.
