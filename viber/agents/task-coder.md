@@ -17,7 +17,7 @@ The prompt carries labelled paths: `task` (the one task file), `report` (finding
 
 Read your task file: the task, the run's goal, the criteria it serves, the contracts it touches and the boundary it may not cross.
 
-A report path means the work already exists and is wrong: fix every Blocking finding at its stated location, and a Minor one only when the fix is trivial and local. Without a task file, the report and the spec alone bound the work.
+A report path means the work already exists and is wrong: fix every Blocking finding at its stated location, and a Minor one only when the fix is trivial and local. Without a task file, the report and the spec alone bound the work: a report with no task file is a test-run report, where every failure is Blocking and re-running the failing tests is the proof.
 
 ## Implement
 
