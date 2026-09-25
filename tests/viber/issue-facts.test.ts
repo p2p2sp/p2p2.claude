@@ -3,7 +3,9 @@
  * `issue-facts.sh <N | #N | issue url>` contract against a stubbed `gh`: the
  * issue reference reaches `gh issue view` with the fixed `--json` field list
  * and a `--jq` filter, `#N` is normalized to `N`, a URL passes verbatim, gh's
- * stdout is relayed with CR stripped and nothing from its stderr, exit 1 with
+ * stdout is relayed with CR stripped and nothing from its stderr, a `TYPE=`
+ * line from the `gh api` type lookup follows `LABELS=` (empty when the issue
+ * has no type or the lookup fails, owner/repo/host taken from a URL), exit 1 with
  * one ERROR line and an empty stdout when gh fails, prints no `NUMBER=` first
  * line or is not on PATH at all, and exit 2 with gh never called on a wrong
  * argument count or a reference that is neither a number nor an issue url.
@@ -54,11 +56,24 @@ function assertPosix(fn: (shell: Shell) => void) {
   }
 }
 
+/** The block issue-facts.sh prints for BLOCK, its `TYPE=` line placed right
+ *  after `LABELS=`. */
+function withType(type: string): string[] {
+  const i = BLOCK.indexOf("LABELS=bug, ui") + 1;
+  return [...BLOCK.slice(0, i), `TYPE=${type}`, ...BLOCK.slice(i)];
+}
+
 /** A `gh` stub logging its argv one-arg-per-line (a "===" separator after
  *  each call) into `$ARGV_FILE`; its stdout, stderr and exit code come from
- *  env vars, so one body serves every case. */
+ *  env vars, so one body serves every case. A `gh api` call (the type
+ *  lookup) answers from its own GH_TYPE_* vars instead. */
 const GH_STUB = `
 for a in "$@"; do printf '%s\\n' "$a" >> "$ARGV_FILE"; done; printf '===\\n' >> "$ARGV_FILE"
+if [ "$1" = api ]; then
+  if [ -n "\${GH_TYPE_STDERR:-}" ]; then printf '%s' "$GH_TYPE_STDERR" >&2; fi
+  printf '%s' "\${GH_TYPE_STDOUT:-}"
+  exit "\${GH_TYPE_EXIT:-0}"
+fi
 if [ -n "\${GH_STDERR:-}" ]; then printf '%s' "$GH_STDERR" >&2; fi
 printf '%s' "\${GH_STDOUT:-}"
 exit "\${GH_EXIT:-0}"
@@ -88,11 +103,78 @@ test("a bare number reaches gh issue view with the fixed field list and a --jq f
   assertPosix((shell) => {
     const { result, calls } = runStubbed(shell, ["42"], { GH_STDOUT: BLOCK.join("\n") + "\n" });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.deepEqual(result.stdout.split("\n").filter((l) => l.length > 0), BLOCK);
-    assert.equal(calls.length, 1);
+    assert.deepEqual(result.stdout.split("\n").filter((l) => l.length > 0), withType(""));
     assert.deepEqual(calls[0].slice(0, 6), ["issue", "view", "42", "--json", FIELDS, "--jq"]);
     assert.equal(calls[0].length, 7, "the --jq filter is one argument");
     assert.match(calls[0][6], /^"NUMBER=/);
+  });
+});
+
+// --- issue type -------------------------------------------------------------------
+
+test("a typed issue prints TYPE=<name> right after LABELS= (the planner picks the branching entry from it)", () => {
+  assertPosix((shell) => {
+    const { result } = runStubbed(shell, ["42"], { GH_STDOUT: BLOCK.join("\n") + "\n", GH_TYPE_STDOUT: "Bug\n" });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(result.stdout.split("\n").filter((l) => l.length > 0), withType("Bug"));
+  });
+});
+
+test("an untyped issue prints an empty TYPE= line (the planner refuses it once mappings exist)", () => {
+  assertPosix((shell) => {
+    const { result } = runStubbed(shell, ["42"], { GH_STDOUT: BLOCK.join("\n") + "\n", GH_TYPE_STDOUT: "\n" });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(result.stdout.split("\n").filter((l) => l.length > 0), withType(""));
+  });
+});
+
+test("a failing type lookup still exits 0 with an empty TYPE= line and none of its output (an old gh or GHES without issue types must not lose the issue)", () => {
+  assertPosix((shell) => {
+    const { result } = runStubbed(shell, ["42"], {
+      GH_STDOUT: BLOCK.join("\n") + "\n",
+      GH_TYPE_STDOUT: '{"message":"Not Found"}',
+      GH_TYPE_STDERR: "gh: Not Found (HTTP 404)\n",
+      GH_TYPE_EXIT: "1",
+    });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(result.stdout.split("\n").filter((l) => l.length > 0), withType(""));
+  });
+});
+
+const TYPE_JQ = '.type.name // ""';
+
+test("a bare number looks the type up in the cwd repository through gh's {owner}/{repo} placeholders", () => {
+  assertPosix((shell) => {
+    const { calls } = runStubbed(shell, ["42"], { GH_STDOUT: BLOCK.join("\n") + "\n" });
+    assert.deepEqual(
+      calls.find((c) => c[0] === "api"),
+      ["api", "repos/{owner}/{repo}/issues/42", "--jq", TYPE_JQ],
+    );
+  });
+});
+
+test("a github.com issue url looks the type up in that url's owner and repository, with no --hostname", () => {
+  assertPosix((shell) => {
+    const { calls } = runStubbed(shell, ["https://github.com/acme/widgets/issues/42#issuecomment-1"], {
+      GH_STDOUT: BLOCK.join("\n") + "\n",
+    });
+    assert.deepEqual(calls.find((c) => c[0] === "api"), ["api", "repos/acme/widgets/issues/42", "--jq", TYPE_JQ]);
+  });
+});
+
+test("an enterprise host url passes that host through --hostname (gh api would otherwise ask github.com)", () => {
+  assertPosix((shell) => {
+    const { calls } = runStubbed(shell, ["https://ghe.example.com/acme/widgets/issues/42"], {
+      GH_STDOUT: BLOCK.join("\n") + "\n",
+    });
+    assert.deepEqual(calls.find((c) => c[0] === "api"), [
+      "api",
+      "repos/acme/widgets/issues/42",
+      "--hostname",
+      "ghe.example.com",
+      "--jq",
+      TYPE_JQ,
+    ]);
   });
 });
 
@@ -129,7 +211,7 @@ test("CR in gh's output is stripped (issue bodies written on the web carry CRLF)
     const { result } = runStubbed(shell, ["42"], { GH_STDOUT: BLOCK.join("\r\n") + "\r\n" });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.ok(!result.stdout.includes("\r"), "no CR may survive");
-    assert.deepEqual(result.stdout.split("\n").filter((l) => l.length > 0), BLOCK);
+    assert.deepEqual(result.stdout.split("\n").filter((l) => l.length > 0), withType(""));
   });
 });
 

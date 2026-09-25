@@ -16,8 +16,16 @@
 #            A URL's `#...` fragment or `?...` query (a comment's "Copy link"
 #            form) is dropped and gh gets the bare issue URL; every comment
 #            is fetched either way.
-#   cwd    : resolves a bare number only: gh maps `<N>` to the repository of
-#            the cwd. A URL is cwd-independent.
+#   cwd    : resolves a bare number only: gh maps `<N>` (and the type lookup's
+#            `{owner}/{repo}`) to the repository of the cwd. A URL is
+#            cwd-independent.
+#   gh     : `gh issue view <ref> --json ... --jq <filter>` for the block, then,
+#            only once it succeeded, the type lookup
+#            `gh api repos/<owner>/<repo>/issues/<N> [--hostname <host>]
+#            --jq '.type.name // ""'`: owner, repository and host from a URL
+#            argument, `--hostname` only when that host is not `github.com`;
+#            `repos/{owner}/{repo}/issues/<N>` for a bare number. A failed
+#            lookup only empties `TYPE=`: it never fails the fetch.
 #   env    : none of its own; gh reads its usual auth and host config.
 #   temp   : one temp file from mktemp in system temp, cleaned by EXIT trap.
 #   stdout : on success, CR stripped, in this order:
@@ -27,6 +35,7 @@
 #              STATE=OPEN|CLOSED
 #              AUTHOR=<login>
 #              LABELS=<name>, <name>   (empty when none)
+#              TYPE=<issue type name>  (empty when none or the lookup failed)
 #              COMMENTS=<count>
 #              --- body ---
 #              <body, verbatim, any number of lines>
@@ -46,6 +55,8 @@ if [ $# -ne 1 ]; then
 fi
 bad() { echo "ERROR issue-facts.sh: not an issue number or url: $1" >&2; exit 2; }
 ref=${1#\#}
+api_ref="repos/{owner}/{repo}/issues/$ref"
+host=github.com
 case $ref in
   ''|*[!0-9]*)
     case $ref in https://*/issues/*) ;; *) bad "$1" ;; esac
@@ -55,6 +66,8 @@ case $ref in
     mid=${mid%/issues/*}
     case $n in ''|*[!0-9]*) bad "$1" ;; esac
     case $mid in /*|*/|*//*|*/*/*/*) bad "$1" ;; */*/*) ;; *) bad "$1" ;; esac
+    host=${mid%%/*}
+    api_ref="repos/${mid#*/}/issues/$n"
     ;;
 esac
 
@@ -88,6 +101,12 @@ if [ $st -ne 0 ] || [ -z "$num" ]; then
   echo "ERROR issue-facts.sh: gh issue view failed: $err" >&2
   exit 1
 fi
+
+set -- "$api_ref"
+if [ "$host" != github.com ]; then set -- "$@" --hostname "$host"; fi
+type=$(gh api "$@" --jq '.type.name // ""' 2>/dev/null) || type=""
+type=$(printf '%s\n' "$type" | tr -d '\r' | sed -n '1p')
+out=$(printf '%s\n' "$out" | TYPE_LINE="TYPE=$type" awk '{ print } !done && /^LABELS=/ { print ENVIRON["TYPE_LINE"]; done = 1 }')
 
 printf '%s\n' "$out"
 exit 0
