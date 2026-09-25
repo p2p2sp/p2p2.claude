@@ -203,6 +203,13 @@ test("the unprefixed skill spelling 'planner' arms the gate too (the install for
   });
 });
 
+test("a Skill tool_use for another plugin's 'xyz:planner' does not arm the gate -> allow (only viber:planner and bare planner do)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse("xyz:planner"), planWrite()]);
+    assert.equal(runCase(f).decision, "allow");
+  });
+});
+
 test("a typed /viber:planner does NOT arm the gate (planner is user-invocable: false; a typeable 'planner' is another plugin's)", () => {
   withTempDir("p2p2-plan-gate-", (dir) => {
     const f = writeTranscript(dir, "t.jsonl", [typedCommand(), planWrite()]);

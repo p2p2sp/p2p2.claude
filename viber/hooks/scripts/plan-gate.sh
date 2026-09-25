@@ -108,10 +108,11 @@ plan_write_line=$(
 # a Skill tool_use is the only form it can take - the skill is user-invocable:
 # false, so no typed command ever loads it. An escaped mention inside some other
 # tool's payload cannot match: `\"skill\":\"planner\"` carries a backslash where
-# the pattern needs the quote.
+# the pattern needs the quote. Only viber's own install form arms the gate: bare
+# "planner" or "viber:planner" - another plugin's "xyz:planner" is not this one.
 skill_line=$(
   grep -nE '"name":"Skill"' "$transcript_path" 2>/dev/null \
-    | grep -E '"skill":"([a-zA-Z0-9_.-]+:)?planner"' \
+    | grep -E '"skill":"(viber:)?planner"' \
     | tail -n1 \
     | cut -d: -f1
 )
