@@ -1,0 +1,4 @@
+- `decide` is the question's free-text reply, never a pickable option: AskUserQuestion always offers its own free-text field, so a listed "decide" option would arrive with no text.
+- A decision reaches a task's dispatch when its `<task-id>` is the task itself or any transitive dependency; `deps` in the index is the only source for that walk.
+- task-coder: a `DoD` clause a decision settles counts as met once the work follows it, so a ruling that drops a clause still lets the coder return a full `DOD:` line.
+- The coder dispatch block now ends on the optional `decision:` line, so its "omitted when empty" count reads three, not two; keep it in step if a line is added.

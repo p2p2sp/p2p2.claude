@@ -32,9 +32,10 @@ You orchestrate and delegate: every piece of work runs inside a subagent. Open n
 
 ## Answers
 
-Every question below offers some of these four answers, each doing exactly this wherever it is offered:
+Every question below offers some of these five answers, each doing exactly this wherever it is offered:
 
 - `retry`: dispatch again, with its own dispatch lines, the agent that failed or was refused; after failed review or test rounds that is the task's coder or the repair coder. After a `FAIL`, or a `PASS` with its `DOD:` line short of its total: one tier up (`haiku` -> `sonnet` -> `opus` -> `fable`), never past `tiers.max`, where it stays, carrying `reason: <the returned REASON>` on a coder's own failure, `reason: <the short DOD: line>` when no `REASON:` came, or the last `REVIEW` or `REPORT` path as `report:` after failed rounds; the round counter continues, the next 2 rounds counting as 1 and 2 of 2, and a `TaskUpdate` rewrites the task's subject with the new tiers. After a `DENIED`: same model, same round, a task's coder adding `reason: <the returned REASON>`. After a failed commit: run the same call again.
+- `decide`: the user's free-text answer, their ruling on the stalled task; the question names it as the way to answer in their own words, never as an option to pick. Make it one line and rewrite every double quote, dollar sign, backtick or backslash in it into words, then `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --decide "<plan>" "<id>" "<text>"`, then dispatch that task's coder again at the same tier with its `decision:` lines, the new one among them, plus the last `REVIEW` path as `report:` when the last failure was a review. Both counters start over: the next coder failure is retried once without asking, the next review is round 1 of 2.
 - `skip`: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip "<plan>" "<id>"` for that task, then the same call for every task depending on it, directly or through another dependent, one call per message, each with its `TaskUpdate` -> completed. Its half-finished files stay uncommitted in the tree; name them in the final summary.
 - `accept`: the user overrides the gate. On a task: its commit with `--unreviewed` appended, the task named unreviewed in the final summary. On the test run: go to step 6, the failing or refused run named in the final summary. On any other agent: go on as if it returned nothing, its refused call named in the final summary.
 - `abort`: stop every dispatch, go to step 7.
@@ -74,6 +75,7 @@ Never dispatch a `done` or `skipped` task again. Also on the index:
 - `unreviewed: <ids>` -> carry to the final summary.
 - `deferred: <id>:<path>` -> that task's `deferred:` line in step 4.
 - `closed: <parts>` -> those parts of step 6 are already recorded.
+- `decision: <id>: <text>` -> a `decision:` line in step 4.
 
 ## 3. Profile the tasks
 
@@ -99,7 +101,7 @@ Then clamp both tiers into the config block's `tiers.min` to `tiers.max` range (
 - A task dispatches only once every id in its `deps` is done.
 - A task whose `excl` column says `yes` is held back while any task without `excl` is ready to dispatch or anything else is in flight; several ready `excl` tasks go out one after another as their turn comes, and each still runs alone until committed - nothing else in flight when it goes out, nothing new out until it is committed. Never infer or override it.
 
-Coder dispatch: `viber:task-coder` (Agent tool, `model` = the task's tier), carrying these labelled lines and nothing else, the last two omitted when empty:
+Coder dispatch: `viber:task-coder` (Agent tool, `model` = the task's tier), carrying these labelled lines and nothing else, the last three omitted when empty:
 
 ```
 task: <dir>/tasks/<id>.md
@@ -108,11 +110,12 @@ out: .temp/viber/<id>/
 refs: ${CLAUDE_PLUGIN_ROOT}/references
 deferred: <paths>
 prior: <dir>/work/<dep-id>-coder.md, ...
+decision: <task-id>: <text>
 ```
 
-`out` is per task, shared by its reviewer. `deferred` carries the index entries naming this id plus every `--defer` this build passed naming it, `prior` the notes of the tasks its `deps` names. A coder always runs on its task's tier; only `retry` raises it.
+`out` is per task, shared by its reviewer. `deferred` carries the index entries naming this id plus every `--defer` this build passed naming it, `prior` the notes of the tasks its `deps` names. `decision:` is one line per index `decision:` line plus one per `--decide` this build recorded, whose `<task-id>` is this task or one it depends on, directly or through another. A coder always runs on its task's tier; only `retry` raises it.
 
-Reviewer dispatch: `viber:task-reviewer` (Agent tool, `model` = the review tier) with the task's `task:`, `notes:`, `out:`, `refs:` and `deferred:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
+Reviewer dispatch: `viber:task-reviewer` (Agent tool, `model` = the review tier) with the task's `task:`, `notes:`, `out:`, `refs:`, `deferred:` and `decision:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
 
 Commit: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<plan>" "<id>"` with its `TaskUpdate` -> completed, plus:
 
@@ -124,13 +127,13 @@ Warnings off the commit never stop the build: carry `refused <path> - claimed by
 Start with every task whose `deps` are done, in one message. On every return, answer with ONE message carrying every dispatch now legal plus at most one commit. Never wait for a batch to drain; when a constraint forces a choice, start whatever unblocks the most tasks.
 
 - Coder `VERDICT: FAIL`, or `PASS` with its `DOD:` line short of its total, the first time for that task -> `retry` without asking, the short `DOD:` line as `reason:` when no `REASON:` came.
-- The same again for that task -> `AskUserQuestion` naming the task and its `REASON:` (or the short `DOD:` line): retry / skip / abort.
+- The same again for that task -> `AskUserQuestion` naming the task and its `REASON:` (or the short `DOD:` line): retry / decide / skip / abort.
 - Coder `VERDICT: DENIED` -> `AskUserQuestion` naming the task: retry / skip / abort.
 - Coder `PASS`, review due -> reviewer dispatch at the next round.
 - Coder `PASS`, no review due -> commit.
 - Reviewer `VERDICT: PASS` -> commit.
 - Reviewer `VERDICT: FAIL`, round 1 of 2 -> coder dispatch plus the returned `REVIEW` path as `report:`.
-- Reviewer `VERDICT: FAIL`, round 2 of 2 -> `AskUserQuestion` naming the task: retry / accept / abort.
+- Reviewer `VERDICT: FAIL`, round 2 of 2 -> `AskUserQuestion` naming the task: retry / decide / accept / abort.
 - Reviewer `VERDICT: DENIED` -> `AskUserQuestion` naming the task: retry / accept / abort.
 - Commit non-zero exit -> nothing was committed; `TaskUpdate` back to in progress and `AskUserQuestion`: retry / skip / abort. On exit 4 naming `--landed`, add a first option: already committed - the user names the commit, and the same call re-runs with `--landed "<sha>"`.
 
