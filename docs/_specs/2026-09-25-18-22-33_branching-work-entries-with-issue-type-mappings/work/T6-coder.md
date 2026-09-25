@@ -1,4 +1,0 @@
-- `branch_setup` now keeps only the FIRST config.sh `error:` line, in `br_err`. `branch_config_ok` (run-branch.sh) is the one gate. It runs only where a branch would be created: the `action=created` block, and the no-branch-recorded path under required (on the entry base, or with no entry resolved).
-- The config error is checked before `br_why`. So with no entries at all, a legacy configuration now reports the legacy message rather than "no valid branching.work entry". Every config.sh error counts, mapping errors included.
-- DoD.1 and DoD.2 tests passed before the change: keeping or switching to an existing recorded branch never read `br_err` or `br_why`. They guard against a future gate placed too early, for example before the `target == br_cur` return.
-- The detached-HEAD refusal still comes before the config-error gate. A detached HEAD with no branch recorded keeps its own reason.

@@ -1,4 +1,0 @@
-- The type lookup runs only after `gh issue view` passed validation, so every failure path still makes exactly one gh call and prints nothing.
-- `TYPE=` is inserted by awk after the first `^LABELS=` line (header lines precede the body, and TITLE/URL cannot start with `LABELS=`); the value travels through `ENVIRON`, never `awk -v`, so a backslash in a type name is not escape-processed.
-- Host match is the literal string `github.com`: any other host (including `www.github.com`) gets `--hostname`.
-- The test `gh` stub branches on `$1 = api` and answers from `GH_TYPE_STDOUT` / `GH_TYPE_STDERR` / `GH_TYPE_EXIT`; the block assertions compare against `withType(<name>)`, so a new header line means updating that helper.

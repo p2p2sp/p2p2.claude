@@ -1,6 +1,0 @@
-- `branch_report` reads its own mode from `config.sh --branching` and its own current branch; it no longer uses `br_mode`/`br_base`/`br_cur` from `branch_setup`, which still read the plain block for the landing (T4 moves the landing onto entries).
-- `suggested:` falls back to the only entry the plan can name (entries with `new: -` do not count), so S4's issue-number entry never blocks the title entry. On an unmapped type the fallback still applies, as C3 literally says; the `error:` line is what stops the planner.
-- `branch_expand` takes an optional third arg (the pattern) and expands `{issue-number}` beside the legacy `{issue}`; T4 can drop `{issue}` once the landing reads entries.
-- `plan_issue <plan> url` prints the issue URL cut after its number, which is what issue-facts.sh gets (a bare number would resolve against the cwd repo, not the plan's). issue-facts.sh is run as `sh <path>`.
-- Empty arrays expand as `${a[@]+"${a[@]}"}`: bash 3.2 under `set -u` dies on a bare `"${a[@]}"`. Not exercised on Windows, only on the macOS CI leg.
-- Tests: `withGh(type, exit, fn)` stubs gh and logs every call to a file beside a temp dir; `calls()` empty proves no fetch.

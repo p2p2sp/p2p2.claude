@@ -1,5 +1,0 @@
-- `emit` re-runs `branch_entry` on the plan it prints (not the source), so the `target:` line follows the landed or resolved plan's `work:` key on every form: first landing, re-landing, `--into`, no argument.
-- `branch_entry` now also sets `br_target` (from the new `br_targets` array `branch_setup` fills from the `entry:` line's last field); T6 and the final summary can read it the same way.
-- Calling `branch_entry` inside `emit` overwrites `br_entry`/`br_why` after `branch_land` (now commented in place); a caller added after `emit` sees the printed plan's entry, not the source's.
-- DoD.3 and DoD.4 tests pass before the change too: they guard absence, so they only go red if the line leaks under off or on an unresolved entry.
-- A no-argument test arranges its run by writing `docs/_specs/<stamp>_<slug>/plan.md` directly, so a test never carries a landing as a second act.
