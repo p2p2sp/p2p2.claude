@@ -186,7 +186,10 @@ test("a config seeded by an older version keeps its own values and gains only th
     assert.match(after, /^issues: true$/m);
     assert.match(after, /^directories:\n {2}runs: _specs\n {2}specifications: specs$/m);
     assert.match(after, /^tiers:\n {2}min: haiku\n {2}max: opus$/m);
-    assert.match(after, /^branching:\n {2}mode: off\n {2}base: main\n {2}name: '\{type\}\/\{issue\}-\{slug\}'$/m);
+    assert.match(
+      after,
+      /^branching:\n {2}mode: off\n {2}work:\n {4}main:\n {6}base: main\n {6}name: '\{type\}\/\{slug\}'\n {6}target: main\n {2}# issue-type-mappings:\n {2}# {3}bug: main$/m,
+    );
     assert.match(after, /# implementor writes the build's QA scenarios at the close[\s\S]*^qa: false$/m);
   });
 });

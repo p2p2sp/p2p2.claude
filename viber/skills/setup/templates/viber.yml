@@ -48,21 +48,23 @@ tiers:
   min: haiku
   max: opus
 
-# Whether a run works on its own git branch, cut from which base, under which
-# name pattern - so its commits land where the project's branching strategy
-# expects them. Nothing is ever fetched, pushed, merged or deleted: a branch
-# is only created, switched to and committed on. mode is off (stay on the
-# branch the run started on, today's behavior), allowed (the plan offers a
-# branch and you confirm it) or required (a run always gets its own branch).
-# base is the branch the new one is cut from. name is the new branch's
-# pattern, quoted since it opens on `{`; {type}, {issue} and {slug} are
-# filled in from the plan.
-#
-# One example per strategy - the strategy's own name is never a value here:
-#   trunk based development: mode: allowed,  base: main,    name: '{type}/{issue}-{slug}'
-#   GitHub Flow:              mode: required, base: main,    name: '{type}/{issue}-{slug}'
-#   GitFlow:                  mode: required, base: develop, name: '{type}/{issue}-{slug}'
+# Whether a run works on its own git branch - so its commits land where the
+# project's branching strategy expects them. Nothing is ever fetched, pushed,
+# merged or deleted: a branch is only created, switched to and committed on.
+# mode is off (stay on the branch the run started on, today's behavior),
+# allowed (the plan offers a branch and you confirm it) or required (a run
+# always gets its own branch). Each child of work names one kind of branch:
+# base it is cut from, name its pattern (quoted since it opens on `{`;
+# {type} and {slug} are filled in from the plan), target where its pull
+# request lands. issue-type-mappings, commented out below, would pick a work
+# entry by the GitHub issue type a run starts from. See viber/BRANCHING.md
+# for the full schema and one example per branching strategy.
 branching:
   mode: off
-  base: main
-  name: '{type}/{issue}-{slug}'
+  work:
+    main:
+      base: main
+      name: '{type}/{slug}'
+      target: main
+  # issue-type-mappings:
+  #   bug: main
