@@ -4,8 +4,11 @@ Every skill, agent and script here is a stage of one run, so most edits touch a 
 three files share. `PRODUCT.md` holds the product assumptions (unit tests far outnumber
 integration tests, integration last and serial, one full-suite run at the close) that
 `references/test-strategy.md` and `references/integration-tests.md` turn into rules: a change to
-how tests are planned or run answers to it. `README.md` and `skills/setup/assets/usage.md` are the
-user's view of the same commands and switches; keep both in step when either changes.
+how tests are planned or run answers to it. `README.md` and `skills/setup/assets/usage.html` (the
+guide `setup` opens in the browser, hand-written, no generator) are the user's view of the same
+commands and switches. After any change to a user-facing command, its arguments, a switch, a
+`viber.yml` key or a default, re-read `usage.html` against the change and fix it in the same edit,
+since nothing else catches a stale page.
 
 ## Layout
 
@@ -22,7 +25,7 @@ hooks/                   SessionStart manifest + PreToolUse plan gate
 ```
 
 A skill's own script is called through `${CLAUDE_SKILL_DIR}` (memory, rules, setup's
-`bootstrap.sh`) or `${CLAUDE_PLUGIN_ROOT}/skills/<name>/` (commit, setup's `merge-settings.sh`),
+`bootstrap.sh` and `open-page.sh`) or `${CLAUDE_PLUGIN_ROOT}/skills/<name>/` (commit, setup's `merge-settings.sh`),
 its `allowed-tools` pattern in the same form.
 
 ## The chain
@@ -131,7 +134,7 @@ touches the templates, `references/plan-rules.md` and every parser reading it.
   skill, which routes on its headings (`## UI scenarios`, `## API scenarios`, `## Not automatable`,
   `## Automation`).
 - A new switch: `skills/setup/templates/viber.yml` (`bootstrap.sh` appends a key an existing config
-  lacks), `config.sh`'s key list and fixed output order, `README.md`, `usage.md`, and the skill
+  lacks), `config.sh`'s key list and fixed output order, `README.md`, `usage.html`, and the skill
   consuming it (implementor's step 3 opens one close entry per close switch).
 - The `memory` switch reaches planning twice: the Memory-owned rule of `plan-rules.md` and the
   `memory:` line `planner` passes to `planner-review`.
@@ -172,4 +175,5 @@ agent, the switch or the verdict line disarms the gate, and fail-open means noth
   installs; the skill installs only once the user agrees. Tests run chromium only.
 - `setup`: `merge-settings.sh` needs `node` (with none it prints the recommended block and skips)
   and never touches `.claude/settings.local.json`; `bootstrap.sh` only reports whether `gh` is on
-  PATH.
+  PATH; `open-page.sh` opens `usage.html` through `open`, `rundll32`, `wslview` or `xdg-open` by
+  `uname -s`, and with none (a remote or headless session) prints the path to open by hand.

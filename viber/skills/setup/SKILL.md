@@ -1,7 +1,7 @@
 ---
 name: setup
-description: Prepares a project for viber - seeds .claude/viber.yml, .gitignore and the recommended .claude/settings.json permissions, and checks the gh CLI is installed.
-allowed-tools: Read, Bash(${CLAUDE_SKILL_DIR}/scripts/bootstrap.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/merge-settings.sh:*)
+description: Prepares a project for viber - seeds .claude/viber.yml, .gitignore and the recommended .claude/settings.json permissions, checks the gh CLI is installed, and opens the usage guide in the browser.
+allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/bootstrap.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/merge-settings.sh:*), Bash(${CLAUDE_SKILL_DIR}/scripts/open-page.sh:*)
 user-invocable: true
 disable-model-invocation: true
 model: haiku
@@ -30,8 +30,11 @@ re-verified, never retried; a non-zero exit is trusted the same way:
 "${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/merge-settings.sh" "${CLAUDE_PLUGIN_ROOT}/skills/setup/assets/settings.json"
 ```
 
-Close with one line per item: the preload's lines and the settings line.
+Then open the onboarding page in the user's browser, its line trusted the same way:
 
-Then `Read` `${CLAUDE_SKILL_DIR}/assets/usage.md` and print it verbatim, whole and unedited, as
-the last thing in the reply - it is the project's onboarding text, not a source to summarise from.
-Add nothing after it.
+```
+"${CLAUDE_SKILL_DIR}/scripts/open-page.sh" "${CLAUDE_SKILL_DIR}/assets/usage.html"
+```
+
+Close with one line per item: the preload's lines, the settings line and the page line. Never
+read or restate the page's content in the reply.

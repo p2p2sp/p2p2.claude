@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using viber</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #faf9f6;
+    --text: #1c1b19;
+    --rule: #dedad2;
+    --code-bg: #efece5;
+    --term: #1e4a72;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514;
+      --text: #ebe9e4;
+      --rule: #34322e;
+      --code-bg: #252422;
+      --term: #9cc4ea;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main {
+    max-width: 72ch;
+    margin: 0 auto;
+    padding: 48px 16px 96px;
+  }
+  h1 {
+    font-size: 40px;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 48px;
+  }
+  h2 {
+    font-size: 24px;
+    line-height: 1.3;
+    font-weight: 650;
+    margin: 48px 0 16px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+  }
+  h1 + section h2 { margin-top: 0; padding-top: 0; border-top: 0; }
+  p { margin: 0 0 16px; }
+  code {
+    font: 0.875em/1.4 ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    padding: 2px 4px;
+    border-radius: 4px;
+    overflow-wrap: anywhere;
+  }
+  dl { margin: 0 0 16px; }
+  dl > div {
+    display: grid;
+    gap: 4px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  dl > div:first-child { padding-top: 0; }
+  dl > div:last-child { border-bottom: 0; }
+  dt code {
+    background: none;
+    padding: 0;
+    color: var(--term);
+    font-weight: 600;
+    font-size: 16px;
+  }
+  dt.phrase { color: var(--term); font-weight: 600; }
+  dd { margin: 0; }
+  @media (min-width: 720px) {
+    main { padding: 80px 32px 128px; }
+    h1 { font-size: 48px; }
+    dl > div { grid-template-columns: 11rem 1fr; gap: 24px; }
+  }
+</style>
+</head>
+<body>
+<main>
+<h1>Using viber</h1>
+
+<section>
+<h2>First: CLAUDE.md</h2>
+<p>viber knows nothing about your stack. Every agent takes the build and test commands from this
+project's own instructions, so without them <code>test-runner</code> guesses from whatever manifest it finds,
+and a task can be committed on a suite that never ran.</p>
+<p>No <code>CLAUDE.md</code> yet: run <code>/init</code>, then make sure the root file states the exact build command, the
+exact test command, how to run a single test file, and whatever else a newcomer would get wrong -
+how to launch the app, the required env, the migrations.</p>
+</section>
+
+<section>
+<h2>The five ways in</h2>
+<dl>
+  <div>
+    <dt><code>/viber:triage</code></dt>
+    <dd>Before any of them: one reported issue (a GitHub number, a link or pasted text) checked
+    against the code, with the next step named - <code>/viber:fixer</code>, <code>/viber:intent</code> or none. It
+    starts nothing itself and posts its report on the issue only when you say so.</dd>
+  </div>
+  <div>
+    <dt><code>/viber:intent</code></dt>
+    <dd>An interview about a raw idea, one question at a time. Writes nothing.</dd>
+  </div>
+  <div>
+    <dt><code>/viber:fixer</code></dt>
+    <dd>A bug traced to its root cause and proven by a failing test.</dd>
+  </div>
+  <div>
+    <dt class="phrase">"plan it"</dt>
+    <dd>The planner, on what one of those two confirmed. Ask for it with neither behind it and the
+    interview starts first.</dd>
+  </div>
+  <div>
+    <dt class="phrase">"implement it"</dt>
+    <dd>The orchestrator: task by task, one reviewed commit each.</dd>
+  </div>
+</dl>
+<p><code>intent</code> and <code>fixer</code> both end at the planner, and nothing is built before you approve its plan.</p>
+<p>With the <code>issues</code> switch on, give <code>/viber:intent</code> or <code>/viber:fixer</code> an issue number (<code>#42</code>), a link
+or the bare number and it reads that issue instead of you restating it, then keeps working on the
+same issue. An interview that did not start from one can, once confirmed, save its summary as a
+new issue built from your project's own issue templates; <code>/viber:intent #42</code> later resumes it.</p>
+</section>
+
+<section>
+<h2>After a build</h2>
+<dl>
+  <div>
+    <dt><code>/viber:e2e</code></dt>
+    <dd>Turns the QA scenarios a build wrote into Playwright tests, run against your own
+    application and committed once they are green. Needs the <code>qa</code> switch to have been on during
+    that build, and it starts off - turn it on before the build, not after.</dd>
+  </div>
+</dl>
+</section>
+
+<section>
+<h2>On your own schedule</h2>
+<dl>
+  <div>
+    <dt><code>/viber:memory</code></dt>
+    <dd>Maps this project's <code>CLAUDE.md</code> cascade, verifies it against the code through a
+    dispatched auditor, and hands what changed to the same writer the build close uses.</dd>
+  </div>
+  <div>
+    <dt><code>/viber:rules</code></dt>
+    <dd>Maps <code>.claude/rules/</code>, verifies it the same way, and hands what changed to the same
+    writer the build close uses.</dd>
+  </div>
+</dl>
+<p>Both ask before writing anything and leave the result unstaged, same as the close. Neither needs a
+build in progress - run them whenever the layer might have drifted.</p>
+</section>
+
+<section>
+<h2>Any time</h2>
+<dl>
+  <div>
+    <dt class="phrase">"commit"</dt>
+    <dd>Your changes, or only the paths you name, committed with a Conventional Commits message.
+    Name an issue (<code>#42</code>) and it becomes the <code>Refs:</code> footer. A build commits on its own.</dd>
+  </div>
+</dl>
+</section>
+
+<section>
+<h2>The switches (<code>.claude/viber.yml</code>)</h2>
+<dl>
+  <div>
+    <dt><code>adr</code></dt>
+    <dd>Decisions worth keeping become the plan's first tasks, under <code>docs/adr/</code>.</dd>
+  </div>
+  <div>
+    <dt><code>memory</code></dt>
+    <dd>The build closes by updating this project's <code>CLAUDE.md</code> nodes.</dd>
+  </div>
+  <div>
+    <dt><code>rules</code></dt>
+    <dd>The build closes by updating <code>.claude/rules/</code>.</dd>
+  </div>
+  <div>
+    <dt><code>qa</code></dt>
+    <dd>The build closes by writing its QA scenarios into the run directory.</dd>
+  </div>
+  <div>
+    <dt><code>cleanup</code></dt>
+    <dd>The build ends by noting on the specification anything it delivered that the specification
+    does not promise, then archiving the run and dropping the plan, the state file and the trail.
+    They are all in git, which is where the history belongs.</dd>
+  </div>
+  <div>
+    <dt><code>plain-plan-review</code></dt>
+    <dd>A plan written in plain plan mode, without the planner, must pass a review before plan mode
+    can be left.</dd>
+  </div>
+  <div>
+    <dt><code>issues</code></dt>
+    <dd><code>intent</code> and <code>fixer</code> can start from a GitHub issue by number or link, and an interview
+    that did not start from one can save its conclusions as a new issue.</dd>
+  </div>
+</dl>
+<p>Six of the seven start on; <code>qa</code> starts off, because a build that needs acceptance scenarios is the
+exception rather than the rule. Edit <code>.claude/viber.yml</code> to change that - every key is commented
+there, and only <code>true</code> counts as on. Turn a switch off with <code>false</code> rather than by deleting it:
+running <code>/viber:setup</code> again merges in whatever the current version's template carries and your
+file does not, which is how a new switch reaches a project set up by an older one, and a deleted
+key is restored at its default by that same merge. Every value you already set survives it.</p>
+<p>A <code>directories:</code> group names two directories rather than switches: <code>runs</code> (<code>_specs</code>) is where an
+open run lives under <code>docs/</code>, <code>specifications</code> (<code>specs</code>) is where <code>cleanup</code> archives a finished
+one. Both are plain directory names, read only from inside that group - a value carrying a slash
+is ignored and the default stands.</p>
+<p>A <code>tiers:</code> group bounds the models the build dispatches: <code>min</code> (<code>haiku</code>) and <code>max</code> (<code>opus</code>), each
+one of <code>haiku</code>, <code>sonnet</code>, <code>opus</code> or <code>fable</code>. Every task, review and retry is kept inside that
+range; fable runs only when the range names it. An unknown value falls back to its default and an
+inverted range to the default one. Planning runs on the session's own model and is not bound by it.</p>
+</section>
+</main>
+</body>
+</html>
