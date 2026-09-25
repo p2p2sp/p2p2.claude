@@ -12,17 +12,19 @@
 #   argv   : none - sourced. Every function takes its own arguments.
 #   cwd    : the repository root, as plan-path.sh's own contract pins it.
 #   env    : none.
-#   file   : the sibling config.sh output (branching.mode, branching.base,
-#            branching.name); the plan's frontmatter "branch:" and "issue:"
-#            keys and its task blocks' "Repro:" lines.
+#   file   : the sibling config.sh output - the plain block (branching.mode,
+#            branching.base, branching.name) for the landing, its --branching
+#            lines for branch_report; the plan's frontmatter "branch:" and
+#            "issue:" keys and its task blocks' "Repro:" lines.
+#   gh     : only through the sibling issue-facts.sh, for branch_report's
+#            issue type, and only when a mapping exists and the plan has an
+#            issue: its TYPE= line, empty on any failure.
 #   git    : reads HEAD, refs/heads/ and the tree state; branch_land alone
 #            moves HEAD, through one checkout, never a fetch.
 #   stdout : branch_setup and branch_land print nothing - their result is the
 #            br_* variables; the plan_* and branch_expand helpers print one
 #            value for a caller to capture. branch_report prints the C3
-#            report (plan-path.sh --branch): "mode: off" alone under off or
-#            outside a repository, else mode/base/current/new/new-exists/
-#            behind/dirty, one "key: value" line each.
+#            report of plan-path.sh --branch, whose header shows its lines.
 #   return : branch_land 0, or 6 with the reason on stderr and HEAD, index
 #            and tree untouched. branch_report always 0 - it is read-only and
 #            never touches HEAD, the index or the tree.
@@ -63,10 +65,11 @@ NR == 1 { if ($0 !~ /^---[[:space:]]*\r?$/) exit; next }
 ' "$1"
 }
 
-# The issue number of the plan frontmatter's "issue:" URL, empty without one.
-# Read the way issue_ref() in commit-task.sh reads it; change the two together.
+# The issue number of the plan frontmatter's "issue:" URL, empty without one;
+# with "url" as $2, that URL cut after the number instead. Read the way
+# issue_ref() in commit-task.sh reads it; change the two together.
 plan_issue() {
-  local line val first=1 num=""
+  local line val first=1 num="" ref=""
   local fence='^[[:space:]]*---[[:space:]]*$'
   local key='^[[:space:]]*issue:[[:space:]]*(.*)$'
   local url='/issues/([0-9]+)([/?#].*)?[[:space:]]*$'
@@ -78,15 +81,34 @@ plan_issue() {
       continue
     fi
     if [[ "$line" =~ $fence ]]; then
-      [[ -z "$num" ]] || printf '%s\n' "$num"
+      if [[ -n "$num" ]]; then
+        if [[ "${2:-}" == url ]]; then printf '%s\n' "$ref"; else printf '%s\n' "$num"; fi
+      fi
       return 0
     fi
     if [[ "$line" =~ $key ]]; then
       num=""
       val="${BASH_REMATCH[1]}"
-      if [[ "$val" =~ $url ]]; then num="${BASH_REMATCH[1]}"; fi
+      if [[ "$val" =~ $url ]]; then
+        num="${BASH_REMATCH[1]}"
+        ref="${val%%/issues/$num*}/issues/$num"
+      fi
     fi
   done < "$1"
+}
+
+# The GitHub issue type of plan $1's issue, from the TYPE= header line the
+# sibling issue-facts.sh prints; empty without an issue or on any failure.
+plan_issue_type() {
+  local url line
+  url="$(plan_issue "$1" url)"
+  [[ -n "$url" ]] || return 0
+  while IFS= read -r line; do
+    case "$line" in
+      'TYPE='*) printf '%s\n' "${line#TYPE=}"; return 0 ;;
+      '--- body ---') return 0 ;;
+    esac
+  done < <(sh "$run_branch_dir/issue-facts.sh" "$url" 2>/dev/null || true)
 }
 
 # "fix" when any task block of the plan carries a "Repro:" line, else "feature".
@@ -99,15 +121,17 @@ END { print (fix ? "fix" : "feature") }
 ' "$1"
 }
 
-# The name pattern expanded for plan $1 and run slug $2: separators left
-# dangling by an empty placeholder are dropped, doubled ones collapsed, and a
-# leading or trailing `/` left dangling by an empty placeholder at either edge
-# is dropped too, so the result never starts or ends with `/`.
+# The name pattern $3 (the branching.name pattern when absent) expanded for
+# plan $1 and run slug $2: separators left dangling by an empty placeholder are
+# dropped, doubled ones collapsed, and a leading or trailing `/` left dangling
+# by an empty placeholder at either edge is dropped too, so the result never
+# starts or ends with `/`.
 branch_expand() {
-  local name="$br_pattern" type issue
+  local name="${3-$br_pattern}" type issue
   type="$(plan_type "$1")"
   issue="$(plan_issue "$1")"
   name="${name//\{type\}/$type}"
+  name="${name//\{issue-number\}/$issue}"
   name="${name//\{issue\}/$issue}"
   name="${name//\{slug\}/$2}"
   printf '%s\n' "$name" \
@@ -173,39 +197,81 @@ branch_land() {
   br_line="$target ($action)"
 }
 
-# The C3 --branch report for plan $1 (run slug $2): read-only, never touches
-# HEAD, the index or the tree. Off, or outside a repository (branch_setup
-# already forced br_mode to off there), prints only "mode: off".
+# How many commits branch $1 lacks from its configured upstream, "unknown"
+# when it has none. The upstream is resolved by name rather than refs/heads/,
+# so a base with no local branch (or no tracking ref) reads as unknown instead
+# of erroring under errexit.
+base_behind() {
+  local upstream behind=""
+  upstream="$(git rev-parse --abbrev-ref --symbolic-full-name "$1@{upstream}" 2>/dev/null || true)"
+  [[ -z "$upstream" ]] || behind="$(git rev-list --count "$1..$upstream" 2>/dev/null || true)"
+  [[ "$behind" =~ ^[0-9]+$ ]] || behind="unknown"
+  printf '%s\n' "$behind"
+}
+
+# The C3 --branch report for plan $1 (run slug $2), built from the sibling
+# config.sh --branching lines: read-only, never touches HEAD, the index or the
+# tree. Off, or outside a repository, prints only "mode: off". The issue type
+# is fetched only when a mapping exists and the plan has an issue. The empty
+# array expansions are guarded: bash 3.2 under `set -u` fails on "${a[@]}".
 branch_report() {
-  if [[ "$br_mode" == off ]]; then
+  local line mode=off issue type="" suggested=none only="" usable=0 m e
+  local key rest base name target new exists entry_lines=""
+  local -a entries=() maps=() errors=()
+  while IFS= read -r line; do
+    case "$line" in
+      'mode: '*) mode="${line#mode: }" ;;
+      'entry: '*) entries+=("${line#entry: }") ;;
+      'map: '*) maps+=("${line#map: }") ;;
+      'error: '*) errors+=("${line#error: }") ;;
+    esac
+  done < <(bash "$run_branch_dir/config.sh" --branching 2>/dev/null || true)
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1 || mode=off
+  if [[ "$mode" != allowed && "$mode" != required ]]; then
     printf 'mode: off\n'
     return 0
   fi
-  local new upstream behind
-  new="$(branch_expand "$1" "$2")"
-  printf 'mode: %s\n' "$br_mode"
-  printf 'base: %s\n' "$br_base"
-  if [[ -n "$br_cur" ]]; then printf 'current: %s\n' "$br_cur"; else printf 'current: detached\n'; fi
-  printf 'new: %s\n' "$new"
-  if git show-ref --verify --quiet "refs/heads/$new" 2>/dev/null; then
-    printf 'new-exists: yes\n'
-  else
-    printf 'new-exists: no\n'
+  issue="$(plan_issue "$1")"
+  if [[ ${#maps[@]} -gt 0 && -n "$issue" ]]; then
+    type="$(plan_issue_type "$1")"
+    if [[ -z "$type" ]]; then
+      errors+=("issue $issue has no issue type")
+    else
+      for m in ${maps[@]+"${maps[@]}"}; do
+        if [[ "${m% | *}" == "$type" ]]; then suggested="${m##* | }"; break; fi
+      done
+      [[ "$suggested" != none ]] || errors+=("issue type $type is not in branching.issue-type-mappings")
+    fi
   fi
-  # the base's configured upstream, resolved by name rather than refs/heads/
-  # so a base with no local branch (or no tracking ref) reads as unknown
-  # instead of erroring under errexit.
-  upstream="$(git rev-parse --abbrev-ref --symbolic-full-name "$br_base@{upstream}" 2>/dev/null || true)"
-  if [[ -n "$upstream" ]]; then
-    behind="$(git rev-list --count "$br_base..$upstream" 2>/dev/null || true)"
-    [[ "$behind" =~ ^[0-9]+$ ]] || behind="unknown"
-  else
-    behind="unknown"
-  fi
-  printf 'behind: %s\n' "$behind"
+  for e in ${entries[@]+"${entries[@]}"}; do
+    key="${e%% | *}"
+    rest="${e#* | base: }"
+    base="${rest%% | *}"
+    rest="${rest#* | name: }"
+    name="${rest%% | *}"
+    target="${e##* | target: }"
+    exists=no
+    if [[ "$name" == *'{issue-number}'* && -z "$issue" ]]; then
+      new=-
+    else
+      new="$(branch_expand "$1" "$2" "$name")"
+      usable=$((usable + 1))
+      only="$key"
+      if [[ -n "$new" ]] && git show-ref --verify --quiet "refs/heads/$new" 2>/dev/null; then exists=yes; fi
+    fi
+    entry_lines+="entry: $key | base: $base | target: $target | new: $new | new-exists: $exists | behind: $(base_behind "$base")"$'\n'
+  done
+  [[ "$suggested" != none || "$usable" -ne 1 ]] || suggested="$only"
+  printf 'mode: %s\n' "$mode"
+  printf 'issue-type: %s\n' "${type:-none}"
+  printf 'suggested: %s\n' "$suggested"
+  printf '%s' "$entry_lines"
+  line="$(git symbolic-ref --short -q HEAD 2>/dev/null || true)"
+  printf 'current: %s\n' "${line:-detached}"
   if [[ -n "$(git status --porcelain 2>/dev/null || true)" ]]; then
     printf 'dirty: yes\n'
   else
     printf 'dirty: no\n'
   fi
+  for e in ${errors[@]+"${errors[@]}"}; do printf 'error: %s\n' "$e"; done
 }

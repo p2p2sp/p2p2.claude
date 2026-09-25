@@ -82,6 +82,8 @@
 #            one checkout; every failure before or inside that step leaves
 #            HEAD, the index and the tree as they were. --branch never moves
 #            HEAD, the index or the tree - it only reads.
+#   gh     : --branch alone, through issue-facts.sh, for the issue type (see
+#            its stdout below); never fetches, pushes or writes.
 #   cwd    : the repository root - every path printed is relative to it, and the
 #            caller splits and stages those paths from there. The config file is
 #            read from there too, as .claude/viber.yml.
@@ -94,14 +96,26 @@
 #     open: docs/_specs/2026-09-18-09-12-44_add-search/plan.md | 2/6
 #   The "branch:" line only when branching.mode is not off, "branch: detached
 #   (kept)" on a detached HEAD; every other form reports the current branch kept.
-#   stdout, --branch <plan>, mode allowed or required inside a git repository:
+#   stdout, --branch <plan>, mode allowed or required inside a git repository,
+#   read from config.sh --branching:
 #     mode: allowed | required
-#     base: <base>
+#     issue-type: <type> | none
+#     suggested: <entry key> | none
+#     entry: <key> | base: <branch> | target: <branch> | new: <name>|- | new-exists: yes|no | behind: <n>|unknown
 #     current: <branch> | detached
-#     new: <C5 name>
-#     new-exists: yes | no
-#     behind: <n> | unknown
 #     dirty: yes | no
+#     error: <reason>
+#   One "entry:" line per valid branching.work entry, in file order; "new:"
+#   its name pattern with {issue-number} (the plan's issue number), {slug} and
+#   {type} filled in, "-" (and "new-exists: no") when it needs {issue-number}
+#   and the plan has no issue; "behind:" counts the entry base against its
+#   upstream. "issue-type:" is the plan issue's GitHub type, read through
+#   issue-facts.sh only when branching.issue-type-mappings is not empty and
+#   the plan has an "issue:"; none otherwise or when the type is empty.
+#   "suggested:" is the entry the type maps to, else the one entry whose name
+#   the plan can fill, else none. "error:" lines, zero or more: every
+#   config.sh --branching error, then, with mappings, "issue <n> has no issue
+#   type" or "issue type <type> is not in branching.issue-type-mappings".
 #   stdout, --branch <plan>, mode off or outside a git repository:
 #     mode: off
 #   exit != 0:

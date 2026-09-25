@@ -1233,8 +1233,8 @@ function withBranchRepo(branching: string[], fn: (repo: GitRepo) => void): void 
 }
 
 /** plan-path.sh run inside the throwaway repository, with its pinned git identity. */
-function runIn(repo: GitRepo, args: string[] = []) {
-  return runScript(SUT, args, { cwd: repo.dir, shell: "bash", env: repo.env });
+function runIn(repo: GitRepo, args: string[] = [], stubDirs?: string[]) {
+  return runScript(SUT, args, { cwd: repo.dir, shell: "bash", env: repo.env, stubDirs });
 }
 
 /** The branch HEAD names, or "HEAD" when it is detached. */
@@ -1408,21 +1408,6 @@ test("a custom name pattern whose placeholder expands to nothing never leaves a 
         assert.equal(result.status, 0, `pattern ${name}: stderr: ${result.stderr}`);
         assert.equal(branchLine(result.stdout), `branch: ${expected} (created)`);
         assert.equal(headOf(repo), expected);
-      });
-    });
-  }
-});
-
-test("a custom name pattern whose placeholder expands to nothing never leaves a leading or trailing / on the --branch report's new: line (DoD.1, DoD.2)", () => {
-  for (const [name, expected] of [
-    ["{issue}/{slug}", "add-login"],
-    ["{slug}/{issue}", "add-login"],
-  ] as const) {
-    withBranchRepo(["mode: required", `name: '${name}'`], (repo) => {
-      withSource([], (src) => {
-        const result = runIn(repo, ["--branch", src]);
-        assert.equal(result.status, 0, `pattern ${name}: stderr: ${result.stderr}`);
-        assert.equal(reportOf(result.stdout).new, expected, `pattern ${name}`);
       });
     });
   }
@@ -1689,6 +1674,50 @@ function reportOf(stdout: string): Record<string, string> {
   return out;
 }
 
+/** The report lines starting with `prefix`, in the order printed. */
+function linesOf(stdout: string, prefix: string): string[] {
+  return slash(stdout)
+    .split("\n")
+    .filter((line) => line.startsWith(prefix));
+}
+
+/** One `branching.work` entry, indented as a child of `work:` inside the group. */
+function workEntry(key: string, base: string, name: string, target: string): string[] {
+  return [`  ${key}:`, `    base: ${base}`, `    name: '${name}'`, `    target: ${target}`];
+}
+
+/** One entry named from the plan type and slug, cut from and returning to main. */
+const SINGLE = ["mode: required", "work:", ...workEntry("feature", "main", "{type}/{slug}", "main")];
+
+/** GitFlow: features from develop, hotfixes from main, both named from the
+ *  issue number, and two issue types mapped onto them. */
+const GITFLOW = [
+  "mode: required",
+  "work:",
+  ...workEntry("feature", "develop", "feature/issue.{issue-number}", "develop"),
+  ...workEntry("hotfix", "main", "hotfix/issue.{issue-number}", "main"),
+  "issue-type-mappings:",
+  "  Bug-Report: hotfix",
+  "  'Feature Request': feature",
+];
+
+const ISSUE = "issue: https://github.com/acme/app/issues/6759";
+
+/** A fake `gh` answering issue-facts.sh: the issue block for `issue view`, the
+ *  given type (and exit code) for the `api` type lookup. Every call is
+ *  appended to `calls.log` beside the stub, so a test can see whether gh ran. */
+function withGh(type: string, exit: number, fn: (stubDir: string, calls: () => string) => void): void {
+  withTempDir("p2p2-ghlog-", (logDir) => {
+    const log = path.join(logDir, "calls.log").replace(/\\/g, "/");
+    const body = [
+      `printf '%s\\n' "$*" >> '${log}'`,
+      `if [ "$1" = api ]; then printf '%s\\n' '${type}'; exit ${exit}; fi`,
+      "printf 'NUMBER=6759\\nURL=https://github.com/acme/app/issues/6759\\nTITLE=t\\nSTATE=OPEN\\nAUTHOR=a\\nLABELS=\\nCOMMENTS=0\\n--- body ---\\nTYPE=not-this\\n'",
+    ].join("\n");
+    withStub("gh", body, (stubDir) => fn(stubDir, () => (fs.existsSync(log) ? fs.readFileSync(log, "utf-8") : "")));
+  });
+}
+
 test("off (no branching group configured): --branch prints only mode: off, even with a usable plan given", () => {
   withGitRepo((repo) => {
     withSource([], (src) => {
@@ -1711,46 +1740,212 @@ test("outside a git repository: --branch prints only mode: off, whatever the con
 });
 
 test("a missing plan file: exit 2 and nothing printed", () => {
-  withBranchRepo(["mode: required"], (repo) => {
+  withBranchRepo(SINGLE, (repo) => {
     const result = runIn(repo, ["--branch", path.join(repo.dir, "nope.md")]);
     assert.equal(result.status, 2);
     assert.equal(result.stdout, "");
   });
 });
 
-test("HEAD already on the base: the report names the base as current and the pattern's proposed name", () => {
-  withBranchRepo(["mode: required"], (repo) => {
+test("a single entry and a plan with no issue: the whole report, verbatim, suggesting that entry (DoD.5)", () => {
+  withBranchRepo(SINGLE, (repo) => {
     withSource([], (src) => {
       const result = runIn(repo, ["--branch", src]);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      const report = reportOf(result.stdout);
-      assert.equal(report.mode, "required");
-      assert.equal(report.base, "main");
-      assert.equal(report.current, "main");
-      assert.equal(report.new, "feature/add-login");
-      assert.equal(report["new-exists"], "no");
-      assert.equal(report.behind, "unknown");
-      assert.equal(report.dirty, "no");
+      assert.equal(
+        slash(result.stdout),
+        [
+          "mode: required",
+          "issue-type: none",
+          "suggested: feature",
+          "entry: feature | base: main | target: main | new: feature/add-login | new-exists: no | behind: unknown",
+          "current: main",
+          "dirty: no",
+          "",
+        ].join("\n"),
+      );
     });
   });
 });
 
 test("on a non-base branch: current reports that branch, not the base", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(["mode: allowed", ...SINGLE.slice(1)], (repo) => {
     repo.git("checkout", "-q", "-b", "work");
     withSource([], (src) => {
       const result = runIn(repo, ["--branch", src]);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       const report = reportOf(result.stdout);
       assert.equal(report.mode, "allowed");
-      assert.equal(report.base, "main");
       assert.equal(report.current, "work");
     });
   });
 });
 
+test("a name pattern fills in the fix type, the issue number and the run slug", () => {
+  const body = PLAN_BODY.replace("- Files: src/T1.ts", "- Files: src/T1.ts\n- Repro: tests/login.test.ts");
+  withBranchRepo(["mode: required", "work:", ...workEntry("any", "main", "{type}/{issue-number}-{slug}", "main")], (repo) => {
+    withSource(
+      ["issue: https://github.com/acme/app/issues/42"],
+      (src) => {
+        const result = runIn(repo, ["--branch", src]);
+        assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+        assert.deepEqual(linesOf(result.stdout, "entry: "), [
+          "entry: any | base: main | target: main | new: fix/42-add-login | new-exists: no | behind: unknown",
+        ]);
+      },
+      body,
+    );
+  });
+});
+
+test("a plan with no issue: an entry named from the issue number reads new: -, and the one entry left is suggested (DoD.4)", () => {
+  const config = [
+    "mode: required",
+    "work:",
+    ...workEntry("titled", "main", "{type}/{slug}", "main"),
+    ...workEntry("numbered", "main", "hotfix/issue.{issue-number}", "main"),
+  ];
+  withBranchRepo(config, (repo) => {
+    withSource([], (src) => {
+      const result = runIn(repo, ["--branch", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(reportOf(result.stdout).suggested, "titled");
+      assert.deepEqual(linesOf(result.stdout, "entry: "), [
+        "entry: titled | base: main | target: main | new: feature/add-login | new-exists: no | behind: unknown",
+        "entry: numbered | base: main | target: main | new: - | new-exists: no | behind: unknown",
+      ]);
+    });
+  });
+});
+
+test("several entries and no mapping to choose between them: nothing is suggested", () => {
+  const config = [
+    "mode: required",
+    "work:",
+    ...workEntry("feature", "main", "feature/{slug}", "main"),
+    ...workEntry("chore", "main", "chore/{slug}", "main"),
+  ];
+  withBranchRepo(config, (repo) => {
+    withSource([], (src) => {
+      const result = runIn(repo, ["--branch", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(reportOf(result.stdout).suggested, "none");
+    });
+  });
+});
+
+for (const [type, entry] of [
+  ["Bug-Report", "hotfix"],
+  ["Feature Request", "feature"],
+] as const) {
+  test(`an issue of mapped type ${type} suggests the ${entry} entry, its type looked up in the issue's own repository (DoD.1)`, () => {
+    withBranchRepo(GITFLOW, (repo) => {
+      withGh(type, 0, (stubDir, calls) => {
+        withSource([ISSUE], (src) => {
+          const result = runIn(repo, ["--branch", src], [stubDir]);
+          assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+          const report = reportOf(result.stdout);
+          assert.equal(report["issue-type"], type);
+          assert.equal(report.suggested, entry);
+          assert.deepEqual(linesOf(result.stdout, "entry: "), [
+            "entry: feature | base: develop | target: develop | new: feature/issue.6759 | new-exists: no | behind: unknown",
+            "entry: hotfix | base: main | target: main | new: hotfix/issue.6759 | new-exists: no | behind: unknown",
+          ]);
+          assert.deepEqual(linesOf(result.stdout, "error: "), []);
+          assert.match(calls(), /^api repos\/acme\/app\/issues\/6759 /m);
+        });
+      });
+    });
+  });
+}
+
+for (const [what, type, exit, issueType, error] of [
+  ["an unmapped type", "Task", 0, "Task", "error: issue type Task is not in branching.issue-type-mappings"],
+  ["a mapped type in another letter case", "bug-report", 0, "bug-report", "error: issue type bug-report is not in branching.issue-type-mappings"],
+  ["no type", "", 0, "none", "error: issue 6759 has no issue type"],
+  ["a failed type lookup", "", 1, "none", "error: issue 6759 has no issue type"],
+] as const) {
+  test(`mappings present and an issue with ${what}: refused with an error: line (DoD.2)`, () => {
+    withBranchRepo(GITFLOW, (repo) => {
+      withGh(type, exit, (stubDir) => {
+        withSource([ISSUE], (src) => {
+          const result = runIn(repo, ["--branch", src], [stubDir]);
+          assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+          assert.equal(reportOf(result.stdout)["issue-type"], issueType);
+          assert.deepEqual(linesOf(result.stdout, "error: "), [error]);
+        });
+      });
+    });
+  });
+}
+
+for (const [what, config, frontmatter] of [
+  ["no mappings and a plan with an issue", SINGLE, [ISSUE]],
+  ["mappings and a plan with no issue", GITFLOW, []],
+] as const) {
+  test(`${what}: the issue type is never fetched and reads none (DoD.3)`, () => {
+    withBranchRepo([...config], (repo) => {
+      withGh("Bug-Report", 0, (stubDir, calls) => {
+        withSource([...frontmatter], (src) => {
+          const result = runIn(repo, ["--branch", src], [stubDir]);
+          assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+          assert.equal(reportOf(result.stdout)["issue-type"], "none");
+          assert.deepEqual(linesOf(result.stdout, "error: "), []);
+          assert.equal(calls(), "");
+        });
+      });
+    });
+  });
+}
+
+test("a legacy configuration: its config.sh errors are relayed as error: lines and nothing is suggested (DoD.6)", () => {
+  withBranchRepo(["mode: required", "base: develop", "name: '{type}/{issue}-{slug}'"], (repo) => {
+    withSource([], (src) => {
+      const result = runIn(repo, ["--branch", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(reportOf(result.stdout).suggested, "none");
+      assert.deepEqual(linesOf(result.stdout, "entry: "), []);
+      assert.deepEqual(linesOf(result.stdout, "error: "), [
+        "error: branching.base and branching.name are no longer read - move them into a branching.work entry",
+        "error: no valid branching.work entry",
+      ]);
+    });
+  });
+});
+
+test("an entry using the old {issue} placeholder is dropped and its config.sh error relayed, the valid entry still reported (DoD.6)", () => {
+  const config = [
+    "mode: required",
+    "work:",
+    ...workEntry("old", "main", "{type}/{issue}-{slug}", "main"),
+    ...workEntry("feature", "main", "feature/{slug}", "main"),
+  ];
+  withBranchRepo(config, (repo) => {
+    withSource([], (src) => {
+      const result = runIn(repo, ["--branch", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(reportOf(result.stdout).suggested, "feature");
+      assert.equal(linesOf(result.stdout, "entry: ").length, 1);
+      assert.deepEqual(linesOf(result.stdout, "error: "), ["error: work entry old: {issue} is now {issue-number}"]);
+    });
+  });
+});
+
+test("mode: off with entries, mappings and a legacy key: the report is that line alone and gh never runs (DoD.7)", () => {
+  withBranchRepo(["mode: off", "base: develop", ...GITFLOW.slice(1)], (repo) => {
+    withGh("Bug-Report", 0, (stubDir, calls) => {
+      withSource([ISSUE], (src) => {
+        const result = runIn(repo, ["--branch", src], [stubDir]);
+        assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+        assert.equal(slash(result.stdout), "mode: off\n");
+        assert.equal(calls(), "");
+      });
+    });
+  });
+});
+
 test("a detached HEAD reports current: detached", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(SINGLE, (repo) => {
     const commit = commitOf(repo);
     repo.git("checkout", "-q", commit);
     withSource([], (src) => {
@@ -1761,21 +1956,21 @@ test("a detached HEAD reports current: detached", () => {
   });
 });
 
-test("a branch already at the proposed name reports new-exists: yes", () => {
-  withBranchRepo(["mode: required"], (repo) => {
+test("a branch already at an entry's proposed name reports new-exists: yes on that entry", () => {
+  withBranchRepo(SINGLE, (repo) => {
     branchAhead(repo, "feature/add-login");
     withSource([], (src) => {
       const result = runIn(repo, ["--branch", src]);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      const report = reportOf(result.stdout);
-      assert.equal(report.new, "feature/add-login");
-      assert.equal(report["new-exists"], "yes");
+      assert.deepEqual(linesOf(result.stdout, "entry: "), [
+        "entry: feature | base: main | target: main | new: feature/add-login | new-exists: yes | behind: unknown",
+      ]);
     });
   });
 });
 
-test("a local base behind its remote-tracking branch reports the missing commit count", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+test("an entry base behind its remote-tracking branch reports the missing commit count on that entry", () => {
+  withBranchRepo(["mode: allowed", ...SINGLE.slice(1)], (repo) => {
     repo.git("checkout", "-q", "-b", "tmp-ahead");
     fs.writeFileSync(path.join(repo.dir, "ahead.txt"), "ahead\n");
     repo.git("add", "-A");
@@ -1791,23 +1986,13 @@ test("a local base behind its remote-tracking branch reports the missing commit 
     withSource([], (src) => {
       const result = runIn(repo, ["--branch", src]);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      assert.equal(reportOf(result.stdout).behind, "1");
-    });
-  });
-});
-
-test("a base with no remote-tracking ref reports behind: unknown", () => {
-  withBranchRepo(["mode: required"], (repo) => {
-    withSource([], (src) => {
-      const result = runIn(repo, ["--branch", src]);
-      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      assert.equal(reportOf(result.stdout).behind, "unknown");
+      assert.match(linesOf(result.stdout, "entry: ")[0], / \| behind: 1$/);
     });
   });
 });
 
 test("an untracked file in the tree reports dirty: yes", () => {
-  withBranchRepo(["mode: allowed"], (repo) => {
+  withBranchRepo(SINGLE, (repo) => {
     fs.writeFileSync(path.join(repo.dir, "untracked.txt"), "x\n");
     withSource([], (src) => {
       const result = runIn(repo, ["--branch", src]);
@@ -1817,44 +2002,22 @@ test("an untracked file in the tree reports dirty: yes", () => {
   });
 });
 
-test("a plan carrying a Repro: line proposes the fix type", () => {
-  const body = PLAN_BODY.replace("- Files: src/T1.ts", "- Files: src/T1.ts\n- Repro: tests/login.test.ts");
-  withBranchRepo(["mode: required"], (repo) => {
-    withSource(
-      [],
-      (src) => {
-        const result = runIn(repo, ["--branch", src]);
-        assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-        assert.equal(reportOf(result.stdout).new, "fix/add-login");
-      },
-      body,
-    );
-  });
-});
-
-test("a plan carrying an issue: URL folds the issue number into the proposed name", () => {
-  withBranchRepo(["mode: required"], (repo) => {
-    withSource(["issue: https://github.com/acme/app/issues/42"], (src) => {
-      const result = runIn(repo, ["--branch", src]);
-      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      assert.equal(reportOf(result.stdout).new, "feature/42-add-login");
-    });
-  });
-});
-
-test("--branch changes neither HEAD nor the tree's status (DoD.5: read-only)", () => {
-  withBranchRepo(["mode: required"], (repo) => {
-    branchAhead(repo, "feature/add-login");
+test("--branch changes neither HEAD nor the tree's status, the issue type lookup included (DoD.8: read-only)", () => {
+  withBranchRepo(GITFLOW, (repo) => {
+    branchAhead(repo, "hotfix/issue.6759");
     fs.writeFileSync(path.join(repo.dir, "untracked.txt"), "x\n");
-    withSource([], (src) => {
-      const beforeHead = headOf(repo);
-      const beforeCommit = commitOf(repo);
-      const beforeTree = treeOf(repo);
-      const result = runIn(repo, ["--branch", src]);
-      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      assert.equal(headOf(repo), beforeHead);
-      assert.equal(commitOf(repo), beforeCommit);
-      assert.equal(treeOf(repo), beforeTree);
+    withGh("Bug-Report", 0, (stubDir) => {
+      withSource([ISSUE], (src) => {
+        const beforeHead = headOf(repo);
+        const beforeCommit = commitOf(repo);
+        const beforeTree = treeOf(repo);
+        const result = runIn(repo, ["--branch", src], [stubDir]);
+        assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+        assert.equal(reportOf(result.stdout).suggested, "hotfix");
+        assert.equal(headOf(repo), beforeHead);
+        assert.equal(commitOf(repo), beforeCommit);
+        assert.equal(treeOf(repo), beforeTree);
+      });
     });
   });
 });
