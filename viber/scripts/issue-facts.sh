@@ -1,9 +1,9 @@
 #!/bin/sh
 #
 # issue-facts.sh - fetches one GitHub issue (metadata, body, every comment) as
-# one fixed text block for the triage skill.
+# one fixed text block for the viber skills that read a GitHub issue.
 #
-# It exists so the skill reads an issue through ONE pre-approved command with
+# It exists so a skill reads an issue through ONE pre-approved command with
 # a fixed output shape: a hand-composed `gh issue view` differs per run in
 # flags and filter, and each variant is a new, unapproved command. The filter
 # runs through gh's own `--jq`, so no external `jq` is needed. Self-verifying:

@@ -1,5 +1,5 @@
 /*
- * issue-facts.test.ts - proves viber/skills/triage/scripts/issue-facts.sh's
+ * issue-facts.test.ts - proves viber/scripts/issue-facts.sh's
  * `issue-facts.sh <N | #N | issue url>` contract against a stubbed `gh`: the
  * issue reference reaches `gh issue view` with the fixed `--json` field list
  * and a `--jq` filter, `#N` is normalized to `N`, a URL passes verbatim, gh's
@@ -27,7 +27,7 @@ import { withTempDir } from "../harness/tmp.ts";
 import { coreUtilsPath, withStub } from "../harness/stub.ts";
 import { forEachShell, type Shell } from "../harness/shells.ts";
 
-const SUT = path.resolve(import.meta.dirname, "../../viber/skills/triage/scripts/issue-facts.sh");
+const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/issue-facts.sh");
 
 const FIELDS = "number,url,title,state,author,labels,body,comments";
 

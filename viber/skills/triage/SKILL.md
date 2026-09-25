@@ -2,7 +2,7 @@
 name: triage
 description: Reviews one reported issue against the current code - whether it can be done, how, what it affects and how big the change is - classifies it and names the next viber step without taking it. Takes a GitHub issue number or URL, or pasted issue text, and can post the report as a comment on the issue.
 argument-hint: "[issue number, issue URL, or pasted issue text]"
-allowed-tools: Read, Grep, Glob, Write, Bash(${CLAUDE_SKILL_DIR}/scripts/issue-facts.sh:*), Bash(${CLAUDE_SKILL_DIR}/scripts/post-comment.sh:*)
+allowed-tools: Read, Grep, Glob, Write, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*)
 disallowed-tools: Skill, Agent, Edit, NotebookEdit, AskUserQuestion
 user-invocable: true
 disable-model-invocation: true
@@ -18,7 +18,7 @@ Every script run is one literal Bash line spelled as below: never prefixed with 
 
 ## 1. Read the issue
 
-- The argument is a single token that is a number, `#<N>` or an issue URL -> run `"${CLAUDE_SKILL_DIR}/scripts/issue-facts.sh" "<argument>"`. Exit 0 -> its block is the issue, body and comments included: trust it, never fetch it again. Exit 1 or 2 -> report its `ERROR` line and stop.
+- The argument is a single token that is a number, `#<N>` or an issue URL -> run `"${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh" "<argument>"`. Exit 0 -> its block is the issue, body and comments included: trust it, never fetch it again. Exit 1 or 2 -> report its `ERROR` line and stop.
 - Any other argument is the pasted issue text. Nothing is published for it: step 4 is skipped.
 - No argument -> say triage needs an issue number, an issue URL or the issue text, and stop.
 
@@ -48,7 +48,7 @@ Every script run is one literal Bash line spelled as below: never prefixed with 
 - `<file>` is the absolute path of `.temp/viber/triage/<N>.md` under the project root, `<N>` being the `NUMBER=` value. Use that same absolute path in both calls below.
 - `Write` the filled report, without the next-step line, to `<file>`.
 - Close the message with one question in prose: publish the report as a comment on the issue? Then end the turn.
-- The user's next message approves publishing -> run `"${CLAUDE_SKILL_DIR}/scripts/post-comment.sh" "<URL>" "<file>"`, `<URL>` being the `URL=` value. Any other answer -> name the file and stop.
+- The user's next message approves publishing -> run `"${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh" "<URL>" "<file>"`, `<URL>` being the `URL=` value. Any other answer -> name the file and stop.
   - exit 0 -> report the `COMMENT_URL=` value.
   - exit 1 -> report its `ERROR` line and say whether a comment landed is unknown. Never retry.
   - exit 2 -> report its `ERROR` line.

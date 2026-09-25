@@ -1,5 +1,5 @@
 /*
- * post-comment.test.ts - proves viber/skills/triage/scripts/post-comment.sh's
+ * post-comment.test.ts - proves viber/scripts/post-comment.sh's
  * `post-comment.sh <N | #N | issue url> <comment file>` contract against a
  * stubbed `gh`: the reference and the file reach `gh issue comment` through
  * `--body-file`, `#N` is normalized to `N`, exactly one COMMENT_URL= line is
@@ -28,7 +28,7 @@ import { withTempDir } from "../harness/tmp.ts";
 import { coreUtilsPath, withStub } from "../harness/stub.ts";
 import { forEachShell, type Shell } from "../harness/shells.ts";
 
-const SUT = path.resolve(import.meta.dirname, "../../viber/skills/triage/scripts/post-comment.sh");
+const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/post-comment.sh");
 
 const COMMENT_URL = "https://github.com/acme/widgets/issues/42#issuecomment-1234567";
 

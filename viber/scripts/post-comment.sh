@@ -3,7 +3,7 @@
 # post-comment.sh - posts one prepared markdown file as a comment on one GitHub
 # issue and reports the new comment's URL.
 #
-# It exists so the triage skill publishes through ONE pre-approved command: a
+# It exists so a viber skill publishes through ONE pre-approved command: a
 # multi-line comment cannot travel as an argument of a single literal Bash
 # line, so the body always goes through `--body-file`. Self-verifying:
 # COMMENT_URL is printed only after gh exited 0 AND printed a well-formed
