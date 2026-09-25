@@ -255,6 +255,12 @@
     font-weight: 700;
     margin: 40px 0 12px;
   }
+  h4 {
+    font-size: 15px;
+    line-height: 1.3;
+    font-weight: 650;
+    margin: 24px 0 8px;
+  }
   p { margin: 0 0 16px; max-width: 80ch; text-wrap: pretty; }
   .note { color: var(--muted); font-size: 15px; }
   code {
@@ -358,6 +364,15 @@
   .commit b { font-weight: 700; }
   .commit .ref { color: var(--term); font-weight: 650; }
   .caption { margin-top: -16px; font-size: 14px; color: var(--muted); }
+  .snippet {
+    margin: 0 0 16px;
+    padding: 14px 18px;
+    background: var(--code-bg);
+    border-radius: 10px;
+    font: 13.5px/1.6 var(--mono);
+    overflow-x: auto;
+    white-space: pre;
+  }
 
   /* A jump from the table of contents lands with a brief wash */
   @media (prefers-reduced-motion: no-preference) {
@@ -797,27 +812,148 @@ domyślnego. Planowanie działa na modelu bieżącej sesji i zakres go nie ogran
     planowania i czeka na twoje potwierdzenie. required zawsze daje biegowi własną gałąź.</span></dd>
   </div>
   <div>
-    <dt><code>base</code> <span class="tag">main</span></dt>
-    <dd><span lang="en">The branch the run's own branch is cut from.</span><span lang="pl">Gałąź, z której
-    wycinana jest własna gałąź biegu.</span></dd>
+    <dt><code>work</code></dt>
+    <dd><span lang="en">Each kind of run branch a project wants, keyed by a short name: its own
+    <code>base</code> it is cut from, <code>name</code> pattern (quoted since it opens on <code>{</code>) and
+    <code>target</code> it would land a pull request on.</span><span lang="pl">Każdy rodzaj gałęzi biegu, jaki
+    potrzebuje projekt, pod krótkim kluczem: własny <code>base</code>, z którego jest wycinana, wzorzec
+    <code>name</code> (w cudzysłowie, bo zaczyna się od <code>{</code>) i <code>target</code>, na który
+    trafiłby pull request.</span></dd>
   </div>
   <div>
-    <dt><code>name</code> <span class="tag">{type}/{issue}-{slug}</span></dt>
-    <dd><span lang="en">The pattern for the run's branch name, quoted since it opens on <code>{</code>.
-    <code>{type}</code>, <code>{issue}</code> and <code>{slug}</code> are filled in from the plan.</span><span lang="pl">Wzorzec
-    nazwy gałęzi biegu, w cudzysłowie, bo zaczyna się od <code>{</code>. <code>{type}</code>, <code>{issue}</code>
-    i <code>{slug}</code> są wypełniane na podstawie planu.</span></dd>
+    <dt><code>issue-type-mappings</code></dt>
+    <dd><span lang="en">Picks a <code>work</code> entry by the type of the GitHub issue a run starts from
+    (needs <code>issues: true</code>). Without a matching mapping, the single usable entry is offered
+    instead.</span><span lang="pl">Wybiera wpis <code>work</code> na podstawie typu issue z GitHuba, od
+    którego zaczyna się bieg (wymaga <code>issues: true</code>). Bez pasującego mapowania proponowany jest
+    jedyny możliwy do użycia wpis.</span></dd>
   </div>
 </dl>
-<p class="note" lang="en">A <code>branching:</code> group. Nothing is ever fetched, pushed, merged or deleted: a
-branch is only created, switched to and committed on. One example per strategy - trunk based
-development and GitHub Flow both cut from <code>main</code>, GitFlow from <code>develop</code> - is commented in the
-template; the strategy's own name is never itself a configuration value.</p>
-<p class="note" lang="pl">Grupa <code>branching:</code>. Nic nie jest pobierane (fetch), wypychane (push), scalane
-ani usuwane: gałąź jest tylko tworzona, na nią następuje przełączenie i na niej lądują commity. Po
-jednym przykładzie na strategię - trunk based development i GitHub Flow wycinają z <code>main</code>, GitFlow z
-<code>develop</code> - jest zakomentowany w szablonie; nazwa samej strategii nigdy nie jest wartością
-konfiguracji.</p>
+<p class="note" lang="en">A <code>name</code> pattern is filled in from the plan: <code>{type}</code>,
+<code>{slug}</code> and <code>{issue-number}</code> - the last needs <code>issues: true</code>, since without
+it there is no issue number to fill in. Nothing is ever fetched, pushed, merged or deleted: a branch is
+only created, switched to and committed on. A bad entry or mapping is dropped with a readable reason
+rather than breaking the whole file; see <code>viber/BRANCHING.md</code> for the full list. One complete
+example per strategy follows - the strategy's own name is never itself a configuration value.</p>
+<p class="note" lang="pl">Wzorzec <code>name</code> jest wypełniany na podstawie planu: <code>{type}</code>,
+<code>{slug}</code> i <code>{issue-number}</code> - ten ostatni wymaga <code>issues: true</code>, bo bez
+tego nie ma numeru issue do wstawienia. Nic nie jest pobierane (fetch), wypychane (push), scalane ani
+usuwane: gałąź jest tylko tworzona, na nią następuje przełączenie i na niej lądują commity. Zły wpis lub
+mapowanie jest odrzucane z czytelnym powodem, zamiast psuć cały plik; pełną listę zawiera
+<code>viber/BRANCHING.md</code>. Dalej jeden pełny przykład na strategię - nazwa samej strategii nigdy nie
+jest wartością konfiguracji.</p>
+
+<h4><span lang="en">Trunk based development, branching off</span><span lang="pl">Trunk based development, gałęzie wyłączone</span></h4>
+<pre class="snippet">branching:
+  mode: off</pre>
+<p class="caption" lang="en">Every run keeps committing on whichever branch you already checked out.</p>
+<p class="caption" lang="pl">Każdy bieg commituje dalej na tej gałęzi, na którą już przełączyłeś się sam.</p>
+
+<h4><span lang="en">Trunk based development, short-lived branches</span><span lang="pl">Trunk based development, krótko żyjące gałęzie</span></h4>
+<pre class="snippet">branching:
+  mode: allowed
+  work:
+    main:
+      base: main
+      name: '{type}/{slug}'
+      target: main</pre>
+<p class="caption" lang="en">One entry, cut from and landing back on <code>main</code>; <code>allowed</code>
+means you still confirm the branch each run rather than always getting one.</p>
+<p class="caption" lang="pl">Jeden wpis, wycinany z <code>main</code> i tam wracający; <code>allowed</code>
+oznacza, że nadal potwierdzasz gałąź przy każdym biegu, zamiast dostawać ją zawsze.</p>
+
+<h4><span lang="en">GitHub Flow</span><span lang="pl">GitHub Flow</span></h4>
+<pre class="snippet">branching:
+  mode: required
+  work:
+    main:
+      base: main
+      name: '{type}/{issue-number}-{slug}'
+      target: main
+  issue-type-mappings:
+    bug: main
+    feature: main</pre>
+<p class="caption" lang="en">Every change gets its own branch off <code>main</code>, named after the issue
+it closes, and lands back on <code>main</code> through a pull request.</p>
+<p class="caption" lang="pl">Każda zmiana dostaje własną gałąź wyciętą z <code>main</code>, nazwaną po
+issue, które zamyka, i wraca na <code>main</code> przez pull request.</p>
+
+<h4><span lang="en">GitLab Flow, environment branches</span><span lang="pl">GitLab Flow, gałęzie środowisk</span></h4>
+<pre class="snippet">branching:
+  mode: required
+  work:
+    feature:
+      base: main
+      name: '{type}/{slug}'
+      target: main
+    hotfix:
+      base: production
+      name: 'hotfix/{slug}'
+      target: production
+  issue-type-mappings:
+    bug: hotfix
+    feature: feature</pre>
+<p class="caption" lang="en">Feature work is cut from and lands back on <code>main</code>; a production
+issue is cut straight from the long-lived <code>production</code> branch instead. Promoting <code>main</code>
+through the environment branches themselves stays outside this schema.</p>
+<p class="caption" lang="pl">Praca nad funkcją jest wycinana z <code>main</code> i tam wraca; issue
+produkcyjne jest wycinane wprost z długo żyjącej gałęzi <code>production</code>. Promowanie <code>main</code>
+przez gałęzie środowisk zostaje poza tym schematem.</p>
+
+<h4><span lang="en">GitLab Flow, release branches</span><span lang="pl">GitLab Flow, gałęzie wydań</span></h4>
+<pre class="snippet">branching:
+  mode: required
+  work:
+    feature:
+      base: main
+      name: '{type}/{slug}'
+      target: main
+  issue-type-mappings:
+    bug: feature
+    feature: feature</pre>
+<p class="caption" lang="en">Feature and fix work is cut from and lands back on <code>main</code>; cutting
+the release branch itself, and back-merging a fix into it, is part 2.</p>
+<p class="caption" lang="pl">Praca nad funkcją i poprawką jest wycinana z <code>main</code> i tam wraca;
+wycinanie samej gałęzi wydania i wtapianie do niej poprawki to część 2.</p>
+
+<h4><span lang="en">Release Flow</span><span lang="pl">Release Flow</span></h4>
+<pre class="snippet">branching:
+  mode: required
+  work:
+    feature:
+      base: main
+      name: '{type}/{issue-number}-{slug}'
+      target: main
+  issue-type-mappings:
+    bug: feature
+    feature: feature</pre>
+<p class="caption" lang="en">Every change is cut from and lands back on <code>main</code>, named after its
+issue; cutting a release branch per release and cherry-picking a fix onto it is part 2.</p>
+<p class="caption" lang="pl">Każda zmiana jest wycinana z <code>main</code> i tam wraca, nazwana po swoim
+issue; wycinanie gałęzi wydania dla każdego wydania i przenoszenie na nią poprawki cherry-pickiem to
+część 2.</p>
+
+<h4><span lang="en">GitFlow</span><span lang="pl">GitFlow</span></h4>
+<pre class="snippet">branching:
+  mode: required
+  work:
+    feature:
+      base: develop
+      name: 'feature/{slug}'
+      target: develop
+    hotfix:
+      base: main
+      name: 'hotfix/{slug}'
+      target: main
+  issue-type-mappings:
+    feature: feature
+    bug: hotfix</pre>
+<p class="caption" lang="en">Feature work is cut from and lands back on <code>develop</code>; a production
+issue is cut from <code>main</code> instead. Release branches, their version numbers and back-merging a
+hotfix into <code>develop</code> are part 2.</p>
+<p class="caption" lang="pl">Praca nad funkcją jest wycinana z <code>develop</code> i tam wraca; issue
+produkcyjne jest wycinane z <code>main</code>. Gałęzie wydań, ich numery wersji i wtapianie poprawki z
+powrotem do <code>develop</code> to część 2.</p>
 </section>
 </main>
 </div>

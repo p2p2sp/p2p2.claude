@@ -101,18 +101,23 @@ tiers:
   max: opus
 ```
 
-A `branching:` group says whether a run works on its own git branch, cut from which base, under
-which name pattern. `mode` is `off` (stay on the branch the run started on, today's behavior),
-`allowed` (the plan offers a branch and you confirm it) or `required` (a run always gets its own
-branch). `base` is the branch the new one is cut from, and `name` is its pattern, quoted since it
-opens on `{`; `{type}`, `{issue}` and `{slug}` are filled in from the plan. Nothing is fetched,
-pushed, merged or deleted: the branch is only created, switched to and committed on.
+A `branching:` group says whether a run works on its own git branch, and can describe several
+kinds of branch - each with its own base, name pattern and pull request target - picked by the
+type of the GitHub issue a run starts from through `issue-type-mappings`. `mode` is `off` (stay on
+the branch the run started on, today's behavior), `allowed` (the plan offers a branch and you
+confirm it) or `required` (a run always gets its own branch). Nothing is fetched, pushed, merged or
+deleted: the branch is only created, switched to and committed on. See
+[`viber/BRANCHING.md`](BRANCHING.md) for the full schema and one example per branching strategy -
+trunk based development, GitHub Flow, GitLab Flow, Release Flow and GitFlow.
 
 ```yaml
 branching:
   mode: off
-  base: main
-  name: '{type}/{issue}-{slug}'
+  work:
+    main:
+      base: main
+      name: '{type}/{slug}'
+      target: main
 ```
 
 ## Before your first run
