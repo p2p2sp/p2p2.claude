@@ -1,6 +1,6 @@
 ---
 name: planner
-description: Only for a confirmed viber:idea interview or a viber:fixer diagnosis already in context - never the entry point. Without one, suggest the viber:idea interview and let the user decide. Turns that input into a reviewed implementation plan - acceptance criteria, file map, then tasks carrying dependencies, contracts, verification and DoD.
+description: Only for a confirmed viber:intent interview or a viber:fixer diagnosis already in context - never the entry point. Without one, suggest the viber:intent interview and let the user decide. Turns that input into a reviewed implementation plan - acceptance criteria, file map, then tasks carrying dependencies, contracts, verification and DoD.
 allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(date:*)
 user-invocable: false
 ---
@@ -11,11 +11,11 @@ user-invocable: false
 
 # planner
 
-Input: an understood change already in context - a confirmed `viber:idea` interview, or a `viber:fixer` diagnosis. Anything else is unresolved input however clear it reads: suggest the `viber:idea` interview in one line and stop here, never entering plan mode. Never size the scope yourself.
+Input: an understood change already in context - a confirmed `viber:intent` interview, or a `viber:fixer` diagnosis. Anything else is unresolved input however clear it reads: suggest the `viber:intent` interview in one line and stop here, never entering plan mode. Never size the scope yourself.
 
 On valid input call `EnterPlanMode` first unless plan mode is already active.
 
-The input carries three decisions already taken: the spec shape, whether this plan stops at a draft, and, on a round continuing an earlier draft, that draft's run key. Never reopen them.
+The input carries three decisions already taken: the spec shape, whether this plan stops at a draft, and, on a round continuing an earlier draft, that draft's run key. Never reopen them. It may also carry one `Issue: <full issue URL>` line, present only when the run is tied to an issue; that line, not the scope, is what the write step below turns into the plan's `issue:` key.
 
 ## 1. Map the files first
 
@@ -33,9 +33,9 @@ Read `${CLAUDE_PLUGIN_ROOT}/references/plan-rules.md` first, on a draft round as
 
 The specification half is `${CLAUDE_SKILL_DIR}/templates/spec-lite.md` or `${CLAUDE_SKILL_DIR}/templates/spec-full.md`, whichever shape the input names; the task half is `${CLAUDE_SKILL_DIR}/templates/tasks.md` under either. Fill the spec, append the task half under it, and write the result into the plan file plan mode names in its system message, the only file you may write while planning. Keep every section and every HTML marker of both templates, except one a template comment says to drop; add no section of your own.
 
-Write that plan file's absolute path into the frontmatter's `source:` key: approval may clear this context, and that line is then the only way back to the file.
+Write that plan file's absolute path into the frontmatter's `source:` key: approval may clear this context, and that line is then the only way back to the file. Fill the frontmatter's `issue:` key from the input's `Issue:` line exactly when the input carries one; with no such line drop the key.
 
-A round continuing a draft reads `docs/<directories.runs>/<key>/plan.md` first and carries its specification over, changing only what the input's remarks change, and writes the key into the frontmatter's `into:` key; any other plan drops that line.
+A round continuing a draft reads `docs/<directories.runs>/<key>/plan.md` first and carries its specification over, changing only what the input's remarks change - its `issue:` line travels with the rest of that specification unless a remark changes it - and writes the key into the frontmatter's `into:` key; any other plan drops that line.
 
 An input carrying a roadmap fills `## Roadmap` with the ordered subprojects, marks the entry this plan covers and repeats every later entry under `### Out of scope`; no roadmap in the input means no such section. What a later entry brings stays absent: no task delivers a stand-in for it, no acceptance criterion depends on it, nothing is stubbed, mocked or temporarily substituted.
 
