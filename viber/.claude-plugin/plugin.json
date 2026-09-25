@@ -32,6 +32,7 @@
     "./agents/rules-auditor.md",
     "./agents/qa-writer.md",
     "./agents/e2e-writer.md",
-    "./agents/closeout.md"
+    "./agents/closeout.md",
+    "./agents/prototype-writer.md"
   ]
 }
