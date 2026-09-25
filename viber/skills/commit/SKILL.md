@@ -4,7 +4,7 @@ description: Use whenever the user wants to commit, save, or record changes to g
 model: haiku
 context: fork
 background: false
-allowed-tools: Bash, Bash(${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit-context.sh:*)
+allowed-tools: Bash, Bash(${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit-context.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit-selfcheck.sh:*)
 ---
 
 ## Recognize what has changed and commit
