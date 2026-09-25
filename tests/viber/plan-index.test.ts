@@ -290,9 +290,11 @@ test("the index carries one row per task: id, state, TDD marker, exclusivity, no
         `plan: ${PLAN_REL}`,
         "title: Add login",
         "progress: 0/2",
-        "tasks: id | state | tdd | excl | deps | files | title",
-        "T1 | todo | required | - | - | src/login.ts | Add the login handler",
-        "T2 | todo | required | - | T1 | src/reject.ts | Reject a bad password",
+        "tasks: id | state | tdd | excl | deps | feeds | files | title",
+        "T1 | todo | required | - | - | - | src/login.ts | Add the login handler",
+        "T2 | todo | required | - | T1 | - | src/reject.ts | Reject a bad password",
+        "verify: T1 | npm test",
+        "verify: T2 | npm test",
         "",
       ].join("\n"),
     );
@@ -341,9 +343,11 @@ test("Exclusive: true reaches the orchestrator as excl yes, and an absent line a
         `plan: ${PLAN_REL}`,
         "title: Add login",
         "progress: 0/2",
-        "tasks: id | state | tdd | excl | deps | files | title",
-        "T1 | todo | required | - | - | src/login.ts | Add the login handler",
-        "T2 | todo | required | yes | T1 | test/login.api.ts | Prove the endpoint against a real server",
+        "tasks: id | state | tdd | excl | deps | feeds | files | title",
+        "T1 | todo | required | - | - | - | src/login.ts | Add the login handler",
+        "T2 | todo | required | yes | T1 | - | test/login.api.ts | Prove the endpoint against a real server",
+        "verify: T1 | npm test",
+        "verify: T2 | npm test",
         "",
       ].join("\n"),
     );
@@ -718,7 +722,7 @@ test("a Files entry whose brackets wrap whole segments is an exact path and reac
 
     const result = run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.match(result.stdout, /^T1 \| todo \| required \| - \| - \| (.+) \| do the thing$/m);
+    assert.match(result.stdout, /^T1 \| todo \| required \| - \| - \| - \| (.+) \| do the thing$/m);
     assert.ok(result.stdout.includes(`| ${files} |`), `stdout: ${result.stdout}`);
   });
 });
@@ -865,6 +869,30 @@ test("one holder naming the block is enough - a file several tasks in one chain 
   });
 });
 
+test("feeds names a contract block one task writes and another task consumes, and stays '-' for the consumer itself", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    // T1 holds the file the shape lives in AND names it in Uses (satisfying
+    // reachability); T2, which does not hold that file, also names it - the
+    // one other task that makes T1's own work load-bearing
+    seed(
+      dir,
+      planBody(
+        [
+          { id: "T1", uses: "C1", files: "src/login.ts" },
+          { id: "T2", covers: "#2", uses: "C1", deps: "T1", files: "src/reject.ts" },
+        ],
+        2,
+        ownedContract("src/login.ts"),
+      ),
+    );
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^T1 \| todo \| required \| - \| - \| C1 \| src\/login\.ts \| do the thing$/m);
+    assert.match(result.stdout, /^T2 \| todo \| required \| - \| T1 \| - \| src\/reject\.ts \| do the thing$/m);
+  });
+});
+
 test("a File entry whose bracket wraps a whole segment is a path, not a glob - like a Files entry", () => {
   withTempDir("p2p2-viber-", (dir) => {
     const route = "src/app/api/sites/[siteId]/route.ts";
@@ -915,7 +943,7 @@ test("--split writes the specification and one file per task, and still prints t
 
     const result = run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.match(result.stdout, /^T2 \| todo \| required \| - \| T1 \| src\/reject\.ts \| Reject a bad password$/m);
+    assert.match(result.stdout, /^T2 \| todo \| required \| - \| T1 \| - \| src\/reject\.ts \| Reject a bad password$/m);
 
     assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
 

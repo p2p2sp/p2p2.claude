@@ -16,11 +16,27 @@
 #   unreviewed: T3                  only when status.md carries the entry
 #   deferred: T7:src/a.ts           only when status.md carries the entry
 #   closed: memory rules            only when status.md carries the entry
-#   tasks: id | state | tdd | excl | deps | files | title
-#   T1 | done | none     | -   | -  | .claude/settings.json | Tighten the settings schema
-#   T2 | todo | required | yes | T1 | src/a.ts,src/b.ts     | Add the retry loop
+#   tasks: id | state | tdd | excl | deps | feeds | files | title
+#   T1 | done | none     | -   | -  | C1 | .claude/settings.json | Tighten the settings schema
+#   T2 | todo | required | yes | T1 | -  | src/a.ts,src/b.ts     | Add the retry loop
+#   verify: T1 | node --test tests/settings.test.ts
+#   verify: T2 | grep -n "retry" src/a.ts
 #   dirty: T2 | src/a.ts            only for a task whose own files are dirty
 #                                   (its "Repro:" path excepted)
+#
+# "feeds" is the comma-separated ids of the contract blocks whose "File:" path
+# is in this task's "Files" and which at least one OTHER task names in "Uses" -
+# "-" when none. It is what tells the orchestrator, without opening a file,
+# that a task's work is load-bearing for another one: a block on "File: none"
+# feeds nothing, since no task holds that path.
+#
+# "verify:" carries the orchestrator the one thing it needs to decide a
+# reviewer waiver without ever opening a task file: one line per task, in task
+# order, right after the task rows and before any "dirty:" line. Its value is
+# the task's own "Verification" text up to its first " -> ", trimmed - the
+# whole value when it carries no arrow. The command is always the last field,
+# so a "|" inside it (a shell pipeline) is part of the command, not a column
+# break.
 #
 # The run's state is read from status.md beside the plan - "done", "skipped",
 # "unreviewed", "deferred" and "closed", one key per line, "none" for an empty
@@ -220,6 +236,14 @@ function val(s)  { sub(/^[^:]*:/, "", s); return trim(s) }
 function fail(msg) { printf "error: %s\n", msg > "/dev/stderr"; err = 1 }
 
 function listed(s) { s = trim(s); return (s == "none" || s == "-" ? "" : s) }
+
+# the "verify:" value: a task Verification text cut at its first " -> ",
+# trimmed - the whole text when it carries no arrow. The command is always the
+# LAST field, so a "|" inside it (a shell pipeline) is part of the command.
+function verifycmd(s,   p) {
+  p = index(s, " -> ")
+  return trim(p == 0 ? s : substr(s, 1, p - 1))
+}
 
 # the criterion numbers of a "Covers:" value: tokens split on commas and
 # whitespace, only "<n>" or "#<n>" counting, so an annotation like "(see S3)"
@@ -513,6 +537,17 @@ END {
           if (!present(p)) fail("contract " cn " declares " p ", which no task creates - put it in the Files of the task that writes the shape")
         }
         else if (!named) fail("contract " cn " declares " p ", held by " held ", but no holder names " cn " in Uses - its writer would never see the shape")
+
+        # "feeds": a holder of this path carries cn in its own feeds column
+        # once some OTHER task names cn in Uses - a shape a task declares but
+        # sends to no one feeds no one
+        for (i = 1; i <= n; i++) {
+          if (!((i, p) in fset)) continue
+          for (j = 1; j <= n; j++) {
+            if (j == i) continue
+            if ((j, cn) in usesset) { feeds[i, cn] = 1; break }
+          }
+        }
       }
     }
   }
@@ -535,14 +570,18 @@ END {
   if (unrev   != "") printf "unreviewed: %s\n", unrev
   if (defer   != "") printf "deferred: %s\n", defer
   if (closed  != "") printf "closed: %s\n", closed
-  printf "tasks: id | state | tdd | excl | deps | files | title\n"
+  printf "tasks: id | state | tdd | excl | deps | feeds | files | title\n"
   for (i = 1; i <= n; i++) {
     f = ""
     for (k = 1; k <= nf[i]; k++) f = (f == "" ? fpath[i, k] : f "," fpath[i, k])
+    fd = ""
+    for (c = 1; c <= ncon; c++) if ((i, corder[c]) in feeds) fd = (fd == "" ? corder[c] : fd "," corder[c])
+    if (fd == "") fd = "-"
     state = (id[i] in isdone ? "done" : (id[i] in isskipped ? "skipped" : "todo"))
     x = (excl[i] == "true" ? "yes" : "-")
-    printf "%s | %s | %s | %s | %s | %s | %s\n", id[i], state, tdd[i], x, dnorm[i], f, ttl[i]
+    printf "%s | %s | %s | %s | %s | %s | %s | %s\n", id[i], state, tdd[i], x, dnorm[i], fd, f, ttl[i]
   }
+  for (i = 1; i <= n; i++) printf "verify: %s | %s\n", id[i], verifycmd(verif[i])
 
   # a task whose own files carry uncommitted work: an earlier session was cut
   # off inside it, and a fresh coder would land on top of what it left. The

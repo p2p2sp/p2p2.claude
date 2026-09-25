@@ -64,7 +64,7 @@ A `branch:` line naming a branch other than the config block's `branching.base` 
 
 ## 2. Validate and decompose
 
-Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan>" --split`. It validates, decomposes and commits the plan, and returns the index: title, progress counter, one line per task (id, state, TDD, `excl`, `deps`, `files`, title). That index is your whole view of the plan; a coder gets its one task file, never the specification.
+Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan>" --split`. It validates, decomposes and commits the plan, and returns the index: title, progress counter, one line per task (id, state, TDD, `excl`, `deps`, `feeds`, `files`, title), then one `verify:` line per task naming its Verification command. `feeds` names the contract blocks that task writes and another task consumes, `-` when none. That index is your whole view of the plan; a coder gets its one task file, never the specification.
 
 Non-zero exit -> report the error and stop; repairing the plan belongs to the planner.
 
@@ -77,16 +77,16 @@ Never dispatch a `done` or `skipped` task again. Also on the index:
 
 ## 3. Profile the tasks
 
-Take both decisions from the nature of the task's work, never its position.
+Take both decisions from the index's own fields, never a field it does not carry.
 
 Tier:
 
 - Mechanical and bounded: config, scaffolding, a rename, docs, `TDD: none` over one or two files -> `haiku`.
 - Ordinary feature work, `TDD: required`, contained within its own files -> `sonnet`.
-- Load-bearing: defines a contract other tasks consume, spans many files, or several tasks depend on it -> `opus`.
+- Load-bearing: a non-empty `feeds` column, many files, or several tasks naming it in their `deps` -> `opus`.
 - A floor the host's instructions declare for a kind of task (a minimum tier, a mandatory review) raises both decisions to it.
 
-Review: only a `Verification` that runs the project's build or its tests waives the reviewer, and never on an `opus` task. A task proved by `grep`, `test -f` or any other content check is reviewed whatever its tier. Its review tier is the task's tier, raised to `sonnet` from `haiku`.
+Review: only when its `verify:` line runs the project's build or its tests does the reviewer get waived, and never on an `opus` task. A `verify:` line running `grep`, `test -f` or any other content check is reviewed whatever its tier. Its review tier is the task's tier, raised to `sonnet` from `haiku`.
 
 Then clamp both tiers into the config block's `tiers.min` to `tiers.max` range (`haiku` < `sonnet` < `opus` < `fable`). The review waiver is decided before the clamp.
 
