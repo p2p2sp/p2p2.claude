@@ -244,6 +244,21 @@ test("ready: a block of '- item' lines under a list key is parsed the same as th
   });
 });
 
+test("ready: a block of '- item' lines in the key's own column (unindented) is parsed the same as the indented form", () => {
+  assertPosix((shell) => {
+    withGitRepo((repo) => {
+      writeTemplates(repo.dir, {
+        "bug.yml": "name: Bug report\ndescription: File a bug\nlabels:\n- bug\n- \"needs triage\"\nassignees:\n- octocat\ntitle: Bug\n",
+      });
+      const { result } = runStubbed(shell, repo.dir, repo.env, [], { GH_STDOUT: "https://github.com/acme/widgets\n" });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match(result.stdout, /^LABELS=bug, needs triage$/m);
+      assert.match(result.stdout, /^ASSIGNEES=octocat$/m);
+      assert.match(result.stdout, /^TITLE=Bug$/m);
+    });
+  });
+});
+
 test("ready: one comma-separated string is parsed the same as the inline/block list forms", () => {
   assertPosix((shell) => {
     withGitRepo((repo) => {

@@ -171,7 +171,7 @@ while IFS= read -r f; do
         next
       }
       if (curlist != "") {
-        if (match(line, /^[[:space:]]+-[[:space:]]*/)) {
+        if (match(line, /^[[:space:]]*-[[:space:]]*/)) {
           item = substr(line, RLENGTH + 1)
           sub(/^[[:space:]]+/, "", item)
           sub(/[[:space:]]+$/, "", item)
