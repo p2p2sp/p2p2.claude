@@ -71,6 +71,9 @@ function switches(stdout: string): Record<string, string> {
   delete all["directories.specifications"];
   delete all["tiers.min"];
   delete all["tiers.max"];
+  delete all["branching.mode"];
+  delete all["branching.base"];
+  delete all["branching.name"];
   return all;
 }
 
@@ -102,7 +105,7 @@ test("no config file: every switch is off, both directories default, and the exi
 test("the group keys are printed dotted, so no reader can take one for a switch", () => {
   withTempDir("p2p2-viber-", (dir) => {
     const printed = run(dir).stdout.trim().split("\n");
-    assert.deepEqual(printed.slice(-4), [
+    assert.deepEqual(printed.slice(-7, -3), [
       "directories.runs: _specs",
       "directories.specifications: specs",
       "tiers.min: haiku",
@@ -368,6 +371,87 @@ test("a CRLF config still yields its tiers (a stray CR is not part of the value)
     writeConfig(dir, "tiers:\r\n  min: sonnet\r\n  max: sonnet\r\n");
 
     assert.deepEqual(tiers(run(dir).stdout), { min: "sonnet", max: "sonnet" });
+  });
+});
+
+// --- the branching group ---
+
+const DEFAULT_BRANCHING = ["branching.mode: off", "branching.base: main", "branching.name: {type}/{issue}-{slug}"];
+
+/** The three branching lines, the last three the script prints. */
+function branching(stdout: string): string[] {
+  return stdout.trim().split("\n").slice(-3);
+}
+
+test("no config file: the output ends with the three branching lines at their defaults, after the tiers", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const result = run(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(result.stdout.trim().split("\n").slice(-4), ["tiers.max: opus", ...DEFAULT_BRANCHING]);
+  });
+});
+
+test("the branching group takes its valid values, a mixed-case mode lowered and a trailing comment dropped", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, ["branching:", "  mode: Required  # every run on its own branch", "  base: release/2.x", "  name: feature/{issue}_{slug}.v1", ""].join("\n"));
+
+    const result = run(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(branching(result.stdout), [
+      "branching.mode: required",
+      "branching.base: release/2.x",
+      "branching.name: feature/{issue}_{slug}.v1",
+    ]);
+  });
+});
+
+for (const quoted of [`"fix/{issue}-{slug}"`, `'fix/{issue}-{slug}'`]) {
+  test(`a quoted pattern ${quoted} prints without its quotes (YAML needs them around a leading brace)`, () => {
+    withTempDir("p2p2-viber-", (dir) => {
+      writeConfig(dir, ["branching:", `  name: ${quoted}`, ""].join("\n"));
+
+      assert.equal(branching(run(dir).stdout)[2], "branching.name: fix/{issue}-{slug}");
+    });
+  });
+}
+
+for (const mode of ["on", "true", "gitflow", `"allowed"`]) {
+  test(`an unknown mode ${mode} resolves to off (only off, allowed and required are modes)`, () => {
+    withTempDir("p2p2-viber-", (dir) => {
+      writeConfig(dir, ["branching:", `  mode: ${mode}`, ""].join("\n"));
+
+      assert.equal(branching(run(dir).stdout)[0], "branching.mode: off");
+    });
+  });
+}
+
+for (const base of ["-main", "/main", "main..develop", "rel;ease", "dev$HOME", "ma*in"]) {
+  test(`an unusable base ${base} prints the default (it would be read as an option, a path or a range)`, () => {
+    withTempDir("p2p2-viber-", (dir) => {
+      writeConfig(dir, ["branching:", `  base: ${base}`, ""].join("\n"));
+
+      assert.equal(branching(run(dir).stdout)[1], "branching.base: main");
+    });
+  });
+}
+
+for (const name of ["{type}/{slug};rm", "feat/$USER", "fix\\{slug}", `"{slug}`, `""`, "fix/{slug}~1"]) {
+  test(`an unusable pattern ${name} prints the default`, () => {
+    withTempDir("p2p2-viber-", (dir) => {
+      writeConfig(dir, ["branching:", `  name: ${name}`, ""].join("\n"));
+
+      const result = run(dir);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(branching(result.stdout)[2], "branching.name: {type}/{issue}-{slug}");
+    });
+  });
+}
+
+test("branching keys outside the branching group are not branching keys", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, ["mode: required", "base: develop", group({ name: "feat/{slug}" })].join("\n"));
+
+    assert.deepEqual(branching(run(dir).stdout), DEFAULT_BRANCHING);
   });
 });
 
