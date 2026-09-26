@@ -149,8 +149,12 @@ changed after the snapshot never stops the commit. Severity low. Verifiers: both
   header and the manifest already say where switches live and that existing values are kept. A
   sentence naming default values would go stale with every template change.
 
-2.13. `skills/triage/SKILL.md:15` promises "the two script lines below"; under `issues: false`
+2.13. DONE. `skills/triage/SKILL.md:15` promises "the two script lines below"; under `issues: false`
 the fragments preload none. Severity low. Found by one verifier.
+- Done as: the count dropped, word order aligned with `prototype/SKILL.md:14`. "The script lines
+  below" holds in both switch states (none under `false`); no switch-dependent tools fragment,
+  which would add a preload for no gain. `:17` stays in the body: moving it into a `true`
+  fragment saves ~170 bytes only under `false` and ties a skill-wide rule to one step.
 
 2.14. DONE. `skills/intent/SKILL.md:14-16` preloads the `issues-input` fragment before `## Returning to a
 draft` (`:18`) tells the model to read the draft, so the draft's `issue:` check relies on implicit

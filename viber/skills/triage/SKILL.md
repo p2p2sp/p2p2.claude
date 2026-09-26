@@ -12,7 +12,7 @@ disable-model-invocation: true
 
 One issue in, one assessment out. You read code and write one file, the comment file of step 4. You write no test, run no application, change no code and never invoke a skill: the next step is named, never taken.
 
-Your tools: `Read`, `Grep`, `Glob`, the two script lines below, `Write` for the comment file alone.
+Your tools: `Read`, `Grep`, `Glob`, `Write` for the comment file alone, and the script lines below.
 
 Every script run is one literal Bash line spelled as below: never prefixed with an interpreter word, never assigned to a variable, never preceded by `cd`, never chained with `;`.
 
