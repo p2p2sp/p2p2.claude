@@ -184,7 +184,7 @@ test("a config seeded by an older version keeps its own values and gains only th
     assert.match(after, /^qa: false$/m);
     assert.match(after, /^cleanup: true$/m);
     assert.match(after, /^plain-plan-review: true$/m);
-    assert.match(after, /^issues: true$/m);
+    assert.match(after, /^issues: false$/m);
     assert.match(after, /^directories:\n {2}runs: _specs\n {2}specifications: specs$/m);
     assert.match(after, /^tiers:\n {2}min: haiku\n {2}max: opus$/m);
     assert.match(

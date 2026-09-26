@@ -79,7 +79,7 @@ switch the new version added is merged into your file, with every value you set 
 | `qa` | **off** | The build closes by writing test scenarios for what it delivered, which `/viber:e2e` can then automate. |
 | `cleanup` | on | The build ends by noting anything it delivered that the specification does not promise, then archiving the run and dropping the working files. |
 | `plain-plan-review` | on | A plan written in plain plan mode, without the planner, must pass a review before plan mode can be left. |
-| `issues` | on | `/viber:intent`, `/viber:fixer` and `/viber:prototype` can start from a GitHub issue's number or link, and an interview that did not can save its conclusions as a new one; `/viber:prototype` can post its mockup to the issue it started from; `/viber:triage` can fetch and publish to a GitHub issue instead of pasted text alone. |
+| `issues` | **off** | `/viber:intent`, `/viber:fixer` and `/viber:prototype` can start from a GitHub issue's number or link, and an interview that did not can save its conclusions as a new one; `/viber:prototype` can post its mockup to the issue it started from; `/viber:triage` can fetch and publish to a GitHub issue instead of pasted text alone. |
 
 The same file carries a `directories:` group with two names, both under `docs/`: `runs`
 (`_specs`) for a run in progress and `specifications` (`specs`) for the archive.

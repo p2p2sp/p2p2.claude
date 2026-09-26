@@ -188,7 +188,7 @@ test("`MEMORY: true` resolves to off - the key itself is matched case-sensitivel
   });
 });
 
-test("the shipped template is what setup seeds: five switches on, qa off, and both directories named", () => {
+test("the shipped template is what setup seeds: five switches on, qa and issues off, and both directories named", () => {
   withTempDir("p2p2-viber-", (dir) => {
     const template = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/viber.yml");
     writeConfig(dir, fs.readFileSync(template, "utf-8"));
@@ -201,7 +201,7 @@ test("the shipped template is what setup seeds: five switches on, qa off, and bo
       qa: "false",
       cleanup: "true",
       "plain-plan-review": "true",
-      issues: "true",
+      issues: "false",
     });
     assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS);
     assert.deepEqual(tiers(result.stdout), DEFAULT_TIERS);
