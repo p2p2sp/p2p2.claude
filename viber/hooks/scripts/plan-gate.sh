@@ -5,9 +5,9 @@
 # Armed only when the CURRENT plan-mode episode shows a Write/Edit of a
 # plans/*.md file - plan mode names that path itself, so it is the harness plans
 # directory unless the project redirects it. The episode then picks its reviewer:
-#   - a Skill tool_use for "planner" in the episode (the skill is
-#     user-invocable: false, so a model dispatch is the only way it runs) ->
-#     the planner-review agent, always;
+#   - a Skill tool_use for "planner" in the episode, or one whose own
+#     EnterPlanMode opened it (the skill is user-invocable: false, so a model
+#     dispatch is the only way it runs) -> the planner-review agent, always;
 #   - no planner -> a plain plan-mode plan, gated by the plain-plan-review agent
 #     only when config.sh resolves `plain-plan-review: true` for the session's cwd.
 # Anything else - no plan write, plain-plan-review off, a plan-mode exit in a session
@@ -110,13 +110,24 @@ plan_write_line=$(
 # tool's payload cannot match: `\"skill\":\"planner\"` carries a backslash where
 # the pattern needs the quote. Only viber's own install form arms the gate: bare
 # "planner" or "viber:planner" - another plugin's "xyz:planner" is not this one.
-skill_line=$(
-  grep -nE '"name":"Skill"' "$transcript_path" 2>/dev/null \
-    | grep -E '"skill":"(viber:)?planner"' \
-    | tail -n1 \
-    | cut -d: -f1
-)
-if [ -n "$skill_line" ] && [ "$skill_line" -gt "$episode_start" ]; then
+#
+# The planner loads in normal mode and calls EnterPlanMode itself, and Claude Code
+# can flush the old permission mode mid-turn between the two, which puts the Skill
+# line before episode_start. So the planner also owns the episode when the first
+# signal after its Skill line is its own EnterPlanMode tool_use and that entry lies
+# inside the episode. A user prompt or a plan-mode record reached first ends the
+# pending entry: a refused planner followed by a new request stays out.
+planner_raw="$(
+  awk '
+    /"name":"Skill"/ && /"skill":"(viber:)?planner"/ { skill = NR; entry = 0; pending = 1; next }
+    pending && /"type":"tool_use",("id":"[^"]*",)?"name":"EnterPlanMode"/ { entry = NR; pending = 0; next }
+    pending && (/"permissionMode":"plan"/ || /"message":[{]("role":"user",)?"content":"/) { pending = 0 }
+    END { print skill + 0, entry + 0 }
+  ' "$transcript_path" 2>/dev/null
+)"
+printf '%s' "$planner_raw" | grep -qE '^[0-9]+ [0-9]+$' || planner_raw="0 0"
+set -- $planner_raw
+if [ "$1" -gt "$episode_start" ] || [ "$2" -gt "$episode_start" ]; then
   agent="planner-review"
   writer="The planner skill"
   dispatch_with="the plan path, \`refs:\` (the reference directory) and \`memory:\` (the planner's resolved config value), as planner-review.md expects its input"

@@ -133,6 +133,18 @@ function permissionMode(mode: string): string {
   return line({ type: "permission-mode", permissionMode: mode, sessionId: "s" });
 }
 
+/** The model entering plan mode itself, as the planner does after its Skill loads.
+ *  With an id the key order is the real transcript's: type, id, name. */
+function enterPlanMode(id?: string): string {
+  const use = id ? { type: "tool_use", id, name: "EnterPlanMode", input: {} } : { type: "tool_use", name: "EnterPlanMode", input: {} };
+  return line({ type: "assistant", message: { content: [use] } });
+}
+
+/** A typed user prompt: string content, unlike a tool_result's array. */
+function userPrompt(text: string): string {
+  return line({ type: "user", message: { role: "user", content: text } });
+}
+
 /** A plan file that really exists, so the mtime guard has something to stat. */
 function realPlan(dir: string, rel = ".claude/plans/2026-09-20-10-00-00_feat-x/plan.md"): string {
   const file = path.join(dir, rel);
@@ -308,6 +320,34 @@ test("signals recorded after the last non-plan permission mode are inside the ep
   withTempDir("p2p2-plan-gate-", (dir) => {
     const f = writeTranscript(dir, "t.jsonl", [permissionMode("acceptEdits"), skillUse(), planWrite()]);
     assert.equal(runCase(f).decision, "deny");
+  });
+});
+
+test("a mid-turn non-plan record between the planner Skill and its own EnterPlanMode keeps the planner in the episode -> deny naming planner-review", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [
+      permissionMode("acceptEdits"),
+      skillUse(),
+      permissionMode("acceptEdits"),
+      enterPlanMode("toolu_enter"),
+      permissionMode("plan"),
+      planWrite(),
+    ]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /planner-review agent has not run on this version/);
+
+    const reviewed = writeTranscript(dir, "r.jsonl", [
+      permissionMode("acceptEdits"),
+      skillUse(),
+      permissionMode("acceptEdits"),
+      enterPlanMode(),
+      permissionMode("plan"),
+      planWrite(),
+      dispatch(),
+      PASS,
+    ]);
+    assert.equal(runCase(reviewed).decision, "allow");
   });
 });
 
@@ -720,5 +760,59 @@ test("plain plan modified after its plain-plan-review PASS -> deny (the mtime gu
     const { decision, reason } = runCase(f, cwd);
     assert.equal(decision, "deny");
     assert.match(reason ?? "", /was modified after its 'VERDICT: PASS' - dispatch the viber:plain-plan-review agent/);
+  });
+});
+
+// --- planner ownership across a mid-turn permission-mode record ----------
+
+test("a mid-turn record before the planner EnterPlanMode with plain-plan-review on -> planner-review still owns the plan, a plain-plan-review PASS never satisfies it", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const head = [skillUse(), permissionMode("acceptEdits"), enterPlanMode(), planWrite()];
+    const plain = writeTranscript(dir, "plain.jsonl", [...head, dispatch(undefined, PLAIN), PASS]);
+    const { decision, reason } = runCase(plain, cwd);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /viber:planner-review agent has not run on this version/);
+    const own = writeTranscript(dir, "own.jsonl", [...head, dispatch(), PASS]);
+    assert.equal(runCase(own, cwd).decision, "allow");
+  });
+});
+
+test("a planner from an earlier, approved episode does not own a later plain plan -> the plain path (a plan approved earlier cannot re-arm the planner gate)", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const f = writeTranscript(dir, "t.jsonl", [
+      skillUse(),
+      enterPlanMode(),
+      permissionMode("plan"),
+      planWrite(),
+      dispatch(),
+      PASS,
+      permissionMode("acceptEdits"),
+      userPrompt("next thing"),
+      enterPlanMode(),
+      permissionMode("plan"),
+      planWrite(),
+    ]);
+    const { decision, reason } = runCase(f, cwd);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /plain-plan-review agent has not run on this version/);
+  });
+});
+
+test("a planner that stopped before EnterPlanMode, then a new user prompt enters plan mode -> the plain path, not planner-review", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const f = writeTranscript(dir, "t.jsonl", [
+      skillUse(),
+      permissionMode("acceptEdits"),
+      userPrompt("just plan it"),
+      enterPlanMode(),
+      permissionMode("plan"),
+      planWrite(),
+    ]);
+    const { decision, reason } = runCase(f, cwd);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /plain-plan-review agent has not run on this version/);
   });
 });

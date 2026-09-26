@@ -7,7 +7,7 @@
 # implementation, and have independent tasks run in parallel subagents. The
 # viber planner needs neither - its implementor already runs task-reviewer and
 # parallel coders - so a planner Skill tool_use in the current plan-mode episode
-# silences the hint.
+# (or one whose own EnterPlanMode opened it) silences the hint.
 #
 # Why a hook: the rules only matter while a plain plan is written, so carrying
 # them in the session manifest spent context in every session for nothing. The
@@ -59,14 +59,19 @@ if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
   )
   episode_start="${episode_start:-0}"
 
-  # Planner Skill tool_use, as in plan-gate.sh: bare "planner" or "viber:planner".
-  skill_line=$(
-    grep -nE '"name":"Skill"' "$transcript_path" 2>/dev/null \
-      | grep -E '"skill":"(viber:)?planner"' \
-      | tail -n1 \
-      | cut -d: -f1
-  )
-  if [ -n "$skill_line" ] && [ "$skill_line" -gt "$episode_start" ]; then
+  # Planner Skill tool_use, as in plan-gate.sh: bare "planner" or "viber:planner",
+  # inside the episode or directly followed by its own EnterPlanMode inside it.
+  planner_raw="$(
+    awk '
+      /"name":"Skill"/ && /"skill":"(viber:)?planner"/ { skill = NR; entry = 0; pending = 1; next }
+      pending && /"type":"tool_use",("id":"[^"]*",)?"name":"EnterPlanMode"/ { entry = NR; pending = 0; next }
+      pending && (/"permissionMode":"plan"/ || /"message":[{]("role":"user",)?"content":"/) { pending = 0 }
+      END { print skill + 0, entry + 0 }
+    ' "$transcript_path" 2>/dev/null
+  )"
+  printf '%s' "$planner_raw" | grep -qE '^[0-9]+ [0-9]+$' || planner_raw="0 0"
+  set -- $planner_raw
+  if [ "$1" -gt "$episode_start" ] || [ "$2" -gt "$episode_start" ]; then
     exit 0
   fi
 fi

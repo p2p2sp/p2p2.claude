@@ -28,7 +28,7 @@ Gate every `(review)` rule of `plan-rules.md`, each clause of it, and report a b
 - Decomposed: tasks are independently verifiable and their boundaries are real ones.
 - Buildable: an engineer could execute each task without stopping to ask what was meant.
 - Grounded: paths exist or are plausibly new, and the approach fits how this codebase actually works rather than how such code usually looks. A `modify` entry has to be a change the file can take: a dependency edge a task adds must not reverse one that already exists.
-- Sliced right: read `<refs>/test-strategy.md` before this check. Every rule there ending in `(blocking)` that the plan breaks is a Blocking finding.
+- Sliced right: read `<refs>/test-strategy.md` before this check, plus `<refs>/integration-tests.md` when the plan has an integration task. Every rule in them ending in `(blocking)` that the plan breaks is a Blocking finding.
 
 ## Check the big spec shape
 

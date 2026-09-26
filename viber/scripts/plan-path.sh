@@ -26,7 +26,8 @@
 # <src> is the approved plan as plan mode wrote it. Its directory is a user-level
 # setting ("plansDirectory"), so the file normally sits OUTSIDE this repository:
 # it is copied, never moved, and the source is left untouched. The slug comes
-# from the plan's own first H1, falling back to its file name, and is normalized
+# from the plan's own first H1, falling back to its file name when there is no
+# H1 or the H1 normalizes to nothing (a non-Latin script), and is normalized
 # here - lowercased, every other run of characters collapsed to "-", 60 chars
 # max - so no caller has to form one. The copy is stripped of the template's
 # guidance comments on the way in: everything the run itself reads stays
@@ -128,8 +129,9 @@
 #     mode: off
 #   exit != 0:
 #     2 - unusable argv: an unknown first argument, --land without a source, a
-#         source that is not a file, a slug that normalizes to nothing, an
-#         --into key that is empty, carries a slash or a traversal, or names no
+#         source that is not a file, a title and file name that both
+#         normalize to nothing, an --into key that is empty, carries a slash
+#         or a traversal, or names no
 #         directory under docs/<runs>/, or --branch on a plan that is not a file
 #     3 - no argument and docs/_specs/ holds no plan
 #     4 - --into on a target that already carries a decomposition or recorded
@@ -383,13 +385,26 @@ title_of() {
   printf '%s\n' "$title"
 }
 
-# The run slug of that plan: its title normalized, empty when nothing survives.
-slug_of() {
-  title_of "$1" \
-    | tr '[:upper:]' '[:lower:]' \
+# Normalize stdin into a slug: lowercased, every other run of characters
+# collapsed to "-", 60 chars max, empty when nothing survives.
+slugify() {
+  tr '[:upper:]' '[:lower:]' \
     | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-*//' -e 's/-*$//' \
     | cut -c1-60 \
     | sed -e 's/-*$//'
+}
+
+# The run slug of that plan: its title normalized, or its file name normalized
+# when the title leaves nothing (a title in a non-Latin script), empty when
+# neither survives.
+slug_of() {
+  local slug base
+  slug="$(title_of "$1" | slugify)"
+  if [[ -z "$slug" ]]; then
+    base="$(basename -- "$1")"
+    slug="$(printf '%s\n' "${base%.md}" | slugify)"
+  fi
+  printf '%s\n' "$slug"
 }
 
 emit() {

@@ -421,6 +421,20 @@ test("a whitespace-only H1 is no title, so the file name answers instead", () =>
   });
 });
 
+test("an H1 in a non-Latin script normalizes to nothing, so the file name answers instead (such a plan must still land and build)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    for (const [index, title] of ["Добавить вход", "Προσθήκη σύνδεσης", "添加登录"].entries()) {
+      const src = sourcePlan(dir, path.join("outside", String(index), "tingly-discovering-gizmo.md"), planWithTasks(title, ["T1"]));
+      const result = run(dir, ["--land", src]);
+      assert.equal(result.status, 0, `${title} -> stderr: ${result.stderr}`);
+      const resolved = parse(result.stdout);
+      assert.equal(resolved.state, "new", `title: ${title}`);
+      assert.equal(slugOf(resolved.key), "tingly-discovering-gizmo", `title: ${title}`);
+      fs.rmSync(path.join(dir, "docs"), { recursive: true, force: true });
+    }
+  });
+});
+
 test("a run already open for that slug comes back existing, and its progress is not written over", () => {
   withTempDir("p2p2-viber-", (dir) => {
     const inProgress = [planWithTasks("Add Login", ["T1", "T2"]), "<!-- done: T1 -->", ""].join("\n");

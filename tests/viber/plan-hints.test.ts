@@ -51,6 +51,10 @@ function permissionMode(mode: string): string {
   return line({ type: "permission-mode", permissionMode: mode, sessionId: "s" });
 }
 
+function enterPlanMode(): string {
+  return line({ type: "assistant", message: { content: [{ type: "tool_use", id: "toolu_enter", name: "EnterPlanMode", input: {} }] } });
+}
+
 // hooks.json invokes the script as `bash "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/plan-hints.sh"`,
 // so the harness runs it through bash the same way.
 function run(input: string): string {
@@ -119,6 +123,21 @@ test("a planner Skill tool_use in the current episode -> nothing printed (the vi
 test("a planner Skill before a later non-plan permission mode -> the hint fires again (an earlier episode does not silence a new plain plan)", () => {
   withTempDir("p2p2-plan-hints-", (dir) => {
     const f = writeTranscript(dir, [skillUse(), permissionMode("default"), permissionMode("plan")]);
+    assertHint(runPayload({ permission_mode: "plan", transcript_path: f }));
+  });
+});
+
+test("a mid-turn non-plan record between the planner Skill and its own EnterPlanMode -> nothing printed (the planner still owns the episode)", () => {
+  withTempDir("p2p2-plan-hints-", (dir) => {
+    const f = writeTranscript(dir, [permissionMode("acceptEdits"), skillUse(), permissionMode("acceptEdits"), enterPlanMode(), permissionMode("plan")]);
+    assert.equal(runPayload({ permission_mode: "plan", transcript_path: f }), "");
+  });
+});
+
+test("a planner that stopped before EnterPlanMode, then a new user prompt enters plan mode -> the hint fires (plain plan)", () => {
+  withTempDir("p2p2-plan-hints-", (dir) => {
+    const prompt = line({ type: "user", message: { role: "user", content: "just plan it" } });
+    const f = writeTranscript(dir, [skillUse(), permissionMode("acceptEdits"), prompt, enterPlanMode(), permissionMode("plan")]);
     assertHint(runPayload({ permission_mode: "plan", transcript_path: f }));
   });
 });
