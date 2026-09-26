@@ -142,8 +142,12 @@ changed after the snapshot never stops the commit. Severity low. Verifiers: both
   never question committing `all`). Deleting the line was rejected: the fork holds a bare `Bash`
   allow, and the description's "never inspect git status/diff first" binds only the main model.
 
-2.12. `skills/setup/SKILL.md:19` is false: "The switches land on", while the template ships
+2.12. DONE. `skills/setup/SKILL.md:19` is false: "The switches land on", while the template ships
 `qa: false` and `branching.mode: off`. Severity low. Verifiers: both.
+- Done as: the whole paragraph `:19-21` deleted with 4.8, not rewritten. It fed no step (the
+  close lists only the preload, settings and page lines); `bootstrap.sh` lines, the template
+  header and the manifest already say where switches live and that existing values are kept. A
+  sentence naming default values would go stale with every template change.
 
 2.13. `skills/triage/SKILL.md:15` promises "the two script lines below"; under `issues: false`
 the fragments preload none. Severity low. Found by one verifier.
@@ -240,7 +244,7 @@ CONFIRMED.
 `Refs:` verbatim. Keep `:25-26`: they carry the literal command the permission pattern matches.
 Also `:12` second sentence (output stated three times). Outside a build. Verifiers: both PARTLY.
 
-4.8. `skills/setup/SKILL.md:19-21` (about 280 bytes): feeds no step; `bootstrap.sh:139`, `:153`
+4.8. DONE with 2.12. `skills/setup/SKILL.md:19-21` (about 280 bytes): feeds no step; `bootstrap.sh:139`, `:153`
 print the same; `:19` is false (2.12). Verifiers: both CONFIRMED.
 
 4.9. User-only skills, about 1 KB total, outside a build. Verifiers: both.

@@ -16,10 +16,6 @@ model: haiku
 The lines above are the result. They are idempotent and self-verifying: report them as they
 stand, never re-check them.
 
-The switches land on in `.claude/viber.yml` - every key carries its own comment and the user
-edits that file to turn one off with `false`. A file that was already present keeps every value
-in it; only a switch this version added is appended to it, which the preload's line names.
-
 The settings file is the one choice. On `settings.json: present`, ask with `AskUserQuestion` (a
 prose question ends the turn and the script's pre-approval with it) whether to:
 
