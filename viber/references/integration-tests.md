@@ -1,6 +1,6 @@
 # Integration tests
 
-What an integration test runs against and how the layer stays fast. The rules of `test-strategy.md` bind it too. A rule ending in `(blocking)` is a blocking finding for a reviewer.
+What an integration test runs against and how the layer stays fast. A rule ending in `(blocking)` is a blocking finding for a reviewer.
 
 ## What it runs against
 
@@ -11,6 +11,6 @@ What an integration test runs against and how the layer stays fast. The rules of
 
 - The layer's wall-clock is a design constraint: a slow layer is a missing strategy, never the price of real dependencies.
 - Start each dependency once per run and apply its schema once, then reuse it across every test it fits; never restart it between tests. (blocking)
-- Reset state between tests by the cheapest honest means - a rolled-back transaction, a truncate, a namespace of its own per test - so reuse costs no test its independence. The `Exclusive` slot makes the reuse safe: the layer runs alone, so it is not the sharing the isolation rule forbids.
+- Reset state between tests by the cheapest honest means - a rolled-back transaction, a truncate, a namespace of its own per test - so reuse costs no test its independence. The `Exclusive` slot makes the reuse safe: the layer runs alone, so it is not the sharing `test-strategy.md`'s isolation rule forbids.
 - Wait for a dependency on its readiness signal, never on a fixed delay.
 - Run the tests in parallel wherever the reset keeps them independent.

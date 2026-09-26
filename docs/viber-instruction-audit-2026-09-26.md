@@ -185,7 +185,7 @@ the field (the repo already dropped it from agents). Check the docs before remov
 
 ## 4. Cuts that keep quality
 
-4.1. Split `references/test-strategy.md` (the only cut with real weight). Verifiers: both CUT
+4.1. DONE. Split `references/test-strategy.md` (the only cut with real weight). Verifiers: both CUT
 PARTLY SAFE.
 - Coder (`task-coder.md:29`, `:35`) and reviewer (`task-reviewer.md:26`) read the whole file per
   test-writing task; "Where the proof lives", "What runs when" and "Slicing" are planning rules.
@@ -201,6 +201,12 @@ PARTLY SAFE.
   (7-9%).
 - Cheaper first step, with most of the quality gain: scope `task-reviewer.md:26` to "`## Writing
   tests` and the end-to-end rule" (about 60 bytes).
+- Done as: the planning half folded into `plan-rules.md`'s existing Size (behaviour slice), Owned
+  (port and test substitute), TDD (trivial-code list, host without a test layer) and Layered (a
+  decision proven only by integration) bullets, plus a new End-to-end bullet; `:8`, `:9`, `:10`,
+  `:15`, `:16` dropped as implied or duplicated; "never a wider suite" moved to the `Verification`
+  line of `task-coder.md` and `task-reviewer.md`. `test-strategy.md` keeps only the rules a coder
+  applies, so planner and planner-review no longer read it.
 
 4.2. `skills/tdd/SKILL.md:4` description: drop "On `resume`, `reason` or `report` input the code
 already in the tree is kept and tested, never deleted" and "mandatory verify-red and verify-green

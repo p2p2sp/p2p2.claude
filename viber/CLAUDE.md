@@ -1,8 +1,9 @@
 # viber - interview, plan, build, remember
 
 Every skill, agent and script here is a stage of one run, so most edits touch a contract two or
-three files share. `PRODUCT.md` holds the testing assumptions that `references/test-strategy.md`
-and `references/integration-tests.md` turn into rules.
+three files share. `PRODUCT.md` holds the testing assumptions that `references/plan-rules.md`
+(planning), `references/test-strategy.md` (writing a test, read by `task-coder` and
+`task-reviewer` only) and `references/integration-tests.md` turn into rules.
 
 ## Layout
 
@@ -145,8 +146,8 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
 - Switches reaching planning: `memory` (`plan-rules.md`'s Memory-owned rule, the `memory:` line
   to `planner-review`); `adr: true` (`planner` follows `skills/planner/references/adr-tasks.md`);
   `qa` (`planner`'s e2e hand-off line); `branching.mode` (`CLAUDE.run-branch.md`).
-- End-to-end tests only on the user's own ask: `test-strategy.md`, `planner`, `intent`,
-  `PRODUCT.md`.
+- End-to-end tests only on the user's own ask: `test-strategy.md`, `plan-rules.md`, `planner`,
+  `intent`, `PRODUCT.md`.
 - "One behaviour per `DoD` clause": `task-coder.md`'s TDD bullet and `skills/tdd/SKILL.md`
   step 1.
 
