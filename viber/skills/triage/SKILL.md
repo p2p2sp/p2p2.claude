@@ -2,15 +2,11 @@
 name: triage
 description: Reviews one reported issue against the current code - whether it can be done, how, what it affects and how big the change is - classifies it and names the next viber step without taking it. Takes a GitHub issue number or URL, or pasted issue text, and can post the report as a comment on the issue.
 argument-hint: "[issue number, issue URL, or pasted issue text]"
-allowed-tools: Read, Grep, Glob, Write, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*)
+allowed-tools: Read, Grep, Glob, Write, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*)
 disallowed-tools: Skill, Agent, Edit, NotebookEdit, AskUserQuestion
 user-invocable: true
 disable-model-invocation: true
 ---
-
-```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/config.sh"
-```
 
 # triage
 
@@ -22,9 +18,10 @@ Every script run is one literal Bash line spelled as below: never prefixed with 
 
 ## 1. Read the issue
 
-- The config block above carries `issues: true` or `issues: false`.
-- `issues: true` and the argument is a single token that is a number, `#<N>` or an issue URL -> run `"${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh" "<argument>"`. Exit 0 -> its block is the issue, body and comments included: trust it, never fetch it again. Exit 1 or 2 -> report its `ERROR` line and stop.
-- `issues: false` and the argument is a single token that is a number, `#<N>` or an issue URL -> say issue handling is off and ask for the pasted issue text, then stop: never fetch it.
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-read
+```
+
 - Any other argument is the pasted issue text. Nothing is published for it: step 4 is skipped.
 - No argument -> say triage needs an issue number, an issue URL or the issue text, and stop.
 
@@ -43,21 +40,18 @@ Every script run is one literal Bash line spelled as below: never prefixed with 
 
 - Fill `${CLAUDE_SKILL_DIR}/templates/comment.md`, read at this step, in the language of your conversation with the user, whatever language the issue is written in.
 - Write in plain language a non-technical reader follows: short sentences, everyday words, the effect on users before the mechanism. Paths and symbols appear only under Affected code, each with a plain-words role; any other unavoidable technical term gets a short explanation where it first appears.
-- Print the filled report, then one line naming the next step: a GitHub issue names it `#<N>`, pasted text names it with a one-line summary of the issue.
-  - `bug`, anything but `not feasible` -> `/viber:fixer #<N>` or `/viber:fixer <one-line summary of the issue>`
-  - `feature request`, anything but `not feasible` -> `/viber:intent #<N>` or `/viber:intent <one-line summary of the issue>`
-  - anything else -> `none` and the reason: a duplicate, already done, too little data, not feasible.
+
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-next
+```
+
 - The next-step line belongs to the chat only, never to the comment.
 
 ## 4. Publish (a GitHub issue only)
 
-- `<file>` is the absolute path of `.temp/viber/triage/<N>.md` under the project root, `<N>` being the `NUMBER=` value. Use that same absolute path in both calls below.
-- `Write` the filled report, without the next-step line, to `<file>`.
-- Close the message with one question in prose: publish the report as a comment on the issue? Then end the turn.
-- The user's next message approves publishing -> run `"${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh" "<URL>" "<file>"`, `<URL>` being the `URL=` value. Any other answer -> name the file and stop.
-  - exit 0 -> report the `COMMENT_URL=` value.
-  - exit 1 -> report its `ERROR` line and say whether a comment landed is unknown. Never retry.
-  - exit 2 -> report its `ERROR` line.
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-publish
+```
 
 ## Stop
 
