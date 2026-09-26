@@ -19,8 +19,6 @@ disable-model-invocation: true
 
 One run's handoff file, one pass. Every scenario of its `qa.e2e.md` becomes one `@playwright/test` file, written by `viber:e2e-writer` against the application you launched, proven green there, and committed. You resolve, launch, dispatch and commit: you write nothing into the tree yourself.
 
-Nothing about this project's stack is assumed. The test directory, the base URL, the launch command and the test accounts come from the project's own instructions, from the handoff's header lines, or from the user - never from a default of your own, and never carried over from another project.
-
 Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" <args>`, every argument double-quoted: never prefixed with an interpreter word, never assigned to a variable, never preceded by `cd`, never chained with `;`.
 
 ## 1. Resolve the run
@@ -51,7 +49,7 @@ Four values, each taken from the project's own instructions first, then from the
 - the command that starts the application
 - the test accounts and where their credentials live
 
-Each value still missing -> one `AskUserQuestion` naming it: provide it now, or abort. Take the answer verbatim. Never fill a gap yourself and never continue past an abort.
+Each value still missing -> one `AskUserQuestion` naming it: provide it now, or abort. Take the answer verbatim. Never fill a gap yourself, never carry one over from another project, and never continue past an abort.
 
 ## 4. Start the application
 

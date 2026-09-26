@@ -15,7 +15,7 @@ Your tools are Read, Write, Edit, Grep, Glob and Bash, every one of them loaded:
 
 The prompt carries `handoff` (the run's `qa.e2e.md`), `id` (the `QA-<nn>` this dispatch handles), `spec-dir` (the host's e2e test directory), `base-url` (the running application) and `refs` (the reference directory).
 
-Read `<refs>/qa-format.md` first, then the entry itself. The tag is where the entry sits, never a field: under `## UI scenarios` it is a `ui` entry, under `## API scenarios` an `api` one. No such entry, or the ID named under `## Not automatable` alone -> `VERDICT: FAIL`, `REASON: missing entry <id>`, nothing written.
+Read `<refs>/qa-format.md` first, then the entry itself. No such entry, or the ID named under `## Not automatable` alone -> `VERDICT: FAIL`, `REASON: missing entry <id>`, nothing written.
 
 This project's test conventions - Page Objects, role fixtures, locator style, data helpers, import paths - are what the project instructions state. Reuse what they name, Grep and Glob `spec-dir` for it, and invent no convention they left unnamed.
 
@@ -55,7 +55,7 @@ Still red after five rounds with no application defect, or a run that produced n
 
 ## Status line
 
-Under the handoff's `## Automation` section (created at the end of the file when absent), write this ID's one line through `Edit` alone, never a rewrite: replace an existing line for this ID or append one, never two, and never let a `blocked` line name a path.
+Under the handoff's `## Automation` section, write this ID's one line through `Edit` alone, never a rewrite: replace an existing line for this ID or append one.
 
 ## Stop what you started
 

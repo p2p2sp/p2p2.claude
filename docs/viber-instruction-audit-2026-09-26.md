@@ -313,7 +313,7 @@ Also `:12` second sentence (output stated three times). Outside a build. Verifie
 4.8. DONE with 2.12. `skills/setup/SKILL.md:19-21` (about 280 bytes): feeds no step; `bootstrap.sh:139`, `:153`
 print the same; `:19` is false (2.12). Verifiers: both CONFIRMED.
 
-4.9. User-only skills, about 1 KB total, outside a build. Verifiers: both.
+4.9. DONE. User-only skills, about 1 KB total, outside a build. Verifiers: both.
 - `skills/e2e/SKILL.md:22` repeats step 3 (`:47-54`); fold "never carried over from another
   project" into `:54`.
 - `agents/e2e-writer.md:18` repeats `qa-format.md:8`; `:58` repeats `qa-format.md:81`, `:89`, keep
@@ -328,6 +328,14 @@ print the same; `:19` is false (2.12). Verifiers: both CONFIRMED.
   pre-approves them)"; the model never sees `allowed-tools`.
 - `references/qa-format.md:3` last sentence and `skills/commit/references/commit-conventions.md:3`
   are dev-time prose.
+- Done as: every cut above. e2e `:22` cut, "never carry one over from another project" folded
+  into `:54`. e2e-writer `:58` keeps "under `## Automation`, through `Edit` alone, replace or
+  append". Triage `:13` drops its `Write` clause, `:15` keeps it. Prototype: the `Write` clause
+  leaves `SKILL.md:14` and stays only in `fragments/issues-exit.true.md` (switch-dependent text
+  in its fragment; under `issues: false` the skill writes nothing), that fragment's path moves to
+  its own `:6`. Both `pre-approves` parentheticals cut (the reason stays in `viber/CLAUDE.md`,
+  Tool dependencies). About 960 bytes, of which about 320 per `e2e-writer` dispatch (once per
+  scenario).
 
 4.10. Small ones on the build path.
 - `skills/implementor/SKILL.md:55`: merge the non-zero exit handling into one line (about 110

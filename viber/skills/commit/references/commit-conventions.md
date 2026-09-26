@@ -1,7 +1,5 @@
 # Conventional Commits - subject & footer authoring
 
-Single source of the message-authoring rules.
-
 ## Subject - `type(scope): description`
 
 - `type` ∈ {feat, fix, refactor, docs, chore, test} - match what the diff DOES.

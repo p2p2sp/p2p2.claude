@@ -1,6 +1,6 @@
 # QA document formats
 
-Two documents per build, both in the build's own run directory: `qa.md`, which a person performs by hand, and `qa.e2e.md`, which an agent turns into Playwright tests. That directory is unique to its build, so neither document ever replaces an earlier one.
+Two documents per build, both in the build's own run directory: `qa.md`, which a person performs by hand, and `qa.e2e.md`, which an agent turns into Playwright tests.
 
 ## Scenario IDs
 
