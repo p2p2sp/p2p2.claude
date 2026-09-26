@@ -173,9 +173,21 @@ fixed later. Severity low. Found by one verifier; quality gap, not a byte cut.
   catches the breach, planner-review reads no test). A breach the fixer still ships reaches the
   user through the existing round-2 review question.
 
-2.16. `rules-writer.md:48` still writes over budget and reports `OVER:`, while memory-writer now
+2.16. DONE. `rules-writer.md:48` still writes over budget and reports `OVER:`, while memory-writer now
 drops facts (`DROPPED:`) after 8bd25e3b. Unclear whether the divergence is intended. Found by one
 verifier.
+- Done as: the divergence is intended and recorded in `viber/CLAUDE.md` "Memory and rules
+  layers"; no runtime byte changed. The memory hard cap answers an observed failure (a node at
+  98113 characters against 12000, spec 2026-09-24-13-58-48) once 8bd25e3b removed the repair
+  waves, since nothing else bounds a node. Rule growth is already bounded before step 3: one
+  convention per file with one example (`:27`, `:31`), a directory at its cap growing only by
+  merge or replace (`:44`), a one-convention file compacted further (`:48`); `OVER:` is a rare
+  residual. Dropping costs asymmetrically: a cut rule is a convention that passed
+  `rule-admission.md`, while a slightly oversize rule costs bytes only when its `paths:` match.
+  Rejected: `DROPPED:` in rules-writer (loses gated conventions with no observed failure, three
+  files touched); a hard cap with no `OVER:` (about 300 bytes saved in a once-per-run agent,
+  forced compression may cut the only example, and a user-written directory already over 40000
+  stays unsolved).
 
 ## 3. Stale text
 

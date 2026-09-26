@@ -158,6 +158,9 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
   is a node.
 - `memory-writer` ends no node or section over its cap, nor a chain with room (cut facts:
   `DROPPED:`), checking only sentences naming a path or symbol the build changed.
+- `rules-writer` may still end a file over its cap (`OVER:`, only repeated): one convention
+  per file and a full directory growing only by merge or replace already bound growth, so a
+  cut would lose a gated convention; `memory-writer` drops instead, nothing else bounds a node.
 - `rules-auditor` and `rules-writer` pass every line through `references/rule-admission.md`; a
   fact about one place leaves as `MOVE:` for the memory layer. `rules-writer` never writes a
   `CLAUDE.md`, `memory-writer` never touches `.claude/rules/`.
