@@ -2,7 +2,7 @@
 name: prove-it
 description: Tests a conclusion this conversation reached about the code. Splits it into claims, sends each claim as a blind question to two parallel viber:witness agents on the session's model, then judges their evidence against the conclusion and confirms, corrects, marks unproven or leaves each claim disputed for the user to decide. With no argument it tests the latest conclusion.
 argument-hint: "[the conclusion to test; none tests the latest one]"
-allowed-tools: Read, Grep, Glob, Agent
+allowed-tools: Read, Grep, Glob, Agent, Bash
 user-invocable: true
 disable-model-invocation: true
 ---
