@@ -28,7 +28,7 @@ You orchestrate and delegate: every piece of work runs inside a subagent. Open n
 - Never two `commit-task.sh` calls in one message: each rewrites the git index and `status.md`.
 - A `commit-task.sh` call exiting non-zero committed nothing. Outside a task commit (step 4 owns that one): `AskUserQuestion`: retry / abort, its paths named uncommitted in the final summary on abort.
 - An agent's completion notice saying it "stopped with background work of its own still running": hold its verdict and `SendMessage` that agent, once: `Stop every process you started that is still running, then return your output lines again.` Act on what it returns then. The same notice again -> act on the verdict and name that agent's task in the final summary.
-- An agent returning no `VERDICT:` line: `SendMessage` that agent, once: `Finish your task, then return your output lines.` Still none -> act as on `VERDICT: FAIL` with `REASON: no verdict returned`.
+- An agent returning no `VERDICT:` line: `SendMessage` that agent, once: `Finish your task, then return your output lines.` Still none -> act as on `VERDICT: FAIL` with `REASON: no verdict returned`. Neither this nudge nor the background-work notice above counts toward a coder instance's continuation cap (step 4).
 
 ## Answers
 
@@ -114,6 +114,16 @@ decision: <task-id>: <text>
 ```
 
 `out` is per task, shared by its reviewer. `deferred` carries the index entries naming this id plus every `--defer` this build passed naming it, `prior` the notes of the tasks its `deps` names. `decision:` is one line per index `decision:` line plus one per `--decide` this build recorded, whose `<task-id>` is this task or one it depends on, directly or through another. A coder always runs on its task's tier; only `retry` raises it.
+
+A coder re-run that keeps the task's coder on the model its last instance ran on - a round-1 review `FAIL`, `retry` after `DENIED`, `decide`, or `retry` held at `tiers.max` - continues that instance through `SendMessage` instead of the fresh dispatch above, its body only the lines new to that instance:
+
+```
+report: <dir>/work/review-<id>-<round>.md
+reason: <the returned REASON, or the short DOD: line when no REASON: came>
+decision: <task-id>: <text>
+```
+
+`report:` appears after a review failure, `reason:` on a retry after the coder's own failure or `DENIED`, `decision:` after `decide`. Each continuation counts against a cap of two per instance; a third re-run of an instance already continued twice, a re-run that raises the tier to a new model, a missing agent id for the task's coder, or a `SendMessage` error each falls back to the fresh dispatch above with every labelled line, starting a new instance with its own continuation count.
 
 Reviewer dispatch: `viber:task-reviewer` (Agent tool, `model` = the review tier) with the task's `task:`, `notes:`, `out:`, `refs:`, `deferred:` and `decision:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
 
