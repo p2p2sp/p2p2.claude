@@ -59,7 +59,7 @@ reviewed through `extra:` plus `recheck:` (the owning `done` task's `verify:` co
 review-waived task with extras is now reviewed, because a non-empty `extra:`/`recheck:` forces a
 reviewer dispatch.
 
-2.4. Commit d488bd72 blocks a draft round without `gh`. Severity medium (one verifier low-medium).
+2.4. DONE. Commit d488bd72 blocks a draft round without `gh`. Severity medium (one verifier low-medium).
 - `skills/intent/fragments/issues-input.true.md:5` now runs `issue-facts.sh` when a returning
   draft carries `issue: <URL>`; `:8` stops on exit 1 or 2.
 - `scripts/issue-facts.sh` exits 1 with no `gh`, no auth or no network; `issues: true` is the
@@ -68,6 +68,10 @@ reviewer dispatch.
   to keep the issue: `planner/SKILL.md` already carries the draft's `issue:` over.
 - Fix: for a URL taken from the draft, report the `ERROR` line and continue unbound, write no
   `Issue:` line, skip the save/comment offer.
+- Done as: `issues-input.true.md` exit 1/2 on the draft's URL reports the `ERROR` line, says the
+  issue's text and comments went unread, asks the user to paste any remark posted there and goes
+  on unbound (the planner still carries the draft's `issue:` over); `issues-done.true.md` "No
+  issue" offers nothing for such a draft, so `issue-templates.sh` never offers a duplicate issue.
 
 2.5. `skills/memory/SKILL.md:96` and `:100` say "the set" ("drop that target from the set", "leaves
 the set", "Nothing left in the set"), never defined; the only defined set is the planned set
@@ -111,9 +115,10 @@ changed after the snapshot never stops the commit. Severity low. Verifiers: both
 2.13. `skills/triage/SKILL.md:15` promises "the two script lines below"; under `issues: false`
 the fragments preload none. Severity low. Found by one verifier.
 
-2.14. `skills/intent/SKILL.md:14-16` preloads the `issues-input` fragment before `## Returning to a
+2.14. DONE. `skills/intent/SKILL.md:14-16` preloads the `issues-input` fragment before `## Returning to a
 draft` (`:18`) tells the model to read the draft, so the draft's `issue:` check relies on implicit
-ordering. Severity low. Found by one verifier.
+ordering. Severity low. Found by one verifier. Closed by the 2.4 edit: the fragment now reads "a
+returning draft, once read, carries `issue: <URL>`".
 
 2.15. The fixer's reproduction test is never checked against `test-strategy.md`, and the coder may
 not rewrite it (`task-coder.md:16`), so a Repro test breaking a `(blocking)` rule can never be
