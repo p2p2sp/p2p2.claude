@@ -44,8 +44,8 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   renaming one side only breaks the build silently.
 - `plan-index.sh`'s index prints per task id, state, TDD, `excl`, `deps`, `feeds` (contract
   blocks another task consumes), `files`, title, then a `verify:` line. `implementor` profiles
-  tier from TDD, file count, `feeds` and dependents, review from `verify:` and the tier, never
-  from a field the index does not print.
+  tier from TDD, file count, `feeds` and dependents, review from `verify:` and the tier (never
+  from a field the index does not print) or a coder `EXTRA:` line.
 - `excl` (plan `Exclusive: true`): `implementor` runs the task alone, once nothing else is ready
   or in flight, until committed; outside `--split` `plan-index.sh` rejects a task depending on it.
 - Every agent returns `VERDICT: DENIED` plus `REASON: <tool>: <call>` on a refused tool call (the
@@ -53,8 +53,10 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 - Only coder, reviewer and repair-coder dispatches carry `model`: the task's profiled tier
   (repair-coder: `sonnet`, raised only by `retry`) clamped into `tiers.min`..`tiers.max`
   (defaults `haiku`/`opus`, `fable` only when named; `min` above `max` resets both).
-- Every `EXTRA:` path of the task's coder or reviewer becomes `--with`, coder `DEFERRED:` `--defer`, stored as `deferred:` in
-  `status.md` and handed to the owing task's coder and reviewer.
+- Every `EXTRA:` path of the task's coder or reviewer becomes `--with` (the coder's also reach
+  its reviewer as `extra:`, minus a path a not-yet-done task claims, with one `recheck:` per done
+  owner's `verify:`), coder `DEFERRED:` `--defer`, stored as `deferred:` in `status.md` and handed
+  to the owing task's coder and reviewer.
 - `decide` (offered only on a task's second coder failure, beside retry/skip/abort, or second
   failed review round, beside retry/accept/abort) is the owner's ruling on a stalled task,
   overriding the task file for it and its dependents.

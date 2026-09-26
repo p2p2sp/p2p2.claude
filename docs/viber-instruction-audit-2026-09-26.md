@@ -30,7 +30,7 @@ and for duplication inside agents dispatched once per task or per node. Verifier
 
 ## 2. Contract defects (fix, not cut)
 
-2.1. Coder and reviewer disagree on the review scope. Severity medium. Verifiers: both PARTLY.
+2.1. DONE. Coder and reviewer disagree on the review scope. Severity medium. Verifiers: both PARTLY.
 - `agents/task-coder.md:25` allows three edits outside `Files`, reported on `EXTRA:`.
 - `skills/implementor/SKILL.md:128` never passes the coder's `EXTRA:` paths to the reviewer;
   `:132` commits them through `--with`.
@@ -41,15 +41,23 @@ and for duplication inside agents dispatched once per task or per node. Verifier
   `plan-rules.md:17` and `:25` require the test file in `Files`).
 - Fix: implementor adds `extra: <coder EXTRA paths>` to the reviewer dispatch; the reviewer diffs
   those paths as this task's work.
+- Done as: `extra:` (the coder's `EXTRA:` paths, minus a path the index gives to a task not yet
+  `done`) plus one `recheck: <task-id> | <command>` line per `done` task owning one of them; the
+  reviewer diffs `Files` plus `extra:` and runs each `recheck:`. Remaining gap (an `EXTRA:` path
+  left dirty by an interrupted session): `viber-audit-2026-09-26-extra-resume.md`, item D.
 
-2.2. `task-reviewer.md:20` contradicts `task-reviewer.md:28` (Owned): a file outside `Files` is
+2.2. DONE. `task-reviewer.md:20` contradicts `task-reviewer.md:28` (Owned): a file outside `Files` is
 "never evidence", yet Owned expects such files to come back on `EXTRA:`. Severity medium.
-Verifiers: both found it independently.
+Verifiers: both found it independently. Closed by the 2.1 edit: the reviewer's scope is now
+`Files` plus `extra:`.
 
-2.3. The coder's third `EXTRA:` exception (a defect in a file of a `prior` task) edits files of an
+2.3. DONE. The coder's third `EXTRA:` exception (a defect in a file of a `prior` task) edits files of an
 already committed task; `commit-task.sh` only warns `took <path> - claimed by committed task`. No
 gate reviews that change, nor any `EXTRA:` path on a review-waived task. Severity medium.
-Verifiers: both found it independently.
+Verifiers: both found it independently. Closed by the 2.1 edit: the prior-task file edit is now
+reviewed through `extra:` plus `recheck:` (the owning `done` task's `verify:` command), and a
+review-waived task with extras is now reviewed, because a non-empty `extra:`/`recheck:` forces a
+reviewer dispatch.
 
 2.4. Commit d488bd72 blocks a draft round without `gh`. Severity medium (one verifier low-medium).
 - `skills/intent/fragments/issues-input.true.md:5` now runs `issue-facts.sh` when a returning

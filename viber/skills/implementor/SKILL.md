@@ -125,7 +125,7 @@ decision: <task-id>: <text>
 
 `report:` appears after a review failure, `reason:` on a retry after the coder's own failure or `DENIED`, `decision:` after `decide`. Each continuation counts against a cap of two per instance; a third re-run of an instance already continued twice, a re-run that raises the tier to a new model, a missing agent id for the task's coder, or a `SendMessage` error each falls back to the fresh dispatch above with every labelled line, starting a new instance with its own continuation count.
 
-Reviewer dispatch: `viber:task-reviewer` (Agent tool, `model` = the review tier) with the task's `task:`, `notes:`, `out:`, `refs:`, `deferred:` and `decision:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1.
+Reviewer dispatch: `viber:task-reviewer` (Agent tool, `model` = the review tier) with the task's `task:`, `notes:`, `out:`, `refs:`, `deferred:` and `decision:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1, plus `extra: <repo-relative paths, comma-separated>` (every path an `EXTRA:` line of that task's coder returned so far in this build, across continuations and fresh re-runs, never the reviewer's own, except a path the index `files` column gives to a task not yet `done`) and one `recheck: <task-id> | <command>` line per `done` task whose `files` column claims a path on `extra:`, `<command>` being that task's `verify:` command, both omitted when empty.
 
 Commit: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<plan>" "<id>"` with its `TaskUpdate` -> completed, plus:
 
@@ -139,8 +139,8 @@ Start with every task whose `deps` are done, in one message. On every return, an
 - Coder `VERDICT: FAIL`, or `PASS` with its `DOD:` line short of its total, the first time for that task -> `retry` without asking, the short `DOD:` line as `reason:` when no `REASON:` came.
 - The same again for that task -> `AskUserQuestion` naming the task and its `REASON:` (or the short `DOD:` line): retry / decide / skip / abort.
 - Coder `VERDICT: DENIED` -> `AskUserQuestion` naming the task: retry / skip / abort.
-- Coder `PASS`, review due -> reviewer dispatch at the next round.
-- Coder `PASS`, no review due -> commit.
+- Coder `PASS`, and review due or a non-empty `extra:` or `recheck:` line -> reviewer dispatch at the next round.
+- Coder `PASS` otherwise -> commit.
 - Reviewer `VERDICT: PASS` -> commit.
 - Reviewer `VERDICT: FAIL`, round 1 of 2 -> coder dispatch plus the returned `REVIEW` path as `report:`.
 - Reviewer `VERDICT: FAIL`, round 2 of 2 -> `AskUserQuestion` naming the task: retry / decide / accept / abort.
