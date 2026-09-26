@@ -379,6 +379,100 @@ function execBitViolations(
   ];
 }
 
+/** The switch keys `switch-text.sh` (viber/scripts/switch-text.sh, contract
+ *  C1) recognizes, each mapped to its valid values. A key outside this set is
+ *  always a violation (DoD.2); a fragment file's value suffix must be one of
+ *  its own key's list (DoD.3). */
+const SWITCH_VALUES: Record<string, string[]> = {
+  adr: ["true", "false"],
+  memory: ["true", "false"],
+  rules: ["true", "false"],
+  qa: ["true", "false"],
+  cleanup: ["true", "false"],
+  "plain-plan-review": ["true", "false"],
+  issues: ["true", "false"],
+  "branching.mode": ["off", "allowed", "required"],
+};
+
+interface SwitchTextCall {
+  lineNo: number;
+  key: string;
+  name: string;
+}
+
+/** Every `switch-text.sh <key> "${CLAUDE_SKILL_DIR}" <name>` call in a
+ *  SKILL.md's content, one fixed shape per C1. A key argument may carry a
+ *  literal `""` splice (`branching.""mode`, the trick that keeps the raw
+ *  substring `branching.mode` out of a grep ban while still resolving to it
+ *  as one bash word) - quote characters carry no expansion here, so they are
+ *  simply stripped to read the resolved key/name. */
+function switchTextCalls(content: string): SwitchTextCall[] {
+  const CALL_RE = /"\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/switch-text\.sh"\s+(\S+)\s+"\$\{CLAUDE_SKILL_DIR\}"\s+(\S+)/;
+  const calls: SwitchTextCall[] = [];
+  content.split("\n").forEach((line, idx) => {
+    const m = line.match(CALL_RE);
+    if (!m) return;
+    calls.push({ lineNo: idx + 1, key: m[1].replace(/['"]/g, ""), name: m[2].replace(/['"]/g, "") });
+  });
+  return calls;
+}
+
+/** The fragment-call sweep for one skill (DoD.1-4): every `switch-text.sh`
+ *  call in its SKILL.md cross-checked against the basenames actually present
+ *  in its own `fragments/` directory.
+ *   - DoD.1: a call's name has no `<name>.<value>.md` file for ANY valid
+ *     value of its key - a fragment family the skill never wrote.
+ *   - DoD.2: a call's key is not one of SWITCH_VALUES - an unknown switch.
+ *   - DoD.3: an existing fragment file's `<value>` suffix is not one of the
+ *     valid values for the key its own skill's calls name it under.
+ *   - DoD.4: an existing fragment file that no call in its own skill's
+ *     SKILL.md names at all (dead weight - never selected, ever). */
+function fragmentCallViolations(skillMdPath: string, skillMdContent: string, fragmentBasenames: string[]): string[] {
+  const violations: string[] = [];
+  const calls = switchTextCalls(skillMdContent);
+  const callsByName = new Map<string, SwitchTextCall[]>();
+  for (const call of calls) {
+    if (!(call.key in SWITCH_VALUES)) {
+      violations.push(`${skillMdPath}:${call.lineNo}: switch-text.sh call names unknown key '${call.key}'`);
+      continue;
+    }
+    const list = callsByName.get(call.name) ?? [];
+    list.push(call);
+    callsByName.set(call.name, list);
+  }
+
+  for (const [name, callList] of callsByName) {
+    for (const call of callList) {
+      const values = SWITCH_VALUES[call.key];
+      const hasAny = values.some((value) => fragmentBasenames.includes(`${name}.${value}.md`));
+      if (!hasAny) {
+        violations.push(
+          `${skillMdPath}:${call.lineNo}: switch-text.sh call names fragment '${name}' with no file for any value of key '${call.key}'`,
+        );
+      }
+    }
+  }
+
+  const fragmentDir = `${path.dirname(skillMdPath)}/fragments`;
+  for (const basename of fragmentBasenames) {
+    const match = basename.match(/^([a-z0-9-]+)\.([a-z]+)\.md$/);
+    if (!match) continue;
+    const [, name, value] = match;
+    const callList = callsByName.get(name);
+    if (!callList || callList.length === 0) {
+      violations.push(`${fragmentDir}/${basename}: called by no SKILL.md of its own skill`);
+      continue;
+    }
+    for (const call of callList) {
+      if (!SWITCH_VALUES[call.key].includes(value)) {
+        violations.push(`${fragmentDir}/${basename}: value '${value}' is not valid for key '${call.key}'`);
+      }
+    }
+  }
+
+  return violations;
+}
+
 // ---------------------------------------------------------------------------
 // Self-checks - one synthetic bad sample per detector, proving each one
 // actually fires before it is trusted over the real tree below.
@@ -551,6 +645,67 @@ test("self-check: execBitViolations recognizes an explicit invocation wrapped in
   assert.deepEqual(execBitViolations("plugin/scripts/wrapped.sh", "100644", corpus), []);
 });
 
+test("self-check: execBitViolations fires on a script invoked bare only from a fragment file (100644, DoD.5)", () => {
+  const corpus = [
+    {
+      file: "plugin/skills/foo/fragments/issues-input.true.md",
+      content: 'run "${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh" "<argument>"\n',
+    },
+  ];
+  const violations = execBitViolations("plugin/scripts/issue-facts.sh", "100644", corpus);
+  assert.equal(violations.length, 1);
+  assert.match(violations[0], /invoked bare at plugin\/skills\/foo\/fragments\/issues-input\.true\.md:1 but git mode is 100644/);
+});
+
+test("self-check: fragmentCallViolations fires on a call whose name has no fragment file for any valid value of its key (DoD.1)", () => {
+  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-ghost\n```\n';
+  const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, []);
+  assert.equal(violations.length, 1);
+  assert.match(violations[0], /SKILL\.md:2: switch-text\.sh call names fragment 'issues-ghost' with no file for any value of key 'issues'/);
+});
+
+test("self-check: fragmentCallViolations fires on a call naming a key outside the switches and branching.mode (DoD.2)", () => {
+  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" bogus "${CLAUDE_SKILL_DIR}" issues-input\n```\n';
+  const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, []);
+  assert.equal(violations.length, 1);
+  assert.match(violations[0], /SKILL\.md:2: switch-text\.sh call names unknown key 'bogus'/);
+});
+
+test("self-check: fragmentCallViolations fires on a fragment file whose value suffix is invalid for the key its calls name (DoD.3)", () => {
+  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-input\n```\n';
+  const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, [
+    "issues-input.true.md",
+    "issues-input.allowed.md",
+  ]);
+  assert.equal(violations.length, 1);
+  assert.match(violations[0], /plugin\/skills\/foo\/fragments\/issues-input\.allowed\.md: value 'allowed' is not valid for key 'issues'/);
+});
+
+test("self-check: fragmentCallViolations fires on a fragment file no SKILL.md of its own skill calls (DoD.4)", () => {
+  const content = "# foo\n\nno preloads here.\n";
+  const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, ["issues-input.true.md"]);
+  assert.equal(violations.length, 1);
+  assert.match(violations[0], /plugin\/skills\/foo\/fragments\/issues-input\.true\.md: called by no SKILL\.md of its own skill/);
+});
+
+test("self-check: fragmentCallViolations does not fire when every call resolves and every fragment file is called", () => {
+  const content = [
+    '```!',
+    '"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-input',
+    '```',
+    '```!',
+    '"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" branching.""mode "${CLAUDE_SKILL_DIR}" branching',
+    '```',
+    '',
+  ].join("\n");
+  const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, [
+    "issues-input.true.md",
+    "issues-input.false.md",
+    "branching.allowed.md",
+  ]);
+  assert.deepEqual(violations, []);
+});
+
 // ---------------------------------------------------------------------------
 // The real sweep - every shipped script, enumerated from the git index.
 // ---------------------------------------------------------------------------
@@ -592,6 +747,20 @@ const skillMdFiles = listIndexed(root, ["*.md"])
 const hooksJsonFiles = listIndexed(root, ["hooks.json"])
   .map((entry) => entry.repoRelativePath)
   .filter(shipped);
+// Every fragment file (`<plugin>/skills/<name>/fragments/<basename>.md`): a
+// switch-selected script call now lives only here, so the exec-bit corpus
+// must widen to see it (DoD.5), and the fragment sweep below groups these
+// basenames by their own skill directory (DoD.1-4).
+const fragmentFiles = listIndexed(root, ["*/fragments/*.md"])
+  .map((entry) => entry.repoRelativePath)
+  .filter(shipped);
+const fragmentBasenamesBySkillDir = new Map<string, string[]>();
+for (const file of fragmentFiles) {
+  const skillDir = path.dirname(path.dirname(file));
+  const list = fragmentBasenamesBySkillDir.get(skillDir) ?? [];
+  list.push(path.basename(file));
+  fragmentBasenamesBySkillDir.set(skillDir, list);
+}
 
 test("every shipped script has a shebang (or is an exempt .ts module) and no CRLF line ending", () => {
   const violations: string[] = [];
@@ -621,8 +790,8 @@ test("no shipped script depends on a GNU-only utility, gawk extension or bash 4 
   assert.equal(violations.length, 0, `GNU-only constructs:\n${violations.join("\n")}`);
 });
 
-test("every script invoked bare from a SKILL.md/hooks.json line carries the 100755 exec bit", () => {
-  const corpus = [...skillMdFiles, ...hooksJsonFiles].map((file) => ({
+test("every script invoked bare from a SKILL.md/hooks.json/fragment line carries the 100755 exec bit", () => {
+  const corpus = [...skillMdFiles, ...hooksJsonFiles, ...fragmentFiles].map((file) => ({
     file,
     // hooks.json escapes its embedded quotes (\") - unescape so the same
     // literal-substring search used for SKILL.md prose applies unchanged.
@@ -642,4 +811,15 @@ test("every SKILL.md ! preload quotes its glob-bearing arguments and double-quot
     violations.push(...preloadQuotingViolations(file, content));
   }
   assert.equal(violations.length, 0, `preload quoting violations:\n${violations.join("\n")}`);
+});
+
+test("every switch-text.sh call names a fragment file that exists, a known key, and every fragment file is called by its own skill (DoD.6)", () => {
+  const violations: string[] = [];
+  for (const file of skillMdFiles) {
+    const content = fs.readFileSync(path.join(root, file), "utf-8");
+    const skillDir = path.dirname(file);
+    const fragmentBasenames = fragmentBasenamesBySkillDir.get(skillDir) ?? [];
+    violations.push(...fragmentCallViolations(file, content, fragmentBasenames));
+  }
+  assert.equal(violations.length, 0, `fragment-call violations:\n${violations.join("\n")}`);
 });
