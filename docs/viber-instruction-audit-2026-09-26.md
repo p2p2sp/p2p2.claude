@@ -73,12 +73,15 @@ reviewer dispatch.
   on unbound (the planner still carries the draft's `issue:` over); `issues-done.true.md` "No
   issue" offers nothing for such a draft, so `issue-templates.sh` never offers a duplicate issue.
 
-2.5. `skills/memory/SKILL.md:96` and `:100` say "the set" ("drop that target from the set", "leaves
+2.5. DONE. `skills/memory/SKILL.md:96` and `:100` say "the set" ("drop that target from the set", "leaves
 the set", "Nothing left in the set"), never defined; the only defined set is the planned set
 (`:72`). Read as the planned set, a node leaves `planned:`, `memory-node-writer.md:64` drops it
 from the root index and step 8 (`:124`, `:128`) never restores it. Severity low-medium.
 Verifiers: both CONFIRMED.
 - Fix: "the target list" in all three places; add "the planned set never shrinks here" at `:72`.
+- Done as: "the target list" at `:96` and twice at `:100` (it keeps create targets, so `both`
+  with only clean nodes still writes its candidates); `:72` adds that the planned set stays whole
+  to the end of the run, a target dropped or confirmed later still counting in it.
 
 2.6. `references/plan-rules.md:27` (TDD) lost precision in 3f025101: the dropped "and" makes "on a
 task carrying `Repro:`" read as a qualifier of the no-decision clause, and "both as

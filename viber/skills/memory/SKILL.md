@@ -69,7 +69,7 @@ Then one `AskUserQuestion` over that list: all of them, or the ones the user pic
 
 A `node:` target is a fix target. Every other target - a candidate, an emptied directory, the directory of a section with no node, the root of an empty layer - is a create target, its node being `CLAUDE.md` inside that directory. A directory holding a section on a `dirty:` line is never a create target: that section is the user's uncommitted work. An orphan is offered like any other node: the auditor decides whether its area really went, and the writer is what removes the file. A section is never a target of its own: it travels with the node beside it.
 
-The planned set is every `node:` line of the map in use plus the node of every kept create target, root first, then by depth.
+The planned set is every `node:` line of the map in use plus the node of every kept create target, root first, then by depth. It stays whole to the end of the run: a target dropped or confirmed later still counts in it, its node still being there.
 
 `review` and `both` go to step 5. `reset`, `extend` and an empty layer have no fix target and go straight to step 7.
 
@@ -93,11 +93,11 @@ AUDIT: <node> stale <n> gone <n> unverifiable <n> miss <n> -> <findings file>
 
 Report the `AUDIT:` line for each target verbatim. Read none of those files - the writer does.
 
-A call returning `VERDICT: DENIED` instead -> one `AskUserQuestion` naming the target and the refused call from its `REASON:` line: permission added and retry, drop that target from the set, or stop.
+A call returning `VERDICT: DENIED` instead -> one `AskUserQuestion` naming the target and the refused call from its `REASON:` line: permission added and retry, drop that target from the target list, or stop.
 
 ## 6. Confirm
 
-A fix target with four zero counters and an `ok` flag leaves the set. One still flagged `OVER-NODE` or `OVER-CHAIN`, or with a `section:` line reading `OVER-NODE` or an `unlinked:` line in its directory, stays, zero counters or not. Nothing left in the set -> say the layer is already true in one line and stop.
+A fix target with four zero counters and an `ok` flag leaves the target list. One still flagged `OVER-NODE` or `OVER-CHAIN`, or with a `section:` line reading `OVER-NODE` or an `unlinked:` line in its directory, stays, zero counters or not. Nothing left in the target list -> say the layer is already true in one line and stop.
 
 Otherwise one `AskUserQuestion` over the counters, the over-budget flags and the create targets: write them, or stop. Only on approval go on.
 
