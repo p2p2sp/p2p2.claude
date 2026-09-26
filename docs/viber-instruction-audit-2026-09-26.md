@@ -161,9 +161,17 @@ draft` (`:18`) tells the model to read the draft, so the draft's `issue:` check 
 ordering. Severity low. Found by one verifier. Closed by the 2.4 edit: the fragment now reads "a
 returning draft, once read, carries `issue: <URL>`".
 
-2.15. The fixer's reproduction test is never checked against `test-strategy.md`, and the coder may
+2.15. DONE. The fixer's reproduction test is never checked against `test-strategy.md`, and the coder may
 not rewrite it (`task-coder.md:16`), so a Repro test breaking a `(blocking)` rule can never be
 fixed later. Severity low. Found by one verifier; quality gap, not a byte cut.
+- Done as: `fixer/SKILL.md` "The reproduction test" opens with a bullet reading
+  `test-strategy.md` before the test is written, every `(blocking)` rule binding it; one read per
+  diagnosis, nothing added to any per-task file. `viber/CLAUDE.md` names `fixer` among the readers.
+  Rejected: loosening `task-coder.md:16` (per-task bytes, weakens the guard against a coder editing
+  the RED test until green, and the reviewer cannot check "assertion kept" against a never
+  committed original); a `Repro:` rule in task-reviewer or planner-review (the reviewer already
+  catches the breach, planner-review reads no test). A breach the fixer still ships reaches the
+  user through the existing round-2 review question.
 
 2.16. `rules-writer.md:48` still writes over budget and reports `OVER:`, while memory-writer now
 drops facts (`DROPPED:`) after 8bd25e3b. Unclear whether the divergence is intended. Found by one

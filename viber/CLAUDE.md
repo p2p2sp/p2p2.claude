@@ -2,7 +2,7 @@
 
 Every skill, agent and script here is a stage of one run, so most edits touch a contract two or
 three files share. `PRODUCT.md` holds the testing assumptions that `references/plan-rules.md`
-(planning), `references/test-strategy.md` (writing a test, read by `task-coder` and
+(planning), `references/test-strategy.md` (writing a test, read by `fixer`, `task-coder` and
 `task-reviewer` only) and `references/integration-tests.md` turn into rules.
 
 ## Layout

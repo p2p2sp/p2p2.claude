@@ -36,6 +36,7 @@ Three laws, in this order. None substitutes for another.
 ```
 
 ## The reproduction test
+- Read `${CLAUDE_PLUGIN_ROOT}/references/test-strategy.md` before writing it: every rule it marks `(blocking)` binds this test, and no later stage may change it.
 - Narrowest level that reproduces the divergence - unit at the diverging layer, not an end-to-end run of the symptom.
 - Test the divergence, not the symptom reported by the user.
 - **Actually run it - never simulate it mentally.**
