@@ -60,7 +60,14 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   overriding the task file for it and its dependents.
 - task-coder, task-reviewer, test-runner and e2e-writer share a "Stop what you started" section;
   `implementor`'s and `e2e`'s `SendMessage` on a "stopped with background work" notice, or a
-  reply with no `VERDICT:` line, is its other half.
+  reply with no `VERDICT:` line, is its other half (neither counts toward the continuation cap
+  below).
+- A coder re-run that keeps the task's coder on its last instance's model (round-1 review `FAIL`,
+  `retry` after `DENIED`, `decide`, `retry` at `tiers.max`) continues that instance through
+  `SendMessage` with only the lines new to it, instead of a fresh dispatch; capped at two
+  continuations per instance. A tier raise to a new model, a third re-run, a missing agent id or
+  a `SendMessage` error falls back to a fresh dispatch with every labelled line, starting a new
+  instance.
 - Coders and reviewers keep git read-only (never `stash`, `checkout`, `restore`, `clean`):
   parallel tasks share one working tree.
 

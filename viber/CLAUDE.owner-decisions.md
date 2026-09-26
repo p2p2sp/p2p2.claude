@@ -14,9 +14,10 @@ deviation marking.
   "<text>"`: one non-empty, single-line `text`, no commit (it waits in `status.md` for whichever
   commit comes next, like `--skip`), refused on a task already done or skipped or on empty or
   multi-line text, the same text recorded twice for one task kept once.
-- `implementor` then dispatches that task's coder again at the same tier, carrying the new
-  `decision:` line. Both failure counters restart: the next coder failure on that task is retried
-  once without asking, and the next review round is 1 of 2.
+- `implementor` then sends that task's coder back at the same tier with the new `decision:` line -
+  a continuation of its last instance where the continuation cap allows one, else a fresh
+  dispatch. Both failure counters restart: the next coder failure on that task is retried once
+  without asking, and the next review round is 1 of 2.
 - `plan-index.sh` prints every `decision: <id>: <text>` line of `status.md` verbatim, in file
   order; a status file with none prints exactly as it did before the line existed. `implementor`
   passes a `decision:` line to a task's coder and reviewer whenever its `<id>` is that task or any
