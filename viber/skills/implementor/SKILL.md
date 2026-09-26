@@ -1,7 +1,7 @@
 ---
 name: implementor
 description: Builds an approved plan task by task. Requires an existing plan; without one, suggest the viber:intent interview.
-allowed-tools: Agent, SendMessage, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh:*)
+allowed-tools: Agent, SendMessage, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*)
 model: sonnet
 effort: medium
 user-invocable: false
@@ -44,7 +44,7 @@ A `VERDICT: DENIED` question names the refused call from its `REASON:` line and 
 
 ## 1. Land the plan
 
-`"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<src>"` copies the approved plan into its own dated run directory and prints `path:`, `key:`, `state:`, one `branch:` line when `branching.mode` is not off, and one `open:` line per OTHER run whose tasks are not all settled.
+`"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<src>"` copies the approved plan into its own dated run directory and prints `path:`, `key:`, `state:`, one `branch:` line when the run works on its own branch, and one `open:` line per OTHER run whose tasks are not all settled.
 
 `<src>`, first match wins:
 
@@ -74,7 +74,7 @@ Never dispatch a `done` or `skipped` task again. Also on the index:
 - `dirty: <id> | <paths>` -> before dispatching that task, `AskUserQuestion` naming it and those paths: continue (its coder gets `resume: <paths>` added to its lines), start over (dispatch unchanged), or drop (the `skip` answer).
 - `unreviewed: <ids>` -> carry to the final summary.
 - `deferred: <id>:<path>` -> that task's `deferred:` line in step 4.
-- `closed: <parts>` -> those parts of step 6 are already recorded.
+- `closed: <parts>` -> those parts of steps 6 and 7 are already recorded.
 - `decision: <id>: <text>` -> a `decision:` line in step 4.
 
 ## 3. Profile the tasks
@@ -92,7 +92,7 @@ Review: only when its `verify:` line runs the project's build or its tests does 
 
 Then clamp both tiers into the config block's `tiers.min` to `tiers.max` range (`haiku` < `sonnet` < `opus` < `fable`). The review waiver is decided before the clamp.
 
-`TaskCreate` the remaining tasks, a final test run, and one entry for each of the `memory`, `rules`, `qa` and `cleanup` switches the config block reports as `true`. Task subject: `<id> - <title> (<tier>)`, or `(<tier>, review <review tier>)` when reviewed.
+`TaskCreate` the remaining tasks, a final test run, and one entry for each close part loaded below in steps 6 and 7 (`memory`, `rules`, `qa`, `cleanup`). Task subject: `<id> - <title> (<tier>)`, or `(<tier>, review <review tier>)` when reviewed.
 
 ## 4. Run the plan
 
@@ -167,56 +167,38 @@ Repair commit, every path on the coder's `FILES:` line through the form that own
 
 ## 6. Record what the build taught
 
-For each switch the config block reports as `true` and the index's `closed:` line does not name, all in one message:
+For each close part below the index's `closed:` line does not already name, all in one message:
 
-- `memory: true` -> `viber:memory-writer` with `spec: <dir>/spec.md`, `notes: <dir>/work/` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`.
-- `rules: true` -> `viber:rules-writer` with `spec: <dir>/spec.md`, `notes: <dir>/work/` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`.
-- `qa: true` -> `viber:qa-writer` with `spec: <dir>/spec.md`, `notes: <dir>/work/`, `refs: ${CLAUDE_PLUGIN_ROOT}/references` and `out: <dir>`.
-
-`memory-writer` (never `rules-writer`) returning one or more `OVER:` lines -> as soon as it returned, never waiting for the other writers of this step, one `viber:memory-auditor` per node, all in one message, these lines each and nothing else, `<key>` being the `key:` of step 1. The node of an `OVER:` path is that path when it is a `CLAUDE.md`, else the `CLAUDE.md` in its directory; two `OVER:` paths sharing a node make one target:
-
-```
-target: <the node>
-scope: <the directory holding it, the repository root for the root node>
-out: .temp/viber/<key>/
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" memory "${CLAUDE_SKILL_DIR}" memory
 ```
 
-An auditor returns one `AUDIT:` line and no `VERDICT:` other than `DENIED`: never answer the `AUDIT:` line as a missing verdict. No `AUDIT:` line -> that node's `findings` is `none`.
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" rules "${CLAUDE_SKILL_DIR}" rules
+```
+
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" qa "${CLAUDE_SKILL_DIR}" qa
+```
 
 Any agent of this step returning `VERDICT: DENIED` -> `AskUserQuestion` naming that agent: retry / accept / abort.
 
-After every auditor returned, `viber:memory-node-writer` per node in waves by depth: a node's depth is the number of path segments of the directory holding it, the root being 0. One wave per depth, the root's first, then ascending; every dispatch of a wave in one message, the next wave only after each of them returned. These lines each and nothing else:
-
-```
-mode: fix
-node: <the node>
-findings: <the findings file its AUDIT: line named> | none
-planned: none
-refs: ${CLAUDE_PLUGIN_ROOT}/references
-```
-
-Any wave after the root's own (every wave, when the root is no target) returning a `FILES:` path whose file name is `CLAUDE.md` other than its dispatched node, or a `DELETED:` line whose file name is `CLAUDE.md` -> after the last wave, when the root `CLAUDE.md` exists and no `DELETED:` line named it, one more dispatch with the same lines on `node: CLAUDE.md`, `findings: none`. A section path never triggers it.
-
-Commit what they return, one call per form: memory and rule paths, every `FILES:` path of the node writers among them, through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore "<plan>" "<file>" ["<file>"...]` only once every writer of this step, the last wave and any root dispatch returned; QA paths, the `FILES:` of `VERDICT: WRITTEN` or `VERDICT: KEPT`, through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa "<plan>" "<file>" ["<file>"...]`. A form whose agents returned nothing or only `VERDICT: NONE` gets no call. Commit an `OVER:` line's path like any other.
-
-Repeat verbatim in the final summary every `AUDIT:` line, every node writer's `DROPPED:`, `DELETED:`, `LIFT:` and `CHAIN:` line, every `OVER:` line whose node writer returned neither `VERDICT: UPDATED` nor `VERDICT: NONE`, and every `OVER:` line of `rules-writer`.
+Commit what the memory and rules dispatches above return, one call: memory and rule paths, every `FILES:` path of a node writer among them, through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore "<plan>" "<file>" ["<file>"...]`, only once every writer of this step, its last wave and any root dispatch have returned. No writer returned a path, or only `VERDICT: NONE` -> no call. Commit an `OVER:` line's path like any other.
 
 Then `TaskUpdate` -> completed for each entry, the `memory` entry only after the `--chore` call, when one is due, returned.
 
 ## 7. Archive and close
 
-Only when the config block reports `cleanup: true` and the build did not end on `abort`: dispatch `viber:closeout` (Agent tool) carrying one line and nothing else:
+For the close part below, when the index's `closed:` line does not already name it and the build did not end on `abort`:
 
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" cleanup "${CLAUDE_SKILL_DIR}" cleanup
 ```
-run: <dir>
-```
-
-Carry its `DRIFT:` and `PATH:` lines to the final summary. `VERDICT: DENIED` -> `AskUserQuestion`: retry / accept, `accept` then read as `BLOCKED`. `VERDICT: BLOCKED` -> no archive commit landed; name its `REASON:` in the final summary, plus, on a `DRIFT:` other than `none`, that `<dir>/spec.md` holds uncommitted drift markers, and that a failed git step may have left the run moved but uncommitted (`git status` shows it). Continue.
 
 Then `"${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh" "<started>"`, one call.
 
 Complete every task the last `progress: <n>/<total>` settled and every entry still open. Never delete the list.
 
-Final summary, max 7 lines: tasks committed, review rounds spent, test verdict, the clock's `elapsed:` (none on `elapsed: unknown`, never estimated), what memory, rules and QA recorded, the archive path and its drift, then everything the steps carried to it. A `qa.e2e.md` among the QA paths earns one more line: `/viber:e2e` turns it into Playwright tests.
+Final summary, max 7 lines: tasks committed, review rounds spent, test verdict, the clock's `elapsed:` (none on `elapsed: unknown`, never estimated), what memory, rules and QA recorded, the archive path and its drift, then everything the steps carried to it.
 
 If the run has more than 5 tasks propose to user run a `code-review`.
