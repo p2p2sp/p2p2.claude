@@ -1,7 +1,7 @@
 ---
 name: planner
 description: Only for a confirmed viber:intent interview or a viber:fixer diagnosis already in context - never the entry point. Without one, suggest the viber:intent interview and let the user decide. Turns that input into a reviewed implementation plan - acceptance criteria, file map, then tasks carrying dependencies, contracts, verification and DoD.
-allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(date:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(date:*)
 user-invocable: false
 ---
 
@@ -43,13 +43,21 @@ An input carrying a roadmap fills `## Roadmap` with the ordered subprojects, mar
 
 A plan stopping at a draft ends the step here: the specification half alone, no `## Tasks`, no `## Contracts` appendix, no `plan-index.sh` - the branch question below still applies.
 
-With `adr: true` above, read `${CLAUDE_SKILL_DIR}/references/adr-tasks.md` before writing the tasks and follow it; otherwise skip it.
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" adr "${CLAUDE_SKILL_DIR}" adr
+```
 
 Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan-path>"` as one literal Bash line, no interpreter word in front - any other form stalls on a permission prompt. It must exit 0: fix whatever it reports and re-run.
 
 Show the user the full path of the written plan.
 
-A draft round carries its `work:` and `branch:` over, asking nothing. Otherwise, under `branching.mode` `allowed` or `required` - once `plan-index.sh` has passed, immediately for a draft - run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --branch "<plan-path>"` as one literal Bash line, no interpreter word in front (`mode: off` needs no question). An `error:` line ends this step: show it, record nothing. Else one `AskUserQuestion`: only when several `entry:` lines lack `new: -`, which entry, `suggested:` first, at most four, others by free text (else `suggested:`); then create that entry's `new:` from its `base:` - naming `base:` behind its remote when `behind:` is above 0, the tree dirty when `dirty: yes` would block the switch - stay on `current:` when not that `base:`, or, under `mode: allowed` only, no branch. Write the entry key into `work:`, the branch name or `none` into `branch:`. A draft goes to step 3 next; every other plan dispatches the review below.
+A draft round carries its `work:` and `branch:` over, asking nothing. Otherwise:
+
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" branching.""mode "${CLAUDE_SKILL_DIR}" branching
+```
+
+A draft goes to step 3 next; every other plan dispatches the review below.
 
 ## 3. Review gate
 
@@ -65,13 +73,17 @@ Call `ExitPlanMode` only after a PASS.
 
 A plan with its task half, on a change no draft preceded: name `viber:implementor` as the next step, the path shown in step 2 being the whole handover. Nothing runs here.
 
-A plan with its task half that changes a UI or an endpoint and carries no end-to-end task adds one line to either hand-off: `/viber:e2e` writes those tests after the build, and needs `qa: true` in `.claude/viber.yml` when the config block above reads `qa: false`.
+A plan with its task half that changes a UI or an endpoint and carries no end-to-end task adds one line to either hand-off:
+
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" qa "${CLAUDE_SKILL_DIR}" qa-e2e
+```
 
 A change that went through a draft lands here instead, since nothing downstream lands a plan carrying no task. Run one literal Bash line, every argument double-quoted, no interpreter word in front, nothing chained to it - the only thing this step executes:
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<plan-path>"`
 
-The script honours the plan's `into:` key and points the landed copy's `source:` at itself, and, under `branching.mode` other than `off`, puts HEAD on the run branch before copying and prints a `branch:` line (`<name> (created | switched | kept)`, or `detached (kept)`) beside `path:`, `key:` and `state:`. Show the user the landed path and that `branch:` line when it printed one.
+The script honours the plan's `into:` key and points the landed copy's `source:` at itself; when the plan carries a `branch:` key, it puts HEAD on the run branch before copying and prints a `branch:` line (`<name> (created | switched | kept)`, or `detached (kept)`) beside `path:`, `key:` and `state:`. Show the user the landed path and that `branch:` line when it printed one.
 
 Exit 6 - the run branch could not be set -> report the stderr reason and stop: nothing landed, and no hand-off names `viber:implementor`.
 
