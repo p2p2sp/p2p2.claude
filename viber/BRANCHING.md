@@ -160,8 +160,9 @@ branching:
     feature: feature
 ```
 
-Feature and fix work is cut from and lands back on `main` the same way; cutting the release branch
-itself, and back-merging a fix into it, is part 2.
+Feature and fix work is cut from and lands back on `main` the same way. A release branch is named
+`release/<version>` with the full semver number, such as `release/1.4.0`; cutting it, and
+back-merging a fix into it, is part 2.
 
 ### Release Flow
 

@@ -911,10 +911,12 @@ przez gałęzie środowisk zostaje poza tym schematem.</p>
   issue-type-mappings:
     bug: feature
     feature: feature</pre>
-<p class="caption" lang="en">Feature and fix work is cut from and lands back on <code>main</code>; cutting
-the release branch itself, and back-merging a fix into it, is part 2.</p>
-<p class="caption" lang="pl">Praca nad funkcją i poprawką jest wycinana z <code>main</code> i tam wraca;
-wycinanie samej gałęzi wydania i wtapianie do niej poprawki to część 2.</p>
+<p class="caption" lang="en">Feature and fix work is cut from and lands back on <code>main</code>. A release
+branch is named <code>release/&lt;version&gt;</code> with the full semver number, such as
+<code>release/1.4.0</code>; cutting it, and back-merging a fix into it, is part 2.</p>
+<p class="caption" lang="pl">Praca nad funkcją i poprawką jest wycinana z <code>main</code> i tam wraca.
+Gałąź wydania nazywa się <code>release/&lt;wersja&gt;</code> z pełnym numerem semver, np.
+<code>release/1.4.0</code>; jej wycinanie i wtapianie do niej poprawki to część 2.</p>
 
 <h4><span lang="en">Release Flow</span><span lang="pl">Release Flow</span></h4>
 <pre class="snippet">branching:

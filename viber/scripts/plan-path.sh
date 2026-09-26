@@ -40,18 +40,20 @@
 # which the copy rewrites to its own absolute path.
 #
 # --into names ONE directory under docs/<runs>/ - no slash, no "." and no ".." -
-# and that directory has to be a DRAFT, OR a run whose plan.md already holds
-# the source's own plan: a run whose plan carries not one task block, so
-# nothing was ever built from it, or one a round already turned into a run but
-# that is not yet decomposed or carrying any progress. The round lands over it
+# and that directory has to be a DRAFT - a run whose plan carries not one task
+# block and that holds no decomposition or progress, so nothing was ever built
+# from it - OR a run whose plan.md already holds the source's own plan, a round
+# already turned into a run, decomposed or not. Over a draft the round lands
 # in place, keeping the key and the stamp, which is what lets a draft go
 # through several rounds of remarks and still be one run. Landing the SAME
-# round a second time, before anything was decomposed or committed from it,
+# round a second time, before or after it was decomposed or committed from,
 # copies nothing and answers "state: existing" rather than refusing it - the
 # whole point of --land's idempotence surviving a context cleared between
-# rounds. A source that actually differs from what a target with a task half
-# already holds, and any source at all once a target carries a decomposition
-# or recorded progress, is refused (exit 4) rather than overwritten.
+# rounds, and what lets a build resume through the plan's source: line. A
+# source that actually differs from what a target with a task half, a
+# decomposition or recorded progress already holds, and any source over a draft
+# carrying a decomposition or progress, is refused (exit 4) rather than
+# overwritten.
 #
 # The run branch. Under a branching.mode other than off (config.sh --branching,
 # read by the sourced run-branch.sh; outside a git repository it acts as off), a
@@ -71,7 +73,10 @@
 # run of - _ . left next to a / or at either end dropped, // and -- collapsed.
 # While no entry resolves, the required checks read every entry base. A switch
 # that moves HEAD to another commit is refused on a dirty tree (untracked files
-# count); one keeping the commit carries the uncommitted work along. The no-argument form and a source
+# count); one keeping the commit carries the uncommitted work along. A matching
+# round landed again through --into takes the same branch step before answering
+# "existing", so a build resumed from the base branch lands back on the run
+# branch. The no-argument form and a source
 # that is itself a landed run plan never switch. Nothing is ever fetched.
 #
 # Contract:
@@ -83,8 +88,9 @@
 #            and "issue:" keys and its task blocks' "Repro:" lines, for the
 #            run branch. On every form printing "branch:", the resolved
 #            plan's "work:" key, for the "target:" line.
-#   git    : HEAD moves only in the branch step of a first landing, through
-#            one checkout; every failure before or inside that step leaves
+#   git    : HEAD moves only in the branch step of a first landing, or of a
+#            matching round landed again through --into, through one
+#            checkout; every failure before or inside that step leaves
 #            HEAD, the index and the tree as they were. --branch never moves
 #            HEAD, the index or the tree - it only reads.
 #   gh     : --branch alone, through issue-facts.sh, for the issue type (see
@@ -134,11 +140,12 @@
 #         or a traversal, or names no
 #         directory under docs/<runs>/, or --branch on a plan that is not a file
 #     3 - no argument and docs/_specs/ holds no plan
-#     4 - --into on a target that already carries a decomposition or recorded
-#         progress, or that differs from a source landing over its own task
-#         half; nothing was written. The same source landing over that task
-#         half again, unchanged apart from its own source: line, is exit 0
-#         with "state: existing" instead - see "existing" below
+#     4 - --into on a target whose plan carries a task half, or that carries
+#         a decomposition or recorded progress, while the source differs from
+#         its plan, or on a draft carrying either; nothing was
+#         written. The same source landing over that task half again,
+#         unchanged apart from its own source: line, is exit 0 with "state:
+#         existing" instead - see "existing" below
 #     5 - the copy failed; nothing was landed
 #     6 - the run branch could not be set: a switch to another commit on a
 #         dirty tree, a base missing locally, an invalid branch name, the base
@@ -176,7 +183,9 @@
 #              same idempotence holds for --into: landing the round that
 #              already sits at a target's task half again, unchanged apart
 #              from its own source: line, answers "existing" too, whether or
-#              not that round has itself been landed before (see exit 4).
+#              not that round has itself been landed before, and whether or
+#              not the target is already decomposed or carrying progress
+#              (see exit 4).
 # "draft"    - "state: draft", the run's plan carrying not one task block, so
 #              there is nothing to build yet: a specification still being
 #              discussed and rounds away from a task list. It replaces both
@@ -345,7 +354,7 @@ infm && /^source:/ { print "source: " ENVIRON["abs"]; next }
 # Compared after the same guidance strip a real landing applies, so a round
 # whose only edit was prose a stripped copy already absorbed still matches.
 # What this makes possible: re-landing an unchanged "into:" round a second
-# time, before anything was built from it, answers as the run it already is
+# time, before or after its decomposition, answers as the run it already is
 # instead of being refused for carrying a task half of its own.
 plan_matches() {
   base="$2.matches.$$"
@@ -506,28 +515,26 @@ if [[ "$into_set" == 1 ]]; then
   fi
   # the run's own plan landed again: nothing to copy, and cp would refuse the
   # file onto itself. Checked first, since a landed plan keeps its "into:" line
-  # and a later build lands it once more.
+  # and a later build lands it once more. The plan-mode source of that round,
+  # landed again, is matched further down.
   src_dir="$(cd -- "$(dirname -- "$src")" 2>/dev/null && pwd -P || true)"
   dest_dir="$(cd -- "$specs_dir/$into" 2>/dev/null && pwd -P || true)"
   if [[ "$(basename -- "$src")" == "plan.md" && -n "$src_dir" && "$src_dir" == "$dest_dir" ]]; then
     emit "$dest" existing
     exit 0
   fi
-  # A decomposition or recorded progress is the state; a round landed over it
-  # would drop work the tree cannot give back. This refusal is unconditional -
-  # even a source identical to the target does not un-refuse it, since a build
-  # already reads the target as it stands.
-  if [[ -e "$specs_dir/$into/status.md" || -d "$specs_dir/$into/tasks" ]]; then
-    echo "error: $specs_dir/$into is not a draft - it carries tasks, a decomposition or progress" >&2
-    exit 4
-  fi
-  # The target already carries a task half of its own - a round turned this
-  # draft into a run - but nothing has been decomposed or committed from it
-  # yet. The round already sitting there, apart from its own source: line,
-  # answers as itself: nothing is lost by declaring it landed again. A source
-  # that actually differs is refused the same as a decomposition would be.
-  if [[ -f "$dest" ]] && has_tasks "$dest"; then
-    if plan_matches "$src" "$dest"; then
+  # A target carrying a task half, a decomposition or recorded progress is the
+  # state; a source that differs from the plan it holds would drop work the
+  # tree cannot give back, so it is refused. The round already sitting at a
+  # target with a task half, unchanged apart from its own source: line, answers
+  # "existing" instead, decomposed or not: nothing is copied, so nothing is
+  # lost - which is what lets a build resume through the plan's source: line.
+  # It still takes the branch step, so a resume from the base branch lands back
+  # on the run branch. A draft carrying a decomposition or progress has no task
+  # half to match and is refused whatever the source.
+  if [[ -e "$specs_dir/$into/status.md" || -d "$specs_dir/$into/tasks" ]] || { [[ -f "$dest" ]] && has_tasks "$dest"; }; then
+    if [[ -f "$dest" ]] && has_tasks "$dest" && plan_matches "$src" "$dest"; then
+      branch_land "$src" "$(slug_of "$src")" || exit $?
       emit "$dest" existing
       exit 0
     fi

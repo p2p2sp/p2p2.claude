@@ -1118,6 +1118,51 @@ test("landing the same into: source twice reports the second round as existing a
   });
 });
 
+test("a round landed through into: and then decomposed lands again as existing, the run left untouched (a build resumed through the plan's source: line must not stop on exit 4)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const key = "2026-09-19-17-30-00_add-login";
+    landPlan(dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
+    const src = sourcePlan(dir, "outside/round-2.md", roundInto(key, PLAN_BODY));
+
+    const first = run(dir, ["--land", src]);
+    assert.equal(first.status, 0, `stderr: ${first.stderr}`);
+    assert.deepEqual(parse(first.stdout), { path: `docs/_specs/${key}/plan.md`, key, state: "new" });
+    const landedAfterFirst = fs.readFileSync(planIn(dir, key), "utf-8");
+
+    fs.mkdirSync(path.join(dir, "docs", "_specs", key, "tasks"), { recursive: true });
+    landStatus(dir, key, { progress: "0/1", done: "none" });
+
+    const second = run(dir, ["--land", src]);
+    assert.equal(second.status, 0, `stderr: ${second.stderr}`);
+    assert.deepEqual(parse(second.stdout), { path: `docs/_specs/${key}/plan.md`, key, state: "existing" });
+    assert.equal(fs.readFileSync(planIn(dir, key), "utf-8"), landedAfterFirst);
+    assert.deepEqual(runDirs(dir), [key]);
+  });
+});
+
+test("a different round landed through into: over a decomposed run is still refused with exit 4 and the run left untouched", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    const key = "2026-09-19-17-30-00_add-login";
+    landPlan(dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
+    const src = sourcePlan(dir, "outside/round-2.md", roundInto(key, PLAN_BODY));
+
+    const first = run(dir, ["--land", src]);
+    assert.equal(first.status, 0, `stderr: ${first.stderr}`);
+    const landedAfterFirst = fs.readFileSync(planIn(dir, key), "utf-8");
+
+    fs.mkdirSync(path.join(dir, "docs", "_specs", key, "tasks"), { recursive: true });
+    landStatus(dir, key, { progress: "0/1", done: "none" });
+
+    const changed = sourcePlan(dir, "outside/round-3.md", roundInto(key, PLAN_BODY.replace("sign in.", "sign in, and stay.")));
+    const second = run(dir, ["--land", changed]);
+    assert.equal(second.status, 4, `stdout: ${second.stdout}`);
+    assert.equal(second.stdout, "");
+    assert.match(second.stderr, /not a draft/);
+    assert.equal(fs.readFileSync(planIn(dir, key), "utf-8"), landedAfterFirst);
+    assert.deepEqual(runDirs(dir), [key]);
+  });
+});
+
 test("a changed source onto a decomposed draft still exits 4, even though the draft used to match it", () => {
   withTempDir("p2p2-viber-", (dir) => {
     const key = "2026-09-19-17-30-00_add-login";
@@ -1687,6 +1732,47 @@ test("a landing refused with exit 4 for a target that is not a draft leaves HEAD
       assert.equal(result.status, 4, `stdout: ${result.stdout}`);
       assert.equal(headOf(repo), "main");
       assert.equal(repo.git("show-ref", "--verify", "--quiet", "refs/heads/feature/login").status, 1);
+    });
+  });
+});
+
+test("a decomposed round re-landed through into: from the base branch switches back to the run branch", () => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
+    const key = "2026-09-19-17-30-00_add-login";
+    landPlan(repo.dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
+    withSource(["branch: feature/login", `into: ${key}`], (src) => {
+      const first = runIn(repo, ["--land", src]);
+      assert.equal(first.status, 0, `stderr: ${first.stderr}`);
+      assert.equal(branchLine(first.stdout), "branch: feature/login (created)");
+
+      fs.mkdirSync(path.join(repo.dir, "docs", "_specs", key, "tasks"), { recursive: true });
+      landStatus(repo.dir, key, { progress: "0/1", done: "none" });
+      // the same commit, so the untracked run directory follows HEAD back
+      repo.git("checkout", "-q", "main");
+
+      const again = runIn(repo, ["--land", src]);
+      assert.equal(again.status, 0, `stderr: ${again.stderr}`);
+      assert.equal(parse(again.stdout).state, "existing");
+      assert.equal(branchLine(again.stdout), "branch: feature/login (switched)");
+      assert.equal(headOf(repo), "feature/login");
+    });
+  });
+});
+
+test("a matching into: round re-landed before any split switches back to the run branch too", () => {
+  withBranchRepo(["mode: allowed", ...ON_MAIN], (repo) => {
+    const key = "2026-09-19-17-30-00_add-login";
+    landPlan(repo.dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
+    withSource(["branch: feature/login", `into: ${key}`], (src) => {
+      const first = runIn(repo, ["--land", src]);
+      assert.equal(first.status, 0, `stderr: ${first.stderr}`);
+      repo.git("checkout", "-q", "main");
+
+      const again = runIn(repo, ["--land", src]);
+      assert.equal(again.status, 0, `stderr: ${again.stderr}`);
+      assert.equal(parse(again.stdout).state, "existing");
+      assert.equal(branchLine(again.stdout), "branch: feature/login (switched)");
+      assert.equal(headOf(repo), "feature/login");
     });
   });
 });
