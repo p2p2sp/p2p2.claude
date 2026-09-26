@@ -119,11 +119,16 @@ verifier; fixed by 4.5.
 - Done as: the sentence left step 3 for `fragments/branching-fix.allowed.md` / `.required.md`,
   preloaded right after the verdict list and anchored to a `VERDICT: FAIL` fix; `off` loads nothing.
 
-2.10. `agents/rules-writer.md:34`: "the same way, confirmed with `Glob` first" right after "never
+2.10. DONE. `agents/rules-writer.md:34`: "the same way, confirmed with `Glob` first" right after "never
 by a `Glob` call" is ambiguous (dead globs are confirmed by the map, removed conventions by
 `Glob`; "the same way" means only the `rm --` form). Also, under the spec shape (implementor) there
 is no map, so a rule whose glob went dead can never be removed there. Severity low. Verifiers:
 both.
+- Done as: the line split into three bullets. Dead globs are removed only under the map shape, on
+  `matches 0` or `dead:`; under the spec shape the writer never removes a rule for its globs
+  (a dead-scoped rule never loads, and `/viber:rules` reports it as `dead:`). A convention the
+  build removed needs `Grep` and `Glob` to find no file still following it. The `rm --` limits
+  stand as their own bullet, shared by both removals.
 
 2.11. `skills/commit/SKILL.md:43` ("Has something changed in the meantime? So what...") is
 colloquial for a `model: haiku` fork and can be read as permission to break `:40`. Intent: a tree

@@ -31,7 +31,9 @@ Your whole scope is `.claude/rules/**/*.md`. Never touch `CLAUDE.md`, `.temp/` o
 - An existing rule holds one example per convention. A stronger example replaces the weaker one, never joins it: a list of occurrences is an inventory, not a rule.
 - A file whose basename starts with `_` is frozen: never read it for scoring, never rewrite or move it, never propose one.
 - Correct a rule the build contradicted, and say plainly in it what now holds.
-- Remove a rule the project outgrew: one whose `paths:` globs now match no file in the tree, confirmed by the map's `matches 0` on that rule's line or by its `dead:` line, never by a `Glob` call, then delete it with `rm -- <path>`, never `-r` or `-f` - a rule you cannot disprove stays - and never a `_` file. Remove a rule whose whole convention the build removed the same way, confirmed with `Glob` first.
+- Under the map shape, remove a rule whose `paths:` globs match no tracked file only on the map's `matches 0` on that rule's line or its `dead:` line, never on a `Glob` call. Under the spec shape there is no map: never remove a rule for its globs, `/viber:rules` reports it as `dead:`.
+- Remove a rule whose whole convention the build removed only once `Grep` and `Glob` find no file still following it.
+- Delete with `rm -- <path>`, never `-r` or `-f`, and never a `_` file: a rule you cannot disprove stays.
 - Remove every line an audit marked `DROP`, and delete a file left with no convention in it. An area directory left with no file goes with `rmdir -- <dir>`. A `DROP` carrying `-> move <path>` is a fact the memory layer still has to record: return it on `MOVE:`, never write it into `CLAUDE.md` yourself.
 
 ## Budget
