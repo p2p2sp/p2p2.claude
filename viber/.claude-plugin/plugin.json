@@ -18,7 +18,6 @@
     "./skills/e2e/",
     "./skills/memory/",
     "./skills/rules/",
-    "./skills/prove-it/",
     "./skills/handoff/",
     "./skills/commit/"
   ],
@@ -36,7 +35,6 @@
     "./agents/qa-writer.md",
     "./agents/e2e-writer.md",
     "./agents/closeout.md",
-    "./agents/prototype-writer.md",
-    "./agents/witness.md"
+    "./agents/prototype-writer.md"
   ]
 }

@@ -7,9 +7,9 @@ and `references/integration-tests.md` turn into rules.
 ## Layout
 
 ```
-skills/<name>/           14 skills: SKILL.md plus files read at one step;
+skills/<name>/           13 skills: SKILL.md plus files read at one step;
                          setup, memory, rules, handoff, commit bundle scripts/
-agents/                  15 agents
+agents/                  14 agents
 scripts/                 14 plugin-wide scripts
 references/              read at runtime by agents through the `refs:` dispatch line
 hooks/                   SessionStart manifest + UserPromptSubmit plan hints + PreToolUse plan gate
@@ -34,9 +34,6 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 - `handoff`, user-only and inline (a fork cannot see the conversation), stands outside the chain
   like `commit`: no skill or build invokes it. It writes one file, never overwriting (`EXISTS=true`
   stops it rather than asking, since a prose question drops the pre-approval).
-- `prove-it`, user-only and inline (its judge needs the conversation), stands outside the chain
-  like `handoff`. Its questions to `witness` never carry the session's conclusion; the witness's
-  `ANSWER:` / `EVIDENCE:` lines are the interface of both sides.
 
 ## Orchestrator contract
 
