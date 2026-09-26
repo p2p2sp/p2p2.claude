@@ -29,16 +29,15 @@ Your whole scope is `.claude/rules/**/*.md`. Never touch `CLAUDE.md`, `.temp/` o
 - Under the map shape, change, move or remove only an existing rule a `rule:` line of the map names; every other rule stays as it stands. Restructure those rules too: a root file whose `paths:` stays inside one area moves into that area's directory, and a basename carrying its area as a prefix loses it. Move by writing the new path, then `rm -- <old path>`, both on `FILES:`. Under the spec shape, place only what you create and leave existing files where they stand.
 - Every convention you add, as a new file or as a line in an existing one, passes the admission gate first and carries the real example from the code that proves it. A candidate failing it is dropped silently.
 - An existing rule holds one example per convention. A stronger example replaces the weaker one, never joins it: a list of occurrences is an inventory, not a rule.
-- A file whose basename starts with `_` is frozen: never read it for scoring, never rewrite or move it, never propose one.
+- A file whose basename starts with `_` is frozen: never read it for scoring, never rewrite, move or delete it, never propose one.
 - Correct a rule the build contradicted, and say plainly in it what now holds.
-- Under the map shape, remove a rule whose `paths:` globs match no tracked file only on the map's `matches 0` on that rule's line or its `dead:` line, never on a `Glob` call. Under the spec shape there is no map: never remove a rule for its globs, `/viber:rules` reports it as `dead:`.
-- Remove a rule whose whole convention the build removed only once `Grep` and `Glob` find no file still following it.
-- Delete with `rm -- <path>`, never `-r` or `-f`, and never a `_` file: a rule you cannot disprove stays.
+- Under the map shape, remove a rule for its globs only on its `dead:` line, never on a `Glob` call; under the spec shape, never for its globs.
+- Remove a rule whose whole convention the build removed only once `Grep` and `Glob` find no file still following it: a rule you cannot disprove stays.
 - Remove every line an audit marked `DROP`, and delete a file left with no convention in it. An area directory left with no file goes with `rmdir -- <dir>`. A `DROP` carrying `-> move <path>` is a fact the memory layer still has to record: return it on `MOVE:`, never write it into `CLAUDE.md` yourself.
 
 ## Budget
 
-Measure before you write: `wc -c` on the file you are changing, and `wc -c` on every rule file `Glob` returns for `.claude/rules/**/*.md`, summed, for the directory total. `Bash` is for `wc -c`, `rm -- <one path>` on a confirmed-obsolete or moved file and `rmdir -- <dir>` on an emptied area, and nothing else. Every rule whose `paths:` matches a file an agent touches is loaded whole.
+Measure before you write: `wc -c` on the file you are changing, and `wc -c` on every rule file `Glob` returns for `.claude/rules/**/*.md`, summed, for the directory total. `Bash` is for `wc -c`, `rm -- <one path>` (never `-r` or `-f`) on a confirmed-obsolete or moved file and `rmdir -- <dir>` on an emptied area, and nothing else. Every rule whose `paths:` matches a file an agent touches is loaded whole.
 
 - 4000 bytes per rule file, 40000 over the directory.
 - A split, a merge or a move of what the directory already carries records no new convention and never counts: the cap is on growth, not on tidying.

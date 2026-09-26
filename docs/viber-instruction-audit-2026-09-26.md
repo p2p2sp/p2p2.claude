@@ -124,11 +124,13 @@ by a `Glob` call" is ambiguous (dead globs are confirmed by the map, removed con
 `Glob`; "the same way" means only the `rm --` form). Also, under the spec shape (implementor) there
 is no map, so a rule whose glob went dead can never be removed there. Severity low. Verifiers:
 both.
-- Done as: the line split into three bullets. Dead globs are removed only under the map shape, on
-  `matches 0` or `dead:`; under the spec shape the writer never removes a rule for its globs
-  (a dead-scoped rule never loads, and `/viber:rules` reports it as `dead:`). A convention the
-  build removed needs `Grep` and `Glob` to find no file still following it. The `rm --` limits
-  stand as their own bullet, shared by both removals.
+- Done as: two bullets, shorter than the original line. Dead globs are removed only under the map
+  shape and only on the rule's `dead:` line (never `matches 0`: a no-scope rule and a repo with
+  nothing tracked also read `matches 0`, and `rules-map.sh` prints `dead:` for neither); under the
+  spec shape the writer never removes a rule for its globs (a dead-scoped rule never loads, and
+  `/viber:rules` reports it). A convention the build removed needs `Grep` and `Glob` to find no
+  file still following it. The `rm --` limits moved to the Budget `Bash` line and the `_` delete
+  ban to the frozen-file bullet, where each already lived.
 
 2.11. `skills/commit/SKILL.md:43` ("Has something changed in the meantime? So what...") is
 colloquial for a `model: haiku` fork and can be read as permission to break `:40`. Intent: a tree
