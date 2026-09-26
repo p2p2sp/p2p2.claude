@@ -25,6 +25,6 @@ Date: <YYYY-MM-DD> | Branch: <branch>
 1. The first concrete action.
 2. ...
 
-## Open problems
+## Open problems to decide
 - The problem or unconfirmed fact, and what would settle it.
 ```
