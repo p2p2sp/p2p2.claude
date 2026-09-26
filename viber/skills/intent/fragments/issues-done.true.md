@@ -1,0 +1,6 @@
+- The run is tied to an issue from the argument -> the interview changed or added something the issue does not state: ask in prose whether to post the confirmed summary as a comment on that issue, then end the turn. Yes -> post it per `${CLAUDE_SKILL_DIR}/references/issue.md` `## Comment`, read at that step, then ask what next. No, or nothing changed -> hand off.
+- No issue -> run `"${CLAUDE_PLUGIN_ROOT}/scripts/issue-templates.sh"`. `STATUS=skip` -> state in one line why saving is impossible (`REASON=no-templates`: no issue form template; `no-gh`: GitHub command line tool missing; `no-repo`: no GitHub repository reachable), ask no save question, hand off. `STATUS=ready` -> ask in prose whether to save the confirmed summary as a new GitHub issue, then end the turn. Yes -> save it per `${CLAUDE_SKILL_DIR}/references/issue.md` `## Save`, read at that step, then ask what next. No -> hand off.
+
+What next: one prose question, invoke the planner now or stop, then end the turn. Planner -> hand off. Stop -> name the issue URL, say `/viber:intent #<N>` resumes it and run nothing else; with no issue URL known, just stop.
+
+A run tied to an issue, by its argument or by a save, carries one line `Issue: <full issue URL>` inside the hand-off summary: the `URL=` value of `issue-facts.sh` or the `ISSUE_URL=` value of `create-issue.sh`, never anything else.
