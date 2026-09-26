@@ -28,7 +28,7 @@ You orchestrate and delegate: every piece of work runs inside a subagent. Open n
 - Never two `commit-task.sh` calls in one message: each rewrites the git index and `status.md`.
 - A `commit-task.sh` call exiting non-zero committed nothing. Outside a task commit (step 4 owns that one): `AskUserQuestion`: retry / abort, its paths named uncommitted in the final summary on abort.
 - An agent's completion notice saying it "stopped with background work of its own still running": hold its verdict and `SendMessage` that agent, once: `Stop every process you started that is still running, then return your output lines again.` Act on what it returns then. The same notice again -> act on the verdict and name that agent's task in the final summary.
-- An agent returning no `VERDICT:` line: `SendMessage` that agent, once: `Finish your task, then return your output lines.` Still none -> act as on `VERDICT: FAIL` with `REASON: no verdict returned`. Neither this nudge nor the background-work notice above counts toward a coder instance's continuation cap (step 4).
+- An agent returning no `VERDICT:` line: `SendMessage` that agent, once: `Finish your task, then return your output lines.` Still none -> act as on its `VERDICT: FAIL`, else `VERDICT: DENIED`, with `REASON: no verdict returned`. Neither this nudge nor the background-work notice above counts toward a coder instance's continuation cap (step 4).
 
 ## Answers
 
