@@ -10,7 +10,7 @@ Two documents per build, both in the build's own run directory: `qa.md`, which a
 
 ## Acceptance document `qa.md`
 
-Human-only, `ui` scenarios only - manual API testing is out of scope. Every heading, label and column name is rendered in the language the user is conversing in - the language the run's own specification is written in - and never in the English of this plugin's files; the IDs are never translated.
+Human-only, `ui` scenarios only - manual API testing is out of scope. Written whole, every heading, label and column name included, in the language the run's own specification is written in, never in the English of this plugin's files; the IDs are never translated.
 
 ```
 # <build title>
@@ -78,7 +78,7 @@ The three header lines always come first, in that order. A UI entry carries all 
 
 ## Automation
 
-Appended to the handoff after the build, one line per processed ID, never two. The section is created by the first processed ID and lives at the end of the file.
+Written by the e2e run alone, never when the handoff is created: one line per processed ID, never two. The section is created by the first processed ID and lives at the end of the file.
 
 ```
 ## Automation

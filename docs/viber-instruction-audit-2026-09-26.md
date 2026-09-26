@@ -292,9 +292,13 @@ PARTLY.
   600 bytes and a reference adds a read. About 1 KB less per plan under `off`, about 560 bytes
   under `allowed` / `required`.
 
-4.6. `agents/qa-writer.md:34` (fully covered by `qa-format.md:13`, `:42`, `:93`, `:94`), `:31`
+4.6. DONE. `agents/qa-writer.md:34` (fully covered by `qa-format.md:13`, `:42`, `:93`, `:94`), `:31`
 (`qa-format.md:7`), `:35` (`qa-format.md:81`). About 0.5 KB, only under `qa: true`. Verifiers: both
 CONFIRMED.
+- Done as: all three cut. Two gaps closed in `qa-format.md` first, size unchanged: `:13` now
+  names the specification's language only (the writer never sees the conversation) and covers
+  the whole document, not just headings; `:81` names the e2e run as the section's sole writer
+  ("after the build" did not exclude `qa-writer`, which itself runs after the build).
 
 4.7. `skills/commit/SKILL.md:27-28` (about 600 bytes): the `## Selector:` line of
 `commit-context.sh` already carries mode and action, and `commit-conventions.md:19` says to copy
