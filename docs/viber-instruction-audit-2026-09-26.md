@@ -208,12 +208,13 @@ PARTLY SAFE.
   line of `task-coder.md` and `task-reviewer.md`. `test-strategy.md` keeps only the rules a coder
   applies, so planner and planner-review no longer read it.
 
-4.2. `skills/tdd/SKILL.md:4` description: drop "On `resume`, `reason` or `report` input the code
+4.2. DONE. `skills/tdd/SKILL.md:4` description: drop "On `resume`, `reason` or `report` input the code
 already in the tree is kept and tested, never deleted" and "mandatory verify-red and verify-green
 checkpoints, no horizontal slicing"; keep "`TDD: required`" and "Invoked by `viber:task-coder` ...
 never directly". Resume protection lives in the body (`:16`) and `task-coder.md:16`; the skill is
 invoked by name. Saves about 240 bytes in every session listing and every coder dispatch.
 Verifiers: both CUT SAFE.
+- Done as: also dropped "before the first line of production code" (stated at `task-coder.md:27`).
 
 4.3. `agents/rules-auditor.md:28` "A candidate failing it is dropped with no line at all..."
 (duplicates `rule-admission.md:29`; `DROP` is defined at `:39`) and `:45` "never `STALE`, `GONE`,

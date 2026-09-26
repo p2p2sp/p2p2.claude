@@ -1,7 +1,7 @@
 ---
 name: tdd
 description: >-
-  Red-Green-Refactor discipline for a plan task marked `TDD: required`: no production code before a test that has been watched to fail, mandatory verify-red and verify-green checkpoints, no horizontal slicing. On `resume`, `reason` or `report` input the code already in the tree is kept and tested, never deleted. Invoked by `viber:task-coder` before the first line of production code, never directly.
+  Red-Green-Refactor cycle for a plan task marked `TDD: required`. Invoked only by `viber:task-coder`, never directly.
 user-invocable: false
 ---
 
