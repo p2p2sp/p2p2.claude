@@ -235,7 +235,7 @@ SAFE.
 - `:61`: cut only "never leaves the child node over its cap"; keep "keeps every fact already in it".
 - `:63-64`: DONE with 2.7 (merged into one line).
 
-4.5. `skills/planner/SKILL.md`, about 560-750 bytes on a run with branching off. Verifiers: both
+4.5. DONE. `skills/planner/SKILL.md`, about 560-750 bytes on a run with branching off. Verifiers: both
 PARTLY.
 - `:54` (draft carries `work:`/`branch:`) folds into the existing `fragments/branching.*.md`.
 - `:44` "the branch question below still applies" is branching-only too.
@@ -246,6 +246,15 @@ PARTLY.
 - `:86`: drop only "honours `into:` and points `source:` at itself" (`plan-path.sh` does it).
 - Optional, low value: the draft-landing block `:82-92` (1.2 KB) into a reference read only on a
   draft.
+- Done as: `:18`'s second sentence cut, its guard folded into `:36` ("never from the scope");
+  `:42` reworded without "ends the step here", which would have skipped the branch question for
+  a draft; `:52` moved into `fragments/branching.*`; the landing's branch line and exit 6 into a
+  new `fragments/branching-land.*` preloaded after the `--land` line, "honours `into:` ... at
+  itself" and "`plan-path.sh` alone moves HEAD" dropped. Also the spec templates' `work:` /
+  `branch:` placeholder lines ("drop under branching off"), now named only by
+  `fragments/branching.*`. The reference split was skipped: after the move the block is about
+  600 bytes and a reference adds a read. About 1 KB less per plan under `off`, about 560 bytes
+  under `allowed` / `required`.
 
 4.6. `agents/qa-writer.md:34` (fully covered by `qa-format.md:13`, `:42`, `:93`, `:94`), `:31`
 (`qa-format.md:7`), `:35` (`qa-format.md:81`). About 0.5 KB, only under `qa: true`. Verifiers: both

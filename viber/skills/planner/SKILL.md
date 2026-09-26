@@ -15,7 +15,7 @@ Input: an understood change already in context - a confirmed `viber:intent` inte
 
 On valid input call `EnterPlanMode` first unless plan mode is already active.
 
-The input carries three decisions already taken: the spec shape, whether this plan stops at a draft, and, on a round continuing an earlier draft, that draft's run key. Never reopen them. It may also carry one `Issue: <full issue URL>` line, present only when the run is tied to an issue; that line, not the scope, is what the write step below turns into the plan's `issue:` key.
+The input carries three decisions already taken: the spec shape, whether this plan stops at a draft, and, on a round continuing an earlier draft, that draft's run key. Never reopen them.
 
 ## 1. Map the files first
 
@@ -33,13 +33,13 @@ Before writing a task, decide which files get created, modified or deleted and w
 
 The specification half is `${CLAUDE_SKILL_DIR}/templates/spec-lite.md` or `${CLAUDE_SKILL_DIR}/templates/spec-full.md`, whichever shape the input names; the task half is `${CLAUDE_SKILL_DIR}/templates/tasks.md` under either. Fill the spec, append the task half under it, and write the result into the plan file plan mode names in its system message, the only file you may write while planning. Keep every section and every HTML marker of both templates, except one a template comment says to drop; add no section of your own.
 
-Write that plan file's absolute path into the frontmatter's `source:` key: approval may clear this context, and that line is then the only way back to the file. Fill the frontmatter's `issue:` key from the input's `Issue:` line exactly when the input carries one; with no such line drop the key, unless the plan continues a draft (below).
+Write that plan file's absolute path into the frontmatter's `source:` key: approval may clear this context, and that line is then the only way back to the file. Fill the frontmatter's `issue:` key from the input's `Issue:` line, never from the scope, exactly when the input carries one; with no such line drop the key, unless the plan continues a draft (below).
 
 A round continuing a draft reads `docs/<directories.runs>/<key>/plan.md` first and carries its specification over, changing only what the input's remarks change - its `issue:` line travels with the rest of that specification unless a remark changes it - and writes the key into the frontmatter's `into:` key; any other plan drops that line.
 
 An input carrying a roadmap fills `## Roadmap` with the ordered subprojects, marks the entry this plan covers and repeats every later entry under `### Out of scope`; no roadmap in the input means no such section. What a later entry brings stays absent: no task delivers a stand-in for it, no acceptance criterion depends on it, nothing is stubbed, mocked or temporarily substituted.
 
-A plan stopping at a draft ends the step here: the specification half alone, no `## Tasks`, no `## Contracts` appendix, no `plan-index.sh` - the branch question below still applies.
+A plan stopping at a draft writes the specification half alone: no `## Tasks`, no `## Contracts` appendix, no `plan-index.sh`.
 
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" adr "${CLAUDE_SKILL_DIR}" adr
@@ -48,8 +48,6 @@ A plan stopping at a draft ends the step here: the specification half alone, no 
 Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan-path>"` as one literal Bash line, no interpreter word in front - any other form stalls on a permission prompt. It must exit 0: fix whatever it reports and re-run.
 
 Show the user the full path of the written plan.
-
-A draft round carries its `work:` and `branch:` over, asking nothing. Otherwise:
 
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" branching.""mode "${CLAUDE_SKILL_DIR}" branching
@@ -85,10 +83,10 @@ A change that went through a draft lands here instead, since nothing downstream 
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<plan-path>"`
 
-The script honours the plan's `into:` key and points the landed copy's `source:` at itself; when the plan carries a `branch:` key, it puts HEAD on the run branch before copying and prints a `branch:` line (`<name> (created | switched | kept)`, or `detached (kept)`) beside `path:`, `key:` and `state:`. Show the user the landed path and that `branch:` line when it printed one.
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" branching.""mode "${CLAUDE_SKILL_DIR}" branching-land
+```
 
-Exit 6 - the run branch could not be set -> report the stderr reason and stop: nothing landed, and no hand-off names `viber:implementor`.
-
-Never run git directly yourself: `plan-path.sh` alone moves HEAD for the branch step, and the landed draft is otherwise the user's to commit.
+Show the user the landed path. Never run git directly yourself: the landed draft is the user's to commit.
 
 A round still carrying no task half ends there and never names `viber:implementor`: a build refuses a draft. A round that added the task half names `viber:implementor` as the next step, the landed path being the handover.
