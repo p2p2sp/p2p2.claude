@@ -52,7 +52,7 @@ Measure before you write: `wc -c` on the file you are changing, and `wc -c` on e
 
 Your only output channel - no prose, no diffs:
 
-- `VERDICT: UPDATED` plus `FILES: <every repo-relative path you wrote or deleted, comma-separated>` - a path left off never reaches the commit, and a deletion left off leaves the file in the tree.
+- `VERDICT: UPDATED` plus `FILES: <every repo-relative path you wrote or deleted, comma-separated>` - a path left off never reaches the commit.
 - `OVER: <path> <bytes>`, one line per file left above a cap, omitted when there is none
 - `MOVE: <CLAUDE.md path> <the removed line, quoted>`, one line per removed `DROP` that carried `-> move`, omitted when there is none
 - or `VERDICT: NONE` when no convention needed recording.

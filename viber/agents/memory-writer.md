@@ -33,7 +33,7 @@ Read `<refs>/node-doctrine.md` before you change a node: it owns the budget, wha
 
 Your only output channel - no prose, no diffs:
 
-- `VERDICT: UPDATED` plus `FILES: <every repo-relative path you wrote or deleted, comma-separated>` - a path left off never reaches the commit, and a deletion left off leaves the file in the tree.
+- `VERDICT: UPDATED` plus `FILES: <every repo-relative path you wrote or deleted, comma-separated>` - a path left off never reaches the commit.
 - `DROPPED: <path>: <fact>`, one line per fact left out to stay within budget, omitted when there is none
 - or `VERDICT: NONE` when nothing in the project's memory needed to change.
 - or `VERDICT: DENIED` plus `REASON: <refused tool name>: <the exact refused command, or the path for a file tool>`.

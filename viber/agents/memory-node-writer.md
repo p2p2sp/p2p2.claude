@@ -50,7 +50,7 @@ A node with no finding to act on still goes through Budget.
 Read the tracked files of the area and author the facts a reader landing there would otherwise have to reconstruct from the code.
 
 - `node` already exists -> keep every fact in it and its sections and author only what they lack.
-- `node` does not exist but a section does -> verify each sentence of the section against the area first, as a `STALE`/`GONE` finding would. Nothing true left and nothing else rising to a node -> delete the section and return `VERDICT: UPDATED` with `FILES:` and `DELETED:`, no `SIZE:`, and skip Budget.
+- `node` does not exist but a section does -> verify each sentence of the section against the area first, as a `STALE`/`GONE` finding would. Nothing true left and nothing else rising to a node -> delete the section and return `VERDICT: UPDATED` with `FILES:` and `DELETED:`, and skip Budget.
 - Nothing in the area rises to what a node carries, `node` does not exist and no section sits beside it -> write nothing and return `VERDICT: NO-NODE`.
 
 ## Budget
@@ -70,11 +70,10 @@ Your only output channel - no prose, no diffs:
 VERDICT: UPDATED | NONE | NO-NODE | DENIED
 REASON: <refused tool name>: <the exact refused command, or the path for a file tool>   only with DENIED
 FILES: <every repo-relative path written or deleted, sections included, comma-separated>   only with UPDATED
-SIZE: <bytes> chain <bytes>                                           only with UPDATED while `node` exists, the node's own
 DROPPED: <path>: <fact>             one per fact left out to stay within budget, <path> the node or section that lost it
 LIFT: <fact>                        one per fact shared with a sibling area
 CHAIN: <ancestor path> <bytes>      one per ancestor outside this run that leaves the chain over budget
 DELETED: <path>                     one per node or section deleted, each also named on FILES:
 ```
 
-`NONE` means `node` needed no change. A path left off `FILES:` never reaches the commit, and a deletion left off leaves the file in the tree.
+`NONE` means `node` needed no change.

@@ -184,7 +184,7 @@ For each close part below the index's `closed:` line does not already name, all 
 
 Any agent of this step returning `VERDICT: DENIED` -> `AskUserQuestion` naming that agent: retry / accept / abort.
 
-Commit what the memory and rules dispatches above return, one call: memory and rule paths, through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore "<plan>" "<file>" ["<file>"...]`, only once every writer of this step has returned. No writer returned a path, or only `VERDICT: NONE` -> no call. Commit an `OVER:` line's path like any other.
+Commit what the memory and rules dispatches above return, one call: memory and rule paths, through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore "<plan>" "<file>" ["<file>"...]`, only once every writer of this step has returned. No writer returned a path, or only `VERDICT: NONE` -> no call.
 
 Then `TaskUpdate` -> completed for each entry, the `memory` entry only after the `--chore` call, when one is due, returned.
 

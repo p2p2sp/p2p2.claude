@@ -167,21 +167,33 @@ verifier.
 
 ## 3. Stale text
 
-3.1. `agents/memory-node-writer.md:74` (and ", no `SIZE:`" at `:53`): `SIZE:` has no consumer and
+3.1. DONE. `agents/memory-node-writer.md:74` (and ", no `SIZE:`" at `:53`): `SIZE:` has no consumer and
 never had one (dead since creation in 41ae35b3, not a leftover of 8bd25e3b). Remove. Verifiers:
 both CONFIRMED.
+- Done as: both removed.
 
-3.2. `agents/memory-node-writer.md:81`: "A path left off `FILES:` never reaches the commit" is stale
+3.2. DONE. `agents/memory-node-writer.md:81`: "A path left off `FILES:` never reaches the commit" is stale
 since 8bd25e3b removed implementor's `--chore` commit of node-writer paths; "a deletion left off
 leaves the file in the tree" is stale too (the agent runs `rm` itself). `FILES:`/`DELETED:` now only
 feed the skill's node accounting (`memory/SKILL.md:120-124`). Rewrite. Verifiers: both CONFIRMED.
+- Done as: the sentence dropped with no replacement; the `FILES:` format line ("every path written
+  or deleted") and `DELETED:` ("each also named on FILES:") already force a complete list. The same
+  clause sat in `memory-writer.md` and `rules-writer.md`, whose own `rm` made its deletion half false
+  too: that half dropped, "a path left off never reaches the commit" kept (implementor commits
+  their `FILES:` through `--chore`).
 
-3.3. `skills/implementor/SKILL.md:186`: "Commit an `OVER:` line's path like any other" is
+3.3. DONE. `skills/implementor/SKILL.md:186`: "Commit an `OVER:` line's path like any other" is
 mechanically redundant: only rules-writer emits `OVER:` and every such path is already on its
 `FILES:`. One verifier: remove; the other: reduce to "an `OVER:` path is never held back".
+- Done as: removed. No recorded failure behind it (a leftover of the d09f356f rewrite), and the
+  report half already lives in `fragments/rules.true.md`.
 
-3.4. `skills/commit/SKILL.md:6` `background: false`: not confirmed that skill frontmatter honours
+3.4. DONE (kept). `skills/commit/SKILL.md:6` `background: false`: not confirmed that skill frontmatter honours
 the field (the repo already dropped it from agents). Check the docs before removing.
+- Kept: `background` is a documented skill field, valid only with `context: fork`, default `true`;
+  `false` makes the caller await the fork's result, which the commit skill needs.
+  `.claude/rules/agent-frontmatter.md` corrected: it said the field "decides nothing" for agents,
+  where the real reason is that the agent default is already `false`.
 
 ## 4. Cuts that keep quality
 
