@@ -1,0 +1,1 @@
+- The argument is the bug report as plain text - trace from what the user wrote.

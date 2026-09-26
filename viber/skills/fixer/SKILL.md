@@ -2,14 +2,10 @@
 name: fixer
 description: Traces a reported bug to its root cause and proves it with a failing test, then hands the diagnosis to the planner - it applies no fix itself. Use whenever user reports a bug and wants to fix it. Not for a fix the user asked to apply directly, without a plan.
 argument-hint: "[bug report, or an issue number/URL when issues is on]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*)
 user-invocable: true
 disable-model-invocation: false
 ---
-
-```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/config.sh"
-```
 
 # fixer
 
@@ -35,9 +31,9 @@ Three laws, in this order. None substitutes for another.
 6. Hand off (below).
 
 ## Resolving the report
-- The config block above carries `issues: true` or `issues: false`.
-- `issues: true` and the argument is a single token that is a number, `#<N>` or an issue URL -> run `"${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh" "<argument>"` as one literal Bash line. Exit 0 -> its block, body and comments included, is the bug report: trust it, never fetch it again. Exit 1 or 2 -> report its `ERROR` line and stop; never trace or hand off on a failed fetch.
-- Any other argument, or `issues: false`, is the bug report as plain text - trace from what the user wrote.
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-report
+```
 
 ## The reproduction test
 - Narrowest level that reproduces the divergence - unit at the diverging layer, not an end-to-end run of the symptom.
@@ -57,10 +53,12 @@ The handoff payload - state it in context, in this order. No report file: the pa
 - **Blast radius** - other callers or behavior that depend on the current (wrong) behavior.
 - **Done condition** - repro test GREEN, every previously-passing test still green.
 - **Spec shape** - `spec-lite`, always: a fixer diagnosis never proposes `spec-full`.
-- **Issue** - `Issue: <full issue URL>`, the `URL=` value of `issue-facts.sh`, present only when the report was read through it.
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-diagnosis
+```
 
 ## Handoff [GATE]
-Invoke the `viber:planner` skill, restating all seven parts of the diagnosis verbatim in that invocation, plus the Issue line when it is present. Stop there - do not implement, do not "just apply the one-liner first".
+Invoke the `viber:planner` skill, restating every part of the diagnosis verbatim in that invocation. Stop there - do not implement, do not "just apply the one-liner first".
 
 ## Bypass authorization
 The reproduction test is unconditional. When reproduction is genuinely infeasible (hard race, rendering artifact, unreachable third-party state), stop and ask the user for explicit authorization to hand off without it, stating what blocks reproduction. Never decide this alone; "hard to test" is not infeasible.

@@ -1,0 +1,2 @@
+- The argument is a single token that is a number, `#<N>` or an issue URL -> run `"${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh" "<argument>"` as one literal Bash line. Exit 0 -> its block, body and comments included, is the bug report: trust it, never fetch it again. Exit 1 or 2 -> report its `ERROR` line and stop; never trace or hand off on a failed fetch.
+- Any other argument is the bug report as plain text - trace from what the user wrote.

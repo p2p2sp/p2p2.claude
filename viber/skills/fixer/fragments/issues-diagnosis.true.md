@@ -1,0 +1,1 @@
+- **Issue** - `Issue: <full issue URL>`, the `URL=` value of `issue-facts.sh`, present only when the report was read through it.
