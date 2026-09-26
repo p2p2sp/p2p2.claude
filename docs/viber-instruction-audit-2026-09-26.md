@@ -300,10 +300,15 @@ CONFIRMED.
   the whole document, not just headings; `:81` names the e2e run as the section's sole writer
   ("after the build" did not exclude `qa-writer`, which itself runs after the build).
 
-4.7. `skills/commit/SKILL.md:27-28` (about 600 bytes): the `## Selector:` line of
+4.7. DONE. `skills/commit/SKILL.md:27-28` (about 600 bytes): the `## Selector:` line of
 `commit-context.sh` already carries mode and action, and `commit-conventions.md:19` says to copy
 `Refs:` verbatim. Keep `:25-26`: they carry the literal command the permission pattern matches.
 Also `:12` second sentence (output stated three times). Outside a build. Verifiers: both PARTLY.
+- Done as: `:27-28` cut, and `Working mode` rekeyed from the raw arguments to the mode the
+  `## Selector:` line resolved (`all` / `paths` / `missing`), so prose arguments and a `#42`
+  token no longer need the parser restated; the `missing` bullet stays one line, since
+  `## Output format` would otherwise contradict the Selector's return line. `:12` second
+  sentence cut and "the diff above" corrected (the context comes below). 3587 -> 3032 bytes.
 
 4.8. DONE with 2.12. `skills/setup/SKILL.md:19-21` (about 280 bytes): feeds no step; `bootstrap.sh:139`, `:153`
 print the same; `:19` is false (2.12). Verifiers: both CONFIRMED.

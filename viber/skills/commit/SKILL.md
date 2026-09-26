@@ -9,7 +9,7 @@ allowed-tools: Bash, Bash(${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit-con
 
 ## Recognize what has changed and commit
 
-Compose a "commit message" according to the Conventional Commits rules below, based on the diff above and matching the type/scope style of the recent commit subjects. Execute the commit, return one line with sha and composed commit message - wait for result.
+Compose a "commit message" according to the Conventional Commits rules below, based on the commit context below and matching the type/scope style of the recent commit subjects.
 
 Before SHA: !`git rev-parse --verify -q HEAD 2>/dev/null || echo "(none)"`
 
@@ -22,10 +22,10 @@ Before SHA: !`git rev-parse --verify -q HEAD 2>/dev/null || echo "(none)"`
 ```
 
 ## Working mode
-- `all` or empty args -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>"`.
-- one or more existing paths -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>" "<paths>"` with `<paths>` copied from the Selector line, to commit ONLY those paths. Do not rewrite separators - POSIX (`src/foo`), Windows (`C:/foo`, `C:\foo`) and MSYS (`/c/foo`) all work verbatim.
-- an issue reference anywhere in the args - bare `#42` or a GitHub issue link - is stripped before selector resolution (so `src/foo #42` is still mode `paths`) and surfaces as the "Issue footer (explicit…)" block in the context - copy that `Refs:` line into the message verbatim.
-- tokens that are not existing paths are dropped; when none is left the mode falls back to `all`, unless a dropped token was path-shaped (holds `/` or `\`) - then the mode is `missing`: do not run `commit.sh`, return the line the Selector gives. The Selector line in the context above states which mode was resolved.
+Act on the mode the `## Selector:` line above resolved, never on the raw arguments:
+- `all` -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>"`.
+- `paths` -> Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit.sh" "<message>" "<paths>"` with `<paths>` copied from the Selector line, to commit ONLY those paths. Do not rewrite separators - POSIX (`src/foo`), Windows (`C:/foo`, `C:\foo`) and MSYS (`/c/foo`) all work verbatim.
+- `missing` -> do not run `commit.sh`; return the line the Selector gives.
 
 ## Self-Check
 
