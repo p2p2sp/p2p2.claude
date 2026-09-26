@@ -87,8 +87,9 @@ Each plugin dir carries `.claude-plugin/plugin.json`, whose `skills[]` (and `age
   invented.
 - **`viber` is the only manifest-bearing plugin.** Its `SessionStart` hook injects
   `hooks/content/manifest.md` verbatim once per session (`resume` excluded, fail-open: an empty
-  or unreadable file leaves only the banner). The manifest is not a dispatcher: it names no
-  skill, group or chain; routing is each skill's own CSO `description:`. The other four ship no
+  or unreadable file leaves only the banner). The manifest is not a dispatcher: it names a
+  viber skill only to scope a rule (an exception or a limit), never to route to it; routing is
+  each skill's own CSO `description:`. The other four ship no
   manifest.
 - **Script vs. fork.** A step collapses to a deterministic bundled script when it operates on a
   known, fixed tool/format (git, a basename, paths, globs); it stays an LLM fork when it must

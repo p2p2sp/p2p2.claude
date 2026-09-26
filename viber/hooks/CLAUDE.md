@@ -1,5 +1,8 @@
 # viber hooks - plan gate and plan hints
 
+`content/manifest.md` names a skill only to scope a rule (`viber:fixer`'s reproduction test);
+renaming that skill renames it there too, or the rule silently stops covering it.
+
 ## Plan gate
 
 `scripts/plan-gate.sh` arms on a write to `plans/*.md` in the current plan-mode episode and
