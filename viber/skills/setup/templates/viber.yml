@@ -31,7 +31,7 @@ cleanup: true
 plain-plan-review: true
 
 # An interview or a diagnosis can save its conclusions as a new GitHub issue, or keep working on the one it started from.
-issues: true
+issues: false
 
 # The two directories under docs/: where an open run lives, and where the
 # archive of a finished one lands. Directory NAMES, not paths - a value with a
