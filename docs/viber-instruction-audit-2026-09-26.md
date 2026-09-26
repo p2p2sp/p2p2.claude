@@ -216,10 +216,15 @@ invoked by name. Saves about 240 bytes in every session listing and every coder 
 Verifiers: both CUT SAFE.
 - Done as: also dropped "before the first line of production code" (stated at `task-coder.md:27`).
 
-4.3. `agents/rules-auditor.md:28` "A candidate failing it is dropped with no line at all..."
+4.3. DONE. `agents/rules-auditor.md:28` "A candidate failing it is dropped with no line at all..."
 (duplicates `rule-admission.md:29`; `DROP` is defined at `:39`) and `:45` "never `STALE`, `GONE`,
 `UNVERIFIABLE`, `DROP` or `OK`..." (implied by "only `MISS` lines can appear"). Keep `:47`. Saves
 about 238 bytes per auditor dispatch. Verifiers: both CUT SAFE.
+- Done as: both cuts, plus `:45`'s "one per convention worth a rule, each carrying the example
+  from the code that proves it and each having passed the gate" (the `MISS` format line,
+  `rule-admission.md` criterion 1 and the same line's "weigh each candidate against the gate"
+  carry it). `:39`'s closing sentence kept: it settles a line that is both `UNVERIFIABLE` and a
+  `Never a rule` preference. About 370 bytes per auditor dispatch.
 
 4.4. `agents/memory-node-writer.md`, about 200 bytes per node dispatch. Verifiers: both CUT PARTLY
 SAFE.

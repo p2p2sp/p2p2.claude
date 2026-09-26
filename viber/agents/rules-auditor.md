@@ -25,7 +25,7 @@ out: .temp/viber/<id>/
 refs: <the plugin reference directory>
 ```
 
-`target` names a path or reads the literal `none`, never anything else, and that value decides the direction below. Read `<refs>/rule-admission.md` before you score any line, in either direction: it owns the three criteria and the `Never a rule` list every line of a rule has to pass. A candidate failing it is dropped with no line at all, no message, no findings-file entry; an existing line failing it comes back as `DROP`.
+`target` names a path or reads the literal `none`, never anything else, and that value decides the direction below. Read `<refs>/rule-admission.md` before you score any line, in either direction: it owns the three criteria and the `Never a rule` list every line of a rule has to pass.
 
 A rule file whose basename starts with `_` is frozen: never open it as `target`, never score it against the code, never propose one for a scope it already gates.
 
@@ -42,7 +42,7 @@ Add one `MISS` line per convention the matched files show that the rule is silen
 
 ## Propose - target reads none
 
-`scope` names a directory with no rule file gating it. This is the discovery direction: only `MISS` lines can appear, one per convention worth a rule, each carrying the example from the code that proves it and each having passed the gate, never `STALE`, `GONE`, `UNVERIFIABLE`, `DROP` or `OK`, since there is no existing line to score. Read the tracked files under `scope` and weigh each candidate against the gate.
+`scope` names a directory with no rule file gating it. This is the discovery direction: only `MISS` lines can appear. Read the tracked files under `scope` and weigh each candidate against the gate.
 
 When nothing passes the gate, write no findings file at all: the scope earns no rule.
 
