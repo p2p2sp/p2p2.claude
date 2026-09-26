@@ -83,12 +83,16 @@ Verifiers: both CONFIRMED.
   with only clean nodes still writes its candidates); `:72` adds that the planned set stays whole
   to the end of the run, a target dropped or confirmed later still counting in it.
 
-2.6. `references/plan-rules.md:27` (TDD) lost precision in 3f025101: the dropped "and" makes "on a
+2.6. DONE. `references/plan-rules.md:27` (TDD) lost precision in 3f025101: the dropped "and" makes "on a
 task carrying `Repro:`" read as a qualifier of the no-decision clause, and "both as
 `test-strategy.md` defines them" has no clear referent (`test-strategy.md:11` no test layer, `:23`
 no decision). Impact low: the script rule at `plan-rules.md:28` still forces `Repro:` tasks.
 Verifiers: both CONFIRMED.
 - Fix: list the exemptions separately and name which two `test-strategy.md` defines.
+- Done as: `:27` lists the five exemptions as one semicolon-separated list (no runtime
+  behaviour, no decision inside, `Repro:`, integration task, host with no test layer), the
+  scaffolding examples moved into parentheses; a closing sentence names the two
+  `test-strategy.md` defines: the no-decision deliverable and the no-test-layer host.
 
 2.7. `references/node-doctrine.md:34` ("a node carrying an index of nodes gains the new one in the
 same write") contradicts `agents/memory-node-writer.md:64` (keep the list equal to `planned:`
