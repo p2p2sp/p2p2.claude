@@ -64,8 +64,12 @@ A draft goes to step 3 next; every other plan dispatches the review below.
 Dispatch the `viber:planner-review` agent with the plan path, `refs: ${CLAUDE_PLUGIN_ROOT}/references` and `memory: <value>`, the `memory:` line of the config block resolved above. A draft adds the line `scope: spec`. From round 2 on, also pass the previous findings verbatim and one line per fix you applied.
 
 - `VERDICT: PASS` - go to step 4.
-- `VERDICT: FAIL` - show the findings, fix the plan, re-run `plan-index.sh` after every fix unless the plan is a draft, then dispatch again. A fix that changes the plan's title, issue reference or a task's `Repro:` line re-runs the branch report first; repeat the branch question only when that report's `entry:` lines or its offered answers actually changed, otherwise leave the recorded `work:` and `branch:` keys standing. A finding that needs a decision only the user can make gets asked first, and the answer starts a fresh round 1.
+- `VERDICT: FAIL` - show the findings, fix the plan, re-run `plan-index.sh` after every fix unless the plan is a draft, then dispatch again. A finding that needs a decision only the user can make gets asked first, and the answer starts a fresh round 1.
 - `VERDICT: DENIED` - one `AskUserQuestion` naming the refused call from its `REASON:` line: permission added and retry, dispatching again in the same round, or stop with the plan unreviewed and no hand-off.
+
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" branching.""mode "${CLAUDE_SKILL_DIR}" branching-fix
+```
 
 ## 4. Hand off
 

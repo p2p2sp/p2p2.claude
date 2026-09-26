@@ -1,0 +1,1 @@
+After a `VERDICT: FAIL` fix that changes the plan's title, issue reference or a task's `Repro:` line, re-run the branch report before dispatching again; repeat the branch question only when that report's `entry:` lines or its offered answers actually changed, otherwise leave the recorded `work:` and `branch:` keys standing.

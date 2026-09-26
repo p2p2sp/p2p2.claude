@@ -113,9 +113,11 @@ deeper wave then answered `NO-NODE` or deleted.
   all dispatches) names where each fact was cut, a split child or a section included. No consumer
   parses the line, so no caller changed.
 
-2.9. `skills/planner/SKILL.md:67` tells the model to re-run the branch report after a title change
+2.9. DONE. `skills/planner/SKILL.md:67` tells the model to re-run the branch report after a title change
 even under `branching.mode: off`, where no branch report exists. Severity low. Found by one
 verifier; fixed by 4.5.
+- Done as: the sentence left step 3 for `fragments/branching-fix.allowed.md` / `.required.md`,
+  preloaded right after the verdict list and anchored to a `VERDICT: FAIL` fix; `off` loads nothing.
 
 2.10. `agents/rules-writer.md:34`: "the same way, confirmed with `Glob` first" right after "never
 by a `Glob` call" is ambiguous (dead globs are confirmed by the map, removed conventions by
@@ -210,7 +212,7 @@ PARTLY.
 - `:44` "the branch question below still applies" is branching-only too.
 - `:67` (step 3) and the branch half of `:86`/`:88` (step 4) need new per-step fragments, e.g.
   `branching-fix.*` and `branching-land.*`: the existing fragments load in step 2, and
-  `.claude/rules/viber/switch-fragments.md` forbids later-step text there.
+  `.claude/rules/viber/switch-fragments.md` forbids later-step text there. `:67`: DONE with 2.9.
 - `:18` second sentence (about 190 bytes) repeats `:38`; keep the guard "that line, not the scope".
 - `:86`: drop only "honours `into:` and points `source:` at itself" (`plan-path.sh` does it).
 - Optional, low value: the draft-landing block `:82-92` (1.2 KB) into a reference read only on a
