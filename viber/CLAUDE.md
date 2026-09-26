@@ -10,7 +10,7 @@ and `references/integration-tests.md` turn into rules.
 skills/<name>/           13 skills: SKILL.md plus files read at one step;
                          setup, memory, rules, handoff, commit bundle scripts/
 agents/                  14 agents
-scripts/                 13 plugin-wide scripts
+scripts/                 14 plugin-wide scripts
 references/              read at runtime by agents through the `refs:` dispatch line
 hooks/                   SessionStart manifest + UserPromptSubmit plan hints + PreToolUse plan gate
 ```
@@ -37,8 +37,8 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 
 ## Orchestrator contract
 
-- `implementor` opens no file and writes none. It knows only the `config.sh` and `run-clock.sh`
-  preloads, `plan-path.sh`, `plan-index.sh` and `commit-task.sh` stdout (`progress: <n>/<total>`,
+- `implementor` opens no file and writes none. It knows only the `config.sh`, `run-clock.sh` and
+  `switch-text.sh` preloads (its close parts reach it only as fragment text), `plan-path.sh`, `plan-index.sh` and `commit-task.sh` stdout (`progress: <n>/<total>`,
   exit 4 naming `--landed`, the `refused` / `took` / `claimed by no task` warnings), and agents'
   return lines. Every script's stdout and every agent's `## Output` vocabulary is an interface:
   renaming one side only breaks the build silently.
@@ -53,7 +53,7 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 - Only coder, reviewer and repair-coder dispatches carry `model`: the task's profiled tier
   (repair-coder: `sonnet`, raised only by `retry`) clamped into `tiers.min`..`tiers.max`
   (defaults `haiku`/`opus`, `fable` only when named; `min` above `max` resets both).
-- Coder `EXTRA:` becomes `--with`, `DEFERRED:` becomes `--defer`, stored as `deferred:` in
+- Every `EXTRA:` path of the task's coder or reviewer becomes `--with`, coder `DEFERRED:` `--defer`, stored as `deferred:` in
   `status.md` and handed to the owing task's coder and reviewer.
 - `decide` (offered only on a task's second coder failure, beside retry/skip/abort, or second
   failed review round, beside retry/accept/abort) is the owner's ruling on a stalled task,
@@ -126,11 +126,17 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
 - `references/qa-format.md` is the one format authority for `qa-writer`, `e2e-writer` and `e2e`,
   which routes on its `##` headings.
 - A new switch: `skills/setup/templates/viber.yml` (`bootstrap.sh` appends a key an existing
-  config lacks), `config.sh`'s key list and fixed output order, `README.md`, `usage.html`, and
-  the consuming skill (implementor's step 3 opens one close entry per close switch).
+  config lacks), `config.sh`'s key list and order, `switch-text.sh`'s key allowlist, `README.md`,
+  `usage.html`, and the consuming skill's `fragments/<name>.<value>.md` (implementor's step 3
+  `TaskCreate`s one entry per close part; step 6 preloads `memory`, `rules`, `qa`, step 7
+  `cleanup`); no skill body branches on a switch, `tests/portability.test.ts` sweeps every call.
+  `<name>` is per call site (`issues-read`, `qa-e2e`), not the key; only a state that does
+  something gets a file. `switch-text.sh` prints nothing for an absent file or unknown key,
+  always exits 0, and expands `${CLAUDE_SKILL_DIR}`/`${CLAUDE_PLUGIN_ROOT}` in a fragment
+  itself: Claude Code never substitutes preload output.
 - Switches reaching planning: `memory` (`plan-rules.md`'s Memory-owned rule, the `memory:` line
   to `planner-review`); `adr: true` (`planner` follows `skills/planner/references/adr-tasks.md`);
-  `qa` (`planner`'s e2e hand-off line).
+  `qa` (`planner`'s e2e hand-off line); `branching.mode` (`CLAUDE.run-branch.md`).
 - End-to-end tests only on the user's own ask: `test-strategy.md`, `planner`, `intent`,
   `PRODUCT.md`.
 - "One behaviour per `DoD` clause": `task-coder.md`'s TDD bullet and `skills/tdd/SKILL.md`
@@ -151,18 +157,9 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
 
 ## Plan gate
 
-`hooks/scripts/plan-gate.sh` arms on a write to `plans/*.md` in the current plan-mode episode and
-picks `planner-review` when a Skill tool_use named bare `planner` or `viber:planner` ran in it,
-else `plain-plan-review` when `config.sh` (payload `cwd`)
-resolves `plain-plan-review: true`.
-`ExitPlanMode` passes only after that agent, dispatched after the last plan write, returned
-`VERDICT: PASS` and the plan's mtime is not newer. The deny reason is the plain path's only
-instruction channel. Names match literally: renaming the skill, either agent, the switch or the
-verdict line disarms the fail-open gate silently.
-
-`hooks/scripts/plan-hints.sh` (UserPromptSubmit, soft) adds the closing-review and
-parallel-subagent rules to every prompt in plain plan mode only; its planner detection and episode
-window are copied from `plan-gate.sh`, so rename either side together.
+`hooks/scripts/plan-gate.sh` matches names literally: renaming `planner`, `planner-review`,
+`plain-plan-review` (agent or switch) or `VERDICT: PASS` disarms the fail-open gate silently.
+Its contract, and `plan-hints.sh`'s, live in `hooks/CLAUDE.md`.
 
 ## Tool dependencies
 

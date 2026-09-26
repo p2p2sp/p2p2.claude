@@ -159,3 +159,4 @@ This file is orientation only. A skill's authoritative contract is its own body
 | `superui/CLAUDE.md` | the `pro-designer` skill (design/frontend advisory, contrast check) |
 | `tests/CLAUDE.md` | any `*.test.ts` under `tests/` - harness contract, cross-platform rules |
 | `viber/CLAUDE.md` | its thirteen skills (`setup` to `commit`), fourteen agents, hooks, thirteen plugin scripts, references, the run directory and its archive, config switches, the plan gate |
+| `viber/hooks/CLAUDE.md` | viber's hooks - the `plan-gate.sh` and `plan-hints.sh` contracts |
