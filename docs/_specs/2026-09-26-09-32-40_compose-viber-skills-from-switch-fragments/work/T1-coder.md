@@ -1,0 +1,5 @@
+- switch-text.sh is already in the index at 100755 via `git update-index --add --chmod=+x` (core.filemode=false). If the script is edited again before its commit, re-run that call or the index blob goes stale.
+- The exec-bit test reads the index only, with no filesystem fallback. Unlike rules-map.test.ts, it fails on a script that has not been staged yet.
+- The value is read by calling `bash "$here/config.sh"` next to the script. That makes config.sh's repo-root resolution the proof for DoD.5, and switch-text.sh never parses viber.yml itself.
+- The placeholders are expanded with bash `${var//"tok"/"path"}`, both sides quoted, so an `&` in a path survives bash 5.2's patsub_replacement. Only bash 3.2 was present locally, so the 5.x leg is unproven until CI runs.
+- A trailing separator on the skill dir is dropped before the plugin root is derived (header documents it). The value is also checked to be `[a-z]+` before it is used in a filename.
