@@ -116,6 +116,8 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
 - Fence-aware guidance-comment stripping: `plan-path.sh`'s landing strip and `plan-index.sh`'s
   `spec.md` cut.
 - `directories.*` parsing: `config.sh`, `plan-path.sh`, `archive-run.sh`.
+- `viber.yml` key grammar (blanks allowed before the colon): `config.sh` and `bootstrap.sh`'s
+  merge; a key one reads and the other misses is appended again, overriding the user's value.
 - Node (and section) budget 12000 / 32000: `references/node-doctrine.md`,
   `skills/memory/scripts/memory-map.sh`, `skills/memory/SKILL.md`. Section name
   rule (never `local`): the doctrine, `memory-map.sh` (twice), `memory-auditor`,

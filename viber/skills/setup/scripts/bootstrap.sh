@@ -59,7 +59,10 @@ if [ -z "$root" ] || [ ! -d "$root" ]; then
   root="$(pwd)"
 fi
 
-# The merge reads the template first and the config second. It appends the block
+# The merge reads the template first and the config second. A key is read with
+# config.sh's own grammar - blanks allowed before the colon - so a key the
+# resolver sees is never taken for a missing one and appended a second time,
+# which would override the user's value there. It appends the block
 # of every top-level key the config does not declare - the key line plus the
 # comment lines directly above it - and inserts the missing children of the
 # `directories:` group inside that group, where they have to sit to be read. A
@@ -79,14 +82,14 @@ merge_config() {
     END {
       eol = (crlf ? "\r" : "")
       for (i = 1; i <= hn; i++) {
-        if (h[i] !~ /^[A-Za-z_][A-Za-z0-9_-]*:/) continue
-        k = h[i]; sub(/:.*$/, "", k)
+        if (h[i] !~ /^[A-Za-z_][A-Za-z0-9_-]*[ \t]*:/) continue
+        k = h[i]; sub(/[ \t]*:.*$/, "", k)
         have[k] = 1
-        if (k != "directories" || h[i] !~ /^directories:[ \t\r]*$/) continue
+        if (k != "directories" || h[i] !~ /^directories[ \t]*:[ \t\r]*$/) continue
         dir_last = i
         for (j = i + 1; j <= hn; j++) {
-          if (h[j] ~ /^[ \t]+[A-Za-z_][A-Za-z0-9_-]*:/) {
-            c = h[j]; sub(/^[ \t]+/, "", c); sub(/:.*$/, "", c)
+          if (h[j] ~ /^[ \t]+[A-Za-z_][A-Za-z0-9_-]*[ \t]*:/) {
+            c = h[j]; sub(/^[ \t]+/, "", c); sub(/[ \t]*:.*$/, "", c)
             have["directories." c] = 1
             dir_last = j
           } else if (h[j] !~ /^[ \t]*#/ && h[j] !~ /^[ \t\r]*$/) {
@@ -95,8 +98,8 @@ merge_config() {
         }
       }
       for (i = 1; i <= tn; i++) {
-        if (t[i] !~ /^[A-Za-z_][A-Za-z0-9_-]*:/) continue
-        k = t[i]; sub(/:.*$/, "", k)
+        if (t[i] !~ /^[A-Za-z_][A-Za-z0-9_-]*[ \t]*:/) continue
+        k = t[i]; sub(/[ \t]*:.*$/, "", k)
         start = i
         while (start > 1 && t[start - 1] ~ /^#/) start--
         end = i
@@ -107,8 +110,8 @@ merge_config() {
           for (j = start; j <= end; j++) add[++na] = t[j]
         } else if (k == "directories" && dir_last > 0) {
           for (j = i + 1; j <= end; j++) {
-            if (t[j] !~ /^[ \t]+[A-Za-z_][A-Za-z0-9_-]*:/) continue
-            c = t[j]; sub(/^[ \t]+/, "", c); sub(/:.*$/, "", c)
+            if (t[j] !~ /^[ \t]+[A-Za-z_][A-Za-z0-9_-]*[ \t]*:/) continue
+            c = t[j]; sub(/^[ \t]+/, "", c); sub(/[ \t]*:.*$/, "", c)
             if (("directories." c) in have) continue
             added = (added == "" ? "directories." c : added ", directories." c)
             ins[++ni] = t[j]

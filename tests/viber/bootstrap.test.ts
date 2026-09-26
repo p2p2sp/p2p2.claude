@@ -39,6 +39,7 @@ import { withGitRepo, withTempDir } from "../harness/tmp.ts";
 const SUT = path.resolve(import.meta.dirname, "../../viber/skills/setup/scripts/bootstrap.sh");
 const TEMPLATE_GITIGNORE = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/gitignore.txt");
 const TEMPLATE_CONFIG = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/viber.yml");
+const CONFIG_SH = path.resolve(import.meta.dirname, "../../viber/scripts/config.sh");
 
 // A stub gh is always first on PATH, so the gh line never depends on whether
 // the machine running the suite has the real one installed.
@@ -242,6 +243,25 @@ test("a directories key carrying a value instead of a group is left exactly as i
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^viber\.yml: already present and complete \(left untouched\)$/m);
     assert.equal(read(cfg), before);
+  });
+});
+
+test("a key written with blanks before its colon counts as declared, so a switch turned off that way stays off (config.sh reads the same grammar and would take an appended default)", () => {
+  withGitRepo(({ dir, env }) => {
+    const cfg = configPath(dir);
+    fs.mkdirSync(path.dirname(cfg), { recursive: true });
+    const before = "adr: true\nmemory: true\nrules: true\nqa: true\ncleanup: true\nplain-plan-review : false\nissues\t: true\ndirectories :\n  runs : builds\n  specifications\t: archive\ntiers:\n  min: haiku\n  max: opus\nbranching:\n  mode: off\n";
+    fs.writeFileSync(cfg, before);
+
+    const result = run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^viber\.yml: already present and complete \(left untouched\)$/m);
+    assert.equal(read(cfg), before);
+
+    const resolved = runScript(CONFIG_SH, [], { cwd: dir, env, shell: "bash" });
+    assert.match(resolved.stdout, /^plain-plan-review: false$/m);
+    assert.match(resolved.stdout, /^directories\.runs: builds$/m);
   });
 });
 
