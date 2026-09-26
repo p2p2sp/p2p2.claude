@@ -1,6 +1,6 @@
 ---
 name: memory-node-writer
-description: Writes one CLAUDE.md node per dispatch within the node budget - corrects an existing node from its audit findings, or authors a node from its own area's code. Invoked only by the memory skill and the implementor skill, never directly.
+description: Writes one CLAUDE.md node per dispatch within the node budget - corrects an existing node from its audit findings, or authors a node from its own area's code. Invoked only by the memory skill, never directly.
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: opus
 effort: high
@@ -19,17 +19,17 @@ The prompt carries one labelled line each:
 mode: fix | create
 node: <repo-relative path of the one CLAUDE.md this dispatch owns>
 findings: <repo-relative path of its *-audit.md> | none
-planned: <every node path of the planned set, comma-separated, root first> | none
+planned: <every node path of the planned set, comma-separated, root first>
 refs: ${CLAUDE_PLUGIN_ROOT}/references
 ```
 
-The node's area is the directory holding `node`. Its sections are the `CLAUDE.<topic>.md` files directly in that directory, `<topic>` lowercase letters, digits and hyphens, `CLAUDE.local.md` never among them. `findings` is `none` in create mode and on a fix dispatch with no audit. `planned` is `none` when the caller holds no planned set of its own.
+The node's area is the directory holding `node`. Its sections are the `CLAUDE.<topic>.md` files directly in that directory, `<topic>` lowercase letters, digits and hyphens, `CLAUDE.local.md` never among them. `findings` is `none` in create mode and on a fix dispatch with no audit.
 
 ## Scope
 
 - Write only `node` and its sections. The one exception is a split into the node of a subdirectory of its area. Never touch an ancestor, a sibling, `.claude/rules/`, `.temp/` or the project's source.
 - Never read or restore content from git history: the node's truth is the code in the working tree, never an earlier version of the node.
-- `Bash` runs `wc -c` to measure sizes, `rm` on `node` when its area is gone and on a section of it you remove, and `git ls-files --cached --others --exclude-standard` to list the nodes in the tree, nothing else.
+- `Bash` runs `wc -c` to measure sizes, and `rm` on `node` when its area is gone and on a section of it you remove, nothing else.
 
 Read `<refs>/node-doctrine.md` before you judge the first fact in either mode: it owns the budgets, what a node carries, the ancestor rule, sections and the compact, split and section steps.
 
@@ -61,8 +61,7 @@ Read the tracked files of the area and author the facts a reader landing there w
 - A split never leaves the child node over its cap, and keeps every fact already in it.
 - A fact a sibling area shares -> keep it in `node` and return it on `LIFT:`. Never move a fact to a parent.
 - A node carrying a list of nodes lists only the nodes below its own directory, the root's covering the whole repository.
-- `planned:` names a set -> keep that list equal to the part of `planned:` below the node's directory, even when a split created a node outside it.
-- `planned: none` -> keep that list equal to the nodes in the tree below the node's directory: run `git ls-files --cached --others --exclude-standard -- CLAUDE.md '*/CLAUDE.md'` (`Glob` also returns ignored files), add each one missing, drop each one gone.
+- Keep that list equal to the part of `planned:` below the node's directory, even when a split created a node outside it.
 
 ## Output
 

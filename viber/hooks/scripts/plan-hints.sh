@@ -76,5 +76,5 @@ if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
   fi
 fi
 
-printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"Plain plan mode, plan-writing rules:\n- End the plan with a task in which a subagent reviews the finished implementation against the plan, and its findings are fixed before the work is reported done.\n- During implementation time matters: have the plan run independent tasks in parallel subagents.\n- Skip both when a viber skill (intent, fixer, planner) drives the plan."}}'
+printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"Plain plan mode, plan-writing rules:\n- End the plan with a task in which a subagent reviews the finished implementation against the plan, and its findings are fixed before the work is reported done.\n- During implementation time matters: have the plan run independent tasks in parallel subagents in background.\n- Skip both when a viber skill (intent, fixer, planner) drives the plan."}}'
 exit 0
