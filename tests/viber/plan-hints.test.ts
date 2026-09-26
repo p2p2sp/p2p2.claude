@@ -32,6 +32,21 @@ import { runScript } from "../harness/run.ts";
 import { withTempDir } from "../harness/tmp.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/hooks/scripts/plan-hints.sh");
+const SHIPPED_HINTS = path.resolve(import.meta.dirname, "../../viber/hooks/content/plan-hints.md");
+
+/** Copies plan-hints.sh into `<dir>/hooks/scripts/`, with `<dir>/hooks/content/plan-hints.md`
+ *  holding `hints` (none written when null): the script finds its text beside itself. */
+function isolatedScript(dir: string, hints: string | null): string {
+  const scriptsDir = path.join(dir, "hooks", "scripts");
+  const contentDir = path.join(dir, "hooks", "content");
+  fs.mkdirSync(scriptsDir, { recursive: true });
+  fs.mkdirSync(contentDir, { recursive: true });
+  const dest = path.join(scriptsDir, "plan-hints.sh");
+  fs.copyFileSync(SUT, dest);
+  fs.chmodSync(dest, 0o755);
+  if (hints !== null) fs.writeFileSync(path.join(contentDir, "plan-hints.md"), hints);
+  return dest;
+}
 
 // --- fixture builders -------------------------------------------------
 
@@ -105,6 +120,35 @@ test("the hint carries exactly the two rules, with no line telling the model to 
     assert.equal(ctx.split("\n").filter((l) => l.startsWith("- ")).length, 2, `expected two rule lines, got: ${ctx}`);
     assert.doesNotMatch(ctx, /viber|skip/i);
   });
+});
+
+test("the hint is the shipped hooks/content/plan-hints.md verbatim, trailing newlines cut (the text lives in the file, not the script)", () => {
+  withTempDir("p2p2-plan-hints-", (dir) => {
+    const f = writeTranscript(dir, [permissionMode("plan")]);
+    const ctx = JSON.parse(runPayload({ permission_mode: "plan", transcript_path: f })).hookSpecificOutput.additionalContext;
+    assert.equal(ctx, fs.readFileSync(SHIPPED_HINTS, "utf8").replace(/\n+$/, ""));
+  });
+});
+
+test("hint text with quotes, backslashes and tabs -> still one parseable JSON line carrying it exactly (the file is escaped, not pasted)", () => {
+  withTempDir("p2p2-plan-hints-", (dir) => {
+    const text = 'Rules:\n- say "done"\tC:\\plans\n';
+    const script = isolatedScript(dir, text);
+    const result = runScript(script, [], { shell: "bash", input: JSON.stringify({ permission_mode: "plan" }) });
+    assert.equal(result.status, 0);
+    assert.equal(JSON.parse(result.stdout).hookSpecificOutput.additionalContext, text.replace(/\n+$/, ""));
+  });
+});
+
+test("an empty or missing plan-hints.md -> exit 0, nothing printed (fail-open, no empty context injected)", () => {
+  for (const hints of ["", null]) {
+    withTempDir("p2p2-plan-hints-", (dir) => {
+      const script = isolatedScript(dir, hints);
+      const result = runScript(script, [], { shell: "bash", input: JSON.stringify({ permission_mode: "plan" }) });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(result.stdout, "", `expected silence for hints=${JSON.stringify(hints)}`);
+    });
+  }
 });
 
 test("default permission mode -> nothing printed (the hint is for plan mode only)", () => {

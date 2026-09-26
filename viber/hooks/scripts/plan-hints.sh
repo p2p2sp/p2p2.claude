@@ -4,7 +4,9 @@
 #
 # Injects two plan-writing rules into the model's context on every prompt sent
 # in plain plan mode: end the plan with a subagent review of the finished
-# implementation, and have independent tasks run in parallel subagents. A plan
+# implementation, and have independent tasks run in parallel subagents. The
+# rules' text lives in hooks/content/plan-hints.md, injected verbatim, so a
+# wording change never touches this script. A plan
 # the viber chain drives needs neither - its implementor already runs
 # task-reviewer and parallel coders - so a planner, intent or fixer Skill
 # tool_use in the current plan-mode episode (or one whose own EnterPlanMode
@@ -32,12 +34,14 @@
 #   reads  : the transcript file named by the payload's "transcript_path", only
 #            to look for a planner, intent or fixer Skill tool_use, or a typed
 #            /viber:intent or /viber:fixer command, in the current episode. A
-#            missing or unreadable transcript counts as none.
+#            missing or unreadable transcript counts as none. Then
+#            ../content/plan-hints.md beside this script (via $0), the hint
+#            text; an empty, missing or unreadable file -> nothing printed.
 #   stdin  : UserPromptSubmit JSON; "permission_mode" decides. Absent, empty,
 #            or any value but "plan" -> nothing printed. Empty stdin -> the same.
 #   stdout : nothing, or in plain plan mode
 #            {"hookSpecificOutput":{"hookEventName":"UserPromptSubmit",
-#             "additionalContext":"<the two rules>"}}
+#             "additionalContext":"<plan-hints.md, trailing newlines cut>"}}
 #   exit 0 : always (fail-open: a broken hint must never block a prompt).
 #            JSON is read with grep/sed; jq is not assumed.
 set -u
@@ -89,5 +93,12 @@ if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
   fi
 fi
 
-printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"Plain plan mode, plan-writing rules:\n- End the plan with a task in which a subagent reviews the finished implementation against the plan, and its findings are fixed before the work is reported done.\n- Implementation time matters: write into the plan itself which tasks are independent, and an explicit instruction to run those independent tasks in parallel subagents in the background."}}'
+hints="$(cat "$(dirname "$0")/../content/plan-hints.md" 2>/dev/null)"
+[ -n "$hints" ] || exit 0
+hints="${hints//\\/\\\\}"
+hints="${hints//\"/\\\"}"
+hints="${hints//$'\n'/\\n}"
+hints="${hints//$'\r'/\\r}"
+hints="${hints//$'\t'/\\t}"
+printf '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"%s"}}\n' "$hints"
 exit 0

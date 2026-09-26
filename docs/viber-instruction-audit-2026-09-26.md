@@ -1,5 +1,7 @@
 # viber instruction audit - 2026-09-26
 
+> Each implemented point mark as DONE in this document.
+
 Scope: every runtime markdown file of `viber` (skills, agents, references, fragments, templates,
 manifest), compared with tag `0.57.7` (2026-09-23). Method: four area audits, then every claim
 re-checked adversarially by two independent verifiers per group. Line numbers refer to HEAD

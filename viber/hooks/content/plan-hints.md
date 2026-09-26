@@ -1,0 +1,3 @@
+Plain plan mode: the plan is the implementing agent's only brief, so write both rules below into the plan itself, as instructions that agent must follow, not as notes to yourself.
+- Efficient execution: give the plan a section telling the implementing agent that token usage, execution time and agent drift are binding constraints, and how to meet them: name which tasks are independent, and instruct it to run those independent tasks in parallel subagents in the background, each subagent handed only its own task.
+- Closing review: end the plan with a task in which a subagent reviews the finished implementation against the plan; its findings are fixed before the work is reported done, and if those fixes surface further errors that get fixed too, the review runs again.

@@ -19,7 +19,8 @@ verdict line disarms the fail-open gate silently.
 ## Plan hints
 
 `scripts/plan-hints.sh` (UserPromptSubmit, soft) adds the closing-review and
-parallel-subagent rules to every prompt in plain plan mode only; its episode window and Skill
+parallel-subagent rules, read verbatim from `content/plan-hints.md` (empty or missing: silent),
+to every prompt in plain plan mode only; its episode window and Skill
 detection are copied from `plan-gate.sh`, so rename either side together; the frontmatter check
 is gate-only, so a refused planner keeps the hint silent for the episode. Its detection alone also
 counts `intent` and `fixer` (they only hand off to `planner`), so the gate never picks
