@@ -4,26 +4,32 @@
 #
 # Injects two plan-writing rules into the model's context on every prompt sent
 # in plain plan mode: end the plan with a subagent review of the finished
-# implementation, and have independent tasks run in parallel subagents. The
-# viber planner needs neither - its implementor already runs task-reviewer and
-# parallel coders - so a planner Skill tool_use in the current plan-mode episode
-# (or one whose own EnterPlanMode opened it) silences the hint.
+# implementation, and have independent tasks run in parallel subagents. A plan
+# the viber chain drives needs neither - its implementor already runs
+# task-reviewer and parallel coders - so a planner, intent or fixer Skill
+# tool_use in the current plan-mode episode (or one whose own EnterPlanMode
+# opened it), or a typed /viber:intent or /viber:fixer command in it, silences
+# the hint. intent and fixer only hand off to the planner,
+# so plan-gate.sh does not count them: its planner-review choice needs the
+# planner itself.
 #
 # Why a hook: the rules only matter while a plain plan is written, so carrying
 # them in the session manifest spent context in every session for nothing. The
 # hint is soft; plain-plan-review (plan-gate.sh, plain-plan-review: true) is
 # what enforces the closing review task.
 #
-# The episode window and the planner Skill grep are copied from plan-gate.sh:
-# keep both in step, a rename on either side disarms the other silently.
+# The episode window and the Skill grep are copied from plan-gate.sh, the grep
+# widened to intent and fixer plus their typed commands: keep both in step, a
+# rename on either side disarms the other silently.
 #
 # Contract:
 #   argv   : none - every input arrives on stdin.
 #   cwd    : irrelevant; the payload carries an absolute "transcript_path".
 #   env    : none read.
 #   reads  : the transcript file named by the payload's "transcript_path", only
-#            to look for a planner Skill tool_use in the current episode. A
-#            missing or unreadable transcript counts as no planner.
+#            to look for a planner, intent or fixer Skill tool_use, or a typed
+#            /viber:intent or /viber:fixer command, in the current episode. A
+#            missing or unreadable transcript counts as none.
 #   stdin  : UserPromptSubmit JSON; "permission_mode" decides. Absent, empty,
 #            or any value but "plan" -> nothing printed. Empty stdin -> the same.
 #   stdout : nothing, or in plain plan mode
@@ -59,11 +65,15 @@ if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
   )
   episode_start="${episode_start:-0}"
 
-  # Planner Skill tool_use, as in plan-gate.sh: bare "planner" or "viber:planner",
-  # inside the episode or directly followed by its own EnterPlanMode inside it.
+  # Chain Skill tool_use, as in plan-gate.sh but also intent and fixer: bare or
+  # "viber:"-prefixed, inside the episode or directly followed by its own
+  # EnterPlanMode inside it. A typed /viber:intent or /viber:fixer records no
+  # Skill tool_use, only a user message opening with <command-message>; it
+  # counts inside the episode. The planner is not user-invocable, so it has none.
   planner_raw="$(
     awk '
-      /"name":"Skill"/ && /"skill":"(viber:)?planner"/ { skill = NR; entry = 0; pending = 1; next }
+      /"name":"Skill"/ && /"skill":"(viber:)?(planner|intent|fixer)"/ { skill = NR; entry = 0; pending = 1; next }
+      /"message":[{]("role":"user",)?"content":"<command-message>viber:(intent|fixer)<\/command-message>/ { skill = NR; entry = 0; pending = 0; next }
       pending && /"type":"tool_use",("id":"[^"]*",)?"name":"EnterPlanMode"/ { entry = NR; pending = 0; next }
       pending && (/"permissionMode":"plan"/ || /"message":[{]("role":"user",)?"content":"/) { pending = 0 }
       END { print skill + 0, entry + 0 }
@@ -76,5 +86,5 @@ if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
   fi
 fi
 
-printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"Plain plan mode, plan-writing rules:\n- End the plan with a task in which a subagent reviews the finished implementation against the plan, and its findings are fixed before the work is reported done.\n- During implementation time matters: have the plan run independent tasks in parallel subagents in background.\n- Skip both when a viber skill (intent, fixer, planner) drives the plan."}}'
+printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"Plain plan mode, plan-writing rules:\n- End the plan with a task in which a subagent reviews the finished implementation against the plan, and its findings are fixed before the work is reported done.\n- During implementation time matters: have the plan run independent tasks in parallel subagents in background."}}'
 exit 0

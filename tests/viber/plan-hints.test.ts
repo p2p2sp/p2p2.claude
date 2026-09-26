@@ -5,13 +5,15 @@
  * What it must do: on a prompt whose payload carries `"permission_mode":"plan"`,
  * print one UserPromptSubmit additionalContext naming both rules (a closing
  * subagent review task, parallel subagents for independent tasks) - unless a
- * planner Skill tool_use sits in the current plan-mode episode, where the viber
- * planner already covers both. Any other mode, a payload without the key, or
- * empty stdin prints nothing. A missing transcript counts as no planner, so the
- * hint still fires. Every case asserts exit 0: a broken hint must never block a
- * prompt.
+ * planner, intent or fixer Skill tool_use, or a typed /viber:intent or
+ * /viber:fixer command, sits in the current plan-mode episode, where the viber
+ * chain already covers both. Any other mode, a payload
+ * without the key, or empty stdin prints nothing. A missing transcript counts as
+ * no chain skill, so the hint still fires. Every case asserts exit 0: a broken
+ * hint must never block a prompt.
  *
- * The episode window and the planner Skill grep are copied from plan-gate.sh,
+ * The episode window and the Skill grep are copied from plan-gate.sh (the grep
+ * widened to intent and fixer),
  * so the fixture line shapes are the ones tests/viber/plan-gate.test.ts uses,
  * serialized with JSON.stringify for the same reason: the script reads raw text
  * with grep/sed and never parses JSON.
@@ -47,6 +49,11 @@ function skillUse(skill = "viber:planner"): string {
   return line({ type: "assistant", message: { content: [{ type: "tool_use", name: "Skill", input: { skill } }] } });
 }
 
+/** A typed skill command, in the shape Claude Code records it: no Skill tool_use. */
+function typedCommand(name: string): string {
+  return line({ type: "user", message: { role: "user", content: `<command-message>${name}</command-message>\n<command-name>/${name}</command-name>` } });
+}
+
 function permissionMode(mode: string): string {
   return line({ type: "permission-mode", permissionMode: mode, sessionId: "s" });
 }
@@ -80,9 +87,7 @@ function assertHint(stdout: string): void {
   assert.equal(out.hookEventName, "UserPromptSubmit");
   const ctx = out.additionalContext ?? "";
   assert.match(ctx, /subagent reviews the finished implementation against the plan/);
-  assert.match(ctx, /independent tasks in parallel subagents/);
-  assert.match(ctx, /Skip both when a viber skill/);
-}
+  assert.match(ctx, /independent tasks in parallel subagents/);}
 
 // --- cases ------------------------------------------------------------
 
@@ -90,6 +95,15 @@ test("plan mode with no planner in the transcript -> additionalContext carries b
   withTempDir("p2p2-plan-hints-", (dir) => {
     const f = writeTranscript(dir, [permissionMode("plan")]);
     assertHint(runPayload({ permission_mode: "plan", transcript_path: f }));
+  });
+});
+
+test("the hint carries exactly the two rules, with no line telling the model to skip them under a viber skill (the hook itself stays silent there)", () => {
+  withTempDir("p2p2-plan-hints-", (dir) => {
+    const f = writeTranscript(dir, [permissionMode("plan")]);
+    const ctx = JSON.parse(runPayload({ permission_mode: "plan", transcript_path: f })).hookSpecificOutput.additionalContext as string;
+    assert.equal(ctx.split("\n").filter((l) => l.startsWith("- ")).length, 2, `expected two rule lines, got: ${ctx}`);
+    assert.doesNotMatch(ctx, /viber|skip/i);
   });
 });
 
@@ -117,6 +131,71 @@ test("a planner Skill tool_use in the current episode -> nothing printed (the vi
     assert.equal(runPayload({ permission_mode: "plan", transcript_path: f }), "");
     const bare = writeTranscript(dir, [skillUse("planner")]);
     assert.equal(runPayload({ permission_mode: "plan", transcript_path: bare }), "");
+  });
+});
+
+test("an intent or fixer Skill tool_use in the current episode -> nothing printed (both hand off to the planner, which covers both rules)", () => {
+  withTempDir("p2p2-plan-hints-", (dir) => {
+    for (const skill of ["viber:intent", "intent", "viber:fixer", "fixer"]) {
+      const f = writeTranscript(dir, [permissionMode("plan"), skillUse(skill)]);
+      assert.equal(runPayload({ permission_mode: "plan", transcript_path: f }), "", `expected silence after ${skill}`);
+    }
+  });
+});
+
+test("a typed /viber:intent or /viber:fixer command in the current episode -> nothing printed (a typed command records no Skill tool_use)", () => {
+  withTempDir("p2p2-plan-hints-", (dir) => {
+    for (const name of ["viber:intent", "viber:fixer"]) {
+      const f = writeTranscript(dir, [permissionMode("plan"), typedCommand(name)]);
+      assert.equal(runPayload({ permission_mode: "plan", transcript_path: f }), "", `expected silence after /${name}`);
+    }
+  });
+});
+
+test("a typed /viber:intent with arguments, in the full record shape Claude Code writes -> nothing printed (metadata keys before the message must not hide the tag)", () => {
+  withTempDir("p2p2-plan-hints-", (dir) => {
+    const real = line({
+      parentUuid: "p",
+      isSidechain: false,
+      promptId: "b7603b85",
+      type: "user",
+      message: { role: "user", content: "<command-message>viber:intent</command-message>\n<command-name>/viber:intent</command-name>\n<command-args>#12</command-args>" },
+      uuid: "u",
+      timestamp: "2026-09-25T22:45:00.000Z",
+    });
+    const f = writeTranscript(dir, [permissionMode("plan"), real]);
+    assert.equal(runPayload({ permission_mode: "plan", transcript_path: f }), "");
+  });
+});
+
+test("a typed command that is not viber intent or fixer, or one before the episode -> the hint fires (a bare /intent may belong to another plugin)", () => {
+  withTempDir("p2p2-plan-hints-", (dir) => {
+    const other = writeTranscript(dir, [permissionMode("plan"), typedCommand("intent"), typedCommand("viber:triage")]);
+    assertHint(runPayload({ permission_mode: "plan", transcript_path: other }));
+    const earlier = writeTranscript(dir, [typedCommand("viber:intent"), permissionMode("default"), permissionMode("plan")]);
+    assertHint(runPayload({ permission_mode: "plan", transcript_path: earlier }));
+  });
+});
+
+test("assistant text quoting the command tag -> the hint fires (only a user message opening with the tag counts)", () => {
+  withTempDir("p2p2-plan-hints-", (dir) => {
+    const quoted = line({ type: "assistant", message: { content: [{ type: "text", text: "<command-message>viber:intent</command-message>" }] } });
+    const f = writeTranscript(dir, [permissionMode("plan"), quoted]);
+    assertHint(runPayload({ permission_mode: "plan", transcript_path: f }));
+  });
+});
+
+test("an unrelated viber Skill in the current episode -> the hint still fires (only the planning chain silences it)", () => {
+  withTempDir("p2p2-plan-hints-", (dir) => {
+    const f = writeTranscript(dir, [permissionMode("plan"), skillUse("viber:triage")]);
+    assertHint(runPayload({ permission_mode: "plan", transcript_path: f }));
+  });
+});
+
+test("an intent Skill before a later non-plan permission mode -> the hint fires again (an earlier interview does not silence a new plain plan)", () => {
+  withTempDir("p2p2-plan-hints-", (dir) => {
+    const f = writeTranscript(dir, [skillUse("viber:intent"), permissionMode("default"), permissionMode("plan")]);
+    assertHint(runPayload({ permission_mode: "plan", transcript_path: f }));
   });
 });
 

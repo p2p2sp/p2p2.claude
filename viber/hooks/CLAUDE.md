@@ -15,5 +15,8 @@ verdict line disarms the fail-open gate silently.
 ## Plan hints
 
 `scripts/plan-hints.sh` (UserPromptSubmit, soft) adds the closing-review and
-parallel-subagent rules to every prompt in plain plan mode only; its planner detection and episode
-window are copied from `plan-gate.sh`, so rename either side together.
+parallel-subagent rules to every prompt in plain plan mode only; its episode window and Skill
+detection are copied from `plan-gate.sh`, so rename either side together. Its detection alone also
+counts `intent` and `fixer` (they only hand off to `planner`), so the gate never picks
+`planner-review` for them, plus their typed `/viber:` commands: a user message opening with
+`<command-message>viber:intent</command-message>`, which records no Skill tool_use.
