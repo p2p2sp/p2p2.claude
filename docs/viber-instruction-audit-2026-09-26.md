@@ -106,8 +106,12 @@ deeper wave then answered `NO-NODE` or deleted.
   step 8 now reconciles every existing node whose list may be off, not only the root, one wave per
   depth, deepest first, each wave's `planned:` counting the waves before it.
 
-2.8. `DROPPED:` has two formats: `memory-writer` returns `DROPPED: <path>: <fact>`,
+2.8. DONE. `DROPPED:` has two formats: `memory-writer` returns `DROPPED: <path>: <fact>`,
 `memory-node-writer` returns `DROPPED: <fact>`. Severity low. Found by one verifier.
+- Done as: `memory-node-writer.md` Output now returns `DROPPED: <path>: <fact>`, `<path>` the node
+  or section that lost the fact, so the `memory` report (which repeats every line verbatim across
+  all dispatches) names where each fact was cut, a split child or a section included. No consumer
+  parses the line, so no caller changed.
 
 2.9. `skills/planner/SKILL.md:67` tells the model to re-run the branch report after a title change
 even under `branching.mode: off`, where no branch report exists. Severity low. Found by one

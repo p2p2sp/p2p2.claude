@@ -71,7 +71,7 @@ VERDICT: UPDATED | NONE | NO-NODE | DENIED
 REASON: <refused tool name>: <the exact refused command, or the path for a file tool>   only with DENIED
 FILES: <every repo-relative path written or deleted, sections included, comma-separated>   only with UPDATED
 SIZE: <bytes> chain <bytes>                                           only with UPDATED while `node` exists, the node's own
-DROPPED: <fact>                     one per fact left out to stay within budget
+DROPPED: <path>: <fact>             one per fact left out to stay within budget, <path> the node or section that lost it
 LIFT: <fact>                        one per fact shared with a sibling area
 CHAIN: <ancestor path> <bytes>      one per ancestor outside this run that leaves the chain over budget
 DELETED: <path>                     one per node or section deleted, each also named on FILES:
