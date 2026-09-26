@@ -132,9 +132,15 @@ both.
   file still following it. The `rm --` limits moved to the Budget `Bash` line and the `_` delete
   ban to the frozen-file bullet, where each already lived.
 
-2.11. `skills/commit/SKILL.md:43` ("Has something changed in the meantime? So what...") is
+2.11. DONE. `skills/commit/SKILL.md:43` ("Has something changed in the meantime? So what...") is
 colloquial for a `model: haiku` fork and can be read as permission to break `:40`. Intent: a tree
 changed after the snapshot never stops the commit. Severity low. Verifiers: both CONFIRMED.
+- Done as: one line naming the action, not the goal: "still run `commit.sh` once with the resolved
+  selector, never re-inspecting the tree or questioning the selection". Dropping "MUST do what the
+  user wants" removes the reading that licensed a wider re-run after a non-zero exit, so `:40`
+  needs no precedence clause; "questioning the selection" keeps the line's older intent (35983554:
+  never question committing `all`). Deleting the line was rejected: the fork holds a bare `Bash`
+  allow, and the description's "never inspect git status/diff first" binds only the main model.
 
 2.12. `skills/setup/SKILL.md:19` is false: "The switches land on", while the template ships
 `qa: false` and `branching.mode: off`. Severity low. Verifiers: both.

@@ -40,4 +40,4 @@ Return only one line: `<sha> | <commit message> (<verification>)`
 - If `commit.sh` exits non-zero, return its error output as the one line and stop. Never re-run it with a different or empty selector (that widens the commit to everything staged) and never run `git` yourself.
 - Do not push.
 - Do not add "Co-Authored-By".
-- Has something changed in the meantime? So what - MUST do what the user wants.
+- The tree may have changed since the snapshot above: still run `commit.sh` once with the resolved selector, never re-inspecting the tree or questioning the selection.
