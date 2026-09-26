@@ -43,9 +43,12 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   return lines. Every script's stdout and every agent's `## Output` vocabulary is an interface:
   renaming one side only breaks the build silently.
 - `plan-index.sh`'s index prints per task id, state, TDD, `excl`, `deps`, `feeds` (contract
-  blocks another task consumes), `files`, title, then a `verify:` line. `implementor` profiles
-  tier from TDD, file count, `feeds` and dependents, review from `verify:` and the tier (never
-  from a field the index does not print) or a coder `EXTRA:` line.
+  blocks another task consumes), `files`, title, then a `verify:` line, plus a trailing
+  `dirty: <id> | <paths>` line per task not done whose own files changed and one
+  `orphan: <p1>,<p2>` line for changed paths claimed by no task not `done` (run directory
+  excluded). `implementor` profiles tier from TDD, file count, `feeds` and dependents, review
+  from `verify:` and the tier (never from a field the index does not print) or a coder `EXTRA:`
+  line.
 - `excl` (plan `Exclusive: true`): `implementor` runs the task alone, once nothing else is ready
   or in flight, until committed; outside `--split` `plan-index.sh` rejects a task depending on it.
 - Every agent returns `VERDICT: DENIED` plus `REASON: <tool>: <call>` on a refused tool call (the
@@ -56,7 +59,8 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 - Every `EXTRA:` path of the task's coder or reviewer becomes `--with` (the coder's also reach
   its reviewer as `extra:`, minus a path a not-yet-done task claims, with one `recheck:` per done
   owner's `verify:`), coder `DEFERRED:` `--defer`, stored as `deferred:` in `status.md` and handed
-  to the owing task's coder and reviewer.
+  to the owing task's coder and reviewer. The `orphan:` paths the user assigns to a task on
+  resume ride that same `resume:` / `extra:` / `--with` path.
 - `decide` (offered only on a task's second coder failure, beside retry/skip/abort, or second
   failed review round, beside retry/accept/abort) is the owner's ruling on a stalled task,
   overriding the task file for it and its dependents.

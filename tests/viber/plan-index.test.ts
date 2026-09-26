@@ -14,7 +14,10 @@
  * that was cut off inside it. A missing dirty line sends a fresh coder onto
  * another one's half-finished work; a spurious one - the fixer's RED
  * reproduction test, named on the task's `Repro:` line and uncommitted by
- * design - stops every fix build on a question with one right answer.
+ * design - stops every fix build on a question with one right answer. A
+ * `done` task's dirty file now shows as `orphan:` instead of `dirty:` - the
+ * task that claimed it is already settled, so nothing dispatches a coder onto
+ * it again.
  *
  * `plan-index.sh <plan> --split` additionally decomposes the plan in place:
  * `spec.md` (everything above `## Tasks`) plus one `tasks/<id>.md` per task,
@@ -493,6 +496,8 @@ test("a task whose own files carry uncommitted work is reported dirty - that is 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^dirty: T1 \| src\/login\.ts$/m);
     assert.match(result.stdout, /^dirty: T2 \| src\/reject\.ts$/m);
+    // a todo task's own dirty file is dirty:, never orphan: too
+    assert.doesNotMatch(result.stdout, /^orphan:/m);
     // the state itself still comes from the plan, never from the tree
     assert.match(result.stdout, /^T1 \| todo \|/m);
   });
@@ -508,6 +513,75 @@ test("a clean tree reports no dirty line, so a build that starts normally sees n
     const result = run(repo.dir, repo.env, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.doesNotMatch(result.stdout, /^dirty:/m);
+    assert.doesNotMatch(result.stdout, /^orphan:/m);
+  });
+});
+
+test("a changed path claimed by no task not done is reported orphan", () => {
+  withGitRepo((repo) => {
+    seed(repo.dir, planBody(TWO_TASKS));
+    write(repo.dir, "src/login.ts", "committed\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "seed");
+
+    write(repo.dir, "lib/x.ts", "nobody's task claims this\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^orphan: lib\/x\.ts$/m);
+  });
+});
+
+test("a path inside the run directory (a work/ note) is never reported orphan", () => {
+  withGitRepo((repo) => {
+    seed(repo.dir, planBody(TWO_TASKS));
+    write(repo.dir, "src/login.ts", "committed\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "seed");
+
+    write(repo.dir, `${PLAN_DIR}/work/T1.round1.md`, "a coder's own trail note\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stdout, /^orphan:/m);
+  });
+});
+
+test("a done task's dirty file is reported orphan, not dirty, since the task that claimed it is already settled", () => {
+  withGitRepo((repo) => {
+    seed(repo.dir, planBody(TWO_TASKS));
+    seedStatus(repo.dir, { progress: "1/2", done: "T1" });
+    write(repo.dir, "src/login.ts", "committed\n");
+    write(repo.dir, "src/reject.ts", "committed\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "seed");
+
+    // T1 is done, but its own file is dirty again - a session cut off after
+    // the task landed
+    write(repo.dir, "src/login.ts", "touched again after T1 landed\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stdout, /^dirty: T1 \|/m);
+    assert.match(result.stdout, /^orphan: src\/login\.ts$/m);
+  });
+});
+
+test("a skipped task's dirty file is reported dirty, never orphan", () => {
+  withGitRepo((repo) => {
+    seed(repo.dir, planBody(TWO_TASKS));
+    seedStatus(repo.dir, { progress: "0/2", done: "none", skipped: "T2" });
+    write(repo.dir, "src/login.ts", "committed\n");
+    write(repo.dir, "src/reject.ts", "committed\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "seed");
+
+    write(repo.dir, "src/reject.ts", "touched after T2 was skipped\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^dirty: T2 \| src\/reject\.ts$/m);
+    assert.doesNotMatch(result.stdout, /^orphan:/m);
   });
 });
 
@@ -533,12 +607,15 @@ test("the Repro path is uncommitted by design and never reported dirty, while th
     let result = run(repo.dir, repo.env, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.doesNotMatch(result.stdout, /^dirty:/m);
+    // the Repro path is claimed by T1's own Files, so it is never orphan either
+    assert.doesNotMatch(result.stdout, /^orphan:/m);
 
     // a session cut off inside the fix still shows, the Repro path left out
     write(repo.dir, "src/login.ts", "half a coder's fix\n");
     result = run(repo.dir, repo.env, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^dirty: T1 \| src\/login\.ts$/m);
+    assert.doesNotMatch(result.stdout, /^orphan:/m);
   });
 });
 

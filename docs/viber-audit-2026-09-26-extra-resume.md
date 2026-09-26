@@ -1,6 +1,6 @@
 # viber audit - 2026-09-26 - item D: EXTRA paths across an interrupted session
 
-> Proposal, not implemented. Follows item 2.1 of `viber-instruction-audit-2026-09-26.md`.
+> Implemented: `plan-index.sh` prints `orphan: <p1>,<p2>` (changed paths claimed by no task not `done`, run directory excluded, `done`-owned paths included, no `.temp/` exclusion); `implementor` asks once on resume which task takes them and passes them on `resume:`, `extra:` (which already forces the review) and `--with`. Follows item 2.1 of `viber-instruction-audit-2026-09-26.md`.
 
 Severity low: the gap needs a session cut off after the coder edited a path outside `Files` and
 before `commit-task.sh` committed the task.

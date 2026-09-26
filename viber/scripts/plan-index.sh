@@ -23,8 +23,10 @@
 #   T2 | todo | required | yes | T1 | -  | src/a.ts,src/b.ts     | Add the retry loop
 #   verify: T1 | node --test tests/settings.test.ts
 #   verify: T2 | grep -n "retry" src/a.ts
-#   dirty: T2 | src/a.ts            only for a task whose own files are dirty
-#                                   (its "Repro:" path excepted)
+#   dirty: T2 | src/a.ts            only for a task not done whose own files are
+#                                   dirty (its "Repro:" path excepted)
+#   orphan: lib/x.ts,lib/y.ts       only when non-empty: changed paths claimed
+#                                   by no task not "done" (run directory excluded)
 #
 # "feeds" is the comma-separated ids of the contract blocks whose "File:" path
 # is in this task's "Files" and which at least one OTHER task names in "Uses" -
@@ -55,7 +57,11 @@
 # a status.md with none prints exactly what it printed before the line existed.
 # "state" is "done", "skipped" or "todo"; a "dirty"
 # line means that task's own files carry uncommitted work, so an earlier session
-# was cut off mid-task and a fresh coder would land on top of it. Everything else
+# was cut off mid-task and a fresh coder would land on top of it. An "orphan"
+# line lists changed paths no coder would otherwise reach (a "done" task's own
+# files included, since nothing dispatches onto it again), its run directory
+# exclusion relying on "$dir" being the repo-relative plan path plan-path.sh
+# prints, as commit-task.sh's run_dir() does. Everything else
 # a resume needs is already derivable, so nothing here is stored twice.
 #
 # "Repro:" is the second optional field: the one path of a fixing task that the
@@ -240,7 +246,7 @@ fi
 
 # The path travels through ENVIRON, not -v: awk -v expands escape sequences and
 # would mangle a Windows path containing backslashes.
-plan="$plan" changed="$changed" mode="$mode" \
+plan="$plan" changed="$changed" mode="$mode" rundir="$dir" \
 st_done="$st_done" st_skipped="$st_skipped" st_unreviewed="$st_unreviewed" \
 st_deferred="$st_deferred" st_closed="$st_closed" st_decisions="$st_decisions" \
 awk '
@@ -308,8 +314,10 @@ BEGIN {
   defer   = listed(ENVIRON["st_deferred"])
   closed  = listed(ENVIRON["st_closed"])
   decisions = ENVIRON["st_decisions"]
-  m = split(ENVIRON["changed"], ch, /\n/)
-  for (k = 1; k <= m; k++) if (ch[k] != "") chg[ch[k]] = 1
+  rundir = ENVIRON["rundir"]
+  if (rundir == ".") rundir = ""
+  nch = split(ENVIRON["changed"], ch, /\n/)
+  for (k = 1; k <= nch; k++) if (ch[k] != "") chg[ch[k]] = 1
 }
 
 # plan title: the first H1
@@ -624,13 +632,37 @@ END {
 
   # a task whose own files carry uncommitted work: an earlier session was cut
   # off inside it, and a fresh coder would land on top of what it left. The
-  # Repro path is uncommitted by design, so it is never that evidence
+  # Repro path is uncommitted by design, so it is never that evidence. A done
+  # task is settled - its own dirty files are not a session cut off inside it,
+  # they are orphan: below
   for (i = 1; i <= n; i++) {
+    if (id[i] in isdone) continue
     d = ""
     for (k = 1; k <= nf[i]; k++)
       if (fpath[i, k] in chg && fpath[i, k] != repro[i]) d = (d == "" ? fpath[i, k] : d "," fpath[i, k])
     if (d != "") printf "dirty: %s | %s\n", id[i], d
   }
+
+  # a changed path claimed by no task not done: a done task no longer owns its
+  # dirty files (moved above into "dirty:" only for todo and skipped), and a
+  # path outside every task map entirely is the same kind of orphaned work - a
+  # session cut off after a task landed, or one that touched a file no task
+  # names at all. Walked in ch[] order (git order), never "for (p in chg)",
+  # whose order awk leaves unspecified. The run directory itself is excluded,
+  # the same exclusion commit-task.sh applies in warn_unclaimed().
+  for (i = 1; i <= n; i++) {
+    if (id[i] in isdone) continue
+    for (k = 1; k <= nf[i]; k++) claimedp[fpath[i, k]] = 1
+  }
+  orph = ""
+  for (k = 1; k <= nch; k++) {
+    p = ch[k]
+    if (p == "") continue
+    if (p in claimedp) continue
+    if (rundir != "" && index(p, rundir "/") == 1) continue
+    orph = (orph == "" ? p : orph "," p)
+  }
+  if (orph != "") printf "orphan: %s\n", orph
 }
 ' "$plan"
 

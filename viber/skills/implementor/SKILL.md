@@ -71,7 +71,8 @@ Non-zero exit -> report the error and stop; repairing the plan belongs to the pl
 
 Never dispatch a `done` or `skipped` task again. Also on the index:
 
-- `dirty: <id> | <paths>` -> before dispatching that task, `AskUserQuestion` naming it and those paths: continue (its coder gets `resume: <paths>` added to its lines), start over (dispatch unchanged), or drop (the `skip` answer).
+- `dirty: <id> | <paths>` -> before the first dispatch, `AskUserQuestion` naming it and those paths: continue (its coder gets `resume: <paths>` added to its lines), start over (dispatch unchanged), or drop (the `skip` answer).
+- `orphan: <paths>` -> once every `dirty:` question is answered and before the first dispatch, one `AskUserQuestion` naming them: which task takes them (at most three options: the tasks on `dirty:` lines neither dropped nor `skipped`, filled up with the earliest tasks not `done` or `skipped`; any other task through the free-text answer), or leave them out. The question says a path it takes is reviewed as that task's work. The chosen task gets them on its coder's `resume:`, its reviewer's `extra:` and its commit's `--with`, whatever its own `dirty:` answer was; left out, they reach the final summary.
 - `unreviewed: <ids>` -> carry to the final summary.
 - `deferred: <id>:<path>` -> that task's `deferred:` line in step 4.
 - `closed: <parts>` -> those parts of steps 6 and 7 are already recorded.
@@ -125,11 +126,11 @@ decision: <task-id>: <text>
 
 `report:` appears after a review failure, `reason:` on a retry after the coder's own failure or `DENIED`, `decision:` after `decide`. Each continuation counts against a cap of two per instance; a third re-run of an instance already continued twice, a re-run that raises the tier to a new model, a missing agent id for the task's coder, or a `SendMessage` error each falls back to the fresh dispatch above with every labelled line, starting a new instance with its own continuation count.
 
-Reviewer dispatch: `viber:task-reviewer` (Agent tool, `model` = the review tier) with the task's `task:`, `notes:`, `out:`, `refs:`, `deferred:` and `decision:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1, plus `extra: <repo-relative paths, comma-separated>` (every path an `EXTRA:` line of that task's coder returned so far in this build, across continuations and fresh re-runs, never the reviewer's own, except a path the index `files` column gives to a task not yet `done`) and one `recheck: <task-id> | <command>` line per `done` task whose `files` column claims a path on `extra:`, `<command>` being that task's `verify:` command, both omitted when empty.
+Reviewer dispatch: `viber:task-reviewer` (Agent tool, `model` = the review tier) with the task's `task:`, `notes:`, `out:`, `refs:`, `deferred:` and `decision:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1, plus `extra: <repo-relative paths, comma-separated>` (every path an `EXTRA:` line of that task's coder returned so far in this build, across continuations and fresh re-runs, never the reviewer's own, except a path the index `files` column gives to a task not yet `done`, plus the `orphan:` paths the user gave this task) and one `recheck: <task-id> | <command>` line per `done` task whose `files` column claims a path on `extra:`, `<command>` being that task's `verify:` command, both omitted when empty.
 
 Commit: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<plan>" "<id>"` with its `TaskUpdate` -> completed, plus:
 
-- `--with "<path>" ["<path>"...]` for every path an `EXTRA:` line of that task's coder or reviewer returned.
+- `--with "<path>" ["<path>"...]` for every path an `EXTRA:` line of that task's coder or reviewer returned, plus the `orphan:` paths the user gave this task.
 - `--defer "<target-id>:<path>" [...]` for every `DEFERRED:` line its coder returned. `-> none` takes the earliest unfinished task other than this one whose `files` column claims that path; a path no task claims is named in the final summary.
 
 Warnings off the commit never stop the build: carry `refused <path> - claimed by task <id>`, `took <path> - claimed by committed task <id>` and `changed, claimed by no task in the plan` to the final summary.
