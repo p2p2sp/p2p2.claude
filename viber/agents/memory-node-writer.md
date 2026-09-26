@@ -60,8 +60,7 @@ Read the tracked files of the area and author the facts a reader landing there w
 - The ancestors alone leave no room for the node -> keep `node` within its own cap and return one `CHAIN:` per ancestor with its size.
 - A split never leaves the child node over its cap, and keeps every fact already in it.
 - A fact a sibling area shares -> keep it in `node` and return it on `LIFT:`. Never move a fact to a parent.
-- A node carrying a list of nodes lists only the nodes below its own directory, the root's covering the whole repository.
-- Keep that list equal to the part of `planned:` below the node's directory, even when a split created a node outside it.
+- A node carrying a list of nodes lists exactly the part of `planned:` below its own directory, the root's covering the whole repository, plus each node a split of yours created.
 
 ## Output
 

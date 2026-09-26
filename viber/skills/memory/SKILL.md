@@ -123,9 +123,9 @@ Keep account while the waves return, counting only paths whose file name is `CLA
 - a node was deleted for each such `DELETED:` line.
 - the nodes that now exist are the planned set, minus every create target not created, minus every deleted node, plus every created node outside the planned set.
 
-## 8. Reconcile the root
+## 8. Reconcile the lists of nodes
 
-After the last wave, when the root exists and either it was a target and the nodes that now exist differ from the `planned:` it was written with, or it was not a target and any dispatch created or deleted a node, dispatch one more `viber:memory-node-writer` on it: `mode: fix`, `node: CLAUDE.md`, `findings: none`, `planned:` the nodes that now exist, `refs:` as above. Otherwise dispatch nothing here.
+After the last wave, a node that exists is off when the nodes that now exist below its directory differ from the part of `planned:` below it plus the nodes its own dispatch created, or, when no dispatch wrote it, when any dispatch created or deleted a node below its directory; the root's directory covers the whole repository. Each node off gets one more `viber:memory-node-writer`: `mode: fix`, `node:` its path, `findings: none`, `planned:` the nodes that now exist, `refs:` as above. One wave per depth, the deepest first, each wave's `planned:` counting what the waves before it created or deleted. No node off -> dispatch nothing here.
 
 ## 9. Report
 

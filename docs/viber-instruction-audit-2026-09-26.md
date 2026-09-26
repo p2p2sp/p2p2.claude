@@ -94,10 +94,17 @@ Verifiers: both CONFIRMED.
   scaffolding examples moved into parentheses; a closing sentence names the two
   `test-strategy.md` defines: the no-decision deliverable and the no-test-layer host.
 
-2.7. `references/node-doctrine.md:34` ("a node carrying an index of nodes gains the new one in the
+2.7. DONE. `references/node-doctrine.md:34` ("a node carrying an index of nodes gains the new one in the
 same write") contradicts `agents/memory-node-writer.md:64` (keep the list equal to `planned:`
 "even when a split created a node outside it") for a non-root parent that splits; the final pass
 (`memory/SKILL.md:128`) reconciles only the root. Severity low-medium. Found by one verifier.
+Wider than stated: waves run root first, so a non-root parent's list also kept a child that a
+deeper wave then answered `NO-NODE` or deleted.
+- Done as: the doctrine stays (`memory-writer` reads it and has no reconcile pass);
+  `memory-node-writer.md:63-64` merged into one line (also the 4.4 merge): the list is the part of
+  `planned:` below the node's directory plus each node its own split created. `memory/SKILL.md`
+  step 8 now reconciles every existing node whose list may be off, not only the root, one wave per
+  depth, deepest first, each wave's `planned:` counting the waves before it.
 
 2.8. `DROPPED:` has two formats: `memory-writer` returns `DROPPED: <path>: <fact>`,
 `memory-node-writer` returns `DROPPED: <fact>`. Severity low. Found by one verifier.
@@ -191,7 +198,7 @@ SAFE.
 - `:59`: keep the action ("name each one missing, drop each line whose file is gone", delete in the
   same write); about 60 bytes can go.
 - `:61`: cut only "never leaves the child node over its cap"; keep "keeps every fact already in it".
-- `:63-64`: merge, keeping "even when a split created a node outside it" (settle 2.7 first).
+- `:63-64`: DONE with 2.7 (merged into one line).
 
 4.5. `skills/planner/SKILL.md`, about 560-750 bytes on a run with branching off. Verifiers: both
 PARTLY.
