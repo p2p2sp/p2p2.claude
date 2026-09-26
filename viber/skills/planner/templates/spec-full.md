@@ -6,7 +6,7 @@ work: <branching.work entry key the run branch comes from; drop the line under b
 branch: <run branch name, or none for no branch; drop the line under branching off>
 ---
 
-To build this plab you must invoke skill `viber:implementor` with `source:` path as its only argument.
+To build this plan you must invoke skill `viber:implementor` with `source:` path as its only argument.
 
 # <change title>
 
