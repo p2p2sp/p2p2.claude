@@ -7,8 +7,10 @@
 # directory unless the project redirects it. The episode then picks its reviewer:
 #   - a Skill tool_use for "planner" in the episode, or one whose own
 #     EnterPlanMode opened it (the skill is user-invocable: false, so a model
-#     dispatch is the only way it runs) -> the planner-review agent, always;
-#   - no planner -> a plain plan-mode plan, gated by the plain-plan-review agent
+#     dispatch is the only way it runs), AND the plan file opens with the
+#     planner's frontmatter `source:` line (an unreadable plan keeps the
+#     planner's reviewer) -> the planner-review agent, always;
+#   - anything else -> a plain plan-mode plan, gated by the plain-plan-review agent
 #     only when config.sh resolves `plain-plan-review: true` for the session's cwd.
 # Anything else - no plan write, plain-plan-review off, a plan-mode exit in a session
 # that already built a plan - passes untouched. The episode starts after the
@@ -42,13 +44,16 @@
 #   env    : none read.
 #   reads  : the transcript file named by the payload's "transcript_path", the
 #            config.sh output for the session's cwd (plain plan only), and,
-#            once the plan write line resolves a path, the plan file itself
-#            (existence check and mtime, for the tamper guard below).
+#            once the plan write line resolves a path, the plan file itself:
+#            its frontmatter (planner ownership), then existence and mtime
+#            (the tamper guard below).
 #   stdin  : PreToolUse JSON with at least { "transcript_path": "<abs path>" }
 #   stdout : {"hookSpecificOutput":{"hookEventName":"PreToolUse",
 #             "permissionDecision":"allow"|"deny","permissionDecisionReason":"..."}}
 #   exit 0 : always. Every parse miss or unreadable file falls back to allow -
-#            a broken gate must not trap the user in plan mode. JSON is read with
+#            a broken gate must not trap the user in plan mode - except the plan
+#            file under a planner signal: a miss there keeps planner-review
+#            rather than loosening the gate to the plain path. JSON is read with
 #            grep/sed/awk; jq is not assumed. A malformed or empty result from
 #            any read (including a broken awk on PATH) fails open the same way.
 set -u
@@ -104,6 +109,19 @@ plan_write_line=$(
 )
 [ -n "$plan_write_line" ] && [ "$plan_write_line" -gt "$episode_start" ] || emit_allow
 
+plan_path=$(
+  awk -v ln="$plan_write_line" 'NR==ln' "$transcript_path" 2>/dev/null \
+    | grep -oE '"file_path":"[^"]*[\\/]+plans[\\/]+[^"]*\.md"' \
+    | tail -n1 \
+    | sed -E 's/^"file_path":"(.*)"$/\1/' \
+    | sed 's/\\\\/\\/g'
+)
+# A relative file_path resolves against the session cwd.
+if [ -n "$plan_path" ] && [ ! -f "$plan_path" ] && [ -n "$project_cwd" ] && [ -f "$project_cwd/$plan_path" ]; then
+  plan_path="$project_cwd/$plan_path"
+fi
+plan_name="${plan_path##*[\\/]}"
+
 # Which review owns this plan. The planner skill running picks its own reviewer:
 # a Skill tool_use is the only form it can take - the skill is user-invocable:
 # false, so no typed command ever loads it. An escaped mention inside some other
@@ -117,6 +135,13 @@ plan_write_line=$(
 # signal after its Skill line is its own EnterPlanMode tool_use and that entry lies
 # inside the episode. A user prompt or a plan-mode record reached first ends the
 # pending entry: a refused planner followed by a new request stays out.
+#
+# The Skill signal alone is not ownership: a refused planner followed by a plain
+# plan in the same episode would otherwise hand that plan to planner-review. The
+# planner writes a `source:` key into the frontmatter of every plan, draft
+# included, and a plain plan-mode plan never carries one, so the plan file itself
+# must open with that frontmatter. A plan path that resolves to nothing, or a
+# file that cannot be read, keeps planner-review: a read miss never loosens the gate.
 planner_raw="$(
   awk '
     /"name":"Skill"/ && /"skill":"(viber:)?planner"/ { skill = NR; entry = 0; pending = 1; next }
@@ -127,7 +152,26 @@ planner_raw="$(
 )"
 printf '%s' "$planner_raw" | grep -qE '^[0-9]+ [0-9]+$' || planner_raw="0 0"
 set -- $planner_raw
+planner_owns=0
 if [ "$1" -gt "$episode_start" ] || [ "$2" -gt "$episode_start" ]; then
+  planner_owns=1
+  if [ -n "$plan_path" ] && [ -f "$plan_path" ] && [ -r "$plan_path" ]; then
+    # Prints 1 for a `source:` line inside a frontmatter block that opens on line 1,
+    # else 0. A CR is stripped first, so a plan saved with CRLF endings still counts.
+    # Any other output is a broken read and keeps the planner.
+    planner_fm="$(
+      awk '
+        { sub(/\r$/, "") }
+        NR == 1 { if ($0 != "---") exit; next }
+        $0 == "---" { exit }
+        /^source:/ { found = 1; exit }
+        END { print found + 0 }
+      ' "$plan_path" 2>/dev/null
+    )"
+    [ "$planner_fm" = "0" ] && planner_owns=0
+  fi
+fi
+if [ "$planner_owns" = "1" ]; then
   agent="planner-review"
   writer="The planner skill"
   dispatch_with="the plan path, \`refs:\` (the reference directory) and \`memory:\` (the planner's resolved config value), as planner-review.md expects its input"
@@ -146,19 +190,6 @@ else
   dispatch_with="the plan path and one sentence stating the user's goal"
   gate="the plan review gate (plain-plan-review in .claude/viber.yml)"
 fi
-
-plan_path=$(
-  awk -v ln="$plan_write_line" 'NR==ln' "$transcript_path" 2>/dev/null \
-    | grep -oE '"file_path":"[^"]*[\\/]+plans[\\/]+[^"]*\.md"' \
-    | tail -n1 \
-    | sed -E 's/^"file_path":"(.*)"$/\1/' \
-    | sed 's/\\\\/\\/g'
-)
-# A relative file_path resolves against the session cwd.
-if [ -n "$plan_path" ] && [ ! -f "$plan_path" ] && [ -n "$project_cwd" ] && [ -f "$project_cwd/$plan_path" ]; then
-  plan_path="$project_cwd/$plan_path"
-fi
-plan_name="${plan_path##*[\\/]}"
 
 # The review of THIS plan version: only dispatches after the last plan write count.
 #

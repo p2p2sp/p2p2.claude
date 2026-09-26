@@ -20,7 +20,10 @@
 #
 # The episode window and the Skill grep are copied from plan-gate.sh, the grep
 # widened to intent and fixer plus their typed commands: keep both in step, a
-# rename on either side disarms the other silently.
+# rename on either side disarms the other silently. The gate additionally
+# requires the planner's frontmatter in the plan file, which this hook cannot
+# see (it runs before any plan exists), so a refused planner leaves the hint
+# silenced for the rest of the episode - accepted, as the hint is soft.
 #
 # Contract:
 #   argv   : none - every input arrives on stdin.
@@ -86,5 +89,5 @@ if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
   fi
 fi
 
-printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"Plain plan mode, plan-writing rules:\n- End the plan with a task in which a subagent reviews the finished implementation against the plan, and its findings are fixed before the work is reported done.\n- During implementation time matters: have the plan run independent tasks in parallel subagents in background."}}'
+printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"Plain plan mode, plan-writing rules:\n- End the plan with a task in which a subagent reviews the finished implementation against the plan, and its findings are fixed before the work is reported done.\n- Implementation time matters: write into the plan itself which tasks are independent, and an explicit instruction to run those independent tasks in parallel subagents in the background."}}'
 exit 0

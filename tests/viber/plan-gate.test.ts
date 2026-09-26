@@ -145,11 +145,13 @@ function userPrompt(text: string): string {
   return line({ type: "user", message: { role: "user", content: text } });
 }
 
-/** A plan file that really exists, so the mtime guard has something to stat. */
-function realPlan(dir: string, rel = ".claude/plans/2026-09-20-10-00-00_feat-x/plan.md"): string {
+/** A plan file that really exists, so the mtime guard has something to stat.
+ *  The default content opens with the planner's frontmatter `source:` line, the
+ *  second half of planner ownership; pass other content for a plain plan. */
+function realPlan(dir: string, rel = ".claude/plans/2026-09-20-10-00-00_feat-x/plan.md", content?: string): string {
   const file = path.join(dir, rel);
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, "# Plan\n");
+  fs.writeFileSync(file, content ?? `---\nsource: ${file}\n---\n# Plan\n`);
   return file;
 }
 
@@ -814,5 +816,58 @@ test("a planner that stopped before EnterPlanMode, then a new user prompt enters
     const { decision, reason } = runCase(f, cwd);
     assert.equal(decision, "deny");
     assert.match(reason ?? "", /plain-plan-review agent has not run on this version/);
+  });
+});
+
+// --- planner ownership needs the planner frontmatter in the plan file ----
+
+/** The finding sequence: plan mode on, the planner Skill refused, then the user
+ *  asks for a plain plan in the same episode. */
+function refusedPlannerThenPlan(plan: string): string[] {
+  return [permissionMode("plan"), skillUse(), userPrompt("write a plain plan"), planWrite(plan)];
+}
+
+test("a refused planner followed by a plain plan (no frontmatter) -> the plain path: a plain-plan-review PASS allows whatever the switch says", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const plan = realPlan(dir, undefined, "# Plan\n");
+    const f = writeTranscript(dir, "t.jsonl", [...refusedPlannerThenPlan(plan), dispatch(undefined, PLAIN), PASS]);
+    for (const [i, body] of ["plain-plan-review: true\n", "plain-plan-review: false\n"].entries()) {
+      assert.equal(runCase(f, sessionWithConfig(path.join(dir, `s${i}`), body)).decision, "allow");
+    }
+    const unreviewed = writeTranscript(dir, "u.jsonl", refusedPlannerThenPlan(plan));
+    const { decision, reason } = runCase(unreviewed, sessionWithConfig(path.join(dir, "on"), "plain-plan-review: true\n"));
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /viber:plain-plan-review agent has not run on this version/);
+  });
+});
+
+test("a plan opening with the planner frontmatter (LF or CRLF) stays with planner-review: a plain-plan-review PASS -> deny, a planner-review PASS -> allow", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const lf = realPlan(dir, ".claude/plans/lf/plan.md");
+    const crlf = realPlan(dir, ".claude/plans/crlf/plan.md", "---\r\nsource: x.md\r\n---\r\n# Plan\r\n");
+    for (const [n, plan] of [lf, crlf].entries()) {
+      const plain = writeTranscript(dir, `plain${n}.jsonl`, [...refusedPlannerThenPlan(plan), dispatch(undefined, PLAIN), PASS]);
+      for (const [i, body] of ["plain-plan-review: true\n", "plain-plan-review: false\n"].entries()) {
+        const { decision, reason } = runCase(plain, sessionWithConfig(path.join(dir, `s${n}${i}`), body));
+        assert.equal(decision, "deny");
+        assert.match(reason ?? "", /viber:planner-review agent has not run on this version/);
+      }
+      const own = writeTranscript(dir, `own${n}.jsonl`, [...refusedPlannerThenPlan(plan), dispatch(), PASS]);
+      assert.equal(runCase(own, sessionWithConfig(path.join(dir, `o${n}`), "plain-plan-review: true\n")).decision, "allow");
+    }
+  });
+});
+
+test("a source: line outside a leading frontmatter block does not make the plan the planner one -> the plain path", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const bodies = ["# Plan\nsource: somewhere\n", "---\ntitle: x\n---\nsource: somewhere\n", "\n---\nsource: x\n---\n"];
+    for (const [i, content] of bodies.entries()) {
+      const plan = realPlan(dir, `.claude/plans/b${i}/plan.md`, content);
+      const f = writeTranscript(dir, `t${i}.jsonl`, refusedPlannerThenPlan(plan));
+      const { decision, reason } = runCase(f, cwd);
+      assert.equal(decision, "deny");
+      assert.match(reason ?? "", /viber:plain-plan-review agent has not run on this version/);
+    }
   });
 });
