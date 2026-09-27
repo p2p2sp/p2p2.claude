@@ -2,7 +2,7 @@
 name: rules
 description: Reviews and repairs the host project's .claude/rules/ directory - maps every rule with its own size, the scope it declares and the number of tracked files that scope really matches, proposes the rules a scope with none needs, verifies each existing rule against the code it gates, and resets the layer on demand. Use whenever the user wants to create, review, audit, refresh or reset the project's coding rules, or asks which rules went stale, match nothing or grew past their budget.
 argument-hint: "[review, extend, reset, or nothing]"
-allowed-tools: AskUserQuestion, Agent, Bash(${CLAUDE_SKILL_DIR}/scripts/rules-map.sh:*), Bash(${CLAUDE_SKILL_DIR}/scripts/rules-map.sh --reset:*)
+allowed-tools: AskUserQuestion, Agent, SendMessage, Bash(${CLAUDE_SKILL_DIR}/scripts/rules-map.sh:*), Bash(${CLAUDE_SKILL_DIR}/scripts/rules-map.sh --reset:*)
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -17,7 +17,7 @@ The block above is this host project's rules layer as the script measured it: th
 
 It is self-verifying and trusted. Never re-count a rule, never glob the tree to check what a scope matches, never run git to decide what is dirty: every fact you route on is already above.
 
-Your whole tool set is `AskUserQuestion`, `Agent` and the two map lines of step 3. You open no file and you write none: every byte of the layer is written by `viber:rules-writer`, nothing here is staged and nothing is committed.
+Your whole tool set is `AskUserQuestion`, `Agent`, `SendMessage` and the two map lines of step 3. You open no file and you write none: every byte of the layer is written by `viber:rules-writer`, nothing here is staged and nothing is committed.
 
 ## 1. Report the layer
 
@@ -92,6 +92,8 @@ AUDIT: <area> stale <n> gone <n> unverifiable <n> drop <n> miss <n> -> <findings
 ```
 
 Report the `AUDIT:` line for each target verbatim. Read none of those files - the writer does.
+
+An `Agent` call here or in step 6 that returns none of its output lines (no `AUDIT:` line from an auditor, no `VERDICT:` line from the writer) gets one `SendMessage`, `Finish your task, then return your output lines.`; a second reply without one is that step's `VERDICT: DENIED` with `REASON: no verdict returned`.
 
 A call returning `VERDICT: DENIED` instead -> one `AskUserQuestion` naming the target and the refused call from its `REASON:` line: permission added and retry, drop that target, or stop.
 
