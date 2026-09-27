@@ -202,4 +202,4 @@ Complete every task the last `progress: <n>/<total>` settled and every entry sti
 
 Final summary, max 7 lines: tasks committed, review rounds spent, test verdict, the clock's `elapsed:` (none on `elapsed: unknown`, never estimated), what memory, rules and QA recorded, the archive path and its drift, then everything the steps carried to it.
 
-If the run has more than 5 tasks propose to user run a `code-review`.
+A run of more than 5 tasks adds one line after the summary, outside its 7: propose running `code-review`.
