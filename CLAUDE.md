@@ -108,7 +108,8 @@ Each plugin dir carries `.claude-plugin/plugin.json`, whose `skills[]` (and `age
   body line naming its only tools; the agent-side equivalent is `tools:`. A skill that dispatches
   agents never carries `disallowed-tools:`: the removal holds until the next user message,
   subagents included, so every agent dispatched meanwhile runs without those tools. Such a skill
-  states its limits in its body alone. A skill that both `!`-preloads and denies bare `Bash` is
+  states its limits in its body, which is soft: a hard limit goes into each dispatched agent's
+  `tools:` or into permissions. A skill that both `!`-preloads and denies bare `Bash` is
   undefined behavior.
 - **Dispatch strength.** An orchestrator's dispatch passes only `model` - the `Agent` tool takes
   no `effort`, so an agent's frontmatter is the only place its effort is set.
@@ -155,7 +156,7 @@ This file is orientation only. A skill's authoritative contract is its own body
 |---|---|
 | `CLAUDE.md` | anything repo-wide - catalog, release, CI, cross-plugin invariants |
 | `superbiz/CLAUDE.md` | `idea-validator` - the side-project viability workflow and its report |
-| `supercc/CLAUDE.md` | `skill-designer` - authoring/refactoring/splitting/linting skills and agents; `models` - per-model prompting knowledge |
+| `supercc/CLAUDE.md` | `skill-designer` - authoring/refactoring/splitting/linting skills and agents; `tuner` - per-model prompting knowledge |
 | `superfix/CLAUDE.md` | `code-auditor` and its five agents - the investigation sweep |
 | `superui/CLAUDE.md` | the `pro-designer` skill (design/frontend advisory, contrast check) |
 | `tests/CLAUDE.md` | any `*.test.ts` under `tests/` - harness contract, cross-platform rules |

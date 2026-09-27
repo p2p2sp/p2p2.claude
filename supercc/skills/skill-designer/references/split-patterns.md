@@ -29,6 +29,6 @@ When concerns can apply to the same task at once (style, consistency, links over
 
 Never scan the repo in the main context.
 
-- Fan out cheap-tier forks in parallel, each locating or scoring one file or shard. Each returns one compact tagged line (path + verdict), never file dumps.
+- Fan out forks pinned to a cheap `model:` in parallel (an unpinned fork runs on the session model), each locating or scoring one file or shard. Each returns one compact tagged line (path + verdict), never file dumps.
 - Gate and rank hits with a deterministic script, then dispatch expensive frontier workers only into the located shards.
 - Main context keeps the shard list, never the search. Token cost stays flat as the repo grows.

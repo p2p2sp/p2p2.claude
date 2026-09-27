@@ -15,10 +15,11 @@ description: Authoring doctrine for Claude Code skills and agents: one responsib
 1. Classify the request: new, refactor, split, or audit. For an existing file read it whole before touching it.
 2. Run the responsibility check. If it fails or the request is a split, read `${CLAUDE_SKILL_DIR}/references/split-patterns.md` and build the split, not a bigger monolith.
 3. Decide where the work runs before writing it: read `${CLAUDE_SKILL_DIR}/references/architecture.md` when the skill drives noisy tool calls, chains stages, or repeats a behaviour other skills already carry.
-4. Writing a body from scratch: read `${CLAUDE_SKILL_DIR}/references/example.md` first.
-5. Write frontmatter, then body, then scripts and references.
-6. Lint: `bash "${CLAUDE_SKILL_DIR}/scripts/lint_skill.sh" <skill-dir-or-agent-file>`. Fix every FAIL, judge every WARN.
-7. Return per Output.
+4. Tune for the model when the target is an agent or a forked skill, pins `model:`, or misbehaves on one model only: invoke `supercc:tuner` with the file or the role, and carry its `model:`, `effort:` and mitigations into step 6.
+5. Writing a body from scratch: read `${CLAUDE_SKILL_DIR}/references/example.md` first.
+6. Write frontmatter, then body, then scripts and references.
+7. Lint: `bash "${CLAUDE_SKILL_DIR}/scripts/lint_skill.sh" <skill-dir-or-agent-file>`. Fix every FAIL, judge every WARN.
+8. Return per Output.
 
 ## Responsibility check
 
@@ -43,7 +44,7 @@ Write `input -> work -> output`. The skill receives input, works, returns output
 
 - Cut caller narrative: the caller's name, its surrounding flow, the rationale for the call. Litmus: would the line still be true for a different caller sending the same input? Keep it. Only true of this caller's world? Cut.
 - Frame input-driven behaviour on the input: "if `Report path:` present -> write there", never "X hands over `Report path:`, so...".
-- Keep real scope boundaries even when they name siblings ("you own ONLY X; Y and Z are out of scope").
+- Keep real scope boundaries even when they name siblings ("you own ONLY X; Y and Z are out of scope"), and state the range of every rule (every item, every file) and the sources to read: a literal model applies a rule only where told and explores only what is named.
 - Document only the delta from sensible defaults. Always skip what the model already knows or a competent developer would do anyway.
 - Most critical and most frequent instructions first, under clear headings. Mid-paragraph content gets unreliable attention.
 - Prevention over correction: put constraints, profiles and negative examples into the generation step. A separate fixer pass costs more and never converges.
@@ -82,7 +83,7 @@ Replace reasoning with a script wherever the step is deterministic: parsing JSON
 
 ## Audit mode
 
-Review like a codebase and remove mercilessly, everything costs context. Beyond the Frontmatter, Body and Progressive disclosure rules above, hunt for:
+Review like a codebase and remove mercilessly, everything costs context. Cut hardest in forked skills and agents: they run usually many times, so every line is paid on every dispatch. An orchestrator stays exact about its flow, gates and handoffs: cut its prose, never its precision, since bare instructions drift less than narrated ones. Never compress or rephrase a model mitigation (autonomy, scope creep, reviewer recall, approvals): its wording is measured per model, so drop one only through step 4, when the file no longer runs on that model. Beyond the Frontmatter, Body and Progressive disclosure rules above, hunt for:
 
 - Contradicting instructions.
 - Hedged, polite or narrated instructions: rewrite each as one imperative line.
@@ -95,3 +96,4 @@ Review like a codebase and remove mercilessly, everything costs context. Beyond 
 - Created or changed files under the target skill or agent directory.
 - Lint result with zero FAIL.
 - Three-line summary: responsibility, trigger, deliberate omissions.
+- Per model mitigation added, one line naming the model behaviour it addresses.

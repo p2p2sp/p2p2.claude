@@ -8,6 +8,6 @@
   },
   "skills": [
     "./skills/skill-designer/",
-    "./skills/models/"
+    "./skills/tuner/"
   ]
 }

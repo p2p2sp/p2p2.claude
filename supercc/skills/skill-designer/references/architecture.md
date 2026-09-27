@@ -23,7 +23,7 @@ Do not fork when:
 - The skill is reference or doctrine with no task to run.
 - The run often has nothing to do. Bail early first, fork second, never fork an empty pipeline.
 
-Model in the fork: inherit the session model for reasoning-heavy or voice-heavy work, pin `model:` when a whole class of work needs a fixed brain, and take a cheap read-only profile only for locating and scoring.
+Model and effort in the fork come from the tuner step: an unpinned fork runs on whatever model the session uses, and an unset `effort:` on that model's default.
 
 ## File handoff
 
@@ -55,4 +55,4 @@ A backticked `!` command in the body runs before the model reads the skill, and 
 A skill is a task recipe: given this input, do these steps, produce this output. An agent is an identity: system prompt, tool allowlist, model, reused across tasks.
 
 - Promote a behaviour to an agent when three or more skills would copy the same system prompt, when a tool allowlist has to hold at identity level, or when a class of work must be pinned to one model. For a single caller keep the behaviour inline in `references/`.
-- `allowed-tools` pre-approves permissions for one turn, it does not restrict the pool. A strictly read-only worker needs `disallowed-tools` on a skill or a `tools:` allowlist on an agent, plus one line in the body naming the only tools it has. Never put `disallowed-tools` on a skill that dispatches agents: until the next user message it strips those tools from every agent dispatched meanwhile, for that agent's whole run; state its limits in the body instead.
+- `allowed-tools` pre-approves permissions for one turn, it does not restrict the pool. A strictly read-only worker needs `disallowed-tools` on a skill or a `tools:` allowlist on an agent, plus one line in the body naming the only tools it has. Never put `disallowed-tools` on a skill that dispatches agents: until the next user message it strips those tools from every agent dispatched meanwhile, for that agent's whole run; state its limits in the body instead, and since a body limit is soft, put a hard one in each dispatched agent's `tools:` or in permissions.
