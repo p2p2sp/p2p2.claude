@@ -62,19 +62,18 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   owner's `verify:`), coder `DEFERRED:` `--defer`, stored as `deferred:` in `status.md` and handed
   to the owing task's coder and reviewer. The `orphan:` paths the user assigns to a task on
   resume ride that same `resume:` / `extra:` / `--with` path.
-- `decide` (offered only on a task's second coder failure, beside retry/skip/abort, or second
-  failed review round, beside retry/accept/abort) is the owner's ruling on a stalled task,
-  overriding the task file for it and its dependents.
 - task-coder, task-reviewer, test-runner and e2e-writer share a "Stop what you started" section;
   `implementor`'s and `e2e`'s `SendMessage` on a "stopped with background work" notice, or a
-  reply with no `VERDICT:` line, is its other half (neither counts toward the continuation cap
-  below).
-- A coder re-run that keeps the task's coder on its last instance's model (round-1 review `FAIL`,
-  `retry` after `DENIED`, `decide`, `retry` at `tiers.max`) continues that instance through
-  `SendMessage` with only the lines new to it, instead of a fresh dispatch; capped at two
-  continuations per instance. A tier raise to a new model, a third re-run, a missing agent id or
-  a `SendMessage` error falls back to a fresh dispatch with every labelled line, starting a new
-  instance.
+  reply with no `VERDICT:` line, is its other half. Every coder re-run (review failure, `WAIT:`,
+  `retry`, `decide`) is a fresh dispatch from the tree and task file, never a continuation.
+- A coder's `WAIT:` (a file outside `Files` held by another task's uncommitted change) holds its
+  task until every in-flight task returns, then a fresh coder at no attempt cost; nothing else in
+  flight, or a second wait on the same path, counts as an ordinary failure.
+- `decide` overrides the task file for a stalled task and its dependents: offered beside
+  retry/skip/abort on a third coder failure, beside retry/accept/abort on review round 3 of 3, or
+  at once, any count, when every `DECIDE:` option is owner-marked. A second ordinary failure with
+  an unmarked option instead gets the implementor's own automatic decision (`auto: <option>`,
+  same `--decide` call, no counter restart) and a fresh coder, not a question.
 - Coders and reviewers keep git read-only (never `stash`, `checkout`, `restore`, `clean`):
   parallel tasks share one working tree.
 
@@ -115,6 +114,7 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
   parser or how `--split` cuts a task file.
 - Read `CLAUDE.run-branch.md` before touching `branching:`, `run-branch.sh` or `plan-path.sh --branch`.
 - Read `CLAUDE.owner-decisions.md` before touching the owner decision channel.
+- Read `CLAUDE.tool-dependencies.md` before touching a `gh`, Playwright or `node` call.
 
 ## Duplicated on purpose - change together
 
@@ -170,18 +170,3 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
 `hooks/scripts/plan-gate.sh` matches names literally: renaming `planner`, `planner-review`,
 `plain-plan-review` (agent or switch) or `VERDICT: PASS` disarms the fail-open gate silently.
 Its contract, and `plan-hints.sh`'s, live in `hooks/CLAUDE.md`.
-
-## Tool dependencies
-
-- `triage`, `intent`, `fixer`, `prototype`: `gh`, only through the shared issue scripts in
-  `scripts/`; without it each reports the script's `ERROR` line and pasted text still works,
-  unpublished. A create or comment exit 1 leaves the landing unknown and is never retried. Each
-  such call, plus `planner`'s ADR-task step, runs after a prose question ends the turn, so all
-  four rely on the bare `Bash` allow `/viber:setup` installs.
-- A multi-line issue body or comment travels only as a file under `.temp/viber/<skill>/` through
-  `--body-file`. `intent`'s and `prototype`'s write access there is pre-approved as
-  `Edit(./.temp/viber/<skill>/**)`, not `Write(...)`: a file write matches `Edit` rules only.
-- `e2e`: `playwright-cli`, `@playwright/test` (chromium only), probed by `check-playwright.sh`;
-  the skill installs only once the user agrees.
-- `setup`: `node` only for a merge into an existing target; merge or reset is an
-  `AskUserQuestion`: a prose question ends the turn and the pre-approval with it.
