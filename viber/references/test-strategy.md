@@ -3,7 +3,7 @@
 How a test is written. Where two rules pull against each other, catching a real regression and surviving a refactor win over speed and convenience. A rule ending in `(blocking)` is a blocking finding for a reviewer.
 
 - Never introduce a test framework the project does not have.
-- An end-to-end test - a browser, or the running application driven from outside - is written or run only by a task whose acceptance criterion states that the user asked for one in their own words. (blocking)
+- An end-to-end test - a browser, or the running application driven from outside - is written only by a task whose acceptance criterion states that the user asked for one in their own words, and run only by a task whose acceptance criterion states that the user asked for it to be run. (blocking)
 - Never tested: accessors, trivial constructors, data holders without behaviour, 1:1 mappings, framework behaviour, third-party library internals, an assertion true by construction. Name the regression the test would catch; no answer means no test.
 - Every test can fail on a regression, asserts something and carries one act: several actions in one body means several tests. (blocking)
 - Isolation: no sleep, no fixture or other mutable state shared across tests, no dependence on execution order, no fixed port or other machine-wide resource, no database shared with another task's run. Several coders verify in the same tree at once. (blocking)
