@@ -1,4 +1,0 @@
-- The redundant-dependency check sits inside plan-index.sh's `if (!err)` ancestry block: it reuses the `anc` closure, so it only fires once every earlier per-task check passed - a plan carrying another defect reports that one first.
-- One C1 line per redundant entry: the first other entry of the same line that reaches it is named as `<via>`; an entry repeated verbatim (`T1, T1`) is not flagged by this rule.
-- `.claude/viber.yml` (`issues: false`) is the user's own uncommitted edit, already in the tree before this task and matching the recent "issues off by default" commits: not T1's work, left untouched and out of T1's commit rather than reverted.
-- DoD.3 and DoD.4 were proven by temporarily dropping the `--split` guard and the `anc` condition respectively, each turning its test red.
