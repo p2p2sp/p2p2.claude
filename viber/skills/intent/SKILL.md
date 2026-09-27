@@ -55,10 +55,9 @@ The draft mode is the user's alone: a request to stop at a specification is carr
 Do not use `AskUserQuestion`. Interview is a prose - a conversation with a person. Never ask more than one question in a message and never stack them in prose - a batched question gets a shallow answer and hides the branch the next question depends on.
 
 - Every question carries 3 concrete options. Your recommendation goes first, labelled `[Recommended]:`.
-- Ask in dependency order. A question whose answer is implied by an unanswered earlier one waits its turn.
+- Ask in dependency order, resolving dependencies one decision at a time: early answers reshape later branches. A question whose answer is implied by an unanswered earlier one waits its turn.
 - Each answer narrows the next question. An answer that opens a new unknown makes that unknown the next question.
 - Challenge weak reasoning out loud. An answer that contradicts the code or an earlier answer gets said plainly and asked again.
-- Walk the design tree branch by branch, resolving dependencies one decision at a time - early answers reshape later branches.
 - Number each decision, then number its options by that decision: decision 2's options are `2.1`, `2.2`, `2.3`, and a branch goes one level deeper (`2.1.1`...), so the user can point to an answer without re-typing it.
 - Skip anything a competent implementer decides on its own.
 
