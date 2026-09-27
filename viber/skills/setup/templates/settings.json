@@ -45,6 +45,7 @@
       "Bash(find * -exec rm *)",
       "Bash(git * --force*)",
       "Bash(git reset --hard:*)",
+      "Bash(gh issue delete:*)",
       "Bash(rm -rf:*)"
     ],
     "deny": [
@@ -59,7 +60,6 @@
       "Bash(gh auth login:*)",
       "Bash(gh auth logout:*)",
       "Bash(gh auth token:*)",
-      "Bash(gh issue delete:*)",
       "Bash(gh release delete:*)",
       "Bash(gh repo delete:*)",
       "Bash(gh secret:*)",

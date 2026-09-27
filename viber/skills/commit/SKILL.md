@@ -9,7 +9,7 @@ allowed-tools: Bash, Bash(${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit-con
 
 ## Recognize what has changed and commit
 
-Compose a "commit message" according to the Conventional Commits rules below, based on the commit context below and matching the type/scope style of the recent commit subjects.
+Your run ends only after you have run `commit.sh` (Working mode) and `commit-selfcheck.sh` (Self-Check): a reply with no tool call commits nothing. Compose a "commit message" according to the Conventional Commits rules below, based on the commit context below and matching the type/scope style of the recent commit subjects.
 
 Before SHA: !`git rev-parse --verify -q HEAD 2>/dev/null || echo "(none)"`
 

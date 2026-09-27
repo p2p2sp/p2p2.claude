@@ -44,10 +44,10 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   return lines. Every script's stdout and every agent's `## Output` vocabulary is an interface:
   renaming one side only breaks the build silently.
 - `plan-index.sh`'s index prints per task id, state, TDD, `excl`, `deps`, `feeds` (contract
-  blocks another task consumes), `files`, title, then a `verify:` line, plus a trailing
+  blocks other tasks consume, `<id>:<consumer count>`), `files`, title, then a `verify:` line, plus a trailing
   `dirty: <id> | <paths>` line per task not done whose own files changed and one
   `orphan: <p1>,<p2>` line for changed paths claimed by no task not `done` (run directory
-  excluded). `implementor` profiles tier from TDD, file count, `feeds` and dependents, review
+  excluded). `implementor` profiles tier from TDD, file count, `feeds` (opus from 3 consumers) and dependents, review
   from `verify:` and the tier (never from a field the index does not print) or a coder `EXTRA:`
   line.
 - `excl` (plan `Exclusive: true`): `implementor` runs the task alone, once nothing else is ready
@@ -75,7 +75,12 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   an unmarked option instead gets the implementor's own automatic decision (`auto: <option>`,
   same `--decide` call, no counter restart) and a fresh coder, not a question.
 - Coders and reviewers keep git read-only (never `stash`, `checkout`, `restore`, `clean`):
-  parallel tasks share one working tree.
+  parallel tasks share one working tree. A coder's one git write is `git rm -r -q` for a removal:
+  `commit-task.sh` commits through its own pathspec, so a staged deletion rides in no other
+  task's commit.
+- A coder's protected files are those of tasks not on `status.md`'s `done:` line: a done task's
+  file is free to change as `EXTRA:` (the reviewer re-runs its `verify:` as `recheck:`), while
+  `WAIT:` and `commit-task.sh`'s `refused` guard the ones still open.
 
 ## Commit ownership
 

@@ -19,8 +19,8 @@
 #   decision: T2: <text>            one per "decision:" line of status.md, in
 #                                   file order, printed as it stands there
 #   tasks: id | state | tdd | excl | deps | feeds | files | title
-#   T1 | done | none     | -   | -  | C1 | .claude/settings.json | Tighten the settings schema
-#   T2 | todo | required | yes | T1 | -  | src/a.ts,src/b.ts     | Add the retry loop
+#   T1 | done | none     | -   | -  | C1:1 | .claude/settings.json | Tighten the settings schema
+#   T2 | todo | required | yes | T1 | -    | src/a.ts,src/b.ts     | Add the retry loop
 #   verify: T1 | node --test tests/settings.test.ts
 #   verify: T2 | grep -n "retry" src/a.ts
 #   dirty: T2 | src/a.ts            only for a task not done whose own files are
@@ -28,11 +28,12 @@
 #   orphan: lib/x.ts,lib/y.ts       only when non-empty: changed paths claimed
 #                                   by no task not "done" (run directory excluded)
 #
-# "feeds" is the comma-separated ids of the contract blocks whose "File:" path
-# is in this task's "Files" and which at least one OTHER task names in "Uses" -
-# "-" when none. It is what tells the orchestrator, without opening a file,
-# that a task's work is load-bearing for another one: a block on "File: none"
-# feeds nothing, since no task holds that path.
+# "feeds" is the comma-separated "<id>:<count>" entries of the contract blocks
+# whose "File:" path is in this task's "Files" and which at least one OTHER
+# task names in "Uses", <count> being how many do - "-" when none. It is what
+# tells the orchestrator, without opening a file, how load-bearing a task's
+# work is for others: a block on "File: none" feeds nothing, since no task
+# holds that path.
 #
 # "verify:" carries the orchestrator the one thing it needs to decide a
 # reviewer waiver without ever opening a task file: one line per task, in task
@@ -601,15 +602,17 @@ END {
               }
           }
 
-        # "feeds": a holder of this path carries cn in its own feeds column
-        # once some OTHER task names cn in Uses - a shape a task declares but
-        # sends to no one feeds no one
+        # "feeds": a holder of this path carries cn in its own feeds column,
+        # with the count of OTHER tasks naming cn in Uses - a shape a task
+        # declares but sends to no one feeds no one
         for (i = 1; i <= n; i++) {
           if (!((i, p) in fset)) continue
+          cnt = 0
           for (j = 1; j <= n; j++) {
             if (j == i) continue
-            if ((j, cn) in usesset) { feeds[i, cn] = 1; break }
+            if ((j, cn) in usesset) cnt++
           }
+          if (cnt > 0) feeds[i, cn] = cnt
         }
       }
     }
@@ -639,7 +642,7 @@ END {
     f = ""
     for (k = 1; k <= nf[i]; k++) f = (f == "" ? fpath[i, k] : f "," fpath[i, k])
     fd = ""
-    for (c = 1; c <= ncon; c++) if ((i, corder[c]) in feeds) fd = (fd == "" ? corder[c] : fd "," corder[c])
+    for (c = 1; c <= ncon; c++) if ((i, corder[c]) in feeds) fd = (fd == "" ? "" : fd ",") corder[c] ":" feeds[i, corder[c]]
     if (fd == "") fd = "-"
     state = (id[i] in isdone ? "done" : (id[i] in isskipped ? "skipped" : "todo"))
     x = (excl[i] == "true" ? "yes" : "-")

@@ -1097,17 +1097,18 @@ test("one holder naming the block is enough - a file several tasks in one chain 
   });
 });
 
-test("feeds names a contract block one task writes and another task consumes, and stays '-' for the consumer itself", () => {
+test("feeds names a contract block one task writes with the count of other tasks consuming it, and stays '-' for a consumer itself", () => {
   withTempDir("p2p2-viber-", (dir) => {
     // T1 holds the file the shape lives in AND names it in Uses (satisfying
-    // reachability); T2, which does not hold that file, also names it - the
-    // one other task that makes T1's own work load-bearing
+    // reachability); T2 and T3, which do not hold that file, also name it -
+    // the two other tasks that make T1's own work load-bearing
     seed(
       dir,
       planBody(
         [
           { id: "T1", uses: "C1", files: "src/login.ts" },
           { id: "T2", covers: "#2", uses: "C1", deps: "T1", files: "src/reject.ts" },
+          { id: "T3", uses: "C1", deps: "T1", files: "src/logout.ts" },
         ],
         2,
         ownedContract("src/login.ts"),
@@ -1116,7 +1117,7 @@ test("feeds names a contract block one task writes and another task consumes, an
 
     const result = run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.match(result.stdout, /^T1 \| todo \| required \| - \| - \| C1 \| src\/login\.ts \| do the thing$/m);
+    assert.match(result.stdout, /^T1 \| todo \| required \| - \| - \| C1:2 \| src\/login\.ts \| do the thing$/m);
     assert.match(result.stdout, /^T2 \| todo \| required \| - \| T1 \| - \| src\/reject\.ts \| do the thing$/m);
   });
 });

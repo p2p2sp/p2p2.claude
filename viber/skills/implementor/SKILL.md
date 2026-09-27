@@ -65,7 +65,7 @@ The `target:` line following `branch:` carries to the final summary: one line na
 
 ## 2. Validate and decompose
 
-Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan>" --split`. It validates, decomposes and commits the plan, and returns the index: title, progress counter, one line per task (id, state, TDD, `excl`, `deps`, `feeds`, `files`, title), then one `verify:` line per task naming its Verification command. `feeds` names the contract blocks that task writes and another task consumes, `-` when none. That index is your whole view of the plan; a coder gets its one task file, never the specification.
+Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan>" --split`. It validates, decomposes and commits the plan, and returns the index: title, progress counter, one line per task (id, state, TDD, `excl`, `deps`, `feeds`, `files`, title), then one `verify:` line per task naming its Verification command. `feeds` names the contract blocks that task writes and other tasks consume, each as `<id>:<count of consuming tasks>`, `-` when none. That index is your whole view of the plan; a coder gets its one task file, never the specification.
 
 Non-zero exit -> report the error and stop; repairing the plan belongs to the planner.
 
@@ -86,7 +86,7 @@ Tier:
 
 - Mechanical and bounded: config, scaffolding, a rename, docs, `TDD: none` over one or two files -> `haiku`.
 - Ordinary feature work, `TDD: required`, contained within its own files -> `sonnet`.
-- Load-bearing: a non-empty `feeds` column, many files, or several tasks naming it in their `deps` -> `opus`.
+- Load-bearing: a `feeds` entry counting 3 or more, many files, or several tasks naming it in their `deps` -> `opus`. A block fewer tasks consume raises nothing on its own.
 - A floor the host's instructions declare for a kind of task (a minimum tier, a mandatory review) raises both decisions to it.
 
 Review: only when its `verify:` line runs the project's build or its tests does the reviewer get waived, and never on an `opus` task. A `verify:` line running `grep`, `test -f` or any other content check is reviewed whatever its tier. Its review tier is the task's tier, raised to `sonnet` from `haiku`.
