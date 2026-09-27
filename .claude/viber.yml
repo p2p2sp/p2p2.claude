@@ -42,7 +42,7 @@ tiers:
   max: opus
 
 # An interview or a diagnosis can save its conclusions as a new GitHub issue, or keep working on the one it started from.
-issues: true
+issues: false
 
 # Whether a run works on its own git branch - so its commits land where the
 # project's branching strategy expects them. Nothing is ever fetched, pushed,

@@ -154,10 +154,13 @@
 #       the same time -, a task naming a contract block in "Uses:" with no
 #       dependency path, direct or transitive, to a lower-numbered task that
 #       holds the block's "File:" path and names it in its own "Uses:" (the
-#       consumer would run beside its writer; the error names both tasks), or
+#       consumer would run beside its writer; the error names both tasks),
 #       a "Depends-on" naming a task marked "Exclusive: true": that task is a
-#       leaf of the dependency graph, so nothing may depend on it. The last
-#       two cases and the parenthetical one above are exempted under --split
+#       leaf of the dependency graph, so nothing may depend on it, or a
+#       "Depends-on" entry another entry of the same line already reaches,
+#       directly or transitively (the edge orders nothing; the error names the
+#       task, the entry and the one reaching it). The last three cases and the
+#       parenthetical one above are exempted under --split
 #       alone: a plan that landed before the rule is frozen, and a run resumed
 #       after the upgrade must still validate and decompose.
 #
@@ -509,6 +512,20 @@ END {
         for (t = 1; t < j; t++) if ((j, t) in anc) anc[i, t] = 1
       }
     }
+    # an entry another entry of the same line already reaches orders nothing:
+    # it only tangles the graph the orchestrator profiles and schedules from.
+    # Skipped under --split - a plan that landed before this rule is frozen.
+    if (mode != "--split")
+      for (i = 1; i <= n; i++) {
+        if (dnorm[i] == "-") continue
+        m = split(dnorm[i], dn, /,/)
+        for (k = 1; k <= m; k++)
+          for (t = 1; t <= m; t++)
+            if (t != k && (seen[dn[t]], seen[dn[k]]) in anc) {
+              fail("task " id[i] ": Depends-on " dn[k] " is already reached through " dn[t] " - drop it")
+              break
+            }
+      }
     for (i = 1; i <= n; i++)
       for (j = i + 1; j <= n; j++) {
         if ((j, i) in anc) continue

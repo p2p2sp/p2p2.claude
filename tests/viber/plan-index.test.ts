@@ -867,6 +867,74 @@ test("an Exclusive task depending on earlier tasks and having no dependents itse
   });
 });
 
+/** T3 names T1 beside T2, while T2 already depends on T1: the T1 edge orders nothing. */
+const REDUNDANT_DIRECT: TaskFields[] = [
+  { id: "T1", files: "src/a.ts" },
+  { id: "T2", deps: "T1", files: "src/b.ts" },
+  { id: "T3", deps: "T1, T2", files: "src/c.ts" },
+];
+
+test("a Depends-on entry another entry of the same line already reaches directly exits 4, naming the task, the entry and the one reaching it", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody(REDUNDANT_DIRECT, 1));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /task T3: Depends-on T1 is already reached through T2 - drop it/);
+  });
+});
+
+test("a Depends-on entry another entry of the same line reaches only transitively exits 4, naming the entry on that line that reaches it", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(
+      dir,
+      planBody(
+        [
+          { id: "T1", files: "src/a.ts" },
+          { id: "T2", deps: "T1", files: "src/b.ts" },
+          { id: "T3", deps: "T2", files: "src/c.ts" },
+          { id: "T4", deps: "T1, T3", files: "src/d.ts" },
+        ],
+        1,
+      ),
+    );
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /task T4: Depends-on T1 is already reached through T3 - drop it/);
+  });
+});
+
+test("a redundant Depends-on entry validates under --split - a frozen plan resumed after the rule lands must still decompose", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody(REDUNDANT_DIRECT, 1));
+
+    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+  });
+});
+
+test("two Depends-on entries with no path between them are both load-bearing and validate", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(
+      dir,
+      planBody(
+        [
+          { id: "T1", files: "src/a.ts" },
+          { id: "T2", files: "src/b.ts" },
+          { id: "T3", deps: "T1, T2", files: "src/c.ts" },
+        ],
+        1,
+      ),
+    );
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+  });
+});
+
 test("a Files entry whose brackets wrap whole segments is an exact path and reaches the index untouched", () => {
   withTempDir("p2p2-viber-", (dir) => {
     // the three Next.js App Router dynamic segments - a dynamic one, a catch-all
