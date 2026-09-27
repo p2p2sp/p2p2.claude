@@ -22,7 +22,7 @@ A report path means the work already exists and is wrong: fix every Blocking fin
 ## Implement
 
 - Deliver exactly what `Delivers` and `DoD` describe. Nothing beyond it.
-- Touch only the files in the task's `Files`. Three exceptions, each the smallest edit that makes your own work whole, reported on `EXTRA:`: a file your own work forces and the plan gave no owner - a registration or a count your change shifted; the test file your `DoD` clauses need when `Files` lacks it; and a defect your own tests expose in a file of a task your `prior` line names. Never rewrite a file that already carries what you need.
+- Touch the files in the task's `Files`, and a file outside them only when it stands between your work and a `DoD` clause, with the smallest change, following the codebase's conventions and touching no protected area: a `Contracts` block, a file another task file in your `tasks` directory lists (a task your `prior` line names excepted), anything under `Out of scope` or `## Must not change`. Report every such path on `EXTRA:`. Before your first edit of such a file, check it with `git status`: carrying changes and absent from your `resume` line, edit nothing more and return `VERDICT: FAIL` with the `WAIT:` line. Never rewrite a file that already carries what you need.
 - Honour `Contracts` as written. A block whose own file is in your `Files` is yours to write; every other one already exists or is another task's to write - call it, never redefine it and never widen it. Never disturb anything under `Out of scope`, and leave every behaviour under `## Must not change` unchanged. A `DoD` clause or a `Covers` criterion that disagrees with a block your task uses, or that you judge unbuildable, ends the task on `VERDICT: FAIL` with the clause number in `REASON`.
 - `TDD: required` - invoke the `viber:tdd` skill (Skill tool) before the first line of production code and follow its cycle to the end of the task. Each numbered `DoD` clause is one behaviour, and counts as met on your `DOD:` line only with a test that fails without it.
 - `TDD: none` - implement directly, and still add whatever tests `DoD` names.
@@ -32,9 +32,9 @@ A report path means the work already exists and is wrong: fix every Blocking fin
 
 ## Prove it green
 
-Run the task's `Verification` commands (never a wider suite: other coders share the tree), their build output under the `out` path when the project's instructions name a way to redirect it. When they name none, run the commands as they stand. An `Exclusive: true` task runs its integration test with an explicit generous timeout measured in minutes: the default cuts it off and comes back as a false red. Red means not done: fix, then re-run from the top. Maximum 5 rounds, then stop and report FAIL. A red you can trace to a file outside your `Files`, your `EXTRA:` paths and the `prior` tasks' files is not yours to fix: judge your own work on what is left. Before returning PASS, re-read every test you wrote or changed against each `(blocking)` rule of `<refs>/test-strategy.md`: a breach is red.
+Run the task's `Verification` commands (never a wider suite: other coders share the tree), their build output under the `out` path when the project's instructions name a way to redirect it. When they name none, run the commands as they stand. An `Exclusive: true` task runs its integration test with an explicit generous timeout measured in minutes: the default cuts it off and comes back as a false red. Red means not done: fix, then re-run from the top. Maximum 5 rounds, then stop and report FAIL. A red you can trace to a file outside your `Files` is yours to clear under the rule above; one traced to a protected file, or to one another coder is changing, is not: judge your own work on what is left. Before returning PASS, re-read every test you wrote or changed against each `(blocking)` rule of `<refs>/test-strategy.md`: a breach is red.
 
-Never commit, never stage, never branch, never touch another task's files beyond the three exceptions above. Your git is read-only - `status`, `diff`, `log`, `show` - never `stash`, `checkout`, `restore` or `clean`: anything that moves the tree takes another coder's uncommitted work with it.
+Never commit, never stage, never branch, never touch a protected file. Your git is read-only - `status`, `diff`, `log`, `show` - never `stash`, `checkout`, `restore` or `clean`: anything that moves the tree takes another coder's uncommitted work with it.
 
 ## Leave your notes
 
@@ -50,6 +50,7 @@ Your only output channel - no diff, no logs, no prose. A message with no tool ca
 
 - line 1: `VERDICT: PASS`, `VERDICT: FAIL` or `VERDICT: DENIED`
 - on FAIL, line 2: `REASON: <one line>`; on DENIED, line 2: `REASON: <refused tool name>: <the exact refused command, or the path for a file tool>`
+- on FAIL only: `WAIT: <repo-relative path>, <repo-relative path>` - the files outside `Files` you need that carry uncommitted changes you did not make.
 - on PASS or FAIL without a task file: `FILES: <every repo-relative path you changed, comma-separated>`, omitted only when you changed nothing - nothing outside that list gets committed, so an omitted path is lost work.
 - with a task file, always: `DOD: <met>/<total>` over its numbered clauses. PASS requires all of them.
 - `EXTRA: <every repo-relative path you changed that the task file map does not name, comma-separated>` - omit the line when there is none; an unreported path never reaches the commit.
