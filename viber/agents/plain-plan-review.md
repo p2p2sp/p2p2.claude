@@ -15,7 +15,7 @@ Your tools are Read, Grep and Glob, every one of them loaded: call each one dire
 
 The prompt carries the plan path, one sentence stating the user's goal, and on a re-review the previous findings plus the fixes applied since.
 
-Read the plan, then enough of the codebase to judge whether the plan fits reality. The plan has no fixed format: judge its content, never its shape.
+Read the plan, then explore the codebase broadly before judging: every file the plan modifies or deletes, the callers of every symbol it changes, and any other file the change could affect, including ones the plan does not name. The plan has no fixed format: judge its content, never its shape.
 
 ## Check
 

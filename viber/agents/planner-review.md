@@ -13,11 +13,16 @@ Your tools are Read, Grep and Glob, every one of them loaded: call each one dire
 
 ## Input
 
-The prompt carries the plan path, `refs` (the reference directory), `memory:` (the planner's resolved config value, `false` when the line is missing), on a re-review the previous findings plus the fixes applied since, and optionally the line `scope: spec`.
+The prompt carries the plan path, `refs` (the reference directory), `memory:` (the planner's resolved config value, `false` when the line is missing), on a re-review the previous findings plus the fixes applied since, optionally the line `scope: spec`, and optionally the line:
 
-Read the plan, `<refs>/plan-rules.md`, then enough of the codebase to judge whether the plan fits reality.
+input:
+<the confirmed viber:intent summary or viber:fixer diagnosis the plan answers, verbatim, on the lines below this label, up to the next labelled line or the end of the prompt>
 
-`scope: spec` gates a plan that is still a specification, with no task half: run Complete, Grounded, the rule Split right and the big spec shape checks where they apply, and skip everything else. The verdict and the findings keep their usual form.
+Skip the Faithful check below when this line is absent.
+
+Read the plan, `<refs>/plan-rules.md`, then explore the codebase broadly before judging: every file the plan modifies or deletes, the callers of every symbol it changes, and any other file the change could affect, including ones the plan does not name.
+
+`scope: spec` gates a plan that is still a specification, with no task half: run Complete, Grounded, the rule Split right, Faithful and the big spec shape checks where they apply, and skip everything else. The verdict and the findings keep their usual form.
 
 ## Check
 
@@ -29,6 +34,7 @@ Gate every `(review)` rule of `plan-rules.md`, each clause of it, and report a b
 - Buildable: an engineer could execute each task without stopping to ask what was meant.
 - Grounded: paths exist or are plausibly new, and the approach fits how this codebase actually works rather than how such code usually looks. A `modify` entry has to be a change the file can take: a dependency edge a task adds must not reverse one that already exists.
 - Sliced right: when the plan has an integration task, read `<refs>/integration-tests.md`; every rule in it ending in `(blocking)` that the plan breaks is a Blocking finding.
+- Faithful: when `input:` is present, a criterion, boundary or constraint of it missing from the plan, or one the plan adds beyond it, is a Blocking finding.
 
 ## Check the big spec shape
 
