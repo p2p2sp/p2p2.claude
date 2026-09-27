@@ -1,7 +1,7 @@
 ---
 name: intent
 description: Planning interview - asks what the conversation and the code leave open, one question at a time, sizes the scope, proposes the spec shape and hands a confirmed summary to viber:planner. Never start it on your own initiative. When a change looks like it needs a plan and no confirmed interview or viber:fixer diagnosis is in context, keep talking with the user and suggest, in one line, this interview or `plain plan mode` (Claude Code's own plan mode, no interview) for a small, well-understood change; invoke it only after the user agrees or asks to plan, design or be interviewed. Not for a change the user asked to make directly, without a plan.
-argument-hint: "[what to plan, or an issue number/URL when issues is on]"
+argument-hint: "[--prove] [what to plan, or an issue number/URL when issues is on]"
 allowed-tools: Read, Grep, Glob, Skill, Edit(./.temp/viber/intent/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-templates.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/create-issue.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*)
 user-invocable: true
 disable-model-invocation: false
@@ -59,6 +59,7 @@ Do not use `AskUserQuestion`. Interview is a prose - a conversation with a perso
 - Each answer narrows the next question. An answer that opens a new unknown makes that unknown the next question.
 - Challenge weak reasoning out loud. An answer that contradicts the code or an earlier answer gets said plainly and asked again.
 - Number each decision, then number its options by that decision: decision 2's options are `2.1`, `2.2`, `2.3`, and a branch goes one level deeper (`2.1.1`...), so the user can point to an answer without re-typing it.
+- Arguments carrying `--prove`: before showing each question, dispatch `Agent` with `subagent_type: viber:prover`, a `context:` line (the change being planned and the answers settled so far) and `question:` followed by the drafted question verbatim. Pass no `model:`. Show the question only after the verdict: on `REVISED` rewrite it to the findings and add one line under it naming what verification changed; on `CONFIRMED` show it as drafted; name any `UNVERIFIED:` claim in that same line; on `DENIED` show it as drafted and say it went unverified. The settled line and the summary are not questions: never dispatch for them. `--prove` is a switch, never part of the intent: it stays out of the summary and the planner hand-off.
 - Skip anything a competent implementer decides on its own.
 
   **Example question:**

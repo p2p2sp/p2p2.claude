@@ -35,6 +35,7 @@
     "./agents/qa-writer.md",
     "./agents/e2e-writer.md",
     "./agents/closeout.md",
-    "./agents/prototype-writer.md"
+    "./agents/prototype-writer.md",
+    "./agents/prover.md"
   ]
 }

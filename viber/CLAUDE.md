@@ -10,7 +10,7 @@ three files share. `PRODUCT.md` holds the testing assumptions that `references/p
 ```
 skills/<name>/           13 skills: SKILL.md plus files read at one step;
                          setup, memory, rules, handoff, commit bundle scripts/
-agents/                  14 agents
+agents/                  15 agents
 scripts/                 14 plugin-wide scripts
 references/              read at runtime by agents through the `refs:` dispatch line
 hooks/                   SessionStart manifest + UserPromptSubmit plan hints + PreToolUse plan gate

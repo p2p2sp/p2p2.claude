@@ -26,7 +26,7 @@ prose question rely on; without it each of those calls asks for permission once.
 | --- | --- |
 | `/viber:setup` | Once per project: the switches, the ignore rules, the permissions. |
 | `/viber:triage` | A reported issue (number, link or pasted text) checked against your code: can it be done, how, what it affects, how big. Names the next step and can post the report on the issue. |
-| `/viber:intent` | An interview about a raw idea, one question at a time. Point it at an issue (`#42` or a link) to work from that issue, and an interview that did not start from one can save its conclusions as a new issue. |
+| `/viber:intent` | An interview about a raw idea, one question at a time. Point it at an issue (`#42` or a link) to work from that issue, and an interview that did not start from one can save its conclusions as a new issue. Add `--prove` to have every question's recommendation and alternatives checked against the code, and the web where needed, before you see it. |
 | `/viber:fixer` | A bug traced to its root cause and proven by a failing test, then handed to the planner. Point it at an issue the same way to trace from that report. |
 | `/viber:prototype` | A UI change in mind becomes one working HTML mockup in your project's own look, or three alternatives to choose from, refined with you in conversation, then carried on to `/viber:intent`, onto the GitHub issue it started from, or both. |
 | `/viber:e2e` | The build's QA scenarios become Playwright tests, run against your app. |
