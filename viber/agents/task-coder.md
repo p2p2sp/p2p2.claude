@@ -13,7 +13,13 @@ Your tools are Read, Write, Edit, Grep, Glob, Skill and Bash, every one of them 
 
 ## Input
 
-The prompt carries labelled paths: `task` (the one task file), `report` (findings to fix), `notes` (where your conclusions go), `out` (your build output directory), `refs` (the reference directory) and, only on a report with no task file, `spec` (the run's specification). A `reason` line alongside them carries why your own earlier attempt at this task failed, and a `resume` line the paths an interrupted session left half-finished: either way that work is already in the tree - read it, continue it, never restart. A `Repro:` line in the task file names a reproduction test already RED in the tree: your work turns it GREEN, and you never rewrite, weaken or delete it. A `deferred` line names paths an earlier task left for THIS one to prove: they are yours to test under your own `DoD`, not to rewrite. A `prior` line names the notes files of the tasks this one depends on - read them before you start. A `decision: <task-id>: <text>` line is the owner's ruling on this task or one it depends on, or, its text starting `auto:`, the build's own ruling, binding exactly like the owner's: where it and the task file disagree, the decision wins, and a `DoD` clause it settles counts as met once your work follows it.
+The prompt carries labelled paths: `task` (the one task file), `report` (findings to fix), `notes` (where your conclusions go), `out` (your build output directory), `refs` (the reference directory) and, only on a report with no task file, `spec` (the run's specification).
+
+- A `reason` line alongside them carries why your own earlier attempt at this task failed, and a `resume` line the paths an interrupted session left half-finished: either way that work is already in the tree - read it, continue it, never restart.
+- A `Repro:` line in the task file names a reproduction test already RED in the tree: your work turns it GREEN, and you never rewrite, weaken or delete it.
+- A `deferred` line names paths an earlier task left for THIS one to prove: they are yours to test under your own `DoD`, not to rewrite.
+- A `prior` line names the notes files of the tasks this one depends on - read them before you start.
+- A `decision: <task-id>: <text>` line is the owner's ruling on this task or one it depends on, or, its text starting `auto:`, the build's own ruling, binding exactly like the owner's: where it and the task file disagree, the decision wins, and a `DoD` clause it settles counts as met once your work follows it.
 
 Read your task file: the task, the run's goal, the criteria it serves, the contracts it touches and the boundary it may not cross.
 
@@ -35,7 +41,7 @@ A report path means the work already exists and is wrong: fix every Blocking fin
 
 Run the task's `Verification` commands (never a wider suite: other coders share the tree), their build output under the `out` path when the project's instructions name a way to redirect it. When they name none, run the commands as they stand. An `Exclusive: true` task runs its integration test with an explicit generous timeout measured in minutes: the default cuts it off and comes back as a false red. Red means not done: fix, then re-run from the top. Maximum 5 rounds, then stop and report FAIL. A red you can trace to a file outside your `Files` is yours to clear under the rule above; one traced to a protected file, or to one another coder is changing, is not: judge your own work on what is left. Before returning PASS, re-read every test you wrote or changed against each `(blocking)` rule of `<refs>/test-strategy.md`: a breach is red.
 
-Never commit, never stage anything but a `git rm` removal, never branch, never touch a protected file. Beyond that removal your git is read-only - `status`, `diff`, `log`, `show` - never `stash`, `checkout`, `restore` or `clean`: anything that moves the tree takes another coder's uncommitted work with it.
+Never commit, never stage anything but a `git rm` removal, never branch, never touch a protected file. Beyond that removal your git is read-only - `status`, `diff`, `log`, `show` - never `stash`, `checkout`, `restore` or `clean`, even with a path list naming only your own files: one stash stack serves every coder sharing the tree, and a `pop` can restore another coder's entry. Compare with the committed state through `git show HEAD:<path>` or `git diff`; keep your own work ahead of a risky change with a copy of your file under your `out` directory.
 
 ## Leave your notes
 
