@@ -1,4 +1,0 @@
-- task-coder.md now names the protected areas once, in the Implement bullet; Prove it green and the "never touch a protected file" sentence refer back to it, so a later edit to the list changes one place.
-- The WAIT rule in implementor step 4 sits as its own bullet before the ordinary coder-FAIL bullet, so the first-failure retry never sees a WAIT return.
-- The `resume:` line on a re-run merges the task's earlier `EXTRA:` paths with any dirty/orphan paths it already carried; the coder's `git status` check exempts exactly those.
-- viber/CLAUDE.md (Orchestrator contract) does not yet describe `WAIT:` or the widened coder file rule: outside this task's Files, left for the memory step.

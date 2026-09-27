@@ -1,3 +1,0 @@
-- viber/CLAUDE.md (Orchestrator contract) still describes the SendMessage continuation and its two-per-instance cap, and its nudge bullet says "neither counts toward the continuation cap below": outside this task's Files, left for the memory step to drop.
-- The fresh-dispatch rule for every re-run sits as one sentence closing the coder-dispatch paragraph in step 4; `retry`, `decide` and the round-1 review line already named their own `reason:` / `report:` / `decision:` lines, so nothing else changed there.
-- The implementor SendMessage count (3) is now allowed-tools plus the two nudges; a later task adding a SendMessage mention breaks T2's Verification.
