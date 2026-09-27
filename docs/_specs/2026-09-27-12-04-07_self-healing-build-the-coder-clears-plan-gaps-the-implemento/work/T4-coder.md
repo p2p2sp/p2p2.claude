@@ -1,0 +1,4 @@
+- Implementor step 4: the all-`owner:` `DECIDE:` bullet sits before the first-failure bullet (like the WAIT one), so it wins over the silent first retry whatever the count.
+- An automatic decision records `auto: <option>` through the same `--decide` call as the owner's; the existing `decision:` dispatch rule (one line per `--decide` this build recorded) already carries it to coders and reviewers, no new line needed.
+- The owner-decide counter restart was already stated in the `decide` answer ("Both counters start over"); left unchanged.
+- viber/CLAUDE.md (Orchestrator contract, `decide` bullet) and viber/CLAUDE.owner-decisions.md still say `decide` is offered on the second coder failure and do not mention `DECIDE:` or `auto:` rulings: outside this task's Files, left for the memory step.

@@ -128,8 +128,10 @@ Warnings off the commit never stop the build: carry `refused <path> - claimed by
 Start with every task whose `deps` are done, in one message. On every return, answer with ONE message carrying every dispatch now legal plus at most one commit. Never wait for a batch to drain; when a constraint forces a choice, start whatever unblocks the most tasks.
 
 - Coder `VERDICT: FAIL` carrying `WAIT:` -> hold the task; once every task in flight at that return has returned, dispatch its coder fresh at the same tier, counting as no attempt and asking nothing. Nothing else in flight at that return, or the task already waited once on a path it names -> act on it as an ordinary `FAIL` below.
+- Coder `VERDICT: FAIL` with a `DECIDE:` line whose every option starts with `owner: ` -> at once, whatever the count, `AskUserQuestion` naming the task and its `REASON:`, quoting those options as ways to answer through `decide`: retry / decide / skip / abort.
 - Coder `VERDICT: FAIL`, or `PASS` with its `DOD:` line short of its total, the first time for that task -> `retry` without asking, the short `DOD:` line as `reason:` when no `REASON:` came.
-- The same again for that task -> `AskUserQuestion` naming the task and its `REASON:` (or the short `DOD:` line): retry / decide / skip / abort.
+- The same the second time, its `DECIDE:` line holding an option not starting with `owner: ` -> take the first such option, rewrite it exactly as a `decide` answer is rewritten, then `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --decide "<plan>" "<id>" "auto: <option>"`, then dispatch that task's coder fresh at the same tier with its `decision:` lines, the new one among them. This automatic decision restarts no counter and is carried to the final summary. No such option -> `retry` without asking, as the first time.
+- The same the third time -> `AskUserQuestion` naming the task and its `REASON:` (or the short `DOD:` line): retry / decide / skip / abort.
 - Coder `VERDICT: DENIED` -> `AskUserQuestion` naming the task: retry / skip / abort.
 - Coder `PASS`, and review due or a non-empty `extra:` or `recheck:` line -> reviewer dispatch at the next round.
 - Coder `PASS` otherwise -> commit.
