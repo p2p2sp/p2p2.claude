@@ -1,8 +1,9 @@
 ---
 name: planner
 description: Only for a confirmed viber:intent interview or a viber:fixer diagnosis already in context - never the entry point. Without one, suggest the viber:intent interview and let the user decide. Turns that input into a reviewed implementation plan - acceptance criteria, file map, then tasks carrying dependencies, contracts, verification and DoD.
-allowed-tools: Read, Write, Edit, Grep, Glob, Agent, Skill, EnterPlanMode, ExitPlanMode, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(date:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Agent, SendMessage, Skill, EnterPlanMode, ExitPlanMode, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(date:*)
 user-invocable: false
+effort: high
 ---
 
 ```!
@@ -16,6 +17,8 @@ Input: an understood change already in context - a confirmed `viber:intent` inte
 On valid input call `EnterPlanMode` first unless plan mode is already active.
 
 The input carries three decisions already taken: the spec shape, whether this plan stops at a draft, and, on a round continuing an earlier draft, that draft's run key. Never reopen them.
+
+Every bundled-script run below is one literal Bash line, every argument double-quoted, never prefixed with an interpreter word, never assigned to a variable, never preceded by `cd`, never chained with `;`, `&&` or `||`.
 
 ## 1. Map the files first
 
@@ -45,7 +48,7 @@ A plan stopping at a draft writes the specification half alone: no `## Tasks`, n
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" adr "${CLAUDE_SKILL_DIR}" adr
 ```
 
-Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan-path>"` as one literal Bash line, no interpreter word in front - any other form stalls on a permission prompt. It must exit 0: fix whatever it reports and re-run.
+Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan-path>"`. It must exit 0: fix whatever it reports and re-run.
 
 Show the user the full path of the written plan.
 
@@ -57,9 +60,18 @@ A draft goes to step 3 next; every other plan dispatches the review below.
 
 ## 3. Review gate
 
-Dispatch the `viber:planner-review` agent with the plan path, `refs: ${CLAUDE_PLUGIN_ROOT}/references` and `memory: <value>`, the `memory:` line of the config block resolved above. A draft adds the line `scope: spec`. From round 2 on, also pass the previous findings verbatim and one line per fix you applied.
+Dispatch the `viber:planner-review` agent with the plan path, `refs: ${CLAUDE_PLUGIN_ROOT}/references`, `memory: <value>` (the `memory:` line of the config block resolved above), and the line:
 
-- `VERDICT: PASS` - go to step 4 without writing the plan again: its Minor findings stay unapplied, since any write after the PASS voids it.
+```
+input:
+<the confirmed viber:intent summary or viber:fixer diagnosis in context, verbatim>
+```
+
+A draft adds the line `scope: spec`. From round 2 on, also pass the previous findings verbatim and one line per fix you applied.
+
+A reply with no `VERDICT:` line gets one `SendMessage`, `Finish your task, then return your output lines.`; a second reply without one is handled as `VERDICT: DENIED` with `REASON: no verdict returned`.
+
+- `VERDICT: PASS` - go to step 4 without writing the plan again: its Minor findings stay unapplied, since any write after the PASS voids it. A PASS reached through that `SendMessage` whose `ExitPlanMode` the plan gate still refuses is followed by the fresh dispatch the gate names, not treated as a stall.
 - `VERDICT: FAIL` - show the findings, fix the plan, re-run `plan-index.sh` after every fix unless the plan is a draft, then dispatch again. A finding that needs a decision only the user can make gets asked first, and the answer starts a fresh round 1.
 - `VERDICT: DENIED` - one `AskUserQuestion` naming the refused call from its `REASON:` line: permission added and retry, dispatching again in the same round, or stop with the plan unreviewed and no hand-off.
 
@@ -79,7 +91,7 @@ A plan with its task half that changes a UI or an endpoint and carries no end-to
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" qa "${CLAUDE_SKILL_DIR}" qa-e2e
 ```
 
-A change that went through a draft lands here instead, since nothing downstream lands a plan carrying no task. Run one literal Bash line, every argument double-quoted, no interpreter word in front, nothing chained to it - the only thing this step executes:
+A change that went through a draft lands here instead, since nothing downstream lands a plan carrying no task - the only thing this step executes:
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<plan-path>"`
 
