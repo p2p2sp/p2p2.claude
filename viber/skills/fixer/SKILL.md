@@ -5,6 +5,7 @@ argument-hint: "[bug report, or an issue number/URL when issues is on]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*)
 user-invocable: true
 disable-model-invocation: false
+effort: high
 ---
 
 # fixer
