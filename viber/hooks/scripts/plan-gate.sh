@@ -174,7 +174,7 @@ fi
 if [ "$planner_owns" = "1" ]; then
   agent="planner-review"
   writer="The planner skill"
-  dispatch_with="the plan path, \`refs:\` (the reference directory) and \`memory:\` (the planner's resolved config value), as planner-review.md expects its input"
+  dispatch_with="the plan path, \`refs:\` (the reference directory), \`memory:\` (the planner's resolved config value) and \`input:\` (the confirmed interview summary or bug diagnosis the plan answers, verbatim), as planner-review.md expects its input"
   gate="the planner's review gate"
 else
   # A plain plan-mode plan is gated only when the host turned plain-plan-review on.

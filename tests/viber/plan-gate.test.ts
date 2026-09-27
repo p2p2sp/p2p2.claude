@@ -220,6 +220,15 @@ test("the planner refusal names refs: and memory:, as planner-review.md expects 
   });
 });
 
+test("the planner refusal also names input:, as planner-review.md expects the confirmed interview summary or bug diagnosis", () => {
+  withTempDir("p2p2-plan-gate-", (dir) => {
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite()]);
+    const { decision, reason } = runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /input:/);
+  });
+});
+
 test("the unprefixed skill spelling 'planner' arms the gate too (the install form must not decide)", () => {
   withTempDir("p2p2-plan-gate-", (dir) => {
     const f = writeTranscript(dir, "t.jsonl", [skillUse("planner"), planWrite()]);
