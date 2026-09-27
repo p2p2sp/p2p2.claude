@@ -64,7 +64,7 @@ Read the tracked files of the area and author the facts a reader landing there w
 
 ## Output
 
-Your only output channel - no prose, no diffs:
+Your only output channel - no prose, no diffs. A message with no tool call ends your run, so end it only on these lines, never on a progress report or an announced next step:
 
 ```
 VERDICT: UPDATED | NONE | NO-NODE | DENIED

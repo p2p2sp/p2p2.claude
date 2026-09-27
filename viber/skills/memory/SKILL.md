@@ -2,7 +2,7 @@
 name: memory
 description: Reviews and repairs the host project's CLAUDE.md cascade - maps every node with its own size and the size of the chain a reader loads with it, creates the nodes a project with none needs, verifies each existing node against the code of the area it describes, brings every node within budget, and resets the layer on demand. Use whenever the user wants to create, bootstrap, initialize, refresh, audit or reset project memory, or asks which nodes went stale, lost their area or grew past their budget.
 argument-hint: "[review, extend, reset, or nothing]"
-allowed-tools: AskUserQuestion, Agent, Bash(${CLAUDE_SKILL_DIR}/scripts/memory-map.sh:*), Bash(${CLAUDE_SKILL_DIR}/scripts/memory-map.sh --reset:*)
+allowed-tools: AskUserQuestion, Agent, SendMessage, Bash(${CLAUDE_SKILL_DIR}/scripts/memory-map.sh:*), Bash(${CLAUDE_SKILL_DIR}/scripts/memory-map.sh --reset:*)
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -17,7 +17,7 @@ The block above is this host project's memory layer as the script measured it: t
 
 It is self-verifying and trusted. Never re-measure a node, never walk the tree for a candidate of your own, never run git to decide what is dirty: every fact you route on is already above.
 
-Your whole tool set is `AskUserQuestion`, `Agent` and the two map lines of step 3. You open no file and you write none: every byte of the cascade is written by `viber:memory-node-writer`, nothing here is staged and nothing is committed.
+Your whole tool set is `AskUserQuestion`, `Agent`, `SendMessage` and the two map lines of step 3. You open no file and you write none: every byte of the cascade is written by `viber:memory-node-writer`, nothing here is staged and nothing is committed.
 
 ## 1. Report the layer
 
@@ -92,6 +92,8 @@ AUDIT: <node> stale <n> gone <n> unverifiable <n> miss <n> -> <findings file>
 ```
 
 Report the `AUDIT:` line for each target verbatim. Read none of those files - the writer does.
+
+An `Agent` call here or in step 7 or 8 that returns none of its output lines (no `AUDIT:` line from an auditor, no `VERDICT:` line from a writer) gets one `SendMessage`, `Finish your task, then return your output lines.`; a second reply without one is that step's `VERDICT: DENIED` with `REASON: no verdict returned`.
 
 A call returning `VERDICT: DENIED` instead -> one `AskUserQuestion` naming the target and the refused call from its `REASON:` line: permission added and retry, drop that target from the target list, or stop.
 
