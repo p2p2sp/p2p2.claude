@@ -1,0 +1,4 @@
+- Review waiver sentence in step 3 now reads "only on a `sonnet` task ... never on `haiku` or `opus`" (was: any tier but opus).
+- `decide` bullet gained one sentence stating `<text>` is the user's own answer copied, never composed by the build, distinguishing it from the build's own `auto: <option>` ruling (already documented at the round-3 automatic-decision line).
+- `retry` bullet split into an intro line plus three `  - After a ...` sub-bullets, one per case (FAIL/short DOD, DENIED, failed commit), each keeping its original wording verbatim per the "exact words" constraint.
+- No other lines changed; only `viber/skills/implementor/SKILL.md` touched.
