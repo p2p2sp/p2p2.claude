@@ -1,6 +1,6 @@
 # supercc
 
-One skill, `skill-designer`: the authoring doctrine for skills and agents, three references read each at one workflow step, and a linter. No agents, no hooks, no preload, no `allowed-tools`.
+Two skills. `skill-designer`: the authoring doctrine for skills and agents, three references read each at one workflow step, and a linter. `models`: per-model prompting knowledge, one reference per current model plus `cross-model.md`, the body only picks which to read. No agents, no hooks, no preload, no `allowed-tools`.
 
 ## Contracts between files
 
@@ -8,6 +8,7 @@ One skill, `skill-designer`: the authoring doctrine for skills and agents, three
 - The hard platform caps are stated twice and move together: `SKILL.md` Frontmatter and Progressive disclosure (name 64 chars and its charset, reserved words, description 1024 chars, no angle brackets, body 500 lines, a reference over 100 lines carries a table of contents) and the matching checks in `scripts/lint_skill.sh`. Changing a cap in one without the other makes the linter contradict the doctrine it enforces.
 - The linter's style checks (emoji, em/en dash, tables, italics, shouting count over 5, hedges, caller-narrative cues, `jq`/`bc`) mirror the Body and Formatting rules of `SKILL.md`; a rule added to either side is added to both or deliberately left as judgment.
 - Every file in `references/` is named in `SKILL.md` at the step that reads it: the linter WARNs on a reference the body never names. A new reference gets its one-line pointer in the Workflow, never an up-front read.
+- `models` is a dated snapshot of the lineup (date in its body): adding or retiring a model adds or deletes its reference together with its pointer in the Workflow, the model names in the `description:`, and every cross-model line naming it. A profile line states only what the model's prompting guide, release notes or system card confirms; a claim none of them carries is cut, not hedged.
 - `references/architecture.md` restates harness facts the root node also carries as invariants: `allowed-tools` pre-approves and never restricts, `disallowed-tools` never on a skill that dispatches agents, preload pattern entry, direct invocation, single-quoting `?`/`*`/`[`. A change to that harness knowledge updates both.
 
 ## Linter

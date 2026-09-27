@@ -155,7 +155,7 @@ This file is orientation only. A skill's authoritative contract is its own body
 |---|---|
 | `CLAUDE.md` | anything repo-wide - catalog, release, CI, cross-plugin invariants |
 | `superbiz/CLAUDE.md` | `idea-validator` - the side-project viability workflow and its report |
-| `supercc/CLAUDE.md` | `skill-designer` - authoring/refactoring/splitting/linting skills and agents |
+| `supercc/CLAUDE.md` | `skill-designer` - authoring/refactoring/splitting/linting skills and agents; `models` - per-model prompting knowledge |
 | `superfix/CLAUDE.md` | `code-auditor` and its five agents - the investigation sweep |
 | `superui/CLAUDE.md` | the `pro-designer` skill (design/frontend advisory, contrast check) |
 | `tests/CLAUDE.md` | any `*.test.ts` under `tests/` - harness contract, cross-platform rules |

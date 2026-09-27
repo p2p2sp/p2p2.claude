@@ -34,3 +34,14 @@ rather than the body, and lints the result before reporting back.
 
 You get the changed files, a clean lint run, and three lines: what the skill is responsible for,
 what makes it trigger, and what was deliberately left out.
+
+## Writing for a specific model
+
+A second skill, `models`, knows how each current Claude model reads instructions and where
+it slips. It fires when you pick or change the model an agent runs on:
+
+```
+which model should this reviewer agent run on
+this agent runs on haiku, tune it
+it works on opus but stops early on fable, why
+```

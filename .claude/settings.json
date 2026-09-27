@@ -45,11 +45,7 @@
       "Bash(find * -exec rm *)",
       "Bash(git * --force*)",
       "Bash(git reset --hard:*)",
-      "Bash(rm *-f *-r*)",
-      "Bash(rm *-fr*)",
-      "Bash(rm *-r *-f*)",
-      "Bash(rm *-rf*)",
-      "Bash(rm -fr:*)",
+      "Bash(gh issue delete:*)",
       "Bash(rm -rf:*)"
     ],
     "deny": [
@@ -64,7 +60,6 @@
       "Bash(gh auth login:*)",
       "Bash(gh auth logout:*)",
       "Bash(gh auth token:*)",
-      "Bash(gh issue delete:*)",
       "Bash(gh release delete:*)",
       "Bash(gh repo delete:*)",
       "Bash(gh secret:*)",
@@ -88,6 +83,8 @@
       "Bash(pnpm publish:*)",
       "Bash(reboot:*)",
       "Bash(rm -r /:*)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf /)",
       "Bash(rmdir /s:*)",
       "Bash(shutdown:*)",
       "Bash(sudo:*)",
@@ -107,9 +104,7 @@
       "Read(~/.aws/**)",
       "Read(~/.config/gh/**)",
       "Read(~/.gnupg/**)",
-      "Read(~/.ssh/**)",
-      "Bash(rm -rf ~)",
-      "Bash(rm -rf /)"
+      "Read(~/.ssh/**)"
     ]
   }
 }

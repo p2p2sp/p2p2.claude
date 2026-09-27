@@ -7,6 +7,7 @@
     "email": "dariusz.lenartowicz@p2p2.com.pl"
   },
   "skills": [
-    "./skills/skill-designer/"
+    "./skills/skill-designer/",
+    "./skills/models/"
   ]
 }
