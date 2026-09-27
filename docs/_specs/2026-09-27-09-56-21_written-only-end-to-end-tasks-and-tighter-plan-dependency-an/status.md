@@ -5,4 +5,4 @@ done: T2 T3 T1 T4 T5
 skipped: none
 unreviewed: T1
 deferred: none
-closed: none
+closed: memory rules
