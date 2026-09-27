@@ -26,7 +26,7 @@ Never plan an end-to-end test on your own: `/viber:e2e` writes them after the bu
 Before writing a task, decide which files get created, modified or deleted and what each one owns: locked-in boundaries are what lets tasks run in parallel.
 
 - One responsibility per file. Files that change together live together.
-- Read the codebase for what the change FORCES, not only what it introduces: where a new type is registered, exported or wired up, where a new persisted shape is declared and migrated, every test asserting a count, an enumeration or a snapshot over what you touch.
+- Read the codebase for what the change FORCES, not only what it introduces: where a new type is registered, exported or wired up, where a new persisted shape is declared and migrated, every test asserting a count, an enumeration or a snapshot over what you touch, and the chain that would break every criterion's claim of absence (an import graph, a bundle's contents, a call never made) through today's tree, each link landing in the file map or dropped from the claim.
 - In an existing codebase follow its established patterns. A file you have to touch that has grown unwieldy may be split, as a task.
 
 ## 2. Write the plan
