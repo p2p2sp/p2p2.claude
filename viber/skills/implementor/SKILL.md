@@ -34,8 +34,8 @@ You orchestrate and delegate: every piece of work runs inside a subagent. Open n
 
 Every question below offers some of these five answers, each doing exactly this wherever it is offered:
 
-- `retry`: dispatch again, with its own dispatch lines, the agent that failed or was refused; after failed review or test rounds that is the task's coder or the repair coder. After a `FAIL`, or a `PASS` with its `DOD:` line short of its total: one tier up (`haiku` -> `sonnet` -> `opus` -> `fable`), never past `tiers.max`, where it stays, carrying `reason: <the returned REASON>` on a coder's own failure, `reason: <the short DOD: line>` when no `REASON:` came, or the last `REVIEW` or `REPORT` path as `report:` after failed rounds; the round counter continues, the next 2 rounds counting as 1 and 2 of 2, and a `TaskUpdate` rewrites the task's subject with the new tiers. After a `DENIED`: same model, same round, a task's coder adding `reason: <the returned REASON>`. After a failed commit: run the same call again.
-- `decide`: the user's free-text answer, their ruling on the stalled task; the question names it as the way to answer in their own words, never as an option to pick. Make it one line and rewrite every double quote, dollar sign, backtick or backslash in it into words, then `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --decide "<plan>" "<id>" "<text>"`, then dispatch that task's coder again at the same tier with its `decision:` lines, the new one among them, plus the last `REVIEW` path as `report:` when the last failure was a review. Both counters start over: the next coder failure is retried once without asking, the next review is round 1 of 2.
+- `retry`: dispatch again, with its own dispatch lines, the agent that failed or was refused; after failed review or test rounds that is the task's coder or the repair coder. After a `FAIL`, or a `PASS` with its `DOD:` line short of its total: one tier up (`haiku` -> `sonnet` -> `opus` -> `fable`), never past `tiers.max`, where it stays, carrying `reason: <the returned REASON>` on a coder's own failure, `reason: <the short DOD: line>` when no `REASON:` came, or the last `REVIEW` or `REPORT` path as `report:` after failed rounds; the round counter continues, the next 3 rounds counting as 1 to 3 of 3, and a `TaskUpdate` rewrites the task's subject with the new tiers. After a `DENIED`: same model, same round, a task's coder adding `reason: <the returned REASON>`. After a failed commit: run the same call again.
+- `decide`: the user's free-text answer, their ruling on the stalled task; the question names it as the way to answer in their own words, never as an option to pick. Make it one line and rewrite every double quote, dollar sign, backtick or backslash in it into words, then `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --decide "<plan>" "<id>" "<text>"`, then dispatch that task's coder again at the same tier with its `decision:` lines, the new one among them, plus the last `REVIEW` path as `report:` when the last failure was a review. Both counters start over: the next coder failure is retried once without asking, the next review is round 1 of 3.
 - `skip`: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip "<plan>" "<id>"` for that task, then the same call for every task depending on it, directly or through another dependent, one call per message, each with its `TaskUpdate` -> completed. Its half-finished files stay uncommitted in the tree; name them in the final summary.
 - `accept`: the user overrides the gate. On a task: its commit with `--unreviewed` appended, the task named unreviewed in the final summary. On the test run: go to step 6, the failing or refused run named in the final summary. On any other agent: go on as if it returned nothing, its refused call named in the final summary.
 - `abort`: stop every dispatch, go to step 7.
@@ -136,8 +136,8 @@ Start with every task whose `deps` are done, in one message. On every return, an
 - Coder `PASS`, and review due or a non-empty `extra:` or `recheck:` line -> reviewer dispatch at the next round.
 - Coder `PASS` otherwise -> commit.
 - Reviewer `VERDICT: PASS` -> commit.
-- Reviewer `VERDICT: FAIL`, round 1 of 2 -> coder dispatch plus the returned `REVIEW` path as `report:`.
-- Reviewer `VERDICT: FAIL`, round 2 of 2 -> `AskUserQuestion` naming the task: retry / decide / accept / abort.
+- Reviewer `VERDICT: FAIL`, round 1 or 2 of 3 -> coder dispatch plus the returned `REVIEW` path as `report:`.
+- Reviewer `VERDICT: FAIL`, round 3 of 3 -> `AskUserQuestion` naming the task: retry / decide / accept / abort.
 - Reviewer `VERDICT: DENIED` -> `AskUserQuestion` naming the task: retry / accept / abort.
 - Commit non-zero exit -> nothing was committed; `TaskUpdate` back to in progress and `AskUserQuestion`: retry / skip / abort. On exit 4 naming `--landed`, add a first option: already committed - the user names the commit, and the same call re-runs with `--landed "<sha>"`.
 
@@ -153,8 +153,8 @@ Repair commit, every path on the coder's `FILES:` line through the form that own
 - A path no column claims -> one `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --repair "<plan>" "<round>" "<file>" ["<file>"...]` for all of them. Never borrow a task id for such a file.
 
 - Test-runner `VERDICT: PASS` or `VERDICT: SKIP` -> `TaskUpdate` -> completed.
-- Test-runner `VERDICT: FAIL`, round 1 of 2 -> repair dispatch.
-- Test-runner `VERDICT: FAIL`, round 2 of 2 -> `AskUserQuestion`: retry / accept / abort.
+- Test-runner `VERDICT: FAIL`, round 1 or 2 of 3 -> repair dispatch.
+- Test-runner `VERDICT: FAIL`, round 3 of 3 -> `AskUserQuestion`: retry / accept / abort.
 - Test-runner `VERDICT: DENIED` -> `AskUserQuestion`: retry / accept / abort.
 - Repair coder `PASS` or `FAIL` -> repair commit, then test-runner at the next round. No `FILES:` line -> no commit, test-runner at the next round.
 - Repair coder `VERDICT: DENIED` -> commit nothing; `AskUserQuestion`: retry / accept / abort.

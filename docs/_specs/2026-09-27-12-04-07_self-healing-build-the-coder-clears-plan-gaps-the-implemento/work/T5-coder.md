@@ -1,0 +1,2 @@
+- Review and test-runner FAIL rows now read "round 1 or 2 of 3" -> fresh coder / repair dispatch, "round 3 of 3" -> ask; the "fresh" part comes from the existing coder-dispatch rule (every re-run is a fresh dispatch), so no new wording was added there.
+- viber/CLAUDE.owner-decisions.md line 20 still says "the next review round is 1 of 2": outside this task's Files, left for the memory step.
