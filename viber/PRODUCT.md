@@ -19,3 +19,5 @@
 - End-to-end tests belong to CI and `/viber:e2e`. A plan carries a task that writes them only when the user explicitly asks for them, in the request, the interview or its issue - never on the planner's or the interview's own initiative - and that task runs them only when the user separately asked for it to be run.
 
 - Keeping the testing order from detail to whole (unit tests first, integration tests last) supports building the tasks concurrently.
+
+- `implementor` is entered from an approved plan that `planner` names as the next step. Its description deliberately carries no resume or continue trigger, although step 1 resumes the most recent run once it runs: a request to continue a build in a new session may not reach it.
