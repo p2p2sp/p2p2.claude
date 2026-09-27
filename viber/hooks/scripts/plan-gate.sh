@@ -248,7 +248,7 @@ dispatch_line="$2"
 verdict_line="$3"
 
 if [ "$last_dispatch" = "0" ]; then
-  emit_deny "Next step: review the plan. ${writer} wrote ${plan_name} but the viber:${agent} agent has not run on this version - dispatch it with ${dispatch_with}, wait for 'VERDICT: PASS', then retry ExitPlanMode. (This is ${gate}, not an error.)"
+  emit_deny "Next step: review the plan. ${writer} wrote ${plan_name} but the viber:${agent} agent has not run on this version - dispatch it with ${dispatch_with}, wait for 'VERDICT: PASS', then retry ExitPlanMode without writing the plan again: Minor findings stay unapplied, since any write after the PASS voids it. (This is ${gate}, not an error.)"
 fi
 
 if [ "$verdict_line" = "0" ]; then
