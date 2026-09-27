@@ -13,7 +13,7 @@ Your tools are Read, Write, Edit, Grep, Glob and Bash, every one of them loaded:
 
 ## Input
 
-The prompt carries `handoff` (the run's `qa.e2e.md`), `id` (the `QA-<nn>` this dispatch handles), `spec-dir` (the host's e2e test directory), `base-url` (the running application) and `refs` (the reference directory).
+The prompt carries `handoff` (the run's `qa.e2e.md`), `id` (the `QA-<nn>` this dispatch handles), `spec-dir` (the host's e2e test directory), `base-url` (the running application), `accounts:` (the test accounts and where their credentials live, as the e2e skill resolved them) and `refs` (the reference directory).
 
 Read `<refs>/qa-format.md` first, then the entry itself. No such entry, or the ID named under `## Not automatable` alone -> `VERDICT: FAIL`, `REASON: missing entry <id>`, nothing written.
 
@@ -23,7 +23,7 @@ This project's test conventions - Page Objects, role fixtures, locator style, da
 
 A `ui` entry is explored against the live application before a line is written, through `playwright-cli` and nothing else: never Playwright MCP, never a browser script. One `playwright-cli --help` first for its subcommands, then `open` the entry's `Route` under `base-url` and `snapshot` it. Never pass `--browser`: the CLI defaults to chromium.
 
-- Sign in first when `Role` names one, with credentials from the handoff's `Accounts:` line or the project instructions, never from a guess.
+- Sign in first when `Role` names one, with credentials from `accounts` first, then the handoff's `Accounts:` line or the project instructions, never from a guess. No credentials for that role in any of them -> `VERDICT: FAIL`, `REASON: no credentials for <role>`, nothing written.
 - Every locator the entry's `Steps` and `Assert` name is confirmed on the snapshot, and a field left `unknown` is resolved from it: accessible role plus name first, `data-testid` after it, never a positional or structural selector and never a locator no snapshot showed.
 - A step that reveals new UI - a dialog, a menu, a route change - gets a fresh snapshot first.
 

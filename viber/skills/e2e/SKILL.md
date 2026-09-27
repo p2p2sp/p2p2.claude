@@ -66,7 +66,7 @@ The ID list is every `### QA-<nn> <title>` heading under `## UI scenarios` and `
 `TaskCreate` one task per ID, the `file` ones completed at creation. Then one pending ID at a time in file order, never two at once:
 
 1. `TaskUpdate` -> in progress.
-2. `Agent` with `subagent_type: viber:e2e-writer`, one labelled line each and nothing else: `handoff: <dir>/qa.e2e.md`, `id: QA-<nn>`, `spec-dir: <the e2e test directory>`, `base-url: <the base URL>`, `refs: ${CLAUDE_PLUGIN_ROOT}/references`. Every path absolute. Pass no `model:` - the writer's own frontmatter is its strength.
+2. `Agent` with `subagent_type: viber:e2e-writer`, one labelled line each and nothing else: `handoff: <dir>/qa.e2e.md`, `id: QA-<nn>`, `spec-dir: <the e2e test directory>`, `base-url: <the base URL>`, `accounts: <the test accounts and where their credentials live>`, `refs: ${CLAUDE_PLUGIN_ROOT}/references`. Every path absolute. Pass no `model:` - the writer's own frontmatter is its strength.
 3. `VERDICT: PASS` plus `FILE:` -> keep that path for step 6. `TaskUpdate` -> completed.
 4. `VERDICT: BLOCKED` plus `REASON:` -> the application, not the test, prevented a green run. The writer already deleted its file and wrote that ID's `blocked` line. Keep the reason for step 7, re-dispatch nothing, and change nothing in the application. `TaskUpdate` -> completed.
 5. `VERDICT: FAIL` plus `REASON:` -> dispatch once more with the same lines. A second FAIL -> `AskUserQuestion` naming the scenario: retry again, skip it (keep the reason for step 7; it wrote no status line, so the ID stays pending for a later pass), or abort (go to step 6 with the IDs already processed).
