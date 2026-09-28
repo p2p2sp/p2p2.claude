@@ -1775,3 +1775,118 @@ test("a second --split with the plan unchanged commits nothing and still exits 0
     assert.deepEqual(subjects(repo), after);
   });
 });
+
+test("a DoD line naming another task's id outside backticks exits 4 with the C1 line and nothing on stdout", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(
+      dir,
+      planBody(
+        [
+          { id: "T1", files: "src/a.ts" },
+          {
+            id: "T2",
+            covers: "#1",
+            uses: "none",
+            deps: "T1",
+            files: "src/b.ts",
+            dod: "proven by T1",
+          },
+        ],
+        1,
+      ),
+    );
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+    assert.match(
+      result.stderr,
+      /task T2: DoD names task T1 - prove each clause inside this task, naming a file or symbol instead/,
+    );
+  });
+});
+
+test("a DoD line naming the task's own id exits 0 - a task's own id never matches", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody([{ id: "T1", files: "src/a.ts", dod: "T1 handles this case" }], 1));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+  });
+});
+
+test("a DoD line whose word merely contains another task's id exits 0 (T10 beside a task T1 names no task)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(
+      dir,
+      planBody(
+        [
+          { id: "T1", files: "src/a.ts" },
+          {
+            id: "T2",
+            covers: "#1",
+            uses: "none",
+            deps: "T1",
+            files: "src/b.ts",
+            dod: "handles case T10 correctly",
+          },
+        ],
+        1,
+      ),
+    );
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+  });
+});
+
+test("a DoD line naming another task's id only inside a backtick span exits 0 (a fixture plan quoted as literal test data)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(
+      dir,
+      planBody(
+        [
+          { id: "T1", files: "src/a.ts" },
+          {
+            id: "T2",
+            covers: "#1",
+            uses: "none",
+            deps: "T1",
+            files: "src/b.ts",
+            dod: "the fixture plan quotes `T1` as literal test data",
+          },
+        ],
+        1,
+      ),
+    );
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+  });
+});
+
+test("a DoD line naming another task validates under --split - a frozen plan resumed after the rule lands must still decompose", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(
+      dir,
+      planBody(
+        [
+          { id: "T1", files: "src/a.ts" },
+          {
+            id: "T2",
+            covers: "#1",
+            uses: "none",
+            deps: "T1",
+            files: "src/b.ts",
+            dod: "proven by T1",
+          },
+        ],
+        1,
+      ),
+    );
+
+    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
+  });
+});

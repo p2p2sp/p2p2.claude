@@ -160,7 +160,10 @@
 #       leaf of the dependency graph, so nothing may depend on it, or a
 #       "Depends-on" entry another entry of the same line already reaches,
 #       directly or transitively (the edge orders nothing; the error names the
-#       task, the entry and the one reaching it). The last three cases and the
+#       task, the entry and the one reaching it), or a "DoD:" line naming
+#       another task of the plan as a whole token outside a backtick span
+#       (its own id never matches - prove each clause inside the task itself,
+#       naming a file or symbol instead). The last four cases and the
 #       parenthetical one above are exempted under --split
 #       alone: a plan that landed before the rule is frozen, and a run resumed
 #       after the upgrade must still validate and decompose.
@@ -257,6 +260,26 @@ awk '
 function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
 function val(s)  { sub(/^[^:]*:/, "", s); return trim(s) }
 function fail(msg) { printf "error: %s\n", msg > "/dev/stderr"; err = 1 }
+
+# every backtick-quoted span removed: a done clause may quote a task id as
+# literal test data (a fixture plan built by the tests of this repository),
+# and that mention proves nothing.
+function stripticks(s,   out) { out = s; gsub(/`[^`]*`/, " ", out); return out }
+
+# the id of another task of the plan present as a whole token (bounded by a
+# character outside [A-Za-z0-9_-]) in the DoD line of this task, "" when none.
+# Padding both ends of the text with a space guarantees a boundary character
+# at the edges of the text too, so a leading or trailing id needs no special
+# case. n and id[] are the globals every caller has already populated.
+function selfproven(text, own,   t, pad, k) {
+  t = stripticks(text)
+  pad = " " t " "
+  for (k = 1; k <= n; k++) {
+    if (id[k] == own) continue
+    if (pad ~ ("[^A-Za-z0-9_-]" id[k] "[^A-Za-z0-9_-]")) return id[k]
+  }
+  return ""
+}
 
 function listed(s) { s = trim(s); return (s == "none" || s == "-" ? "" : s) }
 
@@ -434,6 +457,14 @@ END {
     if (deliv[i] == "") fail("task " id[i] ": missing Delivers")
     if (verif[i] == "") fail("task " id[i] ": missing Verification")
     if (dod[i] == "")   fail("task " id[i] ": missing DoD")
+
+    # Self-proven: a done clause may not hand its own proof to another task -
+    # every clause is proven inside the task that delivers it. Skipped under
+    # --split, like the other checks added after plans were frozen.
+    if (mode != "--split" && dod[i] != "") {
+      other = selfproven(dod[i], id[i])
+      if (other != "") fail("task " id[i] ": DoD names task " other " - prove each clause inside this task, naming a file or symbol instead")
+    }
 
     # Files: bare repo-relative paths, so commit-task.sh can stage them and the
     # collision check below can compare them literally
