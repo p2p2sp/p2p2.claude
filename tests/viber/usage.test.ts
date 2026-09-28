@@ -218,6 +218,149 @@ function guideClassViolations(page: string): string[] {
 }
 
 // ---------------------------------------------------------------------------
+// Navigation hooks - C2: the markup the inline script reads
+// ---------------------------------------------------------------------------
+
+/** The first opener matching `opener` and its balanced inner HTML, or null. */
+function openerInner(text: string, opener: RegExp): { tag: string; inner: string } | null {
+  const match = opener.exec(text);
+  if (match === null) return null;
+  const tag = /^<([A-Za-z][\w-]*)/.exec(match[0])?.[1] ?? "";
+  return { tag: match[0], inner: balancedInner(text, match.index, tag) };
+}
+
+/** Inner text of every inline `<script>` (no `src`), joined. */
+function scriptText(page: string): string {
+  return [...page.matchAll(/<script\b(?![^>]*\ssrc)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]).join("\n");
+}
+
+function styleText(page: string): string {
+  return [...page.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]).join("\n");
+}
+
+/** The text inside the `{` found at or after `from`, up to its balanced `}`. */
+function braceBlock(text: string, from: number): { start: number; end: number } {
+  const open = text.indexOf("{", from);
+  let depth = 0;
+  for (let i = open; i < text.length; i++) {
+    if (text[i] === "{") depth++;
+    if (text[i] === "}" && --depth === 0) return { start: open + 1, end: i };
+  }
+  return { start: open + 1, end: text.length };
+}
+
+function hasLangPair(fragment: string): boolean {
+  return (fragment.match(/\slang="en"/g) ?? []).length === 1 && (fragment.match(/\slang="pl"/g) ?? []).length === 1;
+}
+
+function hrefSet(fragment: string): string[] {
+  return [...new Set([...fragment.matchAll(/href="#([^"]*)"/g)].map((m) => m[1]))].sort();
+}
+
+const FOCUSABLE = /<(?:a\b[^>]*\shref\s*=|button\b|input\b(?![^>]*\stype="hidden")|select\b|textarea\b|summary\b|iframe\b|[A-Za-z][\w-]*\b[^>]*\stabindex="\d)[^>]*>/i;
+
+/** `<main id="main">`, and the first focusable element in `<body>` is `<a class="skip" href="#main">`. */
+function skipLinkViolations(page: string): string[] {
+  const violations: string[] = [];
+  if (!/<main\b[^>]*\sid="main"/.test(page)) violations.push('no <main id="main">');
+  const first = FOCUSABLE.exec(bodyOf(page).text);
+  if (first === null || !/^<a\b(?=[^>]*\sclass="skip")(?=[^>]*\shref="#main")/.test(first[0])) {
+    violations.push(`the first focusable element is ${first?.[0] ?? "missing"}, not <a class="skip" href="#main">`);
+  }
+  return violations;
+}
+
+/** `<div class="search" hidden>` holding `<input type="search" id="help-search">` and a
+ *  `<label for="help-search">` with one en and one pl element. */
+function searchFieldViolations(page: string): string[] {
+  const box = openerInner(page, /<div\b(?=[^>]*\sclass="search")(?=[^>]*\shidden(?=[\s>]))[^>]*>/);
+  if (box === null) return ['no <div class="search" hidden>'];
+  const violations: string[] = [];
+  if (!/<input\b(?=[^>]*\stype="search")(?=[^>]*\sid="help-search")[^>]*>/.test(box.inner)) {
+    violations.push('the search container lacks <input type="search" id="help-search">');
+  }
+  const labelEl = openerInner(box.inner, /<label\b[^>]*\sfor="help-search"[^>]*>/);
+  if (labelEl === null || !hasLangPair(labelEl.inner)) {
+    violations.push('the search container lacks <label for="help-search"> with one en and one pl element');
+  }
+  return violations;
+}
+
+/** Every `<section` is searchable: it carries `data-search`. */
+function searchMarkerViolations(page: string): string[] {
+  return [...page.matchAll(/<section\b[^>]*>/g)]
+    .filter((m) => !/\sdata-search(?=[\s=>])/.test(m[0]))
+    .map((m) => `line ${lineOf(page, m.index ?? 0)}: ${m[0]} lacks data-search`);
+}
+
+/** `<p id="help-no-results" hidden>` holding one en and one pl element. */
+function noResultsViolations(page: string): string[] {
+  const line = openerInner(page, /<p\b(?=[^>]*\sid="help-no-results")(?=[^>]*\shidden(?=[\s>]))[^>]*>/);
+  return line !== null && hasLangPair(line.inner) ? [] : ['no <p id="help-no-results" hidden> with one en and one pl element'];
+}
+
+/** Every `<pre` in the page and every `<code` inside `id="cheat-sheet"` carries `data-copy`. */
+function copyMarkerViolations(page: string): string[] {
+  const unmarked = (text: string, tag: string): string[] =>
+    [...text.matchAll(new RegExp(`<${tag}\\b[^>]*>`, "g"))].filter((m) => !/\sdata-copy(?=[\s=>])/.test(m[0])).map((m) => m[0]);
+  return [...unmarked(page, "pre"), ...unmarked(elementInner(page, "cheat-sheet") ?? "", "code")].map((tag) => `${tag} lacks data-copy`);
+}
+
+/** The script reads and writes `viber-usage-lang`, naming it only inside a `try` block. */
+function languageStorageViolations(page: string): string[] {
+  const script = scriptText(page);
+  const guarded = [...script.matchAll(/\btry\s*\{/g)].map((m) => braceBlock(script, m.index ?? 0));
+  const violations = [...script.matchAll(/viber-usage-lang/g)]
+    .filter((m) => !guarded.some((block) => (m.index ?? 0) >= block.start && (m.index ?? 0) < block.end))
+    .map((m) => `script offset ${m.index}: viber-usage-lang named outside a try block`);
+  if (!/getItem\(\s*['"]viber-usage-lang['"]/.test(script)) violations.push("the script never reads viber-usage-lang");
+  if (!/setItem\(\s*['"]viber-usage-lang['"]/.test(script)) violations.push("the script never writes viber-usage-lang");
+  return violations;
+}
+
+/** Every `<h2` and `<h3` inside `<main>` has an id and holds `<a class="self" href="#<that id>">`. */
+function selfLinkViolations(page: string): string[] {
+  const main = openerInner(page, /<main\b[^>]*>/)?.inner ?? "";
+  return [...main.matchAll(/<(h2|h3)\b[^>]*>/g)].flatMap((m) => {
+    const id = /\sid="([^"]*)"/.exec(m[0])?.[1];
+    if (id === undefined) return [`${m[0]} has no id`];
+    const self = new RegExp(`<a\\b(?=[^>]*\\sclass="self")(?=[^>]*\\shref="#${escapeRegExp(id)}")`);
+    return self.test(balancedInner(main, m.index ?? 0, m[1])) ? [] : [`${m[0]} lacks <a class="self" href="#${id}">`];
+  });
+}
+
+/** `<details class="toc-narrow">` links to exactly the ids `<nav class="toc">` links to. */
+function narrowTocViolations(page: string): string[] {
+  const wide = openerInner(page, /<nav\b[^>]*\sclass="toc"[^>]*>/);
+  const narrow = openerInner(page, /<details\b[^>]*\sclass="toc-narrow"[^>]*>/);
+  if (wide === null || narrow === null) return ['no <nav class="toc"> beside a <details class="toc-narrow">'];
+  const [wideSet, narrowSet] = [hrefSet(wide.inner), hrefSet(narrow.inner)];
+  return JSON.stringify(wideSet) === JSON.stringify(narrowSet)
+    ? []
+    : [`the narrow table of contents links to ${narrowSet.join(", ")}, the wide one to ${wideSet.join(", ")}`];
+}
+
+/** An `@media print` block hides `.toc`, `.toc-narrow` and `.search` with `display: none`. */
+function printViolations(page: string): string[] {
+  const style = styleText(page);
+  const at = style.search(/@media\s+print\b/);
+  if (at < 0) return ["no @media print block"];
+  const block = braceBlock(style, at);
+  const hidden = [...style.slice(block.start, block.end).matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter((m) => /display\s*:\s*none/.test(m[2]))
+    .flatMap((m) => m[1].split(",").map((selector) => selector.trim()));
+  return [".toc", ".toc-narrow", ".search"].filter((s) => !hidden.includes(s)).map((s) => `@media print does not hide ${s}`);
+}
+
+const SCRIPT_HOOKS = ["help-search", "data-search", "help-no-results", "data-copy", "beforeprint"];
+
+/** The inline script's own text names every hook the markup carries. */
+function scriptHookViolations(page: string): string[] {
+  const script = scriptText(page);
+  return SCRIPT_HOOKS.filter((hook) => !script.includes(hook)).map((hook) => `the script never names ${hook}`);
+}
+
+// ---------------------------------------------------------------------------
 // Self-checks - synthetic samples, no filesystem
 // ---------------------------------------------------------------------------
 
@@ -336,6 +479,92 @@ for (const [name, body] of [
   });
 }
 
+/** A page carrying every C2 hook; each bad sample below breaks exactly one of them. */
+const NAV_LINKS = '<ol><li><a href="#one">One</a></li></ol>';
+const HOOKED = `<!doctype html>
+<html lang="en">
+<head>
+<script>
+  try { lang = localStorage.getItem('viber-usage-lang'); } catch (e) {}
+</script>
+<style>
+  @media print {
+    .toc, .toc-narrow, .search { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main"><span lang="en">Skip</span><span lang="pl">Pomiń</span></a>
+<nav class="toc">${NAV_LINKS}</nav>
+<main id="main">
+<div class="search" hidden><label for="help-search"><span lang="en">Search</span><span lang="pl">Szukaj</span></label><input type="search" id="help-search"></div>
+<p id="help-no-results" hidden><span lang="en">Nothing</span><span lang="pl">Nic</span></p>
+<details class="toc-narrow"><summary>Contents</summary>${NAV_LINKS}</details>
+<section id="one" data-search>
+<h2 id="one-title">One <a class="self" href="#one-title">#</a></h2>
+<h3 id="one-sub">Sub <a class="self" href="#one-sub">#</a></h3>
+<pre data-copy>claude plugin install viber@p2p2</pre>
+</section>
+<section id="cheat-sheet" data-search><a href="#one"><code data-copy>/viber:setup</code></a></section>
+</main>
+<script>
+  // help-search data-search help-no-results data-copy
+  window.addEventListener('beforeprint', openAll);
+  try { localStorage.setItem('viber-usage-lang', lang); } catch (e) {}
+</script>
+</body>
+</html>
+`;
+
+const NAV_RULES: [string, (page: string) => string[]][] = [
+  ["skipLinkViolations", skipLinkViolations],
+  ["searchFieldViolations", searchFieldViolations],
+  ["searchMarkerViolations", searchMarkerViolations],
+  ["noResultsViolations", noResultsViolations],
+  ["copyMarkerViolations", copyMarkerViolations],
+  ["languageStorageViolations", languageStorageViolations],
+  ["selfLinkViolations", selfLinkViolations],
+  ["narrowTocViolations", narrowTocViolations],
+  ["printViolations", printViolations],
+  ["scriptHookViolations", scriptHookViolations],
+];
+
+for (const [name, rule] of NAV_RULES) {
+  test(`self-check: ${name} stays quiet on a page carrying every navigation hook`, () => {
+    assert.deepEqual(rule(HOOKED), []);
+  });
+}
+
+for (const [name, rule, from, to] of [
+  ["main without id=\"main\"", skipLinkViolations, '<main id="main">', "<main>"],
+  ["a skip link pointing elsewhere", skipLinkViolations, '<a class="skip" href="#main">', '<a class="skip" href="#one">'],
+  ["a button before the skip link", skipLinkViolations, '<body>\n<a class="skip"', '<body>\n<button>x</button>\n<a class="skip"'],
+  ["a search container shown without the script", searchFieldViolations, '<div class="search" hidden>', '<div class="search">'],
+  ["a search field with another id", searchFieldViolations, 'id="help-search">', 'id="find">'],
+  ["a search label missing its pl element", searchFieldViolations, '<span lang="pl">Szukaj</span>', ""],
+  ["a section without data-search", searchMarkerViolations, '<section id="cheat-sheet" data-search>', '<section id="cheat-sheet">'],
+  ["a no-results line missing its pl element", noResultsViolations, '<span lang="pl">Nic</span>', ""],
+  ["a no-results line shown without the script", noResultsViolations, '<p id="help-no-results" hidden>', '<p id="help-no-results">'],
+  ["a pre without data-copy", copyMarkerViolations, "<pre data-copy>", "<pre>"],
+  ["a cheat-sheet command without data-copy", copyMarkerViolations, "<code data-copy>", "<code>"],
+  ["the language read outside a try block", languageStorageViolations, "try { lang = localStorage.getItem('viber-usage-lang'); } catch (e) {}", "lang = localStorage.getItem('viber-usage-lang');"],
+  ["the language never written", languageStorageViolations, "  try { localStorage.setItem('viber-usage-lang', lang); } catch (e) {}\n", ""],
+  ["an h2 without an id", selfLinkViolations, '<h2 id="one-title">', "<h2>"],
+  ["an h3 self-link pointing elsewhere", selfLinkViolations, 'href="#one-sub"', 'href="#one"'],
+  ["a narrow table of contents with other links", narrowTocViolations, `${NAV_LINKS}</details>`, '<ol><li><a href="#two">Two</a></li></ol></details>'],
+  ["no narrow table of contents", narrowTocViolations, '<details class="toc-narrow">', "<details>"],
+  ["a print block leaving the narrow table of contents", printViolations, ".toc, .toc-narrow, .search {", ".toc, .search {"],
+  ["a print block hiding the search without display: none", printViolations, ".toc, .toc-narrow, .search { display: none !important; }", ".toc, .toc-narrow { display: none !important; }\n    .search { visibility: hidden; }"],
+  ["a script not naming data-copy", scriptHookViolations, "help-no-results data-copy", "help-no-results"],
+  ["a script not listening for beforeprint", scriptHookViolations, "'beforeprint'", "'afterprint'"],
+] as const) {
+  test(`self-check: ${rule.name} fires on ${name}`, () => {
+    const page = HOOKED.replace(from, to);
+
+    assert.equal(rule(page).length, 1);
+  });
+}
+
 // ---------------------------------------------------------------------------
 // The real page against the real sources
 // ---------------------------------------------------------------------------
@@ -359,6 +588,16 @@ for (const [name, violations] of [
   ["holds no em dash and no en dash", () => dashViolations(PAGE)],
   ["loads no external script, stylesheet or resource", () => externalLoadViolations(PAGE)],
   ["gives every task guide class=\"guide\" alone", () => guideClassViolations(PAGE)],
+  ["opens on a skip link to <main id=\"main\">", () => skipLinkViolations(PAGE)],
+  ["hides the labelled search field until the script reveals it", () => searchFieldViolations(PAGE)],
+  ["marks every section searchable", () => searchMarkerViolations(PAGE)],
+  ["carries a hidden no-results line in both languages", () => noResultsViolations(PAGE)],
+  ["marks every pre block and cheat-sheet command for copying", () => copyMarkerViolations(PAGE)],
+  ["reads and writes the language choice only inside try", () => languageStorageViolations(PAGE)],
+  ["gives every h2 and h3 a self-link to its own id", () => selfLinkViolations(PAGE)],
+  ["folds a narrow table of contents holding the wide one's links", () => narrowTocViolations(PAGE)],
+  ["hides the navigation in print", () => printViolations(PAGE)],
+  ["has a script naming every navigation hook", () => scriptHookViolations(PAGE)],
 ] as const) {
   test(`the help page ${name}`, () => {
     assert.deepEqual(violations(), []);

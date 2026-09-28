@@ -88,6 +88,69 @@
     padding: 40px 16px 96px;
   }
   .toc { display: none; }
+  [hidden] { display: none !important; }
+
+  /* Navigation aids: skip link, search, folding contents, self-links, copy buttons */
+  .skip {
+    position: absolute;
+    left: 16px;
+    top: -64px;
+    z-index: 10;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: var(--term);
+    color: var(--bg);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .skip:focus { top: 16px; }
+  .search { margin: 0 0 16px; }
+  .search label {
+    display: block;
+    margin: 0 0 6px;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .search input {
+    width: 100%;
+    max-width: 28rem;
+    padding: 10px 14px;
+    border: 1px solid var(--rule-strong);
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+  }
+  #help-no-results { color: var(--muted); }
+  .toc-narrow { margin: 0 0 32px; }
+  .toc-narrow ol { margin: 0 0 12px; padding-left: 1.25em; }
+  .toc-narrow li { padding: 3px 0; }
+  h2, h3 { scroll-margin-top: 24px; }
+  .self {
+    margin-left: 8px;
+    color: var(--muted);
+    font-weight: 400;
+    text-decoration: none;
+  }
+  @media (hover: hover) {
+    .self { opacity: 0; transition: opacity 160ms ease-out; }
+    h2:hover .self, h3:hover .self, .self:focus-visible { opacity: 1; }
+  }
+  .copy-wrap { position: relative; }
+  .copy-wrap > pre { padding-right: 88px; }
+  .copy-wrap > .copy { position: absolute; top: 8px; right: 8px; }
+  .copy {
+    margin-left: 6px;
+    padding: 3px 9px;
+    border: 1px solid var(--rule-strong);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--muted);
+    font: 500 12px/1.3 var(--sans);
+    cursor: pointer;
+  }
+  .copy:hover { color: var(--text); border-color: var(--term); }
 
   /* Two languages: every translatable piece is written twice, once per lang */
   :root[data-lang="en"] body [lang="pl"],
@@ -509,6 +572,7 @@
     }
     .toc a:hover { color: var(--text); }
     .toc a[aria-current="true"] { color: var(--term); border-left-color: var(--term); font-weight: 600; }
+    .toc-narrow { display: none; }
   }
 
   @media (min-width: 1440px) {
@@ -522,9 +586,17 @@
     dl > div { grid-template-columns: 16rem 1fr; gap: 40px; }
     dt code { font-size: 16px; }
   }
+
+  @media print {
+    .toc, .toc-narrow, .search, .skip, .self, .copy, .lang-switch { display: none !important; }
+    .shell { max-width: none; padding: 0; }
+    pre { white-space: pre-wrap; }
+    h2, h3 { break-after: avoid; }
+  }
 </style>
 </head>
 <body>
+<a class="skip" href="#main"><span lang="en">Skip to content</span><span lang="pl">Przejdź do treści</span></a>
 <div class="layout">
 <nav class="toc" aria-label="On this page">
   <ol>
@@ -540,7 +612,7 @@
   </ol>
 </nav>
 
-<main class="shell">
+<main class="shell" id="main">
 <header>
   <div class="masthead">
     <span class="brand"><span lang="en">Claude Code plugin</span><span lang="pl">Wtyczka do Claude Code</span></span>
@@ -562,17 +634,38 @@
   zbuduj, zapamiętaj. Nic nie powstaje, zanim nie zatwierdzisz <a href="#term-plan">planu</a>.</p>
 </header>
 
-<section id="getting-started">
-<h2><span lang="en">Getting started</span><span lang="pl">Pierwsze kroki</span></h2>
+<div class="search" hidden>
+  <label for="help-search"><span lang="en">Search this page</span><span lang="pl">Szukaj na tej stronie</span></label>
+  <input type="search" id="help-search" autocomplete="off" spellcheck="false">
+</div>
+<p id="help-no-results" hidden><span lang="en">No section matches your search.</span><span lang="pl">Żadna sekcja nie pasuje do wyszukiwania.</span></p>
+
+<details class="toc-narrow">
+  <summary><span lang="en">On this page</span><span lang="pl">Na tej stronie</span></summary>
+  <ol>
+    <li><a href="#getting-started"><span lang="en">Getting started</span><span lang="pl">Pierwsze kroki</span></a></li>
+    <li><a href="#cheat-sheet"><span lang="en">Commands</span><span lang="pl">Polecenia</span></a></li>
+    <li><a href="#guides"><span lang="en">Task guides</span><span lang="pl">Poradniki</span></a></li>
+    <li><a href="#how-it-works"><span lang="en">How viber works</span><span lang="pl">Jak działa viber</span></a></li>
+    <li><a href="#troubleshooting"><span lang="en">Troubleshooting</span><span lang="pl">Gdy coś nie działa</span></a></li>
+    <li><a href="#glossary"><span lang="en">Glossary</span><span lang="pl">Słowniczek</span></a></li>
+    <li><a href="#ref-skills"><span lang="en">Skills</span><span lang="pl">Skille</span></a></li>
+    <li><a href="#ref-agents"><span lang="en">Agents</span><span lang="pl">Agenci</span></a></li>
+    <li><a href="#ref-config"><span lang="en">Configuration</span><span lang="pl">Konfiguracja</span></a></li>
+  </ol>
+</details>
+
+<section data-search id="getting-started">
+<h2 id="getting-started-title"><span lang="en">Getting started</span><span lang="pl">Pierwsze kroki</span><a class="self" href="#getting-started-title">#</a></h2>
 <p lang="en">Four things, in this order: install the plugin, prepare the project, tell viber how your project
 builds and tests, then take one change from idea to commit.</p>
 <p lang="pl">Cztery rzeczy, w tej kolejności: zainstaluj wtyczkę, przygotuj projekt, powiedz viber, jak twój
 projekt się buduje i testuje, a potem przeprowadź jedną zmianę od pomysłu do commita.</p>
 
-<h3 class="sub" id="gs-install"><span lang="en">1. Install</span><span lang="pl">1. Instalacja</span></h3>
+<h3 class="sub" id="gs-install"><span lang="en">1. Install</span><span lang="pl">1. Instalacja</span><a class="self" href="#gs-install">#</a></h3>
 <p lang="en">From a terminal, once for your user account:</p>
 <p lang="pl">W terminalu, raz dla twojego konta użytkownika:</p>
-<pre class="snippet">claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
+<pre class="snippet" data-copy>claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
 claude plugin install viber@p2p2 --scope user</pre>
 <p lang="en">Drop <code>--scope user</code> to install for the current repository only. Inside a running session,
 <code>/plugin marketplace add https://github.com/p2p2sp/p2p2.claude</code> followed by
@@ -589,7 +682,7 @@ na GitHubie, <code>node</code> do scalania ustawień w <code>/viber:setup</code>
 <code>node</code> scalanie z istniejącym plikiem ustawień zostaje pominięte i wypisany jest zalecany blok.
 Bez Playwrighta <code>/viber:e2e</code> proponuje jego instalację albo kończy pracę.</p>
 
-<h3 class="sub" id="gs-setup"><span lang="en">2. Prepare the project</span><span lang="pl">2. Przygotowanie projektu</span></h3>
+<h3 class="sub" id="gs-setup"><span lang="en">2. Prepare the project</span><span lang="pl">2. Przygotowanie projektu</span><a class="self" href="#gs-setup">#</a></h3>
 <p lang="en">Open Claude Code in your project and run <a href="#skill-setup"><code>/viber:setup</code></a>. It writes the
 <a href="#term-switch">switches</a> to <code>.claude/viber.yml</code>, puts the recommended permissions into <code>.claude/settings.json</code>
 (asking first whether to merge or reset when that file exists), adds <code>.temp/</code> to
@@ -603,7 +696,7 @@ Zapisuje <a href="#term-switch">przełączniki</a> w <code>.claude/viber.yml</co
 zainstalowane <code>gh</code>, i otwiera tę stronę. Uruchom go ponownie po każdej aktualizacji wtyczki:
 dopisze klucze, które przynosi nowa wersja, i zachowa każdą ustawioną przez ciebie wartość.</p>
 
-<h3 class="sub" id="gs-claude-md"><span lang="en">3. What <code>CLAUDE.md</code> must state</span><span lang="pl">3. Co musi podawać <code>CLAUDE.md</code></span></h3>
+<h3 class="sub" id="gs-claude-md"><span lang="en">3. What <code>CLAUDE.md</code> must state</span><span lang="pl">3. Co musi podawać <code>CLAUDE.md</code></span><a class="self" href="#gs-claude-md">#</a></h3>
 <p lang="en">viber knows nothing about your stack. Every <a href="#term-agent">agent</a> takes the build and test commands from this
 project's own instructions, so without them <a href="#agent-test-runner"><code>test-runner</code></a> guesses
 from whatever manifest it finds, and a <a href="#term-task">task</a> can be committed on a suite that never ran.</p>
@@ -628,7 +721,7 @@ podaje:</p>
   jak uruchomić aplikację, jakich zmiennych środowiskowych potrzeba, jak wykonać migracje.</span></li>
 </ul>
 
-<h3 class="sub" id="gs-first-change"><span lang="en">4. One change, from idea to commit</span><span lang="pl">4. Jedna zmiana, od pomysłu do commita</span></h3>
+<h3 class="sub" id="gs-first-change"><span lang="en">4. One change, from idea to commit</span><span lang="pl">4. Jedna zmiana, od pomysłu do commita</span><a class="self" href="#gs-first-change">#</a></h3>
 <ol class="walk">
   <li>
     <p class="say" lang="en"><code>/viber:intent add CSV export to the reports page</code></p>
@@ -684,65 +777,65 @@ in place of the interview.</p>
 <a href="#skill-fixer"><code>/viber:fixer</code></a> zamiast od wywiadu.</p>
 </section>
 
-<section id="cheat-sheet">
-<h2><span lang="en">Commands</span><span lang="pl">Polecenia</span></h2>
+<section data-search id="cheat-sheet">
+<h2 id="cheat-sheet-title"><span lang="en">Commands</span><span lang="pl">Polecenia</span><a class="self" href="#cheat-sheet-title">#</a></h2>
 <p lang="en">Every command you can type. Each name leads to its full card in the reference.</p>
 <p lang="pl">Wszystkie polecenia, które możesz wpisać. Każda nazwa prowadzi do pełnej karty w dokumentacji.</p>
 <dl class="cheat">
   <div>
-    <dt><a href="#skill-setup"><code>/viber:setup</code></a></dt>
+    <dt><a href="#skill-setup"><code data-copy>/viber:setup</code></a></dt>
     <dd><span lang="en">Once per project, and again after each plugin update: switches, permissions, ignore
     rule.</span><span lang="pl">Raz na projekt i ponownie po każdej aktualizacji wtyczki: przełączniki,
     uprawnienia, reguła ignorowania.</span></dd>
   </div>
   <div>
-    <dt><a href="#skill-intent"><code>/viber:intent</code></a></dt>
+    <dt><a href="#skill-intent"><code data-copy>/viber:intent</code></a></dt>
     <dd><span lang="en">The planning interview that starts a planned change.</span><span lang="pl">Wywiad
     planistyczny, od którego zaczyna się planowana zmiana.</span></dd>
   </div>
   <div>
-    <dt><a href="#skill-fixer"><code>/viber:fixer</code></a></dt>
+    <dt><a href="#skill-fixer"><code data-copy>/viber:fixer</code></a></dt>
     <dd><span lang="en">Traces a bug to its root cause, proves it with a failing test and hands it to the
     planner.</span><span lang="pl">Śledzi błąd aż do przyczyny, udowadnia ją testem, który nie przechodzi,
     i przekazuje planiście.</span></dd>
   </div>
   <div>
-    <dt><a href="#skill-triage"><code>/viber:triage</code></a></dt>
+    <dt><a href="#skill-triage"><code data-copy>/viber:triage</code></a></dt>
     <dd><span lang="en">Checks one issue against your code and names the next step.</span><span lang="pl">Sprawdza
     jedno issue względem kodu i wskazuje następny krok.</span></dd>
   </div>
   <div>
-    <dt><a href="#skill-prototype"><code>/viber:prototype</code></a></dt>
+    <dt><a href="#skill-prototype"><code data-copy>/viber:prototype</code></a></dt>
     <dd><span lang="en">A UI change as one working HTML mockup, or three to choose from.</span><span lang="pl">Zmiana
     w UI jako jedna działająca makieta HTML albo trzy do wyboru.</span></dd>
   </div>
   <div>
-    <dt><a href="#skill-e2e"><code>/viber:e2e</code></a></dt>
+    <dt><a href="#skill-e2e"><code data-copy>/viber:e2e</code></a></dt>
     <dd><span lang="en">Turns a build's <a href="#term-qa">QA scenarios</a> into Playwright tests.</span><span lang="pl">Zamienia
     <a href="#term-qa">scenariusze QA</a> z buildu w testy Playwright.</span></dd>
   </div>
   <div>
-    <dt><a href="#skill-memory"><code>/viber:memory</code></a></dt>
+    <dt><a href="#skill-memory"><code data-copy>/viber:memory</code></a></dt>
     <dd><span lang="en">Reviews or extends the project's CLAUDE.md files.</span><span lang="pl">Przegląda albo
     rozbudowuje pliki CLAUDE.md projektu.</span></dd>
   </div>
   <div>
-    <dt><a href="#skill-rules"><code>/viber:rules</code></a></dt>
+    <dt><a href="#skill-rules"><code data-copy>/viber:rules</code></a></dt>
     <dd><span lang="en">Reviews or extends the project's .claude/rules/.</span><span lang="pl">Przegląda albo
     rozbudowuje .claude/rules/ projektu.</span></dd>
   </div>
   <div>
-    <dt><a href="#skill-handoff"><code>/viber:handoff</code></a></dt>
+    <dt><a href="#skill-handoff"><code data-copy>/viber:handoff</code></a></dt>
     <dd><span lang="en">Saves the conversation as one file a fresh session picks up from.</span><span lang="pl">Zapisuje
     rozmowę w jednym pliku, od którego nowa sesja podejmie pracę.</span></dd>
   </div>
   <div>
-    <dt><a href="#skill-commit"><code>/viber:commit</code></a></dt>
+    <dt><a href="#skill-commit"><code data-copy>/viber:commit</code></a></dt>
     <dd><span lang="en">Commits work done outside a build. Saying <q>commit</q> works too.</span><span lang="pl">Commituje
     pracę wykonaną poza buildem. Wystarczy też powiedzieć <q>zacommituj</q>.</span></dd>
   </div>
   <div>
-    <dt><a href="#skill-help"><code>/viber:help</code></a></dt>
+    <dt><a href="#skill-help"><code data-copy>/viber:help</code></a></dt>
     <dd><span lang="en">Opens this page.</span><span lang="pl">Otwiera tę stronę.</span></dd>
   </div>
 </dl>
@@ -754,8 +847,8 @@ wywiad albo diagnoza przekaże mu pracę, <a href="#skill-implementor">implement
 o zbudowanie zatwierdzonego planu, a <a href="#skill-tdd">tdd</a> działa wewnątrz buildu.</p>
 </section>
 
-<section id="guides">
-<h2><span lang="en">Task guides</span><span lang="pl">Poradniki</span></h2>
+<section data-search id="guides">
+<h2 id="guides-title"><span lang="en">Task guides</span><span lang="pl">Poradniki</span><a class="self" href="#guides-title">#</a></h2>
 <p lang="en">One guide per job. Each shows what you type, what viber does and what is left afterwards. Less
 common cases sit folded under the example.</p>
 <p lang="pl">Każdy poradnik dotyczy jednej sprawy i pokazuje, co wpisujesz, co robi viber i co zostaje
@@ -772,8 +865,8 @@ potem. Rzadsze przypadki są zwinięte pod przykładem.</p>
   <li><a href="#guide-memory"><span lang="en">Refresh project memory and rules</span><span lang="pl">Odśwież pamięć i reguły projektu</span></a></li>
 </ul>
 
-<section class="guide" id="guide-feature">
-<h3 class="sub" id="guide-feature-title"><span lang="en">Add a feature</span><span lang="pl">Dodaj funkcję</span></h3>
+<section class="guide" data-search id="guide-feature">
+<h3 class="sub" id="guide-feature-title"><span lang="en">Add a feature</span><span lang="pl">Dodaj funkcję</span><a class="self" href="#guide-feature-title">#</a></h3>
 <p lang="en">For a change that needs a plan. A small change you want made right away needs none: ask Claude
 for it directly and say you want it without a plan.</p>
 <p lang="pl">Dla zmiany, która potrzebuje planu. Mała zmiana, którą chcesz mieć od razu, planu nie wymaga:
@@ -837,8 +930,8 @@ poproś o nią Claude wprost i powiedz, że ma ją zrobić bez planu.</p>
 </details>
 </section>
 
-<section class="guide" id="guide-bug">
-<h3 class="sub" id="guide-bug-title"><span lang="en">Fix a bug</span><span lang="pl">Napraw błąd</span></h3>
+<section class="guide" data-search id="guide-bug">
+<h3 class="sub" id="guide-bug-title"><span lang="en">Fix a bug</span><span lang="pl">Napraw błąd</span><a class="self" href="#guide-bug-title">#</a></h3>
 <p lang="en">Start here when something works wrong and you want it fixed through a plan. The cause is proven
 before any fix is written.</p>
 <p lang="pl">Zacznij tutaj, gdy coś działa źle i chcesz to naprawić przez plan. Przyczyna zostaje
@@ -888,8 +981,8 @@ udowodniona, zanim powstanie jakakolwiek poprawka.</p>
 </details>
 </section>
 
-<section class="guide" id="guide-issue">
-<h3 class="sub" id="guide-issue-title"><span lang="en">Start from a GitHub issue</span><span lang="pl">Zacznij od issue na GitHubie</span></h3>
+<section class="guide" data-search id="guide-issue">
+<h3 class="sub" id="guide-issue-title"><span lang="en">Start from a GitHub issue</span><span lang="pl">Zacznij od issue na GitHubie</span><a class="self" href="#guide-issue-title">#</a></h3>
 <p lang="en">Set <a href="#key-issues"><code>issues</code></a> to <code>true</code> in <code>.claude/viber.yml</code>
 first (the template ships it off) and install the GitHub CLI (<code>gh</code>). With the switch off,
 <code>/viber:triage</code> assesses pasted issue text only.</p>
@@ -943,7 +1036,7 @@ wyłączonym przełączniku <code>/viber:triage</code> ocenia tylko wklejony tek
   the issue once pushed.</span><span lang="pl">Każdy commit buildu kończy się linią <code>Refs: #42</code>,
   więc po wypchnięciu GitHub pokazuje każdy z nich w issue.</span></li>
 </ol>
-<pre class="commit"><b>T3 - Add the issue creator</b>
+<pre class="commit" data-copy><b>T3 - Add the issue creator</b>
 
 Refs: docs/_specs/&lt;run&gt;/plan.md task T3
 <span class="ref">Refs: #42</span></pre>
@@ -958,8 +1051,8 @@ przyjmuje załącznik HTML.</p>
 </details>
 </section>
 
-<section class="guide" id="guide-mockup">
-<h3 class="sub" id="guide-mockup-title"><span lang="en">See a UI mockup first</span><span lang="pl">Najpierw zobacz makietę UI</span></h3>
+<section class="guide" data-search id="guide-mockup">
+<h3 class="sub" id="guide-mockup-title"><span lang="en">See a UI mockup first</span><span lang="pl">Najpierw zobacz makietę UI</span><a class="self" href="#guide-mockup-title">#</a></h3>
 <p lang="en">For a UI change you want to see before it is planned. The mockup is a single HTML file in your
 project's own look, and your code stays untouched.</p>
 <p lang="pl">Dla zmiany w UI, którą chcesz zobaczyć, zanim powstanie plan. Makieta to jeden plik HTML
@@ -1012,8 +1105,8 @@ w wyglądzie twojego projektu, a twój kod zostaje nietknięty.</p>
 </details>
 </section>
 
-<section class="guide" id="guide-resume">
-<h3 class="sub" id="guide-resume-title"><span lang="en">Resume a stopped build</span><span lang="pl">Wznów przerwany build</span></h3>
+<section class="guide" data-search id="guide-resume">
+<h3 class="sub" id="guide-resume-title"><span lang="en">Resume a stopped build</span><span lang="pl">Wznów przerwany build</span><a class="self" href="#guide-resume-title">#</a></h3>
 <p lang="en">A build keeps its progress in the run directory, committed with every task, so it resumes in a
 new session or on another machine.</p>
 <p lang="pl">Build trzyma postęp w katalogu przebiegu, commitowanym razem z każdym zadaniem, więc da się go
@@ -1063,8 +1156,8 @@ wznowić w nowej sesji albo na innym komputerze.</p>
 </details>
 </section>
 
-<section class="guide" id="guide-commit">
-<h3 class="sub" id="guide-commit-title"><span lang="en">Commit</span><span lang="pl">Zacommituj zmiany</span></h3>
+<section class="guide" data-search id="guide-commit">
+<h3 class="sub" id="guide-commit-title"><span lang="en">Commit</span><span lang="pl">Zacommituj zmiany</span><a class="self" href="#guide-commit-title">#</a></h3>
 <p lang="en">A build commits each task itself. This is for work done outside a build.</p>
 <p lang="pl">Build sam commituje każde zadanie. To jest sposób na pracę wykonaną poza buildem.</p>
 <ol class="steps">
@@ -1103,8 +1196,8 @@ wznowić w nowej sesji albo na innym komputerze.</p>
 </details>
 </section>
 
-<section class="guide" id="guide-session">
-<h3 class="sub" id="guide-session-title"><span lang="en">Continue in a new session</span><span lang="pl">Kontynuuj w nowej sesji</span></h3>
+<section class="guide" data-search id="guide-session">
+<h3 class="sub" id="guide-session-title"><span lang="en">Continue in a new session</span><span lang="pl">Kontynuuj w nowej sesji</span><a class="self" href="#guide-session-title">#</a></h3>
 <p lang="en">When a conversation grows long or you stop for the day, save it for a fresh session.</p>
 <p lang="pl">Gdy rozmowa robi się długa albo kończysz na dziś, zapisz ją dla nowej sesji.</p>
 <ol class="steps">
@@ -1154,8 +1247,8 @@ wznowić w nowej sesji albo na innym komputerze.</p>
 </details>
 </section>
 
-<section class="guide" id="guide-e2e">
-<h3 class="sub" id="guide-e2e-title"><span lang="en">Get end-to-end tests</span><span lang="pl">Dodaj testy end-to-end</span></h3>
+<section class="guide" data-search id="guide-e2e">
+<h3 class="sub" id="guide-e2e-title"><span lang="en">Get end-to-end tests</span><span lang="pl">Dodaj testy end-to-end</span><a class="self" href="#guide-e2e-title">#</a></h3>
 <p lang="en">A build never writes or runs end-to-end tests unless you ask. Turn
 <a href="#key-qa"><code>qa</code></a> on before the build starts: when the change touches the UI or the
 endpoints, its close then writes <code>qa.e2e.md</code>, the handoff this command reads, plus <code>qa.md</code>,
@@ -1211,8 +1304,8 @@ zmienił się interfejs, także <code>qa.md</code>, scenariusze do wykonania prz
 </details>
 </section>
 
-<section class="guide" id="guide-memory">
-<h3 class="sub" id="guide-memory-title"><span lang="en">Refresh project memory and rules</span><span lang="pl">Odśwież pamięć i reguły projektu</span></h3>
+<section class="guide" data-search id="guide-memory">
+<h3 class="sub" id="guide-memory-title"><span lang="en">Refresh project memory and rules</span><span lang="pl">Odśwież pamięć i reguły projektu</span><a class="self" href="#guide-memory-title">#</a></h3>
 <p lang="en">With <a href="#key-memory"><code>memory</code></a> and <a href="#key-rules"><code>rules</code></a> on,
 every build updates these files at its close. Between builds, and after changes made outside viber, the
 files can drift from the code.</p>
@@ -1267,10 +1360,10 @@ mogą rozjechać się z kodem.</p>
 </section>
 </section>
 
-<section id="how-it-works">
-<h2><span lang="en">How viber works</span><span lang="pl">Jak działa viber</span></h2>
+<section data-search id="how-it-works">
+<h2 id="how-it-works-title"><span lang="en">How viber works</span><span lang="pl">Jak działa viber</span><a class="self" href="#how-it-works-title">#</a></h2>
 
-<h3 class="sub" id="hw-plan-first"><span lang="en">Plan before code</span><span lang="pl">Najpierw plan, potem kod</span></h3>
+<h3 class="sub" id="hw-plan-first"><span lang="en">Plan before code</span><span lang="pl">Najpierw plan, potem kod</span><a class="self" href="#hw-plan-first">#</a></h3>
 <p lang="en">While viber is installed, Claude writes or edits no code before you approve a plan. The plan names
 the acceptance criteria, the files it touches and the tasks, and a review agent checks it against your code
 before you see it, so a wrong assumption shows up before any code depends on it. For a change you want made
@@ -1283,7 +1376,7 @@ Jeśli chcesz zmianę od razu, powiedz to wprost: wyraźna prośba o bezpośredn
 dopuszczalny przed planem to nieprzechodzący test, którym <a href="#skill-fixer"><code>fixer</code></a>
 udowadnia błąd.</p>
 
-<h3 class="sub" id="hw-gate"><span lang="en">The plan-mode gate</span><span lang="pl">Bramka trybu planowania</span></h3>
+<h3 class="sub" id="hw-gate"><span lang="en">The plan-mode gate</span><span lang="pl">Bramka trybu planowania</span><a class="self" href="#hw-gate">#</a></h3>
 <p lang="en">The <a href="#term-plan-gate">plan gate</a> is a hook that holds Claude inside plan mode until a
 review agent has passed the latest version of the plan. A plan the planner wrote goes to
 <a href="#agent-planner-review"><code>planner-review</code></a>. A plan written in plain plan mode goes to
@@ -1301,7 +1394,7 @@ unieważnia, więc przed wyjściem z trybu planowania plan przechodzi recenzję 
 wyjście, Claude dostaje opis następnego kroku (uruchom recenzję, popraw uwagi albo nadaj uprawnienie, którego
 odmówiono recenzentowi), a komunikat mówi, że pochodzi od bramki i nie jest błędem.</p>
 
-<h3 class="sub" id="hw-run"><span lang="en">The run directory and its archive</span><span lang="pl">Katalog przebiegu i archiwum</span></h3>
+<h3 class="sub" id="hw-run"><span lang="en">The run directory and its archive</span><span lang="pl">Katalog przebiegu i archiwum</span><a class="self" href="#hw-run">#</a></h3>
 <p lang="en">A build copies the approved plan into its own directory,
 <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code>, and cuts it there into <code>spec.md</code>, the
 specification, and one file per task under <code>tasks/</code>. <code>status.md</code> records which tasks are
@@ -1324,7 +1417,7 @@ i <code>work/</code>, które nadal są w historii gita. Przebieg z zadaniem ani 
 nie trafia do archiwum. Nazwy obu katalogów zmienisz kluczem
 <a href="#key-directories"><code>directories</code></a>.</p>
 
-<h3 class="sub" id="hw-tasks"><span lang="en">Tasks, review and one commit each</span><span lang="pl">Zadania, recenzja i osobny commit</span></h3>
+<h3 class="sub" id="hw-tasks"><span lang="en">Tasks, review and one commit each</span><span lang="pl">Zadania, recenzja i osobny commit</span><a class="self" href="#hw-tasks">#</a></h3>
 <p lang="en">A task file is the whole input of its coder: the goal, the files it may touch, how to verify the work
 and its numbered <a href="#term-dod">definition of done</a>. The coder never sees the rest of the plan. Tasks
 whose dependencies are done run side by side, and a task marked exclusive runs alone.</p>
@@ -1353,7 +1446,7 @@ Commitują wyłącznie skrypty viber, nigdy agent. Po ostatnim zadaniu
 trzy razy, z rundą poprawek między jednym nieudanym uruchomieniem a kolejnym, zanim build zapyta cię, co
 dalej.</p>
 
-<h3 class="sub" id="hw-models"><span lang="en">The model range</span><span lang="pl">Zakres modeli</span></h3>
+<h3 class="sub" id="hw-models"><span lang="en">The model range</span><span lang="pl">Zakres modeli</span><a class="self" href="#hw-models">#</a></h3>
 <p lang="en">The build gives every task a tier from its shape: haiku for mechanical work such as config, a
 rename or docs, sonnet for ordinary feature work, opus for a task the rest leans on, for example one whose
 contract three or more other tasks use. A reviewer runs on the task's tier, with haiku raised to sonnet. A
@@ -1368,7 +1461,7 @@ próbie idzie poziom wyżej. Klucz <a href="#key-tiers"><code>tiers</code></a> t
 <code>min</code> do <code>max</code>, domyślnie od haiku do opus, a fable działa tylko wtedy, gdy wskazuje go
 <code>max</code>. Planowanie działa na modelu twojej sesji.</p>
 
-<h3 class="sub" id="hw-close"><span lang="en">What the build close writes</span><span lang="pl">Co zapisuje zamknięcie buildu</span></h3>
+<h3 class="sub" id="hw-close"><span lang="en">What the build close writes</span><span lang="pl">Co zapisuje zamknięcie buildu</span><a class="self" href="#hw-close">#</a></h3>
 <p lang="en">Once the whole suite passes, or you accept its failure, the build runs the close parts your
 switches turn on:</p>
 <p lang="pl">Gdy cały zestaw testów przejdzie albo zaakceptujesz jego porażkę, build uruchamia te części
@@ -1406,8 +1499,8 @@ czas trwania, to, co zapisały pamięć, reguły i QA, ścieżka archiwum oraz w
 przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało się żadne zadanie.</p>
 </section>
 
-<section id="troubleshooting">
-<h2><span lang="en">Troubleshooting</span><span lang="pl">Gdy coś nie działa</span></h2>
+<section data-search id="troubleshooting">
+<h2 id="troubleshooting-title"><span lang="en">Troubleshooting</span><span lang="pl">Gdy coś nie działa</span><a class="self" href="#troubleshooting-title">#</a></h2>
 <div class="faq">
 <details id="ts-draft">
   <summary><span lang="en">Why does the build stop on my plan without building anything?</span><span lang="pl">Dlaczego build zatrzymuje się na moim planie i nic nie buduje?</span></summary>
@@ -1568,8 +1661,8 @@ przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało 
 </div>
 </section>
 
-<section id="glossary">
-<h2><span lang="en">Glossary</span><span lang="pl">Słowniczek</span></h2>
+<section data-search id="glossary">
+<h2 id="glossary-title"><span lang="en">Glossary</span><span lang="pl">Słowniczek</span><a class="self" href="#glossary-title">#</a></h2>
 <dl class="glossary">
   <div id="term-agent">
     <dt><span lang="en">agent</span><span lang="pl">agent</span></dt>
@@ -1702,15 +1795,15 @@ przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało 
 </dl>
 </section>
 
-<section id="reference">
-<h2><span lang="en">Reference</span><span lang="pl">Dokumentacja</span></h2>
+<section data-search id="reference">
+<h2 id="reference-title"><span lang="en">Reference</span><span lang="pl">Dokumentacja</span><a class="self" href="#reference-title">#</a></h2>
 <p lang="en">Everything viber ships, in one place: a card for each skill, the agents those skills send work
 to, and every key of <code>.claude/viber.yml</code>.</p>
 <p lang="pl">Wszystko, co zawiera viber, w jednym miejscu: karta każdego skilla, agenci, którym skille
 zlecają pracę, i każdy klucz pliku <code>.claude/viber.yml</code>.</p>
 
-<section id="ref-skills">
-<h3 class="sub"><span lang="en">Skills</span><span lang="pl">Skille</span></h3>
+<section data-search id="ref-skills">
+<h3 class="sub" id="ref-skills-title"><span lang="en">Skills</span><span lang="pl">Skille</span><a class="self" href="#ref-skills-title">#</a></h3>
 <p class="note" lang="en">A skill with a command starts when you type it. The three marked
 <q>starts on its own</q> have no command: Claude opens them at the right point of a run, and each card says how
 you steer it.</p>
@@ -2260,8 +2353,8 @@ z nich mówi, jak nim sterować.</p>
 </article>
 </section>
 
-<section id="ref-agents">
-<h3 class="sub"><span lang="en">Agents</span><span lang="pl">Agenci</span></h3>
+<section data-search id="ref-agents">
+<h3 class="sub" id="ref-agents-title"><span lang="en">Agents</span><span lang="pl">Agenci</span><a class="self" href="#ref-agents-title">#</a></h3>
 <p class="note" lang="en">Skills hand the heavy work to agents, each in its own context. You never start
 one yourself.</p>
 <p class="note" lang="pl">Skille zlecają cięższą pracę agentom, z których każdy działa we własnym
@@ -2351,8 +2444,8 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
 </ul>
 </section>
 
-<section id="ref-config">
-<h3 class="sub"><span lang="en">Configuration</span><span lang="pl">Konfiguracja</span> <code>.claude/viber.yml</code></h3>
+<section data-search id="ref-config">
+<h3 class="sub" id="ref-config-title"><span lang="en">Configuration</span><span lang="pl">Konfiguracja</span> <code>.claude/viber.yml</code><a class="self" href="#ref-config-title">#</a></h3>
 <dl>
   <div id="key-adr">
     <dt><code>adr</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
@@ -2522,13 +2615,13 @@ strategii nigdy nie jest wartością konfiguracji.</p>
 
 <h4 id="branching-examples"><span lang="en">Branching strategy examples</span><span lang="pl">Przykłady strategii gałęzi</span></h4>
 <h5><span lang="en">Trunk based development, branching off</span><span lang="pl">Trunk based development, gałęzie wyłączone</span></h5>
-<pre class="snippet">branching:
+<pre class="snippet" data-copy>branching:
   mode: off</pre>
 <p class="caption" lang="en">Every run keeps committing on whichever branch you already checked out.</p>
 <p class="caption" lang="pl">Każdy przebieg commituje na gałęzi, która jest już wybrana.</p>
 
 <h5><span lang="en">Trunk based development, short-lived branches</span><span lang="pl">Trunk based development, krótko żyjące gałęzie</span></h5>
-<pre class="snippet">branching:
+<pre class="snippet" data-copy>branching:
   mode: allowed
   work:
     main:
@@ -2541,7 +2634,7 @@ each run asks you to confirm its branch.</p>
 każdy przebieg prosi cię o potwierdzenie swojej gałęzi.</p>
 
 <h5><span lang="en">GitHub Flow</span><span lang="pl">GitHub Flow</span></h5>
-<pre class="snippet">branching:
+<pre class="snippet" data-copy>branching:
   mode: required
   work:
     main:
@@ -2557,7 +2650,7 @@ it closes, and lands back on <code>main</code> through a pull request.</p>
 issue, które zamyka, i wraca na <code>main</code> przez pull request.</p>
 
 <h5><span lang="en">GitLab Flow, environment branches</span><span lang="pl">GitLab Flow, gałęzie środowisk</span></h5>
-<pre class="snippet">branching:
+<pre class="snippet" data-copy>branching:
   mode: required
   work:
     feature:
@@ -2579,7 +2672,7 @@ produkcyjne jest wycinane wprost z długo żyjącej gałęzi <code>production</c
 przez gałęzie środowisk zostaje poza tym schematem.</p>
 
 <h5><span lang="en">GitLab Flow, release branches</span><span lang="pl">GitLab Flow, gałęzie wydań</span></h5>
-<pre class="snippet">branching:
+<pre class="snippet" data-copy>branching:
   mode: required
   work:
     feature:
@@ -2597,7 +2690,7 @@ Gałąź wydania nazywa się <code>release/&lt;wersja&gt;</code> z pełnym numer
 <code>release/1.4.0</code>; jej wycinanie i wtapianie do niej poprawki to część 2.</p>
 
 <h5><span lang="en">Release Flow</span><span lang="pl">Release Flow</span></h5>
-<pre class="snippet">branching:
+<pre class="snippet" data-copy>branching:
   mode: required
   work:
     feature:
@@ -2614,7 +2707,7 @@ issue; wycinanie gałęzi wydania dla każdego wydania i przenoszenie na nią po
 część 2.</p>
 
 <h5><span lang="en">GitFlow</span><span lang="pl">GitFlow</span></h5>
-<pre class="snippet">branching:
+<pre class="snippet" data-copy>branching:
   mode: required
   work:
     feature:
@@ -2664,6 +2757,138 @@ powrotem do <code>develop</code> to część 2.</p>
         apply(lang);
         try { localStorage.setItem('viber-usage-lang', lang); } catch (e) { /* choice lasts this visit only */ }
       });
+    });
+  })();
+
+  // Search: reveal the field, then hide every data-search section whose text in the
+  // shown language misses the query. Runs before the copy buttons exist, so their
+  // labels never match.
+  (function () {
+    var box = document.querySelector('.search');
+    var input = document.getElementById('help-search');
+    var none = document.getElementById('help-no-results');
+    if (!box || !input || !none) return;
+    var root = document.documentElement;
+    var sections = Array.prototype.slice.call(document.querySelectorAll('[data-search]'));
+    var texts = { en: sections.map(textIn('en')), pl: sections.map(textIn('pl')) };
+
+    function textIn(lang) {
+      var other = lang === 'en' ? '[lang="pl"]' : '[lang="en"]';
+      return function (el) {
+        var copy = el.cloneNode(true);
+        copy.querySelectorAll(other).forEach(function (n) { n.parentNode.removeChild(n); });
+        return copy.textContent.replace(/\s+/g, ' ').toLowerCase();
+      };
+    }
+
+    function filter() {
+      var query = input.value.replace(/\s+/g, ' ').trim().toLowerCase();
+      var shown = texts[root.getAttribute('data-lang') === 'pl' ? 'pl' : 'en'];
+      var found = 0;
+      sections.forEach(function (el, i) {
+        var hit = !query || shown[i].indexOf(query) !== -1;
+        el.hidden = !hit;
+        if (hit) found++;
+      });
+      none.hidden = !query || found > 0;
+    }
+
+    box.hidden = false;
+    input.addEventListener('input', filter);
+    input.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') { input.value = ''; filter(); }
+    });
+    document.querySelectorAll('[data-set-lang]').forEach(function (b) { b.addEventListener('click', filter); });
+  })();
+
+  // Copy: a button beside every data-copy block and command.
+  (function () {
+    var words = { en: ['Copy', 'Copied'], pl: ['Kopiuj', 'Skopiowano'] };
+
+    function setLabel(button, state) {
+      button.textContent = '';
+      ['en', 'pl'].forEach(function (lang) {
+        var span = document.createElement('span');
+        span.lang = lang;
+        span.textContent = words[lang][state];
+        button.appendChild(span);
+      });
+    }
+
+    function viaTextarea(text) {
+      return new Promise(function (resolve, reject) {
+        var area = document.createElement('textarea');
+        area.value = text;
+        area.setAttribute('readonly', '');
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        var ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        document.body.removeChild(area);
+        if (ok) { resolve(); } else { reject(); }
+      });
+    }
+
+    function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).catch(function () { return viaTextarea(text); });
+      }
+      return viaTextarea(text);
+    }
+
+    function selectText(el) {
+      var range = document.createRange();
+      range.selectNodeContents(el);
+      var selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+
+    document.querySelectorAll('[data-copy]').forEach(function (el) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'copy';
+      setLabel(button, 0);
+      button.addEventListener('click', function () {
+        copyText(el.textContent).then(function () {
+          setLabel(button, 1);
+          setTimeout(function () { setLabel(button, 0); }, 1500);
+        }, function () { selectText(el); });
+      });
+      if (el.tagName === 'PRE') {
+        var wrap = document.createElement('div');
+        wrap.className = 'copy-wrap';
+        el.parentNode.insertBefore(wrap, el);
+        wrap.appendChild(el);
+        wrap.appendChild(button);
+      } else {
+        var anchor = el.closest('a') || el;
+        anchor.parentNode.insertBefore(button, anchor.nextSibling);
+      }
+    });
+  })();
+
+  // The folding table of contents closes once a link in it is followed.
+  (function () {
+    var narrow = document.querySelector('.toc-narrow');
+    if (!narrow) return;
+    narrow.querySelectorAll('a').forEach(function (a) {
+      a.addEventListener('click', function () { narrow.open = false; });
+    });
+  })();
+
+  // Print: open every folded block, then fold back the ones the reader had closed.
+  (function () {
+    var opened = [];
+    window.addEventListener('beforeprint', function () {
+      opened = Array.prototype.filter.call(document.querySelectorAll('details'), function (d) { return !d.open; });
+      opened.forEach(function (d) { d.open = true; });
+    });
+    window.addEventListener('afterprint', function () {
+      opened.forEach(function (d) { d.open = false; });
+      opened = [];
     });
   })();
 
