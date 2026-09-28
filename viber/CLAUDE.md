@@ -122,6 +122,7 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
 - Read `CLAUDE.run-branch.md` before touching `branching:`, `run-branch.sh` or `plan-path.sh --branch`.
 - Read `CLAUDE.owner-decisions.md` before touching the owner decision channel.
 - Read `CLAUDE.tool-dependencies.md` before touching a `gh`, Playwright or `node` call.
+- Read `CLAUDE.switches.md` before adding a new `viber.yml` switch or wiring one into planning.
 
 ## Duplicated on purpose - change together
 
@@ -141,22 +142,12 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
 - An agent's `tools:` frontmatter and the tool list its opening paragraph names.
 - `references/qa-format.md` is the one format authority for `qa-writer`, `e2e-writer` and `e2e`,
   which routes on its `##` headings.
-- A new switch: `skills/setup/templates/viber.yml` (`bootstrap.sh` appends a key an existing
-  config lacks), `config.sh`'s key list and order, `switch-text.sh`'s key allowlist, `README.md`,
-  `usage.html`, and the consuming skill's `fragments/<name>.<value>.md` (implementor's step 3
-  `TaskCreate`s one entry per close part; step 6 preloads `memory`, `rules`, `qa`, step 7
-  `cleanup`); no skill body branches on a switch, `tests/portability.test.ts` sweeps every call.
-  `<name>` is per call site (`issues-read`, `qa-e2e`), not the key; only a state that does
-  something gets a file. `switch-text.sh` prints nothing for an absent file or unknown key,
-  always exits 0, and expands `${CLAUDE_SKILL_DIR}`/`${CLAUDE_PLUGIN_ROOT}` in a fragment
-  itself: Claude Code never substitutes preload output.
-- Switches reaching planning: `memory` (`plan-rules.md`'s Memory-owned rule, the `memory:` line
-  to `planner-review`); `adr: true` (`planner` follows `skills/planner/references/adr-tasks.md`);
-  `qa` (`planner`'s e2e hand-off line); `branching.mode` (`CLAUDE.run-branch.md`).
+- `usage.html`'s full reference and `tests/viber/usage.test.ts`: every user-visible change (a
+  skill, an argument, a switch, a write location, the flow) updates the help page in the same
+  edit, and the test enforces the page's skill cards, agent lines, key entries and language pairs
+  against `plugin.json`, the skills' frontmatter and `viber.yml`.
 - End-to-end tests only on the user's own ask: `test-strategy.md`, `plan-rules.md`, `planner`,
   `intent`, `PRODUCT.md`.
-- "One behaviour per `DoD` clause": `task-coder.md`'s TDD bullet and `skills/tdd/SKILL.md`
-  step 1.
 
 ## Memory and rules layers
 
