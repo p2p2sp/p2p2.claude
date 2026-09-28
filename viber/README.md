@@ -60,17 +60,18 @@ and the interview then covers the first part only. Each part gets its own plan a
 and nothing is faked in between: what a later part brings is out of scope until its turn, never a
 stub. You approve the plan yourself, but only after a reviewer
 has read it against your actual codebase. Then the build runs task by task, reviews each one,
-commits it, and finishes on the full test suite. End-to-end tests stay with your CI and
-`/viber:e2e` unless you explicitly ask for them.
+commits it, runs one final review of the whole build, and finishes on the full test suite.
+End-to-end tests stay with your CI and `/viber:e2e` unless you explicitly ask for them.
 
 ![How viber works](skills/setup/assets/viber-flow.svg)
 
 ## Optional switches
 
-`/viber:setup` writes `.claude/viber.yml` with six of the seven on and `qa` off. Edit that file to
-change any of them - only `true` counts as on, so turn a switch off with `false` rather than by
-deleting it. Without the file all seven are off. Run `/viber:setup` again after an upgrade and any
-switch the new version added is merged into your file, with every value you set left as it is.
+`/viber:setup` writes `.claude/viber.yml` with six of the eight on and `qa` and `issues` off. Edit
+that file to change any of them - only `true` counts as on, so turn a switch off with `false`
+rather than by deleting it. Without the file all eight are off. Run `/viber:setup` again after an
+upgrade and any switch the new version added is merged into your file, with every value you set
+left as it is.
 
 | Switch | Default | When on |
 | --- | --- | --- |
@@ -79,6 +80,7 @@ switch the new version added is merged into your file, with every value you set 
 | `rules` | on | The build closes by recording a convention it confirmed in `.claude/rules/`. |
 | `qa` | **off** | The build closes by writing test scenarios for what it delivered, which `/viber:e2e` can then automate. |
 | `cleanup` | on | The build ends by noting anything it delivered that the specification does not promise, then archiving the run and dropping the working files. |
+| `final-review` | on | After every task is committed and before the final test run, one reviewer looks at the whole build's diff for what per-task review and the test suite cannot see, and one coder fixes everything it finds, once. |
 | `plain-plan-review` | on | A plan written in plain plan mode, without the planner, must pass a review before plan mode can be left. |
 | `issues` | **off** | `/viber:intent`, `/viber:fixer` and `/viber:prototype` can start from a GitHub issue's number or link, and an interview that did not can save its conclusions as a new one; `/viber:prototype` can post its mockup to the issue it started from; `/viber:triage` can fetch and publish to a GitHub issue instead of pasted text alone. |
 

@@ -2528,6 +2528,15 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
     potem przez <a href="#agent-closeout"><code>closeout</code></a> archiwizuje przebieg i usuwa plan, plik stanu
     i ślad pracy. Wszystko to zostaje w historii gita.</span></dd>
   </div>
+  <div id="key-final-review">
+    <dt><code>final-review</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
+    <dd><span lang="en">After every task is committed and before the final test run, one reviewer
+    looks at the whole build's diff for what per-task review and the test suite cannot see, and one
+    coder fixes everything it finds, once, before the suite runs.</span><span lang="pl">Po
+    zatwierdzeniu każdego zadania i przed ostatecznym uruchomieniem testów jeden recenzent ogląda
+    cały diff builda w poszukiwaniu tego, czego nie widzi recenzja pojedynczych zadań ani zestaw
+    testów, a jeden koder raz naprawia wszystko, co znajdzie, zanim testy się uruchomią.</span></dd>
+  </div>
   <div id="key-plain-plan-review">
     <dt><code>plain-plan-review</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
     <dd><span lang="en">A plan written in plain plan mode, without the planner, must pass
@@ -2550,7 +2559,7 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
     <code>triage</code> ocenia tylko wklejony tekst issue.</span></dd>
   </div>
 </dl>
-<p lang="en">Five of the seven start on; <code>qa</code> and <code>issues</code> start off. To change any of
+<p lang="en">Six of the eight start on; <code>qa</code> and <code>issues</code> start off. To change any of
 them, edit <code>.claude/viber.yml</code>: every key has a comment there, and only <code>true</code> counts as on. Turn a switch off with <code>false</code> instead of deleting it. Running
 <code>/viber:setup</code> again merges in every key the current version's template has and your file lacks.
 That is how a new switch reaches a project set up by an older version, and the same merge restores a
@@ -2559,7 +2568,7 @@ Children of <code>tiers:</code> and <code>branching:</code> work differently: th
 as a whole, when the file lacks it entirely, and never extends one already present. A child you
 delete there does not come back into the file; it simply resolves to its default. The merge keeps
 every value you have already set.</p>
-<p lang="pl">Pięć z siedmiu jest domyślnie włączonych; <code>qa</code> i <code>issues</code> startują
+<p lang="pl">Sześć z ośmiu jest domyślnie włączonych; <code>qa</code> i <code>issues</code> startują
 wyłączone. Zmienisz to w <code>.claude/viber.yml</code>: każdy
 klucz ma tam komentarz, a za włączony liczy się tylko <code>true</code>. Przełącznik wyłączaj wartością
 <code>false</code>, nie usuwaj go. Ponowne uruchomienie <code>/viber:setup</code> dołącza każdy klucz, który ma

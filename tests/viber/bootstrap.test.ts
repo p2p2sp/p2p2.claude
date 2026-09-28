@@ -171,7 +171,7 @@ test("a config seeded by an older version keeps its own values and gains only th
     const result = run(dir, env);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.match(result.stdout, /^viber\.yml: merged from the template: qa, cleanup, plain-plan-review, issues, directories, tiers, branching \(your own values kept\)$/m);
+    assert.match(result.stdout, /^viber\.yml: merged from the template: qa, cleanup, final-review, plain-plan-review, issues, directories, tiers, branching \(your own values kept\)$/m);
 
     const after = read(cfg);
     // Every value the user set survives, values included - a merge that reset a
@@ -183,6 +183,7 @@ test("a config seeded by an older version keeps its own values and gains only th
     // The new keys arrive at the template's default, each under its own comment.
     assert.match(after, /^qa: false$/m);
     assert.match(after, /^cleanup: true$/m);
+    assert.match(after, /^final-review: true$/m);
     assert.match(after, /^plain-plan-review: true$/m);
     assert.match(after, /^issues: false$/m);
     assert.match(after, /^directories:\n {2}runs: _specs\n {2}specifications: specs$/m);
@@ -218,7 +219,7 @@ test("a missing child of the directories group is inserted INSIDE the group, not
     // A second top-level key after the group proves the insertion point: appending
     // the child at the end of the file would put it outside the group, where the
     // three readers that parse that group would never see it.
-    fs.writeFileSync(cfg, "adr: true\nmemory: true\nrules: true\nqa: true\ndirectories:\n  runs: builds\ncleanup: true\nplain-plan-review: true\nissues: true\ntiers:\n  min: haiku\n  max: opus\nbranching:\n  mode: off\n  base: main\n  name: '{type}/{issue}-{slug}'\n");
+    fs.writeFileSync(cfg, "adr: true\nmemory: true\nrules: true\nqa: true\ndirectories:\n  runs: builds\ncleanup: true\nfinal-review: true\nplain-plan-review: true\nissues: true\ntiers:\n  min: haiku\n  max: opus\nbranching:\n  mode: off\n  base: main\n  name: '{type}/{issue}-{slug}'\n");
 
     const result = run(dir, env);
 
@@ -226,7 +227,7 @@ test("a missing child of the directories group is inserted INSIDE the group, not
     assert.match(result.stdout, /^viber\.yml: merged from the template: directories\.specifications \(your own values kept\)$/m);
     assert.equal(
       read(cfg),
-      "adr: true\nmemory: true\nrules: true\nqa: true\ndirectories:\n  runs: builds\n  specifications: specs\ncleanup: true\nplain-plan-review: true\nissues: true\ntiers:\n  min: haiku\n  max: opus\nbranching:\n  mode: off\n  base: main\n  name: '{type}/{issue}-{slug}'\n",
+      "adr: true\nmemory: true\nrules: true\nqa: true\ndirectories:\n  runs: builds\n  specifications: specs\ncleanup: true\nfinal-review: true\nplain-plan-review: true\nissues: true\ntiers:\n  min: haiku\n  max: opus\nbranching:\n  mode: off\n  base: main\n  name: '{type}/{issue}-{slug}'\n",
     );
   });
 });
@@ -235,7 +236,7 @@ test("a directories key carrying a value instead of a group is left exactly as i
   withGitRepo(({ dir, env }) => {
     const cfg = configPath(dir);
     fs.mkdirSync(path.dirname(cfg), { recursive: true });
-    const before = "adr: true\nmemory: true\nrules: true\nqa: true\ncleanup: true\nplain-plan-review: true\nissues: true\ndirectories: nonsense\ntiers:\n  min: haiku\n  max: opus\nbranching:\n  mode: off\n  base: main\n  name: '{type}/{issue}-{slug}'\n";
+    const before = "adr: true\nmemory: true\nrules: true\nqa: true\ncleanup: true\nfinal-review: true\nplain-plan-review: true\nissues: true\ndirectories: nonsense\ntiers:\n  min: haiku\n  max: opus\nbranching:\n  mode: off\n  base: main\n  name: '{type}/{issue}-{slug}'\n";
     fs.writeFileSync(cfg, before);
 
     const result = run(dir, env);
@@ -250,7 +251,7 @@ test("a key written with blanks before its colon counts as declared, so a switch
   withGitRepo(({ dir, env }) => {
     const cfg = configPath(dir);
     fs.mkdirSync(path.dirname(cfg), { recursive: true });
-    const before = "adr: true\nmemory: true\nrules: true\nqa: true\ncleanup: true\nplain-plan-review : false\nissues\t: true\ndirectories :\n  runs : builds\n  specifications\t: archive\ntiers:\n  min: haiku\n  max: opus\nbranching:\n  mode: off\n";
+    const before = "adr: true\nmemory: true\nrules: true\nqa: true\ncleanup: true\nfinal-review\t: true\nplain-plan-review : false\nissues\t: true\ndirectories :\n  runs : builds\n  specifications\t: archive\ntiers:\n  min: haiku\n  max: opus\nbranching:\n  mode: off\n";
     fs.writeFileSync(cfg, before);
 
     const result = run(dir, env);
@@ -293,13 +294,16 @@ test("a config already carrying every template key is byte-identical after a run
     fs.mkdirSync(path.dirname(cfg), { recursive: true });
     // The user's own wording and ordering, not the template's: the merge reads
     // which keys are declared, never how the file is written.
-    const before = "# my own header\ncleanup: false\nplain-plan-review: false\nissues: false\nqa: true\nrules: true\nmemory: true\nadr: true\n\ndirectories:\n  specifications: archive\n  runs: open\ntiers:\n  max: sonnet\n  min: sonnet\nbranching:\n  name: '{type}/{issue}-{slug}'\n  base: develop\n  mode: required\n";
+    const before = "# my own header\ncleanup: false\nfinal-review: false\nplain-plan-review: false\nissues: false\nqa: true\nrules: true\nmemory: true\nadr: true\n\ndirectories:\n  specifications: archive\n  runs: open\ntiers:\n  max: sonnet\n  min: sonnet\nbranching:\n  name: '{type}/{issue}-{slug}'\n  base: develop\n  mode: required\n";
     fs.writeFileSync(cfg, before);
 
     const result = run(dir, env);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^viber\.yml: already present and complete \(left untouched\)$/m);
+    // final-review: false survives the merge byte-for-byte, same as every other
+    // switch the user set - a merge that reset it to the template default would
+    // silently re-enable the reviewer.
     assert.equal(read(cfg), before);
   });
 });
