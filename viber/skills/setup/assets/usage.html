@@ -171,46 +171,25 @@
     text-wrap: pretty;
   }
 
-  /* The path */
-  .path {
-    margin: 0 0 56px;
-    padding: 24px 20px 8px;
-    background: var(--surface);
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-  }
-  .path-once {
-    margin: 0 0 20px;
-    font-size: 14px;
-    color: var(--muted);
-  }
-  .flow {
+  /* Getting started: the must-state list and one change walked through */
+  .musts { margin: 0 0 16px; padding-left: 1.25em; }
+  .musts li { margin: 0 0 6px; max-width: 80ch; }
+  .walk {
     list-style: none;
-    margin: 0;
+    counter-reset: walk;
+    margin: 0 0 24px;
     padding: 0;
-    display: grid;
-    gap: 0;
   }
-  .flow li {
+  .walk li {
+    counter-increment: walk;
     position: relative;
-    display: grid;
-    grid-template-columns: 32px 1fr;
-    align-content: start;
-    column-gap: 14px;
-    padding-bottom: 20px;
+    padding: 0 0 8px 48px;
   }
-  .flow li::before {
-    content: "";
+  .walk li::before {
+    content: counter(walk);
     position: absolute;
-    left: 15px;
-    top: 34px;
-    bottom: 2px;
-    width: 2px;
-    background: var(--rule-strong);
-  }
-  .flow li:last-child::before { display: none; }
-  .step {
-    grid-row: span 3;
+    left: 0;
+    top: 0;
     display: grid;
     place-items: center;
     width: 32px;
@@ -221,20 +200,23 @@
     font: 700 14px/1 var(--mono);
     font-variant-numeric: tabular-nums;
   }
-  .flow .stage {
-    margin: 4px 0 2px;
-    font-size: 17px;
-    line-height: 1.3;
+  .walk li::after {
+    content: "";
+    position: absolute;
+    left: 15px;
+    top: 38px;
+    bottom: 8px;
+    width: 2px;
+    background: var(--rule-strong);
+  }
+  .walk li:last-child::after { display: none; }
+  .walk .say {
+    margin: 4px 0 8px;
     font-weight: 700;
-    letter-spacing: -0.01em;
+    line-height: 1.4;
   }
-  .flow .say {
-    margin: 0 0 4px;
-    font: 600 14px/1.5 var(--mono);
-    color: var(--term);
-  }
-  .flow .say .or { font-family: var(--sans); font-weight: 400; color: var(--muted); }
-  .flow p.what { margin: 0; font-size: 15px; line-height: 1.5; color: var(--muted); }
+  .walk .say code { color: var(--term); }
+  .walk li p:not(.say) { color: var(--muted); font-size: 15px; line-height: 1.55; }
 
   /* Sections */
   section { scroll-margin-top: 24px; }
@@ -269,20 +251,6 @@
     padding: 2px 5px;
     border-radius: 4px;
     overflow-wrap: anywhere;
-  }
-
-  /* The CLAUDE.md prerequisite */
-  .first {
-    padding: 24px 20px 8px;
-    border: 1px solid var(--rule-strong);
-    border-radius: 12px;
-    margin-bottom: 40px;
-  }
-  .first h2 {
-    margin: 0 0 12px;
-    padding: 0;
-    border: 0;
-    font-size: 20px;
   }
 
   /* Command and switch lists */
@@ -441,22 +409,6 @@
   @media (min-width: 720px) {
     .shell { padding: 56px 32px 128px; }
     h1 { font-size: 52px; }
-    .path { padding: 28px 28px 12px; }
-    .flow { grid-template-columns: repeat(4, 1fr); gap: 16px; }
-    .flow li {
-      grid-template-columns: 1fr;
-      padding-bottom: 16px;
-    }
-    .flow li::before {
-      left: 40px;
-      right: -8px;
-      top: 15px;
-      bottom: auto;
-      width: auto;
-      height: 2px;
-    }
-    .step { grid-row: auto; margin-bottom: 12px; }
-    .first { padding: 28px 28px 12px; }
     dl > div { grid-template-columns: 12rem 1fr; gap: 24px; }
     dt { flex-direction: column; gap: 6px; }
   }
@@ -499,12 +451,7 @@
     h1 { font-size: 64px; }
     .lede { font-size: 21px; }
     h2 { font-size: 30px; }
-    .path { padding: 32px 36px 16px; }
-    .flow { gap: 28px; }
-    .flow li::before { right: -16px; }
-    .flow .stage { font-size: 18px; }
-    .flow p.what { font-size: 16px; }
-    .first { padding: 32px 36px 16px; }
+    .walk li p:not(.say) { font-size: 16px; }
     dl > div { grid-template-columns: 16rem 1fr; gap: 40px; }
     dt code { font-size: 16px; }
   }
@@ -514,7 +461,8 @@
 <div class="layout">
 <nav class="toc" aria-label="On this page">
   <ol>
-    <li><a href="#first">CLAUDE.md</a></li>
+    <li><a href="#getting-started"><span lang="en">Getting started</span><span lang="pl">Pierwsze kroki</span></a></li>
+    <li><a href="#cheat-sheet"><span lang="en">Commands</span><span lang="pl">Polecenia</span></a></li>
     <li><a href="#issues"><span lang="en">From a GitHub issue</span><span lang="pl">Z issue na GitHubie</span></a></li>
     <li><a href="#ref-skills"><span lang="en">Skills</span><span lang="pl">Skille</span></a></li>
     <li><a href="#ref-agents"><span lang="en">Agents</span><span lang="pl">Agenci</span></a></li>
@@ -544,55 +492,194 @@
   zbuduj, zapamiętaj. Nic nie powstaje, zanim nie zatwierdzisz planu.</p>
 </header>
 
-<div class="path">
-  <p class="path-once"><span lang="en">Once per project:</span><span lang="pl">Raz na projekt:</span> <code>/viber:setup</code></p>
-  <ol class="flow">
-    <li>
-      <span class="step" aria-hidden="true">1</span>
-      <p class="stage"><span lang="en">Understand</span><span lang="pl">Zrozum</span></p>
-      <p class="say">/viber:intent <span class="or"><span lang="en">or</span><span lang="pl">lub</span></span> /viber:fixer</p>
-      <p class="what" lang="en">An interview, or a diagnosis that adds only a failing reproduction test. Neither writes production code.</p>
-      <p class="what" lang="pl">Wywiad albo diagnoza, która dodaje tylko test reprodukcyjny, który nie przechodzi. Żadne z nich nie pisze kodu produkcyjnego.</p>
-    </li>
-    <li>
-      <span class="step" aria-hidden="true">2</span>
-      <p class="stage"><span lang="en">Plan</span><span lang="pl">Zaplanuj</span></p>
-      <p class="what" lang="en">Reviewed against your code, then approved by you.</p>
-      <p class="what" lang="pl">Sprawdzony przez recenzenta na twoim kodzie, potem zatwierdzony przez ciebie.</p>
-    </li>
-    <li>
-      <span class="step" aria-hidden="true">3</span>
-      <p class="stage"><span lang="en">Build</span><span lang="pl">Zbuduj</span></p>
-      <p class="what" lang="en">Task by task, one reviewed commit each.</p>
-      <p class="what" lang="pl">Zadanie po zadaniu, każde jako jeden zrecenzowany commit.</p>
-    </li>
-    <li>
-      <span class="step" aria-hidden="true">4</span>
-      <p class="stage"><span lang="en">Remember</span><span lang="pl">Zapamiętaj</span></p>
-      <p class="say"><span class="or"><span lang="en">on its own, at the close</span><span lang="pl">samo, na zamknięciu buildu</span></span></p>
-      <p class="what" lang="en">What the build taught goes into <code>CLAUDE.md</code> and <code>.claude/rules/</code>.</p>
-      <p class="what" lang="pl">To, czego nauczył build, trafia do <code>CLAUDE.md</code> i <code>.claude/rules/</code>.</p>
-    </li>
-  </ol>
-</div>
+<section id="getting-started">
+<h2><span lang="en">Getting started</span><span lang="pl">Pierwsze kroki</span></h2>
+<p lang="en">Four things, in this order: install the plugin, prepare the project, tell viber how your project
+builds and tests, then take one change from idea to commit.</p>
+<p lang="pl">Cztery rzeczy, w tej kolejności: zainstaluj wtyczkę, przygotuj projekt, powiedz viber, jak twój
+projekt się buduje i testuje, a potem przeprowadź jedną zmianę od pomysłu do commita.</p>
 
-<section id="first" class="first">
-<h2>CLAUDE.md</h2>
+<h3 class="sub" id="gs-install"><span lang="en">1. Install</span><span lang="pl">1. Instalacja</span></h3>
+<p lang="en">From a terminal, once for your user account:</p>
+<p lang="pl">W terminalu, raz dla twojego konta użytkownika:</p>
+<pre class="snippet">claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
+claude plugin install viber@p2p2 --scope user</pre>
+<p lang="en">Drop <code>--scope user</code> to install for the current repository only. Inside a running session,
+<code>/plugin marketplace add https://github.com/p2p2sp/p2p2.claude</code> followed by
+<code>/plugin install viber@p2p2</code> does the same. Three tools are optional: the GitHub CLI
+(<code>gh</code>) for the GitHub steps, <code>node</code> for the settings merge of <code>/viber:setup</code>, and
+Playwright for <code>/viber:e2e</code>. Without <code>gh</code> an issue step reports the error and pasted
+text still works. Without <code>node</code> a merge into an existing settings file is skipped and the
+recommended block is printed. Without Playwright <code>/viber:e2e</code> offers to install it, or stops.</p>
+<p lang="pl">Bez <code>--scope user</code> wtyczka instaluje się tylko dla bieżącego repozytorium. W trakcie sesji to
+samo robi <code>/plugin marketplace add https://github.com/p2p2sp/p2p2.claude</code>, a po nim
+<code>/plugin install viber@p2p2</code>. Trzy narzędzia są opcjonalne: GitHub CLI (<code>gh</code>) do kroków
+na GitHubie, <code>node</code> do scalania ustawień w <code>/viber:setup</code> i Playwright do
+<code>/viber:e2e</code>. Bez <code>gh</code> krok z issue zgłasza błąd, a wklejony tekst dalej działa. Bez
+<code>node</code> scalanie z istniejącym plikiem ustawień zostaje pominięte i wypisany jest zalecany blok.
+Bez Playwrighta <code>/viber:e2e</code> proponuje jego instalację albo kończy pracę.</p>
+
+<h3 class="sub" id="gs-setup"><span lang="en">2. Prepare the project</span><span lang="pl">2. Przygotowanie projektu</span></h3>
+<p lang="en">Open Claude Code in your project and run <a href="#skill-setup"><code>/viber:setup</code></a>. It writes the
+switches to <code>.claude/viber.yml</code>, puts the recommended permissions into <code>.claude/settings.json</code>
+(asking first whether to merge or reset when that file exists), adds <code>.temp/</code> to
+<code>.gitignore</code> when nothing ignores it yet, checks that <code>gh</code> is installed and opens this page.
+Run it again after each plugin update: it adds the keys the new version brings and keeps every value
+you set.</p>
+<p lang="pl">Otwórz Claude Code w swoim projekcie i uruchom <a href="#skill-setup"><code>/viber:setup</code></a>.
+Zapisuje przełączniki w <code>.claude/viber.yml</code>, wpisuje zalecane uprawnienia do
+<code>.claude/settings.json</code> (gdy ten plik istnieje, najpierw pyta, czy scalić, czy zastąpić), dopisuje
+<code>.temp/</code> do <code>.gitignore</code>, gdy nic go jeszcze nie ignoruje, sprawdza, czy jest
+zainstalowane <code>gh</code>, i otwiera tę stronę. Uruchom go ponownie po każdej aktualizacji wtyczki:
+dopisze klucze, które przynosi nowa wersja, i zachowa każdą ustawioną przez ciebie wartość.</p>
+
+<h3 class="sub" id="gs-claude-md"><span lang="en">3. What <code>CLAUDE.md</code> must state</span><span lang="pl">3. Co musi podawać <code>CLAUDE.md</code></span></h3>
 <p lang="en">viber knows nothing about your stack. Every agent takes the build and test commands from this
-project's own instructions, so without them <code>test-runner</code> guesses from whatever manifest it finds,
-and a task can be committed on a suite that never ran.</p>
+project's own instructions, so without them <a href="#agent-test-runner"><code>test-runner</code></a> guesses
+from whatever manifest it finds, and a task can be committed on a suite that never ran.</p>
 <p lang="pl">viber nic nie wie o twoim stosie technologicznym. Każdy agent bierze polecenia budowania i testów
-z instrukcji tego projektu, więc bez nich <code>test-runner</code> zgaduje na podstawie manifestu, który akurat
-znajdzie, a zadanie może zostać zacommitowane na testach, które nigdy się nie uruchomiły.</p>
-<p lang="en">No <code>CLAUDE.md</code> yet: run <code>/init</code>, then make sure the root file states the exact build command, the
-exact test command, how to run a single test file, and whatever else a newcomer would get wrong,
-such as how to launch the app, the required env or the migrations. When your test command also runs the
-end-to-end tests, name one that leaves them out: a build never runs them unless you ask.</p>
-<p lang="pl">Nie masz jeszcze <code>CLAUDE.md</code>? Uruchom <code>/init</code>, a potem upewnij się, że główny plik podaje
-dokładne polecenie budowania, dokładne polecenie testów, sposób uruchomienia pojedynczego pliku testów
-i wszystko inne, co nowa osoba w projekcie zrobiłaby źle: jak uruchomić aplikację, jakich zmiennych
-środowiskowych potrzeba, jak wykonać migracje. Jeśli twoje polecenie testów uruchamia też testy
-end-to-end, podaj takie, które je pomija: build nigdy ich nie uruchamia, chyba że o to poprosisz.</p>
+z instrukcji tego projektu, więc bez nich <a href="#agent-test-runner"><code>test-runner</code></a> zgaduje
+na podstawie manifestu, który akurat znajdzie, a zadanie może zostać zacommitowane na testach, które
+nigdy się nie uruchomiły.</p>
+<p lang="en">No <code>CLAUDE.md</code> yet: run <code>/init</code>. Then make sure the root file states:</p>
+<p lang="pl">Nie masz jeszcze <code>CLAUDE.md</code>? Uruchom <code>/init</code>. Potem upewnij się, że główny plik
+podaje:</p>
+<ul class="musts">
+  <li><span lang="en">the exact build command;</span><span lang="pl">dokładne polecenie budowania;</span></li>
+  <li><span lang="en">the exact test command;</span><span lang="pl">dokładne polecenie testów;</span></li>
+  <li><span lang="en">how to run a single test file;</span><span lang="pl">sposób uruchomienia pojedynczego pliku
+  testów;</span></li>
+  <li><span lang="en">a test command that leaves the end-to-end tests out, when your usual one runs them too:
+  a build never runs them unless you ask;</span><span lang="pl">polecenie testów, które pomija testy
+  end-to-end, jeśli twoje zwykłe polecenie też je uruchamia: build nigdy ich nie uruchamia, chyba że
+  o to poprosisz;</span></li>
+  <li><span lang="en">whatever else a newcomer would get wrong, such as how to launch the app, the required
+  env or the migrations.</span><span lang="pl">wszystko inne, co nowa osoba w projekcie zrobiłaby źle:
+  jak uruchomić aplikację, jakich zmiennych środowiskowych potrzeba, jak wykonać migracje.</span></li>
+</ul>
+
+<h3 class="sub" id="gs-first-change"><span lang="en">4. One change, from idea to commit</span><span lang="pl">4. Jedna zmiana, od pomysłu do commita</span></h3>
+<ol class="walk">
+  <li>
+    <p class="say" lang="en"><code>/viber:intent add CSV export to the reports page</code></p>
+    <p class="say" lang="pl"><code>/viber:intent eksport CSV na stronie raportów</code></p>
+    <p lang="en">The <a href="#skill-intent">interview</a> asks only what your words and the code leave open,
+    one question at a time, each with three options and its recommendation first. It ends on a summary
+    you confirm.</p>
+    <p lang="pl"><a href="#skill-intent">Wywiad</a> pyta tylko o to, czego nie rozstrzygają twoje słowa
+    i kod, jedno pytanie naraz, każde z trzema opcjami i rekomendacją na pierwszym miejscu. Kończy się
+    podsumowaniem, które potwierdzasz.</p>
+  </li>
+  <li>
+    <p class="say"><span lang="en">You approve the plan</span><span lang="pl">Zatwierdzasz plan</span></p>
+    <p lang="en">The <a href="#skill-planner">planner</a> takes the summary into Claude Code's plan mode and
+    writes the plan: acceptance criteria, a file map, then the tasks.
+    <a href="#agent-planner-review"><code>planner-review</code></a> checks it against your code, and plan mode
+    ends only after that review passes. Then you approve the plan or reject it.</p>
+    <p lang="pl"><a href="#skill-planner">Planista</a> przenosi podsumowanie do trybu planowania Claude Code
+    i pisze plan: kryteria akceptacji, mapę plików, a potem zadania.
+    <a href="#agent-planner-review"><code>planner-review</code></a> sprawdza go na twoim kodzie, a tryb
+    planowania kończy się dopiero wtedy, gdy ta recenzja przejdzie. Wtedy zatwierdzasz plan albo go
+    odrzucasz.</p>
+  </li>
+  <li>
+    <p class="say"><span lang="en">You ask Claude to build it</span><span lang="pl">Prosisz Claude o zbudowanie</span></p>
+    <p lang="en">The <a href="#skill-implementor">build</a> copies the plan into
+    <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code>, hands each task to
+    <a href="#agent-task-coder"><code>task-coder</code></a>, has
+    <a href="#agent-task-reviewer"><code>task-reviewer</code></a> check it where a review is due, and commits
+    each task on its own, titled <code>T1 - &lt;task title&gt;</code>.</p>
+    <p lang="pl"><a href="#skill-implementor">Build</a> kopiuje plan do
+    <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code>, każde zadanie zleca
+    <a href="#agent-task-coder"><code>task-coder</code></a>, tam, gdzie należy się recenzja, oddaje je do
+    sprawdzenia <a href="#agent-task-reviewer"><code>task-reviewer</code></a> i każde zadanie commituje osobno,
+    z tytułem <code>T1 - &lt;tytuł zadania&gt;</code>.</p>
+  </li>
+  <li>
+    <p class="say"><span lang="en">The build closes</span><span lang="pl">Build się zamyka</span></p>
+    <p lang="en">The whole test suite runs once more, then the close parts your switches turn on. With the
+    template's defaults, what the build taught goes into <code>CLAUDE.md</code> and <code>.claude/rules/</code>,
+    and the run is archived in <code>docs/specs/</code>.</p>
+    <p lang="pl">Cały zestaw testów uruchamia się jeszcze raz, a potem te części zamknięcia, które włączają
+    twoje przełączniki. Przy domyślnych ustawieniach szablonu to, czego nauczył build, trafia do
+    <code>CLAUDE.md</code> i <code>.claude/rules/</code>, a przebieg ląduje w archiwum w
+    <code>docs/specs/</code>.</p>
+  </li>
+</ol>
+<p class="note" lang="en">A bug takes the same path, starting from <a href="#skill-fixer"><code>/viber:fixer</code></a>
+in place of the interview.</p>
+<p class="note" lang="pl">Błąd przechodzi tę samą drogę, tyle że zaczyna od
+<a href="#skill-fixer"><code>/viber:fixer</code></a> zamiast od wywiadu.</p>
+</section>
+
+<section id="cheat-sheet">
+<h2><span lang="en">Commands</span><span lang="pl">Polecenia</span></h2>
+<p lang="en">Every command you can type. Each name leads to its full card in the reference.</p>
+<p lang="pl">Wszystkie polecenia, które możesz wpisać. Każda nazwa prowadzi do pełnej karty w dokumentacji.</p>
+<dl class="cheat">
+  <div>
+    <dt><a href="#skill-setup"><code>/viber:setup</code></a></dt>
+    <dd><span lang="en">Once per project, and again after each plugin update: switches, permissions, ignore
+    rule.</span><span lang="pl">Raz na projekt i ponownie po każdej aktualizacji wtyczki: przełączniki,
+    uprawnienia, reguła ignorowania.</span></dd>
+  </div>
+  <div>
+    <dt><a href="#skill-intent"><code>/viber:intent</code></a></dt>
+    <dd><span lang="en">The planning interview that starts a planned change.</span><span lang="pl">Wywiad
+    planistyczny, od którego zaczyna się planowana zmiana.</span></dd>
+  </div>
+  <div>
+    <dt><a href="#skill-fixer"><code>/viber:fixer</code></a></dt>
+    <dd><span lang="en">Traces a bug to its root cause, proves it with a failing test and hands it to the
+    planner.</span><span lang="pl">Śledzi błąd aż do przyczyny, udowadnia ją testem, który nie przechodzi,
+    i przekazuje planiście.</span></dd>
+  </div>
+  <div>
+    <dt><a href="#skill-triage"><code>/viber:triage</code></a></dt>
+    <dd><span lang="en">Checks one issue against your code and names the next step.</span><span lang="pl">Sprawdza
+    jedno issue względem kodu i wskazuje następny krok.</span></dd>
+  </div>
+  <div>
+    <dt><a href="#skill-prototype"><code>/viber:prototype</code></a></dt>
+    <dd><span lang="en">A UI change as one working HTML mockup, or three to choose from.</span><span lang="pl">Zmiana
+    w UI jako jedna działająca makieta HTML albo trzy do wyboru.</span></dd>
+  </div>
+  <div>
+    <dt><a href="#skill-e2e"><code>/viber:e2e</code></a></dt>
+    <dd><span lang="en">Turns a build's QA scenarios into Playwright tests.</span><span lang="pl">Zamienia
+    scenariusze QA z buildu w testy Playwright.</span></dd>
+  </div>
+  <div>
+    <dt><a href="#skill-memory"><code>/viber:memory</code></a></dt>
+    <dd><span lang="en">Reviews or extends the project's CLAUDE.md files.</span><span lang="pl">Przegląda albo
+    rozbudowuje pliki CLAUDE.md projektu.</span></dd>
+  </div>
+  <div>
+    <dt><a href="#skill-rules"><code>/viber:rules</code></a></dt>
+    <dd><span lang="en">Reviews or extends the project's .claude/rules/.</span><span lang="pl">Przegląda albo
+    rozbudowuje .claude/rules/ projektu.</span></dd>
+  </div>
+  <div>
+    <dt><a href="#skill-handoff"><code>/viber:handoff</code></a></dt>
+    <dd><span lang="en">Saves the conversation as one file a fresh session picks up from.</span><span lang="pl">Zapisuje
+    rozmowę w jednym pliku, od którego nowa sesja podejmie pracę.</span></dd>
+  </div>
+  <div>
+    <dt><a href="#skill-commit"><code>/viber:commit</code></a></dt>
+    <dd><span lang="en">Commits work done outside a build. Saying <q>commit</q> works too.</span><span lang="pl">Commituje
+    pracę wykonaną poza buildem. Wystarczy też powiedzieć <q>zacommituj</q>.</span></dd>
+  </div>
+  <div>
+    <dt><a href="#skill-help"><code>/viber:help</code></a></dt>
+    <dd><span lang="en">Opens this page.</span><span lang="pl">Otwiera tę stronę.</span></dd>
+  </div>
+</dl>
+<p class="note" lang="en">Three skills have no command. <a href="#skill-planner">planner</a> starts when an
+interview or a diagnosis hands off, <a href="#skill-implementor">implementor</a> when you ask Claude to build
+an approved plan, and <a href="#skill-tdd">tdd</a> runs inside a build.</p>
+<p class="note" lang="pl">Trzy skille nie mają polecenia. <a href="#skill-planner">planner</a> startuje, gdy
+wywiad albo diagnoza przekaże mu pracę, <a href="#skill-implementor">implementor</a>, gdy poprosisz Claude
+o zbudowanie zatwierdzonego planu, a <a href="#skill-tdd">tdd</a> działa wewnątrz buildu.</p>
 </section>
 
 <section id="issues">
