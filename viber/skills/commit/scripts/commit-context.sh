@@ -24,7 +24,9 @@
 #   env    : none.
 #   stdout : markdown sections, the "## Selector:" line first; in mode missing
 #            that line alone. The diff is capped at MAX_LINES with a notice
-#            naming the real total.
+#            naming the real total; an empty diff beside a non-empty status
+#            (untracked files only) says outright that commit.sh still has
+#            work to commit.
 #   exit   : 0 in every data condition. Deliberately WITHOUT `set -e`: it is a
 #            best-effort preload, and one failed git call must not abort the
 #            skill load.
@@ -75,11 +77,12 @@ echo
 
 if [ "$COMMIT_MODE" = "paths" ]; then
   echo "## Changes (git status for paths: $paths_label)"
-  git status --short --untracked-files=all -- "${COMMIT_PATHS[@]}" 2>&1 || true
+  status_out="$(git status --short --untracked-files=all -- "${COMMIT_PATHS[@]}" 2>&1)"
 else
   echo "## Changes (git status, all untracked files)"
-  git status --short --untracked-files=all 2>&1 || true
+  status_out="$(git status --short --untracked-files=all 2>&1)"
 fi
+[ -z "$status_out" ] || printf '%s\n' "$status_out"
 echo
 
 if [ "$COMMIT_MODE" = "paths" ]; then
@@ -96,7 +99,13 @@ else
   diff_out="$(git diff "$BASE" 2>&1)"
 fi
 
-if [ -z "$diff_out" ]; then
+# An empty diff beside a non-empty status is new untracked files (or a change
+# with no text, such as a mode change): a fork once read the bare "no textual
+# diff" line as "nothing changed" and answered Nothing to commit without ever
+# running commit.sh, so that case says outright that there IS work to commit.
+if [ -z "$diff_out" ] && [ -n "$status_out" ]; then
+  echo "(no textual diff, but git status above lists changes - they are still committed: run commit.sh)"
+elif [ -z "$diff_out" ]; then
   echo "(no textual diff for this mode)"
 else
   total=$(printf '%s\n' "$diff_out" | wc -l | tr -d ' ')

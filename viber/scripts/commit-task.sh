@@ -97,9 +97,10 @@
 # so every commit of the run links the issue; --e2e takes no plan and adds none.
 #
 # No form ever stages a path the caller did not name, and every form commits
-# through its own pathspec, so a path staged before or beside the run stays in
-# the index instead of riding along. A named path is taken in whatever state it
-# arrives: already staged, already removed with "git rm", or tracked under a
+# only its own named paths (see commit_named), so a path staged before or beside
+# the run stays in the index instead of riding along. A named path is taken in
+# whatever state it arrives: already staged (a mode change from
+# "git update-index --chmod=+x" included), already removed with "git rm", or tracked under a
 # directory an ignore rule covers (see stage_path). An UNTRACKED path an ignore
 # rule covers is never force-added: it is warned about and left out. A ".temp/" entry is refused outright, so
 # machine state and anything written outside the file map stay uncommitted and
@@ -232,6 +233,43 @@ stage_path() {
   fi
   [[ -n "$(git ls-files -- "$f")" ]] && return 0
   [[ -n "$(git ls-tree -r --name-only HEAD -- "$f" 2>/dev/null)" ]]
+}
+
+# Commits exactly the named paths, each as the index holds it, and nothing else
+# staged: commit_named <git commit option>... -- <path>...
+# "git commit -- <paths>" is not that: its partial-commit mode re-reads every
+# named path from the working tree into an index built from HEAD, and under
+# core.fileMode=false (every Windows checkout) the mode then comes from HEAD - an
+# exec bit staged with "git update-index --chmod=+x" was silently dropped from
+# the commit and left staged, and a mode change alone failed as "nothing to
+# commit". Here a temporary index starts from HEAD, takes each named path's
+# entry from the real index (a staged deletion is its absence there), and the
+# commit runs on it with no pathspec. The real index already holds those
+# entries, so afterwards it agrees with HEAD on them and keeps every other
+# staged path as it was.
+commit_named() {
+  local idx rc=0
+  local -a opts=()
+  while [[ $# -gt 0 && "$1" != "--" ]]; do opts+=("$1"); shift; done
+  [[ $# -gt 0 ]] && shift
+  idx="$(git rev-parse --absolute-git-dir)/index.commit-task.$$"
+  rm -f "$idx"
+  if git rev-parse -q --verify HEAD >/dev/null; then
+    GIT_INDEX_FILE="$idx" git read-tree HEAD || rc=1
+  else
+    GIT_INDEX_FILE="$idx" git read-tree --empty || rc=1
+  fi
+  if [[ $rc -eq 0 ]]; then
+    GIT_INDEX_FILE="$idx" git rm -r -q --cached --ignore-unmatch -- "$@" >/dev/null || rc=1
+  fi
+  if [[ $rc -eq 0 ]]; then
+    git ls-files -s -z -- "$@" | GIT_INDEX_FILE="$idx" git update-index -z --index-info || rc=1
+  fi
+  if [[ $rc -eq 0 ]]; then
+    GIT_INDEX_FILE="$idx" git commit "${opts[@]}" || rc=$?
+  fi
+  rm -f "$idx"
+  return $rc
 }
 
 # The run's state file, beside the plan.
@@ -658,10 +696,10 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
   fi
 
   case "$form" in
-    --repair)     git commit -m "$subject" -m "$(footer "$plan" "Refs: $plan post-test fix $round")" -- "${paths[@]}" >&2 || exit 5 ;;
-    --chore|--qa) git commit -m "$subject" -m "$(footer "$plan" "Refs: $plan close")" -- "${paths[@]}" >&2 || exit 5 ;;
-    --e2e)        git commit -m "$subject" -- "${paths[@]}" >&2 || exit 5 ;;
-    --review)     git commit -m "$subject" -m "$(footer "$plan" "Refs: $plan final review")" -- "${paths[@]}" >&2 || exit 5 ;;
+    --repair)     commit_named -m "$subject" -m "$(footer "$plan" "Refs: $plan post-test fix $round")" -- "${paths[@]}" >&2 || exit 5 ;;
+    --chore|--qa) commit_named -m "$subject" -m "$(footer "$plan" "Refs: $plan close")" -- "${paths[@]}" >&2 || exit 5 ;;
+    --e2e)        commit_named -m "$subject" -- "${paths[@]}" >&2 || exit 5 ;;
+    --review)     commit_named -m "$subject" -m "$(footer "$plan" "Refs: $plan final review")" -- "${paths[@]}" >&2 || exit 5 ;;
   esac
 
   if [[ -n "$backup" ]]; then
@@ -905,7 +943,7 @@ done < <(trail_paths "$(run_dir "$plan")" "${trail[@]}")
 
 # --- a repair of an already committed task: no marker, no counter ---
 if [[ -n "$fix_n" ]]; then
-  git commit -m "$subject" -m "$(footer "$plan" "Refs: $plan task $task_id fix $fix_n")" -- "${paths[@]}" >&2 || exit 5
+  commit_named -m "$subject" -m "$(footer "$plan" "Refs: $plan task $task_id fix $fix_n")" -- "${paths[@]}" >&2 || exit 5
   echo "committed: $(git rev-parse --short HEAD)"
   echo "progress: unchanged"
   warn_unclaimed "$plan"
@@ -957,7 +995,7 @@ refs="Refs: $plan task $task_id"
 [[ -z "$landed" ]] || refs="$refs landed $landed_sha"
 # ${paths[@]+...}: a --landed commit may carry no path but status.md, and bash
 # 3.2 (macOS) treats an empty array as unbound under set -u
-git commit -m "$subject" -m "$(footer "$plan" "$refs")" -- ${paths[@]+"${paths[@]}"} "$status" >&2 || exit 5
+commit_named -m "$subject" -m "$(footer "$plan" "$refs")" -- ${paths[@]+"${paths[@]}"} "$status" >&2 || exit 5
 
 rm -f "$backup"
 backup=""

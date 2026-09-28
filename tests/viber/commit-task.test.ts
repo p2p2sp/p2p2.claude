@@ -1274,6 +1274,68 @@ test("--review leaves the progress counter unchanged", () => {
   });
 });
 
+/** The committed mode of one path, read from HEAD's tree. */
+function headMode(repo: GitRepo, rel: string): string {
+  return repo.git("ls-tree", "HEAD", "--", rel).stdout.split(/\s/)[0];
+}
+
+test("--review commits an exec bit staged with 'git update-index --chmod=+x' under core.fileMode=false, beside a content fix, and leaves nothing staged (a pathspec commit took the mode from HEAD and left it staged)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    repo.git("config", "core.fileMode", "false");
+    write(repo.dir, "scripts/run.sh", "echo run\n");
+    repo.git("add", "--", "scripts/run.sh");
+    repo.git("commit", "-m", "script at 100644");
+    repo.git("update-index", "--chmod=+x", "--", "scripts/run.sh");
+    write(repo.dir, "src/a.ts", "the final review's fix\n");
+
+    const result = run(repo.dir, repo.env, ["--review", PLAN_REL, "src/a.ts", "scripts/run.sh"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(headMode(repo, "scripts/run.sh"), "100755");
+    assert.deepEqual(committedFiles(repo), [STATUS_REL, "scripts/run.sh", "src/a.ts"].sort());
+    assert.deepEqual(stagedFiles(repo), []);
+  });
+});
+
+test("--review naming only a path whose staged change is its mode commits it, instead of failing as 'nothing to commit'", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    repo.git("config", "core.fileMode", "false");
+    write(repo.dir, "scripts/run.sh", "echo run\n");
+    repo.git("add", "--", "scripts/run.sh");
+    repo.git("commit", "-m", "script at 100644");
+    repo.git("update-index", "--chmod=+x", "--", "scripts/run.sh");
+
+    const result = run(repo.dir, repo.env, ["--review", PLAN_REL, "scripts/run.sh"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(headMode(repo, "scripts/run.sh"), "100755");
+    assert.deepEqual(stagedFiles(repo), []);
+  });
+});
+
+test("a task commit carries a staged deletion and a staged exec bit of its own files, and still leaves a file staged before the run out of it", () => {
+  withGitRepo((repo) => {
+    seed(repo, [["T1", "src/a.ts, src/old.ts, scripts/run.sh"]]);
+    repo.git("config", "core.fileMode", "false");
+    write(repo.dir, "src/old.ts", "old\n");
+    write(repo.dir, "scripts/run.sh", "echo run\n");
+    repo.git("add", "--", "src/old.ts", "scripts/run.sh");
+    repo.git("commit", "-m", "pre-existing files");
+    write(repo.dir, "src/a.ts", "work\n");
+    repo.git("rm", "-q", "--", "src/old.ts");
+    repo.git("update-index", "--chmod=+x", "--", "scripts/run.sh");
+    write(repo.dir, "src/PRESTAGED.ts", "staged by the user before the build\n");
+    repo.git("add", "--", "src/PRESTAGED.ts");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(committedFiles(repo), [STATUS_REL, "scripts/run.sh", "src/a.ts", "src/old.ts"].sort());
+    assert.equal(repo.git("ls-tree", "HEAD", "--", "src/old.ts").stdout, "");
+    assert.equal(headMode(repo, "scripts/run.sh"), "100755");
+    assert.deepEqual(stagedFiles(repo), ["src/PRESTAGED.ts"]);
+  });
+});
+
 // --- the run's own state: the two decisions and the trail -------------------
 
 test("a task commit carries its own trail and no other task's, so the notes travel with the code they describe", () => {

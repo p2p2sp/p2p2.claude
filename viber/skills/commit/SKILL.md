@@ -35,7 +35,7 @@ Run `"${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/commit-selfcheck.sh" "<Before 
 Return only one line: `<sha> | <commit message> (<verification>)`
 
 ## Rules
-- If there is nothing to commit just show `Nothing to commit` and stop.
+- Never decide on your own that there is nothing to commit, whatever the context above shows: in modes `all` and `paths` always run `commit.sh`. Only its own `Nothing to commit.` line means that - then show `Nothing to commit` and stop.
 - CRITICAL: Do not comment what you are doing - just output one line with sha and composed commit message.
 - If `commit.sh` exits non-zero, return its error output as the one line and stop. Never re-run it with a different or empty selector (that widens the commit to everything staged) and never run `git` yourself.
 - Do not push.

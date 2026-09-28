@@ -180,6 +180,21 @@ test("a repo with no changes at all: status section is empty and the diff sectio
   });
 });
 
+test("untracked files only: the empty diff section says the listed changes are still committed (a fork read the bare 'no textual diff' as nothing to commit and never ran commit.sh)", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      commitFile(repo, "a.txt", "unchanged\n");
+      fs.writeFileSync(path.join(repo.dir, "new.txt"), "brand new\n");
+
+      const result = runContext(bash, repo);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match(result.stdout, /\?\? new\.txt/);
+      assert.match(result.stdout, /git status above lists changes - they are still committed: run commit\.sh/);
+      assert.doesNotMatch(result.stdout, /no textual diff for this mode/);
+    });
+  });
+});
+
 test("a diff exceeding MAX_LINES=400 is capped with a truncation notice reporting the real total", () => {
   assertBash((bash) => {
     withGitRepo((repo) => {

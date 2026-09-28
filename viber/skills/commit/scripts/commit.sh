@@ -62,7 +62,8 @@ if [[ "$COMMIT_MODE" == "paths" ]]; then
   # from disk and index needs nothing: its deletion is already staged, and the
   # pathspec commit below takes it from HEAD. Only paths git knows afterwards
   # (index or HEAD) enter that pathspec - an ignored untracked one would make
-  # "git commit" refuse the whole list.
+  # "git commit" refuse the whole list. A mode change staged with
+  # "git update-index --chmod=+x" is committed like any other staged change.
   known=()
   for p in "${COMMIT_PATHS[@]}"; do
     if [[ -n "$(git ls-files -- "$p")" ]]; then
@@ -79,12 +80,28 @@ if [[ "$COMMIT_MODE" == "paths" ]]; then
       known+=("$p")
     fi
   done
-  # those paths alone: check them, then commit under the pathspec limit
+  # those paths alone: check them, then commit them as the index holds them
   if [[ ${#known[@]} -eq 0 ]] || git diff --cached --quiet -- "${known[@]}"; then
     echo "Nothing to commit."
     exit 0
   fi
-  git commit -m "$message" -- "${known[@]}"
+  # Not "git commit -- <paths>": that partial commit re-reads each path from the
+  # working tree into an index built from HEAD, and under core.fileMode=false
+  # (every Windows checkout) takes the mode from HEAD - a staged exec bit was
+  # dropped, and a mode change alone failed as "nothing to commit". A temporary
+  # index starts from HEAD and takes the known paths' entries from the real
+  # index (a staged deletion is their absence there); every other staged path
+  # stays staged. The same shape as commit_named in viber's commit-task.sh.
+  idx="$(git rev-parse --absolute-git-dir)/index.viber-commit.$$"
+  trap 'rm -f "$idx"' EXIT
+  if git rev-parse -q --verify HEAD >/dev/null; then
+    GIT_INDEX_FILE="$idx" git read-tree HEAD
+  else
+    GIT_INDEX_FILE="$idx" git read-tree --empty
+  fi
+  GIT_INDEX_FILE="$idx" git rm -r -q --cached --ignore-unmatch -- "${known[@]}" >/dev/null
+  git ls-files -s -z -- "${known[@]}" | GIT_INDEX_FILE="$idx" git update-index -z --index-info
+  GIT_INDEX_FILE="$idx" git commit -m "$message"
 else
   git add -A
   if git diff --cached --quiet; then

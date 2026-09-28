@@ -346,3 +346,46 @@ test("user.email unset (config AND the env override the harness normally pins): 
     });
   });
 });
+
+// --- a staged mode change under core.fileMode=false --------------------------------
+
+test("mode paths: an exec bit staged with 'git update-index --chmod=+x' under core.fileMode=false is committed, alone or beside a content change (a pathspec commit took the mode from HEAD and failed as 'nothing to commit')", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      repo.git("config", "core.fileMode", "false");
+      commitFile(repo, "run.sh", "echo run\n");
+      commitFile(repo, "a.txt", "a\n");
+      repo.git("update-index", "--chmod=+x", "--", "run.sh");
+
+      const alone = runCommit(bash, repo, ["exec bit", "run.sh"]);
+      assert.equal(alone.status, 0, `stderr: ${alone.stderr}`);
+      assert.match(repo.git("ls-tree", "HEAD", "--", "run.sh").stdout, /^100755 /);
+      assert.equal(repo.git("diff", "--cached", "--name-only").stdout.trim(), "");
+
+      repo.git("update-index", "--chmod=-x", "--", "run.sh");
+      fs.writeFileSync(path.join(repo.dir, "a.txt"), "a, changed\n");
+      const beside = runCommit(bash, repo, ["both", "run.sh a.txt"]);
+      assert.equal(beside.status, 0, `stderr: ${beside.stderr}`);
+      assert.match(repo.git("ls-tree", "HEAD", "--", "run.sh").stdout, /^100644 /);
+      const names = repo.git("show", "--name-only", "--format=", "HEAD").stdout.trim().split("\n").sort();
+      assert.deepEqual(names, ["a.txt", "run.sh"]);
+      assert.equal(repo.git("status", "--porcelain").stdout.trim(), "");
+    });
+  });
+});
+
+test("mode paths: a staged deletion is committed and a path staged outside the selector stays staged, out of the commit", () => {
+  assertBash((bash) => {
+    withGitRepo((repo) => {
+      commitFile(repo, "gone.txt", "gone\n");
+      repo.git("rm", "-q", "--", "gone.txt");
+      fs.writeFileSync(path.join(repo.dir, "other.txt"), "staged before\n");
+      repo.git("add", "--", "other.txt");
+
+      const result = runCommit(bash, repo, ["drop gone", "gone.txt"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(repo.git("show", "--name-status", "--format=", "HEAD").stdout.trim(), "D\tgone.txt");
+      assert.equal(repo.git("diff", "--cached", "--name-only").stdout.trim(), "other.txt");
+    });
+  });
+});

@@ -79,9 +79,9 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   an unmarked option instead gets the implementor's own automatic decision (`auto: <option>`,
   same `--decide` call, no counter restart) and a fresh coder, not a question.
 - Coders and reviewers keep git read-only (never `stash`, `checkout`, `restore`, `clean`):
-  parallel tasks share one working tree. A coder's one git write is `git rm -r -q` for a removal:
-  `commit-task.sh` commits through its own pathspec, so a staged deletion rides in no other
-  task's commit.
+  parallel tasks share one working tree. A coder's two git writes are `git rm -r -q` for a removal
+  and `git update-index --chmod=+x` for an exec bit: `commit-task.sh` commits only its named
+  paths, each as the index holds it, so either rides in its own task's commit and no other.
 - A coder's protected files are those of tasks not on `status.md`'s `done:` line: a done task's
   file is free to change as `EXTRA:` (the reviewer re-runs its `verify:` as `recheck:`), while
   `WAIT:` and `commit-task.sh`'s `refused` guard the ones still open.
@@ -135,6 +135,8 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
 - The `work/final-review-*.md` and `work/final-fix-coder-*.md` names: `final-review.true.md`,
   `final-reviewer.md` and `commit-task.sh --review`'s trail glob.
 - `directories.*` parsing: `config.sh`, `plan-path.sh`, `archive-run.sh`.
+- The temporary-index commit of named paths (never `git commit -- <paths>`, which drops a staged
+  mode under `core.fileMode=false`): `commit-task.sh`'s `commit_named` and `commit.sh`'s paths mode.
 - `viber.yml` key grammar (blanks allowed before the colon): `config.sh` and `bootstrap.sh`'s
   merge; a key one reads and the other misses is appended again, overriding the user's value.
 - Node (and section) budget 12000 / 32000: `references/node-doctrine.md`,
