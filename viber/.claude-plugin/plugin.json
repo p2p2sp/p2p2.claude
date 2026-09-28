@@ -28,6 +28,7 @@
     "./agents/task-coder.md",
     "./agents/task-reviewer.md",
     "./agents/test-runner.md",
+    "./agents/final-reviewer.md",
     "./agents/memory-writer.md",
     "./agents/memory-node-writer.md",
     "./agents/memory-auditor.md",

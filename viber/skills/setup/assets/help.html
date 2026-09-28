@@ -2067,12 +2067,16 @@ z nich mówi, jak nim sterować.</p>
   <h4><code>implementor</code> <span class="tag auto"><span lang="en">starts on its own</span><span lang="pl">startuje sam</span></span></h4>
   <p lang="en">Builds an approved plan task by task. It copies the plan into its run directory, splits it into
   one file per task, sends each task to <a href="#agent-task-coder"><code>task-coder</code></a> and, where a review
-  is due, to <a href="#agent-task-reviewer"><code>task-reviewer</code></a>, and commits each task on its own. Then
-  it runs the whole test suite and the close parts your switches turn on.</p>
+  is due, to <a href="#agent-task-reviewer"><code>task-reviewer</code></a>, and commits each task on its own. Then,
+  with <a href="#key-final-review"><code>final-review</code></a> on, <a href="#agent-final-reviewer"><code>final-reviewer</code></a>
+  reviews the whole build and a coder fixes what it finds, before it runs the whole test suite and the close parts
+  your switches turn on.</p>
   <p lang="pl">Buduje zatwierdzony plan zadanie po zadaniu. Kopiuje plan do katalogu przebiegu, dzieli go na
   osobny plik dla każdego zadania, każde zadanie zleca <a href="#agent-task-coder"><code>task-coder</code></a>,
   a gdy należy się recenzja, także <a href="#agent-task-reviewer"><code>task-reviewer</code></a>, i każde commituje
-  osobno. Na koniec uruchamia cały zestaw testów i te części zamknięcia, które włączają twoje przełączniki.</p>
+  osobno. Potem, gdy <a href="#key-final-review"><code>final-review</code></a> jest włączony,
+  <a href="#agent-final-reviewer"><code>final-reviewer</code></a> recenzuje cały build, a koder naprawia to, co
+  znajdzie, zanim uruchomi cały zestaw testów i te części zamknięcia, które włączają twoje przełączniki.</p>
   <dl>
     <div>
       <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
@@ -2434,6 +2438,11 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   <li id="agent-task-reviewer"><code>task-reviewer</code> <span lang="en">gates one finished task against its
   definition of done and writes a findings report when it fails.</span><span lang="pl">sprawdza jedno ukończone
   zadanie względem jego definicji ukończenia i przy odrzuceniu pisze raport z uwagami.</span></li>
+  <li id="agent-final-reviewer"><code>final-reviewer</code> <span lang="en">reviews one slice of the whole
+  build past the diff of its own tasks, once every task is committed, when
+  <a href="#key-final-review"><code>final-review</code></a> is on.</span><span lang="pl">recenzuje jeden
+  wycinek całego builda poza diffem własnych zadań, gdy każde zadanie jest już zatwierdzone, gdy
+  <a href="#key-final-review"><code>final-review</code></a> jest włączony.</span></li>
   <li id="agent-test-runner"><code>test-runner</code> <span lang="en">runs the project's build and test suite
   once and returns a verdict, keeping the log out of the conversation.</span><span lang="pl">uruchamia raz
   budowanie i testy projektu i zwraca werdykt, trzymając log poza rozmową.</span></li>
@@ -2530,12 +2539,14 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   </div>
   <div id="key-final-review">
     <dt><code>final-review</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
-    <dd><span lang="en">After every task is committed and before the final test run, one reviewer
-    looks at the whole build's diff for what per-task review and the test suite cannot see, and one
-    coder fixes everything it finds, once, before the suite runs.</span><span lang="pl">Po
-    zatwierdzeniu każdego zadania i przed ostatecznym uruchomieniem testów jeden recenzent ogląda
-    cały diff builda w poszukiwaniu tego, czego nie widzi recenzja pojedynczych zadań ani zestaw
-    testów, a jeden koder raz naprawia wszystko, co znajdzie, zanim testy się uruchomią.</span></dd>
+    <dd><span lang="en">After every task is committed and before the final test run, one or more
+    <a href="#agent-final-reviewer"><code>final-reviewer</code></a> agents look at the whole build's
+    diff for what per-task review and the test suite cannot see, and one coder fixes everything
+    they find, once, before the suite runs.</span><span lang="pl">Po zatwierdzeniu każdego zadania
+    i przed ostatecznym uruchomieniem testów jeden lub więcej agentów
+    <a href="#agent-final-reviewer"><code>final-reviewer</code></a> ogląda cały diff builda w
+    poszukiwaniu tego, czego nie widzi recenzja pojedynczych zadań ani zestaw testów, a jeden koder
+    raz naprawia wszystko, co znajdą, zanim testy się uruchomią.</span></dd>
   </div>
   <div id="key-plain-plan-review">
     <dt><code>plain-plan-review</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
