@@ -4,20 +4,20 @@
 
 - The `viber` plugin must work correctly on projects of every kind. Where the tasks are not programming tasks, or the code is not testable, the plan and the implementation process have to account for that.
 
-- A coder must write code so that TDD and its tests cover the cases without requiring an integration test against an external service such as a database.
+- The plan proves a task's behaviour across four named layers: `unit`, `component`, `integration`, `e2e`.
 
-- Integration tests only supplement the unit tests by covering several layers at once; they are never the base proof that a given function works.
+- A coder proves a decision correct without requiring a real external dependency such as a database: a `unit` test isolates one unit or a few collaborating units with only their input and output boundaries substituted; a `component` test runs the whole application in the test process from its entry point, internal layers real, external adapters replaced by in-memory fakes holding their own state.
 
-- Integration tests run as the last tasks and rather serially.
+- An `integration` test covers exactly one adapter against its real dependency, started disposably for the test run; it is never the base proof that a function works, and it never stands in for a `unit` or `component` test.
 
-- Integration tests full suite run once and only once, in the final step "final test run". Tests overlapping each other can be costly.
+- An adapter's `integration` test lives in the task that creates or changes that adapter, not in a task of its own.
 
-- Unit tests and TDD must outnumber integration tests by a wide margin.
+- Unit and component tests must outnumber integration tests by a wide margin.
 
-- Integration tests should use test containers wherever possible.
+- The full test suite, every layer together, runs once and only once, in the build's final test run. Tests overlapping each other are costly.
+
+- Integration tests should use disposable test containers wherever possible.
 
 - End-to-end tests belong to CI and `/viber:e2e`. A plan carries a task that writes them only when the user explicitly asks for them, in the request, the interview or its issue - never on the planner's or the interview's own initiative - and that task runs them only when the user separately asked for it to be run.
-
-- Keeping the testing order from detail to whole (unit tests first, integration tests last) supports building the tasks concurrently.
 
 - `implementor` is entered from an approved plan that `planner` names as the next step. Its description deliberately carries no resume or continue trigger, although step 1 resumes the most recent run once it runs: a request to continue a build in a new session may not reach it.
