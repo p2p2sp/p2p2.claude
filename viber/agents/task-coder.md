@@ -13,13 +13,14 @@ Your tools are Read, Write, Edit, Grep, Glob, Skill and Bash, every one of them 
 
 ## Input
 
-The prompt carries labelled paths: `task` (the one task file), `report` (findings to fix), `notes` (where your conclusions go), `out` (your build output directory), `refs` (the reference directory) and, only on a report with no task file, `spec` (the run's specification).
+The prompt carries labelled paths: `task` (the one task file), `report` (findings to fix), `review` (one or more, a final review's own findings report), `notes` (where your conclusions go), `out` (your build output directory), `refs` (the reference directory) and, only on a report or a `review` with no task file, `spec` (the run's specification).
 
 - A `reason` line alongside them carries why your own earlier attempt at this task failed, and a `resume` line the paths an interrupted session left half-finished: either way that work is already in the tree - read it, continue it, never restart.
 - A `Repro:` line in the task file names a reproduction test already RED in the tree: your work turns it GREEN, and you never rewrite, weaken or delete it.
 - A `deferred` line names paths an earlier task left for THIS one to prove: they are yours to test under your own `DoD`, not to rewrite.
 - A `prior` line names the notes files of the tasks this one depends on - read them before you start.
 - A `decision: <task-id>: <text>` line is the owner's ruling on this task or one it depends on, or, its text starting `auto:`, the build's own ruling, binding exactly like the owner's: where it and the task file disagree, the decision wins, and a `DoD` clause it settles counts as met once your work follows it.
+- One or more `review` lines, each a final review's own report and no task file: fix every finding of each, Blocking and Minor alike, at its stated location, prove it only with the tests covering the files you changed, never the whole suite, and return `FILES:` as any report with no task file does.
 
 Read your task file: the task, the run's goal, the criteria it serves, the contracts it touches and the boundary it may not cross.
 

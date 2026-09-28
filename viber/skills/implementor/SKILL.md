@@ -146,6 +146,10 @@ Start with every task whose `deps` are done, in one message. On every return, an
 
 ## 5. Close
 
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" final-review "${CLAUDE_SKILL_DIR}" final-review
+```
+
 Dispatch `viber:test-runner` with report path `<dir>/work/tests-<round>.md`, round starting at 1.
 
 Repair dispatch: `viber:task-coder` (model `sonnet` clamped into the tiers range, raised only by `retry`) with `spec: <dir>/spec.md`, the last `REPORT` path as `report:`, `notes: <dir>/work/repair-<round>-coder.md`, `out: .temp/viber/repair-<round>/` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`.
