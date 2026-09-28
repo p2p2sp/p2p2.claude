@@ -32,7 +32,7 @@ Run the chosen form once. Its line is carried into the close literally, never re
 Then open the onboarding page in the user's browser, its line trusted the same way:
 
 ```
-"${CLAUDE_PLUGIN_ROOT}/scripts/open-page.sh" "${CLAUDE_SKILL_DIR}/assets/usage.html"
+"${CLAUDE_PLUGIN_ROOT}/scripts/open-page.sh" "${CLAUDE_SKILL_DIR}/assets/help.html"
 ```
 
 Close with one line per item: the preload's lines except its `settings.json:` one, the settings line and the page line. Never read or restate the page's content in the reply.

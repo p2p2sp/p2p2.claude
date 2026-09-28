@@ -48,7 +48,7 @@ README.md            Catalog page for humans (install commands, requirements)
 .claude/             Dev-time rules/, settings, viber.yml switches for building THIS repo
 tests/               Dev-time regression suites for plugin scripts (outside every plugin)
 docs/archive/        Retired plugins kept for reference (superdev), never shipped
-docs/assets/         Images embedded in READMEs (viber-flow.svg)
+docs/assets/         Images for the archived superdev README (superdev-flow.svg)
 docs/specs/          viber's archived runs of work on this repo
 ```
 

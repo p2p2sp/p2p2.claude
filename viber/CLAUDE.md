@@ -36,7 +36,8 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   like `commit`: no skill or build invokes it. It writes one file, never overwriting (`EXISTS=true`
   stops it rather than asking, since a prose question drops the pre-approval).
 - `help`, user-only, a background haiku fork, also stands outside the chain: its one preload opens
-  `setup`'s `assets/usage.html` through `open-page.sh`, so moving that page updates both skills.
+  `setup`'s `assets/help.html` through `open-page.sh`, so moving that page updates both skills.
+  `viber-flow.svg` sits beside it: the page's menu links it relatively and `README.md` embeds it.
 
 ## Orchestrator contract
 
@@ -142,7 +143,7 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
 - An agent's `tools:` frontmatter and the tool list its opening paragraph names.
 - `references/qa-format.md` is the one format authority for `qa-writer`, `e2e-writer` and `e2e`,
   which routes on its `##` headings.
-- `usage.html`'s full reference and `tests/viber/usage.test.ts`: every user-visible change (a
+- `help.html`'s full reference and `tests/viber/help.test.ts`: every user-visible change (a
   skill, an argument, a switch, a write location, the flow) updates the help page in the same
   edit, and the test enforces the page's skill cards, agent lines, key entries and language pairs
   against `plugin.json`, the skills' frontmatter and `viber.yml`.

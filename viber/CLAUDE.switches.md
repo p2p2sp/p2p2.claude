@@ -2,7 +2,7 @@
 
 - A new switch: `skills/setup/templates/viber.yml` (`bootstrap.sh` appends a key an existing
   config lacks), `config.sh`'s key list and order, `switch-text.sh`'s key allowlist, `README.md`,
-  `usage.html`, and the consuming skill's `fragments/<name>.<value>.md` (implementor's step 3
+  `help.html`, and the consuming skill's `fragments/<name>.<value>.md` (implementor's step 3
   `TaskCreate`s one entry per close part; step 6 preloads `memory`, `rules`, `qa`, step 7
   `cleanup`); no skill body branches on a switch, `tests/portability.test.ts` sweeps every call.
   `<name>` is per call site (`issues-read`, `qa-e2e`), not the key; only a state that does

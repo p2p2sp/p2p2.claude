@@ -1,5 +1,5 @@
 /*
- * usage.test.ts - keeps viber/skills/setup/assets/usage.html, the help page
+ * help.test.ts - keeps viber/skills/setup/assets/help.html, the help page
  * `/viber:help` and `/viber:setup` open, from falling behind the plugin.
  *
  * Every rule is a pure function over the page text (plus the source texts it
@@ -10,7 +10,7 @@
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/viber/usage.test.ts
+ *   node --test tests/viber/help.test.ts
  */
 
 import { test } from "node:test";
@@ -21,7 +21,7 @@ import path from "node:path";
 import { contrastRatio, parseColor } from "../../superui/skills/pro-designer/scripts/check_contrast.ts";
 
 const VIBER = path.resolve(import.meta.dirname, "../../viber");
-const PAGE_PATH = path.join(VIBER, "skills/setup/assets/usage.html");
+const PAGE_PATH = path.join(VIBER, "skills/setup/assets/help.html");
 const TEMPLATE_PATH = path.join(VIBER, "skills/setup/templates/viber.yml");
 
 /** The template ships this key commented out, yet the page still documents it. */

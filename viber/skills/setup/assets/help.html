@@ -108,7 +108,9 @@
     text-decoration: none;
   }
   .skip:focus { top: 16px; }
-  .search { margin: 0 0 16px; }
+  /* Narrow screens: the sidebar holds only the search, above the page header */
+  .sidebar { max-width: 46rem; margin: 0 auto; padding: 0 16px; }
+  .search { margin: 40px 0 0; }
   .search label {
     display: block;
     margin: 0 0 8px;
@@ -145,6 +147,7 @@
   .toc-narrow li { padding: 4px 0; }
   .toc-narrow a { text-decoration: none; }
   .toc-narrow a:hover { text-decoration: underline; }
+  a.file svg { margin-left: 4px; vertical-align: -1px; }
   h2, h3 { scroll-margin-top: 24px; }
   .self {
     margin-left: 8px;
@@ -565,6 +568,8 @@
 
   @media (min-width: 720px) {
     .shell { padding: 56px 32px 128px; }
+    .sidebar { padding: 0 32px; }
+    .search { margin-top: 56px; }
     h1 { font-size: 52px; }
     dl > div { grid-template-columns: 12rem 1fr; gap: 24px; }
     dt { flex-direction: column; gap: 4px; }
@@ -578,13 +583,17 @@
       justify-content: center;
     }
     .shell { margin: 0; max-width: none; }
-    .toc {
-      display: block;
+    .sidebar {
       position: sticky;
       top: 0;
       align-self: start;
+      max-width: none;
+      margin: 0;
       padding: 64px 0 32px;
     }
+    .search { margin: 0 0 32px; }
+    .search input { padding: 8px 12px; }
+    .toc { display: block; }
     .toc ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--rule); }
     .toc a {
       display: block;
@@ -605,7 +614,7 @@
   @media (min-width: 1440px) {
     body { font-size: 18px; }
     .shell { padding-top: 72px; }
-    .toc { padding-top: 80px; }
+    .sidebar { padding-top: 80px; }
     h1 { font-size: 64px; }
     .lede { font-size: 24px; }
     h2 { font-size: 32px; }
@@ -625,6 +634,11 @@
 <body>
 <a class="skip" href="#main"><span lang="en">Skip to content</span><span lang="pl">Przejdź do treści</span></a>
 <div class="layout">
+<aside class="sidebar">
+<div class="search" hidden>
+  <label for="help-search"><span lang="en">Search this page</span><span lang="pl">Szukaj na tej stronie</span></label>
+  <input type="search" id="help-search" autocomplete="off" spellcheck="false">
+</div>
 <nav class="toc" aria-label="On this page">
   <ol>
     <li><a href="#getting-started"><span lang="en">Getting started</span><span lang="pl">Pierwsze kroki</span></a></li>
@@ -636,8 +650,10 @@
     <li><a href="#ref-skills"><span lang="en">Skills</span><span lang="pl">Skille</span></a></li>
     <li><a href="#ref-agents"><span lang="en">Agents</span><span lang="pl">Agenci</span></a></li>
     <li><a href="#ref-config"><span lang="en">Configuration</span><span lang="pl">Konfiguracja</span></a></li>
+    <li><a class="file" href="viber-flow.svg" target="_blank" rel="noopener"><span lang="en">Flow diagram</span><span lang="pl">Diagram przepływu</span><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2.5h5.5V8M9.5 2.5 2.5 9.5"/></svg></a></li>
   </ol>
 </nav>
+</aside>
 
 <main class="shell" id="main">
 <header>
@@ -661,10 +677,6 @@
   zbuduj, zapamiętaj. Nic nie powstaje, zanim nie zatwierdzisz <a href="#term-plan">planu</a>.</p>
 </header>
 
-<div class="search" hidden>
-  <label for="help-search"><span lang="en">Search this page</span><span lang="pl">Szukaj na tej stronie</span></label>
-  <input type="search" id="help-search" autocomplete="off" spellcheck="false">
-</div>
 <p id="help-no-results" hidden><span lang="en">No section matches your search.</span><span lang="pl">Żadna sekcja nie pasuje do wyszukiwania.</span></p>
 
 <details class="toc-narrow">
@@ -679,6 +691,7 @@
     <li><a href="#ref-skills"><span lang="en">Skills</span><span lang="pl">Skille</span></a></li>
     <li><a href="#ref-agents"><span lang="en">Agents</span><span lang="pl">Agenci</span></a></li>
     <li><a href="#ref-config"><span lang="en">Configuration</span><span lang="pl">Konfiguracja</span></a></li>
+    <li><a class="file" href="viber-flow.svg" target="_blank" rel="noopener"><span lang="en">Flow diagram</span><span lang="pl">Diagram przepływu</span><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2.5h5.5V8M9.5 2.5 2.5 9.5"/></svg></a></li>
   </ol>
 </details>
 
@@ -2794,6 +2807,7 @@ powrotem do <code>develop</code> to część 2.</p>
     var box = document.querySelector('.search');
     var input = document.getElementById('help-search');
     var none = document.getElementById('help-no-results');
+    var header = document.querySelector('.shell > header');
     if (!box || !input || !none) return;
     var root = document.documentElement;
     var sections = Array.prototype.slice.call(document.querySelectorAll('[data-search]'));
@@ -2818,6 +2832,10 @@ powrotem do <code>develop</code> to część 2.</p>
         if (hit) found++;
       });
       none.hidden = !query || found > 0;
+      // The field stays in the sticky sidebar, so a search can start far down the
+      // page: bring the start of the filtered content back into view.
+      var top = header ? header.getBoundingClientRect().bottom + window.scrollY : 0;
+      if (query && window.scrollY > top) window.scrollTo(0, top);
     }
 
     box.hidden = false;
@@ -2920,7 +2938,7 @@ powrotem do <code>develop</code> to część 2.</p>
   })();
 
   (function () {
-    var links = document.querySelectorAll('.toc a');
+    var links = document.querySelectorAll('.toc a[href^="#"]');
     if (!links.length || !('IntersectionObserver' in window)) return;
     var byId = {};
     links.forEach(function (a) { byId[a.getAttribute('href').slice(1)] = a; });

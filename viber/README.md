@@ -63,7 +63,7 @@ has read it against your actual codebase. Then the build runs task by task, revi
 commits it, and finishes on the full test suite. End-to-end tests stay with your CI and
 `/viber:e2e` unless you explicitly ask for them.
 
-![How viber works](../docs/assets/viber-flow.svg)
+![How viber works](skills/setup/assets/viber-flow.svg)
 
 ## Optional switches
 
