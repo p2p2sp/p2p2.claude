@@ -40,7 +40,7 @@ const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/config.sh");
 
 /** Every switch off and both directory keys at their default - what a project
  *  with no config file, and every unusable value, resolves to. */
-const OFF = { adr: "false", memory: "false", rules: "false", qa: "false", cleanup: "false", "plain-plan-review": "false", issues: "false" };
+const OFF = { adr: "false", memory: "false", rules: "false", qa: "false", cleanup: "false", "final-review": "false", "plain-plan-review": "false", issues: "false" };
 const DEFAULT_DIRS = { runs: "_specs", specifications: "specs" };
 
 function run(dir: string, env: Record<string, string> = {}) {
@@ -152,6 +152,7 @@ test("the seeded template turns every switch on, comments and case notwithstandi
       rules: "true",
       qa: "true",
       cleanup: "true",
+      "final-review": "false",
       "plain-plan-review": "true",
       issues: "true",
     });
@@ -200,6 +201,7 @@ test("the shipped template is what setup seeds: five switches on, qa and issues 
       rules: "true",
       qa: "false",
       cleanup: "true",
+      "final-review": "false",
       "plain-plan-review": "true",
       issues: "false",
     });
@@ -451,6 +453,33 @@ test("cleanup is a switch like the other four and nothing about it is special", 
     writeConfig(dir, "cleanup: true\n");
 
     assert.deepEqual(switches(run(dir).stdout), { ...OFF, cleanup: "true" });
+  });
+});
+
+test("`final-review: true` resolves to true, matched in any letter case", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, "final-review: TRUE\n");
+
+    assert.deepEqual(switches(run(dir).stdout), { ...OFF, "final-review": "true" });
+  });
+});
+
+test("a config without the `final-review` key, or with any other value, resolves to false", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, ["adr: true", "final-review: enabled", ""].join("\n"));
+
+    assert.deepEqual(switches(run(dir).stdout), { ...OFF, adr: "true" });
+  });
+});
+
+test("`final-review` prints directly after the `cleanup` line, in the header's fixed order", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, "final-review: true\n");
+
+    const printed = run(dir).stdout.trim().split("\n");
+    const cleanupIdx = printed.indexOf("cleanup: false");
+    assert.equal(cleanupIdx >= 0, true, `cleanup line missing: ${printed.join(" | ")}`);
+    assert.equal(printed[cleanupIdx + 1], "final-review: true");
   });
 });
 

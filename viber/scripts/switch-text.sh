@@ -19,9 +19,10 @@
 #
 # Contract:
 #   argv   : <key> <skill dir> <name>.
-#            key  : adr | memory | rules | qa | cleanup | plain-plan-review |
-#                   issues (value true | false) or branching.mode (value off |
-#                   allowed | required) - the value config.sh prints for it.
+#            key  : adr | memory | rules | qa | cleanup | final-review |
+#                   plain-plan-review | issues (value true | false) or
+#                   branching.mode (value off | allowed | required) - the
+#                   value config.sh prints for it.
 #            name : [a-z0-9-]+.
 #            A missing or empty argument, an unknown key or a name outside its
 #            pattern -> nothing printed.
@@ -45,7 +46,7 @@ skill_dir="${2:-}"
 name="${3:-}"
 
 case "$key" in
-  adr|memory|rules|qa|cleanup|plain-plan-review|issues|branching.mode) ;;
+  adr|memory|rules|qa|cleanup|final-review|plain-plan-review|issues|branching.mode) ;;
   *) exit 0 ;;
 esac
 case "$name" in

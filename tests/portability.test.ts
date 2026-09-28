@@ -389,6 +389,7 @@ const SWITCH_VALUES: Record<string, string[]> = {
   rules: ["true", "false"],
   qa: ["true", "false"],
   cleanup: ["true", "false"],
+  "final-review": ["true", "false"],
   "plain-plan-review": ["true", "false"],
   issues: ["true", "false"],
   "branching.mode": ["off", "allowed", "required"],
@@ -686,6 +687,12 @@ test("self-check: fragmentCallViolations fires on a fragment file no SKILL.md of
   const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, ["issues-input.true.md"]);
   assert.equal(violations.length, 1);
   assert.match(violations[0], /plugin\/skills\/foo\/fragments\/issues-input\.true\.md: called by no SKILL\.md of its own skill/);
+});
+
+test("self-check: fragmentCallViolations accepts a final-review call with a .true.md fragment for it (DoD.5)", () => {
+  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" final-review "${CLAUDE_SKILL_DIR}" final-review\n```\n';
+  const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, ["final-review.true.md"]);
+  assert.deepEqual(violations, []);
 });
 
 test("self-check: fragmentCallViolations does not fire when every call resolves and every fragment file is called", () => {

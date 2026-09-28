@@ -76,6 +76,28 @@ for (const [label, config] of [
   });
 }
 
+test("`final-review: true` prints the skill's final-review.true.md fragment", () => {
+  withGitRepo((repo) => {
+    writeConfig(repo, "final-review: true\n");
+    writeFragment(repo, "final-review.true.md", "Run the final review.\n");
+
+    const result = run(repo, ["final-review", skillDir(repo), "final-review"]);
+
+    assert.deepEqual([result.status, result.stdout], [0, "Run the final review.\n"]);
+  });
+});
+
+test("`final-review` off prints nothing - there is no fragment for the off state", () => {
+  withGitRepo((repo) => {
+    writeConfig(repo, "final-review: false\n");
+    writeFragment(repo, "final-review.true.md", "Run the final review.\n");
+
+    const result = run(repo, ["final-review", skillDir(repo), "final-review"]);
+
+    assert.deepEqual([result.status, result.stdout], [0, ""]);
+  });
+});
+
 for (const [config, mode] of [
   ["branching:\n  mode: required\n", "required"],
   ["branching:\n  mode: Allowed\n", "allowed"],
