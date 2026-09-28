@@ -1,6 +1,6 @@
-Skip this step when the index's `closed:` line names `final-review`, the build ended on `abort`, or no task was committed this run.
+Skip this step, completing its `Final review` entry, when the index's `closed:` line names `final-review`, the build ended on `abort`, or no task was committed this run.
 
-`TaskCreate` a "final review" entry; its `TaskUpdate` -> completed lands once every dispatch below has returned, committed or been accepted. As an exception to the skill's rule that only coder, reviewer and repair-coder dispatches carry `model`, both dispatches of this step carry it.
+The `Final review` entry's `TaskUpdate` -> completed lands once every dispatch below has returned, committed or been accepted. As an exception to the skill's rule that only coder, reviewer and repair-coder dispatches carry `model`, both dispatches of this step carry it.
 
 Cut every task of the index, in index order, skipped ones included, into groups of at most 8 consecutive tasks, one group per slice.
 

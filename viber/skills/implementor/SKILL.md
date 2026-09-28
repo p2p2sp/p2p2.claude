@@ -96,7 +96,7 @@ Review: the reviewer is waived only on a `sonnet` task whose `verify:` line runs
 
 Then clamp both tiers into the config block's `tiers.min` to `tiers.max` range (`haiku` < `sonnet` < `opus` < `fable`). The review waiver is decided before the clamp.
 
-`TaskCreate` the remaining tasks, a final test run, and one entry for each close part loaded below in steps 6 and 7 (`memory`, `rules`, `qa`, `cleanup`). Task subject: `<id> - <title> (<tier>)`, or `(<tier>, review <review tier>)` when reviewed.
+`TaskCreate` the remaining tasks, then these entries in this order, each except `Final test run` only when its close part is loaded below: `Final review`, `Final test run` (step 5), `Update project memory`, `Update project rules`, `Write QA scenarios` (step 6), `Archive the run` (step 7). A plan task's subject: `<id> - <title> (<tier>)`, or `(<tier>, review <review tier>)` when reviewed.
 
 ## 4. Run the plan
 

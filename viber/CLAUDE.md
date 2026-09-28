@@ -37,7 +37,8 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   stops it rather than asking, since a prose question drops the pre-approval).
 - `help`, user-only, a background haiku fork, also stands outside the chain: its one preload opens
   `setup`'s `assets/help.html` through `open-page.sh`, so moving that page updates both skills.
-  `viber-flow.svg` sits beside it: the page's menu links it relatively and `README.md` embeds it.
+  `viber-flow-en.svg` and `viber-flow-pl.svg` sit beside it: the page's menu links each by
+  `lang`, `README.md` embeds the English one; a flow change updates both.
 
 ## Orchestrator contract
 

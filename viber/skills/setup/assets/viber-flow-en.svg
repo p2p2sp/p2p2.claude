@@ -1,0 +1,445 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 2552" width="1640" height="2552" role="img" aria-labelledby="svgTitle svgDesc">
+  <title id="svgTitle">viber - from an idea to committed code</title>
+  <desc id="svgDesc">Flow diagram of the viber plugin: one-time setup, the optional triage of an issue and UI prototype, the three entries (an idea through the intent interview, a bug through the fixer diagnosis, a small change through plain plan mode), the planner writing the plan and the planner-review agent gating it, the approval gate you pass yourself, then three ways out: a draft specification continued by a later interview round, a plain plan Claude builds in your session, or the implementor building the plan with task-coder, task-reviewer and one commit per task, its tasks in parallel where their dependencies allow. The build closes with the full test suite, the final review, the optional memory, rules and QA writers and the closeout that archives the run, followed later by the e2e pass that turns the QA scenarios into Playwright tests.</desc>
+
+  <style>
+    :root {
+      --bg:#ffffff; --panel:#ffffff; --panel2:#f6f8fa; --border:#d1d9e0;
+      --text:#1f2328; --muted:#59636e;
+      --idea:#0969da; --fix:#cf222e; --build:#8250df; --ok:#1a7f37; --amber:#9a6700;
+      --ok-bg:#dafbe1; --build-bg:#fbefff; --amber-bg:#fff8c5; --chip:#f6f8fa;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:#0d1117; --panel:#161b22; --panel2:#11161d; --border:#30363d;
+        --text:#e6edf3; --muted:#9198a1;
+        --idea:#58a6ff; --fix:#f85149; --build:#a371f7; --ok:#3fb950; --amber:#d29922;
+        --ok-bg:#0f2a17; --build-bg:#21173a; --amber-bg:#2d2410; --chip:#1c2128;
+      }
+    }
+
+    text { font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: var(--text); }
+    .h1 { font-size: 21px; font-weight: 700; }
+    .title { font-size: 17px; font-weight: 700; }
+    .desc { font-size: 13.5px; fill: var(--muted); }
+    .desc-s { font-size: 12.5px; fill: var(--muted); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 13px; fill: var(--idea); }
+    .mono-t { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 16px; font-weight: 700; fill: var(--text); }
+    .sw { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 12px; font-weight: 600; fill: var(--amber); }
+    .badge-t { font-size: 11.5px; font-weight: 600; fill: var(--muted); }
+    .badge-o { font-size: 11.5px; font-weight: 600; fill: var(--amber); }
+    .lbl { font-size: 12.5px; font-weight: 600; fill: var(--muted); }
+    .hdr-t { font-size: 14.5px; font-weight: 700; fill: var(--build); }
+    .kicker { font-size: 12.5px; font-weight: 700; fill: var(--muted); letter-spacing: .06em; }
+
+    .node { fill: var(--panel); stroke: var(--border); stroke-width: 1.5; }
+    .agent { stroke-dasharray: 2 3; stroke-width: 2; }
+    .badge { fill: var(--chip); stroke: var(--border); stroke-width: 1; }
+    .badge-opt { fill: var(--amber-bg); stroke: var(--amber); stroke-width: 1; }
+    .pill { fill: var(--chip); stroke: var(--border); stroke-width: 1.5; }
+    .pane { fill: var(--panel2); stroke: var(--border); stroke-width: 1.5; stroke-dasharray: 5 5; }
+
+    .link { fill: none; stroke-width: 1.6; stroke-opacity: .5; }
+    .flow { fill: none; stroke-width: 2; stroke-opacity: .95; stroke-dasharray: 9 7; animation: dash 1.3s linear infinite; }
+    @keyframes dash { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -16; } }
+
+    .l-n { stroke: var(--muted); } .mk-n { fill: var(--muted); }
+    .l-i { stroke: var(--idea); }  .mk-i { fill: var(--idea); }
+    .l-f { stroke: var(--fix); }   .mk-f { fill: var(--fix); }
+    .l-b { stroke: var(--build); } .mk-b { fill: var(--build); }
+    .l-o { stroke: var(--ok); }    .mk-o { fill: var(--ok); }
+    .l-a { stroke: var(--amber); } .mk-a { fill: var(--amber); }
+
+    .ring-a { fill: none; stroke: var(--amber); animation: ring 2.6s ease-in-out infinite; }
+    @keyframes ring {
+      0%, 100% { stroke-width: 1.5; stroke-opacity: .22; }
+      50%      { stroke-width: 5;   stroke-opacity: .5; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .flow { animation: none; }
+      .ring-a { animation: none; stroke-width: 2; stroke-opacity: .35; }
+    }
+  </style>
+
+  <defs>
+    <marker id="ar-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="mk-n"/></marker>
+    <marker id="ar-i" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="mk-i"/></marker>
+    <marker id="ar-f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="mk-f"/></marker>
+    <marker id="ar-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="mk-b"/></marker>
+    <marker id="ar-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="mk-o"/></marker>
+    <marker id="ar-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="mk-a"/></marker>
+  </defs>
+
+  <rect x="0" y="0" width="1640" height="2552" fill="var(--bg)"/>
+
+  <!-- ============ HEADER + LEGEND ============ -->
+  <text x="40" y="42" class="kicker">VIBER</text>
+  <text x="40" y="72" class="h1">From an idea to committed code</text>
+
+  <rect x="940" y="26" width="58" height="16" rx="5" class="node"/>
+  <text x="1008" y="39" class="desc">skill - runs in your own session</text>
+  <rect x="940" y="52" width="58" height="16" rx="5" class="node agent"/>
+  <text x="1008" y="65" class="desc">agent - its own fresh context</text>
+  <rect x="940" y="78" width="58" height="16" rx="8" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="1.5"/>
+  <text x="1008" y="91" class="desc">gate - waits for your decision</text>
+
+  <rect x="1280" y="26" width="58" height="16" rx="8" class="badge-opt"/>
+  <text x="1309" y="38" class="badge-o" text-anchor="middle">optional</text>
+  <text x="1348" y="39" class="desc">your call, or its switch is on</text>
+  <text x="1280" y="65" class="sw">memory</text>
+  <text x="1348" y="65" class="desc">a switch in .claude/viber.yml</text>
+
+  <!-- ============ SETUP ============ -->
+  <rect x="40" y="112" width="1560" height="72" rx="12" class="node"/>
+  <rect x="40" y="112" width="4" height="72" rx="2" fill="var(--muted)"/>
+  <rect x="1522" y="122" width="58" height="16" rx="8" class="badge"/>
+  <text x="1551" y="134" class="badge-t" text-anchor="middle">skill</text>
+  <text x="66" y="154" class="mono-t">/viber:setup</text>
+  <text x="210" y="142" class="desc">once per project - seeds .claude/viber.yml (the switches below), the .gitignore rule and the recommended permissions,</text>
+  <text x="210" y="164" class="desc">checks the gh CLI and that CLAUDE.md names your build and test commands, then opens the usage guide</text>
+
+  <!-- ============ TRIAGE ============ -->
+  <rect x="250" y="212" width="540" height="88" rx="10" class="node"/>
+  <rect x="250" y="212" width="4" height="88" rx="2" fill="var(--muted)"/>
+  <rect x="646" y="222" width="58" height="16" rx="8" class="badge-opt"/>
+  <text x="675" y="234" class="badge-o" text-anchor="middle">optional</text>
+  <rect x="712" y="222" width="58" height="16" rx="8" class="badge"/>
+  <text x="741" y="234" class="badge-t" text-anchor="middle">skill</text>
+  <text x="274" y="242" class="mono-t">/viber:triage</text>
+  <text x="274" y="266" class="desc">Assesses one issue against your code: can it be done, how, how big.</text>
+  <text x="274" y="286" class="desc-s">Names the next step, runs nothing · issue number, URL or pasted text</text>
+
+  <path d="M270 300 L270 332" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M270 300 L270 332" class="flow l-n"/>
+  <text x="282" y="322" class="lbl">names /viber:intent</text>
+  <path d="M770 300 L770 332" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M770 300 L770 332" class="flow l-n"/>
+  <text x="782" y="322" class="lbl">names /viber:fixer</text>
+
+  <!-- ============ ENTRY PILLS ============ -->
+  <rect x="40" y="336" width="460" height="48" rx="24" class="pill"/>
+  <text x="270" y="366" class="title" text-anchor="middle" style="font-size:15px">New idea · feature · change to something existing</text>
+  <rect x="540" y="336" width="460" height="48" rx="24" class="pill"/>
+  <text x="770" y="366" class="title" text-anchor="middle" style="font-size:15px">Bug · regression · wrong behaviour</text>
+  <rect x="1120" y="336" width="460" height="48" rx="24" class="pill"/>
+  <text x="1350" y="366" class="title" text-anchor="middle" style="font-size:15px">Small, well-understood change</text>
+
+  <!-- ============ ENTRY: IDEA ============ -->
+  <path d="M315 384 L315 416" class="link l-i" marker-end="url(#ar-i)"/>
+  <path d="M315 384 L315 416" class="flow l-i"/>
+  <text x="327" y="406" class="lbl">a UI change</text>
+
+  <path d="M80 384 L80 550" class="link l-i" marker-end="url(#ar-i)"/>
+  <path d="M80 384 L80 550" class="flow l-i"/>
+  <text x="74" y="470" class="lbl" text-anchor="middle" transform="rotate(-90 74 470)">otherwise</text>
+
+  <rect x="130" y="420" width="370" height="98" rx="10" class="node"/>
+  <rect x="130" y="420" width="4" height="98" rx="2" fill="var(--idea)"/>
+  <rect x="356" y="430" width="58" height="16" rx="8" class="badge-opt"/>
+  <text x="385" y="442" class="badge-o" text-anchor="middle">optional</text>
+  <rect x="422" y="430" width="58" height="16" rx="8" class="badge"/>
+  <text x="451" y="442" class="badge-t" text-anchor="middle">skill</text>
+  <text x="154" y="450" class="mono-t">/viber:prototype</text>
+  <text x="154" y="476" class="desc">An HTML mockup of a UI change in your</text>
+  <text x="154" y="496" class="desc">project's own look, settled in conversation.</text>
+
+  <path d="M315 518 L315 550" class="link l-i" marker-end="url(#ar-i)"/>
+  <path d="M315 518 L315 550" class="flow l-i"/>
+  <text x="327" y="540" class="lbl">its Prototype: line</text>
+
+  <rect x="40" y="554" width="460" height="140" rx="10" class="node"/>
+  <rect x="40" y="554" width="4" height="140" rx="2" fill="var(--idea)"/>
+  <rect x="422" y="564" width="58" height="16" rx="8" class="badge"/>
+  <text x="451" y="576" class="badge-t" text-anchor="middle">skill</text>
+  <text x="64" y="584" class="mono-t">/viber:intent</text>
+  <text x="64" y="610" class="desc">One question at a time, with options and a recommendation.</text>
+  <text x="64" y="628" class="desc">Too big for one cycle? Split into ordered parts, first part only.</text>
+  <text x="64" y="646" class="desc">Writes nothing - it ends in a summary you confirm.</text>
+  <text x="64" y="672" class="desc-s"><tspan class="sw">issues</tspan> on: can start from a GitHub issue or open a new one</text>
+
+  <!-- ============ ENTRY: BUG ============ -->
+  <path d="M770 384 L770 550" class="link l-f" marker-end="url(#ar-f)"/>
+  <path d="M770 384 L770 550" class="flow l-f"/>
+
+  <rect x="540" y="554" width="460" height="140" rx="10" class="node"/>
+  <rect x="540" y="554" width="4" height="140" rx="2" fill="var(--fix)"/>
+  <rect x="922" y="564" width="58" height="16" rx="8" class="badge"/>
+  <text x="951" y="576" class="badge-t" text-anchor="middle">skill</text>
+  <text x="564" y="584" class="mono-t">/viber:fixer</text>
+  <text x="564" y="610" class="desc">Traces the bug to its root cause - no guessing.</text>
+  <text x="564" y="628" class="desc">Proves it with a failing test, left RED in your tree.</text>
+  <text x="564" y="646" class="desc">Never fixes it - the diagnosis goes to the planner.</text>
+  <text x="564" y="672" class="desc-s"><tspan class="sw">issues</tspan> on: can start from a GitHub issue</text>
+
+  <!-- ============ ENTRY: PLAIN PLAN MODE ============ -->
+  <path d="M1350 384 L1350 550" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M1350 384 L1350 550" class="flow l-n"/>
+
+  <rect x="1120" y="554" width="460" height="140" rx="10" class="node"/>
+  <rect x="1120" y="554" width="4" height="140" rx="2" fill="var(--muted)"/>
+  <rect x="1480" y="564" width="80" height="16" rx="8" class="badge"/>
+  <text x="1520" y="576" class="badge-t" text-anchor="middle">Claude Code</text>
+  <text x="1144" y="584" class="mono-t">plain plan mode</text>
+  <text x="1144" y="610" class="desc">Claude Code's own plan mode, no interview.</text>
+  <text x="1144" y="628" class="desc">Claude may suggest it instead of /viber:intent.</text>
+  <text x="1144" y="650" class="desc-s">viber hints: independent tasks in parallel subagents,</text>
+  <text x="1144" y="668" class="desc-s">and a subagent reviewing the result at the end</text>
+
+  <path d="M1350 694 L1350 726" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M1350 694 L1350 726" class="flow l-n"/>
+
+  <rect x="1120" y="730" width="460" height="106" rx="10" class="node agent"/>
+  <rect x="1436" y="740" width="58" height="16" rx="8" class="badge-opt"/>
+  <text x="1465" y="752" class="badge-o" text-anchor="middle">optional</text>
+  <rect x="1502" y="740" width="58" height="16" rx="8" class="badge"/>
+  <text x="1531" y="752" class="badge-t" text-anchor="middle">agent</text>
+  <text x="1144" y="760" class="mono-t">plain-plan-review</text>
+  <text x="1144" y="784" class="desc">The same review, for a plan written without the planner.</text>
+  <text x="1144" y="804" class="desc-s">PASS or FAIL - a FAIL sends the plan back for another round</text>
+  <text x="1144" y="824" class="desc-s"><tspan class="sw">plain-plan-review</tspan> off: this plan skips the review</text>
+
+  <path d="M1580 783 L1594 783 Q1612 783 1612 765 L1612 642 Q1612 624 1594 624 L1584 624" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M1580 783 L1594 783 Q1612 783 1612 765 L1612 642 Q1612 624 1594 624 L1584 624" class="flow l-n"/>
+  <text x="1630" y="704" class="lbl" text-anchor="middle" transform="rotate(-90 1630 704)">FAIL → revise</text>
+
+  <path d="M1350 836 L1350 1104" class="link l-a" marker-end="url(#ar-a)"/>
+  <path d="M1350 836 L1350 1104" class="flow l-a"/>
+  <text x="1362" y="1094" class="lbl">PASS</text>
+
+  <!-- ============ CONVERGE ON THE PLANNER ============ -->
+  <path d="M270 694 L270 722 Q270 740 288 740 L520 740" class="link l-i"/>
+  <path d="M270 694 L270 722 Q270 740 288 740 L520 740" class="flow l-i"/>
+  <text x="400" y="734" class="lbl" text-anchor="middle">the summary you confirmed</text>
+
+  <path d="M770 694 L770 722 Q770 740 752 740 L520 740" class="link l-f"/>
+  <path d="M770 694 L770 722 Q770 740 752 740 L520 740" class="flow l-f"/>
+  <text x="640" y="734" class="lbl" text-anchor="middle">the diagnosis and its failing test</text>
+
+  <path d="M520 740 L520 772" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M520 740 L520 772" class="flow l-n"/>
+
+  <rect x="230" y="776" width="580" height="172" rx="10" class="node"/>
+  <rect x="230" y="776" width="4" height="172" rx="2" fill="var(--idea)"/>
+  <rect x="732" y="786" width="58" height="16" rx="8" class="badge"/>
+  <text x="761" y="798" class="badge-t" text-anchor="middle">skill</text>
+  <text x="254" y="806" class="mono-t">planner</text>
+  <text x="254" y="832" class="desc">Writes the plan in plan mode, against your actual codebase.</text>
+  <text x="254" y="850" class="desc">Every task names its files, its dependencies and how it is verified.</text>
+  <text x="254" y="872" class="desc-s">asked to stop at a specification? it writes a draft instead</text>
+  <text x="254" y="892" class="desc-s"><tspan class="sw">adr</tspan> on: a first task records the architectural decisions in docs/adr/</text>
+  <text x="254" y="910" class="desc-s"><tspan class="sw">branching</tspan> on: the plan names the git branch the run works on</text>
+  <text x="254" y="932" class="mono">one plan · numbered tasks · acceptance criteria</text>
+
+  <path d="M520 948 L520 980" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M520 948 L520 980" class="flow l-n"/>
+
+  <rect x="230" y="984" width="580" height="88" rx="10" class="node agent"/>
+  <rect x="732" y="994" width="58" height="16" rx="8" class="badge"/>
+  <text x="761" y="1006" class="badge-t" text-anchor="middle">agent</text>
+  <text x="254" y="1014" class="mono-t">planner-review</text>
+  <text x="254" y="1036" class="desc">Reads the plan against the codebase before you ever see it.</text>
+  <text x="254" y="1056" class="desc-s">PASS or FAIL - a FAIL sends the plan back for another round</text>
+
+  <path d="M810 1028 L832 1028 Q850 1028 850 1010 L850 880 Q850 862 832 862 L814 862" class="link l-i" marker-end="url(#ar-i)"/>
+  <path d="M810 1028 L832 1028 Q850 1028 850 1010 L850 880 Q850 862 832 862 L814 862" class="flow l-i"/>
+  <text x="868" y="945" class="lbl" text-anchor="middle" transform="rotate(-90 868 945)">FAIL → revise</text>
+
+  <path d="M520 1072 L520 1104" class="link l-a" marker-end="url(#ar-a)"/>
+  <path d="M520 1072 L520 1104" class="flow l-a"/>
+  <text x="532" y="1094" class="lbl">PASS</text>
+
+  <!-- ============ GATE ============ -->
+  <rect x="40" y="1108" width="1560" height="64" rx="32" class="ring-a"/>
+  <rect x="44" y="1112" width="1552" height="56" rx="28" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="1.5"/>
+  <text x="820" y="1136" class="title" text-anchor="middle" style="font-size:14.5px">GATE - you approve the plan</text>
+  <text x="820" y="1156" class="desc-s" text-anchor="middle">no code is written before this, except fixer's reproduction test · a plan that failed review cannot leave plan mode</text>
+
+  <!-- ============ DRAFT ============ -->
+  <path d="M200 1172 L200 1206" class="link l-i" marker-end="url(#ar-i)"/>
+  <path d="M200 1172 L200 1206" class="flow l-i"/>
+  <text x="212" y="1194" class="lbl">a draft, specification only</text>
+
+  <rect x="40" y="1210" width="320" height="146" rx="10" class="node"/>
+  <rect x="40" y="1210" width="4" height="146" rx="2" fill="var(--idea)"/>
+  <text x="64" y="1240" class="mono-t">draft</text>
+  <text x="64" y="1264" class="desc-s">Only the specification, landed in</text>
+  <text x="64" y="1283" class="mono">docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</text>
+  <text x="64" y="1302" class="desc-s">for you to commit and circulate.</text>
+  <text x="64" y="1322" class="desc-s">/viber:intent pointed at it runs</text>
+  <text x="64" y="1340" class="desc-s">the next round. A build refuses a draft.</text>
+
+  <path d="M40 1283 L28 1283 Q14 1283 14 1269 L14 654 Q14 640 28 640 L36 640" class="link l-i" marker-end="url(#ar-i)"/>
+  <path d="M40 1283 L28 1283 Q14 1283 14 1269 L14 654 Q14 640 28 640 L36 640" class="flow l-i"/>
+  <text x="30" y="960" class="lbl" text-anchor="middle" transform="rotate(-90 30 960)">next round</text>
+
+  <!-- ============ PLAIN BUILD ============ -->
+  <path d="M1350 1172 L1350 1206" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M1350 1172 L1350 1206" class="flow l-n"/>
+  <text x="1362" y="1194" class="lbl">a plain plan</text>
+
+  <rect x="1120" y="1210" width="460" height="134" rx="10" class="node"/>
+  <rect x="1120" y="1210" width="4" height="134" rx="2" fill="var(--muted)"/>
+  <text x="1144" y="1240" class="title">Claude builds it in this session</text>
+  <text x="1144" y="1266" class="desc">No viber build: Claude implements the plan itself,</text>
+  <text x="1144" y="1284" class="desc">with the parallel subagents and the closing</text>
+  <text x="1144" y="1302" class="desc">review the plan asks for.</text>
+  <text x="1144" y="1326" class="desc-s">no run directory, no automatic commits: /viber:commit</text>
+
+  <!-- ============ BUILD ============ -->
+  <path d="M740 1172 L740 1206" class="link l-b" marker-end="url(#ar-b)"/>
+  <path d="M740 1172 L740 1206" class="flow l-b"/>
+  <text x="752" y="1194" class="lbl">a plan with tasks</text>
+
+  <rect x="470" y="1210" width="540" height="42" rx="21" fill="var(--build-bg)" stroke="var(--build)" stroke-width="1.5"/>
+  <text x="740" y="1236" class="hdr-t" text-anchor="middle">BUILD - the approved plan, split into tasks</text>
+
+  <path d="M740 1252 L740 1284" class="link l-b" marker-end="url(#ar-b)"/>
+  <path d="M740 1252 L740 1284" class="flow l-b"/>
+
+  <rect x="450" y="1288" width="580" height="148" rx="10" class="node"/>
+  <rect x="450" y="1288" width="4" height="148" rx="2" fill="var(--build)"/>
+  <rect x="952" y="1298" width="58" height="16" rx="8" class="badge"/>
+  <text x="981" y="1310" class="badge-t" text-anchor="middle">skill</text>
+  <text x="474" y="1318" class="mono-t">implementor</text>
+  <text x="474" y="1344" class="desc">Lands the plan, splits it into task files, never writes code itself.</text>
+  <text x="474" y="1362" class="desc">A task starts only once its dependencies are done.</text>
+  <text x="474" y="1384" class="desc-s">independent ready tasks run side by side, an exclusive task runs alone</text>
+  <text x="474" y="1402" class="desc-s"><tspan class="sw">branching</tspan> on: the run works on its own git branch</text>
+  <text x="474" y="1424" class="mono">docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</text>
+
+  <path d="M740 1436 L740 1496" class="link l-b" marker-end="url(#ar-b)"/>
+  <path d="M740 1436 L740 1496" class="flow l-b"/>
+
+  <rect x="400" y="1472" width="680" height="374" rx="14" class="pane"/>
+  <rect x="416" y="1460" width="300" height="24" rx="12" fill="var(--panel)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="566" y="1476" class="kicker" text-anchor="middle">FOR EVERY TASK (SOME IN PARALLEL)</text>
+
+  <rect x="480" y="1500" width="520" height="100" rx="10" class="node agent"/>
+  <rect x="922" y="1510" width="58" height="16" rx="8" class="badge"/>
+  <text x="951" y="1522" class="badge-t" text-anchor="middle">agent</text>
+  <text x="504" y="1530" class="mono-t">task-coder</text>
+  <text x="504" y="1552" class="desc">Builds one task and proves it green.</text>
+  <text x="504" y="1572" class="desc-s">sees only its own task file, so it cannot drift into another task's files</text>
+  <text x="504" y="1590" class="desc-s">a failure is retried on its own, the third one asks you</text>
+
+  <path d="M740 1600 L740 1628" class="link l-b" marker-end="url(#ar-b)"/>
+  <path d="M740 1600 L740 1628" class="flow l-b"/>
+
+  <rect x="480" y="1632" width="520" height="100" rx="10" class="node agent"/>
+  <rect x="922" y="1642" width="58" height="16" rx="8" class="badge"/>
+  <text x="951" y="1654" class="badge-t" text-anchor="middle">agent</text>
+  <text x="504" y="1662" class="mono-t">task-reviewer</text>
+  <text x="504" y="1684" class="desc">Checks the task against what the plan said it must do.</text>
+  <text x="504" y="1704" class="desc-s">skipped only when a sonnet task's check runs your build or tests</text>
+  <text x="504" y="1722" class="desc-s">a finding goes back to the coder, up to 3 rounds, then you decide</text>
+
+  <path d="M1000 1682 L1032 1682 Q1050 1682 1050 1664 L1050 1568 Q1050 1550 1032 1550 L1004 1550" class="link l-f" marker-end="url(#ar-f)"/>
+  <path d="M1000 1682 L1032 1682 Q1050 1682 1050 1664 L1050 1568 Q1050 1550 1032 1550 L1004 1550" class="flow l-f"/>
+  <text x="1068" y="1616" class="lbl" text-anchor="middle" transform="rotate(-90 1068 1616)">FAIL → fix</text>
+
+  <path d="M740 1732 L740 1760" class="link l-b" marker-end="url(#ar-b)"/>
+  <path d="M740 1732 L740 1760" class="flow l-b"/>
+
+  <rect x="480" y="1764" width="520" height="58" rx="10" fill="var(--ok-bg)" stroke="var(--ok)" stroke-width="1.5"/>
+  <text x="740" y="1788" class="title" text-anchor="middle" style="font-size:14.5px; fill:var(--ok)">commit - one task, one commit</text>
+  <text x="740" y="1808" class="desc-s" text-anchor="middle">the subject comes from the plan · only that task's files are staged</text>
+
+  <path d="M480 1793 L466 1793 Q448 1793 448 1775 L448 1568 Q448 1550 466 1550 L476 1550" class="link l-o" marker-end="url(#ar-o)"/>
+  <path d="M480 1793 L466 1793 Q448 1793 448 1775 L448 1568 Q448 1550 466 1550 L476 1550" class="flow l-o"/>
+  <text x="438" y="1672" class="lbl" text-anchor="middle" transform="rotate(-90 438 1672)">next ready task</text>
+
+  <path d="M740 1822 L740 1888" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M740 1822 L740 1888" class="flow l-n"/>
+  <text x="756" y="1872" class="lbl">when every task is done</text>
+
+  <!-- ============ CLOSE ============ -->
+  <rect x="480" y="1892" width="520" height="90" rx="10" class="node agent"/>
+  <rect x="922" y="1902" width="58" height="16" rx="8" class="badge"/>
+  <text x="951" y="1914" class="badge-t" text-anchor="middle">agent</text>
+  <text x="504" y="1922" class="mono-t">test-runner</text>
+  <text x="504" y="1944" class="desc">Runs the whole build and test suite once.</text>
+  <text x="504" y="1964" class="desc-s">a failure goes to a repair coder, up to 3 rounds, each fix committed</text>
+
+  <path d="M740 1982 L740 2014" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M740 1982 L740 2014" class="flow l-n"/>
+
+  <rect x="480" y="2018" width="520" height="126" rx="10" class="node agent"/>
+  <rect x="856" y="2028" width="58" height="16" rx="8" class="badge-opt"/>
+  <text x="885" y="2040" class="badge-o" text-anchor="middle">optional</text>
+  <rect x="922" y="2028" width="58" height="16" rx="8" class="badge"/>
+  <text x="951" y="2040" class="badge-t" text-anchor="middle">agent</text>
+  <text x="504" y="2048" class="mono-t">final-reviewer</text>
+  <text x="504" y="2072" class="desc">Reviews the finished build past each task's own diff,</text>
+  <text x="504" y="2090" class="desc">one reviewer per slice of up to 8 tasks.</text>
+  <text x="504" y="2112" class="desc-s">its findings get one fix round, committed, never reviewed again</text>
+  <text x="504" y="2132" class="desc-s"><tspan class="sw">final-review</tspan> on</text>
+
+  <path d="M740 2144 L740 2168" class="link l-n"/>
+  <path d="M740 2144 L740 2168" class="flow l-n"/>
+  <path d="M260 2168 L1220 2168" class="link l-n"/>
+  <text x="756" y="2160" class="lbl">only the switches you turned on</text>
+
+  <path d="M260 2168 L260 2194" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M740 2168 L740 2194" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M1220 2168 L1220 2194" class="link l-n" marker-end="url(#ar-n)"/>
+
+  <rect x="40" y="2198" width="440" height="110" rx="10" class="node agent"/>
+  <rect x="336" y="2208" width="58" height="16" rx="8" class="badge-opt"/>
+  <text x="365" y="2220" class="badge-o" text-anchor="middle">optional</text>
+  <rect x="402" y="2208" width="58" height="16" rx="8" class="badge"/>
+  <text x="431" y="2220" class="badge-t" text-anchor="middle">agent</text>
+  <text x="64" y="2228" class="mono-t">memory-writer</text>
+  <text x="64" y="2252" class="desc">Your CLAUDE.md learns what the build taught.</text>
+  <text x="64" y="2272" class="desc-s">every file kept under its size cap</text>
+  <text x="64" y="2294" class="desc-s"><tspan class="sw">memory</tspan> on</text>
+
+  <rect x="520" y="2198" width="440" height="110" rx="10" class="node agent"/>
+  <rect x="816" y="2208" width="58" height="16" rx="8" class="badge-opt"/>
+  <text x="845" y="2220" class="badge-o" text-anchor="middle">optional</text>
+  <rect x="882" y="2208" width="58" height="16" rx="8" class="badge"/>
+  <text x="911" y="2220" class="badge-t" text-anchor="middle">agent</text>
+  <text x="544" y="2228" class="mono-t">rules-writer</text>
+  <text x="544" y="2252" class="desc">Confirmed conventions land in .claude/rules/.</text>
+  <text x="544" y="2272" class="desc-s">a fact about one place goes to CLAUDE.md instead</text>
+  <text x="544" y="2294" class="desc-s"><tspan class="sw">rules</tspan> on</text>
+
+  <rect x="1000" y="2198" width="440" height="110" rx="10" class="node agent"/>
+  <rect x="1296" y="2208" width="58" height="16" rx="8" class="badge-opt"/>
+  <text x="1325" y="2220" class="badge-o" text-anchor="middle">optional</text>
+  <rect x="1362" y="2208" width="58" height="16" rx="8" class="badge"/>
+  <text x="1391" y="2220" class="badge-t" text-anchor="middle">agent</text>
+  <text x="1024" y="2228" class="mono-t">qa-writer</text>
+  <text x="1024" y="2252" class="desc">Test scenarios for what was actually delivered:</text>
+  <text x="1024" y="2272" class="desc-s">a checklist for a person, a handoff for /viber:e2e</text>
+  <text x="1024" y="2294" class="desc-s"><tspan class="sw">qa</tspan> on</text>
+
+  <path d="M260 2308 L260 2332 L1220 2332 L1220 2308" class="link l-n"/>
+  <path d="M740 2308 L740 2358" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M740 2308 L740 2358" class="flow l-n"/>
+
+  <rect x="480" y="2362" width="520" height="150" rx="10" class="node agent"/>
+  <rect x="856" y="2372" width="58" height="16" rx="8" class="badge-opt"/>
+  <text x="885" y="2384" class="badge-o" text-anchor="middle">optional</text>
+  <rect x="922" y="2372" width="58" height="16" rx="8" class="badge"/>
+  <text x="951" y="2384" class="badge-t" text-anchor="middle">agent</text>
+  <text x="504" y="2392" class="mono-t">closeout</text>
+  <text x="504" y="2416" class="desc">Notes on the specification what the build delivered beyond it,</text>
+  <text x="504" y="2434" class="desc">then moves the run into the archive, in one commit.</text>
+  <text x="504" y="2456" class="desc-s">keeps the specification and the QA documents - git keeps the rest</text>
+  <text x="504" y="2478" class="mono">docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/ → docs/specs/</text>
+  <text x="504" y="2498" class="desc-s"><tspan class="sw">cleanup</tspan> on</text>
+
+  <!-- ============ E2E ============ -->
+  <path d="M1440 2253 L1512 2253 Q1530 2253 1530 2271 L1530 2358" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M1440 2253 L1512 2253 Q1530 2253 1530 2271 L1530 2358" class="flow l-n"/>
+  <text x="1518" y="2348" class="lbl" text-anchor="end">later, when you want them automated</text>
+
+  <rect x="1080" y="2362" width="520" height="100" rx="10" class="node"/>
+  <rect x="1080" y="2362" width="4" height="100" rx="2" fill="var(--ok)"/>
+  <rect x="1522" y="2372" width="58" height="16" rx="8" class="badge"/>
+  <text x="1551" y="2384" class="badge-t" text-anchor="middle">skill</text>
+  <text x="1104" y="2392" class="mono-t">/viber:e2e</text>
+  <text x="1104" y="2416" class="desc">Turns the QA scenarios into Playwright tests.</text>
+  <text x="1104" y="2436" class="desc-s">runs them against your application, commits the ones that pass</text>
+</svg>
