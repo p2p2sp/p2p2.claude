@@ -498,8 +498,8 @@
       <span class="step" aria-hidden="true">1</span>
       <p class="stage"><span lang="en">Understand</span><span lang="pl">Zrozum</span></p>
       <p class="say">/viber:intent <span class="or"><span lang="en">or</span><span lang="pl">lub</span></span> /viber:fixer</p>
-      <p class="what" lang="en">An interview, or a diagnosis whose only change is a failing reproduction test. No production code.</p>
-      <p class="what" lang="pl">Wywiad, albo diagnoza, której jedyną zmianą jest test reprodukcyjny, który nie przechodzi. Żadnego kodu produkcyjnego.</p>
+      <p class="what" lang="en">An interview, or a diagnosis that adds only a failing reproduction test. Neither writes production code.</p>
+      <p class="what" lang="pl">Wywiad albo diagnoza, która dodaje tylko test reprodukcyjny, który nie przechodzi. Żadne z nich nie pisze kodu produkcyjnego.</p>
     </li>
     <li>
       <span class="step" aria-hidden="true">2</span>
@@ -532,8 +532,8 @@ and a task can be committed on a suite that never ran.</p>
 z instrukcji tego projektu, więc bez nich <code>test-runner</code> zgaduje na podstawie manifestu, który akurat
 znajdzie, a zadanie może zostać zacommitowane na testach, które nigdy się nie uruchomiły.</p>
 <p lang="en">No <code>CLAUDE.md</code> yet: run <code>/init</code>, then make sure the root file states the exact build command, the
-exact test command, how to run a single test file, and whatever else a newcomer would get wrong -
-how to launch the app, the required env, the migrations. When your test command also runs the
+exact test command, how to run a single test file, and whatever else a newcomer would get wrong,
+such as how to launch the app, the required env or the migrations. When your test command also runs the
 end-to-end tests, name one that leaves them out: a build never runs them unless you ask.</p>
 <p lang="pl">Nie masz jeszcze <code>CLAUDE.md</code>? Uruchom <code>/init</code>, a potem upewnij się, że główny plik podaje
 dokładne polecenie budowania, dokładne polecenie testów, sposób uruchomienia pojedynczego pliku testów
@@ -547,12 +547,12 @@ end-to-end, podaj takie, które je pomija: build nigdy ich nie uruchamia, chyba 
 <dl>
   <div>
     <dt><code>/viber:triage</code></dt>
-    <dd><span lang="en">Before any of them: one reported issue (a GitHub number, a link or pasted text) checked
-    against the code, with the next step named - <code>/viber:fixer</code>, <code>/viber:intent</code> or none. It
-    starts nothing itself and posts its report on the issue only when you say so.</span><span lang="pl">Przed
-    każdym z nich: jedno zgłoszone issue (numer z GitHuba, link albo wklejony tekst) sprawdzone względem
-    kodu, z nazwanym następnym krokiem: <code>/viber:fixer</code>, <code>/viber:intent</code> albo żaden. Sam niczego
-    nie uruchamia, a raport publikuje na issue tylko wtedy, gdy o to poprosisz.</span></dd>
+    <dd><span lang="en">Comes before any of them. It checks one reported issue (a GitHub number, a link or
+    pasted text) against the code and names the next step: <code>/viber:fixer</code>, <code>/viber:intent</code> or none.
+    It starts nothing itself and posts its report on the issue only when you say so.</span><span lang="pl">Idzie
+    przed każdym z nich. Sprawdza jedno zgłoszone issue (numer z GitHuba, link albo wklejony tekst)
+    względem kodu i wskazuje następny krok: <code>/viber:fixer</code>, <code>/viber:intent</code> albo żaden. Sam
+    niczego nie uruchamia, a raport publikuje na issue tylko wtedy, gdy o to poprosisz.</span></dd>
   </div>
   <div>
     <dt><code>/viber:intent</code></dt>
@@ -569,25 +569,23 @@ end-to-end, podaj takie, które je pomija: build nigdy ich nie uruchamia, chyba 
   <div>
     <dt><code>/viber:prototype</code></dt>
     <dd><span lang="en">A UI change becomes one working HTML mockup in your project's own look, or three
-    alternatives to choose from - it asks which upfront. You refine it in conversation, then its
+    alternatives to choose from; it asks which one you want before it starts. You refine it in conversation, then its
     conclusions go on to <code>/viber:intent</code>, onto the GitHub issue it started from, or both. Mockups
     land in <code>.temp/viber/prototype/</code>.</span><span lang="pl">Zmiana w UI staje się jedną działającą
-    makietą HTML w wyglądzie twojego projektu albo trzema wariantami do wyboru; o to, którą opcję
-    wolisz, pyta na początku. Dopracowujesz ją w rozmowie, a potem wnioski trafiają do
-    <code>/viber:intent</code>, na issue na GitHubie, od którego wszystko się zaczęło, albo w oba miejsca.
+    makietą HTML w wyglądzie twojego projektu albo trzema wariantami do wyboru; na początku pyta,
+    którą opcję wybierasz. Dopracowujesz ją w rozmowie, a potem wnioski trafiają do
+    <code>/viber:intent</code>, na issue na GitHubie, od którego wyszedł prototyp, albo w oba miejsca.
     Makiety lądują w <code>.temp/viber/prototype/</code>.</span></dd>
   </div>
 </dl>
-<p lang="en"><code>intent</code> and <code>fixer</code> both end at the planner, <code>prototype</code> ends at <code>intent</code>, and nothing is
-built before you approve the plan.</p>
-<p lang="pl"><code>intent</code> i <code>fixer</code> kończą się na planiście, <code>prototype</code> kończy się na <code>intent</code>, a nic
-nie powstaje, zanim nie zatwierdzisz planu.</p>
-<p lang="en">A plan that stopped at a draft, with no tasks yet, continues the same way: point <code>/viber:intent</code>
-at it. A build interrupted halfway resumes by asking Claude to continue the build, which reopens
-the run most recently worked on.</p>
-<p lang="pl">Plan, który zatrzymał się na szkicu, jeszcze bez zadań, kontynuujesz tak samo: wskaż na niego
-<code>/viber:intent</code>. Przerwany w połowie build wznawiasz, prosząc Claude o kontynuację buildu -
-wtedy wraca do przebiegu, nad którym pracowano ostatnio.</p>
+<p lang="en"><code>intent</code> and <code>fixer</code> both hand off to the planner, and <code>prototype</code> hands off to <code>intent</code>.</p>
+<p lang="pl"><code>intent</code> i <code>fixer</code> przekazują pracę planiście, a <code>prototype</code> przekazuje ją do <code>intent</code>.</p>
+<p lang="en">To continue a plan that stopped at a draft, with no tasks yet, point <code>/viber:intent</code> at it.
+To resume a build interrupted halfway, ask Claude to continue the build; it reopens the run most
+recently worked on.</p>
+<p lang="pl">Plan, który zatrzymał się na szkicu, jeszcze bez zadań, kontynuujesz, wskazując na niego
+<code>/viber:intent</code>. Przerwany w połowie build wznowisz, prosząc Claude o kontynuację buildu;
+otworzy się wtedy przebieg, nad którym pracowano ostatnio.</p>
 </section>
 
 <section id="issues">
@@ -635,10 +633,10 @@ przyjmuje załącznik HTML.</p>
     <dt><code>/viber:e2e</code> <span class="tag"><span lang="en">needs qa</span><span lang="pl">wymaga qa</span></span></dt>
     <dd><span lang="en">Turns the QA scenarios a build wrote into Playwright tests, run against your own
     application and committed once they are green. Needs the <code>qa</code> switch to have been on during
-    that build, and it starts off - turn it on before the build, not after.</span><span lang="pl">Zamienia
+    that build, and that switch is off by default, so turn it on before the build starts.</span><span lang="pl">Zamienia
     scenariusze QA zapisane przez build w testy Playwright, uruchamiane na twojej aplikacji
     i commitowane, gdy przechodzą. Wymaga, żeby przełącznik <code>qa</code> był włączony podczas tego
-    buildu, a domyślnie jest wyłączony: włącz go przed buildem, nie po nim.</span></dd>
+    buildu, a domyślnie jest wyłączony, więc włącz go przed rozpoczęciem buildu.</span></dd>
   </div>
 </dl>
 </section>
@@ -660,8 +658,8 @@ przyjmuje załącznik HTML.</p>
     sposób i przekazuje zmiany temu samemu autorowi, którego używa zamknięcie buildu.</span></dd>
   </div>
 </dl>
-<p lang="en">Both ask before writing anything and leave the result unstaged, same as the close. Neither needs a
-build in progress - run them whenever the layer might have drifted. Both also offer a
+<p lang="en">Both ask before writing anything and leave the result unstaged, as the build close does. Neither
+needs a build in progress, so run them whenever the layer might have drifted. Both also offer a
 <code>reset</code> mode, which deletes the whole layer and starts from zero; it is refused while a
 target holds uncommitted work.</p>
 <p lang="pl">Oba pytają, zanim cokolwiek zapiszą, i zostawiają wynik poza indeksem gita (unstaged), tak
@@ -722,10 +720,10 @@ zera; jest odrzucany, gdy cel ma niezacommitowane zmiany.</p>
     <dt><code>cleanup</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
     <dd><span lang="en">The build ends by noting on the specification anything it delivered that the specification
     does not promise, then archiving the run and dropping the plan, the state file and the trail.
-    They are all in git, which is where the history belongs.</span><span lang="pl">Build kończy się
+    All of them stay in git history.</span><span lang="pl">Build kończy się
     odnotowaniem w specyfikacji wszystkiego, co dostarczył, a czego specyfikacja nie obiecuje, potem
-    archiwizuje przebieg i usuwa plan, plik stanu i ślad pracy. Wszystko to zostaje w gicie, bo tam jest
-    miejsce na historię.</span></dd>
+    archiwizuje przebieg i usuwa plan, plik stanu i ślad pracy. Wszystko to zostaje w historii
+    gita.</span></dd>
   </div>
   <div>
     <dt><code>plain-plan-review</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
@@ -745,26 +743,26 @@ zera; jest odrzucany, gdy cel ma niezacommitowane zmiany.</p>
     <code>triage</code> ocenia tylko wklejony tekst issue.</span></dd>
   </div>
 </dl>
-<p lang="en">Six of the seven start on; <code>qa</code> starts off, because a build that needs acceptance scenarios is the
-exception rather than the rule. Edit <code>.claude/viber.yml</code> to change that - every key is commented
-there, and only <code>true</code> counts as on. Turn a switch off with <code>false</code> rather than by deleting it:
-running <code>/viber:setup</code> again merges in whatever the current version's template carries and your
-file does not, which is how a new switch reaches a project set up by an older one, and a deleted
-top-level key, or a deleted <code>directories:</code> child, is restored at its default by that same merge.
-A deleted child of <code>tiers:</code> or <code>branching:</code> is the exception: the merge only appends
-one of those groups whole when the file lacks it entirely, never extends one already present, so
-deleting a child there just resolves it to its default instead. Every value you already set survives it.</p>
-<p lang="pl">Sześć z siedmiu jest domyślnie włączonych; <code>qa</code> jest wyłączony, bo build potrzebujący
-scenariuszy akceptacyjnych to wyjątek, a nie reguła. Zmienisz to w <code>.claude/viber.yml</code>: każdy
+<p lang="en">Six of the seven start on. <code>qa</code> starts off, because most builds need no acceptance
+scenarios. To change any of them, edit <code>.claude/viber.yml</code>: every key has a comment there, and
+only <code>true</code> counts as on. Turn a switch off with <code>false</code> instead of deleting it. Running
+<code>/viber:setup</code> again merges in every key the current version's template has and your file lacks.
+That is how a new switch reaches a project set up by an older version, and the same merge restores a
+deleted top-level key, or a deleted <code>directories:</code> child, at its default.
+Children of <code>tiers:</code> and <code>branching:</code> work differently: the merge adds either group only
+as a whole, when the file lacks it entirely, and never extends one already present. A child you
+delete there does not come back into the file; it simply resolves to its default. The merge keeps
+every value you have already set.</p>
+<p lang="pl">Sześć z siedmiu jest domyślnie włączonych. <code>qa</code> jest wyłączony, bo większość buildów
+nie potrzebuje scenariuszy akceptacyjnych. Zmienisz to w <code>.claude/viber.yml</code>: każdy
 klucz ma tam komentarz, a za włączony liczy się tylko <code>true</code>. Przełącznik wyłączaj wartością
-<code>false</code>, a nie przez usunięcie: ponowne uruchomienie <code>/viber:setup</code> dołącza wszystko, co ma
-szablon bieżącej wersji, a czego brakuje w twoim pliku. Tak nowy przełącznik trafia do projektu
+<code>false</code>, nie usuwaj go. Ponowne uruchomienie <code>/viber:setup</code> dołącza każdy klucz, który ma
+szablon bieżącej wersji, a którego brakuje w twoim pliku. Tak nowy przełącznik trafia do projektu
 skonfigurowanego starszą wersją i tak samo wraca z wartością domyślną usunięty klucz najwyższego
-poziomu albo usunięte dziecko grupy <code>directories:</code>. Wyjątkiem jest usunięte dziecko grupy
-<code>tiers:</code> lub <code>branching:</code>: scalanie dodaje taką grupę w całości tylko wtedy, gdy w pliku
-jej w ogóle brakuje, nigdy nie rozszerza już istniejącej, więc usunięcie w niej klucza po prostu
-przywraca jego wartość domyślną, a nie sam klucz. Każda już ustawiona
-wartość przetrwa to scalenie.</p>
+poziomu albo usunięte dziecko grupy <code>directories:</code>. Dzieci grup <code>tiers:</code>
+i <code>branching:</code> działają inaczej: scalanie dodaje taką grupę tylko w całości, gdy w pliku jej
+w ogóle brakuje, i nigdy nie rozszerza już istniejącej. Usunięty tam klucz nie wraca do pliku, po
+prostu obowiązuje jego wartość domyślna. Scalanie zachowuje każdą już ustawioną wartość.</p>
 <p lang="en">When your <code>.claude/settings.json</code> already exists, <code>/viber:setup</code> asks whether to
 merge the recommended permissions into it (viber's value wins a conflict, permission lists only gain
 entries) or reset it to the recommended file from scratch. A reset keeps your old file in
@@ -788,7 +786,7 @@ zresetować go i zapisać zalecany plik od zera. Reset zachowuje stary plik w
   </div>
 </dl>
 <p class="note" lang="en">Both sit in a <code>directories:</code> group and are plain directory names, read only from inside
-that group - a value carrying a slash is ignored and the default stands.</p>
+that group: a value with a slash is ignored and the default applies.</p>
 <p class="note" lang="pl">Oba należą do grupy <code>directories:</code> i są zwykłymi nazwami katalogów, czytanymi
 tylko z wnętrza tej grupy: wartość zawierająca ukośnik jest ignorowana i obowiązuje domyślna.</p>
 
@@ -818,16 +816,16 @@ domyślnego. Planowanie działa na modelu bieżącej sesji i zakres go nie ogran
 <dl>
   <div>
     <dt><code>mode</code> <span class="tag">off</span></dt>
-    <dd><span lang="en">off stays on the branch the run started on, exactly as today. allowed offers a branch
+    <dd><span lang="en">off stays on the branch the run started on. allowed offers a branch
     during planning and waits for your confirmation. required always gives the run its own branch.</span><span lang="pl">off
-    zostawia bieg na gałęzi, na której się zaczął, dokładnie jak dziś. allowed proponuje gałąź podczas
-    planowania i czeka na twoje potwierdzenie. required zawsze daje biegowi własną gałąź.</span></dd>
+    zostawia przebieg na gałęzi, na której się zaczął. allowed proponuje gałąź podczas
+    planowania i czeka na twoje potwierdzenie. required zawsze daje przebiegowi własną gałąź.</span></dd>
   </div>
   <div>
     <dt><code>work</code></dt>
     <dd><span lang="en">Each kind of run branch a project wants, keyed by a short name: its own
     <code>base</code> it is cut from, <code>name</code> pattern (quoted since it opens on <code>{</code>) and
-    <code>target</code> it would land a pull request on.</span><span lang="pl">Każdy rodzaj gałęzi biegu, jaki
+    <code>target</code> it would land a pull request on.</span><span lang="pl">Każdy rodzaj gałęzi przebiegu, jaki
     potrzebuje projekt, pod krótkim kluczem: własny <code>base</code>, z którego jest wycinana, wzorzec
     <code>name</code> (w cudzysłowie, bo zaczyna się od <code>{</code>) i <code>target</code>, na który
     trafiłby pull request.</span></dd>
@@ -837,29 +835,29 @@ domyślnego. Planowanie działa na modelu bieżącej sesji i zakres go nie ogran
     <dd><span lang="en">Picks a <code>work</code> entry by the type of the GitHub issue a run starts from
     (needs <code>issues: true</code>). Without a matching mapping, the single usable entry is offered
     instead.</span><span lang="pl">Wybiera wpis <code>work</code> na podstawie typu issue z GitHuba, od
-    którego zaczyna się bieg (wymaga <code>issues: true</code>). Bez pasującego mapowania proponowany jest
+    którego zaczyna się przebieg (wymaga <code>issues: true</code>). Bez pasującego mapowania proponowany jest
     jedyny możliwy do użycia wpis.</span></dd>
   </div>
 </dl>
 <p class="note" lang="en">A <code>name</code> pattern is filled in from the plan: <code>{type}</code>,
-<code>{slug}</code> and <code>{issue-number}</code> - the last needs <code>issues: true</code>, since without
-it there is no issue number to fill in. Nothing is ever fetched, pushed, merged or deleted: a branch is
-only created, switched to and committed on. A bad entry or mapping is dropped with a readable reason
-rather than breaking the whole file; see <code>viber/BRANCHING.md</code> for the full list. One complete
-example per strategy follows - the strategy's own name is never itself a configuration value.</p>
+<code>{slug}</code> and <code>{issue-number}</code>. The last needs <code>issues: true</code>, since without
+it there is no issue number to fill in. viber never fetches, pushes, merges or deletes anything: it only
+creates a branch, switches to it and commits on it. A bad entry or mapping is dropped with a readable
+reason and the rest of the file still applies; see <code>viber/BRANCHING.md</code> for the full list. Each
+example below is a complete setup for one strategy; the strategy's name itself is never a configuration value.</p>
 <p class="note" lang="pl">Wzorzec <code>name</code> jest wypełniany na podstawie planu: <code>{type}</code>,
-<code>{slug}</code> i <code>{issue-number}</code> - ten ostatni wymaga <code>issues: true</code>, bo bez
-tego nie ma numeru issue do wstawienia. Nic nie jest pobierane (fetch), wypychane (push), scalane ani
-usuwane: gałąź jest tylko tworzona, na nią następuje przełączenie i na niej lądują commity. Zły wpis lub
-mapowanie jest odrzucane z czytelnym powodem, zamiast psuć cały plik; pełną listę zawiera
-<code>viber/BRANCHING.md</code>. Dalej jeden pełny przykład na strategię - nazwa samej strategii nigdy nie
-jest wartością konfiguracji.</p>
+<code>{slug}</code> i <code>{issue-number}</code>. Ten ostatni wymaga <code>issues: true</code>, bo bez
+tego nie ma numeru issue do wstawienia. viber niczego nie pobiera (fetch), nie wypycha (push), nie scala
+ani nie usuwa: tylko tworzy gałąź, przełącza się na nią i na niej commituje. Błędny wpis lub mapowanie
+jest odrzucane z czytelnym powodem, a reszta pliku nadal obowiązuje; pełną listę znajdziesz w
+<code>viber/BRANCHING.md</code>. Każdy przykład poniżej to pełna konfiguracja jednej strategii; sama nazwa
+strategii nigdy nie jest wartością konfiguracji.</p>
 
 <h4><span lang="en">Trunk based development, branching off</span><span lang="pl">Trunk based development, gałęzie wyłączone</span></h4>
 <pre class="snippet">branching:
   mode: off</pre>
 <p class="caption" lang="en">Every run keeps committing on whichever branch you already checked out.</p>
-<p class="caption" lang="pl">Każdy bieg commituje dalej na tej gałęzi, na którą już przełączyłeś się sam.</p>
+<p class="caption" lang="pl">Każdy przebieg commituje na gałęzi, która jest już wybrana.</p>
 
 <h4><span lang="en">Trunk based development, short-lived branches</span><span lang="pl">Trunk based development, krótko żyjące gałęzie</span></h4>
 <pre class="snippet">branching:
@@ -869,10 +867,10 @@ jest wartością konfiguracji.</p>
       base: main
       name: '{type}/{slug}'
       target: main</pre>
-<p class="caption" lang="en">One entry, cut from and landing back on <code>main</code>; <code>allowed</code>
-means you still confirm the branch each run rather than always getting one.</p>
-<p class="caption" lang="pl">Jeden wpis, wycinany z <code>main</code> i tam wracający; <code>allowed</code>
-oznacza, że nadal potwierdzasz gałąź przy każdym biegu, zamiast dostawać ją zawsze.</p>
+<p class="caption" lang="en">One entry, cut from and landing back on <code>main</code>. With <code>allowed</code>,
+each run asks you to confirm its branch.</p>
+<p class="caption" lang="pl">Jeden wpis, wycinany z <code>main</code> i tam wracający. Przy <code>allowed</code>
+każdy przebieg prosi cię o potwierdzenie swojej gałęzi.</p>
 
 <h4><span lang="en">GitHub Flow</span><span lang="pl">GitHub Flow</span></h4>
 <pre class="snippet">branching:
