@@ -36,7 +36,7 @@ only its own plan format, so one blocks the other. Run one track at a time.
 Reporting a bug instead? Just describe it. The flow gets traced step by step, the diagnosis proven
 with a failing test, and the fix goes through the same plan gate.
 
-![How superdev works](../../assets/superdev-flow.svg)
+![How superdev works](superdev-flow.svg)
 
 ## Commands
 
