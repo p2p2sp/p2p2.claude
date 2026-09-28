@@ -350,6 +350,66 @@
     .card dt { flex-direction: row; }
   }
 
+  /* Task guides: one goal each, one three-step example, rare cases folded */
+  .guide-index {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    list-style: none;
+    margin: 0 0 24px;
+    padding: 0;
+  }
+  .guide-index a {
+    display: inline-block;
+    padding: 5px 12px;
+    border: 1px solid var(--rule-strong);
+    border-radius: 999px;
+    font-size: 14px;
+    text-decoration: none;
+  }
+  .guide-index a:hover { border-color: var(--term); background: var(--term-soft); }
+  .guide { scroll-margin-top: 24px; }
+  .guide h3.sub { margin-top: 48px; }
+  .steps {
+    display: grid;
+    gap: 12px;
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+  }
+  .steps li {
+    padding: 14px 18px;
+    background: var(--surface);
+    border-radius: 10px;
+  }
+  .steps .label {
+    display: block;
+    margin: 0 0 6px;
+    color: var(--muted);
+    font: 600 12px/1.3 var(--sans);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .steps li p { margin: 0; font-size: 15px; line-height: 1.55; }
+  .steps li p code { color: var(--term); }
+  details {
+    margin: 0 0 16px;
+    padding: 0 16px;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+  }
+  details[open] { padding-bottom: 4px; }
+  summary {
+    padding: 10px 0;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .rare { margin: 0 0 12px; padding-left: 1.25em; }
+  .rare li { margin: 0 0 8px; max-width: 80ch; }
+  @media (min-width: 720px) {
+    .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
   /* The issue thread */
   .thread {
     list-style: none;
@@ -463,7 +523,7 @@
   <ol>
     <li><a href="#getting-started"><span lang="en">Getting started</span><span lang="pl">Pierwsze kroki</span></a></li>
     <li><a href="#cheat-sheet"><span lang="en">Commands</span><span lang="pl">Polecenia</span></a></li>
-    <li><a href="#issues"><span lang="en">From a GitHub issue</span><span lang="pl">Z issue na GitHubie</span></a></li>
+    <li><a href="#guides"><span lang="en">Task guides</span><span lang="pl">Poradniki</span></a></li>
     <li><a href="#ref-skills"><span lang="en">Skills</span><span lang="pl">Skille</span></a></li>
     <li><a href="#ref-agents"><span lang="en">Agents</span><span lang="pl">Agenci</span></a></li>
     <li><a href="#ref-config"><span lang="en">Configuration</span><span lang="pl">Konfiguracja</span></a></li>
@@ -682,11 +742,176 @@ wywiad albo diagnoza przekaże mu pracę, <a href="#skill-implementor">implement
 o zbudowanie zatwierdzonego planu, a <a href="#skill-tdd">tdd</a> działa wewnątrz buildu.</p>
 </section>
 
-<section id="issues">
-<h2><span lang="en">From a GitHub issue</span><span lang="pl">Z issue na GitHubie</span></h2>
-<p lang="en">With the <code>issues</code> switch on, one issue can carry a change from report to commit:</p>
-<p lang="pl">Przy włączonym przełączniku <code>issues</code> jedno issue może poprowadzić zmianę od zgłoszenia
-aż do commita:</p>
+<section id="guides">
+<h2><span lang="en">Task guides</span><span lang="pl">Poradniki</span></h2>
+<p lang="en">One guide per job. Each shows what you type, what viber does and what is left afterwards. Less
+common cases sit folded under the example.</p>
+<p lang="pl">Każdy poradnik dotyczy jednej sprawy i pokazuje, co wpisujesz, co robi viber i co zostaje
+potem. Rzadsze przypadki są zwinięte pod przykładem.</p>
+<ul class="guide-index">
+  <li><a href="#guide-feature"><span lang="en">Add a feature</span><span lang="pl">Dodaj funkcję</span></a></li>
+  <li><a href="#guide-bug"><span lang="en">Fix a bug</span><span lang="pl">Napraw błąd</span></a></li>
+  <li><a href="#guide-issue"><span lang="en">Start from a GitHub issue</span><span lang="pl">Zacznij od issue na GitHubie</span></a></li>
+  <li><a href="#guide-mockup"><span lang="en">See a UI mockup first</span><span lang="pl">Najpierw zobacz makietę UI</span></a></li>
+  <li><a href="#guide-resume"><span lang="en">Resume a stopped build</span><span lang="pl">Wznów przerwany build</span></a></li>
+  <li><a href="#guide-commit"><span lang="en">Commit</span><span lang="pl">Zacommituj zmiany</span></a></li>
+  <li><a href="#guide-session"><span lang="en">Continue in a new session</span><span lang="pl">Kontynuuj w nowej sesji</span></a></li>
+  <li><a href="#guide-e2e"><span lang="en">Get end-to-end tests</span><span lang="pl">Dodaj testy end-to-end</span></a></li>
+  <li><a href="#guide-memory"><span lang="en">Refresh project memory and rules</span><span lang="pl">Odśwież pamięć i reguły projektu</span></a></li>
+</ul>
+
+<section class="guide" id="guide-feature">
+<h3 class="sub" id="guide-feature-title"><span lang="en">Add a feature</span><span lang="pl">Dodaj funkcję</span></h3>
+<p lang="en">For a change that needs a plan. A small change you want made right away needs none: ask Claude
+for it directly and say you want it without a plan.</p>
+<p lang="pl">Dla zmiany, która potrzebuje planu. Mała zmiana, którą chcesz mieć od razu, planu nie wymaga:
+poproś o nią Claude wprost i powiedz, że ma ją zrobić bez planu.</p>
+<ol class="steps">
+  <li>
+    <span class="label"><span lang="en">You type</span><span lang="pl">Wpisujesz</span></span>
+    <p lang="en"><code>/viber:intent let admins deactivate a user account</code></p>
+    <p lang="pl"><code>/viber:intent pozwól administratorom dezaktywować konto użytkownika</code></p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">viber does</span><span lang="pl">viber robi</span></span>
+    <p lang="en">The <a href="#skill-intent">interview</a> asks what your words and the code leave open, one
+    question at a time, and ends on a summary you confirm. <a href="#skill-planner"><code>planner</code></a>
+    writes the plan in plan mode and <a href="#agent-planner-review"><code>planner-review</code></a> checks it.
+    Once you approve it and ask Claude to build it, <a href="#skill-implementor"><code>implementor</code></a>
+    builds and commits one task at a time.</p>
+    <p lang="pl"><a href="#skill-intent">Wywiad</a> pyta o to, czego nie rozstrzygają twoje słowa i kod, po
+    jednym pytaniu, i kończy się podsumowaniem, które potwierdzasz. <a href="#skill-planner"><code>planner</code></a>
+    pisze plan w trybie planowania, a <a href="#agent-planner-review"><code>planner-review</code></a> go
+    sprawdza. Kiedy plan zatwierdzisz i poprosisz Claude o jego zbudowanie,
+    <a href="#skill-implementor"><code>implementor</code></a> buduje go i commituje zadanie po zadaniu.</p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">What is left</span><span lang="pl">Co zostaje</span></span>
+    <p lang="en">One commit per task, titled <code>T1 - &lt;task title&gt;</code>. With the template's defaults
+    the build also updates <code>CLAUDE.md</code> and <code>.claude/rules/</code> and archives the run in
+    <code>docs/specs/</code>.</p>
+    <p lang="pl">Po jednym commicie na zadanie, z tytułem <code>T1 - &lt;tytuł zadania&gt;</code>. Przy
+    domyślnych ustawieniach szablonu build aktualizuje też <code>CLAUDE.md</code> i <code>.claude/rules/</code>,
+    a przebieg odkłada do archiwum w <code>docs/specs/</code>.</p>
+  </li>
+</ol>
+<details>
+  <summary><span lang="en">Large requests, drafts and small plans</span><span lang="pl">Duże prośby, szkice i małe plany</span></summary>
+  <ul class="rare">
+    <li><span lang="en">A request made of several independent parts gets a proposed split into subprojects
+    first. Only the first one is interviewed; each later one gets its own cycle.</span><span lang="pl">Prośba
+    złożona z kilku niezależnych części najpierw dostaje propozycję podziału na podprojekty. Wywiad obejmuje
+    tylko pierwszy z nich, każdy kolejny przechodzi własny cykl.</span></li>
+    <li><span lang="en"><code>/viber:intent --prove let admins deactivate a user account</code> has
+    <a href="#agent-prover"><code>prover</code></a> check the claims of every question against the code before
+    you see it.</span><span lang="pl"><code>/viber:intent --prove pozwól administratorom dezaktywować konto
+    użytkownika</code> zleca agentowi <a href="#agent-prover"><code>prover</code></a> sprawdzenie w kodzie
+    twierdzeń każdego pytania, zanim je zobaczysz.</span></li>
+    <li><span lang="en">Others must read the specification before any task is planned: ask during the
+    interview to stop at a specification. The draft lands in <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code>
+    for you to commit and circulate, and <code>/viber:intent</code> pointed at that draft continues it. A build
+    refuses a draft.</span><span lang="pl">Inni muszą przeczytać specyfikację, zanim powstaną zadania: poproś
+    w trakcie wywiadu o zatrzymanie się na specyfikacji. Szkic trafia do
+    <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code>, skąd go commitujesz i rozsyłasz, a
+    <code>/viber:intent</code> wskazujący ten szkic prowadzi go dalej. Build odmawia zbudowania
+    szkicu.</span></li>
+    <li><span lang="en">For a small, well understood change Claude may suggest its own plan mode instead of
+    the interview. With <a href="#key-plain-plan-review"><code>plain-plan-review</code></a> on, that plan still
+    has to pass a review before plan mode ends.</span><span lang="pl">Przy małej, dobrze zrozumianej zmianie
+    Claude może zaproponować zwykły tryb planowania zamiast wywiadu. Przy włączonym
+    <a href="#key-plain-plan-review"><code>plain-plan-review</code></a> taki plan też musi przejść recenzję,
+    zanim tryb planowania się skończy.</span></li>
+  </ul>
+</details>
+</section>
+
+<section class="guide" id="guide-bug">
+<h3 class="sub" id="guide-bug-title"><span lang="en">Fix a bug</span><span lang="pl">Napraw błąd</span></h3>
+<p lang="en">Start here when something works wrong and you want it fixed through a plan. The cause is proven
+before any fix is written.</p>
+<p lang="pl">Zacznij tutaj, gdy coś działa źle i chcesz to naprawić przez plan. Przyczyna zostaje
+udowodniona, zanim powstanie jakakolwiek poprawka.</p>
+<ol class="steps">
+  <li>
+    <span class="label"><span lang="en">You type</span><span lang="pl">Wpisujesz</span></span>
+    <p lang="en"><code>/viber:fixer saving a draft with an empty title returns 500</code></p>
+    <p lang="pl"><code>/viber:fixer zapis szkicu z pustym tytułem zwraca 500</code></p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">viber does</span><span lang="pl">viber robi</span></span>
+    <p lang="en"><a href="#skill-fixer"><code>fixer</code></a> follows the code from its entry point, step by
+    step, to the first place where the actual value differs from the expected one. It writes a test that
+    reproduces that divergence, runs it and watches it fail, then hands the diagnosis to
+    <a href="#skill-planner"><code>planner</code></a>. It changes no code apart from that test.</p>
+    <p lang="pl"><a href="#skill-fixer"><code>fixer</code></a> idzie za kodem od punktu wejścia, krok po
+    kroku, do pierwszego miejsca, w którym faktyczna wartość różni się od oczekiwanej. Pisze test odtwarzający
+    tę rozbieżność, uruchamia go i sprawdza, że nie przechodzi, a potem przekazuje diagnozę do
+    <a href="#skill-planner"><code>planner</code></a>. Poza tym testem nie zmienia kodu.</p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">What is left</span><span lang="pl">Co zostaje</span></span>
+    <p lang="en">A failing test in your suite and a plan to approve. Once the plan is built, the test passes
+    and the fix is committed task by task.</p>
+    <p lang="pl">Nieprzechodzący test w twoich testach i plan do zatwierdzenia. Po zbudowaniu planu test
+    przechodzi, a poprawka jest zacommitowana zadanie po zadaniu.</p>
+  </li>
+</ol>
+<details>
+  <summary><span lang="en">Several possible fixes, or a bug that resists a test</span><span lang="pl">Kilka możliwych poprawek albo błąd, którego nie da się łatwo odtworzyć</span></summary>
+  <ul class="rare">
+    <li><span lang="en">When more than one fix is defensible, it asks you which one before it hands
+    off.</span><span lang="pl">Gdy da się obronić więcej niż jedną poprawkę, przed przekazaniem pyta cię,
+    którą wybrać.</span></li>
+    <li><span lang="en">When a reproduction is really impossible (a hard race, a rendering artifact, third
+    party state it cannot reach), it stops and asks your explicit permission to hand off without the test.
+    Hard to test is not impossible.</span><span lang="pl">Gdy błędu naprawdę nie da się odtworzyć (trudny wyścig,
+    artefakt renderowania, stan zewnętrznej usługi poza zasięgiem), zatrzymuje się i prosi cię o wyraźną
+    zgodę na przekazanie bez testu. Trudne do przetestowania nie znaczy niemożliwe.</span></li>
+    <li><span lang="en">With <a href="#key-issues"><code>issues</code></a> on, <code>/viber:fixer #42</code> reads
+    the issue as the bug report. When the issue cannot be read, it stops before tracing
+    anything.</span><span lang="pl">Przy włączonym <a href="#key-issues"><code>issues</code></a>
+    <code>/viber:fixer #42</code> czyta issue jako opis błędu. Gdy issue nie da się odczytać, zatrzymuje się,
+    zanim zacznie cokolwiek śledzić.</span></li>
+  </ul>
+</details>
+</section>
+
+<section class="guide" id="guide-issue">
+<h3 class="sub" id="guide-issue-title"><span lang="en">Start from a GitHub issue</span><span lang="pl">Zacznij od issue na GitHubie</span></h3>
+<p lang="en">Set <a href="#key-issues"><code>issues</code></a> to <code>true</code> in <code>.claude/viber.yml</code>
+first (the template ships it off) and install the GitHub CLI (<code>gh</code>). With the switch off,
+<code>/viber:triage</code> assesses pasted issue text only.</p>
+<p lang="pl">Najpierw ustaw <a href="#key-issues"><code>issues</code></a> na <code>true</code> w
+<code>.claude/viber.yml</code> (szablon ma go wyłączonego) i zainstaluj GitHub CLI (<code>gh</code>). Przy
+wyłączonym przełączniku <code>/viber:triage</code> ocenia tylko wklejony tekst issue.</p>
+<ol class="steps">
+  <li>
+    <span class="label"><span lang="en">You type</span><span lang="pl">Wpisujesz</span></span>
+    <p><code>/viber:triage #42</code></p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">viber does</span><span lang="pl">viber robi</span></span>
+    <p lang="en"><a href="#skill-triage"><code>triage</code></a> reads the issue with its comments, checks it
+    against your code and classifies it as a bug, a feature request or other. Its report covers whether the
+    change can be done, how, what it affects and how big it is. Then it asks whether to post the report on
+    the issue.</p>
+    <p lang="pl"><a href="#skill-triage"><code>triage</code></a> czyta issue razem z komentarzami, sprawdza je
+    względem twojego kodu i klasyfikuje jako błąd, prośbę o funkcję albo coś innego. Raport mówi, czy
+    zmianę da się zrobić, jak, na co wpłynie i jak jest duża. Na koniec pyta, czy opublikować raport
+    w issue.</p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">What is left</span><span lang="pl">Co zostaje</span></span>
+    <p lang="en">The report in <code>.temp/viber/triage/42.md</code>, posted as a comment only on your yes, and
+    the next step for you to run: <code>/viber:fixer #42</code> for a bug, <code>/viber:intent #42</code> for a
+    feature request, or none, with the reason.</p>
+    <p lang="pl">Raport w <code>.temp/viber/triage/42.md</code>, opublikowany jako komentarz tylko za twoją
+    zgodą, i następny krok do uruchomienia przez ciebie: <code>/viber:fixer #42</code> dla błędu,
+    <code>/viber:intent #42</code> dla prośby o funkcję albo żaden, z podanym powodem.</p>
+  </li>
+</ol>
+<details>
+  <summary><span lang="en">One issue from report to commit</span><span lang="pl">Jedno issue od zgłoszenia do commita</span></summary>
 <ol class="thread">
   <li><span lang="en"><code>/viber:triage #42</code> checks the issue against the code and names the next
   step.</span><span lang="pl"><code>/viber:triage #42</code> sprawdza issue względem kodu i nazywa następny
@@ -718,6 +943,315 @@ attachment.</p>
 <p lang="pl"><code>/viber:prototype</code> uruchomiony z issue może opublikować tam swoje wnioski jako
 komentarz. Makietę dołącz do tego komentarza samodzielnie w przeglądarce: tylko przeglądarka
 przyjmuje załącznik HTML.</p>
+</details>
+</section>
+
+<section class="guide" id="guide-mockup">
+<h3 class="sub" id="guide-mockup-title"><span lang="en">See a UI mockup first</span><span lang="pl">Najpierw zobacz makietę UI</span></h3>
+<p lang="en">For a UI change you want to see before it is planned. The mockup is a single HTML file in your
+project's own look, and your code stays untouched.</p>
+<p lang="pl">Dla zmiany w UI, którą chcesz zobaczyć, zanim powstanie plan. Makieta to jeden plik HTML
+w wyglądzie twojego projektu, a twój kod zostaje nietknięty.</p>
+<ol class="steps">
+  <li>
+    <span class="label"><span lang="en">You type</span><span lang="pl">Wpisujesz</span></span>
+    <p lang="en"><code>/viber:prototype a filter bar above the orders table</code></p>
+    <p lang="pl"><code>/viber:prototype pasek filtrów nad tabelą zamówień</code></p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">viber does</span><span lang="pl">viber robi</span></span>
+    <p lang="en"><a href="#skill-prototype"><code>prototype</code></a> asks whether you want one proposal or
+    three to choose from, then asks only about the screen.
+    <a href="#agent-prototype-writer"><code>prototype-writer</code></a> builds the mockup and it opens in your
+    browser. You ask for changes until it is ready.</p>
+    <p lang="pl"><a href="#skill-prototype"><code>prototype</code></a> pyta, czy chcesz jedną propozycję, czy
+    trzy do wyboru, a potem pyta wyłącznie o ekran.
+    <a href="#agent-prototype-writer"><code>prototype-writer</code></a> buduje makietę i otwiera się ona
+    w przeglądarce. Prosisz o zmiany, aż będzie gotowa.</p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">What is left</span><span lang="pl">Co zostaje</span></span>
+    <p lang="en">The mockup in <code>.temp/viber/prototype/&lt;slug&gt;.html</code> and its conclusions. On your
+    word they go to <a href="#skill-intent"><code>/viber:intent</code></a> with a <code>Prototype:</code> line
+    naming the mockup, so the interview starts from it.</p>
+    <p lang="pl">Makieta w <code>.temp/viber/prototype/&lt;slug&gt;.html</code> i wnioski z rozmowy. Na twoje
+    słowo trafiają do <a href="#skill-intent"><code>/viber:intent</code></a> z linią <code>Prototype:</code>
+    wskazującą makietę, więc wywiad zaczyna od niej.</p>
+  </li>
+</ol>
+<details>
+  <summary><span lang="en">Variants, issues and questions beyond the screen</span><span lang="pl">Warianty, issue i pytania wykraczające poza ekran</span></summary>
+  <ul class="rare">
+    <li><span lang="en">With three variants, pick one and the writer narrows the mockup down to
+    it.</span><span lang="pl">Przy trzech wariantach wybierz jeden, a makieta zostanie do niego
+    zawężona.</span></li>
+    <li><span lang="en">The browser opens the mockup once. After each later round, refresh the
+    tab.</span><span lang="pl">Przeglądarka otwiera makietę tylko raz. Po każdej kolejnej rundzie odśwież
+    kartę.</span></li>
+    <li><span lang="en">Data, logic, an API or anything else beyond the screen is parked as an open point
+    for the interview.</span><span lang="pl">Dane, logika, API i wszystko inne poza ekranem zostaje odłożone
+    jako otwarta kwestia dla wywiadu.</span></li>
+    <li><span lang="en">With <a href="#key-issues"><code>issues</code></a> on, <code>/viber:prototype #42</code>
+    starts from the issue and can post its conclusions there as a comment. Attach the mockup to that comment
+    yourself in the browser.</span><span lang="pl">Przy włączonym <a href="#key-issues"><code>issues</code></a>
+    <code>/viber:prototype #42</code> zaczyna od issue i może opublikować w nim wnioski jako komentarz.
+    Makietę dołącz do tego komentarza sam w przeglądarce.</span></li>
+  </ul>
+</details>
+</section>
+
+<section class="guide" id="guide-resume">
+<h3 class="sub" id="guide-resume-title"><span lang="en">Resume a stopped build</span><span lang="pl">Wznów przerwany build</span></h3>
+<p lang="en">A build keeps its progress in the run directory, committed with every task, so it resumes in a
+new session or on another machine.</p>
+<p lang="pl">Build trzyma postęp w katalogu przebiegu, commitowanym razem z każdym zadaniem, więc da się go
+wznowić w nowej sesji albo na innym komputerze.</p>
+<ol class="steps">
+  <li>
+    <span class="label"><span lang="en">You type</span><span lang="pl">Wpisujesz</span></span>
+    <p lang="en"><q>Continue the build</q></p>
+    <p lang="pl"><q>Kontynuuj build</q></p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">viber does</span><span lang="pl">viber robi</span></span>
+    <p lang="en"><a href="#skill-implementor"><code>implementor</code></a> reopens the run most recently worked
+    on and never repeats a task that is done or skipped. A task that stopped with files half changed gets a
+    question first: continue from them, start over, or drop the task. Then the remaining tasks run as
+    before.</p>
+    <p lang="pl"><a href="#skill-implementor"><code>implementor</code></a> otwiera przebieg, nad którym
+    pracowano ostatnio, i nigdy nie powtarza zadania ukończonego ani pominiętego. Przy zadaniu przerwanym
+    w połowie zmian najpierw pyta: kontynuować od nich, zacząć od nowa czy porzucić zadanie. Potem pozostałe
+    zadania idą jak wcześniej.</p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">What is left</span><span lang="pl">Co zostaje</span></span>
+    <p lang="en">The rest of the plan committed, one commit per task, then the closing test run and the close
+    parts your switches turn on.</p>
+    <p lang="pl">Reszta planu zacommitowana, po jednym commicie na zadanie, a potem końcowe testy i te części
+    zamknięcia, które włączają twoje przełączniki.</p>
+  </li>
+</ol>
+<details>
+  <summary><span lang="en">Several open runs, drafts and stalled tasks</span><span lang="pl">Kilka otwartych przebiegów, szkice i zadania, które utknęły</span></summary>
+  <ul class="rare">
+    <li><span lang="en">When another run also has unsettled tasks, it asks which one to resume. To choose it
+    yourself, name the plan: <q>build docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</q>.</span><span lang="pl">Gdy
+    inny przebieg też ma nierozliczone zadania, pyta, który wznowić. Żeby wybrać samemu, podaj plan:
+    <q>zbuduj docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</q>.</span></li>
+    <li><span lang="en">Changed files that no task claims get one question: which task takes them, or leave
+    them out.</span><span lang="pl">Zmienione pliki, do których nie przyznaje się żadne zadanie, dostają
+    jedno pytanie: które zadanie je przejmuje, czy zostawić je poza buildem.</span></li>
+    <li><span lang="en">A draft is refused. <code>/viber:intent</code> pointed at the draft continues
+    it.</span><span lang="pl">Szkicu build nie zbuduje. <code>/viber:intent</code> wskazujący szkic prowadzi go
+    dalej.</span></li>
+    <li><span lang="en">A task that keeps failing ends on a question: retry, skip, accept or abort, or your own
+    ruling in words.</span><span lang="pl">Zadanie, które wciąż się nie udaje, kończy się pytaniem: ponowić,
+    pominąć, zaakceptować, przerwać albo twoje własne rozstrzygnięcie słowami.</span></li>
+  </ul>
+</details>
+</section>
+
+<section class="guide" id="guide-commit">
+<h3 class="sub" id="guide-commit-title"><span lang="en">Commit</span><span lang="pl">Zacommituj zmiany</span></h3>
+<p lang="en">A build commits each task itself. This is for work done outside a build.</p>
+<p lang="pl">Build sam commituje każde zadanie. To jest sposób na pracę wykonaną poza buildem.</p>
+<ol class="steps">
+  <li>
+    <span class="label"><span lang="en">You type</span><span lang="pl">Wpisujesz</span></span>
+    <p lang="en"><code>/viber:commit</code>, or just <q>commit</q></p>
+    <p lang="pl"><code>/viber:commit</code> albo po prostu <q>zacommituj</q></p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">viber does</span><span lang="pl">viber robi</span></span>
+    <p lang="en"><a href="#skill-commit"><code>commit</code></a> stages every change, new and deleted files
+    included, writes a Conventional Commits message in the style of your recent commits, commits and checks
+    that the commit landed.</p>
+    <p lang="pl"><a href="#skill-commit"><code>commit</code></a> dodaje do indeksu każdą zmianę, razem z nowymi
+    i usuniętymi plikami, pisze komunikat Conventional Commits w stylu twoich ostatnich commitów, commituje
+    i sprawdza, że commit powstał.</p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">What is left</span><span lang="pl">Co zostaje</span></span>
+    <p lang="en">One commit and one line with its hash and message. Nothing is pushed.</p>
+    <p lang="pl">Jeden commit i jedna linia z jego hashem i komunikatem. Nic nie jest wypychane.</p>
+  </li>
+</ol>
+<details>
+  <summary><span lang="en">Some files only, or an issue reference</span><span lang="pl">Tylko wybrane pliki albo odwołanie do issue</span></summary>
+  <ul class="rare">
+    <li><span lang="en">Paths commit only those files or directories:
+    <code>/viber:commit src/export docs/export.md</code>.</span><span lang="pl">Ścieżki ograniczają commit do
+    tych plików lub katalogów: <code>/viber:commit src/export docs/export.md</code>.</span></li>
+    <li><span lang="en">An issue, <code>#42</code> or its link, becomes the <code>Refs:</code> footer:
+    <code>/viber:commit src/export #42</code>.</span><span lang="pl">Issue, <code>#42</code> albo link do
+    niego, trafia do stopki <code>Refs:</code>: <code>/viber:commit src/export #42</code>.</span></li>
+    <li><span lang="en">With no change in the tree it answers <code>Nothing to commit</code>.</span><span lang="pl">Gdy
+    w drzewie nie ma zmian, odpowiada <code>Nothing to commit</code>.</span></li>
+  </ul>
+</details>
+</section>
+
+<section class="guide" id="guide-session">
+<h3 class="sub" id="guide-session-title"><span lang="en">Continue in a new session</span><span lang="pl">Kontynuuj w nowej sesji</span></h3>
+<p lang="en">When a conversation grows long or you stop for the day, save it for a fresh session.</p>
+<p lang="pl">Gdy rozmowa robi się długa albo kończysz na dziś, zapisz ją dla nowej sesji.</p>
+<ol class="steps">
+  <li>
+    <span class="label"><span lang="en">You type</span><span lang="pl">Wpisujesz</span></span>
+    <p><code>/viber:handoff</code></p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">viber does</span><span lang="pl">viber robi</span></span>
+    <p lang="en"><a href="#skill-handoff"><code>handoff</code></a> writes one file from this conversation:
+    where to look, what is done, the decisions with the alternatives they rejected, what comes next and the
+    open problems. It opens no file to fill a gap, so anything the conversation never confirmed goes under
+    the open problems.</p>
+    <p lang="pl"><a href="#skill-handoff"><code>handoff</code></a> zapisuje tę rozmowę w jednym pliku: gdzie
+    szukać, co jest zrobione, decyzje razem z odrzuconymi wariantami, co dalej i otwarte problemy. Luk nie
+    uzupełnia czytaniem plików, więc wszystko, czego rozmowa nie potwierdziła, ląduje wśród otwartych
+    problemów.</p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">What is left</span><span lang="pl">Co zostaje</span></span>
+    <p lang="en">The file <code>.temp/viber/handoff/&lt;stamp&gt;_&lt;slug&gt;.md</code> and a line to paste
+    into the new session: <code>Read &lt;path&gt; and continue from its What's next section.</code></p>
+    <p lang="pl">Plik <code>.temp/viber/handoff/&lt;stamp&gt;_&lt;slug&gt;.md</code> i linia do wklejenia
+    w nowej sesji, która każe przeczytać ten plik i ruszyć od sekcji z dalszymi krokami.</p>
+  </li>
+</ol>
+<details>
+  <summary><span lang="en">Another path, open builds and secrets</span><span lang="pl">Inna ścieżka, otwarte buildy i sekrety</span></summary>
+  <ul class="rare">
+    <li><span lang="en">Give a directory or a <code>.md</code> path to save it elsewhere:
+    <code>/viber:handoff notes/csv-export.md</code>. It never overwrites a file: a path that exists stops
+    it.</span><span lang="pl">Podaj katalog albo ścieżkę <code>.md</code>, żeby zapisać plik gdzie indziej:
+    <code>/viber:handoff notes/eksport-csv.md</code>. Nigdy nie nadpisuje pliku: istniejąca ścieżka go
+    zatrzymuje.</span></li>
+    <li><span lang="en"><code>/viber:setup</code> has git ignore <code>.temp/</code>. To carry the file to
+    another machine, save it at a path you commit.</span><span lang="pl"><code>/viber:setup</code> każe gitowi
+    ignorować <code>.temp/</code>. Żeby przenieść plik na inny komputer, zapisz go pod ścieżką, którą
+    commitujesz.</span></li>
+    <li><span lang="en">An open build in the conversation is named by its run directory, and none of its tasks
+    is copied: the build <a href="#guide-resume">resumes</a> from its own state.</span><span lang="pl">Otwarty
+    build z rozmowy jest wskazany przez katalog przebiegu, a żadne z jego zadań nie jest kopiowane: build
+    <a href="#guide-resume">wznawia się</a> z własnego stanu.</span></li>
+    <li><span lang="en">No secret, token, password or <code>.env</code> content goes into the
+    file.</span><span lang="pl">Do pliku nie trafia żaden sekret, token, hasło ani zawartość
+    <code>.env</code>.</span></li>
+  </ul>
+</details>
+</section>
+
+<section class="guide" id="guide-e2e">
+<h3 class="sub" id="guide-e2e-title"><span lang="en">Get end-to-end tests</span><span lang="pl">Dodaj testy end-to-end</span></h3>
+<p lang="en">A build never writes or runs end-to-end tests unless you ask. Turn
+<a href="#key-qa"><code>qa</code></a> on before the build starts: its close then writes <code>qa.md</code>, the
+scenarios a person performs, and <code>qa.e2e.md</code>, the handoff this command reads.</p>
+<p lang="pl">Build nigdy nie pisze ani nie uruchamia testów end-to-end, chyba że o to poprosisz. Włącz
+<a href="#key-qa"><code>qa</code></a> przed startem buildu: wtedy jego zamknięcie zapisuje <code>qa.md</code>,
+scenariusze do wykonania przez człowieka, i <code>qa.e2e.md</code>, plik przekazania, który czyta to
+polecenie.</p>
+<ol class="steps">
+  <li>
+    <span class="label"><span lang="en">You type</span><span lang="pl">Wpisujesz</span></span>
+    <p><code>/viber:e2e</code></p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">viber does</span><span lang="pl">viber robi</span></span>
+    <p lang="en"><a href="#skill-e2e"><code>e2e</code></a> takes the run most recently worked on, checks that
+    Playwright is installed and starts your application when nothing answers at its address.
+    <a href="#agent-e2e-writer"><code>e2e-writer</code></a> turns each scenario into one test and proves it
+    green against the running application.</p>
+    <p lang="pl"><a href="#skill-e2e"><code>e2e</code></a> bierze przebieg, nad którym pracowano ostatnio,
+    sprawdza, czy jest Playwright, i uruchamia twoją aplikację, gdy nic nie odpowiada pod jej adresem.
+    <a href="#agent-e2e-writer"><code>e2e-writer</code></a> zamienia każdy scenariusz w jeden test i sprawdza,
+    że przechodzi na działającej aplikacji.</p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">What is left</span><span lang="pl">Co zostaje</span></span>
+    <p lang="en">One test file per scenario in the e2e directory your project's instructions name, one commit,
+    and the application still running.</p>
+    <p lang="pl">Jeden plik testu na scenariusz w katalogu e2e wskazanym w instrukcjach projektu, jeden commit
+    i wciąż działająca aplikacja.</p>
+  </li>
+</ol>
+<details>
+  <summary><span lang="en">Missing values, Playwright and blocked scenarios</span><span lang="pl">Brakujące wartości, Playwright i zablokowane scenariusze</span></summary>
+  <ul class="rare">
+    <li><span lang="en">The base URL, the launch command and the test accounts come from your project's
+    instructions, then from the handoff file; the e2e directory from the instructions alone. It asks for each
+    value still missing.</span><span lang="pl">Adres bazowy, polecenie uruchomienia i konta testowe pochodzą
+    z instrukcji projektu, a potem z pliku przekazania; katalog e2e tylko z instrukcji. O każdą brakującą
+    wartość pyta.</span></li>
+    <li><span lang="en">Without Playwright it offers to install it, or stops. The install changes
+    <code>package.json</code> and its lockfile, which stay yours to commit.</span><span lang="pl">Bez
+    Playwrighta proponuje jego instalację albo kończy pracę. Instalacja zmienia <code>package.json</code>
+    i plik blokady, które commitujesz sam.</span></li>
+    <li><span lang="en">A scenario the application kept from passing is reported as blocked, with the reason,
+    and the next run tries it again. A scenario marked as not automatable gets no test.</span><span lang="pl">Scenariusz,
+    któremu aplikacja nie pozwoliła przejść, jest zgłaszany jako zablokowany, z powodem, a kolejne
+    uruchomienie próbuje go znowu. Scenariusz oznaczony jako nienadający się do automatyzacji nie dostaje
+    testu.</span></li>
+    <li><span lang="en">For another run, name it: <code>/viber:e2e docs/specs/&lt;run&gt;</code>.</span><span lang="pl">Inny
+    przebieg wskaż wprost: <code>/viber:e2e docs/specs/&lt;run&gt;</code>.</span></li>
+  </ul>
+</details>
+</section>
+
+<section class="guide" id="guide-memory">
+<h3 class="sub" id="guide-memory-title"><span lang="en">Refresh project memory and rules</span><span lang="pl">Odśwież pamięć i reguły projektu</span></h3>
+<p lang="en">With <a href="#key-memory"><code>memory</code></a> and <a href="#key-rules"><code>rules</code></a> on,
+every build updates these files at its close. Between builds, and after changes made outside viber, the
+files can drift from the code.</p>
+<p lang="pl">Przy włączonych <a href="#key-memory"><code>memory</code></a> i <a href="#key-rules"><code>rules</code></a>
+każdy build aktualizuje te pliki na zamknięciu. Między buildami i po zmianach zrobionych poza viber pliki
+mogą rozjechać się z kodem.</p>
+<ol class="steps">
+  <li>
+    <span class="label"><span lang="en">You type</span><span lang="pl">Wpisujesz</span></span>
+    <p><code>/viber:memory review</code></p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">viber does</span><span lang="pl">viber robi</span></span>
+    <p lang="en"><a href="#skill-memory"><code>memory</code></a> lists every <code>CLAUDE.md</code> with its size
+    and lets you pick which ones to check. <a href="#agent-memory-auditor"><code>memory-auditor</code></a>
+    checks each against the code of its area, and once you approve the findings,
+    <a href="#agent-memory-node-writer"><code>memory-node-writer</code></a> corrects the files within their
+    budget.</p>
+    <p lang="pl"><a href="#skill-memory"><code>memory</code></a> wypisuje każdy <code>CLAUDE.md</code> z jego
+    rozmiarem i pozwala wybrać, które sprawdzić. <a href="#agent-memory-auditor"><code>memory-auditor</code></a>
+    porównuje każdy z kodem jego obszaru, a gdy zatwierdzisz wyniki,
+    <a href="#agent-memory-node-writer"><code>memory-node-writer</code></a> poprawia pliki w granicach
+    limitu.</p>
+  </li>
+  <li>
+    <span class="label"><span lang="en">What is left</span><span lang="pl">Co zostaje</span></span>
+    <p lang="en">Corrected <code>CLAUDE.md</code> files in your working tree, unstaged, for you to commit.
+    <a href="#skill-rules"><code>/viber:rules review</code></a> does the same for <code>.claude/rules/</code>.</p>
+    <p lang="pl">Poprawione pliki <code>CLAUDE.md</code> w drzewie roboczym, poza indeksem, do twojego
+    commita. <a href="#skill-rules"><code>/viber:rules review</code></a> robi to samo dla
+    <code>.claude/rules/</code>.</p>
+  </li>
+</ol>
+<details>
+  <summary><span lang="en">Other modes and the size limits</span><span lang="pl">Inne tryby i limity rozmiaru</span></summary>
+  <ul class="rare">
+    <li><span lang="en"><code>extend</code> adds files where a directory needs one, <code>both</code> reviews and
+    extends in one pass, and <code>reset</code> deletes files and starts from zero. A reset is refused while a
+    file on its list holds uncommitted work.</span><span lang="pl"><code>extend</code> dodaje pliki tam, gdzie
+    katalog ich potrzebuje, <code>both</code> sprawdza i dodaje za jednym razem, a <code>reset</code> usuwa
+    pliki i zaczyna od zera. Reset jest odrzucany, gdy plik z jego listy ma niezacommitowane
+    zmiany.</span></li>
+    <li><span lang="en">A <code>CLAUDE.md</code> stays within 12000 bytes, and within 32000 together with the
+    files above it. A rule stays within 4000 bytes and the whole directory within 40000.</span><span lang="pl">Plik
+    <code>CLAUDE.md</code> mieści się w 12000 bajtów, a razem z plikami nad nim w 32000. Reguła mieści się
+    w 4000 bajtów, a cały katalog w 40000.</span></li>
+    <li><span lang="en">A rule file whose name starts with <code>_</code> is frozen: never audited, reset or
+    rewritten.</span><span lang="pl">Plik reguły, którego nazwa zaczyna się od <code>_</code>, jest zamrożony:
+    nigdy nie jest audytowany, resetowany ani przepisywany.</span></li>
+  </ul>
+</details>
+</section>
 </section>
 
 <section id="reference">
