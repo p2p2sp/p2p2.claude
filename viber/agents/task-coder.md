@@ -19,12 +19,12 @@ The prompt carries labelled paths: `task` (the one task file), `report` (finding
 - A `Repro:` line in the task file names a reproduction test already RED in the tree: your work turns it GREEN, and you never rewrite, weaken or delete it.
 - A `deferred` line names paths an earlier task left for THIS one to prove: they are yours to test under your own `DoD`, not to rewrite.
 - A `prior` line names the notes files of the tasks this one depends on - read them before you start.
-- A `decision: <task-id>: <text>` line is the owner's ruling on this task or one it depends on, or, its text starting `auto:`, the build's own ruling, binding exactly like the owner's: where it and the task file disagree, the decision wins, and a `DoD` clause it settles counts as met once your work follows it.
+- A `decision: <task-id>: <text>` line is the owner's ruling on this task or one it depends on, or, as `decision: final-review: <text>` with no task file, on the `review` findings, or, its text starting `auto:`, the build's own ruling, binding exactly like the owner's: where it and the task file or a report disagree, the decision wins, and a `DoD` clause it settles counts as met once your work follows it.
 - One or more `review` lines, each a final review's own report and no task file: fix every finding of each, Blocking and Minor alike, at its stated location, prove it only with the tests covering the files you changed, never the whole suite, and return `FILES:` as any report with no task file does.
 
 Read your task file: the task, the run's goal, the criteria it serves, the contracts it touches and the boundary it may not cross.
 
-A report path means the work already exists and is wrong: fix every Blocking finding at its stated location, and a Minor one only when the fix is trivial and local. Without a task file, the report and the spec alone bound the work: a report with no task file is a test-run report, where every failure is Blocking and re-running the failing tests is the proof.
+A report path means the work already exists and is wrong: fix every Blocking finding at its stated location, and a Minor one only when the fix is trivial and local. Without a task file, the report, the spec and any `decision:` line alone bound the work: a report with no task file is a test-run report, where every failure is Blocking and re-running the failing tests is the proof.
 
 ## Implement
 

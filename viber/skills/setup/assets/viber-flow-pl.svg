@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 2552" width="1640" height="2552" role="img" aria-labelledby="svgTitle svgDesc" lang="pl">
   <title id="svgTitle">viber - od pomysłu do zacommitowanego kodu</title>
-  <desc id="svgDesc">Diagram przepływu wtyczki viber: jednorazowy setup, opcjonalna ocena issue i makieta UI, trzy wejścia (pomysł przez wywiad intent, błąd przez diagnozę fixera, mała zmiana przez zwykły tryb planowania), planner piszący plan i agent planner-review, który go sprawdza, bramka, którą przechodzisz sam, a potem trzy wyjścia: szkic specyfikacji kontynuowany w kolejnej rundzie wywiadu, zwykły plan, który Claude buduje w twojej sesji, albo implementor budujący plan z task-coder, task-reviewer i jednym commitem na zadanie, z zadaniami równolegle tam, gdzie pozwalają zależności. Build kończy się pełnym zestawem testów, końcowym przeglądem, opcjonalnymi writerami pamięci, reguł i QA oraz closeoutem, który archiwizuje przebieg, a później przebiegiem e2e, który zamienia scenariusze QA w testy Playwright.</desc>
+  <desc id="svgDesc">Diagram przepływu wtyczki viber: jednorazowy setup, opcjonalna ocena issue i makieta UI, trzy wejścia (pomysł przez wywiad intent, błąd przez diagnozę fixera, mała zmiana przez zwykły tryb planowania), planner piszący plan i agent planner-review, który go sprawdza, bramka, którą przechodzisz sam, a potem trzy wyjścia: szkic specyfikacji kontynuowany w kolejnej rundzie wywiadu, zwykły plan, który Claude buduje w twojej sesji, albo implementor budujący plan z task-coder, task-reviewer i jednym commitem na zadanie, z zadaniami równolegle tam, gdzie pozwalają zależności. Build kończy się końcowym przeglądem, pełnym zestawem testów, opcjonalnymi writerami pamięci, reguł i QA oraz closeoutem, który archiwizuje przebieg, a później przebiegiem e2e, który zamienia scenariusze QA w testy Playwright.</desc>
 
   <style>
     :root {
@@ -354,26 +354,26 @@
   <text x="756" y="1872" class="lbl">gdy wszystkie zadania są gotowe</text>
 
   <!-- ============ CLOSE ============ -->
-  <rect x="480" y="1892" width="520" height="90" rx="10" class="node agent"/>
+  <rect x="480" y="1892" width="520" height="126" rx="10" class="node agent"/>
+  <rect x="842" y="1902" width="72" height="16" rx="8" class="badge-opt"/>
+  <text x="878" y="1914" class="badge-o" text-anchor="middle">opcjonalny</text>
   <rect x="922" y="1902" width="58" height="16" rx="8" class="badge"/>
   <text x="951" y="1914" class="badge-t" text-anchor="middle">agent</text>
-  <text x="504" y="1922" class="mono-t">test-runner</text>
-  <text x="504" y="1944" class="desc">Uruchamia raz cały build i zestaw testów.</text>
-  <text x="504" y="1964" class="desc-s">porażka trafia do codera naprawczego, do 3 rund, każda poprawka w commicie</text>
+  <text x="504" y="1922" class="mono-t">final-reviewer</text>
+  <text x="504" y="1946" class="desc">Przegląda gotowy build ponad diffami pojedynczych zadań,</text>
+  <text x="504" y="1964" class="desc">jeden recenzent na porcję do 8 zadań.</text>
+  <text x="504" y="1986" class="desc-s">każda poprawka jest ponownie sprawdzana; nieudana pyta ciebie</text>
+  <text x="504" y="2006" class="desc-s"><tspan class="sw">final-review</tspan> włączony</text>
 
-  <path d="M740 1982 L740 2014" class="link l-n" marker-end="url(#ar-n)"/>
-  <path d="M740 1982 L740 2014" class="flow l-n"/>
+  <path d="M740 2018 L740 2050" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M740 2018 L740 2050" class="flow l-n"/>
 
-  <rect x="480" y="2018" width="520" height="126" rx="10" class="node agent"/>
-  <rect x="842" y="2028" width="72" height="16" rx="8" class="badge-opt"/>
-  <text x="878" y="2040" class="badge-o" text-anchor="middle">opcjonalny</text>
-  <rect x="922" y="2028" width="58" height="16" rx="8" class="badge"/>
-  <text x="951" y="2040" class="badge-t" text-anchor="middle">agent</text>
-  <text x="504" y="2048" class="mono-t">final-reviewer</text>
-  <text x="504" y="2072" class="desc">Przegląda gotowy build ponad diffami pojedynczych zadań,</text>
-  <text x="504" y="2090" class="desc">jeden recenzent na porcję do 8 zadań.</text>
-  <text x="504" y="2112" class="desc-s">jego uwagi dostają jedną rundę poprawek w commicie, bez ponownego przeglądu</text>
-  <text x="504" y="2132" class="desc-s"><tspan class="sw">final-review</tspan> włączony</text>
+  <rect x="480" y="2054" width="520" height="90" rx="10" class="node agent"/>
+  <rect x="922" y="2064" width="58" height="16" rx="8" class="badge"/>
+  <text x="951" y="2076" class="badge-t" text-anchor="middle">agent</text>
+  <text x="504" y="2084" class="mono-t">test-runner</text>
+  <text x="504" y="2106" class="desc">Uruchamia raz cały build i zestaw testów.</text>
+  <text x="504" y="2126" class="desc-s">porażka trafia do codera naprawczego, do 3 rund, każda poprawka w commicie</text>
 
   <path d="M740 2144 L740 2168" class="link l-n"/>
   <path d="M740 2144 L740 2168" class="flow l-n"/>

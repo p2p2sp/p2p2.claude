@@ -78,16 +78,18 @@
 # no form of this script ever takes a subject from its caller. --e2e takes no
 # plan either: the e2e pass runs after the build, so nothing resumes on it.
 #
-# --review commits the one coder that applied every fix a build's final review
-# found, once every task is already committed - a fix that touches no task's
-# own map, the same shape --repair is for. It takes the plan to record the
-# close and to link Refs, like --chore and --qa, and carries a FIXED subject
+# --review commits the fixes a build's final review found, once every task is
+# already committed and the fix is rechecked or accepted by the user - a fix
+# that touches no task's own map, the same shape --repair is for. It runs once,
+# after every fix round. It takes the plan to record the close and to link
+# Refs, like --chore and --qa, and carries a FIXED subject
 # ("fix(viber): final review") - no caller composes it here either. Besides the
 # caller's own files it carries the run's own trail: every
-# "work/final-review-*.md" report the reviewer wrote and
-# "work/final-fix-coder.md", the coder's own notes - so "status.md" gains
-# "final-review" on its "closed:" line in the same commit and a resumed build
-# skips the review next time. It leaves the plan's progress counter alone.
+# "work/final-review-*.md" report (slice reviews and rechecks) and every
+# "work/final-fix-coder-*.md" notes file of the fix rounds - so "status.md"
+# gains "final-review" on its "closed:" line in the same commit and a resumed
+# build skips the review next time. It leaves the plan's progress counter alone.
+# The trail patterns glob under nullglob: zero matches add nothing.
 #
 # Every form that takes the plan closes its message on a "Refs: <plan> ..." line
 # naming the run. A plan whose frontmatter carries "issue: <GitHub issue URL>"
@@ -590,7 +592,7 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
 
   # a post-test round leaves its own trail: the run's test report and the notes
   # of the coder that repaired it; the final review leaves every reviewer's
-  # report plus the notes of the coder that fixed every finding at once
+  # and recheck's report plus the notes of every fix round's coder
   if [[ "$form" == "--repair" ]]; then
     while IFS= read -r t; do
       [[ -n "$t" ]] || continue
@@ -600,7 +602,7 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
     while IFS= read -r t; do
       [[ -n "$t" ]] || continue
       stage_path "$t" && paths+=("$t")
-    done < <(trail_paths "$(run_dir "$plan")" "final-review-*.md" "final-fix-coder.md")
+    done < <(trail_paths "$(run_dir "$plan")" "final-review-*.md" "final-fix-coder-*.md")
   fi
 
   # the subject follows the form and the paths, so nothing composes it, and the

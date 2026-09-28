@@ -132,6 +132,8 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
   `run-branch.sh`'s `plan_issue()` (the bare number, for `{issue-number}`).
 - Fence-aware guidance-comment stripping: `plan-path.sh`'s landing strip and `plan-index.sh`'s
   `spec.md` cut.
+- The `work/final-review-*.md` and `work/final-fix-coder-*.md` names: `final-review.true.md`,
+  `final-reviewer.md` and `commit-task.sh --review`'s trail glob.
 - `directories.*` parsing: `config.sh`, `plan-path.sh`, `archive-run.sh`.
 - `viber.yml` key grammar (blanks allowed before the colon): `config.sh` and `bootstrap.sh`'s
   merge; a key one reads and the other misses is appended again, overriding the user's value.

@@ -2081,14 +2081,14 @@ z nich mówi, jak nim sterować.</p>
   one file per task, sends each task to <a href="#agent-task-coder"><code>task-coder</code></a> and, where a review
   is due, to <a href="#agent-task-reviewer"><code>task-reviewer</code></a>, and commits each task on its own. Then,
   with <a href="#key-final-review"><code>final-review</code></a> on, <a href="#agent-final-reviewer"><code>final-reviewer</code></a>
-  reviews the whole build and a coder fixes what it finds, before it runs the whole test suite and the close parts
-  your switches turn on.</p>
+  reviews the whole build, a coder fixes what it finds and a reviewer rechecks the fix, before it runs the whole
+  test suite and the close parts your switches turn on.</p>
   <p lang="pl">Buduje zatwierdzony plan zadanie po zadaniu. Kopiuje plan do katalogu przebiegu, dzieli go na
   osobny plik dla każdego zadania, każde zadanie zleca <a href="#agent-task-coder"><code>task-coder</code></a>,
   a gdy należy się recenzja, także <a href="#agent-task-reviewer"><code>task-reviewer</code></a>, i każde commituje
   osobno. Potem, gdy <a href="#key-final-review"><code>final-review</code></a> jest włączony,
-  <a href="#agent-final-reviewer"><code>final-reviewer</code></a> recenzuje cały build, a koder naprawia to, co
-  znajdzie, zanim uruchomi cały zestaw testów i te części zamknięcia, które włączają twoje przełączniki.</p>
+  <a href="#agent-final-reviewer"><code>final-reviewer</code></a> recenzuje cały build, koder naprawia to, co
+  znajdzie, a recenzent ponownie sprawdza poprawkę, zanim uruchomi cały zestaw testów i te części zamknięcia, które włączają twoje przełączniki.</p>
   <dl>
     <div>
       <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
@@ -2451,10 +2451,11 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   definition of done and writes a findings report when it fails.</span><span lang="pl">sprawdza jedno ukończone
   zadanie względem jego definicji ukończenia i przy odrzuceniu pisze raport z uwagami.</span></li>
   <li id="agent-final-reviewer"><code>final-reviewer</code> <span lang="en">reviews one slice of the whole
-  build past the diff of its own tasks, once every task is committed, when
+  build past the diff of its own tasks, once every task is committed, or rechecks the fix of its findings, when
   <a href="#key-final-review"><code>final-review</code></a> is on.</span><span lang="pl">recenzuje jeden
-  wycinek całego builda poza diffem własnych zadań, gdy każde zadanie jest już zatwierdzone, gdy
-  <a href="#key-final-review"><code>final-review</code></a> jest włączony.</span></li>
+  wycinek całego builda poza diffem własnych zadań, gdy każde zadanie jest już zatwierdzone, albo ponownie
+  sprawdza poprawkę swoich uwag, gdy <a href="#key-final-review"><code>final-review</code></a> jest
+  włączony.</span></li>
   <li id="agent-test-runner"><code>test-runner</code> <span lang="en">runs the project's build and test suite
   once and returns a verdict, keeping the log out of the conversation.</span><span lang="pl">uruchamia raz
   budowanie i testy projektu i zwraca werdykt, trzymając log poza rozmową.</span></li>
@@ -2553,12 +2554,18 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
     <dt><code>final-review</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
     <dd><span lang="en">After every task is committed and before the final test run, one or more
     <a href="#agent-final-reviewer"><code>final-reviewer</code></a> agents look at the whole build's
-    diff for what per-task review and the test suite cannot see, and one coder fixes everything
-    they find, once, before the suite runs.</span><span lang="pl">Po zatwierdzeniu każdego zadania
+    diff for what per-task review and the test suite cannot see. A coder fixes what they find and one
+    reviewer rechecks the fix; when the recheck fails you choose <code>retry</code> (a new fix round
+    one model tier up while allowed), <code>accept</code> (commit as is) or describe your own fix in your own
+    words. The fix is committed once the recheck passes or you accept, before the suite
+    runs.</span><span lang="pl">Po zatwierdzeniu każdego zadania
     i przed ostatecznym uruchomieniem testów jeden lub więcej agentów
     <a href="#agent-final-reviewer"><code>final-reviewer</code></a> ogląda cały diff builda w
-    poszukiwaniu tego, czego nie widzi recenzja pojedynczych zadań ani zestaw testów, a jeden koder
-    raz naprawia wszystko, co znajdą, zanim testy się uruchomią.</span></dd>
+    poszukiwaniu tego, czego nie widzi recenzja pojedynczych zadań ani zestaw testów. Koder naprawia
+    to, co znajdą, a jeden recenzent ponownie sprawdza poprawkę; gdy sprawdzenie się nie powiedzie,
+    wybierasz <code>retry</code> (nowa runda poprawek o jeden poziom modelu wyżej, o ile wolno), <code>accept</code>
+    (commit bez zmian) albo własnymi słowami opisujesz swoją poprawkę. Poprawka trafia do commita,
+    gdy sprawdzenie przejdzie albo ją zaakceptujesz, zanim testy się uruchomią.</span></dd>
   </div>
   <div id="key-plain-plan-review">
     <dt><code>plain-plan-review</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>

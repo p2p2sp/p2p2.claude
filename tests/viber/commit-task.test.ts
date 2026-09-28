@@ -1201,13 +1201,15 @@ test("--review commits the named files under 'fix(viber): final review', with a 
   });
 });
 
-test("--review carries every 'work/final-review-*.md' report and 'work/final-fix-coder.md' present in the run directory, and no other task's own trail", () => {
+test("--review carries every 'work/final-review-*.md' report (slice reviews and rechecks) and every 'work/final-fix-coder-*.md' fix-round notes file present in the run directory, and no other task's own trail", () => {
   withGitRepo((repo) => {
     seed(repo);
     write(repo.dir, "src/a.ts", "the fix\n");
     write(repo.dir, `${RUN_DIR}/work/final-review-1.md`, "reviewer A's findings\n");
     write(repo.dir, `${RUN_DIR}/work/final-review-2.md`, "reviewer B's findings\n");
-    write(repo.dir, `${RUN_DIR}/work/final-fix-coder.md`, "what the fix changed\n");
+    write(repo.dir, `${RUN_DIR}/work/final-review-recheck-1.md`, "recheck of fix round 1\n");
+    write(repo.dir, `${RUN_DIR}/work/final-fix-coder-1.md`, "what fix round 1 changed\n");
+    write(repo.dir, `${RUN_DIR}/work/final-fix-coder-2.md`, "what fix round 2 changed\n");
     write(repo.dir, `${RUN_DIR}/work/T1-coder.md`, "an ordinary task's own notes, not this trail\n");
 
     const result = run(repo.dir, repo.env, ["--review", PLAN_REL, "src/a.ts"]);
@@ -1219,7 +1221,9 @@ test("--review carries every 'work/final-review-*.md' report and 'work/final-fix
         STATUS_REL,
         `${RUN_DIR}/work/final-review-1.md`,
         `${RUN_DIR}/work/final-review-2.md`,
-        `${RUN_DIR}/work/final-fix-coder.md`,
+        `${RUN_DIR}/work/final-review-recheck-1.md`,
+        `${RUN_DIR}/work/final-fix-coder-1.md`,
+        `${RUN_DIR}/work/final-fix-coder-2.md`,
       ].sort(),
     );
   });

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 2552" width="1640" height="2552" role="img" aria-labelledby="svgTitle svgDesc">
   <title id="svgTitle">viber - from an idea to committed code</title>
-  <desc id="svgDesc">Flow diagram of the viber plugin: one-time setup, the optional triage of an issue and UI prototype, the three entries (an idea through the intent interview, a bug through the fixer diagnosis, a small change through plain plan mode), the planner writing the plan and the planner-review agent gating it, the approval gate you pass yourself, then three ways out: a draft specification continued by a later interview round, a plain plan Claude builds in your session, or the implementor building the plan with task-coder, task-reviewer and one commit per task, its tasks in parallel where their dependencies allow. The build closes with the full test suite, the final review, the optional memory, rules and QA writers and the closeout that archives the run, followed later by the e2e pass that turns the QA scenarios into Playwright tests.</desc>
+  <desc id="svgDesc">Flow diagram of the viber plugin: one-time setup, the optional triage of an issue and UI prototype, the three entries (an idea through the intent interview, a bug through the fixer diagnosis, a small change through plain plan mode), the planner writing the plan and the planner-review agent gating it, the approval gate you pass yourself, then three ways out: a draft specification continued by a later interview round, a plain plan Claude builds in your session, or the implementor building the plan with task-coder, task-reviewer and one commit per task, its tasks in parallel where their dependencies allow. The build closes with the final review, the full test suite, the optional memory, rules and QA writers and the closeout that archives the run, followed later by the e2e pass that turns the QA scenarios into Playwright tests.</desc>
 
   <style>
     :root {
@@ -354,26 +354,26 @@
   <text x="756" y="1872" class="lbl">when every task is done</text>
 
   <!-- ============ CLOSE ============ -->
-  <rect x="480" y="1892" width="520" height="90" rx="10" class="node agent"/>
+  <rect x="480" y="1892" width="520" height="126" rx="10" class="node agent"/>
+  <rect x="856" y="1902" width="58" height="16" rx="8" class="badge-opt"/>
+  <text x="885" y="1914" class="badge-o" text-anchor="middle">optional</text>
   <rect x="922" y="1902" width="58" height="16" rx="8" class="badge"/>
   <text x="951" y="1914" class="badge-t" text-anchor="middle">agent</text>
-  <text x="504" y="1922" class="mono-t">test-runner</text>
-  <text x="504" y="1944" class="desc">Runs the whole build and test suite once.</text>
-  <text x="504" y="1964" class="desc-s">a failure goes to a repair coder, up to 3 rounds, each fix committed</text>
+  <text x="504" y="1922" class="mono-t">final-reviewer</text>
+  <text x="504" y="1946" class="desc">Reviews the finished build past each task's own diff,</text>
+  <text x="504" y="1964" class="desc">one reviewer per slice of up to 8 tasks.</text>
+  <text x="504" y="1986" class="desc-s">each fix is rechecked; a failed recheck asks you</text>
+  <text x="504" y="2006" class="desc-s"><tspan class="sw">final-review</tspan> on</text>
 
-  <path d="M740 1982 L740 2014" class="link l-n" marker-end="url(#ar-n)"/>
-  <path d="M740 1982 L740 2014" class="flow l-n"/>
+  <path d="M740 2018 L740 2050" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M740 2018 L740 2050" class="flow l-n"/>
 
-  <rect x="480" y="2018" width="520" height="126" rx="10" class="node agent"/>
-  <rect x="856" y="2028" width="58" height="16" rx="8" class="badge-opt"/>
-  <text x="885" y="2040" class="badge-o" text-anchor="middle">optional</text>
-  <rect x="922" y="2028" width="58" height="16" rx="8" class="badge"/>
-  <text x="951" y="2040" class="badge-t" text-anchor="middle">agent</text>
-  <text x="504" y="2048" class="mono-t">final-reviewer</text>
-  <text x="504" y="2072" class="desc">Reviews the finished build past each task's own diff,</text>
-  <text x="504" y="2090" class="desc">one reviewer per slice of up to 8 tasks.</text>
-  <text x="504" y="2112" class="desc-s">its findings get one fix round, committed, never reviewed again</text>
-  <text x="504" y="2132" class="desc-s"><tspan class="sw">final-review</tspan> on</text>
+  <rect x="480" y="2054" width="520" height="90" rx="10" class="node agent"/>
+  <rect x="922" y="2064" width="58" height="16" rx="8" class="badge"/>
+  <text x="951" y="2076" class="badge-t" text-anchor="middle">agent</text>
+  <text x="504" y="2084" class="mono-t">test-runner</text>
+  <text x="504" y="2106" class="desc">Runs the whole build and test suite once.</text>
+  <text x="504" y="2126" class="desc-s">a failure goes to a repair coder, up to 3 rounds, each fix committed</text>
 
   <path d="M740 2144 L740 2168" class="link l-n"/>
   <path d="M740 2144 L740 2168" class="flow l-n"/>

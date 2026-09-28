@@ -80,7 +80,7 @@ left as it is.
 | `rules` | on | The build closes by recording a convention it confirmed in `.claude/rules/`. |
 | `qa` | **off** | The build closes by writing test scenarios for what it delivered, which `/viber:e2e` can then automate. |
 | `cleanup` | on | The build ends by noting anything it delivered that the specification does not promise, then archiving the run and dropping the working files. |
-| `final-review` | on | After every task is committed and before the final test run, one reviewer looks at the whole build's diff for what per-task review and the test suite cannot see, and one coder fixes everything it finds, once. |
+| `final-review` | on | After every task is committed and before the final test run, one reviewer looks at the whole build's diff for what per-task review and the test suite cannot see, a coder fixes what it finds, a reviewer rechecks the fix, and a failed recheck asks you to retry, accept, or describe your own fix. |
 | `plain-plan-review` | on | A plan written in plain plan mode, without the planner, must pass a review before plan mode can be left. |
 | `issues` | **off** | `/viber:intent`, `/viber:fixer` and `/viber:prototype` can start from a GitHub issue's number or link, and an interview that did not can save its conclusions as a new one; `/viber:prototype` can post its mockup to the issue it started from; `/viber:triage` can fetch and publish to a GitHub issue instead of pasted text alone. |
 
