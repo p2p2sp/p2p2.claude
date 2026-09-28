@@ -22,7 +22,7 @@ Every bundled-script run below is one literal Bash line, every argument double-q
 
 ## 1. Map the files first
 
-Read `${CLAUDE_PLUGIN_ROOT}/references/plan-rules.md` first, on a draft round as well, and hold the plan to every rule in it. A plan with an integration task also reads `${CLAUDE_PLUGIN_ROOT}/references/integration-tests.md`: the layer is designed from it as a whole.
+Read `${CLAUDE_PLUGIN_ROOT}/references/plan-rules.md` first, on a draft round as well, and hold the plan to every rule in it. A plan carrying an integration test also reads `${CLAUDE_PLUGIN_ROOT}/references/integration-tests.md`: the layer is designed from it as a whole.
 
 Never plan an end-to-end test on your own: `/viber:e2e` writes them after the build. Plan one only when the input records the user explicitly asking for it, then per `plan-rules.md`'s End-to-end rule; one merely suggested, implied by a UI change or thought useful stays out of every criterion, task and `Verification`.
 
