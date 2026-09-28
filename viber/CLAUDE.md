@@ -8,7 +8,7 @@ three files share. `PRODUCT.md` holds the testing assumptions that `references/p
 ## Layout
 
 ```
-skills/<name>/           13 skills: SKILL.md plus files read at one step;
+skills/<name>/           14 skills: SKILL.md plus files read at one step;
                          setup, memory, rules, handoff, commit bundle scripts/
 agents/                  15 agents
 scripts/                 14 plugin-wide scripts
@@ -35,6 +35,8 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 - `handoff`, user-only and inline (a fork cannot see the conversation), stands outside the chain
   like `commit`: no skill or build invokes it. It writes one file, never overwriting (`EXISTS=true`
   stops it rather than asking, since a prose question drops the pre-approval).
+- `help`, user-only, a background haiku fork, also stands outside the chain: its one preload opens
+  `setup`'s `assets/usage.html` through `open-page.sh`, so moving that page updates both skills.
 
 ## Orchestrator contract
 

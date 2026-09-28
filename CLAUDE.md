@@ -160,5 +160,5 @@ This file is orientation only. A skill's authoritative contract is its own body
 | `superfix/CLAUDE.md` | `code-auditor` and its five agents - the investigation sweep |
 | `superui/CLAUDE.md` | the `pro-designer` skill (design/frontend advisory, contrast check) |
 | `tests/CLAUDE.md` | any `*.test.ts` under `tests/` - harness contract, cross-platform rules |
-| `viber/CLAUDE.md` | its thirteen skills (`setup` to `commit`), fifteen agents, hooks, fourteen plugin scripts, references, the run directory and its archive, config switches, the plan gate |
+| `viber/CLAUDE.md` | its fourteen skills (`setup` to `commit`), fifteen agents, hooks, fourteen plugin scripts, references, the run directory and its archive, config switches, the plan gate |
 | `viber/hooks/CLAUDE.md` | viber's hooks - the `plan-gate.sh` and `plan-hints.sh` contracts |

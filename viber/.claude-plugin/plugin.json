@@ -18,6 +18,7 @@
     "./skills/e2e/",
     "./skills/memory/",
     "./skills/rules/",
+    "./skills/help/",
     "./skills/handoff/",
     "./skills/commit/"
   ],
