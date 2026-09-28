@@ -1,13 +1,14 @@
 # Test strategy
 
-How a test is written. Where two rules pull against each other, catching a real regression and surviving a refactor win over speed and convenience. A rule ending in `(blocking)` is a blocking finding for a reviewer.
+How a test is written. Where two rules pull against each other, catching a real regression and surviving a refactor win over speed and convenience. A rule ending in `(blocking)` is a blocking finding for a reviewer. This file writes the `unit` and `component` layers; `integration` has its own rules in `integration-tests.md`.
 
 - Never introduce a test framework the project does not have.
 - An end-to-end test - a browser, or the running application driven from outside - is written only by a task whose acceptance criterion states that the user asked for one in their own words, and run only by a task whose acceptance criterion states that the user asked for it to be run. (blocking)
 - Never tested: accessors, trivial constructors, data holders without behaviour, 1:1 mappings, framework behaviour, third-party library internals, an assertion true by construction. Name the regression the test would catch; no answer means no test.
 - Every test can fail on a regression, asserts something and carries one act: several actions in one body means several tests. (blocking)
 - Isolation: no sleep, no fixture or other mutable state shared across tests, no dependence on execution order, no fixed port or other machine-wide resource, no database shared with another task's run. Several coders verify in the same tree at once. (blocking)
-- Never pay for a collaborator the scenario does not assert. One whose work is slow or heavy - hashing, key derivation, retry backoff, waits, rendering, a large computation - gets a stub or fake returning what the scenario needs, or a cheap configuration of the real one where it offers one: a login test stubs the password hasher. Only that collaborator's own tests use the real thing. (blocking)
+- A unit test may keep its real collaborators; only the input and output boundaries are substituted. Never pay for a collaborator the scenario does not assert: one whose work is slow or heavy - hashing, key derivation, retry backoff, waits, rendering, a large computation - gets a stub or fake returning what the scenario needs, or a cheap configuration of the real one where it offers one: a login test stubs the password hasher. Only that collaborator's own tests use the real thing. (blocking)
+- A component test drives the whole application through its own entry point inside the test process; every external adapter is replaced by a fake holding its own state, never an in-memory database dialect or an object-relational mapper's in-memory provider. It asserts only on the entry point's response and the fakes' state. (blocking)
 - No control flow in a test body - no branch, no loop, no switch. Cases belong in the framework's parameterised form, one row each. (blocking)
 - Assert on what a caller observes: the returned value, the public state, the side effect through its own surface, the raised error. Never on log output, and never on data the test did not arrange itself. (blocking)
 - Construct whatever can be constructed. A double for a value, a record or a single config lookup hides the real shape.
