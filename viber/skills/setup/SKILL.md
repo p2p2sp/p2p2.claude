@@ -1,7 +1,7 @@
 ---
 name: setup
-description: Prepares a project for viber - seeds .claude/viber.yml, .gitignore and the recommended .claude/settings.json permissions (asking whether to merge into or reset an existing one), checks the gh CLI is installed, and opens the usage guide in the browser.
-allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/bootstrap.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/merge-settings.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/open-page.sh:*)
+description: Prepares a project for viber - seeds .claude/viber.yml, .gitignore and the recommended .claude/settings.json permissions (asking whether to merge into or reset an existing one), checks the gh CLI is installed, checks whether CLAUDE.md names the build and test commands, and opens the usage guide in the browser.
+allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/bootstrap.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/merge-settings.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/open-page.sh:*), Read
 user-invocable: true
 disable-model-invocation: true
 model: haiku
@@ -29,10 +29,18 @@ Run the chosen form once. Its line is carried into the close literally, never re
 "${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/merge-settings.sh" --reset "${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/settings.json"
 ```
 
-Then open the onboarding page in the user's browser, its line trusted the same way:
+Then check the project's `CLAUDE.md` against the preload's `CLAUDE.md:` line:
+
+- Never edit `CLAUDE.md`.
+- `CLAUDE.md: present - <path>` - read that file with `Read`, fresh, never from session context. An item (the build, the whole test suite, a single test file) counts as named only when the file contains its literal command.
+- All three named - the line is `CLAUDE.md: names the build, test and single-test-file commands - if the test command also runs end-to-end tests, add one that leaves them out`.
+- Any item not named - the line is `CLAUDE.md: missing <the missing items> - paste this prompt:`, followed by the content of `${CLAUDE_SKILL_DIR}/templates/claude-md-prompt.txt`, read with `Read`, verbatim in a code block.
+- `CLAUDE.md: missing` - read no `CLAUDE.md`; the line is `CLAUDE.md: missing - run /init, then paste this prompt:`, followed by the same code block.
+
+Then open the onboarding page in the user's browser, its line trusted like the settings line:
 
 ```
 "${CLAUDE_PLUGIN_ROOT}/scripts/open-page.sh" "${CLAUDE_SKILL_DIR}/assets/help.html"
 ```
 
-Close with one line per item: the preload's lines except its `settings.json:` one, the settings line and the page line. Never read or restate the page's content in the reply.
+Close with one line per item: the preload's lines except its `settings.json:` and `CLAUDE.md:` ones, the settings line, the `CLAUDE.md:` check line with its prompt block, and the page line. Never read or restate the page's content in the reply.

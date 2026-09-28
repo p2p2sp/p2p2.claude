@@ -1,0 +1,6 @@
+Make sure CLAUDE.md states each of these as the exact command, taken from this project's own scripts and config. Never guess: ask me about any you cannot find.
+- the build command
+- the command that runs the whole test suite
+- how to run a single test file
+- when that suite also runs the end-to-end tests, a test command that leaves them out
+Add only what is missing and keep the rest of the file as it is.

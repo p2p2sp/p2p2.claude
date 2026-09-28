@@ -24,7 +24,7 @@ prose question rely on; without it each of those calls asks for permission once.
 
 | Say this | What happens |
 | --- | --- |
-| `/viber:setup` | Once per project: the switches, the ignore rules, the permissions. |
+| `/viber:setup` | Once per project: the switches, the ignore rules, the permissions, the CLAUDE.md check. |
 | `/viber:triage` | A reported issue (number, link or pasted text) checked against your code: can it be done, how, what it affects, how big. Names the next step and can post the report on the issue. |
 | `/viber:intent` | An interview about a raw idea, one question at a time. Point it at an issue (`#42` or a link) to work from that issue, and an interview that did not start from one can save its conclusions as a new issue. Add `--prove` to have every question's recommendation and alternatives checked against the code, and the web where needed, before you see it. |
 | `/viber:fixer` | A bug traced to its root cause and proven by a failing test, then handed to the planner. Point it at an issue the same way to trace from that report. |

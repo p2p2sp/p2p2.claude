@@ -27,7 +27,9 @@
 # Contract:
 #   argv   : none.
 #   cwd    : any directory inside the host project - the repository root is
-#            resolved here. Outside a repository, the cwd is the base.
+#            resolved here. Outside a repository, the cwd is the base (`pwd -W`
+#            in Git Bash, so the printed path is the C:/ form a Windows reader
+#            opens as written).
 #   env    : none.
 #   writes : <root>/.claude/viber.yml (copied from templates/viber.yml when
 #                                      absent; otherwise merged as above, the
@@ -39,12 +41,16 @@
 #                                      appended only when no rule ignores it)
 #   reads  : <root>/.claude/settings.json (existence only, never written - the
 #                                      skill asks reset or merge when present)
-#            <root>/CLAUDE.md         (existence only, never written - the agents
-#                                      take the build and test commands from it)
+#            <root>/CLAUDE.md         (existence only, never read, never written -
+#                                      the skill reads its content through the
+#                                      absolute path printed below)
 #            gh on PATH               (existence only - never run, never
 #                                      installed; viber talks to GitHub through it)
 #   stdout : one result line per item - the skill carries them into its report
-#            verbatim and never re-verifies them.
+#            verbatim and never re-verifies them. The CLAUDE.md line is exactly
+#            "CLAUDE.md: present - <root>/CLAUDE.md" (<root> as
+#            `git rev-parse --show-toplevel` prints it, or the cwd base outside a
+#            repository) or "CLAUDE.md: missing".
 #   exit   : ALWAYS 0. A preload that exits non-zero aborts the whole skill load,
 #            and a project that refuses one of these files is not a broken setup.
 #
@@ -56,7 +62,7 @@ template_gitignore="$here/../templates/gitignore.txt"
 
 root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 if [ -z "$root" ] || [ ! -d "$root" ]; then
-  root="$(pwd)"
+  root="$(pwd -W 2>/dev/null || pwd)"
 fi
 
 # The merge reads the template first and the config second. A key is read with
@@ -194,13 +200,13 @@ else
   echo "settings.json: absent"
 fi
 
-# Reported, never seeded: the build and test commands every agent reads live
-# here, and a stub written by a script would be exactly the file that names
-# none of them.
+# Reported, never created: a skeleton written by a script would name no build
+# or test command, the very thing every agent reads here. The skill, not the
+# script, judges what the file says, hence the absolute path in the line.
 if [ -f "$root/CLAUDE.md" ]; then
-  echo "CLAUDE.md: present - check it names the build and test commands"
+  echo "CLAUDE.md: present - $root/CLAUDE.md"
 else
-  echo "CLAUDE.md: missing - run /init, then add the build and test commands"
+  echo "CLAUDE.md: missing"
 fi
 
 # Reported, never installed: a missing gh is a note, not a failed setup.

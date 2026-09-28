@@ -5,8 +5,10 @@
  * `.gitignore` from templates/gitignore.txt when the project has none - otherwise
  * the file stays the user's and the single edit is the `.temp/` rule, appended
  * on its own line even when the file ends without one. `CLAUDE.md` is the one
- * item it only REPORTS: the agents read the host's build and test commands from
- * it, and a stub written here would be exactly the file that names none.
+ * item it only REPORTS, never creates (a skeleton would name no command): the
+ * line is `CLAUDE.md: present - <root>/CLAUDE.md`, the absolute path at the
+ * repository root, so the skill can judge the content itself, or a plain
+ * `CLAUDE.md: missing`.
  *
  * An existing `viber.yml` is MERGED rather than left alone, because a new
  * version ships new switches a file seeded by an older one would never see. The
@@ -32,6 +34,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 
+import { slash } from "../harness/paths.ts";
 import { runScript } from "../harness/run.ts";
 import { coreUtilsPath, withStub } from "../harness/stub.ts";
 import { withGitRepo, withTempDir } from "../harness/tmp.ts";
@@ -57,6 +60,18 @@ function configPath(root: string): string {
   return path.join(root, ".claude", "viber.yml");
 }
 
+/** The repository root as `git rev-parse --show-toplevel` spells it: the real
+ *  path (macOS /var is /private/var, a Windows temp dir may carry an 8.3 short
+ *  name), slash-normalised. */
+function repoRoot(dir: string): string {
+  return slash(fs.realpathSync.native(dir));
+}
+
+/** The printed CLAUDE.md lines, slash-normalised. */
+function claudeMdLines(stdout: string): string[] {
+  return stdout.split(/\r?\n/).filter((l) => l.startsWith("CLAUDE.md:")).map(slash);
+}
+
 test("a fresh repository seeds both files from the bundled ones and prints one line each, exit 0", () => {
   withGitRepo(({ dir, env }) => {
     const result = run(dir, env);
@@ -68,7 +83,7 @@ test("a fresh repository seeds both files from the bundled ones and prints one l
         "viber.yml: seeded from template - every switch is commented in it",
         ".gitignore: created from template (ignores .temp/)",
         "settings.json: absent",
-        "CLAUDE.md: missing - run /init, then add the build and test commands",
+        "CLAUDE.md: missing",
         "gh: present",
         "",
       ].join("\n"),
@@ -100,7 +115,7 @@ test("running twice leaves both files byte-identical and reports them as already
         "viber.yml: already present and complete (left untouched)",
         ".gitignore: already ignores .temp/",
         "settings.json: absent",
-        "CLAUDE.md: missing - run /init, then add the build and test commands",
+        "CLAUDE.md: missing",
         "gh: present",
         "",
       ].join("\n"),
@@ -395,7 +410,7 @@ test("an existing .claude/settings.json at the repository root is reported prese
   });
 });
 
-test("a project with a CLAUDE.md is told to check it, and the file is left byte-unchanged", () => {
+test("a project with a CLAUDE.md gets the absolute path of the file at the repository root, and the file is left byte-unchanged (the skill reads it through that path)", () => {
   withGitRepo(({ dir, env }) => {
     const memory = path.join(dir, "CLAUDE.md");
     const before = "# project\n\nBuild: make\nTest: make test\n";
@@ -404,22 +419,25 @@ test("a project with a CLAUDE.md is told to check it, and the file is left byte-
     const result = run(dir, env);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.match(result.stdout, /^CLAUDE\.md: present - check it names the build and test commands$/m);
+    assert.ok(
+      claudeMdLines(result.stdout).includes(`CLAUDE.md: present - ${repoRoot(dir)}/CLAUDE.md`),
+      `stdout: ${result.stdout}`,
+    );
     assert.equal(read(memory), before);
   });
 });
 
-test("a project without a CLAUDE.md gets the /init prompt and no stub (a seeded file would name no commands)", () => {
+test("a project without a CLAUDE.md gets a plain 'CLAUDE.md: missing' and no skeleton (a created file would name no command)", () => {
   withGitRepo(({ dir, env }) => {
     const result = run(dir, env);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.match(result.stdout, /^CLAUDE\.md: missing - run \/init, then add the build and test commands$/m);
+    assert.match(result.stdout, /^CLAUDE\.md: missing$/m);
     assert.equal(fs.existsSync(path.join(dir, "CLAUDE.md")), false);
   });
 });
 
-test("the CLAUDE.md check resolves at the repository root, not at the cwd it was called from", () => {
+test("the CLAUDE.md check resolves at the repository root, and the printed path names the root, not the cwd it was called from", () => {
   withGitRepo(({ dir, env }) => {
     fs.writeFileSync(path.join(dir, "CLAUDE.md"), "# root\n");
     const nested = path.join(dir, "src", "deep");
@@ -428,7 +446,10 @@ test("the CLAUDE.md check resolves at the repository root, not at the cwd it was
     const result = run(nested, env);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.match(result.stdout, /^CLAUDE\.md: present/m);
+    assert.ok(
+      claudeMdLines(result.stdout).includes(`CLAUDE.md: present - ${repoRoot(dir)}/CLAUDE.md`),
+      `stdout: ${result.stdout}`,
+    );
   });
 });
 
@@ -482,6 +503,19 @@ test("outside a repository the cwd is the base - the seeding still happens and t
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.ok(fs.existsSync(configPath(dir)));
     assert.ok(fs.existsSync(path.join(dir, ".gitignore")));
+  });
+});
+
+test("outside a repository the CLAUDE.md line names a path the reader opens as written (Git Bash /c/... is no path to a Windows reader)", () => {
+  withTempDir("p2p2-viber-bootstrap-", (dir) => {
+    fs.writeFileSync(path.join(dir, "CLAUDE.md"), "# project\n");
+    const result = run(dir);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    const line = claudeMdLines(result.stdout).find((l) => l.startsWith("CLAUDE.md: present - "));
+    assert.ok(line, `stdout: ${result.stdout}`);
+    const printed = line.slice("CLAUDE.md: present - ".length);
+    assert.equal(fs.realpathSync.native(printed), fs.realpathSync.native(path.join(dir, "CLAUDE.md")));
   });
 });
 

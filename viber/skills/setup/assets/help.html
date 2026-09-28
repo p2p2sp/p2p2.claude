@@ -727,13 +727,19 @@ Bez Playwrighta <code>/viber:e2e</code> proponuje jego instalację albo kończy 
 <a href="#term-switch">switches</a> to <code>.claude/viber.yml</code>, puts the recommended permissions into <code>.claude/settings.json</code>
 (asking first whether to merge or reset when that file exists), adds <code>.temp/</code> to
 <code>.gitignore</code> when nothing ignores it yet, checks that <code>gh</code> is installed and opens this page.
+It also checks whether the root <code>CLAUDE.md</code> names the build and test commands
+(<a href="#gs-claude-md">step 3</a>): on a gap it prints a prompt to paste into Claude, after <code>/init</code>
+when the file does not exist yet. It never changes <code>CLAUDE.md</code> itself.
 Run it again after each plugin update: it adds the keys the new version brings and keeps every value
 you set.</p>
 <p lang="pl">Otwórz Claude Code w swoim projekcie i uruchom <a href="#skill-setup"><code>/viber:setup</code></a>.
 Zapisuje <a href="#term-switch">przełączniki</a> w <code>.claude/viber.yml</code>, wpisuje zalecane uprawnienia do
 <code>.claude/settings.json</code> (gdy ten plik istnieje, najpierw pyta, czy scalić, czy zastąpić), dopisuje
 <code>.temp/</code> do <code>.gitignore</code>, gdy nic go jeszcze nie ignoruje, sprawdza, czy jest
-zainstalowane <code>gh</code>, i otwiera tę stronę. Uruchom go ponownie po każdej aktualizacji wtyczki:
+zainstalowane <code>gh</code>, i otwiera tę stronę. Sprawdza też, czy główny <code>CLAUDE.md</code> podaje
+polecenia budowania i testów (<a href="#gs-claude-md">krok 3</a>): przy braku wypisuje prompt do wklejenia
+do Claude, po <code>/init</code>, gdy pliku jeszcze nie ma. Sam nigdy nie zmienia <code>CLAUDE.md</code>.
+Uruchom go ponownie po każdej aktualizacji wtyczki:
 dopisze klucze, które przynosi nowa wersja, i zachowa każdą ustawioną przez ciebie wartość.</p>
 
 <h3 class="sub" id="gs-claude-md"><span lang="en">3. What <code>CLAUDE.md</code> must state</span><span lang="pl">3. Co musi podawać <code>CLAUDE.md</code></span><a class="self" href="#gs-claude-md">#</a></h3>
@@ -744,9 +750,12 @@ from whatever manifest it finds, and a <a href="#term-task">task</a> can be comm
 z instrukcji tego projektu, więc bez nich <a href="#agent-test-runner"><code>test-runner</code></a> zgaduje
 na podstawie manifestu, który akurat znajdzie, a <a href="#term-task">zadanie</a> może zostać zacommitowane na testach, które
 nigdy się nie uruchomiły.</p>
-<p lang="en">No <code>CLAUDE.md</code> yet: run <code>/init</code>. Then make sure the root file states:</p>
+<p lang="en">No <code>CLAUDE.md</code> yet: run <code>/init</code>. Then make sure the root file states the items
+below. <a href="#skill-setup"><code>/viber:setup</code></a> checks the first three and, when one is missing,
+gives you a prompt to paste into Claude.</p>
 <p lang="pl">Nie masz jeszcze <code>CLAUDE.md</code>? Uruchom <code>/init</code>. Potem upewnij się, że główny plik
-podaje:</p>
+podaje poniższe punkty. <a href="#skill-setup"><code>/viber:setup</code></a> sprawdza pierwsze trzy i, gdy
+któregoś brakuje, daje ci prompt do wklejenia do Claude.</p>
 <ul class="musts">
   <li><span lang="en">the exact build command;</span><span lang="pl">dokładne polecenie budowania;</span></li>
   <li><span lang="en">the exact test command;</span><span lang="pl">dokładne polecenie testów;</span></li>
@@ -1855,11 +1864,14 @@ z nich mówi, jak nim sterować.</p>
   <h4><code>/viber:setup</code></h4>
   <p lang="en">Prepares a project for viber. Run it once per project, and again after updating the plugin:
   it adds every key the new version's template has and your config lacks, and keeps every value you set.
-  It also checks that the GitHub CLI (<code>gh</code>) is installed, then opens this page.</p>
+  It also checks that the GitHub CLI (<code>gh</code>) is installed and that the root <code>CLAUDE.md</code>
+  names the build, test and single-test-file commands (on a gap it prints a prompt to paste into Claude
+  instead of editing the file), then opens this page.</p>
   <p lang="pl">Przygotowuje projekt do pracy z viber. Uruchom go raz na projekt i ponownie po aktualizacji
   wtyczki: dopisze każdy klucz, który ma szablon nowej wersji, a którego brakuje w twojej konfiguracji,
-  i zachowa każdą ustawioną wartość. Sprawdza też, czy jest zainstalowane GitHub CLI (<code>gh</code>),
-  a na koniec otwiera tę stronę.</p>
+  i zachowa każdą ustawioną wartość. Sprawdza też, czy jest zainstalowane GitHub CLI (<code>gh</code>) i czy
+  główny <code>CLAUDE.md</code> podaje polecenia budowania, testów i uruchomienia pojedynczego pliku testów
+  (przy braku wypisuje prompt do wklejenia do Claude, zamiast edytować plik), a na koniec otwiera tę stronę.</p>
   <dl>
     <div>
       <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
