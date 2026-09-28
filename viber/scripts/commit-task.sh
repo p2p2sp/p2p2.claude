@@ -14,6 +14,7 @@
 #   commit-task.sh --chore <plan-file> <file> [<file>...]
 #   commit-task.sh --qa <plan-file> <file> [<file>...]
 #   commit-task.sh --e2e <file> [<file>...]
+#   commit-task.sh --review <plan-file> <file> [<file>...]
 #
 # The two positional forms take the commit subject from the task's own heading
 # line ("### T1 - <title>") in the plan, so the plan's title is literally what
@@ -77,6 +78,17 @@
 # no form of this script ever takes a subject from its caller. --e2e takes no
 # plan either: the e2e pass runs after the build, so nothing resumes on it.
 #
+# --review commits the one coder that applied every fix a build's final review
+# found, once every task is already committed - a fix that touches no task's
+# own map, the same shape --repair is for. It takes the plan to record the
+# close and to link Refs, like --chore and --qa, and carries a FIXED subject
+# ("fix(viber): final review") - no caller composes it here either. Besides the
+# caller's own files it carries the run's own trail: every
+# "work/final-review-*.md" report the reviewer wrote and
+# "work/final-fix-coder.md", the coder's own notes - so "status.md" gains
+# "final-review" on its "closed:" line in the same commit and a resumed build
+# skips the review next time. It leaves the plan's progress counter alone.
+#
 # Every form that takes the plan closes its message on a "Refs: <plan> ..." line
 # naming the run. A plan whose frontmatter carries "issue: <GitHub issue URL>"
 # (a run tied to an issue) adds "Refs: #<N>" beneath it in the same paragraph,
@@ -139,6 +151,7 @@
 #   <fix-number>:                "committed: <sha>", "progress: unchanged"
 #   --repair:                    "committed: <sha>", "subject: <line>", "progress: unchanged"
 #   --chore, --qa, --e2e:        "committed: <sha>", "subject: <line>"
+#   --review:                    "committed: <sha>", "subject: <line>"
 #   --skip:                      "skipped: <id>", "progress: unchanged" (no commit)
 #   --decide:                    "decided: <id>", "progress: unchanged" (no commit)
 # stderr: a warning listing changed paths no task in the plan claims, the run's
@@ -165,7 +178,7 @@ shopt -s nullglob
 export GIT_LITERAL_PATHSPECS=1
 
 usage() {
-  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] [--defer <task-id>:<path> [...]] [--landed <sha>] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --decide <plan-file> <task-id> <text> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...]" >&2
+  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] [--defer <task-id>:<path> [...]] [--landed <sha>] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --decide <plan-file> <task-id> <text> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...] | --review <plan-file> <file> [<file>...]" >&2
   exit 2
 }
 
@@ -531,7 +544,7 @@ fi
 
 # --- the forms no task owns: a post-test fix outside the plan's file map, and
 # --- the knowledge, QA and test files a run produced beside its task map ---
-if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "${1:-}" == "--e2e" ]]; then
+if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "${1:-}" == "--e2e" || "${1:-}" == "--review" ]]; then
   form="$1"
   shift
 
@@ -576,12 +589,18 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
   fi
 
   # a post-test round leaves its own trail: the run's test report and the notes
-  # of the coder that repaired it
+  # of the coder that repaired it; the final review leaves every reviewer's
+  # report plus the notes of the coder that fixed every finding at once
   if [[ "$form" == "--repair" ]]; then
     while IFS= read -r t; do
       [[ -n "$t" ]] || continue
       stage_path "$t" && paths+=("$t")
     done < <(trail_paths "$(run_dir "$plan")" "tests-$round.md" "repair-$round-coder.md")
+  elif [[ "$form" == "--review" ]]; then
+    while IFS= read -r t; do
+      [[ -n "$t" ]] || continue
+      stage_path "$t" && paths+=("$t")
+    done < <(trail_paths "$(run_dir "$plan")" "final-review-*.md" "final-fix-coder.md")
   fi
 
   # the subject follows the form and the paths, so nothing composes it, and the
@@ -613,6 +632,10 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
     --e2e)
       subject="test(viber): e2e specs"
       ;;
+    --review)
+      subject="fix(viber): final review"
+      closed="final-review"
+      ;;
   esac
 
   if [[ -n "$closed" ]]; then
@@ -636,6 +659,7 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
     --repair)     git commit -m "$subject" -m "$(footer "$plan" "Refs: $plan post-test fix $round")" -- "${paths[@]}" >&2 || exit 5 ;;
     --chore|--qa) git commit -m "$subject" -m "$(footer "$plan" "Refs: $plan close")" -- "${paths[@]}" >&2 || exit 5 ;;
     --e2e)        git commit -m "$subject" -- "${paths[@]}" >&2 || exit 5 ;;
+    --review)     git commit -m "$subject" -m "$(footer "$plan" "Refs: $plan final review")" -- "${paths[@]}" >&2 || exit 5 ;;
   esac
 
   if [[ -n "$backup" ]]; then

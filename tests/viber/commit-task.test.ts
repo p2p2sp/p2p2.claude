@@ -1184,6 +1184,92 @@ test("--qa and --e2e with nothing changed exit 4, and with no file at all exit 2
   }
 });
 
+// --- --review: the one commit that lands the final review's fix -------------
+
+test("--review commits the named files under 'fix(viber): final review', with a Refs footer naming the plan, and records final-review on status.md's closed line", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "the final review's fix\n");
+
+    const result = run(repo.dir, repo.env, ["--review", PLAN_REL, "src/a.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^committed: [0-9a-f]{7,}\nsubject: fix\(viber\): final review\n$/);
+    assert.equal(subjects(repo)[0], "fix(viber): final review");
+    assert.match(repo.git("log", "-1", "--format=%b").stdout, new RegExp(`Refs: ${PLAN_REL} final review`));
+    assert.deepEqual(committedFiles(repo), ["src/a.ts", STATUS_REL].sort());
+    assert.match(readStatus(repo), /^closed: final-review$/m);
+  });
+});
+
+test("--review carries every 'work/final-review-*.md' report and 'work/final-fix-coder.md' present in the run directory, and no other task's own trail", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "the fix\n");
+    write(repo.dir, `${RUN_DIR}/work/final-review-1.md`, "reviewer A's findings\n");
+    write(repo.dir, `${RUN_DIR}/work/final-review-2.md`, "reviewer B's findings\n");
+    write(repo.dir, `${RUN_DIR}/work/final-fix-coder.md`, "what the fix changed\n");
+    write(repo.dir, `${RUN_DIR}/work/T1-coder.md`, "an ordinary task's own notes, not this trail\n");
+
+    const result = run(repo.dir, repo.env, ["--review", PLAN_REL, "src/a.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(
+      committedFiles(repo),
+      [
+        "src/a.ts",
+        STATUS_REL,
+        `${RUN_DIR}/work/final-review-1.md`,
+        `${RUN_DIR}/work/final-review-2.md`,
+        `${RUN_DIR}/work/final-fix-coder.md`,
+      ].sort(),
+    );
+  });
+});
+
+test("--review with named files producing no change exits 4, nothing committed and status.md unchanged", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "already committed\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "already recorded");
+    const before = readStatus(repo);
+
+    const result = run(repo.dir, repo.env, ["--review", PLAN_REL, "src/a.ts"]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /no changes to commit/);
+    assert.equal(readStatus(repo), before);
+    assert.deepEqual(subjects(repo), ["already recorded", "seed"]);
+  });
+});
+
+test("--review against a missing plan exits 2, and calling it with no file at all names --review in the usage error", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+
+    const noPlan = run(repo.dir, repo.env, ["--review", "docs/_specs/nope/plan.md", "src/a.ts"]);
+    assert.equal(noPlan.status, 2);
+    assert.match(noPlan.stderr, /plan file not found/);
+
+    const noFiles = run(repo.dir, repo.env, ["--review", PLAN_REL]);
+    assert.equal(noFiles.status, 2);
+    assert.match(noFiles.stderr, /--review <plan-file> <file> \[<file>\.\.\.\]/);
+  });
+});
+
+test("--review leaves the progress counter unchanged", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    write(repo.dir, "src/b.ts", "the final review's fix\n");
+
+    const result = run(repo.dir, repo.env, ["--review", PLAN_REL, "src/b.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(readStatus(repo), /^progress: 1\/2$/m);
+    assert.doesNotMatch(result.stdout, /progress:/);
+  });
+});
+
 // --- the run's own state: the two decisions and the trail -------------------
 
 test("a task commit carries its own trail and no other task's, so the notes travel with the code they describe", () => {
@@ -1623,6 +1709,10 @@ test("a plan whose frontmatter names an issue adds Refs: #<N> under the run's ow
       write(repo.dir, `${RUN_DIR}/qa.md`, "the acceptance document\n");
       run(repo.dir, repo.env, ["--qa", PLAN_REL, `${RUN_DIR}/qa.md`]);
     }, `Refs: ${PLAN_REL} close`],
+    ["--review", (repo) => {
+      write(repo.dir, "src/a.ts", "work\n");
+      run(repo.dir, repo.env, ["--review", PLAN_REL, "src/a.ts"]);
+    }, `Refs: ${PLAN_REL} final review`],
   ];
   for (const [name, act, runRefs] of forms) {
     withGitRepo((repo) => {
