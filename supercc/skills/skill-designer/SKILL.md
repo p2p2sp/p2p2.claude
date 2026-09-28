@@ -15,7 +15,7 @@ description: Authoring doctrine for Claude Code skills and agents: one responsib
 1. Classify the request: new, refactor, split, or audit. For an existing file read it whole before touching it.
 2. Run the responsibility check. If it fails or the request is a split, read `${CLAUDE_SKILL_DIR}/references/split-patterns.md` and build the split, not a bigger monolith.
 3. Decide where the work runs before writing it: read `${CLAUDE_SKILL_DIR}/references/architecture.md` when the skill drives noisy tool calls, chains stages, or repeats a behaviour other skills already carry.
-4. Tune for the model when the target is an agent or a forked skill, pins `model:`, or misbehaves on one model only: invoke `supercc:tuner` with the file or the role, and carry its `model:`, `effort:` and mitigations into step 6.
+4. Tune for the model when the target is an agent or a forked skill, pins `model:`, or misbehaves on one model only: invoke `supercc:model-prompting` with the file or the role, and carry its `model:`, `effort:` and mitigations into step 6.
 5. Writing a body from scratch: read `${CLAUDE_SKILL_DIR}/references/example.md` first.
 6. Write frontmatter, then body, then scripts and references.
 7. Lint: `bash "${CLAUDE_SKILL_DIR}/scripts/lint_skill.sh" <skill-dir-or-agent-file>`. Fix every FAIL, judge every WARN.

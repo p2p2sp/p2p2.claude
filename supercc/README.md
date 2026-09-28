@@ -37,7 +37,7 @@ what makes it trigger, and what was deliberately left out.
 
 ## Writing for a specific model
 
-A second skill, `tuner`, knows how each current Claude model reads instructions and where
+A second skill, `model-prompting`, knows how each current Claude model reads instructions and where
 it slips. It fires when you pick or change the model an agent runs on:
 
 ```

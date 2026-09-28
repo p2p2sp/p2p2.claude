@@ -23,7 +23,7 @@ Do not fork when:
 - The skill is reference or doctrine with no task to run.
 - The run often has nothing to do. Bail early first, fork second, never fork an empty pipeline.
 
-Model and effort in the fork come from the tuner step: an unpinned fork runs on whatever model the session uses, and an unset `effort:` on that model's default.
+Model and effort in the fork come from the model-prompting step: an unpinned fork runs on whatever model the session uses, and an unset `effort:` on that model's default.
 
 ## File handoff
 
