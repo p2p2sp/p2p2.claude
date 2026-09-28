@@ -10,7 +10,7 @@ three files share. `PRODUCT.md` holds the testing assumptions that `references/p
 ```
 skills/<name>/           14 skills: SKILL.md plus files read at one step;
                          setup, memory, rules, handoff, commit bundle scripts/
-agents/                  15 agents
+agents/                  16 agents
 scripts/                 14 plugin-wide scripts
 references/              read at runtime by agents through the `refs:` dispatch line
 hooks/                   SessionStart manifest + UserPromptSubmit plan hints + PreToolUse plan gate
@@ -88,7 +88,7 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 ## Commit ownership
 
 - Only scripts commit: `plan-index.sh --split` (the decomposition), `commit-task.sh` (every task,
-  repair, close and e2e commit, `--skip`, `--decide`, and `--landed <sha>` recording a task
+  repair, close, e2e and final-review-fix commit, `--skip`, `--decide`, and `--landed <sha>` recording a task
   another commit carried in its own `chore(viber)` commit, never with `--with`), `archive-run.sh`
   (the archive), and outside a build the `commit` skill's `commit.sh`. No agent or skill runs
   `git add` or `git commit`. `planner` leaves a landed draft uncommitted; `memory` and `rules`
