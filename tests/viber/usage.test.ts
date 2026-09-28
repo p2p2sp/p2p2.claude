@@ -18,6 +18,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 
+import { contrastRatio, parseColor } from "../../superui/skills/pro-designer/scripts/check_contrast.ts";
+
 const VIBER = path.resolve(import.meta.dirname, "../../viber");
 const PAGE_PATH = path.join(VIBER, "skills/setup/assets/usage.html");
 const TEMPLATE_PATH = path.join(VIBER, "skills/setup/templates/viber.yml");
@@ -361,6 +363,71 @@ function scriptHookViolations(page: string): string[] {
 }
 
 // ---------------------------------------------------------------------------
+// Theme colors and closing tags - C4
+// ---------------------------------------------------------------------------
+
+type Theme = "light" | "dark";
+
+/** WCAG AA for body text. */
+const AA_BODY = 4.5;
+
+const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+/** The declarations of the theme's `:root` block: the dark one sits inside
+ *  `@media (prefers-color-scheme: dark)`, the light one is the first outside it. */
+function rootBlock(page: string, theme: Theme): string {
+  const style = styleText(page);
+  const at = style.search(/@media\s*\(\s*prefers-color-scheme\s*:\s*dark\s*\)/);
+  const media = at < 0 ? { start: -1, end: -1 } : braceBlock(style, at);
+  const opener = [...style.matchAll(/:root\s*\{/g)].find((m) => {
+    const inside = (m.index ?? 0) >= media.start && (m.index ?? 0) < media.end;
+    return inside === (theme === "dark");
+  });
+  if (opener === undefined) return "";
+  const block = braceBlock(style, opener.index ?? 0);
+  return style.slice(block.start, block.end);
+}
+
+/** Every `--fg-*` (text) and `--bg-*` (background) token the theme declares, in order. */
+function colorTokens(page: string, theme: Theme): [string, string][] {
+  return [...rootBlock(page, theme).matchAll(/(--(?:fg|bg)-[\w-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]);
+}
+
+/** In the theme, every `--fg-*` on every `--bg-*` reaches 4.5:1; a theme with no
+ *  `--fg-*` or no `--bg-*` token, or a token that is no hex color, fails. */
+function contrastViolations(page: string, theme: Theme): string[] {
+  const tokens = colorTokens(page, theme);
+  const violations = tokens.filter(([, value]) => !HEX.test(value)).map(([name, value]) => `${theme}: ${name} is ${value}, not a hex color`);
+  const fg = tokens.filter(([name, value]) => name.startsWith("--fg-") && HEX.test(value));
+  const bg = tokens.filter(([name, value]) => name.startsWith("--bg-") && HEX.test(value));
+  if (fg.length === 0) violations.push(`${theme}: no --fg-* token`);
+  if (bg.length === 0) violations.push(`${theme}: no --bg-* token`);
+  const pairs = fg.flatMap(([fgName, fgValue]) =>
+    bg.map(([bgName, bgValue]) => ({ fgName, bgName, ratio: contrastRatio(parseColor(fgValue), parseColor(bgValue)) })),
+  );
+  return [
+    ...violations,
+    ...pairs.filter((p) => p.ratio < AA_BODY).map((p) => `${theme}: ${p.fgName} on ${p.bgName} is ${p.ratio.toFixed(2)}:1, under 4.5:1`),
+  ];
+}
+
+/** Every `--fg-*` and `--bg-*` token is declared in both themes, so neither theme inherits an unchecked value. */
+function unpairedTokenViolations(page: string): string[] {
+  const [light, dark] = [colorTokens(page, "light"), colorTokens(page, "dark")].map((tokens) => tokens.map(([name]) => name));
+  return [
+    ...light.filter((name) => !dark.includes(name)).map((name) => `${name} has no dark value`),
+    ...dark.filter((name) => !light.includes(name)).map((name) => `${name} has no light value`),
+  ];
+}
+
+/** Every closing tag in the page has an opener of the same name in the page. */
+function orphanClosingTagViolations(page: string): string[] {
+  return [...page.matchAll(/<\/([A-Za-z][\w.:-]*)\s*>/g)]
+    .filter((m) => !new RegExp(`<${escapeRegExp(m[1])}(?=[\\s/>])`, "i").test(page))
+    .map((m) => `line ${lineOf(page, m.index ?? 0)}: </${m[1]}> has no <${m[1]}> opener`);
+}
+
+// ---------------------------------------------------------------------------
 // Self-checks - synthetic samples, no filesystem
 // ---------------------------------------------------------------------------
 
@@ -565,6 +632,54 @@ for (const [name, rule, from, to] of [
   });
 }
 
+/** A page carrying only the two theme blocks; `--rule` is neither text nor background. */
+const themed = (light: string, dark: string): string =>
+  `<!doctype html>\n<html lang="en">\n<head>\n<style>\n  :root {\n    ${light}\n  }\n  :root[data-lang="en"] body [lang="pl"] { display: none; }\n  @media (prefers-color-scheme: dark) {\n    :root {\n      ${dark}\n    }\n  }\n</style>\n</head>\n<body></body>\n</html>\n`;
+const LIGHT_OK = "--bg-page: #ffffff; --bg-code: #eeeeee; --fg-text: #111111; --fg-muted: #555555; --rule: #dddddd;";
+const DARK_OK = "--bg-page: #111111; --bg-code: #222222; --fg-text: #eeeeee; --fg-muted: #aaaaaa; --rule: #333333;";
+const DARK_NO_FG = "--bg-page: #111111; --bg-code: #222222; --rule: #333333;";
+
+for (const theme of ["light", "dark"] as const) {
+  test(`self-check: contrastViolations stays quiet on a ${theme} theme whose text colors all reach 4.5:1, a faint rule token aside`, () => {
+    assert.deepEqual(contrastViolations(themed(LIGHT_OK, DARK_OK), theme), []);
+  });
+}
+
+for (const [name, page, theme] of [
+  ["a light text color at 3.92:1 on one light background", themed(LIGHT_OK.replace("#555555", "#767676"), DARK_OK), "light"],
+  ["a dark text color at 4.03:1 on one dark background", themed(LIGHT_OK, DARK_OK.replace("#aaaaaa", "#808080")), "dark"],
+  ["a dark theme with no --fg-* token", themed(LIGHT_OK, DARK_NO_FG), "dark"],
+  ["a light theme with no --bg-* token", themed("--fg-text: #111111; --rule: #dddddd;", DARK_OK), "light"],
+  ["a background that is no hex color", themed(LIGHT_OK.replace("--bg-code: #eeeeee", "--bg-code: var(--bg-page)"), DARK_OK), "light"],
+] as const) {
+  test(`self-check: contrastViolations fires on ${name}`, () => {
+    assert.equal(contrastViolations(page, theme).length, 1);
+  });
+}
+
+test("self-check: unpairedTokenViolations fires on a text color the dark theme never declares", () => {
+  const page = themed(LIGHT_OK, DARK_OK.replace("--fg-muted: #aaaaaa;", ""));
+
+  assert.deepEqual(unpairedTokenViolations(page), ["--fg-muted has no dark value"]);
+});
+
+test("self-check: unpairedTokenViolations stays quiet when both themes declare the same tokens", () => {
+  assert.deepEqual(unpairedTokenViolations(themed(LIGHT_OK, DARK_OK)), []);
+});
+
+for (const [name, page] of [
+  ["a sample ending in a bare </content>", `${html("<p>a</p>")}</content>\n`],
+  ["an inline </parameter> with no opener", html("<p>a</parameter></p>")],
+] as const) {
+  test(`self-check: orphanClosingTagViolations fires on ${name}`, () => {
+    assert.equal(orphanClosingTagViolations(page).length, 1);
+  });
+}
+
+test("self-check: orphanClosingTagViolations stays quiet on balanced tags, an attribute-bearing opener included", () => {
+  assert.deepEqual(orphanClosingTagViolations(html('<p lang="en">a</p><section id="x" data-search></section>')), []);
+});
+
 // ---------------------------------------------------------------------------
 // The real page against the real sources
 // ---------------------------------------------------------------------------
@@ -598,6 +713,10 @@ for (const [name, violations] of [
   ["folds a narrow table of contents holding the wide one's links", () => narrowTocViolations(PAGE)],
   ["hides the navigation in print", () => printViolations(PAGE)],
   ["has a script naming every navigation hook", () => scriptHookViolations(PAGE)],
+  ["gives every text color 4.5:1 on every background in the light theme", () => contrastViolations(PAGE, "light")],
+  ["gives every text color 4.5:1 on every background in the dark theme", () => contrastViolations(PAGE, "dark")],
+  ["declares every text and background color in both themes", () => unpairedTokenViolations(PAGE)],
+  ["holds no closing tag without its opener", () => orphanClosingTagViolations(PAGE)],
 ] as const) {
   test(`the help page ${name}`, () => {
     assert.deepEqual(violations(), []);
