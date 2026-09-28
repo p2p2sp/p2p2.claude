@@ -410,6 +410,13 @@
     .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
 
+  /* How it works, troubleshooting, glossary */
+  .faq details { margin-bottom: 8px; }
+  .faq details p { margin: 0 0 12px; }
+  a[href^="#term-"] { text-decoration-style: dotted; }
+  [id^="term-"] { scroll-margin-top: 24px; }
+  .glossary dt { font-weight: 650; }
+
   /* The issue thread */
   .thread {
     list-style: none;
@@ -524,6 +531,9 @@
     <li><a href="#getting-started"><span lang="en">Getting started</span><span lang="pl">Pierwsze kroki</span></a></li>
     <li><a href="#cheat-sheet"><span lang="en">Commands</span><span lang="pl">Polecenia</span></a></li>
     <li><a href="#guides"><span lang="en">Task guides</span><span lang="pl">Poradniki</span></a></li>
+    <li><a href="#how-it-works"><span lang="en">How viber works</span><span lang="pl">Jak działa viber</span></a></li>
+    <li><a href="#troubleshooting"><span lang="en">Troubleshooting</span><span lang="pl">Gdy coś nie działa</span></a></li>
+    <li><a href="#glossary"><span lang="en">Glossary</span><span lang="pl">Słowniczek</span></a></li>
     <li><a href="#ref-skills"><span lang="en">Skills</span><span lang="pl">Skille</span></a></li>
     <li><a href="#ref-agents"><span lang="en">Agents</span><span lang="pl">Agenci</span></a></li>
     <li><a href="#ref-config"><span lang="en">Configuration</span><span lang="pl">Konfiguracja</span></a></li>
@@ -547,9 +557,9 @@
   </div>
   <h1>viber</h1>
   <p class="lede" lang="en">From an idea to committed code in four steps: understand it, plan it, build it,
-  remember it. Nothing is built before you approve the plan.</p>
+  remember it. Nothing is built before you approve the <a href="#term-plan">plan</a>.</p>
   <p class="lede" lang="pl">Od pomysłu do zacommitowanego kodu w czterech krokach: zrozum, zaplanuj,
-  zbuduj, zapamiętaj. Nic nie powstaje, zanim nie zatwierdzisz planu.</p>
+  zbuduj, zapamiętaj. Nic nie powstaje, zanim nie zatwierdzisz <a href="#term-plan">planu</a>.</p>
 </header>
 
 <section id="getting-started">
@@ -581,25 +591,25 @@ Bez Playwrighta <code>/viber:e2e</code> proponuje jego instalację albo kończy 
 
 <h3 class="sub" id="gs-setup"><span lang="en">2. Prepare the project</span><span lang="pl">2. Przygotowanie projektu</span></h3>
 <p lang="en">Open Claude Code in your project and run <a href="#skill-setup"><code>/viber:setup</code></a>. It writes the
-switches to <code>.claude/viber.yml</code>, puts the recommended permissions into <code>.claude/settings.json</code>
+<a href="#term-switch">switches</a> to <code>.claude/viber.yml</code>, puts the recommended permissions into <code>.claude/settings.json</code>
 (asking first whether to merge or reset when that file exists), adds <code>.temp/</code> to
 <code>.gitignore</code> when nothing ignores it yet, checks that <code>gh</code> is installed and opens this page.
 Run it again after each plugin update: it adds the keys the new version brings and keeps every value
 you set.</p>
 <p lang="pl">Otwórz Claude Code w swoim projekcie i uruchom <a href="#skill-setup"><code>/viber:setup</code></a>.
-Zapisuje przełączniki w <code>.claude/viber.yml</code>, wpisuje zalecane uprawnienia do
+Zapisuje <a href="#term-switch">przełączniki</a> w <code>.claude/viber.yml</code>, wpisuje zalecane uprawnienia do
 <code>.claude/settings.json</code> (gdy ten plik istnieje, najpierw pyta, czy scalić, czy zastąpić), dopisuje
 <code>.temp/</code> do <code>.gitignore</code>, gdy nic go jeszcze nie ignoruje, sprawdza, czy jest
 zainstalowane <code>gh</code>, i otwiera tę stronę. Uruchom go ponownie po każdej aktualizacji wtyczki:
 dopisze klucze, które przynosi nowa wersja, i zachowa każdą ustawioną przez ciebie wartość.</p>
 
 <h3 class="sub" id="gs-claude-md"><span lang="en">3. What <code>CLAUDE.md</code> must state</span><span lang="pl">3. Co musi podawać <code>CLAUDE.md</code></span></h3>
-<p lang="en">viber knows nothing about your stack. Every agent takes the build and test commands from this
+<p lang="en">viber knows nothing about your stack. Every <a href="#term-agent">agent</a> takes the build and test commands from this
 project's own instructions, so without them <a href="#agent-test-runner"><code>test-runner</code></a> guesses
-from whatever manifest it finds, and a task can be committed on a suite that never ran.</p>
-<p lang="pl">viber nic nie wie o twoim stosie technologicznym. Każdy agent bierze polecenia budowania i testów
+from whatever manifest it finds, and a <a href="#term-task">task</a> can be committed on a suite that never ran.</p>
+<p lang="pl">viber nic nie wie o twoim stosie technologicznym. Każdy <a href="#term-agent">agent</a> bierze polecenia budowania i testów
 z instrukcji tego projektu, więc bez nich <a href="#agent-test-runner"><code>test-runner</code></a> zgaduje
-na podstawie manifestu, który akurat znajdzie, a zadanie może zostać zacommitowane na testach, które
+na podstawie manifestu, który akurat znajdzie, a <a href="#term-task">zadanie</a> może zostać zacommitowane na testach, które
 nigdy się nie uruchomiły.</p>
 <p lang="en">No <code>CLAUDE.md</code> yet: run <code>/init</code>. Then make sure the root file states:</p>
 <p lang="pl">Nie masz jeszcze <code>CLAUDE.md</code>? Uruchom <code>/init</code>. Potem upewnij się, że główny plik
@@ -610,8 +620,8 @@ podaje:</p>
   <li><span lang="en">how to run a single test file;</span><span lang="pl">sposób uruchomienia pojedynczego pliku
   testów;</span></li>
   <li><span lang="en">a test command that leaves the end-to-end tests out, when your usual one runs them too:
-  a build never runs them unless you ask;</span><span lang="pl">polecenie testów, które pomija testy
-  end-to-end, jeśli twoje zwykłe polecenie też je uruchamia: build nigdy ich nie uruchamia, chyba że
+  a <a href="#term-build">build</a> never runs them unless you ask;</span><span lang="pl">polecenie testów, które pomija testy
+  end-to-end, jeśli twoje zwykłe polecenie też je uruchamia: <a href="#term-build">build</a> nigdy ich nie uruchamia, chyba że
   o to poprosisz;</span></li>
   <li><span lang="en">whatever else a newcomer would get wrong, such as how to launch the app, the required
   env or the migrations.</span><span lang="pl">wszystko inne, co nowa osoba w projekcie zrobiłaby źle:
@@ -632,14 +642,14 @@ podaje:</p>
   </li>
   <li>
     <p class="say"><span lang="en">You approve the plan</span><span lang="pl">Zatwierdzasz plan</span></p>
-    <p lang="en">The <a href="#skill-planner">planner</a> takes the summary into Claude Code's plan mode and
-    writes the plan: acceptance criteria, a file map, then the tasks.
+    <p lang="en">The <a href="#skill-planner">planner</a> takes the summary into Claude Code's
+    <a href="#term-plan-mode">plan mode</a> and writes the plan: acceptance criteria, a file map, then the tasks.
     <a href="#agent-planner-review"><code>planner-review</code></a> checks it against your code, and plan mode
-    ends only after that review passes. Then you approve the plan or reject it.</p>
-    <p lang="pl"><a href="#skill-planner">Planista</a> przenosi podsumowanie do trybu planowania Claude Code
-    i pisze plan: kryteria akceptacji, mapę plików, a potem zadania.
-    <a href="#agent-planner-review"><code>planner-review</code></a> sprawdza go na twoim kodzie, a tryb
-    planowania kończy się dopiero wtedy, gdy ta recenzja przejdzie. Wtedy zatwierdzasz plan albo go
+    ends only after that <a href="#term-review">review</a> passes. Then you approve the plan or reject it.</p>
+    <p lang="pl"><a href="#skill-planner">Planista</a> przenosi podsumowanie do
+    <a href="#term-plan-mode">trybu planowania</a> Claude Code i pisze plan: kryteria akceptacji, mapę plików,
+    a potem zadania. <a href="#agent-planner-review"><code>planner-review</code></a> sprawdza go na twoim kodzie,
+    a tryb planowania kończy się dopiero wtedy, gdy ta <a href="#term-review">recenzja</a> przejdzie. Wtedy zatwierdzasz plan albo go
     odrzucasz.</p>
   </li>
   <li>
@@ -657,13 +667,15 @@ podaje:</p>
   </li>
   <li>
     <p class="say"><span lang="en">The build closes</span><span lang="pl">Build się zamyka</span></p>
-    <p lang="en">The whole test suite runs once more, then the close parts your switches turn on. With the
-    template's defaults, what the build taught goes into <code>CLAUDE.md</code> and <code>.claude/rules/</code>,
-    and the run is archived in <code>docs/specs/</code>.</p>
-    <p lang="pl">Cały zestaw testów uruchamia się jeszcze raz, a potem te części zamknięcia, które włączają
-    twoje przełączniki. Przy domyślnych ustawieniach szablonu to, czego nauczył build, trafia do
-    <code>CLAUDE.md</code> i <code>.claude/rules/</code>, a przebieg ląduje w archiwum w
-    <code>docs/specs/</code>.</p>
+    <p lang="en">The whole test suite runs once more, then the <a href="#term-close">close parts</a> your
+    switches turn on. With the template's defaults, what the build taught goes into
+    <a href="#term-node"><code>CLAUDE.md</code></a> and <a href="#term-rule"><code>.claude/rules/</code></a>, and
+    the <a href="#term-run">run</a> is <a href="#term-archive">archived</a> in <code>docs/specs/</code>.</p>
+    <p lang="pl">Cały zestaw testów uruchamia się jeszcze raz, a potem te
+    <a href="#term-close">części zamknięcia</a>, które włączają twoje przełączniki. Przy domyślnych ustawieniach
+    szablonu to, czego nauczył build, trafia do <a href="#term-node"><code>CLAUDE.md</code></a>
+    i <a href="#term-rule"><code>.claude/rules/</code></a>, a <a href="#term-run">przebieg</a> ląduje
+    w <a href="#term-archive">archiwum</a> w <code>docs/specs/</code>.</p>
   </li>
 </ol>
 <p class="note" lang="en">A bug takes the same path, starting from <a href="#skill-fixer"><code>/viber:fixer</code></a>
@@ -706,8 +718,8 @@ in place of the interview.</p>
   </div>
   <div>
     <dt><a href="#skill-e2e"><code>/viber:e2e</code></a></dt>
-    <dd><span lang="en">Turns a build's QA scenarios into Playwright tests.</span><span lang="pl">Zamienia
-    scenariusze QA z buildu w testy Playwright.</span></dd>
+    <dd><span lang="en">Turns a build's <a href="#term-qa">QA scenarios</a> into Playwright tests.</span><span lang="pl">Zamienia
+    <a href="#term-qa">scenariusze QA</a> z buildu w testy Playwright.</span></dd>
   </div>
   <div>
     <dt><a href="#skill-memory"><code>/viber:memory</code></a></dt>
@@ -734,10 +746,10 @@ in place of the interview.</p>
     <dd><span lang="en">Opens this page.</span><span lang="pl">Otwiera tę stronę.</span></dd>
   </div>
 </dl>
-<p class="note" lang="en">Three skills have no command. <a href="#skill-planner">planner</a> starts when an
+<p class="note" lang="en">Three <a href="#term-skill">skills</a> have no command. <a href="#skill-planner">planner</a> starts when an
 interview or a diagnosis hands off, <a href="#skill-implementor">implementor</a> when you ask Claude to build
 an approved plan, and <a href="#skill-tdd">tdd</a> runs inside a build.</p>
-<p class="note" lang="pl">Trzy skille nie mają polecenia. <a href="#skill-planner">planner</a> startuje, gdy
+<p class="note" lang="pl">Trzy <a href="#term-skill">skille</a> nie mają polecenia. <a href="#skill-planner">planner</a> startuje, gdy
 wywiad albo diagnoza przekaże mu pracę, <a href="#skill-implementor">implementor</a>, gdy poprosisz Claude
 o zbudowanie zatwierdzonego planu, a <a href="#skill-tdd">tdd</a> działa wewnątrz buildu.</p>
 </section>
@@ -807,11 +819,11 @@ poproś o nią Claude wprost i powiedz, że ma ją zrobić bez planu.</p>
     you see it.</span><span lang="pl"><code>/viber:intent --prove pozwól administratorom dezaktywować konto
     użytkownika</code> zleca agentowi <a href="#agent-prover"><code>prover</code></a> sprawdzenie w kodzie
     twierdzeń każdego pytania, zanim je zobaczysz.</span></li>
-    <li><span lang="en">Others must read the specification before any task is planned: ask during the
-    interview to stop at a specification. The draft lands in <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code>
+    <li><span lang="en">Others must read the <a href="#term-spec">specification</a> before any task is planned: ask during the
+    interview to stop at a specification. The <a href="#term-draft">draft</a> lands in <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code>
     for you to commit and circulate, and <code>/viber:intent</code> pointed at that draft continues it. A build
-    refuses a draft.</span><span lang="pl">Inni muszą przeczytać specyfikację, zanim powstaną zadania: poproś
-    w trakcie wywiadu o zatrzymanie się na specyfikacji. Szkic trafia do
+    refuses a draft.</span><span lang="pl">Inni muszą przeczytać <a href="#term-spec">specyfikację</a>, zanim powstaną zadania: poproś
+    w trakcie wywiadu o zatrzymanie się na specyfikacji. <a href="#term-draft">Szkic</a> trafia do
     <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code>, skąd go commitujesz i rozsyłasz, a
     <code>/viber:intent</code> wskazujący ten szkic prowadzi go dalej. Build odmawia zbudowania
     szkicu.</span></li>
@@ -1145,12 +1157,13 @@ wznowić w nowej sesji albo na innym komputerze.</p>
 <section class="guide" id="guide-e2e">
 <h3 class="sub" id="guide-e2e-title"><span lang="en">Get end-to-end tests</span><span lang="pl">Dodaj testy end-to-end</span></h3>
 <p lang="en">A build never writes or runs end-to-end tests unless you ask. Turn
-<a href="#key-qa"><code>qa</code></a> on before the build starts: its close then writes <code>qa.md</code>, the
-scenarios a person performs, and <code>qa.e2e.md</code>, the handoff this command reads.</p>
+<a href="#key-qa"><code>qa</code></a> on before the build starts: when the change touches the UI or the
+endpoints, its close then writes <code>qa.e2e.md</code>, the handoff this command reads, plus <code>qa.md</code>,
+the scenarios a person performs, when the UI changed.</p>
 <p lang="pl">Build nigdy nie pisze ani nie uruchamia testów end-to-end, chyba że o to poprosisz. Włącz
-<a href="#key-qa"><code>qa</code></a> przed startem buildu: wtedy jego zamknięcie zapisuje <code>qa.md</code>,
-scenariusze do wykonania przez człowieka, i <code>qa.e2e.md</code>, plik przekazania, który czyta to
-polecenie.</p>
+<a href="#key-qa"><code>qa</code></a> przed startem buildu: gdy zmiana dotyka interfejsu użytkownika albo
+endpointów, jego zamknięcie zapisuje <code>qa.e2e.md</code>, plik przekazania, który czyta to polecenie, a gdy
+zmienił się interfejs, także <code>qa.md</code>, scenariusze do wykonania przez człowieka.</p>
 <ol class="steps">
   <li>
     <span class="label"><span lang="en">You type</span><span lang="pl">Wpisujesz</span></span>
@@ -1252,6 +1265,441 @@ mogą rozjechać się z kodem.</p>
   </ul>
 </details>
 </section>
+</section>
+
+<section id="how-it-works">
+<h2><span lang="en">How viber works</span><span lang="pl">Jak działa viber</span></h2>
+
+<h3 class="sub" id="hw-plan-first"><span lang="en">Plan before code</span><span lang="pl">Najpierw plan, potem kod</span></h3>
+<p lang="en">While viber is installed, Claude writes or edits no code before you approve a plan. The plan names
+the acceptance criteria, the files it touches and the tasks, and a review agent checks it against your code
+before you see it, so a wrong assumption shows up before any code depends on it. For a change you want made
+right away, say so: an explicit request for a direct change skips the plan. The one piece of code allowed
+before a plan is the failing test <a href="#skill-fixer"><code>fixer</code></a> writes to prove a bug.</p>
+<p lang="pl">Dopóki viber jest zainstalowany, Claude nie pisze ani nie zmienia kodu, zanim nie zatwierdzisz planu.
+Plan podaje kryteria akceptacji, pliki, których dotyczy, i zadania, a agent recenzujący sprawdza go na twoim
+kodzie, zanim go zobaczysz. Błędne założenie wychodzi więc na jaw, zanim oprze się na nim jakikolwiek kod.
+Jeśli chcesz zmianę od razu, powiedz to wprost: wyraźna prośba o bezpośrednią zmianę pomija plan. Jedyny kod
+dopuszczalny przed planem to nieprzechodzący test, którym <a href="#skill-fixer"><code>fixer</code></a>
+udowadnia błąd.</p>
+
+<h3 class="sub" id="hw-gate"><span lang="en">The plan-mode gate</span><span lang="pl">Bramka trybu planowania</span></h3>
+<p lang="en">The <a href="#term-plan-gate">plan gate</a> is a hook that holds Claude inside plan mode until a
+review agent has passed the latest version of the plan. A plan the planner wrote goes to
+<a href="#agent-planner-review"><code>planner-review</code></a>. A plan written in plain plan mode goes to
+<a href="#agent-plain-plan-review"><code>plain-plan-review</code></a>, as long as
+<a href="#key-plain-plan-review"><code>plain-plan-review</code></a> is on. Any change to the plan after the pass
+voids it, so the plan is reviewed again before plan mode can end. When the gate blocks, Claude gets the next
+step in words (run the review, fix its findings, or grant a permission the reviewer was refused), and the
+message says it comes from the gate and is no error.</p>
+<p lang="pl"><a href="#term-plan-gate">Bramka planu</a> to hook, który trzyma Claude w trybie planowania, dopóki
+agent recenzujący nie zaakceptuje najnowszej wersji planu. Plan napisany przez planistę trafia do
+<a href="#agent-planner-review"><code>planner-review</code></a>, a plan napisany w zwykłym trybie planowania do
+<a href="#agent-plain-plan-review"><code>plain-plan-review</code></a>, o ile włączony jest przełącznik
+<a href="#key-plain-plan-review"><code>plain-plan-review</code></a>. Każda zmiana planu po akceptacji ją
+unieważnia, więc przed wyjściem z trybu planowania plan przechodzi recenzję jeszcze raz. Kiedy bramka blokuje
+wyjście, Claude dostaje opis następnego kroku (uruchom recenzję, popraw uwagi albo nadaj uprawnienie, którego
+odmówiono recenzentowi), a komunikat mówi, że pochodzi od bramki i nie jest błędem.</p>
+
+<h3 class="sub" id="hw-run"><span lang="en">The run directory and its archive</span><span lang="pl">Katalog przebiegu i archiwum</span></h3>
+<p lang="en">A build copies the approved plan into its own directory,
+<code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code>, and cuts it there into <code>spec.md</code>, the
+specification, and one file per task under <code>tasks/</code>. <code>status.md</code> records which tasks are
+done or skipped, and <code>work/</code> holds the agents' notes and reports. The directory is committed together
+with every task, which is why a build resumes in a new session or on another machine.</p>
+<p lang="pl">Build kopiuje zatwierdzony plan do własnego katalogu,
+<code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code>, i tam dzieli go na <code>spec.md</code>, czyli specyfikację,
+oraz osobny plik dla każdego zadania w <code>tasks/</code>. <code>status.md</code> zapisuje, które zadania są
+ukończone lub pominięte, a w <code>work/</code> leżą notatki i raporty agentów. Katalog jest commitowany razem
+z każdym zadaniem, dlatego build da się wznowić w nowej sesji albo na innym komputerze.</p>
+<p lang="en">With <a href="#key-cleanup"><code>cleanup</code></a> on, the build ends by moving the run to
+<code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> in one commit. The archive keeps the specification and the QA
+documents and drops <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>, which
+git history still holds. A run with a task neither done nor skipped is never archived.
+<a href="#key-directories"><code>directories</code></a> renames both directories.</p>
+<p lang="pl">Przy włączonym <a href="#key-cleanup"><code>cleanup</code></a> build kończy się przeniesieniem
+przebiegu do <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> w jednym commicie. Archiwum zachowuje
+specyfikację i dokumenty QA, a usuwa <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code>
+i <code>work/</code>, które nadal są w historii gita. Przebieg z zadaniem ani ukończonym, ani pominiętym nigdy
+nie trafia do archiwum. Nazwy obu katalogów zmienisz kluczem
+<a href="#key-directories"><code>directories</code></a>.</p>
+
+<h3 class="sub" id="hw-tasks"><span lang="en">Tasks, review and one commit each</span><span lang="pl">Zadania, recenzja i osobny commit</span></h3>
+<p lang="en">A task file is the whole input of its coder: the goal, the files it may touch, how to verify the work
+and its numbered <a href="#term-dod">definition of done</a>. The coder never sees the rest of the plan. Tasks
+whose dependencies are done run side by side, and a task marked exclusive runs alone.</p>
+<p lang="pl">Plik zadania to cały materiał wejściowy jego wykonawcy: cel, pliki, które wolno mu zmienić, sposób
+weryfikacji i ponumerowana <a href="#term-dod">definicja ukończenia</a>. Reszty planu wykonawca nie widzi.
+Zadania, których zależności są już ukończone, idą równolegle, a zadanie oznaczone jako wyłączne działa
+samo.</p>
+<p lang="en"><a href="#agent-task-coder"><code>task-coder</code></a> implements the task and proves it green,
+test first when the task says <code>TDD: required</code>. <a href="#agent-task-reviewer"><code>task-reviewer</code></a>
+then checks it against its definition of done, for up to three rounds. Review is skipped only for a task on
+the sonnet <a href="#term-tier">tier</a> whose verification runs your build or tests; a task verified by a
+text check is always reviewed.</p>
+<p lang="pl"><a href="#agent-task-coder"><code>task-coder</code></a> realizuje zadanie i dowodzi, że testy
+przechodzą, zaczynając od testu, gdy zadanie ma <code>TDD: required</code>. Potem
+<a href="#agent-task-reviewer"><code>task-reviewer</code></a> sprawdza je względem definicji ukończenia,
+w najwyżej trzech rundach. Recenzję pomija tylko zadanie na <a href="#term-tier">poziomie</a> sonnet, którego
+weryfikacja uruchamia budowanie albo testy projektu; zadanie weryfikowane sprawdzeniem tekstu zawsze
+przechodzi recenzję.</p>
+<p lang="en">A task that passes gets its own commit, titled <code>T3 - &lt;task title&gt;</code>. Only viber's
+scripts commit, never an agent. After the last task <a href="#agent-test-runner"><code>test-runner</code></a>
+runs the whole suite. It runs up to three times, with a repair round between one failed run and the next,
+before the build asks you.</p>
+<p lang="pl">Zadanie, które przejdzie, dostaje własny commit z tytułem <code>T3 - &lt;tytuł zadania&gt;</code>.
+Commitują wyłącznie skrypty viber, nigdy agent. Po ostatnim zadaniu
+<a href="#agent-test-runner"><code>test-runner</code></a> uruchamia cały zestaw testów. Uruchamia go najwyżej
+trzy razy, z rundą poprawek między jednym nieudanym uruchomieniem a kolejnym, zanim build zapyta cię, co
+dalej.</p>
+
+<h3 class="sub" id="hw-models"><span lang="en">The model range</span><span lang="pl">Zakres modeli</span></h3>
+<p lang="en">The build gives every task a tier from its shape: haiku for mechanical work such as config, a
+rename or docs, sonnet for ordinary feature work, opus for a task the rest leans on, for example one whose
+contract three or more other tasks use. A reviewer runs on the task's tier, with haiku raised to sonnet. A
+retry after a failed attempt goes one tier up. <a href="#key-tiers"><code>tiers</code></a> keeps all of it
+between <code>min</code> and <code>max</code>, haiku and opus by default, and fable runs only when
+<code>max</code> names it. Planning runs on your session's own model.</p>
+<p lang="pl">Build dobiera każdemu zadaniu poziom modelu według jego charakteru: haiku do prac mechanicznych,
+takich jak konfiguracja, zmiana nazwy czy dokumentacja, sonnet do zwykłej pracy nad funkcją, opus do zadania,
+na którym opiera się reszta, na przykład takiego, którego kontraktu używają co najmniej trzy inne zadania.
+Recenzent działa na poziomie zadania, przy czym haiku zostaje podniesione do sonnet. Ponowienie po nieudanej
+próbie idzie poziom wyżej. Klucz <a href="#key-tiers"><code>tiers</code></a> trzyma to wszystko w przedziale od
+<code>min</code> do <code>max</code>, domyślnie od haiku do opus, a fable działa tylko wtedy, gdy wskazuje go
+<code>max</code>. Planowanie działa na modelu twojej sesji.</p>
+
+<h3 class="sub" id="hw-close"><span lang="en">What the build close writes</span><span lang="pl">Co zapisuje zamknięcie buildu</span></h3>
+<p lang="en">Once the whole suite passes, or you accept its failure, the build runs the close parts your
+switches turn on:</p>
+<p lang="pl">Gdy cały zestaw testów przejdzie albo zaakceptujesz jego porażkę, build uruchamia te części
+zamknięcia, które włączają twoje przełączniki:</p>
+<ul class="musts">
+  <li><span lang="en"><a href="#key-memory"><code>memory</code></a>: <a href="#agent-memory-writer"><code>memory-writer</code></a>
+  folds what the build taught into your <code>CLAUDE.md</code> <a href="#term-node">nodes</a>, within their size
+  budget;</span><span lang="pl"><a href="#key-memory"><code>memory</code></a>:
+  <a href="#agent-memory-writer"><code>memory-writer</code></a> przenosi to, czego nauczył build, do twoich
+  <a href="#term-node">węzłów</a> <code>CLAUDE.md</code>, w granicach ich limitu rozmiaru;</span></li>
+  <li><span lang="en"><a href="#key-rules"><code>rules</code></a>: <a href="#agent-rules-writer"><code>rules-writer</code></a>
+  folds the conventions the build confirmed into <code>.claude/rules/</code>, in the same commit as the
+  memory update;</span><span lang="pl"><a href="#key-rules"><code>rules</code></a>:
+  <a href="#agent-rules-writer"><code>rules-writer</code></a> przenosi konwencje potwierdzone przez build do
+  <code>.claude/rules/</code>, w tym samym commicie co aktualizacja pamięci;</span></li>
+  <li><span lang="en"><a href="#key-qa"><code>qa</code></a>: <a href="#agent-qa-writer"><code>qa-writer</code></a>
+  writes into the run directory, in a commit of their own, <code>qa.md</code>, the scenarios a person
+  performs, when the UI changed, and <code>qa.e2e.md</code>, the handoff <code>/viber:e2e</code> reads, when
+  the UI or the endpoints changed; a change with neither writes nothing;</span><span lang="pl"><a href="#key-qa"><code>qa</code></a>:
+  <a href="#agent-qa-writer"><code>qa-writer</code></a> zapisuje w katalogu przebiegu, we własnym commicie,
+  <code>qa.md</code>, scenariusze do wykonania przez człowieka, gdy zmienił się interfejs użytkownika, oraz
+  <code>qa.e2e.md</code>, plik przekazania dla <code>/viber:e2e</code>, gdy zmienił się interfejs albo
+  endpointy; zmiana bez żadnego z nich nie zapisuje nic;</span></li>
+  <li><span lang="en"><a href="#key-cleanup"><code>cleanup</code></a>: <a href="#agent-closeout"><code>closeout</code></a>
+  notes on the specification what the build delivered beyond it, then archives the run. An aborted build
+  skips this part.</span><span lang="pl"><a href="#key-cleanup"><code>cleanup</code></a>:
+  <a href="#agent-closeout"><code>closeout</code></a> odnotowuje w specyfikacji to, co build dostarczył ponad
+  nią, a potem archiwizuje przebieg. Przerwany build pomija tę część.</span></li>
+</ul>
+<p lang="en">The build ends on a short summary: the tasks committed, the review rounds spent, the test verdict,
+the time it took, what memory, rules and QA recorded, the archive path, and anything left for you, such as an
+unreviewed task or changed files no task claimed.</p>
+<p lang="pl">Build kończy się krótkim podsumowaniem: zacommitowane zadania, zużyte rundy recenzji, wynik testów,
+czas trwania, to, co zapisały pamięć, reguły i QA, ścieżka archiwum oraz wszystko, co zostaje dla ciebie, na
+przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało się żadne zadanie.</p>
+</section>
+
+<section id="troubleshooting">
+<h2><span lang="en">Troubleshooting</span><span lang="pl">Gdy coś nie działa</span></h2>
+<div class="faq">
+<details id="ts-draft">
+  <summary><span lang="en">Why does the build stop on my plan without building anything?</span><span lang="pl">Dlaczego build zatrzymuje się na moim planie i nic nie buduje?</span></summary>
+  <p lang="en">The plan is a <a href="#term-draft">draft</a>: it has no tasks yet, so there is nothing to build. The
+  build prints its path and stops. To continue it, point <code>/viber:intent</code> at that draft, for example
+  <code>/viber:intent docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code>. Once a round adds the tasks, the build
+  takes it.</p>
+  <p lang="pl">Plan jest <a href="#term-draft">szkicem</a>: nie ma jeszcze zadań, więc nie ma czego budować. Build
+  podaje jego ścieżkę i kończy pracę. Żeby go kontynuować, wskaż ten szkic w <code>/viber:intent</code>, na
+  przykład <code>/viber:intent docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code>. Gdy kolejna runda dopisze
+  zadania, build go przyjmie.</p>
+</details>
+<details id="ts-plan-mode">
+  <summary><span lang="en">Why can't Claude leave plan mode?</span><span lang="pl">Dlaczego Claude nie może wyjść z trybu planowania?</span></summary>
+  <p lang="en">The <a href="#term-plan-gate">plan gate</a> holds it there until a review agent passes the latest
+  version of the plan. Claude gets the next step along with the refusal and normally carries it out on its own:
+  it runs the review, fixes the findings, or has the plan reviewed again after an edit. You step in only when
+  the reviewer was refused a tool call: allow that call when Claude asks.</p>
+  <p lang="pl">Trzyma go tam <a href="#term-plan-gate">bramka planu</a>, dopóki agent recenzujący nie zaakceptuje
+  najnowszej wersji planu. Razem z odmową Claude dostaje następny krok i zwykle wykonuje go sam: uruchamia
+  recenzję, poprawia uwagi albo po zmianie zleca recenzję jeszcze raz. Ty wkraczasz tylko wtedy, gdy recenzentowi
+  odmówiono wywołania narzędzia: zezwól na nie, gdy Claude poprosi.</p>
+</details>
+<details id="ts-no-code">
+  <summary><span lang="en">Why does Claude write a plan instead of changing the code?</span><span lang="pl">Dlaczego Claude pisze plan, zamiast zmienić kod?</span></summary>
+  <p lang="en">viber asks for an approved plan before any code (see <a href="#hw-plan-first">Plan before
+  code</a>). Say you want the change made directly, without a plan, and Claude makes it.</p>
+  <p lang="pl">viber wymaga zatwierdzonego planu przed jakimkolwiek kodem (zobacz
+  <a href="#hw-plan-first">Najpierw plan, potem kod</a>). Powiedz, że chcesz zmianę od razu, bez planu, a Claude
+  ją wprowadzi.</p>
+</details>
+<details id="ts-planner">
+  <summary><span lang="en">Why does Claude suggest the interview when I ask for a plan?</span><span lang="pl">Dlaczego Claude proponuje wywiad, gdy proszę o plan?</span></summary>
+  <p lang="en">The planner starts only from a confirmed <code>/viber:intent</code> interview or a
+  <code>/viber:fixer</code> diagnosis, so any other request gets that suggestion, however clear it is. Agree to
+  the interview, or ask for Claude Code's own plan mode for a small change.</p>
+  <p lang="pl">Planista startuje wyłącznie od potwierdzonego wywiadu <code>/viber:intent</code> albo diagnozy
+  <code>/viber:fixer</code>, więc każda inna prośba, nawet bardzo jasna, kończy się taką propozycją. Zgódź się
+  na wywiad albo przy małej zmianie poproś o zwykły tryb planowania Claude Code.</p>
+</details>
+<details id="ts-branch">
+  <summary><span lang="en">Why does the build stop at once, saying the run branch could not be set?</span><span lang="pl">Dlaczego build od razu się zatrzymuje z informacją, że nie da się ustawić gałęzi przebiegu?</span></summary>
+  <p lang="en">With <a href="#key-branching-mode"><code>branching.mode</code></a> set to allowed or required, the
+  run works on its own branch, and the build lands nothing until it is on it. The message names the reason,
+  for example uncommitted changes while the branch points at another commit. Commit or stash them, then ask
+  for the build again.</p>
+  <p lang="pl">Gdy <a href="#key-branching-mode"><code>branching.mode</code></a> ma wartość allowed albo required,
+  przebieg pracuje na własnej gałęzi i build niczego nie zaczyna, dopóki się na niej nie znajdzie. Komunikat
+  podaje powód, na przykład niezacommitowane zmiany, gdy gałąź wskazuje inny commit. Zacommituj je albo odłóż
+  przez stash i poproś o build jeszcze raz.</p>
+</details>
+<details id="ts-task-fails">
+  <summary><span lang="en">What happens when a task keeps failing?</span><span lang="pl">Co się dzieje, gdy zadanie ciągle się nie udaje?</span></summary>
+  <p lang="en">The first failure is retried without asking, one tier up. On the second, the build takes the
+  first way out the coder proposed, records it as a decision and runs a fresh coder, or retries once more when
+  the coder proposed none. The third ends on a question: retry, skip, abort, or your own ruling in words, which
+  the next coder follows. Skipping a task also skips every task that depends on it and leaves its half-finished
+  files uncommitted. A review failed three rounds in a row asks too: retry, accept (committed and marked
+  unreviewed), abort, or your ruling.</p>
+  <p lang="pl">Pierwsza porażka jest ponawiana bez pytania, poziom modelu wyżej. Przy drugiej build wybiera
+  pierwsze wyjście zaproponowane przez wykonawcę, zapisuje je jako decyzję i uruchamia nowego wykonawcę, a gdy
+  propozycji brak, ponawia jeszcze raz. Trzecia kończy się pytaniem do ciebie: ponowić, pominąć, przerwać albo
+  twoje własne rozstrzygnięcie słowami, którego trzyma się kolejny wykonawca. Pominięcie zadania pomija też
+  każde zadanie od niego zależne, a jego niedokończone pliki zostają niezacommitowane. Recenzja odrzucona trzy
+  rundy z rzędu też pyta: ponowić, zaakceptować (commit z oznaczeniem, że zadanie nie przeszło recenzji),
+  przerwać albo twoje rozstrzygnięcie.</p>
+</details>
+<details id="ts-denied">
+  <summary><span lang="en">A question says an agent's tool call was refused. What now?</span><span lang="pl">Pytanie mówi, że agentowi odmówiono wywołania narzędzia. Co teraz?</span></summary>
+  <p lang="en">Your permissions blocked a call the agent needed, and the question names it. Allow that call,
+  then answer <q>permission added and retry</q>. <code>/viber:setup</code> puts viber's recommended permissions
+  into <code>.claude/settings.json</code>, and running it again after a plugin update adds the new ones.</p>
+  <p lang="pl">Twoje uprawnienia zablokowały wywołanie, którego agent potrzebował, a pytanie je podaje. Zezwól
+  na nie i odpowiedz <q>permission added and retry</q>. <code>/viber:setup</code> wpisuje zalecane uprawnienia
+  viber do <code>.claude/settings.json</code>, a uruchomiony ponownie po aktualizacji wtyczki dopisuje
+  nowe.</p>
+</details>
+<details id="ts-no-changes">
+  <summary><span lang="en">Why does the build say a task produced no changes to commit?</span><span lang="pl">Dlaczego build mówi, że zadanie nie dało żadnych zmian do zacommitowania?</span></summary>
+  <p lang="en">The task's files show no change. If its work already went into another commit, pick the first
+  option the build offers, that the task is already committed, and name that commit: the task is recorded as
+  done against it. Otherwise retry, skip or abort.</p>
+  <p lang="pl">Pliki zadania nie mają żadnych zmian. Jeśli jego praca trafiła już do innego commita, wybierz
+  pierwszą opcję, którą podaje build, czyli że zadanie jest już zacommitowane, i wskaż ten commit: zadanie
+  zostanie w nim zapisane jako ukończone. W przeciwnym razie ponów, pomiń albo przerwij.</p>
+</details>
+<details id="ts-tests">
+  <summary><span lang="en">What if the whole test suite fails at the end of a build?</span><span lang="pl">Co, jeśli na końcu buildu cały zestaw testów nie przechodzi?</span></summary>
+  <p lang="en">The suite runs at most three times. After the first and the second failed run, a repair coder
+  fixes what the test report names and the suite runs again. After the third failed run you choose: retry,
+  accept (the close goes on and the summary names the failing run) or abort.</p>
+  <p lang="pl">Zestaw testów uruchamia się najwyżej trzy razy. Po pierwszym i drugim nieudanym uruchomieniu
+  wykonawca poprawek naprawia to, co wskazuje raport z testów, i testy uruchamiają się ponownie. Po trzecim
+  nieudanym uruchomieniu decydujesz: ponowić, zaakceptować (zamknięcie idzie dalej, a podsumowanie wymienia
+  nieudane uruchomienie) albo przerwać.</p>
+</details>
+<details id="ts-archive">
+  <summary><span lang="en">Why was my run not archived?</span><span lang="pl">Dlaczego mój przebieg nie trafił do archiwum?</span></summary>
+  <p lang="en">The archive refuses a run with a task neither done nor skipped, and a destination that already
+  exists, while an aborted build skips the archive altogether. The final summary names the reason. The run
+  stays in <code>docs/_specs/</code>; resume the build, and once its tasks are settled the close archives
+  it.</p>
+  <p lang="pl">Archiwum odrzuca przebieg z zadaniem ani ukończonym, ani pominiętym, a także taki, którego katalog
+  docelowy już istnieje, a przerwany build w ogóle pomija archiwizację. Powód podaje podsumowanie końcowe.
+  Przebieg zostaje w <code>docs/_specs/</code>; wznów build, a gdy jego zadania zostaną rozliczone, zamknięcie
+  go zarchiwizuje.</p>
+</details>
+<details id="ts-plan-gone">
+  <summary><span lang="en">Where did <code>plan.md</code> and the task files go?</span><span lang="pl">Gdzie się podziały <code>plan.md</code> i pliki zadań?</span></summary>
+  <p lang="en">With <code>cleanup</code> on, the <a href="#term-archive">archive</a> keeps the specification and
+  the QA documents and drops the plan, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>. Git
+  still has them: <code>git log -- docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code> lists the commits that
+  touched the plan.</p>
+  <p lang="pl">Przy włączonym <code>cleanup</code> <a href="#term-archive">archiwum</a> zachowuje specyfikację
+  i dokumenty QA, a usuwa plan, <code>status.md</code>, <code>tasks/</code> i <code>work/</code>. Git nadal je
+  ma: <code>git log -- docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code> wypisuje commity, które zmieniały
+  plan.</p>
+</details>
+<details id="ts-e2e">
+  <summary><span lang="en">Why does <code>/viber:e2e</code> say the run carries no handoff file?</span><span lang="pl">Dlaczego <code>/viber:e2e</code> mówi, że przebieg nie ma pliku przekazania?</span></summary>
+  <p lang="en">That build wrote no <code>qa.e2e.md</code>, for one of two reasons. It ran with
+  <a href="#key-qa"><code>qa</code></a> off: turn <code>qa</code> on before the next build. Or its change
+  touched neither the UI nor the endpoints, and then there is nothing for end-to-end tests to cover. When the
+  handoff belongs to another run, name that run: <code>/viber:e2e docs/specs/&lt;run&gt;</code>.</p>
+  <p lang="pl">Ten build nie zapisał <code>qa.e2e.md</code> z jednego z dwóch powodów. Działał z wyłączonym
+  <a href="#key-qa"><code>qa</code></a>: włącz <code>qa</code> przed następnym buildem. Albo jego zmiana nie
+  dotknęła ani interfejsu użytkownika, ani endpointów, i wtedy testy end-to-end nie mają czego sprawdzać.
+  Jeśli plik przekazania należy do innego przebiegu, wskaż ten przebieg:
+  <code>/viber:e2e docs/specs/&lt;run&gt;</code>.</p>
+</details>
+<details id="ts-triage">
+  <summary><span lang="en">Why does <code>/viber:triage</code> ask for the issue text when I give it a number?</span><span lang="pl">Dlaczego <code>/viber:triage</code> prosi o tekst issue, gdy podaję jego numer?</span></summary>
+  <p lang="en"><a href="#key-issues"><code>issues</code></a> is off, and then viber never reads GitHub. Paste
+  the issue text, or set <code>issues: true</code> and install <code>gh</code>.</p>
+  <p lang="pl">Przełącznik <a href="#key-issues"><code>issues</code></a> jest wyłączony, a wtedy viber nie czyta
+  GitHuba. Wklej tekst issue albo ustaw <code>issues: true</code> i zainstaluj <code>gh</code>.</p>
+</details>
+<details id="ts-reset">
+  <summary><span lang="en">Why does a <code>reset</code> of <code>/viber:memory</code> or <code>/viber:rules</code> refuse to run?</span><span lang="pl">Dlaczego <code>reset</code> w <code>/viber:memory</code> albo <code>/viber:rules</code> odmawia działania?</span></summary>
+  <p lang="en">A file on its list holds uncommitted work, which a reset would delete. Nothing was deleted.
+  Commit or discard that work and run the command again.</p>
+  <p lang="pl">Plik z jego listy ma niezacommitowane zmiany, które reset by usunął. Nic nie zostało usunięte.
+  Zacommituj te zmiany albo je porzuć i uruchom polecenie ponownie.</p>
+</details>
+<details id="ts-handoff">
+  <summary><span lang="en">Why did <code>/viber:handoff</code> write nothing?</span><span lang="pl">Dlaczego <code>/viber:handoff</code> niczego nie zapisał?</span></summary>
+  <p lang="en">A file already exists at that path, and handoff never overwrites one. Run it again with another
+  path, for example <code>/viber:handoff notes/csv-export-2.md</code>.</p>
+  <p lang="pl">Pod tą ścieżką już jest plik, a handoff nigdy nie nadpisuje plików. Uruchom go ponownie z inną
+  ścieżką, na przykład <code>/viber:handoff notes/eksport-csv-2.md</code>.</p>
+</details>
+<details id="ts-commit">
+  <summary><span lang="en">Why does <code>/viber:commit</code> answer <code>Nothing to commit</code>?</span><span lang="pl">Dlaczego <code>/viber:commit</code> odpowiada <code>Nothing to commit</code>?</span></summary>
+  <p lang="en">Your working tree has no change to commit, or none under the paths you named.</p>
+  <p lang="pl">W drzewie roboczym nie ma zmian do zacommitowania albo nie ma ich pod wskazanymi
+  ścieżkami.</p>
+</details>
+</div>
+</section>
+
+<section id="glossary">
+<h2><span lang="en">Glossary</span><span lang="pl">Słowniczek</span></h2>
+<dl class="glossary">
+  <div id="term-agent">
+    <dt><span lang="en">agent</span><span lang="pl">agent</span></dt>
+    <dd><span lang="en">A helper Claude starts for one job, such as coding one task or reviewing one plan, in a
+    context of its own. Skills start agents; you never start one yourself.</span><span lang="pl">Pomocnik,
+    którego Claude uruchamia do jednej pracy, na przykład zakodowania zadania albo recenzji planu, we własnym
+    kontekście. Agentów uruchamiają skille, ty nigdy.</span></dd>
+  </div>
+  <div id="term-archive">
+    <dt><span lang="en">archive</span><span lang="pl">archiwum</span></dt>
+    <dd><span lang="en">Where a finished run goes with <code>cleanup</code> on, <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code>
+    by default. Only its specification and QA documents stay there.</span><span lang="pl">Miejsce, do którego
+    przy włączonym <code>cleanup</code> trafia zakończony przebieg, domyślnie
+    <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code>. Zostają w nim tylko specyfikacja i dokumenty QA.</span></dd>
+  </div>
+  <div id="term-build">
+    <dt><span lang="en">build</span><span lang="pl">build</span></dt>
+    <dd><span lang="en">The work <code>implementor</code> does on one approved plan, from the first task to the
+    close, committing every task on its own.</span><span lang="pl">Praca, którą <code>implementor</code> wykonuje
+    nad jednym zatwierdzonym planem, od pierwszego zadania do zamknięcia, z osobnym commitem dla każdego
+    zadania.</span></dd>
+  </div>
+  <div id="term-close">
+    <dt><span lang="en">build close</span><span lang="pl">zamknięcie buildu</span></dt>
+    <dd><span lang="en">What runs after the last task and the final test run: the parts <code>memory</code>,
+    <code>rules</code>, <code>qa</code> and <code>cleanup</code> turn on.</span><span lang="pl">To, co działa po
+    ostatnim zadaniu i końcowych testach: części włączane przez <code>memory</code>, <code>rules</code>,
+    <code>qa</code> i <code>cleanup</code>.</span></dd>
+  </div>
+  <div id="term-dod">
+    <dt><span lang="en">definition of done</span><span lang="pl">definicja ukończenia</span></dt>
+    <dd><span lang="en">The numbered clauses of a task that say when it is finished. The reviewer checks the task
+    against each one.</span><span lang="pl">Ponumerowane punkty zadania, które mówią, kiedy jest skończone.
+    Recenzent sprawdza zadanie względem każdego z nich.</span></dd>
+  </div>
+  <div id="term-draft">
+    <dt><span lang="en">draft</span><span lang="pl">szkic</span></dt>
+    <dd><span lang="en">A plan stopped at its specification, with no tasks yet, so others can read it first. A
+    build refuses it.</span><span lang="pl">Plan zatrzymany na specyfikacji, jeszcze bez zadań, żeby inni mogli go
+    najpierw przeczytać. Build go nie zbuduje.</span></dd>
+  </div>
+  <div id="term-node">
+    <dt><span lang="en">node</span><span lang="pl">węzeł</span></dt>
+    <dd><span lang="en">A <code>CLAUDE.md</code> file. Claude loads it, together with the ones above it, whenever it
+    works on a file under its directory.</span><span lang="pl">Plik <code>CLAUDE.md</code>. Claude wczytuje go
+    razem z plikami nad nim przy każdej pracy nad plikiem w jego katalogu.</span></dd>
+  </div>
+  <div id="term-plan">
+    <dt><span lang="en">plan</span><span lang="pl">plan</span></dt>
+    <dd><span lang="en">The description of a change you approve before any code: acceptance criteria, the files
+    it touches and the tasks that build it.</span><span lang="pl">Opis zmiany, który zatwierdzasz przed
+    jakimkolwiek kodem: kryteria akceptacji, pliki, których dotyczy, i zadania, które ją budują.</span></dd>
+  </div>
+  <div id="term-plan-gate">
+    <dt><span lang="en">plan gate</span><span lang="pl">bramka planu</span></dt>
+    <dd><span lang="en">The hook that keeps Claude in plan mode until a review agent passes the latest version of
+    the plan.</span><span lang="pl">Hook, który trzyma Claude w trybie planowania, dopóki agent recenzujący nie
+    zaakceptuje najnowszej wersji planu.</span></dd>
+  </div>
+  <div id="term-plan-mode">
+    <dt><span lang="en">plan mode</span><span lang="pl">tryb planowania</span></dt>
+    <dd><span lang="en">Claude Code's own mode in which Claude reads and plans but changes no file other than the
+    plan. It ends when you approve or reject the plan.</span><span lang="pl">Tryb Claude Code, w którym Claude
+    czyta i planuje, ale nie zmienia żadnego pliku poza planem. Kończy się, gdy zatwierdzisz albo odrzucisz
+    plan.</span></dd>
+  </div>
+  <div id="term-qa">
+    <dt><span lang="en">QA scenario</span><span lang="pl">scenariusz QA</span></dt>
+    <dd><span lang="en">A check a person performs on the finished change, written at the close when
+    <code>qa</code> is on. <code>/viber:e2e</code> turns the ones that can be automated into
+    tests.</span><span lang="pl">Sprawdzenie gotowej zmiany do wykonania przez człowieka, zapisywane na
+    zamknięciu przy włączonym <code>qa</code>. <code>/viber:e2e</code> zamienia te, które da się zautomatyzować,
+    w testy.</span></dd>
+  </div>
+  <div id="term-review">
+    <dt><span lang="en">review</span><span lang="pl">recenzja</span></dt>
+    <dd><span lang="en">An agent's pass or fail on a plan before plan mode ends, or on a finished task before
+    its commit.</span><span lang="pl">Akceptacja albo odrzucenie przez agenta: planu, zanim skończy się tryb
+    planowania, albo ukończonego zadania, zanim trafi do commita.</span></dd>
+  </div>
+  <div id="term-rule">
+    <dt><span lang="en">rule</span><span lang="pl">reguła</span></dt>
+    <dd><span lang="en">A file under <code>.claude/rules/</code> holding one convention of your project, loaded
+    for the files its paths match.</span><span lang="pl">Plik w <code>.claude/rules/</code> z jedną konwencją
+    twojego projektu, wczytywany dla plików pasujących do jego ścieżek.</span></dd>
+  </div>
+  <div id="term-run">
+    <dt><span lang="en">run</span><span lang="pl">przebieg</span></dt>
+    <dd><span lang="en">One plan on its way through a build, kept in its run directory,
+    <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code> by default. The directory holds the plan, the
+    specification, the task files, <code>status.md</code> and the agents' notes.</span><span lang="pl">Jeden plan
+    w drodze przez build, trzymany w katalogu przebiegu, domyślnie
+    <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code>. Katalog zawiera plan, specyfikację, pliki zadań,
+    <code>status.md</code> i notatki agentów.</span></dd>
+  </div>
+  <div id="term-skill">
+    <dt><span lang="en">skill</span><span lang="pl">skill</span></dt>
+    <dd><span lang="en">One viber command or step, such as <code>/viber:intent</code> or <code>implementor</code>.
+    Most start when you type their command; three start on their own.</span><span lang="pl">Jedno polecenie albo
+    krok viber, na przykład <code>/viber:intent</code> czy <code>implementor</code>. Większość startuje po wpisaniu
+    polecenia, trzy startują same.</span></dd>
+  </div>
+  <div id="term-spec">
+    <dt><span lang="en">specification</span><span lang="pl">specyfikacja</span></dt>
+    <dd><span lang="en">The plan without its task list, <code>spec.md</code> in the run directory: the goal, the
+    promised behaviour, the acceptance criteria and the scope.</span><span lang="pl">Plan bez listy zadań, plik
+    <code>spec.md</code> w katalogu przebiegu: cel, obiecane zachowanie, kryteria akceptacji i zakres.</span></dd>
+  </div>
+  <div id="term-switch">
+    <dt><span lang="en">switch</span><span lang="pl">przełącznik</span></dt>
+    <dd><span lang="en">A key in <code>.claude/viber.yml</code>. Most turn one part of viber on or off, and only
+    <code>true</code> counts as on; <code>directories</code>, <code>tiers</code> and <code>branching</code> hold
+    values instead.</span><span lang="pl">Klucz w <code>.claude/viber.yml</code>. Większość włącza albo wyłącza
+    jedną część viber, a za włączony liczy się tylko <code>true</code>; <code>directories</code>,
+    <code>tiers</code> i <code>branching</code> przechowują wartości.</span></dd>
+  </div>
+  <div id="term-task">
+    <dt><span lang="en">task</span><span lang="pl">zadanie</span></dt>
+    <dd><span lang="en">One piece of a plan with its own files, verification and definition of done, built by
+    one coder and committed on its own.</span><span lang="pl">Jedna część planu z własnymi plikami, weryfikacją
+    i definicją ukończenia, budowana przez jednego wykonawcę i commitowana osobno.</span></dd>
+  </div>
+  <div id="term-tier">
+    <dt><span lang="en">tier</span><span lang="pl">poziom modelu</span></dt>
+    <dd><span lang="en">The model an agent runs on: haiku, sonnet, opus or fable, in rising order. The
+    <code>tiers</code> key bounds which ones a build may use.</span><span lang="pl">Model, na którym działa agent:
+    haiku, sonnet, opus albo fable, w kolejności rosnącej. Klucz <code>tiers</code> ogranicza, których z nich
+    build może używać.</span></dd>
+  </div>
+</dl>
 </section>
 
 <section id="reference">
