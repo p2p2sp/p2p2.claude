@@ -80,6 +80,7 @@ Never dispatch a `done` or `skipped` task again. Also on the index:
 - `deferred: <id>:<path>` -> that task's `deferred:` line in step 4.
 - `closed: <parts>` -> those parts of steps 6 and 7 are already recorded.
 - `decision: <id>: <text>` -> a `decision:` line in step 4.
+- `next: part <n> of <N> - <name>` -> carry it to step 7.
 
 ## 3. Profile the tasks
 
@@ -203,3 +204,5 @@ Complete every task the last `progress: <n>/<total>` settled and every entry sti
 Final summary, max 7 lines: tasks committed, review rounds spent, test verdict, the clock's `elapsed:` (none on `elapsed: unknown`, never estimated), what memory, rules and QA recorded, the archive path and its drift, then everything the steps carried to it.
 
 A run of more than 5 tasks adds one line after the summary, outside its 7: propose running `code-review`.
+
+With a `next: part` index line and a build not ended on `abort`, the last line, after the summary and outside its 7, is `/viber:intent <archive path>/roadmap.md` when the archive landed, else `/viber:intent <dir>/roadmap.md`.
