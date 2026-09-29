@@ -369,7 +369,7 @@
   <text x="504" y="1662" class="mono-t">task-reviewer</text>
   <text x="504" y="1684" class="desc">Sprawdza zadanie względem tego, co według planu ma robić.</text>
   <text x="504" y="1704" class="desc-s">pomijany tylko, gdy weryfikacja zadania sonnet uruchamia build lub testy</text>
-  <text x="504" y="1722" class="desc-s">uwaga wraca do codera, do 3 rund, potem orzeka arbiter</text>
+  <text x="504" y="1722" class="desc-s">uwaga wraca do codera, w ramach 5 prób zadania, potem orzeka arbiter</text>
 
   <path d="M1000 1682 L1032 1682 Q1050 1682 1050 1664 L1050 1568 Q1050 1550 1032 1550 L1004 1550" class="link l-f" marker-end="url(#ar-f)"/>
   <path d="M1000 1682 L1032 1682 Q1050 1682 1050 1664 L1050 1568 Q1050 1550 1032 1550 L1004 1550" class="flow l-f"/>
@@ -410,7 +410,7 @@
   <text x="951" y="2066" class="badge-t" text-anchor="middle">agent</text>
   <text x="504" y="2074" class="mono-t">test-runner</text>
   <text x="504" y="2096" class="desc">Uruchamia raz cały build i zestaw testów.</text>
-  <text x="504" y="2116" class="desc-s">porażka trafia do codera naprawczego, do 3 rund, potem orzeka arbiter</text>
+  <text x="504" y="2116" class="desc-s">porażka trafia do codera naprawczego, do 5 rund, potem orzeka arbiter</text>
   <text x="504" y="2134" class="desc-s"><tspan class="sw">baseline-tests</tspan> włączony: do naprawy idą tylko nowe błędy</text>
 
   <path d="M740 2144 L740 2168" class="link l-n"/>

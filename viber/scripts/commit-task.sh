@@ -81,9 +81,9 @@
 # plan either: the e2e pass runs after the build, so nothing resumes on it.
 #
 # --review commits the fixes a build's final review found, once every task is
-# already committed and the fix is rechecked or accepted by the user - a fix
-# that touches no task's own map, the same shape --repair is for. It runs once,
-# after every fix round. It takes the plan to record the close and to link
+# already committed and the fix is rechecked, or accepted by the user or by an
+# arbiter ruling - a fix that touches no task's own map, the same shape
+# --repair is for. It runs once, after the fix round. It takes the plan to record the close and to link
 # Refs, like --chore and --qa, and carries a FIXED subject
 # ("fix(viber): final review") - no caller composes it here either. Besides the
 # caller's own files it carries the run's own trail: every
@@ -127,8 +127,8 @@
 #
 #   progress: 3/8        recomputed from the done list and the plan's TASK blocks
 #   done: T1 T2 T4       committed, never dispatched again
-#   skipped: T3          --skip, the user dropped that task
-#   unreviewed: T7       --unreviewed, the user waived the review gate
+#   skipped: T3          --skip, the user or an arbiter ruling dropped that task
+#   unreviewed: T7       --unreviewed, the user or an arbiter ruling waived the review gate
 #   deferred: T7:src/a.ts   --defer, T7 owes that path the test that proves it
 #   closed: memory qa    --chore / --qa, that part of the close is done
 #   decision: T3: <text> --decide, how the owner settled a stalled task; one
