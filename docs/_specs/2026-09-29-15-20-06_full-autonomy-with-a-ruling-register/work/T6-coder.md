@@ -1,0 +1,4 @@
+- The outside-task retry rule sits in step 4 beside the arbiter dispatch, not in step 5/6/2: every close step and the `orphan:` commit reach it by name, so the repair, `--chore`, `--qa` and `--review` bullets are untouched.
+- The top generic bullet now excepts three cases (outside-task commit, `--rule`, `--skip`/`--decide` after a ruling); an owner-chosen `skip`/`decide` failure still asks through it.
+- Commit ruling subject is the fixed `commit`; a refused `--outside` at the orphan step follows the same rule (retry once, arbiter, paths named in the summary).
+- The `dirty:` decision no longer interacts with `orphan:` paths: no `resume:`, `extra:` or `--with` line carries them.

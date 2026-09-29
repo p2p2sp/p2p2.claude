@@ -26,7 +26,7 @@ You orchestrate and delegate: every piece of work runs inside a subagent. Open n
 - Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" "<arg>" ...`, every argument double-quoted: never prefixed with an interpreter, never assigned to a variable, never preceded by `cd`, never chained with `;`.
 - Every dispatch or call that starts or ends a task-list entry carries that entry's `TaskUpdate` in the same message.
 - Never two `commit-task.sh` calls in one message: each rewrites the git index and `status.md`.
-- A `commit-task.sh` call exiting non-zero committed nothing. Outside a task commit and a `--rule` call (step 4 owns both): `AskUserQuestion`: retry / abort, its paths named uncommitted in the final summary on abort.
+- A `commit-task.sh` call exiting non-zero committed nothing. Except a commit outside a task, a `--rule` call and a `--skip` or `--decide` call made after an arbiter ruling (step 4 owns all three): `AskUserQuestion`: retry / abort, its paths named uncommitted in the final summary on abort.
 - An agent's completion notice saying it "stopped with background work of its own still running": hold its verdict and `SendMessage` that agent, once: `Stop every process you started that is still running, then return your output lines again.` Act on what it returns then. The same notice again -> act on the verdict and name that agent's task in the final summary.
 - An agent returning no `VERDICT:` line: `SendMessage` that agent, once: `Finish your task, then return your output lines.` Still none -> act as on its `VERDICT: FAIL`, else `VERDICT: DENIED`, with `REASON: no verdict returned`.
 
@@ -75,7 +75,9 @@ Non-zero exit -> report the error and stop; repairing the plan belongs to the pl
 Never dispatch a `done` or `skipped` task again. Also on the index:
 
 - `dirty: <id> | <paths>` -> before the first dispatch, `AskUserQuestion` naming it and those paths: continue (its coder gets `resume: <paths>` added to its lines), start over (dispatch unchanged), or drop (the `skip` answer).
-- `orphan: <paths>` -> once every `dirty:` question is answered and before the first dispatch, one `AskUserQuestion` naming them: which task takes them (at most three options: the tasks on `dirty:` lines neither dropped nor `skipped`, filled up with the earliest tasks not `done` or `skipped`; any other task through the free-text answer), or leave them out. The question says a path it takes is reviewed as that task's work. The chosen task gets them on its coder's `resume:`, its reviewer's `extra:` and its commit's `--with`, whatever its own `dirty:` answer was; left out, they reach the final summary.
+- `orphan: <paths>` -> once every `dirty:` question is answered and before the first dispatch, one `AskUserQuestion` naming them with exactly two options: skip, or commit now.
+  - Skip: the paths reach the final summary.
+  - Commit now: one `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --outside "<plan>" "<path>" ["<path>"...]` call for all of them, before the first dispatch. No task takes them.
 - `unreviewed: <ids>` -> carry to the final summary.
 - `deferred: <id>:<path>` -> that task's `deferred:` line in step 4.
 - `closed: <parts>` -> those parts of steps 6 and 7 are already recorded.
@@ -125,11 +127,11 @@ decision: <task-id>: <text>
 
 `out` is per task, shared by its reviewer. `deferred` carries the index entries naming this id plus every `--defer` this build passed naming it, `prior` the notes of the tasks its `deps` names. `decision:` is one line per index `decision:` line plus one per `--decide` this build recorded, whose `<task-id>` is this task or one it depends on, directly or through another. A coder runs on its attempt's tier (below) and the owner's `retry` raises it too. Every coder re-run - a next attempt, a `WAIT:` hold, `retry`, `decide` - is this same fresh dispatch, every labelled line above plus the `report:`, `reason:` or `decision:` line its answer names, and a `resume:` line carrying every path an `EXTRA:` line of the task's earlier coders returned.
 
-Reviewer dispatch: `viber:task-reviewer` (Agent tool, `model` = the review tier) with the task's `task:`, `notes:`, `out:`, `refs:`, `deferred:` and `decision:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1 and rising with every review of that task, plus `extra: <repo-relative paths, comma-separated>` (every path an `EXTRA:` line of that task's coder returned so far in this build, across every re-run, never the reviewer's own, except a path the index `files` column gives to a task not yet `done`, plus the `orphan:` paths the user gave this task) and one `recheck: <task-id> | <command>` line per `done` task whose `files` column claims a path on `extra:`, `<command>` being that task's `verify:` command, both omitted when empty, plus any line a fragment of this step adds.
+Reviewer dispatch: `viber:task-reviewer` (Agent tool, `model` = the review tier) with the task's `task:`, `notes:`, `out:`, `refs:`, `deferred:` and `decision:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1 and rising with every review of that task, plus `extra: <repo-relative paths, comma-separated>` (every path an `EXTRA:` line of that task's coder returned so far in this build, across every re-run, never the reviewer's own, except a path the index `files` column gives to a task not yet `done`) and one `recheck: <task-id> | <command>` line per `done` task whose `files` column claims a path on `extra:`, `<command>` being that task's `verify:` command, both omitted when empty, plus any line a fragment of this step adds.
 
 Commit: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<plan>" "<id>"` with its `TaskUpdate` -> completed, plus:
 
-- `--with "<path>" ["<path>"...]` for every path an `EXTRA:` line of that task's coder or reviewer returned, plus the `orphan:` paths the user gave this task.
+- `--with "<path>" ["<path>"...]` for every path an `EXTRA:` line of that task's coder or reviewer returned.
 - `--defer "<target-id>:<path>" [...]` for every `DEFERRED:` line its coder returned. `-> none` takes the earliest unfinished task other than this one whose `files` column claims that path; a path no task claims is named in the final summary.
 
 Warnings off the commit never stop the build: carry `refused <path> - claimed by task <id>`, `took <path> - claimed by committed task <id>` and `changed, claimed by no task in the plan` to the final summary.
@@ -144,7 +146,10 @@ Arbiter dispatch: `viber:arbiter` (Agent tool, no `model`) carrying `case:`, `op
 
 - A `RULING` naming no listed option -> take the first option, the mismatch named in the final summary.
 - Record it: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --rule "<plan>" "<id>" "<ruling>" "<why>" "<cost>"`, the `RULING`, `WHY` and `COST` each one line with every double quote, dollar sign, backtick or backslash rewritten into words. Exit non-zero -> name it in the final summary, rule nothing further, retry nothing, and carry the ruling out.
+- A `--skip` or `--decide` call exiting non-zero after a ruling -> name it in the final summary, ask nothing, and carry on.
 - `VERDICT: DENIED` -> `AskUserQuestion` naming the refused call from its `REASON:` line: retry / accept / abort.
+
+Commit outside a task: every `commit-task.sh` commit but a task's own commit - the fix-number repair form, `--repair`, `--chore`, `--qa`, `--review` and `--outside`. Exiting non-zero -> run the same call once more, asking nothing. A second refusal -> the arbiter with `case: commit`, `options: leave uncommitted`, `reason:` the error; record its ruling with subject `commit`, leave those paths uncommitted and name them in the final summary.
 
 Start with every task whose `deps` are done, in one message. On every return, answer with ONE message carrying every dispatch now legal plus at most one commit. Never wait for a batch to drain; when a constraint forces a choice, start whatever unblocks the most tasks.
 
