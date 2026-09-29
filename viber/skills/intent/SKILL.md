@@ -38,8 +38,8 @@ When those two sources already answer everything `## Done` asks for, skip every 
 
 Decide this before the first detail question.
 
-- One coherent capability: interview it whole and skip the rest of this section.
-- A scope too large for one plan, the shape of "build the whole application" or "a platform with chat, file storage, billing and analytics": ask no detail question yet. Split it as a mechanical cut of that one specification - a part is never a release. Propose the split in prose, one line per part - what it owns, what it consumes from the ones before it - plus the order, and correct it until the user accepts it.
+- One coherent capability, or any scope of an estimated 30 plan tasks or fewer: interview it whole and skip the rest of this section.
+- A larger scope, the shape of "build the whole application" or "a platform with chat, file storage, billing and analytics": ask no detail question yet. Split it as a mechanical cut of that one specification - a part is never a release, and size is the only reason to cut, never a theme, a milestone or a risky piece set apart. Every part holds an estimated 8 tasks or more: merge a smaller one into its neighbour, and a split left with one part is no split. Propose the split in prose, one line per part - what it owns, what it consumes from the ones before it, its estimated task count - plus the order, and correct it until the user accepts it.
 - Order the parts so each one consumes only what earlier ones produced. Two pieces that cannot be ordered that way are not independent and belong to one part.
 - A part boundary is not a delivery. What a later part brings is absent until its own build, never replaced by a stub, a mock, a hardcoded value or a temporary alternative, and no criterion may need a working application between parts. So never ask what works between parts, never ask what to use instead, and never let an answer invent one: the absence belongs in the boundaries, as out of scope.
 
