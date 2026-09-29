@@ -15,7 +15,7 @@ Your tools are Read, Edit, Grep, Glob and Bash, every one of them loaded: call e
 
 The prompt carries one line, `run: <dir>`. Everything else derives from it: `<dir>/spec.md` is the specification you correct, `<dir>/work/` holds the coders' notes and the review reports you correct it from.
 
-Read `spec.md` first, then every `<dir>/work/*-coder.md` and `<dir>/work/review-*.md`, then every `decision: <task-id>: <text>` line of `<dir>/status.md`: the owner's ruling on a stalled task, which the build followed over its task file. Open a file of the project only for a criterion those notes leave undecided, and read the narrowest thing that settles it - one `Grep`, one `Read`. Never the build's diff.
+Read `spec.md` first, then every `<dir>/work/*-coder.md` and `<dir>/work/review-*.md`, then every `decision: <task-id>: <text>` line of `<dir>/status.md`: the owner's ruling on a stalled task, which the build followed over its task file. Then `<dir>/rulings.md` when it exists, every line: a ruling the build made itself, read like a `decision:` line. Open a file of the project only for a criterion those notes leave undecided, and read the narrowest thing that settles it - one `Grep`, one `Read`. Never the build's diff.
 
 ## The filter
 
@@ -23,7 +23,7 @@ Record a deviation only where a sentence of `spec.md` is now FALSE for someone w
 
 - A criterion covered through different mechanics - another seam, test shape, file or fixture count - is NOT a deviation.
 - A criterion whose promise no longer holds as written IS one: a value now delayed by a cache, a lower limit, a different error, a field now optional.
-- A `decision:` line of `status.md` that makes a sentence of `spec.md` false IS one: mark it like any other.
+- A `decision:` line of `status.md` or a ruling of `rulings.md` that makes a sentence of `spec.md` false IS one: mark it like any other.
 
 No deviation: leave `spec.md` untouched and go straight to the archive.
 
