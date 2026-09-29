@@ -12,7 +12,8 @@ skills/<name>/           14 skills: SKILL.md plus files read at one step;
                          setup, memory, rules, handoff, commit bundle scripts/
 agents/                  17 agents
 scripts/                 14 plugin-wide scripts
-references/              read at runtime by agents through the `refs:` dispatch line
+references/              read at runtime: by agents through the `refs:` dispatch line,
+                         by `planner` and `fixer` by direct path
 hooks/                   SessionStart manifest + UserPromptSubmit plan hints + PreToolUse plan gate
 ```
 
@@ -25,6 +26,9 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 - `intent` and `fixer` take an issue reference only under `issues: true`; `intent` can also
   save its summary as a new issue. An `Issue: <URL>` handoff line becomes the plan frontmatter
   `issue:`, carried into `spec.md`; `plan-index.sh` and `commit-task.sh` foot commits `Refs: #<N>`.
+- `intent --prove` has `prover` (read-only plus web, no `model`) check each drafted question
+  before it is shown; its `CONFIRMED`/`REVISED`/`DENIED`, `FINDINGS:`, `UNVERIFIED:` lines are one
+  loop with `intent`'s interview bullet. `--prove` never reaches the summary or the planner.
 - `prototype`, user-only, has `prototype-writer` build a UI change into one HTML mockup under
   `.temp/viber/prototype/` (path fixed for the run), then hands to `intent` with a `Prototype:`
   line. Its `mode:`, `round:`, `variant:` lines and the writer's `VERDICT:`, `FILE:`, `BASIS:`,
@@ -61,12 +65,14 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   auditors in place of `AUDIT:`), and every caller, the plan gate included, branches on it.
 - Only coder, reviewer and repair-coder dispatches carry `model`: the task's profiled tier
   (repair-coder: `sonnet`, raised only by `retry`) clamped into `tiers.min`..`tiers.max`
-  (defaults `haiku`/`opus`, `fable` only when named; `min` above `max` resets both).
+  (defaults `haiku`/`opus`, `fable` only when named; `min` above `max` resets both). The
+  exception is `final-review.true.md`: every dispatch but the arbiter's, `final-reviewer` at
+  `opus`, its fix coder at `sonnet`, clamped the same way.
 - Every `EXTRA:` path of the task's coder or reviewer becomes `--with` (the coder's also reach
   its reviewer as `extra:`, minus a path a not-yet-done task claims, with one `recheck:` per done
   owner's `verify:`), coder `DEFERRED:` `--defer`, stored as `deferred:` in `status.md` and handed
   to the owing task's coder and reviewer.
-- task-coder, task-reviewer, test-runner and e2e-writer share a "Stop what you started" section;
+- task-coder, task-reviewer, test-runner, e2e-writer and final-reviewer share a "Stop what you started" section;
   `implementor`'s and `e2e`'s `SendMessage` on a "stopped with background work" notice, or a
   reply with no `VERDICT:` line, is its other half. Every coder re-run (review failure, `WAIT:`,
   `retry`, `decide`) is a fresh dispatch from the tree and task file, never a continuation.
@@ -75,8 +81,10 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   flight, or a second wait on the same path, counts as an ordinary failure.
 - A build runs unattended: a task gets 5 attempts a session (coder failure, review failure or
   refused commit; each one tier up), then `arbiter` rules from a closed list and the build goes on.
-  It asks only on `VERDICT: DENIED`, on a coder whose every `DECIDE:` option is owner-marked, and
-  on `orphan:` (skip / commit now, via `commit-task.sh --outside`) - see `CLAUDE.owner-decisions.md`.
+  It asks only on `VERDICT: DENIED`, a coder whose every `DECIDE:` option is owner-marked
+  (`CLAUDE.owner-decisions.md`), each index `dirty:` line (continue / start over / drop),
+  `orphan:` (skip / commit now, via `commit-task.sh --outside`), `open:` runs at landing,
+  `plan-path.sh` exit 3, a task commit's exit 4 and a refused `--skip`/`--decide` it did not rule.
 - Coders and reviewers keep git read-only (never `stash`, `checkout`, `restore`, `clean`):
   parallel tasks share one working tree. A coder's two git writes are `git rm -r -q` (removal)
   and `git update-index --chmod=+x` (exec bit): `commit-task.sh` commits only its named paths,
@@ -96,7 +104,7 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 - `commit-task.sh` never takes a subject from its caller (a task commit is the plan's
   `T<n> - <title>` heading, no type prefix). It stages only the paths it is named, as literal
   pathspecs (App Router `[id]` paths), refuses a `.temp/` path with a warning, and adds the run's
-  `work/` trail itself.
+  `work/` trail itself. `--e2e` takes no plan: the `e2e` commit carries no `Refs:` line at all.
 - Never two `commit-task.sh` calls at once: each rewrites the index and `status.md`.
 - `commit-args.sh` is the ONE selector parser.
 - The `commit` skill's `git rev-parse` and `cat` preloads are inline commands under a bare `Bash`
@@ -127,31 +135,21 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
 - Read `CLAUDE.run-branch.md` before touching `branching:`, `run-branch.sh`, `plan-path.sh --branch`.
 - Read `CLAUDE.owner-decisions.md` before touching the owner decision channel.
 - Read `CLAUDE.tool-dependencies.md` before touching a `gh`, Playwright or `node` call.
-- Read `CLAUDE.switches.md` before adding a `viber.yml` switch or wiring one into planning or `intent`.
-- Read `CLAUDE.memory-rules.md` before touching the `memory` or `rules` skills or their agents.
+- Read `CLAUDE.switches.md` before adding or parsing a `viber.yml` key or wiring a switch into
+  planning or `intent`.
+- Read `CLAUDE.memory-rules.md` before touching the `memory` or `rules` skills, their agents or
+  `node-doctrine.md`.
 
 ## Duplicated on purpose - change together
 
-- `issue_ref()` (plan `issue:` URL to `#<N>`): `commit-task.sh`, `plan-index.sh`, and
-  `run-branch.sh`'s `plan_issue()` (the bare number, for `{issue-number}`).
-- Fence-aware guidance-comment stripping: `plan-path.sh`'s landing strip and `plan-index.sh`'s
-  `spec.md` cut.
 - The `work/final-review-*.md` and `work/final-fix-coder-*.md` names: `final-review.true.md`,
   `final-reviewer.md` and `commit-task.sh --review`'s trail glob.
-- `directories.*` parsing: `config.sh`, `plan-path.sh`, `archive-run.sh`.
 - The temporary-index commit of named paths (never `git commit -- <paths>`, which drops a staged
   mode under `core.fileMode=false`): `commit-task.sh`'s `commit_named` and `commit.sh`'s paths mode.
-- `viber.yml` key grammar (blanks allowed before the colon): `config.sh` and `bootstrap.sh`'s
-  merge; a key one reads and the other misses is appended again, overriding the user's value.
-- Node (and section) budget 12000 / 32000: `references/node-doctrine.md`,
-  `skills/memory/scripts/memory-map.sh`, `skills/memory/SKILL.md`. Section name
-  rule (never `local`): the doctrine, `memory-map.sh` (twice), `memory-auditor`,
-  `memory-node-writer`. Rule budget 4000 / 40000: `agents/rules-writer.md`,
-  `skills/rules/scripts/rules-map.sh`, `skills/rules/SKILL.md`.
-- The frozen `_`-prefixed rule file: `rules-map.sh`, `rules-auditor`, `rules-writer`.
 - An agent's `tools:` frontmatter and the tool list its opening paragraph names.
 - `references/qa-format.md`, the format authority for `qa-writer`, `e2e-writer` and `e2e` (which
-  routes on its `##` headings).
+  routes on its `##` headings). `e2e-writer` edits its scenario's `## Automation` line, `e2e`
+  reads each ID's state there and dispatches one scenario at a time, never two at once.
 - `help.html`'s full reference and `tests/viber/help.test.ts`: every user-visible change (a
   skill, an argument, a switch, a write location, the flow) updates the help page in the same
   edit, and the test enforces the page's skill cards, agent lines, key entries and language pairs

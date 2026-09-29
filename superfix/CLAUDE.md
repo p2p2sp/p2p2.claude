@@ -27,7 +27,8 @@ never shared.
   restate it.
 - `references/scoring.md` - the 1-5 rubric, the 2x2 file gate, the edge verdict set.
 - `references/jobs.md` - the Impact/Opportunity signal pair per job.
-- Script headers - every flag, output schema and edge case of the four scripts.
+- Script headers - every flag, output schema and edge case of the six scripts (`collect_signals.sh`,
+  `collect_edges.sh`, `rank.ts`, `rank_edges.ts`, `worktree.sh`, `check_node.sh`).
 - `job.md` is the one self-contained brief every agent scores against: `Target root:`, `Window:`,
   optional `Scope:`, the inlined rubric and the `## Repo profile` section.
 
@@ -66,9 +67,9 @@ never shared.
 - Unlike the root's direct-call invariant, `code-auditor` pre-approves bare `Bash` and calls its
   scripts through an interpreter (`sh check_node.sh`, `bash collect_*.sh`, `node rank*.ts`,
   `sh worktree.sh`). `check_node.sh` and `worktree.sh` are POSIX `#!/bin/sh`; the collectors need bash.
-- `rank.ts` is a behaviour-exact port of a Python original: its bespoke JSON parser/dumper
-  (`PyFloat`, key-order-preserving `Map`) and argparse-shaped usage text mirror Python output, and
-  `tests/superfix/rank.test.ts` pins it. Never swap in `JSON.parse`/`JSON.stringify`.
+- `rank.ts` reproduces Python 3.9 output exactly: its bespoke JSON parser/dumper (`PyFloat`,
+  key-order-preserving `Map`) matches `json.dumps`/`str`, its hand-rolled usage text matches
+  `argparse`, and `tests/superfix/rank.test.ts` pins it. Never swap in `JSON.parse`/`JSON.stringify`.
   `rank_edges.ts` has no such layer.
 - `tests/superfix/profiler.test.ts` lifts the fenced `git log` block from `agents/profiler.md` verbatim
   and runs it: editing that block edits a test input. `--since=<n>.days.ago` must stay in that form

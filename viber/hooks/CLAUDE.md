@@ -1,7 +1,22 @@
-# viber hooks - plan gate and plan hints
+# viber hooks - session start, plan gate and plan hints
 
-`content/manifest.md` names a skill only to scope a rule (`viber:fixer`'s reproduction test);
-renaming that skill renames it there too, or the rule silently stops covering it.
+`content/manifest.md` names two skills only to scope rules (`viber:fixer`'s reproduction test,
+`viber:intent`'s fast path, where a design approved in chat counts as an approved plan);
+renaming either skill renames it there too, or the rule silently stops covering it.
+
+## Session start
+
+`scripts/session-start.sh` fires on the `hooks.json` matcher `startup|clear|compact` (that is
+where `resume` is excluded, not the script). Any wrapping markers or preamble for the manifest
+live in `content/manifest.md` itself, never in the script. The `viber loaded <version>` banner
+is a top-level `systemMessage` (nested in `hookSpecificOutput` it is silently ignored), its
+version the plugin-root basename, `dev` when `CLAUDE_PLUGIN_ROOT` is unset. It always exits 0.
+
+## Plan-mode episode
+
+Both plan hooks look only at the current episode: the transcript after the last
+`"type":"permission-mode"` record whose mode is not `plan`. That is why a plan approved and built
+earlier in the session never re-arms the gate.
 
 ## Plan gate
 
@@ -15,6 +30,16 @@ planner's frontmatter `source:` line (a missing or unreadable file keeps `planne
 `VERDICT: PASS` and the plan's mtime is not newer. The deny reason is the plain path's only
 instruction channel. Names match literally: renaming the skill, either agent, the switch or the
 verdict line disarms the fail-open gate silently.
+
+- The verdict comes from the last completed dispatch -> verdict pair. A dispatch carrying a
+  `toolu_` id binds only to a verdict line holding that same id, with no fallback; a dispatch
+  with no id takes the first verdict after it. `"status":"async_launched"` lines (they echo the
+  prompt) are never read as verdicts. A verdict from the other reviewer never counts.
+- The awk pattern that selects the verdict line and the one that reads its value must stay
+  identical, or a quoted "VERDICT: PASS is not..." becomes a false allow.
+- Each outcome has its own deny reason: no dispatch ("review the plan"), no verdict yet ("let the
+  review finish"), `DENIED` ("grant the permission", then review again), `FAIL` ("fix the
+  findings"), plan touched after the PASS ("re-review").
 
 ## Plan hints
 

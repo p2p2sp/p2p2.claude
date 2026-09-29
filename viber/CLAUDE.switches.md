@@ -11,6 +11,10 @@
   something gets a file. `switch-text.sh` prints nothing for an absent file or unknown key,
   always exits 0, and expands `${CLAUDE_SKILL_DIR}`/`${CLAUDE_PLUGIN_ROOT}` in a fragment
   itself: Claude Code never substitutes preload output.
+- Duplicated on purpose, changed together: `viber.yml` key grammar (blanks allowed before the
+  colon) in `config.sh` and `bootstrap.sh`'s merge, where a key one reads and the other misses is
+  appended again, overriding the user's value; `directories.*` parsing in `config.sh`,
+  `plan-path.sh`, `archive-run.sh`.
 - Switches reaching planning: `memory` (`plan-rules.md`'s Memory-owned rule, the `memory:` line
   to `planner-review`); `adr: true` (`planner` follows `skills/planner/references/adr-tasks.md`);
   `qa` (`planner`'s e2e hand-off line); `branching.mode` (`CLAUDE.run-branch.md`).

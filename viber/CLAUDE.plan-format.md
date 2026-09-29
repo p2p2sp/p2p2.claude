@@ -7,6 +7,13 @@ The template shape (`<!-- TASK -->` markers, `### T<n> - <title>` headings, task
 for `{type}`). A field or marker change touches the templates, `references/plan-rules.md` and
 every parser.
 
+- Duplicated on purpose, changed together: `issue_ref()` (plan `issue:` URL to `#<N>`) in
+  `commit-task.sh`, `plan-index.sh`, and `run-branch.sh`'s `plan_issue()` (the bare number, for
+  `{issue-number}`); fence-aware guidance-comment stripping in `plan-path.sh`'s landing strip and
+  `plan-index.sh`'s `spec.md` cut.
+- A fixing task's `Repro:` (the RED reproduction test `fixer` leaves uncommitted) must be one
+  path of its own `Files:` with `TDD: none`; it never enters a `dirty:` line, and `task-coder`
+  turns it GREEN, never rewriting, weakening or deleting it.
 - A rule switching its `plan-rules.md` tag, `(script)` or `(review)`, moves its enforcement too.
 - The plain `plan-index.sh` call (the planner's) validates any plan file; `--split` exits 2 on
   anything but the run's own `<dir>/plan.md`, so only the landed copy is decomposed.

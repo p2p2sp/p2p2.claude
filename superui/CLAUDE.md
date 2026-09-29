@@ -1,15 +1,16 @@
 # superui - `pro-designer`, the design/frontend advisory skill
 
-One model-invoked skill, `skills/pro-designer/`: a `SKILL.md` router, fifteen on-demand
-`references/*.md` and two bundled scripts. No agents, no hooks, no preloads. It stays advisory: it
+One model-invoked skill, `skills/pro-designer/`: a `SKILL.md` router, fifteen
+`references/*.md` (fourteen on demand, `anti-slop.md` always) and two bundled scripts. No agents, no hooks, no preloads. It stays advisory: it
 reasons about a host's own design system and never overwrites it.
 
 ## Skill structure
 
 - `references/anti-slop.md` is the one reference loaded unconditionally, as the FIRST action of
   every invocation, before any reasoning. It is deliberately absent from `# Reference routing`;
-  every other reference is routed on demand from there. Other references point back to it as
-  "anti-slop.md, already loaded" and never restate its catalog of tells.
+  every other reference is routed on demand from there. Other references point back to it by name
+  (a bare `(anti-slop.md)` pointer or "anti-slop.md, already loaded") and never restate its
+  catalog of tells.
 - A new reference needs a routing line in `SKILL.md`, or the skill never reads it. The design-pass
   steps and routing lines name references by `references/<file>.md`, relative to the skill dir.
 - The skill forbids em/en dashes in everything it outputs (UI copy, code, reports), not only in
