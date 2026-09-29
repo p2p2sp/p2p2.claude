@@ -1,0 +1,4 @@
+- "Shaped like a task id" (exit 3 vs exit 2) is `^T[0-9]` on the subject, checked only after the plan's own ids and the four fixed subjects miss.
+- `--rule` checks the plan, then the three fields, then the subject, so a refusal never creates or touches rulings.md.
+- Every commit form taking a plan (task, fix number, --landed, --repair, --chore, --qa, --review) stages rulings.md through `stage_rulings`, and only when `git status --porcelain` shows it changed. --e2e takes no plan, so it never stages the file.
+- archive-run.sh already kept rulings.md, committed or untracked, because `git mv` moves the whole directory and `git add -A -- <dest>` picks up the untracked file. So the two DoD.6 tests passed before any change: they only guard against rulings.md joining the scaffold list.

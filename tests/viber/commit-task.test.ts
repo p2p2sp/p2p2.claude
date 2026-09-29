@@ -46,6 +46,8 @@
  * beside the done entry: `--skip` (the user dropped a task),
  * `--unreviewed` (the user waived the review gate), `--defer` (this task left a
  * path for a later one to prove, `<task-id>:<path>`) and the close entries above.
+ * `--rule` writes the run's ruling register, `rulings.md` beside the plan, with
+ * no commit; every commit form taking the plan carries it once it changed.
  * Every commit form also carries the run's own trail - the notes and reports
  * under `<run-dir>/work/` - derived from the task id or the round, so a parallel
  * task's notes never ride along and the trail reaches another machine.
@@ -1591,6 +1593,142 @@ test("--decide on a status file with no final newline starts its line on a line 
     assert.equal(readStatus(repo), `${statusBody(2)}decision: T1: keep it\n`);
   });
 });
+
+// --- --rule: the run's ruling register, rulings.md beside the plan ---------
+
+const RULINGS_REL = `${RUN_DIR}/rulings.md`;
+
+function readRulings(repo: GitRepo): string {
+  return fs.readFileSync(path.join(repo.dir, RULINGS_REL), "utf-8");
+}
+
+const RULE_ARGS = ["keep the old parser", "the new one breaks CRLF input", "one more parser task"];
+const RULE_LINE = "keep the old parser | why: the new one breaks CRLF input | cost if wrong: one more parser task";
+
+for (const subject of ["T2", "baseline", "tests", "final-review", "commit"]) {
+  test(`--rule with the subject '${subject}' creates rulings.md beside the plan holding its heading and one entry, prints its two lines and commits nothing`, () => {
+    withGitRepo((repo) => {
+      seed(repo);
+
+      const result = run(repo.dir, repo.env, ["--rule", PLAN_REL, subject, ...RULE_ARGS]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(result.stdout, `ruled: ${subject}\nprogress: unchanged\n`);
+      assert.equal(readRulings(repo), `# Rulings\n\n- ${subject}: ${RULE_LINE}\n`);
+      assert.deepEqual(subjects(repo), ["seed"]);
+      assert.deepEqual(stagedFiles(repo), []);
+    });
+  });
+}
+
+test("--rule appends a second, different ruling under the first, keeping the heading once", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    run(repo.dir, repo.env, ["--rule", PLAN_REL, "T2", ...RULE_ARGS]);
+
+    const result = run(repo.dir, repo.env, ["--rule", PLAN_REL, "tests", "rerun once", "a flaky timer", "a red run hidden"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(
+      readRulings(repo),
+      `# Rulings\n\n- T2: ${RULE_LINE}\n- tests: rerun once | why: a flaky timer | cost if wrong: a red run hidden\n`,
+    );
+  });
+});
+
+test("--rule recording the same entry twice leaves one line", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    run(repo.dir, repo.env, ["--rule", PLAN_REL, "T2", ...RULE_ARGS]);
+
+    const result = run(repo.dir, repo.env, ["--rule", PLAN_REL, "T2", ...RULE_ARGS]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(readRulings(repo), `# Rulings\n\n- T2: ${RULE_LINE}\n`);
+  });
+});
+
+const RULE_REFUSALS: Array<[name: string, args: string[], code: number, stderr: RegExp]> = [
+  ["an empty ruling exits 2", [PLAN_REL, "T1", "", "why", "cost"], 2, /one non-empty line/],
+  ["a whitespace-only why exits 2", [PLAN_REL, "T1", "rule", "   ", "cost"], 2, /one non-empty line/],
+  ["a multi-line cost exits 2", [PLAN_REL, "T1", "rule", "why", "first\nsecond"], 2, /one non-empty line/],
+  ["a ruling carrying a carriage return exits 2", [PLAN_REL, "T1", "first\rsecond", "why", "cost"], 2, /one non-empty line/],
+  ["an unknown fixed subject exits 2", [PLAN_REL, "baselines", "rule", "why", "cost"], 2, /unknown subject 'baselines'/],
+  ["a task id the plan does not hold exits 3", [PLAN_REL, "T9", "rule", "why", "cost"], 3, /no task 'T9'/],
+  ["a missing field exits 2", [PLAN_REL, "T1", "rule", "why"], 2, /usage: commit-task\.sh/],
+  ["an empty subject exits 2", [PLAN_REL, "", "rule", "why", "cost"], 2, /usage: commit-task\.sh/],
+  ["a missing plan exits 2", [`${RUN_DIR}/nope.md`, "T1", "rule", "why", "cost"], 2, /plan file not found/],
+];
+
+for (const [name, args, code, stderr] of RULE_REFUSALS) {
+  test(`--rule refuses ${name} and leaves rulings.md byte-for-byte unchanged`, () => {
+    withGitRepo((repo) => {
+      seed(repo);
+      write(repo.dir, RULINGS_REL, `# Rulings\n\n- T2: ${RULE_LINE}\n`);
+      const before = readRulings(repo);
+
+      const result = run(repo.dir, repo.env, ["--rule", ...args]);
+      assert.equal(result.status, code, `stderr: ${result.stderr}`);
+      assert.match(result.stderr, stderr);
+      assert.equal(result.stdout, "");
+      assert.equal(readRulings(repo), before);
+    });
+  });
+}
+
+test("a refused --rule on a run with no register creates none (a run that records no ruling has no rulings.md)", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+
+    const result = run(repo.dir, repo.env, ["--rule", PLAN_REL, "T1", "", "why", "cost"]);
+    assert.equal(result.status, 2);
+    assert.ok(!fs.existsSync(path.join(repo.dir, RULINGS_REL)));
+  });
+});
+
+test("a task commit made after a --rule call carries rulings.md in that commit", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    run(repo.dir, repo.env, ["--rule", PLAN_REL, "T2", ...RULE_ARGS]);
+    write(repo.dir, "src/a.ts", "work\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(committedFiles(repo), [RULINGS_REL, STATUS_REL, "src/a.ts"].sort());
+    assert.equal(repo.git("show", `HEAD:${RULINGS_REL}`).stdout, `# Rulings\n\n- T2: ${RULE_LINE}\n`);
+  });
+});
+
+/** Each commit form taking a plan, arranged so its call commits: the files it
+ *  needs are written (and, for --landed, committed) and its argv returned. */
+const RULE_CARRIERS: Array<[form: string, arrange: (repo: GitRepo) => string[]]> = [
+  ["--review", (repo) => (write(repo.dir, "src/a.ts", "fix\n"), ["--review", PLAN_REL, "src/a.ts"])],
+  ["--chore", (repo) => (write(repo.dir, "CLAUDE.md", "memory\n"), ["--chore", PLAN_REL, "CLAUDE.md"])],
+  ["--qa", (repo) => (write(repo.dir, `${RUN_DIR}/qa.md`, "qa\n"), ["--qa", PLAN_REL, `${RUN_DIR}/qa.md`])],
+  ["--repair", (repo) => (write(repo.dir, "src/z.ts", "fix\n"), ["--repair", PLAN_REL, "1", "src/z.ts"])],
+  ["fix-number", (repo) => (write(repo.dir, "src/a.ts", "fix\n"), [PLAN_REL, "T1", "2", "src/a.ts"])],
+  [
+    "--landed",
+    (repo) => {
+      write(repo.dir, "src/a.ts", "landed elsewhere\n");
+      repo.git("add", "src/a.ts");
+      repo.git("commit", "-m", "manual");
+      return [PLAN_REL, "T1", "--landed", repo.git("rev-parse", "HEAD").stdout.trim()];
+    },
+  ],
+];
+
+for (const [form, arrange] of RULE_CARRIERS) {
+  test(`a ${form} commit made after a --rule call carries rulings.md`, () => {
+    withGitRepo((repo) => {
+      seed(repo);
+      const args = arrange(repo);
+      run(repo.dir, repo.env, ["--rule", PLAN_REL, "final-review", ...RULE_ARGS]);
+
+      const result = run(repo.dir, repo.env, args);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.ok(committedFiles(repo).includes(RULINGS_REL), `committed: ${committedFiles(repo).join(", ")}`);
+      assert.equal(repo.git("show", `HEAD:${RULINGS_REL}`).stdout, `# Rulings\n\n- final-review: ${RULE_LINE}\n`);
+    });
+  });
+}
 
 test("--defer naming a contract id is refused with a warning, like an id no task owns", () => {
   withGitRepo((repo) => {

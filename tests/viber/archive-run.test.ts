@@ -326,6 +326,26 @@ test("roadmap.md seeded in the run directory is archived", () => {
   );
 });
 
+test("a committed rulings.md rides into the archive commit (the register outlives the run)", () => {
+  withSeededRepo(
+    (repo, runDir) => {
+      assert.equal(run(repo.dir, [runDir], repo.env).status, 0);
+      assert.equal(repo.git("show", `HEAD:docs/specs/${KEY}/rulings.md`).stdout, "# Rulings\n\n- tests: rerun once\n");
+    },
+    { extra: { "rulings.md": "# Rulings\n\n- tests: rerun once\n" } },
+  );
+});
+
+test("a rulings.md still uncommitted when the run is archived lands in the archive commit, leaving the tree clean", () => {
+  withSeededRepo((repo, runDir) => {
+    fs.writeFileSync(path.join(repo.dir, runDir, "rulings.md"), "# Rulings\n\n- commit: split it\n");
+
+    assert.equal(run(repo.dir, [runDir], repo.env).status, 0);
+    assert.equal(repo.git("show", `HEAD:docs/specs/${KEY}/rulings.md`).stdout, "# Rulings\n\n- commit: split it\n");
+    assert.equal(repo.git("status", "--porcelain").stdout.trim(), "");
+  });
+});
+
 test("the move is one commit, and a spec.md edited before the call lands as a rename plus a modification", () => {
   withSeededRepo((repo, runDir) => {
     // what closeout does just before calling: the drift, marked in place

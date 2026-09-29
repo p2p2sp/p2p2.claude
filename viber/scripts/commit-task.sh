@@ -10,6 +10,7 @@
 #   commit-task.sh <plan-file> <task-id> <fix-number> <file> [<file>...]
 #   commit-task.sh --skip <plan-file> <task-id>
 #   commit-task.sh --decide <plan-file> <task-id> <text>
+#   commit-task.sh --rule <plan-file> <subject> <ruling> <why> <cost>
 #   commit-task.sh --repair <plan-file> <round> <file> [<file>...]
 #   commit-task.sh --chore <plan-file> <file> [<file>...]
 #   commit-task.sh --qa <plan-file> <file> [<file>...]
@@ -130,6 +131,16 @@
 # skipped. <text> is one non-empty line, stored verbatim (a ":" in it included);
 # the same task id and text recorded twice leaves one line.
 #
+# --rule records a ruling the build made on its own in the run's register,
+# <run-dir>/rulings.md, never in status.md. <subject> is a task id of the plan
+# or one of baseline, tests, final-review, commit; <ruling>, <why> and <cost>
+# are each one non-empty line. The file is created as "# Rulings" and a blank
+# line, then each call appends one line, an identical line never twice:
+#   - <subject>: <ruling> | why: <why> | cost if wrong: <cost>
+# It commits nothing: every form taking a plan stages rulings.md whenever it
+# exists and differs from HEAD, so the register rides in the next such commit.
+# A run that records no ruling has no rulings.md.
+#
 # An absent key is "none". The file is created here when the run has none yet
 # (plan-index.sh --split normally writes it with the decomposition), so a task
 # commit never fails for the lack of it.
@@ -157,6 +168,7 @@
 #   --review:                    "committed: <sha>", "subject: <line>"
 #   --skip:                      "skipped: <id>", "progress: unchanged" (no commit)
 #   --decide:                    "decided: <id>", "progress: unchanged" (no commit)
+#   --rule:                      "ruled: <subject>", "progress: unchanged" (no commit)
 # stderr: a warning listing changed paths no task in the plan claims, the run's
 #         own directory excluded - it holds the plan, the decomposition, the
 #         status file and the trail, which no "Files:" line names and every form
@@ -165,8 +177,11 @@
 #
 # exit != 0:
 #   2 - bad arguments / missing plan; for --decide also an empty or multi-line
-#       <text>, or a task on the done or skipped list (status.md untouched)
-#   3 - no task with that id in the plan
+#       <text>, or a task on the done or skipped list (status.md untouched);
+#       for --rule an empty or multi-line field, or a subject that is neither
+#       a task id of the plan nor a fixed subject (rulings.md untouched)
+#   3 - no task with that id in the plan (for --rule, a subject shaped like a
+#       task id, "T<n>...", that the plan does not hold)
 #   4 - the named files produced no change to the working tree (a task
 #       commit's message names --landed); for --landed, the sha touches none
 #       of the task's files or those files still carry uncommitted changes
@@ -181,7 +196,7 @@ shopt -s nullglob
 export GIT_LITERAL_PATHSPECS=1
 
 usage() {
-  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] [--defer <task-id>:<path> [...]] [--landed <sha>] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --decide <plan-file> <task-id> <text> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...] | --review <plan-file> <file> [<file>...]" >&2
+  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] [--defer <task-id>:<path> [...]] [--landed <sha>] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --decide <plan-file> <task-id> <text> | --rule <plan-file> <subject> <ruling> <why> <cost> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...] | --review <plan-file> <file> [<file>...]" >&2
   exit 2
 }
 
@@ -277,6 +292,23 @@ status_of() {
   local dir
   dir="$(run_dir "$1")"
   printf '%s\n' "${dir:+$dir/}status.md"
+}
+
+# The run's ruling register, beside the plan.
+rulings_of() {
+  local dir
+  dir="$(run_dir "$1")"
+  printf '%s\n' "${dir:+$dir/}rulings.md"
+}
+
+# Stages the register when it exists and differs from HEAD and prints its path,
+# so the caller adds it to the commit's pathspec; prints nothing otherwise.
+stage_rulings() {
+  local r
+  r="$(rulings_of "$1")"
+  [[ -f "$r" && -n "$(git status --porcelain -- "$r" 2>/dev/null)" ]] || return 0
+  stage_path "$r" && printf '%s\n' "$r"
+  return 0
 }
 
 # How many tasks the plan defines - the denominator of "progress", read from the
@@ -582,6 +614,49 @@ if [[ "${1:-}" == "--decide" ]]; then
   exit 0
 fi
 
+# --- a ruling the build made on its own, recorded without a commit ---
+# The register outlives the run: rulings.md rides in whichever commit taking the
+# plan comes next, and archive-run.sh keeps it as a non-scaffolding file.
+if [[ "${1:-}" == "--rule" ]]; then
+  plan="${2:-}"
+  subject="${3:-}"
+  [[ -n "$plan" && -n "$subject" && $# -eq 6 ]] || usage
+  if [[ ! -f "$plan" ]]; then
+    echo "error: plan file not found: $plan" >&2
+    exit 2
+  fi
+  for field in "$4" "$5" "$6"; do
+    if [[ -z "${field//[[:space:]]/}" || "$field" == *$'\n'* || "$field" == *$'\r'* ]]; then
+      echo "error: a ruling, its why and its cost are each one non-empty line" >&2
+      exit 2
+    fi
+  done
+  if ! task_ids_of "$plan" | grep -Fxq -- "$subject"; then
+    case "$subject" in
+      baseline|tests|final-review|commit) ;;
+      *)
+        if [[ "$subject" =~ ^T[0-9] ]]; then
+          echo "error: no task '$subject' in $plan" >&2
+          exit 3
+        fi
+        echo "error: unknown subject '$subject' - a task id of the plan, baseline, tests, final-review or commit" >&2
+        exit 2
+        ;;
+    esac
+  fi
+  register="$(rulings_of "$plan")"
+  entry="- $subject: $4 | why: $5 | cost if wrong: $6"
+  [[ -f "$register" ]] || printf '# Rulings\n\n' > "$register"
+  if ! grep -Fxq -- "$entry" "$register"; then
+    # a file cut short of its last newline would glue the entry onto its last line
+    [[ ! -s "$register" || -z "$(tail -c 1 -- "$register")" ]] || printf '\n' >> "$register"
+    printf '%s\n' "$entry" >> "$register"
+  fi
+  echo "ruled: $subject"
+  echo "progress: unchanged"
+  exit 0
+fi
+
 # --- the forms no task owns: a post-test fix outside the plan's file map, and
 # --- the knowledge, QA and test files a run produced beside its task map ---
 if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "${1:-}" == "--e2e" || "${1:-}" == "--review" ]]; then
@@ -641,6 +716,11 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
       [[ -n "$t" ]] || continue
       stage_path "$t" && paths+=("$t")
     done < <(trail_paths "$(run_dir "$plan")" "final-review-*.md" "final-fix-coder-*.md")
+  fi
+  if [[ -n "$plan" ]]; then
+    while IFS= read -r t; do
+      [[ -n "$t" ]] && paths+=("$t")
+    done < <(stage_rulings "$plan")
   fi
 
   # the subject follows the form and the paths, so nothing composes it, and the
@@ -940,6 +1020,9 @@ while IFS= read -r t; do
   [[ -n "$t" ]] || continue
   stage_path "$t" && paths+=("$t")
 done < <(trail_paths "$(run_dir "$plan")" "${trail[@]}")
+while IFS= read -r t; do
+  [[ -n "$t" ]] && paths+=("$t")
+done < <(stage_rulings "$plan")
 
 # --- a repair of an already committed task: no marker, no counter ---
 if [[ -n "$fix_n" ]]; then
