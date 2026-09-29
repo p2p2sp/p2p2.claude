@@ -64,3 +64,9 @@ branching:
       target: main
   # issue-type-mappings:
   #   bug: main
+
+# implementor runs one fresh review of the whole build after every task is
+# committed and before the final test run, at the edge of the build's diff
+# where per-task review and the test suite cannot see; one coder fixes
+# everything it finds, once, and the suite still runs once.
+final-review: true
