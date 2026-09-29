@@ -94,7 +94,13 @@
 #                    both belong to the run, not to the specification the
 #                    archive keeps. A fenced block (``` or ~~~ up to the
 #                    closing fence of the same character) is content and
-#                    stays whole, comments and blank lines included.
+#                    stays whole, comments and blank lines included. The
+#                    "## Roadmap" section is cut out of it too, into roadmap.md.
+#   roadmap.md     - only when the plan carries a "## Roadmap" section: that
+#                    section, heading included, up to the next "## " heading,
+#                    its HTML comments dropped. The parts of a split change and
+#                    the decisions settled for the later ones, which a later
+#                    part's interview resumes from; committed with the rest.
 #   tasks/<id>.md  - the whole job of one coder: its task block, then the
 #                    plan's "## Goal", the text of the criteria its "Covers:" line
 #                    names, the "## Contracts" blocks its "Uses:" line names, the
@@ -722,7 +728,7 @@ END {
 # --- the decomposition, beside the plan ---
 # A second pass over a file the first one just proved well-formed: every id is
 # present, unique and a bare token, so nothing here has to guard against drift.
-rm -rf -- "$dir/tasks"
+rm -rf -- "$dir/tasks" "$dir/roadmap.md"
 mkdir -p -- "$dir/tasks"
 
 dir="$dir" awk '
@@ -815,19 +821,32 @@ END {
     print "---" > spec
     print "" > spec
   }
+  # The "## Roadmap" section, heading included, up to the next "## " heading,
+  # goes to roadmap.md instead, under the same comment and blank-line rules: it
+  # holds the parts this plan does not build, which are no part of its
+  # specification. No section, no file.
+  roadmap = dir "/roadmap.md"
   for (i = sfrom; i < cut; i++) {
     t = trim(line[i])
     if (incom) { if (t ~ /-->/) incom = 0; continue }
     if (sfence == "") {
       if (t ~ /^<!--/) { if (t !~ /-->/) incom = 1; continue }
-      if (t == "") { sblank = 1; continue }
+      if (line[i] ~ /^##[[:space:]]/) inroad = (line[i] ~ /^##[[:space:]]*Roadmap[[:space:]]*$/)
+      if (t == "") { if (inroad) rblank = 1; else sblank = 1; continue }
       if (t ~ /^(```|~~~)/) sfence = substr(t, 1, 3)
     } else if (substr(t, 1, 3) == sfence && t ~ /^(```+|~~~+)$/) sfence = ""
+    if (inroad) {
+      if (rblank && rkept) print "" > roadmap
+      rblank = 0; rkept = 1
+      print line[i] > roadmap
+      continue
+    }
     if (sblank && skept) print "" > spec
     sblank = 0; skept = 1
     print line[i] > spec
   }
   close(spec)
+  if (rkept) close(roadmap)
 
   # the standing context every task file carries: what the run is for, and the
   # two boundaries none of its coders may cross - the behaviour that has to keep
@@ -935,8 +954,9 @@ fi
 # --- and into the history ---
 # The decomposition lives under docs/, so it has to be committed by somebody: no
 # task's "Files:" list names it, and commit-task.sh stages nothing it was not
-# given. The pathspec names only the four paths this call itself writes or owns
-# (plan.md, spec.md, tasks/ and status.md) rather than the whole run directory:
+# given. The pathspec names only the paths this call itself writes or owns
+# (plan.md, spec.md, tasks/, status.md and roadmap.md when the plan carries a
+# "## Roadmap" section) rather than the whole run directory:
 # a coder's own docs/<run>/work/ trail file is written later, by a different
 # actor, and must stay untracked until commit-task.sh decides it belongs in a
 # task's own commit - swept in here it would ride into a chore commit no task
@@ -971,10 +991,12 @@ issue_ref() {
 issue="$(issue_ref "$plan")"
 commit_msg=(-m "chore(viber): decompose plan ${dir##*/}")
 [[ -z "$issue" ]] || commit_msg+=(-m "Refs: $issue")
+split_paths=("$dir/plan.md" "$dir/spec.md" "$dir/tasks" "$dir/status.md")
+[[ ! -f "$dir/roadmap.md" ]] || split_paths+=("$dir/roadmap.md")
 if git rev-parse --git-dir >/dev/null 2>&1; then
-  git add -A -- "$dir/plan.md" "$dir/spec.md" "$dir/tasks" "$dir/status.md" >/dev/null 2>&1 || true
-  if ! git diff --cached --quiet -- "$dir/plan.md" "$dir/spec.md" "$dir/tasks" "$dir/status.md" 2>/dev/null; then
-    git commit "${commit_msg[@]}" -- "$dir/plan.md" "$dir/spec.md" "$dir/tasks" "$dir/status.md" >&2 || true
+  git add -A -- "${split_paths[@]}" >/dev/null 2>&1 || true
+  if ! git diff --cached --quiet -- "${split_paths[@]}" 2>/dev/null; then
+    git commit "${commit_msg[@]}" -- "${split_paths[@]}" >&2 || true
   fi
 fi
 

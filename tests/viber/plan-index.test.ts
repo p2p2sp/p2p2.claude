@@ -1784,6 +1784,110 @@ test("--split writes the run's state file, and a later --split leaves the progre
   });
 });
 
+// --- the roadmap -----------------------------------------------------------
+
+/** A split change's `## Roadmap` section, placed where both templates put it:
+ *  after the goal, before the acceptance criteria. Its guidance comment is the
+ *  template's own, which the cut drops. */
+const ROADMAP = [
+  "## Roadmap",
+  "",
+  "<!-- Only when the change was split into parts; otherwise drop this section.",
+  "     The build cuts it into roadmap.md, never into spec.md. -->",
+  "",
+  "Part 2 of 3 - Add login",
+  "",
+  "1. Account model (built)",
+  "2. Add login (this plan)",
+  "3. Session expiry",
+  "   - Idle sessions end after one hour.",
+  "",
+];
+
+function withRoadmap(body: string): string {
+  return body.replace("## Acceptance criteria\n", [...ROADMAP, "## Acceptance criteria", ""].join("\n"));
+}
+
+test("--split writes the Roadmap section into roadmap.md, heading included and its HTML comment dropped", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, withRoadmap(planBody(TWO_TASKS)));
+
+    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(
+      readRun(dir, "roadmap.md"),
+      [
+        "## Roadmap",
+        "",
+        "Part 2 of 3 - Add login",
+        "",
+        "1. Account model (built)",
+        "2. Add login (this plan)",
+        "3. Session expiry",
+        "   - Idle sessions end after one hour.",
+        "",
+      ].join("\n"),
+    );
+  });
+});
+
+test("--split leaves the Roadmap section out of spec.md, the goal running straight into the acceptance criteria (a later part's decisions are not this part's specification)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, withRoadmap(planBody(TWO_TASKS)));
+
+    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    const spec = readRun(dir, "spec.md");
+    assert.ok(
+      spec.includes("## Goal\n\nUsers can log in.\nThe session is durable.\n\n## Acceptance criteria\n"),
+      spec,
+    );
+    assert.doesNotMatch(spec, /Roadmap|Part 2 of 3|Account model|Session expiry|Idle sessions/);
+  });
+});
+
+test("roadmap.md is committed with the decomposition", () => {
+  withGitRepo((repo) => {
+    write(repo.dir, "README.md", "seed\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "seed");
+    seed(repo.dir, withRoadmap(planBody(TWO_TASKS)));
+
+    const result = run(repo.dir, repo.env, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    const committed = repo
+      .git("show", "--name-only", "--format=", "HEAD")
+      .stdout.trim()
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .sort();
+    assert.deepEqual(committed, [
+      PLAN_REL,
+      `${PLAN_DIR}/roadmap.md`,
+      `${PLAN_DIR}/spec.md`,
+      `${PLAN_DIR}/status.md`,
+      `${PLAN_DIR}/tasks/T1.md`,
+      `${PLAN_DIR}/tasks/T2.md`,
+    ].sort());
+  });
+});
+
+test("a plan with no Roadmap section writes no roadmap.md and exactly the spec.md it always did (a change built in one part carries no roadmap)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody(TWO_TASKS));
+
+    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.ok(!fs.existsSync(path.join(dir, PLAN_DIR, "roadmap.md")), "roadmap.md was written");
+    assert.equal(readRun(dir, "spec.md"), liteHead(2).join("\n"));
+  });
+});
+
+test("the header names roadmap.md among the files --split writes", () => {
+  const source = fs.readFileSync(SUT, "utf-8");
+  const splitDoc = source.slice(source.indexOf("# --split writes"), source.indexOf("# Validation"));
+  assert.match(splitDoc, /^#\s+roadmap\.md\s+- /m);
+});
+
 test("a second --split with the plan unchanged commits nothing and still exits 0", () => {
   withGitRepo((repo) => {
     seed(repo.dir, planBody(TWO_TASKS));
