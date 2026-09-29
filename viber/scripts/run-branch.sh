@@ -16,18 +16,19 @@
 #            for the landing, all of them for branch_report); the plan's
 #            frontmatter "branch:", "work:" and "issue:" keys and its task
 #            blocks' "Repro:" lines.
-#   gh     : only through the sibling issue-facts.sh, for branch_report's
-#            issue type, and only when a mapping exists and the plan has an
-#            issue: its TYPE= line, empty on any failure.
+#   gh     : only through the sibling issue-facts.sh, for the issue type of
+#            branch_report and branch_start, and only when a mapping exists and
+#            there is an issue: its TYPE= line, empty on any failure.
 #   git    : reads HEAD, refs/heads/ and the tree state; branch_land alone
 #            moves HEAD, through one checkout, never a fetch.
 #   stdout : branch_setup, branch_entry and branch_land print nothing - their
 #            result is the br_* variables; the plan_* and branch_expand helpers print one
 #            value for a caller to capture. branch_report prints the C3
-#            report of plan-path.sh --branch, whose header shows its lines.
+#            report of plan-path.sh --branch and branch_start the C1 report of
+#            plan-path.sh --start, whose header shows both.
 #   return : branch_land 0, or 6 with the reason on stderr and HEAD, index
-#            and tree untouched. branch_report always 0 - it is read-only and
-#            never touches HEAD, the index or the tree.
+#            and tree untouched. branch_report and branch_start always 0 -
+#            they are read-only and never touch HEAD, the index or the tree.
 #
 # Outside a git repository branching acts as off. No `set` line of its own: it
 # runs under plan-path.sh's.
@@ -163,8 +164,12 @@ plan_issue() {
 # The GitHub issue type of plan $1's issue, from the TYPE= header line the
 # sibling issue-facts.sh prints; empty without an issue or on any failure.
 plan_issue_type() {
-  local url line
-  url="$(plan_issue "$1" url)"
+  url_issue_type "$(plan_issue "$1" url)"
+}
+
+# The GitHub issue type of issue URL $1, the same way; empty for no URL.
+url_issue_type() {
+  local url="$1" line
   [[ -n "$url" ]] || return 0
   while IFS= read -r line; do
     case "$line" in
@@ -309,35 +314,16 @@ base_behind() {
 # is fetched only when a mapping exists and the plan has an issue. The empty
 # array expansions are guarded: bash 3.2 under `set -u` fails on "${a[@]}".
 branch_report() {
-  local line mode=off issue type="" suggested=none only="" usable=0 m e
+  local issue suggested only="" usable=0 e
   local key rest base name target new exists entry_lines=""
-  local -a entries=() maps=() errors=()
-  while IFS= read -r line; do
-    case "$line" in
-      'mode: '*) mode="${line#mode: }" ;;
-      'entry: '*) entries+=("${line#entry: }") ;;
-      'map: '*) maps+=("${line#map: }") ;;
-      'error: '*) errors+=("${line#error: }") ;;
-    esac
-  done < <(bash "$run_branch_dir/config.sh" --branching 2>/dev/null || true)
-  git rev-parse --is-inside-work-tree >/dev/null 2>&1 || mode=off
-  if [[ "$mode" != allowed && "$mode" != required ]]; then
+  issue="$(plan_issue "$1")"
+  branch_situation "$issue" "$(plan_issue "$1" url)"
+  if [[ "$rp_mode" == off ]]; then
     printf 'mode: off\n'
     return 0
   fi
-  issue="$(plan_issue "$1")"
-  if [[ ${#maps[@]} -gt 0 && -n "$issue" ]]; then
-    type="$(plan_issue_type "$1")"
-    if [[ -z "$type" ]]; then
-      errors+=("issue $issue has no issue type")
-    else
-      for m in ${maps[@]+"${maps[@]}"}; do
-        if [[ "${m% | *}" == "$type" ]]; then suggested="${m##* | }"; break; fi
-      done
-      [[ "$suggested" != none ]] || errors+=("issue type $type is not in branching.issue-type-mappings")
-    fi
-  fi
-  for e in ${entries[@]+"${entries[@]}"}; do
+  suggested="$rp_suggested"
+  for e in ${rp_entries[@]+"${rp_entries[@]}"}; do
     key="${e%% | *}"
     rest="${e#* | base: }"
     base="${rest%% | *}"
@@ -356,16 +342,112 @@ branch_report() {
     entry_lines+="entry: $key | base: $base | target: $target | new: $new | new-exists: $exists | behind: $(base_behind "$base")"$'\n'
   done
   [[ "$suggested" != none || "$usable" -ne 1 ]] || suggested="$only"
-  printf 'mode: %s\n' "$mode"
-  printf 'issue-type: %s\n' "${type:-none}"
+  printf 'mode: %s\n' "$rp_mode"
+  printf 'issue-type: %s\n' "${rp_type:-none}"
   printf 'suggested: %s\n' "$suggested"
   printf '%s' "$entry_lines"
-  line="$(git symbolic-ref --short -q HEAD 2>/dev/null || true)"
-  printf 'current: %s\n' "${line:-detached}"
+  branch_tail
+}
+
+# What --branch and --start share: reads the sibling config.sh --branching
+# lines and the issue type. $1 is the issue number ("" for none), $2 its URL.
+# Sets rp_mode (off outside a repository or under any mode but allowed and
+# required, with nothing else read), rp_entries (config.sh entry lines),
+# rp_type ("" for none), rp_suggested (the entry the type maps to, else none)
+# and rp_errors (every config.sh error, then the issue type ones). The issue
+# type is fetched only when a mapping exists and there is an issue.
+branch_situation() {
+  local line m
+  local -a maps=()
+  rp_mode=off
+  rp_type=""
+  rp_suggested=none
+  rp_entries=()
+  rp_errors=()
+  while IFS= read -r line; do
+    case "$line" in
+      'mode: '*) rp_mode="${line#mode: }" ;;
+      'entry: '*) rp_entries+=("${line#entry: }") ;;
+      'map: '*) maps+=("${line#map: }") ;;
+      'error: '*) rp_errors+=("${line#error: }") ;;
+    esac
+  done < <(bash "$run_branch_dir/config.sh" --branching 2>/dev/null || true)
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1 || rp_mode=off
+  [[ "$rp_mode" == allowed || "$rp_mode" == required ]] || { rp_mode=off; return 0; }
+  if [[ ${#maps[@]} -gt 0 && -n "$1" ]]; then
+    rp_type="$(url_issue_type "$2")"
+    if [[ -z "$rp_type" ]]; then
+      rp_errors+=("issue $1 has no issue type")
+    else
+      for m in ${maps[@]+"${maps[@]}"}; do
+        if [[ "${m% | *}" == "$rp_type" ]]; then rp_suggested="${m##* | }"; break; fi
+      done
+      [[ "$rp_suggested" != none ]] || rp_errors+=("issue type $rp_type is not in branching.issue-type-mappings")
+    fi
+  fi
+}
+
+# The closing lines both reports print, from rp_entries and rp_errors:
+# current, current-is-base (yes only for a branch that is some entry base, so
+# never on a detached HEAD), dirty, then the error lines.
+branch_tail() {
+  local cur e rest is_base=no
+  cur="$(git symbolic-ref --short -q HEAD 2>/dev/null || true)"
+  printf 'current: %s\n' "${cur:-detached}"
+  for e in ${rp_entries[@]+"${rp_entries[@]}"}; do
+    rest="${e#* | base: }"
+    [[ -z "$cur" || "${rest%% | *}" != "$cur" ]] || is_base=yes
+  done
+  printf 'current-is-base: %s\n' "$is_base"
   if [[ -n "$(git status --porcelain 2>/dev/null || true)" ]]; then
     printf 'dirty: yes\n'
   else
     printf 'dirty: no\n'
   fi
-  for e in ${errors[@]+"${errors[@]}"}; do printf 'error: %s\n' "$e"; done
+  for e in ${rp_errors[@]+"${rp_errors[@]}"}; do printf 'error: %s\n' "$e"; done
+}
+
+# The --start report for issue URL $1 ("" for none, validated by the caller):
+# the same situation as branch_report without a plan, so no run branch name is
+# proposed. Each entry is checked against HEAD instead: usable (its name needs
+# no {issue-number} or a URL was given), base-exists, at-base (HEAD is the
+# commit of the local base) and behind. Read-only like branch_report.
+branch_start() {
+  local issue="" suggested only="" usable=0 e key rest base name target use exists at head_c entry_lines=""
+  [[ -z "$1" ]] || issue="${1##*/issues/}"
+  branch_situation "$issue" "$1"
+  if [[ "$rp_mode" == off ]]; then
+    printf 'mode: off\n'
+    return 0
+  fi
+  suggested="$rp_suggested"
+  head_c="$(git rev-parse -q --verify 'HEAD^{commit}' 2>/dev/null || true)"
+  for e in ${rp_entries[@]+"${rp_entries[@]}"}; do
+    key="${e%% | *}"
+    rest="${e#* | base: }"
+    base="${rest%% | *}"
+    rest="${rest#* | name: }"
+    name="${rest%% | *}"
+    target="${e##* | target: }"
+    use=yes
+    if [[ "$name" == *'{issue-number}'* && -z "$issue" ]]; then
+      use=no
+    else
+      usable=$((usable + 1))
+      only="$key"
+    fi
+    exists=no
+    at=no
+    if git show-ref --verify --quiet "refs/heads/$base" 2>/dev/null; then
+      exists=yes
+      [[ -z "$head_c" || "$head_c" != "$(git rev-parse -q --verify "refs/heads/$base^{commit}" 2>/dev/null || true)" ]] || at=yes
+    fi
+    entry_lines+="entry: $key | base: $base | target: $target | usable: $use | base-exists: $exists | at-base: $at | behind: $(base_behind "$base")"$'\n'
+  done
+  [[ "$suggested" != none || "$usable" -ne 1 ]] || suggested="$only"
+  printf 'mode: %s\n' "$rp_mode"
+  printf 'issue-type: %s\n' "${rp_type:-none}"
+  printf 'suggested: %s\n' "$suggested"
+  printf '%s' "$entry_lines"
+  branch_tail
 }

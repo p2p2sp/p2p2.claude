@@ -28,7 +28,8 @@
  *
  * Under a `branching:` mode other than off, a first landing puts HEAD on the
  * run branch before anything is copied and prints a `branch:` line after
- * `state:`; those cases run in throwaway git repositories.
+ * `state:`; those cases run in throwaway git repositories. `--start` is the
+ * plan-less, read-only start report of the same situation.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -2158,6 +2159,7 @@ test("a single entry and a plan with no issue: the whole report, verbatim, sugge
           "suggested: feature",
           "entry: feature | base: main | target: main | new: feature/add-login | new-exists: no | behind: unknown",
           "current: main",
+          "current-is-base: yes",
           "dirty: no",
           "",
         ].join("\n"),
@@ -2416,6 +2418,232 @@ test("--branch changes neither HEAD nor the tree's status, the issue type lookup
         assert.equal(commitOf(repo), beforeCommit);
         assert.equal(treeOf(repo), beforeTree);
       });
+    });
+  });
+});
+
+// --- --start: the plan-less, read-only start report ---
+
+/** plan-path.sh --start, with an optional issue URL. */
+function startIn(repo: GitRepo, url?: string, stubDirs?: string[]) {
+  return runIn(repo, url === undefined ? ["--start"] : ["--start", url], stubDirs);
+}
+
+/** A second commit on the current branch, so it sits one ahead of any branch cut before it. */
+function commitOnHead(repo: GitRepo): void {
+  fs.writeFileSync(path.join(repo.dir, "ahead.txt"), "ahead\n");
+  repo.git("add", "-A");
+  repo.git("commit", "-q", "-m", "ahead");
+}
+
+const ISSUE_URL = "https://github.com/acme/app/issues/6759";
+
+for (const mode of ["allowed", "required"] as const) {
+  test(`start report under ${mode} with no plan argument prints every line the contract declares (DoD.1)`, () => {
+    withBranchRepo([`mode: ${mode}`, ...SINGLE.slice(1)], (repo) => {
+      const result = startIn(repo);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(
+        slash(result.stdout),
+        [
+          `mode: ${mode}`,
+          "issue-type: none",
+          "suggested: feature",
+          "entry: feature | base: main | target: main | usable: yes | base-exists: yes | at-base: yes | behind: unknown",
+          "current: main",
+          "current-is-base: yes",
+          "dirty: no",
+          "",
+        ].join("\n"),
+      );
+    });
+  });
+}
+
+test("start report relays every config.sh error and the issue type error after the dirty line, the valid entry still reported", () => {
+  const config = [
+    "mode: required",
+    "work:",
+    ...workEntry("old", "main", "{type}/{issue}-{slug}", "main"),
+    ...workEntry("feature", "main", "feature/issue.{issue-number}", "main"),
+    "issue-type-mappings:",
+    "  Bug-Report: feature",
+  ];
+  withBranchRepo(config, (repo) => {
+    withGh("Task", 0, (stubDir) => {
+      const result = startIn(repo, ISSUE_URL, [stubDir]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.deepEqual(linesOf(result.stdout, "error: "), [
+        "error: work entry old: {issue} is now {issue-number}",
+        "error: issue type Task is not in branching.issue-type-mappings",
+      ]);
+    });
+  });
+});
+
+test("start report changes neither HEAD, the index nor git status --porcelain, the issue type lookup included (DoD.2)", () => {
+  withBranchRepo(GITFLOW, (repo) => {
+    branchAhead(repo, "work");
+    repo.git("checkout", "-q", "work");
+    fs.writeFileSync(path.join(repo.dir, "untracked.txt"), "x\n");
+    fs.writeFileSync(path.join(repo.dir, "README.md"), "changed\n");
+    repo.git("add", "README.md");
+    withGh("Bug-Report", 0, (stubDir) => {
+      const state = () => [headOf(repo), commitOf(repo), treeOf(repo), repo.git("diff", "--cached").stdout, repo.git("branch", "--list").stdout];
+      const before = state();
+      const result = startIn(repo, ISSUE_URL, [stubDir]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(reportOf(result.stdout).suggested, "hotfix");
+      assert.deepEqual(state(), before);
+    });
+  });
+});
+
+test("start report under branching off prints only mode: off, gh never run (DoD.3)", () => {
+  withBranchRepo(["mode: off", ...GITFLOW.slice(1)], (repo) => {
+    withGh("Bug-Report", 0, (stubDir, calls) => {
+      const result = startIn(repo, ISSUE_URL, [stubDir]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(slash(result.stdout), "mode: off\n");
+      assert.equal(calls(), "");
+    });
+  });
+});
+
+test("start report outside a git repository prints only mode: off, whatever the configured mode (DoD.3)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    fs.mkdirSync(path.join(dir, ".claude"), { recursive: true });
+    fs.writeFileSync(path.join(dir, ".claude", "viber.yml"), "branching:\n  mode: required\n");
+    const result = run(dir, ["--start"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(slash(result.stdout), "mode: off\n");
+  });
+});
+
+for (const [type, entry] of [
+  ["Bug-Report", "hotfix"],
+  ["Feature Request", "feature"],
+] as const) {
+  test(`start report suggests the ${entry} entry for an issue URL whose type ${type} is mapped, looked up in the issue's own repository (DoD.4)`, () => {
+    withBranchRepo(GITFLOW, (repo) => {
+      withGh(type, 0, (stubDir, calls) => {
+        const result = startIn(repo, ISSUE_URL, [stubDir]);
+        assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+        const report = reportOf(result.stdout);
+        assert.equal(report["issue-type"], type);
+        assert.equal(report.suggested, entry);
+        assert.deepEqual(linesOf(result.stdout, "error: "), []);
+        assert.match(calls(), /^api repos\/acme\/app\/issues\/6759 /m);
+      });
+    });
+  });
+}
+
+test("start report suggests the one usable entry when no URL is given and the other entry needs an issue number (DoD.4)", () => {
+  const config = [
+    "mode: required",
+    "work:",
+    ...workEntry("titled", "main", "{type}/{slug}", "main"),
+    ...workEntry("numbered", "main", "hotfix/issue.{issue-number}", "main"),
+  ];
+  withBranchRepo(config, (repo) => {
+    const result = startIn(repo);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(reportOf(result.stdout).suggested, "titled");
+  });
+});
+
+test("start report suggests none when several entries are usable and no mapping chooses (DoD.4)", () => {
+  const config = [
+    "mode: required",
+    "work:",
+    ...workEntry("feature", "main", "feature/{slug}", "main"),
+    ...workEntry("chore", "main", "chore/{slug}", "main"),
+  ];
+  withBranchRepo(config, (repo) => {
+    const result = startIn(repo);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(reportOf(result.stdout).suggested, "none");
+  });
+});
+
+test("start report reads usable: no on an entry whose name holds {issue-number} when no URL is given (DoD.5)", () => {
+  withBranchRepo(GITFLOW, (repo) => {
+    const result = startIn(repo);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(linesOf(result.stdout, "entry: "), [
+      "entry: feature | base: develop | target: develop | usable: no | base-exists: no | at-base: no | behind: unknown",
+      "entry: hotfix | base: main | target: main | usable: no | base-exists: yes | at-base: yes | behind: unknown",
+    ]);
+  });
+});
+
+test("start report reads at-base: yes on a branch at the base commit under another name (DoD.6)", () => {
+  withBranchRepo(SINGLE, (repo) => {
+    repo.git("checkout", "-q", "-b", "work");
+    const result = startIn(repo);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(linesOf(result.stdout, "entry: ")[0], / \| at-base: yes \| /);
+  });
+});
+
+test("start report reads at-base: no on a branch one commit ahead of the base (DoD.6)", () => {
+  withBranchRepo(SINGLE, (repo) => {
+    repo.git("checkout", "-q", "-b", "work");
+    commitOnHead(repo);
+    const result = startIn(repo);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(linesOf(result.stdout, "entry: ")[0], / \| at-base: no \| /);
+  });
+});
+
+test("start report reads current-is-base: yes on another entry's base (DoD.7)", () => {
+  withBranchRepo(["mode: required", ...TWO_BASES], (repo) => {
+    repo.git("checkout", "-q", "-b", "develop");
+    const result = startIn(repo);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(reportOf(result.stdout)["current-is-base"], "yes");
+  });
+});
+
+test("start report reads current-is-base: no on a detached HEAD sitting on a base commit (DoD.7)", () => {
+  withBranchRepo(SINGLE, (repo) => {
+    repo.git("checkout", "-q", commitOf(repo));
+    const result = startIn(repo);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(reportOf(result.stdout)["current-is-base"], "no");
+  });
+});
+
+for (const arg of ["not-a-url", "https://github.com/acme/app/pull/12", "https://github.com/acme/app/issues/abc"]) {
+  test(`start report exits 2 on ${arg}, which is not an issue URL, and prints nothing (DoD.8)`, () => {
+    withBranchRepo(SINGLE, (repo) => {
+      const result = startIn(repo, arg);
+      assert.equal(result.status, 2);
+      assert.equal(result.stdout, "");
+    });
+  });
+}
+
+test("--branch prints current-is-base: yes directly after current: on an entry base, every other line unchanged (DoD.9)", () => {
+  withBranchRepo(SINGLE, (repo) => {
+    withSource([], (src) => {
+      const result = runIn(repo, ["--branch", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const lines = slash(result.stdout).split("\n");
+      assert.deepEqual(lines.slice(lines.indexOf("current: main")).slice(0, 3), ["current: main", "current-is-base: yes", "dirty: no"]);
+    });
+  });
+});
+
+test("--branch prints current-is-base: no directly after current: on a branch that is no entry base (DoD.9)", () => {
+  withBranchRepo(SINGLE, (repo) => {
+    repo.git("checkout", "-q", "-b", "work");
+    withSource([], (src) => {
+      const result = runIn(repo, ["--branch", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const lines = slash(result.stdout).split("\n");
+      assert.deepEqual(lines.slice(lines.indexOf("current: work")).slice(0, 3), ["current: work", "current-is-base: no", "dirty: no"]);
     });
   });
 });

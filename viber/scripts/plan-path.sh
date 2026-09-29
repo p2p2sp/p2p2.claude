@@ -22,6 +22,11 @@
 #   plan-path.sh --branch <plan>           read-only report on the run branch
 #                                          situation for <plan> (C3); nothing
 #                                          moves, nothing is written
+#   plan-path.sh --start [<issue URL>]     read-only start report (C1) needing no
+#                                          plan: the same situation as --branch
+#                                          from the issue URL alone, ending in
+#                                          /issues/<n>; nothing moves, nothing
+#                                          is written
 #
 # <src> is the approved plan as plan mode wrote it. Its directory is a user-level
 # setting ("plansDirectory"), so the file normally sits OUTSIDE this repository:
@@ -81,7 +86,8 @@
 #
 # Contract:
 #   argv   : --land and the source plan, optionally --into and a run key, or
-#            --branch and a plan, or nothing.
+#            --branch and a plan, or --start and optionally an issue URL, or
+#            nothing.
 #   file   : <src>'s frontmatter "into:" key, read only when argv carries no
 #            --into, validated and refused exactly as --into. On a first
 #            landing, and on --branch, <src>'s frontmatter "branch:", "work:"
@@ -91,10 +97,10 @@
 #   git    : HEAD moves only in the branch step of a first landing, or of a
 #            matching round landed again through --into, through one
 #            checkout; every failure before or inside that step leaves
-#            HEAD, the index and the tree as they were. --branch never moves
-#            HEAD, the index or the tree - it only reads.
-#   gh     : --branch alone, through issue-facts.sh, for the issue type (see
-#            its stdout below); never fetches, pushes or writes.
+#            HEAD, the index and the tree as they were. --branch and --start
+#            never move HEAD, the index or the tree - they only read.
+#   gh     : --branch and --start alone, through issue-facts.sh, for the issue
+#            type (see their stdout below); never fetches, pushes or writes.
 #   cwd    : the repository root - every path printed is relative to it, and the
 #            caller splits and stages those paths from there. The config file is
 #            read from there too, as .claude/viber.yml.
@@ -118,9 +124,11 @@
 #     suggested: <entry key> | none
 #     entry: <key> | base: <branch> | target: <branch> | new: <name>|- | new-exists: yes|no | behind: <n>|unknown
 #     current: <branch> | detached
+#     current-is-base: yes | no
 #     dirty: yes | no
 #     error: <reason>
-#   One "entry:" line per valid branching.work entry, in file order; "new:"
+#   "current-is-base:" is yes only when the current branch is the base of some
+#   entry, never on a detached HEAD. One "entry:" line per valid branching.work entry, in file order; "new:"
 #   its name pattern with {issue-number} (the plan's issue number), {slug} and
 #   {type} filled in, "-" (and "new-exists: no") when it needs {issue-number}
 #   and the plan has no issue; "behind:" counts the entry base against its
@@ -131,14 +139,32 @@
 #   the plan can fill, else none. "error:" lines, zero or more: every
 #   config.sh --branching error, then, with mappings, "issue <n> has no issue
 #   type" or "issue type <type> is not in branching.issue-type-mappings".
-#   stdout, --branch <plan>, mode off or outside a git repository:
+#   stdout, --start [<issue URL>], mode allowed or required inside a git
+#   repository, read from config.sh --branching:
+#     mode: allowed | required
+#     issue-type: <type> | none
+#     suggested: <entry key> | none
+#     entry: <key> | base: <branch> | target: <branch> | usable: yes|no | base-exists: yes|no | at-base: yes|no | behind: <n>|unknown
+#     current: <branch> | detached
+#     current-is-base: yes | no
+#     dirty: yes | no
+#     error: <reason>
+#   The lines --branch prints, without a plan: "usable:" is no when the entry
+#   name needs {issue-number} and no URL was given; "base-exists:" is whether
+#   the local base branch exists; "at-base:" is yes only when HEAD's commit is
+#   that base branch's commit, whatever HEAD's own branch name; the issue is
+#   the URL's, its type read like --branch does. "suggested:" and the
+#   "error:" lines follow --branch's rules.
+#   stdout, --branch <plan> or --start, mode off or outside a git repository:
 #     mode: off
 #   exit != 0:
 #     2 - unusable argv: an unknown first argument, --land without a source, a
 #         source that is not a file, a title and file name that both
 #         normalize to nothing, an --into key that is empty, carries a slash
 #         or a traversal, or names no
-#         directory under docs/<runs>/, or --branch on a plan that is not a file
+#         directory under docs/<runs>/, or --branch on a plan that is not a
+#         file, or --start on an argument that is not an issue URL ending in
+#         /issues/<n>
 #     3 - no argument and docs/_specs/ holds no plan
 #     4 - --into on a target whose plan carries a task half, or that carries
 #         a decomposition or recorded progress, while the source differs from
@@ -467,8 +493,18 @@ if [[ "$mode" == "--branch" ]]; then
   exit 0
 fi
 
+# --- --start: the read-only start report, no plan needed ---
+if [[ "$mode" == "--start" ]]; then
+  if [[ $# -gt 2 ]] || { [[ $# -eq 2 ]] && [[ ! "$2" =~ ^https?://[^[:space:]]+/issues/[0-9]+$ ]]; }; then
+    echo "error: usage: plan-path.sh --start [<issue URL ending in /issues/<n>>]" >&2
+    exit 2
+  fi
+  branch_start "${2:-}"
+  exit 0
+fi
+
 if [[ "$mode" != "--land" ]]; then
-  echo "error: usage: plan-path.sh [--land <src>] [--branch <plan>], got: $mode" >&2
+  echo "error: usage: plan-path.sh [--land <src>] [--branch <plan>] [--start [<issue URL>]], got: $mode" >&2
   exit 2
 fi
 
