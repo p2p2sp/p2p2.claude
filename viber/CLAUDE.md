@@ -10,7 +10,7 @@ three files share. `PRODUCT.md` holds the testing assumptions that `references/p
 ```
 skills/<name>/           14 skills: SKILL.md plus files read at one step;
                          setup, memory, rules, handoff, commit bundle scripts/
-agents/                  16 agents
+agents/                  17 agents
 scripts/                 14 plugin-wide scripts
 references/              read at runtime by agents through the `refs:` dispatch line
 hooks/                   SessionStart manifest + UserPromptSubmit plan hints + PreToolUse plan gate
@@ -65,8 +65,7 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 - Every `EXTRA:` path of the task's coder or reviewer becomes `--with` (the coder's also reach
   its reviewer as `extra:`, minus a path a not-yet-done task claims, with one `recheck:` per done
   owner's `verify:`), coder `DEFERRED:` `--defer`, stored as `deferred:` in `status.md` and handed
-  to the owing task's coder and reviewer. The `orphan:` paths the user assigns to a task on
-  resume ride that same `resume:` / `extra:` / `--with` path.
+  to the owing task's coder and reviewer.
 - task-coder, task-reviewer, test-runner and e2e-writer share a "Stop what you started" section;
   `implementor`'s and `e2e`'s `SendMessage` on a "stopped with background work" notice, or a
   reply with no `VERDICT:` line, is its other half. Every coder re-run (review failure, `WAIT:`,
@@ -74,11 +73,10 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 - A coder's `WAIT:` (a file outside `Files` held by another task's uncommitted change) holds its
   task until every in-flight task returns, then a fresh coder at no attempt cost; nothing else in
   flight, or a second wait on the same path, counts as an ordinary failure.
-- `decide` overrides the task file for a stalled task and its dependents: offered beside
-  retry/skip/abort on a third coder failure, beside retry/accept/abort on review round 3 of 3, or
-  at once, any count, when every `DECIDE:` option is owner-marked. A second ordinary failure with
-  an unmarked option instead gets the implementor's own automatic decision (`auto: <option>`,
-  same `--decide` call, no counter restart) and a fresh coder, not a question.
+- A build runs unattended: a task gets 5 attempts a session (coder failure, review failure or
+  refused commit; each one tier up), then `arbiter` rules from a closed list and the build goes on.
+  It asks only on `VERDICT: DENIED`, on a coder whose every `DECIDE:` option is owner-marked, and
+  on `orphan:` (skip / commit now, via `commit-task.sh --outside`) - see `CLAUDE.owner-decisions.md`.
 - Coders and reviewers keep git read-only (never `stash`, `checkout`, `restore`, `clean`):
   parallel tasks share one working tree. A coder's two git writes are `git rm -r -q` (removal)
   and `git update-index --chmod=+x` (exec bit): `commit-task.sh` commits only its named paths,
@@ -90,7 +88,7 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 ## Commit ownership
 
 - Only scripts commit: `plan-index.sh --split` (the decomposition), `commit-task.sh` (every task,
-  repair, close, e2e and final-review-fix commit, `--skip`, `--decide`, and `--landed <sha>` recording a task
+  repair, close, e2e, final-review-fix and `--outside` commit, `--skip`, `--decide`, `--rule`, and `--landed <sha>` recording a task
   another commit carried in its own `chore(viber)` commit, never with `--with`), `archive-run.sh`
   (the archive), and outside a build the `commit` skill's `commit.sh`. No agent or skill runs
   `git add` or `git commit`. `planner` leaves a landed draft uncommitted; `memory` and `rules`
@@ -115,6 +113,8 @@ copies (never moves) the plan-mode file, a round landing into the draft its `int
 - `roadmap.md` - only when the plan has a `## Roadmap`: `plan-index.sh --split` cuts it out of
   `spec.md` (never a model's write) and it rides into the archive as a non-scaffolding file.
 - `status.md` - `commit-task.sh` is its only writer (`plan-index.sh` creates it empty).
+- `rulings.md` - the build's rulings, `commit-task.sh --rule` its only writer, created by the first
+  ruling; it rides in the archive.
 
 `archive-run.sh` moves it to `docs/<specifications>/<key>/` (`docs/specs/` by default), dropping
 only the scaffolding it enumerates, and refuses a run with a task in neither `done` nor
