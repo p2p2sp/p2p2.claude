@@ -226,9 +226,11 @@ Then `"${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh" "<started>"`, one call.
 
 Complete every task the last `progress: <n>/<total>` settled and every entry still open. Never delete the list.
 
-Final summary, max 7 lines: tasks committed, review rounds spent, test verdict, the clock's `elapsed:` (none on `elapsed: unknown`, never estimated), what memory, rules and QA recorded, the archive path and its drift, then everything the steps carried to it.
+Final summary, max 7 lines: tasks committed, review rounds spent, test verdict, the clock's `elapsed:` (none on `elapsed: unknown`, never estimated), what memory, rules and QA recorded, the archive path and its drift, then everything the steps carried to it but the `FIXED:` and `OWNER:` lines.
 
-After the summary and outside its 7 lines, list the rulings: each index `ruling:` line, then each ruling this session recorded that is not already one, every one with its ruling, `why:` and `cost if wrong:`.
+After the summary and outside its 7 lines, list every `FIXED:` line the final review carried, then every `OWNER:` line it carried, each verbatim.
+
+After those, also outside its 7 lines, list the rulings: each index `ruling:` line, then each ruling this session recorded that is not already one, every one with its ruling, `why:` and `cost if wrong:`.
 
 A run of more than 5 tasks adds one line after the summary, outside its 7: propose running `code-review`.
 

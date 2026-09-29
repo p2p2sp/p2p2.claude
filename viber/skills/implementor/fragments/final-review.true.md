@@ -45,4 +45,4 @@ memory: <the config block's memory value>
 - Recheck `VERDICT: FAIL` -> no second fix round: the arbiter (no `model`) with `case: final-review`, `options: accept`, `report:` the recheck's `REPORT` path. Record its ruling with subject `final-review`, then commit the fix, that `REPORT` path named in the final summary.
 - Commit the fix: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --review "<plan>" "<file>" ["<file>"...]` naming every fix path.
 
-Complete the entry. Carry to the final summary: every `OWNER:` line any reviewer or recheck returned, every fix coder's `REASON:` on `FAIL`, every accepted recheck `REPORT`, and every refusal accepted through this step.
+Complete the entry. Carry to the final summary: every `FIXED:` line the fix coder returned, every `OWNER:` line any reviewer or recheck returned, every fix coder's `REASON:` on `FAIL`, every accepted recheck `REPORT`, and every refusal accepted through this step.
