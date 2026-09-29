@@ -108,8 +108,10 @@ tiers:
 A `branching:` group says whether a run works on its own git branch, and can describe several
 kinds of branch - each with its own base, name pattern and pull request target - picked by the
 type of the GitHub issue a run starts from through `issue-type-mappings`. `mode` is `off` (stay on
-the branch the run started on, today's behavior), `allowed` (the plan offers a branch and you
-confirm it) or `required` (a run always gets its own branch). Nothing is fetched, pushed, merged or
+the branch the run started on, today's behavior), `allowed` (the run may get its own branch) or
+`required` (a run always gets its own branch, never an entry's base). Under both, the entry is
+settled when the interview or diagnosis starts, before any code is read, with an offer to switch
+to its base first; the planner takes the branch from there. Nothing is fetched, pushed, merged or
 deleted: the branch is only created, switched to and committed on. See
 [`viber/BRANCHING.md`](BRANCHING.md) for the full schema and one example per branching strategy -
 trunk based development, GitHub Flow, GitLab Flow, Release Flow and GitFlow.

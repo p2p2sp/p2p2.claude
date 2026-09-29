@@ -17,8 +17,29 @@ branching:
 ```
 
 - `off` - a run stays on the branch it started on, exactly as without this feature.
-- `allowed` - the plan offers a branch during planning and waits for your confirmation.
-- `required` - a run always gets its own branch.
+- `allowed` - the run may get its own branch: you pick the entry, or no branch, when the interview
+  or diagnosis starts.
+- `required` - a run always gets its own branch, and never commits onto the `base` of any work
+  entry.
+
+## When the branch is settled
+
+Under `allowed` or `required`, `/viber:intent` and `/viber:fixer` settle the run's work entry
+before they read any code:
+
+- The entry is taken without a question when the issue type maps to one or exactly one entry is
+  usable; otherwise you are asked which entry, `allowed` adding "no branch".
+- HEAD is then checked against that entry's `base`: when HEAD is at another commit you are asked
+  to switch to the base now, stay on the current branch, or abort, with how far the base is behind
+  its remote. A base missing locally cannot be switched to, and uncommitted changes block the
+  switch until you commit or stash them.
+- Under `required`, staying is never offered on a detached HEAD or on any entry's base.
+- `/viber:intent` continuing a draft asks no entry question and offers a switch to the draft's
+  recorded branch when HEAD is elsewhere.
+
+The chosen entry, and the branch you stayed on, travel with the interview summary or the diagnosis
+to the planner, which records the branch from them instead of asking again. Under `required`,
+landing a plan whose run branch is any entry's base is refused.
 
 ## Work entries
 

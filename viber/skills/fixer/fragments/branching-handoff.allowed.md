@@ -1,0 +1,1 @@
+- **Run branch** - `Work: <entry key>`, or `Work: none` after "no branch", then `Branch: <the current: value>` only after "stay", never for `current: detached`; each line on its own, neither when the start step handed off no branch line.

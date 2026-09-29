@@ -1600,11 +1600,14 @@ przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało 
   <p lang="en">With <a href="#key-branching-mode"><code>branching.mode</code></a> set to allowed or required, the
   run works on its own branch, and the build lands nothing until it is on it. The message names the reason,
   for example uncommitted changes while the branch points at another commit. Commit or stash them, then ask
-  for the build again.</p>
+  for the build again. Under required, a run branch that is the base of any work entry is refused as well:
+  a required run never commits onto an entry's base, so plan the change again on its own branch.</p>
   <p lang="pl">Gdy <a href="#key-branching-mode"><code>branching.mode</code></a> ma wartość allowed albo required,
   przebieg pracuje na własnej gałęzi i build niczego nie zaczyna, dopóki się na niej nie znajdzie. Komunikat
   podaje powód, na przykład niezacommitowane zmiany, gdy gałąź wskazuje inny commit. Zacommituj je albo odłóż
-  przez stash i poproś o build jeszcze raz.</p>
+  przez stash i poproś o build jeszcze raz. Przy required odrzucana jest też gałąź przebiegu będąca bazą
+  któregokolwiek wpisu work: przebieg required nigdy nie commituje na bazę wpisu, więc zaplanuj zmianę jeszcze
+  raz na jej własnej gałęzi.</p>
 </details>
 <details id="ts-task-fails">
   <summary><span lang="en">What happens when a task keeps failing?</span><span lang="pl">Co się dzieje, gdy zadanie ciągle się nie udaje?</span></summary>
@@ -2022,10 +2025,15 @@ z nich mówi, jak nim sterować.</p>
       <dd><span lang="en"><a href="#key-issues"><code>issues</code></a> on: it reads the issue it starts from and
       can post the confirmed summary there as a comment. An interview that started from no issue can save its
       summary as a new one, built from your project's issue templates; <code>/viber:intent #42</code> resumes it
-      later.</span><span lang="pl"><a href="#key-issues"><code>issues</code></a> włączony: czyta issue, od którego
+      later. <a href="#key-branching-mode"><code>branching.mode</code></a> set to allowed or required: before
+      reading any code it settles which work entry the run uses and checks that you are on that entry's base,
+      offering a switch to it; a continued draft is checked against its recorded branch.</span><span lang="pl"><a href="#key-issues"><code>issues</code></a> włączony: czyta issue, od którego
       startuje, i może opublikować tam potwierdzone podsumowanie jako komentarz. Wywiad, który nie zaczął się od
       issue, może zapisać podsumowanie jako nowe issue, zbudowane z szablonów issue twojego projektu;
-      <code>/viber:intent #42</code> wznowi je później.</span></dd>
+      <code>/viber:intent #42</code> wznowi je później. <a href="#key-branching-mode"><code>branching.mode</code></a>
+      ustawiony na allowed albo required: zanim przeczyta jakikolwiek kod, ustala, którego wpisu work używa
+      przebieg, i sprawdza, czy jesteś na bazie tego wpisu, proponując przełączenie się na nią; kontynuowany
+      szkic jest sprawdzany względem zapisanej w nim gałęzi.</span></dd>
     </div>
     <div>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
@@ -2191,8 +2199,15 @@ z nich mówi, jak nim sterować.</p>
     <div>
       <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
       <dd><span lang="en"><a href="#key-issues"><code>issues</code></a> on: it reads the issue as the bug report
-      and the plan keeps the link to it.</span><span lang="pl"><a href="#key-issues"><code>issues</code></a>
-      włączony: czyta issue jako opis błędu, a plan zachowuje powiązanie z nim.</span></dd>
+      and the plan keeps the link to it. <a href="#key-branching-mode"><code>branching.mode</code></a> set to
+      allowed or required: before tracing any code it settles which work entry the run uses and checks that you
+      are on that entry's base, offering a switch to it, so the failing test proves the bug on the code the fix
+      will change.</span><span lang="pl"><a href="#key-issues"><code>issues</code></a>
+      włączony: czyta issue jako opis błędu, a plan zachowuje powiązanie z nim.
+      <a href="#key-branching-mode"><code>branching.mode</code></a> ustawiony na allowed albo required: zanim
+      prześledzi jakikolwiek kod, ustala, którego wpisu work używa przebieg, i sprawdza, czy jesteś na bazie
+      tego wpisu, proponując przełączenie się na nią, żeby test udowodnił błąd na kodzie, który zmieni
+      poprawka.</span></dd>
     </div>
     <div>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
@@ -2659,10 +2674,18 @@ domyślnego. Planowanie działa na modelu bieżącej sesji i zakres go nie ogran
 <dl>
   <div id="key-branching-mode">
     <dt><code>mode</code> <span class="tag">off</span></dt>
-    <dd><span lang="en">off stays on the branch the run started on. allowed offers a branch
-    during planning and waits for your confirmation. required always gives the run its own branch.</span><span lang="pl">off
-    zostawia przebieg na gałęzi, na której się zaczął. allowed proponuje gałąź podczas
-    planowania i czeka na twoje potwierdzenie. required zawsze daje przebiegowi własną gałąź.</span></dd>
+    <dd><span lang="en">off stays on the branch the run started on. allowed lets the run get its own
+    branch, or none if you choose. required always gives the run its own branch and never commits onto the
+    base of any work entry: staying on one, or on a detached HEAD, is not offered. Under both, the interview or
+    diagnosis settles the work entry when it starts, before reading any code, and when you are not on that
+    entry's base it offers to switch there, stay, or abort; the planner then takes the branch from that
+    choice.</span><span lang="pl">off
+    zostawia przebieg na gałęzi, na której się zaczął. allowed pozwala przebiegowi dostać własną gałąź albo,
+    jeśli tak wybierzesz, żadnej. required zawsze daje przebiegowi własną gałąź i nigdy nie commituje na bazę
+    żadnego wpisu work: pozostanie na takiej bazie albo na odłączonym HEAD nie jest proponowane. W obu
+    przypadkach wywiad albo diagnoza ustala wpis work na samym początku, zanim przeczyta jakikolwiek kod, a gdy
+    nie jesteś na bazie tego wpisu, proponuje przełączenie się na nią, pozostanie albo przerwanie; planista
+    bierze potem gałąź z tego wyboru.</span></dd>
   </div>
   <div id="key-branching-work">
     <dt><code>work</code></dt>

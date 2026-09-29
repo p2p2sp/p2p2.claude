@@ -2,7 +2,7 @@
 name: intent
 description: Planning interview - asks what the conversation and the code leave open, one question at a time, sizes the scope, proposes the spec shape and hands a confirmed summary to viber:planner. Never start it on your own initiative. When a change looks like it needs a plan and no confirmed interview or viber:fixer diagnosis is in context, keep talking with the user and suggest, in one line, this interview or `plain plan mode` (Claude Code's own plan mode, no interview) for a small, well-understood change; invoke it only after the user agrees or asks to plan, design or be interviewed. Not for a change the user asked to make directly, without a plan.
 argument-hint: "[--prove] [what to plan, or an issue number/URL when issues is on]"
-allowed-tools: Read, Grep, Glob, Skill, Edit(./.temp/viber/intent/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-templates.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/create-issue.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*)
+allowed-tools: Read, Grep, Glob, Skill, Edit(./.temp/viber/intent/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-templates.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/create-issue.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*)
 user-invocable: true
 disable-model-invocation: false
 ---
@@ -13,6 +13,10 @@ Turn a raw intent into an understanding a planner can act on. You write no code.
 
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-input
+```
+
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" branching.""mode "${CLAUDE_SKILL_DIR}" branching-start
 ```
 
 ## Returning to a draft
@@ -100,6 +104,10 @@ Show that as a summary under 15 lines and ask for confirmation. It closes on the
 
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-done
+```
+
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" branching.""mode "${CLAUDE_SKILL_DIR}" branching-handoff
 ```
 
 Hand off: invoke the `viber:planner` skill, restating the confirmed summary verbatim in that invocation - repeated in the newest turn it survives a compaction the interview behind it does not. A conversation carrying a `Prototype: <absolute path of the mockup>` line (`viber:prototype`'s hand-off) carries that line into the summary exactly as written; a conversation with none adds none.

@@ -2,7 +2,7 @@
 name: fixer
 description: Traces a reported bug to its root cause and proves it with a failing test, then hands the diagnosis to the planner - it applies no fix itself. Use whenever user reports a bug and wants to fix it. Not for a fix the user asked to apply directly, without a plan.
 argument-hint: "[bug report, or an issue number/URL when issues is on]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*)
 user-invocable: true
 disable-model-invocation: false
 effort: high
@@ -36,6 +36,10 @@ Three laws, in this order. None substitutes for another.
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-report
 ```
 
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" branching.""mode "${CLAUDE_SKILL_DIR}" branching-start
+```
+
 ## The reproduction test
 - Read `${CLAUDE_PLUGIN_ROOT}/references/test-strategy.md` before writing it: every rule it marks `(blocking)` binds this test, and no later stage may change it.
 - Narrowest level that reproduces the divergence - unit at the diverging layer, not an end-to-end run of the symptom.
@@ -57,6 +61,10 @@ The handoff payload - state it in context, in this order. No report file: the pa
 - **Spec shape** - `spec-lite`, always: a fixer diagnosis never proposes `spec-full`.
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-diagnosis
+```
+
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" branching.""mode "${CLAUDE_SKILL_DIR}" branching-handoff
 ```
 
 ## Handoff [GATE]
