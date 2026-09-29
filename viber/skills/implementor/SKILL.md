@@ -145,7 +145,7 @@ Attempts: an attempt is one coder dispatch, a `WAIT:` hold and the retry of a `V
 Arbiter dispatch: `viber:arbiter` (Agent tool, no `model`) carrying `case:`, `options:` (the closed list, its first the fallback), `task:`, `report:` and `reason:` lines as the case below names, the last two omitted when empty. Its `RULED` return is recorded, then carried out, without a question:
 
 - A `RULING` naming no listed option -> take the first option, the mismatch named in the final summary.
-- Record it: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --rule "<plan>" "<id>" "<ruling>" "<why>" "<cost>"`, the `RULING`, `WHY` and `COST` each one line with every double quote, dollar sign, backtick or backslash rewritten into words. Exit non-zero -> name it in the final summary, rule nothing further, retry nothing, and carry the ruling out.
+- Record it: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --rule "<plan>" "<subject>" "<ruling>" "<why>" "<cost>"`, `<subject>` being the task's id, else the case name (`baseline`, `tests`, `final-review`, `commit`), the `RULING`, `WHY` and `COST` each one line with every double quote, dollar sign, backtick or backslash rewritten into words. Exit non-zero -> name it in the final summary, rule nothing further, retry nothing, and carry the ruling out.
 - A `--skip` or `--decide` call exiting non-zero after a ruling -> name it in the final summary, ask nothing, and carry on.
 - `VERDICT: DENIED` -> `AskUserQuestion` naming the refused call from its `REASON:` line: retry / accept / abort.
 
@@ -186,8 +186,8 @@ Repair commit, every path on the coder's `FILES:` line through the form that own
 - A path no column claims -> one `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --repair "<plan>" "<round>" "<file>" ["<file>"...]` for all of them. Never borrow a task id for such a file.
 
 - Test-runner `VERDICT: PASS` or `VERDICT: SKIP` -> `TaskUpdate` -> completed.
-- Test-runner `VERDICT: FAIL`, round 1 or 2 of 3 -> repair dispatch.
-- Test-runner `VERDICT: FAIL`, round 3 of 3 -> `AskUserQuestion`: retry / accept / abort.
+- Test-runner `VERDICT: FAIL`, round 1 to 5 -> repair dispatch.
+- Test-runner `VERDICT: FAIL`, round 6 -> the arbiter with `case: tests`, `options: accept`, `report:` that run's `REPORT` path. Record its ruling with subject `tests`, then go to step 6, that failing run named in the final summary.
 - Test-runner `VERDICT: DENIED` -> `AskUserQuestion`: retry / accept / abort.
 - Repair coder `PASS` or `FAIL` -> repair commit, then test-runner at the next round. No `FILES:` line -> no commit, test-runner at the next round.
 - Repair coder `VERDICT: DENIED` -> commit nothing; `AskUserQuestion`: retry / accept / abort.
