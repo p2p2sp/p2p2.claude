@@ -154,7 +154,7 @@
   <text x="451" y="576" class="badge-t" text-anchor="middle">skill</text>
   <text x="64" y="584" class="mono-t">/viber:intent</text>
   <text x="64" y="610" class="desc">One question at a time, with options and a recommendation.</text>
-  <text x="64" y="628" class="desc">Too big for one cycle? Split into ordered parts, first part only.</text>
+  <text x="64" y="628" class="desc">Too big for one cycle? Split into ordered parts, every part discussed.</text>
   <text x="64" y="646" class="desc">Writes nothing - it ends in a summary you confirm.</text>
   <text x="64" y="672" class="desc-s"><tspan class="sw">issues</tspan> on: can start from a GitHub issue or open a new one</text>
 

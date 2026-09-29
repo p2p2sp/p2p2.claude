@@ -953,9 +953,11 @@ poproś o nią Claude wprost i powiedz, że ma ją zrobić bez planu.</p>
   <summary><span lang="en">Large requests, drafts and small plans</span><span lang="pl">Duże prośby, szkice i małe plany</span></summary>
   <ul class="rare">
     <li><span lang="en">A request made of several independent parts gets a proposed split into subprojects
-    first. Only the first one is interviewed; each later one gets its own cycle.</span><span lang="pl">Prośba
+    first. Every part is interviewed up front and each gets its own cycle; the later parts' decisions are kept
+    in <code>roadmap.md</code>, and a finished build names the next part.</span><span lang="pl">Prośba
     złożona z kilku niezależnych części najpierw dostaje propozycję podziału na podprojekty. Wywiad obejmuje
-    tylko pierwszy z nich, każdy kolejny przechodzi własny cykl.</span></li>
+    każdy z nich, a każdy przechodzi własny cykl; decyzje późniejszych części zostają w
+    <code>roadmap.md</code>, a zakończony build wskazuje następną część.</span></li>
     <li><span lang="en"><code>/viber:intent --prove let admins deactivate a user account</code> has
     <a href="#agent-prover"><code>prover</code></a> check the claims of every question against the code before
     you see it.</span><span lang="pl"><code>/viber:intent --prove pozwól administratorom dezaktywować konto
@@ -1447,23 +1449,26 @@ odmówiono recenzentowi), a komunikat mówi, że pochodzi od bramki i nie jest b
 <p lang="en">A build copies the approved plan into its own directory,
 <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code>, and cuts it there into <code>spec.md</code>, the
 specification, and one file per task under <code>tasks/</code>. <code>status.md</code> records which tasks are
-done or skipped, and <code>work/</code> holds the agents' notes and reports. The directory is committed together
-with every task, which is why a build resumes in a new session or on another machine.</p>
+done or skipped, and <code>work/</code> holds the agents' notes and reports. A plan of one part of a split
+request also gets <code>roadmap.md</code>: the parts and the decisions settled for the later ones. The directory
+is committed together with every task, which is why a build resumes in a new session or on another machine.</p>
 <p lang="pl">Build kopiuje zatwierdzony plan do własnego katalogu,
 <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code>, i tam dzieli go na <code>spec.md</code>, czyli specyfikację,
 oraz osobny plik dla każdego zadania w <code>tasks/</code>. <code>status.md</code> zapisuje, które zadania są
-ukończone lub pominięte, a w <code>work/</code> leżą notatki i raporty agentów. Katalog jest commitowany razem
-z każdym zadaniem, dlatego build da się wznowić w nowej sesji albo na innym komputerze.</p>
+ukończone lub pominięte, a w <code>work/</code> leżą notatki i raporty agentów. Plan jednej części dzielonej
+prośby dostaje też <code>roadmap.md</code>: listę części i decyzje podjęte dla późniejszych. Katalog jest
+commitowany razem z każdym zadaniem, dlatego build da się wznowić w nowej sesji albo na innym komputerze.</p>
 <p lang="en">With <a href="#key-cleanup"><code>cleanup</code></a> on, the build ends by moving the run to
 <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> in one commit. The archive keeps the specification and the QA
 documents and drops <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>, which
-git history still holds. A run with a task neither done nor skipped is never archived.
+git history still holds; <code>roadmap.md</code> stays in the archive with them. A run with a task neither done
+nor skipped is never archived.
 <a href="#key-directories"><code>directories</code></a> renames both directories.</p>
 <p lang="pl">Przy włączonym <a href="#key-cleanup"><code>cleanup</code></a> build kończy się przeniesieniem
 przebiegu do <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> w jednym commicie. Archiwum zachowuje
 specyfikację i dokumenty QA, a usuwa <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code>
-i <code>work/</code>, które nadal są w historii gita. Przebieg z zadaniem ani ukończonym, ani pominiętym nigdy
-nie trafia do archiwum. Nazwy obu katalogów zmienisz kluczem
+i <code>work/</code>, które nadal są w historii gita; <code>roadmap.md</code> zostaje w archiwum razem z nimi.
+Przebieg z zadaniem ani ukończonym, ani pominiętym nigdy nie trafia do archiwum. Nazwy obu katalogów zmienisz kluczem
 <a href="#key-directories"><code>directories</code></a>.</p>
 
 <h3 class="sub" id="hw-tasks"><span lang="en">Tasks, review and one commit each</span><span lang="pl">Zadania, recenzja i osobny commit</span><a class="self" href="#hw-tasks">#</a></h3>
@@ -1987,12 +1992,14 @@ z nich mówi, jak nim sterować.</p>
   <h4><code>/viber:intent</code></h4>
   <p lang="en">The planning interview. It asks only what the conversation and the code leave open, one
   question at a time, each with three options and its recommendation first. A large request is split into
-  subprojects first, and only the first one is interviewed. It closes on a summary you confirm, then hands it
-  to <a href="#skill-planner"><code>planner</code></a>. It writes no code.</p>
+  subprojects first, and every part is interviewed. It closes on a summary you confirm, then hands it
+  to <a href="#skill-planner"><code>planner</code></a>. When a build of one part finishes, it names the next
+  part: run the interview on it and it resumes from the decisions of the first. It writes no code.</p>
   <p lang="pl">Wywiad planistyczny. Pyta tylko o to, czego nie rozstrzygają rozmowa i kod, jedno pytanie
   naraz, każde z trzema opcjami i rekomendacją na pierwszym miejscu. Dużą prośbę najpierw dzieli na
-  podprojekty i omawia tylko pierwszy z nich. Kończy się podsumowaniem, które potwierdzasz, a potem
-  przekazuje je do <a href="#skill-planner"><code>planner</code></a>. Nie pisze kodu.</p>
+  podprojekty i omawia każdy z nich. Kończy się podsumowaniem, które potwierdzasz, a potem
+  przekazuje je do <a href="#skill-planner"><code>planner</code></a>. Gdy build jednej części się kończy,
+  wskazuje następną: uruchom na niej wywiad, a wznowi go od decyzji pierwszej. Nie pisze kodu.</p>
   <dl>
     <div>
       <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>

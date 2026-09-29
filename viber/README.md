@@ -56,9 +56,9 @@ way, the conclusions carry on to `/viber:intent`.
 The interview asks one question at a time, with three concrete options and a recommendation, and
 says so out loud when your answer is weak. An idea too big for one cycle, a whole application or a
 platform of several independent subsystems, is split into ordered parts before any detail question,
-and the interview then covers the first part only. Each part gets its own plan and its own build,
-and nothing is faked in between: what a later part brings is out of scope until its turn, never a
-stub. You approve the plan yourself, but only after a reviewer
+and the interview then discusses every part. Each part gets its own plan and its own build, and a
+finished build names the next part, which resumes from the decisions already made. Nothing is faked
+in between: what a later part brings is out of scope until its turn, never a stub. You approve the plan yourself, but only after a reviewer
 has read it against your actual codebase. Then the build runs task by task, reviews each one,
 commits it, runs one final review of the whole build, and finishes on the full test suite.
 End-to-end tests stay with your CI and `/viber:e2e` unless you explicitly ask for them.
