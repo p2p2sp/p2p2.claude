@@ -311,6 +311,21 @@ test("a file the run left outside the enumerated scaffolding rides into the arch
   );
 });
 
+test("roadmap.md seeded in the run directory is archived", () => {
+  withSeededRepo(
+    (repo, runDir) => {
+      assert.equal(run(repo.dir, [runDir], repo.env).status, 0);
+      assert.deepEqual(filesUnder(repo.dir, `docs/specs/${KEY}`), [
+        "qa.e2e.md",
+        "qa.md",
+        "roadmap.md",
+        "spec.md",
+      ]);
+    },
+    { extra: { "roadmap.md": "# Roadmap\n\nNext part describes what follows.\n" } },
+  );
+});
+
 test("the move is one commit, and a spec.md edited before the call lands as a rename plus a modification", () => {
   withSeededRepo((repo, runDir) => {
     // what closeout does just before calling: the drift, marked in place
