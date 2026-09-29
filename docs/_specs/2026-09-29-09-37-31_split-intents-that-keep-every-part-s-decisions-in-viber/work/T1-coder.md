@@ -1,3 +1,0 @@
-- Both templates now say `<part>` instead of `<subproject>` (C2 wording); the guidance comment says "the build cuts it into roadmap.md" without naming `plan-index.sh`, since the planner reading it never runs the script.
-- `roadmapSection()` in tests/viber/plan-index.test.ts cuts from `## Roadmap` to the next `^## ` line, the same span C2 gives `--split`; a later task testing roadmap.md can reuse it.
-- The per-template cases are a module-level loop over `test()` (node:test's parameterised form), so no test body holds control flow.

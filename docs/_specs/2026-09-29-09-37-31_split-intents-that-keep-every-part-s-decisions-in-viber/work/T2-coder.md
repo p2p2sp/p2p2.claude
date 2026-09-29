@@ -1,4 +1,0 @@
-- The Roadmap cut rides the existing spec.md loop (same fence-aware comment strip, own blank-line state `rblank`/`rkept`), so the two outputs cannot disagree on where a comment or fence ends; the section ends at the next `^##[[:space:]]` line outside a fence or comment.
-- `--split` now removes a stale `<dir>/roadmap.md` alongside `tasks/` before rewriting, so a re-split of a plan that dropped the section leaves none behind (a previously committed one then shows as an uncommitted deletion, not staged by the split).
-- The commit pathspec is the `split_paths` array; `roadmap.md` joins it only when the file exists, since `git add -A -- <missing path>` would fail the whole add.
-- The DoD.3 test (no roadmap.md, spec.md byte-equal to `liteHead(2)`) passes on the old script by design: it guards against an unconditional write, not a new behaviour.
