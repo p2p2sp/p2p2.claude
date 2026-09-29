@@ -19,6 +19,8 @@ Turn a raw intent into an understanding a planner can act on. You write no code.
 
 A draft the user points at - a landed plan carrying a specification and not one task block - is resumed, not interviewed again. Read that file first, then ask only about what the round of remarks changed: everything the draft already states is settled and costs no question. Ask which this round is: another draft round to circulate, or the task half on top of the settled specification. Close on the same confirmed summary, stating that round decision and naming the draft's run key so the next round lands in its own directory.
 
+A `roadmap.md` the user points at is resumed the same way: its first entry with no `(built)` or `(this plan)` marker is the next part, and its listed decisions are settled and cost no question. Ask only what the builds since changed and that part's open unknowns. The summary carries that part's decisions as settled, the later parts as boundaries, and closes on the `Roadmap:` line naming the file.
+
 ## Before the first question
 
 Two sources already hold answers, and a question spent on either is wasted.
@@ -33,11 +35,11 @@ When those two sources already answer everything `## Done` asks for, skip every 
 Decide this before the first detail question.
 
 - One coherent capability: interview it whole and skip the rest of this section.
-- Several independent subsystems, the shape of "build the whole application" or "a platform with chat, file storage, billing and analytics": ask no detail question yet. Propose the split in prose, one line per subproject - what it owns, what it consumes from the ones before it - plus the order, and correct it until the user accepts it.
-- Order the subprojects so each one consumes only what earlier ones produced. Two pieces that cannot be ordered that way are not independent and belong to one subproject.
-- A subproject boundary is not a delivery. What a later subproject brings is absent until its own cycle, never replaced by a stub, a mock, a hardcoded value or a temporary alternative. So never ask what to use instead, and never let an answer invent one: the absence belongs in the boundaries, as out of scope.
+- A scope too large for one plan, the shape of "build the whole application" or "a platform with chat, file storage, billing and analytics": ask no detail question yet. Split it as a mechanical cut of that one specification - a part is never a release. Propose the split in prose, one line per part - what it owns, what it consumes from the ones before it - plus the order, and correct it until the user accepts it.
+- Order the parts so each one consumes only what earlier ones produced. Two pieces that cannot be ordered that way are not independent and belong to one part.
+- A part boundary is not a delivery. What a later part brings is absent until its own build, never replaced by a stub, a mock, a hardcoded value or a temporary alternative, and no criterion may need a working application between parts. So never ask what works between parts, never ask what to use instead, and never let an answer invent one: the absence belongs in the boundaries, as out of scope.
 
-Then interview the FIRST subproject only. The rest wait for their own cycle.
+Once the split is accepted, interview every part in order, each with the questions of `## The interview`. A question that hangs on code an earlier part writes is not asked: it becomes an unknown for that part, resolved at the start of that part's own plan.
 
 ## Propose the spec shape
 
@@ -94,7 +96,7 @@ Solution shape comes last and only where the user holds an opinion. Design decis
 
 Stop when you can state, without guessing: the problem, the acceptance criteria, what is out of scope, the binding constraints. Every unknown carries a named way to resolve it and no question to the user is left open.
 
-Show that as a summary under 15 lines and ask for confirmation. It closes on the spec shape and, when the user asked for one, the draft mode. A split intent opens its summary with the accepted roadmap, one line per subproject plus which one this cycle covers, and names every later one among the boundaries. On a correction, fix the summary and confirm again. On confirmation, take the first branch that applies:
+Show that as a summary under 15 lines and ask for confirmation. It closes on the spec shape and, when the user asked for one, the draft mode. A split intent opens its summary with the accepted roadmap, one line per part plus which one this cycle covers, carrying under each later part the decisions settled for it and its open unknowns, and names every later part among the boundaries; its cap is 15 lines plus up to 5 per later part carrying its decisions. A summary resuming a roadmap.md closes with the line `Roadmap: <repo-relative path of roadmap.md>`. On a correction, fix the summary and confirm again. On confirmation, take the first branch that applies:
 
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-done
