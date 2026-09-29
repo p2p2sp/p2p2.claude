@@ -98,6 +98,28 @@ test("`final-review` off prints nothing - there is no fragment for the off state
   });
 });
 
+test("`fast-path: true` prints the skill's fast-path.true.md fragment", () => {
+  withGitRepo((repo) => {
+    writeConfig(repo, "fast-path: true\n");
+    writeFragment(repo, "fast-path.true.md", "Show the design in chat.\n");
+
+    const result = run(repo, ["fast-path", skillDir(repo), "fast-path"]);
+
+    assert.deepEqual([result.status, result.stdout], [0, "Show the design in chat.\n"]);
+  });
+});
+
+test("`fast-path` off prints nothing - there is no fragment for the off state", () => {
+  withGitRepo((repo) => {
+    writeConfig(repo, "fast-path: false\n");
+    writeFragment(repo, "fast-path.true.md", "Show the design in chat.\n");
+
+    const result = run(repo, ["fast-path", skillDir(repo), "fast-path"]);
+
+    assert.deepEqual([result.status, result.stdout], [0, ""]);
+  });
+});
+
 for (const [config, mode] of [
   ["branching:\n  mode: required\n", "required"],
   ["branching:\n  mode: Allowed\n", "allowed"],

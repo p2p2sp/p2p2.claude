@@ -39,6 +39,11 @@ plain-plan-review: true
 # An interview or a diagnosis can save its conclusions as a new GitHub issue, or keep working on the one it started from.
 issues: false
 
+# intent can offer a middle road for a small, well-scoped change to existing
+# code: a short design shown in chat, built only after your explicit yes, with
+# no plan file and no run directory.
+fast-path: true
+
 # The two directories under docs/: where an open run lives, and where the
 # archive of a finished one lands. Directory NAMES, not paths - a value with a
 # slash in it is ignored and the default stands. Both are read only from inside

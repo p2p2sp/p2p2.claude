@@ -392,6 +392,7 @@ const SWITCH_VALUES: Record<string, string[]> = {
   "final-review": ["true", "false"],
   "plain-plan-review": ["true", "false"],
   issues: ["true", "false"],
+  "fast-path": ["true", "false"],
   "branching.mode": ["off", "allowed", "required"],
 };
 

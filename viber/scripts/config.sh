@@ -34,7 +34,7 @@
 #   env    : none.
 #   file   : <repo root>/.claude/viber.yml (optional). No file -> every switch
 #            false, every directory key at its default.
-#   keys   : adr, memory, rules, qa, cleanup, final-review, plain-plan-review, issues - switches. One is `true` ONLY
+#   keys   : adr, memory, rules, qa, cleanup, final-review, plain-plan-review, issues, fast-path - switches. One is `true` ONLY
 #            when the file holds a line whose key starts at column 0, spells
 #            the key name exactly (case-sensitive, no leading indentation),
 #            and whose value is `true` in any letter case (ended by a space,
@@ -77,6 +77,7 @@
 #              final-review: true
 #              plain-plan-review: true
 #              issues: true
+#              fast-path: true
 #              directories.runs: _specs
 #              directories.specifications: specs
 #              tiers.min: haiku
@@ -287,7 +288,7 @@ if [ "${1:-}" = "--branching" ]; then
 fi
 
 echo "# viber config (resolved)"
-for key in adr memory rules qa cleanup final-review plain-plan-review issues; do
+for key in adr memory rules qa cleanup final-review plain-plan-review issues fast-path; do
   printf '%s: %s\n' "$key" "$(resolve "$key")"
 done
 printf 'directories.runs: %s\n' "$(resolve_dir runs _specs)"

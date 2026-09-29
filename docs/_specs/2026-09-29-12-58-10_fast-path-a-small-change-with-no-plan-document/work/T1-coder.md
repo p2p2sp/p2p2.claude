@@ -1,0 +1,4 @@
+- Template puts `fast-path` right after `issues` (config.sh order); the merge appends a missing key at file end, so bootstrap.test.ts fixtures that must stay "complete" now carry a `fast-path` line.
+- help.html: entry added after `key-issues`; help.test.ts derives the required key entries from the template, so DoD.6 rides on that existing test.
+- The flow diagrams (SVG) and the description of the fast path in README/help prose beyond the switch row are not in T1's Files: left for the task that owns them.
+- No `fast-path.true.md` fragment or `intent` call added here (not in Files).
