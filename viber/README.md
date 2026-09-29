@@ -68,6 +68,14 @@ has read it against your actual codebase. Then the build runs task by task, revi
 commits it, runs one final review of the whole build, and finishes on the full test suite.
 End-to-end tests stay with your CI and `/viber:e2e` unless you explicitly ask for them.
 
+The build runs to its end without you at the keyboard. A task gets up to 5 attempts, each one model
+tier up. Where it would otherwise stop and ask - a task past its 5 attempts, a red baseline or
+final test run, a failed final-review recheck, a refused commit - an arbiter agent picks one way
+forward from a closed list, and the build writes down every such ruling, with its reason and what
+it costs if wrong, in `rulings.md` in the run directory. The final summary lists them. The build still stops to ask you at a refused tool call, when it finds
+another open run or changed files no task claims, when a task's coder hands the decision to the
+owner, and when nothing was committed for a task.
+
 ![How viber works](skills/setup/assets/viber-flow-en.svg)
 
 ## Optional switches
@@ -85,7 +93,7 @@ left as it is.
 | `rules` | on | The build closes by recording a convention it confirmed in `.claude/rules/`. |
 | `qa` | **off** | The build closes by writing test scenarios for what it delivered, which `/viber:e2e` can then automate. |
 | `cleanup` | on | The build ends by noting anything it delivered that the specification does not promise, then archiving the run and dropping the working files. |
-| `final-review` | on | After every task is committed and before the final test run, one reviewer looks at the whole build's diff for what per-task review and the test suite cannot see, a coder fixes what it finds, a reviewer rechecks the fix, and a failed recheck asks you to retry, accept, or describe your own fix. |
+| `final-review` | on | After every task is committed and before the final test run, one reviewer looks at the whole build's diff for what per-task review and the test suite cannot see, a coder fixes what it finds, a reviewer rechecks the fix, and after a failed recheck the arbiter rules on committing the fix as it stands, recorded in `rulings.md`. |
 | `plain-plan-review` | on | A plan written in plain plan mode, without the planner, must pass a review before plan mode can be left. |
 | `issues` | **off** | `/viber:intent`, `/viber:fixer` and `/viber:prototype` can start from a GitHub issue's number or link, and an interview that did not can save its conclusions as a new one; `/viber:prototype` can post its mockup to the issue it started from; `/viber:triage` can fetch and publish to a GitHub issue instead of pasted text alone. |
 | `fast-path` | on | For a small, well-scoped change to existing code, `/viber:intent` shows a short design in chat and builds it only after your explicit yes, with no plan file and no run directory. |
@@ -147,10 +155,10 @@ the run produced are committed beside the plan: just ask Claude to continue the 
 reopens the run most recently worked on. A plan that stopped at a draft, with no tasks yet, is not
 a build to resume: point `/viber:intent` at it instead to continue it. The plan itself is never
 edited once it lands. With `qa` on, the build's test scenarios land there
-too.
+too. `rulings.md` appears beside them only when the build ruled on something.
 
 With `cleanup` on, the build ends by moving what is worth keeping - the specification and the test
-scenarios - to `docs/specs/<date>_<slug>/`, and dropping the plan, the progress file and the
+scenarios, plus `rulings.md` - to `docs/specs/<date>_<slug>/`, and dropping the plan, the progress file and the
 working notes. They are all in git, so nothing is lost; the archive is simply the half you would
 want to read a year later. Generated
 Playwright tests go into the e2e directory your own project already uses - `/viber:e2e` asks if

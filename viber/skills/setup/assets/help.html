@@ -800,12 +800,16 @@ któregoś brakuje, daje ci prompt do wklejenia do Claude.</p>
     <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code>, hands each task to
     <a href="#agent-task-coder"><code>task-coder</code></a>, has
     <a href="#agent-task-reviewer"><code>task-reviewer</code></a> check it where a review is due, and commits
-    each task on its own, titled <code>T1 - &lt;task title&gt;</code>.</p>
+    each task on its own, titled <code>T1 - &lt;task title&gt;</code>. It runs to the end without a person at the
+    keyboard: where it would otherwise stop and ask, the <a href="#agent-arbiter"><code>arbiter</code></a> rules,
+    and every ruling lands in <code>rulings.md</code>.</p>
     <p lang="pl"><a href="#skill-implementor">Build</a> kopiuje plan do
     <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code>, każde zadanie zleca
     <a href="#agent-task-coder"><code>task-coder</code></a>, tam, gdzie należy się recenzja, oddaje je do
     sprawdzenia <a href="#agent-task-reviewer"><code>task-reviewer</code></a> i każde zadanie commituje osobno,
-    z tytułem <code>T1 - &lt;tytuł zadania&gt;</code>.</p>
+    z tytułem <code>T1 - &lt;tytuł zadania&gt;</code>. Idzie do końca bez człowieka przy klawiaturze: tam, gdzie
+    inaczej zatrzymałby się i zapytał, rozstrzyga <a href="#agent-arbiter"><code>arbiter</code></a>, a każde
+    rozstrzygnięcie trafia do <code>rulings.md</code>.</p>
   </li>
   <li>
     <p class="say"><span lang="en">The build closes</span><span lang="pl">Build się zamyka</span></p>
@@ -1212,15 +1216,18 @@ wznowić w nowej sesji albo na innym komputerze.</p>
     yourself, name the plan: <q>build docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</q>.</span><span lang="pl">Gdy
     inny przebieg też ma nierozliczone zadania, pyta, który wznowić. Żeby wybrać samemu, podaj plan:
     <q>zbuduj docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</q>.</span></li>
-    <li><span lang="en">Changed files that no task claims get one question: which task takes them, or leave
-    them out.</span><span lang="pl">Zmienione pliki, do których nie przyznaje się żadne zadanie, dostają
-    jedno pytanie: które zadanie je przejmuje, czy zostawić je poza buildem.</span></li>
+    <li><span lang="en">Changed files that no task claims get one question: skip them, or commit them now in
+    a commit of their own.</span><span lang="pl">Zmienione pliki, do których nie przyznaje się żadne zadanie,
+    dostają jedno pytanie: pominąć je czy zacommitować od razu we własnym commicie.</span></li>
     <li><span lang="en">A draft is refused. <code>/viber:intent</code> pointed at the draft continues
     it.</span><span lang="pl">Szkicu build nie zbuduje. <code>/viber:intent</code> wskazujący szkic prowadzi go
     dalej.</span></li>
-    <li><span lang="en">A task that keeps failing ends on a question: retry, skip, accept or abort, or your own
-    ruling in words.</span><span lang="pl">Zadanie, które wciąż się nie udaje, kończy się pytaniem: ponowić,
-    pominąć, zaakceptować, przerwać albo twoje własne rozstrzygnięcie słowami.</span></li>
+    <li><span lang="en">A task that keeps failing gets 5 attempts, then the arbiter rules to accept or skip it
+    and writes the ruling to <code>rulings.md</code>. Only a coder that leaves the decision to you, or a
+    refused tool call, ends on a question.</span><span lang="pl">Zadanie, które wciąż się nie udaje, dostaje 5 prób,
+    a potem arbiter orzeka, czy je zaakceptować, czy pominąć, i zapisuje orzeczenie w <code>rulings.md</code>.
+    Pytaniem kończy się tylko wykonawca, który zostawia decyzję tobie, albo odmowa wywołania
+    narzędzia.</span></li>
   </ul>
 </details>
 </section>
@@ -1469,23 +1476,27 @@ odmówiono recenzentowi), a komunikat mówi, że pochodzi od bramki i nie jest b
 specification, and one file per task under <code>tasks/</code>. <code>status.md</code> records which tasks are
 done or skipped, and <code>work/</code> holds the agents' notes and reports. A plan of one part of a split
 request also gets <code>roadmap.md</code>: the parts and the decisions settled for the later ones. The directory
-is committed together with every task, which is why a build resumes in a new session or on another machine.</p>
+is committed together with every task, which is why a build resumes in a new session or on another machine.
+When the build rules where it would otherwise have asked you, it also writes <code>rulings.md</code>: one line
+per ruling, with its reason and what it costs if wrong. A build that ruled nothing has no such file.</p>
 <p lang="pl">Build kopiuje zatwierdzony plan do własnego katalogu,
 <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code>, i tam dzieli go na <code>spec.md</code>, czyli specyfikację,
 oraz osobny plik dla każdego zadania w <code>tasks/</code>. <code>status.md</code> zapisuje, które zadania są
 ukończone lub pominięte, a w <code>work/</code> leżą notatki i raporty agentów. Plan jednej części dzielonej
 prośby dostaje też <code>roadmap.md</code>: listę części i decyzje podjęte dla późniejszych. Katalog jest
-commitowany razem z każdym zadaniem, dlatego build da się wznowić w nowej sesji albo na innym komputerze.</p>
+commitowany razem z każdym zadaniem, dlatego build da się wznowić w nowej sesji albo na innym komputerze.
+Gdy build rozstrzyga tam, gdzie inaczej by cię zapytał, zapisuje też <code>rulings.md</code>: jedna linia na
+rozstrzygnięcie, z uzasadnieniem i kosztem pomyłki. Build, który niczego nie rozstrzygał, nie ma tego pliku.</p>
 <p lang="en">With <a href="#key-cleanup"><code>cleanup</code></a> on, the build ends by moving the run to
 <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> in one commit. The archive keeps the specification and the QA
 documents and drops <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>, which
-git history still holds; <code>roadmap.md</code> stays in the archive with them. A run with a task neither done
+git history still holds; <code>roadmap.md</code> and <code>rulings.md</code> stay in the archive with them. A run with a task neither done
 nor skipped is never archived.
 <a href="#key-directories"><code>directories</code></a> renames both directories.</p>
 <p lang="pl">Przy włączonym <a href="#key-cleanup"><code>cleanup</code></a> build kończy się przeniesieniem
 przebiegu do <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> w jednym commicie. Archiwum zachowuje
 specyfikację i dokumenty QA, a usuwa <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code>
-i <code>work/</code>, które nadal są w historii gita; <code>roadmap.md</code> zostaje w archiwum razem z nimi.
+i <code>work/</code>, które nadal są w historii gita; <code>roadmap.md</code> i <code>rulings.md</code> zostają w archiwum razem z nimi.
 Przebieg z zadaniem ani ukończonym, ani pominiętym nigdy nie trafia do archiwum. Nazwy obu katalogów zmienisz kluczem
 <a href="#key-directories"><code>directories</code></a>.</p>
 
@@ -1499,28 +1510,28 @@ Zadania, których zależności są już ukończone, idą równolegle, a zadanie 
 samo.</p>
 <p lang="en"><a href="#agent-task-coder"><code>task-coder</code></a> implements the task and proves it green,
 test first when the task says <code>TDD: required</code>. <a href="#agent-task-reviewer"><code>task-reviewer</code></a>
-then checks it against its definition of done, for up to three rounds. Review is skipped only for a task on
+then checks it against its definition of done, within the task's 5 attempts. Review is skipped only for a task on
 the sonnet <a href="#term-tier">tier</a> whose verification runs your build or tests; a task verified by a
 text check is always reviewed.</p>
 <p lang="pl"><a href="#agent-task-coder"><code>task-coder</code></a> realizuje zadanie i dowodzi, że testy
 przechodzą, zaczynając od testu, gdy zadanie ma <code>TDD: required</code>. Potem
 <a href="#agent-task-reviewer"><code>task-reviewer</code></a> sprawdza je względem definicji ukończenia,
-w najwyżej trzech rundach. Recenzję pomija tylko zadanie na <a href="#term-tier">poziomie</a> sonnet, którego
+w ramach 5 prób zadania. Recenzję pomija tylko zadanie na <a href="#term-tier">poziomie</a> sonnet, którego
 weryfikacja uruchamia budowanie albo testy projektu; zadanie weryfikowane sprawdzeniem tekstu zawsze
 przechodzi recenzję.</p>
 <p lang="en">A task that passes gets its own commit, titled <code>T3 - &lt;task title&gt;</code>. Only viber's
 scripts commit, never an agent. After the last task <a href="#agent-test-runner"><code>test-runner</code></a>
-runs the whole suite. It runs up to three times, with a repair round between one failed run and the next,
-before the build asks you. With <a href="#key-baseline-tests"><code>baseline-tests</code></a> on, it also makes a
-baseline run: the suite once before the first task, recording what already fails, asking you to continue or abort when
-something does; from then on only the failures the build caused count as repair work.</p>
+runs the whole suite. It runs up to six times, with a repair round between one failed run and the next,
+before the arbiter rules on the failing suite. With <a href="#key-baseline-tests"><code>baseline-tests</code></a> on, it also makes a
+baseline run: the suite once before the first task, recording what already fails; when something does, the arbiter
+rules to continue and the ruling is recorded. From then on only the failures the build caused count as repair work.</p>
 <p lang="pl">Zadanie, które przejdzie, dostaje własny commit z tytułem <code>T3 - &lt;tytuł zadania&gt;</code>.
 Commitują wyłącznie skrypty viber, nigdy agent. Po ostatnim zadaniu
 <a href="#agent-test-runner"><code>test-runner</code></a> uruchamia cały zestaw testów. Uruchamia go najwyżej
-trzy razy, z rundą poprawek między jednym nieudanym uruchomieniem a kolejnym, zanim build zapyta cię, co
-dalej. Przy włączonym <a href="#key-baseline-tests"><code>baseline-tests</code></a> wykonuje też przebieg bazowy:
-raz przed pierwszym zadaniem uruchamia zestaw testów i zapisuje, co już nie przechodzi, a gdy coś nie przechodzi, pyta, czy
-kontynuować, czy przerwać; od tej chwili do naprawy idą tylko błędy spowodowane przez build.</p>
+sześć razy, z rundą poprawek między jednym nieudanym uruchomieniem a kolejnym, zanim arbiter rozstrzygnie, co
+zrobić z niepasującym zestawem. Przy włączonym <a href="#key-baseline-tests"><code>baseline-tests</code></a> wykonuje też przebieg bazowy:
+raz przed pierwszym zadaniem uruchamia zestaw testów i zapisuje, co już nie przechodzi; gdy coś nie przechodzi, arbiter
+orzeka kontynuację, a orzeczenie zostaje zapisane. Od tej chwili do naprawy idą tylko błędy spowodowane przez build.</p>
 
 <h3 class="sub" id="hw-models"><span lang="en">The model range</span><span lang="pl">Zakres modeli</span><a class="self" href="#hw-models">#</a></h3>
 <p lang="en">The build gives every task a tier from its shape: haiku for mechanical work such as config, a
@@ -1538,9 +1549,9 @@ próbie idzie poziom wyżej. Klucz <a href="#key-tiers"><code>tiers</code></a> t
 <code>max</code>. Planowanie działa na modelu twojej sesji.</p>
 
 <h3 class="sub" id="hw-close"><span lang="en">What the build close writes</span><span lang="pl">Co zapisuje zamknięcie buildu</span><a class="self" href="#hw-close">#</a></h3>
-<p lang="en">Once the whole suite passes, or you accept its failure, the build runs the close parts your
+<p lang="en">Once the whole suite passes, or the arbiter accepts its failure, the build runs the close parts your
 switches turn on:</p>
-<p lang="pl">Gdy cały zestaw testów przejdzie albo zaakceptujesz jego porażkę, build uruchamia te części
+<p lang="pl">Gdy cały zestaw testów przejdzie albo arbiter zaakceptuje jego porażkę, build uruchamia te części
 zamknięcia, które włączają twoje przełączniki:</p>
 <ul class="musts">
   <li><span lang="en"><a href="#key-memory"><code>memory</code></a>: <a href="#agent-memory-writer"><code>memory-writer</code></a>
@@ -1569,10 +1580,12 @@ zamknięcia, które włączają twoje przełączniki:</p>
 </ul>
 <p lang="en">The build ends on a short summary: the tasks committed, the review rounds spent, the test verdict,
 the time it took, what memory, rules and QA recorded, the archive path, and anything left for you, such as an
-unreviewed task or changed files no task claimed.</p>
+unreviewed task or changed files no task claimed. After it comes the list of the build's rulings, each with
+its reason and its cost if wrong, the same lines as in <code>rulings.md</code>.</p>
 <p lang="pl">Build kończy się krótkim podsumowaniem: zacommitowane zadania, zużyte rundy recenzji, wynik testów,
 czas trwania, to, co zapisały pamięć, reguły i QA, ścieżka archiwum oraz wszystko, co zostaje dla ciebie, na
-przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało się żadne zadanie.</p>
+przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało się żadne zadanie. Po nim idzie
+lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same linie co w <code>rulings.md</code>.</p>
 </section>
 
 <section data-search id="troubleshooting">
@@ -1637,19 +1650,19 @@ przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało 
 </details>
 <details id="ts-task-fails">
   <summary><span lang="en">What happens when a task keeps failing?</span><span lang="pl">Co się dzieje, gdy zadanie ciągle się nie udaje?</span></summary>
-  <p lang="en">The first failure is retried without asking, one tier up. On the second, the build takes the
-  first way out the coder proposed, records it as a decision and runs a fresh coder, or retries once more when
-  the coder proposed none. The third ends on a question: retry, skip, abort, or your own ruling in words, which
-  the next coder follows. Skipping a task also skips every task that depends on it and leaves its half-finished
-  files uncommitted. A review failed three rounds in a row asks too: retry, accept (committed and marked
-  unreviewed), abort, or your ruling.</p>
-  <p lang="pl">Pierwsza porażka jest ponawiana bez pytania, poziom modelu wyżej. Przy drugiej build wybiera
-  pierwsze wyjście zaproponowane przez wykonawcę, zapisuje je jako decyzję i uruchamia nowego wykonawcę, a gdy
-  propozycji brak, ponawia jeszcze raz. Trzecia kończy się pytaniem do ciebie: ponowić, pominąć, przerwać albo
-  twoje własne rozstrzygnięcie słowami, którego trzyma się kolejny wykonawca. Pominięcie zadania pomija też
-  każde zadanie od niego zależne, a jego niedokończone pliki zostają niezacommitowane. Recenzja odrzucona trzy
-  rundy z rzędu też pyta: ponowić, zaakceptować (commit z oznaczeniem, że zadanie nie przeszło recenzji),
-  przerwać albo twoje rozstrzygnięcie.</p>
+  <p lang="en">Each failure is retried without asking, one tier up, up to 5 attempts. From the second, when the
+  coder proposed a way out, the arbiter picks one of the coder's proposals, the build records it as a decision and
+  runs a fresh coder. After the fifth failed attempt, the arbiter rules to skip the task or, after a failed review,
+  to accept it. Skipping a task also skips every task that depends on it and leaves its half-finished files
+  uncommitted; accepting commits it marked unreviewed. Every ruling goes to <code>rulings.md</code> with its
+  reason and its cost if wrong. You are asked only when the coder marks a way out as yours to decide.</p>
+  <p lang="pl">Każda porażka jest ponawiana bez pytania, poziom modelu wyżej, do 5 prób. Od drugiej, gdy wykonawca
+  zaproponował wyjście, arbiter wybiera jedną z propozycji wykonawcy, build zapisuje ją jako decyzję
+  i uruchamia nowego wykonawcę. Po piątej nieudanej próbie arbiter orzeka pominięcie zadania albo, po odrzuconej
+  recenzji, jego zaakceptowanie. Pominięcie zadania pomija też każde zadanie od niego zależne, a jego niedokończone
+  pliki zostają niezacommitowane; zaakceptowanie commituje je z oznaczeniem, że nie przeszło recenzji. Każde
+  orzeczenie trafia do <code>rulings.md</code> z uzasadnieniem i kosztem pomyłki. Pytanie dostajesz tylko wtedy,
+  gdy wykonawca oznaczy wyjście jako zostawione tobie.</p>
 </details>
 <details id="ts-denied">
   <summary><span lang="en">A question says an agent's tool call was refused. What now?</span><span lang="pl">Pytanie mówi, że agentowi odmówiono wywołania narzędzia. Co teraz?</span></summary>
@@ -1672,13 +1685,14 @@ przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało 
 </details>
 <details id="ts-tests">
   <summary><span lang="en">What if the whole test suite fails at the end of a build?</span><span lang="pl">Co, jeśli na końcu buildu cały zestaw testów nie przechodzi?</span></summary>
-  <p lang="en">The suite runs at most three times. After the first and the second failed run, a repair coder
-  fixes what the test report names and the suite runs again. After the third failed run you choose: retry,
-  accept (the close goes on and the summary names the failing run) or abort.</p>
-  <p lang="pl">Zestaw testów uruchamia się najwyżej trzy razy. Po pierwszym i drugim nieudanym uruchomieniu
-  wykonawca poprawek naprawia to, co wskazuje raport z testów, i testy uruchamiają się ponownie. Po trzecim
-  nieudanym uruchomieniu decydujesz: ponowić, zaakceptować (zamknięcie idzie dalej, a podsumowanie wymienia
-  nieudane uruchomienie) albo przerwać.</p>
+  <p lang="en">The suite runs at most six times. After each failed run but the last, a repair coder
+  fixes what the test report names and the suite runs again. After the sixth failed run the arbiter rules to
+  accept: the close goes on, the summary names the failing run and <code>rulings.md</code> records the ruling with
+  its reason and its cost if wrong.</p>
+  <p lang="pl">Zestaw testów uruchamia się najwyżej sześć razy. Po każdym nieudanym uruchomieniu poza ostatnim
+  wykonawca poprawek naprawia to, co wskazuje raport z testów, i testy uruchamiają się ponownie. Po szóstym
+  nieudanym uruchomieniu arbiter orzeka zaakceptowanie: zamknięcie idzie dalej, podsumowanie wymienia
+  nieudane uruchomienie, a <code>rulings.md</code> zapisuje orzeczenie z uzasadnieniem i kosztem pomyłki.</p>
 </details>
 <details id="ts-archive">
   <summary><span lang="en">Why was my run not archived?</span><span lang="pl">Dlaczego mój przebieg nie trafił do archiwum?</span></summary>
@@ -2131,23 +2145,29 @@ z nich mówi, jak nim sterować.</p>
   is due, to <a href="#agent-task-reviewer"><code>task-reviewer</code></a>, and commits each task on its own. Then,
   with <a href="#key-final-review"><code>final-review</code></a> on, <a href="#agent-final-reviewer"><code>final-reviewer</code></a>
   reviews the whole build, a coder fixes what it finds and a reviewer rechecks the fix, before it runs the whole
-  test suite and the close parts your switches turn on.</p>
+  test suite and the close parts your switches turn on. It runs without a person at the keyboard: where it would
+  otherwise ask, <a href="#agent-arbiter"><code>arbiter</code></a> rules and the ruling is recorded.</p>
   <p lang="pl">Buduje zatwierdzony plan zadanie po zadaniu. Kopiuje plan do katalogu przebiegu, dzieli go na
   osobny plik dla każdego zadania, każde zadanie zleca <a href="#agent-task-coder"><code>task-coder</code></a>,
   a gdy należy się recenzja, także <a href="#agent-task-reviewer"><code>task-reviewer</code></a>, i każde commituje
   osobno. Potem, gdy <a href="#key-final-review"><code>final-review</code></a> jest włączony,
   <a href="#agent-final-reviewer"><code>final-reviewer</code></a> recenzuje cały build, koder naprawia to, co
-  znajdzie, a recenzent ponownie sprawdza poprawkę, zanim uruchomi cały zestaw testów i te części zamknięcia, które włączają twoje przełączniki.</p>
+  znajdzie, a recenzent ponownie sprawdza poprawkę, zanim uruchomi cały zestaw testów i te części zamknięcia, które włączają twoje przełączniki. Działa bez
+  człowieka przy klawiaturze: tam, gdzie inaczej by zapytał, rozstrzyga <a href="#agent-arbiter"><code>arbiter</code></a>,
+  a orzeczenie zostaje zapisane.</p>
   <dl>
     <div>
       <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
       <dd><span lang="en">After you approve a plan, ask Claude to build it. To resume a build that stopped, ask
       Claude to continue the build: it reopens the run most recently worked on. It refuses a draft. When a task
-      stalls it asks you: retry, skip, accept, abort, or your own ruling in words.</span><span lang="pl">Po
+      stalls, the <a href="#agent-arbiter"><code>arbiter</code></a> rules after the task's 5 attempts, and the
+      build asks you only about a refused tool call, a coder that leaves the decision to you, another open run
+      or files no task claims.</span><span lang="pl">Po
       zatwierdzeniu planu poproś Claude o jego zbudowanie. Przerwany build wznowisz, prosząc Claude
       o kontynuację buildu: otworzy przebieg, nad którym pracowano ostatnio. Szkicu nie zbuduje. Gdy zadanie
-      utknie, pyta cię: ponowić, pominąć, zaakceptować, przerwać albo o twoje własne rozstrzygnięcie
-      słowami.</span></dd>
+      utknie, po jego 5 próbach rozstrzyga <a href="#agent-arbiter"><code>arbiter</code></a>, a build pyta cię
+      tylko o odmowę wywołania narzędzia, wykonawcę zostawiającego decyzję tobie, inny otwarty przebieg albo pliki,
+      do których nie przyznaje się żadne zadanie.</span></dd>
     </div>
     <div>
       <dt><span lang="en">Arguments</span><span lang="pl">Argumenty</span></dt>
@@ -2170,11 +2190,15 @@ z nich mówi, jak nim sterować.</p>
     <div>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
       <dd><span lang="en">The run directory <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code> (the plan, the
-      specification, one file per task, <code>status.md</code> and the <code>work/</code> notes) and one commit per
-      task. With <code>cleanup</code> on, the run ends archived in <code>docs/specs/</code>.</span><span lang="pl">Katalog
+      specification, one file per task, <code>status.md</code> and the <code>work/</code> notes, plus
+      <code>rulings.md</code> when the build ruled on anything) and one commit per
+      task. With <code>cleanup</code> on, the run ends archived in <code>docs/specs/</code>, <code>rulings.md</code>
+      included.</span><span lang="pl">Katalog
       przebiegu <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code> (plan, specyfikacja, plik każdego zadania,
-      <code>status.md</code> i notatki w <code>work/</code>) oraz jeden commit na zadanie. Przy włączonym
-      <code>cleanup</code> przebieg trafia na koniec do archiwum w <code>docs/specs/</code>.</span></dd>
+      <code>status.md</code> i notatki w <code>work/</code>, a gdy build coś rozstrzygał, także
+      <code>rulings.md</code>) oraz jeden commit na zadanie. Przy włączonym
+      <code>cleanup</code> przebieg trafia na koniec do archiwum w <code>docs/specs/</code>, razem z
+      <code>rulings.md</code>.</span></dd>
     </div>
   </dl>
 </article>
@@ -2625,17 +2649,17 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
     <dd><span lang="en">After every task is committed and before the final test run, one or more
     <a href="#agent-final-reviewer"><code>final-reviewer</code></a> agents look at the whole build's
     diff for what per-task review and the test suite cannot see. A coder fixes what they find and one
-    reviewer rechecks the fix; when the recheck fails you choose <code>retry</code> (a new fix round
-    one model tier up while allowed), <code>accept</code> (commit as is) or describe your own fix in your own
-    words. The fix is committed once the recheck passes or you accept, before the suite
+    reviewer rechecks the fix; when the recheck fails, there is no second fix round and the
+    <a href="#agent-arbiter"><code>arbiter</code></a> rules to commit the fix as it stands, recorded in
+    <code>rulings.md</code>. The fix is committed once the recheck passes or the arbiter accepts it, before the suite
     runs.</span><span lang="pl">Po zatwierdzeniu każdego zadania
     i przed ostatecznym uruchomieniem testów jeden lub więcej agentów
     <a href="#agent-final-reviewer"><code>final-reviewer</code></a> ogląda cały diff builda w
     poszukiwaniu tego, czego nie widzi recenzja pojedynczych zadań ani zestaw testów. Koder naprawia
     to, co znajdą, a jeden recenzent ponownie sprawdza poprawkę; gdy sprawdzenie się nie powiedzie,
-    wybierasz <code>retry</code> (nowa runda poprawek o jeden poziom modelu wyżej, o ile wolno), <code>accept</code>
-    (commit bez zmian) albo własnymi słowami opisujesz swoją poprawkę. Poprawka trafia do commita,
-    gdy sprawdzenie przejdzie albo ją zaakceptujesz, zanim testy się uruchomią.</span></dd>
+    nie ma drugiej rundy poprawek, a <a href="#agent-arbiter"><code>arbiter</code></a> orzeka commit poprawki
+    w obecnym kształcie, co zapisuje <code>rulings.md</code>. Poprawka trafia do commita,
+    gdy sprawdzenie przejdzie albo arbiter ją zaakceptuje, zanim testy się uruchomią.</span></dd>
   </div>
   <div id="key-plain-plan-review">
     <dt><code>plain-plan-review</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>

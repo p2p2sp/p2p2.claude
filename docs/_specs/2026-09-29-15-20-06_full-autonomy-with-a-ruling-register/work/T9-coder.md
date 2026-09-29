@@ -1,0 +1,4 @@
+- The unclaimed-files line still reads as a question (skip / commit now): `implementor` still asks it after T6, so the DoD's "rulings in place of questions" could not apply to it without contradicting the skill.
+- Test runs are now stated as up to six (repair rounds 1 to 5, arbiter on round 6) and reviews as within the task's 5 attempts; both were stale "three" wording in help.html's `hw-tasks`.
+- `rulings.md` rides into the archive because `archive-run.sh` drops only its enumerated scaffolding; help.html and README say so.
+- The flow SVGs already carried the ruling lines (T10), and the arbiter agent line and the `agent-arbiter` id were already in help.html.
