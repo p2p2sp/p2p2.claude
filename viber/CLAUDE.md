@@ -20,7 +20,8 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 
 - `intent` (interview) or `fixer` (RED reproduction test + diagnosis) -> `planner` -> `implementor`.
   `planner` treats any other input as unresolved and suggests `intent`; `implementor` refuses a
-  draft (a landed plan with no TASK block).
+  draft (a landed plan with no TASK block). Under `fast-path`, `intent` builds a small change
+  itself (`CLAUDE.switches.md`).
 - `intent` and `fixer` take an issue reference only under `issues: true`; `intent` can also
   save its summary as a new issue. An `Issue: <URL>` handoff line becomes the plan frontmatter
   `issue:`, carried into `spec.md`; `plan-index.sh` and `commit-task.sh` foot commits `Refs: #<N>`.
@@ -31,22 +32,21 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 - `triage` sits before the chain: it assesses one issue, names `/viber:fixer #N`, `/viber:intent #N`
   or a one-line summary for pasted text, and invokes nothing; under `issues: false` it never
   fetches or publishes and drops the `#<N>` form. Its `disallowed-tools:` lifts at the prose
-  publish answer, so in that turn only the body keeps `Skill` unused.
+  publish answer, so then only the body keeps `Skill` unused.
 - `handoff`, user-only and inline (a fork cannot see the conversation), stands outside the chain
-  like `commit`. It writes one file, never overwriting (`EXISTS=true` stops it rather than asking,
-  since a prose question drops the pre-approval).
+  like `commit`. It writes one file, never overwriting (`EXISTS=true` stops it, not a question:
+  prose drops the pre-approval).
 - `help`, user-only, a background haiku fork, also stands outside the chain: its one preload opens
   `setup`'s `assets/help.html` through `open-page.sh`; moving that page updates both skills.
-  `viber-flow-en.svg` and `viber-flow-pl.svg` sit beside it (menu links by `lang`, `README.md`
-  embeds the English one): a flow change updates both.
+  `viber-flow-en.svg` and `viber-flow-pl.svg` sit beside it (`README.md` embeds the English
+  one): a flow change updates both.
 
 ## Orchestrator contract
 
 - `implementor` opens no file and writes none. It knows only the `config.sh`, `run-clock.sh` and
   `switch-text.sh` preloads (its close parts reach it only as fragment text), `plan-path.sh`,
   `plan-index.sh` and `commit-task.sh` stdout (`progress: <n>/<total>`, exit 4 naming `--landed`,
-  the `refused` / `took` / `claimed by no task` warnings), and agents' return lines. Every script's stdout and every agent's `## Output` vocabulary is an interface:
-  renaming one side only breaks the build silently.
+  the `refused` / `took` / `claimed by no task` warnings), and agents' return lines. Every script's stdout and agent `## Output` vocabulary is an interface: renaming one side breaks the build silently.
 - `plan-index.sh`'s index prints per task id, state, TDD, `excl`, `deps`, `feeds` (contract
   blocks other tasks consume, `<id>:<consumer count>`), `files`, title, then a `verify:` line, plus a trailing
   `dirty: <id> | <paths>` line per task not done whose own files changed, one
@@ -54,7 +54,7 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   the `(this plan)` one. `implementor` profiles tier from TDD, file count, `feeds` (opus from 3
   consumers) and dependents, review from `verify:` and the tier (never from a field the index does
   not print) or a coder `EXTRA:` line; it reads `next:` only to close its summary on
-  `/viber:intent <archive or run dir>/roadmap.md` (no abort): the two change together.
+  `/viber:intent <archive or run dir>/roadmap.md`: the two change together.
 - `excl` (plan `Exclusive: true`): `implementor` runs the task alone, once nothing else is ready
   or in flight, until committed; outside `--split` `plan-index.sh` rejects a task depending on it.
 - Every agent returns `VERDICT: DENIED` plus `REASON: <tool>: <call>` on a refused tool call (the
@@ -100,7 +100,7 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   pathspecs (App Router `[id]` paths), refuses a `.temp/` path with a warning, and adds the run's
   `work/` trail itself.
 - Never two `commit-task.sh` calls at once: each rewrites the index and `status.md`.
-- `commit-args.sh` is the ONE selector parser; the fork never widens it.
+- `commit-args.sh` is the ONE selector parser.
 - The `commit` skill's `git rev-parse` and `cat` preloads are inline commands under a bare `Bash`
   allow, the one exception to the literal-script-line form.
 
@@ -127,7 +127,7 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
 - Read `CLAUDE.run-branch.md` before touching `branching:`, `run-branch.sh`, `plan-path.sh --branch`.
 - Read `CLAUDE.owner-decisions.md` before touching the owner decision channel.
 - Read `CLAUDE.tool-dependencies.md` before touching a `gh`, Playwright or `node` call.
-- Read `CLAUDE.switches.md` before adding a new `viber.yml` switch or wiring one into planning.
+- Read `CLAUDE.switches.md` before adding a `viber.yml` switch or wiring one into planning or `intent`.
 - Read `CLAUDE.memory-rules.md` before touching the `memory` or `rules` skills or their agents.
 
 ## Duplicated on purpose - change together
