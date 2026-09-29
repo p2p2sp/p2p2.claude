@@ -40,7 +40,9 @@ Write that plan file's absolute path into the frontmatter's `source:` key: appro
 
 A round continuing a draft reads `docs/<directories.runs>/<key>/plan.md` first and carries its specification over, changing only what the input's remarks change - its `issue:` line travels with the rest of that specification unless a remark changes it - and writes the key into the frontmatter's `into:` key; any other plan drops that line.
 
-An input carrying a roadmap fills `## Roadmap` with the ordered subprojects, marks the entry this plan covers and repeats every later entry under `### Out of scope`; no roadmap in the input means no such section. What a later entry brings stays absent: no task delivers a stand-in for it, no acceptance criterion depends on it, nothing is stubbed, mocked or temporarily substituted.
+An input carrying a roadmap fills `## Roadmap` in the template's shape with the ordered subprojects, marks the entry this plan covers `(this plan)`, lists every later entry's settled decisions as indented `- ` lines under it and repeats every later entry under `### Out of scope`; no roadmap in the input means no such section. What a later entry brings stays absent: no task delivers a stand-in for it, no acceptance criterion depends on it, nothing is stubbed, mocked or temporarily substituted. A part is never a release: no acceptance criterion needs a working application between parts.
+
+An input carrying a `Roadmap: <path>` line continues a roadmap: read that `roadmap.md`, mark every earlier entry `(built)`, and move this plan's own entry's decisions from the roadmap into the specification, out of the `## Roadmap` section.
 
 A plan stopping at a draft writes the specification half alone: no `## Tasks`, no `## Contracts` appendix, no `plan-index.sh`.
 
