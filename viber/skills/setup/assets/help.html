@@ -1511,12 +1511,16 @@ przechodzi recenzję.</p>
 <p lang="en">A task that passes gets its own commit, titled <code>T3 - &lt;task title&gt;</code>. Only viber's
 scripts commit, never an agent. After the last task <a href="#agent-test-runner"><code>test-runner</code></a>
 runs the whole suite. It runs up to three times, with a repair round between one failed run and the next,
-before the build asks you.</p>
+before the build asks you. With <a href="#key-baseline-tests"><code>baseline-tests</code></a> on, it also makes a
+baseline run: the suite once before the first task, recording what already fails, asking you to continue or abort when
+something does; from then on only the failures the build caused count as repair work.</p>
 <p lang="pl">Zadanie, które przejdzie, dostaje własny commit z tytułem <code>T3 - &lt;tytuł zadania&gt;</code>.
 Commitują wyłącznie skrypty viber, nigdy agent. Po ostatnim zadaniu
 <a href="#agent-test-runner"><code>test-runner</code></a> uruchamia cały zestaw testów. Uruchamia go najwyżej
 trzy razy, z rundą poprawek między jednym nieudanym uruchomieniem a kolejnym, zanim build zapyta cię, co
-dalej.</p>
+dalej. Przy włączonym <a href="#key-baseline-tests"><code>baseline-tests</code></a> wykonuje też przebieg bazowy:
+raz przed pierwszym zadaniem uruchamia zestaw testów i zapisuje, co już nie przechodzi, a gdy coś nie przechodzi, pyta, czy
+kontynuować, czy przerwać; od tej chwili do naprawy idą tylko błędy spowodowane przez build.</p>
 
 <h3 class="sub" id="hw-models"><span lang="en">The model range</span><span lang="pl">Zakres modeli</span><a class="self" href="#hw-models">#</a></h3>
 <p lang="en">The build gives every task a tier from its shape: haiku for mechanical work such as config, a
@@ -2510,10 +2514,14 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   włączony.</span></li>
   <li id="agent-test-runner"><code>test-runner</code> <span lang="en">runs the project's build and test suite
   once and returns a verdict, keeping the log out of the conversation. <a href="#skill-intent"><code>intent</code></a>'s
-  <a href="#key-fast-path">fast path</a> calls it too, to prove a change built in your session.</span><span lang="pl">uruchamia raz
+  <a href="#key-fast-path">fast path</a> calls it too, to prove a change built in your session. With
+  <a href="#key-baseline-tests"><code>baseline-tests</code></a> on, it also runs a baseline before the first task,
+  recording what already fails, and the final run then fails only on new failures.</span><span lang="pl">uruchamia raz
   budowanie i testy projektu i zwraca werdykt, trzymając log poza rozmową. Wywołuje go też
   <a href="#key-fast-path">szybka ścieżka</a> skilla <a href="#skill-intent"><code>intent</code></a>, żeby sprawdzić
-  zmianę zbudowaną w twojej sesji.</span></li>
+  zmianę zbudowaną w twojej sesji. Przy włączonym <a href="#key-baseline-tests"><code>baseline-tests</code></a>
+  wykonuje też przebieg bazowy przed pierwszym zadaniem, zapisując, co już nie przechodzi, a końcowe
+  uruchomienie kończy się porażką tylko przy nowych błędach.</span></li>
 </ul>
 
 <h4><span lang="en">Build close</span><span lang="pl">Zamknięcie buildu</span></h4>

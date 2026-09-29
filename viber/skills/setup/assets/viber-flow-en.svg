@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 2552" width="1640" height="2552" role="img" aria-labelledby="svgTitle svgDesc">
   <title id="svgTitle">viber - from an idea to committed code</title>
-  <desc id="svgDesc">Flow diagram of the viber plugin: one-time setup, the optional triage of an issue and UI prototype, the three entries (an idea through the intent interview, a bug through the fixer diagnosis, a small change through plain plan mode), the fast path out of the intent interview under the fast-path switch, where a small change to existing code gets a short design in chat and, after your explicit yes, is built in your session, proven by test-runner and left for you to commit, the planner writing the plan and the planner-review agent gating it, the approval gate you pass yourself, then three ways out: a draft specification continued by a later interview round, a plain plan Claude builds in your session, or the implementor building the plan with task-coder, task-reviewer and one commit per task, its tasks in parallel where their dependencies allow. The build closes with the final review, the full test suite, the optional memory, rules and QA writers and the closeout that archives the run, followed later by the e2e pass that turns the QA scenarios into Playwright tests.</desc>
+  <desc id="svgDesc">Flow diagram of the viber plugin: one-time setup, the optional triage of an issue and UI prototype, the three entries (an idea through the intent interview, a bug through the fixer diagnosis, a small change through plain plan mode), the fast path out of the intent interview under the fast-path switch, where a small change to existing code gets a short design in chat and, after your explicit yes, is built in your session, proven by test-runner and left for you to commit, the planner writing the plan and the planner-review agent gating it, the approval gate you pass yourself, then three ways out: a draft specification continued by a later interview round, a plain plan Claude builds in your session, or the implementor building the plan with task-coder, task-reviewer and one commit per task, its tasks in parallel where their dependencies allow, preceded under the baseline-tests switch by a baseline test run recording what already fails. The build closes with the final review, the full test suite, which under baseline-tests treats only new failures as repair work, the optional memory, rules and QA writers and the closeout that archives the run, followed later by the e2e pass that turns the QA scenarios into Playwright tests.</desc>
 
   <style>
     :root {
@@ -328,6 +328,26 @@
   <path d="M740 1436 L740 1496" class="link l-b" marker-end="url(#ar-b)"/>
   <path d="M740 1436 L740 1496" class="flow l-b"/>
 
+  <!-- ============ BASELINE ============ -->
+  <path d="M1030 1410 L1116 1410" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M1030 1410 L1116 1410" class="flow l-n"/>
+  <text x="1073" y="1402" class="lbl" text-anchor="middle">first</text>
+
+  <rect x="1120" y="1370" width="460" height="130" rx="10" class="node agent"/>
+  <rect x="1436" y="1380" width="58" height="16" rx="8" class="badge-opt"/>
+  <text x="1465" y="1392" class="badge-o" text-anchor="middle">optional</text>
+  <rect x="1502" y="1380" width="58" height="16" rx="8" class="badge"/>
+  <text x="1531" y="1392" class="badge-t" text-anchor="middle">agent</text>
+  <text x="1144" y="1400" class="mono-t">test-runner</text>
+  <text x="1144" y="1424" class="desc">Baseline: runs the suite once before the first task</text>
+  <text x="1144" y="1442" class="desc">and records what already fails.</text>
+  <text x="1144" y="1464" class="desc-s">a red baseline asks you: continue or abort</text>
+  <text x="1144" y="1484" class="desc-s"><tspan class="sw">baseline-tests</tspan> on</text>
+
+  <path d="M1350 1500 L1350 1512 Q1350 1530 1332 1530 L1084 1530" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M1350 1500 L1350 1512 Q1350 1530 1332 1530 L1084 1530" class="flow l-n"/>
+  <text x="1096" y="1548" class="lbl">then the first task</text>
+
   <rect x="400" y="1472" width="680" height="374" rx="14" class="pane"/>
   <rect x="416" y="1460" width="300" height="24" rx="12" fill="var(--panel)" stroke="var(--border)" stroke-width="1.5"/>
   <text x="566" y="1476" class="kicker" text-anchor="middle">FOR EVERY TASK (SOME IN PARALLEL)</text>
@@ -382,15 +402,16 @@
   <text x="504" y="1986" class="desc-s">each fix is rechecked; a failed recheck asks you</text>
   <text x="504" y="2006" class="desc-s"><tspan class="sw">final-review</tspan> on</text>
 
-  <path d="M740 2018 L740 2050" class="link l-n" marker-end="url(#ar-n)"/>
-  <path d="M740 2018 L740 2050" class="flow l-n"/>
+  <path d="M740 2018 L740 2040" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M740 2018 L740 2040" class="flow l-n"/>
 
-  <rect x="480" y="2054" width="520" height="90" rx="10" class="node agent"/>
-  <rect x="922" y="2064" width="58" height="16" rx="8" class="badge"/>
-  <text x="951" y="2076" class="badge-t" text-anchor="middle">agent</text>
-  <text x="504" y="2084" class="mono-t">test-runner</text>
-  <text x="504" y="2106" class="desc">Runs the whole build and test suite once.</text>
-  <text x="504" y="2126" class="desc-s">a failure goes to a repair coder, up to 3 rounds, each fix committed</text>
+  <rect x="480" y="2044" width="520" height="100" rx="10" class="node agent"/>
+  <rect x="922" y="2054" width="58" height="16" rx="8" class="badge"/>
+  <text x="951" y="2066" class="badge-t" text-anchor="middle">agent</text>
+  <text x="504" y="2074" class="mono-t">test-runner</text>
+  <text x="504" y="2096" class="desc">Runs the whole build and test suite once.</text>
+  <text x="504" y="2116" class="desc-s">a failure goes to a repair coder, up to 3 rounds, each fix committed</text>
+  <text x="504" y="2134" class="desc-s"><tspan class="sw">baseline-tests</tspan> on: only new failures go to repair</text>
 
   <path d="M740 2144 L740 2168" class="link l-n"/>
   <path d="M740 2144 L740 2168" class="flow l-n"/>

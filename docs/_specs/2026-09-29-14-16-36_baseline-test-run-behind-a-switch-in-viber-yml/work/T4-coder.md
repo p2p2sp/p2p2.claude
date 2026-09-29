@@ -1,0 +1,5 @@
+- `tests/portability.test.ts`'s fragment-call sweep reads the git index, so it reports `baseline-run` / `baseline-close` as "no file for any value" until this task's commit stages the two new fragments; it goes green once they are committed (not in this task's Verification).
+- The "build walkthrough" of DoD.13 is taken to be `help.html`'s `#hw-tasks` section (the paragraph that already walks through the final test-runner run), not a Task guide.
+- Both SVGs place the baseline node to the right of `implementor` (free space under the plain-plan column), feeding the task pane from its right edge; the close `test-runner` box grew 10 px upward (shorter arrow) to fit its new `baseline-tests` line, so no coordinate below it moved.
+- The baseline run has no task-list entry of its own: nothing in the DoD asked for one, and a `TaskCreate` would have needed a body mention of the baseline (DoD.3 forbids that).
+- `continue` on the red-baseline question is defined inline in the fragment; it is not one of the body's five shared answers.

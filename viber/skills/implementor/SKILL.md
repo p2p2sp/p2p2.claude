@@ -101,12 +101,16 @@ Then clamp both tiers into the config block's `tiers.min` to `tiers.max` range (
 
 ## 4. Run the plan
 
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" baseline-tests "${CLAUDE_SKILL_DIR}" baseline-run
+```
+
 `deps` and the `excl` hold are the only ordering the plan imposes; arrange the rest yourself and never lock a schedule up front. Never break:
 
 - A task dispatches only once every id in its `deps` is done.
 - A task whose `excl` column says `yes` is held back while any task without `excl` is ready to dispatch or anything else is in flight; several ready `excl` tasks go out one after another as their turn comes, and each still runs alone until committed - nothing else in flight when it goes out, nothing new out until it is committed. Never infer or override it.
 
-Coder dispatch: `viber:task-coder` (Agent tool, `model` = the task's tier), carrying these labelled lines and nothing else, the last three omitted when empty:
+Coder dispatch: `viber:task-coder` (Agent tool, `model` = the task's tier), carrying these labelled lines, plus any line a fragment of this step adds, and nothing else, the last three omitted when empty:
 
 ```
 task: <dir>/tasks/<id>.md
@@ -120,7 +124,7 @@ decision: <task-id>: <text>
 
 `out` is per task, shared by its reviewer. `deferred` carries the index entries naming this id plus every `--defer` this build passed naming it, `prior` the notes of the tasks its `deps` names. `decision:` is one line per index `decision:` line plus one per `--decide` this build recorded, whose `<task-id>` is this task or one it depends on, directly or through another. A coder always runs on its task's tier; only `retry` raises it. Every coder re-run - a review failure, a `WAIT:` hold, `retry`, `decide` - is this same fresh dispatch, every labelled line above plus the `report:`, `reason:` or `decision:` line its answer names, and a `resume:` line carrying every path an `EXTRA:` line of the task's earlier coders returned.
 
-Reviewer dispatch: `viber:task-reviewer` (Agent tool, `model` = the review tier) with the task's `task:`, `notes:`, `out:`, `refs:`, `deferred:` and `decision:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1, plus `extra: <repo-relative paths, comma-separated>` (every path an `EXTRA:` line of that task's coder returned so far in this build, across every re-run, never the reviewer's own, except a path the index `files` column gives to a task not yet `done`, plus the `orphan:` paths the user gave this task) and one `recheck: <task-id> | <command>` line per `done` task whose `files` column claims a path on `extra:`, `<command>` being that task's `verify:` command, both omitted when empty.
+Reviewer dispatch: `viber:task-reviewer` (Agent tool, `model` = the review tier) with the task's `task:`, `notes:`, `out:`, `refs:`, `deferred:` and `decision:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1, plus `extra: <repo-relative paths, comma-separated>` (every path an `EXTRA:` line of that task's coder returned so far in this build, across every re-run, never the reviewer's own, except a path the index `files` column gives to a task not yet `done`, plus the `orphan:` paths the user gave this task) and one `recheck: <task-id> | <command>` line per `done` task whose `files` column claims a path on `extra:`, `<command>` being that task's `verify:` command, both omitted when empty, plus any line a fragment of this step adds.
 
 Commit: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<plan>" "<id>"` with its `TaskUpdate` -> completed, plus:
 
@@ -152,6 +156,10 @@ Start with every task whose `deps` are done, in one message. On every return, an
 ```
 
 Dispatch `viber:test-runner` with report path `<dir>/work/tests-<round>.md`, round starting at 1.
+
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" baseline-tests "${CLAUDE_SKILL_DIR}" baseline-close
+```
 
 Repair dispatch: `viber:task-coder` (model `sonnet` clamped into the tiers range, raised only by `retry`) with `spec: <dir>/spec.md`, the last `REPORT` path as `report:`, `notes: <dir>/work/repair-<round>-coder.md`, `out: .temp/viber/repair-<round>/` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`.
 
