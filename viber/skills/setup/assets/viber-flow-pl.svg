@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 2552" width="1640" height="2552" role="img" aria-labelledby="svgTitle svgDesc" lang="pl">
   <title id="svgTitle">viber - od pomysłu do zacommitowanego kodu</title>
-  <desc id="svgDesc">Diagram przepływu wtyczki viber: jednorazowy setup, opcjonalna ocena issue i makieta UI, trzy wejścia (pomysł przez wywiad intent, błąd przez diagnozę fixera, mała zmiana przez zwykły tryb planowania), planner piszący plan i agent planner-review, który go sprawdza, bramka, którą przechodzisz sam, a potem trzy wyjścia: szkic specyfikacji kontynuowany w kolejnej rundzie wywiadu, zwykły plan, który Claude buduje w twojej sesji, albo implementor budujący plan z task-coder, task-reviewer i jednym commitem na zadanie, z zadaniami równolegle tam, gdzie pozwalają zależności. Build kończy się końcowym przeglądem, pełnym zestawem testów, opcjonalnymi writerami pamięci, reguł i QA oraz closeoutem, który archiwizuje przebieg, a później przebiegiem e2e, który zamienia scenariusze QA w testy Playwright.</desc>
+  <desc id="svgDesc">Diagram przepływu wtyczki viber: jednorazowy setup, opcjonalna ocena issue i makieta UI, trzy wejścia (pomysł przez wywiad intent, błąd przez diagnozę fixera, mała zmiana przez zwykły tryb planowania), szybka ścieżka z wywiadu intent przy przełączniku fast-path, na której mała zmiana istniejącego kodu dostaje krótki projekt na czacie i po twoim wyraźnym „tak” jest budowana w twojej sesji, sprawdzana przez test-runner i zostawiana tobie do zacommitowania, planner piszący plan i agent planner-review, który go sprawdza, bramka, którą przechodzisz sam, a potem trzy wyjścia: szkic specyfikacji kontynuowany w kolejnej rundzie wywiadu, zwykły plan, który Claude buduje w twojej sesji, albo implementor budujący plan z task-coder, task-reviewer i jednym commitem na zadanie, z zadaniami równolegle tam, gdzie pozwalają zależności. Build kończy się końcowym przeglądem, pełnym zestawem testów, opcjonalnymi writerami pamięci, reguł i QA oraz closeoutem, który archiwizuje przebieg, a później przebiegiem e2e, który zamienia scenariusze QA w testy Playwright.</desc>
 
   <style>
     :root {
@@ -155,7 +155,7 @@
   <text x="64" y="584" class="mono-t">/viber:intent</text>
   <text x="64" y="610" class="desc">Jedno pytanie naraz, z opcjami i rekomendacją.</text>
   <text x="64" y="628" class="desc">Za duże na jeden cykl? Dzieli na części, omawia każdą z nich.</text>
-  <text x="64" y="646" class="desc">Nic nie zapisuje - kończy podsumowaniem, które potwierdzasz.</text>
+  <text x="64" y="646" class="desc">Kończy podsumowaniem albo projektem małej zmiany.</text>
   <text x="64" y="672" class="desc-s"><tspan class="sw">issues</tspan> włączony: może zacząć od issue na GitHubie lub założyć nowe</text>
 
   <!-- ============ ENTRY: BUG ============ -->
@@ -207,6 +207,23 @@
   <path d="M1350 836 L1350 1104" class="flow l-a"/>
   <text x="1362" y="1094" class="lbl">PASS</text>
 
+  <!-- ============ FAST PATH ============ -->
+  <path d="M120 694 L120 772" class="link l-i" marker-end="url(#ar-i)"/>
+  <path d="M120 694 L120 772" class="flow l-i"/>
+  <text x="132" y="738" class="lbl"><tspan class="sw">fast-path</tspan> wł.</text>
+
+  <rect x="40" y="776" width="176" height="200" rx="10" class="node"/>
+  <rect x="40" y="776" width="4" height="200" rx="2" fill="var(--idea)"/>
+  <text x="56" y="806" class="title">szybka ścieżka</text>
+  <text x="56" y="830" class="desc-s">Krótki projekt na czacie.</text>
+  <text x="56" y="848" class="desc-s">Po twoim wyraźnym „tak”</text>
+  <text x="56" y="866" class="desc-s">Claude buduje zmianę</text>
+  <text x="56" y="884" class="desc-s">w tej sesji.</text>
+  <text x="56" y="908" class="desc-s">test-runner ją sprawdza,</text>
+  <text x="56" y="926" class="desc-s">commit: /viber:commit.</text>
+  <text x="56" y="950" class="desc-s">bez pliku planu i</text>
+  <text x="56" y="966" class="desc-s">katalogu przebiegu</text>
+
   <!-- ============ CONVERGE ON THE PLANNER ============ -->
   <path d="M270 694 L270 722 Q270 740 288 740 L520 740" class="link l-i"/>
   <path d="M270 694 L270 722 Q270 740 288 740 L520 740" class="flow l-i"/>
@@ -253,7 +270,7 @@
   <rect x="40" y="1108" width="1560" height="64" rx="32" class="ring-a"/>
   <rect x="44" y="1112" width="1552" height="56" rx="28" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="1.5"/>
   <text x="820" y="1136" class="title" text-anchor="middle" style="font-size:14.5px">BRAMKA - zatwierdzasz plan</text>
-  <text x="820" y="1156" class="desc-s" text-anchor="middle">przed nią nie powstaje żaden kod poza testem reprodukcji fixera · plan, który nie przeszedł przeglądu, nie wyjdzie z trybu planowania</text>
+  <text x="820" y="1156" class="desc-s" text-anchor="middle">przed nią nie powstaje żaden kod poza testem reprodukcji fixera i zatwierdzonym projektem szybkiej ścieżki · plan, który nie przeszedł przeglądu, nie wyjdzie z trybu planowania</text>
 
   <!-- ============ DRAFT ============ -->
   <path d="M200 1172 L200 1206" class="link l-i" marker-end="url(#ar-i)"/>

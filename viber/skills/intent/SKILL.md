@@ -9,7 +9,7 @@ disable-model-invocation: false
 
 # intent
 
-Turn a raw intent into an understanding a planner can act on. You write no code.
+Turn a raw intent into an understanding a planner can act on. You write no code, except a change the user approved on the fast path.
 
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-input
@@ -37,6 +37,10 @@ When those two sources already answer everything `## Done` asks for, skip every 
 ## Size the scope first
 
 Decide this before the first detail question.
+
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" fast-path "${CLAUDE_SKILL_DIR}" fast-path
+```
 
 - One coherent capability, or any scope of an estimated 30 plan tasks or fewer: interview it whole and skip the rest of this section.
 - A larger scope, the shape of "build the whole application" or "a platform with chat, file storage, billing and analytics": ask no detail question yet. Split it as a mechanical cut of that one specification - a part is never a release, and size is the only reason to cut, never a theme, a milestone or a risky piece set apart. Every part holds an estimated 8 tasks or more: merge a smaller one into its neighbour, and a split left with one part is no split. Propose the split in prose, one line per part - what it owns, what it consumes from the ones before it, its estimated task count - plus the order, and correct it until the user accepts it.

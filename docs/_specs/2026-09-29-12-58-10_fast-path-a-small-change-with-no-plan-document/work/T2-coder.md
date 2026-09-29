@@ -1,0 +1,5 @@
+- `tests/portability.test.ts` fragment-call sweep reads the git index: until `fast-path.true.md` is staged by the task commit it reports "no file for any value of key 'fast-path'". Red before commit, green after.
+- Fragment report path fixed to `.temp/viber/intent/test-runner.md` (task left the name open); no repair-round cap was added, only the limit stop bounds the loop.
+- Fragment sits after "Decide this before the first detail question." and before the first sizing bullet; it opens with "a change it does not fit goes on to the bullets below" so fast-path false reads exactly as before.
+- Both flow SVGs: new "fast path" box at x40-216 y776-976 under the intent box; the gate line also names the approved fast-path design so it no longer claims no code precedes the gate.
+- intent box line "Writes nothing" rewritten in both SVGs (would contradict the fast path).

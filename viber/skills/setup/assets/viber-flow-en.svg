@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 2552" width="1640" height="2552" role="img" aria-labelledby="svgTitle svgDesc">
   <title id="svgTitle">viber - from an idea to committed code</title>
-  <desc id="svgDesc">Flow diagram of the viber plugin: one-time setup, the optional triage of an issue and UI prototype, the three entries (an idea through the intent interview, a bug through the fixer diagnosis, a small change through plain plan mode), the planner writing the plan and the planner-review agent gating it, the approval gate you pass yourself, then three ways out: a draft specification continued by a later interview round, a plain plan Claude builds in your session, or the implementor building the plan with task-coder, task-reviewer and one commit per task, its tasks in parallel where their dependencies allow. The build closes with the final review, the full test suite, the optional memory, rules and QA writers and the closeout that archives the run, followed later by the e2e pass that turns the QA scenarios into Playwright tests.</desc>
+  <desc id="svgDesc">Flow diagram of the viber plugin: one-time setup, the optional triage of an issue and UI prototype, the three entries (an idea through the intent interview, a bug through the fixer diagnosis, a small change through plain plan mode), the fast path out of the intent interview under the fast-path switch, where a small change to existing code gets a short design in chat and, after your explicit yes, is built in your session, proven by test-runner and left for you to commit, the planner writing the plan and the planner-review agent gating it, the approval gate you pass yourself, then three ways out: a draft specification continued by a later interview round, a plain plan Claude builds in your session, or the implementor building the plan with task-coder, task-reviewer and one commit per task, its tasks in parallel where their dependencies allow. The build closes with the final review, the full test suite, the optional memory, rules and QA writers and the closeout that archives the run, followed later by the e2e pass that turns the QA scenarios into Playwright tests.</desc>
 
   <style>
     :root {
@@ -155,7 +155,7 @@
   <text x="64" y="584" class="mono-t">/viber:intent</text>
   <text x="64" y="610" class="desc">One question at a time, with options and a recommendation.</text>
   <text x="64" y="628" class="desc">Too big for one cycle? Split into ordered parts, every part discussed.</text>
-  <text x="64" y="646" class="desc">Writes nothing - it ends in a summary you confirm.</text>
+  <text x="64" y="646" class="desc">Ends in a summary you confirm, or a small change's design.</text>
   <text x="64" y="672" class="desc-s"><tspan class="sw">issues</tspan> on: can start from a GitHub issue or open a new one</text>
 
   <!-- ============ ENTRY: BUG ============ -->
@@ -207,6 +207,23 @@
   <path d="M1350 836 L1350 1104" class="flow l-a"/>
   <text x="1362" y="1094" class="lbl">PASS</text>
 
+  <!-- ============ FAST PATH ============ -->
+  <path d="M120 694 L120 772" class="link l-i" marker-end="url(#ar-i)"/>
+  <path d="M120 694 L120 772" class="flow l-i"/>
+  <text x="132" y="738" class="lbl"><tspan class="sw">fast-path</tspan> on</text>
+
+  <rect x="40" y="776" width="176" height="200" rx="10" class="node"/>
+  <rect x="40" y="776" width="4" height="200" rx="2" fill="var(--idea)"/>
+  <text x="56" y="806" class="title">fast path</text>
+  <text x="56" y="830" class="desc-s">A short design in chat.</text>
+  <text x="56" y="848" class="desc-s">After your explicit yes,</text>
+  <text x="56" y="866" class="desc-s">Claude builds it in</text>
+  <text x="56" y="884" class="desc-s">this session.</text>
+  <text x="56" y="908" class="desc-s">test-runner proves it,</text>
+  <text x="56" y="926" class="desc-s">you run /viber:commit.</text>
+  <text x="56" y="950" class="desc-s">no plan file and</text>
+  <text x="56" y="966" class="desc-s">no run directory</text>
+
   <!-- ============ CONVERGE ON THE PLANNER ============ -->
   <path d="M270 694 L270 722 Q270 740 288 740 L520 740" class="link l-i"/>
   <path d="M270 694 L270 722 Q270 740 288 740 L520 740" class="flow l-i"/>
@@ -253,7 +270,7 @@
   <rect x="40" y="1108" width="1560" height="64" rx="32" class="ring-a"/>
   <rect x="44" y="1112" width="1552" height="56" rx="28" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="1.5"/>
   <text x="820" y="1136" class="title" text-anchor="middle" style="font-size:14.5px">GATE - you approve the plan</text>
-  <text x="820" y="1156" class="desc-s" text-anchor="middle">no code is written before this, except fixer's reproduction test · a plan that failed review cannot leave plan mode</text>
+  <text x="820" y="1156" class="desc-s" text-anchor="middle">no code is written before this, except fixer's reproduction test and a fast-path design you approved · a plan that failed review cannot leave plan mode</text>
 
   <!-- ============ DRAFT ============ -->
   <path d="M200 1172 L200 1206" class="link l-i" marker-end="url(#ar-i)"/>

@@ -1,6 +1,6 @@
 ---
 name: test-runner
-description: Runs the project's build and test suite once and returns a verdict, keeping the log out of the caller's context. Invoked only by the implementor skill, never directly.
+description: Runs the project's build and test suite once and returns a verdict, keeping the log out of the caller's context. Invoked only by the implementor skill and the intent skill's fast path, never directly.
 tools: Read, Write, Grep, Glob, Bash
 model: haiku
 color: cyan

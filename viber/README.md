@@ -41,6 +41,11 @@ behind it, however clear the change already reads, and viber suggests the `viber
 first - you decide whether to run it or plan directly. A bug goes the same way through
 `/viber:fixer`: viber suggests it and you decide.
 
+With the `fast-path` switch on, a small change to existing code takes a shorter road through
+`/viber:intent`: a short design in chat instead of a plan, built in your session once you say yes,
+proven by the test suite, then left for you to commit with `/viber:commit` - no plan file, no run
+directory. Ask for a full plan instead and the interview carries on as usual.
+
 With `issues` on, point `/viber:intent` or `/viber:fixer` at a GitHub issue - `#42`, its number
 alone, or a link - and it reads that issue instead of asking you to restate it, then keeps working
 on the same issue throughout. An interview that did not start from one can, once confirmed, save

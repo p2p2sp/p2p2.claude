@@ -917,9 +917,13 @@ potem. Rzadsze przypadki są zwinięte pod przykładem.</p>
 <section class="guide" data-search id="guide-feature">
 <h3 class="sub" id="guide-feature-title"><span lang="en">Add a feature</span><span lang="pl">Dodaj funkcję</span><a class="self" href="#guide-feature-title">#</a></h3>
 <p lang="en">For a change that needs a plan. A small change you want made right away needs none: ask Claude
-for it directly and say you want it without a plan.</p>
+for it directly and say you want it without a plan. A small change to existing code you still want designed
+first takes the <a href="#key-fast-path">fast path</a>: the same command ends on a short design in chat, and
+Claude builds it in your session once you say yes, with no plan file.</p>
 <p lang="pl">Dla zmiany, która potrzebuje planu. Mała zmiana, którą chcesz mieć od razu, planu nie wymaga:
-poproś o nią Claude wprost i powiedz, że ma ją zrobić bez planu.</p>
+poproś o nią Claude wprost i powiedz, że ma ją zrobić bez planu. Mała zmiana istniejącego kodu, którą
+chcesz najpierw zaprojektować, idzie <a href="#key-fast-path">szybką ścieżką</a>: to samo polecenie kończy
+się krótkim projektem na czacie, a Claude buduje zmianę w twojej sesji, gdy powiesz „tak”, bez pliku planu.</p>
 <ol class="steps">
   <li>
     <span class="label"><span lang="en">You type</span><span lang="pl">Wpisujesz</span></span>
@@ -977,6 +981,20 @@ poproś o nią Claude wprost i powiedz, że ma ją zrobić bez planu.</p>
     Claude może zaproponować zwykły tryb planowania zamiast wywiadu. Przy włączonym
     <a href="#key-plain-plan-review"><code>plain-plan-review</code></a> taki plan też musi przejść recenzję,
     zanim tryb planowania się skończy.</span></li>
+    <li><span lang="en">With <a href="#key-fast-path"><code>fast-path</code></a> on, the interview sends a change
+    to existing code of at most 2 tasks with code and 5 in total, with no new subsystem, restructuring or
+    domain concept, down the fast path: a short design in chat, built in your session after your explicit
+    yes, proven by <a href="#agent-test-runner"><code>test-runner</code></a>, with no plan file and no run
+    directory. A correction gets a revised design; ask for a full plan and the interview carries on as usual.
+    A build that outgrows those limits stops and suggests <code>/viber:intent</code>. A draft, a
+    <code>roadmap.md</code> or a run on its own branch never takes it.</span><span lang="pl">Przy włączonym
+    <a href="#key-fast-path"><code>fast-path</code></a> wywiad kieruje zmianę istniejącego kodu na co najwyżej
+    2 zadania z kodem i 5 w sumie, bez nowego podsystemu, przebudowy ani pojęcia domenowego, na szybką
+    ścieżkę: krótki projekt na czacie, zbudowany w twojej sesji po twoim wyraźnym „tak”, sprawdzony przez
+    <a href="#agent-test-runner"><code>test-runner</code></a>, bez pliku planu i bez katalogu przebiegu.
+    Poprawka daje poprawiony projekt; poproś o pełny plan, a wywiad toczy się dalej jak zwykle. Build, który
+    przerośnie te limity, zatrzymuje się i proponuje <code>/viber:intent</code>. Nigdy nie idzie nią szkic,
+    <code>roadmap.md</code> ani przebieg na własnej gałęzi.</span></li>
   </ul>
 </details>
 </section>
@@ -1590,10 +1608,14 @@ przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało 
   <summary><span lang="en">Why does Claude suggest the interview when I ask for a plan?</span><span lang="pl">Dlaczego Claude proponuje wywiad, gdy proszę o plan?</span></summary>
   <p lang="en">The planner starts only from a confirmed <code>/viber:intent</code> interview or a
   <code>/viber:fixer</code> diagnosis, so any other request gets that suggestion, however clear it is. Agree to
-  the interview, or ask for Claude Code's own plan mode for a small change.</p>
+  the interview, or ask for Claude Code's own plan mode for a small change. A small change to existing code
+  needs no plan at all on the interview's <a href="#key-fast-path">fast path</a>: a short design you approve
+  in chat.</p>
   <p lang="pl">Planista startuje wyłącznie od potwierdzonego wywiadu <code>/viber:intent</code> albo diagnozy
   <code>/viber:fixer</code>, więc każda inna prośba, nawet bardzo jasna, kończy się taką propozycją. Zgódź się
-  na wywiad albo przy małej zmianie poproś o zwykły tryb planowania Claude Code.</p>
+  na wywiad albo przy małej zmianie poproś o zwykły tryb planowania Claude Code. Mała zmiana istniejącego kodu
+  na <a href="#key-fast-path">szybkiej ścieżce</a> wywiadu w ogóle nie potrzebuje planu: wystarczy krótki
+  projekt, który zatwierdzasz na czacie.</p>
 </details>
 <details id="ts-branch">
   <summary><span lang="en">Why does the build stop at once, saying the run branch could not be set?</span><span lang="pl">Dlaczego build od razu się zatrzymuje z informacją, że nie da się ustawić gałęzi przebiegu?</span></summary>
@@ -1997,12 +2019,19 @@ z nich mówi, jak nim sterować.</p>
   question at a time, each with three options and its recommendation first. A large request is split into
   subprojects first, and every part is interviewed. It closes on a summary you confirm, then hands it
   to <a href="#skill-planner"><code>planner</code></a>. When a build of one part finishes, it names the next
-  part: run the interview on it and it resumes from the decisions of the first. It writes no code.</p>
+  part: run the interview on it and it resumes from the decisions of the first. A small change to existing
+  code can take the <a href="#key-fast-path">fast path</a> instead: a short design in chat, built in your
+  session only after your explicit yes and proven by <a href="#agent-test-runner"><code>test-runner</code></a>,
+  with no plan file; you commit it with <code>/viber:commit</code>. Otherwise it writes no code.</p>
   <p lang="pl">Wywiad planistyczny. Pyta tylko o to, czego nie rozstrzygają rozmowa i kod, jedno pytanie
   naraz, każde z trzema opcjami i rekomendacją na pierwszym miejscu. Dużą prośbę najpierw dzieli na
   podprojekty i omawia każdy z nich. Kończy się podsumowaniem, które potwierdzasz, a potem
   przekazuje je do <a href="#skill-planner"><code>planner</code></a>. Gdy build jednej części się kończy,
-  wskazuje następną: uruchom na niej wywiad, a wznowi go od decyzji pierwszej. Nie pisze kodu.</p>
+  wskazuje następną: uruchom na niej wywiad, a wznowi go od decyzji pierwszej. Mała zmiana istniejącego
+  kodu może zamiast tego pójść <a href="#key-fast-path">szybką ścieżką</a>: krótki projekt na czacie,
+  zbudowany w twojej sesji dopiero po twoim wyraźnym „tak” i sprawdzony przez
+  <a href="#agent-test-runner"><code>test-runner</code></a>, bez pliku planu; commitujesz ją przez
+  <code>/viber:commit</code>. Poza tym nie pisze kodu.</p>
   <dl>
     <div>
       <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
@@ -2480,8 +2509,11 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   sprawdza poprawkę swoich uwag, gdy <a href="#key-final-review"><code>final-review</code></a> jest
   włączony.</span></li>
   <li id="agent-test-runner"><code>test-runner</code> <span lang="en">runs the project's build and test suite
-  once and returns a verdict, keeping the log out of the conversation.</span><span lang="pl">uruchamia raz
-  budowanie i testy projektu i zwraca werdykt, trzymając log poza rozmową.</span></li>
+  once and returns a verdict, keeping the log out of the conversation. <a href="#skill-intent"><code>intent</code></a>'s
+  <a href="#key-fast-path">fast path</a> calls it too, to prove a change built in your session.</span><span lang="pl">uruchamia raz
+  budowanie i testy projektu i zwraca werdykt, trzymając log poza rozmową. Wywołuje go też
+  <a href="#key-fast-path">szybka ścieżka</a> skilla <a href="#skill-intent"><code>intent</code></a>, żeby sprawdzić
+  zmianę zbudowaną w twojej sesji.</span></li>
 </ul>
 
 <h4><span lang="en">Build close</span><span lang="pl">Zamknięcie buildu</span></h4>
