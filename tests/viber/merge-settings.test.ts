@@ -522,13 +522,17 @@ test("the shipped template carries the recommended block only: built-in tools, r
   // Recoverable or user-judged operations stop the agent on a prompt instead
   // of ending its run: the user decides and the work continues.
   for (const expected of [
-    "Bash(rm -rf:*)",
     "Bash(git * --force*)",
     "Bash(git reset --hard:*)",
   ]) {
     assert.ok(ask.includes(expected), `ask should carry ${expected}`);
   }
+  // A general rm -rf stays out of the ask list: only the two catastrophic
+  // targets are denied, so an ordinary recursive delete needs no prompt.
+  assert.ok(!ask.includes("Bash(rm -rf:*)"), "ask should not carry the broad Bash(rm -rf:*)");
   for (const expected of [
+    "Bash(rm -rf ~)",
+    "Bash(rm -rf /)",
     "Bash(sudo:*)",
     // Prefix matching alone misses `git push origin main --force`, which the
     // asked-for `git * --force*` would otherwise let through on a click.
