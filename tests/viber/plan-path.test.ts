@@ -1890,8 +1890,62 @@ test("required and an entry based on develop: a plan naming develop as its branc
     withSource(["branch: develop"], (src) => {
       const result = runIn(repo, ["--land", src]);
       assert.equal(result.status, 6, `stdout: ${result.stdout}`);
-      assert.match(result.stderr, /the run branch is the base itself: develop/);
+      assert.match(result.stderr, /branching is required and the run branch is a work entry base: develop/);
       assert.equal(headOf(repo), "work");
+    });
+  });
+});
+
+test("entry base under required: a plan recording another entry's base as its branch exits 6 with the base message and lands nothing (DoD.1)", () => {
+  withBranchRepo(["mode: required", ...TWO_BASES], (repo) => {
+    branchAhead(repo, "develop");
+    repo.git("checkout", "-q", "-b", "work");
+    withSource(["work: hotfix", "branch: develop"], (src) => {
+      const result = runIn(repo, ["--land", src]);
+      assert.equal(result.status, 6, `stdout: ${result.stdout}`);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, /branching is required and the run branch is a work entry base: develop/);
+      assert.equal(headOf(repo), "work");
+      assert.deepEqual(runDirs(repo.dir), []);
+    });
+  });
+});
+
+test("entry base under required: no branch recorded and HEAD on another entry's base creates the entry's pattern branch from the entry base (DoD.2)", () => {
+  withBranchRepo(["mode: required", ...TWO_BASES], (repo) => {
+    branchAhead(repo, "develop");
+    repo.git("checkout", "-q", "develop");
+    withSource(["work: hotfix"], (src) => {
+      const result = runIn(repo, ["--land", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(branchLine(result.stdout), "branch: hotfix/add-login (created)");
+      assert.equal(headOf(repo), "hotfix/add-login");
+      assert.equal(commitOf(repo), commitOf(repo, "main"));
+    });
+  });
+});
+
+test("entry base under required: no branch recorded and HEAD on a branch that is no entry base keeps that branch (DoD.3)", () => {
+  withBranchRepo(["mode: required", ...TWO_BASES], (repo) => {
+    repo.git("branch", "develop");
+    repo.git("checkout", "-q", "-b", "work");
+    withSource(["work: hotfix"], (src) => {
+      const result = runIn(repo, ["--land", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(branchLine(result.stdout), "branch: work (kept)");
+      assert.equal(headOf(repo), "work");
+    });
+  });
+});
+
+test("entry base under allowed: a plan recording another entry's base as its branch still lands on it (DoD.4)", () => {
+  withBranchRepo(["mode: allowed", ...TWO_BASES], (repo) => {
+    branchAhead(repo, "develop");
+    withSource(["work: hotfix", "branch: develop"], (src) => {
+      const result = runIn(repo, ["--land", src]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(branchLine(result.stdout), "branch: develop (switched)");
+      assert.equal(headOf(repo), "develop");
     });
   });
 });

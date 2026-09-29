@@ -119,14 +119,9 @@ branch_entry() {
   br_why="the plan records work entry $want and branching.work has none of that name"
 }
 
-# True when branch $1 is the base of the resolved entry, or, with none
-# resolved, the base of any entry.
+# True when branch $1 is the base of any entry, the resolved one or not.
 branch_is_base() {
   local b
-  if [[ -n "$br_entry" ]]; then
-    [[ "$1" == "$br_base" ]]
-    return
-  fi
   for b in ${br_bases[@]+"${br_bases[@]}"}; do
     [[ "$1" != "$b" ]] || return 0
   done
@@ -272,7 +267,7 @@ branch_checkout() {
 # branch is created only from the base of the plan's work entry and only on a
 # configuration config.sh reports no error for; keeping or switching to a
 # recorded branch that exists never reads those errors. The required checks
-# read the entry base, or every entry base while no entry resolves.
+# read every entry base, the resolved entry's or not.
 branch_land() {
   local target
   [[ "$br_mode" != off ]] || return 0
@@ -295,7 +290,7 @@ branch_land() {
       fi
       return 0
     fi
-    [[ "$br_cur" == "$br_base" ]] || return 0
+    branch_is_base "$br_cur" || return 0
     branch_config_ok || return 6
     if [[ "$br_pattern" == *'{issue-number}'* && -z "$(plan_issue "$1")" ]]; then
       echo "error: work entry $br_entry needs an issue for {issue-number}" >&2
@@ -308,7 +303,7 @@ branch_land() {
     fi
   fi
   if [[ "$br_mode" == required ]] && branch_is_base "$target"; then
-    echo "error: branching is required and the run branch is the base itself: $target" >&2
+    echo "error: branching is required and the run branch is a work entry base: $target" >&2
     return 6
   fi
   if ! branch_name_ok "$target"; then

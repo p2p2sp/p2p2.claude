@@ -1,0 +1,2 @@
+- `branch_is_base` now always reads every entry base (the resolved entry's or not); its only two callers are the no-entry check and the required refusal, so no call site changed shape.
+- The old "the run branch is the base itself" message is gone from code and tests; `viber/CLAUDE.run-branch.md` may still describe it (out of scope here, the build's close owns it).

@@ -73,12 +73,14 @@
 # (up to its first whitespace; "none" is no branch): kept when HEAD is on it,
 # switched to when it exists, else created from the local base of the plan's
 # entry. With no branch recorded, "allowed" keeps the current branch;
-# "required" keeps a branch other than the entry base and on that base creates
-# the entry name pattern - {type} fix when a task block carries a "Repro:"
+# "required" keeps a branch that is no entry base and, with HEAD on the base of
+# any entry, creates the plan's entry name pattern from that entry's base -
+# {type} fix when a task block carries a "Repro:"
 # line, else feature; {issue-number} the number of the frontmatter "issue:"
 # URL, read as commit-task.sh's issue_ref() reads it; {slug} the run slug - a
 # run of - _ . left next to a / or at either end dropped, // and -- collapsed.
-# While no entry resolves, the required checks read every entry base. A switch
+# Under required a recorded branch equal to any entry base is refused, the
+# plan's own entry or another. A switch
 # that moves HEAD to another commit is refused on a dirty tree (untracked files
 # count); one keeping the commit carries the uncommitted work along. A matching
 # round landed again through --into takes the same branch step before answering
@@ -185,8 +187,9 @@
 #         existing" instead - see "existing" below
 #     5 - the copy failed; nothing was landed
 #     6 - the run branch could not be set: a switch to another commit on a
-#         dirty tree, a base missing locally, an invalid branch name, the base
-#         as target under required, a detached HEAD under required with no
+#         dirty tree, a base missing locally, an invalid branch name, any entry
+#         base as target under required ("branching is required and the run
+#         branch is a work entry base: <branch>"), a detached HEAD under required with no
 #         branch recorded, or a branch to create while the plan's entry does
 #         not resolve ("the plan records no branching.work entry and several
 #         exist", "no valid branching.work entry", a "work:" key naming no
