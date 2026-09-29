@@ -36,6 +36,8 @@ before they read any code:
 - Under `required`, staying is never offered on a detached HEAD or on any entry's base.
 - `/viber:intent` continuing a draft asks no entry question and offers a switch to the draft's
   recorded branch when HEAD is elsewhere.
+- `/viber:intent` continuing a `roadmap.md` on a branch that is no entry's base stays on it without
+  asking: the next part builds on the previous part's branch.
 
 The chosen entry, and the branch you stayed on, travel with the interview summary or the diagnosis
 to the planner, which records the branch from them instead of asking again. Under `required`,

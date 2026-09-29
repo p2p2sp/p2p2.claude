@@ -9,7 +9,8 @@
   switch through `--checkout`) and `branching-handoff.*` (the summary's `Work:` line, `Branch:`
   only after "stay"). No `off` file exists for either family. `mode: off`, any `error:` line or
   no usable entry hands off no `Work:` line. `intent` asks in prose, `fixer` through
-  `AskUserQuestion`; a returning draft with a recorded `branch:` asks no entry question.
+  `AskUserQuestion`; a returning draft with a recorded `branch:` asks no entry question, and a
+  resumed `roadmap.md` off every entry base (not detached) takes "stay" without the base question.
 - `planner` preloads `fragments/branching.*` (no `off` file), `branching-fix.*` for the re-run
   after a review fix and `branching-land.*` for the draft landing's branch line and exit 6, the
   key spelled `branching.""mode` (one bash word resolving to `branching.mode`): keep that
