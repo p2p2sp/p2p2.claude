@@ -341,7 +341,7 @@
   <text x="1144" y="1400" class="mono-t">test-runner</text>
   <text x="1144" y="1424" class="desc">Przebieg bazowy: raz uruchamia testy przed</text>
   <text x="1144" y="1442" class="desc">pierwszym zadaniem i zapisuje, co już nie przechodzi.</text>
-  <text x="1144" y="1464" class="desc-s">czerwony przebieg bazowy pyta: kontynuować czy przerwać</text>
+  <text x="1144" y="1464" class="desc-s">czerwony przebieg bazowy: arbiter orzeka kontynuację, rulings.md</text>
   <text x="1144" y="1484" class="desc-s"><tspan class="sw">baseline-tests</tspan> włączony</text>
 
   <path d="M1350 1500 L1350 1512 Q1350 1530 1332 1530 L1084 1530" class="link l-n" marker-end="url(#ar-n)"/>
@@ -358,7 +358,7 @@
   <text x="504" y="1530" class="mono-t">task-coder</text>
   <text x="504" y="1552" class="desc">Buduje jedno zadanie i dowodzi, że jest zielone.</text>
   <text x="504" y="1572" class="desc-s">widzi tylko własny plik zadania, więc nie zboczy w pliki innego zadania</text>
-  <text x="504" y="1590" class="desc-s">porażkę ponawia sam, przy trzeciej pyta ciebie</text>
+  <text x="504" y="1590" class="desc-s">5 prób, potem orzeka arbiter; każde orzeczenie trafia do rulings.md</text>
 
   <path d="M740 1600 L740 1628" class="link l-b" marker-end="url(#ar-b)"/>
   <path d="M740 1600 L740 1628" class="flow l-b"/>
@@ -369,7 +369,7 @@
   <text x="504" y="1662" class="mono-t">task-reviewer</text>
   <text x="504" y="1684" class="desc">Sprawdza zadanie względem tego, co według planu ma robić.</text>
   <text x="504" y="1704" class="desc-s">pomijany tylko, gdy weryfikacja zadania sonnet uruchamia build lub testy</text>
-  <text x="504" y="1722" class="desc-s">uwaga wraca do codera, do 3 rund, potem decydujesz ty</text>
+  <text x="504" y="1722" class="desc-s">uwaga wraca do codera, do 3 rund, potem orzeka arbiter</text>
 
   <path d="M1000 1682 L1032 1682 Q1050 1682 1050 1664 L1050 1568 Q1050 1550 1032 1550 L1004 1550" class="link l-f" marker-end="url(#ar-f)"/>
   <path d="M1000 1682 L1032 1682 Q1050 1682 1050 1664 L1050 1568 Q1050 1550 1032 1550 L1004 1550" class="flow l-f"/>
@@ -399,7 +399,7 @@
   <text x="504" y="1922" class="mono-t">final-reviewer</text>
   <text x="504" y="1946" class="desc">Przegląda gotowy build ponad diffami pojedynczych zadań,</text>
   <text x="504" y="1964" class="desc">jeden recenzent na porcję do 8 zadań.</text>
-  <text x="504" y="1986" class="desc-s">każda poprawka jest ponownie sprawdzana; nieudana pyta ciebie</text>
+  <text x="504" y="1986" class="desc-s">każda poprawka jest ponownie sprawdzana; nieudana idzie do arbitra</text>
   <text x="504" y="2006" class="desc-s"><tspan class="sw">final-review</tspan> włączony</text>
 
   <path d="M740 2018 L740 2040" class="link l-n" marker-end="url(#ar-n)"/>
@@ -410,7 +410,7 @@
   <text x="951" y="2066" class="badge-t" text-anchor="middle">agent</text>
   <text x="504" y="2074" class="mono-t">test-runner</text>
   <text x="504" y="2096" class="desc">Uruchamia raz cały build i zestaw testów.</text>
-  <text x="504" y="2116" class="desc-s">porażka trafia do codera naprawczego, do 3 rund, każda poprawka w commicie</text>
+  <text x="504" y="2116" class="desc-s">porażka trafia do codera naprawczego, do 3 rund, potem orzeka arbiter</text>
   <text x="504" y="2134" class="desc-s"><tspan class="sw">baseline-tests</tspan> włączony: do naprawy idą tylko nowe błędy</text>
 
   <path d="M740 2144 L740 2168" class="link l-n"/>
