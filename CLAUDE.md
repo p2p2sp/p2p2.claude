@@ -24,9 +24,9 @@ No application code ships: artifacts are markdown (skills, agents, references) +
 (manifests) + bundled scripts (bash everywhere, plus `superfix`/`superui` `.ts` run by Node and
 `superbiz`'s Python report builder). Editing markdown/JSON IS shipping - no build step, no lint,
 no test tooling inside any plugin. The only automated checks are the dev-time suites under
-`tests/` (see `tests/CLAUDE.md`), run as
-`node --test --test-concurrency=12 --test-reporter=dot "tests/**/*.test.ts"`; every other contract between files is enforced by a human
-reading carefully.
+`tests/`, one suite per plugin: run only the ones a change reaches (`tests/CLAUDE.md` maps
+them), the whole suite only before handover; every other contract between files is enforced by
+a human reading carefully.
 
 All five plugins are **stack-agnostic on purpose**: skills read project-specific knowledge (test
 framework, build tool, naming, how to launch the app) from the HOST project's `CLAUDE.md` /
@@ -161,6 +161,6 @@ This file is orientation only. A skill's authoritative contract is its own body
 | `supercc/CLAUDE.md` | `skill-designer` - authoring/refactoring/splitting/linting skills and agents; `model-prompting` - per-model prompting knowledge |
 | `superfix/CLAUDE.md` | `code-auditor` and its five agents - the investigation sweep |
 | `superui/CLAUDE.md` | the `pro-designer` skill (design/frontend advisory, contrast check) |
-| `tests/CLAUDE.md` | any `*.test.ts` under `tests/` - harness contract, cross-platform rules |
+| `tests/CLAUDE.md` | running tests (which suite a change reaches), any `*.test.ts` under `tests/` |
 | `viber/CLAUDE.md` | its fourteen skills (`setup` to `commit`), seventeen agents, hooks, fourteen plugin scripts, references, the run directory and its archive, config switches, the plan gate |
 | `viber/hooks/CLAUDE.md` | viber's hooks - the `plan-gate.sh` and `plan-hints.sh` contracts |

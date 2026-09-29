@@ -16,6 +16,19 @@ a file is shaped live in `.claude/rules/tests-running.md` and `tests-structure.m
   Each rule is a pure function with a self-check test proving it fires on a synthetic bad sample;
   a new rule gets its self-check too, or its green run proves nothing.
 
+## Which suite a change runs
+
+Run only what the change reaches, each line with
+`node --test --test-concurrency=12 --test-reporter=dot <files>`, the files quoted when a glob:
+
+- Always: `tests/orphan-tags.test.ts tests/portability.test.ts`. Prose in an agent, a reference, a
+  `CLAUDE.md`, a README or `.claude/rules/` reaches nothing else.
+- A plugin's script, a `SKILL.md`, its `plugin.json`, or viber's `hooks/content/`,
+  `skills/setup/assets/help.html` or `skills/setup/templates/viber.yml`: plus
+  `"tests/<plugin>/*.test.ts"`. `supercc` and `superbiz` have no suite.
+- `.github/scripts/`: plus `tests/github/release.test.ts`.
+- `tests/harness/`, and every handover: the whole `"tests/**/*.test.ts"`.
+
 ## Harness contract
 
 - `runScript(script, args, opts)` (`harness/run.ts`) runs a shipped script as a real subprocess
