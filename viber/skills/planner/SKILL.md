@@ -81,7 +81,7 @@ A reply with no `VERDICT:` line gets one `SendMessage`, `Finish your task, then 
 
 ## 4. Hand off
 
-Call `ExitPlanMode` only after a PASS.
+Call `ExitPlanMode` only after a PASS from a review dispatched after your last write to the plan file. Every later write voids that PASS, whatever caused it - the user's remark on a refused `ExitPlanMode`, an answer to your question, a Minor finding, your own second thought: re-run `plan-index.sh` unless the plan is a draft, then dispatch step 3 again, as a fresh round 1, before the next `ExitPlanMode`.
 
 A plan with its task half, on a change no draft preceded: name `viber:implementor` as the next step, the path shown in step 2 being the whole handover. Nothing runs here.
 
