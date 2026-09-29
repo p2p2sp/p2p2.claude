@@ -38,7 +38,7 @@ directories:
 # task, review and retry is kept inside it - min: sonnet never runs haiku,
 # max: sonnet never runs opus, and only max: fable lets a retry reach fable.
 tiers:
-  min: haiku
+  min: sonnet
   max: opus
 
 # An interview or a diagnosis can save its conclusions as a new GitHub issue, or keep working on the one it started from.
