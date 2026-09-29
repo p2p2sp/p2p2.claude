@@ -122,8 +122,9 @@ branching:
       target: main
 ```
 
-One entry, cut from and landing back on `main`; `allowed` means you still confirm the branch each
-run rather than always getting one.
+One entry, cut from and landing back on `main`; `allowed` leaves the choice to you only when the
+start check finds you off `main`, where you can stay on your current branch. Use `required` if every
+run should get a branch.
 
 ### GitHub Flow
 
