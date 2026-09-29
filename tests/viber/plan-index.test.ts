@@ -1549,6 +1549,27 @@ test("both spec templates carry the four anchors, so the shape is a choice and n
   assert.ok(!fs.existsSync(path.join(TEMPLATES, "plan.md")), "plan.md was replaced by the three templates");
 });
 
+/** A template's `## Roadmap` section, heading included, up to the line before
+ *  the next `## ` heading - the span `--split` cuts into roadmap.md. */
+function roadmapSection(template: string): string {
+  const body = fs.readFileSync(path.join(TEMPLATES, template), "utf-8");
+  return body.match(/^## Roadmap\n[\s\S]*?(?=^## )/m)?.[0] ?? "";
+}
+
+/** The entry this plan builds, any lines of its own, then a later entry
+ *  carrying an indented decision line - what a later part's interview resumes from. */
+const ROADMAP_SHAPE = /^\d+\. .+ \(this plan\)\n(?:[ \t]+- .*\n)*\d+\. .+\n[ \t]+- \S/m;
+
+for (const template of ["spec-lite.md", "spec-full.md"]) {
+  test(`Roadmap shape: ${template} carries a "(this plan)" entry and a later entry with an indented decision line (a later part's settled decisions would otherwise have no place to survive)`, () => {
+    assert.match(roadmapSection(template), ROADMAP_SHAPE);
+  });
+}
+
+test("Roadmap shape: both spec templates carry the same Roadmap section (one planner rule writes it, whichever shape the plan takes)", () => {
+  assert.equal(roadmapSection("spec-full.md"), roadmapSection("spec-lite.md"));
+});
+
 /** A task file with the one block only the big shape contributes removed, which
  *  is what makes everything else comparable across the two shapes. */
 function stripBoundary(body: string): string {

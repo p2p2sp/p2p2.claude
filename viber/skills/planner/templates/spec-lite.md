@@ -14,13 +14,18 @@ To build this plan you must invoke skill `viber:implementor` with `source:` path
 
 ## Roadmap
 
-<!-- Only when the change was split into subprojects; otherwise drop this section. -->
+<!-- Only when the change was split into parts; otherwise drop this section.
+     The build cuts it into roadmap.md, never into spec.md. Every later part
+     lists the decisions settled for it as indented lines; a plan continuing
+     the roadmap marks the earlier parts (built) and moves its own part's
+     decisions into its specification. -->
 
-Part <n> of <N> - <this subproject>
+Part <n> of <N> - <this part>
 
-1. <subproject> (built)
-2. <subproject> (this plan)
-3. <subproject>
+1. <part> (built)
+2. <part> (this plan)
+3. <part>
+   - <decision settled for this part>
 
 ## Acceptance criteria
 
