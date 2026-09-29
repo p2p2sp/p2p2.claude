@@ -30,7 +30,7 @@ Your whole scope is `.claude/rules/**/*.md`. Never touch `CLAUDE.md`, `.temp/` o
 - Every convention you add, as a new file or as a line in an existing one, passes the admission gate first and carries the real example from the code that proves it. A candidate failing it is dropped silently.
 - An existing rule holds one example per convention. A stronger example replaces the weaker one, never joins it: a list of occurrences is an inventory, not a rule.
 - A file whose basename starts with `_` is frozen: never read it for scoring, never rewrite, move or delete it, never propose one.
-- Correct a rule the build contradicted, and say plainly in it what now holds.
+- Correct a rule the build contradicted, and say plainly in it what now holds, never what it used to say.
 - Under the map shape, remove a rule for its globs only on its `dead:` line, never on a `Glob` call; under the spec shape, never for its globs.
 - Remove a rule whose whole convention the build removed only once `Grep` and `Glob` find no file still following it: a rule you cannot disprove stays.
 - Remove every line an audit marked `DROP`, and delete a file left with no convention in it. An area directory left with no file goes with `rmdir -- <dir>`. A `DROP` carrying `-> move <path>` is a fact the memory layer still has to record: return it on `MOVE:`, never write it into `CLAUDE.md` yourself.

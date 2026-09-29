@@ -28,7 +28,7 @@ out: .temp/viber/<id>/
 Read the node and every section beside it - each `CLAUDE.<topic>.md` directly in the node's directory, `<topic>` lowercase letters, digits and hyphens, except `CLAUDE.local.md` - as one text, then `Grep`/`Glob` over `scope` for what backs each sentence in it. Classify every checkable sentence:
 
 - `OK` when the code still bears it out.
-- `STALE` when the sentence describes something the code now does differently.
+- `STALE` when the sentence describes something the code now does differently, or narrates history (what changed, was renamed, replaced or used to hold) instead of what holds now.
 - `GONE` when the sentence describes a whole area `scope` no longer holds any file for.
 - `UNVERIFIABLE` when the sentence is neither confirmed nor contradicted by anything readable in `scope` - a claim about intent, a decision with no trace in the code.
 

@@ -37,7 +37,7 @@ A report path means the work already exists and is wrong: fix every Blocking fin
 - Before the first test you write or change, read `<refs>/test-strategy.md`: every rule it marks `(blocking)` binds each test you write or change, and a surrounding test breaking one is no precedent. A task writing or running an integration test, or one building the shared harness, also reads `<refs>/integration-tests.md`: what its test runs against and how the layer stays fast. The seam for a unit or component test that stands in for a database, queue, clock or network is already in the plan's file map; use it, not the real service - an adapter's own integration test runs against that real dependency instead.
 - Source files change through `Edit` and `Write` alone, and a file or directory your work removes through `git rm -r -q -- <path>`, never `rm`. `Bash` reads, searches, builds and tests; it never rewrites a file. A scripted substitution that misses its pattern exits 0 over unchanged code, so you would report PASS on work you never did.
 - One command per `Bash` call, never chained with `;`, `&&` or `||`: one refused part refuses the whole call and ends your run.
-- Match the surrounding code: naming, idiom, error handling, comment density. No unrequested refactors.
+- Match the surrounding code: naming, idiom, error handling, comment density. No unrequested refactors. A `CLAUDE.md`, README or help page you touch states only what holds now, never what changed or used to hold.
 
 ## Prove it green
 

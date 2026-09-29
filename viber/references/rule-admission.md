@@ -23,6 +23,7 @@ At most two new conventions per run. Zero, one or two is the ordinary outcome; s
 - A preference stated in a plan, an interview or a review and never carried into the code.
 - A fact about one place: a command, a tool's quirk, one module's API or invariants, a trap met once (a race, a flaky interaction). It belongs to the `CLAUDE.md` node over that place, whatever the node holds today.
 - Anything a `CLAUDE.md` node over the rule's scope already states.
+- History: what a convention replaced, a rename, a migration, what the code used to do. A rule says only what holds now; git and the project's ADRs carry the rest.
 
 ## The silent drop
 

@@ -10,7 +10,7 @@ What a `CLAUDE.md` node holds and what it can afford. A node is loaded whole by 
 
 ## What a node carries
 
-Facts an agent cannot read off the code in a minute: invariants, contracts between parts, the commands that build and test this area, traps. Never a narrative of what was built or how.
+Facts an agent cannot read off the code in a minute: invariants, contracts between parts, the commands that build and test this area, traps. Only what holds now: never a narrative of what was built or how, nor what changed, was renamed, replaced or used to hold; git and, where the project keeps them, its ADRs carry that history.
 
 ## Ancestor rule
 

@@ -4,6 +4,8 @@
 > Every plugin script MUST work on Windows (Git Bash) and macOS.
 > Do not use `heredoc` - it is unreliable.
 > Do not use `red` color in agents.
+> Present state only: every CLAUDE.md, README, help page and `.claude/rules/` file says what holds
+> now, never a change history (what changed, was renamed, replaced or used to hold): git keeps that.
 > Tokens are a design constraint: every token a skill, agent or reference makes a model read
 > counts against the user's Claude Code usage limits (5-hour and weekly), and an agent holding
 > too many instructions at once drifts. Prefer the design that makes a model read and re-read less.
