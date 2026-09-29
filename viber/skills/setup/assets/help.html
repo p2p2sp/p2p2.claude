@@ -2652,8 +2652,17 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
     na czacie i buduje zmianę dopiero po twoim wyraźnym „tak”, bez pliku planu i bez katalogu przebiegu. Przy
     wyłączonym przełączniku każda zmiana przechodzi przez plan.</span></dd>
   </div>
+  <div id="key-baseline-tests">
+    <dt><code>baseline-tests</code> <span class="tag"><span lang="en">off</span><span lang="pl">wył.</span></span></dt>
+    <dd><span lang="en">Before the first task, <a href="#agent-test-runner"><code>test-runner</code></a> runs the test
+    suite once and records what already fails. From then on the build repairs only the failures it caused and
+    leaves the ones it found for you.</span><span lang="pl">Przed pierwszym zadaniem
+    <a href="#agent-test-runner"><code>test-runner</code></a> raz uruchamia zestaw testów i zapisuje, co już nie
+    przechodzi. Od tej chwili build naprawia tylko błędy, które sam spowodował, a zastane zostawia
+    tobie.</span></dd>
+  </div>
 </dl>
-<p lang="en">Seven of the nine start on; <code>qa</code> and <code>issues</code> start off. To change any of
+<p lang="en">Seven of the ten start on; <code>qa</code>, <code>issues</code> and <code>baseline-tests</code> start off. To change any of
 them, edit <code>.claude/viber.yml</code>: every key has a comment there, and only <code>true</code> counts as on. Turn a switch off with <code>false</code> instead of deleting it. Running
 <code>/viber:setup</code> again merges in every key the current version's template has and your file lacks.
 That is how a new switch reaches a project set up by an older version, and the same merge restores a
@@ -2662,8 +2671,8 @@ Children of <code>tiers:</code> and <code>branching:</code> work differently: th
 as a whole, when the file lacks it entirely, and never extends one already present. A child you
 delete there does not come back into the file; it simply resolves to its default. The merge keeps
 every value you have already set.</p>
-<p lang="pl">Siedem z dziewięciu jest domyślnie włączonych; <code>qa</code> i <code>issues</code> startują
-wyłączone. Zmienisz to w <code>.claude/viber.yml</code>: każdy
+<p lang="pl">Siedem z dziesięciu jest domyślnie włączonych; <code>qa</code>, <code>issues</code>
+i <code>baseline-tests</code> startują wyłączone. Zmienisz to w <code>.claude/viber.yml</code>: każdy
 klucz ma tam komentarz, a za włączony liczy się tylko <code>true</code>. Przełącznik wyłączaj wartością
 <code>false</code>, nie usuwaj go. Ponowne uruchomienie <code>/viber:setup</code> dołącza każdy klucz, który ma
 szablon bieżącej wersji, a którego brakuje w twoim pliku. Tak nowy przełącznik trafia do projektu

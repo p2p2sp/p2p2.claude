@@ -393,6 +393,7 @@ const SWITCH_VALUES: Record<string, string[]> = {
   "plain-plan-review": ["true", "false"],
   issues: ["true", "false"],
   "fast-path": ["true", "false"],
+  "baseline-tests": ["true", "false"],
   "branching.mode": ["off", "allowed", "required"],
 };
 
@@ -693,6 +694,12 @@ test("self-check: fragmentCallViolations fires on a fragment file no SKILL.md of
 test("self-check: fragmentCallViolations accepts a final-review call with a .true.md fragment for it (DoD.5)", () => {
   const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" final-review "${CLAUDE_SKILL_DIR}" final-review\n```\n';
   const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, ["final-review.true.md"]);
+  assert.deepEqual(violations, []);
+});
+
+test("self-check: fragmentCallViolations accepts a baseline-tests call with a .true.md fragment for it", () => {
+  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" baseline-tests "${CLAUDE_SKILL_DIR}" baseline-run\n```\n';
+  const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, ["baseline-run.true.md"]);
   assert.deepEqual(violations, []);
 });
 

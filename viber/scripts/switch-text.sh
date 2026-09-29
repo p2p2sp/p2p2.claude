@@ -20,7 +20,8 @@
 # Contract:
 #   argv   : <key> <skill dir> <name>.
 #            key  : adr | memory | rules | qa | cleanup | final-review |
-#                   plain-plan-review | issues | fast-path (value true | false) or
+#                   plain-plan-review | issues | fast-path | baseline-tests
+#                   (value true | false) or
 #                   branching.mode (value off | allowed | required) - the
 #                   value config.sh prints for it.
 #            name : [a-z0-9-]+.
@@ -46,7 +47,7 @@ skill_dir="${2:-}"
 name="${3:-}"
 
 case "$key" in
-  adr|memory|rules|qa|cleanup|final-review|plain-plan-review|issues|fast-path|branching.mode) ;;
+  adr|memory|rules|qa|cleanup|final-review|plain-plan-review|issues|fast-path|baseline-tests|branching.mode) ;;
   *) exit 0 ;;
 esac
 case "$name" in

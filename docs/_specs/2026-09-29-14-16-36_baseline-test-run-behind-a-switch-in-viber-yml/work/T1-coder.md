@@ -1,0 +1,4 @@
+- The template places `baseline-tests` right after `fast-path`, so bootstrap's merge report now lists `..., fast-path, baseline-tests, directories, ...`; five bootstrap fixtures that model a "complete" older config had to gain a `baseline-tests` line or the merge would append it and break their byte-equality asserts.
+- Adding the key to the template makes `help.test.ts`'s "entry for every viber.yml key" fail until `id="key-baseline-tests"` exists: template and help page must land together.
+- DoD.5 is proven by a portability self-check (`fragmentCallViolations` accepts a `baseline-tests` call with `baseline-run.true.md`), following the final-review precedent.
+- `CLAUDE.switches.md` / `viber/CLAUDE.md` still name nine switches; left to the memory close per Out of scope.

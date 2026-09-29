@@ -72,9 +72,9 @@ End-to-end tests stay with your CI and `/viber:e2e` unless you explicitly ask fo
 
 ## Optional switches
 
-`/viber:setup` writes `.claude/viber.yml` with seven of the nine on and `qa` and `issues` off. Edit
-that file to change any of them - only `true` counts as on, so turn a switch off with `false`
-rather than by deleting it. Without the file all nine are off. Run `/viber:setup` again after an
+`/viber:setup` writes `.claude/viber.yml` with seven of the ten on and `qa`, `issues` and
+`baseline-tests` off. Edit that file to change any of them - only `true` counts as on, so turn a
+switch off with `false` rather than by deleting it. Without the file all ten are off. Run `/viber:setup` again after an
 upgrade and any switch the new version added is merged into your file, with every value you set
 left as it is.
 
@@ -89,6 +89,7 @@ left as it is.
 | `plain-plan-review` | on | A plan written in plain plan mode, without the planner, must pass a review before plan mode can be left. |
 | `issues` | **off** | `/viber:intent`, `/viber:fixer` and `/viber:prototype` can start from a GitHub issue's number or link, and an interview that did not can save its conclusions as a new one; `/viber:prototype` can post its mockup to the issue it started from; `/viber:triage` can fetch and publish to a GitHub issue instead of pasted text alone. |
 | `fast-path` | on | For a small, well-scoped change to existing code, `/viber:intent` shows a short design in chat and builds it only after your explicit yes, with no plan file and no run directory. |
+| `baseline-tests` | **off** | Before the first task the build runs your test suite once and records what already fails, then repairs only the failures it caused. |
 
 The same file carries a `directories:` group with two names, both under `docs/`: `runs`
 (`_specs`) for a run in progress and `specifications` (`specs`) for the archive.

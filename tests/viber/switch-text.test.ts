@@ -120,6 +120,28 @@ test("`fast-path` off prints nothing - there is no fragment for the off state", 
   });
 });
 
+test("`baseline-tests: true` prints the skill's baseline-run.true.md fragment", () => {
+  withGitRepo((repo) => {
+    writeConfig(repo, "baseline-tests: true\n");
+    writeFragment(repo, "baseline-run.true.md", "Run the baseline.\n");
+
+    const result = run(repo, ["baseline-tests", skillDir(repo), "baseline-run"]);
+
+    assert.deepEqual([result.status, result.stdout], [0, "Run the baseline.\n"]);
+  });
+});
+
+test("`baseline-tests` off prints nothing - there is no fragment for the off state", () => {
+  withGitRepo((repo) => {
+    writeConfig(repo, "baseline-tests: false\n");
+    writeFragment(repo, "baseline-run.true.md", "Run the baseline.\n");
+
+    const result = run(repo, ["baseline-tests", skillDir(repo), "baseline-run"]);
+
+    assert.deepEqual([result.status, result.stdout], [0, ""]);
+  });
+});
+
 for (const [config, mode] of [
   ["branching:\n  mode: required\n", "required"],
   ["branching:\n  mode: Allowed\n", "allowed"],

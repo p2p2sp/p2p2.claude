@@ -40,7 +40,7 @@ const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/config.sh");
 
 /** Every switch off and both directory keys at their default - what a project
  *  with no config file, and every unusable value, resolves to. */
-const OFF = { adr: "false", memory: "false", rules: "false", qa: "false", cleanup: "false", "final-review": "false", "plain-plan-review": "false", issues: "false", "fast-path": "false" };
+const OFF = { adr: "false", memory: "false", rules: "false", qa: "false", cleanup: "false", "final-review": "false", "plain-plan-review": "false", issues: "false", "fast-path": "false", "baseline-tests": "false" };
 const DEFAULT_DIRS = { runs: "_specs", specifications: "specs" };
 
 function run(dir: string, env: Record<string, string> = {}) {
@@ -162,6 +162,41 @@ test("`fast-path` prints directly after the `issues` line, in the header's fixed
   });
 });
 
+for (const value of ["true", "TRUE", "True"]) {
+  test(`\`baseline-tests: ${value}\` resolves to true, matched in any letter case`, () => {
+    withTempDir("p2p2-viber-", (dir) => {
+      writeConfig(dir, `baseline-tests: ${value}\n`);
+
+      assert.deepEqual(switches(run(dir).stdout), { ...OFF, "baseline-tests": "true" });
+    });
+  });
+}
+
+for (const [label, body] of [
+  ["the key absent", "adr: true\n"],
+  ["another value", "adr: true\nbaseline-tests: enabled\n"],
+  ["the value false", "baseline-tests: false\n"],
+] as const) {
+  test(`a config with ${label} resolves \`baseline-tests\` to false`, () => {
+    withTempDir("p2p2-viber-", (dir) => {
+      writeConfig(dir, body);
+
+      assert.equal(config(run(dir).stdout)["baseline-tests"], "false");
+    });
+  });
+}
+
+test("`baseline-tests` prints directly after the `fast-path` line, in the header's fixed order", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    writeConfig(dir, "baseline-tests: true\n");
+
+    const printed = run(dir).stdout.trim().split("\n");
+    const fastPathIdx = printed.indexOf("fast-path: false");
+    assert.equal(fastPathIdx >= 0, true, `fast-path line missing: ${printed.join(" | ")}`);
+    assert.equal(printed[fastPathIdx + 1], "baseline-tests: true");
+  });
+});
+
 test("only `true` counts as on - false, a missing key, a commented-out line and a near-miss value are all off", () => {
   withTempDir("p2p2-viber-", (dir) => {
     writeConfig(dir, ["adr: false", "# memory: true", "rules: truthy", "qa: yes", "cleanup: on", "extra: true", ""].join("\n"));
@@ -191,6 +226,7 @@ test("the seeded template turns every switch on, comments and case notwithstandi
       "plain-plan-review": "true",
       issues: "true",
       "fast-path": "false",
+      "baseline-tests": "false",
     });
   });
 });
@@ -225,7 +261,7 @@ test("`MEMORY: true` resolves to off - the key itself is matched case-sensitivel
   });
 });
 
-test("the shipped template is what setup seeds: seven switches on, qa and issues off, and both directories named", () => {
+test("the shipped template is what setup seeds: seven switches on, qa, issues and baseline-tests off, and both directories named", () => {
   withTempDir("p2p2-viber-", (dir) => {
     const template = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/viber.yml");
     writeConfig(dir, fs.readFileSync(template, "utf-8"));
@@ -241,6 +277,7 @@ test("the shipped template is what setup seeds: seven switches on, qa and issues
       "plain-plan-review": "true",
       issues: "false",
       "fast-path": "true",
+      "baseline-tests": "false",
     });
     assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS);
     assert.deepEqual(tiers(result.stdout), DEFAULT_TIERS);
