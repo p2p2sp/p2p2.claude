@@ -27,6 +27,8 @@
 #                                          from the issue URL alone, ending in
 #                                          /issues/<n>; nothing moves, nothing
 #                                          is written
+#   plan-path.sh --checkout <branch>       put HEAD on an existing local branch
+#                                          (C2); never creates one, never fetches
 #
 # <src> is the approved plan as plan mode wrote it. Its directory is a user-level
 # setting ("plansDirectory"), so the file normally sits OUTSIDE this repository:
@@ -87,7 +89,7 @@
 # Contract:
 #   argv   : --land and the source plan, optionally --into and a run key, or
 #            --branch and a plan, or --start and optionally an issue URL, or
-#            nothing.
+#            --checkout and a branch name, or nothing.
 #   file   : <src>'s frontmatter "into:" key, read only when argv carries no
 #            --into, validated and refused exactly as --into. On a first
 #            landing, and on --branch, <src>'s frontmatter "branch:", "work:"
@@ -95,10 +97,10 @@
 #            run branch. On every form printing "branch:", the resolved
 #            plan's "work:" key, for the "target:" line.
 #   git    : HEAD moves only in the branch step of a first landing, or of a
-#            matching round landed again through --into, through one
-#            checkout; every failure before or inside that step leaves
-#            HEAD, the index and the tree as they were. --branch and --start
-#            never move HEAD, the index or the tree - they only read.
+#            matching round landed again through --into, or by --checkout,
+#            through one checkout; every failure before or inside that step
+#            leaves HEAD, the index and the tree as they were. --branch and
+#            --start never move HEAD, the index or the tree - they only read.
 #   gh     : --branch and --start alone, through issue-facts.sh, for the issue
 #            type (see their stdout below); never fetches, pushes or writes.
 #   cwd    : the repository root - every path printed is relative to it, and the
@@ -157,8 +159,17 @@
 #   "error:" lines follow --branch's rules.
 #   stdout, --branch <plan> or --start, mode off or outside a git repository:
 #     mode: off
+#   stdout, --checkout <branch>, whatever the branching mode (never read):
+#     branch: <branch> (switched | kept)
+#   "kept" is HEAD already on <branch>. A switch to another commit is refused
+#   on a dirty tree (untracked files count); one keeping the commit carries
+#   the uncommitted work along. Exit 6 with the reason on stderr and HEAD,
+#   index and tree unchanged: an invalid name (@{-1} included), no local
+#   branch of that name (nothing is created or fetched), a dirty tree and a
+#   branch at another commit, or no git repository.
 #   exit != 0:
-#     2 - unusable argv: an unknown first argument, --land without a source, a
+#     2 - unusable argv: an unknown first argument, --checkout without exactly
+#         one branch name, --land without a source, a
 #         source that is not a file, a title and file name that both
 #         normalize to nothing, an --into key that is empty, carries a slash
 #         or a traversal, or names no
@@ -503,8 +514,18 @@ if [[ "$mode" == "--start" ]]; then
   exit 0
 fi
 
+# --- --checkout: HEAD onto an existing local branch, whatever the mode ---
+if [[ "$mode" == "--checkout" ]]; then
+  if [[ $# -ne 2 || -z "$2" ]]; then
+    echo "error: usage: plan-path.sh --checkout <branch>" >&2
+    exit 2
+  fi
+  branch_checkout "$2" || exit $?
+  exit 0
+fi
+
 if [[ "$mode" != "--land" ]]; then
-  echo "error: usage: plan-path.sh [--land <src>] [--branch <plan>] [--start [<issue URL>]], got: $mode" >&2
+  echo "error: usage: plan-path.sh [--land <src>] [--branch <plan>] [--start [<issue URL>]] [--checkout <branch>], got: $mode" >&2
   exit 2
 fi
 

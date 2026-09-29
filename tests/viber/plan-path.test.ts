@@ -29,7 +29,8 @@
  * Under a `branching:` mode other than off, a first landing puts HEAD on the
  * run branch before anything is copied and prints a `branch:` line after
  * `state:`; those cases run in throwaway git repositories. `--start` is the
- * plan-less, read-only start report of the same situation.
+ * plan-less, read-only start report of the same situation; `--checkout` puts
+ * HEAD on an existing local branch and never creates one.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -2645,5 +2646,113 @@ test("--branch prints current-is-base: no directly after current: on a branch th
       const lines = slash(result.stdout).split("\n");
       assert.deepEqual(lines.slice(lines.indexOf("current: work")).slice(0, 3), ["current: work", "current-is-base: no", "dirty: no"]);
     });
+  });
+});
+
+// --- --checkout: HEAD onto an existing local branch, never a new one ---
+
+/** The local branch names, one per line, so a test can assert none was created. */
+function branchesOf(repo: GitRepo): string {
+  return repo.git("branch", "--format=%(refname:short)").stdout;
+}
+
+/** The index as git records it, so a test can assert a refusal left it alone. */
+function indexOf(repo: GitRepo): string {
+  return repo.git("ls-files", "-s").stdout;
+}
+
+test("checkout form: an existing branch at another commit on a clean tree becomes HEAD and reads switched (DoD.1)", () => {
+  withBranchRepo(SINGLE, (repo) => {
+    branchAhead(repo, "feature/login");
+    const tip = commitOf(repo, "feature/login");
+    const result = runIn(repo, ["--checkout", "feature/login"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(slash(result.stdout), "branch: feature/login (switched)\n");
+    assert.equal(headOf(repo), "feature/login");
+    assert.equal(commitOf(repo), tip);
+  });
+});
+
+test("checkout form: the branch HEAD is already on reads kept (DoD.2)", () => {
+  withBranchRepo(SINGLE, (repo) => {
+    const result = runIn(repo, ["--checkout", "main"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(slash(result.stdout), "branch: main (kept)\n");
+    assert.equal(headOf(repo), "main");
+  });
+});
+
+test("checkout form: a name with no local branch exits 6 and creates nothing (DoD.3)", () => {
+  withBranchRepo(SINGLE, (repo) => {
+    const branches = branchesOf(repo);
+    const result = runIn(repo, ["--checkout", "feature/absent"]);
+    assert.equal(result.status, 6, `stdout: ${result.stdout}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /branch feature\/absent does not exist locally/);
+    assert.equal(headOf(repo), "main");
+    assert.equal(branchesOf(repo), branches);
+  });
+});
+
+test("checkout form: an invalid name exits 6 with HEAD unchanged (DoD.4)", () => {
+  withBranchRepo(SINGLE, (repo) => {
+    const result = runIn(repo, ["--checkout", "bad..name"]);
+    assert.equal(result.status, 6, `stdout: ${result.stdout}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /invalid branch name: bad\.\.name/);
+    assert.equal(headOf(repo), "main");
+  });
+});
+
+test("checkout form: the previous-branch shorthand is an invalid name, never a switch to wherever HEAD was before (DoD.4, git would expand @{-1})", () => {
+  withBranchRepo(SINGLE, (repo) => {
+    repo.git("checkout", "-q", "-b", "work");
+    repo.git("checkout", "-q", "main");
+    // a Windows child re-parses its command line and drops the braces of a bare
+    // argument, so the name crosses inside a shell string that holds spaces
+    const result = runScript(`exec bash "${SUT.replace(/\\/g, "/")}" --checkout '@{-1}'`, [], { cwd: repo.dir, shell: ["bash", "-c"], env: repo.env });
+    assert.equal(result.status, 6, `stdout: ${result.stdout}`);
+    assert.match(result.stderr, /invalid branch name/);
+    assert.equal(headOf(repo), "main");
+  });
+});
+
+test("checkout form: a dirty tree and a branch at another commit exits 6 with HEAD, index and tree unchanged (DoD.5)", () => {
+  withBranchRepo(SINGLE, (repo) => {
+    branchAhead(repo, "feature/login");
+    fs.writeFileSync(path.join(repo.dir, "README.md"), "changed\n");
+    fs.writeFileSync(path.join(repo.dir, "staged.txt"), "staged\n");
+    repo.git("add", "staged.txt");
+    const tree = treeOf(repo);
+    const index = indexOf(repo);
+    const result = runIn(repo, ["--checkout", "feature/login"]);
+    assert.equal(result.status, 6, `stdout: ${result.stdout}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /uncommitted changes and feature\/login is at another commit/);
+    assert.equal(headOf(repo), "main");
+    assert.equal(treeOf(repo), tree);
+    assert.equal(indexOf(repo), index);
+  });
+});
+
+test("checkout form: a dirty tree and a branch at the same commit switches and carries the changes along (DoD.6)", () => {
+  withBranchRepo(SINGLE, (repo) => {
+    repo.git("branch", "same");
+    fs.writeFileSync(path.join(repo.dir, "README.md"), "changed\n");
+    const result = runIn(repo, ["--checkout", "same"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(slash(result.stdout), "branch: same (switched)\n");
+    assert.equal(headOf(repo), "same");
+    assert.equal(fs.readFileSync(path.join(repo.dir, "README.md"), "utf-8"), "changed\n");
+  });
+});
+
+test("checkout form: a missing argument exits 2 with nothing on stdout (DoD.7)", () => {
+  withBranchRepo(SINGLE, (repo) => {
+    const result = runIn(repo, ["--checkout"]);
+    assert.equal(result.status, 2);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /usage: plan-path\.sh --checkout <branch>/);
+    assert.equal(headOf(repo), "main");
   });
 });

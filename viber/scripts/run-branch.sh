@@ -19,15 +19,19 @@
 #   gh     : only through the sibling issue-facts.sh, for the issue type of
 #            branch_report and branch_start, and only when a mapping exists and
 #            there is an issue: its TYPE= line, empty on any failure.
-#   git    : reads HEAD, refs/heads/ and the tree state; branch_land alone
-#            moves HEAD, through one checkout, never a fetch.
+#   git    : reads HEAD, refs/heads/ and the tree state; branch_land and
+#            branch_checkout alone move HEAD, each through one checkout,
+#            never a fetch.
 #   stdout : branch_setup, branch_entry and branch_land print nothing - their
 #            result is the br_* variables; the plan_* and branch_expand helpers print one
 #            value for a caller to capture. branch_report prints the C3
 #            report of plan-path.sh --branch and branch_start the C1 report of
-#            plan-path.sh --start, whose header shows both.
-#   return : branch_land 0, or 6 with the reason on stderr and HEAD, index
-#            and tree untouched. branch_report and branch_start always 0 -
+#            plan-path.sh --start, whose header shows both; branch_checkout
+#            prints the one "branch:" line of plan-path.sh --checkout.
+#   return : branch_land and branch_checkout 0, or 6 with the reason on stderr
+#            and HEAD, index and tree untouched (branch_land and
+#            branch_checkout share branch_name_ok and branch_move_ok for the
+#            name and dirty-tree checks). branch_report and branch_start always 0 -
 #            they are read-only and never touch HEAD, the index or the tree.
 #
 # Outside a git repository branching acts as off. No `set` line of its own: it
@@ -212,6 +216,58 @@ branch_config_ok() {
   return 6
 }
 
+# True when $1 is a usable branch name. check-ref-format --branch expands
+# @{-n}, so a name it hands back changed is a shorthand for another branch,
+# not a name.
+branch_name_ok() {
+  [[ "$1" != -* && "$(git check-ref-format --branch "$1" 2>/dev/null || true)" == "$1" ]]
+}
+
+# Refuses moving HEAD onto branch $1 (ref $2) with return 6 and the reason on
+# stderr: a checkout carries uncommitted work along only while HEAD keeps its
+# commit, and moving it elsewhere on a dirty tree could lose or tangle that
+# work. 0 otherwise.
+branch_move_ok() {
+  local head_c to_c
+  head_c="$(git rev-parse -q --verify 'HEAD^{commit}' 2>/dev/null || true)"
+  to_c="$(git rev-parse -q --verify "$2^{commit}" 2>/dev/null || true)"
+  if [[ "$head_c" != "$to_c" && -n "$(git status --porcelain 2>/dev/null || true)" ]]; then
+    echo "error: uncommitted changes and $1 is at another commit - commit or stash them first" >&2
+    return 6
+  fi
+}
+
+# Puts HEAD on the existing local branch $1 and prints "branch: <name>
+# (switched | kept)" (the --checkout form). Any mode, config never read. Never
+# creates a branch, never fetches. Return 6 with the reason on stderr and HEAD,
+# index and tree untouched.
+branch_checkout() {
+  local cur action=switched
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "error: not a git repository" >&2
+    return 6
+  fi
+  if ! branch_name_ok "$1"; then
+    echo "error: invalid branch name: $1" >&2
+    return 6
+  fi
+  if ! git show-ref --verify --quiet "refs/heads/$1"; then
+    echo "error: branch $1 does not exist locally - nothing is fetched, create it first" >&2
+    return 6
+  fi
+  cur="$(git symbolic-ref --short -q HEAD 2>/dev/null || true)"
+  if [[ "$cur" == "$1" ]]; then
+    action=kept
+  else
+    branch_move_ok "$1" "refs/heads/$1" || return 6
+    if ! git checkout -q "$1" -- >/dev/null; then
+      echo "error: could not put HEAD on the branch $1" >&2
+      return 6
+    fi
+  fi
+  printf 'branch: %s (%s)\n' "$1" "$action"
+}
+
 # Puts HEAD on the run branch of plan $1 (run slug $2) and sets br_line. A
 # branch is created only from the base of the plan's work entry and only on a
 # configuration config.sh reports no error for; keeping or switching to a
@@ -255,14 +311,12 @@ branch_land() {
     echo "error: branching is required and the run branch is the base itself: $target" >&2
     return 6
   fi
-  # check-ref-format --branch expands @{-n}, so a name it hands back changed is
-  # a shorthand for another branch, not a name
-  if [[ "$target" == -* || "$(git check-ref-format --branch "$target" 2>/dev/null || true)" != "$target" ]]; then
+  if ! branch_name_ok "$target"; then
     echo "error: invalid run branch name: $target" >&2
     return 6
   fi
   [[ "$target" != "$br_cur" ]] || return 0
-  local action=switched from="refs/heads/$target" head_c to_c
+  local action=switched from="refs/heads/$target"
   if ! git show-ref --verify --quiet "$from"; then
     action=created
     branch_config_ok || return 6
@@ -276,14 +330,7 @@ branch_land() {
       return 6
     fi
   fi
-  # a checkout carries uncommitted work along only while HEAD keeps its commit;
-  # moving it elsewhere on a dirty tree could lose or tangle that work
-  head_c="$(git rev-parse -q --verify 'HEAD^{commit}' 2>/dev/null || true)"
-  to_c="$(git rev-parse -q --verify "$from^{commit}" 2>/dev/null || true)"
-  if [[ "$head_c" != "$to_c" && -n "$(git status --porcelain 2>/dev/null || true)" ]]; then
-    echo "error: uncommitted changes and $target is at another commit - commit or stash them first" >&2
-    return 6
-  fi
+  branch_move_ok "$target" "$from" || return 6
   if [[ "$action" == switched ]]; then
     git checkout -q "$target" -- >/dev/null || action=""
   else
