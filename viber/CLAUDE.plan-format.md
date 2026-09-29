@@ -19,6 +19,12 @@ every parser.
 - `plan-index.sh` also refuses a task naming a contract block in `Uses` with no dependency path,
   direct or transitive, to the lower-numbered task holding that block's `File:` path and naming
   it too (the writer-dependency check, `plan-rules.md`'s Consumed-after rule), naming both tasks.
+- `--split` cuts the `## Roadmap` section (up to the next `## ` heading) into `<dir>/roadmap.md` in
+  the same fence- and comment-aware loop as `spec.md`, so the two cannot disagree; it removes a stale
+  `roadmap.md` first and adds the file to the commit only when it exists. The `next:` parse runs in
+  the validation pass (the bare call prints it too): every `N. ` line in the section is an entry, the
+  first `(this plan)` marker wins, and fences are not tracked (the templates hold none). Both
+  templates carry the shape: later entries with their settled decisions as indented lines.
 - `--split` cuts a task's `- DoD:` line on `;` into numbered `- DoD.<k>:` lines in `tasks/<id>.md`
   only (the plan keeps its one line). The coder's `DOD: <met>/<total>` line, the reviewer's
   clause-by-clause gate and `implementor`'s short-`DOD:` retry all count those clauses: a change
