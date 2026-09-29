@@ -18,6 +18,11 @@
 #   closed: memory rules            only when status.md carries the entry
 #   decision: T2: <text>            one per "decision:" line of status.md, in
 #                                   file order, printed as it stands there
+#   next: part <n> of <N> - <name>
+#                                   only when the plan Roadmap has an entry after
+#                                   the one marked "(this plan)": that entry, its
+#                                   1-based position, the entry count, the name
+#                                   without its marker (e.g. next: part 3 of 4 - X)
 #   tasks: id | state | tdd | excl | deps | feeds | files | title
 #   T1 | done | none     | -   | -  | C1:1 | .claude/settings.json | Tighten the settings schema
 #   T2 | todo | required | yes | T1 | -    | src/a.ts,src/b.ts     | Add the retry loop
@@ -356,6 +361,23 @@ BEGIN {
 # plan title: the first H1
 /^#[[:space:]]/ && title == "" { title = trim(substr($0, 2)); next }
 
+# the "## Roadmap" section above "## Tasks": its numbered entries in build order
+# and which one carries the "(this plan)" marker. Guidance comments are skipped;
+# a heading of any other name closes the section.
+!hastasks {
+  rt = trim($0)
+  if (rcom) { if (rt ~ /-->/) rcom = 0 }
+  else if (rt ~ /^<!--/) { if (rt !~ /-->/) rcom = 1 }
+  else if ($0 ~ /^##[[:space:]]/) inroad = ($0 ~ /^##[[:space:]]*Roadmap[[:space:]]*$/)
+  else if (inroad && $0 ~ /^[0-9]+\. /) {
+    rname = $0
+    sub(/^[0-9]+\.[[:space:]]+/, "", rname)
+    rname = trim(rname)
+    rent[++nrent] = rname
+    if (!rthis && rname ~ /\(this plan\)$/) rthis = nrent
+  }
+}
+
 # the heading --split cuts the plan in two at, matched by the SAME pattern the
 # cut uses: a plan that validates is a plan that splits where this says it will
 /^##[[:space:]]*Tasks/ { hastasks = 1 }
@@ -674,6 +696,11 @@ END {
   if (defer   != "") printf "deferred: %s\n", defer
   if (closed  != "") printf "closed: %s\n", closed
   printf "%s", decisions
+  if (rthis && rthis < nrent) {
+    rnext = rent[rthis + 1]
+    sub(/[[:space:]]*\((built|this plan)\)$/, "", rnext)
+    printf "next: part %d of %d - %s\n", rthis + 1, nrent, trim(rnext)
+  }
   printf "tasks: id | state | tdd | excl | deps | feeds | files | title\n"
   for (i = 1; i <= n; i++) {
     f = ""

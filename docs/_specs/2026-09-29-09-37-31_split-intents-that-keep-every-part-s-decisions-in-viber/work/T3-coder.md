@@ -1,0 +1,3 @@
+- The Roadmap parse runs in the validation pass over plan.md (not the --split pass), so the bare index prints `next:` too; it only reads above `## Tasks`, skips `<!--` comments, and ends the section at any other `## ` heading.
+- Entries are counted as every `^[0-9]+\. ` line inside the section (N = that count); the first `(this plan)` marker wins, and the marker is stripped from the name only on the printed next entry.
+- Fences are not tracked in the Roadmap parse (the template holds none); a fenced numbered line inside the section would count as an entry.

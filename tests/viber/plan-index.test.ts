@@ -1888,6 +1888,83 @@ test("the header names roadmap.md among the files --split writes", () => {
   assert.match(splitDoc, /^#\s+roadmap\.md\s+- /m);
 });
 
+/** A plan whose `## Roadmap` lists exactly `entries`, placed like the templates place it. */
+function roadmapPlan(entries: string[]): string {
+  return planBody(TWO_TASKS).replace(
+    "## Acceptance criteria\n",
+    ["## Roadmap", "", "Part 1 of 1 - x", "", ...entries, "", "## Acceptance criteria", ""].join("\n"),
+  );
+}
+
+test("a Roadmap entry after the one marked (this plan) prints the next line between the decision lines and the tasks line", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, withRoadmap(planBody(TWO_TASKS)));
+    write(dir, `${PLAN_DIR}/status.md`, ["# status", "", "progress: 0/2", "decision: T1: keep the old handler", ""].join("\n"));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(
+      result.stdout,
+      /^decision: T1: keep the old handler\nnext: part 3 of 3 - Session expiry\ntasks: /m,
+    );
+  });
+});
+
+test("the next line strips a trailing marker from the name and counts every numbered entry (a marker is bookkeeping, never part of the part's name)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, roadmapPlan(["1. Account model (this plan)", "2. Session expiry (built)", "3. Audit log"]));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^next: part 2 of 3 - Session expiry\n/m);
+  });
+});
+
+test("a Roadmap whose (this plan) entry is last prints no next line (nothing is left to interview)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, roadmapPlan(["1. Account model (built)", "2. Add login (this plan)"]));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stdout, /^next:/m);
+  });
+});
+
+test("a Roadmap with no (this plan) entry prints no next line", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, roadmapPlan(["1. Account model (built)", "2. Add login"]));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stdout, /^next:/m);
+  });
+});
+
+test("a plan with no Roadmap prints no next line, the tasks line straight after the state lines", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody(TWO_TASKS));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stdout, /^next:/m);
+  });
+});
+
+test("a numbered line outside the Roadmap section is no entry (a later section's list names no part)", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, roadmapPlan(["1. Add login (this plan)"]).replace("- Password reset.\n", "2. Session expiry\n- Password reset.\n"));
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.doesNotMatch(result.stdout, /^next:/m);
+  });
+});
+
+test("the header's stdout block lists the next line", () => {
+  const source = fs.readFileSync(SUT, "utf-8");
+  const stdoutDoc = source.slice(source.indexOf("# stdout"), source.indexOf("# \"feeds\""));
+  assert.match(stdoutDoc, /^#\s+next: part <n> of <N> - <name>/m);
+});
+
 test("a second --split with the plan unchanged commits nothing and still exits 0", () => {
   withGitRepo((repo) => {
     seed(repo.dir, planBody(TWO_TASKS));
