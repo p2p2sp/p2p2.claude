@@ -1,8 +1,10 @@
 # viber
 
-- jak planner już jest na branchu i robi kolejny plan to nie powinien pytać o wybór brancha.
+- czy kolor agenta można nadpisać przy wywołaniu?
 
-- jak pyta o zmiany poza buildem to jedna opcja powinna być pomiń, a druga zakomituj teraz - i tyle.
+- plikach claude, readme, help - nie opisuj historii zmian, jeśli coś teraz działa inaczej to zostaje info jako ADR (jeśli trzeba) oraz historia zmian w git a w nich pełna amnezja. W tych dokumentach ma być tylko stan obecny. Zapisać jako ważną niezmienną regułę.
+
+- jak planner już jest na branchu i robi kolejny plan to nie powinien pytać o wybór brancha.
 
 - final review też powinno mieć swobodę i agent samemu może roztrzygać co było źle i zlecać poprawki - zwłaszcza, że zgłasza tylko userowi co robić, ale nie pisze dlaczego. jak dostanie swobodę to tylko powinien napisać co było źle i co poprawia.
 
