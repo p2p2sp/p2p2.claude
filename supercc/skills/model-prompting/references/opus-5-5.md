@@ -16,7 +16,7 @@ Alias `opus`, ID `claude-opus-5-5`, released 2026-09-22. Context 1M, output 128K
 - Most frequent flaw: states inferences as fact (a partial check reported as a full read, a tentative reading turned into a recommendation). Require verified and inferred claims to be marked apart.
 - Drops its own stated doubts and plans more often than earlier models: require unresolved doubts and plan deviations in the report.
 - Fixes review findings narrowly without reconsidering the design, and checks a plan against requirements it wrote itself: point a fixer at the original requirement, not only the finding.
-- Yields to user pressure more than Opus 5 or Sonnet 5: ask for its verdict before stating a preference.
+- Yields to user pressure more than Opus 5 or Sonnet 5.5: ask for its verdict before stating a preference.
 - May re-open earlier answers in follow-up turns. "Once you have answered something, treat that answer as done unless the user asks about it or points out a problem" fixes it but also blocks genuine self-correction; leave it out of agentic tasks where a later step can expose an earlier mistake.
 
 ## Agentic behaviour
