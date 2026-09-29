@@ -2524,6 +2524,11 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   zmianę zbudowaną w twojej sesji. Przy włączonym <a href="#key-baseline-tests"><code>baseline-tests</code></a>
   wykonuje też przebieg bazowy przed pierwszym zadaniem, zapisując, co już nie przechodzi, a końcowe
   uruchomienie kończy się porażką tylko przy nowych błędach.</span></li>
+  <li id="agent-arbiter"><code>arbiter</code> <span lang="en">rules in your place where the build would otherwise
+  stop to ask: it picks one way forward from a closed list and gives its reason and its cost if wrong, which the
+  build records in <code>rulings.md</code>.</span><span lang="pl">rozstrzyga w twoim imieniu tam, gdzie build
+  musiałby się zatrzymać i zapytać: wybiera jedną drogę z zamkniętej listy i podaje jej uzasadnienie oraz koszt
+  pomyłki, które build zapisuje w <code>rulings.md</code>.</span></li>
 </ul>
 
 <h4><span lang="en">Build close</span><span lang="pl">Zamknięcie buildu</span></h4>
