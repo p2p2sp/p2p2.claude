@@ -5,4 +5,4 @@ done: T2 T3 T1 T4
 skipped: none
 unreviewed: none
 deferred: none
-closed: final-review
+closed: final-review rules
