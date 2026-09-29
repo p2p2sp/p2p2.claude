@@ -1,5 +1,0 @@
-- Choice left open: a `VERDICT: DENIED` retry re-dispatches the same attempt (no count), like a `WAIT:` hold; the owner's `retry` and `decide` on the owner-marked question both restart the count, so a retry at attempt 5 never makes a sixth.
-- Review rounds no longer cap at 3: the report path's round just rises with every review of the task; the attempt limit is the only cap.
-- Step 5 (tests, repair, close) and the baseline fragment are untouched: T6/T7 own their arbiter cases. The Answers section still serves them (`retry` round counter, `accept`).
-- The generic "commit-task non-zero -> retry / abort" bullet now excludes `--rule`; `--decide` and `--skip` failures still ask through it (outside steps 3 and 4).
-- A cap ruling `accept` at exit 4 falls to the `--landed` question, not a second arbiter dispatch.

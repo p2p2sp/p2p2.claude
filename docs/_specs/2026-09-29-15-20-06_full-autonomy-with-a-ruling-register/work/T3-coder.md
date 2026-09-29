@@ -1,3 +1,0 @@
-- DoD.3 needed no code: the existing run-directory exclusion already keeps rulings.md off `orphan:`, and it is no task file so never on `dirty:`. Its test passed at once and guards that exclusion.
-- Choice left open: ruling lines print right after the decision lines and before `next:`.
-- Only `- ` entries of rulings.md count; the `# Rulings` heading and blank lines are ignored.

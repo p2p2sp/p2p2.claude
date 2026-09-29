@@ -1,4 +1,0 @@
-- The final review keeps a single fix round, so the fragment's `<round>` file names became literal `-1` and the "later round" / `decision: final-review:` / own-words answer paths were removed (nothing can feed them any more); `final-reviewer` and `task-coder` still accept such a line, untouched.
-- The step-4 `--rule` bullet now names `<subject>` (task id, else the case name) so the baseline, tests and final-review rulings reuse it.
-- The baseline arbiter gets `reason:` only on `BUILD: failed`: test-runner returns no `REASON:` line.
-- The Answers section's "next 3 rounds counting as 1 to 3 of 3" wording for `retry` is now only reachable for review rounds; left as is.
