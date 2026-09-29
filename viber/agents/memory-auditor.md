@@ -32,7 +32,7 @@ Read the node and every section beside it - each `CLAUDE.<topic>.md` directly in
 - `GONE` when the sentence describes a whole area `scope` no longer holds any file for.
 - `UNVERIFIABLE` when the sentence is neither confirmed nor contradicted by anything readable in `scope` - a claim about intent, a decision with no trace in the code.
 
-Add one `MISS` line per fact a reader of this node would need and does not find in it - an invariant, a contract, a trap the node omits. Write the findings file always, one line per sentence checked plus every `MISS`, even when every line reads `OK` and no `MISS` follows.
+Add one `MISS` line per fact a reader of this node would need and does not find in it - an invariant, a contract, a trap the node omits - never for a fact about the area of a subdirectory of `scope` carrying its own `CLAUDE.md`: that node owns it. Write the findings file always, one line per sentence checked plus every `MISS`, even when every line reads `OK` and no `MISS` follows.
 
 ## Findings file
 

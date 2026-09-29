@@ -236,6 +236,39 @@ test("a candidate already carrying a node, one under three files, one behind a d
   });
 });
 
+/** `count` two-byte files named f00.ts, f01.ts... inside `dir`. */
+function many(dir: string, count: number): Record<string, string> {
+  const files: Record<string, string> = {};
+  for (let i = 0; i < count; i++) files[`${dir}/f${String(i).padStart(2, "0")}.ts`] = "x\n";
+  return files;
+}
+
+test("past depth 2 a directory is a candidate only with its own manifest, or twenty files while it is no passthrough", () => {
+  withGitRepo((repo) => {
+    commit(repo, {
+      "CLAUDE.md": node(40),
+      "pkgs/web/app/package.json": "{}\n",
+      "pkgs/web/app/index.js": "x\n",
+      ...many("src/mod/big", 20),
+      ...many("src/mod/small", 19),
+      ...many("lib/core/wrap/inner", 20),
+    });
+
+    const result = run(repo);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(pick(lines(result.stdout), "cand:"), [
+      "cand: lib files 20 bytes 40 plain",
+      "cand: lib/core files 20 bytes 40 plain",
+      "cand: lib/core/wrap/inner files 20 bytes 40 plain",
+      "cand: pkgs/web/app files 2 bytes 5 toolchain",
+      "cand: src files 39 bytes 78 plain",
+      "cand: src/mod files 39 bytes 78 plain",
+      "cand: src/mod/big files 20 bytes 40 plain",
+    ]);
+  });
+});
+
 /** The one `state:` line of a map. */
 function state(out: string[]): string {
   return pick(out, "state:")[0];

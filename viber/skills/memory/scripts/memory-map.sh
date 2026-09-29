@@ -62,14 +62,20 @@
 #            text of that node never names its file.
 # orphan  - a node with no other tracked file anywhere beneath its directory,
 #           its own sections not counted: it documents nothing.
-# cand    - a directory that deserves a node and has none: tracked, at depth 1
-#           or 2, no path segment starting with ".", at least three tracked
-#           files beneath it. "toolchain" when it directly holds one of
-#           package.json, pyproject.toml, setup.py, requirements.txt, go.mod,
-#           Cargo.toml, pom.xml, build.gradle, build.gradle.kts, Gemfile,
-#           composer.json, mix.exs, pubspec.yaml, CMakeLists.txt, Makefile, or
-#           any *.csproj / *.sln; "plain" otherwise. "files" and "bytes" count
-#           every tracked file beneath it.
+# cand    - a directory that deserves a node and has none: tracked, no path
+#           segment starting with ".", and at depth 1 or 2 at least three
+#           tracked files beneath it. Deeper, it directly holds a build
+#           manifest (below), or at least twenty tracked files beneath it
+#           while it is no passthrough - a directory holding no file of its
+#           own and exactly one subdirectory, whose node would only repeat
+#           that subdirectory's. The deeper bar is higher because a deep tree
+#           carries many small directories a node would not pay for, and the
+#           map is read whole on every run. "toolchain" when it directly
+#           holds one of package.json, pyproject.toml, setup.py,
+#           requirements.txt, go.mod, Cargo.toml, pom.xml, build.gradle,
+#           build.gradle.kts, Gemfile, composer.json, mix.exs, pubspec.yaml,
+#           CMakeLists.txt, Makefile, or any *.csproj / *.sln; "plain"
+#           otherwise. "files" and "bytes" count every tracked file beneath it.
 # dirty   - one line per node or section the git index reports modified, or
 #           present in the tree and untracked. An untracked node or section
 #           is none anywhere else in the map: it is neither counted nor sized.
@@ -371,8 +377,8 @@ done < <(
 )
 
 # --- the directories that deserve a node -----------------------------------
-# One `wc -c` pass over the whole index, attributed to depth-1 and depth-2
-# directories inside awk: a host repository holds thousands of tracked files,
+# One `wc -c` pass over the whole index, attributed to every directory above
+# each file inside awk: a host repository holds thousands of tracked files,
 # and a `wc` per file would be thousands of processes.
 cand_out=""
 if [ -n "$tracked" ]; then
@@ -400,12 +406,29 @@ if [ -n "$tracked" ]; then
         path = $0
         n = split(path, seg, "/")
         if (n < 2) next
-        add(seg[1], size, seg[n], n == 2)
-        if (n >= 3) add(seg[1] "/" seg[2], size, seg[n], n == 3)
+        dir = ""
+        for (i = 1; i < n; i++) {
+          dir = (i == 1) ? seg[1] : dir "/" seg[i]
+          add(dir, size, seg[n], i == n - 1)
+          if (i == n - 1) {
+            own[dir] = 1
+          } else if (!((dir SUBSEP seg[i + 1]) in seen)) {
+            seen[dir, seg[i + 1]] = 1
+            kids[dir] += 1
+          }
+        }
       }
+      # Depth 1 and 2 need three files. Deeper, a directory needs a manifest
+      # of its own, or twenty files while it is no passthrough: no file of
+      # its own and a single subdirectory.
       END {
         for (dir in files) {
-          if (files[dir] < 3 || (dir in node) || dotted(dir)) continue
+          if ((dir in node) || dotted(dir)) continue
+          if (split(dir, part, "/") <= 2) {
+            if (files[dir] < 3) continue
+          } else if (!(dir in tool)) {
+            if (files[dir] < 20 || (!(dir in own) && kids[dir] == 1)) continue
+          }
           printf "cand: %s files %d bytes %d %s\n", dir, files[dir], bytes[dir], (dir in tool) ? "toolchain" : "plain"
         }
       }

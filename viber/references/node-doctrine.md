@@ -14,7 +14,7 @@ Facts an agent cannot read off the code in a minute: invariants, contracts betwe
 
 ## Ancestor rule
 
-A child never repeats its ancestor. Where both could carry a fact, it belongs to the ancestor.
+A child never repeats its ancestor. Where both could carry a fact, it belongs to the ancestor, except a fact about the area of one subdirectory carrying its own node: it belongs to that node, never to an ancestor.
 
 ## Sections
 

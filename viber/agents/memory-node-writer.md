@@ -40,14 +40,14 @@ Read `node` and its sections, then `findings` when it names a path. A finding's 
 - `STALE` - replace the sentence with what holds now, confirmed in the code.
 - `GONE` - remove what the node says about that area. When the node's whole area holds no file, confirmed with `Glob`, delete `node` and every section of it, return each on `DELETED:` and skip Budget.
 - `UNVERIFIABLE` - keep the sentence as it stands; it is the first to leave when the node must shrink.
-- `MISS` - add the fact where it is not already carried by an ancestor, in the node's existing voice and structure.
+- `MISS` - add the fact where it is not already carried by an ancestor and its area is owned by no node of `planned:` below this one, in the node's existing voice and structure.
 - `OK` - leave the sentence.
 
 A node with no finding to act on still goes through Budget.
 
 ## Create mode
 
-Read the tracked files of the area and author the facts a reader landing there would otherwise have to reconstruct from the code.
+Read the tracked files of the area and author the facts a reader landing there would otherwise have to reconstruct from the code. A subdirectory whose node is in `planned:` is that node's area: author only what spans it and its siblings.
 
 - `node` already exists -> keep every fact in it and its sections and author only what they lack.
 - `node` does not exist but a section does -> verify each sentence of the section against the area first, as a `STALE`/`GONE` finding would. Nothing true left and nothing else rising to a node -> delete the section and return `VERDICT: UPDATED` with `FILES:` and `DELETED:`, and skip Budget.
