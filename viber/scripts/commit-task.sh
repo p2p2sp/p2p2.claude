@@ -16,6 +16,7 @@
 #   commit-task.sh --qa <plan-file> <file> [<file>...]
 #   commit-task.sh --e2e <file> [<file>...]
 #   commit-task.sh --review <plan-file> <file> [<file>...]
+#   commit-task.sh --outside <plan-file> <file> [<file>...]
 #
 # The two positional forms take the commit subject from the task's own heading
 # line ("### T1 - <title>") in the plan, so the plan's title is literally what
@@ -92,6 +93,12 @@
 # build skips the review next time. It leaves the plan's progress counter alone.
 # The trail patterns glob under nullglob: zero matches add nothing.
 #
+# --outside commits changes made outside the plan - files the build touched
+# beside its tasks that no other form owns - in one commit of their own under
+# a FIXED subject ("chore(viber): commit changes made outside the plan"). It
+# takes the plan for its Refs footer and the register only: no trail, no
+# status entry, progress left alone.
+#
 # Every form that takes the plan closes its message on a "Refs: <plan> ..." line
 # naming the run. A plan whose frontmatter carries "issue: <GitHub issue URL>"
 # (a run tied to an issue) adds "Refs: #<N>" beneath it in the same paragraph,
@@ -165,7 +172,7 @@
 #   <fix-number>:                "committed: <sha>", "progress: unchanged"
 #   --repair:                    "committed: <sha>", "subject: <line>", "progress: unchanged"
 #   --chore, --qa, --e2e:        "committed: <sha>", "subject: <line>"
-#   --review:                    "committed: <sha>", "subject: <line>"
+#   --review, --outside:         "committed: <sha>", "subject: <line>"
 #   --skip:                      "skipped: <id>", "progress: unchanged" (no commit)
 #   --decide:                    "decided: <id>", "progress: unchanged" (no commit)
 #   --rule:                      "ruled: <subject>", "progress: unchanged" (no commit)
@@ -196,7 +203,7 @@ shopt -s nullglob
 export GIT_LITERAL_PATHSPECS=1
 
 usage() {
-  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] [--defer <task-id>:<path> [...]] [--landed <sha>] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --decide <plan-file> <task-id> <text> | --rule <plan-file> <subject> <ruling> <why> <cost> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...] | --review <plan-file> <file> [<file>...]" >&2
+  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] [--defer <task-id>:<path> [...]] [--landed <sha>] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --decide <plan-file> <task-id> <text> | --rule <plan-file> <subject> <ruling> <why> <cost> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...] | --review <plan-file> <file> [<file>...] | --outside <plan-file> <file> [<file>...]" >&2
   exit 2
 }
 
@@ -659,7 +666,7 @@ fi
 
 # --- the forms no task owns: a post-test fix outside the plan's file map, and
 # --- the knowledge, QA and test files a run produced beside its task map ---
-if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "${1:-}" == "--e2e" || "${1:-}" == "--review" ]]; then
+if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "${1:-}" == "--e2e" || "${1:-}" == "--review" || "${1:-}" == "--outside" ]]; then
   form="$1"
   shift
 
@@ -756,6 +763,9 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
       subject="fix(viber): final review"
       closed="final-review"
       ;;
+    --outside)
+      subject="chore(viber): commit changes made outside the plan"
+      ;;
   esac
 
   if [[ -n "$closed" ]]; then
@@ -780,6 +790,7 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
     --chore|--qa) commit_named -m "$subject" -m "$(footer "$plan" "Refs: $plan close")" -- "${paths[@]}" >&2 || exit 5 ;;
     --e2e)        commit_named -m "$subject" -- "${paths[@]}" >&2 || exit 5 ;;
     --review)     commit_named -m "$subject" -m "$(footer "$plan" "Refs: $plan final review")" -- "${paths[@]}" >&2 || exit 5 ;;
+    --outside)    commit_named -m "$subject" -m "$(footer "$plan" "Refs: $plan outside the plan")" -- "${paths[@]}" >&2 || exit 5 ;;
   esac
 
   if [[ -n "$backup" ]]; then

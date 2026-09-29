@@ -1,0 +1,4 @@
+- `--outside` joins the shared flag-forms branch (beside --repair/--chore/--qa/--e2e/--review), so the .temp refusal, exit 4, exit 5 and stage_rulings come from that shared code, not from anything of its own.
+- Choice left open by C3: it writes nothing to status.md (no `closed:` key, no progress line) and stages no work/ trail - only the named paths plus rulings.md when changed.
+- It does not print the `claimed by no task` warning (only --repair and the task forms do).
+- Tests sit at the end of the test file because they use `ISSUE_URL`/`seedWithFrontmatter`, declared late; a `const` read before its declaration would hit the TDZ.

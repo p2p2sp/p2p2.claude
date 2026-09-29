@@ -1704,6 +1704,7 @@ const RULE_CARRIERS: Array<[form: string, arrange: (repo: GitRepo) => string[]]>
   ["--qa", (repo) => (write(repo.dir, `${RUN_DIR}/qa.md`, "qa\n"), ["--qa", PLAN_REL, `${RUN_DIR}/qa.md`])],
   ["--repair", (repo) => (write(repo.dir, "src/z.ts", "fix\n"), ["--repair", PLAN_REL, "1", "src/z.ts"])],
   ["fix-number", (repo) => (write(repo.dir, "src/a.ts", "fix\n"), [PLAN_REL, "T1", "2", "src/a.ts"])],
+  ["--outside", (repo) => (write(repo.dir, "src/legacy.ts", "hand edit\n"), ["--outside", PLAN_REL, "src/legacy.ts"])],
   [
     "--landed",
     (repo) => {
@@ -1981,5 +1982,66 @@ test("--repair refuses a '.temp' path even with a leading './' (the leading './'
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stderr, /refused \.temp\/x - \.temp is machine state, never committed/);
     assert.deepEqual(committedFiles(repo), ["src/legacy.ts"]);
+  });
+});
+
+// --- --outside: changes made beside the plan, committed on their own ---------
+
+const OUTSIDE_SUBJECT = "chore(viber): commit changes made outside the plan";
+
+test("--outside commits exactly the named paths in one commit of their own under a derived subject, footed by the run's outside-the-plan Refs line and the issue link", () => {
+  withGitRepo((repo) => {
+    seedWithFrontmatter(repo, [`issue: ${ISSUE_URL}`]);
+    write(repo.dir, "src/legacy.ts", "a hand edit\n");
+    write(repo.dir, "docs/notes.md", "a note\n");
+    write(repo.dir, "src/unnamed.ts", "changed, but never named\n");
+
+    const result = run(repo.dir, repo.env, ["--outside", PLAN_REL, "src/legacy.ts", "docs/notes.md"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^committed: [0-9a-f]{7,}\nsubject: chore\(viber\): commit changes made outside the plan\n$/);
+    assert.deepEqual(subjects(repo), [OUTSIDE_SUBJECT, "seed"]);
+    assert.deepEqual(committedFiles(repo), ["docs/notes.md", "src/legacy.ts"]);
+    assert.equal(lastParagraph(repo), `Refs: ${PLAN_REL} outside the plan\nRefs: #42`);
+  });
+});
+
+test("--outside leaves a path staged beside the call staged and out of its commit", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/b.ts", "staged by someone else\n");
+    repo.git("add", "src/b.ts");
+    write(repo.dir, "src/legacy.ts", "a hand edit\n");
+
+    const result = run(repo.dir, repo.env, ["--outside", PLAN_REL, "src/legacy.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(committedFiles(repo), ["src/legacy.ts"]);
+    assert.deepEqual(stagedFiles(repo), ["src/b.ts"]);
+  });
+});
+
+test("--outside refuses a .temp path with a warning and commits the other named paths", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/legacy.ts", "a hand edit\n");
+    write(repo.dir, ".temp/viber/run/log.txt", "machine state\n");
+
+    const result = run(repo.dir, repo.env, ["--outside", PLAN_REL, "src/legacy.ts", ".temp/viber/run/log.txt"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /refused \.temp\/viber\/run\/log\.txt - \.temp is machine state, never committed/);
+    assert.deepEqual(committedFiles(repo), ["src/legacy.ts"]);
+  });
+});
+
+test("--outside with named paths producing no change exits 4 and commits nothing", () => {
+  withGitRepo((repo) => {
+    seed(repo);
+    write(repo.dir, "src/legacy.ts", "already committed\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "already recorded");
+
+    const result = run(repo.dir, repo.env, ["--outside", PLAN_REL, "src/legacy.ts"]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /no changes to commit/);
+    assert.deepEqual(subjects(repo), ["already recorded", "seed"]);
   });
 });
