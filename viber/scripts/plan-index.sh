@@ -18,6 +18,11 @@
 #   closed: memory rules            only when status.md carries the entry
 #   decision: T2: <text>            one per "decision:" line of status.md, in
 #                                   file order, printed as it stands there
+#   ruling: T2: retry | why: <why> | cost if wrong: <cost>
+#                                   one per "- " entry of rulings.md beside the
+#                                   plan (commit-task.sh --rule), leading "- "
+#                                   dropped, in file order, after the decision
+#                                   lines; none when the file is absent
 #   next: part <n> of <N> - <name>
 #                                   only when the plan Roadmap has an entry after
 #                                   the one marked "(this plan)": that entry, its
@@ -262,11 +267,23 @@ if [[ -f "$dir/status.md" ]]; then
   done < "$dir/status.md"
 fi
 
+# The run's register of rulings (commit-task.sh --rule): one "- " entry per
+# line, printed as "ruling:" lines. No file, no lines.
+st_rulings=""
+if [[ -f "$dir/rulings.md" ]]; then
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    case "$line" in
+      "- "*) st_rulings="$st_rulings""ruling: ${line#- }"$'\n' ;;
+    esac
+  done < "$dir/rulings.md"
+fi
+
 # The path travels through ENVIRON, not -v: awk -v expands escape sequences and
 # would mangle a Windows path containing backslashes.
 plan="$plan" changed="$changed" mode="$mode" rundir="$dir" \
 st_done="$st_done" st_skipped="$st_skipped" st_unreviewed="$st_unreviewed" \
-st_deferred="$st_deferred" st_closed="$st_closed" st_decisions="$st_decisions" \
+st_deferred="$st_deferred" st_closed="$st_closed" st_decisions="$st_decisions" st_rulings="$st_rulings" \
 awk '
 function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
 function val(s)  { sub(/^[^:]*:/, "", s); return trim(s) }
@@ -352,6 +369,7 @@ BEGIN {
   defer   = listed(ENVIRON["st_deferred"])
   closed  = listed(ENVIRON["st_closed"])
   decisions = ENVIRON["st_decisions"]
+  rulings = ENVIRON["st_rulings"]
   rundir = ENVIRON["rundir"]
   if (rundir == ".") rundir = ""
   nch = split(ENVIRON["changed"], ch, /\n/)
@@ -696,6 +714,7 @@ END {
   if (defer   != "") printf "deferred: %s\n", defer
   if (closed  != "") printf "closed: %s\n", closed
   printf "%s", decisions
+  printf "%s", rulings
   if (rthis && rthis < nrent) {
     rnext = rent[rthis + 1]
     sub(/[[:space:]]*\((built|this plan)\)$/, "", rnext)

@@ -517,6 +517,71 @@ test("a clean tree reports no dirty line, so a build that starts normally sees n
   });
 });
 
+test("a run whose rulings.md holds two entries prints two ruling lines in file order after the decision lines, the leading dash dropped and a colon in the text intact", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody(TWO_TASKS));
+    write(dir, `${PLAN_DIR}/status.md`, ["# status", "", "progress: 0/2", "decision: T1: keep the old handler", ""].join("\n"));
+    write(
+      dir,
+      `${PLAN_DIR}/rulings.md`,
+      [
+        "# Rulings",
+        "",
+        "- T2: retry: with the note | why: a flaky port | cost if wrong: one more round",
+        "- baseline: accept | why: red before the change | cost if wrong: a hidden failure",
+        "",
+      ].join("\n"),
+    );
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(
+      result.stdout,
+      /^decision: T1: keep the old handler\nruling: T2: retry: with the note \| why: a flaky port \| cost if wrong: one more round\nruling: baseline: accept \| why: red before the change \| cost if wrong: a hidden failure\ntasks: /m,
+    );
+  });
+});
+
+test("a run with no rulings.md prints the index exactly as before - no ruling line", () => {
+  withTempDir("p2p2-viber-", (dir) => {
+    seed(dir, planBody(TWO_TASKS));
+    seedStatus(dir, { progress: "0/2", closed: "memory" });
+
+    const result = run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(
+      result.stdout,
+      [
+        `plan: ${PLAN_REL}`,
+        "title: Add login",
+        "progress: 0/2",
+        "closed: memory",
+        "tasks: id | state | tdd | excl | deps | feeds | files | title",
+        "T1 | todo | required | - | - | - | src/login.ts | Add the login handler",
+        "T2 | todo | required | - | T1 | - | src/reject.ts | Reject a bad password",
+        "verify: T1 | npm test",
+        "verify: T2 | npm test",
+        "",
+      ].join("\n"),
+    );
+  });
+});
+
+test("an uncommitted rulings.md never appears on an orphan or dirty line (it lives in the run directory, no task owns it)", () => {
+  withGitRepo((repo) => {
+    seed(repo.dir, planBody(TWO_TASKS));
+    write(repo.dir, "src/login.ts", "committed\n");
+    repo.git("add", "-A");
+    repo.git("commit", "-m", "seed");
+
+    write(repo.dir, `${PLAN_DIR}/rulings.md`, "# Rulings\n\n- T1: retry | why: a | cost if wrong: b\n");
+
+    const result = run(repo.dir, repo.env, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stdout, /^(orphan|dirty):.*rulings\.md/m);
+  });
+});
+
 test("a changed path claimed by no task not done is reported orphan", () => {
   withGitRepo((repo) => {
     seed(repo.dir, planBody(TWO_TASKS));
