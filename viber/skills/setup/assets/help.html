@@ -1580,11 +1580,15 @@ zamknięcia, które włączają twoje przełączniki:</p>
 </ul>
 <p lang="en">The build ends on a short summary: the tasks committed, the review rounds spent, the test verdict,
 the time it took, what memory, rules and QA recorded, the archive path, and anything left for you, such as an
-unreviewed task or changed files no task claimed. After it comes the list of the build's rulings, each with
+unreviewed task or changed files no task claimed. With <a href="#key-final-review"><code>final-review</code></a>
+on, it lists each final-review finding with what was wrong and what the fix changed, followed by any findings
+left for you, the owner. After it comes the list of the build's rulings, each with
 its reason and its cost if wrong, the same lines as in <code>rulings.md</code>.</p>
 <p lang="pl">Build kończy się krótkim podsumowaniem: zacommitowane zadania, zużyte rundy recenzji, wynik testów,
 czas trwania, to, co zapisały pamięć, reguły i QA, ścieżka archiwum oraz wszystko, co zostaje dla ciebie, na
-przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało się żadne zadanie. Po nim idzie
+przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało się żadne zadanie. Gdy
+<a href="#key-final-review"><code>final-review</code></a> jest włączony, wymienia każdą uwagę recenzji końcowej
+wraz z tym, co było nie tak i co zmieniła poprawka, a po nich uwagi zostawione dla ciebie, właściciela. Po nim idzie
 lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same linie co w <code>rulings.md</code>.</p>
 </section>
 
@@ -2652,14 +2656,17 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
     reviewer rechecks the fix; when the recheck fails, there is no second fix round and the
     <a href="#agent-arbiter"><code>arbiter</code></a> rules to commit the fix as it stands, recorded in
     <code>rulings.md</code>. The fix is committed once the recheck passes or the arbiter accepts it, before the suite
-    runs.</span><span lang="pl">Po zatwierdzeniu każdego zadania
+    runs. The coder reports one <code>FIXED:</code> line per finding it fixed, and the build summary lists each
+    finding with what was wrong and what the fix changed.</span><span lang="pl">Po zatwierdzeniu każdego zadania
     i przed ostatecznym uruchomieniem testów jeden lub więcej agentów
     <a href="#agent-final-reviewer"><code>final-reviewer</code></a> ogląda cały diff builda w
     poszukiwaniu tego, czego nie widzi recenzja pojedynczych zadań ani zestaw testów. Koder naprawia
     to, co znajdą, a jeden recenzent ponownie sprawdza poprawkę; gdy sprawdzenie się nie powiedzie,
     nie ma drugiej rundy poprawek, a <a href="#agent-arbiter"><code>arbiter</code></a> orzeka commit poprawki
     w obecnym kształcie, co zapisuje <code>rulings.md</code>. Poprawka trafia do commita,
-    gdy sprawdzenie przejdzie albo arbiter ją zaakceptuje, zanim testy się uruchomią.</span></dd>
+    gdy sprawdzenie przejdzie albo arbiter ją zaakceptuje, zanim testy się uruchomią. Koder zgłasza jedną
+    linię <code>FIXED:</code> na każdą naprawioną uwagę, a podsumowanie buildu wymienia każdą uwagę wraz z tym,
+    co było nie tak i co zmieniła poprawka.</span></dd>
   </div>
   <div id="key-plain-plan-review">
     <dt><code>plain-plan-review</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
