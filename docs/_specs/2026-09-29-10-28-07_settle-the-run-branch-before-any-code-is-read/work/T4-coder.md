@@ -1,6 +1,0 @@
-- `tests/portability.test.ts`'s fragment-call sweep reads the git index: in the live tree it fails on the eight new untracked fragments until the task commit stages them. Proven green in a scratch clone with them added (131/131).
-- `fixer`'s start questions go through `AskUserQuestion` (keeps `--checkout` inside the pre-approved turn); `intent`'s stay prose, as the spec requires.
-- A `mode: off` report (outside a git repo), any `error:` line, or no usable entry under `required` hands off no `Work:` line: the planner (T5) then falls back to its own question.
-- After "stay" on a detached HEAD under `allowed`, no `Branch:` line is handed off (the name would be `detached`).
-- `intent`'s returning-draft check takes `work:` from the draft; `branch: none` counts as "no branch" (`Work: none`). It runs no base check: a resumed run branch carries the draft commit, so `at-base:` reads `no` there.
-- The `planner` card's `branching.mode` sentence ("makes it ask which branch") is left for T5, which owns that card.

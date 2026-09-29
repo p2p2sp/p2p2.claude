@@ -1,3 +1,0 @@
-- `--checkout` is `branch_checkout` in run-branch.sh; it never reads the branching mode or config, so it works under off too (C2 names no mode gate).
-- `branch_land` now calls the shared `branch_name_ok` and `branch_move_ok` (dirty-tree check); its own messages ("invalid run branch name", the uncommitted line) are unchanged.
-- Trap: on Windows a child re-parses its command line and drops braces from a bare argument (`@{-1}` arrives as `@-1`), so that test passes the name inside a `bash -c` string with spaces.

@@ -53,7 +53,7 @@ Then "stay" is not offered; and a plan that still records `develop` as its branc
 
 Given the interview handed off the entry `hotfix`
 When the planner writes the plan
-Then it records `hotfix` and the entry's computed branch name without asking; after "stay" it records the branch the user stayed on; after "no branch" it records no branch; a fix round that changes the title recomputes the name the same way, never overriding "stay" or "no branch"
+Then it records `hotfix` and the entry's computed branch name without asking; after "stay" it records the branch the user stayed on; after "no branch" it records no branch; a fix round that changes the title recomputes the name the same way, never overriding "stay" or "no branch" [D1]
 
 ### S6 - A returning draft is checked against its recorded branch [NEW]
 
@@ -102,7 +102,7 @@ Then they learn that the entry and the base check happen when the interview or d
 4. `plan-path.sh --checkout <branch>` puts HEAD on an existing local branch, and refuses with exit 6, HEAD, index and tree unchanged, a missing branch, an invalid name, or a switch to another commit on a dirty tree; it never creates a branch.
 5. Under `required`, landing refuses with exit 6 a recorded or kept run branch equal to any entry base, and with no branch recorded and HEAD on another entry's base it creates the entry's branch from the entry base instead of keeping HEAD.
 6. `plan-path.sh --branch` prints a `current-is-base:` line after `current:`.
-7. Under `allowed` or `required`, `intent` and `fixer` run the start report before reading code, pick the entry automatically on a `suggested:` entry and otherwise ask once among usable entries (with "no branch" under `allowed`), ask switch, stay or abort on `at-base: no` naming a `behind:` count above 0, switch through `--checkout`, never offer "switch" on `base-exists: no`, never offer "stay" under `required` on `current-is-base: yes` or a detached HEAD, and hand off `Work:` and, after "stay", `Branch:`.
+7. Under `allowed` or `required`, `intent` and `fixer` run the start report before reading code, pick the entry automatically on a `suggested:` entry and otherwise ask once among usable entries (with "no branch" under `allowed`), ask switch, stay or abort on `at-base: no` naming a `behind:` count above 0, switch through `--checkout`, never offer "switch" on `base-exists: no`, never offer "stay" under `required` on `current-is-base: yes` or a detached HEAD, and hand off `Work:` and, after "stay", `Branch:`. [D2]
 8. `intent` returning to a draft with a recorded branch asks no entry question and offers a switch when `current:` differs from it.
 9. The planner given a `Work:` line asks no branch question and writes the plan's branch keys from the hand-off, a fix round included, never overriding `Branch:` or `Work: none`; without one it asks today's question, offering "stay" under `required` only on `current-is-base: no`.
 10. Under `off` or with no configuration none of the new fragments prints anything: no `.off.md` file exists for them, and `intent` and `fixer` carry only the preload lines.
@@ -146,3 +146,8 @@ Then they learn that the entry and the base check happen when the interview or d
 - Every skill-side script call is pre-approved in that skill's own `allowed-tools`.
 - `intent` asks in prose, never through a question dialog.
 - Branch text loads only under `allowed` or `required`, at the place in each skill where it applies.
+
+## Deviations
+
+- D1 (#9): after "stay" on a detached HEAD under `allowed`, no stayed-on branch is handed off, so the planner records the entry's computed branch name instead of the branch the user stayed on.
+- D2 (#7): after "stay" on a detached HEAD under `allowed`, `intent` and `fixer` hand off only `Work:`, with no `Branch:` line.

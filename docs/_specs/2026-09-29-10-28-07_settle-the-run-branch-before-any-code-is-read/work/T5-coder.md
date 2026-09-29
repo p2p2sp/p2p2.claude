@@ -1,4 +1,0 @@
-- A `Branch:` line makes the planner skip the report entirely (the name is already chosen); only a bare `Work: <key>` runs `plan-path.sh --branch` to read that entry's `new:`.
-- `Work: none` exists only in the `.allowed.md` fragments: the `required` hand-off never emits it, so `branching.required.md` and its fix fragment carry no `none` branch.
-- The `required` "stay" offer moved from "when not that `base:`" to "only when `current-is-base:` reads `no`", so it now holds against every entry's base, not just the chosen one.
-- The `planner` card's Switches sentence in `help.html` (both languages) was the only card text changed; `BRANCHING.md` and `README.md` (criterion 11) are not in this task's Files.

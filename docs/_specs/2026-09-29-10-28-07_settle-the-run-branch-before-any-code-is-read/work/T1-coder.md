@@ -1,5 +1,0 @@
-- `--branch` and `--start` share `branch_situation` (config lines, issue type, suggestion; sets `rp_*` globals) and `branch_tail` (current, current-is-base, dirty, errors) in run-branch.sh.
-- `current-is-base` is computed from the parsed entry bases, not `branch_is_base`: that one reads `br_entry`, which `--branch` never sets (unbound under `set -u`).
-- `at-base` compares HEAD's commit to `refs/heads/<base>`; a missing base or an unborn HEAD reads `no`.
-- `--start` URL check: `^https?://<non-space>/issues/<digits>$`; more than one argument also exits 2.
-- The existing whole-report `--branch` test gained the `current-is-base:` line.
