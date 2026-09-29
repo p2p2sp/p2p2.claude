@@ -22,7 +22,8 @@ No application code ships: artifacts are markdown (skills, agents, references) +
 (manifests) + bundled scripts (bash everywhere, plus `superfix`/`superui` `.ts` run by Node and
 `superbiz`'s Python report builder). Editing markdown/JSON IS shipping - no build step, no lint,
 no test tooling inside any plugin. The only automated checks are the dev-time suites under
-`tests/` (see `tests/CLAUDE.md`); every other contract between files is enforced by a human
+`tests/` (see `tests/CLAUDE.md`), run as
+`node --test --test-concurrency=12 --test-reporter=dot "tests/**/*.test.ts"`; every other contract between files is enforced by a human
 reading carefully.
 
 All five plugins are **stack-agnostic on purpose**: skills read project-specific knowledge (test

@@ -12,7 +12,7 @@ paths:
 
 # Running the test suite
 
-- Run the whole suite from the repo root exactly as CI does: `node --test --test-concurrency=12 "tests/**/*.test.ts"` (the command in `.github/workflows/ci.yml:36`). The suite has 40 test files. The quoted `**` glob also picks up the root-level `tests/harness.test.ts`, `tests/portability.test.ts` and `tests/orphan-tags.test.ts`.
+- Run the whole suite from the repo root as CI does (`.github/workflows/ci.yml:36`), plus the `dot` reporter: `node --test --test-concurrency=12 --test-reporter=dot "tests/**/*.test.ts"`. It prints one dot per passing test and the full assertion only for a failing one, so a green `tests/viber/` run prints about 1 KB instead of the default reporter's 110 KB of one line per test. The suite has 40 test files. The quoted `**` glob also picks up the root-level `tests/harness.test.ts`, `tests/portability.test.ts` and `tests/orphan-tags.test.ts`.
 - Default to a selective run while iterating and keep the full suite for the handover, not for every edit: one file is `node --test tests/viber/config.test.ts` against minutes for everything.
 - Select one plugin's subset with a QUOTED glob: `node --test "tests/superui/*.test.ts"` (16 tests), `node --test --test-concurrency=12 "tests/viber/*.test.ts"` (873 tests across 26 files on macOS, 871 pass plus 2 skips for cases that run only on Windows). The quotes are mandatory - the shell must not expand the glob, `node --test` resolves it itself.
 - NEVER pass a bare directory. `node --test tests/superui/` does not select the files inside it: Node resolves the argument as a module path and reports the failure as a failed test named `tests\superui`, so a wrong argument reads like a red suite rather than like a usage error.
