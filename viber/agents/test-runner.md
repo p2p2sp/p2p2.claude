@@ -40,7 +40,14 @@ Use the build and test commands the project instructions name. When they name no
 
 Project has no test setup at all: return `VERDICT: SKIP` and stop.
 
-Run the full suite once, with an explicit generous timeout measured in minutes: the integration layer runs in it, and the default cuts it off as a false red. Leave the end-to-end layer out - a browser, or the running application driven from outside: it belongs to CI. When the test command runs it too, exclude it through the test tool's own filter or project selection. Do not re-run, do not narrow further, do not investigate a failure beyond reading the message it printed.
+Run the full suite exactly once: the integration layer runs in it. Leave the end-to-end layer out - a browser, or the running application driven from outside: it belongs to CI. When the test command runs it too, exclude it through the test tool's own filter or project selection. Do not re-run, do not narrow further, do not investigate a failure beyond reading the message it printed.
+
+The suite may outlast one foreground call, so it runs in the background and you wait for it:
+
+- Log: `.temp/viber/test-runner/<report file name without .md>.log`. Before the run starts, create its directory with `mkdir -p .temp/viber/test-runner` and delete any old log there.
+- Run: one Bash call with `run_in_background`: `<test command> > <log> 2>&1; echo "exit=$?" >> <log>`. Make this call once, however long the wait takes.
+- Wait: one foreground Bash call at timeout 600000: `until grep -q '^exit=' <log> 2>/dev/null; do sleep 10; done`. When it returns without the line, repeat the wait, never the run.
+- Result: read the suite output and its closing `exit=<code>` line from the log; the verdict comes from there.
 
 ## Stop what you started
 

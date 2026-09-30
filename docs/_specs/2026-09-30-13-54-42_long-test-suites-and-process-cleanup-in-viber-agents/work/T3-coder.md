@@ -1,0 +1,2 @@
+- C2 says nothing about creating the log directory. On a fresh host, `.temp/viber/test-runner/` is missing, so the redirect fails, no `exit=` line gets written and the uncapped wait loops forever. The Log bullet therefore runs `mkdir -p .temp/viber/test-runner` before the run.
+- The wait still has no time cap, which is out of scope. A suite that never writes `exit=` still hangs test-runner.
