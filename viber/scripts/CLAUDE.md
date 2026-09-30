@@ -28,6 +28,13 @@ Each script's header `Contract:` is its interface; this node carries only what s
 - The run-directory exclusion of `plan-index.sh`'s `orphan:` line and `commit-task.sh`'s
   unclaimed-paths warning both derive the run dir from the repo-relative plan path
   `plan-path.sh` prints (`commit-task.sh`'s `run_dir()`): callers pass that path unchanged.
+- `commit-task.sh` never hands a plan `Files:` list to one git call: a command line past 32767
+  chars fails on Windows ("Argument list too long", exit 5), so every git call over a path list
+  goes through `git_paths` (chunks of at most 24000 path chars; its status is the first failing
+  chunk's, so `diff --quiet` still reads over the whole list) and staging through `stage_paths`
+  (a few git processes per chunk, never per path; a failed batch falls back to `stage_path` over
+  the whole list). Trail files and `rulings.md` still stage with `stage_path`. `commit.sh`'s paths
+  mode keeps single git calls: its paths are its own argv, already bounded.
 
 ## Shells
 
