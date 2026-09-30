@@ -1,6 +1,0 @@
-- `tests-running.md`'s viber subset count (1094 tests, 33 files, 1092 pass + 2 skips) was measured on Windows; the 2 skips there are a Linux-only `open-page` case and a non-Windows `CLAUDE_SKILL_DIR` backslash case, hence "cases that run only on another OS". The whole-suite count stays 40 files.
-- help.html: the skill card sits between `skill-rules` and `skill-help` (plugin.json order), a cheat-sheet entry was added after `/viber:rules`, and the five agents got their own `Code audit` group at the end of the agents list. The "Three skills have no command" note and the install paragraph's list of optional tools were left as they are; Node.js 22.6 is named on the card.
-- `.claude/rules/plugin-manifests.md` still says `superfix` carries `agents[]`: that file belongs to T3.
-- `shell-preload-contract.md`: the code-auditor exception was added to the existing interpreter-form sentence, not as a new bullet.
-- `agent-frontmatter.md` now states one field order; the superfix field shape and its 5/5 count are gone.
-- `profiler.test.ts` was moved as is apart from its path: `assertBash` keeps a `for` loop over shell skips, which breaks test-strategy's no-control-flow rule, but C2 allows no change beyond the text map.

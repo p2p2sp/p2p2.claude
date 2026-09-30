@@ -1,6 +1,0 @@
-- Write/Edit decode `\uXXXX` escapes for printable non-ASCII (e.g. ` `, `﻿`) into raw characters; `rank.ts` PY_WHITESPACE and `rank_edges.ts` BOM regex were restored by writing `\u@@00a0` then deleting `@@`. Re-check any copy of these two files with the task's diff loop.
-- Only `check_node.sh` and `worktree.sh` carry a `# superfix - ` line 2; the other four copies are byte-identical.
-- New 100755 scripts entered the index via `git update-index --add --chmod=+x` (plain `--chmod` fails on an untracked path); the other three new scripts and six tests stay untracked for the task commit.
-- The superfix `paths:` globs in the three shell rules were dropped, not rewritten: `viber/skills/*/scripts/*.sh` already covers the new location.
-- `shell-script-header.md` count is now 24 of 30: `switch-text.sh` (has a `Contract:` block) was missing from the list and the old "25" total; added. Its line about `issue-facts.sh`/`post-comment.sh` having "moved" is change-history prose, left untouched.
-- The six moved tests keep their `for` loops over version/scope rows, which breach test-strategy's no-control-flow rule; C2 forbids any change beyond the text map, so they moved verbatim.
