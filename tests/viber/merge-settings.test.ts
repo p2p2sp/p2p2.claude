@@ -30,7 +30,7 @@
  *   node --test tests/viber/merge-settings.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -73,25 +73,25 @@ function targetPath(dir: string): string {
   return path.join(dir, ".claude", "settings.json");
 }
 
-function run(dir: string, template: string, target?: string): RunResult {
+async function run(dir: string, template: string, target?: string): Promise<RunResult> {
   const args = target === undefined ? [template] : [template, target];
-  return runScript(SUT, args, { cwd: dir });
+  return await runScript(SUT, args, { cwd: dir });
 }
 
 /** The no-node case starves PATH down to the core utilities (the script still
  *  needs bash, cat and command -v), so a developer's installed node cannot
  *  answer - and flip - the "not found" branch. */
-function runWithoutNode(dir: string, template: string, target: string): RunResult {
-  return runScript(SUT, [template, target], { cwd: dir, env: { PATH: coreUtilsPath() } });
+async function runWithoutNode(dir: string, template: string, target: string): Promise<RunResult> {
+  return await runScript(SUT, [template, target], { cwd: dir, env: { PATH: coreUtilsPath() } });
 }
 
 function readJson(file: string): any {
   return JSON.parse(fs.readFileSync(file, "utf-8"));
 }
 
-test("no settings.json at all: the default target is created byte-identical to the shipped template, exit 0", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
-    const result = run(dir, TEMPLATE_SETTINGS);
+test("no settings.json at all: the default target is created byte-identical to the shipped template, exit 0", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
+    const result = await run(dir, TEMPLATE_SETTINGS);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "settings.json: created from template\n");
@@ -99,12 +99,12 @@ test("no settings.json at all: the default target is created byte-identical to t
   });
 });
 
-test("run from a subdirectory of a repository, the default target is the root's .claude/settings.json (never a nested sub/.claude/)", () => {
-  withGitRepo((repo) => {
+test("run from a subdirectory of a repository, the default target is the root's .claude/settings.json (never a nested sub/.claude/)", async () => {
+  await withGitRepo(async (repo) => {
     const sub = path.join(repo.dir, "sub");
     fs.mkdirSync(sub);
 
-    const result = runScript(SUT, [TEMPLATE_SETTINGS], { cwd: sub, env: repo.env });
+    const result = await runScript(SUT, [TEMPLATE_SETTINGS], { cwd: sub, env: repo.env });
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "settings.json: created from template\n");
@@ -113,8 +113,8 @@ test("run from a subdirectory of a repository, the default target is the root's 
   });
 });
 
-test("partial coverage: only the missing template entries are appended, after the host's own, and every other key survives", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+test("partial coverage: only the missing template entries are appended, after the host's own, and every other key survives", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
     const target = targetPath(dir);
     writeJson(target, {
       $schema: "https://json.schemastore.org/claude-code-settings.json",
@@ -127,7 +127,7 @@ test("partial coverage: only the missing template entries are appended, after th
       },
     });
 
-    const result = run(dir, fixtureTemplate(dir), target);
+    const result = await run(dir, fixtureTemplate(dir), target);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
@@ -151,8 +151,8 @@ test("partial coverage: only the missing template entries are appended, after th
   });
 });
 
-test("an existing defaultMode: plan takes the template's mode (a project's own mode belongs in settings.local.json)", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+test("an existing defaultMode: plan takes the template's mode (a project's own mode belongs in settings.local.json)", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
     const target = targetPath(dir);
     writeJson(target, {
       permissions: {
@@ -163,7 +163,7 @@ test("an existing defaultMode: plan takes the template's mode (a project's own m
       },
     });
 
-    const result = run(dir, fixtureTemplate(dir), target);
+    const result = await run(dir, fixtureTemplate(dir), target);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
@@ -176,8 +176,8 @@ test("an existing defaultMode: plan takes the template's mode (a project's own m
   });
 });
 
-test("an existing disableAutoMode: allow takes the template's value (the template is designed for auto mode off)", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+test("an existing disableAutoMode: allow takes the template's value (the template is designed for auto mode off)", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
     const target = targetPath(dir);
     writeJson(target, {
       permissions: {
@@ -188,7 +188,7 @@ test("an existing disableAutoMode: allow takes the template's value (the templat
       },
     });
 
-    const result = run(dir, fixtureTemplate(dir), target);
+    const result = await run(dir, fixtureTemplate(dir), target);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
@@ -199,8 +199,8 @@ test("an existing disableAutoMode: allow takes the template's value (the templat
   });
 });
 
-test("a top-level scalar the host carries with another value takes the template's value (a project's own override belongs in settings.local.json)", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+test("a top-level scalar the host carries with another value takes the template's value (a project's own override belongs in settings.local.json)", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
     const target = targetPath(dir);
     writeJson(target, {
       $schema: "https://example.invalid/other-schema.json",
@@ -214,7 +214,7 @@ test("a top-level scalar the host carries with another value takes the template'
       },
     });
 
-    const result = run(dir, fixtureTemplate(dir), target);
+    const result = await run(dir, fixtureTemplate(dir), target);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
@@ -227,14 +227,14 @@ test("a top-level scalar the host carries with another value takes the template'
   });
 });
 
-test("a nested object is merged key by key at any depth: a missing child is added, a differing one updated, a host-only one kept, and a nested list gains only what it lacks", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+test("a nested object is merged key by key at any depth: a missing child is added, a differing one updated, a host-only one kept, and a nested list gains only what it lacks", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
     const target = targetPath(dir);
     const template = path.join(dir, "template.json");
     writeJson(template, { outer: { inner: { flag: true, added: "new", list: ["a", "b"] } } });
     writeJson(target, { outer: { hostOnly: 1, inner: { flag: false, list: ["b", "host"] } } });
 
-    const result = run(dir, template, target);
+    const result = await run(dir, template, target);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
@@ -247,8 +247,8 @@ test("a nested object is merged key by key at any depth: a missing child is adde
   });
 });
 
-test("a host deny entry the template now carries in ask is dropped from deny and lands in ask once (deny outranks ask, so a project set up before the move would stay hard-blocked)", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+test("a host deny entry the template now carries in ask is dropped from deny and lands in ask once (deny outranks ask, so a project set up before the move would stay hard-blocked)", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
     const target = targetPath(dir);
     const template = fixtureTemplate(dir);
     writeJson(target, {
@@ -260,7 +260,7 @@ test("a host deny entry the template now carries in ask is dropped from deny and
       },
     });
 
-    const result = run(dir, template, target);
+    const result = await run(dir, template, target);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
@@ -271,13 +271,13 @@ test("a host deny entry the template now carries in ask is dropped from deny and
     assert.deepEqual(merged.permissions.ask, ["Bash(git push:*)"]);
     assert.deepEqual(merged.permissions.deny, ["Bash(hostonly:*)", "Bash(sudo:*)", "Bash(rm -rf:*)"]);
 
-    const second = run(dir, template, target);
+    const second = await run(dir, template, target);
     assert.equal(second.stdout, "settings.json: already up to date\n");
   });
 });
 
-test("a template rule a host rule of the same list already covers is not appended: bare Tool covers Tool(<specifier>), and a match-all specifier counts as bare both ways (no Edit beside Edit(**/*))", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+test("a template rule a host rule of the same list already covers is not appended: bare Tool covers Tool(<specifier>), and a match-all specifier counts as bare both ways (no Edit beside Edit(**/*))", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
     const target = targetPath(dir);
     const template = path.join(dir, "template.json");
     writeJson(template, {
@@ -291,7 +291,7 @@ test("a template rule a host rule of the same list already covers is not appende
       permissions: { allow: ["Edit", "Bash", "Read(**)", "Glob"], ask: ["Bash"], deny: ["Read"] },
     });
 
-    const result = run(dir, template, target);
+    const result = await run(dir, template, target);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
@@ -304,13 +304,13 @@ test("a template rule a host rule of the same list already covers is not appende
       deny: ["Read"],
     });
 
-    const second = run(dir, template, target);
+    const second = await run(dir, template, target);
     assert.equal(second.stdout, "settings.json: already up to date\n");
   });
 });
 
-test("a narrower host rule, a sibling specifier, a rule in another list or an array outside the permission lists covers nothing (Bash(sudo:*) must never keep Bash(aws:*) out of deny)", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+test("a narrower host rule, a sibling specifier, a rule in another list or an array outside the permission lists covers nothing (Bash(sudo:*) must never keep Bash(aws:*) out of deny)", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
     const target = targetPath(dir);
     const template = path.join(dir, "template.json");
     writeJson(template, {
@@ -322,7 +322,7 @@ test("a narrower host rule, a sibling specifier, a rule in another list or an ar
       other: ["Edit"],
     });
 
-    const result = run(dir, template, target);
+    const result = await run(dir, template, target);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
@@ -336,13 +336,13 @@ test("a narrower host rule, a sibling specifier, a rule in another list or an ar
   });
 });
 
-test("idempotence: the second run reports 'already up to date' and leaves the file byte-identical", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+test("idempotence: the second run reports 'already up to date' and leaves the file byte-identical", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
     const target = targetPath(dir);
     const template = fixtureTemplate(dir);
     writeJson(target, { permissions: { allow: ["HostOnlyTool"] } });
 
-    const first = run(dir, template, target);
+    const first = await run(dir, template, target);
     assert.equal(first.status, 0, `stderr: ${first.stderr}`);
     assert.equal(
       first.stdout,
@@ -350,7 +350,7 @@ test("idempotence: the second run reports 'already up to date' and leaves the fi
     );
     const afterFirst = fs.readFileSync(target, "utf-8");
 
-    const second = run(dir, template, target);
+    const second = await run(dir, template, target);
 
     assert.equal(second.status, 0, `stderr: ${second.stderr}`);
     assert.equal(second.stdout, "settings.json: already up to date\n");
@@ -358,14 +358,14 @@ test("idempotence: the second run reports 'already up to date' and leaves the fi
   });
 });
 
-test("a settings.json that is not valid JSON (comments) is left byte-for-byte untouched, reported on one line, exit 2", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+test("a settings.json that is not valid JSON (comments) is left byte-for-byte untouched, reported on one line, exit 2", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
     const target = targetPath(dir);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     const before = '{\n  // a comment JSON does not allow\n  "permissions": {}\n}\n';
     fs.writeFileSync(target, before);
 
-    const result = run(dir, fixtureTemplate(dir), target);
+    const result = await run(dir, fixtureTemplate(dir), target);
 
     assert.equal(result.status, 2, `stderr: ${result.stderr}`);
     assert.equal(fs.readFileSync(target, "utf-8"), before);
@@ -376,11 +376,11 @@ test("a settings.json that is not valid JSON (comments) is left byte-for-byte un
   });
 });
 
-test("no node on PATH and no target yet: the target is created from the template byte-identical, exit 0 (a missing target is a plain copy, so it needs no node)", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+test("no node on PATH and no target yet: the target is created from the template byte-identical, exit 0 (a missing target is a plain copy, so it needs no node)", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
     const target = targetPath(dir);
 
-    const result = runWithoutNode(dir, TEMPLATE_SETTINGS, target);
+    const result = await runWithoutNode(dir, TEMPLATE_SETTINGS, target);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "settings.json: created from template\n");
@@ -388,13 +388,13 @@ test("no node on PATH and no target yet: the target is created from the template
   });
 });
 
-test("no node on PATH: the merge is skipped with the recommended block on stdout and the target untouched, exit 0", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+test("no node on PATH: the merge is skipped with the recommended block on stdout and the target untouched, exit 0", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
     const target = targetPath(dir);
     writeJson(target, { permissions: { allow: ["HostOnlyTool"] } });
     const before = fs.readFileSync(target, "utf-8");
 
-    const result = runWithoutNode(dir, TEMPLATE_SETTINGS, target);
+    const result = await runWithoutNode(dir, TEMPLATE_SETTINGS, target);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
@@ -405,13 +405,13 @@ test("no node on PATH: the merge is skipped with the recommended block on stdout
   });
 });
 
-test("--reset replaces an existing target byte-identical to the template and keeps the old file in .temp/viber/setup/, exit 0", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+test("--reset replaces an existing target byte-identical to the template and keeps the old file in .temp/viber/setup/, exit 0", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
     const target = targetPath(dir);
     writeJson(target, { permissions: { allow: ["HostOnlyTool"] }, hostKey: 1 });
     const before = fs.readFileSync(target, "utf-8");
 
-    const result = runScript(SUT, ["--reset", TEMPLATE_SETTINGS], { cwd: dir });
+    const result = await runScript(SUT, ["--reset", TEMPLATE_SETTINGS], { cwd: dir });
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
@@ -424,25 +424,25 @@ test("--reset replaces an existing target byte-identical to the template and kee
   });
 });
 
-test("--reset over a target that is not valid JSON still replaces it (the one way out of a broken file)", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+test("--reset over a target that is not valid JSON still replaces it (the one way out of a broken file)", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
     const target = targetPath(dir);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, "{ // broken\n");
 
-    const result = runScript(SUT, ["--reset", TEMPLATE_SETTINGS, target], { cwd: dir });
+    const result = await runScript(SUT, ["--reset", TEMPLATE_SETTINGS, target], { cwd: dir });
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(fs.readFileSync(target, "utf-8"), fs.readFileSync(TEMPLATE_SETTINGS, "utf-8"));
   });
 });
 
-test("--reset with no node on PATH still resets (a plain copy needs none)", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+test("--reset with no node on PATH still resets (a plain copy needs none)", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
     const target = targetPath(dir);
     writeJson(target, { permissions: { allow: ["HostOnlyTool"] } });
 
-    const result = runScript(SUT, ["--reset", TEMPLATE_SETTINGS, target], { cwd: dir, env: { PATH: coreUtilsPath() } });
+    const result = await runScript(SUT, ["--reset", TEMPLATE_SETTINGS, target], { cwd: dir, env: { PATH: coreUtilsPath() } });
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^settings\.json: reset from template/);
@@ -450,9 +450,9 @@ test("--reset with no node on PATH still resets (a plain copy needs none)", () =
   });
 });
 
-test("--reset with no target yet creates it and writes no backup", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
-    const result = runScript(SUT, ["--reset", TEMPLATE_SETTINGS], { cwd: dir });
+test("--reset with no target yet creates it and writes no backup", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
+    const result = await runScript(SUT, ["--reset", TEMPLATE_SETTINGS], { cwd: dir });
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "settings.json: created from template\n");
@@ -461,14 +461,14 @@ test("--reset with no target yet creates it and writes no backup", () => {
   });
 });
 
-test("a template path that does not exist reports the missing template and exits 1, target untouched", () => {
-  withTempDir("p2p2-viber-merge-settings-", (dir) => {
+test("a template path that does not exist reports the missing template and exits 1, target untouched", async () => {
+  await withTempDir("p2p2-viber-merge-settings-", async (dir) => {
     const target = targetPath(dir);
     writeJson(target, { permissions: { allow: ["HostOnlyTool"] } });
     const before = fs.readFileSync(target, "utf-8");
     const missing = path.join(dir, "nowhere", "settings.json");
 
-    const result = run(dir, missing, target);
+    const result = await run(dir, missing, target);
 
     assert.equal(result.status, 1, `stderr: ${result.stderr}`);
     assert.equal(slash(result.stdout), `settings.json: template missing at ${slash(missing)} - skipped\n`);

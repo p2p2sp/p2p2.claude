@@ -28,7 +28,7 @@
  *   node --test tests/viber/config.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -94,9 +94,9 @@ function dirs(stdout: string): Record<string, string> {
   return { runs: all["directories.runs"], specifications: all["directories.specifications"] };
 }
 
-test("no config file: every switch is off, both directories default, and the exit is still 0", () => {
-  withTempDir("p2p2-viber-", (dir) => {
-    const result = run(dir);
+test("no config file: every switch is off, both directories default, and the exit is still 0", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    const result = await run(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout.split("\n")[0], "# viber config (resolved)");
     assert.deepEqual(switches(result.stdout), OFF);
@@ -104,9 +104,9 @@ test("no config file: every switch is off, both directories default, and the exi
   });
 });
 
-test("the group keys are printed dotted, so no reader can take one for a switch", () => {
-  withTempDir("p2p2-viber-", (dir) => {
-    const printed = run(dir).stdout.trim().split("\n");
+test("the group keys are printed dotted, so no reader can take one for a switch", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    const printed = (await run(dir)).stdout.trim().split("\n");
     assert.deepEqual(printed.slice(-5, -1), [
       "directories.runs: _specs",
       "directories.specifications: specs",
@@ -116,11 +116,11 @@ test("the group keys are printed dotted, so no reader can take one for a switch"
   });
 });
 
-test("`issues` prints directly after `plain-plan-review`, in the header's fixed order", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("`issues` prints directly after `plain-plan-review`, in the header's fixed order", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, "issues: true\n");
 
-    const printed = run(dir).stdout.trim().split("\n");
+    const printed = (await run(dir)).stdout.trim().split("\n");
     const ppr = printed.indexOf("plain-plan-review: false");
     assert.equal(ppr >= 0, true, `plain-plan-review line missing: ${printed.join(" | ")}`);
     assert.equal(printed[ppr + 1], "issues: true");
@@ -128,11 +128,11 @@ test("`issues` prints directly after `plain-plan-review`, in the header's fixed 
 });
 
 for (const value of ["true", "TRUE", "True"]) {
-  test(`\`fast-path: ${value}\` resolves to true, matched in any letter case`, () => {
-    withTempDir("p2p2-viber-", (dir) => {
+  test(`\`fast-path: ${value}\` resolves to true, matched in any letter case`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       writeConfig(dir, `fast-path: ${value}\n`);
 
-      assert.deepEqual(switches(run(dir).stdout), { ...OFF, "fast-path": "true" });
+      assert.deepEqual(switches((await run(dir)).stdout), { ...OFF, "fast-path": "true" });
     });
   });
 }
@@ -142,20 +142,20 @@ for (const [label, body] of [
   ["another value", "adr: true\nfast-path: enabled\n"],
   ["the value false", "fast-path: false\n"],
 ] as const) {
-  test(`a config with ${label} resolves \`fast-path\` to false`, () => {
-    withTempDir("p2p2-viber-", (dir) => {
+  test(`a config with ${label} resolves \`fast-path\` to false`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       writeConfig(dir, body);
 
-      assert.equal(switches(run(dir).stdout)["fast-path"], "false");
+      assert.equal(switches((await run(dir)).stdout)["fast-path"], "false");
     });
   });
 }
 
-test("`fast-path` prints directly after the `issues` line, in the header's fixed order", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("`fast-path` prints directly after the `issues` line, in the header's fixed order", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, "fast-path: true\n");
 
-    const printed = run(dir).stdout.trim().split("\n");
+    const printed = (await run(dir)).stdout.trim().split("\n");
     const issuesIdx = printed.indexOf("issues: false");
     assert.equal(issuesIdx >= 0, true, `issues line missing: ${printed.join(" | ")}`);
     assert.equal(printed[issuesIdx + 1], "fast-path: true");
@@ -163,11 +163,11 @@ test("`fast-path` prints directly after the `issues` line, in the header's fixed
 });
 
 for (const value of ["true", "TRUE", "True"]) {
-  test(`\`baseline-tests: ${value}\` resolves to true, matched in any letter case`, () => {
-    withTempDir("p2p2-viber-", (dir) => {
+  test(`\`baseline-tests: ${value}\` resolves to true, matched in any letter case`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       writeConfig(dir, `baseline-tests: ${value}\n`);
 
-      assert.deepEqual(switches(run(dir).stdout), { ...OFF, "baseline-tests": "true" });
+      assert.deepEqual(switches((await run(dir)).stdout), { ...OFF, "baseline-tests": "true" });
     });
   });
 }
@@ -177,44 +177,44 @@ for (const [label, body] of [
   ["another value", "adr: true\nbaseline-tests: enabled\n"],
   ["the value false", "baseline-tests: false\n"],
 ] as const) {
-  test(`a config with ${label} resolves \`baseline-tests\` to false`, () => {
-    withTempDir("p2p2-viber-", (dir) => {
+  test(`a config with ${label} resolves \`baseline-tests\` to false`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       writeConfig(dir, body);
 
-      assert.equal(config(run(dir).stdout)["baseline-tests"], "false");
+      assert.equal(config((await run(dir)).stdout)["baseline-tests"], "false");
     });
   });
 }
 
-test("`baseline-tests` prints directly after the `fast-path` line, in the header's fixed order", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("`baseline-tests` prints directly after the `fast-path` line, in the header's fixed order", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, "baseline-tests: true\n");
 
-    const printed = run(dir).stdout.trim().split("\n");
+    const printed = (await run(dir)).stdout.trim().split("\n");
     const fastPathIdx = printed.indexOf("fast-path: false");
     assert.equal(fastPathIdx >= 0, true, `fast-path line missing: ${printed.join(" | ")}`);
     assert.equal(printed[fastPathIdx + 1], "baseline-tests: true");
   });
 });
 
-test("only `true` counts as on - false, a missing key, a commented-out line and a near-miss value are all off", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("only `true` counts as on - false, a missing key, a commented-out line and a near-miss value are all off", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, ["adr: false", "# memory: true", "rules: truthy", "qa: yes", "cleanup: on", "extra: true", ""].join("\n"));
 
-    const result = run(dir);
+    const result = await run(dir);
     assert.equal(result.status, 0);
     assert.deepEqual(switches(result.stdout), OFF);
   });
 });
 
-test("the seeded template turns every switch on, comments and case notwithstanding", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("the seeded template turns every switch on, comments and case notwithstanding", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(
       dir,
       ["# viber switches", "adr: true  # the decisions worth keeping", "memory: TRUE", "rules: true", "qa: true", "cleanup: true", "plain-plan-review: true", "issues: true", ""].join("\n"),
     );
 
-    const result = run(dir);
+    const result = await run(dir);
     assert.equal(result.status, 0);
     assert.deepEqual(switches(result.stdout), {
       adr: "true",
@@ -231,42 +231,42 @@ test("the seeded template turns every switch on, comments and case notwithstandi
   });
 });
 
-test("an indented `qa: true` under a group is not a column-0 switch, so it stays off", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("an indented `qa: true` under a group is not a column-0 switch, so it stays off", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, ["some_group:", "  qa: true", ""].join("\n"));
 
-    const result = run(dir);
+    const result = await run(dir);
     assert.equal(result.status, 0);
     assert.deepEqual(switches(result.stdout), OFF);
   });
 });
 
-test("`memory: TRUE` at column 0 resolves to on - the value is matched in any letter case", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("`memory: TRUE` at column 0 resolves to on - the value is matched in any letter case", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, "memory: TRUE\n");
 
-    const result = run(dir);
+    const result = await run(dir);
     assert.equal(result.status, 0);
     assert.deepEqual(switches(result.stdout), { ...OFF, memory: "true" });
   });
 });
 
-test("`MEMORY: true` resolves to off - the key itself is matched case-sensitively", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("`MEMORY: true` resolves to off - the key itself is matched case-sensitively", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, "MEMORY: true\n");
 
-    const result = run(dir);
+    const result = await run(dir);
     assert.equal(result.status, 0);
     assert.deepEqual(switches(result.stdout), OFF);
   });
 });
 
-test("the shipped template is what setup seeds: seven switches on, qa, issues and baseline-tests off, and both directories named", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("the shipped template is what setup seeds: seven switches on, qa, issues and baseline-tests off, and both directories named", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     const template = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/viber.yml");
     writeConfig(dir, fs.readFileSync(template, "utf-8"));
 
-    const result = run(dir);
+    const result = await run(dir);
     assert.deepEqual(switches(result.stdout), {
       adr: "true",
       memory: "true",
@@ -284,24 +284,24 @@ test("the shipped template is what setup seeds: seven switches on, qa, issues an
   });
 });
 
-test("the file is resolved against the repository root, so a session started in a subdirectory reads the same config", () => {
-  withGitRepo((repo) => {
+test("the file is resolved against the repository root, so a session started in a subdirectory reads the same config", async () => {
+  await withGitRepo(async (repo) => {
     writeConfig(repo.dir, `memory: true\n${group({ specifications: "archive" })}`);
     const nested = path.join(repo.dir, "src", "deep");
     fs.mkdirSync(nested, { recursive: true });
 
-    const result = runScript(SUT, [], { cwd: nested, env: repo.env, shell: "bash" });
+    const result = await runScript(SUT, [], { cwd: nested, env: repo.env, shell: "bash" });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(switches(result.stdout), { ...OFF, memory: "true" });
     assert.deepEqual(dirs(result.stdout), { runs: "_specs", specifications: "archive" });
   });
 });
 
-test("an unreadable or malformed config never fails the preload", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("an unreadable or malformed config never fails the preload", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, "\u0000\u0001 not: yaml: at: all\n");
 
-    const result = run(dir);
+    const result = await run(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(switches(result.stdout), OFF);
     assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS);
@@ -310,145 +310,145 @@ test("an unreadable or malformed config never fails the preload", () => {
 
 // --- the directories group ---
 
-test("a directory key takes the name it was given, extra indentation and a trailing comment notwithstanding", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a directory key takes the name it was given, extra indentation and a trailing comment notwithstanding", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(
       dir,
       ["directories:", "    runs: work-in-progress   # where an open run lives", "  specifications: docs_archive.v2", ""].join("\n"),
     );
 
-    const result = run(dir);
+    const result = await run(dir);
     assert.equal(result.status, 0);
     assert.deepEqual(dirs(result.stdout), { runs: "work-in-progress", specifications: "docs_archive.v2" });
   });
 });
 
-test("the group is a contract: a same-named key at the top level is NOT this key", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("the group is a contract: a same-named key at the top level is NOT this key", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, "runs: builds\nspecifications: archive\n");
 
-    const result = run(dir);
+    const result = await run(dir);
     assert.equal(result.status, 0);
     assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS);
   });
 });
 
-test("the group ends at the next top-level key, so an indented line below one is out of it", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("the group ends at the next top-level key, so an indented line below one is out of it", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, ["directories:", "  runs: builds", "qa: true", "  specifications: archive", ""].join("\n"));
 
-    const result = run(dir);
+    const result = await run(dir);
     assert.equal(result.status, 0);
     assert.deepEqual(dirs(result.stdout), { runs: "builds", specifications: "specs" });
     assert.deepEqual(switches(result.stdout), { ...OFF, qa: "true" });
   });
 });
 
-test("a blank line and a column-0 comment leave the group open, because that is how it gets written", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a blank line and a column-0 comment leave the group open, because that is how it gets written", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(
       dir,
       ["directories:", "  runs: builds", "", "# where the archive lands", "  specifications: archive", ""].join("\n"),
     );
 
-    assert.deepEqual(dirs(run(dir).stdout), { runs: "builds", specifications: "archive" });
+    assert.deepEqual(dirs((await run(dir)).stdout), { runs: "builds", specifications: "archive" });
   });
 });
 
-test("a value that is a path rather than a name is refused, and the default stands", () => {
+test("a value that is a path rather than a name is refused, and the default stands", async () => {
   const refused = ["../escape", "/absolute", "a/b", "./here", ".", "..", "", "   ", "two;words", "quoted'name"];
   for (const value of refused) {
-    withTempDir("p2p2-viber-", (dir) => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       writeConfig(dir, group({ runs: value, specifications: value }));
 
-      const result = run(dir);
+      const result = await run(dir);
       assert.equal(result.status, 0, `stderr for "${value}": ${result.stderr}`);
       assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS, `"${value}" must not name a directory`);
     });
   }
 });
 
-test("a directory value is cut at the first space, the way a trailing comment is - the first word is the name", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a directory value is cut at the first space, the way a trailing comment is - the first word is the name", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, group({ runs: "work in progress" }));
 
-    assert.deepEqual(dirs(run(dir).stdout), { runs: "work", specifications: "specs" });
+    assert.deepEqual(dirs((await run(dir)).stdout), { runs: "work", specifications: "specs" });
   });
 });
 
-test("the first assignment inside the group wins, so a later duplicate cannot quietly override it", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("the first assignment inside the group wins, so a later duplicate cannot quietly override it", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, ["directories:", "  runs: first", "  runs: second", ""].join("\n"));
 
-    assert.deepEqual(dirs(run(dir).stdout), { runs: "first", specifications: "specs" });
+    assert.deepEqual(dirs((await run(dir)).stdout), { runs: "first", specifications: "specs" });
   });
 });
 
-test("a commented-out directory key is not an assignment, so the default stands", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a commented-out directory key is not an assignment, so the default stands", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, ["directories:", "  # runs: commented", "  specifications: kept", ""].join("\n"));
 
-    assert.deepEqual(dirs(run(dir).stdout), { runs: "_specs", specifications: "kept" });
+    assert.deepEqual(dirs((await run(dir)).stdout), { runs: "_specs", specifications: "kept" });
   });
 });
 
 // --- the tiers group ---
 
-test("the tiers group narrows the range, case and a trailing comment notwithstanding", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("the tiers group narrows the range, case and a trailing comment notwithstanding", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, ["tiers:", "  min: Sonnet  # never haiku", "  max: sonnet", ""].join("\n"));
 
-    const result = run(dir);
+    const result = await run(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(tiers(result.stdout), { min: "sonnet", max: "sonnet" });
   });
 });
 
-test("fable is a tier above opus, reached only when the project names it", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("fable is a tier above opus, reached only when the project names it", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, ["tiers:", "  min: sonnet", "  max: Fable", ""].join("\n"));
 
-    assert.deepEqual(tiers(run(dir).stdout), { min: "sonnet", max: "fable" });
+    assert.deepEqual(tiers((await run(dir)).stdout), { min: "sonnet", max: "fable" });
   });
 });
 
-test("an unknown tier falls back to that key's default alone", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("an unknown tier falls back to that key's default alone", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, ["tiers:", "  min: sonnet", "  max: mythos", ""].join("\n"));
 
-    assert.deepEqual(tiers(run(dir).stdout), { min: "sonnet", max: "opus" });
+    assert.deepEqual(tiers((await run(dir)).stdout), { min: "sonnet", max: "opus" });
   });
 });
 
-test("fable as min above the default max is an inverted range, so both reset", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("fable as min above the default max is an inverted range, so both reset", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, ["tiers:", "  min: fable", ""].join("\n"));
 
-    assert.deepEqual(tiers(run(dir).stdout), DEFAULT_TIERS);
+    assert.deepEqual(tiers((await run(dir)).stdout), DEFAULT_TIERS);
   });
 });
 
-test("an inverted range resets both keys to the full range, so no dispatch is left without a model", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("an inverted range resets both keys to the full range, so no dispatch is left without a model", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, ["tiers:", "  min: opus", "  max: haiku", ""].join("\n"));
 
-    assert.deepEqual(tiers(run(dir).stdout), DEFAULT_TIERS);
+    assert.deepEqual(tiers((await run(dir)).stdout), DEFAULT_TIERS);
   });
 });
 
-test("tier keys outside the tiers group are not tier keys", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("tier keys outside the tiers group are not tier keys", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, ["min: sonnet", "max: sonnet", group({ min: "sonnet" })].join("\n"));
 
-    assert.deepEqual(tiers(run(dir).stdout), DEFAULT_TIERS);
+    assert.deepEqual(tiers((await run(dir)).stdout), DEFAULT_TIERS);
   });
 });
 
-test("a CRLF config still yields its tiers (a stray CR is not part of the value)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a CRLF config still yields its tiers (a stray CR is not part of the value)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, "tiers:\r\n  min: sonnet\r\n  max: sonnet\r\n");
 
-    assert.deepEqual(tiers(run(dir).stdout), { min: "sonnet", max: "sonnet" });
+    assert.deepEqual(tiers((await run(dir)).stdout), { min: "sonnet", max: "sonnet" });
   });
 });
 
@@ -459,27 +459,27 @@ function branching(stdout: string): string {
   return stdout.trim().split("\n").slice(-1)[0];
 }
 
-test("no config file: the output ends with branching.mode: off, right after the tiers", () => {
-  withTempDir("p2p2-viber-", (dir) => {
-    const result = run(dir);
+test("no config file: the output ends with branching.mode: off, right after the tiers", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    const result = await run(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(result.stdout.trim().split("\n").slice(-2), ["tiers.max: opus", "branching.mode: off"]);
   });
 });
 
-test("the branching group gives the block its mode alone, a mixed-case mode lowered and a trailing comment dropped", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("the branching group gives the block its mode alone, a mixed-case mode lowered and a trailing comment dropped", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, ["branching:", "  mode: Required  # every run on its own branch", "  work:", "    fix:", "      base: release/2.x", "      name: 'fix/{slug}'", "      target: release/2.x", ""].join("\n"));
 
-    const result = run(dir);
+    const result = await run(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(branching(result.stdout), "branching.mode: required");
   });
 });
 
-test("no config file: the block names only the branching mode, no branching.base or branching.name line (a skill reads its branch from the work entries)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
-    const result = run(dir);
+test("no config file: the block names only the branching mode, no branching.base or branching.name line (a skill reads its branch from the work entries)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    const result = await run(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const printed = result.stdout.trim().split("\n");
     assert.deepEqual(printed.filter((line) => line.startsWith("branching.")), ["branching.mode: off"]);
@@ -491,11 +491,11 @@ for (const [label, body] of [
   ["the flat keys", ["branching:", "  mode: allowed", "  base: develop", "  name: 'feature/{slug}'", ""].join("\n")],
   ["a work entry", ["branching:", "  mode: allowed", "  work:", "    feature:", "      base: develop", "      name: 'feature/{slug}'", "      target: develop", ""].join("\n")],
 ]) {
-  test(`a file holding ${label}: the block names only the branching mode, no branching.base or branching.name line (a skill reads its branch from the work entries)`, () => {
-    withTempDir("p2p2-viber-", (dir) => {
+  test(`a file holding ${label}: the block names only the branching mode, no branching.base or branching.name line (a skill reads its branch from the work entries)`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       writeConfig(dir, body);
 
-      const result = run(dir);
+      const result = await run(dir);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       const printed = result.stdout.trim().split("\n");
       assert.deepEqual(printed.filter((line) => line.startsWith("branching.")), ["branching.mode: allowed"]);
@@ -505,52 +505,52 @@ for (const [label, body] of [
 }
 
 for (const mode of ["on", "true", "gitflow", `"allowed"`]) {
-  test(`an unknown mode ${mode} resolves to off (only off, allowed and required are modes)`, () => {
-    withTempDir("p2p2-viber-", (dir) => {
+  test(`an unknown mode ${mode} resolves to off (only off, allowed and required are modes)`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       writeConfig(dir, ["branching:", `  mode: ${mode}`, ""].join("\n"));
 
-      assert.equal(branching(run(dir).stdout), "branching.mode: off");
+      assert.equal(branching((await run(dir)).stdout), "branching.mode: off");
     });
   });
 }
 
-test("branching keys outside the branching group are not branching keys", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("branching keys outside the branching group are not branching keys", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, ["mode: required", "base: develop", group({ name: "feat/{slug}" })].join("\n"));
 
-    assert.equal(branching(run(dir).stdout), "branching.mode: off");
+    assert.equal(branching((await run(dir)).stdout), "branching.mode: off");
   });
 });
 
-test("cleanup is a switch like the other four and nothing about it is special", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("cleanup is a switch like the other four and nothing about it is special", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, "cleanup: true\n");
 
-    assert.deepEqual(switches(run(dir).stdout), { ...OFF, cleanup: "true" });
+    assert.deepEqual(switches((await run(dir)).stdout), { ...OFF, cleanup: "true" });
   });
 });
 
-test("`final-review: true` resolves to true, matched in any letter case", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("`final-review: true` resolves to true, matched in any letter case", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, "final-review: TRUE\n");
 
-    assert.deepEqual(switches(run(dir).stdout), { ...OFF, "final-review": "true" });
+    assert.deepEqual(switches((await run(dir)).stdout), { ...OFF, "final-review": "true" });
   });
 });
 
-test("a config without the `final-review` key, or with any other value, resolves to false", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a config without the `final-review` key, or with any other value, resolves to false", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, ["adr: true", "final-review: enabled", ""].join("\n"));
 
-    assert.deepEqual(switches(run(dir).stdout), { ...OFF, adr: "true" });
+    assert.deepEqual(switches((await run(dir)).stdout), { ...OFF, adr: "true" });
   });
 });
 
-test("`final-review` prints directly after the `cleanup` line, in the header's fixed order", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("`final-review` prints directly after the `cleanup` line, in the header's fixed order", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, "final-review: true\n");
 
-    const printed = run(dir).stdout.trim().split("\n");
+    const printed = (await run(dir)).stdout.trim().split("\n");
     const cleanupIdx = printed.indexOf("cleanup: false");
     assert.equal(cleanupIdx >= 0, true, `cleanup line missing: ${printed.join(" | ")}`);
     assert.equal(printed[cleanupIdx + 1], "final-review: true");
@@ -564,15 +564,15 @@ function runBranching(dir: string) {
 }
 
 /** Every line `--branching` printed, the exit asserted 0 first: no input may break the preload. */
-function report(dir: string): string[] {
-  const result = runBranching(dir);
+async function report(dir: string): Promise<string[]> {
+  const result = await runBranching(dir);
   assert.equal(result.status, 0, `stderr: ${result.stderr}`);
   return result.stdout.trim().split("\n");
 }
 
-test("--branching with no config file prints only the mode, off, and exits 0", () => {
-  withTempDir("p2p2-viber-", (dir) => {
-    assert.deepEqual(report(dir), ["mode: off"]);
+test("--branching with no config file prints only the mode, off, and exits 0", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    assert.deepEqual(await report(dir), ["mode: off"]);
   });
 });
 
@@ -597,11 +597,11 @@ const GITFLOW = [
   "",
 ];
 
-test("--branching prints the mode, then every valid work entry and every mapping in file order, with no error line", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("--branching prints the mode, then every valid work entry and every mapping in file order, with no error line", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, GITFLOW.join("\n"));
 
-    assert.deepEqual(report(dir), [
+    assert.deepEqual(await report(dir), [
       "mode: required",
       "entry: feature | base: develop | name: feature/{issue-number}-{slug} | target: develop",
       "entry: hotfix | base: main | name: hotfix/{slug} | target: main",
@@ -615,11 +615,11 @@ test("--branching prints the mode, then every valid work entry and every mapping
 const LEGACY = "error: branching.base and branching.name are no longer read - move them into a branching.work entry";
 
 for (const legacy of ["base: develop", "name: 'feature/{issue}-{slug}'"]) {
-  test(`--branching refuses the flat ${legacy.split(":")[0]} directly under branching: with the move message, the entries still printed`, () => {
-    withTempDir("p2p2-viber-", (dir) => {
+  test(`--branching refuses the flat ${legacy.split(":")[0]} directly under branching: with the move message, the entries still printed`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       writeConfig(dir, ["branching:", "  mode: allowed", `  ${legacy}`, "  work:", "    fix:", "      base: main", "      name: fix/{slug}", "      target: main", ""].join("\n"));
 
-      assert.deepEqual(report(dir), ["mode: allowed", "entry: fix | base: main | name: fix/{slug} | target: main", LEGACY]);
+      assert.deepEqual(await report(dir), ["mode: allowed", "entry: fix | base: main | name: fix/{slug} | target: main", LEGACY]);
     });
   });
 }
@@ -634,20 +634,20 @@ function withFix(fields: { base: string | null; name: string | null; target: str
 
 const FEATURE = "entry: feature | base: main | name: feat/{slug} | target: main";
 
-test("--branching drops an entry whose name uses the old {issue} placeholder and says it is now {issue-number}", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("--branching drops an entry whose name uses the old {issue} placeholder and says it is now {issue-number}", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, withFix({ base: "main", name: "'fix/{issue}-{slug}'", target: "main" }));
 
-    assert.deepEqual(report(dir), ["mode: allowed", FEATURE, "error: work entry fix: {issue} is now {issue-number}"]);
+    assert.deepEqual(await report(dir), ["mode: allowed", FEATURE, "error: work entry fix: {issue} is now {issue-number}"]);
   });
 });
 
 for (const missing of ["base", "name", "target"] as const) {
-  test(`--branching drops an entry missing its ${missing} and names the missing field`, () => {
-    withTempDir("p2p2-viber-", (dir) => {
+  test(`--branching drops an entry missing its ${missing} and names the missing field`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       writeConfig(dir, withFix({ base: "main", name: "fix/{slug}", target: "main", [missing]: null }));
 
-      assert.deepEqual(report(dir), ["mode: allowed", FEATURE, `error: work entry fix: missing ${missing}`]);
+      assert.deepEqual(await report(dir), ["mode: allowed", FEATURE, `error: work entry fix: missing ${missing}`]);
     });
   });
 }
@@ -663,31 +663,31 @@ const INVALID: Array<[string, { base: string; name: string; target: string }, st
 ];
 
 for (const [label, fields, reason] of INVALID) {
-  test(`--branching drops an entry with ${label} and names the field and its value`, () => {
-    withTempDir("p2p2-viber-", (dir) => {
+  test(`--branching drops an entry with ${label} and names the field and its value`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       writeConfig(dir, withFix(fields));
 
-      assert.deepEqual(report(dir), ["mode: allowed", FEATURE, `error: work entry fix: ${reason}`]);
+      assert.deepEqual(await report(dir), ["mode: allowed", FEATURE, `error: work entry fix: ${reason}`]);
     });
   });
 }
 
-test("--branching drops an entry whose key is not a plain name", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("--branching drops an entry whose key is not a plain name", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, ["branching:", "  work:", "    fix;rm:", "      base: main", "      name: fix/{slug}", "      target: main", ""].join("\n"));
 
-    assert.deepEqual(report(dir), ["mode: off", "error: work entry fix;rm: invalid key: fix;rm"]);
+    assert.deepEqual(await report(dir), ["mode: off", "error: work entry fix;rm: invalid key: fix;rm"]);
   });
 });
 
-test("--branching drops a mapping naming no work entry, and one naming a dropped entry, each with its own line", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("--branching drops a mapping naming no work entry, and one naming a dropped entry, each with its own line", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(
       dir,
       [withFix({ base: "main", name: null, target: "main" }), "  issue-type-mappings:", "    Feature: feature", "    Bug: fix", "    Task: chore", ""].join("\n"),
     );
 
-    assert.deepEqual(report(dir), [
+    assert.deepEqual(await report(dir), [
       "mode: allowed",
       FEATURE,
       "map: Feature | feature",
@@ -699,11 +699,11 @@ test("--branching drops a mapping naming no work entry, and one naming a dropped
 });
 
 for (const [mode, printed] of [["allowed", "allowed"], ["REQUIRED", "required"]]) {
-  test(`--branching under mode ${mode} with no valid work entry says so`, () => {
-    withTempDir("p2p2-viber-", (dir) => {
+  test(`--branching under mode ${mode} with no valid work entry says so`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       writeConfig(dir, ["branching:", `  mode: ${mode}`, "  work:", "    fix:", "      base: main", ""].join("\n"));
 
-      assert.deepEqual(report(dir), [
+      assert.deepEqual(await report(dir), [
         `mode: ${printed}`,
         "error: work entry fix: missing name",
         "error: work entry fix: missing target",
@@ -713,11 +713,11 @@ for (const [mode, printed] of [["allowed", "allowed"], ["REQUIRED", "required"]]
   });
 }
 
-test("--branching reads a CRLF config the same way (a stray CR is not part of any value)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("--branching reads a CRLF config the same way (a stray CR is not part of any value)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, GITFLOW.join("\r\n"));
 
-    assert.deepEqual(report(dir), [
+    assert.deepEqual(await report(dir), [
       "mode: required",
       "entry: feature | base: develop | name: feature/{issue-number}-{slug} | target: develop",
       "entry: hotfix | base: main | name: hotfix/{slug} | target: main",
@@ -728,28 +728,28 @@ test("--branching reads a CRLF config the same way (a stray CR is not part of an
   });
 });
 
-test("--branching reads no work entry outside the branching group", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("--branching reads no work entry outside the branching group", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, ["branching:", "  mode: allowed", "qa: true", "  work:", "    fix:", "      base: main", "      name: fix/{slug}", "      target: main", ""].join("\n"));
 
-    assert.deepEqual(report(dir), ["mode: allowed", "error: no valid branching.work entry"]);
+    assert.deepEqual(await report(dir), ["mode: allowed", "error: no valid branching.work entry"]);
   });
 });
 
-test("--branching over a malformed config still exits 0 with the mode off", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("--branching over a malformed config still exits 0 with the mode off", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(dir, "\u0000\u0001 not: yaml: at: all\n");
 
-    assert.deepEqual(report(dir), ["mode: off"]);
+    assert.deepEqual(await report(dir), ["mode: off"]);
   });
 });
 
 for (const mode of ["off", "gitflow"]) {
-  test(`--branching under mode ${mode} asks for no work entry (only a mode other than off needs one)`, () => {
-    withTempDir("p2p2-viber-", (dir) => {
+  test(`--branching under mode ${mode} asks for no work entry (only a mode other than off needs one)`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       writeConfig(dir, ["branching:", `  mode: ${mode}`, ""].join("\n"));
 
-      assert.deepEqual(report(dir), ["mode: off"]);
+      assert.deepEqual(await report(dir), ["mode: off"]);
     });
   });
 }

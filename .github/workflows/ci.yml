@@ -32,5 +32,9 @@ jobs:
       # scripts, not on CPU, so it runs more files at once than the runner has
       # cores. Matters on windows-latest (4 vCPU, default concurrency 3), where
       # process creation is an order of magnitude dearer than on Linux/macOS.
+      # CI=true turns on the full shell matrix (tests/harness/shells.ts): every
+      # POSIX shell and every bash major present, which a local run skips.
       - name: Run tests
+        env:
+          CI: "true"
         run: node --test --test-concurrency=12 "tests/**/*.test.ts"

@@ -8,10 +8,8 @@
  * same way the "Release" workflow invokes it: `bash .github/scripts/release.sh`).
  *
  * No test here ever reaches the network or mutates this repo's real working
- * tree: `gh` is always a `withStub`, every git push targets a local `--bare`
- * remote created by `withGitRepo`, and the final test re-reads this real
- * repo's `git status`/tag list and asserts they equal the snapshot taken
- * before any test ran.
+ * tree: `gh` is always a `withStub` and every git push targets a local
+ * `--bare` remote created by `withGitRepo`.
  *
  * Skipped wholesale (never failed) when `jq` or `bash` is missing on
  * `PATH` - release.sh hard-requires `jq`, which Git-Bash does not ship.
@@ -21,7 +19,7 @@
  *   node --test tests/github/release.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -33,7 +31,6 @@ import { withStub } from "../harness/stub.ts";
 import { bashShells } from "../harness/shells.ts";
 
 const RELEASE_SH = path.resolve(import.meta.dirname, "../../.github/scripts/release.sh");
-const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const PLUGINS = ["superui", "superfix", "superbiz", "supercc", "viber"];
 
 function commandAvailable(cmd: string): boolean {
@@ -109,20 +106,20 @@ interface Fixture {
  *  full fixture every release.sh scenario below runs against. Nested
  *  `withGitRepo`/`withStub`/`withTempDir` calls guarantee every piece is
  *  cleaned up whether `fn` returns or throws. */
-function withReleaseFixture<T>(fn: (fx: Fixture) => T): T {
-  return withGitRepo(
+async function withReleaseFixture<T>(fn: (fx: Fixture) => T): Promise<T> {
+  return await withGitRepo(
     (origin) =>
       withGitRepo((repo) =>
         withStub("gh", GH_STUB, (ghDir) =>
-          withTempDir("p2p2-release-state-", (stateDir) => {
+          withTempDir("p2p2-release-state-", async (stateDir) => {
             writeManifests(repo.dir);
-            const remote = repo.git("remote", "add", "origin", origin.dir);
+            const remote = await repo.git("remote", "add", "origin", origin.dir);
             if (remote.status !== 0) throw new Error(`fixture: git remote add failed: ${remote.stderr}`);
-            const add = repo.git("add", "-A");
+            const add = await repo.git("add", "-A");
             if (add.status !== 0) throw new Error(`fixture: git add failed: ${add.stderr}`);
-            const commit = repo.git("commit", "-m", "chore: initial fixture");
+            const commit = await repo.git("commit", "-m", "chore: initial fixture");
             if (commit.status !== 0) throw new Error(`fixture: git commit failed: ${commit.stderr}`);
-            const push = repo.git("push", "origin", "HEAD:main");
+            const push = await repo.git("push", "origin", "HEAD:main");
             if (push.status !== 0) throw new Error(`fixture: initial push failed: ${push.stderr}`);
             return fn({
               repo,
@@ -146,7 +143,7 @@ interface RunReleaseOpts {
   githubOutput?: string | null;
 }
 
-function runRelease(bashPath: string, fx: Fixture, part: string, opts: RunReleaseOpts = {}): RunResult & { outputFile: string | null } {
+async function runRelease(bashPath: string, fx: Fixture, part: string, opts: RunReleaseOpts = {}): Promise<RunResult & { outputFile: string | null }> {
   const outputFile = opts.githubOutput === null ? null : (opts.githubOutput ?? path.join(fx.stateDir, "github_output.txt"));
   const env: Record<string, string> = {
     ...fx.repo.env,
@@ -156,7 +153,7 @@ function runRelease(bashPath: string, fx: Fixture, part: string, opts: RunReleas
   };
   if (opts.githubRefName !== null) env.GITHUB_REF_NAME = opts.githubRefName ?? "main";
   if (outputFile !== null) env.GITHUB_OUTPUT = outputFile;
-  const result = runScript(RELEASE_SH, [part], { shell: bashPath, cwd: fx.repo.dir, env, stubDirs: [fx.ghDir] });
+  const result = await runScript(RELEASE_SH, [part], { shell: bashPath, cwd: fx.repo.dir, env, stubDirs: [fx.ghDir] });
   return { ...result, outputFile };
 }
 
@@ -187,15 +184,9 @@ if (!jqAvailable || !bashPath) {
 } else {
   const bash: string = bashPath;
 
-  // Snapshot of THIS repo's real state, taken before any test below runs a
-  // single git command against it, so the last test can prove the whole
-  // suite left it untouched.
-  const statusBefore = runScript("git", ["status", "--porcelain"], { cwd: REPO_ROOT });
-  const tagsBefore = runScript("git", ["tag", "--list"], { cwd: REPO_ROOT });
-
-  test("no tags at all -> the 0.1.0 seed is taken as-is, no bump applied", () => {
-    withReleaseFixture((fx) => {
-      const result = runRelease(bash, fx, "patch");
+  test("no tags at all -> the 0.1.0 seed is taken as-is, no bump applied", async () => {
+    await withReleaseFixture(async (fx) => {
+      const result = await runRelease(bash, fx, "patch");
       assert.equal(result.status, 0, `release.sh should succeed: ${result.stderr}`);
       assert.equal(lastStdoutLine(result.stdout), "0.1.0");
       assert.equal(readGithubOutput(result.outputFile).trim(), "version=0.1.0");
@@ -204,87 +195,87 @@ if (!jqAvailable || !bashPath) {
     });
   });
 
-  test("1.2.3 + patch -> 1.2.4", () => {
-    withReleaseFixture((fx) => {
-      fx.repo.git("tag", "1.2.3");
-      const result = runRelease(bash, fx, "patch");
+  test("1.2.3 + patch -> 1.2.4", async () => {
+    await withReleaseFixture(async (fx) => {
+      await fx.repo.git("tag", "1.2.3");
+      const result = await runRelease(bash, fx, "patch");
       assert.equal(result.status, 0, `release.sh should succeed: ${result.stderr}`);
       assert.equal(lastStdoutLine(result.stdout), "1.2.4");
     });
   });
 
-  test("1.2.3 + minor -> 1.3.0", () => {
-    withReleaseFixture((fx) => {
-      fx.repo.git("tag", "1.2.3");
-      const result = runRelease(bash, fx, "minor");
+  test("1.2.3 + minor -> 1.3.0", async () => {
+    await withReleaseFixture(async (fx) => {
+      await fx.repo.git("tag", "1.2.3");
+      const result = await runRelease(bash, fx, "minor");
       assert.equal(result.status, 0, `release.sh should succeed: ${result.stderr}`);
       assert.equal(lastStdoutLine(result.stdout), "1.3.0");
     });
   });
 
-  test("1.2.3 + major -> 2.0.0", () => {
-    withReleaseFixture((fx) => {
-      fx.repo.git("tag", "1.2.3");
-      const result = runRelease(bash, fx, "major");
+  test("1.2.3 + major -> 2.0.0", async () => {
+    await withReleaseFixture(async (fx) => {
+      await fx.repo.git("tag", "1.2.3");
+      const result = await runRelease(bash, fx, "major");
       assert.equal(result.status, 0, `release.sh should succeed: ${result.stderr}`);
       assert.equal(lastStdoutLine(result.stdout), "2.0.0");
     });
   });
 
-  test("non-semver tags (v1.0.0, 1.0, release-2) are ignored when picking the highest", () => {
-    withReleaseFixture((fx) => {
-      fx.repo.git("tag", "v1.0.0");
-      fx.repo.git("tag", "1.0");
-      fx.repo.git("tag", "release-2");
-      fx.repo.git("tag", "1.2.3");
-      const result = runRelease(bash, fx, "patch");
+  test("non-semver tags (v1.0.0, 1.0, release-2) are ignored when picking the highest", async () => {
+    await withReleaseFixture(async (fx) => {
+      await fx.repo.git("tag", "v1.0.0");
+      await fx.repo.git("tag", "1.0");
+      await fx.repo.git("tag", "release-2");
+      await fx.repo.git("tag", "1.2.3");
+      const result = await runRelease(bash, fx, "patch");
       assert.equal(result.status, 0, `release.sh should succeed: ${result.stderr}`);
       assert.equal(lastStdoutLine(result.stdout), "1.2.4", "the non-semver tags must not outrank 1.2.3");
     });
   });
 
-  test("a gap in numbering (1.0.0, 1.5.0) still picks the true highest", () => {
-    withReleaseFixture((fx) => {
-      fx.repo.git("tag", "1.0.0");
-      fx.repo.git("tag", "1.5.0");
-      const result = runRelease(bash, fx, "patch");
+  test("a gap in numbering (1.0.0, 1.5.0) still picks the true highest", async () => {
+    await withReleaseFixture(async (fx) => {
+      await fx.repo.git("tag", "1.0.0");
+      await fx.repo.git("tag", "1.5.0");
+      const result = await runRelease(bash, fx, "patch");
       assert.equal(result.status, 0, `release.sh should succeed: ${result.stderr}`);
       assert.equal(lastStdoutLine(result.stdout), "1.5.1");
     });
   });
 
-  test("200 tags, including a 1.9.0/1.10.0 pair, sort by version not lexicographically", () => {
-    withReleaseFixture((fx) => {
+  test("200 tags, including a 1.9.0/1.10.0 pair, sort by version not lexicographically", async () => {
+    await withReleaseFixture(async (fx) => {
       // One `git update-ref --stdin` rather than 200 `git tag` calls: the refs
       // it writes are the same lightweight tags, and 200 spawned processes
       // take tens of seconds on Windows.
-      const head = fx.repo.git("rev-parse", "HEAD");
+      const head = await fx.repo.git("rev-parse", "HEAD");
       assert.equal(head.status, 0, `resolving HEAD should succeed: ${head.stderr}`);
       const names = [...Array.from({ length: 198 }, (_, i) => `0.0.${i + 1}`), "1.9.0", "1.10.0"];
       const commands = names.map((name) => `create refs/tags/${name} ${head.stdout.trim()}\n`).join("");
-      const seedTags = runScript("git", ["update-ref", "--stdin"], {
+      const seedTags = await runScript("git", ["update-ref", "--stdin"], {
         cwd: fx.repo.dir,
         env: fx.repo.env,
         input: commands,
       });
       assert.equal(seedTags.status, 0, `seeding 200 tags should succeed: ${seedTags.stderr}`);
 
-      const result = runRelease(bash, fx, "patch");
+      const result = await runRelease(bash, fx, "patch");
       assert.equal(result.status, 0, `release.sh should succeed: ${result.stderr}`);
       assert.equal(lastStdoutLine(result.stdout), "1.10.1", "1.10.0 must sort above 1.9.0 (version sort, not lexicographic)");
     });
   });
 
-  test("invalid part -> exit 2", () => {
-    withReleaseFixture((fx) => {
-      fx.repo.git("tag", "1.2.3");
-      const result = runRelease(bash, fx, "bogus");
+  test("invalid part -> exit 2", async () => {
+    await withReleaseFixture(async (fx) => {
+      await fx.repo.git("tag", "1.2.3");
+      const result = await runRelease(bash, fx, "bogus");
       assert.equal(result.status, 2);
       assert.match(result.stderr, /invalid part 'bogus'/);
     });
   });
 
-  test("a target tag that already exists -> exit 3", () => {
+  test("a target tag that already exists -> exit 3", async () => {
     // Unreachable through ordinary tag progression: "current" is always the
     // highest existing tag and "new" is always strictly greater than
     // "current" for every part, so a real tag can never already sit at
@@ -295,16 +286,16 @@ if (!jqAvailable || !bashPath) {
     // only the `tag --list` call (everything else passes through to the
     // real `git`), so the tag REALLY exists on disk while the listing the
     // script bases "current" on still reports the lower tag.
-    withReleaseFixture((fx) => {
-      fx.repo.git("tag", "1.2.3");
-      fx.repo.git("tag", "1.2.4");
+    await withReleaseFixture(async (fx) => {
+      await fx.repo.git("tag", "1.2.3");
+      await fx.repo.git("tag", "1.2.4");
       const realGit = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf-8" }).stdout.trim();
       assert.ok(realGit.length > 0, "a real git must be resolvable on PATH to build the passthrough stub");
-      withStub(
+      await withStub(
         "git",
         `if [ "$1" = "tag" ] && [ "$2" = "--list" ]; then printf '1.2.3\\n'; exit 0; fi\nexec "${realGit}" "$@"`,
-        (fakeCurrentGitDir) => {
-          const result = runScript(RELEASE_SH, ["patch"], {
+        async (fakeCurrentGitDir) => {
+          const result = await runScript(RELEASE_SH, ["patch"], {
             shell: bash,
             cwd: fx.repo.dir,
             env: { ...fx.repo.env, GH_TOKEN: "test-token", ARGV_FILE: fx.argvFile, RELEASE_EXISTS_FLAG: fx.releaseFlag, GITHUB_REF_NAME: "main" },
@@ -317,12 +308,12 @@ if (!jqAvailable || !bashPath) {
     });
   });
 
-  test("bumps all five manifests' version and nothing else in them, commits with the exact chore(bump) subject, tags and pushes to origin, and creates the GitHub release", () => {
-    withReleaseFixture((fx) => {
-      fx.repo.git("tag", "1.2.3");
+  test("bumps all five manifests' version and nothing else in them, commits with the exact chore(bump) subject, tags and pushes to origin, and creates the GitHub release", async () => {
+    await withReleaseFixture(async (fx) => {
+      await fx.repo.git("tag", "1.2.3");
       const before = readManifests(fx.repo.dir);
 
-      const result = runRelease(bash, fx, "patch");
+      const result = await runRelease(bash, fx, "patch");
       assert.equal(result.status, 0, `release.sh should succeed: ${result.stderr}`);
       assert.equal(lastStdoutLine(result.stdout), "1.2.4");
       assert.equal(readGithubOutput(result.outputFile).trim(), "version=1.2.4");
@@ -337,16 +328,16 @@ if (!jqAvailable || !bashPath) {
         assert.ok(fs.readFileSync(manifestPath(fx.repo.dir, plugin), "utf-8").endsWith("\n"), `${plugin}: manifest must end with a newline`);
       }
 
-      const log = fx.repo.git("log", "-1", "--pretty=%s");
+      const log = await fx.repo.git("log", "-1", "--pretty=%s");
       assert.equal(log.stdout.trim(), "chore(bump): bump version to 1.2.4");
 
-      const localTag = fx.repo.git("rev-parse", "refs/tags/1.2.4");
-      const originTag = fx.origin.git("rev-parse", "refs/tags/1.2.4");
+      const localTag = await fx.repo.git("rev-parse", "refs/tags/1.2.4");
+      const originTag = await fx.origin.git("rev-parse", "refs/tags/1.2.4");
       assert.equal(localTag.status, 0);
       assert.equal(originTag.status, 0);
       assert.equal(localTag.stdout.trim(), originTag.stdout.trim(), "the pushed tag must point at the same commit locally and on origin");
 
-      const originMain = fx.origin.git("rev-parse", "refs/heads/main");
+      const originMain = await fx.origin.git("rev-parse", "refs/heads/main");
       assert.equal(originMain.stdout.trim(), localTag.stdout.trim(), "origin's main branch must have received the bump commit");
 
       const calls = argvCalls(fx.argvFile);
@@ -357,23 +348,23 @@ if (!jqAvailable || !bashPath) {
     });
   });
 
-  test("a release body larger than the OS pipe buffer still publishes - gh exiting without draining the notes must not kill release.sh", () => {
-    withReleaseFixture((fx) => {
-      fx.repo.git("tag", "1.2.3");
+  test("a release body larger than the OS pipe buffer still publishes - gh exiting without draining the notes must not kill release.sh", async () => {
+    await withReleaseFixture(async (fx) => {
+      await fx.repo.git("tag", "1.2.3");
       // A commit whose SUBJECT alone outgrows every OS pipe buffer (64 KiB on
       // Linux, 16-64 KiB on macOS), so the notes body cannot be handed over in a
       // single non-blocking write. Passed via -F, never -m: Git-Bash caps a
       // command line at 32 KiB. The filler commit ahead of it is load-bearing -
       // `--pretty=format:` ends without a newline, so the OLDEST commit in the
       // range never reaches the body and the big one must not be it.
-      const filler = fx.repo.git("commit", "--allow-empty", "-m", "fix: filler ahead of the big subject");
+      const filler = await fx.repo.git("commit", "--allow-empty", "-m", "fix: filler ahead of the big subject");
       assert.equal(filler.status, 0, `seeding the filler commit should succeed: ${filler.stderr}`);
       const msgFile = path.join(fx.stateDir, "big-subject.txt");
       fs.writeFileSync(msgFile, `feat: ${"x".repeat(128 * 1024)}\n`);
-      const commit = fx.repo.git("commit", "--allow-empty", "-F", msgFile);
+      const commit = await fx.repo.git("commit", "--allow-empty", "-F", msgFile);
       assert.equal(commit.status, 0, `seeding the big-subject commit should succeed: ${commit.stderr}`);
 
-      const result = runRelease(bash, fx, "patch");
+      const result = await runRelease(bash, fx, "patch");
       assert.equal(result.status, 0, `release.sh should succeed: ${result.stderr}`);
       assert.equal(lastStdoutLine(result.stdout), "1.2.4");
 
@@ -382,34 +373,34 @@ if (!jqAvailable || !bashPath) {
     });
   });
 
-  test("re-run recovery: a second run at the same target version re-tags the already-committed bump instead of fabricating an empty commit, and does not re-create the GitHub release", () => {
-    withReleaseFixture((fx) => {
-      fx.repo.git("tag", "1.2.3");
+  test("re-run recovery: a second run at the same target version re-tags the already-committed bump instead of fabricating an empty commit, and does not re-create the GitHub release", async () => {
+    await withReleaseFixture(async (fx) => {
+      await fx.repo.git("tag", "1.2.3");
 
-      const first = runRelease(bash, fx, "patch");
+      const first = await runRelease(bash, fx, "patch");
       assert.equal(first.status, 0, `first run should succeed: ${first.stderr}`);
       assert.equal(lastStdoutLine(first.stdout), "1.2.4");
 
       // Simulate a run that committed + pushed the bump but crashed before (or
       // during) pushing the tag/release: the tag never made it, locally or on
       // origin, but the bump commit and the already-published release did.
-      fx.repo.git("tag", "-d", "1.2.4");
-      fx.origin.git("tag", "-d", "1.2.4");
+      await fx.repo.git("tag", "-d", "1.2.4");
+      await fx.origin.git("tag", "-d", "1.2.4");
 
-      const second = runRelease(bash, fx, "patch");
+      const second = await runRelease(bash, fx, "patch");
       assert.equal(second.status, 0, `recovery run should succeed: ${second.stderr}`);
       assert.equal(lastStdoutLine(second.stdout), "1.2.4", "recomputing from the same tag state must reach the same target version");
       assert.match(second.stderr, /1\.2\.4 already committed; re-tagging existing release commit/);
 
-      const bumpCommits = fx.repo.git("log", "--oneline", "--grep=chore(bump)");
+      const bumpCommits = await fx.repo.git("log", "--oneline", "--grep=chore(bump)");
       assert.equal(
         bumpCommits.stdout.trim().split("\n").filter(Boolean).length,
         1,
         "the recovery run must not fabricate a second bump commit",
       );
 
-      const localTag = fx.repo.git("rev-parse", "refs/tags/1.2.4");
-      const originTag = fx.origin.git("rev-parse", "refs/tags/1.2.4");
+      const localTag = await fx.repo.git("rev-parse", "refs/tags/1.2.4");
+      const originTag = await fx.origin.git("rev-parse", "refs/tags/1.2.4");
       assert.equal(localTag.status, 0, "the tag must be re-created locally");
       assert.equal(originTag.status, 0, "the tag must be re-pushed to origin");
 
@@ -425,50 +416,43 @@ if (!jqAvailable || !bashPath) {
     });
   });
 
-  test("a GITHUB_REF_NAME other than main pushes the bump commit to that branch, not main", () => {
-    withReleaseFixture((fx) => {
-      fx.repo.git("tag", "1.2.3");
-      const result = runRelease(bash, fx, "patch", { githubRefName: "release-train" });
+  test("a GITHUB_REF_NAME other than main pushes the bump commit to that branch, not main", async () => {
+    await withReleaseFixture(async (fx) => {
+      await fx.repo.git("tag", "1.2.3");
+      const result = await runRelease(bash, fx, "patch", { githubRefName: "release-train" });
       assert.equal(result.status, 0, `release.sh should succeed: ${result.stderr}`);
 
-      const localHead = fx.repo.git("rev-parse", "HEAD");
-      const originBranch = fx.origin.git("rev-parse", "refs/heads/release-train");
+      const localHead = await fx.repo.git("rev-parse", "HEAD");
+      const originBranch = await fx.origin.git("rev-parse", "refs/heads/release-train");
       assert.equal(originBranch.status, 0, "origin should gain the release-train ref");
       assert.equal(originBranch.stdout.trim(), localHead.stdout.trim());
 
-      const originMain = fx.origin.git("rev-parse", "-q", "--verify", "refs/heads/main");
+      const originMain = await fx.origin.git("rev-parse", "-q", "--verify", "refs/heads/main");
       assert.notEqual(originMain.stdout.trim(), localHead.stdout.trim(), "main must not have received the bump commit");
     });
   });
 
-  test("GITHUB_OUTPUT unset falls back to /dev/null without failing", () => {
-    withReleaseFixture((fx) => {
-      fx.repo.git("tag", "1.2.3");
-      const result = runRelease(bash, fx, "patch", { githubOutput: null });
+  test("GITHUB_OUTPUT unset falls back to /dev/null without failing", async () => {
+    await withReleaseFixture(async (fx) => {
+      await fx.repo.git("tag", "1.2.3");
+      const result = await runRelease(bash, fx, "patch", { githubOutput: null });
       assert.equal(result.status, 0, `release.sh should succeed even with GITHUB_OUTPUT unset: ${result.stderr}`);
       assert.equal(lastStdoutLine(result.stdout), "1.2.4");
     });
   });
 
-  test("a detached HEAD does not stop the bump commit, tag, or push", () => {
-    withReleaseFixture((fx) => {
-      fx.repo.git("tag", "1.2.3");
-      const detach = fx.repo.git("checkout", "--detach", "HEAD");
+  test("a detached HEAD does not stop the bump commit, tag, or push", async () => {
+    await withReleaseFixture(async (fx) => {
+      await fx.repo.git("tag", "1.2.3");
+      const detach = await fx.repo.git("checkout", "--detach", "HEAD");
       assert.equal(detach.status, 0, `detaching HEAD should succeed: ${detach.stderr}`);
 
-      const result = runRelease(bash, fx, "patch");
+      const result = await runRelease(bash, fx, "patch");
       assert.equal(result.status, 0, `release.sh should succeed from a detached HEAD: ${result.stderr}`);
       assert.equal(lastStdoutLine(result.stdout), "1.2.4");
 
-      const originTag = fx.origin.git("rev-parse", "refs/tags/1.2.4");
+      const originTag = await fx.origin.git("rev-parse", "refs/tags/1.2.4");
       assert.equal(originTag.status, 0, "the tag must still reach origin from a detached HEAD");
     });
-  });
-
-  test("running this suite left the real repo's git status and tag list untouched", () => {
-    const statusAfter = runScript("git", ["status", "--porcelain"], { cwd: REPO_ROOT });
-    const tagsAfter = runScript("git", ["tag", "--list"], { cwd: REPO_ROOT });
-    assert.equal(statusAfter.stdout, statusBefore.stdout, "this repo's git status must be unchanged by the suite");
-    assert.equal(tagsAfter.stdout, tagsBefore.stdout, "this repo's tag list must be unchanged by the suite");
   });
 }

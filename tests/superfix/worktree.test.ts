@@ -16,7 +16,7 @@
  *   node --test tests/superfix/worktree.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -28,27 +28,27 @@ import { slash } from "../harness/paths.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../superfix/skills/code-auditor/scripts/worktree.sh");
 
-function assertPosix(fn: (shell: Shell) => void) {
-  const skips = forEachShell("posix", fn);
+async function assertPosix(fn: (shell: Shell) => void | Promise<void>) {
+  const skips = await forEachShell("posix", fn);
   for (const skip of skips) {
     assert.equal(skip.kind, "posix");
     assert.ok(skip.reason.length > 0, "a skip must record a reason");
   }
 }
 
-function run(shell: Shell, repo: GitRepo, args: string[]): RunResult {
-  return runScript(SUT, args, { shell, cwd: repo.dir, env: repo.env });
+async function run(shell: Shell, repo: GitRepo, args: string[]): Promise<RunResult> {
+  return await runScript(SUT, args, { shell, cwd: repo.dir, env: repo.env });
 }
 
 /** A repo with one commit, so HEAD is born and `worktree add ... HEAD`
  *  has something to detach onto. Returns the slash-form worktree path the
  *  script is expected to echo back verbatim. */
-function withSeededRepo<T>(fn: (repo: GitRepo, wt: string) => T): T {
-  return withGitRepo((repo) => {
+async function withSeededRepo<T>(fn: (repo: GitRepo, wt: string) => T): Promise<T> {
+  return await withGitRepo(async (repo) => {
     fs.writeFileSync(path.join(repo.dir, "src.txt"), "one\n");
-    const add = repo.git("add", "-A");
+    const add = await repo.git("add", "-A");
     assert.equal(add.status, 0, `git add failed: ${add.stderr}`);
-    const commit = repo.git("commit", "-m", "seed");
+    const commit = await repo.git("commit", "-m", "seed");
     assert.equal(commit.status, 0, `git commit failed: ${commit.stderr}`);
     const wt = slash(path.join(repo.dir, "wt-verify"));
     return fn(repo, wt);
@@ -67,45 +67,45 @@ function assertFailed(result: RunResult) {
   assert.match(lines[0], /^WORKTREE_FAILED /);
 }
 
-test("add creates a verified worktree carrying the repo content", () => {
-  assertPosix((shell) => {
-    withSeededRepo((repo, wt) => {
-      const result = run(shell, repo, ["add", repo.dir, wt]);
+test("add creates a verified worktree carrying the repo content", async () => {
+  await assertPosix(async (shell) => {
+    await withSeededRepo(async (repo, wt) => {
+      const result = await run(shell, repo, ["add", repo.dir, wt]);
       assertOneLine(result, `WORKTREE_READY ${wt}`, 0);
       assert.equal(fs.readFileSync(path.join(wt, "src.txt"), "utf8"), "one\n");
     });
   });
 });
 
-test("add is idempotent over an already-registered worktree", () => {
-  assertPosix((shell) => {
-    withSeededRepo((repo, wt) => {
-      assertOneLine(run(shell, repo, ["add", repo.dir, wt]), `WORKTREE_READY ${wt}`, 0);
-      const again = run(shell, repo, ["add", repo.dir, wt]);
+test("add is idempotent over an already-registered worktree", async () => {
+  await assertPosix(async (shell) => {
+    await withSeededRepo(async (repo, wt) => {
+      assertOneLine(await run(shell, repo, ["add", repo.dir, wt]), `WORKTREE_READY ${wt}`, 0);
+      const again = await run(shell, repo, ["add", repo.dir, wt]);
       assertOneLine(again, `WORKTREE_READY ${wt}`, 0);
       assert.equal(fs.readFileSync(path.join(wt, "src.txt"), "utf8"), "one\n");
     });
   });
 });
 
-test("add recovers from a stale registration whose directory was deleted", () => {
-  assertPosix((shell) => {
-    withSeededRepo((repo, wt) => {
-      assertOneLine(run(shell, repo, ["add", repo.dir, wt]), `WORKTREE_READY ${wt}`, 0);
+test("add recovers from a stale registration whose directory was deleted", async () => {
+  await assertPosix(async (shell) => {
+    await withSeededRepo(async (repo, wt) => {
+      assertOneLine(await run(shell, repo, ["add", repo.dir, wt]), `WORKTREE_READY ${wt}`, 0);
       fs.rmSync(wt, { recursive: true, force: true });
-      const result = run(shell, repo, ["add", repo.dir, wt]);
+      const result = await run(shell, repo, ["add", repo.dir, wt]);
       assertOneLine(result, `WORKTREE_READY ${wt}`, 0);
       assert.equal(fs.readFileSync(path.join(wt, "src.txt"), "utf8"), "one\n");
     });
   });
 });
 
-test("add recovers from an orphaned directory git never registered", () => {
-  assertPosix((shell) => {
-    withSeededRepo((repo, wt) => {
+test("add recovers from an orphaned directory git never registered", async () => {
+  await assertPosix(async (shell) => {
+    await withSeededRepo(async (repo, wt) => {
       fs.mkdirSync(wt, { recursive: true });
       fs.writeFileSync(path.join(wt, "leftover.txt"), "junk\n");
-      const result = run(shell, repo, ["add", repo.dir, wt]);
+      const result = await run(shell, repo, ["add", repo.dir, wt]);
       assertOneLine(result, `WORKTREE_READY ${wt}`, 0);
       assert.equal(fs.readFileSync(path.join(wt, "src.txt"), "utf8"), "one\n");
       assert.equal(fs.existsSync(path.join(wt, "leftover.txt")), false);
@@ -113,67 +113,67 @@ test("add recovers from an orphaned directory git never registered", () => {
   });
 });
 
-test("remove clears a worktree holding untracked replay artifacts", () => {
-  assertPosix((shell) => {
-    withSeededRepo((repo, wt) => {
-      assertOneLine(run(shell, repo, ["add", repo.dir, wt]), `WORKTREE_READY ${wt}`, 0);
+test("remove clears a worktree holding untracked replay artifacts", async () => {
+  await assertPosix(async (shell) => {
+    await withSeededRepo(async (repo, wt) => {
+      assertOneLine(await run(shell, repo, ["add", repo.dir, wt]), `WORKTREE_READY ${wt}`, 0);
       fs.writeFileSync(path.join(wt, "poc.py"), "print(1)\n");
       fs.writeFileSync(path.join(wt, "src.txt"), "modified\n");
-      const result = run(shell, repo, ["remove", repo.dir, wt]);
+      const result = await run(shell, repo, ["remove", repo.dir, wt]);
       assertOneLine(result, `WORKTREE_REMOVED ${wt}`, 0);
       assert.equal(fs.existsSync(wt), false);
     });
   });
 });
 
-test("remove of an absent path succeeds", () => {
-  assertPosix((shell) => {
-    withSeededRepo((repo, wt) => {
-      const result = run(shell, repo, ["remove", repo.dir, wt]);
+test("remove of an absent path succeeds", async () => {
+  await assertPosix(async (shell) => {
+    await withSeededRepo(async (repo, wt) => {
+      const result = await run(shell, repo, ["remove", repo.dir, wt]);
       assertOneLine(result, `WORKTREE_REMOVED ${wt}`, 0);
     });
   });
 });
 
-test("remove leaves the registration prunable so the path can be re-added", () => {
-  assertPosix((shell) => {
-    withSeededRepo((repo, wt) => {
-      assertOneLine(run(shell, repo, ["add", repo.dir, wt]), `WORKTREE_READY ${wt}`, 0);
-      assertOneLine(run(shell, repo, ["remove", repo.dir, wt]), `WORKTREE_REMOVED ${wt}`, 0);
-      const list = repo.git("worktree", "list", "--porcelain");
+test("remove leaves the registration prunable so the path can be re-added", async () => {
+  await assertPosix(async (shell) => {
+    await withSeededRepo(async (repo, wt) => {
+      assertOneLine(await run(shell, repo, ["add", repo.dir, wt]), `WORKTREE_READY ${wt}`, 0);
+      assertOneLine(await run(shell, repo, ["remove", repo.dir, wt]), `WORKTREE_REMOVED ${wt}`, 0);
+      const list = await repo.git("worktree", "list", "--porcelain");
       assert.equal(list.status, 0, `git worktree list failed: ${list.stderr}`);
       assert.equal(list.stdout.includes(path.basename(wt)), false, `stale registration left behind:\n${list.stdout}`);
-      assertOneLine(run(shell, repo, ["add", repo.dir, wt]), `WORKTREE_READY ${wt}`, 0);
+      assertOneLine(await run(shell, repo, ["add", repo.dir, wt]), `WORKTREE_READY ${wt}`, 0);
     });
   });
 });
 
-test("a relative worktree path is rejected", () => {
-  assertPosix((shell) => {
-    withSeededRepo((repo) => {
-      assertFailed(run(shell, repo, ["add", repo.dir, "wt-verify"]));
-      assertFailed(run(shell, repo, ["add", repo.dir, "./wt-verify"]));
+test("a relative worktree path is rejected", async () => {
+  await assertPosix(async (shell) => {
+    await withSeededRepo(async (repo) => {
+      assertFailed(await run(shell, repo, ["add", repo.dir, "wt-verify"]));
+      assertFailed(await run(shell, repo, ["add", repo.dir, "./wt-verify"]));
     });
   });
 });
 
-test("a filesystem root as the worktree path is rejected", () => {
-  assertPosix((shell) => {
-    withSeededRepo((repo) => {
-      assertFailed(run(shell, repo, ["remove", repo.dir, "/"]));
-      assertFailed(run(shell, repo, ["remove", repo.dir, "C:/"]));
+test("a filesystem root as the worktree path is rejected", async () => {
+  await assertPosix(async (shell) => {
+    await withSeededRepo(async (repo) => {
+      assertFailed(await run(shell, repo, ["remove", repo.dir, "/"]));
+      assertFailed(await run(shell, repo, ["remove", repo.dir, "C:/"]));
     });
   });
 });
 
-test("the target root itself as the worktree path is rejected", () => {
-  assertPosix((shell) => {
-    withSeededRepo((repo) => {
+test("the target root itself as the worktree path is rejected", async () => {
+  await assertPosix(async (shell) => {
+    await withSeededRepo(async (repo) => {
       // slash() only rewrites separators, so this is the target root spelled a
       // second way - the guard must recognise it as the root whichever
       // separator the caller used, or `remove` rm -rf's the repo it was
       // anchored to and still reports success.
-      const result = run(shell, repo, ["remove", repo.dir, slash(repo.dir)]);
+      const result = await run(shell, repo, ["remove", repo.dir, slash(repo.dir)]);
       assertFailed(result);
       assert.match(result.stdout, /must not be the target root/);
       assert.ok(fs.existsSync(repo.dir), "the target root must survive a rejected remove");
@@ -181,11 +181,11 @@ test("the target root itself as the worktree path is rejected", () => {
   });
 });
 
-test("a target root that is not a git repository is rejected", () => {
-  assertPosix((shell) => {
-    withSeededRepo((repo, wt) => {
-      withTempDir("p2p2-nonrepo-", (dir) => {
-        const result = run(shell, repo, ["add", dir, wt]);
+test("a target root that is not a git repository is rejected", async () => {
+  await assertPosix(async (shell) => {
+    await withSeededRepo(async (repo, wt) => {
+      await withTempDir("p2p2-nonrepo-", async (dir) => {
+        const result = await run(shell, repo, ["add", dir, wt]);
         assertFailed(result);
         assert.match(result.stdout, /not a git repository/);
       });
@@ -193,25 +193,25 @@ test("a target root that is not a git repository is rejected", () => {
   });
 });
 
-test("missing arguments and an unknown command are rejected", () => {
-  assertPosix((shell) => {
-    withSeededRepo((repo, wt) => {
-      assertFailed(run(shell, repo, []));
-      assertFailed(run(shell, repo, ["add"]));
-      assertFailed(run(shell, repo, ["add", repo.dir]));
-      const unknown = run(shell, repo, ["reset", repo.dir, wt]);
+test("missing arguments and an unknown command are rejected", async () => {
+  await assertPosix(async (shell) => {
+    await withSeededRepo(async (repo, wt) => {
+      assertFailed(await run(shell, repo, []));
+      assertFailed(await run(shell, repo, ["add"]));
+      assertFailed(await run(shell, repo, ["add", repo.dir]));
+      const unknown = await run(shell, repo, ["reset", repo.dir, wt]);
       assertFailed(unknown);
       assert.match(unknown.stdout, /unknown command/);
     });
   });
 });
 
-test("a failing add relays git stderr and still prints one stdout line", () => {
-  assertPosix((shell) => {
+test("a failing add relays git stderr and still prints one stdout line", async () => {
+  await assertPosix(async (shell) => {
     // Unborn HEAD: nothing to detach onto, and no recovery can create it.
-    withGitRepo((repo) => {
+    await withGitRepo(async (repo) => {
       const wt = slash(path.join(repo.dir, "wt-verify"));
-      const result = run(shell, repo, ["add", repo.dir, wt]);
+      const result = await run(shell, repo, ["add", repo.dir, wt]);
       assertFailed(result);
       assert.ok(result.stderr.trim().length > 0, "git's own diagnosis must reach stderr");
       assert.equal(fs.existsSync(wt), false);

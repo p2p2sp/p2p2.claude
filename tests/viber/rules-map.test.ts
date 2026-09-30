@@ -21,7 +21,7 @@
  *   node --test tests/viber/rules-map.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -47,10 +47,10 @@ function write(repo: GitRepo, relative: string, body: string): void {
 }
 
 /** Writes every entry, then commits the lot - the tree a map is taken of. */
-function seed(repo: GitRepo, files: Record<string, string>): void {
+async function seed(repo: GitRepo, files: Record<string, string>): Promise<void> {
   for (const [relative, body] of Object.entries(files)) write(repo, relative, body);
-  repo.git("add", "-A");
-  repo.git("commit", "-m", "seed");
+  await repo.git("add", "-A");
+  await repo.git("commit", "-m", "seed");
 }
 
 /** A rule file with a block-sequence `paths:` key, the shape this repo's own
@@ -71,11 +71,11 @@ function section(stdout: string, key: string): string[] {
     .map((line) => line.slice(key.length + 2));
 }
 
-test("map mode reports an empty layer when the rules directory is absent", () => {
-  withGitRepo((repo) => {
-    seed(repo, { "README.md": "# repo\n" });
+test("map mode reports an empty layer when the rules directory is absent", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo, { "README.md": "# repo\n" });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0);
     assert.equal(lines(result.stdout)[0], "# viber rules map");
@@ -85,10 +85,10 @@ test("map mode reports an empty layer when the rules directory is absent", () =>
   });
 });
 
-test("map mode scores a rule and counts only the tracked files its globs match", () => {
-  withGitRepo((repo) => {
+test("map mode scores a rule and counts only the tracked files its globs match", async () => {
+  await withGitRepo(async (repo) => {
     const body = rule(["src/*.ts"]);
-    seed(repo, {
+    await seed(repo, {
       "src/a.ts": "a\n",
       "src/b.ts": "b\n",
       "src/deep/c.ts": "c\n",
@@ -96,7 +96,7 @@ test("map mode scores a rule and counts only the tracked files its globs match",
       ".claude/rules/code.md": body,
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0);
     assert.deepEqual(section(result.stdout, "state"), ["complete"]);
@@ -107,12 +107,12 @@ test("map mode scores a rule and counts only the tracked files its globs match",
   });
 });
 
-test("map mode reports a frozen rule without scoring it and leaves the layer empty", () => {
-  withGitRepo((repo) => {
+test("map mode reports a frozen rule without scoring it and leaves the layer empty", async () => {
+  await withGitRepo(async (repo) => {
     const body = rule(["nothing/*.ts"], "# frozen\n");
-    seed(repo, { "README.md": "# repo\n", ".claude/rules/_frozen.md": body });
+    await seed(repo, { "README.md": "# repo\n", ".claude/rules/_frozen.md": body });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0);
     assert.deepEqual(section(result.stdout, "state"), ["none"]);
@@ -125,15 +125,15 @@ test("map mode reports a frozen rule without scoring it and leaves the layer emp
   });
 });
 
-test("map mode names a rule whose globs match nothing as dead, in alphabetical order", () => {
-  withGitRepo((repo) => {
-    seed(repo, {
+test("map mode names a rule whose globs match nothing as dead, in alphabetical order", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo, {
       "src/a.ts": "a\n",
       ".claude/rules/live.md": rule(["src/*.ts"]),
       ".claude/rules/gone.md": rule(["legacy/*.ts"]),
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0);
     assert.deepEqual(section(result.stdout, "dead"), [".claude/rules/gone.md"]);
@@ -144,16 +144,16 @@ test("map mode names a rule whose globs match nothing as dead, in alphabetical o
   });
 });
 
-test("map mode marks the layer partial for a rule declaring no paths key and never calls it dead", () => {
-  withGitRepo((repo) => {
+test("map mode marks the layer partial for a rule declaring no paths key and never calls it dead", async () => {
+  await withGitRepo(async (repo) => {
     const body = "# loose\n\nA rule with no frontmatter at all.\n";
-    seed(repo, {
+    await seed(repo, {
       "src/a.ts": "a\n",
       ".claude/rules/live.md": rule(["src/*.ts"]),
       ".claude/rules/loose.md": body,
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0);
     assert.deepEqual(section(result.stdout, "state"), ["partial"]);
@@ -165,12 +165,12 @@ test("map mode marks the layer partial for a rule declaring no paths key and nev
   });
 });
 
-test("map mode treats paths: global as an ordinary glob, so it matches nothing and is dead (Claude Code has no such keyword)", () => {
-  withGitRepo((repo) => {
+test("map mode treats paths: global as an ordinary glob, so it matches nothing and is dead (Claude Code has no such keyword)", async () => {
+  await withGitRepo(async (repo) => {
     const body = ["---", "paths: global", "---", "", "# everywhere", ""].join("\n");
-    seed(repo, { "src/a.ts": "a\n", ".claude/rules/all.md": body });
+    await seed(repo, { "src/a.ts": "a\n", ".claude/rules/all.md": body });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0);
     assert.deepEqual(section(result.stdout, "dead"), [".claude/rules/all.md"]);
@@ -180,7 +180,7 @@ test("map mode treats paths: global as an ordinary glob, so it matches nothing a
   });
 });
 
-test("map mode expands a {a,b} group in every paths spelling, a comma inside it never splitting the list", () => {
+test("map mode expands a {a,b} group in every paths spelling, a comma inside it never splitting the list", async () => {
   const spellings: Record<string, string> = {
     block: rule(["src/**/*.{ts,tsx}"]),
     flow: ["---", 'paths: ["src/**/*.{ts,tsx}", "lib/*.js"]', "---", "", "# rule", ""].join("\n"),
@@ -192,15 +192,15 @@ test("map mode expands a {a,b} group in every paths spelling, a comma inside it 
     scalar: "src/**/*.{ts,tsx},lib/*.js",
   };
   for (const [name, body] of Object.entries(spellings)) {
-    withGitRepo((repo) => {
-      seed(repo, {
+    await withGitRepo(async (repo) => {
+      await seed(repo, {
         "src/a.ts": "a\n",
         "src/deep/b.tsx": "b\n",
         "src/c.js": "c\n",
         ".claude/rules/code.md": body,
       });
 
-      const result = run(repo);
+      const result = await run(repo);
 
       assert.equal(result.status, 0, name);
       assert.deepEqual(section(result.stdout, "dead"), [], name);
@@ -213,12 +213,12 @@ test("map mode expands a {a,b} group in every paths spelling, a comma inside it 
   }
 });
 
-test("map mode keeps an unclosed brace literal rather than failing the whole map", () => {
-  withGitRepo((repo) => {
+test("map mode keeps an unclosed brace literal rather than failing the whole map", async () => {
+  await withGitRepo(async (repo) => {
     const body = rule(["src/{a.ts"]);
-    seed(repo, { "src/{a.ts": "a\n", "src/a.ts": "a\n", ".claude/rules/odd.md": body });
+    await seed(repo, { "src/{a.ts": "a\n", "src/a.ts": "a\n", ".claude/rules/odd.md": body });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0);
     assert.deepEqual(section(result.stdout, "rule"), [
@@ -227,29 +227,29 @@ test("map mode keeps an unclosed brace literal rather than failing the whole map
   });
 });
 
-test("a modified rule whose path holds a space is dirty and a reset refuses it (porcelain quotes such a path)", () => {
-  withGitRepo((repo) => {
+test("a modified rule whose path holds a space is dirty and a reset refuses it (porcelain quotes such a path)", async () => {
+  await withGitRepo(async (repo) => {
     const target = ".claude/rules/my rule.md";
-    seed(repo, { "src/a.ts": "a\n", [target]: rule(["src/*.ts"]) });
+    await seed(repo, { "src/a.ts": "a\n", [target]: rule(["src/*.ts"]) });
     write(repo, target, rule(["src/*.ts"], "# edited\n"));
 
-    const map = run(repo);
+    const map = await run(repo);
     assert.equal(map.status, 0);
     assert.deepEqual(section(map.stdout, "dirty"), [`${target} modified`]);
 
-    const reset = run(repo, ["--reset", target]);
+    const reset = await run(repo, ["--reset", target]);
     assert.equal(reset.status, 3);
     assert.deepEqual(section(reset.stdout, "refused"), [`${target} modified`]);
     assert.ok(fs.existsSync(path.join(repo.dir, target)));
   });
 });
 
-test("map mode marks a rule past its own 4000 character budget", () => {
-  withGitRepo((repo) => {
+test("map mode marks a rule past its own 4000 character budget", async () => {
+  await withGitRepo(async (repo) => {
     const body = rule(["src/*.ts"], "x".repeat(4100));
-    seed(repo, { "src/a.ts": "a\n", ".claude/rules/big.md": body });
+    await seed(repo, { "src/a.ts": "a\n", ".claude/rules/big.md": body });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0);
     assert.deepEqual(section(result.stdout, "rule"), [
@@ -258,18 +258,18 @@ test("map mode marks a rule past its own 4000 character budget", () => {
   });
 });
 
-test("map mode totals every rule file, frozen included, against the 40000 character budget", () => {
-  withGitRepo((repo) => {
+test("map mode totals every rule file, frozen included, against the 40000 character budget", async () => {
+  await withGitRepo(async (repo) => {
     const frozen = rule(["src/*.ts"], "y".repeat(41000));
     const small = rule(["src/*.ts"], "# small\n");
-    seed(repo, {
+    await seed(repo, {
       "src/a.ts": "a\n",
       ".claude/rules/_frozen.md": frozen,
       ".claude/rules/small.md": small,
     });
     const sum = Buffer.byteLength(frozen) + Buffer.byteLength(small);
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0);
     assert.ok(sum > 40000, `the fixture has to cross the budget, got ${sum}`);
@@ -280,13 +280,13 @@ test("map mode totals every rule file, frozen included, against the 40000 charac
   });
 });
 
-test("map mode names every rule holding uncommitted work", () => {
-  withGitRepo((repo) => {
-    seed(repo, { "src/a.ts": "a\n", ".claude/rules/live.md": rule(["src/*.ts"]) });
+test("map mode names every rule holding uncommitted work", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo, { "src/a.ts": "a\n", ".claude/rules/live.md": rule(["src/*.ts"]) });
     write(repo, ".claude/rules/live.md", rule(["src/*.ts"], "# edited\n"));
     write(repo, ".claude/rules/fresh.md", rule(["src/*.ts"]));
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0);
     assert.deepEqual(section(result.stdout, "dirty"), [
@@ -296,12 +296,12 @@ test("map mode names every rule holding uncommitted work", () => {
   });
 });
 
-test("map mode scores the rules of every area subdirectory beside the shared root ones (a nested rule is loaded, so it costs the budget)", () => {
-  withGitRepo((repo) => {
+test("map mode scores the rules of every area subdirectory beside the shared root ones (a nested rule is loaded, so it costs the budget)", async () => {
+  await withGitRepo(async (repo) => {
     const shared = rule(["**/*.ts"]);
     const api = rule(["server/*.ts"]);
     const frozen = rule(["web/*.ts"]);
-    seed(repo, {
+    await seed(repo, {
       "server/a.ts": "a\n",
       "web/b.ts": "b\n",
       ".claude/rules/shared.md": shared,
@@ -310,7 +310,7 @@ test("map mode scores the rules of every area subdirectory beside the shared roo
       ".claude/rules/frontend/gone.md": rule(["legacy/*.ts"]),
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0);
     assert.deepEqual(section(result.stdout, "rule").map((line) => line.split(" ")[0]), [
@@ -329,13 +329,13 @@ test("map mode scores the rules of every area subdirectory beside the shared roo
   });
 });
 
-test("map mode reports outside a git repository, every rule untracked and none dead", () => {
-  withTempDir("p2p2-rules-", (dir) => {
+test("map mode reports outside a git repository, every rule untracked and none dead", async () => {
+  await withTempDir("p2p2-rules-", async (dir) => {
     const body = rule(["src/*.ts"]);
     fs.mkdirSync(path.join(dir, ".claude", "rules"), { recursive: true });
     fs.writeFileSync(path.join(dir, ".claude", "rules", "live.md"), body);
 
-    const result = runScript(SUT, [], { cwd: dir, shell: "bash" });
+    const result = await runScript(SUT, [], { cwd: dir, shell: "bash" });
 
     assert.equal(result.status, 0);
     assert.deepEqual(section(result.stdout, "state"), ["complete"]);
@@ -344,15 +344,15 @@ test("map mode reports outside a git repository, every rule untracked and none d
   });
 });
 
-test("reset deletes every clean rule it is given", () => {
-  withGitRepo((repo) => {
-    seed(repo, {
+test("reset deletes every clean rule it is given", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo, {
       "src/a.ts": "a\n",
       ".claude/rules/one.md": rule(["src/*.ts"]),
       ".claude/rules/two.md": rule(["src/*.ts"]),
     });
 
-    const result = run(repo, ["--reset", ".claude/rules/one.md", ".claude/rules/two.md"]);
+    const result = await run(repo, ["--reset", ".claude/rules/one.md", ".claude/rules/two.md"]);
 
     assert.equal(result.status, 0);
     assert.deepEqual(lines(result.stdout), [
@@ -365,16 +365,16 @@ test("reset deletes every clean rule it is given", () => {
   });
 });
 
-test("reset deletes a rule inside an area subdirectory and removes the area once it is empty", () => {
-  withGitRepo((repo) => {
-    seed(repo, {
+test("reset deletes a rule inside an area subdirectory and removes the area once it is empty", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo, {
       "src/a.ts": "a\n",
       ".claude/rules/backend/api.md": rule(["src/*.ts"]),
       ".claude/rules/frontend/one.md": rule(["src/*.ts"]),
       ".claude/rules/frontend/two.md": rule(["src/*.ts"]),
     });
 
-    const result = run(repo, [
+    const result = await run(repo, [
       "--reset",
       ".claude/rules/backend/api.md",
       ".claude/rules/frontend/one.md",
@@ -391,14 +391,14 @@ test("reset deletes a rule inside an area subdirectory and removes the area once
   });
 });
 
-test("reset refuses a target escaping the rules directory through a parent segment", () => {
-  withGitRepo((repo) => {
-    seed(repo, {
+test("reset refuses a target escaping the rules directory through a parent segment", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo, {
       "docs/loose.md": "# not a rule\n",
       ".claude/rules/one.md": rule(["docs/*.md"]),
     });
 
-    const result = run(repo, ["--reset", ".claude/rules/one.md", ".claude/rules/../../docs/loose.md"]);
+    const result = await run(repo, ["--reset", ".claude/rules/one.md", ".claude/rules/../../docs/loose.md"]);
 
     assert.equal(result.status, 3);
     assert.deepEqual(lines(result.stdout), ["refused: .claude/rules/../../docs/loose.md not-a-rule"]);
@@ -406,15 +406,15 @@ test("reset refuses a target escaping the rules directory through a parent segme
   });
 });
 
-test("reset refuses the whole call when one target is frozen", () => {
-  withGitRepo((repo) => {
-    seed(repo, {
+test("reset refuses the whole call when one target is frozen", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo, {
       "src/a.ts": "a\n",
       ".claude/rules/one.md": rule(["src/*.ts"]),
       ".claude/rules/_frozen.md": rule(["src/*.ts"]),
     });
 
-    const result = run(repo, ["--reset", ".claude/rules/one.md", ".claude/rules/_frozen.md"]);
+    const result = await run(repo, ["--reset", ".claude/rules/one.md", ".claude/rules/_frozen.md"]);
 
     assert.equal(result.status, 3);
     assert.deepEqual(lines(result.stdout), ["refused: .claude/rules/_frozen.md frozen"]);
@@ -423,9 +423,9 @@ test("reset refuses the whole call when one target is frozen", () => {
   });
 });
 
-test("reset names every unfit target and deletes nothing", () => {
-  withGitRepo((repo) => {
-    seed(repo, {
+test("reset names every unfit target and deletes nothing", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo, {
       "src/a.ts": "a\n",
       "docs/loose.md": "# not a rule\n",
       ".claude/rules/one.md": rule(["src/*.ts"]),
@@ -434,7 +434,7 @@ test("reset names every unfit target and deletes nothing", () => {
     write(repo, ".claude/rules/edited.md", rule(["src/*.ts"], "# edited\n"));
     write(repo, ".claude/rules/fresh.md", rule(["src/*.ts"]));
 
-    const result = run(repo, [
+    const result = await run(repo, [
       "--reset",
       ".claude/rules/one.md",
       ".claude/rules/edited.md",
@@ -455,22 +455,22 @@ test("reset names every unfit target and deletes nothing", () => {
   });
 });
 
-test("reset with no target at all is refused as unusable argv", () => {
-  withGitRepo((repo) => {
-    seed(repo, { "src/a.ts": "a\n", ".claude/rules/one.md": rule(["src/*.ts"]) });
+test("reset with no target at all is refused as unusable argv", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo, { "src/a.ts": "a\n", ".claude/rules/one.md": rule(["src/*.ts"]) });
 
-    const result = run(repo, ["--reset"]);
+    const result = await run(repo, ["--reset"]);
 
     assert.equal(result.status, 2);
     assert.deepEqual(lines(result.stdout), ["refused: - no-target"]);
   });
 });
 
-test("an argument that is not a mode is refused as unusable argv", () => {
-  withGitRepo((repo) => {
-    seed(repo, { "src/a.ts": "a\n", ".claude/rules/one.md": rule(["src/*.ts"]) });
+test("an argument that is not a mode is refused as unusable argv", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo, { "src/a.ts": "a\n", ".claude/rules/one.md": rule(["src/*.ts"]) });
 
-    const result = run(repo, ["--audit"]);
+    const result = await run(repo, ["--audit"]);
 
     assert.equal(result.status, 2);
     assert.deepEqual(lines(result.stdout), ["refused: --audit unknown-mode"]);
@@ -481,10 +481,10 @@ test("an argument that is not a mode is refused as unusable argv", () => {
  *  index. Not committed yet - which is what it is in the build that creates
  *  it - git derives the bit on the way in, from the `#!` line on Windows
  *  (`core.filemode` is false there) and from the mode bits everywhere else. */
-function indexMode(file: string): string {
-  const listed = runScript("git", ["ls-files", "-s", "--", file], {
+async function indexMode(file: string): Promise<string> {
+  const listed = (await runScript("git", ["ls-files", "-s", "--", file], {
     cwd: path.dirname(file),
-  }).stdout.trim();
+  })).stdout.trim();
   if (listed) return listed.split(/\s+/)[0];
   const executable =
     process.platform === "win32"
@@ -499,13 +499,13 @@ function missingFrom(header: string, needles: string[]): string[] {
   return needles.filter((needle) => !header.includes(needle));
 }
 
-test("the script ships directly invocable, LF-only, its header printing its own stdout", () => {
+test("the script ships directly invocable, LF-only, its header printing its own stdout", async () => {
   const source = fs.readFileSync(SUT, "utf-8");
   const header = source.slice(0, source.indexOf("\nset -u"));
 
   assert.equal(source.split("\n", 1)[0], "#!/usr/bin/env bash");
   assert.equal(source.includes("\r\n"), false);
-  assert.equal(indexMode(SUT), "100755");
+  assert.equal(await indexMode(SUT), "100755");
   assert.deepEqual(
     missingFrom(header, ["Contract:", "argv", "cwd", "env", "stdout", "exit"]),
     [],

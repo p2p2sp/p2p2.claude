@@ -19,7 +19,7 @@
  *   node --test tests/superfix/rank_edges.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -36,26 +36,26 @@ function writeJsonl(file: string, lines: unknown[]): void {
   fs.writeFileSync(file, lines.map((l) => JSON.stringify(l)).join("\n") + (lines.length ? "\n" : ""));
 }
 
-function runRankEdges(dir: string, args: string[]): RunResult {
-  return runScript(SUT, args, { cwd: dir });
+async function runRankEdges(dir: string, args: string[]): Promise<RunResult> {
+  return await runScript(SUT, args, { cwd: dir });
 }
 
 /** Runs rank_edges.ts over `edges`/`verdicts` with default out paths, asserts
  *  a clean exit, and returns the parsed edges.json plus the raw edges.md
  *  text. */
-function rankEdges(
+async function rankEdges(
   dir: string,
   edges: unknown[],
   verdicts: unknown[],
   extraArgs: string[] = [],
-): { result: RunResult; json: Rec; md: string } {
+): Promise<{ result: RunResult; json: Rec; md: string }> {
   const edgesPath = path.join(dir, "edges.jsonl");
   const verdictsPath = path.join(dir, "verdicts.jsonl");
   const jsonPath = path.join(dir, "edges.json");
   const mdPath = path.join(dir, "edges.md");
   writeJsonl(edgesPath, edges);
   writeJsonl(verdictsPath, verdicts);
-  const result = runRankEdges(dir, [
+  const result = await runRankEdges(dir, [
     "--edges",
     edgesPath,
     "--verdicts",
@@ -74,8 +74,8 @@ function rankEdges(
 
 // --- MATCH dropped, ranking by verdict class then pair-Impact ----------------
 
-test("MATCH pairs are dropped from dispatch/overflow but kept in `match`; NO_CONTRACT likewise in `no_contract`", () => {
-  withTempDir("p2p2-rank-edges-verdicts-", (dir) => {
+test("MATCH pairs are dropped from dispatch/overflow but kept in `match`; NO_CONTRACT likewise in `no_contract`", async () => {
+  await withTempDir("p2p2-rank-edges-verdicts-", async (dir) => {
     const edges = [
       { a: "a.ts", b: "b.ts", via: "shared.md", vias: ["shared.md"], fanout: 2, shared: 1 },
       { a: "c.ts", b: "d.ts", via: "shared.md", vias: ["shared.md"], fanout: 2, shared: 1 },
@@ -86,7 +86,7 @@ test("MATCH pairs are dropped from dispatch/overflow but kept in `match`; NO_CON
       { a: "c.ts", b: "d.ts", verdict: "MISMATCH", reason: "contract drift" },
       { a: "e.ts", b: "f.ts", verdict: "NO_CONTRACT", reason: "coincidental token" },
     ];
-    const { json, md } = rankEdges(dir, edges, verdicts);
+    const { json, md } = await rankEdges(dir, edges, verdicts);
 
     assert.equal(json.counts.pairs, 3);
     assert.equal(json.counts.match, 1);
@@ -111,8 +111,8 @@ test("MATCH pairs are dropped from dispatch/overflow but kept in `match`; NO_CON
   });
 });
 
-test("MISMATCH ranks before UNCLEAR, then higher pair-Impact first (via --signals churn/dependents)", () => {
-  withTempDir("p2p2-rank-edges-rank-", (dir) => {
+test("MISMATCH ranks before UNCLEAR, then higher pair-Impact first (via --signals churn/dependents)", async () => {
+  await withTempDir("p2p2-rank-edges-rank-", async (dir) => {
     const edges = [
       { a: "unclear-a.ts", b: "unclear-b.ts", via: "x", vias: ["x"], fanout: 2, shared: 1 },
       { a: "mismatch-a.ts", b: "mismatch-b.ts", via: "y", vias: ["y"], fanout: 2, shared: 1 },
@@ -126,7 +126,7 @@ test("MISMATCH ranks before UNCLEAR, then higher pair-Impact first (via --signal
       { path: "unclear-a.ts", churn: 100, dependents: 100 },
       { path: "unclear-b.ts", churn: 100, dependents: 100 },
     ]);
-    const { json } = rankEdges(dir, edges, verdicts, ["--signals", signalsPath]);
+    const { json } = await rankEdges(dir, edges, verdicts, ["--signals", signalsPath]);
     assert.deepEqual(
       json.dispatch.map((r: Rec) => r.verdict),
       ["MISMATCH", "UNCLEAR"],
@@ -139,11 +139,11 @@ test("MISMATCH ranks before UNCLEAR, then higher pair-Impact first (via --signal
   });
 });
 
-test("an unrecognized verdict string warns on stderr and is treated as UNCLEAR", () => {
-  withTempDir("p2p2-rank-edges-bogus-verdict-", (dir) => {
+test("an unrecognized verdict string warns on stderr and is treated as UNCLEAR", async () => {
+  await withTempDir("p2p2-rank-edges-bogus-verdict-", async (dir) => {
     const edges = [{ a: "a.ts", b: "b.ts", via: "x", vias: ["x"], fanout: 1, shared: 1 }];
     const verdicts = [{ a: "a.ts", b: "b.ts", verdict: "BOGUS", reason: "weird" }];
-    const { json, result } = rankEdges(dir, edges, verdicts);
+    const { json, result } = await rankEdges(dir, edges, verdicts);
     assert.match(result.stderr, /warn: unrecognized verdict "BOGUS" for pair a\.ts\/b\.ts - treating as UNCLEAR/);
     assert.equal(json.dispatch[0].verdict, "UNCLEAR");
     assert.equal(json.counts.unclear, 1);
@@ -152,8 +152,8 @@ test("an unrecognized verdict string warns on stderr and is treated as UNCLEAR",
 
 // --- --top-edges caps dispatch into overflow ---------------------------------
 
-test("--top-edges caps dispatch and moves the remaining ranked pairs to overflow", () => {
-  withTempDir("p2p2-rank-edges-top-", (dir) => {
+test("--top-edges caps dispatch and moves the remaining ranked pairs to overflow", async () => {
+  await withTempDir("p2p2-rank-edges-top-", async (dir) => {
     const edges = [
       { a: "p1a.ts", b: "p1b.ts", via: "x", vias: ["x"], fanout: 1, shared: 3 },
       { a: "p2a.ts", b: "p2b.ts", via: "x", vias: ["x"], fanout: 1, shared: 2 },
@@ -161,7 +161,7 @@ test("--top-edges caps dispatch and moves the remaining ranked pairs to overflow
     ];
     const verdicts = edges.map((e) => ({ a: e.a, b: e.b, verdict: "MISMATCH", reason: "drift" }));
 
-    const capped = rankEdges(dir, edges, verdicts, ["--top-edges", "1"]).json;
+    const capped = (await rankEdges(dir, edges, verdicts, ["--top-edges", "1"])).json;
     assert.equal(capped.dispatch.length, 1);
     assert.equal(capped.overflow.length, 2);
     assert.equal(capped.dispatch[0].a, "p1a.ts", "higher shared count breaks the tied pair-Impact (0 for all)");
@@ -170,11 +170,11 @@ test("--top-edges caps dispatch and moves the remaining ranked pairs to overflow
       [2, 3],
     );
 
-    const zero = rankEdges(dir, edges, verdicts, ["--top-edges", "0"]).json;
+    const zero = (await rankEdges(dir, edges, verdicts, ["--top-edges", "0"])).json;
     assert.equal(zero.dispatch.length, 0);
     assert.equal(zero.overflow.length, 3);
 
-    const overshoot = rankEdges(dir, edges, verdicts, ["--top-edges", "100"]).json;
+    const overshoot = (await rankEdges(dir, edges, verdicts, ["--top-edges", "100"])).json;
     assert.equal(overshoot.dispatch.length, 3);
     assert.equal(overshoot.overflow.length, 0);
   });
@@ -182,11 +182,11 @@ test("--top-edges caps dispatch and moves the remaining ranked pairs to overflow
 
 // --- --job / --run-id ---------------------------------------------------------
 
-test("--job and --run-id land in edges.json and the edges.md title", () => {
-  withTempDir("p2p2-rank-edges-job-", (dir) => {
+test("--job and --run-id land in edges.json and the edges.md title", async () => {
+  await withTempDir("p2p2-rank-edges-job-", async (dir) => {
     const edges = [{ a: "a.ts", b: "b.ts", via: "x", vias: ["x"], fanout: 1, shared: 1 }];
     const verdicts = [{ a: "a.ts", b: "b.ts", verdict: "MISMATCH", reason: "drift" }];
-    const { json, md } = rankEdges(dir, edges, verdicts, ["--job", "reliability/bugs", "--run-id", "2026-06-26"]);
+    const { json, md } = await rankEdges(dir, edges, verdicts, ["--job", "reliability/bugs", "--run-id", "2026-06-26"]);
     assert.equal(json.job, "reliability/bugs");
     assert.equal(json.run_id, "2026-06-26");
     assert.match(md, /^# EDGE GATE - 2026-06-26 {2}\(reliability\/bugs\)$/m);
@@ -195,8 +195,8 @@ test("--job and --run-id land in edges.json and the edges.md title", () => {
 
 // --- structural degree ---------------------------------------------------------
 
-test("degree reports how many candidate pairs each path appears in, from the full edge set, sorted desc then path asc, capped at 20", () => {
-  withTempDir("p2p2-rank-edges-degree-", (dir) => {
+test("degree reports how many candidate pairs each path appears in, from the full edge set, sorted desc then path asc, capped at 20", async () => {
+  await withTempDir("p2p2-rank-edges-degree-", async (dir) => {
     const edges = [
       { a: "hub.ts", b: "leaf1.ts", via: "x", vias: ["x"], fanout: 1, shared: 1 },
       { a: "hub.ts", b: "leaf2.ts", via: "x", vias: ["x"], fanout: 1, shared: 1 },
@@ -204,7 +204,7 @@ test("degree reports how many candidate pairs each path appears in, from the ful
       { a: "tieB.ts", b: "tieA.ts", via: "y", vias: ["y"], fanout: 1, shared: 1 },
     ];
     const verdicts = edges.map((e) => ({ a: e.a, b: e.b, verdict: "MATCH", reason: "" }));
-    const { json } = rankEdges(dir, edges, verdicts);
+    const { json } = await rankEdges(dir, edges, verdicts);
     assert.equal(json.degree[0].path, "hub.ts");
     assert.equal(json.degree[0].degree, 3);
     // tieA.ts and tieB.ts both have degree 1; alphabetical tiebreak orders tieA before tieB.
@@ -218,9 +218,9 @@ test("degree reports how many candidate pairs each path appears in, from the ful
 
 // --- USAGE + exit codes -------------------------------------------------------
 
-test("missing required arguments print USAGE + an error line on stderr and exit 2", () => {
-  withTempDir("p2p2-rank-edges-usage-", (dir) => {
-    const result = runRankEdges(dir, ["--edges", path.join(dir, "edges.jsonl")]);
+test("missing required arguments print USAGE + an error line on stderr and exit 2", async () => {
+  await withTempDir("p2p2-rank-edges-usage-", async (dir) => {
+    const result = await runRankEdges(dir, ["--edges", path.join(dir, "edges.jsonl")]);
     assert.equal(result.status, 2);
     assert.match(result.stderr, /^usage: rank_edges\.ts /);
     assert.match(result.stderr, /the following arguments are required: --verdicts, --out-json, --out-md/);
@@ -228,9 +228,9 @@ test("missing required arguments print USAGE + an error line on stderr and exit 
   });
 });
 
-test("a bare positional argument prints USAGE with 'unrecognized argument' and exits 2", () => {
-  withTempDir("p2p2-rank-edges-positional-", (dir) => {
-    const result = runRankEdges(dir, [
+test("a bare positional argument prints USAGE with 'unrecognized argument' and exits 2", async () => {
+  await withTempDir("p2p2-rank-edges-positional-", async (dir) => {
+    const result = await runRankEdges(dir, [
       "positional",
       "--edges",
       path.join(dir, "edges.jsonl"),
@@ -246,9 +246,9 @@ test("a bare positional argument prints USAGE with 'unrecognized argument' and e
   });
 });
 
-test("a flag with no following value prints USAGE with 'expected one argument' and exits 2", () => {
-  withTempDir("p2p2-rank-edges-noval-", (dir) => {
-    const result = runRankEdges(dir, [
+test("a flag with no following value prints USAGE with 'expected one argument' and exits 2", async () => {
+  await withTempDir("p2p2-rank-edges-noval-", async (dir) => {
+    const result = await runRankEdges(dir, [
       "--edges",
       path.join(dir, "edges.jsonl"),
       "--verdicts",
@@ -262,13 +262,13 @@ test("a flag with no following value prints USAGE with 'expected one argument' a
   });
 });
 
-test("--top-edges with a non-integer value prints USAGE with 'invalid int value' and exits 2", () => {
-  withTempDir("p2p2-rank-edges-badint-", (dir) => {
+test("--top-edges with a non-integer value prints USAGE with 'invalid int value' and exits 2", async () => {
+  await withTempDir("p2p2-rank-edges-badint-", async (dir) => {
     const edgesPath = path.join(dir, "edges.jsonl");
     const verdictsPath = path.join(dir, "verdicts.jsonl");
     writeJsonl(edgesPath, [{ a: "a.ts", b: "b.ts", via: "x", vias: ["x"], fanout: 1, shared: 1 }]);
     writeJsonl(verdictsPath, [{ a: "a.ts", b: "b.ts", verdict: "MISMATCH", reason: "" }]);
-    const result = runRankEdges(dir, [
+    const result = await runRankEdges(dir, [
       "--edges",
       edgesPath,
       "--verdicts",
@@ -287,15 +287,15 @@ test("--top-edges with a non-integer value prints USAGE with 'invalid int value'
 
 // --- documented stdout marker line -------------------------------------------
 
-test("stdout prints the documented `edges: N dispatched from M pairs (...) -> ...` line", () => {
-  withTempDir("p2p2-rank-edges-stdout-", (dir) => {
+test("stdout prints the documented `edges: N dispatched from M pairs (...) -> ...` line", async () => {
+  await withTempDir("p2p2-rank-edges-stdout-", async (dir) => {
     const edgesPath = path.join(dir, "edges.jsonl");
     const verdictsPath = path.join(dir, "verdicts.jsonl");
     const jsonPath = path.join(dir, "edges.json");
     const mdPath = path.join(dir, "edges.md");
     writeJsonl(edgesPath, [{ a: "a.ts", b: "b.ts", via: "x", vias: ["x"], fanout: 1, shared: 1 }]);
     writeJsonl(verdictsPath, [{ a: "a.ts", b: "b.ts", verdict: "MISMATCH", reason: "" }]);
-    const result = runRankEdges(dir, [
+    const result = await runRankEdges(dir, [
       "--edges",
       edgesPath,
       "--verdicts",
@@ -311,22 +311,22 @@ test("stdout prints the documented `edges: N dispatched from M pairs (...) -> ..
 
 // --- boundary inputs ------------------------------------------------------------
 
-test("an empty --edges file yields zero pairs (edges is required to exist, but may be empty)", () => {
-  withTempDir("p2p2-rank-edges-empty-", (dir) => {
-    const { json } = rankEdges(dir, [], []);
+test("an empty --edges file yields zero pairs (edges is required to exist, but may be empty)", async () => {
+  await withTempDir("p2p2-rank-edges-empty-", async (dir) => {
+    const { json } = await rankEdges(dir, [], []);
     assert.equal(json.counts.pairs, 0);
     assert.equal(json.dispatch.length, 0);
     assert.equal(json.degree.length, 0);
   });
 });
 
-test("a missing --verdicts file is a valid empty result (missingOk), not a crash", () => {
-  withTempDir("p2p2-rank-edges-no-verdicts-", (dir) => {
+test("a missing --verdicts file is a valid empty result (missingOk), not a crash", async () => {
+  await withTempDir("p2p2-rank-edges-no-verdicts-", async (dir) => {
     const edgesPath = path.join(dir, "edges.jsonl");
     const jsonPath = path.join(dir, "edges.json");
     const mdPath = path.join(dir, "edges.md");
     writeJsonl(edgesPath, [{ a: "a.ts", b: "b.ts", via: "x", vias: ["x"], fanout: 1, shared: 1 }]);
-    const result = runRankEdges(dir, [
+    const result = await runRankEdges(dir, [
       "--edges",
       edgesPath,
       "--verdicts",
@@ -344,11 +344,11 @@ test("a missing --verdicts file is a valid empty result (missingOk), not a crash
   });
 });
 
-test("a missing --edges file crashes with a non-zero exit (edges is not missingOk)", () => {
-  withTempDir("p2p2-rank-edges-no-edges-", (dir) => {
+test("a missing --edges file crashes with a non-zero exit (edges is not missingOk)", async () => {
+  await withTempDir("p2p2-rank-edges-no-edges-", async (dir) => {
     const verdictsPath = path.join(dir, "verdicts.jsonl");
     writeJsonl(verdictsPath, [{ a: "a.ts", b: "b.ts", verdict: "MISMATCH", reason: "" }]);
-    const result = runRankEdges(dir, [
+    const result = await runRankEdges(dir, [
       "--edges",
       path.join(dir, "no-such-edges.jsonl"),
       "--verdicts",
@@ -363,8 +363,8 @@ test("a missing --edges file crashes with a non-zero exit (edges is not missingO
   });
 });
 
-test("a malformed JSONL line in --edges warns on stderr and is skipped", () => {
-  withTempDir("p2p2-rank-edges-malformed-", (dir) => {
+test("a malformed JSONL line in --edges warns on stderr and is skipped", async () => {
+  await withTempDir("p2p2-rank-edges-malformed-", async (dir) => {
     const edgesPath = path.join(dir, "edges.jsonl");
     const verdictsPath = path.join(dir, "verdicts.jsonl");
     fs.writeFileSync(
@@ -374,7 +374,7 @@ test("a malformed JSONL line in --edges warns on stderr and is skipped", () => {
     writeJsonl(verdictsPath, [{ a: "a.ts", b: "b.ts", verdict: "MISMATCH", reason: "" }]);
     const jsonPath = path.join(dir, "edges.json");
     const mdPath = path.join(dir, "edges.md");
-    const result = runRankEdges(dir, [
+    const result = await runRankEdges(dir, [
       "--edges",
       edgesPath,
       "--verdicts",
@@ -391,26 +391,26 @@ test("a malformed JSONL line in --edges warns on stderr and is skipped", () => {
   });
 });
 
-test("a record missing the required a/b keys is silently dropped from the pair set", () => {
-  withTempDir("p2p2-rank-edges-missing-key-", (dir) => {
+test("a record missing the required a/b keys is silently dropped from the pair set", async () => {
+  await withTempDir("p2p2-rank-edges-missing-key-", async (dir) => {
     const edges = [
       { a: "a.ts", b: "b.ts", via: "x", vias: ["x"], fanout: 1, shared: 1 },
       { a: "only-a.ts", via: "x", vias: ["x"], fanout: 1, shared: 1 }, // no `b`
     ];
     const verdicts = [{ a: "a.ts", b: "b.ts", verdict: "MISMATCH", reason: "" }];
-    const { json } = rankEdges(dir, edges, verdicts);
+    const { json } = await rankEdges(dir, edges, verdicts);
     assert.equal(json.counts.pairs, 1);
     assert.ok(!json.dispatch.some((r: Rec) => r.a === "only-a.ts" || r.b === "only-a.ts"));
   });
 });
 
-test("--out-json pointing at a directory that does not exist crashes with a non-zero exit", () => {
-  withTempDir("p2p2-rank-edges-unwritable-", (dir) => {
+test("--out-json pointing at a directory that does not exist crashes with a non-zero exit", async () => {
+  await withTempDir("p2p2-rank-edges-unwritable-", async (dir) => {
     const edgesPath = path.join(dir, "edges.jsonl");
     const verdictsPath = path.join(dir, "verdicts.jsonl");
     writeJsonl(edgesPath, [{ a: "a.ts", b: "b.ts", via: "x", vias: ["x"], fanout: 1, shared: 1 }]);
     writeJsonl(verdictsPath, [{ a: "a.ts", b: "b.ts", verdict: "MISMATCH", reason: "" }]);
-    const result = runRankEdges(dir, [
+    const result = await runRankEdges(dir, [
       "--edges",
       edgesPath,
       "--verdicts",
@@ -425,13 +425,13 @@ test("--out-json pointing at a directory that does not exist crashes with a non-
   });
 });
 
-test("--out-md pointing at a directory that does not exist crashes with a non-zero exit", () => {
-  withTempDir("p2p2-rank-edges-unwritable-md-", (dir) => {
+test("--out-md pointing at a directory that does not exist crashes with a non-zero exit", async () => {
+  await withTempDir("p2p2-rank-edges-unwritable-md-", async (dir) => {
     const edgesPath = path.join(dir, "edges.jsonl");
     const verdictsPath = path.join(dir, "verdicts.jsonl");
     writeJsonl(edgesPath, [{ a: "a.ts", b: "b.ts", via: "x", vias: ["x"], fanout: 1, shared: 1 }]);
     writeJsonl(verdictsPath, [{ a: "a.ts", b: "b.ts", verdict: "MISMATCH", reason: "" }]);
-    const result = runRankEdges(dir, [
+    const result = await runRankEdges(dir, [
       "--edges",
       edgesPath,
       "--verdicts",
@@ -448,8 +448,8 @@ test("--out-md pointing at a directory that does not exist crashes with a non-ze
 
 // --- edge cases ------------------------------------------------------------------
 
-test("a path with a Windows-style backslash is preserved verbatim, and CRLF line endings parse the same as LF", () => {
-  withTempDir("p2p2-rank-edges-edgecases-", (dir) => {
+test("a path with a Windows-style backslash is preserved verbatim, and CRLF line endings parse the same as LF", async () => {
+  await withTempDir("p2p2-rank-edges-edgecases-", async (dir) => {
     const winPath = "src\\module\\file.ts";
     const edgesPath = path.join(dir, "edges.jsonl");
     const verdictsPath = path.join(dir, "verdicts.jsonl");
@@ -459,7 +459,7 @@ test("a path with a Windows-style backslash is preserved verbatim, and CRLF line
     fs.writeFileSync(verdictsPath, `${verdictLine}\r\n`);
     const jsonPath = path.join(dir, "edges.json");
     const mdPath = path.join(dir, "edges.md");
-    const result = runRankEdges(dir, [
+    const result = await runRankEdges(dir, [
       "--edges",
       edgesPath,
       "--verdicts",
@@ -476,8 +476,8 @@ test("a path with a Windows-style backslash is preserved verbatim, and CRLF line
   });
 });
 
-test("edges.json is stable across two identical runs", () => {
-  withTempDir("p2p2-rank-edges-stable-", (dir) => {
+test("edges.json is stable across two identical runs", async () => {
+  await withTempDir("p2p2-rank-edges-stable-", async (dir) => {
     const edges = [
       { a: "a.ts", b: "b.ts", via: "x", vias: ["x"], fanout: 1, shared: 3 },
       { a: "c.ts", b: "d.ts", via: "y", vias: ["y"], fanout: 1, shared: 1 },
@@ -486,8 +486,8 @@ test("edges.json is stable across two identical runs", () => {
       { a: "a.ts", b: "b.ts", verdict: "MISMATCH", reason: "" },
       { a: "c.ts", b: "d.ts", verdict: "UNCLEAR", reason: "" },
     ];
-    const first = rankEdges(dir, edges, verdicts).json;
-    const second = rankEdges(dir, edges, verdicts).json;
+    const first = (await rankEdges(dir, edges, verdicts)).json;
+    const second = (await rankEdges(dir, edges, verdicts)).json;
     assert.deepEqual(first, second);
   });
 });

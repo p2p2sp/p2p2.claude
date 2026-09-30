@@ -19,7 +19,7 @@
  *   node --test tests/viber/check-playwright.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -53,94 +53,94 @@ function runInRepo(dir: string) {
   return runScript(SUT, [], { cwd: dir, env: { PATH: pathWithGit() } });
 }
 
-test("no playwright-cli on PATH and no package.json: both lines report not found, and the exit is still 0", () => {
-  withTempDir("p2p2-viber-playwright-", (dir) => {
-    const result = run(dir);
+test("no playwright-cli on PATH and no package.json: both lines report not found, and the exit is still 0", async () => {
+  await withTempDir("p2p2-viber-playwright-", async (dir) => {
+    const result = await run(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "playwright-cli: not found\n@playwright/test: not found\n");
   });
 });
 
-test("playwright-cli resolving and --version printing a line reports found with that version", () => {
-  withStub("playwright-cli", STUB_VERSION_1_2_3, (stubDir) => {
-    withTempDir("p2p2-viber-playwright-", (dir) => {
-      const result = run(dir, [stubDir]);
+test("playwright-cli resolving and --version printing a line reports found with that version", async () => {
+  await withStub("playwright-cli", STUB_VERSION_1_2_3, async (stubDir) => {
+    await withTempDir("p2p2-viber-playwright-", async (dir) => {
+      const result = await run(dir, [stubDir]);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       assert.equal(result.stdout, "playwright-cli: found 1.2.3\n@playwright/test: not found\n");
     });
   });
 });
 
-test("playwright-cli present but --version exiting 1 reports found (version unknown) rather than not found", () => {
-  withStub("playwright-cli", STUB_VERSION_FAILS, (stubDir) => {
-    withTempDir("p2p2-viber-playwright-", (dir) => {
-      const result = run(dir, [stubDir]);
+test("playwright-cli present but --version exiting 1 reports found (version unknown) rather than not found", async () => {
+  await withStub("playwright-cli", STUB_VERSION_FAILS, async (stubDir) => {
+    await withTempDir("p2p2-viber-playwright-", async (dir) => {
+      const result = await run(dir, [stubDir]);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       assert.equal(result.stdout, "playwright-cli: found (version unknown)\n@playwright/test: not found\n");
     });
   });
 });
 
-test("a root package.json naming @playwright/test under devDependencies reports it found", () => {
-  withTempDir("p2p2-viber-playwright-", (dir) => {
+test("a root package.json naming @playwright/test under devDependencies reports it found", async () => {
+  await withTempDir("p2p2-viber-playwright-", async (dir) => {
     fs.writeFileSync(
       path.join(dir, "package.json"),
       JSON.stringify({ name: "fixture", devDependencies: { "@playwright/test": "^1.40.0" } }, null, 2),
     );
-    const result = run(dir);
+    const result = await run(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "playwright-cli: not found\n@playwright/test: found\n");
   });
 });
 
-test("a tracked nested package.json naming @playwright/test reports it found even though the root package.json names nothing", () => {
-  withGitRepo((repo) => {
+test("a tracked nested package.json naming @playwright/test reports it found even though the root package.json names nothing", async () => {
+  await withGitRepo(async (repo) => {
     fs.mkdirSync(path.join(repo.dir, "apps", "web"), { recursive: true });
     fs.writeFileSync(
       path.join(repo.dir, "apps", "web", "package.json"),
       JSON.stringify({ name: "web", devDependencies: { "@playwright/test": "^1.40.0" } }, null, 2),
     );
-    repo.git("add", "apps/web/package.json");
-    repo.git("commit", "-m", "add web package.json");
-    const result = runInRepo(repo.dir);
+    await repo.git("add", "apps/web/package.json");
+    await repo.git("commit", "-m", "add web package.json");
+    const result = await runInRepo(repo.dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "playwright-cli: not found\n@playwright/test: found\n");
   });
 });
 
-test("an untracked nested package.json naming @playwright/test is not probed and reports it not found", () => {
-  withGitRepo((repo) => {
+test("an untracked nested package.json naming @playwright/test is not probed and reports it not found", async () => {
+  await withGitRepo(async (repo) => {
     fs.mkdirSync(path.join(repo.dir, "apps", "web"), { recursive: true });
     fs.writeFileSync(
       path.join(repo.dir, "apps", "web", "package.json"),
       JSON.stringify({ name: "web", devDependencies: { "@playwright/test": "^1.40.0" } }, null, 2),
     );
     // Never `git add`-ed: the file stays untracked.
-    const result = runInRepo(repo.dir);
+    const result = await runInRepo(repo.dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "playwright-cli: not found\n@playwright/test: not found\n");
   });
 });
 
-test("a repo naming @playwright/test nowhere, tracked or untracked, reports it not found", () => {
-  withGitRepo((repo) => {
+test("a repo naming @playwright/test nowhere, tracked or untracked, reports it not found", async () => {
+  await withGitRepo(async (repo) => {
     fs.writeFileSync(path.join(repo.dir, "package.json"), JSON.stringify({ name: "root" }, null, 2));
-    repo.git("add", "package.json");
-    repo.git("commit", "-m", "add root package.json");
-    const result = runInRepo(repo.dir);
+    await repo.git("add", "package.json");
+    await repo.git("commit", "-m", "add root package.json");
+    const result = await runInRepo(repo.dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "playwright-cli: not found\n@playwright/test: not found\n");
   });
 });
 
-test("a package.json that does not name @playwright/test reports it not found (the two dimensions are independent)", () => {
-  withStub("playwright-cli", STUB_VERSION_1_2_3, (stubDir) => {
-    withTempDir("p2p2-viber-playwright-", (dir) => {
+test("a package.json that does not name @playwright/test reports it not found (the two dimensions are independent)", async () => {
+  await withStub("playwright-cli", STUB_VERSION_1_2_3, async (stubDir) => {
+    await withTempDir("p2p2-viber-playwright-", async (dir) => {
       fs.writeFileSync(
         path.join(dir, "package.json"),
         JSON.stringify({ name: "fixture", devDependencies: { vitest: "^1.0.0" } }, null, 2),
       );
-      const result = run(dir, [stubDir]);
+      const result = await run(dir, [stubDir]);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       assert.equal(result.stdout, "playwright-cli: found 1.2.3\n@playwright/test: not found\n");
     });

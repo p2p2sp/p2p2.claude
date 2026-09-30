@@ -19,7 +19,7 @@
  *   node --test tests/viber/issue-facts.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -48,8 +48,8 @@ const BLOCK = [
   "Same here.",
 ];
 
-function assertPosix(fn: (shell: Shell) => void) {
-  const skips = forEachShell("posix", fn);
+async function assertPosix(fn: (shell: Shell) => void | Promise<void>) {
+  const skips = await forEachShell("posix", fn);
   for (const skip of skips) {
     assert.equal(skip.kind, "posix");
     assert.ok(skip.reason.length > 0, "a skip must record a reason");
@@ -81,12 +81,12 @@ exit "\${GH_EXIT:-0}"
 
 /** Runs issue-facts.sh with a fresh `gh` stub first on PATH and returns the
  *  result plus every logged gh call. */
-function runStubbed(shell: Shell, args: string[], env: Record<string, string> = {}): { result: RunResult; calls: string[][] } {
-  return withTempDir("p2p2-issue-facts-", (cwd) =>
-    withStub("gh", GH_STUB, (stubDir) => {
+async function runStubbed(shell: Shell, args: string[], env: Record<string, string> = {}): Promise<{ result: RunResult; calls: string[][] }> {
+  return await withTempDir("p2p2-issue-facts-", (cwd) =>
+    withStub("gh", GH_STUB, async (stubDir) => {
       const argvFile = path.join(cwd, "argv.log");
       fs.writeFileSync(argvFile, "");
-      const result = runScript(SUT, args, { shell, cwd, env: { ARGV_FILE: argvFile, ...env }, stubDirs: [stubDir] });
+      const result = await runScript(SUT, args, { shell, cwd, env: { ARGV_FILE: argvFile, ...env }, stubDirs: [stubDir] });
       const calls = fs
         .readFileSync(argvFile, "utf-8")
         .split("===\n")
@@ -99,9 +99,9 @@ function runStubbed(shell: Shell, args: string[], env: Record<string, string> = 
 
 // --- success --------------------------------------------------------------------
 
-test("a bare number reaches gh issue view with the fixed field list and a --jq filter, and the block is relayed verbatim", () => {
-  assertPosix((shell) => {
-    const { result, calls } = runStubbed(shell, ["42"], { GH_STDOUT: BLOCK.join("\n") + "\n" });
+test("a bare number reaches gh issue view with the fixed field list and a --jq filter, and the block is relayed verbatim", async () => {
+  await assertPosix(async (shell) => {
+    const { result, calls } = await runStubbed(shell, ["42"], { GH_STDOUT: BLOCK.join("\n") + "\n" });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(result.stdout.split("\n").filter((l) => l.length > 0), withType(""));
     assert.deepEqual(calls[0].slice(0, 6), ["issue", "view", "42", "--json", FIELDS, "--jq"]);
@@ -112,25 +112,25 @@ test("a bare number reaches gh issue view with the fixed field list and a --jq f
 
 // --- issue type -------------------------------------------------------------------
 
-test("a typed issue prints TYPE=<name> right after LABELS= (the planner picks the branching entry from it)", () => {
-  assertPosix((shell) => {
-    const { result } = runStubbed(shell, ["42"], { GH_STDOUT: BLOCK.join("\n") + "\n", GH_TYPE_STDOUT: "Bug\n" });
+test("a typed issue prints TYPE=<name> right after LABELS= (the planner picks the branching entry from it)", async () => {
+  await assertPosix(async (shell) => {
+    const { result } = await runStubbed(shell, ["42"], { GH_STDOUT: BLOCK.join("\n") + "\n", GH_TYPE_STDOUT: "Bug\n" });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(result.stdout.split("\n").filter((l) => l.length > 0), withType("Bug"));
   });
 });
 
-test("an untyped issue prints an empty TYPE= line (the planner refuses it once mappings exist)", () => {
-  assertPosix((shell) => {
-    const { result } = runStubbed(shell, ["42"], { GH_STDOUT: BLOCK.join("\n") + "\n", GH_TYPE_STDOUT: "\n" });
+test("an untyped issue prints an empty TYPE= line (the planner refuses it once mappings exist)", async () => {
+  await assertPosix(async (shell) => {
+    const { result } = await runStubbed(shell, ["42"], { GH_STDOUT: BLOCK.join("\n") + "\n", GH_TYPE_STDOUT: "\n" });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(result.stdout.split("\n").filter((l) => l.length > 0), withType(""));
   });
 });
 
-test("a failing type lookup still exits 0 with an empty TYPE= line and none of its output (an old gh or GHES without issue types must not lose the issue)", () => {
-  assertPosix((shell) => {
-    const { result } = runStubbed(shell, ["42"], {
+test("a failing type lookup still exits 0 with an empty TYPE= line and none of its output (an old gh or GHES without issue types must not lose the issue)", async () => {
+  await assertPosix(async (shell) => {
+    const { result } = await runStubbed(shell, ["42"], {
       GH_STDOUT: BLOCK.join("\n") + "\n",
       GH_TYPE_STDOUT: '{"message":"Not Found"}',
       GH_TYPE_STDERR: "gh: Not Found (HTTP 404)\n",
@@ -143,9 +143,9 @@ test("a failing type lookup still exits 0 with an empty TYPE= line and none of i
 
 const TYPE_JQ = '.type.name // ""';
 
-test("a bare number looks the type up in the cwd repository through gh's {owner}/{repo} placeholders", () => {
-  assertPosix((shell) => {
-    const { calls } = runStubbed(shell, ["42"], { GH_STDOUT: BLOCK.join("\n") + "\n" });
+test("a bare number looks the type up in the cwd repository through gh's {owner}/{repo} placeholders", async () => {
+  await assertPosix(async (shell) => {
+    const { calls } = await runStubbed(shell, ["42"], { GH_STDOUT: BLOCK.join("\n") + "\n" });
     assert.deepEqual(
       calls.find((c) => c[0] === "api"),
       ["api", "repos/{owner}/{repo}/issues/42", "--jq", TYPE_JQ],
@@ -153,18 +153,18 @@ test("a bare number looks the type up in the cwd repository through gh's {owner}
   });
 });
 
-test("a github.com issue url looks the type up in that url's owner and repository, with no --hostname", () => {
-  assertPosix((shell) => {
-    const { calls } = runStubbed(shell, ["https://github.com/acme/widgets/issues/42#issuecomment-1"], {
+test("a github.com issue url looks the type up in that url's owner and repository, with no --hostname", async () => {
+  await assertPosix(async (shell) => {
+    const { calls } = await runStubbed(shell, ["https://github.com/acme/widgets/issues/42#issuecomment-1"], {
       GH_STDOUT: BLOCK.join("\n") + "\n",
     });
     assert.deepEqual(calls.find((c) => c[0] === "api"), ["api", "repos/acme/widgets/issues/42", "--jq", TYPE_JQ]);
   });
 });
 
-test("an enterprise host url passes that host through --hostname (gh api would otherwise ask github.com)", () => {
-  assertPosix((shell) => {
-    const { calls } = runStubbed(shell, ["https://ghe.example.com/acme/widgets/issues/42"], {
+test("an enterprise host url passes that host through --hostname (gh api would otherwise ask github.com)", async () => {
+  await assertPosix(async (shell) => {
+    const { calls } = await runStubbed(shell, ["https://ghe.example.com/acme/widgets/issues/42"], {
       GH_STDOUT: BLOCK.join("\n") + "\n",
     });
     assert.deepEqual(calls.find((c) => c[0] === "api"), [
@@ -178,46 +178,46 @@ test("an enterprise host url passes that host through --hostname (gh api would o
   });
 });
 
-test("#42 is passed to gh as 42 (a user typing the GitHub reference form)", () => {
-  assertPosix((shell) => {
-    const { result, calls } = runStubbed(shell, ["#42"], { GH_STDOUT: BLOCK.join("\n") + "\n" });
+test("#42 is passed to gh as 42 (a user typing the GitHub reference form)", async () => {
+  await assertPosix(async (shell) => {
+    const { result, calls } = await runStubbed(shell, ["#42"], { GH_STDOUT: BLOCK.join("\n") + "\n" });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(calls[0][2], "42");
   });
 });
 
-test("an issue url is passed to gh verbatim", () => {
-  assertPosix((shell) => {
+test("an issue url is passed to gh verbatim", async () => {
+  await assertPosix(async (shell) => {
     const url = "https://github.com/acme/widgets/issues/42";
-    const { result, calls } = runStubbed(shell, [url], { GH_STDOUT: BLOCK.join("\n") + "\n" });
+    const { result, calls } = await runStubbed(shell, [url], { GH_STDOUT: BLOCK.join("\n") + "\n" });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(calls[0][2], url);
   });
 });
 
-test("an issue url carrying a comment fragment or a query reaches gh as the bare issue url (the \"Copy link\" form of a comment must not be refused)", () => {
-  assertPosix((shell) => {
+test("an issue url carrying a comment fragment or a query reaches gh as the bare issue url (the \"Copy link\" form of a comment must not be refused)", async () => {
+  await assertPosix(async (shell) => {
     const url = "https://github.com/acme/widgets/issues/42";
     for (const ref of [`${url}#issuecomment-1`, `${url}?foo=1`, `${url}?foo=1#issuecomment-1`]) {
-      const { result, calls } = runStubbed(shell, [ref], { GH_STDOUT: BLOCK.join("\n") + "\n" });
+      const { result, calls } = await runStubbed(shell, [ref], { GH_STDOUT: BLOCK.join("\n") + "\n" });
       assert.equal(result.status, 0, `ref ${JSON.stringify(ref)}: ${result.stderr}`);
       assert.equal(calls[0][2], url);
     }
   });
 });
 
-test("CR in gh's output is stripped (issue bodies written on the web carry CRLF)", () => {
-  assertPosix((shell) => {
-    const { result } = runStubbed(shell, ["42"], { GH_STDOUT: BLOCK.join("\r\n") + "\r\n" });
+test("CR in gh's output is stripped (issue bodies written on the web carry CRLF)", async () => {
+  await assertPosix(async (shell) => {
+    const { result } = await runStubbed(shell, ["42"], { GH_STDOUT: BLOCK.join("\r\n") + "\r\n" });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.ok(!result.stdout.includes("\r"), "no CR may survive");
     assert.deepEqual(result.stdout.split("\n").filter((l) => l.length > 0), withType(""));
   });
 });
 
-test("a warning gh writes to stderr on success never reaches stdout (it would corrupt the block)", () => {
-  assertPosix((shell) => {
-    const { result } = runStubbed(shell, ["42"], {
+test("a warning gh writes to stderr on success never reaches stdout (it would corrupt the block)", async () => {
+  await assertPosix(async (shell) => {
+    const { result } = await runStubbed(shell, ["42"], {
       GH_STDOUT: BLOCK.join("\n") + "\n",
       GH_STDERR: "A new release of gh is available\n",
     });
@@ -229,9 +229,9 @@ test("a warning gh writes to stderr on success never reaches stdout (it would co
 
 // --- gh failure -------------------------------------------------------------------
 
-test("gh fails: exit 1, one ERROR line carrying gh's message, nothing on stdout", () => {
-  assertPosix((shell) => {
-    const { result } = runStubbed(shell, ["99999"], {
+test("gh fails: exit 1, one ERROR line carrying gh's message, nothing on stdout", async () => {
+  await assertPosix(async (shell) => {
+    const { result } = await runStubbed(shell, ["99999"], {
       GH_EXIT: "1",
       GH_STDERR: "GraphQL: Could not resolve to an issue\n",
     });
@@ -243,9 +243,9 @@ test("gh fails: exit 1, one ERROR line carrying gh's message, nothing on stdout"
   });
 });
 
-test("gh exits 0 but prints no NUMBER= first line: exit 1, nothing on stdout (the block is trusted unchecked)", () => {
-  assertPosix((shell) => {
-    const { result } = runStubbed(shell, ["42"], { GH_STDOUT: "something else\nNUMBER=42\n" });
+test("gh exits 0 but prints no NUMBER= first line: exit 1, nothing on stdout (the block is trusted unchecked)", async () => {
+  await assertPosix(async (shell) => {
+    const { result } = await runStubbed(shell, ["42"], { GH_STDOUT: "something else\nNUMBER=42\n" });
     assert.equal(result.status, 1);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /^ERROR issue-facts\.sh: gh issue view failed:/);
@@ -259,10 +259,10 @@ const ghOnCorePath = coreUtilsPath()
 test(
   "gh not on PATH: exit 1 with one ERROR line naming gh",
   { skip: ghOnCorePath ? "a real gh sits in the core utilities directory, so its absence cannot be staged" : false },
-  () => {
-    assertPosix((shell) => {
-      withTempDir("p2p2-issue-facts-", (cwd) => {
-        const result = runScript(SUT, ["42"], { shell, cwd, env: { PATH: coreUtilsPath() } });
+  async () => {
+    await assertPosix(async (shell) => {
+      await withTempDir("p2p2-issue-facts-", async (cwd) => {
+        const result = await runScript(SUT, ["42"], { shell, cwd, env: { PATH: coreUtilsPath() } });
         assert.equal(result.status, 1);
         assert.equal(result.stdout, "");
         assert.match(result.stderr, /^ERROR issue-facts\.sh: gh not found on PATH$/m);
@@ -273,10 +273,10 @@ test(
 
 // --- bad arguments ----------------------------------------------------------------
 
-test("no argument or two arguments: exit 2 and gh is never called", () => {
-  assertPosix((shell) => {
+test("no argument or two arguments: exit 2 and gh is never called", async () => {
+  await assertPosix(async (shell) => {
     for (const args of [[], ["42", "43"]]) {
-      const { result, calls } = runStubbed(shell, args);
+      const { result, calls } = await runStubbed(shell, args);
       assert.equal(result.status, 2, `args ${JSON.stringify(args)}`);
       assert.match(result.stderr, /need exactly one/);
       assert.equal(calls.length, 0);
@@ -284,7 +284,7 @@ test("no argument or two arguments: exit 2 and gh is never called", () => {
   });
 });
 
-test("a reference that is neither a number nor an issue url: exit 2 and gh is never called (pasted text must not reach gh)", () => {
+test("a reference that is neither a number nor an issue url: exit 2 and gh is never called (pasted text must not reach gh)", async () => {
   const bad = [
     "",
     "#",
@@ -298,9 +298,9 @@ test("a reference that is neither a number nor an issue url: exit 2 and gh is ne
     "https://github.com/a/b/c/issues/42",
     "https://github.com//widgets/issues/42",
   ];
-  assertPosix((shell) => {
+  await assertPosix(async (shell) => {
     for (const ref of bad) {
-      const { result, calls } = runStubbed(shell, [ref]);
+      const { result, calls } = await runStubbed(shell, [ref]);
       assert.equal(result.status, 2, `ref ${JSON.stringify(ref)}: ${result.stderr}`);
       assert.match(result.stderr, /not an issue number or url/);
       assert.equal(calls.length, 0);

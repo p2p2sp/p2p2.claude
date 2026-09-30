@@ -36,7 +36,7 @@
  *   node --test tests/orphan-tags.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "./harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
@@ -124,8 +124,8 @@ test("self-check: orphanTagViolations stays quiet on a closing tag named inline 
 // The sweep
 // ---------------------------------------------------------------------------
 
-function repoRoot(): string {
-  const result = runScript("git", ["rev-parse", "--show-toplevel"]);
+async function repoRoot(): Promise<string> {
+  const result = await runScript("git", ["rev-parse", "--show-toplevel"]);
   if (result.status !== 0) throw new Error(`git rev-parse --show-toplevel failed: ${result.stderr}`);
   return result.stdout.trim();
 }
@@ -133,8 +133,8 @@ function repoRoot(): string {
 /** `-z` because a path carrying a non-ASCII character (the repo has one under
  *  `docs/`) comes back C-quoted and octal-escaped otherwise, which both breaks
  *  the read and slips past a `docs/` prefix filter behind its opening quote. */
-function sweptFiles(root: string): string[] {
-  const result = runScript("git", ["ls-files", "-z"], { cwd: root });
+async function sweptFiles(root: string): Promise<string[]> {
+  const result = await runScript("git", ["ls-files", "-z"], { cwd: root });
   if (result.status !== 0) throw new Error(`git ls-files failed: ${result.stderr}`);
   return result.stdout
     .split("\0")
@@ -143,10 +143,10 @@ function sweptFiles(root: string): string[] {
     .filter((p) => !BINARY_EXTENSIONS.some((ext) => p.toLowerCase().endsWith(ext)));
 }
 
-test("no tracked file outside docs/ carries an orphan closing tag left behind by a write call", () => {
-  const root = repoRoot();
+test("no tracked file outside docs/ carries an orphan closing tag left behind by a write call", async () => {
+  const root = await repoRoot();
   const violations: string[] = [];
-  for (const repoRelativePath of sweptFiles(root)) {
+  for (const repoRelativePath of await sweptFiles(root)) {
     const content = fs.readFileSync(`${root}/${repoRelativePath}`, "utf-8");
     violations.push(...orphanTagViolations(repoRelativePath, content));
   }

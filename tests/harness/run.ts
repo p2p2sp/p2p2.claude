@@ -1,7 +1,8 @@
 /*
  * run.ts - runs a shipped script as a real subprocess and hands back its
  * stdout/stderr/exit status, the way an end user (or a SKILL.md `!` preload)
- * would invoke it: through an interpreter, never `import`ed.
+ * would invoke it: through an interpreter, never `import`ed. Asynchronous, so
+ * the cases of one file run concurrently.
  *
  * Interpreter resolution:
  *   - `opts.shell` set        -> `<shell> <script> ...args` (used to force a
@@ -28,7 +29,7 @@
  * a multi-line argument on every OS. See the `P2P2_ARGV` block below.
  */
 
-import { spawnSync } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -152,7 +153,7 @@ function resolveCommand(script: string, args: string[], opts: RunOpts): { cmd: s
 
 /** Runs `script` as a real subprocess, honoring its shebang (or PATH lookup
  *  for a bare command name like "git") on every OS. */
-export function runScript(script: string, args: string[] = [], opts: RunOpts = {}): RunResult {
+export function runScript(script: string, args: string[] = [], opts: RunOpts = {}): Promise<RunResult> {
   const env = { ...sanitisedBaseEnv(), ...(opts.env ?? {}) };
   if (opts.stubDirs && opts.stubDirs.length > 0) {
     env.PATH = [...opts.stubDirs, env.PATH ?? ""].filter(Boolean).join(path.delimiter);
@@ -197,16 +198,48 @@ export function runScript(script: string, args: string[] = [], opts: RunOpts = {
   } else {
     ({ cmd, args: fullArgs } = resolveCommand(script, args, opts));
   }
-  const result = spawnSync(cmd, fullArgs, {
-    cwd: opts.cwd,
-    env,
-    input: opts.input,
-    encoding: "utf-8",
-    timeout: opts.timeout ?? 60000,
+  return spawnCollect(cmd, fullArgs, { cwd: opts.cwd, env, input: opts.input, timeout: opts.timeout ?? 60000 });
+}
+
+/** Spawns without blocking the event loop, so the cases of one file can run
+ *  concurrently (see test.ts). Settles once: on `close`, or on a spawn
+ *  `error` for a child that never started. */
+function spawnCollect(
+  cmd: string,
+  args: string[],
+  opts: { cwd?: string; env: Record<string, string>; input?: string; timeout: number },
+): Promise<RunResult> {
+  return new Promise((resolve) => {
+    const out: Buffer[] = [];
+    const err: Buffer[] = [];
+    let settled = false;
+    let timer: NodeJS.Timeout | undefined;
+    const settle = (status: number | null, error?: Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      const stderr = Buffer.concat(err).toString("utf-8");
+      resolve({
+        stdout: Buffer.concat(out).toString("utf-8"),
+        stderr: error && !stderr ? `${error.message}\n` : stderr,
+        status,
+      });
+    };
+    let child: ChildProcess;
+    try {
+      child = spawn(cmd, args, { cwd: opts.cwd, env: opts.env });
+    } catch (error) {
+      settle(null, error as Error);
+      return;
+    }
+    timer = setTimeout(() => child.kill("SIGTERM"), opts.timeout);
+    child.stdout?.on("data", (chunk: Buffer) => out.push(chunk));
+    child.stderr?.on("data", (chunk: Buffer) => err.push(chunk));
+    child.on("error", (error) => {
+      if (child.pid === undefined) settle(null, error);
+    });
+    child.on("close", (code) => settle(code));
+    child.stdin?.on("error", () => {});
+    child.stdin?.end(opts.input);
   });
-  return {
-    stdout: result.stdout ?? "",
-    stderr: result.stderr ?? (result.error ? `${result.error.message}\n` : ""),
-    status: result.status,
-  };
 }

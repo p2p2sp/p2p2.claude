@@ -15,7 +15,7 @@ a file is shaped live in `.claude/rules/tests-running.md` and `tests-structure.m
   `SKILL.md` frontmatter and the `viber.yml` template).
 - `tests/harness/` - the shared helpers every script test uses; `tests/harness.test.ts` asserts
   `runScript`, `withTempDir`, `withGitRepo`, `withStub`, `forEachShell("posix")`,
-  `denyRead`/`restoreRead` and `writePng`; `slash`, `canSymlinkDir` and `coreUtilsPath` have no
+  `denyRead`/`restoreRead` and `writePng`; `slash`, `canSymlinkDir`, `coreUtilsPath` and `test` (which every file runs through) have no
   test there.
 - `tests/portability.test.ts`, `tests/orphan-tags.test.ts` - static sweeps over the whole repo.
   Each rule is a pure function with a self-check test proving it fires on a synthetic bad sample;
@@ -39,23 +39,29 @@ Run only what the change reaches, each line with
 
 ## Harness contract
 
+- `test(name, [options], fn)` (`harness/test.ts`) replaces node:test's: a file's cases run inside
+  one suite named after the file, up to 4 at once (`P2P2_TEST_CONCURRENCY`), each still reported,
+  skipped and matched by `--test-name-pattern` under its own name. Every helper below that
+  spawns or wraps a fixture is async and awaited.
 - `runScript(script, args, opts)` (`harness/run.ts`) runs a shipped script as a real subprocess
-  (a `.ts`/`.js` one through `process.execPath`). The child env is sanitised to a fixed base list (PATH, HOME, TEMP, ...): every
+  (a `.ts`/`.js` one through `process.execPath`) and resolves when it exits. The child env is sanitised to a fixed base list (PATH, HOME, TEMP, ...): every
   variable a script reads must be passed through `opts.env`. On win32 the script's shebang is read
   and its interpreter resolved from PATH; an argument holding `\n`/`\r` travels through the
   environment (`P2P2_ARGV<n>`) because no CreateProcess command line survives it - only for a
   bash/sh script, so such a case skips for any other interpreter. Default timeout 60 s on purpose
   (CI over-subscribes cores with `--test-concurrency=12`).
-- `forEachShell("bash" | "posix", fn)` (`harness/shells.ts`) runs a case under every shell really
-  present: each distinct bash major (macOS 3.2 vs 5.x) for a `#!/usr/bin/env bash` script; `/bin/sh`,
-  `dash`, `busybox sh`, `bash --posix` for a `#!/bin/sh` one. An absent shell is returned as a
-  `ShellSkip`, never a failure. A bash-only script is never run under `"posix"`.
+- `forEachShell("bash" | "posix", fn)` (`harness/shells.ts`) runs a case under the first shell
+  present locally, and under every shell present only when `CI` is `true`/`1` (`FULL_SHELL_MATRIX`;
+  `ci.yml` sets it, `CI=true node --test ...` runs it locally): each distinct bash major (macOS 3.2
+  vs 5.x) for a `#!/usr/bin/env bash` script; `/bin/sh`, `dash`, `busybox sh`, `bash --posix` for a
+  `#!/bin/sh` one. An absent or unrun shell is returned as a `ShellSkip`, never a failure. A
+  bash-only script is never run under `"posix"`.
 - `withTempDir` / `withGitRepo` (`harness/tmp.ts`) - every filesystem or git fixture lives in a temp
-  dir removed on return or throw. `withGitRepo` pins HOME/USERPROFILE, an empty
-  `GIT_CONFIG_GLOBAL`, `GIT_CONFIG_NOSYSTEM=1` and fixed author/committer/date: pass its `env` to
-  every call so nothing reads the developer's real `~/.gitconfig`. Never run git against this repo:
-  `tests/github/release.test.ts` snapshots its `git status --porcelain` and tag list at load and
-  fails if the suite changed either (so do not edit the tree while that file runs).
+  dir removed on return or throw. `withGitRepo` copies a per-process template made by one real
+  `git init` (no spawn per repo) and pins HOME/USERPROFILE, its own `GIT_CONFIG_GLOBAL`,
+  `GIT_CONFIG_NOSYSTEM=1` and fixed author/committer/date: pass its `env` to every call so nothing
+  reads the developer's real `~/.gitconfig`. Never run git against this repo: the commit and
+  release scripts under test really commit, tag and push.
 - `withStub(name, body, fn)` + `opts.stubDirs` (`harness/stub.ts`) puts a fake `gh`/`npm`/... first
   on PATH; a test never lets a script reach a real network-facing tool. `stubDirs` only prepends,
   so asserting a tool is ABSENT needs `opts.env.PATH = coreUtilsPath()` first (grep's dir plus

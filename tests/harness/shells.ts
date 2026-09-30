@@ -14,11 +14,20 @@
  * generated wrapper script is involved: an extensionless shim is not
  * spawnable on Windows, where `bash --posix` is the only POSIX shell there
  * is.
+ *
+ * Local vs CI: the full matrix (every shell, every bash major) runs only when
+ * `CI` is set to `true` or `1` - GitHub Actions sets it on every job. A local
+ * run takes the first shell that resolves and records every other candidate as
+ * a `ShellSkip`, so the local suite stays fast; `CI=true node --test ...` runs
+ * the full matrix on a developer machine.
  */
 
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+
+/** True when every shell present runs (CI); false runs only the first one. */
+export const FULL_SHELL_MATRIX = process.env.CI === "true" || process.env.CI === "1";
 
 /** An interpreter path, or [path, ...prefixArgs] for a two-token shell. */
 export type Shell = string | string[];
@@ -82,7 +91,9 @@ function bashMajorVersion(bashPath: string): string | null {
 }
 
 /** Every distinct bash on this machine, deduplicated by reported `--version`
- *  major (so bash 5.1 and 5.2 on the same box count once). */
+ *  major (so bash 5.1 and 5.2 on the same box count once). Outside the full
+ *  matrix it stops at the first working bash, so no other candidate is
+ *  probed. */
 export function bashShells(): string[] {
   const pathEnv = process.env.PATH ?? "";
   if (bashShellsCache !== null && bashShellsCache.path === pathEnv) return bashShellsCache.shells;
@@ -95,6 +106,7 @@ export function bashShells(): string[] {
     if (major === null || seenMajors.has(major)) continue;
     seenMajors.add(major);
     result.push(candidate);
+    if (!FULL_SHELL_MATRIX) break;
   }
   bashShellsCache = { path: pathEnv, shells: result };
   return result;
@@ -141,18 +153,28 @@ function bashCandidates(): ShellCandidate[] {
   return found.map((bashPath) => ({ name: bashPath, resolve: () => bashPath }));
 }
 
-/** Calls `fn(shellPath)` for every shell of `kind` present on this machine;
- *  records a `ShellSkip` (never throws) for each one that is not. */
-export function forEachShell(kind: "bash" | "posix", fn: (shell: Shell) => void): ShellSkip[] {
+/** Calls `fn(shellPath)` for every shell of `kind` present on this machine -
+ *  only the first one outside the full matrix; records a `ShellSkip` (never
+ *  throws) for each one that is absent or not run. */
+export async function forEachShell(
+  kind: "bash" | "posix",
+  fn: (shell: Shell) => void | Promise<void>,
+): Promise<ShellSkip[]> {
   const candidates = kind === "bash" ? bashCandidates() : posixCandidates();
   const skips: ShellSkip[] = [];
+  let ran = false;
   for (const candidate of candidates) {
+    if (ran && !FULL_SHELL_MATRIX) {
+      skips.push({ kind, name: candidate.name, reason: "the full shell matrix runs only in CI" });
+      continue;
+    }
     const resolved = candidate.resolve();
     if (resolved === null) {
       skips.push({ kind, name: candidate.name, reason: "not found on this machine" });
       continue;
     }
-    fn(resolved);
+    await fn(resolved);
+    ran = true;
   }
   return skips;
 }

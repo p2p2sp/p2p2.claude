@@ -10,7 +10,7 @@
  *   node --test tests/harness.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "./harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -21,16 +21,16 @@ import { runScript } from "./harness/run.ts";
 import { withTempDir, withGitRepo } from "./harness/tmp.ts";
 import { canDenyRead, denyRead, restoreRead } from "./harness/perms.ts";
 import { withStub } from "./harness/stub.ts";
-import { forEachShell, shellBin } from "./harness/shells.ts";
+import { FULL_SHELL_MATRIX, forEachShell, shellBin } from "./harness/shells.ts";
 import { writePng } from "./harness/png.ts";
 
-test("runScript round-trips stdout and stderr and reports the real exit status", () => {
-  withTempDir("p2p2-harness-run-", (dir) => {
+test("runScript round-trips stdout and stderr and reports the real exit status", async () => {
+  await withTempDir("p2p2-harness-run-", async (dir) => {
     const scriptPath = path.join(dir, "echo-both.sh");
     fs.writeFileSync(scriptPath, "#!/bin/sh\necho out-line\necho err-line 1>&2\nexit 7\n", { mode: 0o755 });
     fs.chmodSync(scriptPath, 0o755);
 
-    const result = runScript(scriptPath, []);
+    const result = await runScript(scriptPath, []);
 
     assert.equal(result.stdout, "out-line\n");
     assert.equal(result.stderr, "err-line\n");
@@ -38,13 +38,13 @@ test("runScript round-trips stdout and stderr and reports the real exit status",
   });
 });
 
-test("runScript delivers an argument containing a newline and a CR to the script's argv", () => {
-  withTempDir("p2p2-harness-argv-", (dir) => {
+test("runScript delivers an argument containing a newline and a CR to the script's argv", async () => {
+  await withTempDir("p2p2-harness-argv-", async (dir) => {
     const scriptPath = path.join(dir, "echo-argv.sh");
     fs.writeFileSync(scriptPath, '#!/bin/sh\nprintf "[%s]" "$1"\n', { mode: 0o755 });
     fs.chmodSync(scriptPath, 0o755);
 
-    const result = runScript(scriptPath, ["Line1\nLine2\rLine3"]);
+    const result = await runScript(scriptPath, ["Line1\nLine2\rLine3"]);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "[Line1\nLine2\rLine3]");
@@ -54,8 +54,8 @@ test("runScript delivers an argument containing a newline and a CR to the script
 test(
   "denyRead makes a file unreadable for this account and restoreRead hands it back",
   { skip: canDenyRead() ? false : "this machine cannot deny its own account read access" },
-  () => {
-    withTempDir("p2p2-harness-perms-", (dir) => {
+  async () => {
+    await withTempDir("p2p2-harness-perms-", (dir) => {
       const file = path.join(dir, "locked.txt");
       fs.writeFileSync(file, "secret\n");
 
@@ -68,42 +68,57 @@ test(
   },
 );
 
-test("withTempDir removes its directory once the callback returns", () => {
+test("withTempDir removes its directory once the callback returns", async () => {
   let capturedDir = "";
-  withTempDir("p2p2-harness-tmp-", (dir) => {
+  await withTempDir("p2p2-harness-tmp-", (dir) => {
     capturedDir = dir;
     assert.ok(fs.existsSync(dir), "temp dir should exist inside the callback");
   });
   assert.equal(fs.existsSync(capturedDir), false, "temp dir should be gone after the callback returns");
 });
 
-test("withGitRepo pins the git identity and HOME away from the developer's real ones", () => {
-  withGitRepo((repo) => {
-    const email = repo.git("config", "user.email");
+test("withGitRepo pins the git identity and HOME away from the developer's real ones", async () => {
+  await withGitRepo(async (repo) => {
+    const email = await repo.git("config", "user.email");
     assert.equal(email.status, 0, `git config user.email should succeed: ${email.stderr}`);
     assert.equal(email.stdout.trim(), "test@p2p2.invalid");
     assert.notEqual(repo.env.HOME, os.homedir(), "withGitRepo's HOME must not be the developer's real HOME");
 
-    const status = repo.git("status", "--porcelain");
+    const status = await repo.git("status", "--porcelain");
     assert.equal(status.status, 0, `git status should succeed in the throwaway repo: ${status.stderr}`);
   });
 });
 
-test("withStub shadows a real binary on PATH", () => {
-  withStub("git", "echo stubbed-git", (stubDir) => {
-    const result = runScript("git", ["--version"], { stubDirs: [stubDir] });
+test("withGitRepo hands every call its own repo on branch main (a commit in one never reaches the next copy of the template)", async () => {
+  await withGitRepo(async (repo) => {
+    fs.writeFileSync(path.join(repo.dir, "a.txt"), "a\n");
+    await repo.git("add", "a.txt");
+    const commit = await repo.git("commit", "-m", "first");
+    assert.equal(commit.status, 0, `git commit should succeed: ${commit.stderr}`);
+  });
+  await withGitRepo(async (repo) => {
+    const head = await repo.git("rev-parse", "--verify", "-q", "HEAD");
+    assert.notEqual(head.status, 0, "a fresh repo must have no commit");
+    assert.equal((await repo.git("symbolic-ref", "--short", "HEAD")).stdout.trim(), "main");
+  });
+});
+
+test("withStub shadows a real binary on PATH", async () => {
+  await withStub("git", "echo stubbed-git", async (stubDir) => {
+    const result = await runScript("git", ["--version"], { stubDirs: [stubDir] });
     assert.equal(result.status, 0, `stubbed git should succeed: ${result.stderr}`);
     assert.equal(result.stdout, "stubbed-git\n");
   });
 });
 
-test('forEachShell("posix", ...) yields at least one shell and never throws when one is absent', () => {
+test('forEachShell("posix", ...) yields at least one shell and never throws when one is absent', async () => {
   let calls = 0;
-  const skips = forEachShell("posix", (shell) => {
+  const skips = await forEachShell("posix", (shell) => {
     calls += 1;
     assert.ok(fs.existsSync(shellBin(shell)), `resolved shell ${shellBin(shell)} should exist`);
   });
   assert.ok(calls > 0, "expected at least one POSIX shell on this machine (/bin/sh at minimum)");
+  if (!FULL_SHELL_MATRIX) assert.equal(calls, 1, "outside CI only the first shell present runs");
   for (const skip of skips) {
     assert.equal(skip.kind, "posix");
     assert.ok(skip.reason.length > 0, "a skip must record a reason");

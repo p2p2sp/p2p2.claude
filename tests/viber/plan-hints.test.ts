@@ -23,7 +23,7 @@
  *   node --test tests/viber/plan-hints.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -79,14 +79,14 @@ function enterPlanMode(): string {
 
 // hooks.json invokes the script as `bash "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/plan-hints.sh"`,
 // so the harness runs it through bash the same way.
-function run(input: string): string {
-  const result = runScript(SUT, [], { shell: "bash", input });
+async function run(input: string): Promise<string> {
+  const result = await runScript(SUT, [], { shell: "bash", input });
   assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
   return result.stdout;
 }
 
-function runPayload(payload: Record<string, unknown>): string {
-  return run(JSON.stringify({ hook_event_name: "UserPromptSubmit", prompt: "go", ...payload }));
+async function runPayload(payload: Record<string, unknown>): Promise<string> {
+  return await run(JSON.stringify({ hook_event_name: "UserPromptSubmit", prompt: "go", ...payload }));
 }
 
 /** Parses the hint and asserts it carries both rules. */
@@ -106,98 +106,98 @@ function assertHint(stdout: string): void {
 
 // --- cases ------------------------------------------------------------
 
-test("plan mode with no planner in the transcript -> additionalContext carries both rules", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("plan mode with no planner in the transcript -> additionalContext carries both rules", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     const f = writeTranscript(dir, [permissionMode("plan")]);
-    assertHint(runPayload({ permission_mode: "plan", transcript_path: f }));
+    assertHint(await runPayload({ permission_mode: "plan", transcript_path: f }));
   });
 });
 
-test("the hint carries exactly the two rules, with no line telling the model to skip them under a viber skill (the hook itself stays silent there)", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("the hint carries exactly the two rules, with no line telling the model to skip them under a viber skill (the hook itself stays silent there)", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     const f = writeTranscript(dir, [permissionMode("plan")]);
-    const ctx = JSON.parse(runPayload({ permission_mode: "plan", transcript_path: f })).hookSpecificOutput.additionalContext as string;
+    const ctx = JSON.parse(await runPayload({ permission_mode: "plan", transcript_path: f })).hookSpecificOutput.additionalContext as string;
     assert.equal(ctx.split("\n").filter((l) => l.startsWith("- ")).length, 2, `expected two rule lines, got: ${ctx}`);
     assert.doesNotMatch(ctx, /viber|skip/i);
   });
 });
 
-test("the hint is the shipped hooks/content/plan-hints.md verbatim, trailing newlines cut (the text lives in the file, not the script)", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("the hint is the shipped hooks/content/plan-hints.md verbatim, trailing newlines cut (the text lives in the file, not the script)", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     const f = writeTranscript(dir, [permissionMode("plan")]);
-    const ctx = JSON.parse(runPayload({ permission_mode: "plan", transcript_path: f })).hookSpecificOutput.additionalContext;
+    const ctx = JSON.parse(await runPayload({ permission_mode: "plan", transcript_path: f })).hookSpecificOutput.additionalContext;
     assert.equal(ctx, fs.readFileSync(SHIPPED_HINTS, "utf8").replace(/\n+$/, ""));
   });
 });
 
-test("hint text with quotes, backslashes and tabs -> still one parseable JSON line carrying it exactly (the file is escaped, not pasted)", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("hint text with quotes, backslashes and tabs -> still one parseable JSON line carrying it exactly (the file is escaped, not pasted)", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     const text = 'Rules:\n- say "done"\tC:\\plans\n';
     const script = isolatedScript(dir, text);
-    const result = runScript(script, [], { shell: "bash", input: JSON.stringify({ permission_mode: "plan" }) });
+    const result = await runScript(script, [], { shell: "bash", input: JSON.stringify({ permission_mode: "plan" }) });
     assert.equal(result.status, 0);
     assert.equal(JSON.parse(result.stdout).hookSpecificOutput.additionalContext, text.replace(/\n+$/, ""));
   });
 });
 
-test("an empty or missing plan-hints.md -> exit 0, nothing printed (fail-open, no empty context injected)", () => {
+test("an empty or missing plan-hints.md -> exit 0, nothing printed (fail-open, no empty context injected)", async () => {
   for (const hints of ["", null]) {
-    withTempDir("p2p2-plan-hints-", (dir) => {
+    await withTempDir("p2p2-plan-hints-", async (dir) => {
       const script = isolatedScript(dir, hints);
-      const result = runScript(script, [], { shell: "bash", input: JSON.stringify({ permission_mode: "plan" }) });
+      const result = await runScript(script, [], { shell: "bash", input: JSON.stringify({ permission_mode: "plan" }) });
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       assert.equal(result.stdout, "", `expected silence for hints=${JSON.stringify(hints)}`);
     });
   }
 });
 
-test("default permission mode -> nothing printed (the hint is for plan mode only)", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("default permission mode -> nothing printed (the hint is for plan mode only)", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     const f = writeTranscript(dir, []);
-    assert.equal(runPayload({ permission_mode: "default", transcript_path: f }), "");
+    assert.equal(await runPayload({ permission_mode: "default", transcript_path: f }), "");
   });
 });
 
-test("a payload with no permission_mode key -> nothing printed", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("a payload with no permission_mode key -> nothing printed", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     const f = writeTranscript(dir, []);
-    assert.equal(runPayload({ transcript_path: f }), "");
+    assert.equal(await runPayload({ transcript_path: f }), "");
   });
 });
 
-test("empty stdin -> exit 0, nothing printed (fail-open)", () => {
-  assert.equal(run(""), "");
+test("empty stdin -> exit 0, nothing printed (fail-open)", async () => {
+  assert.equal(await run(""), "");
 });
 
-test("a planner Skill tool_use in the current episode -> nothing printed (the viber planner covers both rules)", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("a planner Skill tool_use in the current episode -> nothing printed (the viber planner covers both rules)", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     const f = writeTranscript(dir, [permissionMode("plan"), skillUse()]);
-    assert.equal(runPayload({ permission_mode: "plan", transcript_path: f }), "");
+    assert.equal(await runPayload({ permission_mode: "plan", transcript_path: f }), "");
     const bare = writeTranscript(dir, [skillUse("planner")]);
-    assert.equal(runPayload({ permission_mode: "plan", transcript_path: bare }), "");
+    assert.equal(await runPayload({ permission_mode: "plan", transcript_path: bare }), "");
   });
 });
 
-test("an intent or fixer Skill tool_use in the current episode -> nothing printed (both hand off to the planner, which covers both rules)", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("an intent or fixer Skill tool_use in the current episode -> nothing printed (both hand off to the planner, which covers both rules)", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     for (const skill of ["viber:intent", "intent", "viber:fixer", "fixer"]) {
       const f = writeTranscript(dir, [permissionMode("plan"), skillUse(skill)]);
-      assert.equal(runPayload({ permission_mode: "plan", transcript_path: f }), "", `expected silence after ${skill}`);
+      assert.equal(await runPayload({ permission_mode: "plan", transcript_path: f }), "", `expected silence after ${skill}`);
     }
   });
 });
 
-test("a typed /viber:intent or /viber:fixer command in the current episode -> nothing printed (a typed command records no Skill tool_use)", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("a typed /viber:intent or /viber:fixer command in the current episode -> nothing printed (a typed command records no Skill tool_use)", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     for (const name of ["viber:intent", "viber:fixer"]) {
       const f = writeTranscript(dir, [permissionMode("plan"), typedCommand(name)]);
-      assert.equal(runPayload({ permission_mode: "plan", transcript_path: f }), "", `expected silence after /${name}`);
+      assert.equal(await runPayload({ permission_mode: "plan", transcript_path: f }), "", `expected silence after /${name}`);
     }
   });
 });
 
-test("a typed /viber:intent with arguments, in the full record shape Claude Code writes -> nothing printed (metadata keys before the message must not hide the tag)", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("a typed /viber:intent with arguments, in the full record shape Claude Code writes -> nothing printed (metadata keys before the message must not hide the tag)", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     const real = line({
       parentUuid: "p",
       isSidechain: false,
@@ -208,66 +208,66 @@ test("a typed /viber:intent with arguments, in the full record shape Claude Code
       timestamp: "2026-09-25T22:45:00.000Z",
     });
     const f = writeTranscript(dir, [permissionMode("plan"), real]);
-    assert.equal(runPayload({ permission_mode: "plan", transcript_path: f }), "");
+    assert.equal(await runPayload({ permission_mode: "plan", transcript_path: f }), "");
   });
 });
 
-test("a typed command that is not viber intent or fixer, or one before the episode -> the hint fires (a bare /intent may belong to another plugin)", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("a typed command that is not viber intent or fixer, or one before the episode -> the hint fires (a bare /intent may belong to another plugin)", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     const other = writeTranscript(dir, [permissionMode("plan"), typedCommand("intent"), typedCommand("viber:triage")]);
-    assertHint(runPayload({ permission_mode: "plan", transcript_path: other }));
+    assertHint(await runPayload({ permission_mode: "plan", transcript_path: other }));
     const earlier = writeTranscript(dir, [typedCommand("viber:intent"), permissionMode("default"), permissionMode("plan")]);
-    assertHint(runPayload({ permission_mode: "plan", transcript_path: earlier }));
+    assertHint(await runPayload({ permission_mode: "plan", transcript_path: earlier }));
   });
 });
 
-test("assistant text quoting the command tag -> the hint fires (only a user message opening with the tag counts)", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("assistant text quoting the command tag -> the hint fires (only a user message opening with the tag counts)", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     const quoted = line({ type: "assistant", message: { content: [{ type: "text", text: "<command-message>viber:intent</command-message>" }] } });
     const f = writeTranscript(dir, [permissionMode("plan"), quoted]);
-    assertHint(runPayload({ permission_mode: "plan", transcript_path: f }));
+    assertHint(await runPayload({ permission_mode: "plan", transcript_path: f }));
   });
 });
 
-test("an unrelated viber Skill in the current episode -> the hint still fires (only the planning chain silences it)", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("an unrelated viber Skill in the current episode -> the hint still fires (only the planning chain silences it)", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     const f = writeTranscript(dir, [permissionMode("plan"), skillUse("viber:triage")]);
-    assertHint(runPayload({ permission_mode: "plan", transcript_path: f }));
+    assertHint(await runPayload({ permission_mode: "plan", transcript_path: f }));
   });
 });
 
-test("an intent Skill before a later non-plan permission mode -> the hint fires again (an earlier interview does not silence a new plain plan)", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("an intent Skill before a later non-plan permission mode -> the hint fires again (an earlier interview does not silence a new plain plan)", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     const f = writeTranscript(dir, [skillUse("viber:intent"), permissionMode("default"), permissionMode("plan")]);
-    assertHint(runPayload({ permission_mode: "plan", transcript_path: f }));
+    assertHint(await runPayload({ permission_mode: "plan", transcript_path: f }));
   });
 });
 
-test("a planner Skill before a later non-plan permission mode -> the hint fires again (an earlier episode does not silence a new plain plan)", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("a planner Skill before a later non-plan permission mode -> the hint fires again (an earlier episode does not silence a new plain plan)", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     const f = writeTranscript(dir, [skillUse(), permissionMode("default"), permissionMode("plan")]);
-    assertHint(runPayload({ permission_mode: "plan", transcript_path: f }));
+    assertHint(await runPayload({ permission_mode: "plan", transcript_path: f }));
   });
 });
 
-test("a mid-turn non-plan record between the planner Skill and its own EnterPlanMode -> nothing printed (the planner still owns the episode)", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("a mid-turn non-plan record between the planner Skill and its own EnterPlanMode -> nothing printed (the planner still owns the episode)", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     const f = writeTranscript(dir, [permissionMode("acceptEdits"), skillUse(), permissionMode("acceptEdits"), enterPlanMode(), permissionMode("plan")]);
-    assert.equal(runPayload({ permission_mode: "plan", transcript_path: f }), "");
+    assert.equal(await runPayload({ permission_mode: "plan", transcript_path: f }), "");
   });
 });
 
-test("a planner that stopped before EnterPlanMode, then a new user prompt enters plan mode -> the hint fires (plain plan)", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
+test("a planner that stopped before EnterPlanMode, then a new user prompt enters plan mode -> the hint fires (plain plan)", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
     const prompt = line({ type: "user", message: { role: "user", content: "just plan it" } });
     const f = writeTranscript(dir, [skillUse(), permissionMode("acceptEdits"), prompt, enterPlanMode(), permissionMode("plan")]);
-    assertHint(runPayload({ permission_mode: "plan", transcript_path: f }));
+    assertHint(await runPayload({ permission_mode: "plan", transcript_path: f }));
   });
 });
 
-test("plan mode with a transcript that does not exist -> the hint still fires (a missing transcript counts as no planner)", () => {
-  withTempDir("p2p2-plan-hints-", (dir) => {
-    assertHint(runPayload({ permission_mode: "plan", transcript_path: path.join(dir, "gone.jsonl") }));
-    assertHint(runPayload({ permission_mode: "plan" }));
+test("plan mode with a transcript that does not exist -> the hint still fires (a missing transcript counts as no planner)", async () => {
+  await withTempDir("p2p2-plan-hints-", async (dir) => {
+    assertHint(await runPayload({ permission_mode: "plan", transcript_path: path.join(dir, "gone.jsonl") }));
+    assertHint(await runPayload({ permission_mode: "plan" }));
   });
 });

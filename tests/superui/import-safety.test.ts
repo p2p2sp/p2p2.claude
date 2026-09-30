@@ -9,7 +9,7 @@
  *   node --test tests/superui/import-safety.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 
 import { contrastRatio } from "../../superui/skills/pro-designer/scripts/check_contrast.ts";

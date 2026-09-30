@@ -20,8 +20,8 @@ import { withTempDir } from "./tmp.ts";
  *  command name (a shell under test resolves the extensionless file itself;
  *  a spawn straight from the test goes through `runScript`'s stubDirs
  *  lookup). The dir is meant to be prepended to `PATH` (see
- *  `RunOpts.stubDirs`). Cleaned up whether `fn` returns or throws. */
-export function withStub<T>(name: string, body: string, fn: (stubDir: string) => T): T {
+ *  `RunOpts.stubDirs`). Cleaned up once `fn` settles, whether it resolves or throws. */
+export function withStub<T>(name: string, body: string, fn: (stubDir: string) => T | Promise<T>): Promise<T> {
   return withTempDir("p2p2-stub-", (dir) => {
     const scriptPath = path.join(dir, name);
     fs.writeFileSync(scriptPath, `#!/bin/sh\n${body}\n`, { mode: 0o755 });

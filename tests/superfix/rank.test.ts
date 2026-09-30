@@ -19,7 +19,7 @@
  *   node --test tests/superfix/rank.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -36,22 +36,22 @@ function writeJsonl(file: string, lines: unknown[]): void {
   fs.writeFileSync(file, lines.map((l) => JSON.stringify(l)).join("\n") + (lines.length ? "\n" : ""));
 }
 
-function runRank(dir: string, args: string[]): RunResult {
-  return runScript(SUT, args, { cwd: dir });
+async function runRank(dir: string, args: string[]): Promise<RunResult> {
+  return await runScript(SUT, args, { cwd: dir });
 }
 
 /** Runs rank.ts over `scores` with default out paths, asserts a clean exit,
  *  and returns the parsed hotlist.json plus the raw hotlist.md text. */
-function rank(
+async function rank(
   dir: string,
   scores: unknown[],
   extraArgs: string[] = [],
-): { result: RunResult; json: Rec; md: string } {
+): Promise<{ result: RunResult; json: Rec; md: string }> {
   const scoresPath = path.join(dir, "scores.jsonl");
   const jsonPath = path.join(dir, "hotlist.json");
   const mdPath = path.join(dir, "hotlist.md");
   writeJsonl(scoresPath, scores);
-  const result = runRank(dir, ["--scores", scoresPath, "--out-json", jsonPath, "--out-md", mdPath, ...extraArgs]);
+  const result = await runRank(dir, ["--scores", scoresPath, "--out-json", jsonPath, "--out-md", mdPath, ...extraArgs]);
   assert.equal(result.status, 0, `rank.ts should exit 0: stderr=${result.stderr}`);
   const json = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
   const md = fs.readFileSync(mdPath, "utf8");
@@ -60,9 +60,9 @@ function rank(
 
 // --- score = impact x opportunity, the 2x2 quadrant cut ---------------------
 
-test("score is impact x opportunity, and every quadrant is cut at the inclusive >= gate", () => {
-  withTempDir("p2p2-rank-quad-", (dir) => {
-    const { json, md } = rank(dir, [
+test("score is impact x opportunity, and every quadrant is cut at the inclusive >= gate", async () => {
+  await withTempDir("p2p2-rank-quad-", async (dir) => {
+    const { json, md } = await rank(dir, [
       { path: "hot.ts", impact: 5, opportunity: 5 }, // HOTSPOT
       { path: "fine.ts", impact: 5, opportunity: 1 }, // already-fine
       { path: "nobody.ts", impact: 1, opportunity: 5 }, // nobody-cares
@@ -91,9 +91,9 @@ test("score is impact x opportunity, and every quadrant is cut at the inclusive 
   });
 });
 
-test("--min-impact / --min-opportunity are inclusive gates: a score exactly at the threshold is a HOTSPOT", () => {
-  withTempDir("p2p2-rank-threshold-", (dir) => {
-    const { json } = rank(
+test("--min-impact / --min-opportunity are inclusive gates: a score exactly at the threshold is a HOTSPOT", async () => {
+  await withTempDir("p2p2-rank-threshold-", async (dir) => {
+    const { json } = await rank(
       dir,
       [{ path: "edge.ts", impact: 4, opportunity: 4 }],
       ["--min-impact", "4", "--min-opportunity", "4"],
@@ -101,11 +101,11 @@ test("--min-impact / --min-opportunity are inclusive gates: a score exactly at t
     assert.equal(json.hotspots.length, 1, "impact == min-impact and opportunity == min-opportunity must clear the gate");
     assert.equal(json.hotspots[0].quadrant, "HOTSPOT");
 
-    const belowJson = rank(
+    const belowJson = (await rank(
       dir,
       [{ path: "below.ts", impact: 3, opportunity: 4 }],
       ["--min-impact", "4", "--min-opportunity", "4"],
-    ).json;
+    )).json;
     assert.equal(belowJson.hotspots.length, 0, "impact one below min-impact must not clear the gate");
     assert.equal(belowJson.skipped[0].quadrant, "nobody-cares");
   });
@@ -113,9 +113,9 @@ test("--min-impact / --min-opportunity are inclusive gates: a score exactly at t
 
 // --- reason derivation --------------------------------------------------------
 
-test("reason prefers impact/opportunity_reason, falls back to churn/fix_commits, else empty", () => {
-  withTempDir("p2p2-rank-reason-", (dir) => {
-    const { json } = rank(dir, [
+test("reason prefers impact/opportunity_reason, falls back to churn/fix_commits, else empty", async () => {
+  await withTempDir("p2p2-rank-reason-", async (dir) => {
+    const { json } = await rank(dir, [
       { path: "reasoned.ts", impact: 4, opportunity: 4, impact_reason: "hot path", opportunity_reason: "" },
       { path: "churned.ts", impact: 4, opportunity: 4, churn: 7, fix_commits: 3 },
       { path: "unknown-churn.ts", impact: 4, opportunity: 4, churn: -1 },
@@ -131,16 +131,16 @@ test("reason prefers impact/opportunity_reason, falls back to churn/fix_commits,
 
 // --- opportunity histogram + degenerate flag ---------------------------------
 
-test("opportunity_histogram counts every scored row, and degenerate fires only when no row clears min-opportunity", () => {
-  withTempDir("p2p2-rank-degenerate-", (dir) => {
-    const normal = rank(dir, [
+test("opportunity_histogram counts every scored row, and degenerate fires only when no row clears min-opportunity", async () => {
+  await withTempDir("p2p2-rank-degenerate-", async (dir) => {
+    const normal = (await rank(dir, [
       { path: "a.ts", impact: 5, opportunity: 5 },
       { path: "b.ts", impact: 1, opportunity: 1 },
-    ]).json;
+    ])).json;
     assert.deepEqual(normal.opportunity_histogram, { "1": 1, "2": 0, "3": 0, "4": 0, "5": 1 });
     assert.equal(normal.degenerate, false);
 
-    const { json: degenerateJson, md } = rank(dir, [
+    const { json: degenerateJson, md } = await rank(dir, [
       { path: "c.ts", impact: 5, opportunity: 1 },
       { path: "d.ts", impact: 5, opportunity: 2 },
     ]);
@@ -152,14 +152,14 @@ test("opportunity_histogram counts every scored row, and degenerate fires only w
 
 // --- --top caps hotspots into overflow, never drops gate-clearing rows -------
 
-test("--top caps hotspots and moves the remaining gate-clearing rows to overflow", () => {
-  withTempDir("p2p2-rank-top-", (dir) => {
+test("--top caps hotspots and moves the remaining gate-clearing rows to overflow", async () => {
+  await withTempDir("p2p2-rank-top-", async (dir) => {
     const scores = [
       { path: "r1.ts", impact: 5, opportunity: 5, churn: 3 },
       { path: "r2.ts", impact: 5, opportunity: 5, churn: 2 },
       { path: "r3.ts", impact: 5, opportunity: 5, churn: 1 },
     ];
-    const capped = rank(dir, scores, ["--top", "1"]).json;
+    const capped = (await rank(dir, scores, ["--top", "1"])).json;
     assert.equal(capped.hotspots.length, 1);
     assert.equal(capped.overflow.length, 2);
     assert.equal(capped.hotspots[0].path, "r1.ts", "highest churn breaks the score/impact tie");
@@ -169,11 +169,11 @@ test("--top caps hotspots and moves the remaining gate-clearing rows to overflow
       "overflow rows keep their rank from the full gate-clearing order",
     );
 
-    const zero = rank(dir, scores, ["--top", "0"]).json;
+    const zero = (await rank(dir, scores, ["--top", "0"])).json;
     assert.equal(zero.hotspots.length, 0);
     assert.equal(zero.overflow.length, 3);
 
-    const overshoot = rank(dir, scores, ["--top", "100"]).json;
+    const overshoot = (await rank(dir, scores, ["--top", "100"])).json;
     assert.equal(overshoot.hotspots.length, 3);
     assert.equal(overshoot.overflow.length, 0);
   });
@@ -181,9 +181,9 @@ test("--top caps hotspots and moves the remaining gate-clearing rows to overflow
 
 // --- --job / --run-id ---------------------------------------------------------
 
-test("--job and --run-id land in hotlist.json and the hotlist.md title", () => {
-  withTempDir("p2p2-rank-job-", (dir) => {
-    const { json, md } = rank(
+test("--job and --run-id land in hotlist.json and the hotlist.md title", async () => {
+  await withTempDir("p2p2-rank-job-", async (dir) => {
+    const { json, md } = await rank(
       dir,
       [{ path: "a.ts", impact: 5, opportunity: 5 }],
       ["--job", "reliability/bugs", "--run-id", "2026-06-26"],
@@ -196,8 +196,8 @@ test("--job and --run-id land in hotlist.json and the hotlist.md title", () => {
 
 // --- --signals merge -----------------------------------------------------------
 
-test("--signals merges matching rows and warns on stderr for a score with no signals row", () => {
-  withTempDir("p2p2-rank-signals-", (dir) => {
+test("--signals merges matching rows and warns on stderr for a score with no signals row", async () => {
+  await withTempDir("p2p2-rank-signals-", async (dir) => {
     const signalsPath = path.join(dir, "signals.jsonl");
     writeJsonl(signalsPath, [{ path: "a.ts", loc: 42, dependents: 3 }]);
     const scoresPath = path.join(dir, "scores.jsonl");
@@ -207,7 +207,7 @@ test("--signals merges matching rows and warns on stderr for a score with no sig
     ]);
     const jsonPath = path.join(dir, "hotlist.json");
     const mdPath = path.join(dir, "hotlist.md");
-    const result = runRank(dir, [
+    const result = await runRank(dir, [
       "--scores",
       scoresPath,
       "--signals",
@@ -228,22 +228,22 @@ test("--signals merges matching rows and warns on stderr for a score with no sig
 
 // --- documented stdout marker line -------------------------------------------
 
-test("stdout prints the documented `hotlist: N hotspots from M scored files -> ...` line", () => {
-  withTempDir("p2p2-rank-stdout-", (dir) => {
+test("stdout prints the documented `hotlist: N hotspots from M scored files -> ...` line", async () => {
+  await withTempDir("p2p2-rank-stdout-", async (dir) => {
     const scoresPath = path.join(dir, "scores.jsonl");
     const jsonPath = path.join(dir, "hotlist.json");
     const mdPath = path.join(dir, "hotlist.md");
     writeJsonl(scoresPath, [{ path: "a.ts", impact: 5, opportunity: 5 }]);
-    const result = runRank(dir, ["--scores", scoresPath, "--out-json", jsonPath, "--out-md", mdPath]);
+    const result = await runRank(dir, ["--scores", scoresPath, "--out-json", jsonPath, "--out-md", mdPath]);
     assert.equal(result.stdout, `hotlist: 1 hotspots from 1 scored files -> ${jsonPath}, ${mdPath}\n`);
   });
 });
 
 // --- USAGE + exit codes -------------------------------------------------------
 
-test("missing required arguments print USAGE + an error line on stderr and exit 2", () => {
-  withTempDir("p2p2-rank-usage-", (dir) => {
-    const result = runRank(dir, ["--scores", path.join(dir, "scores.jsonl")]);
+test("missing required arguments print USAGE + an error line on stderr and exit 2", async () => {
+  await withTempDir("p2p2-rank-usage-", async (dir) => {
+    const result = await runRank(dir, ["--scores", path.join(dir, "scores.jsonl")]);
     assert.equal(result.status, 2);
     assert.match(result.stderr, /^usage: rank\.ts /);
     assert.match(result.stderr, /the following arguments are required: --out-json, --out-md/);
@@ -251,9 +251,9 @@ test("missing required arguments print USAGE + an error line on stderr and exit 
   });
 });
 
-test("--help prints the help text to stdout and exits 0", () => {
-  withTempDir("p2p2-rank-help-", (dir) => {
-    const result = runRank(dir, ["--help"]);
+test("--help prints the help text to stdout and exits 0", async () => {
+  await withTempDir("p2p2-rank-help-", async (dir) => {
+    const result = await runRank(dir, ["--help"]);
     assert.equal(result.status, 0);
     assert.match(result.stdout, /^usage: rank\.ts /);
     assert.match(result.stdout, /show this help message and exit/);
@@ -262,17 +262,17 @@ test("--help prints the help text to stdout and exits 0", () => {
 
 // --- boundary inputs ----------------------------------------------------------
 
-test("an empty --scores file yields zero scored rows and a non-degenerate, all-zero histogram", () => {
-  withTempDir("p2p2-rank-empty-", (dir) => {
-    const { json } = rank(dir, []);
+test("an empty --scores file yields zero scored rows and a non-degenerate, all-zero histogram", async () => {
+  await withTempDir("p2p2-rank-empty-", async (dir) => {
+    const { json } = await rank(dir, []);
     assert.equal(json.counts.scored, 0);
     assert.equal(json.degenerate, false);
     assert.deepEqual(json.opportunity_histogram, { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 });
   });
 });
 
-test("a malformed JSONL line warns on stderr and is skipped, other rows still rank", () => {
-  withTempDir("p2p2-rank-malformed-", (dir) => {
+test("a malformed JSONL line warns on stderr and is skipped, other rows still rank", async () => {
+  await withTempDir("p2p2-rank-malformed-", async (dir) => {
     const scoresPath = path.join(dir, "scores.jsonl");
     fs.writeFileSync(
       scoresPath,
@@ -280,7 +280,7 @@ test("a malformed JSONL line warns on stderr and is skipped, other rows still ra
     );
     const jsonPath = path.join(dir, "hotlist.json");
     const mdPath = path.join(dir, "hotlist.md");
-    const result = runRank(dir, ["--scores", scoresPath, "--out-json", jsonPath, "--out-md", mdPath]);
+    const result = await runRank(dir, ["--scores", scoresPath, "--out-json", jsonPath, "--out-md", mdPath]);
     assert.equal(result.status, 0, `stderr=${result.stderr}`);
     assert.match(result.stderr, /warn: skipping malformed line 2 in /);
     const json = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
@@ -288,8 +288,8 @@ test("a malformed JSONL line warns on stderr and is skipped, other rows still ra
   });
 });
 
-test("a record missing impact/opportunity, and a non-object record, both warn and are dropped", () => {
-  withTempDir("p2p2-rank-missing-key-", (dir) => {
+test("a record missing impact/opportunity, and a non-object record, both warn and are dropped", async () => {
+  await withTempDir("p2p2-rank-missing-key-", async (dir) => {
     const scoresPath = path.join(dir, "scores.jsonl");
     fs.writeFileSync(
       scoresPath,
@@ -297,7 +297,7 @@ test("a record missing impact/opportunity, and a non-object record, both warn an
     );
     const jsonPath = path.join(dir, "hotlist.json");
     const mdPath = path.join(dir, "hotlist.md");
-    const result = runRank(dir, ["--scores", scoresPath, "--out-json", jsonPath, "--out-md", mdPath]);
+    const result = await runRank(dir, ["--scores", scoresPath, "--out-json", jsonPath, "--out-md", mdPath]);
     assert.equal(result.status, 0, `stderr=${result.stderr}`);
     assert.match(result.stderr, /warn: skipping non-object record: \[1, 2, 3\]/);
     assert.match(result.stderr, /warn: skipping record without numeric impact\/opportunity: \{'path': 'no-impact\.ts', 'opportunity': 5\}/);
@@ -306,9 +306,9 @@ test("a record missing impact/opportunity, and a non-object record, both warn an
   });
 });
 
-test("ties in score are broken deterministically by impact desc, then churn desc", () => {
-  withTempDir("p2p2-rank-ties-", (dir) => {
-    const { json } = rank(dir, [
+test("ties in score are broken deterministically by impact desc, then churn desc", async () => {
+  await withTempDir("p2p2-rank-ties-", async (dir) => {
+    const { json } = await rank(dir, [
       { path: "high-churn.ts", impact: 5, opportunity: 5, churn: 2 },
       { path: "low-churn.ts", impact: 5, opportunity: 5, churn: 1 },
       { path: "low-impact.ts", impact: 3, opportunity: 5, churn: 99 },
@@ -321,11 +321,11 @@ test("ties in score are broken deterministically by impact desc, then churn desc
   });
 });
 
-test("--out-json pointing at a directory that does not exist crashes with a non-zero exit", () => {
-  withTempDir("p2p2-rank-unwritable-", (dir) => {
+test("--out-json pointing at a directory that does not exist crashes with a non-zero exit", async () => {
+  await withTempDir("p2p2-rank-unwritable-", async (dir) => {
     const scoresPath = path.join(dir, "scores.jsonl");
     writeJsonl(scoresPath, [{ path: "a.ts", impact: 5, opportunity: 5 }]);
-    const result = runRank(dir, [
+    const result = await runRank(dir, [
       "--scores",
       scoresPath,
       "--out-json",
@@ -338,11 +338,11 @@ test("--out-json pointing at a directory that does not exist crashes with a non-
   });
 });
 
-test("--out-md pointing at a directory that does not exist crashes with a non-zero exit", () => {
-  withTempDir("p2p2-rank-unwritable-md-", (dir) => {
+test("--out-md pointing at a directory that does not exist crashes with a non-zero exit", async () => {
+  await withTempDir("p2p2-rank-unwritable-md-", async (dir) => {
     const scoresPath = path.join(dir, "scores.jsonl");
     writeJsonl(scoresPath, [{ path: "a.ts", impact: 5, opportunity: 5 }]);
-    const result = runRank(dir, [
+    const result = await runRank(dir, [
       "--scores",
       scoresPath,
       "--out-json",
@@ -357,15 +357,15 @@ test("--out-md pointing at a directory that does not exist crashes with a non-ze
 
 // --- edge cases ----------------------------------------------------------------
 
-test("a path with a Windows-style backslash is preserved verbatim, and CRLF line endings parse the same as LF", () => {
-  withTempDir("p2p2-rank-edgecases-", (dir) => {
+test("a path with a Windows-style backslash is preserved verbatim, and CRLF line endings parse the same as LF", async () => {
+  await withTempDir("p2p2-rank-edgecases-", async (dir) => {
     const winPath = "src\\module\\file.ts";
     const scoresPath = path.join(dir, "scores.jsonl");
     const line = JSON.stringify({ path: winPath, impact: 5, opportunity: 5 });
     fs.writeFileSync(scoresPath, `${line}\r\n`);
     const jsonPath = path.join(dir, "hotlist.json");
     const mdPath = path.join(dir, "hotlist.md");
-    const result = runRank(dir, ["--scores", scoresPath, "--out-json", jsonPath, "--out-md", mdPath]);
+    const result = await runRank(dir, ["--scores", scoresPath, "--out-json", jsonPath, "--out-md", mdPath]);
     assert.equal(result.status, 0, `stderr=${result.stderr}`);
     const json = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
     assert.equal(json.hotspots.length, 1);
@@ -373,15 +373,15 @@ test("a path with a Windows-style backslash is preserved verbatim, and CRLF line
   });
 });
 
-test("hotlist.json is stable across two identical runs", () => {
-  withTempDir("p2p2-rank-stable-", (dir) => {
+test("hotlist.json is stable across two identical runs", async () => {
+  await withTempDir("p2p2-rank-stable-", async (dir) => {
     const scores = [
       { path: "a.ts", impact: 5, opportunity: 5, churn: 3 },
       { path: "b.ts", impact: 4, opportunity: 4, churn: 1 },
       { path: "c.ts", impact: 1, opportunity: 1 },
     ];
-    const first = rank(dir, scores).json;
-    const second = rank(dir, scores).json;
+    const first = (await rank(dir, scores)).json;
+    const second = (await rank(dir, scores)).json;
     assert.deepEqual(first, second);
   });
 });

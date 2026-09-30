@@ -15,7 +15,7 @@
  *   node --test tests/viber/switch-text.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -43,17 +43,17 @@ function writeFragment(repo: GitRepo, file: string, body: string): void {
   fs.writeFileSync(path.join(dir, file), body);
 }
 
-function run(repo: GitRepo, args: string[], cwd: string = repo.dir, shell: Shell = "bash"): RunResult {
-  return runScript(SUT, args, { cwd, env: repo.env, shell });
+async function run(repo: GitRepo, args: string[], cwd: string = repo.dir, shell: Shell = "bash"): Promise<RunResult> {
+  return await runScript(SUT, args, { cwd, env: repo.env, shell });
 }
 
-test("a true switch prints its .true.md fragment, byte for byte", () => {
-  withGitRepo((repo) => {
+test("a true switch prints its .true.md fragment, byte for byte", async () => {
+  await withGitRepo(async (repo) => {
     writeConfig(repo, "adr: true\n");
     writeFragment(repo, "step.true.md", "ADR on.\n\nSecond line.\n");
     writeFragment(repo, "step.false.md", "ADR off.\n");
 
-    const result = run(repo, ["adr", skillDir(repo), "step"]);
+    const result = await run(repo, ["adr", skillDir(repo), "step"]);
 
     assert.deepEqual([result.status, result.stdout], [0, "ADR on.\n\nSecond line.\n"]);
   });
@@ -63,80 +63,80 @@ for (const [label, config] of [
   ["a false switch", "memory: false\n"],
   ["an absent switch", "adr: true\n"],
 ] as const) {
-  test(`${label} prints the .false.md fragment (a disabled state that does something still gets its text)`, () => {
-    withGitRepo((repo) => {
+  test(`${label} prints the .false.md fragment (a disabled state that does something still gets its text)`, async () => {
+    await withGitRepo(async (repo) => {
       writeConfig(repo, config);
       writeFragment(repo, "step.true.md", "Memory on.\n");
       writeFragment(repo, "step.false.md", "Memory off.\n");
 
-      const result = run(repo, ["memory", skillDir(repo), "step"]);
+      const result = await run(repo, ["memory", skillDir(repo), "step"]);
 
       assert.deepEqual([result.status, result.stdout], [0, "Memory off.\n"]);
     });
   });
 }
 
-test("`final-review: true` prints the skill's final-review.true.md fragment", () => {
-  withGitRepo((repo) => {
+test("`final-review: true` prints the skill's final-review.true.md fragment", async () => {
+  await withGitRepo(async (repo) => {
     writeConfig(repo, "final-review: true\n");
     writeFragment(repo, "final-review.true.md", "Run the final review.\n");
 
-    const result = run(repo, ["final-review", skillDir(repo), "final-review"]);
+    const result = await run(repo, ["final-review", skillDir(repo), "final-review"]);
 
     assert.deepEqual([result.status, result.stdout], [0, "Run the final review.\n"]);
   });
 });
 
-test("`final-review` off prints nothing - there is no fragment for the off state", () => {
-  withGitRepo((repo) => {
+test("`final-review` off prints nothing - there is no fragment for the off state", async () => {
+  await withGitRepo(async (repo) => {
     writeConfig(repo, "final-review: false\n");
     writeFragment(repo, "final-review.true.md", "Run the final review.\n");
 
-    const result = run(repo, ["final-review", skillDir(repo), "final-review"]);
+    const result = await run(repo, ["final-review", skillDir(repo), "final-review"]);
 
     assert.deepEqual([result.status, result.stdout], [0, ""]);
   });
 });
 
-test("`fast-path: true` prints the skill's fast-path.true.md fragment", () => {
-  withGitRepo((repo) => {
+test("`fast-path: true` prints the skill's fast-path.true.md fragment", async () => {
+  await withGitRepo(async (repo) => {
     writeConfig(repo, "fast-path: true\n");
     writeFragment(repo, "fast-path.true.md", "Show the design in chat.\n");
 
-    const result = run(repo, ["fast-path", skillDir(repo), "fast-path"]);
+    const result = await run(repo, ["fast-path", skillDir(repo), "fast-path"]);
 
     assert.deepEqual([result.status, result.stdout], [0, "Show the design in chat.\n"]);
   });
 });
 
-test("`fast-path` off prints nothing - there is no fragment for the off state", () => {
-  withGitRepo((repo) => {
+test("`fast-path` off prints nothing - there is no fragment for the off state", async () => {
+  await withGitRepo(async (repo) => {
     writeConfig(repo, "fast-path: false\n");
     writeFragment(repo, "fast-path.true.md", "Show the design in chat.\n");
 
-    const result = run(repo, ["fast-path", skillDir(repo), "fast-path"]);
+    const result = await run(repo, ["fast-path", skillDir(repo), "fast-path"]);
 
     assert.deepEqual([result.status, result.stdout], [0, ""]);
   });
 });
 
-test("`baseline-tests: true` prints the skill's baseline-run.true.md fragment", () => {
-  withGitRepo((repo) => {
+test("`baseline-tests: true` prints the skill's baseline-run.true.md fragment", async () => {
+  await withGitRepo(async (repo) => {
     writeConfig(repo, "baseline-tests: true\n");
     writeFragment(repo, "baseline-run.true.md", "Run the baseline.\n");
 
-    const result = run(repo, ["baseline-tests", skillDir(repo), "baseline-run"]);
+    const result = await run(repo, ["baseline-tests", skillDir(repo), "baseline-run"]);
 
     assert.deepEqual([result.status, result.stdout], [0, "Run the baseline.\n"]);
   });
 });
 
-test("`baseline-tests` off prints nothing - there is no fragment for the off state", () => {
-  withGitRepo((repo) => {
+test("`baseline-tests` off prints nothing - there is no fragment for the off state", async () => {
+  await withGitRepo(async (repo) => {
     writeConfig(repo, "baseline-tests: false\n");
     writeFragment(repo, "baseline-run.true.md", "Run the baseline.\n");
 
-    const result = run(repo, ["baseline-tests", skillDir(repo), "baseline-run"]);
+    const result = await run(repo, ["baseline-tests", skillDir(repo), "baseline-run"]);
 
     assert.deepEqual([result.status, result.stdout], [0, ""]);
   });
@@ -147,14 +147,14 @@ for (const [config, mode] of [
   ["branching:\n  mode: Allowed\n", "allowed"],
   ["", "off"],
 ] as const) {
-  test(`branching.mode resolved to ${mode} prints the fragment named by that mode`, () => {
-    withGitRepo((repo) => {
+  test(`branching.mode resolved to ${mode} prints the fragment named by that mode`, async () => {
+    await withGitRepo(async (repo) => {
       writeConfig(repo, config);
       writeFragment(repo, "branch.off.md", "off\n");
       writeFragment(repo, "branch.allowed.md", "allowed\n");
       writeFragment(repo, "branch.required.md", "required\n");
 
-      const result = run(repo, ["branching.mode", skillDir(repo), "branch"]);
+      const result = await run(repo, ["branching.mode", skillDir(repo), "branch"]);
 
       assert.deepEqual([result.status, result.stdout], [0, `${mode}\n`]);
     });
@@ -175,8 +175,8 @@ for (const [label, args] of [
   ["a missing skill directory and name", () => ["adr"]],
   ["no argument at all", () => []],
 ] as const) {
-  test(`${label} prints nothing and exits 0 (a preload must never abort the skill load)`, () => {
-    withGitRepo((repo) => {
+  test(`${label} prints nothing and exits 0 (a preload must never abort the skill load)`, async () => {
+    await withGitRepo(async (repo) => {
       writeConfig(repo, "adr: true\ne2e: true\n");
       writeFragment(repo, "step.true.md", "on\n");
       writeFragment(repo, "step._specs.md", "a directory name\n");
@@ -184,22 +184,22 @@ for (const [label, args] of [
       writeFragment(repo, "..step.true.md", "a dotted name\n");
       writeFragment(repo, ".true.md", "an empty name\n");
 
-      const result = run(repo, [...args(skillDir(repo))]);
+      const result = await run(repo, [...args(skillDir(repo))]);
 
       assert.deepEqual([result.status, result.stdout], [0, ""]);
     });
   });
 }
 
-test("a session started in a subdirectory resolves the repository's config (a preload runs wherever the session started)", () => {
-  withGitRepo((repo) => {
+test("a session started in a subdirectory resolves the repository's config (a preload runs wherever the session started)", async () => {
+  await withGitRepo(async (repo) => {
     writeConfig(repo, "adr: true\n");
     writeFragment(repo, "step.true.md", "on\n");
     writeFragment(repo, "step.false.md", "off\n");
     const sub = path.join(repo.dir, "src", "deep");
     fs.mkdirSync(sub, { recursive: true });
 
-    const result = run(repo, ["adr", skillDir(repo), "step"], sub);
+    const result = await run(repo, ["adr", skillDir(repo), "step"], sub);
 
     assert.deepEqual([result.status, result.stdout], [0, "on\n"]);
   });
@@ -211,15 +211,15 @@ for (const [label, suffix] of [
   ["a skill directory as handed in", ""],
   ["a skill directory with a trailing separator", path.sep],
 ] as const) {
-  test(`${label}: every root placeholder is replaced by the derived path, under every bash present`, () => {
-    forEachShell("bash", (bash) => {
-      withGitRepo((repo) => {
+  test(`${label}: every root placeholder is replaced by the derived path, under every bash present`, async () => {
+    await forEachShell("bash", async (bash) => {
+      await withGitRepo(async (repo) => {
         writeConfig(repo, "qa: true\n");
         writeFragment(repo, "step.true.md", PLACEHOLDERS);
         const dir = skillDir(repo) + suffix;
         const root = path.join(repo.dir, "plugin");
 
-        const result = run(repo, ["qa", dir, "step"], repo.dir, bash);
+        const result = await run(repo, ["qa", dir, "step"], repo.dir, bash);
 
         assert.deepEqual(
           [result.status, result.stdout],
@@ -233,14 +233,14 @@ for (const [label, suffix] of [
 test(
   "a skill directory written with backslashes derives the plugin root across them (a Windows CLAUDE_SKILL_DIR)",
   { skip: process.platform === "win32" ? "a backslash is a separator on Windows, so every other case already proves it there" : false },
-  () => {
-    withGitRepo((repo) => {
+  async () => {
+    await withGitRepo(async (repo) => {
       writeConfig(repo, "qa: true\n");
       const dir = "C:\\host\\plugin\\skills\\demo";
       fs.mkdirSync(path.join(repo.dir, dir, "fragments"), { recursive: true });
       fs.writeFileSync(path.join(repo.dir, dir, "fragments", "step.true.md"), "${CLAUDE_PLUGIN_ROOT}|${CLAUDE_SKILL_DIR}\n");
 
-      const result = run(repo, ["qa", dir, "step"]);
+      const result = await run(repo, ["qa", dir, "step"]);
 
       assert.deepEqual([result.status, result.stdout], [0, `C:\\host\\plugin|${dir}\n`]);
     });
@@ -249,11 +249,11 @@ test(
 
 /** The mode the index records for a shipped script - never the filesystem bit,
  *  which this repo's `core.filemode=false` ignores on the way in. */
-function indexMode(file: string): string {
-  const listed = runScript("git", ["ls-files", "-s", "--", file], { cwd: path.dirname(file) });
+async function indexMode(file: string): Promise<string> {
+  const listed = await runScript("git", ["ls-files", "-s", "--", file], { cwd: path.dirname(file) });
   return listed.stdout.trim().split(/\s+/)[0];
 }
 
-test("the index records the script 100755, so a skill can preload it by its bare quoted path", () => {
-  assert.equal(indexMode(SUT), "100755");
+test("the index records the script 100755, so a skill can preload it by its bare quoted path", async () => {
+  assert.equal(await indexMode(SUT), "100755");
 });

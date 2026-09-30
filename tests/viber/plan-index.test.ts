@@ -36,7 +36,7 @@
  *   node --test tests/viber/plan-index.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -281,11 +281,11 @@ test("the header's example task titles carry no Conventional Commits type - a ta
 
 // --- the index -------------------------------------------------------------
 
-test("the index carries one row per task: id, state, TDD marker, exclusivity, normalised deps, files and title", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("the index carries one row per task: id, state, TDD marker, exclusivity, normalised deps, files and title", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
       result.stdout,
@@ -304,15 +304,15 @@ test("the index carries one row per task: id, state, TDD marker, exclusivity, no
   });
 });
 
-test("a marker mentioned mid-sentence in prose creates no task - only a marker alone on its own line opens one", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a marker mentioned mid-sentence in prose creates no task - only a marker alone on its own line opens one", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     const body = planBody(TWO_TASKS).replace(
       "## Goal\n",
       "## Goal\n\nMentioning <!-- TASK --> inside a sentence must not open one.\n\n",
     );
     seed(dir, body);
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^progress: 0\/2$/m);
     assert.match(result.stdout, /^T1 \| todo \|/m);
@@ -320,8 +320,8 @@ test("a marker mentioned mid-sentence in prose creates no task - only a marker a
   });
 });
 
-test("Exclusive: true reaches the orchestrator as excl yes, and an absent line as '-' (the plan declares the constraint, the script only carries it)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("Exclusive: true reaches the orchestrator as excl yes, and an absent line as '-' (the plan declares the constraint, the script only carries it)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(
       dir,
       planBody([
@@ -338,7 +338,7 @@ test("Exclusive: true reaches the orchestrator as excl yes, and an absent line a
       ]),
     );
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
       result.stdout,
@@ -357,12 +357,12 @@ test("Exclusive: true reaches the orchestrator as excl yes, and an absent line a
   });
 });
 
-test("state and the progress counter come from the run's own status.md, which is how a build resumes", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("state and the progress counter come from the run's own status.md, which is how a build resumes", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
     seedStatus(dir, { progress: "1/2", done: "T1" });
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^progress: 1\/2$/m);
     assert.match(result.stdout, /^T1 \| done \|/m);
@@ -370,8 +370,8 @@ test("state and the progress counter come from the run's own status.md, which is
   });
 });
 
-test("the status file's other entries pass through, and a skipped task is settled rather than todo", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("the status file's other entries pass through, and a skipped task is settled rather than todo", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
     seedStatus(dir, {
       progress: "1/2",
@@ -382,7 +382,7 @@ test("the status file's other entries pass through, and a skipped task is settle
       closed: "memory qa",
     });
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^progress: 1\/2$/m);
     assert.match(result.stdout, /^skipped: T2$/m);
@@ -395,8 +395,8 @@ test("the status file's other entries pass through, and a skipped task is settle
   });
 });
 
-test("a run whose status file carries none of those entries reports none of them, so a run that needed no decision stays quiet", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a run whose status file carries none of those entries reports none of them, so a run that needed no decision stays quiet", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
     seedStatus(dir, {
       progress: "0/2",
@@ -407,7 +407,7 @@ test("a run whose status file carries none of those entries reports none of them
       closed: "none",
     });
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     for (const line of [/^skipped:/m, /^unreviewed:/m, /^deferred:/m, /^closed:/m, /^dirty:/m]) {
       assert.doesNotMatch(result.stdout, line);
@@ -415,8 +415,8 @@ test("a run whose status file carries none of those entries reports none of them
   });
 });
 
-test("every owner decision line of status.md is printed in file order between the closed line and the tasks line, a colon in its text intact", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("every owner decision line of status.md is printed in file order between the closed line and the tasks line, a colon in its text intact", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
     write(
       dir,
@@ -433,7 +433,7 @@ test("every owner decision line of status.md is printed in file order between th
       ].join("\n"),
     );
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(
       result.stdout,
@@ -442,12 +442,12 @@ test("every owner decision line of status.md is printed in file order between th
   });
 });
 
-test("a status file with no decision line prints the index exactly as before - the tasks line straight after the state lines", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a status file with no decision line prints the index exactly as before - the tasks line straight after the state lines", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
     seedStatus(dir, { progress: "1/2", done: "T1", closed: "memory" });
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
       result.stdout,
@@ -467,11 +467,11 @@ test("a status file with no decision line prints the index exactly as before - t
   });
 });
 
-test("a plan with no status file beside it reports nothing done, which is the state of a run that never started", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a plan with no status file beside it reports nothing done, which is the state of a run that never started", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^progress: 0\/2$/m);
     assert.match(result.stdout, /^T1 \| todo \|/m);
@@ -481,18 +481,18 @@ test("a plan with no status file beside it reports nothing done, which is the st
   });
 });
 
-test("a task whose own files carry uncommitted work is reported dirty - that is a session cut off mid-task", () => {
-  withGitRepo((repo) => {
+test("a task whose own files carry uncommitted work is reported dirty - that is a session cut off mid-task", async () => {
+  await withGitRepo(async (repo) => {
     seed(repo.dir, planBody(TWO_TASKS));
     write(repo.dir, "src/login.ts", "committed\n");
-    repo.git("add", "-A");
-    repo.git("commit", "-m", "seed");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "seed");
 
     // T1's file edited but not committed, T2's created but never staged
     write(repo.dir, "src/login.ts", "half a coder's work\n");
     write(repo.dir, "src/reject.ts", "and another\n");
 
-    const result = run(repo.dir, repo.env, [PLAN_REL]);
+    const result = await run(repo.dir, repo.env, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^dirty: T1 \| src\/login\.ts$/m);
     assert.match(result.stdout, /^dirty: T2 \| src\/reject\.ts$/m);
@@ -503,22 +503,22 @@ test("a task whose own files carry uncommitted work is reported dirty - that is 
   });
 });
 
-test("a clean tree reports no dirty line, so a build that starts normally sees no resume noise", () => {
-  withGitRepo((repo) => {
+test("a clean tree reports no dirty line, so a build that starts normally sees no resume noise", async () => {
+  await withGitRepo(async (repo) => {
     seed(repo.dir, planBody(TWO_TASKS));
     write(repo.dir, "src/login.ts", "committed\n");
-    repo.git("add", "-A");
-    repo.git("commit", "-m", "seed");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "seed");
 
-    const result = run(repo.dir, repo.env, [PLAN_REL]);
+    const result = await run(repo.dir, repo.env, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.doesNotMatch(result.stdout, /^dirty:/m);
     assert.doesNotMatch(result.stdout, /^orphan:/m);
   });
 });
 
-test("a run whose rulings.md holds two entries prints two ruling lines in file order after the decision lines, the leading dash dropped and a colon in the text intact", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a run whose rulings.md holds two entries prints two ruling lines in file order after the decision lines, the leading dash dropped and a colon in the text intact", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
     write(dir, `${PLAN_DIR}/status.md`, ["# status", "", "progress: 0/2", "decision: T1: keep the old handler", ""].join("\n"));
     write(
@@ -533,7 +533,7 @@ test("a run whose rulings.md holds two entries prints two ruling lines in file o
       ].join("\n"),
     );
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(
       result.stdout,
@@ -542,12 +542,12 @@ test("a run whose rulings.md holds two entries prints two ruling lines in file o
   });
 });
 
-test("a run with no rulings.md prints the index exactly as before - no ruling line", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a run with no rulings.md prints the index exactly as before - no ruling line", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
     seedStatus(dir, { progress: "0/2", closed: "memory" });
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
       result.stdout,
@@ -567,90 +567,90 @@ test("a run with no rulings.md prints the index exactly as before - no ruling li
   });
 });
 
-test("an uncommitted rulings.md never appears on an orphan or dirty line (it lives in the run directory, no task owns it)", () => {
-  withGitRepo((repo) => {
+test("an uncommitted rulings.md never appears on an orphan or dirty line (it lives in the run directory, no task owns it)", async () => {
+  await withGitRepo(async (repo) => {
     seed(repo.dir, planBody(TWO_TASKS));
     write(repo.dir, "src/login.ts", "committed\n");
-    repo.git("add", "-A");
-    repo.git("commit", "-m", "seed");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "seed");
 
     write(repo.dir, `${PLAN_DIR}/rulings.md`, "# Rulings\n\n- T1: retry | why: a | cost if wrong: b\n");
 
-    const result = run(repo.dir, repo.env, [PLAN_REL]);
+    const result = await run(repo.dir, repo.env, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.doesNotMatch(result.stdout, /^(orphan|dirty):.*rulings\.md/m);
   });
 });
 
-test("a changed path claimed by no task not done is reported orphan", () => {
-  withGitRepo((repo) => {
+test("a changed path claimed by no task not done is reported orphan", async () => {
+  await withGitRepo(async (repo) => {
     seed(repo.dir, planBody(TWO_TASKS));
     write(repo.dir, "src/login.ts", "committed\n");
-    repo.git("add", "-A");
-    repo.git("commit", "-m", "seed");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "seed");
 
     write(repo.dir, "lib/x.ts", "nobody's task claims this\n");
 
-    const result = run(repo.dir, repo.env, [PLAN_REL]);
+    const result = await run(repo.dir, repo.env, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^orphan: lib\/x\.ts$/m);
   });
 });
 
-test("a path inside the run directory (a work/ note) is never reported orphan", () => {
-  withGitRepo((repo) => {
+test("a path inside the run directory (a work/ note) is never reported orphan", async () => {
+  await withGitRepo(async (repo) => {
     seed(repo.dir, planBody(TWO_TASKS));
     write(repo.dir, "src/login.ts", "committed\n");
-    repo.git("add", "-A");
-    repo.git("commit", "-m", "seed");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "seed");
 
     write(repo.dir, `${PLAN_DIR}/work/T1.round1.md`, "a coder's own trail note\n");
 
-    const result = run(repo.dir, repo.env, [PLAN_REL]);
+    const result = await run(repo.dir, repo.env, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.doesNotMatch(result.stdout, /^orphan:/m);
   });
 });
 
-test("a done task's dirty file is reported orphan, not dirty, since the task that claimed it is already settled", () => {
-  withGitRepo((repo) => {
+test("a done task's dirty file is reported orphan, not dirty, since the task that claimed it is already settled", async () => {
+  await withGitRepo(async (repo) => {
     seed(repo.dir, planBody(TWO_TASKS));
     seedStatus(repo.dir, { progress: "1/2", done: "T1" });
     write(repo.dir, "src/login.ts", "committed\n");
     write(repo.dir, "src/reject.ts", "committed\n");
-    repo.git("add", "-A");
-    repo.git("commit", "-m", "seed");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "seed");
 
     // T1 is done, but its own file is dirty again - a session cut off after
     // the task landed
     write(repo.dir, "src/login.ts", "touched again after T1 landed\n");
 
-    const result = run(repo.dir, repo.env, [PLAN_REL]);
+    const result = await run(repo.dir, repo.env, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.doesNotMatch(result.stdout, /^dirty: T1 \|/m);
     assert.match(result.stdout, /^orphan: src\/login\.ts$/m);
   });
 });
 
-test("a skipped task's dirty file is reported dirty, never orphan", () => {
-  withGitRepo((repo) => {
+test("a skipped task's dirty file is reported dirty, never orphan", async () => {
+  await withGitRepo(async (repo) => {
     seed(repo.dir, planBody(TWO_TASKS));
     seedStatus(repo.dir, { progress: "0/2", done: "none", skipped: "T2" });
     write(repo.dir, "src/login.ts", "committed\n");
     write(repo.dir, "src/reject.ts", "committed\n");
-    repo.git("add", "-A");
-    repo.git("commit", "-m", "seed");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "seed");
 
     write(repo.dir, "src/reject.ts", "touched after T2 was skipped\n");
 
-    const result = run(repo.dir, repo.env, [PLAN_REL]);
+    const result = await run(repo.dir, repo.env, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^dirty: T2 \| src\/reject\.ts$/m);
     assert.doesNotMatch(result.stdout, /^orphan:/m);
   });
 });
 
-test("the Repro path is uncommitted by design and never reported dirty, while the rest of that task's files still are", () => {
+test("the Repro path is uncommitted by design and never reported dirty, while the rest of that task's files still are", async () => {
   const FIX: TaskFields[] = [
     {
       id: "T1",
@@ -660,16 +660,16 @@ test("the Repro path is uncommitted by design and never reported dirty, while th
       files: "src/login.ts, test/login.test.ts",
     },
   ];
-  withGitRepo((repo) => {
+  await withGitRepo(async (repo) => {
     seed(repo.dir, planBody(FIX, 1));
     write(repo.dir, "src/login.ts", "committed\n");
     write(repo.dir, "test/login.test.ts", "committed\n");
-    repo.git("add", "-A");
-    repo.git("commit", "-m", "seed");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "seed");
 
     // the fixer's RED test, appended to an existing test file and left uncommitted
     write(repo.dir, "test/login.test.ts", "committed\nand a RED reproduction\n");
-    let result = run(repo.dir, repo.env, [PLAN_REL]);
+    let result = await run(repo.dir, repo.env, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.doesNotMatch(result.stdout, /^dirty:/m);
     // the Repro path is claimed by T1's own Files, so it is never orphan either
@@ -677,7 +677,7 @@ test("the Repro path is uncommitted by design and never reported dirty, while th
 
     // a session cut off inside the fix still shows, the Repro path left out
     write(repo.dir, "src/login.ts", "half a coder's fix\n");
-    result = run(repo.dir, repo.env, [PLAN_REL]);
+    result = await run(repo.dir, repo.env, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^dirty: T1 \| src\/login\.ts$/m);
     assert.doesNotMatch(result.stdout, /^orphan:/m);
@@ -686,20 +686,20 @@ test("the Repro path is uncommitted by design and never reported dirty, while th
 
 // --- validation ------------------------------------------------------------
 
-test("a missing argument, a missing plan and an unknown second argument all exit 2 with nothing on stdout", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a missing argument, a missing plan and an unknown second argument all exit 2 with nothing on stdout", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
 
     for (const args of [[], ["docs/_specs/nope/plan.md"], [PLAN_REL, "--decompose"]]) {
-      const result = run(dir, {}, args);
+      const result = await run(dir, {}, args);
       assert.equal(result.status, 2, `args ${JSON.stringify(args)} -> stderr: ${result.stderr}`);
       assert.equal(result.stdout, "");
     }
   });
 });
 
-test("--split refuses any plan but the run's own <dir>/plan.md - it rebuilds <dir>/tasks and would delete a real one", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("--split refuses any plan but the run's own <dir>/plan.md - it rebuilds <dir>/tasks and would delete a real one", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     // the exact shape that would cost a project its own tasks/ directory:
     // a plan sitting loose in the repository root
     write(dir, "plan.md", planBody(TWO_TASKS));
@@ -707,7 +707,7 @@ test("--split refuses any plan but the run's own <dir>/plan.md - it rebuilds <di
     write(dir, `${PLAN_DIR}/steps.md`, planBody(TWO_TASKS));
 
     for (const rel of ["plan.md", `${PLAN_DIR}/steps.md`]) {
-      const result = run(dir, {}, [rel, "--split"]);
+      const result = await run(dir, {}, [rel, "--split"]);
       assert.equal(result.status, 2, `${rel} -> stdout: ${result.stdout}`);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /--split expects the run/);
@@ -725,19 +725,19 @@ test(
         ? false
         : "off Windows a backslash is a legal filename character, so the argument names no file",
   },
-  () => {
-    withTempDir("p2p2-viber-", (dir) => {
+  async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       seed(dir, planBody(TWO_TASKS));
 
-      const result = run(dir, {}, [PLAN_REL.replace(/\//g, "\\"), "--split"]);
+      const result = await run(dir, {}, [PLAN_REL.replace(/\//g, "\\"), "--split"]);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
     });
   },
 );
 
-test("a <!-- TASK --> block above the plan's own \"## Tasks\" heading is refused, naming the task, and --split writes nothing for it", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a <!-- TASK --> block above the plan's own \"## Tasks\" heading is refused, naming the task, and --split writes nothing for it", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     // the cut point IS the "## Tasks" heading: a block that opens before it has
     // ever been seen would ride into spec.md rather than decompose into its own
     // task file, which is silent drift a coder never notices
@@ -759,7 +759,7 @@ test("a <!-- TASK --> block above the plan's own \"## Tasks\" heading is refused
     const body = planBody(TWO_TASKS).replace("## Goal\n", `## Goal\n\n${misplaced}`);
     seed(dir, body);
 
-    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /task T0: <!-- TASK --> block sits above the "## Tasks" heading/);
@@ -767,17 +767,17 @@ test("a <!-- TASK --> block above the plan's own \"## Tasks\" heading is refused
   });
 });
 
-test("a plan with no task blocks exits 3", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a plan with no task blocks exits 3", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody([]).replace(/<!-- \/?TASK -->/g, ""));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 3);
     assert.equal(result.stdout, "");
   });
 });
 
-test("a broken task contract exits 4 and names the task", () => {
+test("a broken task contract exits 4 and names the task", async () => {
   const cases: Array<[string, TaskFields[], RegExp, string[]?]> = [
     [
       "duplicate id",
@@ -876,12 +876,12 @@ test("a broken task contract exits 4 and names the task", () => {
   ];
 
   for (const [name, tasks, expected, contracts] of cases) {
-    withTempDir("p2p2-viber-", (dir) => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       // one criterion, which every default Covers names: each case has to fail
       // for the defect it carries, not for an uncovered criterion
       seed(dir, planBody(tasks, 1, contracts));
 
-      const result = run(dir, {}, [PLAN_REL]);
+      const result = await run(dir, {}, [PLAN_REL]);
       assert.equal(result.status, 4, `${name} -> stdout: ${result.stdout} stderr: ${result.stderr}`);
       assert.equal(result.stdout, "", name);
       assert.match(result.stderr, expected, name);
@@ -889,8 +889,8 @@ test("a broken task contract exits 4 and names the task", () => {
   }
 });
 
-test("a task depending on an Exclusive task validates under --split - a frozen plan resumed after the rule lands must still decompose", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a task depending on an Exclusive task validates under --split - a frozen plan resumed after the rule lands must still decompose", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(
       dir,
       planBody(
@@ -902,14 +902,14 @@ test("a task depending on an Exclusive task validates under --split - a frozen p
       ),
     );
 
-    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
   });
 });
 
-test("an Exclusive task depending on earlier tasks and having no dependents itself decomposes under --split", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("an Exclusive task depending on earlier tasks and having no dependents itself decomposes under --split", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(
       dir,
       planBody([
@@ -926,7 +926,7 @@ test("an Exclusive task depending on earlier tasks and having no dependents itse
       ]),
     );
 
-    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
   });
@@ -939,19 +939,19 @@ const REDUNDANT_DIRECT: TaskFields[] = [
   { id: "T3", deps: "T1, T2", files: "src/c.ts" },
 ];
 
-test("a Depends-on entry another entry of the same line already reaches directly exits 4, naming the task, the entry and the one reaching it", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a Depends-on entry another entry of the same line already reaches directly exits 4, naming the task, the entry and the one reaching it", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(REDUNDANT_DIRECT, 1));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /task T3: Depends-on T1 is already reached through T2 - drop it/);
   });
 });
 
-test("a Depends-on entry another entry of the same line reaches only transitively exits 4, naming the entry on that line that reaches it", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a Depends-on entry another entry of the same line reaches only transitively exits 4, naming the entry on that line that reaches it", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(
       dir,
       planBody(
@@ -965,24 +965,24 @@ test("a Depends-on entry another entry of the same line reaches only transitivel
       ),
     );
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /task T4: Depends-on T1 is already reached through T3 - drop it/);
   });
 });
 
-test("a redundant Depends-on entry validates under --split - a frozen plan resumed after the rule lands must still decompose", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a redundant Depends-on entry validates under --split - a frozen plan resumed after the rule lands must still decompose", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(REDUNDANT_DIRECT, 1));
 
-    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
   });
 });
 
-test("two Depends-on entries with no path between them are both load-bearing and validate", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("two Depends-on entries with no path between them are both load-bearing and validate", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(
       dir,
       planBody(
@@ -995,13 +995,13 @@ test("two Depends-on entries with no path between them are both load-bearing and
       ),
     );
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
   });
 });
 
-test("a Files entry whose brackets wrap whole segments is an exact path and reaches the index untouched", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a Files entry whose brackets wrap whole segments is an exact path and reaches the index untouched", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     // the three Next.js App Router dynamic segments - a dynamic one, a catch-all
     // and an optional catch-all - plus a route group in parentheses. Every route
     // of such a project carries one, so rejecting the bracket itself would leave
@@ -1013,74 +1013,74 @@ test("a Files entry whose brackets wrap whole segments is an exact path and reac
     ].join(",");
     seed(dir, planBody([{ id: "T1", files }], 1));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^T1 \| todo \| required \| - \| - \| - \| (.+) \| do the thing$/m);
     assert.ok(result.stdout.includes(`| ${files} |`), `stdout: ${result.stdout}`);
   });
 });
 
-test("an acceptance criterion no task's Covers names exits 4 (nothing downstream gates the spec as a whole)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("an acceptance criterion no task's Covers names exits 4 (nothing downstream gates the spec as a whole)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     // both criteria present, every task pointing at the first one
     seed(dir, planBody([{ id: "T1", covers: "#1" }]));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /criterion #2 is covered by no task/);
   });
 });
 
-test("only the criterion tokens of Covers count, so a digit inside an annotation covers nothing", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("only the criterion tokens of Covers count, so a digit inside an annotation covers nothing", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     // "(see S2)" carries a 2, and criterion #2 is still covered by no task
     seed(dir, planBody([{ id: "T1", covers: "#1 (see S2)" }]));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.match(result.stderr, /criterion #2 is covered by no task/);
     assert.doesNotMatch(result.stderr, /criterion #1 |Covers #/);
   });
 });
 
-test("a contract block no task's Uses names exits 4 (the split would leave it unreachable)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a contract block no task's Uses names exits 4 (the split would leave it unreachable)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     // the block is in the appendix and every task says it touches no shape, so
     // nothing would ever carry it to a coder
     seed(dir, planBody([{ id: "T1", uses: "none" }], 1));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /contract C1 is used by no task/);
   });
 });
 
-test("an appendix where no block carries File fails validation outside --split (the exemption is for resuming a frozen plan, not for a fresh one)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("an appendix where no block carries File fails validation outside --split (the exemption is for resuming a frozen plan, not for a fresh one)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody([{ id: "T1" }], 1, ["### C1 - Login endpoint", "", "POST /login -> 200 | 401"]));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /contract C1: missing File/);
   });
 });
 
-test("an appendix where no block carries File validates untouched (a plan that landed before the field is frozen and still has to resume)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("an appendix where no block carries File validates untouched (a plan that landed before the field is frozen and still has to resume)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     // the old shape: a block with no File line, naming a file no task owns -
     // exactly what the ownership rules reject, and exactly what a run started
     // under an earlier version carries
     seed(dir, planBody([{ id: "T1" }], 1, ["### C1 - Login endpoint", "", "POST /login -> 200 | 401"]));
 
-    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.equal((await run(dir, {}, [PLAN_REL, "--split"])).status, 0);
   });
 });
 
-test("one block carrying File makes the line mandatory for the rest (a half-filled appendix is drift, not an older plan)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("one block carrying File makes the line mandatory for the rest (a half-filled appendix is drift, not an older plan)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(
       dir,
       planBody([{ id: "T1", uses: "C1, C2" }], 1, [
@@ -1092,36 +1092,36 @@ test("one block carrying File makes the line mandatory for the rest (a half-fill
       ]),
     );
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.match(result.stderr, /contract C2: missing File/);
   });
 });
 
-test("a contract file no task creates and the tree does not hold exits 4 (the shape would be invented by whoever needs it first)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a contract file no task creates and the tree does not hold exits 4 (the shape would be invented by whoever needs it first)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     // the task writes src/a.ts; the shape is declared in a file nobody owns, so
     // its coder would discover it missing and write it outside its own Files
     seed(dir, planBody([{ id: "T1" }], 1, ownedContract("src/session.ts")));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /contract C1 declares src\/session\.ts, which no task creates/);
   });
 });
 
-test("a contract file already in the tree needs no owner - a shape this change only consumes is already written", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a contract file already in the tree needs no owner - a shape this change only consumes is already written", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     write(dir, "src/session.ts", "export type Session = { id: string };\n");
     seed(dir, planBody([{ id: "T1" }], 1, ownedContract("src/session.ts")));
 
-    assert.equal(run(dir, {}, [PLAN_REL]).status, 0);
+    assert.equal((await run(dir, {}, [PLAN_REL])).status, 0);
   });
 });
 
-test("a contract file whose holders never name the block exits 4 (its writer would never see the shape)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a contract file whose holders never name the block exits 4 (its writer would never see the shape)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     // T1 holds the file the shape lives in but says it touches no shape; only
     // T2, which does not hold it, names C1 - so the block reaches the consumer
     // and never the writer
@@ -1137,15 +1137,15 @@ test("a contract file whose holders never name the block exits 4 (its writer wou
       ),
     );
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /contract C1 declares src\/login\.ts, held by T1, but no holder names C1 in Uses/);
   });
 });
 
-test("one holder naming the block is enough - a file several tasks in one chain touch is not everyone's shape", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("one holder naming the block is enough - a file several tasks in one chain touch is not everyone's shape", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(
       dir,
       planBody(
@@ -1158,12 +1158,12 @@ test("one holder naming the block is enough - a file several tasks in one chain 
       ),
     );
 
-    assert.equal(run(dir, {}, [PLAN_REL]).status, 0);
+    assert.equal((await run(dir, {}, [PLAN_REL])).status, 0);
   });
 });
 
-test("feeds names a contract block one task writes with the count of other tasks consuming it, and stays '-' for a consumer itself", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("feeds names a contract block one task writes with the count of other tasks consuming it, and stays '-' for a consumer itself", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     // T1 holds the file the shape lives in AND names it in Uses (satisfying
     // reachability); T2 and T3, which do not hold that file, also name it -
     // the two other tasks that make T1's own work load-bearing
@@ -1180,7 +1180,7 @@ test("feeds names a contract block one task writes with the count of other tasks
       ),
     );
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^T1 \| todo \| required \| - \| - \| C1:2 \| src\/login\.ts \| do the thing$/m);
     assert.match(result.stdout, /^T2 \| todo \| required \| - \| T1 \| - \| src\/reject\.ts \| do the thing$/m);
@@ -1194,29 +1194,29 @@ const CONSUMER_WITHOUT_WRITER: TaskFields[] = [
   { id: "T2", covers: "#2", uses: "C1", files: "src/reject.ts" },
 ];
 
-test("a task using a contract block whose lower-numbered writer is not among its dependencies exits 4, naming both tasks (it would run beside the code it calls)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a task using a contract block whose lower-numbered writer is not among its dependencies exits 4, naming both tasks (it would run beside the code it calls)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(CONSUMER_WITHOUT_WRITER, 2, ownedContract("src/login.ts")));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /task T2 uses C1, written by T1, but has no dependency path to T1/);
   });
 });
 
-test("a consumer with no dependency on its writer still decomposes under --split (a plan landed before the rule is frozen)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a consumer with no dependency on its writer still decomposes under --split (a plan landed before the rule is frozen)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(CONSUMER_WITHOUT_WRITER, 2, ownedContract("src/login.ts")));
 
-    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
   });
 });
 
-test("a consumer reaching its writer through another task validates (a transitive dependency already orders the two)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a consumer reaching its writer through another task validates (a transitive dependency already orders the two)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(
       dir,
       planBody(
@@ -1230,13 +1230,13 @@ test("a consumer reaching its writer through another task validates (a transitiv
       ),
     );
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
   });
 });
 
-test("two tasks using a block on File: none need no dependency between them (such a block has no writer)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("two tasks using a block on File: none need no dependency between them (such a block has no writer)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(
       dir,
       planBody([
@@ -1245,13 +1245,13 @@ test("two tasks using a block on File: none need no dependency between them (suc
       ]),
     );
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
   });
 });
 
-test("a consumer numbered below its only writer raises nothing from the dependency rule (no lower-numbered writer exists)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a consumer numbered below its only writer raises nothing from the dependency rule (no lower-numbered writer exists)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(
       dir,
       planBody(
@@ -1264,48 +1264,48 @@ test("a consumer numbered below its only writer raises nothing from the dependen
       ),
     );
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
   });
 });
 
-test("a File entry whose bracket wraps a whole segment is a path, not a glob - like a Files entry", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a File entry whose bracket wraps a whole segment is a path, not a glob - like a Files entry", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     const route = "src/app/api/sites/[siteId]/route.ts";
     seed(dir, planBody([{ id: "T1", files: route }], 1, ownedContract(route)));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
   });
 });
 
-test("a File entry that is a glob, a directory or an absolute path exits 4, like a Files entry", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a File entry that is a glob, a directory or an absolute path exits 4, like a Files entry", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     for (const entry of ["src/*.ts", "src/", "/abs/login.ts", "src/a[bc].ts"]) {
       seed(dir, planBody([{ id: "T1" }], 1, ownedContract(entry)));
 
-      const result = run(dir, {}, [PLAN_REL]);
+      const result = await run(dir, {}, [PLAN_REL]);
       assert.equal(result.status, 4, `${entry}: ${result.stderr}`);
       assert.match(result.stderr, /must be one bare repo-relative file path/, entry);
     }
   });
 });
 
-test("a plan that introduces no shape at all validates with every task on Uses: none", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a plan that introduces no shape at all validates with every task on Uses: none", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody([{ id: "T1", uses: "none" }], 1, []));
 
-    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.doesNotMatch(readRun(dir, "tasks/T1.md"), /## Contracts/);
   });
 });
 
-test("a rejected plan is never decomposed - --split writes nothing when validation fails", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a rejected plan is never decomposed - --split writes nothing when validation fails", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody([{ id: "T1", covers: "#9" }]));
 
-    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(result.status, 4);
     assert.deepEqual(fs.readdirSync(path.join(dir, PLAN_DIR)), ["plan.md"]);
   });
@@ -1313,11 +1313,11 @@ test("a rejected plan is never decomposed - --split writes nothing when validati
 
 // --- the decomposition -----------------------------------------------------
 
-test("--split writes the specification and one file per task, and still prints the index", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("--split writes the specification and one file per task, and still prints the index", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
 
-    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^T2 \| todo \| required \| - \| T1 \| - \| src\/reject\.ts \| Reject a bad password$/m);
 
@@ -1335,8 +1335,8 @@ test("--split writes the specification and one file per task, and still prints t
   });
 });
 
-test("spec.md carries neither the frontmatter nor one HTML comment - the run plumbing stops at plan.md", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("spec.md carries neither the frontmatter nor one HTML comment - the run plumbing stops at plan.md", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     // The frontmatter is how the implementor finds the plan file again, and a
     // landed plan keeps it. It is the run plumbing, and spec.md outlives the
     // run - archived, the path it names is a plan mode file that is already
@@ -1364,7 +1364,7 @@ test("spec.md carries neither the frontmatter nor one HTML comment - the run plu
     );
     seed(dir, body);
 
-    const r = run(dir, {}, [PLAN_REL, "--split"]);
+    const r = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(r.status, 0, `stderr: ${r.stderr}`);
     // the title is read off the H1, which the frontmatter above it does not move
     assert.match(r.stdout, /^title: Add login$/m);
@@ -1383,8 +1383,8 @@ test("spec.md carries neither the frontmatter nor one HTML comment - the run plu
 });
 
 for (const [fence, other] of [["```", "~~~"], ["~~~", "```"]] as const) {
-  test(`spec.md keeps a ${fence} fenced block above ## Tasks whole, its comment and blank lines included, and still cuts the comments outside it (a comment in an example is content, not guidance)`, () => {
-    withTempDir("p2p2-viber-", (dir) => {
+  test(`spec.md keeps a ${fence} fenced block above ## Tasks whole, its comment and blank lines included, and still cuts the comments outside it (a comment in an example is content, not guidance)`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       const block = [
         `${fence}html`,
         "<!-- slot -->",
@@ -1402,7 +1402,7 @@ for (const [fence, other] of [["```", "~~~"], ["~~~", "```"]] as const) {
         ),
       );
 
-      const r = run(dir, {}, [PLAN_REL, "--split"]);
+      const r = await run(dir, {}, [PLAN_REL, "--split"]);
       assert.equal(r.status, 0, `stderr: ${r.stderr}`);
 
       const spec = readRun(dir, "spec.md");
@@ -1412,8 +1412,8 @@ for (const [fence, other] of [["```", "~~~"], ["~~~", "```"]] as const) {
   });
 }
 
-test("spec.md still loses a comment opened outside any fence whole, a fence line inside it included (a fence inside guidance opens nothing)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("spec.md still loses a comment opened outside any fence whole, a fence line inside it included (a fence inside guidance opens nothing)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(
       dir,
       planBody(TWO_TASKS).replace(
@@ -1422,7 +1422,7 @@ test("spec.md still loses a comment opened outside any fence whole, a fence line
       ),
     );
 
-    const r = run(dir, {}, [PLAN_REL, "--split"]);
+    const r = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(r.status, 0, `stderr: ${r.stderr}`);
 
     const spec = readRun(dir, "spec.md");
@@ -1431,8 +1431,8 @@ test("spec.md still loses a comment opened outside any fence whole, a fence line
   });
 });
 
-test("a plan frontmatter issue: line makes spec.md open with its own three-line frontmatter, then the specification as today", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a plan frontmatter issue: line makes spec.md open with its own three-line frontmatter, then the specification as today", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     // source and into ride the plan for the run's own plumbing; issue is the
     // one key the archive keeps, so it alone survives into spec.md
     const body = [
@@ -1445,7 +1445,7 @@ test("a plan frontmatter issue: line makes spec.md open with its own three-line 
     ].join("\n") + planBody(TWO_TASKS);
     seed(dir, body);
 
-    const r = run(dir, {}, [PLAN_REL, "--split"]);
+    const r = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(r.status, 0, `stderr: ${r.stderr}`);
 
     const spec = readRun(dir, "spec.md");
@@ -1456,29 +1456,29 @@ test("a plan frontmatter issue: line makes spec.md open with its own three-line 
   });
 });
 
-test("a plan frontmatter with no issue: line, or an empty one, reaches spec.md exactly as a plan with no frontmatter at all", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a plan frontmatter with no issue: line, or an empty one, reaches spec.md exactly as a plan with no frontmatter at all", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     const withoutIssue = planBody(TWO_TASKS);
     seed(dir, withoutIssue);
-    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.equal((await run(dir, {}, [PLAN_REL, "--split"])).status, 0);
     const baseline = readRun(dir, "spec.md");
 
     const emptyIssue = ["---", "source: /home/u/plans/add-login.md", "issue:", "---", ""].join("\n") + withoutIssue;
     seed(dir, emptyIssue);
-    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.equal((await run(dir, {}, [PLAN_REL, "--split"])).status, 0);
     assert.equal(readRun(dir, "spec.md"), baseline);
   });
 });
 
-test("<!-- TASK --> blocks under no \"## Tasks\" heading are refused, not silently left out of the decomposition", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("<!-- TASK --> blocks under no \"## Tasks\" heading are refused, not silently left out of the decomposition", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     // The cut is that heading, so without it the whole task half rides into
     // spec.md and tasks/ comes out empty - while the index still lists every
     // task, which sends the orchestrator after a task file that was never
     // written. A translated or renamed heading is the way it happens.
     seed(dir, planBody(TWO_TASKS).replace("## Tasks", "## Zadania"));
 
-    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(result.status, 4);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /no "## Tasks" heading/);
@@ -1486,10 +1486,10 @@ test("<!-- TASK --> blocks under no \"## Tasks\" heading are refused, not silent
   });
 });
 
-test("a task file carries its own block verbatim, the text of the criteria it covers, and no other task", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a task file carries its own block verbatim, the text of the criteria it covers, and no other task", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
-    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.equal((await run(dir, {}, [PLAN_REL, "--split"])).status, 0);
 
     const t1 = readRun(dir, "tasks/T1.md");
     assert.match(t1, /^### T1 - Add the login handler$/m);
@@ -1510,14 +1510,14 @@ test("a task file carries its own block verbatim, the text of the criteria it co
   });
 });
 
-test("the DoD is cut into one numbered line per semicolon clause, and the plan keeps the single line it was written as", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("the DoD is cut into one numbered line per semicolon clause, and the plan keeps the single line it was written as", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     const body = planBody([
       { ...TWO_TASKS[0]!, dod: "the endpoint answers 200;  a bad password answers 401 ; " },
       TWO_TASKS[1]!,
     ]);
     seed(dir, body);
-    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.equal((await run(dir, {}, [PLAN_REL, "--split"])).status, 0);
 
     // a coder answers for each clause and a reviewer gates each one, which the
     // one sentence carrying all of them does not allow
@@ -1537,10 +1537,10 @@ test("the DoD is cut into one numbered line per semicolon clause, and the plan k
   });
 });
 
-test("a task file carries the run's goal and its out-of-scope list, so a coder needs no second file", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a task file carries the run's goal and its out-of-scope list, so a coder needs no second file", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
-    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.equal((await run(dir, {}, [PLAN_REL, "--split"])).status, 0);
 
     for (const id of ["T1", "T2"]) {
       const body = readRun(dir, `tasks/${id}.md`);
@@ -1553,10 +1553,10 @@ test("a task file carries the run's goal and its out-of-scope list, so a coder n
   });
 });
 
-test("a contract block reaches the tasks whose Uses names it and no others", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a contract block reaches the tasks whose Uses names it and no others", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
-    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.equal((await run(dir, {}, [PLAN_REL, "--split"])).status, 0);
 
     // T1 uses C1: the whole block arrives, heading and body
     assert.match(
@@ -1641,13 +1641,13 @@ function stripBoundary(body: string): string {
   return body.replace(/\n## Must not change\n[\s\S]*?(?=\n## Out of scope\n)/, "");
 }
 
-test("a plan built from spec-full plus tasks decomposes into the same task file as one built from spec-lite, but for the regression boundary", () => {
+test("a plan built from spec-full plus tasks decomposes into the same task file as one built from spec-lite, but for the regression boundary", async () => {
   const files: Record<string, Record<string, string>> = {};
   for (const shape of ["lite", "full"] as const) {
-    withTempDir("p2p2-viber-", (dir) => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       seed(dir, planBody(TWO_TASKS, 2, CONTRACT, shape));
 
-      const result = run(dir, {}, [PLAN_REL, "--split"]);
+      const result = await run(dir, {}, [PLAN_REL, "--split"]);
       assert.equal(result.status, 0, `${shape} -> stderr: ${result.stderr}`);
       assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"], shape);
 
@@ -1676,10 +1676,10 @@ test("a plan built from spec-full plus tasks decomposes into the same task file 
   }
 });
 
-test("a spec-full plan carrying no Must not change section decomposes exactly like spec-lite", () => {
+test("a spec-full plan carrying no Must not change section decomposes exactly like spec-lite", async () => {
   const files: Record<string, string> = {};
   for (const shape of ["lite", "full"] as const) {
-    withTempDir("p2p2-viber-", (dir) => {
+    await withTempDir("p2p2-viber-", async (dir) => {
       // the big shape with that one section dropped: the script reads an anchor,
       // never a shape, so an absent one contributes nothing rather than failing
       const body = planBody(TWO_TASKS, 2, CONTRACT, shape).replace(
@@ -1689,30 +1689,30 @@ test("a spec-full plan carrying no Must not change section decomposes exactly li
       assert.ok(shape === "lite" || !body.includes("Must not change"), "the fixture still carries the section");
       seed(dir, body);
 
-      assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0, shape);
+      assert.equal((await run(dir, {}, [PLAN_REL, "--split"])).status, 0, shape);
       files[shape] = readRun(dir, "tasks/T1.md");
     });
   }
   assert.equal(files.full, files.lite);
 });
 
-test("tasks/ is rebuilt from scratch, so a task dropped from the plan leaves no stale file behind", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("tasks/ is rebuilt from scratch, so a task dropped from the plan leaves no stale file behind", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
-    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.equal((await run(dir, {}, [PLAN_REL, "--split"])).status, 0);
     assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
 
     seed(dir, planBody([TWO_TASKS[0]!], 1));
-    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.equal((await run(dir, {}, [PLAN_REL, "--split"])).status, 0);
     assert.deepEqual(taskFiles(dir), ["T1.md"]);
   });
 });
 
-test("--split outside a git repository still decomposes and exits 0", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("--split outside a git repository still decomposes and exits 0", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
 
-    const result = run(dir, { GIT_CEILING_DIRECTORIES: dir }, [PLAN_REL, "--split"]);
+    const result = await run(dir, { GIT_CEILING_DIRECTORIES: dir }, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
   });
@@ -1720,32 +1720,32 @@ test("--split outside a git repository still decomposes and exits 0", () => {
 
 // --- the decomposition commit ----------------------------------------------
 
-function subjects(repo: GitRepo): string[] {
-  return repo.git("log", "--format=%s").stdout.trim().split("\n").filter(Boolean);
+async function subjects(repo: GitRepo): Promise<string[]> {
+  return (await repo.git("log", "--format=%s")).stdout.trim().split("\n").filter(Boolean);
 }
 
-test("the decomposition is committed with the plan, and nothing outside the run directory rides along", () => {
-  withGitRepo((repo) => {
+test("the decomposition is committed with the plan, and nothing outside the run directory rides along", async () => {
+  await withGitRepo(async (repo) => {
     write(repo.dir, "README.md", "seed\n");
-    repo.git("add", "-A");
-    repo.git("commit", "-m", "seed");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "seed");
 
     seed(repo.dir, planBody(TWO_TASKS));
     // a change the user has open, and one they already staged: neither is this
     // script's business
     write(repo.dir, "README.md", "edited\n");
     write(repo.dir, "src/other.ts", "staged by the user\n");
-    repo.git("add", "src/other.ts");
+    await repo.git("add", "src/other.ts");
 
-    const result = run(repo.dir, repo.env, [PLAN_REL, "--split"]);
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
 
-    assert.deepEqual(subjects(repo), [
+    assert.deepEqual(await subjects(repo), [
       "chore(viber): decompose plan 2026-09-20-10-00-00_add-login",
       "seed",
     ]);
-    const committed = repo
-      .git("show", "--name-only", "--format=", "HEAD")
+    const committed = (await repo
+      .git("show", "--name-only", "--format=", "HEAD"))
       .stdout.trim()
       .split("\n")
       .map((l) => l.trim())
@@ -1761,25 +1761,25 @@ test("the decomposition is committed with the plan, and nothing outside the run 
 
     // the user's own work is exactly where they left it
     assert.equal(fs.readFileSync(path.join(repo.dir, "README.md"), "utf-8"), "edited\n");
-    assert.match(repo.git("status", "--short").stdout, /README\.md/);
-    assert.match(repo.git("status", "--short").stdout, /src\/other\.ts/);
+    assert.match((await repo.git("status", "--short")).stdout, /README\.md/);
+    assert.match((await repo.git("status", "--short")).stdout, /src\/other\.ts/);
   });
 });
 
-test("an untracked work/ trail file beside the plan stays out of the decomposition commit and stays untracked", () => {
-  withGitRepo((repo) => {
+test("an untracked work/ trail file beside the plan stays out of the decomposition commit and stays untracked", async () => {
+  await withGitRepo(async (repo) => {
     write(repo.dir, "README.md", "seed\n");
-    repo.git("add", "-A");
-    repo.git("commit", "-m", "seed");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "seed");
 
     seed(repo.dir, planBody(TWO_TASKS));
     write(repo.dir, `${PLAN_DIR}/work/T3-notes.md`, "a coder's own trail, not the decomposition\n");
 
-    const result = run(repo.dir, repo.env, [PLAN_REL, "--split"]);
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
 
-    const committed = repo
-      .git("show", "--name-only", "--format=", "HEAD")
+    const committed = (await repo
+      .git("show", "--name-only", "--format=", "HEAD"))
       .stdout.trim()
       .split("\n")
       .map((l) => l.trim())
@@ -1799,36 +1799,36 @@ test("an untracked work/ trail file beside the plan stays out of the decompositi
       fs.readFileSync(path.join(repo.dir, `${PLAN_DIR}/work/T3-notes.md`), "utf-8"),
       "a coder's own trail, not the decomposition\n",
     );
-    assert.match(repo.git("status", "--short").stdout, /\?\? .*work\//);
+    assert.match((await repo.git("status", "--short")).stdout, /\?\? .*work\//);
   });
 });
 
-test("a plan tied to an issue gets its decomposition commit footed with Refs: #<N>, and one without an issue gets no footer", () => {
+test("a plan tied to an issue gets its decomposition commit footed with Refs: #<N>, and one without an issue gets no footer", async () => {
   const cases: Array<[frontmatter: string[], body: RegExp]> = [
     [["---", "source: /home/u/plans/add-login.md", "issue: https://github.com/acme/widgets/issues/42", "---", ""], /^Refs: #42\n*$/],
     [["---", "source: /home/u/plans/add-login.md", "---", ""], /^\n*$/],
     [["---", "issue: https://github.com/acme/widgets/pull/42", "---", ""], /^\n*$/],
   ];
   for (const [frontmatter, body] of cases) {
-    withGitRepo((repo) => {
+    await withGitRepo(async (repo) => {
       write(repo.dir, "README.md", "seed\n");
-      repo.git("add", "-A");
-      repo.git("commit", "-m", "seed");
+      await repo.git("add", "-A");
+      await repo.git("commit", "-m", "seed");
       seed(repo.dir, frontmatter.join("\n") + planBody(TWO_TASKS));
 
-      const result = run(repo.dir, repo.env, [PLAN_REL, "--split"]);
+      const result = await run(repo.dir, repo.env, [PLAN_REL, "--split"]);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      assert.equal(subjects(repo)[0], "chore(viber): decompose plan 2026-09-20-10-00-00_add-login");
-      assert.match(repo.git("log", "-1", "--format=%b").stdout, body);
+      assert.equal((await subjects(repo))[0], "chore(viber): decompose plan 2026-09-20-10-00-00_add-login");
+      assert.match((await repo.git("log", "-1", "--format=%b")).stdout, body);
     });
   }
 });
 
-test("--split writes the run's state file, and a later --split leaves the progress in it untouched", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("--split writes the run's state file, and a later --split leaves the progress in it untouched", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
 
-    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.equal((await run(dir, {}, [PLAN_REL, "--split"])).status, 0);
     assert.equal(
       readRun(dir, "status.md"),
       "# status\n\nprogress: 0/2\ndone: none\nskipped: none\nunreviewed: none\ndeferred: none\nclosed: none\n",
@@ -1843,9 +1843,9 @@ test("--split writes the run's state file, and a later --split leaves the progre
       deferred: "none",
       closed: "none",
     });
-    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.equal((await run(dir, {}, [PLAN_REL, "--split"])).status, 0);
     assert.match(readRun(dir, "status.md"), /^done: T1$/m);
-    assert.match(run(dir, {}, [PLAN_REL]).stdout, /^progress: 1\/2$/m);
+    assert.match((await run(dir, {}, [PLAN_REL])).stdout, /^progress: 1\/2$/m);
   });
 });
 
@@ -1873,11 +1873,11 @@ function withRoadmap(body: string): string {
   return body.replace("## Acceptance criteria\n", [...ROADMAP, "## Acceptance criteria", ""].join("\n"));
 }
 
-test("--split writes the Roadmap section into roadmap.md, heading included and its HTML comment dropped", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("--split writes the Roadmap section into roadmap.md, heading included and its HTML comment dropped", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, withRoadmap(planBody(TWO_TASKS)));
 
-    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(
       readRun(dir, "roadmap.md"),
@@ -1896,11 +1896,11 @@ test("--split writes the Roadmap section into roadmap.md, heading included and i
   });
 });
 
-test("--split leaves the Roadmap section out of spec.md, the goal running straight into the acceptance criteria (a later part's decisions are not this part's specification)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("--split leaves the Roadmap section out of spec.md, the goal running straight into the acceptance criteria (a later part's decisions are not this part's specification)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, withRoadmap(planBody(TWO_TASKS)));
 
-    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.equal((await run(dir, {}, [PLAN_REL, "--split"])).status, 0);
     const spec = readRun(dir, "spec.md");
     assert.ok(
       spec.includes("## Goal\n\nUsers can log in.\nThe session is durable.\n\n## Acceptance criteria\n"),
@@ -1910,17 +1910,17 @@ test("--split leaves the Roadmap section out of spec.md, the goal running straig
   });
 });
 
-test("roadmap.md is committed with the decomposition", () => {
-  withGitRepo((repo) => {
+test("roadmap.md is committed with the decomposition", async () => {
+  await withGitRepo(async (repo) => {
     write(repo.dir, "README.md", "seed\n");
-    repo.git("add", "-A");
-    repo.git("commit", "-m", "seed");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "seed");
     seed(repo.dir, withRoadmap(planBody(TWO_TASKS)));
 
-    const result = run(repo.dir, repo.env, [PLAN_REL, "--split"]);
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    const committed = repo
-      .git("show", "--name-only", "--format=", "HEAD")
+    const committed = (await repo
+      .git("show", "--name-only", "--format=", "HEAD"))
       .stdout.trim()
       .split("\n")
       .map((l) => l.trim())
@@ -1937,11 +1937,11 @@ test("roadmap.md is committed with the decomposition", () => {
   });
 });
 
-test("a plan with no Roadmap section writes no roadmap.md and exactly the spec.md it always did (a change built in one part carries no roadmap)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a plan with no Roadmap section writes no roadmap.md and exactly the spec.md it always did (a change built in one part carries no roadmap)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
 
-    assert.equal(run(dir, {}, [PLAN_REL, "--split"]).status, 0);
+    assert.equal((await run(dir, {}, [PLAN_REL, "--split"])).status, 0);
     assert.ok(!fs.existsSync(path.join(dir, PLAN_DIR, "roadmap.md")), "roadmap.md was written");
     assert.equal(readRun(dir, "spec.md"), liteHead(2).join("\n"));
   });
@@ -1961,12 +1961,12 @@ function roadmapPlan(entries: string[]): string {
   );
 }
 
-test("a Roadmap entry after the one marked (this plan) prints the next line between the decision lines and the tasks line", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a Roadmap entry after the one marked (this plan) prints the next line between the decision lines and the tasks line", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, withRoadmap(planBody(TWO_TASKS)));
     write(dir, `${PLAN_DIR}/status.md`, ["# status", "", "progress: 0/2", "decision: T1: keep the old handler", ""].join("\n"));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(
       result.stdout,
@@ -1975,51 +1975,51 @@ test("a Roadmap entry after the one marked (this plan) prints the next line betw
   });
 });
 
-test("the next line strips a trailing marker from the name and counts every numbered entry (a marker is bookkeeping, never part of the part's name)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("the next line strips a trailing marker from the name and counts every numbered entry (a marker is bookkeeping, never part of the part's name)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, roadmapPlan(["1. Account model (this plan)", "2. Session expiry (built)", "3. Audit log"]));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^next: part 2 of 3 - Session expiry\n/m);
   });
 });
 
-test("a Roadmap whose (this plan) entry is last prints no next line (nothing is left to interview)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a Roadmap whose (this plan) entry is last prints no next line (nothing is left to interview)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, roadmapPlan(["1. Account model (built)", "2. Add login (this plan)"]));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.doesNotMatch(result.stdout, /^next:/m);
   });
 });
 
-test("a Roadmap with no (this plan) entry prints no next line", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a Roadmap with no (this plan) entry prints no next line", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, roadmapPlan(["1. Account model (built)", "2. Add login"]));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.doesNotMatch(result.stdout, /^next:/m);
   });
 });
 
-test("a plan with no Roadmap prints no next line, the tasks line straight after the state lines", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a plan with no Roadmap prints no next line, the tasks line straight after the state lines", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.doesNotMatch(result.stdout, /^next:/m);
   });
 });
 
-test("a numbered line outside the Roadmap section is no entry (a later section's list names no part)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a numbered line outside the Roadmap section is no entry (a later section's list names no part)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, roadmapPlan(["1. Add login (this plan)"]).replace("- Password reset.\n", "2. Session expiry\n- Password reset.\n"));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.doesNotMatch(result.stdout, /^next:/m);
   });
 });
@@ -2030,21 +2030,21 @@ test("the header's stdout block lists the next line", () => {
   assert.match(stdoutDoc, /^#\s+next: part <n> of <N> - <name>/m);
 });
 
-test("a second --split with the plan unchanged commits nothing and still exits 0", () => {
-  withGitRepo((repo) => {
+test("a second --split with the plan unchanged commits nothing and still exits 0", async () => {
+  await withGitRepo(async (repo) => {
     seed(repo.dir, planBody(TWO_TASKS));
-    repo.git("add", "-A");
-    repo.git("commit", "-m", "seed");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "seed");
 
-    assert.equal(run(repo.dir, repo.env, [PLAN_REL, "--split"]).status, 0);
-    const after = subjects(repo);
-    assert.equal(run(repo.dir, repo.env, [PLAN_REL, "--split"]).status, 0);
-    assert.deepEqual(subjects(repo), after);
+    assert.equal((await run(repo.dir, repo.env, [PLAN_REL, "--split"])).status, 0);
+    const after = await subjects(repo);
+    assert.equal((await run(repo.dir, repo.env, [PLAN_REL, "--split"])).status, 0);
+    assert.deepEqual(await subjects(repo), after);
   });
 });
 
-test("a DoD line naming another task's id outside backticks exits 4 with the C1 line and nothing on stdout", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a DoD line naming another task's id outside backticks exits 4 with the C1 line and nothing on stdout", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(
       dir,
       planBody(
@@ -2063,7 +2063,7 @@ test("a DoD line naming another task's id outside backticks exits 4 with the C1 
       ),
     );
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "");
     assert.match(
@@ -2073,17 +2073,17 @@ test("a DoD line naming another task's id outside backticks exits 4 with the C1 
   });
 });
 
-test("a DoD line naming the task's own id exits 0 - a task's own id never matches", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a DoD line naming the task's own id exits 0 - a task's own id never matches", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody([{ id: "T1", files: "src/a.ts", dod: "T1 handles this case" }], 1));
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
   });
 });
 
-test("a DoD line whose word merely contains another task's id exits 0 (T10 beside a task T1 names no task)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a DoD line whose word merely contains another task's id exits 0 (T10 beside a task T1 names no task)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(
       dir,
       planBody(
@@ -2102,13 +2102,13 @@ test("a DoD line whose word merely contains another task's id exits 0 (T10 besid
       ),
     );
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
   });
 });
 
-test("a DoD line naming another task's id only inside a backtick span exits 0 (a fixture plan quoted as literal test data)", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a DoD line naming another task's id only inside a backtick span exits 0 (a fixture plan quoted as literal test data)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(
       dir,
       planBody(
@@ -2127,13 +2127,13 @@ test("a DoD line naming another task's id only inside a backtick span exits 0 (a
       ),
     );
 
-    const result = run(dir, {}, [PLAN_REL]);
+    const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
   });
 });
 
-test("a DoD line naming another task validates under --split - a frozen plan resumed after the rule lands must still decompose", () => {
-  withTempDir("p2p2-viber-", (dir) => {
+test("a DoD line naming another task validates under --split - a frozen plan resumed after the rule lands must still decompose", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
     seed(
       dir,
       planBody(
@@ -2152,7 +2152,7 @@ test("a DoD line naming another task validates under --split - a frozen plan res
       ),
     );
 
-    const result = run(dir, {}, [PLAN_REL, "--split"]);
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
   });

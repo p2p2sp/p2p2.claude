@@ -20,7 +20,7 @@
  *   node --test tests/viber/create-issue.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -32,8 +32,8 @@ import { forEachShell, type Shell } from "../harness/shells.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/create-issue.sh");
 
-function assertPosix(fn: (shell: Shell) => void) {
-  const skips = forEachShell("posix", fn);
+async function assertPosix(fn: (shell: Shell) => void | Promise<void>) {
+  const skips = await forEachShell("posix", fn);
   for (const skip of skips) {
     assert.equal(skip.kind, "posix");
     assert.ok(skip.reason.length > 0, "a skip must record a reason");
@@ -61,19 +61,19 @@ exit 1
 
 /** Runs create-issue.sh with a fresh `gh` stub first on PATH. Returns the
  *  result and every logged gh call, split into per-call argv arrays. */
-function runStubbed(
+async function runStubbed(
   shell: Shell,
   args: string[],
   env: Record<string, string> = {},
-): { result: RunResult; calls: string[][]; body: string } {
-  return withTempDir("p2p2-create-issue-", (cwd) =>
-    withStub("gh", GH_STUB, (stubDir) => {
+): Promise<{ result: RunResult; calls: string[][]; body: string }> {
+  return await withTempDir("p2p2-create-issue-", (cwd) =>
+    withStub("gh", GH_STUB, async (stubDir) => {
       const body = path.join(cwd, "body.md");
       fs.writeFileSync(body, "## Summary\n\nLine one.\nLine two.\n");
       const argvFile = path.join(cwd, "argv.log");
       fs.writeFileSync(argvFile, "");
       const real = args.map((a) => (a === "<body>" ? body : a));
-      const result = runScript(SUT, real, { shell, cwd, env: { ARGV_FILE: argvFile, ...env }, stubDirs: [stubDir] });
+      const result = await runScript(SUT, real, { shell, cwd, env: { ARGV_FILE: argvFile, ...env }, stubDirs: [stubDir] });
       const calls = fs
         .readFileSync(argvFile, "utf-8")
         .split("===\n")
@@ -86,10 +86,10 @@ function runStubbed(
 
 // --- bad arguments ----------------------------------------------------------------
 
-test("a missing body file or title argument: exit 2 and gh is never called", () => {
-  assertPosix((shell) => {
+test("a missing body file or title argument: exit 2 and gh is never called", async () => {
+  await assertPosix(async (shell) => {
     for (const args of [[], ["only-body.md"]]) {
-      const result = runScript(SUT, args, { shell });
+      const result = await runScript(SUT, args, { shell });
       assert.equal(result.status, 2, `args ${JSON.stringify(args)}`);
       assert.match(result.stderr, /need <body file> <title>/);
       assert.equal(result.stdout, "");
@@ -97,19 +97,19 @@ test("a missing body file or title argument: exit 2 and gh is never called", () 
   });
 });
 
-test("a body file that does not exist: exit 2 and gh is never called (nothing half-created)", () => {
-  assertPosix((shell) => {
-    const result = runScript(SUT, ["does-not-exist.md", "A title"], { shell });
+test("a body file that does not exist: exit 2 and gh is never called (nothing half-created)", async () => {
+  await assertPosix(async (shell) => {
+    const result = await runScript(SUT, ["does-not-exist.md", "A title"], { shell });
     assert.equal(result.status, 2);
     assert.match(result.stderr, /^ERROR create-issue\.sh: body file not found: does-not-exist\.md$/m);
     assert.equal(result.stdout, "");
   });
 });
 
-test("an unknown flag or a flag missing its value: exit 2 and gh is never called", () => {
-  assertPosix((shell) => {
+test("an unknown flag or a flag missing its value: exit 2 and gh is never called", async () => {
+  await assertPosix(async (shell) => {
     for (const args of [["<body>", "A title", "--bogus"], ["<body>", "A title", "--type"], ["<body>", "A title", "--label"]]) {
-      const { result, calls } = runStubbed(shell, args);
+      const { result, calls } = await runStubbed(shell, args);
       assert.equal(result.status, 2, `args ${JSON.stringify(args)}: ${result.stderr}`);
       assert.equal(result.stdout, "");
       assert.equal(calls.length, 0);
@@ -126,12 +126,12 @@ const ghOnCorePath = coreUtilsPath()
 test(
   "gh not on PATH: exit 1 with one ERROR line naming gh",
   { skip: ghOnCorePath ? "a real gh sits in the core utilities directory, so its absence cannot be staged" : false },
-  () => {
-    assertPosix((shell) => {
-      withTempDir("p2p2-create-issue-", (cwd) => {
+  async () => {
+    await assertPosix(async (shell) => {
+      await withTempDir("p2p2-create-issue-", async (cwd) => {
         const body = path.join(cwd, "body.md");
         fs.writeFileSync(body, "body\n");
-        const result = runScript(SUT, [body, "A title"], { shell, cwd, env: { PATH: coreUtilsPath() } });
+        const result = await runScript(SUT, [body, "A title"], { shell, cwd, env: { PATH: coreUtilsPath() } });
         assert.equal(result.status, 1);
         assert.equal(result.stdout, "");
         assert.match(result.stderr, /^ERROR create-issue\.sh: gh not found on PATH$/m);
@@ -140,9 +140,9 @@ test(
   },
 );
 
-test("gh issue create fails: exit 1, one ERROR line carrying gh's message, nothing on stdout", () => {
-  assertPosix((shell) => {
-    const { result, calls } = runStubbed(shell, ["<body>", "A title"], { CREATE_EXIT: "1", CREATE_STDERR: "HTTP 401: Bad credentials\n" });
+test("gh issue create fails: exit 1, one ERROR line carrying gh's message, nothing on stdout", async () => {
+  await assertPosix(async (shell) => {
+    const { result, calls } = await runStubbed(shell, ["<body>", "A title"], { CREATE_EXIT: "1", CREATE_STDERR: "HTTP 401: Bad credentials\n" });
     assert.equal(result.status, 1);
     assert.equal(result.stdout, "");
     const lines = result.stderr.split("\n").filter((l) => l.length > 0);
@@ -152,10 +152,10 @@ test("gh issue create fails: exit 1, one ERROR line carrying gh's message, nothi
   });
 });
 
-test("gh issue create exits 0 but prints no parsable issue URL: exit 1, nothing on stdout", () => {
-  assertPosix((shell) => {
+test("gh issue create exits 0 but prints no parsable issue URL: exit 1, nothing on stdout", async () => {
+  await assertPosix(async (shell) => {
     for (const out of ["", "not a url\n", "https://github.com/acme/widgets/pull/42\n"]) {
-      const { result } = runStubbed(shell, ["<body>", "A title"], { CREATE_STDOUT: out });
+      const { result } = await runStubbed(shell, ["<body>", "A title"], { CREATE_STDOUT: out });
       assert.equal(result.status, 1, `gh stdout ${JSON.stringify(out)}`);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /^ERROR create-issue\.sh: gh issue create failed:/);
@@ -165,9 +165,9 @@ test("gh issue create exits 0 but prints no parsable issue URL: exit 1, nothing 
 
 // --- success, no --type ------------------------------------------------------------
 
-test("no --type: the body reaches gh issue create through --body-file, flags forward verbatim and in order, TYPE=none, and gh api is never called", () => {
-  assertPosix((shell) => {
-    const { result, calls, body } = runStubbed(
+test("no --type: the body reaches gh issue create through --body-file, flags forward verbatim and in order, TYPE=none, and gh api is never called", async () => {
+  await assertPosix(async (shell) => {
+    const { result, calls, body } = await runStubbed(
       shell,
       ["<body>", "A title", "--label", "bug", "--assignee", "octocat", "--label", "triage", "--project", "Roadmap"],
       { CREATE_STDOUT: ISSUE_URL + "\n" },
@@ -184,10 +184,10 @@ test("no --type: the body reaches gh issue create through --body-file, flags for
 
 // --- success, --type applied on a non-github.com host --------------------------------
 
-test("--type applied: a non-github.com host's issue URL PATCHes repos/<owner>/<repo>/issues/<N> with --hostname <that host>, TYPE=applied", () => {
-  assertPosix((shell) => {
+test("--type applied: a non-github.com host's issue URL PATCHes repos/<owner>/<repo>/issues/<N> with --hostname <that host>, TYPE=applied", async () => {
+  await assertPosix(async (shell) => {
     const url = "https://github.example.com/acme/widgets/issues/7";
-    const { result, calls } = runStubbed(shell, ["<body>", "A title", "--type", "bug"], { CREATE_STDOUT: url + "\n" });
+    const { result, calls } = await runStubbed(shell, ["<body>", "A title", "--type", "bug"], { CREATE_STDOUT: url + "\n" });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, `ISSUE_URL=${url}\nISSUE_NUMBER=7\nTYPE=applied\n`);
     assert.equal(calls.length, 2);
@@ -195,10 +195,10 @@ test("--type applied: a non-github.com host's issue URL PATCHes repos/<owner>/<r
   });
 });
 
-test("--type PATCH fails on a benign reason: TYPE=dropped, TYPE_ERROR carries the message, and the issue is never removed", () => {
-  assertPosix((shell) => {
+test("--type PATCH fails on a benign reason: TYPE=dropped, TYPE_ERROR carries the message, and the issue is never removed", async () => {
+  await assertPosix(async (shell) => {
     for (const msg of ["issue types are not enabled for this repository", "HTTP 404: Not Found", "HTTP 403: Forbidden"]) {
-      const { result, calls } = runStubbed(shell, ["<body>", "A title", "--type", "bug"], {
+      const { result, calls } = await runStubbed(shell, ["<body>", "A title", "--type", "bug"], {
         CREATE_STDOUT: ISSUE_URL + "\n",
         API_EXIT: "1",
         API_STDERR: msg,
@@ -210,10 +210,10 @@ test("--type PATCH fails on a benign reason: TYPE=dropped, TYPE_ERROR carries th
   });
 });
 
-test("--type PATCH fails on an unrecognized reason: TYPE=error, TYPE_ERROR carries the message, and the issue is never removed", () => {
-  assertPosix((shell) => {
+test("--type PATCH fails on an unrecognized reason: TYPE=error, TYPE_ERROR carries the message, and the issue is never removed", async () => {
+  await assertPosix(async (shell) => {
     const msg = "HTTP 500: Internal Server Error";
-    const { result, calls } = runStubbed(shell, ["<body>", "A title", "--type", "bug"], {
+    const { result, calls } = await runStubbed(shell, ["<body>", "A title", "--type", "bug"], {
       CREATE_STDOUT: ISSUE_URL + "\n",
       API_EXIT: "1",
       API_STDERR: msg,

@@ -24,12 +24,12 @@
  *   node --test tests/portability.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "./harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 
-import { runScript } from "./harness/run.ts";
+import { spawnSync } from "node:child_process";
 
 const INTERPRETER_WORDS = new Set(["bash", "sh", "node"]);
 const GLOB_CHARS = ["?", "*", "["];
@@ -730,14 +730,21 @@ interface IndexEntry {
   repoRelativePath: string;
 }
 
+/** Synchronous on purpose: the corpus is read once, at load, before any case
+ *  registers, and a read-only git query needs none of runScript's plumbing. */
+function git(args: string[], cwd?: string) {
+  const result = spawnSync("git", args, { cwd, encoding: "utf-8" });
+  return { status: result.status, stdout: result.stdout ?? "", stderr: result.stderr ?? String(result.error) };
+}
+
 function repoRoot(): string {
-  const result = runScript("git", ["rev-parse", "--show-toplevel"]);
+  const result = git(["rev-parse", "--show-toplevel"]);
   if (result.status !== 0) throw new Error(`git rev-parse --show-toplevel failed: ${result.stderr}`);
   return result.stdout.trim();
 }
 
 function listIndexed(root: string, pathspecs: string[]): IndexEntry[] {
-  const result = runScript("git", ["ls-files", "-s", "--", ...pathspecs], { cwd: root });
+  const result = git(["ls-files", "-s", "--", ...pathspecs], root);
   if (result.status !== 0) throw new Error(`git ls-files failed: ${result.stderr}`);
   return result.stdout
     .split("\n")

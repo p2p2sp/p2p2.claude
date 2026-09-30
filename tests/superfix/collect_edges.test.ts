@@ -18,7 +18,7 @@
  *   node --test tests/superfix/collect_edges.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -30,16 +30,16 @@ import { canDenyRead, denyRead, restoreRead } from "../harness/perms.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../superfix/skills/code-auditor/scripts/collect_edges.sh");
 
-function assertBash(fn: (bash: string) => void) {
-  const skips = forEachShell("bash", fn);
+async function assertBash(fn: (bash: string) => void | Promise<void>) {
+  const skips = await forEachShell("bash", fn);
   for (const skip of skips) {
     assert.equal(skip.kind, "bash");
     assert.ok(skip.reason.length > 0, "a skip must record a reason");
   }
 }
 
-function run(bash: string, repo: GitRepo, args: string[]): RunResult {
-  return runScript(SUT, args, { shell: bash, cwd: repo.dir, env: repo.env });
+async function run(bash: string, repo: GitRepo, args: string[]): Promise<RunResult> {
+  return await runScript(SUT, args, { shell: bash, cwd: repo.dir, env: repo.env });
 }
 
 function recordsOf(result: RunResult): Record<string, any>[] {
@@ -54,24 +54,24 @@ function recordsOf(result: RunResult): Record<string, any>[] {
  *  past - collect_edges.sh itself never reads commit history, but keeping
  *  the same builder shape as collect_signals.sh's fixtures documents that
  *  both sweeps share the same universe. */
-function commitAt(repo: GitRepo, daysAgo: number, message: string): void {
+async function commitAt(repo: GitRepo, daysAgo: number, message: string): Promise<void> {
   const date = new Date(Date.now() - daysAgo * 24 * 3600 * 1000).toISOString();
   const env = { ...repo.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date };
-  const add = runScript("git", ["add", "-A"], { cwd: repo.dir, env });
+  const add = await runScript("git", ["add", "-A"], { cwd: repo.dir, env });
   assert.equal(add.status, 0, `git add failed: ${add.stderr}`);
-  const commit = runScript("git", ["commit", "-m", message], { cwd: repo.dir, env });
+  const commit = await runScript("git", ["commit", "-m", message], { cwd: repo.dir, env });
   assert.equal(commit.status, 0, `git commit failed: ${commit.stderr}`);
 }
 
 /** shared.md is a real tracked file mentioned by 3 other files, so it links
  *  all 3 into a clique of 3 pairs at fanout 3 - enough to exercise --max-
  *  fanout capping in both directions. */
-function buildPairFixture(repo: GitRepo): void {
+async function buildPairFixture(repo: GitRepo): Promise<void> {
   fs.writeFileSync(path.join(repo.dir, "shared.md"), "shared config\n");
   fs.writeFileSync(path.join(repo.dir, "a.ts"), "// reads shared.md at startup\n");
   fs.writeFileSync(path.join(repo.dir, "b.ts"), "// also reads shared.md at startup\n");
   fs.writeFileSync(path.join(repo.dir, "c.ts"), "// depends on shared.md too\n");
-  commitAt(repo, 0, "seed pair fixture");
+  await commitAt(repo, 0, "seed pair fixture");
 }
 
 /** shared.md and other.md are tracked artifacts, never endpoints themselves -
@@ -79,7 +79,7 @@ function buildPairFixture(repo: GitRepo): void {
  *  and lib/c.ts all mention shared.md (fanout 3, a clique of 3 pairs, two of
  *  them straddling the src/ boundary), while lib/c.ts and lib/d.ts share
  *  other.md - the one pair with both endpoints outside src/. */
-function buildScopedPairFixture(repo: GitRepo): void {
+async function buildScopedPairFixture(repo: GitRepo): Promise<void> {
   fs.mkdirSync(path.join(repo.dir, "src"), { recursive: true });
   fs.mkdirSync(path.join(repo.dir, "lib"), { recursive: true });
   fs.writeFileSync(path.join(repo.dir, "shared.md"), "shared config\n");
@@ -88,7 +88,7 @@ function buildScopedPairFixture(repo: GitRepo): void {
   fs.writeFileSync(path.join(repo.dir, "src", "b.ts"), "// also reads shared.md at startup\n");
   fs.writeFileSync(path.join(repo.dir, "lib", "c.ts"), "// depends on shared.md and other.md\n");
   fs.writeFileSync(path.join(repo.dir, "lib", "d.ts"), "// also reads other.md\n");
-  commitAt(repo, 0, "seed scoped pair fixture");
+  await commitAt(repo, 0, "seed scoped pair fixture");
 }
 
 function pairKeysOf(result: RunResult): string[] {
@@ -99,11 +99,11 @@ function pairKeysOf(result: RunResult): string[] {
 
 // --- record shape ----------------------------------------------------------
 
-test("JSONL records carry a, b, via, vias, fanout, shared - a always < b", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
-      buildPairFixture(repo);
-      const result = run(bash, repo, []);
+test("JSONL records carry a, b, via, vias, fanout, shared - a always < b", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      await buildPairFixture(repo);
+      const result = await run(bash, repo, []);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       const records = recordsOf(result);
       assert.equal(records.length, 3, "3 files sharing one literal must form exactly 3 pairs");
@@ -125,32 +125,32 @@ test("JSONL records carry a, b, via, vias, fanout, shared - a always < b", () =>
 
 // --- --max-fanout capping ---------------------------------------------------
 
-test("--max-fanout caps as documented: a literal exceeding it is dropped as ambient", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
-      buildPairFixture(repo);
+test("--max-fanout caps as documented: a literal exceeding it is dropped as ambient", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      await buildPairFixture(repo);
 
-      const capped = run(bash, repo, ["--max-fanout", "2"]);
+      const capped = await run(bash, repo, ["--max-fanout", "2"]);
       assert.equal(capped.status, 0, `stderr: ${capped.stderr}`);
       assert.equal(capped.stdout, "", "fanout 3 must exceed --max-fanout 2, dropping every pair");
 
-      const uncapped = run(bash, repo, ["--max-fanout", "3"]);
+      const uncapped = await run(bash, repo, ["--max-fanout", "3"]);
       assert.equal(uncapped.status, 0, `stderr: ${uncapped.stderr}`);
       assert.equal(recordsOf(uncapped).length, 3, "raising --max-fanout to 3 restores every pair");
     });
   });
 });
 
-test("[repo_root] may differ from cwd, and --max-fanout may appear before or after it", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
-      buildPairFixture(repo);
-      withTempDir("p2p2-collect-edges-cwd-", (cwd) => {
-        const before = runScript(SUT, ["--max-fanout", "8", repo.dir], { shell: bash, cwd, env: repo.env });
+test("[repo_root] may differ from cwd, and --max-fanout may appear before or after it", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      await buildPairFixture(repo);
+      await withTempDir("p2p2-collect-edges-cwd-", async (cwd) => {
+        const before = await runScript(SUT, ["--max-fanout", "8", repo.dir], { shell: bash, cwd, env: repo.env });
         assert.equal(before.status, 0, `stderr: ${before.stderr}`);
         assert.equal(recordsOf(before).length, 3);
 
-        const after = runScript(SUT, [repo.dir, "--max-fanout", "8"], { shell: bash, cwd, env: repo.env });
+        const after = await runScript(SUT, [repo.dir, "--max-fanout", "8"], { shell: bash, cwd, env: repo.env });
         assert.equal(after.status, 0, `stderr: ${after.stderr}`);
         assert.equal(recordsOf(after).length, 3);
       });
@@ -160,11 +160,11 @@ test("[repo_root] may differ from cwd, and --max-fanout may appear before or aft
 
 // --- --scope ----------------------------------------------------------------
 
-test("--scope <dir> keeps a pair iff at least one endpoint lies under it", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
-      buildScopedPairFixture(repo);
-      const result = run(bash, repo, ["--scope", "src"]);
+test("--scope <dir> keeps a pair iff at least one endpoint lies under it", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      await buildScopedPairFixture(repo);
+      const result = await run(bash, repo, ["--scope", "src"]);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       // The last two straddle the boundary - an edge whose other endpoint sits
       // outside src/ is exactly the contract a scoped audit must still see.
@@ -182,13 +182,13 @@ test("--scope <dir> keeps a pair iff at least one endpoint lies under it", () =>
   });
 });
 
-test("a scoped pair carries exactly the values the unscoped run computes for it", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
-      buildScopedPairFixture(repo);
-      const unscoped = run(bash, repo, []);
+test("a scoped pair carries exactly the values the unscoped run computes for it", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      await buildScopedPairFixture(repo);
+      const unscoped = await run(bash, repo, []);
       assert.equal(unscoped.status, 0, `stderr: ${unscoped.stderr}`);
-      const scoped = run(bash, repo, ["--scope", "src"]);
+      const scoped = await run(bash, repo, ["--scope", "src"]);
       assert.equal(scoped.status, 0, `stderr: ${scoped.stderr}`);
 
       const beforeRecords = recordsOf(unscoped);
@@ -205,12 +205,12 @@ test("a scoped pair carries exactly the values the unscoped run computes for it"
   });
 });
 
-test("a --scope value tolerates a leading ./ and a trailing / and resolves to the same subtree", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
-      buildScopedPairFixture(repo);
-      const plain = run(bash, repo, ["--scope", "src"]);
-      const decorated = run(bash, repo, ["--scope", "./src/"]);
+test("a --scope value tolerates a leading ./ and a trailing / and resolves to the same subtree", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      await buildScopedPairFixture(repo);
+      const plain = await run(bash, repo, ["--scope", "src"]);
+      const decorated = await run(bash, repo, ["--scope", "./src/"]);
       assert.equal(decorated.status, 0, `stderr: ${decorated.stderr}`);
       assert.deepEqual(pairKeysOf(decorated), pairKeysOf(plain));
       assert.match(decorated.stderr, /^scope: src \(3 pairs\)$/m);
@@ -218,18 +218,18 @@ test("a --scope value tolerates a leading ./ and a trailing / and resolves to th
   });
 });
 
-test("--scope may appear before or after [repo_root] and --max-fanout", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
-      buildScopedPairFixture(repo);
-      withTempDir("p2p2-collect-edges-scope-cwd-", (cwd) => {
+test("--scope may appear before or after [repo_root] and --max-fanout", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      await buildScopedPairFixture(repo);
+      await withTempDir("p2p2-collect-edges-scope-cwd-", async (cwd) => {
         const positions: string[][] = [
           ["--scope", "src", repo.dir, "--max-fanout", "8"],
           [repo.dir, "--max-fanout", "8", "--scope", "src"],
           [repo.dir, "--scope", "src", "--max-fanout", "8"],
         ];
         for (const args of positions) {
-          const result = runScript(SUT, args, { shell: bash, cwd, env: repo.env });
+          const result = await runScript(SUT, args, { shell: bash, cwd, env: repo.env });
           assert.equal(result.status, 0, `args=${args.join(" ")} stderr: ${result.stderr}`);
           assert.deepEqual(
             pairKeysOf(result),
@@ -242,11 +242,11 @@ test("--scope may appear before or after [repo_root] and --max-fanout", () => {
   });
 });
 
-test("a --scope no pair reaches is a valid empty result, not an error", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
-      buildScopedPairFixture(repo);
-      const result = run(bash, repo, ["--scope", "nowhere"]);
+test("a --scope no pair reaches is a valid empty result, not an error", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      await buildScopedPairFixture(repo);
+      const result = await run(bash, repo, ["--scope", "nowhere"]);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /^scope: nowhere \(0 pairs\)$/m);
@@ -254,12 +254,12 @@ test("a --scope no pair reaches is a valid empty result, not an error", () => {
   });
 });
 
-test("an absolute or ..-bearing --scope value exits 2 with no stdout and one stderr line naming it", () => {
-  assertBash((bash) => {
+test("an absolute or ..-bearing --scope value exits 2 with no stdout and one stderr line naming it", async () => {
+  await assertBash(async (bash) => {
     for (const scope of ["/etc", "/", "//", "C:/tmp", "..", "../sibling", "src/../lib", "src/.."]) {
-      withGitRepo((repo) => {
-        buildScopedPairFixture(repo);
-        const result = run(bash, repo, ["--scope", scope]);
+      await withGitRepo(async (repo) => {
+        await buildScopedPairFixture(repo);
+        const result = await run(bash, repo, ["--scope", scope]);
         assert.equal(result.status, 2, `scope=${scope} stderr: ${result.stderr}`);
         assert.equal(result.stdout, "", `scope=${scope}`);
         const stderrLines = result.stderr.split("\n").filter((line) => line.length > 0);
@@ -274,11 +274,11 @@ test("an absolute or ..-bearing --scope value exits 2 with no stdout and one std
   });
 });
 
-test("a trailing --scope with no value exits 2 with no stdout", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
-      buildScopedPairFixture(repo);
-      const result = run(bash, repo, [".", "--scope"]);
+test("a trailing --scope with no value exits 2 with no stdout", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      await buildScopedPairFixture(repo);
+      const result = await run(bash, repo, [".", "--scope"]);
       assert.equal(result.status, 2, `stderr: ${result.stderr}`);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /^collect_edges\.sh: --scope requires a directory argument$/m);
@@ -288,10 +288,10 @@ test("a trailing --scope with no value exits 2 with no stdout", () => {
 
 // --- exit codes / degenerate repos ------------------------------------------
 
-test("unborn HEAD -> exit 1, no stdout", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
-      const result = run(bash, repo, []);
+test("unborn HEAD -> exit 1, no stdout", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      const result = await run(bash, repo, []);
       assert.notEqual(result.status, 0);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /HEAD has no commits yet \(unborn HEAD\) - nothing to sweep/);
@@ -299,27 +299,27 @@ test("unborn HEAD -> exit 1, no stdout", () => {
   });
 });
 
-test("no pairs found -> exit 0 with EMPTY stdout (a valid result, not an error)", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
+test("no pairs found -> exit 0 with EMPTY stdout (a valid result, not an error)", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
       fs.writeFileSync(path.join(repo.dir, "lonely.md"), "nothing references anything else\n");
-      commitAt(repo, 0, "seed lonely file");
-      const result = run(bash, repo, []);
+      await commitAt(repo, 0, "seed lonely file");
+      const result = await run(bash, repo, []);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       assert.equal(result.stdout, "");
     });
   });
 });
 
-test("a repo whose only commit is empty -> exit 0, empty stdout", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
-      const commit = runScript("git", ["commit", "--allow-empty", "-m", "empty init"], {
+test("a repo whose only commit is empty -> exit 0, empty stdout", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      const commit = await runScript("git", ["commit", "--allow-empty", "-m", "empty init"], {
         cwd: repo.dir,
         env: repo.env,
       });
       assert.equal(commit.status, 0, `stderr: ${commit.stderr}`);
-      const result = run(bash, repo, []);
+      const result = await run(bash, repo, []);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       assert.equal(result.stdout, "");
     });
@@ -328,15 +328,15 @@ test("a repo whose only commit is empty -> exit 0, empty stdout", () => {
 
 // --- edge cases --------------------------------------------------------------
 
-test("a pair endpoint with a space and a non-ASCII character comes through unquoted", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
+test("a pair endpoint with a space and a non-ASCII character comes through unquoted", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
       const name = "café notes.md";
       fs.writeFileSync(path.join(repo.dir, "shared.md"), "shared config\n");
       fs.writeFileSync(path.join(repo.dir, name), "reads shared.md at startup\n");
       fs.writeFileSync(path.join(repo.dir, "other.ts"), "// also reads shared.md\n");
-      commitAt(repo, 0, "seed unicode pair fixture");
-      const result = run(bash, repo, []);
+      await commitAt(repo, 0, "seed unicode pair fixture");
+      const result = await run(bash, repo, []);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       const records = recordsOf(result);
       const record = records.find((r) => r.a === name || r.b === name);
@@ -345,18 +345,18 @@ test("a pair endpoint with a space and a non-ASCII character comes through unquo
   });
 });
 
-test("a file deleted in a later commit never appears as a pair endpoint", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
+test("a file deleted in a later commit never appears as a pair endpoint", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
       fs.writeFileSync(path.join(repo.dir, "shared.md"), "shared config\n");
       fs.writeFileSync(path.join(repo.dir, "temp.ts"), "// reads shared.md\n");
       fs.writeFileSync(path.join(repo.dir, "keep.ts"), "// also reads shared.md\n");
       fs.writeFileSync(path.join(repo.dir, "keep2.ts"), "// depends on shared.md\n");
-      commitAt(repo, 2, "add temp + keep + keep2");
+      await commitAt(repo, 2, "add temp + keep + keep2");
       fs.rmSync(path.join(repo.dir, "temp.ts"));
-      commitAt(repo, 1, "remove temp");
+      await commitAt(repo, 1, "remove temp");
 
-      const result = run(bash, repo, []);
+      const result = await run(bash, repo, []);
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       const records = recordsOf(result);
       assert.ok(!records.some((r) => r.a === "temp.ts" || r.b === "temp.ts"));
@@ -369,17 +369,17 @@ test("a file deleted in a later commit never appears as a pair endpoint", () => 
 test(
   "an unreadable tracked file warns on stderr only and is skipped from stdout",
   { skip: canDenyRead() ? false : "this machine cannot deny its own account read access" },
-  () => {
-    assertBash((bash) => {
-      withGitRepo((repo) => {
+  async () => {
+    await assertBash(async (bash) => {
+      await withGitRepo(async (repo) => {
         fs.writeFileSync(path.join(repo.dir, "shared.md"), "shared config\n");
         fs.writeFileSync(path.join(repo.dir, "locked.ts"), "// reads shared.md\n");
         fs.writeFileSync(path.join(repo.dir, "open.ts"), "// also reads shared.md\n");
-        commitAt(repo, 0, "seed unreadable fixture");
+        await commitAt(repo, 0, "seed unreadable fixture");
         const locked = path.join(repo.dir, "locked.ts");
         assert.ok(denyRead(locked), "the deny must hold, or this case proves nothing");
         try {
-          const result = run(bash, repo, []);
+          const result = await run(bash, repo, []);
           assert.equal(result.status, 0, `stderr: ${result.stderr}`);
           assert.match(result.stderr, /warning: skipping locked\.ts \(unreadable\)/);
           const records = recordsOf(result);
@@ -392,15 +392,15 @@ test(
   },
 );
 
-test("a shallow clone still produces the same pairs (collect_edges.sh reads content, not history)", () => {
-  assertBash((bash) => {
-    withGitRepo((repo) => {
-      buildPairFixture(repo);
-      withTempDir("p2p2-collect-edges-shallow-", (parentDir) => {
+test("a shallow clone still produces the same pairs (collect_edges.sh reads content, not history)", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      await buildPairFixture(repo);
+      await withTempDir("p2p2-collect-edges-shallow-", async (parentDir) => {
         const shallowDir = path.join(parentDir, "shallow");
-        const clone = runScript("git", ["clone", "--depth", "1", repo.dir, shallowDir], { env: repo.env });
+        const clone = await runScript("git", ["clone", "--depth", "1", repo.dir, shallowDir], { env: repo.env });
         assert.equal(clone.status, 0, `git clone --depth 1 failed: ${clone.stderr}`);
-        const result = runScript(SUT, [shallowDir], { shell: bash, env: repo.env });
+        const result = await runScript(SUT, [shallowDir], { shell: bash, env: repo.env });
         assert.equal(result.status, 0, `stderr: ${result.stderr}`);
         assert.equal(recordsOf(result).length, 3);
       });

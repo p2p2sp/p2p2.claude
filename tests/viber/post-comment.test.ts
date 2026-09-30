@@ -18,7 +18,7 @@
  *   node --test tests/viber/post-comment.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -32,8 +32,8 @@ const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/post-comment.
 
 const COMMENT_URL = "https://github.com/acme/widgets/issues/42#issuecomment-1234567";
 
-function assertPosix(fn: (shell: Shell) => void) {
-  const skips = forEachShell("posix", fn);
+async function assertPosix(fn: (shell: Shell) => void | Promise<void>) {
+  const skips = await forEachShell("posix", fn);
   for (const skip of skips) {
     assert.equal(skip.kind, "posix");
     assert.ok(skip.reason.length > 0, "a skip must record a reason");
@@ -53,19 +53,19 @@ exit "\${GH_EXIT:-0}"
 /** Runs post-comment.sh with a fresh `gh` stub first on PATH. `args` may use
  *  the token "<file>", replaced by the path of an existing comment file.
  *  Returns the result, every logged gh call and that file's path. */
-function runStubbed(
+async function runStubbed(
   shell: Shell,
   args: string[],
   env: Record<string, string> = {},
-): { result: RunResult; calls: string[][]; file: string } {
-  return withTempDir("p2p2-post-comment-", (cwd) =>
-    withStub("gh", GH_STUB, (stubDir) => {
+): Promise<{ result: RunResult; calls: string[][]; file: string }> {
+  return await withTempDir("p2p2-post-comment-", (cwd) =>
+    withStub("gh", GH_STUB, async (stubDir) => {
       const file = path.join(cwd, "comment.md");
       fs.writeFileSync(file, "## Summary\n\nLine one.\nLine two.\n");
       const argvFile = path.join(cwd, "argv.log");
       fs.writeFileSync(argvFile, "");
       const real = args.map((a) => (a === "<file>" ? file : a));
-      const result = runScript(SUT, real, { shell, cwd, env: { ARGV_FILE: argvFile, ...env }, stubDirs: [stubDir] });
+      const result = await runScript(SUT, real, { shell, cwd, env: { ARGV_FILE: argvFile, ...env }, stubDirs: [stubDir] });
       const calls = fs
         .readFileSync(argvFile, "utf-8")
         .split("===\n")
@@ -78,9 +78,9 @@ function runStubbed(
 
 // --- success --------------------------------------------------------------------
 
-test("a bare number and a file reach gh issue comment through --body-file, and exactly one COMMENT_URL= line is printed", () => {
-  assertPosix((shell) => {
-    const { result, calls, file } = runStubbed(shell, ["42", "<file>"], { GH_STDOUT: COMMENT_URL + "\n" });
+test("a bare number and a file reach gh issue comment through --body-file, and exactly one COMMENT_URL= line is printed", async () => {
+  await assertPosix(async (shell) => {
+    const { result, calls, file } = await runStubbed(shell, ["42", "<file>"], { GH_STDOUT: COMMENT_URL + "\n" });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, `COMMENT_URL=${COMMENT_URL}\n`);
     assert.equal(calls.length, 1);
@@ -88,20 +88,20 @@ test("a bare number and a file reach gh issue comment through --body-file, and e
   });
 });
 
-test("#42 is passed to gh as 42, an issue url verbatim, and one carrying a comment fragment or a query as the bare issue url", () => {
-  assertPosix((shell) => {
+test("#42 is passed to gh as 42, an issue url verbatim, and one carrying a comment fragment or a query as the bare issue url", async () => {
+  await assertPosix(async (shell) => {
     const url = "https://github.com/acme/widgets/issues/42";
     for (const [ref, expected] of [["#42", "42"], [url, url], [`${url}#issuecomment-1`, url], [`${url}?foo=1`, url]]) {
-      const { result, calls } = runStubbed(shell, [ref, "<file>"], { GH_STDOUT: COMMENT_URL + "\n" });
+      const { result, calls } = await runStubbed(shell, [ref, "<file>"], { GH_STDOUT: COMMENT_URL + "\n" });
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       assert.equal(calls[0][2], expected);
     }
   });
 });
 
-test("a comment URL followed by CRLF and a stderr warning still parses cleanly", () => {
-  assertPosix((shell) => {
-    const { result } = runStubbed(shell, ["42", "<file>"], {
+test("a comment URL followed by CRLF and a stderr warning still parses cleanly", async () => {
+  await assertPosix(async (shell) => {
+    const { result } = await runStubbed(shell, ["42", "<file>"], {
       GH_STDOUT: COMMENT_URL + "\r\n\r\n",
       GH_STDERR: "warning: some non-fatal notice\n",
     });
@@ -112,9 +112,9 @@ test("a comment URL followed by CRLF and a stderr warning still parses cleanly",
 
 // --- gh failure -------------------------------------------------------------------
 
-test("gh fails: exit 1, one ERROR line carrying gh's message, nothing on stdout", () => {
-  assertPosix((shell) => {
-    const { result } = runStubbed(shell, ["42", "<file>"], { GH_EXIT: "1", GH_STDERR: "HTTP 401: Bad credentials\n" });
+test("gh fails: exit 1, one ERROR line carrying gh's message, nothing on stdout", async () => {
+  await assertPosix(async (shell) => {
+    const { result } = await runStubbed(shell, ["42", "<file>"], { GH_EXIT: "1", GH_STDERR: "HTTP 401: Bad credentials\n" });
     assert.equal(result.status, 1);
     assert.equal(result.stdout, "");
     const lines = result.stderr.split("\n").filter((l) => l.length > 0);
@@ -123,10 +123,10 @@ test("gh fails: exit 1, one ERROR line carrying gh's message, nothing on stdout"
   });
 });
 
-test("gh exits 0 but prints no comment URL: exit 1, nothing on stdout (an issue URL alone is not proof a comment landed)", () => {
-  assertPosix((shell) => {
+test("gh exits 0 but prints no comment URL: exit 1, nothing on stdout (an issue URL alone is not proof a comment landed)", async () => {
+  await assertPosix(async (shell) => {
     for (const out of ["", "https://github.com/acme/widgets/issues/42\n", "https://github.com/acme/widgets/issues/42#issuecomment-abc\n"]) {
-      const { result } = runStubbed(shell, ["42", "<file>"], { GH_STDOUT: out });
+      const { result } = await runStubbed(shell, ["42", "<file>"], { GH_STDOUT: out });
       assert.equal(result.status, 1, `gh stdout ${JSON.stringify(out)}`);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /^ERROR post-comment\.sh: gh issue comment failed:/);
@@ -141,12 +141,12 @@ const ghOnCorePath = coreUtilsPath()
 test(
   "gh not on PATH: exit 1 with one ERROR line naming gh",
   { skip: ghOnCorePath ? "a real gh sits in the core utilities directory, so its absence cannot be staged" : false },
-  () => {
-    assertPosix((shell) => {
-      withTempDir("p2p2-post-comment-", (cwd) => {
+  async () => {
+    await assertPosix(async (shell) => {
+      await withTempDir("p2p2-post-comment-", async (cwd) => {
         const file = path.join(cwd, "comment.md");
         fs.writeFileSync(file, "body\n");
-        const result = runScript(SUT, ["42", file], { shell, cwd, env: { PATH: coreUtilsPath() } });
+        const result = await runScript(SUT, ["42", file], { shell, cwd, env: { PATH: coreUtilsPath() } });
         assert.equal(result.status, 1);
         assert.equal(result.stdout, "");
         assert.match(result.stderr, /^ERROR post-comment\.sh: gh not found on PATH$/m);
@@ -157,10 +157,10 @@ test(
 
 // --- bad arguments ----------------------------------------------------------------
 
-test("a wrong argument count: exit 2 and gh is never called", () => {
-  assertPosix((shell) => {
+test("a wrong argument count: exit 2 and gh is never called", async () => {
+  await assertPosix(async (shell) => {
     for (const args of [[], ["42"], ["42", "<file>", "extra"]]) {
-      const { result, calls } = runStubbed(shell, args);
+      const { result, calls } = await runStubbed(shell, args);
       assert.equal(result.status, 2, `args ${JSON.stringify(args)}`);
       assert.match(result.stderr, /need <issue number or url> <comment file>/);
       assert.equal(calls.length, 0);
@@ -168,10 +168,10 @@ test("a wrong argument count: exit 2 and gh is never called", () => {
   });
 });
 
-test("a reference that is neither a number nor an issue url: exit 2 and gh is never called", () => {
-  assertPosix((shell) => {
+test("a reference that is neither a number nor an issue url: exit 2 and gh is never called", async () => {
+  await assertPosix(async (shell) => {
     for (const ref of ["", "login is broken", "https://github.com/acme/widgets/pull/42", "https://github.com/acme/issues/42"]) {
-      const { result, calls } = runStubbed(shell, [ref, "<file>"]);
+      const { result, calls } = await runStubbed(shell, [ref, "<file>"]);
       assert.equal(result.status, 2, `ref ${JSON.stringify(ref)}: ${result.stderr}`);
       assert.match(result.stderr, /not an issue number or url/);
       assert.equal(calls.length, 0);
@@ -179,9 +179,9 @@ test("a reference that is neither a number nor an issue url: exit 2 and gh is ne
   });
 });
 
-test("a comment file that does not exist: exit 2 and gh is never called (nothing half-posted)", () => {
-  assertPosix((shell) => {
-    const { result, calls } = runStubbed(shell, ["42", "does-not-exist.md"]);
+test("a comment file that does not exist: exit 2 and gh is never called (nothing half-posted)", async () => {
+  await assertPosix(async (shell) => {
+    const { result, calls } = await runStubbed(shell, ["42", "does-not-exist.md"]);
     assert.equal(result.status, 2);
     assert.match(result.stderr, /^ERROR post-comment\.sh: comment file not found: does-not-exist\.md$/m);
     assert.equal(calls.length, 0);

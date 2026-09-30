@@ -19,7 +19,7 @@
  *   node --test tests/viber/run-clock.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import path from "node:path";
 
@@ -33,8 +33,8 @@ function run(args: string[] = [], cwd?: string) {
 }
 
 /** The start mark the script itself hands out, as a number. */
-function startMark(): number {
-  const result = run();
+async function startMark(): Promise<number> {
+  const result = await run();
   assert.equal(result.status, 0, `stderr: ${result.stderr}`);
   const mark = Number(result.stdout.trim().replace("started: ", ""));
   assert.ok(Number.isInteger(mark), `not an epoch: ${result.stdout}`);
@@ -42,13 +42,13 @@ function startMark(): number {
 }
 
 /** Runs the elapsed mode for a mark `seconds` in the past. */
-function elapsed(seconds: number) {
-  return run([String(startMark() - seconds)]);
+async function elapsed(seconds: number) {
+  return run([String(await startMark() - seconds)]);
 }
 
-test("no argument prints one `started:` line carrying the current epoch second", () => {
+test("no argument prints one `started:` line carrying the current epoch second", async () => {
   const before = Math.floor(Date.now() / 1000);
-  const result = run();
+  const result = await run();
   const after = Math.floor(Date.now() / 1000);
 
   assert.equal(result.status, 0, `stderr: ${result.stderr}`);
@@ -73,8 +73,8 @@ const DURATIONS: Array<[number, string, string]> = [
 ];
 
 for (const [seconds, expected, ticked] of DURATIONS) {
-  test(`${seconds} seconds ago reads as ${expected.slice("elapsed: ".length)}`, () => {
-    const result = elapsed(seconds);
+  test(`${seconds} seconds ago reads as ${expected.slice("elapsed: ".length)}`, async () => {
+    const result = await elapsed(seconds);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout.trim().split("\n").length, 1);
     assert.ok(
@@ -84,16 +84,16 @@ for (const [seconds, expected, ticked] of DURATIONS) {
   });
 }
 
-test("the largest non-zero unit comes first and hours never roll over into days", () => {
+test("the largest non-zero unit comes first and hours never roll over into days", async () => {
   // Epoch 0 is decades back: the hour count runs into six digits and stays an
   // hour count, and a leading-zero-free `10#` arithmetic never reads it as octal.
-  const result = run(["0"]);
+  const result = await run(["0"]);
   assert.equal(result.status, 0, `stderr: ${result.stderr}`);
   assert.match(result.stdout, /^elapsed: \d{5,}h \d{2}m \d{2}s\n$/);
 });
 
-test("a leading zero is decimal, never octal", () => {
-  const padded = run([`0${startMark() - 8043}`]);
+test("a leading zero is decimal, never octal", async () => {
+  const padded = await run([`0${await startMark() - 8043}`]);
   assert.equal(padded.status, 0, `stderr: ${padded.stderr}`);
   assert.ok(
     padded.stdout === "elapsed: 2h 14m 03s\n" || padded.stdout === "elapsed: 2h 14m 04s\n",
@@ -115,35 +115,35 @@ const UNUSABLE: Array<[string, string]> = [
 ];
 
 for (const [label, argument] of UNUSABLE) {
-  test(`${label} is \`elapsed: unknown\`, not an error`, () => {
-    const result = run([argument]);
+  test(`${label} is \`elapsed: unknown\`, not an error`, async () => {
+    const result = await run([argument]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "elapsed: unknown\n");
   });
 }
 
-test("a mark in the future is unknown rather than a negative duration", () => {
-  const result = run([String(startMark() + 600)]);
+test("a mark in the future is unknown rather than a negative duration", async () => {
+  const result = await run([String(await startMark() + 600)]);
   assert.equal(result.status, 0, `stderr: ${result.stderr}`);
   assert.equal(result.stdout, "elapsed: unknown\n");
 });
 
-test("the exit is 0 whatever the argument, because a preload that fails takes the skill load with it", () => {
+test("the exit is 0 whatever the argument, because a preload that fails takes the skill load with it", async () => {
   for (const args of [[], [""], ["abc"], ["0"], [String(Math.floor(Date.now() / 1000) + 99999)]]) {
-    const result = run(args);
+    const result = await run(args);
     assert.equal(result.status, 0, `args ${JSON.stringify(args)} -> stderr: ${result.stderr}`);
     assert.equal(result.stderr, "");
   }
 });
 
-test("the cwd is irrelevant: a temp directory outside the repository reads the same clock", () => {
-  withTempDir("p2p2-viber-", (dir) => {
-    const started = run([], dir);
+test("the cwd is irrelevant: a temp directory outside the repository reads the same clock", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    const started = await run([], dir);
     assert.equal(started.status, 0, `stderr: ${started.stderr}`);
     assert.match(started.stdout, /^started: \d+\n$/);
 
     const mark = Number(started.stdout.trim().slice("started: ".length)) - 65;
-    const result = run([String(mark)], dir);
+    const result = await run([String(mark)], dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.ok(
       result.stdout === "elapsed: 1m 05s\n" || result.stdout === "elapsed: 1m 06s\n",
@@ -152,8 +152,8 @@ test("the cwd is irrelevant: a temp directory outside the repository reads the s
   });
 });
 
-test("a further argument is ignored", () => {
-  const result = run([String(startMark() - 8043), "extra", "arguments"]);
+test("a further argument is ignored", async () => {
+  const result = await run([String(await startMark() - 8043), "extra", "arguments"]);
   assert.equal(result.status, 0, `stderr: ${result.stderr}`);
   assert.ok(
     result.stdout === "elapsed: 2h 14m 03s\n" || result.stdout === "elapsed: 2h 14m 04s\n",

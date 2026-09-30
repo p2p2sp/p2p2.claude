@@ -17,7 +17,7 @@
  *   node --test tests/superui/check_node.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -42,8 +42,8 @@ function pathWithoutNode(): string {
   return kept.join(path.delimiter);
 }
 
-function assertPosix(fn: (shell: Shell) => void) {
-  const skips = forEachShell("posix", fn);
+async function assertPosix(fn: (shell: Shell) => void | Promise<void>) {
+  const skips = await forEachShell("posix", fn);
   for (const skip of skips) {
     assert.equal(skip.kind, "posix");
     assert.ok(skip.reason.length > 0, "a skip must record a reason");
@@ -59,71 +59,71 @@ const NODE_OK_VERSIONS = ["v26.0.0", "v24.0.0", "v23.6.0"];
 const NODE_OK_STRIP_VERSIONS = ["v23.5.0", "v22.6.0"];
 const NODE_MISSING_VERSIONS = ["v22.5.0", "v20.0.0"];
 
-test("node >= 23.6 (type stripping on by default) -> NODE_OK node", () => {
-  assertPosix((shell) => {
+test("node >= 23.6 (type stripping on by default) -> NODE_OK node", async () => {
+  await assertPosix(async (shell) => {
     for (const version of NODE_OK_VERSIONS) {
-      withStub("node", `echo '${version}'`, (stubDir) => {
-        const result = runScript(SUT, [], { shell, stubDirs: [stubDir] });
+      await withStub("node", `echo '${version}'`, async (stubDir) => {
+        const result = await runScript(SUT, [], { shell, stubDirs: [stubDir] });
         assertOneLine(result, "NODE_OK node");
       });
     }
   });
 });
 
-test("22.6 <= node < 23.6 -> NODE_OK node --experimental-strip-types", () => {
-  assertPosix((shell) => {
+test("22.6 <= node < 23.6 -> NODE_OK node --experimental-strip-types", async () => {
+  await assertPosix(async (shell) => {
     for (const version of NODE_OK_STRIP_VERSIONS) {
-      withStub("node", `echo '${version}'`, (stubDir) => {
-        const result = runScript(SUT, [], { shell, stubDirs: [stubDir] });
+      await withStub("node", `echo '${version}'`, async (stubDir) => {
+        const result = await runScript(SUT, [], { shell, stubDirs: [stubDir] });
         assertOneLine(result, "NODE_OK node --experimental-strip-types");
       });
     }
   });
 });
 
-test("node < 22.6 -> NODE_MISSING", () => {
-  assertPosix((shell) => {
+test("node < 22.6 -> NODE_MISSING", async () => {
+  await assertPosix(async (shell) => {
     for (const version of NODE_MISSING_VERSIONS) {
-      withStub("node", `echo '${version}'`, (stubDir) => {
-        const result = runScript(SUT, [], { shell, stubDirs: [stubDir] });
+      await withStub("node", `echo '${version}'`, async (stubDir) => {
+        const result = await runScript(SUT, [], { shell, stubDirs: [stubDir] });
         assertOneLine(result, "NODE_MISSING");
       });
     }
   });
 });
 
-test("no node on PATH -> NODE_MISSING", () => {
-  assertPosix((shell) => {
-    const result = runScript(SUT, [], { shell, env: { PATH: pathWithoutNode() } });
+test("no node on PATH -> NODE_MISSING", async () => {
+  await assertPosix(async (shell) => {
+    const result = await runScript(SUT, [], { shell, env: { PATH: pathWithoutNode() } });
     assertOneLine(result, "NODE_MISSING");
   });
 });
 
-test("node present but `node -v` exits non-zero -> NODE_MISSING", () => {
-  assertPosix((shell) => {
-    withStub("node", "exit 3", (stubDir) => {
-      const result = runScript(SUT, [], { shell, stubDirs: [stubDir] });
+test("node present but `node -v` exits non-zero -> NODE_MISSING", async () => {
+  await assertPosix(async (shell) => {
+    await withStub("node", "exit 3", async (stubDir) => {
+      const result = await runScript(SUT, [], { shell, stubDirs: [stubDir] });
       assertOneLine(result, "NODE_MISSING");
     });
   });
 });
 
-test("a malformed version string -> NODE_MISSING", () => {
-  assertPosix((shell) => {
-    withStub("node", "echo 'not-a-version'", (stubDir) => {
-      const result = runScript(SUT, [], { shell, stubDirs: [stubDir] });
+test("a malformed version string -> NODE_MISSING", async () => {
+  await assertPosix(async (shell) => {
+    await withStub("node", "echo 'not-a-version'", async (stubDir) => {
+      const result = await runScript(SUT, [], { shell, stubDirs: [stubDir] });
       assertOneLine(result, "NODE_MISSING");
     });
   });
 });
 
-test("superui and superfix copies behave identically on the same input matrix", () => {
-  assertPosix((shell) => {
+test("superui and superfix copies behave identically on the same input matrix", async () => {
+  await assertPosix(async (shell) => {
     const versions = [...NODE_OK_VERSIONS, ...NODE_OK_STRIP_VERSIONS, ...NODE_MISSING_VERSIONS, "not-a-version"];
     for (const version of versions) {
-      withStub("node", `echo '${version}'`, (stubDir) => {
-        const a = runScript(SUT, [], { shell, stubDirs: [stubDir] });
-        const b = runScript(SUPERFIX_SUT, [], { shell, stubDirs: [stubDir] });
+      await withStub("node", `echo '${version}'`, async (stubDir) => {
+        const a = await runScript(SUT, [], { shell, stubDirs: [stubDir] });
+        const b = await runScript(SUPERFIX_SUT, [], { shell, stubDirs: [stubDir] });
         assert.equal(a.status, 0);
         assert.equal(b.status, 0);
         assert.equal(a.stdout, b.stdout, `divergence for node version ${version}`);
@@ -131,8 +131,8 @@ test("superui and superfix copies behave identically on the same input matrix", 
     }
 
     const noNodeEnv = { PATH: pathWithoutNode() };
-    const a = runScript(SUT, [], { shell, env: noNodeEnv });
-    const b = runScript(SUPERFIX_SUT, [], { shell, env: noNodeEnv });
+    const a = await runScript(SUT, [], { shell, env: noNodeEnv });
+    const b = await runScript(SUPERFIX_SUT, [], { shell, env: noNodeEnv });
     assert.equal(a.stdout, b.stdout, "divergence when node is absent from PATH");
   });
 });

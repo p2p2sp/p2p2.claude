@@ -16,7 +16,7 @@
  *   node --test tests/viber/session-start.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -54,8 +54,8 @@ function isolatedScript(dir: string): string {
 
 /** hooks.json always invokes the script as `bash "session-start.sh"`, never
  *  bare, so the harness invokes it the same way. */
-function run(script: string, input: string, env: Record<string, string> = {}) {
-  const result = runScript(script, [], { shell: "bash", input, env });
+async function run(script: string, input: string, env: Record<string, string> = {}) {
+  const result = await runScript(script, [], { shell: "bash", input, env });
   assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
   let json: any;
   try {
@@ -66,90 +66,90 @@ function run(script: string, input: string, env: Record<string, string> = {}) {
   return json;
 }
 
-test("manifest present -> additionalContext equals the manifest bytes verbatim, systemMessage carries the version", () => {
-  withTempDir("p2p2-viber-session-start-", (dir) => {
+test("manifest present -> additionalContext equals the manifest bytes verbatim, systemMessage carries the version", async () => {
+  await withTempDir("p2p2-viber-session-start-", async (dir) => {
     // No trailing newline in the fixture: the script reads the file through a
     // `$(cat ...)` command substitution, which strips ALL trailing newlines
     // from the captured value (asserted on its own below), so "verbatim" can be
     // compared with plain equality here.
     const manifest = "# viber manifest\nsome instructions here.";
     const root = fakePluginRoot(path.join(dir, "viber-1.2.3"), manifest);
-    const json = run(SUT, JSON.stringify({ source: "startup" }), { CLAUDE_PLUGIN_ROOT: root });
+    const json = await run(SUT, JSON.stringify({ source: "startup" }), { CLAUDE_PLUGIN_ROOT: root });
     assert.equal(json.hookSpecificOutput.hookEventName, "SessionStart");
     assert.equal(json.hookSpecificOutput.additionalContext, manifest);
     assert.equal(json.systemMessage, `viber loaded ${path.basename(root)}`);
   });
 });
 
-test("an EMPTY manifest injects nothing - the banner fires alone, so a file not yet written leaks no half-content into the session", () => {
-  withTempDir("p2p2-viber-session-start-", (dir) => {
+test("an EMPTY manifest injects nothing - the banner fires alone, so a file not yet written leaks no half-content into the session", async () => {
+  await withTempDir("p2p2-viber-session-start-", async (dir) => {
     const root = fakePluginRoot(path.join(dir, "plugin"), "");
-    const json = run(SUT, JSON.stringify({ source: "startup" }), { CLAUDE_PLUGIN_ROOT: root });
+    const json = await run(SUT, JSON.stringify({ source: "startup" }), { CLAUDE_PLUGIN_ROOT: root });
     assert.equal(json.hookSpecificOutput.hookEventName, "SessionStart");
     assert.equal(json.hookSpecificOutput.additionalContext, undefined);
     assert.equal(json.systemMessage, "viber loaded plugin");
   });
 });
 
-test("a whitespace-only manifest is treated as empty too (the command substitution strips it to nothing)", () => {
-  withTempDir("p2p2-viber-session-start-", (dir) => {
+test("a whitespace-only manifest is treated as empty too (the command substitution strips it to nothing)", async () => {
+  await withTempDir("p2p2-viber-session-start-", async (dir) => {
     const root = fakePluginRoot(path.join(dir, "plugin"), "\n\n\n");
-    const json = run(SUT, JSON.stringify({ source: "startup" }), { CLAUDE_PLUGIN_ROOT: root });
+    const json = await run(SUT, JSON.stringify({ source: "startup" }), { CLAUDE_PLUGIN_ROOT: root });
     assert.equal(json.hookSpecificOutput.additionalContext, undefined);
   });
 });
 
-test("a manifest file's trailing newline(s) are stripped from additionalContext ($(cat ...) command-substitution semantics)", () => {
-  withTempDir("p2p2-viber-session-start-", (dir) => {
+test("a manifest file's trailing newline(s) are stripped from additionalContext ($(cat ...) command-substitution semantics)", async () => {
+  await withTempDir("p2p2-viber-session-start-", async (dir) => {
     const root = fakePluginRoot(path.join(dir, "plugin"), "manifest body\n\n\n");
-    const json = run(SUT, JSON.stringify({ source: "startup" }), { CLAUDE_PLUGIN_ROOT: root });
+    const json = await run(SUT, JSON.stringify({ source: "startup" }), { CLAUDE_PLUGIN_ROOT: root });
     assert.equal(json.hookSpecificOutput.additionalContext, "manifest body");
   });
 });
 
-test("manifest unreadable (none anywhere the script looks) -> additionalContext absent, systemMessage still present, exit 0", () => {
-  withTempDir("p2p2-viber-session-start-", (dir) => {
+test("manifest unreadable (none anywhere the script looks) -> additionalContext absent, systemMessage still present, exit 0", async () => {
+  await withTempDir("p2p2-viber-session-start-", async (dir) => {
     const script = isolatedScript(path.join(dir, "isolated"));
     const emptyRoot = path.join(dir, "empty-root");
     fs.mkdirSync(emptyRoot, { recursive: true });
-    const json = run(script, JSON.stringify({ source: "startup" }), { CLAUDE_PLUGIN_ROOT: emptyRoot });
+    const json = await run(script, JSON.stringify({ source: "startup" }), { CLAUDE_PLUGIN_ROOT: emptyRoot });
     assert.equal(json.hookSpecificOutput.hookEventName, "SessionStart");
     assert.equal(json.hookSpecificOutput.additionalContext, undefined);
     assert.equal(json.systemMessage, `viber loaded ${path.basename(emptyRoot)}`);
   });
 });
 
-test('source: "resume" on stdin -> the script itself does not filter by source (the matcher in hooks.json excludes it), so it still injects normally', () => {
-  withTempDir("p2p2-viber-session-start-", (dir) => {
+test('source: "resume" on stdin -> the script itself does not filter by source (the matcher in hooks.json excludes it), so it still injects normally', async () => {
+  await withTempDir("p2p2-viber-session-start-", async (dir) => {
     const manifest = "manifest body";
     const root = fakePluginRoot(path.join(dir, "plugin"), manifest);
-    const json = run(SUT, JSON.stringify({ source: "resume" }), { CLAUDE_PLUGIN_ROOT: root });
+    const json = await run(SUT, JSON.stringify({ source: "resume" }), { CLAUDE_PLUGIN_ROOT: root });
     assert.equal(json.hookSpecificOutput.additionalContext, manifest);
     assert.ok(json.systemMessage.length > 0);
   });
 });
 
-test("malformed stdin JSON is drained and ignored - the script never parses stdin as JSON", () => {
-  withTempDir("p2p2-viber-session-start-", (dir) => {
+test("malformed stdin JSON is drained and ignored - the script never parses stdin as JSON", async () => {
+  await withTempDir("p2p2-viber-session-start-", async (dir) => {
     const manifest = "manifest body";
     const root = fakePluginRoot(path.join(dir, "plugin"), manifest);
-    const json = run(SUT, "not json { at all", { CLAUDE_PLUGIN_ROOT: root });
+    const json = await run(SUT, "not json { at all", { CLAUDE_PLUGIN_ROOT: root });
     assert.equal(json.hookSpecificOutput.additionalContext, manifest);
   });
 });
 
-test("empty stdin (closed immediately) -> still emits the manifest normally, exit 0", () => {
-  withTempDir("p2p2-viber-session-start-", (dir) => {
+test("empty stdin (closed immediately) -> still emits the manifest normally, exit 0", async () => {
+  await withTempDir("p2p2-viber-session-start-", async (dir) => {
     const manifest = "manifest body";
     const root = fakePluginRoot(path.join(dir, "plugin"), manifest);
-    const json = run(SUT, "", { CLAUDE_PLUGIN_ROOT: root });
+    const json = await run(SUT, "", { CLAUDE_PLUGIN_ROOT: root });
     assert.equal(json.hookSpecificOutput.additionalContext, manifest);
     assert.ok(json.systemMessage.length > 0);
   });
 });
 
-test("no CLAUDE_PLUGIN_ROOT set -> falls back to the SHIPPED manifest via SCRIPT_DIR, version banner reads 'dev'", () => {
-  const result = runScript(SUT, [], { shell: "bash", input: JSON.stringify({ source: "startup" }) });
+test("no CLAUDE_PLUGIN_ROOT set -> falls back to the SHIPPED manifest via SCRIPT_DIR, version banner reads 'dev'", async () => {
+  const result = await runScript(SUT, [], { shell: "bash", input: JSON.stringify({ source: "startup" }) });
   assert.equal(result.status, 0);
   const json = JSON.parse(result.stdout);
   assert.equal(json.systemMessage, "viber loaded dev");
@@ -159,11 +159,11 @@ test("no CLAUDE_PLUGIN_ROOT set -> falls back to the SHIPPED manifest via SCRIPT
   assert.equal(json.hookSpecificOutput.additionalContext, shipped === "" ? undefined : shipped);
 });
 
-test("a manifest containing characters that must survive JSON encoding round-trips exactly", () => {
-  withTempDir("p2p2-viber-session-start-", (dir) => {
+test("a manifest containing characters that must survive JSON encoding round-trips exactly", async () => {
+  await withTempDir("p2p2-viber-session-start-", async (dir) => {
     const manifest = 'line with a "quote", a \\backslash\\, a café, and:\nsecond line after a real newline';
     const root = fakePluginRoot(path.join(dir, "plugin"), manifest);
-    const json = run(SUT, JSON.stringify({ source: "startup" }), { CLAUDE_PLUGIN_ROOT: root });
+    const json = await run(SUT, JSON.stringify({ source: "startup" }), { CLAUDE_PLUGIN_ROOT: root });
     assert.equal(json.hookSpecificOutput.additionalContext, manifest);
   });
 });

@@ -21,7 +21,7 @@
  *   node --test tests/superfix/profiler.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -33,8 +33,8 @@ import { forEachShell, type Shell } from "../harness/shells.ts";
 const AGENT = path.resolve(import.meta.dirname, "../../superfix/agents/profiler.md");
 const WINDOW_DAYS = 30;
 
-function assertBash(fn: (shell: Shell) => void) {
-  const skips = forEachShell("bash", fn);
+async function assertBash(fn: (shell: Shell) => void | Promise<void>) {
+  const skips = await forEachShell("bash", fn);
   for (const skip of skips) {
     assert.equal(skip.kind, "bash");
     assert.ok(skip.reason.length > 0, "a skip must record a reason");
@@ -64,44 +64,44 @@ function substituted(): string {
 /** Commits whatever is staged `daysAgo` days in the past (author == committer
  *  date), so the window boundary is exercised regardless of when the suite
  *  happens to run. */
-function commitAt(repo: GitRepo, daysAgo: number, message: string): void {
+async function commitAt(repo: GitRepo, daysAgo: number, message: string): Promise<void> {
   const date = new Date(Date.now() - daysAgo * 24 * 3600 * 1000).toISOString();
   const env = { ...repo.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date };
-  const add = runScript("git", ["add", "-A"], { cwd: repo.dir, env });
+  const add = await runScript("git", ["add", "-A"], { cwd: repo.dir, env });
   assert.equal(add.status, 0, `git add failed: ${add.stderr}`);
-  const commit = runScript("git", ["commit", "-m", message], { cwd: repo.dir, env });
+  const commit = await runScript("git", ["commit", "-m", message], { cwd: repo.dir, env });
   assert.equal(commit.status, 0, `git commit failed: ${commit.stderr}`);
 }
 
 /** Four commits straddling the 30-day window: one fix inside it, one fix well
  *  outside it, one non-fix inside it, plus the root commit. */
-function buildHistory(repo: GitRepo): void {
+async function buildHistory(repo: GitRepo): Promise<void> {
   fs.writeFileSync(path.join(repo.dir, "root.txt"), "root\n");
-  commitAt(repo, 90, "chore: seed the tree");
+  await commitAt(repo, 90, "chore: seed the tree");
 
   fs.writeFileSync(path.join(repo.dir, "ancient.txt"), "old\n");
-  commitAt(repo, 45, "fix: ancient crash outside the window");
+  await commitAt(repo, 45, "fix: ancient crash outside the window");
 
   fs.writeFileSync(path.join(repo.dir, "quiet.txt"), "quiet\n");
-  commitAt(repo, 5, "chore: bump a dependency");
+  await commitAt(repo, 5, "chore: bump a dependency");
 
   fs.writeFileSync(path.join(repo.dir, "recent.txt"), "new\n");
-  commitAt(repo, 5, "fix: recent crash inside the window");
+  await commitAt(repo, 5, "fix: recent crash inside the window");
 }
 
-function runCommand(shell: Shell, repo: GitRepo): RunResult {
-  return withTempDir("p2p2-profiler-", (dir) => {
+async function runCommand(shell: Shell, repo: GitRepo): Promise<RunResult> {
+  return await withTempDir("p2p2-profiler-", (dir) => {
     const script = path.join(dir, "history.sh");
     fs.writeFileSync(script, `#!/usr/bin/env bash\n${substituted()}\n`);
     return runScript(script, [], { shell, cwd: repo.dir, env: repo.env });
   });
 }
 
-test("the profiler's documented git log call returns the fix commits inside the window", () => {
-  assertBash((shell) => {
-    withGitRepo((repo) => {
-      buildHistory(repo);
-      const result = runCommand(shell, repo);
+test("the profiler's documented git log call returns the fix commits inside the window", async () => {
+  await assertBash(async (shell) => {
+    await withGitRepo(async (repo) => {
+      await buildHistory(repo);
+      const result = await runCommand(shell, repo);
       assert.equal(result.status, 0, `the documented command must succeed: stderr=${result.stderr}`);
       assert.match(
         result.stdout,
@@ -113,11 +113,11 @@ test("the profiler's documented git log call returns the fix commits inside the 
   });
 });
 
-test("the profiler's documented git log call drops commits older than the window and non-fix subjects", () => {
-  assertBash((shell) => {
-    withGitRepo((repo) => {
-      buildHistory(repo);
-      const result = runCommand(shell, repo);
+test("the profiler's documented git log call drops commits older than the window and non-fix subjects", async () => {
+  await assertBash(async (shell) => {
+    await withGitRepo(async (repo) => {
+      await buildHistory(repo);
+      const result = await runCommand(shell, repo);
       assert.equal(result.status, 0, `the documented command must succeed: stderr=${result.stderr}`);
       assert.doesNotMatch(result.stdout, /ancient crash/, "a fix older than the window is out of the profile");
       assert.doesNotMatch(result.stdout, /bump a dependency/, "a non-fix subject is out of the profile");

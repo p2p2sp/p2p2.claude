@@ -22,7 +22,7 @@
  *   node --test tests/viber/memory-map.test.ts
  */
 
-import { test } from "node:test";
+import { test } from "../harness/test.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -51,15 +51,15 @@ function write(repo: GitRepo, files: Record<string, string>): void {
 }
 
 /** Writes the files and commits them, so every one of them is tracked. */
-function commit(repo: GitRepo, files: Record<string, string>): void {
+async function commit(repo: GitRepo, files: Record<string, string>): Promise<void> {
   write(repo, files);
-  repo.git("add", "-A");
-  repo.git("commit", "-m", "seed");
+  await repo.git("add", "-A");
+  await repo.git("commit", "-m", "seed");
 }
 
-test("a repository with no tracked file at all is the empty map", () => {
-  withGitRepo((repo) => {
-    const result = run(repo);
+test("a repository with no tracked file at all is the empty map", async () => {
+  await withGitRepo(async (repo) => {
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const out = lines(result.stdout);
@@ -74,11 +74,11 @@ function pick(out: string[], prefix: string): string[] {
   return out.filter((line) => line.startsWith(prefix));
 }
 
-test("a tracked root CLAUDE.md is one node line carrying its own and its chain's character count", () => {
-  withGitRepo((repo) => {
-    commit(repo, { "CLAUDE.md": `${"x".repeat(99)}\n`, "README.md": "readme\n" });
+test("a tracked root CLAUDE.md is one node line carrying its own and its chain's character count", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, { "CLAUDE.md": `${"x".repeat(99)}\n`, "README.md": "readme\n" });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const out = lines(result.stdout);
@@ -92,9 +92,9 @@ function node(chars: number): string {
   return `${"x".repeat(chars - 1)}\n`;
 }
 
-test("nodes come root first then in depth order, each chain adding every ancestor node above it", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("nodes come root first then in depth order, each chain adding every ancestor node above it", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(100),
       "docs/CLAUDE.md": node(50),
       "docs/deep/CLAUDE.md": node(30),
@@ -102,7 +102,7 @@ test("nodes come root first then in depth order, each chain adding every ancesto
       "api/v1/CLAUDE.md": node(20),
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(pick(lines(result.stdout), "node:"), [
@@ -114,11 +114,11 @@ test("nodes come root first then in depth order, each chain adding every ancesto
   });
 });
 
-test("a node past the 12000 character budget reads OVER-NODE", () => {
-  withGitRepo((repo) => {
-    commit(repo, { "CLAUDE.md": node(12001) });
+test("a node past the 12000 character budget reads OVER-NODE", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, { "CLAUDE.md": node(12001) });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(pick(lines(result.stdout), "node:"), [
@@ -127,16 +127,16 @@ test("a node past the 12000 character budget reads OVER-NODE", () => {
   });
 });
 
-test("a chain past the 32000 character budget reads OVER-CHAIN while each node of it stays ok", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("a chain past the 32000 character budget reads OVER-CHAIN while each node of it stays ok", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       // 12000 is the node budget exactly, not past it
       "CLAUDE.md": node(12000),
       "a/CLAUDE.md": node(11000),
       "a/b/CLAUDE.md": node(11000),
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(pick(lines(result.stdout), "node:"), [
@@ -147,15 +147,15 @@ test("a chain past the 32000 character budget reads OVER-CHAIN while each node o
   });
 });
 
-test("OVER-NODE wins over OVER-CHAIN when a node is past both budgets", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("OVER-NODE wins over OVER-CHAIN when a node is past both budgets", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(12000),
       "a/CLAUDE.md": node(12000),
       "a/b/CLAUDE.md": node(12001),
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(pick(lines(result.stdout), "node:"), [
@@ -166,9 +166,9 @@ test("OVER-NODE wins over OVER-CHAIN when a node is past both budgets", () => {
   });
 });
 
-test("only a node with no other tracked file anywhere beneath its directory is an orphan", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("only a node with no other tracked file anywhere beneath its directory is an orphan", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "README.md": "readme\n",
       "lonely/CLAUDE.md": node(40),
@@ -179,16 +179,16 @@ test("only a node with no other tracked file anywhere beneath its directory is a
       "deep/sub/impl.ts": "export const a = 1;\n",
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(pick(lines(result.stdout), "orphan:"), ["orphan: lonely/CLAUDE.md"]);
   });
 });
 
-test("a directory deserving a node is a candidate, marked toolchain only when it holds a manifest", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("a directory deserving a node is a candidate, marked toolchain only when it holds a manifest", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "src/a.ts": "aaa\n",
       "src/b.ts": "bbbb\n",
@@ -198,7 +198,7 @@ test("a directory deserving a node is a candidate, marked toolchain only when it
       "web/style.css": "y\n",
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(pick(lines(result.stdout), "cand:"), [
@@ -208,9 +208,9 @@ test("a directory deserving a node is a candidate, marked toolchain only when it
   });
 });
 
-test("a candidate already carrying a node, one under three files, one behind a dot segment and one at depth 3 are all left out", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("a candidate already carrying a node, one under three files, one behind a dot segment and one at depth 3 are all left out", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "docs/CLAUDE.md": node(40),
       "docs/a.md": "x\n",
@@ -226,7 +226,7 @@ test("a candidate already carrying a node, one under three files, one behind a d
       "deep/one/two/c.ts": "x\n",
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(pick(lines(result.stdout), "cand:"), [
@@ -243,9 +243,9 @@ function many(dir: string, count: number): Record<string, string> {
   return files;
 }
 
-test("past depth 2 a directory is a candidate only with its own manifest, or twenty files while it is no passthrough", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("past depth 2 a directory is a candidate only with its own manifest, or twenty files while it is no passthrough", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "pkgs/web/app/package.json": "{}\n",
       "pkgs/web/app/index.js": "x\n",
@@ -254,7 +254,7 @@ test("past depth 2 a directory is a candidate only with its own manifest, or twe
       ...many("lib/core/wrap/inner", 20),
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(pick(lines(result.stdout), "cand:"), [
@@ -274,9 +274,9 @@ function state(out: string[]): string {
   return pick(out, "state:")[0];
 }
 
-test("state reads complete when a root node exists and no candidate is left without one", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("state reads complete when a root node exists and no candidate is left without one", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "src/CLAUDE.md": node(40),
       "src/a.ts": "x\n",
@@ -284,7 +284,7 @@ test("state reads complete when a root node exists and no candidate is left with
       "src/c.ts": "x\n",
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const out = lines(result.stdout);
@@ -293,16 +293,16 @@ test("state reads complete when a root node exists and no candidate is left with
   });
 });
 
-test("state reads partial while a candidate is still without a node", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("state reads partial while a candidate is still without a node", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "src/a.ts": "x\n",
       "src/b.ts": "x\n",
       "src/c.ts": "x\n",
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const out = lines(result.stdout);
@@ -311,16 +311,16 @@ test("state reads partial while a candidate is still without a node", () => {
   });
 });
 
-test("state reads partial while nodes exist but the root node does not", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("state reads partial while nodes exist but the root node does not", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "src/CLAUDE.md": node(40),
       "src/a.ts": "x\n",
       "src/b.ts": "x\n",
       "src/c.ts": "x\n",
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const out = lines(result.stdout);
@@ -329,9 +329,9 @@ test("state reads partial while nodes exist but the root node does not", () => {
   });
 });
 
-test("a node carrying uncommitted work is dirty, and an untracked one is no node at all", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("a node carrying uncommitted work is dirty, and an untracked one is no node at all", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "docs/CLAUDE.md": node(40),
       "docs/guide.md": "x\n",
@@ -341,7 +341,7 @@ test("a node carrying uncommitted work is dirty, and an untracked one is no node
       "new/CLAUDE.md": node(40),
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const out = lines(result.stdout);
@@ -353,9 +353,9 @@ test("a node carrying uncommitted work is dirty, and an untracked one is no node
   });
 });
 
-test("a node deleted by --reset and left unstaged is no node, carries no dirty entry, and its directory is a candidate again", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("a node deleted by --reset and left unstaged is no node, carries no dirty entry, and its directory is a candidate again", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "docs/CLAUDE.md": node(40),
       "docs/a.md": "x\n",
@@ -363,10 +363,10 @@ test("a node deleted by --reset and left unstaged is no node, carries no dirty e
       "docs/c.md": "x\n",
     });
 
-    const reset = run(repo, ["--reset", "docs/CLAUDE.md"]);
+    const reset = await run(repo, ["--reset", "docs/CLAUDE.md"]);
     assert.equal(reset.status, 0, `stderr: ${reset.stderr}`);
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const out = lines(result.stdout);
@@ -377,18 +377,18 @@ test("a node deleted by --reset and left unstaged is no node, carries no dirty e
   });
 });
 
-test("a node deleted with git rm, staged but uncommitted, is no node, carries no dirty entry, and its directory is a candidate again", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("a node deleted with git rm, staged but uncommitted, is no node, carries no dirty entry, and its directory is a candidate again", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "docs/CLAUDE.md": node(40),
       "docs/a.md": "x\n",
       "docs/b.md": "x\n",
       "docs/c.md": "x\n",
     });
-    repo.git("rm", "-q", "docs/CLAUDE.md");
+    await repo.git("rm", "-q", "docs/CLAUDE.md");
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const out = lines(result.stdout);
@@ -399,16 +399,16 @@ test("a node deleted with git rm, staged but uncommitted, is no node, carries no
   });
 });
 
-test("a tracked root CLAUDE.md deleted but not staged is absent: it does not complete the state, and measuring it prints nothing on stderr", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("a tracked root CLAUDE.md deleted but not staged is absent: it does not complete the state, and measuring it prints nothing on stderr", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "a/CLAUDE.md": node(40),
       "a/b/CLAUDE.md": node(40),
     });
     fs.rmSync(path.join(repo.dir, "CLAUDE.md"));
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stderr, "");
@@ -422,17 +422,17 @@ test("a tracked root CLAUDE.md deleted but not staged is absent: it does not com
   });
 });
 
-test("--reset still refuses a target whose earlier deletion was left uncommitted and unstaged", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("--reset still refuses a target whose earlier deletion was left uncommitted and unstaged", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "a/CLAUDE.md": node(40),
     });
 
-    const first = run(repo, ["--reset", "a/CLAUDE.md"]);
+    const first = await run(repo, ["--reset", "a/CLAUDE.md"]);
     assert.equal(first.status, 0, `stderr: ${first.stderr}`);
 
-    const result = run(repo, ["--reset", "a/CLAUDE.md"]);
+    const result = await run(repo, ["--reset", "a/CLAUDE.md"]);
 
     assert.equal(result.status, 3, `stderr: ${result.stderr}`);
     assert.deepEqual(lines(result.stdout), ["refused: a/CLAUDE.md modified"]);
@@ -440,11 +440,11 @@ test("--reset still refuses a target whose earlier deletion was left uncommitted
   });
 });
 
-test("a directory that is no repository at all maps as the empty layer and still exits 0", () => {
-  withTempDir("p2p2-nogit-", (dir) => {
+test("a directory that is no repository at all maps as the empty layer and still exits 0", async () => {
+  await withTempDir("p2p2-nogit-", async (dir) => {
     fs.writeFileSync(path.join(dir, "CLAUDE.md"), node(40));
 
-    const result = runScript(SUT, [], { cwd: dir, shell: "bash" });
+    const result = await runScript(SUT, [], { cwd: dir, shell: "bash" });
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const out = lines(result.stdout);
@@ -453,15 +453,15 @@ test("a directory that is no repository at all maps as the empty layer and still
   });
 });
 
-test("--reset deletes every node it is given, in the order it was given them", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("--reset deletes every node it is given, in the order it was given them", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "docs/CLAUDE.md": node(40),
       "docs/guide.md": "x\n",
     });
 
-    const result = run(repo, ["--reset", "docs/CLAUDE.md", "CLAUDE.md"]);
+    const result = await run(repo, ["--reset", "docs/CLAUDE.md", "CLAUDE.md"]);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(lines(result.stdout), [
@@ -474,37 +474,37 @@ test("--reset deletes every node it is given, in the order it was given them", (
   });
 });
 
-test("run from a subdirectory, the map and --reset still read every path relative to the repository root", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("run from a subdirectory, the map and --reset still read every path relative to the repository root", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "docs/CLAUDE.md": node(40),
       "docs/guide.md": "x\n",
     });
     const sub = { ...repo, dir: path.join(repo.dir, "docs") };
 
-    const fromRoot = lines(run(repo).stdout).slice(2);
-    const map = run(sub);
+    const fromRoot = lines((await run(repo)).stdout).slice(2);
+    const map = await run(sub);
     assert.equal(map.status, 0, `stderr: ${map.stderr}`);
     assert.deepEqual(lines(map.stdout).slice(2), fromRoot);
 
-    const reset = run(sub, ["--reset", "docs/CLAUDE.md"]);
+    const reset = await run(sub, ["--reset", "docs/CLAUDE.md"]);
     assert.equal(reset.status, 0, `stderr: ${reset.stderr}`);
     assert.deepEqual(lines(reset.stdout), ["removed: docs/CLAUDE.md", "removed: 1"]);
     assert.equal(fs.existsSync(path.join(repo.dir, "docs/CLAUDE.md")), false);
   });
 });
 
-test("one modified target among several refuses the whole --reset and deletes nothing", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("one modified target among several refuses the whole --reset and deletes nothing", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "a/CLAUDE.md": node(40),
       "b/CLAUDE.md": node(40),
     });
     write(repo, { "b/CLAUDE.md": node(60) });
 
-    const result = run(repo, ["--reset", "CLAUDE.md", "a/CLAUDE.md", "b/CLAUDE.md"]);
+    const result = await run(repo, ["--reset", "CLAUDE.md", "a/CLAUDE.md", "b/CLAUDE.md"]);
 
     assert.equal(result.status, 3, `stderr: ${result.stderr}`);
     assert.deepEqual(lines(result.stdout), ["refused: b/CLAUDE.md modified"]);
@@ -514,12 +514,12 @@ test("one modified target among several refuses the whole --reset and deletes no
   });
 });
 
-test("--reset refuses a target that is not a node, one that is tracked nowhere and one that is untracked", () => {
-  withGitRepo((repo) => {
-    commit(repo, { "CLAUDE.md": node(40), "README.md": "readme\n" });
+test("--reset refuses a target that is not a node, one that is tracked nowhere and one that is untracked", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, { "CLAUDE.md": node(40), "README.md": "readme\n" });
     write(repo, { "new/CLAUDE.md": node(40) });
 
-    const result = run(repo, [
+    const result = await run(repo, [
       "--reset",
       "CLAUDE.md",
       "README.md",
@@ -538,16 +538,16 @@ test("--reset refuses a target that is not a node, one that is tracked nowhere a
   });
 });
 
-test("a repository with tracked files but no node at all is state none, its candidates still listed", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("a repository with tracked files but no node at all is state none, its candidates still listed", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "README.md": "readme\n",
       "src/a.ts": "x\n",
       "src/b.ts": "x\n",
       "src/c.ts": "x\n",
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const out = lines(result.stdout);
@@ -558,11 +558,11 @@ test("a repository with tracked files but no node at all is state none, its cand
   });
 });
 
-test("--reset with no path at all deletes nothing and exits 2", () => {
-  withGitRepo((repo) => {
-    commit(repo, { "CLAUDE.md": node(40) });
+test("--reset with no path at all deletes nothing and exits 2", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, { "CLAUDE.md": node(40) });
 
-    const result = run(repo, ["--reset"]);
+    const result = await run(repo, ["--reset"]);
 
     assert.equal(result.status, 2);
     assert.equal(result.stdout, "");
@@ -570,11 +570,11 @@ test("--reset with no path at all deletes nothing and exits 2", () => {
   });
 });
 
-test("a tracked section is one section line with its own size and flag, never counted toward a chain or the node total", () => {
-  withGitRepo((repo) => {
+test("a tracked section is one section line with its own size and flag, never counted toward a chain or the node total", async () => {
+  await withGitRepo(async (repo) => {
     const root = "read CLAUDE.release.md before a release\n";
     const docs = "read CLAUDE.tests.md before editing tests\n";
-    commit(repo, {
+    await commit(repo, {
       "CLAUDE.md": root,
       "CLAUDE.release.md": node(12001),
       "docs/CLAUDE.md": docs,
@@ -582,7 +582,7 @@ test("a tracked section is one section line with its own size and flag, never co
       "docs/guide.md": "x\n",
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const out = lines(result.stdout);
@@ -599,16 +599,16 @@ test("a tracked section is one section line with its own size and flag, never co
   });
 });
 
-test("a section with no node beside it, or one its node never names, is unlinked", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("a section with no node beside it, or one its node never names, is unlinked", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "CLAUDE.tests.md": node(40),
       "lib/CLAUDE.api.md": node(40),
       "lib/a.ts": "x\n",
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(pick(lines(result.stdout), "unlinked:"), [
@@ -618,16 +618,16 @@ test("a section with no node beside it, or one its node never names, is unlinked
   });
 });
 
-test("CLAUDE.local.md and a name outside the topic alphabet are no section (the user's own auto-loaded file is never a section)", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("CLAUDE.local.md and a name outside the topic alphabet are no section (the user's own auto-loaded file is never a section)", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "CLAUDE.local.md": node(40),
       "CLAUDE.Tests.md": node(40),
       "CLAUDE.a.b.md": node(40),
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const out = lines(result.stdout);
@@ -636,9 +636,9 @@ test("CLAUDE.local.md and a name outside the topic alphabet are no section (the 
   });
 });
 
-test("a node whose only other file is its own section is still an orphan", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("a node whose only other file is its own section is still an orphan", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "README.md": "readme\n",
       "lonely/CLAUDE.md": `read CLAUDE.tests.md before editing tests\n`,
@@ -647,16 +647,16 @@ test("a node whose only other file is its own section is still an orphan", () =>
       "kept/CLAUDE.local.md": node(40),
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(pick(lines(result.stdout), "orphan:"), ["orphan: lonely/CLAUDE.md"]);
   });
 });
 
-test("a section carrying uncommitted work is dirty, and an untracked one is no section at all", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("a section carrying uncommitted work is dirty, and an untracked one is no section at all", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": `read CLAUDE.tests.md before editing tests\n`,
       "CLAUDE.tests.md": node(40),
     });
@@ -665,7 +665,7 @@ test("a section carrying uncommitted work is dirty, and an untracked one is no s
       "CLAUDE.release.md": node(40),
     });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const out = lines(result.stdout);
@@ -677,9 +677,9 @@ test("a section carrying uncommitted work is dirty, and an untracked one is no s
   });
 });
 
-test("--reset of a node also deletes every tracked section beside it, one removed line per file", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("--reset of a node also deletes every tracked section beside it, one removed line per file", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "CLAUDE.release.md": node(40),
       "docs/CLAUDE.md": node(40),
@@ -687,7 +687,7 @@ test("--reset of a node also deletes every tracked section beside it, one remove
       "docs/api/CLAUDE.api.md": node(40),
     });
 
-    const result = run(repo, ["--reset", "docs/CLAUDE.md", "docs/CLAUDE.tests.md"]);
+    const result = await run(repo, ["--reset", "docs/CLAUDE.md", "docs/CLAUDE.tests.md"]);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(lines(result.stdout), [
@@ -701,16 +701,16 @@ test("--reset of a node also deletes every tracked section beside it, one remove
   });
 });
 
-test("a modified section beside a node refuses the whole --reset and deletes nothing", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("a modified section beside a node refuses the whole --reset and deletes nothing", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "a/CLAUDE.md": node(40),
       "a/CLAUDE.tests.md": node(40),
     });
     write(repo, { "a/CLAUDE.tests.md": node(60) });
 
-    const result = run(repo, ["--reset", "CLAUDE.md", "a/CLAUDE.md"]);
+    const result = await run(repo, ["--reset", "CLAUDE.md", "a/CLAUDE.md"]);
 
     assert.equal(result.status, 3, `stderr: ${result.stderr}`);
     assert.deepEqual(lines(result.stdout), ["refused: a/CLAUDE.tests.md modified"]);
@@ -719,15 +719,15 @@ test("a modified section beside a node refuses the whole --reset and deletes not
   });
 });
 
-test("a tracked section deleted but not committed is no section, measuring it prints nothing on stderr, and --reset of its node is refused", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("a tracked section deleted but not committed is no section, measuring it prints nothing on stderr, and --reset of its node is refused", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": `read CLAUDE.tests.md before editing tests\n`,
       "CLAUDE.tests.md": node(40),
     });
     fs.rmSync(path.join(repo.dir, "CLAUDE.tests.md"));
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stderr, "");
@@ -736,35 +736,35 @@ test("a tracked section deleted but not committed is no section, measuring it pr
     assert.deepEqual(pick(out, "unlinked:"), []);
     assert.deepEqual(pick(out, "dirty:"), []);
 
-    const reset = run(repo, ["--reset", "CLAUDE.md"]);
+    const reset = await run(repo, ["--reset", "CLAUDE.md"]);
     assert.equal(reset.status, 3, `stderr: ${reset.stderr}`);
     assert.deepEqual(lines(reset.stdout), ["refused: CLAUDE.tests.md modified"]);
     assert.equal(fs.existsSync(path.join(repo.dir, "CLAUDE.md")), true);
   });
 });
 
-test("a section beside an untracked node is unlinked (an untracked node is no node)", () => {
-  withGitRepo((repo) => {
-    commit(repo, { "CLAUDE.tests.md": node(40), "README.md": "readme\n" });
+test("a section beside an untracked node is unlinked (an untracked node is no node)", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, { "CLAUDE.tests.md": node(40), "README.md": "readme\n" });
     write(repo, { "CLAUDE.md": `read CLAUDE.tests.md before editing tests\n` });
 
-    const result = run(repo);
+    const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(pick(lines(result.stdout), "unlinked:"), ["unlinked: CLAUDE.tests.md"]);
   });
 });
 
-test("--reset of a node leaves an untracked section beside it, and refuses an untracked section named on its own", () => {
-  withGitRepo((repo) => {
-    commit(repo, { "CLAUDE.md": node(40), "a/CLAUDE.md": node(40) });
+test("--reset of a node leaves an untracked section beside it, and refuses an untracked section named on its own", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, { "CLAUDE.md": node(40), "a/CLAUDE.md": node(40) });
     write(repo, { "a/CLAUDE.tests.md": node(40), "CLAUDE.new.md": node(40) });
 
-    const refused = run(repo, ["--reset", "CLAUDE.new.md"]);
+    const refused = await run(repo, ["--reset", "CLAUDE.new.md"]);
     assert.equal(refused.status, 3, `stderr: ${refused.stderr}`);
     assert.deepEqual(lines(refused.stdout), ["refused: CLAUDE.new.md untracked"]);
 
-    const result = run(repo, ["--reset", "a/CLAUDE.md"]);
+    const result = await run(repo, ["--reset", "a/CLAUDE.md"]);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(lines(result.stdout), ["removed: a/CLAUDE.md", "removed: 1"]);
@@ -772,15 +772,15 @@ test("--reset of a node leaves an untracked section beside it, and refuses an un
   });
 });
 
-test("--reset of a section alone deletes that section and leaves its node", () => {
-  withGitRepo((repo) => {
-    commit(repo, {
+test("--reset of a section alone deletes that section and leaves its node", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
       "CLAUDE.md": node(40),
       "CLAUDE.tests.md": node(40),
       "CLAUDE.release.md": node(40),
     });
 
-    const result = run(repo, ["--reset", "CLAUDE.tests.md"]);
+    const result = await run(repo, ["--reset", "CLAUDE.tests.md"]);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(lines(result.stdout), ["removed: CLAUDE.tests.md", "removed: 1"]);
@@ -789,11 +789,11 @@ test("--reset of a section alone deletes that section and leaves its node", () =
   });
 });
 
-test("an unknown argument is refused with no map printed", () => {
-  withGitRepo((repo) => {
-    commit(repo, { "CLAUDE.md": node(40) });
+test("an unknown argument is refused with no map printed", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, { "CLAUDE.md": node(40) });
 
-    const result = run(repo, ["--wipe"]);
+    const result = await run(repo, ["--wipe"]);
 
     assert.equal(result.status, 2);
     assert.equal(result.stdout, "");

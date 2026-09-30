@@ -7,11 +7,18 @@ behaviour keeps (or gains) its one assertion in `tests/harness.test.ts`.
 
 - No harness module depends on a plugin's own code: `harness.test.ts` decodes `writePng` output
   itself for that reason. Imports run one way only: `tmp.ts` uses `run.ts`, `stub.ts` uses
-  `tmp.ts`; `run.ts` imports no other helper.
+  `tmp.ts`; `run.ts` and `test.ts` import no other helper.
+- Nothing a case calls blocks the event loop: `runScript` spawns asynchronously, and the fixture
+  wrappers (`withTempDir`, `withGitRepo`, `withStub`, `forEachShell`) await their callback, so the
+  concurrent cases `test.ts` schedules really overlap. Only once-per-process probes stay
+  synchronous (`bash --version`, `icacls`).
 - Process creation is the suite's dominant cost, above all on Windows. A helper called once per
   case spawns nothing it can avoid: `shells.ts` memoises PATH scans and `bash --version` probes
-  per PATH value, `withGitRepo` writes its global gitconfig as a file instead of calling
-  `git config`, and `canDenyRead`/`canSymlinkDir` probe once per process.
+  per PATH value and, outside CI, stops at the first working bash; `withGitRepo` copies a
+  template repo `git init`ed once per process and writes its global gitconfig as a file instead
+  of calling `git config`; `canDenyRead`/`canSymlinkDir` probe once per process.
+- The full shell matrix is CI-only: `FULL_SHELL_MATRIX` (`CI` = `true`/`1`) is the one switch, and
+  a local `forEachShell` runs the first shell present and reports the rest as skips.
 - A capability helper answers `false` (a skip), never throws, and verifies by doing the real thing:
   `denyRead` re-reads the file and restores it when the read still works (root, FAT, a dropped
   ACE). `restoreRead` never throws, since it runs in a failing test's `finally`.
