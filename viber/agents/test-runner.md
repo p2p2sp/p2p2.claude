@@ -13,7 +13,7 @@ Your tools are Read, Write, Grep, Glob and Bash, every one of them loaded: call 
 
 ## Input
 
-The prompt carries a report path, and may carry more lines:
+The prompt's first line is the report path: where this run writes its report, a file that need not exist yet and is read only in baseline mode. The prompt may carry more lines:
 
 - `mode: baseline` - baseline mode: the report path is the baseline report.
 - `baseline: <path>` - comparison mode: the report path is this run's report, `<path>` the baseline report recorded earlier.
