@@ -40,7 +40,8 @@ async function assertBash(fn: (bash: string) => void | Promise<void>) {
 }
 
 async function run(bash: string, repo: GitRepo, args: string[]): Promise<RunResult> {
-  return await runScript(SUT, args, { shell: bash, cwd: repo.dir, env: repo.env });
+  // --with-dependents spawns a process per candidate stem: seconds alone, past the 60 s default when the whole suite shares the machine.
+  return await runScript(SUT, args, { shell: bash, cwd: repo.dir, env: repo.env, timeout: 180000 });
 }
 
 function recordsOf(result: RunResult): Record<string, unknown>[] {

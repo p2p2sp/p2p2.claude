@@ -79,9 +79,8 @@ pins: change the header with the contract.
   does not reconcile.
 - `kill-guard` builds each payload as a JS object through `JSON.stringify`, its `agent_type` and
   `tool_input.command` set per case, and its last case reads the registration out of `hooks.json`.
-- `run-clock` cases accept both N and N+1 seconds: the clock ticks during the run. The leading-zero
-  case takes seconds 03-09, a loaded machine delaying the spawn; the exact `2h 14m` prefix still
-  separates decimal from octal.
+- `run-clock` elapsed cases freeze the clock with a stub `date` on PATH (`withStub`), so a loaded
+  machine delaying the spawn cannot move a duration by a second.
 - `gh` is always a `withStub` or absent; `open-page` also stubs `uname` and the opener on
   `coreUtilsPath()`, so no real browser opens.
 

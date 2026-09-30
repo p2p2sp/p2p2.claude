@@ -1,0 +1,3 @@
+- The two collect_signals and four run-clock failures were load flakes (pass alone): a 60 s runScript timeout under --test-concurrency=12, and a delayed spawn moving a duration by seconds. Fixed in the tests (timeout 180000 on collect_signals `run`; run-clock elapsed cases freeze `date` through a `withStub` stub).
+- The two commit-task failures were real: the uncommitted repro tests in tests/viber/commit-task.test.ts (left untouched) cap a git command line at 32767 chars. `commit-task.sh` now runs every path-list git call through `each_chunk` (24000 chars of paths per slice).
+- tests/viber/CLAUDE.md run-clock line rewritten to match the frozen clock.

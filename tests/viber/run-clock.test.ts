@@ -10,9 +10,9 @@
  * instead of inventing a duration. And it touches no file at all, so the
  * caller's cwd cannot change a single byte of its output.
  *
- * The clock ticks while the test runs: a case that asks for N seconds ago may
- * legitimately come back as N or N+1, so each expectation lists both literals
- * rather than deriving one.
+ * The elapsed cases pin the clock: a stub `date` on PATH prints a fixed epoch
+ * second, so a loaded machine delaying the spawn cannot move a duration by a
+ * second. Only the cases about the real start mark read the real clock.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -24,12 +24,21 @@ import assert from "node:assert/strict";
 import path from "node:path";
 
 import { runScript } from "../harness/run.ts";
+import { withStub } from "../harness/stub.ts";
 import { withTempDir } from "../harness/tmp.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/run-clock.sh");
 
+/** The epoch second a stubbed `date +%s` reports. */
+const NOW = 1750000000;
+
 function run(args: string[] = [], cwd?: string) {
   return runScript(SUT, args, { cwd, shell: "bash" });
+}
+
+/** Runs the script with `date` frozen at NOW. */
+function runAtNow(args: string[], cwd?: string) {
+  return withStub("date", `echo ${NOW}`, (dir) => runScript(SUT, args, { cwd, shell: "bash", stubDirs: [dir] }));
 }
 
 /** The start mark the script itself hands out, as a number. */
@@ -41,9 +50,9 @@ async function startMark(): Promise<number> {
   return mark;
 }
 
-/** Runs the elapsed mode for a mark `seconds` in the past. */
-async function elapsed(seconds: number) {
-  return run([String(await startMark() - seconds)]);
+/** Runs the elapsed mode for a mark `seconds` before NOW. */
+function elapsed(seconds: number) {
+  return runAtNow([String(NOW - seconds)]);
 }
 
 test("no argument prints one `started:` line carrying the current epoch second", async () => {
@@ -59,28 +68,24 @@ test("no argument prints one `started:` line carrying the current epoch second",
   assert.ok(mark >= before && mark <= after, `${mark} outside [${before}, ${after}]`);
 });
 
-/** Each case: seconds ago -> the two literals the tick makes legitimate. */
-const DURATIONS: Array<[number, string, string]> = [
-  [0, "elapsed: 0s", "elapsed: 1s"],
-  [7, "elapsed: 7s", "elapsed: 8s"],
-  [59, "elapsed: 59s", "elapsed: 1m 00s"],
-  [60, "elapsed: 1m 00s", "elapsed: 1m 01s"],
-  [65, "elapsed: 1m 05s", "elapsed: 1m 06s"],
-  [3599, "elapsed: 59m 59s", "elapsed: 1h 00m 00s"],
-  [3600, "elapsed: 1h 00m 00s", "elapsed: 1h 00m 01s"],
-  [8043, "elapsed: 2h 14m 03s", "elapsed: 2h 14m 04s"],
-  [90061, "elapsed: 25h 01m 01s", "elapsed: 25h 01m 02s"],
+/** Each case: seconds ago -> the duration it reads as. */
+const DURATIONS: Array<[number, string]> = [
+  [0, "elapsed: 0s"],
+  [7, "elapsed: 7s"],
+  [59, "elapsed: 59s"],
+  [60, "elapsed: 1m 00s"],
+  [65, "elapsed: 1m 05s"],
+  [3599, "elapsed: 59m 59s"],
+  [3600, "elapsed: 1h 00m 00s"],
+  [8043, "elapsed: 2h 14m 03s"],
+  [90061, "elapsed: 25h 01m 01s"],
 ];
 
-for (const [seconds, expected, ticked] of DURATIONS) {
+for (const [seconds, expected] of DURATIONS) {
   test(`${seconds} seconds ago reads as ${expected.slice("elapsed: ".length)}`, async () => {
     const result = await elapsed(seconds);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.equal(result.stdout.trim().split("\n").length, 1);
-    assert.ok(
-      result.stdout === `${expected}\n` || result.stdout === `${ticked}\n`,
-      `got ${JSON.stringify(result.stdout)}, expected ${expected} (or ${ticked})`,
-    );
+    assert.equal(result.stdout, `${expected}\n`);
   });
 }
 
@@ -93,10 +98,9 @@ test("the largest non-zero unit comes first and hours never roll over into days"
 });
 
 test("a leading zero is decimal, never octal", async () => {
-  const padded = await run([`0${await startMark() - 8043}`]);
+  const padded = await runAtNow([`0${NOW - 8043}`]);
   assert.equal(padded.status, 0, `stderr: ${padded.stderr}`);
-  // A loaded machine can delay the spawn by a few seconds, so the seconds float.
-  assert.match(padded.stdout, /^elapsed: 2h 14m 0[3-9]s\n$/);
+  assert.equal(padded.stdout, "elapsed: 2h 14m 03s\n");
 });
 
 /** Every argument that cannot be a mark, including the two shapes a lost
@@ -140,21 +144,14 @@ test("the cwd is irrelevant: a temp directory outside the repository reads the s
     assert.equal(started.status, 0, `stderr: ${started.stderr}`);
     assert.match(started.stdout, /^started: \d+\n$/);
 
-    const mark = Number(started.stdout.trim().slice("started: ".length)) - 65;
-    const result = await run([String(mark)], dir);
+    const result = await runAtNow([String(NOW - 65)], dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.ok(
-      result.stdout === "elapsed: 1m 05s\n" || result.stdout === "elapsed: 1m 06s\n",
-      `got ${JSON.stringify(result.stdout)}`,
-    );
+    assert.equal(result.stdout, "elapsed: 1m 05s\n");
   });
 });
 
 test("a further argument is ignored", async () => {
-  const result = await run([String(await startMark() - 8043), "extra", "arguments"]);
+  const result = await runAtNow([String(NOW - 8043), "extra", "arguments"]);
   assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-  assert.ok(
-    result.stdout === "elapsed: 2h 14m 03s\n" || result.stdout === "elapsed: 2h 14m 04s\n",
-    `got ${JSON.stringify(result.stdout)}`,
-  );
+  assert.equal(result.stdout, "elapsed: 2h 14m 03s\n");
 });

@@ -232,6 +232,41 @@ trail_paths() {
   done
 }
 
+# Runs a function over a long path list in slices: each_chunk <function> <path>...
+# calls "<function> <slice>..." per slice and stops at the first non-zero status,
+# which it returns, so a check such as "git diff --quiet" reads over the whole
+# list as it would in one call. A task's Files list is not bounded, and one git
+# command line past CreateProcess's 32767 chars fails on Windows with "Argument
+# list too long"; a slice holds 24000 chars of paths at most, leaving room for
+# the command and its options. The slices are disjoint, so their outputs simply
+# follow one another.
+each_chunk() {
+  local fn="$1" len=0 n p
+  local -a batch=()
+  shift
+  for p in "$@"; do
+    n=$(( ${#p} + 1 ))
+    if [[ ${#batch[@]} -gt 0 && $(( len + n )) -gt 24000 ]]; then
+      "$fn" "${batch[@]}" || return $?
+      batch=()
+      len=0
+    fi
+    batch+=("$p")
+    len=$(( len + n ))
+  done
+  if [[ ${#batch[@]} -gt 0 ]]; then
+    "$fn" "${batch[@]}" || return $?
+  fi
+  return 0
+}
+
+diff_cached_quiet() { git diff --cached --quiet -- "$@"; }
+status_porcelain() { git status --porcelain --untracked-files=all -- "$@"; }
+landed_diff() { git diff --name-only "$landed_parent" "$landed_sha" -- "$@"; }
+landed_root_diff() { git diff-tree --root --no-commit-id --name-only -r "$landed_sha" -- "$@"; }
+temp_index_drop() { GIT_INDEX_FILE="$temp_idx" git rm -r -q --cached --ignore-unmatch -- "$@" >/dev/null; }
+temp_index_take() { git ls-files -s -z -- "$@" | GIT_INDEX_FILE="$temp_idx" git update-index -z --index-info; }
+
 # Stages one named path whatever state it arrives in, and succeeds when git
 # knows it afterwards - in the index or in HEAD - so it can stand in the
 # commit's pathspec. A single "git add -A" is not that: it fails outright on a
@@ -281,11 +316,12 @@ commit_named() {
   else
     GIT_INDEX_FILE="$idx" git read-tree --empty || rc=1
   fi
+  temp_idx="$idx"
   if [[ $rc -eq 0 ]]; then
-    GIT_INDEX_FILE="$idx" git rm -r -q --cached --ignore-unmatch -- "$@" >/dev/null || rc=1
+    each_chunk temp_index_drop "$@" || rc=1
   fi
   if [[ $rc -eq 0 ]]; then
-    git ls-files -s -z -- "$@" | GIT_INDEX_FILE="$idx" git update-index -z --index-info || rc=1
+    each_chunk temp_index_take "$@" || rc=1
   fi
   if [[ $rc -eq 0 ]]; then
     GIT_INDEX_FILE="$idx" git commit "${opts[@]}" || rc=$?
@@ -705,7 +741,7 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
     fi
   done
 
-  if [[ ${#paths[@]} -eq 0 ]] || git diff --cached --quiet -- "${paths[@]}"; then
+  if [[ ${#paths[@]} -eq 0 ]] || each_chunk diff_cached_quiet "${paths[@]}"; then
     echo "error: the named files produced no changes to commit" >&2
     exit 4
   fi
@@ -946,15 +982,15 @@ if [[ -n "$landed" ]]; then
   # empty tree) instead.
   landed_parent="$(git rev-parse -q --verify "$landed_sha^" 2>/dev/null || true)"
   if [[ -n "$landed_parent" ]]; then
-    landed_changed="$(git diff --name-only "$landed_parent" "$landed_sha" -- "${task_paths[@]}")"
+    landed_changed="$(each_chunk landed_diff "${task_paths[@]}")"
   else
-    landed_changed="$(git diff-tree --root --no-commit-id --name-only -r "$landed_sha" -- "${task_paths[@]}")"
+    landed_changed="$(each_chunk landed_root_diff "${task_paths[@]}")"
   fi
   if [[ -z "$landed_changed" ]]; then
     echo "error: --landed $landed touches none of task $task_id's files" >&2
     exit 4
   fi
-  if [[ -n "$(git status --porcelain --untracked-files=all -- "${task_paths[@]}")" ]]; then
+  if [[ -n "$(each_chunk status_porcelain "${task_paths[@]}")" ]]; then
     echo "error: task $task_id still has uncommitted changes to its files - commit them without --landed" >&2
     exit 4
   fi
@@ -1009,7 +1045,7 @@ if [[ -z "$landed" ]]; then
     fi
   done <<< "$files"
 
-  if [[ ${#paths[@]} -eq 0 ]] || git diff --cached --quiet -- "${paths[@]}"; then
+  if [[ ${#paths[@]} -eq 0 ]] || each_chunk diff_cached_quiet "${paths[@]}"; then
     if [[ -n "$fix_n" ]]; then
       echo "error: the fix for task $task_id produced no changes to commit" >&2
     else
