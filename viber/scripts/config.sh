@@ -14,14 +14,12 @@
 # subdirectory would otherwise find no file and fail open with every switch
 # false - silently turning off every layer the user configured.
 #
-# Two kinds of key, told apart by where they sit. A switch is a top-level key -
-# column 0, the exact key name - and is on only when its value is `true` in
-# any letter case. A directory key lives INSIDE the
-# `directories:` group and names ONE directory under docs/ - never a path. The
-# group is the disambiguation: `runs` on its own reads like a count and `specs`
-# like a switch, where `directories.runs` cannot be read as anything else, so a
-# key of that name outside the group is not this key and is ignored. The value
-# is sanitized because "docs/ is the one home for persisted knowledge" rests on
+# Every key lives INSIDE its group, and the group is the disambiguation: `runs`
+# on its own reads like a count and `memory` like anything, where
+# `directories.runs` and `build.memory` cannot be read as anything else, so a
+# key of that name outside its group is not this key and is ignored - a legacy
+# flat switch included, until /viber:setup moves it. A directory value is
+# sanitized because "docs/ is the one home for persisted knowledge" rests on
 # it: a slash, a traversal or an absolute path is a configuration error, so the
 # default stands and the run is unaffected.
 #
@@ -33,15 +31,25 @@
 #            resolved here. Outside a repository, the cwd is the base.
 #   env    : none.
 #   file   : <repo root>/.claude/viber.yml (optional). No file -> every switch
-#            false, every directory key at its default.
-#   keys   : adr, memory, rules, qa, cleanup, final-review, plain-plan-review, issues, fast-path, baseline-tests - switches. One is `true` ONLY
-#            when the file holds a line whose key starts at column 0, spells
-#            the key name exactly (case-sensitive, no leading indentation),
-#            and whose value is `true` in any letter case (ended by a space,
-#            a comment or the end of the line): `^<key>\s*:\s*[Tt][Rr][Uu][Ee]`.
-#            An indented key (it then belongs to some other group, never a
-#            switch) or a key differing in case -> false. An absent key ->
+#            false, every other key at its default.
+#   keys   : A group is `<group>:` at column 0; its children are the indented
+#            key lines below it, the group ending at the next column-0 key (a
+#            blank line or a column-0 comment leaves it open). The first
+#            assignment of a child wins; a CR is never part of a value.
+#            planning.adr, planning.plain-plan-review, planning.fast-path,
+#            build.baseline-tests, build.final-review, build.memory,
+#            build.rules, build.qa, build.cleanup, github.issues - switches.
+#            One is `true` ONLY as a child of its own group, spelled exactly
+#            (case-sensitive), whose value is `true` in any letter case (ended
+#            by a space, a comment or the end of the line). A column-0 key of
+#            the same name, the key under another group, or an absent key ->
 #            false.
+#            github.issue-title (default `{template-title}{summary}`) and
+#            github.pr-title (default `{type}: {summary}`) - title patterns,
+#            children of `github:`. A value opening on a quote with its
+#            closing pair -> everything between the two, kept whole; otherwise
+#            cut at the first blank followed by `#`, trailing blanks dropped.
+#            Empty, a comment alone or absent -> the default.
 #            directories.runs (default `_specs`) and
 #            directories.specifications (default `specs`) - the directory names
 #            under docs/ holding the open runs and the archived ones. Read ONLY
@@ -62,23 +70,25 @@
 #            (any case, printed lowercase), anything else -> off. The branch
 #            bases and name patterns live in `branching.work` entries, read by
 #            `--branching` alone.
-#   stdout : a header line, then one `<key>: <true|false>` line per switch,
-#            one `directories.<key>: <name>` line per directory key, one
+#   stdout : a header line, then one `<group>.<key>: <true|false>` line per
+#            switch, one `github.<key>: <pattern>` line per title, one
+#            `directories.<key>: <name>` line per directory key, one
 #            `tiers.<key>: <tier>` line per tier key and the
 #            `branching.mode: <mode>` line - dotted, so the block reads the
-#            way the file does and no reader can take a directory name for a
-#            switch - in a fixed order:
+#            way the file does - in a fixed order:
 #              # viber config (resolved)
-#              adr: true
-#              memory: true
-#              rules: true
-#              qa: true
-#              cleanup: true
-#              final-review: true
-#              plain-plan-review: true
-#              issues: true
-#              fast-path: true
-#              baseline-tests: true
+#              planning.adr: true
+#              planning.plain-plan-review: true
+#              planning.fast-path: true
+#              build.baseline-tests: false
+#              build.final-review: true
+#              build.memory: true
+#              build.rules: true
+#              build.qa: false
+#              build.cleanup: true
+#              github.issues: false
+#              github.issue-title: {template-title}{summary}
+#              github.pr-title: {type}: {summary}
 #              directories.runs: _specs
 #              directories.specifications: specs
 #              tiers.min: haiku
@@ -126,14 +136,50 @@ else
   cfg=".claude/viber.yml"
 fi
 
-resolve() {
-  key="$1"
-  if [ -f "$cfg" ] && grep -qE "^${key}[[:space:]]*:[[:space:]]*[Tt][Rr][Uu][Ee]([[:space:]]|#|$)" "$cfg"; then
-    echo "true"
-  else
-    echo "false"
-  fi
+# The switch and title lines of the block, in their fixed order, from one pass
+# over the file. A column-0 key opens its group; a blank line or a column-0
+# comment leaves it open. The first assignment of each child wins.
+switches_prog='
+/^[^[:space:]#]/ {
+  grp = ""
+  if (match($0, /^[A-Za-z0-9_-]+[[:space:]]*:/)) { grp = substr($0, 1, RLENGTH); sub(/[[:space:]]*:$/, "", grp) }
+  next
 }
+grp != "" && /^[[:space:]]+[A-Za-z]/ {
+  line = $0
+  sub(/\r$/, "", line)
+  sub(/^[[:space:]]+/, "", line)
+  if (line !~ /^[A-Za-z0-9_-]+[[:space:]]*:/) next
+  key = line
+  sub(/[[:space:]]*:.*$/, "", key)
+  val = line
+  sub(/^[^:]*:[[:space:]]*/, "", val)
+  id = grp "." key
+  if (!(id in raw)) raw[id] = val
+}
+function title(v, dflt,  q, end) {
+  q = substr(v, 1, 1)
+  end = 0
+  if (q == sq || q == "\"") end = index(substr(v, 2), q)
+  if (end > 0) v = substr(v, 2, end - 1)
+  else {
+    if (v ~ /^#/) v = ""
+    if (match(v, /[[:space:]]#/)) v = substr(v, 1, RSTART - 1)
+    sub(/[[:space:]]+$/, "", v)
+  }
+  return v == "" ? dflt : v
+}
+END {
+  n = split("planning.adr planning.plain-plan-review planning.fast-path build.baseline-tests build.final-review build.memory build.rules build.qa build.cleanup github.issues", ids, " ")
+  for (i = 1; i <= n; i++) {
+    v = raw[ids[i]]
+    sub(/[[:space:]#].*$/, "", v)
+    print ids[i] ": " (tolower(v) == "true" ? "true" : "false")
+  }
+  print "github.issue-title: " title(raw["github.issue-title"], "{template-title}{summary}")
+  print "github.pr-title: " title(raw["github.pr-title"], "{type}: {summary}")
+}
+'
 
 # The raw value of one key inside one group, empty when the file gives none. The
 # awk tracks the group rather than matching the key anywhere: a top-level line
@@ -288,10 +334,13 @@ if [ "${1:-}" = "--branching" ]; then
   exit 0
 fi
 
+src="$cfg"
+[ -f "$src" ] || src=/dev/null
+block="$(awk -v sq="'" "$switches_prog" "$src" 2>/dev/null || true)"
+[ -n "$block" ] || block="$(awk -v sq="'" "$switches_prog" /dev/null)"
+
 echo "# viber config (resolved)"
-for key in adr memory rules qa cleanup final-review plain-plan-review issues fast-path baseline-tests; do
-  printf '%s: %s\n' "$key" "$(resolve "$key")"
-done
+printf '%s\n' "$block"
 printf 'directories.runs: %s\n' "$(resolve_dir runs _specs)"
 printf 'directories.specifications: %s\n' "$(resolve_dir specifications specs)"
 

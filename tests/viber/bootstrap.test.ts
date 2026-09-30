@@ -19,7 +19,9 @@
  * declares keeps its value, its comment and its position. A legacy flat switch
  * is MOVED into its group with its value (a grouped twin wins), and the
  * `schema:` line is added or raised to the template's, never lowered. Every
- * case asserts the written file, never a resolver's reading of it.
+ * case asserts the written file, never a resolver's reading of it - save one,
+ * which runs `config.sh` over a migrated flat file to prove the move lands
+ * where the resolver reads.
  *
  * The template's key list is bound to its `schema:` number: a layout change
  * without a new number would leave the session-start note silent.
@@ -46,6 +48,7 @@ import { coreUtilsPath, withStub } from "../harness/stub.ts";
 import { withGitRepo, withTempDir } from "../harness/tmp.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/skills/setup/scripts/bootstrap.sh");
+const CONFIG_SH = path.resolve(import.meta.dirname, "../../viber/scripts/config.sh");
 const TEMPLATE_GITIGNORE = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/gitignore.txt");
 const TEMPLATE_CONFIG = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/viber.yml");
 
@@ -298,6 +301,31 @@ test("a flat config gains every group the template adds, each child the file did
       after,
       /^branching:\n {2}mode: off\n {2}work:\n {4}main:\n {6}base: main\n {6}name: '\{type\}\/\{slug\}'\n {6}target: main\n {2}# issue-type-mappings:\n {2}# {3}bug: main$/m,
     );
+  });
+});
+
+test("a flat config migrated by setup resolves through config.sh to the flat file's own values, each switch it did not set at the template default, as dotted lines", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const cfg = configPath(dir);
+    fs.mkdirSync(path.dirname(cfg), { recursive: true });
+    fs.writeFileSync(cfg, "# my own switches\nadr: false\nmemory: false\nqa: true\nissues: true\nfast-path: false\n");
+    await run(dir, env);
+
+    const resolved = await runScript(CONFIG_SH, [], { cwd: dir, env, shell: "bash" });
+
+    assert.equal(resolved.status, 0, `stderr: ${resolved.stderr}`);
+    assert.deepEqual(resolved.stdout.split("\n").slice(1, 11), [
+      "planning.adr: false",
+      "planning.plain-plan-review: true",
+      "planning.fast-path: false",
+      "build.baseline-tests: false",
+      "build.final-review: true",
+      "build.memory: false",
+      "build.rules: true",
+      "build.qa: true",
+      "build.cleanup: true",
+      "github.issues: true",
+    ]);
   });
 });
 

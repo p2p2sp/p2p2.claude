@@ -1,0 +1,6 @@
+- Switches and titles come from one awk pass (`switches_prog`) instead of one grep per key; directories/tiers/branching keep their old `group_value` path untouched. If awk fails on an unreadable file, the same program reruns over /dev/null so the defaults still print.
+- A title opening on a quote keeps only the text up to its closing quote (a trailing `# comment` after the quote is dropped); an opening quote with no closing one is read as unquoted. A value that is only `# ...` counts as empty, so the default applies.
+- A child is any indented key line under the group, at any depth, the same way `group_value` reads children.
+- This repo's own flat `.claude/viber.yml` now resolves every switch off under this config.sh, which is expected until `/viber:setup` migrates it (out of scope).
+- switch-text.sh (T3) and plan-gate.sh (T4) still grep the flat `^<key>: ` lines; until those tasks land, their suites stay red against this block.
+- config.test.ts dropped the old "X prints directly after Y" order cases: the no-file case now checks the whole C2 block line by line.

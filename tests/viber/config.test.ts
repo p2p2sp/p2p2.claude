@@ -10,14 +10,17 @@
  * subdirectory would otherwise silently report every switch off and turn off
  * every layer the user configured.
  *
- * Two kinds of key, told apart by WHERE they sit. A SWITCH is a top-level key
- * and is on only when it literally says `true`. A DIRECTORY key lives inside the
- * `directories:` group and names one directory under docs/, never a path. The
- * group is a contract rather than a presentation: a same-named key outside it is
- * ignored, which is the whole reason it exists - `runs` alone reads like a count
- * and `specs` like a switch. And the value is sanitized, because the invariant
- * that "docs/ is the one home for persisted knowledge" rests on it: a slash, a
- * traversal or an absolute path leaves the default standing.
+ * Every key lives inside its group, and the group is a contract rather than a
+ * presentation: a same-named key outside it is ignored. A SWITCH is a child of
+ * `planning:`, `build:` or `github:` and is on only when it literally says
+ * `true`; a legacy flat switch at column 0 resolves off until setup moves it. A
+ * TITLE pattern is a child of `github:`, printed whole - a quoted value keeps
+ * everything inside its quotes, an unquoted one loses a trailing comment. A
+ * DIRECTORY key lives inside `directories:` and names one directory under docs/,
+ * never a path - `runs` alone reads like a count and `specs` like a switch. Its
+ * value is sanitized, because the invariant that "docs/ is the one home for
+ * persisted knowledge" rests on it: a slash, a traversal or an absolute path
+ * leaves the default standing.
  *
  * `--branching` prints the branching report instead of the block: the mode, the
  * valid work entries and issue type mappings in file order, then one `error:`
@@ -40,8 +43,20 @@ const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/config.sh");
 
 /** Every switch off and both directory keys at their default - what a project
  *  with no config file, and every unusable value, resolves to. */
-const OFF = { adr: "false", memory: "false", rules: "false", qa: "false", cleanup: "false", "final-review": "false", "plain-plan-review": "false", issues: "false", "fast-path": "false", "baseline-tests": "false" };
+const OFF = {
+  "planning.adr": "false",
+  "planning.plain-plan-review": "false",
+  "planning.fast-path": "false",
+  "build.baseline-tests": "false",
+  "build.final-review": "false",
+  "build.memory": "false",
+  "build.rules": "false",
+  "build.qa": "false",
+  "build.cleanup": "false",
+  "github.issues": "false",
+};
 const DEFAULT_DIRS = { runs: "_specs", specifications: "specs" };
+const DEFAULT_TITLES = { issue: "{template-title}{summary}", pr: "{type}: {summary}" };
 
 function run(dir: string, env: Record<string, string> = {}) {
   return runScript(SUT, [], { cwd: dir, env, shell: "bash" });
@@ -57,26 +72,38 @@ function group(entries: Record<string, string>): string {
   return ["directories:", ...Object.entries(entries).map(([key, value]) => `  ${key}: ${value}`), ""].join("\n");
 }
 
-/** Every key the script printed, in the fixed order it prints them. */
+/** One group holding the given child lines, each indented two blanks. */
+function inGroup(name: string, ...children: string[]): string {
+  return [`${name}:`, ...children.map((child) => `  ${child}`), ""].join("\n");
+}
+
+/** Every key the script printed, in the fixed order it prints them; a value is
+ *  everything after the first colon, since a title pattern holds colons of its own. */
 function config(stdout: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const line of stdout.trim().split("\n").slice(1)) {
-    const [key, value] = line.split(":").map((s) => s.trim());
-    if (key) out[key] = value ?? "";
+    const at = line.indexOf(":");
+    if (at > 0) out[line.slice(0, at).trim()] = line.slice(at + 1).trim();
   }
   return out;
 }
 
-/** The switches alone, so a case about a switch need not restate the two
- *  directory names. */
-function switches(stdout: string): Record<string, string> {
+/** The ten switches alone, so a case about a switch need not restate the
+ *  titles, directory names, tiers and branching mode. */
+function switches(stdout: string): Record<string, string | undefined> {
   const all = config(stdout);
-  delete all["directories.runs"];
-  delete all["directories.specifications"];
-  delete all["tiers.min"];
-  delete all["tiers.max"];
-  delete all["branching.mode"];
-  return all;
+  return Object.fromEntries(Object.keys(OFF).map((key) => [key, all[key]]));
+}
+
+/** The printed line of one key, verbatim, or undefined when none was printed. */
+function printedLine(stdout: string, key: string): string | undefined {
+  return stdout.split(/\r?\n/).find((line) => line.startsWith(`${key}: `));
+}
+
+/** The two title patterns alone, under short names. */
+function titles(stdout: string): Record<string, string> {
+  const all = config(stdout);
+  return { issue: all["github.issue-title"], pr: all["github.pr-title"] };
 }
 
 /** The two tier keys alone, under their short names. */
@@ -94,13 +121,30 @@ function dirs(stdout: string): Record<string, string> {
   return { runs: all["directories.runs"], specifications: all["directories.specifications"] };
 }
 
-test("no config file: every switch is off, both directories default, and the exit is still 0", async () => {
+test("no config file: the block is every switch off, both title defaults, then the directory, tier and branching defaults, in the fixed order, and the exit is still 0", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
     const result = await run(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.equal(result.stdout.split("\n")[0], "# viber config (resolved)");
-    assert.deepEqual(switches(result.stdout), OFF);
-    assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS);
+    assert.deepEqual(result.stdout.trim().split("\n"), [
+      "# viber config (resolved)",
+      "planning.adr: false",
+      "planning.plain-plan-review: false",
+      "planning.fast-path: false",
+      "build.baseline-tests: false",
+      "build.final-review: false",
+      "build.memory: false",
+      "build.rules: false",
+      "build.qa: false",
+      "build.cleanup: false",
+      "github.issues: false",
+      "github.issue-title: {template-title}{summary}",
+      "github.pr-title: {type}: {summary}",
+      "directories.runs: _specs",
+      "directories.specifications: specs",
+      "tiers.min: haiku",
+      "tiers.max: opus",
+      "branching.mode: off",
+    ]);
   });
 });
 
@@ -116,90 +160,57 @@ test("the group keys are printed dotted, so no reader can take one for a switch"
   });
 });
 
-test("`issues` prints directly after `plain-plan-review`, in the header's fixed order", async () => {
-  await withTempDir("p2p2-viber-", async (dir) => {
-    writeConfig(dir, "issues: true\n");
-
-    const printed = (await run(dir)).stdout.trim().split("\n");
-    const ppr = printed.indexOf("plain-plan-review: false");
-    assert.equal(ppr >= 0, true, `plain-plan-review line missing: ${printed.join(" | ")}`);
-    assert.equal(printed[ppr + 1], "issues: true");
-  });
-});
-
 for (const value of ["true", "TRUE", "True"]) {
-  test(`\`fast-path: ${value}\` resolves to true, matched in any letter case`, async () => {
+  test(`\`fast-path: ${value}\` inside \`planning:\` resolves to true, matched in any letter case`, async () => {
     await withTempDir("p2p2-viber-", async (dir) => {
-      writeConfig(dir, `fast-path: ${value}\n`);
+      writeConfig(dir, inGroup("planning", `fast-path: ${value}`));
 
-      assert.deepEqual(switches((await run(dir)).stdout), { ...OFF, "fast-path": "true" });
+      assert.deepEqual(switches((await run(dir)).stdout), { ...OFF, "planning.fast-path": "true" });
     });
   });
 }
 
 for (const [label, body] of [
-  ["the key absent", "adr: true\n"],
-  ["another value", "adr: true\nfast-path: enabled\n"],
-  ["the value false", "fast-path: false\n"],
+  ["the key absent", inGroup("planning", "adr: true")],
+  ["another value", inGroup("planning", "adr: true", "fast-path: enabled")],
+  ["the value false", inGroup("planning", "fast-path: false")],
 ] as const) {
-  test(`a config with ${label} resolves \`fast-path\` to false`, async () => {
+  test(`a config with ${label} resolves \`planning.fast-path\` to false`, async () => {
     await withTempDir("p2p2-viber-", async (dir) => {
       writeConfig(dir, body);
 
-      assert.equal(switches((await run(dir)).stdout)["fast-path"], "false");
+      assert.equal(switches((await run(dir)).stdout)["planning.fast-path"], "false");
     });
   });
 }
 
-test("`fast-path` prints directly after the `issues` line, in the header's fixed order", async () => {
-  await withTempDir("p2p2-viber-", async (dir) => {
-    writeConfig(dir, "fast-path: true\n");
-
-    const printed = (await run(dir)).stdout.trim().split("\n");
-    const issuesIdx = printed.indexOf("issues: false");
-    assert.equal(issuesIdx >= 0, true, `issues line missing: ${printed.join(" | ")}`);
-    assert.equal(printed[issuesIdx + 1], "fast-path: true");
-  });
-});
-
 for (const value of ["true", "TRUE", "True"]) {
-  test(`\`baseline-tests: ${value}\` resolves to true, matched in any letter case`, async () => {
+  test(`\`baseline-tests: ${value}\` inside \`build:\` resolves to true, matched in any letter case`, async () => {
     await withTempDir("p2p2-viber-", async (dir) => {
-      writeConfig(dir, `baseline-tests: ${value}\n`);
+      writeConfig(dir, inGroup("build", `baseline-tests: ${value}`));
 
-      assert.deepEqual(switches((await run(dir)).stdout), { ...OFF, "baseline-tests": "true" });
+      assert.deepEqual(switches((await run(dir)).stdout), { ...OFF, "build.baseline-tests": "true" });
     });
   });
 }
 
 for (const [label, body] of [
-  ["the key absent", "adr: true\n"],
-  ["another value", "adr: true\nbaseline-tests: enabled\n"],
-  ["the value false", "baseline-tests: false\n"],
+  ["the key absent", inGroup("build", "memory: true")],
+  ["another value", inGroup("build", "memory: true", "baseline-tests: enabled")],
+  ["the value false", inGroup("build", "baseline-tests: false")],
 ] as const) {
-  test(`a config with ${label} resolves \`baseline-tests\` to false`, async () => {
+  test(`a config with ${label} resolves \`build.baseline-tests\` to false`, async () => {
     await withTempDir("p2p2-viber-", async (dir) => {
       writeConfig(dir, body);
 
-      assert.equal(config((await run(dir)).stdout)["baseline-tests"], "false");
+      assert.equal(switches((await run(dir)).stdout)["build.baseline-tests"], "false");
     });
   });
 }
-
-test("`baseline-tests` prints directly after the `fast-path` line, in the header's fixed order", async () => {
-  await withTempDir("p2p2-viber-", async (dir) => {
-    writeConfig(dir, "baseline-tests: true\n");
-
-    const printed = (await run(dir)).stdout.trim().split("\n");
-    const fastPathIdx = printed.indexOf("fast-path: false");
-    assert.equal(fastPathIdx >= 0, true, `fast-path line missing: ${printed.join(" | ")}`);
-    assert.equal(printed[fastPathIdx + 1], "baseline-tests: true");
-  });
-});
 
 test("only `true` counts as on - false, a missing key, a commented-out line and a near-miss value are all off", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    writeConfig(dir, ["adr: false", "# memory: true", "rules: truthy", "qa: yes", "cleanup: on", "extra: true", ""].join("\n"));
+    writeConfig(dir, inGroup("planning", "adr: false") + inGroup("build", "# memory: true", "rules: truthy", "qa: yes", "cleanup: on", "extra: true"));
 
     const result = await run(dir);
     assert.equal(result.status, 0);
@@ -207,33 +218,47 @@ test("only `true` counts as on - false, a missing key, a commented-out line and 
   });
 });
 
-test("the seeded template turns every switch on, comments and case notwithstanding", async () => {
+test("a grouped config turns its switches on, comments, blank lines and case notwithstanding", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
     writeConfig(
       dir,
-      ["# viber switches", "adr: true  # the decisions worth keeping", "memory: TRUE", "rules: true", "qa: true", "cleanup: true", "plain-plan-review: true", "issues: true", ""].join("\n"),
+      [
+        "# viber switches",
+        "planning:",
+        "  adr: true  # the decisions worth keeping",
+        "",
+        "# a column-0 comment inside the group",
+        "  plain-plan-review: true",
+        "build:",
+        "  # the close",
+        "  memory: TRUE",
+        "  rules: true",
+        "  qa: true",
+        "  cleanup: true",
+        "github:",
+        "  issues: true",
+        "",
+      ].join("\n"),
     );
 
     const result = await run(dir);
     assert.equal(result.status, 0);
     assert.deepEqual(switches(result.stdout), {
-      adr: "true",
-      memory: "true",
-      rules: "true",
-      qa: "true",
-      cleanup: "true",
-      "final-review": "false",
-      "plain-plan-review": "true",
-      issues: "true",
-      "fast-path": "false",
-      "baseline-tests": "false",
+      ...OFF,
+      "planning.adr": "true",
+      "planning.plain-plan-review": "true",
+      "build.memory": "true",
+      "build.rules": "true",
+      "build.qa": "true",
+      "build.cleanup": "true",
+      "github.issues": "true",
     });
   });
 });
 
-test("an indented `qa: true` under a group is not a column-0 switch, so it stays off", async () => {
+test("an indented `qa: true` under a group that is not `build:` stays off", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    writeConfig(dir, ["some_group:", "  qa: true", ""].join("\n"));
+    writeConfig(dir, inGroup("some_group", "qa: true"));
 
     const result = await run(dir);
     assert.equal(result.status, 0);
@@ -241,19 +266,37 @@ test("an indented `qa: true` under a group is not a column-0 switch, so it stays
   });
 });
 
-test("`memory: TRUE` at column 0 resolves to on - the value is matched in any letter case", async () => {
+test("a switch under the wrong one of the three groups stays off (a key counts only inside its own group)", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    writeConfig(dir, "memory: TRUE\n");
+    writeConfig(dir, inGroup("planning", "memory: true") + inGroup("github", "adr: true") + inGroup("build", "issues: true"));
 
-    const result = await run(dir);
-    assert.equal(result.status, 0);
-    assert.deepEqual(switches(result.stdout), { ...OFF, memory: "true" });
+    assert.deepEqual(switches((await run(dir)).stdout), OFF);
   });
 });
 
-test("`MEMORY: true` resolves to off - the key itself is matched case-sensitively", async () => {
+test("`memory: false` inside `build:` prints `build.memory: false`, a sibling set on still read", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    writeConfig(dir, "MEMORY: true\n");
+    writeConfig(dir, inGroup("build", "memory: false", "rules: true"));
+
+    const result = await run(dir);
+    assert.equal(result.status, 0);
+    assert.deepEqual(switches(result.stdout), { ...OFF, "build.rules": "true" });
+  });
+});
+
+test("`memory: TRUE` inside `build:` resolves to on - the value is matched in any letter case", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(dir, inGroup("build", "memory: TRUE"));
+
+    const result = await run(dir);
+    assert.equal(result.status, 0);
+    assert.deepEqual(switches(result.stdout), { ...OFF, "build.memory": "true" });
+  });
+});
+
+test("`MEMORY: true` inside `build:` resolves to off - the key itself is matched case-sensitively", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(dir, inGroup("build", "MEMORY: true"));
 
     const result = await run(dir);
     assert.equal(result.status, 0);
@@ -261,24 +304,43 @@ test("`MEMORY: true` resolves to off - the key itself is matched case-sensitivel
   });
 });
 
-test("the shipped template is what setup seeds: seven switches on, qa, issues and baseline-tests off, and both directories named", async () => {
+for (const key of ["adr", "plain-plan-review", "fast-path", "baseline-tests", "final-review", "memory", "rules", "qa", "cleanup", "issues"]) {
+  test(`a flat \`${key}: true\` at column 0 resolves off (a legacy key counts only once setup moves it into its group)`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
+      writeConfig(dir, `${key}: true\n`);
+
+      assert.deepEqual(switches((await run(dir)).stdout), OFF);
+    });
+  });
+}
+
+test("a flat `memory: true` beside a `build:` group without it still prints `build.memory: false`", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(dir, "memory: true\n" + inGroup("build", "rules: true"));
+
+    assert.equal(printedLine((await run(dir)).stdout, "build.memory"), "build.memory: false");
+  });
+});
+
+test("the shipped template resolves to its own defaults: every switch, both titles, both directories and both tiers", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
     const template = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/viber.yml");
     writeConfig(dir, fs.readFileSync(template, "utf-8"));
 
     const result = await run(dir);
     assert.deepEqual(switches(result.stdout), {
-      adr: "true",
-      memory: "true",
-      rules: "true",
-      qa: "false",
-      cleanup: "true",
-      "final-review": "true",
-      "plain-plan-review": "true",
-      issues: "false",
-      "fast-path": "true",
-      "baseline-tests": "false",
+      "planning.adr": "true",
+      "planning.plain-plan-review": "true",
+      "planning.fast-path": "true",
+      "build.baseline-tests": "false",
+      "build.final-review": "true",
+      "build.memory": "true",
+      "build.rules": "true",
+      "build.qa": "false",
+      "build.cleanup": "true",
+      "github.issues": "false",
     });
+    assert.deepEqual(titles(result.stdout), DEFAULT_TITLES);
     assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS);
     assert.deepEqual(tiers(result.stdout), DEFAULT_TIERS);
   });
@@ -286,13 +348,13 @@ test("the shipped template is what setup seeds: seven switches on, qa, issues an
 
 test("the file is resolved against the repository root, so a session started in a subdirectory reads the same config", async () => {
   await withGitRepo(async (repo) => {
-    writeConfig(repo.dir, `memory: true\n${group({ specifications: "archive" })}`);
+    writeConfig(repo.dir, inGroup("build", "memory: true") + group({ specifications: "archive" }));
     const nested = path.join(repo.dir, "src", "deep");
     fs.mkdirSync(nested, { recursive: true });
 
     const result = await runScript(SUT, [], { cwd: nested, env: repo.env, shell: "bash" });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.deepEqual(switches(result.stdout), { ...OFF, memory: "true" });
+    assert.deepEqual(switches(result.stdout), { ...OFF, "build.memory": "true" });
     assert.deepEqual(dirs(result.stdout), { runs: "_specs", specifications: "archive" });
   });
 });
@@ -304,7 +366,77 @@ test("an unreadable or malformed config never fails the preload", async () => {
     const result = await run(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(switches(result.stdout), OFF);
+    assert.deepEqual(titles(result.stdout), DEFAULT_TITLES);
     assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS);
+  });
+});
+
+// --- the github titles ---
+
+for (const [label, value] of [
+  ["single", "'{type}: {summary} #x'"],
+  ["double", '"{type}: {summary} #x"'],
+] as const) {
+  test(`a ${label}-quoted pr-title keeps everything inside its quotes, colon and \` #\` included`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
+      writeConfig(dir, inGroup("github", `pr-title: ${value}`));
+
+      assert.equal(printedLine((await run(dir)).stdout, "github.pr-title"), "github.pr-title: {type}: {summary} #x");
+    });
+  });
+}
+
+test("a quoted title followed by a comment keeps the quoted text alone", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(dir, inGroup("github", "issue-title: '[{type}] {summary}'  # our style"));
+
+    assert.equal(printedLine((await run(dir)).stdout, "github.issue-title"), "github.issue-title: [{type}] {summary}");
+  });
+});
+
+test("an unquoted title keeps its inner spaces and drops a trailing ` # comment` with the blanks before it", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(dir, inGroup("github", "issue-title: Bug  {summary} from {type}   # our style"));
+
+    assert.equal(printedLine((await run(dir)).stdout, "github.issue-title"), "github.issue-title: Bug  {summary} from {type}");
+  });
+});
+
+for (const [label, line] of [
+  ["an empty quoted value", "pr-title: ''"],
+  ["no value at all", "pr-title:"],
+  ["a comment alone", "pr-title:   # none yet"],
+] as const) {
+  test(`a pr-title with ${label} prints the default pattern`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
+      writeConfig(dir, inGroup("github", line));
+
+      assert.deepEqual(titles((await run(dir)).stdout), DEFAULT_TITLES);
+    });
+  });
+}
+
+test("a CRLF config yields both titles without a stray CR", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(dir, "github:\r\n  issue-title: plain {summary}\r\n  pr-title: '{type} - {summary}'\r\n");
+
+    assert.deepEqual(titles((await run(dir)).stdout), { issue: "plain {summary}", pr: "{type} - {summary}" });
+  });
+});
+
+test("the first title assignment inside `github:` wins, so a later duplicate cannot quietly override it", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(dir, inGroup("github", "pr-title: first {summary}", "pr-title: second {summary}"));
+
+    assert.equal(titles((await run(dir)).stdout).pr, "first {summary}");
+  });
+});
+
+test("a title outside `github:` is not a title, so both defaults stand", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(dir, "pr-title: flat {summary}\n" + inGroup("build", "issue-title: nested {summary}"));
+
+    assert.deepEqual(titles((await run(dir)).stdout), DEFAULT_TITLES);
   });
 });
 
@@ -335,12 +467,11 @@ test("the group is a contract: a same-named key at the top level is NOT this key
 
 test("the group ends at the next top-level key, so an indented line below one is out of it", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    writeConfig(dir, ["directories:", "  runs: builds", "qa: true", "  specifications: archive", ""].join("\n"));
+    writeConfig(dir, ["directories:", "  runs: builds", "build:", "  specifications: archive", ""].join("\n"));
 
     const result = await run(dir);
     assert.equal(result.status, 0);
     assert.deepEqual(dirs(result.stdout), { runs: "builds", specifications: "specs" });
-    assert.deepEqual(switches(result.stdout), { ...OFF, qa: "true" });
   });
 });
 
@@ -522,38 +653,27 @@ test("branching keys outside the branching group are not branching keys", async 
   });
 });
 
-test("cleanup is a switch like the other four and nothing about it is special", async () => {
+test("`build.cleanup` is a switch like the others and nothing about it is special", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    writeConfig(dir, "cleanup: true\n");
+    writeConfig(dir, inGroup("build", "cleanup: true"));
 
-    assert.deepEqual(switches((await run(dir)).stdout), { ...OFF, cleanup: "true" });
+    assert.deepEqual(switches((await run(dir)).stdout), { ...OFF, "build.cleanup": "true" });
   });
 });
 
-test("`final-review: true` resolves to true, matched in any letter case", async () => {
+test("`final-review: TRUE` inside `build:` resolves to true, matched in any letter case", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    writeConfig(dir, "final-review: TRUE\n");
+    writeConfig(dir, inGroup("build", "final-review: TRUE"));
 
-    assert.deepEqual(switches((await run(dir)).stdout), { ...OFF, "final-review": "true" });
+    assert.deepEqual(switches((await run(dir)).stdout), { ...OFF, "build.final-review": "true" });
   });
 });
 
-test("a config without the `final-review` key, or with any other value, resolves to false", async () => {
+test("a `build.final-review` with any other value resolves to false", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    writeConfig(dir, ["adr: true", "final-review: enabled", ""].join("\n"));
+    writeConfig(dir, inGroup("planning", "adr: true") + inGroup("build", "final-review: enabled"));
 
-    assert.deepEqual(switches((await run(dir)).stdout), { ...OFF, adr: "true" });
-  });
-});
-
-test("`final-review` prints directly after the `cleanup` line, in the header's fixed order", async () => {
-  await withTempDir("p2p2-viber-", async (dir) => {
-    writeConfig(dir, "final-review: true\n");
-
-    const printed = (await run(dir)).stdout.trim().split("\n");
-    const cleanupIdx = printed.indexOf("cleanup: false");
-    assert.equal(cleanupIdx >= 0, true, `cleanup line missing: ${printed.join(" | ")}`);
-    assert.equal(printed[cleanupIdx + 1], "final-review: true");
+    assert.deepEqual(switches((await run(dir)).stdout), { ...OFF, "planning.adr": "true" });
   });
 });
 
