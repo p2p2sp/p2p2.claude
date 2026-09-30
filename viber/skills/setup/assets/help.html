@@ -713,13 +713,15 @@ claude plugin install viber@p2p2 --scope user</pre>
 (<code>gh</code>) for the GitHub steps, <code>node</code> for the settings merge of <code>/viber:setup</code>, and
 Playwright for <code>/viber:e2e</code>. Without <code>gh</code> an issue step reports the error and pasted
 text still works. Without <code>node</code> a merge into an existing settings file is skipped and the
-recommended block is printed. Without Playwright <code>/viber:e2e</code> offers to install it, or stops.</p>
+recommended block is printed. <code>/viber:code-auditor</code> needs <code>node</code> 22.6 or newer as well and
+stops without it. Without Playwright <code>/viber:e2e</code> offers to install it, or stops.</p>
 <p lang="pl">Bez <code>--scope user</code> wtyczka instaluje się tylko dla bieżącego repozytorium. W trakcie sesji to
 samo robi <code>/plugin marketplace add https://github.com/p2p2sp/p2p2.claude</code>, a po nim
 <code>/plugin install viber@p2p2</code>. Trzy narzędzia są opcjonalne: GitHub CLI (<code>gh</code>) do kroków
 na GitHubie, <code>node</code> do scalania ustawień w <code>/viber:setup</code> i Playwright do
 <code>/viber:e2e</code>. Bez <code>gh</code> krok z issue zgłasza błąd, a wklejony tekst dalej działa. Bez
 <code>node</code> scalanie z istniejącym plikiem ustawień zostaje pominięte i wypisany jest zalecany blok.
+<code>/viber:code-auditor</code> też wymaga <code>node</code> w wersji 22.6 lub nowszej i bez niego kończy pracę.
 Bez Playwrighta <code>/viber:e2e</code> proponuje jego instalację albo kończy pracę.</p>
 
 <h3 class="sub" id="gs-setup"><span lang="en">2. Prepare the project</span><span lang="pl">2. Przygotowanie projektu</span><a class="self" href="#gs-setup">#</a></h3>

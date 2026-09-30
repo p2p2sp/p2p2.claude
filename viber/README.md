@@ -14,7 +14,7 @@ claude plugin install viber@p2p2 --scope user
 
 Optional: `node`, for `/viber:setup`'s permissions merge, Playwright, for `/viber:e2e`, and the
 `gh` CLI, for the GitHub steps (`/viber:setup` checks it is installed). Each step skips with a note
-when its tool is missing.
+when its tool is missing. `/viber:code-auditor` also needs `node` 22.6 or newer and stops without it.
 
 `/viber:setup` also installs the bare `Bash` allow in `.claude/settings.json`, which the script
 calls that `/viber:triage`, `/viber:intent`, `/viber:prototype` and the ADR tasks make after a
