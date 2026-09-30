@@ -172,7 +172,7 @@ Start with every task whose `deps` are done, in one message. On every return, an
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.final-review "${CLAUDE_SKILL_DIR}" final-review
 ```
 
-Dispatch `viber:test-runner` with report path `<dir>/work/tests-<round>.md`, round starting at 1.
+Dispatch `viber:test-runner` with report path `<dir>/work/tests-<round>.md`, round starting at 1, and the line `run: <dir>`.
 
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.baseline-tests "${CLAUDE_SKILL_DIR}" baseline-close

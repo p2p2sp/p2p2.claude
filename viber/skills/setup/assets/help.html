@@ -811,11 +811,11 @@ któregoś brakuje, daje ci prompt do wklejenia do Claude.</p>
   </li>
   <li>
     <p class="say"><span lang="en">The build closes</span><span lang="pl">Build się zamyka</span></p>
-    <p lang="en">The whole test suite runs once more, then the <a href="#term-close">close parts</a> your
+    <p lang="en">The fast tests and the integration tests the change reaches run, then the <a href="#term-close">close parts</a> your
     switches turn on. With the template's defaults, what the build taught goes into
     <a href="#term-node"><code>CLAUDE.md</code></a> and <a href="#term-rule"><code>.claude/rules/</code></a>, and
     the <a href="#term-run">run</a> is <a href="#term-archive">archived</a> in <code>docs/specs/</code>.</p>
-    <p lang="pl">Cały zestaw testów uruchamia się jeszcze raz, a potem te
+    <p lang="pl">Uruchamiają się szybkie testy i testy integracyjne, których dotyka zmiana, a potem te
     <a href="#term-close">części zamknięcia</a>, które włączają twoje przełączniki. Przy domyślnych ustawieniach
     szablonu to, czego nauczył build, trafia do <a href="#term-node"><code>CLAUDE.md</code></a>
     i <a href="#term-rule"><code>.claude/rules/</code></a>, a <a href="#term-run">przebieg</a> ląduje
@@ -1559,12 +1559,15 @@ przechodzi recenzję.</p>
 scripts commit, never an agent.</p>
 <p lang="pl">Zadanie, które przejdzie, dostaje własny commit z tytułem <code>T3 - &lt;tytuł zadania&gt;</code>.
 Commitują wyłącznie skrypty viber, nigdy agent.</p>
-<p lang="en">After the last task <a href="#agent-test-runner"><code>test-runner</code></a> runs the whole suite. It
-runs up to six times, with a repair round between one failed run and the next, before the arbiter rules on the
-failing suite.</p>
-<p lang="pl">Po ostatnim zadaniu <a href="#agent-test-runner"><code>test-runner</code></a> uruchamia cały zestaw
-testów. Uruchamia go najwyżej sześć razy, z rundą poprawek między jednym nieudanym uruchomieniem a kolejnym,
-zanim arbiter rozstrzygnie, co zrobić z niepasującym zestawem.</p>
+<p lang="en">After the last task <a href="#agent-test-runner"><code>test-runner</code></a> runs your fast command,
+then the integration tests the build's change reaches, found through your layer markers. Without a fast command or
+a layer marker convention in your project's instructions it runs every layer but end-to-end. It runs up to six
+times, with a repair round between one failed run and the next, before the arbiter rules on the failing tests.</p>
+<p lang="pl">Po ostatnim zadaniu <a href="#agent-test-runner"><code>test-runner</code></a> uruchamia twoją szybką
+komendę testów, a potem testy integracyjne, których dotyka zmiana builda, wskazane przez znaczniki warstw. Gdy
+instrukcje projektu nie podają szybkiej komendy albo konwencji znaczników warstw, uruchamia każdą warstwę poza
+end-to-end. Uruchamia je najwyżej sześć razy, z rundą poprawek między jednym nieudanym uruchomieniem a kolejnym,
+zanim arbiter rozstrzygnie, co zrobić z niepasującymi testami.</p>
 <p lang="en">With <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> set to <code>fast</code> or
 <code>full</code>, it also makes a baseline run: the tests once before the first task (<code>fast</code> the unit and
 component tests, <code>full</code> every layer but end-to-end), recording what already fails; when something does, the
@@ -1593,10 +1596,10 @@ w przedziale od <code>min</code> do <code>max</code>, domyślnie od haiku do opu
 wskazuje go <code>max</code>. Planowanie działa na modelu twojej sesji.</p>
 
 <h3 class="sub" id="hw-close"><span lang="en">What the build close writes</span><span lang="pl">Co zapisuje zamknięcie buildu</span><a class="self" href="#hw-close">#</a></h3>
-<p lang="en">Once the whole suite passes, or the arbiter accepts its failure, the build runs the close parts your
-switches turn on:</p>
-<p lang="pl">Gdy cały zestaw testów przejdzie albo arbiter zaakceptuje jego porażkę, build uruchamia te części
-zamknięcia, które włączają twoje przełączniki:</p>
+<p lang="en">Once the fast tests and the change's integration tests pass, or the arbiter accepts their failure, the
+build runs the close parts your switches turn on:</p>
+<p lang="pl">Gdy szybkie testy i testy integracyjne zmiany przejdą albo arbiter zaakceptuje ich porażkę, build
+uruchamia te części zamknięcia, które włączają twoje przełączniki:</p>
 <ul class="musts">
   <li><span lang="en"><a href="#key-build-memory"><code>build.memory</code></a>: <a href="#agent-memory-writer"><code>memory-writer</code></a>
   folds what the build taught into your <code>CLAUDE.md</code> <a href="#term-node">nodes</a>, within their size
@@ -1738,12 +1741,14 @@ linie co w <code>rulings.md</code>.</p>
   zostanie w nim zapisane jako ukończone. W przeciwnym razie ponów, pomiń albo przerwij.</p>
 </details>
 <details id="ts-tests">
-  <summary><span lang="en">What if the whole test suite fails at the end of a build?</span><span lang="pl">Co, jeśli na końcu buildu cały zestaw testów nie przechodzi?</span></summary>
-  <p lang="en">The suite runs at most six times. After each failed run but the last, a repair coder
-  fixes what the test report names and the suite runs again. After the sixth failed run the arbiter rules to
+  <summary><span lang="en">What if the final test run fails at the end of a build?</span><span lang="pl">Co, jeśli na końcu buildu końcowe uruchomienie testów nie przechodzi?</span></summary>
+  <p lang="en">The final run, the fast tests plus the integration tests the change reaches, runs at most six
+  times. After each failed run but the last, a repair coder fixes what the test report names and the tests
+  run again. After the sixth failed run the arbiter rules to
   accept: the close goes on, the summary names the failing run and <code>rulings.md</code> records the ruling with
   its reason and its cost if wrong.</p>
-  <p lang="pl">Zestaw testów uruchamia się najwyżej sześć razy. Po każdym nieudanym uruchomieniu poza ostatnim
+  <p lang="pl">Końcowe uruchomienie, czyli szybkie testy i testy integracyjne, których dotyka zmiana, odbywa się
+  najwyżej sześć razy. Po każdym nieudanym uruchomieniu poza ostatnim
   wykonawca poprawek naprawia to, co wskazuje raport z testów, i testy uruchamiają się ponownie. Po szóstym
   nieudanym uruchomieniu arbiter orzeka zaakceptowanie: zamknięcie idzie dalej, podsumowanie wymienia
   nieudane uruchomienie, a <code>rulings.md</code> zapisuje orzeczenie z uzasadnieniem i kosztem pomyłki.</p>
@@ -2308,12 +2313,12 @@ z nich mówi, jak nim sterować.</p>
   osobno.</p>
   <p lang="en">Then, with <a href="#key-build-final-review"><code>build.final-review</code></a> on,
   <a href="#agent-final-reviewer"><code>final-reviewer</code></a> reviews the whole build, a coder fixes what it
-  finds and a reviewer rechecks the fix, before it runs the whole test suite and the close parts your switches
+  finds and a reviewer rechecks the fix, before it runs the fast tests, the integration tests the change reaches and the close parts your switches
   turn on. It runs without a person at the keyboard: where it would otherwise ask,
   <a href="#agent-arbiter"><code>arbiter</code></a> rules and the ruling is recorded.</p>
   <p lang="pl">Potem, gdy <a href="#key-build-final-review"><code>build.final-review</code></a> jest włączony,
   <a href="#agent-final-reviewer"><code>final-reviewer</code></a> recenzuje cały build, koder naprawia to, co
-  znajdzie, a recenzent ponownie sprawdza poprawkę, zanim uruchomi cały zestaw testów i te części zamknięcia,
+  znajdzie, a recenzent ponownie sprawdza poprawkę, zanim uruchomi szybkie testy, testy integracyjne, których dotyka zmiana, i te części zamknięcia,
   które włączają twoje przełączniki. Działa bez człowieka przy klawiaturze: tam, gdzie inaczej by zapytał,
   rozstrzyga <a href="#agent-arbiter"><code>arbiter</code></a>, a orzeczenie zostaje zapisane.</p>
   <dl>
@@ -2805,12 +2810,12 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   wycinek całego builda poza diffem własnych zadań, gdy każde zadanie jest już zatwierdzone, albo ponownie
   sprawdza poprawkę swoich uwag, gdy <a href="#key-build-final-review"><code>build.final-review</code></a> jest
   włączony.</span></li>
-  <li id="agent-test-runner"><code>test-runner</code> <span lang="en">runs the project's build and test suite
-  once and returns a verdict, keeping the log out of the conversation. <a href="#skill-intent"><code>intent</code></a>'s
+  <li id="agent-test-runner"><code>test-runner</code> <span lang="en">runs the project's build, its fast tests
+  and the integration tests the change reaches once and returns a verdict, keeping the log out of the conversation. <a href="#skill-intent"><code>intent</code></a>'s
   <a href="#key-planning-fast-path">fast path</a> calls it too, to prove a change built in your session. With
   <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> set to <code>fast</code> or <code>full</code>, it also runs a baseline before the first task,
   recording what already fails, and the final run then fails only on new failures.</span><span lang="pl">uruchamia raz
-  budowanie i testy projektu i zwraca werdykt, trzymając log poza rozmową. Wywołuje go też
+  budowanie projektu, jego szybkie testy i testy integracyjne, których dotyka zmiana, i zwraca werdykt, trzymając log poza rozmową. Wywołuje go też
   <a href="#key-planning-fast-path">szybka ścieżka</a> skilla <a href="#skill-intent"><code>intent</code></a>, żeby sprawdzić
   zmianę zbudowaną w twojej sesji. Gdy <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a>
   ma wartość <code>fast</code> lub <code>full</code>, wykonuje też przebieg bazowy przed pierwszym zadaniem, zapisując, co już nie przechodzi, a końcowe

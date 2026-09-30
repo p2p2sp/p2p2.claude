@@ -68,7 +68,8 @@ and the interview then discusses every part. Each part gets its own plan and its
 finished build names the next part, which resumes from the decisions already made. Nothing is faked
 in between: what a later part brings is out of scope until its turn, never a stub. You approve the plan yourself, but only after a reviewer
 has read it against your actual codebase. Then the build runs task by task, reviews each one,
-commits it, runs one final review of the whole build, and finishes on the full test suite.
+commits it, runs one final review of the whole build, and finishes on your fast tests plus the
+integration tests the change reaches.
 End-to-end tests stay with your CI and `/viber:e2e` unless you explicitly ask for them.
 
 The build runs to its end without you at the keyboard. A task gets up to 5 attempts, each one model
