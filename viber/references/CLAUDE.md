@@ -11,6 +11,8 @@ touches every reader below.
   test; `task-coder` and `task-reviewer` on a task writing or running one or building the shared
   harness.
 - `node-doctrine.md`: `memory-writer` and `memory-node-writer`.
+- `adr-admission.md`: `adr-screener` only, through `refs:`; it is the one home of the record
+  admission test.
 
 ## Tags are an interface
 

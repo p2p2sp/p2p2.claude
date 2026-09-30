@@ -16,7 +16,7 @@
   appended again, overriding the user's value; `directories.*` parsing in `config.sh`,
   `plan-path.sh`, `archive-run.sh`.
 - Switches reaching planning: `memory` (`plan-rules.md`'s Memory-owned rule, the `memory:` line
-  to `planner-review`); `adr: true` (`planner` follows `skills/planner/references/adr-tasks.md`);
+  to `planner-review`); `adr: true` (`planner` follows `skills/planner/references/adr-tasks.md` once the plan is written and `plan-index.sh` exits 0, dispatching `adr-screener`);
   `qa` (`planner`'s e2e hand-off line); `branching.mode` (`CLAUDE.run-branch.md`).
 - `baseline-tests` reaches `implementor` only: `baseline-run.true.md` (step 4; `test-runner` in
   `mode: baseline` before the first task when no task is `done` and the index has no `dirty:`

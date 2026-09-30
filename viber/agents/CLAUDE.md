@@ -13,7 +13,7 @@ same edit.
 | `test-runner` | `implementor`, its baseline fragments, `intent`'s fast path | its report only |
 | `arbiter` | `implementor`, `baseline-run.true.md`, `final-review.true.md` | nothing |
 | `qa-writer`, `memory-writer`, `rules-writer`, `closeout` | `implementor`'s `qa`, `memory`, `rules`, `cleanup` fragments; `rules-writer` also `rules` | `qa.md`/`qa.e2e.md`; nodes; `.claude/rules/`; `spec.md` |
-| `planner-review` | `planner` | nothing |
+| `planner-review`, `adr-screener` | `planner` (`adr-screener` only under `adr: true`, once the plan is written and indexed) | nothing |
 | `plain-plan-review` | the plan gate's request | nothing |
 | `prover` | `intent --prove` | nothing (plus web) |
 | `prototype-writer` | `prototype` | its one mockup file |
@@ -25,7 +25,7 @@ The description's `Invoked only by ...` names these callers: a new caller update
 
 ## Shared text - change together
 
-- All seventeen carry the same "Your tools are ..., every one of them loaded" paragraph and
+- All eighteen carry the same "Your tools are ..., every one of them loaded" paragraph and
   "Never narrate your work - no commentary between tool calls."
 - The `DENIED` line is `REASON: <refused tool name>: <the exact refused command, or the path for
   a file tool>` everywhere; `prover` adds the URL or query of a web tool. `closeout` keeps its
@@ -72,5 +72,10 @@ The description's `Invoked only by ...` names these callers: a new caller update
 - `prototype-writer` invokes `impeccable`, else `superui:pro-designer`, through `Skill` when
   listed: renaming superui's skill drops the advice silently. It keeps basis and variant labels
   inside the mockup so a later round reads them back.
+- `adr-screener` proposes, never decides: its `VERDICT: NONE|FOUND|DENIED` and the `ADR:`,
+  `DEPRECATE:`, `APPEND:`, `ROUTE: comment|rule|ops` lines are one loop with `planner`'s
+  `references/adr-tasks.md`, which relays every line and adds none. The test itself lives only in
+  `references/adr-admission.md`, which it reads whole through `refs:`; a criterion added to the
+  agent or to `adr-tasks.md` splits it.
 - `qa-writer` returns `KEPT` and writes nothing when `qa.md` exists: a resumed build never
   overwrites scenarios a tester may have worked through.
