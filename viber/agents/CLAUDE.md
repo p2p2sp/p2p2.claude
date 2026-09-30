@@ -55,6 +55,10 @@ Read `CLAUDE.code-auditor.md` before editing `profiler`, `scout`, `edge-scout`, 
 - `task-coder` returns `FILES:` only without a task file (a `report:` or `review:` dispatch),
   `DOD:` always with one, `FIXED:` only with `review:` lines. A `report:` with no task file is a
   test-run report: every failure is Blocking.
+- `test-runner` runs the suite once, in the background, to `.temp/viber/test-runner/<report name>.log`,
+  the command ending `echo "exit=$?"` into it; a foreground wait at timeout 600000 loops on that
+  `exit=` line and is the only call it repeats. The wait has no time cap, so a suite that never
+  writes the line hangs it.
 - `final-reviewer` is the one gate where a Minor-only finding writes the report and fails: the
   single fix round settles both levels. Owner findings go only to `OWNER:` lines. It finds each
   task's commit by `commit-task.sh`'s subjects `<id> - <title>` and `<id>(<n>) - <title>`, and a

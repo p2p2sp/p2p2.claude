@@ -16,7 +16,7 @@ builders of `plan-index`, `plan-path`, `commit-task` and `archive-run` together.
   printing `COMMIT_MODE` / `COMMIT_PATHS` (joined with `|`) / `COMMIT_ISSUE_REFS`.
 - Every `!` preload script's test (`config`, `bootstrap`, `check-playwright`, `handoff-path`,
   `memory-map`, `rules-map`, `run-clock`, `switch-text`) expects exit 0 from the preload mode
-  on every data condition; `plan-gate` and `plan-hints` assert exit 0 on every case.
+  on every data condition; `plan-gate`, `plan-hints` and `kill-guard` assert exit 0 on every case.
 
 ## Reach beyond a file's own script
 
@@ -77,7 +77,11 @@ pins: change the header with the contract.
   `sameFile` / `repoRoot` in `handoff-path`, `plan-path`, `bootstrap`): git prints
   `/private/var/...` on macOS and a `C:/` or 8.3 short form on Windows, which `slash()` alone
   does not reconcile.
-- `run-clock` cases accept both N and N+1 seconds: the clock ticks during the run.
+- `kill-guard` builds each payload as a JS object through `JSON.stringify`, its `agent_type` and
+  `tool_input.command` set per case, and its last case reads the registration out of `hooks.json`.
+- `run-clock` cases accept both N and N+1 seconds: the clock ticks during the run. The leading-zero
+  case takes seconds 03-09, a loaded machine delaying the spawn; the exact `2h 14m` prefix still
+  separates decimal from octal.
 - `gh` is always a `withStub` or absent; `open-page` also stubs `uname` and the opener on
   `coreUtilsPath()`, so no real browser opens.
 

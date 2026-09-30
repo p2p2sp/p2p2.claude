@@ -161,7 +161,7 @@ This file is orientation only. A skill's authoritative contract is its own body
 | `tests/viber/CLAUDE.md` | viber's test suite |
 | `viber/CLAUDE.md` | anything viber - the run directory and its archive, config switches, the plan gate |
 | `viber/agents/CLAUDE.md` | viber's twenty-three agents, the five `code-auditor` sweep agents included |
-| `viber/hooks/CLAUDE.md` | viber's hooks - the `plan-gate.sh` and `plan-hints.sh` contracts |
+| `viber/hooks/CLAUDE.md` | viber's hooks - the `plan-gate.sh`, `plan-hints.sh` and `kill-guard.sh` contracts |
 | `viber/references/CLAUDE.md` | viber's shared references |
 | `viber/scripts/CLAUDE.md` | viber's plugin-level scripts |
 | `viber/skills/CLAUDE.md` | viber's seventeen skills and their bundled scripts, `code-auditor` included |
