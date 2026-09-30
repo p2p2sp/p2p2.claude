@@ -1,0 +1,5 @@
+- kill-guard.sh reads stdin with the `read -d ''` builtin and matches with `[[ =~ ]]` only, so the non-viber path runs no external command; the JSON command is unescaped by hand (\\, \", \n, \r, \t, \/, four \u00xx forms).
+- Replacement strings in the unescape use variables (`$dq`, `$nl`...), not inline escapes: bash 3.2 (macOS) mishandles `\"` inside a quoted `${x//a/b}` replacement. Not run on 3.2 here.
+- Command position is per the contract only: `sudo killall`, `env pkill` or `timeout 5 pkill x` pass.
+- `kill -0 $(cat pidfile)` is refused, as the contract says (any command substitution in kill arguments).
+- The script is staged 100755 via `git update-index --add --chmod=+x`.
