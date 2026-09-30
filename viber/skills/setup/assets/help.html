@@ -3043,7 +3043,7 @@ wartość.</p>
     <code>triage</code> ocenia tylko wklejony tekst issue.</span></dd>
   </div>
   <div id="key-github-issue-title">
-    <dt><code>github.issue-title</code> <span class="tag">{template-title}{summary}</span></dt>
+    <dt><code>github.issue-title</code> <span class="tag">{summary}</span></dt>
     <dd><span lang="en">The title of an issue viber files: <code>{template-title}</code> is the issue template's
     own title prefix, <code>{type}</code> its issue type, <code>{summary}</code> a one-line statement of the issue.
     Quoted, since it opens on <code>{</code>.</span><span lang="pl">Tytuł issue, które zakłada viber:
@@ -3052,7 +3052,7 @@ wartość.</p>
     <code>{</code>.</span></dd>
   </div>
   <div id="key-github-pr-title">
-    <dt><code>github.pr-title</code> <span class="tag">{type}: {summary}</span></dt>
+    <dt><code>github.pr-title</code> <span class="tag">[{issue-number}] {summary}</span></dt>
     <dd><span lang="en">The title of a pull request viber opens: <code>{type}</code> is feat or fix,
     <code>{summary}</code> a one-line statement of the change, <code>{issue-number}</code> the first issue it
     refers to, <code>{entry}</code> its <a href="#key-branching-work"><code>branching.work</code></a>

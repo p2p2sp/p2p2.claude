@@ -44,8 +44,8 @@
 #            by a space, a comment or the end of the line). A column-0 key of
 #            the same name, the key under another group, or an absent key ->
 #            false.
-#            github.issue-title (default `{template-title}{summary}`) and
-#            github.pr-title (default `{type}: {summary}`) - title patterns,
+#            github.issue-title (default `{summary}`) and
+#            github.pr-title (default `[{issue-number}] {summary}`) - title patterns,
 #            children of `github:`. A value opening on a quote with its
 #            closing pair -> everything between the two, kept whole; otherwise
 #            cut at the first blank followed by `#`, trailing blanks dropped.
@@ -87,8 +87,8 @@
 #              build.qa: false
 #              build.cleanup: true
 #              github.issues: false
-#              github.issue-title: {template-title}{summary}
-#              github.pr-title: {type}: {summary}
+#              github.issue-title: {summary}
+#              github.pr-title: [{issue-number}] {summary}
 #              directories.runs: _specs
 #              directories.specifications: specs
 #              tiers.min: haiku
@@ -176,8 +176,8 @@ END {
     sub(/[[:space:]#].*$/, "", v)
     print ids[i] ": " (tolower(v) == "true" ? "true" : "false")
   }
-  print "github.issue-title: " title(raw["github.issue-title"], "{template-title}{summary}")
-  print "github.pr-title: " title(raw["github.pr-title"], "{type}: {summary}")
+  print "github.issue-title: " title(raw["github.issue-title"], "{summary}")
+  print "github.pr-title: " title(raw["github.pr-title"], "[{issue-number}] {summary}")
 }
 '
 

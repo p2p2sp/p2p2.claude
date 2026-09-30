@@ -210,13 +210,13 @@ test("ready: TITLE_PATTERN= follows REPO= carrying the github.issue-title of .cl
   });
 });
 
-test("ready: with no .claude/viber.yml TITLE_PATTERN= carries the default {template-title}{summary}", async () => {
+test("ready: with no .claude/viber.yml TITLE_PATTERN= carries the default {summary}", async () => {
   await assertPosix(async (shell) => {
     await withGitRepo(async (repo) => {
       writeTemplates(repo.dir, { "bug.yml": "name: Bug report\ndescription: File a bug\n" });
       const { result } = await runStubbed(shell, repo.dir, repo.env, [], { GH_STDOUT: "https://github.com/acme/widgets\n" });
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      assert.match(result.stdout, /^TITLE_PATTERN=\{template-title\}\{summary\}$/m);
+      assert.match(result.stdout, /^TITLE_PATTERN=\{summary\}$/m);
     });
   });
 });
@@ -243,7 +243,7 @@ test("ready: a template with no labels/assignees/projects/type/title prints them
         result.stdout,
         "STATUS=ready\n" +
           "REPO=https://github.com/acme/widgets\n" +
-          "TITLE_PATTERN={template-title}{summary}\n" +
+          "TITLE_PATTERN={summary}\n" +
           "--- template .github/ISSUE_TEMPLATE/bug.yml ---\n" +
           "NAME=Bug report\n" +
           "DESCRIPTION=File a bug\n" +

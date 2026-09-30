@@ -106,7 +106,7 @@ says it needs that run.
 | `github.issues` | **off** | `/viber:intent`, `/viber:fixer` and `/viber:prototype` can start from a GitHub issue's number or link, and an interview that did not can save its conclusions as a new one; `/viber:prototype` can post its mockup to the issue it started from; `/viber:triage` can fetch and publish to a GitHub issue instead of pasted text alone. |
 
 The `github:` group also carries the title patterns of the issues and pull requests viber opens,
-`issue-title` (`'{template-title}{summary}'`) and `pr-title` (`'{type}: {summary}'`).
+`issue-title` (`'{summary}'`) and `pr-title` (`'[{issue-number}] {summary}'`).
 
 The same file carries a `directories:` group with two names, both under `docs/`: `runs`
 (`_specs`) for a run in progress and `specifications` (`specs`) for the archive.

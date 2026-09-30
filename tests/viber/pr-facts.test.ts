@@ -172,7 +172,7 @@ test("a ready block prints every C9 line in order for a target given on the comm
         "TYPE=feat",
         "TEMPLATE=",
         "SPEC=",
-        "TITLE_PATTERN={type}: {summary}",
+        "TITLE_PATTERN=[{issue-number}] {summary}",
         `COMMIT=${await shortSha(scene.work, "HEAD")} work`,
       ]);
     });

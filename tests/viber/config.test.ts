@@ -56,8 +56,7 @@ const OFF = {
   "github.issues": "false",
 };
 const DEFAULT_DIRS = { runs: "_specs", specifications: "specs" };
-const DEFAULT_TITLES = { issue: "{template-title}{summary}", pr: "{type}: {summary}" };
-const TEMPLATE_TITLES = { issue: "{summary}", pr: "[{issue-number}] {summary}" };
+const DEFAULT_TITLES = { issue: "{summary}", pr: "[{issue-number}] {summary}" };
 
 function run(dir: string, env: Record<string, string> = {}) {
   return runScript(SUT, [], { cwd: dir, env, shell: "bash" });
@@ -138,8 +137,8 @@ test("no config file: the block is every switch off, both title defaults, then t
       "build.qa: false",
       "build.cleanup: false",
       "github.issues: false",
-      "github.issue-title: {template-title}{summary}",
-      "github.pr-title: {type}: {summary}",
+      "github.issue-title: {summary}",
+      "github.pr-title: [{issue-number}] {summary}",
       "directories.runs: _specs",
       "directories.specifications: specs",
       "tiers.min: haiku",
@@ -341,7 +340,7 @@ test("the shipped template resolves to its own defaults: every switch, both titl
       "build.cleanup": "true",
       "github.issues": "false",
     });
-    assert.deepEqual(titles(result.stdout), TEMPLATE_TITLES);
+    assert.deepEqual(titles(result.stdout), DEFAULT_TITLES);
     assert.deepEqual(dirs(result.stdout), DEFAULT_DIRS);
     assert.deepEqual(tiers(result.stdout), DEFAULT_TIERS);
   });

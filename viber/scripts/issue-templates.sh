@@ -22,7 +22,7 @@
 #   env    : none of its own; gh reads its usual auth and host config.
 #   file   : <repo root>/.claude/viber.yml, only through the sibling
 #            config.sh run by `bash` (its `github.issue-title` line). No file,
-#            no bash or no line -> `{template-title}{summary}`.
+#            no bash or no line -> `{summary}`.
 #   temp   : one temp file from mktemp in system temp, falls back to $TMPDIR
 #            or /tmp, cleaned by EXIT trap.
 #   stdout : the three checks below run in order and the first one that
@@ -107,7 +107,7 @@ sort -o "$listf" "$listf"
 
 here=$(dirname -- "$0")
 title_pattern=$(bash "$here/config.sh" 2>/dev/null | sed -n 's/^github\.issue-title: //p')
-[ -n "$title_pattern" ] || title_pattern="{template-title}{summary}"
+[ -n "$title_pattern" ] || title_pattern="{summary}"
 
 echo "STATUS=ready"
 echo "REPO=$repo_url"
