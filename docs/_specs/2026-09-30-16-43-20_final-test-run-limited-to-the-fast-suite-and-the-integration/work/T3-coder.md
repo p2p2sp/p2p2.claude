@@ -1,5 +1,0 @@
-- test-runner joins the fast and integration commands as `<fast> && <integration>` inside the one background run, so the `exit=` line stays a single code; an integration failure hides behind a fast failure until the next repair round.
-- The change base is the oldest commit of `git log --diff-filter=A -- <dir>/plan.md`, diffed against the working tree (`git diff --name-only <sha>`), plus `git ls-files --others --exclude-standard`.
-- The SVG `<desc>` texts also described the final run as the full suite; both were updated beside the test-runner label.
-- help.html describes the final run in five places (walkthrough "The build closes", hw-close, `#ts-tests`, the implementor and test-runner entries); grep "whole test suite" / "cały zestaw" after any wording change.
-- `.claude/rules/agent-frontmatter.md` still cites `test-runner.md` as a haiku agent with no `effort:`; out of scope here (the build's close updates rules).

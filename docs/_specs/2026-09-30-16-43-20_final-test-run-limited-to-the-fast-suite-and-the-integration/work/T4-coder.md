@@ -1,3 +1,0 @@
-- portability.test.ts reads the git index (`git ls-files -s`): until the four new fragments are staged by commit-task.sh, its fragment-call sweep reports `baseline-run` / `baseline-close` as having no file (implementor/SKILL.md:108, :178). That single red is staging, not content; every other portability test passes.
-- The old `.true.md` fragments were removed through `git rm`; the `.fast.md` and `.full.md` pairs differ only by the `suite:` line in the run fragments, the close fragments are identical copies.
-- `viber/CLAUDE.switches.md:32-34` and `viber/agents/CLAUDE.md:14` still name `baseline-run.true.md` / `baseline-close.true.md`; out of scope (the build's close updates CLAUDE nodes).

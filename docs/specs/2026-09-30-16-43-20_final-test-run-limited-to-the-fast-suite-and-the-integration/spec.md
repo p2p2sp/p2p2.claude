@@ -95,7 +95,7 @@ Then that test carries its layer's marker, and the reviewer raises a missing one
 
 ## Acceptance criteria
 
-1. The final test run of a build or of a fast-path change runs the build, then the host's fast command, then the integration tests covering the change - each integration test, found through the layer marker convention, whose adapter file or a file that adapter depends on (a migration, a schema, shared data access) is among the changed paths - and no integration test when none is; the end-to-end layer never runs.
+1. The final test run of a build or of a fast-path change runs the build, then the host's fast command, then the integration tests covering the change - each integration test, found through the layer marker convention, whose adapter file or a file that adapter depends on (a migration, a schema, shared data access) is among the changed paths - and no integration test when none is; the end-to-end layer never runs. [D1]
 2. A build's change is every path changed since its plan decomposition commit plus the uncommitted and untracked paths; a fast-path change is the uncommitted and untracked paths of the working tree.
 3. With no fast command or no layer marker convention in the host's instructions, or a build whose decomposition commit cannot be found, the final test run runs every layer but end-to-end; a host with no test setup still gets no test run, as today.
 4. `test-runner` runs on `model: sonnet` with `effort: low`, and its selection of the integration tests ends on the sentence "Think the problem through before you answer."
@@ -152,3 +152,7 @@ Then that test carries its layer's marker, and the reviewer raises a missing one
 - No viber file assumes a stack or names a test framework as a default: the fast command, the marker convention and how a layer is excluded come only from the host's instructions or its framework's native mechanism.
 - Every script runs in Git Bash on Windows and on macOS bash 3.2: no heredoc, no apostrophe inside a single-quoted awk program, shell values reach awk through `ENVIRON`.
 - `config.sh`, `switch-text.sh` and `bootstrap.sh` keep exiting 0 on every data condition.
+
+## Deviations
+
+D1 (#1): the integration tests run only when the fast command passes (`<fast> && <integration>` in one run), so a fast-command failure hides any integration failure until the next repair round.

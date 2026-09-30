@@ -1,3 +1,0 @@
-- `viber/skills/setup/templates/viber.yml` still seeds `baseline-tests: false` (resolves to off); the shipped template test in config.test.ts now expects `off`.
-- The old `true`/`false` switch-text row for `build.baseline-tests` is replaced by fast/full/true and off cases; the `baseline-run.true.md` fragment under implementor (if any) is another task's to rename to `.full.md`.
-- `tests/CLAUDE.md` offsets (`slice(-5, -1)`) are unaffected: the line kept its position.
