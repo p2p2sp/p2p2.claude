@@ -3,6 +3,7 @@
  * `issue-templates.sh` (no arguments) contract against a real git repo
  * fixture and a stubbed `gh`: the three skip checks run in order (templates
  * exist, gh on PATH, `gh repo view` resolves a repository), a ready run
+ * prints `TITLE_PATTERN=` (config.sh's `github.issue-title`) after `REPO=` and
  * lists every `.github/ISSUE_TEMPLATE/*.yml|*.yaml` template but
  * `config.yml`/`config.yaml` and any `.md` file, in file name order, each
  * with its top-level `name`/`description`/`type`/`title`/`labels`/
@@ -59,6 +60,11 @@ function writeTemplates(repoDir: string, files: Record<string, string>): void {
   for (const [name, content] of Object.entries(files)) {
     fs.writeFileSync(path.join(dir, name), content);
   }
+}
+
+function writeConfig(repoDir: string, content: string): void {
+  fs.mkdirSync(path.join(repoDir, ".claude"), { recursive: true });
+  fs.writeFileSync(path.join(repoDir, ".claude", "viber.yml"), content);
 }
 
 /** Runs issue-templates.sh in `cwd` (a subdirectory of a git repo, or the
@@ -181,10 +187,48 @@ test("ready: several templates listed in file name order, config.yml/.yaml and a
       const lines = result.stdout.split("\n");
       assert.equal(lines[0], "STATUS=ready");
       assert.equal(lines[1], "REPO=https://github.com/acme/widgets");
-      assert.equal(lines[2], "--- template .github/ISSUE_TEMPLATE/a-bug.yml ---");
+      assert.equal(lines[3], "--- template .github/ISSUE_TEMPLATE/a-bug.yml ---");
       const nextBlock = result.stdout.indexOf("--- template .github/ISSUE_TEMPLATE/z-other.yaml ---");
       assert.ok(nextBlock > 0, result.stdout);
       assert.doesNotMatch(result.stdout, /config\.yml|readme\.md/);
+    });
+  });
+});
+
+test("ready: TITLE_PATTERN= follows REPO= carrying the github.issue-title of .claude/viber.yml", async () => {
+  await assertPosix(async (shell) => {
+    await withGitRepo(async (repo) => {
+      writeTemplates(repo.dir, { "bug.yml": "name: Bug report\ndescription: File a bug\n" });
+      writeConfig(repo.dir, 'github:\n  issue-title: "[{template-title}] {summary}"\n');
+      const { result } = await runStubbed(shell, repo.dir, repo.env, [], { GH_STDOUT: "https://github.com/acme/widgets\n" });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.deepEqual(result.stdout.split("\n").slice(1, 3), [
+        "REPO=https://github.com/acme/widgets",
+        "TITLE_PATTERN=[{template-title}] {summary}",
+      ]);
+    });
+  });
+});
+
+test("ready: with no .claude/viber.yml TITLE_PATTERN= carries the default {template-title}{summary}", async () => {
+  await assertPosix(async (shell) => {
+    await withGitRepo(async (repo) => {
+      writeTemplates(repo.dir, { "bug.yml": "name: Bug report\ndescription: File a bug\n" });
+      const { result } = await runStubbed(shell, repo.dir, repo.env, [], { GH_STDOUT: "https://github.com/acme/widgets\n" });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match(result.stdout, /^TITLE_PATTERN=\{template-title\}\{summary\}$/m);
+    });
+  });
+});
+
+test("skip with a configured github.issue-title still prints only STATUS=skip and REASON= (no TITLE_PATTERN= outside a ready run)", async () => {
+  await assertPosix(async (shell) => {
+    await withGitRepo(async (repo) => {
+      writeTemplates(repo.dir, { "bug.yml": "name: Bug\ndescription: File a bug\n" });
+      writeConfig(repo.dir, "github:\n  issue-title: {summary}\n");
+      const { result } = await runStubbed(shell, repo.dir, repo.env, [], { GH_EXIT: "1", GH_STDERR: "no remote\n" });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(result.stdout, "STATUS=skip\nREASON=no-repo\n");
     });
   });
 });
@@ -199,6 +243,7 @@ test("ready: a template with no labels/assignees/projects/type/title prints them
         result.stdout,
         "STATUS=ready\n" +
           "REPO=https://github.com/acme/widgets\n" +
+          "TITLE_PATTERN={template-title}{summary}\n" +
           "--- template .github/ISSUE_TEMPLATE/bug.yml ---\n" +
           "NAME=Bug report\n" +
           "DESCRIPTION=File a bug\n" +

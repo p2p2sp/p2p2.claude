@@ -20,6 +20,9 @@
 #            (or with no `git` on PATH) the cwd itself is used as the root,
 #            so the templates lookup below simply finds none there.
 #   env    : none of its own; gh reads its usual auth and host config.
+#   file   : <repo root>/.claude/viber.yml, only through the sibling
+#            config.sh run by `bash` (its `github.issue-title` line). No file,
+#            no bash or no line -> `{template-title}{summary}`.
 #   temp   : one temp file from mktemp in system temp, falls back to $TMPDIR
 #            or /tmp, cleaned by EXIT trap.
 #   stdout : the three checks below run in order and the first one that
@@ -36,6 +39,7 @@
 #            On every check passing, in file name order:
 #              STATUS=ready
 #              REPO=<repository url>
+#              TITLE_PATTERN=<github.issue-title as config.sh prints it>
 #              --- template <repo-relative path> ---
 #              NAME=<name>
 #              DESCRIPTION=<description>
@@ -44,7 +48,7 @@
 #              LABELS=<name>, <name>        (empty when none)
 #              ASSIGNEES=<login>, <login>   (empty when none)
 #              PROJECTS=<project>, <project> (empty when none)
-#            repeated per template. Only these seven top-level keys (column 0
+#            the `--- template` block repeated per template. Only these seven top-level keys (column 0
 #            in the template file) are read; a same-named key nested under
 #            `body:` or anywhere else indented is not top-level and is
 #            ignored. A value's surrounding quotes are stripped and its CR is
@@ -101,8 +105,13 @@ fi
 
 sort -o "$listf" "$listf"
 
+here=$(dirname -- "$0")
+title_pattern=$(bash "$here/config.sh" 2>/dev/null | sed -n 's/^github\.issue-title: //p')
+[ -n "$title_pattern" ] || title_pattern="{template-title}{summary}"
+
 echo "STATUS=ready"
 echo "REPO=$repo_url"
+echo "TITLE_PATTERN=$title_pattern"
 
 while IFS= read -r f; do
   [ -n "$f" ] || continue
