@@ -1,5 +1,5 @@
 #!/bin/sh
-# superfix - skills/code-auditor/scripts/worktree.sh
+# viber - skills/code-auditor/scripts/worktree.sh
 # Clean-checkout verification worktree lifecycle for detective / critic runs.
 #
 # Self-verifying: `add` does not report READY until the path actually resolves

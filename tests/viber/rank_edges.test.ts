@@ -16,7 +16,7 @@
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/superfix/rank_edges.test.ts
+ *   node --test tests/viber/rank_edges.test.ts
  */
 
 import { test } from "../harness/test.ts";
@@ -27,7 +27,7 @@ import path from "node:path";
 import { runScript, type RunResult } from "../harness/run.ts";
 import { withTempDir } from "../harness/tmp.ts";
 
-const SUT = path.resolve(import.meta.dirname, "../../superfix/skills/code-auditor/scripts/rank_edges.ts");
+const SUT = path.resolve(import.meta.dirname, "../../viber/skills/code-auditor/scripts/rank_edges.ts");
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Rec = Record<string, any>;

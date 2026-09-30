@@ -13,7 +13,7 @@
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/superfix/worktree.test.ts
+ *   node --test tests/viber/worktree.test.ts
  */
 
 import { test } from "../harness/test.ts";
@@ -26,7 +26,7 @@ import { withGitRepo, withTempDir, type GitRepo } from "../harness/tmp.ts";
 import { forEachShell, type Shell } from "../harness/shells.ts";
 import { slash } from "../harness/paths.ts";
 
-const SUT = path.resolve(import.meta.dirname, "../../superfix/skills/code-auditor/scripts/worktree.sh");
+const SUT = path.resolve(import.meta.dirname, "../../viber/skills/code-auditor/scripts/worktree.sh");
 
 async function assertPosix(fn: (shell: Shell) => void | Promise<void>) {
   const skips = await forEachShell("posix", fn);

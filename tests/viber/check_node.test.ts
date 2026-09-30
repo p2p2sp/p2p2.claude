@@ -10,7 +10,7 @@
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/superfix/check_node.test.ts
+ *   node --test tests/viber/check_node.test.ts
  */
 
 import { test } from "../harness/test.ts";
@@ -22,7 +22,7 @@ import { runScript, type RunResult } from "../harness/run.ts";
 import { withStub } from "../harness/stub.ts";
 import { forEachShell, type Shell } from "../harness/shells.ts";
 
-const SUT = path.resolve(import.meta.dirname, "../../superfix/skills/code-auditor/scripts/check_node.sh");
+const SUT = path.resolve(import.meta.dirname, "../../viber/skills/code-auditor/scripts/check_node.sh");
 
 /** The real PATH, minus every directory that resolves a real `node` - so
  *  "no node on PATH" is genuine even on a dev machine that has node

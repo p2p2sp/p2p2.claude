@@ -15,7 +15,7 @@
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/superfix/collect_edges.test.ts
+ *   node --test tests/viber/collect_edges.test.ts
  */
 
 import { test } from "../harness/test.ts";
@@ -28,7 +28,7 @@ import { withGitRepo, withTempDir, type GitRepo } from "../harness/tmp.ts";
 import { forEachShell } from "../harness/shells.ts";
 import { canDenyRead, denyRead, restoreRead } from "../harness/perms.ts";
 
-const SUT = path.resolve(import.meta.dirname, "../../superfix/skills/code-auditor/scripts/collect_edges.sh");
+const SUT = path.resolve(import.meta.dirname, "../../viber/skills/code-auditor/scripts/collect_edges.sh");
 
 async function assertBash(fn: (bash: string) => void | Promise<void>) {
   const skips = await forEachShell("bash", fn);

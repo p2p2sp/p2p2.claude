@@ -1,5 +1,5 @@
 #!/bin/sh
-# superfix - skills/code-auditor/scripts/check_node.sh
+# viber - skills/code-auditor/scripts/check_node.sh
 # Node.js runtime preflight for the code-auditor skill's bundled .ts step (rank.ts).
 # The bundled scripts are TypeScript executed directly by Node's native type
 # stripping (no build step, no npm install), which needs Node >= 22.6 (behind
