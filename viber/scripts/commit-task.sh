@@ -297,6 +297,93 @@ stage_path() {
   [[ -n "$(git ls-tree -r --name-only HEAD -- "$f" 2>/dev/null)" ]]
 }
 
+# Stages a whole list of named paths the way stage_path stages one, in a number
+# of git processes that grows by chunk, never by path, and prints each named path
+# git knows afterwards (index or HEAD), one per line in input order; a path it
+# does not print is one the caller warns about. stage_paths <path>...
+# A path may name a directory: it is known when git knows anything under it. The
+# bash-side match below (the path itself or an ancestor directory of a listed
+# file) only ever says "known" - a path it cannot place is asked again of git as
+# a pathspec, so a spelling the listing words differently (a case-insensitive
+# checkout, a doubled slash) is never reported unknown on a string compare alone.
+# Tracked files under the named paths go through "add -u" by their own names (a
+# named path git does not know would fail the whole call), untracked ones only
+# when no ignore rule covers them. Always returns 0. A failed batch falls back to
+# stage_path for each path.
+stage_paths() {
+  [[ $# -gt 0 ]] || return 0
+  local u kind p
+  local -a tracked=() new=()
+  while IFS= read -r -d '' u; do tracked+=("$u"); done < <(git_paths ls-files -z -- "$@")
+  if [[ ${#tracked[@]} -gt 0 ]]; then
+    git_paths add -u -- "${tracked[@]}" 2>/dev/null || { stage_path_each "$@"; return 0; }
+  fi
+  while IFS= read -r -d '' u; do new+=("$u"); done < <(git_paths ls-files -z -o --exclude-standard -- "$@")
+  if [[ ${#new[@]} -gt 0 ]]; then
+    git_paths add -- "${new[@]}" 2>/dev/null || { stage_path_each "$@"; return 0; }
+  fi
+  while IFS=$'\t' read -r kind p; do
+    if [[ "$kind" == K ]]; then
+      printf '%s\n' "$p"
+    elif [[ -n "$(git ls-files -- "$p")" || -n "$(git ls-tree -r --name-only HEAD -- "$p" 2>/dev/null)" ]]; then
+      printf '%s\n' "$p"
+    fi
+  done < <(
+    {
+      printf '%s\n' "$@"
+      printf '\001\n'
+      git_paths ls-files -z -- "$@" | tr '\0' '\n'
+      git_paths ls-tree -r --name-only -z HEAD -- "$@" 2>/dev/null | tr '\0' '\n' || true
+    } | awk '
+BEGIN { listing = 0 }
+$0 == "\001" { listing = 1; next }
+!listing { n++; named[n] = $0; next }
+{
+  e = $0
+  while (e != "") {
+    known[e] = 1
+    i = match(e, /\/[^\/]*$/)
+    e = (i ? substr(e, 1, i - 1) : "")
+  }
+}
+END {
+  for (k = 1; k <= n; k++) {
+    p = named[k]
+    q = p
+    while (length(q) > 1 && substr(q, length(q)) == "/") q = substr(q, 1, length(q) - 1)
+    print ((q in known) ? "K" : "U") "\t" p
+  }
+}
+'
+  )
+}
+
+# stage_paths with one stage_path per path, printing the ones it staged: the
+# fallback of a failed batch.
+stage_path_each() {
+  local f
+  for f in "$@"; do
+    if stage_path "$f"; then printf '%s\n' "$f"; fi
+  done
+}
+
+# stage_paths for callers that keep the staged paths and warn about the rest:
+# prints every named path stage_paths prints, in order, and warns on stderr
+# "could not stage <path>" for each one it does not. stage_named <path>...
+stage_named() {
+  local f i=0
+  local -a got=()
+  while IFS= read -r f; do got+=("$f"); done < <(stage_paths "$@")
+  for f in "$@"; do
+    if [[ $i -lt ${#got[@]} && "${got[$i]}" == "$f" ]]; then
+      printf '%s\n' "$f"
+      i=$(( i + 1 ))
+    else
+      echo "warning: could not stage $f" >&2
+    fi
+  done
+}
+
 # Commits exactly the named paths, each as the index holds it, and nothing else
 # staged: commit_named <git commit option>... -- <path>...
 # "git commit -- <paths>" is not that: its partial-commit mode re-reads every
@@ -729,6 +816,7 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
   [[ $# -gt 0 ]] || usage
 
   paths=()
+  named=()
   for f in "$@"; do
     f="${f#./}"
     [[ -z "$f" ]] && continue
@@ -738,12 +826,11 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
         continue
         ;;
     esac
-    if stage_path "$f"; then
-      paths+=("$f")
-    else
-      echo "warning: could not stage $f" >&2
-    fi
+    named+=("$f")
   done
+  while IFS= read -r f; do
+    paths+=("$f")
+  done < <(stage_named ${named[@]+"${named[@]}"})
 
   if [[ ${#paths[@]} -eq 0 ]] || git_paths diff --cached --quiet -- "${paths[@]}"; then
     echo "error: the named files produced no changes to commit" >&2
@@ -1034,6 +1121,7 @@ done <<< "$extra"
 # before the run, or left staged by an earlier exit 5, must not ride along.
 paths=()
 if [[ -z "$landed" ]]; then
+  named=()
   while IFS= read -r f; do
     [[ -z "$f" ]] && continue
     case "$f" in
@@ -1042,12 +1130,11 @@ if [[ -z "$landed" ]]; then
         continue
         ;;
     esac
-    if stage_path "$f"; then
-      paths+=("$f")
-    else
-      echo "warning: could not stage $f" >&2
-    fi
+    named+=("$f")
   done <<< "$files"
+  while IFS= read -r f; do
+    paths+=("$f")
+  done < <(stage_named ${named[@]+"${named[@]}"})
 
   if [[ ${#paths[@]} -eq 0 ]] || git_paths diff --cached --quiet -- "${paths[@]}"; then
     if [[ -n "$fix_n" ]]; then

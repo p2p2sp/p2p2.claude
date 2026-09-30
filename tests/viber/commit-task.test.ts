@@ -2151,3 +2151,67 @@ test(`a task commit of a Files list past ${CMDLINE_CAP} chars with no change exi
     assert.match(result.stderr, /--landed/);
   });
 });
+
+/*
+ * Staging a task's paths runs fewer git processes than it has paths: the count grows by
+ * chunk, never by path. Every git call of one run is tallied by a `git` shell function
+ * in front of the real one (BASH_ENV), so the count covers the whole script.
+ */
+const BATCH_PATHS = Array.from({ length: 60 }, (_, i) => `src/pkg/file-${String(i).padStart(2, "0")}.ts`);
+
+/** A `git` function that appends one line to a tally file per invocation. */
+function countedGitEnv(repo: GitRepo): { env: Record<string, string>; tally: string } {
+  const file = path.join(repo.dir, ".git", "git-tally.sh");
+  const tally = path.join(repo.dir, ".git", "git-tally.txt");
+  fs.writeFileSync(tally, "");
+  fs.writeFileSync(
+    file,
+    ["git() {", `  echo x >> "${tally.replace(/\\/g, "/")}"`, '  command git "$@"', "}", ""].join("\n"),
+  );
+  return { env: { ...repo.env, BASH_ENV: file.replace(/\\/g, "/") }, tally };
+}
+
+function gitProcesses(tally: string): number {
+  return fs.readFileSync(tally, "utf-8").split("\n").filter(Boolean).length;
+}
+
+test("a plain task commit of 60 new paths runs fewer git processes than it has paths and commits all 60", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo, [["T1", BATCH_PATHS.join(", ")]]);
+    for (const p of BATCH_PATHS) write(repo.dir, p, `${p}\n`);
+    const { env, tally } = countedGitEnv(repo);
+
+    const result = await run(repo.dir, env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(await committedFiles(repo), [...BATCH_PATHS, STATUS_REL].sort());
+    assert.ok(gitProcesses(tally) < BATCH_PATHS.length, `${gitProcesses(tally)} git processes for ${BATCH_PATHS.length} paths`);
+  });
+});
+
+test("a task of 60 new paths plus one path neither on disk nor known to git commits the 60 and warns about that path, still in fewer git processes than paths", async () => {
+  await withGitRepo(async (repo) => {
+    const files = [...BATCH_PATHS, "src/pkg/ghost.ts"];
+    await seed(repo, [["T1", files.join(", ")]]);
+    for (const p of BATCH_PATHS) write(repo.dir, p, `${p}\n`);
+    const { env, tally } = countedGitEnv(repo);
+
+    const result = await run(repo.dir, env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /warning: could not stage src\/pkg\/ghost\.ts/);
+    assert.deepEqual(await committedFiles(repo), [...BATCH_PATHS, STATUS_REL].sort());
+    assert.ok(gitProcesses(tally) < files.length, `${gitProcesses(tally)} git processes for ${files.length} paths`);
+  });
+});
+
+test("a task whose Files list names a directory commits every changed file under it, in fewer git processes than files", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo, [["T1", "src/pkg"]]);
+    for (const p of BATCH_PATHS) write(repo.dir, p, `${p}\n`);
+    const { env, tally } = countedGitEnv(repo);
+
+    const result = await run(repo.dir, env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(await committedFiles(repo), [...BATCH_PATHS, STATUS_REL].sort());
+    assert.ok(gitProcesses(tally) < BATCH_PATHS.length, `${gitProcesses(tally)} git processes for ${BATCH_PATHS.length} files`);
+  });
+});

@@ -1,0 +1,5 @@
+- `git add -u -- <named>` fails (128) on a named path git knows nothing of, so stage_paths lists tracked files first (`ls-files -z`) and runs `add -u` on those names.
+- stage_paths decides "known" in one awk pass over the ls-files + ls-tree HEAD listings (path or ancestor directory match); only a path that pass cannot place is re-asked of git as a pathspec (2 processes each), so a stale path costs processes but a normal one never does.
+- A failed batch falls back to per-path stage_path for the whole list, not one chunk: git_paths hides its chunks from the caller.
+- DoD.3 (directory entry) passed before the change too; its test guards the batched matcher, it was never red.
+- Trail files and rulings.md keep stage_path per path.
