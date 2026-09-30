@@ -32,8 +32,8 @@ Run the chosen form once. Its line is carried into the close literally, never re
 Then check the project's `CLAUDE.md` against the preload's `CLAUDE.md:` line:
 
 - Never edit `CLAUDE.md`.
-- `CLAUDE.md: present - <path>` - read that file with `Read`, fresh, never from session context. An item (the build, the whole test suite, a single test file) counts as named only when the file contains its literal command.
-- All three named - the line is `CLAUDE.md: names the build, test and single-test-file commands - if the test command also runs end-to-end tests, add one that leaves them out`.
+- `CLAUDE.md: present - <path>` - read that file with `Read`, fresh, never from session context. Five items count. The build, the whole test suite, a single test file and the fast command (every test but the integration and end-to-end ones) each count as named only when the file contains its literal command. The layer marker convention counts as named when the file states how a test is tagged with its layer.
+- All five named - the line is `CLAUDE.md: names the build, test, single-test-file and fast commands and the layer marker convention`.
 - Any item not named - the line is `CLAUDE.md: missing <the missing items> - paste this prompt:`, followed by the content of `${CLAUDE_SKILL_DIR}/templates/claude-md-prompt.txt`, read with `Read`, verbatim in a code block.
 - `CLAUDE.md: missing` - read no `CLAUDE.md`; the line is `CLAUDE.md: missing - run /init, then paste this prompt:`, followed by the same code block.
 
