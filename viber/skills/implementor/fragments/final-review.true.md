@@ -11,7 +11,7 @@ run: <dir>
 tasks: <the slice's task ids, comma-separated>
 report: <dir>/work/final-review-<slice number>.md
 refs: ${CLAUDE_PLUGIN_ROOT}/references
-memory: <the config block's memory value>
+memory: <the config block's build.memory value>
 ```
 
 - `VERDICT: DENIED` -> `AskUserQuestion` naming that slice: retry / accept / abort.
@@ -37,7 +37,7 @@ fix: <the fix paths, comma-separated>
 review: <a REPORT path>, one `review:` line per report this step wrote so far, slice and recheck alike
 report: <dir>/work/final-review-recheck-1.md
 refs: ${CLAUDE_PLUGIN_ROOT}/references
-memory: <the config block's memory value>
+memory: <the config block's build.memory value>
 ```
 
 - Recheck `VERDICT: PASS` -> commit the fix.

@@ -49,7 +49,7 @@ A plan stopping at a draft writes the specification half alone: no `## Tasks`, n
 Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan-path>"`. It must exit 0: fix whatever it reports and re-run.
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" adr "${CLAUDE_SKILL_DIR}" adr
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" planning.adr "${CLAUDE_SKILL_DIR}" adr
 ```
 
 Show the user the full path of the written plan.
@@ -62,7 +62,7 @@ A draft goes to step 3 next; every other plan dispatches the review below.
 
 ## 3. Review gate
 
-Dispatch the `viber:planner-review` agent with the plan path, `refs: ${CLAUDE_PLUGIN_ROOT}/references`, `memory: <value>` (the `memory:` line of the config block resolved above), and the line:
+Dispatch the `viber:planner-review` agent with the plan path, `refs: ${CLAUDE_PLUGIN_ROOT}/references`, `memory: <value>` (the `build.memory:` line of the config block resolved above), and the line:
 
 ```
 input:
@@ -90,7 +90,7 @@ A plan with its task half, on a change no draft preceded: name `viber:implemento
 A plan with its task half that changes a UI or an endpoint and carries no end-to-end task adds one line to either hand-off:
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" qa "${CLAUDE_SKILL_DIR}" qa-e2e
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.qa "${CLAUDE_SKILL_DIR}" qa-e2e
 ```
 
 A change that went through a draft lands here instead, since nothing downstream lands a plan carrying no task - the only thing this step executes:

@@ -49,19 +49,32 @@ async function run(repo: GitRepo, args: string[], cwd: string = repo.dir, shell:
 
 test("a true switch prints its .true.md fragment, byte for byte", async () => {
   await withGitRepo(async (repo) => {
-    writeConfig(repo, "adr: true\n");
+    writeConfig(repo, "planning:\n  adr: true\n");
     writeFragment(repo, "step.true.md", "ADR on.\n\nSecond line.\n");
     writeFragment(repo, "step.false.md", "ADR off.\n");
 
-    const result = await run(repo, ["adr", skillDir(repo), "step"]);
+    const result = await run(repo, ["planning.adr", skillDir(repo), "step"]);
 
     assert.deepEqual([result.status, result.stdout], [0, "ADR on.\n\nSecond line.\n"]);
   });
 });
 
+test("`build.memory` under `build: memory: true` prints the skill's memory.true.md fragment", async () => {
+  await withGitRepo(async (repo) => {
+    writeConfig(repo, "build:\n  memory: true\n");
+    writeFragment(repo, "memory.true.md", "Update the memory.\n");
+    writeFragment(repo, "memory.false.md", "No memory.\n");
+
+    const result = await run(repo, ["build.memory", skillDir(repo), "memory"]);
+
+    assert.deepEqual([result.status, result.stdout], [0, "Update the memory.\n"]);
+  });
+});
+
 for (const [label, config] of [
-  ["a false switch", "memory: false\n"],
-  ["an absent switch", "adr: true\n"],
+  ["a false switch", "build:\n  memory: false\n"],
+  ["an absent switch", "planning:\n  adr: true\n"],
+  ["a flat column-0 switch outside its group", "memory: true\n"],
 ] as const) {
   test(`${label} prints the .false.md fragment (a disabled state that does something still gets its text)`, async () => {
     await withGitRepo(async (repo) => {
@@ -69,78 +82,41 @@ for (const [label, config] of [
       writeFragment(repo, "step.true.md", "Memory on.\n");
       writeFragment(repo, "step.false.md", "Memory off.\n");
 
-      const result = await run(repo, ["memory", skillDir(repo), "step"]);
+      const result = await run(repo, ["build.memory", skillDir(repo), "step"]);
 
       assert.deepEqual([result.status, result.stdout], [0, "Memory off.\n"]);
     });
   });
 }
 
-test("`final-review: true` prints the skill's final-review.true.md fragment", async () => {
-  await withGitRepo(async (repo) => {
-    writeConfig(repo, "final-review: true\n");
-    writeFragment(repo, "final-review.true.md", "Run the final review.\n");
+for (const [key, group, child, name] of [
+  ["build.final-review", "build", "final-review", "final-review"],
+  ["planning.fast-path", "planning", "fast-path", "fast-path"],
+  ["build.baseline-tests", "build", "baseline-tests", "baseline-run"],
+  ["github.issues", "github", "issues", "issues-input"],
+] as const) {
+  test(`\`${key}\` on prints the skill's ${name}.true.md fragment`, async () => {
+    await withGitRepo(async (repo) => {
+      writeConfig(repo, `${group}:\n  ${child}: true\n`);
+      writeFragment(repo, `${name}.true.md`, "On.\n");
 
-    const result = await run(repo, ["final-review", skillDir(repo), "final-review"]);
+      const result = await run(repo, [key, skillDir(repo), name]);
 
-    assert.deepEqual([result.status, result.stdout], [0, "Run the final review.\n"]);
+      assert.deepEqual([result.status, result.stdout], [0, "On.\n"]);
+    });
   });
-});
 
-test("`final-review` off prints nothing - there is no fragment for the off state", async () => {
-  await withGitRepo(async (repo) => {
-    writeConfig(repo, "final-review: false\n");
-    writeFragment(repo, "final-review.true.md", "Run the final review.\n");
+  test(`\`${key}\` off prints nothing - there is no fragment for the off state`, async () => {
+    await withGitRepo(async (repo) => {
+      writeConfig(repo, `${group}:\n  ${child}: false\n`);
+      writeFragment(repo, `${name}.true.md`, "On.\n");
 
-    const result = await run(repo, ["final-review", skillDir(repo), "final-review"]);
+      const result = await run(repo, [key, skillDir(repo), name]);
 
-    assert.deepEqual([result.status, result.stdout], [0, ""]);
+      assert.deepEqual([result.status, result.stdout], [0, ""]);
+    });
   });
-});
-
-test("`fast-path: true` prints the skill's fast-path.true.md fragment", async () => {
-  await withGitRepo(async (repo) => {
-    writeConfig(repo, "fast-path: true\n");
-    writeFragment(repo, "fast-path.true.md", "Show the design in chat.\n");
-
-    const result = await run(repo, ["fast-path", skillDir(repo), "fast-path"]);
-
-    assert.deepEqual([result.status, result.stdout], [0, "Show the design in chat.\n"]);
-  });
-});
-
-test("`fast-path` off prints nothing - there is no fragment for the off state", async () => {
-  await withGitRepo(async (repo) => {
-    writeConfig(repo, "fast-path: false\n");
-    writeFragment(repo, "fast-path.true.md", "Show the design in chat.\n");
-
-    const result = await run(repo, ["fast-path", skillDir(repo), "fast-path"]);
-
-    assert.deepEqual([result.status, result.stdout], [0, ""]);
-  });
-});
-
-test("`baseline-tests: true` prints the skill's baseline-run.true.md fragment", async () => {
-  await withGitRepo(async (repo) => {
-    writeConfig(repo, "baseline-tests: true\n");
-    writeFragment(repo, "baseline-run.true.md", "Run the baseline.\n");
-
-    const result = await run(repo, ["baseline-tests", skillDir(repo), "baseline-run"]);
-
-    assert.deepEqual([result.status, result.stdout], [0, "Run the baseline.\n"]);
-  });
-});
-
-test("`baseline-tests` off prints nothing - there is no fragment for the off state", async () => {
-  await withGitRepo(async (repo) => {
-    writeConfig(repo, "baseline-tests: false\n");
-    writeFragment(repo, "baseline-run.true.md", "Run the baseline.\n");
-
-    const result = await run(repo, ["baseline-tests", skillDir(repo), "baseline-run"]);
-
-    assert.deepEqual([result.status, result.stdout], [0, ""]);
-  });
-});
+}
 
 for (const [config, mode] of [
   ["branching:\n  mode: required\n", "required"],
@@ -164,20 +140,21 @@ for (const [config, mode] of [
 /** Every row stages the same config and fragments, and most rows name a file
  *  the fixture holds, so a row passes only because its argument is refused. */
 for (const [label, args] of [
-  ["a key whose fragment file is missing (memory resolves false, no step.false.md)", (dir: string) => ["memory", dir, "step"]],
+  ["a key whose fragment file is missing (build.memory resolves false, no step.false.md)", (dir: string) => ["build.memory", dir, "step"]],
   ["an unknown key", (dir: string) => ["e2e", dir, "step"]],
+  ["a flat key though its grouped switch is on (adr for planning.adr)", (dir: string) => ["adr", dir, "step"]],
   ["a config key that is no switch (directories.runs)", (dir: string) => ["directories.runs", dir, "step"]],
   ["a config key that is no switch (tiers.min)", (dir: string) => ["tiers.min", dir, "step"]],
-  ["a name holding a slash", (dir: string) => ["adr", dir, "../fragments/step"]],
-  ["a name holding ..", (dir: string) => ["adr", dir, "..step"]],
-  ["a missing name", (dir: string) => ["adr", dir]],
-  ["an empty skill directory", () => ["adr", "", "step"]],
-  ["a missing skill directory and name", () => ["adr"]],
+  ["a name holding a slash", (dir: string) => ["planning.adr", dir, "../fragments/step"]],
+  ["a name holding ..", (dir: string) => ["planning.adr", dir, "..step"]],
+  ["a missing name", (dir: string) => ["planning.adr", dir]],
+  ["an empty skill directory", () => ["planning.adr", "", "step"]],
+  ["a missing skill directory and name", () => ["planning.adr"]],
   ["no argument at all", () => []],
 ] as const) {
   test(`${label} prints nothing and exits 0 (a preload must never abort the skill load)`, async () => {
     await withGitRepo(async (repo) => {
-      writeConfig(repo, "adr: true\ne2e: true\n");
+      writeConfig(repo, "planning:\n  adr: true\ne2e: true\n");
       writeFragment(repo, "step.true.md", "on\n");
       writeFragment(repo, "step._specs.md", "a directory name\n");
       writeFragment(repo, "step.haiku.md", "a tier\n");
@@ -193,13 +170,13 @@ for (const [label, args] of [
 
 test("a session started in a subdirectory resolves the repository's config (a preload runs wherever the session started)", async () => {
   await withGitRepo(async (repo) => {
-    writeConfig(repo, "adr: true\n");
+    writeConfig(repo, "planning:\n  adr: true\n");
     writeFragment(repo, "step.true.md", "on\n");
     writeFragment(repo, "step.false.md", "off\n");
     const sub = path.join(repo.dir, "src", "deep");
     fs.mkdirSync(sub, { recursive: true });
 
-    const result = await run(repo, ["adr", skillDir(repo), "step"], sub);
+    const result = await run(repo, ["planning.adr", skillDir(repo), "step"], sub);
 
     assert.deepEqual([result.status, result.stdout], [0, "on\n"]);
   });
@@ -214,12 +191,12 @@ for (const [label, suffix] of [
   test(`${label}: every root placeholder is replaced by the derived path, under every bash present`, async () => {
     await forEachShell("bash", async (bash) => {
       await withGitRepo(async (repo) => {
-        writeConfig(repo, "qa: true\n");
+        writeConfig(repo, "build:\n  qa: true\n");
         writeFragment(repo, "step.true.md", PLACEHOLDERS);
         const dir = skillDir(repo) + suffix;
         const root = path.join(repo.dir, "plugin");
 
-        const result = await run(repo, ["qa", dir, "step"], repo.dir, bash);
+        const result = await run(repo, ["build.qa", dir, "step"], repo.dir, bash);
 
         assert.deepEqual(
           [result.status, result.stdout],
@@ -235,12 +212,12 @@ test(
   { skip: process.platform === "win32" ? "a backslash is a separator on Windows, so every other case already proves it there" : false },
   async () => {
     await withGitRepo(async (repo) => {
-      writeConfig(repo, "qa: true\n");
+      writeConfig(repo, "build:\n  qa: true\n");
       const dir = "C:\\host\\plugin\\skills\\demo";
       fs.mkdirSync(path.join(repo.dir, dir, "fragments"), { recursive: true });
       fs.writeFileSync(path.join(repo.dir, dir, "fragments", "step.true.md"), "${CLAUDE_PLUGIN_ROOT}|${CLAUDE_SKILL_DIR}\n");
 
-      const result = await run(repo, ["qa", dir, "step"]);
+      const result = await run(repo, ["build.qa", dir, "step"]);
 
       assert.deepEqual([result.status, result.stdout], [0, `C:\\host\\plugin|${dir}\n`]);
     });

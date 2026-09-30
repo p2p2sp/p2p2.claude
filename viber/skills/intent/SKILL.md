@@ -1,7 +1,7 @@
 ---
 name: intent
 description: Planning interview - asks what the conversation and the code leave open, one question at a time, sizes the scope, proposes the spec shape and hands a confirmed summary to viber:planner. Never start it on your own initiative. When a change looks like it needs a plan and no confirmed interview or viber:fixer diagnosis is in context, keep talking with the user and suggest, in one line, this interview or `plain plan mode` (Claude Code's own plan mode, no interview) for a small, well-understood change; invoke it only after the user agrees or asks to plan, design or be interviewed. Not for a change the user asked to make directly, without a plan.
-argument-hint: "[--prove] [what to plan, or an issue number/URL when issues is on]"
+argument-hint: "[--prove] [what to plan, or an issue number/URL when github.issues is on]"
 allowed-tools: Read, Grep, Glob, Skill, Edit(./.temp/viber/intent/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-templates.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/create-issue.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*)
 user-invocable: true
 disable-model-invocation: false
@@ -12,7 +12,7 @@ disable-model-invocation: false
 Turn a raw intent into an understanding a planner can act on. You write no code, except a change the user approved on the fast path.
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-input
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-input
 ```
 
 ```!
@@ -39,7 +39,7 @@ When those two sources already answer everything `## Done` asks for, skip every 
 Decide this before the first detail question.
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" fast-path "${CLAUDE_SKILL_DIR}" fast-path
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" planning.fast-path "${CLAUDE_SKILL_DIR}" fast-path
 ```
 
 - One coherent capability, or any scope of an estimated 30 plan tasks or fewer: interview it whole and skip the rest of this section.
@@ -107,7 +107,7 @@ Stop when you can state, without guessing: the problem, the acceptance criteria,
 Show that as a summary under 15 lines and ask for confirmation. It closes on the spec shape and, when the user asked for one, the draft mode. A split intent opens its summary with the accepted roadmap, one line per part plus which one this cycle covers, carrying under each later part the decisions settled for it and its open unknowns, and names every later part among the boundaries; its cap is 15 lines plus up to 5 per later part carrying its decisions. A summary resuming a roadmap.md closes with the line `Roadmap: <repo-relative path of roadmap.md>`. On a correction, fix the summary and confirm again. On confirmation, take the first branch that applies:
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-done
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-done
 ```
 
 ```!

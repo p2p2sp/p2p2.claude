@@ -379,21 +379,21 @@ function execBitViolations(
   ];
 }
 
-/** The switch keys `switch-text.sh` (viber/scripts/switch-text.sh, contract
- *  C1) recognizes, each mapped to its valid values. A key outside this set is
- *  always a violation (DoD.2); a fragment file's value suffix must be one of
- *  its own key's list (DoD.3). */
+/** The grouped switch keys `switch-text.sh` (viber/scripts/switch-text.sh)
+ *  recognizes, each mapped to its valid values. A key outside this set - a
+ *  flat `memory` included - is always a violation (DoD.2); a fragment file's
+ *  value suffix must be one of its own key's list (DoD.3). */
 const SWITCH_VALUES: Record<string, string[]> = {
-  adr: ["true", "false"],
-  memory: ["true", "false"],
-  rules: ["true", "false"],
-  qa: ["true", "false"],
-  cleanup: ["true", "false"],
-  "final-review": ["true", "false"],
-  "plain-plan-review": ["true", "false"],
-  issues: ["true", "false"],
-  "fast-path": ["true", "false"],
-  "baseline-tests": ["true", "false"],
+  "planning.adr": ["true", "false"],
+  "planning.plain-plan-review": ["true", "false"],
+  "planning.fast-path": ["true", "false"],
+  "build.baseline-tests": ["true", "false"],
+  "build.final-review": ["true", "false"],
+  "build.memory": ["true", "false"],
+  "build.rules": ["true", "false"],
+  "build.qa": ["true", "false"],
+  "build.cleanup": ["true", "false"],
+  "github.issues": ["true", "false"],
   "branching.mode": ["off", "allowed", "required"],
 };
 
@@ -661,10 +661,19 @@ test("self-check: execBitViolations fires on a script invoked bare only from a f
 });
 
 test("self-check: fragmentCallViolations fires on a call whose name has no fragment file for any valid value of its key (DoD.1)", () => {
-  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-ghost\n```\n';
+  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-ghost\n```\n';
   const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, []);
   assert.equal(violations.length, 1);
-  assert.match(violations[0], /SKILL\.md:2: switch-text\.sh call names fragment 'issues-ghost' with no file for any value of key 'issues'/);
+  assert.match(violations[0], /SKILL\.md:2: switch-text\.sh call names fragment 'issues-ghost' with no file for any value of key 'github\.issues'/);
+});
+
+test("self-check: fragmentCallViolations fires on a call naming a flat switch key outside its group (DoD.2)", () => {
+  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" memory "${CLAUDE_SKILL_DIR}" memory\n```\n';
+  const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, ["memory.true.md"]);
+  assert.deepEqual(violations, [
+    "plugin/skills/foo/SKILL.md:2: switch-text.sh call names unknown key 'memory'",
+    "plugin/skills/foo/fragments/memory.true.md: called by no SKILL.md of its own skill",
+  ]);
 });
 
 test("self-check: fragmentCallViolations fires on a call naming a key outside the switches and branching.mode (DoD.2)", () => {
@@ -675,13 +684,13 @@ test("self-check: fragmentCallViolations fires on a call naming a key outside th
 });
 
 test("self-check: fragmentCallViolations fires on a fragment file whose value suffix is invalid for the key its calls name (DoD.3)", () => {
-  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-input\n```\n';
+  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-input\n```\n';
   const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, [
     "issues-input.true.md",
     "issues-input.allowed.md",
   ]);
   assert.equal(violations.length, 1);
-  assert.match(violations[0], /plugin\/skills\/foo\/fragments\/issues-input\.allowed\.md: value 'allowed' is not valid for key 'issues'/);
+  assert.match(violations[0], /plugin\/skills\/foo\/fragments\/issues-input\.allowed\.md: value 'allowed' is not valid for key 'github\.issues'/);
 });
 
 test("self-check: fragmentCallViolations fires on a fragment file no SKILL.md of its own skill calls (DoD.4)", () => {
@@ -692,13 +701,13 @@ test("self-check: fragmentCallViolations fires on a fragment file no SKILL.md of
 });
 
 test("self-check: fragmentCallViolations accepts a final-review call with a .true.md fragment for it (DoD.5)", () => {
-  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" final-review "${CLAUDE_SKILL_DIR}" final-review\n```\n';
+  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.final-review "${CLAUDE_SKILL_DIR}" final-review\n```\n';
   const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, ["final-review.true.md"]);
   assert.deepEqual(violations, []);
 });
 
 test("self-check: fragmentCallViolations accepts a baseline-tests call with a .true.md fragment for it", () => {
-  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" baseline-tests "${CLAUDE_SKILL_DIR}" baseline-run\n```\n';
+  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.baseline-tests "${CLAUDE_SKILL_DIR}" baseline-run\n```\n';
   const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, ["baseline-run.true.md"]);
   assert.deepEqual(violations, []);
 });
@@ -706,7 +715,7 @@ test("self-check: fragmentCallViolations accepts a baseline-tests call with a .t
 test("self-check: fragmentCallViolations does not fire when every call resolves and every fragment file is called", () => {
   const content = [
     '```!',
-    '"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-input',
+    '"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-input',
     '```',
     '```!',
     '"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" branching.""mode "${CLAUDE_SKILL_DIR}" branching',

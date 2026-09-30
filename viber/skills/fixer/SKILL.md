@@ -1,7 +1,7 @@
 ---
 name: fixer
 description: Traces a reported bug to its root cause and proves it with a failing test, then hands the diagnosis to the planner - it applies no fix itself. Use whenever user reports a bug and wants to fix it. Not for a fix the user asked to apply directly, without a plan.
-argument-hint: "[bug report, or an issue number/URL when issues is on]"
+argument-hint: "[bug report, or an issue number/URL when github.issues is on]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*)
 user-invocable: true
 disable-model-invocation: false
@@ -33,7 +33,7 @@ Three laws, in this order. None substitutes for another.
 
 ## Resolving the report
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-report
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-report
 ```
 
 ```!
@@ -60,7 +60,7 @@ The handoff payload - state it in context, in this order. No report file: the pa
 - **Done condition** - repro test GREEN, every previously-passing test still green.
 - **Spec shape** - `spec-lite`, always: a fixer diagnosis never proposes `spec-full`.
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-diagnosis
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-diagnosis
 ```
 
 ```!

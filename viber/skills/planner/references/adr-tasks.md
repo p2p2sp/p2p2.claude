@@ -1,6 +1,6 @@
 # ADR tasks
 
-Read only under `adr: true`, once the whole plan is written and `plan-index.sh` exits 0; a draft never reads it. What is a record is `viber:adr-screener`'s call alone: never add a line of your own to its result, never drop or reword one.
+Read only under `planning.adr: true`, once the whole plan is written and `plan-index.sh` exits 0; a draft never reads it. What is a record is `viber:adr-screener`'s call alone: never add a line of your own to its result, never drop or reword one.
 
 ## 1. Screen
 
@@ -20,16 +20,16 @@ input:
 
 ## 2. Ask
 
-Put every line of the result to the user in one prose question, each line on its own: an `ADR:` line as its decision, the rejected option and the reversal cost; a `DEPRECATE:`, `APPEND:`, `ROUTE: comment` or `ROUTE: rule` line as what it would change; and let them accept or drop each. A `ROUTE: ops` line, a `ROUTE: rule` line under `rules: false` (the config block's `rules:` line) and a route naming no task of the plan are shown as information only, never offered.
+Put every line of the result to the user in one prose question, each line on its own: an `ADR:` line as its decision, the rejected option and the reversal cost; a `DEPRECATE:`, `APPEND:`, `ROUTE: comment` or `ROUTE: rule` line as what it would change; and let them accept or drop each. A `ROUTE: ops` line, a `ROUTE: rule` line under `build.rules: false` (the config block's `build.rules:` line) and a route naming no task of the plan are shown as information only, never offered.
 
 - Recommend nothing, ask once and never argue a dropped line back in.
-- Dropping every line, or the question, leaves the plan with no record task and no record criterion, exactly as under `adr: false`.
+- Dropping every line, or the question, leaves the plan with no record task and no record criterion, exactly as under `planning.adr: false`.
 
 ## 3. Apply what was accepted
 
 With nothing accepted, go back to the skill. Otherwise, in this order:
 
-1. Append every accepted `ROUTE: comment` to the `Delivers` of the task it names, as a comment that task's code carries, and under `rules: true` every accepted `ROUTE: rule`, as a convention that task's coder names in its notes. Every route lands before any task is added, so its task id still names the task it was given for.
+1. Append every accepted `ROUTE: comment` to the `Delivers` of the task it names, as a comment that task's code carries, and under `build.rules: true` every accepted `ROUTE: rule`, as a convention that task's coder names in its notes. Every route lands before any task is added, so its task id still names the task it was given for.
 2. When item 3 or 4 adds a task, add one acceptance criterion for the records and point the `Covers` of every such task at it.
 3. One task per accepted `ADR:` line, appended after the plan's last task, never renumbering one:
    - `Files: docs/adr/<yyyyMMddHHmmss>-<slug>.md`, the stamp from `date +%Y%m%d%H%M%S` so the path is exact - it is a commit file map, not a pattern.

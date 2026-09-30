@@ -1,7 +1,7 @@
 ---
 name: prototype
-description: Turns a UI change into one working, self-contained HTML mockup in the project's own look - a single proposal or three variants to choose from - refines it in a UI-only conversation, then carries the conclusions to viber:intent, onto the GitHub issue it started from, or both. Takes the change in prose, or an issue number or URL when issues is on.
-argument-hint: "[the UI change, or an issue number/URL when issues is on]"
+description: Turns a UI change into one working, self-contained HTML mockup in the project's own look - a single proposal or three variants to choose from - refines it in a UI-only conversation, then carries the conclusions to viber:intent, onto the GitHub issue it started from, or both. Takes the change in prose, or an issue number or URL when github.issues is on.
+argument-hint: "[the UI change, or an issue number/URL when github.issues is on]"
 allowed-tools: Read, Grep, Glob, Agent, Skill, Edit(./.temp/viber/prototype/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/open-page.sh:*)
 user-invocable: true
 disable-model-invocation: true
@@ -20,7 +20,7 @@ Every script run is one literal Bash line spelled as in this skill: never prefix
 ## 1. Issues switch
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-input
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-input
 ```
 
 ## 2. First question
@@ -71,7 +71,7 @@ Read the user's answer:
 One question in prose, then end the turn:
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-exit
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-exit
 ```
 
 The conclusions, in the language the user is writing in: the change, the chosen variant and why (a three-variant run), the UI decisions, the open points outside UI, and one line `Prototype: <the mockup path>`.

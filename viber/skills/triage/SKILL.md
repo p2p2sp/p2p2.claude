@@ -19,7 +19,7 @@ Every script run is one literal Bash line spelled as below: never prefixed with 
 ## 1. Read the issue
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-read
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-read
 ```
 
 - Any other argument is the pasted issue text. Nothing is published for it: step 4 is skipped.
@@ -42,13 +42,13 @@ Every script run is one literal Bash line spelled as below: never prefixed with 
 - Write in plain language a non-technical reader follows: short sentences, everyday words, the effect on users before the mechanism. Paths and symbols appear only under Affected code, each with a plain-words role; any other unavoidable technical term gets a short explanation where it first appears.
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-next
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-next
 ```
 
 ## 4. Publish (a GitHub issue only)
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" issues "${CLAUDE_SKILL_DIR}" issues-publish
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-publish
 ```
 
 ## Stop

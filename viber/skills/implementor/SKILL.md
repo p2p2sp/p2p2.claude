@@ -105,7 +105,7 @@ Then clamp both tiers into the config block's `tiers.min` to `tiers.max` range (
 ## 4. Run the plan
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" baseline-tests "${CLAUDE_SKILL_DIR}" baseline-run
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.baseline-tests "${CLAUDE_SKILL_DIR}" baseline-run
 ```
 
 `deps` and the `excl` hold are the only ordering the plan imposes; arrange the rest yourself and never lock a schedule up front. Never break:
@@ -169,13 +169,13 @@ Start with every task whose `deps` are done, in one message. On every return, an
 ## 5. Close
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" final-review "${CLAUDE_SKILL_DIR}" final-review
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.final-review "${CLAUDE_SKILL_DIR}" final-review
 ```
 
 Dispatch `viber:test-runner` with report path `<dir>/work/tests-<round>.md`, round starting at 1.
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" baseline-tests "${CLAUDE_SKILL_DIR}" baseline-close
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.baseline-tests "${CLAUDE_SKILL_DIR}" baseline-close
 ```
 
 Repair dispatch: `viber:task-coder` (model `sonnet` clamped into the tiers range, raised only by `retry`) with `spec: <dir>/spec.md`, the last `REPORT` path as `report:`, `notes: <dir>/work/repair-<round>-coder.md`, `out: .temp/viber/repair-<round>/` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`.
@@ -197,15 +197,15 @@ Repair commit, every path on the coder's `FILES:` line through the form that own
 For each close part below the index's `closed:` line does not already name, all in one message:
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" memory "${CLAUDE_SKILL_DIR}" memory
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.memory "${CLAUDE_SKILL_DIR}" memory
 ```
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" rules "${CLAUDE_SKILL_DIR}" rules
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.rules "${CLAUDE_SKILL_DIR}" rules
 ```
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" qa "${CLAUDE_SKILL_DIR}" qa
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.qa "${CLAUDE_SKILL_DIR}" qa
 ```
 
 Any agent of this step returning `VERDICT: DENIED` -> `AskUserQuestion` naming that agent: retry / accept / abort.
@@ -219,7 +219,7 @@ Then `TaskUpdate` -> completed for each entry, the `memory` entry only after the
 For the close part below, when the index's `closed:` line does not already name it and the build did not end on `abort`:
 
 ```!
-"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" cleanup "${CLAUDE_SKILL_DIR}" cleanup
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.cleanup "${CLAUDE_SKILL_DIR}" cleanup
 ```
 
 Then `"${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh" "<started>"`, one call.

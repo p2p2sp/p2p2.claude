@@ -1,0 +1,4 @@
+- switch-text.sh still greps `^<key>: ` with `-E`, so the dot in a grouped key is a regex wildcard; harmless because the case list fixes the key set and config.sh prints fixed lines, but a new key must stay in that case list.
+- DoD.2 (flat key prints nothing) also holds through config.sh alone, which no longer prints any flat line; the switch-text test guards against a flat alias being re-added, the portability self-check against a flat key in a SKILL.md call.
+- DoD.4-7 are prose clauses; they are proven by the task Verification greps, not by a test file.
+- `the \`memory\` entry` in implementor step 6 is a TaskCreate entry name, not the switch: left as is.

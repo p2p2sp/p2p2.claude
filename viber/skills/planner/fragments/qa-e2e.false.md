@@ -1,1 +1,1 @@
-`/viber:e2e` writes those tests after the build, and needs `qa: true` in `.claude/viber.yml` first.
+`/viber:e2e` writes those tests after the build, and needs `build.qa: true` in `.claude/viber.yml` first.
