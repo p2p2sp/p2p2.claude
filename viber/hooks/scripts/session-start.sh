@@ -7,12 +7,23 @@
 #
 # Contract:
 #   stdin  : JSON with at least { "source": "startup"|"resume"|"clear"|"compact" }
-#   stdout : { "systemMessage": "viber loaded <version>",
+#            and, when present, "cwd" (the session directory).
+#   env    : CLAUDE_PLUGIN_ROOT, the plugin root; unset -> paths relative to
+#            this script.
+#   stdout : { "systemMessage": "viber loaded <version>[ - <schema note>]",
 #              "hookSpecificOutput": { "hookEventName": "SessionStart",
 #                                      "additionalContext": "<manifest>" } }
 #            OR (manifest empty or unreadable) only the systemMessage /
 #            hookEventName, without additionalContext.
 #   exit 0 : always (fail-open; decisions are conveyed in stdout, not exit code).
+#
+# Schema note: the column-0 `schema:` number of the project's
+# `.claude/viber.yml` (git top level of `cwd`, else under `cwd`; 0 when absent or
+# not a number) is compared with the one in `skills/setup/templates/viber.yml`:
+#   lower  -> " - .claude/viber.yml is at schema <n>, this version expects <m>: run /viber:setup"
+#   higher -> " - .claude/viber.yml is at schema <n>, newer than this version's <m>: update the viber plugin"
+# Equal numbers, no file, no `cwd` or no readable template -> the plain banner.
+# The manifest is never touched by it.
 #
 # Wrapping discipline: this script injects the manifest VERBATIM. Any wrapping
 # markers (e.g. <EXTREMELY_IMPORTANT>) live in `hooks/content/manifest.md`
@@ -54,12 +65,36 @@ escape_for_json() {
   printf '%s' "$s"
 }
 
-# --- drain stdin ---------------------------------------------------------
-# Drain and discard the hook payload so the writer never hits EPIPE. The
+# --- read stdin ----------------------------------------------------------
+# Read the whole hook payload so the writer never hits EPIPE; only its `cwd` is
+# used, and a payload that does not parse simply carries none. The
 # `startup|clear|compact` matcher in hooks.json already excludes `resume`, so
 # no source-value filtering is needed here (a resumed session reloads the prior
 # transcript, which already holds the original injection).
-cat >/dev/null 2>&1
+input="$(cat 2>/dev/null)"
+
+json_str() {
+  printf '%s' "$2" \
+    | grep -oE "\"$1\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" \
+    | head -n1 \
+    | sed -E "s/^\"$1\"[[:space:]]*:[[:space:]]*\"(.*)\"$/\1/" \
+    | sed 's/\\\\/\\/g'
+}
+
+# Prints the number of the column-0 `schema:` line of file $1: 0 when the line is
+# absent or not a number. Fails (prints nothing) when the file cannot be read.
+schema_of() {
+  local line
+  [ -f "$1" ] && [ -r "$1" ] || return 1
+  line="$(grep -m1 -E '^schema:' "$1" 2>/dev/null | tr -d '\r')"
+  line="${line#schema:}"
+  line="${line%%#*}"
+  line="${line//[[:space:]]/}"
+  case "$line" in
+    ''|*[!0-9]*) printf '0' ;;
+    *) printf '%s' "$((10#$line))" ;;
+  esac
+}
 
 # --- read the manifest verbatim ------------------------------------------
 manifest=""
@@ -76,6 +111,33 @@ version="${version//\\//}" # normalize Windows backslashes so the basename strip
 version="${version##*/}"
 [ -z "$version" ] && version="dev"
 banner="viber loaded ${version}"
+
+# --- schema note (user-facing, appended to the banner) -------------------
+# Compare the project's `.claude/viber.yml` schema with the plugin template's.
+# The project file is the one at the git top level of the payload's `cwd`, else
+# under `cwd`. Any missing piece (no cwd, no file, no readable template) leaves
+# the plain banner.
+project_cwd="$(json_str cwd "$input")"
+template_file=""
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/viber.yml" ]; then
+  template_file="${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/viber.yml"
+elif [ -n "$SCRIPT_DIR" ] && [ -f "${SCRIPT_DIR}/../../skills/setup/templates/viber.yml" ]; then
+  template_file="${SCRIPT_DIR}/../../skills/setup/templates/viber.yml"
+fi
+if [ -n "$project_cwd" ] && [ -d "$project_cwd" ] && [ -n "$template_file" ]; then
+  project_file="$project_cwd/.claude/viber.yml"
+  top="$(git -C "$project_cwd" rev-parse --show-toplevel 2>/dev/null)"
+  [ -n "$top" ] && [ -f "$top/.claude/viber.yml" ] && project_file="$top/.claude/viber.yml"
+  expected="$(schema_of "$template_file")"
+  actual="$(schema_of "$project_file")"
+  if [ -n "$expected" ] && [ -n "$actual" ]; then
+    if [ "$actual" -lt "$expected" ]; then
+      banner="${banner} - .claude/viber.yml is at schema ${actual}, this version expects ${expected}: run /viber:setup"
+    elif [ "$actual" -gt "$expected" ]; then
+      banner="${banner} - .claude/viber.yml is at schema ${actual}, newer than this version's ${expected}: update the viber plugin"
+    fi
+  fi
+fi
 
 # --- emit ----------------------------------------------------------------
 # `systemMessage` MUST be a top-level JSON field, not nested in
