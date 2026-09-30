@@ -12,11 +12,6 @@
       "description": "Super UI Designer ecosystem for Claude Code."
     },
     {
-      "name": "superfix",
-      "source": "./superfix",
-      "description": "Super Fix ecosystem for Claude Code."
-    },
-    {
       "name": "superbiz",
       "source": "./superbiz",
       "description": "Super Biz ecosystem for Claude Code."
