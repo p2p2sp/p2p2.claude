@@ -244,7 +244,7 @@
   <text x="254" y="832" class="desc">Pisze plan w trybie planowania, na podstawie twojego kodu.</text>
   <text x="254" y="850" class="desc">Każde zadanie podaje swoje pliki, zależności i sposób weryfikacji.</text>
   <text x="254" y="872" class="desc-s">poproszony o samą specyfikację? pisze zamiast planu szkic</text>
-  <text x="254" y="892" class="desc-s"><tspan class="sw">adr</tspan> włączony: pierwsze zadanie zapisuje decyzje architektoniczne w docs/adr/</text>
+  <text x="254" y="892" class="desc-s"><tspan class="sw">adr</tspan> włączony: adr-screener ocenia decyzje; rekord to zadanie bez zależności</text>
   <text x="254" y="910" class="desc-s"><tspan class="sw">branching</tspan> włączony: plan podaje gałąź git, na której pracuje przebieg</text>
   <text x="254" y="932" class="mono">jeden plan · numerowane zadania · kryteria akceptacji</text>
 

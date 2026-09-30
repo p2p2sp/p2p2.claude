@@ -1,0 +1,5 @@
+- `adr-tasks.md` is read through `Read`, so `${CLAUDE_PLUGIN_ROOT}` is never expanded there: the `refs:` path reaches the dispatch through `adr.true.md`, which `switch-text.sh` expands.
+- The `plan-index.sh` re-run is stated twice on purpose: in `adr.true.md` (so SKILL.md step 2 reads write, validate, screen, validate again, show) and at the end of `adr-tasks.md`.
+- The record acceptance criterion is added only when a record, deprecate or append task is added; accepted routes alone add no criterion.
+- `adr-screener`'s description ("Invoked only by the planner skill") is confirmed by this wiring.
+- Still under-counting, left for `memory-writer` (repo runs `memory: true`) or a later task: `viber/agents/CLAUDE.md` ("seventeen", callers table missing `adr-screener`), `viber/CLAUDE.md` ("17 agents"), `viber/references/CLAUDE.md` (no reader for `adr-admission.md`).

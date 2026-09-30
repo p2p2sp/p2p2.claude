@@ -244,7 +244,7 @@
   <text x="254" y="832" class="desc">Writes the plan in plan mode, against your actual codebase.</text>
   <text x="254" y="850" class="desc">Every task names its files, its dependencies and how it is verified.</text>
   <text x="254" y="872" class="desc-s">asked to stop at a specification? it writes a draft instead</text>
-  <text x="254" y="892" class="desc-s"><tspan class="sw">adr</tspan> on: a first task records the architectural decisions in docs/adr/</text>
+  <text x="254" y="892" class="desc-s"><tspan class="sw">adr</tspan> on: adr-screener screens decisions; a record is a task with no dependencies</text>
   <text x="254" y="910" class="desc-s"><tspan class="sw">branching</tspan> on: the plan names the git branch the run works on</text>
   <text x="254" y="932" class="mono">one plan · numbered tasks · acceptance criteria</text>
 

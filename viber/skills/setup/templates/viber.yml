@@ -6,8 +6,9 @@
 # deleting a child there is not restored - it resolves to its default in
 # config.sh instead.
 
-# planner weighs whether the change carries an architectural decision worth
-# keeping, and turns each accepted one into a first task writing docs/adr/.
+# planner has the adr-screener agent test the plan's decisions against a strict
+# admission test, and turns each record you accept into a task with no
+# dependencies writing docs/adr/.
 adr: true
 
 # implementor updates the project's CLAUDE.md nodes at the close of a build.

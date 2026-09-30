@@ -44,13 +44,13 @@ An input carrying a roadmap fills `## Roadmap` in the template's shape with the 
 
 An input carrying a `Roadmap: <path>` line continues a roadmap: read that `roadmap.md`, mark every earlier entry `(built)`, and move this plan's own entry's decisions from the roadmap into the specification, out of the `## Roadmap` section.
 
-A plan stopping at a draft writes the specification half alone: no `## Tasks`, no `## Contracts` appendix, no `plan-index.sh`.
+A plan stopping at a draft writes the specification half alone: no `## Tasks`, no `## Contracts` appendix, no `plan-index.sh`, no decision record screening.
+
+Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan-path>"`. It must exit 0: fix whatever it reports and re-run.
 
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" adr "${CLAUDE_SKILL_DIR}" adr
 ```
-
-Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan-path>"`. It must exit 0: fix whatever it reports and re-run.
 
 Show the user the full path of the written plan.
 
