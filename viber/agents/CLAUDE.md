@@ -11,7 +11,7 @@ same edit.
 | `task-coder` | `implementor` (task, test-run `report:`, final-review `review:` fix) | source, its `notes` |
 | `task-reviewer`, `final-reviewer` | `implementor` (`final-review.true.md` for the second) | its report only |
 | `test-runner` | `implementor`, its baseline fragments, `intent`'s fast path | its report only |
-| `arbiter` | `implementor`, `baseline-run.true.md`, `final-review.true.md` | nothing |
+| `arbiter` | `implementor`, `baseline-run.<value>.md`, `final-review.true.md` | nothing |
 | `qa-writer`, `memory-writer`, `rules-writer`, `closeout` | `implementor`'s `qa`, `memory`, `rules`, `cleanup` fragments; `rules-writer` also `rules` | `qa.md`/`qa.e2e.md`; nodes; `.claude/rules/`; `spec.md` |
 | `planner-review`, `adr-screener` | `planner` (`adr-screener` only under `adr: true`, once the plan is written and indexed) | nothing |
 | `plain-plan-review` | the plan gate's request | nothing |
@@ -59,6 +59,14 @@ Read `CLAUDE.code-auditor.md` before editing `profiler`, `scout`, `edge-scout`, 
   the command ending `echo "exit=$?"` into it; a foreground wait at timeout 600000 loops on that
   `exit=` line and is the only call it repeats. The wait has no time cap, so a suite that never
   writes the line hangs it.
+- `test-runner`'s scope is set by `suite:` and `run:`: no `suite:` runs the host's fast command,
+  then the integration tests whose adapter (or a file it depends on) is among the change; `run: <dir>`
+  (every `implementor` final dispatch) bases the change on the commit that first added
+  `<dir>/plan.md`, no `run:` (`intent`'s fast path) on the working tree. It joins both commands
+  as `<fast> && <integration>` in the one run, so an integration failure stays hidden behind a fast
+  failure until the next round. No fast command or marker convention in the host's instructions, or
+  no plan commit found, runs every layer but end-to-end. It is `sonnet`/`effort: low`, and its
+  selection paragraph ends on "Think the problem through before you answer."
 - `final-reviewer` is the one gate where a Minor-only finding writes the report and fails: the
   single fix round settles both levels. Owner findings go only to `OWNER:` lines. It finds each
   task's commit by `commit-task.sh`'s subjects `<id> - <title>` and `<id>(<n>) - <title>`, and a

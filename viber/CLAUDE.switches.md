@@ -29,12 +29,18 @@
 - Switches reaching planning: `build.memory` (`plan-rules.md`'s Memory-owned rule, the `memory:`
   line to `planner-review`); `planning.adr` (`planner` follows `skills/planner/references/adr-tasks.md` once the plan is written and `plan-index.sh` exits 0, dispatching `adr-screener`);
   `build.qa` (`planner`'s e2e hand-off line); `branching.mode` (`CLAUDE.run-branch.md`).
-- `build.baseline-tests` reaches `implementor` only: `baseline-run.true.md` (step 4; `test-runner` in
-  `mode: baseline` before the first task when no task is `done` and the index has no `dirty:`
-  line, then the `baseline:` line on every coder and reviewer dispatch) and `baseline-close.true.md`
-  (the `baseline:` line on the final `test-runner`, the `KNOWN:`/`BASELINE: none` summary lines).
-  The report is `<dir>/work/tests-baseline.md`; `test-runner`'s `mode:`/`baseline:` input lines,
-  `BUILD: failed`, `KNOWN:` and `BASELINE: none` returns are one loop with those fragments.
+- `build.baseline-tests` is `off`, `fast` or `full` (`config.sh`: `full`/`true` in any letter case
+  -> `full`, `fast` -> `fast`, else `off`) and reaches `implementor` only: `baseline-run.<value>.md`
+  (step 4; `test-runner` in `mode: baseline` with `suite: fast` or `suite: full` before the first
+  task when no task is `done` and the index has no `dirty:` line, then the `baseline:` line on
+  every coder and reviewer dispatch) and `baseline-close.<value>.md` (the `baseline:` line on the
+  final `test-runner`, the `KNOWN:`/`BASELINE: none` summary lines); each pair differs only in the
+  `suite:` line, `off` has no file. `bootstrap.sh` rewrites a `true`/`false` to `full`/`off` only
+  in a file below the template's schema, or one it moves out of column 0.
+  The report is `<dir>/work/tests-baseline.md`; `test-runner`'s `mode:`/`baseline:`/`suite:`
+  input lines, `BUILD: failed`, `KNOWN:` and `BASELINE: none` returns are one loop with those
+  fragments. A `fast` baseline holds no integration failure, so a changed adapter's integration
+  test failing before the build shows as new in the final run.
   `task-coder` and `task-reviewer` read `baseline:` as their own input line. The repair coder and
   `final-review.true.md` get no `baseline:` line.
 - `planning.fast-path` reaches `intent`, not planning: `skills/intent/fragments/fast-path.true.md`, preloaded
