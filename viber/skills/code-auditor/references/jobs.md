@@ -1,6 +1,6 @@
 # Jobs catalog - what to point the sweep at
 
-Every job is the same formula, Impact x Opportunity, over two cheaply-measurable signals. Pick the job that matches the user's goal, then write its signal pair into `.temp/superfix/<run-id>/job.md` so the whole swarm scores against the same definition.
+Every job is the same formula, Impact x Opportunity, over two cheaply-measurable signals. Pick the job that matches the user's goal, then write its signal pair into `.temp/viber/code-auditor/<run-id>/job.md` so the whole swarm scores against the same definition.
 
 Impact = how much pain it touches if we fix it. Opportunity = how bad it is right now, and how fixable today.
 

@@ -1,5 +1,5 @@
 /*
- * profiler.test.ts - proves the one Bash call superfix/agents/profiler.md
+ * profiler.test.ts - proves the one Bash call viber/agents/profiler.md
  * tells the profiler agent to run is a command git actually executes: the
  * fenced `git -C <target-root> log --since=... -i --grep=fix --grep=hotfix
  * --grep=revert --stat --format='%h %s' -- <scope or .>` block is lifted from
@@ -18,7 +18,7 @@
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/superfix/profiler.test.ts
+ *   node --test tests/viber/profiler.test.ts
  */
 
 import { test } from "../harness/test.ts";
@@ -30,7 +30,7 @@ import { runScript, type RunResult } from "../harness/run.ts";
 import { withGitRepo, withTempDir, type GitRepo } from "../harness/tmp.ts";
 import { forEachShell, type Shell } from "../harness/shells.ts";
 
-const AGENT = path.resolve(import.meta.dirname, "../../superfix/agents/profiler.md");
+const AGENT = path.resolve(import.meta.dirname, "../../viber/agents/profiler.md");
 const WINDOW_DAYS = 30;
 
 async function assertBash(fn: (shell: Shell) => void | Promise<void>) {

@@ -15,7 +15,7 @@ Turns many candidate detective reports of mixed quality into a trustworthy, seve
 
 ## Detective report schema
 
-Each detective writes one file to `.temp/superfix/<run-id>/reports/<rank>-<slug>.md`. It opens with a head block of six tagged lines, in exactly this order, so the whole pool can be ranked without opening a single report body:
+Each detective writes one file to `.temp/viber/code-auditor/<run-id>/reports/<rank>-<slug>.md`. It opens with a head block of six tagged lines, in exactly this order, so the whole pool can be ranked without opening a single report body:
 
 ```markdown
 # <short title>
@@ -39,7 +39,7 @@ If nothing real survives, the detective writes a file whose entire body is `NO F
 
 ## Claim sidecar schema
 
-A detective that files a finding writes one more file next to its report, at `.temp/superfix/<run-id>/reports/<rank>-<slug>.claim.md`. The sidecar is the claim with the reasoning stripped out, and it is the only thing the critic is ever given. Three parts, in this order, and nothing else:
+A detective that files a finding writes one more file next to its report, at `.temp/viber/code-auditor/<run-id>/reports/<rank>-<slug>.claim.md`. The sidecar is the claim with the reasoning stripped out, and it is the only thing the critic is ever given. Three parts, in this order, and nothing else:
 
 1. `LOCATION: <the report's LOCATION line, verbatim>`
 2. `CLASS: <the report's CLASS line, verbatim>`
@@ -112,7 +112,7 @@ Only when `job.md` carries no `## Repo profile` section at all (the profiler mis
 
 ## findings.md (final output)
 
-One file per run, at `.temp/superfix/<run-id>/findings.md`, built in this shape:
+One file per run, at `.temp/viber/code-auditor/<run-id>/findings.md`, built in this shape:
 
 - the title line `# Findings - <run-id> (<job>)`;
 - directly under it the header line `N files swept · P pairs swept · M hotspots investigated · K confirmed findings · J fronts still open.`;

@@ -1,8 +1,9 @@
 ---
 name: edge-scout
 description: Cheap breadth-first pair-contract classifier. Invoked only by the code-auditor skill, never directly.
-model: haiku
 tools: Read, Grep, Glob
+model: haiku
+color: green
 ---
 
 # Edge scout - cheap pair-contract classifier

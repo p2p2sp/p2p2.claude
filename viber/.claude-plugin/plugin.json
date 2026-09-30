@@ -18,6 +18,7 @@
     "./skills/e2e/",
     "./skills/memory/",
     "./skills/rules/",
+    "./skills/code-auditor/",
     "./skills/help/",
     "./skills/handoff/",
     "./skills/commit/"
@@ -40,6 +41,11 @@
     "./agents/e2e-writer.md",
     "./agents/closeout.md",
     "./agents/prototype-writer.md",
-    "./agents/prover.md"
+    "./agents/prover.md",
+    "./agents/profiler.md",
+    "./agents/scout.md",
+    "./agents/edge-scout.md",
+    "./agents/detective.md",
+    "./agents/critic.md"
   ]
 }

@@ -1,7 +1,6 @@
 ---
 paths:
   - "tests/**/*.ts"
-  - "superfix/skills/code-auditor/scripts/*.sh"
   - "supercc/skills/*/scripts/*.sh"
   - "superui/skills/pro-designer/scripts/*.sh"
   - "viber/scripts/*.sh"
@@ -16,7 +15,7 @@ paths:
 - A local run is the fast suite: `forEachShell` runs each case under the first shell present only. CI sets `CI=true`, which runs the full shell matrix (every POSIX shell and bash major present); prefix a local command with `CI=true` to run that matrix on a developer machine.
 - Two levels of parallelism multiply: `--test-concurrency` sets how many files run at once, and `tests/harness/test.ts` runs up to 4 cases of one file at once (`P2P2_TEST_CONCURRENCY=<n>` overrides it; `1` restores one-at-a-time, the way to rule concurrency out when a case flakes).
 - Default to the selection `tests/CLAUDE.md` maps per change and keep the full suite for the handover, not for every edit: one file is `node --test tests/viber/config.test.ts` against minutes for everything.
-- Select one plugin's subset with a QUOTED glob: `node --test "tests/superui/*.test.ts"` (16 tests), `node --test --test-concurrency=12 "tests/viber/*.test.ts"` (873 tests across 26 files on macOS, 871 pass plus 2 skips for cases that run only on Windows). The quotes are mandatory - the shell must not expand the glob, `node --test` resolves it itself.
+- Select one plugin's subset with a QUOTED glob: `node --test "tests/superui/*.test.ts"` (16 tests), `node --test --test-concurrency=12 "tests/viber/*.test.ts"` (1094 tests across 33 files, 1092 pass plus 2 skips for cases that run only on another OS). The quotes are mandatory - the shell must not expand the glob, `node --test` resolves it itself.
 - NEVER pass a bare directory. `node --test tests/superui/` does not select the files inside it: Node resolves the argument as a module path and reports the failure as a failed test named `tests\superui`, so a wrong argument reads like a red suite rather than like a usage error.
 - Select a single case with `--test-name-pattern`: `node --test --test-name-pattern "a commented-out" tests/viber/config.test.ts` runs exactly 1 test. It combines with a glob: `node --test --test-concurrency=12 --test-name-pattern "fail-open" "tests/viber/*.test.ts"`.
 - `--test-name-pattern` takes a JavaScript regular expression, not a literal string. Anchor it on a distinctive plain-word fragment of the test name instead of pasting the whole name, whose punctuation (`(`, `[`, `.`, `?`) is regex syntax.

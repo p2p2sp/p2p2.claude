@@ -45,10 +45,10 @@ The job never comes from `$ARGUMENTS`; it is always confirmed in Phase 0. Two to
 2. Resolve the target repo path to an absolute root (`cd "<target-repo-path>" && pwd`). If it already equals the current working directory this is a no-op - never prefix it again downstream.
 3. Validate the area directory, when token 2 was given. An absolute path is accepted only when it lies under the resolved root, and is then rewritten to its root-relative form; a relative path is read against the root. A value that does not exist as a directory under the root, that lies outside it, or that carries a `..` segment STOPS the run here: tell the user `code-auditor: area directory not found under <root>: <value>` and do nothing else. The validated root-relative value is this run's scope, carried into `job.md` and into both Phase 1 commands; with no token 2 the run has no scope and sweeps the whole repo.
 4. Run `sh "${CLAUDE_SKILL_DIR}/scripts/check_node.sh"`. `NODE_OK <cmd>` -> use `<cmd>` wherever this skill writes `node`. `NODE_MISSING` -> STOP here: the Phase 3 gates need Node.js >= 22.6, and without them the sweep, the scout fan-out and the profiler would be paid for and then discarded. Tell the user, and do not start Phase 1. Nothing that spends tokens or runs a script happens before this step - steps 1 to 3 are a conversation and a path check, nothing more.
-5. Create the workspace: `mkdir -p .temp/superfix/<run-id>/{signals,scores,reports,hotlist,worktrees}`.
-6. Write `.temp/superfix/<run-id>/job.md`: the job's Impact and Opportunity signals from `references/jobs.md`, the 1-5 rubric inlined from `references/scoring.md`, `Target root: <the absolute root from step 2>`, `Window: <the sweep window in days, the same number Phase 1 hands collect_signals.sh - 30 unless the user asked for another>`, and, only on a scoped run, `Scope: <the root-relative area directory from step 3>`. Every subagent scores against that one self-contained file, and every later phase addresses files relative to that root.
-7. Dispatch `superfix:profiler` (Agent tool) in the same message that starts the Phase 1 scripts, so the repo profile is written while the sweep runs. Its brief carries `Target root: <root>`, `Window: <days>`, `Scope: <dir>` on a scoped run, the `job.md` path, and the output path `.temp/superfix/<run-id>/profile.md`.
-8. Profile gate. When the profiler returns, check that `.temp/superfix/<run-id>/profile.md` exists and carries all four headings - `## Bug classes from history`, `## Contract shape`, `## Critical paths`, `## Severity calibration`. If it does, append the whole file verbatim to `job.md` under a `## Repo profile` heading: that section is what calibrates every later agent to this repo instead of to generic priors. If it does not, dispatch the profiler once more with the same brief; after a second miss continue with no `## Repo profile` section in `job.md`, carry `repo profile unavailable` into `findings.md`'s `## Coverage notes`, and say so in the Phase 3 hotlist message, so the ranking reads as uncalibrated rather than as repo-specific.
+5. Create the workspace: `mkdir -p .temp/viber/code-auditor/<run-id>/{signals,scores,reports,hotlist,worktrees}`.
+6. Write `.temp/viber/code-auditor/<run-id>/job.md`: the job's Impact and Opportunity signals from `references/jobs.md`, the 1-5 rubric inlined from `references/scoring.md`, `Target root: <the absolute root from step 2>`, `Window: <the sweep window in days, the same number Phase 1 hands collect_signals.sh - 30 unless the user asked for another>`, and, only on a scoped run, `Scope: <the root-relative area directory from step 3>`. Every subagent scores against that one self-contained file, and every later phase addresses files relative to that root.
+7. Dispatch `viber:profiler` (Agent tool) in the same message that starts the Phase 1 scripts, so the repo profile is written while the sweep runs. Its brief carries `Target root: <root>`, `Window: <days>`, `Scope: <dir>` on a scoped run, the `job.md` path, and the output path `.temp/viber/code-auditor/<run-id>/profile.md`.
+8. Profile gate. When the profiler returns, check that `.temp/viber/code-auditor/<run-id>/profile.md` exists and carries all four headings - `## Bug classes from history`, `## Contract shape`, `## Critical paths`, `## Severity calibration`. If it does, append the whole file verbatim to `job.md` under a `## Repo profile` heading: that section is what calibrates every later agent to this repo instead of to generic priors. If it does not, dispatch the profiler once more with the same brief; after a second miss continue with no `## Repo profile` section in `job.md`, carry `repo profile unavailable` into `findings.md`'s `## Coverage notes`, and say so in the Phase 3 hotlist message, so the ranking reads as uncalibrated rather than as repo-specific.
 
 Every run sweeps two units, files and producer/consumer pairs. The edge track runs unconditionally alongside the file track, not only when the file track looks clean - a contract defect between two individually-correct files is invisible to a per-file scout.
 
@@ -56,14 +56,14 @@ Every run sweeps two units, files and producer/consumer pairs. The edge track ru
 
 ```bash
 bash "${CLAUDE_SKILL_DIR}/scripts/collect_signals.sh" <window-days> <repo-root> --with-dependents --scope <area-dir> \
-  > .temp/superfix/<run-id>/signals/signals.jsonl
+  > .temp/viber/code-auditor/<run-id>/signals/signals.jsonl
 ```
 
 One JSON line per source file with `churn`, `fix_commits`, `recency_days`, `loc`, `dependents`, and `dependents_stem` - the lockstep-unique literal `dependents` was counted by, `null` whenever `dependents` is -1. These feed the scouts as priors, they are not the score. `--with-dependents` costs O(n) extra `git grep` calls on top of the sweep; drop it deliberately on a very large target if that cost is not worth paying.
 
 ```bash
 bash "${CLAUDE_SKILL_DIR}/scripts/collect_edges.sh" <repo-root> --max-fanout 8 --scope <area-dir> \
-  > .temp/superfix/<run-id>/signals/edges.jsonl
+  > .temp/viber/code-auditor/<run-id>/signals/edges.jsonl
 ```
 
 One JSON line per candidate artifact pair - two swept files sharing a path-like literal, which is evidence they share a contract. An empty `edges.jsonl` is a valid result: the edge track then contributes nothing and the run proceeds on the file track alone.
@@ -72,9 +72,9 @@ One JSON line per candidate artifact pair - two swept files sharing a path-like 
 
 ## Phase 2 - Score (fan out the scouts, cheap tier)
 
-Do not start until `job.md` carries its `## Repo profile` section, or the Phase 0 profile gate has recorded the profile's absence after two misses. Then, for each candidate file, or each batch of files, spawn a `superfix:scout` (Agent tool). Give it the matching line from `signals.jsonl` verbatim - not a separately-resolved path - plus `job.md`. Append every verdict to `.temp/superfix/<run-id>/scores/scores.jsonl`.
+Do not start until `job.md` carries its `## Repo profile` section, or the Phase 0 profile gate has recorded the profile's absence after two misses. Then, for each candidate file, or each batch of files, spawn a `viber:scout` (Agent tool). Give it the matching line from `signals.jsonl` verbatim - not a separately-resolved path - plus `job.md`. Append every verdict to `.temp/viber/code-auditor/<run-id>/scores/scores.jsonl`.
 
-For each candidate pair, or small batch of pairs, spawn a `superfix:edge-scout` the same way, with the edge record line handed over verbatim. Append every verdict to `.temp/superfix/<run-id>/scores/edge_scores.jsonl`.
+For each candidate pair, or small batch of pairs, spawn a `viber:edge-scout` the same way, with the edge record line handed over verbatim. Append every verdict to `.temp/viber/code-auditor/<run-id>/scores/edge_scores.jsonl`.
 
 - Batch to control cost: ~10-40 files per scout on a huge tree, 1 file per scout when you want maximum resolution on a hot module.
 - Launch at most 16 concurrent subagents; beyond that, run successive waves.
@@ -84,29 +84,29 @@ For each candidate pair, or small batch of pairs, spawn a `superfix:edge-scout` 
 
 ```bash
 node "${CLAUDE_SKILL_DIR}/scripts/rank.ts" \
-  --scores .temp/superfix/<run-id>/scores/scores.jsonl \
-  --signals .temp/superfix/<run-id>/signals/signals.jsonl \
+  --scores .temp/viber/code-auditor/<run-id>/scores/scores.jsonl \
+  --signals .temp/viber/code-auditor/<run-id>/signals/signals.jsonl \
   --min-impact 3 --min-opportunity 3 --top 20 \
   --run-id <run-id> --job <job> \
-  --out-json .temp/superfix/<run-id>/hotlist/hotlist.json \
-  --out-md   .temp/superfix/<run-id>/hotlist/hotlist.md
+  --out-json .temp/viber/code-auditor/<run-id>/hotlist/hotlist.json \
+  --out-md   .temp/viber/code-auditor/<run-id>/hotlist/hotlist.md
 ```
 
 ```bash
 node "${CLAUDE_SKILL_DIR}/scripts/rank_edges.ts" \
-  --edges .temp/superfix/<run-id>/signals/edges.jsonl \
-  --verdicts .temp/superfix/<run-id>/scores/edge_scores.jsonl \
-  --signals .temp/superfix/<run-id>/signals/signals.jsonl \
+  --edges .temp/viber/code-auditor/<run-id>/signals/edges.jsonl \
+  --verdicts .temp/viber/code-auditor/<run-id>/scores/edge_scores.jsonl \
+  --signals .temp/viber/code-auditor/<run-id>/signals/signals.jsonl \
   --top-edges 20 --run-id <run-id> --job <job> \
-  --out-json .temp/superfix/<run-id>/hotlist/edges.json \
-  --out-md   .temp/superfix/<run-id>/hotlist/edges.md
+  --out-json .temp/viber/code-auditor/<run-id>/hotlist/edges.json \
+  --out-md   .temp/viber/code-auditor/<run-id>/hotlist/edges.md
 ```
 
 Both gates are deterministic, so the cut is reproducible. Show `hotlist.md` and `edges.md` to the user before spending frontier tokens.
 
 ## Phase 4 - Dispatch detectives (frontier tier, top-N only)
 
-Build the dispatch set as the union of three sources, then spawn one `superfix:detective` (Agent tool) per entry:
+Build the dispatch set as the union of three sources, then spawn one `viber:detective` (Agent tool) per entry:
 
 - `hotlist.json` `hotspots` - the file track's gate-clearing files.
 - `edges.json` `dispatch` - the edge track's gate-clearing pairs.
@@ -117,8 +117,8 @@ A file appearing in both the file hotlist and an edge dispatch row gets one dete
 Give each detective:
 
 - Its entry point(s), resolved against the `Target root:` in `job.md`, so it reads the same file the sweep scored regardless of the directory this skill runs from. A hotspot or degree-slot dispatch gets ONE path as an entry point (not a fence - it may follow the trail into neighbouring code); a degree-slot dispatch additionally states that the file was selected by graph degree rather than by score. An edge dispatch gets BOTH endpoints. On a scoped run an edge whose second endpoint lies outside the area is still a valid entry: dispatch it with both endpoints, because a contract crossing the boundary is what a scoped audit exists to catch.
-- `job.md`, the report-schema path `${CLAUDE_SKILL_DIR}/references/synthesis.md`, the output path for its report (`.temp/superfix/<run-id>/reports/<rank>-<slug>.md`), and the output path for its claim sidecar (`.temp/superfix/<run-id>/reports/<rank>-<slug>.claim.md`), which it writes only when it files a finding.
-- The worktree-script path `${CLAUDE_SKILL_DIR}/scripts/worktree.sh`, and a unique absolute verification-worktree path reserved for this detective alone (`<target-root>/.temp/superfix/<run-id>/worktrees/<rank>-<slug>`).
+- `job.md`, the report-schema path `${CLAUDE_SKILL_DIR}/references/synthesis.md`, the output path for its report (`.temp/viber/code-auditor/<run-id>/reports/<rank>-<slug>.md`), and the output path for its claim sidecar (`.temp/viber/code-auditor/<run-id>/reports/<rank>-<slug>.claim.md`), which it writes only when it files a finding.
+- The worktree-script path `${CLAUDE_SKILL_DIR}/scripts/worktree.sh`, and a unique absolute verification-worktree path reserved for this detective alone (`<target-root>/.temp/viber/code-auditor/<run-id>/worktrees/<rank>-<slug>`).
 
 Scale the count to the size of the dispatch set - 5, 20 or 50 - and never dispatch a detective to something that did not clear a gate. Launch at most 16 concurrent; run successive waves beyond that.
 
@@ -126,9 +126,9 @@ Scale the count to the size of the dispatch set - 5, 20 or 50 - and never dispat
 
 Read `${CLAUDE_SKILL_DIR}/references/synthesis.md`, then run the critic pass:
 
-1. For every detective report that is not `NO FINDING`, spawn a `superfix:critic` (Agent tool), one per report. Give it four things and nothing else: the claim sidecar path (`.temp/superfix/<run-id>/reports/<rank>-<slug>.claim.md`), `job.md`, the worktree-script path `${CLAUDE_SKILL_DIR}/scripts/worktree.sh`, and a fresh unique absolute verification-worktree path reserved for it alone (`<target-root>/.temp/superfix/<run-id>/worktrees/critic-<rank>-<slug>`), never the one the detective used. The sidecar is the whole claim, so the report stays out of the brief: a verifier handed the discoverer's reasoning confirms that framing instead of testing it. The critic returns a tagged `VERDICT:` in its final message and writes no file.
-2. A critic whose final message carries no `VERDICT:` line is dispatched once more, same brief, with a fresh worktree path of its own (`<target-root>/.temp/superfix/<run-id>/worktrees/critic-<rank>-<slug>-retry`). After that second miss the finding is folded as `INCONCLUSIVE` carrying the reason `critic returned no verdict`, as `synthesis.md` specifies.
-3. Rank the pool from the critics' verdict blocks, which are already in this context, plus the first four lines of each report (`# <title>`, `LOCATION`, `CLASS`, `SEVERITY`) and nothing more. Then fold the verdicts, deduplicate by root cause, assign severity and emit `.temp/superfix/<run-id>/findings.md` exactly as `synthesis.md` specifies - the cap of ten full entries, the `## Further findings (N)` list, the tie-break and the coverage notes. A full report is opened only for an entry that made the cap, and only while that entry is being written.
+1. For every detective report that is not `NO FINDING`, spawn a `viber:critic` (Agent tool), one per report. Give it four things and nothing else: the claim sidecar path (`.temp/viber/code-auditor/<run-id>/reports/<rank>-<slug>.claim.md`), `job.md`, the worktree-script path `${CLAUDE_SKILL_DIR}/scripts/worktree.sh`, and a fresh unique absolute verification-worktree path reserved for it alone (`<target-root>/.temp/viber/code-auditor/<run-id>/worktrees/critic-<rank>-<slug>`), never the one the detective used. The sidecar is the whole claim, so the report stays out of the brief: a verifier handed the discoverer's reasoning confirms that framing instead of testing it. The critic returns a tagged `VERDICT:` in its final message and writes no file.
+2. A critic whose final message carries no `VERDICT:` line is dispatched once more, same brief, with a fresh worktree path of its own (`<target-root>/.temp/viber/code-auditor/<run-id>/worktrees/critic-<rank>-<slug>-retry`). After that second miss the finding is folded as `INCONCLUSIVE` carrying the reason `critic returned no verdict`, as `synthesis.md` specifies.
+3. Rank the pool from the critics' verdict blocks, which are already in this context, plus the first four lines of each report (`# <title>`, `LOCATION`, `CLASS`, `SEVERITY`) and nothing more. Then fold the verdicts, deduplicate by root cause, assign severity and emit `.temp/viber/code-auditor/<run-id>/findings.md` exactly as `synthesis.md` specifies - the cap of ten full entries, the `## Further findings (N)` list, the tie-break and the coverage notes. A full report is opened only for an entry that made the cap, and only while that entry is being written.
 
 `synthesis.md` is the sole authority on verification, deduplication, severity and the shape of `findings.md` - do not restate or reinterpret its rules.
 

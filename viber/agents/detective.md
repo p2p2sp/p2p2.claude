@@ -1,9 +1,10 @@
 ---
 name: detective
 description: Frontier depth-first hotspot investigator. Invoked only by the code-auditor skill, never directly.
+tools: Read, Write, Grep, Glob, Bash
 model: inherit
 effort: high
-tools: Read, Write, Grep, Glob, Bash
+color: purple
 ---
 
 # Detective - frontier depth-first investigator

@@ -1,8 +1,9 @@
 ---
 name: scout
 description: Cheap breadth-first triage scorer. Invoked only by the code-auditor skill, never directly.
-model: haiku
 tools: Read, Grep, Glob
+model: haiku
+color: green
 ---
 
 # Scout - cheap breadth-first scorer
