@@ -47,7 +47,7 @@ const OFF = {
   "planning.adr": "false",
   "planning.plain-plan-review": "false",
   "planning.fast-path": "false",
-  "build.baseline-tests": "false",
+  "build.baseline-tests": "off",
   "build.final-review": "false",
   "build.memory": "false",
   "build.rules": "false",
@@ -130,7 +130,7 @@ test("no config file: the block is every switch off, both title defaults, then t
       "planning.adr: false",
       "planning.plain-plan-review: false",
       "planning.fast-path: false",
-      "build.baseline-tests: false",
+      "build.baseline-tests: off",
       "build.final-review: false",
       "build.memory: false",
       "build.rules: false",
@@ -184,12 +184,22 @@ for (const [label, body] of [
   });
 }
 
-for (const value of ["true", "TRUE", "True"]) {
-  test(`\`baseline-tests: ${value}\` inside \`build:\` resolves to true, matched in any letter case`, async () => {
+for (const value of ["fast", "FAST", "Fast"]) {
+  test(`\`baseline-tests: ${value}\` inside \`build:\` prints \`build.baseline-tests: fast\`, matched in any letter case`, async () => {
     await withTempDir("p2p2-viber-", async (dir) => {
       writeConfig(dir, inGroup("build", `baseline-tests: ${value}`));
 
-      assert.deepEqual(switches((await run(dir)).stdout), { ...OFF, "build.baseline-tests": "true" });
+      assert.equal(printedLine((await run(dir)).stdout, "build.baseline-tests"), "build.baseline-tests: fast");
+    });
+  });
+}
+
+for (const value of ["full", "FULL", "Full", "true", "TRUE", "True"]) {
+  test(`\`baseline-tests: ${value}\` inside \`build:\` prints \`build.baseline-tests: full\`, matched in any letter case`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
+      writeConfig(dir, inGroup("build", `baseline-tests: ${value}`));
+
+      assert.equal(printedLine((await run(dir)).stdout, "build.baseline-tests"), "build.baseline-tests: full");
     });
   });
 }
@@ -198,15 +208,27 @@ for (const [label, body] of [
   ["the key absent", inGroup("build", "memory: true")],
   ["another value", inGroup("build", "memory: true", "baseline-tests: enabled")],
   ["the value false", inGroup("build", "baseline-tests: false")],
+  ["a column-0 key", "baseline-tests: fast\n"],
+  ["the key under another group", inGroup("planning", "baseline-tests: full")],
 ] as const) {
-  test(`a config with ${label} resolves \`build.baseline-tests\` to false`, async () => {
+  test(`a config with ${label} prints \`build.baseline-tests: off\``, async () => {
     await withTempDir("p2p2-viber-", async (dir) => {
       writeConfig(dir, body);
 
-      assert.equal(switches((await run(dir)).stdout)["build.baseline-tests"], "false");
+      assert.equal(printedLine((await run(dir)).stdout, "build.baseline-tests"), "build.baseline-tests: off");
     });
   });
 }
+
+test("`build.baseline-tests` still sits between `planning.fast-path` and `build.final-review`", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(dir, inGroup("build", "baseline-tests: fast"));
+
+    const keys = (await run(dir)).stdout.trim().split("\n").slice(1).map((line) => line.slice(0, line.indexOf(":")));
+    const at = keys.indexOf("build.baseline-tests");
+    assert.deepEqual(keys.slice(at - 1, at + 2), ["planning.fast-path", "build.baseline-tests", "build.final-review"]);
+  });
+});
 
 test("only `true` counts as on - false, a missing key, a commented-out line and a near-miss value are all off", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
@@ -332,7 +354,7 @@ test("the shipped template resolves to its own defaults: every switch, both titl
       "planning.adr": "true",
       "planning.plain-plan-review": "true",
       "planning.fast-path": "true",
-      "build.baseline-tests": "false",
+      "build.baseline-tests": "off",
       "build.final-review": "true",
       "build.memory": "true",
       "build.rules": "true",

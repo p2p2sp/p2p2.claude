@@ -92,7 +92,6 @@ for (const [label, config] of [
 for (const [key, group, child, name] of [
   ["build.final-review", "build", "final-review", "final-review"],
   ["planning.fast-path", "planning", "fast-path", "fast-path"],
-  ["build.baseline-tests", "build", "baseline-tests", "baseline-run"],
   ["github.issues", "github", "issues", "issues-input"],
 ] as const) {
   test(`\`${key}\` on prints the skill's ${name}.true.md fragment`, async () => {
@@ -117,6 +116,36 @@ for (const [key, group, child, name] of [
     });
   });
 }
+
+for (const [value, printed] of [
+  ["fast", "Fast run.\n"],
+  ["full", "Full run.\n"],
+  ["true", "Full run.\n"],
+] as const) {
+  test(`\`build.baseline-tests\` written ${value} prints the fragment of its resolved value`, async () => {
+    await withGitRepo(async (repo) => {
+      writeConfig(repo, `build:\n  baseline-tests: ${value}\n`);
+      writeFragment(repo, "baseline-run.fast.md", "Fast run.\n");
+      writeFragment(repo, "baseline-run.full.md", "Full run.\n");
+
+      const result = await run(repo, ["build.baseline-tests", skillDir(repo), "baseline-run"]);
+
+      assert.deepEqual([result.status, result.stdout], [0, printed]);
+    });
+  });
+}
+
+test("`build.baseline-tests` resolved to off prints nothing when no .off.md fragment exists", async () => {
+  await withGitRepo(async (repo) => {
+    writeConfig(repo, "build:\n  baseline-tests: false\n");
+    writeFragment(repo, "baseline-run.fast.md", "Fast run.\n");
+    writeFragment(repo, "baseline-run.full.md", "Full run.\n");
+
+    const result = await run(repo, ["build.baseline-tests", skillDir(repo), "baseline-run"]);
+
+    assert.deepEqual([result.status, result.stdout], [0, ""]);
+  });
+});
 
 for (const [config, mode] of [
   ["branching:\n  mode: required\n", "required"],

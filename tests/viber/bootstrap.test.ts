@@ -318,7 +318,7 @@ test("a flat config migrated by setup resolves through config.sh to the flat fil
       "planning.adr: false",
       "planning.plain-plan-review: true",
       "planning.fast-path: false",
-      "build.baseline-tests: false",
+      "build.baseline-tests: off",
       "build.final-review: true",
       "build.memory: false",
       "build.rules: true",

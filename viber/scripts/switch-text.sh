@@ -23,7 +23,8 @@
 #                   planning.fast-path | build.baseline-tests |
 #                   build.final-review | build.memory | build.rules |
 #                   build.qa | build.cleanup | github.issues
-#                   (value true | false) or
+#                   (value true | false, except build.baseline-tests: off |
+#                   fast | full) or
 #                   branching.mode (value off | allowed | required) - the
 #                   value config.sh prints for it. A flat key (`memory`) is
 #                   an unknown key.

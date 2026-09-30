@@ -44,6 +44,10 @@
 #            by a space, a comment or the end of the line). A column-0 key of
 #            the same name, the key under another group, or an absent key ->
 #            false.
+#            build.baseline-tests is the one three-valued switch, read the same
+#            group-bound way: `full` or `true` (any letter case) -> full, `fast`
+#            (any letter case) -> fast, `false`, any other value, an absent key,
+#            a column-0 key or the key under another group -> off.
 #            github.issue-title (default `{summary}`) and
 #            github.pr-title (default `[{issue-number}] {summary}`) - title patterns,
 #            children of `github:`. A value opening on a quote with its
@@ -71,7 +75,7 @@
 #            bases and name patterns live in `branching.work` entries, read by
 #            `--branching` alone.
 #   stdout : a header line, then one `<group>.<key>: <true|false>` line per
-#            switch, one `github.<key>: <pattern>` line per title, one
+#            switch (`build.baseline-tests: <off|fast|full>`), one `github.<key>: <pattern>` line per title, one
 #            `directories.<key>: <name>` line per directory key, one
 #            `tiers.<key>: <tier>` line per tier key and the
 #            `branching.mode: <mode>` line - dotted, so the block reads the
@@ -80,7 +84,7 @@
 #              planning.adr: true
 #              planning.plain-plan-review: true
 #              planning.fast-path: true
-#              build.baseline-tests: false
+#              build.baseline-tests: off
 #              build.final-review: true
 #              build.memory: true
 #              build.rules: true
@@ -174,7 +178,9 @@ END {
   for (i = 1; i <= n; i++) {
     v = raw[ids[i]]
     sub(/[[:space:]#].*$/, "", v)
-    print ids[i] ": " (tolower(v) == "true" ? "true" : "false")
+    v = tolower(v)
+    if (ids[i] == "build.baseline-tests") print ids[i] ": " (v == "full" || v == "true" ? "full" : v == "fast" ? "fast" : "off")
+    else print ids[i] ": " (v == "true" ? "true" : "false")
   }
   print "github.issue-title: " title(raw["github.issue-title"], "{summary}")
   print "github.pr-title: " title(raw["github.pr-title"], "[{issue-number}] {summary}")
