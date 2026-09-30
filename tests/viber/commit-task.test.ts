@@ -78,8 +78,8 @@ const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/commit-task.s
 // `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" ...`, never through bash; the
 // harness below still runs it via shell: "bash" because it is testing the
 // script's content, not its exec bit (portability.test.ts covers that).
-function run(dir: string, env: Record<string, string>, args: string[]) {
-  return runScript(SUT, args, { cwd: dir, env, shell: "bash" });
+function run(dir: string, env: Record<string, string>, args: string[], timeout?: number) {
+  return runScript(SUT, args, { cwd: dir, env, shell: "bash", timeout });
 }
 
 /** The dated run directory plan-path.sh owns - the plan lives in the repo, and
@@ -2043,5 +2043,111 @@ test("--outside with named paths producing no change exits 4 and commits nothing
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.match(result.stderr, /no changes to commit/);
     assert.deepEqual(await subjects(repo), ["already recorded", "seed"]);
+  });
+});
+
+/*
+ * Root cause: commit-task.sh hands a task's whole path list to ONE git call (commit_named's
+ * `git rm --cached` / `git ls-files -s`, the `git diff --cached --quiet` gate, --landed's diff/status).
+ * Actual: a ~36 KB command line; expected: every git command line within Windows' CreateProcess cap
+ * (32767 chars), which MSYS2 reports as E2BIG. Fix: split each path-list git call into bounded chunks.
+ */
+const CMDLINE_CAP = 32767;
+const MANY_PATHS = Array.from(
+  { length: 260 },
+  (_, i) => `src/${"a-long-module-directory-name-".repeat(4)}/file-${String(i).padStart(4, "0")}.ts`,
+);
+
+/** Puts a `git` shell function in front of the real one through BASH_ENV, refusing
+ *  any command line longer than CreateProcess takes, so the Windows limit holds on
+ *  every OS the suite runs on. */
+function cappedGitEnv(repo: GitRepo): Record<string, string> {
+  const file = path.join(repo.dir, ".git", "cmdline-cap.sh");
+  fs.writeFileSync(
+    file,
+    [
+      "git() {",
+      '  local line="git" a',
+      '  for a in "$@"; do line="$line $a"; done',
+      `  if [ "\${#line}" -gt ${CMDLINE_CAP} ]; then`,
+      '    echo "git: Argument list too long (${#line} chars)" >&2',
+      "    return 126",
+      "  fi",
+      '  command git "$@"',
+      "}",
+      "",
+    ].join("\n"),
+  );
+  return { ...repo.env, BASH_ENV: file.replace(/\\/g, "/") };
+}
+
+function writeMany(repo: GitRepo): void {
+  for (const p of MANY_PATHS) write(repo.dir, p, `${p}\n`);
+}
+
+const LONG_TASK_FORMS: Array<[form: string, arrange: (repo: GitRepo) => Promise<string[]>]> = [
+  [
+    "a plain task commit",
+    async (repo) => {
+      writeMany(repo);
+      return [PLAN_REL, "T1"];
+    },
+  ],
+  [
+    "--landed",
+    async (repo) => {
+      writeMany(repo);
+      await repo.git("add", "-A");
+      await repo.git("commit", "-m", "landed elsewhere");
+      return [PLAN_REL, "T1", "--landed", (await repo.git("rev-parse", "HEAD")).stdout.trim()];
+    },
+  ],
+];
+
+// Staging a long list spawns several git processes per path, so each long-list
+// case outlasts the harness default until staging is batched.
+const LONG_LIST_TIMEOUT = 600000;
+
+for (const [form, arrange] of LONG_TASK_FORMS) {
+  test(`${form} of a task whose Files list runs past ${CMDLINE_CAP} chars records the task done (one git call per whole list fails on Windows with 'Argument list too long')`, { timeout: LONG_LIST_TIMEOUT }, async () => {
+    await withGitRepo(async (repo) => {
+      await seed(repo, [["T1", MANY_PATHS.join(", ")]]);
+      const args = await arrange(repo);
+
+      const result = await run(repo.dir, cappedGitEnv(repo), args, LONG_LIST_TIMEOUT);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match((await repo.git("show", `HEAD:${STATUS_REL}`)).stdout, /^done: T1$/m);
+    });
+  });
+}
+
+/** The whole long list is tracked and clean, so what a run does next decides on
+ *  the last path alone. */
+async function seedTrackedMany(repo: GitRepo): Promise<void> {
+  await seed(repo, [["T1", MANY_PATHS.join(", ")]]);
+  writeMany(repo);
+  await repo.git("add", "-A");
+  await repo.git("commit", "-m", "tracked");
+}
+
+test(`a task commit of a Files list past ${CMDLINE_CAP} chars whose only change is its last path commits that path`, { timeout: LONG_LIST_TIMEOUT }, async () => {
+  await withGitRepo(async (repo) => {
+    await seedTrackedMany(repo);
+    const last = MANY_PATHS[MANY_PATHS.length - 1];
+    write(repo.dir, last, "changed\n");
+
+    const result = await run(repo.dir, cappedGitEnv(repo), [PLAN_REL, "T1"], LONG_LIST_TIMEOUT);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(await committedFiles(repo), [last, STATUS_REL].sort());
+  });
+});
+
+test(`a task commit of a Files list past ${CMDLINE_CAP} chars with no change exits 4 naming --landed`, { timeout: LONG_LIST_TIMEOUT }, async () => {
+  await withGitRepo(async (repo) => {
+    await seedTrackedMany(repo);
+
+    const result = await run(repo.dir, cappedGitEnv(repo), [PLAN_REL, "T1"], LONG_LIST_TIMEOUT);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /--landed/);
   });
 });

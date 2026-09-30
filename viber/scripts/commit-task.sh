@@ -232,22 +232,26 @@ trail_paths() {
   done
 }
 
-# Runs a function over a long path list in slices: each_chunk <function> <path>...
-# calls "<function> <slice>..." per slice and stops at the first non-zero status,
-# which it returns, so a check such as "git diff --quiet" reads over the whole
-# list as it would in one call. A task's Files list is not bounded, and one git
-# command line past CreateProcess's 32767 chars fails on Windows with "Argument
-# list too long"; a slice holds 24000 chars of paths at most, leaving room for
-# the command and its options. The slices are disjoint, so their outputs simply
-# follow one another.
-each_chunk() {
-  local fn="$1" len=0 n p
-  local -a batch=()
-  shift
+# Runs one git command over a caller-sized path list in chunks:
+# git_paths <git-arg>... -- <path>... runs "git <git-arg>... -- <chunk>" once per
+# chunk. A task's Files list is not bounded, and one git command line past
+# CreateProcess's 32767 chars fails on Windows with "Argument list too long"; a
+# chunk holds 24000 chars of paths at most (a path plus one separator each),
+# leaving room for the command and its options, and a single longer path is a
+# chunk of its own. Every chunk runs and the chunks are disjoint, so stdout is
+# theirs in order; the status is 0, or that of the first chunk that failed, so a
+# check such as "git diff --quiet" reads over the whole list as it would in one
+# call. Assignments prefixed to the call reach every chunk's git. The paths stay
+# pathspecs: nothing here compares one against git's output.
+git_paths() {
+  local len=0 n p rc=0
+  local -a gargs=() batch=()
+  while [[ $# -gt 0 && "$1" != "--" ]]; do gargs+=("$1"); shift; done
+  [[ $# -gt 0 ]] && shift
   for p in "$@"; do
     n=$(( ${#p} + 1 ))
     if [[ ${#batch[@]} -gt 0 && $(( len + n )) -gt 24000 ]]; then
-      "$fn" "${batch[@]}" || return $?
+      git_chunk_run
       batch=()
       len=0
     fi
@@ -255,17 +259,18 @@ each_chunk() {
     len=$(( len + n ))
   done
   if [[ ${#batch[@]} -gt 0 ]]; then
-    "$fn" "${batch[@]}" || return $?
+    git_chunk_run
   fi
-  return 0
+  return $rc
 }
 
-diff_cached_quiet() { git diff --cached --quiet -- "$@"; }
-status_porcelain() { git status --porcelain --untracked-files=all -- "$@"; }
-landed_diff() { git diff --name-only "$landed_parent" "$landed_sha" -- "$@"; }
-landed_root_diff() { git diff-tree --root --no-commit-id --name-only -r "$landed_sha" -- "$@"; }
-temp_index_drop() { GIT_INDEX_FILE="$temp_idx" git rm -r -q --cached --ignore-unmatch -- "$@" >/dev/null; }
-temp_index_take() { git ls-files -s -z -- "$@" | GIT_INDEX_FILE="$temp_idx" git update-index -z --index-info; }
+# One chunk of git_paths: runs git over its caller's gargs and batch and leaves
+# the first failing status in its caller's rc.
+git_chunk_run() {
+  local crc=0
+  git ${gargs[@]+"${gargs[@]}"} -- "${batch[@]}" || crc=$?
+  [[ $rc -ne 0 ]] || rc=$crc
+}
 
 # Stages one named path whatever state it arrives in, and succeeds when git
 # knows it afterwards - in the index or in HEAD - so it can stand in the
@@ -316,12 +321,11 @@ commit_named() {
   else
     GIT_INDEX_FILE="$idx" git read-tree --empty || rc=1
   fi
-  temp_idx="$idx"
   if [[ $rc -eq 0 ]]; then
-    each_chunk temp_index_drop "$@" || rc=1
+    GIT_INDEX_FILE="$idx" git_paths rm -r -q --cached --ignore-unmatch -- "$@" >/dev/null || rc=1
   fi
   if [[ $rc -eq 0 ]]; then
-    each_chunk temp_index_take "$@" || rc=1
+    git_paths ls-files -s -z -- "$@" | GIT_INDEX_FILE="$idx" git update-index -z --index-info || rc=1
   fi
   if [[ $rc -eq 0 ]]; then
     GIT_INDEX_FILE="$idx" git commit "${opts[@]}" || rc=$?
@@ -741,7 +745,7 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
     fi
   done
 
-  if [[ ${#paths[@]} -eq 0 ]] || each_chunk diff_cached_quiet "${paths[@]}"; then
+  if [[ ${#paths[@]} -eq 0 ]] || git_paths diff --cached --quiet -- "${paths[@]}"; then
     echo "error: the named files produced no changes to commit" >&2
     exit 4
   fi
@@ -982,15 +986,15 @@ if [[ -n "$landed" ]]; then
   # empty tree) instead.
   landed_parent="$(git rev-parse -q --verify "$landed_sha^" 2>/dev/null || true)"
   if [[ -n "$landed_parent" ]]; then
-    landed_changed="$(each_chunk landed_diff "${task_paths[@]}")"
+    landed_changed="$(git_paths diff --name-only "$landed_parent" "$landed_sha" -- "${task_paths[@]}")"
   else
-    landed_changed="$(each_chunk landed_root_diff "${task_paths[@]}")"
+    landed_changed="$(git_paths diff-tree --root --no-commit-id --name-only -r "$landed_sha" -- "${task_paths[@]}")"
   fi
   if [[ -z "$landed_changed" ]]; then
     echo "error: --landed $landed touches none of task $task_id's files" >&2
     exit 4
   fi
-  if [[ -n "$(each_chunk status_porcelain "${task_paths[@]}")" ]]; then
+  if [[ -n "$(git_paths status --porcelain --untracked-files=all -- "${task_paths[@]}")" ]]; then
     echo "error: task $task_id still has uncommitted changes to its files - commit them without --landed" >&2
     exit 4
   fi
@@ -1045,7 +1049,7 @@ if [[ -z "$landed" ]]; then
     fi
   done <<< "$files"
 
-  if [[ ${#paths[@]} -eq 0 ]] || each_chunk diff_cached_quiet "${paths[@]}"; then
+  if [[ ${#paths[@]} -eq 0 ]] || git_paths diff --cached --quiet -- "${paths[@]}"; then
     if [[ -n "$fix_n" ]]; then
       echo "error: the fix for task $task_id produced no changes to commit" >&2
     else

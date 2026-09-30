@@ -1,8 +1,8 @@
 # status
 
-progress: 0/2
-done: none
+progress: 1/2
+done: T1
 skipped: none
 unreviewed: none
-deferred: none
+deferred: T2:viber/scripts/commit-task.sh
 closed: none
