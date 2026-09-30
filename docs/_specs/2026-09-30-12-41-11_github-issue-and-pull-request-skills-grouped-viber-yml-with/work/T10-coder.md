@@ -1,5 +1,0 @@
-- Under MODE off only `--target` acts: `--entry` is ignored (no unknown-entry stop) and entry bases/targets never count for on-base, since the entries are not read at all.
-- The target resolves as `refs/heads/<t>`, else the remote-tracking ref of `branch.<b>.remote` (default origin); nothing is fetched, so a remote-only target needs a prior fetch to count as known.
-- The pattern match turns `name` into an ERE run through `sed -E` with capture groups for `{type}` and `{issue-number}`; a name holding any other placeholder never matches. The matched `{type}`/`{issue-number}` are read for the resolved entry however it was chosen (`--entry`, run, pattern).
-- `Repro:` counts only inside a TASK block of the open run plan (same rule as run-branch.sh plan_type).
-- `no-repo` also covers `gh repo view` failing or returning no default branch (empty repository).

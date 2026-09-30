@@ -1,6 +1,0 @@
-# Final review - slice 2 (T9, T10, T11, T12, T13)
-
-## Blocking
-
-1. `viber/skills/create-pr/SKILL.md:37` - the candidate step reads `CANDIDATE=` as two alternative line shapes: "A `<key>` line -> rerun with `--entry "<key>"`; a `target: <branch>` line -> rerun with `--target "<branch>"`". But `pr-facts.sh` prints every candidate as a single line holding both, `CANDIDATE=<key> | target: <branch>` (`viber/scripts/pr-facts.sh:341-345`; pinned by `tests/viber/pr-facts.test.ts:277` `["feature | target: develop", "other | target: main"]` and `:290`). So no line is ever a bare `<key>` or a bare `target: <branch>`, and every real line fits both rules. If the model follows the `--target` rule, the rerun leaves `ENTRY=` empty. The entry's `.github/PULL_REQUEST_TEMPLATE/<entry>.md` is then never picked, `{entry}` and a matched `{issue-number}`/`{type}` are lost, and the result contradicts S9 and the "entry template first" part of criterion 12.
-   Fix: describe the actual shape. Each `CANDIDATE=` line is `<key> | target: <branch>`. Offer one option per line, labelled by key and target, and rerun with `--entry "<key>"` using the part before ` | `. Drop the `target: <branch>` -> `--target` alternative for candidate lines, because `--target` is only for the `MODE=off` question.

@@ -1,3 +1,0 @@
-- issue-templates.sh is POSIX sh, so the sibling config.sh is located through `dirname -- "$0"` (no BASH_SOURCE) and run through `bash`; the script now needs bash on PATH for a configured pattern, and falls back to `{template-title}{summary}` when bash, the file or the line is missing.
-- config.sh is read only after all three skip checks pass, so a skip run never touches the config.
-- Any caller that indexed ready-run lines by position (the template header was line 3, now line 4) must shift by one.

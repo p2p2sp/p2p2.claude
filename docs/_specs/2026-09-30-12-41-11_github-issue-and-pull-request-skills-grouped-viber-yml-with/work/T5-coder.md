@@ -1,3 +1,0 @@
-- session-start.sh copies plan-gate.sh's `json_str` to read the payload `cwd` (no jq); a template with no numeric `schema:` reads as 0, so an unmigrated project then stays plain.
-- `viber/hooks/CLAUDE.md` `## Session start` does not yet mention the schema note; out of scope (close updates CLAUDE nodes).
-- The hooks.json description check lives in session-start.test.ts (it matches `/schema note/`).
