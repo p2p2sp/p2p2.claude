@@ -78,8 +78,9 @@ tiers:
   max: opus
 
 # Whether a run works on its own git branch - so its commits land where the
-# project's branching strategy expects them. Nothing is ever fetched, pushed,
-# merged or deleted: a branch is only created, switched to and committed on.
+# project's branching strategy expects them. No branching step fetches, pushes,
+# merges or deletes anything: a branch is only created, switched to and committed
+# on; only /viber:create-pr pushes it, on your yes.
 # mode is off (stay on the branch the run started on, today's behavior),
 # allowed (the run may get its own branch, settled when the interview or
 # diagnosis starts) or required (a run always gets its own branch, never an

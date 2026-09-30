@@ -34,7 +34,7 @@ Every later run of a bundled script is one literal Bash line, `"${CLAUDE_PLUGIN_
 `STATUS=ready` with `ENTRY=` and `TARGET=` both empty:
 
 - `MODE=off` -> one `AskUserQuestion` for the target branch, `DEFAULT=` offered first. Rerun `"${CLAUDE_PLUGIN_ROOT}/scripts/pr-facts.sh" --target "<branch>"`.
-- Otherwise one `AskUserQuestion` over the `CANDIDATE=` lines, one option each. A `<key>` line -> rerun with `--entry "<key>"`; a `target: <branch>` line -> rerun with `--target "<branch>"`.
+- Otherwise one `AskUserQuestion` over the `CANDIDATE=` lines, one option each, labelled by the line's `<key> | target: <branch>` text. Rerun with `--entry "<key>"`, the `<key>` before ` | `.
 
 The rerun's block replaces the first one and is read from step 1 again.
 
