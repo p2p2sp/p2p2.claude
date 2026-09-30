@@ -1,0 +1,3 @@
+- plan-gate.sh greps the `^planning\.plain-plan-review: ` line of the C2 block; the flat key is already ignored by config.sh (T2), so the flat-key test guards against a regression rather than failing first.
+- `viber/hooks/CLAUDE.md` still says `plain-plan-review: true`; out of scope (close updates CLAUDE nodes).
+- The hooks.json description check lives in plan-gate.test.ts (no test file of its own covers hooks.json).

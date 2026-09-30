@@ -17,7 +17,7 @@
 #
 # Why a hook: the rules only matter while a plain plan is written, so carrying
 # them in the session manifest spent context in every session for nothing. The
-# hint is soft; plain-plan-review (plan-gate.sh, plain-plan-review: true) is
+# hint is soft; plain-plan-review (plan-gate.sh, planning.plain-plan-review: true) is
 # what enforces the closing review task.
 #
 # The episode window and the Skill grep are copied from plan-gate.sh, the grep

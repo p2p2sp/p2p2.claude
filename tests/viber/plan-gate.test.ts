@@ -690,6 +690,10 @@ test("the last of several plan writes is the one that must be reviewed", async (
 
 const PLAIN = "viber:plain-plan-review";
 
+/** The switch as `.claude/viber.yml` groups it: a child of `planning:`. */
+const GROUPED_ON = "planning:\n  plain-plan-review: true\n";
+const GROUPED_OFF = "planning:\n  plain-plan-review: false\n";
+
 /** A session cwd whose .claude/viber.yml carries the given body. */
 function sessionWithConfig(dir: string, body: string): string {
   const cwd = path.join(dir, "session");
@@ -700,21 +704,34 @@ function sessionWithConfig(dir: string, body: string): string {
 
 test("plain plan with plain-plan-review on and no review dispatch -> deny naming plain-plan-review and what to pass it", async () => {
   await withTempDir("p2p2-plan-gate-", async (dir) => {
-    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const cwd = sessionWithConfig(dir, GROUPED_ON);
     const f = writeTranscript(dir, "t.jsonl", [planWrite()]);
     const { decision, reason } = await runCase(f, cwd);
     assert.equal(decision, "deny");
     assert.match(reason ?? "", /plain-plan-review agent has not run on this version/);
     assert.match(reason ?? "", /one sentence stating the user's goal/);
-    assert.match(reason ?? "", /plain-plan-review in \.claude\/viber\.yml/);
+    assert.match(reason ?? "", /planning\.plain-plan-review in \.claude\/viber\.yml/);
+  });
+});
+
+test("the hooks.json description names the grouped key planning.plain-plan-review (the user-facing statement of what arms the gate)", () => {
+  const manifest = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, "../../viber/hooks/hooks.json"), "utf8"));
+  assert.match(manifest.description, /planning\.plain-plan-review/);
+});
+
+test("a flat plain-plan-review: true alone leaves the plain gate unarmed -> allow (only the planning: group arms it)", async () => {
+  await withTempDir("p2p2-plan-gate-", async (dir) => {
+    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const f = writeTranscript(dir, "t.jsonl", [planWrite()]);
+    assert.equal((await runCase(f, cwd)).decision, "allow");
   });
 });
 
 test("plain plan with plain-plan-review off, absent, or no config file at all -> allow (the switch is the only arming signal)", async () => {
   await withTempDir("p2p2-plan-gate-", async (dir) => {
     const f = writeTranscript(dir, "t.jsonl", [planWrite()]);
-    assert.equal((await runCase(f, sessionWithConfig(path.join(dir, "a"), "plain-plan-review: false\n"))).decision, "allow");
-    assert.equal((await runCase(f, sessionWithConfig(path.join(dir, "b"), "adr: true\n"))).decision, "allow");
+    assert.equal((await runCase(f, sessionWithConfig(path.join(dir, "a"), GROUPED_OFF))).decision, "allow");
+    assert.equal((await runCase(f, sessionWithConfig(path.join(dir, "b"), "planning:\n  adr: true\n"))).decision, "allow");
     const bare = path.join(dir, "c");
     fs.mkdirSync(bare);
     assert.equal((await runCase(f, bare)).decision, "allow");
@@ -723,7 +740,7 @@ test("plain plan with plain-plan-review off, absent, or no config file at all ->
 
 test("plain plan with plain-plan-review on: plain-plan-review PASS -> allow, FAIL -> deny", async () => {
   await withTempDir("p2p2-plan-gate-", async (dir) => {
-    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const cwd = sessionWithConfig(dir, GROUPED_ON);
     const pass = writeTranscript(dir, "pass.jsonl", [planWrite(), dispatch(undefined, PLAIN), PASS]);
     assert.equal((await runCase(pass, cwd)).decision, "allow");
     const fail = writeTranscript(dir, "fail.jsonl", [planWrite(), dispatch(undefined, PLAIN), FAIL]);
@@ -735,7 +752,7 @@ test("plain plan with plain-plan-review on: plain-plan-review PASS -> allow, FAI
 
 test("the unprefixed subagent spelling 'plain-plan-review' is recognized -> allow", async () => {
   await withTempDir("p2p2-plan-gate-", async (dir) => {
-    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const cwd = sessionWithConfig(dir, GROUPED_ON);
     const f = writeTranscript(dir, "t.jsonl", [planWrite(), dispatch(undefined, "plain-plan-review"), PASS]);
     assert.equal((await runCase(f, cwd)).decision, "allow");
   });
@@ -743,7 +760,7 @@ test("the unprefixed subagent spelling 'plain-plan-review' is recognized -> allo
 
 test("a planner-review PASS does not satisfy the plain gate -> deny (each path answers only to its own reviewer)", async () => {
   await withTempDir("p2p2-plan-gate-", async (dir) => {
-    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const cwd = sessionWithConfig(dir, GROUPED_ON);
     const f = writeTranscript(dir, "t.jsonl", [planWrite(), dispatch(), PASS]);
     const { decision, reason } = await runCase(f, cwd);
     assert.equal(decision, "deny");
@@ -754,7 +771,7 @@ test("a planner-review PASS does not satisfy the plain gate -> deny (each path a
 test("a plain-plan-review PASS does not satisfy the planner gate -> deny, whatever plain-plan-review says", async () => {
   await withTempDir("p2p2-plan-gate-", async (dir) => {
     const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(undefined, PLAIN), PASS]);
-    for (const [i, body] of ["plain-plan-review: true\n", "plain-plan-review: false\n"].entries()) {
+    for (const [i, body] of [GROUPED_ON, GROUPED_OFF].entries()) {
       const { decision, reason } = await runCase(f, sessionWithConfig(path.join(dir, `s${i}`), body));
       assert.equal(decision, "deny");
       assert.match(reason ?? "", /viber:planner-review agent has not run on this version/);
@@ -764,7 +781,7 @@ test("a plain-plan-review PASS does not satisfy the planner gate -> deny, whatev
 
 test("plain plan modified after its plain-plan-review PASS -> deny (the mtime guard covers the plain path too)", async () => {
   await withTempDir("p2p2-plan-gate-", async (dir) => {
-    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const cwd = sessionWithConfig(dir, GROUPED_ON);
     const plan = realPlan(dir);
     const stale = new Date(Date.now() - 3600_000).toISOString();
     const f = writeTranscript(dir, "t.jsonl", [planWrite(plan), dispatch(undefined, PLAIN), verdict("PASS", { timestamp: stale })]);
@@ -778,7 +795,7 @@ test("plain plan modified after its plain-plan-review PASS -> deny (the mtime gu
 
 test("a mid-turn record before the planner EnterPlanMode with plain-plan-review on -> planner-review still owns the plan, a plain-plan-review PASS never satisfies it", async () => {
   await withTempDir("p2p2-plan-gate-", async (dir) => {
-    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const cwd = sessionWithConfig(dir, GROUPED_ON);
     const head = [skillUse(), permissionMode("acceptEdits"), enterPlanMode(), planWrite()];
     const plain = writeTranscript(dir, "plain.jsonl", [...head, dispatch(undefined, PLAIN), PASS]);
     const { decision, reason } = await runCase(plain, cwd);
@@ -791,7 +808,7 @@ test("a mid-turn record before the planner EnterPlanMode with plain-plan-review 
 
 test("a planner from an earlier, approved episode does not own a later plain plan -> the plain path (a plan approved earlier cannot re-arm the planner gate)", async () => {
   await withTempDir("p2p2-plan-gate-", async (dir) => {
-    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const cwd = sessionWithConfig(dir, GROUPED_ON);
     const f = writeTranscript(dir, "t.jsonl", [
       skillUse(),
       enterPlanMode(),
@@ -813,7 +830,7 @@ test("a planner from an earlier, approved episode does not own a later plain pla
 
 test("a planner that stopped before EnterPlanMode, then a new user prompt enters plan mode -> the plain path, not planner-review", async () => {
   await withTempDir("p2p2-plan-gate-", async (dir) => {
-    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const cwd = sessionWithConfig(dir, GROUPED_ON);
     const f = writeTranscript(dir, "t.jsonl", [
       skillUse(),
       permissionMode("acceptEdits"),
@@ -840,11 +857,11 @@ test("a refused planner followed by a plain plan (no frontmatter) -> the plain p
   await withTempDir("p2p2-plan-gate-", async (dir) => {
     const plan = realPlan(dir, undefined, "# Plan\n");
     const f = writeTranscript(dir, "t.jsonl", [...refusedPlannerThenPlan(plan), dispatch(undefined, PLAIN), PASS]);
-    for (const [i, body] of ["plain-plan-review: true\n", "plain-plan-review: false\n"].entries()) {
+    for (const [i, body] of [GROUPED_ON, GROUPED_OFF].entries()) {
       assert.equal((await runCase(f, sessionWithConfig(path.join(dir, `s${i}`), body))).decision, "allow");
     }
     const unreviewed = writeTranscript(dir, "u.jsonl", refusedPlannerThenPlan(plan));
-    const { decision, reason } = await runCase(unreviewed, sessionWithConfig(path.join(dir, "on"), "plain-plan-review: true\n"));
+    const { decision, reason } = await runCase(unreviewed, sessionWithConfig(path.join(dir, "on"), GROUPED_ON));
     assert.equal(decision, "deny");
     assert.match(reason ?? "", /viber:plain-plan-review agent has not run on this version/);
   });
@@ -856,20 +873,20 @@ test("a plan opening with the planner frontmatter (LF or CRLF) stays with planne
     const crlf = realPlan(dir, ".claude/plans/crlf/plan.md", "---\r\nsource: x.md\r\n---\r\n# Plan\r\n");
     for (const [n, plan] of [lf, crlf].entries()) {
       const plain = writeTranscript(dir, `plain${n}.jsonl`, [...refusedPlannerThenPlan(plan), dispatch(undefined, PLAIN), PASS]);
-      for (const [i, body] of ["plain-plan-review: true\n", "plain-plan-review: false\n"].entries()) {
+      for (const [i, body] of [GROUPED_ON, GROUPED_OFF].entries()) {
         const { decision, reason } = await runCase(plain, sessionWithConfig(path.join(dir, `s${n}${i}`), body));
         assert.equal(decision, "deny");
         assert.match(reason ?? "", /viber:planner-review agent has not run on this version/);
       }
       const own = writeTranscript(dir, `own${n}.jsonl`, [...refusedPlannerThenPlan(plan), dispatch(), PASS]);
-      assert.equal((await runCase(own, sessionWithConfig(path.join(dir, `o${n}`), "plain-plan-review: true\n"))).decision, "allow");
+      assert.equal((await runCase(own, sessionWithConfig(path.join(dir, `o${n}`), GROUPED_ON))).decision, "allow");
     }
   });
 });
 
 test("a source: line outside a leading frontmatter block does not make the plan the planner one -> the plain path", async () => {
   await withTempDir("p2p2-plan-gate-", async (dir) => {
-    const cwd = sessionWithConfig(dir, "plain-plan-review: true\n");
+    const cwd = sessionWithConfig(dir, GROUPED_ON);
     const bodies = ["# Plan\nsource: somewhere\n", "---\ntitle: x\n---\nsource: somewhere\n", "\n---\nsource: x\n---\n"];
     for (const [i, content] of bodies.entries()) {
       const plan = realPlan(dir, `.claude/plans/b${i}/plan.md`, content);

@@ -11,8 +11,8 @@
 #     planner's frontmatter `source:` line (an unreadable plan keeps the
 #     planner's reviewer) -> the planner-review agent, always;
 #   - anything else -> a plain plan-mode plan, gated by the plain-plan-review agent
-#     only when config.sh resolves `plain-plan-review: true` for the session's cwd.
-# Anything else - no plan write, plain-plan-review off, a plan-mode exit in a session
+#     only when config.sh resolves `planning.plain-plan-review: true` for the session's cwd.
+# Anything else - no plan write, planning.plain-plan-review off, a plan-mode exit in a session
 # that already built a plan - passes untouched. The episode starts after the
 # last recorded non-plan permission mode, so a plan approved earlier in the
 # session cannot re-arm the gate.
@@ -39,8 +39,8 @@
 #   argv   : none - every input arrives on stdin.
 #   cwd    : irrelevant; the payload's own "cwd" key is the session directory.
 #            It resolves a RELATIVE plan "file_path" the transcript records,
-#            and is where ../../scripts/config.sh runs to read plain-plan-review. No
-#            "cwd" key -> plain-plan-review is off.
+#            and is where ../../scripts/config.sh runs to read planning.plain-plan-review.
+#            No "cwd" key -> planning.plain-plan-review is off.
 #   env    : none read.
 #   reads  : the transcript file named by the payload's "transcript_path", the
 #            config.sh output for the session's cwd (plain plan only), and,
@@ -177,18 +177,18 @@ if [ "$planner_owns" = "1" ]; then
   dispatch_with="the plan path, \`refs:\` (the reference directory), \`memory:\` (the planner's resolved config value) and \`input:\` (the confirmed interview summary or bug diagnosis the plan answers, verbatim), as planner-review.md expects its input"
   gate="the planner's review gate"
 else
-  # A plain plan-mode plan is gated only when the host turned plain-plan-review on.
+  # A plain plan-mode plan is gated only when the host turned planning.plain-plan-review on.
   # config.sh stays the one parser of viber.yml; it resolves the repository from
   # its cwd, so it runs in the session's own cwd, and a payload without one
   # leaves the switch off.
   [ -n "$project_cwd" ] && [ -d "$project_cwd" ] || emit_allow
   config_sh="$(dirname "$0")/../../scripts/config.sh"
-  plan_review=$(cd "$project_cwd" 2>/dev/null && bash "$config_sh" 2>/dev/null | grep -E '^plain-plan-review: ')
-  [ "$plan_review" = "plain-plan-review: true" ] || emit_allow
+  plan_review=$(cd "$project_cwd" 2>/dev/null && bash "$config_sh" 2>/dev/null | grep -E '^planning\.plain-plan-review: ')
+  [ "$plan_review" = "planning.plain-plan-review: true" ] || emit_allow
   agent="plain-plan-review"
   writer="Plan mode"
   dispatch_with="the plan path and one sentence stating the user's goal"
-  gate="the plan review gate (plain-plan-review in .claude/viber.yml)"
+  gate="the plan review gate (planning.plain-plan-review in .claude/viber.yml)"
 fi
 
 # The review of THIS plan version: only dispatches after the last plan write count.
