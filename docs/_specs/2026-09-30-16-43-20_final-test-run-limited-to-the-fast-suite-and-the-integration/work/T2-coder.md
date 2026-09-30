@@ -1,0 +1,5 @@
+- `bootstrap.sh` rewrites a grouped `baseline-tests` true/false only when the file sits below the template schema (or has no `schema:` line); a file already at schema 2 keeps a `true` it carries (config.sh still reads it as full). A moved column-0 value is always rewritten.
+- The C3 report line prints after the schema/migrated line and before the "merged from the template" line; the old value is printed lowercase.
+- Schema 2 has the same key list as schema 1 (only the value grammar changed); `SCHEMA_KEYS` keeps both entries.
+- `help.html` and the diagrams still say the final run "runs the whole suite" (help.html ~1562, svg desc): another task's wording, left alone.
+- The template's `fast` comment says "unit and component tests"; the baseline-run fragment and test-runner wording belong to other tasks and must agree with it.

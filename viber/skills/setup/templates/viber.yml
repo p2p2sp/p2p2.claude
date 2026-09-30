@@ -1,5 +1,6 @@
-# viber switches. Only `true` counts as on, and a switch counts only inside its
-# group. Turn one off with `false`: a key you delete or comment out is restored
+# viber switches. Every switch is `true` or `false`, except `build.baseline-tests`
+# below, and only `true` counts as on. A switch counts only inside its group.
+# Turn one off with `false`: a key you delete or comment out is restored
 # at its default here the next time `/viber:setup` runs, which is how a new
 # version's switches reach this file. The exception is a child of `tiers:` or
 # `branching:`: the merge only appends a missing group whole, never a missing
@@ -9,7 +10,7 @@
 # The layout this file follows. /viber:setup raises it when it brings the file
 # up to a newer layout, and a session start tells you when it lags behind the
 # installed viber. Leave it as it is.
-schema: 1
+schema: 2
 
 # Switches read while a change is planned.
 planning:
@@ -28,8 +29,10 @@ planning:
 # Switches read by implementor while it builds a plan.
 build:
   # implementor runs the test suite once before the first task and records what
-  # already fails, so a build repairs only the failures it caused.
-  baseline-tests: false
+  # already fails, so a build repairs only the failures it caused. `off` skips
+  # the run, `fast` records the fast suite (unit and component tests), `full`
+  # every layer but end-to-end. A `true` reads as `full`.
+  baseline-tests: off
   # implementor runs one fresh review of the whole build after every task is
   # committed and before the final test run, at the edge of the build's diff
   # where per-task review and the test suite cannot see; one coder fixes

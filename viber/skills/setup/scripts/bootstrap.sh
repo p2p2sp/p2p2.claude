@@ -31,6 +31,11 @@
 # its number. config.sh reads a switch only inside its group, so a flat line
 # left standing would silently count as off.
 #
+# `build.baseline-tests` takes off, fast or full. A legacy `true` becomes `full`
+# and `false` becomes `off` (any letter case, a trailing comment kept) in a moved
+# flat line, and in a grouped one only when the file sits below the template's
+# schema: a file already at it keeps whatever value it carries.
+#
 # Contract:
 #   argv   : none.
 #   cwd    : any directory inside the host project - the repository root is
@@ -57,7 +62,9 @@
 #            verbatim and never re-verifies them. A changed viber.yml prints
 #            "migrated to schema <n>: <keys> moved into their groups (your own
 #            values kept)" when a flat switch moved, else "schema set to <n>"
-#            when only the schema line was added or raised, then "merged from
+#            when only the schema line was added or raised, then
+#            "build.baseline-tests <old> -> <new> (the switch takes off, fast or
+#            full)" when that value was rewritten, then "merged from
 #            the template: <keys> (your own values kept)" for every group
 #            appended or child restored at its default. The CLAUDE.md line is exactly
 #            "CLAUDE.md: present - <root>/CLAUDE.md" (<root> as
@@ -110,6 +117,17 @@ fi
 merge_config() {
   awk -v out="$2" '
     function emit(x) { print x > out; np++; lb = (x ~ /^[ \t\r]*$/) }
+    function rw(s,   val, tail) {
+      rn = ""
+      val = s; sub(/[ \t\r]*(#.*)?$/, "", val)
+      tail = substr(s, length(val) + 1)
+      ro = tolower(val)
+      if (ro == "true") rn = "full"
+      else if (ro == "false") rn = "off"
+      else return s
+      bts = "build.baseline-tests " ro " -> " rn " (the switch takes off, fast or full)"
+      return rn tail
+    }
     BEGIN {
       n = split("adr planning plain-plan-review planning fast-path planning baseline-tests build final-review build memory build rules build qa build cleanup build issues github", m, " ")
       for (i = 1; i < n; i += 2) legacy[m[i]] = m[i + 1]
@@ -137,6 +155,7 @@ merge_config() {
           if (h[j] ~ /^[ \t]+[A-Za-z_][A-Za-z0-9_-]*[ \t]*:/) {
             c = h[j]; sub(/^[ \t]+/, "", c); sub(/[ \t]*:.*$/, "", c)
             have[k "." c] = 1
+            if (k == "build" && c == "baseline-tests" && bt == 0) bt = j
             last[k] = j
           } else if (h[j] !~ /^[ \t]*#/ && h[j] !~ /^[ \t\r]*$/) {
             break
@@ -153,11 +172,18 @@ merge_config() {
         if (!(k in seen)) { seen[k] = 1; moved = (moved == "" ? k : moved ", " k) }
         if (((g "." k) in have) || ((g "." k) in mv)) continue
         v = h[i]; sub(/^[^:]*:[ \t]*/, "", v); sub(/[ \t\r]+$/, "", v)
+        if (k == "baseline-tests") v = rw(v)
         mv[g "." k] = (v == "" ? ":" : ": " v)
       }
       if (ts != "" && hs > 0) {
         v = h[hs]; sub(/^schema[ \t]*:[ \t]*/, "", v); sub(/[ \t\r]*(#.*)?$/, "", v)
         if (v !~ /^[0-9]+$/ || v + 0 < ts + 0) { raise = hs; sset = 1 }
+      }
+      if (bt > 0 && ts != "" && (hs == 0 || raise > 0)) {
+        match(h[bt], /^[ \t]+baseline-tests[ \t]*:[ \t]*/)
+        pre = substr(h[bt], 1, RLENGTH)
+        nv = rw(substr(h[bt], RLENGTH + 1))
+        if (rn != "") btline = pre nv
       }
       for (i = 1; i <= tn; i++) {
         if (t[i] !~ /^[A-Za-z_][A-Za-z0-9_-]*[ \t]*:/) continue
@@ -213,13 +239,14 @@ merge_config() {
         if (i in drop) { pd = 1; continue }
         if (pd && h[i] ~ /^[ \t\r]*$/ && (np == 0 || lb)) continue
         pd = 0
-        emit(i == raise ? "schema: " ts eol : h[i])
+        emit(i == raise ? "schema: " ts eol : (i == bt && btline != "") ? btline : h[i])
         for (g in ext) if (last[g] == i) for (j = 1; j <= ni[g]; j++) emit(ins[g, j] eol)
       }
       for (j = 1; j <= na; j++) if (add[j] != "" || np > 0) emit(add[j] eol)
       close(out)
       if (moved != "") print "migrated to schema " ts ": " moved " moved into their groups (your own values kept)"
       else if (sset) print "schema set to " ts
+      if (bts != "") print bts
       if (added != "") print "merged from the template: " added " (your own values kept)"
     }
   ' "$1" "$3" 2>/dev/null

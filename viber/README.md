@@ -86,7 +86,9 @@ owner, and when nothing was committed for a task.
 `/viber:setup` writes `.claude/viber.yml` with its switches in three groups - `planning:`,
 `build:` and `github:` - seven of the ten on and `build.qa`, `github.issues` and
 `build.baseline-tests` off. A switch counts only inside its group. Edit that file to change any of
-them - only `true` counts as on, so turn a switch off with `false` rather than by deleting it.
+them - only `true` counts as on, so turn a switch off with `false` rather than by deleting it;
+`build.baseline-tests` alone takes `off`, `fast` or `full`, and `setup` rewrites an older `true` to
+`full` and `false` to `off`.
 Without the file all ten are off. Run `/viber:setup` again after an upgrade: any switch the new
 version added is merged into your file, a switch written outside its group is moved into it, and
 every value you set is left as it is. A session start tells you when the file's `schema:` number
@@ -97,7 +99,7 @@ says it needs that run.
 | `planning.adr` | on | A decision worth keeping becomes an architecture decision record in `docs/adr/`. |
 | `planning.plain-plan-review` | on | A plan written in plain plan mode, without the planner, must pass a review before plan mode can be left. |
 | `planning.fast-path` | on | For a small, well-scoped change to existing code, `/viber:intent` shows a short design in chat and builds it only after your explicit yes, with no plan file and no run directory. |
-| `build.baseline-tests` | **off** | Before the first task the build runs your test suite once and records what already fails, then repairs only the failures it caused. |
+| `build.baseline-tests` | **off** | Takes `off`, `fast` or `full`. `fast` or `full`: before the first task the build runs your tests once and records what already fails, then repairs only the failures it caused. `fast` runs the unit and component tests, `full` every layer but end-to-end. |
 | `build.final-review` | on | After every task is committed and before the final test run, one reviewer looks at the whole build's diff for what per-task review and the test suite cannot see, a coder fixes what it finds, a reviewer rechecks the fix, and after a failed recheck the arbiter rules on committing the fix as it stands, recorded in `rulings.md`. The build summary lists each finding with what was wrong and what the fix changed. |
 | `build.memory` | on | The build closes by updating your project's `CLAUDE.md` with what it learned. |
 | `build.rules` | on | The build closes by recording a convention it confirmed in `.claude/rules/`. |

@@ -1565,13 +1565,16 @@ failing suite.</p>
 <p lang="pl">Po ostatnim zadaniu <a href="#agent-test-runner"><code>test-runner</code></a> uruchamia cały zestaw
 testów. Uruchamia go najwyżej sześć razy, z rundą poprawek między jednym nieudanym uruchomieniem a kolejnym,
 zanim arbiter rozstrzygnie, co zrobić z niepasującym zestawem.</p>
-<p lang="en">With <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> on, it also makes a
-baseline run: the suite once before the first task, recording what already fails; when something does, the arbiter
-rules to continue and the ruling is recorded. From then on only the failures the build caused count as repair work.</p>
-<p lang="pl">Przy włączonym <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> wykonuje też
-przebieg bazowy: raz przed pierwszym zadaniem uruchamia zestaw testów i zapisuje, co już nie przechodzi; gdy coś
-nie przechodzi, arbiter orzeka kontynuację, a orzeczenie zostaje zapisane. Od tej chwili do naprawy idą tylko
-błędy spowodowane przez build.</p>
+<p lang="en">With <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> set to <code>fast</code> or
+<code>full</code>, it also makes a baseline run: the tests once before the first task (<code>fast</code> the unit and
+component tests, <code>full</code> every layer but end-to-end), recording what already fails; when something does, the
+arbiter rules to continue and the ruling is recorded. From then on only the failures the build caused count as repair
+work.</p>
+<p lang="pl">Gdy <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> ma wartość <code>fast</code>
+lub <code>full</code>, wykonuje też przebieg bazowy: raz przed pierwszym zadaniem uruchamia testy
+(<code>fast</code> testy jednostkowe i komponentowe, <code>full</code> każdą warstwę poza end-to-end) i zapisuje, co
+już nie przechodzi; gdy coś nie przechodzi, arbiter orzeka kontynuację, a orzeczenie zostaje zapisane. Od tej chwili
+do naprawy idą tylko błędy spowodowane przez build.</p>
 
 <h3 class="sub" id="hw-models"><span lang="en">The model range</span><span lang="pl">Zakres modeli</span><a class="self" href="#hw-models">#</a></h3>
 <p lang="en">The build gives every task a tier from its shape: haiku for mechanical work such as config, a
@@ -2337,12 +2340,12 @@ z nich mówi, jak nim sterować.</p>
       <dd><span lang="en"><a href="#key-build-memory"><code>build.memory</code></a>, <a href="#key-build-rules"><code>build.rules</code></a>,
       <a href="#key-build-qa"><code>build.qa</code></a> and <a href="#key-build-cleanup"><code>build.cleanup</code></a> pick the close parts;
       <a href="#key-tiers"><code>tiers</code></a> bounds the models it uses;
-      <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> adds a baseline test run before the first task;
+      <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> (<code>fast</code> or <code>full</code>) adds a baseline test run before the first task;
       <a href="#key-branching"><code>branching</code></a> decides the branch it commits on.</span><span lang="pl"><a href="#key-build-memory"><code>build.memory</code></a>,
       <a href="#key-build-rules"><code>build.rules</code></a>, <a href="#key-build-qa"><code>build.qa</code></a> i
       <a href="#key-build-cleanup"><code>build.cleanup</code></a> wybierają części zamknięcia;
       <a href="#key-tiers"><code>tiers</code></a> ogranicza modele, których używa;
-      <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> dodaje przebieg bazowy testów przed pierwszym zadaniem;
+      <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> (<code>fast</code> lub <code>full</code>) dodaje przebieg bazowy testów przed pierwszym zadaniem;
       <a href="#key-branching"><code>branching</code></a> decyduje, na której gałęzi commituje.</span></dd>
     </div>
     <div>
@@ -2805,12 +2808,12 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   <li id="agent-test-runner"><code>test-runner</code> <span lang="en">runs the project's build and test suite
   once and returns a verdict, keeping the log out of the conversation. <a href="#skill-intent"><code>intent</code></a>'s
   <a href="#key-planning-fast-path">fast path</a> calls it too, to prove a change built in your session. With
-  <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> on, it also runs a baseline before the first task,
+  <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> set to <code>fast</code> or <code>full</code>, it also runs a baseline before the first task,
   recording what already fails, and the final run then fails only on new failures.</span><span lang="pl">uruchamia raz
   budowanie i testy projektu i zwraca werdykt, trzymając log poza rozmową. Wywołuje go też
   <a href="#key-planning-fast-path">szybka ścieżka</a> skilla <a href="#skill-intent"><code>intent</code></a>, żeby sprawdzić
-  zmianę zbudowaną w twojej sesji. Przy włączonym <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a>
-  wykonuje też przebieg bazowy przed pierwszym zadaniem, zapisując, co już nie przechodzi, a końcowe
+  zmianę zbudowaną w twojej sesji. Gdy <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a>
+  ma wartość <code>fast</code> lub <code>full</code>, wykonuje też przebieg bazowy przed pierwszym zadaniem, zapisując, co już nie przechodzi, a końcowe
   uruchomienie kończy się porażką tylko przy nowych błędach.</span></li>
   <li id="agent-arbiter"><code>arbiter</code> <span lang="en">rules in your place where the build would otherwise
   stop to ask: it picks one way forward from a closed list and gives its reason and its cost if wrong, which the
@@ -2890,7 +2893,7 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
 <h3 class="sub" id="ref-config-title"><span lang="en">Configuration</span><span lang="pl">Konfiguracja</span> <code>.claude/viber.yml</code><a class="self" href="#ref-config-title">#</a></h3>
 <dl>
   <div id="key-schema">
-    <dt><code>schema</code> <span class="tag">1</span></dt>
+    <dt><code>schema</code> <span class="tag">2</span></dt>
     <dd><span lang="en">The layout the file follows. <a href="#skill-setup"><code>/viber:setup</code></a> writes it and
     raises it whenever it brings the file up to a newer layout; a session start tells you when the number lags
     behind the installed viber. Leave it as it is.</span><span lang="pl">Układ, w jakim zapisany jest plik.
@@ -2903,13 +2906,15 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
 is planned, <code>build:</code> the ones a build reads, <code>github:</code> the GitHub ones. Seven of the ten
 start on; <code>build.qa</code>, <code>github.issues</code> and <code>build.baseline-tests</code> start off. To
 change any of them, edit <code>.claude/viber.yml</code>: every key has a comment there, and only
-<code>true</code> counts as on. Turn a switch off with <code>false</code> instead of deleting it.</p>
+<code>true</code> counts as on. Turn a switch off with <code>false</code> instead of deleting it. Only
+<code>build.baseline-tests</code> takes <code>off</code>, <code>fast</code> or <code>full</code>.</p>
 <p lang="pl">Każdy przełącznik liczy się tylko wewnątrz swojej grupy: <code>planning:</code> trzyma te czytane
 podczas planowania zmiany, <code>build:</code> te czytane przez build, <code>github:</code> te dotyczące GitHuba.
 Siedem z dziesięciu jest domyślnie włączonych; <code>build.qa</code>, <code>github.issues</code>
 i <code>build.baseline-tests</code> startują wyłączone. Zmienisz to w <code>.claude/viber.yml</code>: każdy
 klucz ma tam komentarz, a za włączony liczy się tylko <code>true</code>. Przełącznik wyłączaj wartością
-<code>false</code>, nie usuwaj go.</p>
+<code>false</code>, nie usuwaj go. Tylko <code>build.baseline-tests</code> przyjmuje <code>off</code>,
+<code>fast</code> lub <code>full</code>.</p>
 <p lang="en">Running <code>/viber:setup</code> again merges in every key the current version's template has and
 your file lacks. That is how a new switch reaches a project set up by an older version, and the same merge
 restores a deleted top-level key, or a deleted child of <code>planning:</code>, <code>build:</code>,
@@ -2965,12 +2970,17 @@ wartość.</p>
 <dl>
   <div id="key-build-baseline-tests">
     <dt><code>build.baseline-tests</code> <span class="tag"><span lang="en">off</span><span lang="pl">wył.</span></span></dt>
-    <dd><span lang="en">Before the first task, <a href="#agent-test-runner"><code>test-runner</code></a> runs the test
-    suite once and records what already fails. From then on the build repairs only the failures it caused and
-    leaves the ones it found for you.</span><span lang="pl">Przed pierwszym zadaniem
-    <a href="#agent-test-runner"><code>test-runner</code></a> raz uruchamia zestaw testów i zapisuje, co już nie
-    przechodzi. Od tej chwili build naprawia tylko błędy, które sam spowodował, a zastane zostawia
-    tobie.</span></dd>
+    <dd><span lang="en">Takes <code>off</code>, <code>fast</code> or <code>full</code>. With <code>fast</code> or
+    <code>full</code>, <a href="#agent-test-runner"><code>test-runner</code></a> runs the tests once before the first
+    task and records what already fails: <code>fast</code> the unit and component tests, <code>full</code> every layer
+    but end-to-end. From then on the build repairs only the failures it caused and leaves the ones it found for you.
+    A <code>true</code> from an older file reads as <code>full</code>, <code>false</code> as
+    <code>off</code>.</span><span lang="pl">Przyjmuje <code>off</code>, <code>fast</code> lub <code>full</code>.
+    Przy <code>fast</code> lub <code>full</code> <a href="#agent-test-runner"><code>test-runner</code></a> raz przed
+    pierwszym zadaniem uruchamia testy i zapisuje, co już nie przechodzi: <code>fast</code> testy jednostkowe
+    i komponentowe, <code>full</code> każdą warstwę poza end-to-end. Od tej chwili build naprawia tylko błędy, które
+    sam spowodował, a zastane zostawia tobie. <code>true</code> ze starszego pliku czyta się jako
+    <code>full</code>, <code>false</code> jako <code>off</code>.</span></dd>
   </div>
   <div id="key-build-final-review">
     <dt><code>build.final-review</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
