@@ -294,7 +294,7 @@ test("a flat config gains every group the template adds, each child the file did
     assert.equal(childValue(after, "build", "qa"), "false");
     assert.equal(childValue(after, "build", "cleanup"), "true");
     assert.equal(childValue(after, "planning", "fast-path"), "true");
-    assert.equal(childValue(after, "github", "pr-title"), "'{type}: {summary}'");
+    assert.equal(childValue(after, "github", "pr-title"), "'[{issue-number}] {summary}'");
     assert.match(after, /^directories:\n {2}runs: _specs\n {2}specifications: specs$/m);
     assert.match(after, /^tiers:\n {2}min: haiku\n {2}max: opus$/m);
     assert.match(
@@ -397,7 +397,7 @@ test("a config missing `github:`'s `pr-title` child gets it restored at the temp
     const result = await run(dir, env);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.equal(childValue(read(cfg), "github", "pr-title"), "'{type}: {summary}'");
+    assert.equal(childValue(read(cfg), "github", "pr-title"), "'[{issue-number}] {summary}'");
   });
 });
 
