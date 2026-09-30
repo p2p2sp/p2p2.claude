@@ -875,6 +875,11 @@ in place of the interview.</p>
     <a href="#term-qa">scenariusze QA</a> z buildu w testy Playwright.</span></dd>
   </div>
   <div>
+    <dt><a href="#skill-create-pr"><code data-copy>/viber:create-pr</code></a></dt>
+    <dd><span lang="en">Opens a pull request for the current branch, after a preview.</span><span lang="pl">Otwiera
+    pull request dla bieżącej gałęzi, po podglądzie.</span></dd>
+  </div>
+  <div>
     <dt><a href="#skill-memory"><code data-copy>/viber:memory</code></a></dt>
     <dd><span lang="en">Reviews or extends the project's CLAUDE.md files.</span><span lang="pl">Przegląda albo
     rozbudowuje pliki CLAUDE.md projektu.</span></dd>
@@ -2388,6 +2393,58 @@ z nich mówi, jak nim sterować.</p>
   </dl>
 </article>
 
+<article class="card" id="skill-create-pr">
+  <h4><code>/viber:create-pr</code></h4>
+  <p lang="en">Opens a pull request for the branch you are on. It settles the
+  <a href="#key-branching-work"><code>branching.work</code></a> entry and the target branch, fills the title and
+  the body from the entry's pull request template, the run's files, the commits and what you said, shows both,
+  and asks whether to create it, create it as a draft or cancel. Only then does it push the branch and open the
+  pull request.</p>
+  <p lang="pl">Otwiera pull request dla gałęzi, na której jesteś. Ustala wpis
+  <a href="#key-branching-work"><code>branching.work</code></a> i gałąź docelową, wypełnia tytuł i treść
+  z szablonu pull requesta wpisu, plików przebiegu, commitów i tego, co powiedziałeś, pokazuje oba i pyta, czy
+  utworzyć, utworzyć jako szkic, czy anulować. Dopiero potem wypycha gałąź i otwiera pull request.</p>
+  <dl>
+    <div>
+      <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
+      <dd><span lang="en">Only by typing the command, with your changes committed. It stops with a reason when
+      there is no <code>gh</code> or GitHub repository, HEAD is detached, tracked files have uncommitted changes,
+      you are on a default or base branch, the branch has an open pull request already, or it has no commit
+      ahead of its target.</span><span lang="pl">Tylko przez wpisanie polecenia, po scommitowaniu zmian. Kończy
+      z powodem, gdy nie ma <code>gh</code> ani repozytorium na GitHubie, HEAD jest odłączony, śledzone pliki mają
+      niescommitowane zmiany, jesteś na gałęzi domyślnej lub bazowej, gałąź ma już otwarty pull request albo nie
+      ma żadnego commita przed swoim celem.</span></dd>
+    </div>
+    <div>
+      <dt><span lang="en">Arguments</span><span lang="pl">Argumenty</span></dt>
+      <dd><span lang="en">None. When the entry cannot be told from the run or the branch name it asks which
+      entry, or, with <a href="#key-branching-mode"><code>branching.mode</code></a> off, which target branch, the
+      default branch first.</span><span lang="pl">Brak. Gdy wpisu nie da się poznać z przebiegu ani z nazwy
+      gałęzi, pyta o wpis, a przy wyłączonym <a href="#key-branching-mode"><code>branching.mode</code></a> o gałąź
+      docelową, domyślną na pierwszym miejscu.</span></dd>
+    </div>
+    <div>
+      <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
+      <dd><span lang="en">None. The title follows <a href="#key-github-pr-title"><code>github.pr-title</code></a>.
+      The body follows your template: <code>.github/PULL_REQUEST_TEMPLATE/&lt;entry&gt;.md</code>, else
+      <code>.github/pull_request_template.md</code>, else a built-in Summary, Changes and Testing. See
+      <a href="#pr-templates">pull request templates</a>.</span><span lang="pl">Brak. Tytuł układa się według
+      <a href="#key-github-pr-title"><code>github.pr-title</code></a>. Treść podąża za twoim szablonem:
+      <code>.github/PULL_REQUEST_TEMPLATE/&lt;wpis&gt;.md</code>, potem <code>.github/pull_request_template.md</code>,
+      potem wbudowane Summary, Changes i Testing. Zobacz
+      <a href="#pr-templates">szablony pull requestów</a>.</span></dd>
+    </div>
+    <div>
+      <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
+      <dd><span lang="en">No code. The body goes to <code>.temp/viber/create-pr/body.md</code>. On your yes it
+      pushes the branch to its remote and creates the pull request, or a draft; it reports the pull request's
+      URL. Nothing else in viber pushes.</span><span lang="pl">Żadnego kodu. Treść trafia do
+      <code>.temp/viber/create-pr/body.md</code>. Na twoje tak wypycha gałąź na jej zdalne repozytorium i tworzy
+      pull request albo szkic; podaje jego adres URL. Nic innego w viber niczego nie wypycha.</span></dd>
+    </div>
+  </dl>
+</article>
+
 <article class="card" id="skill-memory">
   <h4><code>/viber:memory</code></h4>
   <p lang="en">Maps this project's <code>CLAUDE.md</code> files, has <a href="#agent-memory-auditor"><code>memory-auditor</code></a>
@@ -2993,14 +3050,16 @@ domyślnego. Planowanie działa na modelu bieżącej sesji i zakres go nie ogran
 </dl>
 <p class="note" lang="en">A <code>name</code> pattern is filled in from the plan: <code>{type}</code>,
 <code>{slug}</code> and <code>{issue-number}</code>. The last needs <code>github.issues: true</code>, since without
-it there is no issue number to fill in. viber never fetches, pushes, merges or deletes anything: it only
-creates a branch, switches to it and commits on it. A bad entry or mapping is dropped with a readable
+it there is no issue number to fill in. No branching step fetches, pushes, merges or deletes anything: they only
+create a branch, switch to it and commit on it; <a href="#skill-create-pr"><code>/viber:create-pr</code></a>
+alone pushes the branch, on your yes. A bad entry or mapping is dropped with a readable
 reason and the rest of the file still applies; see <code>viber/BRANCHING.md</code> for the full list. Each
 example below is a complete setup for one strategy; the strategy's name itself is never a configuration value.</p>
 <p class="note" lang="pl">Wzorzec <code>name</code> jest wypełniany na podstawie planu: <code>{type}</code>,
 <code>{slug}</code> i <code>{issue-number}</code>. Ten ostatni wymaga <code>github.issues: true</code>, bo bez
-tego nie ma numeru issue do wstawienia. viber niczego nie pobiera (fetch), nie wypycha (push), nie scala
-ani nie usuwa: tylko tworzy gałąź, przełącza się na nią i na niej commituje. Błędny wpis lub mapowanie
+tego nie ma numeru issue do wstawienia. Żaden krok gałęzi niczego nie pobiera (fetch), nie wypycha (push), nie
+scala ani nie usuwa: tylko tworzy gałąź, przełącza się na nią i na niej commituje; gałąź wypycha wyłącznie
+<a href="#skill-create-pr"><code>/viber:create-pr</code></a>, na twoje tak. Błędny wpis lub mapowanie
 jest odrzucane z czytelnym powodem, a reszta pliku nadal obowiązuje; pełną listę znajdziesz w
 <code>viber/BRANCHING.md</code>. Każdy przykład poniżej to pełna konfiguracja jednej strategii; sama nazwa
 strategii nigdy nie jest wartością konfiguracji.</p>
@@ -3119,6 +3178,62 @@ hotfix into <code>develop</code> are part 2.</p>
 <p class="caption" lang="pl">Praca nad funkcją jest wycinana z <code>develop</code> i tam wraca; issue
 produkcyjne jest wycinane z <code>main</code>. Gałęzie wydań, ich numery wersji i wtapianie poprawki z
 powrotem do <code>develop</code> to część 2.</p>
+
+<h4 id="pr-templates"><span lang="en">Pull request templates</span><span lang="pl">Szablony pull requestów</span></h4>
+<p lang="en"><a href="#skill-create-pr"><code>/viber:create-pr</code></a> takes the body from the first template
+that exists: <code>.github/PULL_REQUEST_TEMPLATE/&lt;entry key&gt;.md</code>, named after the
+<a href="#key-branching-work"><code>branching.work</code></a> entry, then <code>.github/pull_request_template.md</code>;
+with neither it writes Summary, Changes and Testing. In a template <code>{type}</code>, <code>{summary}</code>,
+<code>{issue-number}</code> and <code>{entry}</code> are filled in as in
+<a href="#key-github-pr-title"><code>github.pr-title</code></a>. A section nothing you or the run stated answers
+reads <code>_No response_</code>, and HTML comments are dropped. One line per issue ends the body:
+<code>Closes #&lt;n&gt;</code> when the target is the default branch, <code>Refs #&lt;n&gt;</code> otherwise.
+viber never writes under <code>.github/</code>: you create the templates.</p>
+<p lang="pl"><a href="#skill-create-pr"><code>/viber:create-pr</code></a> bierze treść z pierwszego istniejącego
+szablonu: <code>.github/PULL_REQUEST_TEMPLATE/&lt;klucz wpisu&gt;.md</code>, nazwanego po wpisie
+<a href="#key-branching-work"><code>branching.work</code></a>, potem <code>.github/pull_request_template.md</code>;
+bez żadnego z nich pisze Summary, Changes i Testing. W szablonie <code>{type}</code>, <code>{summary}</code>,
+<code>{issue-number}</code> i <code>{entry}</code> są wstawiane tak jak w
+<a href="#key-github-pr-title"><code>github.pr-title</code></a>. Sekcja, na którą nie odpowiada nic, co
+powiedziałeś ani co zapisał przebieg, dostaje <code>_No response_</code>, a komentarze HTML są usuwane. Treść
+kończy jedna linia na issue: <code>Closes #&lt;n&gt;</code>, gdy celem jest gałąź domyślna, w przeciwnym razie
+<code>Refs #&lt;n&gt;</code>. viber nigdy nie zapisuje w <code>.github/</code>: szablony tworzysz sam.</p>
+
+<h5><span lang="en">Feature template</span><span lang="pl">Szablon funkcji</span></h5>
+<pre class="snippet" data-copy>## Summary
+
+{summary}
+
+## Changes
+
+## Testing
+
+## Checklist
+
+- [ ] Tests added or updated
+- [ ] Documentation updated</pre>
+<p class="caption" lang="en">Saved as <code>.github/PULL_REQUEST_TEMPLATE/feature.md</code>, it serves the
+<code>feature</code> entry.</p>
+<p class="caption" lang="pl">Zapisany jako <code>.github/PULL_REQUEST_TEMPLATE/feature.md</code>, obsługuje wpis
+<code>feature</code>.</p>
+
+<h5><span lang="en">Hotfix template</span><span lang="pl">Szablon hotfixa</span></h5>
+<pre class="snippet" data-copy>## Hotfix: {summary}
+
+## Impact
+
+## Cause and fix
+
+## Rollback
+
+## Checklist
+
+- [ ] Reproduced on production
+- [ ] Fix verified</pre>
+<p class="caption" lang="en">Saved as <code>.github/PULL_REQUEST_TEMPLATE/hotfix.md</code>, it serves the
+<code>hotfix</code> entry.</p>
+<p class="caption" lang="pl">Zapisany jako <code>.github/PULL_REQUEST_TEMPLATE/hotfix.md</code>, obsługuje wpis
+<code>hotfix</code>.</p>
 </section>
 </section>
 </main>

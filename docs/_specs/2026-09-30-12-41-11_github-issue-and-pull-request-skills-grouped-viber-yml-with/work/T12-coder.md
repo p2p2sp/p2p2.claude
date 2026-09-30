@@ -1,0 +1,5 @@
+- C13's `allowed-tools` has no `AskUserQuestion`/`Write`, kept as written: `AskUserQuestion` needs no pre-approval and the body `Write` rides the `Edit(./.temp/viber/create-pr/**)` pattern, as in create-issue.
+- `plugin.json` lists create-pr right after `e2e` per DoD.6, not in the rule file's pipeline order.
+- BRANCHING.md's "What part 2 adds" no longer lists pull request creation, template or title (they now exist); it keeps `releases:`, `version:` and the four placeholders.
+- The commit card's "never pushes" lines in help.html stay: they describe `commit`, not viber as a whole.
+- `viber/CLAUDE.md` still says 15 skills (now 17 with create-issue and create-pr) and `.claude/rules/plugin-manifests.md` lists the pipeline order without them: the build's close owns those.

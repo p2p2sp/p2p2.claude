@@ -31,6 +31,7 @@ prose question rely on; without it each of those calls asks for permission once.
 | `/viber:fixer` | A bug traced to its root cause and proven by a failing test, then handed to the planner. Point it at an issue the same way to trace from that report. |
 | `/viber:prototype` | A UI change in mind becomes one working HTML mockup in your project's own look, or three alternatives to choose from, refined with you in conversation, then carried on to `/viber:intent`, onto the GitHub issue it started from, or both. |
 | `/viber:e2e` | The build's QA scenarios become Playwright tests, run against your app. |
+| `/viber:create-pr` | A pull request for the branch you are on, titled per `github.pr-title` and filled in from your pull request template, previewed and pushed and created (or drafted) only on your yes. |
 | `/viber:memory` | Reviews or extends your project's `CLAUDE.md` cascade on your own schedule. |
 | `/viber:rules` | Reviews or extends your project's `.claude/rules/` on your own schedule. |
 | `/viber:code-auditor` | A large codebase audited for bugs, tech debt or another job you pick: cheap agents rank every file and file pair, and only the places worth it get a deep investigation whose findings are replayed on a clean checkout. Needs Node.js 22.6 or newer. |
@@ -134,10 +135,12 @@ type of the GitHub issue a run starts from through `issue-type-mappings`. `mode`
 the branch the run started on, today's behavior), `allowed` (the run may get its own branch) or
 `required` (a run always gets its own branch, never an entry's base). Under both, the entry is
 settled when the interview or diagnosis starts, before any code is read, with an offer to switch
-to its base first; the planner takes the branch from there. Nothing is fetched, pushed, merged or
-deleted: the branch is only created, switched to and committed on. See
+to its base first; the planner takes the branch from there. No branching step fetches, pushes,
+merges or deletes: the branch is only created, switched to and committed on, and `/viber:create-pr`
+alone pushes it, on your yes. See
 [`viber/BRANCHING.md`](BRANCHING.md) for the full schema and one example per branching strategy -
-trunk based development, GitHub Flow, GitLab Flow, Release Flow and GitFlow.
+trunk based development, GitHub Flow, GitLab Flow, Release Flow and GitFlow, and for the pull
+request template convention `/viber:create-pr` reads.
 
 ```yaml
 branching:

@@ -17,6 +17,7 @@
     "./skills/tdd/",
     "./skills/fixer/",
     "./skills/e2e/",
+    "./skills/create-pr/",
     "./skills/memory/",
     "./skills/rules/",
     "./skills/code-auditor/",

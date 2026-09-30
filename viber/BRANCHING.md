@@ -6,8 +6,8 @@ from pick the right kind. One `branching:` schema is enough to express trunk bas
 GitHub Flow, GitLab Flow, Release Flow and GitFlow; every decision is made by `config.sh` and
 `run-branch.sh`, so neither the planner nor the implementor carries stack-specific instructions.
 
-Nothing is ever fetched, pushed, merged or deleted by any branching step: a branch is only
-created, switched to and committed on.
+No branching step ever fetches, pushes, merges or deletes: a branch is only created, switched to
+and committed on. Only `/viber:create-pr` pushes it, on your yes (see Pull requests below).
 
 ## Modes
 
@@ -68,7 +68,7 @@ start with `-` or `/`, and may not hold `..`.
 ## Issue type mappings
 
 `branching.issue-type-mappings` picks a work entry by the type of the GitHub issue a run starts
-from (needs `issues: true` to have a type to read at all):
+from (needs `github.issues: true` to have a type to read at all):
 
 ```yaml
 branching:
@@ -82,7 +82,7 @@ usable entry when there is exactly one, otherwise the run is asked which entry t
 ## Placeholders
 
 A `name` pattern is filled in from the plan: `{type}` (`fix` or `feature`), `{slug}` and
-`{issue-number}`. A pattern holding `{issue-number}` needs `issues: true` - without it, or without
+`{issue-number}`. A pattern holding `{issue-number}` needs `github.issues: true` - without it, or without
 an issue on the run, that entry has no usable branch name and is offered no differently for a
 manual choice, never silently.
 
@@ -229,10 +229,67 @@ Feature work is cut from and lands back on `develop`; a production issue is cut 
 instead. Release branches, their version numbers and back-merging a hotfix into `develop` are part
 2.
 
+## Pull requests
+
+`/viber:create-pr` opens a pull request for the branch you are on, after a preview:
+
+- The work entry comes from the run's `work:`, else from the one entry whose `name` pattern matches
+  the branch; when that leaves several or none you are asked. Under `mode: off` you are asked for
+  the target branch, the default branch first. The pull request lands on the entry's `target`.
+- The title follows `github.pr-title` (`{type}`, `{summary}`, `{issue-number}` and `{entry}`); the
+  body ends with `Closes #<n>` per issue when the target is the default branch, `Refs #<n>` otherwise.
+- You answer create, create as draft or cancel. Only on create does it push the branch to its
+  remote and open the pull request.
+
+### Template convention
+
+The body comes from the first of these that exists, and viber never writes under `.github/`:
+
+- `.github/PULL_REQUEST_TEMPLATE/<entry key>.md` - the template of that work entry.
+- `.github/pull_request_template.md` - the template of every entry.
+- Neither - the sections Summary, Changes and Testing.
+
+`{type}`, `{summary}`, `{issue-number}` and `{entry}` are filled in wherever they stand in a
+template. A section that nothing in the run's files, the commits or the conversation answers reads
+`_No response_`, and HTML comments in the template are dropped.
+
+Feature, saved as `.github/PULL_REQUEST_TEMPLATE/feature.md`:
+
+```markdown
+## Summary
+
+{summary}
+
+## Changes
+
+## Testing
+
+## Checklist
+
+- [ ] Tests added or updated
+- [ ] Documentation updated
+```
+
+Hotfix, saved as `.github/PULL_REQUEST_TEMPLATE/hotfix.md`:
+
+```markdown
+## Hotfix: {summary}
+
+## Impact
+
+## Cause and fix
+
+## Rollback
+
+## Checklist
+
+- [ ] Reproduced on production
+- [ ] Fix verified
+```
+
 ## What part 2 adds for releases
 
 This schema covers the branch a run lands on. A later part adds `releases:` and `version:`
-configuration, pull request creation and push, the pull request `template` and `title`, the
-`{version}` and `{issue-title}` placeholders used in one, `{base}` and `{target}` used in the
-other, and cutting or back-merging a release branch itself. None of that exists yet: every example
-above is the full, current configuration for its strategy.
+configuration, the `{version}`, `{issue-title}`, `{base}` and `{target}` placeholders, and cutting
+or back-merging a release branch itself. None of that exists yet: every example above is the full,
+current configuration for its strategy.
