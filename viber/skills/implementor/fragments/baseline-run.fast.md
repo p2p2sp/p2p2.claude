@@ -3,6 +3,7 @@ Baseline, only when no task on the index is `done` and the index carries no `dir
 ```
 <dir>/work/tests-baseline.md
 mode: baseline
+suite: fast
 ```
 
 Dispatch no task until it returns, then:
