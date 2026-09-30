@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 2552" width="1640" height="2552" role="img" aria-labelledby="svgTitle svgDesc" lang="pl">
   <title id="svgTitle">viber - od pomysłu do zacommitowanego kodu</title>
-  <desc id="svgDesc">Diagram przepływu wtyczki viber: jednorazowy setup, opcjonalna ocena issue i makieta UI, trzy wejścia (pomysł przez wywiad intent, błąd przez diagnozę fixera, mała zmiana przez zwykły tryb planowania), szybka ścieżka z wywiadu intent przy przełączniku fast-path, na której mała zmiana istniejącego kodu dostaje krótki projekt na czacie i po twoim wyraźnym „tak” jest budowana w twojej sesji, sprawdzana przez test-runner i zostawiana tobie do zacommitowania, planner piszący plan i agent planner-review, który go sprawdza, bramka, którą przechodzisz sam, a potem trzy wyjścia: szkic specyfikacji kontynuowany w kolejnej rundzie wywiadu, zwykły plan, który Claude buduje w twojej sesji, albo implementor budujący plan z task-coder, task-reviewer i jednym commitem na zadanie, z zadaniami równolegle tam, gdzie pozwalają zależności, poprzedzonymi przy przełączniku baseline-tests bazowym uruchomieniem testów, które zapisuje, co już nie przechodzi. Build kończy się końcowym przeglądem, pełnym zestawem testów, który przy baseline-tests naprawia tylko nowe błędy, opcjonalnymi writerami pamięci, reguł i QA oraz closeoutem, który archiwizuje przebieg, a później przebiegiem e2e, który zamienia scenariusze QA w testy Playwright.</desc>
+  <desc id="svgDesc">Diagram przepływu wtyczki viber: jednorazowy setup, opcjonalna ocena issue i makieta UI, trzy wejścia (pomysł przez wywiad intent, błąd przez diagnozę fixera, mała zmiana przez zwykły tryb planowania), szybka ścieżka z wywiadu intent przy przełączniku planning.fast-path, na której mała zmiana istniejącego kodu dostaje krótki projekt na czacie i po twoim wyraźnym „tak” jest budowana w twojej sesji, sprawdzana przez test-runner i zostawiana tobie do zacommitowania, planner piszący plan i agent planner-review, który go sprawdza, bramka, którą przechodzisz sam, a potem trzy wyjścia: szkic specyfikacji kontynuowany w kolejnej rundzie wywiadu, zwykły plan, który Claude buduje w twojej sesji, albo implementor budujący plan z task-coder, task-reviewer i jednym commitem na zadanie, z zadaniami równolegle tam, gdzie pozwalają zależności, poprzedzonymi przy przełączniku build.baseline-tests bazowym uruchomieniem testów, które zapisuje, co już nie przechodzi. Build kończy się końcowym przeglądem, pełnym zestawem testów, który przy build.baseline-tests naprawia tylko nowe błędy, opcjonalnymi writerami pamięci, reguł i QA oraz closeoutem, który archiwizuje przebieg, a później przebiegiem e2e, który zamienia scenariusze QA w testy Playwright.</desc>
 
   <style>
     :root {
@@ -87,7 +87,7 @@
   <rect x="1280" y="26" width="72" height="16" rx="8" class="badge-opt"/>
   <text x="1316" y="38" class="badge-o" text-anchor="middle">opcjonalny</text>
   <text x="1362" y="39" class="desc">decydujesz ty lub przełącznik</text>
-  <text x="1280" y="65" class="sw">memory</text>
+  <text x="1280" y="65" class="sw">build.qa</text>
   <text x="1362" y="65" class="desc">przełącznik w .claude/viber.yml</text>
 
   <!-- ============ SETUP ============ -->
@@ -156,7 +156,7 @@
   <text x="64" y="610" class="desc">Jedno pytanie naraz, z opcjami i rekomendacją.</text>
   <text x="64" y="628" class="desc">Za duże na jeden cykl? Dzieli na części, omawia każdą z nich.</text>
   <text x="64" y="646" class="desc">Kończy podsumowaniem albo projektem małej zmiany.</text>
-  <text x="64" y="672" class="desc-s"><tspan class="sw">issues</tspan> włączony: może zacząć od issue na GitHubie lub założyć nowe</text>
+  <text x="64" y="672" class="desc-s"><tspan class="sw">github.issues</tspan> wł.: zaczyna od issue na GitHubie lub zakłada nowe</text>
 
   <!-- ============ ENTRY: BUG ============ -->
   <path d="M770 384 L770 550" class="link l-f" marker-end="url(#ar-f)"/>
@@ -170,7 +170,7 @@
   <text x="564" y="610" class="desc">Śledzi błąd aż do przyczyny źródłowej - bez zgadywania.</text>
   <text x="564" y="628" class="desc">Dowodzi go padającym testem, zostawionym jako RED.</text>
   <text x="564" y="646" class="desc">Nigdy go nie naprawia - diagnoza trafia do planisty.</text>
-  <text x="564" y="672" class="desc-s"><tspan class="sw">issues</tspan> włączony: może zacząć od issue na GitHubie</text>
+  <text x="564" y="672" class="desc-s"><tspan class="sw">github.issues</tspan> włączony: może zacząć od issue na GitHubie</text>
 
   <!-- ============ ENTRY: PLAIN PLAN MODE ============ -->
   <path d="M1350 384 L1350 550" class="link l-n" marker-end="url(#ar-n)"/>
@@ -197,7 +197,7 @@
   <text x="1144" y="760" class="mono-t">plain-plan-review</text>
   <text x="1144" y="784" class="desc">Ten sam przegląd dla planu napisanego bez planisty.</text>
   <text x="1144" y="804" class="desc-s">PASS albo FAIL - FAIL odsyła plan na kolejną rundę</text>
-  <text x="1144" y="824" class="desc-s"><tspan class="sw">plain-plan-review</tspan> wyłączony: ten plan pomija przegląd</text>
+  <text x="1144" y="824" class="desc-s"><tspan class="sw">planning.plain-plan-review</tspan> wyłączony: ten plan pomija przegląd</text>
 
   <path d="M1580 783 L1594 783 Q1612 783 1612 765 L1612 642 Q1612 624 1594 624 L1584 624" class="link l-n" marker-end="url(#ar-n)"/>
   <path d="M1580 783 L1594 783 Q1612 783 1612 765 L1612 642 Q1612 624 1594 624 L1584 624" class="flow l-n"/>
@@ -210,7 +210,7 @@
   <!-- ============ FAST PATH ============ -->
   <path d="M120 694 L120 772" class="link l-i" marker-end="url(#ar-i)"/>
   <path d="M120 694 L120 772" class="flow l-i"/>
-  <text x="132" y="738" class="lbl"><tspan class="sw">fast-path</tspan> wł.</text>
+  <text x="132" y="738" class="lbl"><tspan class="sw">planning.fast-path</tspan> wł.</text>
 
   <rect x="40" y="776" width="176" height="200" rx="10" class="node"/>
   <rect x="40" y="776" width="4" height="200" rx="2" fill="var(--idea)"/>
@@ -244,7 +244,7 @@
   <text x="254" y="832" class="desc">Pisze plan w trybie planowania, na podstawie twojego kodu.</text>
   <text x="254" y="850" class="desc">Każde zadanie podaje swoje pliki, zależności i sposób weryfikacji.</text>
   <text x="254" y="872" class="desc-s">poproszony o samą specyfikację? pisze zamiast planu szkic</text>
-  <text x="254" y="892" class="desc-s"><tspan class="sw">adr</tspan> włączony: adr-screener ocenia decyzje; rekord to zadanie bez zależności</text>
+  <text x="254" y="892" class="desc-s"><tspan class="sw">planning.adr</tspan> włączony: adr-screener ocenia decyzje; rekord to zadanie bez zależności</text>
   <text x="254" y="910" class="desc-s"><tspan class="sw">branching</tspan> włączony: plan podaje gałąź git, na której pracuje przebieg</text>
   <text x="254" y="932" class="mono">jeden plan · numerowane zadania · kryteria akceptacji</text>
 
@@ -342,7 +342,7 @@
   <text x="1144" y="1424" class="desc">Przebieg bazowy: raz uruchamia testy przed</text>
   <text x="1144" y="1442" class="desc">pierwszym zadaniem i zapisuje, co już nie przechodzi.</text>
   <text x="1144" y="1464" class="desc-s">czerwony przebieg bazowy: arbiter orzeka kontynuację, rulings.md</text>
-  <text x="1144" y="1484" class="desc-s"><tspan class="sw">baseline-tests</tspan> włączony</text>
+  <text x="1144" y="1484" class="desc-s"><tspan class="sw">build.baseline-tests</tspan> włączony</text>
 
   <path d="M1350 1500 L1350 1512 Q1350 1530 1332 1530 L1084 1530" class="link l-n" marker-end="url(#ar-n)"/>
   <path d="M1350 1500 L1350 1512 Q1350 1530 1332 1530 L1084 1530" class="flow l-n"/>
@@ -400,7 +400,7 @@
   <text x="504" y="1946" class="desc">Przegląda gotowy build ponad diffami pojedynczych zadań,</text>
   <text x="504" y="1964" class="desc">jeden recenzent na porcję do 8 zadań.</text>
   <text x="504" y="1986" class="desc-s">każda poprawka jest ponownie sprawdzana; nieudana idzie do arbitra</text>
-  <text x="504" y="2006" class="desc-s"><tspan class="sw">final-review</tspan> włączony</text>
+  <text x="504" y="2006" class="desc-s"><tspan class="sw">build.final-review</tspan> włączony</text>
 
   <path d="M740 2018 L740 2040" class="link l-n" marker-end="url(#ar-n)"/>
   <path d="M740 2018 L740 2040" class="flow l-n"/>
@@ -411,7 +411,7 @@
   <text x="504" y="2074" class="mono-t">test-runner</text>
   <text x="504" y="2096" class="desc">Uruchamia raz cały build i zestaw testów.</text>
   <text x="504" y="2116" class="desc-s">porażka trafia do codera naprawczego, do 5 rund, potem orzeka arbiter</text>
-  <text x="504" y="2134" class="desc-s"><tspan class="sw">baseline-tests</tspan> włączony: do naprawy idą tylko nowe błędy</text>
+  <text x="504" y="2134" class="desc-s"><tspan class="sw">build.baseline-tests</tspan> włączony: do naprawy idą tylko nowe błędy</text>
 
   <path d="M740 2144 L740 2168" class="link l-n"/>
   <path d="M740 2144 L740 2168" class="flow l-n"/>
@@ -430,7 +430,7 @@
   <text x="64" y="2228" class="mono-t">memory-writer</text>
   <text x="64" y="2252" class="desc">Twój CLAUDE.md uczy się tego, czego nauczył build.</text>
   <text x="64" y="2272" class="desc-s">każdy plik mieści się w swoim limicie rozmiaru</text>
-  <text x="64" y="2294" class="desc-s"><tspan class="sw">memory</tspan> włączony</text>
+  <text x="64" y="2294" class="desc-s"><tspan class="sw">build.memory</tspan> włączony</text>
 
   <rect x="520" y="2198" width="440" height="110" rx="10" class="node agent"/>
   <rect x="802" y="2208" width="72" height="16" rx="8" class="badge-opt"/>
@@ -440,7 +440,7 @@
   <text x="544" y="2228" class="mono-t">rules-writer</text>
   <text x="544" y="2252" class="desc">Potwierdzone konwencje trafiają do .claude/rules/.</text>
   <text x="544" y="2272" class="desc-s">fakt o jednym miejscu trafia zamiast tego do CLAUDE.md</text>
-  <text x="544" y="2294" class="desc-s"><tspan class="sw">rules</tspan> włączony</text>
+  <text x="544" y="2294" class="desc-s"><tspan class="sw">build.rules</tspan> włączony</text>
 
   <rect x="1000" y="2198" width="440" height="110" rx="10" class="node agent"/>
   <rect x="1282" y="2208" width="72" height="16" rx="8" class="badge-opt"/>
@@ -450,7 +450,7 @@
   <text x="1024" y="2228" class="mono-t">qa-writer</text>
   <text x="1024" y="2252" class="desc">Scenariusze testów tego, co faktycznie dostarczono:</text>
   <text x="1024" y="2272" class="desc-s">checklista dla człowieka, handoff dla /viber:e2e</text>
-  <text x="1024" y="2294" class="desc-s"><tspan class="sw">qa</tspan> włączony</text>
+  <text x="1024" y="2294" class="desc-s"><tspan class="sw">build.qa</tspan> włączony</text>
 
   <path d="M260 2308 L260 2332 L1220 2332 L1220 2308" class="link l-n"/>
   <path d="M740 2308 L740 2358" class="link l-n" marker-end="url(#ar-n)"/>
@@ -466,7 +466,7 @@
   <text x="504" y="2434" class="desc">potem przenosi przebieg do archiwum, w jednym commicie.</text>
   <text x="504" y="2456" class="desc-s">zostawia specyfikację i dokumenty QA - resztę przechowuje git</text>
   <text x="504" y="2478" class="mono">docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/ → docs/specs/</text>
-  <text x="504" y="2498" class="desc-s"><tspan class="sw">cleanup</tspan> włączony</text>
+  <text x="504" y="2498" class="desc-s"><tspan class="sw">build.cleanup</tspan> włączony</text>
 
   <!-- ============ E2E ============ -->
   <path d="M1440 2253 L1512 2253 Q1530 2253 1530 2271 L1530 2358" class="link l-n" marker-end="url(#ar-n)"/>

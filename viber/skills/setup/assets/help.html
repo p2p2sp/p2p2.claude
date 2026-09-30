@@ -930,11 +930,11 @@ potem. Rzadsze przypadki są zwinięte pod przykładem.</p>
 <h3 class="sub" id="guide-feature-title"><span lang="en">Add a feature</span><span lang="pl">Dodaj funkcję</span><a class="self" href="#guide-feature-title">#</a></h3>
 <p lang="en">For a change that needs a plan. A small change you want made right away needs none: ask Claude
 for it directly and say you want it without a plan. A small change to existing code you still want designed
-first takes the <a href="#key-fast-path">fast path</a>: the same command ends on a short design in chat, and
+first takes the <a href="#key-planning-fast-path">fast path</a>: the same command ends on a short design in chat, and
 Claude builds it in your session once you say yes, with no plan file.</p>
 <p lang="pl">Dla zmiany, która potrzebuje planu. Mała zmiana, którą chcesz mieć od razu, planu nie wymaga:
 poproś o nią Claude wprost i powiedz, że ma ją zrobić bez planu. Mała zmiana istniejącego kodu, którą
-chcesz najpierw zaprojektować, idzie <a href="#key-fast-path">szybką ścieżką</a>: to samo polecenie kończy
+chcesz najpierw zaprojektować, idzie <a href="#key-planning-fast-path">szybką ścieżką</a>: to samo polecenie kończy
 się krótkim projektem na czacie, a Claude buduje zmianę w twojej sesji, gdy powiesz „tak”, bez pliku planu.</p>
 <ol class="steps">
   <li>
@@ -988,19 +988,19 @@ się krótkim projektem na czacie, a Claude buduje zmianę w twojej sesji, gdy p
     <code>/viber:intent</code> wskazujący ten szkic prowadzi go dalej. Build odmawia zbudowania
     szkicu.</span></li>
     <li><span lang="en">For a small, well understood change Claude may suggest its own plan mode instead of
-    the interview. With <a href="#key-plain-plan-review"><code>plain-plan-review</code></a> on, that plan still
+    the interview. With <a href="#key-planning-plain-plan-review"><code>planning.plain-plan-review</code></a> on, that plan still
     has to pass a review before plan mode ends.</span><span lang="pl">Przy małej, dobrze zrozumianej zmianie
     Claude może zaproponować zwykły tryb planowania zamiast wywiadu. Przy włączonym
-    <a href="#key-plain-plan-review"><code>plain-plan-review</code></a> taki plan też musi przejść recenzję,
+    <a href="#key-planning-plain-plan-review"><code>planning.plain-plan-review</code></a> taki plan też musi przejść recenzję,
     zanim tryb planowania się skończy.</span></li>
-    <li><span lang="en">With <a href="#key-fast-path"><code>fast-path</code></a> on, the interview sends a change
+    <li><span lang="en">With <a href="#key-planning-fast-path"><code>planning.fast-path</code></a> on, the interview sends a change
     to existing code of at most 2 tasks with code and 5 in total, with no new subsystem, restructuring or
     domain concept, down the fast path: a short design in chat, built in your session after your explicit
     yes, proven by <a href="#agent-test-runner"><code>test-runner</code></a>, with no plan file and no run
     directory. A correction gets a revised design; ask for a full plan and the interview carries on as usual.
     A build that outgrows those limits stops and suggests <code>/viber:intent</code>. A draft, a
     <code>roadmap.md</code> or a run on its own branch never takes it.</span><span lang="pl">Przy włączonym
-    <a href="#key-fast-path"><code>fast-path</code></a> wywiad kieruje zmianę istniejącego kodu na co najwyżej
+    <a href="#key-planning-fast-path"><code>planning.fast-path</code></a> wywiad kieruje zmianę istniejącego kodu na co najwyżej
     2 zadania z kodem i 5 w sumie, bez nowego podsystemu, przebudowy ani pojęcia domenowego, na szybką
     ścieżkę: krótki projekt na czacie, zbudowany w twojej sesji po twoim wyraźnym „tak”, sprawdzony przez
     <a href="#agent-test-runner"><code>test-runner</code></a>, bez pliku planu i bez katalogu przebiegu.
@@ -1053,9 +1053,9 @@ udowodniona, zanim powstanie jakakolwiek poprawka.</p>
     Hard to test is not impossible.</span><span lang="pl">Gdy błędu naprawdę nie da się odtworzyć (trudny wyścig,
     artefakt renderowania, stan zewnętrznej usługi poza zasięgiem), zatrzymuje się i prosi cię o wyraźną
     zgodę na przekazanie bez testu. Trudne do przetestowania nie znaczy niemożliwe.</span></li>
-    <li><span lang="en">With <a href="#key-issues"><code>issues</code></a> on, <code>/viber:fixer #42</code> reads
+    <li><span lang="en">With <a href="#key-github-issues"><code>github.issues</code></a> on, <code>/viber:fixer #42</code> reads
     the issue as the bug report. When the issue cannot be read, it stops before tracing
-    anything.</span><span lang="pl">Przy włączonym <a href="#key-issues"><code>issues</code></a>
+    anything.</span><span lang="pl">Przy włączonym <a href="#key-github-issues"><code>github.issues</code></a>
     <code>/viber:fixer #42</code> czyta issue jako opis błędu. Gdy issue nie da się odczytać, zatrzymuje się,
     zanim zacznie cokolwiek śledzić.</span></li>
   </ul>
@@ -1064,10 +1064,10 @@ udowodniona, zanim powstanie jakakolwiek poprawka.</p>
 
 <section class="guide" data-search id="guide-issue">
 <h3 class="sub" id="guide-issue-title"><span lang="en">Start from a GitHub issue</span><span lang="pl">Zacznij od issue na GitHubie</span><a class="self" href="#guide-issue-title">#</a></h3>
-<p lang="en">Set <a href="#key-issues"><code>issues</code></a> to <code>true</code> in <code>.claude/viber.yml</code>
+<p lang="en">Set <a href="#key-github-issues"><code>github.issues</code></a> to <code>true</code> in <code>.claude/viber.yml</code>
 first (the template ships it off) and install the GitHub CLI (<code>gh</code>). With the switch off,
 <code>/viber:triage</code> assesses pasted issue text only.</p>
-<p lang="pl">Najpierw ustaw <a href="#key-issues"><code>issues</code></a> na <code>true</code> w
+<p lang="pl">Najpierw ustaw <a href="#key-github-issues"><code>github.issues</code></a> na <code>true</code> w
 <code>.claude/viber.yml</code> (szablon ma go wyłączonego) i zainstaluj GitHub CLI (<code>gh</code>). Przy
 wyłączonym przełączniku <code>/viber:triage</code> ocenia tylko wklejony tekst issue.</p>
 <ol class="steps">
@@ -1177,9 +1177,9 @@ w wyglądzie twojego projektu, a twój kod zostaje nietknięty.</p>
     <li><span lang="en">Data, logic, an API or anything else beyond the screen is parked as an open point
     for the interview.</span><span lang="pl">Dane, logika, API i wszystko inne poza ekranem zostaje odłożone
     jako otwarta kwestia dla wywiadu.</span></li>
-    <li><span lang="en">With <a href="#key-issues"><code>issues</code></a> on, <code>/viber:prototype #42</code>
+    <li><span lang="en">With <a href="#key-github-issues"><code>github.issues</code></a> on, <code>/viber:prototype #42</code>
     starts from the issue and can post its conclusions there as a comment. Attach the mockup to that comment
-    yourself in the browser.</span><span lang="pl">Przy włączonym <a href="#key-issues"><code>issues</code></a>
+    yourself in the browser.</span><span lang="pl">Przy włączonym <a href="#key-github-issues"><code>github.issues</code></a>
     <code>/viber:prototype #42</code> zaczyna od issue i może opublikować w nim wnioski jako komentarz.
     Makietę dołącz do tego komentarza sam w przeglądarce.</span></li>
   </ul>
@@ -1334,11 +1334,11 @@ wznowić w nowej sesji albo na innym komputerze.</p>
 <section class="guide" data-search id="guide-e2e">
 <h3 class="sub" id="guide-e2e-title"><span lang="en">Get end-to-end tests</span><span lang="pl">Dodaj testy end-to-end</span><a class="self" href="#guide-e2e-title">#</a></h3>
 <p lang="en">A build never writes or runs end-to-end tests unless you ask. Turn
-<a href="#key-qa"><code>qa</code></a> on before the build starts: when the change touches the UI or the
+<a href="#key-build-qa"><code>build.qa</code></a> on before the build starts: when the change touches the UI or the
 endpoints, its close then writes <code>qa.e2e.md</code>, the handoff this command reads, plus <code>qa.md</code>,
 the scenarios a person performs, when the UI changed.</p>
 <p lang="pl">Build nigdy nie pisze ani nie uruchamia testów end-to-end, chyba że o to poprosisz. Włącz
-<a href="#key-qa"><code>qa</code></a> przed startem buildu: gdy zmiana dotyka interfejsu użytkownika albo
+<a href="#key-build-qa"><code>build.qa</code></a> przed startem buildu: gdy zmiana dotyka interfejsu użytkownika albo
 endpointów, jego zamknięcie zapisuje <code>qa.e2e.md</code>, plik przekazania, który czyta to polecenie, a gdy
 zmienił się interfejs, także <code>qa.md</code>, scenariusze do wykonania przez człowieka.</p>
 <ol class="steps">
@@ -1390,10 +1390,10 @@ zmienił się interfejs, także <code>qa.md</code>, scenariusze do wykonania prz
 
 <section class="guide" data-search id="guide-memory">
 <h3 class="sub" id="guide-memory-title"><span lang="en">Refresh project memory and rules</span><span lang="pl">Odśwież pamięć i reguły projektu</span><a class="self" href="#guide-memory-title">#</a></h3>
-<p lang="en">With <a href="#key-memory"><code>memory</code></a> and <a href="#key-rules"><code>rules</code></a> on,
+<p lang="en">With <a href="#key-build-memory"><code>build.memory</code></a> and <a href="#key-build-rules"><code>build.rules</code></a> on,
 every build updates these files at its close. Between builds, and after changes made outside viber, the
 files can drift from the code.</p>
-<p lang="pl">Przy włączonych <a href="#key-memory"><code>memory</code></a> i <a href="#key-rules"><code>rules</code></a>
+<p lang="pl">Przy włączonych <a href="#key-build-memory"><code>build.memory</code></a> i <a href="#key-build-rules"><code>build.rules</code></a>
 każdy build aktualizuje te pliki na zamknięciu. Między buildami i po zmianach zrobionych poza viber pliki
 mogą rozjechać się z kodem.</p>
 <ol class="steps">
@@ -1465,7 +1465,7 @@ udowadnia błąd.</p>
 review agent has passed the latest version of the plan. A plan the planner wrote goes to
 <a href="#agent-planner-review"><code>planner-review</code></a>. A plan written in plain plan mode goes to
 <a href="#agent-plain-plan-review"><code>plain-plan-review</code></a>, as long as
-<a href="#key-plain-plan-review"><code>plain-plan-review</code></a> is on. Any change to the plan after the pass
+<a href="#key-planning-plain-plan-review"><code>planning.plain-plan-review</code></a> is on. Any change to the plan after the pass
 voids it, so the plan is reviewed again before plan mode can end. When the gate blocks, Claude gets the next
 step in words (run the review, fix its findings, or grant a permission the reviewer was refused), and the
 message says it comes from the gate and is no error.</p>
@@ -1473,7 +1473,7 @@ message says it comes from the gate and is no error.</p>
 agent recenzujący nie zaakceptuje najnowszej wersji planu. Plan napisany przez planistę trafia do
 <a href="#agent-planner-review"><code>planner-review</code></a>, a plan napisany w zwykłym trybie planowania do
 <a href="#agent-plain-plan-review"><code>plain-plan-review</code></a>, o ile włączony jest przełącznik
-<a href="#key-plain-plan-review"><code>plain-plan-review</code></a>. Każda zmiana planu po akceptacji ją
+<a href="#key-planning-plain-plan-review"><code>planning.plain-plan-review</code></a>. Każda zmiana planu po akceptacji ją
 unieważnia, więc przed wyjściem z trybu planowania plan przechodzi recenzję jeszcze raz. Kiedy bramka blokuje
 wyjście, Claude dostaje opis następnego kroku (uruchom recenzję, popraw uwagi albo nadaj uprawnienie, którego
 odmówiono recenzentowi), a komunikat mówi, że pochodzi od bramki i nie jest błędem.</p>
@@ -1495,13 +1495,13 @@ prośby dostaje też <code>roadmap.md</code>: listę części i decyzje podjęte
 commitowany razem z każdym zadaniem, dlatego build da się wznowić w nowej sesji albo na innym komputerze.
 Gdy build rozstrzyga tam, gdzie inaczej by cię zapytał, zapisuje też <code>rulings.md</code>: jedna linia na
 rozstrzygnięcie, z uzasadnieniem i kosztem pomyłki. Build, który niczego nie rozstrzygał, nie ma tego pliku.</p>
-<p lang="en">With <a href="#key-cleanup"><code>cleanup</code></a> on, the build ends by moving the run to
+<p lang="en">With <a href="#key-build-cleanup"><code>build.cleanup</code></a> on, the build ends by moving the run to
 <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> in one commit. The archive keeps the specification and the QA
 documents and drops <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>, which
 git history still holds; <code>roadmap.md</code> and <code>rulings.md</code> stay in the archive with them. A run with a task neither done
 nor skipped is never archived.
 <a href="#key-directories"><code>directories</code></a> renames both directories.</p>
-<p lang="pl">Przy włączonym <a href="#key-cleanup"><code>cleanup</code></a> build kończy się przeniesieniem
+<p lang="pl">Przy włączonym <a href="#key-build-cleanup"><code>build.cleanup</code></a> build kończy się przeniesieniem
 przebiegu do <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> w jednym commicie. Archiwum zachowuje
 specyfikację i dokumenty QA, a usuwa <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code>
 i <code>work/</code>, które nadal są w historii gita; <code>roadmap.md</code> i <code>rulings.md</code> zostają w archiwum razem z nimi.
@@ -1530,14 +1530,14 @@ przechodzi recenzję.</p>
 <p lang="en">A task that passes gets its own commit, titled <code>T3 - &lt;task title&gt;</code>. Only viber's
 scripts commit, never an agent. After the last task <a href="#agent-test-runner"><code>test-runner</code></a>
 runs the whole suite. It runs up to six times, with a repair round between one failed run and the next,
-before the arbiter rules on the failing suite. With <a href="#key-baseline-tests"><code>baseline-tests</code></a> on, it also makes a
+before the arbiter rules on the failing suite. With <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> on, it also makes a
 baseline run: the suite once before the first task, recording what already fails; when something does, the arbiter
 rules to continue and the ruling is recorded. From then on only the failures the build caused count as repair work.</p>
 <p lang="pl">Zadanie, które przejdzie, dostaje własny commit z tytułem <code>T3 - &lt;tytuł zadania&gt;</code>.
 Commitują wyłącznie skrypty viber, nigdy agent. Po ostatnim zadaniu
 <a href="#agent-test-runner"><code>test-runner</code></a> uruchamia cały zestaw testów. Uruchamia go najwyżej
 sześć razy, z rundą poprawek między jednym nieudanym uruchomieniem a kolejnym, zanim arbiter rozstrzygnie, co
-zrobić z niepasującym zestawem. Przy włączonym <a href="#key-baseline-tests"><code>baseline-tests</code></a> wykonuje też przebieg bazowy:
+zrobić z niepasującym zestawem. Przy włączonym <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> wykonuje też przebieg bazowy:
 raz przed pierwszym zadaniem uruchamia zestaw testów i zapisuje, co już nie przechodzi; gdy coś nie przechodzi, arbiter
 orzeka kontynuację, a orzeczenie zostaje zapisane. Od tej chwili do naprawy idą tylko błędy spowodowane przez build.</p>
 
@@ -1562,40 +1562,40 @@ switches turn on:</p>
 <p lang="pl">Gdy cały zestaw testów przejdzie albo arbiter zaakceptuje jego porażkę, build uruchamia te części
 zamknięcia, które włączają twoje przełączniki:</p>
 <ul class="musts">
-  <li><span lang="en"><a href="#key-memory"><code>memory</code></a>: <a href="#agent-memory-writer"><code>memory-writer</code></a>
+  <li><span lang="en"><a href="#key-build-memory"><code>build.memory</code></a>: <a href="#agent-memory-writer"><code>memory-writer</code></a>
   folds what the build taught into your <code>CLAUDE.md</code> <a href="#term-node">nodes</a>, within their size
-  budget;</span><span lang="pl"><a href="#key-memory"><code>memory</code></a>:
+  budget;</span><span lang="pl"><a href="#key-build-memory"><code>build.memory</code></a>:
   <a href="#agent-memory-writer"><code>memory-writer</code></a> przenosi to, czego nauczył build, do twoich
   <a href="#term-node">węzłów</a> <code>CLAUDE.md</code>, w granicach ich limitu rozmiaru;</span></li>
-  <li><span lang="en"><a href="#key-rules"><code>rules</code></a>: <a href="#agent-rules-writer"><code>rules-writer</code></a>
+  <li><span lang="en"><a href="#key-build-rules"><code>build.rules</code></a>: <a href="#agent-rules-writer"><code>rules-writer</code></a>
   folds the conventions the build confirmed into <code>.claude/rules/</code>, in the same commit as the
-  memory update;</span><span lang="pl"><a href="#key-rules"><code>rules</code></a>:
+  memory update;</span><span lang="pl"><a href="#key-build-rules"><code>build.rules</code></a>:
   <a href="#agent-rules-writer"><code>rules-writer</code></a> przenosi konwencje potwierdzone przez build do
   <code>.claude/rules/</code>, w tym samym commicie co aktualizacja pamięci;</span></li>
-  <li><span lang="en"><a href="#key-qa"><code>qa</code></a>: <a href="#agent-qa-writer"><code>qa-writer</code></a>
+  <li><span lang="en"><a href="#key-build-qa"><code>build.qa</code></a>: <a href="#agent-qa-writer"><code>qa-writer</code></a>
   writes into the run directory, in a commit of their own, <code>qa.md</code>, the scenarios a person
   performs, when the UI changed, and <code>qa.e2e.md</code>, the handoff <code>/viber:e2e</code> reads, when
-  the UI or the endpoints changed; a change with neither writes nothing;</span><span lang="pl"><a href="#key-qa"><code>qa</code></a>:
+  the UI or the endpoints changed; a change with neither writes nothing;</span><span lang="pl"><a href="#key-build-qa"><code>build.qa</code></a>:
   <a href="#agent-qa-writer"><code>qa-writer</code></a> zapisuje w katalogu przebiegu, we własnym commicie,
   <code>qa.md</code>, scenariusze do wykonania przez człowieka, gdy zmienił się interfejs użytkownika, oraz
   <code>qa.e2e.md</code>, plik przekazania dla <code>/viber:e2e</code>, gdy zmienił się interfejs albo
   endpointy; zmiana bez żadnego z nich nie zapisuje nic;</span></li>
-  <li><span lang="en"><a href="#key-cleanup"><code>cleanup</code></a>: <a href="#agent-closeout"><code>closeout</code></a>
+  <li><span lang="en"><a href="#key-build-cleanup"><code>build.cleanup</code></a>: <a href="#agent-closeout"><code>closeout</code></a>
   notes on the specification what the build delivered beyond it, then archives the run. An aborted build
-  skips this part.</span><span lang="pl"><a href="#key-cleanup"><code>cleanup</code></a>:
+  skips this part.</span><span lang="pl"><a href="#key-build-cleanup"><code>build.cleanup</code></a>:
   <a href="#agent-closeout"><code>closeout</code></a> odnotowuje w specyfikacji to, co build dostarczył ponad
   nią, a potem archiwizuje przebieg. Przerwany build pomija tę część.</span></li>
 </ul>
 <p lang="en">The build ends on a short summary: the tasks committed, the review rounds spent, the test verdict,
 the time it took, what memory, rules and QA recorded, the archive path, and anything left for you, such as an
-unreviewed task or changed files no task claimed. With <a href="#key-final-review"><code>final-review</code></a>
-on, it lists each final-review finding with what was wrong and what the fix changed, followed by any findings
+unreviewed task or changed files no task claimed. With <a href="#key-build-final-review"><code>build.final-review</code></a>
+on, it lists each finding of the final review with what was wrong and what the fix changed, followed by any findings
 left for you, the owner. After it comes the list of the build's rulings, each with
 its reason and its cost if wrong, the same lines as in <code>rulings.md</code>.</p>
 <p lang="pl">Build kończy się krótkim podsumowaniem: zacommitowane zadania, zużyte rundy recenzji, wynik testów,
 czas trwania, to, co zapisały pamięć, reguły i QA, ścieżka archiwum oraz wszystko, co zostaje dla ciebie, na
 przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało się żadne zadanie. Gdy
-<a href="#key-final-review"><code>final-review</code></a> jest włączony, wymienia każdą uwagę recenzji końcowej
+<a href="#key-build-final-review"><code>build.final-review</code></a> jest włączony, wymienia każdą uwagę recenzji końcowej
 wraz z tym, co było nie tak i co zmieniła poprawka, a po nich uwagi zostawione dla ciebie, właściciela. Po nim idzie
 lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same linie co w <code>rulings.md</code>.</p>
 </section>
@@ -1638,12 +1638,12 @@ lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same
   <p lang="en">The planner starts only from a confirmed <code>/viber:intent</code> interview or a
   <code>/viber:fixer</code> diagnosis, so any other request gets that suggestion, however clear it is. Agree to
   the interview, or ask for Claude Code's own plan mode for a small change. A small change to existing code
-  needs no plan at all on the interview's <a href="#key-fast-path">fast path</a>: a short design you approve
+  needs no plan at all on the interview's <a href="#key-planning-fast-path">fast path</a>: a short design you approve
   in chat.</p>
   <p lang="pl">Planista startuje wyłącznie od potwierdzonego wywiadu <code>/viber:intent</code> albo diagnozy
   <code>/viber:fixer</code>, więc każda inna prośba, nawet bardzo jasna, kończy się taką propozycją. Zgódź się
   na wywiad albo przy małej zmianie poproś o zwykły tryb planowania Claude Code. Mała zmiana istniejącego kodu
-  na <a href="#key-fast-path">szybkiej ścieżce</a> wywiadu w ogóle nie potrzebuje planu: wystarczy krótki
+  na <a href="#key-planning-fast-path">szybkiej ścieżce</a> wywiadu w ogóle nie potrzebuje planu: wystarczy krótki
   projekt, który zatwierdzasz na czacie.</p>
 </details>
 <details id="ts-branch">
@@ -1719,11 +1719,11 @@ lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same
 </details>
 <details id="ts-plan-gone">
   <summary><span lang="en">Where did <code>plan.md</code> and the task files go?</span><span lang="pl">Gdzie się podziały <code>plan.md</code> i pliki zadań?</span></summary>
-  <p lang="en">With <code>cleanup</code> on, the <a href="#term-archive">archive</a> keeps the specification and
+  <p lang="en">With <code>build.cleanup</code> on, the <a href="#term-archive">archive</a> keeps the specification and
   the QA documents and drops the plan, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>. Git
   still has them: <code>git log -- docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code> lists the commits that
   touched the plan.</p>
-  <p lang="pl">Przy włączonym <code>cleanup</code> <a href="#term-archive">archiwum</a> zachowuje specyfikację
+  <p lang="pl">Przy włączonym <code>build.cleanup</code> <a href="#term-archive">archiwum</a> zachowuje specyfikację
   i dokumenty QA, a usuwa plan, <code>status.md</code>, <code>tasks/</code> i <code>work/</code>. Git nadal je
   ma: <code>git log -- docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code> wypisuje commity, które zmieniały
   plan.</p>
@@ -1731,21 +1731,21 @@ lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same
 <details id="ts-e2e">
   <summary><span lang="en">Why does <code>/viber:e2e</code> say the run carries no handoff file?</span><span lang="pl">Dlaczego <code>/viber:e2e</code> mówi, że przebieg nie ma pliku przekazania?</span></summary>
   <p lang="en">That build wrote no <code>qa.e2e.md</code>, for one of two reasons. It ran with
-  <a href="#key-qa"><code>qa</code></a> off: turn <code>qa</code> on before the next build. Or its change
+  <a href="#key-build-qa"><code>build.qa</code></a> off: turn <code>build.qa</code> on before the next build. Or its change
   touched neither the UI nor the endpoints, and then there is nothing for end-to-end tests to cover. When the
   handoff belongs to another run, name that run: <code>/viber:e2e docs/specs/&lt;run&gt;</code>.</p>
   <p lang="pl">Ten build nie zapisał <code>qa.e2e.md</code> z jednego z dwóch powodów. Działał z wyłączonym
-  <a href="#key-qa"><code>qa</code></a>: włącz <code>qa</code> przed następnym buildem. Albo jego zmiana nie
+  <a href="#key-build-qa"><code>build.qa</code></a>: włącz <code>build.qa</code> przed następnym buildem. Albo jego zmiana nie
   dotknęła ani interfejsu użytkownika, ani endpointów, i wtedy testy end-to-end nie mają czego sprawdzać.
   Jeśli plik przekazania należy do innego przebiegu, wskaż ten przebieg:
   <code>/viber:e2e docs/specs/&lt;run&gt;</code>.</p>
 </details>
 <details id="ts-triage">
   <summary><span lang="en">Why does <code>/viber:triage</code> ask for the issue text when I give it a number?</span><span lang="pl">Dlaczego <code>/viber:triage</code> prosi o tekst issue, gdy podaję jego numer?</span></summary>
-  <p lang="en"><a href="#key-issues"><code>issues</code></a> is off, and then viber never reads GitHub. Paste
-  the issue text, or set <code>issues: true</code> and install <code>gh</code>.</p>
-  <p lang="pl">Przełącznik <a href="#key-issues"><code>issues</code></a> jest wyłączony, a wtedy viber nie czyta
-  GitHuba. Wklej tekst issue albo ustaw <code>issues: true</code> i zainstaluj <code>gh</code>.</p>
+  <p lang="en"><a href="#key-github-issues"><code>github.issues</code></a> is off, and then viber never reads GitHub. Paste
+  the issue text, or set <code>github.issues: true</code> and install <code>gh</code>.</p>
+  <p lang="pl">Przełącznik <a href="#key-github-issues"><code>github.issues</code></a> jest wyłączony, a wtedy viber nie czyta
+  GitHuba. Wklej tekst issue albo ustaw <code>github.issues: true</code> i zainstaluj <code>gh</code>.</p>
 </details>
 <details id="ts-reset">
   <summary><span lang="en">Why does a <code>reset</code> of <code>/viber:memory</code> or <code>/viber:rules</code> refuse to run?</span><span lang="pl">Dlaczego <code>reset</code> w <code>/viber:memory</code> albo <code>/viber:rules</code> odmawia działania?</span></summary>
@@ -1782,9 +1782,9 @@ lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same
   </div>
   <div id="term-archive">
     <dt><span lang="en">archive</span><span lang="pl">archiwum</span></dt>
-    <dd><span lang="en">Where a finished run goes with <code>cleanup</code> on, <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code>
+    <dd><span lang="en">Where a finished run goes with <code>build.cleanup</code> on, <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code>
     by default. Only its specification and QA documents stay there.</span><span lang="pl">Miejsce, do którego
-    przy włączonym <code>cleanup</code> trafia zakończony przebieg, domyślnie
+    przy włączonym <code>build.cleanup</code> trafia zakończony przebieg, domyślnie
     <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code>. Zostają w nim tylko specyfikacja i dokumenty QA.</span></dd>
   </div>
   <div id="term-build">
@@ -1796,10 +1796,10 @@ lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same
   </div>
   <div id="term-close">
     <dt><span lang="en">build close</span><span lang="pl">zamknięcie buildu</span></dt>
-    <dd><span lang="en">What runs after the last task and the final test run: the parts <code>memory</code>,
-    <code>rules</code>, <code>qa</code> and <code>cleanup</code> turn on.</span><span lang="pl">To, co działa po
-    ostatnim zadaniu i końcowych testach: części włączane przez <code>memory</code>, <code>rules</code>,
-    <code>qa</code> i <code>cleanup</code>.</span></dd>
+    <dd><span lang="en">What runs after the last task and the final test run: the parts <code>build.memory</code>,
+    <code>build.rules</code>, <code>build.qa</code> and <code>build.cleanup</code> turn on.</span><span lang="pl">To, co działa po
+    ostatnim zadaniu i końcowych testach: części włączane przez <code>build.memory</code>, <code>build.rules</code>,
+    <code>build.qa</code> i <code>build.cleanup</code>.</span></dd>
   </div>
   <div id="term-dod">
     <dt><span lang="en">definition of done</span><span lang="pl">definicja ukończenia</span></dt>
@@ -1841,9 +1841,9 @@ lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same
   <div id="term-qa">
     <dt><span lang="en">QA scenario</span><span lang="pl">scenariusz QA</span></dt>
     <dd><span lang="en">A check a person performs on the finished change, written at the close when
-    <code>qa</code> is on. <code>/viber:e2e</code> turns the ones that can be automated into
+    <code>build.qa</code> is on. <code>/viber:e2e</code> turns the ones that can be automated into
     tests.</span><span lang="pl">Sprawdzenie gotowej zmiany do wykonania przez człowieka, zapisywane na
-    zamknięciu przy włączonym <code>qa</code>. <code>/viber:e2e</code> zamienia te, które da się zautomatyzować,
+    zamknięciu przy włączonym <code>build.qa</code>. <code>/viber:e2e</code> zamienia te, które da się zautomatyzować,
     w testy.</span></dd>
   </div>
   <div id="term-review">
@@ -1882,11 +1882,13 @@ lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same
   </div>
   <div id="term-switch">
     <dt><span lang="en">switch</span><span lang="pl">przełącznik</span></dt>
-    <dd><span lang="en">A key in <code>.claude/viber.yml</code>. Most turn one part of viber on or off, and only
-    <code>true</code> counts as on; <code>directories</code>, <code>tiers</code> and <code>branching</code> hold
-    values instead.</span><span lang="pl">Klucz w <code>.claude/viber.yml</code>. Większość włącza albo wyłącza
-    jedną część viber, a za włączony liczy się tylko <code>true</code>; <code>directories</code>,
-    <code>tiers</code> i <code>branching</code> przechowują wartości.</span></dd>
+    <dd><span lang="en">A key in <code>.claude/viber.yml</code>, named by its group, as in <code>build.memory</code>.
+    Most turn one part of viber on or off, and only <code>true</code> counts as on; the two titles under
+    <code>github</code>, <code>directories</code>, <code>tiers</code> and <code>branching</code> hold values
+    instead.</span><span lang="pl">Klucz w <code>.claude/viber.yml</code>, nazywany razem z grupą, jak
+    <code>build.memory</code>. Większość włącza albo wyłącza jedną część viber, a za włączony liczy się tylko
+    <code>true</code>; dwa tytuły w <code>github</code>, <code>directories</code>, <code>tiers</code>
+    i <code>branching</code> przechowują wartości.</span></dd>
   </div>
   <div id="term-task">
     <dt><span lang="en">task</span><span lang="pl">zadanie</span></dt>
@@ -1986,9 +1988,9 @@ z nich mówi, jak nim sterować.</p>
     </div>
     <div>
       <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
-      <dd><span lang="en"><a href="#key-issues"><code>issues</code></a> on: it reads the issue from GitHub and,
+      <dd><span lang="en"><a href="#key-github-issues"><code>github.issues</code></a> on: it reads the issue from GitHub and,
       only when you agree, posts its report there as a comment. Off: it assesses pasted text only, and a
-      number or link gets a request for the text instead.</span><span lang="pl"><a href="#key-issues"><code>issues</code></a>
+      number or link gets a request for the text instead.</span><span lang="pl"><a href="#key-github-issues"><code>github.issues</code></a>
       włączony: czyta issue z GitHuba i tylko za twoją zgodą publikuje tam raport jako komentarz.
       Wyłączony: ocenia wyłącznie wklejony tekst, a na numer lub link odpowiada prośbą o ten tekst.</span></dd>
     </div>
@@ -2026,9 +2028,9 @@ z nich mówi, jak nim sterować.</p>
     </div>
     <div>
       <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
-      <dd><span lang="en"><a href="#key-issues"><code>issues</code></a> on: it can start from an issue and post
+      <dd><span lang="en"><a href="#key-github-issues"><code>github.issues</code></a> on: it can start from an issue and post
       its conclusions there as a comment. Attach the mockup to that comment yourself in the browser: only the
-      browser accepts an HTML attachment.</span><span lang="pl"><a href="#key-issues"><code>issues</code></a>
+      browser accepts an HTML attachment.</span><span lang="pl"><a href="#key-github-issues"><code>github.issues</code></a>
       włączony: może zacząć od issue i opublikować tam wnioski jako komentarz. Makietę dołącz do komentarza
       sam w przeglądarce: tylko przeglądarka przyjmuje załącznik HTML.</span></dd>
     </div>
@@ -2050,7 +2052,7 @@ z nich mówi, jak nim sterować.</p>
   subprojects first, and every part is interviewed. It closes on a summary you confirm, then hands it
   to <a href="#skill-planner"><code>planner</code></a>. When a build of one part finishes, it names the next
   part: run the interview on it and it resumes from the decisions of the first. A small change to existing
-  code can take the <a href="#key-fast-path">fast path</a> instead: a short design in chat, built in your
+  code can take the <a href="#key-planning-fast-path">fast path</a> instead: a short design in chat, built in your
   session only after your explicit yes and proven by <a href="#agent-test-runner"><code>test-runner</code></a>,
   with no plan file; you commit it with <code>/viber:commit</code>. Otherwise it writes no code.</p>
   <p lang="pl">Wywiad planistyczny. Pyta tylko o to, czego nie rozstrzygają rozmowa i kod, jedno pytanie
@@ -2058,7 +2060,7 @@ z nich mówi, jak nim sterować.</p>
   podprojekty i omawia każdy z nich. Kończy się podsumowaniem, które potwierdzasz, a potem
   przekazuje je do <a href="#skill-planner"><code>planner</code></a>. Gdy build jednej części się kończy,
   wskazuje następną: uruchom na niej wywiad, a wznowi go od decyzji pierwszej. Mała zmiana istniejącego
-  kodu może zamiast tego pójść <a href="#key-fast-path">szybką ścieżką</a>: krótki projekt na czacie,
+  kodu może zamiast tego pójść <a href="#key-planning-fast-path">szybką ścieżką</a>: krótki projekt na czacie,
   zbudowany w twojej sesji dopiero po twoim wyraźnym „tak” i sprawdzony przez
   <a href="#agent-test-runner"><code>test-runner</code></a>, bez pliku planu; commitujesz ją przez
   <code>/viber:commit</code>. Poza tym nie pisze kodu.</p>
@@ -2081,12 +2083,12 @@ z nich mówi, jak nim sterować.</p>
     </div>
     <div>
       <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
-      <dd><span lang="en"><a href="#key-issues"><code>issues</code></a> on: it reads the issue it starts from and
+      <dd><span lang="en"><a href="#key-github-issues"><code>github.issues</code></a> on: it reads the issue it starts from and
       can post the confirmed summary there as a comment. An interview that started from no issue can save its
       summary as a new one, built from your project's issue templates; <code>/viber:intent #42</code> resumes it
       later. <a href="#key-branching-mode"><code>branching.mode</code></a> set to allowed or required: before
       reading any code it settles which work entry the run uses and checks that you are on that entry's base,
-      offering a switch to it; a continued draft is checked against its recorded branch.</span><span lang="pl"><a href="#key-issues"><code>issues</code></a> włączony: czyta issue, od którego
+      offering a switch to it; a continued draft is checked against its recorded branch.</span><span lang="pl"><a href="#key-github-issues"><code>github.issues</code></a> włączony: czyta issue, od którego
       startuje, i może opublikować tam potwierdzone podsumowanie jako komentarz. Wywiad, który nie zaczął się od
       issue, może zapisać podsumowanie jako nowe issue, zbudowane z szablonów issue twojego projektu;
       <code>/viber:intent #42</code> wznowi je później. <a href="#key-branching-mode"><code>branching.mode</code></a>
@@ -2129,13 +2131,13 @@ z nich mówi, jak nim sterować.</p>
     </div>
     <div>
       <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
-      <dd><span lang="en"><a href="#key-adr"><code>adr</code></a> adds decision record tasks;
-      <a href="#key-memory"><code>memory</code></a> on keeps every <code>CLAUDE.md</code> out of the tasks;
-      <a href="#key-qa"><code>qa</code></a> changes the closing note on end-to-end tests;
+      <dd><span lang="en"><a href="#key-planning-adr"><code>planning.adr</code></a> adds decision record tasks;
+      <a href="#key-build-memory"><code>build.memory</code></a> on keeps every <code>CLAUDE.md</code> out of the tasks;
+      <a href="#key-build-qa"><code>build.qa</code></a> changes the closing note on end-to-end tests;
       <a href="#key-branching-mode"><code>branching.mode</code></a> set to allowed or required makes it take the
-      branch the run works on from the interview or the diagnosis, asking only when they handed none off.</span><span lang="pl"><a href="#key-adr"><code>adr</code></a> dodaje zadania
-      zapisujące decyzje architektoniczne; włączony <a href="#key-memory"><code>memory</code></a> trzyma każdy
-      <code>CLAUDE.md</code> poza zadaniami; <a href="#key-qa"><code>qa</code></a> zmienia końcową uwagę o testach
+      branch the run works on from the interview or the diagnosis, asking only when they handed none off.</span><span lang="pl"><a href="#key-planning-adr"><code>planning.adr</code></a> dodaje zadania
+      zapisujące decyzje architektoniczne; włączony <a href="#key-build-memory"><code>build.memory</code></a> trzyma każdy
+      <code>CLAUDE.md</code> poza zadaniami; <a href="#key-build-qa"><code>build.qa</code></a> zmienia końcową uwagę o testach
       end-to-end; <a href="#key-branching-mode"><code>branching.mode</code></a> ustawiony na allowed albo required
       sprawia, że gałąź, na której pracuje przebieg, bierze z wywiadu albo z diagnozy, a pyta tylko wtedy, gdy
       żadne z nich jej nie przekazało.</span></dd>
@@ -2155,14 +2157,14 @@ z nich mówi, jak nim sterować.</p>
   <p lang="en">Builds an approved plan task by task. It copies the plan into its run directory, splits it into
   one file per task, sends each task to <a href="#agent-task-coder"><code>task-coder</code></a> and, where a review
   is due, to <a href="#agent-task-reviewer"><code>task-reviewer</code></a>, and commits each task on its own. Then,
-  with <a href="#key-final-review"><code>final-review</code></a> on, <a href="#agent-final-reviewer"><code>final-reviewer</code></a>
+  with <a href="#key-build-final-review"><code>build.final-review</code></a> on, <a href="#agent-final-reviewer"><code>final-reviewer</code></a>
   reviews the whole build, a coder fixes what it finds and a reviewer rechecks the fix, before it runs the whole
   test suite and the close parts your switches turn on. It runs without a person at the keyboard: where it would
   otherwise ask, <a href="#agent-arbiter"><code>arbiter</code></a> rules and the ruling is recorded.</p>
   <p lang="pl">Buduje zatwierdzony plan zadanie po zadaniu. Kopiuje plan do katalogu przebiegu, dzieli go na
   osobny plik dla każdego zadania, każde zadanie zleca <a href="#agent-task-coder"><code>task-coder</code></a>,
   a gdy należy się recenzja, także <a href="#agent-task-reviewer"><code>task-reviewer</code></a>, i każde commituje
-  osobno. Potem, gdy <a href="#key-final-review"><code>final-review</code></a> jest włączony,
+  osobno. Potem, gdy <a href="#key-build-final-review"><code>build.final-review</code></a> jest włączony,
   <a href="#agent-final-reviewer"><code>final-reviewer</code></a> recenzuje cały build, koder naprawia to, co
   znajdzie, a recenzent ponownie sprawdza poprawkę, zanim uruchomi cały zestaw testów i te części zamknięcia, które włączają twoje przełączniki. Działa bez
   człowieka przy klawiaturze: tam, gdzie inaczej by zapytał, rozstrzyga <a href="#agent-arbiter"><code>arbiter</code></a>,
@@ -2188,15 +2190,15 @@ z nich mówi, jak nim sterować.</p>
     </div>
     <div>
       <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
-      <dd><span lang="en"><a href="#key-memory"><code>memory</code></a>, <a href="#key-rules"><code>rules</code></a>,
-      <a href="#key-qa"><code>qa</code></a> and <a href="#key-cleanup"><code>cleanup</code></a> pick the close parts;
+      <dd><span lang="en"><a href="#key-build-memory"><code>build.memory</code></a>, <a href="#key-build-rules"><code>build.rules</code></a>,
+      <a href="#key-build-qa"><code>build.qa</code></a> and <a href="#key-build-cleanup"><code>build.cleanup</code></a> pick the close parts;
       <a href="#key-tiers"><code>tiers</code></a> bounds the models it uses;
-      <a href="#key-baseline-tests"><code>baseline-tests</code></a> adds a baseline test run before the first task;
-      <a href="#key-branching"><code>branching</code></a> decides the branch it commits on.</span><span lang="pl"><a href="#key-memory"><code>memory</code></a>,
-      <a href="#key-rules"><code>rules</code></a>, <a href="#key-qa"><code>qa</code></a> i
-      <a href="#key-cleanup"><code>cleanup</code></a> wybierają części zamknięcia;
+      <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> adds a baseline test run before the first task;
+      <a href="#key-branching"><code>branching</code></a> decides the branch it commits on.</span><span lang="pl"><a href="#key-build-memory"><code>build.memory</code></a>,
+      <a href="#key-build-rules"><code>build.rules</code></a>, <a href="#key-build-qa"><code>build.qa</code></a> i
+      <a href="#key-build-cleanup"><code>build.cleanup</code></a> wybierają części zamknięcia;
       <a href="#key-tiers"><code>tiers</code></a> ogranicza modele, których używa;
-      <a href="#key-baseline-tests"><code>baseline-tests</code></a> dodaje przebieg bazowy testów przed pierwszym zadaniem;
+      <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> dodaje przebieg bazowy testów przed pierwszym zadaniem;
       <a href="#key-branching"><code>branching</code></a> decyduje, na której gałęzi commituje.</span></dd>
     </div>
     <div>
@@ -2204,12 +2206,12 @@ z nich mówi, jak nim sterować.</p>
       <dd><span lang="en">The run directory <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code> (the plan, the
       specification, one file per task, <code>status.md</code> and the <code>work/</code> notes, plus
       <code>rulings.md</code> when the build ruled on anything) and one commit per
-      task. With <code>cleanup</code> on, the run ends archived in <code>docs/specs/</code>, <code>rulings.md</code>
+      task. With <code>build.cleanup</code> on, the run ends archived in <code>docs/specs/</code>, <code>rulings.md</code>
       included.</span><span lang="pl">Katalog
       przebiegu <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code> (plan, specyfikacja, plik każdego zadania,
       <code>status.md</code> i notatki w <code>work/</code>, a gdy build coś rozstrzygał, także
       <code>rulings.md</code>) oraz jeden commit na zadanie. Przy włączonym
-      <code>cleanup</code> przebieg trafia na koniec do archiwum w <code>docs/specs/</code>, razem z
+      <code>build.cleanup</code> przebieg trafia na koniec do archiwum w <code>docs/specs/</code>, razem z
       <code>rulings.md</code>.</span></dd>
     </div>
   </dl>
@@ -2270,11 +2272,11 @@ z nich mówi, jak nim sterować.</p>
     </div>
     <div>
       <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
-      <dd><span lang="en"><a href="#key-issues"><code>issues</code></a> on: it reads the issue as the bug report
+      <dd><span lang="en"><a href="#key-github-issues"><code>github.issues</code></a> on: it reads the issue as the bug report
       and the plan keeps the link to it. <a href="#key-branching-mode"><code>branching.mode</code></a> set to
       allowed or required: before tracing any code it settles which work entry the run uses and checks that you
       are on that entry's base, offering a switch to it, so the failing test proves the bug on the code the fix
-      will change.</span><span lang="pl"><a href="#key-issues"><code>issues</code></a>
+      will change.</span><span lang="pl"><a href="#key-github-issues"><code>github.issues</code></a>
       włączony: czyta issue jako opis błędu, a plan zachowuje powiązanie z nim.
       <a href="#key-branching-mode"><code>branching.mode</code></a> ustawiony na allowed albo required: zanim
       prześledzi jakikolwiek kod, ustala, którego wpisu work używa przebieg, i sprawdza, czy jesteś na bazie
@@ -2301,9 +2303,9 @@ z nich mówi, jak nim sterować.</p>
   <dl>
     <div>
       <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
-      <dd><span lang="en">Only by typing the command, after a build that ran with <code>qa</code> on. It starts the
+      <dd><span lang="en">Only by typing the command, after a build that ran with <code>build.qa</code> on. It starts the
       application when nothing answers at its address, and leaves it running.</span><span lang="pl">Tylko przez
-      wpisanie polecenia, po buildzie z włączonym <code>qa</code>. Uruchamia aplikację, gdy nic nie odpowiada pod
+      wpisanie polecenia, po buildzie z włączonym <code>build.qa</code>. Uruchamia aplikację, gdy nic nie odpowiada pod
       jej adresem, i zostawia ją włączoną.</span></dd>
     </div>
     <div>
@@ -2315,8 +2317,8 @@ z nich mówi, jak nim sterować.</p>
     </div>
     <div>
       <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
-      <dd><span lang="en"><a href="#key-qa"><code>qa</code></a> must have been on during the build;
-      <a href="#key-directories"><code>directories</code></a> tell it where runs live.</span><span lang="pl"><a href="#key-qa"><code>qa</code></a>
+      <dd><span lang="en"><a href="#key-build-qa"><code>build.qa</code></a> must have been on during the build;
+      <a href="#key-directories"><code>directories</code></a> tell it where runs live.</span><span lang="pl"><a href="#key-build-qa"><code>build.qa</code></a>
       musiał być włączony podczas buildu; <a href="#key-directories"><code>directories</code></a> mówią mu, gdzie
       są przebiegi.</span></dd>
     </div>
@@ -2361,8 +2363,8 @@ z nich mówi, jak nim sterować.</p>
     </div>
     <div>
       <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
-      <dd><span lang="en">None: the <code>memory</code> switch changes the build close, not this command.</span><span lang="pl">Brak:
-      przełącznik <code>memory</code> zmienia zamknięcie buildu, nie to polecenie.</span></dd>
+      <dd><span lang="en">None: the <code>build.memory</code> switch changes the build close, not this command.</span><span lang="pl">Brak:
+      przełącznik <code>build.memory</code> zmienia zamknięcie buildu, nie to polecenie.</span></dd>
     </div>
     <div>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
@@ -2401,8 +2403,8 @@ z nich mówi, jak nim sterować.</p>
     </div>
     <div>
       <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
-      <dd><span lang="en">None: the <code>rules</code> switch changes the build close, not this command.</span><span lang="pl">Brak:
-      przełącznik <code>rules</code> zmienia zamknięcie buildu, nie to polecenie.</span></dd>
+      <dd><span lang="en">None: the <code>build.rules</code> switch changes the build close, not this command.</span><span lang="pl">Brak:
+      przełącznik <code>build.rules</code> zmienia zamknięcie buildu, nie to polecenie.</span></dd>
     </div>
     <div>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
@@ -2574,9 +2576,9 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   findings.</span><span lang="pl">recenzuje plan z <a href="#skill-planner"><code>planner</code></a> i zwraca
   akceptację albo odrzucenie z blokującymi uwagami.</span></li>
   <li id="agent-plain-plan-review"><code>plain-plan-review</code> <span lang="en">gives the same review to a plan
-  written in plain plan mode, when <a href="#key-plain-plan-review"><code>plain-plan-review</code></a> is
+  written in plain plan mode, when <a href="#key-planning-plain-plan-review"><code>planning.plain-plan-review</code></a> is
   on.</span><span lang="pl">robi tę samą recenzję planu napisanego w zwykłym trybie planowania, gdy
-  <a href="#key-plain-plan-review"><code>plain-plan-review</code></a> jest włączony.</span></li>
+  <a href="#key-planning-plain-plan-review"><code>planning.plain-plan-review</code></a> jest włączony.</span></li>
   <li id="agent-adr-screener"><code>adr-screener</code> <span lang="en">screens the decisions of a plan against a
   strict admission test and names the architecture decision records worth writing, and where everything else
   belongs.</span><span lang="pl">sprawdza decyzje planu względem ścisłego testu przyjęcia i wskazuje rekordy
@@ -2593,18 +2595,18 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   zadanie względem jego definicji ukończenia i przy odrzuceniu pisze raport z uwagami.</span></li>
   <li id="agent-final-reviewer"><code>final-reviewer</code> <span lang="en">reviews one slice of the whole
   build past the diff of its own tasks, once every task is committed, or rechecks the fix of its findings, when
-  <a href="#key-final-review"><code>final-review</code></a> is on.</span><span lang="pl">recenzuje jeden
+  <a href="#key-build-final-review"><code>build.final-review</code></a> is on.</span><span lang="pl">recenzuje jeden
   wycinek całego builda poza diffem własnych zadań, gdy każde zadanie jest już zatwierdzone, albo ponownie
-  sprawdza poprawkę swoich uwag, gdy <a href="#key-final-review"><code>final-review</code></a> jest
+  sprawdza poprawkę swoich uwag, gdy <a href="#key-build-final-review"><code>build.final-review</code></a> jest
   włączony.</span></li>
   <li id="agent-test-runner"><code>test-runner</code> <span lang="en">runs the project's build and test suite
   once and returns a verdict, keeping the log out of the conversation. <a href="#skill-intent"><code>intent</code></a>'s
-  <a href="#key-fast-path">fast path</a> calls it too, to prove a change built in your session. With
-  <a href="#key-baseline-tests"><code>baseline-tests</code></a> on, it also runs a baseline before the first task,
+  <a href="#key-planning-fast-path">fast path</a> calls it too, to prove a change built in your session. With
+  <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> on, it also runs a baseline before the first task,
   recording what already fails, and the final run then fails only on new failures.</span><span lang="pl">uruchamia raz
   budowanie i testy projektu i zwraca werdykt, trzymając log poza rozmową. Wywołuje go też
-  <a href="#key-fast-path">szybka ścieżka</a> skilla <a href="#skill-intent"><code>intent</code></a>, żeby sprawdzić
-  zmianę zbudowaną w twojej sesji. Przy włączonym <a href="#key-baseline-tests"><code>baseline-tests</code></a>
+  <a href="#key-planning-fast-path">szybka ścieżka</a> skilla <a href="#skill-intent"><code>intent</code></a>, żeby sprawdzić
+  zmianę zbudowaną w twojej sesji. Przy włączonym <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a>
   wykonuje też przebieg bazowy przed pierwszym zadaniem, zapisując, co już nie przechodzi, a końcowe
   uruchomienie kończy się porażką tylko przy nowych błędach.</span></li>
   <li id="agent-arbiter"><code>arbiter</code> <span lang="en">rules in your place where the build would otherwise
@@ -2617,23 +2619,23 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
 <h4><span lang="en">Build close</span><span lang="pl">Zamknięcie buildu</span></h4>
 <ul class="agents">
   <li id="agent-memory-writer"><code>memory-writer</code> <span lang="en">folds what the build taught into the
-  project's <code>CLAUDE.md</code> files, when <a href="#key-memory"><code>memory</code></a> is
+  project's <code>CLAUDE.md</code> files, when <a href="#key-build-memory"><code>build.memory</code></a> is
   on.</span><span lang="pl">przenosi to, czego nauczył build, do plików <code>CLAUDE.md</code> projektu, gdy
-  <a href="#key-memory"><code>memory</code></a> jest włączony.</span></li>
+  <a href="#key-build-memory"><code>build.memory</code></a> jest włączony.</span></li>
   <li id="agent-rules-writer"><code>rules-writer</code> <span lang="en">folds the conventions a build confirmed,
   or a <a href="#skill-rules"><code>/viber:rules</code></a> review found, into <code>.claude/rules/</code>.</span><span lang="pl">przenosi
   konwencje potwierdzone przez build albo znalezione w przeglądzie <a href="#skill-rules"><code>/viber:rules</code></a>
   do <code>.claude/rules/</code>.</span></li>
   <li id="agent-qa-writer"><code>qa-writer</code> <span lang="en">writes the QA scenarios into the run
   directory, <code>qa.md</code> for a person and <code>qa.e2e.md</code> for
-  <a href="#skill-e2e"><code>/viber:e2e</code></a>, when <a href="#key-qa"><code>qa</code></a> is
+  <a href="#skill-e2e"><code>/viber:e2e</code></a>, when <a href="#key-build-qa"><code>build.qa</code></a> is
   on.</span><span lang="pl">zapisuje scenariusze QA w katalogu przebiegu, <code>qa.md</code> dla człowieka
   i <code>qa.e2e.md</code> dla <a href="#skill-e2e"><code>/viber:e2e</code></a>, gdy
-  <a href="#key-qa"><code>qa</code></a> jest włączony.</span></li>
+  <a href="#key-build-qa"><code>build.qa</code></a> jest włączony.</span></li>
   <li id="agent-closeout"><code>closeout</code> <span lang="en">notes on the specification what the build
-  delivered beyond it, then archives the run, when <a href="#key-cleanup"><code>cleanup</code></a> is
+  delivered beyond it, then archives the run, when <a href="#key-build-cleanup"><code>build.cleanup</code></a> is
   on.</span><span lang="pl">odnotowuje w specyfikacji to, co build dostarczył ponad nią, a potem archiwizuje
-  przebieg, gdy <a href="#key-cleanup"><code>cleanup</code></a> jest włączony.</span></li>
+  przebieg, gdy <a href="#key-build-cleanup"><code>build.cleanup</code></a> jest włączony.</span></li>
 </ul>
 
 <h4><span lang="en">After a build</span><span lang="pl">Po buildzie</span></h4>
@@ -2684,8 +2686,49 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
 <section data-search id="ref-config">
 <h3 class="sub" id="ref-config-title"><span lang="en">Configuration</span><span lang="pl">Konfiguracja</span> <code>.claude/viber.yml</code><a class="self" href="#ref-config-title">#</a></h3>
 <dl>
-  <div id="key-adr">
-    <dt><code>adr</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
+  <div id="key-schema">
+    <dt><code>schema</code> <span class="tag">1</span></dt>
+    <dd><span lang="en">The layout the file follows. <a href="#skill-setup"><code>/viber:setup</code></a> writes it and
+    raises it whenever it brings the file up to a newer layout; a session start tells you when the number lags
+    behind the installed viber. Leave it as it is.</span><span lang="pl">Układ, w jakim zapisany jest plik.
+    <a href="#skill-setup"><code>/viber:setup</code></a> go wpisuje i podnosi za każdym razem, gdy dostosowuje plik
+    do nowszego układu; start sesji mówi ci, gdy numer nie nadąża za zainstalowanym viberem. Nie zmieniaj
+    go.</span></dd>
+  </div>
+</dl>
+<p lang="en">Every switch counts only inside its group: <code>planning:</code> holds the ones read while a change
+is planned, <code>build:</code> the ones a build reads, <code>github:</code> the GitHub ones. Seven of the ten
+start on; <code>build.qa</code>, <code>github.issues</code> and <code>build.baseline-tests</code> start off. To
+change any of them, edit <code>.claude/viber.yml</code>: every key has a comment there, and only
+<code>true</code> counts as on. Turn a switch off with <code>false</code> instead of deleting it. Running
+<code>/viber:setup</code> again merges in every key the current version's template has and your file lacks.
+That is how a new switch reaches a project set up by an older version, and the same merge restores a
+deleted top-level key, or a deleted child of <code>planning:</code>, <code>build:</code>, <code>github:</code> or
+<code>directories:</code>, at its default. A switch written at the top level of the file, outside its group,
+is moved into its group with your value, and <code>schema</code> is raised to match.
+Children of <code>tiers:</code> and <code>branching:</code> work differently: the merge adds either group only
+as a whole, when the file lacks it entirely, and never extends one already present. A child you
+delete there does not come back into the file; it simply resolves to its default. The merge keeps
+every value you have already set.</p>
+<p lang="pl">Każdy przełącznik liczy się tylko wewnątrz swojej grupy: <code>planning:</code> trzyma te czytane
+podczas planowania zmiany, <code>build:</code> te czytane przez build, <code>github:</code> te dotyczące GitHuba.
+Siedem z dziesięciu jest domyślnie włączonych; <code>build.qa</code>, <code>github.issues</code>
+i <code>build.baseline-tests</code> startują wyłączone. Zmienisz to w <code>.claude/viber.yml</code>: każdy
+klucz ma tam komentarz, a za włączony liczy się tylko <code>true</code>. Przełącznik wyłączaj wartością
+<code>false</code>, nie usuwaj go. Ponowne uruchomienie <code>/viber:setup</code> dołącza każdy klucz, który ma
+szablon bieżącej wersji, a którego brakuje w twoim pliku. Tak nowy przełącznik trafia do projektu
+skonfigurowanego starszą wersją i tak samo wraca z wartością domyślną usunięty klucz najwyższego
+poziomu albo usunięte dziecko grupy <code>planning:</code>, <code>build:</code>, <code>github:</code>
+lub <code>directories:</code>. Przełącznik zapisany na najwyższym poziomie pliku, poza swoją grupą, zostaje
+przeniesiony do grupy z twoją wartością, a <code>schema</code> podniesiona do bieżącego numeru. Dzieci grup
+<code>tiers:</code> i <code>branching:</code> działają inaczej: scalanie dodaje taką grupę tylko w całości, gdy
+w pliku jej w ogóle brakuje, i nigdy nie rozszerza już istniejącej. Usunięty tam klucz nie wraca do pliku, po
+prostu obowiązuje jego wartość domyślna. Scalanie zachowuje każdą już ustawioną wartość.</p>
+
+<h4 id="key-planning"><code>planning</code> <span lang="en">group</span><span lang="pl">grupa</span></h4>
+<dl>
+  <div id="key-planning-adr">
+    <dt><code>planning.adr</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
     <dd><span lang="en"><a href="#skill-planner"><code>planner</code></a> has
     <a href="#agent-adr-screener"><code>adr-screener</code></a> test the plan's decisions against a strict
     admission test, asks you once about what it found, and turns each record you accept into a task with no
@@ -2694,41 +2737,38 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
     przyjęcia, raz pyta cię o to, co znalazł, i każdy zaakceptowany przez ciebie rekord zamienia w zadanie bez
     zależności, które zapisuje go w <code>docs/adr/</code>.</span></dd>
   </div>
-  <div id="key-memory">
-    <dt><code>memory</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
-    <dd><span lang="en">The build closes by updating this project's <code>CLAUDE.md</code> files through
-    <a href="#agent-memory-writer"><code>memory-writer</code></a>, so no plan task edits one.</span><span lang="pl">Build
-    kończy się aktualizacją plików <code>CLAUDE.md</code> tego projektu przez
-    <a href="#agent-memory-writer"><code>memory-writer</code></a>, więc żadne zadanie planu ich nie
-    zmienia.</span></dd>
+  <div id="key-planning-plain-plan-review">
+    <dt><code>planning.plain-plan-review</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
+    <dd><span lang="en">A plan written in plain plan mode, without the planner, must pass
+    <a href="#agent-plain-plan-review"><code>plain-plan-review</code></a> before plan mode can be left, the same
+    gate the planner's plans get.</span><span lang="pl">Plan napisany w zwykłym trybie planowania, bez planisty,
+    musi przejść recenzję <a href="#agent-plain-plan-review"><code>plain-plan-review</code></a>, zanim będzie można
+    wyjść z trybu planowania; plany planisty przechodzą tę samą bramkę.</span></dd>
   </div>
-  <div id="key-rules">
-    <dt><code>rules</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
-    <dd><span lang="en">The build closes by updating <code>.claude/rules/</code> through
-    <a href="#agent-rules-writer"><code>rules-writer</code></a>.</span><span lang="pl">Build kończy się
-    aktualizacją <code>.claude/rules/</code> przez <a href="#agent-rules-writer"><code>rules-writer</code></a>.</span></dd>
+  <div id="key-planning-fast-path">
+    <dt><code>planning.fast-path</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
+    <dd><span lang="en">For a small, well-scoped change to existing code, <a href="#skill-intent"><code>intent</code></a>
+    shows a short design in chat and builds the change only after your explicit yes, with no plan file and no run
+    directory. Off, every change goes through the plan.</span><span lang="pl">Przy małej, dobrze
+    określonej zmianie istniejącego kodu <a href="#skill-intent"><code>intent</code></a> pokazuje krótki projekt
+    na czacie i buduje zmianę dopiero po twoim wyraźnym „tak”, bez pliku planu i bez katalogu przebiegu. Przy
+    wyłączonym przełączniku każda zmiana przechodzi przez plan.</span></dd>
   </div>
-  <div id="key-qa">
-    <dt><code>qa</code> <span class="tag"><span lang="en">off</span><span lang="pl">wył.</span></span></dt>
-    <dd><span lang="en">The build closes by writing its QA scenarios into the run directory through
-    <a href="#agent-qa-writer"><code>qa-writer</code></a>: an acceptance document a person performs and a handoff
-    file <a href="#skill-e2e"><code>/viber:e2e</code></a> turns into tests. Turn it on before the build
-    starts.</span><span lang="pl">Build kończy się zapisaniem scenariuszy QA w katalogu przebiegu przez
-    <a href="#agent-qa-writer"><code>qa-writer</code></a>: dokumentu akceptacyjnego, który wykonuje człowiek,
-    i pliku przekazania, który <a href="#skill-e2e"><code>/viber:e2e</code></a> zamienia w testy. Włącz go przed
-    rozpoczęciem buildu.</span></dd>
+</dl>
+
+<h4 id="key-build"><code>build</code> <span lang="en">group</span><span lang="pl">grupa</span></h4>
+<dl>
+  <div id="key-build-baseline-tests">
+    <dt><code>build.baseline-tests</code> <span class="tag"><span lang="en">off</span><span lang="pl">wył.</span></span></dt>
+    <dd><span lang="en">Before the first task, <a href="#agent-test-runner"><code>test-runner</code></a> runs the test
+    suite once and records what already fails. From then on the build repairs only the failures it caused and
+    leaves the ones it found for you.</span><span lang="pl">Przed pierwszym zadaniem
+    <a href="#agent-test-runner"><code>test-runner</code></a> raz uruchamia zestaw testów i zapisuje, co już nie
+    przechodzi. Od tej chwili build naprawia tylko błędy, które sam spowodował, a zastane zostawia
+    tobie.</span></dd>
   </div>
-  <div id="key-cleanup">
-    <dt><code>cleanup</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
-    <dd><span lang="en">The build ends by noting on the specification anything it delivered that the specification
-    does not promise, then archiving the run and dropping the plan, the state file and the trail, through
-    <a href="#agent-closeout"><code>closeout</code></a>. All of them stay in git history.</span><span lang="pl">Build
-    kończy się odnotowaniem w specyfikacji wszystkiego, co dostarczył, a czego specyfikacja nie obiecuje,
-    potem przez <a href="#agent-closeout"><code>closeout</code></a> archiwizuje przebieg i usuwa plan, plik stanu
-    i ślad pracy. Wszystko to zostaje w historii gita.</span></dd>
-  </div>
-  <div id="key-final-review">
-    <dt><code>final-review</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
+  <div id="key-build-final-review">
+    <dt><code>build.final-review</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
     <dd><span lang="en">After every task is committed and before the final test run, one or more
     <a href="#agent-final-reviewer"><code>final-reviewer</code></a> agents look at the whole build's
     diff for what per-task review and the test suite cannot see. A coder fixes what they find and one
@@ -2747,16 +2787,45 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
     linię <code>FIXED:</code> na każdą naprawioną uwagę, a podsumowanie buildu wymienia każdą uwagę wraz z tym,
     co było nie tak i co zmieniła poprawka.</span></dd>
   </div>
-  <div id="key-plain-plan-review">
-    <dt><code>plain-plan-review</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
-    <dd><span lang="en">A plan written in plain plan mode, without the planner, must pass
-    <a href="#agent-plain-plan-review"><code>plain-plan-review</code></a> before plan mode can be left, the same
-    gate the planner's plans get.</span><span lang="pl">Plan napisany w zwykłym trybie planowania, bez planisty,
-    musi przejść recenzję <a href="#agent-plain-plan-review"><code>plain-plan-review</code></a>, zanim będzie można
-    wyjść z trybu planowania; plany planisty przechodzą tę samą bramkę.</span></dd>
+  <div id="key-build-memory">
+    <dt><code>build.memory</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
+    <dd><span lang="en">The build closes by updating this project's <code>CLAUDE.md</code> files through
+    <a href="#agent-memory-writer"><code>memory-writer</code></a>, so no plan task edits one.</span><span lang="pl">Build
+    kończy się aktualizacją plików <code>CLAUDE.md</code> tego projektu przez
+    <a href="#agent-memory-writer"><code>memory-writer</code></a>, więc żadne zadanie planu ich nie
+    zmienia.</span></dd>
   </div>
-  <div id="key-issues">
-    <dt><code>issues</code> <span class="tag"><span lang="en">off</span><span lang="pl">wył.</span></span></dt>
+  <div id="key-build-rules">
+    <dt><code>build.rules</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
+    <dd><span lang="en">The build closes by updating <code>.claude/rules/</code> through
+    <a href="#agent-rules-writer"><code>rules-writer</code></a>.</span><span lang="pl">Build kończy się
+    aktualizacją <code>.claude/rules/</code> przez <a href="#agent-rules-writer"><code>rules-writer</code></a>.</span></dd>
+  </div>
+  <div id="key-build-qa">
+    <dt><code>build.qa</code> <span class="tag"><span lang="en">off</span><span lang="pl">wył.</span></span></dt>
+    <dd><span lang="en">The build closes by writing its QA scenarios into the run directory through
+    <a href="#agent-qa-writer"><code>qa-writer</code></a>: an acceptance document a person performs and a handoff
+    file <a href="#skill-e2e"><code>/viber:e2e</code></a> turns into tests. Turn it on before the build
+    starts.</span><span lang="pl">Build kończy się zapisaniem scenariuszy QA w katalogu przebiegu przez
+    <a href="#agent-qa-writer"><code>qa-writer</code></a>: dokumentu akceptacyjnego, który wykonuje człowiek,
+    i pliku przekazania, który <a href="#skill-e2e"><code>/viber:e2e</code></a> zamienia w testy. Włącz go przed
+    rozpoczęciem buildu.</span></dd>
+  </div>
+  <div id="key-build-cleanup">
+    <dt><code>build.cleanup</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
+    <dd><span lang="en">The build ends by noting on the specification anything it delivered that the specification
+    does not promise, then archiving the run and dropping the plan, the state file and the trail, through
+    <a href="#agent-closeout"><code>closeout</code></a>. All of them stay in git history.</span><span lang="pl">Build
+    kończy się odnotowaniem w specyfikacji wszystkiego, co dostarczył, a czego specyfikacja nie obiecuje,
+    potem przez <a href="#agent-closeout"><code>closeout</code></a> archiwizuje przebieg i usuwa plan, plik stanu
+    i ślad pracy. Wszystko to zostaje w historii gita.</span></dd>
+  </div>
+</dl>
+
+<h4 id="key-github"><code>github</code> <span lang="en">group</span><span lang="pl">grupa</span></h4>
+<dl>
+  <div id="key-github-issues">
+    <dt><code>github.issues</code> <span class="tag"><span lang="en">off</span><span lang="pl">wył.</span></span></dt>
     <dd><span lang="en"><a href="#skill-intent"><code>intent</code></a>, <a href="#skill-fixer"><code>fixer</code></a>,
     <a href="#skill-prototype"><code>prototype</code></a> and <a href="#skill-triage"><code>triage</code></a> can start
     from a GitHub issue by number or link, an interview that did not start from one can save its conclusions as
@@ -2768,44 +2837,27 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
     z issue kończy każdy commit linią <code>Refs: #&lt;N&gt;</code>. Przy wyłączonym przełączniku
     <code>triage</code> ocenia tylko wklejony tekst issue.</span></dd>
   </div>
-  <div id="key-fast-path">
-    <dt><code>fast-path</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
-    <dd><span lang="en">For a small, well-scoped change to existing code, <a href="#skill-intent"><code>intent</code></a>
-    shows a short design in chat and builds the change only after your explicit yes, with no plan file and no run
-    directory. Off, every change goes through the plan.</span><span lang="pl">Przy małej, dobrze
-    określonej zmianie istniejącego kodu <a href="#skill-intent"><code>intent</code></a> pokazuje krótki projekt
-    na czacie i buduje zmianę dopiero po twoim wyraźnym „tak”, bez pliku planu i bez katalogu przebiegu. Przy
-    wyłączonym przełączniku każda zmiana przechodzi przez plan.</span></dd>
+  <div id="key-github-issue-title">
+    <dt><code>github.issue-title</code> <span class="tag">{template-title}{summary}</span></dt>
+    <dd><span lang="en">The title of an issue viber files: <code>{template-title}</code> is the issue template's
+    own title prefix, <code>{type}</code> its issue type, <code>{summary}</code> a one-line statement of the issue.
+    Quoted, since it opens on <code>{</code>.</span><span lang="pl">Tytuł issue, które zakłada viber:
+    <code>{template-title}</code> to prefiks tytułu z szablonu issue, <code>{type}</code> jego typ issue,
+    <code>{summary}</code> jednozdaniowe streszczenie issue. W cudzysłowie, bo zaczyna się od
+    <code>{</code>.</span></dd>
   </div>
-  <div id="key-baseline-tests">
-    <dt><code>baseline-tests</code> <span class="tag"><span lang="en">off</span><span lang="pl">wył.</span></span></dt>
-    <dd><span lang="en">Before the first task, <a href="#agent-test-runner"><code>test-runner</code></a> runs the test
-    suite once and records what already fails. From then on the build repairs only the failures it caused and
-    leaves the ones it found for you.</span><span lang="pl">Przed pierwszym zadaniem
-    <a href="#agent-test-runner"><code>test-runner</code></a> raz uruchamia zestaw testów i zapisuje, co już nie
-    przechodzi. Od tej chwili build naprawia tylko błędy, które sam spowodował, a zastane zostawia
-    tobie.</span></dd>
+  <div id="key-github-pr-title">
+    <dt><code>github.pr-title</code> <span class="tag">{type}: {summary}</span></dt>
+    <dd><span lang="en">The title of a pull request viber opens: <code>{type}</code> is feat or fix,
+    <code>{summary}</code> a one-line statement of the change, <code>{issue-number}</code> the first issue it
+    refers to, <code>{entry}</code> its <a href="#key-branching-work"><code>branching.work</code></a>
+    entry.</span><span lang="pl">Tytuł pull requesta, który otwiera viber: <code>{type}</code> to feat albo fix,
+    <code>{summary}</code> jednozdaniowe streszczenie zmiany, <code>{issue-number}</code> pierwsze issue, do
+    którego się odnosi, <code>{entry}</code> jego wpis
+    <a href="#key-branching-work"><code>branching.work</code></a>.</span></dd>
   </div>
 </dl>
-<p lang="en">Seven of the ten start on; <code>qa</code>, <code>issues</code> and <code>baseline-tests</code> start off. To change any of
-them, edit <code>.claude/viber.yml</code>: every key has a comment there, and only <code>true</code> counts as on. Turn a switch off with <code>false</code> instead of deleting it. Running
-<code>/viber:setup</code> again merges in every key the current version's template has and your file lacks.
-That is how a new switch reaches a project set up by an older version, and the same merge restores a
-deleted top-level key, or a deleted <code>directories:</code> child, at its default.
-Children of <code>tiers:</code> and <code>branching:</code> work differently: the merge adds either group only
-as a whole, when the file lacks it entirely, and never extends one already present. A child you
-delete there does not come back into the file; it simply resolves to its default. The merge keeps
-every value you have already set.</p>
-<p lang="pl">Siedem z dziesięciu jest domyślnie włączonych; <code>qa</code>, <code>issues</code>
-i <code>baseline-tests</code> startują wyłączone. Zmienisz to w <code>.claude/viber.yml</code>: każdy
-klucz ma tam komentarz, a za włączony liczy się tylko <code>true</code>. Przełącznik wyłączaj wartością
-<code>false</code>, nie usuwaj go. Ponowne uruchomienie <code>/viber:setup</code> dołącza każdy klucz, który ma
-szablon bieżącej wersji, a którego brakuje w twoim pliku. Tak nowy przełącznik trafia do projektu
-skonfigurowanego starszą wersją i tak samo wraca z wartością domyślną usunięty klucz najwyższego
-poziomu albo usunięte dziecko grupy <code>directories:</code>. Dzieci grup <code>tiers:</code>
-i <code>branching:</code> działają inaczej: scalanie dodaje taką grupę tylko w całości, gdy w pliku jej
-w ogóle brakuje, i nigdy nie rozszerza już istniejącej. Usunięty tam klucz nie wraca do pliku, po
-prostu obowiązuje jego wartość domyślna. Scalanie zachowuje każdą już ustawioną wartość.</p>
+
 <h4 id="key-directories"><code>directories</code> <span lang="en">group</span><span lang="pl">grupa</span></h4>
 <dl>
   <div id="key-directories-runs">
@@ -2815,8 +2867,8 @@ prostu obowiązuje jego wartość domyślna. Scalanie zachowuje każdą już ust
   </div>
   <div id="key-directories-specifications">
     <dt><code>specifications</code> <span class="tag">specs</span></dt>
-    <dd><span lang="en">Where <code>cleanup</code> archives a finished one.</span><span lang="pl">Miejsce, w którym
-    <code>cleanup</code> archiwizuje zakończony przebieg.</span></dd>
+    <dd><span lang="en">Where <code>build.cleanup</code> archives a finished one.</span><span lang="pl">Miejsce, w którym
+    <code>build.cleanup</code> archiwizuje zakończony przebieg.</span></dd>
   </div>
 </dl>
 <p class="note" lang="en">Both sit in a <code>directories:</code> group and are plain directory names, read only from inside
@@ -2877,23 +2929,23 @@ domyślnego. Planowanie działa na modelu bieżącej sesji i zakres go nie ogran
   <div id="key-branching-issue-type-mappings">
     <dt><code>issue-type-mappings</code> <span class="tag"><span lang="en">commented out</span><span lang="pl">zakomentowany</span></span></dt>
     <dd><span lang="en">Picks a <code>work</code> entry by the type of the GitHub issue a run starts from
-    (needs <code>issues: true</code>). An issue type with no mapping falls back to the single usable entry when
+    (needs <code>github.issues: true</code>). An issue type with no mapping falls back to the single usable entry when
     there is exactly one; otherwise you are asked which entry to use. The template ships it commented out:
     remove the <code>#</code> marks to use it.</span><span lang="pl">Wybiera wpis <code>work</code> na podstawie
-    typu issue z GitHuba, od którego zaczyna się przebieg (wymaga <code>issues: true</code>). Typ issue bez
+    typu issue z GitHuba, od którego zaczyna się przebieg (wymaga <code>github.issues: true</code>). Typ issue bez
     mapowania dostaje jedyny możliwy do użycia wpis, jeśli jest dokładnie jeden; w przeciwnym razie zostaniesz
     zapytany, którego wpisu użyć. Szablon zawiera ten klucz zakomentowany: usuń znaki <code>#</code>, żeby go
     użyć.</span></dd>
   </div>
 </dl>
 <p class="note" lang="en">A <code>name</code> pattern is filled in from the plan: <code>{type}</code>,
-<code>{slug}</code> and <code>{issue-number}</code>. The last needs <code>issues: true</code>, since without
+<code>{slug}</code> and <code>{issue-number}</code>. The last needs <code>github.issues: true</code>, since without
 it there is no issue number to fill in. viber never fetches, pushes, merges or deletes anything: it only
 creates a branch, switches to it and commits on it. A bad entry or mapping is dropped with a readable
 reason and the rest of the file still applies; see <code>viber/BRANCHING.md</code> for the full list. Each
 example below is a complete setup for one strategy; the strategy's name itself is never a configuration value.</p>
 <p class="note" lang="pl">Wzorzec <code>name</code> jest wypełniany na podstawie planu: <code>{type}</code>,
-<code>{slug}</code> i <code>{issue-number}</code>. Ten ostatni wymaga <code>issues: true</code>, bo bez
+<code>{slug}</code> i <code>{issue-number}</code>. Ten ostatni wymaga <code>github.issues: true</code>, bo bez
 tego nie ma numeru issue do wstawienia. viber niczego nie pobiera (fetch), nie wypycha (push), nie scala
 ani nie usuwa: tylko tworzy gałąź, przełącza się na nią i na niej commituje. Błędny wpis lub mapowanie
 jest odrzucane z czytelnym powodem, a reszta pliku nadal obowiązuje; pełną listę znajdziesz w

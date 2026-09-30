@@ -14,9 +14,15 @@
  * version ships new switches a file seeded by an older one would never see. The
  * merge runs in one direction: a top-level key the template has and the file
  * lacks is appended with its own comment and default, a missing child of the
- * `directories:` group is inserted inside that group where a reader looks for
- * it, and every key the file already declares keeps its value, its comment and
- * its position.
+ * `planning:`, `build:`, `github:` or `directories:` group is inserted inside
+ * that group where a reader looks for it, and every key the file already
+ * declares keeps its value, its comment and its position. A legacy flat switch
+ * is MOVED into its group with its value (a grouped twin wins), and the
+ * `schema:` line is added or raised to the template's, never lowered. Every
+ * case asserts the written file, never a resolver's reading of it.
+ *
+ * The template's key list is bound to its `schema:` number: a layout change
+ * without a new number would leave the session-start note silent.
  *
  * Two properties carry the design. It resolves the REPOSITORY ROOT itself, so a
  * session started in a subdirectory still seeds the root rather than scattering
@@ -42,7 +48,34 @@ import { withGitRepo, withTempDir } from "../harness/tmp.ts";
 const SUT = path.resolve(import.meta.dirname, "../../viber/skills/setup/scripts/bootstrap.sh");
 const TEMPLATE_GITIGNORE = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/gitignore.txt");
 const TEMPLATE_CONFIG = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/viber.yml");
-const CONFIG_SH = path.resolve(import.meta.dirname, "../../viber/scripts/config.sh");
+
+/** The key list each schema number stands for, as `templateKeyPaths` spells it.
+ *  A layout change records a new number here and raises the template's. */
+const SCHEMA_KEYS: Record<string, string[]> = {
+  "1": [
+    "schema",
+    "planning", "planning-adr", "planning-plain-plan-review", "planning-fast-path",
+    "build", "build-baseline-tests", "build-final-review", "build-memory", "build-rules", "build-qa", "build-cleanup",
+    "github", "github-issues", "github-issue-title", "github-pr-title",
+    "directories", "directories-runs", "directories-specifications",
+    "tiers", "tiers-min", "tiers-max",
+    "branching", "branching-mode", "branching-work",
+  ],
+};
+
+/** A complete schema-1 config with no comments, the fixture most merge cases edit. */
+const GROUPED = [
+  "schema: 1",
+  "planning:", "  adr: true", "  plain-plan-review: true", "  fast-path: true",
+  "build:", "  baseline-tests: false", "  final-review: true", "  memory: true", "  rules: true", "  qa: false", "  cleanup: true",
+  "github:", "  issues: false", "  issue-title: '{template-title}{summary}'", "  pr-title: '{type}: {summary}'",
+  "directories:", "  runs: _specs", "  specifications: specs",
+  "tiers:", "  min: haiku", "  max: opus",
+  "branching:", "  mode: off",
+  "",
+].join("\n");
+
+const FLAT_SWITCH = /^(adr|memory|rules|qa|cleanup|final-review|plain-plan-review|issues|fast-path|baseline-tests)[ \t]*:/m;
 
 // A stub gh is always first on PATH, so the gh line never depends on whether
 // the machine running the suite has the real one installed.
@@ -65,6 +98,43 @@ function configPath(root: string): string {
  *  name), slash-normalised. */
 function repoRoot(dir: string): string {
   return slash(fs.realpathSync.native(dir));
+}
+
+/** The value of `<group>:`'s child `<child>` in a written config, CR dropped;
+ *  undefined when the group does not hold that child. */
+function childValue(text: string, group: string, child: string): string | undefined {
+  const body = new RegExp(`^${group}[ \\t]*:[ \\t]*\\r?\\n((?:[ \\t]+\\S.*\\n|#.*\\n)*)`, "m").exec(text);
+  const line = new RegExp(`^[ \\t]+${child}[ \\t]*:[ \\t]*(.*?)\\r?$`, "m").exec(body?.[1] ?? "");
+  return line?.[1];
+}
+
+/** One `<path>` per uncommented template line opening a key at indent 0
+ *  (`<key>`) or indent 2 (`<group>-<child>`); deeper lines are not layout. */
+function templateKeyPaths(template: string): string[] {
+  const paths: string[] = [];
+  let group = "";
+  for (const line of template.split(/\r?\n/)) {
+    const match = /^( *)([A-Za-z][\w-]*)[ \t]*:/.exec(line);
+    if (match === null) continue;
+    if (match[1].length === 0) {
+      group = match[2];
+      paths.push(group);
+    } else if (match[1].length === 2 && group !== "") {
+      paths.push(`${group}-${match[2]}`);
+    }
+  }
+  return paths;
+}
+
+/** Empty when the template's key list is the one recorded for its schema number. */
+function schemaBindingViolations(template: string, recorded: Record<string, string[]>): string[] {
+  const schema = /^schema[ \t]*:[ \t]*(\S*)/m.exec(template)?.[1] ?? "";
+  const keys = recorded[schema];
+  if (keys === undefined) return [`schema "${schema}" has no recorded key list`];
+  const actual = templateKeyPaths(template);
+  return JSON.stringify(actual) === JSON.stringify(keys)
+    ? []
+    : [`the key list changed without a schema change: ${actual.join(", ")}`];
 }
 
 /** The printed CLAUDE.md lines, slash-normalised. */
@@ -97,6 +167,16 @@ test("the bundled .gitignore already carries the .temp/ rule, so a fresh seed ne
   // The seeded file IS the template byte for byte (asserted above), so the run's
   // own second step must recognise the rule rather than duplicate it.
   assert.match(read(TEMPLATE_GITIGNORE), /^\.temp\/$/m);
+});
+
+test("the template's key list is the one recorded for its schema number (a layout change without a new number leaves the session-start note silent)", () => {
+  assert.deepEqual(schemaBindingViolations(read(TEMPLATE_CONFIG), SCHEMA_KEYS), []);
+});
+
+test("self-check: a key added to the template without a schema change is a violation", () => {
+  const grown = read(TEMPLATE_CONFIG).replace(/^github:\n/m, "github:\n  labels: none\n");
+
+  assert.equal(schemaBindingViolations(grown, SCHEMA_KEYS).length, 1);
 });
 
 test("running twice leaves both files byte-identical and reports them as already present", async () => {
@@ -177,7 +257,25 @@ test("a commented-out .temp line does not count as the rule, so it is still appe
   });
 });
 
-test("a config seeded by an older version keeps its own values and gains only the keys the template adds", async () => {
+test("a flat config moves `adr: false` and `memory: false` into `planning:` and `build:`, leaves no flat switch line and reports the move", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const cfg = configPath(dir);
+    fs.mkdirSync(path.dirname(cfg), { recursive: true });
+    fs.writeFileSync(cfg, "adr: false\nmemory: false\n");
+
+    const result = await run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^viber\.yml: migrated to schema 1: adr, memory moved into their groups \(your own values kept\)$/m);
+    const after = read(cfg);
+    // A move that wrote the template default would silently re-enable what the user turned off.
+    assert.equal(childValue(after, "planning", "adr"), "false");
+    assert.equal(childValue(after, "build", "memory"), "false");
+    assert.doesNotMatch(after, FLAT_SWITCH);
+  });
+});
+
+test("a flat config gains every group the template adds, each child the file did not set at its default, and `schema: 1`", async () => {
   await withGitRepo(async ({ dir, env }) => {
     const cfg = configPath(dir);
     fs.mkdirSync(path.dirname(cfg), { recursive: true });
@@ -186,92 +284,148 @@ test("a config seeded by an older version keeps its own values and gains only th
     const result = await run(dir, env);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.match(result.stdout, /^viber\.yml: merged from the template: qa, cleanup, final-review, plain-plan-review, issues, fast-path, baseline-tests, directories, tiers, branching \(your own values kept\)$/m);
-
+    assert.match(result.stdout, /^viber\.yml: merged from the template: planning, build, github, directories, tiers, branching \(your own values kept\)$/m);
     const after = read(cfg);
-    // Every value the user set survives, values included - a merge that reset a
-    // switch to the template default would silently re-enable what they turned off.
-    assert.match(after, /^adr: false$/m);
-    assert.match(after, /^memory: false$/m);
-    assert.match(after, /^rules: false$/m);
-    assert.equal(after.startsWith("adr: false\nmemory: false\nrules: false\n"), true, "existing keys keep their position");
-    // The new keys arrive at the template's default, each under its own comment.
-    assert.match(after, /^qa: false$/m);
-    assert.match(after, /^cleanup: true$/m);
-    assert.match(after, /^final-review: true$/m);
-    assert.match(after, /^plain-plan-review: true$/m);
-    assert.match(after, /^issues: false$/m);
-    assert.match(after, /^fast-path: true$/m);
-    assert.match(after, /^baseline-tests: false$/m);
+    assert.match(after, /^schema: 1$/m);
+    assert.equal(childValue(after, "build", "rules"), "false");
+    assert.equal(childValue(after, "build", "qa"), "false");
+    assert.equal(childValue(after, "build", "cleanup"), "true");
+    assert.equal(childValue(after, "planning", "fast-path"), "true");
+    assert.equal(childValue(after, "github", "pr-title"), "'{type}: {summary}'");
     assert.match(after, /^directories:\n {2}runs: _specs\n {2}specifications: specs$/m);
     assert.match(after, /^tiers:\n {2}min: haiku\n {2}max: opus$/m);
     assert.match(
       after,
       /^branching:\n {2}mode: off\n {2}work:\n {4}main:\n {6}base: main\n {6}name: '\{type\}\/\{slug\}'\n {6}target: main\n {2}# issue-type-mappings:\n {2}# {3}bug: main$/m,
     );
-    assert.match(after, /# implementor writes the build's QA scenarios at the close[\s\S]*^qa: false$/m);
   });
 });
 
-test("a config lacking `fast-path` gains it on, every other value kept", async () => {
+test("a flat switch and the comment block directly above it are both removed by the move, every other line kept", async () => {
   await withGitRepo(async ({ dir, env }) => {
     const cfg = configPath(dir);
     fs.mkdirSync(path.dirname(cfg), { recursive: true });
-    fs.writeFileSync(cfg, "adr: false\nqa: true\nissues: true\n");
-
-    const result = await run(dir, env);
-
-    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    const resolved = await runScript(CONFIG_SH, [], { cwd: dir, env, shell: "bash" });
-    assert.match(resolved.stdout, /^fast-path: true$/m);
-    assert.match(resolved.stdout, /^adr: false$/m);
-    assert.match(resolved.stdout, /^qa: true$/m);
-    assert.match(resolved.stdout, /^issues: true$/m);
-  });
-});
-
-test("a config holding `fast-path: false` keeps it off through the merge", async () => {
-  await withGitRepo(async ({ dir, env }) => {
-    const cfg = configPath(dir);
-    fs.mkdirSync(path.dirname(cfg), { recursive: true });
-    fs.writeFileSync(cfg, "adr: true\nfast-path: false\n");
-
-    const result = await run(dir, env);
-
-    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.match(read(cfg), /^fast-path: false$/m);
-    assert.doesNotMatch(read(cfg), /^fast-path: true$/m);
-  });
-});
-
-test("the template seeds `baseline-tests` off", () => {
-  assert.match(read(TEMPLATE_CONFIG), /^baseline-tests: false$/m);
-});
-
-test("a config lacking `baseline-tests` gains it off on merge, every other value kept", async () => {
-  await withGitRepo(async ({ dir, env }) => {
-    const cfg = configPath(dir);
-    fs.mkdirSync(path.dirname(cfg), { recursive: true });
-    const before = "adr: false\nqa: true\nissues: true\nfast-path: false\n";
-    fs.writeFileSync(cfg, before);
+    fs.writeFileSync(cfg, GROUPED.replace("  qa: false\n", "") + "\n# my qa note\n# second line\nqa: true\n");
 
     const result = await run(dir, env);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const after = read(cfg);
-    assert.equal(after.startsWith(before), true, "every existing line keeps its value and position");
-    assert.match(after, /^baseline-tests: false$/m);
+    assert.doesNotMatch(after, /my qa note|second line/);
+    assert.equal(childValue(after, "build", "qa"), "true");
   });
 });
 
-test("merging is idempotent: a second run over the merged file reports it complete and changes nothing", async () => {
+test("a flat `memory: true` beside a grouped `memory: false` ends with `build:` holding `memory: false` and no flat line (the grouped value is the one that counts)", async () => {
   await withGitRepo(async ({ dir, env }) => {
     const cfg = configPath(dir);
     fs.mkdirSync(path.dirname(cfg), { recursive: true });
-    fs.writeFileSync(cfg, "adr: false\n");
+    fs.writeFileSync(cfg, "memory: true\n" + GROUPED.replace("  memory: true\n", "  memory: false\n"));
 
+    const result = await run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    const after = read(cfg);
+    assert.equal(childValue(after, "build", "memory"), "false");
+    assert.doesNotMatch(after, /^memory[ \t]*:/m);
+  });
+});
+
+test("a config missing `build:`'s `qa` child gets it restored inside the group at its default", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const cfg = configPath(dir);
+    fs.mkdirSync(path.dirname(cfg), { recursive: true });
+    fs.writeFileSync(cfg, GROUPED.replace("  qa: false\n", ""));
+
+    const result = await run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^viber\.yml: merged from the template: build\.qa \(your own values kept\)$/m);
+    assert.equal(childValue(read(cfg), "build", "qa"), "false");
+  });
+});
+
+test("a config missing `planning:`'s `fast-path` child gets it restored on, every other value kept", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const cfg = configPath(dir);
+    fs.mkdirSync(path.dirname(cfg), { recursive: true });
+    fs.writeFileSync(cfg, GROUPED.replace("  adr: true\n", "  adr: false\n").replace("  fast-path: true\n", ""));
+
+    const result = await run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    const after = read(cfg);
+    assert.equal(childValue(after, "planning", "fast-path"), "true");
+    assert.equal(childValue(after, "planning", "adr"), "false");
+  });
+});
+
+test("a config missing `github:`'s `pr-title` child gets it restored at the template's pattern", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const cfg = configPath(dir);
+    fs.mkdirSync(path.dirname(cfg), { recursive: true });
+    fs.writeFileSync(cfg, GROUPED.replace("  pr-title: '{type}: {summary}'\n", ""));
+
+    const result = await run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(childValue(read(cfg), "github", "pr-title"), "'{type}: {summary}'");
+  });
+});
+
+test("the template seeds `build.baseline-tests` off", () => {
+  assert.equal(childValue(read(TEMPLATE_CONFIG), "build", "baseline-tests"), "false");
+});
+
+test("a grouped config with no `schema:` line gains `schema: 1` and reports only the schema", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const cfg = configPath(dir);
+    fs.mkdirSync(path.dirname(cfg), { recursive: true });
+    fs.writeFileSync(cfg, GROUPED.replace("schema: 1\n", ""));
+
+    const result = await run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^viber\.yml: schema set to 1$/m);
+    assert.match(read(cfg), /^schema: 1$/m);
+  });
+});
+
+test("a config at a lower schema has its one `schema:` line raised, never a second one added", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const cfg = configPath(dir);
+    fs.mkdirSync(path.dirname(cfg), { recursive: true });
+    fs.writeFileSync(cfg, GROUPED.replace("schema: 1\n", "schema: 0\n"));
+
+    const result = await run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(read(cfg), GROUPED);
+  });
+});
+
+test("a config at a higher schema than the template keeps its number and is left byte-identical", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const cfg = configPath(dir);
+    fs.mkdirSync(path.dirname(cfg), { recursive: true });
+    const before = GROUPED.replace("schema: 1\n", "schema: 2\n");
+    fs.writeFileSync(cfg, before);
+
+    const result = await run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(read(cfg), before);
+  });
+});
+
+test("migrating is idempotent: a second run over a migrated flat file prints `already present and complete` and changes nothing", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const cfg = configPath(dir);
+    fs.mkdirSync(path.dirname(cfg), { recursive: true });
+    fs.writeFileSync(cfg, "# my header\n\n# the adr switch\nadr: false\n\nqa: true\ndirectories:\n  runs: _specs\n");
     await run(dir, env);
     const merged = read(cfg);
+
     const second = await run(dir, env);
 
     assert.equal(second.status, 0, `stderr: ${second.stderr}`);
@@ -287,16 +441,13 @@ test("a missing child of the directories group is inserted INSIDE the group, not
     // A second top-level key after the group proves the insertion point: appending
     // the child at the end of the file would put it outside the group, where the
     // three readers that parse that group would never see it.
-    fs.writeFileSync(cfg, "adr: true\nmemory: true\nrules: true\nqa: true\ndirectories:\n  runs: builds\ncleanup: true\nfinal-review: true\nplain-plan-review: true\nissues: true\nfast-path: true\nbaseline-tests: false\ntiers:\n  min: haiku\n  max: opus\nbranching:\n  mode: off\n  base: main\n  name: '{type}/{issue}-{slug}'\n");
+    fs.writeFileSync(cfg, GROUPED.replace("  specifications: specs\n", ""));
 
     const result = await run(dir, env);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^viber\.yml: merged from the template: directories\.specifications \(your own values kept\)$/m);
-    assert.equal(
-      read(cfg),
-      "adr: true\nmemory: true\nrules: true\nqa: true\ndirectories:\n  runs: builds\n  specifications: specs\ncleanup: true\nfinal-review: true\nplain-plan-review: true\nissues: true\nfast-path: true\nbaseline-tests: false\ntiers:\n  min: haiku\n  max: opus\nbranching:\n  mode: off\n  base: main\n  name: '{type}/{issue}-{slug}'\n",
-    );
+    assert.equal(read(cfg), GROUPED);
   });
 });
 
@@ -304,7 +455,7 @@ test("a directories key carrying a value instead of a group is left exactly as i
   await withGitRepo(async ({ dir, env }) => {
     const cfg = configPath(dir);
     fs.mkdirSync(path.dirname(cfg), { recursive: true });
-    const before = "adr: true\nmemory: true\nrules: true\nqa: true\ncleanup: true\nfinal-review: true\nplain-plan-review: true\nissues: true\nfast-path: true\nbaseline-tests: false\ndirectories: nonsense\ntiers:\n  min: haiku\n  max: opus\nbranching:\n  mode: off\n  base: main\n  name: '{type}/{issue}-{slug}'\n";
+    const before = GROUPED.replace("directories:\n  runs: _specs\n  specifications: specs\n", "directories: nonsense\n");
     fs.writeFileSync(cfg, before);
 
     const result = await run(dir, env);
@@ -315,11 +466,11 @@ test("a directories key carrying a value instead of a group is left exactly as i
   });
 });
 
-test("a key written with blanks before its colon counts as declared, so a switch turned off that way stays off (config.sh reads the same grammar and would take an appended default)", async () => {
+test("a key written with blanks before its colon counts as declared, so the file is left byte-identical (a second copy appended at its default would override the value the user set)", async () => {
   await withGitRepo(async ({ dir, env }) => {
     const cfg = configPath(dir);
     fs.mkdirSync(path.dirname(cfg), { recursive: true });
-    const before = "adr: true\nmemory: true\nrules: true\nqa: true\ncleanup: true\nfinal-review\t: true\nplain-plan-review : false\nissues\t: true\nfast-path : true\nbaseline-tests\t: false\ndirectories :\n  runs : builds\n  specifications\t: archive\ntiers:\n  min: haiku\n  max: opus\nbranching:\n  mode: off\n";
+    const before = "schema : 1\nplanning :\n  adr: true\n  plain-plan-review : false\n  fast-path\t: true\nbuild\t:\n  baseline-tests\t: false\n  final-review\t: true\n  memory: true\n  rules: true\n  qa: true\n  cleanup: true\ngithub :\n  issues\t: true\n  issue-title : 'x'\n  pr-title\t: 'y'\ndirectories :\n  runs : builds\n  specifications\t: archive\ntiers:\n  min: haiku\n  max: opus\nbranching:\n  mode: off\n";
     fs.writeFileSync(cfg, before);
 
     const result = await run(dir, env);
@@ -327,10 +478,6 @@ test("a key written with blanks before its colon counts as declared, so a switch
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^viber\.yml: already present and complete \(left untouched\)$/m);
     assert.equal(read(cfg), before);
-
-    const resolved = await runScript(CONFIG_SH, [], { cwd: dir, env, shell: "bash" });
-    assert.match(resolved.stdout, /^plain-plan-review: false$/m);
-    assert.match(resolved.stdout, /^directories\.runs: builds$/m);
   });
 });
 
@@ -352,7 +499,8 @@ test("a CRLF config comes back with ONE ending throughout, never a mix of the tw
     const lf = (after.match(/\n/g) ?? []).length;
     assert.equal(crlf === 0 || crlf === lf, true, `mixed line endings: ${crlf} CRLF of ${lf} lines`);
     assert.match(after.replace(/\r/g, ""), /^ {2}specifications: specs$/m);
-    assert.match(after.replace(/\r/g, ""), /^qa: false$/m);
+    assert.match(after.replace(/\r/g, ""), /^ {2}qa: false$/m);
+    assert.match(after.replace(/\r/g, ""), /^ {2}memory: true$/m);
   });
 });
 
@@ -362,7 +510,7 @@ test("a config already carrying every template key is byte-identical after a run
     fs.mkdirSync(path.dirname(cfg), { recursive: true });
     // The user's own wording and ordering, not the template's: the merge reads
     // which keys are declared, never how the file is written.
-    const before = "# my own header\ncleanup: false\nfinal-review: false\nplain-plan-review: false\nissues: false\nfast-path: false\nbaseline-tests: true\nqa: true\nrules: true\nmemory: true\nadr: true\n\ndirectories:\n  specifications: archive\n  runs: open\ntiers:\n  max: sonnet\n  min: sonnet\nbranching:\n  name: '{type}/{issue}-{slug}'\n  base: develop\n  mode: required\n";
+    const before = "# my own header\nbuild:\n  cleanup: false\n  final-review: false\n  baseline-tests: true\n  qa: true\n  rules: true\n  memory: true\ngithub:\n  pr-title: '{type}/{summary}'\n  issues: false\n  issue-title: 'x'\nplanning:\n  fast-path: false\n  plain-plan-review: false\n  adr: true\nschema: 1\n\ndirectories:\n  specifications: archive\n  runs: open\ntiers:\n  max: sonnet\n  min: sonnet\nbranching:\n  name: '{type}/{issue}-{slug}'\n  base: develop\n  mode: required\n";
     fs.writeFileSync(cfg, before);
 
     const result = await run(dir, env);

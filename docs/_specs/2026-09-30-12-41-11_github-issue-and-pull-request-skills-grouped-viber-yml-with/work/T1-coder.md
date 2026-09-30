@@ -1,0 +1,7 @@
+- bootstrap.sh awk now uses one `function emit()` (bash script, so the portability sweep's #!/bin/sh awk-function rule does not apply); no apostrophe inside the block.
+- Missing `schema:` is inserted above the comment block of the first top-level key the file keeps; when every line was a moved flat switch it leads the appended blocks instead. Groups appended to hold moved values are still listed on the `merged from the template:` line, per C4.
+- Removing a flat switch also drops a blank line left doubled by the removal, so a migrated old template does not end up with runs of empty lines.
+- A restored child of planning/build/github comes back with its template comment (indented `  #` lines); directories children carry none, so their inserts stay bare.
+- T2 must not re-add config.sh assertions to bootstrap.test.ts except its own DoD.8 case: DoD.4 here bans them in every other case. `GROUPED` in that file is the complete schema-1 fixture to reuse.
+- Help page switch names are dotted everywhere (`build.memory`), dt labels included; `#skill-memory`, `#agent-plain-plan-review` and the SVG `branching` label were left as they are (a skill, an agent, a group).
+- The help schema entry, README and template comment say a session start flags a lagging `schema:` - true only once T5 lands.

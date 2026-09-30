@@ -42,12 +42,12 @@ behind it, however clear the change already reads, and viber suggests the `viber
 first - you decide whether to run it or plan directly. A bug goes the same way through
 `/viber:fixer`: viber suggests it and you decide.
 
-With the `fast-path` switch on, a small change to existing code takes a shorter road through
+With the `planning.fast-path` switch on, a small change to existing code takes a shorter road through
 `/viber:intent`: a short design in chat instead of a plan, built in your session once you say yes,
 proven by the test suite, then left for you to commit with `/viber:commit` - no plan file, no run
 directory. Ask for a full plan instead and the interview carries on as usual.
 
-With `issues` on, point `/viber:intent` or `/viber:fixer` at a GitHub issue - `#42`, its number
+With `github.issues` on, point `/viber:intent` or `/viber:fixer` at a GitHub issue - `#42`, its number
 alone, or a link - and it reads that issue instead of asking you to restate it, then keeps working
 on the same issue throughout. An interview that did not start from one can, once confirmed, save
 its summary as a new issue built from your project's own issue templates; the run then names that
@@ -71,7 +71,7 @@ End-to-end tests stay with your CI and `/viber:e2e` unless you explicitly ask fo
 
 The build runs to its end without you at the keyboard. A task gets up to 5 attempts, each one model
 tier up. Where it would otherwise stop and ask - a task past its 5 attempts, a red baseline or
-final test run, a failed final-review recheck, a refused commit - an arbiter agent picks one way
+final test run, a failed recheck of the final review, a refused commit - an arbiter agent picks one way
 forward from a closed list, and the build writes down every such ruling, with its reason and what
 it costs if wrong, in `rulings.md` in the run directory. The final summary lists them. The build still stops to ask you at a refused tool call, when it finds
 another open run or changed files no task claims, when a task's coder hands the decision to the
@@ -81,24 +81,30 @@ owner, and when nothing was committed for a task.
 
 ## Optional switches
 
-`/viber:setup` writes `.claude/viber.yml` with seven of the ten on and `qa`, `issues` and
-`baseline-tests` off. Edit that file to change any of them - only `true` counts as on, so turn a
-switch off with `false` rather than by deleting it. Without the file all ten are off. Run `/viber:setup` again after an
-upgrade and any switch the new version added is merged into your file, with every value you set
-left as it is.
+`/viber:setup` writes `.claude/viber.yml` with its switches in three groups - `planning:`,
+`build:` and `github:` - seven of the ten on and `build.qa`, `github.issues` and
+`build.baseline-tests` off. A switch counts only inside its group. Edit that file to change any of
+them - only `true` counts as on, so turn a switch off with `false` rather than by deleting it.
+Without the file all ten are off. Run `/viber:setup` again after an upgrade: any switch the new
+version added is merged into your file, a switch written outside its group is moved into it, and
+every value you set is left as it is. A session start tells you when the file's `schema:` number
+says it needs that run.
 
 | Switch | Default | When on |
 | --- | --- | --- |
-| `adr` | on | A decision worth keeping becomes an architecture decision record in `docs/adr/`. |
-| `memory` | on | The build closes by updating your project's `CLAUDE.md` with what it learned. |
-| `rules` | on | The build closes by recording a convention it confirmed in `.claude/rules/`. |
-| `qa` | **off** | The build closes by writing test scenarios for what it delivered, which `/viber:e2e` can then automate. |
-| `cleanup` | on | The build ends by noting anything it delivered that the specification does not promise, then archiving the run and dropping the working files. |
-| `final-review` | on | After every task is committed and before the final test run, one reviewer looks at the whole build's diff for what per-task review and the test suite cannot see, a coder fixes what it finds, a reviewer rechecks the fix, and after a failed recheck the arbiter rules on committing the fix as it stands, recorded in `rulings.md`. The build summary lists each finding with what was wrong and what the fix changed. |
-| `plain-plan-review` | on | A plan written in plain plan mode, without the planner, must pass a review before plan mode can be left. |
-| `issues` | **off** | `/viber:intent`, `/viber:fixer` and `/viber:prototype` can start from a GitHub issue's number or link, and an interview that did not can save its conclusions as a new one; `/viber:prototype` can post its mockup to the issue it started from; `/viber:triage` can fetch and publish to a GitHub issue instead of pasted text alone. |
-| `fast-path` | on | For a small, well-scoped change to existing code, `/viber:intent` shows a short design in chat and builds it only after your explicit yes, with no plan file and no run directory. |
-| `baseline-tests` | **off** | Before the first task the build runs your test suite once and records what already fails, then repairs only the failures it caused. |
+| `planning.adr` | on | A decision worth keeping becomes an architecture decision record in `docs/adr/`. |
+| `planning.plain-plan-review` | on | A plan written in plain plan mode, without the planner, must pass a review before plan mode can be left. |
+| `planning.fast-path` | on | For a small, well-scoped change to existing code, `/viber:intent` shows a short design in chat and builds it only after your explicit yes, with no plan file and no run directory. |
+| `build.baseline-tests` | **off** | Before the first task the build runs your test suite once and records what already fails, then repairs only the failures it caused. |
+| `build.final-review` | on | After every task is committed and before the final test run, one reviewer looks at the whole build's diff for what per-task review and the test suite cannot see, a coder fixes what it finds, a reviewer rechecks the fix, and after a failed recheck the arbiter rules on committing the fix as it stands, recorded in `rulings.md`. The build summary lists each finding with what was wrong and what the fix changed. |
+| `build.memory` | on | The build closes by updating your project's `CLAUDE.md` with what it learned. |
+| `build.rules` | on | The build closes by recording a convention it confirmed in `.claude/rules/`. |
+| `build.qa` | **off** | The build closes by writing test scenarios for what it delivered, which `/viber:e2e` can then automate. |
+| `build.cleanup` | on | The build ends by noting anything it delivered that the specification does not promise, then archiving the run and dropping the working files. |
+| `github.issues` | **off** | `/viber:intent`, `/viber:fixer` and `/viber:prototype` can start from a GitHub issue's number or link, and an interview that did not can save its conclusions as a new one; `/viber:prototype` can post its mockup to the issue it started from; `/viber:triage` can fetch and publish to a GitHub issue instead of pasted text alone. |
+
+The `github:` group also carries the title patterns of the issues and pull requests viber opens,
+`issue-title` (`'{template-title}{summary}'`) and `pr-title` (`'{type}: {summary}'`).
 
 The same file carries a `directories:` group with two names, both under `docs/`: `runs`
 (`_specs`) for a run in progress and `specifications` (`specs`) for the archive.
@@ -155,17 +161,18 @@ resumes by re-reading it - in a new session, or on another computer, because the
 the run produced are committed beside the plan: just ask Claude to continue the build, and it
 reopens the run most recently worked on. A plan that stopped at a draft, with no tasks yet, is not
 a build to resume: point `/viber:intent` at it instead to continue it. The plan itself is never
-edited once it lands. With `qa` on, the build's test scenarios land there
+edited once it lands. With `build.qa` on, the build's test scenarios land there
 too. `rulings.md` appears beside them only when the build ruled on something.
 
-With `cleanup` on, the build ends by moving what is worth keeping - the specification and the test
+With `build.cleanup` on, the build ends by moving what is worth keeping - the specification and the test
 scenarios, plus `rulings.md` - to `docs/specs/<date>_<slug>/`, and dropping the plan, the progress file and the
 working notes. They are all in git, so nothing is lost; the archive is simply the half you would
 want to read a year later. Generated
 Playwright tests go into the e2e directory your own project already uses - `/viber:e2e` asks if
 nothing names one, and creates no directory of its own. Scratch files go to `.temp/viber/`, and
 `/viber:prototype`'s mockups to `.temp/viber/prototype/` within it. Your
-`.claude/viber.yml` and your `.gitignore` are only ever added to, never rewritten. Your
+`.claude/viber.yml` and your `.gitignore` are only ever added to, never rewritten, except that a
+switch written outside its group is moved into it with its value. Your
 `.claude/settings.json` gets every setting viber recommends. If the file already exists, setup
 asks first: merge (a value viber sets wins over yours, permission lists only gain entries, and a
 permission viber moved from `deny` to `ask` is moved in your settings too) or reset (the file is

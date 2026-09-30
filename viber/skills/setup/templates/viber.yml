@@ -1,53 +1,66 @@
-# viber switches. Only `true` counts as on. Turn one off with `false`: a key you
-# delete or comment out is restored at its default here the next time
-# `/viber:setup` runs, which is how a new version's switches reach this file.
-# The exception is a child of `tiers:` or `branching:`: the merge only appends
-# a missing group whole, never a missing child of one already present, so
-# deleting a child there is not restored - it resolves to its default in
-# config.sh instead.
+# viber switches. Only `true` counts as on, and a switch counts only inside its
+# group. Turn one off with `false`: a key you delete or comment out is restored
+# at its default here the next time `/viber:setup` runs, which is how a new
+# version's switches reach this file. The exception is a child of `tiers:` or
+# `branching:`: the merge only appends a missing group whole, never a missing
+# child of one already present, so deleting a child there is not restored - it
+# resolves to its default in config.sh instead.
 
-# planner has the adr-screener agent test the plan's decisions against a strict
-# admission test, and turns each record you accept into a task with no
-# dependencies writing docs/adr/.
-adr: true
+# The layout this file follows. /viber:setup raises it when it brings the file
+# up to a newer layout, and a session start tells you when it lags behind the
+# installed viber. Leave it as it is.
+schema: 1
 
-# implementor updates the project's CLAUDE.md nodes at the close of a build.
-memory: true
+# Switches read while a change is planned.
+planning:
+  # planner has the adr-screener agent test the plan's decisions against a
+  # strict admission test, and turns each record you accept into a task with no
+  # dependencies writing docs/adr/.
+  adr: true
+  # A plan written in plain plan mode, without the planner, must pass a review
+  # agent before plan mode can be left - the same gate the planner's plans get.
+  plain-plan-review: true
+  # intent can offer a middle road for a small, well-scoped change to existing
+  # code: a short design shown in chat, built only after your explicit yes, with
+  # no plan file and no run directory.
+  fast-path: true
 
-# implementor updates .claude/rules/ at the close of a build.
-rules: true
+# Switches read by implementor while it builds a plan.
+build:
+  # implementor runs the test suite once before the first task and records what
+  # already fails, so a build repairs only the failures it caused.
+  baseline-tests: false
+  # implementor runs one fresh review of the whole build after every task is
+  # committed and before the final test run, at the edge of the build's diff
+  # where per-task review and the test suite cannot see; one coder fixes
+  # everything it finds, once, and the suite still runs once.
+  final-review: true
+  # implementor updates the project's CLAUDE.md nodes at the close of a build.
+  memory: true
+  # implementor updates .claude/rules/ at the close of a build.
+  rules: true
+  # implementor writes the build's QA scenarios at the close: an acceptance
+  # document a person performs and a handoff file /viber:e2e turns into tests.
+  qa: false
+  # implementor ends the build by noting on the specification whatever the
+  # build delivered that it does not promise, then moving the run's lasting work
+  # into the archive below and dropping the plan, the state file and the trail -
+  # git keeps them.
+  cleanup: true
 
-# implementor writes the build's QA scenarios at the close: an acceptance
-# document a person performs and a handoff file /viber:e2e turns into tests.
-qa: false
-
-# implementor ends the build by noting on the specification whatever the build
-# delivered that it does not promise, then moving the run's lasting work into
-# the archive below and dropping the plan, the state file and the trail - git
-# keeps them.
-cleanup: true
-
-# implementor runs one fresh review of the whole build after every task is
-# committed and before the final test run, at the edge of the build's diff
-# where per-task review and the test suite cannot see; one coder fixes
-# everything it finds, once, and the suite still runs once.
-final-review: true
-
-# A plan written in plain plan mode, without the planner, must pass a review
-# agent before plan mode can be left - the same gate the planner's plans get.
-plain-plan-review: true
-
-# An interview or a diagnosis can save its conclusions as a new GitHub issue, or keep working on the one it started from.
-issues: false
-
-# intent can offer a middle road for a small, well-scoped change to existing
-# code: a short design shown in chat, built only after your explicit yes, with
-# no plan file and no run directory.
-fast-path: true
-
-# implementor runs the test suite once before the first task and records what
-# already fails, so a build repairs only the failures it caused.
-baseline-tests: false
+# GitHub issues and pull requests.
+github:
+  # An interview or a diagnosis can start from a GitHub issue and save its
+  # conclusions as a new one.
+  issues: false
+  # The title of an issue viber files: {template-title} is the issue template's
+  # own title prefix, {type} its issue type, {summary} a one-line statement.
+  # Quoted, since it opens on `{`.
+  issue-title: '{template-title}{summary}'
+  # The title of a pull request /viber:create-pr opens: {type} is feat or fix,
+  # {summary} a one-line statement, {issue-number} the first issue it refers
+  # to, {entry} its branching work entry.
+  pr-title: '{type}: {summary}'
 
 # The two directories under docs/: where an open run lives, and where the
 # archive of a finished one lands. Directory NAMES, not paths - a value with a
