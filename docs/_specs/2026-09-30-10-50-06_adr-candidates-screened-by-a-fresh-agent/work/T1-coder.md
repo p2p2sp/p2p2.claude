@@ -1,3 +1,0 @@
-- `adr-screener` description names `planner` as its caller (no dispatcher exists yet); a later task wiring the dispatch must confirm or change that.
-- `viber/agents/CLAUDE.md` (agent count "seventeen", callers table, shared-text list) and `viber/CLAUDE.md` (`17 agents`) now under-count; not in T1 `Files`, left for the task that wires the dispatch.
-- `adr-admission.md` keeps C4's labels verbatim, reformatted as markdown bullets; `viber/references/CLAUDE.md` does not yet list its reader.
