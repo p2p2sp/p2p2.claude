@@ -1,0 +1,5 @@
+# Final review - slice 1 (T1-T6)
+
+## Blocking
+
+1. viber/agents/test-runner.md:56 (Run section, scope list) - `suite: fast -> the fast command alone.` has no fallback: the only fallback bullet (:59) is scoped to "No `suite:` line". A `fast` baseline on a host whose instructions name no fast command (or no layer marker convention) has no command to run, so the baseline either guesses or runs nothing. The spec requires every layer but end-to-end there: S3 ("When a final test run or a `fast` baseline run starts ... Then every layer but end-to-end runs") and the edge case "`build.baseline-tests: fast` on a host with no fast command -> the baseline runs every layer but end-to-end". Consumer: `viber/skills/implementor/fragments/baseline-run.fast.md:6` dispatches `suite: fast` on every host, whatever its instructions declare. Fix: extend the fallback bullet to cover `suite: fast` too, e.g. "`suite: fast`, or no `suite:` line, and the instructions name no fast command or no layer marker convention ... -> every layer but end-to-end" (keeping the `run:` clause for the no-`suite:` case only).

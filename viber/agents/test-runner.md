@@ -52,7 +52,8 @@ The fast command and the layer marker convention are the ones the project instru
 - `suite: fast` -> the fast command alone.
 - `suite: full` -> every layer but end-to-end.
 - No `suite:` line -> the fast command, then the integration tests selected below.
-- No `suite:` line, and the instructions name no fast command or no layer marker convention, or `run: <dir>` finds no commit that added `<dir>/plan.md` -> every layer but end-to-end.
+- `suite: fast` or no `suite:` line, and the instructions name no fast command or no layer marker convention -> every layer but end-to-end.
+- No `suite:` line, and `run: <dir>` finds no commit that added `<dir>/plan.md` -> every layer but end-to-end.
 
 Selecting the integration tests covering the change:
 
