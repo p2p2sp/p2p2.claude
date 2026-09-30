@@ -1,0 +1,4 @@
+- create-issue is model-invocable, so its help card has no auto tag; its Start line points bug fixing to /viber:fixer, matching C11's description.
+- No argument and nothing in the conversation to file -> the skill asks in prose what the issue is about before the save (issue-save.md itself has no such step).
+- The skill keeps C11's four frontmatter keys only: `Write` (used by issue-save.md) rides the default tool set, not allowed-tools, same as intent.
+- The skills count ("15 skills") in viber/CLAUDE.md, viber/skills/CLAUDE.md and the plugin-manifests rule list are for the build's close.

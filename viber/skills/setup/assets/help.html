@@ -860,6 +860,11 @@ in place of the interview.</p>
     jedno issue względem kodu i wskazuje następny krok.</span></dd>
   </div>
   <div>
+    <dt><a href="#skill-create-issue"><code data-copy>/viber:create-issue</code></a></dt>
+    <dd><span lang="en">Files a GitHub issue from your project's issue form templates.</span><span lang="pl">Zakłada
+    issue na GitHubie z formularzy issue twojego projektu.</span></dd>
+  </div>
+  <div>
     <dt><a href="#skill-prototype"><code data-copy>/viber:prototype</code></a></dt>
     <dd><span lang="en">A UI change as one working HTML mockup, or three to choose from.</span><span lang="pl">Zmiana
     w UI jako jedna działająca makieta HTML albo trzy do wyboru.</span></dd>
@@ -1999,6 +2004,47 @@ z nich mówi, jak nim sterować.</p>
       <dd><span lang="en">No code. For a GitHub issue, the report it offers to post goes to
       <code>.temp/viber/triage/&lt;N&gt;.md</code>.</span><span lang="pl">Żadnego kodu. Dla issue z GitHuba
       raport do opublikowania trafia do <code>.temp/viber/triage/&lt;N&gt;.md</code>.</span></dd>
+    </div>
+  </dl>
+</article>
+
+<article class="card" id="skill-create-issue">
+  <h4><code>/viber:create-issue</code></h4>
+  <p lang="en">Creates a GitHub issue from your project's issue form templates, a bug template included. It
+  proposes the template that fits, fills its fields from what you say, shows the title and body, and creates
+  the issue only after you accept.</p>
+  <p lang="pl">Tworzy issue na GitHubie z formularzy issue twojego projektu, łącznie z formularzem błędu.
+  Proponuje pasujący formularz, wypełnia jego pola tym, co powiesz, pokazuje tytuł i treść, a issue zakłada
+  dopiero po twojej akceptacji.</p>
+  <dl>
+    <div>
+      <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
+      <dd><span lang="en">Type the command, or ask Claude to open an issue. To fix a bug, use
+      <a href="#skill-fixer"><code>/viber:fixer</code></a> instead.</span><span lang="pl">Wpisz polecenie albo
+      poproś Claude o założenie issue. Do naprawy błędu służy
+      <a href="#skill-fixer"><code>/viber:fixer</code></a>.</span></dd>
+    </div>
+    <div>
+      <dt><span lang="en">Arguments</span><span lang="pl">Argumenty</span></dt>
+      <dd><span lang="en">What the issue is about, optionally: <code>/viber:create-issue the export button
+      ignores the date filter</code>. Without it the conversation so far is the content.</span><span lang="pl">Opcjonalnie,
+      czego dotyczy issue: <code>/viber:create-issue przycisk eksportu ignoruje filtr daty</code>. Bez
+      argumentu treścią jest dotychczasowa rozmowa.</span></dd>
+    </div>
+    <div>
+      <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
+      <dd><span lang="en">None: it works with <a href="#key-github-issues"><code>github.issues</code></a> off. The
+      title follows <a href="#key-github-issue-title"><code>github.issue-title</code></a>.</span><span lang="pl">Brak:
+      działa przy wyłączonym <a href="#key-github-issues"><code>github.issues</code></a>. Tytuł układa się według
+      <a href="#key-github-issue-title"><code>github.issue-title</code></a>.</span></dd>
+    </div>
+    <div>
+      <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
+      <dd><span lang="en">No code. The issue body it creates from goes to
+      <code>.temp/viber/create-issue/issue-body.md</code>. It stops with a reason when the project has no issue
+      form template, no <code>gh</code> or no GitHub repository.</span><span lang="pl">Żadnego kodu. Treść issue
+      trafia do <code>.temp/viber/create-issue/issue-body.md</code>. Kończy z powodem, gdy projekt nie ma
+      formularza issue, <code>gh</code> albo repozytorium na GitHubie.</span></dd>
     </div>
   </dl>
 </article>
