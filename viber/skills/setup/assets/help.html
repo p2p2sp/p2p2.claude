@@ -60,6 +60,8 @@
   html {
     -webkit-text-size-adjust: 100%;
     scrollbar-color: var(--rule-strong) var(--bg-page);
+    /* An anchor jump lands below the sticky masthead */
+    scroll-padding-top: 72px;
   }
   @media (prefers-reduced-motion: no-preference) {
     html { scroll-behavior: smooth; }
@@ -88,7 +90,7 @@
   .shell {
     max-width: 46rem;
     margin: 0 auto;
-    padding: 40px 16px 96px;
+    padding: 0 16px 96px;
   }
   .toc { display: none; }
   [hidden] { display: none !important; }
@@ -110,7 +112,7 @@
   .skip:focus { top: 16px; }
   /* Narrow screens: the sidebar holds only the search, above the page header */
   .sidebar { max-width: 46rem; margin: 0 auto; padding: 0 16px; }
-  .search { margin: 40px 0 0; }
+  .search { margin: 16px 0 0; }
   .search label {
     display: block;
     margin: 0 0 8px;
@@ -145,6 +147,8 @@
   .toc-narrow summary { color: var(--fg-text); }
   .toc-narrow ol { margin: 0 0 12px; padding-left: 1.25em; }
   .toc-narrow li { padding: 4px 0; }
+  .toc-narrow ol ol { margin: 4px 0 0; }
+  .toc-narrow li li:last-child { padding-bottom: 0; }
   .toc-narrow a { text-decoration: none; }
   .toc-narrow a:hover { text-decoration: underline; }
   a.file svg { margin-left: 4px; vertical-align: -1px; }
@@ -213,15 +217,20 @@
   @media (max-width: 479px) {
     .repo .slug { display: none; }
   }
+  /* The masthead stays pinned to the top while the page scrolls */
   .masthead {
+    position: sticky;
+    top: 0;
+    z-index: 5;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 12px 24px;
-    padding-bottom: 24px;
-    margin-bottom: 40px;
+    padding: 12px 0;
+    margin-bottom: 32px;
     border-bottom: 1px solid var(--rule);
+    background: var(--bg-page);
   }
   .brand {
     font: 500 14px/1.3 var(--sans);
@@ -567,9 +576,9 @@
   }
 
   @media (min-width: 720px) {
-    .shell { padding: 56px 32px 128px; }
+    .shell { padding: 0 32px 128px; }
     .sidebar { padding: 0 32px; }
-    .search { margin-top: 56px; }
+    .search { margin-top: 24px; }
     h1 { font-size: 52px; }
     dl > div { grid-template-columns: 12rem 1fr; gap: 24px; }
     dt { flex-direction: column; gap: 4px; }
@@ -589,7 +598,7 @@
       align-self: start;
       max-width: none;
       margin: 0;
-      padding: 64px 0 32px;
+      padding: 24px 0 32px;
     }
     .search { margin: 0 0 32px; }
     .search input { padding: 8px 12px; }
@@ -606,6 +615,8 @@
       text-decoration: none;
       transition: color 160ms ease-out, border-color 160ms ease-out;
     }
+    .toc ol ol { border-left: none; }
+    .toc ol ol a { padding-left: 28px; }
     .toc a:hover { color: var(--fg-text); }
     .toc a[aria-current="true"] { color: var(--fg-accent); border-left-color: var(--fg-accent); font-weight: 600; }
     .toc-narrow { display: none; }
@@ -613,8 +624,6 @@
 
   @media (min-width: 1440px) {
     body { font-size: 18px; }
-    .shell { padding-top: 72px; }
-    .sidebar { padding-top: 80px; }
     h1 { font-size: 64px; }
     .lede { font-size: 24px; }
     h2 { font-size: 32px; }
@@ -626,6 +635,7 @@
   @media print {
     .toc, .toc-narrow, .search, .skip, .self, .copy, .lang-switch { display: none !important; }
     .shell { max-width: none; padding: 0; }
+    .masthead { position: static; }
     pre { white-space: pre-wrap; }
     h2, h3 { break-after: avoid; }
   }
@@ -642,39 +652,42 @@
 <nav class="toc" aria-label="On this page">
   <ol>
     <li><a href="#getting-started"><span lang="en">Getting started</span><span lang="pl">Pierwsze kroki</span></a></li>
+    <li><a href="#flow"><span lang="en">Map of the whole flow</span><span lang="pl">Mapa całego przepływu</span></a></li>
     <li><a href="#cheat-sheet"><span lang="en">Commands</span><span lang="pl">Polecenia</span></a></li>
     <li><a href="#guides"><span lang="en">Task guides</span><span lang="pl">Poradniki</span></a></li>
     <li><a href="#how-it-works"><span lang="en">How viber works</span><span lang="pl">Jak działa viber</span></a></li>
-    <li><a href="#troubleshooting"><span lang="en">Troubleshooting</span><span lang="pl">Gdy coś nie działa</span></a></li>
+    <li><a href="#troubleshooting"><span lang="en">Troubleshooting</span><span lang="pl">Gdy viber zawodzi</span></a></li>
+    <li><a href="#setup-more"><span lang="en">Install options</span><span lang="pl">Opcje instalacji</span></a></li>
     <li><a href="#glossary"><span lang="en">Glossary</span><span lang="pl">Słowniczek</span></a></li>
-    <li><a href="#ref-skills"><span lang="en">Skills</span><span lang="pl">Skille</span></a></li>
-    <li><a href="#ref-agents"><span lang="en">Agents</span><span lang="pl">Agenci</span></a></li>
-    <li><a href="#ref-config"><span lang="en">Configuration</span><span lang="pl">Konfiguracja</span></a></li>
-    <li><a class="file" lang="en" href="viber-flow-en.svg" target="_blank" rel="noopener">Flow diagram<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2.5h5.5V8M9.5 2.5 2.5 9.5"/></svg></a><a class="file" lang="pl" href="viber-flow-pl.svg" target="_blank" rel="noopener">Diagram przepływu<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2.5h5.5V8M9.5 2.5 2.5 9.5"/></svg></a></li>
+    <li><a href="#reference"><span lang="en">Reference</span><span lang="pl">Dokumentacja</span></a>
+      <ol>
+        <li><a href="#ref-skills"><span lang="en">Skills</span><span lang="pl">Skille</span></a></li>
+        <li><a href="#ref-agents"><span lang="en">Agents</span><span lang="pl">Agenci</span></a></li>
+        <li><a href="#ref-config"><span lang="en">Configuration</span><span lang="pl">Konfiguracja</span></a></li>
+      </ol>
+    </li>
   </ol>
 </nav>
 </aside>
 
 <main class="shell" id="main">
-<header>
-  <div class="masthead">
-    <span class="brand"><span lang="en">Claude Code plugin</span><span lang="pl">Wtyczka do Claude Code</span></span>
-    <div class="masthead-end">
-      <a class="repo" href="https://github.com/p2p2sp/p2p2.claude" target="_blank" rel="noopener">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2.75A1.75 1.75 0 0 1 4.75 1h8.5v11.5H4.75A1.75 1.75 0 0 0 3 14.25z"/><path d="M3 14.25A1.75 1.75 0 0 1 4.75 12.5h8.5V15H4.75A1.75 1.75 0 0 1 3 14.25z"/><path d="M6 4.5h4.5M6 7h3"/></svg>
-        <span lang="en">Repository</span><span lang="pl">Repozytorium</span> <span class="slug">p2p2sp/p2p2.claude</span>
-      </a>
-      <div class="lang-switch" role="group" aria-label="Language / Język">
-        <button type="button" data-set-lang="en" aria-pressed="true" title="English">EN</button>
-        <button type="button" data-set-lang="pl" aria-pressed="false" title="Polski">PL</button>
-      </div>
+<div class="masthead">
+  <span class="brand"><span lang="en">Claude Code plugin</span><span lang="pl">Wtyczka do Claude Code</span></span>
+  <div class="masthead-end">
+    <a class="repo" href="https://github.com/p2p2sp/p2p2.claude" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2.75A1.75 1.75 0 0 1 4.75 1h8.5v11.5H4.75A1.75 1.75 0 0 0 3 14.25z"/><path d="M3 14.25A1.75 1.75 0 0 1 4.75 12.5h8.5V15H4.75A1.75 1.75 0 0 1 3 14.25z"/><path d="M6 4.5h4.5M6 7h3"/></svg>
+      <span lang="en">Repository</span><span lang="pl">Repozytorium</span> <span class="slug">p2p2sp/p2p2.claude</span>
+    </a>
+    <div class="lang-switch" role="group" aria-label="Language / Język">
+      <button type="button" data-set-lang="en" aria-pressed="true" title="English">EN</button>
+      <button type="button" data-set-lang="pl" aria-pressed="false" title="Polski">PL</button>
     </div>
   </div>
+</div>
+<header>
   <h1>viber</h1>
-  <p class="lede" lang="en">From an idea to committed code in four steps: understand it, plan it, build it,
-  remember it. Nothing is built before you approve the <a href="#term-plan">plan</a>.</p>
-  <p class="lede" lang="pl">Od pomysłu do zacommitowanego kodu w czterech krokach: zrozum, zaplanuj,
-  zbuduj, zapamiętaj. Nic nie powstaje, zanim nie zatwierdzisz <a href="#term-plan">planu</a>.</p>
+  <p class="lede" lang="en">From an idea to implementation. Optimised for Anthropic models (Fable 5.1, Opus 5.5, Sonnet 5.5 and Haiku 4.5).</p>
+  <p class="lede" lang="pl">Od pomysłu do implementacji. Zoptymalizowany pod modele Anthropic (Fable 5.1, Opus 5.5, Sonnet 5.5 i Haiku 4.5).</p>
 </header>
 
 <p id="help-no-results" hidden><span lang="en">No section matches your search.</span><span lang="pl">Żadna sekcja nie pasuje do wyszukiwania.</span></p>
@@ -683,15 +696,20 @@
   <summary><span lang="en">On this page</span><span lang="pl">Na tej stronie</span></summary>
   <ol>
     <li><a href="#getting-started"><span lang="en">Getting started</span><span lang="pl">Pierwsze kroki</span></a></li>
+    <li><a href="#flow"><span lang="en">Map of the whole flow</span><span lang="pl">Mapa całego przepływu</span></a></li>
     <li><a href="#cheat-sheet"><span lang="en">Commands</span><span lang="pl">Polecenia</span></a></li>
     <li><a href="#guides"><span lang="en">Task guides</span><span lang="pl">Poradniki</span></a></li>
     <li><a href="#how-it-works"><span lang="en">How viber works</span><span lang="pl">Jak działa viber</span></a></li>
-    <li><a href="#troubleshooting"><span lang="en">Troubleshooting</span><span lang="pl">Gdy coś nie działa</span></a></li>
+    <li><a href="#troubleshooting"><span lang="en">Troubleshooting</span><span lang="pl">Gdy viber zawodzi</span></a></li>
+    <li><a href="#setup-more"><span lang="en">Install options</span><span lang="pl">Opcje instalacji</span></a></li>
     <li><a href="#glossary"><span lang="en">Glossary</span><span lang="pl">Słowniczek</span></a></li>
-    <li><a href="#ref-skills"><span lang="en">Skills</span><span lang="pl">Skille</span></a></li>
-    <li><a href="#ref-agents"><span lang="en">Agents</span><span lang="pl">Agenci</span></a></li>
-    <li><a href="#ref-config"><span lang="en">Configuration</span><span lang="pl">Konfiguracja</span></a></li>
-    <li><a class="file" lang="en" href="viber-flow-en.svg" target="_blank" rel="noopener">Flow diagram<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2.5h5.5V8M9.5 2.5 2.5 9.5"/></svg></a><a class="file" lang="pl" href="viber-flow-pl.svg" target="_blank" rel="noopener">Diagram przepływu<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2.5h5.5V8M9.5 2.5 2.5 9.5"/></svg></a></li>
+    <li><a href="#reference"><span lang="en">Reference</span><span lang="pl">Dokumentacja</span></a>
+      <ol>
+        <li><a href="#ref-skills"><span lang="en">Skills</span><span lang="pl">Skille</span></a></li>
+        <li><a href="#ref-agents"><span lang="en">Agents</span><span lang="pl">Agenci</span></a></li>
+        <li><a href="#ref-config"><span lang="en">Configuration</span><span lang="pl">Konfiguracja</span></a></li>
+      </ol>
+    </li>
   </ol>
 </details>
 
@@ -703,46 +721,22 @@ builds and tests, then take one change from idea to commit.</p>
 projekt się buduje i testuje, a potem przeprowadź jedną zmianę od pomysłu do commita.</p>
 
 <h3 class="sub" id="gs-install"><span lang="en">1. Install</span><span lang="pl">1. Instalacja</span><a class="self" href="#gs-install">#</a></h3>
-<p lang="en">From a terminal, once for your user account:</p>
-<p lang="pl">W terminalu, raz dla twojego konta użytkownika:</p>
+<p lang="en">In a terminal:</p>
+<p lang="pl">W terminalu:</p>
 <pre class="snippet" data-copy>claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
 claude plugin install viber@p2p2 --scope user</pre>
-<p lang="en">Drop <code>--scope user</code> to install for the current repository only. Inside a running session,
-<code>/plugin marketplace add https://github.com/p2p2sp/p2p2.claude</code> followed by
-<code>/plugin install viber@p2p2</code> does the same. Three tools are optional: the GitHub CLI
-(<code>gh</code>) for the GitHub steps, <code>node</code> for the settings merge of <code>/viber:setup</code>, and
-Playwright for <code>/viber:e2e</code>. Without <code>gh</code> an issue step reports the error and pasted
-text still works. Without <code>node</code> a merge into an existing settings file is skipped and the
-recommended block is printed. <code>/viber:code-auditor</code> needs <code>node</code> 22.6 or newer as well and
-stops without it. Without Playwright <code>/viber:e2e</code> offers to install it, or stops.</p>
-<p lang="pl">Bez <code>--scope user</code> wtyczka instaluje się tylko dla bieżącego repozytorium. W trakcie sesji to
-samo robi <code>/plugin marketplace add https://github.com/p2p2sp/p2p2.claude</code>, a po nim
-<code>/plugin install viber@p2p2</code>. Trzy narzędzia są opcjonalne: GitHub CLI (<code>gh</code>) do kroków
-na GitHubie, <code>node</code> do scalania ustawień w <code>/viber:setup</code> i Playwright do
-<code>/viber:e2e</code>. Bez <code>gh</code> krok z issue zgłasza błąd, a wklejony tekst dalej działa. Bez
-<code>node</code> scalanie z istniejącym plikiem ustawień zostaje pominięte i wypisany jest zalecany blok.
-<code>/viber:code-auditor</code> też wymaga <code>node</code> w wersji 22.6 lub nowszej i bez niego kończy pracę.
-Bez Playwrighta <code>/viber:e2e</code> proponuje jego instalację albo kończy pracę.</p>
+<p class="note" lang="en">Other ways to install, optional tools and updates: <a href="#setup-more">Install
+options and updates</a>.</p>
+<p class="note" lang="pl">Inne sposoby instalacji, narzędzia opcjonalne i aktualizacje:
+<a href="#setup-more">Instalacja: opcje i aktualizacje</a>.</p>
 
 <h3 class="sub" id="gs-setup"><span lang="en">2. Prepare the project</span><span lang="pl">2. Przygotowanie projektu</span><a class="self" href="#gs-setup">#</a></h3>
-<p lang="en">Open Claude Code in your project and run <a href="#skill-setup"><code>/viber:setup</code></a>. It writes the
-<a href="#term-switch">switches</a> to <code>.claude/viber.yml</code>, puts the recommended permissions into <code>.claude/settings.json</code>
-(asking first whether to merge or reset when that file exists), adds <code>.temp/</code> to
-<code>.gitignore</code> when nothing ignores it yet, checks that <code>gh</code> is installed and opens this page.
-It also checks whether the root <code>CLAUDE.md</code> names the build and test commands
-(<a href="#gs-claude-md">step 3</a>): on a gap it prints a prompt to paste into Claude, after <code>/init</code>
-when the file does not exist yet. It never changes <code>CLAUDE.md</code> itself.
-Run it again after each plugin update: it adds the keys the new version brings and keeps every value
-you set.</p>
+<p lang="en">Open Claude Code in your project and run <a href="#skill-setup"><code>/viber:setup</code></a>. It
+sets up viber's config, permissions and ignore rule, and tells you when <code>CLAUDE.md</code> lacks what
+step 3 needs.</p>
 <p lang="pl">Otwórz Claude Code w swoim projekcie i uruchom <a href="#skill-setup"><code>/viber:setup</code></a>.
-Zapisuje <a href="#term-switch">przełączniki</a> w <code>.claude/viber.yml</code>, wpisuje zalecane uprawnienia do
-<code>.claude/settings.json</code> (gdy ten plik istnieje, najpierw pyta, czy scalić, czy zastąpić), dopisuje
-<code>.temp/</code> do <code>.gitignore</code>, gdy nic go jeszcze nie ignoruje, sprawdza, czy jest
-zainstalowane <code>gh</code>, i otwiera tę stronę. Sprawdza też, czy główny <code>CLAUDE.md</code> podaje
-polecenia budowania i testów (<a href="#gs-claude-md">krok 3</a>): przy braku wypisuje prompt do wklejenia
-do Claude, po <code>/init</code>, gdy pliku jeszcze nie ma. Sam nigdy nie zmienia <code>CLAUDE.md</code>.
-Uruchom go ponownie po każdej aktualizacji wtyczki:
-dopisze klucze, które przynosi nowa wersja, i zachowa każdą ustawioną przez ciebie wartość.</p>
+Ustawia konfigurację viber, uprawnienia i regułę ignorowania, a także mówi, czego w <code>CLAUDE.md</code>
+brakuje do kroku 3.</p>
 
 <h3 class="sub" id="gs-claude-md"><span lang="en">3. What <code>CLAUDE.md</code> must state</span><span lang="pl">3. Co musi podawać <code>CLAUDE.md</code></span><a class="self" href="#gs-claude-md">#</a></h3>
 <p lang="en">viber knows nothing about your stack. Every <a href="#term-agent">agent</a> takes the build and test commands from this
@@ -802,16 +796,18 @@ któregoś brakuje, daje ci prompt do wklejenia do Claude.</p>
     <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code>, hands each task to
     <a href="#agent-task-coder"><code>task-coder</code></a>, has
     <a href="#agent-task-reviewer"><code>task-reviewer</code></a> check it where a review is due, and commits
-    each task on its own, titled <code>T1 - &lt;task title&gt;</code>. It runs to the end without a person at the
-    keyboard: where it would otherwise stop and ask, the <a href="#agent-arbiter"><code>arbiter</code></a> rules,
-    and every ruling lands in <code>rulings.md</code>.</p>
+    each task on its own, titled <code>T1 - &lt;task title&gt;</code>.</p>
     <p lang="pl"><a href="#skill-implementor">Build</a> kopiuje plan do
     <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code>, każde zadanie zleca
     <a href="#agent-task-coder"><code>task-coder</code></a>, tam, gdzie należy się recenzja, oddaje je do
     sprawdzenia <a href="#agent-task-reviewer"><code>task-reviewer</code></a> i każde zadanie commituje osobno,
-    z tytułem <code>T1 - &lt;tytuł zadania&gt;</code>. Idzie do końca bez człowieka przy klawiaturze: tam, gdzie
-    inaczej zatrzymałby się i zapytał, rozstrzyga <a href="#agent-arbiter"><code>arbiter</code></a>, a każde
-    rozstrzygnięcie trafia do <code>rulings.md</code>.</p>
+    z tytułem <code>T1 - &lt;tytuł zadania&gt;</code>.</p>
+    <p lang="en">It runs to the end without a person at the keyboard: where it would otherwise stop and ask,
+    the <a href="#agent-arbiter"><code>arbiter</code></a> rules, and every ruling lands in
+    <code>rulings.md</code>.</p>
+    <p lang="pl">Idzie do końca bez człowieka przy klawiaturze: tam, gdzie inaczej zatrzymałby się i zapytał,
+    rozstrzyga <a href="#agent-arbiter"><code>arbiter</code></a>, a każde rozstrzygnięcie trafia do
+    <code>rulings.md</code>.</p>
   </li>
   <li>
     <p class="say"><span lang="en">The build closes</span><span lang="pl">Build się zamyka</span></p>
@@ -830,6 +826,22 @@ któregoś brakuje, daje ci prompt do wklejenia do Claude.</p>
 in place of the interview.</p>
 <p class="note" lang="pl">Błąd przechodzi tę samą drogę, tyle że zaczyna od
 <a href="#skill-fixer"><code>/viber:fixer</code></a> zamiast od wywiadu.</p>
+<p class="note" lang="en">This is one path. The <a href="#flow">map of the whole flow</a> shows the others: a
+mockup first, the fast path and Claude Code's own plan mode.</p>
+<p class="note" lang="pl">To jedna ścieżka. Pozostałe pokazuje <a href="#flow">mapa całego przepływu</a>:
+najpierw makieta, szybka ścieżka i zwykły tryb planowania Claude Code.</p>
+</section>
+
+<section data-search id="flow">
+<h2 id="flow-title"><span lang="en">Map of the whole flow</span><span lang="pl">Mapa całego przepływu</span><a class="self" href="#flow-title">#</a></h2>
+<p lang="en">One diagram of every path from an idea to committed code: where each command starts, which agents
+check the work, where you decide, and what each switch adds.</p>
+<p lang="pl">Jeden diagram wszystkich ścieżek od pomysłu do zacommitowanego kodu: gdzie startuje każde
+polecenie, które agenty sprawdzają pracę, gdzie decydujesz ty i co dokłada każdy przełącznik.</p>
+<p lang="en"><a class="file" href="viber-flow-en.svg" target="_blank" rel="noopener">Open the diagram in a new
+window<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2.5h5.5V8M9.5 2.5 2.5 9.5"/></svg></a></p>
+<p lang="pl"><a class="file" href="viber-flow-pl.svg" target="_blank" rel="noopener">Otwórz diagram w nowym
+oknie<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2.5h5.5V8M9.5 2.5 2.5 9.5"/></svg></a></p>
 </section>
 
 <section data-search id="cheat-sheet">
@@ -1060,9 +1072,9 @@ udowodniona, zanim powstanie jakakolwiek poprawka.</p>
     którą wybrać.</span></li>
     <li><span lang="en">When a reproduction is really impossible (a hard race, a rendering artifact, third
     party state it cannot reach), it stops and asks your explicit permission to hand off without the test.
-    Hard to test is not impossible.</span><span lang="pl">Gdy błędu naprawdę nie da się odtworzyć (trudny wyścig,
+    A bug that is only hard to test still gets its test.</span><span lang="pl">Gdy błędu naprawdę nie da się odtworzyć (trudny wyścig,
     artefakt renderowania, stan zewnętrznej usługi poza zasięgiem), zatrzymuje się i prosi cię o wyraźną
-    zgodę na przekazanie bez testu. Trudne do przetestowania nie znaczy niemożliwe.</span></li>
+    zgodę na przekazanie bez testu. Błąd, który jest tylko trudny do przetestowania, i tak dostaje test.</span></li>
     <li><span lang="en">With <a href="#key-github-issues"><code>github.issues</code></a> on, <code>/viber:fixer #42</code> reads
     the issue as the bug report. When the issue cannot be read, it stops before tracing
     anything.</span><span lang="pl">Przy włączonym <a href="#key-github-issues"><code>github.issues</code></a>
@@ -1460,14 +1472,15 @@ mogą rozjechać się z kodem.</p>
 <h3 class="sub" id="hw-plan-first"><span lang="en">Plan before code</span><span lang="pl">Najpierw plan, potem kod</span><a class="self" href="#hw-plan-first">#</a></h3>
 <p lang="en">While viber is installed, Claude writes or edits no code before you approve a plan. The plan names
 the acceptance criteria, the files it touches and the tasks, and a review agent checks it against your code
-before you see it, so a wrong assumption shows up before any code depends on it. For a change you want made
-right away, say so: an explicit request for a direct change skips the plan. The one piece of code allowed
-before a plan is the failing test <a href="#skill-fixer"><code>fixer</code></a> writes to prove a bug.</p>
+before you see it, so a wrong assumption shows up before any code depends on it.</p>
 <p lang="pl">Dopóki viber jest zainstalowany, Claude nie pisze ani nie zmienia kodu, zanim nie zatwierdzisz planu.
 Plan podaje kryteria akceptacji, pliki, których dotyczy, i zadania, a agent recenzujący sprawdza go na twoim
-kodzie, zanim go zobaczysz. Błędne założenie wychodzi więc na jaw, zanim oprze się na nim jakikolwiek kod.
-Jeśli chcesz zmianę od razu, powiedz to wprost: wyraźna prośba o bezpośrednią zmianę pomija plan. Jedyny kod
-dopuszczalny przed planem to nieprzechodzący test, którym <a href="#skill-fixer"><code>fixer</code></a>
+kodzie, zanim go zobaczysz. Błędne założenie wychodzi więc na jaw, zanim oprze się na nim jakikolwiek kod.</p>
+<p lang="en">For a change you want made right away, say so: an explicit request for a direct change skips the
+plan. The one piece of code allowed before a plan is the failing test <a href="#skill-fixer"><code>fixer</code></a>
+writes to prove a bug.</p>
+<p lang="pl">Jeśli chcesz zmianę od razu, powiedz to wprost: wyraźna prośba o bezpośrednią zmianę pomija plan.
+Jedyny kod dopuszczalny przed planem to nieprzechodzący test, którym <a href="#skill-fixer"><code>fixer</code></a>
 udowadnia błąd.</p>
 
 <h3 class="sub" id="hw-gate"><span lang="en">The plan-mode gate</span><span lang="pl">Bramka trybu planowania</span><a class="self" href="#hw-gate">#</a></h3>
@@ -1475,36 +1488,41 @@ udowadnia błąd.</p>
 review agent has passed the latest version of the plan. A plan the planner wrote goes to
 <a href="#agent-planner-review"><code>planner-review</code></a>. A plan written in plain plan mode goes to
 <a href="#agent-plain-plan-review"><code>plain-plan-review</code></a>, as long as
-<a href="#key-planning-plain-plan-review"><code>planning.plain-plan-review</code></a> is on. Any change to the plan after the pass
-voids it, so the plan is reviewed again before plan mode can end. When the gate blocks, Claude gets the next
-step in words (run the review, fix its findings, or grant a permission the reviewer was refused), and the
-message says it comes from the gate and is no error.</p>
+<a href="#key-planning-plain-plan-review"><code>planning.plain-plan-review</code></a> is on.</p>
 <p lang="pl"><a href="#term-plan-gate">Bramka planu</a> to hook, który trzyma Claude w trybie planowania, dopóki
 agent recenzujący nie zaakceptuje najnowszej wersji planu. Plan napisany przez planistę trafia do
 <a href="#agent-planner-review"><code>planner-review</code></a>, a plan napisany w zwykłym trybie planowania do
 <a href="#agent-plain-plan-review"><code>plain-plan-review</code></a>, o ile włączony jest przełącznik
-<a href="#key-planning-plain-plan-review"><code>planning.plain-plan-review</code></a>. Każda zmiana planu po akceptacji ją
-unieważnia, więc przed wyjściem z trybu planowania plan przechodzi recenzję jeszcze raz. Kiedy bramka blokuje
-wyjście, Claude dostaje opis następnego kroku (uruchom recenzję, popraw uwagi albo nadaj uprawnienie, którego
-odmówiono recenzentowi), a komunikat mówi, że pochodzi od bramki i nie jest błędem.</p>
+<a href="#key-planning-plain-plan-review"><code>planning.plain-plan-review</code></a>.</p>
+<p lang="en">Any change to the plan after the pass voids it, so the plan is reviewed again before plan mode can
+end. When the gate blocks, Claude gets the next step in words (run the review, fix its findings, or grant a
+permission the reviewer was refused), and the message says it comes from the gate and is no error.</p>
+<p lang="pl">Każda zmiana planu po akceptacji ją unieważnia, więc przed wyjściem z trybu planowania plan
+przechodzi recenzję jeszcze raz. Kiedy bramka blokuje wyjście, Claude dostaje opis następnego kroku (uruchom
+recenzję, popraw uwagi albo nadaj uprawnienie, którego odmówiono recenzentowi), a komunikat mówi, że pochodzi
+od bramki i nie jest błędem.</p>
 
 <h3 class="sub" id="hw-run"><span lang="en">The run directory and its archive</span><span lang="pl">Katalog przebiegu i archiwum</span><a class="self" href="#hw-run">#</a></h3>
 <p lang="en">A build copies the approved plan into its own directory,
 <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code>, and cuts it there into <code>spec.md</code>, the
 specification, and one file per task under <code>tasks/</code>. <code>status.md</code> records which tasks are
-done or skipped, and <code>work/</code> holds the agents' notes and reports. A plan of one part of a split
-request also gets <code>roadmap.md</code>: the parts and the decisions settled for the later ones. The directory
-is committed together with every task, which is why a build resumes in a new session or on another machine.
-When the build rules where it would otherwise have asked you, it also writes <code>rulings.md</code>: one line
-per ruling, with its reason and what it costs if wrong. A build that ruled nothing has no such file.</p>
+done or skipped, and <code>work/</code> holds the agents' notes and reports.</p>
 <p lang="pl">Build kopiuje zatwierdzony plan do własnego katalogu,
 <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code>, i tam dzieli go na <code>spec.md</code>, czyli specyfikację,
 oraz osobny plik dla każdego zadania w <code>tasks/</code>. <code>status.md</code> zapisuje, które zadania są
-ukończone lub pominięte, a w <code>work/</code> leżą notatki i raporty agentów. Plan jednej części dzielonej
-prośby dostaje też <code>roadmap.md</code>: listę części i decyzje podjęte dla późniejszych. Katalog jest
-commitowany razem z każdym zadaniem, dlatego build da się wznowić w nowej sesji albo na innym komputerze.
-Gdy build rozstrzyga tam, gdzie inaczej by cię zapytał, zapisuje też <code>rulings.md</code>: jedna linia na
-rozstrzygnięcie, z uzasadnieniem i kosztem pomyłki. Build, który niczego nie rozstrzygał, nie ma tego pliku.</p>
+ukończone lub pominięte, a w <code>work/</code> leżą notatki i raporty agentów.</p>
+<p lang="en">A plan of one part of a split request also gets <code>roadmap.md</code>: the parts and the decisions
+settled for the later ones. When the build rules where it would otherwise have asked you, it also writes
+<code>rulings.md</code>: one line per ruling, with its reason and what it costs if wrong. A build that ruled
+nothing has no such file.</p>
+<p lang="pl">Plan jednej części dzielonej prośby dostaje też <code>roadmap.md</code>: listę części i decyzje
+podjęte dla późniejszych. Gdy build rozstrzyga tam, gdzie inaczej by cię zapytał, zapisuje też
+<code>rulings.md</code>: jedna linia na rozstrzygnięcie, z uzasadnieniem i kosztem pomyłki. Build, który niczego
+nie rozstrzygał, nie ma tego pliku.</p>
+<p lang="en">The directory is committed together with every task, which is why a build resumes in a new
+session or on another machine.</p>
+<p lang="pl">Katalog jest commitowany razem z każdym zadaniem, dlatego build da się wznowić w nowej sesji albo
+na innym komputerze.</p>
 <p lang="en">With <a href="#key-build-cleanup"><code>build.cleanup</code></a> on, the build ends by moving the run to
 <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> in one commit. The archive keeps the specification and the QA
 documents and drops <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>, which
@@ -1538,33 +1556,38 @@ w ramach 5 prób zadania. Recenzję pomija tylko zadanie na <a href="#term-tier"
 weryfikacja uruchamia budowanie albo testy projektu; zadanie weryfikowane sprawdzeniem tekstu zawsze
 przechodzi recenzję.</p>
 <p lang="en">A task that passes gets its own commit, titled <code>T3 - &lt;task title&gt;</code>. Only viber's
-scripts commit, never an agent. After the last task <a href="#agent-test-runner"><code>test-runner</code></a>
-runs the whole suite. It runs up to six times, with a repair round between one failed run and the next,
-before the arbiter rules on the failing suite. With <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> on, it also makes a
+scripts commit, never an agent.</p>
+<p lang="pl">Zadanie, które przejdzie, dostaje własny commit z tytułem <code>T3 - &lt;tytuł zadania&gt;</code>.
+Commitują wyłącznie skrypty viber, nigdy agent.</p>
+<p lang="en">After the last task <a href="#agent-test-runner"><code>test-runner</code></a> runs the whole suite. It
+runs up to six times, with a repair round between one failed run and the next, before the arbiter rules on the
+failing suite.</p>
+<p lang="pl">Po ostatnim zadaniu <a href="#agent-test-runner"><code>test-runner</code></a> uruchamia cały zestaw
+testów. Uruchamia go najwyżej sześć razy, z rundą poprawek między jednym nieudanym uruchomieniem a kolejnym,
+zanim arbiter rozstrzygnie, co zrobić z niepasującym zestawem.</p>
+<p lang="en">With <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> on, it also makes a
 baseline run: the suite once before the first task, recording what already fails; when something does, the arbiter
 rules to continue and the ruling is recorded. From then on only the failures the build caused count as repair work.</p>
-<p lang="pl">Zadanie, które przejdzie, dostaje własny commit z tytułem <code>T3 - &lt;tytuł zadania&gt;</code>.
-Commitują wyłącznie skrypty viber, nigdy agent. Po ostatnim zadaniu
-<a href="#agent-test-runner"><code>test-runner</code></a> uruchamia cały zestaw testów. Uruchamia go najwyżej
-sześć razy, z rundą poprawek między jednym nieudanym uruchomieniem a kolejnym, zanim arbiter rozstrzygnie, co
-zrobić z niepasującym zestawem. Przy włączonym <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> wykonuje też przebieg bazowy:
-raz przed pierwszym zadaniem uruchamia zestaw testów i zapisuje, co już nie przechodzi; gdy coś nie przechodzi, arbiter
-orzeka kontynuację, a orzeczenie zostaje zapisane. Od tej chwili do naprawy idą tylko błędy spowodowane przez build.</p>
+<p lang="pl">Przy włączonym <a href="#key-build-baseline-tests"><code>build.baseline-tests</code></a> wykonuje też
+przebieg bazowy: raz przed pierwszym zadaniem uruchamia zestaw testów i zapisuje, co już nie przechodzi; gdy coś
+nie przechodzi, arbiter orzeka kontynuację, a orzeczenie zostaje zapisane. Od tej chwili do naprawy idą tylko
+błędy spowodowane przez build.</p>
 
 <h3 class="sub" id="hw-models"><span lang="en">The model range</span><span lang="pl">Zakres modeli</span><a class="self" href="#hw-models">#</a></h3>
 <p lang="en">The build gives every task a tier from its shape: haiku for mechanical work such as config, a
 rename or docs, sonnet for ordinary feature work, opus for a task the rest leans on, for example one whose
-contract three or more other tasks use. A reviewer runs on the task's tier, with haiku raised to sonnet. A
-retry after a failed attempt goes one tier up. <a href="#key-tiers"><code>tiers</code></a> keeps all of it
-between <code>min</code> and <code>max</code>, haiku and opus by default, and fable runs only when
-<code>max</code> names it. Planning runs on your session's own model.</p>
+contract three or more other tasks use.</p>
 <p lang="pl">Build dobiera każdemu zadaniu poziom modelu według jego charakteru: haiku do prac mechanicznych,
 takich jak konfiguracja, zmiana nazwy czy dokumentacja, sonnet do zwykłej pracy nad funkcją, opus do zadania,
-na którym opiera się reszta, na przykład takiego, którego kontraktu używają co najmniej trzy inne zadania.
-Recenzent działa na poziomie zadania, przy czym haiku zostaje podniesione do sonnet. Ponowienie po nieudanej
-próbie idzie poziom wyżej. Klucz <a href="#key-tiers"><code>tiers</code></a> trzyma to wszystko w przedziale od
-<code>min</code> do <code>max</code>, domyślnie od haiku do opus, a fable działa tylko wtedy, gdy wskazuje go
-<code>max</code>. Planowanie działa na modelu twojej sesji.</p>
+na którym opiera się reszta, na przykład takiego, którego kontraktu używają co najmniej trzy inne zadania.</p>
+<p lang="en">A reviewer runs on the task's tier, with haiku raised to sonnet. A retry after a failed attempt goes
+one tier up. <a href="#key-tiers"><code>tiers</code></a> keeps all of it between <code>min</code> and
+<code>max</code>, haiku and opus by default, and fable runs only when <code>max</code> names it. Planning runs on
+your session's own model.</p>
+<p lang="pl">Recenzent działa na poziomie zadania, przy czym haiku zostaje podniesione do sonnet. Ponowienie po
+nieudanej próbie idzie poziom wyżej. Klucz <a href="#key-tiers"><code>tiers</code></a> trzyma to wszystko
+w przedziale od <code>min</code> do <code>max</code>, domyślnie od haiku do opus, a fable działa tylko wtedy, gdy
+wskazuje go <code>max</code>. Planowanie działa na modelu twojej sesji.</p>
 
 <h3 class="sub" id="hw-close"><span lang="en">What the build close writes</span><span lang="pl">Co zapisuje zamknięcie buildu</span><a class="self" href="#hw-close">#</a></h3>
 <p lang="en">Once the whole suite passes, or the arbiter accepts its failure, the build runs the close parts your
@@ -1598,20 +1621,22 @@ zamknięcia, które włączają twoje przełączniki:</p>
 </ul>
 <p lang="en">The build ends on a short summary: the tasks committed, the review rounds spent, the test verdict,
 the time it took, what memory, rules and QA recorded, the archive path, and anything left for you, such as an
-unreviewed task or changed files no task claimed. With <a href="#key-build-final-review"><code>build.final-review</code></a>
-on, it lists each finding of the final review with what was wrong and what the fix changed, followed by any findings
-left for you, the owner. After it comes the list of the build's rulings, each with
-its reason and its cost if wrong, the same lines as in <code>rulings.md</code>.</p>
+unreviewed task or changed files no task claimed.</p>
 <p lang="pl">Build kończy się krótkim podsumowaniem: zacommitowane zadania, zużyte rundy recenzji, wynik testów,
 czas trwania, to, co zapisały pamięć, reguły i QA, ścieżka archiwum oraz wszystko, co zostaje dla ciebie, na
-przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało się żadne zadanie. Gdy
-<a href="#key-build-final-review"><code>build.final-review</code></a> jest włączony, wymienia każdą uwagę recenzji końcowej
-wraz z tym, co było nie tak i co zmieniła poprawka, a po nich uwagi zostawione dla ciebie, właściciela. Po nim idzie
-lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same linie co w <code>rulings.md</code>.</p>
+przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało się żadne zadanie.</p>
+<p lang="en">With <a href="#key-build-final-review"><code>build.final-review</code></a> on, it lists each finding
+of the final review with what was wrong and what the fix changed, followed by any findings left for you, the
+owner. After it comes the list of the build's rulings, each with its reason and its cost if wrong, the same lines
+as in <code>rulings.md</code>.</p>
+<p lang="pl">Gdy <a href="#key-build-final-review"><code>build.final-review</code></a> jest włączony, wymienia
+każdą uwagę recenzji końcowej wraz z tym, co było nie tak i co zmieniła poprawka, a po nich uwagi zostawione dla
+ciebie, właściciela. Po nim idzie lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same
+linie co w <code>rulings.md</code>.</p>
 </section>
 
 <section data-search id="troubleshooting">
-<h2 id="troubleshooting-title"><span lang="en">Troubleshooting</span><span lang="pl">Gdy coś nie działa</span><a class="self" href="#troubleshooting-title">#</a></h2>
+<h2 id="troubleshooting-title"><span lang="en">Troubleshooting</span><span lang="pl">Gdy viber zawodzi</span><a class="self" href="#troubleshooting-title">#</a></h2>
 <div class="faq">
 <details id="ts-draft">
   <summary><span lang="en">Why does the build stop on my plan without building anything?</span><span lang="pl">Dlaczego build zatrzymuje się na moim planie i nic nie buduje?</span></summary>
@@ -1661,12 +1686,14 @@ lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same
   <p lang="en">With <a href="#key-branching-mode"><code>branching.mode</code></a> set to allowed or required, the
   run works on its own branch, and the build lands nothing until it is on it. The message names the reason,
   for example uncommitted changes while the branch points at another commit. Commit or stash them, then ask
-  for the build again. Under required, a run branch that is the base of any work entry is refused as well:
-  a required run never commits onto an entry's base, so plan the change again on its own branch.</p>
+  for the build again.</p>
   <p lang="pl">Gdy <a href="#key-branching-mode"><code>branching.mode</code></a> ma wartość allowed albo required,
   przebieg pracuje na własnej gałęzi i build niczego nie zaczyna, dopóki się na niej nie znajdzie. Komunikat
   podaje powód, na przykład niezacommitowane zmiany, gdy gałąź wskazuje inny commit. Zacommituj je albo odłóż
-  przez stash i poproś o build jeszcze raz. Przy required odrzucana jest też gałąź przebiegu będąca bazą
+  przez stash i poproś o build jeszcze raz.</p>
+  <p lang="en">Under required, a run branch that is the base of any work entry is refused as well: a required
+  run never commits onto an entry's base, so plan the change again on its own branch.</p>
+  <p lang="pl">Przy required odrzucana jest też gałąź przebiegu będąca bazą
   któregokolwiek wpisu work: przebieg required nigdy nie commituje na bazę wpisu, więc zaplanuj zmianę jeszcze
   raz na jej własnej gałęzi.</p>
 </details>
@@ -1674,13 +1701,15 @@ lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same
   <summary><span lang="en">What happens when a task keeps failing?</span><span lang="pl">Co się dzieje, gdy zadanie ciągle się nie udaje?</span></summary>
   <p lang="en">Each failure is retried without asking, one tier up, up to 5 attempts. From the second, when the
   coder proposed a way out, the arbiter picks one of the coder's proposals, the build records it as a decision and
-  runs a fresh coder. After the fifth failed attempt, the arbiter rules to skip the task or, after a failed review,
-  to accept it. Skipping a task also skips every task that depends on it and leaves its half-finished files
-  uncommitted; accepting commits it marked unreviewed. Every ruling goes to <code>rulings.md</code> with its
-  reason and its cost if wrong. You are asked only when the coder marks a way out as yours to decide.</p>
+  runs a fresh coder.</p>
   <p lang="pl">Każda porażka jest ponawiana bez pytania, poziom modelu wyżej, do 5 prób. Od drugiej, gdy wykonawca
   zaproponował wyjście, arbiter wybiera jedną z propozycji wykonawcy, build zapisuje ją jako decyzję
-  i uruchamia nowego wykonawcę. Po piątej nieudanej próbie arbiter orzeka pominięcie zadania albo, po odrzuconej
+  i uruchamia nowego wykonawcę.</p>
+  <p lang="en">After the fifth failed attempt, the arbiter rules to skip the task or, after a failed review, to
+  accept it. Skipping a task also skips every task that depends on it and leaves its half-finished files
+  uncommitted; accepting commits it marked unreviewed. Every ruling goes to <code>rulings.md</code> with its
+  reason and its cost if wrong. You are asked only when the coder marks a way out as yours to decide.</p>
+  <p lang="pl">Po piątej nieudanej próbie arbiter orzeka pominięcie zadania albo, po odrzuconej
   recenzji, jego zaakceptowanie. Pominięcie zadania pomija też każde zadanie od niego zależne, a jego niedokończone
   pliki zostają niezacommitowane; zaakceptowanie commituje je z oznaczeniem, że nie przeszło recenzji. Każde
   orzeczenie trafia do <code>rulings.md</code> z uzasadnieniem i kosztem pomyłki. Pytanie dostajesz tylko wtedy,
@@ -1778,6 +1807,67 @@ lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same
   ścieżkami.</p>
 </details>
 </div>
+</section>
+
+<section data-search id="setup-more">
+<h2 id="setup-more-title"><span lang="en">Install options and updates</span><span lang="pl">Instalacja: opcje i aktualizacje</span><a class="self" href="#setup-more-title">#</a></h2>
+<p lang="en">None of this is needed to start. <a href="#getting-started">Getting started</a> covers the usual
+path.</p>
+<p lang="pl">Nic z tego nie jest potrzebne na start. Zwykłą ścieżkę opisują <a href="#getting-started">Pierwsze
+kroki</a>.</p>
+
+<h3 class="sub" id="sm-scope"><span lang="en">Other ways to install</span><span lang="pl">Inne sposoby instalacji</span><a class="self" href="#sm-scope">#</a></h3>
+<p lang="en">Drop <code>--scope user</code> to install for the current repository only.</p>
+<p lang="pl">Bez <code>--scope user</code> wtyczka instaluje się tylko dla bieżącego repozytorium.</p>
+<p lang="en">Inside a running session, <code>/plugin marketplace add https://github.com/p2p2sp/p2p2.claude</code>
+followed by <code>/plugin install viber@p2p2</code> does the same as the terminal commands.</p>
+<p lang="pl">W trakcie sesji to samo co polecenia w terminalu robi
+<code>/plugin marketplace add https://github.com/p2p2sp/p2p2.claude</code>, a po nim
+<code>/plugin install viber@p2p2</code>.</p>
+
+<h3 class="sub" id="sm-tools"><span lang="en">Optional tools</span><span lang="pl">Narzędzia opcjonalne</span><a class="self" href="#sm-tools">#</a></h3>
+<ul class="musts">
+  <li><span lang="en">The GitHub CLI (<code>gh</code>) for the GitHub steps. Without it an issue step reports
+  the error and pasted text still works.</span><span lang="pl">GitHub CLI (<code>gh</code>) do kroków na
+  GitHubie. Bez niego krok z issue zgłasza błąd, a wklejony tekst dalej działa.</span></li>
+  <li><span lang="en"><code>node</code> for the settings merge of <code>/viber:setup</code>. Without it a merge
+  into an existing settings file is skipped and the recommended block is printed.
+  <code>/viber:code-auditor</code> needs <code>node</code> 22.6 or newer as well and stops without
+  it.</span><span lang="pl"><code>node</code> do scalania ustawień w <code>/viber:setup</code>. Bez niego
+  scalanie z istniejącym plikiem ustawień zostaje pominięte i wypisany jest zalecany blok.
+  <code>/viber:code-auditor</code> też wymaga <code>node</code> w wersji 22.6 lub nowszej i bez niego kończy
+  pracę.</span></li>
+  <li><span lang="en">Playwright for <code>/viber:e2e</code>. Without it <code>/viber:e2e</code> offers to
+  install it, or stops.</span><span lang="pl">Playwright do <code>/viber:e2e</code>. Bez niego
+  <code>/viber:e2e</code> proponuje jego instalację albo kończy pracę.</span></li>
+</ul>
+
+<h3 class="sub" id="sm-setup"><span lang="en">What <code>/viber:setup</code> does</span><span lang="pl">Co robi <code>/viber:setup</code></span><a class="self" href="#sm-setup">#</a></h3>
+<ul class="musts">
+  <li><span lang="en">writes the <a href="#term-switch">switches</a> to <code>.claude/viber.yml</code>;</span><span lang="pl">zapisuje
+  <a href="#term-switch">przełączniki</a> w <code>.claude/viber.yml</code>;</span></li>
+  <li><span lang="en">puts the recommended permissions into <code>.claude/settings.json</code>, asking first
+  whether to merge or reset when that file exists;</span><span lang="pl">wpisuje zalecane uprawnienia do
+  <code>.claude/settings.json</code>, a gdy ten plik istnieje, najpierw pyta, czy scalić, czy
+  zastąpić;</span></li>
+  <li><span lang="en">adds <code>.temp/</code> to <code>.gitignore</code> when nothing ignores it
+  yet;</span><span lang="pl">dopisuje <code>.temp/</code> do <code>.gitignore</code>, gdy nic go jeszcze nie
+  ignoruje;</span></li>
+  <li><span lang="en">checks that <code>gh</code> is installed and opens this page.</span><span lang="pl">sprawdza,
+  czy jest zainstalowane <code>gh</code>, i otwiera tę stronę.</span></li>
+</ul>
+<p lang="en">It also checks whether the root <code>CLAUDE.md</code> names the build and test commands
+(<a href="#gs-claude-md">step 3</a>). On a gap it prints a prompt to paste into Claude, after <code>/init</code>
+when the file does not exist yet. It never changes <code>CLAUDE.md</code> itself.</p>
+<p lang="pl">Sprawdza też, czy główny <code>CLAUDE.md</code> podaje polecenia budowania i testów
+(<a href="#gs-claude-md">krok 3</a>). Przy braku wypisuje prompt do wklejenia do Claude, po <code>/init</code>,
+gdy pliku jeszcze nie ma. Sam nigdy nie zmienia <code>CLAUDE.md</code>.</p>
+
+<h3 class="sub" id="sm-update"><span lang="en">After a plugin update</span><span lang="pl">Po aktualizacji wtyczki</span><a class="self" href="#sm-update">#</a></h3>
+<p lang="en">Run <code>/viber:setup</code> again: it adds the keys the new version brings and keeps every value
+you set.</p>
+<p lang="pl">Uruchom ponownie <code>/viber:setup</code>: dopisze klucze, które przynosi nowa wersja, i zachowa
+każdą ustawioną przez ciebie wartość.</p>
 </section>
 
 <section data-search id="glossary">
@@ -1918,10 +2008,10 @@ lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same
 
 <section data-search id="reference">
 <h2 id="reference-title"><span lang="en">Reference</span><span lang="pl">Dokumentacja</span><a class="self" href="#reference-title">#</a></h2>
-<p lang="en">Everything viber ships, in one place: a card for each skill, the agents those skills send work
-to, and every key of <code>.claude/viber.yml</code>.</p>
-<p lang="pl">Wszystko, co zawiera viber, w jednym miejscu: karta każdego skilla, agenci, którym skille
-zlecają pracę, i każdy klucz pliku <code>.claude/viber.yml</code>.</p>
+<p lang="en">Everything viber ships: a card for each skill, the agents those skills send work to, and every
+key of <code>.claude/viber.yml</code>.</p>
+<p lang="pl">Wszystko, co zawiera viber: karta każdego skilla, agenci, którym skille zlecają pracę, i każdy
+klucz pliku <code>.claude/viber.yml</code>.</p>
 
 <section data-search id="ref-skills">
 <h3 class="sub" id="ref-skills-title"><span lang="en">Skills</span><span lang="pl">Skille</span><a class="self" href="#ref-skills-title">#</a></h3>
@@ -2102,16 +2192,17 @@ z nich mówi, jak nim sterować.</p>
   question at a time, each with three options and its recommendation first. A large request is split into
   subprojects first, and every part is interviewed. It closes on a summary you confirm, then hands it
   to <a href="#skill-planner"><code>planner</code></a>. When a build of one part finishes, it names the next
-  part: run the interview on it and it resumes from the decisions of the first. A small change to existing
-  code can take the <a href="#key-planning-fast-path">fast path</a> instead: a short design in chat, built in your
-  session only after your explicit yes and proven by <a href="#agent-test-runner"><code>test-runner</code></a>,
-  with no plan file; you commit it with <code>/viber:commit</code>. Otherwise it writes no code.</p>
+  part: run the interview on it and it resumes from the decisions of the first.</p>
   <p lang="pl">Wywiad planistyczny. Pyta tylko o to, czego nie rozstrzygają rozmowa i kod, jedno pytanie
   naraz, każde z trzema opcjami i rekomendacją na pierwszym miejscu. Dużą prośbę najpierw dzieli na
   podprojekty i omawia każdy z nich. Kończy się podsumowaniem, które potwierdzasz, a potem
   przekazuje je do <a href="#skill-planner"><code>planner</code></a>. Gdy build jednej części się kończy,
-  wskazuje następną: uruchom na niej wywiad, a wznowi go od decyzji pierwszej. Mała zmiana istniejącego
-  kodu może zamiast tego pójść <a href="#key-planning-fast-path">szybką ścieżką</a>: krótki projekt na czacie,
+  wskazuje następną: uruchom na niej wywiad, a wznowi go od decyzji pierwszej.</p>
+  <p lang="en">A small change to existing code can take the <a href="#key-planning-fast-path">fast path</a>
+  instead: a short design in chat, built in your session only after your explicit yes and proven by
+  <a href="#agent-test-runner"><code>test-runner</code></a>, with no plan file; you commit it with
+  <code>/viber:commit</code>. Otherwise it writes no code.</p>
+  <p lang="pl">Mała zmiana istniejącego kodu może zamiast tego pójść <a href="#key-planning-fast-path">szybką ścieżką</a>: krótki projekt na czacie,
   zbudowany w twojej sesji dopiero po twoim wyraźnym „tak” i sprawdzony przez
   <a href="#agent-test-runner"><code>test-runner</code></a>, bez pliku planu; commitujesz ją przez
   <code>/viber:commit</code>. Poza tym nie pisze kodu.</p>
@@ -2207,19 +2298,21 @@ z nich mówi, jak nim sterować.</p>
   <h4><code>implementor</code> <span class="tag auto"><span lang="en">starts on its own</span><span lang="pl">startuje sam</span></span></h4>
   <p lang="en">Builds an approved plan task by task. It copies the plan into its run directory, splits it into
   one file per task, sends each task to <a href="#agent-task-coder"><code>task-coder</code></a> and, where a review
-  is due, to <a href="#agent-task-reviewer"><code>task-reviewer</code></a>, and commits each task on its own. Then,
-  with <a href="#key-build-final-review"><code>build.final-review</code></a> on, <a href="#agent-final-reviewer"><code>final-reviewer</code></a>
-  reviews the whole build, a coder fixes what it finds and a reviewer rechecks the fix, before it runs the whole
-  test suite and the close parts your switches turn on. It runs without a person at the keyboard: where it would
-  otherwise ask, <a href="#agent-arbiter"><code>arbiter</code></a> rules and the ruling is recorded.</p>
+  is due, to <a href="#agent-task-reviewer"><code>task-reviewer</code></a>, and commits each task on its own.</p>
   <p lang="pl">Buduje zatwierdzony plan zadanie po zadaniu. Kopiuje plan do katalogu przebiegu, dzieli go na
   osobny plik dla każdego zadania, każde zadanie zleca <a href="#agent-task-coder"><code>task-coder</code></a>,
   a gdy należy się recenzja, także <a href="#agent-task-reviewer"><code>task-reviewer</code></a>, i każde commituje
-  osobno. Potem, gdy <a href="#key-build-final-review"><code>build.final-review</code></a> jest włączony,
+  osobno.</p>
+  <p lang="en">Then, with <a href="#key-build-final-review"><code>build.final-review</code></a> on,
+  <a href="#agent-final-reviewer"><code>final-reviewer</code></a> reviews the whole build, a coder fixes what it
+  finds and a reviewer rechecks the fix, before it runs the whole test suite and the close parts your switches
+  turn on. It runs without a person at the keyboard: where it would otherwise ask,
+  <a href="#agent-arbiter"><code>arbiter</code></a> rules and the ruling is recorded.</p>
+  <p lang="pl">Potem, gdy <a href="#key-build-final-review"><code>build.final-review</code></a> jest włączony,
   <a href="#agent-final-reviewer"><code>final-reviewer</code></a> recenzuje cały build, koder naprawia to, co
-  znajdzie, a recenzent ponownie sprawdza poprawkę, zanim uruchomi cały zestaw testów i te części zamknięcia, które włączają twoje przełączniki. Działa bez
-  człowieka przy klawiaturze: tam, gdzie inaczej by zapytał, rozstrzyga <a href="#agent-arbiter"><code>arbiter</code></a>,
-  a orzeczenie zostaje zapisane.</p>
+  znajdzie, a recenzent ponownie sprawdza poprawkę, zanim uruchomi cały zestaw testów i te części zamknięcia,
+  które włączają twoje przełączniki. Działa bez człowieka przy klawiaturze: tam, gdzie inaczej by zapytał,
+  rozstrzyga <a href="#agent-arbiter"><code>arbiter</code></a>, a orzeczenie zostaje zapisane.</p>
   <dl>
     <div>
       <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
@@ -2528,13 +2621,13 @@ z nich mówi, jak nim sterować.</p>
 
 <article class="card" id="skill-code-auditor">
   <h4><code>/viber:code-auditor</code></h4>
-  <p lang="en">Audits a large codebase by the law <code>score = Impact x Opportunity</code>. Scripts sweep every
+  <p lang="en">Audits a large codebase by the formula <code>score = Impact x Opportunity</code>. Scripts sweep every
   file and every pair of files sharing a contract, <a href="#agent-profiler"><code>profiler</code></a> calibrates the
   run to the repository's own fix history, <a href="#agent-scout"><code>scout</code></a> and
   <a href="#agent-edge-scout"><code>edge-scout</code></a> score them cheaply, and only what clears the gate goes to
   <a href="#agent-detective"><code>detective</code></a>, whose every finding
   <a href="#agent-critic"><code>critic</code></a> replays on a clean checkout. Needs Node.js 22.6 or newer.</p>
-  <p lang="pl">Audytuje duży kod według prawa <code>score = Impact x Opportunity</code>. Skrypty przeglądają każdy
+  <p lang="pl">Audytuje duży kod według wzoru <code>score = Impact x Opportunity</code>. Skrypty przeglądają każdy
   plik i każdą parę plików dzielących kontrakt, <a href="#agent-profiler"><code>profiler</code></a> kalibruje
   przebieg według historii poprawek repozytorium, <a href="#agent-scout"><code>scout</code></a> i
   <a href="#agent-edge-scout"><code>edge-scout</code></a> tanio je oceniają, a tylko to, co przejdzie bramkę,
@@ -2810,30 +2903,32 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
 is planned, <code>build:</code> the ones a build reads, <code>github:</code> the GitHub ones. Seven of the ten
 start on; <code>build.qa</code>, <code>github.issues</code> and <code>build.baseline-tests</code> start off. To
 change any of them, edit <code>.claude/viber.yml</code>: every key has a comment there, and only
-<code>true</code> counts as on. Turn a switch off with <code>false</code> instead of deleting it. Running
-<code>/viber:setup</code> again merges in every key the current version's template has and your file lacks.
-That is how a new switch reaches a project set up by an older version, and the same merge restores a
-deleted top-level key, or a deleted child of <code>planning:</code>, <code>build:</code>, <code>github:</code> or
-<code>directories:</code>, at its default. A switch written at the top level of the file, outside its group,
-is moved into its group with your value, and <code>schema</code> is raised to match.
-Children of <code>tiers:</code> and <code>branching:</code> work differently: the merge adds either group only
-as a whole, when the file lacks it entirely, and never extends one already present. A child you
-delete there does not come back into the file; it simply resolves to its default. The merge keeps
-every value you have already set.</p>
+<code>true</code> counts as on. Turn a switch off with <code>false</code> instead of deleting it.</p>
 <p lang="pl">Każdy przełącznik liczy się tylko wewnątrz swojej grupy: <code>planning:</code> trzyma te czytane
 podczas planowania zmiany, <code>build:</code> te czytane przez build, <code>github:</code> te dotyczące GitHuba.
 Siedem z dziesięciu jest domyślnie włączonych; <code>build.qa</code>, <code>github.issues</code>
 i <code>build.baseline-tests</code> startują wyłączone. Zmienisz to w <code>.claude/viber.yml</code>: każdy
 klucz ma tam komentarz, a za włączony liczy się tylko <code>true</code>. Przełącznik wyłączaj wartością
-<code>false</code>, nie usuwaj go. Ponowne uruchomienie <code>/viber:setup</code> dołącza każdy klucz, który ma
-szablon bieżącej wersji, a którego brakuje w twoim pliku. Tak nowy przełącznik trafia do projektu
-skonfigurowanego starszą wersją i tak samo wraca z wartością domyślną usunięty klucz najwyższego
-poziomu albo usunięte dziecko grupy <code>planning:</code>, <code>build:</code>, <code>github:</code>
-lub <code>directories:</code>. Przełącznik zapisany na najwyższym poziomie pliku, poza swoją grupą, zostaje
-przeniesiony do grupy z twoją wartością, a <code>schema</code> podniesiona do bieżącego numeru. Dzieci grup
-<code>tiers:</code> i <code>branching:</code> działają inaczej: scalanie dodaje taką grupę tylko w całości, gdy
-w pliku jej w ogóle brakuje, i nigdy nie rozszerza już istniejącej. Usunięty tam klucz nie wraca do pliku, po
-prostu obowiązuje jego wartość domyślna. Scalanie zachowuje każdą już ustawioną wartość.</p>
+<code>false</code>, nie usuwaj go.</p>
+<p lang="en">Running <code>/viber:setup</code> again merges in every key the current version's template has and
+your file lacks. That is how a new switch reaches a project set up by an older version, and the same merge
+restores a deleted top-level key, or a deleted child of <code>planning:</code>, <code>build:</code>,
+<code>github:</code> or <code>directories:</code>, at its default. A switch written at the top level of the file,
+outside its group, is moved into its group with your value, and <code>schema</code> is raised to match.</p>
+<p lang="pl">Ponowne uruchomienie <code>/viber:setup</code> dołącza każdy klucz, który ma szablon bieżącej wersji,
+a którego brakuje w twoim pliku. Tak nowy przełącznik trafia do projektu skonfigurowanego starszą wersją i tak
+samo wraca z wartością domyślną usunięty klucz najwyższego poziomu albo usunięte dziecko grupy
+<code>planning:</code>, <code>build:</code>, <code>github:</code> lub <code>directories:</code>. Przełącznik
+zapisany na najwyższym poziomie pliku, poza swoją grupą, zostaje przeniesiony do grupy z twoją wartością,
+a <code>schema</code> podniesiona do bieżącego numeru.</p>
+<p lang="en">Children of <code>tiers:</code> and <code>branching:</code> work differently: the merge adds either
+group only as a whole, when the file lacks it entirely, and never extends one already present. A child you
+delete there does not come back into the file; it resolves to its default. The merge keeps every value you have
+already set.</p>
+<p lang="pl">Dzieci grup <code>tiers:</code> i <code>branching:</code> działają inaczej: scalanie dodaje taką
+grupę tylko w całości, gdy w pliku jej w ogóle brakuje, i nigdy nie rozszerza już istniejącej. Usunięty tam
+klucz nie wraca do pliku, obowiązuje jego wartość domyślna. Scalanie zachowuje każdą już ustawioną
+wartość.</p>
 
 <h4 id="key-planning"><code>planning</code> <span lang="en">group</span><span lang="pl">grupa</span></h4>
 <dl>
@@ -3050,19 +3145,23 @@ domyślnego. Planowanie działa na modelu bieżącej sesji i zakres go nie ogran
 </dl>
 <p class="note" lang="en">A <code>name</code> pattern is filled in from the plan: <code>{type}</code>,
 <code>{slug}</code> and <code>{issue-number}</code>. The last needs <code>github.issues: true</code>, since without
-it there is no issue number to fill in. No branching step fetches, pushes, merges or deletes anything: they only
-create a branch, switch to it and commit on it; <a href="#skill-create-pr"><code>/viber:create-pr</code></a>
-alone pushes the branch, on your yes. A bad entry or mapping is dropped with a readable
-reason and the rest of the file still applies; see <code>viber/BRANCHING.md</code> for the full list. Each
-example below is a complete setup for one strategy; the strategy's name itself is never a configuration value.</p>
+it there is no issue number to fill in.</p>
 <p class="note" lang="pl">Wzorzec <code>name</code> jest wypełniany na podstawie planu: <code>{type}</code>,
 <code>{slug}</code> i <code>{issue-number}</code>. Ten ostatni wymaga <code>github.issues: true</code>, bo bez
-tego nie ma numeru issue do wstawienia. Żaden krok gałęzi niczego nie pobiera (fetch), nie wypycha (push), nie
-scala ani nie usuwa: tylko tworzy gałąź, przełącza się na nią i na niej commituje; gałąź wypycha wyłącznie
-<a href="#skill-create-pr"><code>/viber:create-pr</code></a>, na twoje tak. Błędny wpis lub mapowanie
-jest odrzucane z czytelnym powodem, a reszta pliku nadal obowiązuje; pełną listę znajdziesz w
-<code>viber/BRANCHING.md</code>. Każdy przykład poniżej to pełna konfiguracja jednej strategii; sama nazwa
-strategii nigdy nie jest wartością konfiguracji.</p>
+tego nie ma numeru issue do wstawienia.</p>
+<p class="note" lang="en">No branching step fetches, pushes, merges or deletes anything: they only create a
+branch, switch to it and commit on it; <a href="#skill-create-pr"><code>/viber:create-pr</code></a> alone pushes
+the branch, on your yes. A bad entry or mapping is dropped with a readable reason and the rest of the file still
+applies; see <code>viber/BRANCHING.md</code> for the full list.</p>
+<p class="note" lang="pl">Żaden krok gałęzi niczego nie pobiera (fetch), nie wypycha (push), nie scala ani nie
+usuwa: tylko tworzy gałąź, przełącza się na nią i na niej commituje; gałąź wypycha wyłącznie
+<a href="#skill-create-pr"><code>/viber:create-pr</code></a>, na twoje tak. Błędny wpis lub mapowanie jest
+odrzucane z czytelnym powodem, a reszta pliku nadal obowiązuje; pełną listę znajdziesz w
+<code>viber/BRANCHING.md</code>.</p>
+<p class="note" lang="en">Each example below is a complete setup for one strategy; the strategy's name itself is
+never a configuration value.</p>
+<p class="note" lang="pl">Każdy przykład poniżej to pełna konfiguracja jednej strategii; sama nazwa strategii
+nigdy nie jest wartością konfiguracji.</p>
 
 <h4 id="branching-examples"><span lang="en">Branching strategy examples</span><span lang="pl">Przykłady strategii gałęzi</span></h4>
 <h5><span lang="en">Trunk based development, branching off</span><span lang="pl">Trunk based development, gałęzie wyłączone</span></h5>
@@ -3135,10 +3234,10 @@ przez gałęzie środowisk zostaje poza tym schematem.</p>
     feature: feature</pre>
 <p class="caption" lang="en">Feature and fix work is cut from and lands back on <code>main</code>. A release
 branch is named <code>release/&lt;version&gt;</code> with the full semver number, such as
-<code>release/1.4.0</code>; cutting it, and back-merging a fix into it, is part 2.</p>
+<code>release/1.4.0</code>; viber neither cuts it nor back-merges a fix into it.</p>
 <p class="caption" lang="pl">Praca nad funkcją i poprawką jest wycinana z <code>main</code> i tam wraca.
 Gałąź wydania nazywa się <code>release/&lt;wersja&gt;</code> z pełnym numerem semver, np.
-<code>release/1.4.0</code>; jej wycinanie i wtapianie do niej poprawki to część 2.</p>
+<code>release/1.4.0</code>; viber jej nie wycina ani nie wtapia do niej poprawek.</p>
 
 <h5><span lang="en">Release Flow</span><span lang="pl">Release Flow</span></h5>
 <pre class="snippet" data-copy>branching:
@@ -3152,10 +3251,10 @@ Gałąź wydania nazywa się <code>release/&lt;wersja&gt;</code> z pełnym numer
     bug: feature
     feature: feature</pre>
 <p class="caption" lang="en">Every change is cut from and lands back on <code>main</code>, named after its
-issue; cutting a release branch per release and cherry-picking a fix onto it is part 2.</p>
+issue. viber does not cut a release branch per release or cherry-pick a fix onto it.</p>
 <p class="caption" lang="pl">Każda zmiana jest wycinana z <code>main</code> i tam wraca, nazwana po swoim
-issue; wycinanie gałęzi wydania dla każdego wydania i przenoszenie na nią poprawki cherry-pickiem to
-część 2.</p>
+issue. viber nie wycina gałęzi wydania dla każdego wydania ani nie przenosi na nią poprawek
+cherry-pickiem.</p>
 
 <h5><span lang="en">GitFlow</span><span lang="pl">GitFlow</span></h5>
 <pre class="snippet" data-copy>branching:
@@ -3174,10 +3273,10 @@ część 2.</p>
     bug: hotfix</pre>
 <p class="caption" lang="en">Feature work is cut from and lands back on <code>develop</code>; a production
 issue is cut from <code>main</code> instead. Release branches, their version numbers and back-merging a
-hotfix into <code>develop</code> are part 2.</p>
+hotfix into <code>develop</code> stay outside viber.</p>
 <p class="caption" lang="pl">Praca nad funkcją jest wycinana z <code>develop</code> i tam wraca; issue
 produkcyjne jest wycinane z <code>main</code>. Gałęzie wydań, ich numery wersji i wtapianie poprawki z
-powrotem do <code>develop</code> to część 2.</p>
+powrotem do <code>develop</code> zostają poza viber.</p>
 
 <h4 id="pr-templates"><span lang="en">Pull request templates</span><span lang="pl">Szablony pull requestów</span></h4>
 <p lang="en"><a href="#skill-create-pr"><code>/viber:create-pr</code></a> takes the body from the first template
@@ -3275,6 +3374,7 @@ kończy jedna linia na issue: <code>Closes #&lt;n&gt;</code>, gdy celem jest ga�
     var input = document.getElementById('help-search');
     var none = document.getElementById('help-no-results');
     var header = document.querySelector('.shell > header');
+    var bar = document.querySelector('.shell > .masthead');
     if (!box || !input || !none) return;
     var root = document.documentElement;
     var sections = Array.prototype.slice.call(document.querySelectorAll('[data-search]'));
@@ -3301,7 +3401,7 @@ kończy jedna linia na issue: <code>Closes #&lt;n&gt;</code>, gdy celem jest ga�
       none.hidden = !query || found > 0;
       // The field stays in the sticky sidebar, so a search can start far down the
       // page: bring the start of the filtered content back into view.
-      var top = header ? header.getBoundingClientRect().bottom + window.scrollY : 0;
+      var top = header ? header.getBoundingClientRect().bottom + window.scrollY - bar.offsetHeight : 0;
       if (query && window.scrollY > top) window.scrollTo(0, top);
     }
 
@@ -3404,23 +3504,46 @@ kończy jedna linia na issue: <code>Closes #&lt;n&gt;</code>, gdy celem jest ga�
     });
   })();
 
+  // Contents highlight: the current section is the last one whose top has passed
+  // the line just below the sticky masthead; at the page bottom, the last one.
   (function () {
-    var links = document.querySelectorAll('.toc a[href^="#"]');
-    if (!links.length || !('IntersectionObserver' in window)) return;
-    var byId = {};
-    links.forEach(function (a) { byId[a.getAttribute('href').slice(1)] = a; });
-    var observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-        links.forEach(function (a) { a.removeAttribute('aria-current'); });
-        var link = byId[entry.target.id];
-        if (link) link.setAttribute('aria-current', 'true');
+    var links = Array.prototype.slice.call(document.querySelectorAll('.toc a[href^="#"]'));
+    var sections = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
+    var bar = document.querySelector('.shell > .masthead');
+    var current = null;
+    var pending = false;
+
+    function mark(link) {
+      if (link === current) return;
+      if (current) current.removeAttribute('aria-current');
+      if (link) link.setAttribute('aria-current', 'true');
+      current = link;
+    }
+
+    function update() {
+      pending = false;
+      // An anchor jump lands a section 96px down (scroll-padding-top + scroll-margin-top)
+      var line = Math.max(bar ? bar.offsetHeight : 0, 72) + 48;
+      var atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      var active = null;
+      sections.forEach(function (el, i) {
+        if (!el || el.hidden) return;
+        if (atBottom || el.getBoundingClientRect().top <= line) active = links[i];
       });
-    }, { rootMargin: '0px 0px -70% 0px' });
-    Object.keys(byId).forEach(function (id) {
-      var section = document.getElementById(id);
-      if (section) observer.observe(section);
-    });
+      mark(active);
+    }
+
+    function schedule() {
+      if (pending) return;
+      pending = true;
+      window.requestAnimationFrame(update);
+    }
+
+    if (!links.length) return;
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    window.addEventListener('hashchange', schedule);
+    update();
   })();
 </script>
 </body>
