@@ -2104,8 +2104,8 @@ const LONG_TASK_FORMS: Array<[form: string, arrange: (repo: GitRepo) => Promise<
   ],
 ];
 
-// Staging a long list spawns several git processes per path, so each long-list
-// case outlasts the harness default until staging is batched.
+// Seeding a repository of a few hundred paths and running the script over it
+// stays slow on Windows, so each long-list case outlasts the harness default.
 const LONG_LIST_TIMEOUT = 600000;
 
 for (const [form, arrange] of LONG_TASK_FORMS) {
