@@ -2319,11 +2319,15 @@ z nich mówi, jak nim sterować.</p>
     <div>
       <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
       <dd><span lang="en"><a href="#key-github-issues"><code>github.issues</code></a> on: it reads the issue as the bug report
-      and the plan keeps the link to it. <a href="#key-branching-mode"><code>branching.mode</code></a> set to
+      and the plan keeps the link to it. When the report was not an issue, it offers to save the diagnosis as a
+      new bug issue from the project's issue form templates, and the plan keeps the link to that one.
+      <a href="#key-branching-mode"><code>branching.mode</code></a> set to
       allowed or required: before tracing any code it settles which work entry the run uses and checks that you
       are on that entry's base, offering a switch to it, so the failing test proves the bug on the code the fix
       will change.</span><span lang="pl"><a href="#key-github-issues"><code>github.issues</code></a>
-      włączony: czyta issue jako opis błędu, a plan zachowuje powiązanie z nim.
+      włączony: czyta issue jako opis błędu, a plan zachowuje powiązanie z nim. Gdy zgłoszeniem nie było issue,
+      proponuje zapisanie diagnozy jako nowego issue z błędem, według szablonów formularzy issue projektu, a plan
+      zachowuje powiązanie z tym issue.
       <a href="#key-branching-mode"><code>branching.mode</code></a> ustawiony na allowed albo required: zanim
       prześledzi jakikolwiek kod, ustala, którego wpisu work używa przebieg, i sprawdza, czy jesteś na bazie
       tego wpisu, proponując przełączenie się na nią, żeby test udowodnił błąd na kodzie, który zmieni
@@ -2332,8 +2336,11 @@ z nich mówi, jak nim sterować.</p>
     <div>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
       <dd><span lang="en">One reproduction test in your test suite, left failing until the build turns it
-      green.</span><span lang="pl">Jeden test reprodukcyjny w twoich testach, który nie przechodzi, dopóki
-      build go nie naprawi.</span></dd>
+      green. With <code>github.issues</code> on and your yes, one new issue on GitHub, its draft body in
+      <code>.temp/viber/fixer/issue-body.md</code>.</span><span lang="pl">Jeden test reprodukcyjny w twoich
+      testach, który nie przechodzi, dopóki build go nie naprawi. Przy włączonym <code>github.issues</code> i
+      twojej zgodzie: jedno nowe issue na GitHubie, a jego szkic treści w
+      <code>.temp/viber/fixer/issue-body.md</code>.</span></dd>
     </div>
   </dl>
 </article>

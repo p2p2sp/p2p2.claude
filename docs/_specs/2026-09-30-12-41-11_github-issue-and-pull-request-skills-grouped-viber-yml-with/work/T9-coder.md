@@ -1,0 +1,4 @@
+- portability.test.ts lists fragments through `git ls-files`: the new untracked `issues-save.true.md` is invisible to it until committed, so its DoD.6 fragment sweep is red on `issues-save` in the working tree and green once the file is tracked (the only failure of the verification run; help.test.ts is green).
+- The save offer sits after the `branching-handoff` preload, so the fix-approach question and the branch check come first; the created `ISSUE_URL=` joins the diagnosis's `Issue:` line, which the hand-off then restates.
+- The save is skipped whenever the report was read through `issue-facts.sh` (that run already has an `Issue:` line).
+- Help card: Switches and Writes lines of the fixer card name the save and `.temp/viber/fixer/issue-body.md`; no new anchors, so no test change.
