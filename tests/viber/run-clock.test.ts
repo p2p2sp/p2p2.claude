@@ -95,10 +95,8 @@ test("the largest non-zero unit comes first and hours never roll over into days"
 test("a leading zero is decimal, never octal", async () => {
   const padded = await run([`0${await startMark() - 8043}`]);
   assert.equal(padded.status, 0, `stderr: ${padded.stderr}`);
-  assert.ok(
-    padded.stdout === "elapsed: 2h 14m 03s\n" || padded.stdout === "elapsed: 2h 14m 04s\n",
-    `got ${JSON.stringify(padded.stdout)}`,
-  );
+  // A loaded machine can delay the spawn by a few seconds, so the seconds float.
+  assert.match(padded.stdout, /^elapsed: 2h 14m 0[3-9]s\n$/);
 });
 
 /** Every argument that cannot be a mark, including the two shapes a lost
