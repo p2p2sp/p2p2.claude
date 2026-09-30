@@ -45,11 +45,11 @@ Write `input -> work -> output`. The skill receives input, works, returns output
 - Cut caller narrative: the caller's name, its surrounding flow, the rationale for the call. Litmus: would the line still be true for a different caller sending the same input? Keep it. Only true of this caller's world? Cut.
 - Frame input-driven behaviour on the input: "if `Report path:` present -> write there", never "X hands over `Report path:`, so...".
 - Keep real scope boundaries even when they name siblings ("you own ONLY X; Y and Z are out of scope"), and state the range of every rule (every item, every file) and the sources to read: a literal model applies a rule only where told and explores only what is named.
-- Document only the delta from sensible defaults. Always skip what the model already knows or a competent developer would do anyway.
+- Document only the delta from sensible defaults. Always skip what the model already knows or a competent developer would do anyway. Set the goal and the limits, leave the how to the model: every extra instruction dilutes the rest and spends context the work needs.
 - Most critical and most frequent instructions first, under clear headings. Mid-paragraph content gets unreliable attention.
 - Prevention over correction: put constraints, profiles and negative examples into the generation step. A separate fixer pass costs more and never converges.
 - Address the model in the imperative, one rule per line: "Run X", "Never Y". No hedges ("try to", "if possible", "consider", "you may want"), no politeness, no narration of how.
-- One rule, one short why. A clause of rationale lets the model generalize to the unlisted case; a paragraph of rationale is narrative and gets cut.
+- One rule, one short why. A clause of rationale lets the model generalize to the unlisted case; a paragraph of rationale is narrative and gets cut. State only what holds now, never the history of a decision; prose meant for humans goes to CLAUDE.md or the script's header comment.
 - Emphasis budget: ALWAYS, NEVER and CRITICAL only on the few rules whose violation is irreversible or breaks a caller contract. Current models overtrigger on shouted rules, and shouting everything ranks nothing.
 - State the action and the fallback in the rule itself; "or ask the user" appears only where asking is the designed behaviour.
 - Bullets and sub-points over prose, closer to code than narrative. Shortening never reduces precision.
@@ -89,6 +89,7 @@ Review like a codebase and remove mercilessly, everything costs context. Cut har
 - Hedged, polite or narrated instructions: rewrite each as one imperative line.
 - Situation-specific guidance never scoped to its situation.
 - Documentation for tools or patterns no longer used.
+- Decision history or change narration ("previously", "instead of", "renamed from").
 - Information repeated within or across files.
 
 ## Output

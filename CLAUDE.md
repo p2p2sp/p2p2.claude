@@ -43,6 +43,12 @@ not a requirement.
 **DO NOT use ADR capture for this project.** The plugins are constantly refactored; never write
 ADRs here and never suggest them (`.claude/viber.yml` keeps `adr: false`).
 
+# During plan-mode
+When user ask and you need to decide how to design a solution for this repository and plan implementation, always find out what the functional scope of claude code harnes is for today using exited precedent or use `claude-code-guide`.
+
+# Readme files
+Readme files are for human. Should be short, simple and contain only essential information how to use it, without implementation details of these plugins.
+
 ## Layout (top level)
 
 ```
