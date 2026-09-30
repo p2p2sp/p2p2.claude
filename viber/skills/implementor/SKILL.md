@@ -57,7 +57,7 @@ A `VERDICT: DENIED` question names the refused call from its `REASON:` line and 
 
 Exit 6 - the run branch could not be set -> report the stderr reason and stop: nothing landed, and the build does not proceed to step 2. Any other non-zero exit this step does not name by number (2, 4, 5) -> the same: report the stderr reason and stop.
 
-The `target:` line following `branch:` carries to the final summary: one line naming the branch and `target:` as the pull request target. No such line when there is no `target:` line, or it equals the branch.
+The `target:` line following `branch:` carries to the final summary: one line naming the `branch:` value and the `target:` value as the pull request target and suggesting `/viber:create-pr`. No such line when there is no `target:` line, or it equals the branch.
 
 - `state: draft` -> report the path and that `/viber:intent` pointed at that draft continues it, then stop without a question.
 - `state: new` with any `open:` line -> `AskUserQuestion` naming both: build the plan just landed, or resume that run instead.
