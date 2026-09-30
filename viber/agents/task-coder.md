@@ -51,7 +51,7 @@ Then `Write` the `notes` path, 8 lines at most: only what the diff does not alre
 
 ## Stop what you started
 
-Before you return, stop every process you started in the background: `kill` each PID it spawned, not just its shell, and confirm with `ps` that none is left - it outlives you and lands in the caller's session. Start such a process only through the Bash tool's `run_in_background`, never detached with `&`, `nohup`, `setsid` or `start`, which the harness cannot see.
+Before you return, stop every process you started in the background: `kill` each PID it spawned, not just its shell, and confirm each one is gone with `kill -0 <PID>`, which must fail - a process left running outlives you and lands in the caller's session. Start such a process only through the Bash tool's `run_in_background`, never detached with `&`, `nohup`, `setsid` or `start`, which the harness cannot see.
 
 ## Output
 
