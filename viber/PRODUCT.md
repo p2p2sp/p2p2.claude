@@ -14,7 +14,9 @@
 
 - Unit and component tests must outnumber integration tests by a wide margin.
 
-- The full test suite, every layer together, runs once and only once, in the build's final test run. Tests overlapping each other are costly.
+- The build's final test run runs once and only once: the host's fast command plus the integration tests of the change. The whole integration layer and the end-to-end layer belong to continuous integration. Tests overlapping each other are costly.
+
+- Every test a build writes or edits carries its layer's marker in the host's layer marker convention, so a layer is selected by the test tool's own filter.
 
 - Integration tests should use disposable test containers wherever possible.
 
