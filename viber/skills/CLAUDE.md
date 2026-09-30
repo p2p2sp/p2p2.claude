@@ -5,7 +5,8 @@ Each `SKILL.md` is its skill's whole contract; the files beside it are read at o
 
 ## Who invokes what
 
-- Model-invocable, routed by `description:`: `intent`, `fixer`, `commit`. `planner`,
+- Model-invocable, routed by `description:`: `intent`, `fixer`, `commit`, `create-issue` (its
+  description stays under 25 words: it sits in every session's context). `planner`,
   `implementor` and `tdd` are `user-invocable: false`: `planner` is reached through `intent`'s or
   `fixer`'s `Skill` call, `implementor` once `planner` names it, `tdd` only from `task-coder`.
   Every other skill is user-only (`disable-model-invocation: true`).
@@ -20,7 +21,7 @@ and renaming one on either side breaks the hand-off silently:
 
 - Three decisions it never reopens: the spec shape (`fixer` always `spec-lite`), a stop-at-draft
   request, and a returning draft's run key (written as `into:`).
-- `Issue: <URL>` - only the `URL=` of `issue-facts.sh` or the `ISSUE_URL=` of `create-issue.sh`.
+- `Issue: <URL>` - only the `URL=` of `issue-facts.sh` or the `ISSUE_URL=` of `issue-create.sh`.
 - `Work:` / `Branch:` - from the `branching-handoff.*` fragments, read by `planner`'s `branching*`
   fragments into `work:` / `branch:`.
 - `Roadmap: <path>` - `intent` resuming a `roadmap.md`; `planner` marks every earlier entry
@@ -39,8 +40,14 @@ clears the context).
   revised by every comment, oldest first.
 - Commenting: `triage`'s `issues-publish.true.md`, `prototype`'s `issues-exit.true.md`,
   `intent`'s `references/issue.md` `## Comment`: `Write` to `.temp/viber/<skill>/<N>.md`, then
-  `post-comment.sh "<URL>" "<file>"`, its exits 0/1/2 handled alike. Only `intent` creates an issue
-  (`issue-templates.sh`, then `create-issue.sh`, per `references/issue.md` `## Save`).
+  `post-comment.sh "<URL>" "<file>"`, its exits 0/1/2 handled alike.
+- Creating: `intent` (`issues-done.true.md`, non-bug templates), `fixer` (`issues-save.true.md`,
+  bug templates, skipped when the report came through `issue-facts.sh`) and `create-issue` (any
+  template, no switch) each run `issue-templates.sh`, handle its `STATUS=skip` themselves, then
+  follow `references/issue-save.md` from `STATUS=ready` with `directory:`, `eligible:` and
+  `content:` (it ends in `issue-create.sh`). A fragment addresses it as
+  `${CLAUDE_PLUGIN_ROOT}/references/issue-save.md`, which `switch-text.sh` expands; a title is
+  the `TITLE_PATTERN=` line filled in.
 
 ## Shared orchestration wording
 
@@ -66,6 +73,14 @@ The preloaded map is trusted, never re-measured; one question over `review`/`ext
 then the writers. Neither skill opens or writes a file. They differ where the layers differ:
 `memory` writes in waves by depth, then reconciles the lists of nodes; `rules` has one writer, no
 candidate list (it asks which directories to propose for) and never resets a `frozen:` rule.
+
+## `create-pr`
+
+The `pr-facts.sh` preload is trusted: its `STATUS=stop` reasons end the skill and nothing is
+re-resolved. The entry and target come from the block (`ENTRY=`/`TARGET=`), or from one
+`AskUserQuestion` (`CANDIDATE=` lines, or the target under `MODE=off`) and a rerun with `--entry` /
+`--target`. Only `pr-create.sh`, after the preview's create or draft answer, pushes and opens.
+The body is filled from `SPEC=`, the `COMMIT=` lines and the conversation, never invented.
 
 ## `commit`
 

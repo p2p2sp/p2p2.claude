@@ -5,9 +5,11 @@ Each script's header `Contract:` is its interface; this node carries only what s
 ## Contracts between scripts
 
 - `config.sh` is the one parser of `viber.yml`, and its output lines are parsed in turn:
-  `switch-text.sh` greps `^<key>: ` out of the block, `run-branch.sh` reads `config.sh
-  --branching`, and `hooks/scripts/plan-gate.sh` runs `../../scripts/config.sh` for
-  `plain-plan-review`. A change to a line's shape or a key's spelling reaches all three.
+  `switch-text.sh` greps `^<key>: ` (a dotted key like `build.memory`) out of the block,
+  `run-branch.sh` reads `config.sh --branching`, `hooks/scripts/plan-gate.sh` runs
+  `../../scripts/config.sh` for `planning.plain-plan-review`, and `issue-templates.sh` and
+  `pr-facts.sh` read `github.issue-title` / `github.pr-title` from it. A change to a line's shape
+  or a key's spelling reaches every reader.
 - Sibling calls resolve from the calling script's own directory (`dirname "${BASH_SOURCE[0]}"`)
   through an explicit interpreter (`bash config.sh`, `sh issue-facts.sh`), so they need no exec
   bit and no pre-approval, but moving a script out of `scripts/` breaks them and
@@ -29,7 +31,10 @@ Each script's header `Contract:` is its interface; this node carries only what s
 
 ## Shells
 
-- `issue-facts.sh`, `post-comment.sh`, `issue-templates.sh` and `create-issue.sh` are POSIX
-  `#!/bin/sh`: no arrays, no `[[`, no `local`, no `< <(...)` process substitution (`issue-templates.sh`
-  loops over a `mktemp` file instead), and `run-branch.sh` invokes `issue-facts.sh` through `sh`.
+- `issue-facts.sh`, `post-comment.sh`, `issue-templates.sh`, `issue-create.sh`, `pr-facts.sh` and
+  `pr-create.sh` are POSIX `#!/bin/sh`: no arrays, no `[[`, no `local`, no `< <(...)` process
+  substitution (`issue-templates.sh` loops over a `mktemp` file instead), no awk `function`, and
+  `run-branch.sh` invokes `issue-facts.sh` through `sh`. A POSIX script locates `config.sh` through
+  `dirname -- "$0"` (no `BASH_SOURCE`) and runs it through `bash`, so `issue-templates.sh` falls
+  back to the default title pattern when bash or the file is missing.
   Every other script is bash and must also run on macOS's bash 3.2.

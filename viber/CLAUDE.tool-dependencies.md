@@ -1,6 +1,7 @@
 # Tool dependencies
 
-Read before touching `triage`, `intent`, `fixer`, `prototype`'s issue calls, `e2e`'s Playwright
+Read before touching `triage`, `intent`, `fixer`, `prototype`'s issue calls, `create-issue`,
+`create-pr`, `e2e`'s Playwright
 install, `setup`'s merge tool or `code-auditor`'s Node check.
 
 - `triage`, `intent`, `fixer`, `prototype`: `gh`, only through the shared issue scripts in
@@ -8,8 +9,11 @@ install, `setup`'s merge tool or `code-auditor`'s Node check.
   unpublished. A create or comment exit 1 leaves the landing unknown and is never retried. Each
   such call, plus `planner`'s ADR-task step, runs after a prose question ends the turn, so all
   four rely on the bare `Bash` allow `/viber:setup` installs.
-- A multi-line issue body or comment travels only as a file under `.temp/viber/<skill>/` through
-  `--body-file`. `intent`'s and `prototype`'s write access there is pre-approved as
+- `create-issue` and `create-pr`: `gh` as well (`create-pr` also `git push`, in `pr-create.sh`);
+  the `STATUS=skip` / `STATUS=stop` reason is stated in one line and nothing is created.
+- A multi-line issue or pull request body or comment travels only as a file under
+  `.temp/viber/<skill>/` through `--body-file`. `intent`'s, `prototype`'s, `create-issue`'s and
+  `create-pr`'s write access there is pre-approved as
   `Edit(./.temp/viber/<skill>/**)`, not `Write(...)`: a file write matches `Edit` rules only.
 - `e2e`: `playwright-cli`, `@playwright/test` (chromium only), probed by `check-playwright.sh`;
   the skill installs only once the user agrees.

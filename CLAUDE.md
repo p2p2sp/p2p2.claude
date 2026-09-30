@@ -164,4 +164,4 @@ This file is orientation only. A skill's authoritative contract is its own body
 | `viber/hooks/CLAUDE.md` | viber's hooks - the `plan-gate.sh` and `plan-hints.sh` contracts |
 | `viber/references/CLAUDE.md` | viber's shared references |
 | `viber/scripts/CLAUDE.md` | viber's plugin-level scripts |
-| `viber/skills/CLAUDE.md` | viber's fifteen skills and their bundled scripts, `code-auditor` included |
+| `viber/skills/CLAUDE.md` | viber's seventeen skills and their bundled scripts, `code-auditor` included |

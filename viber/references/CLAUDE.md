@@ -10,6 +10,8 @@ touches every reader below.
 - `integration-tests.md`: `planner` and `planner-review` when the plan carries an integration
   test; `task-coder` and `task-reviewer` on a task writing or running one or building the shared
   harness.
+- `issue-save.md`: `intent`'s `issues-done.true.md`, `fixer`'s `issues-save.true.md` and
+  `create-issue`, each after its own `issue-templates.sh` run.
 - `node-doctrine.md`: `memory-writer` and `memory-node-writer`.
 - `adr-admission.md`: `adr-screener` only, through `refs:`; it is the one home of the record
   admission test.

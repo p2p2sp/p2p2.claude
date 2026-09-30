@@ -8,12 +8,11 @@ three files share. `PRODUCT.md` holds the testing assumptions that `references/p
 ## Layout
 
 ```
-skills/<name>/           15 skills: SKILL.md plus files read at one step;
+skills/<name>/           17 skills: SKILL.md plus files read at one step;
                          setup, memory, rules, handoff, commit, code-auditor bundle scripts/
 agents/                  23 agents
-scripts/                 14 plugin-wide scripts
-references/              read at runtime: by agents through the `refs:` dispatch line,
-                         by `planner` and `fixer` by direct path
+scripts/                 16 plugin-wide scripts
+references/              read at runtime: by agents through `refs:`, by skills by direct path
 hooks/                   SessionStart manifest + UserPromptSubmit plan hints + PreToolUse plan gate
 ```
 
@@ -21,10 +20,10 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 
 - `intent` (interview) or `fixer` (RED reproduction test + diagnosis) -> `planner` -> `implementor`.
   `planner` treats any other input as unresolved and suggests `intent`; `implementor` refuses a
-  draft (a landed plan with no TASK block). Under `fast-path`, `intent` builds a small change
+  draft (a landed plan with no TASK block). Under `planning.fast-path`, `intent` builds a small change
   itself (`CLAUDE.switches.md`).
-- `intent` and `fixer` take an issue reference only under `issues: true`; `intent` can also
-  save its summary as a new issue. An `Issue: <URL>` handoff line becomes the plan frontmatter
+- `intent` and `fixer` take an issue reference only under `github.issues`; each can also save its
+  conclusion as a new issue (`fixer` a bug one). An `Issue: <URL>` handoff line becomes the plan frontmatter
   `issue:`, carried into `spec.md`; `plan-index.sh` and `commit-task.sh` foot commits `Refs: #<N>`.
 - `intent --prove` has `prover` (read-only plus web, no `model`) check each drafted question
   before it is shown; its `CONFIRMED`/`REVISED`/`DENIED`, `FINDINGS:`, `UNVERIFIED:` lines are one
@@ -34,12 +33,12 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   line. Its `mode:`, `round:`, `variant:` lines and the writer's `VERDICT:`, `FILE:`, `BASIS:`,
   `VARIANT:` lines are one loop: renaming either side breaks it.
 - `triage` sits before the chain: it assesses one issue, names `/viber:fixer #N`, `/viber:intent #N`
-  or a one-line summary for pasted text, and invokes nothing; under `issues: false` it never
+  or a one-line summary for pasted text, and invokes nothing; with `github.issues` off it never
   fetches or publishes and drops the `#<N>` form. Its `disallowed-tools:` lifts at the prose
-  publish answer, so then only the body keeps `Skill` unused.
-- `handoff`, user-only and inline, stands outside the chain
-  like `commit`. It writes one file, never overwriting (`EXISTS=true` stops it, not a question:
-  prose drops the pre-approval).
+  publish answer; the body alone then keeps `Skill` unused.
+- `create-issue`, `create-pr` (its `pr-create.sh` is the only push viber makes, on the user's yes)
+  and `handoff` stand outside the chain like `commit`. `handoff`, user-only and inline, writes one
+  file, never overwriting (`EXISTS=true` stops it, not a question: prose drops the pre-approval).
 - `help`, user-only, a background haiku fork, also stands outside the chain: its one preload opens
   `setup`'s `assets/help.html` through `open-page.sh`; moving that page updates both skills.
   `viber-flow-en.svg` and `viber-flow-pl.svg` sit beside it: a flow change updates both.
@@ -152,13 +151,13 @@ only the scaffolding it enumerates, and refuses a run with a task in neither `do
   reads each ID's state there and dispatches one scenario at a time, never two at once.
 - `help.html`'s full reference and `tests/viber/help.test.ts`: every user-visible change (a
   skill, an argument, a switch, a write location, the flow) updates the help page in the same
-  edit, and the test enforces the page's skill cards, agent lines, key entries and language pairs
-  against `plugin.json`, the skills' frontmatter and `viber.yml`.
+  edit, and the test enforces the page against `plugin.json`, the skills' frontmatter and the
+  `viber.yml` template.
 - End-to-end tests only on the user's own ask: `test-strategy.md`, `plan-rules.md`, `planner`,
   `intent`, `PRODUCT.md`.
 
 ## Plan gate
 
 `hooks/scripts/plan-gate.sh` matches names literally: renaming `planner`, `planner-review`,
-`plain-plan-review` (agent or switch) or `VERDICT: PASS` disarms the fail-open gate silently.
-Its contract, and `plan-hints.sh`'s, live in `hooks/CLAUDE.md`.
+`plain-plan-review` (agent or `planning.` switch) or `VERDICT: PASS` disarms the fail-open gate
+silently. Its contract, and `plan-hints.sh`'s: `hooks/CLAUDE.md`.

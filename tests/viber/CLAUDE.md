@@ -8,8 +8,8 @@ builders of `plan-index`, `plan-path`, `commit-task` and `archive-run` together.
 
 ## How each script is run
 
-- The four `#!/bin/sh` scripts (`create-issue`, `issue-facts`, `issue-templates`,
-  `post-comment`) run every case under `forEachShell("posix")` through `opts.shell`, never
+- The six `#!/bin/sh` scripts (`issue-create`, `issue-facts`, `issue-templates`,
+  `post-comment`, `pr-facts`, `pr-create`) run every case under `forEachShell("posix")` through `opts.shell`, never
   executed directly. `commit`, `commit-args`, `commit-context`, `commit-selfcheck` and one
   `switch-text` case run under `forEachShell("bash")`; every other file runs its bash script once (the code-auditor suites: below).
 - `commit-args.sh` is a sourced library: its test drives it through a generated bash wrapper
@@ -21,8 +21,10 @@ builders of `plan-index`, `plan-path`, `commit-task` and `archive-run` together.
 ## Reach beyond a file's own script
 
 - `run-branch.sh` has no file of its own: `plan-path.sh` sources it, and `plan-path.test.ts`'s
-  branching cases exercise it. `config.sh` is also run by `switch-text.sh`, by `run-branch.sh`
-  (`--branching`) and directly by `bootstrap.test.ts`.
+  branching cases exercise it. `config.sh` is also run by `switch-text.sh`, `issue-templates.sh`,
+  `pr-facts.sh`, `run-branch.sh` (`--branching`) and, for one case, `bootstrap.test.ts`.
+- `bootstrap.test.ts` binds the template's key list to its `schema:` number (`SCHEMA_KEYS`): a
+  key added to `templates/viber.yml` without a new number and a recorded list fails it.
 - `plan-index.test.ts` reads `skills/planner/templates/`: `spec-lite.md` and `spec-full.md` must
   each carry the four anchor lines `## Goal`, `## Acceptance criteria`, `### File map`,
   `### Out of scope`, and no `plan.md` sits there beside `tasks.md`.

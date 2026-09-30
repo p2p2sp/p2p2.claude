@@ -12,6 +12,11 @@ live in `content/manifest.md` itself, never in the script. The `viber loaded <ve
 is a top-level `systemMessage` (nested in `hookSpecificOutput` it is silently ignored), its
 version the plugin-root basename, `dev` when `CLAUDE_PLUGIN_ROOT` is unset. It always exits 0.
 
+The banner carries a schema note when the project's `.claude/viber.yml` `schema:` (payload `cwd`,
+0 when missing or not a number) is lower than `skills/setup/templates/viber.yml`'s (run
+`/viber:setup`) or higher (update the plugin); equal, no file or an unreadable template leaves the
+plain banner. The note never touches the manifest.
+
 ## Plan-mode episode
 
 Both plan hooks look only at the current episode: the transcript after the last
@@ -25,7 +30,7 @@ picks `planner-review` when a Skill tool_use named bare `planner` or `viber:plan
 (or its own `EnterPlanMode`, reached before any user prompt or `plan` record, opened it: a
 mid-turn flush can record the old mode between the two) and the plan file opens with the
 planner's frontmatter `source:` line (a missing or unreadable file keeps `planner-review`), else
-`plain-plan-review` when `config.sh` (payload `cwd`) resolves `plain-plan-review: true`.
+`plain-plan-review` when `config.sh` (payload `cwd`) resolves `planning.plain-plan-review: true`.
 `ExitPlanMode` passes only after that agent, dispatched after the last plan write, returned
 `VERDICT: PASS` and the plan's mtime is not newer. The deny reason is the plain path's only
 instruction channel. Names match literally: renaming the skill, either agent, the switch or the
