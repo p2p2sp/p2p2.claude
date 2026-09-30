@@ -8,9 +8,9 @@ three files share. `PRODUCT.md` holds the testing assumptions that `references/p
 ## Layout
 
 ```
-skills/<name>/           14 skills: SKILL.md plus files read at one step;
-                         setup, memory, rules, handoff, commit bundle scripts/
-agents/                  18 agents
+skills/<name>/           15 skills: SKILL.md plus files read at one step;
+                         setup, memory, rules, handoff, commit, code-auditor bundle scripts/
+agents/                  23 agents
 scripts/                 14 plugin-wide scripts
 references/              read at runtime: by agents through the `refs:` dispatch line,
                          by `planner` and `fixer` by direct path
@@ -30,20 +30,19 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   before it is shown; its `CONFIRMED`/`REVISED`/`DENIED`, `FINDINGS:`, `UNVERIFIED:` lines are one
   loop with `intent`'s interview bullet. `--prove` never reaches the summary or the planner.
 - `prototype`, user-only, has `prototype-writer` build a UI change into one HTML mockup under
-  `.temp/viber/prototype/` (path fixed for the run), then hands to `intent` with a `Prototype:`
+  `.temp/viber/prototype/`, then hands to `intent` with a `Prototype:`
   line. Its `mode:`, `round:`, `variant:` lines and the writer's `VERDICT:`, `FILE:`, `BASIS:`,
   `VARIANT:` lines are one loop: renaming either side breaks it.
 - `triage` sits before the chain: it assesses one issue, names `/viber:fixer #N`, `/viber:intent #N`
   or a one-line summary for pasted text, and invokes nothing; under `issues: false` it never
   fetches or publishes and drops the `#<N>` form. Its `disallowed-tools:` lifts at the prose
   publish answer, so then only the body keeps `Skill` unused.
-- `handoff`, user-only and inline (a fork cannot see the conversation), stands outside the chain
+- `handoff`, user-only and inline, stands outside the chain
   like `commit`. It writes one file, never overwriting (`EXISTS=true` stops it, not a question:
   prose drops the pre-approval).
 - `help`, user-only, a background haiku fork, also stands outside the chain: its one preload opens
   `setup`'s `assets/help.html` through `open-page.sh`; moving that page updates both skills.
-  `viber-flow-en.svg` and `viber-flow-pl.svg` sit beside it (`README.md` embeds the English
-  one): a flow change updates both.
+  `viber-flow-en.svg` and `viber-flow-pl.svg` sit beside it: a flow change updates both.
 
 ## Orchestrator contract
 
@@ -61,8 +60,9 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   `/viber:intent <archive or run dir>/roadmap.md`: the two change together.
 - `excl` (plan `Exclusive: true`): `implementor` runs the task alone, once nothing else is ready
   or in flight, until committed; outside `--split` `plan-index.sh` rejects a task depending on it.
-- Every agent returns `VERDICT: DENIED` plus `REASON: <tool>: <call>` on a refused tool call (the
-  auditors in place of `AUDIT:`), and every caller, the plan gate included, branches on it.
+- Every agent but the five `code-auditor` ones (`viber/agents/CLAUDE.code-auditor.md`) returns
+  `VERDICT: DENIED` plus `REASON: <tool>: <call>` on a refused tool call (the auditors in place of
+  `AUDIT:`), and every caller, the plan gate included, branches on it.
 - Only coder, reviewer and repair-coder dispatches carry `model`: the task's profiled tier
   (repair-coder: `sonnet`, raised only by `retry`) clamped into `tiers.min`..`tiers.max`
   (defaults `haiku`/`opus`, `fable` only when named; `min` above `max` resets both). The
@@ -107,8 +107,8 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   `work/` trail itself. `--e2e` takes no plan: the `e2e` commit carries no `Refs:` line at all.
 - Never two `commit-task.sh` calls at once: each rewrites the index and `status.md`.
 - `commit-args.sh` is the ONE selector parser.
-- The `commit` skill's `git rev-parse` and `cat` preloads are inline commands under a bare `Bash`
-  allow, the one exception to the literal-script-line form.
+- The exceptions to the literal-script-line form, under a bare `Bash` allow: the `commit` skill's
+  inline `git rev-parse` and `cat` preloads and `code-auditor`'s `sh`/`bash`/`node` calls.
 
 ## The run directory
 

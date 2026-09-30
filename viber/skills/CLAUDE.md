@@ -53,6 +53,11 @@ clears the context).
   `memory`/`rules` reset, `e2e` install): a prose question ends the turn and the pre-approval.
   `intent`'s interview and `prototype` ask in prose on purpose; `triage` disallows the tool.
 
+## Sections
+
+- Read `CLAUDE.code-auditor.md` before editing the `code-auditor` skill, its references or its
+  scripts.
+
 ## `memory` and `rules` - one flow, changed together
 
 The preloaded map is trusted, never re-measured; one question over `review`/`extend`/`both`/`reset`

@@ -10,8 +10,8 @@
 > counts against the user's Claude Code usage limits (5-hour and weekly), and an agent holding
 > too many instructions at once drifts. Prefer the design that makes a model read and re-read less.
 
-This repo is the **source** of five independently installable Claude Code plugins - `superui`,
-`superfix`, `superbiz`, `supercc`, `viber` - co-listed by the root
+This repo is the **source** of four independently installable Claude Code plugins - `superui`,
+`superbiz`, `supercc`, `viber` - co-listed by the root
 `.claude-plugin/marketplace.json` (marketplace name `p2p2`). The retired `superdev` plugin sits in
 `docs/archive/superdev/` for reference only: not listed, not released, not tested, not shipped.
 
@@ -21,21 +21,21 @@ published and reinstalled. This repo's own `CLAUDE.md` files and `.claude/rules/
 orientation for editing the source, never plugin inputs, never read at runtime.
 
 No application code ships: artifacts are markdown (skills, agents, references) + JSON
-(manifests) + bundled scripts (bash everywhere, plus `superfix`/`superui` `.ts` run by Node and
+(manifests) + bundled scripts (bash everywhere, plus `viber`/`superui` `.ts` run by Node and
 `superbiz`'s Python report builder). Editing markdown/JSON IS shipping - no build step, no lint,
 no test tooling inside any plugin. The only automated checks are the dev-time suites under
-`tests/` (per-plugin suites for superui, superfix and viber - supercc and superbiz have none -
+`tests/` (per-plugin suites for superui and viber - supercc and superbiz have none -
 plus `github/` for `release.sh` and the root-level `harness`, `portability` and `orphan-tags`
 sweeps): run only the ones a change reaches (`tests/CLAUDE.md` maps
 them), the whole suite only before handover; every other contract between files is enforced by
 a human reading carefully.
 
-All five plugins are **stack-agnostic on purpose**: skills read project-specific knowledge (test
+All four plugins are **stack-agnostic on purpose**: skills read project-specific knowledge (test
 framework, build tool, naming, how to launch the app) from the HOST project's `CLAUDE.md` /
 `.claude/rules/`, never from plugin sources. Never bake ecosystem assumptions (dotnet, npm,
 pytest) into a skill prompt. This binds the projects being planned/built, not a plugin's own
 tooling: a plugin may depend on a specific tool for its own work as a deliberate, documented
-choice (Node for superui's contrast checker, Python for superbiz's report, playwright-cli and
+choice (Node for superui's contrast checker and viber's `code-auditor` gates, Python for superbiz's report, playwright-cli and
 `@playwright/test` for viber's user-only `e2e` skill, installed only once the user agrees), always named in the owning plugin's node. Prefer putting such a dependency
 behind an opt-in switch or a skip-with-note fallback where that is practical - a recommendation,
 not a requirement.
@@ -46,8 +46,8 @@ ADRs here and never suggest them (`.claude/viber.yml` keeps `adr: false`).
 ## Layout (top level)
 
 ```
-.claude-plugin/marketplace.json   Co-lists the five plugins by subdir source
-superui/ superfix/ superbiz/ supercc/ viber/   One dir per plugin, each with README.md
+.claude-plugin/marketplace.json   Co-lists the four plugins by subdir source
+superui/ superbiz/ supercc/ viber/   One dir per plugin, each with README.md
 README.md            Catalog page for humans (install commands, requirements)
 .github/             CI, release workflow + scripts/release.sh, CODEOWNERS
 .claude/             Dev-time rules/, settings, viber.yml switches for building THIS repo
@@ -57,11 +57,11 @@ docs/specs/          viber's archived runs of work on this repo
 ```
 
 Each plugin dir carries `.claude-plugin/plugin.json`, whose `skills[]` (and `agents[]` for
-`superfix` and `viber`) is the catalog of record. Only `viber` carries `hooks/`.
+`viber`) is the catalog of record. Only `viber` carries `hooks/`.
 
 ## Versioning and CI
 
-Tag-driven, one shared version across all five plugins, bumped only by a manual release workflow.
+Tag-driven, one shared version across all four plugins, bumped only by a manual release workflow.
 Read `CLAUDE.release.md` before editing `.github/` (CI, release workflow, `release.sh`) or
 cutting a release.
 
@@ -97,8 +97,9 @@ cutting a release.
   allow does not cover a preload, and the permission classifier matches the literal prefix, so
   any other form is a new, unapproved command. Single-quote any preload argument holding `?`,
   `*` or `[`: the host shell (zsh on macOS) parses it first and `nomatch` kills the fork load. No
-  PowerShell syntax anywhere. The script-side half lives in `.claude/rules/`. The other four
-  plugins call their scripts through an interpreter (`sh`, `bash`, `node`, `python3`).
+  PowerShell syntax anywhere. The script-side half lives in `.claude/rules/`. The other three
+  plugins, and viber's `code-auditor` (a bare `Bash` allow), call their scripts through an
+  interpreter (`sh`, `bash`, `node`, `python3`).
 - **`allowed-tools` does NOT restrict the tool set** - it is a one-turn pre-approval only. A
   strictly read-only skill needs `disallowed-tools:` (bare names, never `Tool(pattern)`) PLUS a
   body line naming its only tools; the agent-side equivalent is `tools:`. A skill that dispatches
@@ -152,19 +153,15 @@ This file is orientation only. A skill's authoritative contract is its own body
 | `superbiz/CLAUDE.md` | `idea-validator` - the side-project viability workflow and its report |
 | `supercc/CLAUDE.md` | `skill-designer` (authoring and linting skills and agents), `model-prompting` |
 | `supercc/skills/CLAUDE.md` | the files of both supercc skills |
-| `superfix/CLAUDE.md` | `code-auditor` and its five agents - the investigation sweep |
-| `superfix/agents/CLAUDE.md` | the five sweep agents (`scout` to `critic`) |
-| `superfix/skills/CLAUDE.md` | the `code-auditor` skill and its scripts |
 | `superui/CLAUDE.md` | the `pro-designer` skill (design/frontend advisory, contrast check) |
 | `superui/skills/CLAUDE.md` | the `pro-designer` skill files and its scripts |
 | `tests/CLAUDE.md` | running tests (which suite a change reaches), any `*.test.ts` under `tests/` |
 | `tests/harness/CLAUDE.md` | the shared test helpers |
-| `tests/superfix/CLAUDE.md` | superfix's test suite |
 | `tests/superui/CLAUDE.md` | superui's test suite |
 | `tests/viber/CLAUDE.md` | viber's test suite |
 | `viber/CLAUDE.md` | anything viber - the run directory and its archive, config switches, the plan gate |
-| `viber/agents/CLAUDE.md` | viber's eighteen agents |
+| `viber/agents/CLAUDE.md` | viber's twenty-three agents, the five `code-auditor` sweep agents included |
 | `viber/hooks/CLAUDE.md` | viber's hooks - the `plan-gate.sh` and `plan-hints.sh` contracts |
 | `viber/references/CLAUDE.md` | viber's shared references |
 | `viber/scripts/CLAUDE.md` | viber's plugin-level scripts |
-| `viber/skills/CLAUDE.md` | viber's fourteen skills and their bundled scripts |
+| `viber/skills/CLAUDE.md` | viber's fifteen skills and their bundled scripts, `code-auditor` included |

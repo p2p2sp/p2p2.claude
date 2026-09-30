@@ -20,12 +20,16 @@ same edit.
 | `e2e-writer` | `e2e` | one spec file, its `## Automation` line |
 | `memory-auditor`, `memory-node-writer` | `memory` | findings file; one node and its sections |
 | `rules-auditor` | `rules` | findings file |
+| `profiler`, `scout`, `edge-scout`, `detective`, `critic` | `code-auditor` | see `CLAUDE.code-auditor.md` |
 
 The description's `Invoked only by ...` names these callers: a new caller updates it.
 
+Read `CLAUDE.code-auditor.md` before editing `profiler`, `scout`, `edge-scout`, `detective` or
+`critic`.
+
 ## Shared text - change together
 
-- All eighteen carry the same "Your tools are ..., every one of them loaded" paragraph and
+- All eighteen but the five `code-auditor` agents carry the same "Your tools are ..., every one of them loaded" paragraph and
   "Never narrate your work - no commentary between tool calls."
 - The `DENIED` line is `REASON: <refused tool name>: <the exact refused command, or the path for
   a file tool>` everywhere; `prover` adds the URL or query of a web tool. `closeout` keeps its

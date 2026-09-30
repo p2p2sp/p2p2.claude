@@ -19,6 +19,6 @@
 
 ## Reach
 
-- `check_node.test.ts` also runs `superfix/skills/code-auditor/scripts/check_node.sh` and fails on
-  any stdout divergence between the two copies. An edit to superfix's copy therefore reaches
-  `"tests/superui/*.test.ts"` as well as `tests/superfix/check_node.test.ts`.
+- `check_node.test.ts` also runs `viber/skills/code-auditor/scripts/check_node.sh` and fails on
+  any stdout divergence between the two copies. An edit to viber's copy therefore reaches
+  `"tests/superui/*.test.ts"` as well as `tests/viber/check_node.test.ts`.

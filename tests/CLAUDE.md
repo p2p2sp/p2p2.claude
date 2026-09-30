@@ -9,8 +9,8 @@ a file is shaped live in `.claude/rules/tests-running.md` and `tests-structure.m
 
 - `tests/<plugin>/` (and `tests/github/` for `.github/scripts/`) - one file per tested script,
   named after the script's basename. Three files test no script: `tests/superui/import-safety.test.ts`
-  (`check_contrast.ts` imports without firing its guarded `main()`), `tests/superfix/profiler.test.ts`
-  (runs the fenced git command lifted verbatim from `superfix/agents/profiler.md`) and
+  (`check_contrast.ts` imports without firing its guarded `main()`), `tests/viber/profiler.test.ts`
+  (runs the fenced git command lifted verbatim from `viber/agents/profiler.md`) and
   `tests/viber/help.test.ts` (checks `skills/setup/assets/help.html` against `plugin.json`, the
   `SKILL.md` frontmatter and the `viber.yml` template).
 - `tests/harness/` - the shared helpers every script test uses; `tests/harness.test.ts` asserts
@@ -28,7 +28,7 @@ Run only what the change reaches, each line with
 
 - Always: `tests/orphan-tags.test.ts tests/portability.test.ts`. Prose in an agent, a reference, a
   `CLAUDE.md`, a README or `.claude/rules/` reaches nothing else, except
-  `superfix/agents/profiler.md`, which reaches `tests/superfix/profiler.test.ts`.
+  `viber/agents/profiler.md`, which reaches `tests/viber/profiler.test.ts`.
 - A plugin's script, a `SKILL.md`, its `plugin.json`, or viber's `hooks/content/`,
   `skills/setup/assets/help.html` or `skills/setup/templates/viber.yml`: plus
   `"tests/<plugin>/*.test.ts"`. superui's `check_contrast.ts` also reaches

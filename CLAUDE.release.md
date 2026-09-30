@@ -1,9 +1,9 @@
 # Versioning and CI
 
-- Tag-driven, one shared namespace across all five plugins (`MAJOR.MINOR.PATCH`, no `v` prefix,
+- Tag-driven, one shared namespace across all four plugins (`MAJOR.MINOR.PATCH`, no `v` prefix,
   seed `0.1.0`). The only versioning path is `.github/workflows/release-version.yml`: a manual
   `workflow_dispatch` (patch/minor/major) on a **self-hosted** runner, running
-  `.github/scripts/release.sh`, which writes the version into all five `plugin.json`, commits
+  `.github/scripts/release.sh`, which writes the version into all four `plugin.json`, commits
   `chore(bump): ...`, tags, pushes and publishes a GitHub Release. Nothing bumps on push.
 - `release.sh` requires `jq` and `gh` (its header assumes them preinstalled, as on
   `ubuntu-latest`): the self-hosted runner must carry both or the release fails.

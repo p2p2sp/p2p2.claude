@@ -1,6 +1,7 @@
 # tests/viber/ - viber's script suite
 
-One file per viber script, plus `help.test.ts` (no script). Every fixture helper is local to its
+One file per viber script (the six under `skills/code-auditor/scripts/` included), plus
+`help.test.ts` and `profiler.test.ts` (no script). Every fixture helper is local to its
 file: plan, status and run-directory builders (`planBody`, `seed`, `sourcePlan`, `seedRun`,
 `withBranchRepo`) are hand-built per file, so a plan or `status.md` format change moves the
 builders of `plan-index`, `plan-path`, `commit-task` and `archive-run` together.
@@ -10,7 +11,7 @@ builders of `plan-index`, `plan-path`, `commit-task` and `archive-run` together.
 - The four `#!/bin/sh` scripts (`create-issue`, `issue-facts`, `issue-templates`,
   `post-comment`) run every case under `forEachShell("posix")` through `opts.shell`, never
   executed directly. `commit`, `commit-args`, `commit-context`, `commit-selfcheck` and one
-  `switch-text` case run under `forEachShell("bash")`; every other file runs its bash script once.
+  `switch-text` case run under `forEachShell("bash")`; every other file runs its bash script once (the code-auditor suites: below).
 - `commit-args.sh` is a sourced library: its test drives it through a generated bash wrapper
   printing `COMMIT_MODE` / `COMMIT_PATHS` (joined with `|`) / `COMMIT_ISSUE_REFS`.
 - Every `!` preload script's test (`config`, `bootstrap`, `check-playwright`, `handoff-path`,
@@ -32,6 +33,37 @@ builders of `plan-index`, `plan-path`, `commit-task` and `archive-run` together.
   literal line calling `commit-context.sh`.
 - `session-start.test.ts` and `plan-hints.test.ts` derive their expectation from the shipped
   `hooks/content/manifest.md` / `plan-hints.md`, so filling or emptying either stays green.
+
+## code-auditor suites
+
+`check_node`, `collect_signals`, `collect_edges`, `rank`, `rank_edges`, `worktree` and
+`profiler` (the `git log` block of `viber/agents/profiler.md`, lifted verbatim) drive
+`skills/code-auditor/scripts/` as real subprocesses. Each file's header states the CLI contract it
+pins: change the header with the contract.
+
+- The skill calls every script through an interpreter, so the tests do too, through `opts.shell`,
+  never executing the file directly: `collect_signals.sh` ships mode `100644`. `check_node.sh`,
+  `worktree.sh` (`#!/bin/sh`): `forEachShell("posix", ...)`; `collect_signals.sh`,
+  `collect_edges.sh` and the profiler block (bash): `forEachShell("bash", ...)`. Each file wraps
+  this in its own `assertPosix`/`assertBash`, asserting every `ShellSkip` carries the expected kind
+  and a reason.
+- `rank.ts` and `rank_edges.ts` call `main()` at module load with no CLI guard: never `import`
+  them, run them only through `runScript`, inside `withTempDir`.
+- History-dependent cases (`collect_signals`, `collect_edges`, `profiler`) back-date commits with a
+  per-file `commitAt(repo, daysAgo, message)` setting `GIT_AUTHOR_DATE`/`GIT_COMMITTER_DATE` over
+  `repo.env`, so window boundaries never depend on when the suite runs. It is copied per file.
+- `--scope` cases pin that scoping narrows the record/pair set only: `dependents`, the counting
+  literal and `fanout` stay the repo-wide values. The scope fixture carries a prefix-sharing
+  sibling (`srcx/` beside `src/`) to catch a prefix match. `collect_edges.sh` with no pairs, and
+  either collector over an empty scope, exit 0 with empty stdout: a valid result.
+- `rank.test.ts` asserts stderr warnings in Python repr form (`{'path': 'no-impact.ts', ...}`)
+  because `rank.ts` reproduces Python output byte for byte.
+- `check_node.test.ts` builds its "no node" PATH by dropping every real directory holding a `node`
+  binary (`node.exe`/`.cmd`/`.bat` on win32). Its version thresholds are 22.6 (strip-types flag)
+  and 23.6 (plain `node`). `tests/superui/check_node.test.ts` also runs this script beside
+  superui's copy and asserts identical output.
+- `worktree.test.ts` passes the target root re-spelled through `slash()` as the worktree path: the
+  script must reject it whatever the separator, or `remove` deletes the repo it anchors to.
 
 ## Fixture traps
 

@@ -28,7 +28,7 @@ reasons about a host's own design system and never overwrites it.
   `NODE_OK node --experimental-strip-types` (22.6 to < 23.6), or `NODE_MISSING`. On
   `NODE_MISSING` the skill skips the contrast check with a note (Node >= 22.6 required), never
   halts.
-- `superfix/skills/code-auditor/scripts/check_node.sh` is a copy that must behave identically;
+- `viber/skills/code-auditor/scripts/check_node.sh` is a copy that must behave identically;
   only the header comment may differ. `tests/superui/check_node.test.ts` fails on any divergence,
   so edit both together.
 - `check_contrast.ts` exit codes: 0 all pass, 1 any pair below AA for ITS OWN type

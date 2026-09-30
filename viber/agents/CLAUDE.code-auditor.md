@@ -1,4 +1,8 @@
-# superfix/agents - the five code-auditor workers
+# The five code-auditor agents
+
+`profiler`, `scout`, `edge-scout`, `detective` and `critic` are dispatched only by the `code-auditor`
+skill (`viber:<agent>`). They stand outside the node's "Shared text": no "Your tools are ..." paragraph,
+no `VERDICT: DENIED` line. Every `references/` path below is in `skills/code-auditor/`.
 
 Each agent's inputs are named paths in the `code-auditor` brief, used exactly as given and
 substituted literally into every Bash call (shell variables do not persist between calls); no
@@ -36,7 +40,8 @@ A malformed scout line never fails the run: `rank.ts` skips a record without num
 - **Soft Bash limits.** `critic` (reproduction only) and `profiler` (the one fenced `git log`)
   hold `Bash` in `tools:`; the narrower limit is body text only.
 - **Independence.** `profiler` never reads another run, a previous `findings.md` or anything else
-  under `.temp/superfix/`; it stays under one page because every later agent carries `job.md`.
+  under `.temp/viber/code-auditor/`; it stays under one page because every later agent carries
+  `job.md`.
 
 ## Traps
 
