@@ -1,5 +1,5 @@
 #!/bin/sh
-# viber - scripts/create-issue.sh
+# viber - scripts/issue-create.sh
 #
 # Creates a GitHub issue and, when a type was requested, applies it through
 # the REST API in one deterministic step: `gh issue create` -> parse the
@@ -40,11 +40,11 @@ set -u
 
 body=${1:-}; title=${2:-}
 if [ -z "$body" ] || [ -z "$title" ]; then
-  echo "ERROR create-issue.sh: need <body file> <title> [flags]" >&2
+  echo "ERROR issue-create.sh: need <body file> <title> [flags]" >&2
   exit 2
 fi
 if [ ! -f "$body" ]; then
-  echo "ERROR create-issue.sh: body file not found: $body" >&2
+  echo "ERROR issue-create.sh: body file not found: $body" >&2
   exit 2
 fi
 shift 2
@@ -57,18 +57,18 @@ while [ $i -gt 0 ]; do
   a=$1; shift; i=$((i-1))
   case $a in
     --type)
-      [ $i -gt 0 ] || { echo "ERROR create-issue.sh: --type needs a value" >&2; exit 2; }
+      [ $i -gt 0 ] || { echo "ERROR issue-create.sh: --type needs a value" >&2; exit 2; }
       type=$1; shift; i=$((i-1)) ;;
     --label|--assignee|--project)
-      [ $i -gt 0 ] || { echo "ERROR create-issue.sh: $a needs a value" >&2; exit 2; }
+      [ $i -gt 0 ] || { echo "ERROR issue-create.sh: $a needs a value" >&2; exit 2; }
       set -- "$@" "$a" "$1"; shift; i=$((i-1)) ;;
     *)
-      echo "ERROR create-issue.sh: unknown flag $a" >&2; exit 2 ;;
+      echo "ERROR issue-create.sh: unknown flag $a" >&2; exit 2 ;;
   esac
 done
 
 if ! command -v gh >/dev/null 2>&1; then
-  echo "ERROR create-issue.sh: gh not found on PATH" >&2
+  echo "ERROR issue-create.sh: gh not found on PATH" >&2
   exit 1
 fi
 
@@ -77,7 +77,7 @@ st=$?
 url=$(printf '%s\n' "$out" | tr -d '\r' \
   | sed -n 's#^\(https://[^/][^/]*/[^/][^/]*/[^/][^/]*/issues/[0-9][0-9]*\)$#\1#p' | tail -n 1)
 if [ $st -ne 0 ] || [ -z "$url" ]; then
-  echo "ERROR create-issue.sh: gh issue create failed: $(printf '%s' "$out" | tr '\n\r' '  ')" >&2
+  echo "ERROR issue-create.sh: gh issue create failed: $(printf '%s' "$out" | tr '\n\r' '  ')" >&2
   exit 1
 fi
 

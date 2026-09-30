@@ -1,6 +1,6 @@
 /*
- * create-issue.test.ts - proves viber/scripts/create-issue.sh's
- * `create-issue.sh <body file> <title> [--type <T>] [--label <L>]...
+ * issue-create.test.ts - proves viber/scripts/issue-create.sh's
+ * `issue-create.sh <body file> <title> [--type <T>] [--label <L>]...
  * [--assignee <A>]... [--project <P>]...` contract against a stubbed `gh`:
  * the body always travels through `--body-file`, every --label/--assignee/
  * --project pair is forwarded to `gh issue create` verbatim and in order,
@@ -11,13 +11,14 @@
  * created issue, and bad arguments or a missing body file exit 2 with gh
  * never invoked.
  *
- * create-issue.sh is `#!/bin/sh`, so every case runs through
+ * issue-create.sh is `#!/bin/sh`, so every case runs through
  * forEachShell("posix", ...) via opts.shell, never executed directly. `gh` is
  * always a withStub, or absent - this test never shells out to the real gh.
+ * A case run over several inputs registers one test per input row.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/viber/create-issue.test.ts
+ *   node --test tests/viber/issue-create.test.ts
  */
 
 import { test } from "../harness/test.ts";
@@ -30,7 +31,7 @@ import { withTempDir } from "../harness/tmp.ts";
 import { coreUtilsPath, withStub } from "../harness/stub.ts";
 import { forEachShell, type Shell } from "../harness/shells.ts";
 
-const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/create-issue.sh");
+const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/issue-create.sh");
 
 async function assertPosix(fn: (shell: Shell) => void | Promise<void>) {
   const skips = await forEachShell("posix", fn);
@@ -59,14 +60,14 @@ fi
 exit 1
 `;
 
-/** Runs create-issue.sh with a fresh `gh` stub first on PATH. Returns the
+/** Runs issue-create.sh with a fresh `gh` stub first on PATH. Returns the
  *  result and every logged gh call, split into per-call argv arrays. */
 async function runStubbed(
   shell: Shell,
   args: string[],
   env: Record<string, string> = {},
 ): Promise<{ result: RunResult; calls: string[][]; body: string }> {
-  return await withTempDir("p2p2-create-issue-", (cwd) =>
+  return await withTempDir("p2p2-issue-create-", (cwd) =>
     withStub("gh", GH_STUB, async (stubDir) => {
       const body = path.join(cwd, "body.md");
       fs.writeFileSync(body, "## Summary\n\nLine one.\nLine two.\n");
@@ -86,36 +87,36 @@ async function runStubbed(
 
 // --- bad arguments ----------------------------------------------------------------
 
-test("a missing body file or title argument: exit 2 and gh is never called", async () => {
-  await assertPosix(async (shell) => {
-    for (const args of [[], ["only-body.md"]]) {
+for (const args of [[], ["only-body.md"]]) {
+  test(`a missing body file or title argument (${JSON.stringify(args)}): exit 2 and gh is never called`, async () => {
+    await assertPosix(async (shell) => {
       const result = await runScript(SUT, args, { shell });
-      assert.equal(result.status, 2, `args ${JSON.stringify(args)}`);
+      assert.equal(result.status, 2);
       assert.match(result.stderr, /need <body file> <title>/);
       assert.equal(result.stdout, "");
-    }
+    });
   });
-});
+}
 
 test("a body file that does not exist: exit 2 and gh is never called (nothing half-created)", async () => {
   await assertPosix(async (shell) => {
     const result = await runScript(SUT, ["does-not-exist.md", "A title"], { shell });
     assert.equal(result.status, 2);
-    assert.match(result.stderr, /^ERROR create-issue\.sh: body file not found: does-not-exist\.md$/m);
+    assert.match(result.stderr, /^ERROR issue-create\.sh: body file not found: does-not-exist\.md$/m);
     assert.equal(result.stdout, "");
   });
 });
 
-test("an unknown flag or a flag missing its value: exit 2 and gh is never called", async () => {
-  await assertPosix(async (shell) => {
-    for (const args of [["<body>", "A title", "--bogus"], ["<body>", "A title", "--type"], ["<body>", "A title", "--label"]]) {
+for (const args of [["<body>", "A title", "--bogus"], ["<body>", "A title", "--type"], ["<body>", "A title", "--label"]]) {
+  test(`an unknown flag or a flag missing its value (${JSON.stringify(args.slice(2))}): exit 2 and gh is never called`, async () => {
+    await assertPosix(async (shell) => {
       const { result, calls } = await runStubbed(shell, args);
-      assert.equal(result.status, 2, `args ${JSON.stringify(args)}: ${result.stderr}`);
+      assert.equal(result.status, 2, result.stderr);
       assert.equal(result.stdout, "");
       assert.equal(calls.length, 0);
-    }
+    });
   });
-});
+}
 
 // --- gh missing or create failing --------------------------------------------------
 
@@ -128,13 +129,13 @@ test(
   { skip: ghOnCorePath ? "a real gh sits in the core utilities directory, so its absence cannot be staged" : false },
   async () => {
     await assertPosix(async (shell) => {
-      await withTempDir("p2p2-create-issue-", async (cwd) => {
+      await withTempDir("p2p2-issue-create-", async (cwd) => {
         const body = path.join(cwd, "body.md");
         fs.writeFileSync(body, "body\n");
         const result = await runScript(SUT, [body, "A title"], { shell, cwd, env: { PATH: coreUtilsPath() } });
         assert.equal(result.status, 1);
         assert.equal(result.stdout, "");
-        assert.match(result.stderr, /^ERROR create-issue\.sh: gh not found on PATH$/m);
+        assert.match(result.stderr, /^ERROR issue-create\.sh: gh not found on PATH$/m);
       });
     });
   },
@@ -147,21 +148,21 @@ test("gh issue create fails: exit 1, one ERROR line carrying gh's message, nothi
     assert.equal(result.stdout, "");
     const lines = result.stderr.split("\n").filter((l) => l.length > 0);
     assert.equal(lines.length, 1, `expected a single ERROR line, got:\n${result.stderr}`);
-    assert.match(lines[0], /^ERROR create-issue\.sh: gh issue create failed: .*Bad credentials/);
+    assert.match(lines[0], /^ERROR issue-create\.sh: gh issue create failed: .*Bad credentials/);
     assert.equal(calls.length, 1);
   });
 });
 
-test("gh issue create exits 0 but prints no parsable issue URL: exit 1, nothing on stdout", async () => {
-  await assertPosix(async (shell) => {
-    for (const out of ["", "not a url\n", "https://github.com/acme/widgets/pull/42\n"]) {
+for (const out of ["", "not a url\n", "https://github.com/acme/widgets/pull/42\n"]) {
+  test(`gh issue create exits 0 but prints no parsable issue URL (${JSON.stringify(out)}): exit 1, nothing on stdout`, async () => {
+    await assertPosix(async (shell) => {
       const { result } = await runStubbed(shell, ["<body>", "A title"], { CREATE_STDOUT: out });
-      assert.equal(result.status, 1, `gh stdout ${JSON.stringify(out)}`);
+      assert.equal(result.status, 1);
       assert.equal(result.stdout, "");
-      assert.match(result.stderr, /^ERROR create-issue\.sh: gh issue create failed:/);
-    }
+      assert.match(result.stderr, /^ERROR issue-create\.sh: gh issue create failed:/);
+    });
   });
-});
+}
 
 // --- success, no --type ------------------------------------------------------------
 
@@ -195,9 +196,9 @@ test("--type applied: a non-github.com host's issue URL PATCHes repos/<owner>/<r
   });
 });
 
-test("--type PATCH fails on a benign reason: TYPE=dropped, TYPE_ERROR carries the message, and the issue is never removed", async () => {
-  await assertPosix(async (shell) => {
-    for (const msg of ["issue types are not enabled for this repository", "HTTP 404: Not Found", "HTTP 403: Forbidden"]) {
+for (const msg of ["issue types are not enabled for this repository", "HTTP 404: Not Found", "HTTP 403: Forbidden"]) {
+  test(`--type PATCH fails on a benign reason (${msg}): TYPE=dropped, TYPE_ERROR carries the message, and the issue is never removed`, async () => {
+    await assertPosix(async (shell) => {
       const { result, calls } = await runStubbed(shell, ["<body>", "A title", "--type", "bug"], {
         CREATE_STDOUT: ISSUE_URL + "\n",
         API_EXIT: "1",
@@ -206,9 +207,9 @@ test("--type PATCH fails on a benign reason: TYPE=dropped, TYPE_ERROR carries th
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
       assert.equal(result.stdout, `ISSUE_URL=${ISSUE_URL}\nISSUE_NUMBER=42\nTYPE=dropped\nTYPE_ERROR=${msg}\n`);
       assert.ok(!calls.some((c) => c.includes("delete")), "the created issue must never be deleted");
-    }
+    });
   });
-});
+}
 
 test("--type PATCH fails on an unrecognized reason: TYPE=error, TYPE_ERROR carries the message, and the issue is never removed", async () => {
   await assertPosix(async (shell) => {

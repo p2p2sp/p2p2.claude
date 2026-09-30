@@ -1,0 +1,6 @@
+- issue-save.md expects the caller to have run `issue-templates.sh` and handled `STATUS=skip` itself; it starts from the `STATUS=ready` block (T8 and T9 callers must do the same).
+- The save reference is addressed as `${CLAUDE_PLUGIN_ROOT}/references/issue-save.md` from a fragment: switch-text.sh expands that variable, Claude Code never does in preload output.
+- No eligible template now ends the save in one line (DoD.6), replacing the old "pick a bug template anyway or skip" prompt.
+- The renamed test moved its multi-input cases from a loop in the body to one top-level `test()` per input row (test-strategy no-control-flow rule); assertions unchanged.
+- Stale `create-issue.sh` names remain in viber/skills/CLAUDE.md, viber/scripts/CLAUDE.md, tests/viber/CLAUDE.md and .claude/rules/*: out of scope here, for the build's close.
+- The script header still says it was ported from the retired supergh `create-issue` skill; T8's new `create-issue` skill may make that line read ambiguously.
