@@ -81,7 +81,7 @@ Need another curve - take it from easing.dev or easings.co, never hand-roll one.
 - Modals, drawers: 200-500ms.
 - Marketing / explanatory: can be longer.
 
-**UI animations stay under 300ms** - a 180ms dropdown feels more responsive than a 400ms one. Perceived performance is real: a faster-spinning spinner makes the same load feel shorter; once one tooltip is open, adjacent tooltips open instantly (skip delay and animation) and the whole toolbar feels faster.
+**UI animations stay under 300ms**, modals and drawers alone up to 500ms - a 180ms dropdown feels more responsive than a 400ms one. Perceived performance is real: a faster-spinning spinner makes the same load feel shorter; once one tooltip is open, adjacent tooltips open instantly (skip delay and animation) and the whole toolbar feels faster.
 
 ## Physicality
 
@@ -109,7 +109,7 @@ Keep bounce 0.1-0.3 and avoid it in most UI - reserve for drag-to-dismiss and pl
 ```css
 .toast {
   opacity: 1; transform: translateY(0);
-  transition: opacity 400ms ease, transform 400ms ease;
+  transition: opacity 250ms var(--ease-out), transform 250ms var(--ease-out);
   @starting-style { opacity: 0; transform: translateY(100%); }
 }
 ```
@@ -125,6 +125,8 @@ Keep bounce 0.1-0.3 and avoid it in most UI - reserve for drag-to-dismiss and pl
 - Framer Motion shorthands (`x`, `y`, `scale`) are NOT hardware-accelerated - they run on the main thread and drop frames under load. Use the full string: `animate={{ transform: "translateX(100px)" }}`.
 - CSS animations beat JS under load (they run off the main thread) - CSS for predetermined motion, JS for dynamic/interruptible. WAAPI (`element.animate()`) gives JS control with CSS performance, no library.
 - Blur stays under 20px - heavy blur is expensive, especially in Safari.
+- `will-change: transform` sparingly, only while animating.
+- `backdrop-filter: blur` only on fixed/sticky elements (nav, overlays) - on scrolling containers it repaints continuously and kills mobile frame rate. Grain/noise overlays live on a `position: fixed; pointer-events: none` layer, never on scrolling content.
 
 ## clip-path recipes
 
@@ -144,7 +146,7 @@ Keep bounce 0.1-0.3 and avoid it in most UI - reserve for drag-to-dismiss and pl
 
 ## Stagger
 
-Group entrances cascade with 30-80ms between items; longer delays feel slow. Cap at ~8 children - beyond that the tail feels laggy. Stagger is decorative: never block interaction while it plays.
+Group entrances cascade with 30-80ms between items; longer delays feel slow. Cap at ~8 children - beyond that the tail feels laggy. Stagger is decorative: never block interaction while it plays. Trigger it with IntersectionObserver or CSS scroll timelines, never a scroll listener.
 
 ```css
 .item { opacity: 0; transform: translateY(8px); animation: fadeIn 300ms ease-out forwards; }
@@ -168,7 +170,7 @@ When a crossfade shows two overlapping states despite tuned easing/duration, add
 }
 ```
 
-Reduced motion means fewer and gentler animations, not zero - keep transitions that aid comprehension, remove movement and position changes.
+Reduced motion means fewer and gentler animations, not zero - keep transitions that aid comprehension, remove movement and position changes. Infinite loops, parallax and scroll-driven effects collapse to static; entrances become plain visibility.
 
 ## Never ship
 
@@ -176,7 +178,7 @@ Reduced motion means fewer and gentler animations, not zero - keep transitions t
 - `scale(0)` entrance -> `scale(0.95)` + `opacity: 0`.
 - `ease-in` on a UI element -> `ease-out` or a strong custom curve.
 - Animation on a keyboard shortcut or 100+/day action -> none.
-- UI duration over 300ms with no reason -> 150-250ms.
+- UI duration over 300ms outside modals and drawers -> 150-250ms.
 - `transform-origin: center` on a trigger-anchored popover -> origin at the trigger (modals exempt).
 - Keyframes on toasts, toggles, rapidly-triggered elements -> CSS transitions.
 - Animating `width`/`height`/`margin`/`padding`/`top`/`left` -> `transform`/`opacity`.

@@ -5,7 +5,7 @@ Read when designing or reviewing component states (loading, empty, error, disabl
 ## Loading states - tier by expected duration
 - Under ~1s: show nothing - a flashed spinner is more distracting than the wait.
 - ~1-10s: looped spinner plus a text label ("Loading comments…"). Never a static "Please wait".
-- Over 10s: determinate percent-done progress bar - users shown a moving progress bar waited ~3x longer (study cited by NN/g).
+- Over 10s: determinate percent-done progress bar - users shown a moving progress bar waited ~3x longer.
 - Skeleton screens only for full-page or container content loads finishing within ~10s. Mimic the final layout: gray boxes sized and positioned where real text, images, cards will land. Never frame-only (header + footer + blank body) - users assume the page is broken.
 - Animate skeletons with a subtle left-to-right shimmer/pulse, ~1-2s loop (CSS gradient translating across placeholders).
 - No skeletons for uploads, downloads, or file conversions - use a progress bar or step wizard there.
@@ -21,7 +21,7 @@ Read when designing or reviewing component states (loading, empty, error, disabl
 ```
 
 - Every empty state has 3 parts: (1) why it is empty ("No records for the selected date range"), (2) how it gets populated ("Star favorites to list them here"), (3) a direct CTA ("Create project"). Never a bare blank container.
-- Design first-use and no-results differently. First-use = onboarding: explain the feature's value, lead with the creation CTA. No-results = recovery: keep the query visible in the search box; offer related categories, alternative query suggestions, popular items - "try different keywords" alone is a dead end (nearly 50% of e-commerce sites fail at no-results recovery, Baymard).
+- Design first-use and no-results differently. First-use = onboarding: explain the feature's value, lead with the creation CTA. No-results = recovery: keep the query visible in the search box; offer related categories, alternative query suggestions, popular items - "try different keywords" alone is a dead end (nearly 50% of e-commerce sites fail at no-results recovery).
 
 ## Error states
 - Place the message immediately adjacent to the field or element that caused it - never only a toast or top-of-page summary.
@@ -59,18 +59,8 @@ Read when designing or reviewing component states (loading, empty, error, disabl
 - Hover transitions ~150-200ms - prevents flicker when the cursor passes through. Always set cursor: pointer. Transition the named properties (`background-color`, `border-color`, `transform`, `box-shadow`), never `transition: all`.
 - Opacity is not a hover state: `hover:opacity-90` on a button dims the label along with the fill and makes the hovered control read as disabled. Move one step on the accent scale, add the state layer above, or change border/elevation - text contrast stays at full strength through every state.
 - Pressed feedback within 100-150ms of activation - immediate, or users click twice. Give the press a physical cue: `scale(0.98)` or `translateY(1px)` on `:active` - a button that does not move reads as dead.
-- Standard transitions (tab switch, screen change, tap ripple) at ~300ms with ease-in-out; screen transitions = cross-fade + horizontal slide.
+- Screen transitions = cross-fade + horizontal slide; durations and easing for every transition -> motion.md.
 - Never remove the focus outline without a replacement (no bare outline: none) - recipe and contrast minimums in accessibility.md.
-
-## Motion engineering
-
-Motion doctrine - whether to animate at all (frequency gate), easing curves, duration budgets, springs, enter/exit, gestures, performance rules - lives in motion.md. Here only what is page-level:
-
-- One orchestrated moment lands harder than scattered effects; micro-animations on everything are themselves a generated-look tell (anti-slop.md).
-- List/grid entrances: staggered reveal (translateY ~12-16px + fade, per-item delay 30-80ms via `animation-delay: calc(var(--index) * 50ms)`, cap ~8 children), driven by IntersectionObserver or CSS scroll timelines - never a scroll listener, never everything mounting at once.
-- `will-change: transform` sparingly, only while animating.
-- `backdrop-filter: blur` only on fixed/sticky elements (nav, overlays) - on scrolling containers it repaints continuously and kills mobile frame rate. Grain/noise overlays live on a `position: fixed; pointer-events: none` layer, never on scrolling content.
-- Respect `prefers-reduced-motion`: infinite loops, parallax, and scroll-driven effects collapse to static; entrances become plain visibility.
 
 ## Depth and elevation
 - Give shadows a positive Y offset, never X:0 Y:0 - a symmetric halo exists under no real light source.

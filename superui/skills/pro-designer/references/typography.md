@@ -28,19 +28,19 @@ Read when choosing font sizes, line-heights, weights, letter-spacing, or font fa
 - Never set running text below 12px; never render any text below 11px (Apple's floor is 11pt).
 - Paragraph spacing at least 1.5x the line spacing (body 16/1.5 -> `margin-bottom: ~1em-1.5em`, never 0).
 - Left-align; `text-align: justify` is banned for UI copy - creates rivers of space (WCAG 1.4.8).
-- Layout must survive 200% text zoom without horizontal scrolling (WCAG 1.4.8).
+- Zoom and user-spacing resilience (200% zoom, no fixed-height text containers, rem units) -> accessibility.md "Resize and spacing resilience".
 - Kill orphaned last words: `text-wrap: balance` on headings, `text-wrap: pretty` on body paragraphs - a single word on the last line of a heading reads as a layout bug.
 
 ## Line-height - inverse to font size, never one global value
 
 - Body 12-16px: 1.4-1.6. Sub-headings 20-24px: ~1.3. Large headings 28-36px: 1.15-1.25. Display 45px+: 1.0-1.12.
 - Use unitless values per role: `h1 { font-size: 3rem; line-height: 1.1 }` `p { line-height: 1.5 }`.
-- Copying body line-height onto headings makes multi-line headings fall apart; large headline text at line-height 1 is fine (Refactoring UI).
+- Copying body line-height onto headings makes multi-line headings fall apart; large headline text at line-height 1 is fine.
 - Also scale with measure: narrow columns (<50ch) ~1.5; wide text blocks up to 2.0 - raise leading rather than keep 1.5 on a wide paragraph.
 
 ## Measure (line length)
 
-- Put `max-width: 65ch` (or ~34em) on every paragraph container; optimal is 50-75 characters per line (Baymard).
+- Put `max-width: 65ch` (or ~34em) on every paragraph container; optimal is 50-75 characters per line.
 - Never let running text span the full width of a desktop layout; 100+ character lines fatigue readers.
 - Hard accessibility ceiling: 80 characters, 40 for CJK (WCAG 1.4.8, AAA).
 
@@ -55,7 +55,7 @@ Read when choosing font sizes, line-heights, weights, letter-spacing, or font fa
 ## Hierarchy - size + weight + color, never more typefaces
 
 - Build hierarchy with size, weight, and color together. To emphasize at the same size, step weight up (Apple: Body = 17pt Regular, Headline = 17pt Semibold) - never add a font.
-- Weights: 400 for display/headline/body; 500-600 for titles, labels, buttons. Don't bold everything; don't use heavy weights at display sizes.
+- Weights on Operate/Read surfaces: 400 for display/headline/body; 500-600 for titles, labels, buttons. Don't bold everything; no heavy weights at display sizes. Persuade surfaces follow "Persuade surfaces - the display ramp" above.
 - One typeface family per UI by default; hard max 2. If pairing: contrast classification (serif headings + sans body), match x-heights; prefer a superfamily (Roboto + Roboto Serif + Roboto Mono, IBM Plex) or one variable family.
 - Align a leading icon to the adjacent text's cap-height and size it near that cap- or x-height, so icon and label share one optical line instead of sitting off-center (icon sizes on the grid -> layout-spacing.md).
 - Cards need 3-4 explicit hierarchy tiers - full card anatomy in components-states.md.
@@ -73,10 +73,5 @@ Read when choosing font sizes, line-heights, weights, letter-spacing, or font fa
 
 - Reading order top to bottom: 1) goal (heading, e.g. "Sign in") -> 2) inputs -> 3) primary CTA -> 4) alternatives. Secondary actions ("Sign up") become text links, never equal-weight buttons next to the CTA.
 - Labels: ALL-CAPS or bold to distinguish from content (caps labels get +0.05-0.1em tracking).
-- Placeholders: lower opacity than input text, and never used as the label - a full-opacity placeholder reads as a filled field.
+- Placeholders: visibly lighter than input text yet still >= 4.5:1 (accessibility.md), and never used as the label - a full-opacity placeholder reads as a filled field.
 - Links: underline or a clearly distinct color vs static text - users must not guess what is clickable.
-
-## Spacing-tolerant text containers
-
-- Never fix the height of any element containing wrapping text; never `overflow: hidden` on paragraph containers; size text in rem.
-- Layout must lose nothing when users override: line-height 1.5x font size, paragraph spacing 2x, letter-spacing 0.12em, word-spacing 0.16em (WCAG 1.4.12, AA). Fixed-height cards with px text are the typical failure.

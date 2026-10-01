@@ -2,22 +2,7 @@
 
 Read when setting the aesthetic direction of a new surface (landing page, hero, marketing or brand-carrying screen), when a brief leaves look-and-feel open, or when reviewing UI that reads generic, templated, or AI-generated.
 
-Scope: direction-setting, not a decoration license. Every choice here still obeys the skill's non-negotiables (contrast, states, spacing scale, type ramp) - the signature risk lives inside the accessibility floor. The project's own design system, when it has one, binds palette, type, radius and spacing - audit against it, never invent a rival one. But a token set is not a composition concept: a new Persuade/Experience surface still needs the full concept brief (concepting.md), expressed in those tokens.
-
-## The AI-default looks - recognize and refuse
-
-Generated UI clusters around a few recognizable looks. Each is legitimate when the brief explicitly asks for it; as an unexamined default it marks the design as generated:
-
-- Warm cream background (near #F4F1EA) + high-contrast serif display + terracotta accent.
-- Near-black background + one bright acid-green or vermilion accent.
-- Broadsheet look: hairline rules, zero border-radius, dense newspaper-style columns.
-- Hero built as big number + small label + supporting stats + gradient accent.
-- Numbered section markers (01 / 02 / 03) on content that is not actually a sequence.
-- Micro-animations scattered on everything - excess motion is itself a generated-look tell.
-
-The full forensic catalog - layout, visual, decoration, hero, app/AI-surface, and copy tells with their fixes - lives in anti-slop.md, already loaded before any of this.
-
-Rule: where the brief pins a direction, follow the brief exactly - even into one of these looks. Where the brief leaves an axis free, never spend that freedom on a default.
+Scope: direction-setting, not a decoration license. Every choice here still obeys the skill's non-negotiables (contrast, states, spacing scale, type ramp) - the signature risk lives inside the accessibility floor. A project design system binds as SKILL.md "Design-system precedence" states. The AI-default looks to refuse are catalogued in anti-slop.md, already loaded: where the brief leaves an axis free, never spend that freedom on one of them.
 
 ## Ground the direction in the subject
 

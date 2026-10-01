@@ -43,7 +43,7 @@ A design is not done until every component ships with:
 - Exact dimensions in px for every element.
 - All spacing values (margins, padding, gaps between stacked blocks).
 - Responsive behavior of each element.
-- Interactive states (default/hover/active/disabled) with duration and easing for every interaction - timing recipes in components-states.md. Unspecified motion gets improvised by developers; write it down or lose consistency.
+- Interactive states (default/hover/active/disabled) with duration and easing for every interaction - timing recipes in motion.md. Unspecified motion gets improvised by developers; write it down or lose consistency.
 
 Annotate layouts like an engineering blueprint: element names, px dimensions, margins, states. Tag readiness explicitly, e.g. `STATUS: READY FOR DEV | VERSION 1.0`.
 

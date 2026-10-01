@@ -9,7 +9,7 @@ Read when designing or reviewing any form - sign-up, checkout, settings, search/
 - Reward early, punish late: once a field IS in an error state, re-validate on every keystroke and remove the error the instant input becomes valid; a valid or untouched field waits until blur for any new error. Never leave a stale error visible after the fix.
 - Validate empty required fields only on submit, never on blur - tabbing past an empty field must not paint it red; skipping is not yet an error.
 - Reserve true keystroke (`onChange`) validation for fields where live feedback IS the feature - password-strength meters, username availability, character counters - and debounce so nothing flashes red mid-word.
-- Evidence for inline-on-blur: vs submit-only validation it gave +22% success rate, -22% errors, +31% satisfaction, -42% completion time, -47% eye fixations (Etre eye-tracking study, 22 participants); on-blur feedback was 7-10 s faster per form than while-typing or on-focus variants.
+- Evidence for inline-on-blur: vs submit-only validation it gave +22% success rate, -22% errors, +31% satisfaction, -42% completion time, -47% eye fixations (eye-tracking study, 22 participants); on-blur feedback was 7-10 s faster per form than while-typing or on-focus variants.
 
 ## Error message placement and copy
 
@@ -52,11 +52,8 @@ Good: `The date field is in the wrong format; it should be similar to 17/09/2013
 
 ## Smart defaults
 
-- Pre-fill every field with a sensible recommendation - turn the task from "fill from scratch" into "review and correct" (mechanism and evidence -> ux-psychology.md "Smart defaults").
-- Prefer closed choices (pre-selected dropdowns, chips) over open questions; on mobile prefer tappable chips over typing.
+- Pre-fill every field and prefer closed choices; mechanism, the payoff in the CTA label and the ban on anti-user defaults -> ux-psychology.md "Smart defaults".
 - Auto-apply beneficial values (e.g. a promo code) visibly and removably (X to dismiss) - never silently.
-- Put the expected result count in the CTA label so the button itself communicates payoff.
-- Defaults must never work against the user: no pre-checked marketing consent, no hidden auto-renewal, no pre-selected paid add-ons - defaults are a trust mechanism, abuse converts once and churns.
 - A wall of empty inputs with a disabled submit is the anti-pattern: it maximizes decision fatigue and kills conversion.
 
 Bad:  5 empty dropdowns ("Select date...", "Number of guests...") + disabled gray "Search"
@@ -64,4 +61,4 @@ Good: pre-filled "15 Oct - 20 Oct", "1 Adult", "Standard Room", auto code "AUTO1
 
 ## Choice reduction
 
-- Fewer visible options generally convert better, but do not cite the jam study as a general law - see ux-psychology.md for the actual numbers and its replication caveats; keep one link, do not restate the evidence here.
+- Fewer visible options can help, never as a general law: evidence and caveats -> ux-psychology.md "Verified study numbers".

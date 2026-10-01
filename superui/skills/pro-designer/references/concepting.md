@@ -31,8 +31,5 @@ product in this category? If yes, the outline itself is the default - redesign t
 families, not the cosmetics on top of it. A page that swaps colors and copy but keeps the same shape has not
 passed this test.
 
-This applies even when the project already has a design system: a token set fixes values, never the shape of
-the page. Run the critique against the section sequence regardless of how settled the visual tokens are.
-
 After the critique holds, derive every build decision - copy, imagery, motion, component choice - from the
 revised brief. Nothing built before this point survives past it unexamined.

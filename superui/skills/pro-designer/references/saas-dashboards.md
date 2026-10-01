@@ -6,21 +6,21 @@ Read when designing SaaS dashboards, KPI tiles, app navigation/sidebars, billing
 - A dashboard is a work tool: users come to read data, not admire branding. Every pixel of chrome competes with data.
 - No oversized top bars with logo + greeting ("Welcome back, Anna!") added to "balance" the layout - they detach functionality and shrink the workspace that IS the product.
 - Branding yields to data readability: charts need not use brand colors if that hurts interpretation.
-- Drop global nav on secondary full-screen views (e.g. a map view) to maximize workspace.
+- Navigation placement (global vs local, dropping it on full-workspace views) -> layout-spacing.md "Navigation structure".
 
 ## Containers and Layout
 - Do not widgetize everything: never wrap each chart/section in its own frame. Separate with section-header typography and white space instead.
 - When cards are needed, go borderless: white card on very light gray page + near-invisible shadow. No heavy borders, no dark shadows.
 - Reuse ONE pattern for all section headers and ONE for all chart legends - repeated anatomy makes the interface learnable.
 - Keep search and key functions in predictable global positions (top/center), fixed across screens.
-- Object/list cards: key metric right-aligned, date centered, actions collapsed into a triple-dot menu - never a row of visible buttons.
+- Object/list cards: key metric right-aligned, date centered, actions in the trailing overflow menu (Tables and lists).
 
 ## Tables and lists
 - Tables are the primary work surface of most dashboards - invest here before any chrome. Users come to scan, sort, and act on rows, not to admire the frame.
 - Every data table needs column sorting and filtering; add a search box once the list outgrows one screen. Keep the active filter/sort visible so users know why rows are missing.
 - Right-align numeric columns on tabular figures so digits line up for down-column comparison (label/value treatment -> typography.md "Data display").
 - Bulk actions are contextual: a leading checkbox column, and a bulk-action bar (delete, export, move, assign) that appears ONLY after at least one row is selected - never a standing button per row. Show the selected-count and a clear-selection control in that bar.
-- Collapse per-row actions into a trailing overflow (triple-dot) menu, not a row of visible buttons.
+- Collapse per-row and per-card actions into a trailing overflow (triple-dot) menu, never a row of visible buttons.
 - Long tables: sticky header row plus pagination or virtualized scroll - never render thousands of DOM rows at once.
 
 ## KPI Stat Tiles
@@ -49,14 +49,13 @@ Read when designing SaaS dashboards, KPI tiles, app navigation/sidebars, billing
 ## Sidebar and Navigation
 - Sidebar: left-aligned labels, dense professional spacing, navigation only (e.g. Dashboard, Analytics).
 - Low-frequency items - Settings, Billing, Teams, Custom Domains, Logout - never in main nav; consolidate them into the account-card popover or a settings screen.
-- Visually separate global navigation from local controls (filters that act only within the current section).
 
 ## Account and Identity
 - Replace gradient initial-circles (default AI-generator output) with account cards: avatar + name + secondary line.
 - Clicking the account card opens a popover holding settings, billing, and logout.
 
 ## Icons
-- Use a system icon library - Lucide or Phosphor - for consistent stroke width and legibility across scales.
+- Use one system icon library (Lucide, Phosphor or a peer) for consistent stroke width and legibility across scales, retuned to the surface - the stock set as scaffolded is itself a tell (anti-slop.md).
 - No emoji as UI icons. Notion's emoji use is a brand-specific exception, not a SaaS standard.
 - No icon library available (single-file deliverable, no dependencies)? Inline the SVG paths - never fall back to emoji or unicode glyphs.
 - Inline SVG craft: set `fill`/`stroke` to `currentColor` so the icon inherits the surrounding text color, use `viewBox="0 0 24 24"`, and include a `<title>` element naming what the icon means. For outlined styles, use round line caps and joins.

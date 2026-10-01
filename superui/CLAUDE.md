@@ -11,8 +11,10 @@ reasons about a host's own design system and never overwrites it.
   every other reference is routed on demand from there. Other references point back to it by name
   (a bare `(anti-slop.md)` pointer or "anti-slop.md, already loaded") and never restate its
   catalog of tells.
-- A new reference needs a routing line in `SKILL.md`, or the skill never reads it. The design-pass
-  steps and routing lines name references by `references/<file>.md`, relative to the skill dir.
+- A new reference needs a routing line in `SKILL.md`, or the skill never reads it. `SKILL.md` names
+  every reference as `${CLAUDE_SKILL_DIR}/references/<file>.md`, the form substituted at load;
+  inside a reference that variable is not substituted, so references name each other by bare
+  filename and point at `SKILL.md` sections by heading (the contrast script run included).
 - The skill forbids em/en dashes in everything it outputs (UI copy, code, reports), not only in
   this repo's files.
 

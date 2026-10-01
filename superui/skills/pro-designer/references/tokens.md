@@ -1,6 +1,6 @@
 # Token Architecture: Primitive, Semantic, Component
 
-Read when building or reviewing a host project's own token system - CSS variables, a theming mechanism, dark-mode switching, or z-index layering - before writing the first token or `:root` block. Advisory for projects building their own system; an existing project token set wins (design-system precedence above).
+Read when building or reviewing a host project's own token system - CSS variables, a theming mechanism, dark-mode switching, or z-index layering - before writing the first token or `:root` block. Advisory for projects building their own system; an existing project token set wins (SKILL.md "Design-system precedence").
 
 ## Three layers
 
@@ -18,7 +18,7 @@ Read when building or reviewing a host project's own token system - CSS variable
 
 - Dark mode overrides ONLY the semantic layer (`--color-background`, `--color-card`, `--color-muted-foreground`, ...). Primitive values never change - a primitive is a fact about a color, not a statement about a theme.
 - Component tokens need no dark-mode override of their own: they inherit the swap automatically because they already point at semantic tokens.
-- The physiology behind which values a dark surface actually needs (never pure black, elevation via lightness not shadow) lives in `references/color.md` - this file covers only the switching mechanism.
+- The physiology behind which values a dark surface actually needs (never pure black, elevation via lightness not shadow) lives in color.md - this file covers only the switching mechanism.
 
 ## Pairing and naming
 

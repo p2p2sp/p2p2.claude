@@ -4,8 +4,8 @@
 # bundled .ts step. The bundled scripts are TypeScript executed directly by Node's
 # native type stripping (no build step, no npm install), which needs Node >= 22.6
 # (behind --experimental-strip-types) or >= 23.6 (on by default). Resolves the exact
-# command able to run them so the skill can substitute it (or halt with a clear
-# message) before any `node …` step - instead of the agent hitting a raw
+# command able to run them so the skill can substitute it (or skip the step with a
+# clear note) before any `node …` step - instead of the agent hitting a raw
 # `node: command not found` or an unsupported-syntax error on an old Node.
 #
 # IN : (no args)

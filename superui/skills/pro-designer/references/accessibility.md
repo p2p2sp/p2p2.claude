@@ -11,7 +11,7 @@ Read when writing any CSS/HTML with colors, text, interactive elements, or touch
   - Bad: `::placeholder { color: #AAA; }` on white (~2.3:1)
   - Good: `::placeholder { color: #767676; }` or darker
 - Only exemptions: genuinely disabled controls, logos/brand names, pure decoration.
-- Low-contrast text is the most common detected accessibility failure on the web (~80% of top-million home pages every year since 2019, WebAIM Million) - and the most common defect in AI-generated UIs.
+- Low-contrast text is the most common detected accessibility failure on the web (~80% of top-million home pages every year since 2019) - and the most common defect in AI-generated UIs.
 
 ## UI component and state contrast (SC 1.4.11, Level AA)
 - Everything needed to identify a component or its state: >= 3:1 against adjacent colors. 2.999:1 fails.
@@ -40,7 +40,7 @@ Read when writing any CSS/HTML with colors, text, interactive elements, or touch
 
 ## Text over images
 - Text over images/gradients must pass its ratio (4.5:1, 3:1 large) at EVERY point - verify against the lightest pixel it can sit on, not the average. Responsive crops and user-supplied images make the safe area unpredictable.
-- Fixes: semi-transparent dark scrim (NN/g example needed 50% opacity, not 30%), bottom "floor fade" gradient, blurred region behind text, or solid/semi-opaque text container.
+- Fixes: semi-transparent dark scrim (around 50% opacity; 30% is typically too weak), bottom "floor fade" gradient, blurred region behind text, or solid/semi-opaque text container.
 - Same rule for functional icons over imagery (a save/close/play control on a photo): give the icon a high-contrast backing - a solid or semi-opaque circle/pill behind it, or a drop shadow - so it clears 3:1 against whatever pixel it lands on (SC 1.4.11), not just the average.
 
 ## De-emphasis without low contrast
@@ -49,13 +49,9 @@ Read when writing any CSS/HTML with colors, text, interactive elements, or touch
 - Grayed-out styling is reserved exclusively for genuinely disabled controls - the one exempt interactive case. Never style active/clickable/informative content in the disabled-gray register.
 
 ## Touch / pointer targets
-- WCAG 2.5.8 (AA): 24 x 24 CSS px minimum.
-- WCAG 2.5.5 (AAA): 44 x 44 CSS px.
-- Apple HIG (iOS/iPadOS/watchOS): 44 x 44 pt.
-- Material / Android: 48 x 48 dp (~9mm; add 8dp+ spacing between targets).
+- Platform minimums (WCAG 2.5.8 AA, iOS, Android) live in the SKILL.md non-negotiables. On top of them: WCAG 2.5.5 (AAA) asks 44 x 44 CSS px, visionOS 60 x 60 pt, Android 8dp+ spacing between targets. Apple's unit is points (density-independent), not pixels.
 - WCAG AA spacing exception: an undersized target passes if a 24 CSS px diameter circle centered on it does not intersect another target or another such circle.
-- Apple's unit is points (density-independent), not pixels; visionOS wants 60 x 60 pt.
-- For anything a finger touches, design to 44-48, not the 24px legal floor. On the 8px grid that means 48px controls, or a 40px control with its hit area expanded to 48px (padding or overlay).
+- Designing to 44-48 on the 8px grid means 48px controls, or a 40px control with its hit area expanded to 48px (padding or overlay).
 
 ## Resize and spacing resilience
 - Text must resize to 200% without horizontal scrolling to read a line (SC 1.4.4 / 1.4.8). Use relative units; never fixed-height text containers.
@@ -64,5 +60,5 @@ Read when writing any CSS/HTML with colors, text, interactive elements, or touch
 
 ## Contrast is a build step, not a review step
 - Contrast is deterministic: ratio = (L1 + 0.05) / (L2 + 0.05) via WCAG relative luminance. Do not eyeball it.
-- Run `"${CLAUDE_SKILL_DIR}/scripts/check_contrast.ts"` on EVERY foreground/background pair you emit - body text, placeholders, borders, icons, focus rings, text-over-scrim - and fix failures before delivery.
+- Run the contrast script (SKILL.md "Final QA") on EVERY foreground/background pair you emit - body text, placeholders, borders, icons, focus rings, text-over-scrim - and fix failures before delivery.
 - Pass each pair's type (`normal` | `large` | `ui`) so the verdict and exit code use the right threshold: 4.5:1 body, 3:1 large text, 3:1 components/focus. No rounding in your favor.

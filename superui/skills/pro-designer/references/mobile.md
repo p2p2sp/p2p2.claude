@@ -28,7 +28,7 @@ Active:   filled house icon + accent color + bold "Home"   (fill + color/weight 
 - Central elevated CTA pattern for the primary action (add/create/buy): 56px raised circle with a 24px icon in the accent color, centered in the bar - the most reachable, most distinct spot.
 - Separate the fixed bar from scrolling content with exactly one of: a 1px top border, a background color difference (e.g. white content / light-gray bar), or a subtle top shadow.
 - Never cover or modify the home-indicator safe area (bottom ~34pt on iOS) - controls placed there cause accidental app exits. The bar sits above it.
-- Tab-switch and tap feedback microinteractions: 0.3s, ease-in-out (sliding active indicator; radial + opacity tap feedback).
+- Tab-switch and tap feedback microinteractions: a sliding active indicator, radial + opacity tap feedback; durations and easing -> motion.md.
 
 ## Touch targets
 - Platform minimums are in the SKILL.md non-negotiables; full rules and the WCAG spacing exception in accessibility.md. Apple's unit is points (density-independent), Android's is dp.
