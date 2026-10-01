@@ -7,7 +7,7 @@
 - Do not repeat back decisions the user has already made unless asked.
 - Prefer questions in prose over `AskUserQuestion`.
 
-## Formating rules
+## Formatting rules
 - Never ever use an em dash (—) or an en dash (–). Instead use a plain hyphen (-), a comma, a colon, parentheses, or split the sentence. This applies everywhere.
 
 ## Interviewing rules
