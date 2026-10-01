@@ -3,8 +3,9 @@
  * host project from the skill's own bundled files and never overwrites a value
  * the project already carries: `.claude/viber.yml` from templates/viber.yml, and
  * `.gitignore` from templates/gitignore.txt when the project has none - otherwise
- * the file stays the user's and the single edit is the `.temp/` rule, appended
- * on its own line even when the file ends without one. `CLAUDE.md` is the one
+ * the file stays the user's and its only edits are the `.temp/` rule and the
+ * `.claude/viber.local.yml` entry (when no rule ignores that file yet), each
+ * appended on its own line even when the file ends without one. `CLAUDE.md` is the one
  * item it only REPORTS, never creates (a skeleton would name no command): the
  * line is `CLAUDE.md: present - <root>/CLAUDE.md`, the absolute path at the
  * repository root, so the skill can judge the content itself, or a plain
@@ -93,7 +94,9 @@ const GROUPED = [
   "",
 ].join("\n");
 
-const FLAT_SWITCH = /^(adr|memory|rules|qa|cleanup|final-review|plain-plan-review|issues|fast-path|baseline-tests)[ \t]*:/m;
+const LOCAL = ".claude/viber.local.yml";
+
+const FLAT_SWITCH =/^(adr|memory|rules|qa|cleanup|final-review|plain-plan-review|issues|fast-path|baseline-tests)[ \t]*:/m;
 
 // A stub gh is always first on PATH, so the gh line never depends on whether
 // the machine running the suite has the real one installed.
@@ -232,7 +235,7 @@ test("a project that already has a .gitignore keeps it: only the .temp/ rule is 
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^\.gitignore: \.temp\/ appended$/m);
-    assert.equal(read(ignore), "node_modules/\n*.log\n.temp/\n");
+    assert.equal(read(ignore), `node_modules/\n*.log\n.temp/\n${LOCAL}\n`);
   });
 });
 
@@ -244,11 +247,11 @@ test("an existing .gitignore with no final newline gets the rule on its own line
     const result = await run(dir, env);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.equal(read(ignore), "node_modules/\n*.log\n.temp/\n");
+    assert.equal(read(ignore), `node_modules/\n*.log\n.temp/\n${LOCAL}\n`);
   });
 });
 
-test("a bare '.temp' rule (no trailing slash) counts as present - the file is left byte-for-byte untouched", async () => {
+test("a bare '.temp' rule (no trailing slash) counts as present - no second .temp entry is appended", async () => {
   await withGitRepo(async ({ dir, env }) => {
     const ignore = path.join(dir, ".gitignore");
     const before = "# mine\n  .temp  \nbuild/\n";
@@ -258,7 +261,7 @@ test("a bare '.temp' rule (no trailing slash) counts as present - the file is le
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^\.gitignore: already ignores \.temp\/$/m);
-    assert.equal(read(ignore), before);
+    assert.equal(read(ignore), `${before}${LOCAL}\n`);
   });
 });
 
@@ -271,7 +274,106 @@ test("a commented-out .temp line does not count as the rule, so it is still appe
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^\.gitignore: \.temp\/ appended$/m);
-    assert.equal(read(ignore), "# .temp/\n.temp/\n");
+    assert.equal(read(ignore), `# .temp/\n.temp/\n${LOCAL}\n`);
+  });
+});
+
+test("the bundled .gitignore carries the .claude/viber.local.yml entry, so a fresh seed needs no append", () => {
+  assert.match(read(TEMPLATE_GITIGNORE), /^\.claude\/viber\.local\.yml$/m);
+});
+
+test("an existing .gitignore with no rule for the local file gets it on its own line, reported right after the .temp/ line", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const ignore = path.join(dir, ".gitignore");
+    fs.writeFileSync(ignore, "node_modules/\n");
+
+    const result = await run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^\.gitignore: \.temp\/ appended\n\.gitignore: \.claude\/viber\.local\.yml appended\n/m);
+    assert.equal(read(ignore), `node_modules/\n.temp/\n${LOCAL}\n`);
+  });
+});
+
+test("an existing .gitignore with no final newline gets the local-file entry on its own line when .temp/ is already ruled (a glued 'build/.claude/viber.local.yml' would ignore nothing)", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const ignore = path.join(dir, ".gitignore");
+    fs.writeFileSync(ignore, ".temp/\nbuild/"); // no trailing newline
+
+    const result = await run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^\.gitignore: \.claude\/viber\.local\.yml appended$/m);
+    assert.equal(read(ignore), `.temp/\nbuild/\n${LOCAL}\n`);
+  });
+});
+
+test("an existing .gitignore whose '*.local.yml' rule already ignores the local file is left byte-identical and prints no local-file line", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const ignore = path.join(dir, ".gitignore");
+    const before = ".temp/\n*.local.yml\n";
+    fs.writeFileSync(ignore, before);
+
+    const result = await run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stdout, /viber\.local\.yml/);
+    assert.equal(read(ignore), before);
+  });
+});
+
+test("a second run after the local-file entry was appended leaves .gitignore byte-identical and prints no local-file line", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const ignore = path.join(dir, ".gitignore");
+    fs.writeFileSync(ignore, "node_modules/\n");
+    await run(dir, env);
+    const afterFirst = read(ignore);
+
+    const second = await run(dir, env);
+
+    assert.equal(second.status, 0, `stderr: ${second.stderr}`);
+    assert.doesNotMatch(second.stdout, /viber\.local\.yml/);
+    assert.equal(read(ignore), afterFirst);
+  });
+});
+
+test("a run from a subdirectory of a fresh repository leaves the seeded .gitignore byte-identical to the template and prints no local-file line", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const nested = path.join(dir, "src", "deep");
+    fs.mkdirSync(nested, { recursive: true });
+
+    const result = await run(nested, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stdout, /viber\.local\.yml/);
+    assert.equal(read(path.join(dir, ".gitignore")), read(TEMPLATE_GITIGNORE));
+  });
+});
+
+test("outside a repository an existing .gitignore gets the local-file entry appended when no line reads exactly that path", async () => {
+  await withTempDir("p2p2-viber-bootstrap-", async (dir) => {
+    const ignore = path.join(dir, ".gitignore");
+    fs.writeFileSync(ignore, ".temp/\n*.local.yml\n");
+
+    const result = await run(dir);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^\.gitignore: \.claude\/viber\.local\.yml appended$/m);
+    assert.equal(read(ignore), `.temp/\n*.local.yml\n${LOCAL}\n`);
+  });
+});
+
+test("outside a repository a line reading exactly the local-file path, blanks around it allowed, leaves .gitignore byte-identical and prints no local-file line", async () => {
+  await withTempDir("p2p2-viber-bootstrap-", async (dir) => {
+    const ignore = path.join(dir, ".gitignore");
+    const before = `.temp/\n  ${LOCAL}  \n`;
+    fs.writeFileSync(ignore, before);
+
+    const result = await run(dir);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stdout, /viber\.local\.yml/);
+    assert.equal(read(ignore), before);
   });
 });
 
@@ -691,7 +793,7 @@ test("a rooted '/.temp/' rule counts as present - no second .temp entry is appen
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^\.gitignore: already ignores \.temp\/$/m);
-    assert.equal(read(ignore), before);
+    assert.equal(read(ignore), `${before}${LOCAL}\n`);
   });
 });
 
@@ -705,7 +807,7 @@ test("a '.temp/**' glob rule counts as present - no second .temp entry is append
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^\.gitignore: already ignores \.temp\/$/m);
-    assert.equal(read(ignore), before);
+    assert.equal(read(ignore), `${before}${LOCAL}\n`);
   });
 });
 
@@ -719,7 +821,7 @@ test("a '.temp/*' glob rule counts as present - no second .temp entry is appende
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^\.gitignore: already ignores \.temp\/$/m);
-    assert.equal(read(ignore), before);
+    assert.equal(read(ignore), `${before}${LOCAL}\n`);
   });
 });
 
@@ -733,7 +835,7 @@ test("an unanchored '**/.temp/' rule counts as present - no second .temp entry i
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^\.gitignore: already ignores \.temp\/$/m);
-    assert.equal(read(ignore), before);
+    assert.equal(read(ignore), `${before}${LOCAL}\n`);
   });
 });
 
@@ -747,7 +849,7 @@ test("a negated '!.temp/' rule does NOT count as present - the entry is still ap
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^\.gitignore: \.temp\/ appended$/m);
-    assert.equal(read(ignore), before + ".temp/\n");
+    assert.equal(read(ignore), `${before}.temp/\n${LOCAL}\n`);
   });
 });
 

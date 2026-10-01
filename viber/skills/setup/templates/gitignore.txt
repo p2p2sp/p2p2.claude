@@ -41,6 +41,7 @@ $RECYCLE.BIN/
 # Claude Code and viber
 .temp/
 .claude/settings.local.json
+.claude/viber.local.yml
 CLAUDE.local.md
 .claude/viber.yml.viber-merge.*
 

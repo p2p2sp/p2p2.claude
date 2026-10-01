@@ -50,7 +50,14 @@
 #                                      a failed merge leaves the original)
 #            <root>/.gitignore        (seeded from templates/gitignore.txt when the
 #                                      project has none, otherwise ".temp/" is
-#                                      appended only when no rule ignores it)
+#                                      appended only when no rule ignores it;
+#                                      then ".claude/viber.local.yml", the
+#                                      personal overrides file, is appended on
+#                                      its own line only when it is not ignored
+#                                      yet: `git check-ignore` run at the
+#                                      repository root decides inside a
+#                                      repository, a line reading exactly that
+#                                      path outside one)
 #   reads  : <root>/.claude/settings.json (never written - compared byte for
 #                                      byte with templates/settings.json; the
 #                                      skill asks reset or merge only when it
@@ -72,6 +79,10 @@
 #            exactly "settings.json: absent", "settings.json: matches the template
 #            (left untouched)" (byte-identical to the template) or
 #            "settings.json: present" (any difference, or the template missing).
+#            Right after the .temp/ ".gitignore:" line, when the file exists and
+#            does not ignore the overrides file yet, exactly one of
+#            ".gitignore: .claude/viber.local.yml appended" or ".gitignore:
+#            could not write <root>/.gitignore"; nothing when it is ignored.
 #            The CLAUDE.md line is exactly
 #            "CLAUDE.md: present - <root>/CLAUDE.md" (<root> as
 #            `git rev-parse --show-toplevel` prints it, or the cwd base outside a
@@ -87,8 +98,10 @@ template_gitignore="$here/../templates/gitignore.txt"
 template_settings="$here/../templates/settings.json"
 
 root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+git_root="$root"
 if [ -z "$root" ] || [ ! -d "$root" ]; then
   root="$(pwd -W 2>/dev/null || pwd)"
+  git_root=""
 fi
 
 # The merge reads the template first and the config second. A key is read with
@@ -314,6 +327,30 @@ else
     echo ".gitignore: .temp/ appended"
   else
     echo ".gitignore: could not write $ignore"
+  fi
+fi
+
+# The personal overrides file is never committed: an existing .gitignore with no
+# rule for it gets the entry. Inside a repository git itself answers whether the
+# file is ignored (any pattern, any ignore source), asked at the repository root
+# whatever the cwd; outside one only a line reading exactly the path counts.
+# Nothing is printed when it is already ignored.
+local_entry=".claude/viber.local.yml"
+if [ -f "$ignore" ]; then
+  if [ -n "$git_root" ]; then
+    git -C "$root" check-ignore -q "$local_entry" >/dev/null 2>&1 && local_ignored=1 || local_ignored=0
+  else
+    grep -qE '^[[:space:]]*\.claude/viber\.local\.yml[[:space:]]*$' "$ignore" 2>/dev/null && local_ignored=1 || local_ignored=0
+  fi
+  if [ "$local_ignored" = 0 ]; then
+    if [ -s "$ignore" ] && [ -n "$(tail -c1 "$ignore")" ]; then
+      printf '\n' >> "$ignore" 2>/dev/null
+    fi
+    if printf '%s\n' "$local_entry" >> "$ignore" 2>/dev/null; then
+      echo ".gitignore: $local_entry appended"
+    else
+      echo ".gitignore: could not write $ignore"
+    fi
   fi
 fi
 
