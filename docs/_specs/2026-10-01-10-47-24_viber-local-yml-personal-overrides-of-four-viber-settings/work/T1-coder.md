@@ -1,0 +1,4 @@
+- C2 `<overridden>` lists a key that held a valid local value, even when the min-above-max reset then printed the defaults: C2 says "took a local value", C1 puts the reset after per-key resolution. Say so if the reset should drop them from the list.
+- A direct child must sit at the exact indentation of the group's first key line; a line indented less (but not column 0) is neither read nor named.
+- A column-0 key line with a value is named, and so is one with no key grammar match skipped silently (e.g. `---`).
+- Local values reach awk only as the file path argument; the block rewrite for baseline-tests and github.issues is a bash loop, so no value goes through `-v`.

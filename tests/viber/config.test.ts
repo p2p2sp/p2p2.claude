@@ -22,6 +22,10 @@
  * persisted knowledge" rests on it: a slash, a traversal or an absolute path
  * leaves the default standing.
  *
+ * An optional `.claude/viber.local.yml` overrides four keys for one person only
+ * (`tiers.min`, `tiers.max`, `build.baseline-tests`, `github.issues`); every
+ * other key in it is ignored and named on one comment line of the block.
+ *
  * `--branching` prints the branching report instead of the block: the mode, the
  * valid work entries and issue type mappings in file order, then one `error:`
  * line per configuration problem - still exit 0 whatever the file holds.
@@ -37,6 +41,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { runScript } from "../harness/run.ts";
+import { canDenyRead, denyRead, restoreRead } from "../harness/perms.ts";
 import { withGitRepo, withTempDir } from "../harness/tmp.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/config.sh");
@@ -895,3 +900,230 @@ for (const mode of ["off", "gitflow"]) {
     });
   });
 }
+
+// --- the local overrides file ---
+
+function writeLocal(root: string, body: string): void {
+  fs.mkdirSync(path.join(root, ".claude"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".claude", "viber.local.yml"), body);
+}
+
+/** The block's lines after the header and the C2 comment line. */
+function keyLines(stdout: string): string[] {
+  return stdout.trim().split("\n").slice(2);
+}
+
+/** The local comment line, or undefined when none was printed. */
+function localLine(stdout: string): string | undefined {
+  return stdout.split(/\r?\n/).find((line) => line.startsWith("# local: "));
+}
+
+const DEFAULT_BLOCK = [
+  "planning.adr: false",
+  "planning.plain-plan-review: false",
+  "planning.fast-path: false",
+  "build.baseline-tests: off",
+  "build.final-review: false",
+  "build.memory: false",
+  "build.rules: false",
+  "build.qa: false",
+  "build.cleanup: false",
+  "github.issues: false",
+  "github.issue-title: {summary}",
+  "github.pr-title: [{issue-number}] {summary}",
+  "directories.runs: _specs",
+  "directories.specifications: specs",
+  "tiers.min: haiku",
+  "tiers.max: opus",
+  "branching.mode: off",
+];
+
+test("a local file setting all four keys prints the local value on those four lines and the shared value on every other line", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(
+      dir,
+      inGroup("planning", "adr: true") + inGroup("build", "baseline-tests: full", "memory: true") + inGroup("github", "issues: false") + inGroup("tiers", "min: haiku", "max: opus"),
+    );
+    writeLocal(dir, inGroup("tiers", "min: Sonnet", "max: fable") + inGroup("build", "baseline-tests: fast") + inGroup("github", "issues: TRUE"));
+
+    const result = await run(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(result.stdout.trim().split("\n"), [
+      "# viber config (resolved)",
+      "# local: build.baseline-tests, github.issues, tiers.min, tiers.max | ignored: none",
+      "planning.adr: true",
+      "planning.plain-plan-review: false",
+      "planning.fast-path: false",
+      "build.baseline-tests: fast",
+      "build.final-review: false",
+      "build.memory: true",
+      "build.rules: false",
+      "build.qa: false",
+      "build.cleanup: false",
+      "github.issues: true",
+      "github.issue-title: {summary}",
+      "github.pr-title: [{issue-number}] {summary}",
+      "directories.runs: _specs",
+      "directories.specifications: specs",
+      "tiers.min: sonnet",
+      "tiers.max: fable",
+      "branching.mode: off",
+    ]);
+  });
+});
+
+test("a local `tiers.max` alone leaves the shared `tiers.min` standing", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(dir, inGroup("tiers", "min: sonnet"));
+    writeLocal(dir, inGroup("tiers", "max: fable"));
+
+    assert.deepEqual(tiers((await run(dir)).stdout), { min: "sonnet", max: "fable" });
+  });
+});
+
+for (const [label, shared, local, key, expected] of [
+  ["tiers.max: gpt", inGroup("tiers", "max: sonnet"), inGroup("tiers", "max: gpt"), "tiers.max", "tiers.max: sonnet"],
+  ["github.issues: maybe", inGroup("github", "issues: true"), inGroup("github", "issues: maybe"), "github.issues", "github.issues: true"],
+  ["build.baseline-tests: half", inGroup("build", "baseline-tests: fast"), inGroup("build", "baseline-tests: half"), "build.baseline-tests", "build.baseline-tests: fast"],
+  ["tiers.min with no value", inGroup("tiers", "min: sonnet"), inGroup("tiers", "min:   # none"), "tiers.min", "tiers.min: sonnet"],
+] as const) {
+  test(`an invalid local value (${label}) leaves the shared value on that line and names the key under ignored`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
+      writeConfig(dir, shared);
+      writeLocal(dir, local);
+
+      const stdout = (await run(dir)).stdout;
+      assert.equal(printedLine(stdout, key), expected);
+      assert.equal(localLine(stdout), `# local: none | ignored: ${key}`);
+    });
+  });
+}
+
+for (const [key, shared, local, expected] of [
+  ["build.memory", inGroup("build", "memory: true"), inGroup("build", "memory: false"), "build.memory: true"],
+  ["planning.adr", inGroup("planning", "adr: true"), inGroup("planning", "adr: false"), "planning.adr: true"],
+  ["directories.runs", group({ runs: "builds" }), group({ runs: "elsewhere" }), "directories.runs: builds"],
+] as const) {
+  test(`a local ${key} leaves that line at the shared value and is named under ignored`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
+      writeConfig(dir, shared);
+      writeLocal(dir, local);
+
+      const stdout = (await run(dir)).stdout;
+      assert.equal(printedLine(stdout, key), expected);
+      assert.equal(localLine(stdout), `# local: none | ignored: ${key}`);
+    });
+  });
+}
+
+test("a key repeated in the local file is named once, at its first occurrence", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeLocal(dir, inGroup("build", "memory: true", "qa: true", "memory: false"));
+
+    assert.equal(localLine((await run(dir)).stdout), "# local: none | ignored: build.memory, build.qa");
+  });
+});
+
+test("a local `branching:` group names `branching.work` and not the entry lines nested under it", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeLocal(dir, ["branching:", "  work:", "    fix:", "      base: main", "      name: fix/{slug}", "      target: main", ""].join("\n"));
+
+    assert.equal(localLine((await run(dir)).stdout), "# local: none | ignored: branching.work");
+  });
+});
+
+test("a column-0 key carrying a value is named under ignored, a group header is not", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeLocal(dir, ["memory: true", "schema: 3", inGroup("tiers", "max: fable")].join("\n"));
+
+    assert.equal(localLine((await run(dir)).stdout), "# local: tiers.max | ignored: memory, schema");
+  });
+});
+
+test("the first assignment of a local key wins, so an invalid first one is ignored even when a valid one follows", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeLocal(dir, inGroup("tiers", "max: gpt", "max: fable"));
+
+    const stdout = (await run(dir)).stdout;
+    assert.equal(printedLine(stdout, "tiers.max"), "tiers.max: opus");
+    assert.equal(localLine(stdout), "# local: none | ignored: tiers.max");
+  });
+});
+
+test("a CRLF local file takes its values without a stray CR", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeLocal(dir, "tiers:\r\n  max: fable\r\ngithub:\r\n  issues: true\r\n");
+
+    const stdout = (await run(dir)).stdout;
+    assert.equal(printedLine(stdout, "tiers.max"), "tiers.max: fable");
+    assert.equal(localLine(stdout), "# local: github.issues, tiers.max | ignored: none");
+  });
+});
+
+test("a merged range with min above max resets both tiers", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(dir, inGroup("tiers", "min: sonnet", "max: opus"));
+    writeLocal(dir, inGroup("tiers", "max: haiku"));
+
+    assert.deepEqual(tiers((await run(dir)).stdout), { min: "haiku", max: "opus" });
+  });
+});
+
+test("with a local file present the comment line is the second line and the key lines follow in the existing order", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeLocal(dir, inGroup("build", "memory: true"));
+
+    const stdout = (await run(dir)).stdout;
+    assert.equal(stdout.trim().split("\n")[1], "# local: none | ignored: build.memory");
+    assert.deepEqual(keyLines(stdout), DEFAULT_BLOCK);
+  });
+});
+
+test("a local file in the repository root is read from a session started in a subdirectory", async () => {
+  await withGitRepo(async (repo) => {
+    writeLocal(repo.dir, inGroup("tiers", "max: fable"));
+    const nested = path.join(repo.dir, "src", "deep");
+    fs.mkdirSync(nested, { recursive: true });
+
+    const result = await runScript(SUT, [], { cwd: nested, env: repo.env, shell: "bash" });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(printedLine(result.stdout, "tiers.max"), "tiers.max: fable");
+  });
+});
+
+test("a malformed local file still exits 0 and leaves the shared values", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(dir, inGroup("tiers", "max: sonnet"));
+    writeLocal(dir, "\u0000\u0001 not: yaml: at: all\n");
+
+    const result = await run(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(tiers(result.stdout), { min: "haiku", max: "sonnet" });
+  });
+});
+
+test("an unreadable local file still exits 0 and leaves the shared values", { skip: canDenyRead() ? false : "this account cannot make a file unreadable" }, async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(dir, inGroup("tiers", "max: sonnet"));
+    writeLocal(dir, inGroup("tiers", "max: fable"));
+    const local = path.join(dir, ".claude", "viber.local.yml");
+    denyRead(local);
+    try {
+      const result = await run(dir);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.deepEqual(tiers(result.stdout), { min: "haiku", max: "sonnet" });
+    } finally {
+      restoreRead(local);
+    }
+  });
+});
+
+test("--branching prints the same report with and without a local file carrying a branching group", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(dir, GITFLOW.join("\n"));
+    const without = await report(dir);
+    writeLocal(dir, ["branching:", "  mode: off", "  work:", "    fix:", "      base: other", "      name: x/{slug}", "      target: other", ""].join("\n"));
+
+    assert.deepEqual(await report(dir), without);
+  });
+});

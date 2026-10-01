@@ -74,6 +74,20 @@
 #            (any case, printed lowercase), anything else -> off. The branch
 #            bases and name patterns live in `branching.work` entries, read by
 #            `--branching` alone.
+#   file   : <repo root>/.claude/viber.local.yml (optional, the same layout and
+#            key grammar, personal and git-ignored; outside a repository
+#            .claude/viber.local.yml under the cwd). It overrides exactly four
+#            keys: tiers.min and tiers.max (haiku, sonnet, opus or fable, any
+#            case), build.baseline-tests (off, fast, full, true -> full,
+#            false -> off) and github.issues (true or false). A valid local
+#            value replaces that one key; an empty or invalid one leaves the
+#            shared value. The min-above-max reset runs on the merged range.
+#            Every other direct child of any group, and every column-0 key
+#            carrying a value, is ignored. A direct child is a key line at the
+#            indentation of the first key line inside its group; a deeper line
+#            is neither read nor named. The first assignment of a key wins, and
+#            a key is named once however often the file repeats it.
+#            `--branching` never reads this file.
 #   stdout : a header line, then one `<group>.<key>: <true|false>` line per
 #            switch (`build.baseline-tests: <off|fast|full>`), one `github.<key>: <pattern>` line per title, one
 #            `directories.<key>: <name>` line per directory key, one
@@ -98,6 +112,13 @@
 #              tiers.min: haiku
 #              tiers.max: opus
 #              branching.mode: off
+#            When the local file exists, one line follows the header:
+#              # local: <overridden> | ignored: <ignored>
+#            <overridden> is the keys that took a local value, in block order,
+#            joined by `, ` (`none` when empty); <ignored> the ignored keys in
+#            file order (a group child as <group>.<key>, a column-0 key as
+#            <key>), joined by `, ` (`none` when empty). Every other line is
+#            unchanged. An unreadable local file reads as `none` twice.
 #   stdout (--branching): the `branching:` group read by indentation - its
 #            direct children are `mode`, `work` and `issue-type-mappings`; a
 #            child of `work` is one work entry, its own `base`, `name` and
@@ -139,6 +160,7 @@ if [ -n "$repo_root" ] && [ -d "$repo_root" ]; then
 else
   cfg=".claude/viber.yml"
 fi
+local_cfg="$(dirname "$cfg")/viber.local.yml"
 
 # The switch and title lines of the block, in their fixed order, from one pass
 # over the file. A column-0 key opens its group; a blank line or a column-0
@@ -184,6 +206,59 @@ END {
   }
   print "github.issue-title: " title(raw["github.issue-title"], "{summary}")
   print "github.pr-title: " title(raw["github.pr-title"], "[{issue-number}] {summary}")
+}
+'
+
+# The local overrides, one line each, in file order: `V <group.key> <value>` for
+# one of the four overridable keys holding a valid value (baseline-tests
+# normalized to off, fast or full), `I <name>` for an ignored key. A group child
+# counts only at the indentation of the first key line inside its group.
+local_prog='
+function clean(v) {
+  sub(/^[[:space:]]+/, "", v)
+  sub(/[[:space:]#].*$/, "", v)
+  return tolower(v)
+}
+/^[^[:space:]#]/ {
+  grp = ""
+  l1 = 0
+  line = $0
+  sub(/\r$/, "", line)
+  if (line !~ /^[A-Za-z0-9_-]+[[:space:]]*:/) next
+  key = line
+  sub(/[[:space:]]*:.*$/, "", key)
+  val = line
+  sub(/^[^:]*:/, "", val)
+  if (clean(val) == "") grp = key
+  else if (!(key in seen)) { seen[key] = 1; print "I " key }
+  next
+}
+grp != "" {
+  line = $0
+  sub(/\r$/, "", line)
+  if (!match(line, /^[[:space:]]+/)) next
+  ind = RLENGTH
+  rest = substr(line, ind + 1)
+  if (rest !~ /^[A-Za-z0-9_-]+[[:space:]]*:/) next
+  if (l1 == 0) l1 = ind
+  if (ind != l1) next
+  key = rest
+  sub(/[[:space:]]*:.*$/, "", key)
+  val = rest
+  sub(/^[^:]*:/, "", val)
+  val = clean(val)
+  id = grp "." key
+  if (id in seen) next
+  seen[id] = 1
+  ok = 0
+  if (id == "tiers.min" || id == "tiers.max") ok = (val == "haiku" || val == "sonnet" || val == "opus" || val == "fable")
+  else if (id == "build.baseline-tests") {
+    ok = (val == "off" || val == "fast" || val == "full" || val == "true" || val == "false")
+    if (val == "true") val = "full"
+    if (val == "false") val = "off"
+  } else if (id == "github.issues") ok = (val == "true" || val == "false")
+  if (ok) print "V " id " " val
+  else print "I " id
 }
 '
 
@@ -345,8 +420,47 @@ src="$cfg"
 block="$(awk -v sq="'" "$switches_prog" "$src" 2>/dev/null || true)"
 [ -n "$block" ] || block="$(awk -v sq="'" "$switches_prog" /dev/null)"
 
+loc_bt=""
+loc_gi=""
+loc_min=""
+loc_max=""
+loc_ignored=""
+overridden=""
+if [ -f "$local_cfg" ]; then
+  while IFS=' ' read -r tag id val; do
+    case "$tag" in
+      V)
+        case "$id" in
+          build.baseline-tests) loc_bt="$val" ;;
+          github.issues) loc_gi="$val" ;;
+          tiers.min) loc_min="$val" ;;
+          tiers.max) loc_max="$val" ;;
+        esac
+        ;;
+      I) loc_ignored="${loc_ignored:+$loc_ignored, }$id" ;;
+    esac
+  done < <(awk "$local_prog" "$local_cfg" 2>/dev/null || true)
+  [ -z "$loc_bt" ] || overridden="${overridden:+$overridden, }build.baseline-tests"
+  [ -z "$loc_gi" ] || overridden="${overridden:+$overridden, }github.issues"
+  [ -z "$loc_min" ] || overridden="${overridden:+$overridden, }tiers.min"
+  [ -z "$loc_max" ] || overridden="${overridden:+$overridden, }tiers.max"
+fi
+
 echo "# viber config (resolved)"
-printf '%s\n' "$block"
+if [ -f "$local_cfg" ]; then
+  printf '# local: %s | ignored: %s\n' "${overridden:-none}" "${loc_ignored:-none}"
+fi
+if [ -n "$loc_bt$loc_gi" ]; then
+  while IFS= read -r line; do
+    case "$line" in
+      "build.baseline-tests: "*) [ -z "$loc_bt" ] || line="build.baseline-tests: $loc_bt" ;;
+      "github.issues: "*) [ -z "$loc_gi" ] || line="github.issues: $loc_gi" ;;
+    esac
+    printf '%s\n' "$line"
+  done < <(printf '%s\n' "$block")
+else
+  printf '%s\n' "$block"
+fi
 printf 'directories.runs: %s\n' "$(resolve_dir runs _specs)"
 printf 'directories.specifications: %s\n' "$(resolve_dir specifications specs)"
 
@@ -354,6 +468,8 @@ min="$(tier_rank "$(group_value tiers min || true)")"
 max="$(tier_rank "$(group_value tiers max || true)")"
 [ "$min" -eq 0 ] && min=1
 [ "$max" -eq 0 ] && max=3
+[ -z "$loc_min" ] || min="$(tier_rank "$loc_min")"
+[ -z "$loc_max" ] || max="$(tier_rank "$loc_max")"
 if [ "$min" -gt "$max" ]; then
   min=1
   max=3
