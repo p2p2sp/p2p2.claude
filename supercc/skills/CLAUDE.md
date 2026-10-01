@@ -7,6 +7,6 @@
 
 ## Linter severity against the doctrine
 
-- `lint_skill.sh` enforces some of the doctrine's hard caps more softly than `SKILL.md` states them: a reserved word in `name` is a WARN, a reference over 100 lines without a table of contents is a WARN up to 300 lines and a FAIL only past that, and italics are a WARN. Tightening or loosening one of these is a decision on both files, never a silent fix of one.
+- `lint_skill.sh` enforces some of the doctrine's hard caps more softly than `SKILL.md` states them: a reserved word in `name` is a WARN, a reference over 100 lines without a table of contents, or with one that does not match its `##` headings, is a WARN up to 300 lines and a FAIL only past that, and italics and an `I` or `you` in the description (the doctrine asks for the third person) are a WARN. Tightening or loosening one of these is a decision on both files, never a silent fix of one.
 - WARN-only thresholds with no doctrine counterpart: description over 800 chars, under 15 or over 120 words, no when-to-use cue; body over 400 lines; a `.sh` in `scripts/` without the exec bit.
 - The `scripts/` sweep skips `lint_skill.sh` by name, so linting `skill-designer` never flags the `jq`/`bc` pattern inside the linter's own regexes.

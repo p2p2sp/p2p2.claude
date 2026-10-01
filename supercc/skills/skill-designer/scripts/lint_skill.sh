@@ -82,6 +82,11 @@ if [ -n "$fm" ]; then
     [ "$desc_words" -gt 120 ] && warn "$main: description has $desc_words words, metadata should stay around 100"
     printf '%s' "$desc" | grep -Eiq '(use (this|it|when|whenever)|invoke|trigger|whenever)' \
       || warn "$main: description has no explicit when-to-use cue"
+    # first or second person; "I" stays case-sensitive so "i.e." and "I/O" pass
+    if printf '%s' "$desc" | grep -Eq "(^|[^[:alnum:]_/])I('m)?([[:space:],.;:!?]|$)" \
+      || printf '%s' "$desc" | grep -Eiq '(^|[^[:alnum:]_])your?([^[:alnum:]_]|$)'; then
+      warn "$main: description uses I or you, write it in the third person"
+    fi
   fi
 fi
 
@@ -158,13 +163,50 @@ if [ -n "$sweep_dir" ] && [ -d "$sweep_dir/references" ]; then
     [ -f "$r" ] || continue
     rl="$(wc -l < "$r" | tr -d ' ')"
     if [ "$rl" -gt 100 ]; then
-      if ! head -n 40 "$r" | grep -Eiq '(table of contents|^## contents|^# contents|^- \[.*\]\(#)'; then
-        if [ "$rl" -gt 300 ]; then
-          fail "$r: $rl lines without a table of contents"
-        else
-          warn "$r: $rl lines without a table of contents, partial reads see only the head"
-        fi
-      fi
+      # Prints NOTOC, or one MISMATCH line, or nothing when the table of
+      # contents matches. The table is the top-level list under a Contents
+      # heading, or link items to anchors, in the first 40 lines. Both ways
+      # round: every ## heading outside code fences needs an entry starting
+      # with its text, and every entry must start with some heading's text.
+      toc="$(awk '
+        function norm(s) { s = tolower(s); gsub(/[[:space:]]+/, " ", s); sub(/^ /, "", s); sub(/ $/, "", s); return s }
+        function starts(e, h) { return e == h || (substr(e, 1, length(h)) == h && substr(e, length(h) + 1, 1) !~ /[[:alnum:]]/) }
+        /^[[:space:]]*(```|~~~)/ { fence = !fence; next }
+        fence { next }
+        /^#/ {
+          t = $0; sub(/^#+[[:space:]]*/, "", t); sub(/[[:space:]#]*$/, "", t)
+          if (NR <= 40 && !toc && norm(t) ~ /^(table of )?contents$/) { toc = 1; intoc = 1; next }
+          intoc = 0
+          if ($0 ~ /^##[^#]/) { nh++; ho[nh] = t; hn[nh] = norm(t) }
+          next
+        }
+        NR <= 40 && (intoc || /^[-*+][[:space:]]+\[[^]]*\]\(#/) && /^([-*+]|[0-9]+\.)[[:space:]]/ {
+          toc = 1; e = $0; sub(/^([-*+]|[0-9]+\.)[[:space:]]+/, "", e)
+          if (e ~ /^\[/) { e = substr(e, 2); i = index(e, "]"); if (i) e = substr(e, 1, i - 1) }
+          ne++; eo[ne] = e; en[ne] = norm(e)
+        }
+        NR <= 40 && tolower($0) ~ /table of contents/ { toc = 1 }
+        END {
+          if (!toc) { print "NOTOC"; exit }
+          for (a = 1; a <= nh; a++) { f = 0; for (b = 1; b <= ne; b++) if (starts(en[b], hn[a])) f = 1; if (!f) miss = miss (miss ? ", " : "") ho[a] }
+          for (b = 1; b <= ne; b++) { f = 0; for (a = 1; a <= nh; a++) if (starts(en[b], hn[a])) f = 1; if (!f) dead = dead (dead ? ", " : "") eo[b] }
+          if (miss || dead) print "MISMATCH" (miss ? " missing: " miss : "") (miss && dead ? ";" : "") (dead ? " not a heading: " dead : "")
+        }
+      ' "$r")"
+      case "$toc" in
+        NOTOC)
+          if [ "$rl" -gt 300 ]; then
+            fail "$r: $rl lines without a table of contents"
+          else
+            warn "$r: $rl lines without a table of contents, partial reads see only the head"
+          fi ;;
+        MISMATCH*)
+          if [ "$rl" -gt 300 ]; then
+            fail "$r: table of contents does not match its ## headings -${toc#MISMATCH}"
+          else
+            warn "$r: table of contents does not match its ## headings -${toc#MISMATCH}"
+          fi ;;
+      esac
     fi
     grep -q "$(basename "$r")" "$main" || warn "$r: not referenced from $(basename "$main")"
   done
