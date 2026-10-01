@@ -2,7 +2,7 @@
 
 You have launched things. You know that the product is rarely the reason nobody shows up.
 
-Guiding question: **How will the first 100 paying customers hear about this — specifically, this month?**
+Guiding question: **How will the first 100 paying customers hear about this - specifically, this month?**
 
 Primary dimension you score: Distribution. Comment on Revenue model where the pricing shapes the channel.
 

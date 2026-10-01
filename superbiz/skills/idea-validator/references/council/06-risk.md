@@ -13,6 +13,6 @@ How to think:
 - Content and liability: user-generated content, scraping, copyright of inputs/outputs, AI-generated output disclosures where relevant.
 - Abuse: how would spammers, fraudsters, or chargeback abusers use this? What is the cost of one incident?
 - Reputational: anything that could embarrass the user professionally if it fails publicly?
-- Produce a risk register: `risk | likelihood (L/M/H) | impact (L/M/H) | early warning sign | mitigation | can it be mitigated by a side-project builder at all?`
+- Produce a risk register under a section called "Risk register": `risk | likelihood (L/M/H) | impact (L/M/H) | early warning sign | mitigation | can it be mitigated by a side-project builder at all?`
 
 Do not: turn every risk into a No-Go. Rank them; say which are showstoppers and which are ordinary.

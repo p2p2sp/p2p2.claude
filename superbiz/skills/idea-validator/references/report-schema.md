@@ -2,8 +2,6 @@
 
 `scripts/build_report.py` injects this JSON into `templates/report-template.html`; the template's JavaScript renders every section from it. Field names are load-bearing. Strings are plain text unless noted; the renderer escapes HTML. Arrays may be empty but must exist. All user-facing text is in the report language.
 
-Run `python3 scripts/build_report.py data.json out.html` — it lists missing required fields and exits non-zero until they are present.
-
 ## Contents
 
 Top-level keys of report-data.json, in order:
@@ -49,8 +47,8 @@ Top-level keys of report-data.json, in order:
       {
         "name": "Problem strength",       // in report language
         "key": "problem",                 // canonical key: problem | market | competition | advantage | revenue | distribution | timing | side_project_fit | autopilot_fit
-        "score": 3,                       // 1–5 integer (primary owner's score)
-        "range": "2–4",                   // "" when undisputed
+        "score": 3,                       // 1-5 integer (primary owner's score)
+        "range": "2-4",                   // "" when undisputed
         "weight": 2,
         "confidence": "high" | "medium" | "low",
         "owner": "Target customer",
@@ -64,7 +62,7 @@ Top-level keys of report-data.json, in order:
   "council": {
     "round2_held": true,
     "health": "Positions differed in round 1 (3 Go / 2 Pivot / 2 No-Go); Growth moved to Pivot in round 2.",
-    "agreed": [ "Claim — supported by: Customer, Analyst, Growth, Operator, Risk" ],
+    "agreed": [ "Claim - supported by: Customer, Analyst, Growth, Operator, Risk" ],
     "disputed": [
       {
         "topic": "Whether SEO is a viable channel",
@@ -121,8 +119,8 @@ Top-level keys of report-data.json, in order:
 
   "autopilot_fit": {
     "score": 3,
-    "hours_per_week_total": "2–4",
-    "layers": [ { "name": "Acquire", "hours": "0.5–1", "notes": "" }, { "name": "Deliver", "hours": "", "notes": "" }, { "name": "Maintain", "hours": "", "notes": "" } ],
+    "hours_per_week_total": "2-4",
+    "layers": [ { "name": "Acquire", "hours": "0.5-1", "notes": "" }, { "name": "Deliver", "hours": "", "notes": "" }, { "name": "Maintain", "hours": "", "notes": "" } ],
     "killers": [ { "killer": "", "fix_type": "remove|automate|redesign|none", "fix": "" } ]
   },
 
@@ -130,7 +128,7 @@ Top-level keys of report-data.json, in order:
     { "risk": "", "likelihood": "L|M|H", "impact": "L|M|H", "warning_sign": "", "mitigation": "", "mitigable": "yes|partly|no" }
   ],
 
-  "experiments": [                        // required, 3–8 entries, ordered
+  "experiments": [                        // required, 3-8 entries, ordered
     { "n": 1, "hypothesis": "", "test": "", "metric": "", "pass": "", "fail": "", "cost": "", "duration": "", "owner": "Growth" }
   ],
 
@@ -140,7 +138,6 @@ Top-level keys of report-data.json, in order:
     "data_gaps": [""],
     "methodology": "Short description of the run: sources searched, council rounds, weights used",
     "sources": [ { "title": "", "url": "", "date": "", "outdated": false } ],
-    "frameworks_verified_on": "2026-09-03",
     "closing_note": "Verdict = worth testing, not worth building …"
   },
 

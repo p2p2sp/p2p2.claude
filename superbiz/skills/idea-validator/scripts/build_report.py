@@ -91,7 +91,7 @@ def validate(d):
         check(keys == DIMENSION_KEYS, f"scorecard.dimensions keys must be exactly, in order: {DIMENSION_KEYS}", p)
         for x in dims:
             k = x.get("key")
-            check(isinstance(x.get("score"), int) and 1 <= x["score"] <= 5, f"dimension {k}: score must be int 1–5", p)
+            check(isinstance(x.get("score"), int) and 1 <= x["score"] <= 5, f"dimension {k}: score must be int 1-5", p)
             check(x.get("confidence") in CONF, f"dimension {k}: confidence must be high/medium/low", p)
             check(bool(x.get("justification")), f"dimension {k}: justification missing", p)
             check(isinstance(x.get("evidence"), list) and x["evidence"], f"dimension {k}: evidence list empty (use 'no data found')", p)
@@ -131,7 +131,7 @@ def validate(d):
                 check(isinstance(blk.get(sub), list), f"research.{k}.{sub} must be a list", p)
 
     ex = d.get("experiments")
-    check(isinstance(ex, list) and 3 <= len(ex) <= 8, "experiments must have 3–8 entries", p)
+    check(isinstance(ex, list) and 3 <= len(ex) <= 8, "experiments must have 3-8 entries", p)
     if isinstance(ex, list):
         for e in ex:
             for k in ["hypothesis", "test", "metric", "pass", "fail"]:

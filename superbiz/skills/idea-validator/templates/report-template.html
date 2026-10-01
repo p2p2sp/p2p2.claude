@@ -68,10 +68,10 @@
   const L = Object.assign({}, D.__default_labels || {}, D.labels || {});
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const link = (t,u) => u ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>` : esc(t);
-  const li = arr => (arr||[]).length ? '<ul>' + arr.map(x => `<li>${typeof x==='string'?esc(x):esc(x.text||'')}${x.url?' — '+link('↗',x.url):''}${x.outdated?`<span class="tag">${esc(L.outdated)}</span>`:''}</li>`).join('') + '</ul>' : `<p class="muted">—</p>`;
+  const li = arr => (arr||[]).length ? '<ul>' + arr.map(x => `<li>${typeof x==='string'?esc(x):esc(x.text||'')}${x.url?' - '+link('↗',x.url):''}${x.outdated?`<span class="tag">${esc(L.outdated)}</span>`:''}</li>`).join('') + '</ul>' : `<p class="muted">-</p>`;
   const conf = c => `<span class="conf ${esc(c)}">${esc(c)}</span>`;
   const verdictClass = v => ({'Go':'go','Pivot':'pivot','No-Go':'nogo'})[v] || 'pivot';
-  const table = (heads, rows) => rows.length ? `<table><thead><tr>${heads.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>` : `<p class="muted">—</p>`;
+  const table = (heads, rows) => rows.length ? `<table><thead><tr>${heads.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>` : `<p class="muted">-</p>`;
   const sec = (title, body, open=true) => `<details class="sec block" ${open?'open':''}><summary><h2>${esc(title)}</h2></summary><div>${body}</div></details>`;
   const inner = (title, body, open=false) => `<details class="inner" ${open?'open':''}><summary>${title}</summary><div>${body}</div></details>`;
   const fco = r => `<h4>${esc(L.facts)}</h4>${li(r.facts)}<h4>${esc(L.conclusions)}</h4>${li(r.conclusions)}<h4>${esc(L.open)}</h4>${li(r.open)}`;
@@ -102,14 +102,14 @@
   // --- scorecard ---
   const S = D.scorecard;
   html += sec(L.scorecard, `<div class="radar">${radar(S.dimensions)}<div style="flex:1;min-width:260px"><p><strong>${esc(L.weighted_total)}: ${esc(Number(S.total).toFixed(1))} / 5</strong></p>
-    ${table([L.dimension,L.score,L.weight,L.confidence,L.owner,L.dissenters], S.dimensions.map(d=>[esc(d.name), `<span class="num">${esc(d.score)}${d.range?` <span class="tag">${esc(d.range)}</span>`:''}</span>`, esc(d.weight), conf(d.confidence), esc(d.owner), esc((d.dissenters||[]).join(', ')||'—')]))}</div></div>
-    ${S.dimensions.map(d=>inner(`${esc(d.name)} — ${esc(d.score)}/5 ${conf(d.confidence)}`, `<p>${esc(d.justification)}</p><h4>${esc(L.evidence)}</h4>${li(d.evidence)}`)).join('')}`);
+    ${table([L.dimension,L.score,L.weight,L.confidence,L.owner,L.dissenters], S.dimensions.map(d=>[esc(d.name), `<span class="num">${esc(d.score)}${d.range?` <span class="tag">${esc(d.range)}</span>`:''}</span>`, esc(d.weight), conf(d.confidence), esc(d.owner), esc((d.dissenters||[]).join(', ')||'-')]))}</div></div>
+    ${S.dimensions.map(d=>inner(`${esc(d.name)} - ${esc(d.score)}/5 ${conf(d.confidence)}`, `<p>${esc(d.justification)}</p><h4>${esc(L.evidence)}</h4>${li(d.evidence)}`)).join('')}`);
 
   // --- council ---
   const C = D.council;
   html += sec(L.council, `<h4>${esc(L.council_health)}</h4><p>${esc(C.health)}</p>${C.round2_held===false?`<p class="banner">${esc(L.round2_skipped)}</p>`:''}
     <h3>${esc(L.agreed)}</h3>${li(C.agreed)}
-    <h3>${esc(L.disputed)}</h3>${(C.disputed||[]).map(d=>`<div class="cell" style="margin:8px 0"><b>${esc(d.topic)}</b>${(d.sides||[]).map(s=>`<p><strong>${esc((s.members||[]).join(', '))}:</strong> ${esc(s.argument)}</p>`).join('')}${d.moved_in_round2?`<p class="muted">${esc(L.round2)}: ${esc(d.moved_in_round2)}</p>`:''}</div>`).join('')||'<p class="muted">—</p>'}
+    <h3>${esc(L.disputed)}</h3>${(C.disputed||[]).map(d=>`<div class="cell" style="margin:8px 0"><b>${esc(d.topic)}</b>${(d.sides||[]).map(s=>`<p><strong>${esc((s.members||[]).join(', '))}:</strong> ${esc(s.argument)}</p>`).join('')}${d.moved_in_round2?`<p class="muted">${esc(L.round2)}: ${esc(d.moved_in_round2)}</p>`:''}</div>`).join('')||'<p class="muted">-</p>'}
     <h3>${esc(L.dissent)} <span class="tag">${esc((C.dissent.from||[]).join(', '))}</span></h3><div class="quote" style="white-space:pre-line">${esc(C.dissent.text)}</div>
     <h3>${esc(L.members)}</h3>${(C.members||[]).map(m=>inner(`${esc(m.name)} <span class="tag">${esc(L.round1)}: ${esc(m.position_r1)}</span>${m.position_r2?`<span class="tag">${esc(L.round2)}: ${esc(m.position_r2)}</span>`:''}`,
       `<h4>${esc(L.arguments)}</h4>${li(m.arguments)}${(m.scores||[]).length?table([L.dimension,L.score,L.confidence,''],m.scores.map(s=>[esc(s.dimension),esc(s.score),conf(s.confidence),esc(s.reason)])):''}<h4>${esc(L.change_my_mind)}</h4>${li(m.change_my_mind)}${m.round2_notes?`<h4>${esc(L.round2)}</h4><p style="white-space:pre-line">${esc(m.round2_notes)}</p>`:''}`)).join('')}`);
@@ -133,8 +133,8 @@
 
   // --- fits ---
   const SP = D.side_project_fit, AP = D.autopilot_fit;
-  html += sec(L.side_project_fit + ` — ${esc(SP.score)}/5`, `<p>${esc(SP.summary)}</p>${table(['','',L.weight],(SP.factors||[]).map(f=>[esc(f.name),esc(f.assessment),esc(f.weight)]))}`);
-  html += sec(L.autopilot_fit + ` — ${esc(AP.score)}/5`, `<p><strong>${esc(L.hours_per_week)}: ${esc(AP.hours_per_week_total)}</strong></p>${table(['','h',''],(AP.layers||[]).map(l=>[esc(l.name),esc(l.hours),esc(l.notes)]))}
+  html += sec(L.side_project_fit + ` - ${esc(SP.score)}/5`, `<p>${esc(SP.summary)}</p>${table(['','',L.weight],(SP.factors||[]).map(f=>[esc(f.name),esc(f.assessment),esc(f.weight)]))}`);
+  html += sec(L.autopilot_fit + ` - ${esc(AP.score)}/5`, `<p><strong>${esc(L.hours_per_week)}: ${esc(AP.hours_per_week_total)}</strong></p>${table(['','h',''],(AP.layers||[]).map(l=>[esc(l.name),esc(l.hours),esc(l.notes)]))}
     <h3>${esc(L.killers)}</h3>${table(['','',L.fix],(AP.killers||[]).map(k=>[esc(k.killer),`<span class="tag">${esc(k.fix_type)}</span>`,esc(k.fix)]))}`);
 
   // --- risks ---
@@ -148,8 +148,8 @@
   // --- appendix ---
   const A = D.appendix;
   html += sec(L.appendix, `<h3>${esc(L.closing_note)}</h3><p>${esc(A.closing_note)}</p><h3>${esc(L.data_gaps)}</h3>${li(A.data_gaps)}<h3>${esc(L.methodology)}</h3><p style="white-space:pre-line">${esc(A.methodology)}</p>
-    <h3>${esc(L.sources)}</h3>${(A.sources||[]).length?'<ol>'+A.sources.map(s=>`<li>${link(s.title||s.url,s.url)} ${s.date?`<span class="muted">(${esc(s.date)})</span>`:''}${s.outdated?`<span class="tag">${esc(L.outdated)}</span>`:''}</li>`).join('')+'</ol>':'<p class="muted">—</p>'}
-    ${A.frameworks_verified_on?`<p class="muted">Frameworks verified: ${esc(A.frameworks_verified_on)}</p>`:''}`, false);
+    <h3>${esc(L.sources)}</h3>${(A.sources||[]).length?'<ol>'+A.sources.map(s=>`<li>${link(s.title||s.url,s.url)} ${s.date?`<span class="muted">(${esc(s.date)})</span>`:''}${s.outdated?`<span class="tag">${esc(L.outdated)}</span>`:''}</li>`).join('')+'</ol>':'<p class="muted">-</p>'}
+    `, false);
 
   html += `<footer>idea-validator · ${esc(M.date)}</footer>`;
   document.getElementById('app').innerHTML = html;

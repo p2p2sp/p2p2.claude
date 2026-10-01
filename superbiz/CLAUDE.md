@@ -38,7 +38,7 @@ not the others breaks the report silently or fails validation.
   the weighted total recomputed with a 0.06 tolerance - `dimensions.md` (weights sum to 11);
 - key dimensions `problem`, `distribution`, `autopilot_fit`: Go is rejected when one scores <= 2,
   and needs `verdict.conditional_on` when one has `low` confidence - `dimensions.md` verdict rules;
-- exactly 7 council members - the `council.md` table, the seven member files, the skill body and
+- exactly 7 council members - the `council.md` member list, the seven member files, the skill body and
   its `description:`;
 - 3-8 experiments, `thresholds.go/pivot/no_go`, `round2_held` true unless `meta.quick_mode`.
 
