@@ -8,7 +8,9 @@
  * item it only REPORTS, never creates (a skeleton would name no command): the
  * line is `CLAUDE.md: present - <root>/CLAUDE.md`, the absolute path at the
  * repository root, so the skill can judge the content itself, or a plain
- * `CLAUDE.md: missing`.
+ * `CLAUDE.md: missing`. An existing `.claude/settings.json` is only reported
+ * too: `matches the template` when byte-identical to templates/settings.json,
+ * else `present`.
  *
  * An existing `viber.yml` is MERGED rather than left alone, because a new
  * version ships new switches a file seeded by an older one would never see. The
@@ -54,6 +56,7 @@ const SUT = path.resolve(import.meta.dirname, "../../viber/skills/setup/scripts/
 const CONFIG_SH = path.resolve(import.meta.dirname, "../../viber/scripts/config.sh");
 const TEMPLATE_GITIGNORE = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/gitignore.txt");
 const TEMPLATE_CONFIG = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/viber.yml");
+const TEMPLATE_SETTINGS = path.resolve(import.meta.dirname, "../../viber/skills/setup/templates/settings.json");
 
 /** The key list each schema number stands for, as `templateKeyPaths` spells it.
  *  A layout change records a new number here and raises the template's. */
@@ -758,6 +761,37 @@ test("an existing .claude/settings.json at the repository root is reported prese
     fs.mkdirSync(nested);
 
     const result = await run(nested, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^settings\.json: present$/m);
+    assert.equal(read(settings), before);
+  });
+});
+
+test("an existing .claude/settings.json byte-identical to the template is reported as matching and left byte-unchanged (the skill skips the reset-or-merge question on this line)", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const settings = path.join(dir, ".claude", "settings.json");
+    fs.mkdirSync(path.dirname(settings), { recursive: true });
+    const before = read(TEMPLATE_SETTINGS);
+    fs.writeFileSync(settings, before);
+
+    const result = await run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^settings\.json: matches the template \(left untouched\)$/m);
+    assert.doesNotMatch(result.stdout, /^settings\.json: present$/m);
+    assert.equal(read(settings), before);
+  });
+});
+
+test("an existing .claude/settings.json differing from the template only in formatting is reported present (a byte compare never passes a file it has not proven identical)", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const settings = path.join(dir, ".claude", "settings.json");
+    fs.mkdirSync(path.dirname(settings), { recursive: true });
+    const before = JSON.stringify(JSON.parse(read(TEMPLATE_SETTINGS)));
+    fs.writeFileSync(settings, before);
+
+    const result = await run(dir, env);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.match(result.stdout, /^settings\.json: present$/m);

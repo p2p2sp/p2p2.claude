@@ -51,8 +51,10 @@
 #            <root>/.gitignore        (seeded from templates/gitignore.txt when the
 #                                      project has none, otherwise ".temp/" is
 #                                      appended only when no rule ignores it)
-#   reads  : <root>/.claude/settings.json (existence only, never written - the
-#                                      skill asks reset or merge when present)
+#   reads  : <root>/.claude/settings.json (never written - compared byte for
+#                                      byte with templates/settings.json; the
+#                                      skill asks reset or merge only when it
+#                                      differs)
 #            <root>/CLAUDE.md         (existence only, never read, never written -
 #                                      the skill reads its content through the
 #                                      absolute path printed below)
@@ -66,7 +68,11 @@
 #            "build.baseline-tests <old> -> <new> (the switch takes off, fast or
 #            full)" when that value was rewritten, then "merged from
 #            the template: <keys> (your own values kept)" for every group
-#            appended or child restored at its default. The CLAUDE.md line is exactly
+#            appended or child restored at its default. The settings line is
+#            exactly "settings.json: absent", "settings.json: matches the template
+#            (left untouched)" (byte-identical to the template) or
+#            "settings.json: present" (any difference, or the template missing).
+#            The CLAUDE.md line is exactly
 #            "CLAUDE.md: present - <root>/CLAUDE.md" (<root> as
 #            `git rev-parse --show-toplevel` prints it, or the cwd base outside a
 #            repository) or "CLAUDE.md: missing".
@@ -78,6 +84,7 @@ set -u
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 template="$here/../templates/viber.yml"
 template_gitignore="$here/../templates/gitignore.txt"
+template_settings="$here/../templates/settings.json"
 
 root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 if [ -z "$root" ] || [ ! -d "$root" ]; then
@@ -311,9 +318,16 @@ else
 fi
 
 # Reported, never written: merge-settings.sh owns this file, and an existing one
-# makes the skill ask whether to reset it or merge into it.
+# that differs from the template makes the skill ask whether to reset it or
+# merge into it. A byte-identical one has nothing to merge or reset, so the
+# question is skipped. A byte compare needs no node; a file that differs only in
+# formatting is reported present and asked about, never silently passed.
 if [ -f "$root/.claude/settings.json" ]; then
-  echo "settings.json: present"
+  if [ -f "$template_settings" ] && cmp -s "$template_settings" "$root/.claude/settings.json"; then
+    echo "settings.json: matches the template (left untouched)"
+  else
+    echo "settings.json: present"
+  fi
 else
   echo "settings.json: absent"
 fi

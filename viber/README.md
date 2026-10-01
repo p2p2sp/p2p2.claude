@@ -180,8 +180,8 @@ nothing names one, and creates no directory of its own. Scratch files go to `.te
 `/viber:prototype`'s mockups to `.temp/viber/prototype/` within it. Your
 `.claude/viber.yml` and your `.gitignore` are only ever added to, never rewritten, except that a
 switch written outside its group is moved into it with its value. Your
-`.claude/settings.json` gets every setting viber recommends. If the file already exists, setup
-asks first: merge (a value viber sets wins over yours, permission lists only gain entries, and a
+`.claude/settings.json` gets every setting viber recommends. If the file already exists and
+differs from the recommended one, setup asks first: merge (a value viber sets wins over yours, permission lists only gain entries, and a
 permission viber moved from `deny` to `ask` is moved in your settings too) or reset (the file is
 replaced from scratch, the old one kept in `.temp/viber/setup/settings.json.bak`). Keep your own overrides in `.claude/settings.local.json`, which viber never
 touches.

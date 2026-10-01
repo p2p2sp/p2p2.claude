@@ -1859,9 +1859,9 @@ followed by <code>/plugin install viber@p2p2</code> does the same as the termina
   <li><span lang="en">writes the <a href="#term-switch">switches</a> to <code>.claude/viber.yml</code>;</span><span lang="pl">zapisuje
   <a href="#term-switch">przełączniki</a> w <code>.claude/viber.yml</code>;</span></li>
   <li><span lang="en">puts the recommended permissions into <code>.claude/settings.json</code>, asking first
-  whether to merge or reset when that file exists;</span><span lang="pl">wpisuje zalecane uprawnienia do
-  <code>.claude/settings.json</code>, a gdy ten plik istnieje, najpierw pyta, czy scalić, czy
-  zastąpić;</span></li>
+  whether to merge or reset when that file exists and differs from the recommended one;</span><span lang="pl">wpisuje zalecane uprawnienia do
+  <code>.claude/settings.json</code>, a gdy ten plik istnieje i różni się od zalecanego, najpierw pyta, czy
+  scalić, czy zastąpić;</span></li>
   <li><span lang="en">adds <code>.temp/</code> to <code>.gitignore</code> when nothing ignores it
   yet;</span><span lang="pl">dopisuje <code>.temp/</code> do <code>.gitignore</code>, gdy nic go jeszcze nie
   ignoruje;</span></li>
@@ -2055,9 +2055,11 @@ z nich mówi, jak nim sterować.</p>
       <dt><span lang="en">Arguments</span><span lang="pl">Argumenty</span></dt>
       <dd><span lang="en">None. When <code>.claude/settings.json</code> already exists, it asks one question:
       merge the recommended permissions into it (viber's value wins a conflict, permission lists only gain
-      entries) or reset it to the recommended file.</span><span lang="pl">Brak. Gdy <code>.claude/settings.json</code>
+      entries) or reset it to the recommended file. A file identical to the recommended one is left as it is,
+      with no question.</span><span lang="pl">Brak. Gdy <code>.claude/settings.json</code>
       już istnieje, zadaje jedno pytanie: scalić z nim zalecane uprawnienia (w konflikcie wygrywa wartość
-      viber, listy uprawnień tylko się wydłużają) czy zastąpić go zalecanym plikiem.</span></dd>
+      viber, listy uprawnień tylko się wydłużają) czy zastąpić go zalecanym plikiem. Plik identyczny z
+      zalecanym zostaje bez zmian i bez pytania.</span></dd>
     </div>
     <div>
       <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>

@@ -29,7 +29,8 @@ builders of `plan-index`, `plan-path`, `commit-task` and `archive-run` together.
   each carry the four anchor lines `## Goal`, `## Acceptance criteria`, `### File map`,
   `### Out of scope`, and no `plan.md` sits there beside `tasks.md`.
 - `merge-settings.test.ts` asserts the shape of `skills/setup/templates/settings.json`;
-  `bootstrap.test.ts` reads `templates/gitignore.txt` and `templates/viber.yml`.
+  `bootstrap.test.ts` reads `templates/gitignore.txt`, `templates/viber.yml` and
+  `templates/settings.json`.
 - `commit-context.test.ts` lifts the fenced `!` block out of `skills/commit/SKILL.md`,
   substitutes `$ARGUMENTS` and `${CLAUDE_PLUGIN_ROOT}` as Claude Code does, and asserts it is one
   literal line calling `commit-context.sh`.

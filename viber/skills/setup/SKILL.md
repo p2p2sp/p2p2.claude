@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Prepares a project for viber - seeds .claude/viber.yml, .gitignore and the recommended .claude/settings.json permissions (asking whether to merge into or reset an existing one), checks the gh CLI is installed, checks whether CLAUDE.md names the build and test commands, and opens the usage guide in the browser.
+description: Prepares a project for viber - seeds .claude/viber.yml, .gitignore and the recommended .claude/settings.json permissions (asking whether to merge into or reset an existing one that differs from them), checks the gh CLI is installed, checks whether CLAUDE.md names the build and test commands, and opens the usage guide in the browser.
 allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/bootstrap.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/merge-settings.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/open-page.sh:*), Read
 user-invocable: true
 disable-model-invocation: true
@@ -22,7 +22,9 @@ The settings file is the one choice. On `settings.json: present`, ask with `AskU
 
 On `settings.json: absent` ask nothing and run the merge form, which creates the file.
 
-Run the chosen form once. Its line is carried into the close literally, never re-verified, never retried; a non-zero exit is trusted the same way:
+On `settings.json: matches the template` ask nothing and run neither form: that preload line is the settings line.
+
+Otherwise run the chosen form once. Its line is carried into the close literally, never re-verified, never retried; a non-zero exit is trusted the same way:
 
 ```
 "${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/merge-settings.sh" "${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/settings.json"
@@ -43,4 +45,4 @@ Then open the onboarding page in the user's browser, its line trusted like the s
 "${CLAUDE_PLUGIN_ROOT}/scripts/open-page.sh" "${CLAUDE_SKILL_DIR}/assets/help.html"
 ```
 
-Close with one line per item: the preload's lines except its `settings.json:` and `CLAUDE.md:` ones, the settings line, the `CLAUDE.md:` check line with its prompt block, and the page line. Never read or restate the page's content in the reply.
+Close with one line per item: the preload's lines except its `settings.json:` and `CLAUDE.md:` ones, the settings line (the script's, or the preload's on a match), the `CLAUDE.md:` check line with its prompt block, and the page line. Never read or restate the page's content in the reply.

@@ -9,7 +9,7 @@
 # The layout this file follows. /viber:setup raises it when it brings the file
 # up to a newer layout, and a session start tells you when it lags behind the
 # installed viber. Leave it as it is.
-schema: 1
+schema: 2
 
 # The two directories under docs/: where an open run lives, and where the
 # archive of a finished one lands. Directory NAMES, not paths - a value with a
@@ -66,7 +66,7 @@ planning:
 build:
   # implementor runs the test suite once before the first task and records what
   # already fails, so a build repairs only the failures it caused.
-  baseline-tests: false
+  baseline-tests: off
   # implementor runs one fresh review of the whole build after every task is
   # committed and before the final test run, at the edge of the build's diff
   # where per-task review and the test suite cannot see; one coder fixes
