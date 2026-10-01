@@ -1862,8 +1862,9 @@ followed by <code>/plugin install viber@p2p2</code> does the same as the termina
   whether to merge or reset when that file exists and differs from the recommended one;</span><span lang="pl">wpisuje zalecane uprawnienia do
   <code>.claude/settings.json</code>, a gdy ten plik istnieje i różni się od zalecanego, najpierw pyta, czy
   scalić, czy zastąpić;</span></li>
-  <li><span lang="en">adds <code>.temp/</code> to <code>.gitignore</code> when nothing ignores it
-  yet;</span><span lang="pl">dopisuje <code>.temp/</code> do <code>.gitignore</code>, gdy nic go jeszcze nie
+  <li><span lang="en">adds <code>.temp/</code> and <code>.claude/viber.local.yml</code> to <code>.gitignore</code>
+  when nothing ignores them yet;</span><span lang="pl">dopisuje <code>.temp/</code> i
+  <code>.claude/viber.local.yml</code> do <code>.gitignore</code>, gdy nic ich jeszcze nie
   ignoruje;</span></li>
   <li><span lang="en">checks that <code>gh</code> is installed and opens this page.</span><span lang="pl">sprawdza,
   czy jest zainstalowane <code>gh</code>, i otwiera tę stronę.</span></li>
@@ -2068,10 +2069,12 @@ z nich mówi, jak nim sterować.</p>
     <div>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
       <dd><span lang="en"><code>.claude/viber.yml</code>, <code>.claude/settings.json</code> and
-      <code>.gitignore</code> (it adds <code>.temp/</code> when no rule ignores it yet). A reset keeps your old
+      <code>.gitignore</code> (it adds <code>.temp/</code> and <code>.claude/viber.local.yml</code> when no rule
+      ignores them yet). It never creates <code>.claude/viber.local.yml</code>. A reset keeps your old
       settings in <code>.temp/viber/setup/settings.json.bak</code>.</span><span lang="pl"><code>.claude/viber.yml</code>,
-      <code>.claude/settings.json</code> i <code>.gitignore</code> (dopisuje <code>.temp/</code>, gdy żadna
-      reguła jeszcze go nie ignoruje). Przy resecie stare ustawienia zostają w
+      <code>.claude/settings.json</code> i <code>.gitignore</code> (dopisuje <code>.temp/</code> i
+      <code>.claude/viber.local.yml</code>, gdy żadna reguła jeszcze ich nie ignoruje). Nigdy nie tworzy
+      <code>.claude/viber.local.yml</code>. Przy resecie stare ustawienia zostają w
       <code>.temp/viber/setup/settings.json.bak</code>.</span></dd>
     </div>
   </dl>
@@ -2926,6 +2929,16 @@ i <code>build.baseline-tests</code> startują wyłączone. Zmienisz to w <code>.
 klucz ma tam komentarz, a za włączony liczy się tylko <code>true</code>. Przełącznik wyłączaj wartością
 <code>false</code>, nie usuwaj go. Tylko <code>build.baseline-tests</code> przyjmuje <code>off</code>,
 <code>fast</code> lub <code>full</code>.</p>
+<p lang="en">To change a few settings for yourself only, create an optional
+<code>.claude/viber.local.yml</code> in the same layout. It overrides four keys, <code>tiers.min</code>,
+<code>tiers.max</code>, <code>build.baseline-tests</code> and <code>github.issues</code>, and nothing else; an
+empty or invalid value is ignored. It stays out of git: <code>/viber:setup</code> adds it to
+<code>.gitignore</code>, and never creates or changes it.</p>
+<p lang="pl">Aby zmienić kilka ustawień tylko dla siebie, utwórz opcjonalny plik
+<code>.claude/viber.local.yml</code> w tym samym układzie. Nadpisuje on cztery klucze,
+<code>tiers.min</code>, <code>tiers.max</code>, <code>build.baseline-tests</code> i <code>github.issues</code>,
+i nic więcej; pusta lub niepoprawna wartość jest ignorowana. Plik nie trafia do gita:
+<code>/viber:setup</code> dopisuje go do <code>.gitignore</code> i nigdy go nie tworzy ani nie zmienia.</p>
 <p lang="en">Running <code>/viber:setup</code> again merges in every key the current version's template has and
 your file lacks. That is how a new switch reaches a project set up by an older version, and the same merge
 restores a deleted top-level key, or a deleted child of <code>planning:</code>, <code>build:</code>,

@@ -7,6 +7,11 @@
 # child of one already present, so deleting a child there is not restored - it
 # resolves to its default in config.sh instead.
 
+# Four settings can be overridden for you alone in an optional
+# .claude/viber.local.yml: tiers.min, tiers.max, build.baseline-tests and
+# github.issues. It uses the same layout as this file, stays out of git (setup
+# adds it to .gitignore) and is never created or changed by /viber:setup.
+
 # The layout this file follows. /viber:setup raises it when it brings the file
 # up to a newer layout, and a session start tells you when it lags behind the
 # installed viber. Leave it as it is.

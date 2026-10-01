@@ -331,6 +331,7 @@ nul
 backend/frontend/
 
 # Claude files
+.claude/viber.local.yml
 .claude/agent-memory
 tmpclaude-*
 .test-results

@@ -108,6 +108,11 @@ says it needs that run.
 | `build.cleanup` | on | The build ends by noting anything it delivered that the specification does not promise, then archiving the run and dropping the working files. |
 | `github.issues` | **off** | `/viber:intent`, `/viber:fixer` and `/viber:prototype` can start from a GitHub issue's number or link, and an interview that did not can save its conclusions as a new one; `/viber:prototype` can post its mockup to the issue it started from; `/viber:triage` can fetch and publish to a GitHub issue instead of pasted text alone. |
 
+To change a few settings for yourself only, create an optional `.claude/viber.local.yml` in the
+same layout. It overrides four keys - `tiers.min`, `tiers.max`, `build.baseline-tests` and
+`github.issues` - and nothing else; an empty or invalid value is ignored. It stays out of git
+(`/viber:setup` adds it to `.gitignore`), and `/viber:setup` never creates or changes it.
+
 The `github:` group also carries the title patterns of the issues and pull requests viber opens,
 `issue-title` (`'{summary}'`) and `pr-title` (`'[{issue-number}] {summary}'`).
 
@@ -179,7 +184,8 @@ Playwright tests go into the e2e directory your own project already uses - `/vib
 nothing names one, and creates no directory of its own. Scratch files go to `.temp/viber/`, and
 `/viber:prototype`'s mockups to `.temp/viber/prototype/` within it. Your
 `.claude/viber.yml` and your `.gitignore` are only ever added to, never rewritten, except that a
-switch written outside its group is moved into it with its value. Your
+switch written outside its group is moved into it with its value. Setup adds `.temp/` and
+`.claude/viber.local.yml` to your `.gitignore` when no rule ignores them yet. Your
 `.claude/settings.json` gets every setting viber recommends. If the file already exists and
 differs from the recommended one, setup asks first: merge (a value viber sets wins over yours, permission lists only gain entries, and a
 permission viber moved from `deny` to `ask` is moved in your settings too) or reset (the file is
